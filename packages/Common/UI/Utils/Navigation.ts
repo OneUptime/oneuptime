@@ -4,6 +4,7 @@ import URL from "../../Types/API/URL";
 import Dictionary from "../../Types/Dictionary";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
+import LeaveGuard from "./LeaveGuard";
 import NewVersion from "./NewVersion/NewVersion";
 import {
   Location,
@@ -481,34 +482,57 @@ abstract class Navigation {
      * page, and dropping that navigation would strand the user.
      */
     if (
-      this.navigateHook &&
+      this.canNavigateInApp() &&
       to instanceof Route &&
       !this.isCurrentRoute(to, { caseSensitive: true })
     ) {
       /*
-       * A new version of OneUptime is out: another page opens in full, in
-       * the new version, instead of inside this tab's old one, which would
-       * ask the server for code the new version no longer has
-       * (Utils/NewVersion). A query on the same page stays inside the tab.
+       * A page with work nobody has saved yet (a dashboard being edited)
+       * asks before another page opens, and the step waits for its answer
+       * (LeaveGuard). Every other page goes on at once, as always. Decided
+       * when the step is taken, so a page the reader lets go no longer holds
+       * the new version back below.
        */
-      if (
-        this.opensAnotherPage(finalUrl) &&
-        NewVersion.shouldLoadNavigationInFull()
-      ) {
-        NewVersion.openInFull(finalUrl, { replace: Boolean(options?.replace) });
-        return;
-      }
-
-      if (options?.replace) {
-        this.navigateHook(finalUrl, { replace: true });
-      } else {
-        this.navigateHook(finalUrl);
-      }
+      LeaveGuard.whenLeaving(finalUrl, () => {
+        this.navigateInApp(finalUrl, {
+          replace: Boolean(options?.replace),
+        });
+      });
+      return;
     }
 
-    // if its an external link outside of react.
+    /*
+     * An external link outside of react: a page loaded in full, which the
+     * browser's own dialog asks about while a page holds unsaved work.
+     */
     if (to instanceof URL) {
       window.location.href = finalUrl;
+    }
+  }
+
+  // Opens a page of this app inside the tab: the router's own step.
+  private static navigateInApp(
+    finalUrl: string,
+    options: { replace: boolean },
+  ): void {
+    /*
+     * A new version of OneUptime is out: another page opens in full, in the
+     * new version, instead of inside this tab's old one, which would ask the
+     * server for code the new version no longer has (Utils/NewVersion). A
+     * query on the same page stays inside the tab.
+     */
+    if (
+      this.opensAnotherPage(finalUrl) &&
+      NewVersion.shouldLoadNavigationInFull()
+    ) {
+      NewVersion.openInFull(finalUrl, { replace: options.replace });
+      return;
+    }
+
+    if (options.replace) {
+      this.navigateHook(finalUrl, { replace: true });
+    } else {
+      this.navigateHook(finalUrl);
     }
   }
 }

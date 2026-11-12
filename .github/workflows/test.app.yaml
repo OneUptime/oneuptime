@@ -1027,6 +1027,12 @@ jobs:
           # added 1 test to Cloud Connect the same day (4 runs on its desktop
           # and phone, about 4 seconds each locally; about 0.3 minutes on a
           # runner): the suite 12.5, the group 21.1.
+          # Leaving a board being edited (#7173) added 2 tests to Dashboard
+          # Widget Sort on 2026-11-12 (a desktop's only: the side menu, Back
+          # and a reload asking while a new widget is unsaved, nothing asking
+          # when nothing changed or once it is saved; about 13 seconds
+          # locally, about 0.3 minutes on a runner): the suite 1.4, the
+          # group 21.4.
           - group: 8
             suites: >-
               test-dashboard-time-range-ui

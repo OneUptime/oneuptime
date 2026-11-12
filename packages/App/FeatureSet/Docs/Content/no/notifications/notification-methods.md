@@ -2,6 +2,9 @@
 
 En varselmetode er en adresse OneUptime kan nå deg på i ett prosjekt: en e-postadresse, et telefonnummer for SMS eller anrop, et WhatsApp-nummer, en Telegram-konto, Slack-, Microsoft Teams- eller Mattermost-kontoen din, en telefon eller nettleser for push-varsler, eller en webhook. Du legger dem til under **Brukerinnstillinger → Varselmetoder**, verifiserer dem, og OneUptime begynner straks å bruke dem til tilkallingene dine.
 
+> [!TIP]
+> Ny her? Følg guiden først: [Bli varslet via telefon, SMS eller push](/docs/guides/paging).
+
 :::cards
 - [Velg en metode](#velg-en-metode): Hva hver metode trenger, og hvordan den verifiseres.
 - [Legg til og verifiser en metode](#legg-til-og-verifiser-en-metode): E-post, SMS, anrop og WhatsApp, med en kode på 6 sifre.

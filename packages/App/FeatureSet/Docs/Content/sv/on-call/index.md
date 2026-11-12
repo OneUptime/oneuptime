@@ -2,6 +2,9 @@
 
 Jour är hur OneUptime får en person att ta tag i ett problem, när som helst på dygnet. När en incident, ett larm eller en episod behöver någon larmar dess jourpolicyer personer nivå för nivå tills någon bekräftar, och varje person nås på det sätt hen har valt: en pushavisering, ett SMS, ett samtal, ett e-postmeddelande eller ett chattmeddelande. Den här sidan visar hur delarna hänger ihop och var var och en finns. Sidan [Ordlista](/docs/introduction/glossary#jourpolicy) förklarar varje ord som används inom jour, med en eller två meningar.
 
+> [!TIP]
+> Ny här? Följ guiden först: [Bli larmad via samtal, SMS eller push](/docs/guides/paging).
+
 :::cards
 - [Så når en utlarmning någon](#så-når-en-utlarmning-någon): Från en ny incident till personen som svarar.
 - [Byggstenarna](#byggstenarna): Policyer, eskaleringsregler, scheman, åsidosättningar och personliga regler.

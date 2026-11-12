@@ -33,9 +33,12 @@ jest.mock("../../../UI/Utils/ProductEvents", () => {
 });
 
 import GuidedSetupFrame, {
+  GUIDED_SETUP_GUIDE_LINK_TEST_ID,
+  GUIDED_SETUP_GUIDE_TEXT,
   GuidedSetupFrameStep,
   SUMMARY_STEP_KEY,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/GuidedSetupFrame";
+import { getLearnMoreUrl } from "../../../UI/Components/Link/LearnMoreLink";
 import { ProductEventName } from "../../../Types/Analytics/ProductEvent";
 
 const steps: (...done: Array<boolean>) => Array<GuidedSetupFrameStep> = (
@@ -239,5 +242,46 @@ describe("the setup's events", () => {
     expect(sent(ProductEventName.GuidedSetupLeft)).toEqual([
       { setup: "example_setup", step: "second", step_number: 1 },
     ]);
+  });
+});
+
+describe("the docs' guide to the same job (#6821)", () => {
+  test("is linked beside the progress line, in a new tab, in the reader's language", () => {
+    render(
+      <GuidedSetupFrame
+        setup="example_setup"
+        steps={steps()}
+        openStepKey="first"
+        onOpenStep={() => {}}
+        summary={<p>All set</p>}
+        isFinished={false}
+        guideDocsPath="/docs/guides/paging"
+      />,
+    );
+
+    const link: HTMLElement = screen.getByTestId(
+      GUIDED_SETUP_GUIDE_LINK_TEST_ID,
+    );
+
+    expect(GUIDED_SETUP_GUIDE_TEXT).toBe("Step-by-step guide");
+    expect(link).toHaveTextContent(GUIDED_SETUP_GUIDE_TEXT);
+    expect(link).toHaveAttribute(
+      "href",
+      getLearnMoreUrl("/docs/guides/paging", "en"),
+    );
+    expect(link.getAttribute("href")).toMatch(/\/guides\/paging$/);
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    // On the progress line's row, so it never pushes the steps down.
+    expect(link.parentElement).toContainElement(
+      screen.getByTestId("guided-setup-progress"),
+    );
+  });
+
+  test("is not drawn for a setup with no guide", () => {
+    render(draw({ steps: steps(), openStepKey: "first" }));
+
+    expect(screen.queryByTestId(GUIDED_SETUP_GUIDE_LINK_TEST_ID)).toBeNull();
+    expect(screen.getByTestId("guided-setup-progress")).toBeInTheDocument();
   });
 });
