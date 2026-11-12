@@ -78,7 +78,7 @@ Open in het dashboard **Gebruikersinstellingen → Meldingsmethoden** en het tab
 Klik op **Testmelding** in de rij van de telefoon. Er komt een melding op de telefoon; tik erop om de app te openen.
 :::
 
-Uw bereikbaarheidsregels bepalen welke oproepen naar de telefoon gaan, en hoe snel: zie **Gebruikersinstellingen → Bereikbaarheidsregels**. Een nieuwe telefoon krijgt dezelfde standaardregels als elke andere methode die u toevoegt.
+Uw bereikbaarheidsregels bepalen welke oproepen naar de telefoon gaan, en hoe snel: zie **Gebruikersinstellingen → Hoe ik bereikbaar ben**. Een nieuwe telefoon krijgt dezelfde standaardregels als elke andere methode die u toevoegt.
 
 ## Door de stille modus heen klinken
 
@@ -139,7 +139,7 @@ De app kon `https://<your-oneuptime>/api/status` niet bereiken. Controleer het a
 - Controleer in de Android-instellingen of meldingen voor de app aanstaan, en of Niet storen uit is of kritieke meldingen aan zijn.
 - Controleer of de telefoon onder **Pushmeldingen** staat in **Gebruikersinstellingen → Meldingsmethoden**, en stuur hem een **Testmelding**.
 - Is de telefoon gemarkeerd als **Ontvangt geen meldingen**, open dan de app terwijl u bent aangemeld. Die registreert de telefoon opnieuw; zie [Wanneer een telefoon zich opnieuw moet registreren](/docs/mobile-desktop-apps/faq-troubleshooting#wanneer-een-telefoon-zich-opnieuw-moet-registreren).
-- Controleer uw bereikbaarheidsregels onder **Gebruikersinstellingen → Bereikbaarheidsregels**.
+- Controleer uw bereikbaarheidsregels onder **Gebruikersinstellingen → Hoe ik bereikbaar ben**.
 - Controleer bij een zelf gehost OneUptime of uw server zijn push-relay bereikt: zie [Pushmeldingen](/docs/self-hosted/push-notifications#netwerktoegang).
 :::
 

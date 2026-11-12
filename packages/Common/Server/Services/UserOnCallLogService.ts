@@ -69,7 +69,7 @@ import AlertSeverityService from "./AlertSeverityService";
  * characterisation test pins it character for character.
  */
 export const NO_NOTIFICATION_RULES_STATUS_MESSAGE: string =
-  "No notification rules found for this user. User should add the rules in User Settings > On-Call Rules.";
+  "No notification rules found for this user. User should add the rules in User Settings > How to Reach Me.";
 
 /*
  * Why an on-call notification log stopped part way: the person left the
@@ -1227,7 +1227,7 @@ export class Service extends DatabaseService<Model> {
         timelineStatus: OnCallDutyExecutionLogTimelineStatus.Error,
         statusMessage: isPermanentlyUndeliverable
           ? `${responderLabel} has no verified notification method, so this page could not be delivered. Ask them to add one in User Settings > Notification Methods.`
-          : `${responderLabel} has no notification rule for ${data.severityName} and the fallback delivery attempt failed, so this page was not delivered. Check the worker logs, then add a rule in User Settings > On-Call Rules.`,
+          : `${responderLabel} has no notification rule for ${data.severityName} and the fallback delivery attempt failed, so this page was not delivered. Check the worker logs, then add a rule in User Settings > How to Reach Me.`,
       });
     }
 

@@ -1721,7 +1721,7 @@ describe("who hears about an alert", () => {
       readDashboardSource("Components/NotificationRule/OnCallRuleKinds.ts"),
     ).toContain('tabName: "Alerts",');
     expect(hears).toContain(
-      "under **User Settings → On-Call Rules**, on the **Alerts** tab.",
+      "under **User Settings → How to Reach Me**, on the **Alerts** tab.",
     );
     expect(hears).toContain(
       "under **User Settings → Notification Settings**, on the **Alerts** tab",

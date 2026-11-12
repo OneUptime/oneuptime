@@ -159,7 +159,7 @@ flowchart TB
 Para que un aviso anule el modo silencio deben cumplirse cuatro cosas. Si falta cualquiera de ellas, el aviso se entrega igualmente – solo que en silencio.
 
 1. **La persona lo activó en ese dispositivo.** Se guarda por dispositivo, desactivado por defecto, en `UserPush.isCriticalAlertEnabled`. El móvil y la tableta de una misma persona son decisiones separadas. Las versiones de la app posteriores a la 1.6.0 lo vuelven a comunicar cada vez que se abren, como desactivado mientras los ajustes del propio teléfono no permitan alertas críticas, para que la lista de dispositivos muestre lo que el teléfono hará de verdad.
-2. **La regla de guardia que envió el aviso lo pide.** En **Ajustes de usuario > Reglas de guardia**, cada regla que notifica a un teléfono está en «Alerta crítica», el valor predeterminado, o en «Estándar», que sigue los ajustes de sonido del teléfono – así una persona puede despertarse por un incidente crítico y recibir en silencio uno menor. Se guarda por regla en `UserNotificationRule.pushNotificationLevel`.
+2. **La regla de guardia que envió el aviso lo pide.** En **Ajustes de usuario > Cómo contactarme**, cada regla que notifica a un teléfono está en «Alerta crítica», el valor predeterminado, o en «Estándar», que sigue los ajustes de sonido del teléfono – así una persona puede despertarse por un incidente crítico y recibir en silencio uno menor. Se guarda por regla en `UserNotificationRule.pushNotificationLevel`.
 3. **El servidor marca el aviso como crítico.** Envía la carga de sonido crítico de APNs más `interruptionLevel: critical` para iOS, y apunta a un canal de notificación crítico para Android: `oncall_critical`, o el canal propio de la alarma elegida (ver [Elegir el sonido de alarma](#elegir-el-sonido-de-alarma)).
 4. **El sistema operativo lo permite**, y ahí es donde difieren las dos plataformas.
 
@@ -204,7 +204,7 @@ Un dispositivo mantiene el sonido del sistema hasta que ejecuta una versión de 
 
 ### Repetir un aviso hasta que se reconozca
 
-Una regla push puede volver a enviar su aviso hasta que alguien lo reconozca. En **Ajustes de usuario > Reglas de guardia**, elige **Repetir hasta que se reconozca** al añadir una regla push, o cámbialo más tarde en la fila de la regla: cada minuto, o cada 2, 3, 5, 10, 15 o 30 minutos. El aviso se vuelve a enviar con ese intervalo, como máximo 10 veces más, y se detiene en cuanto se reconoce el incidente, la alerta o el episodio. Se guarda por regla en `UserNotificationRule.repeatEveryMinutes`, donde 0, el valor predeterminado, envía el aviso una sola vez.
+Una regla push puede volver a enviar su aviso hasta que alguien lo reconozca. En **Ajustes de usuario > Cómo contactarme**, elige **Repetir hasta que se reconozca** al añadir una regla push, o cámbialo más tarde en la fila de la regla: cada minuto, o cada 2, 3, 5, 10, 15 o 30 minutos. El aviso se vuelve a enviar con ese intervalo, como máximo 10 veces más, y se detiene en cuanto se reconoce el incidente, la alerta o el episodio. Se guarda por regla en `UserNotificationRule.repeatEveryMinutes`, donde 0, el valor predeterminado, envía el aviso una sola vez.
 
 ## Solución de problemas
 
@@ -225,7 +225,7 @@ Una regla push puede volver a enviar su aviso hasta que alguien lo reconozca. En
 ### Las alertas críticas no anulan el modo silencio
 
 - Comprueba que el interruptor está activado en **ese** dispositivo – el ajuste es por dispositivo, y una reinstalación o un móvil nuevo configurado desde cero crea un nuevo registro de dispositivo (un móvil configurado a partir de una copia de seguridad del anterior se queda con el registro del móvil anterior en cuanto este deja de recibir notificaciones, con el ajuste que tenía la app)
-- Comprueba la regla de guardia de esa gravedad en **Ajustes de usuario > Reglas de guardia**: una regla push en «Estándar» sigue los ajustes de sonido del teléfono, diga lo que diga el interruptor del dispositivo
+- Comprueba la regla de guardia de esa gravedad en **Ajustes de usuario > Cómo contactarme**: una regla push en «Estándar» sigue los ajustes de sonido del teléfono, diga lo que diga el interruptor del dispositivo
 - **iOS**: confirma que la compilación lleva el entitlement de alertas críticas de Apple (ver arriba) y que Critical Alerts está permitido en iOS Settings > Notifications > OneUptime On-Call
 - **Android**: confirma que la app tiene acceso a No molestar en Settings > Notifications > Do Not Disturb access
 - **Android**: si elegiste un sonido de alarma, su propio canal de notificación también debe tener permiso para anular No molestar; la pantalla Alarm sound de la app indica cuándo no lo tiene
