@@ -50933,5 +50933,8 @@
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, monitoreo desactivado, desde {{start}}, {{duration}} hasta ahora. Activo actualmente.",
   "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, monitoreo desactivado, {{start}} – {{end}}, {{duration}}",
   "{{count}} earlier turns are not shown": "{{count}} turnos anteriores no se muestran",
-  "{{count}} earlier turns are not shown_one": "{{count}} turno anterior no se muestra"
+  "{{count}} earlier turns are not shown_one": "{{count}} turno anterior no se muestra",
+  "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}.": "La IA leyó estos {{count}} archivos y ya no tiene parte de su texto, y sus versiones los reemplazan enteros: {{files}}.",
+  "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}._one": "La IA leyó este archivo y ya no tiene parte de su texto, y su versión lo reemplaza entero: {{files}}.",
+  "Ask AI read this file and no longer has part of its text, and its version replaces all of it: {{files}}.": "La IA leyó este archivo y ya no tiene parte de su texto, y su versión lo reemplaza entero: {{files}}."
 }

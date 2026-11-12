@@ -50933,5 +50933,8 @@
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.",
   "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}",
   "{{count}} earlier turns are not shown": "{{count}} earlier turns are not shown",
-  "{{count}} earlier turns are not shown_one": "{{count}} earlier turn is not shown"
+  "{{count}} earlier turns are not shown_one": "{{count}} earlier turn is not shown",
+  "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}.": "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}.",
+  "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}._one": "Ask AI read this file and no longer has part of its text, and its version replaces all of it: {{files}}.",
+  "Ask AI read this file and no longer has part of its text, and its version replaces all of it: {{files}}.": "Ask AI read this file and no longer has part of its text, and its version replaces all of it: {{files}}."
 }

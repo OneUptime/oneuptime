@@ -50933,5 +50933,8 @@
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}، پایش خاموش، از {{start}}، تاکنون {{duration}}. در حال حاضر فعال.",
   "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}، پایش خاموش، {{start}} – {{end}}، {{duration}}",
   "{{count}} earlier turns are not shown": "{{count}} نوبت قبلی نمایش داده نمی‌شود",
-  "{{count}} earlier turns are not shown_one": "{{count}} نوبت قبلی نمایش داده نمی‌شود"
+  "{{count}} earlier turns are not shown_one": "{{count}} نوبت قبلی نمایش داده نمی‌شود",
+  "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}.": "هوش مصنوعی این {{count}} فایل را خوانده است و دیگر بخشی از متن آن‌ها را ندارد و نسخه‌های هوش مصنوعی جایگزین کل این فایل‌ها می‌شوند: {{files}}.",
+  "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}._one": "هوش مصنوعی این فایل را خوانده است و دیگر بخشی از متن آن را ندارد و نسخهٔ هوش مصنوعی جایگزین کل فایل می‌شود: {{files}}.",
+  "Ask AI read this file and no longer has part of its text, and its version replaces all of it: {{files}}.": "هوش مصنوعی این فایل را خوانده است و دیگر بخشی از متن آن را ندارد و نسخهٔ هوش مصنوعی جایگزین کل فایل می‌شود: {{files}}."
 }

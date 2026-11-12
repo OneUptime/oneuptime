@@ -50933,5 +50933,8 @@
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, 모니터링 꺼짐, {{start}}부터, 현재까지 {{duration}}. 현재 활성.",
   "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, 모니터링 꺼짐, {{start}} – {{end}}, {{duration}}",
   "{{count}} earlier turns are not shown": "이전 차례 {{count}}개는 표시되지 않습니다",
-  "{{count}} earlier turns are not shown_one": "이전 차례 {{count}}개는 표시되지 않습니다"
+  "{{count}} earlier turns are not shown_one": "이전 차례 {{count}}개는 표시되지 않습니다",
+  "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}.": "AI가 파일 {{count}}개를 읽었지만 더 이상 그 내용의 일부를 가지고 있지 않으며, AI의 버전은 파일 전체를 대체합니다: {{files}}.",
+  "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}._one": "AI가 이 파일을 읽었지만 더 이상 그 내용의 일부를 가지고 있지 않으며, AI의 버전은 파일 전체를 대체합니다: {{files}}.",
+  "Ask AI read this file and no longer has part of its text, and its version replaces all of it: {{files}}.": "AI가 이 파일을 읽었지만 더 이상 그 내용의 일부를 가지고 있지 않으며, AI의 버전은 파일 전체를 대체합니다: {{files}}."
 }

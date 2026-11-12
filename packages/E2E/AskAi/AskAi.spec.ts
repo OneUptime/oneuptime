@@ -3681,3 +3681,288 @@ test.describe("a code change's cautions", () => {
     });
   });
 });
+
+/*
+ * ---------------------------------------------------------------------------
+ * Monitors looked up, and the monitors table (issues #6968 and #6969)
+ * ---------------------------------------------------------------------------
+ *
+ * "Which monitors are down right now?", answered with two monitors read by
+ * id and the table query_monitors lists them in (?thread=monitors).
+ *
+ *   - Every card a tool left was drawn as a write's - green, with a check -
+ *     so a monitor that was Offline, or whose monitoring was off, had a
+ *     green check beside it. A read's card is plain now, as the other
+ *     widgets are, its status's own colour a dot before the line that
+ *     names it: the Offline red, and gray for monitoring off.
+ *   - The table let every word break anywhere, and on a 360 pixel phone
+ *     its Status column drew "Operational" as "Operationa" over "l". A
+ *     word is whole now; only a long one - a URL, an endpoint - may break
+ *     anywhere.
+ */
+
+interface StatusDot {
+  color: string;
+  dot: { left: number; right: number; top: number; bottom: number };
+  words: { left: number; right: number; top: number; bottom: number };
+}
+
+// A card's status dot, and the words of the line it stands before, in one read.
+async function statusDotOf(card: Locator): Promise<StatusDot> {
+  return card.evaluate((element: Element): StatusDot => {
+    const line: Element = element.querySelector(
+      '[data-testid="ai-chat-resource-card-line"]',
+    )!;
+    const dot: Element = line.querySelector(
+      '[data-testid="ai-chat-resource-card-status-dot"]',
+    )!;
+    const range: Range = document.createRange();
+    range.setStartAfter(dot);
+    range.setEnd(line, line.childNodes.length);
+    const words: DOMRect = range.getBoundingClientRect();
+    const box: DOMRect = dot.getBoundingClientRect();
+
+    return {
+      color: window.getComputedStyle(dot).backgroundColor,
+      dot: {
+        left: box.left,
+        right: box.right,
+        top: box.top,
+        bottom: box.bottom,
+      },
+      words: {
+        left: words.left,
+        right: words.right,
+        top: words.top,
+        bottom: words.bottom,
+      },
+    };
+  });
+}
+
+interface CardLook {
+  origin: string | null;
+  background: string;
+  border: string;
+  kind: string;
+  checks: number;
+  greens: number;
+}
+
+// How a card is drawn: its surface, its edge, its kind's colour, any check or green.
+async function cardLookOf(card: Locator): Promise<CardLook> {
+  return card.evaluate((element: Element): CardLook => {
+    const style: CSSStyleDeclaration = window.getComputedStyle(element);
+    const kind: Element = element.querySelector(
+      '[data-testid="ai-chat-resource-card-kind"]',
+    )!;
+
+    return {
+      origin: element.getAttribute("data-card-origin"),
+      background: style.backgroundColor,
+      border: style.borderTopColor,
+      kind: window.getComputedStyle(kind).color,
+      checks: element.querySelectorAll(
+        '[data-testid="ai-chat-resource-card-done"]',
+      ).length,
+      greens: element.querySelectorAll('[class*="emerald"]').length,
+    };
+  });
+}
+
+// The lines a cell's text was laid out on.
+async function linesOfCell(cell: Locator): Promise<number> {
+  return cell.evaluate((element: Element): number => {
+    const range: Range = document.createRange();
+    range.selectNodeContents(element);
+    return new Set(
+      Array.from(range.getClientRects()).map((rect: DOMRect): number => {
+        return Math.round(rect.top);
+      }),
+    ).size;
+  });
+}
+
+test.describe("monitors looked up, and the monitors table", () => {
+  test("a monitor looked up is drawn plain - no green, no check - its status a dot in its own colour, light and dark", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const theme of ["light", "dark"]) {
+      await load(
+        page,
+        theme === "dark" ? "theme=dark&thread=monitors" : "thread=monitors",
+      );
+      await expect(askAi(page)).toBeVisible();
+      await settle(page);
+
+      const cards: Locator = page.getByTestId("ai-chat-resource-card");
+      await expect(cards).toHaveCount(2);
+      await expect(cards.nth(0)).toContainText("Checkout API");
+      await expect(cards.nth(1)).toContainText("Backup Job");
+      await cards.nth(1).scrollIntoViewIfNeeded();
+      await settle(page);
+
+      for (const card of await cards.all()) {
+        expect(await cardLookOf(card)).toEqual(
+          theme === "dark"
+            ? {
+                origin: "read",
+                // The dark theme's surface and edge, as the other widgets have.
+                background: "rgb(23, 32, 51)",
+                border: "rgb(71, 85, 105)",
+                kind: expect.any(String),
+                checks: 0,
+                greens: 0,
+              }
+            : {
+                origin: "read",
+                background: "rgb(255, 255, 255)",
+                border: "rgb(229, 231, 235)",
+                kind: "rgb(107, 114, 128)",
+                checks: 0,
+                greens: 0,
+              },
+        );
+      }
+
+      if (theme === "dark") {
+        // Its kind is read on the dark surface.
+        expect(
+          await luminanceOf(
+            cards.nth(0).getByTestId("ai-chat-resource-card-kind"),
+            "color",
+          ),
+        ).toBeGreaterThan(0.25);
+      }
+
+      // Offline in its own red; monitoring off in gray: in either theme.
+      const offline: StatusDot = await statusDotOf(cards.nth(0));
+      const disabled: StatusDot = await statusDotOf(cards.nth(1));
+      expect(offline.color).toBe("rgb(253, 98, 94)");
+      expect(disabled.color).toBe("rgb(107, 114, 128)");
+
+      for (const drawn of [offline, disabled]) {
+        // A dot, 8 pixels round, before the words, on their line.
+        expect(drawn.dot.right - drawn.dot.left).toBeCloseTo(8, 0);
+        expect(drawn.dot.bottom - drawn.dot.top).toBeCloseTo(8, 0);
+        expect(drawn.dot.right).toBeLessThanOrEqual(drawn.words.left);
+        expect(drawn.words.left - drawn.dot.right).toBeLessThanOrEqual(8);
+        const middle: number = (drawn.dot.top + drawn.dot.bottom) / 2;
+        expect(middle).toBeGreaterThan(drawn.words.top);
+        expect(middle).toBeLessThan(drawn.words.bottom);
+      }
+
+      await expect(
+        cards.nth(0).getByTestId("ai-chat-resource-card-line"),
+      ).toHaveText("Offline");
+      await expect(
+        cards.nth(1).getByTestId("ai-chat-resource-card-line"),
+      ).toHaveText("Disabled");
+
+      await screenshot(
+        page,
+        theme === "dark" ? "monitor-cards-1280-dark" : "monitor-cards-1280",
+      );
+    }
+  });
+
+  test.describe("on a phone, in Persian", () => {
+    test.use({ viewport: { width: 390, height: 844 } });
+
+    test("right to left, the dot stands where the line starts: at its right", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await load(page, "lang=fa&thread=monitors");
+      await expect(askAi(page)).toBeVisible();
+      await settle(page);
+
+      const cards: Locator = page.getByTestId("ai-chat-resource-card");
+      await expect(cards).toHaveCount(2);
+      await cards.nth(0).scrollIntoViewIfNeeded();
+      await settle(page);
+
+      for (const card of await cards.all()) {
+        const drawn: StatusDot = await statusDotOf(card);
+        expect(drawn.dot.left).toBeGreaterThanOrEqual(drawn.words.right);
+        expect(drawn.dot.left - drawn.words.right).toBeLessThanOrEqual(8);
+
+        const look: CardLook = await cardLookOf(card);
+        expect(look.checks).toBe(0);
+        expect(look.greens).toBe(0);
+      }
+
+      await expectNothingScrollsSideways(page);
+      await screenshot(page, "monitor-cards-390-fa");
+    });
+  });
+
+  test.describe("on a 360 pixel phone", () => {
+    test.use({ viewport: { width: 360, height: 780 } });
+
+    test("the monitors table keeps Operational whole on its line, and wraps a monitor's long URL inside the table", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await load(page, "thread=monitors");
+      await expect(askAi(page)).toBeVisible();
+      await settle(page);
+
+      const table: Locator = page.locator("table").filter({
+        hasText: "legacy-payments-api",
+      });
+      await table.scrollIntoViewIfNeeded();
+      await settle(page);
+
+      // Nothing hidden past the card's edge, waiting to be scrolled to.
+      const fit: { table: number; room: number } = await table.evaluate(
+        (element: Element): { table: number; room: number } => {
+          return {
+            table: element.scrollWidth,
+            room: (element.parentElement as HTMLElement).clientWidth,
+          };
+        },
+      );
+      expect(fit.table).toBeLessThanOrEqual(fit.room);
+
+      const rows: Locator = table.locator("tbody tr");
+      await expect(rows).toHaveCount(4);
+
+      const statuses: Array<string> = [];
+      for (const row of await rows.all()) {
+        const status: Locator = row.getByTestId("ai-chat-table-cell").nth(2);
+        statuses.push((await status.textContent()) || "");
+        // One line each: "Operational" is never "Operationa" over "l".
+        expect(await linesOfCell(status)).toBe(1);
+      }
+      expect(statuses).toEqual([
+        "Offline",
+        "Operational",
+        "Operational",
+        "Disabled",
+      ]);
+
+      // The URL has no spaces to wrap at: it wraps anywhere, inside the table.
+      const url: Locator = rows.nth(1).getByTestId("ai-chat-table-cell").nth(0);
+      await expect(url).toHaveAttribute(
+        "title",
+        "https://payments.example.com/api/v2/health/checkout",
+      );
+      expect(await linesOfCell(url)).toBeGreaterThanOrEqual(2);
+      const tableBox: Box = await boxOf(table);
+      const urlBox: Box = await boxOf(url);
+      expect(urlBox.x + urlBox.width).toBeLessThanOrEqual(
+        tableBox.x + tableBox.width + 0.5,
+      );
+      // ...and still leaves the other two columns most of their room.
+      expect(urlBox.width).toBeLessThan(tableBox.width * 0.6);
+
+      await expectNothingScrollsSideways(page);
+      await screenshot(page, "monitors-table-360");
+    });
+  });
+});

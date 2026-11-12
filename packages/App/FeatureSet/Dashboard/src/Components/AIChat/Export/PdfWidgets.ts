@@ -4,6 +4,7 @@ import {
   AIChatWidgetSpan,
   AIChatWidgetStat,
   AIChatWidgetType,
+  isAIChatReadResourceCard,
 } from "Common/Types/AI/AIChatTypes";
 import {
   getFactsNotInHeading,
@@ -30,6 +31,22 @@ import PdfChart, { CHART_BLOCK_HEIGHT } from "./PdfChart";
 import PdfDocument, { PDF_COLORS } from "./PdfDocument";
 import { PdfTable } from "./PdfTable";
 import { getReaderNumberLocale } from "Common/Types/DateLanguage";
+
+/*
+ * A resource card's surface, edge and kind (issue #6968): a read's in the
+ * export's greys, a write's in the green the chat draws it in.
+ */
+export const PDF_RESOURCE_CARD_LOOKS: {
+  read: { fill: string; stroke: string; kind: string };
+  write: { fill: string; stroke: string; kind: string };
+} = {
+  read: {
+    fill: PDF_COLORS.surface,
+    stroke: PDF_COLORS.border,
+    kind: PDF_COLORS.muted,
+  },
+  write: { fill: "#ecfdf5", stroke: "#a7f3d0", kind: "#059669" },
+};
 
 /*
  * Draws the inline widgets an assistant message produced.
@@ -233,12 +250,21 @@ export default class PdfWidgets {
     this.pdf.ensureSpace(estimatedHeight);
     const startY: number = this.pdf.y;
 
+    /*
+     * Drawn as the chat draws it (issue #6968): a read's card plain, a
+     * write's green - and one saved before cards said which, green.
+     */
+    const look: { fill: string; stroke: string; kind: string } =
+      isAIChatReadResourceCard(widget.data)
+        ? PDF_RESOURCE_CARD_LOOKS.read
+        : PDF_RESOURCE_CARD_LOOKS.write;
+
     this.pdf.rect(
       this.pdf.left,
       startY,
       this.pdf.contentWidth,
       estimatedHeight,
-      { fill: "#ecfdf5", stroke: "#a7f3d0", radius: 5 },
+      { fill: look.fill, stroke: look.stroke, radius: 5 },
     );
 
     let y: number = startY + padding;
@@ -246,7 +272,7 @@ export default class PdfWidgets {
     const innerWidth: number = this.pdf.contentWidth - padding * 2;
 
     if (widget.data.resourceType) {
-      this.pdf.setStyle({ size: 6.5, fontStyle: "bold", color: "#059669" });
+      this.pdf.setStyle({ size: 6.5, fontStyle: "bold", color: look.kind });
       this.pdf.drawLine(
         this.pdf.sanitize(widget.data.resourceType.toUpperCase()),
         x,

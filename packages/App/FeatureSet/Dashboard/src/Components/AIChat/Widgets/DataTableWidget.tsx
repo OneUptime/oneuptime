@@ -8,7 +8,9 @@ import useResizableColumns, {
 import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
 import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import {
+  ChatTableCellPiece,
   ChatTableCellText,
+  getChatTableCellPieces,
   getChatTableCellText,
 } from "Common/UI/Utils/AIChatExport/ChatWidgetData";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -114,12 +116,15 @@ const DataTableWidget: FunctionComponent<ComponentProps> = (
 
                   /*
                    * Every column on screen, at any width: a number and a
-                   * date keep their one line, and text wraps - anywhere,
-                   * an endpoint has no spaces to wrap at - up to three
+                   * date keep their one line, and text wraps up to three
                    * lines, the whole value on hover. Cut at one line 22rem
                    * wide, the first column of a table filled a phone and
                    * pushed the others out of sight, with nothing to say
-                   * they were there.
+                   * they were there. A word wraps whole, broken only when
+                   * it is wider than its column; a long one - an endpoint
+                   * has no spaces to wrap at - anywhere (issue #6969):
+                   * broken anywhere, every word let a phone's table split
+                   * "Operational" into "Operationa" and "l".
                    *
                    * A date is written as every table writes one, "Oct 14,
                    * 11:57 AM" (Table/TableDate), and whole under the
@@ -146,8 +151,27 @@ const DataTableWidget: FunctionComponent<ComponentProps> = (
                       ) : cell.dateTime ? (
                         <time dateTime={cell.dateTime}>{cell.text}</time>
                       ) : (
-                        <span className="line-clamp-3 [overflow-wrap:anywhere]">
-                          {cell.text}
+                        <span className="line-clamp-3 break-words">
+                          {getChatTableCellPieces(cell.text).map(
+                            (
+                              piece: ChatTableCellPiece,
+                              index: number,
+                            ): ReactElement => {
+                              return piece.breaksAnywhere ? (
+                                <span
+                                  key={index}
+                                  data-testid="ai-chat-table-cell-long-word"
+                                  className="[overflow-wrap:anywhere]"
+                                >
+                                  {piece.text}
+                                </span>
+                              ) : (
+                                <React.Fragment key={index}>
+                                  {piece.text}
+                                </React.Fragment>
+                              );
+                            },
+                          )}
                         </span>
                       )}
                     </td>

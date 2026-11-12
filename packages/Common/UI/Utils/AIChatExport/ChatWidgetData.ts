@@ -118,6 +118,70 @@ export function getChatTableCellText(
 }
 
 /*
+ * The most letters a word of a table cell keeps whole on a narrow screen
+ * (issue #6969): "Operational", "Investigating", "Kubernetes". A longer
+ * one - an endpoint, an id, a host name - has nothing to wrap at, and
+ * whole it would push the table's other columns out of view, so it may
+ * break anywhere. A word wraps after each of its hyphens anyway, so its
+ * longest part between them is what counts ("legacy-payments-api").
+ */
+export const CHAT_TABLE_WHOLE_WORD_LENGTH: number = 16;
+
+// A cell's text between its spaces, the spaces kept.
+const CHAT_TABLE_SPACES: RegExp = /(\s+)/;
+
+// Where a word may wrap on its own: after each hyphen.
+const CHAT_TABLE_WORD_HYPHEN: string = "-";
+
+// A run of a table cell's text, and whether it may break between any two letters.
+export interface ChatTableCellPiece {
+  text: string;
+  breaksAnywhere: boolean;
+}
+
+/*
+ * A text cell of DataTableWidget in runs (issue #6969): its words of up to
+ * CHAT_TABLE_WHOLE_WORD_LENGTH letters - between hyphens - kept whole,
+ * which the cell breaks only when one is wider than the whole column, and
+ * each longer word on its own, which may break anywhere. Breaking every
+ * word anywhere let a phone's table make a column narrower than its
+ * words, and "Operational" was drawn as "Operationa" and "l".
+ */
+export function getChatTableCellPieces(
+  text: string,
+): Array<ChatTableCellPiece> {
+  const pieces: Array<ChatTableCellPiece> = [];
+
+  // Split at its spaces, kept: a word, then the spaces after it, by turns.
+  const parts: Array<string> = text.split(CHAT_TABLE_SPACES);
+
+  for (let index: number = 0; index < parts.length; index++) {
+    const part: string = parts[index]!;
+
+    if (!part) {
+      continue;
+    }
+
+    const isSpace: boolean = index % 2 === 1;
+    const breaksAnywhere: boolean =
+      !isSpace &&
+      part.split(CHAT_TABLE_WORD_HYPHEN).some((wrapsAlone: string): boolean => {
+        // Letters as a person counts them, not UTF-16 units.
+        return Array.from(wrapsAlone).length > CHAT_TABLE_WHOLE_WORD_LENGTH;
+      });
+    const last: ChatTableCellPiece | undefined = pieces[pieces.length - 1];
+
+    if (last && !last.breaksAnywhere && !breaksAnywhere) {
+      last.text += part;
+    } else {
+      pieces.push({ text: part, breaksAnywhere });
+    }
+  }
+
+  return pieces;
+}
+
+/*
  * A table cell in the markdown and PDF exports. A date is written whole -
  * "Oct 14 2026, 11:57 AM GMT" - as the chat says it under the pointer: a
  * document is read later and elsewhere, so it keeps the year and the zone

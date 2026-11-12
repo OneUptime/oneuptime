@@ -31,7 +31,12 @@
  *                    names what it would write over unseen - a file
  *                    changed since Ask AI read it, one read in an earlier
  *                    answer and one read earlier in this answer, left
- *                    out of the conversation since (issue #6570)
+ *                    out of the conversation since (issue #6570);
+ *                    monitors, "Which monitors are down right now?"
+ *                    answered with two monitors read by id - one
+ *                    Offline, one whose monitoring is off - and the
+ *                    monitors table, its long names beside "Operational"
+ *                    (issues #6968 and #6969)
  *   - run=hold       an answer being written stays written-so-far until
  *                    window.__askAiFixture.finish() is called (it finishes
  *                    on its own, a step a poll, by default)
@@ -108,6 +113,7 @@ import {
 } from "Common/Types/AI/AIActionWords";
 import {
   AIChatCitationTargetType,
+  AIChatResourceCardOrigin,
   AIChatToolActionStatus,
   AIChatWidgetType,
 } from "Common/Types/AI/AIChatTypes";
@@ -147,6 +153,7 @@ const threadKind = [
   "rich",
   "actions",
   "code",
+  "monitors",
 ].includes(params.get("thread"))
   ? params.get("thread")
   : "";
@@ -610,6 +617,109 @@ let richConversation = null;
 let actionsConversation = null;
 // The conversation waiting to commit three files (?thread=code).
 let codeConversation = null;
+// The conversation that looked monitors up (?thread=monitors).
+let monitorsConversation = null;
+
+/*
+ * The card query_monitors leaves for a monitor read by id
+ * (WidgetBuilder.resourceCard): a read's, drawn plain, with its status's
+ * own colour - gray when its monitoring is off (issue #6968).
+ */
+function monitorCard({ id, name, monitorId, status, statusColor, fields }) {
+  return {
+    id,
+    type: AIChatWidgetType.ResourceCard,
+    title: `Monitor ${name}`,
+    data: {
+      resourceType: "Monitor",
+      heading: name,
+      subheading: status,
+      fields,
+      origin: AIChatResourceCardOrigin.Read,
+      statusColor,
+      link: {
+        type: AIChatCitationTargetType.MonitorView,
+        params: { monitorId },
+      },
+    },
+  };
+}
+
+/*
+ * "Which monitors are down right now?", answered: the two monitors it read
+ * by id, and the monitors table query_monitors lists them in - a monitor
+ * named by its URL, with no spaces to wrap at, beside statuses that are
+ * one word each (issue #6969).
+ */
+function seedMonitorsAnswer() {
+  monitorsConversation = conversationOf("Monitors down right now", 2);
+  messageOf(monitorsConversation.id.toString(), AIChatMessageRole.User, {
+    contentInMarkdown: "Which monitors are down right now?",
+    createdAt: minutesAgo(3),
+  });
+  messageOf(monitorsConversation.id.toString(), AIChatMessageRole.Assistant, {
+    contentInMarkdown:
+      "One monitor is down: **Checkout API** has been Offline since its last check. **Backup Job** is not checked: its monitoring is off, so its status is the last one it had.",
+    widgets: [
+      monitorCard({
+        id: "W1",
+        name: "Checkout API",
+        monitorId: "60000000-0000-4000-8000-000000000001",
+        status: "Offline",
+        statusColor: "#fd625e",
+        fields: [{ label: "Type", value: "Website" }],
+      }),
+      monitorCard({
+        id: "W2",
+        name: "Backup Job",
+        monitorId: "60000000-0000-4000-8000-000000000004",
+        status: "Disabled",
+        statusColor: "#6b7280",
+        fields: [
+          { label: "Type", value: "Incoming Request" },
+          { label: "Last status", value: "Operational" },
+          { label: "Monitoring", value: "Off - not checked" },
+        ],
+      }),
+      {
+        id: "W3",
+        type: AIChatWidgetType.Table,
+        title: "Monitors (4)",
+        data: {
+          columns: [
+            { key: "name", title: "Monitor", type: "text" },
+            { key: "type", title: "Type", type: "text" },
+            { key: "currentStatus", title: "Status", type: "text" },
+          ],
+          rows: [
+            {
+              name: "Checkout API",
+              type: "Website",
+              currentStatus: "Offline",
+            },
+            {
+              name: "https://payments.example.com/api/v2/health/checkout",
+              type: "Website",
+              currentStatus: "Operational",
+            },
+            {
+              name: "legacy-payments-api",
+              type: "API",
+              currentStatus: "Operational",
+            },
+            {
+              name: "Backup Job",
+              type: "Incoming Request",
+              currentStatus: "Disabled",
+            },
+          ],
+          link: { type: AIChatCitationTargetType.Monitors },
+        },
+      },
+    ],
+    createdAt: minutesAgo(2),
+  });
+}
 
 function seedRichAnswer() {
   richConversation = conversationOf("Payments health this week", 3);
@@ -827,6 +937,10 @@ function seedHistory() {
     });
   }
 
+  if (threadKind === "monitors") {
+    seedMonitorsAnswer();
+  }
+
   if (historyKind === "none") {
     return;
   }
@@ -868,6 +982,7 @@ fixture.conversationIds = {
   rich: richConversation?.id.toString(),
   actions: actionsConversation?.id.toString(),
   code: codeConversation?.id.toString(),
+  monitors: monitorsConversation?.id.toString(),
 };
 
 // ---- a run, written step by step as the dialog polls --------------------------

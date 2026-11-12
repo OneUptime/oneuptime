@@ -606,7 +606,7 @@ describe("what an earlier turn showed the model, and a turn resumed after an app
     expect(commitAction(spies).description).toBe(EARLIER);
   });
 
-  test("read in part in the turn before, the rest read in this one: the part from before is not in hand", async () => {
+  test("read in part in the turn before, the rest read in this one: all of it read, and the part from before no longer in hand (#6984)", async () => {
     startRepository();
     const spies: Spies = installSpies({
       history: earlierTurn([citationOf("C1", readRecord(1, 1000))]),
@@ -626,7 +626,11 @@ describe("what an earlier turn showed the model, and a turn resumed after an app
 
     await ChatAgentRunner.runTurn(buildRequest());
 
-    expect(commitAction(spies).description).toBe(PART);
+    // Read, every line of it: never "read only part of" (issue #6984).
+    expect(commitAction(spies).description).toBe(
+      `Ask AI read this file and no longer has part of its text, and its version replaces all of it: ${CHARGE}.`,
+    );
+    expect(commitAction(spies).description).not.toBe(PART);
   });
 
   test("two reads in the turn before that add up to all of it: both carried, and none of it in hand now (issue #6365)", async () => {

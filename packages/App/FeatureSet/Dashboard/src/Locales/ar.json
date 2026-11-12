@@ -50933,5 +50933,8 @@
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}، المراقبة متوقفة، منذ {{start}}، {{duration}} حتى الآن. نشط حاليًا.",
   "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}، المراقبة متوقفة، {{start}} – {{end}}، {{duration}}",
   "{{count}} earlier turns are not shown": "جولات سابقة غير معروضة: {{count}}",
-  "{{count}} earlier turns are not shown_one": "{{count}} جولة سابقة غير معروضة"
+  "{{count}} earlier turns are not shown_one": "{{count}} جولة سابقة غير معروضة",
+  "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}.": "قرأ الذكاء الاصطناعي هذه الملفات (العدد: {{count}}) ولم يعد لديه جزء من نصها، وتحل نسخ الذكاء الاصطناعي محلها بالكامل: {{files}}.",
+  "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}._one": "قرأ الذكاء الاصطناعي هذا الملف ولم يعد لديه جزء من نصه، وتحل نسخة الذكاء الاصطناعي محل الملف بالكامل: {{files}}.",
+  "Ask AI read this file and no longer has part of its text, and its version replaces all of it: {{files}}.": "قرأ الذكاء الاصطناعي هذا الملف ولم يعد لديه جزء من نصه، وتحل نسخة الذكاء الاصطناعي محل الملف بالكامل: {{files}}."
 }

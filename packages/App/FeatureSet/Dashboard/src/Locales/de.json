@@ -50933,5 +50933,8 @@
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, Überwachung aus, seit {{start}}, bisher {{duration}}. Derzeit aktiv.",
   "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, Überwachung aus, {{start}} – {{end}}, {{duration}}",
   "{{count}} earlier turns are not shown": "{{count}} frühere Durchgänge werden nicht angezeigt",
-  "{{count}} earlier turns are not shown_one": "{{count}} früherer Durchgang wird nicht angezeigt"
+  "{{count}} earlier turns are not shown_one": "{{count}} früherer Durchgang wird nicht angezeigt",
+  "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}.": "Die KI hat diese {{count}} Dateien gelesen und kennt einen Teil ihres Textes nicht mehr, und die Versionen der KI ersetzen die Dateien ganz: {{files}}.",
+  "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}._one": "Die KI hat diese Datei gelesen und kennt einen Teil ihres Textes nicht mehr, und die Version der KI ersetzt die ganze Datei: {{files}}.",
+  "Ask AI read this file and no longer has part of its text, and its version replaces all of it: {{files}}.": "Die KI hat diese Datei gelesen und kennt einen Teil ihres Textes nicht mehr, und die Version der KI ersetzt die ganze Datei: {{files}}."
 }

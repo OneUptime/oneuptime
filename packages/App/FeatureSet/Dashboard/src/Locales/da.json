@@ -50933,5 +50933,8 @@
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, overvågning slået fra, siden {{start}}, {{duration}} indtil nu. Aktiv nu.",
   "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, overvågning slået fra, {{start}} – {{end}}, {{duration}}",
   "{{count}} earlier turns are not shown": "{{count}} tidligere ture vises ikke",
-  "{{count}} earlier turns are not shown_one": "{{count}} tidligere tur vises ikke"
+  "{{count}} earlier turns are not shown_one": "{{count}} tidligere tur vises ikke",
+  "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}.": "AI læste disse {{count}} filer og har ikke længere en del af deres tekst, og AI's versioner erstatter filerne helt: {{files}}.",
+  "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}._one": "AI læste denne fil og har ikke længere en del af dens tekst, og AI's version erstatter hele filen: {{files}}.",
+  "Ask AI read this file and no longer has part of its text, and its version replaces all of it: {{files}}.": "AI læste denne fil og har ikke længere en del af dens tekst, og AI's version erstatter hele filen: {{files}}."
 }

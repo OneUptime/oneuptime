@@ -50933,5 +50933,8 @@
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}，監測已關閉，自 {{start}} 起，已持續 {{duration}}。目前進行中。",
   "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}，監測已關閉，{{start}} – {{end}}，{{duration}}",
   "{{count}} earlier turns are not shown": "之前的 {{count}} 個回合未顯示",
-  "{{count}} earlier turns are not shown_one": "之前的 {{count}} 個回合未顯示"
+  "{{count}} earlier turns are not shown_one": "之前的 {{count}} 個回合未顯示",
+  "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}.": "AI 讀取了這 {{count}} 個檔案，但已不再掌握其中部分內容，而 AI 的版本會取代整個檔案：{{files}}。",
+  "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}._one": "AI 讀取了此檔案，但已不再掌握其中部分內容，而 AI 的版本會取代整個檔案：{{files}}。",
+  "Ask AI read this file and no longer has part of its text, and its version replaces all of it: {{files}}.": "AI 讀取了此檔案，但已不再掌握其中部分內容，而 AI 的版本會取代整個檔案：{{files}}。"
 }

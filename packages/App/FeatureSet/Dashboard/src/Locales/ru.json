@@ -50933,5 +50933,8 @@
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, мониторинг выключен, с {{start}}, уже {{duration}}. Сейчас активно.",
   "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, мониторинг выключен, {{start}} – {{end}}, {{duration}}",
   "{{count}} earlier turns are not shown": "Не показано более ранних ходов: {{count}}",
-  "{{count}} earlier turns are not shown_one": "{{count}} более ранний ход не показан"
+  "{{count}} earlier turns are not shown_one": "{{count}} более ранний ход не показан",
+  "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}.": "ИИ прочитал эти файлы ({{count}}) и больше не видит части их текста, а версии ИИ заменяют их целиком: {{files}}.",
+  "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}._one": "ИИ прочитал этот файл и больше не видит части его текста, а версия ИИ заменяет его целиком: {{files}}.",
+  "Ask AI read this file and no longer has part of its text, and its version replaces all of it: {{files}}.": "ИИ прочитал этот файл и больше не видит части его текста, а версия ИИ заменяет его целиком: {{files}}."
 }

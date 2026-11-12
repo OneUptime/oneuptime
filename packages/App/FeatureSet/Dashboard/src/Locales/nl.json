@@ -50933,5 +50933,8 @@
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, bewaking uit, sinds {{start}}, tot nu toe {{duration}}. Momenteel actief.",
   "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, bewaking uit, {{start}} – {{end}}, {{duration}}",
   "{{count}} earlier turns are not shown": "{{count}} eerdere beurten worden niet getoond",
-  "{{count}} earlier turns are not shown_one": "{{count}} eerdere beurt wordt niet getoond"
+  "{{count}} earlier turns are not shown_one": "{{count}} eerdere beurt wordt niet getoond",
+  "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}.": "De AI las deze {{count}} bestanden en heeft een deel van de tekst ervan niet meer, en de versies van de AI vervangen de hele bestanden: {{files}}.",
+  "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}._one": "De AI las dit bestand en heeft een deel van de tekst ervan niet meer, en de versie van de AI vervangt het hele bestand: {{files}}.",
+  "Ask AI read this file and no longer has part of its text, and its version replaces all of it: {{files}}.": "De AI las dit bestand en heeft een deel van de tekst ervan niet meer, en de versie van de AI vervangt het hele bestand: {{files}}."
 }
