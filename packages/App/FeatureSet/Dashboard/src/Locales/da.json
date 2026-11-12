@@ -50928,7 +50928,7 @@
   "No seats remaining": "Ingen pladser tilbage",
   "Licensed seat usage": "Forbrug af licenserede pladser",
   "{{name}} has no on-call rule for this severity, and this project doesn't fall back to verified methods.": "{{name}} has no on-call rule for this severity, and this project doesn't fall back to verified methods.",
-  "{{name}} has no verified notification method.": "{{name}} has no verified notification method.",
+  "{{name}} has no verified notification method.": "{{name}} har ingen bekræftet notifikationsmetode.",
   "{{name}} is reached only by channels that are off in this project.": "{{name}} is reached only by channels that are off in this project.",
   "{{name}} opted out of pages of this severity.": "{{name}} opted out of pages of this severity.",
   "Monitoring Off": "Overvågning slået fra",
@@ -51182,5 +51182,16 @@
   "The status page shows this resource as not monitored.": "Statussiden viser denne ressource som ikke overvåget.",
   "Under maintenance: {{events}}": "Under vedligeholdelse: {{events}}",
   "Unusually High": "Usædvanligt høj",
-  "Unusually Low": "Usædvanligt lav"
+  "Unusually Low": "Usædvanligt lav",
+  "Already paged by this test, so not paged again.": "Allerede kaldt af denne test, så ikke kaldt igen.",
+  "Every on-call rule for this severity ran at once.": "Alle vagtregler for denne alvorlighed kørte med det samme.",
+  "No on-call rule covers this severity, and paging the verified methods instead failed.": "Ingen vagtregel dækker denne alvorlighed, og kald af de bekræftede metoder i stedet mislykkedes.",
+  "Nobody at this level could be paged, so the policy moved on at once.": "Ingen på dette niveau kunne kaldes, så politikken gik straks videre.",
+  "Test ended: it went through every escalation level and nobody acknowledged it.": "Testen sluttede: den gik gennem alle eskaleringsniveauer, og ingen bekræftede den.",
+  "Test ended: nobody acknowledged it within {{count}} minutes.": "Testen sluttede: ingen bekræftede den inden for {{count}} minutter.",
+  "Test ended: nobody acknowledged it within {{count}} minutes._one": "Testen sluttede: ingen bekræftede den inden for {{count}} minut.",
+  "Test ended: the first escalation level reached nobody. Each person's line says why.": "Testen sluttede: det første eskaleringsniveau nåede ingen. Hver persons linje siger hvorfor.",
+  "The test page reached nobody. Each person's line says why.": "Testkaldet nåede ingen. Hver persons linje siger hvorfor.",
+  "This level has no responders, so the policy moved on at once.": "Dette niveau har ingen modtagere, så politikken gik straks videre.",
+  "This test page does not say which kind of page and severity it tests, so nothing was sent.": "Dette testkald angiver ikke, hvilken slags kald og alvorlighed det tester, så intet blev sendt."
 }

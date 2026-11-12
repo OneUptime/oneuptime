@@ -50928,7 +50928,7 @@
   "No seats remaining": "没有剩余席位",
   "Licensed seat usage": "许可席位使用情况",
   "{{name}} has no on-call rule for this severity, and this project doesn't fall back to verified methods.": "{{name}} has no on-call rule for this severity, and this project doesn't fall back to verified methods.",
-  "{{name}} has no verified notification method.": "{{name}} has no verified notification method.",
+  "{{name}} has no verified notification method.": "{{name}} 没有已验证的通知方式。",
   "{{name}} is reached only by channels that are off in this project.": "{{name}} is reached only by channels that are off in this project.",
   "{{name}} opted out of pages of this severity.": "{{name}} opted out of pages of this severity.",
   "Monitoring Off": "监控已关闭",
@@ -51182,5 +51182,16 @@
   "The status page shows this resource as not monitored.": "状态页将此资源显示为未监控。",
   "Under maintenance: {{events}}": "维护中：{{events}}",
   "Unusually High": "异常偏高",
-  "Unusually Low": "异常偏低"
+  "Unusually Low": "异常偏低",
+  "Already paged by this test, so not paged again.": "已被此测试呼叫过，因此不再重复呼叫。",
+  "Every on-call rule for this severity ran at once.": "此严重程度的所有值班规则都已立即执行。",
+  "No on-call rule covers this severity, and paging the verified methods instead failed.": "没有值班规则覆盖此严重程度，改为呼叫已验证方式也失败了。",
+  "Nobody at this level could be paged, so the policy moved on at once.": "此级别无人可被呼叫，因此策略立即转到下一步。",
+  "Test ended: it went through every escalation level and nobody acknowledged it.": "测试已结束：已经过所有升级级别，但无人确认。",
+  "Test ended: nobody acknowledged it within {{count}} minutes.": "测试已结束：{{count}} 分钟内无人确认。",
+  "Test ended: nobody acknowledged it within {{count}} minutes._one": "测试已结束：{{count}} 分钟内无人确认。",
+  "Test ended: the first escalation level reached nobody. Each person's line says why.": "测试已结束：第一个升级级别没有联系到任何人。每个人所在的行说明了原因。",
+  "The test page reached nobody. Each person's line says why.": "测试呼叫没有联系到任何人。每个人所在的行说明了原因。",
+  "This level has no responders, so the policy moved on at once.": "此级别没有响应人，因此策略立即转到下一步。",
+  "This test page does not say which kind of page and severity it tests, so nothing was sent.": "此测试呼叫未说明要测试哪种呼叫和严重程度，因此没有发送任何内容。"
 }

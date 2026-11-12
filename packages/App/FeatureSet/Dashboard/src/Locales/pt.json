@@ -50928,7 +50928,7 @@
   "No seats remaining": "Nenhum assento restante",
   "Licensed seat usage": "Uso de assentos licenciados",
   "{{name}} has no on-call rule for this severity, and this project doesn't fall back to verified methods.": "{{name}} has no on-call rule for this severity, and this project doesn't fall back to verified methods.",
-  "{{name}} has no verified notification method.": "{{name}} has no verified notification method.",
+  "{{name}} has no verified notification method.": "{{name}} não tem nenhum método de notificação verificado.",
   "{{name}} is reached only by channels that are off in this project.": "{{name}} is reached only by channels that are off in this project.",
   "{{name}} opted out of pages of this severity.": "{{name}} opted out of pages of this severity.",
   "Monitoring Off": "Monitoramento desligado",
@@ -51182,5 +51182,16 @@
   "The status page shows this resource as not monitored.": "A página de status mostra este recurso como não monitorado.",
   "Under maintenance: {{events}}": "Em manutenção: {{events}}",
   "Unusually High": "Incomumente alto",
-  "Unusually Low": "Incomumente baixo"
+  "Unusually Low": "Incomumente baixo",
+  "Already paged by this test, so not paged again.": "Já chamado por este teste, então não foi chamado de novo.",
+  "Every on-call rule for this severity ran at once.": "Todas as regras de plantão desta gravidade foram executadas de uma vez.",
+  "No on-call rule covers this severity, and paging the verified methods instead failed.": "Nenhuma regra de plantão cobre esta gravidade, e chamar os métodos verificados em seu lugar falhou.",
+  "Nobody at this level could be paged, so the policy moved on at once.": "Ninguém neste nível pôde ser chamado, então a política seguiu adiante imediatamente.",
+  "Test ended: it went through every escalation level and nobody acknowledged it.": "Teste encerrado: passou por todos os níveis de escalonamento e ninguém confirmou.",
+  "Test ended: nobody acknowledged it within {{count}} minutes.": "Teste encerrado: ninguém confirmou em {{count}} minutos.",
+  "Test ended: nobody acknowledged it within {{count}} minutes._one": "Teste encerrado: ninguém confirmou em {{count}} minuto.",
+  "Test ended: the first escalation level reached nobody. Each person's line says why.": "Teste encerrado: o primeiro nível de escalonamento não alcançou ninguém. A linha de cada pessoa diz o porquê.",
+  "The test page reached nobody. Each person's line says why.": "A chamada de teste não alcançou ninguém. A linha de cada pessoa diz o porquê.",
+  "This level has no responders, so the policy moved on at once.": "Este nível não tem destinatários, então a política seguiu adiante imediatamente.",
+  "This test page does not say which kind of page and severity it tests, so nothing was sent.": "Esta chamada de teste não diz que tipo de chamada e gravidade testa, então nada foi enviado."
 }

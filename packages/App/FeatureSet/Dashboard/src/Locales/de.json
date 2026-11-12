@@ -51182,5 +51182,16 @@
   "The status page shows this resource as not monitored.": "Die Statusseite zeigt diese Ressource als nicht überwacht an.",
   "Under maintenance: {{events}}": "In Wartung: {{events}}",
   "Unusually High": "Ungewöhnlich hoch",
-  "Unusually Low": "Ungewöhnlich niedrig"
+  "Unusually Low": "Ungewöhnlich niedrig",
+  "Already paged by this test, so not paged again.": "Von diesem Test bereits alarmiert, daher nicht erneut alarmiert.",
+  "Every on-call rule for this severity ran at once.": "Jede Bereitschaftsregel für diesen Schweregrad lief sofort.",
+  "No on-call rule covers this severity, and paging the verified methods instead failed.": "Keine Bereitschaftsregel deckt diesen Schweregrad ab, und die Alarmierung der verifizierten Methoden stattdessen ist fehlgeschlagen.",
+  "Nobody at this level could be paged, so the policy moved on at once.": "Auf dieser Stufe konnte niemand alarmiert werden, daher ging die Richtlinie sofort weiter.",
+  "Test ended: it went through every escalation level and nobody acknowledged it.": "Test beendet: Die Alarmierung durchlief jede Eskalationsstufe, und niemand hat sie bestätigt.",
+  "Test ended: nobody acknowledged it within {{count}} minutes.": "Test beendet: Niemand hat sie innerhalb von {{count}} Minuten bestätigt.",
+  "Test ended: nobody acknowledged it within {{count}} minutes._one": "Test beendet: Niemand hat sie innerhalb von {{count}} Minute bestätigt.",
+  "Test ended: the first escalation level reached nobody. Each person's line says why.": "Test beendet: Die erste Eskalationsstufe hat niemanden erreicht. Die Zeile jeder Person nennt den Grund.",
+  "The test page reached nobody. Each person's line says why.": "Die Test-Alarmierung hat niemanden erreicht. Die Zeile jeder Person nennt den Grund.",
+  "This level has no responders, so the policy moved on at once.": "Diese Stufe hat keine Bearbeiter, daher ging die Richtlinie sofort weiter.",
+  "This test page does not say which kind of page and severity it tests, so nothing was sent.": "Diese Test-Alarmierung gibt nicht an, welche Art von Alarmierung und welchen Schweregrad sie testet, daher wurde nichts gesendet."
 }

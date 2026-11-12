@@ -51182,5 +51182,16 @@
   "The status page shows this resource as not monitored.": "تعرض صفحة الحالة هذا المورد على أنه غير مراقَب.",
   "Under maintenance: {{events}}": "قيد الصيانة: {{events}}",
   "Unusually High": "مرتفع على غير العادة",
-  "Unusually Low": "منخفض على غير العادة"
+  "Unusually Low": "منخفض على غير العادة",
+  "Already paged by this test, so not paged again.": "استُدعي بالفعل في هذا الاختبار، لذا لم يُستدعَ مرة أخرى.",
+  "Every on-call rule for this severity ran at once.": "نُفِّذت كل قواعد المناوبة لهذه الخطورة دفعة واحدة.",
+  "No on-call rule covers this severity, and paging the verified methods instead failed.": "لا تغطي أي قاعدة مناوبة هذه الخطورة، وفشل استدعاء الطرق المتحقق منها بدلًا من ذلك.",
+  "Nobody at this level could be paged, so the policy moved on at once.": "تعذّر استدعاء أي أحد في هذا المستوى، لذا انتقلت السياسة إلى ما بعده فورًا.",
+  "Test ended: it went through every escalation level and nobody acknowledged it.": "انتهى الاختبار: مرّ بكل مستويات التصعيد ولم يُقرّ به أحد.",
+  "Test ended: nobody acknowledged it within {{count}} minutes.": "انتهى الاختبار: لم يُقرّ به أحد خلال {{count}} دقيقة.",
+  "Test ended: nobody acknowledged it within {{count}} minutes._one": "انتهى الاختبار: لم يُقرّ به أحد خلال {{count}} دقيقة.",
+  "Test ended: the first escalation level reached nobody. Each person's line says why.": "انتهى الاختبار: لم يصل مستوى التصعيد الأول إلى أحد. يوضح سطر كل شخص السبب.",
+  "The test page reached nobody. Each person's line says why.": "لم يصل استدعاء الاختبار إلى أحد. يوضح سطر كل شخص السبب.",
+  "This level has no responders, so the policy moved on at once.": "لا يوجد مستجيبون في هذا المستوى، لذا انتقلت السياسة إلى ما بعده فورًا.",
+  "This test page does not say which kind of page and severity it tests, so nothing was sent.": "لا يذكر استدعاء الاختبار هذا نوع الاستدعاء ولا الخطورة التي يختبرها، لذا لم يُرسل شيء."
 }

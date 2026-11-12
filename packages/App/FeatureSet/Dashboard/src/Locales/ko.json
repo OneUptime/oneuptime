@@ -50928,7 +50928,7 @@
   "No seats remaining": "남은 좌석 없음",
   "Licensed seat usage": "라이선스 좌석 사용량",
   "{{name}} has no on-call rule for this severity, and this project doesn't fall back to verified methods.": "{{name}} has no on-call rule for this severity, and this project doesn't fall back to verified methods.",
-  "{{name}} has no verified notification method.": "{{name}} has no verified notification method.",
+  "{{name}} has no verified notification method.": "{{name}}에게는 인증된 알림 방법이 없습니다.",
   "{{name}} is reached only by channels that are off in this project.": "{{name}} is reached only by channels that are off in this project.",
   "{{name}} opted out of pages of this severity.": "{{name}} opted out of pages of this severity.",
   "Monitoring Off": "모니터링 꺼짐",
@@ -51182,5 +51182,16 @@
   "The status page shows this resource as not monitored.": "상태 페이지에 이 리소스가 모니터링되지 않음으로 표시됩니다.",
   "Under maintenance: {{events}}": "유지 관리 중: {{events}}",
   "Unusually High": "비정상적으로 높음",
-  "Unusually Low": "비정상적으로 낮음"
+  "Unusually Low": "비정상적으로 낮음",
+  "Already paged by this test, so not paged again.": "이 테스트에서 이미 호출되었으므로 다시 호출하지 않습니다.",
+  "Every on-call rule for this severity ran at once.": "이 심각도의 모든 온콜 규칙이 즉시 실행되었습니다.",
+  "No on-call rule covers this severity, and paging the verified methods instead failed.": "이 심각도에 해당하는 온콜 규칙이 없으며, 대신 인증된 방법으로 호출하는 것도 실패했습니다.",
+  "Nobody at this level could be paged, so the policy moved on at once.": "이 단계에서 아무도 호출할 수 없어 정책이 즉시 다음으로 넘어갔습니다.",
+  "Test ended: it went through every escalation level and nobody acknowledged it.": "테스트 종료: 모든 에스컬레이션 단계를 거쳤지만 아무도 인지하지 않았습니다.",
+  "Test ended: nobody acknowledged it within {{count}} minutes.": "테스트 종료: {{count}}분 안에 아무도 인지하지 않았습니다.",
+  "Test ended: nobody acknowledged it within {{count}} minutes._one": "테스트 종료: {{count}}분 안에 아무도 인지하지 않았습니다.",
+  "Test ended: the first escalation level reached nobody. Each person's line says why.": "테스트 종료: 첫 번째 에스컬레이션 단계에서 아무에게도 닿지 않았습니다. 각 사람의 줄에 이유가 표시됩니다.",
+  "The test page reached nobody. Each person's line says why.": "테스트 호출이 아무에게도 닿지 않았습니다. 각 사람의 줄에 이유가 표시됩니다.",
+  "This level has no responders, so the policy moved on at once.": "이 단계에는 대응자가 없어 정책이 즉시 다음으로 넘어갔습니다.",
+  "This test page does not say which kind of page and severity it tests, so nothing was sent.": "이 테스트 호출에는 어떤 종류의 호출과 심각도를 테스트하는지 나와 있지 않아 아무것도 보내지 않았습니다."
 }

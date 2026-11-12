@@ -105,8 +105,9 @@ const PROJECT_ID: ObjectID = new ObjectID(PROJECT_ID_STRING);
 const currentUserId: ObjectID = new ObjectID(CURRENT_USER_ID_STRING);
 const OTHER_USER_ID: ObjectID = new ObjectID(OTHER_USER_ID_STRING);
 
+// A push device by its method's own name (#7178).
 const PUSH_OPTION: { label: string; value: string } = {
-  label: "Push: Pixel 8",
+  label: "Push notification: Pixel 8",
   value: PUSH_DEVICE_ID,
 };
 const EMAIL_OPTION: { label: string; value: string } = {
@@ -346,7 +347,7 @@ describe("a person's own on-call rules", () => {
 describe("an admin's view of a member's on-call rules", () => {
   test("push on: the member's push device is offered, as readiness handed it over", async () => {
     await renderAndSettle(membersRules(), [
-      { label: "Push: Pixel 8", value: PUSH_DEVICE_ID },
+      { label: "Push notification: Pixel 8", value: PUSH_DEVICE_ID },
       { label: "Email: j•••@example.com", value: EMAIL_ID },
     ]);
   });

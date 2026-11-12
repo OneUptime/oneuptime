@@ -1156,6 +1156,13 @@ const UserViewNotificationMethods: FunctionComponent<
                     required: true,
                     placeholder: "you@company.com or +15551234567",
                     disableSpellCheck: true,
+                    /*
+                     * An email address and a phone number both read left
+                     * to right in every language: typed on a Persian or
+                     * Arabic page, "+15551234567" took the page's way and
+                     * put its "+" after its digits (#7180).
+                     */
+                    readsLeftToRight: true,
                   }
                 : {
                     field: {

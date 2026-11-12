@@ -654,19 +654,22 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
 
   const notificationMethodsDropdownOptions: Array<DropdownOption> =
     isViewerTheOwner
-      ? NotificationMethodUtil.getDropdownOptions({
-          userCalls: userCalls,
-          userEmails: userEmails,
-          userSMSs: userSMSs,
-          userPush: offeredUserPush,
-          userWhatsApps: userWhatsApps,
-          userTelegrams: userTelegrams,
-          userSlacks: userSlacks,
-          userMicrosoftTeamsAccounts: userMicrosoftTeamsAccounts,
-          userMattermostAccounts: userMattermostAccounts,
-          userWebhooks: userWebhooks,
-          customNotificationChannels: customNotificationChannels,
-        }, translator)
+      ? NotificationMethodUtil.getDropdownOptions(
+          {
+            userCalls: userCalls,
+            userEmails: userEmails,
+            userSMSs: userSMSs,
+            userPush: offeredUserPush,
+            userWhatsApps: userWhatsApps,
+            userTelegrams: userTelegrams,
+            userSlacks: userSlacks,
+            userMicrosoftTeamsAccounts: userMicrosoftTeamsAccounts,
+            userMattermostAccounts: userMattermostAccounts,
+            userWebhooks: userWebhooks,
+            customNotificationChannels: customNotificationChannels,
+          },
+          translator,
+        )
       : getSuppliedDropdownOptions(
           (props.notificationMethods || []).filter(
             (method: NotificationMethodChoice): boolean => {

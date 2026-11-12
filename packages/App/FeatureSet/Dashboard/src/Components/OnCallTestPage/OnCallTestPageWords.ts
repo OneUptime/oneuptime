@@ -627,7 +627,9 @@ export const RESULT_LINE_SENTENCES: Readonly<{
   levelPagedNobody: translationKey(
     "Nobody at this level could be paged, so the policy moved on at once.",
   ),
-  alreadyPaged: translationKey("Already paged by this test, so not paged again."),
+  alreadyPaged: translationKey(
+    "Already paged by this test, so not paged again.",
+  ),
   sendingToPerson: translationKey("Sending the test page..."),
   rulesRan: translationKey("Every on-call rule for this severity ran at once."),
   runUnreadable: translationKey(

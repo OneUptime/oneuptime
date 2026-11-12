@@ -879,6 +879,29 @@ describe("how should we reach you", () => {
     );
   });
 
+  /*
+   * ISSUE #7180: the number is typed in a box that reads left to right on
+   * every page, its example "+15551234567" with it - on a Persian or Arabic
+   * page its "+" went after its digits - and a phone offers its dial pad.
+   */
+  test("the number's box reads left to right, its example with it, on a phone's dial pad", async () => {
+    await renderSetup();
+
+    const box: HTMLElement = screen.getByTestId("on-call-setup-phone");
+
+    expect(box.tagName).toBe("INPUT");
+    expect(box).toHaveAttribute("inputmode", "tel");
+    expect(box).toHaveAttribute("dir", "ltr");
+    expect(box.parentElement).toHaveAttribute("dir", "ltr");
+    expect(box).toHaveAttribute("placeholder", "+15551234567");
+    // Its label is a sentence of the page, with no direction of its own.
+    expect(
+      document
+        .querySelector('label[for="on-call-setup-phone"]')!
+        .closest("[dir]"),
+    ).toBeNull();
+  });
+
   test("one number, one code: verified by text, then added for calls with no second code", async () => {
     await renderSetup();
 

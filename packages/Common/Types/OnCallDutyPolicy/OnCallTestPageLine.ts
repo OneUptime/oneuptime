@@ -134,12 +134,14 @@ function isNotVerifiedMessage(
   channel: OnCallPageChannel,
 ): boolean {
   const line: { prefix: string; suffix: string } | { whole: string } | null =
-    (NOT_VERIFIED_LINES as Partial<
-      Record<
-        OnCallPageChannel,
-        { prefix: string; suffix: string } | { whole: string }
+    (
+      NOT_VERIFIED_LINES as Partial<
+        Record<
+          OnCallPageChannel,
+          { prefix: string; suffix: string } | { whole: string }
+        >
       >
-    >)[channel] || null;
+    )[channel] || null;
 
   if (!line) {
     return false;
