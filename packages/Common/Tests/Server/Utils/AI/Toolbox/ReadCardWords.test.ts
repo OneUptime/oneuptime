@@ -986,7 +986,12 @@ describe("the card WidgetBuilder stores from them", () => {
     ]);
   });
 
-  test("a read's words are not a write's: a write's card cannot name a monitor", () => {
+  /*
+   * A write's card may say Monitor now (a setup plan creates one, #6829),
+   * but never what a read of one says: its type, its status, that its
+   * monitoring is off.
+   */
+  test("a read's words are not a write's: a write's card cannot say what a monitor's read says", () => {
     const words: AIActionCardWords = getMonitorCardWords({
       monitorType: MonitorType.Website,
       isMonitoringOff: true,
@@ -998,20 +1003,21 @@ describe("the card WidgetBuilder stores from them", () => {
     expect(isKnownAIActionCardWords(words, { isRead: false })).toBe(false);
   });
 
-  test("a kind only a read's card has is not a write's: Monitor, SLO, Team, On-call schedule, Status page", () => {
+  /*
+   * A setup plan's writes (#6829) leave a Monitor and a Status page card,
+   * so those two kinds are a write's as well as a read's.
+   */
+  test("a kind only a read's card has is not a write's: SLO, Team, On-call schedule", () => {
     const readOnly: Array<string> = Object.values(AI_READ_CARD_KINDS).filter(
       (kind: string): boolean => {
         return !Object.values(AI_ACTION_CARD_KINDS).includes(kind);
       },
     );
 
-    expect(readOnly).toEqual([
-      "Monitor",
-      "SLO",
-      "Team",
-      "On-call schedule",
-      "Status page",
-    ]);
+    expect(readOnly).toEqual(["SLO", "Team", "On-call schedule"]);
+    expect(Object.values(AI_ACTION_CARD_KINDS)).toEqual(
+      expect.arrayContaining(["Monitor", "Status page"]),
+    );
 
     for (const kind of readOnly) {
       // Nothing else on it a write's card could not hold.
