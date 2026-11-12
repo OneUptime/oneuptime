@@ -521,7 +521,7 @@
         "pillNoFromEmail": "Not Enabled. Please add the From Email.",
         "pillNoFromName": "Not Enabled. Please add the From Name.",
         "amazonSesCardTitle": "Amazon SES Settings",
-        "amazonSesCardDescription": "Your Amazon SES access key and Region, and who the emails come from.",
+        "amazonSesCardDescription": "How this server signs in to Amazon SES, its Region, and who the emails come from.",
         "amazonSesEditButton": "Edit Amazon SES",
         "mailgunCardTitle": "Mailgun Settings",
         "mailgunCardDescription": "Your Mailgun API key and sending domain, and who the emails come from.",
@@ -2082,9 +2082,9 @@
   "See global probes": "See global probes",
   "Send them their invitation link": "Send them their invitation link",
   "The invitation was created, but its link could not be read. Open the Admin Dashboard to set their password instead.": "The invitation was created, but its link could not be read. Open the Admin Dashboard to set their password instead.",
-  "This server cannot send email yet, so they will not get an invitation email. The invitation is still created, and you get a link to send them yourself.": "This server cannot send email yet, so they will not get an invitation email. The invitation is still created, and you get a link to send them yourself.",
-  "This server cannot send email, so {{email}} was not emailed. Copy this link and send it to them yourself. It works once, only for this address, for 7 days.": "This server cannot send email, so {{email}} was not emailed. Copy this link and send it to them yourself. It works once, only for this address, for 7 days.",
-  "This server cannot send email, so {{email}} was not emailed. They already have an account: send them this link to sign in, and they accept the invitation from there.": "This server cannot send email, so {{email}} was not emailed. They already have an account: send them this link to sign in, and they accept the invitation from there.",
+  "This server cannot send email yet, so they get no invitation email. The invitation is still created, and you get a link to send them yourself.": "This server cannot send email yet, so they get no invitation email. The invitation is still created, and you get a link to send them yourself.",
+  "This server cannot send email, so {{email}} was not emailed. Copy this link and send it yourself. It works once, only for this address, for 7 days.": "This server cannot send email, so {{email}} was not emailed. Copy this link and send it yourself. It works once, only for this address, for 7 days.",
+  "This server cannot send email, so {{email}} was not emailed. They already have an account: send them this link to sign in and accept the invitation.": "This server cannot send email, so {{email}} was not emailed. They already have an account: send them this link to sign in and accept the invitation.",
   "Invited": "Invited",
   "SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.",
   "Without a valid license (after the {{days}}-day trial), SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "Without a valid license (after the {{days}}-day trial), SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.",
@@ -2412,6 +2412,7 @@
   "This server runs OneUptime {{current}}. {{latest}} is out.": "This server runs OneUptime {{current}}. {{latest}} is out.",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.",
   "Finish it on the Server setup page.": "Finish it on the Server setup page.",
+<<<<<<< HEAD
   "Products on this server": "Products on this server",
   "Choose what every project on this server offers. A product that is off is gone from every project's menu, Home and Search, and its pages say it is switched off.": "Choose what every project on this server offers. A product that is off is gone from every project's menu, Home and Search, and its pages say it is switched off.",
   "Start from": "Start from",
@@ -2486,4 +2487,12 @@
   "Security": "Security",
   "Infrastructure": "Infrastructure",
   "Dashboards & Automation": "Dashboards & Automation"
+=======
+  "How OneUptime signs in to Amazon SES.": "How OneUptime signs in to Amazon SES.",
+  "Access Key": "Access Key",
+  "An IAM user's access key ID and secret access key, stored encrypted.": "An IAM user's access key ID and secret access key, stored encrypted.",
+  "This Server's IAM Role": "This Server's IAM Role",
+  "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.",
+  "Send through Amazon SES with an access key or this server's IAM role.": "Send through Amazon SES with an access key or this server's IAM role."
+>>>>>>> origin/main
 }

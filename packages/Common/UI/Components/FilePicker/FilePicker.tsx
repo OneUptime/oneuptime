@@ -14,6 +14,7 @@ import IconProp from "../../../Types/Icon/IconProp";
 import { getKnownFileSize, rememberFileSize } from "./KnownFileSizes";
 import {
   DEFAULT_MAX_FILE_SIZE_IN_BYTES,
+  FILE_PICKER_FILE_NAME_CLASS_NAME,
   FilePickerLayout,
   FilePickerPromptWords,
   formatFileSizeLimit,
@@ -32,6 +33,9 @@ import React, {
 } from "react";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
+import { getInlineSeparator } from "../../../Types/Translator";
+import IsolatedLine from "../IsolatedText/IsolatedLine";
+import IsolatedText from "../IsolatedText/IsolatedText";
 import { useDropzone, type FileRejection } from "react-dropzone";
 import type { AxiosProgressEvent } from "axios";
 
@@ -151,10 +155,9 @@ const FilePicker: FunctionComponent<ComponentProps> = (
   const maxFileSizeBytes: number = getMaxFileSizeInBytes(
     props.maxFileSizeInBytes,
   );
-  const maxFileSize: string = formatFileSizeLimit(maxFileSizeBytes);
-  // The everyday limit keeps its own wording (and its translations).
-  const hasOwnLimit: boolean =
-    maxFileSizeBytes !== DEFAULT_MAX_FILE_SIZE_IN_BYTES;
+  const maxFileSize: string = formatFileSizeLimit(maxFileSizeBytes, {
+    language: translator.language,
+  });
 
   const addUploadStatus: AddUploadStatusFunction = (
     status: UploadStatus,
@@ -260,30 +263,23 @@ const FilePicker: FunctionComponent<ComponentProps> = (
       return "";
     }
 
-    if (hasOwnLimit) {
-      if (fileNames.length === 1) {
-        return translator.translateTemplate(
-          '"{{fileName}}" exceeds the {{size}} limit.',
-          { fileName: fileNames[0] || "", size: maxFileSize },
-        );
-      }
-
-      return translator.translateTemplate(
-        "These files exceed the {{size}} limit: {{fileNames}}.",
-        { fileNames: fileNames.join(", "), size: maxFileSize },
-      );
-    }
-
+    /*
+     * The limit, the everyday 10 MB too, is a value of the sentence: in the
+     * reader's digits and set apart, as a file's name is, so a page read
+     * from the right draws "۱۰ MB" (issue #7233). Drawn on the page only.
+     */
     if (fileNames.length === 1) {
       return translator.translateTemplate(
-        '"{{fileName}}" exceeds the 10MB limit.',
-        { fileName: fileNames[0] || "" },
+        '"{{fileName}}" exceeds the {{size}} limit.',
+        { fileName: fileNames[0] || "", size: maxFileSize },
+        { setsValuesApart: true },
       );
     }
 
     return translator.translateTemplate(
-      "These files exceed the 10MB limit: {{fileNames}}.",
-      { fileNames: fileNames.join(", ") },
+      "These files exceed the {{size}} limit: {{fileNames}}.",
+      { fileNames: fileNames.join(", "), size: maxFileSize },
+      { setsValuesApart: true },
     );
   };
 
@@ -538,7 +534,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
       return null;
     }
 
-    return formatBytes(bytes) || null;
+    return formatBytes(bytes, { language: translator.language }) || null;
   };
 
   const getThumbs: GetThumbsFunction = (): Array<ReactElement> => {
@@ -551,19 +547,31 @@ const FilePicker: FunctionComponent<ComponentProps> = (
         props.onChange?.(tempFileModel);
       };
 
-      const metadata: Array<string> = [];
       /*
        * "PDF", not application/pdf: a Word document's MIME type is a word of
        * 71 letters that would run off a phone's screen.
        */
       const typeLabel: string = getMimeTypeLabel(file.fileType);
-      if (typeLabel) {
-        metadata.push(typeLabel);
-      }
       const readableSize: string | null = formatFileSize(file);
-      if (readableSize) {
-        metadata.push(readableSize);
+      /*
+       * Each fact reads its own way, set off from the next as the reader's
+       * language sets facts off (getInlineSeparator: a bullet in Persian,
+       * whose zero is a dot): on a page read from the right "۴۷ KB • PDF",
+       * the type first from the right and the size with its number first -
+       * a line of bare text drew it "KB ۴۷ • PDF" (issue #7233).
+       */
+      const facts: Array<{ text: string; testId: string }> = [];
+      if (typeLabel) {
+        facts.push({ text: typeLabel, testId: "file-picker-file-type" });
       }
+      if (readableSize) {
+        facts.push({ text: readableSize, testId: "file-picker-file-size" });
+      }
+      const fileName: string =
+        file.name ||
+        translator.translateTemplate("File {{number}}", {
+          number: i + 1,
+        });
 
       return (
         <div
@@ -588,14 +596,42 @@ const FilePicker: FunctionComponent<ComponentProps> = (
               />
             </div>
             <div className="flex min-w-0 flex-col">
-              <p className="break-words text-sm font-medium text-gray-900 [overflow-wrap:anywhere]">
-                {file.name ||
-                  translator.translateTemplate("File {{number}}", {
-                    number: i + 1,
-                  })}
-              </p>
-              {metadata.length > 0 && (
-                <p className="text-xs text-gray-500">{metadata.join(" • ")}</p>
+              {/*
+               * The name as it was written: an English name on an Arabic or
+               * Persian page is a line of its own that wraps from its own
+               * start and keeps ".pdf" at its end, as the Custom Fields card
+               * draws it (IsolatedLine, issue #7233).
+               */}
+              <IsolatedLine
+                as="p"
+                text={fileName}
+                className={FILE_PICKER_FILE_NAME_CLASS_NAME}
+                dataTestId="file-picker-file-name"
+              />
+              {facts.length > 0 && (
+                <p
+                  className="text-xs text-gray-500"
+                  data-testid="file-picker-file-facts"
+                >
+                  {facts.map(
+                    (
+                      fact: { text: string; testId: string },
+                      index: number,
+                    ): ReactElement => {
+                      return (
+                        <React.Fragment key={fact.testId}>
+                          {index > 0
+                            ? getInlineSeparator(translator.language)
+                            : ""}
+                          <IsolatedText
+                            text={fact.text}
+                            dataTestId={fact.testId}
+                          />
+                        </React.Fragment>
+                      );
+                    },
+                  )}
+                </p>
               )}
             </div>
           </div>

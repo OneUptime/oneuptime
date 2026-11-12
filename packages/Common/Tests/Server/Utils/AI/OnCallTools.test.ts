@@ -37,6 +37,12 @@ import PositiveNumber from "../../../../Types/PositiveNumber";
 import UserNotificationExecutionStatus from "../../../../Types/UserNotification/UserNotificationExecutionStatus";
 import UserNotificationEventType from "../../../../Types/UserNotification/UserNotificationEventType";
 import { afterEach, describe, expect, test } from "@jest/globals";
+import {
+  AIActionCardWords,
+  describeAIActionCardWords,
+} from "../../../../Types/AI/AIActionWords";
+import { dashboardTranslator } from "../../../Helpers/DashboardLocales";
+import { expectReadCardWorded } from "../../../Helpers/ReadCardWords";
 
 /*
  * These three tools close the on-call discovery gap: page_on_call_policy's
@@ -864,5 +870,148 @@ describe("on-call tools — permissions", () => {
     );
     expect(GetOnCallStatusTool.requiredPermissions.length).toBeGreaterThan(0);
     expect(QueryOnCallPagesTool.requiredPermissions.length).toBeGreaterThan(0);
+  });
+});
+
+/*
+ * Issue #7175: a policy's and a schedule's cards said "Rule 1", "Pages",
+ * "On call since" and "No one is on call" in English on a German or Persian
+ * page. Their words are OneUptime's own now; the names of the people, teams
+ * and schedules they page are data, and each moment is a moment the
+ * Dashboard writes in the reader's time zone.
+ */
+describe("the on-call cards, in the reader's language", () => {
+  test("a policy: each rule by its number and name, whom it pages by kind and name", async () => {
+    jest
+      .spyOn(OnCallDutyPolicyService, "findOneById")
+      .mockResolvedValue(buildPolicy() as never);
+    mockEscalationData({
+      rules: [
+        buildRule({
+          id: RULE_1_ID,
+          order: 1,
+          name: "Primary",
+          escalateAfterInMinutes: 5,
+        }),
+        buildRule({ id: RULE_2_ID, order: 2, name: "" }),
+      ],
+      users: [buildRuleUser(RULE_1_ID, "Alice Smith")],
+      teams: [buildRuleTeam(RULE_2_ID, "SRE")],
+      schedules: [
+        buildRuleSchedule(RULE_1_ID, SCHEDULE_ID, "Primary rotation"),
+      ],
+    });
+
+    const result: ToolExecutionResult = await QueryOnCallPoliciesTool.execute(
+      { onCallPolicyId: POLICY_ID.toString() },
+      ctx,
+    );
+    const words: AIActionCardWords = expectReadCardWorded(result.widget);
+
+    expect(describeAIActionCardWords(words)).toEqual({
+      kind: "On-call policy",
+      line: "Pages the payments on-call.",
+      facts: [
+        {
+          label: "Rule 1 — Primary",
+          value:
+            'Pages user "Alice Smith", on-call schedule "Primary rotation", then escalates after 5 minutes',
+        },
+        { label: "Rule 2", value: 'Pages team "SRE"' },
+      ],
+    });
+    expect(describeAIActionCardWords(words, dashboardTranslator("de"))).toEqual(
+      {
+        kind: "Bereitschaftsrichtlinie",
+        line: "Pages the payments on-call.",
+        facts: [
+          {
+            label: "Regel 1 — Primary",
+            value:
+              'Alarmiert Benutzer "Alice Smith", Bereitschaftsplan "Primary rotation", eskaliert dann nach 5 Minuten',
+          },
+          { label: "Regel 2", value: 'Alarmiert Team "SRE"' },
+        ],
+      },
+    );
+  });
+
+  test("a policy with no rules says so in the reader's words", async () => {
+    jest
+      .spyOn(OnCallDutyPolicyService, "findOneById")
+      .mockResolvedValue(buildPolicy({ description: "" }) as never);
+    mockEscalationData({});
+
+    const result: ToolExecutionResult = await QueryOnCallPoliciesTool.execute(
+      { onCallPolicyId: POLICY_ID.toString() },
+      ctx,
+    );
+    const words: AIActionCardWords = expectReadCardWorded(result.widget);
+
+    expect(describeAIActionCardWords(words)).toEqual({
+      kind: "On-call policy",
+      facts: [{ label: "Escalation rules", value: "None configured" }],
+    });
+    expect(
+      JSON.stringify(
+        describeAIActionCardWords(words, dashboardTranslator("fa")),
+      ),
+    ).not.toMatch(/Escalation rules|None configured|On-call policy/);
+  });
+
+  test("a schedule: who is on call now by name, its shift's moments as moments", async () => {
+    jest
+      .spyOn(OnCallDutyPolicyScheduleService, "findOneById")
+      .mockResolvedValue(
+        buildSchedule({
+          currentUserName: "Alice Smith",
+          nextUserName: "Bob Jones",
+        }) as never,
+      );
+
+    const result: ToolExecutionResult = await GetOnCallStatusTool.execute(
+      { scheduleId: SCHEDULE_ID.toString() },
+      ctx,
+    );
+    const words: AIActionCardWords = expectReadCardWorded(result.widget);
+
+    expect(result.widget!.data["heading"]).toBe("Primary rotation");
+    expect(describeAIActionCardWords(words)).toEqual({
+      kind: "On-call schedule",
+      line: "On call now: Alice Smith",
+      facts: [
+        { label: "On call since", value: "2026-08-11T09:00:00.000Z" },
+        { label: "Hands off at", value: "2026-08-18T09:00:00.000Z" },
+        { label: "Next up", value: "Bob Jones" },
+        { label: "Next shift starts", value: "2026-08-18T09:00:00.000Z" },
+      ],
+    });
+    expect(words.facts![0]!.value).toEqual({
+      moment: "2026-08-11T09:00:00.000Z",
+    });
+    expect(
+      describeAIActionCardWords(words, dashboardTranslator("de")).line,
+    ).toBe("Jetzt in Bereitschaft: Alice Smith");
+  });
+
+  test("a schedule no one is on says so in the reader's words", async () => {
+    jest
+      .spyOn(OnCallDutyPolicyScheduleService, "findOneById")
+      .mockResolvedValue(buildSchedule() as never);
+
+    const result: ToolExecutionResult = await GetOnCallStatusTool.execute(
+      { scheduleId: SCHEDULE_ID.toString() },
+      ctx,
+    );
+    const words: AIActionCardWords = expectReadCardWorded(result.widget);
+
+    expect(describeAIActionCardWords(words)).toEqual({
+      kind: "On-call schedule",
+      line: "No one is on call",
+      facts: [],
+    });
+    expect(
+      describeAIActionCardWords(words, dashboardTranslator("de")).line,
+    ).toBe("Niemand ist in Bereitschaft");
   });
 });

@@ -6,8 +6,8 @@ OneUptime ist eine Open-Source-Observability-Plattform. Sie prüft, ob Ihre Webs
 
 :::cards
 - [Erfahren, wenn Ihre Website oder API ausfällt](/docs/monitor/website-monitor): Von Sonden in aller Welt prüfen lassen und bei einem Ausfall eine E-Mail oder einen Alarm erhalten.
-- [Per Anruf, SMS oder Push alarmiert werden und eskalieren](/docs/on-call/index): Wer Bereitschaft hat, wird alarmiert, und die nächste Person, wenn niemand reagiert.
-- [Eine Statusseite auf Ihrer eigenen Domain veröffentlichen](/docs/status-pages/index): Ihren Kunden unter einer eigenen Adresse zeigen, was gerade passiert.
+- [Per Anruf, SMS oder Push alarmiert werden und eskalieren](/docs/guides/paging): Wer Bereitschaft hat, wird alarmiert, und die nächste Person, wenn niemand reagiert.
+- [Eine Statusseite auf Ihrer eigenen Domain veröffentlichen](/docs/guides/status-page): Ihren Kunden unter einer eigenen Adresse zeigen, was gerade passiert.
 - [Logs, Metriken und Traces senden](/docs/telemetry/open-telemetry): Die Telemetrie Ihrer Anwendungen mit OpenTelemetry senden, durchsuchen und darauf alarmieren.
 - [Einen Server überwachen](/docs/telemetry/hosts): Einen Host mit einem Befehl hinzufügen und CPU, Arbeitsspeicher und Festplatten im Blick behalten.
 - [Einen Kubernetes-Cluster überwachen](/docs/telemetry/kubernetes-agent): Den Agenten mit Helm installieren und jeden Node und Pod im Blick behalten.

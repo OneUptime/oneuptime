@@ -971,7 +971,8 @@ import { AddUserOnCallLogTimelineSendingIndex1809120200000 } from "./18091202000
 import { AddMonitorStatusTimelineIsMonitoringOff1809122600000 } from "./1809122600000-AddMonitorStatusTimelineIsMonitoringOff";
 import { AddProjectProductsAndPins1809122700000 } from "./1809122700000-AddProjectProductsAndPins";
 import { AddProductFeedback1809123000000 } from "./1809123000000-AddProductFeedback";
-import { AddServerProducts1809123100000 } from "./1809123100000-AddServerProducts";
+import { AddAmazonSesAuthenticationType1809123100000 } from "./1809123100000-AddAmazonSesAuthenticationType";
+import { AddServerProducts1809123200000 } from "./1809123200000-AddServerProducts";
 
 export default [
   InitialMigration,
@@ -1947,5 +1948,6 @@ export default [
   AddMonitorStatusTimelineIsMonitoringOff1809122600000,
   AddProjectProductsAndPins1809122700000,
   AddProductFeedback1809123000000,
-  AddServerProducts1809123100000,
+  AddAmazonSesAuthenticationType1809123100000,
+  AddServerProducts1809123200000,
 ];

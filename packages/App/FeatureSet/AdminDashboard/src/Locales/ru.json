@@ -521,7 +521,7 @@
         "pillNoFromEmail": "Не включено. Пожалуйста, добавьте email отправителя.",
         "pillNoFromName": "Не включено. Пожалуйста, добавьте имя отправителя.",
         "amazonSesCardTitle": "Настройки Amazon SES",
-        "amazonSesCardDescription": "Ваш ключ доступа Amazon SES и регион, а также отправитель писем.",
+        "amazonSesCardDescription": "Как этот сервер входит в Amazon SES, его регион, а также отправитель писем.",
         "amazonSesEditButton": "Изменить Amazon SES",
         "mailgunCardTitle": "Настройки Mailgun",
         "mailgunCardDescription": "Ваш API-ключ Mailgun и домен отправки, а также отправитель писем.",
@@ -2082,9 +2082,9 @@
   "See global probes": "Открыть глобальные зонды",
   "Send them their invitation link": "Отправьте ссылку-приглашение",
   "The invitation was created, but its link could not be read. Open the Admin Dashboard to set their password instead.": "Приглашение создано, но его ссылку не удалось получить. Вместо этого откройте панель администратора, чтобы задать пароль.",
-  "This server cannot send email yet, so they will not get an invitation email. The invitation is still created, and you get a link to send them yourself.": "Этот сервер пока не может отправлять почту, поэтому письмо с приглашением не придёт. Приглашение всё равно создаётся, и вы получите ссылку, которую сможете отправить сами.",
-  "This server cannot send email, so {{email}} was not emailed. Copy this link and send it to them yourself. It works once, only for this address, for 7 days.": "Этот сервер не может отправлять почту, поэтому на {{email}} письмо не отправлено. Скопируйте эту ссылку и отправьте её сами. Она работает один раз, только для этого адреса, в течение 7 дней.",
-  "This server cannot send email, so {{email}} was not emailed. They already have an account: send them this link to sign in, and they accept the invitation from there.": "Этот сервер не может отправлять почту, поэтому на {{email}} письмо не отправлено. У этого человека уже есть учётная запись: отправьте ему эту ссылку для входа, и там он примет приглашение.",
+  "This server cannot send email yet, so they get no invitation email. The invitation is still created, and you get a link to send them yourself.": "Этот сервер пока не может отправлять почту, поэтому письмо с приглашением не придёт. Приглашение всё равно создаётся, и вы получите ссылку, которую сможете отправить сами.",
+  "This server cannot send email, so {{email}} was not emailed. Copy this link and send it yourself. It works once, only for this address, for 7 days.": "Этот сервер не может отправлять почту, поэтому на {{email}} письмо не отправлено. Скопируйте эту ссылку и отправьте её сами. Она работает один раз, только для этого адреса, в течение 7 дней.",
+  "This server cannot send email, so {{email}} was not emailed. They already have an account: send them this link to sign in and accept the invitation.": "Этот сервер не может отправлять почту, поэтому на {{email}} письмо не отправлено. У этого человека уже есть учётная запись: отправьте ему эту ссылку для входа, и там он примет приглашение.",
   "Invited": "Приглашён",
   "SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "Подготовка учётных записей через SCIM останавливается, журналирование аудита перестаёт записывать, корпоративная конфигурация становится доступной только для чтения, а корпоративные панели администратора блокируются. Всё возобновляется, как только активируется лицензия, а основной мониторинг это никогда не затрагивает.",
   "Without a valid license (after the {{days}}-day trial), SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "Без действующей лицензии (после пробного периода в {{days}} дн.) подготовка учётных записей через SCIM останавливается, журналирование аудита перестаёт записывать, корпоративная конфигурация становится доступной только для чтения, а корпоративные панели администратора блокируются. Всё возобновляется, как только активируется лицензия, а основной мониторинг это никогда не затрагивает.",
@@ -2412,6 +2412,7 @@
   "This server runs OneUptime {{current}}. {{latest}} is out.": "На этом сервере работает OneUptime {{current}}. Вышла версия {{latest}}.",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "Сделайте резервную копию, затем обновитесь: npm run update в Docker Compose, helm upgrade в Kubernetes.",
   "Finish it on the Server setup page.": "Завершите на странице «Настройка сервера».",
+<<<<<<< HEAD
   "Products on this server": "Продукты на этом сервере",
   "Choose what every project on this server offers. A product that is off is gone from every project's menu, Home and Search, and its pages say it is switched off.": "Выберите, что предлагает каждый проект на этом сервере. Отключённый продукт исчезает из меню, главной страницы и поиска каждого проекта, а его страницы сообщают, что он отключён.",
   "Start from": "Начать с",
@@ -2486,4 +2487,12 @@
   "Security": "Безопасность",
   "Infrastructure": "Инфраструктура",
   "Dashboards & Automation": "Дашборды и автоматизация"
+=======
+  "How OneUptime signs in to Amazon SES.": "Как OneUptime входит в Amazon SES.",
+  "Access Key": "Ключ доступа",
+  "An IAM user's access key ID and secret access key, stored encrypted.": "Идентификатор ключа доступа и секретный ключ доступа пользователя IAM, хранятся в зашифрованном виде.",
+  "This Server's IAM Role": "Роль IAM этого сервера",
+  "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "Роль, которую AWS выдаёт этому серверу в Amazon EKS, ECS или EC2. Ключ не хранится, а учётные данные обновляются сами.",
+  "Send through Amazon SES with an access key or this server's IAM role.": "Отправлять через Amazon SES с ключом доступа или ролью IAM этого сервера."
+>>>>>>> origin/main
 }

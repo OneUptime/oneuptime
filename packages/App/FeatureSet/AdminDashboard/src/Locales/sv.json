@@ -521,7 +521,7 @@
         "pillNoFromEmail": "Inte aktiverad. Lägg till Från-e-posten.",
         "pillNoFromName": "Inte aktiverad. Lägg till Från-namnet.",
         "amazonSesCardTitle": "Amazon SES-inställningar",
-        "amazonSesCardDescription": "Din Amazon SES-åtkomstnyckel och region, och avsändaren av e-posten.",
+        "amazonSesCardDescription": "Hur den här servern loggar in på Amazon SES, dess region och avsändaren av e-posten.",
         "amazonSesEditButton": "Redigera Amazon SES",
         "mailgunCardTitle": "Mailgun-inställningar",
         "mailgunCardDescription": "Din Mailgun-API-nyckel och avsändardomän, och avsändaren av e-posten.",
@@ -2082,9 +2082,9 @@
   "See global probes": "Visa globala prober",
   "Send them their invitation link": "Skicka deras inbjudningslänk",
   "The invitation was created, but its link could not be read. Open the Admin Dashboard to set their password instead.": "Inbjudan skapades, men dess länk kunde inte läsas. Öppna administratörspanelen för att ange ett lösenord i stället.",
-  "This server cannot send email yet, so they will not get an invitation email. The invitation is still created, and you get a link to send them yourself.": "Den här servern kan inte skicka e-post ännu, så de får inget inbjudningsmejl. Inbjudan skapas ändå, och du får en länk som du själv kan skicka till dem.",
-  "This server cannot send email, so {{email}} was not emailed. Copy this link and send it to them yourself. It works once, only for this address, for 7 days.": "Den här servern kan inte skicka e-post, så {{email}} har inte fått något mejl. Kopiera länken och skicka den själv. Den fungerar en gång, bara för den här adressen, i 7 dagar.",
-  "This server cannot send email, so {{email}} was not emailed. They already have an account: send them this link to sign in, and they accept the invitation from there.": "Den här servern kan inte skicka e-post, så {{email}} har inte fått något mejl. De har redan ett konto: skicka dem den här länken för att logga in, så accepterar de inbjudan därifrån.",
+  "This server cannot send email yet, so they get no invitation email. The invitation is still created, and you get a link to send them yourself.": "Den här servern kan inte skicka e-post ännu, så de får inget inbjudningsmejl. Inbjudan skapas ändå, och du får en länk som du själv kan skicka till dem.",
+  "This server cannot send email, so {{email}} was not emailed. Copy this link and send it yourself. It works once, only for this address, for 7 days.": "Den här servern kan inte skicka e-post, så {{email}} har inte fått något mejl. Kopiera länken och skicka den själv. Den fungerar en gång, bara för den här adressen, i 7 dagar.",
+  "This server cannot send email, so {{email}} was not emailed. They already have an account: send them this link to sign in and accept the invitation.": "Den här servern kan inte skicka e-post, så {{email}} har inte fått något mejl. De har redan ett konto: skicka dem den här länken för att logga in, så accepterar de inbjudan därifrån.",
   "Invited": "Inbjuden",
   "SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "SCIM-etableringen stoppas, granskningsloggningen slutar registrera, enterprise-konfigurationen blir skrivskyddad och enterprise-admindashboardarna låses. Allt återupptas så snart en licens aktiveras, och kärnövervakningen påverkas aldrig.",
   "Without a valid license (after the {{days}}-day trial), SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "Utan en giltig licens (efter provperioden på {{days}} dagar) stoppas SCIM-etableringen, granskningsloggningen slutar registrera, enterprise-konfigurationen blir skrivskyddad och enterprise-admindashboardarna låses. Allt återupptas så snart en licens aktiveras, och kärnövervakningen påverkas aldrig.",
@@ -2412,6 +2412,7 @@
   "This server runs OneUptime {{current}}. {{latest}} is out.": "Den här servern kör OneUptime {{current}}. {{latest}} har släppts.",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "Säkerhetskopiera och uppdatera sedan: npm run update på Docker Compose, helm upgrade på Kubernetes.",
   "Finish it on the Server setup page.": "Slutför det på sidan Serverkonfiguration.",
+<<<<<<< HEAD
   "Products on this server": "Produkter på den här servern",
   "Choose what every project on this server offers. A product that is off is gone from every project's menu, Home and Search, and its pages say it is switched off.": "Välj vad varje projekt på den här servern erbjuder. En produkt som är avstängd försvinner från varje projekts meny, Hem och Sök, och dess sidor visar att den är avstängd.",
   "Start from": "Börja med",
@@ -2486,4 +2487,12 @@
   "Security": "Säkerhet",
   "Infrastructure": "Infrastruktur",
   "Dashboards & Automation": "Instrumentpaneler och automatisering"
+=======
+  "How OneUptime signs in to Amazon SES.": "Hur OneUptime loggar in på Amazon SES.",
+  "Access Key": "Åtkomstnyckel",
+  "An IAM user's access key ID and secret access key, stored encrypted.": "En IAM-användares åtkomstnyckel-ID och hemliga åtkomstnyckel, lagrade krypterade.",
+  "This Server's IAM Role": "Den här serverns IAM-roll",
+  "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "Rollen som AWS ger den här servern på Amazon EKS, ECS eller EC2. Ingen nyckel lagras, och dess autentiseringsuppgifter förnyas av sig själva.",
+  "Send through Amazon SES with an access key or this server's IAM role.": "Skicka via Amazon SES med en åtkomstnyckel eller den här serverns IAM-roll."
+>>>>>>> origin/main
 }

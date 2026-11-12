@@ -521,7 +521,7 @@
         "pillNoFromEmail": "Não habilitado. Adicione o e-mail do remetente.",
         "pillNoFromName": "Não habilitado. Adicione o nome do remetente.",
         "amazonSesCardTitle": "Configurações Amazon SES",
-        "amazonSesCardDescription": "Sua chave de acesso do Amazon SES e a região, e o remetente dos e-mails.",
+        "amazonSesCardDescription": "Como este servidor entra no Amazon SES, a região, e o remetente dos e-mails.",
         "amazonSesEditButton": "Editar Amazon SES",
         "mailgunCardTitle": "Configurações Mailgun",
         "mailgunCardDescription": "Sua chave de API do Mailgun e o domínio de envio, e o remetente dos e-mails.",
@@ -2082,9 +2082,9 @@
   "See global probes": "Ver sondas globais",
   "Send them their invitation link": "Envie o link de convite",
   "The invitation was created, but its link could not be read. Open the Admin Dashboard to set their password instead.": "O convite foi criado, mas não foi possível ler o link. Abra o painel do administrador para definir a senha da pessoa.",
-  "This server cannot send email yet, so they will not get an invitation email. The invitation is still created, and you get a link to send them yourself.": "Este servidor ainda não consegue enviar e-mails, então a pessoa não receberá um e-mail de convite. O convite é criado mesmo assim, e você recebe um link para enviar a ela.",
-  "This server cannot send email, so {{email}} was not emailed. Copy this link and send it to them yourself. It works once, only for this address, for 7 days.": "Este servidor não consegue enviar e-mails, então {{email}} não recebeu nenhum e-mail. Copie este link e envie você mesmo. Ele funciona uma vez, só para este endereço, por 7 dias.",
-  "This server cannot send email, so {{email}} was not emailed. They already have an account: send them this link to sign in, and they accept the invitation from there.": "Este servidor não consegue enviar e-mails, então {{email}} não recebeu nenhum e-mail. A pessoa já tem uma conta: envie este link para ela entrar, e ela aceita o convite por lá.",
+  "This server cannot send email yet, so they get no invitation email. The invitation is still created, and you get a link to send them yourself.": "Este servidor ainda não consegue enviar e-mails, então a pessoa não receberá um e-mail de convite. O convite é criado mesmo assim, e você recebe um link para enviar a ela.",
+  "This server cannot send email, so {{email}} was not emailed. Copy this link and send it yourself. It works once, only for this address, for 7 days.": "Este servidor não consegue enviar e-mails, então {{email}} não recebeu nenhum e-mail. Copie este link e envie você mesmo. Ele funciona uma vez, só para este endereço, por 7 dias.",
+  "This server cannot send email, so {{email}} was not emailed. They already have an account: send them this link to sign in and accept the invitation.": "Este servidor não consegue enviar e-mails, então {{email}} não recebeu nenhum e-mail. A pessoa já tem uma conta: envie este link para ela entrar, e ela aceita o convite por lá.",
   "Invited": "Convidado",
   "SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "O provisionamento SCIM para, o registro de auditoria deixa de gravar, a configuração enterprise passa a ser somente leitura e os painéis de administração enterprise são bloqueados. Tudo volta assim que uma licença é ativada, e o monitoramento principal nunca é afetado.",
   "Without a valid license (after the {{days}}-day trial), SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "Sem uma licença válida (depois do período de teste de {{days}} dias), o provisionamento SCIM para, o registro de auditoria deixa de gravar, a configuração enterprise passa a ser somente leitura e os painéis de administração enterprise são bloqueados. Tudo volta assim que uma licença é ativada, e o monitoramento principal nunca é afetado.",
@@ -2412,6 +2412,7 @@
   "This server runs OneUptime {{current}}. {{latest}} is out.": "Este servidor roda o OneUptime {{current}}. A versão {{latest}} já está disponível.",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "Faça um backup e depois atualize: npm run update no Docker Compose, helm upgrade no Kubernetes.",
   "Finish it on the Server setup page.": "Conclua na página Configuração do servidor.",
+<<<<<<< HEAD
   "Products on this server": "Produtos neste servidor",
   "Choose what every project on this server offers. A product that is off is gone from every project's menu, Home and Search, and its pages say it is switched off.": "Escolha o que cada projeto deste servidor oferece. Um produto desativado some do menu, do Início e da Pesquisa de cada projeto, e as páginas dele avisam que ele está desativado.",
   "Start from": "Começar por",
@@ -2486,4 +2487,12 @@
   "Security": "Segurança",
   "Infrastructure": "Infraestrutura",
   "Dashboards & Automation": "Painéis e automação"
+=======
+  "How OneUptime signs in to Amazon SES.": "Como o OneUptime entra no Amazon SES.",
+  "Access Key": "Chave de acesso",
+  "An IAM user's access key ID and secret access key, stored encrypted.": "O ID da chave de acesso e a chave de acesso secreta de um usuário do IAM, armazenados criptografados.",
+  "This Server's IAM Role": "Função do IAM deste servidor",
+  "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "A função que a AWS dá a este servidor no Amazon EKS, ECS ou EC2. Nenhuma chave é armazenada, e suas credenciais se renovam sozinhas.",
+  "Send through Amazon SES with an access key or this server's IAM role.": "Enviar pelo Amazon SES com uma chave de acesso ou a função do IAM deste servidor."
+>>>>>>> origin/main
 }

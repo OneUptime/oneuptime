@@ -102,6 +102,30 @@ const DocsNav: NavGroup[] = [
     ],
   },
   /*
+   * One page per job people come to OneUptime with (#6821), each followed
+   * from its first line to its last: what you will have, what you need,
+   * the steps (walking the product's guided setup where there is one),
+   * how to check it worked, what can go wrong and what to do next.
+   * Getting Started's "What do you want to do?" opens them, and the
+   * reference pages they replace for a newcomer point to them first.
+   */
+  {
+    title: "Guides",
+    section: "Get Started",
+    links: [
+      {
+        title: "Get Paged by Phone, SMS or Push",
+        url: "/docs/guides/paging",
+        isGuide: true,
+      },
+      {
+        title: "Publish a Status Page",
+        url: "/docs/guides/status-page",
+        isGuide: true,
+      },
+    ],
+  },
+  /*
    * One page per tool that Project Settings > Advanced > Import from
    * another tool brings a team, monitors or status pages over from
    * (Common/Types/ToolImport/ToolImportCatalog's docsPath).

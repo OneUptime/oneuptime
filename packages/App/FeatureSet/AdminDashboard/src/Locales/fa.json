@@ -521,7 +521,7 @@
         "pillNoFromEmail": "فعال نیست. لطفاً ایمیل فرستنده را اضافه کنید.",
         "pillNoFromName": "فعال نیست. لطفاً نام فرستنده را اضافه کنید.",
         "amazonSesCardTitle": "تنظیمات Amazon SES",
-        "amazonSesCardDescription": "کلید دسترسی و منطقه Amazon SES شما، و فرستندهٔ ایمیل‌ها.",
+        "amazonSesCardDescription": "اینکه این سرور چگونه وارد Amazon SES می‌شود، منطقه آن، و فرستندهٔ ایمیل‌ها.",
         "amazonSesEditButton": "ویرایش Amazon SES",
         "mailgunCardTitle": "تنظیمات Mailgun",
         "mailgunCardDescription": "کلید API و دامنه ارسال Mailgun شما، و فرستندهٔ ایمیل‌ها.",
@@ -2082,9 +2082,9 @@
   "See global probes": "دیدن پراب‌های سراسری",
   "Send them their invitation link": "پیوند دعوتشان را بفرستید",
   "The invitation was created, but its link could not be read. Open the Admin Dashboard to set their password instead.": "دعوت ایجاد شد، اما پیوندش خوانده نشد. به‌جای آن داشبورد مدیریت را باز کنید و برایشان گذرواژه تعیین کنید.",
-  "This server cannot send email yet, so they will not get an invitation email. The invitation is still created, and you get a link to send them yourself.": "این سرور هنوز نمی‌تواند ایمیل بفرستد، پس ایمیل دعوت به دستشان نمی‌رسد. دعوت با این حال ایجاد می‌شود و پیوندی می‌گیرید تا خودتان برایشان بفرستید.",
-  "This server cannot send email, so {{email}} was not emailed. Copy this link and send it to them yourself. It works once, only for this address, for 7 days.": "این سرور نمی‌تواند ایمیل بفرستد، پس به {{email}} ایمیلی فرستاده نشد. این پیوند را کپی کنید و خودتان برایشان بفرستید. فقط یک بار، فقط برای همین نشانی و تا ۷ روز کار می‌کند.",
-  "This server cannot send email, so {{email}} was not emailed. They already have an account: send them this link to sign in, and they accept the invitation from there.": "این سرور نمی‌تواند ایمیل بفرستد، پس به {{email}} ایمیلی فرستاده نشد. آن‌ها از قبل حساب دارند: این پیوند را برای ورود برایشان بفرستید تا دعوت را از همان‌جا بپذیرند.",
+  "This server cannot send email yet, so they get no invitation email. The invitation is still created, and you get a link to send them yourself.": "این سرور هنوز نمی‌تواند ایمیل بفرستد، پس ایمیل دعوت به دستشان نمی‌رسد. دعوت با این حال ایجاد می‌شود و پیوندی می‌گیرید تا خودتان برایشان بفرستید.",
+  "This server cannot send email, so {{email}} was not emailed. Copy this link and send it yourself. It works once, only for this address, for 7 days.": "این سرور نمی‌تواند ایمیل بفرستد، پس به {{email}} ایمیلی فرستاده نشد. این پیوند را کپی کنید و خودتان برایشان بفرستید. فقط یک بار، فقط برای همین نشانی و تا ۷ روز کار می‌کند.",
+  "This server cannot send email, so {{email}} was not emailed. They already have an account: send them this link to sign in and accept the invitation.": "این سرور نمی‌تواند ایمیل بفرستد، پس به {{email}} ایمیلی فرستاده نشد. آن‌ها از قبل حساب دارند: این پیوند را برای ورود برایشان بفرستید تا دعوت را از همان‌جا بپذیرند.",
   "Invited": "دعوت‌شده",
   "SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "تأمین SCIM متوقف می‌شود، ثبت ممیزی دیگر چیزی ثبت نمی‌کند، پیکربندی سازمانی فقط‌خواندنی می‌شود و داشبوردهای مدیریت سازمانی قفل می‌شوند. همه‌چیز به‌محض فعال شدن یک پروانه از سر گرفته می‌شود و پایش اصلی هرگز تحت تأثیر قرار نمی‌گیرد.",
   "Without a valid license (after the {{days}}-day trial), SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "بدون پروانهٔ معتبر (پس از دورهٔ آزمایشی {{days}} روزه)، تأمین SCIM متوقف می‌شود، ثبت ممیزی دیگر چیزی ثبت نمی‌کند، پیکربندی سازمانی فقط‌خواندنی می‌شود و داشبوردهای مدیریت سازمانی قفل می‌شوند. همه‌چیز به‌محض فعال شدن یک پروانه از سر گرفته می‌شود و پایش اصلی هرگز تحت تأثیر قرار نمی‌گیرد.",
@@ -2412,6 +2412,7 @@
   "This server runs OneUptime {{current}}. {{latest}} is out.": "این سرور OneUptime {{current}} را اجرا می‌کند. نسخهٔ {{latest}} منتشر شده است.",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "اول پشتیبان بگیرید، بعد به‌روزرسانی کنید: در Docker Compose با npm run update و در Kubernetes با helm upgrade.",
   "Finish it on the Server setup page.": "آن را در صفحهٔ «راه‌اندازی سرور» تمام کنید.",
+<<<<<<< HEAD
   "Products on this server": "محصولات این سرور",
   "Choose what every project on this server offers. A product that is off is gone from every project's menu, Home and Search, and its pages say it is switched off.": "انتخاب کنید هر پروژه در این سرور چه چیزهایی ارائه دهد. محصولی که خاموش است از منو، خانه و جستجوی همهٔ پروژه‌ها حذف می‌شود و صفحه‌هایش می‌گویند که خاموش شده است.",
   "Start from": "شروع از",
@@ -2486,4 +2487,12 @@
   "Security": "امنیت",
   "Infrastructure": "زیرساخت",
   "Dashboards & Automation": "داشبوردها و خودکارسازی"
+=======
+  "How OneUptime signs in to Amazon SES.": "اینکه OneUptime چگونه وارد Amazon SES می‌شود.",
+  "Access Key": "کلید دسترسی",
+  "An IAM user's access key ID and secret access key, stored encrypted.": "شناسه کلید دسترسی و کلید دسترسی محرمانه یک کاربر IAM، که به‌صورت رمزگذاری‌شده نگهداری می‌شوند.",
+  "This Server's IAM Role": "نقش IAM این سرور",
+  "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "نقشی که AWS روی Amazon EKS، ECS یا EC2 به این سرور می‌دهد. هیچ کلیدی نگهداری نمی‌شود و اعتبارنامه‌های آن خودبه‌خود تمدید می‌شوند.",
+  "Send through Amazon SES with an access key or this server's IAM role.": "ارسال از راه Amazon SES با یک کلید دسترسی یا نقش IAM این سرور."
+>>>>>>> origin/main
 }

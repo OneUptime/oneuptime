@@ -11,8 +11,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * saved on a new server, or on one that upgrades, and every product stays
  * on until an admin (or SERVER_PRODUCTS) says otherwise.
  */
-export class AddServerProducts1809123100000 implements MigrationInterface {
-  public name: string = "AddServerProducts1809123100000";
+export class AddServerProducts1809123200000 implements MigrationInterface {
+  public name: string = "AddServerProducts1809123200000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

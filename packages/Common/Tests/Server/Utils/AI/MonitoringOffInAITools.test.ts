@@ -10,6 +10,14 @@ import {
 } from "../../../../Server/Utils/AI/Toolbox/MonitorTools";
 import { getFactsNotInHeading } from "../../../../Types/AI/ResourceCardFacts";
 import {
+  AIActionCardWords,
+  describeAIActionCardWords,
+} from "../../../../Types/AI/AIActionWords";
+import { dashboardTranslator } from "../../../Helpers/DashboardLocales";
+import { expectReadCardWorded } from "../../../Helpers/ReadCardWords";
+import MonitorOwnerTeam from "../../../../Models/DatabaseModels/MonitorOwnerTeam";
+import Team from "../../../../Models/DatabaseModels/Team";
+import {
   AIChatResourceCardOrigin,
   AIChatWidgetData,
   isAIChatReadResourceCard,
@@ -774,6 +782,119 @@ describe("query_monitors read by id leaves a read's card, its status in its colo
 
     expect(card.subheading).toBe("Offline");
     expect(Object.keys(card)).not.toContain("statusColor");
+  });
+});
+
+/*
+ * Issue #7175: the card said "MONITOR", "Type: Website", "Last status" and
+ * "Off - not checked" in English on a German or Persian page. Its words are
+ * OneUptime's own words now, which the Dashboard says in the reader's
+ * language - its status and its owners as the project named them - and the
+ * English it stores is the same words in English.
+ */
+describe("query_monitors read by id leaves its card in the reader's language (#7175)", () => {
+  async function widgetOf(
+    row: Monitor,
+    ownerTeams: Array<string> = [],
+  ): Promise<ToolExecutionResult["widget"]> {
+    spy(MonitorService, "findOneById", row);
+    spy(MonitorStatusTimelineService, "findBy", []);
+    spy(
+      MonitorOwnerTeamService,
+      "findBy",
+      ownerTeams.map((name: string): MonitorOwnerTeam => {
+        const owner: MonitorOwnerTeam = new MonitorOwnerTeam();
+        const team: Team = new Team();
+        team.name = name;
+        owner.team = team;
+        return owner;
+      }),
+    );
+    spy(MonitorOwnerUserService, "findBy", []);
+
+    const result: ToolExecutionResult = await QueryMonitorsTool.execute(
+      { monitorId: ObjectID.generate().toString() },
+      ctx,
+    );
+
+    return result.widget;
+  }
+
+  test("an Offline monitor: its type a word of ours, its status and owners as the project named them", async () => {
+    const words: AIActionCardWords = expectReadCardWorded(
+      await widgetOf(monitor({ name: "Checkout API", status: OFFLINE }), [
+        "SRE",
+        "DBA",
+      ]),
+    );
+
+    expect(describeAIActionCardWords(words)).toEqual({
+      kind: "Monitor",
+      line: "Offline",
+      facts: [
+        { label: "Type", value: "Website" },
+        { label: "Owner teams", value: "SRE, DBA" },
+      ],
+    });
+    expect(describeAIActionCardWords(words, dashboardTranslator("de"))).toEqual(
+      {
+        kind: "Überwachung",
+        line: "Offline",
+        facts: [
+          { label: "Typ", value: "Website" },
+          { label: "Eigentümer-Teams", value: "SRE, DBA" },
+        ],
+      },
+    );
+  });
+
+  test("monitoring off and archived: Disabled, Last status, Off - not checked and Yes - not monitored, each in the reader's words", async () => {
+    const words: AIActionCardWords = expectReadCardWorded(
+      await widgetOf(
+        monitor({
+          name: "Backup Job",
+          status: OFFLINE,
+          monitoringOff: true,
+          isArchived: true,
+        }),
+      ),
+    );
+
+    expect(describeAIActionCardWords(words)).toEqual({
+      kind: "Monitor",
+      line: MONITORING_OFF_STATUS_TEXT,
+      facts: [
+        { label: "Type", value: "Website" },
+        { label: MONITORING_OFF_LAST_STATUS_LABEL, value: "Offline" },
+        { label: "Archived", value: "Yes - not monitored" },
+        { label: "Monitoring", value: "Off - not checked" },
+      ],
+    });
+
+    for (const language of ["de", "fa", "ar"]) {
+      const drawn: string = JSON.stringify(
+        describeAIActionCardWords(words, dashboardTranslator(language)),
+      );
+
+      for (const english of [
+        "Monitor",
+        "Disabled",
+        "Last status",
+        "Off - not checked",
+        "Yes - not monitored",
+        // German writes Website as English does.
+        ...(language === "de" ? [] : ["Website"]),
+      ]) {
+        expect({ language, english, drawn }).toEqual({
+          language,
+          english,
+          drawn: expect.not.stringContaining(english),
+        });
+      }
+
+      // The status the project named is data, in every language.
+      expect(drawn).toContain("Offline");
+    }
   });
 });
 

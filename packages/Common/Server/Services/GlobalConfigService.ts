@@ -18,6 +18,9 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import BadDataException from "../../Types/Exception/BadDataException";
+import AmazonSesAuthenticationType, {
+  isAmazonSesAuthenticationType,
+} from "../../Types/Email/AmazonSesAuthenticationType";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import TelegramVerificationToken from "../Utils/TelegramVerificationToken";
@@ -383,6 +386,40 @@ export class Service extends DatabaseService<Model> {
       allowZero: false,
     });
     TelemetryIngestionBudgetValidation.applyInstanceSettingRules(data);
+  }
+
+  /*
+   * How the server signs in to Amazon SES (#7000): an access key, the
+   * server's own IAM role, or nothing written (an access key, as before).
+   * Anything else is refused with what it may be. Signing in with the IAM
+   * role stores no key, so the access key it signed in with before is
+   * cleared in the same write: a key nothing uses any more is only one more
+   * to leak.
+   */
+  public static applyAmazonSesAuthenticationRules(
+    data: Record<string, unknown>,
+  ): void {
+    const value: unknown = data["amazonSesAuthenticationType"];
+
+    if (value === undefined || value === null) {
+      return;
+    }
+
+    if (value === "") {
+      data["amazonSesAuthenticationType"] = null;
+      return;
+    }
+
+    if (!isAmazonSesAuthenticationType(value)) {
+      throw new BadDataException(
+        `Amazon SES's Authentication Type must be "${AmazonSesAuthenticationType.AccessKey}" or "${AmazonSesAuthenticationType.ServerIamRole}".`,
+      );
+    }
+
+    if (value === AmazonSesAuthenticationType.ServerIamRole) {
+      data["amazonSesAccessKeyId"] = null;
+      data["amazonSesSecretAccessKey"] = null;
+    }
   }
 
   /*
@@ -1254,6 +1291,9 @@ export class Service extends DatabaseService<Model> {
     Service.applyTelemetryIngestionBudgetRules(
       createBy.data as unknown as Record<string, unknown>,
     );
+    Service.applyAmazonSesAuthenticationRules(
+      createBy.data as unknown as Record<string, unknown>,
+    );
     await this.prepareCallAndSmsGatewayForCreate(createBy);
 
     return {
@@ -1284,6 +1324,9 @@ export class Service extends DatabaseService<Model> {
     this.assertCallAndSmsProviderIsValid(updateBy.data);
     Service.assertSessionLengthsAreValid(updateBy.data);
     Service.applyTelemetryIngestionBudgetRules(
+      updateBy.data as unknown as Record<string, unknown>,
+    );
+    Service.applyAmazonSesAuthenticationRules(
       updateBy.data as unknown as Record<string, unknown>,
     );
     await this.prepareCallAndSmsGateway(updateBy);

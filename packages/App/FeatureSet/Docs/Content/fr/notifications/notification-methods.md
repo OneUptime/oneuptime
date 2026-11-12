@@ -2,6 +2,9 @@
 
 Une méthode de notification est une adresse à laquelle OneUptime peut vous joindre dans un projet : une adresse e-mail, un numéro de téléphone pour les SMS ou les appels, un numéro WhatsApp, un compte Telegram, votre compte Slack, Microsoft Teams ou Mattermost, un téléphone ou un navigateur pour les notifications push, ou un webhook. Vous les ajoutez dans **Paramètres utilisateur → Méthodes de notification**, vous les vérifiez, et OneUptime commence aussitôt à les utiliser pour vos alertes.
 
+> [!TIP]
+> Vous débutez ? Suivez d'abord le guide : [Être alerté par appel, SMS ou push](/docs/guides/paging).
+
 :::cards
 - [Choisir une méthode](#choisir-une-méthode): Ce dont chaque méthode a besoin, et comment elle est vérifiée.
 - [Ajouter et vérifier une méthode](#ajouter-et-vérifier-une-méthode): E-mail, SMS, appels et WhatsApp, avec un code à 6 chiffres.

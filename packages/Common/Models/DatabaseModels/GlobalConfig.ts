@@ -11,6 +11,7 @@ import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import Email from "../../Types/Email";
+import AmazonSesAuthenticationType from "../../Types/Email/AmazonSesAuthenticationType";
 import MailgunRegion from "../../Types/Email/MailgunRegion";
 import MailTransportType from "../../Types/Email/MailTransportType";
 import OAuthProviderType from "../../Types/Email/OAuthProviderType";
@@ -1045,6 +1046,32 @@ export default class GlobalConfig extends GlobalConfigModel {
    * Email Server Type keeps each provider's settings as they were. Every
    * key is encrypted at rest.
    */
+
+  /*
+   * How the server signs in to Amazon SES: with the access key below, or
+   * as the IAM role AWS gives the server itself (#7000), when no key is
+   * stored at all. Never set, it signs in with the access key, as every
+   * server did before there was a choice. Saving the IAM role clears the
+   * access key (GlobalConfigService).
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(AmazonSesAuthenticationType),
+    title: "Amazon SES Authentication Type",
+    description:
+      "How the server signs in to Amazon SES: with an IAM user's access key, or as the IAM role AWS gives the server (IAM roles for service accounts or EKS Pod Identity, an ECS task role, an EC2 instance profile), with no key stored. Access Key when not set.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public amazonSesAuthenticationType?: AmazonSesAuthenticationType = undefined;
 
   @ColumnAccessControl({
     create: [],

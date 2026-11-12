@@ -1,4 +1,3 @@
-import { EntityManager } from "typeorm";
 import { expect } from "@jest/globals";
 import { escapeRegExp } from "../../../Utils/RegExpEscape";
 
@@ -20,22 +19,30 @@ export interface CapturedStatement {
   parameters: Array<unknown>;
 }
 
-export interface ClaimServiceLike {
+export interface ClaimQueryServiceLike {
+  getRepository: unknown;
   executeTransaction: unknown;
 }
 
-type RunInTransactionFunction<TResult> = (
-  entityManager: EntityManager,
-) => Promise<TResult>;
-
 /*
- * Replaces executeTransaction on the given service instance with one that
- * hands the callback a fake EntityManager. The first query (the claim SELECT)
- * resolves to `selectRows`; every later one (the UPDATE) resolves to [].
+ * The probes' claims - monitor probes, network devices, VMware vCenters,
+ * OpenStack clouds and checks, data stores - run as auto-committed
+ * statements on the service's own connection, never in a transaction
+ * (OneUptime issue #7194: a transaction held every claimed row's lock
+ * across the round trips between its statements). So they are captured at
+ * `getRepository().manager.query`, and executeTransaction is made to throw
+ * - a claim that opens one again fails here.
+ *
+ * The first statement answers `firstRows`. Every later one answers
+ * `laterRows(statement)` - by default the ids it was handed as its second
+ * parameter, as {_id} rows: every candidate still due and unlocked.
  */
-export function captureClaimStatements(
-  service: ClaimServiceLike,
-  selectRows: Array<Record<string, unknown>> = [],
+export function captureClaimQueries(
+  service: ClaimQueryServiceLike,
+  firstRows: Array<Record<string, unknown>> = [],
+  laterRows?: (
+    statement: CapturedStatement,
+  ) => Array<Record<string, unknown>> | undefined,
 ): Array<CapturedStatement> {
   const statements: Array<CapturedStatement> = [];
 
@@ -44,26 +51,48 @@ export function captureClaimStatements(
       service as { executeTransaction: () => Promise<unknown> },
       "executeTransaction",
     )
-    .mockImplementation((async <TResult>(
-      runInTransaction: RunInTransactionFunction<TResult>,
-    ): Promise<TResult> => {
-      const entityManager: {
-        query: (
-          sql: string,
-          parameters?: Array<unknown>,
-        ) => Promise<Array<Record<string, unknown>>>;
-      } = {
+    .mockImplementation((async (): Promise<never> => {
+      throw new Error(
+        "A claim must not open a transaction: its row locks would outlive its statements.",
+      );
+    }) as never);
+
+  jest
+    .spyOn(service as { getRepository: () => unknown }, "getRepository")
+    .mockReturnValue({
+      manager: {
         query: async (
           sql: string,
           parameters?: Array<unknown>,
         ): Promise<Array<Record<string, unknown>>> => {
-          statements.push({ sql, parameters: parameters || [] });
-          return statements.length === 1 ? selectRows : [];
-        },
-      };
+          const statement: CapturedStatement = {
+            sql,
+            parameters: parameters || [],
+          };
+          statements.push(statement);
 
-      return await runInTransaction(entityManager as unknown as EntityManager);
-    }) as never);
+          if (statements.length === 1) {
+            return firstRows;
+          }
+
+          const answered: Array<Record<string, unknown>> | undefined = laterRows
+            ? laterRows(statement)
+            : undefined;
+
+          if (answered) {
+            return answered;
+          }
+
+          const ids: unknown = statement.parameters[1];
+
+          return Array.isArray(ids)
+            ? ids.map((id: unknown) => {
+                return { _id: id };
+              })
+            : [];
+        },
+      },
+    } as never);
 
   return statements;
 }
