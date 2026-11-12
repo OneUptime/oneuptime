@@ -5,6 +5,7 @@ import StatusPageSetupApi, {
 import {
   STATUS_PAGE_SETUP,
   STATUS_PAGE_SETUP_COPY,
+  STATUS_PAGE_SETUP_GUIDE_DOCS_PATH,
   STATUS_PAGE_SETUP_EXTRAS,
   StatusPageSetupExtra,
   StatusPageSetupMonitor,
@@ -823,6 +824,7 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
       }}
       summary={summary}
       isFinished={isStatusPageSetupFinished(facts)}
+      guideDocsPath={STATUS_PAGE_SETUP_GUIDE_DOCS_PATH}
     />
   );
 };
