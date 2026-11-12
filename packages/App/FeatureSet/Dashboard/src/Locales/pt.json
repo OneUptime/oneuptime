@@ -51132,5 +51132,8 @@
   "The share of time its monitors must be up. Over {{days}} days, {{target}} allows {{minutes}} minutes of downtime and {{stricterTarget}} about {{stricterMinutes}}.": "A parcela do tempo em que seus monitores precisam estar no ar. Em {{days}} dias, {{target}} permite {{minutes}} minutos de inatividade e {{stricterTarget}}, cerca de {{stricterMinutes}}.",
   "Window must be a whole number of days.": "A janela deve ser um número inteiro de dias.",
   "Window must be between {{min}} and {{max}} days.": "A janela deve ter entre {{min}} e {{max}} dias.",
-  "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month": "{{percentage}} de cada mês: {{budget}} de inatividade em um mês de {{days}} dias"
+  "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month": "{{percentage}} de cada mês: {{budget}} de inatividade em um mês de {{days}} dias",
+  "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}.": "A IA leu estes {{count}} arquivos e não tem mais parte do texto deles, e as versões da IA os substituem por inteiro: {{files}}.",
+  "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}._one": "A IA leu este arquivo e não tem mais parte do texto dele, e a versão da IA o substitui por inteiro: {{files}}.",
+  "Ask AI read this file and no longer has part of its text, and its version replaces all of it: {{files}}.": "A IA leu este arquivo e não tem mais parte do texto dele, e a versão da IA o substitui por inteiro: {{files}}."
 }

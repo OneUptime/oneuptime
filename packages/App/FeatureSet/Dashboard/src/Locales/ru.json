@@ -51132,5 +51132,8 @@
   "The share of time its monitors must be up. Over {{days}} days, {{target}} allows {{minutes}} minutes of downtime and {{stricterTarget}} about {{stricterMinutes}}.": "Доля времени, в течение которой его мониторы должны работать. За {{days}} дней цель {{target}} допускает {{minutes}} минуты простоя, а {{stricterTarget}} — около {{stricterMinutes}}.",
   "Window must be a whole number of days.": "Окно должно быть целым числом дней.",
   "Window must be between {{min}} and {{max}} days.": "Окно должно быть от {{min}} до {{max}} дней.",
-  "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month": "{{percentage}} каждого месяца: {{budget}} простоя в месяце из {{days}} дней"
+  "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month": "{{percentage}} каждого месяца: {{budget}} простоя в месяце из {{days}} дней",
+  "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}.": "ИИ прочитал эти файлы ({{count}}) и больше не видит части их текста, а версии ИИ заменяют их целиком: {{files}}.",
+  "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}._one": "ИИ прочитал этот файл и больше не видит части его текста, а версия ИИ заменяет его целиком: {{files}}.",
+  "Ask AI read this file and no longer has part of its text, and its version replaces all of it: {{files}}.": "ИИ прочитал этот файл и больше не видит части его текста, а версия ИИ заменяет его целиком: {{files}}."
 }

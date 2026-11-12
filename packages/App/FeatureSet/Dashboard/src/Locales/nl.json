@@ -51132,5 +51132,8 @@
   "The share of time its monitors must be up. Over {{days}} days, {{target}} allows {{minutes}} minutes of downtime and {{stricterTarget}} about {{stricterMinutes}}.": "Het deel van de tijd dat de monitoren beschikbaar moeten zijn. Bij {{target}} is over {{days}} dagen {{minutes}} minuten downtime toegestaan, bij {{stricterTarget}} ongeveer {{stricterMinutes}}.",
   "Window must be a whole number of days.": "Het venster moet een geheel aantal dagen zijn.",
   "Window must be between {{min}} and {{max}} days.": "Het venster moet tussen {{min}} en {{max}} dagen liggen.",
-  "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month": "{{percentage}} van elke maand: {{budget}} downtime in een maand van {{days}} dagen"
+  "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month": "{{percentage}} van elke maand: {{budget}} downtime in een maand van {{days}} dagen",
+  "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}.": "De AI las deze {{count}} bestanden en heeft een deel van de tekst ervan niet meer, en de versies van de AI vervangen de hele bestanden: {{files}}.",
+  "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}._one": "De AI las dit bestand en heeft een deel van de tekst ervan niet meer, en de versie van de AI vervangt het hele bestand: {{files}}.",
+  "Ask AI read this file and no longer has part of its text, and its version replaces all of it: {{files}}.": "De AI las dit bestand en heeft een deel van de tekst ervan niet meer, en de versie van de AI vervangt het hele bestand: {{files}}."
 }
