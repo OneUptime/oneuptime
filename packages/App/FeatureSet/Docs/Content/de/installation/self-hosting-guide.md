@@ -37,7 +37,7 @@ cd oneuptime
 cp config.example.env config.env
 ```
 
-Öffnen Sie `config.env` und setzen Sie `HOST`, die erste Einstellung darin, auf Ihren Domainnamen oder Ihre IP-Adresse, ohne `http://`. Es ist die einzige Einstellung, die Sie ändern müssen: E-Mail, SMS und Anrufe richten Sie im Admin-Dashboard ein, und alles unter `ADVANCED` funktioniert so, wie es ist. Starten Sie dann OneUptime:
+Öffnen Sie `config.env` und setzen Sie `HOST`, die erste Einstellung darin, auf Ihren Domainnamen oder Ihre IP-Adresse, ohne `http://`. Es ist die einzige Einstellung, die Sie ändern müssen: E-Mail, SMS und Anrufe richten Sie im Admin Dashboard ein, und alles unter `ADVANCED` funktioniert so, wie es ist. Starten Sie dann OneUptime:
 
 ```bash
 npm start
@@ -97,13 +97,13 @@ Um TLS stattdessen an einem eigenen Ingress-Controller zu beenden, lassen Sie `s
 
 ## Das Admin-Konto anlegen
 
-Öffnen Sie Ihre Adresse, etwa `https://oneuptime.example.com`, und registrieren Sie sich. Das erste Konto auf einem neuen Server wird sein Master-Admin, der das Admin-Dashboard unter `/admin` öffnen kann.
+Öffnen Sie Ihre Adresse, etwa `https://oneuptime.example.com`, und registrieren Sie sich. Das erste Konto auf einem neuen Server wird sein Master-Admin, der das Admin Dashboard unter `/admin` öffnen kann.
 
-**Es hat funktioniert, wenn** `/admin` das Admin-Dashboard öffnet. Solange E-Mail, HTTPS oder die Entscheidung über Registrierungen noch offen sind, öffnet es auf **Diesen Server fertig einrichten**.
+**Es hat funktioniert, wenn** `/admin` das Admin Dashboard öffnet. Solange E-Mail, HTTPS oder die Entscheidung über Registrierungen noch offen sind, öffnet es auf **Diesen Server fertig einrichten**.
 
 ## Den Server fertig einrichten
 
-Die Seite **Server-Einrichtung** des Admin-Dashboards unter `/admin/setup` listet auf, was ein neuer Server braucht, das Wichtigste zuerst. E-Mail, HTTPS und wer sich registrieren darf, sind Pflicht. SMS und Anrufe, eine globale Probe, Backups und Update-Prüfungen werden empfohlen. Jeder Punkt hat eine Schaltfläche, die die Stelle öffnet, an der er eingestellt wird, und `npm start` gibt am Ende die Adresse dieser Seite aus.
+Die Seite **Server-Einrichtung** des Admin Dashboards unter `/admin/setup` listet auf, was ein neuer Server braucht, das Wichtigste zuerst. E-Mail, HTTPS und wer sich registrieren darf, sind Pflicht. SMS und Anrufe, eine globale Probe, Backups und Update-Prüfungen werden empfohlen. Jeder Punkt hat eine Schaltfläche, die die Stelle öffnet, an der er eingestellt wird, und `npm start` gibt am Ende die Adresse dieser Seite aus.
 
 :::steps
 ### E-Mail einrichten
