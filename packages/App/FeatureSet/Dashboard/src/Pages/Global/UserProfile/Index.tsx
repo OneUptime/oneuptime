@@ -21,7 +21,32 @@ import {
 } from "../../../Components/UserLanguage/UserLanguageOptions";
 import { followUserLanguage } from "../../../Utils/DashboardLanguageSwitch";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+
+/*
+ * "Ask me how things went" (#6832): the person's own switch for the
+ * questions OneUptime asks - at the end of a guided setup, under an
+ * explanation, the first-week check-in. Give feedback in Help stays.
+ */
+export const FEEDBACK_QUESTIONS_COPY: {
+  cardTitle: string;
+  cardDescription: string;
+  title: string;
+  onDescription: string;
+  offDescription: string;
+} = {
+  cardTitle: translationKey("Feedback Questions"),
+  cardDescription: translationKey(
+    "Now and then OneUptime asks how something went: at the end of a guided setup, under an explanation, and once in a new project's first weeks. At most one question a week, and never while something is down.",
+  ),
+  title: translationKey("Ask me how things went"),
+  onDescription: translationKey(
+    "OneUptime may ask you one short question now and then. Give feedback in Help works either way.",
+  ),
+  offDescription: translationKey(
+    "OneUptime never asks you. Give feedback in Help still works whenever you want to tell us something.",
+  ),
+};
 
 const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const translator: Translator = useTranslator();
@@ -182,13 +207,13 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
         modelId={UserUtil.getUserId()}
         column="disableFeedbackQuestions"
         isInverted={true}
-        cardTitle="Feedback Questions"
-        cardDescription="Now and then OneUptime asks how something went: at the end of a guided setup, under an explanation, and once in a new project's first weeks. At most one question a week, and never while something is down."
-        title="Ask me how things went"
+        cardTitle={FEEDBACK_QUESTIONS_COPY.cardTitle}
+        cardDescription={FEEDBACK_QUESTIONS_COPY.cardDescription}
+        title={FEEDBACK_QUESTIONS_COPY.title}
         getDescription={(isOn: boolean): string => {
           return isOn
-            ? "OneUptime may ask you one short question now and then. Give feedback in Help works either way."
-            : "OneUptime never asks you. Give feedback in Help still works whenever you want to tell us something.";
+            ? FEEDBACK_QUESTIONS_COPY.onDescription
+            : FEEDBACK_QUESTIONS_COPY.offDescription;
         }}
         onSaved={(isOn: boolean) => {
           const settings: ProductFeedbackSettings | null =
