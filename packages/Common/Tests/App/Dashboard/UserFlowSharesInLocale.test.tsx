@@ -347,6 +347,35 @@ describe("a share, written as the reader's language writes a percent", () => {
     expect(formatUserFlowShare(0.045, FRENCH)).toMatch(/^4,5\s%$/);
   });
 
+  test("a share that is a whole percent reads whole, though floating point is a hair off it", () => {
+    // 14 of 200 sessions: 7.000000000000001 percent in floating point.
+    expect((14 / 200) * 100).not.toBe(7);
+    expect(formatUserFlowShare(14 / 200)).toBe("7%");
+    expect(formatUserFlowShare(14 / 200, ENGLISH)).toBe("7%");
+    expect(formatUserFlowShare(10 / 200)).toBe("5%");
+    expect(formatUserFlowShare(14 / 200, GERMAN)).toBe(`7${NO_BREAK_SPACE}%`);
+    expect(formatUserFlowShare(14 / 200, PERSIAN)).toBe("۷٪");
+
+    // Every whole percent below 10 of a count of sessions reads whole.
+    for (const total of [100, 200, 300, 700, 1000, 1400]) {
+      for (let sessions: number = 1; sessions < total / 10; sessions++) {
+        const percent: number = (sessions * 100) / total;
+
+        if (Number.isInteger(percent)) {
+          expect({
+            sessions,
+            total,
+            text: formatUserFlowShare(sessions / total),
+          }).toEqual({ sessions, total, text: `${percent}%` });
+        }
+      }
+    }
+
+    // A share only near a whole percent keeps its decimal, as it always has.
+    expect(formatUserFlowShare(0.0496)).toBe("5.0%");
+    expect(formatUserFlowShare(0.0704)).toBe("7.0%");
+  });
+
   test("Persian: its own digits and percent sign, and 'less than' in its words", () => {
     expect(formatUserFlowShare(0.4567, PERSIAN)).toBe("۴۶٪");
     expect(formatUserFlowShare(0.045, PERSIAN)).toBe("۴٫۵٪");

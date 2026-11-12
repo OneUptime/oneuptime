@@ -2043,13 +2043,13 @@ test("every product explains itself the same way: its name, its pitch, its first
 /*
  * A figure is longer in some languages than in English: "1,82 Mio." for
  * "1.82M", "۱۸۴ میلی‌ثانیه" for "184 ms". At a laptop's width an example's
- * four tiles stand in one row, the narrowest they are drawn. German keeps
- * each figure on one line; Persian's long unit words take a second line
- * under their number, and are never cut.
+ * four tiles stand in one row, the narrowest they are drawn. A unit is
+ * drawn smaller than its number, as a value widget draws it, so every
+ * figure keeps to one line, and is never cut.
  */
 for (const reader of [
-  { language: "German", lang: "de", subscribers: "1.284", oneLine: true },
-  { language: "Persian", lang: "fa", subscribers: "۱٬۲۸۴", oneLine: false },
+  { language: "German", lang: "de", subscribers: "1.284" },
+  { language: "Persian", lang: "fa", subscribers: "۱٬۲۸۴" },
 ]) {
   test(`every product's example in ${reader.language} at a laptop's width: its figures written the ${reader.language} way, none cut short`, async ({
     page,
@@ -2067,9 +2067,7 @@ for (const reader of [
       "every example draws its figures",
     ).toBeGreaterThan(100);
     expect(figures.cut).toEqual([]);
-    if (reader.oneLine) {
-      expect(figures.wrapped).toEqual([]);
-    }
+    expect(figures.wrapped).toEqual([]);
     await shootEveryExplanation(page, `1280-${reader.lang}`);
   });
 }

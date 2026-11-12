@@ -72,6 +72,9 @@ function writeUserFlowPercent(
   }
 }
 
+// How far from a whole percent floating point's error leaves a share.
+const WHOLE_PERCENT_TOLERANCE: number = 1e-9;
+
 /*
  * A share of sessions: 0.4567 -> "46%", 0.045 -> "4.5%", 0.004 -> "<1%",
  * 0 -> "0%". Given the reader's Translator, in the reader's language - the
@@ -101,9 +104,17 @@ export function formatUserFlowShare(
       : `<${onePercent}`;
   }
 
-  // One decimal below 10%, where it tells 4.5% from 5%; whole percents above.
-  if (percent < 10 && Math.round(percent) !== percent) {
-    return writeUserFlowPercent(Number(percent.toFixed(1)), 1, language);
+  /*
+   * One decimal below 10%, where it tells 4.5% from 5%; whole percents
+   * above, and for a share that is a whole percent. 14 of 200 sessions is
+   * 7.000000000000001 percent in floating point, and reads "7%" as 10 of
+   * 200 reads "5%", not "7.0%".
+   */
+  const isWholePercent: boolean =
+    Math.abs(percent - Math.round(percent)) < WHOLE_PERCENT_TOLERANCE;
+
+  if (percent < 10 && !isWholePercent) {
+    return writeUserFlowPercent(Math.round(percent * 10) / 10, 1, language);
   }
 
   return writeUserFlowPercent(Math.round(percent), 0, language);

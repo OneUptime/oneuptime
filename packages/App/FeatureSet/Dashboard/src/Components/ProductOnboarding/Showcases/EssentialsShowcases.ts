@@ -92,7 +92,7 @@ export const INCIDENTS_SHOWCASE: ResourceShowcase = {
     description: PRODUCT_EXAMPLE_DESCRIPTION,
     stats: [
       { label: translationKey("Severity"), value: "SEV 1" },
-      { label: translationKey("Duration"), value: "00:21:07" },
+      { label: translationKey("Duration"), value: { clock: "00:21:07" } },
       { label: translationKey("Monitors"), value: 2 },
       { label: translationKey("Subscribers"), value: 1284 },
     ],
@@ -311,7 +311,7 @@ export const SCHEDULED_MAINTENANCE_SHOWCASE: ResourceShowcase = {
       { label: translationKey("Monitors"), value: 4 },
       { label: translationKey("Status Pages"), value: 2 },
       { label: translationKey("Subscribers"), value: 1284 },
-      { label: translationKey("Duration"), value: "02:00:00" },
+      { label: translationKey("Duration"), value: { clock: "02:00:00" } },
     ],
     chart: {
       label: translationKey("Requests"),

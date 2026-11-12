@@ -675,7 +675,8 @@ describe("each explanation is complete", () => {
  * eight four to a German, Spanish or French reader. A figure is written the
  * reader's way when it is drawn (formatShowcaseFigure). Text is left to what
  * is not a number to be written: a code ("SEV 1", "P2", an HTTP status
- * "200"), a clock ("00:21:07"), a term the software shows ("CrashLoopBackOff").
+ * "200"), a term the software shows ("CrashLoopBackOff"). A clock is a
+ * figure too ({ clock: "00:21:07" }): a Persian page writes it "۰۰:۲۱:۰۷".
  */
 
 const DIGIT_PATTERN: RegExp = /\d/;
@@ -683,9 +684,6 @@ const DIGIT_PATTERN: RegExp = /\d/;
 // The issue's patterns: "1,284" and "99.98".
 const THOUSANDS_COMMA_PATTERN: RegExp = /\d,\d{3}/;
 const DECIMAL_POINT_PATTERN: RegExp = /\d\.\d/;
-
-// A clock, read the same in every language: "00:21:07".
-const CLOCK_PATTERN: RegExp = /^\d{2}:\d{2}:\d{2}$/;
 
 // The stats whose value is a code, written as the software writes it.
 const CODE_STAT_LABELS: Array<string> = ["Status Code", "Severity"];
@@ -701,7 +699,7 @@ function getNumbersWrittenAsText(showcase: ResourceShowcase): Array<string> {
     if (isShowcaseFigure(value) || !DIGIT_PATTERN.test(value)) {
       return;
     }
-    if (isCode || CLOCK_PATTERN.test(value)) {
+    if (isCode) {
       return;
     }
     found.push(`${where}: ${value}`);
@@ -725,7 +723,7 @@ describe("an example's numbers are written in the reader's language", () => {
     },
   );
 
-  test("the guard finds a number written as text, and leaves codes, clocks and words", () => {
+  test("the guard finds a number or a clock written as text, and leaves codes and words", () => {
     const showcase: ResourceShowcase = {
       ...PRODUCT_ONBOARDINGS[ProductKey.StatusPages].showcase,
       preview: {
@@ -741,6 +739,7 @@ describe("an example's numbers are written in the reader's language", () => {
           { label: "OSDs up", value: "11/12" },
           { label: "Pods", value: 248 },
           { label: "CPU", value: { percent: 63 } },
+          { label: "Window", value: { clock: "02:00:00" } },
         ],
         rows: [
           {
@@ -768,6 +767,7 @@ describe("an example's numbers are written in the reader's language", () => {
     expect(getNumbersWrittenAsText(showcase)).toEqual([
       "Subscribers: 1,284",
       "Availability: 99.98%",
+      "Duration: 00:21:07",
       "Queries: 482k",
       "Burn rate: 0.4x",
       "Spend: $4,120",

@@ -14,20 +14,26 @@ import fs from "fs";
 import path from "path";
 import * as React from "react";
 import { createTranslator, Translator } from "../../../Types/Translator";
-import { getNumberLocale } from "../../../Types/DateLanguage";
+import {
+  getNumberLocale,
+  writeDigitsInLocale,
+} from "../../../Types/DateLanguage";
 import { formatSloBurnRate } from "../../../Utils/Slo/SloWidgetFormat";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 import ResourceShowcaseCard, {
   RESOURCE_SHOWCASE_ROW_STATE_TEST_ID,
+  RESOURCE_SHOWCASE_STAT_UNIT_TEST_ID,
   RESOURCE_SHOWCASE_STAT_VALUE_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceShowcase/ResourceShowcaseCard";
 import {
   ResourceShowcase,
   ShowcaseFigure,
+  ShowcaseFigureParts,
   ShowcaseRow,
   ShowcaseStat,
   ShowcaseValue,
   formatShowcaseFigure,
+  formatShowcaseFigureParts,
   isShowcaseFigure,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceShowcase/ResourceShowcase";
 import {
@@ -174,6 +180,12 @@ function drawnStatValues(): Array<string> {
   return screen.getAllByTestId(RESOURCE_SHOWCASE_STAT_VALUE_TEST_ID).map(shown);
 }
 
+function drawnStatUnits(): Array<string> {
+  return screen
+    .queryAllByTestId(RESOURCE_SHOWCASE_STAT_UNIT_TEST_ID)
+    .map(shown);
+}
+
 function drawnRowStates(): Array<string> {
   return screen.getAllByTestId(RESOURCE_SHOWCASE_ROW_STATE_TEST_ID).map(shown);
 }
@@ -231,6 +243,7 @@ describe("a showcase figure, written the reader's way", () => {
       [{ toOne: 4.3 }, "4.3:1"],
       [{ count: 11, outOf: 12 }, "11/12"],
       [{ percentUsed: 71 }, "71% used"],
+      [{ clock: "00:21:07" }, "00:21:07"],
     ];
 
     for (const [figure, english] of cases) {
@@ -292,6 +305,9 @@ describe("a showcase figure, written the reader's way", () => {
 
   test("Persian writes every kind of figure in its own digits", () => {
     expect(formatShowcaseFigure({ percent: 99.98 }, PERSIAN)).toBe("۹۹٫۹۸٪");
+    expect(formatShowcaseFigure({ clock: "00:21:07" }, PERSIAN)).toBe(
+      "۰۰:۲۱:۰۷",
+    );
     expect(formatShowcaseFigure({ count: 11, outOf: 12 }, PERSIAN)).toBe(
       "۱۱/۱۲",
     );
@@ -352,6 +368,103 @@ describe("a showcase figure, written the reader's way", () => {
     }
     expect(formatShowcaseFigure({ burnRate: 0.4 }, GERMAN)).toBe("0,4\u00D7");
   });
+});
+
+describe("a figure's amount and unit, apart", () => {
+  test("English: the product's own symbol after a space", () => {
+    expect(formatShowcaseFigureParts({ milliseconds: 184 }, ENGLISH)).toEqual({
+      amount: "184",
+      separator: " ",
+      unit: "ms",
+    });
+    expect(
+      formatShowcaseFigureParts({ gigabitsPerSecond: 1.2 }, ENGLISH),
+    ).toEqual({ amount: "1.2", separator: " ", unit: "Gbps" });
+    expect(formatShowcaseFigureParts({ dBm: -67 }, ENGLISH)).toEqual({
+      amount: "-67",
+      separator: " ",
+      unit: "dBm",
+    });
+  });
+
+  test("a figure with no unit is all amount", () => {
+    const figures: Array<ShowcaseFigure> = [
+      1284,
+      { percent: 99.98 },
+      { abbreviated: 1_820_000 },
+      { usDollars: 4120 },
+      { count: 11, outOf: 12 },
+      { clock: "00:21:07" },
+    ];
+
+    for (const figure of figures) {
+      expect(formatShowcaseFigureParts(figure, GERMAN)).toEqual({
+        amount: formatShowcaseFigure(figure, GERMAN),
+        separator: "",
+        unit: "",
+      });
+    }
+  });
+
+  test("a unit a language writes long stays whole: Persian's and Arabic's", () => {
+    expect(formatShowcaseFigureParts({ milliseconds: 184 }, PERSIAN)).toEqual({
+      amount: "۱۸۴",
+      separator: " ",
+      unit: "میلی‌ثانیه",
+    });
+
+    const arabic: ShowcaseFigureParts = formatShowcaseFigureParts(
+      { gigabitsPerSecond: 1.2 },
+      ARABIC,
+    );
+
+    expect(arabic.amount).toBe("1.2");
+    // Intl's own, "غيغابت/ث": the slash is inside the unit, not a place to break.
+    expect(arabic.unit).toBe(
+      new Intl.NumberFormat("ar-u-nu-latn", {
+        style: "unit",
+        unit: "gigabit-per-second",
+        unitDisplay: "short",
+      })
+        .formatToParts(1.2)
+        .find((part: Intl.NumberFormatPart): boolean => {
+          return part.type === "unit";
+        })?.value,
+    );
+    expect(arabic.unit).toContain("/");
+  });
+
+  test("Chinese writes a millisecond right after its number", () => {
+    expect(
+      formatShowcaseFigureParts({ milliseconds: 184 }, translatorFor("zh-CN")),
+    ).toEqual({ amount: "184", separator: "", unit: "毫秒" });
+  });
+
+  test.each(LANGUAGES)(
+    "%s: joined, a figure's parts are the figure as written",
+    (language: string) => {
+      const translator: Translator = translatorFor(language);
+      const differ: Array<string> = [];
+
+      for (const figure of ALL_FIGURES) {
+        const parts: ShowcaseFigureParts = formatShowcaseFigureParts(
+          figure,
+          translator,
+        );
+        const joined: string = `${parts.amount}${parts.separator}${parts.unit}`;
+
+        if (
+          joined !== formatShowcaseFigure(figure, translator) ||
+          parts.amount.trim() === "" ||
+          (parts.unit === "" && parts.separator !== "")
+        ) {
+          differ.push(`${JSON.stringify(figure)} -> ${JSON.stringify(parts)}`);
+        }
+      }
+
+      expect(differ).toEqual([]);
+    },
+  );
 });
 
 describe("every showcase's figures, in every language the Dashboard ships", () => {
@@ -488,14 +601,68 @@ describe("the showcase draws its figures in the reader's language", () => {
     expect(persian[2]).not.toBe("Error");
   });
 
-  test("a code and a clock are drawn as written, in every language", async () => {
+  test("a code is drawn as written in every language; a clock in the reader's digits", async () => {
+    render(<ResourceShowcaseCard showcase={INCIDENTS_SHOWCASE} />);
+
+    expect(drawnStatValues().slice(0, 2)).toEqual(["SEV 1", "00:21:07"]);
+
+    cleanup();
     await i18next.changeLanguage("fa");
     render(<ResourceShowcaseCard showcase={INCIDENTS_SHOWCASE} />);
 
-    const values: Array<string> = drawnStatValues();
+    const persian: Array<string> = drawnStatValues();
 
-    expect(values).toContain("SEV 1");
-    expect(values).toContain("00:21:07");
+    expect(persian[0]).toBe("SEV 1");
+    // A Persian page writes every time in its own digits, this one too.
+    expect(persian[1]).toBe("۰۰:۲۱:۰۷");
+    expect(persian[1]).toBe(writeDigitsInLocale("00:21:07", "fa"));
+
+    cleanup();
+    await i18next.changeLanguage("ar");
+    render(<ResourceShowcaseCard showcase={INCIDENTS_SHOWCASE} />);
+
+    expect(drawnStatValues()[1]).toBe("00:21:07");
+  });
+
+  test("a stat's unit is drawn apart from its number, smaller, and never split", async () => {
+    render(<ResourceShowcaseCard showcase={TRACES_SHOWCASE} />);
+
+    const englishUnits: Array<string> = drawnStatUnits();
+
+    // Its duration, 1.24 s: "s" apart, the only unit of its four tiles.
+    expect(englishUnits).toEqual(["s"]);
+    expect(drawnStatValues()[0]).toBe("1.24 s");
+    // A figure with no unit draws none: one unit per figure that has one.
+    expect(englishUnits.length).toBe(
+      getStatValues(TRACES_SHOWCASE).filter((value: ShowcaseValue): boolean => {
+        return (
+          isShowcaseFigure(value) &&
+          formatShowcaseFigureParts(value, ENGLISH).unit !== ""
+        );
+      }).length,
+    );
+
+    for (const unit of screen.getAllByTestId(
+      RESOURCE_SHOWCASE_STAT_UNIT_TEST_ID,
+    )) {
+      expect(unit.className).toContain("whitespace-nowrap");
+      expect(unit.className).toContain("text-xs");
+    }
+
+    cleanup();
+    await i18next.changeLanguage("fa");
+    render(<ResourceShowcaseCard showcase={TRACES_SHOWCASE} />);
+
+    const persianUnits: Array<string> = drawnStatUnits();
+
+    // Persian's word for a second, whole, in a span of its own.
+    expect(persianUnits).toEqual([
+      formatShowcaseFigureParts({ seconds: 1.24 }, PERSIAN).unit,
+    ]);
+    expect(persianUnits).toEqual(["ثانیه"]);
+    expect(drawnStatValues()[0]).toBe(
+      formatShowcaseFigure({ seconds: 1.24 }, PERSIAN),
+    );
   });
 
   test("an SLO's burn rate is drawn as its SLO page draws it", async () => {
