@@ -218,6 +218,14 @@ export const parseWebsiteAddress: (input: string) => WebsiteAddress | null = (
     return null;
   }
 
+  /*
+   * No user or password in it: "mailto:ana@example.com" given https:// in
+   * front reads as one, and a password must not become a monitor's name.
+   */
+  if (parsed.username || parsed.password) {
+    return null;
+  }
+
   const host: string = parsed.hostname.toLowerCase();
 
   // A host is a name with a dot in it, localhost, or an IP address.
