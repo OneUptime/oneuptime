@@ -128,7 +128,7 @@ npm run update
 2. 輸入您的授權金鑰並加以驗證。
 :::
 
-安裝會向 OneUptime 核對金鑰，並儲存收到的授權。此後，它會透過每日同步讓授權保持最新。若要立即取得額外席位或續約之類的變更，請在同一頁面使用 **Refresh license**。
+安裝會向 OneUptime 核對金鑰，並儲存收到的授權。此後，它會透過每日同步讓授權保持最新。若要立即取得額外席位或續約之類的變更，請在同一頁面使用 **重新整理授權**。
 
 線上啟用需要從 OneUptime 伺服器到 `https://oneuptime.com` 的對外 HTTPS。如果伺服器只能透過中繼連上網際網路，請將 `ENTERPRISE_LICENSE_SERVER_URL` 設為中繼的 `https://` 位址。中繼必須把 `/api/enterprise-license/` 轉送到 oneuptime.com。
 

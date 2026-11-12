@@ -1,4 +1,10 @@
-import EditionLabel from "../../../UI/Components/EditionLabel/EditionLabel";
+import EditionLabel, {
+  getEditionPillAccessibleName,
+} from "../../../UI/Components/EditionLabel/EditionLabel";
+import {
+  createTranslator,
+  Translator,
+} from "../../../UI/Utils/TranslateTemplate";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
@@ -8,6 +14,10 @@ import {
   DASHBOARD_LANGUAGES,
 } from "../../Helpers/TranslatedLanguages";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
+import {
+  FIRST_STRONG_ISOLATE,
+  POP_DIRECTIONAL_ISOLATE,
+} from "../../../Types/ReadingDirection";
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import fs from "fs";
@@ -442,6 +452,15 @@ const drawPill: (words: Words) => Promise<HTMLElement> = async (
   return pill;
 };
 
+// How each language lists the pill's words (#7133).
+const LIST_SEPARATOR: Record<string, string> = {
+  ar: "، ",
+  fa: "، ",
+  ja: "、",
+  "zh-CN": "、",
+  "zh-TW": "、",
+};
+
 const nameOf: (element: HTMLElement) => string = (
   element: HTMLElement,
 ): string => {
@@ -514,8 +533,11 @@ describe("the badge's words, as read from the files", () => {
         "Close",
         "{{count}} days left_one",
         "Evaluation license",
-        "{{edition}}, Evaluation license, {{action}}",
       ]),
+    );
+    // The pill's name is its words listed (#7133), no template of its own.
+    expect(badgeKeysOf("Accounts")).not.toContain(
+      "{{edition}}, Evaluation license, {{action}}",
     );
   });
 
@@ -740,6 +762,37 @@ describe("the badge's numbers in Persian", () => {
     expect(notice).not.toContain("14");
   });
 
+  /*
+   * Persian keeps "Enterprise Edition" in Latin letters in the trial's
+   * title. Without an isolate around the days left, the browser drew their
+   * Persian digits inside that Latin run, on the far side of the colon:
+   * "دورهٔ آزمایشی ۱۰ :Enterprise Edition روز مانده".
+   */
+  test("the trial's title sets its days left apart from the Latin edition name", async () => {
+    isEnterpriseEdition = true;
+    payload = publicPayload({
+      status: "grace",
+      graceReason: "unlicensed",
+      verification: "none",
+      graceEndsAt: inDays(10),
+      companyName: null,
+      expiresAt: null,
+    });
+    await readIn("Accounts", "fa");
+    const words: Words = wordsOf("Accounts", "fa");
+
+    await openDialog(await drawPill(words), words);
+
+    const title: string =
+      (
+        await screen.findByTestId("enterprise-license-trial-notice")
+      ).querySelector("h4")?.textContent || "";
+
+    expect(title).toBe(
+      `دورهٔ آزمایشی Enterprise Edition: ${FIRST_STRONG_ISOLATE}۱۰ روز مانده${POP_DIRECTIONAL_ISOLATE}`,
+    );
+  });
+
   test("the grace period's 30 days and a marketplace's user-hours, in the Admin Dashboard", async () => {
     isEnterpriseEdition = true;
     isMasterAdmin = true;
@@ -799,11 +852,14 @@ describe("an evaluation license's tag on the pill", () => {
       expect(pill).not.toHaveTextContent(assessing);
     }
 
-    for (const piece of piecesOf(
-      word(words, "{{edition}}, Evaluation license, {{action}}"),
-    )) {
-      expect(nameOf(pill)).toContain(piece);
-    }
+    // Every word the pill shows, in the order it shows them.
+    expect(nameOf(pill)).toBe(
+      [
+        word(words, "Enterprise Edition"),
+        tag,
+        word(words, "View details"),
+      ].join(LIST_SEPARATOR[language] || ", "),
+    );
 
     // Mid-sentence, the way the language writes it there ("licence d'évaluation").
     expect(nameOf(pill).toLocaleLowerCase(language)).toContain(
@@ -826,6 +882,149 @@ describe("an evaluation license's tag on the pill", () => {
     expect(nameOf(pill)).toBe(
       "Enterprise Edition, Testlizenz, Details anzeigen",
     );
+  });
+});
+
+/*
+ * THE PILL'S NAME, LISTED AS THE READER'S LANGUAGE LISTS WORDS (#7133).
+ *
+ * The pill's accessible name is the words it shows - the edition, the
+ * evaluation tag when there is one, the action - so voice-control users can
+ * say what they see. It was a template of placeholders alone ("{{edition}},
+ * {{action}}"), which no language words, so an Arabic or Persian name read
+ * back and shown on a braille display with English's Latin comma. Each part
+ * is joined as the language lists words now: "، " in Arabic and Persian,
+ * "、" in Chinese and Japanese, ", " in the others.
+ */
+describe("the pill's name, listed as the reader's language lists words", () => {
+  const EXPECTED_SEPARATOR: Array<[string, string]> = [
+    ["ar", "، "],
+    ["fa", "، "],
+    ["zh-CN", "、"],
+    ["zh-TW", "、"],
+    ["ja", "、"],
+    ["en", ", "],
+    ["de", ", "],
+    ["ru", ", "],
+  ];
+
+  test.each(EXPECTED_SEPARATOR)(
+    "%s: the Community Edition pill, joined with %p",
+    async (language: string, separator: string) => {
+      await readIn("Dashboard", language);
+      const words: Words = wordsOf("Dashboard", language);
+      const pill: HTMLElement = await drawPill(words);
+      const parts: Array<string> = [
+        word(words, "Community Edition"),
+        word(words, "Learn more"),
+      ];
+
+      expect(nameOf(pill)).toBe(parts.join(separator));
+      // The name holds the words the pill shows (WCAG 2.5.3).
+      expect(withoutIsolateMarks(pill.textContent || "")).toContain(
+        word(words, "Learn more"),
+      );
+    },
+  );
+
+  test.each(EXPECTED_SEPARATOR)(
+    "%s: an evaluation license's pill, its tag between, joined with %p",
+    async (language: string, separator: string) => {
+      isEnterpriseEdition = true;
+      isMasterAdmin = true;
+      isLoggedIn = true;
+      payload = adminPayload({ isEvaluation: true, isEvaluationLicense: true });
+      await readIn("Dashboard", language);
+      const words: Words = wordsOf("Dashboard", language);
+      const pill: HTMLElement = await drawPill(words);
+
+      await waitFor(() => {
+        expect(pill).toHaveTextContent(word(words, "Evaluation license"));
+      });
+
+      const parts: Array<string> = [
+        word(words, "Enterprise Edition"),
+        word(words, "Evaluation license"),
+        word(words, "View details"),
+      ];
+
+      expect(nameOf(pill)).toBe(parts.join(separator));
+
+      for (const part of parts) {
+        expect(withoutIsolateMarks(pill.textContent || "")).toContain(part);
+      }
+    },
+  );
+
+  test.each(["ar", "fa"])(
+    "%s: no Latin comma in the name, with or without the tag",
+    async (language: string) => {
+      await readIn("Dashboard", language);
+      const words: Words = wordsOf("Dashboard", language);
+
+      expect(nameOf(await drawPill(words))).not.toContain(",");
+      cleanup();
+
+      isEnterpriseEdition = true;
+      isMasterAdmin = true;
+      isLoggedIn = true;
+      payload = adminPayload({ isEvaluation: true, isEvaluationLicense: true });
+      const pill: HTMLElement = await drawPill(words);
+
+      await waitFor(() => {
+        expect(pill).toHaveTextContent(word(words, "Evaluation license"));
+      });
+      expect(nameOf(pill)).not.toContain(",");
+      expect(nameOf(pill)).toContain("،");
+    },
+  );
+
+  test.each(["Accounts", "AdminDashboard"] as Array<App>)(
+    "%s: Arabic and Persian list the pill's words with their own comma too",
+    async (app: App) => {
+      for (const language of ["ar", "fa"]) {
+        await readIn(app, language);
+        const words: Words = wordsOf(app, language);
+
+        expect(nameOf(await drawPill(words))).toBe(
+          [word(words, "Community Edition"), word(words, "Learn more")].join(
+            "، ",
+          ),
+        );
+        cleanup();
+      }
+    },
+  );
+
+  test("the name is built from the pill's words, never a template (getEditionPillAccessibleName)", () => {
+    const arabic: Translator = createTranslator(undefined, "ar");
+    const japanese: Translator = createTranslator(undefined, "ja");
+    const english: Translator = createTranslator(undefined, "en");
+
+    expect(
+      getEditionPillAccessibleName({
+        edition: "إصدار المؤسسات",
+        evaluationTag: "ترخيص تقييم",
+        action: "عرض التفاصيل",
+        translator: arabic,
+      }),
+    ).toBe("إصدار المؤسسات، ترخيص تقييم، عرض التفاصيل");
+    expect(
+      getEditionPillAccessibleName({
+        edition: "Community Edition",
+        evaluationTag: null,
+        action: "詳細を見る",
+        translator: japanese,
+      }),
+    ).toBe("Community Edition、詳細を見る");
+    expect(
+      getEditionPillAccessibleName({
+        edition: "Enterprise Edition",
+        evaluationTag: "",
+        action: "Learn more",
+        translator: english,
+      }),
+    ).toBe("Enterprise Edition, Learn more");
   });
 });
 

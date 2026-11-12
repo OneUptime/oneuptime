@@ -106,7 +106,8 @@ export const LicenseBulkCopy: LicenseBulkCopyStrings = {
    * What happens to the customers, not only to the rows: an installation
    * reads its license's terms back with its daily report to oneuptime.com,
    * so a new expiry reaches it within a day - at once if an admin there
-   * presses Refresh license (the button on its own license page).
+   * presses Refresh license (the button on its own license page). A
+   * translation names the button as its language's Admin Dashboard draws it.
    */
   newExpiryDateDescription: translationKey(
     "A date after today. Installations get it with their daily report, or at once when their admin presses Refresh license.",

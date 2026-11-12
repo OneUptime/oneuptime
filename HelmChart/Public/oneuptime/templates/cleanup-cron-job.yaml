@@ -35,7 +35,7 @@ spec:
             imagePullPolicy: {{ $.Values.image.pullPolicy }}
             env:
             - name: namespace
-              value: {{ $.Release.Namespace }}
+              value: {{ $.Release.Namespace | quote }}
             command:
             - /bin/bash
             - -c
@@ -91,7 +91,7 @@ spec:
             imagePullPolicy: {{ $.Values.image.pullPolicy }}
             env:
             - name: namespace
-              value: {{ $.Release.Namespace }}
+              value: {{ $.Release.Namespace | quote }}
             command:
             - /bin/bash
             - -c
