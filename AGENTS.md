@@ -17,33 +17,13 @@ Before you build or change a page, a form, a dialog, a menu or the words on one,
 
 Before you change a database model or write a migration, read the migration guide, [Docs/migrations/README.md](Docs/migrations/README.md). In short: Postgres schema migrations are generated with `npm run generate-postgres-migration`, never written by hand, and registered in `packages/Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts`. ClickHouse and data migrations are written by hand in `packages/App/FeatureSet/Workers/DataMigrations` and registered in that folder's `Index.ts`.
 
-### Feed and chat Markdown
+### Notifications and text from outside
 
-Feed items and Slack / Microsoft Teams messages are Markdown that carries people's text: names, titles, labels, rule names. Write it with the `mdText` tag from `packages/Common/Utils/Markdown/FeedMarkdown.ts`. It escapes every value for where it sits, and places a `MarkdownText` as it is, so nothing is escaped twice.
+Feed items, chat messages and emails carry text that people and monitored systems wrote. Before you write one, or code that reads or converts such text, read [Docs/notifications/README.md](Docs/notifications/README.md). In short:
 
-- Join pieces with `FeedMarkdown.join` / `bulletList` / `numberedList`, not `Array.join` or `+`. Never turn a `MarkdownText` into a string to place it again.
-- Markdown a person wrote goes in with `FeedMarkdown.asMarkdown`, OneUptime AI's with `FeedMarkdown.aiWritten` (`aiWrittenForTeams` for the Teams bot), and text from outside OneUptime with `FeedMarkdown.writtenOutside` / `reportedValue`.
-- Only `packages/Common/Utils/Markdown/` imports `MarkdownEscape` or `UntrustedMarkdown`.
-
-`FeedAndChatPlainTextEscapedGuard` (`packages/Common/Tests/Server/Services`) enforces this for every feed and chat sink, including `ee/Server`.
-
-### Megabyte-long values
-
-Text from monitored systems and people can be megabytes on one line (a synthetic monitor's base64 screenshot, a response body, a pasted log) or a paragraph of 100,000 lines. Everything that handles it must run in linear time:
-
-- No regular expression with an unbounded quantifier over such text: a long-running V8 process runs out of stack on a few megabytes ("Maximum call stack size exceeded"). Scan with a loop or `indexOf` (like `isBase64` in `packages/Common/Utils/Markdown/InlineImageDataUri.ts`), and give a regular expression that can cross lines a bounded quantifier (`{0,65536}`, as in `Markdown.convertToPlainText`).
-- Markdown parsers (marked for emails, remark for the Dashboard, slackify for Slack) break or slow down on long or oddly shaped text. Before one reads it, hold back what is too long or too slow with `holdBackBase64Data` (`Base64Data.ts`), `holdBackOverLongText` (`OverLongText.ts`) and `holdBackSlowMarkdown` (`SlowMarkdown.ts`) in `packages/Common/Utils/Markdown/`; their headers explain the limits. A new converter does the same, and a newly found slow shape gets counted in `SlowMarkdown.ts`.
-- Cut chat Markdown before a converter reads it (Slack: `cutMarkdown`; Teams: `MicrosoftTeamsMessageSize.fitMarkdownText`), and hold every message to what its channel takes, ending a cut one with "… (truncated — see OneUptime for the full text)": emails (`packages/Common/Server/Utils/Mail/EmailSize.ts`), Teams cards (`fitAdaptiveCard`), and SMS, call, push, WhatsApp, Telegram and Discord messages (`packages/Common/Utils/MessageFit.ts`, `TelegramMessageFit.ts`, `WhatsAppTemplateFit.ts`). A new channel or sender does the same.
-- Test under `node --no-regexp-optimization`, the state a long-running process reaches. A new converter of notification text gets a timed entry in `HugeTextInLongRunningProcess.test.ts` (`packages/Common/Tests/Server/Types`); screenshots in emails are covered by `ScreenshotEmailInLongRunningProcess.test.ts` (`packages/Common/Tests/Server/Utils/Mail`).
-
-### Emails load nothing from outside the installation
-
-Emails are read offline and behind gateways that flag remote images, and a remote image tells whoever serves it who opened the email. So an email's markup loads nothing it does not carry: no CDN, web font, tracking pixel or other address spelled out in a template or in the code that writes email markup. The only host a template names is `oneuptime.com`, in the footer link of an installation that is not renamed.
-
-- OneUptime's logo (`oneUptimeLogoUrl`, `packages/Common/Server/Utils/Mail/EmailLogo.ts`) and screenshots go out as inline attachments the HTML points at by Content-ID (`EmailInlineImages.ts`).
-- A logo an operator uploaded is an address the installation builds on its own host; small PNG, JPEG and GIF logos go inside the email when it is sent (`EmailCarriedLogos.ts`).
-
-`OfflineAssetHygiene.test.ts` (`packages/Common/Tests/Server/Utils`) reads every email template and the code that writes email markup; `EmailsLoadNothingFromOutside.test.ts` (`packages/App/Tests/Notification`) renders and sends every template on every transport.
+- **Feed and chat Markdown**: build it with the `mdText` tag from `packages/Common/Utils/Markdown/FeedMarkdown.ts`, which escapes people's text.
+- **Megabyte-long values**: such text can be megabytes long, so handle it in linear time, with no regular expression that has an unbounded quantifier.
+- **Emails load nothing from outside the installation**: no CDN, web font or tracking pixel; images travel inside the email.
 
 ## After you make a change
 
