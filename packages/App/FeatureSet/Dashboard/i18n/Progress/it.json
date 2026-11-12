@@ -516,6 +516,7 @@
     "{{gigabytes}} GB",
     "{{in}} in",
     "{{minutes}} min",
+    "{{name}} (monitor: {{monitor}})",
     "{{observation}} in {{readings}}",
     "{{size}} in {{duration}}",
     "{{up}}/{{count}} OSD up",

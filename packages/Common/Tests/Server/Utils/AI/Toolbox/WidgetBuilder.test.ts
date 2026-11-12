@@ -22,7 +22,6 @@ import {
   AI_READ_CARD_LINES,
   AIActionCardWords,
   aiActionCardFact,
-  aiActionFigure,
   aiActionSentence,
   aiActionTerm,
 } from "../../../../../Types/AI/AIActionWords";
@@ -183,7 +182,7 @@ describe("WidgetBuilder", () => {
       line: [aiActionSentence(AI_READ_CARD_LINES.noMembers)],
       facts: [
         aiActionCardFact(AI_ACTION_CARD_FACTS.description, "Database people"),
-        aiActionCardFact(AI_READ_CARD_FACTS.members, aiActionFigure(0)),
+        aiActionCardFact(AI_READ_CARD_FACTS.ownerTeams, "SRE"),
       ],
     };
 
@@ -200,7 +199,7 @@ describe("WidgetBuilder", () => {
     expect(data["subheading"]).toBe("No members");
     expect(data["fields"]).toEqual([
       { label: "Description", value: "Database people" },
-      { label: "Members", value: "0" },
+      { label: "Owner teams", value: "SRE" },
     ]);
     // Every fact kept: the words as given.
     expect(widget.data.words).toBe(words);

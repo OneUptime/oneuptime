@@ -707,7 +707,6 @@ export const AI_READ_CARD_FACTS: {
   burnRateRules: string;
   errorBudgetPolicyTier: string;
   deployments: string;
-  members: string;
   escalationRules: string;
   onCallSince: string;
   handsOffAt: string;
@@ -742,7 +741,6 @@ export const AI_READ_CARD_FACTS: {
   burnRateRules: translationKey("Burn-rate rules"),
   errorBudgetPolicyTier: translationKey("Error budget policy tier"),
   deployments: translationKey("Deployments"),
-  members: translationKey("Members"),
   escalationRules: translationKey("Escalation rules"),
   onCallSince: translationKey("On call since"),
   handsOffAt: translationKey("Hands off at"),
@@ -816,15 +814,22 @@ export const AI_READ_CARD_VALUES: {
   statusPageArchived: translationKey("Yes - offline, sends nothing"),
   workflowArchived: translationKey("Yes - does not run"),
   noEscalationRules: translationKey("None configured"),
+  /*
+   * Each value starts with a capital, as the card's other values do
+   * ("Rolling 30-day window", "Yes - not monitored"): a fact list read
+   * "Deployments: frozen by the error budget policy" under "Status: At
+   * Risk". Not evaluated yet, None and Allowed are the Dashboard's own
+   * words for them elsewhere.
+   */
   // An SLO's figures before the worker first evaluates it.
-  notEvaluatedYet: translationKey("not evaluated yet"),
-  none: translationKey("none"),
-  monitorsPickedByHand: translationKey("none - monitors are picked by hand"),
-  notVisible: translationKey("not visible to you"),
-  noErrorBudgetPolicy: translationKey("no error budget policy"),
-  aboveEveryTier: translationKey("none - the budget is above every tier"),
-  deploymentsFrozen: translationKey("frozen by the error budget policy"),
-  deploymentsAllowed: translationKey("allowed"),
+  notEvaluatedYet: translationKey("Not evaluated yet"),
+  none: translationKey("None"),
+  monitorsPickedByHand: translationKey("None - monitors are picked by hand"),
+  notVisible: translationKey("Not visible to you"),
+  noErrorBudgetPolicy: translationKey("No error budget policy"),
+  aboveEveryTier: translationKey("None - the budget is above every tier"),
+  deploymentsFrozen: translationKey("Frozen by the error budget policy"),
+  deploymentsAllowed: translationKey("Allowed"),
   // An SLO's window and SLI, as its Settings and Overview name them.
   calendarMonth: translationKey("Calendar Month"),
   monitorUptime: translationKey("Monitor uptime"),

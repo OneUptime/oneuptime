@@ -7,10 +7,7 @@ import {
   getAIChatResourceCardStatusColor,
   isAIChatReadResourceCard,
 } from "Common/Types/AI/AIChatTypes";
-import {
-  getFactsNotInHeading,
-  ResourceCardFact,
-} from "Common/Types/AI/ResourceCardFacts";
+import { ResourceCardFact } from "Common/Types/AI/ResourceCardFacts";
 import { JSONObject } from "Common/Types/JSON";
 import {
   EntityListEntry,
@@ -23,6 +20,7 @@ import {
   computeSpanDepth,
   formatStatValue,
   formatTableCell,
+  getExportedResourceCardFacts,
   isChartWidget,
   isEntityListWidget,
   toEntityListEntry,
@@ -85,22 +83,31 @@ export const PDF_STAT_VALUE_MAX_LINES: number = 2;
 // What ends a line cut short: three dots, as the core font has no ellipsis.
 export const PDF_CUT_MARK: string = "...";
 
-// A resource card's room, in points: its edge, and the height of each of its lines.
+/*
+ * A resource card's room, in points: its edge, the height of each of its
+ * lines, the gap between its name and line and its facts (the chat's
+ * mt-2.5: "No members" ran into "Description" under it), and the room
+ * before a read's card, which has no title over it.
+ */
 export const PDF_RESOURCE_CARD_SPACING: {
   padding: number;
   kind: number;
   heading: number;
   line: number;
+  factsGap: number;
   fact: number;
   factExtraLine: number;
+  before: number;
   after: number;
 } = {
   padding: 10,
   kind: 10,
   heading: 12,
   line: 11,
+  factsGap: 4,
   fact: 11,
   factExtraLine: 9.5,
+  before: 4,
   after: 6,
 };
 
@@ -127,6 +134,8 @@ interface PdfResourceCardLayout {
   headingLines: Array<string>;
   statusLines: Array<string>;
   statusColor: string | null;
+  // The room between the name and line over the facts and the facts.
+  factsGap: number;
   facts: Array<PdfResourceCardFactLayout>;
   height: number;
 }
@@ -185,6 +194,20 @@ export default class PdfWidgets {
    */
   private headerHeight(widget: AIChatWidget): number {
     return 25 + (widget.description ? 10 : 0);
+  }
+
+  /*
+   * Every widget has its title over it, but a read's card: its kind and
+   * name are its title ("MONITOR", "payments-api"), as the chat draws it
+   * with none over it - the PDF said "Monitor payments-api" and then the
+   * same again inside the card. A write's card keeps its title, which says
+   * what was done ("Alert created") where the chat says it with a check.
+   */
+  private hasHeader(widget: AIChatWidget): boolean {
+    return !(
+      widget.type === AIChatWidgetType.ResourceCard &&
+      isAIChatReadResourceCard(widget.data)
+    );
   }
 
   /*
@@ -419,11 +442,9 @@ export default class PdfWidgets {
     const spacing: typeof PDF_RESOURCE_CARD_SPACING = PDF_RESOURCE_CARD_SPACING;
     const innerWidth: number = this.pdf.contentWidth - spacing.padding * 2;
 
-    const fields: Array<ResourceCardFact> = getFactsNotInHeading({
-      heading: widget.data.heading,
-      subheading: widget.data.subheading,
-      fields: widget.data.fields,
-    });
+    // Each once, and a moment as the export writes its dates.
+    const fields: Array<ResourceCardFact> =
+      getExportedResourceCardFacts(widget);
 
     /*
      * The status the line names in its own colour, a dot before it, as
@@ -489,30 +510,35 @@ export default class PdfWidgets {
       valueMaxLines,
     );
 
+    /*
+     * The names are one column, as wide as the widest of them - at least
+     * 70pt, at most 40% of the card - so every value of the card starts
+     * at one place, as the chat's grid lines them up: one long name
+     * ("Error budget policy tier") moved its own value alone to the right.
+     * A name wider than the column wraps within it.
+     */
+    this.pdf.setStyle(CARD_FACT_STYLE);
+    const labelWidth: number = Math.min(
+      labelMaxWidth,
+      Math.max(
+        FACT_LABEL_MIN_WIDTH,
+        ...fields.map((field: ResourceCardFact): number => {
+          return (
+            this.pdf.textWidth(this.pdf.sanitize(`${field.label}`)) +
+            FACT_LABEL_GAP
+          );
+        }),
+      ),
+    );
+
     const facts: Array<PdfResourceCardFactLayout> = fields.map(
       (field: ResourceCardFact): PdfResourceCardFactLayout => {
-        /*
-         * A name takes its own width, at least 70pt, so short names line
-         * their values up; a long one wraps within 40% of the card, and
-         * its value has the rest.
-         */
         const labelLines: Array<string> = linesOf(
           `${field.label}`,
           CARD_FACT_STYLE,
-          labelMaxWidth - FACT_LABEL_GAP,
+          labelWidth - FACT_LABEL_GAP,
           labelMaxLines,
         );
-        this.pdf.setStyle(CARD_FACT_STYLE);
-        const labelWidth: number =
-          labelLines.length > 1
-            ? labelMaxWidth
-            : Math.min(
-                labelMaxWidth,
-                Math.max(
-                  this.pdf.textWidth(labelLines[0] || "") + FACT_LABEL_GAP,
-                  FACT_LABEL_MIN_WIDTH,
-                ),
-              );
         const valueLines: Array<string> = linesOf(
           field.value,
           CARD_FACT_STYLE,
@@ -532,17 +558,25 @@ export default class PdfWidgets {
       },
     );
 
+    const factsGap: number =
+      facts.length > 0 &&
+      kindLines.length + headingLines.length + statusLines.length > 0
+        ? spacing.factsGap
+        : 0;
+
     return {
       kindLines,
       headingLines,
       statusLines,
       statusColor,
+      factsGap,
       facts,
       height:
         spacing.padding * 2 +
         kindLines.length * spacing.kind +
         headingLines.length * spacing.heading +
         statusLines.length * spacing.line +
+        factsGap +
         facts.reduce(
           (total: number, fact: PdfResourceCardFactLayout): number => {
             return total + fact.height;
@@ -553,16 +587,17 @@ export default class PdfWidgets {
   }
 
   /*
-   * The card laid out to fit one page with its title (issue #7202): its
-   * values in fewer lines while it does not, so it always moves to the
-   * next page whole rather than running past the page's end. A card saved
-   * with more facts than a page holds even then keeps those that fit.
+   * The card laid out to fit one page (with its title, when it has one -
+   * a write's) (issue #7202): its values in fewer lines while it does not,
+   * so it always moves to the next page whole rather than running past the
+   * page's end. A card saved with more facts than a page holds even then
+   * keeps those that fit.
    */
   private fitResourceCard(widget: AIChatWidget): PdfResourceCardLayout {
     const room: number =
       this.pdf.bottomLimit -
       PAGE_MARGIN.top -
-      this.headerHeight(widget) -
+      (this.hasHeader(widget) ? this.headerHeight(widget) : 0) -
       PDF_RESOURCE_CARD_SPACING.after;
 
     let layout: PdfResourceCardLayout = this.layoutResourceCard(
@@ -581,6 +616,10 @@ export default class PdfWidgets {
     while (layout.height > room && layout.facts.length > 0) {
       const dropped: PdfResourceCardFactLayout = layout.facts.pop()!;
       layout.height -= dropped.height;
+      if (layout.facts.length === 0) {
+        layout.height -= layout.factsGap;
+        layout.factsGap = 0;
+      }
     }
 
     return layout;
@@ -647,6 +686,8 @@ export default class PdfWidgets {
         y += spacing.line;
       }
     }
+
+    y += layout.factsGap;
 
     for (const fact of layout.facts) {
       // Its name's lines and its value's, each from the fact's own top.
@@ -862,6 +903,13 @@ export default class PdfWidgets {
   }
 
   public draw(widget: AIChatWidget): void {
+    // A read's card stands alone, as in the chat: it moves to the next page whole.
+    if (!this.hasHeader(widget)) {
+      this.pdf.moveDown(PDF_RESOURCE_CARD_SPACING.before);
+      this.drawResourceCard(widget);
+      return;
+    }
+
     // Keep the title with its body rather than letting it widow.
     this.pdf.ensureSpace(
       this.headerHeight(widget) + this.minimumBodyHeight(widget),

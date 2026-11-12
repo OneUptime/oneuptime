@@ -434,9 +434,9 @@ describe("an SLO's card in Persian", () => {
     expect(labels).not.toContain("Target");
     expect(labels).not.toContain("Burn rate");
     for (const english of [
-      "not visible to you",
-      "no error budget policy",
-      "allowed",
+      "Not visible to you",
+      "No error budget policy",
+      "Allowed",
       "Monitor uptime",
       "Rolling",
     ]) {

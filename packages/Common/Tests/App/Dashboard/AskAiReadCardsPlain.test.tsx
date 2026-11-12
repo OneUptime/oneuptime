@@ -793,9 +793,8 @@ describe("in the PDF export", () => {
     const INNER_WIDTH: number = CONTENT_WIDTH - SPACING.padding * 2;
     const CARD_X: number = PAGE_MARGIN.left + SPACING.padding;
     const BOTTOM_LIMIT: number = 841.89 - PAGE_MARGIN.bottom;
-    // What a page holds of a card under its title.
-    const CARD_ROOM: number =
-      BOTTOM_LIMIT - PAGE_MARGIN.top - 25 - SPACING.after;
+    // What a page holds of a read's card: it has no title over it.
+    const CARD_ROOM: number = BOTTOM_LIMIT - PAGE_MARGIN.top - SPACING.after;
 
     // A read's card as a conversation stores it: the English the export prints.
     function storedCard(data: {
@@ -950,8 +949,10 @@ describe("in the PDF export", () => {
       expect(status[0]! - heading[1]!).toBe(SPACING.heading);
       expect(status[1]! - status[0]!).toBe(SPACING.line);
 
+      // The facts a gap under the name and line, as the chat's are.
       const value: Array<number> = yOf("val");
-      expect(value[0]! - status[1]!).toBe(SPACING.line);
+      expect(SPACING.factsGap).toBeGreaterThan(0);
+      expect(value[0]! - status[1]!).toBe(SPACING.line + SPACING.factsGap);
       for (let index: number = 1; index < value.length; index++) {
         expect(value[index]! - value[index - 1]!).toBe(SPACING.factExtraLine);
       }
@@ -1014,6 +1015,7 @@ describe("in the PDF export", () => {
           SPACING.kind +
           2 * SPACING.heading +
           2 * SPACING.line +
+          SPACING.factsGap +
           (SPACING.fact + (valueLines - 1) * SPACING.factExtraLine) +
           SPACING.fact,
       );
@@ -1105,32 +1107,137 @@ describe("in the PDF export", () => {
       );
     });
 
-    test("a card that does not fit moves to the next page whole, its title with it", () => {
-      const calls: Array<DrawCall> = drawn(longCard(), {
-        isWrapping: true,
-        startY: BOTTOM_LIMIT - 100,
-      });
-      const pageBreaks: Array<number> = calls
+    function pageBreaksOf(calls: Array<DrawCall>): Array<number> {
+      return calls
         .map((call: DrawCall, index: number): number => {
           return call.method === "addPage" ? index : -1;
         })
         .filter((index: number): boolean => {
           return index > -1;
         });
-      const title: number = calls.findIndex((call: DrawCall): boolean => {
-        return (
-          call.method === "text" && call.args[0] === "Monitor Checkout API"
-        );
+    }
+
+    function textIndex(calls: Array<DrawCall>, text: string): number {
+      return calls.findIndex((call: DrawCall): boolean => {
+        return call.method === "text" && call.args[0] === text;
       });
+    }
+
+    test("a card that does not fit moves to the next page whole", () => {
+      const calls: Array<DrawCall> = drawn(longCard(), {
+        isWrapping: true,
+        startY: BOTTOM_LIMIT - 100,
+      });
+      const pageBreaks: Array<number> = pageBreaksOf(calls);
       const rect: { index: number; y: number; height: number } =
         cardRect(calls);
 
       expect(pageBreaks.length).toBe(1);
-      expect(pageBreaks[0]).toBeLessThan(title);
-      expect(rect.y).toBeGreaterThan(PAGE_MARGIN.top);
+      expect(pageBreaks[0]).toBeLessThan(rect.index);
+      expect(pageBreaks[0]).toBeLessThan(textIndex(calls, "MONITOR"));
+      // At the new page's top: the room before a card is not carried over.
+      expect(rect.y).toBe(PAGE_MARGIN.top);
       expect(rect.y + rect.height).toBeLessThanOrEqual(BOTTOM_LIMIT);
       // Every line on the new page, after the break.
       expect(linesOf(calls, "val").join(" ")).toBe(LONG.value);
+    });
+
+    test("a write's card that does not fit moves to the next page whole, its title with it", () => {
+      const widget: AIChatWidget = longCard();
+      widget.title = "Alert created";
+      widget.data.origin = AIChatResourceCardOrigin.Write;
+
+      const calls: Array<DrawCall> = drawn(widget, {
+        isWrapping: true,
+        startY: BOTTOM_LIMIT - 100,
+      });
+      const pageBreaks: Array<number> = pageBreaksOf(calls);
+      const title: number = textIndex(calls, "Alert created");
+      const rect: { index: number; y: number; height: number } =
+        cardRect(calls);
+
+      expect(pageBreaks.length).toBe(1);
+      expect(title).toBeGreaterThan(-1);
+      expect(pageBreaks[0]).toBeLessThan(title);
+      expect(rect.y).toBeGreaterThan(PAGE_MARGIN.top);
+      expect(rect.y + rect.height).toBeLessThanOrEqual(BOTTOM_LIMIT);
+      expect(linesOf(calls, "val").join(" ")).toBe(LONG.value);
+    });
+
+    /*
+     * A read's card has no title over it: its kind and name say what it
+     * is, as in the chat. The PDF said "Monitor Checkout API" over it,
+     * then "MONITOR" and "Checkout API" inside it. A write's card keeps
+     * its title - "Alert created" says what was done - and so does one
+     * saved before cards said which.
+     */
+    test("a read's card has no title over it; a write's keeps its own", () => {
+      const read: Array<DrawCall> = drawn(
+        monitorCard({ subheading: "Offline" }),
+      );
+      expect(textIndex(read, "Monitor Checkout API")).toBe(-1);
+      expect(textIndex(read, "MONITOR")).toBeGreaterThan(-1);
+      expect(textIndex(read, "Checkout API")).toBeGreaterThan(-1);
+      // Its surface a little under where the last widget ended.
+      expect(cardRect(read).y).toBe(PAGE_MARGIN.top + SPACING.before);
+
+      for (const widget of [alertCard(), savedBeforeOrigins()]) {
+        const calls: Array<DrawCall> = drawn(widget);
+        const title: number = textIndex(calls, "Alert created");
+        expect(title).toBeGreaterThan(-1);
+        expect(title).toBeLessThan(cardRect(calls).index);
+      }
+    });
+
+    /*
+     * Every value of a card starts at one place, as the chat's grid lines
+     * them up: the names are one column, as wide as the widest of them.
+     * One long name ("Error budget policy tier") moved its own value to the
+     * right of the others.
+     */
+    test("every value starts at one place: the names one column, as wide as the widest", () => {
+      const calls: Array<DrawCall> = drawn(
+        storedCard({
+          heading: "Checkout availability",
+          fields: [
+            { label: "Target", value: "tgt 99.9%" },
+            { label: "Error budget policy", value: "pol Freeze risky deploys" },
+            { label: "Window", value: "win Rolling 30-day window" },
+          ],
+        }),
+        { isWrapping: true },
+      );
+      const valueX: Array<number> = ["tgt", "pol", "win"].map(
+        (prefix: string): number => {
+          return textsOf(calls, prefix)[0]!.args[1] as number;
+        },
+      );
+
+      expect(new Set(valueX).size).toBe(1);
+      // The widest name and its gap: past the 70pt the short ones need.
+      expect(valueX[0]).toBe(
+        CARD_X + "Error budget policy".length * CHAR_WIDTH + 8,
+      );
+      expect(valueX[0]).toBeGreaterThan(CARD_X + 70);
+      // Each name whole, on one line.
+      expect(linesOf(calls, "Error budget")).toEqual(["Error budget policy"]);
+    });
+
+    test("short names keep the 70pt column; no facts, no gap under the name", () => {
+      const short: Array<DrawCall> = drawn(
+        storedCard({
+          heading: "Checkout API",
+          fields: [{ label: "Type", value: "val Website" }],
+        }),
+      );
+      expect(textsOf(short, "val")[0]!.args[1]).toBe(CARD_X + 70);
+
+      const bare: Array<DrawCall> = drawn(
+        storedCard({ heading: "Checkout API", subheading: "Online" }),
+      );
+      expect(cardRect(bare).height).toBe(
+        SPACING.padding * 2 + SPACING.kind + SPACING.heading + SPACING.line,
+      );
     });
 
     test("a card that fits is drawn where it is, with no page break", () => {

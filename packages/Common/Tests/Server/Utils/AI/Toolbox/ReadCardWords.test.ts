@@ -469,7 +469,7 @@ describe("an SLO's card", () => {
         { label: "Monitor rules", value: "1 of 2 enabled" },
         { label: "Burn-rate rules", value: "3" },
         { label: "Error budget policy tier", value: "Freeze" },
-        { label: "Deployments", value: "allowed" },
+        { label: "Deployments", value: "Allowed" },
       ],
     });
   });
@@ -536,18 +536,18 @@ describe("an SLO's card", () => {
     ).facts;
 
     expect(facts).toEqual([
-      { label: "Target", value: "not evaluated yet" },
+      { label: "Target", value: "Not evaluated yet" },
       { label: "Window", value: "Calendar Month" },
       { label: "SLI type", value: "Metric" },
       { label: "Status", value: "At Risk" },
-      { label: "Current SLI", value: "not evaluated yet" },
-      { label: "Error budget left", value: "not evaluated yet" },
-      { label: "Burn rate", value: "not evaluated yet" },
-      { label: "Monitors", value: "none" },
-      { label: "Monitor rules", value: "not visible to you" },
-      { label: "Burn-rate rules", value: "not visible to you" },
-      { label: "Error budget policy tier", value: "not visible to you" },
-      { label: "Deployments", value: "frozen by the error budget policy" },
+      { label: "Current SLI", value: "Not evaluated yet" },
+      { label: "Error budget left", value: "Not evaluated yet" },
+      { label: "Burn rate", value: "Not evaluated yet" },
+      { label: "Monitors", value: "None" },
+      { label: "Monitor rules", value: "Not visible to you" },
+      { label: "Burn-rate rules", value: "Not visible to you" },
+      { label: "Error budget policy tier", value: "Not visible to you" },
+      { label: "Deployments", value: "Frozen by the error budget policy" },
     ]);
   });
 
@@ -568,7 +568,7 @@ describe("an SLO's card", () => {
         { monitorRules: { isVisible: true, count: 0, enabledCount: 0 } },
         "Monitor rules",
       ),
-    ).toBe("none - monitors are picked by hand");
+    ).toBe("None - monitors are picked by hand");
     expect(
       valueOf(
         { monitorRules: { isVisible: true, count: 1, enabledCount: 1 } },
@@ -580,13 +580,13 @@ describe("an SLO's card", () => {
         { policyTiers: { isVisible: true, count: 0 } },
         "Error budget policy tier",
       ),
-    ).toBe("no error budget policy");
+    ).toBe("No error budget policy");
     expect(
       valueOf(
         { policyTiers: { isVisible: true, count: 3 } },
         "Error budget policy tier",
       ),
-    ).toBe("none - the budget is above every tier");
+    ).toBe("None - the budget is above every tier");
     // The tier is SLO data: shown even when the tiers cannot be read.
     expect(
       valueOf(
@@ -618,7 +618,7 @@ describe("an SLO's card", () => {
         { label: "SLI-Typ", value: "Monitor-Verfügbarkeit" },
         { label: "Burn-Rate", value: "1,23" },
         { label: "Monitor-Regeln", value: "1 von 2 aktiviert" },
-        { label: "Deployments", value: "erlaubt" },
+        { label: "Deployments", value: "Erlaubt" },
       ]),
     );
   });
@@ -845,7 +845,7 @@ describe("a status page's card", () => {
       {
         label: "Angezeigte Ressourcen",
         value:
-          "4: Checkout (Monitor checkout-api), Payments (Monitor-Gruppe: Payments group), Search - nicht überwacht",
+          "4: Checkout (Monitor: checkout-api), Payments (Monitor-Gruppe: Payments group), Search - nicht überwacht",
       },
       { label: "Aktive Abonnenten", value: "1.234" },
     ]);
@@ -857,10 +857,8 @@ describe("the cards of a team, a runbook and a workflow with nothing to list", (
     expect(english(getEmptyTeamCardWords({ description: "DBAs" }))).toEqual({
       kind: "Team",
       line: "No members",
-      facts: [
-        { label: "Description", value: "DBAs" },
-        { label: "Members", value: "0" },
-      ],
+      // The line says it: no "Members: 0" under it.
+      facts: [{ label: "Description", value: "DBAs" }],
     });
     expect(english(getEmptyTeamCardWords({})).facts[0]!.value).toBe("—");
   });

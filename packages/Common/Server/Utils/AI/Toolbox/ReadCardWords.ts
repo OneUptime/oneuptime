@@ -205,7 +205,7 @@ export interface SloCardData {
 
 const DEFAULT_ROLLING_WINDOW_DAYS: number = 30;
 
-// A share, or "not evaluated yet" before the worker first evaluates the SLO.
+// A share, or "Not evaluated yet" before the worker first evaluates the SLO.
 function sloPercent(value: number | undefined | null): AIActionCardValue {
   return value === undefined || value === null || !Number.isFinite(value)
     ? aiActionTerm(AI_READ_CARD_VALUES.notEvaluatedYet)
@@ -249,7 +249,7 @@ export function getSloCardWords(data: SloCardData): AIActionCardWords {
             : DEFAULT_ROLLING_WINDOW_DAYS,
         );
 
-  // Not "none" when the rules could not be read: that would claim the monitors are picked by hand.
+  // Not "None" when the rules could not be read: that would claim the monitors are picked by hand.
   const monitorRules: AIActionCardValue = !data.monitorRules.isVisible
     ? aiActionTerm(AI_READ_CARD_VALUES.notVisible)
     : data.monitorRules.count === 0
@@ -262,7 +262,7 @@ export function getSloCardWords(data: SloCardData): AIActionCardWords {
 
   /*
    * The tier is SLO data, so it shows even when the tiers cannot be read;
-   * "no error budget policy" only when nothing says otherwise.
+   * "No error budget policy" only when nothing says otherwise.
    */
   const policyTier: AIActionCardValue =
     data.policyTiers.currentName ||
@@ -338,7 +338,8 @@ export function getSloCardWords(data: SloCardData): AIActionCardWords {
 /*
  * ---------------------------------------------------------------------------
  * query_teams, one team with no members (TeamTools): a team with members
- * leaves the table of them.
+ * leaves the table of them. Its line says No members, so no "Members: 0"
+ * fact says it again under it.
  * ---------------------------------------------------------------------------
  */
 export function getEmptyTeamCardWords(data: {
@@ -352,7 +353,6 @@ export function getEmptyTeamCardWords(data: {
         AI_ACTION_CARD_FACTS.description,
         data.description || "—",
       ),
-      aiActionCardFact(AI_READ_CARD_FACTS.members, aiActionFigure(0)),
     ],
   };
 }

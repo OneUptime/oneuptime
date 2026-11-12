@@ -285,10 +285,7 @@ describe("query_teams — the card of a team with no members", () => {
     expect(describeAIActionCardWords(words)).toEqual({
       kind: "Team",
       line: "No members",
-      facts: [
-        { label: "Description", value: "Owns shared infrastructure." },
-        { label: "Members", value: "0" },
-      ],
+      facts: [{ label: "Description", value: "Owns shared infrastructure." }],
     });
     expect(describeAIActionCardWords(words, dashboardTranslator("de"))).toEqual(
       {
@@ -296,7 +293,6 @@ describe("query_teams — the card of a team with no members", () => {
         line: "Keine Mitglieder",
         facts: [
           { label: "Beschreibung", value: "Owns shared infrastructure." },
-          { label: "Mitglieder", value: "0" },
         ],
       },
     );

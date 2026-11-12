@@ -40,8 +40,13 @@
  *                    monitors table, its long names beside "Operational"
  *                    (issues #6968 and #6969); each card's words as
  *                    query_monitors stores them, so they are drawn in
- *                    the reader's language (issue #7175)
- *   - run=hold       an answer being written stays written-so-far until
+ *                    the reader's language (issue #7175);
+ *                    readcards, "What do we have for payments?" answered
+ *                    with every card a read leaves - a monitor, an SLO, a
+ *                    team, an on-call policy and schedule, a status page,
+ *                    a runbook, a workflow and a security case - each
+ *                    built by its tool's own builder (issue #7175)
+ *   - run=hold      an answer being written stays written-so-far until
  *                    window.__askAiFixture.finish() is called (it finishes
  *                    on its own, a step a poll, by default)
  *   - providers=two  two LLM providers to choose between (one by default)
@@ -49,8 +54,8 @@
  *                    LLM provider
  *   - fail=send      sending a question fails; conversations, the history
  *                    cannot be read
- *   - lang=de        the Dashboard's German words (fa: Persian, right to
- *                    left)
+ *   - lang=de        the Dashboard's German words (fa: Persian, ar:
+ *                    Arabic, each right to left)
  *   - words=none     the approval card's action was saved before actions
  *                    stored their words: only its English, as conversations
  *                    saved then read
@@ -86,6 +91,7 @@ import AICopilot from "../../../App/FeatureSet/Dashboard/src/Pages/AICopilot/AIC
 import EventName from "../../../App/FeatureSet/Dashboard/src/Utils/EventName";
 import DE from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import FA from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
+import AR from "../../../App/FeatureSet/Dashboard/src/Locales/ar.json";
 import AIConversation from "Common/Models/DatabaseModels/AIConversation";
 import AIConversationMessage from "Common/Models/DatabaseModels/AIConversationMessage";
 import AIRun from "Common/Models/DatabaseModels/AIRun";
@@ -124,7 +130,21 @@ import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
 import WidgetBuilder from "Common/Server/Utils/AI/Toolbox/WidgetBuilder";
-import { getMonitorCardWords } from "Common/Server/Utils/AI/Toolbox/ReadCardWords";
+import {
+  getEmptyRunbookCardWords,
+  getEmptyTeamCardWords,
+  getMonitorCardWords,
+  getOnCallPolicyCardWords,
+  getOnCallScheduleCardWords,
+  getSecurityCaseCardWords,
+  getSloCardWords,
+  getStatusPageCardWords,
+  getUnrunWorkflowCardWords,
+} from "Common/Server/Utils/AI/Toolbox/ReadCardWords";
+import { SecurityEntityType } from "Common/Types/SecurityCase/SecurityEntity";
+import SliType from "Common/Types/ServiceLevelObjective/SliType";
+import SloStatus from "Common/Types/ServiceLevelObjective/SloStatus";
+import SloWindowType from "Common/Types/ServiceLevelObjective/SloWindowType";
 import API from "Common/UI/Utils/API/API";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
@@ -146,7 +166,7 @@ const OPEN_STATE_ID = "50000000-0000-4000-8000-000000000001";
 const RESOLVED_STATE_ID = "50000000-0000-4000-8000-000000000002";
 
 const params = new URLSearchParams(window.location.search);
-const language = ["de", "fa"].includes(params.get("lang"))
+const language = ["de", "fa", "ar"].includes(params.get("lang"))
   ? params.get("lang")
   : "en";
 const historyKind = ["some", "many"].includes(params.get("history"))
@@ -160,6 +180,7 @@ const threadKind = [
   "actions",
   "code",
   "monitors",
+  "readcards",
 ].includes(params.get("thread"))
   ? params.get("thread")
   : "";
@@ -745,6 +766,232 @@ function seedMonitorsAnswer() {
   });
 }
 
+// The conversation that looked up one of each record a read leaves a card for (?thread=readcards).
+let readCardsConversation = null;
+
+/*
+ * Every card a read leaves, each built as its tool builds it
+ * (WidgetBuilder.resourceCard with its builder in ReadCardWords): the
+ * kind, the line and each fact's name are OneUptime's words, which the
+ * chat says in the reader's language, and the names, the statuses the
+ * project chose, a URL and an entity's value are data, drawn as written
+ * (issue #7175). One of each, with the facts each tool says most.
+ */
+function readCards() {
+  const read = (id, title, heading, words, link, statusColor) => {
+    return {
+      ...WidgetBuilder.resourceCard({
+        title,
+        heading,
+        words,
+        link,
+        ...(statusColor ? { statusColor } : {}),
+      }),
+      id,
+    };
+  };
+
+  return [
+    read(
+      "R1",
+      "Monitor payments-api",
+      "payments-api",
+      getMonitorCardWords({
+        monitorType: MonitorType.API,
+        statusName: "Degraded",
+        isMonitoringOff: false,
+        isArchived: false,
+        ownerTeamNames: "Payments, SRE",
+        ownerUserNames: "Ana Souza",
+      }),
+      {
+        type: AIChatCitationTargetType.MonitorView,
+        params: { monitorId: "60000000-0000-4000-8000-000000000002" },
+      },
+      "#f59e0b",
+    ),
+    read(
+      "R2",
+      "SLO Checkout availability",
+      "Checkout availability",
+      getSloCardWords({
+        description: "Checkout requests that succeed, over 30 days.",
+        targetPercentage: 99.9,
+        windowType: SloWindowType.Rolling,
+        windowDays: 30,
+        sliType: SliType.MonitorUptime,
+        isArchived: false,
+        isEnabled: true,
+        sloStatus: SloStatus.AtRisk,
+        currentSliPercentage: 99.874,
+        errorBudgetRemainingPercentage: 12.5,
+        currentBurnRate: 2.4,
+        monitorNames: "Checkout API, payments-api",
+        monitorRules: { isVisible: true, count: 2, enabledCount: 1 },
+        burnRateRules: { isVisible: true, count: 3 },
+        policyTiers: {
+          currentName: "Freeze risky deploys",
+          isVisible: true,
+          count: 2,
+        },
+        deploymentsAllowed: false,
+      }),
+      {
+        type: AIChatCitationTargetType.SloView,
+        params: { sloId: "61000000-0000-4000-8000-000000000001" },
+      },
+    ),
+    read(
+      "R3",
+      "Team",
+      "Database reliability",
+      getEmptyTeamCardWords({
+        description: "Owns the payments databases and their backups.",
+      }),
+      { type: AIChatCitationTargetType.Teams },
+    ),
+    read(
+      "R4",
+      "On-call policy: Payments primary",
+      "Payments primary",
+      getOnCallPolicyCardWords({
+        description: "Pages for every payments incident.",
+        isArchived: false,
+        rules: [
+          {
+            order: 1,
+            users: ["Ana Souza"],
+            teams: ["SRE"],
+            schedules: [],
+            escalateAfterInMinutes: 15,
+          },
+          {
+            order: 2,
+            name: "Database team",
+            users: [],
+            teams: [],
+            schedules: ["Payments weekly rotation"],
+            escalateAfterInMinutes: 30,
+          },
+          {
+            order: 3,
+            users: [],
+            teams: [],
+            schedules: [],
+            escalateAfterInMinutes: 0,
+          },
+        ],
+      }),
+      {
+        type: AIChatCitationTargetType.OnCallPolicyView,
+        params: { onCallDutyPolicyId: "62000000-0000-4000-8000-000000000001" },
+      },
+    ),
+    read(
+      "R5",
+      "On-call schedule 'Payments weekly rotation'",
+      "Payments weekly rotation",
+      getOnCallScheduleCardWords({
+        onCallNow: "Ana Souza",
+        rosterStartAt: minutesAgo(60 * 26),
+        rosterHandoffAt: minutesAgo(-60 * 142),
+        nextUp: "Jonas Müller",
+        rosterNextStartAt: minutesAgo(-60 * 142),
+      }),
+      { type: AIChatCitationTargetType.OnCallPolicies },
+    ),
+    read(
+      "R6",
+      "Status page: Acme Status",
+      "Acme Status",
+      getStatusPageCardWords({
+        description: "Checkout, payments and backups, for our customers.",
+        isPublic: true,
+        isArchived: false,
+        publicUrl: "https://status.acme.example.com",
+        resourceCount: 3,
+        resources: [
+          {
+            name: "Checkout",
+            source: { name: "Checkout API", isMonitorGroup: false },
+            isNotMonitored: false,
+          },
+          {
+            name: "Payments",
+            source: { name: "Payments stack", isMonitorGroup: true },
+            isNotMonitored: false,
+          },
+          { name: "Backups", isNotMonitored: true },
+        ],
+        activeSubscribers: 1284,
+      }),
+      {
+        type: AIChatCitationTargetType.StatusPageView,
+        params: { statusPageId: "63000000-0000-4000-8000-000000000001" },
+      },
+    ),
+    read(
+      "R7",
+      "Runbook",
+      "Restart the payments worker",
+      getEmptyRunbookCardWords({
+        description: "Drains the queue, then restarts the worker.",
+        isEnabled: false,
+      }),
+      {
+        type: AIChatCitationTargetType.RunbookView,
+        params: { runbookId: "64000000-0000-4000-8000-000000000001" },
+      },
+    ),
+    read(
+      "R8",
+      'Workflow "Page on-call when a deploy fails"',
+      "Page on-call when a deploy fails",
+      getUnrunWorkflowCardWords({
+        description: "Runs on every failed deploy of payments-api.",
+        isEnabled: true,
+        isArchived: false,
+      }),
+      {
+        type: AIChatCitationTargetType.WorkflowView,
+        params: { workflowId: "65000000-0000-4000-8000-000000000001" },
+      },
+    ),
+    read(
+      "R9",
+      "Security case",
+      "SC-17 Sign-ins from a new country",
+      getSecurityCaseCardWords({
+        statusName: "Investigating",
+        priorityName: "High",
+        detectionCount: 4,
+        entities: [
+          { type: SecurityEntityType.IpAddress, value: "203.0.113.7" },
+          { type: SecurityEntityType.User, value: "ana@acme.example.com" },
+        ],
+      }),
+      {
+        type: AIChatCitationTargetType.SecurityCaseView,
+        params: { securityCaseId: "66000000-0000-4000-8000-000000000001" },
+      },
+    ),
+  ];
+}
+
+function seedReadCardsAnswer() {
+  readCardsConversation = conversationOf("What we have for payments", 2);
+  messageOf(readCardsConversation.id.toString(), AIChatMessageRole.User, {
+    contentInMarkdown: "What do we have set up for payments?",
+    createdAt: minutesAgo(3),
+  });
+  messageOf(readCardsConversation.id.toString(), AIChatMessageRole.Assistant, {
+    contentInMarkdown:
+      "Here is everything set up for payments: its monitor, SLO, team, on-call, status page, runbook, workflow and open security case.",
+    widgets: readCards(),
+    createdAt: minutesAgo(2),
+  });
+}
+
 function seedRichAnswer() {
   richConversation = conversationOf("Payments health this week", 3);
   messageOf(richConversation.id.toString(), AIChatMessageRole.User, {
@@ -965,6 +1212,10 @@ function seedHistory() {
     seedMonitorsAnswer();
   }
 
+  if (threadKind === "readcards") {
+    seedReadCardsAnswer();
+  }
+
   if (historyKind === "none") {
     return;
   }
@@ -1007,6 +1258,7 @@ fixture.conversationIds = {
   actions: actionsConversation?.id.toString(),
   code: codeConversation?.id.toString(),
   monitors: monitorsConversation?.id.toString(),
+  readcards: readCardsConversation?.id.toString(),
 };
 
 // ---- a run, written step by step as the dialog polls --------------------------
@@ -1449,6 +1701,7 @@ await i18next.use(initReactI18next).init({
     en: { translation: {} },
     de: { translation: DE },
     fa: { translation: FA },
+    ar: { translation: AR },
   },
   interpolation: { escapeValue: false },
   keySeparator: false,

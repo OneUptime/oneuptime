@@ -1323,7 +1323,7 @@ describe("query_slos — error budget policy", () => {
     });
 
     expect(widgetField(aboveEveryTier, "Error budget policy tier")).toBe(
-      "none - the budget is above every tier",
+      "None - the budget is above every tier",
     );
 
     jest.restoreAllMocks();
@@ -1337,7 +1337,7 @@ describe("query_slos — error budget policy", () => {
     });
 
     expect(widgetField(noPolicy, "Error budget policy tier")).toBe(
-      "no error budget policy",
+      "No error budget policy",
     );
     // No tiers, no note about reading them.
     expect(noPolicy.dataForLlm).not.toContain("errorBudgetPolicyTier rows are");
@@ -1367,7 +1367,7 @@ describe("query_slos — error budget policy", () => {
     });
 
     expect(widgetField(result, "Error budget policy tier")).toBe(
-      "not visible to you",
+      "Not visible to you",
     );
   });
 
@@ -1476,7 +1476,7 @@ describe("query_slos — error budget policy", () => {
     expect(result.dataForLlm).toContain(
       "deploymentsAllowed on an SLO row is the deploy gate CI/CD pipelines read before they release",
     );
-    expect(widgetField(result, "Deployments")).toBe("allowed");
+    expect(widgetField(result, "Deployments")).toBe("Allowed");
   });
 
   test("a frozen SLO's row says so, and since when", async () => {
@@ -1505,7 +1505,7 @@ describe("query_slos — error budget policy", () => {
     expect(sloRow).toContain("deploymentsFrozenAt");
     expect(sloRow).toContain("2026-08-13");
     expect(widgetField(result, "Deployments")).toBe(
-      "frozen by the error budget policy",
+      "Frozen by the error budget policy",
     );
 
     // Each tier says whether it freezes deployments.
@@ -1559,7 +1559,7 @@ describe("query_slos — error budget policy", () => {
 
     expect(sloRowOf(result)).toMatch(/deploymentsAllowed[^,\n]*false/);
     expect(widgetField(result, "Deployments")).toBe(
-      "frozen by the error budget policy",
+      "Frozen by the error budget policy",
     );
   });
 
@@ -1614,7 +1614,7 @@ describe("query_slos — error budget policy", () => {
 
 /*
  * Issue #7175: the SLO's card said "Target", "Rolling 30-day window" and
- * "none - monitors are picked by hand" in English on a German page. Its
+ * "None - monitors are picked by hand" in English on a German page. Its
  * words are OneUptime's own now, its figures written the reader's way, and
  * the English it stores the same words in English.
  */
@@ -1657,10 +1657,10 @@ describe("query_slos — the card, in the reader's language", () => {
         { label: "Error budget left", value: "47.3%" },
         { label: "Burn rate", value: "0.8" },
         { label: "Monitors", value: "Checkout API" },
-        { label: "Monitor rules", value: "none - monitors are picked by hand" },
+        { label: "Monitor rules", value: "None - monitors are picked by hand" },
         { label: "Burn-rate rules", value: "2" },
-        { label: "Error budget policy tier", value: "no error budget policy" },
-        { label: "Deployments", value: "allowed" },
+        { label: "Error budget policy tier", value: "No error budget policy" },
+        { label: "Deployments", value: "Allowed" },
       ],
     });
   });
@@ -1692,9 +1692,9 @@ describe("query_slos — the card, in the reader's language", () => {
       "Rolling",
       "Monitor uptime",
       "Healthy",
-      "none - monitors are picked by hand",
-      "no error budget policy",
-      "allowed",
+      "None - monitors are picked by hand",
+      "No error budget policy",
+      "Allowed",
     ]) {
       expect(JSON.stringify(drawn)).not.toContain(english);
     }
@@ -1706,7 +1706,7 @@ describe("query_slos — the card, in the reader's language", () => {
     );
     const notEvaluated: Array<string> = describeAIActionCardWords(words)
       .facts.filter((fact: { value: string }): boolean => {
-        return fact.value === "not evaluated yet";
+        return fact.value === "Not evaluated yet";
       })
       .map((fact: { label: string }): string => {
         return fact.label;
@@ -1721,6 +1721,6 @@ describe("query_slos — the card, in the reader's language", () => {
       JSON.stringify(
         describeAIActionCardWords(words, dashboardTranslator("fa")),
       ),
-    ).not.toContain("not evaluated yet");
+    ).not.toContain("Not evaluated yet");
   });
 });

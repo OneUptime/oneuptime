@@ -464,7 +464,7 @@ describe("query_status_pages — the card, in the reader's language", () => {
           { label: "Öffentliche URL", value: "https://status.acme.dev" },
           {
             label: "Angezeigte Ressourcen",
-            value: "2: Checkout (Monitor checkout-api), CDN",
+            value: "2: Checkout (Monitor: checkout-api), CDN",
           },
           { label: "Aktive Abonnenten", value: "1.234" },
         ],
