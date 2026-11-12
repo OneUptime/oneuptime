@@ -299,6 +299,8 @@ interface EngineCase {
   ) => Promise<Array<string>>;
   // A rule that pages the first policy for monitors whose name matches.
   stubMonitorNameRule: (pattern: string) => void;
+  // How many times the engine's rules were read from its rule service.
+  ruleReads: () => number;
   // The policies the engine pages.
   enginePolicies: (record: RecordFacts) => Promise<Array<string>>;
   stubAttach: (attached: Array<string>) => void;
@@ -393,9 +395,10 @@ const ENGINES: Array<EngineCase> = [
         await IncidentOnCallRuleEngineService.getMatchingRules(
           toIncident(record, false),
           {
-            rules: await IncidentOnCallRuleEngineService.readEnabledRules(
-              PROJECT_ID,
-            ),
+            rules:
+              await IncidentOnCallRuleEngineService.readEnabledRules(
+                PROJECT_ID,
+              ),
             monitorCache: monitorCache,
           },
         ),
@@ -411,6 +414,9 @@ const ENGINES: Array<EngineCase> = [
       jest
         .spyOn(IncidentOnCallRuleService, "findBy")
         .mockResolvedValue([rule] as never);
+    },
+    ruleReads: (): number => {
+      return jest.mocked(IncidentOnCallRuleService.findBy).mock.calls.length;
     },
     stubAttach: (attached: Array<string>): void => {
       jest
@@ -459,9 +465,8 @@ const ENGINES: Array<EngineCase> = [
         await AlertOnCallRuleEngineService.getMatchingRules(
           toAlert(record, false),
           {
-            rules: await AlertOnCallRuleEngineService.readEnabledRules(
-              PROJECT_ID,
-            ),
+            rules:
+              await AlertOnCallRuleEngineService.readEnabledRules(PROJECT_ID),
             monitorCache: monitorCache,
           },
         ),
@@ -477,6 +482,9 @@ const ENGINES: Array<EngineCase> = [
       jest
         .spyOn(AlertOnCallRuleService, "findBy")
         .mockResolvedValue([rule] as never);
+    },
+    ruleReads: (): number => {
+      return jest.mocked(AlertOnCallRuleService.findBy).mock.calls.length;
     },
     stubAttach: (attached: Array<string>): void => {
       jest
@@ -657,9 +665,9 @@ describe.each(ENGINES)("$label", (engine: EngineCase) => {
     expect(
       await engine.preloadedPolicies(record, named("Checkout API")),
     ).toEqual([POLICIES[0]]);
-    expect(await engine.preloadedPolicies(record, named("Search"))).toEqual(
-      [],
-    );
+    expect(await engine.preloadedPolicies(record, named("Search"))).toEqual([]);
     expect(read).not.toHaveBeenCalled();
+    // Each read is readEnabledRules', before its matching: the matching reads none.
+    expect(engine.ruleReads()).toBe(2);
   });
 });

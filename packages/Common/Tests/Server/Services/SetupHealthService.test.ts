@@ -345,7 +345,7 @@ function serverStatus(
 // The reads, by name, so a test can count them.
 const reads: Record<string, { mock: { calls: Array<unknown> } }> = {};
 
-function spy<T extends object>(
+function spy<T>(
   name: string,
   target: T,
   method: keyof T,
@@ -382,8 +382,7 @@ function stubWorld(): void {
       return asked
         .filter((id: string): boolean => {
           return (
-            world.callerMonitors === "all" ||
-            world.callerMonitors.includes(id)
+            world.callerMonitors === "all" || world.callerMonitors.includes(id)
           );
         })
         .map((id: string): Monitor => {
@@ -503,14 +502,26 @@ function stubWorld(): void {
       return [critical];
     },
   );
-  spy("AlertSeverityService.findBy", AlertSeverityService, "findBy", async () => {
-    return [withId(new AlertSeverity(), "68120000-1111-4000-8000-0000000000c9")];
-  });
-  spy("MonitorStatusService.findBy", MonitorStatusService, "findBy", async () => {
-    const offline: MonitorStatus = withId(new MonitorStatus(), OFFLINE);
-    offline.name = "Offline";
-    return [offline];
-  });
+  spy(
+    "AlertSeverityService.findBy",
+    AlertSeverityService,
+    "findBy",
+    async () => {
+      return [
+        withId(new AlertSeverity(), "68120000-1111-4000-8000-0000000000c9"),
+      ];
+    },
+  );
+  spy(
+    "MonitorStatusService.findBy",
+    MonitorStatusService,
+    "findBy",
+    async () => {
+      const offline: MonitorStatus = withId(new MonitorStatus(), OFFLINE);
+      offline.name = "Offline";
+      return [offline];
+    },
+  );
   spy(
     "IncidentOwnerRuleService.countBy",
     IncidentOwnerRuleService,
@@ -519,9 +530,14 @@ function stubWorld(): void {
       return count(0);
     },
   );
-  spy("AlertOwnerRuleService.countBy", AlertOwnerRuleService, "countBy", async () => {
-    return count(0);
-  });
+  spy(
+    "AlertOwnerRuleService.countBy",
+    AlertOwnerRuleService,
+    "countBy",
+    async () => {
+      return count(0);
+    },
+  );
   spy(
     "IncidentOnCallRuleService.countBy",
     IncidentOnCallRuleService,
@@ -530,9 +546,14 @@ function stubWorld(): void {
       return count(1);
     },
   );
-  spy("AlertOnCallRuleService.countBy", AlertOnCallRuleService, "countBy", async () => {
-    return count(0);
-  });
+  spy(
+    "AlertOnCallRuleService.countBy",
+    AlertOnCallRuleService,
+    "countBy",
+    async () => {
+      return count(0);
+    },
+  );
 
   // The rules: one incident rule that pages Primary for monitors named "Monitor ...".
   spy(
@@ -590,13 +611,18 @@ function stubWorld(): void {
         : preview(BEN, "Ben Ito", { hasNoRule: true });
     },
   );
-  spy("ServerSendingStatus.getStatuses", ServerSendingStatus, "getStatuses", async () => {
-    return [
-      serverStatus(ServerSendingChannel.Email, world.serverEmail),
-      serverStatus(ServerSendingChannel.SMS, ServerSendingState.Working),
-      serverStatus(ServerSendingChannel.Call, ServerSendingState.Working),
-    ];
-  });
+  spy(
+    "ServerSendingStatus.getStatuses",
+    ServerSendingStatus,
+    "getStatuses",
+    async () => {
+      return [
+        serverStatus(ServerSendingChannel.Email, world.serverEmail),
+        serverStatus(ServerSendingChannel.SMS, ServerSendingState.Working),
+        serverStatus(ServerSendingChannel.Call, ServerSendingState.Working),
+      ];
+    },
+  );
 
   // The policies the rules of every kind run.
   spy(
@@ -664,26 +690,24 @@ function stubWorld(): void {
     async (args: {
       scheduleIds: Array<ObjectID>;
     }): Promise<Array<ResolvedShiftSegments>> => {
-      return args.scheduleIds.map(
-        (id: ObjectID): ResolvedShiftSegments => {
-          return {
-            schedule: {
-              id: id.toString(),
-              name: "Primary rota",
-              projectId: PROJECT_ID.toString(),
-              shiftConfigVersion: 1,
-            },
-            segments: [],
-            policyVariants: [],
-            attachedPolicies: [],
-            layerProps: [],
-            scheduleUserIds: [],
-            overrides: [],
-            lastModifiedAt: new Date(),
-            truncated: false,
-          };
-        },
-      );
+      return args.scheduleIds.map((id: ObjectID): ResolvedShiftSegments => {
+        return {
+          schedule: {
+            id: id.toString(),
+            name: "Primary rota",
+            projectId: PROJECT_ID.toString(),
+            shiftConfigVersion: 1,
+          },
+          segments: [],
+          policyVariants: [],
+          attachedPolicies: [],
+          layerProps: [],
+          scheduleUserIds: [],
+          overrides: [],
+          lastModifiedAt: new Date(),
+          truncated: false,
+        };
+      });
     },
   );
   spy(
@@ -1059,7 +1083,9 @@ describe("SetupHealthService", () => {
       props: CALLER,
     });
 
-    expect(checksOf(restored.findings)).toContain(SetupHealthCheck.PolicyNotRun);
+    expect(checksOf(restored.findings)).toContain(
+      SetupHealthCheck.PolicyNotRun,
+    );
     expect(restored.dismissed).toEqual([]);
   });
 
@@ -1200,7 +1226,11 @@ describe("SetupHealthService", () => {
     ]);
     expect(facts.policyIdsRunByRules).toEqual([PRIMARY]);
     expect(
-      facts.policies.map((policy: { id: string }) => policy.id).sort(),
+      facts.policies
+        .map((policy: { id: string }) => {
+          return policy.id;
+        })
+        .sort(),
     ).toEqual([PRIMARY, SECONDARY].sort());
     expect(facts.statusPages).toEqual([
       { id: EMPTY_PAGE, name: "Acme Status", resourceCount: 0 },
@@ -1209,7 +1239,9 @@ describe("SetupHealthService", () => {
     expect(facts.telemetry).toEqual({ receivesTelemetry: true });
     // Only the schedules a policy that is not archived pages.
     expect(
-      facts.schedules.map((schedule: { id: string }) => schedule.id),
+      facts.schedules.map((schedule: { id: string }) => {
+        return schedule.id;
+      }),
     ).toEqual([SCHEDULE]);
     // The archived monitor is gone; the others are all here.
     expect(facts.monitors).toHaveLength(world.monitorCount + 3);
@@ -1270,9 +1302,13 @@ describe("the service's pure helpers", () => {
 
     expect(
       toResponderFact(
-        readinessUser(CARL, "", ReadinessStatus.NotReachable, [], [
-          "No verified notification methods",
-        ]),
+        readinessUser(
+          CARL,
+          "",
+          ReadinessStatus.NotReachable,
+          [],
+          ["No verified notification methods"],
+        ),
       ),
     ).toEqual({
       // With no name, the login email they are known by.

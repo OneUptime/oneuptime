@@ -1077,9 +1077,9 @@ describe("WhoIsToldService", () => {
       expect(ruleReads.incident).toHaveBeenCalledTimes(1);
       expect(ruleReads.alert).toHaveBeenCalledTimes(1);
       // Every monitor's incident is matched against the rules read once.
-      expect(IncidentOnCallRuleEngineService.getMatchingRules).toHaveBeenCalledTimes(
-        50,
-      );
+      expect(
+        IncidentOnCallRuleEngineService.getMatchingRules,
+      ).toHaveBeenCalledTimes(50);
       for (const call of (
         IncidentOnCallRuleEngineService.getMatchingRules as unknown as {
           mock: { calls: Array<Array<unknown>> };
@@ -1097,6 +1097,42 @@ describe("WhoIsToldService", () => {
       expect(MonitorService.findOwners).not.toHaveBeenCalled();
       expect(ProjectService.getOwners).not.toHaveBeenCalled();
       expect(StatusPageResourceService.findBy).not.toHaveBeenCalled();
+    });
+
+    test("a rule on a monitor's name is matched from the monitors handed in: no monitor is read again", async () => {
+      stubRuleReads();
+
+      const byName: IncidentOnCallRule = rule(RULE, "Checkout pages", [
+        PRIMARY,
+      ]);
+      byName.monitorNamePattern = "^Checkout";
+      world.incidentRules = [byName];
+
+      // The engine's own matching, from the rules and monitors handed to it.
+      jest
+        .mocked(IncidentOnCallRuleEngineService.getMatchingRules)
+        .mockRestore();
+
+      const read: jest.SpiedFunction<typeof MonitorService.findOneById> = jest
+        .spyOn(MonitorService, "findOneById")
+        .mockResolvedValue(null as never);
+      read.mockClear();
+
+      const results: Array<WhoIsToldResult> =
+        await WhoIsToldService.resolveProject({
+          projectId: PROJECT_ID,
+          monitors: [
+            projectMonitor(MONITOR_ID.toString(), "Checkout API"),
+            projectMonitor(
+              "68101111-0000-4000-8000-000000000003",
+              "Billing API",
+            ),
+          ],
+        });
+
+      expect(read).not.toHaveBeenCalled();
+      expect(kinds(results[0]!)).not.toContain(WhoIsToldBreakKind.NobodyPaged);
+      expect(kinds(results[1]!)).toContain(WhoIsToldBreakKind.NobodyPaged);
     });
 
     test("only the breaks' worth is read: owners go unnamed and no status page is listed", async () => {
@@ -1159,10 +1195,15 @@ describe("WhoIsToldService", () => {
         await WhoIsToldService.resolveProject({
           projectId: PROJECT_ID,
           monitors: [projectMonitor(MONITOR_ID.toString(), "Checkout API")],
-          readiness: [readiness(ANA, ["SMS", "Email"]), readiness(BEN, ["Push"])],
+          readiness: [
+            readiness(ANA, ["SMS", "Email"]),
+            readiness(BEN, ["Push"]),
+          ],
         });
 
-      expect(OnCallReadinessService.getReadinessForUsers).not.toHaveBeenCalled();
+      expect(
+        OnCallReadinessService.getReadinessForUsers,
+      ).not.toHaveBeenCalled();
       // Ben has no rule for the severity: the fallback pages his verified push.
       expect(
         firstEvent(result!).policies[0]!.people.find(

@@ -191,9 +191,9 @@ describe("a finding, in the reader's words, with where to fix it", () => {
     expect(getSetupHealthSentence(off, translator)).toBe(
       "Phone call is off in this project, so pages that use it are not sent.",
     );
-    expect(getSetupHealthSentence(off, dashboardTranslator("de"))).not.toContain(
-      "Phone call",
-    );
+    expect(
+      getSetupHealthSentence(off, dashboardTranslator("de")),
+    ).not.toContain("Phone call");
   });
 
   test("a gap's start, and a balance, written the reader's way", () => {
@@ -261,7 +261,11 @@ describe("a finding, in the reader's words, with where to fix it", () => {
       PageMap.INCIDENTS_SETTINGS_ON_CALL_RULES,
       "",
     ],
-    [SetupHealthFix.AlertOnCallRules, PageMap.ALERTS_SETTINGS_ON_CALL_RULES, ""],
+    [
+      SetupHealthFix.AlertOnCallRules,
+      PageMap.ALERTS_SETTINGS_ON_CALL_RULES,
+      "",
+    ],
     [
       SetupHealthFix.OnCallPolicy,
       PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION,
@@ -320,7 +324,10 @@ describe("a finding, in the reader's words, with where to fix it", () => {
       WorkspaceType.MicrosoftTeams,
       PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
     ],
-    [WorkspaceType.Mattermost, PageMap.INCIDENTS_WORKSPACE_CONNECTION_MATTERMOST],
+    [
+      WorkspaceType.Mattermost,
+      PageMap.INCIDENTS_WORKSPACE_CONNECTION_MATTERMOST,
+    ],
   ])(
     "a chat workspace's rules are its own page: %s",
     (workspace: WorkspaceType, pageMap: PageMap) => {
@@ -344,7 +351,10 @@ describe("a finding, in the reader's words, with where to fix it", () => {
 
   test("the server's fix is its admin's, not a page of the Dashboard", () => {
     expect(
-      getSetupHealthFixLink({ finding: SERVER_FINDING, translator: translator }),
+      getSetupHealthFixLink({
+        finding: SERVER_FINDING,
+        translator: translator,
+      }),
     ).toBeNull();
   });
 
@@ -444,11 +454,9 @@ describe("the page lives under Home, and Search finds it", () => {
 
   test("Search offers it under Home, by name and by what people ask", () => {
     const home: ReturnType<typeof getPageSearchAreas>[number] | undefined =
-      getPageSearchAreas().find(
-        (area: { id: string }): boolean => {
-          return area.id === "home";
-        },
-      );
+      getPageSearchAreas().find((area: { id: string }): boolean => {
+        return area.id === "home";
+      });
 
     expect(home).toBeDefined();
     expect(home!.productPage).toBe(PageMap.HOME);
@@ -541,7 +549,9 @@ describe("SetupHealthView", () => {
       ).toString(),
     );
     expect(
-      screen.getByTestId(`setup-health-level-${SetupHealthLevel.WorthFixing}-count`),
+      screen.getByTestId(
+        `setup-health-level-${SetupHealthLevel.WorthFixing}-count`,
+      ),
     ).toHaveTextContent("1");
     expect(screen.queryByTestId("setup-health-nothing-to-fix")).toBeNull();
     expect(getAnswer).toHaveBeenCalledWith({ refresh: false });
@@ -594,9 +604,10 @@ describe("SetupHealthView", () => {
     expect(empty).toHaveTextContent(
       SETUP_HEALTH_WORDS_PAGE.nothingToFixDescription,
     );
-    expect(
-      within(empty).getByTestId("table-empty-state"),
-    ).toHaveAttribute("data-empty-state-kind", "all-clear");
+    expect(within(empty).getByTestId("table-empty-state")).toHaveAttribute(
+      "data-empty-state-kind",
+      "all-clear",
+    );
     expect(screen.queryByTestId("setup-health-finding")).toBeNull();
   });
 
@@ -626,9 +637,9 @@ describe("SetupHealthView", () => {
     getAnswer.mockResolvedValue(answer([SERVER_FINDING]));
     renderView();
 
-    expect(await screen.findByTestId("setup-health-ask-admin")).toHaveTextContent(
-      SETUP_HEALTH_WORDS_PAGE.askServerAdmin,
-    );
+    expect(
+      await screen.findByTestId("setup-health-ask-admin"),
+    ).toHaveTextContent(SETUP_HEALTH_WORDS_PAGE.askServerAdmin);
     expect(screen.queryByTestId("setup-health-fix")).toBeNull();
 
     cleanup();
@@ -655,7 +666,9 @@ describe("SetupHealthView", () => {
 
     fireEvent.click(within(rows[0]!).getByTestId("setup-health-dismiss"));
 
-    expect(screen.getByText(SETUP_HEALTH_WORDS_PAGE.dismissTitle)).toBeInTheDocument();
+    expect(
+      screen.getByText(SETUP_HEALTH_WORDS_PAGE.dismissTitle),
+    ).toBeInTheDocument();
 
     const reason: HTMLElement = screen.getByTestId(
       "setup-health-dismiss-reason",
@@ -738,9 +751,9 @@ describe("SetupHealthView", () => {
     expect(row).toHaveTextContent(
       "Nobody is paged when Monitor 1 goes down: no on-call rule matches its incidents.",
     );
-    expect(within(row).getByTestId("setup-health-dismissed-by")).toHaveTextContent(
-      "Dismissed by Ana Lopez: Staging",
-    );
+    expect(
+      within(row).getByTestId("setup-health-dismissed-by"),
+    ).toHaveTextContent("Dismissed by Ana Lopez: Staging");
 
     getAnswer.mockResolvedValue(answer([OWNER_FINDING, monitorFinding(1)]));
     fireEvent.click(within(row).getByTestId("setup-health-restore"));
@@ -794,7 +807,10 @@ describe("Home's words for it", () => {
       "3 things in your setup need a look.",
     );
     expect(
-      dashboardTranslator("de").translatePlural(SETUP_HEALTH_HOME_WORDS.line, 3),
+      dashboardTranslator("de").translatePlural(
+        SETUP_HEALTH_HOME_WORDS.line,
+        3,
+      ),
     ).not.toBe("3 things in your setup need a look.");
   });
 });

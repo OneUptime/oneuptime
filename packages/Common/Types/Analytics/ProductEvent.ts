@@ -285,7 +285,7 @@ export const PRODUCT_EVENTS: ReadonlyArray<ProductEventDefinition> = [
   {
     name: ProductEventName.SetupHealthOpened,
     description:
-      "Setup health was opened, from where (?from= on its address, \"direct\" when it says nothing), and how many findings of each level it showed.",
+      'Setup health was opened, from where (?from= on its address, "direct" when it says nothing), and how many findings of each level it showed.',
     properties: [
       token("source"),
       { name: "pages_will_not_arrive_count" },

@@ -526,9 +526,7 @@ export function getSetupHealthFindingKey(data: {
   subject: string;
   record: Pick<SetupHealthRecord, "kind" | "id">;
 }): string {
-  return [data.check, data.subject, data.record.kind, data.record.id].join(
-    "|",
-  );
+  return [data.check, data.subject, data.record.kind, data.record.id].join("|");
 }
 
 // A finding, with its key and its English sentence.

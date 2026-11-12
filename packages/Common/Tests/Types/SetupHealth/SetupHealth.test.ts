@@ -32,6 +32,7 @@ import {
   SetupHealthMonitorFact,
   SetupHealthMonitorReason,
   SetupHealthReadable,
+  SetupHealthRecord,
   SetupHealthRecordKind,
   SetupHealthResponderReason,
   SetupHealthScheduleReason,
@@ -573,7 +574,9 @@ describe("the monitors' chains, as findings", () => {
   test("an empty balance on OneUptime Cloud is the project's, on Billing", () => {
     const findings: Array<SetupHealthFinding> = getSetupHealthFindings(
       facts({
-        chains: [chain({ breaks: [brk({ kind: WhoIsToldBreakKind.NoBalance })] })],
+        chains: [
+          chain({ breaks: [brk({ kind: WhoIsToldBreakKind.NoBalance })] }),
+        ],
       }),
     );
 
@@ -676,12 +679,16 @@ describe("the monitors' chains, as findings", () => {
       facts({ chains: [chain({ criteria: criteria, breaks: breaks })] }),
     );
 
-    expect(breaks.map((item: WhoIsToldBreak) => item.kind)).toEqual([
-      WhoIsToldBreakKind.OnlyIncidentsHaveRules,
-    ]);
-    expect(findings.map((item: SetupHealthFinding) => item.check)).toEqual([
-      SetupHealthCheck.MonitorAlertsPageNobody,
-    ]);
+    expect(
+      breaks.map((item: WhoIsToldBreak) => {
+        return item.kind;
+      }),
+    ).toEqual([WhoIsToldBreakKind.OnlyIncidentsHaveRules]);
+    expect(
+      findings.map((item: SetupHealthFinding) => {
+        return item.check;
+      }),
+    ).toEqual([SetupHealthCheck.MonitorAlertsPageNobody]);
   });
 });
 
@@ -806,9 +813,9 @@ describe("responders, from Readiness", () => {
     expect(SETUP_HEALTH_RESPONDER_REASON_ORDER[0]).toBe(
       SetupHealthResponderReason.NotAMember,
     );
-    expect(
-      [...SETUP_HEALTH_RESPONDER_REASON_ORDER].sort(),
-    ).toEqual(Object.values(SetupHealthResponderReason).sort());
+    expect([...SETUP_HEALTH_RESPONDER_REASON_ORDER].sort()).toEqual(
+      Object.values(SetupHealthResponderReason).sort(),
+    );
   });
 });
 
@@ -857,9 +864,11 @@ describe("the server", () => {
     );
 
     expect(findings).toHaveLength(1);
-    expect(findings[0]!.related.map((item: { id: string }) => item.id)).toEqual(
-      [CHECKOUT],
-    );
+    expect(
+      findings[0]!.related.map((item: { id: string }) => {
+        return item.id;
+      }),
+    ).toEqual([CHECKOUT]);
   });
 });
 
@@ -901,7 +910,10 @@ describe("on-call policies nothing runs", () => {
             chains: [
               chain({
                 criteria: [
-                  criteriaPaging({ policyId: PRIMARY, isNamedByCriteria: true }),
+                  criteriaPaging({
+                    policyId: PRIMARY,
+                    isNamedByCriteria: true,
+                  }),
                 ],
               }),
             ],
@@ -1106,7 +1118,10 @@ describe("the balance on OneUptime Cloud", () => {
 
     expect(
       usesPaidMessages(
-        facts({ chains: [pagingBy(OnCallPageChannel.SMS)], channels: channels() }),
+        facts({
+          chains: [pagingBy(OnCallPageChannel.SMS)],
+          channels: channels(),
+        }),
       ),
     ).toBe(true);
     expect(
@@ -1295,7 +1310,9 @@ describe("status pages", () => {
   test("a status page that shows nothing is worth fixing, where monitors are added", () => {
     const findings: Array<SetupHealthFinding> = getSetupHealthFindings(
       facts({
-        statusPages: [{ id: STATUS_PAGE, name: "Acme Status", resourceCount: 0 }],
+        statusPages: [
+          { id: STATUS_PAGE, name: "Acme Status", resourceCount: 0 },
+        ],
       }),
     );
 
@@ -1318,7 +1335,11 @@ describe("status pages", () => {
         getSetupHealthFindings(
           facts({
             statusPages: [
-              { id: STATUS_PAGE, name: "Acme Status", resourceCount: resourceCount },
+              {
+                id: STATUS_PAGE,
+                name: "Acme Status",
+                resourceCount: resourceCount,
+              },
             ],
           }),
         ),
@@ -1411,9 +1432,12 @@ describe("the project", () => {
   test.each([
     ["two owners", { ownerCount: 2, memberCount: 3 }],
     ["one person on their own", { ownerCount: 1, memberCount: 1 }],
-  ])("%s is no finding", (_label: string, owners: SetupHealthFacts["owners"]) => {
-    expect(getSetupHealthFindings(facts({ owners: owners }))).toEqual([]);
-  });
+  ])(
+    "%s is no finding",
+    (_label: string, owners: SetupHealthFacts["owners"]) => {
+      expect(getSetupHealthFindings(facts({ owners: owners }))).toEqual([]);
+    },
+  );
 
   test("a chat workspace with no notification rule is a suggestion, by its name", () => {
     const findings: Array<SetupHealthFinding> = getSetupHealthFindings(
@@ -1449,7 +1473,9 @@ describe("the project", () => {
     expect(
       getSetupHealthFindings(
         facts({ telemetry: { receivesTelemetry: true } }),
-      ).map((finding: SetupHealthFinding) => finding.check),
+      ).map((finding: SetupHealthFinding) => {
+        return finding.check;
+      }),
     ).toEqual([SetupHealthCheck.TelemetryNotWatched]);
 
     expect(
@@ -1464,7 +1490,9 @@ describe("the project", () => {
     ).toEqual([]);
 
     expect(
-      getSetupHealthFindings(facts({ telemetry: { receivesTelemetry: false } })),
+      getSetupHealthFindings(
+        facts({ telemetry: { receivesTelemetry: false } }),
+      ),
     ).toEqual([]);
   });
 
@@ -1572,9 +1600,11 @@ describe("the list", () => {
       }),
     );
 
-    expect(findings.map((finding: SetupHealthFinding) => finding.record.name)).toEqual(
-      ["Alpha", "Zeta"],
-    );
+    expect(
+      findings.map((finding: SetupHealthFinding) => {
+        return finding.record.name;
+      }),
+    ).toEqual(["Alpha", "Zeta"]);
     expect(compareSetupHealthFindings(findings[0]!, findings[1]!)).toBeLessThan(
       0,
     );
@@ -1604,12 +1634,14 @@ describe("the list", () => {
   });
 
   test("the counts Home says are the first two levels", () => {
-    expect(getSetupHealthCounts(getSetupHealthFindings(busyProject()))).toEqual({
-      pagesWillNotArrive: 1,
-      worthFixing: 2,
-      suggestion: 1,
-      needsALook: 3,
-    });
+    expect(getSetupHealthCounts(getSetupHealthFindings(busyProject()))).toEqual(
+      {
+        pagesWillNotArrive: 1,
+        worthFixing: 2,
+        suggestion: 1,
+        needsALook: 3,
+      },
+    );
     expect(getSetupHealthCounts([])).toEqual({
       pagesWillNotArrive: 0,
       worthFixing: 0,
@@ -1770,7 +1802,9 @@ describe("what one person may see", () => {
 
   function checksSeen(by: SetupHealthReadable): Array<SetupHealthCheck> {
     return redactSetupHealthFindings(all, by)
-      .map((finding: SetupHealthFinding) => finding.check)
+      .map((finding: SetupHealthFinding) => {
+        return finding.check;
+      })
       .sort();
   }
 
@@ -1790,7 +1824,11 @@ describe("what one person may see", () => {
         }),
       ),
     ).toEqual(
-      all.map((finding: SetupHealthFinding) => finding.check).sort(),
+      all
+        .map((finding: SetupHealthFinding) => {
+          return finding.check;
+        })
+        .sort(),
     );
   });
 
@@ -1819,7 +1857,11 @@ describe("what one person may see", () => {
         return finding.check === SetupHealthCheck.PolicyHasNoEscalationRules;
       });
 
-    expect(withMonitor!.related.map((record) => record.id)).toEqual([CHECKOUT]);
+    expect(
+      withMonitor!.related.map((record: SetupHealthRecord): string => {
+        return record.id;
+      }),
+    ).toEqual([CHECKOUT]);
   });
 
   test("a domain is read through its status page, a person through the on-call policies", () => {

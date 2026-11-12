@@ -145,7 +145,8 @@ const FIX_PAGES: Readonly<Partial<Record<SetupHealthFix, PageMap>>> = {
   [SetupHealthFix.MonitorProbes]: PageMap.MONITOR_VIEW_PROBES,
   [SetupHealthFix.MonitorOverview]: PageMap.MONITOR_VIEW,
   [SetupHealthFix.CreateMonitor]: PageMap.MONITOR_CREATE,
-  [SetupHealthFix.IncidentOnCallRules]: PageMap.INCIDENTS_SETTINGS_ON_CALL_RULES,
+  [SetupHealthFix.IncidentOnCallRules]:
+    PageMap.INCIDENTS_SETTINGS_ON_CALL_RULES,
   [SetupHealthFix.AlertOnCallRules]: PageMap.ALERTS_SETTINGS_ON_CALL_RULES,
   [SetupHealthFix.OnCallPolicy]: PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION,
   [SetupHealthFix.OnCallSchedule]: PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_LAYERS,
@@ -200,7 +201,8 @@ export function getSetupHealthFixLink(data: {
 }
 
 // The words of the fix of the server's findings, for its admins.
-export const SERVER_FIX_WORDS: string = FIX_WORDS[SetupHealthFix.ServerSettings];
+export const SERVER_FIX_WORDS: string =
+  FIX_WORDS[SetupHealthFix.ServerSettings];
 
 /*
  * ONE FINDING, AS ONE SENTENCE IN THE READER'S LANGUAGE: its template with
@@ -273,12 +275,13 @@ export function groupSetupHealthFindings(
 
   for (const finding of findings) {
     const key: string = `${finding.check}|${finding.subject}`;
-    const group: { key: string; findings: Array<SetupHealthFinding> } | undefined =
-      groups.find(
-        (item: { key: string; findings: Array<SetupHealthFinding> }): boolean => {
-          return item.key === key;
-        },
-      );
+    const group:
+      | { key: string; findings: Array<SetupHealthFinding> }
+      | undefined = groups.find(
+      (item: { key: string; findings: Array<SetupHealthFinding> }): boolean => {
+        return item.key === key;
+      },
+    );
 
     if (group) {
       group.findings.push(finding);

@@ -41,27 +41,28 @@ const SETUP_HEALTH_TOOL_PERMISSIONS: Array<Permission> = [
 ];
 
 // Where each fix is, by the name the menus give its page.
-export const SETUP_HEALTH_FIX_PAGES: Readonly<Record<SetupHealthFix, string>> = {
-  [SetupHealthFix.MonitorCriteria]: "the monitor's Criteria page",
-  [SetupHealthFix.MonitorProbes]: "the monitor's Probes page",
-  [SetupHealthFix.MonitorOverview]: "the monitor's page",
-  [SetupHealthFix.CreateMonitor]: "Monitors > Create Monitor",
-  [SetupHealthFix.IncidentOnCallRules]: "Incidents > Rules > On-Call Rules",
-  [SetupHealthFix.AlertOnCallRules]: "Alerts > Rules > On-Call Rules",
-  [SetupHealthFix.OnCallPolicy]: "the on-call policy's Escalation Rules page",
-  [SetupHealthFix.OnCallSchedule]: "the on-call schedule's page",
-  [SetupHealthFix.OnCallReadiness]: "On-Call Duty > Readiness",
-  [SetupHealthFix.ProjectNotificationSettings]:
-    "Project Settings > Notification Settings",
-  [SetupHealthFix.ProjectBilling]: "Project Settings > Billing",
-  [SetupHealthFix.ServerSettings]:
-    "the server's Admin Dashboard (Server setup), which only its admins can open",
-  [SetupHealthFix.StatusPageResources]: "the status page's Resources page",
-  [SetupHealthFix.StatusPageDomains]: "the status page's Custom Domains page",
-  [SetupHealthFix.ProjectOwners]: "Teams (the Owners team)",
-  [SetupHealthFix.WorkspaceNotificationRules]:
-    "Incidents > the chat workspace's page (its notification rules)",
-};
+export const SETUP_HEALTH_FIX_PAGES: Readonly<Record<SetupHealthFix, string>> =
+  {
+    [SetupHealthFix.MonitorCriteria]: "the monitor's Criteria page",
+    [SetupHealthFix.MonitorProbes]: "the monitor's Probes page",
+    [SetupHealthFix.MonitorOverview]: "the monitor's page",
+    [SetupHealthFix.CreateMonitor]: "Monitors > Create Monitor",
+    [SetupHealthFix.IncidentOnCallRules]: "Incidents > Rules > On-Call Rules",
+    [SetupHealthFix.AlertOnCallRules]: "Alerts > Rules > On-Call Rules",
+    [SetupHealthFix.OnCallPolicy]: "the on-call policy's Escalation Rules page",
+    [SetupHealthFix.OnCallSchedule]: "the on-call schedule's page",
+    [SetupHealthFix.OnCallReadiness]: "On-Call Duty > Readiness",
+    [SetupHealthFix.ProjectNotificationSettings]:
+      "Project Settings > Notification Settings",
+    [SetupHealthFix.ProjectBilling]: "Project Settings > Billing",
+    [SetupHealthFix.ServerSettings]:
+      "the server's Admin Dashboard (Server setup), which only its admins can open",
+    [SetupHealthFix.StatusPageResources]: "the status page's Resources page",
+    [SetupHealthFix.StatusPageDomains]: "the status page's Custom Domains page",
+    [SetupHealthFix.ProjectOwners]: "Teams (the Owners team)",
+    [SetupHealthFix.WorkspaceNotificationRules]:
+      "Incidents > the chat workspace's page (its notification rules)",
+  };
 
 function findingForLlm(finding: SetupHealthFinding): JSONObject {
   return {
@@ -124,7 +125,8 @@ export const GetSetupHealthTool: ObservabilityTool = {
               (item: DismissedSetupHealthFinding): JSONObject => {
                 return {
                   ...findingForLlm(item.finding),
-                  dismissedBecause: item.dismissal.reason || "(no reason given)",
+                  dismissedBecause:
+                    item.dismissal.reason || "(no reason given)",
                 };
               },
             ),

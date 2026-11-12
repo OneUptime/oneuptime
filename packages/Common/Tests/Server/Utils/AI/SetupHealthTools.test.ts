@@ -202,7 +202,11 @@ describe("get_setup_health", () => {
   test("a long list is cut short, and says so", async () => {
     const many: Array<SetupHealthFinding> = [];
 
-    for (let index: number = 0; index < MAX_SETUP_HEALTH_FINDINGS_FOR_LLM + 5; index++) {
+    for (
+      let index: number = 0;
+      index < MAX_SETUP_HEALTH_FINDINGS_FOR_LLM + 5;
+      index++
+    ) {
       many.push(finding(index));
     }
 

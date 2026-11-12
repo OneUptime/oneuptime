@@ -2212,9 +2212,7 @@ test.describe("setup health", () => {
 
     await page.getByTestId("home-attention-row-setup").click();
 
-    await expect(page).toHaveURL(
-      new RegExp(`/home/setup-health\\?from=home$`),
-    );
+    await expect(page).toHaveURL(new RegExp(`/home/setup-health\\?from=home$`));
     await expect(page.getByTestId("setup-health-recheck")).toBeEnabled();
   });
 
@@ -2226,9 +2224,7 @@ test.describe("setup health", () => {
     await openReady(page, "scenario=healthy");
 
     await expect(page.getByTestId("home-attention-empty")).toBeVisible();
-    await expect(page.getByTestId("home-attention-group-setup")).toHaveCount(
-      0,
-    );
+    await expect(page.getByTestId("home-attention-group-setup")).toHaveCount(0);
   });
 
   test("at 1280px: the findings by level, worst first, each with its fix, and Dismissed folded", async ({
@@ -2240,7 +2236,9 @@ test.describe("setup health", () => {
     await openSetupHealth(page);
 
     const levels: Array<string> = await page
-      .locator('[data-testid^="setup-health-level-"]:not([data-testid$="-count"])')
+      .locator(
+        '[data-testid^="setup-health-level-"]:not([data-testid$="-count"])',
+      )
       .evaluateAll((elements: Array<Element>): Array<string> => {
         return elements.map((element: Element): string => {
           return element.getAttribute("data-testid") || "";
@@ -2322,7 +2320,9 @@ test.describe("setup health", () => {
   }) => {
     await openSetupHealth(page, "setup=busy&lang=de");
 
-    await expect(page.locator("body")).not.toContainText("Pages Will Not Arrive");
+    await expect(page.locator("body")).not.toContainText(
+      "Pages Will Not Arrive",
+    );
     await expect(page.locator("body")).toContainText("Payments API");
     await screenshot(page, "setup-health-de");
 

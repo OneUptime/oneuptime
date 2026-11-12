@@ -1120,7 +1120,9 @@ describe("the project's setup (Setup health, #6812)", () => {
     renderWithSetup(overview(), 2);
 
     expect(screen.getByTestId("home-attention-groups")).toBeInTheDocument();
-    expect(screen.getByTestId("home-attention-group-setup")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("home-attention-group-setup"),
+    ).toBeInTheDocument();
     expect(screen.queryByTestId("home-attention-empty")).toBeNull();
     expect(screen.queryByText(ALL_CLEAR_TITLE)).toBeNull();
     expect(screen.queryByTestId("home-attention-total")).toBeNull();

@@ -195,9 +195,7 @@ export function getScheduleReason(data: {
 }
 
 // A responder as Readiness sees them, as a fact.
-export function toResponderFact(
-  user: UserReadiness,
-): SetupHealthResponderFact {
+export function toResponderFact(user: UserReadiness): SetupHealthResponderFact {
   const firstReason: string = user.reasons[0] || "";
 
   let reason: SetupHealthResponderReason =
@@ -347,13 +345,14 @@ export default class SetupHealthService {
    * the whole list.
    */
   @CaptureSpan()
-  public static async readFacts(projectId: ObjectID): Promise<SetupHealthFacts> {
+  public static async readFacts(
+    projectId: ObjectID,
+  ): Promise<SetupHealthFacts> {
     const now: Date = OneUptimeDate.getCurrentDate();
 
     const monitors: Array<Monitor> = await this.readMonitors(projectId);
-    const policies: Array<OnCallDutyPolicy> = await this.readPolicies(
-      projectId,
-    );
+    const policies: Array<OnCallDutyPolicy> =
+      await this.readPolicies(projectId);
 
     const readiness: ReadinessSummary | null = await this.attempt(
       "on-call readiness",
@@ -598,7 +597,12 @@ export default class SetupHealthService {
       onCallDutyPolicies: { _id: true },
     };
 
-    const [incidentRules, alertRules, incidentEpisodeRules, alertEpisodeRules]: [
+    const [
+      incidentRules,
+      alertRules,
+      incidentEpisodeRules,
+      alertEpisodeRules,
+    ]: [
       Array<IncidentOnCallRule>,
       Array<AlertOnCallRule>,
       Array<IncidentEpisodeOnCallRule>,
@@ -706,11 +710,9 @@ export default class SetupHealthService {
     const resolved: Array<ResolvedShiftSegments> =
       await OnCallDutyPolicyScheduleService.getResolvedShiftSegmentsForSchedules(
         {
-          scheduleIds: Array.from(names.keys()).map(
-            (id: string): ObjectID => {
-              return new ObjectID(id);
-            },
-          ),
+          scheduleIds: Array.from(names.keys()).map((id: string): ObjectID => {
+            return new ObjectID(id);
+          }),
           windowStart: data.now,
           windowEnd: windowEnd,
         },
@@ -764,8 +766,7 @@ export default class SetupHealthService {
       balanceInUSDCents: project.smsOrCallCurrentBalanceInUSDCents || 0,
       isAutoRechargeOn: Boolean(project.enableAutoRechargeSmsOrCallBalance),
       lowBalanceInUSDCents:
-        (project.autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD || 10) *
-        100,
+        (project.autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD || 10) * 100,
     };
   }
 
@@ -840,8 +841,8 @@ export default class SetupHealthService {
   private static async readStatusPageDomains(
     projectId: ObjectID,
   ): Promise<Array<SetupHealthDomainFact>> {
-    const domains: Array<StatusPageDomain> = await StatusPageDomainService.findBy(
-      {
+    const domains: Array<StatusPageDomain> =
+      await StatusPageDomainService.findBy({
         query: { projectId: projectId },
         select: {
           _id: true,
@@ -854,12 +855,13 @@ export default class SetupHealthService {
         skip: 0,
         limit: LIMIT_PER_PROJECT,
         props: { isRoot: true },
-      },
-    );
+      });
 
     return domains
       .filter((domain: StatusPageDomain): boolean => {
-        return Boolean(idText(domain.id)) && Boolean(idText(domain.statusPageId));
+        return (
+          Boolean(idText(domain.id)) && Boolean(idText(domain.statusPageId))
+        );
       })
       .map((domain: StatusPageDomain): SetupHealthDomainFact => {
         return {
