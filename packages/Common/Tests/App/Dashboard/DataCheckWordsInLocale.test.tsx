@@ -703,6 +703,58 @@ describe("Suggested Checks (#7221)", () => {
     }
   });
 
+  test("in German, Add cuts a name past 100 characters and a reason past 500, as a check holds them", async () => {
+    // A MongoDB field may be named at any length: one long money field.
+    const longName: string = `total_${"a".repeat(520)}`;
+    const columns: Array<DataAssetColumn> = [
+      column(longName, "numeric", false),
+    ];
+
+    await inLanguage("de");
+    await act(async () => {
+      render(
+        <SuggestedDataChecks
+          dataAssetId={new ObjectID(TABLE)}
+          dataStoreId={new ObjectID(STORE)}
+          tableName="orders"
+          columns={columns}
+          onChecksAdded={() => {}}
+        />,
+      );
+    });
+
+    const items: Array<HTMLElement> = await screen.findAllByRole("listitem");
+
+    expect(items).toHaveLength(1);
+
+    await act(async () => {
+      fireEvent.click(within(items[0]!).getAllByRole("button")[0]!);
+    });
+    await waitFor(() => {
+      expect(createMock).toHaveBeenCalledTimes(1);
+    });
+
+    const suggestion: DataCheckSuggestion | undefined = suggestDataChecks({
+      tableName: "orders",
+      columns,
+      otherTables: [],
+      existing: [],
+      dismissedIds: [],
+      sensitiveColumns: [],
+    }).find((candidate: DataCheckSuggestion): boolean => {
+      return candidate.id === `not-negative:${longName}`;
+    });
+    const name: string = wordsIn("de", suggestion!.nameWords);
+    const reason: string = wordsIn("de", suggestion!.reasonWords);
+    const [added] = saved();
+
+    // The German words run past what a check's name and description hold.
+    expect(name.length).toBeGreaterThan(100);
+    expect(reason.length).toBeGreaterThan(500);
+    expect(added!.name).toBe(name.slice(0, 100));
+    expect(added!.description).toBe(reason.slice(0, 500));
+  });
+
   test("in English, Add saves the name and reason exactly as before", async () => {
     const items: Array<HTMLElement> = await drawSuggestions("en");
 
