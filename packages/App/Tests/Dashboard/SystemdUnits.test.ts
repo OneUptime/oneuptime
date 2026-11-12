@@ -5,6 +5,7 @@ import {
   SYSTEMD_ACTIVE_STATES,
   SYSTEMD_PLOT_RANK_MAX,
   SYSTEMD_UNIT_ACTIVE_STATE_ATTR,
+  SYSTEMD_UNIT_KINDS,
   SYSTEMD_UNIT_NAME_ATTR,
   SYSTEMD_UNIT_STATE_METRIC_NAME,
   SystemdAvailability,
@@ -24,7 +25,6 @@ import {
   hasSingleSampleTimestamp,
   systemdPlotRankLabel,
   systemdStatePlotRank,
-  unitTypeLabel,
   unitTypeOf,
 } from "../../FeatureSet/Dashboard/src/Pages/Host/Utils/SystemdUnits";
 
@@ -263,7 +263,7 @@ describe("systemdStatePlotRank", () => {
   });
 });
 
-describe("unitTypeOf / unitTypeLabel", () => {
+describe("unitTypeOf: a unit's kind as systemd writes it", () => {
   test("reads the type off the suffix", () => {
     expect(unitTypeOf("nginx.service")).toBe("service");
     expect(unitTypeOf("sshd.socket")).toBe("socket");
@@ -282,23 +282,50 @@ describe("unitTypeOf / unitTypeLabel", () => {
     expect(unitTypeOf("systemd-journald.dev-log.socket")).toBe("socket");
   });
 
-  test("normalises case", () => {
+  test("normalises case: systemd writes every kind in lower case", () => {
     expect(unitTypeOf("NGINX.SERVICE")).toBe("service");
-    expect(unitTypeLabel("NGINX.SERVICE")).toBe("Service");
+    expect(unitTypeOf("Docker.Socket")).toBe("socket");
   });
 
-  test("falls back rather than rendering an empty column", () => {
+  test("a name with no kind has none, never a word made up for it", () => {
     expect(unitTypeOf("weird-unit-name")).toBe("");
     expect(unitTypeOf("trailing.")).toBe("");
     expect(unitTypeOf("")).toBe("");
-    expect(unitTypeLabel("weird-unit-name")).toBe("Unit");
-    expect(unitTypeLabel("trailing.")).toBe("Unit");
-    expect(unitTypeLabel("")).toBe("Unit");
   });
 
-  test("title-cases the label", () => {
-    expect(unitTypeLabel("nginx.service")).toBe("Service");
-    expect(unitTypeLabel("logrotate.timer")).toBe("Timer");
+  /*
+   * #6731: the kind is shown as systemd writes it, never title-cased into
+   * an English word a locale then translates (Target as a target value,
+   * Mount as a connection).
+   */
+  test.each(
+    SYSTEMD_UNIT_KINDS.map((kind: string): [string] => {
+      return [kind];
+    }),
+  )("a .%s unit's kind is %s, exactly as its name ends", (kind: string) => {
+    expect(unitTypeOf(`example.${kind}`)).toBe(kind);
+    expect(unitTypeOf(`getty@tty1.${kind}`)).toBe(kind);
+  });
+
+  test("the kinds are the eleven systemd defines, each once and in lower case", () => {
+    expect([...SYSTEMD_UNIT_KINDS].sort()).toEqual(
+      [
+        "automount",
+        "device",
+        "mount",
+        "path",
+        "scope",
+        "service",
+        "slice",
+        "socket",
+        "swap",
+        "target",
+        "timer",
+      ].sort(),
+    );
+    for (const kind of SYSTEMD_UNIT_KINDS) {
+      expect(kind).toBe(kind.toLowerCase());
+    }
   });
 });
 
@@ -346,7 +373,10 @@ describe("buildSystemdUnitRows", () => {
     expect(rollup.rows[0]!.activeState).toBe("active");
     expect(rollup.rows[0]!.stateLabel).toBe("Active");
     expect(rollup.rows[0]!.unitType).toBe("service");
-    expect(rollup.rows[0]!.unitTypeLabel).toBe("Service");
+    // The row carries the kind as written and nothing to look up.
+    expect(Object.keys(rollup.rows[0]!).sort()).toEqual(
+      ["activeState", "key", "name", "stateLabel", "unitType"].sort(),
+    );
   });
 
   test("one scrape of a failed unit does not read as active", () => {
