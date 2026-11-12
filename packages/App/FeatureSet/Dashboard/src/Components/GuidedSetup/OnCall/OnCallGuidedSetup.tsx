@@ -585,7 +585,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
     await readReach(true);
   };
 
-  const phoneProblems: ReactElement = (
+  const smsAndCallProblems: ReactElement = (
     <div className="space-y-2" data-testid="on-call-setup-phone-problems">
       {isServerWithoutTwilio(channelFacts) ? (
         <div data-testid="on-call-setup-no-twilio">
@@ -701,7 +701,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
       {mayTurnOnPhone ? (
         <div className={ACTIONS_CLASS_NAME}>
           <Button
-            title={ON_CALL_SETUP_COPY.turnOnPhone}
+            title={ON_CALL_SETUP_COPY.turnOnSmsAndCalls}
             buttonStyle={ButtonStyleType.NORMAL}
             isLoading={isSaving}
             dataTestId="on-call-setup-turn-on-phone"
@@ -716,7 +716,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
     </div>
   );
 
-  const phoneForm: ReactElement =
+  const smsAndCallForm: ReactElement =
     !hasSmsNumber && canAddPhone(channelFacts) ? (
       <form
         className="space-y-2"
@@ -745,7 +745,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
         />
         <div className={ACTIONS_CLASS_NAME}>
           <Button
-            title={ON_CALL_SETUP_COPY.phoneSend}
+            title={ON_CALL_SETUP_COPY.sendSmsCode}
             type={ButtonType.Submit}
             buttonStyle={ButtonStyleType.NORMAL}
             isLoading={isSaving}
@@ -838,8 +838,8 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
           children:
             phones.length > 0 ? undefined : (
               <>
-                {phoneProblems}
-                {phoneForm}
+                {smsAndCallProblems}
+                {smsAndCallForm}
               </>
             ),
         })}
