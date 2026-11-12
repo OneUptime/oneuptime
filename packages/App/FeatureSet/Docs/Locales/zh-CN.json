@@ -11,6 +11,7 @@
     "searchPlaceholder": "搜索文档...",
     "searchTypeToSearch": "输入以搜索文档...",
     "searchNoResults": "未找到 \"{{query}}\" 的搜索结果",
+    "searchSearching": "正在搜索…",
     "onThisPage": "本页目录",
     "skipToContent": "跳到内容",
     "toggleTheme": "切换主题",
@@ -62,7 +63,18 @@
     "calloutDanger": "危险",
     "detailsSummary": "详情",
     "copyPage": "复制页面",
-    "viewAsMarkdown": "以 Markdown 查看"
+    "viewAsMarkdown": "以 Markdown 查看",
+    "feedbackQuestion": "此页面有帮助吗?",
+    "feedbackYes": "是",
+    "feedbackNo": "否",
+    "feedbackThanks": "感谢你的反馈。",
+    "feedbackWhatWentWrong": "谢谢。哪里有问题?",
+    "feedbackReasonUnclear": "难以理解",
+    "feedbackReasonMissing": "缺少内容",
+    "feedbackReasonWrong": "有误或已过时",
+    "feedbackReasonNotFound": "不是我要找的",
+    "feedbackTellUs": "谢谢。告诉我们需要修正什么，我们会改进此页面。",
+    "feedbackTellUsOnGithub": "在 GitHub 上告诉我们"
   },
   "navSections": {
     "Get Started": "快速入门",

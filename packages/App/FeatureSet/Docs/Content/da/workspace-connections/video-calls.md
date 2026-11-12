@@ -281,7 +281,7 @@ Klient-ID'erne er offentlige: de sendes til dashboardet, så det ved, hvilke udb
 ## Fejlfinding
 
 :::details Der blev ikke startet et opkald for en hændelse
-Tjek, at reglen passede på hændelsen (**Testregel**), at dens trin **Video Call** er slået til, og at hændelsen blev oprettet som igangværende: en hændelse, der oprettes allerede løst, får intet opkald. En regel, der allerede startede et opkald for hændelsen med den forbindelse, starter ikke et til.
+Tjek, at reglen passede på hændelsen (**Test regel**), at dens trin **Video Call** er slået til, og at hændelsen blev oprettet som igangværende: en hændelse, der oprettes allerede løst, får intet opkald. En regel, der allerede startede et opkald for hændelsen med den forbindelse, starter ikke et til.
 :::
 
 :::details Feedet siger, at opkaldet ikke kunne startes

@@ -337,7 +337,10 @@ describe("Test Rule for a Mattermost rule naming a team", () => {
           existingTeam: SUPPORT,
         }),
       ),
-    ).rejects.toThrow("Channel incidents does not exist.");
+    ).rejects.toThrow(
+      // In the words its Notification Logs give the channel when the rule posts.
+      "The Mattermost channel incidents was not found. If it is a private channel, add OneUptime's bot to it in Mattermost.",
+    );
     expect(postSpy).not.toHaveBeenCalled();
   });
 

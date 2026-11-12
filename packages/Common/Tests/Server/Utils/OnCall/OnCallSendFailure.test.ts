@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import type { Mock } from "jest-mock";
 import OnCallTimelineRows, {
   StoredOnCallNotification,
 } from "../../TestingUtils/OnCallTimelineRows";
@@ -31,6 +32,13 @@ import {
  *
  * A push or a Slack, Microsoft Teams or Mattermost message, sent in this
  * process, is Error with the failure's words whatever threw.
+ *
+ * A request the Notification service answered with an error does not
+ * throw: API.post hands the answer back (issue #7083). The send hands it to
+ * whenNotificationRequestAnswers, and the notification says Error with the
+ * answer's own words - "refused" for a 4xx, "may not have been sent" for
+ * any other - over Sending, or over the stuck check's verdict: the
+ * request's own result, come late.
  *
  * Each Error is written over Sending only, at the version read
  * (OnCallNotificationStatus): never over the send's own result, a
@@ -65,8 +73,12 @@ jest.mock("../../../../Server/Utils/Logger", () => {
 import UserOnCallLogTimelineService from "../../../../Server/Services/UserOnCallLogTimelineService";
 import logger from "../../../../Server/Utils/Logger";
 import {
+  getAnsweredFailureStatusMessage,
+  MAX_ANSWER_WORDS_LENGTH,
+  recordNotificationRequestAnswer,
   recordNotificationRequestFailure,
   recordSendFailure,
+  whenNotificationRequestAnswers,
   whenNotificationRequestFails,
   whenSendFails,
 } from "../../../../Server/Utils/OnCall/OnCallSendFailure";
@@ -75,8 +87,13 @@ import {
   MAX_NOTIFICATION_WRITE_ATTEMPTS,
   STUCK_NOTIFICATION_STATUS_MESSAGE,
 } from "../../../../Server/Utils/OnCall/OnCallNotificationStatus";
+import { REDACTED } from "../../../../Server/Utils/LogRedaction";
+import HTTPErrorResponse from "../../../../Types/API/HTTPErrorResponse";
+import HTTPResponse from "../../../../Types/API/HTTPResponse";
+import { JSONObject } from "../../../../Types/JSON";
 import APIException from "../../../../Types/Exception/ApiException";
 import BadDataException from "../../../../Types/Exception/BadDataException";
+import ExceptionMessages from "../../../../Types/Exception/ExceptionMessages";
 import ObjectID from "../../../../Types/ObjectID";
 import UserNotificationStatus from "../../../../Types/UserNotification/UserNotificationStatus";
 import { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from "axios";
@@ -735,5 +752,617 @@ describe("the handlers a send's .catch takes", () => {
         }),
       ),
     ).resolves.toBeUndefined();
+  });
+});
+
+/*
+ * ISSUE #7083: A REQUEST THE NOTIFICATION SERVICE ANSWERED WITH AN ERROR.
+ *
+ * API.post hands an error answer back rather than throwing it, so no .catch
+ * ever heard of one: the notification said Sending until the stuck check
+ * said it may not have gone out, and the answer's words - why it was
+ * refused - were lost.
+ */
+
+const REFUSED: string = "The Notification service refused to send this";
+const ANSWERED_WITH_AN_ERROR: string =
+  "The Notification service answered with an error";
+
+// An answer as API.post hands one back: its status, and its body.
+function answered(
+  statusCode: number,
+  body: JSONObject | string,
+): HTTPErrorResponse {
+  return new HTTPErrorResponse(statusCode, body as JSONObject, {});
+}
+
+function sayFor(answer: HTTPErrorResponse): string {
+  return getAnsweredFailureStatusMessage({
+    statusCode: answer.statusCode,
+    message: answer.message,
+  });
+}
+
+// What a proxy in front of the service answers when the service is down.
+const PROXY_ERROR_PAGE: string =
+  "<html>\r\n<head><title>502 Bad Gateway</title></head>\r\n<body>\r\n<center><h1>502 Bad Gateway</h1></center>\r\n<hr><center>nginx</center>\r\n</body>\r\n</html>\r\n";
+
+describe("what an error answer says (getAnsweredFailureStatusMessage)", () => {
+  test("a refusal - a 4xx - is sure, in the service's own words", () => {
+    expect(
+      sayFor(answered(400, { message: "Email ana@ is not in valid format." })),
+    ).toBe(
+      "The Notification service refused to send this (HTTP 400): Email ana@ is not in valid format.",
+    );
+  });
+
+  test("any other error answer is not sure: the service may have failed after it went out", () => {
+    expect(sayFor(answered(500, { message: "Server Error" }))).toBe(
+      "The Notification service answered with an error (HTTP 500), so this may not have been sent: Server Error.",
+    );
+  });
+
+  test.each([400, 401, 403, 404, 405, 409, 413, 415, 422, 429, 499])(
+    "HTTP %i: refused",
+    (statusCode: number) => {
+      expect(
+        getAnsweredFailureStatusMessage({
+          statusCode: statusCode,
+          message: "No",
+        }),
+      ).toBe(`${REFUSED} (HTTP ${statusCode}): No.`);
+    },
+  );
+
+  test.each([500, 501, 502, 503, 504, 599, 399, 302, 200, 100])(
+    "HTTP %i: may not have been sent",
+    (statusCode: number) => {
+      expect(
+        getAnsweredFailureStatusMessage({
+          statusCode: statusCode,
+          message: "Server Error",
+        }),
+      ).toBe(
+        `${ANSWERED_WITH_AN_ERROR} (HTTP ${statusCode}), so this may not have been sent: Server Error.`,
+      );
+    },
+  );
+
+  const NOT_A_STATUS: Array<[string, number | undefined]> = [
+    ["none", undefined],
+    ["HTTPResponse's -1, never set", -1],
+    ["0", 0],
+    ["99", 99],
+    ["600", 600],
+    ["a fraction", 400.5],
+    ["NaN", Number.NaN],
+    ["Infinity", Number.POSITIVE_INFINITY],
+  ];
+
+  test.each(NOT_A_STATUS)(
+    "a status that is not one (%s): none named, and not sure",
+    (_name: string, statusCode: number | undefined) => {
+      expect(
+        getAnsweredFailureStatusMessage({
+          statusCode: statusCode,
+          message: "Server Error",
+        }),
+      ).toBe(
+        "The Notification service answered with an error, so this may not have been sent: Server Error.",
+      );
+    },
+  );
+
+  const NO_WORDS: Array<[string, string | undefined]> = [
+    ["no words", undefined],
+    ["empty words", ""],
+    ["only white space", "  \n\t \r\n "],
+  ];
+
+  test.each(NO_WORDS)(
+    "%s: the sentence alone",
+    (_name: string, message: string | undefined) => {
+      expect(
+        getAnsweredFailureStatusMessage({ statusCode: 400, message: message }),
+      ).toBe(`${REFUSED} (HTTP 400).`);
+      expect(
+        getAnsweredFailureStatusMessage({ statusCode: 503, message: message }),
+      ).toBe(
+        `${ANSWERED_WITH_AN_ERROR} (HTTP 503), so this may not have been sent.`,
+      );
+      expect(getAnsweredFailureStatusMessage({ message: message })).toBe(
+        `${ANSWERED_WITH_AN_ERROR}, so this may not have been sent.`,
+      );
+    },
+  );
+
+  test("an answer with no body has no words", () => {
+    expect(sayFor(answered(503, {}))).toBe(
+      `${ANSWERED_WITH_AN_ERROR} (HTTP 503), so this may not have been sent.`,
+    );
+  });
+
+  test("an HTML error page from a proxy in front of the service has no words: no markup on a timeline", () => {
+    const answer: HTTPErrorResponse = answered(502, PROXY_ERROR_PAGE);
+
+    // HTTPErrorResponse hands the page back whole, as its message.
+    expect(answer.message).toBe(PROXY_ERROR_PAGE);
+
+    expect(sayFor(answer)).toBe(
+      `${ANSWERED_WITH_AN_ERROR} (HTTP 502), so this may not have been sent.`,
+    );
+  });
+
+  test.each([
+    "  <!DOCTYPE html><html><body>Service Unavailable</body></html>",
+    '\n<?xml version="1.0"?><error>Service Unavailable</error>',
+    "<h1>Forbidden</h1>",
+  ])(
+    "markup after white space, a doctype or a lone tag is markup too: %j",
+    (page: string) => {
+      expect(
+        getAnsweredFailureStatusMessage({ statusCode: 403, message: page }),
+      ).toBe(`${REFUSED} (HTTP 403).`);
+    },
+  );
+
+  test("words that only mention a < are words", () => {
+    expect(
+      getAnsweredFailureStatusMessage({
+        statusCode: 400,
+        message: "Retries must be < 5",
+      }),
+    ).toBe(`${REFUSED} (HTTP 400): Retries must be < 5.`);
+  });
+
+  test("the answer's words, wherever HTTPErrorResponse finds them: a nested error's message", () => {
+    expect(
+      sayFor(answered(500, { error: { message: "SMTP is not configured" } })),
+    ).toBe(
+      `${ANSWERED_WITH_AN_ERROR} (HTTP 500), so this may not have been sent: SMTP is not configured.`,
+    );
+  });
+
+  test("on one line: a run of white space - new lines, tabs - is one space", () => {
+    expect(
+      getAnsweredFailureStatusMessage({
+        statusCode: 400,
+        message: "  Email\r\n  is not\tin valid\n\nformat  ",
+      }),
+    ).toBe(`${REFUSED} (HTTP 400): Email is not in valid format.`);
+  });
+
+  test.each([
+    ["Not sent.", "Not sent."],
+    ["Not sent!", "Not sent!"],
+    ["Not sent?", "Not sent?"],
+    ["Not sent…", "Not sent…"],
+    ["Not sent", "Not sent."],
+    ["Not sent. ", "Not sent."],
+  ])("a sentence ends once: %j says %j", (message: string, said: string) => {
+    expect(
+      getAnsweredFailureStatusMessage({ statusCode: 400, message: message }),
+    ).toBe(`${REFUSED} (HTTP 400): ${said}`);
+  });
+
+  test("an address in the words is never shown - the service's own, or anything it called", () => {
+    expect(
+      getAnsweredFailureStatusMessage({
+        statusCode: 500,
+        message:
+          "Could not reach http://10.0.0.5:3002/api/notification/sms/send or smtps://mail.internal:465.",
+      }),
+    ).toBe(
+      `${ANSWERED_WITH_AN_ERROR} (HTTP 500), so this may not have been sent: Could not reach [address] or [address].`,
+    );
+  });
+
+  test("an address with credentials in it is one word too: none of it is shown", () => {
+    const said: string = getAnsweredFailureStatusMessage({
+      statusCode: 502,
+      message:
+        "Webhook https://ops:hunter2@hooks.example.com/T000?token=abc failed",
+    });
+
+    expect(said).toBe(
+      `${ANSWERED_WITH_AN_ERROR} (HTTP 502), so this may not have been sent: Webhook [address] failed.`,
+    );
+    expect(said).not.toContain("hunter2");
+    expect(said).not.toContain("example.com");
+  });
+
+  test("a credential in the words is never shown (redactLogString)", () => {
+    const bearer: string = "sk_live_51HxYzAbCdEf0123456789";
+    const slackToken: string = "xoxb-1234567890-abcdefghij";
+
+    const said: string = getAnsweredFailureStatusMessage({
+      statusCode: 401,
+      message: `Twilio refused Authorization: Bearer ${bearer} and Slack refused ${slackToken}`,
+    });
+
+    expect(said.startsWith(`${REFUSED} (HTTP 401): Twilio refused`)).toBe(true);
+    expect(said).toContain(REDACTED);
+    expect(said).not.toContain(bearer);
+    expect(said).not.toContain(slackToken);
+  });
+
+  test(`words of ${MAX_ANSWER_WORDS_LENGTH} characters are kept whole`, () => {
+    const words: string = `${"word ".repeat(59)}word.`;
+
+    expect(words).toHaveLength(MAX_ANSWER_WORDS_LENGTH);
+    expect(
+      getAnsweredFailureStatusMessage({ statusCode: 400, message: words }),
+    ).toBe(`${REFUSED} (HTTP 400): ${words}`);
+  });
+
+  test(`longer words are cut to ${MAX_ANSWER_WORDS_LENGTH} characters, ending in an ellipsis and no period`, () => {
+    const said: string = getAnsweredFailureStatusMessage({
+      statusCode: 400,
+      message: `${"word ".repeat(59)}words.`,
+    });
+    const kept: string = said.substring(`${REFUSED} (HTTP 400): `.length);
+
+    expect(kept).toBe(`${"word ".repeat(59)}word…`);
+    expect(kept).toHaveLength(MAX_ANSWER_WORDS_LENGTH);
+  });
+
+  test("a cut that lands on a space leaves no space before the ellipsis", () => {
+    const said: string = getAnsweredFailureStatusMessage({
+      statusCode: 400,
+      message: "abcdefghijkl ".repeat(30),
+    });
+
+    expect(said).toBe(
+      `${REFUSED} (HTTP 400): ${"abcdefghijkl ".repeat(22)}abcdefghijkl…`,
+    );
+  });
+
+  test("however long the answer, what is said fits the notification's message - its 500 characters - whole", () => {
+    const said: string = getAnsweredFailureStatusMessage({
+      statusCode: 503,
+      message: "a much longer answer ".repeat(1000),
+    });
+
+    expect(said.length).toBeLessThanOrEqual(500);
+    expect(said.endsWith("…")).toBe(true);
+  });
+});
+
+describe("a request the Notification service answered (recordNotificationRequestAnswer)", () => {
+  async function answer(value: unknown): Promise<boolean> {
+    return await recordNotificationRequestAnswer({
+      userOnCallLogTimelineId: NOTIFICATION_ID,
+      answer: value,
+    });
+  }
+
+  const REFUSED_SMS: string = `${REFUSED} (HTTP 400): Phone number +1 555 is not valid.`;
+
+  function refusedSms(): HTTPErrorResponse {
+    return answered(400, { message: "Phone number +1 555 is not valid." });
+  }
+
+  test("an error answer: Sending becomes Error with its words, written at the status and the version read, as root", async () => {
+    await expect(answer(refusedSms())).resolves.toBe(true);
+
+    expect(notification()).toMatchObject({
+      status: UserNotificationStatus.Error,
+      statusMessage: REFUSED_SMS,
+      version: 2,
+    });
+    expect(read).toHaveBeenCalledWith({
+      id: NOTIFICATION_ID,
+      // Its message too: the stuck check's verdict is told by it.
+      select: { _id: true, status: true, version: true, statusMessage: true },
+      props: { isRoot: true },
+    });
+    expect(write).toHaveBeenCalledWith({
+      query: {
+        _id: NOTIFICATION_ID.toString(),
+        status: UserNotificationStatus.Sending,
+        version: 1,
+      },
+      data: {
+        status: UserNotificationStatus.Error,
+        statusMessage: REFUSED_SMS,
+      },
+      props: { isRoot: true },
+    });
+    expect(timeline.writes).toHaveLength(1);
+  });
+
+  test("logged as an error, with the id and what the notification says now", async () => {
+    await answer(answered(503, { message: "Service Unavailable" }));
+
+    expect(logError).toHaveBeenCalledTimes(1);
+
+    const logged: string = String(logError.mock.calls[0]![0]);
+
+    expect(logged).toContain(NOTIFICATION_ID.toString());
+    expect(logged).toContain(
+      "the Notification service answered the request to send it with an error",
+    );
+    expect(logged).toContain(
+      `${ANSWERED_WITH_AN_ERROR} (HTTP 503), so this may not have been sent: Service Unavailable.`,
+    );
+  });
+
+  test("a proxy's error page: Error, without its markup", async () => {
+    await answer(answered(502, PROXY_ERROR_PAGE));
+
+    expect(notification()).toMatchObject({
+      status: UserNotificationStatus.Error,
+      statusMessage: `${ANSWERED_WITH_AN_ERROR} (HTTP 502), so this may not have been sent.`,
+    });
+  });
+
+  const NOT_AN_ERROR_ANSWER: Array<[string, unknown]> = [
+    [
+      "a success answer",
+      new HTTPResponse<JSONObject>(200, { message: "Sent." }, {}),
+    ],
+    [
+      "an answer that says it was not delivered, but is not an error",
+      new HTTPResponse<JSONObject>(
+        200,
+        { ok: false, statusCode: 503, message: "Not delivered." },
+        {},
+      ),
+    ],
+    ["nothing", undefined],
+    ["null", null],
+    ["words", "Server Error"],
+    [
+      "an object shaped like an error answer, which is not one",
+      { statusCode: 500, message: "Server Error" },
+    ],
+    ["an error", new Error("Server Error")],
+  ];
+
+  test.each(NOT_AN_ERROR_ANSWER)(
+    "%s: nothing read, nothing written - the Notification service writes its result",
+    async (_name: string, value: unknown) => {
+      await expect(answer(value)).resolves.toBe(false);
+
+      expect(read).not.toHaveBeenCalled();
+      expect(write).not.toHaveBeenCalled();
+      expect(notification()).toMatchObject({
+        status: UserNotificationStatus.Sending,
+        version: 1,
+      });
+      expect(logError).not.toHaveBeenCalled();
+    },
+  );
+
+  test("the stuck check's verdict is replaced: this is the request's own result, come late", async () => {
+    notification().status = UserNotificationStatus.Error;
+    notification().statusMessage = STUCK_NOTIFICATION_STATUS_MESSAGE;
+
+    await expect(answer(refusedSms())).resolves.toBe(true);
+
+    expect(notification()).toMatchObject({
+      status: UserNotificationStatus.Error,
+      statusMessage: REFUSED_SMS,
+    });
+    expect(write.mock.calls[0]![0]).toMatchObject({
+      query: { status: UserNotificationStatus.Error, version: 1 },
+    });
+  });
+
+  test.each(ALL_BUT_SENDING)(
+    "a notification already %s - the service's own result, a report, the person's answer - stays",
+    async (status: UserNotificationStatus) => {
+      notification().status = status;
+      notification().statusMessage = "written first";
+
+      await expect(
+        answer(answered(500, { message: "Server Error" })),
+      ).resolves.toBe(false);
+
+      expect(write).not.toHaveBeenCalled();
+      expect(notification()).toMatchObject({
+        status: status,
+        statusMessage: "written first",
+        version: 1,
+      });
+      expect(logError).not.toHaveBeenCalled();
+    },
+  );
+
+  test("the service's own Error, written by its sender before the route failed, stays in the sender's words", async () => {
+    notification().status = UserNotificationStatus.Error;
+    notification().statusMessage = "Twilio: The 'To' number is not valid.";
+
+    await expect(
+      answer(answered(500, { message: "Server Error" })),
+    ).resolves.toBe(false);
+
+    expect(notification().statusMessage).toBe(
+      "Twilio: The 'To' number is not valid.",
+    );
+  });
+
+  test("a blocked project's refusal - written on the notification before the client answered with it - stays", async () => {
+    const reason: string = `SMS not sent: ${ExceptionMessages.ProjectBlocked}`;
+
+    notification().status = UserNotificationStatus.Error;
+    notification().statusMessage = reason;
+
+    await expect(answer(answered(403, { message: reason }))).resolves.toBe(
+      false,
+    );
+
+    expect(notification().statusMessage).toBe(reason);
+  });
+
+  test.each([
+    UserNotificationStatus.Sent,
+    UserNotificationStatus.Acknowledged,
+    UserNotificationStatus.PassedOn,
+    UserNotificationStatus.Error,
+  ])(
+    "%s landing between the read and the write stays: the write names no row, the notification is read again, and left",
+    async (status: UserNotificationStatus) => {
+      timeline.whenRead((row: StoredOnCallNotification) => {
+        row.status = status;
+        row.statusMessage = "landed meanwhile";
+      });
+
+      await expect(answer(refusedSms())).resolves.toBe(false);
+
+      expect(notification()).toMatchObject({
+        status: status,
+        statusMessage: "landed meanwhile",
+      });
+      expect(read).toHaveBeenCalledTimes(2);
+      expect(write).toHaveBeenCalledTimes(1);
+      expect(timeline.writes).toEqual([]);
+      expect(logError).not.toHaveBeenCalled();
+    },
+  );
+
+  test("a notification that is gone: nothing written", async () => {
+    timeline.rows.clear();
+
+    await expect(answer(refusedSms())).resolves.toBe(false);
+
+    expect(write).not.toHaveBeenCalled();
+  });
+
+  test("a read that fails is logged with what it would have said, never thrown", async () => {
+    read.mockRejectedValueOnce(new Error("connection terminated") as never);
+
+    await expect(answer(refusedSms())).resolves.toBe(false);
+
+    const logged: string = String(logError.mock.calls[0]![0]);
+
+    expect(logged).toContain(
+      `On-call notification ${NOTIFICATION_ID.toString()}: could not record that the Notification service answered with an error (${REFUSED_SMS})`,
+    );
+    expect(logged).toContain("connection terminated");
+    expect(notification().status).toBe(UserNotificationStatus.Sending);
+  });
+
+  test("a write that fails is logged, never thrown", async () => {
+    write.mockRejectedValueOnce(new Error("deadlock detected") as never);
+
+    await expect(answer(refusedSms())).resolves.toBe(false);
+
+    expect(String(logError.mock.calls[0]![0])).toContain("deadlock detected");
+  });
+
+  test("a notification that kept changing under every try is left, after three", async () => {
+    for (let i: number = 0; i < MAX_NOTIFICATION_WRITE_ATTEMPTS; i++) {
+      timeline.whenRead((row: StoredOnCallNotification) => {
+        row.statusMessage = `changed ${i}`;
+      });
+    }
+
+    await expect(answer(refusedSms())).resolves.toBe(false);
+
+    expect(write).toHaveBeenCalledTimes(MAX_NOTIFICATION_WRITE_ATTEMPTS);
+    expect(notification().status).toBe(UserNotificationStatus.Sending);
+  });
+
+  test("each answer is written on its own notification", async () => {
+    const otherId: ObjectID = new ObjectID(
+      "0c0c0000-0000-4000-8000-0000000000b3",
+    );
+    timeline.add(otherId, UserNotificationStatus.Sending);
+
+    await Promise.all([
+      answer(refusedSms()),
+      recordNotificationRequestAnswer({
+        userOnCallLogTimelineId: otherId,
+        answer: answered(500, { message: "Server Error" }),
+      }),
+    ]);
+
+    expect(notification().statusMessage).toBe(REFUSED_SMS);
+    expect(timeline.get(otherId)!.statusMessage).toBe(
+      `${ANSWERED_WITH_AN_ERROR} (HTTP 500), so this may not have been sent: Server Error.`,
+    );
+  });
+});
+
+describe("the handler a send's .then takes (whenNotificationRequestAnswers)", () => {
+  // A send, as UserNotificationRuleService chains one.
+  async function send(
+    request: Promise<unknown>,
+    notificationId: ObjectID = NOTIFICATION_ID,
+  ): Promise<void> {
+    await request
+      .then(
+        whenNotificationRequestAnswers({
+          userOnCallLogTimelineId: notificationId,
+        }),
+      )
+      .catch(
+        whenNotificationRequestFails({
+          userOnCallLogTimelineId: notificationId,
+          fallbackStatusMessage: FALLBACK,
+        }),
+      );
+  }
+
+  test("an error answer settles the send's promise, and the notification says what the answer says", async () => {
+    await expect(
+      Promise.resolve(answered(503, { message: "Service Unavailable" })).then(
+        whenNotificationRequestAnswers({
+          userOnCallLogTimelineId: NOTIFICATION_ID,
+        }),
+      ),
+    ).resolves.toBeUndefined();
+
+    expect(notification()).toMatchObject({
+      status: UserNotificationStatus.Error,
+      statusMessage: `${ANSWERED_WITH_AN_ERROR} (HTTP 503), so this may not have been sent: Service Unavailable.`,
+    });
+  });
+
+  test("a success answer leaves the notification to the service's own result", async () => {
+    await send(
+      Promise.resolve(new HTTPResponse<JSONObject>(200, {}, {}) as unknown),
+    );
+
+    expect(notification().status).toBe(UserNotificationStatus.Sending);
+    expect(read).not.toHaveBeenCalled();
+    expect(write).not.toHaveBeenCalled();
+  });
+
+  test("chained ahead of the .catch: an error answer is the answer handler's, a throw the failure handler's - each notification written once", async () => {
+    const otherId: ObjectID = new ObjectID(
+      "0c0c0000-0000-4000-8000-0000000000b4",
+    );
+    timeline.add(otherId, UserNotificationStatus.Sending);
+
+    await Promise.all([
+      send(Promise.resolve(answered(400, { message: "No" }) as unknown)),
+      send(Promise.reject(refusedRequestError()), otherId),
+    ]);
+
+    expect(notification().statusMessage).toBe(`${REFUSED} (HTTP 400): No.`);
+    expect(timeline.get(otherId)!.statusMessage).toBe(
+      "Could not reach the Notification service to send this (ECONNREFUSED).",
+    );
+    expect(timeline.writes).toHaveLength(2);
+  });
+
+  test("a database that fails never rejects it: the .catch after it hears of the request only", async () => {
+    read.mockRejectedValue(new Error("connection terminated") as never);
+
+    const caught: Mock<(error: unknown) => void> = jest.fn();
+
+    await expect(
+      Promise.resolve(answered(500, { message: "Server Error" }) as unknown)
+        .then(
+          whenNotificationRequestAnswers({
+            userOnCallLogTimelineId: NOTIFICATION_ID,
+          }),
+        )
+        .catch(caught),
+    ).resolves.toBeUndefined();
+
+    expect(caught).not.toHaveBeenCalled();
   });
 });

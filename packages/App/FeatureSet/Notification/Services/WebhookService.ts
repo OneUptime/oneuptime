@@ -1,10 +1,9 @@
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
-import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
 import WebhookStatus from "Common/Types/WebhookStatus";
 import { JSONObject } from "Common/Types/JSON";
-import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
 import WebhookLogService from "Common/Server/Services/WebhookLogService";
+import { recordSendResult } from "Common/Server/Utils/OnCall/OnCallNotificationStatus";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import WebhookLog from "Common/Models/DatabaseModels/WebhookLog";
 import API from "Common/Utils/API";
@@ -231,19 +230,20 @@ export default class WebhookService {
       });
     }
 
+    /*
+     * Written only while the page's timeline entry still says Sending
+     * (OnCallNotificationStatus): the person may have acknowledged the page,
+     * or escalated it, meanwhile - from another of its messages.
+     */
     if (options.userOnCallLogTimelineId) {
-      await UserOnCallLogTimelineService.updateOneById({
-        id: options.userOnCallLogTimelineId,
-        data: {
-          status:
-            webhookLog.status === WebhookStatus.Success
-              ? UserNotificationStatus.Sent
-              : UserNotificationStatus.Error,
-          statusMessage: webhookLog.statusMessage,
-        },
-        props: {
-          isRoot: true,
-        },
+      const isSent: boolean = webhookLog.status === WebhookStatus.Success;
+
+      await recordSendResult({
+        userOnCallLogTimelineId: options.userOnCallLogTimelineId,
+        isSent: isSent,
+        statusMessage:
+          webhookLog.statusMessage ||
+          (isSent ? "Webhook delivered." : "Failed to send webhook."),
       });
     }
 

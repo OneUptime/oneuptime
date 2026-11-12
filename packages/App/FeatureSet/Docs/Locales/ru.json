@@ -11,6 +11,7 @@
     "searchPlaceholder": "Поиск в документации...",
     "searchTypeToSearch": "Введите запрос для поиска в документации...",
     "searchNoResults": "Ничего не найдено по запросу \"{{query}}\"",
+    "searchSearching": "Поиск…",
     "onThisPage": "На этой странице",
     "skipToContent": "Перейти к содержимому",
     "toggleTheme": "Сменить тему",
@@ -62,7 +63,18 @@
     "calloutDanger": "Опасно",
     "detailsSummary": "Подробнее",
     "copyPage": "Копировать страницу",
-    "viewAsMarkdown": "Открыть в Markdown"
+    "viewAsMarkdown": "Открыть в Markdown",
+    "feedbackQuestion": "Эта страница была полезной?",
+    "feedbackYes": "Да",
+    "feedbackNo": "Нет",
+    "feedbackThanks": "Спасибо, что сообщили.",
+    "feedbackWhatWentWrong": "Спасибо. Что было не так?",
+    "feedbackReasonUnclear": "Трудно разобраться",
+    "feedbackReasonMissing": "Чего-то не хватает",
+    "feedbackReasonWrong": "Ошибка или устарело",
+    "feedbackReasonNotFound": "Не то, что я искал",
+    "feedbackTellUs": "Спасибо. Напишите, что исправить, и мы улучшим страницу.",
+    "feedbackTellUsOnGithub": "Написать на GitHub"
   },
   "navSections": {
     "Get Started": "Начало работы",

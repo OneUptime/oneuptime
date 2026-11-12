@@ -6,6 +6,7 @@ import {
 } from "./Express";
 import JsonToCsv from "./JsonToCsv";
 import logger, { getLogAttributesFromRequest } from "./Logger";
+import { sendUnexplainedError } from "./UnexplainedServerError";
 import AnalyticsDataModel, {
   AnalyticsBaseModelType,
 } from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
@@ -18,6 +19,7 @@ import StatusCode from "../../Types/API/StatusCode";
 import URL from "../../Types/API/URL";
 import { DEFAULT_LIMIT } from "../../Types/Database/LimitMax";
 import Dictionary from "../../Types/Dictionary";
+import { isEmptyErrorPhrase } from "../../Types/Exception/ErrorMessageRule";
 import Exception from "../../Types/Exception/Exception";
 import { JSONArray, JSONObject } from "../../Types/JSON";
 import ListData from "../../Types/ListData";
@@ -338,11 +340,22 @@ export default class Response {
     const status: number = StatusCode.isValidStatusCode(error.code)
       ? error.code
       : 500;
-    const message: string = error.message || "Server Error";
 
     logger.error(error, getLogAttributesFromRequest(_req as any));
 
-    oneUptimeResponse.status(status).send({ message });
+    /*
+     * No message, or only "Server Error": the answer says what happened and
+     * what to do next, with a reference to this request's log lines (#6836).
+     */
+    if (isEmptyErrorPhrase(error.message)) {
+      sendUnexplainedError(_req, oneUptimeResponse, {
+        status: status,
+        errorField: "message",
+      });
+      return;
+    }
+
+    oneUptimeResponse.status(status).send({ message: error.message });
   }
 
   @CaptureSpan()
