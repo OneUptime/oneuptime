@@ -44,6 +44,7 @@ import CloudMarketplace, {
 } from "../../../Types/Marketplace/CloudMarketplace";
 import {
   fillTemplate,
+  formatList,
   Translator,
   translationKey,
 } from "../../Utils/TranslateTemplate";
@@ -149,6 +150,38 @@ export const GRACE_ENFORCEMENT_SUMMARY: string = fillTemplate(
 export const LICENSE_LAPSED_STATE: string = translationKey(
   "SCIM provisioning is off and your identity provider's SCIM requests are refused. Audit logging is not recording. Enterprise configuration is read-only and the enterprise admin dashboards are locked. Everything resumes, without a restart, as soon as a valid license is added, and core monitoring is never affected.",
 );
+
+/*
+ * The pill's accessible name: the words it shows - the edition, the
+ * evaluation tag when there is one, and the action - so voice-control users
+ * can activate it by the words they see (WCAG 2.5.3, Label in Name).
+ *
+ * Joined as the reader's language lists words (formatList): ", " in most,
+ * "، " in Arabic and Persian, "、" in Chinese and Japanese. A template of
+ * placeholders alone ("{{edition}}, {{action}}") has no words to translate,
+ * so every language got English's Latin comma: a braille display and the
+ * text read back showed "," in an Arabic or Persian name (#7133).
+ */
+export const getEditionPillAccessibleName: (data: {
+  edition: string;
+  evaluationTag: string | null;
+  action: string;
+  translator: Translator;
+}) => string = (data: {
+  edition: string;
+  evaluationTag: string | null;
+  action: string;
+  translator: Translator;
+}): string => {
+  return formatList(
+    [
+      data.edition,
+      ...(data.evaluationTag ? [data.evaluationTag] : []),
+      data.action,
+    ],
+    data.translator,
+  );
+};
 
 type LicenseStatus = "valid" | "grace" | "expired" | "missing" | "invalid";
 
@@ -1660,6 +1693,12 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
           data-testid="enterprise-license-trial-notice"
           className="rounded-xl border border-amber-200 bg-amber-50 p-5"
         >
+          {/*
+           * The days left set apart from the title: in Persian it keeps
+           * "Enterprise Edition" in Latin letters, and the browser drew the
+           * count's digits inside that Latin run, on the far side of the
+           * colon from its "days left" (#7132's review).
+           */}
           <h4 className="text-sm font-semibold text-amber-900">
             {graceDaysLeftText
               ? translator.translateTemplate(
@@ -1667,6 +1706,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                   {
                     daysLeft: graceDaysLeftText,
                   },
+                  { setsValuesApart: true },
                 )
               : translator.translateText("Enterprise Edition trial")}
           </h4>
@@ -2162,20 +2202,15 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
         type="button"
         onClick={openDialog}
         className={`${pillClassName} ${props.className ? props.className : ""}`}
-        /*
-         * Accessible name must include the visible text (WCAG 2.5.3 Label in
-         * Name) so voice-control users can activate it by the words they see
-         * ("{editionName}" and "{ctaLabel}", e.g. "Learn more").
-         */
-        aria-label={translator.translateTemplate(
-          showEvaluationTag
-            ? "{{edition}}, Evaluation license, {{action}}"
-            : "{{edition}}, {{action}}",
-          {
-            edition: editionName,
-            action: translator.translateText(ctaLabel) || ctaLabel,
-          },
-        )}
+        aria-label={getEditionPillAccessibleName({
+          edition: editionName,
+          evaluationTag: showEvaluationTag
+            ? translator.translateText("Evaluation license") ||
+              "Evaluation license"
+            : null,
+          action: translator.translateText(ctaLabel) || ctaLabel,
+          translator: translator,
+        })}
       >
         {/*
          * The marks stay beside the edition they mark: a state too long

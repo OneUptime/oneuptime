@@ -363,12 +363,11 @@ async function renderUnpicked(widgetTitle?: string): Promise<RenderResult> {
     <DashboardSloComponentElement {...baseProps(320)} component={component} />,
   );
 
+  // On a board out of edit mode: what is missing (issue #7160).
   await screen.findByText(
     i18next.language === "en"
-      ? "Click to select an SLO"
-      : (readDashboardLocale(i18next.language)[
-          "Click to select an SLO"
-        ] as string),
+      ? "No SLO picked yet."
+      : (readDashboardLocale(i18next.language)["No SLO picked yet."] as string),
   );
 
   return result;
