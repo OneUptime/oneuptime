@@ -46,9 +46,11 @@
  *            the table at its widest, for how it fits its card. states:
  *            those three and seven more (TOOLS_IN_OTHER_STATES), a row in
  *            each state Health can say, for each state's pill.
- *   ?lang=   de, ru or hi: the Dashboard's German, Russian or Hindi locale,
- *            loaded and switched to, dates and times with it, for the
- *            pages whose words run longer than the English (#6891).
+ *   ?lang=   de, ru, hi, ar or fa: the Dashboard's German, Russian, Hindi,
+ *            Arabic or Persian locale, loaded and switched to, dates and
+ *            times with it, for the pages whose words run longer than the
+ *            English (#6891) - Arabic and Persian laid out right to left,
+ *            as production's followLanguageForPage sets <html dir>.
  *   ?cloud=  none (default) | connected. How many cloud accounts the
  *            project has connected under Cloud (CloudConnection), which
  *            Your OneUptime data's Cloud audit logs read: none, so its row
@@ -85,6 +87,7 @@ import {
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
+import { followLanguageForPage } from "Common/UI/Utils/PageLanguage";
 import SecurityEventsLayout from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Layout";
 import SecurityEventsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Index";
 import SecurityEventsConnectionsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Connections";
@@ -150,8 +153,8 @@ const tools = ["rows", "states"].includes(params.get("tools"))
   ? params.get("tools")
   : "none";
 /*
- * ?lang=: the Dashboard's German, Russian or Hindi locale, loaded and
- * switched to. Each loads only when ?lang= names it - a locale is some four
+ * ?lang=: the Dashboard's German, Russian, Hindi, Arabic or Persian locale,
+ * loaded and switched to. Each loads only when ?lang= names it - a locale is some four
  * megabytes of JSON, which every page the suite opens would parse if it were
  * bundled into the entry - and by one static import per language, so the
  * value only ever chooses among these.
@@ -164,11 +167,15 @@ function loadLocale(language) {
       return import("../../../App/FeatureSet/Dashboard/src/Locales/hi.json");
     case "ru":
       return import("../../../App/FeatureSet/Dashboard/src/Locales/ru.json");
+    case "ar":
+      return import("../../../App/FeatureSet/Dashboard/src/Locales/ar.json");
+    case "fa":
+      return import("../../../App/FeatureSet/Dashboard/src/Locales/fa.json");
     default:
       return null;
   }
 }
-const LANGUAGES = ["de", "hi", "ru"];
+const LANGUAGES = ["de", "hi", "ru", "ar", "fa"];
 const language = LANGUAGES.includes(params.get("lang"))
   ? params.get("lang")
   : "en";
@@ -1057,6 +1064,11 @@ if (language !== "en") {
  * (Utils/i18n.ts): "2 минуты назад" on a Russian page, not "2 minutes ago".
  */
 followLanguageForDates(i18next);
+/*
+ * <html lang> and <html dir> follow the language, as production's do: an
+ * Arabic or Persian page reads right to left.
+ */
+followLanguageForPage(i18next);
 
 await i18next.use(initReactI18next).init({
   lng: language,
@@ -1064,7 +1076,6 @@ await i18next.use(initReactI18next).init({
   resources,
   interpolation: { escapeValue: false },
 });
-document.documentElement.lang = language;
 
 /*
  * ---------------------------------------------------------------------------

@@ -67,6 +67,11 @@ import Pill, {
 } from "../../../UI/Components/Pill/Pill";
 import TableRow from "../../../UI/Components/Table/TableRow";
 import {
+  DrawnTableColumns,
+  getColumnsFoldedInto,
+  getDrawnTableColumns,
+} from "../../../UI/Components/Table/FoldedColumns";
+import {
   TABLE_SHRINKABLE_ATTRIBUTE,
   TABLE_VALUE_ATTRIBUTE,
 } from "../../../UI/Components/Table/TableLayout";
@@ -74,6 +79,7 @@ import { getValueGiveKind } from "../../../UI/Components/Table/useTableScrollSta
 import { Green } from "../../../Types/BrandColors";
 import TableColumn from "../../../UI/Components/Table/Types/Column";
 import FieldType from "../../../UI/Components/Types/FieldType";
+import { RELATIVE_TIME_CELL_CLASS_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/RelativeTimeCell";
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
@@ -630,7 +636,101 @@ describe("SecurityEventConnectionsTable", () => {
 
     for (const cell of cells) {
       expect(cell.getAttribute("title")).toBeTruthy();
+      // One time is one unit: never "2" on one line and "minutes ago" on the next.
+      expect(classesOf(cell)).toContain(RELATIVE_TIME_CELL_CLASS_NAME);
     }
+    expect(RELATIVE_TIME_CELL_CLASS_NAME).toBe("whitespace-nowrap");
+  });
+
+  /*
+   * In Russian at 1280px, beside the side menu, the row's
+   * "Проверить подключение" left the table 83px wider than its card, and
+   * its last column ran under the sticky buttons ("3 мин", "Никог"). Where
+   * the rows do not fit (TableFit), Last Polled gives way: it is drawn
+   * under Last Event Imported, with its name before it ("Last Polled
+   * 2 minutes ago"), and comes back as a column where there is room. Health
+   * already says how the polls go; when the last event came in is what a
+   * security tool is read for.
+   */
+  test("where its rows do not fit, Last Polled is drawn under Last Event Imported with its name, and comes back where there is room", (): void => {
+    renderTable([]);
+
+    const columns: Array<TableColumn<BaseModel>> = tableProps()
+      .columns.filter((column: ModelColumn<BaseModel>): boolean => {
+        return !column.isHiddenByDefault;
+      })
+      .map((column: ModelColumn<BaseModel>): TableColumn<BaseModel> => {
+        return {
+          title: column.title,
+          type: column.type,
+          key: Object.keys(column.field)[0] as keyof BaseModel,
+          hideBelowLargeScreen: column.hideBelowLargeScreen,
+          foldInto: column.foldInto,
+          showTitleWhenFolded: column.showTitleWhenFolded,
+        };
+      });
+    const titles: (list: Array<TableColumn<BaseModel>>) => Array<string> = (
+      list: Array<TableColumn<BaseModel>>,
+    ): Array<string> => {
+      return list.map((column: TableColumn<BaseModel>): string => {
+        return column.title;
+      });
+    };
+
+    // Only Last Polled gives way, named before its time.
+    expect(
+      titles(
+        columns.filter((column: TableColumn<BaseModel>): boolean => {
+          return Boolean(column.hideBelowLargeScreen);
+        }),
+      ),
+    ).toEqual(["Last Polled"]);
+    const lastPolled: TableColumn<BaseModel> = columns.find(
+      (column: TableColumn<BaseModel>): boolean => {
+        return column.title === "Last Polled";
+      },
+    ) as TableColumn<BaseModel>;
+    expect(lastPolled.foldInto).toBe("lastEventIngestedAt");
+    expect(lastPolled.showTitleWhenFolded).toBe(true);
+
+    // Where the rows fit, every column is drawn as it is.
+    expect(titles(getDrawnTableColumns(columns, false).columns)).toEqual([
+      "Name",
+      "Health",
+      "Last Polled",
+      "Last Event Imported",
+    ]);
+
+    // Where they do not, Last Polled is under Last Event Imported.
+    const folded: DrawnTableColumns<BaseModel> = getDrawnTableColumns(
+      columns,
+      true,
+    );
+    expect(folded.areColumnsFolded).toBe(true);
+    expect(titles(folded.columns)).toEqual([
+      "Name",
+      "Health",
+      "Last Event Imported",
+    ]);
+    expect(
+      folded.columns.map((column: TableColumn<BaseModel>): Array<string> => {
+        return titles(
+          getColumnsFoldedInto({
+            column,
+            drawnColumns: folded.columns,
+            foldedColumns: folded.foldedColumns,
+          }),
+        );
+      }),
+    ).toEqual([[], [], ["Last Polled"]]);
+
+    // A phone's card has the room: Last Polled is a field of it again.
+    expect(titles(getDrawnTableColumns(columns, true, true).columns)).toEqual([
+      "Name",
+      "Health",
+      "Last Polled",
+      "Last Event Imported",
+    ]);
   });
 
   /*

@@ -499,6 +499,17 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
             title: "Last Polled",
             type: FieldType.DateTime,
             noValueMessage: "Never",
+            /*
+             * Under Last Event Imported, with its name before it, where the
+             * rows do not fit the card (TableFit): in Russian at 1280px,
+             * beside the side menu, the row's "Проверить подключение" left
+             * the table 83px wider than its card, and its last time ran
+             * under the sticky buttons ("3 мин", "Никог"). Health already
+             * says how the polls go; this is the one that gives way.
+             */
+            hideBelowLargeScreen: true,
+            foldInto: "lastEventIngestedAt",
+            showTitleWhenFolded: true,
             getElement: (item: SecurityEventConnection): ReactElement => {
               return <RelativeTimeCell date={item.lastPolledAt} />;
             },

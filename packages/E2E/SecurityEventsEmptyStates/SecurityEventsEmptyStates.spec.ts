@@ -319,8 +319,11 @@ interface OpenOptions {
    * each state Health can say.
    */
   tools?: "none" | "rows" | "states" | undefined;
-  // The Dashboard's German, Russian or Hindi words (the fixture's ?lang=).
-  lang?: "en" | "de" | "ru" | "hi" | undefined;
+  /*
+   * The Dashboard's German, Russian, Hindi, Arabic or Persian words (the
+   * fixture's ?lang=); Arabic and Persian read right to left.
+   */
+  lang?: "en" | "de" | "ru" | "hi" | "ar" | "fa" | undefined;
   // One event in the window, so its drawer can be opened.
   events?: "none" | "one" | undefined;
   /*
@@ -2669,7 +2672,14 @@ test.describe("connections: your logs and your SIEM", () => {
    * next line instead, between its words and never inside one - held at
    * 8rem, "приостановлено" broke into "приостановле / но" - so each state
    * reads whole, every one of them (?tools=states), beside the side menu at
-   * 1280 and at 1440.
+   * 1280 and at 1440, in Arabic and Persian too, read from the right.
+   *
+   * And the table fits its card. In Russian at 1280 the row's
+   * "Проверить подключение" left it some 80px wider, and Last Event
+   * Imported ran under the sticky buttons ("3 мин", "Никог"): there Last
+   * Polled gives way (TableFit), drawn under Last Event Imported with its
+   * name before it and its time whole on one line. Where the rows fit, it
+   * keeps its column.
    */
   const HEALTH_STATES: ReadonlyArray<string> = [
     "Last poll succeeded",
@@ -2684,7 +2694,7 @@ test.describe("connections: your logs and your SIEM", () => {
     "Details unavailable",
   ];
 
-  for (const language of ["ru", "de", "hi"] as const) {
+  for (const language of ["ru", "de", "hi", "ar", "fa"] as const) {
     test(`${language}: every Health state reads whole at 1280 and 1440, wrapping between its words`, async ({
       page,
     }: {
@@ -2819,23 +2829,90 @@ test.describe("connections: your logs and your SIEM", () => {
           `${language} ${width}: some state on one line`,
         ).toBe(true);
 
-        /*
-         * The table fits its card - but for Russian at 1280, whose row
-         * button ("Проверить подключение") leaves it wider than its card
-         * however its values give way: drawn given way, its rows scroll
-         * the last pixels, as before, and never become cards.
-         */
+        // The table fits its card: nothing runs under the sticky buttons.
         const overflow: number = await card
           .getByTestId("table-scroll")
           .evaluate((element: Element): number => {
             return element.scrollWidth - element.clientWidth;
           });
-        if (language === "ru" && width === 1280) {
-          expect(overflow).toBeLessThan(128);
-        } else {
-          expect(overflow, `${language} ${width}`).toBeLessThanOrEqual(1);
-        }
+        expect(overflow, `${language} ${width}`).toBeLessThanOrEqual(1);
         await expectNoSidewaysScroll(page, { tolerance: 1 });
+
+        /*
+         * Last Polled keeps its column where the rows fit; in Russian at
+         * 1280 it is under Last Event Imported, named, its time whole.
+         */
+        const isFolded: boolean = language === "ru" && width === 1280;
+        const headers: Array<string> = (
+          await card.locator("thead th").allInnerTexts()
+        ).map((text: string): string => {
+          return text.replace(/\s+/g, " ").trim();
+        });
+        expect(
+          headers.includes(locale["Last Polled"] as string),
+          `${language} ${width}: Last Polled is a column`,
+        ).toBe(!isFolded);
+        expect(headers).toContain(
+          (locale["Last Event Imported"] as string).replace(/\s+/g, " "),
+        );
+
+        interface FoldedTime {
+          title: string;
+          lines: number;
+          isUnderLastEventImported: boolean;
+        }
+
+        const foldedTimes: Array<FoldedTime> = await card.evaluate(
+          (element: Element): Array<FoldedTime> => {
+            return Array.from(
+              element.querySelectorAll(
+                "tbody [data-testid=table-folded-value]",
+              ),
+            ).map((value: Element): FoldedTime => {
+              const time: Element | null = value.querySelector(
+                "[data-testid=relative-time-cell]",
+              );
+              const range: Range = document.createRange();
+              if (time) {
+                range.selectNodeContents(time);
+              }
+
+              return {
+                title:
+                  value.querySelector("[data-testid=table-folded-title]")
+                    ?.textContent || "",
+                lines: new Set(
+                  Array.from(range.getClientRects())
+                    .filter((rect: DOMRect): boolean => {
+                      return rect.width > 0;
+                    })
+                    .map((rect: DOMRect): number => {
+                      return Math.round(rect.top / 4);
+                    }),
+                ).size,
+                // The cell's own value, above it, is Last Event Imported's time.
+                isUnderLastEventImported: Boolean(
+                  value
+                    .closest("td")
+                    ?.querySelector(
+                      "[data-testid=table-folded-values] > div:first-child [data-testid=relative-time-cell]",
+                    ),
+                ),
+              };
+            });
+          },
+        );
+        expect(foldedTimes, `${language} ${width}: folded times`).toEqual(
+          isFolded
+            ? HEALTH_STATES.map((): FoldedTime => {
+                return {
+                  title: locale["Last Polled"] as string,
+                  lines: 1,
+                  isUnderLastEventImported: true,
+                };
+              })
+            : [],
+        );
 
         await card.scrollIntoViewIfNeeded();
         await screenshot(
