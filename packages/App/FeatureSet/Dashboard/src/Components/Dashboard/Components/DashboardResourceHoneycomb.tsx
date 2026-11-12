@@ -13,6 +13,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import DashboardWidgetLine from "./DashboardWidgetLine";
+import { useIsDashboardWidgetPreview } from "./DashboardWidgetPreview";
 
 export interface HoneycombTileDetail {
   label: string;
@@ -41,6 +42,8 @@ export interface DashboardResourceHoneycombProps {
   tiles: Array<HoneycombTile>;
   legend?: Array<HoneycombLegendItem> | undefined;
 }
+
+export const HONEYCOMB_TILE_TEST_ID: string = "dashboard-honeycomb-tile";
 
 const MIN_HEX_WIDTH: number = 28;
 const MAX_HEX_WIDTH: number = 56;
@@ -132,6 +135,7 @@ const Hex: FunctionComponent<HexProps> = (props: HexProps): ReactElement => {
       onClick={onClick}
       role={isClickable ? "button" : undefined}
       tabIndex={isClickable ? 0 : undefined}
+      data-testid={HONEYCOMB_TILE_TEST_ID}
       onKeyDown={
         isClickable
           ? (e: React.KeyboardEvent) => {
@@ -291,6 +295,23 @@ const DashboardResourceHoneycomb: FunctionComponent<
   const [tooltipState, setTooltipState] = useState<TooltipState | null>(null);
   const translator: Translator = useTranslator();
 
+  /*
+   * In the widget's live preview a tile opens nothing (issue #6859): it
+   * sits over a board being edited, and the tile's page would take the
+   * unsaved widgets with it. The tiles are drawn as on the board, with no
+   * button, no pointer and no "Click to open" under them.
+   */
+  const isPreview: boolean = useIsDashboardWidgetPreview();
+  const tiles: Array<HoneycombTile> = useMemo((): Array<HoneycombTile> => {
+    if (!isPreview) {
+      return props.tiles;
+    }
+
+    return props.tiles.map((tile: HoneycombTile): HoneycombTile => {
+      return { ...tile, route: undefined };
+    });
+  }, [props.tiles, isPreview]);
+
   useEffect(() => {
     const el: HTMLDivElement | null = containerRef.current;
     if (!el) {
@@ -311,7 +332,7 @@ const DashboardResourceHoneycomb: FunctionComponent<
   }, []);
 
   const { hexWidth, hexHeight, colsPerEvenRow } = useMemo(() => {
-    const tileCount: number = props.tiles.length || 1;
+    const tileCount: number = tiles.length || 1;
     const usableWidth: number = Math.max(0, containerWidth - 16); // padding
 
     // Aim for a roughly square-ish layout
@@ -338,7 +359,7 @@ const DashboardResourceHoneycomb: FunctionComponent<
       hexHeight: computedWidth * HEX_HEIGHT_RATIO,
       colsPerEvenRow: cols,
     };
-  }, [containerWidth, props.tiles.length]);
+  }, [containerWidth, tiles.length]);
 
   const rows: Array<Array<HoneycombTile>> = useMemo(() => {
     const result: Array<Array<HoneycombTile>> = [];
@@ -346,7 +367,7 @@ const DashboardResourceHoneycomb: FunctionComponent<
     let isOffsetRow: boolean = false;
     let capacity: number = colsPerEvenRow;
 
-    for (const tile of props.tiles) {
+    for (const tile of tiles) {
       if (current.length >= capacity) {
         result.push(current);
         current = [];
@@ -361,7 +382,7 @@ const DashboardResourceHoneycomb: FunctionComponent<
       result.push(current);
     }
     return result;
-  }, [props.tiles, colsPerEvenRow]);
+  }, [tiles, colsPerEvenRow]);
 
   const onHoverStart: (
     tile: HoneycombTile,

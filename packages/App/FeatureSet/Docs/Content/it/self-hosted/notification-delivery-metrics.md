@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 Impostale in `config.env`, poi esegui `npm start`. `DISABLE_TELEMETRY_FOR_APP` è `true` per impostazione predefinita, e in quel caso non viene inviato nulla.
 :::
 
-OneUptime ha bisogno sia dell'endpoint sia delle intestazioni: senza un'intestazione non invia nulla. Separa più intestazioni con `;`. OneUptime aggiunge da sé `/v1/metrics` all'endpoint, e le stesse impostazioni inviano anche le sue tracce e i suoi log. Ogni metrica compare non appena OneUptime la registra per la prima volta: `notification.send.count` con il primo messaggio inviato.
+OneUptime ha bisogno sia dell'endpoint sia delle intestazioni: senza un'intestazione non invia nulla. Scrivi ogni intestazione come `name=value` e separane più d'una con `;`. Un valore può contenere `=`. OneUptime aggiunge da sé `/v1/metrics` all'endpoint, e le stesse impostazioni inviano anche le sue tracce e i suoi log. Ogni metrica compare non appena OneUptime la registra per la prima volta: `notification.send.count` con il primo messaggio inviato.
 
 ### Inviare delta a un progetto OneUptime
 
@@ -246,7 +246,7 @@ La formula `$b / $a * 100` è la quota non consegnata. Gli operatori e i telefon
 ## Risoluzione dei problemi
 
 :::details Non arriva alcuna metrica delle notifiche
-Controlla che `OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT` e `OPENTELEMETRY_EXPORTER_OTLP_HEADERS` siano entrambe impostate, e in Docker Compose che `DISABLE_TELEMETRY_FOR_APP` sia `false`, poi riavvia OneUptime. Una metrica compare solo dopo che qualcosa è stato registrato, quindi invia prima una notifica.
+Controlla che `OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT` e `OPENTELEMETRY_EXPORTER_OTLP_HEADERS` siano entrambe impostate, e in Docker Compose che `DISABLE_TELEMETRY_FOR_APP` sia `false`, poi riavvia OneUptime. All'avvio, OneUptime registra un avviso quando non riesce a leggere un'intestazione o quando non invia nulla. Una metrica compare solo dopo che qualcosa è stato registrato, quindi invia prima una notifica.
 :::
 
 :::details Un conteggio cresce soltanto, o un percentile si muove appena

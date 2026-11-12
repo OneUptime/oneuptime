@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 Set them in `config.env`, then run `npm start`. `DISABLE_TELEMETRY_FOR_APP` is `true` by default, and then nothing is sent.
 :::
 
-OneUptime needs both the endpoint and the headers: it sends nothing without a header. Separate several headers with `;`. OneUptime adds `/v1/metrics` to the endpoint itself, and the same settings send its own traces and logs too. Each metric appears once OneUptime first records it: `notification.send.count` with the first message sent.
+OneUptime needs both the endpoint and the headers: it sends nothing without a header. Write each header as `name=value`, and separate several with `;`. A value may hold `=`. OneUptime adds `/v1/metrics` to the endpoint itself, and the same settings send its own traces and logs too. Each metric appears once OneUptime first records it: `notification.send.count` with the first message sent.
 
 ### Send deltas to a OneUptime project
 
@@ -246,7 +246,7 @@ The formula `$b / $a * 100` is the share not delivered. Carriers and phones that
 ## Troubleshooting
 
 :::details No notification metrics arrive
-Check that `OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT` and `OPENTELEMETRY_EXPORTER_OTLP_HEADERS` are both set, and in Docker Compose that `DISABLE_TELEMETRY_FOR_APP` is `false`, then restart OneUptime. A metric appears only once something is recorded, so send a notification first.
+Check that `OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT` and `OPENTELEMETRY_EXPORTER_OTLP_HEADERS` are both set, and in Docker Compose that `DISABLE_TELEMETRY_FOR_APP` is `false`, then restart OneUptime. As it starts, OneUptime logs a warning when it cannot read a header, or when it sends nothing. A metric appears only once something is recorded, so send a notification first.
 :::
 
 :::details A count only ever grows, or a percentile barely moves

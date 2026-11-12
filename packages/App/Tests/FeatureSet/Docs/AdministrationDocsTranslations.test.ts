@@ -392,6 +392,81 @@ function linksByLine(markdown: string): Array<string> {
   });
 }
 
+// The links one line of a page makes (its index from 0), decoded.
+function linksOnLine(markdown: string, index: number): Array<string> {
+  return scanMarkdown(markdown)
+    .links.filter((link: DocsLink): boolean => {
+      return link.line === index + 1;
+    })
+    .map((link: DocsLink): string => {
+      return decodeURIComponent(link.target);
+    });
+}
+
+/*
+ * The index of the last line of a block's body: a step's, under its "### "
+ * heading, or a :::details answer's, under its summary line. -1 when the
+ * page has no such block.
+ */
+function lastBodyLine(markdown: string, opening: string): number {
+  const lines: Array<string> = markdown.split("\n");
+  const start: number = lines.indexOf(opening);
+
+  if (start === -1) {
+    return -1;
+  }
+
+  let index: number = start + 1;
+
+  while (
+    index < lines.length &&
+    lines[index] !== ":::" &&
+    !(lines[index] as string).startsWith("### ")
+  ) {
+    index++;
+  }
+
+  index--;
+
+  while (index > start && (lines[index] as string).trim() === "") {
+    index--;
+  }
+
+  return index;
+}
+
+/*
+ * What Inviting People says Invite does on a self-hosted server that cannot
+ * send email yet (#6971), on the English page's lines: the last paragraph
+ * of the Send the invitation step - the person shows as Invited, a master
+ * admin sees the invitation link dialog and clicks Done, anyone else asks
+ * the server's admin to set up email - and of the answer for an invitation
+ * email that did not arrive: how a new link is had, and for how many days
+ * it works. AdministrationDocsFacts holds the English to the product; every
+ * translation says it on the same lines, with the Dashboard's words.
+ */
+const SMTP_FORM_LINK: string = "/docs/emails/smtp#open-the-form";
+const NO_EMAIL_STEP_LABELS: ReadonlyArray<string> = [
+  "Invited",
+  "Send them their invitation link",
+  "Done",
+];
+const NO_EMAIL_STEP_LINE: number = lastBodyLine(
+  englishPage(INVITING_PEOPLE),
+  "### Send the invitation",
+);
+const NO_EMAIL_ANSWER_LINE: number = lastBodyLine(
+  englishPage(INVITING_PEOPLE),
+  ":::details The invitation email did not arrive, or its link expired",
+);
+const NO_EMAIL_LINE_START: string =
+  "On a self-hosted server that cannot send email yet,";
+
+// A line of a page in a language, by its index from 0; empty past the end.
+function lineOf(language: string, page: string, index: number): string {
+  return readPage(language, page).split("\n")[index] || "";
+}
+
 /*
  * The prose lines of a translation that are still the English line in their
  * place: three or more Latin words of four letters, once code, link targets,
@@ -717,7 +792,94 @@ describe("the English pages", () => {
       expect(tabLabels(englishPage(entry.page))).toEqual([]);
     },
   );
+
+  it("Inviting People says what Invite does on a server that cannot send email in a paragraph of its own, at the end of the step and of the answer", () => {
+    const english: string = englishPage(INVITING_PEOPLE);
+    const lines: Array<string> = english.split("\n");
+
+    for (const index of [NO_EMAIL_STEP_LINE, NO_EMAIL_ANSWER_LINE]) {
+      expect(lines[index]?.startsWith(NO_EMAIL_LINE_START)).toBe(true);
+      // A paragraph of its own: a blank line before it, the block's end after.
+      expect(lines[index - 1]).toBe("");
+      expect(lines[index + 1]).toBe(":::");
+      expect(linksOnLine(english, index)).toEqual([SMTP_FORM_LINK]);
+    }
+
+    expect(boldSpans(lines[NO_EMAIL_STEP_LINE] as string)).toEqual([
+      ...NO_EMAIL_STEP_LABELS,
+    ]);
+    expect(boldSpans(lines[NO_EMAIL_ANSWER_LINE] as string)).toEqual([]);
+    expect(
+      numbersIn(
+        (lines[NO_EMAIL_ANSWER_LINE] as string).replace(LINK_TARGET, "]"),
+      ),
+    ).toEqual(["7"]);
+    // The step comes before the answer.
+    expect(NO_EMAIL_STEP_LINE).toBeGreaterThan(0);
+    expect(NO_EMAIL_ANSWER_LINE).toBeGreaterThan(NO_EMAIL_STEP_LINE);
+  });
 });
+
+describe.each(LANGUAGES)(
+  "%s: Inviting People on a self-hosted server that cannot send email",
+  (language: string) => {
+    const translated: string = readPage(language, INVITING_PEOPLE);
+    const step: string = lineOf(language, INVITING_PEOPLE, NO_EMAIL_STEP_LINE);
+    const answer: string = lineOf(
+      language,
+      INVITING_PEOPLE,
+      NO_EMAIL_ANSWER_LINE,
+    );
+
+    it("says it in a paragraph of its own on each English one's line", () => {
+      const lines: Array<string> = translated.split("\n");
+
+      for (const index of [NO_EMAIL_STEP_LINE, NO_EMAIL_ANSWER_LINE]) {
+        expect(lines[index - 1]).toBe("");
+        expect(lines[index + 1]).toBe(":::");
+        expect((lines[index] || "").trim()).not.toBe("");
+      }
+    });
+
+    it("names, in the step, the Invited pill, the invitation link dialog and its Done button as this language's Dashboard draws them", () => {
+      expect(boldSpans(step)).toEqual(
+        NO_EMAIL_STEP_LABELS.map((label: string): string => {
+          return drawnActionLabel(language, label);
+        }),
+      );
+    });
+
+    it("links the step and the answer to the SMTP page's Open the form step, by this language's anchor", () => {
+      const expected: string | null = expectedLink(
+        language,
+        INVITING_PEOPLE,
+        SMTP_FORM_LINK,
+      );
+
+      for (const index of [NO_EMAIL_STEP_LINE, NO_EMAIL_ANSWER_LINE]) {
+        const links: Array<string> = linksOnLine(translated, index);
+
+        if (expected !== null) {
+          expect(links).toEqual([expected]);
+          continue;
+        }
+
+        // A stale SMTP page: the page is kept, with or without one of its anchors.
+        expect(
+          links.map((link: string): string => {
+            return link.split("#")[0] as string;
+          }),
+        ).toEqual([SMTP_FORM_LINK.split("#")[0]]);
+      }
+    });
+
+    it("says in the answer for how many days the new link works, and writes nothing there in bold", () => {
+      expect(numbersIn(answer.replace(LINK_TARGET, "]"))).toEqual(["7"]);
+      expect(numbersIn(step.replace(LINK_TARGET, "]"))).toEqual([]);
+      expect(boldSpans(answer)).toEqual([]);
+    });
+  },
+);
 
 describe.each(LANGUAGES)("%s", (language: string) => {
   describe.each(ADMINISTRATION_PAGES)(
