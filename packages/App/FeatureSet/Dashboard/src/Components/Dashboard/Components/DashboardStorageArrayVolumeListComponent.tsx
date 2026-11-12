@@ -3,6 +3,7 @@ import DashboardStorageArrayVolumeListComponent from "Common/Types/Dashboard/Das
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import {
   ResourceListColumn,
+  ResourceListNameCell,
   ResourceListViewMode,
 } from "./DashboardResourceListBase";
 import DashboardModelResourceListBase from "../../Infrastructure/DashboardModelResourceListBase";
@@ -169,12 +170,13 @@ function renderVolumeRow(r: StorageArrayResource): ReactElement {
       key={id}
       className="hover:bg-gray-50/50 transition-colors duration-100 group"
     >
-      <td
+      <ResourceListNameCell
+        name={name}
         className="px-3 py-2 text-xs text-gray-700 truncate"
         title={(r.groupName as string) || undefined}
       >
         {detailLink}
-      </td>
+      </ResourceListNameCell>
       <td className="px-3 py-2 text-xs text-gray-500 truncate">
         {formatUsedOfProvisioned(r)}
       </td>
@@ -190,7 +192,10 @@ function renderVolumeRow(r: StorageArrayResource): ReactElement {
       >
         {formatIops(getTotalIops(r.readIops, r.writeIops))}
       </td>
-      <td className="px-3 py-2 text-xs text-gray-500 truncate">{arrayName}</td>
+      <ResourceListNameCell
+        name={arrayName}
+        className="px-3 py-2 text-xs text-gray-500 truncate"
+      />
     </tr>
   );
 }

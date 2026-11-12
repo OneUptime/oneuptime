@@ -169,6 +169,7 @@ import TimeRange from "../../../Types/Time/TimeRange";
 import { SLO_LIST_DEFAULT_MAX_ROWS } from "../../../Utils/Slo/SloListWidgetFormat";
 import { readDashboardLocale } from "../../Helpers/DashboardLocales";
 import { isolated, withoutIsolateMarks } from "../../Helpers/IsolateMarks";
+import { LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME } from "../../../UI/Utils/LineDirection";
 
 const EN: Record<string, string> = readDashboardLocale("en");
 const DE: Record<string, string> = readDashboardLocale("de");
@@ -292,6 +293,8 @@ async function renderWidget(data: {
   metric: SloWidgetMetric;
   displayType?: SloWidgetDisplayType;
   slo: ServiceLevelObjective;
+  // The title someone gave the widget; it holds the SLO's name here.
+  widgetTitle?: string;
 }): Promise<RenderResult> {
   getItemMock.mockResolvedValue(data.slo);
 
@@ -309,6 +312,7 @@ async function renderWidget(data: {
       serviceLevelObjectiveId: SLO_ID.toString(),
       sloMetric: data.metric,
       displayType: data.displayType || SloWidgetDisplayType.Tile,
+      widgetTitle: data.widgetTitle,
     },
   } as unknown as DashboardSloComponent;
 
@@ -323,6 +327,58 @@ async function renderWidget(data: {
   });
 
   return result;
+}
+
+/*
+ * A widget with no SLO picked yet: its title - the one someone gave it, or
+ * the widget kind's name - over the notice that says to pick one.
+ */
+async function renderUnpicked(widgetTitle?: string): Promise<RenderResult> {
+  const component: DashboardSloComponent = {
+    _type: ObjectType.DashboardComponent,
+    componentId: COMPONENT_ID,
+    componentType: DashboardComponentType.Slo,
+    topInDashboardUnits: 0,
+    leftInDashboardUnits: 0,
+    widthInDashboardUnits: 3,
+    heightInDashboardUnits: 3,
+    minWidthInDashboardUnits: 2,
+    minHeightInDashboardUnits: 2,
+    arguments: {
+      sloMetric: SloWidgetMetric.ErrorBudgetRemaining,
+      displayType: SloWidgetDisplayType.Tile,
+      widgetTitle: widgetTitle,
+    },
+  } as unknown as DashboardSloComponent;
+
+  const result: RenderResult = render(
+    <DashboardSloComponentElement {...baseProps(320)} component={component} />,
+  );
+
+  await screen.findByText(
+    i18next.language === "en"
+      ? "Click to select an SLO"
+      : (readDashboardLocale(i18next.language)[
+          "Click to select an SLO"
+        ] as string),
+  );
+
+  return result;
+}
+
+// The title an unpicked widget draws over its notice.
+const UNPICKED_TITLE: string = "Checkout availability (EU West)";
+
+// The tile's title: the box of no children of its own that names the SLO.
+function tileTitleOf(container: HTMLElement): Element | undefined {
+  return Array.from(container.querySelectorAll("div")).find(
+    (element: Element): boolean => {
+      return (
+        element.children.length === 0 &&
+        (element.textContent || "").includes(SLO_NAME)
+      );
+    },
+  );
 }
 
 // Every text the widget draws in an element of its own, as drawn.
@@ -494,19 +550,27 @@ describe("the SLO widget's tile in German", () => {
       slo: buildSlo(),
     });
 
-    const title: Element | undefined = Array.from(
-      container.querySelectorAll("div"),
-    ).find((element: Element): boolean => {
-      return (
-        element.children.length === 0 &&
-        (element.textContent || "").includes(SLO_NAME)
-      );
-    });
+    const title: Element | undefined = tileTitleOf(container);
 
     expect(title).toHaveClass("truncate");
     expect(title).toHaveAttribute(
       "title",
       `${SLO_NAME} · ${worded(DE, "Error Budget Remaining")}`,
+    );
+    // German reads the way the English name does: drawn as it always was.
+    expect(title).not.toHaveAttribute("dir");
+    expect(title).not.toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
+  });
+
+  test("no SLO picked yet: an English title over the notice is drawn as it always was", async () => {
+    await renderUnpicked(UNPICKED_TITLE);
+
+    const title: HTMLElement = screen.getByText(UNPICKED_TITLE);
+
+    expect(title.tagName).toBe("P");
+    expect(title).not.toHaveAttribute("dir");
+    expect(title.className).toBe(
+      "text-xs font-medium text-gray-500 truncate max-w-full",
     );
   });
 });
@@ -598,6 +662,70 @@ describe("the SLO widget's tile in Arabic", () => {
         `1.25${LEFT_TO_RIGHT_MARK}×${LEFT_TO_RIGHT_MARK}`,
       ]),
     );
+  });
+
+  /*
+   * The tile's title is centred over it and cut where the tile ends
+   * (#6858): a title someone wrote in English reads left to right, so it
+   * is cut at its own end, and stays in the middle; the board's own
+   * sentence around the SLO's name reads the board's way.
+   */
+  test("a title someone wrote in English reads left to right, cut at its own end, and stays centred", async () => {
+    const widgetTitle: string = `${SLO_NAME} (EU West, 30 days)`;
+    const { container } = await renderWidget({
+      metric: SloWidgetMetric.ErrorBudgetRemaining,
+      slo: buildSlo(),
+      widgetTitle: widgetTitle,
+    });
+
+    const title: Element | undefined = tileTitleOf(container);
+
+    expect(title).toHaveTextContent(widgetTitle);
+    expect(title).toHaveAttribute("dir", "ltr");
+    expect(title).toHaveClass("truncate", "text-center");
+    expect(title).not.toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
+    expect(title).toHaveAttribute("title", widgetTitle);
+  });
+
+  test("the board's own title - the name set apart in Arabic words - reads the board's way, centred", async () => {
+    const { container } = await renderWidget({
+      metric: SloWidgetMetric.ErrorBudgetRemaining,
+      slo: buildSlo(),
+    });
+
+    const title: Element | undefined = tileTitleOf(container);
+
+    expect(withoutIsolateMarks(title?.textContent || "")).toBe(
+      `${SLO_NAME} · ${worded(AR, "Error Budget Remaining")}`,
+    );
+    expect(title).not.toHaveAttribute("dir");
+    expect(title).toHaveClass("truncate", "text-center");
+    expect(title).not.toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
+  });
+
+  /*
+   * Before an SLO is picked the widget draws its title over a notice, cut
+   * where the tile ends too: an English one reads its own way, so it is
+   * cut at its own end (#6858).
+   */
+  test("no SLO picked yet: an English title over the notice reads left to right, cut at its own end", async () => {
+    await renderUnpicked(UNPICKED_TITLE);
+
+    const title: HTMLElement = screen.getByText(UNPICKED_TITLE);
+
+    expect(title.tagName).toBe("P");
+    expect(title).toHaveAttribute("dir", "ltr");
+    expect(title).toHaveClass("truncate", LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
+  });
+
+  test("no SLO picked yet and untitled: the widget kind's name - the board's word - is drawn as it was", async () => {
+    await renderUnpicked(undefined);
+
+    const title: HTMLElement = screen.getByText(worded(AR, "SLO Widget"));
+
+    expect(title.tagName).toBe("P");
+    expect(title).not.toHaveAttribute("dir");
+    expect(title).not.toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
   });
 
   test("Burn rate before the first evaluation", async () => {

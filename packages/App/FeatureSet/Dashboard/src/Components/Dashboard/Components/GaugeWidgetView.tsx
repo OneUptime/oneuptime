@@ -11,6 +11,7 @@ import {
   computeGaugeValueFontPx,
   gaugeAngleForPercentage,
 } from "./GaugeArcData";
+import DashboardWidgetLine from "./DashboardWidgetLine";
 
 /*
  * The radial gauge's PRESENTATION, with no opinion about where its number
@@ -398,9 +399,10 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
       }}
     >
       {props.title && (
-        <div className="text-[11px] font-medium text-gray-400 truncate uppercase tracking-wider w-full text-center">
-          {props.title}
-        </div>
+        <DashboardWidgetLine
+          text={props.title}
+          className="text-[11px] font-medium text-gray-400 truncate uppercase tracking-wider w-full text-center"
+        />
       )}
 
       <div

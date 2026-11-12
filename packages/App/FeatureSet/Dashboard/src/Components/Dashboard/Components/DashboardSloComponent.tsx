@@ -17,6 +17,7 @@ import DashboardWidgetTimeRangeZoom, {
   DashboardWidgetTimeRangeZoomHandlers,
 } from "../Utils/DashboardWidgetTimeRangeZoom";
 import DashboardWidgetZoomHint from "./DashboardWidgetZoomHint";
+import DashboardWidgetLine from "./DashboardWidgetLine";
 import SloWidgetData from "../Utils/SloWidgetData";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
@@ -122,9 +123,13 @@ const getPlaceholder: GetPlaceholderFunction = (data: {
         </div>
       </div>
       {data.title ? (
-        <p className="text-xs font-medium text-gray-500 truncate max-w-full">
+        <DashboardWidgetLine
+          as="p"
+          text={translateText(data.title) || data.title}
+          className="text-xs font-medium text-gray-500 truncate max-w-full"
+        >
           {translateText(data.title)}
-        </p>
+        </DashboardWidgetLine>
       ) : (
         <></>
       )}
@@ -561,12 +566,11 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
    * it whole.
    */
   const titleElement: ReactElement = (
-    <div
+    <DashboardWidgetLine
+      text={title}
       className="text-[11px] font-medium text-gray-400 truncate uppercase tracking-wider w-full text-center"
       title={title}
-    >
-      {title}
-    </div>
+    />
   );
 
   // ── Chart ──────────────────────────────────────────────────────────────

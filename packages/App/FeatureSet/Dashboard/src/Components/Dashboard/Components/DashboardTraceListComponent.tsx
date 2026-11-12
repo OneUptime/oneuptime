@@ -10,6 +10,7 @@ import DashboardTraceListComponent from "Common/Types/Dashboard/DashboardCompone
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import DashboardResourceListBase, {
   ResourceListColumn,
+  ResourceListNameCell,
   ResourceListViewMode,
 } from "./DashboardResourceListBase";
 import {
@@ -237,9 +238,10 @@ const DashboardTraceListComponentElement: FunctionComponent<ComponentProps> = (
           key={index}
           className="hover:bg-gray-50/50 transition-colors duration-100 group"
         >
-          <td className="px-3 py-2 text-xs text-gray-700 font-mono truncate">
-            {(span.name as string) || "—"}
-          </td>
+          <ResourceListNameCell
+            name={(span.name as string) || "—"}
+            className="px-3 py-2 text-xs text-gray-700 font-mono truncate"
+          />
           <td className="px-3 py-2 text-xs text-gray-600 tabular-nums font-medium">
             {formatDuration(durationNano)}
           </td>

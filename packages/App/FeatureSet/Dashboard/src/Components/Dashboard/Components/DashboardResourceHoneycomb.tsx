@@ -11,6 +11,7 @@ import Route from "Common/Types/API/Route";
 import Navigation from "Common/UI/Utils/Navigation";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import DashboardWidgetLine from "./DashboardWidgetLine";
 
 export interface HoneycombTileDetail {
   label: string;
@@ -230,9 +231,11 @@ const HoneycombTooltip: FunctionComponent<{ state: TooltipState }> = ({
           className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
           style={{ backgroundColor: state.tile.color }}
         ></span>
-        <span className="text-xs font-semibold text-gray-800 truncate">
-          {state.tile.tooltip.title}
-        </span>
+        <DashboardWidgetLine
+          as="span"
+          text={state.tile.tooltip.title}
+          className="text-xs font-semibold text-gray-800 truncate"
+        />
       </div>
       <div className="px-3 py-2 space-y-1">
         <div className="flex items-center justify-between gap-2 text-xs">
@@ -252,9 +255,11 @@ const HoneycombTooltip: FunctionComponent<{ state: TooltipState }> = ({
               <span className="text-gray-400">
                 {translator.translateText(d.label)}
               </span>
-              <span className="font-medium text-gray-700 truncate">
-                {d.value}
-              </span>
+              <DashboardWidgetLine
+                as="span"
+                text={d.value}
+                className="font-medium text-gray-700 truncate"
+              />
             </div>
           );
         })}

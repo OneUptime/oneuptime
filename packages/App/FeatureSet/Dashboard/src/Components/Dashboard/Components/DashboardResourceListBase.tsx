@@ -15,6 +15,7 @@ import useDashboardWidgetColumns, {
   DashboardWidgetColumn,
   DashboardWidgetColumns,
 } from "./DashboardWidgetColumns";
+import DashboardWidgetLine from "./DashboardWidgetLine";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
@@ -79,6 +80,54 @@ export const getResourceListColumnId: (
     column.sortKey ||
     column.label.toLowerCase().replace(NOT_AN_ID_CHARACTER, "-") ||
     `column-${index}`
+  );
+};
+
+export interface ResourceListNameCellProps {
+  /*
+   * The name the cell shows - a row's name or title, an image, a
+   * namespace, a host, a cluster - whose words decide which way it reads.
+   */
+  name: string;
+  // The cell's classes: its padding and colour, and truncate.
+  className: string;
+  // What the cell draws, when it is not just the name: a link around it.
+  children?: ReactNode | undefined;
+  // Under the pointer: what the cell names in full (a volume's group).
+  title?: string | undefined;
+  dataTestId?: string | undefined;
+}
+
+/*
+ * A LIST'S CELL THAT HOLDS A NAME.
+ *
+ * Every list widget cuts its names short where their column ends
+ * (truncate), and on an Arabic or Persian board a cut line ends at the
+ * left, where an English name starts: "checkout-api-production" read
+ * "...api-production", and names that share their start - a cluster's
+ * pods, a host's containers - all looked alike. The cell reads the way its
+ * name is written (DashboardWidgetLine): an English name on an Arabic board
+ * is cut at its own end and still starts under its column's name; an
+ * Arabic name keeps the board's way, and on an English board every cell is
+ * drawn as it was.
+ *
+ * Every list widget draws its names in this cell, so they stay alike. A
+ * cell that holds a figure or a state - a share, a size, a time, a status -
+ * is a plain one: those are written for the reader already.
+ */
+export const ResourceListNameCell: FunctionComponent<
+  ResourceListNameCellProps
+> = (props: ResourceListNameCellProps): ReactElement => {
+  return (
+    <DashboardWidgetLine
+      as="td"
+      text={props.name}
+      className={props.className}
+      title={props.title}
+      dataTestId={props.dataTestId}
+    >
+      {props.children}
+    </DashboardWidgetLine>
   );
 };
 
