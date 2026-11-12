@@ -2,6 +2,8 @@
 
 OneUptime is an open-source observability platform. It checks that your websites, APIs and servers work, collects the logs, metrics and traces your apps send, pages whoever is on call when something breaks, and tells your customers on a status page. It all happens in one product, so the tool that notices a problem is the one that pages your team. Use it on OneUptime Cloud, or run it on your own servers.
 
+Coming from another tool? [Import it](/docs/import).
+
 Start here:
 
 :::cards
