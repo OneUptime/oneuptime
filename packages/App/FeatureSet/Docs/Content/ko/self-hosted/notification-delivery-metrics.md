@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 이것들을 `config.env`에 설정한 다음 `npm start`를 실행하세요. `DISABLE_TELEMETRY_FOR_APP`는 기본값이 `true`이며, 그러면 아무것도 보내지 않습니다.
 :::
 
-OneUptime에는 엔드포인트와 헤더가 모두 필요합니다. 헤더가 없으면 아무것도 보내지 않습니다. 여러 헤더는 `;`로 구분하세요. OneUptime은 엔드포인트에 `/v1/metrics`를 직접 덧붙이며, 같은 설정으로 자체 트레이스와 로그도 보냅니다. 각 메트릭은 OneUptime이 처음 기록하는 순간 나타납니다. `notification.send.count`는 첫 메시지를 보낼 때입니다.
+OneUptime에는 엔드포인트와 헤더가 모두 필요합니다. 헤더가 없으면 아무것도 보내지 않습니다. 각 헤더는 `name=value` 형식으로 쓰고, 여러 헤더는 `;`로 구분하세요. 값에 `=`가 들어가도 됩니다. OneUptime은 엔드포인트에 `/v1/metrics`를 직접 덧붙이며, 같은 설정으로 자체 트레이스와 로그도 보냅니다. 각 메트릭은 OneUptime이 처음 기록하는 순간 나타납니다. `notification.send.count`는 첫 메시지를 보낼 때입니다.
 
 ### OneUptime 프로젝트로 델타 보내기
 
@@ -246,7 +246,7 @@ services:
 ## 문제 해결
 
 :::details 알림 메트릭이 도착하지 않음
-`OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT`와 `OPENTELEMETRY_EXPORTER_OTLP_HEADERS`가 모두 설정되었는지, Docker Compose에서는 `DISABLE_TELEMETRY_FOR_APP`가 `false`인지 확인한 다음 OneUptime을 다시 시작하세요. 메트릭은 무언가가 기록된 후에야 나타나므로, 먼저 알림을 보내세요.
+`OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT`와 `OPENTELEMETRY_EXPORTER_OTLP_HEADERS`가 모두 설정되었는지, Docker Compose에서는 `DISABLE_TELEMETRY_FOR_APP`가 `false`인지 확인한 다음 OneUptime을 다시 시작하세요. OneUptime은 시작할 때 읽을 수 없는 헤더가 있거나 아무것도 보내지 않으면 경고를 로그에 남깁니다. 메트릭은 무언가가 기록된 후에야 나타나므로, 먼저 알림을 보내세요.
 :::
 
 :::details 건수가 계속 늘기만 하거나 백분위수가 거의 움직이지 않음

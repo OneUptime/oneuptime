@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 在 `config.env` 中设置它们，然后运行 `npm start`。`DISABLE_TELEMETRY_FOR_APP` 默认为 `true`，此时不会发送任何内容。
 :::
 
-OneUptime 需要同时设置端点和请求头：没有请求头时它什么都不发送。多个请求头之间用 `;` 分隔。OneUptime 会自行在端点后加上 `/v1/metrics`，同样的设置也会发送它自己的追踪和日志。每个指标在 OneUptime 首次记录它时出现：`notification.send.count` 在发送第一条消息时出现。
+OneUptime 需要同时设置端点和请求头：没有请求头时它什么都不发送。每个请求头写成 `name=value`，多个请求头之间用 `;` 分隔。值中可以包含 `=`。OneUptime 会自行在端点后加上 `/v1/metrics`，同样的设置也会发送它自己的追踪和日志。每个指标在 OneUptime 首次记录它时出现：`notification.send.count` 在发送第一条消息时出现。
 
 ### 向 OneUptime 项目发送增量
 
@@ -246,7 +246,7 @@ Twilio 为安装自己的账户接受的值班短信中，最多 5% 未能投递
 ## 故障排除
 
 :::details 没有收到通知指标
-检查 `OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT` 和 `OPENTELEMETRY_EXPORTER_OTLP_HEADERS` 是否都已设置，在 Docker Compose 中还要检查 `DISABLE_TELEMETRY_FOR_APP` 是否为 `false`，然后重启 OneUptime。指标只有在记录了内容之后才会出现，因此请先发送一条通知。
+检查 `OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT` 和 `OPENTELEMETRY_EXPORTER_OTLP_HEADERS` 是否都已设置，在 Docker Compose 中还要检查 `DISABLE_TELEMETRY_FOR_APP` 是否为 `false`，然后重启 OneUptime。OneUptime 启动时，如果有无法读取的请求头，或者它什么都不发送，会在日志中记录一条警告。指标只有在记录了内容之后才会出现，因此请先发送一条通知。
 :::
 
 :::details 计数只增不减，或百分位数几乎不动
