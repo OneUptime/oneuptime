@@ -1716,6 +1716,11 @@ jobs:
           # Reading Direction (5.9) joined it from group 20 on 2026-11-12, when
           # the OpenStack pages' second third grew (#6956, see group 19): about
           # 8.2, the rest still room for those journeys.
+          # The website-down guided setup's run, kept and lost (#7059), joined
+          # the journeys the same day: Journeys/GuidedSetupRun.spec.ts, 3 tests
+          # that are not journeys (nothing counted), the third a long address
+          # at 390 pixels, 18 seconds locally (37 on a loaded machine) -
+          # test-journeys-ui planned as 2.9, this group about 8.8.
           - group: 22
             suites: >-
               test-journeys-ui
