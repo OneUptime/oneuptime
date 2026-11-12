@@ -7,7 +7,10 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import GoldenMetricTile from "../../../Components/Infrastructure/GoldenMetricTile";
-import { formatOpenStackCount } from "../../../Components/OpenStack/OpenStackResourceList";
+import {
+  formatOpenStackCount,
+  formatOpenStackPercent,
+} from "../../../Components/OpenStack/OpenStackResourceList";
 import OpenStackPartPage from "../../../Components/OpenStack/Part/OpenStackPartPage";
 import useOpenStackPart, {
   OpenStackPart,
@@ -130,7 +133,7 @@ const SubnetOverview: FunctionComponent<{
               ? "—"
               : addresses.percent === null
                 ? formatOpenStackCount(addresses.used || 0)
-                : `${Math.round(addresses.percent)}%`
+                : formatOpenStackPercent(addresses.percent)
           }
           sublabel={
             !addresses

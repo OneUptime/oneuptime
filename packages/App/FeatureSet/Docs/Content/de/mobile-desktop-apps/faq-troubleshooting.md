@@ -126,7 +126,7 @@ Passkeys brauchen eine Adresse Ihres OneUptime, die mit `https://` beginnt, und 
 - Prüfen Sie, dass das Telefon Benachrichtigungen von OneUptime On-Call erlaubt und dass „Nicht stören“ oder ein Fokus sie nicht zurückhält.
 - Prüfen Sie unter **Benutzereinstellungen → Benachrichtigungsmethoden** auf dem Tab **Push-Benachrichtigungen**, dass das Telefon aufgeführt ist, und senden Sie ihm eine **Testbenachrichtigung**.
 - Ist es mit **Keine Benachrichtigungen** markiert, öffnen Sie die App, während Sie angemeldet sind: siehe [Wenn sich ein Telefon neu registrieren muss](#wenn-sich-ein-telefon-neu-registrieren-muss).
-- Prüfen Sie Ihre Bereitschaftsregeln unter **Benutzereinstellungen → Bereitschaftsregeln**: Sie entscheiden, welche Alarme welche Methode erreichen.
+- Prüfen Sie Ihre Bereitschaftsregeln unter **Benutzereinstellungen → Wie ich erreichbar bin**: Sie entscheiden, welche Alarme welche Methode erreichen.
 - Prüfen Sie bei einem selbst gehosteten OneUptime, dass der Server sein Push-Relay erreicht: siehe [Push-Benachrichtigungen](/docs/self-hosted/push-notifications#netzwerkzugriff).
 :::
 
@@ -135,7 +135,7 @@ Stellen Sie die Akkunutzung der App in den Android-Einstellungen für OneUptime 
 :::
 
 :::details Kritische Warnungen durchbrechen den Stummmodus nicht
-Öffnen Sie in der App **Settings**: Die Zeile unter **Critical On-Call Alerts** sagt, was auf diesem Telefon fehlt. Prüfen Sie dann unter **Benutzereinstellungen → Bereitschaftsregeln**, dass die Bereitschaftsregel, die den Alarm geschickt hat, auf **Kritische Warnung** steht, nicht auf **Normal**. Jedes Telefon hat seinen eigenen Schalter.
+Öffnen Sie in der App **Settings**: Die Zeile unter **Critical On-Call Alerts** sagt, was auf diesem Telefon fehlt. Prüfen Sie dann unter **Benutzereinstellungen → Wie ich erreichbar bin**, dass die Bereitschaftsregel, die den Alarm geschickt hat, auf **Kritische Warnung** steht, nicht auf **Normal**. Jedes Telefon hat seinen eigenen Schalter.
 :::
 
 ### Desktop-App

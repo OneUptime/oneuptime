@@ -100,7 +100,7 @@ Um per Direktnachricht alarmiert zu werden, wenn Sie Bereitschaft haben, fügen 
 3. Klicken Sie in seiner Zeile auf **Testnachricht senden**. Die Nachricht kommt als Direktnachricht vom Bot des Projekts an.
 :::
 
-Durch das Hinzufügen landet es sofort in Ihren Bereitschaftsregeln, sodass Alarme Sie ab dann in Mattermost erreichen. Welche Alarme es bekommt, ändern Sie unter **Benutzereinstellungen** > **Bereitschaftsregeln**. Jeder Alarm enthält einen Link zum Bestätigen und einen zum Eskalieren. Wenn Sie Ihr Mattermost-Konto trennen, werden diese Methode und die Bereitschaftsregeln entfernt, die sie verwenden.
+Durch das Hinzufügen landet es sofort in Ihren Bereitschaftsregeln, sodass Alarme Sie ab dann in Mattermost erreichen. Welche Alarme es bekommt, ändern Sie unter **Benutzereinstellungen** > **Wie ich erreichbar bin**. Jeder Alarm enthält einen Link zum Bestätigen und einen zum Eskalieren. Wenn Sie Ihr Mattermost-Konto trennen, werden diese Methode und die Bereitschaftsregeln entfernt, die sie verwenden.
 
 ## Benachrichtigungsregeln
 

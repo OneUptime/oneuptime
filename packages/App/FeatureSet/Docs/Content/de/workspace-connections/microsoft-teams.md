@@ -150,7 +150,7 @@ Um per Direktnachricht alarmiert zu werden, wenn Sie Bereitschaft haben, fügen 
 3. Klicken Sie in seiner Zeile auf **Testnachricht senden**. Die Nachricht kommt in Ihren Microsoft-Teams-Chats an.
 :::
 
-Durch das Hinzufügen landet es sofort in Ihren Bereitschaftsregeln, sodass Alarme Sie ab dann in Microsoft Teams erreichen. Welche Alarme es bekommt, ändern Sie unter **Benutzereinstellungen** > **Bereitschaftsregeln**.
+Durch das Hinzufügen landet es sofort in Ihren Bereitschaftsregeln, sodass Alarme Sie ab dann in Microsoft Teams erreichen. Welche Alarme es bekommt, ändern Sie unter **Benutzereinstellungen** > **Wie ich erreichbar bin**.
 
 ## Nachrichten als Notizen speichern
 

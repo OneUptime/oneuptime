@@ -59,6 +59,8 @@ Behalten Sie die ausgewählten **Sonden** und das **Überwachungsintervall** **A
 
 Um die Prüfung vor dem Speichern auszuprobieren, klicken Sie im zweiten Schritt auf **Monitor testen**. Alle anderen Monitortypen beschreibt [Einen Monitor erstellen](/docs/monitor/create-monitor).
 
+Um auch eine API zu prüfen, festzulegen, wer informiert wird, und eine Test-Alarmierung zu senden, die beweist, dass die Nachricht Sie erreicht, folgen Sie der Anleitung [Erfahren, wenn Ihre Website oder API ausfällt](/docs/guides/website-down).
+
 ## Bei einem Ausfall alarmiert werden
 
 So wie es ist, wird ein Vorfall ohne Eigentümer per E-Mail an die Eigentümer des Projekts gemeldet, und dazu gehören Sie. Damit Sie alarmiert werden, bis jemand reagiert, legen Sie eine Bereitschaftsrichtlinie an: Die erste eines Projekts wird bei jedem neuen Vorfall und jeder neuen Warnung ausgelöst.

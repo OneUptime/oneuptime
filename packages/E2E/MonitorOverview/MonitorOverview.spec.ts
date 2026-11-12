@@ -737,6 +737,8 @@ test.describe("probe checks", () => {
     ]);
     expect(await cardTitles(sideColumn(page))).toEqual([
       "Open incidents & alerts",
+      "When this goes down",
+      "Used by",
       "Recent status changes",
       "Probes",
       "Details",
@@ -1581,6 +1583,8 @@ test.describe("other monitor families", () => {
     await expect(card(page, "Response time")).toHaveCount(0);
     expect(await cardTitles(sideColumn(page))).toEqual([
       "Open incidents & alerts",
+      "When this goes down",
+      "Used by",
       "Recent status changes",
       "Details",
       "Linked Resources",

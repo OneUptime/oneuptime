@@ -43,12 +43,22 @@ export const formatDurationMs: (ms: number | null) => string = (
   return `${(ms / 1000).toFixed(2)} s`;
 };
 
-export const formatBytes: (bytes: number | null) => string = (
-  bytes: number | null,
-): string => {
-  if (bytes === null || !Number.isFinite(bytes)) {
-    return "—";
-  }
+/*
+ * A size as formatBytes writes it, in its pieces: the number in the unit it
+ * is written in (B, KiB, MiB, GiB, TiB) and how many decimals it keeps, one
+ * under ten and none from ten up. A page that writes its sizes in the
+ * reader's digits (OpenStack's, issue #7191) writes the same figure in the
+ * same unit from it.
+ */
+export interface BytesReading {
+  value: number;
+  unit: string;
+  decimals: number;
+}
+
+export const getBytesReading: (bytes: number) => BytesReading = (
+  bytes: number,
+): BytesReading => {
   const units: Array<string> = ["B", "KiB", "MiB", "GiB", "TiB"];
   let v: number = bytes;
   let i: number = 0;
@@ -56,5 +66,15 @@ export const formatBytes: (bytes: number | null) => string = (
     v /= 1024;
     i++;
   }
-  return `${v.toFixed(v < 10 ? 1 : 0)} ${units[i]}`;
+  return { value: v, unit: units[i] || "B", decimals: v < 10 ? 1 : 0 };
+};
+
+export const formatBytes: (bytes: number | null) => string = (
+  bytes: number | null,
+): string => {
+  if (bytes === null || !Number.isFinite(bytes)) {
+    return "—";
+  }
+  const reading: BytesReading = getBytesReading(bytes);
+  return `${reading.value.toFixed(reading.decimals)} ${reading.unit}`;
 };
