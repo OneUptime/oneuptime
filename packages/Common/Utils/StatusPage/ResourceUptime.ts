@@ -16,6 +16,9 @@ import {
 import { MergedDowntimeTotals } from "../../Types/StatusPage/MergedDowntimeTotals";
 import UptimeDailyAggregateUtil from "./UptimeDailyAggregateUtil";
 import MonitorGroupUptimeDailyAggregateUtil from "./MonitorGroupUptimeDailyAggregateUtil";
+import FrozenMonitorResources, {
+  NotMonitoredResourceIds,
+} from "./FrozenMonitorResources";
 
 export default class StatusPageResourceUptimeUtil {
   public static getWorstMonitorStatus(data: {
@@ -95,6 +98,14 @@ export default class StatusPageResourceUptimeUtil {
      * every call re-buckets the whole group list.
      */
     statusPageGroupTreeIndex?: StatusPageGroupTreeIndex | undefined;
+    /*
+     * The resources the page draws as Not monitored (the overview's
+     * notMonitoredResourceIds). Nothing checks them, so their status - the
+     * one they were left at - decides nothing here. A group all of whose
+     * resources are Not monitored has no status at all: the page asks
+     * FrozenMonitorResources.isEveryResourceNotMonitored first.
+     */
+    notMonitoredResourceIds?: NotMonitoredResourceIds | undefined;
   }): MonitorStatus {
     let currentStatus: MonitorStatus = new MonitorStatus();
     currentStatus.name = "Operational";
@@ -109,6 +120,15 @@ export default class StatusPageResourceUptimeUtil {
       });
 
     for (const resource of resourcesInGroup) {
+      if (
+        FrozenMonitorResources.isNotMonitored(
+          resource,
+          data.notMonitoredResourceIds || [],
+        )
+      ) {
+        continue;
+      }
+
       let currentMonitorStatus: MonitorStatus | undefined = undefined;
 
       if (resource.monitor) {

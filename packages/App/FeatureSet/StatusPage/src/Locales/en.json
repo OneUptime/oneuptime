@@ -43,14 +43,17 @@
   "overview": {
     "uptimeSuffix": "% uptime",
     "operational": "Operational",
+    "notMonitored": "Not monitored",
     "noResourcesInGroup": "No resources added to this group.",
     "activeIncidents": "Active Incidents",
     "scheduledMaintenanceEvents": "Scheduled Maintenance Events",
     "allClearTitle": "Everything looks great",
     "allClearDescription": "No resources added to this status page yet. Please add some resources from the dashboard.",
     "allResourcesAre": "All Resources are {{status}}",
+    "allMonitoredResourcesAre": "All monitored Resources are {{status}}",
     "someResourcesAre": "Some Resources are {{status}}",
     "someResourcesAreUnder": "Some Resources are under {{status}}",
+    "noResourcesAreMonitored": "No Resources are monitored right now",
     "oneSubGroup": "1 group",
     "subGroupCount": "{{total}} groups"
   },

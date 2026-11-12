@@ -32,7 +32,10 @@ import StatusPageGroupTreeUtil, { StatusPageGroupTreeIndex } from "./GroupTree";
  *
  *   - a resource's status the way the overview draws it: its monitor's
  *     current status, or its monitor group's; Operational when there is
- *     none; and none at all when the resource does not show it;
+ *     none; and none at all when the resource does not show it, or when
+ *     the page draws it as Not monitored (notMonitoredResourceIds:
+ *     FrozenMonitorResources) - nothing checks it, so the status it holds
+ *     says nothing now;
  *   - in progress and to come by the project's own list of states
  *     (ScheduledMaintenanceStartUtil), as the page sorts its events;
  *   - what an event or an incident affects as the page names it
@@ -49,6 +52,7 @@ interface ReadOverview {
   statusPageGroups: Array<StatusPageGroup>;
   monitorStatuses: Array<MonitorStatus>;
   monitorGroupCurrentStatuses: Dictionary<ObjectID>;
+  notMonitoredResourceIds: Set<string>;
   monitorsInGroup: Dictionary<Array<ObjectID>>;
   activeIncidents: Array<Incident>;
   scheduledMaintenanceEvents: Array<ScheduledMaintenance>;
@@ -149,6 +153,7 @@ export default class StatusPageSummaryBuilder {
     const resources: Array<StatusPageSummaryResource> = shownResources.map(
       (resource: StatusPageResource): StatusPageSummaryResource => {
         const id: string = StatusPageSummaryBuilder.idOf(resource);
+        const isMonitored: boolean = !read.notMonitoredResourceIds.has(id);
 
         return {
           id: id,
@@ -156,10 +161,10 @@ export default class StatusPageSummaryBuilder {
           groupName:
             groupNames.get(resource.statusPageGroupId?.toString() || "") ||
             null,
-          currentStatus: StatusPageSummaryBuilder.getCurrentStatus(
-            resource,
-            read,
-          ),
+          currentStatus: isMonitored
+            ? StatusPageSummaryBuilder.getCurrentStatus(resource, read)
+            : null,
+          isMonitored: isMonitored,
           isUnderMaintenance: underMaintenance.has(id),
         };
       },
@@ -368,6 +373,15 @@ export default class StatusPageSummaryBuilder {
       ),
       monitorGroupCurrentStatuses: readDictionary<ObjectID>(
         "monitorGroupCurrentStatuses",
+      ),
+      notMonitoredResourceIds: new Set<string>(
+        readArray("notMonitoredResourceIds")
+          .map((id: unknown): string => {
+            return typeof id === "string" ? id.trim() : "";
+          })
+          .filter((id: string): boolean => {
+            return Boolean(id);
+          }),
       ),
       monitorsInGroup: readDictionary<Array<ObjectID>>("monitorsInGroup"),
       activeIncidents: BaseModel.fromJSONArray(

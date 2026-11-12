@@ -26,6 +26,7 @@ jest.mock("Common/Server/Utils/Logger", () => {
 
 import ExternalStatusPageMonitorUtil, {
   EXTERNAL_STATUS_PAGE_ONEUPTIME_IP_NOT_ALLOWED_MESSAGE,
+  EXTERNAL_STATUS_PAGE_ONEUPTIME_NOT_MONITORED,
   EXTERNAL_STATUS_PAGE_ONEUPTIME_PRIVATE_MESSAGE,
   EXTERNAL_STATUS_PAGE_ONEUPTIME_STATUS_NOT_SHOWN,
 } from "../../../../Utils/Monitors/MonitorTypes/ExternalStatusPageMonitor";
@@ -696,6 +697,113 @@ describe("scoping a OneUptime status page", () => {
     expect(JSON.stringify(response.componentStatuses)).not.toContain(
       FAKE_STATUSES.offline.name,
     );
+  });
+});
+
+describe("a OneUptime status page with monitoring off for a resource", () => {
+  /*
+   * The page keeps a resource whose monitor has its monitoring off, draws
+   * it as Not monitored with no status, and leaves it out of its banner. A
+   * monitor of the page reads it the same way: unknown, saying why, and
+   * deciding no overall status - its frozen status reaches nothing.
+   */
+  test("the resource reads unknown and says why; the page's status is the rest's", async () => {
+    host.serve({
+      domain: DOMAIN,
+      page: departmentPage({
+        resources: [
+          {
+            id: R_API,
+            name: "Checkout API",
+            groupId: PG_CORE,
+            monitorId: M_API,
+            statusId: FAKE_STATUSES.operational.id,
+          },
+          {
+            id: R_WEB,
+            name: "Storefront",
+            monitorId: M_WEB,
+            statusId: FAKE_STATUSES.offline.id,
+            isMonitoringOff: true,
+          },
+        ],
+        monitorGroups: [],
+      }),
+    });
+
+    const response: ExternalStatusPageMonitorResponse = await check();
+
+    expect(component(response, "Storefront")).toEqual({
+      name: "Storefront",
+      status: "unknown",
+      description: EXTERNAL_STATUS_PAGE_ONEUPTIME_NOT_MONITORED,
+      groupName: undefined,
+    });
+    expect(component(response, "Checkout API").status).toBe("operational");
+
+    // Never the Offline it was left at, and no degradation for an unknown.
+    expect(response.overallStatus).toBe("operational");
+    expect(JSON.stringify(response.componentStatuses)).not.toContain(
+      FAKE_STATUSES.offline.name,
+    );
+  });
+
+  test("a monitor group whose monitors all have monitoring off reads the same", async () => {
+    host.serve({
+      domain: DOMAIN,
+      page: departmentPage({
+        monitorGroups: [
+          {
+            id: G_DATABASES,
+            monitorIds: [M_DB_PRIMARY, M_DB_REPLICA],
+            offMonitorIds: [M_DB_PRIMARY, M_DB_REPLICA],
+            statusId: FAKE_STATUSES.offline.id,
+          },
+        ],
+      }),
+    });
+
+    const response: ExternalStatusPageMonitorResponse = await check();
+
+    expect(component(response, "Databases")).toEqual(
+      expect.objectContaining({
+        status: "unknown",
+        description: EXTERNAL_STATUS_PAGE_ONEUPTIME_NOT_MONITORED,
+      }),
+    );
+    // The Storefront is Degraded: the worst of what is still checked.
+    expect(response.overallStatus).toBe("degraded_performance");
+  });
+
+  test("watching only a resource that is not monitored: unknown", async () => {
+    host.serve({
+      domain: DOMAIN,
+      page: departmentPage({
+        resources: [
+          {
+            id: R_WEB,
+            name: "Storefront",
+            monitorId: M_WEB,
+            statusId: FAKE_STATUSES.operational.id,
+            isMonitoringOff: true,
+          },
+          {
+            id: R_API,
+            name: "Checkout API",
+            monitorId: M_API,
+            statusId: FAKE_STATUSES.operational.id,
+          },
+        ],
+        monitorGroups: [],
+      }),
+    });
+
+    const response: ExternalStatusPageMonitorResponse = await check({
+      componentName: "Storefront",
+    });
+
+    expect(statuses(response)).toEqual([["Storefront", "unknown"]]);
+    expect(response.overallStatus).toBe("unknown");
   });
 });
 

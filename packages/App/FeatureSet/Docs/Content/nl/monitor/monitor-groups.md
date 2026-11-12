@@ -27,8 +27,9 @@ flowchart TB
 ```
 
 - **Gearchiveerde monitoren tellen niet mee.** Een gearchiveerde monitor wordt niet gecontroleerd, dus zijn status is bevroren; de groep laat hem weg.
+- **Monitoren met bewaking uit tellen niet mee.** Niets controleert een monitor waarvan de bewaking uit staat, dus zijn status is alleen wat zijn laatste controle zag. De groep laat hem weg uit haar status, en in het dashboard ook uit haar uptime en haar **Uptime grafiek**: een monitor die **Offline** stond toen zijn bewaking werd uitgezet, maakt de groep niet **Offline**.
 - **Een lege groep is operationeel.** Een groep zonder monitoren, of met alleen gearchiveerde, toont uw operationele status. Tot u een monitor toevoegt, toont het dashboard **Nog geen monitoren** in plaats van de status.
-- **Bewaking uit toont Uitgeschakeld.** Staat de bewaking uit voor elke monitor in een groep, dan controleert niets ze, dus toont het dashboard **Uitgeschakeld** in plaats van de status van de groep.
+- **Bewaking uit toont Uitgeschakeld.** Staat de bewaking uit voor elke monitor in een groep, dan controleert niets ze, dus toont het dashboard **Uitgeschakeld** in plaats van de status van de groep, en geen uptimepercentage naast haar **Uptime grafiek**. Een statuspagina toont de groep als **Niet bewaakt**.
 - **De volgorde bepaalt u.** Welke status de slechtste is, volgt de volgorde onder **Monitoren → Instellingen → Monitorstatus**. Zie [Monitorstatussen](/docs/monitor/criteria-and-statuses#monitorstatussen).
 
 Een monitorgroep is geen statuspaginagroep. Een statuspaginagroep is een kop op één statuspagina die rijen bevat. Een monitorgroep is één rij die voor meerdere monitoren staat, en elke statuspagina kan haar tonen.
@@ -124,7 +125,7 @@ Kies de groep. **Weergavenaam**, de naam die bezoekers lezen, neemt de naam van 
 
 Op de statuspagina staat de rij voor elke monitor in de groep:
 
-- **Haar status.** Dat is die van de groep: de slechtste van haar monitoren.
+- **Haar status.** Dat is die van de groep: de slechtste van haar monitoren met bewaking aan. Staat de bewaking voor allemaal uit, dan toont de rij **Niet bewaakt** en telt ze niet mee voor de kop erboven of voor de algemene status van de pagina.
 - **Haar incidenten.** Een incident op elke monitor in de groep verschijnt op de pagina, met de groep genoemd onder de getroffen bronnen.
 - **Haar abonnees.** Een abonnee die de groep kiest, hoort over elke monitor erin. Zie [Abonnees bronnen en gebeurtenistypen laten kiezen](/docs/status-pages/subscribers#abonnees-zelf-resources-en-gebeurtenistypen-laten-kiezen).
 

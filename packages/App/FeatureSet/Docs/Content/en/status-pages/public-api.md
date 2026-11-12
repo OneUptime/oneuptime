@@ -113,7 +113,7 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 ```
 :::
 
-The overall status is the worst current status of the monitors and monitor groups on the page, the one with the highest priority. A monitor status looks like this:
+The overall status is the worst current status of the monitors and monitor groups on the page, the one with the highest priority. Resources the page shows as **Not monitored**, listed in `notMonitoredResourceIds`, are left out of it. A monitor status looks like this:
 
 ```json
 {
@@ -129,12 +129,13 @@ The overall status is the worst current status of the monitors and monitor group
 
 | Key | What it holds |
 | --- | ------------- |
-| `overallStatus` | The page's overall status, a monitor status as above. A page with nothing on it gets the project's lowest-priority status. |
+| `overallStatus` | The page's overall status, a monitor status as above. A page with nothing on it gets the project's lowest-priority status, and a page whose resources are all **Not monitored** gets `null`. |
 | `statusPage` | The page's public settings: its title, description, branding and what it shows. |
 | `statusPageResources` | Each resource: its display name, description, group, monitor or monitor group, and display options. |
 | `resourceGroups` | The groups, with `parentStatusPageGroupId` for nested groups. |
 | `monitorStatuses` | Every monitor status of the project, from the lowest priority to the highest. |
 | `monitorGroupCurrentStatuses`, `monitorsInGroup` | The current status of each monitor group on the page, and the monitors in it. |
+| `notMonitoredResourceIds` | The IDs of the resources the page shows as **Not monitored**: a monitor whose monitoring is off, or a monitor group whose monitors all have it off. They decide no status, and such a group has no entry in `monitorGroupCurrentStatuses`. |
 | `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupUptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | What the uptime bars are drawn from, and the page's bar color rules. |
 | `activeIncidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates` | The unresolved incidents the page shows, their public notes and state changes, and the project's incident states. |
 | `timelineIncidents` | The incidents in the uptime bars' window, resolved ones included, for the bars' tooltips. |
@@ -170,6 +171,7 @@ The response:
         "color": "#2ab57d",
         "isOperational": true
       },
+      "isMonitored": true,
       "isUnderMaintenance": true
     }
   ],
@@ -190,12 +192,12 @@ The response:
 
 | Key | In the summary |
 | --- | -------------- |
-| `overallStatus` | The page's overall status, as its banner shows it: `name`, `color` and `isOperational`. |
-| `resources` | Each resource the page shows, in its order: its `name` on the page, its `groupName` with the groups above it, its `currentStatus`, and `isUnderMaintenance`. |
+| `overallStatus` | The page's overall status, as its banner shows it: `name`, `color` and `isOperational`. `null` when every resource on the page is **Not monitored**. |
+| `resources` | Each resource the page shows, in its order: its `name` on the page, its `groupName` with the groups above it, its `currentStatus`, `isMonitored`, and `isUnderMaintenance`. |
 | `activeIncidents` | The unresolved incidents the page shows, each with the `affectedResourceIds` of the resources it affects. |
 | `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | The scheduled maintenance events in progress and still to come, each with its `affectedResourceIds`. |
 
-A resource's `currentStatus` is `null` when the page does not show it. `isUnderMaintenance` is `true` while an event in progress names one of the resource's monitors, or a monitor in its monitor group, whatever status those monitors are in.
+A resource's `currentStatus` is `null` when the page does not show it, and when `isMonitored` is `false`: nothing checks the resource, because its monitor's monitoring is off or every monitor of its monitor group has it off, so the page shows it as **Not monitored**. `isUnderMaintenance` is `true` while an event in progress names one of the resource's monitors, or a monitor in its monitor group, whatever status those monitors are in.
 
 ## Uptime for a date range
 
@@ -278,7 +280,8 @@ The response:
         "color": { "_type": "Color", "value": "#2ab57d" },
         "isOperationalState": true,
         "priority": 1
-      }
+      },
+      "isMonitored": true
     }
   ],
   "groupUptimes": [
@@ -303,7 +306,8 @@ The response:
             "color": { "_type": "Color", "value": "#2ab57d" },
             "isOperationalState": true,
             "priority": 1
-          }
+          },
+          "isMonitored": true
         }
       ],
       "statusPageGroupName": "Web",
@@ -313,7 +317,8 @@ The response:
         "color": { "_type": "Color", "value": "#2ab57d" },
         "isOperationalState": true,
         "priority": 1
-      }
+      },
+      "isMonitored": true
     }
   ],
   "startDate": "2026-09-01T00:00:00.000Z",
@@ -327,6 +332,7 @@ The response:
 | `groupUptimes` | One entry per group. A group's `uptimePercent` and `currentStatus` cover every resource beneath it, nested groups included; its `statusPageResourceUptimes` lists only the resources directly in it. Rebuild the tree with `parentStatusPageGroupId`. |
 | `uptimePercent` | Rounded to the resource's or group's own precision. `null` when the resource or group does not show an uptime percentage. |
 | `currentStatus` | `null` when the resource or group does not show its current status. |
+| `isMonitored` | `false` when the page shows the resource as **Not monitored**, and for a group when every resource beneath it is. Its `currentStatus` is then `null`. |
 
 Time counts as downtime when its monitor status is one of the page's **Counts as downtime** statuses.
 
