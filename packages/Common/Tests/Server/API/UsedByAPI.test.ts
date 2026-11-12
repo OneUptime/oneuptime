@@ -81,8 +81,8 @@ const PAGE: UsedByPage = {
   rowKind: UsedByRowKind.StatusPage,
   count: 1,
   hiddenCount: 2,
-  skip: 0,
-  limit: 50,
+  pageStart: 0,
+  pageSize: 50,
   rows: [{ id: "s", name: "Public status" }],
 };
 

@@ -1276,8 +1276,8 @@ describe("a record used by thousands still loads in a few bounded reads", () => 
     });
 
     expect(page.count).toBe(5000);
-    expect(page.skip).toBe(100);
-    expect(page.limit).toBe(USED_BY_MAX_PAGE_SIZE);
+    expect(page.pageStart).toBe(100);
+    expect(page.pageSize).toBe(USED_BY_MAX_PAGE_SIZE);
     expect(page.rows).toHaveLength(USED_BY_MAX_PAGE_SIZE);
     expect(page.rows[0]?.name).toBe("Monitor 100");
     expect(page.rowKind).toBe(UsedByRowKind.Monitor);

@@ -108,7 +108,10 @@ const UsedByGroups: FunctionComponent<{
             data-relation={group.relation}
           >
             <div className="flex items-baseline justify-between gap-3">
-              <h3 className="min-w-0 text-xs font-medium uppercase tracking-wide text-gray-500 hyphens-auto [overflow-wrap:anywhere]">
+              {/*
+               * In the case it is written: in capitals "SLOs" read "SLOS".
+               */}
+              <h3 className="min-w-0 text-xs font-semibold text-gray-500 hyphens-auto [overflow-wrap:anywhere]">
                 {title}
               </h3>
               <span

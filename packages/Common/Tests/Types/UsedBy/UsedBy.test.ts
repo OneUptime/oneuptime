@@ -22,6 +22,8 @@ import {
   normalizeUsedByPageSize,
   normalizeUsedBySkip,
 } from "../../../Types/UsedBy/UsedBy";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
+import { JSONObject } from "../../../Types/JSON";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -226,14 +228,39 @@ describe("the answers' shapes", () => {
     rowKind: UsedByRowKind.OnCallDutyPolicy,
     count: 1,
     hiddenCount: 0,
-    skip: 0,
-    limit: 50,
+    pageStart: 0,
+    pageSize: 50,
     rows: [{ id: "p", name: "Primary", detail: "Level 1" }],
   };
 
   test("a summary the server answers is read", () => {
     expect(isUsedBySummary(goodSummary)).toBe(true);
     expect(isUsedByPage(goodPage)).toBe(true);
+  });
+
+  /*
+   * The browser reads every answer through HTTPResponse, which takes one
+   * holding count, skip and limit for a list of models in `data`: a page
+   * once held all three, and See all failed with "array is not iterable".
+   */
+  test("a page and a summary read through HTTPResponse as the server sent them", () => {
+    const page: unknown = new HTTPResponse(
+      200,
+      goodPage as unknown as JSONObject,
+      {},
+    ).data;
+    const summary: unknown = new HTTPResponse(
+      200,
+      goodSummary as unknown as JSONObject,
+      {},
+    ).data;
+
+    expect(isUsedByPage(page)).toBe(true);
+    expect((page as UsedByPage).rows).toEqual(goodPage.rows);
+    expect(isUsedBySummary(summary)).toBe(true);
+    expect(Object.keys(goodPage)).not.toEqual(
+      expect.arrayContaining(["count", "skip", "limit"]),
+    );
   });
 
   test("anything else is an error to show, never a list to draw", () => {
@@ -274,7 +301,7 @@ describe("the answers' shapes", () => {
         groups: [{ ...goodSummary.groups[0], rowKind: "Thing" }],
       }),
     ).toBe(false);
-    expect(isUsedByPage({ ...goodPage, skip: -1 })).toBe(false);
+    expect(isUsedByPage({ ...goodPage, pageStart: -1 })).toBe(false);
     expect(isUsedByPage({ ...goodPage, rows: [{ id: "p" }] })).toBe(false);
     expect(
       isUsedByPage({ ...goodPage, rows: [{ id: "p", name: "x", detail: 3 }] }),

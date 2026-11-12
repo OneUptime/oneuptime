@@ -301,7 +301,13 @@ export interface UsedBySummary {
   groups: Array<UsedByGroup>;
 }
 
-// One page of one relation's rows.
+/*
+ * One page of one relation's rows. Where it starts and how long it is are
+ * pageStart and pageSize, never skip and limit: HTTPResponse reads an
+ * answer holding count, skip and limit as a list of models in `data`, and
+ * a page that held all three failed to read in the browser ("array is not
+ * iterable").
+ */
 export interface UsedByPage {
   recordKind: UsedByRecordKind;
   recordId: string;
@@ -309,8 +315,8 @@ export interface UsedByPage {
   rowKind: UsedByRowKind;
   count: number;
   hiddenCount: number;
-  skip: number;
-  limit: number;
+  pageStart: number;
+  pageSize: number;
   rows: Array<UsedByRow>;
 }
 
@@ -467,8 +473,8 @@ export function isUsedByPage(value: unknown): value is UsedByPage {
     Object.values(UsedByRowKind).includes(page.rowKind as UsedByRowKind) &&
     isNonNegativeInteger(page.count) &&
     isNonNegativeInteger(page.hiddenCount) &&
-    isNonNegativeInteger(page.skip) &&
-    isNonNegativeInteger(page.limit) &&
+    isNonNegativeInteger(page.pageStart) &&
+    isNonNegativeInteger(page.pageSize) &&
     isUsedByRows(page.rows)
   );
 }

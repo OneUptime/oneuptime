@@ -3303,8 +3303,8 @@ function usedBy(parsed) {
       ).rowKind,
       count: found.rows.length,
       hiddenCount: found.hiddenCount,
-      skip: skip,
-      limit: limit,
+      pageStart: skip,
+      pageSize: limit,
       rows: found.rows.slice(skip, skip + limit),
     };
   }

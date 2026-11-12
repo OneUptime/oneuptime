@@ -26,7 +26,6 @@ import {
   getUsedByRowKind,
   isUsedByNothing,
 } from "Common/Types/UsedBy/UsedBy";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ProductEvents from "Common/UI/Utils/ProductEvents";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -338,9 +337,11 @@ const UsedByDialog: FunctionComponent<ComponentProps> = (
         relation ? undefined : USED_BY_CARD_WORDS[props.recordKind].description
       }
       onClose={props.onClose}
-      submitButtonText={CLOSE}
-      submitButtonStyleType={ButtonStyleType.NORMAL}
-      onSubmit={props.onClose}
+      /*
+       * A list to read: its one button closes it (no Cancel beside a
+       * Close - two ways out), as do the header's X and Escape.
+       */
+      closeButtonText={CLOSE}
       modalWidth={ModalWidth.Medium}
     >
       <div data-testid="used-by-dialog">

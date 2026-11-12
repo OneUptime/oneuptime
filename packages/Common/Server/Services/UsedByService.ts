@@ -1117,8 +1117,8 @@ export class UsedByServiceClass {
       rowKind: description.rowKind,
       count: counts.count,
       hiddenCount: counts.hiddenCount,
-      skip: skip,
-      limit: limit,
+      pageStart: skip,
+      pageSize: limit,
       rows:
         counts.count > skip
           ? await this.findRows({

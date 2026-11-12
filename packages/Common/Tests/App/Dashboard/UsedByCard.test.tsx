@@ -607,8 +607,8 @@ describe("See all", () => {
       rowKind: UsedByRowKind.StatusPage,
       count: 120,
       hiddenCount: 5,
-      skip: 0,
-      limit: USED_BY_PAGE_SIZE,
+      pageStart: 0,
+      pageSize: USED_BY_PAGE_SIZE,
       rows: [],
       ...data,
     };
@@ -626,7 +626,9 @@ describe("See all", () => {
       ]),
     );
     getPage.mockResolvedValueOnce(page({ rows: manyRows(0, 50) }));
-    getPage.mockResolvedValueOnce(page({ skip: 50, rows: manyRows(50, 50) }));
+    getPage.mockResolvedValueOnce(
+      page({ pageStart: 50, rows: manyRows(50, 50) }),
+    );
     renderCard();
 
     fireEvent.click(await screen.findByTestId("used-by-see-all"));
