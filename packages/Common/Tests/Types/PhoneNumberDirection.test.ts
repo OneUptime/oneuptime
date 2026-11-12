@@ -100,9 +100,7 @@ describe("a phone number in a line that can only be text", () => {
     "on a page read right to left (%s) it is set apart in an isolate that reads left to right",
     (language: string) => {
       expect(phoneNumberInLine(UK, language)).toBe(`${LRI}${UK}${PDI}`);
-      expect(phoneNumberInLine(MASKED, language)).toBe(
-        `${LRI}${MASKED}${PDI}`,
-      );
+      expect(phoneNumberInLine(MASKED, language)).toBe(`${LRI}${MASKED}${PDI}`);
       // What it says is the number, as it was.
       expect(withoutIsolateMarks(phoneNumberInLine(UK, language))).toBe(UK);
     },

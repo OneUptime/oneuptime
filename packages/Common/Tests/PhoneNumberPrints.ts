@@ -380,12 +380,11 @@ export function listPhoneNumberScanFiles(): Array<string> {
 export function scanPhoneNumberPrints(): Array<PhoneNumberPrintFinding> {
   return listPhoneNumberScanFiles().flatMap(
     (file: string): Array<PhoneNumberPrintFinding> => {
-      return findPhoneNumberPrintSites(
-        file,
-        fs.readFileSync(file, "utf8"),
-      ).map((site: PhoneNumberPrintSite): PhoneNumberPrintFinding => {
-        return { ...site, file: toRelativePath(REPOSITORY_ROOT, file) };
-      });
+      return findPhoneNumberPrintSites(file, fs.readFileSync(file, "utf8")).map(
+        (site: PhoneNumberPrintSite): PhoneNumberPrintFinding => {
+          return { ...site, file: toRelativePath(REPOSITORY_ROOT, file) };
+        },
+      );
     },
   );
 }
