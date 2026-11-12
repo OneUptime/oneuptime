@@ -51,6 +51,11 @@ section says how to title a change.
 The example is 14.0.106; use the next patch version after the latest GitHub
 release (`gh release list --limit 1`).
 
+Once the release branch is cut, someone who has not seen its changes walks it
+as a newcomer, as [Docs/ux/newcomer-walkthrough.md](Docs/ux/newcomer-walkthrough.md)
+says, and posts the result on the epic #6802. The walk never holds the release
+back: what it finds is filed as issues for a later release.
+
 ### 1. Cut the release branch from `main`
 
 ```bash
