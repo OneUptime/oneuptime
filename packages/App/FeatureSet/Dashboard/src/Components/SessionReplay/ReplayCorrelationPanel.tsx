@@ -885,7 +885,7 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
   const endUserValue: string =
     d.identifiedUserLabel === null
       ? translator.translateTemplate(
-          'Not shown - seeing who this is needs the "{{permission}}" permission',
+          'Hidden - your role needs the "{{permission}}" permission',
           { permission: getSessionReplayIdentityPermissionTitle() },
         )
       : d.identifiedUserLabel ||

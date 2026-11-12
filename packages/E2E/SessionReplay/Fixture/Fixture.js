@@ -33,6 +33,12 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import User from "Common/UI/Utils/User";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import { setPageLanguage } from "Common/UI/Utils/PageLanguage";
+import { setCodeApartInSentence } from "Common/Types/CodeInSentence";
+import {
+  CODE_READS_AS_WRITTEN_POST_PROCESSOR,
+  codeReadsAsWrittenPostProcessor,
+  setCodeApartWith,
+} from "Common/UI/Utils/CodeReadsAsWritten";
 
 // Actual routed pages, shared components, manifest parsing, binary chunk decoding,
 // and the lazy rrweb Replayer all execute. Only API/user boundaries are replaced.
@@ -1764,12 +1770,22 @@ if (language !== "en") {
   }
 }
 setPageLanguage(language);
-await i18next.use(initReactI18next).init({
-  lng: language,
-  fallbackLng: "en",
-  resources,
-  interpolation: { escapeValue: false },
-});
+/*
+ * As the Dashboard's i18n set-up does: code in an Arabic or Persian sentence
+ * ("identify()", "/checkout") set apart as it is handed to the page, so it
+ * reads as written here too (Common/UI/Utils/CodeReadsAsWritten).
+ */
+setCodeApartWith(setCodeApartInSentence);
+await i18next
+  .use(initReactI18next)
+  .use(codeReadsAsWrittenPostProcessor)
+  .init({
+    postProcess: [CODE_READS_AS_WRITTEN_POST_PROCESSOR],
+    lng: language,
+    fallbackLng: "en",
+    resources,
+    interpolation: { escapeValue: false },
+  });
 function FixtureLayout() {
   Navigation.setNavigateHook(useNavigate());
   Navigation.setLocation(useLocation());

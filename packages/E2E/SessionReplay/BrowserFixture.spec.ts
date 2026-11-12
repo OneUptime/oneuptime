@@ -2292,6 +2292,71 @@ const openPlayerIn: (page: Page, query: string) => Promise<void> = async (
  * the element painted at each of its corners is the picker itself, not
  * whatever an ancestor's overflow left there.
  */
+interface TabPageAsDrawn {
+  text: string;
+  readsAsWritten: boolean;
+}
+/*
+ * Each tab's page as the strip and the picker draw it, and whether its
+ * slash is drawn left of the letter after it, as "/cart" is written. On an
+ * Arabic or Persian page, laid out the page's way, it came out as "cart/".
+ * Pages hidden at this width (the pills' below sm) are left out.
+ */
+const tabPagesAsDrawn: (page: Page) => Promise<Array<TabPageAsDrawn>> = async (
+  page: Page,
+): Promise<Array<TabPageAsDrawn>> => {
+  return page
+    .getByTestId("replay-tab-switcher")
+    .evaluate((switcher: HTMLElement): Array<TabPageAsDrawn> => {
+      const drawn: Array<TabPageAsDrawn> = [];
+
+      for (const element of Array.from(
+        switcher.querySelectorAll<HTMLElement>(
+          '[data-testid="replay-tab-pill-page"], [data-testid="replay-tab-option-page"]',
+        ),
+      )) {
+        const walker: TreeWalker = document.createTreeWalker(
+          element,
+          NodeFilter.SHOW_TEXT,
+        );
+
+        for (
+          let node: Node | null = walker.nextNode();
+          node;
+          node = walker.nextNode()
+        ) {
+          const text: string = node.textContent || "";
+          const slash: number = text.indexOf("/");
+
+          if (slash < 0 || slash + 1 >= text.length) {
+            continue;
+          }
+
+          const boxOfCharacter: (index: number) => DOMRect = (
+            index: number,
+          ): DOMRect => {
+            const range: Range = document.createRange();
+
+            range.setStart(node as Node, index);
+            range.setEnd(node as Node, index + 1);
+
+            return range.getBoundingClientRect();
+          };
+          const slashBox: DOMRect = boxOfCharacter(slash);
+          const letterBox: DOMRect = boxOfCharacter(slash + 1);
+
+          if (slashBox.width > 0 && letterBox.width > 0) {
+            drawn.push({
+              text: text.trim(),
+              readsAsWritten: slashBox.x < letterBox.x,
+            });
+          }
+        }
+      }
+
+      return drawn;
+    });
+};
 for (const language of ["de", "ar", "fa"]) {
   test(`the tab picker opens inside the page in ${language}, at a laptop's width and a phone's`, async ({
     page,
@@ -2361,6 +2426,22 @@ for (const language of ["de", "ar", "fa"]) {
         width,
         painted: [true, true],
       });
+
+      /*
+       * Every page the strip and the picker name reads "/cart", in Arabic
+       * and Persian too (each in an isolate of its own), at both widths.
+       */
+      const pagesDrawn: Array<TabPageAsDrawn> = await tabPagesAsDrawn(page);
+
+      expect(pagesDrawn.length).toBeGreaterThanOrEqual(7);
+      expect({
+        language,
+        width,
+        reversed: pagesDrawn.filter((drawn: TabPageAsDrawn): boolean => {
+          return !drawn.readsAsWritten;
+        }),
+      }).toEqual({ language, width, reversed: [] });
+
       await expectNoSidewaysScroll(page, { tolerance: 1 });
       await screenshot(page, `session-replay-tab-picker-${language}-${width}`);
     }
@@ -2448,9 +2529,9 @@ test("a Persian reader reads every tab's number, opening and counts in Persian d
  * in each language's words and quotes.
  */
 const IDENTITY_TOOLTIP: string =
-  'Seeing who this end user is needs the "{{permission}}" permission.';
+  'Your role cannot read end-user identity. Ask a project admin for the "{{permission}}" permission.';
 const IDENTITY_ROW: string =
-  'Not shown - seeing who this is needs the "{{permission}}" permission';
+  'Hidden - your role needs the "{{permission}}" permission';
 const IDENTITY_HINT: string =
   'The exact reference your page passed to identify(). Needs the "{{permission}}" permission; never written to the URL.';
 
@@ -2521,6 +2602,50 @@ test("the User filter's hint names the grant that shows who a session belongs to
 
     expect(hint).toBe(wordedIn(language, IDENTITY_HINT));
     expect(hint).not.toContain("identity permission");
+
+    /*
+     * "identify()" is drawn as it is written, its brackets after its name,
+     * on the Persian page too: the fixture sets code in an Arabic or
+     * Persian sentence apart as the Dashboard does.
+     */
+    const bracketAfterName: boolean = await row
+      .locator("p")
+      .first()
+      .evaluate((paragraph: HTMLElement): boolean => {
+        const walker: TreeWalker = document.createTreeWalker(
+          paragraph,
+          NodeFilter.SHOW_TEXT,
+        );
+
+        for (
+          let node: Node | null = walker.nextNode();
+          node;
+          node = walker.nextNode()
+        ) {
+          const at: number = (node.textContent || "").indexOf("identify()");
+
+          if (at >= 0) {
+            const xOf: (index: number) => number = (index: number): number => {
+              const range: Range = document.createRange();
+
+              range.setStart(node as Node, index);
+              range.setEnd(node as Node, index + 1);
+
+              return range.getBoundingClientRect().x;
+            };
+
+            // The "y" of identify, then its "(".
+            return xOf(at + 7) < xOf(at + 8);
+          }
+        }
+
+        return false;
+      });
+
+    expect({ language, bracketAfterName }).toEqual({
+      language,
+      bracketAfterName: true,
+    });
     await screenshot(page, `session-replay-filter-user-hint-${language}`);
   }
 });

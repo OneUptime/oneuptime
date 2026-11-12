@@ -9,6 +9,8 @@ import React, {
   useState,
 } from "react";
 import Icon from "Common/UI/Components/Icon/Icon";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import IconProp from "Common/Types/Icon/IconProp";
 import useComponentOutsideClick from "Common/UI/Types/UseComponentOutsideClick";
 import {
@@ -707,8 +709,19 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
         <span className="shrink-0">
           {describeReplayTabName(tab, translator)}
         </span>
+        {/*
+         * The page is the end user's address, read left to right on every
+         * page: on an Arabic or Persian one, drawn the page's way, "/cart"
+         * came out as "cart/" (IsolatedText keeps it as written).
+         */}
         {page !== REPLAY_TAB_UNKNOWN_PAGE && (
-          <span className="max-sm:hidden max-w-[12rem] truncate sm:inline">{`${separator}${page}`}</span>
+          <span
+            data-testid="replay-tab-pill-page"
+            className="max-sm:hidden max-w-[12rem] truncate sm:inline"
+          >
+            {separator}
+            <IsolatedText text={page} />
+          </span>
         )}
         <span className="shrink-0 whitespace-nowrap">{`${separator}${describeReplayTabDuration(
           tab,
@@ -777,18 +790,34 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
           <span className="shrink-0 text-xs font-medium text-gray-900">
             {describeReplayTabName(tab, translator)}
           </span>
-          <span
+          {/*
+           * The page in its own direction: "/cart" on an Arabic or Persian
+           * page too, beside the tab's name, cut short at its own end
+           * (IsolatedLine). "Unknown page" is the page's own words.
+           */}
+          <IsolatedLine
+            as="span"
+            dataTestId="replay-tab-option-page"
+            text={
+              page === REPLAY_TAB_UNKNOWN_PAGE
+                ? translator.translateText(REPLAY_TAB_UNKNOWN_PAGE) || page
+                : page
+            }
             className="min-w-0 flex-1 truncate text-xs text-gray-600"
             title={url.length > 0 ? url : undefined}
-          >
-            {page === REPLAY_TAB_UNKNOWN_PAGE
-              ? translator.translateText(REPLAY_TAB_UNKNOWN_PAGE)
-              : page}
-          </span>
+          />
           {opened !== null && (
             <span className="shrink-0 text-[11px] text-gray-500">{opened}</span>
           )}
-          <span className="shrink-0 font-mono text-[11px] tabular-nums text-gray-600">
+          {/*
+           * Words, not a clock ("1m 30s", "۳۰ ثانیه"): in the row's own
+           * font, as the strip draws them. A monospace font laid Persian
+           * and Arabic letters out one per cell, unjoined.
+           */}
+          <span
+            data-testid="replay-tab-option-duration"
+            className="shrink-0 text-[11px] tabular-nums text-gray-600"
+          >
             {describeReplayTabDuration(tab, translator)}
           </span>
           {errorCount > 0 && (

@@ -211,8 +211,8 @@ const TELEMETRY_API: string = path.join(
 
 // The three lines, as en.json keys them.
 const IDENTITY_HIDDEN_SENTENCES: ReadonlyArray<string> = [
-  'Not shown - seeing who this is needs the "{{permission}}" permission',
-  'Seeing who this end user is needs the "{{permission}}" permission.',
+  'Hidden - your role needs the "{{permission}}" permission',
+  'Your role cannot read end-user identity. Ask a project admin for the "{{permission}}" permission.',
   'The exact reference your page passed to identify(). Needs the "{{permission}}" permission; never written to the URL.',
 ];
 
@@ -533,21 +533,66 @@ describe("no Session Replay line names the identity permission", () => {
     }
   });
 
+  /*
+   * The header's tooltip says why and what to do, in the words the filter
+   * dialog already uses when the same role types a user: it ends with that
+   * dialog's request to a project admin, word for word, in every language,
+   * so the two never ask for the grant two different ways.
+   */
+  test("the header's tooltip asks a project admin for the grant exactly as the filter dialog does", () => {
+    const tooltip: string = IDENTITY_HIDDEN_SENTENCES[1] as string;
+    const filterLine: string =
+      'Your role cannot read end-user identity, so this filter is ignored by the server. Ask a project admin for the "{{permission}}" permission.';
+    const ask: string = 'Ask a project admin for the "{{permission}}" permission.';
+
+    expect(tooltip.endsWith(` ${ask}`)).toBe(true);
+    expect(filterLine.endsWith(` ${ask}`)).toBe(true);
+
+    for (const language of ["en", ...LANGUAGES]) {
+      const locale: Record<string, string> = readLocale(language);
+      const wordedTooltip: string = locale[tooltip] || "";
+      const wordedFilterLine: string = locale[filterLine] || "";
+
+      // The longest ending the two share.
+      let shared: number = 0;
+
+      while (
+        shared < Math.min(wordedTooltip.length, wordedFilterLine.length) &&
+        wordedTooltip[wordedTooltip.length - 1 - shared] ===
+          wordedFilterLine[wordedFilterLine.length - 1 - shared]
+      ) {
+        shared += 1;
+      }
+
+      const sharedEnding: string = wordedTooltip.slice(
+        wordedTooltip.length - shared,
+      );
+
+      expect({
+        language,
+        asksForTheGrant: sharedEnding.includes("{{permission}}"),
+        // More than the placeholder and its quotes: the request itself.
+        isTheWholeRequest:
+          sharedEnding.replace("{{permission}}", "").trim().length >= 8,
+      }).toEqual({ language, asksForTheGrant: true, isTheWholeRequest: true });
+    }
+  });
+
   test.each([
     [
       "German",
       "de",
       [
-        "Nicht angezeigt - um zu sehen, wer das ist, ist die Berechtigung „Watch Session Replays“ erforderlich",
-        "Um zu sehen, wer dieser Endbenutzer ist, ist die Berechtigung „Watch Session Replays“ erforderlich.",
+        "Ausgeblendet - Ihrer Rolle fehlt die Berechtigung „Watch Session Replays“",
+        "Ihre Rolle kann keine Endbenutzeridentitäten lesen. Bitten Sie einen Projektadministrator um die Berechtigung „Watch Session Replays“.",
       ],
     ],
     [
       "English",
       "en",
       [
-        'Not shown - seeing who this is needs the "Watch Session Replays" permission',
-        'Seeing who this end user is needs the "Watch Session Replays" permission.',
+        'Hidden - your role needs the "Watch Session Replays" permission',
+        'Your role cannot read end-user identity. Ask a project admin for the "Watch Session Replays" permission.',
       ],
     ],
   ])(

@@ -415,9 +415,13 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
 
   if (props.identity.label === null) {
     identityText = translateLine("Identity hidden");
-    // The grant that shows it, by the title the roles screen lists (#7096).
+    /*
+     * Why, and the one thing to do about it: the grant that shows it, by
+     * the title the roles screen lists (#7096), asked of a project admin
+     * as the server's own refusal and the filter dialog put it.
+     */
     identityTitle = translator.translateTemplate(
-      'Seeing who this end user is needs the "{{permission}}" permission.',
+      'Your role cannot read end-user identity. Ask a project admin for the "{{permission}}" permission.',
       { permission: getSessionReplayIdentityPermissionTitle() },
     );
     identityClassName = "text-gray-500";

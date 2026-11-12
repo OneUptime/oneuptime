@@ -60,9 +60,9 @@ const WATCH: string = PermissionHelper.getTitle(
 
 // The three lines in English, and the English they replaced.
 const ROW_SENTENCE: string =
-  'Not shown - seeing who this is needs the "{{permission}}" permission';
+  'Hidden - your role needs the "{{permission}}" permission';
 const TOOLTIP_SENTENCE: string =
-  'Seeing who this end user is needs the "{{permission}}" permission.';
+  'Your role cannot read end-user identity. Ask a project admin for the "{{permission}}" permission.';
 const HINT_SENTENCE: string =
   'The exact reference your page passed to identify(). Needs the "{{permission}}" permission; never written to the URL.';
 
@@ -237,10 +237,10 @@ describe("the lines that say the identity is hidden name Watch Session Replays",
     const lines: { row: string; tooltip: string; hint: string } = drawnLines();
 
     expect(lines.row).toContain(
-      'Not shown - seeing who this is needs the "Watch Session Replays" permission',
+      'Hidden - your role needs the "Watch Session Replays" permission',
     );
     expect(lines.tooltip).toBe(
-      'Seeing who this end user is needs the "Watch Session Replays" permission.',
+      'Your role cannot read end-user identity. Ask a project admin for the "Watch Session Replays" permission.',
     );
     expect(lines.hint).toBe(
       'The exact reference your page passed to identify(). Needs the "Watch Session Replays" permission; never written to the URL.',
