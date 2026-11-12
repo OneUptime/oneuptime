@@ -17030,7 +17030,6 @@
   "The environment key has an empty account segment": "La clé d'environnement a un segment de compte vide",
   "The error cause referred back to an earlier error.": "The error cause referred back to an earlier error.",
   "The exact docker-compose.yml and otel-collector-config.yaml the agent runs.": "Les fichiers docker-compose.yml et otel-collector-config.yaml exacts qu'exécute l'agent.",
-  "The exact reference your page passed to identify(). Needs the end-user identity permission; never written to the URL.": "La référence exacte que votre page a transmise à identify(). Nécessite l'autorisation d'identité de l'utilisateur final ; n'est jamais écrite dans l'URL.",
   "The exporter returns 401 or 595 errors": "The exporter returns 401 or 595 errors",
   "The field ends with the value.": "Le champ se termine par la valeur.",
   "The field matches a regular expression (RE2 syntax).": "Le champ correspond à une expression régulière (syntaxe RE2).",
@@ -47998,7 +47997,6 @@
   "None: every element is recorded (subject to masking)": "Aucun : chaque élément est enregistré (sous réserve du masquage)",
   "None: every uncaught error can trigger an upload": "Aucun : toute erreur non interceptée peut déclencher un envoi",
   "None: no cross-origin request gets a traceparent": "Aucune : aucune requête cross-origin ne reçoit de traceparent",
-  "Not shown - viewing identity needs the identity permission": "Non affiché - l'affichage de l'identité nécessite l'autorisation d'identité",
   "Nothing arrives until a page calls OneUptimeReplay.grantConsent(). Grant consent on an instrumented page, then reload.": "Rien n'arrive tant qu'une page n'appelle pas OneUptimeReplay.grantConsent(). Accordez le consentement sur une page instrumentée, puis rechargez.",
   "Nothing can arrive while sampling is 0%.": "Rien ne peut arriver tant que l'échantillonnage est à 0 %.",
   "Nothing is broken or late right now.": "Rien n'est cassé ni en retard en ce moment.",
@@ -48162,7 +48160,6 @@
   "The data broke this check, and its alert is open.": "Les données ont fait échouer cette vérification, et son alerte est ouverte.",
   "The deployment is serving a bad recorder version; only the operator of this deployment can fix that.": "Le déploiement sert une version défectueuse de l'enregistreur ; seul l'opérateur de ce déploiement peut corriger cela.",
   "The drop counter store was unreachable; this is not the same as zero.": "Le stockage des compteurs d'abandons était injoignable ; ce n'est pas la même chose que zéro.",
-  "The end user's identity needs the identity permission to view.": "L'affichage de l'identité de l'utilisateur final nécessite l'autorisation d'identité.",
   "The end-to-end path works: a recorder on your site reached this server and its chunk was accepted.": "Le chemin de bout en bout fonctionne : un enregistreur de votre site a atteint ce serveur et son segment a été accepté.",
   "The health request failed, so nothing here says whether recording works. It retries on its own; the next poll may succeed.": "La requête d'état a échoué : rien ici n'indique donc si l'enregistrement fonctionne. Elle est relancée automatiquement ; la prochaine interrogation peut réussir.",
   "The health status could not be loaded, so nothing here says whether recording works. Reload to try again.": "L'état n'a pas pu être chargé : rien ici n'indique donc si l'enregistrement fonctionne. Rechargez la page pour réessayer.",
@@ -51241,5 +51238,10 @@
   "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "Réessayez. Si l'échec persiste, transmettez cette référence à la personne qui administre votre serveur OneUptime :",
   "A status page you can't see": "Une page de statut que vous ne pouvez pas voir",
   "It emails the owners added by owner rules ({{names}}).": "Il envoie un e-mail aux propriétaires ajoutés par les règles de propriétaire ({{names}}).",
-  "It emails the owners added by owner rules.": "Il envoie un e-mail aux propriétaires ajoutés par les règles de propriétaire."
+  "It emails the owners added by owner rules.": "Il envoie un e-mail aux propriétaires ajoutés par les règles de propriétaire.",
+  "Hidden - your role needs the \"{{permission}}\" permission": "Masqué - votre rôle a besoin de l'autorisation « {{permission}} »",
+  "Your role cannot read end-user identity. Ask a project admin for the \"{{permission}}\" permission.": "Votre rôle ne peut pas lire l'identité de l'utilisateur final. Demandez à un administrateur du projet l'autorisation « {{permission}} ».",
+  "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.": "La référence exacte que votre page a transmise à identify(). Nécessite l'autorisation « {{permission}} » ; n'est jamais écrite dans l'URL.",
+  "That turn is not part of this task": "Ce tour ne fait pas partie de cette tâche",
+  "The task's first turn is shown instead.": "Le premier tour de la tâche est affiché à la place."
 }

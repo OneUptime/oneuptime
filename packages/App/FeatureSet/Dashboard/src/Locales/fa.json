@@ -17030,7 +17030,6 @@
   "The environment key has an empty account segment": "بخش حساب در کلید محیط خالی است",
   "The error cause referred back to an earlier error.": "علت خطا به یک خطای قبلی برمی‌گشت.",
   "The exact docker-compose.yml and otel-collector-config.yaml the agent runs.": "فایل‌های docker-compose.yml و otel-collector-config.yaml دقیقی که عامل اجرا می‌کند.",
-  "The exact reference your page passed to identify(). Needs the end-user identity permission; never written to the URL.": "همان مرجعی که صفحه شما به identify() داد. به دسترسی هویت کاربر نهایی نیاز دارد؛ هرگز در نشانی نوشته نمی‌شود.",
   "The exporter returns 401 or 595 errors": "صادرکننده خطاهای 401 یا 595 برمی‌گرداند",
   "The field ends with the value.": "فیلد با مقدار تمام می‌شود.",
   "The field matches a regular expression (RE2 syntax).": "فیلد با یک عبارت باقاعده منطبق است (نحو RE2).",
@@ -47998,7 +47997,6 @@
   "None: every element is recorded (subject to masking)": "هیچ: همه عناصر ضبط می‌شوند (با رعایت پوشاندن)",
   "None: every uncaught error can trigger an upload": "هیچ: هر خطای گرفته‌نشده می‌تواند بارگذاری را آغاز کند",
   "None: no cross-origin request gets a traceparent": "هیچ: هیچ درخواست بین‌مبدأ traceparent دریافت نمی‌کند",
-  "Not shown - viewing identity needs the identity permission": "نمایش داده نمی‌شود؛ دیدن هویت به دسترسی هویت نیاز دارد",
   "Nothing arrives until a page calls OneUptimeReplay.grantConsent(). Grant consent on an instrumented page, then reload.": "تا وقتی صفحه‌ای OneUptimeReplay.grantConsent() را فراخوانی نکند، چیزی نمی‌رسد. در یک صفحه ابزارگذاری‌شده رضایت بدهید، سپس صفحه را دوباره بارگذاری کنید.",
   "Nothing can arrive while sampling is 0%.": "تا وقتی نمونه‌گیری ۰٪ است، چیزی نمی‌تواند برسد.",
   "Nothing is broken or late right now.": "اکنون هیچ چیز خراب یا دیر نیست.",
@@ -48162,7 +48160,6 @@
   "The data broke this check, and its alert is open.": "داده این بررسی را نقض کرده و هشدارش باز است.",
   "The deployment is serving a bad recorder version; only the operator of this deployment can fix that.": "این استقرار نسخه نامعتبری از ضبط‌کننده ارائه می‌دهد؛ فقط گرداننده این استقرار می‌تواند آن را برطرف کند.",
   "The drop counter store was unreachable; this is not the same as zero.": "انباره شمارنده حذف‌ها در دسترس نبود؛ این با صفر یکی نیست.",
-  "The end user's identity needs the identity permission to view.": "دیدن هویت کاربر نهایی به دسترسی هویت نیاز دارد.",
   "The end-to-end path works: a recorder on your site reached this server and its chunk was accepted.": "مسیر سرتاسری کار می‌کند: یک ضبط‌کننده روی سایت شما به این سرور رسید و قطعه‌اش پذیرفته شد.",
   "The health request failed, so nothing here says whether recording works. It retries on its own; the next poll may succeed.": "درخواست سلامت ناموفق بود، پس اینجا چیزی نشان نمی‌دهد که ضبط کار می‌کند یا نه. خودش دوباره تلاش می‌کند؛ شاید بررسی دوره‌ای بعدی موفق شود.",
   "The health status could not be loaded, so nothing here says whether recording works. Reload to try again.": "وضعیت سلامت بارگذاری نشد، پس اینجا چیزی نشان نمی‌دهد که ضبط کار می‌کند یا نه. برای تلاش دوباره، صفحه را دوباره بارگذاری کنید.",
@@ -51241,5 +51238,10 @@
   "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "دوباره امتحان کنید. اگر باز هم نشد، این شناسه را به کسی بدهید که سرور OneUptime شما را اداره می‌کند:",
   "A status page you can't see": "صفحه وضعیتی که نمی‌توانید ببینید",
   "It emails the owners added by owner rules ({{names}}).": "به مالکانی که قواعد مالکیت اضافه می‌کنند ایمیل می‌زند ({{names}}).",
-  "It emails the owners added by owner rules.": "به مالکانی که قواعد مالکیت اضافه می‌کنند ایمیل می‌زند."
+  "It emails the owners added by owner rules.": "به مالکانی که قواعد مالکیت اضافه می‌کنند ایمیل می‌زند.",
+  "Hidden - your role needs the \"{{permission}}\" permission": "پنهان؛ نقش شما به مجوز «{{permission}}» نیاز دارد",
+  "Your role cannot read end-user identity. Ask a project admin for the \"{{permission}}\" permission.": "نقش شما نمی‌تواند هویت کاربر نهایی را بخواند. مجوز «{{permission}}» را از یک مدیر پروژه بخواهید.",
+  "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.": "همان مرجعی که صفحه شما به identify() داد. به مجوز «{{permission}}» نیاز دارد؛ هرگز در نشانی نوشته نمی‌شود.",
+  "That turn is not part of this task": "آن نوبت بخشی از این وظیفه نیست",
+  "The task's first turn is shown instead.": "به جای آن، نخستین نوبت وظیفه نمایش داده می‌شود."
 }
