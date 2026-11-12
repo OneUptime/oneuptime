@@ -16,7 +16,14 @@ import OpenStackCloudService from "../../../Server/Services/OpenStackCloudServic
 import Encryption from "../../../Server/Utils/Encryption";
 import logger from "../../../Server/Utils/Logger";
 import OpenStackCloudConnection from "../../../Server/Utils/OpenStack/OpenStackCloudConnection";
-import { OpenStackCollectionReportOutcome } from "../../../Server/Utils/OpenStack/OpenStackProbeCollectionStore";
+import OpenStackProbeCollectionStore, {
+  OpenStackCollectionReportOutcome,
+} from "../../../Server/Utils/OpenStack/OpenStackProbeCollectionStore";
+import {
+  createReferencingTable,
+  expectClaimLocksHoldOnlyTheRow,
+  expectHeldRowSkipped,
+} from "../TestingUtils/Postgres/ClaimRowLocks";
 import { Gray500 } from "../../../Types/BrandColors";
 import SubscriptionStatus from "../../../Types/Billing/SubscriptionStatus";
 import ObjectID from "../../../Types/ObjectID";
@@ -34,8 +41,9 @@ import { DataSource } from "typeorm";
 
 /*
  * Probe collection's hand-written SQL against a real Postgres: the probe's claim of the clouds
- * it collects (FOR UPDATE SKIP LOCKED, its tenancy backstop, the subscription rule), what a
- * report writes, the settings version bump a settings change makes, and the connection tests'
+ * it collects (one statement, FOR NO KEY UPDATE SKIP LOCKED, its interval rule, its tenancy
+ * backstop, the subscription rule, and the locks it holds), what a report writes, the settings
+ * version bump a settings change makes, and the connection tests'
  * claim, report and expiry, each keyed on the probe. The unit suites pin the statements' text,
  * and this runs them.
  *
@@ -111,6 +119,8 @@ describePostgres("OpenStack probe collection SQL against Postgres", () => {
     .toString()
     .replace(DASHES, "")}`;
   let database: DataSource;
+  // Rows that name a cloud by a foreign key, as an incident or a feed entry does.
+  let referencingTable: string;
 
   const projectId: ObjectID = ObjectID.generate();
   const otherProjectId: ObjectID = ObjectID.generate();
@@ -165,6 +175,12 @@ describePostgres("OpenStack probe collection SQL against Postgres", () => {
         `ALTER TABLE "${schema}"."${column.table_name}" ALTER COLUMN "${column.column_name}" DROP NOT NULL`,
       );
     }
+
+    referencingTable = await createReferencingTable({
+      database: database,
+      schema: schema,
+      parentTable: "OpenStackCloud",
+    });
 
     expect(
       (await database.query("SELECT current_schema()"))[0].current_schema,
@@ -633,6 +649,126 @@ describePostgres("OpenStack probe collection SQL against Postgres", () => {
       const handedOut: Array<string> = [...idsOf(left!), ...idsOf(right!)];
       expect(new Set(handedOut).size).toBe(handedOut.length);
       expect([...handedOut].sort()).toEqual([...ids.slice(2)].sort());
+    });
+
+    /*
+     * The claim moves each cloud on in SQL now, by getSafeInterval's rule:
+     * none or not positive is the default, otherwise 1 to 60 minutes. The
+     * job is handed the same interval the row is moved by.
+     */
+    test("moves each claimed cloud's next collection by its own interval, held to getSafeInterval's bounds", async () => {
+      // [interval stored, minutes to the next collection]
+      const intervals: Array<[number | null, number]> = [
+        [null, 2],
+        [-3, 2],
+        [0, 2],
+        [1, 1],
+        [2, 2],
+        [7, 7],
+        [59, 59],
+        [60, 60],
+        [61, 60],
+        [500, 60],
+      ];
+      const ids: Array<ObjectID> = [];
+
+      for (const [index, [stored]] of intervals.entries()) {
+        ids.push(
+          await insertCloud({
+            nextCollectionAt: minutesFromNow(-30 + index),
+            intervalInMinutes: stored,
+          }),
+        );
+      }
+
+      const before: number = Date.now();
+      const jobs: Array<OpenStackCollectionJob> =
+        await OpenStackCloudService.claimForCollection({
+          probeId: probeId,
+          runningOpenStackCloudIds: [],
+          limit: 20,
+        });
+      const after: number = Date.now();
+
+      expect(idsOf(jobs)).toEqual(
+        ids.map((id: ObjectID): string => {
+          return id.toString();
+        }),
+      );
+
+      for (const [index, [stored, minutes]] of intervals.entries()) {
+        expect([
+          stored,
+          OpenStackProbeCollectionStore.getSafeInterval(stored),
+          jobs[index]!.collectionIntervalInMinutes,
+        ]).toEqual([stored, minutes, minutes]);
+
+        // The claim read its clock between before and after.
+        const next: number = (
+          await readCloud(ids[index]!)
+        ).nextCollectionAt!.getTime();
+        expect([stored, Math.round((next - before) / 60_000)]).toEqual([
+          stored,
+          minutes,
+        ]);
+        expect(next).toBeGreaterThanOrEqual(before + minutes * 60_000);
+        expect(next).toBeLessThanOrEqual(after + minutes * 60_000);
+      }
+    });
+
+    test("a cloud another writer holds is skipped, not waited for, and is handed out once it is free", async () => {
+      const held: ObjectID = await insertCloud({
+        nextCollectionAt: minutesFromNow(-9),
+      });
+      const free: Array<ObjectID> = [
+        await insertCloud({ nextCollectionAt: minutesFromNow(-8) }),
+        await insertCloud({ nextCollectionAt: minutesFromNow(-7) }),
+      ];
+
+      await expectHeldRowSkipped({
+        database: database,
+        schema: schema,
+        table: "OpenStackCloud",
+        held: held,
+        free: free,
+        claim: async (): Promise<Array<string>> => {
+          return idsOf(
+            await OpenStackCloudService.claimForCollection({
+              probeId: probeId,
+              runningOpenStackCloudIds: [],
+              limit: 10,
+            }),
+          );
+        },
+      });
+    });
+
+    /*
+     * The failure OneUptime issue #7194 reported, at its root: a claim held
+     * every cloud it handed out FOR UPDATE for a whole transaction, and
+     * every row that names one - an incident, an alert, a feed entry -
+     * waited for it, past lock_timeout on a busy database.
+     */
+    test("while a claim's row locks are held, a row that names the cloud is still written; only the cloud row itself waits", async () => {
+      const cloud: ObjectID = await insertCloud({});
+
+      await expectClaimLocksHoldOnlyTheRow({
+        database: database,
+        schema: schema,
+        service: OpenStackCloudService,
+        table: "OpenStackCloud",
+        referencingTable: referencingTable,
+        id: cloud,
+        claim: async (): Promise<Array<string>> => {
+          return idsOf(
+            await OpenStackCloudService.claimForCollection({
+              probeId: probeId,
+              runningOpenStackCloudIds: [],
+              limit: 10,
+            }),
+          );
+        },
+      });
     });
   });
 
