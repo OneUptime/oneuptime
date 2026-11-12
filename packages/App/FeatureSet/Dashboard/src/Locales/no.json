@@ -25054,7 +25054,7 @@
   "Alert {{number}}": "Varsel {{number}}",
   "Alert {{number}}: {{title}}": "Varsel {{number}}: {{title}}",
   "Incident {{number}}: {{title}}": "Hendelse {{number}}: {{title}}",
-  "Open monitor": "Åpne overvåking",
+  "Open monitor": "Åpne monitor",
   "{{count}} alerts created in the last {{days}} days were not investigated.": "{{count}} varsler opprettet de siste {{days}} dagene ble ikke undersøkt.",
   "{{count}} alerts created in the last {{days}} days were not investigated._one": "{{count}} varsel opprettet de siste {{days}} dagene ble ikke undersøkt.",
   "{{count}} incidents created in the last {{days}} days were not investigated.": "{{count}} hendelser opprettet de siste {{days}} dagene ble ikke undersøkt.",

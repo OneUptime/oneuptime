@@ -25054,7 +25054,7 @@
   "Alert {{number}}": "Larm {{number}}",
   "Alert {{number}}: {{title}}": "Larm {{number}}: {{title}}",
   "Incident {{number}}: {{title}}": "Incident {{number}}: {{title}}",
-  "Open monitor": "Öppna övervakning",
+  "Open monitor": "Öppna monitor",
   "{{count}} alerts created in the last {{days}} days were not investigated.": "{{count}} larm som skapades de senaste {{days}} dagarna utreddes inte.",
   "{{count}} alerts created in the last {{days}} days were not investigated._one": "{{count}} larm som skapades de senaste {{days}} dagarna utreddes inte.",
   "{{count}} incidents created in the last {{days}} days were not investigated.": "{{count}} incidenter som skapades de senaste {{days}} dagarna utreddes inte.",

@@ -25054,7 +25054,7 @@
   "Alert {{number}}": "Warnung {{number}}",
   "Alert {{number}}: {{title}}": "Warnung {{number}}: {{title}}",
   "Incident {{number}}: {{title}}": "Vorfall {{number}}: {{title}}",
-  "Open monitor": "Überwachung öffnen",
+  "Open monitor": "Monitor öffnen",
   "{{count}} alerts created in the last {{days}} days were not investigated.": "{{count}} in den letzten {{days}} Tagen erstellte Warnungen wurden nicht untersucht.",
   "{{count}} alerts created in the last {{days}} days were not investigated._one": "{{count}} in den letzten {{days}} Tagen erstellte Warnung wurde nicht untersucht.",
   "{{count}} incidents created in the last {{days}} days were not investigated.": "{{count}} in den letzten {{days}} Tagen erstellte Vorfälle wurden nicht untersucht.",

@@ -25054,7 +25054,7 @@
   "Alert {{number}}": "Advarsel {{number}}",
   "Alert {{number}}: {{title}}": "Advarsel {{number}}: {{title}}",
   "Incident {{number}}: {{title}}": "Hændelse {{number}}: {{title}}",
-  "Open monitor": "Åbn overvågning",
+  "Open monitor": "Åbn monitor",
   "{{count}} alerts created in the last {{days}} days were not investigated.": "{{count}} advarsler oprettet inden for de seneste {{days}} dage blev ikke undersøgt.",
   "{{count}} alerts created in the last {{days}} days were not investigated._one": "{{count}} advarsel oprettet inden for de seneste {{days}} dage blev ikke undersøgt.",
   "{{count}} incidents created in the last {{days}} days were not investigated.": "{{count}} hændelser oprettet inden for de seneste {{days}} dage blev ikke undersøgt.",
