@@ -974,6 +974,7 @@ import { AddProductFeedback1809123000000 } from "./1809123000000-AddProductFeedb
 import { AddAmazonSesAuthenticationType1809123100000 } from "./1809123100000-AddAmazonSesAuthenticationType";
 import { AddSampleProject1809123500000 } from "./1809123500000-AddSampleProject";
 import { AddSampleProjectUserIndex1809123500001 } from "./1809123500001-AddSampleProjectUserIndex";
+import { AddServerProducts1809123600000 } from "./1809123600000-AddServerProducts";
 
 export default [
   InitialMigration,
@@ -1952,4 +1953,5 @@ export default [
   AddAmazonSesAuthenticationType1809123100000,
   AddSampleProject1809123500000,
   AddSampleProjectUserIndex1809123500001,
+  AddServerProducts1809123600000,
 ];
