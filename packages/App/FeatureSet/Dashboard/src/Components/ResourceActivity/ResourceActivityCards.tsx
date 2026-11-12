@@ -219,7 +219,11 @@ const ResourceActivityCards: FunctionComponent<ComponentProps> = (
     if (count === null) {
       return "—";
     }
-    return count.toString();
+    /*
+     * In the reader's digits, as every other figure on a resource's
+     * Overview: a Persian page read "0" under Persian headings (#7106).
+     */
+    return translator.formatNumber(count);
   };
 
   const showsMaintenance: boolean = Boolean(props.scheduledMaintenanceRoute);
@@ -322,6 +326,7 @@ const ResourceActivityCards: FunctionComponent<ComponentProps> = (
               </div>
               <div
                 className={`text-2xl font-semibold leading-none ${card.countText}`}
+                data-testid="resource-activity-count"
               >
                 {card.isLoading ? (
                   <span className="text-gray-300">…</span>

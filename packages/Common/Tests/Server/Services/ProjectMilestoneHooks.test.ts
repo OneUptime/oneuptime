@@ -504,7 +504,7 @@ describe("where each activation milestone is set", () => {
       expect(reach).toBeGreaterThan(0);
       expect(reach).toBeGreaterThan(
         body.indexOf(
-          'throw new BadDataException("currentMonitorStatusId is required")',
+          'throw new BadDataException("The new monitor has no status to start in.")',
         ),
       );
     });

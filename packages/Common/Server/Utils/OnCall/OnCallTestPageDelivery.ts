@@ -89,6 +89,7 @@ import ProductBrandingText from "../ProductBrandingText";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import OnCallPageLinks from "./OnCallPageLinks";
 import {
+  whenNotificationRequestAnswers,
   whenNotificationRequestFails,
   whenSendFails,
 } from "./OnCallSendFailure";
@@ -193,12 +194,18 @@ export default class OnCallTestPageDelivery {
             projectId: options.projectId,
             ...sendIds,
           },
-        ).catch(
-          whenNotificationRequestFails({
-            userOnCallLogTimelineId: row.id!,
-            fallbackStatusMessage: "Error sending email.",
-          }),
-        );
+        )
+          .then(
+            whenNotificationRequestAnswers({
+              userOnCallLogTimelineId: row.id!,
+            }),
+          )
+          .catch(
+            whenNotificationRequestFails({
+              userOnCallLogTimelineId: row.id!,
+              fallbackStatusMessage: "Error sending email.",
+            }),
+          );
       } else {
         await this.writeErrorRow({
           row: data.newTimelineRow(),
@@ -244,12 +251,18 @@ export default class OnCallTestPageDelivery {
             userOnCallLogTimelineId: row.id!,
             ...sendIds,
           },
-        ).catch(
-          whenNotificationRequestFails({
-            userOnCallLogTimelineId: row.id!,
-            fallbackStatusMessage: "Error sending SMS.",
-          }),
-        );
+        )
+          .then(
+            whenNotificationRequestAnswers({
+              userOnCallLogTimelineId: row.id!,
+            }),
+          )
+          .catch(
+            whenNotificationRequestFails({
+              userOnCallLogTimelineId: row.id!,
+              fallbackStatusMessage: "Error sending SMS.",
+            }),
+          );
       } else {
         await this.writeErrorRow({
           row: data.newTimelineRow(),
@@ -288,12 +301,18 @@ export default class OnCallTestPageDelivery {
             userOnCallLogTimelineId: row.id!,
             ...sendIds,
           },
-        ).catch(
-          whenNotificationRequestFails({
-            userOnCallLogTimelineId: row.id!,
-            fallbackStatusMessage: "Error sending WhatsApp message.",
-          }),
-        );
+        )
+          .then(
+            whenNotificationRequestAnswers({
+              userOnCallLogTimelineId: row.id!,
+            }),
+          )
+          .catch(
+            whenNotificationRequestFails({
+              userOnCallLogTimelineId: row.id!,
+              fallbackStatusMessage: "Error sending WhatsApp message.",
+            }),
+          );
       } else {
         await this.writeErrorRow({
           row: data.newTimelineRow(),
@@ -333,12 +352,18 @@ export default class OnCallTestPageDelivery {
             userOnCallLogTimelineId: row.id!,
             ...sendIds,
           },
-        ).catch(
-          whenNotificationRequestFails({
-            userOnCallLogTimelineId: row.id!,
-            fallbackStatusMessage: "Error sending Telegram message.",
-          }),
-        );
+        )
+          .then(
+            whenNotificationRequestAnswers({
+              userOnCallLogTimelineId: row.id!,
+            }),
+          )
+          .catch(
+            whenNotificationRequestFails({
+              userOnCallLogTimelineId: row.id!,
+              fallbackStatusMessage: "Error sending Telegram message.",
+            }),
+          );
       } else {
         await this.writeErrorRow({
           row: data.newTimelineRow(),
@@ -482,12 +507,16 @@ export default class OnCallTestPageDelivery {
           userOnCallLogTimelineId: row.id!,
           ...sendIds,
         },
-      ).catch(
-        whenNotificationRequestFails({
-          userOnCallLogTimelineId: row.id!,
-          fallbackStatusMessage: "Error sending webhook.",
-        }),
-      );
+      )
+        .then(
+          whenNotificationRequestAnswers({ userOnCallLogTimelineId: row.id! }),
+        )
+        .catch(
+          whenNotificationRequestFails({
+            userOnCallLogTimelineId: row.id!,
+            fallbackStatusMessage: "Error sending webhook.",
+          }),
+        );
     }
 
     // CALL.
@@ -519,12 +548,18 @@ export default class OnCallTestPageDelivery {
             userOnCallLogTimelineId: row.id!,
             ...sendIds,
           },
-        ).catch(
-          whenNotificationRequestFails({
-            userOnCallLogTimelineId: row.id!,
-            fallbackStatusMessage: "Error making call.",
-          }),
-        );
+        )
+          .then(
+            whenNotificationRequestAnswers({
+              userOnCallLogTimelineId: row.id!,
+            }),
+          )
+          .catch(
+            whenNotificationRequestFails({
+              userOnCallLogTimelineId: row.id!,
+              fallbackStatusMessage: "Error making call.",
+            }),
+          );
       } else {
         await this.writeErrorRow({
           row: data.newTimelineRow(),

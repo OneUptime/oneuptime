@@ -5,6 +5,10 @@ import React, {
   useContext,
 } from "react";
 import { AppLinkAsTextContext } from "../../AppLink/AppLinkAsText";
+import {
+  DashboardWidgetPlace,
+  getDashboardWidgetPlace,
+} from "./DashboardWidgetSetupCopy";
 
 /*
  * A WIDGET DRAWN IN ITS SETTINGS' LIVE PREVIEW (issue #6859).
@@ -34,6 +38,21 @@ export const DashboardWidgetPreviewContext: React.Context<boolean> =
 
 export const useIsDashboardWidgetPreview: () => boolean = (): boolean => {
   return useContext(DashboardWidgetPreviewContext);
+};
+
+/*
+ * Where the widget is drawn: the Live Preview, the board being edited, or
+ * a board out of edit mode (DashboardWidgetSetupCopy). A widget that is
+ * not set up yet says what to do only where it can be done there
+ * (issue #7160).
+ */
+export const useDashboardWidgetPlace: (
+  isEditMode: boolean,
+) => DashboardWidgetPlace = (isEditMode: boolean): DashboardWidgetPlace => {
+  return getDashboardWidgetPlace({
+    isEditMode: isEditMode,
+    isPreview: useIsDashboardWidgetPreview(),
+  });
 };
 
 export interface DashboardWidgetPreviewProviderProps {

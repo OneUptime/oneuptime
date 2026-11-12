@@ -10,7 +10,7 @@ import ObjectID from "../../Types/ObjectID";
 import logger from "../Utils/Logger";
 import UserPushService from "./UserPushService";
 import UserOnCallLogTimelineService from "./UserOnCallLogTimelineService";
-import UserNotificationStatus from "../../Types/UserNotification/UserNotificationStatus";
+import { recordSendResult } from "../Utils/OnCall/OnCallNotificationStatus";
 import {
   VapidPublicKey,
   VapidPrivateKey,
@@ -928,26 +928,20 @@ export default class PushNotificationService {
       failureReasons: failureReasons,
     });
 
-    // Update user on call log timeline status if provided
+    /*
+     * The person's on-call timeline, when the push is a page's: written only
+     * while it still says Sending (OnCallNotificationStatus) - the person may
+     * have acknowledged the page, or escalated it, meanwhile, from another of
+     * its messages.
+     */
     if (options.userOnCallLogTimelineId) {
-      const status: UserNotificationStatus =
-        successCount > 0
-          ? UserNotificationStatus.Sent
-          : UserNotificationStatus.Error;
-      const statusMessage: string =
-        successCount > 0
-          ? "Push notification sent successfully"
-          : failureMessage;
-
-      await UserOnCallLogTimelineService.updateOneById({
-        id: options.userOnCallLogTimelineId,
-        data: {
-          status,
-          statusMessage,
-        },
-        props: {
-          isRoot: true,
-        },
+      await recordSendResult({
+        userOnCallLogTimelineId: options.userOnCallLogTimelineId,
+        isSent: successCount > 0,
+        statusMessage:
+          successCount > 0
+            ? "Push notification sent successfully"
+            : failureMessage,
       });
     }
 

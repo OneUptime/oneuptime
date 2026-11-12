@@ -1,6 +1,9 @@
+import AIAgentTaskPullRequestService from "../../../../../Server/Services/AIAgentTaskPullRequestService";
 import AIRunEventService from "../../../../../Server/Services/AIRunEventService";
 import UserService from "../../../../../Server/Services/UserService";
 import FindBy from "../../../../../Server/Types/Database/FindBy";
+import FindOneBy from "../../../../../Server/Types/Database/FindOneBy";
+import logger from "../../../../../Server/Utils/Logger";
 import CodeTaskAgentBrief, {
   ENTRIES_PER_REPLY_TURN,
   MAX_CONVERSATION_LENGTH,
@@ -9,6 +12,7 @@ import CodeTaskPresenter, {
   TURN_NOT_SHOWN_SELECT,
 } from "../../../../../Server/Utils/AI/CodeTask/CodeTaskPresenter";
 import CodeTaskThread, {
+  CodeTaskNumberedTurn,
   CodeTaskTurnsRead,
   MAX_TURNS_PER_TASK,
 } from "../../../../../Server/Utils/AI/CodeTask/CodeTaskThread";
@@ -23,6 +27,7 @@ import {
   CodeTaskAgentDetails,
   CodeTaskAgentTurn,
   CodeTaskConversationJSON,
+  CodeTaskFileStatus,
   CodeTaskState,
   CodeTaskTurnJSON,
 } from "../../../../../Types/AI/CodeTask";
@@ -36,6 +41,7 @@ import {
   holdLongCodeTask,
   LongCodeTask,
   LongTaskRead,
+  LongTaskStatement,
   LONG_TASK_PROJECT_ID,
   LONG_TASK_REPOSITORY_ID,
   LONG_TASK_USER_ID,
@@ -76,7 +82,11 @@ import type { SpyInstance } from "jest-mock";
  *    task's open pull request whichever turn opened it;
  *  - the task's page shows the first turn and the newest, says how many
  *    are not shown, and still adds up every turn at its top: the files
- *    changed, how long AI worked, its pull request and its state.
+ *    changed, how long AI worked, its pull request and its state;
+ *  - a link to a turn the page does not show (the Log page's ?turn=)
+ *    sends that turn, with its place in the task (issue #7130);
+ *  - a read that stops at its limit says so in the log, and reads the
+ *    newest rows it can - never the oldest (issue #7131).
  */
 
 afterEach(() => {
@@ -266,10 +276,70 @@ describe("the turns a long task's conversation leaves out", () => {
     );
 
     expect(argsOf(leftOutRead!).select).toEqual(TURN_NOT_SHOWN_SELECT);
+    // The newest first, as far as one read takes: then put oldest first.
     expect(argsOf(leftOutRead!).sort).toEqual({
-      createdAt: SortOrder.Ascending,
+      createdAt: SortOrder.Descending,
     });
     expect(argsOf(leftOutRead!).limit).toBe(LIMIT_PER_PROJECT);
+  });
+
+  /*
+   * A task with more turns between its first and its newest 199 than one
+   * read takes: the turns nearest the newest are read - what the page adds
+   * up is the task as it stands now - and the oldest are counted, not
+   * read. Never silently: the log says which task was cut.
+   */
+  test("more than one read takes: the 10,000 nearest the newest are read, the oldest 5 counted - and the log says so", async () => {
+    const fixture: LongCodeTask = holdLongCodeTask({
+      turnCount: MAX_TURNS_PER_TASK + LIMIT_PER_PROJECT + 5,
+    });
+    const warn: SpyInstance<typeof logger.warn> = jest
+      .spyOn(logger, "warn")
+      .mockImplementation(() => {});
+    const read: CodeTaskTurnsRead = await readTurns(fixture);
+
+    expect(read.olderTurnsLeftOut).toBe(LIMIT_PER_PROJECT + 5);
+
+    const leftOut: Array<AIRun> = await CodeTaskThread.getTurnsLeftOut({
+      projectId: LONG_TASK_PROJECT_ID,
+      task: fixture.task(),
+      read,
+      select: TURN_NOT_SHOWN_SELECT,
+    });
+
+    // Turns 7 to 10,006, oldest first: turns 2 to 6 are the ones not read.
+    expect(leftOut).toHaveLength(LIMIT_PER_PROJECT);
+    expect(numbersOf(leftOut)).toEqual(range(7, LIMIT_PER_PROJECT + 6));
+
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0]![0]).toBe(
+      `Code task ${turnId(1).toString()}: read the newest ${LIMIT_PER_PROJECT} turns its conversation does not show; the older ones were not read.`,
+    );
+    expect(warn.mock.calls[0]![1]).toEqual({
+      projectId: LONG_TASK_PROJECT_ID.toString(),
+      codeTaskId: turnId(1).toString(),
+    });
+  });
+
+  test("negative control: turns not shown that one read takes whole are read whole, and nothing is logged", async () => {
+    const fixture: LongCodeTask = holdLongCodeTask({ turnCount: 205 });
+    const warn: SpyInstance<typeof logger.warn> = jest
+      .spyOn(logger, "warn")
+      .mockImplementation(() => {});
+    const read: CodeTaskTurnsRead = await readTurns(fixture);
+
+    await CodeTaskThread.getTurnsLeftOut({
+      projectId: LONG_TASK_PROJECT_ID,
+      task: fixture.task(),
+      read,
+      select: TURN_NOT_SHOWN_SELECT,
+    });
+    await CodeTaskThread.getRunIds({
+      projectId: LONG_TASK_PROJECT_ID,
+      task: fixture.task(),
+    });
+
+    expect(warn).not.toHaveBeenCalled();
   });
 
   test("none, and nothing read, for a task read whole", async () => {
@@ -415,6 +485,77 @@ describe("the pull request a reply pushes to, however long the task", () => {
     expect(argsOf(idsRead!).select).toEqual({ _id: true });
     expect(argsOf(idsRead!).limit).toBe(LIMIT_PER_PROJECT);
     expect(argsOf(idsRead!).sort).toEqual({ createdAt: SortOrder.Descending });
+  });
+
+  test("a task of more replies than one read takes: its newest 10,000 are the ones read - and the log says so", async () => {
+    const fixture: LongCodeTask = holdLongCodeTask({
+      turnCount: LIMIT_PER_PROJECT + 6,
+    });
+    const warn: SpyInstance<typeof logger.warn> = jest
+      .spyOn(logger, "warn")
+      .mockImplementation(() => {});
+
+    const runIds: Array<ObjectID> = await CodeTaskThread.getRunIds({
+      projectId: LONG_TASK_PROJECT_ID,
+      task: fixture.task(),
+    });
+
+    // The task, then turns 10,006 down to 7: turns 2 to 6 are not read.
+    expect(runIds).toHaveLength(LIMIT_PER_PROJECT + 1);
+    expect(turnNumber(runIds[0])).toBe(1);
+    expect(turnNumber(runIds[1])).toBe(LIMIT_PER_PROJECT + 6);
+    expect(turnNumber(runIds[runIds.length - 1])).toBe(7);
+    expect(warn).toHaveBeenCalledWith(
+      `Code task ${turnId(1).toString()}: read the newest ${LIMIT_PER_PROJECT} replies, for its pull requests; the older ones were not read.`,
+      {
+        projectId: LONG_TASK_PROJECT_ID.toString(),
+        codeTaskId: turnId(1).toString(),
+      },
+    );
+  });
+
+  test("a read of pull requests that stops at its limit says so in the log, with how many runs it read for", async () => {
+    const warn: SpyInstance<typeof logger.warn> = jest
+      .spyOn(logger, "warn")
+      .mockImplementation(() => {});
+    const findPullRequests: SpyInstance<
+      typeof AIAgentTaskPullRequestService.findBy
+    > = jest.spyOn(AIAgentTaskPullRequestService, "findBy");
+
+    findPullRequests.mockResolvedValue(
+      Array.from({ length: LIMIT_PER_PROJECT - 1 }, () => {
+        return new AIAgentTaskPullRequest();
+      }),
+    );
+
+    await CodeTaskThread.getPullRequests({
+      projectId: LONG_TASK_PROJECT_ID,
+      runIds: [turnId(1), turnId(2)],
+    });
+
+    // One short of the limit: every one was read.
+    expect(warn).not.toHaveBeenCalled();
+
+    findPullRequests.mockResolvedValue(
+      Array.from({ length: LIMIT_PER_PROJECT }, () => {
+        return new AIAgentTaskPullRequest();
+      }),
+    );
+
+    await CodeTaskThread.getPullRequests({
+      projectId: LONG_TASK_PROJECT_ID,
+      runIds: [turnId(1), turnId(2)],
+    });
+
+    expect(warn).toHaveBeenCalledWith(
+      `Code tasks: read the newest ${LIMIT_PER_PROJECT} pull requests their runs opened; the older ones were not read.`,
+      { projectId: LONG_TASK_PROJECT_ID.toString(), runCount: 2 },
+    );
+    // Newest first: the ones a page shows are the ones read.
+    expect(
+      (findPullRequests.mock.calls[1]![0] as FindBy<AIAgentTaskPullRequest>)
+        .sort,
+    ).toEqual({ createdAt: SortOrder.Descending });
   });
 
   test("a read that holds every turn names the runs itself: nothing more is read", async () => {
@@ -873,6 +1014,307 @@ describe("a long task's page", () => {
       workMilliseconds: 2 * LONG_TASK_WORK_MS_PER_TURN,
     });
     expect(conversation.task.changes?.files).toBe(202);
+  });
+
+  /*
+   * A LINK TO A TURN THE PAGE DOES NOT SHOW (issue #7130).
+   *
+   * The Log page's address names a turn by its run id (?turn=): one shared
+   * in chat, or bookmarked when the task was shorter. The page asks for it
+   * by name; when it is one of the task's turns the conversation does not
+   * show, it comes back on its own - read as the turns shown are, with its
+   * place in the task - so the Log opens that turn, never turn 1.
+   */
+  async function conversationLinking(
+    fixture: LongCodeTask,
+    linkedTurnId: ObjectID,
+    canSeeChanges: boolean = true,
+  ): Promise<CodeTaskConversationJSON> {
+    return await CodeTaskPresenter.getConversation({
+      projectId: LONG_TASK_PROJECT_ID,
+      task: fixture.task(),
+      canSeeChanges,
+      props: { isRoot: true },
+      linkedTurnId,
+    });
+  }
+
+  function stepsReadOf(): Array<number> {
+    return eventReads.mock.calls.map((call: Array<unknown>): number => {
+      return turnNumber(
+        (call[0] as FindBy<AIRunEvent>).query["aiRunId"] as ObjectID,
+      );
+    });
+  }
+
+  test("a link to turn 4 of 205 - a turn not shown - sends it with its place: what was asked, its reply, its steps and its pull request", async () => {
+    const fixture: LongCodeTask = holdLongCodeTask({ turnCount: 205 });
+    fixture.openPullRequest({ turn: 4, number: 41 });
+
+    const conversation: CodeTaskConversationJSON = await conversationLinking(
+      fixture,
+      turnId(4),
+    );
+
+    // The turns shown are the ones shown without the link.
+    expect(shownNumbers(conversation)).toEqual([1, ...range(7, 205)]);
+    expect(conversation.turnsNotShown?.count).toBe(5);
+
+    expect(conversation.linkedTurn?.number).toBe(4);
+
+    const linked: CodeTaskTurnJSON = conversation.linkedTurn!.turn;
+
+    expect(turnNumber(linked.runId)).toBe(4);
+    expect(linked.request?.message).toBe(turnMessage(4));
+    expect(linked.outcome?.summary).toBe(turnReply(4));
+    expect(linked.requestedBy?.name).toBe("Jane Doe");
+    expect(
+      linked.pullRequests.map((each: { number?: number | undefined }) => {
+        return each.number;
+      }),
+    ).toEqual([41]);
+    // Its steps are read with the turns shown: one read each.
+    expect(stepsReadOf()).toContain(4);
+    expect(stepsReadOf()).toHaveLength(201);
+    expect(fixture.readsOf("AIAgentTaskPullRequest", "findBy")).toHaveLength(1);
+  });
+
+  test("the turn a link names is read pinned to this task, its project and code-fix runs - once, with its place counted by Postgres", async () => {
+    const fixture: LongCodeTask = holdLongCodeTask({ turnCount: 205 });
+
+    await conversationLinking(fixture, turnId(3));
+
+    const [found]: Array<LongTaskRead> = fixture.readsOf("AIRun", "findOneBy");
+    const query: Record<string, unknown> = (found!.args as FindOneBy<AIRun>)
+      .query as Record<string, unknown>;
+
+    expect(fixture.readsOf("AIRun", "findOneBy")).toHaveLength(1);
+    expect(String(query["_id"])).toBe(turnId(3).toString());
+    expect(String(query["projectId"])).toBe(LONG_TASK_PROJECT_ID.toString());
+    expect(query["runType"]).toBe(AIRunType.CodeFix);
+    expect(String(query["codeTaskId"])).toBe(turnId(1).toString());
+
+    const statements: Array<LongTaskRead> = fixture.readsOf("AIRun", "query");
+
+    expect(statements).toHaveLength(1);
+    expect((statements[0]!.args as LongTaskStatement).parameters).toEqual([
+      LONG_TASK_PROJECT_ID.toString(),
+      AIRunType.CodeFix,
+      turnId(1).toString(),
+      turnId(3).toString(),
+    ]);
+  });
+
+  test("a reader who may not change the code is not sent the linked turn's diff - it is not even read", async () => {
+    const fixture: LongCodeTask = holdLongCodeTask({ turnCount: 205 });
+    fixture.turn(4).codeChanges = {
+      files: [
+        {
+          path: turnFile(4),
+          status: CodeTaskFileStatus.Modified,
+          additions: 4,
+          deletions: 1,
+          patch: "@@ -1 +1 @@\n-old\n+new",
+        },
+      ],
+      isTruncated: false,
+    };
+
+    const canChange: CodeTaskConversationJSON = await conversationLinking(
+      fixture,
+      turnId(4),
+    );
+
+    expect(canChange.linkedTurn?.turn.changes?.files[0]?.patch).toBe(
+      "@@ -1 +1 @@\n-old\n+new",
+    );
+
+    const readOnly: CodeTaskConversationJSON = await conversationLinking(
+      fixture,
+      turnId(4),
+      false,
+    );
+
+    expect(readOnly.linkedTurn?.turn.outcome?.filesChanged).toHaveLength(1);
+    expect(readOnly.linkedTurn?.turn).not.toHaveProperty("changes");
+
+    const [, readOnlyFind]: Array<LongTaskRead> = fixture.readsOf(
+      "AIRun",
+      "findOneBy",
+    );
+
+    expect(
+      (readOnlyFind!.args as FindOneBy<AIRun>).select as Record<
+        string,
+        unknown
+      >,
+    ).not.toHaveProperty("codeChanges");
+  });
+
+  test.each([
+    ["a turn the page shows", 150],
+    ["the task's first turn", 1],
+  ])(
+    "a link to %s sends nothing on its own, and reads nothing more",
+    async (_name: string, n: number) => {
+      const fixture: LongCodeTask = holdLongCodeTask({ turnCount: 205 });
+
+      const conversation: CodeTaskConversationJSON = await conversationLinking(
+        fixture,
+        turnId(n),
+      );
+
+      expect(conversation).not.toHaveProperty("linkedTurn");
+      expect(shownNumbers(conversation)).toContain(n);
+      expect(fixture.readsOf("AIRun", "findOneBy")).toHaveLength(0);
+      expect(fixture.readsOf("AIRun", "query")).toHaveLength(0);
+    },
+  );
+
+  /*
+   * Never another task's run, another project's, or a run of anything
+   * else: the link was shared or typed, and is not trusted. The page shows
+   * the task's first turn, and says so.
+   */
+  test.each([
+    [
+      "another task's reply",
+      { codeTaskId: "4a5b6c7d-8e9f-4a0b-9c1d-2e3f4a5b6c7d" },
+    ],
+    [
+      "another project's run naming this task",
+      { projectId: "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d" },
+    ],
+    ["a chat run naming this task", { runType: AIRunType.Chat }],
+    ["a run that is gone", null],
+  ])(
+    "a link to %s sends nothing, and the turns are as without it",
+    async (_name: string, other: Record<string, string> | null) => {
+      const fixture: LongCodeTask = holdLongCodeTask({ turnCount: 205 });
+      const otherId: ObjectID = new ObjectID(
+        "4a5b6c7d-8e9f-4a0b-9c1d-000000000077",
+      );
+
+      if (other) {
+        const run: AIRun = new AIRun();
+        run._id = otherId.toString();
+        run.projectId = new ObjectID(
+          other["projectId"] || LONG_TASK_PROJECT_ID.toString(),
+        );
+        run.runType = (other["runType"] as AIRunType) || AIRunType.CodeFix;
+        run.codeTaskId = new ObjectID(
+          other["codeTaskId"] || turnId(1).toString(),
+        );
+        run.status = AIRunStatus.Completed;
+        run.createdAt = askedAt(3);
+        run.taskOutcome = {
+          summary: "Another task's secret reply",
+          filesChanged: [],
+        };
+        fixture.runs.push(run);
+      }
+
+      const conversation: CodeTaskConversationJSON = await conversationLinking(
+        fixture,
+        otherId,
+      );
+
+      expect(conversation).not.toHaveProperty("linkedTurn");
+      expect(shownNumbers(conversation)).toEqual([1, ...range(7, 205)]);
+      expect(JSON.stringify(conversation)).not.toContain(
+        "Another task's secret reply",
+      );
+      // Nothing is counted for a run that is not the task's.
+      expect(fixture.readsOf("AIRun", "query")).toHaveLength(0);
+    },
+  );
+
+  /*
+   * Two turns asked the same moment: the conversation orders them by id
+   * (CodeTaskThread.getTurns), and a linked turn's place is counted the
+   * same way - so it never shares a number with the one shown beside it.
+   */
+  test("two turns asked the same moment: a link to the one not shown is numbered where the conversation places it", async () => {
+    const fixture: LongCodeTask = holdLongCodeTask({ turnCount: 205 });
+    // Turns 6 and 7 asked together: 6 is read as the oldest shown, 7 left out.
+    fixture.turn(6).createdAt = askedAt(7);
+
+    const conversation: CodeTaskConversationJSON = await conversationLinking(
+      fixture,
+      turnId(7),
+    );
+
+    // The page numbers the oldest shown 1 + 1 + the 5 not shown: 7.
+    expect(turnNumber(conversation.turns[1]!.runId)).toBe(6);
+    expect(conversation.turnsNotShown?.count).toBe(5);
+    // Turn 7, asked with it, comes before it: the 6th.
+    expect(conversation.linkedTurn?.number).toBe(6);
+    expect(turnNumber(conversation.linkedTurn?.turn.runId)).toBe(7);
+
+    // The turns before them keep their own numbers.
+    for (const n of [2, 3, 4, 5]) {
+      const each: CodeTaskConversationJSON = await conversationLinking(
+        fixture,
+        turnId(n),
+      );
+
+      expect(each.linkedTurn?.number).toBe(n);
+    }
+  });
+});
+
+describe("CodeTaskThread.findReply: one of a task's replies, with its place", () => {
+  test("the place of a reply counts the task's first turn and every reply before it", async () => {
+    const fixture: LongCodeTask = holdLongCodeTask({ turnCount: 205 });
+
+    for (const n of [2, 3, 100, 205]) {
+      const found: CodeTaskNumberedTurn | null = await CodeTaskThread.findReply(
+        {
+          projectId: LONG_TASK_PROJECT_ID,
+          task: fixture.task(),
+          runId: turnId(n),
+        },
+      );
+
+      expect(found?.number).toBe(n);
+      expect(turnNumber(found?.turn.id)).toBe(n);
+    }
+  });
+
+  test("the task's first run is not one of its replies: none", async () => {
+    const fixture: LongCodeTask = holdLongCodeTask({ turnCount: 12 });
+
+    expect(
+      await CodeTaskThread.findReply({
+        projectId: LONG_TASK_PROJECT_ID,
+        task: fixture.task(),
+        runId: turnId(1),
+      }),
+    ).toBeNull();
+    expect(fixture.readsOf("AIRun", "query")).toHaveLength(0);
+  });
+
+  test("its statement counts on Postgres, pinned to the project, code-fix runs and the task, never a deleted reply", () => {
+    const statement: { sql: string; parameters: Array<unknown> } =
+      CodeTaskThread.getRepliesBeforeStatement({
+        projectId: LONG_TASK_PROJECT_ID,
+        taskId: turnId(1),
+        replyId: turnId(9),
+      });
+
+    expect(statement.parameters).toEqual([
+      LONG_TASK_PROJECT_ID.toString(),
+      AIRunType.CodeFix,
+      turnId(1).toString(),
+      turnId(9).toString(),
+    ]);
+    expect(statement.sql).toContain('"reply"."projectId" = $1');
+    expect(statement.sql).toContain('"reply"."runType" = $2');
+    expect(statement.sql).toContain('"reply"."deletedAt" IS NULL');
+    expect(statement.sql).toContain('"reply"."codeTaskId" = $3::uuid');
+    // Every value is a parameter: no id is written into the SQL.
+    expect(statement.sql).not.toContain(turnId(9).toString());
+    expect(statement.sql).not.toContain(LONG_TASK_PROJECT_ID.toString());
   });
 });
 

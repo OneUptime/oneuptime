@@ -193,6 +193,11 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     "Message",
     "Incident ID",
     "Alert ID",
+    /*
+     * Page As itself, which Persian's Dashboard words: the Paging section
+     * names it as the step does (WorkflowPageStepDocs).
+     */
+    "Page As",
     // Page As's choices, Dashboard labels too: the Builder names them in English.
     "Responders",
     "Observers",
