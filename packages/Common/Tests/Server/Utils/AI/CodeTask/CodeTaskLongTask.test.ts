@@ -54,6 +54,11 @@ import {
   jest,
   test,
 } from "@jest/globals";
+/*
+ * The spy type of the jest imported above; the global jest.SpiedFunction
+ * does not accept what its jest.spyOn() returns.
+ */
+import type { SpyInstance } from "jest-mock";
 
 /*
  * A CODE TASK KEPT OPEN AS A WORKING THREAD FOR WEEKS (issue #6529).
@@ -459,10 +464,7 @@ describe("what a Runner is told when it takes a turn of a long task", () => {
     jest.spyOn(UserService, "findBy").mockResolvedValue([jane()]);
   });
 
-  async function brief(
-    fixture: LongCodeTask,
-    run: AIRun,
-  ): Promise<CodeTaskAgentDetails> {
+  async function brief(run: AIRun): Promise<CodeTaskAgentDetails> {
     return await CodeTaskAgentBrief.build({ run, repository: repository() });
   }
 
@@ -479,10 +481,7 @@ describe("what a Runner is told when it takes a turn of a long task", () => {
   test("turn 205 is briefed from the turns right before it - 7 to 204 - never from the oldest, and the first turn is kept", async () => {
     const fixture: LongCodeTask = holdLongCodeTask({ turnCount: 205 });
 
-    const details: CodeTaskAgentDetails = await brief(
-      fixture,
-      fixture.turn(205),
-    );
+    const details: CodeTaskAgentDetails = await brief(fixture.turn(205));
 
     expect(details.request.message).toBe(turnMessage(205));
     expect(askedTexts(details)).toEqual([
@@ -503,10 +502,7 @@ describe("what a Runner is told when it takes a turn of a long task", () => {
   test("says how many entries it leaves out: each turn left out is what was asked and what AI answered", async () => {
     const fixture: LongCodeTask = holdLongCodeTask({ turnCount: 205 });
 
-    const details: CodeTaskAgentDetails = await brief(
-      fixture,
-      fixture.turn(205),
-    );
+    const details: CodeTaskAgentDetails = await brief(fixture.turn(205));
 
     expect(ENTRIES_PER_REPLY_TURN).toBe(2);
     // Turns 2 to 6, a request and a reply each; nothing cut to fit.
@@ -521,10 +517,7 @@ describe("what a Runner is told when it takes a turn of a long task", () => {
       run.taskOutcome!.summary = `${turnReply(turnNumber(run.id))} ${"x".repeat(5000)}`;
     }
 
-    const details: CodeTaskAgentDetails = await brief(
-      fixture,
-      fixture.turn(205),
-    );
+    const details: CodeTaskAgentDetails = await brief(fixture.turn(205));
 
     const conversation: Array<CodeTaskAgentTurn> = details.conversation;
 
@@ -551,10 +544,7 @@ describe("what a Runner is told when it takes a turn of a long task", () => {
     const fixture: LongCodeTask = holdLongCodeTask({ turnCount: 205 });
     fixture.openPullRequest({ turn: 203, number: 77 });
 
-    const details: CodeTaskAgentDetails = await brief(
-      fixture,
-      fixture.turn(205),
-    );
+    const details: CodeTaskAgentDetails = await brief(fixture.turn(205));
 
     expect(details.workingBranch).toBe("oneuptime-task-42-turn-203");
     expect(details.pullRequest).toEqual({
@@ -569,10 +559,7 @@ describe("what a Runner is told when it takes a turn of a long task", () => {
     const fixture: LongCodeTask = holdLongCodeTask({ turnCount: 205 });
     fixture.openPullRequest({ turn: 4, number: 41 });
 
-    const details: CodeTaskAgentDetails = await brief(
-      fixture,
-      fixture.turn(205),
-    );
+    const details: CodeTaskAgentDetails = await brief(fixture.turn(205));
 
     expect(details.workingBranch).toBe("oneuptime-task-42-turn-4");
     expect(details.pullRequest?.number).toBe(41);
@@ -584,10 +571,7 @@ describe("what a Runner is told when it takes a turn of a long task", () => {
     const fixture: LongCodeTask = holdLongCodeTask({ turnCount: 205 });
     fixture.openPullRequest({ turn: 203, number: 77 });
 
-    const details: CodeTaskAgentDetails = await brief(
-      fixture,
-      fixture.turn(205),
-    );
+    const details: CodeTaskAgentDetails = await brief(fixture.turn(205));
 
     const answered203: CodeTaskAgentTurn | undefined =
       details.conversation.find((entry: CodeTaskAgentTurn): boolean => {
@@ -602,7 +586,7 @@ describe("what a Runner is told when it takes a turn of a long task", () => {
   test("the task's first turn is briefed with no conversation and nothing left out, however long the task grew", async () => {
     const fixture: LongCodeTask = holdLongCodeTask({ turnCount: 205 });
 
-    const details: CodeTaskAgentDetails = await brief(fixture, fixture.turn(1));
+    const details: CodeTaskAgentDetails = await brief(fixture.turn(1));
 
     expect(details.conversation).toEqual([]);
     expect(details.omittedTurns).toBe(0);
@@ -611,7 +595,7 @@ describe("what a Runner is told when it takes a turn of a long task", () => {
   test("a turn older than every turn read - one asked while another worked - is briefed from the turns before it", async () => {
     const fixture: LongCodeTask = holdLongCodeTask({ turnCount: 205 });
 
-    const details: CodeTaskAgentDetails = await brief(fixture, fixture.turn(5));
+    const details: CodeTaskAgentDetails = await brief(fixture.turn(5));
 
     expect(details.request.message).toBe(turnMessage(5));
     expect(askedTexts(details)).toEqual([1, 2, 3, 4].map(turnMessage));
@@ -627,7 +611,7 @@ describe("what a Runner is told when it takes a turn of a long task", () => {
     asTheApiReadsIt.userId = LONG_TASK_USER_ID;
     asTheApiReadsIt.taskContext = fixture.turn(5).taskContext!;
 
-    const details: CodeTaskAgentDetails = await brief(fixture, asTheApiReadsIt);
+    const details: CodeTaskAgentDetails = await brief(asTheApiReadsIt);
 
     expect(askedTexts(details)).toEqual([1, 2, 3, 4].map(turnMessage));
 
@@ -643,14 +627,15 @@ describe("what a Runner is told when it takes a turn of a long task", () => {
   });
 
   test("a turn nothing says when it was asked is briefed with the first turn only", async () => {
-    const fixture: LongCodeTask = holdLongCodeTask({ turnCount: 205 });
+    // The task's reads are answered from memory; the turn is none of its runs.
+    holdLongCodeTask({ turnCount: 205 });
     const unknown: AIRun = new AIRun();
     unknown._id = ObjectID.generate().toString();
     unknown.projectId = LONG_TASK_PROJECT_ID;
     unknown.codeTaskId = turnId(1);
     unknown.taskContext = { request: { message: "Lost", context: [] } };
 
-    const details: CodeTaskAgentDetails = await brief(fixture, unknown);
+    const details: CodeTaskAgentDetails = await brief(unknown);
 
     expect(askedTexts(details)).toEqual([turnMessage(1)]);
     expect(details.omittedTurns).toBe(0);
@@ -660,10 +645,7 @@ describe("what a Runner is told when it takes a turn of a long task", () => {
     const fixture: LongCodeTask = holdLongCodeTask({ turnCount: 12 });
     fixture.openPullRequest({ turn: 2, number: 21 });
 
-    const details: CodeTaskAgentDetails = await brief(
-      fixture,
-      fixture.turn(12),
-    );
+    const details: CodeTaskAgentDetails = await brief(fixture.turn(12));
 
     expect(askedTexts(details)).toEqual(range(1, 11).map(turnMessage));
     expect(details.omittedTurns).toBe(0);
@@ -675,10 +657,7 @@ describe("what a Runner is told when it takes a turn of a long task", () => {
   test("who asked this turn is named, however long the task", async () => {
     const fixture: LongCodeTask = holdLongCodeTask({ turnCount: 205 });
 
-    const details: CodeTaskAgentDetails = await brief(
-      fixture,
-      fixture.turn(205),
-    );
+    const details: CodeTaskAgentDetails = await brief(fixture.turn(205));
 
     expect(details.requestedBy).toBe("Jane Doe");
     expect(details.conversation[0]!.author).toBe("Jane Doe");
@@ -686,7 +665,7 @@ describe("what a Runner is told when it takes a turn of a long task", () => {
 });
 
 describe("a long task's page", () => {
-  let eventReads: jest.SpiedFunction<typeof AIRunEventService.findBy>;
+  let eventReads: SpyInstance<typeof AIRunEventService.findBy>;
 
   beforeEach(() => {
     jest.spyOn(UserService, "findBy").mockResolvedValue([jane()]);
