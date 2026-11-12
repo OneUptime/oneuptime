@@ -616,7 +616,11 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
         className="rounded-lg border border-gray-200 bg-gray-50 p-4"
         data-testid="guided-setup-preview"
       >
-        <p className="text-base font-semibold text-gray-900">
+        {/* A long name wraps inside the preview on a phone (#7252). */}
+        <p
+          className="break-words text-base font-semibold text-gray-900"
+          data-testid="guided-setup-preview-name"
+        >
           {statusPage?.name}
         </p>
         <p className="mt-1 text-xs font-medium uppercase tracking-wide text-gray-500">
@@ -706,7 +710,10 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
    */
   const summary: ReactElement = (
     <div className="rounded-lg border border-gray-200 bg-white p-5">
-      <h2 className="text-lg font-semibold text-gray-900">
+      <h2
+        className="break-words text-lg font-semibold text-gray-900"
+        data-testid="guided-setup-summary-title"
+      >
         {translator.translateTemplate(STATUS_PAGE_SETUP_COPY.summaryTitle, {
           name: statusPage?.name || "",
         })}
