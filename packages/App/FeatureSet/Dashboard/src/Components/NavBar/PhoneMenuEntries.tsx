@@ -5,12 +5,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Icon, { ThickProp } from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useId,
-  useState,
-} from "react";
+import React, { FunctionComponent, ReactElement, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 /*

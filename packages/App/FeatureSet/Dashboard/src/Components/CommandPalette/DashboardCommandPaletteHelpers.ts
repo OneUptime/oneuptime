@@ -788,8 +788,9 @@ export function getEntitySearchSpecs(): Array<PaletteEntitySearchSpec> {
   const alertNumbers: RecordNumberColumns | null = getRecordNumberColumns(
     new Alert(),
   );
-  const maintenanceNumbers: RecordNumberColumns | null =
-    getRecordNumberColumns(new ScheduledMaintenance());
+  const maintenanceNumbers: RecordNumberColumns | null = getRecordNumberColumns(
+    new ScheduledMaintenance(),
+  );
 
   return [
     {

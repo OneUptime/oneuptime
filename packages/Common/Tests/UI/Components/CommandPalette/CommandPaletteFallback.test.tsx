@@ -50,7 +50,9 @@ const typeQuery: (value: string) => void = (value: string): void => {
   });
 };
 
-function askCommand(onSelect: () => void): (query: string) => Array<PaletteCommand> {
+function askCommand(
+  onSelect: () => void,
+): (query: string) => Array<PaletteCommand> {
   return (query: string): Array<PaletteCommand> => {
     return [
       {
@@ -247,9 +249,7 @@ describe("CommandPalette: what a search that found nothing offers", () => {
     typeQuery("zzzz");
     fireEvent.click(screen.getByTestId("command-palette-option-fallback-ask"));
 
-    expect(window.localStorage.getItem(RECENTS_KEY) || "").not.toContain(
-      "ask",
-    );
+    expect(window.localStorage.getItem(RECENTS_KEY) || "").not.toContain("ask");
   });
 
   test("browsing, with nothing typed, never asks for it", () => {

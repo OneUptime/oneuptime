@@ -113,9 +113,7 @@ function listenTo(eventName: string): {
   stop: () => void;
 } {
   const calls: MockFunction = getJestMockFunction();
-  const listener: (event: CustomEvent) => void = (
-    event: CustomEvent,
-  ): void => {
+  const listener: (event: CustomEvent) => void = (event: CustomEvent): void => {
     calls(event.detail);
   };
   GlobalEvents.addEventListener(eventName, listener);
@@ -252,7 +250,9 @@ describe("Search and Help in the phone's menu", () => {
     fireEvent.click(toggle);
 
     expect(toggle).toHaveAttribute("aria-expanded", "true");
-    const learn: HTMLElement = screen.getByTestId(PHONE_MENU_HELP_LEARN_TEST_ID);
+    const learn: HTMLElement = screen.getByTestId(
+      PHONE_MENU_HELP_LEARN_TEST_ID,
+    );
     const ask: HTMLElement = screen.getByTestId(PHONE_MENU_HELP_ASK_TEST_ID);
 
     expect(rowTitles(learn)).toEqual([

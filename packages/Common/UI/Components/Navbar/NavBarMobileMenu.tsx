@@ -14,12 +14,7 @@ import {
   readRecentProductRoutes,
 } from "./NavBarRecentProducts";
 import useTranslateValue from "../../Utils/Translation";
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useId,
-  useState,
-} from "react";
+import React, { FunctionComponent, ReactElement, useId, useState } from "react";
 
 /*
  * How many recently visited products the phone's menu lists: one row each,

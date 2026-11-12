@@ -407,7 +407,7 @@ describe("switching project (#6816)", () => {
     expect(palette()).toBeNull();
   });
 
-  test("\"switch project\" lists every other project, never the one the person is in", async () => {
+  test('"switch project" lists every other project, never the one the person is in', async () => {
     render(
       <DashboardCommandPalette
         projects={PROJECTS}
@@ -489,7 +489,12 @@ describe("the kinds of record Search finds (#6816)", () => {
 
       if (modelType === Service) {
         return Promise.resolve({
-          data: [{ _id: "5d6b2a0c-6a3e-4c2b-9f43-3f1b0a7c1d11", name: "Checkout API" }],
+          data: [
+            {
+              _id: "5d6b2a0c-6a3e-4c2b-9f43-3f1b0a7c1d11",
+              name: "Checkout API",
+            },
+          ],
           count: 1,
         });
       }
@@ -505,9 +510,9 @@ describe("the kinds of record Search finds (#6816)", () => {
       "services-services-5d6b2a0c-6a3e-4c2b-9f43-3f1b0a7c1d11",
     );
     expect(result).toHaveTextContent("Checkout API");
-    expect(screen.getByTestId("command-palette-section-services")).toHaveTextContent(
-      "Services",
-    );
+    expect(
+      screen.getByTestId("command-palette-section-services"),
+    ).toHaveTextContent("Services");
     fireEvent.click(result!);
 
     expect(String(navigateMock.mock.calls[0]![0])).toBe(
@@ -528,9 +533,13 @@ describe("the kinds of record Search finds (#6816)", () => {
     expect(searchedModels()).toEqual([new Service().tableName]);
 
     for (const call of getListMock.mock.calls) {
-      const modelType: { new (): { getReadPermissions: () => Array<Permission> } } = (
+      const modelType: {
+        new (): { getReadPermissions: () => Array<Permission> };
+      } = (
         call[0] as {
-          modelType: { new (): { getReadPermissions: () => Array<Permission> } };
+          modelType: {
+            new (): { getReadPermissions: () => Array<Permission> };
+          };
         }
       ).modelType;
       expect(new modelType().getReadPermissions()).toContain(serviceRead);

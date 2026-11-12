@@ -323,7 +323,10 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
 
         setGlossaryEntries(
           Array.from(glossary.definitions.values()).map(
-            (definition: { id: string; term: string }): PaletteGlossaryEntry => {
+            (definition: {
+              id: string;
+              term: string;
+            }): PaletteGlossaryEntry => {
               return {
                 id: definition.id,
                 term: definition.term,
@@ -816,8 +819,8 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
               const project: Project | undefined = (props.projects || []).find(
                 (candidate: Project): boolean => {
                   return (
-                    (candidate._id?.toString() ||
-                      candidate.id?.toString()) === descriptor.projectId
+                    (candidate._id?.toString() || candidate.id?.toString()) ===
+                    descriptor.projectId
                   );
                 },
               );
