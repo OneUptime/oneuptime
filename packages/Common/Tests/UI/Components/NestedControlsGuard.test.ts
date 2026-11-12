@@ -40,9 +40,9 @@ const DELIBERATE_NESTINGS: Record<
   { nestings: Array<string>; reason: string }
 > = {
   "packages/Common/UI/Components/Navbar/NavBarMenuModal.tsx": {
-    nestings: ["div[role=option] > Link"],
+    nestings: ["div[role=option] > Link", "div[role=option] > button"],
     reason:
-      "The products menu is a listbox the search box drives (arrow keys, Enter opens the active product). Each option wraps a real link so a pointer can open a product in a new tab; the keyboard never needs the link.",
+      "The products menu is a listbox the search box drives (arrow keys, Enter opens the active product). Each option wraps a real link so a pointer can open a product in a new tab; the keyboard never needs the link. A card's pin (#6814) is a pointer shortcut too (tabIndex -1): the keyboard pins a product with Pin beside its page's title.",
   },
   "packages/Common/UI/Components/Workflow/ValuePicker/ValuePickerMenu.tsx": {
     nestings: ["div[role=option] > button"],

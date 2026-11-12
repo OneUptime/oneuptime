@@ -1598,6 +1598,7 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_BILLING_INVOICES]: "invoices",
   [PageMap.SETTINGS_USAGE_HISTORY]: "usage-history",
   [PageMap.SETTINGS_LABELS]: "labels",
+  [PageMap.SETTINGS_PRODUCTS]: "products",
   [PageMap.SETTINGS_IMPORT_FROM_TOOL]: "import",
 };
 
@@ -1721,6 +1722,15 @@ export const UserSettingsRoutePath: Dictionary<string> = {
   [PageMap.USER_SETTINGS_SETUP]: "setup",
 };
 
+/*
+ * The pages under Home (…/home/): Home itself is one page, and Setup health
+ * is about the whole project, so it lives beside it rather than in a
+ * product (#6812).
+ */
+export const HomeRoutePath: Dictionary<string> = {
+  [PageMap.HOME_SETUP_HEALTH]: "setup-health",
+};
+
 const RouteMap: Dictionary<Route> = {
   [PageMap.INIT]: new Route(`/dashboard`),
 
@@ -1731,6 +1741,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INIT_PROJECT]: new Route(`/dashboard/${RouteParams.ProjectID}`),
 
   [PageMap.HOME]: new Route(`/dashboard/${RouteParams.ProjectID}/home/`),
+
+  [PageMap.HOME_SETUP_HEALTH]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/home/${
+      HomeRoutePath[PageMap.HOME_SETUP_HEALTH]
+    }`,
+  ),
 
   /*
    * Everything under …/home/ but Home itself: the addresses of the lists
@@ -9650,6 +9666,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_LABELS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_LABELS]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_PRODUCTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_PRODUCTS]
     }`,
   ),
 
