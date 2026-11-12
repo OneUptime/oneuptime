@@ -11,6 +11,9 @@ import ModalBody from "../../../../UI/Components/Modal/ModalBody";
 import TableEmptyState, {
   TableEmptyStateKind,
 } from "../../../../UI/Components/Table/TableEmptyState";
+import NewVersion, {
+  NewVersionAudience,
+} from "../../../../UI/Utils/NewVersion/NewVersion";
 import User from "../../../../UI/Utils/User";
 import { JSONObject } from "../../../../Types/JSON";
 import {
@@ -20,7 +23,7 @@ import {
   UnexplainedErrorKind,
   UnexplainedErrorWords,
 } from "../../../../Types/Exception/UnexplainedError";
-import getJestMockFunction from "../../../MockType";
+import getJestMockFunction, { MockFunction } from "../../../MockType";
 import "@testing-library/jest-dom";
 import {
   cleanup,
@@ -161,6 +164,29 @@ describe("getExplanationWords", () => {
     ).toBeNull();
   });
 
+  test("a status page's visitor is told to try again, and nothing about the server's logs or support", () => {
+    expect(
+      getExplanationWords({
+        error: server,
+        isCloud: false,
+        isMasterAdmin: true,
+        isVisitor: true,
+      }),
+    ).toEqual({
+      why: UnexplainedErrorWords.serverWhy,
+      next: UnexplainedErrorWords.serverNext,
+      whereToLook: null,
+    });
+    expect(
+      getExplanationWords({
+        error: { kind: UnexplainedErrorKind.ServerDown, reference: null },
+        isCloud: false,
+        isMasterAdmin: false,
+        isVisitor: true,
+      }).whereToLook,
+    ).toBeNull();
+  });
+
   test("what to do next for a connection and a page", () => {
     expect(
       getExplanationWords({
@@ -256,6 +282,19 @@ describe("ErrorExplanation", () => {
     expect(screen.queryByTestId("error-open-health")).toBeNull();
   });
 
+  test("on a status page, a gateway's error tells the visitor nothing about running the server", () => {
+    jest
+      .spyOn(NewVersion, "getAudience")
+      .mockReturnValue(NewVersionAudience.Visitors);
+
+    render(<ErrorExplanation message={SERVER_DOWN_MESSAGE} />);
+
+    expect(screen.getByTestId("error-why-and-next")).toHaveTextContent(
+      UnexplainedErrorWords.serverDownWhy,
+    );
+    expect(screen.queryByTestId("error-where-to-look")).toBeNull();
+  });
+
   test("a master admin on Cloud is not told to run the doctor", () => {
     isCloud = true;
     isMasterAdmin = true;
@@ -341,13 +380,13 @@ describe("the shared places an error is drawn", () => {
   });
 
   test("a list that did not load offers Try again rather than Refresh?", () => {
-    const onRefresh: jest.Mock = jest.fn();
+    const onRefresh: MockFunction = getJestMockFunction();
 
     render(
       <ErrorMessage
         message={UNEXPLAINED_ERROR_MESSAGES.server}
         whatFailed="The monitors could not be loaded."
-        onRefreshClick={onRefresh as unknown as () => void}
+        onRefreshClick={onRefresh}
       />,
     );
 

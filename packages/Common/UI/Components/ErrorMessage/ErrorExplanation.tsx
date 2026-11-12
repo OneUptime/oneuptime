@@ -1,6 +1,9 @@
 import CopyTextButton from "../CopyTextButton/CopyTextButton";
 import Link from "../Link/Link";
 import { ADMIN_DASHBOARD_URL, BILLING_ENABLED } from "../../Config";
+import NewVersion, {
+  NewVersionAudience,
+} from "../../Utils/NewVersion/NewVersion";
 import { Translator } from "../../Utils/TranslateTemplate";
 import User from "../../Utils/User";
 import useTranslator from "../../Utils/UseTranslator";
@@ -57,25 +60,34 @@ interface Explanation {
   whereToLook: string | null;
 }
 
-// The words for each kind, for the reader the page has signed in.
+/*
+ * The words for each kind, for the reader the page has. A visitor of a
+ * status page or a public dashboard never chose OneUptime: they are told
+ * to try again, and nothing about the server's logs or its support.
+ */
 export const getExplanationWords: (data: {
   error: UnexplainedError;
   isCloud: boolean;
   isMasterAdmin: boolean;
+  isVisitor?: boolean | undefined;
 }) => Explanation = (data: {
   error: UnexplainedError;
   isCloud: boolean;
   isMasterAdmin: boolean;
+  isVisitor?: boolean | undefined;
 }): Explanation => {
-  const isSelfHostedAdmin: boolean = !data.isCloud && data.isMasterAdmin;
+  const isSelfHostedAdmin: boolean =
+    !data.isCloud && data.isMasterAdmin && !data.isVisitor;
 
   switch (data.error.kind) {
     case UnexplainedErrorKind.ServerWithReference:
       return {
         why: UnexplainedErrorWords.serverWhy,
-        next: data.isCloud
-          ? UnexplainedErrorWords.serverNextWithReferenceCloud
-          : UnexplainedErrorWords.serverNextWithReferenceSelfHosted,
+        next: data.isVisitor
+          ? UnexplainedErrorWords.serverNext
+          : data.isCloud
+            ? UnexplainedErrorWords.serverNextWithReferenceCloud
+            : UnexplainedErrorWords.serverNextWithReferenceSelfHosted,
         whereToLook: isSelfHostedAdmin
           ? UnexplainedErrorWords.adminWhereToLookWithReference
           : null,
@@ -92,9 +104,10 @@ export const getExplanationWords: (data: {
       return {
         why: UnexplainedErrorWords.serverDownWhy,
         next: UnexplainedErrorWords.serverDownNext,
-        whereToLook: data.isCloud
-          ? null
-          : UnexplainedErrorWords.serverDownWhereToLook,
+        whereToLook:
+          data.isCloud || data.isVisitor
+            ? null
+            : UnexplainedErrorWords.serverDownWhereToLook,
       };
     case UnexplainedErrorKind.Unreachable:
       return {
@@ -129,15 +142,21 @@ const ErrorExplanation: FunctionComponent<ComponentProps> = (
 
   const isMasterAdmin: boolean = Boolean(User.isMasterAdmin());
 
+  // A status page's or a public dashboard's reader (NewVersion's audience).
+  const isVisitor: boolean =
+    NewVersion.getAudience() === NewVersionAudience.Visitors;
+
   const words: Explanation = getExplanationWords({
     error: error,
     isCloud: BILLING_ENABLED,
     isMasterAdmin: isMasterAdmin,
+    isVisitor: isVisitor,
   });
 
   // OneUptime Health answers only while the server does.
   const showHealthLink: boolean =
     !BILLING_ENABLED &&
+    !isVisitor &&
     isMasterAdmin &&
     (error.kind === UnexplainedErrorKind.ServerWithReference ||
       error.kind === UnexplainedErrorKind.Server);

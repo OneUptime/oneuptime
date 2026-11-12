@@ -35,14 +35,15 @@ describe("MasterPage", () => {
     expect(errorElement).toBeInTheDocument();
   });
 
-  it("should render correctly with server error", () => {
+  it("should render a bare server error as one the server did not explain, not as a network error (#6836)", () => {
     const error: string = "Server Error";
     render(<MasterPage {...defaultProps} error={error} />);
 
-    const errorElement: HTMLElement = screen.getByText(
-      "Network Error: Please reload the page and try again.",
-    );
-    expect(errorElement).toBeInTheDocument();
+    expect(screen.getByText("Page Did Not Load")).toBeInTheDocument();
+    expect(
+      screen.getByText(/The server ran into a problem it could not explain\./),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Network Error/)).toBeNull();
   });
 
   it("should render correctly with footer", () => {

@@ -154,6 +154,15 @@ describe("OneUptime that could not be reached at all", () => {
     expect(message).not.toContain("https://");
   });
 
+  test("the browser's own 'Network Error', thrown as an APIException", () => {
+    expect(friendly(new APIException("Network Error"))).toBe(
+      UNEXPLAINED_ERROR_MESSAGES.unreachable,
+    );
+    expect(friendly(new APIException("Network Error."))).toBe(
+      UNEXPLAINED_ERROR_MESSAGES.unreachable,
+    );
+  });
+
   test("no response at all", () => {
     expect(friendly(new APIException("No response received from server."))).toBe(
       UNEXPLAINED_ERROR_MESSAGES.unreachable,

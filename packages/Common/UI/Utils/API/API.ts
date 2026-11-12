@@ -646,7 +646,8 @@ class BaseAPI extends API {
     if (
       err instanceof APIException &&
       (message.startsWith("Request failed to ") ||
-        message === "No response received from server.")
+        message === "No response received from server." ||
+        message.toLowerCase().replace(/\.$/, "") === "network error")
     ) {
       return UNEXPLAINED_ERROR_MESSAGES.unreachable;
     }
