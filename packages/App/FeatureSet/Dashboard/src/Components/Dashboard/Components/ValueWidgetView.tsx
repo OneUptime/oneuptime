@@ -38,6 +38,7 @@ import {
   getDashboardSpanLabeller,
   getDashboardSpanLabels,
 } from "../Utils/DashboardDateTime";
+import { DASHBOARD_WIDGET_SETUP_LINE_TEST_ID } from "./DashboardWidgetSetupCopy";
 
 /*
  * The big-number widget's PRESENTATION, with no opinion about where its
@@ -573,9 +574,11 @@ export interface ValueWidgetViewProps {
   noDataMessage: string;
 
   /*
-   * False while the widget has no query yet — renders the "click to
-   * configure" prompt rather than a no-data state, because nothing has been
-   * asked of the data source at all.
+   * False while the widget has no query yet — renders the setup prompt
+   * rather than a no-data state, because nothing has been asked of the data
+   * source at all. setupMessage is the host's line for where the widget is
+   * drawn (DashboardWidgetSetupCopy): a click only where one opens its
+   * settings.
    */
   isConfigured: boolean;
   setupTitle: string;
@@ -1046,6 +1049,7 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
         <p
           className={`text-xs text-gray-500 text-center max-w-full ${stateMessageClampClass} px-1`}
           title={setupMessage}
+          data-testid={DASHBOARD_WIDGET_SETUP_LINE_TEST_ID}
         >
           {setupMessage}
         </p>

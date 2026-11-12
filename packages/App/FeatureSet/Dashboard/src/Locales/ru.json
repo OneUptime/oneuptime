@@ -8813,7 +8813,7 @@
   "Click to inspect · Drag to arrange · Updates every minute": "Click to inspect · Drag to arrange · Updates every minute",
   "Click to open": "Click to open",
   "Click to reveal": "Click to reveal",
-  "Click to select an SLO": "Click to select an SLO",
+  "Click to select an SLO": "Нажмите, чтобы выбрать SLO",
   "Click to upload CSV": "Click to upload CSV",
   "ClickHouse Capacity Notification Threshold (%)": "ClickHouse Capacity Notification Threshold (%)",
   "ClickHouse Capacity Notifications": "ClickHouse Capacity Notifications",
@@ -15523,7 +15523,7 @@
   "SLO Monitor Rules": "Правила мониторов SLO",
   "SLO Owner Rule": "SLO Owner Rule",
   "SLO Status": "SLO Status",
-  "SLO Widget": "SLO Widget",
+  "SLO Widget": "Виджет SLO",
   "SLO at a glance": "SLO вкратце",
   "SLO status changed": "Статус SLO изменён",
   "SLO status summary": "Сводка статусов SLO",
@@ -51145,5 +51145,13 @@
   "The status page shows this resource as not monitored.": "Страница статуса показывает, что этот ресурс не отслеживается.",
   "Under maintenance: {{events}}": "На обслуживании: {{events}}",
   "Unusually High": "Необычно высоко",
-  "Unusually Low": "Необычно низко"
+  "Unusually Low": "Необычно низко",
+  "No SLO picked yet.": "SLO ещё не выбран.",
+  "No metric picked yet.": "Метрика ещё не выбрана.",
+  "No query set up yet.": "Запрос ещё не настроен.",
+  "No saved funnel picked yet.": "Сохранённая воронка ещё не выбрана.",
+  "No saved retention table picked yet.": "Сохранённая таблица удержания ещё не выбрана.",
+  "Pick a metric in the settings below.": "Выберите метрику в настройках ниже.",
+  "Pick an SLO in the settings below.": "Выберите SLO в настройках ниже.",
+  "Write a query in the settings below.": "Напишите запрос в настройках ниже."
 }

@@ -8813,7 +8813,7 @@
   "Click to inspect · Drag to arrange · Updates every minute": "Click to inspect · Drag to arrange · Updates every minute",
   "Click to open": "Click to open",
   "Click to reveal": "Click to reveal",
-  "Click to select an SLO": "Click to select an SLO",
+  "Click to select an SLO": "클릭하여 SLO 선택",
   "Click to upload CSV": "Click to upload CSV",
   "ClickHouse Capacity Notification Threshold (%)": "ClickHouse Capacity Notification Threshold (%)",
   "ClickHouse Capacity Notifications": "ClickHouse Capacity Notifications",
@@ -15523,7 +15523,7 @@
   "SLO Monitor Rules": "SLO 모니터 규칙",
   "SLO Owner Rule": "SLO Owner Rule",
   "SLO Status": "SLO Status",
-  "SLO Widget": "SLO Widget",
+  "SLO Widget": "SLO 위젯",
   "SLO at a glance": "SLO 한눈에 보기",
   "SLO status changed": "SLO 상태 변경됨",
   "SLO status summary": "SLO 상태 요약",
@@ -51145,5 +51145,13 @@
   "The status page shows this resource as not monitored.": "상태 페이지에 이 리소스가 모니터링되지 않음으로 표시됩니다.",
   "Under maintenance: {{events}}": "유지 관리 중: {{events}}",
   "Unusually High": "비정상적으로 높음",
-  "Unusually Low": "비정상적으로 낮음"
+  "Unusually Low": "비정상적으로 낮음",
+  "No SLO picked yet.": "아직 선택된 SLO가 없습니다.",
+  "No metric picked yet.": "아직 선택된 메트릭이 없습니다.",
+  "No query set up yet.": "아직 설정된 쿼리가 없습니다.",
+  "No saved funnel picked yet.": "아직 선택된 저장된 퍼널이 없습니다.",
+  "No saved retention table picked yet.": "아직 선택된 저장된 리텐션 표가 없습니다.",
+  "Pick a metric in the settings below.": "아래 설정에서 메트릭을 선택하세요.",
+  "Pick an SLO in the settings below.": "아래 설정에서 SLO를 선택하세요.",
+  "Write a query in the settings below.": "아래 설정에서 쿼리를 작성하세요."
 }

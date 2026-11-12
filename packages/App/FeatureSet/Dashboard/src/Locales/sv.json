@@ -8813,7 +8813,7 @@
   "Click to inspect · Drag to arrange · Updates every minute": "Click to inspect · Drag to arrange · Updates every minute",
   "Click to open": "Click to open",
   "Click to reveal": "Click to reveal",
-  "Click to select an SLO": "Click to select an SLO",
+  "Click to select an SLO": "Klicka för att välja ett SLO",
   "Click to upload CSV": "Click to upload CSV",
   "ClickHouse Capacity Notification Threshold (%)": "ClickHouse Capacity Notification Threshold (%)",
   "ClickHouse Capacity Notifications": "ClickHouse Capacity Notifications",
@@ -15523,7 +15523,7 @@
   "SLO Monitor Rules": "SLO-monitorregler",
   "SLO Owner Rule": "SLO Owner Rule",
   "SLO Status": "SLO Status",
-  "SLO Widget": "SLO Widget",
+  "SLO Widget": "SLO-widget",
   "SLO at a glance": "SLO i korthet",
   "SLO status changed": "SLO-status ändrad",
   "SLO status summary": "Översikt över SLO-status",
@@ -51145,5 +51145,13 @@
   "The status page shows this resource as not monitored.": "Statussidan visar den här resursen som inte övervakad.",
   "Under maintenance: {{events}}": "Under underhåll: {{events}}",
   "Unusually High": "Ovanligt hög",
-  "Unusually Low": "Ovanligt låg"
+  "Unusually Low": "Ovanligt låg",
+  "No SLO picked yet.": "Inget SLO valt än.",
+  "No metric picked yet.": "Inget mätvärde valt än.",
+  "No query set up yet.": "Ingen fråga konfigurerad än.",
+  "No saved funnel picked yet.": "Ingen sparad tratt vald än.",
+  "No saved retention table picked yet.": "Ingen sparad kvarhållningstabell vald än.",
+  "Pick a metric in the settings below.": "Välj ett mätvärde i inställningarna nedan.",
+  "Pick an SLO in the settings below.": "Välj ett SLO i inställningarna nedan.",
+  "Write a query in the settings below.": "Skriv en fråga i inställningarna nedan."
 }

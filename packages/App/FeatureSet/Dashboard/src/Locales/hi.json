@@ -8813,7 +8813,7 @@
   "Click to inspect · Drag to arrange · Updates every minute": "Click to inspect · Drag to arrange · Updates every minute",
   "Click to open": "Click to open",
   "Click to reveal": "Click to reveal",
-  "Click to select an SLO": "Click to select an SLO",
+  "Click to select an SLO": "SLO चुनने के लिए क्लिक करें",
   "Click to upload CSV": "Click to upload CSV",
   "ClickHouse Capacity Notification Threshold (%)": "ClickHouse Capacity Notification Threshold (%)",
   "ClickHouse Capacity Notifications": "ClickHouse Capacity Notifications",
@@ -15523,7 +15523,7 @@
   "SLO Monitor Rules": "SLO मॉनिटर नियम",
   "SLO Owner Rule": "SLO Owner Rule",
   "SLO Status": "SLO Status",
-  "SLO Widget": "SLO Widget",
+  "SLO Widget": "SLO विजेट",
   "SLO at a glance": "SLO एक नज़र में",
   "SLO status changed": "SLO की स्थिति बदली गई",
   "SLO status summary": "SLO स्थिति सारांश",
@@ -51145,5 +51145,13 @@
   "The status page shows this resource as not monitored.": "स्थिति पृष्ठ दिखाता है कि इस संसाधन की निगरानी नहीं हो रही है।",
   "Under maintenance: {{events}}": "रखरखाव में: {{events}}",
   "Unusually High": "असामान्य रूप से ऊँचा",
-  "Unusually Low": "असामान्य रूप से नीचा"
+  "Unusually Low": "असामान्य रूप से नीचा",
+  "No SLO picked yet.": "अभी तक कोई SLO नहीं चुना गया।",
+  "No metric picked yet.": "अभी तक कोई मीट्रिक नहीं चुना गया।",
+  "No query set up yet.": "अभी तक कोई क्वेरी सेट अप नहीं की गई।",
+  "No saved funnel picked yet.": "अभी तक कोई सहेजा गया फ़नल नहीं चुना गया।",
+  "No saved retention table picked yet.": "अभी तक कोई सहेजी गई रिटेंशन तालिका नहीं चुनी गई।",
+  "Pick a metric in the settings below.": "नीचे दी गई सेटिंग में कोई मीट्रिक चुनें।",
+  "Pick an SLO in the settings below.": "नीचे दी गई सेटिंग में कोई SLO चुनें।",
+  "Write a query in the settings below.": "नीचे दी गई सेटिंग में कोई क्वेरी लिखें।"
 }

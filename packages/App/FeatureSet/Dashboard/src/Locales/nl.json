@@ -8813,7 +8813,7 @@
   "Click to inspect · Drag to arrange · Updates every minute": "Click to inspect · Drag to arrange · Updates every minute",
   "Click to open": "Click to open",
   "Click to reveal": "Click to reveal",
-  "Click to select an SLO": "Click to select an SLO",
+  "Click to select an SLO": "Klik om een SLO te selecteren",
   "Click to upload CSV": "Click to upload CSV",
   "ClickHouse Capacity Notification Threshold (%)": "ClickHouse Capacity Notification Threshold (%)",
   "ClickHouse Capacity Notifications": "ClickHouse Capacity Notifications",
@@ -15523,7 +15523,7 @@
   "SLO Monitor Rules": "SLO-monitorregels",
   "SLO Owner Rule": "SLO Owner Rule",
   "SLO Status": "SLO Status",
-  "SLO Widget": "SLO Widget",
+  "SLO Widget": "SLO-widget",
   "SLO at a glance": "SLO in één oogopslag",
   "SLO status changed": "SLO-status gewijzigd",
   "SLO status summary": "Overzicht van SLO-status",
@@ -51145,5 +51145,13 @@
   "The status page shows this resource as not monitored.": "De statuspagina toont deze bron als niet bewaakt.",
   "Under maintenance: {{events}}": "In onderhoud: {{events}}",
   "Unusually High": "Ongewoon hoog",
-  "Unusually Low": "Ongewoon laag"
+  "Unusually Low": "Ongewoon laag",
+  "No SLO picked yet.": "Nog geen SLO gekozen.",
+  "No metric picked yet.": "Nog geen metriek gekozen.",
+  "No query set up yet.": "Nog geen query ingesteld.",
+  "No saved funnel picked yet.": "Nog geen opgeslagen trechter gekozen.",
+  "No saved retention table picked yet.": "Nog geen opgeslagen retentietabel gekozen.",
+  "Pick a metric in the settings below.": "Kies een metriek in de instellingen hieronder.",
+  "Pick an SLO in the settings below.": "Kies een SLO in de instellingen hieronder.",
+  "Write a query in the settings below.": "Schrijf een query in de instellingen hieronder."
 }

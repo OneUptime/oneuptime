@@ -8813,7 +8813,7 @@
   "Click to inspect · Drag to arrange · Updates every minute": "Click to inspect · Drag to arrange · Updates every minute",
   "Click to open": "Click to open",
   "Click to reveal": "Click to reveal",
-  "Click to select an SLO": "Click to select an SLO",
+  "Click to select an SLO": "Fai clic per selezionare uno SLO",
   "Click to upload CSV": "Click to upload CSV",
   "ClickHouse Capacity Notification Threshold (%)": "ClickHouse Capacity Notification Threshold (%)",
   "ClickHouse Capacity Notifications": "ClickHouse Capacity Notifications",
@@ -15523,7 +15523,7 @@
   "SLO Monitor Rules": "Regole dei monitor dello SLO",
   "SLO Owner Rule": "SLO Owner Rule",
   "SLO Status": "SLO Status",
-  "SLO Widget": "SLO Widget",
+  "SLO Widget": "Widget SLO",
   "SLO at a glance": "Lo SLO in sintesi",
   "SLO status changed": "Stato dell'SLO modificato",
   "SLO status summary": "Riepilogo dello stato degli SLO",
@@ -51145,5 +51145,13 @@
   "The status page shows this resource as not monitored.": "La pagina di stato mostra questa risorsa come non monitorata.",
   "Under maintenance: {{events}}": "In manutenzione: {{events}}",
   "Unusually High": "Insolitamente alto",
-  "Unusually Low": "Insolitamente basso"
+  "Unusually Low": "Insolitamente basso",
+  "No SLO picked yet.": "Nessuno SLO ancora scelto.",
+  "No metric picked yet.": "Nessuna metrica ancora scelta.",
+  "No query set up yet.": "Nessuna query ancora configurata.",
+  "No saved funnel picked yet.": "Nessun funnel salvato ancora scelto.",
+  "No saved retention table picked yet.": "Nessuna tabella di fidelizzazione salvata ancora scelta.",
+  "Pick a metric in the settings below.": "Scegli una metrica nelle impostazioni qui sotto.",
+  "Pick an SLO in the settings below.": "Scegli uno SLO nelle impostazioni qui sotto.",
+  "Write a query in the settings below.": "Scrivi una query nelle impostazioni qui sotto."
 }

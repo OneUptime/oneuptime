@@ -51145,5 +51145,13 @@
   "The status page shows this resource as not monitored.": "Die Statusseite zeigt diese Ressource als nicht überwacht an.",
   "Under maintenance: {{events}}": "In Wartung: {{events}}",
   "Unusually High": "Ungewöhnlich hoch",
-  "Unusually Low": "Ungewöhnlich niedrig"
+  "Unusually Low": "Ungewöhnlich niedrig",
+  "No SLO picked yet.": "Noch kein SLO ausgewählt.",
+  "No metric picked yet.": "Noch keine Metrik ausgewählt.",
+  "No query set up yet.": "Noch keine Abfrage eingerichtet.",
+  "No saved funnel picked yet.": "Noch kein gespeicherter Trichter ausgewählt.",
+  "No saved retention table picked yet.": "Noch keine gespeicherte Bindungstabelle ausgewählt.",
+  "Pick a metric in the settings below.": "Wählen Sie unten in den Einstellungen eine Metrik aus.",
+  "Pick an SLO in the settings below.": "Wählen Sie unten in den Einstellungen ein SLO aus.",
+  "Write a query in the settings below.": "Schreiben Sie unten in den Einstellungen eine Abfrage."
 }

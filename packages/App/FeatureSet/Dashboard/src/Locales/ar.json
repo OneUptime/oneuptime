@@ -51145,5 +51145,13 @@
   "The status page shows this resource as not monitored.": "تعرض صفحة الحالة هذا المورد على أنه غير مراقَب.",
   "Under maintenance: {{events}}": "قيد الصيانة: {{events}}",
   "Unusually High": "مرتفع على غير العادة",
-  "Unusually Low": "منخفض على غير العادة"
+  "Unusually Low": "منخفض على غير العادة",
+  "No SLO picked yet.": "لم يُختر أي SLO بعد.",
+  "No metric picked yet.": "لم يُختر أي مقياس بعد.",
+  "No query set up yet.": "لم يُعدّ أي استعلام بعد.",
+  "No saved funnel picked yet.": "لم يُختر أي مسار تحويل محفوظ بعد.",
+  "No saved retention table picked yet.": "لم يُختر أي جدول احتفاظ محفوظ بعد.",
+  "Pick a metric in the settings below.": "اختر مقياسًا في الإعدادات أدناه.",
+  "Pick an SLO in the settings below.": "اختر SLO في الإعدادات أدناه.",
+  "Write a query in the settings below.": "اكتب استعلامًا في الإعدادات أدناه."
 }

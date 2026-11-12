@@ -8813,7 +8813,7 @@
   "Click to inspect · Drag to arrange · Updates every minute": "Click to inspect · Drag to arrange · Updates every minute",
   "Click to open": "Click to open",
   "Click to reveal": "Click to reveal",
-  "Click to select an SLO": "Click to select an SLO",
+  "Click to select an SLO": "点击以选择 SLO",
   "Click to upload CSV": "Click to upload CSV",
   "ClickHouse Capacity Notification Threshold (%)": "ClickHouse Capacity Notification Threshold (%)",
   "ClickHouse Capacity Notifications": "ClickHouse Capacity Notifications",
@@ -15523,7 +15523,7 @@
   "SLO Monitor Rules": "SLO 监视器规则",
   "SLO Owner Rule": "SLO Owner Rule",
   "SLO Status": "SLO Status",
-  "SLO Widget": "SLO Widget",
+  "SLO Widget": "SLO 小部件",
   "SLO at a glance": "SLO 概览",
   "SLO status changed": "SLO 状态已更改",
   "SLO status summary": "SLO 状态摘要",
@@ -51145,5 +51145,13 @@
   "The status page shows this resource as not monitored.": "状态页将此资源显示为未监控。",
   "Under maintenance: {{events}}": "维护中：{{events}}",
   "Unusually High": "异常偏高",
-  "Unusually Low": "异常偏低"
+  "Unusually Low": "异常偏低",
+  "No SLO picked yet.": "尚未选择 SLO。",
+  "No metric picked yet.": "尚未选择指标。",
+  "No query set up yet.": "尚未设置查询。",
+  "No saved funnel picked yet.": "尚未选择已保存的漏斗。",
+  "No saved retention table picked yet.": "尚未选择已保存的留存表。",
+  "Pick a metric in the settings below.": "请在下方的设置中选择一个指标。",
+  "Pick an SLO in the settings below.": "请在下方的设置中选择一个 SLO。",
+  "Write a query in the settings below.": "请在下方的设置中编写查询。"
 }

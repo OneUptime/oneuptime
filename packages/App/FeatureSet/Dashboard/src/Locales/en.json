@@ -51145,5 +51145,13 @@
   "The status page shows this resource as not monitored.": "The status page shows this resource as not monitored.",
   "Under maintenance: {{events}}": "Under maintenance: {{events}}",
   "Unusually High": "Unusually High",
-  "Unusually Low": "Unusually Low"
+  "Unusually Low": "Unusually Low",
+  "No SLO picked yet.": "No SLO picked yet.",
+  "No metric picked yet.": "No metric picked yet.",
+  "No query set up yet.": "No query set up yet.",
+  "No saved funnel picked yet.": "No saved funnel picked yet.",
+  "No saved retention table picked yet.": "No saved retention table picked yet.",
+  "Pick a metric in the settings below.": "Pick a metric in the settings below.",
+  "Pick an SLO in the settings below.": "Pick an SLO in the settings below.",
+  "Write a query in the settings below.": "Write a query in the settings below."
 }

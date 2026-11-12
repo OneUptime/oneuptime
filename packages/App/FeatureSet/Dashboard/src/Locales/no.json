@@ -8813,7 +8813,7 @@
   "Click to inspect · Drag to arrange · Updates every minute": "Click to inspect · Drag to arrange · Updates every minute",
   "Click to open": "Click to open",
   "Click to reveal": "Click to reveal",
-  "Click to select an SLO": "Click to select an SLO",
+  "Click to select an SLO": "Klikk for å velge en SLO",
   "Click to upload CSV": "Click to upload CSV",
   "ClickHouse Capacity Notification Threshold (%)": "ClickHouse Capacity Notification Threshold (%)",
   "ClickHouse Capacity Notifications": "ClickHouse Capacity Notifications",
@@ -15523,7 +15523,7 @@
   "SLO Monitor Rules": "SLO-monitorregler",
   "SLO Owner Rule": "SLO Owner Rule",
   "SLO Status": "SLO Status",
-  "SLO Widget": "SLO Widget",
+  "SLO Widget": "SLO-widget",
   "SLO at a glance": "SLO i et overblikk",
   "SLO status changed": "SLO-status endret",
   "SLO status summary": "Oversikt over SLO-status",
@@ -51145,5 +51145,13 @@
   "The status page shows this resource as not monitored.": "Statussiden viser denne ressursen som ikke overvåket.",
   "Under maintenance: {{events}}": "Under vedlikehold: {{events}}",
   "Unusually High": "Uvanlig høy",
-  "Unusually Low": "Uvanlig lav"
+  "Unusually Low": "Uvanlig lav",
+  "No SLO picked yet.": "Ingen SLO valgt ennå.",
+  "No metric picked yet.": "Ingen metrikk valgt ennå.",
+  "No query set up yet.": "Ingen spørring satt opp ennå.",
+  "No saved funnel picked yet.": "Ingen lagret trakt valgt ennå.",
+  "No saved retention table picked yet.": "Ingen lagret lojalitetstabell valgt ennå.",
+  "Pick a metric in the settings below.": "Velg en metrikk i innstillingene nedenfor.",
+  "Pick an SLO in the settings below.": "Velg en SLO i innstillingene nedenfor.",
+  "Write a query in the settings below.": "Skriv en spørring i innstillingene nedenfor."
 }

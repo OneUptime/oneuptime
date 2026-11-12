@@ -51145,5 +51145,13 @@
   "The status page shows this resource as not monitored.": "ステータスページではこのリソースは未監視と表示されています。",
   "Under maintenance: {{events}}": "メンテナンス中: {{events}}",
   "Unusually High": "異常に高い",
-  "Unusually Low": "異常に低い"
+  "Unusually Low": "異常に低い",
+  "No SLO picked yet.": "SLO がまだ選択されていません。",
+  "No metric picked yet.": "メトリクスがまだ選択されていません。",
+  "No query set up yet.": "クエリがまだ設定されていません。",
+  "No saved funnel picked yet.": "保存済みのファネルがまだ選択されていません。",
+  "No saved retention table picked yet.": "保存済みのリテンションテーブルがまだ選択されていません。",
+  "Pick a metric in the settings below.": "下の設定でメトリクスを選択してください。",
+  "Pick an SLO in the settings below.": "下の設定で SLO を選択してください。",
+  "Write a query in the settings below.": "下の設定でクエリを記述してください。"
 }

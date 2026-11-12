@@ -8813,7 +8813,7 @@
   "Click to inspect · Drag to arrange · Updates every minute": "Click to inspect · Drag to arrange · Updates every minute",
   "Click to open": "Click to open",
   "Click to reveal": "Click to reveal",
-  "Click to select an SLO": "Click to select an SLO",
+  "Click to select an SLO": "برای انتخاب یک SLO کلیک کنید",
   "Click to upload CSV": "Click to upload CSV",
   "ClickHouse Capacity Notification Threshold (%)": "ClickHouse Capacity Notification Threshold (%)",
   "ClickHouse Capacity Notifications": "ClickHouse Capacity Notifications",
@@ -15523,7 +15523,7 @@
   "SLO Monitor Rules": "قواعد مانیتور SLO",
   "SLO Owner Rule": "SLO Owner Rule",
   "SLO Status": "SLO Status",
-  "SLO Widget": "SLO Widget",
+  "SLO Widget": "ویجت SLO",
   "SLO at a glance": "SLO در یک نگاه",
   "SLO status changed": "وضعیت SLO تغییر کرد",
   "SLO status summary": "خلاصه وضعیت SLOها",
@@ -51145,5 +51145,13 @@
   "The status page shows this resource as not monitored.": "صفحه وضعیت این منبع را پایش نشده نشان می‌دهد.",
   "Under maintenance: {{events}}": "در حال تعمیر و نگهداری: {{events}}",
   "Unusually High": "به‌طور غیرعادی بالا",
-  "Unusually Low": "به‌طور غیرعادی پایین"
+  "Unusually Low": "به‌طور غیرعادی پایین",
+  "No SLO picked yet.": "هنوز هیچ SLO انتخاب نشده است.",
+  "No metric picked yet.": "هنوز هیچ متریکی انتخاب نشده است.",
+  "No query set up yet.": "هنوز هیچ کوئری‌ای تنظیم نشده است.",
+  "No saved funnel picked yet.": "هنوز هیچ قیف ذخیره‌شده‌ای انتخاب نشده است.",
+  "No saved retention table picked yet.": "هنوز هیچ جدول ماندگاری ذخیره‌شده‌ای انتخاب نشده است.",
+  "Pick a metric in the settings below.": "در تنظیمات زیر یک متریک انتخاب کنید.",
+  "Pick an SLO in the settings below.": "در تنظیمات زیر یک SLO انتخاب کنید.",
+  "Write a query in the settings below.": "در تنظیمات زیر یک کوئری بنویسید."
 }

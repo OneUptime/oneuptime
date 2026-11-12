@@ -34,6 +34,12 @@ import DashboardWidgetTimeRangeZoom, {
 } from "../Utils/DashboardWidgetTimeRangeZoom";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { useDashboardWidgetPlace } from "./DashboardWidgetPreview";
+import {
+  DASHBOARD_WIDGET_SETUP_LINE_TEST_ID,
+  DashboardWidgetSetupNeed,
+  getDashboardWidgetSetupLine,
+} from "./DashboardWidgetSetupCopy";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardDataSourceChartComponentType;
@@ -64,6 +70,15 @@ const DashboardDataSourceChartComponent: FunctionComponent<ComponentProps> = (
   const queryConfigs: Array<DataSourceQueryConfig> = useMemo(() => {
     return getConfiguredDataSourceQueries(props.component.arguments.queries);
   }, [props.component.arguments.queries]);
+
+  /*
+   * What the chart says until a query is set up, for where it is drawn: a
+   * click opens its settings only on the board being edited (issue #7160).
+   */
+  const setupMessage: string = getDashboardWidgetSetupLine(
+    DashboardWidgetSetupNeed.Query,
+    useDashboardWidgetPlace(props.isEditMode),
+  );
 
   const startAndEndDate: ReturnType<
     typeof RangeStartAndEndDateTimeUtil.getStartAndEndDate
@@ -279,8 +294,11 @@ const DashboardDataSourceChartComponent: FunctionComponent<ComponentProps> = (
           {props.component.arguments.chartTitle?.trim() ||
             translator.translateText("Data Source Chart")}
         </p>
-        <p className="text-xs text-gray-400 text-center">
-          {translator.translateText("Click to configure a query")}
+        <p
+          className="text-xs text-gray-400 text-center"
+          data-testid={DASHBOARD_WIDGET_SETUP_LINE_TEST_ID}
+        >
+          {translator.translateText(setupMessage)}
         </p>
       </div>
     );

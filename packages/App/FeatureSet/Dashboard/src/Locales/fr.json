@@ -15523,7 +15523,7 @@
   "SLO Monitor Rules": "Règles de moniteurs du SLO",
   "SLO Owner Rule": "Règle de propriétaire des SLO",
   "SLO Status": "SLO Status",
-  "SLO Widget": "SLO Widget",
+  "SLO Widget": "Widget SLO",
   "SLO at a glance": "Le SLO en un coup d'œil",
   "SLO status changed": "Statut du SLO modifié",
   "SLO status summary": "Résumé du statut des SLO",
@@ -51145,5 +51145,13 @@
   "The status page shows this resource as not monitored.": "La page de statut affiche cette ressource comme non surveillée.",
   "Under maintenance: {{events}}": "En maintenance : {{events}}",
   "Unusually High": "Anormalement haut",
-  "Unusually Low": "Anormalement bas"
+  "Unusually Low": "Anormalement bas",
+  "No SLO picked yet.": "Aucun SLO choisi pour l'instant.",
+  "No metric picked yet.": "Aucune métrique choisie pour l'instant.",
+  "No query set up yet.": "Aucune requête configurée pour l'instant.",
+  "No saved funnel picked yet.": "Aucun entonnoir enregistré choisi pour l'instant.",
+  "No saved retention table picked yet.": "Aucun tableau de rétention enregistré choisi pour l'instant.",
+  "Pick a metric in the settings below.": "Choisissez une métrique dans les paramètres ci-dessous.",
+  "Pick an SLO in the settings below.": "Choisissez un SLO dans les paramètres ci-dessous.",
+  "Write a query in the settings below.": "Écrivez une requête dans les paramètres ci-dessous."
 }
