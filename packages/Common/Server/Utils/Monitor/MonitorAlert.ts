@@ -39,7 +39,9 @@ import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorEvaluationDetailsCapture, {
   GetEvaluationDetails,
 } from "./MonitorEvaluationDetailsCapture";
-import SeriesContextEnricher from "./SeriesContextEnricher";
+import MonitorRecordText, {
+  MonitorRecordTextResult,
+} from "./MonitorRecordText";
 import OpenStackAlertContext, {
   OpenStackSeriesDescription,
 } from "../OpenStack/OpenStackAlertContext";
@@ -758,16 +760,10 @@ export default class MonitorAlert {
               seriesLabels,
             });
 
-          // A title is one bounded line; see buildTitleStorageMap.
-          const titleStorageMap: JSONObject =
-            MonitorTemplateUtil.buildTitleStorageMap({
-              monitorType: input.monitor.monitorType!,
-              storageMap,
-            });
-
           /*
            * Render the criteria's template, then make it say WHICH
-           * series it is about.
+           * series it is about (MonitorRecordText, as MonitorIncident
+           * renders it).
            *
            * The criteria title is one fixed string shared by every
            * series on the monitor, so without the enricher a cluster
@@ -780,26 +776,16 @@ export default class MonitorAlert {
            * put `{{seriesResourceSuffix}}` or the raw label variables
            * in their own template).
            */
-          alert.title = SeriesContextEnricher.enrichTitle({
-            title: MonitorTemplateUtil.processTemplateString({
-              value: criteriaAlert.title,
-              storageMap: titleStorageMap,
-            }),
+          const text: MonitorRecordTextResult = MonitorRecordText.render({
+            titleTemplate: criteriaAlert.title,
+            descriptionTemplate: criteriaAlert.description,
+            monitorType: input.monitor.monitorType!,
+            storageMap,
             seriesLabels,
           });
-          /*
-           * The description and remediation notes are Markdown: what the
-           * monitored system sent goes into them as text
-           * (processMarkdownTemplateString).
-           */
-          alert.description = SeriesContextEnricher.enrichDescription({
-            description: MonitorTemplateUtil.processMarkdownTemplateString({
-              value: criteriaAlert.description,
-              storageMap,
-            }),
-            seriesLabels,
-            monitorType: input.monitor.monitorType,
-          });
+
+          alert.title = text.title;
+          alert.description = text.description;
 
           /*
            * A criteria severity belonging to *another* project is rejected by
