@@ -141,9 +141,7 @@ export const UsedByImpactNotice: FunctionComponent<{
       strongTitle={STILL_IN_USE}
       title={
         <div>
-          <p>
-            {translator.translateText(STILL_IN_USE_DESCRIPTION)}
-          </p>
+          <p>{translator.translateText(STILL_IN_USE_DESCRIPTION)}</p>
           <UsedByImpactSentences groups={groups} />
         </div>
       }

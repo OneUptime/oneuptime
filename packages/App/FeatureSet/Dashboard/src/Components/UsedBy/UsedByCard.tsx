@@ -44,9 +44,7 @@ const UsedByCard: FunctionComponent<ComponentProps> = (
     recordId: props.recordId,
     refreshToken: props.refreshToken,
   });
-  const [openRelation, setOpenRelation] = useState<UsedByRelation | null>(
-    null,
-  );
+  const [openRelation, setOpenRelation] = useState<UsedByRelation | null>(null);
 
   const getBody: () => ReactElement = (): ReactElement => {
     if (used.state.status === "loading") {

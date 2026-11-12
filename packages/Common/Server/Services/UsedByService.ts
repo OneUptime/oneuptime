@@ -146,7 +146,9 @@ export interface UsedByReadPlan {
   // The column with a numbered record's number and its prefix.
   numberColumn?: string | undefined;
   sort?: Sort<BaseModel> | undefined;
-  count?: ((props: DatabaseCommonInteractionProps) => Promise<number>) | undefined;
+  count?:
+    | ((props: DatabaseCommonInteractionProps) => Promise<number>)
+    | undefined;
   find?: ((data: UsedByFindData) => Promise<Array<BaseModel>>) | undefined;
   /*
    * More about how each of `rowIds` refers, by row id, read with the
@@ -203,7 +205,12 @@ export function getListJoinTable(
   const relationColumnName: string | undefined =
     joinTable?.inverseJoinColumns?.[0]?.name;
 
-  if (!joinTable || !joinTable.name || !ownerColumnName || !relationColumnName) {
+  if (
+    !joinTable ||
+    !joinTable.name ||
+    !ownerColumnName ||
+    !relationColumnName
+  ) {
     throw new ServerException(
       `${modelType.name}.${propertyName} is not a list with a join table, so what refers through it cannot be read.`,
     );
@@ -332,8 +339,7 @@ async function getEscalationRuleNames(data: {
     props: data.props,
   });
 
-  const rulesByPolicy: Dictionary<Array<{ name: string; order: number }>> =
-    {};
+  const rulesByPolicy: Dictionary<Array<{ name: string; order: number }>> = {};
 
   for (const row of rows) {
     const policyId: string = String(
@@ -697,7 +703,11 @@ export const USED_BY_RELATION_DEFINITIONS: Readonly<
         query:
           monitorIds.length > 0
             ? {
-                _id: listHoldsAny(ServiceLevelObjective, "monitors", monitorIds),
+                _id: listHoldsAny(
+                  ServiceLevelObjective,
+                  "monitors",
+                  monitorIds,
+                ),
               }
             : null,
       });
@@ -1044,7 +1054,9 @@ export class UsedByServiceClass {
 
     const groups: Array<UsedByGroup> = await Promise.all(
       getUsedByRelations(data.recordKind).map(
-        async (description: UsedByRelationDescription): Promise<UsedByGroup> => {
+        async (
+          description: UsedByRelationDescription,
+        ): Promise<UsedByGroup> => {
           const plan: UsedByReadPlan = await this.getPlan(
             description.relation,
             context,

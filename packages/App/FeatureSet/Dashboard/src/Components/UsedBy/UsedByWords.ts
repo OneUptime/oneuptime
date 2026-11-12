@@ -363,9 +363,7 @@ export const SEE_ALL: string = translationKey("See all");
 export const USED_BY_ACTION: string = translationKey("Used by");
 export const SHOW_MORE: string = translationKey("Show more");
 
-export const LOADING_USED_BY: string = translationKey(
-  "Loading what uses this",
-);
+export const LOADING_USED_BY: string = translationKey("Loading what uses this");
 
 // The server answered with something this page cannot read.
 export const COULD_NOT_LOAD_USED_BY: string = translationKey(
@@ -395,7 +393,10 @@ export const STILL_IN_USE_DESCRIPTION: string = translationKey(
  * A row's name as its own page shows it: its number first when it has one
  * ("INC-18 Checkout is down"), or "Untitled".
  */
-export function getUsedByRowName(row: UsedByRow, translator: Translator): string {
+export function getUsedByRowName(
+  row: UsedByRow,
+  translator: Translator,
+): string {
   const name: string = row.name.trim();
   const number: string = (row.number || "").trim();
 
@@ -403,9 +404,7 @@ export function getUsedByRowName(row: UsedByRow, translator: Translator): string
     return `${number} ${name}`;
   }
 
-  return (
-    name || number || translator.translateText(UNNAMED_ROW) || UNNAMED_ROW
-  );
+  return name || number || translator.translateText(UNNAMED_ROW) || UNNAMED_ROW;
 }
 
 // The page a row opens.
@@ -428,7 +427,10 @@ export function getUsedByRowPage(rowKind: UsedByRowKind): PageMap {
   return ROW_PAGES[rowKind];
 }
 
-export function getUsedByRowRoute(rowKind: UsedByRowKind, rowId: string): Route {
+export function getUsedByRowRoute(
+  rowKind: UsedByRowKind,
+  rowId: string,
+): Route {
   return RouteUtil.populateRouteParams(
     RouteMap[getUsedByRowPage(rowKind)] as Route,
     { modelId: new ObjectID(rowId) },

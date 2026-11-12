@@ -96,7 +96,10 @@ const UsedByGroups: FunctionComponent<{
       aria-label={translator.translateText("Used by")}
     >
       {groups.map((group: UsedByGroup): ReactElement => {
-        const title: string = getUsedByRelationTitle(group.relation, translator);
+        const title: string = getUsedByRelationTitle(
+          group.relation,
+          translator,
+        );
         const hiddenNote: string = getUsedByHiddenNote(group, translator);
         const hasMore: boolean = group.count > group.rows.length;
 

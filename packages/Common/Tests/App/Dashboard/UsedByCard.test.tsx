@@ -215,27 +215,39 @@ describe("the words", () => {
       emptyTitle: "Nothing uses this schedule yet",
       emptyActionPage: PageMap.ON_CALL_DUTY_POLICIES,
     });
-    expect(USED_BY_CARD_WORDS[UsedByRecordKind.OnCallSchedule].emptyDescription).toContain(
-      "Add it to an on-call policy's escalation rule.",
-    );
+    expect(
+      USED_BY_CARD_WORDS[UsedByRecordKind.OnCallSchedule].emptyDescription,
+    ).toContain("Add it to an on-call policy's escalation rule.");
   });
 
   test("the sentence counts every record that refers, seen or not", () => {
     expect(
       getUsedByImpactSentence(
-        { relation: UsedByRelation.MonitorStatusPages, count: 1, hiddenCount: 2 },
+        {
+          relation: UsedByRelation.MonitorStatusPages,
+          count: 1,
+          hiddenCount: 2,
+        },
         translator,
       ),
     ).toBe("3 status pages show this monitor.");
     expect(
       getUsedByImpactSentence(
-        { relation: UsedByRelation.MonitorStatusPages, count: 1, hiddenCount: 0 },
+        {
+          relation: UsedByRelation.MonitorStatusPages,
+          count: 1,
+          hiddenCount: 0,
+        },
         translator,
       ),
     ).toBe("1 status page shows this monitor.");
     expect(
       getUsedByImpactSentence(
-        { relation: UsedByRelation.ScheduleOnCallPolicies, count: 2, hiddenCount: 0 },
+        {
+          relation: UsedByRelation.ScheduleOnCallPolicies,
+          count: 2,
+          hiddenCount: 0,
+        },
         translator,
       ),
     ).toBe("2 on-call policies page this schedule.");
@@ -291,13 +303,21 @@ describe("the words", () => {
 
     expect(
       getUsedByImpactSentence(
-        { relation: UsedByRelation.MonitorStatusPages, count: 3, hiddenCount: 0 },
+        {
+          relation: UsedByRelation.MonitorStatusPages,
+          count: 3,
+          hiddenCount: 0,
+        },
         german,
       ),
     ).toBe("3 Statusseiten zeigen diesen Monitor.");
     expect(
       getUsedByImpactSentence(
-        { relation: UsedByRelation.MonitorStatusPages, count: 1, hiddenCount: 0 },
+        {
+          relation: UsedByRelation.MonitorStatusPages,
+          count: 1,
+          hiddenCount: 0,
+        },
         german,
       ),
     ).toBe("1 Statusseite zeigt diesen Monitor.");
@@ -335,7 +355,10 @@ describe("the card", () => {
         {
           relation: UsedByRelation.MonitorStatusPages,
           count: 2,
-          rows: [row(1, { name: "Public status" }), row(2, { name: "Partners" })],
+          rows: [
+            row(1, { name: "Public status" }),
+            row(2, { name: "Partners" }),
+          ],
         },
         {
           relation: UsedByRelation.MonitorSlos,
@@ -393,16 +416,18 @@ describe("the card", () => {
     const groups: Array<HTMLElement> =
       await screen.findAllByTestId("used-by-group");
 
-    expect(within(groups[0] as HTMLElement).getByTestId("used-by-hidden")).toHaveTextContent(
-      "and 2 you can't see",
-    );
-    expect(within(groups[1] as HTMLElement).getByTestId("used-by-hidden")).toHaveTextContent(
-      "4 you can't see",
-    );
-    expect(within(groups[1] as HTMLElement).getByTestId("used-by-count")).toHaveTextContent(
-      "0",
-    );
-    expect(within(groups[1] as HTMLElement).queryAllByTestId("used-by-row")).toHaveLength(0);
+    expect(
+      within(groups[0] as HTMLElement).getByTestId("used-by-hidden"),
+    ).toHaveTextContent("and 2 you can't see");
+    expect(
+      within(groups[1] as HTMLElement).getByTestId("used-by-hidden"),
+    ).toHaveTextContent("4 you can't see");
+    expect(
+      within(groups[1] as HTMLElement).getByTestId("used-by-count"),
+    ).toHaveTextContent("0");
+    expect(
+      within(groups[1] as HTMLElement).queryAllByTestId("used-by-row"),
+    ).toHaveLength(0);
   });
 
   test("a policy's escalation rules are said under its name", async () => {
@@ -414,7 +439,9 @@ describe("the card", () => {
           relation: UsedByRelation.ScheduleOnCallPolicies,
           rowKind: UsedByRowKind.OnCallDutyPolicy,
           count: 1,
-          rows: [row(1, { name: "Primary", detail: "First line, Second line" })],
+          rows: [
+            row(1, { name: "Primary", detail: "First line, Second line" }),
+          ],
         }),
       ],
     });
@@ -451,7 +478,10 @@ describe("the card", () => {
       "No on-call policy pages it, so nobody on it is paged. Add it to an on-call policy's escalation rule.",
     );
     expect(
-      within(empty).getByTestId("used-by-empty-action").closest("a")?.getAttribute("href"),
+      within(empty)
+        .getByTestId("used-by-empty-action")
+        .closest("a")
+        ?.getAttribute("href"),
     ).toBe(
       RouteUtil.populateRouteParams(
         RouteMap[PageMap.ON_CALL_DUTY_POLICIES] as Route,
@@ -563,9 +593,11 @@ describe("the card", () => {
     };
 
     getSummary.mockImplementationOnce(() => {
-      return new Promise<UsedBySummary>((resolve: (s: UsedBySummary) => void) => {
-        resolveFirst = resolve;
-      });
+      return new Promise<UsedBySummary>(
+        (resolve: (s: UsedBySummary) => void) => {
+          resolveFirst = resolve;
+        },
+      );
     });
     getSummary.mockResolvedValueOnce(monitorSummary());
 
@@ -633,12 +665,14 @@ describe("See all", () => {
 
     fireEvent.click(await screen.findByTestId("used-by-see-all"));
 
-    const dialog: HTMLElement = await screen.findByTestId("used-by-dialog-rows");
+    const dialog: HTMLElement = await screen.findByTestId(
+      "used-by-dialog-rows",
+    );
 
     expect(within(dialog).getAllByTestId("used-by-row")).toHaveLength(50);
-    expect(within(dialog).getByTestId("used-by-dialog-impact")).toHaveTextContent(
-      "125 status pages show this monitor.",
-    );
+    expect(
+      within(dialog).getByTestId("used-by-dialog-impact"),
+    ).toHaveTextContent("125 status pages show this monitor.");
     expect(within(dialog).getByTestId("used-by-hidden")).toHaveTextContent(
       "and 5 you can't see",
     );
@@ -663,7 +697,9 @@ describe("See all", () => {
   });
 
   test("Show more goes when every row the reader may see is listed", async () => {
-    getPage.mockResolvedValue(page({ count: 2, hiddenCount: 0, rows: manyRows(0, 2) }));
+    getPage.mockResolvedValue(
+      page({ count: 2, hiddenCount: 0, rows: manyRows(0, 2) }),
+    );
 
     render(
       <MemoryRouter>
@@ -686,7 +722,9 @@ describe("See all", () => {
 
   test("a failed page says why and reads it again", async () => {
     getPage.mockRejectedValueOnce(new Error("Try again in a moment."));
-    getPage.mockResolvedValueOnce(page({ count: 1, hiddenCount: 0, rows: [row(1)] }));
+    getPage.mockResolvedValueOnce(
+      page({ count: 1, hiddenCount: 0, rows: [row(1)] }),
+    );
 
     render(
       <MemoryRouter>
@@ -750,17 +788,21 @@ describe("See all", () => {
     const groups: Array<HTMLElement> =
       await screen.findAllByTestId("used-by-group");
     expect(groups).toHaveLength(1);
-    expect(within(groups[0] as HTMLElement).getByTestId("used-by-count")).toHaveTextContent(
-      "4,800",
-    );
+    expect(
+      within(groups[0] as HTMLElement).getByTestId("used-by-count"),
+    ).toHaveTextContent("4,800");
     expect(sendEvent).toHaveBeenCalledWith(ProductEventName.UsedByListOpened, {
       record_kind: UsedByRecordKind.Label,
       relation: "all",
     });
 
-    fireEvent.click(within(groups[0] as HTMLElement).getByTestId("used-by-see-all"));
+    fireEvent.click(
+      within(groups[0] as HTMLElement).getByTestId("used-by-see-all"),
+    );
 
-    expect(await screen.findByTestId("used-by-dialog-rows")).toBeInTheDocument();
+    expect(
+      await screen.findByTestId("used-by-dialog-rows"),
+    ).toBeInTheDocument();
     expect(screen.getByTestId("used-by-dialog-impact")).toHaveTextContent(
       "5,000 monitors carry this label.",
     );
@@ -789,9 +831,11 @@ describe("Delete and Archive say what still uses it", () => {
       "used-by-impact-line",
     );
 
-    expect(lines.map((line: HTMLElement): string | null => {
-      return line.textContent;
-    })).toEqual([
+    expect(
+      lines.map((line: HTMLElement): string | null => {
+        return line.textContent;
+      }),
+    ).toEqual([
       "3 status pages show this monitor.(2 of them you can't see)",
       "2 SLOs measure this monitor.",
     ]);
@@ -813,7 +857,9 @@ describe("Delete and Archive say what still uses it", () => {
     expect(notice).toHaveTextContent(
       "Deleting it changes these. Check them before you delete it.",
     );
-    expect(within(notice).getAllByTestId("used-by-impact-line")).toHaveLength(1);
+    expect(within(notice).getAllByTestId("used-by-impact-line")).toHaveLength(
+      1,
+    );
     expect(notice).not.toHaveTextContent("SLOs measure this monitor");
   });
 
@@ -852,9 +898,11 @@ describe("Delete and Archive say what still uses it", () => {
     jest.spyOn(PermissionGate, "check").mockReturnValue({
       isAllowed: true,
     } as never);
-    jest.spyOn(ModelAPI, "getItem").mockResolvedValue(
-      Object.assign(new Monitor(), { isArchived: false }) as never,
-    );
+    jest
+      .spyOn(ModelAPI, "getItem")
+      .mockResolvedValue(
+        Object.assign(new Monitor(), { isArchived: false }) as never,
+      );
 
     render(
       <MemoryRouter>
@@ -892,9 +940,11 @@ describe("Delete and Archive say what still uses it", () => {
     jest.spyOn(PermissionGate, "check").mockReturnValue({
       isAllowed: true,
     } as never);
-    jest.spyOn(ModelAPI, "getItem").mockResolvedValue(
-      Object.assign(new Monitor(), { isArchived: true }) as never,
-    );
+    jest
+      .spyOn(ModelAPI, "getItem")
+      .mockResolvedValue(
+        Object.assign(new Monitor(), { isArchived: true }) as never,
+      );
 
     render(
       <MemoryRouter>
@@ -912,9 +962,7 @@ describe("Delete and Archive say what still uses it", () => {
       </MemoryRouter>,
     );
 
-    fireEvent.click(
-      await screen.findByRole("button", { name: /Unarchive/u }),
-    );
+    fireEvent.click(await screen.findByRole("button", { name: /Unarchive/u }));
 
     await screen.findByText(/unarchive this monitor/u);
     expect(screen.queryByTestId("used-by-impact")).toBeNull();

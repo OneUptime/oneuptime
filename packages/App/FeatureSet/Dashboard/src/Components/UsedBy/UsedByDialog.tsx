@@ -26,6 +26,7 @@ import {
   getUsedByRowKind,
   isUsedByNothing,
 } from "Common/Types/UsedBy/UsedBy";
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ProductEvents from "Common/UI/Utils/ProductEvents";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -249,9 +250,15 @@ const RelationRows: FunctionComponent<{
       {hasMore && !loaded.moreError ? (
         <button
           type="button"
-          className="mt-3 text-sm font-medium text-indigo-700 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+          className={`mt-3 text-sm font-medium text-indigo-700 ${getHandDrawnButtonStateClassName(
+            {
+              isBusy: loaded.isLoadingMore,
+              hoverClassName: "hover:underline",
+            },
+          )}`}
           data-testid="used-by-show-more"
           disabled={loaded.isLoadingMore}
+          aria-busy={loaded.isLoadingMore}
           onClick={showMore}
         >
           {translator.translateText(SHOW_MORE)}

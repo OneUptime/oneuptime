@@ -87,10 +87,7 @@ const StatusPageView: FunctionComponent<
        * coming up or in progress that visitors see on this page, each a
        * link to its own.
        */}
-      <UsedByCard
-        recordKind={UsedByRecordKind.StatusPage}
-        recordId={modelId}
-      />
+      <UsedByCard recordKind={UsedByRecordKind.StatusPage} recordId={modelId} />
 
       <OverviewCustomFields
         modelId={modelId}

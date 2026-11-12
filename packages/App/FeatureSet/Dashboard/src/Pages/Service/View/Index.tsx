@@ -659,10 +659,7 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
          * "Used by" (#6813): the monitors watching this service, and the
          * SLOs that measure them.
          */}
-        <UsedByCard
-          recordKind={UsedByRecordKind.Service}
-          recordId={modelId}
-        />
+        <UsedByCard recordKind={UsedByRecordKind.Service} recordId={modelId} />
         <OpenStackPlacementOfService serviceId={modelId} />
         <ResourceSecurityCard
           kind={SecurityConnectionKind.Service}

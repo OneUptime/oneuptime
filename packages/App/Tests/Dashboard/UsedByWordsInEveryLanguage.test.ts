@@ -248,7 +248,9 @@ describe("Used by's words in every language", () => {
     });
 
     expect(unworded.length).toBeGreaterThan(80);
-    expect(unworded).toContain("Nothing uses this schedule yet (UsedByWords.ts)");
+    expect(unworded).toContain(
+      "Nothing uses this schedule yet (UsedByWords.ts)",
+    );
   });
 
   test("a translation that drops the count fails it", () => {

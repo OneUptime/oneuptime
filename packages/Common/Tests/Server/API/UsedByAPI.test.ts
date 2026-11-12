@@ -143,7 +143,9 @@ beforeEach(() => {
   getSummary = jest
     .spyOn(UsedByService, "getSummary")
     .mockResolvedValue(SUMMARY as never);
-  getPage = jest.spyOn(UsedByService, "getPage").mockResolvedValue(PAGE as never);
+  getPage = jest
+    .spyOn(UsedByService, "getPage")
+    .mockResolvedValue(PAGE as never);
 });
 
 describe("GET /used-by/:recordKind/:recordId", () => {

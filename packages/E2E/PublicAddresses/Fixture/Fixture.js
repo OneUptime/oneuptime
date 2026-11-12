@@ -293,7 +293,12 @@ const RECORDS = {
   StatusPageDomain: () => {
     return [
       ...domainSpecs.map((spec) => {
-        return domainRow(StatusPageDomain, "statusPageId", STATUS_PAGE_ID, spec);
+        return domainRow(
+          StatusPageDomain,
+          "statusPageId",
+          STATUS_PAGE_ID,
+          spec,
+        );
       }),
       ...addedDomains,
     ];
@@ -454,7 +459,11 @@ ModelAPI.create = async (options) => {
     );
     return new HTTPResponse(
       200,
-      { _id: spec.id, fullDomain: spec.fullDomain, subdomain: values.subdomain },
+      {
+        _id: spec.id,
+        fullDomain: spec.fullDomain,
+        subdomain: values.subdomain,
+      },
       {},
     );
   }
@@ -475,7 +484,11 @@ function cnameCheck(name) {
   };
   switch (dns) {
     case "wrong":
-      return { ...base, outcome: "WrongValue", foundValues: ["acme.netlify.app"] };
+      return {
+        ...base,
+        outcome: "WrongValue",
+        foundValues: ["acme.netlify.app"],
+      };
     case "proxied":
       return {
         ...base,
@@ -524,7 +537,6 @@ function readinessAnswer() {
       return { target, checks: [passed("Port80", { target })] };
   }
 }
-
 
 /*
  * What refers to the record a page is about ("Used by", #6813): GET

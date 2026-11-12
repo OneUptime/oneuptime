@@ -14,9 +14,9 @@ import React, { FunctionComponent, ReactElement } from "react";
  * it is done on - "Nothing uses this schedule yet. Add it to an on-call
  * policy's escalation rule." and Go to on-call policies.
  */
-const UsedByEmpty: FunctionComponent<{ recordKind: UsedByRecordKind }> = (props: {
+const UsedByEmpty: FunctionComponent<{
   recordKind: UsedByRecordKind;
-}): ReactElement => {
+}> = (props: { recordKind: UsedByRecordKind }): ReactElement => {
   const translator: Translator = useTranslator();
   const words: UsedByCardWords = USED_BY_CARD_WORDS[props.recordKind];
 

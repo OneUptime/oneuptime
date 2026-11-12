@@ -799,7 +799,6 @@ function ok(data) {
   return new HTTPResponse(200, data, {});
 }
 
-
 /*
  * What refers to the record a page is about ("Used by", #6813): GET
  * /used-by/:recordKind/:recordId, answered as UsedByService answers for a

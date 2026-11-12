@@ -124,9 +124,7 @@ async function open(
 
 // The card's frame: the Card around the card's body.
 function frame(card: Locator): Locator {
-  return card.locator(
-    "xpath=ancestor::*[@data-testid='card'][1]",
-  );
+  return card.locator("xpath=ancestor::*[@data-testid='card'][1]");
 }
 
 async function shoot(locator: Locator, name: string): Promise<void> {

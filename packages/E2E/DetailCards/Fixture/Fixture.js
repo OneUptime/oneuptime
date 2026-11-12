@@ -486,7 +486,6 @@ ModelAPI.updateById = async (options) => {
   return { data: options.data || {} };
 };
 
-
 /*
  * What refers to the record a page is about ("Used by", #6813): GET
  * /used-by/:recordKind/:recordId, answered as UsedByService answers for a

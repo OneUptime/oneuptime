@@ -129,55 +129,53 @@ interface Read {
   limit?: number | undefined;
 }
 
-const SERVICES: Array<{ service: AnyService; model: { new (): BaseModel } }> =
-  [
-    { service: MonitorService as unknown as AnyService, model: Monitor },
-    {
-      service: StatusPageService as unknown as AnyService,
-      model: StatusPage,
-    },
-    {
-      service: MonitorGroupService as unknown as AnyService,
-      model: MonitorGroup,
-    },
-    {
-      service: ServiceLevelObjectiveService as unknown as AnyService,
-      model: ServiceLevelObjective,
-    },
-    {
-      service: ScheduledMaintenanceService as unknown as AnyService,
-      model: ScheduledMaintenance,
-    },
-    { service: WorkflowService as unknown as AnyService, model: Workflow },
-    { service: DashboardService as unknown as AnyService, model: Dashboard },
-    {
-      service: OnCallDutyPolicyService as unknown as AnyService,
-      model: OnCallDutyPolicy,
-    },
-    {
-      service: OnCallDutyPolicyScheduleService as unknown as AnyService,
-      model: OnCallDutyPolicySchedule,
-    },
-    { service: ServiceService as unknown as AnyService, model: Service },
-    { service: IncidentService as unknown as AnyService, model: Incident },
-    { service: AlertService as unknown as AnyService, model: Alert },
-    { service: TeamService as unknown as AnyService, model: Team },
-    { service: LabelService as unknown as AnyService, model: Label },
-    {
-      service: MonitorGroupResourceService as unknown as AnyService,
-      model: MonitorGroupResource,
-    },
-    {
-      service:
-        OnCallDutyPolicyEscalationRuleScheduleService as unknown as AnyService,
-      model: BaseModel,
-    },
-    {
-      service:
-        OnCallDutyPolicyEscalationRuleTeamService as unknown as AnyService,
-      model: BaseModel,
-    },
-  ];
+const SERVICES: Array<{ service: AnyService; model: { new (): BaseModel } }> = [
+  { service: MonitorService as unknown as AnyService, model: Monitor },
+  {
+    service: StatusPageService as unknown as AnyService,
+    model: StatusPage,
+  },
+  {
+    service: MonitorGroupService as unknown as AnyService,
+    model: MonitorGroup,
+  },
+  {
+    service: ServiceLevelObjectiveService as unknown as AnyService,
+    model: ServiceLevelObjective,
+  },
+  {
+    service: ScheduledMaintenanceService as unknown as AnyService,
+    model: ScheduledMaintenance,
+  },
+  { service: WorkflowService as unknown as AnyService, model: Workflow },
+  { service: DashboardService as unknown as AnyService, model: Dashboard },
+  {
+    service: OnCallDutyPolicyService as unknown as AnyService,
+    model: OnCallDutyPolicy,
+  },
+  {
+    service: OnCallDutyPolicyScheduleService as unknown as AnyService,
+    model: OnCallDutyPolicySchedule,
+  },
+  { service: ServiceService as unknown as AnyService, model: Service },
+  { service: IncidentService as unknown as AnyService, model: Incident },
+  { service: AlertService as unknown as AnyService, model: Alert },
+  { service: TeamService as unknown as AnyService, model: Team },
+  { service: LabelService as unknown as AnyService, model: Label },
+  {
+    service: MonitorGroupResourceService as unknown as AnyService,
+    model: MonitorGroupResource,
+  },
+  {
+    service:
+      OnCallDutyPolicyEscalationRuleScheduleService as unknown as AnyService,
+    model: BaseModel,
+  },
+  {
+    service: OnCallDutyPolicyEscalationRuleTeamService as unknown as AnyService,
+    model: BaseModel,
+  },
+];
 
 let fakes: Map<string, Fake>;
 let reads: Array<Read>;
@@ -199,10 +197,7 @@ function fake(table: string, values: Partial<Fake>): void {
   });
 }
 
-function toModel(
-  service: AnyService,
-  row: Record<string, unknown>,
-): BaseModel {
+function toModel(service: AnyService, row: Record<string, unknown>): BaseModel {
   // A fresh row each time: getModel() hands back the service's one instance.
   const model: BaseModel = new service.modelType();
 
@@ -593,7 +588,9 @@ describe("a monitor's relations", () => {
       rows: [{ monitorGroupId: new ObjectID(GROUP_A) }],
     });
 
-    const plan: UsedByReadPlan = await planOf(UsedByRelation.MonitorStatusPages);
+    const plan: UsedByReadPlan = await planOf(
+      UsedByRelation.MonitorStatusPages,
+    );
     const query: Record<string, unknown> = plan.query as Record<
       string,
       unknown
@@ -619,7 +616,9 @@ describe("a monitor's relations", () => {
   });
 
   test("a monitor in no group: only the pages that list it directly", async () => {
-    const plan: UsedByReadPlan = await planOf(UsedByRelation.MonitorStatusPages);
+    const plan: UsedByReadPlan = await planOf(
+      UsedByRelation.MonitorStatusPages,
+    );
     const { sql } = sqlOf((plan.query as Record<string, unknown>)["_id"]);
 
     expect(sql).toContain('"StatusPageResource"."monitorId" IN');
@@ -660,9 +659,7 @@ describe("a monitor's relations", () => {
       unknown
     >;
 
-    expect(sqlOf(query["_id"]).sql).toContain(
-      '"ScheduledMaintenanceMonitor"',
-    );
+    expect(sqlOf(query["_id"]).sql).toContain('"ScheduledMaintenanceMonitor"');
 
     const states: string = sqlOf(
       query["currentScheduledMaintenanceStateId"],
@@ -715,20 +712,18 @@ describe("a schedule's, a service's and a team's relations", () => {
       UsedByRelation.ScheduleOnCallPolicies,
     );
 
-    expect(
-      sqlOf((plan.query as Record<string, unknown>)["_id"]).sql,
-    ).toContain(
+    expect(sqlOf((plan.query as Record<string, unknown>)["_id"]).sql).toContain(
       'SELECT "OnCallDutyPolicyEscalationRuleSchedule"."onCallDutyPolicyId" FROM "OnCallDutyPolicyEscalationRuleSchedule" WHERE "OnCallDutyPolicyEscalationRuleSchedule"."onCallDutyPolicyScheduleId" IN',
     );
     expect(plan.getDetails).toBeDefined();
   });
 
   test("the on-call policies with an escalation rule that pages the team", async () => {
-    const plan: UsedByReadPlan = await planOf(UsedByRelation.TeamOnCallPolicies);
+    const plan: UsedByReadPlan = await planOf(
+      UsedByRelation.TeamOnCallPolicies,
+    );
 
-    expect(
-      sqlOf((plan.query as Record<string, unknown>)["_id"]).sql,
-    ).toContain(
+    expect(sqlOf((plan.query as Record<string, unknown>)["_id"]).sql).toContain(
       'FROM "OnCallDutyPolicyEscalationRuleTeam" WHERE "OnCallDutyPolicyEscalationRuleTeam"."teamId" IN',
     );
   });
@@ -768,9 +763,7 @@ describe("a schedule's, a service's and a team's relations", () => {
   test("the monitors watching a service", async () => {
     const plan: UsedByReadPlan = await planOf(UsedByRelation.ServiceMonitors);
 
-    expect(
-      sqlOf((plan.query as Record<string, unknown>)["_id"]).sql,
-    ).toContain(
+    expect(sqlOf((plan.query as Record<string, unknown>)["_id"]).sql).toContain(
       'SELECT "MonitorService"."monitorId" FROM "MonitorService" WHERE "MonitorService"."serviceId" IN',
     );
   });
@@ -805,9 +798,7 @@ describe("a schedule's, a service's and a team's relations", () => {
   test("a label's records, kind by kind", async () => {
     const plan: UsedByReadPlan = await planOf(UsedByRelation.LabelIncidents);
 
-    expect(
-      sqlOf((plan.query as Record<string, unknown>)["_id"]).sql,
-    ).toContain(
+    expect(sqlOf((plan.query as Record<string, unknown>)["_id"]).sql).toContain(
       'SELECT "IncidentLabel"."incidentId" FROM "IncidentLabel" WHERE "IncidentLabel"."labelId" IN',
     );
     expect(plan.nameColumn).toBe("title");
@@ -826,10 +817,12 @@ describe("a status page's relations", () => {
         showIncidentsOnStatusPage: true,
       }) as never,
     );
-    jest.spyOn(StatusPageService, "getMonitorIdsOnStatusPage").mockResolvedValue({
-      monitorsOnStatusPage: [new ObjectID(WATCHER_1)],
-      monitorsInGroup: {},
-    } as never);
+    jest
+      .spyOn(StatusPageService, "getMonitorIdsOnStatusPage")
+      .mockResolvedValue({
+        monitorsOnStatusPage: [new ObjectID(WATCHER_1)],
+        monitorsInGroup: {},
+      } as never);
     const count: jest.SpyInstance = jest
       .spyOn(IncidentStatusPageScope, "countIncidentsForStatusPage")
       .mockImplementation(async (data: any): Promise<number> => {
@@ -900,12 +893,12 @@ describe("a status page's relations", () => {
 
     const summary: UsedBySummary = await summaryOf(UsedByRecordKind.StatusPage);
 
-    expect(
-      groupOf(summary, UsedByRelation.StatusPageOpenIncidents).count,
-    ).toBe(0);
-    expect(
-      groupOf(summary, UsedByRelation.StatusPageMaintenance).count,
-    ).toBe(0);
+    expect(groupOf(summary, UsedByRelation.StatusPageOpenIncidents).count).toBe(
+      0,
+    );
+    expect(groupOf(summary, UsedByRelation.StatusPageMaintenance).count).toBe(
+      0,
+    );
     expect(monitorsOnPage).not.toHaveBeenCalled();
     expect(count).not.toHaveBeenCalled();
     expect(readsOf("ScheduledMaintenance")).toEqual([]);
@@ -918,10 +911,12 @@ describe("a status page's relations", () => {
         showIncidentsOnStatusPage: true,
       }) as never,
     );
-    jest.spyOn(StatusPageService, "getMonitorIdsOnStatusPage").mockResolvedValue({
-      monitorsOnStatusPage: [],
-      monitorsInGroup: {},
-    } as never);
+    jest
+      .spyOn(StatusPageService, "getMonitorIdsOnStatusPage")
+      .mockResolvedValue({
+        monitorsOnStatusPage: [],
+        monitorsInGroup: {},
+      } as never);
     const count: jest.SpyInstance = jest.spyOn(
       IncidentStatusPageScope,
       "countIncidentsForStatusPage",
@@ -1228,7 +1223,10 @@ describe("a record used by thousands still loads in a few bounded reads", () => 
     fake("Monitor", { total: 5000, reader: 4800, rows: manyRows(5000) });
 
     const summary: UsedBySummary = await summaryOf(UsedByRecordKind.Label);
-    const monitors: UsedByGroup = groupOf(summary, UsedByRelation.LabelMonitors);
+    const monitors: UsedByGroup = groupOf(
+      summary,
+      UsedByRelation.LabelMonitors,
+    );
 
     expect(monitors.count).toBe(4800);
     expect(monitors.hiddenCount).toBe(200);
