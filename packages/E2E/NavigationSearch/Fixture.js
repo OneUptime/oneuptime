@@ -11,17 +11,36 @@ import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import NavBarMenuModal from "Common/UI/Components/Navbar/NavBarMenuModal";
 import Navigation from "Common/UI/Utils/Navigation";
+import { followLanguageForPage } from "Common/UI/Utils/PageLanguage";
 import DashboardCommandPalette from "../../App/FeatureSet/Dashboard/src/Components/CommandPalette/DashboardCommandPalette";
 import DashboardNavbar from "../../App/FeatureSet/Dashboard/src/Components/NavBar/NavBar";
 import { useDashboardNavigationItems } from "../../App/FeatureSet/Dashboard/src/Utils/NavigationItems";
+import ar from "../../App/FeatureSet/Dashboard/src/Locales/ar.json";
+import de from "../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import en from "../../App/FeatureSet/Dashboard/src/Locales/en.json";
+import {
+  HeaderFixture,
+  headerLanguage,
+  installHeaderFixture,
+  isHeaderMode,
+} from "./HeaderFixture";
 
 await i18n.use(initReactI18next).init({
-  lng: "en",
+  lng: headerLanguage,
   fallbackLng: "en",
-  resources: { en: { translation: en } },
+  resources: {
+    en: { translation: en },
+    de: { translation: de },
+    ar: { translation: ar },
+  },
   interpolation: { escapeValue: false },
 });
+
+if (isHeaderMode) {
+  // <html lang dir> follow the reader's language: Arabic reads right to left.
+  followLanguageForPage(i18n);
+  installHeaderFixture();
+}
 
 // The production catalog, filtering, keyboard handling and links run unchanged.
 // A synthetic project URL supplies route context without an account or database.
@@ -41,6 +60,11 @@ function Fixture() {
   Navigation.setParams(useParams());
   const { moreMenuItems, moreMenuCategoriesOpenByDefault } =
     useDashboardNavigationItems();
+
+  // The header and nav bar of every page: ?header=true (HeaderFixture.js).
+  if (isHeaderMode) {
+    return <HeaderFixture pathname={location.pathname} />;
+  }
 
   if (showPalette) {
     return (
