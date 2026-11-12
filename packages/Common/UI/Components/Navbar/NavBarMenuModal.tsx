@@ -769,16 +769,18 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
         </Link>
         {canPin && (
           /*
-           * Beside the card's link, never inside it (no control inside
-           * another): the pin keeps the product in the bar, beside Home and
-           * Products. A mouse press leaves focus in the search box. It is
-           * drawn when pinned, on the card under the pointer or the cursor,
-           * and when it has focus; with five pinned, a sixth is locked, in
-           * the shared locked look (ButtonStates).
+           * Beside the card's link, never inside it: the pin keeps the
+           * product in the bar, beside Home and Products. A pointer's
+           * shortcut, as the link is (NestedControlsGuard): the search box
+           * drives the list and a mouse press leaves focus in it, and the
+           * keyboard pins a product with Pin beside its page's title. It is
+           * drawn when pinned and on the card under the pointer or the
+           * cursor; with five pinned, a sixth is locked, in the shared
+           * locked look (ButtonStates).
            */
           <span
             data-testid={PRODUCT_PIN_SLOT_TEST_ID}
-            className={`absolute end-2 top-2 transition-opacity duration-150 focus-within:opacity-100 ${
+            className={`absolute end-2 top-2 transition-opacity duration-150 ${
               isPinned || isActive
                 ? "opacity-100"
                 : "opacity-0 group-hover/card:opacity-100"
@@ -786,6 +788,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
           >
           <button
             type="button"
+            tabIndex={-1}
             data-testid={PRODUCT_PIN_BUTTON_TEST_ID}
             aria-pressed={isPinned}
             aria-label={translator.translateTemplate(
