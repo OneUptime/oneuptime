@@ -2,6 +2,9 @@
 
 Um recurso é uma linha da sua página de status: um monitor ou um grupo de monitores, com um nome que seus clientes entendem, seu status atual e, se você quiser, seu tempo de atividade e seu histórico. Os grupos são seções que contêm recursos, de modo que uma página com quarenta monitores se lê como "API", "Aplicativo web" e "Pipeline de dados" em vez de uma lista sem fim. Você monta os dois em uma única tela: abra uma página de status e escolha **Recursos** no menu lateral dela.
 
+> [!TIP]
+> Novo por aqui? Siga primeiro o guia: [Publicar uma página de status](/docs/guides/status-page).
+
 :::cards
 - [Adicionar um monitor](#adicionar-um-monitor): Coloque um monitor na página, com o nome que os visitantes leem.
 - [Grupos](#grupos): Divida a página em seções e aninhe-as.

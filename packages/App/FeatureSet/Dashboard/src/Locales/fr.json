@@ -51500,5 +51500,15 @@
   "Response headers": "Response headers",
   "Show request and response": "Show request and response",
   "What was sent to your provider and what came back. API keys and cookies are masked.": "What was sent to your provider and what came back. API keys and cookies are masked.",
-  "{{count}} ms_one": "{{count}} ms"
+  "{{count}} ms_one": "{{count}} ms",
+  "Amazon SES Authentication Type": "Type d'authentification Amazon SES",
+  "An IAM user's access key ID and secret access key, stored encrypted.": "L'ID de clé d'accès et la clé d'accès secrète d'un utilisateur IAM, stockés chiffrés.",
+  "How OneUptime signs in to Amazon SES.": "Comment OneUptime se connecte à Amazon SES.",
+  "Send through Amazon SES with an access key or this server's IAM role.": "Envoyer via Amazon SES avec une clé d'accès ou le rôle IAM de ce serveur.",
+  "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "Le rôle qu'AWS donne à ce serveur sur Amazon EKS, ECS ou EC2. Aucune clé n'est stockée, et ses identifiants se renouvellent d'eux-mêmes.",
+  "This Server's IAM Role": "Rôle IAM de ce serveur",
+  "Leave without saving?": "Quitter sans enregistrer ?",
+  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "Vous avez des modifications non enregistrées sur ce tableau de bord. Si vous quittez la page maintenant, elles seront perdues.",
+  "Discard unsaved changes?": "Annuler les modifications non enregistrées ?",
+  "You have unsaved changes to this dashboard. If you discard them, the dashboard goes back to how it was last saved.": "Vous avez des modifications non enregistrées sur ce tableau de bord. Si vous les annulez, le tableau de bord revient à son dernier état enregistré."
 }

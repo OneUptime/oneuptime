@@ -21,6 +21,9 @@ export const DOCS_EXTERNAL_LINK_ICON: string =
 const DocsNavIcons: Record<string, string> = {
   Introduction:
     '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>',
+  // A flag: a job followed to its finish, as the product's guide links show it.
+  Guides:
+    '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"/>',
   // Two arrows passing each other: switching from one tool to another.
   "Moving to OneUptime":
     '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>',

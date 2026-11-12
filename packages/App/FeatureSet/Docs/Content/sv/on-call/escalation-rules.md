@@ -2,6 +2,9 @@
 
 En jourpolicy larmar personer i nivåer. Varje eskaleringsregel är ett nivå: vem som larmas och hur länge det väntas på att någon bekräftar innan nästa nivå larmas. En policys regler visas i ordning på dess sida **Eskaleringsregler**.
 
+> [!TIP]
+> Ny här? Följ guiden först: [Bli larmad via samtal, SMS eller push](/docs/guides/paging).
+
 ```mermaid title="En jourpolicy larmar nivå för nivå tills någon bekräftar"
 flowchart TB
     trigger["Incident eller larm"] --> level1["Level 1 larmar"]

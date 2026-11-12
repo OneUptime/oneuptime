@@ -51500,5 +51500,15 @@
   "Response headers": "Response headers",
   "Show request and response": "Show request and response",
   "What was sent to your provider and what came back. API keys and cookies are masked.": "What was sent to your provider and what came back. API keys and cookies are masked.",
-  "{{count}} ms_one": "{{count}} ms"
+  "{{count}} ms_one": "{{count}} ms",
+  "Amazon SES Authentication Type": "Amazon SES の認証タイプ",
+  "An IAM user's access key ID and secret access key, stored encrypted.": "IAM ユーザーのアクセスキー ID とシークレットアクセスキーです。暗号化して保存されます。",
+  "How OneUptime signs in to Amazon SES.": "OneUptime が Amazon SES にサインインする方法です。",
+  "Send through Amazon SES with an access key or this server's IAM role.": "アクセスキーまたはこのサーバーの IAM ロールを使って Amazon SES から送信します。",
+  "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "Amazon EKS、ECS、EC2 で AWS がこのサーバーに与えるロールです。キーは保存されず、認証情報は自動で更新されます。",
+  "This Server's IAM Role": "このサーバーの IAM ロール",
+  "Leave without saving?": "保存せずにページを離れますか？",
+  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "このダッシュボードに保存されていない変更があります。今ページを離れると、変更は失われます。",
+  "Discard unsaved changes?": "保存されていない変更を破棄しますか？",
+  "You have unsaved changes to this dashboard. If you discard them, the dashboard goes back to how it was last saved.": "このダッシュボードに保存されていない変更があります。破棄すると、ダッシュボードは最後に保存した状態に戻ります。"
 }

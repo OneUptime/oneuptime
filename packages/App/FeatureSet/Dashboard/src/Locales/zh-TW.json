@@ -51500,5 +51500,15 @@
   "Response headers": "Response headers",
   "Show request and response": "Show request and response",
   "What was sent to your provider and what came back. API keys and cookies are masked.": "What was sent to your provider and what came back. API keys and cookies are masked.",
-  "{{count}} ms_one": "{{count}} ms"
+  "{{count}} ms_one": "{{count}} ms",
+  "Amazon SES Authentication Type": "Amazon SES 驗證類型",
+  "An IAM user's access key ID and secret access key, stored encrypted.": "IAM 使用者的存取金鑰 ID 和私密存取金鑰，會加密儲存。",
+  "How OneUptime signs in to Amazon SES.": "OneUptime 登入 Amazon SES 的方式。",
+  "Send through Amazon SES with an access key or this server's IAM role.": "使用存取金鑰或此伺服器的 IAM 角色透過 Amazon SES 傳送。",
+  "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "AWS 在 Amazon EKS、ECS 或 EC2 上賦予此伺服器的角色。不會儲存任何金鑰，其憑證會自動更新。",
+  "This Server's IAM Role": "此伺服器的 IAM 角色",
+  "Leave without saving?": "不儲存就離開？",
+  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "您對此儀表板有未儲存的變更。如果現在離開，這些變更將會遺失。",
+  "Discard unsaved changes?": "捨棄未儲存的變更？",
+  "You have unsaved changes to this dashboard. If you discard them, the dashboard goes back to how it was last saved.": "您對此儀表板有未儲存的變更。如果捨棄這些變更，儀表板將恢復為上次儲存時的狀態。"
 }
