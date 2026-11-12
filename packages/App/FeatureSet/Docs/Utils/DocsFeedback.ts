@@ -15,6 +15,7 @@ import {
   toProductEventProperties,
 } from "Common/Types/Analytics/ProductEvent";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
+import { getNewGitHubIssueUrl } from "Common/Types/ProductFeedback/NewGitHubIssue";
 import API from "Common/Utils/API";
 import crypto from "crypto";
 
@@ -49,9 +50,6 @@ export const DOCS_FEEDBACK_REASONS: ReadonlyArray<string> = [
   "wrong",
   "not_found",
 ];
-
-const GITHUB_NEW_ISSUE_URL: string =
-  "https://github.com/OneUptime/oneuptime/issues/new";
 
 export interface DocsFeedbackAnswer {
   // The page's address under /docs/<lang>/: "monitor/website-monitor".
@@ -99,7 +97,12 @@ export default class DocsFeedback {
       "",
     ].join("\n");
 
-    return `${GITHUB_NEW_ISSUE_URL}?labels=documentation&title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
+    // The builder Give feedback in the Dashboard uses too (#6832).
+    return getNewGitHubIssueUrl({
+      title: title,
+      body: body,
+      labels: ["documentation"],
+    });
   }
 
   public static getEdition(): string {
