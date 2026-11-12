@@ -38,10 +38,10 @@ export default class ScheduledMaintenanceStateUtil {
    * and every built-in flag - what tells where an event is in its life
    * (Common/Utils/ScheduledMaintenanceStart).
    *
-   * Served through ModelListCache: the Home and Scheduled Maintenance side
-   * menus, the Home stats and the Ongoing lists ask for this list on the
-   * same mount, and states change ~never - one request (per project, per
-   * minute) covers them all.
+   * Served through ModelListCache: the Scheduled Maintenance side menu and
+   * the Ongoing list ask for this list on the same mount, Home's stats a
+   * click before them, and states change ~never - one request (per
+   * project, per minute) covers them all.
    */
   public static async getScheduledMaintenanceStates(
     projectId: ObjectID,

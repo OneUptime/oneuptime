@@ -50764,6 +50764,8 @@
   "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}.": "AI leste disse {{count}} filene tidligere i dette svaret og har ikke lenger teksten i dem, og AI-versjonene erstatter filene i sin helhet: {{files}}.",
   "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}._one": "AI leste denne filen tidligere i dette svaret og har ikke lenger teksten i den, og AI-versjonen erstatter hele filen: {{files}}.",
   "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "AI leste denne filen tidligere i dette svaret og har ikke lenger teksten i den, og AI-versjonen erstatter hele filen: {{files}}.",
+  "Monitoring is off for every monitor in this group, so it has no uptime to show.": "Overvåking er slått av for alle monitorer i denne gruppen, så det er ingen oppetid å vise.",
+  "This group's status over the last 90 days, one bar per day. Monitors whose monitoring is off are left out.": "Denne gruppens status de siste 90 dagene, én stolpe per dag. Monitorer der overvåking er slått av, er utelatt.",
   "A response header has the value {{text}}.": "Et svarhode har verdien {{text}}.",
   "No response header has the value {{text}}.": "Ingen svarhoder har verdien {{text}}.",
   "The response does not have the header {{text}}.": "Svaret har ikke hodet {{text}}.",

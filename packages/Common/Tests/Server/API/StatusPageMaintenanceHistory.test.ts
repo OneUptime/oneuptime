@@ -293,6 +293,7 @@ describe("a status page's uptime history shows its scheduled maintenance", () =>
             timezone: "UTC",
           },
           monitorGroupCurrentStatuses: {},
+          notMonitoredResourceIds: [],
           statusPageGroups: [],
           statusPage: statusPage,
           monitorsOnStatusPage: monitorsOnStatusPage,

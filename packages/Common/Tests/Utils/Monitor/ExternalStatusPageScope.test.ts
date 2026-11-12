@@ -421,6 +421,125 @@ describe("the overall status of the components in scope", () => {
       expect(overall(statuses, incidents)).toBe(expected);
     },
   );
+
+  /*
+   * A OneUptime page's resource whose monitoring is off: the page shows it
+   * as not monitored, with no status (unknown), and its banner leaves it
+   * out. The status worked out here leaves it out too - an unknown would
+   * otherwise count as a degradation.
+   */
+  function notMonitored(name: string): ExternalStatusPageComponent {
+    return { name: name, status: "unknown", isMonitored: false };
+  }
+
+  test("a component the page shows as not monitored decides nothing", () => {
+    expect(
+      ExternalStatusPageScope.deriveOverallStatus(
+        [{ name: "Checkout", status: "operational" }, notMonitored("Search")],
+        0,
+      ),
+    ).toBe("operational");
+
+    expect(
+      ExternalStatusPageScope.deriveOverallStatus(
+        [
+          { name: "Checkout", status: "partial_outage" },
+          notMonitored("Search"),
+        ],
+        0,
+      ),
+    ).toBe("partial_outage");
+  });
+
+  test("an unknown status the page does show still counts as a degradation", () => {
+    // isMonitored is unset: the page hides the status, it does not say nothing checks it.
+    expect(
+      ExternalStatusPageScope.deriveOverallStatus(
+        [
+          { name: "Checkout", status: "operational" },
+          { name: "Search", status: "unknown" },
+        ],
+        0,
+      ),
+    ).toBe("unknown");
+  });
+
+  test("when every component is not monitored there is no status: unknown", () => {
+    expect(
+      ExternalStatusPageScope.deriveOverallStatus(
+        [notMonitored("Checkout"), notMonitored("Search")],
+        0,
+      ),
+    ).toBe("unknown");
+  });
+
+  test("an incident open on components that are not monitored still degrades", () => {
+    expect(
+      ExternalStatusPageScope.deriveOverallStatus(
+        [notMonitored("Checkout")],
+        1,
+      ),
+    ).toBe("degraded_performance");
+  });
+
+  test("a component that is monitored, said so, counts as any other", () => {
+    expect(
+      ExternalStatusPageScope.deriveOverallStatus(
+        [
+          { name: "Checkout", status: "major_outage", isMonitored: true },
+          notMonitored("Search"),
+        ],
+        0,
+      ),
+    ).toBe("major_outage");
+  });
+
+  test("a scope of only not-monitored components reports unknown, its components each said", () => {
+    const result: ExternalStatusPageScopeResult = ExternalStatusPageScope.apply(
+      {
+        components: [
+          { name: "Checkout", status: "operational", key: "r1" },
+          {
+            name: "Search",
+            status: "unknown",
+            description:
+              "The status page shows this resource as not monitored.",
+            key: "r2",
+            isMonitored: false,
+          },
+        ],
+        incidents: [],
+        componentNames: ["Search"],
+      },
+    );
+
+    expect(result.overallStatus).toBe("unknown");
+    expect(result.componentStatuses).toEqual([
+      {
+        name: "Search",
+        status: "unknown",
+        description: "The status page shows this resource as not monitored.",
+        groupName: undefined,
+      },
+    ]);
+
+    // Watching the whole page, the one that is checked decides.
+    expect(
+      ExternalStatusPageScope.apply({
+        components: [
+          { name: "Checkout", status: "operational", key: "r1" },
+          {
+            name: "Search",
+            status: "unknown",
+            key: "r2",
+            isMonitored: false,
+          },
+        ],
+        incidents: [],
+        componentNames: [],
+      }).overallStatus,
+    ).toBe("operational");
+  });
 });
 
 describe("the incident names a check reports", () => {

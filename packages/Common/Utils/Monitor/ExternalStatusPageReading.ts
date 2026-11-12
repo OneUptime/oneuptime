@@ -41,6 +41,14 @@ export const EXTERNAL_STATUS_PAGE_UNNAMED_INCIDENT: string = "Unknown incident";
 export const EXTERNAL_STATUS_PAGE_ONEUPTIME_STATUS_NOT_SHOWN: string =
   "The status page does not show this resource's status.";
 
+/*
+ * A OneUptime page's component's description when nothing checks it: its
+ * monitoring is off, so the page shows it as not monitored and gives it no
+ * status (StatusPageSummaryResource.isMonitored).
+ */
+export const EXTERNAL_STATUS_PAGE_ONEUPTIME_NOT_MONITORED: string =
+  "The status page shows this resource as not monitored.";
+
 // A page's component, before the monitor's scope is applied.
 export interface ExternalStatusPageComponent {
   name: string;
@@ -52,6 +60,13 @@ export interface ExternalStatusPageComponent {
    * it. Two components of one name in two groups are told apart by it.
    */
   key?: string | undefined;
+  /*
+   * False when the page says nothing checks the component - a OneUptime
+   * page's resource whose monitoring is off. Its status is unknown, and it
+   * decides no overall status (ExternalStatusPageScope.deriveOverallStatus),
+   * as it decides nothing on the page's own banner. Unset otherwise.
+   */
+  isMonitored?: boolean | undefined;
 }
 
 // A page's active incident, before the monitor's scope is applied.
@@ -463,8 +478,8 @@ export default class ExternalStatusPageReading {
    * status is the value the page's status stands for
    * (ExternalStatusPageComponentStatusUtil) - under maintenance while a
    * scheduled maintenance event in progress affects it, whatever its
-   * monitors' status. Each active incident affects the resources it names,
-   * by their ids.
+   * monitors' status, and unknown while the page shows it as not monitored.
+   * Each active incident affects the resources it names, by their ids.
    */
   public static readOneUptimeSummary(
     summary: StatusPageSummary,
@@ -497,22 +512,31 @@ export default class ExternalStatusPageReading {
               titles.length > 0
                 ? `Under maintenance: ${titles.join(", ")}`
                 : "Under maintenance";
+          } else if (!resource.isMonitored) {
+            description = EXTERNAL_STATUS_PAGE_ONEUPTIME_NOT_MONITORED;
           } else if (!resource.currentStatus) {
             description = EXTERNAL_STATUS_PAGE_ONEUPTIME_STATUS_NOT_SHOWN;
           } else {
             description = resource.currentStatus.name;
           }
 
-          return {
+          const component: ExternalStatusPageComponent = {
             key: resource.id,
             name: resource.name,
             groupName: resource.groupName || undefined,
             status: ExternalStatusPageComponentStatusUtil.fromStatusPageStatus({
-              status: resource.currentStatus,
+              // A status nothing checks says nothing now, whatever was sent.
+              status: resource.isMonitored ? resource.currentStatus : null,
               isUnderMaintenance: resource.isUnderMaintenance,
             }),
             description: description,
           };
+
+          if (!resource.isMonitored) {
+            component.isMonitored = false;
+          }
+
+          return component;
         },
       );
 

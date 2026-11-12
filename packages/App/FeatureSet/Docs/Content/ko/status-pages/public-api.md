@@ -113,7 +113,7 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 ```
 :::
 
-전체 상태는 페이지에 있는 모니터와 모니터 그룹의 현재 상태 중 가장 나쁜 것, 즉 우선순위가 가장 높은 것입니다. 모니터 상태는 다음과 같습니다.
+전체 상태는 페이지에 있는 모니터와 모니터 그룹의 현재 상태 중 가장 나쁜 것, 즉 우선순위가 가장 높은 것입니다. 페이지가 **모니터링되지 않음**으로 표시하는 리소스(`notMonitoredResourceIds` 에 나열됨)는 제외됩니다. 모니터 상태는 다음과 같습니다.
 
 ```json
 {
@@ -129,12 +129,13 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 
 | 키 | 담긴 내용 |
 | --- | ------------- |
-| `overallStatus` | 페이지의 전체 상태. 위와 같은 모니터 상태이며, 페이지에 아무것도 없으면 프로젝트에서 우선순위가 가장 낮은 상태. |
+| `overallStatus` | 페이지의 전체 상태. 위와 같은 모니터 상태이며, 페이지에 아무것도 없으면 프로젝트에서 우선순위가 가장 낮은 상태. 리소스가 모두 **모니터링되지 않음**인 페이지는 `null`. |
 | `statusPage` | 페이지의 공개 설정: 제목, 설명, 브랜딩, 표시하는 내용. |
 | `statusPageResources` | 각 리소스: 표시 이름, 설명, 그룹, 모니터 또는 모니터 그룹, 표시 옵션. |
 | `resourceGroups` | 그룹. 중첩된 그룹에는 `parentStatusPageGroupId`가 있습니다. |
 | `monitorStatuses` | 프로젝트의 모든 모니터 상태. 우선순위가 낮은 것부터 높은 것 순. |
 | `monitorGroupCurrentStatuses`, `monitorsInGroup` | 페이지에 있는 각 모니터 그룹의 현재 상태와 그 안의 모니터. |
+| `notMonitoredResourceIds` | 페이지가 **모니터링되지 않음**으로 표시하는 리소스의 ID. 모니터링이 꺼진 모니터나, 모든 모니터에서 모니터링이 꺼진 모니터 그룹입니다. 어떤 상태도 결정하지 않으며, 그런 그룹은 `monitorGroupCurrentStatuses` 에 항목이 없습니다. |
 | `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupUptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | 가동률 막대를 그리는 데이터와 페이지의 막대 색상 규칙. |
 | `activeIncidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates` | 페이지가 보여 주는 해결되지 않은 인시던트, 그 공개 메모와 상태 변경, 프로젝트의 인시던트 상태. |
 | `timelineIncidents` | 가동률 막대 기간 안의 인시던트(해결된 것 포함). 막대의 툴팁에 쓰입니다. |
@@ -170,6 +171,7 @@ curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
         "color": "#2ab57d",
         "isOperational": true
       },
+      "isMonitored": true,
       "isUnderMaintenance": true
     }
   ],
@@ -190,12 +192,12 @@ curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
 
 | 키 | 요약에 담긴 내용 |
 | --- | -------------- |
-| `overallStatus` | 배너가 보여 주는 대로의 페이지 전체 상태: `name`, `color`, `isOperational`. |
-| `resources` | 페이지가 보여 주는 각 리소스(페이지 순서): 페이지에서의 `name`, 상위 그룹을 포함한 `groupName`, `currentStatus`, `isUnderMaintenance`. |
+| `overallStatus` | 배너가 보여 주는 대로의 페이지 전체 상태: `name`, `color`, `isOperational`. 페이지의 모든 리소스가 **모니터링되지 않음**이면 `null`. |
+| `resources` | 페이지가 보여 주는 각 리소스(페이지 순서): 페이지에서의 `name`, 상위 그룹을 포함한 `groupName`, `currentStatus`, `isMonitored`, `isUnderMaintenance`. |
 | `activeIncidents` | 페이지가 보여 주는 해결되지 않은 인시던트. 각각 영향을 주는 리소스의 `affectedResourceIds` 가 붙습니다. |
 | `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | 진행 중인 예정된 유지 보수 이벤트와 앞으로 있을 이벤트. 각각 `affectedResourceIds` 가 붙습니다. |
 
-페이지가 리소스의 `currentStatus` 를 보여 주지 않으면 그 값은 `null` 입니다. `isUnderMaintenance` 는 진행 중인 이벤트가 리소스의 모니터나 그 모니터 그룹의 모니터를 지정하는 동안, 그 모니터들의 상태와 관계없이 `true` 입니다.
+페이지가 리소스의 `currentStatus` 를 보여 주지 않으면 그 값은 `null` 이며, `isMonitored` 가 `false` 일 때도 마찬가지입니다. 이때는 모니터의 모니터링이 꺼져 있거나 모니터 그룹의 모든 모니터에서 모니터링이 꺼져 있어 아무것도 리소스를 확인하지 않으므로, 페이지는 리소스를 **모니터링되지 않음**으로 표시합니다. `isUnderMaintenance` 는 진행 중인 이벤트가 리소스의 모니터나 그 모니터 그룹의 모니터를 지정하는 동안, 그 모니터들의 상태와 관계없이 `true` 입니다.
 
 ## 기간별 가동률
 
@@ -278,7 +280,8 @@ for group in uptime["groupUptimes"]:
         "color": { "_type": "Color", "value": "#2ab57d" },
         "isOperationalState": true,
         "priority": 1
-      }
+      },
+      "isMonitored": true
     }
   ],
   "groupUptimes": [
@@ -303,7 +306,8 @@ for group in uptime["groupUptimes"]:
             "color": { "_type": "Color", "value": "#2ab57d" },
             "isOperationalState": true,
             "priority": 1
-          }
+          },
+          "isMonitored": true
         }
       ],
       "statusPageGroupName": "Web",
@@ -313,7 +317,8 @@ for group in uptime["groupUptimes"]:
         "color": { "_type": "Color", "value": "#2ab57d" },
         "isOperationalState": true,
         "priority": 1
-      }
+      },
+      "isMonitored": true
     }
   ],
   "startDate": "2026-09-01T00:00:00.000Z",
@@ -327,6 +332,7 @@ for group in uptime["groupUptimes"]:
 | `groupUptimes` | 그룹마다 항목 하나. 그룹의 `uptimePercent`와 `currentStatus`는 중첩된 그룹을 포함해 그 아래의 모든 리소스를 대상으로 하며, 그룹의 `statusPageResourceUptimes`는 그룹 바로 아래의 리소스만 나열합니다. 트리는 `parentStatusPageGroupId`로 다시 만듭니다. |
 | `uptimePercent` | 리소스나 그룹 자체의 정밀도로 반올림한 값. 리소스나 그룹이 가동률 백분율을 표시하지 않으면 `null`. |
 | `currentStatus` | 리소스나 그룹이 현재 상태를 표시하지 않으면 `null`. |
+| `isMonitored` | 페이지가 리소스를 **모니터링되지 않음**으로 표시할 때, 그룹은 그 아래의 모든 리소스가 그럴 때 `false`. 이때 `currentStatus` 는 `null`. |
 
 모니터 상태가 페이지의 **다운타임으로 계산** 상태 중 하나인 시간은 다운타임으로 계산됩니다.
 

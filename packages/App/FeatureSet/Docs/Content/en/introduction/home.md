@@ -11,7 +11,7 @@ Home is the first page you see in a project. It tells you at a glance whether an
 
 ## What Home shows
 
-Open **Home** in the bar at the top, or press `g` then `h` from anywhere. Home is the overview of your project. From top to bottom, it shows:
+Open **Home** in the bar at the top, or press `g` then `h` from anywhere. Home is the overview of your project, one page with no side menu. From top to bottom, it shows:
 
 1. A search box, with **Declare Incident** and **Create** beside it.
 2. One line that says whether anything is wrong, over five numbers that count what needs attention.
@@ -42,17 +42,17 @@ While nothing is monitored yet, the line ends on **Create your first monitor**, 
 
 ### The five numbers
 
-Each number counts something, says whether that needs you, and opens the list behind it.
+Each number counts something, says whether that needs you, and opens the list behind it, in the product it belongs to.
 
-| Number | What it counts | When the count is zero |
-| --- | --- | --- |
-| **Active incidents** | Incidents that are not resolved | **All clear** |
-| **Active alerts** | Alerts that are not resolved | **All clear** |
-| **Not operational monitors** | Monitors whose status is not an operational one. Archived monitors, and monitors with monitoring turned off, are left out. | **All operational** |
-| **Ongoing maintenance** | Scheduled maintenance events in progress | **None ongoing** |
-| **SLOs at risk** | Turned-on SLOs that are at risk or have used up their error budget | **Budgets healthy** |
+| Number | What it counts | When the count is zero | Opens |
+| --- | --- | --- | --- |
+| **Active incidents** | Incidents that are not resolved | **All clear** | **Incidents → Active Incidents** |
+| **Active alerts** | Alerts that are not resolved | **All clear** | **Alerts → Active Alerts** |
+| **Not operational monitors** | Monitors whose status is not an operational one. Archived monitors, and monitors with monitoring turned off, are left out. | **All operational** | **Monitors → Not Operational** |
+| **Ongoing maintenance** | Scheduled maintenance events in progress | **None ongoing** | **Scheduled Maintenance → Ongoing Events** |
+| **SLOs at risk** | Turned-on SLOs that are at risk or have used up their error budget | **Budgets healthy** | **SLOs** |
 
-A count above zero reads **Needs attention**, or **In progress** and **Budget burning** for maintenance and SLOs. A project with no monitors yet sees **No monitors yet**, and one with no SLOs sees **No SLOs yet**: an empty project is not the same as a healthy one. Those two then open the **Monitors** and **SLOs** lists, where you create one.
+A count above zero reads **Needs attention**, or **In progress** and **Budget burning** for maintenance and SLOs. While any SLO is at risk, **SLOs at risk** opens the **SLOs** list filtered to those SLOs. A project with no monitors yet sees **No monitors yet**, and one with no SLOs sees **No SLOs yet**: an empty project is not the same as a healthy one. Those two then open the **Monitors** and **SLOs** lists, where you create one.
 
 ### The welcome checklist
 
@@ -91,7 +91,7 @@ The checklist goes away for everyone once every step is done. To hide it sooner,
 
 ### Needs attention
 
-**Needs attention** lists, by name, what the numbers count: the open incidents, the open alerts, the monitors that are not operational, the SLOs at risk and the maintenance in progress, the most urgent first. Each row shows its severity or status, says when an incident or alert started and when maintenance ends, and opens the record. Each kind shows up to five, with **View all** for the rest. When nothing is open, it says **Nothing needs your attention**.
+**Needs attention** lists, by name, what the numbers count: the open incidents, the open alerts, the monitors that are not operational, the SLOs at risk and the maintenance in progress, the most urgent first. Each row shows its severity or status, says when an incident or alert started and when maintenance ends, and opens the record. Each kind shows up to five, with **View all** for the rest, which opens the same list as its number. When nothing is open, it says **Nothing needs your attention**.
 
 ### Your project
 
@@ -102,20 +102,6 @@ The checklist goes away for everyone once every step is done. To hide it sooner,
 ### Explore OneUptime
 
 **Explore OneUptime** shows the products of the **Products** menu one category at a time, starting with the essentials. Each product says what it is for and opens it when you click it.
-
-### Home's side menu
-
-Home itself has no side menu: it already shows everything the menu would. The lists it opens share one, which gives each list its count and leads back to Home from **Overview**:
-
-| Section | Pages |
-| --- | --- |
-| **Home** | **Overview** |
-| **Incidents** | **Active Incidents** and **Active Episodes** |
-| **Alerts** | **Active Alerts** and **Active Episodes** |
-| **Monitors** | **Not Operational** |
-| **Scheduled Events** | **Ongoing** |
-
-An episode groups related incidents or alerts so you work them as one. See [Core Concepts](/docs/introduction/core-concepts#incidents-and-alerts).
 
 ## Finding your way around
 

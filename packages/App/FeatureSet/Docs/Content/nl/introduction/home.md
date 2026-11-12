@@ -11,7 +11,7 @@ Start is de eerste pagina die u in een project ziet. Ze laat in één oogopslag 
 
 ## Wat Start toont
 
-Open **Start** in de balk bovenaan, of druk vanaf elke plek op `g` en dan `h`. Start is het overzicht van uw project. Van boven naar beneden toont Start:
+Open **Start** in de balk bovenaan, of druk vanaf elke plek op `g` en dan `h`. Start is het overzicht van uw project, één pagina zonder zijmenu. Van boven naar beneden toont Start:
 
 1. Een zoekvak, met **Incident melden** en **Aanmaken** ernaast.
 2. Eén regel die zegt of er iets mis is, boven vijf getallen die tellen wat aandacht nodig heeft.
@@ -42,17 +42,17 @@ Zolang er nog niets wordt gemonitord, eindigt de regel met de knop **Maak je eer
 
 ### De vijf getallen
 
-Elk getal telt iets, zegt of dat uw aandacht nodig heeft, en opent de lijst erachter.
+Elk getal telt iets, zegt of dat uw aandacht nodig heeft, en opent de lijst erachter, in het product waar die bij hoort.
 
-| Getal | Wat het telt | Als het getal nul is |
-| --- | --- | --- |
-| **Actieve incidenten** | Incidenten die niet zijn opgelost | **Alles in orde** |
-| **Actieve waarschuwingen** | Waarschuwingen die niet zijn opgelost | **Alles in orde** |
-| **Niet-operationele monitoren** | Monitoren waarvan de status geen operationele status is. Gearchiveerde monitoren, en monitoren waarvan de bewaking uit staat, tellen niet mee. | **Alle operationeel** |
-| **Lopend onderhoud** | Geplande onderhoudsgebeurtenissen die nu lopen | **Geen lopend** |
-| **SLO's in gevaar** | Ingeschakelde SLO's die in gevaar zijn of hun foutbudget hebben opgebruikt | **Budgetten gezond** |
+| Getal | Wat het telt | Als het getal nul is | Opent |
+| --- | --- | --- | --- |
+| **Actieve incidenten** | Incidenten die niet zijn opgelost | **Alles in orde** | **Incidenten → Actieve incidenten** |
+| **Actieve waarschuwingen** | Waarschuwingen die niet zijn opgelost | **Alles in orde** | **Waarschuwingen → Actieve waarschuwingen** |
+| **Niet-operationele monitoren** | Monitoren waarvan de status geen operationele status is. Gearchiveerde monitoren, en monitoren waarvan de bewaking uit staat, tellen niet mee. | **Alle operationeel** | **Monitoren → Niet operationeel** |
+| **Lopend onderhoud** | Geplande onderhoudsgebeurtenissen die nu lopen | **Geen lopend** | **Geplande onderhoud → Lopende gebeurtenissen** |
+| **SLO's in gevaar** | Ingeschakelde SLO's die in gevaar zijn of hun foutbudget hebben opgebruikt | **Budgetten gezond** | **SLOs** |
 
-Een getal boven nul toont **Vraagt aandacht**, of **Bezig** en **Budget raakt op** voor onderhoud en SLO's. Een project zonder monitoren ziet **Nog geen monitoren**, en een project zonder SLO's ziet **Nog geen SLO's**: een leeg project is niet hetzelfde als een gezond project. Die twee openen dan de lijsten **Monitoren** en **SLOs**, waar u er een aanmaakt.
+Een getal boven nul toont **Vraagt aandacht**, of **Bezig** en **Budget raakt op** voor onderhoud en SLO's. Zolang er een SLO in gevaar is, opent **SLO's in gevaar** de lijst **SLOs**, gefilterd op die SLO's. Een project zonder monitoren ziet **Nog geen monitoren**, en een project zonder SLO's ziet **Nog geen SLO's**: een leeg project is niet hetzelfde als een gezond project. Die twee openen dan de lijsten **Monitoren** en **SLOs**, waar u er een aanmaakt.
 
 ### De welkomstchecklist
 
@@ -91,7 +91,7 @@ De checklist verdwijnt voor iedereen zodra elke stap klaar is. Om hem eerder te 
 
 ### Vraagt aandacht
 
-**Vraagt aandacht** toont bij naam wat de getallen tellen: de open incidenten, de open waarschuwingen, de monitoren die niet operationeel zijn, de SLO's in gevaar en het lopende onderhoud, het dringendste eerst. Elke rij toont de ernst of status, zegt wanneer een incident of waarschuwing begon en wanneer het onderhoud eindigt, en opent het item. Van elke soort staan er hooguit vijf, met **Alle tonen** voor de rest. Als er niets openstaat, staat er **Niets vraagt je aandacht**.
+**Vraagt aandacht** toont bij naam wat de getallen tellen: de open incidenten, de open waarschuwingen, de monitoren die niet operationeel zijn, de SLO's in gevaar en het lopende onderhoud, het dringendste eerst. Elke rij toont de ernst of status, zegt wanneer een incident of waarschuwing begon en wanneer het onderhoud eindigt, en opent het item. Van elke soort staan er hooguit vijf, met **Alle tonen** voor de rest, dat dezelfde lijst opent als het getal ervan. Als er niets openstaat, staat er **Niets vraagt je aandacht**.
 
 ### Je project
 
@@ -102,20 +102,6 @@ De checklist verdwijnt voor iedereen zodra elke stap klaar is. Om hem eerder te 
 ### Verken OneUptime
 
 **Verken OneUptime** toont de producten van het menu **Producten** één categorie tegelijk, te beginnen met de essenties. Elk product zegt waarvoor het dient en opent als u erop klikt.
-
-### Het zijmenu van Start
-
-Start zelf heeft geen zijmenu: het toont al alles wat het menu zou tonen. De lijsten die het opent, delen er een dat elke lijst met zijn teller toont en via **Overzicht** terugleidt naar Start:
-
-| Sectie | Pagina's |
-| --- | --- |
-| **Start** | **Overzicht** |
-| **Incidenten** | **Actieve incidenten** en **Actieve episodes** |
-| **Waarschuwingen** | **Actieve waarschuwingen** en **Actieve episodes** |
-| **Monitoren** | **Niet operationeel** |
-| **Geplande gebeurtenissen** | **Lopend** |
-
-Een episode groepeert gerelateerde incidenten of waarschuwingen, zodat u ze als één geheel afhandelt. Zie [Kernbegrippen](/docs/introduction/core-concepts#incidenten-en-waarschuwingen).
 
 ## Uw weg vinden
 

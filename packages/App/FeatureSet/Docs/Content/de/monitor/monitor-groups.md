@@ -27,8 +27,9 @@ flowchart TB
 ```
 
 - **Archivierte Monitore zählen nicht.** Ein archivierter Monitor wird nicht geprüft, sein Status ist also eingefroren; die Gruppe lässt ihn aus.
+- **Monitore mit ausgeschalteter Überwachung zählen nicht.** Einen Monitor, dessen Überwachung ausgeschaltet ist, prüft nichts, sein Status ist also nur, was seine letzte Prüfung sah. Die Gruppe lässt ihn aus ihrem Status aus und im Dashboard auch aus ihrer Verfügbarkeit und ihrem **Verfügbarkeits-Diagramm**: Ein Monitor, der beim Ausschalten seiner Überwachung **Offline** war, macht die Gruppe nicht **Offline**.
 - **Eine leere Gruppe ist betriebsbereit.** Eine Gruppe ohne Monitore, oder nur mit archivierten, zeigt Ihren betriebsbereiten Status. Bis Sie einen Monitor hinzufügen, zeigt das Dashboard an Stelle ihres Status **Noch keine Monitore**.
-- **Ausgeschaltete Überwachung zeigt Deaktiviert.** Ist die Überwachung für jeden Monitor einer Gruppe ausgeschaltet, prüft nichts diese Monitore, und das Dashboard zeigt an Stelle des Gruppenstatus **Deaktiviert**.
+- **Ausgeschaltete Überwachung zeigt Deaktiviert.** Ist die Überwachung für jeden Monitor einer Gruppe ausgeschaltet, prüft nichts diese Monitore, und das Dashboard zeigt an Stelle des Gruppenstatus **Deaktiviert** und neben ihrem **Verfügbarkeits-Diagramm** keinen Verfügbarkeitsprozentsatz. Eine Statusseite zeigt die Gruppe als **Nicht überwacht**.
 - **Die Reihenfolge bestimmen Sie.** Welcher Status der schlimmste ist, folgt der Reihenfolge unter **Monitore → Einstellungen → Monitor-Status**. Siehe [Monitorstatus](/docs/monitor/criteria-and-statuses#monitorstatus).
 
 Eine Monitor-Gruppe ist keine Statusseitengruppe. Eine Statusseitengruppe ist eine Überschrift auf einer Statusseite, die Zeilen enthält. Eine Monitor-Gruppe ist eine Zeile, die für mehrere Monitore steht, und jede Statusseite kann sie anzeigen.
@@ -124,7 +125,7 @@ Wählen Sie die Gruppe. **Anzeigename**, der Name, den Besucher lesen, übernimm
 
 Auf der Statusseite steht die Zeile für jeden Monitor der Gruppe:
 
-- **Ihr Status.** Es ist der Status der Gruppe: der schlimmste ihrer Monitore.
+- **Ihr Status.** Es ist der Status der Gruppe: der schlimmste ihrer Monitore mit eingeschalteter Überwachung. Ist die Überwachung für alle ausgeschaltet, zeigt die Zeile **Nicht überwacht** und zählt weder für die Überschrift darüber noch für den Gesamtstatus der Seite.
 - **Ihre Vorfälle.** Ein Vorfall auf einem beliebigen Monitor der Gruppe erscheint auf der Seite, und die Gruppe wird unter den betroffenen Ressourcen genannt.
 - **Ihre Abonnenten.** Ein Abonnent, der die Gruppe wählt, erfährt von jedem Monitor darin. Siehe [Abonnenten Ressourcen und Ereignistypen wählen lassen](/docs/status-pages/subscribers#abonnenten-ressourcen-und-ereignistypen-wählen-lassen).
 

@@ -23,6 +23,7 @@ import {
   sortDataSourceTableRows,
 } from "../Utils/DataSourceWidget";
 import DataSourceWidgetPlaceholder from "./DataSourceWidgetPlaceholder";
+import DashboardWidgetLine from "./DashboardWidgetLine";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
 import API from "Common/UI/Utils/API/API";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -359,9 +360,11 @@ const DashboardDataSourceTableComponent: FunctionComponent<ComponentProps> = (
       <div className="flex items-start justify-between gap-3 px-2 pt-2 pb-2 flex-shrink-0">
         <div className="min-w-0 flex-1">
           {title && (
-            <h3 className="text-sm font-semibold text-gray-700 tracking-tight truncate">
-              {title}
-            </h3>
+            <DashboardWidgetLine
+              as="h3"
+              text={title}
+              className="text-sm font-semibold text-gray-700 tracking-tight truncate"
+            />
           )}
           {description && (
             <p className="mt-0.5 text-xs text-gray-400">{description}</p>

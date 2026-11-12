@@ -168,6 +168,9 @@ De status van een component is de waarde waar zijn status op de pagina voor staa
 | Een status met de naam `Maintenance` | `under_maintenance` |
 | Elke andere status | `degraded_performance` |
 | Een status die de pagina verbergt, met **Show current status** uit | `unknown` |
+| Een resource die de pagina als **Niet bewaakt** toont, met haar bewaking uit | `unknown` |
+
+Een resource die de pagina als **Niet bewaakt** toont, wordt door niets gecontroleerd, dus telt ze voor geen enkele algemene status mee, net als op de eigen banner van de pagina. Wordt geen van de componenten die de monitor volgt bewaakt, en heeft geen ervan een open incident, dan is de algemene status `unknown`.
 
 Zolang een lopende geplande onderhoudsgebeurtenis een resource raakt, omdat ze een van de monitors ervan noemt of een monitor in de monitorgroep ervan, is de component `under_maintenance`, in welke status de monitors ook staan: een monitor wordt niet gecontroleerd zolang een gebeurtenis hem vasthoudt. Een gebeurtenis die nog moet komen, of voorbij is, verandert niets. De actieve incidenten van de pagina tellen voor de resources die ze raken.
 

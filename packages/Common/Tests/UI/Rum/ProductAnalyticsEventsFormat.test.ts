@@ -56,6 +56,11 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ProductAnalytics/ProductAnalyticsUrlState";
 import { NOT_REPORTED } from "../../../../App/FeatureSet/Dashboard/src/Components/ProductAnalytics/ProductAnalyticsFormat";
 import TimeRange from "../../../Types/Time/TimeRange";
+import {
+  dashboardTranslator,
+  readDashboardLocale,
+} from "../../Helpers/DashboardLocales";
+import { isolated, withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 
 /*
  * The words and addresses of the Events, Funnels and Retention pages
@@ -127,6 +132,85 @@ describe("events", () => {
         german,
       ),
     ).toBe("Desktop");
+  });
+
+  /*
+   * A page's path in an Arabic or Persian sentence (#6858): its leading
+   * "/" sits between an Arabic word and a Latin one and took the
+   * sentence's way, so a funnel's step read "pricing/". The path is set
+   * apart in an isolate (FSI ... PDI), and reads as written; an English or
+   * German sentence is filled as it always was.
+   */
+  test.each([
+    ["ar", "شاهد {{page}}"],
+    ["fa", "بازدید از {{page}}"],
+  ])(
+    "on a %s page a page view's path is set apart from the sentence, so it reads as written",
+    (language: string, template: string) => {
+      const words: Record<string, string> = readDashboardLocale(language);
+
+      // The sentence the Dashboard ships for the language, the path last.
+      expect(words[PAGE_VIEW_TEMPLATE]).toBe(template);
+
+      for (const path of ["/pricing", "/checkout/cart?step=2"]) {
+        const label: string = describeProductAnalyticsEvent(
+          { kind: ProductAnalyticsEventKind.Page, name: path },
+          dashboardTranslator(language),
+        );
+
+        expect(label).toBe(template.replace("{{page}}", isolated(path)));
+        expect(withoutIsolateMarks(label)).toBe(
+          template.replace("{{page}}", path),
+        );
+      }
+
+      // The home page's "/" alone has no letters to move: it is left as it is.
+      expect(
+        describeProductAnalyticsEvent(
+          { kind: ProductAnalyticsEventKind.Page, name: "/" },
+          dashboardTranslator(language),
+        ),
+      ).toBe(template.replace("{{page}}", "/"));
+    },
+  );
+
+  test("an English, German or French page view reads as it always did: nothing set apart", () => {
+    const page: ProductAnalyticsEventRef = {
+      kind: ProductAnalyticsEventKind.Page,
+      name: "/pricing",
+    };
+
+    expect(describeProductAnalyticsEvent(page, english)).toBe(
+      "Viewed /pricing",
+    );
+    expect(describeProductAnalyticsEvent(page, german)).toBe(
+      "/pricing aufgerufen",
+    );
+
+    for (const language of ["en", "de", "fr"]) {
+      expect(
+        describeProductAnalyticsEvent(page, dashboardTranslator(language)),
+      ).toBe(
+        withoutIsolateMarks(
+          describeProductAnalyticsEvent(page, dashboardTranslator(language)),
+        ),
+      );
+    }
+  });
+
+  test("on an Arabic page a session's start and an event of the application's own carry no marks", () => {
+    const arabic: Translator = dashboardTranslator("ar");
+
+    expect(describeProductAnalyticsEvent(SESSION_START_EVENT, arabic)).toBe(
+      readDashboardLocale("ar")[SESSION_STARTED],
+    );
+    // Its own name, drawn by a box that reads its own way (dir="auto").
+    expect(
+      describeProductAnalyticsEvent(
+        { kind: ProductAnalyticsEventKind.Custom, name: "Signed up" },
+        arabic,
+      ),
+    ).toBe("Signed up");
   });
 
   test("every kind has a group name", () => {

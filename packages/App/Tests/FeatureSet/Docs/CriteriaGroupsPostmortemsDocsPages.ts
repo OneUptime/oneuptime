@@ -95,6 +95,7 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
   ],
   [MONITOR_GROUPS]: [
     "Archived monitors do not count.",
+    "Monitors with monitoring off do not count.",
     "An empty group is operational.",
     "Monitoring off shows Disabled.",
     "The order is yours.",

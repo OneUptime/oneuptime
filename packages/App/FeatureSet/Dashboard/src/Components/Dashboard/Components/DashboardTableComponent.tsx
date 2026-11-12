@@ -22,6 +22,7 @@ import {
   readTableThresholdStyle,
 } from "Common/Utils/Dashboard/TableThresholds";
 import DashboardTableValueCell from "./DashboardTableValueCell";
+import DashboardWidgetLine from "./DashboardWidgetLine";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
@@ -736,9 +737,11 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
           {showHeader && (
             <>
               {title && (
-                <h3 className="text-sm font-semibold text-gray-700 tracking-tight truncate">
-                  {title}
-                </h3>
+                <DashboardWidgetLine
+                  as="h3"
+                  text={title}
+                  className="text-sm font-semibold text-gray-700 tracking-tight truncate"
+                />
               )}
               {description && (
                 <p className="mt-0.5 text-xs text-gray-400">{description}</p>
@@ -906,14 +909,16 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
                       {row.values.map(
                         (value: string, attrIndex: number): ReactElement => {
                           return (
-                            <td
+                            <DashboardWidgetLine
                               key={`attr-${attrIndex}`}
+                              as="td"
+                              text={value}
                               className="px-3 py-2 text-gray-700 text-xs truncate"
                             >
                               {value || (
                                 <span className="text-gray-300">(unset)</span>
                               )}
-                            </td>
+                            </DashboardWidgetLine>
                           );
                         },
                       )}

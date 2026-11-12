@@ -57,6 +57,9 @@ import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
 import StatusPageMonitorRule from "Common/Models/DatabaseModels/StatusPageMonitorRule";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
+import FrozenMonitorResources, {
+  NOT_MONITORED_STATUS_COLOR,
+} from "Common/Utils/StatusPage/FrozenMonitorResources";
 import { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import AggregationInterval from "Common/Types/BaseDatabase/AggregationInterval";
 import AggregationIntervalUtil from "Common/Types/BaseDatabase/AggregationIntervalUtil";
@@ -2825,6 +2828,59 @@ describe("status page resources", () => {
     );
     expect(RESOURCES).toContain(
       "the old `/groups` address now opens this screen.",
+    );
+  });
+
+  /*
+   * Issue #6478: a resource nothing checks keeps its row, in gray, and
+   * decides no status: not its group's, not the page's.
+   */
+  it("draws a monitor whose monitoring is off as Not monitored, deciding no status (#6478)", () => {
+    const overviewWords: Record<string, unknown> = (
+      JSON.parse(
+        readSource("App/FeatureSet/StatusPage/src/Locales/en.json"),
+      ) as Record<string, Record<string, unknown>>
+    )["overview"] as Record<string, unknown>;
+    const overview: string = oneLine(
+      readSource("App/FeatureSet/StatusPage/src/Pages/Overview/Overview.tsx"),
+    );
+
+    expect(overviewWords["notMonitored"]).toBe("Not monitored");
+    expect(overviewWords["noResourcesAreMonitored"]).toBe(
+      "No Resources are monitored right now",
+    );
+    expect(overview).toContain('t("overview.noResourcesAreMonitored")');
+    expect(NOT_MONITORED_STATUS_COLOR.toString().toLowerCase()).toBe("#6b7280");
+
+    // A monitor whose monitoring is off, and a group whose monitors all have it off.
+    expect(
+      FrozenMonitorResources.getNotMonitoredResourceIds({
+        statusPageResources: [
+          {
+            _id: "monitor-off",
+            monitorId: "a",
+            monitor: { disableActiveMonitoring: true },
+          },
+          {
+            _id: "monitor-on",
+            monitorId: "b",
+            monitor: { disableActiveMonitoring: false },
+          },
+          { _id: "group-off", monitorGroupId: "c" },
+          { _id: "group-mixed", monitorGroupId: "d" },
+        ],
+        monitorGroupResources: {
+          c: [{ monitor: { disableActiveMonitoring: true } }],
+          d: [
+            { monitor: { disableActiveMonitoring: true } },
+            { monitor: { disableActiveMonitoring: false } },
+          ],
+        },
+      }),
+    ).toEqual(["monitor-off", "group-off"]);
+
+    expect(RESOURCES).toContain(
+      "- **A monitor whose monitoring is off shows Not monitored.** Nothing checks it, so the status it last had says nothing now: its row shows **Not monitored** in gray, and counts toward neither the group above it nor the overall status banner. A monitor group counts only its monitors whose monitoring is on, and shows **Not monitored** when it is off for all of them. When nothing on the page is monitored, the banner says so.",
     );
   });
 });

@@ -10,6 +10,7 @@ import DashboardDockerContainerListComponent from "Common/Types/Dashboard/Dashbo
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import DashboardResourceListBase, {
   ResourceListColumn,
+  ResourceListNameCell,
   ResourceListViewMode,
 } from "./DashboardResourceListBase";
 import {
@@ -300,21 +301,26 @@ const DashboardDockerContainerListComponentElement: FunctionComponent<
           key={id}
           className="hover:bg-gray-50/50 transition-colors duration-100 group"
         >
-          <td className="px-3 py-2 text-xs text-gray-700 truncate">
+          <ResourceListNameCell
+            name={name}
+            className="px-3 py-2 text-xs text-gray-700 truncate"
+          >
             {detailLink}
-          </td>
-          <td className="px-3 py-2 text-xs text-gray-500 truncate font-mono">
-            {image}
-          </td>
+          </ResourceListNameCell>
+          <ResourceListNameCell
+            name={image}
+            className="px-3 py-2 text-xs text-gray-500 truncate font-mono"
+          />
           <td className="px-3 py-2 text-xs text-gray-600 tabular-nums text-right">
             {cpu !== null ? `${cpu.toFixed(1)}%` : "—"}
           </td>
           <td className="px-3 py-2 text-xs text-gray-600 tabular-nums text-right">
             {formatBytes(mem)}
           </td>
-          <td className="px-3 py-2 text-xs text-gray-500 truncate">
-            {hostName}
-          </td>
+          <ResourceListNameCell
+            name={hostName}
+            className="px-3 py-2 text-xs text-gray-500 truncate"
+          />
         </tr>
       );
     },

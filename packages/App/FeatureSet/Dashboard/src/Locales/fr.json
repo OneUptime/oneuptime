@@ -50764,6 +50764,8 @@
   "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}.": "L'IA a lu ces {{count}} fichiers plus tôt dans cette réponse et n'en a plus le texte, et ses versions les remplacent en entier : {{files}}.",
   "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}._one": "L'IA a lu ce fichier plus tôt dans cette réponse et n'en a plus le texte, et sa version le remplace en entier : {{files}}.",
   "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "L'IA a lu ce fichier plus tôt dans cette réponse et n'en a plus le texte, et sa version le remplace en entier : {{files}}.",
+  "Monitoring is off for every monitor in this group, so it has no uptime to show.": "La surveillance est désactivée pour tous les moniteurs de ce groupe, il n'y a donc aucune disponibilité à afficher.",
+  "This group's status over the last 90 days, one bar per day. Monitors whose monitoring is off are left out.": "Le statut de ce groupe au cours des 90 derniers jours, une barre par jour. Les moniteurs dont la surveillance est désactivée ne sont pas pris en compte.",
   "A response header has the value {{text}}.": "Un en-tête de réponse a la valeur {{text}}.",
   "No response header has the value {{text}}.": "Aucun en-tête de réponse n'a la valeur {{text}}.",
   "The response does not have the header {{text}}.": "La réponse ne contient pas l'en-tête {{text}}.",

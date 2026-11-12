@@ -11,10 +11,14 @@ import {
   getSloMetricLabel,
   getSloWidgetTileDisplay,
   getSloWidgetTitle,
+  getSloWidgetTitleSentence,
   SLO_NOT_EVALUATED_TEXT,
   SloWidgetStateData,
   SloWidgetTileDisplay,
+  SloWidgetTitleData,
+  SloWidgetTitleSentence,
 } from "../../../Utils/Slo/SloWidgetFormat";
+import { fillTemplate } from "../../../Types/Translator";
 
 /** A fully evaluated SLO — the happy path every test narrows from. */
 function makeSlo(
@@ -307,6 +311,98 @@ describe("SloWidgetFormat", () => {
 
     it("falls back to the SLI label when neither title, name, nor metric are set", () => {
       expect(getSloWidgetTitle({})).toBe("SLI");
+    });
+  });
+
+  /*
+   * The header in pieces, for a widget that draws the SLO's name in a box
+   * of its own (#6858): the sentence around the name, and the name.
+   */
+  describe("getSloWidgetTitleSentence", () => {
+    it("is the name and the metric's label when no title is set", () => {
+      expect(
+        getSloWidgetTitleSentence({
+          widgetTitle: "   ",
+          sloName: "  API Availability ",
+          sloMetric: SloWidgetMetric.BurnRate,
+        }),
+      ).toEqual({
+        template: "{{name}} · {{metric}}",
+        name: "API Availability",
+        values: { metric: "Burn Rate" },
+      });
+    });
+
+    it("is the picked SLO's name and the author's title on a followed widget", () => {
+      expect(
+        getSloWidgetTitleSentence({
+          widgetTitle: " SLI History ",
+          sloName: "API Availability",
+          sloMetric: SloWidgetMetric.Sli,
+          followsSelection: true,
+        }),
+      ).toEqual({
+        template: "{{name}} · {{title}}",
+        name: "API Availability",
+        values: { title: "SLI History" },
+      });
+    });
+
+    it("is nothing for a header of one piece", () => {
+      // A pinned widget's own title stands alone.
+      expect(
+        getSloWidgetTitleSentence({
+          widgetTitle: "SLI History",
+          sloName: "API Availability",
+          sloMetric: SloWidgetMetric.Sli,
+        }),
+      ).toBeNull();
+
+      // No name yet: the metric's label, or a followed widget's own title.
+      for (const sloName of [undefined, null, "", "   "]) {
+        expect(
+          getSloWidgetTitleSentence({
+            sloName: sloName,
+            sloMetric: SloWidgetMetric.Sli,
+          }),
+        ).toBeNull();
+        expect(
+          getSloWidgetTitleSentence({
+            widgetTitle: "Burn Rate",
+            sloName: sloName,
+            followsSelection: true,
+          }),
+        ).toBeNull();
+      }
+    });
+
+    it("words the title getSloWidgetTitle does, filled", () => {
+      const headers: Array<SloWidgetTitleData> = [
+        { sloName: "API Availability", sloMetric: SloWidgetMetric.Sli },
+        {
+          widgetTitle: "",
+          sloName: "API Availability",
+          sloMetric: SloWidgetMetric.ErrorBudgetRemaining,
+        },
+        {
+          widgetTitle: "SLI History",
+          sloName: "API Availability",
+          followsSelection: true,
+        },
+      ];
+
+      for (const header of headers) {
+        const sentence: SloWidgetTitleSentence | null =
+          getSloWidgetTitleSentence(header);
+
+        expect(sentence).not.toBeNull();
+        expect(
+          fillTemplate(sentence!.template, {
+            name: sentence!.name,
+            ...sentence!.values,
+          }),
+        ).toBe(getSloWidgetTitle(header));
+      }
     });
   });
 

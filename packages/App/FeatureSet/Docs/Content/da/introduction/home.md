@@ -11,7 +11,7 @@ Hjem er den første side, du ser i et projekt. Den viser med et blik, om noget h
 
 ## Hvad Hjem viser
 
-Åbn **Hjem** i bjælken øverst, eller tryk `g` og derefter `h` hvor som helst. Hjem er oversigten over dit projekt. Fra top til bund viser den:
+Åbn **Hjem** i bjælken øverst, eller tryk `g` og derefter `h` hvor som helst. Hjem er oversigten over dit projekt, én side uden sidemenu. Fra top til bund viser den:
 
 1. Et søgefelt med **Erklær hændelse** og **Opret** ved siden af.
 2. Én linje, der siger, om noget er galt, over fem tal, der tæller det, der kræver opmærksomhed.
@@ -42,17 +42,17 @@ Så længe intet overvåges endnu, slutter linjen med knappen **Opret din først
 
 ### De fem tal
 
-Hvert tal tæller noget, siger, om det kræver din opmærksomhed, og åbner listen bag det.
+Hvert tal tæller noget, siger, om det kræver din opmærksomhed, og åbner listen bag det i det produkt, den hører til.
 
-| Tal | Hvad det tæller | Når tallet er nul |
-| --- | --- | --- |
-| **Aktive hændelser** | Hændelser, der ikke er løst | **Alt er i orden** |
-| **Aktive advarsler** | Advarsler, der ikke er løst | **Alt er i orden** |
-| **Ikke-operationelle monitorer** | Monitorer, hvis status ikke er en driftsstatus. Arkiverede monitorer, og monitorer med overvågning slået fra, tæller ikke med. | **Alle i drift** |
-| **Igangværende vedligeholdelse** | Planlagte vedligeholdelser, der er i gang | **Ingen i gang** |
-| **SLO'er i fare** | Aktive SLO'er, der er i fare eller har brugt deres fejlbudget op | **Budgetterne er sunde** |
+| Tal | Hvad det tæller | Når tallet er nul | Åbner |
+| --- | --- | --- | --- |
+| **Aktive hændelser** | Hændelser, der ikke er løst | **Alt er i orden** | **Hændelser → Aktive hændelser** |
+| **Aktive advarsler** | Advarsler, der ikke er løst | **Alt er i orden** | **Advarsler → Aktive advarsler** |
+| **Ikke-operationelle monitorer** | Monitorer, hvis status ikke er en driftsstatus. Arkiverede monitorer, og monitorer med overvågning slået fra, tæller ikke med. | **Alle i drift** | **Monitorer → Ikke operationel** |
+| **Igangværende vedligeholdelse** | Planlagte vedligeholdelser, der er i gang | **Ingen i gang** | **Planlagt vedligeholdelse → Igangværende hændelser** |
+| **SLO'er i fare** | Aktive SLO'er, der er i fare eller har brugt deres fejlbudget op | **Budgetterne er sunde** | **SLOs** |
 
-Et tal over nul viser **Kræver opmærksomhed**, eller **I gang** og **Budgettet bruges op** for vedligeholdelse og SLO'er. Et projekt uden monitorer ser **Ingen monitorer endnu**, og et uden SLO'er ser **Ingen SLO'er endnu**: et tomt projekt er ikke det samme som et sundt. De to åbner så listerne **Monitorer** og **SLOs**, hvor du opretter en.
+Et tal over nul viser **Kræver opmærksomhed**, eller **I gang** og **Budgettet bruges op** for vedligeholdelse og SLO'er. Så længe en SLO er i fare, åbner **SLO'er i fare** listen **SLOs** filtreret til netop dem. Et projekt uden monitorer ser **Ingen monitorer endnu**, og et uden SLO'er ser **Ingen SLO'er endnu**: et tomt projekt er ikke det samme som et sundt. De to åbner så listerne **Monitorer** og **SLOs**, hvor du opretter en.
 
 ### Velkomsttjeklisten
 
@@ -91,7 +91,7 @@ Tjeklisten forsvinder for alle, når hvert trin er færdigt. For at skjule den f
 
 ### Kræver opmærksomhed
 
-**Kræver opmærksomhed** viser ved navn det, tallene tæller: de åbne hændelser, de åbne advarsler, de monitorer, der ikke er i drift, SLO'erne i fare og de igangværende vedligeholdelser, det mest presserende først. Hver række viser sin alvor eller status, siger, hvornår en hændelse eller advarsel begyndte, og hvornår vedligeholdelsen slutter, og åbner posten. Hver slags viser op til fem, med **Vis alle** for resten. Når intet er åbent, står der **Intet kræver din opmærksomhed**.
+**Kræver opmærksomhed** viser ved navn det, tallene tæller: de åbne hændelser, de åbne advarsler, de monitorer, der ikke er i drift, SLO'erne i fare og de igangværende vedligeholdelser, det mest presserende først. Hver række viser sin alvor eller status, siger, hvornår en hændelse eller advarsel begyndte, og hvornår vedligeholdelsen slutter, og åbner posten. Hver slags viser op til fem, med **Vis alle** for resten, som åbner den samme liste som dens tal. Når intet er åbent, står der **Intet kræver din opmærksomhed**.
 
 ### Dit projekt
 
@@ -102,20 +102,6 @@ Tjeklisten forsvinder for alle, når hvert trin er færdigt. For at skjule den f
 ### Udforsk OneUptime
 
 **Udforsk OneUptime** viser produkterne i menuen **Produkter** én kategori ad gangen, begyndende med det grundlæggende. Hvert produkt siger, hvad det er til, og åbnes, når du klikker på det.
-
-### Hjems sidemenu
-
-Hjem har ikke selv en sidemenu: siden viser allerede alt, hvad menuen ville vise. Listerne, den åbner, deler en sidemenu, som viser hver liste med dens antal og fører tilbage til Hjem fra **Oversigt**:
-
-| Afsnit | Sider |
-| --- | --- |
-| **Hjem** | **Oversigt** |
-| **Hændelser** | **Aktive hændelser** og **Aktive episoder** |
-| **Advarsler** | **Aktive advarsler** og **Aktive episoder** |
-| **Monitorer** | **Ikke operationel** |
-| **Planlagte begivenheder** | **Igangværende** |
-
-En episode samler relaterede hændelser eller advarsler, så du arbejder med dem som én. Se [Grundbegreber](/docs/introduction/core-concepts#hændelser-og-advarsler).
 
 ## Find rundt
 

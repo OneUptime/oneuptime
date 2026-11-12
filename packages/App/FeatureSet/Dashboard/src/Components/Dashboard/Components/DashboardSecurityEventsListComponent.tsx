@@ -10,6 +10,7 @@ import DashboardSecurityEventsListComponent from "Common/Types/Dashboard/Dashboa
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import DashboardResourceListBase, {
   ResourceListColumn,
+  ResourceListNameCell,
 } from "./DashboardResourceListBase";
 import AnalyticsModelAPI, {
   ListResult,
@@ -226,24 +227,21 @@ const DashboardSecurityEventsListComponentElement: FunctionComponent<
               </span>
             </span>
           </td>
-          <td
+          <ResourceListNameCell
+            name={className || "—"}
             className="max-w-0 truncate px-3 py-1.5 text-xs text-gray-500"
             title={className}
-          >
-            {className || "—"}
-          </td>
-          <td
+          />
+          <ResourceListNameCell
+            name={message || "—"}
             className="max-w-0 truncate px-3 py-1.5 text-xs text-gray-600"
             title={message}
-          >
-            {message || "—"}
-          </td>
-          <td
+          />
+          <ResourceListNameCell
+            name={host || "—"}
             className="max-w-0 truncate px-3 py-1.5 text-xs text-gray-400"
             title={host}
-          >
-            {host || "—"}
-          </td>
+          />
         </tr>
       );
     },

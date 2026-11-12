@@ -27,8 +27,9 @@ flowchart TB
 ```
 
 - **Arkiverede monitorer tæller ikke.** En arkiveret monitor kontrolleres ikke, så dens status er frosset; gruppen udelader den.
+- **Monitorer med overvågning slået fra tæller ikke.** Intet tjekker en monitor, hvis overvågning er slået fra, så dens status er kun det, dens sidste kontrol så. Gruppen udelader den af sin status og på dashboardet også af sin oppetid og **Oppetidgraf**: en monitor, der stod på **Offline**, da dens overvågning blev slået fra, gør ikke gruppen **Offline**.
 - **En tom gruppe er driftsklar.** En gruppe uden monitorer, eller kun med arkiverede, viser din driftsklare status. Indtil du tilføjer en monitor, viser dashboardet **Ingen monitorer endnu** i stedet for gruppens status.
-- **Overvågning slået fra viser Deaktiveret.** Når overvågning er slået fra for alle monitorer i en gruppe, tjekker intet dem, så dashboardet viser **Deaktiveret** i stedet for gruppens status.
+- **Overvågning slået fra viser Deaktiveret.** Når overvågning er slået fra for alle monitorer i en gruppe, tjekker intet dem, så dashboardet viser **Deaktiveret** i stedet for gruppens status og ingen oppetidsprocent ved dens **Oppetidgraf**. En statusside viser gruppen som **Ikke overvåget**.
 - **Rækkefølgen er din.** Hvilken status der er den værste, følger rækkefølgen under **Overvågninger → Indstillinger → Monitorstatus**. Se [Monitorstatusser](/docs/monitor/criteria-and-statuses#monitorstatusser).
 
 En monitorgruppe er ikke en statussidegruppe. En statussidegruppe er en overskrift på én statusside, der rummer rækker. En monitorgruppe er én række, der står for flere monitorer, og enhver statusside kan vise den.
@@ -124,7 +125,7 @@ Vælg gruppen. **Visningsnavn**, det navn, besøgende læser, overtager gruppens
 
 På statussiden står rækken for hver monitor i gruppen:
 
-- **Dens status.** Det er gruppens: den værste blandt dens monitorer.
+- **Dens status.** Det er gruppens: den værste blandt dens monitorer med overvågning slået til. Når overvågning er slået fra for dem alle, viser rækken **Ikke overvåget** og tæller hverken med i overskriften over den eller i sidens samlede status.
 - **Dens hændelser.** En hændelse på enhver monitor i gruppen vises på siden, med gruppen nævnt blandt de berørte ressourcer.
 - **Dens abonnenter.** En abonnent, der vælger gruppen, hører om hver monitor i den. Se [Lad abonnenter vælge ressourcer og begivenhedstyper](/docs/status-pages/subscribers#lad-abonnenter-vælge-ressourcer-og-hændelsestyper).
 

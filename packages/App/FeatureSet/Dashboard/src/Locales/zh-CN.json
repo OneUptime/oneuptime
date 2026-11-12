@@ -50764,6 +50764,8 @@
   "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}.": "AI 在本次回答中稍早读取了这 {{count}} 个文件，但已不再掌握其内容，而 AI 的版本会替换整个文件：{{files}}。",
   "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}._one": "AI 在本次回答中稍早读取了此文件，但已不再掌握其内容，而 AI 的版本会替换整个文件：{{files}}。",
   "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "AI 在本次回答中稍早读取了此文件，但已不再掌握其内容，而 AI 的版本会替换整个文件：{{files}}。",
+  "Monitoring is off for every monitor in this group, so it has no uptime to show.": "此组中所有监视器的监控均已关闭，因此没有可显示的运行时间。",
+  "This group's status over the last 90 days, one bar per day. Monitors whose monitoring is off are left out.": "此组过去 90 天的状态，每天一根条形。已关闭监控的监视器不计入其中。",
   "A response header has the value {{text}}.": "有响应标头的值为 {{text}}。",
   "No response header has the value {{text}}.": "没有响应标头的值为 {{text}}。",
   "The response does not have the header {{text}}.": "响应不包含标头 {{text}}。",

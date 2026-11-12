@@ -7,21 +7,20 @@ import {
   test,
 } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { cleanup, screen } from "@testing-library/react";
 import * as fs from "fs";
 import * as path from "path";
 import * as React from "react";
-import { MemoryRouter, Route as PageRoute, Routes } from "react-router-dom";
 
 /*
- * "Inoperational" is not a word most people use, and the Monitors and Home
- * menus led with it. The monitors whose status is not operational are now
- * "Not Operational" everywhere the Dashboard names them: both menus, the
- * pages' titles and the breadcrumb. The routes themselves are unchanged
- * (`/monitors/inoperational`, `/home/monitors-inoperational`) so bookmarks
- * keep working.
+ * "Inoperational" is not a word most people use, and the Monitors menu led
+ * with it. The monitors whose status is not operational are now "Not
+ * Operational" everywhere the Dashboard names them: the menu, the page's
+ * title and the breadcrumb. The route itself is unchanged
+ * (`/monitors/inoperational`) so bookmarks keep working. Home's own copy of
+ * the list is gone (#6857): its address forwards here (MovedHomeRoutes).
  *
- * The real menus are rendered against the real RouteMap. react-i18next is
+ * The real menu is rendered against the real RouteMap. react-i18next is
  * answered from the real locale files, so the German test reads what a German
  * user sees - the old key's translation ("Nicht betriebsbereit") carried over
  * to the new English wording.
@@ -66,9 +65,9 @@ jest.mock("react-i18next", () => {
 });
 
 /*
- * ModelAPI.count backs the badge counts; ModelListCache backs the Home menu's
- * unresolved incident/alert state lists. Stubbed inline because jest.mock is
- * hoisted above the imports.
+ * ModelAPI.count backs the badge counts; ModelListCache backs the state
+ * lists menus read. Stubbed inline because jest.mock is hoisted above the
+ * imports.
  */
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
@@ -99,8 +98,6 @@ jest.mock("../../../UI/Utils/Analytics", () => {
   return { __esModule: true, default: { capture: jest.fn() } };
 });
 
-import HomeLayout from "../../../../App/FeatureSet/Dashboard/src/Pages/Home/Layout";
-import HomeSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Home/SideMenu";
 import MonitorsSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Monitor/SideMenu";
 import { getMonitorBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/MonitorBreadcrumbs";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
@@ -108,7 +105,6 @@ import RouteMap, {
   RouteUtil,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import Project from "../../../Models/DatabaseModels/Project";
-import Route from "../../../Types/API/Route";
 import Link from "../../../Types/Link";
 import { SIDE_MENU_ITEM_TITLE_TEST_ID } from "../../../UI/Components/SideMenu/SideMenuEntryState";
 import {
@@ -132,10 +128,6 @@ function project(): Project {
 
 async function renderMonitorsMenu(): Promise<void> {
   await renderMenu(<MonitorsSideMenu project={project()} />);
-}
-
-async function renderHomeMenu(): Promise<void> {
-  await renderMenu(<HomeSideMenu project={project()} />);
 }
 
 beforeEach(() => {
@@ -197,36 +189,8 @@ describe("Monitors menu", () => {
   });
 });
 
-describe("Home menu", () => {
-  beforeEach(() => {
-    goTo(`/dashboard/${PROJECT_ID}/home`);
-  });
-
-  test("the Monitors section links Not Operational to Home's own list", async () => {
-    await renderHomeMenu();
-
-    expect(linksIn("Monitors")).toEqual([
-      {
-        title: "Not Operational",
-        href: routeFor(PageMap.HOME_NOT_OPERATIONAL_MONITORS),
-      },
-    ]);
-    expect(linksIn("Monitors")[0]!.href).toBe(
-      `/dashboard/${PROJECT_ID}/home/monitors-inoperational`,
-    );
-  });
-
-  test("no entry anywhere in the menu says Inoperational", async () => {
-    await renderHomeMenu();
-
-    for (const title of titlesInMenu()) {
-      expect(title).not.toMatch(/inoperational/i);
-    }
-  });
-});
-
 describe("in German", () => {
-  test("both menus show the translation the old wording already had", async () => {
+  test("the menu shows the translation the old wording already had", async () => {
     activeLocale = DE;
     const german: unknown = DE["Not Operational"];
     expect(typeof german).toBe("string");
@@ -252,55 +216,10 @@ describe("in German", () => {
     goTo(`/dashboard/${PROJECT_ID}/monitors`);
     await renderMonitorsMenu();
     expect(titlesReading(german as string).length).toBeGreaterThanOrEqual(1);
-    cleanup();
-
-    goTo(`/dashboard/${PROJECT_ID}/home`);
-    await renderHomeMenu();
-    expect(titlesReading(german as string).length).toBeGreaterThanOrEqual(1);
   });
 });
 
 describe("the not operational pages' titles and trail", () => {
-  test("Home's list is titled Not Operational Monitors, in the heading and the breadcrumb", async () => {
-    const pagePath: string = RouteUtil.populateRouteParams(
-      RouteMap[PageMap.HOME_NOT_OPERATIONAL_MONITORS] as Route,
-    ).toString();
-    goTo(pagePath);
-
-    await act(async () => {
-      render(
-        <MemoryRouter initialEntries={[pagePath]}>
-          <Routes>
-            <PageRoute
-              path="/dashboard/:projectId/home"
-              element={
-                <HomeLayout
-                  currentProject={project()}
-                  hasPaymentMethod={true}
-                  pageRoute={RouteMap[PageMap.HOME] as Route}
-                />
-              }
-            >
-              <PageRoute
-                path="monitors-inoperational"
-                element={<div>List</div>}
-              />
-            </PageRoute>
-          </Routes>
-        </MemoryRouter>,
-      );
-    });
-
-    const trail: HTMLElement = screen.getByRole("navigation", {
-      name: "Breadcrumb",
-    });
-    expect(trail).toHaveTextContent("Not Operational Monitors");
-    expect(
-      screen.getAllByText("Not Operational Monitors").length,
-    ).toBeGreaterThanOrEqual(2);
-    expect(document.body.textContent || "").not.toMatch(/inoperational/i);
-  });
-
   test("the Monitors product's trail ends in Not Operational", () => {
     const pattern: string = RouteUtil.getRouteString(
       PageMap.MONITORS_INOPERATIONAL,
@@ -338,17 +257,16 @@ describe("the not operational pages' titles and trail", () => {
 });
 
 describe("the not operational page's own list card", () => {
-  test("is titled Not Operational Monitors on both pages", () => {
-    for (const file of [
-      "Pages/Monitor/NotOperationalMonitors.tsx",
-      "Pages/Home/NotOperationalMonitors.tsx",
-    ]) {
-      const source: string = fs.readFileSync(
-        path.join(__dirname, "../../../../App/FeatureSet/Dashboard/src", file),
-        "utf8",
-      );
-      expect(source).toContain('title="Not Operational Monitors"');
-      expect(source).not.toMatch(/inoperational/i);
-    }
+  test("is titled Not Operational Monitors", () => {
+    const source: string = fs.readFileSync(
+      path.join(
+        __dirname,
+        "../../../../App/FeatureSet/Dashboard/src",
+        "Pages/Monitor/NotOperationalMonitors.tsx",
+      ),
+      "utf8",
+    );
+    expect(source).toContain('title="Not Operational Monitors"');
+    expect(source).not.toMatch(/inoperational/i);
   });
 });

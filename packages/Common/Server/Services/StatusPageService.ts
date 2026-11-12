@@ -88,7 +88,9 @@ import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
 import ForbiddenException from "../../Types/Exception/ForbiddenException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
-import ArchivedMonitorResources from "../../Utils/StatusPage/ArchivedMonitorResources";
+import FrozenMonitorResources, {
+  NotMonitoredResourceIds,
+} from "../../Utils/StatusPage/FrozenMonitorResources";
 import {
   STATUS_PAGE_ARCHIVED_SENDS_NOTHING_MESSAGE,
   STATUS_PAGE_NOT_FOUND_MESSAGE,
@@ -3057,21 +3059,35 @@ export class Service extends ProjectReferencesService<StatusPage> {
 
     /*
      * An archived monitor is retired and its status frozen, so it is not
-     * shown (see ArchivedMonitorResources). Everything that works out which
+     * shown (see FrozenMonitorResources). Everything that works out which
      * monitors are on the page - incidents, maintenance, reports - reads it
-     * from here and so skips it too.
+     * from here and so skips it too. A monitor whose monitoring is off stays:
+     * the page still shows it, as Not monitored, with its incidents and
+     * maintenance.
      */
-    return ArchivedMonitorResources.withoutArchivedMonitors(
+    return FrozenMonitorResources.withoutArchivedMonitors(
       statusPageResources,
     ).sort((a: StatusPageResource, b: StatusPageResource) => {
       return a.order! - b.order!;
     });
   }
 
+  /*
+   * The status of each monitor group on the page, by its id: what the
+   * embedded badge reads. Only the group's monitors that are checked count
+   * - an archived monitor, or one whose monitoring is off, holds a frozen
+   * status (FrozenMonitorResources) - so a group whose monitors all have
+   * monitoring off has no entry, and colors nothing.
+   *
+   * monitorGroupResources, when the caller has them, are the groups'
+   * members as MonitorGroupService.getMonitorGroupResourcesByGroupIds reads
+   * them; without them they are read here.
+   */
   @CaptureSpan()
   public async getMonitorGroupCurrentStatuses(data: {
     statusPageResources: Array<StatusPageResource>;
     monitorStatuses: Array<MonitorStatus>;
+    monitorGroupResources?: Dictionary<Array<MonitorGroupResource>> | undefined;
   }): Promise<Dictionary<ObjectID>> {
     const monitorGroupCurrentStatuses: Dictionary<ObjectID> = {};
 
@@ -3081,7 +3097,8 @@ export class Service extends ProjectReferencesService<StatusPage> {
      * subscriber report. One query now serves all groups.
      */
     const resourcesByGroupId: Dictionary<Array<MonitorGroupResource>> =
-      await MonitorGroupService.getMonitorGroupResourcesByGroupIds(
+      data.monitorGroupResources ||
+      (await MonitorGroupService.getMonitorGroupResourcesByGroupIds(
         data.statusPageResources
           .map((resource: StatusPageResource) => {
             return resource.monitorGroupId!;
@@ -3089,12 +3106,14 @@ export class Service extends ProjectReferencesService<StatusPage> {
           .filter((id: ObjectID) => {
             return Boolean(id); // remove nulls
           }),
-      );
+      ));
 
     for (const resource of data.statusPageResources) {
       if (resource.monitorGroupId) {
         const monitorGroupResources: Array<MonitorGroupResource> =
-          resourcesByGroupId[resource.monitorGroupId.toString()] || [];
+          FrozenMonitorResources.withoutFrozenMonitors(
+            resourcesByGroupId[resource.monitorGroupId.toString()] || [],
+          );
 
         const statuses: Array<ObjectID> = monitorGroupResources
           .filter((item: MonitorGroupResource) => {
@@ -3135,12 +3154,45 @@ export class Service extends ProjectReferencesService<StatusPage> {
     return monitorGroupCurrentStatuses;
   }
 
+  /*
+   * The page's overall status - its banner, its badge, its summary: the
+   * worst status among its resources, from the first of monitorStatuses
+   * (sorted by priority) up.
+   *
+   * A resource the page draws as Not monitored decides nothing: one in
+   * notMonitoredResourceIds (FrozenMonitorResources.getNotMonitoredResourceIds),
+   * and a monitor whose monitoring is off, listed or not. Neither does an
+   * archived monitor, nor a monitor group missing from
+   * monitorGroupCurrentStatuses. When every resource on the page is Not
+   * monitored there is no status to give: null, which the page draws as
+   * Not monitored.
+   */
   @CaptureSpan()
   public getOverallMonitorStatus(data: {
     statusPageResources: Array<StatusPageResource>;
     monitorStatuses: Array<MonitorStatus>;
     monitorGroupCurrentStatuses: Dictionary<ObjectID>;
+    notMonitoredResourceIds?: NotMonitoredResourceIds | undefined;
   }): MonitorStatus | null {
+    const notMonitoredResourceIds: NotMonitoredResourceIds =
+      data.notMonitoredResourceIds || [];
+
+    const isNotMonitored: (resource: StatusPageResource) => boolean = (
+      resource: StatusPageResource,
+    ): boolean => {
+      return (
+        FrozenMonitorResources.isMonitoringOff(resource) ||
+        FrozenMonitorResources.isNotMonitored(resource, notMonitoredResourceIds)
+      );
+    };
+
+    if (
+      data.statusPageResources.length > 0 &&
+      data.statusPageResources.every(isNotMonitored)
+    ) {
+      return null;
+    }
+
     let currentStatus: MonitorStatus | null =
       data.monitorStatuses.length > 0 && data.monitorStatuses[0]
         ? data.monitorStatuses[0]
@@ -3149,6 +3201,13 @@ export class Service extends ProjectReferencesService<StatusPage> {
     const dict: Dictionary<number> = {};
 
     for (const resource of data.statusPageResources) {
+      if (
+        FrozenMonitorResources.isMonitorArchived(resource) ||
+        isNotMonitored(resource)
+      ) {
+        continue;
+      }
+
       if (resource.monitor?.currentMonitorStatusId) {
         if (
           !Object.keys(dict).includes(

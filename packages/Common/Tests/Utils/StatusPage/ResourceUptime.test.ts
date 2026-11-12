@@ -1,4 +1,5 @@
 import StatusPageResourceUptimeUtil from "../../../Utils/StatusPage/ResourceUptime";
+import FrozenMonitorResources from "../../../Utils/StatusPage/FrozenMonitorResources";
 import { Green, Red, Yellow } from "../../../Types/BrandColors";
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
@@ -603,6 +604,109 @@ describe("StatusPageResourceUptimeUtil", () => {
           });
 
         expect(status.name).toBe("Operational");
+      });
+
+      /*
+       * #6478: the child's Offline monitor has its monitoring off, so the
+       * page draws it as Not monitored. The Offline it was left at is frozen
+       * and decides nothing: the parent is its checked monitors' status.
+       */
+      function withOfflineNotMonitored(): {
+        fixture: ReturnType<typeof makeFixture>;
+        offlineId: string;
+      } {
+        const fixture: ReturnType<typeof makeFixture> = makeFixture();
+        const offline: StatusPageResource = fixture.resources[2]!;
+        offline._id = "5e000000-0000-4000-8000-0000000000f1";
+        fixture.resources[0]!._id = "5e000000-0000-4000-8000-0000000000f2";
+        fixture.resources[1]!._id = "5e000000-0000-4000-8000-0000000000f3";
+        return { fixture, offlineId: offline._id };
+      }
+
+      test("a resource drawn as Not monitored decides nothing: its frozen Offline is not the parent's", () => {
+        const { fixture, offlineId } = withOfflineNotMonitored();
+
+        const status: MonitorStatus =
+          StatusPageResourceUptimeUtil.getCurrentStatusPageGroupStatus({
+            statusPageGroup: fixture.groups[0]!,
+            monitorStatusTimelines: fixture.timelines,
+            statusPageResources: fixture.resources,
+            monitorStatuses: fixture.statuses,
+            monitorGroupCurrentStatuses: {},
+            allStatusPageGroups: fixture.groups,
+            notMonitoredResourceIds: [offlineId],
+          });
+
+        expect(status.name).toBe("Operational");
+      });
+
+      test("the ids as a set read the same as a list", () => {
+        const { fixture, offlineId } = withOfflineNotMonitored();
+
+        const status: MonitorStatus =
+          StatusPageResourceUptimeUtil.getCurrentStatusPageGroupStatus({
+            statusPageGroup: fixture.groups[0]!,
+            monitorStatusTimelines: fixture.timelines,
+            statusPageResources: fixture.resources,
+            monitorStatuses: fixture.statuses,
+            monitorGroupCurrentStatuses: {},
+            allStatusPageGroups: fixture.groups,
+            notMonitoredResourceIds: new Set<string>([offlineId]),
+          });
+
+        expect(status.name).toBe("Operational");
+      });
+
+      test("a resource the list does not name still decides", () => {
+        const { fixture } = withOfflineNotMonitored();
+
+        const status: MonitorStatus =
+          StatusPageResourceUptimeUtil.getCurrentStatusPageGroupStatus({
+            statusPageGroup: fixture.groups[0]!,
+            monitorStatusTimelines: fixture.timelines,
+            statusPageResources: fixture.resources,
+            monitorStatuses: fixture.statuses,
+            monitorGroupCurrentStatuses: {},
+            allStatusPageGroups: fixture.groups,
+            notMonitoredResourceIds: ["5e000000-0000-4000-8000-0000000000f2"],
+          });
+
+        expect(status.name).toBe("Offline");
+      });
+
+      test("a group of nothing but resources drawn as Not monitored has no status of its own: the page asks first", () => {
+        const { fixture, offlineId } = withOfflineNotMonitored();
+
+        /*
+         * The child holds the one Offline resource, Not monitored. What
+         * this returns for it is the default, Operational - the page never
+         * shows it: it asks FrozenMonitorResources.isEveryResourceNotMonitored
+         * first and draws the group as Not monitored.
+         */
+        const status: MonitorStatus =
+          StatusPageResourceUptimeUtil.getCurrentStatusPageGroupStatus({
+            statusPageGroup: fixture.groups[1]!,
+            monitorStatusTimelines: fixture.timelines,
+            statusPageResources: fixture.resources,
+            monitorStatuses: fixture.statuses,
+            monitorGroupCurrentStatuses: {},
+            allStatusPageGroups: fixture.groups,
+            notMonitoredResourceIds: [offlineId],
+          });
+
+        expect(status.name).toBe("Operational");
+        expect(
+          FrozenMonitorResources.isEveryResourceNotMonitored(
+            StatusPageResourceUptimeUtil.getResourcesInStatusPageGroupAndDescendants(
+              {
+                statusPageGroup: fixture.groups[1]!,
+                statusPageResources: fixture.resources,
+                allStatusPageGroups: fixture.groups,
+              },
+            ),
+            [offlineId],
+          ),
+        ).toBe(true);
       });
     });
 
