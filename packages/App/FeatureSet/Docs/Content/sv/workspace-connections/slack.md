@@ -55,7 +55,7 @@ Gå till **Incidenter** > **Arbetsyta** > **Slack**. Avsnittet **Arbetsyta** vis
 
 ### Testa regeln
 
-Klicka på **Testregel** på regelns rad. Ett testmeddelande kommer i de kanaler som regeln anger. Se [Testa en regel](#testa-en-regel).
+Klicka på **Testa regel** på regelns rad. Ett testmeddelande kommer i de kanaler som regeln anger. Se [Testa en regel](#testa-en-regel).
 :::
 
 ## Slack Enterprise-organisationer
@@ -67,7 +67,7 @@ Med Slack Enterprise Grid kan ett projekt arbeta i flera arbetsytor i din organi
 3. Kortet **Slack-arbetsytor** listar de arbetsytorna. Klicka på **Uppdatera** när OneUptime har lagts till i en ny arbetsyta.
 
 - **Vilken arbetsyta en regel använder.** Aviseringsregler väljer den **Slack-arbetsyta** som deras kanaler finns i. Lämnas fältet tomt använder regeln standardarbetsytan och letar först där efter kanalerna den anger. **Gör till standard** på kortet ändrar standarden. Tas OneUptime bort från standardarbetsytan blir den av de återstående arbetsytorna som kommer först i bokstavsordning standard. Den förblir standard när OneUptime läggs till i den gamla arbetsytan igen.
-- **En arbetsyta som OneUptime har tagits bort från.** En regel som väljer den postar inte i en annan arbetsyta i stället: regelns kort, **Testregel** och aviseringsloggarna säger att OneUptime inte längre är tillagt i den. Kortet **Slack-kanal** säger det också när kanalen ligger i den arbetsytan. Lägg till OneUptime i den arbetsytan igen i Slacks organisationsinställningar, eller välj en annan arbetsyta i regeln.
+- **En arbetsyta som OneUptime har tagits bort från.** En regel som väljer den postar inte i en annan arbetsyta i stället: regelns kort, **Testa regel** och aviseringsloggarna säger att OneUptime inte längre är tillagt i den. Kortet **Slack-kanal** säger det också när kanalen ligger i den arbetsytan. Lägg till OneUptime i den arbetsytan igen i Slacks organisationsinställningar, eller välj en annan arbetsyta i regeln.
 - **Var OneUptime fungerar.** Knappar, kommandon, fliken Home och OneUptime AI fungerar i var och en av de arbetsytorna, och medlemmar ansluter sitt eget Slack-konto från vilken som helst av dem.
 - **Ett projekt som är anslutet till en enda arbetsyta.** Hör den arbetsytan till organisationen behåller projektet sina regler, kanaler och anslutna konton när det installeras för hela organisationen med **Installera för organisationen** på samma sida. Den arbetsytan blir standard.
 - **På en egen server** tillåter en Slack-app som skapats från OneUptimes manifest redan detta: manifestet sätter `org_deploy_enabled`.
@@ -138,9 +138,9 @@ OneUptime-appen lägger till dem, på samma sätt som den lägger till personern
 
 ## Testa en regel
 
-**Testregel** på en regels rad publicerar ett testmeddelande för den regeln i de kanaler den anger, så att du ser att det kommer fram. Om regeln skapar en kanal för varje händelse skapar testet också en och bjuder in regelns personer till den.
+**Testa regel** på en regels rad publicerar ett testmeddelande för den regeln i de kanaler den anger, så att du ser att det kommer fram. Om regeln skapar en kanal för varje händelse skapar testet också en och bjuder in regelns personer till den.
 
-Precis som **Skicka test** bredvid en kanal i **Projektinställningar** > **Arbetsyta** > **Slack** kräver den behörighet att skapa aviseringsregler: **Projektägare**, **Projektadministratör**, **Projektmedlem**, **Inställningsadministratör**, **Inställningsmedlem**, eller **Create Workspace Notification Rule** och **Read Workspace Notification Rule** i en anpassad roll. För den som bara får se reglerna, som en **Tittare**, är **Testregel** låst, och dess verktygstips anger vad som krävs; API:et avvisar personens test med "You do not have permission to send test notifications in this project." På OneUptime Cloud kräver det **Growth**-planen att testa en regel, precis som att lägga till en.
+Precis som **Skicka test** bredvid en kanal i **Projektinställningar** > **Arbetsyta** > **Slack** kräver den behörighet att skapa aviseringsregler: **Projektägare**, **Projektadministratör**, **Projektmedlem**, **Inställningsadministratör**, **Inställningsmedlem**, eller **Create Workspace Notification Rule** och **Read Workspace Notification Rule** i en anpassad roll. För den som bara får se reglerna, som en **Tittare**, är **Testa regel** låst, och dess verktygstips anger vad som krävs; API:et avvisar personens test med "You do not have permission to send test notifications in this project." På OneUptime Cloud kräver det **Growth**-planen att testa en regel, precis som att lägga till en.
 
 På OneUptime Cloud kräver **Skicka test** bredvid en kanal också **Growth**-planen, eftersom att publicera i en kanal är vad regler och sammanfattningar gör. **Skicka test nu** på en sammanfattning kräver behörighet att skapa sammanfattningar (**Create Workspace Notification Summary** och **Read Workspace Notification Summary** i en anpassad roll) och, på OneUptime Cloud, **Growth**-planen; för alla andra är den låst, och dess verktygstips anger vad som krävs. En MCP-klient som är ansluten med skrivskyddad åtkomst kan inte skicka något test.
 
@@ -333,7 +333,7 @@ Det OneUptime sparar av detta — arbetsytans namn, dess kanaler, de Slack-konto
 ## Felsökning
 
 :::details En regel publicerar ingenting
-Kontrollera regelns villkor med **Testregel**: om testet kommer fram matchade inte regelns villkor händelsen. Om det inte gör det visar Slack-sidan varför. För en privat kanal måste du först bjuda in OneUptime-appen till den i Slack. Varje meddelande som OneUptime publicerar, och varje meddelande som Slack avvisade, visas i **Projektinställningar** > **Aviseringar** > **Aviseringsloggar**, på fliken **Arbetsyta**.
+Kontrollera regelns villkor med **Testa regel**: om testet kommer fram matchade inte regelns villkor händelsen. Om det inte gör det visar Slack-sidan varför. För en privat kanal måste du först bjuda in OneUptime-appen till den i Slack. Varje meddelande som OneUptime publicerar, och varje meddelande som Slack avvisade, visas i **Projektinställningar** > **Aviseringar** > **Aviseringsloggar**, på fliken **Arbetsyta**.
 :::
 
 :::details Någon saknas i en regels kanal

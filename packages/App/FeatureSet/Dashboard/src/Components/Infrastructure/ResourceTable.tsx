@@ -25,6 +25,7 @@ import Includes from "Common/Types/BaseDatabase/Includes";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { withSentenceDigits } from "../ResourcePart/SentenceDigits";
+import { formatReaderFigure } from "Common/Types/DateLanguage";
 import ResourceStatusCell from "./ResourceStatusCell";
 import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import { isDashPlaceholder } from "Common/UI/Components/Table/TableEmptyValue";
@@ -161,6 +162,31 @@ export interface ResourceColumn {
    * tells two images apart out of sight.
    */
   isName?: boolean | undefined;
+  /*
+   * A count - "3", or ready out of desired "2/3" - drawn in the reader's
+   * digits ("۲/۳" in Persian), as the Status column's "{{available}} of
+   * {{desired}}" is (issue #7106). Kept as plain digits in the row, so
+   * the filter reads them; anything else (a dash, "N/A") as written.
+   */
+  isCount?: boolean | undefined;
+}
+
+const COUNT_VALUE: RegExp = /^\d{1,15}(?:\/\d{1,15})?$/;
+
+export function writeCountInReaderDigits(
+  value: string,
+  translator: Translator,
+): string {
+  if (!COUNT_VALUE.test(value)) {
+    return value;
+  }
+
+  return value
+    .split("/")
+    .map((part: string): string => {
+      return translator.formatNumber(Number(part));
+    })
+    .join("/");
 }
 
 /*
@@ -271,11 +297,12 @@ export function getThresholdBarColor(
   return calmClassName;
 }
 
+// In the reader's digits ("۱۲٫۵٪", "12,5 %"; #7106); English as before.
 export function formatCpuValue(value: number | null): string {
   if (value === null || value === undefined) {
     return "N/A";
   }
-  return `${value.toFixed(1)}%`;
+  return formatReaderFigure(value, { decimals: 1, isPercent: true });
 }
 
 export function formatMemoryValue(bytes: number | null): string {
@@ -283,19 +310,25 @@ export function formatMemoryValue(bytes: number | null): string {
     return "N/A";
   }
 
+  // The number in the reader's digits, the unit as written: "۱۲٫۵ MB".
   if (bytes < 1024) {
-    return `${bytes} B`;
+    return `${formatReaderFigure(bytes, {
+      decimals: 1,
+      dropTrailingZeros: true,
+    })} B`;
   }
 
   if (bytes < 1024 * 1024) {
-    return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${formatReaderFigure(bytes / 1024, { decimals: 1 })} KB`;
   }
 
   if (bytes < 1024 * 1024 * 1024) {
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    return `${formatReaderFigure(bytes / (1024 * 1024), { decimals: 1 })} MB`;
   }
 
-  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+  return `${formatReaderFigure(bytes / (1024 * 1024 * 1024), {
+    decimals: 2,
+  })} GB`;
 }
 
 // A row's status in the reader's language.
@@ -666,9 +699,12 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
           ? { wrapContent: true, wrapMaxWidthClassName: "max-w-[16rem]" }
           : {}),
         getElement: (resource: InfrastructureResource): ReactElement => {
-          const value: string = col.getValue
+          const written: string = col.getValue
             ? col.getValue(resource)
             : resource.additionalAttributes[col.key] || "";
+          const value: string = col.isCount
+            ? writeCountInReaderDigits(written, translator)
+            : written;
           const tone: ResourceColumnTone | undefined = col.getTone
             ? col.getTone(resource)
             : undefined;
@@ -811,7 +847,10 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
                     />
                   </div>
                   <span className="text-xs text-gray-600 whitespace-nowrap">
-                    {resource.memoryUtilization.toFixed(1)}%
+                    {formatReaderFigure(resource.memoryUtilization, {
+                      decimals: 1,
+                      isPercent: true,
+                    })}
                   </span>
                 </div>
                 <div className="text-xs text-gray-500 mt-0.5">
@@ -852,7 +891,10 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
                     />
                   </div>
                   <span className="text-xs text-gray-600 whitespace-nowrap">
-                    {Math.round(pct)}%
+                    {formatReaderFigure(Math.round(pct), {
+                      decimals: 0,
+                      isPercent: true,
+                    })}
                   </span>
                 </div>
                 <div className="text-xs text-gray-500 mt-0.5">

@@ -2,6 +2,13 @@ export interface NavLink {
   // Stable English title — also used as a translation key.
   title: string;
   url: string;
+  /*
+   * A guide: a page written to be followed from its first line to its last
+   * to get one job done (the Quickstart, the Self-Hosting Guide, and the
+   * guides of #6821). Docs search ranks a guide above a reference page for
+   * the same words (Utils/DocsSearch.ts).
+   */
+  isGuide?: boolean | undefined;
 }
 
 export interface NavGroup {
@@ -70,6 +77,7 @@ const DocsNav: NavGroup[] = [
       {
         title: "Quickstart",
         url: "/docs/introduction/quickstart",
+        isGuide: true,
       },
       {
         title: "Core Concepts",
@@ -1691,6 +1699,7 @@ const DocsNav: NavGroup[] = [
       {
         title: "Self-Hosting Guide",
         url: "/docs/installation/self-hosting-guide",
+        isGuide: true,
       },
       {
         title: "Docker Compose",

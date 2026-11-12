@@ -70,6 +70,7 @@ import {
 import KeyboardKey from "Common/UI/Components/KeyboardShortcut/KeyboardKey";
 import { ADMIN_DASHBOARD_URL, BILLING_ENABLED } from "Common/UI/Config";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
+import { DocsSearchHit, searchDocs } from "Common/UI/Utils/DocsSearch";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import LeaveGuard from "Common/UI/Utils/LeaveGuard";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -266,6 +267,47 @@ function createEntitySearchProvider<
         // Per-provider isolation: a failed search shows nothing, never an error.
         return [];
       }
+    },
+  };
+}
+
+/*
+ * Search's Documentation group (#6822): the docs pages and sections that
+ * answer what was typed, from the installation's own docs search (the one
+ * the docs' search box asks), opened in a new tab. A read that fails shows
+ * nothing, never an error.
+ */
+export function createDocsSearchProvider(data: {
+  sectionTitle: string;
+  language?: string | undefined;
+  onNavigate: () => void;
+}): PaletteSearchProvider {
+  return {
+    id: "docs",
+    title: data.sectionTitle,
+    search: async (searchText: string): Promise<Array<PaletteSearchResult>> => {
+      const hits: Array<DocsSearchHit> = await searchDocs({
+        query: searchText,
+        language: data.language,
+      });
+
+      return hits.map(
+        (hit: DocsSearchHit, index: number): PaletteSearchResult => {
+          return {
+            id: `docs-${index}-${hit.url}`,
+            title: hit.title,
+            description: hit.where,
+            icon: IconProp.Book,
+            iconColor: "indigo",
+            onSelect: () => {
+              data.onNavigate();
+              Navigation.navigate(URL.fromString(hit.url), {
+                openInNewTab: true,
+              });
+            },
+          };
+        },
+      );
     },
   };
 }
@@ -919,6 +961,21 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
         });
       });
     }
+
+    /*
+     * --- the docs (#6822), under the pages and records -------------------
+     * Read from the installation's own docs search, in the reader's
+     * language, with or without a project; each opens in a new tab, so
+     * the page the person was on stays where it was.
+     */
+    searchProviders = [
+      ...(searchProviders || []),
+      createDocsSearchProvider({
+        sectionTitle: t("help.documentation", "Documentation"),
+        language,
+        onNavigate: closePalette,
+      }),
+    ];
   }
 
   /*

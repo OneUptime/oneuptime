@@ -153,7 +153,10 @@ describe("TelemetryLoadErrorUtil.fromError", () => {
     );
 
     expect(error.kind).toBe(TelemetryLoadErrorKind.Failed);
-    expect(error.message).toBe("Server Error. Please try again");
+    // What happened and what to do next, never "Server Error" (#6836).
+    expect(error.message).toBe(
+      "The server ran into a problem it could not explain, so this did not finish. Try again in a moment.",
+    );
   });
 
   test("a network failure reads as failed, with its message", () => {
@@ -219,8 +222,18 @@ describe("API.getFriendlyMessage for a 502 or 504", () => {
   test("other statuses keep the server's message", () => {
     expect(
       API.getFriendlyMessage(
+        new HTTPErrorResponse(500, { error: "The query was cancelled." }, {}),
+      ),
+    ).toBe("The query was cancelled.");
+  });
+
+  test("a bare 'Server Error' says what happened and what to do next instead (#6836)", () => {
+    expect(
+      API.getFriendlyMessage(
         new HTTPErrorResponse(500, { error: "Server Error" }, {}),
       ),
-    ).toBe("Server Error");
+    ).toBe(
+      "The server ran into a problem it could not explain, so this did not finish. Try again in a moment.",
+    );
   });
 });

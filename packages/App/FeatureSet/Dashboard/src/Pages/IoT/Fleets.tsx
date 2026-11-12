@@ -262,8 +262,8 @@ const IoTFleets: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   }`}
                 >
                   {translator.translateTemplate("{{online}}/{{total}} online", {
-                    online: online,
-                    total: total,
+                    online: translator.formatNumber(online),
+                    total: translator.formatNumber(total),
                   })}
                 </span>
               );

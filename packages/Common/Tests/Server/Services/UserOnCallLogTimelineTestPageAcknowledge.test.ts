@@ -39,7 +39,8 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * real page is, and says who, by what and how long after the message went
  * out. There is no record to acknowledge and no timeout clock to start; the
  * first person to acknowledge it ends the run, and product analytics hears
- * it once (the activation milestone's hook, #6830).
+ * it once (the activation milestone's hook, #6830). Everybody who
+ * acknowledges it is noted for their own first steps on Home (#7043).
  */
 
 const PROJECT: ObjectID = new ObjectID("7e5ac000-0000-4000-8000-000000000001");
@@ -209,6 +210,158 @@ describe("a test page acknowledged from its message", () => {
 
     await expect(acknowledgeTest()).rejects.toThrow("User not found.");
     expect(logUpdate).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * A POLICY'S TEST PAGES SEVERAL PEOPLE, AND MORE THAN ONE MAY ANSWER IT
+ * (#7043). The run keeps who answered first; each person who answers has
+ * their own page acknowledged, and is told to what the test records - so
+ * the teammate who answers second has their first steps on Home done too.
+ */
+describe("two people who acknowledge one policy's test", () => {
+  const BEN: ObjectID = new ObjectID("7e5ac000-0000-4000-8000-0000000000b1");
+  const BEN_LOG: ObjectID = new ObjectID(
+    "7e5ac000-0000-4000-8000-0000000000b2",
+  );
+  const BEN_LINE: ObjectID = new ObjectID(
+    "7e5ac000-0000-4000-8000-0000000000b3",
+  );
+
+  async function acknowledgeAs(page: {
+    userId: ObjectID;
+    logId: ObjectID;
+    lineId: ObjectID;
+    at: Date;
+  }): Promise<void> {
+    await UserOnCallLogTimelineService.acknowledgePage({
+      userOnCallLogId: page.logId,
+      userId: page.userId,
+      onCallDutyPolicyExecutionLogId: RUN,
+      onCallDutyPolicyExecutionLogTimelineId: page.lineId,
+      acknowledgedAt: page.at,
+      userNotificationEventType: UserNotificationEventType.TestPage,
+      acknowledgedFrom: { channel: OnCallPageChannel.Call, sentAt: SENT_AT },
+      projectId: PROJECT,
+    });
+  }
+
+  beforeEach(() => {
+    jest.spyOn(UserService, "findOneById").mockImplementation((async (data: {
+      id: ObjectID;
+    }) => {
+      const user: User = new User();
+      user.id = data.id;
+      user.name = new Name(
+        data.id.toString() === BEN.toString() ? "Ben Ode" : "Ana Lopez",
+      );
+      return user;
+    }) as never);
+
+    // The second finds the run answered already: it changes nothing there.
+    runUpdate
+      .mockResolvedValueOnce(1 as never)
+      .mockResolvedValueOnce(0 as never);
+  });
+
+  test("each has their own page and line acknowledged; the run asks to keep the first", async () => {
+    await acknowledgeAs({
+      userId: ANA,
+      logId: LOG,
+      lineId: LINE,
+      at: ACKNOWLEDGED_AT,
+    });
+    await acknowledgeAs({
+      userId: BEN,
+      logId: BEN_LOG,
+      lineId: BEN_LINE,
+      at: new Date(ACKNOWLEDGED_AT.getTime() + 30 * 1000),
+    });
+
+    expect(
+      logUpdate.mock.calls.map((call: Array<unknown>) => {
+        const update: {
+          id: ObjectID;
+          data: { acknowledgedByUserId: ObjectID };
+        } = call[0] as {
+          id: ObjectID;
+          data: { acknowledgedByUserId: ObjectID };
+        };
+
+        return [update.id, update.data.acknowledgedByUserId];
+      }),
+    ).toEqual([
+      [LOG, ANA],
+      [BEN_LOG, BEN],
+    ]);
+    expect(
+      lineUpdate.mock.calls.map((call: Array<unknown>) => {
+        return (call[0] as { id: ObjectID }).id;
+      }),
+    ).toEqual([LINE, BEN_LINE]);
+
+    // Both ask the run to take them only while nobody has answered it.
+    for (const call of runUpdate.mock.calls) {
+      expect(
+        (call[0] as { query: Record<string, unknown> }).query["acknowledgedAt"],
+      ).toBeDefined();
+    }
+  });
+
+  test("each is told to what the test records, the second as the first", async () => {
+    await acknowledgeAs({
+      userId: ANA,
+      logId: LOG,
+      lineId: LINE,
+      at: ACKNOWLEDGED_AT,
+    });
+    await acknowledgeAs({
+      userId: BEN,
+      logId: BEN_LOG,
+      lineId: BEN_LINE,
+      at: new Date(ACKNOWLEDGED_AT.getTime() + 30 * 1000),
+    });
+
+    expect(acknowledged).toHaveBeenCalledTimes(2);
+    expect(
+      acknowledged.mock.calls.map((call: Array<unknown>) => {
+        return (call[0] as { acknowledgedByUserId: ObjectID })
+          .acknowledgedByUserId;
+      }),
+    ).toEqual([ANA, BEN]);
+  });
+
+  test("and so each one's first steps on Home are noted", async () => {
+    acknowledged.mockRestore();
+    jest.spyOn(ProductAnalytics, "isConfigured").mockReturnValue(false);
+    jest
+      .spyOn(ProjectMilestoneService, "reachInBackground")
+      .mockImplementation(() => {
+        return undefined;
+      });
+    const note: jest.SpyInstance = jest
+      .spyOn(WelcomeChecklistService, "noteTestPageAcknowledgedInBackground")
+      .mockImplementation(() => {
+        return undefined;
+      });
+
+    await acknowledgeAs({
+      userId: ANA,
+      logId: LOG,
+      lineId: LINE,
+      at: ACKNOWLEDGED_AT,
+    });
+    await acknowledgeAs({
+      userId: BEN,
+      logId: BEN_LOG,
+      lineId: BEN_LINE,
+      at: new Date(ACKNOWLEDGED_AT.getTime() + 30 * 1000),
+    });
+
+    expect(note.mock.calls).toEqual([
+      [{ projectId: PROJECT, userId: ANA }],
+      [{ projectId: PROJECT, userId: BEN }],
+    ]);
   });
 });
 

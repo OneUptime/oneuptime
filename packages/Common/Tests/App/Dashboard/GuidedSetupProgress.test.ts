@@ -1,4 +1,11 @@
-import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import GuidedSetupRunStore, {
   GUIDED_SETUP_RUN_KEY_PREFIX,
   GuidedSetupStepProgress,
@@ -15,8 +22,9 @@ import GuidedSetupRunStore, {
 /*
  * A guided setup's progress (issue #6804, shared by #6805 and #6806): which
  * step a returning person lands on, which steps can be opened, and the run
- * kept in this browser - never more than ids and true, never lost to a
- * browser that keeps nothing.
+ * kept in this browser - never more than ids and true - and in the page
+ * while it is open, so a browser that keeps nothing loses no step's save
+ * (#7059).
  */
 
 const steps: (...done: Array<boolean>) => Array<GuidedSetupStepProgress> = (
@@ -27,6 +35,59 @@ const steps: (...done: Array<boolean>) => Array<GuidedSetupStepProgress> = (
       return { key, isDone: Boolean(done[index]) };
     },
   );
+};
+
+/*
+ * A BROWSER THAT KEEPS NOTHING (#7059): a private window, storage switched
+ * off, or a browser that takes a value and reads nothing back. The page
+ * keeps the run while it is open, so each step's save adds to the run
+ * instead of replacing it: before, sending the test page dropped the who-is-
+ * told step's confirmation, and that step was drawn not done again.
+ */
+type StorageMethods = Pick<Storage, "getItem" | "setItem" | "removeItem">;
+
+/*
+ * Storage's prototype seen without its string index signature, which makes
+ * @jest/globals type spyOn(Storage.prototype, ...) as never.
+ */
+const storagePrototype: StorageMethods = Storage.prototype;
+
+const failing: () => never = (): never => {
+  throw new Error("storage is off");
+};
+
+/*
+ * Runs `work` with the browser's storage methods replaced, then puts them
+ * back. They are replaced on Storage's prototype: jsdom's localStorage keeps
+ * a property set on the object itself as an item, so that replaces nothing.
+ */
+const withStorage: (
+  replacements: Partial<StorageMethods>,
+  work: () => void,
+) => void = (replacements: Partial<StorageMethods>, work: () => void): void => {
+  if (replacements.getItem) {
+    jest
+      .spyOn(storagePrototype, "getItem")
+      .mockImplementation(replacements.getItem);
+  }
+
+  if (replacements.setItem) {
+    jest
+      .spyOn(storagePrototype, "setItem")
+      .mockImplementation(replacements.setItem);
+  }
+
+  if (replacements.removeItem) {
+    jest
+      .spyOn(storagePrototype, "removeItem")
+      .mockImplementation(replacements.removeItem);
+  }
+
+  try {
+    work();
+  } finally {
+    jest.restoreAllMocks();
+  }
 };
 
 describe("where a returning person lands", () => {
@@ -198,46 +259,153 @@ describe("the run, kept in this browser", () => {
 
   test("a browser that keeps nothing still walks the setup", () => {
     const store: GuidedSetupRunStore = new GuidedSetupRunStore(who);
-    const storage: Storage = window.localStorage;
-    const failing: () => never = (): never => {
-      throw new Error("storage is off");
-    };
-    const originalSet: Storage["setItem"] = storage.setItem;
-    const originalGet: Storage["getItem"] = storage.getItem;
-    const originalRemove: Storage["removeItem"] = storage.removeItem;
 
-    Object.defineProperty(storage, "setItem", {
-      value: failing,
-      configurable: true,
-    });
-    Object.defineProperty(storage, "getItem", {
-      value: failing,
-      configurable: true,
-    });
-    Object.defineProperty(storage, "removeItem", {
-      value: failing,
-      configurable: true,
-    });
+    withStorage(
+      { getItem: failing, setItem: failing, removeItem: failing },
+      () => {
+        expect(store.read()).toEqual({});
+        expect(store.save({ monitorId: "m-1" })).toEqual({
+          monitorId: "m-1",
+        });
+        expect(() => {
+          store.forget();
+        }).not.toThrow();
+      },
+    );
+  });
+});
 
-    try {
-      expect(store.read()).toEqual({});
-      expect(store.save({ monitorId: "m-1" })).toEqual({ monitorId: "m-1" });
-      expect(() => {
+describe("the run, in a browser that keeps nothing", () => {
+  const who: { setup: string; projectId: string; userId: string } = {
+    setup: "website_down",
+    projectId: "project-1",
+    userId: "user-1",
+  };
+
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  // The website-down setup's three saves, in the order a person makes them.
+  const walk: (store: GuidedSetupRunStore) => void = (
+    store: GuidedSetupRunStore,
+  ): void => {
+    expect(store.save({ monitorId: "m-1" })).toEqual({ monitorId: "m-1" });
+    expect(store.save({ whoIsToldConfirmed: true })).toEqual({
+      monitorId: "m-1",
+      whoIsToldConfirmed: true,
+    });
+    expect(
+      store.save({ testExecutionLogId: "log-1", testSkipped: null }),
+    ).toEqual({
+      monitorId: "m-1",
+      whoIsToldConfirmed: true,
+      testExecutionLogId: "log-1",
+    });
+    expect(store.read()).toEqual({
+      monitorId: "m-1",
+      whoIsToldConfirmed: true,
+      testExecutionLogId: "log-1",
+    });
+  };
+
+  test("storage switched off: every save adds to the run this page keeps", () => {
+    const store: GuidedSetupRunStore = new GuidedSetupRunStore(who);
+
+    withStorage(
+      { getItem: failing, setItem: failing, removeItem: failing },
+      () => {
+        walk(store);
+      },
+    );
+  });
+
+  test("a browser that takes nothing (a private window that refuses writes): the same", () => {
+    const store: GuidedSetupRunStore = new GuidedSetupRunStore(who);
+
+    withStorage({ setItem: failing }, () => {
+      walk(store);
+      // The browser has none of it; the page has all of it.
+      expect(window.localStorage.getItem(getGuidedSetupRunKey(who))).toBeNull();
+    });
+  });
+
+  test("a browser that takes a value and reads nothing back: the same", () => {
+    const store: GuidedSetupRunStore = new GuidedSetupRunStore(who);
+
+    withStorage(
+      {
+        setItem: (): void => {
+          // Accepted, and gone.
+        },
+      },
+      () => {
+        walk(store);
+      },
+    );
+  });
+
+  test("forgetting empties the page's run too", () => {
+    const store: GuidedSetupRunStore = new GuidedSetupRunStore(who);
+
+    withStorage(
+      { getItem: failing, setItem: failing, removeItem: failing },
+      () => {
+        store.save({ monitorId: "m-1" });
         store.forget();
-      }).not.toThrow();
-    } finally {
-      Object.defineProperty(storage, "setItem", {
-        value: originalSet,
-        configurable: true,
-      });
-      Object.defineProperty(storage, "getItem", {
-        value: originalGet,
-        configurable: true,
-      });
-      Object.defineProperty(storage, "removeItem", {
-        value: originalRemove,
-        configurable: true,
-      });
-    }
+
+        expect(store.read()).toEqual({});
+        expect(store.save({ policyId: "p-1" })).toEqual({ policyId: "p-1" });
+      },
+    );
+  });
+
+  test("the page's run is this store's: a page opened afresh starts again", () => {
+    withStorage(
+      { getItem: failing, setItem: failing, removeItem: failing },
+      () => {
+        new GuidedSetupRunStore(who).save({ monitorId: "m-1" });
+
+        // A reload builds a new store: what the browser did not keep is gone.
+        expect(new GuidedSetupRunStore(who).read()).toEqual({});
+      },
+    );
+  });
+
+  test("a run the browser keeps wins over the page's copy", () => {
+    const store: GuidedSetupRunStore = new GuidedSetupRunStore(who);
+    store.save({ monitorId: "m-1" });
+
+    // Another tab of the same person moved the run on.
+    window.localStorage.setItem(
+      getGuidedSetupRunKey(who),
+      JSON.stringify({ monitorId: "m-1", policyId: "p-1" }),
+    );
+
+    expect(store.read()).toEqual({ monitorId: "m-1", policyId: "p-1" });
+    expect(store.save({ testSkipped: true })).toEqual({
+      monitorId: "m-1",
+      policyId: "p-1",
+      testSkipped: true,
+    });
+  });
+
+  test("what a read hands out is a copy: changing it changes nothing kept", () => {
+    const store: GuidedSetupRunStore = new GuidedSetupRunStore(who);
+
+    withStorage({ setItem: failing }, () => {
+      store.save({ monitorId: "m-1" });
+
+      const run: Record<string, string | boolean> = store.read();
+      run["policyId"] = "p-1";
+      const saved: Record<string, string | boolean> = store.save({});
+      saved["testSkipped"] = true;
+
+      expect(store.read()).toEqual({ monitorId: "m-1" });
+    });
   });
 });

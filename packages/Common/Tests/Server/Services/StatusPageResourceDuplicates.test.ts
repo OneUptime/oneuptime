@@ -535,7 +535,7 @@ describe("StatusPageResourceService duplicate rules", () => {
           }),
         ),
       ).rejects.toThrow(
-        new BadDataException("Status Page Resource statusPageId is required"),
+        new BadDataException("Pick the status page to add this resource to."),
       );
 
       expect(mocks.findOneBy).not.toHaveBeenCalled();

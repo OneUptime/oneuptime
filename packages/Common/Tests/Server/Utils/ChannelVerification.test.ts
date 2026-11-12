@@ -705,7 +705,9 @@ describe("ChannelVerification", () => {
         ChannelVerification.getFailureException(
           ChannelVerificationOutcome.IncorrectCode,
         ).message,
-      ).toBe("Invalid code");
+      ).toBe(
+        "That code is not right. Enter the code from the latest message we sent, or send a new code.",
+      );
     });
 
     it("tells a user with an expired or exhausted code to ask for a new one", () => {
@@ -722,18 +724,22 @@ describe("ChannelVerification", () => {
       ).toContain("request a new code");
     });
 
-    it("keeps the original wording for the two pre-existing failures", () => {
+    it("says what to do next, and answers somebody else's row like a missing one (#6836)", () => {
       expect(
         ChannelVerification.getFailureException(
           ChannelVerificationOutcome.NotFound,
         ).message,
-      ).toBe("Item not found");
+      ).toBe(
+        "This notification method is not in your list any more. Add it again, then verify it.",
+      );
 
       expect(
         ChannelVerification.getFailureException(
           ChannelVerificationOutcome.NotOwner,
         ).message,
-      ).toBe("Invalid user ID");
+      ).toBe(
+        "This notification method is not in your list any more. Add it again, then verify it.",
+      );
     });
 
     it("answers a row of a project its owner is not a member of as a missing row", () => {
@@ -795,7 +801,11 @@ describe("ChannelVerification", () => {
           item: buildLiveRow(),
           itemId: ITEM_ID,
         }),
-      ).rejects.toThrow(new BadDataException("Item not found"));
+      ).rejects.toThrow(
+        new BadDataException(
+          "This notification method is not in your list any more. Add it again, then verify it.",
+        ),
+      );
     });
   });
 

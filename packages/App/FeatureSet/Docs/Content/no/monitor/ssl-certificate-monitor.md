@@ -38,7 +38,7 @@ En sonde som har mistet sin egen nettverkstilkobling, rapporterer ikke noe resul
 :::steps
 ### Start en ny monitor
 
-Gå til **Monitorer**, og klikk på **Opprett monitor**. Velg **SSL Certificate** under **Monitortype**.
+Gå til **Monitorer**, og klikk på **Opprett monitor**. Velg **SSL-sertifikat** under **Monitortype**.
 
 ### Gi den et navn
 
