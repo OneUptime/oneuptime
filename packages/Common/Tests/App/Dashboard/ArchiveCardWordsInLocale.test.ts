@@ -1,0 +1,284 @@
+import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
+import {
+  ARCHIVE_CARD_TITLE,
+  ArchiveCardWords,
+  getArchiveCardWords,
+  TELEMETRY_ARCHIVE_CARD_DESCRIPTION,
+  TELEMETRY_ARCHIVE_CONFIRM_MESSAGE,
+  TELEMETRY_UNARCHIVE_CARD_DESCRIPTION,
+  UNARCHIVE_CARD_TITLE,
+  UNARCHIVE_CONFIRM_MESSAGE,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Archive/ArchiveCardWords";
+import {
+  SLO_ARCHIVE_CARD_DESCRIPTION,
+  SLO_ARCHIVE_CONFIRM_MESSAGE,
+  SLO_BULK_ARCHIVE_CONFIRM_MESSAGE,
+  SLO_BULK_UNARCHIVE_CONFIRM_MESSAGE,
+  SLO_UNARCHIVE_CARD_DESCRIPTION,
+  SLO_UNARCHIVE_CONFIRM_MESSAGE,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Slo/SloArchiveCopy";
+import {
+  BULK_ARCHIVE_TELEMETRY_SENTENCE,
+  BULK_ARCHIVE_TELEMETRY_SENTENCE_ONE,
+  BULK_ARCHIVE_TITLE,
+  BULK_UNARCHIVE_SENTENCE,
+  BULK_UNARCHIVE_SENTENCE_ONE,
+  BULK_UNARCHIVE_TITLE,
+} from "../../../UI/Components/BulkUpdate/BulkArchiveActions";
+import { PluralTemplate } from "../../../Types/Translator";
+import {
+  DASHBOARD_LANGUAGES,
+  dashboardTranslator,
+  isWordedInDashboardLocale,
+  placeholdersOf,
+  readDashboardLocale,
+} from "../../Helpers/DashboardLocales";
+
+/*
+ * THE ARCHIVE CARD'S AND THE BULK DIALOG'S WORDS, IN EVERY LANGUAGE (#7195).
+ *
+ * The Settings page's Archive card and the lists' bulk Archive dialog say
+ * their title, their sentence and the resource's name as keys of the
+ * Dashboard's locales. Every one of them is worded in every language the
+ * Dashboard offers - with the same {{placeholders}} as its English, so no
+ * translation drops the name or the count - and so is every name a Settings
+ * page hands the card, read from the pages themselves.
+ */
+
+const DASHBOARD_SRC: string = path.resolve(
+  __dirname,
+  "../../../../App/FeatureSet/Dashboard/src",
+);
+
+// The "_one" key a plural's one form is stored under (i18next's).
+function oneFormKey(template: PluralTemplate): string {
+  return `${template.other}_one`;
+}
+
+// Every sentence key, with the English its placeholders must match.
+const SENTENCES: ReadonlyArray<{ key: string; english: string }> = [
+  ARCHIVE_CARD_TITLE,
+  UNARCHIVE_CARD_TITLE,
+  TELEMETRY_ARCHIVE_CARD_DESCRIPTION,
+  TELEMETRY_UNARCHIVE_CARD_DESCRIPTION,
+  TELEMETRY_ARCHIVE_CONFIRM_MESSAGE,
+  UNARCHIVE_CONFIRM_MESSAGE,
+  SLO_ARCHIVE_CARD_DESCRIPTION,
+  SLO_UNARCHIVE_CARD_DESCRIPTION,
+  SLO_ARCHIVE_CONFIRM_MESSAGE,
+  SLO_UNARCHIVE_CONFIRM_MESSAGE,
+  SLO_BULK_ARCHIVE_CONFIRM_MESSAGE,
+  SLO_BULK_UNARCHIVE_CONFIRM_MESSAGE,
+  BULK_ARCHIVE_TITLE.other,
+  BULK_UNARCHIVE_TITLE.other,
+  BULK_ARCHIVE_TELEMETRY_SENTENCE_ONE,
+  BULK_ARCHIVE_TELEMETRY_SENTENCE,
+  BULK_UNARCHIVE_SENTENCE_ONE,
+  BULK_UNARCHIVE_SENTENCE,
+]
+  .map((key: string): { key: string; english: string } => {
+    return { key: key, english: key };
+  })
+  .concat(
+    [BULK_ARCHIVE_TITLE, BULK_UNARCHIVE_TITLE].map(
+      (template: PluralTemplate): { key: string; english: string } => {
+        return { key: oneFormKey(template), english: template.one };
+      },
+    ),
+  );
+
+function sourceFiles(directory: string): Array<string> {
+  const files: Array<string> = [];
+
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const entryPath: string = path.join(directory, entry.name);
+
+    if (entry.isDirectory()) {
+      files.push(...sourceFiles(entryPath));
+    } else if (entry.name.endsWith(".tsx")) {
+      files.push(entryPath);
+    }
+  }
+
+  return files;
+}
+
+// Each <ArchiveResourceCard ...> a page draws, its props as written.
+function archiveCardCalls(): Array<{ file: string; props: string }> {
+  const calls: Array<{ file: string; props: string }> = [];
+
+  for (const file of sourceFiles(DASHBOARD_SRC)) {
+    // Its code, without the comments that show a call as an example.
+    const source: string = fs
+      .readFileSync(file, "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "");
+    const pattern: RegExp = /<ArchiveResourceCard\b([\s\S]*?)\/>/g;
+    let match: RegExpExecArray | null = pattern.exec(source);
+
+    while (match) {
+      calls.push({
+        file: path.relative(DASHBOARD_SRC, file),
+        props: match[1]!,
+      });
+      match = pattern.exec(source);
+    }
+  }
+
+  return calls;
+}
+
+// The names the pages hand the card as a literal: "service", "SLO".
+function literalCardNames(): Array<string> {
+  const names: Set<string> = new Set<string>();
+
+  for (const call of archiveCardCalls()) {
+    const literal: RegExpMatchArray | null = call.props.match(
+      /singularName="([^"]+)"/,
+    );
+
+    if (literal) {
+      names.add(literal[1]!);
+    }
+  }
+
+  return Array.from(names).sort();
+}
+
+describe("the pages the Archive card is read from", () => {
+  test("every Settings page names what it archives", () => {
+    const calls: Array<{ file: string; props: string }> = archiveCardCalls();
+
+    // The SLO and the fifteen telemetry kinds' pages, and the five others'.
+    expect(calls.length).toBeGreaterThanOrEqual(20);
+
+    const unnamed: Array<string> = calls
+      .filter((call: { file: string; props: string }): boolean => {
+        return !/singularName=/.test(call.props);
+      })
+      .map((call: { file: string; props: string }): string => {
+        return call.file;
+      });
+
+    expect(unnamed).toEqual([]);
+  });
+
+  test("the names read from them include an SLO and a service", () => {
+    const names: Array<string> = literalCardNames();
+
+    expect(names).toEqual(expect.arrayContaining(["SLO", "service"]));
+    expect(names.length).toBeGreaterThanOrEqual(15);
+  });
+});
+
+describe.each(DASHBOARD_LANGUAGES)(
+  "the Archive card and bulk dialog in %s",
+  (language: string) => {
+    const words: Record<string, string> = readDashboardLocale(language);
+
+    test.each(SENTENCES)(
+      "$key is worded, with its English's placeholders",
+      ({ key, english }: { key: string; english: string }) => {
+        expect({
+          key,
+          worded: isWordedInDashboardLocale(key, language),
+        }).toEqual({ key, worded: true });
+        expect(placeholdersOf(words[key]!)).toEqual(placeholdersOf(english));
+      },
+    );
+
+    test("every name a Settings page hands the card is worded", () => {
+      const unworded: Array<string> = literalCardNames().filter(
+        (name: string): boolean => {
+          return !isWordedInDashboardLocale(name, language);
+        },
+      );
+
+      expect(unworded).toEqual([]);
+    });
+
+    test("the card's words for a service and an SLO are not the English", () => {
+      for (const [singularName, copy] of [
+        ["service", {}],
+        [
+          "SLO",
+          {
+            archiveCardDescription: SLO_ARCHIVE_CARD_DESCRIPTION,
+            unarchiveCardDescription: SLO_UNARCHIVE_CARD_DESCRIPTION,
+            archiveConfirmMessage: SLO_ARCHIVE_CONFIRM_MESSAGE,
+            unarchiveConfirmMessage: SLO_UNARCHIVE_CONFIRM_MESSAGE,
+          },
+        ],
+      ] as const) {
+        for (const isArchived of [false, true]) {
+          const input: Parameters<typeof getArchiveCardWords>[0] = {
+            singularName: singularName,
+            isArchived: isArchived,
+            copy: copy,
+            translator: dashboardTranslator(language),
+          };
+          const drawn: ArchiveCardWords = getArchiveCardWords(input);
+          const english: ArchiveCardWords = getArchiveCardWords({
+            ...input,
+            translator: dashboardTranslator("en"),
+          });
+
+          expect(drawn.title).not.toBe(english.title);
+          expect(drawn.description).not.toBe(english.description);
+          expect(drawn.confirmMessage).not.toBe(english.confirmMessage);
+        }
+      }
+    });
+  },
+);
+
+describe("the check above, against words nobody has", () => {
+  // Without these, a check that passed everything would look the same.
+  test("a sentence no locale has is worded in none", () => {
+    for (const language of DASHBOARD_LANGUAGES) {
+      expect(
+        isWordedInDashboardLocale(
+          "Archive this {{itemName}} for ever and ever.",
+          language,
+        ),
+      ).toBe(false);
+    }
+  });
+
+  test("a sentence a language still holds as its English is not worded", () => {
+    const english: Record<string, string> = readDashboardLocale("en");
+    const german: Record<string, string> = readDashboardLocale("de");
+
+    // German has sentences waiting for a translator: the English in place.
+    const waiting: string | undefined = Object.keys(english).find(
+      (key: string): boolean => {
+        return (
+          german[key] === english[key] &&
+          /\s/.test(key) &&
+          !isWordedInDashboardLocale(key, "de")
+        );
+      },
+    );
+
+    expect(waiting).toBeDefined();
+    expect(german[waiting!]).toBe(english[waiting!]);
+  });
+
+  test("English reads the English as written", () => {
+    const english: ArchiveCardWords = getArchiveCardWords({
+      singularName: "service",
+      isArchived: false,
+      copy: {},
+      translator: dashboardTranslator("en"),
+    });
+
+    expect(english).toEqual({
+      title: "Archive service",
+      description:
+        "Archive this service to hide it from lists while it keeps collecting telemetry. You can unarchive it anytime.",
+      confirmMessage:
+        "Are you sure you want to archive this service? It will be hidden from the list but will keep collecting telemetry.",
+    });
+  });
+});
