@@ -77,6 +77,7 @@ export const ServiceRoutePath: Dictionary<string> = {
   [PageMap.SERVICE_SETTINGS_LABEL_RULES]: `settings/label-rules`,
   [PageMap.SERVICE_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.SERVICE_ARCHIVED]: `archived`,
+  [PageMap.SERVICES_GUIDED_SETUP]: `setup`,
 };
 
 /*
@@ -1281,6 +1282,7 @@ export const DashboardsRoutePath: Dictionary<string> = {
 
 export const StatusPagesRoutePath: Dictionary<string> = {
   [PageMap.STATUS_PAGES_ARCHIVED]: "archived",
+  [PageMap.STATUS_PAGES_GUIDED_SETUP]: "setup",
   [PageMap.STATUS_PAGE_ANNOUNCEMENTS]: "announcements",
   [PageMap.ANNOUNCEMENT_CREATE]: "announcements/create",
   [PageMap.ANNOUNCEMENT_VIEW]: `announcements/${RouteParams.ModelID}`,
@@ -3206,6 +3208,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SERVICE_ARCHIVED]: new Route(
     `/dashboard/${RouteParams.ProjectID}/service/${
       ServiceRoutePath[PageMap.SERVICE_ARCHIVED]
+    }`,
+  ),
+
+  [PageMap.SERVICES_GUIDED_SETUP]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICES_GUIDED_SETUP]
     }`,
   ),
 
@@ -7479,6 +7487,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.STATUS_PAGES_ARCHIVED]: new Route(
     `/dashboard/${RouteParams.ProjectID}/status-pages/${
       StatusPagesRoutePath[PageMap.STATUS_PAGES_ARCHIVED]
+    }`,
+  ),
+
+  [PageMap.STATUS_PAGES_GUIDED_SETUP]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/status-pages/${
+      StatusPagesRoutePath[PageMap.STATUS_PAGES_GUIDED_SETUP]
     }`,
   ),
 

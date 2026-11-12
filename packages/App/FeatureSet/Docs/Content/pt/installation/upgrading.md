@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Descubra a sua versão atual
 
-Como administrador master, abra o rótulo da edição no cabeçalho do painel do administrador: **This installation** mostra a versão que você executa. A instância também a informa em `/version`:
+Como administrador master, abra o rótulo da edição no cabeçalho do painel do administrador: **Esta instalação** mostra a versão que você executa. A instância também a informa em `/version`:
 
 ```bash
 curl http://localhost/version

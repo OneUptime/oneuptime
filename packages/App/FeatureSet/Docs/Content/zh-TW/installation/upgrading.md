@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### 查看目前的版本
 
-以主管理員身分開啟管理員儀表板頁首中的版本標籤：**This installation** 會顯示您正在執行的版本。執行個體也會在 `/version` 上回報它：
+以主管理員身分開啟管理員儀表板頁首中的版本標籤：**此安裝** 會顯示您正在執行的版本。執行個體也會在 `/version` 上回報它：
 
 ```bash
 curl http://localhost/version

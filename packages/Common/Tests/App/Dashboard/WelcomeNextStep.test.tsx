@@ -77,6 +77,55 @@ jest.mock(
   },
 );
 
+/*
+ * Since the guided setups (#6804, #6805, #6806) took the monitor, on-call,
+ * telemetry and status page steps over, no step of the catalog lands on a
+ * record's page of its own any more. The line is kept for the next step
+ * that does, and is held here to what it did for the on-call step before
+ * its guided setup: Create On-Call Policy, landing on the policy's
+ * Escalation Rules.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Home/WelcomeChecklist/WelcomeChecklistCatalog",
+  () => {
+    type Entry = {
+      step: string;
+      guidedSetupPage?: unknown;
+      landing?: { pageMap: string; doneText: string } | undefined;
+    };
+    const actual: Record<string, unknown> = jest.requireActual(
+      "../../../../App/FeatureSet/Dashboard/src/Components/Home/WelcomeChecklist/WelcomeChecklistCatalog",
+    ) as Record<string, unknown>;
+    const withLanding: (entry: Entry) => Entry = (entry: Entry): Entry => {
+      return entry.step === "on_call"
+        ? {
+            ...entry,
+            guidedSetupPage: undefined,
+            landing: {
+              pageMap: "ON_CALL_DUTY_POLICY_VIEW_ESCALATION",
+              doneText:
+                "On-call policy created. The step ticks off once an on-call rule runs it and it reaches someone.",
+            },
+          }
+        : entry;
+    };
+    const steps: Array<Entry> = (actual["WELCOME_STEPS"] as Array<Entry>).map(
+      withLanding,
+    );
+
+    return {
+      __esModule: true,
+      ...actual,
+      WELCOME_STEPS: steps,
+      getWelcomeStepEntry: (step: string): Entry => {
+        return steps.find((entry: Entry): boolean => {
+          return entry.step === step;
+        })!;
+      },
+    };
+  },
+);
+
 import WelcomeNextStep from "../../../../App/FeatureSet/Dashboard/src/Components/Home/WelcomeChecklist/WelcomeNextStep";
 import {
   STEP_IN_PROGRESS_KEY,
@@ -180,15 +229,15 @@ describe("what is carried", () => {
   test("a started step, with the one after it, for an hour", () => {
     rememberWelcomeStepStarted({
       projectId: PROJECT_ID,
-      step: WelcomeStep.StatusPage,
-      nextStep: WelcomeStep.Team,
+      step: WelcomeStep.OnCall,
+      nextStep: WelcomeStep.StatusPage,
       now: 1_000,
     });
 
     expect(readWelcomeStepInProgress(1_000 + 60_000)).toEqual({
       projectId: PROJECT_ID,
-      step: WelcomeStep.StatusPage,
-      nextStep: WelcomeStep.Team,
+      step: WelcomeStep.OnCall,
+      nextStep: WelcomeStep.StatusPage,
       startedAt: 1_000,
     });
     expect(
@@ -242,39 +291,6 @@ describe("what is carried", () => {
    * what is next itself: nothing is carried, and the monitor's page shows
    * no line.
    */
-  test.each([
-    [WelcomeStep.Monitor, PageMap.MONITOR_VIEW],
-    [WelcomeStep.OnCall, PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION],
-  ])(
-    "%s opens a guided setup (#6804, #6805) and carries nothing",
-    (step: WelcomeStep, pageMap: PageMap) => {
-      rememberWelcomeStepStarted({
-        projectId: PROJECT_ID,
-        step: WelcomeStep.StatusPage,
-        nextStep: null,
-      });
-      rememberWelcomeStepStarted({
-        projectId: PROJECT_ID,
-        step: step,
-        nextStep: WelcomeStep.Team,
-      });
-
-      expect(readWelcomeStepInProgress()).toBeNull();
-      expect(
-        getWelcomeNextStepLine({
-          inProgress: {
-            projectId: PROJECT_ID,
-            step: step,
-            nextStep: WelcomeStep.Team,
-            startedAt: Date.now(),
-          },
-          path: pathOf(pageMap),
-          projectId: PROJECT_ID,
-        }),
-      ).toBeNull();
-    },
-  );
-
   test("a step that opens a guided setup carries nothing", () => {
     rememberWelcomeStepStarted({
       projectId: PROJECT_ID,
@@ -302,31 +318,17 @@ describe("what is carried", () => {
     ).toBeNull();
   });
 
-  test.each([[WelcomeStep.StatusPage, PageMap.STATUS_PAGE_VIEW]])(
-    "%s lands on %s",
-    (step: WelcomeStep, pageMap: PageMap) => {
-      expect(
-        getWelcomeNextStepLine({
-          inProgress: {
-            projectId: PROJECT_ID,
-            step: step,
-            nextStep: WelcomeStep.Team,
-            startedAt: Date.now(),
-          },
-          path: pathOf(pageMap),
-          projectId: PROJECT_ID,
-        })?.step.step,
-      ).toBe(step);
-    },
-  );
-
-  test("the line belongs to the project the step was started in", () => {
+  /*
+   * The status page step opens its guided setup (#6806), which says what
+   * is next itself: a status page it lands on carries no line.
+   */
+  test("a status page started from the checklist carries no line: its guided setup says what is next", () => {
     expect(
       getWelcomeNextStepLine({
         inProgress: {
-          projectId: OTHER_PROJECT_ID,
+          projectId: PROJECT_ID,
           step: WelcomeStep.StatusPage,
-          nextStep: null,
+          nextStep: WelcomeStep.Team,
           startedAt: Date.now(),
         },
         path: pathOf(PageMap.STATUS_PAGE_VIEW),
@@ -334,26 +336,58 @@ describe("what is carried", () => {
       }),
     ).toBeNull();
   });
+
+  test.each([
+    [WelcomeStep.OnCall, PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION],
+  ])("%s lands on %s", (step: WelcomeStep, pageMap: PageMap) => {
+    expect(
+      getWelcomeNextStepLine({
+        inProgress: {
+          projectId: PROJECT_ID,
+          step: step,
+          nextStep: WelcomeStep.Team,
+          startedAt: Date.now(),
+        },
+        path: pathOf(pageMap),
+        projectId: PROJECT_ID,
+      })?.step.step,
+    ).toBe(step);
+  });
+
+  test("the line belongs to the project the step was started in", () => {
+    expect(
+      getWelcomeNextStepLine({
+        inProgress: {
+          projectId: OTHER_PROJECT_ID,
+          step: WelcomeStep.OnCall,
+          nextStep: null,
+          startedAt: Date.now(),
+        },
+        path: pathOf(PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION),
+        projectId: PROJECT_ID,
+      }),
+    ).toBeNull();
+  });
 });
 
 describe("the line", () => {
-  test("on the status page's page: what was done, what is next, and the way back to Home", async () => {
+  test("on the policy's page: what was done, what is next, and the way back to Home", async () => {
     rememberWelcomeStepStarted({
       projectId: PROJECT_ID,
-      step: WelcomeStep.StatusPage,
-      nextStep: WelcomeStep.Team,
+      step: WelcomeStep.OnCall,
+      nextStep: WelcomeStep.StatusPage,
     });
-    currentPath = pathOf(PageMap.STATUS_PAGE_VIEW);
+    currentPath = pathOf(PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION);
 
     await act(async () => {
       render(<WelcomeNextStep />);
     });
 
     expect(screen.getByTestId("welcome-next-step-done")).toHaveTextContent(
-      "Status page created. Add a monitor to it to tick the step off.",
+      "On-call policy created. The step ticks off once an on-call rule runs it and it reaches someone.",
     );
     expect(screen.getByTestId("welcome-next-step-next")).toHaveTextContent(
-      "Next: Invite your team.",
+      "Next: Publish a status page.",
     );
     expect(
       screen.getByTestId("welcome-next-step-back").closest("a"),
@@ -370,17 +404,17 @@ describe("the line", () => {
   test("says so when that was the last step", async () => {
     rememberWelcomeStepStarted({
       projectId: PROJECT_ID,
-      step: WelcomeStep.StatusPage,
+      step: WelcomeStep.OnCall,
       nextStep: null,
     });
-    currentPath = pathOf(PageMap.STATUS_PAGE_VIEW);
+    currentPath = pathOf(PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION);
 
     await act(async () => {
       render(<WelcomeNextStep />);
     });
 
     expect(screen.getByTestId("welcome-next-step-done")).toHaveTextContent(
-      "Status page created. Add a monitor to it to tick the step off.",
+      "On-call policy created.",
     );
     expect(screen.getByTestId("welcome-next-step-next")).toHaveTextContent(
       "That was the last step.",
@@ -388,7 +422,7 @@ describe("the line", () => {
   });
 
   test("is nowhere else: not on the list, not with nothing started", async () => {
-    currentPath = pathOf(PageMap.STATUS_PAGE_VIEW);
+    currentPath = pathOf(PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION);
 
     await act(async () => {
       render(<WelcomeNextStep />);
@@ -398,10 +432,10 @@ describe("the line", () => {
     cleanup();
     rememberWelcomeStepStarted({
       projectId: PROJECT_ID,
-      step: WelcomeStep.StatusPage,
+      step: WelcomeStep.OnCall,
       nextStep: null,
     });
-    currentPath = pathOf(PageMap.STATUS_PAGES);
+    currentPath = pathOf(PageMap.ON_CALL_DUTY_POLICIES);
 
     await act(async () => {
       render(<WelcomeNextStep />);
@@ -412,10 +446,10 @@ describe("the line", () => {
   test("closing it forgets the step", async () => {
     rememberWelcomeStepStarted({
       projectId: PROJECT_ID,
-      step: WelcomeStep.StatusPage,
+      step: WelcomeStep.OnCall,
       nextStep: null,
     });
-    currentPath = pathOf(PageMap.STATUS_PAGE_VIEW);
+    currentPath = pathOf(PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION);
 
     await act(async () => {
       render(<WelcomeNextStep />);
@@ -430,10 +464,10 @@ describe("the line", () => {
   test("Back to setup forgets it too", async () => {
     rememberWelcomeStepStarted({
       projectId: PROJECT_ID,
-      step: WelcomeStep.StatusPage,
-      nextStep: WelcomeStep.Team,
+      step: WelcomeStep.OnCall,
+      nextStep: WelcomeStep.StatusPage,
     });
-    currentPath = pathOf(PageMap.STATUS_PAGE_VIEW);
+    currentPath = pathOf(PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION);
 
     await act(async () => {
       render(<WelcomeNextStep />);
@@ -448,11 +482,11 @@ describe("the line", () => {
   test("a step started after one was closed gets its own line", async () => {
     rememberWelcomeStepStarted({
       projectId: PROJECT_ID,
-      step: WelcomeStep.StatusPage,
+      step: WelcomeStep.OnCall,
       nextStep: null,
       now: Date.now() - 10_000,
     });
-    currentPath = pathOf(PageMap.STATUS_PAGE_VIEW);
+    currentPath = pathOf(PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION);
 
     let rerender: (ui: React.ReactElement) => void = () => {};
 
@@ -464,17 +498,17 @@ describe("the line", () => {
 
     rememberWelcomeStepStarted({
       projectId: PROJECT_ID,
-      step: WelcomeStep.StatusPage,
+      step: WelcomeStep.OnCall,
       nextStep: null,
     });
-    currentPath = pathOf(PageMap.STATUS_PAGE_VIEW);
+    currentPath = pathOf(PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION);
 
     await act(async () => {
       rerender(<WelcomeNextStep />);
     });
 
     expect(screen.getByTestId("welcome-next-step-done")).toHaveTextContent(
-      "Status page created.",
+      "On-call policy created.",
     );
   });
 });

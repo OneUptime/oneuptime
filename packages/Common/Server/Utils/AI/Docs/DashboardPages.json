@@ -2676,6 +2676,21 @@
     "kind": "page"
   },
   {
+    "title": "Publish a status page",
+    "where": [
+      "Status Pages"
+    ],
+    "keywords": [
+      "guided setup",
+      "get started",
+      "status page setup",
+      "show uptime to customers",
+      "public status"
+    ],
+    "path": "/dashboard/:projectId/status-pages/setup",
+    "kind": "page"
+  },
+  {
     "title": "Announcements",
     "where": [
       "Status Pages",
@@ -5134,6 +5149,24 @@
       "Services"
     ],
     "path": "/dashboard/:projectId/service",
+    "kind": "page"
+  },
+  {
+    "title": "Send logs, metrics and traces, then get alerted",
+    "where": [
+      "Services"
+    ],
+    "keywords": [
+      "guided setup",
+      "get started",
+      "opentelemetry",
+      "send telemetry",
+      "send logs",
+      "send traces",
+      "send metrics",
+      "telemetry alert"
+    ],
+    "path": "/dashboard/:projectId/service/setup",
     "kind": "page"
   },
   {
