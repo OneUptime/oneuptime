@@ -1,4 +1,5 @@
 import AppLink from "../AppLink/AppLink";
+import { getSetupHealthRouteFromHome } from "../Home/NeedsAttention";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import FeedbackWhereItGoes from "./FeedbackWhereItGoes";
@@ -49,8 +50,9 @@ import React, {
  *     switched questions off.
  * The X puts it away for good: it was asked.
  *
- * Setup health (#6812) is the list of what is misconfigured in a project;
- * once it is in the product, "Not yet" shows its findings here.
+ * Setup health (#6812) is the list of what is misconfigured in a project.
+ * When it found something, "Not yet" leads to its page, rather than
+ * repeating findings Home's Needs attention already counts.
  */
 
 export const SETUP_CHECK_IN_TEST_ID: string = "setup-check-in";
@@ -61,11 +63,18 @@ export const SETUP_CHECK_IN_DETAILS_TEST_ID: string = "setup-check-in-details";
 export const SETUP_CHECK_IN_SEND_TEST_ID: string = "setup-check-in-send";
 export const SETUP_CHECK_IN_THANKS_TEST_ID: string = "setup-check-in-thanks";
 export const SETUP_CHECK_IN_SETUPS_TEST_ID: string = "setup-check-in-setups";
+export const SETUP_CHECK_IN_SETUP_HEALTH_TEST_ID: string =
+  "setup-check-in-setup-health";
 
 export interface ComponentProps {
   projectId: string;
   // Whether the project has an open incident or alert; null while Home reads it.
   isInIncident: boolean | null;
+  /*
+   * How many things in the setup need a look (Setup health, #6812), as
+   * Home read it; null while read or when it could not be.
+   */
+  setupHealthCount?: number | null | undefined;
 }
 
 // Whether this person is asked at all for this project, before the server is.
@@ -281,6 +290,28 @@ const SetupCheckInCard: FunctionComponent<ComponentProps> = (
 
       {stage === "not_yet" ? (
         <div className="ms-8 mt-3 space-y-3">
+          {/*
+           * Setup health (#6812) found something: the way to its page, by
+           * how many - its findings are its page's, not repeated here.
+           */}
+          {props.setupHealthCount && props.setupHealthCount > 0 ? (
+            <p
+              className="text-sm text-gray-700"
+              data-testid={SETUP_CHECK_IN_SETUP_HEALTH_TEST_ID}
+            >
+              {translator.translateText(
+                "Setup health lists what in your project's setup needs a look.",
+              )}{" "}
+              <AppLink
+                to={getSetupHealthRouteFromHome()}
+                className="font-medium text-indigo-600 hover:text-indigo-800"
+              >
+                {translator.translateText("Open Setup Health")}
+              </AppLink>
+            </p>
+          ) : (
+            <></>
+          )}
           <div data-testid={SETUP_CHECK_IN_SETUPS_TEST_ID}>
             <p className="text-sm text-gray-700">
               {translator.translateText(

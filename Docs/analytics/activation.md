@@ -94,6 +94,10 @@ These are sent from the Dashboard with `ProductEvents.send(ProductEventName.X, {
 | `guided_setup/finished` | It reaches its end: the thing works and was tested (`on_call`: a test page of the policy acknowledged; `status_page`: a public page showing a monitor, reviewed; `telemetry`: data arrived, and a monitor watches it or the person said "not now") | `setup`, `seconds_taken` | Same |
 | `guided_setup/left` | It is left before its end | `setup`, `step`, `step_number` | Same |
 | `feedback/given` | Somebody tells OneUptime how something went (#6832): "How easy was that?" at the end of a guided setup (`kind` `setup_flow`, `topic` the setup, `score` 1 to 5), Give feedback in Help (`general`), "Was this clear?" under an explanation (`explanation`, `topic` `how_oneuptime_works` or `term.<term>`, `is_positive`) or the first-week check-in on Home (`check_in`, `is_positive`). What they wrote is never sent, only whether they wrote anything. Every answer is also kept on the server for its master admins (Admin Dashboard > Feedback), on every server | `kind`, `topic`, `score`, `is_positive`, `has_details`, `page` (the route, with no ids) | `ProductFeedback.submit` (`packages/Common/UI/Utils/ProductFeedback.ts`) |
+| `setup_health/opened` | Setup health is opened (#6812), with how many findings of each level it shows. Whether people open it says whether a weekly email of new findings is worth sending | `source` (`?from=` on its address: `home`, `search`; else `direct`), `pages_will_not_arrive_count`, `worth_fixing_count`, `suggestion_count`, `dismissed_count` | `SetupHealthView` |
+| `setup_health/fix_opened` | The fix of a finding is opened: which findings people act on, for the one-click fixes the issue leaves for later | `check`, `level` | `SetupHealthView` |
+| `setup_health/finding_dismissed` | A finding is dismissed for everyone in the project. The reason is never sent | `check`, `has_reason` | `SetupHealthView` |
+| `setup_health/finding_restored` | A dismissed finding is restored | `check` | `SetupHealthView` |
 
 ### The Welcome checklist and its goals
 

@@ -232,6 +232,15 @@ const TOOL_DESCRIPTIONS: Map<string, EvidenceToolDescription> = new Map<
       category: "Teams",
     },
   ],
+  // Whether the project's setup tells the right people (#6812).
+  [
+    "get_setup_health",
+    {
+      description: "Checked the setup health",
+      icon: IconProp.Wrench,
+      category: "Setup Health",
+    },
+  ],
   // OneUptime's own docs, and the page of the project a thing is done on (#6828).
   [
     "search_docs",

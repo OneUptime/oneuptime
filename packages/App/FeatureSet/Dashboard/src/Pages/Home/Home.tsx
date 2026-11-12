@@ -9,6 +9,7 @@ import ProjectHealthCard from "../../Components/Home/ProjectHealthCard";
 import ProjectResources from "../../Components/Home/ProjectResources";
 import ServerSetupCard from "../../Components/ServerSetup/ServerSetupCard";
 import SetupCheckInCard from "../../Components/Feedback/SetupCheckInCard";
+import useSetupHealthSummary from "../../Components/SetupHealth/UseSetupHealthSummary";
 import UpcomingMaintenance from "../../Components/Home/UpcomingMaintenance";
 import useHomeOverview, {
   UseHomeOverviewResult,
@@ -111,6 +112,15 @@ const Home: FunctionComponent<ComponentProps> = (
   const [refreshKey, setRefreshKey] = useState<number>(0);
 
   /*
+   * How many things in the setup need a look (Setup health, #6812): read
+   * beside the batch, and said at the end of "Needs attention".
+   */
+  const setupHealthCount: number | null = useSetupHealthSummary(
+    currentProjectId,
+    refreshKey,
+  );
+
+  /*
    * What the user may create, by the command palette's rule. Read on every
    * render: the permission snapshot arrives with the first API response, and
    * the batch landing re-renders the page with it.
@@ -175,6 +185,7 @@ const Home: FunctionComponent<ComponentProps> = (
               0
             : null
         }
+        setupHealthCount={setupHealthCount}
       />
 
       <div data-testid="home-overview-row" className={HOME_ROW_CLASS_NAME}>
@@ -186,6 +197,7 @@ const Home: FunctionComponent<ComponentProps> = (
             data={overview.data}
             isLoading={overview.isLoading}
             now={now}
+            setupHealthCount={setupHealthCount}
           />
         </div>
         <div

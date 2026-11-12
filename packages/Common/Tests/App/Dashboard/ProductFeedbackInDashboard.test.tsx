@@ -161,6 +161,7 @@ import SetupCheckInCard, {
   SETUP_CHECK_IN_NOT_YET_TEST_ID,
   SETUP_CHECK_IN_SEND_TEST_ID,
   SETUP_CHECK_IN_SETUPS_TEST_ID,
+  SETUP_CHECK_IN_SETUP_HEALTH_TEST_ID,
   SETUP_CHECK_IN_TEST_ID,
   SETUP_CHECK_IN_THANKS_TEST_ID,
   SETUP_CHECK_IN_YES_TEST_ID,
@@ -772,15 +773,61 @@ describe("the first-week check-in on Home", () => {
     jest.spyOn(ProjectUtil, "getCurrentProject").mockReturnValue(project);
   };
 
-  const drawCheckIn: (isInIncident: boolean | null) => void = (
+  const drawCheckIn: (
     isInIncident: boolean | null,
+    setupHealthCount?: number | null,
+  ) => void = (
+    isInIncident: boolean | null,
+    setupHealthCount?: number | null,
   ): void => {
     render(
       <MemoryRouter>
-        <SetupCheckInCard projectId={PROJECT_ID} isInIncident={isInIncident} />
+        <SetupCheckInCard
+          projectId={PROJECT_ID}
+          isInIncident={isInIncident}
+          setupHealthCount={setupHealthCount}
+        />
       </MemoryRouter>,
     );
   };
+
+  test("Not yet leads to Setup health when it found something, without repeating its findings", async () => {
+    projectMadeDaysAgo(8);
+    drawCheckIn(false, 3);
+
+    fireEvent.click(await screen.findByTestId(SETUP_CHECK_IN_NOT_YET_TEST_ID));
+
+    const line: HTMLElement = screen.getByTestId(
+      SETUP_CHECK_IN_SETUP_HEALTH_TEST_ID,
+    );
+
+    expect(line).toHaveTextContent("Open Setup Health");
+    expect(line.querySelector("a")?.getAttribute("href")).toContain(
+      "/home/setup-health",
+    );
+    expect(line.querySelector("a")?.getAttribute("href")).toContain(
+      "from=home",
+    );
+  });
+
+  test("Not yet says nothing of Setup health when it found nothing, or could not be read", async () => {
+    for (const count of [0, null]) {
+      projectMadeDaysAgo(8);
+      drawCheckIn(false, count);
+
+      fireEvent.click(
+        await screen.findByTestId(SETUP_CHECK_IN_NOT_YET_TEST_ID),
+      );
+
+      expect(screen.queryByTestId(SETUP_CHECK_IN_SETUP_HEALTH_TEST_ID)).toBe(
+        null,
+      );
+      expect(
+        screen.getByTestId(SETUP_CHECK_IN_SETUPS_TEST_ID),
+      ).toBeInTheDocument();
+      cleanup();
+    }
+  });
 
   test("its creator, on the project's 8th day, with nothing open: asked, once per project", async () => {
     projectMadeDaysAgo(8);

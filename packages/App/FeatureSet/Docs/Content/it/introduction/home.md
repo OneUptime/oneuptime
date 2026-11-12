@@ -93,6 +93,10 @@ La checklist sparisce per tutti quando ogni passaggio è fatto. Per nasconderla 
 
 **Richiede attenzione** elenca per nome ciò che i numeri contano: gli incidenti aperti, gli avvisi aperti, i monitor non operativi, gli SLO a rischio e le manutenzioni in corso, prima i più urgenti. Ogni riga mostra la gravità o lo stato, dice quando è iniziato un incidente o un avviso e quando termina una manutenzione, e apre l'elemento. Per ogni tipo ne mostra fino a cinque, con **Mostra tutti** per gli altri, che apre lo stesso elenco del suo numero. Quando non c'è nulla di aperto, dice **Nulla richiede la tua attenzione**.
 
+### Stato della configurazione
+
+Quando qualcosa nella configurazione del progetto impedirebbe di avvisare le persone, **Richiede attenzione** termina con **Configurazione**: quante cose meritano un'occhiata. Apre **Stato della configurazione**, che elenca ciò che è configurato male, il più grave per primo, sotto **Gli avvisi non arriveranno**, **Da correggere** e **Suggerimenti**: un monitor che non avvisa nessuno, una policy di reperibilità che nulla esegue, una persona che non può essere avvisata, gli SMS disattivati, una pianificazione di reperibilità senza nessuno reperibile, una pagina di stato che non mostra alcun monitor. Ogni rilevamento dice in una frase cosa non va, con il pulsante che apre la sua correzione, e i rilevamenti di un monitor sono le interruzioni che nomina la sua scheda **Quando va giù**. Un rilevamento che il tuo team lascia così di proposito può essere nascosto con un motivo, per tutti, e ripristinato da **Ignorato**. La ricerca trova la pagina come **Stato della configurazione**, e Chiedi all'IA risponde a "la mia configurazione va bene?" partendo da essa.
+
 ### Il tuo progetto
 
 **Il tuo progetto** conta i **Monitor**, le **Pagine di stato**, le **Policy di reperibilità**, gli **SLOs**, i **Servizi**, le **Dashboard** e i **Flussi di lavoro** del progetto, esclusi quelli archiviati. Ogni riga apre il suo elenco. Un tipo di cui il progetto non ha nessun elemento mostra **Configura** al posto di un numero.
