@@ -18,6 +18,7 @@ import {
   OnCallTestPageFix,
   OnCallTestPageNotPaged,
   OnCallTestPageNotPagedCode,
+  OnCallTestPagePreviewMethod,
   OnCallTestPagePreviewPerson,
   OnCallTestPageReachedThrough,
   OnCallTestPageReachedThroughCode,
@@ -256,15 +257,15 @@ export const REACHED_THROUGH_WORDS: Readonly<
 /*
  * What a preview warns about a person, the ones that name no channel. A
  * person with no rule falls back to the methods listed above the warning,
- * the ones the fallback picks - or has none it may use (#7262); a server
- * that does not list them says the test goes to every verified method.
+ * the ones the fallback picks (FALLS_BACK_TO_LISTED) - or has none it may
+ * use (#7262); a server that does not list them says the test goes to
+ * every verified method.
  */
 export const WARNING_SENTENCES: Readonly<
   Record<
     | OnCallTestPageWarningCode.OptedOut
     | OnCallTestPageWarningCode.NoRuleNoFallback
     | OnCallTestPageWarningCode.NoRuleFallsBack
-    | OnCallTestPageWarningCode.NoRuleFallsBackToListed
     | OnCallTestPageWarningCode.NoRuleNothingToFallBackTo,
     string
   >
@@ -278,12 +279,20 @@ export const WARNING_SENTENCES: Readonly<
   [OnCallTestPageWarningCode.NoRuleFallsBack]: translationKey(
     "No on-call rule covers this severity: like a real page, the test goes to every verified method instead.",
   ),
-  [OnCallTestPageWarningCode.NoRuleFallsBackToListed]: translationKey(
-    "No on-call rule covers this severity: like a real page, the test falls back to the methods above.",
-  ),
   [OnCallTestPageWarningCode.NoRuleNothingToFallBackTo]: translationKey(
     "No on-call rule covers this severity, and no verified method can be used instead: the test sends nothing.",
   ),
+};
+
+/*
+ * A person with no rule, listed with the methods the fallback picks
+ * (#7262): "the method above" for one - most often the email address every
+ * member verifies when they join - and "the methods above" for more.
+ */
+export const FALLS_BACK_TO_LISTED: PluralTemplate = {
+  one: "No on-call rule covers this severity: like a real page, the test falls back to the method above.",
+  other:
+    "No on-call rule covers this severity: like a real page, the test falls back to the methods above.",
 };
 
 // A method a rule uses that is not verified, by its channel.
@@ -447,16 +456,31 @@ export function getReachedThroughWords(
   );
 }
 
-// One warning about a person, in the reader's words.
+/*
+ * How many methods a fallback picked are said to be "above" when that is
+ * not known: more than one, the general form of the sentence.
+ */
+const UNKNOWN_FALLBACK_METHOD_COUNT: number = 2;
+
+/*
+ * One warning about a person, in the reader's words. The one that says the
+ * test falls back to the methods listed above it names one method or more
+ * by how many the fallback picked (fallbackMethodCount); not known, more.
+ */
 export function getWarningSentence(
   translator: Translator,
   warning: OnCallTestPageWarning,
+  options?: { fallbackMethodCount?: number | undefined } | undefined,
 ): string {
   switch (warning.code) {
+    case OnCallTestPageWarningCode.NoRuleFallsBackToListed:
+      return translator.translatePlural(
+        FALLS_BACK_TO_LISTED,
+        options?.fallbackMethodCount || UNKNOWN_FALLBACK_METHOD_COUNT,
+      );
     case OnCallTestPageWarningCode.OptedOut:
     case OnCallTestPageWarningCode.NoRuleNoFallback:
     case OnCallTestPageWarningCode.NoRuleFallsBack:
-    case OnCallTestPageWarningCode.NoRuleFallsBackToListed:
     case OnCallTestPageWarningCode.NoRuleNothingToFallBackTo:
       return translator.translateTemplate(WARNING_SENTENCES[warning.code]);
     case OnCallTestPageWarningCode.ChannelOff: {
@@ -490,14 +514,24 @@ export function getWarningSentence(
  */
 export function getPersonWarnings(
   translator: Translator,
-  person: Pick<OnCallTestPagePreviewPerson, "warnings" | "warningCodes">,
+  person: Pick<OnCallTestPagePreviewPerson, "warnings" | "warningCodes"> &
+    Partial<Pick<OnCallTestPagePreviewPerson, "methods">>,
 ): Array<string> {
   if (!Array.isArray(person.warningCodes)) {
     return person.warnings;
   }
 
+  // The methods the fallback picked, listed above the warning that says so.
+  const fallbackMethodCount: number = (person.methods || []).filter(
+    (method: OnCallTestPagePreviewMethod): boolean => {
+      return Boolean(method.isFallback);
+    },
+  ).length;
+
   return person.warningCodes.map((warning: OnCallTestPageWarning): string => {
-    return getWarningSentence(translator, warning);
+    return getWarningSentence(translator, warning, {
+      fallbackMethodCount: fallbackMethodCount,
+    });
   });
 }
 

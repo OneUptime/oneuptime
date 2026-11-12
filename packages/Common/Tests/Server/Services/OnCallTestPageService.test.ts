@@ -751,8 +751,9 @@ describe("what a test will send, before it is sent", () => {
         isFallback: true,
       },
     ]);
+    // One method listed: "the method above".
     expect(preview.people[0]!.warnings[0]).toBe(
-      "No on-call rule covers this severity: like a real page, the test falls back to the methods above.",
+      "No on-call rule covers this severity: like a real page, the test falls back to the method above.",
     );
     expect(preview.people[0]!.warningCodes![0]!.code).toBe(
       OnCallTestPageWarningCode.NoRuleFallsBackToListed,
@@ -1568,8 +1569,23 @@ describe("the result's words, from the records", () => {
       {
         code: OnCallTestPageWarningCode.NoRuleFallsBackToListed,
         message:
-          "No on-call rule covers this severity: like a real page, the test falls back to the methods above.",
+          "No on-call rule covers this severity: like a real page, the test falls back to the method above.",
       },
+    ]);
+    // Two methods the fallback picks: "the methods above".
+    expect(
+      getPreviewWarnings({
+        methods: [
+          fallbackEmail,
+          { ...fallbackEmail, channel: OnCallPageChannel.Push },
+        ],
+        project: { disableOnCallNotificationFallback: false } as never,
+        hasNoRule: true,
+        isOptedOut: false,
+        readsFallbackMethods: true,
+      }),
+    ).toEqual([
+      "No on-call rule covers this severity: like a real page, the test falls back to the methods above.",
     ]);
     expect(
       getPreviewWarnings({

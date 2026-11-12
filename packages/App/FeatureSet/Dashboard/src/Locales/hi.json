@@ -51530,5 +51530,6 @@
   "Unarchive {{count}} {{itemsName}}?_one": "{{count}} {{itemName}} को संग्रह से निकालें?",
   "Unarchived SLOs reappear in the SLO list and are evaluated again on the next cycle. An SLO that was disabled before it was archived stays disabled.": "संग्रह से निकाले गए SLO, SLO सूची में फिर से दिखते हैं और अगले चक्र में उनका फिर से मूल्यांकन होता है। जो SLO संग्रहित करने से पहले अक्षम था, वह अक्षम ही रहता है।",
   "No on-call rule covers this severity, and no verified method can be used instead: the test sends nothing.": "इस गंभीरता के लिए कोई ऑन-कॉल नियम नहीं है, और इसके बजाय कोई सत्यापित विधि इस्तेमाल नहीं की जा सकती: परीक्षण कुछ नहीं भेजता।",
-  "No on-call rule covers this severity: like a real page, the test falls back to the methods above.": "इस गंभीरता के लिए कोई ऑन-कॉल नियम नहीं है: असली पेज की तरह, परीक्षण ऊपर दी गई विधियों पर वापस जाता है।"
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above.": "इस गंभीरता के लिए कोई ऑन-कॉल नियम नहीं है: असली पेज की तरह, परीक्षण ऊपर दी गई विधियों पर वापस जाता है।",
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above._one": "इस गंभीरता के लिए कोई ऑन-कॉल नियम नहीं है: असली पेज की तरह, परीक्षण ऊपर दी गई विधि पर वापस जाता है।"
 }

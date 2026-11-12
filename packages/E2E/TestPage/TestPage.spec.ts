@@ -373,10 +373,11 @@ test("Test this policy: who its first level pages, how, and who it can't reach a
 
   await expect(samsMethods).toHaveCount(1);
   await expect(samsMethods.first()).toHaveText("Email");
+  // One method listed: "the method above", never "the methods above".
   await expect(
     people.nth(1).getByTestId("test-page-preview-warning"),
   ).toHaveText(
-    "No on-call rule covers this severity: like a real page, the test falls back to the methods above.",
+    "No on-call rule covers this severity: like a real page, the test falls back to the method above.",
   );
   await expect(
     dialog(page).getByTestId("test-page-preview-not-paged"),
@@ -597,13 +598,16 @@ test("in German, the policy's preview, its levels and the walk's cost are worded
   expect(
     await wordsOf(dialog(page).getByTestId("test-page-preview-not-paged")),
   ).toMatch(/^Lee Park ist bis .+, ohne Vertretung\.$/);
-  // Sam falls back to the method listed above the line, in German (#7262).
+  /*
+   * Sam falls back to the one method listed above the line, in German: the
+   * sentence's "one" form (#7262).
+   */
   await expect(
     people.nth(1).getByTestId("test-page-preview-warning"),
   ).toHaveText(
     worded(
       GERMAN,
-      "No on-call rule covers this severity: like a real page, the test falls back to the methods above.",
+      "No on-call rule covers this severity: like a real page, the test falls back to the methods above._one",
     ),
   );
 

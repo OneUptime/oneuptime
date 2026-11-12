@@ -507,7 +507,7 @@ describe("a person with no rule for the severity is listed with what the fallbac
       OnCallTestPageWarningCode.NoRuleFallsBackToListed,
     ]);
     expect(sam.warnings).toEqual([
-      "No on-call rule covers this severity: like a real page, the test falls back to the methods above.",
+      "No on-call rule covers this severity: like a real page, the test falls back to the method above.",
     ]);
     expect(preview.cost).toEqual({
       isPaid: true,
@@ -593,6 +593,10 @@ describe("a person with no rule for the severity is listed with what the fallbac
         },
       ),
     ).toBe(true);
+    // More than one method listed: "the methods above".
+    expect(preview.people[0]!.warnings).toEqual([
+      "No on-call rule covers this severity: like a real page, the test falls back to the methods above.",
+    ]);
     expect(preview.cost.isPaid).toBe(false);
   });
 

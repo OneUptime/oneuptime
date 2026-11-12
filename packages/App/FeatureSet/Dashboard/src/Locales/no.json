@@ -51530,5 +51530,6 @@
   "Unarchive {{count}} {{itemsName}}?_one": "Fjern {{count}} {{itemName}} fra arkiv?",
   "Unarchived SLOs reappear in the SLO list and are evaluated again on the next cycle. An SLO that was disabled before it was archived stays disabled.": "SLO-er som fjernes fra arkivet, vises igjen i SLO-listen og evalueres på nytt i neste syklus. En SLO som var deaktivert før den ble arkivert, forblir deaktivert.",
   "No on-call rule covers this severity, and no verified method can be used instead: the test sends nothing.": "Ingen vaktregel dekker denne alvorlighetsgraden, og ingen verifisert metode kan brukes i stedet: testen sender ingenting.",
-  "No on-call rule covers this severity: like a real page, the test falls back to the methods above.": "Ingen vaktregel dekker denne alvorlighetsgraden: som ved et ekte oppkall faller testen tilbake på metodene ovenfor."
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above.": "Ingen vaktregel dekker denne alvorlighetsgraden: som ved et ekte oppkall faller testen tilbake på metodene ovenfor.",
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above._one": "Ingen vaktregel dekker denne alvorlighetsgraden: som ved et ekte oppkall faller testen tilbake på metoden ovenfor."
 }

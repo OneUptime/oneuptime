@@ -2147,8 +2147,9 @@ export function getPreviewWarningCodes(data: {
 /*
  * What a preview says of a person with no rule for the severity: that the
  * project does not fall back; or, read with what the fallback picks
- * (#7262), that the test falls back to the methods listed, or that it has
- * none it may use; or, read without, that it goes to every verified method.
+ * (#7262), that the test falls back to the method - or methods - listed,
+ * or that it has none it may use; or, read without, that it goes to every
+ * verified method.
  */
 function getNoRuleWarning(data: {
   methods: Array<OnCallTestPagePreviewMethod>;
@@ -2171,17 +2172,24 @@ function getNoRuleWarning(data: {
     };
   }
 
-  const fallsBackToSomething: boolean = data.methods.some(
+  const fallbackMethodCount: number = data.methods.filter(
     (method: OnCallTestPagePreviewMethod): boolean => {
       return Boolean(method.isFallback);
     },
-  );
+  ).length;
 
-  return fallsBackToSomething
+  /*
+   * Most often the fallback picks one method - the email address every
+   * member verifies when they join - so the sentence names "the method
+   * above" then, as the Dashboard's own wording of the code does.
+   */
+  return fallbackMethodCount > 0
     ? {
         code: OnCallTestPageWarningCode.NoRuleFallsBackToListed,
         message:
-          "No on-call rule covers this severity: like a real page, the test falls back to the methods above.",
+          fallbackMethodCount === 1
+            ? "No on-call rule covers this severity: like a real page, the test falls back to the method above."
+            : "No on-call rule covers this severity: like a real page, the test falls back to the methods above.",
       }
     : {
         code: OnCallTestPageWarningCode.NoRuleNothingToFallBackTo,

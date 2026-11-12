@@ -51530,5 +51530,6 @@
   "Unarchive {{count}} {{itemsName}}?_one": "Извлечь из архива элемент ({{itemName}}): {{count}}?",
   "Unarchived SLOs reappear in the SLO list and are evaluated again on the next cycle. An SLO that was disabled before it was archived stays disabled.": "SLO, извлечённые из архива, снова появляются в списке SLO и оцениваются в следующем цикле. SLO, который был отключён до архивирования, остаётся отключённым.",
   "No on-call rule covers this severity, and no verified method can be used instead: the test sends nothing.": "Ни одно правило дежурства не охватывает эту серьёзность, и вместо него нельзя использовать ни один подтверждённый метод: проверка ничего не отправит.",
-  "No on-call rule covers this severity: like a real page, the test falls back to the methods above.": "Ни одно правило дежурства не охватывает эту серьёзность: как и настоящий вызов, проверка перейдёт на методы выше."
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above.": "Ни одно правило дежурства не охватывает эту серьёзность: как и настоящий вызов, проверка перейдёт на методы выше.",
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above._one": "Ни одно правило дежурства не охватывает эту серьёзность: как и настоящий вызов, проверка перейдёт на метод выше."
 }

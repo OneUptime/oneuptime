@@ -51530,5 +51530,6 @@
   "Unarchive {{count}} {{itemsName}}?_one": "خروج {{count}} مورد ({{itemName}}) از بایگانی؟",
   "Unarchived SLOs reappear in the SLO list and are evaluated again on the next cycle. An SLO that was disabled before it was archived stays disabled.": "SLOهایی که از بایگانی خارج شوند دوباره در فهرست SLOها نمایش داده می‌شوند و در چرخهٔ بعدی دوباره ارزیابی می‌شوند. SLOای که پیش از بایگانی غیرفعال بوده، غیرفعال می‌ماند.",
   "No on-call rule covers this severity, and no verified method can be used instead: the test sends nothing.": "هیچ قاعده آنکالی این شدت را پوشش نمی‌دهد و هیچ روش تأییدشده‌ای را نمی‌توان به‌جای آن به کار برد: آزمایش چیزی نمی‌فرستد.",
-  "No on-call rule covers this severity: like a real page, the test falls back to the methods above.": "هیچ قاعده آنکالی این شدت را پوشش نمی‌دهد: مانند یک فراخوان واقعی، آزمایش به روش‌های بالا برمی‌گردد."
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above.": "هیچ قاعده آنکالی این شدت را پوشش نمی‌دهد: مانند یک فراخوان واقعی، آزمایش به روش‌های بالا برمی‌گردد.",
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above._one": "هیچ قاعده آنکالی این شدت را پوشش نمی‌دهد: مانند یک فراخوان واقعی، آزمایش به روش بالا برمی‌گردد."
 }

@@ -127,6 +127,21 @@ const READ_IN: ReadonlyArray<string> = ["en", "de", "fa", "ar"];
 
 const FALLS_BACK_TO_LISTED: string =
   "No on-call rule covers this severity: like a real page, the test falls back to the methods above.";
+/*
+ * The same, when the fallback picks one method - most often the email every
+ * member verifies on joining: "the method above". Stored as the sentence's
+ * "one" form, under its key plus "_one".
+ */
+const FALLS_BACK_TO_THE_ONE_LISTED: string =
+  "No on-call rule covers this severity: like a real page, the test falls back to the method above.";
+const FALLS_BACK_TO_THE_ONE_LISTED_KEY: string = `${FALLS_BACK_TO_LISTED}_one`;
+// The languages whose plurals have no "one" form: they say it one way.
+const LANGUAGES_WITHOUT_ONE: ReadonlyArray<string> = [
+  "ja",
+  "ko",
+  "zh-CN",
+  "zh-TW",
+];
 const NOTHING_TO_FALL_BACK_TO: string =
   "No on-call rule covers this severity, and no verified method can be used instead: the test sends nothing.";
 const GOES_TO_EVERY_METHOD: string =
@@ -270,6 +285,14 @@ const FALLBACK_EMAIL: OnCallTestPagePreviewMethod = {
   isFallback: true,
 };
 
+const FALLBACK_PUSH: OnCallTestPagePreviewMethod = {
+  channel: OnCallPageChannel.Push,
+  notifyAfterMinutes: 0,
+  isVerified: true,
+  canAcknowledge: false,
+  isFallback: true,
+};
+
 // Sam has no rule for the severity: the fallback emails him.
 function samFallingBack(): OnCallTestPagePreviewPerson {
   return {
@@ -278,6 +301,21 @@ function samFallingBack(): OnCallTestPagePreviewPerson {
     methods: [FALLBACK_EMAIL],
     hasNoRule: true,
     isOptedOut: false,
+    warnings: [FALLS_BACK_TO_THE_ONE_LISTED],
+    warningCodes: [
+      {
+        code: OnCallTestPageWarningCode.NoRuleFallsBackToListed,
+        message: FALLS_BACK_TO_THE_ONE_LISTED,
+      },
+    ],
+  };
+}
+
+// Sam with the app on his phone too: the fallback emails and pushes him.
+function samFallingBackToTwo(): OnCallTestPagePreviewPerson {
+  return {
+    ...samFallingBack(),
+    methods: [FALLBACK_EMAIL, FALLBACK_PUSH],
     warnings: [FALLS_BACK_TO_LISTED],
     warningCodes: [
       {
@@ -286,6 +324,25 @@ function samFallingBack(): OnCallTestPagePreviewPerson {
       },
     ],
   };
+}
+
+/*
+ * The locale key a language words Sam's no-rule sentence under: the "one"
+ * form for the one method the fallback picked, in a language that has one.
+ */
+function noRuleKeyFor(
+  language: string,
+  sam: OnCallTestPagePreviewPerson,
+): string {
+  const code: OnCallTestPageWarningCode = sam.warningCodes![0]!.code;
+
+  if (code !== OnCallTestPageWarningCode.NoRuleFallsBackToListed) {
+    return sam.warningCodes![0]!.message;
+  }
+
+  return sam.methods.length === 1 && !LANGUAGES_WITHOUT_ONE.includes(language)
+    ? FALLS_BACK_TO_THE_ONE_LISTED_KEY
+    : FALLS_BACK_TO_LISTED;
 }
 
 // Sam has no rule, and nothing the fallback may use.
@@ -406,11 +463,97 @@ describe("a person with no rule for the severity, shown with what the fallback s
     const sam: HTMLElement = rowOf("Sam Rivera");
 
     expect(methodsIn(sam)).toEqual(["Email"]);
-    expect(warningsIn(sam)).toEqual([FALLS_BACK_TO_LISTED]);
+    // One method listed: "the method above", never "the methods above".
+    expect(warningsIn(sam)).toEqual([FALLS_BACK_TO_THE_ONE_LISTED]);
     // Not the sentence of a server that listed nothing for them.
     expect(textOf(sam)).not.toContain("every verified method");
     // Somebody with rules is told nothing about the fallback.
     expect(warningsIn(rowOf("Ana Lopez"))).toEqual([]);
+  });
+
+  test("two methods the fallback picks: both are listed, and the line says the test falls back to the methods above", async () => {
+    previewMock.mockResolvedValue(currentPreview(samFallingBackToTwo()));
+
+    await openPolicyDialog();
+
+    const sam: HTMLElement = rowOf("Sam Rivera");
+
+    expect(methodsIn(sam)).toEqual(["Email", "Push notification"]);
+    expect(warningsIn(sam)).toEqual([FALLS_BACK_TO_LISTED]);
+  });
+
+  test("the line counts only the fallback's methods: one or more, in every language the Dashboard is read in", () => {
+    for (const language of ["en", ...DASHBOARD_LANGUAGES]) {
+      const translator: Translator = dashboardTranslator(language);
+      const hasOne: boolean = !LANGUAGES_WITHOUT_ONE.includes(language);
+
+      for (const [sam, key] of [
+        [samFallingBack(), FALLS_BACK_TO_THE_ONE_LISTED_KEY],
+        [samFallingBackToTwo(), FALLS_BACK_TO_LISTED],
+      ] as Array<[OnCallTestPagePreviewPerson, string]>) {
+        const expected: string =
+          language === "en"
+            ? sam.warningCodes![0]!.message
+            : worded(language, hasOne ? key : FALLS_BACK_TO_LISTED);
+
+        expect([
+          language,
+          getPersonWarnings(translator, sam).map(withoutIsolateMarks),
+        ]).toEqual([language, [expected]]);
+      }
+
+      // A method a rule names is not one the fallback picked.
+      expect(
+        getPersonWarnings(translator, {
+          ...samFallingBack(),
+          methods: [
+            { ...FALLBACK_PUSH, isFallback: undefined },
+            FALLBACK_EMAIL,
+          ],
+        }).map(withoutIsolateMarks),
+      ).toEqual(
+        getPersonWarnings(translator, samFallingBack()).map(
+          withoutIsolateMarks,
+        ),
+      );
+    }
+  });
+
+  test("not told how many methods the fallback picked, the line says the methods above", () => {
+    const english: Translator = dashboardTranslator("en");
+    const warning: {
+      code: OnCallTestPageWarningCode;
+      message: string;
+    } = {
+      code: OnCallTestPageWarningCode.NoRuleFallsBackToListed,
+      message: "x",
+    };
+
+    expect(getWarningSentence(english, warning)).toBe(FALLS_BACK_TO_LISTED);
+    expect(
+      getWarningSentence(english, warning, { fallbackMethodCount: 0 }),
+    ).toBe(FALLS_BACK_TO_LISTED);
+    expect(
+      getWarningSentence(english, warning, { fallbackMethodCount: 1 }),
+    ).toBe(FALLS_BACK_TO_THE_ONE_LISTED);
+    expect(
+      getWarningSentence(english, warning, { fallbackMethodCount: 3 }),
+    ).toBe(FALLS_BACK_TO_LISTED);
+    // A person sent with no methods says the general sentence, too.
+    expect(
+      getPersonWarnings(english, { ...samFallingBack(), methods: [] }),
+    ).toEqual([FALLS_BACK_TO_LISTED]);
+    // Other warnings never read the count.
+    expect(
+      getWarningSentence(
+        english,
+        {
+          code: OnCallTestPageWarningCode.NoRuleNothingToFallBackTo,
+          message: "x",
+        },
+        { fallbackMethodCount: 1 },
+      ),
+    ).toBe(NOTHING_TO_FALL_BACK_TO);
   });
 
   test("nothing the fallback may use: no method is listed, and the line says the test sends them nothing", async () => {
@@ -426,7 +569,11 @@ describe("a person with no rule for the severity, shown with what the fallback s
 
   test("in German, Persian and Arabic, the fallback's method and its sentence are the reader's, never the English", async () => {
     for (const language of ["de", "fa", "ar"]) {
-      for (const sam of [samFallingBack(), samWithNothing()]) {
+      for (const sam of [
+        samFallingBack(),
+        samFallingBackToTwo(),
+        samWithNothing(),
+      ]) {
         previewMock.mockResolvedValue(currentPreview(sam));
 
         await readIn(language);
@@ -435,7 +582,9 @@ describe("a person with no rule for the severity, shown with what the fallback s
         const row: HTMLElement = rowOf("Sam Rivera");
         const sentence: string = sam.warningCodes![0]!.message;
 
-        expect(warningsIn(row)).toEqual([worded(language, sentence)]);
+        expect(warningsIn(row)).toEqual([
+          worded(language, noRuleKeyFor(language, sam)),
+        ]);
         expect(textOf(row)).not.toContain(sentence);
         expect(methodsIn(row)).toEqual(
           sam.methods.map((method: OnCallTestPagePreviewMethod): string => {
@@ -679,6 +828,35 @@ describe("every language the Dashboard is read in words the new sentences (#7262
   });
 
   test("each sentence is in every locale - English as the key, every other language its own wording, with no placeholders lost", () => {
+    // The "one" form of the fallback's sentence: English's, under its key.
+    expect(readDashboardLocale("en")[FALLS_BACK_TO_THE_ONE_LISTED_KEY]).toBe(
+      FALLS_BACK_TO_THE_ONE_LISTED,
+    );
+
+    for (const language of DASHBOARD_LANGUAGES) {
+      const words: Record<string, string> = readDashboardLocale(language);
+
+      expect([
+        language,
+        isWordedInDashboardLocale(FALLS_BACK_TO_THE_ONE_LISTED_KEY, language),
+      ]).toEqual([language, true]);
+      expect(placeholdersOf(words[FALLS_BACK_TO_THE_ONE_LISTED_KEY]!)).toEqual(
+        [],
+      );
+
+      /*
+       * A language with a "one" form says one method apart from more; one
+       * without says both one way, its general sentence.
+       */
+      expect([
+        language,
+        words[FALLS_BACK_TO_THE_ONE_LISTED_KEY] === words[FALLS_BACK_TO_LISTED],
+      ]).toEqual([language, LANGUAGES_WITHOUT_ONE.includes(language)]);
+      expect(words[FALLS_BACK_TO_THE_ONE_LISTED_KEY]).not.toBe(
+        FALLS_BACK_TO_THE_ONE_LISTED,
+      );
+    }
+
     for (const [, english] of NEW_SENTENCES) {
       expect(readDashboardLocale("en")[english]).toBe(english);
       expect(placeholdersOf(english)).toEqual([]);
@@ -726,18 +904,33 @@ describe("every language the Dashboard is read in words the new sentences (#7262
     const persian: Record<string, string> = readDashboardLocale("fa");
     const zeroWidthNonJoiner: string = String.fromCharCode(0x200c);
 
-    for (const [, english] of NEW_SENTENCES) {
-      expect(persian[english]).toContain(`نمی${zeroWidthNonJoiner}`);
-      expect(persian[english]).not.toMatch(/نمی /);
+    for (const key of [
+      ...NEW_SENTENCES.map(
+        ([, english]: [OnCallTestPageWarningCode, string]): string => {
+          return english;
+        },
+      ),
+      FALLS_BACK_TO_THE_ONE_LISTED_KEY,
+    ]) {
+      expect(persian[key]).toContain(`نمی${zeroWidthNonJoiner}`);
+      expect(persian[key]).not.toMatch(/نمی /);
+      expect(persian[key]).not.toMatch(/برمی /);
     }
   });
 
   test("the Arabic sentences use Arabic's letters, not Persian's", () => {
     const arabic: Record<string, string> = readDashboardLocale("ar");
 
-    for (const [, english] of NEW_SENTENCES) {
-      expect(arabic[english]).toMatch(ARABIC_LETTER);
-      expect(arabic[english]).not.toMatch(PERSIAN_ONLY_LETTER);
+    for (const key of [
+      ...NEW_SENTENCES.map(
+        ([, english]: [OnCallTestPageWarningCode, string]): string => {
+          return english;
+        },
+      ),
+      FALLS_BACK_TO_THE_ONE_LISTED_KEY,
+    ]) {
+      expect(arabic[key]).toMatch(ARABIC_LETTER);
+      expect(arabic[key]).not.toMatch(PERSIAN_ONLY_LETTER);
     }
   });
 
@@ -754,6 +947,7 @@ describe("every language the Dashboard is read in words the new sentences (#7262
 
       for (const english of [
         FALLS_BACK_TO_LISTED,
+        FALLS_BACK_TO_THE_ONE_LISTED,
         NOTHING_TO_FALL_BACK_TO,
         GOES_TO_EVERY_METHOD,
         "paid from this project's SMS and call balance",

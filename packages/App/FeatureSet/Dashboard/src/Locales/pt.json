@@ -51530,5 +51530,6 @@
   "Unarchive {{count}} {{itemsName}}?_one": "Desarquivar {{count}} item ({{itemName}})?",
   "Unarchived SLOs reappear in the SLO list and are evaluated again on the next cycle. An SLO that was disabled before it was archived stays disabled.": "SLOs desarquivados voltam a aparecer na lista de SLOs e são avaliados novamente no próximo ciclo. Um SLO que estava desabilitado antes de ser arquivado continua desabilitado.",
   "No on-call rule covers this severity, and no verified method can be used instead: the test sends nothing.": "Nenhuma regra de plantão cobre esta gravidade, e nenhum método verificado pode ser usado no lugar: o teste não envia nada.",
-  "No on-call rule covers this severity: like a real page, the test falls back to the methods above.": "Nenhuma regra de plantão cobre esta gravidade: como em uma chamada real, o teste recorre aos métodos acima."
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above.": "Nenhuma regra de plantão cobre esta gravidade: como em uma chamada real, o teste recorre aos métodos acima.",
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above._one": "Nenhuma regra de plantão cobre esta gravidade: como em uma chamada real, o teste recorre ao método acima."
 }

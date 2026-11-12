@@ -51530,5 +51530,6 @@
   "Unarchive {{count}} {{itemsName}}?_one": "Avarkivera {{count}} {{itemName}}?",
   "Unarchived SLOs reappear in the SLO list and are evaluated again on the next cycle. An SLO that was disabled before it was archived stays disabled.": "Avarkiverade SLO:er visas igen i SLO-listan och utvärderas igen i nästa cykel. En SLO som var inaktiverad innan den arkiverades förblir inaktiverad.",
   "No on-call rule covers this severity, and no verified method can be used instead: the test sends nothing.": "Ingen jourregel täcker den här allvarlighetsgraden, och ingen verifierad metod kan användas i stället: testet skickar ingenting.",
-  "No on-call rule covers this severity: like a real page, the test falls back to the methods above.": "Ingen jourregel täcker den här allvarlighetsgraden: som vid ett riktigt larm faller testet tillbaka på metoderna ovan."
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above.": "Ingen jourregel täcker den här allvarlighetsgraden: som vid ett riktigt larm faller testet tillbaka på metoderna ovan.",
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above._one": "Ingen jourregel täcker den här allvarlighetsgraden: som vid ett riktigt larm faller testet tillbaka på metoden ovan."
 }

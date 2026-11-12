@@ -51530,5 +51530,6 @@
   "Unarchive {{count}} {{itemsName}}?_one": "¿Desarchivar {{count}} elemento ({{itemName}})?",
   "Unarchived SLOs reappear in the SLO list and are evaluated again on the next cycle. An SLO that was disabled before it was archived stays disabled.": "Los SLO desarchivados vuelven a aparecer en la lista de SLO y se evalúan de nuevo en el próximo ciclo. Un SLO que estaba deshabilitado antes de archivarse sigue deshabilitado.",
   "No on-call rule covers this severity, and no verified method can be used instead: the test sends nothing.": "Ninguna regla de guardia cubre esta gravedad y no se puede usar ningún método verificado en su lugar: la prueba no envía nada.",
-  "No on-call rule covers this severity: like a real page, the test falls back to the methods above.": "Ninguna regla de guardia cubre esta gravedad: como un aviso real, la prueba recurre a los métodos de arriba."
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above.": "Ninguna regla de guardia cubre esta gravedad: como un aviso real, la prueba recurre a los métodos de arriba.",
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above._one": "Ninguna regla de guardia cubre esta gravedad: como un aviso real, la prueba recurre al método de arriba."
 }

@@ -51530,5 +51530,6 @@
   "Unarchive {{count}} {{itemsName}}?_one": "Unarchive {{count}} {{itemName}}?",
   "Unarchived SLOs reappear in the SLO list and are evaluated again on the next cycle. An SLO that was disabled before it was archived stays disabled.": "Unarchived SLOs reappear in the SLO list and are evaluated again on the next cycle. An SLO that was disabled before it was archived stays disabled.",
   "No on-call rule covers this severity, and no verified method can be used instead: the test sends nothing.": "No on-call rule covers this severity, and no verified method can be used instead: the test sends nothing.",
-  "No on-call rule covers this severity: like a real page, the test falls back to the methods above.": "No on-call rule covers this severity: like a real page, the test falls back to the methods above."
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above.": "No on-call rule covers this severity: like a real page, the test falls back to the methods above.",
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above._one": "No on-call rule covers this severity: like a real page, the test falls back to the method above."
 }

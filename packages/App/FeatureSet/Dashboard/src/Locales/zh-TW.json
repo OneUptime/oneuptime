@@ -51530,5 +51530,6 @@
   "Unarchive {{count}} {{itemsName}}?_one": "要取消封存 {{count}} 個{{itemName}}嗎？",
   "Unarchived SLOs reappear in the SLO list and are evaluated again on the next cycle. An SLO that was disabled before it was archived stays disabled.": "取消封存的 SLO 會重新出現在 SLO 清單中，並在下一個週期重新評估。封存前已停用的 SLO 將維持停用狀態。",
   "No on-call rule covers this severity, and no verified method can be used instead: the test sends nothing.": "沒有待命規則涵蓋此嚴重程度，也沒有可改用的已驗證方式：測試不會傳送任何內容。",
-  "No on-call rule covers this severity: like a real page, the test falls back to the methods above.": "沒有待命規則涵蓋此嚴重程度：與真實呼叫一樣，測試會改用上方的方式。"
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above.": "沒有待命規則涵蓋此嚴重程度：與真實呼叫一樣，測試會改用上方的方式。",
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above._one": "沒有待命規則涵蓋此嚴重程度：與真實呼叫一樣，測試會改用上方的方式。"
 }

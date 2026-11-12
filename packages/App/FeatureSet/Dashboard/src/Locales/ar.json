@@ -51530,5 +51530,6 @@
   "Unarchive {{count}} {{itemsName}}?_one": "إلغاء أرشفة {{count}} {{itemName}}؟",
   "Unarchived SLOs reappear in the SLO list and are evaluated again on the next cycle. An SLO that was disabled before it was archived stays disabled.": "تظهر أهداف SLO التي أُلغيت أرشفتها مجددًا في قائمة أهداف SLO وتُقيَّم من جديد في الدورة التالية. ويبقى هدف SLO الذي كان معطّلًا قبل أرشفته معطّلًا.",
   "No on-call rule covers this severity, and no verified method can be used instead: the test sends nothing.": "لا تغطي أي قاعدة مناوبة هذه الخطورة، ولا يمكن استخدام أي طريقة متحقق منها بدلًا منها: لا يرسل الاختبار شيئًا.",
-  "No on-call rule covers this severity: like a real page, the test falls back to the methods above.": "لا تغطي أي قاعدة مناوبة هذه الخطورة: كما في الاستدعاء الحقيقي، يرجع الاختبار إلى الطرق المذكورة أعلاه."
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above.": "لا تغطي أي قاعدة مناوبة هذه الخطورة: كما في الاستدعاء الحقيقي، يرجع الاختبار إلى الطرق المذكورة أعلاه.",
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above._one": "لا تغطي أي قاعدة مناوبة هذه الخطورة: كما في الاستدعاء الحقيقي، يرجع الاختبار إلى الطريقة المذكورة أعلاه."
 }

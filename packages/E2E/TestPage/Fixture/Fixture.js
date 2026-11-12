@@ -201,9 +201,12 @@ const EMAIL_NOT_VERIFIED =
   "This Email method is not verified, so the test can't use it.";
 const NO_RULE =
   "No on-call rule covers this severity: like a real page, the test goes to every verified method instead.";
-// The same, since #7262: the methods the fallback picks are listed above it.
+/*
+ * The same, since #7262: the method the fallback picks is listed above it -
+ * "the method above" for one, as Sam's email is.
+ */
 const NO_RULE_LISTED =
-  "No on-call rule covers this severity: like a real page, the test falls back to the methods above.";
+  "No on-call rule covers this severity: like a real page, the test falls back to the method above.";
 const LEE_AWAY = "Lee Park is away until Nov 14, 2026, with nobody covering.";
 const LEVEL_3_EMPTY =
   "Escalation rule 3 pages nobody yet. Add people, a team or a schedule to it.";

@@ -51530,5 +51530,6 @@
   "Unarchive {{count}} {{itemsName}}?_one": "{{itemName}}を {{count}} 件アーカイブ解除しますか？",
   "Unarchived SLOs reappear in the SLO list and are evaluated again on the next cycle. An SLO that was disabled before it was archived stays disabled.": "アーカイブを解除した SLO は SLO 一覧に再び表示され、次のサイクルで再び評価されます。アーカイブ前に無効だった SLO は無効のままです。",
   "No on-call rule covers this severity, and no verified method can be used instead: the test sends nothing.": "この重大度に該当するオンコールルールがなく、代わりに使える確認済みの方法もありません。テストでは何も送信されません。",
-  "No on-call rule covers this severity: like a real page, the test falls back to the methods above.": "この重大度に該当するオンコールルールがありません。実際の呼び出しと同様に、テストは上記の方法にフォールバックします。"
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above.": "この重大度に該当するオンコールルールがありません。実際の呼び出しと同様に、テストは上記の方法にフォールバックします。",
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above._one": "この重大度に該当するオンコールルールがありません。実際の呼び出しと同様に、テストは上記の方法にフォールバックします。"
 }
