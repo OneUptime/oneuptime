@@ -82,7 +82,7 @@ SLO에 단계가 없는 동안에는 페이지에 **추천 정책 사용** 이 �
 | **Reliability first** | 25% 이하 남음 | Reliability comes first. Only reliability improvements and critical fixes ship until the budget recovers. | 허용 |
 | **Budget exhausted** | 0% 이하 남음 | The error budget is spent. Freeze non-critical releases: only fixes for this SLO's reliability and security fixes ship until the budget is back. | 동결 |
 
-어떤 단계도 켜기 전까지는 경고를 발생시키거나 인시던트를 선언하지 않습니다. **Budget exhausted** 는 그 합의대로 배포를 동결하며, 확인 화면에도 그렇게 표시됩니다. [배포 게이트](#배포-게이트)를 참고하세요. 배포 게이트가 생기기 전에 추가된 단계는 동결을 켜기 전까지 아무것도 동결하지 않습니다. SLO에 없는 단계만 추가됩니다. 이름이 같거나 임계값이 같은 단계는 켜져 있든 꺼져 있든 이미 있는 것으로 봅니다. 따라서 두 번째 탭이나 API에서 두 번 요청해도 아무것도 두 번 추가되지 않습니다. 이렇게 추가된 각 단계는 SLO의 감사 로그에 사용자가 추가한 것으로 기록됩니다.
+어떤 단계도 켜기 전까지는 경고를 발생시키거나 인시던트를 선언하지 않습니다. **Budget exhausted** 는 그 합의대로 배포를 동결하며, 확인 화면에도 그렇게 표시됩니다. [배포 게이트](#배포-게이트)를 참고하세요. 배포 게이트가 생기기 전에 추가된 단계는 동결을 켜기 전까지 아무것도 동결하지 않습니다. SLO에 없는 단계만 추가됩니다. 이름이 같거나 임계값이 같은 단계는 켜져 있든 꺼져 있든 이미 있는 것으로 봅니다. 따라서 두 번째 탭이나 API에서 두 번 요청해도 아무것도 두 번 추가되지 않습니다. 단계 중 하나라도 추가할 수 없으면 아무 단계도 추가되지 않으며, SLO는 그대로 남으므로 다시 시도할 수 있습니다. 이렇게 추가된 각 단계는 SLO의 감사 로그에 사용자가 추가한 것으로 기록됩니다.
 
 ## 단계가 표시되는 곳
 

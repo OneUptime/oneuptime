@@ -2,6 +2,9 @@
 
 Een meldingsmethode is een adres waarop OneUptime je in één project mag bereiken: een e-mailadres, een telefoonnummer voor sms of oproepen, een WhatsApp-nummer, een Telegram-account, je Slack-, Microsoft Teams- of Mattermost-account, een telefoon of browser voor pushmeldingen, of een webhook. Je voegt ze toe onder **Gebruikersinstellingen → Meldingsmethoden**, verifieert ze, en OneUptime gebruikt ze meteen voor je oproepen.
 
+> [!TIP]
+> Nieuw hier? Volg eerst de handleiding: [Opgeroepen worden via telefoon, sms of push](/docs/guides/paging).
+
 :::cards
 - [Een methode kiezen](#een-methode-kiezen): Wat elke methode nodig heeft, en hoe ze wordt geverifieerd.
 - [Een methode toevoegen en verifiëren](#een-methode-toevoegen-en-verifiëren): E-mail, sms, oproepen en WhatsApp, met een code van 6 cijfers.

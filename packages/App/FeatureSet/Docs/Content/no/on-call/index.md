@@ -2,6 +2,9 @@
 
 Vakt er hvordan OneUptime får en person til å ta tak i et problem, når som helst på døgnet. Når en hendelse, et varsel eller en episode trenger noen, tilkaller vaktretningslinjene folk nivå for nivå til noen bekrefter, og hver person nås slik de selv har valgt: et push-varsel, en SMS, et anrop, en e-post eller en chatmelding. Denne siden viser hvordan delene henger sammen, og hvor hver del ligger. Hvert ord som brukes om vakt, er forklart med en setning eller to i [Ordliste](/docs/introduction/glossary#vaktpolicy).
 
+> [!TIP]
+> Ny her? Følg guiden først: [Bli varslet via telefon, SMS eller push](/docs/guides/paging).
+
 :::cards
 - [Slik når en tilkalling noen](#slik-når-en-tilkalling-noen): Fra en ny hendelse til personen som svarer.
 - [Byggesteinene](#byggesteinene): Retningslinjer, eskaleringsregler, vaktplaner, overstyringer og personlige regler.

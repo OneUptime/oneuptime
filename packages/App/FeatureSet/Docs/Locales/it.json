@@ -89,6 +89,7 @@
   },
   "navGroups": {
     "Introduction": "Introduzione",
+    "Guides": "Guide",
     "Moving to OneUptime": "Passare a OneUptime",
     "Installation": "Installazione",
     "Mobile & Desktop Apps": "App mobili e desktop",
@@ -138,6 +139,8 @@
     "Which One Do I Use?": "Quale usare?",
     "Home Page & Shortcuts": "Home page e scorciatoie",
     "Your Account": "Il tuo account",
+    "Get Paged by Phone, SMS or Push": "Essere avvisati per chiamata, SMS o push",
+    "Publish a Status Page": "Pubblicare una pagina di stato",
     "Moving from Opsgenie": "Migrare da Opsgenie",
     "Moving from PagerDuty": "Migrare da PagerDuty",
     "Moving from incident.io": "Migrare da incident.io",

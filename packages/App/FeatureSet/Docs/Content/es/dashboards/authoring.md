@@ -59,7 +59,9 @@ flowchart TB
 Tus cambios son solo tuyos hasta que los guardas. Nada se guarda mientras editas, así que los demás siguen viendo el panel tal como estaba.
 
 - **Guardar cambios** guarda los widgets, sus posiciones y tamaños, las variables, y el intervalo de tiempo y la actualización automática predeterminados, todo a la vez, y vuelve al modo de lectura. Si el guardado se rechaza, por ejemplo porque has perdido el permiso entretanto, sigues en modo de edición con tus cambios, y el motivo aparece encima de la cuadrícula.
-- **Cancelar** pregunta primero, porque descarta tus cambios: **Descartar cambios** vuelve al panel tal como se guardó, y **Seguir editando** te devuelve a tu trabajo.
+- **Cancelar** vuelve al modo de lectura. Si cambiaste algo, pregunta primero, porque descarta tus cambios: **Descartar cambios** vuelve al panel tal como se guardó, y **Seguir editando** te devuelve a tu trabajo.
+
+Salir del panel con cambios sin guardar también pregunta primero. Un enlace del menú lateral, de la ruta de navegación o de la barra superior, o los botones Atrás y Adelante de tu navegador, abren **¿Salir sin guardar?** con las mismas dos opciones: **Seguir editando** se queda en el panel con tus cambios, y **Descartar cambios** sigue hacia la página que estabas abriendo. Cerrar o recargar la pestaña pregunta con el propio diálogo de tu navegador. Un panel que abriste para editar y no cambiaste no pregunta nada, ni tampoco uno que acabas de guardar.
 
 Mientras editas, la actualización automática se pausa, y un intervalo de tiempo con zoom vuelve al intervalo que elegiste.
 

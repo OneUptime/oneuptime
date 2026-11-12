@@ -722,12 +722,28 @@ export interface FakeAmazonSesCredentials {
   accessKeyId: string;
   secretAccessKey: string;
   region: string;
+  /*
+   * Temporary credentials' session token (an IAM role's, #7000): SES then
+   * takes the request only with this x-amz-security-token, signed.
+   */
+  sessionToken?: string | undefined;
+}
+
+// Another set of keys SES knows, such as a role's next credentials.
+export interface FakeAmazonSesKeys {
+  accessKeyId: string;
+  secretAccessKey: string;
+  sessionToken?: string | undefined;
 }
 
 export interface FakeAmazonSes extends FakeHttpService {
   credentials: FakeAmazonSesCredentials;
   // The host the stand-in answers for: email.{region}.amazonaws.com.
   host: string;
+  // SES knows these keys too, from now on.
+  acceptKeys: (keys: FakeAmazonSesKeys) => void;
+  // These keys' session has ended: SES says their token expired.
+  expireKeys: (accessKeyId: string) => void;
 }
 
 // SES's answer to an error: its name in X-Amzn-ErrorType and a message.
@@ -924,6 +940,8 @@ export const startFakeAmazonSes: (
   credentials: FakeAmazonSesCredentials,
 ): Promise<FakeAmazonSes> => {
   const host: string = `email.${credentials.region}.amazonaws.com`;
+  const otherKeys: Array<FakeAmazonSesKeys> = [];
+  const expiredAccessKeyIds: Set<string> = new Set();
 
   const service: FakeHttpService = await startFakeHttpService(
     (request: RecordedHttpRequest): FakeHttpAnswer => {
@@ -946,11 +964,30 @@ export const startFakeAmazonSes: (
         );
       }
 
-      if (!authorization.includes(`Credential=${credentials.accessKeyId}/`)) {
+      // The keys the request says it is signed with, if SES knows them.
+      const keys: FakeAmazonSesKeys | undefined = [
+        credentials,
+        ...otherKeys,
+      ].find((candidate: FakeAmazonSesKeys): boolean => {
+        return authorization.includes(`Credential=${candidate.accessKeyId}/`);
+      });
+      const sentToken: string = String(
+        request.headers["x-amz-security-token"] || "",
+      );
+
+      if (!keys || sentToken !== (keys.sessionToken || "")) {
         return amazonSesError(
           403,
           "UnrecognizedClientException",
           "The security token included in the request is invalid.",
+        );
+      }
+
+      if (expiredAccessKeyIds.has(keys.accessKeyId)) {
+        return amazonSesError(
+          403,
+          "ExpiredTokenException",
+          "The security token included in the request is expired",
         );
       }
 
@@ -963,8 +1000,9 @@ export const startFakeAmazonSes: (
           "Content-Type": String(request.headers["content-type"] || ""),
         },
         body: request.body,
-        accessKeyId: credentials.accessKeyId,
-        secretAccessKey: credentials.secretAccessKey,
+        accessKeyId: keys.accessKeyId,
+        secretAccessKey: keys.secretAccessKey,
+        sessionToken: keys.sessionToken || undefined,
         region: credentials.region,
         service: "ses",
         date: date,
@@ -987,7 +1025,17 @@ export const startFakeAmazonSes: (
     },
   );
 
-  return { ...service, credentials: credentials, host: host };
+  return {
+    ...service,
+    credentials: credentials,
+    host: host,
+    acceptKeys: (keys: FakeAmazonSesKeys): void => {
+      otherKeys.push(keys);
+    },
+    expireKeys: (accessKeyId: string): void => {
+      expiredAccessKeyIds.add(accessKeyId);
+    },
+  };
 };
 
 // The real AmazonSesMailProvider, talking to `fake` for its Region.

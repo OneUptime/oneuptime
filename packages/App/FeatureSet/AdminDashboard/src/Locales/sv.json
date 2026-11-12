@@ -519,7 +519,7 @@
         "pillNoFromEmail": "Inte aktiverad. Lägg till Från-e-posten.",
         "pillNoFromName": "Inte aktiverad. Lägg till Från-namnet.",
         "amazonSesCardTitle": "Amazon SES-inställningar",
-        "amazonSesCardDescription": "Din Amazon SES-åtkomstnyckel och region, och avsändaren av e-posten.",
+        "amazonSesCardDescription": "Hur den här servern loggar in på Amazon SES, dess region och avsändaren av e-posten.",
         "amazonSesEditButton": "Redigera Amazon SES",
         "mailgunCardTitle": "Mailgun-inställningar",
         "mailgunCardDescription": "Din Mailgun-API-nyckel och avsändardomän, och avsändaren av e-posten.",
@@ -2409,5 +2409,11 @@
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "Ge workerna mer minne och CPU, och leta i appens logg efter jobb som fortsätter att misslyckas.",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "Den här servern kör OneUptime {{current}}. {{latest}} har släppts.",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "Säkerhetskopiera och uppdatera sedan: npm run update på Docker Compose, helm upgrade på Kubernetes.",
-  "Finish it on the Server setup page.": "Slutför det på sidan Serverkonfiguration."
+  "Finish it on the Server setup page.": "Slutför det på sidan Serverkonfiguration.",
+  "How OneUptime signs in to Amazon SES.": "Hur OneUptime loggar in på Amazon SES.",
+  "Access Key": "Åtkomstnyckel",
+  "An IAM user's access key ID and secret access key, stored encrypted.": "En IAM-användares åtkomstnyckel-ID och hemliga åtkomstnyckel, lagrade krypterade.",
+  "This Server's IAM Role": "Den här serverns IAM-roll",
+  "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "Rollen som AWS ger den här servern på Amazon EKS, ECS eller EC2. Ingen nyckel lagras, och dess autentiseringsuppgifter förnyas av sig själva.",
+  "Send through Amazon SES with an access key or this server's IAM role.": "Skicka via Amazon SES med en åtkomstnyckel eller den här serverns IAM-roll."
 }

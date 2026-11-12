@@ -72,6 +72,7 @@ import MutableMetricService from "./MutableMetricService";
 import GlobalConfigService from "./GlobalConfigService";
 import GlobalConfig from "../../Models/DatabaseModels/GlobalConfig";
 import OneUptimeDate from "../../Types/Date";
+import { getReminderIntervalInMinutes } from "../../Types/Reminder/ReminderInterval";
 import MutableMetric from "../../Models/AnalyticsModels/MutableMetric";
 import { MetricPointType } from "../../Models/AnalyticsModels/Metric";
 import ServiceType from "../../Types/Telemetry/ServiceType";
@@ -322,14 +323,19 @@ export class Service extends ProjectReferencesService<Model> {
           }),
         });
 
+      // A rule with no interval a reminder can follow reminds nobody.
+      const intervalInMinutes: number | null = getReminderIntervalInMinutes(
+        matchingRule?.reminderIntervalInMinutes,
+      );
+
       if (
         matchingRule &&
-        matchingRule.reminderIntervalInMinutes &&
+        intervalInMinutes !== null &&
         !(await this.isAlertResolved({ alertId: data.alertId }))
       ) {
         nextReminderNotificationAt = OneUptimeDate.addRemoveMinutes(
           OneUptimeDate.getCurrentDate(),
-          matchingRule.reminderIntervalInMinutes,
+          intervalInMinutes,
         );
       }
     }

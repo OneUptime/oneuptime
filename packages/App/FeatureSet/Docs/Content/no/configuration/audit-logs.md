@@ -88,6 +88,7 @@ Alt folk oppretter, endrer eller sletter i et prosjekt, registreres: monitorer, 
 | Aktivitetsfeeder | En feed viser endringer som revisjonsloggen allerede registrerer. |
 | OneUptimes arbeidstilstand | Økter for lesere av statussider, jobber i kø og annen tilstand OneUptime holder mens det arbeider. |
 | En persons egen varslingsoppsett | Hver persons adresser, numre og personlige vaktregler tilhører bare dem. |
+| En persons egne preferanser | Produktene hver person fester i sin egen øverste linje, tilhører bare dem, og bare de ser dem. |
 
 Det registreres også når en administrator legger til eller fjerner en varslingsmetode eller en personlig vaktregel på en annens konto, uten selve adressen eller nummeret.
 

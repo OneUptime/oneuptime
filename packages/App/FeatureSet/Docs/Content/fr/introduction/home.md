@@ -93,6 +93,10 @@ La liste disparaît pour tout le monde une fois chaque étape terminée. Pour la
 
 **Attention requise** liste par leur nom ce que les nombres comptent : les incidents ouverts, les alertes ouvertes, les moniteurs non opérationnels, les SLO à risque et les maintenances en cours, les plus urgents d'abord. Chaque ligne affiche sa gravité ou son état, indique quand un incident ou une alerte a commencé et quand une maintenance se termine, et ouvre l'élément. Chaque type en montre jusqu'à cinq, avec **Tout afficher** pour le reste, qui ouvre la même liste que son nombre. Quand rien n'est ouvert, la section affiche **Rien ne nécessite votre attention**.
 
+### Santé de la configuration
+
+Quand quelque chose dans la configuration du projet empêcherait de prévenir les bonnes personnes, **Attention requise** se termine par **Configuration** : le nombre de points à examiner. Cette ligne ouvre **Santé de la configuration**, qui liste ce qui est mal configuré, le plus grave d'abord, sous **Les alertes n'arriveront pas**, **À corriger** et **Suggestions** : un moniteur qui n'alerte personne, une politique d'astreinte que rien ne déclenche, une personne qu'on ne peut pas alerter, les SMS désactivés, un planning d'astreinte où personne n'est de garde, une page de statut qui n'affiche aucun moniteur. Chaque constat dit en une phrase ce qui ne va pas, avec le bouton qui ouvre sa correction, et les constats d'un moniteur sont les ruptures que nomme sa carte **Quand il tombe en panne**. Un constat que votre équipe laisse tel quel exprès peut être masqué avec une raison, pour tout le monde, puis restauré depuis **Ignoré**. La recherche trouve la page sous le nom **Santé de la configuration**, et Demander à l'IA répond à « Ma configuration est-elle correcte ? » à partir d'elle.
+
 ### Votre projet
 
 **Votre projet** compte les **Moniteurs**, les **Pages de statut**, les **Politiques d'astreinte**, les **SLOs**, les **Services**, les **Tableaux de bord** et les **Flux de travail** du projet, sans les éléments archivés. Chaque ligne ouvre sa liste. Un type dont le projet n'a encore aucun élément affiche **Configurer** au lieu d'un nombre.
@@ -101,7 +105,7 @@ La liste disparaît pour tout le monde une fois chaque étape terminée. Pour la
 
 ### Explorer OneUptime
 
-**Explorer OneUptime** présente les produits du menu **Produits** une catégorie à la fois, en commençant par les essentiels. Chaque produit indique à quoi il sert et s'ouvre quand vous cliquez dessus.
+**Explorer OneUptime** présente les produits du menu **Produits** une catégorie à la fois, en commençant par les essentiels. Chaque produit indique à quoi il sert et s'ouvre quand vous cliquez dessus. Les produits que votre projet masque n'y figurent pas.
 
 ## Se repérer
 
@@ -111,6 +115,9 @@ Tout dans OneUptime se trouve sous **Produits** dans la barre du haut. Le menu p
 - **Vous partez de là où vous êtes.** Le groupe de la page sur laquelle vous êtes se déplie tout seul, et les produits que vous avez ouverts récemment sont listés en haut.
 - **Vos choix restent.** Le menu retient, dans votre navigateur, quels autres groupes vous avez dépliés ou repliés. Les essentiels sont de nouveau dépliés chaque fois que vous ouvrez le menu, même si vous les aviez repliés.
 - **Sur un téléphone**, le bouton du menu liste les produits de la même façon : les essentiels dépliés en haut, et chaque autre groupe sous la forme d'une ligne qui s'ouvre d'un toucher.
+- **Les produits que le projet n'utilise pas.** Un propriétaire ou un administrateur du projet peut les masquer dans **Paramètres du projet → Basique → Produits**. Un produit masqué passe sous **Plus de produits**, la dernière ligne du menu : la recherche le trouve toujours, ses pages fonctionnent et ses données continuent d'arriver. Quand l'un d'eux commence à recevoir des données, l'accueil le signale aux personnes qui peuvent le réafficher.
+- **Épingler.** Gardez un produit dans la barre supérieure, à côté d'**Accueil** et de **Produits** : appuyez sur l'épingle de sa carte dans le menu, ou sur **Épingler** à côté du titre de sa page. Vous pouvez en épingler cinq, et ils vous suivent dans chaque navigateur. Sur un téléphone, vos produits épinglés viennent en premier dans le menu.
+- **Ce qui est utilisé.** Dans chaque groupe sauf les essentiels et les paramètres, les produits que votre projet utilise viennent en premier, et celui que vous n'avez pas encore configuré indique **Non configuré**. Sur OneUptime Cloud, un produit que votre offre n'inclut pas nomme l'offre qui l'inclut.
 
 ### Les barres du haut
 
