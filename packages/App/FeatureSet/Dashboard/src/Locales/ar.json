@@ -51137,6 +51137,6 @@
   "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}._one": "قرأ الذكاء الاصطناعي هذا الملف ولم يعد لديه جزء من نصه، وتحل نسخة الذكاء الاصطناعي محل الملف بالكامل: {{files}}.",
   "Ask AI read this file and no longer has part of its text, and its version replaces all of it: {{files}}.": "قرأ الذكاء الاصطناعي هذا الملف ولم يعد لديه جزء من نصه، وتحل نسخة الذكاء الاصطناعي محل الملف بالكامل: {{files}}.",
   "A status page you can't see": "صفحة حالة لا يمكنك رؤيتها",
-  "It emails the owners its owner rules add ({{names}}).": "ترسل بريدًا إلكترونيًا إلى المالكين الذين تضيفهم قواعد المالكين ({{names}}).",
-  "It emails the owners its owner rules add.": "ترسل بريدًا إلكترونيًا إلى المالكين الذين تضيفهم قواعد المالكين."
+  "It emails the owners added by owner rules ({{names}}).": "ترسل بريدًا إلكترونيًا إلى المالكين الذين تضيفهم قواعد المالكين ({{names}}).",
+  "It emails the owners added by owner rules.": "ترسل بريدًا إلكترونيًا إلى المالكين الذين تضيفهم قواعد المالكين."
 }

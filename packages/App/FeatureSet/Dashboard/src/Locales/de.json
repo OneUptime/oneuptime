@@ -50885,7 +50885,7 @@
   "It pages the people on call through an on-call policy you can't see.": "Die Bereitschaft wird über eine Bereitschaftsrichtlinie alarmiert, die Sie nicht sehen können.",
   "It pages {{count}} people through {{policies}}.": "{{count}} Personen werden über {{policies}} alarmiert.",
   "It pages {{count}} people through {{policies}}._one": "{{count}} Person wird über {{policies}} alarmiert.",
-  "It pages {{people}} through {{policies}}.": "{{people}} wird über {{policies}} alarmiert.",
+  "It pages {{people}} through {{policies}}.": "OneUptime alarmiert {{people}} über {{policies}}.",
   "Its on-call policies reach nobody who can be paged right now.": "Ihre Bereitschaftsrichtlinien erreichen gerade niemanden, der alarmiert werden kann.",
   "Loading who is told": "Wird geladen, wer benachrichtigt wird",
   "No criteria of this monitor changes its status or opens an incident or an alert, so nobody is told when it goes down.": "Kein Kriterium dieser Überwachung ändert ihren Status oder öffnet einen Vorfall oder eine Warnung, daher wird bei einem Ausfall niemand benachrichtigt.",
@@ -51137,6 +51137,6 @@
   "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}._one": "Die KI hat diese Datei gelesen und kennt einen Teil ihres Textes nicht mehr, und die Version der KI ersetzt die ganze Datei: {{files}}.",
   "Ask AI read this file and no longer has part of its text, and its version replaces all of it: {{files}}.": "Die KI hat diese Datei gelesen und kennt einen Teil ihres Textes nicht mehr, und die Version der KI ersetzt die ganze Datei: {{files}}.",
   "A status page you can't see": "Eine Statusseite, die Sie nicht sehen können",
-  "It emails the owners its owner rules add ({{names}}).": "Die von den Eigentümerregeln hinzugefügten Eigentümer werden per E-Mail benachrichtigt ({{names}}).",
-  "It emails the owners its owner rules add.": "Die von den Eigentümerregeln hinzugefügten Eigentümer werden per E-Mail benachrichtigt."
+  "It emails the owners added by owner rules ({{names}}).": "Die von den Eigentümerregeln hinzugefügten Eigentümer werden per E-Mail benachrichtigt ({{names}}).",
+  "It emails the owners added by owner rules.": "Die von den Eigentümerregeln hinzugefügten Eigentümer werden per E-Mail benachrichtigt."
 }

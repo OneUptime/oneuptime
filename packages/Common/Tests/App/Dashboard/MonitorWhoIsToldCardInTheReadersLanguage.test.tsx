@@ -412,7 +412,7 @@ const ANSWERS: ReadonlyArray<Answer> = [
     ),
   },
   {
-    name: "an alert, owners its rules add, paged through a policy you can't see",
+    name: "an alert, owners added by owner rules, paged through a policy you can't see",
     result: result([
       {
         id: "slow",
@@ -745,6 +745,55 @@ describe("in a language written in another script, no English is left", () => {
     }
 
     expect(leftInEnglish).toEqual([]);
+  });
+});
+
+/*
+ * A person's line sets its facts off as the reader's language does: a
+ * middle dot, or a bullet in a language whose zero is a dot (Persian) -
+ * each mark kept to the fact before it by a no-break space, so a line that
+ * wraps never starts with one.
+ */
+const NO_BREAK_SPACE: string = String.fromCharCode(0xa0);
+
+describe("a person's facts, set off as the reader's language does", () => {
+  test.each([
+    ["en", String.fromCharCode(0xb7)],
+    ["de", String.fromCharCode(0xb7)],
+    ["fa", String.fromCharCode(0x2022)],
+  ])("%s", async (language: string, mark: string): Promise<void> => {
+    readIn(language, readWords(language));
+
+    await drawCard(
+      result([
+        {
+          id: "offline",
+          name: "Offline",
+          statusName: "Offline",
+          statusColor: "#ef4444",
+          events: [
+            event({
+              policies: [
+                policy({
+                  people: [person({ reachedThrough: "Team Platform" })],
+                }),
+              ],
+            }),
+          ],
+        },
+      ]),
+    );
+
+    const words: HTMLElement = screen
+      .getByTestId("who-is-told-person")
+      .querySelector("p") as HTMLElement;
+    const facts: Array<string> = (words.textContent || "").split(
+      `${NO_BREAK_SPACE}${mark} `,
+    );
+
+    expect(facts).toHaveLength(3);
+    expect(facts.slice(0, 2)).toEqual(["Ana Lopez", "Team Platform"]);
+    expect(facts[2]!.trim()).not.toBe("");
   });
 });
 

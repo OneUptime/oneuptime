@@ -51137,6 +51137,6 @@
   "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}._one": "هوش مصنوعی این فایل را خوانده است و دیگر بخشی از متن آن را ندارد و نسخهٔ هوش مصنوعی جایگزین کل فایل می‌شود: {{files}}.",
   "Ask AI read this file and no longer has part of its text, and its version replaces all of it: {{files}}.": "هوش مصنوعی این فایل را خوانده است و دیگر بخشی از متن آن را ندارد و نسخهٔ هوش مصنوعی جایگزین کل فایل می‌شود: {{files}}.",
   "A status page you can't see": "صفحه وضعیتی که نمی‌توانید ببینید",
-  "It emails the owners its owner rules add ({{names}}).": "به مالکانی که قواعد مالکیت اضافه می‌کنند ایمیل می‌زند ({{names}}).",
-  "It emails the owners its owner rules add.": "به مالکانی که قواعد مالکیت اضافه می‌کنند ایمیل می‌زند."
+  "It emails the owners added by owner rules ({{names}}).": "به مالکانی که قواعد مالکیت اضافه می‌کنند ایمیل می‌زند ({{names}}).",
+  "It emails the owners added by owner rules.": "به مالکانی که قواعد مالکیت اضافه می‌کنند ایمیل می‌زند."
 }

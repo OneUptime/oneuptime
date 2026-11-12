@@ -51137,6 +51137,6 @@
   "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}._one": "La IA leyó este archivo y ya no tiene parte de su texto, y su versión lo reemplaza entero: {{files}}.",
   "Ask AI read this file and no longer has part of its text, and its version replaces all of it: {{files}}.": "La IA leyó este archivo y ya no tiene parte de su texto, y su versión lo reemplaza entero: {{files}}.",
   "A status page you can't see": "Una página de estado que no puedes ver",
-  "It emails the owners its owner rules add ({{names}}).": "Envía un correo a los propietarios añadidos por sus reglas del propietario ({{names}}).",
-  "It emails the owners its owner rules add.": "Envía un correo a los propietarios añadidos por sus reglas del propietario."
+  "It emails the owners added by owner rules ({{names}}).": "Envía un correo a los propietarios añadidos por las reglas del propietario ({{names}}).",
+  "It emails the owners added by owner rules.": "Envía un correo a los propietarios añadidos por las reglas del propietario."
 }

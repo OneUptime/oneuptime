@@ -37,7 +37,11 @@ import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 import Link from "Common/UI/Components/Link/Link";
 import { ADMIN_DASHBOARD_URL } from "Common/UI/Config";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
-import { formatList, Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  formatList,
+  getInlineSeparator,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import User from "Common/UI/Utils/User";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
@@ -72,14 +76,33 @@ type LoadState =
   | { status: "loaded"; result: WhoIsToldResult };
 
 /*
- * A row's name. A word wider than its column - German's
- * "Eigentümerregeln", "Bereitschaftsrichtlinie" - is hyphenated in the
- * page's language, or else broken at the column's edge: never drawn over
- * the row's value. "anywhere" rather than "break-word", so a defined term's
- * button inside it gives way too.
+ * THE CHAIN IS LAID OUT BY THE ROOM THE CARD HAS, not by the window's
+ * width. The card sits in the overview's side column, a third of the page
+ * from 1280 px up: there, and on a phone, each row's name sits over what it
+ * says, so the value has the card's whole width. With room for both - the
+ * card as wide as the page, from about 1024 px - they sit side by side.
+ * (Side by side from a 640 px window, a value in the side column had some
+ * 100 px: "Operational" ran out of its box and names broke word by word.)
+ * A name with no space in it, such as a status page's address, breaks
+ * where it must rather than run out of the card.
+ */
+const CHAIN_CLASS_NAME: string =
+  "mt-3 space-y-4 [container-type:inline-size] [overflow-wrap:anywhere]";
+
+// A row: its name over its value, side by side once the chain is 28rem wide.
+const CHAIN_ROW_CLASS_NAME: string =
+  "flex flex-col gap-0.5 py-1.5 [@container(min-width:28rem)]:flex-row [@container(min-width:28rem)]:gap-3";
+
+/*
+ * A row's name, in capitals as every name of the chain is - "On-call
+ * policy" too, a defined term's button, which a browser would draw as
+ * written. Side by side, its column fits each language's names but the
+ * longest single words; such a word - German's "Bereitschaftsrichtlinie" -
+ * is hyphenated in the page's language, or else broken at the column's
+ * edge: never drawn over the row's value.
  */
 const ROW_LABEL_CLASS: string =
-  "w-28 shrink-0 text-xs font-medium uppercase tracking-wide text-gray-500 hyphens-auto [overflow-wrap:anywhere]";
+  "text-xs font-medium uppercase tracking-wide text-gray-500 hyphens-auto [overflow-wrap:anywhere] [&_button]:uppercase [@container(min-width:28rem)]:w-40 [@container(min-width:28rem)]:shrink-0";
 
 // One line of the chain: what it is, then what it says.
 const ChainRow: FunctionComponent<{
@@ -92,59 +115,70 @@ const ChainRow: FunctionComponent<{
   testId?: string | undefined;
 }): ReactElement => {
   return (
-    <div
-      className="flex flex-col gap-1 py-1.5 sm:flex-row sm:gap-3"
-      data-testid={props.testId}
-    >
+    <div className={CHAIN_ROW_CLASS_NAME} data-testid={props.testId}>
       <span className={ROW_LABEL_CLASS}>{props.label}</span>
       <div className="min-w-0 text-sm text-gray-900">{props.children}</div>
     </div>
   );
 };
 
-// "Ana Lopez · SMS, Phone call" or why a page won't reach them.
+/*
+ * "Ana Lopez · SMS, Phone call", or why a page won't reach them: the
+ * person's name, how the policy reaches them when it is through a team or
+ * a schedule, and by what - each set off from the next as the reader's
+ * language does. The mark keeps to the fact before it, so a line that
+ * wraps never starts with one. The icon has a column of its own, never a
+ * line of its own over the name.
+ */
 const PersonLine: FunctionComponent<{ person: WhoIsToldPerson }> = (props: {
   person: WhoIsToldPerson;
 }): ReactElement => {
   const translator: Translator = useTranslator();
   const person: WhoIsToldPerson = props.person;
+  const separator: string = `\u00a0${getInlineSeparator(
+    translator.language,
+  ).trim()} `;
 
   return (
     <li
-      className="flex flex-wrap items-center gap-x-2 gap-y-0.5"
+      className="flex items-start gap-2"
       data-testid="who-is-told-person"
       data-reachable={person.isReachable ? "true" : "false"}
     >
       <Icon
         icon={person.isReachable ? IconProp.CheckCircle : IconProp.Alert}
-        className={`h-4 w-4 ${
+        className={`mt-0.5 h-4 w-4 shrink-0 ${
           person.isReachable ? "text-emerald-600" : "text-amber-600"
         }`}
       />
-      <span className="font-medium" dir="auto">
-        {person.name || translator.translateText("Someone")}
-      </span>
-      {person.reachedThrough ? (
-        <span className="text-xs text-gray-500" dir="auto">
-          {person.reachedThrough}
+      <p className="min-w-0 text-xs text-gray-500">
+        <span className="text-sm font-medium text-gray-900" dir="auto">
+          {person.name || translator.translateText("Someone")}
         </span>
-      ) : (
-        <></>
-      )}
-      {person.isReachable ? (
-        <span className="text-xs text-gray-600">
-          {formatList(
-            person.channels.map((channel: OnCallPageChannel): string => {
-              return getChannelName(channel, translator);
-            }),
-            translator,
-          )}
-        </span>
-      ) : (
-        <span className="text-xs text-amber-700">
-          {translator.translateText("Can't be paged")}
-        </span>
-      )}
+        {person.reachedThrough ? (
+          <>
+            {separator}
+            <span dir="auto">{person.reachedThrough}</span>
+          </>
+        ) : (
+          <></>
+        )}
+        {separator}
+        {person.isReachable ? (
+          <span className="text-gray-600">
+            {formatList(
+              person.channels.map((channel: OnCallPageChannel): string => {
+                return getChannelName(channel, translator);
+              }),
+              translator,
+            )}
+          </span>
+        ) : (
+          <span className="text-amber-700">
+            {translator.translateText("Can't be paged")}
+          </span>
+        )}
+      </p>
     </li>
   );
 };
@@ -342,7 +376,7 @@ const Chain: FunctionComponent<{ result: WhoIsToldResult }> = (props: {
   let isFirstPolicyLabel: boolean = true;
 
   return (
-    <ol className="mt-3 space-y-4" data-testid="who-is-told-chain">
+    <ol className={CHAIN_CLASS_NAME} data-testid="who-is-told-chain">
       {props.result.criteria.map((item: WhoIsToldCriteria): ReactElement => {
         return (
           <li
@@ -491,6 +525,12 @@ const MonitorWhoIsToldCard: FunctionComponent<ComponentProps> = (
     setIsRechecking(false);
   };
 
+  // After a failed read: read it again, looking as it does while it loads.
+  const tryAgain: () => void = (): void => {
+    setState({ status: "loading" });
+    void load(false);
+  };
+
   const getBody: () => ReactElement = (): ReactElement => {
     if (state.status === "loading") {
       return (
@@ -506,16 +546,29 @@ const MonitorWhoIsToldCard: FunctionComponent<ComponentProps> = (
       );
     }
 
+    // What failed, and the one thing to do about it here: read it again.
     if (state.status === "error") {
       return (
-        <p className="text-sm text-gray-600" data-testid="who-is-told-error">
-          {translator.translateTemplate(
-            "Couldn't work out who is told. {{error}}",
-            {
-              error: translator.translateText(state.message) || state.message,
-            },
-          )}
-        </p>
+        <div>
+          <p className="text-sm text-gray-600" data-testid="who-is-told-error">
+            {translator.translateTemplate(
+              "Couldn't work out who is told. {{error}}",
+              {
+                error: translator.translateText(state.message) || state.message,
+              },
+            )}
+          </p>
+          <button
+            type="button"
+            className="mt-2 text-sm font-medium text-indigo-700 hover:underline"
+            data-testid="who-is-told-try-again"
+            onClick={() => {
+              tryAgain();
+            }}
+          >
+            {translator.translateText("Try again")}
+          </button>
+        </div>
       );
     }
 
@@ -555,13 +608,14 @@ const MonitorWhoIsToldCard: FunctionComponent<ComponentProps> = (
             )}
           </ul>
         ) : (
-          <p
+          // A div: the Icon draws a div of its own, which a <p> can't hold.
+          <div
             className="mt-2 flex items-center gap-2 text-sm text-emerald-700"
             data-testid="who-is-told-no-breaks"
           >
-            <Icon icon={IconProp.CheckCircle} className="h-4 w-4" />
-            {translator.translateText("Nothing stops the chain.")}
-          </p>
+            <Icon icon={IconProp.CheckCircle} className="h-4 w-4 shrink-0" />
+            <span>{translator.translateText("Nothing stops the chain.")}</span>
+          </div>
         )}
 
         {result.criteria.length > 0 ? (

@@ -51137,6 +51137,6 @@
   "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}._one": "ИИ прочитал этот файл и больше не видит части его текста, а версия ИИ заменяет его целиком: {{files}}.",
   "Ask AI read this file and no longer has part of its text, and its version replaces all of it: {{files}}.": "ИИ прочитал этот файл и больше не видит части его текста, а версия ИИ заменяет его целиком: {{files}}.",
   "A status page you can't see": "Страница состояния, которая вам не видна",
-  "It emails the owners its owner rules add ({{names}}).": "Владельцам, которых добавляют правила владельца, отправляется письмо ({{names}}).",
-  "It emails the owners its owner rules add.": "Владельцам, которых добавляют правила владельца, отправляется письмо."
+  "It emails the owners added by owner rules ({{names}}).": "Владельцам, которых добавляют правила владельца, отправляется письмо ({{names}}).",
+  "It emails the owners added by owner rules.": "Владельцам, которых добавляют правила владельца, отправляется письмо."
 }

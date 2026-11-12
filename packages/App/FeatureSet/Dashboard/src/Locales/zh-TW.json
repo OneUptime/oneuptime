@@ -51137,6 +51137,6 @@
   "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}._one": "AI 讀取了此檔案，但已不再掌握其中部分內容，而 AI 的版本會取代整個檔案：{{files}}。",
   "Ask AI read this file and no longer has part of its text, and its version replaces all of it: {{files}}.": "AI 讀取了此檔案，但已不再掌握其中部分內容，而 AI 的版本會取代整個檔案：{{files}}。",
   "A status page you can't see": "您無法檢視的狀態頁面",
-  "It emails the owners its owner rules add ({{names}}).": "寄送電子郵件給其擁有者規則新增的擁有者（{{names}}）。",
-  "It emails the owners its owner rules add.": "寄送電子郵件給其擁有者規則新增的擁有者。"
+  "It emails the owners added by owner rules ({{names}}).": "寄送電子郵件給擁有者規則新增的擁有者（{{names}}）。",
+  "It emails the owners added by owner rules.": "寄送電子郵件給擁有者規則新增的擁有者。"
 }

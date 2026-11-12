@@ -45,6 +45,9 @@
  *                              is refused, as the server refuses a second
  *                              row for an owner
  *              maintenance     every ScheduledMaintenance list fails
+ *              who-is-told     the FIRST who-is-told request fails, as a
+ *                              gateway's 502 does ("When this goes down"
+ *                              says so; its Try again reads it again)
  *   ?maintenance=1  the subject monitor has scheduled maintenance on its
  *              uptime strip: a completed database upgrade two days ago and
  *              load balancer patching in progress now. Without it the
@@ -3207,6 +3210,7 @@ AnalyticsModelAPI.aggregate = async (options) => {
 
 let hasFailedUptimeSummary = false;
 let hasFailedPreview = false;
+let hasFailedWhoIsTold = false;
 
 /*
  * POST /security-case/resource-security for a monitor, as the server answers
@@ -3591,6 +3595,15 @@ async function handleApi(method, options) {
 
   // Who is told when a monitor goes down (?whoIsTold=).
   if (method === "GET" && parsed.pathname.includes("/who-is-told/monitor/")) {
+    if (failures.has("who-is-told") && !hasFailedWhoIsTold) {
+      hasFailedWhoIsTold = true;
+      /*
+       * A gateway's 502: the server could not be reached. Answered, not
+       * thrown, as API.get answers an error response.
+       */
+      return fail(502, "Bad Gateway");
+    }
+
     return ok(whoIsTold(parsed.pathname.split("/").pop()));
   }
 

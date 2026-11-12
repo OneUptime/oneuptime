@@ -69,9 +69,9 @@ const OWNER_SENTENCES: Readonly<
   },
   [WhoIsToldOwnersSource.OwnerRules]: {
     named: translationKey(
-      "It emails the owners its owner rules add ({{names}}).",
+      "It emails the owners added by owner rules ({{names}}).",
     ),
-    unnamed: translationKey("It emails the owners its owner rules add."),
+    unnamed: translationKey("It emails the owners added by owner rules."),
   },
   [WhoIsToldOwnersSource.ProjectOwners]: {
     named: translationKey("It emails the project's owners ({{names}})."),

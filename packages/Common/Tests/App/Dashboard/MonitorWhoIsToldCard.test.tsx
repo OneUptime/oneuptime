@@ -81,6 +81,11 @@ const BEN: string = "68102222-0000-4000-8000-0000000000d2";
 
 const translator: Translator = getGlobalTranslator();
 
+// A Tailwind variant that follows the window's width, not the card's.
+const WINDOW_WIDTH_VARIANT: RegExp = /(^|\s)(sm|md|lg|xl|2xl):/u;
+const NO_BREAK_SPACE: string = String.fromCharCode(0xa0);
+const MIDDLE_DOT: string = String.fromCharCode(0xb7);
+
 const DASHBOARD_LOCALES: string = path.join(
   __dirname,
   "../../../../App/FeatureSet/Dashboard/src/Locales",
@@ -235,7 +240,7 @@ describe("the card's first words", () => {
   });
 
   // #7076: when only the project's owner rules add owners, the sentence says so.
-  test("owners only owner rules add are said to be theirs, named", () => {
+  test("owners only owner rules add are said to be added by owner rules, named", () => {
     expect(
       getWhoIsToldSentences(
         result([
@@ -255,11 +260,11 @@ describe("the card's first words", () => {
         translator,
       )[1],
     ).toBe(
-      "It emails the owners its owner rules add (Ben Ito and Checkout SRE).",
+      "It emails the owners added by owner rules (Ben Ito and Checkout SRE).",
     );
   });
 
-  test("owner rules that add owners nobody can be named still say whose owners they are", () => {
+  test("owner rules that add owners nobody can be named still say owner rules added them", () => {
     expect(
       getWhoIsToldSentences(
         result([
@@ -277,7 +282,7 @@ describe("the card's first words", () => {
         ]),
         translator,
       )[1],
-    ).toBe("It emails the owners its owner rules add.");
+    ).toBe("It emails the owners added by owner rules.");
   });
 
   test("many people are counted rather than listed", () => {
@@ -395,7 +400,7 @@ describe("the card's first words", () => {
 
     test("English: a space after each sentence", () => {
       expect(getWhoIsToldSummary(owned, translator)).toBe(
-        "OneUptime marks it Offline and opens a Critical incident. It emails the owners its owner rules add (Ben Ito). It pages Ana Lopez through Primary.",
+        "OneUptime marks it Offline and opens a Critical incident. It emails the owners added by owner rules (Ben Ito). It pages Ana Lopez through Primary.",
       );
     });
 
@@ -988,5 +993,195 @@ describe("MonitorWhoIsToldCard", () => {
     );
     expect(screen.queryByTestId("who-is-told-summary")).toBeNull();
     expect(screen.queryByTestId("who-is-told-chain-toggle")).toBeNull();
+  });
+
+  /*
+   * The card sits in the overview's side column from 1280 px up, so the
+   * chain is laid out by the card's own width (a container query), never
+   * the window's: a row's name over its value in the side column and on a
+   * phone, beside it once the chain is 28rem wide. The browser suite
+   * (WhenThisGoesDown.spec.ts) measures where each lands.
+   */
+  test("the chain is laid out by the card's own width, not the window's", async () => {
+    getForMonitor.mockResolvedValue(result([offline()]));
+    renderCard();
+
+    fireEvent.click(await screen.findByTestId("who-is-told-chain-toggle"));
+
+    const chain: HTMLElement = screen.getByTestId("who-is-told-chain");
+
+    expect(chain).toHaveClass("[container-type:inline-size]");
+    // A name with no space in it breaks rather than run out of the card.
+    expect(chain).toHaveClass("[overflow-wrap:anywhere]");
+
+    const rows: Array<HTMLElement> = [
+      screen.getByTestId("who-is-told-rules"),
+      screen.getByTestId("who-is-told-status-pages"),
+    ];
+
+    for (const row of rows) {
+      const name: HTMLElement = row.firstElementChild as HTMLElement;
+
+      expect(row).toHaveClass(
+        "flex-col",
+        "[@container(min-width:28rem)]:flex-row",
+      );
+      expect(name).toHaveClass("[@container(min-width:28rem)]:w-40");
+      expect(row.className).not.toMatch(WINDOW_WIDTH_VARIANT);
+      expect(name.className).not.toMatch(WINDOW_WIDTH_VARIANT);
+    }
+  });
+
+  test("On-call policy, a defined term, is drawn in capitals as every row's name is", async () => {
+    getForMonitor.mockResolvedValue(result([offline()]));
+    renderCard();
+
+    fireEvent.click(await screen.findByTestId("who-is-told-chain-toggle"));
+
+    const term: HTMLElement = screen.getByTestId("defined-term");
+    const name: HTMLElement | null = term.closest(".uppercase");
+
+    expect(term.tagName).toBe("BUTTON");
+    expect(term).toHaveTextContent("On-call policy");
+    expect(name).not.toBeNull();
+    // A button sets its text's case back to none: the name sets it again.
+    expect(name).toHaveClass("[&_button]:uppercase");
+    // The same name as every other row's.
+    expect(name!.className).toBe(
+      (screen.getByTestId("who-is-told-rules").firstElementChild as Element)
+        .className,
+    );
+  });
+
+  /*
+   * A person's line: whether a page reaches them, in a column of its own,
+   * then their name, how the policy reaches them and by what - each set off
+   * by a mark that keeps to the fact before it, so a line that wraps never
+   * starts with one.
+   */
+  test("a person's line: its icon in a column of its own, then the name, how and by what", async () => {
+    getForMonitor.mockResolvedValue(
+      result([
+        offline({
+          events: [
+            event({
+              policies: [
+                policy({
+                  people: [
+                    person({ reachedThrough: "Team Platform" }),
+                    person({
+                      userId: BEN,
+                      name: "Ben Ito",
+                      channels: [],
+                      isReachable: false,
+                      problem: WhoIsToldPersonProblem.NoVerifiedMethod,
+                    }),
+                  ],
+                }),
+              ],
+            }),
+          ],
+        }),
+      ]),
+    );
+    renderCard();
+
+    fireEvent.click(await screen.findByTestId("who-is-told-chain-toggle"));
+
+    const lines: Array<HTMLElement> =
+      screen.getAllByTestId("who-is-told-person");
+    const mark: string = `${NO_BREAK_SPACE}${MIDDLE_DOT} `;
+
+    expect(
+      lines.map((line: HTMLElement): string => {
+        const words: HTMLParagraphElement | null = line.querySelector("p");
+
+        // The icon first, beside the words and never inside them.
+        expect(line.children).toHaveLength(2);
+        expect(line.children[0]!.querySelector("svg")).not.toBeNull();
+        expect(line.children[1]).toBe(words);
+        expect(words!.querySelector("svg")).toBeNull();
+
+        return words!.textContent || "";
+      }),
+    ).toEqual([
+      `Ana Lopez${mark}Team Platform${mark}SMS, Email`,
+      `Ben Ito${mark}Can't be paged`,
+    ]);
+  });
+
+  // An Icon draws a div of its own, which a paragraph can't hold.
+  test("no icon of the card is drawn inside a paragraph", async () => {
+    const errors: SpyInstance<typeof console.error> = jest
+      .spyOn(console, "error")
+      .mockImplementation((): void => {});
+    getForMonitor.mockResolvedValue(result([offline()]));
+    renderCard();
+
+    fireEvent.click(await screen.findByTestId("who-is-told-chain-toggle"));
+
+    const card: HTMLElement = screen.getByTestId("monitor-who-is-told-card");
+
+    expect(screen.getByTestId("who-is-told-no-breaks")).toHaveTextContent(
+      "Nothing stops the chain.",
+    );
+    expect(screen.getByTestId("who-is-told-no-breaks").tagName).toBe("DIV");
+    expect(card.querySelectorAll("svg").length).toBeGreaterThan(1);
+    expect(card.querySelectorAll("p div, p svg")).toHaveLength(0);
+    expect(
+      errors.mock.calls
+        .map((call: Array<unknown>): string => {
+          return call.map(String).join(" ");
+        })
+        .filter((message: string): boolean => {
+          return message.includes("validateDOMNesting");
+        }),
+    ).toEqual([]);
+  });
+
+  test("a failed read can be read again from the card, which loads while it does", async () => {
+    let answer: (value: WhoIsToldResult) => void = (): void => {};
+    getForMonitor.mockRejectedValueOnce(new Error("Gateway Timeout"));
+    getForMonitor.mockReturnValueOnce(
+      new Promise<WhoIsToldResult>(
+        (resolve: (value: WhoIsToldResult) => void) => {
+          answer = resolve;
+        },
+      ),
+    );
+    renderCard();
+
+    const again: HTMLElement = await screen.findByTestId(
+      "who-is-told-try-again",
+    );
+
+    expect(screen.getByTestId("who-is-told-error")).toHaveTextContent(
+      "Couldn't work out who is told. Gateway Timeout",
+    );
+    expect(again.tagName).toBe("BUTTON");
+    expect(again).toHaveAttribute("type", "button");
+    expect(again).toHaveTextContent("Try again");
+
+    await act(async () => {
+      fireEvent.click(again);
+    });
+
+    expect(screen.getByTestId("who-is-told-loading")).toBeInTheDocument();
+    expect(screen.queryByTestId("who-is-told-error")).toBeNull();
+    expect(getForMonitor).toHaveBeenCalledTimes(2);
+    // Read as the card first reads it: the server's answer of a minute ago.
+    expect(getForMonitor.mock.calls[1]![0]).toEqual({
+      monitorId: MONITOR_ID,
+      refresh: false,
+    });
+
+    await act(async () => {
+      answer(result([offline()]));
+    });
+
+    expect(await screen.findByTestId("who-is-told-summary")).toHaveTextContent(
+      "OneUptime marks it Offline and opens a Critical incident.",
+    );
+    expect(screen.queryByTestId("who-is-told-try-again")).toBeNull();
   });
 });

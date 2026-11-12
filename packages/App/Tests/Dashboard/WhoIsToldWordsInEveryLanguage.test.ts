@@ -202,8 +202,8 @@ const KEYS: Set<string> = new Set<string>(
 
 // The words this follow-up added: owner rules (#7076) and status pages (#7077).
 const NEW_KEYS: Array<string> = [
-  "It emails the owners its owner rules add ({{names}}).",
-  "It emails the owners its owner rules add.",
+  "It emails the owners added by owner rules ({{names}}).",
+  "It emails the owners added by owner rules.",
   "A status page you can't see",
 ];
 
@@ -291,7 +291,7 @@ describe("When this goes down's words in every language", () => {
 
     expect(unworded.length).toBeGreaterThan(50);
     expect(unworded).toContain(
-      "It emails the owners its owner rules add. (WhoIsToldWords.ts)",
+      "It emails the owners added by owner rules. (WhoIsToldWords.ts)",
     );
     expect(unworded).toContain(
       "A status page you can't see (MonitorWhoIsToldCard.tsx)",
@@ -311,11 +311,11 @@ describe("When this goes down's words in every language", () => {
   test("a translation that drops the names it carries fails it", () => {
     const german: Record<string, unknown> = { ...readLocale("de") };
 
-    german["It emails the owners its owner rules add ({{names}})."] =
+    german["It emails the owners added by owner rules ({{names}})."] =
       "Es sendet E-Mails an die Besitzer, die seine Besitzerregeln hinzufügen.";
 
     expect(getPlaceholderMismatches(german)).toEqual([
-      "It emails the owners its owner rules add ({{names}}).",
+      "It emails the owners added by owner rules ({{names}}).",
     ]);
   });
 });

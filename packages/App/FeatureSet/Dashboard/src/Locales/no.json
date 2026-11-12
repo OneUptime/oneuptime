@@ -51137,6 +51137,6 @@
   "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}._one": "AI leste denne filen og har ikke lenger en del av teksten i den, og AI-versjonen erstatter hele filen: {{files}}.",
   "Ask AI read this file and no longer has part of its text, and its version replaces all of it: {{files}}.": "AI leste denne filen og har ikke lenger en del av teksten i den, og AI-versjonen erstatter hele filen: {{files}}.",
   "A status page you can't see": "En statusside du ikke kan se",
-  "It emails the owners its owner rules add ({{names}}).": "Eierne som eierreglene legger til, får e-post ({{names}}).",
-  "It emails the owners its owner rules add.": "Eierne som eierreglene legger til, får e-post."
+  "It emails the owners added by owner rules ({{names}}).": "Eierne som eierreglene legger til, får e-post ({{names}}).",
+  "It emails the owners added by owner rules.": "Eierne som eierreglene legger til, får e-post."
 }
