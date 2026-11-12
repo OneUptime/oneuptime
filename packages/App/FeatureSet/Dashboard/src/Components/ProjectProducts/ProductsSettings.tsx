@@ -302,12 +302,12 @@ const ProductsSettings: FunctionComponent = (): ReactElement => {
               isEveryProductOff
                 ? translator.translateText(ServerProductOffCopy.rowSwitchedOff)
                 : hideable.length > 0
-                ? translator.translatePlural(
-                    ProductsSettingsCopy.shownCount,
-                    hideable.length,
-                    { shown: translator.formatNumber(shownCount) },
-                  )
-                : translator.translateText(ProductsSettingsCopy.alwaysShown)
+                  ? translator.translatePlural(
+                      ProductsSettingsCopy.shownCount,
+                      hideable.length,
+                      { shown: translator.formatNumber(shownCount) },
+                    )
+                  : translator.translateText(ProductsSettingsCopy.alwaysShown)
             }
           >
             <div className="divide-y divide-gray-100">

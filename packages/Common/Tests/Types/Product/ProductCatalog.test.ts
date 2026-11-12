@@ -81,6 +81,19 @@ const categoryTitle: (variable: string) => string = (
   return lookUp(match?.[1] as string) as string;
 };
 
+/*
+ * The products the catalog already names as #6817 decided (On-Call, not
+ * On-Call Duty), with the retired name the Dashboard's menu still says
+ * until #6817 renames it there. Once the menu says the new name, the test
+ * "a product named ahead of the menu..." asks for it to come off this list.
+ */
+const NAMED_AHEAD_OF_THE_MENU: Partial<Record<ProductKey, string>> = {
+  [ProductKey.OnCall]: "On-Call Duty",
+  [ProductKey.Profiles]: "Performance Profiles",
+  [ProductKey.AIInsights]: "Insights",
+  [ProductKey.AIChat]: "Chat",
+};
+
 describe("the product catalog", () => {
   test("lists every product once, in the products menu's order", () => {
     expect(isCatalogComplete()).toBe(true);
@@ -91,15 +104,41 @@ describe("the product catalog", () => {
     expect(MENU_ENTRIES).toHaveLength(PRODUCT_KEYS.length);
   });
 
-  test("names each product as the Dashboard's English menu does", () => {
+  test("names each product as the Dashboard's English menu does, or by its new name while #6817 renames the menu", () => {
     for (const entry of MENU_ENTRIES) {
       const product: ProductKey = (
         ProductKey as unknown as Record<string, ProductKey>
       )[entry.product] as ProductKey;
+      const menuTitle: unknown = lookUp(entry.titleKey);
+      const retired: string | undefined = NAMED_AHEAD_OF_THE_MENU[product];
+
+      if (retired !== undefined && menuTitle === retired) {
+        // The menu still says the retired name; the catalog says the new one.
+        continue;
+      }
 
       expect({ product, title: getProductTitle(product) }).toEqual({
         product,
-        title: lookUp(entry.titleKey),
+        title: menuTitle,
+      });
+    }
+  });
+
+  test("a product named ahead of the menu is listed only while the menu still says its retired name", () => {
+    for (const entry of MENU_ENTRIES) {
+      const product: ProductKey = (
+        ProductKey as unknown as Record<string, ProductKey>
+      )[entry.product] as ProductKey;
+      const retired: string | undefined = NAMED_AHEAD_OF_THE_MENU[product];
+
+      if (retired === undefined) {
+        continue;
+      }
+
+      // Once the menu says the new name, take the product off the list.
+      expect({ product, menuTitle: lookUp(entry.titleKey) }).toEqual({
+        product,
+        menuTitle: retired,
       });
     }
   });

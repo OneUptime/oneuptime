@@ -317,8 +317,12 @@ const ServerProductsSettings: FunctionComponent = (): ReactElement => {
               {translator.translateText(ServerProductsCopy.whatOffMeansTitle)}
             </p>
             <ul className="mt-1 list-disc space-y-1 ps-5">
-              <li>{translator.translateText(ServerProductsCopy.nothingDeleted)}</li>
-              <li>{translator.translateText(ServerProductsCopy.keepsRunning)}</li>
+              <li>
+                {translator.translateText(ServerProductsCopy.nothingDeleted)}
+              </li>
+              <li>
+                {translator.translateText(ServerProductsCopy.keepsRunning)}
+              </li>
               <li>{translator.translateText(ServerProductsCopy.apiRefuses)}</li>
             </ul>
           </div>
@@ -371,9 +375,8 @@ const ServerProductsSettings: FunctionComponent = (): ReactElement => {
           <div className="space-y-6">
             {PRODUCT_CATEGORIES.map(
               (category: ProductCategory): ReactElement => {
-                const products: Array<ProductKey> = category.products.filter(
-                  isSwitchableProduct,
-                );
+                const products: Array<ProductKey> =
+                  category.products.filter(isSwitchableProduct);
 
                 if (products.length === 0) {
                   return (

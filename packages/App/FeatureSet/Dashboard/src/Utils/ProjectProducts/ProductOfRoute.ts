@@ -71,7 +71,10 @@ export const PRODUCT_ROOT_PAGES: Readonly<
   [ProductKey.VMware]: [PageMap.VMWARE_ROOT],
   [ProductKey.Ceph]: [PageMap.CEPH_ROOT],
   [ProductKey.StorageArrays]: [PageMap.STORAGE_ARRAYS_ROOT],
-  [ProductKey.Network]: [PageMap.NETWORK_DEVICE_ROOT, PageMap.NETWORK_SITE_ROOT],
+  [ProductKey.Network]: [
+    PageMap.NETWORK_DEVICE_ROOT,
+    PageMap.NETWORK_SITE_ROOT,
+  ],
   [ProductKey.IoT]: [PageMap.IOT_ROOT],
   [ProductKey.Cloud]: [PageMap.CLOUD_ROOT],
   [ProductKey.AppPlatforms]: [PageMap.APP_PLATFORMS_ROOT],
@@ -247,9 +250,9 @@ const getGuidedSetupOfPath: (pathname: string) => PageMap | null = (
 };
 
 // Every product an address needs on: its own, and a guided setup's others.
-export const getProductsOfPath: (
+export const getProductsOfPath: (pathname: string) => Array<ProductKey> = (
   pathname: string,
-) => Array<ProductKey> = (pathname: string): Array<ProductKey> => {
+): Array<ProductKey> => {
   const products: Array<ProductKey> = [];
   const own: ProductKey | null = getProductOfPath(pathname);
 

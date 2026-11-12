@@ -164,21 +164,21 @@ describe("what is off", () => {
   });
 
   test("a read that fails answers every product on, and is not kept", async () => {
-    (GlobalConfigService.findOneById as unknown as jest.Mock).mockImplementation(
-      async () => {
-        throw new Error("The database is not reachable.");
-      },
-    );
+    (
+      GlobalConfigService.findOneById as unknown as jest.Mock
+    ).mockImplementation(async () => {
+      throw new Error("The database is not reachable.");
+    });
 
     expect(await service.getOff()).toEqual({});
 
-    (GlobalConfigService.findOneById as unknown as jest.Mock).mockImplementation(
-      async (): Promise<GlobalConfig> => {
-        const config: GlobalConfig = new GlobalConfig();
-        config.serverProducts = { off: [ProductKey.Logs] } as never;
-        return config;
-      },
-    );
+    (
+      GlobalConfigService.findOneById as unknown as jest.Mock
+    ).mockImplementation(async (): Promise<GlobalConfig> => {
+      const config: GlobalConfig = new GlobalConfig();
+      config.serverProducts = { off: [ProductKey.Logs] } as never;
+      return config;
+    });
 
     expect(await service.getOff()).toEqual({
       [ProductKey.Logs]: ServerProductOffReason.SwitchedOff,

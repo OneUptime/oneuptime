@@ -163,15 +163,13 @@ const DashboardKeyboardShortcuts: FunctionComponent = (): ReactElement => {
       ...products.answer.hidden,
       // Switched off on the server (#6815): not listed either.
       ...getOffProducts(products.answer.offOnServer || {}),
-    ]).map(
-      (shortcut: DashboardGoToShortcut): KeyboardShortcutDescription => {
-        return {
-          id: `go-to-${shortcut.key}`,
-          keySequence: [[DASHBOARD_GO_TO_LEADER_KEY], [shortcut.key]],
-          description: t(shortcut.titleKey, shortcut.defaultTitle),
-        };
-      },
-    );
+    ]).map((shortcut: DashboardGoToShortcut): KeyboardShortcutDescription => {
+      return {
+        id: `go-to-${shortcut.key}`,
+        keySequence: [[DASHBOARD_GO_TO_LEADER_KEY], [shortcut.key]],
+        description: t(shortcut.titleKey, shortcut.defaultTitle),
+      };
+    });
 
   const groups: Array<KeyboardShortcutGroup> = [
     {

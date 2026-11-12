@@ -1,6 +1,12 @@
 import "@testing-library/jest-dom";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import fs from "fs";
 import { createInstance, i18n } from "i18next";
 import path from "path";
@@ -321,7 +327,9 @@ describe("the presets", () => {
     );
     await renderPage();
 
-    expect(screen.getByTestId(SERVER_PRODUCTS_OWN_CHOICE_TEST_ID)).toHaveTextContent(
+    expect(
+      screen.getByTestId(SERVER_PRODUCTS_OWN_CHOICE_TEST_ID),
+    ).toHaveTextContent(
       `Your own choice: ${SWITCHABLE_PRODUCTS.length - 1} of ${SWITCHABLE_PRODUCTS.length} products are on.`,
     );
 
@@ -391,12 +399,16 @@ describe("where the switches come from", () => {
       }),
     );
     await renderPage();
-    expect(screen.queryByTestId(SERVER_PRODUCTS_STARTING_VALUE_TEST_ID)).toBeNull();
+    expect(
+      screen.queryByTestId(SERVER_PRODUCTS_STARTING_VALUE_TEST_ID),
+    ).toBeNull();
 
     cleanup();
     mockFetch.mockResolvedValue(answer({}));
     await renderPage();
-    expect(screen.queryByTestId(SERVER_PRODUCTS_STARTING_VALUE_TEST_ID)).toBeNull();
+    expect(
+      screen.queryByTestId(SERVER_PRODUCTS_STARTING_VALUE_TEST_ID),
+    ).toBeNull();
   });
 });
 
@@ -417,11 +429,15 @@ describe("telemetry ingestion", () => {
     expect(
       screen.getByTestId(SERVER_PRODUCTS_INGESTION_STOPPED_TEST_ID),
     ).toHaveTextContent(
-      "Telemetry ingestion is stopped on this server (DISABLE_TELEMETRY_INGESTION), so Logs, Metrics, Traces, Performance Profiles and Exceptions are off.",
+      "Telemetry ingestion is stopped on this server (DISABLE_TELEMETRY_INGESTION), so Logs, Metrics, Traces, Profiles and Exceptions are off.",
     );
-    expect(screen.queryByTestId(SERVER_PRODUCTS_SUGGEST_STOPPING_TEST_ID)).toBeNull();
+    expect(
+      screen.queryByTestId(SERVER_PRODUCTS_SUGGEST_STOPPING_TEST_ID),
+    ).toBeNull();
 
-    fireEvent.click(screen.getByTestId(SERVER_PRODUCTS_ONE_BY_ONE_TOGGLE_TEST_ID));
+    fireEvent.click(
+      screen.getByTestId(SERVER_PRODUCTS_ONE_BY_ONE_TOGGLE_TEST_ID),
+    );
 
     // The switch itself carries the test id; locked, it says so (aria-disabled).
     const logsSwitch: HTMLElement = screen.getByTestId(
@@ -440,8 +456,12 @@ describe("telemetry ingestion", () => {
     mockFetch.mockResolvedValue(answer({}));
     await renderPage();
 
-    expect(screen.queryByTestId(SERVER_PRODUCTS_INGESTION_STOPPED_TEST_ID)).toBeNull();
-    expect(screen.queryByTestId(SERVER_PRODUCTS_SUGGEST_STOPPING_TEST_ID)).toBeNull();
+    expect(
+      screen.queryByTestId(SERVER_PRODUCTS_INGESTION_STOPPED_TEST_ID),
+    ).toBeNull();
+    expect(
+      screen.queryByTestId(SERVER_PRODUCTS_SUGGEST_STOPPING_TEST_ID),
+    ).toBeNull();
   });
 });
 
@@ -459,7 +479,9 @@ describe("choosing products one by one", () => {
       ),
     ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByTestId(SERVER_PRODUCTS_ONE_BY_ONE_TOGGLE_TEST_ID));
+    fireEvent.click(
+      screen.getByTestId(SERVER_PRODUCTS_ONE_BY_ONE_TOGGLE_TEST_ID),
+    );
 
     for (const product of SWITCHABLE_PRODUCTS) {
       expect(
@@ -468,14 +490,18 @@ describe("choosing products one by one", () => {
     }
 
     expect(
-      screen.queryByTestId(getServerProductSwitchTestId(ProductKey.ProjectSettings)),
+      screen.queryByTestId(
+        getServerProductSwitchTestId(ProductKey.ProjectSettings),
+      ),
     ).toBeNull();
-    expect(screen.getByText("Users, Teams and Project Settings")).toBeInTheDocument();
+    expect(
+      screen.getByText("Users, Teams and Project Settings"),
+    ).toBeInTheDocument();
     expect(
       screen.getByText("Always on: every project needs them to run itself."),
     ).toBeInTheDocument();
     expect(screen.getByText("Observability")).toBeInTheDocument();
-    expect(screen.getByText("Performance Profiles")).toBeInTheDocument();
+    expect(screen.getByText("Profiles")).toBeInTheDocument();
   });
 
   test("a switch saves the moment it is flipped", async () => {
@@ -490,7 +516,9 @@ describe("choosing products one by one", () => {
     );
     await renderPage();
 
-    fireEvent.click(screen.getByTestId(SERVER_PRODUCTS_ONE_BY_ONE_TOGGLE_TEST_ID));
+    fireEvent.click(
+      screen.getByTestId(SERVER_PRODUCTS_ONE_BY_ONE_TOGGLE_TEST_ID),
+    );
 
     const traces: HTMLElement = screen.getByTestId(
       getServerProductSwitchTestId(ProductKey.Traces),
@@ -503,6 +531,8 @@ describe("choosing products one by one", () => {
       product: ProductKey.Traces,
       isOn: false,
     });
-    expect(screen.getByTestId(SERVER_PRODUCTS_OWN_CHOICE_TEST_ID)).toBeInTheDocument();
+    expect(
+      screen.getByTestId(SERVER_PRODUCTS_OWN_CHOICE_TEST_ID),
+    ).toBeInTheDocument();
   });
 });

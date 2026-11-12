@@ -9,9 +9,11 @@ import ProductKey, { PRODUCT_KEYS } from "./ProductKey";
  * names where there is no Dashboard locale: a refusal the API sends ("Status
  * Pages is switched off on this server"), Ask AI's words, and Admin
  * Dashboard > Settings > Products, which lists every product a server can
- * switch off. These are the menu's English words, word for word
- * (Tests/Types/Product/ProductCatalog pins them to the Dashboard's
- * en.json), so a product has one name wherever it is read.
+ * switch off. These are the menu's English words (Tests/Types/Product/
+ * ProductCatalog pins them to the Dashboard's en.json), so a product has
+ * one name wherever it is read - in the names #6817 decided: On-Call (not
+ * On-Call Duty), Profiles, AI Insights and Ask AI, ahead of the menu while
+ * #6817 renames it.
  *
  * Pure: the server, the Admin Dashboard and their tests read it.
  */
@@ -20,22 +22,22 @@ export const PRODUCT_TITLES: Readonly<Record<ProductKey, string>> = {
   [ProductKey.Monitors]: "Monitors",
   [ProductKey.Incidents]: "Incidents",
   [ProductKey.Alerts]: "Alerts",
-  [ProductKey.OnCall]: "On-Call Duty",
+  [ProductKey.OnCall]: "On-Call",
   [ProductKey.StatusPages]: "Status Pages",
   [ProductKey.ScheduledMaintenance]: "Scheduled Maintenance",
   [ProductKey.Slos]: "SLOs",
   [ProductKey.Logs]: "Logs",
   [ProductKey.Metrics]: "Metrics",
   [ProductKey.Traces]: "Traces",
-  [ProductKey.Profiles]: "Performance Profiles",
+  [ProductKey.Profiles]: "Profiles",
   [ProductKey.Exceptions]: "Exceptions",
   [ProductKey.Llm]: "AI / LLM",
   [ProductKey.DataObservability]: "Data Observability",
   [ProductKey.Topology]: "Topology",
   [ProductKey.SecurityEvents]: "Security Events",
   [ProductKey.DataSecurity]: "Data Security",
-  [ProductKey.AIChat]: "Chat",
-  [ProductKey.AIInsights]: "Insights",
+  [ProductKey.AIChat]: "Ask AI",
+  [ProductKey.AIInsights]: "AI Insights",
   [ProductKey.Code]: "Code",
   [ProductKey.Inventory]: "Inventory",
   [ProductKey.Services]: "Services",

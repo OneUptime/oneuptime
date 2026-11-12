@@ -140,9 +140,9 @@ describe("the presets", () => {
   test("getOffFromOn leaves out the products to keep, in the menu's order", () => {
     expect(getOffFromOn(SWITCHABLE_PRODUCTS)).toEqual([]);
     expect(getOffFromOn([])).toEqual(SWITCHABLE_PRODUCTS);
-    expect(
-      getOffFromOn([ProductKey.Logs]).includes(ProductKey.Logs),
-    ).toBe(false);
+    expect(getOffFromOn([ProductKey.Logs]).includes(ProductKey.Logs)).toBe(
+      false,
+    );
   });
 
   test("getPresetOf names the preset the products are exactly, or none", () => {
@@ -184,8 +184,8 @@ describe("what an admin saved (GlobalConfig.serverProducts)", () => {
   });
 
   test("keeps known products a server can switch off, in the menu's order", () => {
-    const settings: ServerProductsSettings | null =
-      parseServerProductsSettings({
+    const settings: ServerProductsSettings | null = parseServerProductsSettings(
+      {
         off: [
           ProductKey.Traces,
           "not-a-product",
@@ -196,7 +196,8 @@ describe("what an admin saved (GlobalConfig.serverProducts)", () => {
         ],
         changedAt: NOW.toISOString(),
         changedByUserId: "user-1",
-      });
+      },
+    );
 
     expect(settings).toEqual({
       off: [ProductKey.Logs, ProductKey.Traces],
@@ -233,17 +234,22 @@ describe("the starting value (SERVER_PRODUCTS)", () => {
     expect(SERVER_PRODUCTS_ENV_VAR).toBe("SERVER_PRODUCTS");
   });
 
-  test.each([undefined, null, "", "   ", "everything", "EVERYTHING", " everything "])(
-    "%p keeps every product on",
-    (value: string | null | undefined) => {
-      const startingValue: ServerProductsStartingValue =
-        parseServerProductsStartingValue(value);
+  test.each([
+    undefined,
+    null,
+    "",
+    "   ",
+    "everything",
+    "EVERYTHING",
+    " everything ",
+  ])("%p keeps every product on", (value: string | null | undefined) => {
+    const startingValue: ServerProductsStartingValue =
+      parseServerProductsStartingValue(value);
 
-      expect(startingValue.off).toEqual([]);
-      expect(startingValue.preset).toBe(ServerProductsPreset.Everything);
-      expect(startingValue.unknownNames).toEqual([]);
-    },
-  );
+    expect(startingValue.off).toEqual([]);
+    expect(startingValue.preset).toBe(ServerProductsPreset.Everything);
+    expect(startingValue.unknownNames).toEqual([]);
+  });
 
   test.each(SERVER_PRODUCTS_PRESETS)("the preset %s", (preset: string) => {
     const startingValue: ServerProductsStartingValue =

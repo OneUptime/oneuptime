@@ -94,7 +94,10 @@ describe("every tool belongs to its products, or to none", () => {
   });
 
   test("the lists name only tools the toolbox has", () => {
-    for (const name of [...Object.keys(TOOL_PRODUCTS), ...TOOLS_OF_NO_PRODUCT]) {
+    for (const name of [
+      ...Object.keys(TOOL_PRODUCTS),
+      ...TOOLS_OF_NO_PRODUCT,
+    ]) {
       expect({ name, registered: toolNames.includes(name) }).toEqual({
         name,
         registered: true,
@@ -107,8 +110,11 @@ describe("every tool belongs to its products, or to none", () => {
       expect(products.length).toBeGreaterThan(0);
 
       for (const product of products) {
-        expect({ name, product, switchable: isSwitchableProduct(product) })
-          .toEqual({ name, product, switchable: true });
+        expect({
+          name,
+          product,
+          switchable: isSwitchableProduct(product),
+        }).toEqual({ name, product, switchable: true });
       }
     }
   });
@@ -166,7 +172,7 @@ describe("a setup action for a product that is off is never proposed", () => {
   });
 
   test.each([
-    [SET_UP_PAGING_TOOL_NAME, ProductKey.OnCall, "On-Call Duty"],
+    [SET_UP_PAGING_TOOL_NAME, ProductKey.OnCall, "On-Call"],
     [PUBLISH_STATUS_PAGE_TOOL_NAME, ProductKey.StatusPages, "Status Pages"],
     [
       ADD_MONITORS_TO_STATUS_PAGE_TOOL_NAME,

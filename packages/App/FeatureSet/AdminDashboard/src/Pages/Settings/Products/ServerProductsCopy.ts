@@ -68,7 +68,7 @@ export const ServerProductsCopy: {
     "SERVER_PRODUCTS names {{names}}, which is neither a preset nor a product, so it was left out.",
   ),
   ingestionStopped: translationKey(
-    "Telemetry ingestion is stopped on this server (DISABLE_TELEMETRY_INGESTION), so Logs, Metrics, Traces, Performance Profiles and Exceptions are off. To switch them on, set it to false and restart OneUptime.",
+    "Telemetry ingestion is stopped on this server (DISABLE_TELEMETRY_INGESTION), so Logs, Metrics, Traces, Profiles and Exceptions are off. To switch them on, set it to false and restart OneUptime.",
   ),
   suggestStoppingIngestion: translationKey(
     "Every telemetry product is off. You can also stop telemetry ingestion to save memory: set DISABLE_TELEMETRY_INGESTION=true (Helm: telemetry.disableIngestion) and restart OneUptime.",
@@ -85,7 +85,9 @@ export const ServerProductsCopy: {
     "Off while telemetry ingestion is stopped.",
   ),
   alwaysOnTitle: translationKey("Users, Teams and Project Settings"),
-  alwaysOn: translationKey("Always on: every project needs them to run itself."),
+  alwaysOn: translationKey(
+    "Always on: every project needs them to run itself.",
+  ),
   saved: translationKey("Saved"),
   loadError: translationKey(
     "The products on this server could not be read. Reload the page to try again.",

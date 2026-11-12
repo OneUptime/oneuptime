@@ -200,7 +200,9 @@ export const STAT_TILE_KEYS: Array<string> = STAT_TILE_DEFINITIONS.map(
  */
 export const getStatTileKeysOnServer: (
   offProducts: ReadonlyArray<ProductKey>,
-) => Array<string> = (offProducts: ReadonlyArray<ProductKey>): Array<string> => {
+) => Array<string> = (
+  offProducts: ReadonlyArray<ProductKey>,
+): Array<string> => {
   return STAT_TILE_DEFINITIONS.filter(
     (definition: StatTileDefinition): boolean => {
       return !offProducts.includes(definition.product);

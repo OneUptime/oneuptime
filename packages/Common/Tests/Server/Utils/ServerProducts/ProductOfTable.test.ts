@@ -13,7 +13,10 @@ import {
   getProductOfTable,
 } from "../../../../Types/Product/ProductOfTable";
 import { ServerProductOffReason } from "../../../../Types/Product/ServerProducts";
-import { ExpressRequest, ExpressResponse } from "../../../../Server/Utils/Express";
+import {
+  ExpressRequest,
+  ExpressResponse,
+} from "../../../../Server/Utils/Express";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
@@ -72,10 +75,7 @@ const makeApi: (modelType: { new (): BaseModel }) => {
   } as unknown as FakeService;
 
   return {
-    api: new BaseAPI<BaseModel, DatabaseService<BaseModel>>(
-      modelType,
-      service,
-    ),
+    api: new BaseAPI<BaseModel, DatabaseService<BaseModel>>(modelType, service),
     service,
   };
 };

@@ -814,9 +814,9 @@ describe("products switched off on the server", () => {
   });
 
   test("nothing off: the answer says so", async () => {
-    expect((await ProjectProductsService.getAnswer(OWNER())).offOnServer).toEqual(
-      {},
-    );
+    expect(
+      (await ProjectProductsService.getAnswer(OWNER())).offOnServer,
+    ).toEqual({});
   });
 
   test("Home does not ask about a hidden product with data that is off on the server", async () => {

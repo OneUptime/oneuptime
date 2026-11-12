@@ -90,6 +90,16 @@ import {
  */
 
 const translation: i18n = createInstance();
+
+/*
+ * On-Call's name as the products menu says it in English (#6817 renames it
+ * there): the off page names a product as the reader's menu does.
+ */
+const ON_CALL_TITLE: string = (
+  englishLocale as unknown as {
+    navbar: { items: { onCallDutyTitle: string } };
+  }
+).navbar.items.onCallDutyTitle;
 const ORIGINAL_WIDTH: number = window.innerWidth;
 
 function given(extra: Partial<ProjectProductsAnswer>): ProjectProductsAnswer {
@@ -141,11 +151,11 @@ beforeEach(() => {
   setViewportWidth(DESKTOP_WIDTH);
   goTo(`/dashboard/${PROJECT_ID}/home`);
   navigated = [];
-  jest
-    .spyOn(Navigation, "navigate")
-    .mockImplementation(((to: Route | URL): void => {
-      navigated.push(to.toString());
-    }) as never);
+  jest.spyOn(Navigation, "navigate").mockImplementation(((
+    to: Route | URL,
+  ): void => {
+    navigated.push(to.toString());
+  }) as never);
   jest.spyOn(User, "isMasterAdmin").mockReturnValue(false);
 });
 
@@ -173,11 +183,15 @@ describe("the products menu", () => {
     render(wrap(<DashboardNavbar show={true} />));
     const menu: HTMLElement = openProducts();
 
-    fireEvent.click(within(menu).getByRole("button", { name: "Observability" }));
+    fireEvent.click(
+      within(menu).getByRole("button", { name: "Observability" }),
+    );
     expect(within(menu).queryByText("Logs")).toBeNull();
     expect(within(menu).getByText("Traces")).toBeInTheDocument();
 
-    fireEvent.click(within(menu).getByRole("button", { name: "More products" }));
+    fireEvent.click(
+      within(menu).getByRole("button", { name: "More products" }),
+    );
     expect(within(menu).getByText("Kubernetes")).toBeInTheDocument();
     expect(within(menu).queryByText("Docker")).toBeNull();
   });
@@ -337,7 +351,9 @@ describe("Home and the shortcuts", () => {
       ),
     );
 
-    expect(screen.queryByTestId(`welcome-goal-${ProjectGoal.StatusPage}`)).toBeNull();
+    expect(
+      screen.queryByTestId(`welcome-goal-${ProjectGoal.StatusPage}`),
+    ).toBeNull();
     expect(
       screen.getByTestId(`welcome-goal-${ProjectGoal.Uptime}`),
     ).toBeInTheDocument();
@@ -399,7 +415,9 @@ describe("Project Settings > Products", () => {
 
     render(wrap(<ProductsSettings />));
 
-    expect(screen.getAllByText("Switched off on this server").length).toBeGreaterThanOrEqual(3);
+    expect(
+      screen.getAllByText("Switched off on this server").length,
+    ).toBeGreaterThanOrEqual(3);
   });
 });
 
@@ -498,8 +516,10 @@ describe("the page an address of an off product opens", () => {
       ),
     );
 
-    expect(screen.getByTestId(SERVER_PRODUCT_OFF_PAGE_TEST_ID)).toHaveTextContent(
-      "This page also uses On-Call Duty, which a server admin switched off for every project on this server. Nothing was deleted.",
+    expect(
+      screen.getByTestId(SERVER_PRODUCT_OFF_PAGE_TEST_ID),
+    ).toHaveTextContent(
+      `This page also uses ${ON_CALL_TITLE}, which a server admin switched off for every project on this server. Nothing was deleted.`,
     );
   });
 });
@@ -518,9 +538,9 @@ describe("the gate around every route", () => {
     );
 
     expect(screen.queryByTestId("the-page")).toBeNull();
-    expect(screen.getByTestId(SERVER_PRODUCT_OFF_PAGE_TEST_ID)).toHaveTextContent(
-      "Logs is switched off on this server",
-    );
+    expect(
+      screen.getByTestId(SERVER_PRODUCT_OFF_PAGE_TEST_ID),
+    ).toHaveTextContent("Logs is switched off on this server");
   });
 
   test("a page of a product that is on draws as before", () => {
@@ -537,7 +557,7 @@ describe("the gate around every route", () => {
     expect(screen.queryByTestId(SERVER_PRODUCT_OFF_PAGE_TEST_ID)).toBeNull();
   });
 
-  test("the website guided setup explains itself while On-Call Duty is off", () => {
+  test("the website guided setup explains itself while On-Call is off", () => {
     given({ offOnServer: off([ProductKey.OnCall]) });
 
     render(
@@ -548,9 +568,9 @@ describe("the gate around every route", () => {
     );
 
     expect(screen.queryByTestId("the-page")).toBeNull();
-    expect(screen.getByTestId(SERVER_PRODUCT_OFF_PAGE_TEST_ID)).toHaveTextContent(
-      "On-Call Duty is switched off on this server",
-    );
+    expect(
+      screen.getByTestId(SERVER_PRODUCT_OFF_PAGE_TEST_ID),
+    ).toHaveTextContent(`${ON_CALL_TITLE} is switched off on this server`);
   });
 
   test("nothing off: every page draws", () => {

@@ -106,7 +106,8 @@ export const PRODUCTS_OF_PRESET: Readonly<
 };
 
 export const PRESET_TITLES: Readonly<Record<ServerProductsPreset, string>> = {
-  [ServerProductsPreset.MonitoringAndStatusPages]: "Monitoring and status pages",
+  [ServerProductsPreset.MonitoringAndStatusPages]:
+    "Monitoring and status pages",
   [ServerProductsPreset.IncidentResponse]: "Incident response",
   [ServerProductsPreset.Everything]: "Everything",
 };

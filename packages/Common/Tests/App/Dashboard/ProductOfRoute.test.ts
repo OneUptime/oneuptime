@@ -195,7 +195,9 @@ describe("the product that is off, for an address", () => {
     expect(
       getOffProductOfPath({
         pathname: at("monitors/setup"),
-        offOnServer: { [ProductKey.OnCall]: ServerProductOffReason.SwitchedOff },
+        offOnServer: {
+          [ProductKey.OnCall]: ServerProductOffReason.SwitchedOff,
+        },
       }),
     ).toEqual({
       product: ProductKey.OnCall,
@@ -220,7 +222,9 @@ describe("the product that is off, for an address", () => {
     expect(
       getOffProductOfPath({
         pathname: at("monitors"),
-        offOnServer: { [ProductKey.OnCall]: ServerProductOffReason.SwitchedOff },
+        offOnServer: {
+          [ProductKey.OnCall]: ServerProductOffReason.SwitchedOff,
+        },
       }),
     ).toBeNull();
     expect(

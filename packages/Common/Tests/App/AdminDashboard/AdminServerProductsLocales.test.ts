@@ -83,7 +83,10 @@ for (const value of Object.values(ServerProductsCopy)) {
 }
 
 for (const preset of SERVER_PRODUCTS_PRESETS) {
-  SENTENCES.push({ key: PRESET_TITLES[preset], english: PRESET_TITLES[preset] });
+  SENTENCES.push({
+    key: PRESET_TITLES[preset],
+    english: PRESET_TITLES[preset],
+  });
   SENTENCES.push({
     key: PRESET_DESCRIPTIONS[preset],
     english: PRESET_DESCRIPTIONS[preset],
@@ -126,9 +129,10 @@ describe("Settings > Products in every language", () => {
       for (const sentence of SENTENCES) {
         const value: unknown = locale[sentence.key];
 
-        expect({ key: sentence.key, isText: typeof value === "string" }).toEqual(
-          { key: sentence.key, isText: true },
-        );
+        expect({
+          key: sentence.key,
+          isText: typeof value === "string",
+        }).toEqual({ key: sentence.key, isText: true });
         expect({
           key: sentence.key,
           placeholders: placeholders(value as string),

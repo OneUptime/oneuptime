@@ -4,7 +4,11 @@ import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaM
 import GlobalConfig from "../../../../Models/DatabaseModels/GlobalConfig";
 import { getTableColumns } from "../../../../Types/Database/TableColumn";
 import ColumnType from "../../../../Types/Database/ColumnType";
-import { MigrationInterface, QueryRunner, getMetadataArgsStorage } from "typeorm";
+import {
+  MigrationInterface,
+  QueryRunner,
+  getMetadataArgsStorage,
+} from "typeorm";
 import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";

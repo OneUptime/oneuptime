@@ -817,9 +817,15 @@ describe("products switched off on the server", () => {
   });
 
   test("a goal whose product is off is not offered; Import and Explore always are", () => {
-    expect(isGoalOffOnServer(ProjectGoal.StatusPage, [ProductKey.StatusPages])).toBe(true);
-    expect(isGoalOffOnServer(ProjectGoal.Telemetry, [ProductKey.Traces])).toBe(true);
-    expect(isGoalOffOnServer(ProjectGoal.Uptime, [ProductKey.StatusPages])).toBe(false);
+    expect(
+      isGoalOffOnServer(ProjectGoal.StatusPage, [ProductKey.StatusPages]),
+    ).toBe(true);
+    expect(isGoalOffOnServer(ProjectGoal.Telemetry, [ProductKey.Traces])).toBe(
+      true,
+    );
+    expect(
+      isGoalOffOnServer(ProjectGoal.Uptime, [ProductKey.StatusPages]),
+    ).toBe(false);
 
     const everythingOff: Array<ProductKey> = getOffByPreset(
       ServerProductsPreset.MonitoringAndStatusPages,
@@ -830,7 +836,11 @@ describe("products switched off on the server", () => {
   });
 
   test("isWelcomeStepOffOnServer asks each product of the step", () => {
-    expect(isWelcomeStepOffOnServer(WelcomeStep.Telemetry, [ProductKey.Services])).toBe(true);
-    expect(isWelcomeStepOffOnServer(WelcomeStep.Team, [ProductKey.Monitors])).toBe(false);
+    expect(
+      isWelcomeStepOffOnServer(WelcomeStep.Telemetry, [ProductKey.Services]),
+    ).toBe(true);
+    expect(
+      isWelcomeStepOffOnServer(WelcomeStep.Team, [ProductKey.Monitors]),
+    ).toBe(false);
   });
 });

@@ -295,11 +295,15 @@ export class ProjectProductsServiceClass {
     this.assertCanChoose(caller.props);
 
     if (!isProductKey(data.product)) {
-      throw new BadDataException("Choose one of the products, by its key, such as logs or status-pages.");
+      throw new BadDataException(
+        "Choose one of the products, by its key, such as logs or status-pages.",
+      );
     }
 
     if (typeof data.isShown !== "boolean") {
-      throw new BadDataException("Say whether to show the product: isShown must be true or false.");
+      throw new BadDataException(
+        "Say whether to show the product: isShown must be true or false.",
+      );
     }
 
     if (!isHideableProduct(data.product)) {
@@ -358,7 +362,9 @@ export class ProjectProductsServiceClass {
     pinned: unknown,
   ): Promise<Array<ProductKey>> {
     if (!Array.isArray(pinned)) {
-      throw new BadDataException("Send the pins as a list of products, by their keys.");
+      throw new BadDataException(
+        "Send the pins as a list of products, by their keys.",
+      );
     }
 
     const known: Array<ProductKey> = parseProductKeys(pinned);

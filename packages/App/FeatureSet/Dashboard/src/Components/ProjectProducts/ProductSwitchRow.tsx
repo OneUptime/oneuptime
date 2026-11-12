@@ -1,7 +1,5 @@
 import { ProductsSettingsCopy } from "./ProjectProductsCopy";
-import {
-  ServerProductOffCopy,
-} from "../ServerProducts/ServerProductsCopy";
+import { ServerProductOffCopy } from "../ServerProducts/ServerProductsCopy";
 import { ServerProductOffReason } from "Common/Types/Product/ServerProducts";
 import IconProp from "Common/Types/Icon/IconProp";
 import { Yellow } from "Common/Types/BrandColors";
