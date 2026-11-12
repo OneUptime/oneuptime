@@ -18,6 +18,7 @@ import PermissionGate, {
 } from "Common/UI/Utils/PermissionGate";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 
 /*
  * THE WELCOME CHECKLIST'S WORDS AND PAGES (issue #6803).
@@ -292,6 +293,12 @@ export const WELCOME_STEPS: ReadonlyArray<WelcomeStepEntry> = [
     icon: IconProp.Logs,
     iconBackgroundClassName: "bg-violet-500",
     pageMap: PageMap.LOGS,
+    /*
+     * The guided setup (#6806): the OpenTelemetry guide, the wait for the
+     * first data, and recommended alerts on the service that reported, on
+     * one page. It says what is next itself.
+     */
+    guidedSetupPage: PageMap.SERVICES_GUIDED_SETUP,
   },
   {
     step: WelcomeStep.OnCall,
@@ -328,12 +335,22 @@ export const WELCOME_STEPS: ReadonlyArray<WelcomeStepEntry> = [
     icon: IconProp.CheckCircle,
     iconBackgroundClassName: "bg-emerald-500",
     pageMap: PageMap.STATUS_PAGES,
-    landing: {
-      pageMap: PageMap.STATUS_PAGE_VIEW,
-      doneText: translationKey(
-        "Status page created. Add a monitor to it to tick the step off.",
-      ),
+    /*
+     * Only someone who may create a status page is sent to the guided
+     * setup; everyone else lands on the list, whose create button says why
+     * it is off. The setup itself is never a create form, so this page is
+     * never opened from here: it only gates the setup.
+     */
+    createPage: {
+      pageMap: PageMap.STATUS_PAGES,
+      modelType: StatusPage,
     },
+    /*
+     * The guided setup (#6806): a name, the monitors it shows and what
+     * customers see, on one page. It cannot finish with an empty page, and
+     * says what is next itself, so the step has no landing line.
+     */
+    guidedSetupPage: PageMap.STATUS_PAGES_GUIDED_SETUP,
   },
   {
     step: WelcomeStep.Team,
