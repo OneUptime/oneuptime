@@ -179,7 +179,7 @@ export const SAMPLE_PROJECT_REFUSALS: {
   member:
     "This is a sample project, so nobody else can be invited to it. Invite your team to your own project.",
   samplePersonElsewhere:
-    "This person is a sample person, made up for a sample project, so they cannot join another project.",
+    "This person is a sample person, made up for a sample project, so they cannot join another project. Invite a real person instead.",
   creationRestricted:
     "Only admins can create projects on this server, and a sample project is a project. Ask your server admin to add you to a project.",
   notASample:

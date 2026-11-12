@@ -11,6 +11,25 @@ jest.mock("../../../../Server/Utils/Logger", () => {
   };
 });
 
+jest.mock("../../../../Server/EnvironmentConfig", () => {
+  const billingFlag: typeof import("../../Enterprise/TestBillingFlag") =
+    jest.requireActual(
+      "../../Enterprise/TestBillingFlag",
+    ) as typeof import("../../Enterprise/TestBillingFlag");
+
+  return billingFlag.withLiveBillingFlag(
+    jest.requireActual("../../../../Server/EnvironmentConfig") as Record<
+      string,
+      unknown
+    >,
+  );
+});
+
+import {
+  installFakeEnterpriseModule,
+  uninstallEnterpriseModule,
+} from "../../Enterprise/FakeEnterpriseModule";
+import { setTestBillingEnabled } from "../../Enterprise/TestBillingFlag";
 import CallService from "../../../../Server/Services/CallService";
 import CustomNotificationChannelDeliveryService from "../../../../Server/Services/CustomNotificationChannelDeliveryService";
 import MailService from "../../../../Server/Services/MailService";
@@ -268,19 +287,33 @@ describe("every sender refuses a sample project", () => {
     });
   });
 
-  test("a custom notification channel", async () => {
+  test("a custom notification channel, licensed and all", async () => {
+    // Custom channels are an Enterprise feature: loaded, so only the sample stops it.
+    setTestBillingEnabled(false);
+    installFakeEnterpriseModule();
+
     const result: unknown = await CustomNotificationChannelDeliveryService.send(
       {
+        customNotificationChannelId: new ObjectID(
+          "c6808000-0000-4000-8000-0000000000c1",
+        ),
+        eventType: "on-call.incident.created",
+        payload: { version: 1 },
         projectId: SAMPLE_PROJECT_ID,
-      } as unknown as Parameters<
-        typeof CustomNotificationChannelDeliveryService.send
-      >[0],
+        userOnCallLogTimelineId: TIMELINE_ID,
+      },
     );
 
     expect(post).not.toHaveBeenCalled();
     expect(JSON.stringify(result)).toContain(
       SAMPLE_PROJECT_SENDS_NOTHING_MESSAGE,
     );
+    expect(markNotSent).toHaveBeenCalledWith({
+      userOnCallLogTimelineId: TIMELINE_ID,
+      reason: expect.stringContaining(SAMPLE_PROJECT_SENDS_NOTHING_MESSAGE),
+    });
+
+    uninstallEnterpriseModule();
   });
 
   test("a real project's email is sent", async () => {
@@ -413,12 +446,14 @@ describe("chat messages from a sample project", () => {
       .spyOn(WorkspaceNotificationLogService, "createWorkspaceLog")
       .mockResolvedValue(undefined as never);
 
-    await WorkspaceUserNotificationService.sendDirectMessageToUser({
-      projectId: SAMPLE_PROJECT_ID,
-      workspaceType: WorkspaceType.Slack,
-      workspaceUserId: "U123",
-      messageBlocks: [],
-    });
+    await expect(
+      WorkspaceUserNotificationService.sendDirectMessageToUser({
+        projectId: SAMPLE_PROJECT_ID,
+        workspaceType: WorkspaceType.Slack,
+        workspaceUserId: "U123",
+        messageBlocks: [],
+      }),
+    ).rejects.toThrow(getSampleProjectNotSentReason("Slack message"));
 
     expect(getProjectAuth).not.toHaveBeenCalled();
     expect(sendDirectMessageToUser).not.toHaveBeenCalled();
