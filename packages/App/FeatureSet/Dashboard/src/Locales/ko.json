@@ -5000,7 +5000,7 @@
   "Test email report sent successfully.": "테스트 이메일 보고서를 성공적으로 보냈습니다.",
   "Test Notification": "테스트 알림",
   "Test Notification Sent Successfully": "테스트 알림을 성공적으로 보냈습니다",
-  "Test Rule": "테스트 규칙",
+  "Test Rule": "규칙 테스트",
   "Text-to-speech message played to callers when they first connect": "발신자가 처음 연결될 때 재생되는 텍스트 음성 변환 메시지입니다",
   "The alert is grouped into an existing or new episode based on grouping rules": "그룹화 규칙에 따라 경고가 기존 또는 새 에피소드로 그룹화됩니다",
   "The amount of minutes to wait before escalating to the next escalation rule.": "다음 에스컬레이션 규칙으로 에스컬레이션하기 전에 대기할 시간(분)입니다.",
@@ -16878,7 +16878,7 @@
   "Terraform provider": "Terraform provider",
   "Test Command": "테스트 명령",
   "Test Data Source": "Test Data Source",
-  "Test Executed Successfully": "테스트 성공",
+  "Test Executed Successfully": "Test Executed Successfully",
   "Test Failed": "테스트 실패",
   "Test LLM Provider": "LLM 제공자 테스트",
   "Test Message": "Test Message",
@@ -51133,5 +51133,7 @@
   "Window must be a whole number of days.": "기간은 정수 일수여야 합니다.",
   "Window must be between {{min}} and {{max}} days.": "기간은 {{min}}일에서 {{max}}일 사이여야 합니다.",
   "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month": "매월 {{percentage}}: {{days}}일 기준 한 달에 다운타임 {{budget}}",
-  "Fix the problem above, then test the rule again.": "위에 나온 문제를 해결한 다음 규칙을 다시 테스트하세요."
+  "Fix the problem above, then test the rule again.": "위에 나온 문제를 해결한 다음 규칙을 다시 테스트하세요.",
+  "Check {{workspace}} to confirm the test notification for the rule \"{{rule}}\" arrived.": "{{workspace}}에서 규칙 \"{{rule}}\"의 테스트 알림이 도착했는지 확인하세요.",
+  "Send a test notification for the rule \"{{rule}}\" to {{workspace}}.": "규칙 \"{{rule}}\"의 테스트 알림을 {{workspace}}(으)로 보냅니다."
 }

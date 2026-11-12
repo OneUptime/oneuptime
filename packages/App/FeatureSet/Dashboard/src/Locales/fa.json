@@ -5000,7 +5000,7 @@
   "Test email report sent successfully.": "گزارش ایمیلی آزمایشی با موفقیت ارسال شد.",
   "Test Notification": "اعلان آزمایشی",
   "Test Notification Sent Successfully": "اعلان آزمایشی با موفقیت فرستاده شد",
-  "Test Rule": "قاعده آزمایش",
+  "Test Rule": "آزمایش قاعده",
   "Text-to-speech message played to callers when they first connect": "پیام تبدیل متن به گفتاری که هنگام برقراری تماس برای تماس‌گیرندگان پخش می‌شود",
   "The alert is grouped into an existing or new episode based on grouping rules": "هشدار بر اساس قواعد گروه‌بندی در یک اپیزود موجود یا جدید گروه‌بندی می‌شود",
   "The amount of minutes to wait before escalating to the next escalation rule.": "تعداد دقیقه‌هایی که پیش از تشدید به قاعده تشدید بعدی باید صبر کرد.",
@@ -16878,7 +16878,7 @@
   "Terraform provider": "Terraform provider",
   "Test Command": "فرمان آزمون",
   "Test Data Source": "Test Data Source",
-  "Test Executed Successfully": "آزمایش با موفقیت انجام شد",
+  "Test Executed Successfully": "Test Executed Successfully",
   "Test Failed": "آزمایش ناموفق بود",
   "Test LLM Provider": "آزمایش ارائه‌دهنده LLM",
   "Test Message": "Test Message",
@@ -51133,5 +51133,7 @@
   "Window must be a whole number of days.": "بازه باید تعداد صحیحی روز باشد.",
   "Window must be between {{min}} and {{max}} days.": "بازه باید بین {{min}} تا {{max}} روز باشد.",
   "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month": "{{percentage}} از هر ماه: {{budget}} زمان قطعی در یک ماه {{days}} روزه",
-  "Fix the problem above, then test the rule again.": "مشکلی را که در بالا آمده برطرف کنید، سپس قاعده را دوباره بیازمایید."
+  "Fix the problem above, then test the rule again.": "مشکلی را که در بالا آمده برطرف کنید، سپس قاعده را دوباره بیازمایید.",
+  "Check {{workspace}} to confirm the test notification for the rule \"{{rule}}\" arrived.": "برای اطمینان از رسیدن اعلان آزمایشی قاعده «{{rule}}»، {{workspace}} را بررسی کنید.",
+  "Send a test notification for the rule \"{{rule}}\" to {{workspace}}.": "یک اعلان آزمایشی برای قاعده «{{rule}}» به {{workspace}} بفرستید."
 }

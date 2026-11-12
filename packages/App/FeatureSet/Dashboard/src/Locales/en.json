@@ -51133,5 +51133,7 @@
   "Window must be a whole number of days.": "Window must be a whole number of days.",
   "Window must be between {{min}} and {{max}} days.": "Window must be between {{min}} and {{max}} days.",
   "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month": "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month",
-  "Fix the problem above, then test the rule again.": "Fix the problem above, then test the rule again."
+  "Fix the problem above, then test the rule again.": "Fix the problem above, then test the rule again.",
+  "Check {{workspace}} to confirm the test notification for the rule \"{{rule}}\" arrived.": "Check {{workspace}} to confirm the test notification for the rule \"{{rule}}\" arrived.",
+  "Send a test notification for the rule \"{{rule}}\" to {{workspace}}.": "Send a test notification for the rule \"{{rule}}\" to {{workspace}}."
 }

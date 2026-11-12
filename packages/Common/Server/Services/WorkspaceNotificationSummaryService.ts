@@ -1132,6 +1132,10 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
    * sent as it is set up: one Error row, in no channel, saying why. The
    * project sees why its summary never arrives; the send itself still
    * fails (sendSummary). A summary with no project has nowhere to log.
+   *
+   * Its message is the one a channel's failure has, without the channel
+   * (logSummaryInChannel): "Failed to send Incident summary "Weekly"", and
+   * why is its status message, as a channel's reason is.
    */
   private async logSummaryNotSendable(data: {
     summaryId: ObjectID;
@@ -1152,7 +1156,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
           actionType: WorkspaceNotificationActionType.SendMessage,
           status: WorkspaceNotificationStatus.Error,
           statusMessage: data.reason.substring(0, ColumnLength.LongText),
-          message: `Failed to send ${summaryLabel}: it cannot be sent as it is set up`,
+          message: `Failed to send ${summaryLabel}`,
         },
         { isRoot: true },
       );

@@ -35,6 +35,8 @@ import {
   isWordedInDashboardLocale,
   readDashboardLocale,
 } from "../../Helpers/DashboardLocales";
+import { isolated } from "../../Helpers/IsolateMarks";
+import { FIRST_STRONG_ISOLATE } from "../../../Types/ReadingDirection";
 
 /*
  * #7114: Test Rule on a workspace notification rule says what the test
@@ -49,9 +51,16 @@ import {
  * test was executed successfully whatever happened.
  *
  * Now the Test Rule dialog closes on any answer, and one result dialog
- * opens: Test Executed Successfully, or Test Failed with what the server
- * said and what to do next. Either has one way out, Close, which leaves
- * nothing of the test behind.
+ * opens: Test Notification Sent, or Test Failed with what the server said
+ * and what to do next. Either has one way out, Close, which leaves nothing
+ * of the test behind.
+ *
+ * Both name the rule in quotes, set apart in a sentence read right to
+ * left: a name such as "Page the database team" ran into the sentence
+ * around it. The success said where to look only after repeating its own
+ * title ("Test executed successfully."), and ten languages drew the Test
+ * Rule button as a noun - "a test rule" - where their Test Monitor is an
+ * action.
  *
  * The production rules table runs; only the list around it is replaced,
  * by one rule row with the table's own action buttons. The test route
@@ -205,10 +214,10 @@ const NOT_FOUND: string =
 // The words of the two dialogs, as the Dashboard looks them up.
 const CONFIRM_TITLE: string = "Test Rule";
 const CONFIRM_DESCRIPTION: string =
-  "Test the rule {{rule}} by sending a test notification to {{workspace}}.";
-const SUCCESS_TITLE: string = "Test Executed Successfully";
+  'Send a test notification for the rule "{{rule}}" to {{workspace}}.';
+const SUCCESS_TITLE: string = "Test Notification Sent";
 const SUCCESS_DESCRIPTION: string =
-  "Test executed successfully. You should now see a notification in {{workspace}}.";
+  'Check {{workspace}} to confirm the test notification for the rule "{{rule}}" arrived.';
 const FAILURE_TITLE: string = "Test Failed";
 const NEXT_STEP: string = "Fix the problem above, then test the rule again.";
 
@@ -226,6 +235,27 @@ const DIALOG_KEYS: Array<string> = [
 
 const DE: Record<string, string> = readDashboardLocale("de");
 const AR: Record<string, string> = readDashboardLocale("ar");
+const FA: Record<string, string> = readDashboardLocale("fa");
+
+/*
+ * The languages the dialogs are drawn in below, and how their sentences
+ * hold a value in Latin letters - the rule's name, "Slack": as it is in a
+ * German one, set apart in an Arabic or Persian one, which reads from the
+ * right (Translator's setsValuesApart).
+ */
+const READERS: Array<
+  [string, Record<string, string>, (value: string) => string]
+> = [
+  [
+    "de",
+    DE,
+    (value: string): string => {
+      return value;
+    },
+  ],
+  ["ar", AR, isolated],
+  ["fa", FA, isolated],
+];
 
 // What the test route answers next: a send, a refusal, or no answer at all.
 let testAnswer: HTTPResponse<JSONObject> | HTTPErrorResponse | Error =
@@ -324,6 +354,7 @@ beforeAll(async () => {
     resources: {
       de: { translation: DE },
       ar: { translation: AR },
+      fa: { translation: FA },
     },
     interpolation: { escapeValue: false },
     keySeparator: false,
@@ -370,15 +401,17 @@ afterEach(async () => {
 });
 
 describe("Test Rule on a workspace notification rule says what the test came to", () => {
-  test("Test Rule asks first, naming the rule and the workspace, with Cancel - and Cancel sends nothing", async () => {
+  test("Test Rule asks first, naming the rule in quotes and the workspace, with Cancel - and Cancel sends nothing", async () => {
     await renderTable();
 
     const confirm: HTMLElement = pressTestRule();
 
     expect(titleOf(confirm)).toBe("Test Rule");
     expect(descriptionOf(confirm)).toBe(
-      `Test the rule ${RULE_NAME} by sending a test notification to Slack.`,
+      `Send a test notification for the rule "${RULE_NAME}" to Slack.`,
     );
+    // An English sentence holds a name in Latin letters as it is.
+    expect(descriptionOf(confirm)).not.toContain(FIRST_STRONG_ISOLATE);
     expect(buttonsOf(confirm)).toEqual(["Close", "Cancel", "Test"]);
     expect(within(confirm).queryByTestId("modal-error")).toBeNull();
 
@@ -388,7 +421,7 @@ describe("Test Rule on a workspace notification rule says what the test came to"
     expect(testRoutesCalled).toEqual([]);
   });
 
-  test("a test the server sent: the Test Rule dialog closes, and Test Executed Successfully says where to look, with Close its one way out", async () => {
+  test("a test the server sent: the Test Rule dialog closes, and Test Notification Sent says where to look for which rule's test, with Close its one way out", async () => {
     await renderTable();
 
     const result: HTMLElement = await testTheRule();
@@ -400,9 +433,13 @@ describe("Test Rule on a workspace notification rule says what the test came to"
         `/workspace-notification-rule/test/${RULE_ID.toString()}`,
       ),
     ).toBe(true);
-    expect(titleOf(result)).toBe("Test Executed Successfully");
+    expect(titleOf(result)).toBe("Test Notification Sent");
     expect(descriptionOf(result)).toBe(
-      "Test executed successfully. You should now see a notification in Slack.",
+      `Check Slack to confirm the test notification for the rule "${RULE_NAME}" arrived.`,
+    );
+    // It says something its title does not: it began by repeating it.
+    expect(descriptionOf(result).toLowerCase()).not.toContain(
+      titleOf(result).toLowerCase(),
     );
     expect(within(result).queryByTestId("modal-error")).toBeNull();
     expect(buttonsOf(result)).toEqual(["Close"]);
@@ -436,8 +473,9 @@ describe("Test Rule on a workspace notification rule says what the test came to"
     // Nothing offers the test again: the channels that got it are not sent it twice.
     expect(buttonsOf(result)).toEqual(["Close"]);
     expect(screen.queryByRole("button", { name: "Test" })).toBeNull();
-    // Nor does it say the test was executed successfully.
-    expect(screen.queryByText(/executed successfully/i)).toBeNull();
+    // Nor does it say the test was sent, or where to look for it.
+    expect(screen.queryByText(SUCCESS_TITLE)).toBeNull();
+    expect(screen.queryByText(/to confirm the test notification/i)).toBeNull();
     expect(testRoutesCalled).toHaveLength(1);
   });
 
@@ -496,7 +534,7 @@ describe("Test Rule on a workspace notification rule says what the test came to"
     });
 
     await waitFor(() => {
-      expect(titleOf(onlyDialog())).toBe("Test Executed Successfully");
+      expect(titleOf(onlyDialog())).toBe("Test Notification Sent");
     });
     expect(within(onlyDialog()).queryByTestId("modal-error")).toBeNull();
     expect(screen.queryByText(NOT_FOUND)).toBeNull();
@@ -508,22 +546,28 @@ describe("Test Rule on a workspace notification rule says what the test came to"
     await renderTable();
 
     const sent: HTMLElement = await testTheRule();
-    expect(titleOf(sent)).toBe("Test Executed Successfully");
+    expect(titleOf(sent)).toBe("Test Notification Sent");
     fireEvent.click(within(sent).getByTestId("modal-footer-submit-button"));
+
+    const sentAgain: HTMLElement = await testTheRule();
+    expect(titleOf(sentAgain)).toBe("Test Notification Sent");
+    expect(within(sentAgain).queryByTestId("modal-error")).toBeNull();
+    fireEvent.click(
+      within(sentAgain).getByTestId("modal-footer-submit-button"),
+    );
 
     testAnswer = new HTTPErrorResponse(400, { message: NOT_FOUND }, {});
 
     const failed: HTMLElement = await testTheRule();
     expect(titleOf(failed)).toBe("Test Failed");
-    expect(screen.queryByText(/executed successfully/i)).toBeNull();
+    expect(screen.queryByText(SUCCESS_TITLE)).toBeNull();
+    expect(screen.queryByText(/to confirm the test notification/i)).toBeNull();
+    expect(testRoutesCalled).toHaveLength(3);
   });
 });
 
 describe("in the reader's language", () => {
-  test.each([
-    ["de", DE],
-    ["ar", AR],
-  ])(
+  test.each(READERS)(
     "%s: Test Failed, what to do next and Close in the reader's words; the server's reason as it was written",
     async (language: string, words: Record<string, string>) => {
       await act(async (): Promise<void> => {
@@ -548,12 +592,13 @@ describe("in the reader's language", () => {
     },
   );
 
-  test.each([
-    ["de", DE],
-    ["ar", AR],
-  ])(
-    "%s: Test Executed Successfully and where to look, in the reader's words",
-    async (language: string, words: Record<string, string>) => {
+  test.each(READERS)(
+    "%s: Test Notification Sent and where to look for which rule's test, in the reader's words",
+    async (
+      language: string,
+      words: Record<string, string>,
+      inSentence: (value: string) => string,
+    ) => {
       await act(async (): Promise<void> => {
         await i18next.changeLanguage(language);
       });
@@ -563,19 +608,24 @@ describe("in the reader's language", () => {
       const result: HTMLElement = await testTheRule();
 
       expect(titleOf(result)).toBe(words[SUCCESS_TITLE]);
+      // The rule's name and the workspace's, each where the sentence puts it.
       expect(descriptionOf(result)).toBe(
-        fill(words[SUCCESS_DESCRIPTION], { workspace: "Slack" }),
+        fill(words[SUCCESS_DESCRIPTION], {
+          workspace: inSentence("Slack"),
+          rule: inSentence(RULE_NAME),
+        }),
       );
       expect(screen.queryByText(SUCCESS_TITLE)).toBeNull();
     },
   );
 
-  test.each([
-    ["de", DE],
-    ["ar", AR],
-  ])(
+  test.each(READERS)(
     "%s: Test Rule asks in the reader's words - its title, what it sends, Cancel and Test",
-    async (language: string, words: Record<string, string>) => {
+    async (
+      language: string,
+      words: Record<string, string>,
+      inSentence: (value: string) => string,
+    ) => {
       await act(async (): Promise<void> => {
         await i18next.changeLanguage(language);
       });
@@ -587,8 +637,8 @@ describe("in the reader's language", () => {
       expect(titleOf(confirm)).toBe(words[CONFIRM_TITLE]);
       expect(descriptionOf(confirm)).toBe(
         fill(words[CONFIRM_DESCRIPTION], {
-          rule: RULE_NAME,
-          workspace: "Slack",
+          rule: inSentence(RULE_NAME),
+          workspace: inSentence("Slack"),
         }),
       );
       expect(
@@ -600,15 +650,63 @@ describe("in the reader's language", () => {
     },
   );
 
-  test("German and Arabic say what to do next as their readers would", () => {
+  test("a Latin rule name keeps its place in a Persian sentence: set apart, inside Persian quotes", async () => {
+    await act(async (): Promise<void> => {
+      await i18next.changeLanguage("fa");
+    });
+
+    await renderTable();
+
+    const description: string = descriptionOf(pressTestRule());
+
+    expect(description).toContain(`«${isolated(RULE_NAME)}»`);
+    expect(description).not.toContain(`"${RULE_NAME}"`);
+  });
+
+  test("German, Arabic and Persian say the dialogs as their readers would", () => {
     expect(DE[NEXT_STEP]).toBe(
       "Beheben Sie das oben genannte Problem und testen Sie die Regel dann erneut.",
     );
-    expect(DE[SUCCESS_TITLE]).toBe("Test erfolgreich ausgeführt");
+    expect(DE[SUCCESS_TITLE]).toBe("Testbenachrichtigung gesendet");
+    expect(DE[CONFIRM_DESCRIPTION]).toBe(
+      "Eine Testbenachrichtigung für die Regel „{{rule}}“ an {{workspace}} senden.",
+    );
     expect(AR[NEXT_STEP]).toBe(
       "أصلح المشكلة المذكورة أعلاه، ثم اختبر القاعدة مرة أخرى.",
     );
+    expect(FA[CONFIRM_TITLE]).toBe("آزمایش قاعده");
   });
+});
+
+/*
+ * The row's Test Rule button runs a test of the rule: each language says
+ * it as an action, as it says Test Monitor. Ten drew it as a noun - "a test
+ * rule", a kind of rule - and their guides named it so; the guides name it
+ * as the Dashboard draws it (the docs' label checks).
+ */
+const TEST_RULE_NOUNS: Array<[string, string, string]> = [
+  ["nl", "Testregel", "Regel testen"],
+  ["fa", "قاعده آزمایش", "آزمایش قاعده"],
+  ["it", "Regola di test", "Testa la regola"],
+  ["hi", "परीक्षण नियम", "नियम का परीक्षण करें"],
+  ["da", "Testregel", "Test regel"],
+  ["no", "Testregel", "Test regel"],
+  ["ko", "테스트 규칙", "규칙 테스트"],
+  ["sv", "Testregel", "Testa regel"],
+  ["ru", "Тестовое правило", "Протестировать правило"],
+  ["pt", "Regra de teste", "Testar regra"],
+];
+
+describe("the Test Rule button says what it does", () => {
+  test.each(TEST_RULE_NOUNS)(
+    "%s: not %s (a test rule) but %s",
+    (language: string, noun: string, action: string) => {
+      const words: Record<string, string> = readDashboardLocale(language);
+
+      expect(words[CONFIRM_TITLE]).toBe(action);
+      expect(words[CONFIRM_TITLE]).not.toBe(noun);
+    },
+  );
 });
 
 describe("every Dashboard language words the two dialogs", () => {

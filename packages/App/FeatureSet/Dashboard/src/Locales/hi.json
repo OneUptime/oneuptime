@@ -5000,7 +5000,7 @@
   "Test email report sent successfully.": "परीक्षण ईमेल रिपोर्ट सफलतापूर्वक भेजी गई।",
   "Test Notification": "परीक्षण सूचना",
   "Test Notification Sent Successfully": "परीक्षण सूचना सफलतापूर्वक भेजी गई",
-  "Test Rule": "परीक्षण नियम",
+  "Test Rule": "नियम का परीक्षण करें",
   "Text-to-speech message played to callers when they first connect": "कॉल करने वालों के पहली बार कनेक्ट होने पर उन्हें चलाया जाने वाला टेक्स्ट-टू-स्पीच संदेश",
   "The alert is grouped into an existing or new episode based on grouping rules": "अलर्ट को समूहीकरण नियमों के आधार पर किसी मौजूदा या नए एपिसोड में समूहीकृत किया जाता है",
   "The amount of minutes to wait before escalating to the next escalation rule.": "अगले एस्केलेशन नियम तक एस्केलेट करने से पहले प्रतीक्षा करने हेतु मिनटों की संख्या।",
@@ -16878,7 +16878,7 @@
   "Terraform provider": "Terraform provider",
   "Test Command": "टेस्ट कमांड",
   "Test Data Source": "Test Data Source",
-  "Test Executed Successfully": "परीक्षण सफलतापूर्वक चला",
+  "Test Executed Successfully": "Test Executed Successfully",
   "Test Failed": "परीक्षण विफल",
   "Test LLM Provider": "LLM प्रदाता का परीक्षण करें",
   "Test Message": "Test Message",
@@ -51133,5 +51133,7 @@
   "Window must be a whole number of days.": "अवधि पूरे दिनों में होनी चाहिए।",
   "Window must be between {{min}} and {{max}} days.": "अवधि {{min}} से {{max}} दिनों के बीच होनी चाहिए।",
   "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month": "हर महीने का {{percentage}}: {{days}} दिन के महीने में {{budget}} डाउनटाइम",
-  "Fix the problem above, then test the rule again.": "ऊपर बताई गई समस्या ठीक करें, फिर नियम को दोबारा टेस्ट करें।"
+  "Fix the problem above, then test the rule again.": "ऊपर बताई गई समस्या ठीक करें, फिर नियम का दोबारा परीक्षण करें।",
+  "Check {{workspace}} to confirm the test notification for the rule \"{{rule}}\" arrived.": "नियम \"{{rule}}\" की परीक्षण सूचना पहुँची या नहीं, यह {{workspace}} में देखें।",
+  "Send a test notification for the rule \"{{rule}}\" to {{workspace}}.": "नियम \"{{rule}}\" की परीक्षण सूचना {{workspace}} पर भेजें।"
 }

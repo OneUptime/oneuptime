@@ -39,6 +39,11 @@ import {
 
 const NOW: Date = OneUptimeDate.fromString("2026-10-05T12:00:00.000Z");
 
+// Why a write is refused, as the summary form says it: what is missing, and where.
+const NO_CHANNELS: string = "The summary has no channel to post in.";
+const NO_ITEMS: string =
+  "The summary has no items picked under What to Include.";
+
 const SUMMARY_ID: ObjectID = new ObjectID(
   "71160000-0000-4000-8000-000000000001",
 );
@@ -140,9 +145,7 @@ describe("creating a summary", () => {
     });
 
     expect(refusal).toBeInstanceOf(BadDataException);
-    expect((refusal as Error).message).toBe(
-      "No channel names configured for summary",
-    );
+    expect((refusal as Error).message).toBe(NO_CHANNELS);
     // A 400 for the API, like any bad write - not the send's own failure.
     expect(refusal).not.toBeInstanceOf(WorkspaceSummaryNotSendableException);
   });
@@ -153,9 +156,7 @@ describe("creating a summary", () => {
         channelNames: channelNames,
       });
 
-      expect((refusal as Error).message).toBe(
-        "No channel names configured for summary",
-      );
+      expect((refusal as Error).message).toBe(NO_CHANNELS);
     }
   });
 
@@ -166,7 +167,7 @@ describe("creating a summary", () => {
       });
 
       expect(refusal).toBeInstanceOf(BadDataException);
-      expect((refusal as Error).message).toBe("No summary items selected");
+      expect((refusal as Error).message).toBe(NO_ITEMS);
     }
   });
 
@@ -176,9 +177,7 @@ describe("creating a summary", () => {
       summaryItems: [],
     });
 
-    expect((refusal as Error).message).toBe(
-      "No channel names configured for summary",
-    );
+    expect((refusal as Error).message).toBe(NO_CHANNELS);
   });
 
   test("REGRESSION: with channel names sent as one text stores the list it names - not a channel per letter", async () => {
@@ -221,22 +220,20 @@ describe("updating a summary", () => {
     const refusal: unknown = await updateRefusal({ channelNames: ["  "] });
 
     expect(refusal).toBeInstanceOf(BadDataException);
-    expect((refusal as Error).message).toBe(
-      "No channel names configured for summary",
-    );
+    expect((refusal as Error).message).toBe(NO_CHANNELS);
     expect(findBy).not.toHaveBeenCalled();
   });
 
   test("to no channel names (null), or nothing to include, is refused", async () => {
     expect(
       ((await updateRefusal({ channelNames: null })) as Error).message,
-    ).toBe("No channel names configured for summary");
+    ).toBe(NO_CHANNELS);
     expect(((await updateRefusal({ summaryItems: [] })) as Error).message).toBe(
-      "No summary items selected",
+      NO_ITEMS,
     );
     expect(
       ((await updateRefusal({ summaryItems: null })) as Error).message,
-    ).toBe("No summary items selected");
+    ).toBe(NO_ITEMS);
   });
 
   test("that also reschedules it is refused all the same, before the schedule is read", async () => {
@@ -245,9 +242,7 @@ describe("updating a summary", () => {
       recurringInterval: weekly(),
     });
 
-    expect((refusal as Error).message).toBe(
-      "No channel names configured for summary",
-    );
+    expect((refusal as Error).message).toBe(NO_CHANNELS);
     expect(findBy).not.toHaveBeenCalled();
   });
 

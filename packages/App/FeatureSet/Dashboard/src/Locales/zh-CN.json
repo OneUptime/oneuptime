@@ -16878,7 +16878,7 @@
   "Terraform provider": "Terraform provider",
   "Test Command": "测试命令",
   "Test Data Source": "Test Data Source",
-  "Test Executed Successfully": "测试执行成功",
+  "Test Executed Successfully": "Test Executed Successfully",
   "Test Failed": "测试失败",
   "Test LLM Provider": "测试 LLM 提供商",
   "Test Message": "Test Message",
@@ -51133,5 +51133,7 @@
   "Window must be a whole number of days.": "窗口必须是整数天。",
   "Window must be between {{min}} and {{max}} days.": "窗口必须介于 {{min}} 到 {{max}} 天之间。",
   "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month": "每月的 {{percentage}}：{{days}} 天的月份中有 {{budget}} 停机时间",
-  "Fix the problem above, then test the rule again.": "修复上方的问题，然后再次测试该规则。"
+  "Fix the problem above, then test the rule again.": "修复上方的问题，然后再次测试该规则。",
+  "Check {{workspace}} to confirm the test notification for the rule \"{{rule}}\" arrived.": "请在 {{workspace}} 中确认规则“{{rule}}”的测试通知是否已送达。",
+  "Send a test notification for the rule \"{{rule}}\" to {{workspace}}.": "将规则“{{rule}}”的测试通知发送到 {{workspace}}。"
 }

@@ -5000,7 +5000,7 @@
   "Test email report sent successfully.": "Testrapporten via e-post skickades.",
   "Test Notification": "Testavisering",
   "Test Notification Sent Successfully": "Testaviseringen skickades",
-  "Test Rule": "Testregel",
+  "Test Rule": "Testa regel",
   "Text-to-speech message played to callers when they first connect": "Text-till-tal-meddelande som spelas upp för uppringare när de först ansluter",
   "The alert is grouped into an existing or new episode based on grouping rules": "Larmet grupperas i en befintlig eller ny episod baserat på grupperingsregler",
   "The amount of minutes to wait before escalating to the next escalation rule.": "Antalet minuter att vänta innan eskalering till nästa eskaleringsregel.",
@@ -16878,7 +16878,7 @@
   "Terraform provider": "Terraform provider",
   "Test Command": "Testkommando",
   "Test Data Source": "Test Data Source",
-  "Test Executed Successfully": "Testet lyckades",
+  "Test Executed Successfully": "Test Executed Successfully",
   "Test Failed": "Testet misslyckades",
   "Test LLM Provider": "Testa LLM-leverantör",
   "Test Message": "Test Message",
@@ -51133,5 +51133,7 @@
   "Window must be a whole number of days.": "Fönstret måste vara ett helt antal dagar.",
   "Window must be between {{min}} and {{max}} days.": "Fönstret måste vara mellan {{min}} och {{max}} dagar.",
   "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month": "{{percentage}} av varje månad: {{budget}} driftstopp i en månad på {{days}} dagar",
-  "Fix the problem above, then test the rule again.": "Åtgärda problemet som anges ovan och testa sedan regeln igen."
+  "Fix the problem above, then test the rule again.": "Åtgärda problemet som anges ovan och testa sedan regeln igen.",
+  "Check {{workspace}} to confirm the test notification for the rule \"{{rule}}\" arrived.": "Kontrollera {{workspace}} för att bekräfta att testaviseringen för regeln ”{{rule}}” kom fram.",
+  "Send a test notification for the rule \"{{rule}}\" to {{workspace}}.": "Skicka en testavisering för regeln ”{{rule}}” till {{workspace}}."
 }

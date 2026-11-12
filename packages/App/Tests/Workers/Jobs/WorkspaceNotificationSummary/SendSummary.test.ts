@@ -75,6 +75,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import {
   WORKSPACE_SUMMARY_NO_CHANNELS_REASON,
   WORKSPACE_SUMMARY_NO_ITEMS_REASON,
+  WORKSPACE_SUMMARY_NO_PROJECT_REASON,
   WorkspaceSummaryNotSendableException,
 } from "Common/Utils/Workspace/WorkspaceSummarySetup";
 import "../../../../FeatureSet/Workers/Jobs/WorkspaceNotificationSummary/SendSummary";
@@ -676,10 +677,25 @@ describe("WorkspaceNotificationSummary:SendSummary, a summary that cannot be sen
     await tick("2026-10-12T09:00:30.000Z", [due(FIRST_SUMMARY_ID)]);
 
     expect(mockedLogger.warn).toHaveBeenCalledTimes(1);
+    // Why, in brackets, without the full stop that ends it as a sentence.
     expect(mockedLogger.warn.mock.calls[0]![0]).toBe(
-      `WorkspaceNotificationSummary:SendSummary: Did not send summary ${FIRST_SUMMARY_ID}, as it cannot be sent as it is set up (No summary items selected). It is tried again at its next scheduled send.`,
+      `WorkspaceNotificationSummary:SendSummary: Did not send summary ${FIRST_SUMMARY_ID}, as it cannot be sent as it is set up (The summary has no items picked under What to Include). It is tried again at its next scheduled send.`,
     );
     expect(mockedLogger.error).not.toHaveBeenCalled();
+  });
+
+  test("a why that is not a sentence - no project - is said in brackets as it is", async () => {
+    service.sendSummary.mockRejectedValueOnce(
+      new WorkspaceSummaryNotSendableException(
+        WORKSPACE_SUMMARY_NO_PROJECT_REASON,
+      ) as never,
+    );
+
+    await tick("2026-10-12T09:00:30.000Z", [due(FIRST_SUMMARY_ID)]);
+
+    expect(mockedLogger.warn.mock.calls[0]![0]).toBe(
+      `WorkspaceNotificationSummary:SendSummary: Did not send summary ${FIRST_SUMMARY_ID}, as it cannot be sent as it is set up (Summary project ID not found). It is tried again at its next scheduled send.`,
+    );
   });
 
   test("the summaries after it are still posted", async () => {

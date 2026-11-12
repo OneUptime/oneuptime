@@ -51133,5 +51133,7 @@
   "Window must be a whole number of days.": "Das Zeitfenster muss eine ganze Zahl von Tagen sein.",
   "Window must be between {{min}} and {{max}} days.": "Das Zeitfenster muss zwischen {{min}} und {{max}} Tagen liegen.",
   "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month": "{{percentage}} jedes Monats: {{budget}} Ausfallzeit in einem Monat mit {{days}} Tagen",
-  "Fix the problem above, then test the rule again.": "Beheben Sie das oben genannte Problem und testen Sie die Regel dann erneut."
+  "Fix the problem above, then test the rule again.": "Beheben Sie das oben genannte Problem und testen Sie die Regel dann erneut.",
+  "Check {{workspace}} to confirm the test notification for the rule \"{{rule}}\" arrived.": "Prüfen Sie in {{workspace}}, ob die Testbenachrichtigung für die Regel „{{rule}}“ angekommen ist.",
+  "Send a test notification for the rule \"{{rule}}\" to {{workspace}}.": "Eine Testbenachrichtigung für die Regel „{{rule}}“ an {{workspace}} senden."
 }

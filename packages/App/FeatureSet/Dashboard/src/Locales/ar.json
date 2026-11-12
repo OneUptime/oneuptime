@@ -51133,5 +51133,7 @@
   "Window must be a whole number of days.": "يجب أن تكون النافذة عددًا صحيحًا من الأيام.",
   "Window must be between {{min}} and {{max}} days.": "يجب أن تكون النافذة من {{min}} إلى {{max}} يومًا.",
   "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month": "{{percentage}} من كل شهر: {{budget}} من وقت التوقف في شهر من {{days}} يومًا",
-  "Fix the problem above, then test the rule again.": "أصلح المشكلة المذكورة أعلاه، ثم اختبر القاعدة مرة أخرى."
+  "Fix the problem above, then test the rule again.": "أصلح المشكلة المذكورة أعلاه، ثم اختبر القاعدة مرة أخرى.",
+  "Check {{workspace}} to confirm the test notification for the rule \"{{rule}}\" arrived.": "تحقق من {{workspace}} للتأكد من وصول الإشعار الاختباري للقاعدة «{{rule}}».",
+  "Send a test notification for the rule \"{{rule}}\" to {{workspace}}.": "أرسل إشعارًا اختباريًا للقاعدة «{{rule}}» إلى {{workspace}}."
 }

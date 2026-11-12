@@ -16878,7 +16878,7 @@
   "Terraform provider": "Terraform provider",
   "Test Command": "Commande de test",
   "Test Data Source": "Test Data Source",
-  "Test Executed Successfully": "Test exécuté avec succès",
+  "Test Executed Successfully": "Test Executed Successfully",
   "Test Failed": "Échec du test",
   "Test LLM Provider": "Tester le fournisseur LLM",
   "Test Message": "Test Message",
@@ -51133,5 +51133,7 @@
   "Window must be a whole number of days.": "La fenêtre doit être un nombre entier de jours.",
   "Window must be between {{min}} and {{max}} days.": "La fenêtre doit être comprise entre {{min}} et {{max}} jours.",
   "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month": "{{percentage}} de chaque mois : {{budget}} d'indisponibilité dans un mois de {{days}} jours",
-  "Fix the problem above, then test the rule again.": "Corrigez le problème indiqué ci-dessus, puis testez de nouveau la règle."
+  "Fix the problem above, then test the rule again.": "Corrigez le problème indiqué ci-dessus, puis testez de nouveau la règle.",
+  "Check {{workspace}} to confirm the test notification for the rule \"{{rule}}\" arrived.": "Vérifiez dans {{workspace}} que la notification de test de la règle « {{rule}} » est arrivée.",
+  "Send a test notification for the rule \"{{rule}}\" to {{workspace}}.": "Envoyer une notification de test pour la règle « {{rule}} » à {{workspace}}."
 }

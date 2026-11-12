@@ -255,7 +255,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
   >(undefined);
 
   /*
-   * What the test came to, once it is sent: Test Executed Successfully, or
+   * What the test came to, once it is sent: Test Notification Sent, or
    * Test Failed with what the server said and what to do next. The failure
    * showed inside the Test Rule dialog, under its Test button, and pressing
    * Test again could post a second test into the channels that got the
@@ -1301,15 +1301,22 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         ]}
       />
 
+      {/*
+       * What the test does, naming the rule in quotes: a name such as
+       * "Page the database team" ran into the sentence around it ("Test the
+       * rule Page the database team by sending..."). Set apart, so a Latin
+       * name keeps its place in an Arabic or Persian sentence.
+       */}
       {showTestModal && testNotificationRule ? (
         <ConfirmModal
           title={`Test Rule`}
           description={translator.translateTemplate(
-            "Test the rule {{rule}} by sending a test notification to {{workspace}}.",
+            'Send a test notification for the rule "{{rule}}" to {{workspace}}.',
             {
               rule: testNotificationRule.name || "",
               workspace: getWorkspaceTypeDisplayName(props.workspaceType),
             },
+            { setsValuesApart: true },
           )}
           submitButtonText={"Test"}
           onClose={() => {
@@ -1334,11 +1341,14 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
        * out, and "Close" is it (SendTestNotificationButton's, the same).
        * A failure says what the server said, then what to do next - never
        * Test again. Close clears it, so a later test that succeeds does
-       * not show it.
+       * not show it. A success is titled as the product's other test sends
+       * are (Test Notification Sent) and says where to look, naming the
+       * rule: it repeated its own title ("Test executed successfully.")
+       * before saying anything new.
        */}
       {showTestResultModal ? (
         <ConfirmModal
-          title={testError ? `Test Failed` : `Test Executed Successfully`}
+          title={testError ? `Test Failed` : `Test Notification Sent`}
           error={testError}
           description={
             testError
@@ -1346,10 +1356,12 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
                   "Fix the problem above, then test the rule again.",
                 )
               : translator.translateTemplate(
-                  "Test executed successfully. You should now see a notification in {{workspace}}.",
+                  'Check {{workspace}} to confirm the test notification for the rule "{{rule}}" arrived.',
                   {
                     workspace: getWorkspaceTypeDisplayName(props.workspaceType),
+                    rule: testNotificationRule?.name || "",
                   },
+                  { setsValuesApart: true },
                 )
           }
           submitButtonType={ButtonStyleType.NORMAL}

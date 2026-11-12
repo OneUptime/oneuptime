@@ -5000,7 +5000,7 @@
   "Test email report sent successfully.": "Report email di test inviato con successo.",
   "Test Notification": "Notifica di test",
   "Test Notification Sent Successfully": "Notifica di test inviata con successo",
-  "Test Rule": "Regola di test",
+  "Test Rule": "Testa la regola",
   "Text-to-speech message played to callers when they first connect": "Messaggio sintesi vocale riprodotto ai chiamanti alla prima connessione",
   "The alert is grouped into an existing or new episode based on grouping rules": "L'avviso viene raggruppato in un episodio esistente o nuovo in base alle regole di raggruppamento",
   "The amount of minutes to wait before escalating to the next escalation rule.": "Il numero di minuti da attendere prima di passare alla regola di escalation successiva.",
@@ -16878,7 +16878,7 @@
   "Terraform provider": "Terraform provider",
   "Test Command": "Comando di test",
   "Test Data Source": "Test Data Source",
-  "Test Executed Successfully": "Test eseguito correttamente",
+  "Test Executed Successfully": "Test Executed Successfully",
   "Test Failed": "Test non riuscito",
   "Test LLM Provider": "Testa il provider LLM",
   "Test Message": "Test Message",
@@ -51133,5 +51133,7 @@
   "Window must be a whole number of days.": "La finestra deve essere un numero intero di giorni.",
   "Window must be between {{min}} and {{max}} days.": "La finestra deve essere compresa tra {{min}} e {{max}} giorni.",
   "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month": "{{percentage}} di ogni mese: {{budget}} di downtime in un mese di {{days}} giorni",
-  "Fix the problem above, then test the rule again.": "Correggi il problema indicato qui sopra, poi prova di nuovo la regola."
+  "Fix the problem above, then test the rule again.": "Correggi il problema indicato qui sopra, poi prova di nuovo la regola.",
+  "Check {{workspace}} to confirm the test notification for the rule \"{{rule}}\" arrived.": "Controlla {{workspace}} per verificare che la notifica di prova della regola «{{rule}}» sia arrivata.",
+  "Send a test notification for the rule \"{{rule}}\" to {{workspace}}.": "Invia una notifica di prova per la regola «{{rule}}» a {{workspace}}."
 }

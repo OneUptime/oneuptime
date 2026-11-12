@@ -83,6 +83,11 @@ const SUMMARY_NAME: string = "Daily incidents";
 // How a Notification Log names the summary.
 const SUMMARY_LABEL: string = `Incident summary "${SUMMARY_NAME}"`;
 
+// Why a summary cannot be sent, as a person reads it: what is missing, and where.
+const NO_CHANNELS: string = "The summary has no channel to post in.";
+const NO_ITEMS: string =
+  "The summary has no items picked under What to Include.";
+
 type Answer = HTTPResponse<JSONObject | JSONArray> | HTTPErrorResponse;
 
 interface ServerCall {
@@ -1109,7 +1114,7 @@ describe("a Slack summary", () => {
 
     expect(refusal).toBeInstanceOf(BadDataException);
     expect(refusal).toBeInstanceOf(WorkspaceSummaryNotSendableException);
-    expect(refusal.message).toBe("No channel names configured for summary");
+    expect(refusal.message).toBe(NO_CHANNELS);
     // No channel was tried: the Dashboard says this message alone.
     expect(refusal).not.toBeInstanceOf(WorkspaceSummaryTestNotPostedException);
     expect(calls).toEqual([]);
@@ -1883,7 +1888,12 @@ describe("a Microsoft Teams summary", () => {
  * later). No workspace is asked anything for it.
  */
 describe("a summary that cannot be sent as it is set up", () => {
-  // The Notification Log of a scheduled send of such a summary.
+  /*
+   * The Notification Log of a scheduled send of such a summary: a channel's
+   * failure without the channel, why it failed its status message - as a
+   * channel's reason is. It said "...: it cannot be sent as it is set up"
+   * before the reason, which then said it again.
+   */
   function notSendableLog(reason: string): WorkspaceLogData {
     return {
       projectId: PROJECT_ID,
@@ -1891,7 +1901,7 @@ describe("a summary that cannot be sent as it is set up", () => {
       actionType: WorkspaceNotificationActionType.SendMessage,
       status: WorkspaceNotificationStatus.Error,
       statusMessage: reason,
-      message: `Failed to send ${SUMMARY_LABEL}: it cannot be sent as it is set up`,
+      message: `Failed to send ${SUMMARY_LABEL}`,
     };
   }
 
@@ -1905,12 +1915,8 @@ describe("a summary that cannot be sent as it is set up", () => {
 
     expect(refusal).toBeInstanceOf(WorkspaceSummaryNotSendableException);
     expect(refusal).toBeInstanceOf(BadDataException);
-    expect((refusal as Error).message).toBe(
-      "No channel names configured for summary",
-    );
-    expect(logs).toEqual([
-      notSendableLog("No channel names configured for summary"),
-    ]);
+    expect((refusal as Error).message).toBe(NO_CHANNELS);
+    expect(logs).toEqual([notSendableLog(NO_CHANNELS)]);
     // In no channel, and sent by no one.
     expect(logs[0]!.channelName).toBeUndefined();
     expect(logs[0]!.userId).toBeUndefined();
@@ -1928,8 +1934,8 @@ describe("a summary that cannot be sent as it is set up", () => {
     const refusal: unknown = await scheduledRefusal();
 
     expect(refusal).toBeInstanceOf(WorkspaceSummaryNotSendableException);
-    expect((refusal as Error).message).toBe("No summary items selected");
-    expect(logs).toEqual([notSendableLog("No summary items selected")]);
+    expect((refusal as Error).message).toBe(NO_ITEMS);
+    expect(logs).toEqual([notSendableLog(NO_ITEMS)]);
     expect(slackPostedIn()).toEqual([]);
   });
 
@@ -1960,9 +1966,7 @@ describe("a summary that cannot be sent as it is set up", () => {
     const refusal: unknown = await scheduledRefusal();
 
     expect(refusal).toBeInstanceOf(WorkspaceSummaryNotSendableException);
-    expect((refusal as Error).message).toBe(
-      "No channel names configured for summary",
-    );
+    expect((refusal as Error).message).toBe(NO_CHANNELS);
   });
 
   test("Send Test Now of one with nothing to include: refused in the same words, and nothing logged - the dialog says it", async () => {
@@ -1975,7 +1979,7 @@ describe("a summary that cannot be sent as it is set up", () => {
     const refusal: Error = await testRefusal();
 
     expect(refusal).toBeInstanceOf(WorkspaceSummaryNotSendableException);
-    expect(refusal.message).toBe("No summary items selected");
+    expect(refusal.message).toBe(NO_ITEMS);
     expect(logs).toEqual([]);
     expect(calls).toEqual([]);
   });
@@ -2012,8 +2016,14 @@ describe("a summary that cannot be sent as it is set up", () => {
 
     expect(
       logs.some((log: WorkspaceLogData): boolean => {
-        return (log.message || "").includes("cannot be sent as it is set up");
+        return log.message === notSendableLog(NO_CHANNELS).message;
       }),
     ).toBe(false);
+    // Its one row is its channel's.
+    expect(
+      logs.map((log: WorkspaceLogData): string | undefined => {
+        return log.channelName;
+      }),
+    ).toEqual(["#ops"]);
   });
 });

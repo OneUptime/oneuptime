@@ -5000,7 +5000,7 @@
   "Test email report sent successfully.": "Test-e-mailrapport sendt korrekt.",
   "Test Notification": "Testnotifikation",
   "Test Notification Sent Successfully": "Testnotifikation sendt korrekt",
-  "Test Rule": "Testregel",
+  "Test Rule": "Test regel",
   "Text-to-speech message played to callers when they first connect": "Tekst-til-tale-besked, der afspilles for opkaldere, når de først forbindes",
   "The alert is grouped into an existing or new episode based on grouping rules": "Advarslen grupperes i en eksisterende eller ny episode baseret på grupperingsregler",
   "The amount of minutes to wait before escalating to the next escalation rule.": "Antallet af minutter, der skal ventes, før der eskaleres til næste eskaleringsregel.",
@@ -16878,7 +16878,7 @@
   "Terraform provider": "Terraform provider",
   "Test Command": "Testkommando",
   "Test Data Source": "Test Data Source",
-  "Test Executed Successfully": "Testen blev udført",
+  "Test Executed Successfully": "Test Executed Successfully",
   "Test Failed": "Testen mislykkedes",
   "Test LLM Provider": "Test LLM-udbyder",
   "Test Message": "Test Message",
@@ -51133,5 +51133,7 @@
   "Window must be a whole number of days.": "Vinduet skal være et helt antal dage.",
   "Window must be between {{min}} and {{max}} days.": "Vinduet skal være mellem {{min}} og {{max}} dage.",
   "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month": "{{percentage}} af hver måned: {{budget}} nedetid i en måned på {{days}} dage",
-  "Fix the problem above, then test the rule again.": "Ret det problem, der er nævnt ovenfor, og test derefter reglen igen."
+  "Fix the problem above, then test the rule again.": "Ret det problem, der er nævnt ovenfor, og test derefter reglen igen.",
+  "Check {{workspace}} to confirm the test notification for the rule \"{{rule}}\" arrived.": "Tjek {{workspace}} for at bekræfte, at testnotifikationen for reglen \"{{rule}}\" er kommet frem.",
+  "Send a test notification for the rule \"{{rule}}\" to {{workspace}}.": "Send en testnotifikation for reglen \"{{rule}}\" til {{workspace}}."
 }

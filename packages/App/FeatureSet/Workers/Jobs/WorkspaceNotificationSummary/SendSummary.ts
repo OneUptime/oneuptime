@@ -80,10 +80,15 @@ RunCron(
          * tried at its next time, and it is said once, as a warning. Its
          * Notification Logs say why (sendSummary). Anything else - the
          * database, for a moment - is tried again on the next run.
+         *
+         * Why is a sentence ("The summary has no channel to post in."): it
+         * is said in brackets without its full stop.
          */
         if (err instanceof WorkspaceSummaryNotSendableException) {
+          const reason: string = err.message.replace(/\.$/, "");
+
           logger.warn(
-            `WorkspaceNotificationSummary:SendSummary: Did not send summary ${summary.id?.toString()}, as it cannot be sent as it is set up (${err.message}). It is tried again at its next scheduled send.`,
+            `WorkspaceNotificationSummary:SendSummary: Did not send summary ${summary.id?.toString()}, as it cannot be sent as it is set up (${reason}). It is tried again at its next scheduled send.`,
           );
 
           continue;

@@ -5000,7 +5000,7 @@
   "Test email report sent successfully.": "Test-e-mailrapport succesvol verzonden.",
   "Test Notification": "Testmelding",
   "Test Notification Sent Successfully": "Testmelding succesvol verzonden",
-  "Test Rule": "Testregel",
+  "Test Rule": "Regel testen",
   "Text-to-speech message played to callers when they first connect": "Tekst-naar-spraakbericht dat aan bellers wordt afgespeeld wanneer ze voor het eerst verbinding maken",
   "The alert is grouped into an existing or new episode based on grouping rules": "De waarschuwing wordt op basis van groeperingsregels gegroepeerd in een bestaande of nieuwe episode",
   "The amount of minutes to wait before escalating to the next escalation rule.": "Het aantal minuten dat moet worden gewacht voordat naar de volgende escalatieregel wordt geëscaleerd.",
@@ -16878,7 +16878,7 @@
   "Terraform provider": "Terraform provider",
   "Test Command": "Testopdracht",
   "Test Data Source": "Test Data Source",
-  "Test Executed Successfully": "Test geslaagd",
+  "Test Executed Successfully": "Test Executed Successfully",
   "Test Failed": "Test mislukt",
   "Test LLM Provider": "LLM-provider testen",
   "Test Message": "Test Message",
@@ -51133,5 +51133,7 @@
   "Window must be a whole number of days.": "Het venster moet een geheel aantal dagen zijn.",
   "Window must be between {{min}} and {{max}} days.": "Het venster moet tussen {{min}} en {{max}} dagen liggen.",
   "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month": "{{percentage}} van elke maand: {{budget}} downtime in een maand van {{days}} dagen",
-  "Fix the problem above, then test the rule again.": "Los het hierboven genoemde probleem op en test de regel daarna opnieuw."
+  "Fix the problem above, then test the rule again.": "Los het hierboven genoemde probleem op en test de regel daarna opnieuw.",
+  "Check {{workspace}} to confirm the test notification for the rule \"{{rule}}\" arrived.": "Controleer {{workspace}} om te bevestigen dat de testmelding voor de regel \"{{rule}}\" is aangekomen.",
+  "Send a test notification for the rule \"{{rule}}\" to {{workspace}}.": "Een testmelding voor de regel \"{{rule}}\" naar {{workspace}} verzenden."
 }

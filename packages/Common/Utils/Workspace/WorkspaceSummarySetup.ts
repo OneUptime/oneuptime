@@ -25,13 +25,21 @@ import BadDataException from "../../Types/Exception/BadDataException";
  * dashboard's form read a summary the same way.
  */
 
-// Why a summary cannot be sent: the words sendSummary has always thrown.
+/*
+ * Why a summary cannot be sent, in words a person reads where they meet
+ * them: the summary form's refusal, Send Test Now's Test Failed (then "Fix
+ * the problem above, then send the test again.") and the Error row of the
+ * summary's Notification Logs. They were "No channel names configured for
+ * summary" and "No summary items selected"; the items are named by the
+ * form's field, What to Include, where they are picked. The project one
+ * never reaches a person: a summary has its project from the dashboard.
+ */
 export const WORKSPACE_SUMMARY_NO_PROJECT_REASON: string =
   "Summary project ID not found";
 export const WORKSPACE_SUMMARY_NO_CHANNELS_REASON: string =
-  "No channel names configured for summary";
+  "The summary has no channel to post in.";
 export const WORKSPACE_SUMMARY_NO_ITEMS_REASON: string =
-  "No summary items selected";
+  "The summary has no items picked under What to Include.";
 
 // Channel names typed as one text: the names between its commas.
 const CHANNEL_NAME_SEPARATOR: string = ",";

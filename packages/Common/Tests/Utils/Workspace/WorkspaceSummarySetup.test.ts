@@ -96,16 +96,22 @@ describe("getSendProblem: why a summary cannot be sent as it is set up", () => {
     expect(WorkspaceSummarySetup.getSendProblem(READY)).toBeNull();
   });
 
-  test("each problem in the words sendSummary has always thrown", () => {
+  /*
+   * A person reads the channel and item problems - the summary form's
+   * refusal, Send Test Now's Test Failed, the Notification Logs' Error row -
+   * so they say what is missing and where it is picked. They were "No
+   * channel names configured for summary" and "No summary items selected".
+   */
+  test("each problem in words a person reads where they meet them: what is missing, and where it is picked", () => {
     expect(
       WorkspaceSummarySetup.getSendProblem({ ...READY, hasProject: false }),
     ).toBe("Summary project ID not found");
     expect(
       WorkspaceSummarySetup.getSendProblem({ ...READY, channelNames: [] }),
-    ).toBe("No channel names configured for summary");
+    ).toBe("The summary has no channel to post in.");
     expect(
       WorkspaceSummarySetup.getSendProblem({ ...READY, summaryItems: [] }),
-    ).toBe("No summary items selected");
+    ).toBe("The summary has no items picked under What to Include.");
   });
 
   test("asked in sendSummary's order: the project, then the channels, then the items", () => {
@@ -201,7 +207,7 @@ test("a summary that cannot be sent is a BadDataException, so the API answers it
     );
 
   expect(error).toBeInstanceOf(BadDataException);
-  expect(error.message).toBe("No channel names configured for summary");
+  expect(error.message).toBe("The summary has no channel to post in.");
   expect(new BadDataException("Summary not found")).not.toBeInstanceOf(
     WorkspaceSummaryNotSendableException,
   );

@@ -5000,7 +5000,7 @@
   "Test email report sent successfully.": "Тестовый отчёт по электронной почте успешно отправлен.",
   "Test Notification": "Тестовое уведомление",
   "Test Notification Sent Successfully": "Тестовое уведомление успешно отправлено",
-  "Test Rule": "Тестовое правило",
+  "Test Rule": "Протестировать правило",
   "Text-to-speech message played to callers when they first connect": "Сообщение, преобразованное из текста в речь, воспроизводимое звонящим при первом подключении",
   "The alert is grouped into an existing or new episode based on grouping rules": "Оповещение группируется в существующий или новый эпизод на основе правил группировки",
   "The amount of minutes to wait before escalating to the next escalation rule.": "Количество минут ожидания перед эскалацией к следующему правилу эскалации.",
@@ -16878,7 +16878,7 @@
   "Terraform provider": "Terraform provider",
   "Test Command": "Команда тестов",
   "Test Data Source": "Test Data Source",
-  "Test Executed Successfully": "Тест выполнен успешно",
+  "Test Executed Successfully": "Test Executed Successfully",
   "Test Failed": "Тест не удался",
   "Test LLM Provider": "Проверка поставщика LLM",
   "Test Message": "Test Message",
@@ -51133,5 +51133,7 @@
   "Window must be a whole number of days.": "Окно должно быть целым числом дней.",
   "Window must be between {{min}} and {{max}} days.": "Окно должно быть от {{min}} до {{max}} дней.",
   "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month": "{{percentage}} каждого месяца: {{budget}} простоя в месяце из {{days}} дней",
-  "Fix the problem above, then test the rule again.": "Устраните проблему, указанную выше, затем проверьте правило снова."
+  "Fix the problem above, then test the rule again.": "Устраните проблему, указанную выше, затем проверьте правило снова.",
+  "Check {{workspace}} to confirm the test notification for the rule \"{{rule}}\" arrived.": "Проверьте {{workspace}}, чтобы убедиться, что тестовое уведомление для правила «{{rule}}» пришло.",
+  "Send a test notification for the rule \"{{rule}}\" to {{workspace}}.": "Отправить тестовое уведомление для правила «{{rule}}» в {{workspace}}."
 }

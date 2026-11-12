@@ -51133,5 +51133,7 @@
   "Window must be a whole number of days.": "時間枠は整数の日数で指定してください。",
   "Window must be between {{min}} and {{max}} days.": "時間枠は {{min}}〜{{max}} 日の範囲で指定してください。",
   "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month": "毎月の {{percentage}}: {{days}} 日間の月で {{budget}} のダウンタイム",
-  "Fix the problem above, then test the rule again.": "上に示された問題を修正してから、もう一度ルールをテストしてください。"
+  "Fix the problem above, then test the rule again.": "上に示された問題を修正してから、もう一度ルールをテストしてください。",
+  "Check {{workspace}} to confirm the test notification for the rule \"{{rule}}\" arrived.": "{{workspace}} で、ルール「{{rule}}」のテスト通知が届いたことを確認してください。",
+  "Send a test notification for the rule \"{{rule}}\" to {{workspace}}.": "ルール「{{rule}}」のテスト通知を {{workspace}} に送信します。"
 }
