@@ -69,7 +69,11 @@ describe("tokenizePageName", () => {
       "notification",
       "method",
     ]);
-    expect(tokenizePageName("On-Call Policies")).toEqual(["on", "call", "polici"]);
+    expect(tokenizePageName("On-Call Policies")).toEqual([
+      "on",
+      "call",
+      "polici",
+    ]);
     expect(tokenizePageName("روش‌های اعلان")).toEqual(["روش", "های", "اعلان"]);
   });
 });

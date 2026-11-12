@@ -48,17 +48,22 @@ const NAV_PAGES: Set<string> = new Set<string>(
 const reader: DocsAIReader = new DocsAIReader();
 
 // The pages search_docs shows the model for `question`.
-const shownPages: (question: string, language: string) => Promise<Array<string>> =
-  async (question: string, language: string): Promise<Array<string>> => {
-    const hits: Array<AIDocsSearchHit> = await reader.search({
-      query: question,
-      language,
-      limit: SHOWN_RESULTS,
-    });
-    return hits.map((hit: AIDocsSearchHit): string => {
-      return hit.page;
-    });
-  };
+const shownPages: (
+  question: string,
+  language: string,
+) => Promise<Array<string>> = async (
+  question: string,
+  language: string,
+): Promise<Array<string>> => {
+  const hits: Array<AIDocsSearchHit> = await reader.search({
+    query: question,
+    language,
+    limit: SHOWN_RESULTS,
+  });
+  return hits.map((hit: AIDocsSearchHit): string => {
+    return hit.page;
+  });
+};
 
 const answeringPages: (entry: {
   docsPage: string;
@@ -85,9 +90,13 @@ describe("Ask AI's how-do-I list", () => {
   });
 
   test.each(
-    ASK_AI_HOW_DO_I_QUESTIONS.map((entry: AskAiHowDoIQuestion) => {
-      return [entry.question, answeringPages(entry), entry.searchWords];
-    }),
+    ASK_AI_HOW_DO_I_QUESTIONS.map(
+      (
+        entry: AskAiHowDoIQuestion,
+      ): [string, Array<string>, string | undefined] => {
+        return [entry.question, answeringPages(entry), entry.searchWords];
+      },
+    ),
   )(
     'search_docs shows a page that answers "%s" (%p)',
     async (
@@ -114,7 +123,7 @@ describe("Ask AI's how-do-I list", () => {
         question: string;
         docsPage: string;
         alsoAnswers?: Array<string> | undefined;
-      }) => {
+      }): [string, string, Array<string>] => {
         return [entry.language, entry.question, answeringPages(entry)];
       },
     ),

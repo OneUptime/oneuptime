@@ -144,9 +144,7 @@ export const getAnswerPageLinks: (
         return candidate.id === match[1];
       },
     );
-    const path: string | undefined = getDashboardPageTemplate(
-      citation?.target,
-    );
+    const path: string | undefined = getDashboardPageTemplate(citation?.target);
 
     if (!citation || !path || seenPaths.has(path)) {
       continue;

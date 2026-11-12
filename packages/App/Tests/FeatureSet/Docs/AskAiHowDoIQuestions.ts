@@ -81,7 +81,8 @@ export const ASK_AI_HOW_DO_I_QUESTIONS: ReadonlyArray<AskAiHowDoIQuestion> = [
     dashboardPath: "/dashboard/:projectId/on-call-duty/policies",
   },
   {
-    question: "How do I cover someone's on-call shift while they are on vacation?",
+    question:
+      "How do I cover someone's on-call shift while they are on vacation?",
     docsPage: "on-call/user-overrides",
     dashboardPage: "User Overrides",
   },
@@ -212,7 +213,11 @@ export const ASK_AI_HOW_DO_I_QUESTIONS: ReadonlyArray<AskAiHowDoIQuestion> = [
   {
     question: "How do I run a workflow when an incident is created?",
     docsPage: "workflows/triggers",
-    alsoAnswers: ["workflows/index", "workflows/authoring", "incidents/settings"],
+    alsoAnswers: [
+      "workflows/index",
+      "workflows/authoring",
+      "incidents/settings",
+    ],
     dashboardPage: "Workflows",
   },
   {

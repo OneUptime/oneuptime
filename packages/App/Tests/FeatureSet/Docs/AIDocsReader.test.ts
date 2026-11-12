@@ -5,7 +5,10 @@ import DocsAIReader, {
   tokenizeForDocs,
   tokenizeQueryForDocs,
 } from "../../../FeatureSet/Docs/Utils/AIDocsReader";
-import { AIDocsPage, AIDocsSearchHit } from "Common/Server/Utils/AI/Docs/AIDocsLibrary";
+import {
+  AIDocsPage,
+  AIDocsSearchHit,
+} from "Common/Server/Utils/AI/Docs/AIDocsLibrary";
 import { describe, expect, jest, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -196,9 +199,9 @@ describe("DocsAIReader.readPage", () => {
   });
 
   test("reads the person's language where the page is translated", async () => {
-    expect(
-      fs.existsSync(path.join(CONTENT, "de/status-pages/index.md")),
-    ).toBe(true);
+    expect(fs.existsSync(path.join(CONTENT, "de/status-pages/index.md"))).toBe(
+      true,
+    );
 
     const page: AIDocsPage | null = await reader.readPage({
       page: "/docs/de/status-pages/index",

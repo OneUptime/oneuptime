@@ -248,7 +248,10 @@ describe("Ask AI's catalog of the Dashboard's pages", () => {
 
   test("finds each of the pages a newcomer asks about by the name the menus give it", () => {
     const expectations: Array<{ query: string; path: string }> = [
-      { query: "Create Monitor", path: "/dashboard/:projectId/monitors/create" },
+      {
+        query: "Create Monitor",
+        path: "/dashboard/:projectId/monitors/create",
+      },
       {
         query: "Notification Methods",
         path: "/dashboard/:projectId/user-settings/notification-methods",
@@ -262,7 +265,10 @@ describe("Ask AI's catalog of the Dashboard's pages", () => {
         path: "/dashboard/:projectId/incidents/create",
       },
       { query: "API Keys", path: "/dashboard/:projectId/settings/api-keys" },
-      { query: "On-Call Policies", path: "/dashboard/:projectId/on-call-duty/policies" },
+      {
+        query: "On-Call Policies",
+        path: "/dashboard/:projectId/on-call-duty/policies",
+      },
       { query: "Status Pages", path: "/dashboard/:projectId/status-pages" },
     ];
 

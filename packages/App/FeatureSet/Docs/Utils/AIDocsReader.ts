@@ -67,6 +67,7 @@ interface AIDocsLanguageIndex {
 const TTL_MS: number = 10 * 60 * 1000;
 const FENCE_LINE: RegExp = /^\s*(```|~~~)/;
 const HEADING_LINE: RegExp = /^(#{2,3})\s+(.+?)\s*#*\s*$/;
+const DOCS_PAGE: RegExp = /^[a-z0-9-]+(\/[a-z0-9-]+)*$/;
 
 /*
  * Words a question is phrased with rather than about. Only English: in
@@ -171,9 +172,10 @@ const OTHER_WORDS: ReadonlyMap<string, ReadonlyArray<string>> = new Map<
 export const tokenizeQueryForDocs: (query: string) => Array<string> = (
   query: string,
 ): Array<string> => {
-  const words: Array<string> = query.normalize("NFKC").toLowerCase().split(
-    /[^\p{L}\p{M}\p{N}]+/u,
-  );
+  const words: Array<string> = query
+    .normalize("NFKC")
+    .toLowerCase()
+    .split(/[^\p{L}\p{M}\p{N}]+/u);
   const otherWords: Array<string> = words.flatMap(
     (word: string): ReadonlyArray<string> => {
       return OTHER_WORDS.get(word) || [];
@@ -257,7 +259,10 @@ export const normalizeDocsPage: (value: string) => string | null = (
     page = page.slice(docsAt + "/docs/".length);
   }
 
-  page = page.split("#")[0]!.split("?")[0]!.replace(/^\/+|\/+$/g, "");
+  page = page
+    .split("#")[0]!
+    .split("?")[0]!
+    .replace(/^\/+|\/+$/g, "");
 
   const firstSegment: string = page.split("/")[0] || "";
   if (isSupportedDocsLanguage(firstSegment) && page.includes("/")) {
@@ -266,7 +271,7 @@ export const normalizeDocsPage: (value: string) => string | null = (
 
   page = page.replace(/\.md$/, "");
 
-  return /^[a-z0-9-]+(\/[a-z0-9-]+)*$/.test(page) ? page : null;
+  return DOCS_PAGE.test(page) ? page : null;
 };
 
 interface DocsCopy {
@@ -274,40 +279,48 @@ interface DocsCopy {
   language: string;
 }
 
-const readCopy: (page: string, language: string) => Promise<DocsCopy | null> =
-  async (page: string, language: string): Promise<DocsCopy | null> => {
-    for (const candidate of [language, DEFAULT_DOCS_LANGUAGE]) {
-      const path: string = `${ContentPath}/${candidate}/${page}.md`;
-      if (await LocalFile.doesFileExist(path)) {
-        return { markdown: await LocalFile.read(path), language: candidate };
-      }
+const readCopy: (
+  page: string,
+  language: string,
+) => Promise<DocsCopy | null> = async (
+  page: string,
+  language: string,
+): Promise<DocsCopy | null> => {
+  for (const candidate of [language, DEFAULT_DOCS_LANGUAGE]) {
+    const path: string = `${ContentPath}/${candidate}/${page}.md`;
+    if (await LocalFile.doesFileExist(path)) {
+      return { markdown: await LocalFile.read(path), language: candidate };
     }
-    return null;
-  };
+  }
+  return null;
+};
 
 // Every page the nav lists, by its address under /docs/<lang>/, with its group.
-const getNavPages: () => Array<{ page: string; link: NavLink; group: NavGroup }> =
-  (): Array<{ page: string; link: NavLink; group: NavGroup }> => {
-    const pages: Array<{ page: string; link: NavLink; group: NavGroup }> = [];
-    const seen: Set<string> = new Set<string>();
+const getNavPages: () => Array<{
+  page: string;
+  link: NavLink;
+  group: NavGroup;
+}> = (): Array<{ page: string; link: NavLink; group: NavGroup }> => {
+  const pages: Array<{ page: string; link: NavLink; group: NavGroup }> = [];
+  const seen: Set<string> = new Set<string>();
 
-    for (const group of DocsNav as Array<NavGroup>) {
-      for (const link of group.links as Array<NavLink>) {
-        if (!link.url.startsWith("/docs/")) {
-          continue;
-        }
+  for (const group of DocsNav as Array<NavGroup>) {
+    for (const link of group.links as Array<NavLink>) {
+      if (!link.url.startsWith("/docs/")) {
+        continue;
+      }
 
-        const page: string | null = normalizeDocsPage(link.url);
+      const page: string | null = normalizeDocsPage(link.url);
 
-        if (page && !seen.has(page)) {
-          seen.add(page);
-          pages.push({ page, link, group });
-        }
+      if (page && !seen.has(page)) {
+        seen.add(page);
+        pages.push({ page, link, group });
       }
     }
+  }
 
-    return pages;
-  };
+  return pages;
+};
 
 /*
  * A page's sections, h2 and h3, each with the words under it up to the
@@ -483,11 +496,8 @@ export default class DocsAIReader implements AIDocsReader {
       if (count === 0) {
         return 0;
       }
-      const lengthRatio: number =
-        length / Math.max(1, index.averageBodyLength);
-      return (
-        (2 * (count * 2.2)) / (count + 1.2 * (0.25 + 0.75 * lengthRatio))
-      );
+      const lengthRatio: number = length / Math.max(1, index.averageBodyLength);
+      return (2 * (count * 2.2)) / (count + 1.2 * (0.25 + 0.75 * lengthRatio));
     };
     const weight: (term: string) => number = (term: string): number => {
       return Math.log(
@@ -570,9 +580,11 @@ export default class DocsAIReader implements AIDocsReader {
         },
       )
       .slice(0, Math.max(1, limit))
-      .map((entry: { hit: AIDocsSearchHit; score: number }): AIDocsSearchHit => {
-        return entry.hit;
-      });
+      .map(
+        (entry: { hit: AIDocsSearchHit; score: number }): AIDocsSearchHit => {
+          return entry.hit;
+        },
+      );
   }
 
   public async search(data: {
@@ -596,12 +608,13 @@ export default class DocsAIReader implements AIDocsReader {
       return null;
     }
 
-    const navPage: { page: string; link: NavLink; group: NavGroup } | undefined =
-      getNavPages().find(
-        (candidate: { page: string; link: NavLink; group: NavGroup }) => {
-          return candidate.page === page;
-        },
-      );
+    const navPage:
+      | { page: string; link: NavLink; group: NavGroup }
+      | undefined = getNavPages().find(
+      (candidate: { page: string; link: NavLink; group: NavGroup }) => {
+        return candidate.page === page;
+      },
+    );
 
     if (!navPage) {
       return null;

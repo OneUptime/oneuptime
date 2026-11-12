@@ -972,7 +972,8 @@ const TARGET_PAGE_NAMES: { [key in AIChatCitationTargetType]: string } = {
     "Data Security access",
   ),
   [AIChatCitationTargetType.DocsPage]: translationKey("Docs"),
-  [AIChatCitationTargetType.DashboardPage]: translationKey("Dashboard"),
+  // A page of the Dashboard an answer sends the reader to (#6828).
+  [AIChatCitationTargetType.DashboardPage]: translationKey("Page"),
 };
 
 // The page an evidence target opens, for "Open in <page>".

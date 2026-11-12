@@ -40,6 +40,7 @@ export const AI_DASHBOARD_PAGES: ReadonlyArray<AIDashboardPage> =
   DashboardPagesData as Array<AIDashboardPage>;
 
 const WORD_ENDINGS: ReadonlyArray<string> = ["ing", "ed", "es", "s"];
+const ENGLISH_WORD: RegExp = /^[a-z]+$/;
 
 const IGNORED_WORDS: ReadonlySet<string> = new Set<string>([
   "a",
@@ -64,7 +65,7 @@ export const tokenizePageName: (text: string) => Array<string> = (
       return word.length > 0 && !IGNORED_WORDS.has(word);
     })
     .map((word: string): string => {
-      if (!/^[a-z]+$/.test(word)) {
+      if (!ENGLISH_WORD.test(word)) {
         return word;
       }
       for (const ending of WORD_ENDINGS) {
@@ -174,8 +175,10 @@ export default class DashboardPageFinder {
         },
       )
       .slice(0, Math.max(1, data.limit))
-      .map((entry: { page: AIDashboardPage; score: number }): AIDashboardPage => {
-        return entry.page;
-      });
+      .map(
+        (entry: { page: AIDashboardPage; score: number }): AIDashboardPage => {
+          return entry.page;
+        },
+      );
   }
 }

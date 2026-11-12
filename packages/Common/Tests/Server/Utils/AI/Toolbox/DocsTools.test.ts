@@ -227,9 +227,7 @@ describe("getDocsLanguageArgument", () => {
   test("falls back to English for none, or one the docs are not written in", () => {
     expect(getDocsLanguageArgument({})).toBe("en");
     expect(getDocsLanguageArgument({ language: "tlh" })).toBe("en");
-    expect(getDocsLanguageArgument({ language: 42 } as JSONObject)).toBe(
-      "en",
-    );
+    expect(getDocsLanguageArgument({ language: 42 } as JSONObject)).toBe("en");
   });
 });
 

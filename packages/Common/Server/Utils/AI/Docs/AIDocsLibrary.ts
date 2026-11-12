@@ -53,7 +53,10 @@ export interface AIDocsReader {
     limit: number;
   }): Promise<Array<AIDocsSearchHit>>;
   // Null when there is no such page in the docs' nav.
-  readPage(data: { page: string; language: string }): Promise<AIDocsPage | null>;
+  readPage(data: {
+    page: string;
+    language: string;
+  }): Promise<AIDocsPage | null>;
 }
 
 let registeredReader: AIDocsReader | null = null;

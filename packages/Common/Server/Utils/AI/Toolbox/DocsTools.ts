@@ -62,6 +62,8 @@ export const MAX_DOCS_READ_CHARS: number = 24_000;
 const DEFAULT_SEARCH_LIMIT: number = 6;
 const MAX_SEARCH_LIMIT: number = 10;
 const DASHBOARD_PAGE_LIMIT: number = 5;
+const FENCE_LINE: RegExp = /^\s*(```|~~~)/;
+const HEADING_LINE: RegExp = /^(#{1,6})\s+(.+?)\s*#*\s*$/;
 
 export const DOCS_UNAVAILABLE_MESSAGE: string =
   "The docs are not available to this conversation. Say that you could not read OneUptime's docs here, and do not answer from memory.";
@@ -143,7 +145,7 @@ export const findDocsSection: (
   for (let i: number = 0; i < lines.length; i++) {
     const line: string = lines[i]!;
 
-    if (/^\s*(```|~~~)/.test(line)) {
+    if (FENCE_LINE.test(line)) {
       inFence = !inFence;
       continue;
     }
@@ -152,7 +154,7 @@ export const findDocsSection: (
       continue;
     }
 
-    const heading: RegExpMatchArray | null = line.match(/^(#{1,6})\s+(.+?)\s*#*\s*$/);
+    const heading: RegExpMatchArray | null = line.match(HEADING_LINE);
 
     if (!heading) {
       continue;
@@ -194,7 +196,7 @@ export const SearchDocsTool: ObservabilityTool = {
       query: {
         type: "string",
         description:
-          "What to look for, in a few words: \"SMS notifications\", \"episode\", \"custom domain status page\". Words of the docs' language work best.",
+          'What to look for, in a few words: "SMS notifications", "episode", "custom domain status page". Words of the docs\' language work best.',
       },
       language: LANGUAGE_ARGUMENT,
       limit: {
@@ -262,9 +264,7 @@ export const SearchDocsTool: ObservabilityTool = {
                 ? { bestSection: hit.section.title, anchor: hit.section.anchor }
                 : {}),
               summary: hit.summary,
-              ...(hit.language !== language
-                ? { writtenIn: hit.language }
-                : {}),
+              ...(hit.language !== language ? { writtenIn: hit.language } : {}),
             };
           }),
           next: "Read the page that fits with read_docs (page, and section for the best section) before answering from it.",
@@ -395,14 +395,14 @@ export const ReadDocsTool: ObservabilityTool = {
 export const FindDashboardPageTool: ObservabilityTool = {
   name: FIND_DASHBOARD_PAGE_TOOL_NAME,
   description:
-    "Find the page of this project in the OneUptime Dashboard where something is done or set - by the page's or the setting's English name as the docs and the menus give it (\"Create Monitor\", \"Notification Methods\", \"API Keys\", \"Incidents Custom Fields\"). Returns the best pages with where each is. The citation of this result opens its first page for the person: cite it at the end of a how-do-I answer. To send them to another of the pages returned, call again with that page's name and place.",
+    'Find the page of this project in the OneUptime Dashboard where something is done or set - by the page\'s or the setting\'s English name as the docs and the menus give it ("Create Monitor", "Notification Methods", "API Keys", "Incidents Custom Fields"). Returns the best pages with where each is. The citation of this result opens its first page for the person: cite it at the end of a how-do-I answer. To send them to another of the pages returned, call again with that page\'s name and place.',
   inputSchema: {
     type: "object",
     properties: {
       query: {
         type: "string",
         description:
-          "The page's or setting's name in English, with where it is when the name is common: \"Phone Numbers for SMS Notifications\", \"Status Pages Custom Fields\".",
+          'The page\'s or setting\'s name in English, with where it is when the name is common: "Phone Numbers for SMS Notifications", "Status Pages Custom Fields".',
       },
     },
     required: ["query"],
