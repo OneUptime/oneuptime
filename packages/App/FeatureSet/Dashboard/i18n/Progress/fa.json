@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 51107,
-    "untranslated": 4273
+    "untranslated": 4013
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -48,10 +48,12 @@
     "Azure Kubernetes Service.",
     "Azure portal",
     "Bare Metal",
+    "Bash",
     "Brute force detected",
     "CIDR",
     "CPU Ready",
     "CPU Ready {{percent}}",
+    "CSS",
     "Canonical Sunbeam",
     "ClickHouse",
     "CloudKitty",
@@ -97,6 +99,7 @@
     "Google GKE",
     "Google SecOps",
     "Google UDM",
+    "Groq",
     "H1",
     "HA: {{state}}",
     "HAProxy",
@@ -130,6 +133,7 @@
     "Mbps",
     "Memcached",
     "Mirantis MOSK",
+    "Mistral",
     "Mod97",
     "MongoDB",
     "MySQL",
@@ -143,6 +147,7 @@
     "OVN Chassis",
     "Object Container",
     "Object Storage",
+    "Ollama",
     "OnCallDutyPolicy",
     "OpenShift",
     "OpenStack-Ansible",
