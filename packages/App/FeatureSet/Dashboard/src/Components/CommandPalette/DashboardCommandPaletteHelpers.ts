@@ -107,6 +107,11 @@ export interface PaletteNavigationCatalogEntry {
    * recents are persisted under.
    */
   templatePath: string;
+  /*
+   * Offered only to someone searching (#6814): a product the project hides
+   * is still found by Search, but browsing lists the products it shows.
+   */
+  isSearchOnly?: boolean | undefined;
 }
 
 export interface PaletteNavigationCommandDescriptor

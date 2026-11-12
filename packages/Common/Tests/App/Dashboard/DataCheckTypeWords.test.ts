@@ -108,7 +108,7 @@ describe("a name for every type a check has", () => {
         "de",
       ]);
 
-      // And with the key, left English: as Row Count was in thirteen files.
+      // And with the key, left English: as Row Count was in most files.
       german[DataCheckType.NullPercent] = DataCheckType.NullPercent;
       expect(languagesLeavingUnworded(DataCheckType.NullPercent)).toEqual([
         "de",

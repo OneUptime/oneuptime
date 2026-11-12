@@ -7,6 +7,7 @@ import { getHomeCounts } from "../../Components/Home/HomeOverviewData";
 import NeedsAttention from "../../Components/Home/NeedsAttention";
 import ProjectHealthCard from "../../Components/Home/ProjectHealthCard";
 import ProjectResources from "../../Components/Home/ProjectResources";
+import HiddenProductsWithData from "../../Components/ProjectProducts/HiddenProductsWithData";
 import ServerSetupCard from "../../Components/ServerSetup/ServerSetupCard";
 import useSetupHealthSummary from "../../Components/SetupHealth/UseSetupHealthSummary";
 import UpcomingMaintenance from "../../Components/Home/UpcomingMaintenance";
@@ -170,6 +171,12 @@ const Home: FunctionComponent<ComponentProps> = (
       <ServerSetupCard />
 
       <GettingStarted projectId={currentProjectId} className="!mb-0" />
+
+      {/*
+       * A product the project hides that started receiving data (#6814):
+       * one line, for whoever may choose the project's products.
+       */}
+      <HiddenProductsWithData />
 
       <div data-testid="home-overview-row" className={HOME_ROW_CLASS_NAME}>
         <div

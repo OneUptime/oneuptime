@@ -5,6 +5,7 @@ Les paramètres du projet contiennent ce qui s'applique au projet entier : son n
 :::cards
 - [Trouver un paramètre](#trouver-un-paramètre): Ce que contient chaque section du menu latéral.
 - [Les détails du projet](#les-détails-du-projet): Son nom, son ID et l'accès du support.
+- [Produits](#produits): Les produits que ce projet affiche, et ceux qu'il masque.
 - [Étiquettes](#étiquettes): Des marqueurs pour les ressources, les autorisations et les règles.
 - [Supprimer le projet](#supprimer-le-projet): Ce qu'il faut, et ce qui part avec.
 :::
@@ -30,7 +31,7 @@ flowchart LR
 
 | Section | Pages | Où en lire plus |
 | --- | --- | --- |
-| **Basique** | **Projet**, **Étiquettes** | [Les détails du projet](#les-détails-du-projet), [Étiquettes](#étiquettes) |
+| **Basique** | **Projet**, **Produits**, **Étiquettes** | [Les détails du projet](#les-détails-du-projet), [Produits](#produits), [Étiquettes](#étiquettes) |
 | **Espace de travail** | **Slack**, **Microsoft Teams**, **Mattermost**, **Appels vidéo** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [Appels vidéo](/docs/workspace-connections/video-calls) |
 | **Télémétrie & APM** | **Clés d'ingestion**, **Rétention des données**, **Utilisation** | [Clés d'ingestion](/docs/telemetry/ingestion-keys), [Rétention des données](/docs/telemetry/data-retention), [Utilisation de la télémétrie](/docs/telemetry/usage) |
 | **Notifications** | **Paramètres de notification**, **Journaux de notification**, **Applications mobiles** | [Notifications](#notifications) |
@@ -54,6 +55,18 @@ flowchart LR
 - **Résidence des données** : sur OneUptime Cloud, l'endroit où les données de votre projet doivent être conservées, quand OneUptime l'a enregistré. Seul OneUptime le définit.
 
 **Accès du support client**, sur OneUptime Cloud, décide si l'équipe de support de OneUptime peut ouvrir le projet. Activez **Autoriser le support OneUptime à accéder à ce projet** quand vous voulez son aide : OneUptime demande d'abord, car le support peut alors voir et modifier tout le projet, et vous cliquez sur **Autoriser le support**. Désactivez-le une fois qu'il a terminé : c'est enregistré aussitôt. Les Project Owners et les Project Admins le modifient.
+
+## Produits
+
+**Paramètres du projet → Basique → Produits** choisit les produits que ce projet affiche dans son menu **Produits**, sur l'accueil et dans la liste de la recherche. Chaque produit a un interrupteur qui enregistre dès que vous le basculez : activé, il affiche le produit. Les utilisateurs, les équipes et les paramètres du projet sont toujours affichés, et **Afficher tous les produits** les réaffiche tous.
+
+Un produit masqué n'est pas désactivé. Il passe sous **Plus de produits**, la dernière ligne du menu **Produits** : la recherche le trouve toujours, ses pages et son API fonctionnent, et ses données continuent d'arriver. Quiconque l'a épinglé garde son épingle.
+
+Un nouveau projet part de ce que son propriétaire a dit vouloir faire sur l'accueil : les essentiels, les paramètres et ce dont ces objectifs ont besoin sont affichés, et le reste est masqué. Un projet qui a passé la question, ou qui a été créé avant elle, affiche tous les produits. Dès que quelqu'un modifie la liste ici, les objectifs ne la modifient plus.
+
+Chaque produit indique ce qu'il est pour ce projet : **Utilisée**, **Non configuré** ou, sur OneUptime Cloud, l'offre dont il a besoin. Quand un produit masqué commence à recevoir des données, l'accueil le signale aux propriétaires et aux administrateurs du projet et propose **L'afficher** ou **Laisser masqué**.
+
+Les propriétaires du projet, ses administrateurs et toute personne autorisée à modifier le projet la changent ; tous les autres membres du projet peuvent la consulter.
 
 ## Étiquettes
 
