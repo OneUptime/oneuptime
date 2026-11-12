@@ -397,8 +397,10 @@ type CodeFileViewsFunction = (data: {
   filePath: string;
   /*
    * Only what the model still has (issue #6365): a record from an earlier
-   * answer is left out, and so is one of this answer whose result the
-   * conversation has left out since (issue #6570).
+   * answer shows no lines, and nor does one of this answer whose result
+   * the conversation has left out since (issue #6570). Each still says the
+   * model saw its version there: a view of another version there before it
+   * is not the last the model saw, and is dropped.
    */
   inHandOnly?: boolean | undefined;
   /*
@@ -436,7 +438,6 @@ export const getCodeFileViews: CodeFileViewsFunction = (data: {
       !record ||
       record.recordType !== AIChatRecordSeenType.CodeFile ||
       record.isPartial ||
-      (data.inHandOnly && !isAIChatRecordInHand(record)) ||
       (data.inThisAnswerOnly && record.fromEarlierAnswer)
     ) {
       continue;
@@ -461,6 +462,22 @@ export const getCodeFileViews: CodeFileViewsFunction = (data: {
     );
     const fingerprint: string | null = version?.fingerprint ?? null;
     const before: CodeFileView | undefined = byBranch.get(address.branchName);
+
+    /*
+     * A record the model no longer has (inHandOnly) shows it no lines, but
+     * the model did see that version there: a view of another version
+     * there is no longer the last it saw (issue #6570). The lines of a
+     * version add up only since the model last saw another, as for every
+     * view - so the records a turn keeps (getLatestAIChatRecordsSeen) say
+     * the same as all of them.
+     */
+    if (data.inHandOnly && !isAIChatRecordInHand(record)) {
+      if (before && before.fingerprint !== fingerprint) {
+        byBranch.delete(address.branchName);
+      }
+
+      continue;
+    }
 
     /*
      * The last view on each branch replaces the ones before it; one of the
