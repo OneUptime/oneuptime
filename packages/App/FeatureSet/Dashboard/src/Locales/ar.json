@@ -23105,7 +23105,7 @@
   "{{duration}} uncovered across {{count}} gaps_one": "{{duration}} دون تغطية في {{count}} فجوة",
   "{{error}} Showing the last known status; this page retries on its own.": "{{error}} تُعرض آخر حالة معروفة؛ وتعيد هذه الصفحة المحاولة تلقائيًا.",
   "{{headline}} for {{duration}}": "{{headline}} لمدة {{duration}}",
-  "{{host}} resolved to {{addresses}} in {{time}} ms": "حُل {{host}} إلى {{addresses}} خلال {{time}} ms",
+  "{{host}} resolved to {{addresses}} in {{time}} ms": "حُل {{host}} إلى {{addresses}} خلال {{time}} ملي ث",
   "{{hours}} hr {{minutes}} min": "{{hours}} س {{minutes}} د",
   "{{inRate}} / {{outRate}} Mbps": "{{inRate}} / {{outRate}} Mbps",
   "{{inView}} of {{count}} sites in view": "{{inView}} من أصل {{count}} من المواقع في العرض",
@@ -23189,7 +23189,7 @@
   "{{up}} up, {{down}} down, {{disabled}} disabled of {{count}} interfaces": "من أصل {{count}} من الواجهات: {{up}} تعمل، و{{down}} متوقفة، و{{disabled}} معطّلة",
   "{{up}} up, {{down}} down, {{disabled}} disabled of {{count}} interfaces_one": "من أصل {{count}} واجهة: {{up}} تعمل، و{{down}} متوقفة، و{{disabled}} معطّلة",
   "{{value}} Mbps": "{{value}} Mbps",
-  "{{value}} ms": "{{value}} ms",
+  "{{value}} ms": "{{value}} ملي ث",
   "{{visible}} of {{total}} series shown": "تُعرض {{visible}} من {{total}} من السلاسل",
   "{{warning}} on {{rule}}. See who, and send a setup reminder.": "{{warning}} في {{rule}}. اعرف من هم، وأرسل تذكيرًا بالإعداد.",
   "A device is skipped if another device already has its short name, or if its name changed since it was selected.": "يُتخطّى الجهاز إذا كان جهاز آخر يحمل اسمه القصير بالفعل، أو إذا تغيّر اسمه منذ تحديده.",
@@ -51243,5 +51243,7 @@
   "Your role cannot read end-user identity. Ask a project admin for the \"{{permission}}\" permission.": "لا يستطيع دورك قراءة هوية المستخدم النهائي. اطلب من مسؤول المشروع إذن «{{permission}}».",
   "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.": "المرجع الدقيق الذي مرّرته صفحتك إلى identify(). يتطلب إذن «{{permission}}»؛ ولا يُكتب أبدًا في عنوان URL.",
   "That turn is not part of this task": "تلك الجولة ليست جزءًا من هذه المهمة",
-  "The task's first turn is shown instead.": "تُعرض الجولة الأولى من المهمة بدلًا منها."
+  "The task's first turn is shown instead.": "تُعرض الجولة الأولى من المهمة بدلًا منها.",
+  "This status page is private: only people who sign in to it, or who know its password, can read it. Only a public status page can be watched.": "صفحة الحالة هذه خاصة: لا يقرؤها إلا من يسجّل الدخول إليها أو يعرف كلمة مرورها. ولا يمكن مراقبة إلا صفحة حالة عامة.",
+  "This status page lets in only the IP addresses on its allowlist, and this probe's address is not one of them. Add the probe's address to the allowlist, or watch the page from a probe inside that network.": "لا تسمح صفحة الحالة هذه إلا بعناوين IP الموجودة في قائمة السماح الخاصة بها، وعنوان هذا المسبار ليس منها. أضف عنوان المسبار إلى قائمة السماح، أو راقب الصفحة من مسبار داخل تلك الشبكة."
 }

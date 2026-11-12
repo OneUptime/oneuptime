@@ -2,6 +2,7 @@ import HttpPhaseTimings from "Common/Types/Monitor/HttpPhaseTimings";
 import React, { FunctionComponent, ReactElement } from "react";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { formatMilliseconds } from "../../../Utils/Milliseconds";
 import {
   TIMING_LABEL_CLASS_NAME,
   TIMING_VALUE_CLASS_NAME,
@@ -92,8 +93,8 @@ const HttpTimingsView: FunctionComponent<ComponentProps> = (
                 ></div>
               </div>
               <div className={TIMING_VALUE_CLASS_NAME}>
-                {translator.translateTemplate("{{value}} ms", {
-                  value: Math.round(phase.valueInMs * 100) / 100,
+                {formatMilliseconds(translator, phase.valueInMs, {
+                  maximumFractionDigits: 2,
                 })}
               </div>
             </div>

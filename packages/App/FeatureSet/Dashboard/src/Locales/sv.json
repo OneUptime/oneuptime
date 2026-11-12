@@ -51243,5 +51243,7 @@
   "Your role cannot read end-user identity. Ask a project admin for the \"{{permission}}\" permission.": "Din roll kan inte läsa slutanvändaridentitet. Be en projektadministratör om behörigheten ”{{permission}}”.",
   "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.": "Den exakta referens som din sida skickade till identify(). Kräver behörigheten ”{{permission}}”; skrivs aldrig i URL:en.",
   "That turn is not part of this task": "Den turen hör inte till den här uppgiften",
-  "The task's first turn is shown instead.": "Uppgiftens första tur visas i stället."
+  "The task's first turn is shown instead.": "Uppgiftens första tur visas i stället.",
+  "This status page is private: only people who sign in to it, or who know its password, can read it. Only a public status page can be watched.": "Den här statussidan är privat: bara personer som loggar in på den eller känner till dess lösenord kan läsa den. Bara en offentlig statussida kan övervakas.",
+  "This status page lets in only the IP addresses on its allowlist, and this probe's address is not one of them. Add the probe's address to the allowlist, or watch the page from a probe inside that network.": "Den här statussidan släpper bara in IP-adresserna på sin tillåtelselista, och den här sondens adress är inte en av dem. Lägg till sondens adress i tillåtelselistan, eller övervaka sidan från en sond inom det nätverket."
 }

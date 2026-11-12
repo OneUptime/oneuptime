@@ -51243,5 +51243,7 @@
   "Your role cannot read end-user identity. Ask a project admin for the \"{{permission}}\" permission.": "Ihre Rolle kann keine Endbenutzeridentitäten lesen. Bitten Sie einen Projektadministrator um die Berechtigung „{{permission}}“.",
   "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.": "Die genaue Referenz, die Ihre Seite an identify() übergeben hat. Erfordert die Berechtigung „{{permission}}“; wird nie in die URL geschrieben.",
   "That turn is not part of this task": "Dieser Durchgang gehört nicht zu dieser Aufgabe",
-  "The task's first turn is shown instead.": "Stattdessen wird der erste Durchgang der Aufgabe angezeigt."
+  "The task's first turn is shown instead.": "Stattdessen wird der erste Durchgang der Aufgabe angezeigt.",
+  "This status page is private: only people who sign in to it, or who know its password, can read it. Only a public status page can be watched.": "Diese Statusseite ist privat: Nur Personen, die sich dort anmelden oder ihr Passwort kennen, können sie lesen. Nur eine öffentliche Statusseite kann überwacht werden.",
+  "This status page lets in only the IP addresses on its allowlist, and this probe's address is not one of them. Add the probe's address to the allowlist, or watch the page from a probe inside that network.": "Diese Statusseite lässt nur die IP-Adressen auf ihrer Zulassungsliste zu, und die Adresse dieser Sonde gehört nicht dazu. Fügen Sie die Adresse der Sonde zur Zulassungsliste hinzu oder überwachen Sie die Seite von einer Sonde innerhalb dieses Netzwerks."
 }

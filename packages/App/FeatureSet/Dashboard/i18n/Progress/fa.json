@@ -218,7 +218,6 @@
     "{{count}} share",
     "{{count}} vCPU",
     "{{gigabytes}} GB",
-    "{{in}} in",
-    "{{value}} ms"
+    "{{in}} in"
   ]
 }

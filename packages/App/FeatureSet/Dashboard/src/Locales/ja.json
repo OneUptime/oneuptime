@@ -51243,5 +51243,7 @@
   "Your role cannot read end-user identity. Ask a project admin for the \"{{permission}}\" permission.": "あなたのロールではエンドユーザーの身元を読み取れません。プロジェクト管理者に「{{permission}}」権限を依頼してください。",
   "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.": "ページが identify() に渡した参照そのもの。「{{permission}}」権限が必要で、URL に書き込まれることはありません。",
   "That turn is not part of this task": "そのターンはこのタスクのものではありません",
-  "The task's first turn is shown instead.": "代わりにタスクの最初のターンを表示しています。"
+  "The task's first turn is shown instead.": "代わりにタスクの最初のターンを表示しています。",
+  "This status page is private: only people who sign in to it, or who know its password, can read it. Only a public status page can be watched.": "このステータスページは非公開です。サインインした人またはパスワードを知っている人だけが閲覧できます。監視できるのは公開ステータスページだけです。",
+  "This status page lets in only the IP addresses on its allowlist, and this probe's address is not one of them. Add the probe's address to the allowlist, or watch the page from a probe inside that network.": "このステータスページは IP 許可リストにある IP アドレスからのアクセスだけを許可しており、このプローブのアドレスは含まれていません。プローブのアドレスを許可リストに追加するか、そのネットワーク内のプローブからページを監視してください。"
 }

@@ -51243,5 +51243,7 @@
   "Your role cannot read end-user identity. Ask a project admin for the \"{{permission}}\" permission.": "현재 역할로는 최종 사용자 신원을 읽을 수 없습니다. 프로젝트 관리자에게 \"{{permission}}\" 권한을 요청하세요.",
   "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.": "페이지가 identify()에 전달한 정확한 참조 값입니다. \"{{permission}}\" 권한이 필요하며 URL에는 절대 기록되지 않습니다.",
   "That turn is not part of this task": "그 차례는 이 작업에 속하지 않습니다",
-  "The task's first turn is shown instead.": "대신 작업의 첫 번째 차례를 표시합니다."
+  "The task's first turn is shown instead.": "대신 작업의 첫 번째 차례를 표시합니다.",
+  "This status page is private: only people who sign in to it, or who know its password, can read it. Only a public status page can be watched.": "이 상태 페이지는 비공개입니다. 로그인하거나 비밀번호를 아는 사람만 읽을 수 있습니다. 공개 상태 페이지만 모니터링할 수 있습니다.",
+  "This status page lets in only the IP addresses on its allowlist, and this probe's address is not one of them. Add the probe's address to the allowlist, or watch the page from a probe inside that network.": "이 상태 페이지는 IP 허용 목록에 있는 IP 주소만 들여보내며, 이 프로브의 주소는 그중에 없습니다. 프로브의 주소를 허용 목록에 추가하거나 해당 네트워크 안에 있는 프로브에서 페이지를 모니터링하세요."
 }

@@ -51243,5 +51243,7 @@
   "Your role cannot read end-user identity. Ask a project admin for the \"{{permission}}\" permission.": "Your role cannot read end-user identity. Ask a project admin for the \"{{permission}}\" permission.",
   "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.": "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.",
   "That turn is not part of this task": "That turn is not part of this task",
-  "The task's first turn is shown instead.": "The task's first turn is shown instead."
+  "The task's first turn is shown instead.": "The task's first turn is shown instead.",
+  "This status page is private: only people who sign in to it, or who know its password, can read it. Only a public status page can be watched.": "This status page is private: only people who sign in to it, or who know its password, can read it. Only a public status page can be watched.",
+  "This status page lets in only the IP addresses on its allowlist, and this probe's address is not one of them. Add the probe's address to the allowlist, or watch the page from a probe inside that network.": "This status page lets in only the IP addresses on its allowlist, and this probe's address is not one of them. Add the probe's address to the allowlist, or watch the page from a probe inside that network."
 }

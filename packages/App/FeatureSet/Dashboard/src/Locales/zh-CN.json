@@ -51243,5 +51243,7 @@
   "Your role cannot read end-user identity. Ask a project admin for the \"{{permission}}\" permission.": "你的角色无法读取最终用户身份。请向项目管理员申请“{{permission}}”权限。",
   "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.": "你的页面传给 identify() 的确切引用值。需要“{{permission}}”权限；绝不会写入 URL。",
   "That turn is not part of this task": "该回合不属于此任务",
-  "The task's first turn is shown instead.": "已改为显示此任务的第一回合。"
+  "The task's first turn is shown instead.": "已改为显示此任务的第一回合。",
+  "This status page is private: only people who sign in to it, or who know its password, can read it. Only a public status page can be watched.": "此状态页是私有的：只有登录该页面或知道其密码的人才能查看。只能监控公开的状态页。",
+  "This status page lets in only the IP addresses on its allowlist, and this probe's address is not one of them. Add the probe's address to the allowlist, or watch the page from a probe inside that network.": "此状态页只允许其 IP 允许列表中的 IP 地址访问，而此探测器的地址不在其中。请将探测器的地址添加到允许列表，或从该网络内的探测器监控此页面。"
 }

@@ -23189,7 +23189,7 @@
   "{{up}} up, {{down}} down, {{disabled}} disabled of {{count}} interfaces": "{{up}} up, {{down}} down, {{disabled}} disabled of {{count}} interfaces",
   "{{up}} up, {{down}} down, {{disabled}} disabled of {{count}} interfaces_one": "{{up}} up, {{down}} down, {{disabled}} disabled of {{count}} interface",
   "{{value}} Mbps": "{{value}} Mbps",
-  "{{value}} ms": "{{value}} ms",
+  "{{value}} ms": "{{value}} میلی‌ثانیه",
   "{{visible}} of {{total}} series shown": "{{visible}} از {{total}} سری نمایان است",
   "{{warning}} on {{rule}}. See who, and send a setup reminder.": "{{warning}} در {{rule}}. ببینید چه کسانی هستند و یادآوری راه‌اندازی بفرستید.",
   "A device is skipped if another device already has its short name, or if its name changed since it was selected.": "A device is skipped if another device already has its short name, or if its name changed since it was selected.",
@@ -51243,5 +51243,7 @@
   "Your role cannot read end-user identity. Ask a project admin for the \"{{permission}}\" permission.": "نقش شما نمی‌تواند هویت کاربر نهایی را بخواند. مجوز «{{permission}}» را از یک مدیر پروژه بخواهید.",
   "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.": "همان مرجعی که صفحه شما به identify() داد. به مجوز «{{permission}}» نیاز دارد؛ هرگز در نشانی نوشته نمی‌شود.",
   "That turn is not part of this task": "آن نوبت بخشی از این وظیفه نیست",
-  "The task's first turn is shown instead.": "به جای آن، نخستین نوبت وظیفه نمایش داده می‌شود."
+  "The task's first turn is shown instead.": "به جای آن، نخستین نوبت وظیفه نمایش داده می‌شود.",
+  "This status page is private: only people who sign in to it, or who know its password, can read it. Only a public status page can be watched.": "این صفحه وضعیت خصوصی است: فقط کسانی که به آن وارد می‌شوند یا رمز عبورش را می‌دانند می‌توانند آن را بخوانند. فقط صفحه وضعیت عمومی را می‌توان پایش کرد.",
+  "This status page lets in only the IP addresses on its allowlist, and this probe's address is not one of them. Add the probe's address to the allowlist, or watch the page from a probe inside that network.": "این صفحه وضعیت فقط به آدرس‌های IP فهرست مجازش اجازه ورود می‌دهد و آدرس این پراب جزو آن‌ها نیست. آدرس پراب را به فهرست مجاز اضافه کنید، یا صفحه را از پرابی درون همان شبکه پایش کنید."
 }
