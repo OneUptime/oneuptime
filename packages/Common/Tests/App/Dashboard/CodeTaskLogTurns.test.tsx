@@ -1454,9 +1454,7 @@ describe("a link to a turn a long task's page does not show", () => {
         answerTask(taskAnswer(THREE_TURNS));
       });
 
-      expect(
-        await screen.findByText(`step of ${TASK_ID}`),
-      ).toBeInTheDocument();
+      expect(await screen.findByText(`step of ${TASK_ID}`)).toBeInTheDocument();
       expect(notOfTask()).not.toBeNull();
     } finally {
       observer.disconnect();
