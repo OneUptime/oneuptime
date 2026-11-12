@@ -11,7 +11,12 @@ import React, {
 import { DashboardValueTrendDirection } from "Common/Types/Dashboard/DashboardComponents/DashboardValueComponent";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
-import DashboardWidgetLine from "./DashboardWidgetLine";
+import DashboardWidgetLine, {
+  getWidgetPageLanguage,
+} from "./DashboardWidgetLine";
+import { getNumberSpacingClassName } from "./DashboardWidgetDigits";
+import { getLineDirection } from "Common/UI/Utils/LineDirection";
+import { ReadingDirection } from "Common/Types/ReadingDirection";
 import IconProp from "Common/Types/Icon/IconProp";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -628,6 +633,8 @@ export enum ValueWidgetState {
   Value = "value",
 }
 
+// The big number, with its unit in a span of its own.
+export const VALUE_WIDGET_NUMBER_TEST_ID: string = "value-widget-number";
 export const TREND_TEST_ID: string = "value-widget-trend";
 export const TREND_DETAILS_TEST_ID: string = "value-widget-trend-details";
 export const SPARKLINE_START_LABEL_TEST_ID: string =
@@ -1323,6 +1330,21 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
     unitText: props.hideUnit ? "" : sizingParts.unit,
   });
 
+  const shownUnit: string =
+    layout.showUnit && displayParts.unit ? displayParts.unit : "";
+
+  /*
+   * The number's line reads the way its unit's letters do: on an Arabic or
+   * a Persian board a unit in Latin letters stays after its number -
+   * "۱٫۹۶ MB/s", as the Gauge beside it writes it - where the space
+   * between the two put the unit first: "MB/s ۱٫۹۶". A number alone, or
+   * with its percent sign, reads the board's way.
+   */
+  const valueLineDirection: ReadingDirection | undefined = getLineDirection(
+    shownUnit,
+    getWidgetPageLanguage(translator.language),
+  );
+
   /*
    * The number as the widget writes it, for the halves the trend's tooltip
    * lists: the same formatter, unit and scale as the big number above it.
@@ -1458,7 +1480,9 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
         style={{ height: `${layout.valueRowHeightInPx}px` }}
       >
         <div
-          className={`w-full text-center font-bold tabular-nums truncate ${valueColorClass}`}
+          dir={valueLineDirection}
+          data-testid={VALUE_WIDGET_NUMBER_TEST_ID}
+          className={`w-full text-center font-bold ${getNumberSpacingClassName(displayParts.value)} truncate ${valueColorClass}`}
           style={{
             fontSize: `${layout.valueFontSizeInPx}px`,
             lineHeight: VALUE_LINE_HEIGHT_RATIO,
@@ -1467,15 +1491,15 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
           title={displayParts.formatted}
         >
           {displayParts.value || "0"}
-          {layout.showUnit && displayParts.unit && (
+          {shownUnit && (
             <span
               className="text-gray-500 font-normal"
               style={{ fontSize: `${layout.unitFontSizeInPx}px` }}
             >
               {/* "1.5 MB" and German's "73,40 %" leave a gap; "73.40%" none. */}
               {ValueFormatter.isUnitSetApart(displayParts)
-                ? ` ${displayParts.unit}`
-                : displayParts.unit}
+                ? ` ${shownUnit}`
+                : shownUnit}
             </span>
           )}
         </div>

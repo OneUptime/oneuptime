@@ -19,6 +19,10 @@ import DashboardClockComponentElement, {
   CLOCK_TIME_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardClockComponent";
 import DashboardLogStreamComponentElement from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardLogStreamComponent";
+import {
+  PROPORTIONAL_NUMBERS_CLASS_NAME,
+  TABULAR_NUMBERS_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardWidgetDigits";
 import { DashboardBaseComponentProps } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardBaseComponent";
 import {
   PublicDashboardContext,
@@ -322,6 +326,43 @@ describe("a Clock's date and AM/PM, in the reader's language", () => {
     expect(screen.queryByTestId(CLOCK_MERIDIEM_TEST_ID)).toBeNull();
   });
 
+  /*
+   * Vazirmatn's Persian digits at one width are each as wide as its widest:
+   * "۱۱:۲۹" read "۱ ۱:۲ ۹". The hours and minutes take each digit's own
+   * width; the seconds, which tick, keep the row's one width, so the line
+   * does not shift every second.
+   */
+  test("a Persian clock's hours and minutes take each digit's own width, its seconds one width", async () => {
+    await inLanguage("fa");
+    renderClock(ClockWidgetHourFormat.TwentyFourHour);
+
+    const [hoursAndMinutes, seconds] = Array.from(
+      timeOf().children,
+    ) as Array<HTMLElement>;
+
+    expect(hoursAndMinutes).toHaveTextContent(/^۲۱:۰۵$/);
+    expect(hoursAndMinutes).toHaveClass(PROPORTIONAL_NUMBERS_CLASS_NAME);
+    expect(seconds).toHaveTextContent(/^:۰۷$/);
+    expect(seconds).not.toHaveClass(PROPORTIONAL_NUMBERS_CLASS_NAME);
+    expect(timeOf().parentElement).toHaveClass(TABULAR_NUMBERS_CLASS_NAME);
+  });
+
+  test("a clock in Latin digits keeps them at one width, as it always did", async () => {
+    for (const language of ["en", "ar"]) {
+      await inLanguage(language);
+      renderClock();
+
+      expect(timeOf().firstElementChild).toHaveTextContent(/^9:05$/);
+      expect(timeOf().firstElementChild).toHaveClass(
+        TABULAR_NUMBERS_CLASS_NAME,
+      );
+      expect(timeOf().firstElementChild).not.toHaveClass(
+        PROPORTIONAL_NUMBERS_CLASS_NAME,
+      );
+      cleanup();
+    }
+  });
+
   test("the clock follows the reader when they change language", async () => {
     renderClock();
     expect(dateOf()).toHaveTextContent(/^Thu, Nov 12$/);
@@ -434,6 +475,18 @@ describe("a Log stream's count, in the reader's language", () => {
       expect(count).toHaveClass("whitespace-nowrap", "shrink-0");
     },
   );
+
+  /*
+   * As plain as the title beside it: gray-300 all but vanished on a light
+   * board (1.5:1 on white) and outshone the title on a dark one.
+   */
+  test("the count is drawn in its title's gray", async () => {
+    const count: HTMLElement = await renderLogStream(2);
+
+    expect(screen.getByText("Checkout logs")).toHaveClass("text-gray-400");
+    expect(count).toHaveClass("text-gray-400");
+    expect(count).not.toHaveClass("text-gray-300");
+  });
 
   test("no Dashboard language counts a Log stream's entries in English", async () => {
     for (const language of DASHBOARD_LANGUAGES) {

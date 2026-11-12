@@ -6,6 +6,7 @@ import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import DashboardWidgetLine, {
   getWidgetPageLanguage,
 } from "./DashboardWidgetLine";
+import { getNumberSpacingClassName } from "./DashboardWidgetDigits";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import {
   ClockHandAngles,
@@ -404,7 +405,15 @@ const DashboardClockComponentElement: FunctionComponent<ComponentProps> = (
          * the board's side of them ("ب.ظ." to the left of a Persian time).
          */}
         <span dir="ltr" data-testid={CLOCK_TIME_TEST_ID}>
-          <span>{display.time}</span>
+          {/*
+           * Persian's hours and minutes take each digit's own width
+           * (getNumberSpacingClassName): "۱۱:۲۹", not "۱ ۱:۲ ۹". They change
+           * once a minute; the seconds, which tick, keep digits of one
+           * width so the line does not shift every second.
+           */}
+          <span className={getNumberSpacingClassName(display.time)}>
+            {display.time}
+          </span>
           {display.seconds ? (
             <span
               className="text-gray-400 font-medium"

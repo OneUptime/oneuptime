@@ -14,13 +14,19 @@ import { initReactI18next } from "react-i18next";
 import * as React from "react";
 import GaugeWidgetView, {
   GAUGE_BOUNDS_TEST_ID,
+  GAUGE_VALUE_TEST_ID,
   GaugeWidgetViewProps,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/GaugeWidgetView";
 import ValueWidgetView, {
   TREND_TEST_ID,
+  VALUE_WIDGET_NUMBER_TEST_ID,
   ValueWidgetViewProps,
   writeValueWidgetTrendPercent,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/ValueWidgetView";
+import {
+  PROPORTIONAL_NUMBERS_CLASS_NAME,
+  TABULAR_NUMBERS_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardWidgetDigits";
 import ValueFormatter, { FormattedValue } from "../../../Utils/ValueFormatter";
 import {
   getMeanOfValues,
@@ -134,9 +140,7 @@ function renderGauge(overrides: Partial<GaugeWidgetViewProps> = {}): void {
 
 // The gauge's centre: its number, and its unit in a smaller span.
 function gaugeCentre(): { value: string; unit: string; gap: string } {
-  const centre: HTMLElement = document.querySelector(
-    "div.font-bold.tabular-nums",
-  ) as HTMLElement;
+  const centre: HTMLElement = screen.getByTestId(GAUGE_VALUE_TEST_ID);
   const unit: HTMLElement | null = centre.querySelector("span");
 
   return {
@@ -165,8 +169,14 @@ function tickLabels(): Array<string> {
 
 // The Value widget's big number, its unit inside it.
 function valueNumber(): HTMLElement {
-  return document.querySelector("div.tabular-nums.truncate") as HTMLElement;
+  return screen.getByTestId(VALUE_WIDGET_NUMBER_TEST_ID);
 }
+
+// A rate in bytes: "1.96 MB/s", its unit in Latin letters in every language.
+const BYTES_PER_SECOND: {
+  value: number;
+  rawUnit: string;
+} = { value: 1960000, rawUnit: "By/s" };
 
 beforeAll(async () => {
   const resources: Record<string, { translation: Record<string, string> }> = {};
@@ -399,6 +409,129 @@ describe("the Value widget's numbers", () => {
     await inLanguage("en");
     expect(valueNumber().textContent).toBe("73.40%");
   });
+});
+
+/*
+ * On a board read from the right, a space between a number and a unit in
+ * Latin letters let the unit go first: the Value widget drew "MB/s ۱٫۹۶",
+ * and the Gauge, whose unit's gap is its inline start, "1.96MB/s" with the
+ * gap on the unit's far side. Each line reads the way its unit's letters
+ * do now, the number first, as the product draws a size (#7191).
+ */
+describe("a unit in Latin letters, after its number on a board read from the right", () => {
+  test.each(["ar", "fa"])(
+    "on a %s board, the Gauge's centre and the Value widget's number read left to right",
+    async (language: string) => {
+      await inLanguage(language);
+      renderGauge({
+        ...BYTES_PER_SECOND,
+        minValue: 0,
+        maxValue: 5000000,
+        warningThreshold: undefined,
+        criticalThreshold: undefined,
+      });
+
+      expect(screen.getByTestId(GAUGE_VALUE_TEST_ID)).toHaveAttribute(
+        "dir",
+        "ltr",
+      );
+      // The number, then the unit, its gap at its start: between the two.
+      expect(gaugeCentre().unit).toBe("MB/s");
+      expect(gaugeCentre().gap).toBe("0.15em");
+      cleanup();
+
+      render(<ValueWidgetView {...valueProps(BYTES_PER_SECOND)} />);
+
+      expect(valueNumber()).toHaveAttribute("dir", "ltr");
+      expect(valueNumber().querySelector("span")?.textContent).toBe(" MB/s");
+    },
+  );
+
+  test.each(["en", "de"])(
+    "on a %s board, both are drawn as they always were: no dir of their own",
+    async (language: string) => {
+      await inLanguage(language);
+      renderGauge(BYTES_PER_SECOND);
+
+      expect(screen.getByTestId(GAUGE_VALUE_TEST_ID)).not.toHaveAttribute(
+        "dir",
+      );
+      cleanup();
+
+      render(<ValueWidgetView {...valueProps(BYTES_PER_SECOND)} />);
+
+      expect(valueNumber()).not.toHaveAttribute("dir");
+    },
+  );
+
+  test("a percentage, or a number drawn without its unit, reads the board's way", async () => {
+    await inLanguage("fa");
+    renderGauge();
+
+    expect(screen.getByTestId(GAUGE_VALUE_TEST_ID)).not.toHaveAttribute("dir");
+    cleanup();
+
+    render(<ValueWidgetView {...valueProps()} />);
+    expect(valueNumber()).not.toHaveAttribute("dir");
+    cleanup();
+
+    render(
+      <ValueWidgetView
+        {...valueProps({ ...BYTES_PER_SECOND, hideUnit: true })}
+      />,
+    );
+    expect(valueNumber().textContent).toBe("۱٫۹۶");
+    expect(valueNumber()).not.toHaveAttribute("dir");
+  });
+});
+
+/*
+ * Vazirmatn draws Persian's digits, and its digits of one width are each
+ * as wide as its widest: drawn so, "۶۷٫۹۰٪" read "۶ ۷٫۹ ۰٪". A number in
+ * Persian digits takes each digit's own width; Latin digits keep one
+ * width, so a number that changes in place keeps its place.
+ */
+describe("Persian digits at their own width, Latin ones at one width", () => {
+  test("a Persian board's Gauge centre and bounds, and Value widget's number", async () => {
+    await inLanguage("fa");
+    renderGauge();
+
+    for (const element of [
+      screen.getByTestId(GAUGE_VALUE_TEST_ID),
+      screen.getByTestId(GAUGE_BOUNDS_TEST_ID),
+    ]) {
+      expect(element).toHaveClass(PROPORTIONAL_NUMBERS_CLASS_NAME);
+      expect(element).not.toHaveClass(TABULAR_NUMBERS_CLASS_NAME);
+    }
+    cleanup();
+
+    render(<ValueWidgetView {...valueProps()} />);
+
+    expect(valueNumber()).toHaveClass(PROPORTIONAL_NUMBERS_CLASS_NAME);
+    expect(valueNumber()).not.toHaveClass(TABULAR_NUMBERS_CLASS_NAME);
+  });
+
+  test.each(["en", "de", "ar"])(
+    "a %s board's, in Latin digits, as they always were",
+    async (language: string) => {
+      await inLanguage(language);
+      renderGauge();
+
+      for (const element of [
+        screen.getByTestId(GAUGE_VALUE_TEST_ID),
+        screen.getByTestId(GAUGE_BOUNDS_TEST_ID),
+      ]) {
+        expect(element).toHaveClass(TABULAR_NUMBERS_CLASS_NAME);
+        expect(element).not.toHaveClass(PROPORTIONAL_NUMBERS_CLASS_NAME);
+      }
+      cleanup();
+
+      render(<ValueWidgetView {...valueProps()} />);
+
+      expect(valueNumber()).toHaveClass(TABULAR_NUMBERS_CLASS_NAME);
+      expect(valueNumber()).not.toHaveClass(PROPORTIONAL_NUMBERS_CLASS_NAME);
+    },
+  );
 });
 
 describe("writeValueWidgetTrendPercent", () => {

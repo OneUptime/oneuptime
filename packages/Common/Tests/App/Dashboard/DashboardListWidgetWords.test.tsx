@@ -753,6 +753,19 @@ describe("a list's count beside its title", () => {
 
     expect(screen.queryByTestId(RESOURCE_LIST_COUNT_TEST_ID)).toBeNull();
   });
+
+  /*
+   * As plain as the title beside it, as a Table widget's count is: gray-300
+   * all but vanished on a light board (1.5:1 on white) and outshone the
+   * title on a dark one.
+   */
+  test("the count is drawn in its title's gray", () => {
+    drawBase(12, "Fleet hosts");
+
+    expect(screen.getByText("Fleet hosts")).toHaveClass("text-gray-400");
+    expect(countBesideTitle()).toHaveClass("text-gray-400");
+    expect(countBesideTitle()).not.toHaveClass("text-gray-300");
+  });
 });
 
 describe("every list widget's count, in the reader's language", () => {

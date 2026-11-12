@@ -11,7 +11,12 @@ import {
   computeGaugeValueFontPx,
   gaugeAngleForPercentage,
 } from "./GaugeArcData";
-import DashboardWidgetLine from "./DashboardWidgetLine";
+import DashboardWidgetLine, {
+  getWidgetPageLanguage,
+} from "./DashboardWidgetLine";
+import { getNumberSpacingClassName } from "./DashboardWidgetDigits";
+import { getLineDirection } from "Common/UI/Utils/LineDirection";
+import { ReadingDirection } from "Common/Types/ReadingDirection";
 import {
   DASHBOARD_WIDGET_SETUP_LINE_CLASS_NAME,
   DASHBOARD_WIDGET_SETUP_LINE_TEST_ID,
@@ -20,6 +25,8 @@ import {
 
 // The row of the arc's bounds under it: the minimum, then the maximum.
 export const GAUGE_BOUNDS_TEST_ID: string = "gauge-bounds";
+// The centre's number, with its unit in a span of its own.
+export const GAUGE_VALUE_TEST_ID: string = "gauge-value";
 
 /*
  * The radial gauge's PRESENTATION, with no opinion about where its number
@@ -293,6 +300,17 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
   const isUnitSetApart: boolean = ValueFormatter.isUnitSetApart(displayParts);
 
   /*
+   * The centre reads the way its unit's letters do: on an Arabic or a
+   * Persian board a unit in Latin letters is drawn after its number,
+   * "۱٫۹۶ MB/s", with its gap between the two. Read from the right, the
+   * unit's gap (its inline start) fell on its far side: "1.96MB/s".
+   */
+  const centreDirection: ReadingDirection | undefined = getLineDirection(
+    displayUnit,
+    getWidgetPageLanguage(translator.language),
+  );
+
+  /*
    * The centre value is rendered as a big number plus a smaller gray unit
    * suffix. Bare "6.91 hours" at one font size overflowed the gauge arc on
    * wider widgets, so we estimate the laid-out text width and scale both
@@ -492,7 +510,9 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
           }}
         >
           <div
-            className="font-bold text-gray-900 tabular-nums leading-none whitespace-nowrap"
+            dir={centreDirection}
+            data-testid={GAUGE_VALUE_TEST_ID}
+            className={`font-bold text-gray-900 ${getNumberSpacingClassName(displayValue)} leading-none whitespace-nowrap`}
             style={{
               fontSize: `${valueFontPx}px`,
               letterSpacing: "-0.025em",
@@ -539,7 +559,7 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
       <div
         dir="ltr"
         data-testid={GAUGE_BOUNDS_TEST_ID}
-        className="flex justify-between w-full text-[10px] text-gray-400 tabular-nums"
+        className={`flex justify-between w-full text-[10px] text-gray-400 ${getNumberSpacingClassName(formattedMin + formattedMax)}`}
         style={{ maxWidth: `${gaugeSize}px` }}
       >
         <span>{formattedMin}</span>

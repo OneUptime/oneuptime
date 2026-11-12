@@ -289,7 +289,7 @@ const DashboardResourceListBase: FunctionComponent<
            * by a long title in a narrow widget, "3 sites" broke in two.
            */}
           <span
-            className="shrink-0 whitespace-nowrap text-xs text-gray-300 tabular-nums"
+            className="shrink-0 whitespace-nowrap text-xs text-gray-400 tabular-nums"
             data-testid={RESOURCE_LIST_COUNT_TEST_ID}
           >
             {translator.translatePlural(props.countLabel, props.count)}
