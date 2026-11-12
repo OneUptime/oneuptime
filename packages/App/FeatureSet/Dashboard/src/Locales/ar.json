@@ -17030,7 +17030,6 @@
   "The environment key has an empty account segment": "مقطع الحساب في مفتاح البيئة فارغ",
   "The error cause referred back to an earlier error.": "أشار سبب الخطأ إلى خطأ سابق.",
   "The exact docker-compose.yml and otel-collector-config.yaml the agent runs.": "ملفا docker-compose.yml وotel-collector-config.yaml كما يشغّلهما الوكيل بالضبط.",
-  "The exact reference your page passed to identify(). Needs the end-user identity permission; never written to the URL.": "المرجع الدقيق الذي مرّرته صفحتك إلى identify(). يتطلب إذن هوية المستخدم النهائي؛ ولا يُكتب أبدًا في عنوان URL.",
   "The exporter returns 401 or 595 errors": "يُرجع المُصدِّر أخطاء 401 أو 595",
   "The field ends with the value.": "ينتهي الحقل بالقيمة.",
   "The field matches a regular expression (RE2 syntax).": "يطابق الحقل تعبيرًا نمطيًا (بصيغة RE2).",
@@ -47998,7 +47997,6 @@
   "None: every element is recorded (subject to masking)": "لا شيء: يُسجَّل كل عنصر (مع مراعاة الإخفاء)",
   "None: every uncaught error can trigger an upload": "لا شيء: يمكن لأي خطأ غير معالج أن يُطلق عملية رفع",
   "None: no cross-origin request gets a traceparent": "لا شيء: لا يحصل أي طلب عبر الأصول على traceparent",
-  "Not shown - viewing identity needs the identity permission": "غير معروضة - يتطلب عرض الهوية إذن الهوية",
   "Nothing arrives until a page calls OneUptimeReplay.grantConsent(). Grant consent on an instrumented page, then reload.": "لا يصل أي شيء حتى تستدعي إحدى الصفحات OneUptimeReplay.grantConsent(). امنح الموافقة على صفحة مزوّدة بالمسجّل، ثم أعد التحميل.",
   "Nothing can arrive while sampling is 0%.": "لا يمكن أن يصل أي شيء ما دام أخذ العينات 0%.",
   "Nothing is broken or late right now.": "لا شيء معطّل أو متأخر الآن.",
@@ -48162,7 +48160,6 @@
   "The data broke this check, and its alert is open.": "كسرت البيانات هذا الفحص، وتنبيهه مفتوح.",
   "The deployment is serving a bad recorder version; only the operator of this deployment can fix that.": "يقدّم النشر إصدارًا تالفًا من المسجّل؛ ولا يستطيع إصلاح ذلك إلا مسؤول تشغيل هذا النشر.",
   "The drop counter store was unreachable; this is not the same as zero.": "تعذّر الوصول إلى مخزن عدّاد الإسقاط؛ وهذا لا يعني أن العدد صفر.",
-  "The end user's identity needs the identity permission to view.": "يتطلب عرض هوية المستخدم النهائي إذن الهوية.",
   "The end-to-end path works: a recorder on your site reached this server and its chunk was accepted.": "المسار من البداية إلى النهاية يعمل: وصل مسجّل على موقعك إلى هذا الخادم وقُبل مقطعه.",
   "The health request failed, so nothing here says whether recording works. It retries on its own; the next poll may succeed.": "فشل طلب الصحة، لذا لا شيء هنا يوضح ما إذا كان التسجيل يعمل. يُعيد المحاولة تلقائيًا؛ وقد ينجح الاستطلاع التالي.",
   "The health status could not be loaded, so nothing here says whether recording works. Reload to try again.": "تعذّر تحميل حالة الصحة، لذا لا شيء هنا يوضح ما إذا كان التسجيل يعمل. أعد التحميل للمحاولة مرة أخرى.",
@@ -51242,6 +51239,9 @@
   "A status page you can't see": "صفحة حالة لا يمكنك رؤيتها",
   "It emails the owners added by owner rules ({{names}}).": "ترسل بريدًا إلكترونيًا إلى المالكين الذين تضيفهم قواعد المالكين ({{names}}).",
   "It emails the owners added by owner rules.": "ترسل بريدًا إلكترونيًا إلى المالكين الذين تضيفهم قواعد المالكين.",
+  "Hidden - your role needs the \"{{permission}}\" permission": "مخفي - يحتاج دورك إلى إذن «{{permission}}»",
+  "Your role cannot read end-user identity. Ask a project admin for the \"{{permission}}\" permission.": "لا يستطيع دورك قراءة هوية المستخدم النهائي. اطلب من مسؤول المشروع إذن «{{permission}}».",
+  "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.": "المرجع الدقيق الذي مرّرته صفحتك إلى identify(). يتطلب إذن «{{permission}}»؛ ولا يُكتب أبدًا في عنوان URL.",
   "That turn is not part of this task": "تلك الجولة ليست جزءًا من هذه المهمة",
   "The task's first turn is shown instead.": "تُعرض الجولة الأولى من المهمة بدلًا منها."
 }
