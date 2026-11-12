@@ -553,7 +553,10 @@ beforeEach(async () => {
   jest
     .spyOn(DataObservabilityApi, "getTableSensitivity")
     .mockResolvedValue([CONTACT_IS_AN_EMAIL]);
-  jest.spyOn(DataObservabilityApi, "syncCheckAlert").mockResolvedValue();
+  // Each added check's alert: none, as for a check with no monitor.
+  jest
+    .spyOn(DataObservabilityApi, "syncCheckAlert")
+    .mockResolvedValue({ monitorId: null });
   await inLanguage("en");
 });
 
