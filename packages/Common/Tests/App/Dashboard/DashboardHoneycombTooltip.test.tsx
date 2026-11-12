@@ -8,7 +8,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { Mock } from "jest-mock";
+import { Mock, SpyInstance } from "jest-mock";
 import fs from "fs";
 import path from "path";
 import React, { ReactElement } from "react";
@@ -660,15 +660,17 @@ describe("while the board is in full screen", () => {
   });
 
   test("a honeycomb taken off the board stops listening for full screen", async () => {
-    const addSpy: jest.SpiedFunction<typeof document.addEventListener> =
-      jest.spyOn(document, "addEventListener");
-    const removeSpy: jest.SpiedFunction<typeof document.removeEventListener> =
+    const addSpy: SpyInstance<typeof document.addEventListener> = jest.spyOn(
+      document,
+      "addEventListener",
+    );
+    const removeSpy: SpyInstance<typeof document.removeEventListener> =
       jest.spyOn(document, "removeEventListener");
 
     function fullscreenListeners(
       spy:
-        | jest.SpiedFunction<typeof document.addEventListener>
-        | jest.SpiedFunction<typeof document.removeEventListener>,
+        | SpyInstance<typeof document.addEventListener>
+        | SpyInstance<typeof document.removeEventListener>,
     ): Array<unknown> {
       return spy.mock.calls
         .filter((call: Array<unknown>): boolean => {
@@ -788,9 +790,7 @@ describe("a tile reached with the keyboard", () => {
     expect(tooltip.id).not.toBe("");
     expect(gray).toHaveAttribute("aria-describedby", tooltip.id);
     expect(document.getElementById(tooltip.id)).toBe(tooltip);
-    expect(gray).toHaveAccessibleDescription(
-      expect.stringContaining("Disabled"),
-    );
+    expect(gray).toHaveAccessibleDescription(/Disabled/);
     // Only the tile it is open for.
     expect(tiles()[1]).not.toHaveAttribute("aria-describedby");
 
@@ -827,9 +827,7 @@ describe("a tile reached with the keyboard", () => {
     expect(first).not.toBe("");
     expect(second).not.toBe("");
     expect(first).not.toBe(second);
-    expect(tiles()[1]).toHaveAccessibleDescription(
-      expect.stringContaining("search-api"),
-    );
+    expect(tiles()[1]).toHaveAccessibleDescription(/search-api/);
   });
 
   test("a tile that opens nothing is no button: not named as one, not a stop for Tab", () => {
@@ -888,15 +886,17 @@ describe("a tile reached with the keyboard", () => {
   });
 
   test("only an open tooltip listens for Escape, and it stops when it closes", async () => {
-    const addSpy: jest.SpiedFunction<typeof document.addEventListener> =
-      jest.spyOn(document, "addEventListener");
-    const removeSpy: jest.SpiedFunction<typeof document.removeEventListener> =
+    const addSpy: SpyInstance<typeof document.addEventListener> = jest.spyOn(
+      document,
+      "addEventListener",
+    );
+    const removeSpy: SpyInstance<typeof document.removeEventListener> =
       jest.spyOn(document, "removeEventListener");
 
     function keyListeners(
       spy:
-        | jest.SpiedFunction<typeof document.addEventListener>
-        | jest.SpiedFunction<typeof document.removeEventListener>,
+        | SpyInstance<typeof document.addEventListener>
+        | SpyInstance<typeof document.removeEventListener>,
     ): Array<unknown> {
       return spy.mock.calls
         .filter((call: Array<unknown>): boolean => {

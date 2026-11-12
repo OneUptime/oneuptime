@@ -31,6 +31,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * A NETWORK DEVICE BACKED BY A MONITOR WHOSE MONITORING IS TURNED OFF
@@ -335,17 +336,17 @@ function healthGroupOf(device: WorldDevice): DeviceHealthGroup {
 }
 
 interface Spies {
-  deviceWrites: jest.SpiedFunction<
+  deviceWrites: SpyInstance<
     typeof NetworkDeviceService.updateColumnsByIdWithoutHooks
   >;
-  monitorRead: jest.SpiedFunction<typeof MonitorService.findOneBy>;
-  monitorsRead: jest.SpiedFunction<typeof MonitorService.findBy>;
-  devicesRead: jest.SpiedFunction<typeof NetworkDeviceService.findBy>;
-  statusRead: jest.SpiedFunction<typeof MonitorStatusService.findOneBy>;
-  siteRollups: jest.SpiedFunction<
+  monitorRead: SpyInstance<typeof MonitorService.findOneBy>;
+  monitorsRead: SpyInstance<typeof MonitorService.findBy>;
+  devicesRead: SpyInstance<typeof NetworkDeviceService.findBy>;
+  statusRead: SpyInstance<typeof MonitorStatusService.findOneBy>;
+  siteRollups: SpyInstance<
     typeof NetworkSiteService.recomputeRollupForSiteAndAncestors
   >;
-  alertsCreated: jest.SpiedFunction<typeof AlertService.create>;
+  alertsCreated: SpyInstance<typeof AlertService.create>;
 }
 
 let spies: Spies;
@@ -365,44 +366,43 @@ function stubTheWorld(): Spies {
       return device ? deviceRow(device) : null;
     }) as never);
 
-  const devicesRead: jest.SpiedFunction<typeof NetworkDeviceService.findBy> =
-    jest
-      .spyOn(NetworkDeviceService, "findBy")
-      .mockImplementation((async (data: {
-        query: Dictionary<unknown>;
-        skip?: number;
-        limit?: number;
-      }): Promise<Array<NetworkDevice>> => {
-        const byId: Array<string> = idsIn(data.query["_id"]);
-        const byMonitor: Array<string> = idsIn(data.query["monitorId"]);
+  const devicesRead: SpyInstance<typeof NetworkDeviceService.findBy> = jest
+    .spyOn(NetworkDeviceService, "findBy")
+    .mockImplementation((async (data: {
+      query: Dictionary<unknown>;
+      skip?: number;
+      limit?: number;
+    }): Promise<Array<NetworkDevice>> => {
+      const byId: Array<string> = idsIn(data.query["_id"]);
+      const byMonitor: Array<string> = idsIn(data.query["monitorId"]);
 
-        const rows: Array<WorldDevice> = world.devices.filter(
-          (device: WorldDevice): boolean => {
-            if (data.query["_id"] !== undefined && !byId.includes(device.id)) {
-              return false;
-            }
+      const rows: Array<WorldDevice> = world.devices.filter(
+        (device: WorldDevice): boolean => {
+          if (data.query["_id"] !== undefined && !byId.includes(device.id)) {
+            return false;
+          }
 
-            if (
-              data.query["monitorId"] !== undefined &&
-              (!device.monitorId || !byMonitor.includes(device.monitorId))
-            ) {
-              return false;
-            }
+          if (
+            data.query["monitorId"] !== undefined &&
+            (!device.monitorId || !byMonitor.includes(device.monitorId))
+          ) {
+            return false;
+          }
 
-            return true;
-          },
-        );
+          return true;
+        },
+      );
 
-        const skip: number = data.skip || 0;
+      const skip: number = data.skip || 0;
 
-        return rows
-          .slice(skip, skip + (data.limit || LIMIT_MAX))
-          .map((device: WorldDevice): NetworkDevice => {
-            return deviceRow(device);
-          });
-      }) as never);
+      return rows
+        .slice(skip, skip + (data.limit || LIMIT_MAX))
+        .map((device: WorldDevice): NetworkDevice => {
+          return deviceRow(device);
+        });
+    }) as never);
 
-  const deviceWrites: jest.SpiedFunction<
+  const deviceWrites: SpyInstance<
     typeof NetworkDeviceService.updateColumnsByIdWithoutHooks
   > = jest
     .spyOn(NetworkDeviceService, "updateColumnsByIdWithoutHooks")
@@ -424,7 +424,7 @@ function stubTheWorld(): Spies {
       }
     }) as never);
 
-  const monitorRead: jest.SpiedFunction<typeof MonitorService.findOneBy> = jest
+  const monitorRead: SpyInstance<typeof MonitorService.findOneBy> = jest
     .spyOn(MonitorService, "findOneBy")
     .mockImplementation((async (data: {
       query: Dictionary<unknown>;
@@ -440,7 +440,7 @@ function stubTheWorld(): Spies {
       return monitor ? monitorRow(monitor, data.select) : null;
     }) as never);
 
-  const monitorsRead: jest.SpiedFunction<typeof MonitorService.findBy> = jest
+  const monitorsRead: SpyInstance<typeof MonitorService.findBy> = jest
     .spyOn(MonitorService, "findBy")
     .mockImplementation((async (data: {
       query: Dictionary<unknown>;
@@ -461,27 +461,26 @@ function stubTheWorld(): Spies {
         });
     }) as never);
 
-  const statusRead: jest.SpiedFunction<typeof MonitorStatusService.findOneBy> =
-    jest
-      .spyOn(MonitorStatusService, "findOneBy")
-      .mockImplementation((async (data: {
-        query: Dictionary<unknown>;
-      }): Promise<MonitorStatus | null> => {
-        const id: string | undefined = idsIn(data.query["_id"])[0];
-        const status: (typeof STATUSES)[number] | undefined = STATUSES.find(
-          (candidate: (typeof STATUSES)[number]): boolean => {
-            return candidate.id === id;
-          },
-        );
+  const statusRead: SpyInstance<typeof MonitorStatusService.findOneBy> = jest
+    .spyOn(MonitorStatusService, "findOneBy")
+    .mockImplementation((async (data: {
+      query: Dictionary<unknown>;
+    }): Promise<MonitorStatus | null> => {
+      const id: string | undefined = idsIn(data.query["_id"])[0];
+      const status: (typeof STATUSES)[number] | undefined = STATUSES.find(
+        (candidate: (typeof STATUSES)[number]): boolean => {
+          return candidate.id === id;
+        },
+      );
 
-        return status
-          ? ({
-              id: new ObjectID(status.id),
-              _id: status.id,
-              isOfflineState: status.isOfflineState,
-            } as unknown as MonitorStatus)
-          : null;
-      }) as never);
+      return status
+        ? ({
+            id: new ObjectID(status.id),
+            _id: status.id,
+            isOfflineState: status.isOfflineState,
+          } as unknown as MonitorStatus)
+        : null;
+    }) as never);
 
   jest
     .spyOn(MonitorStatusService, "findBy")
@@ -536,7 +535,7 @@ function stubTheWorld(): Spies {
       }
     }) as never);
 
-  const siteRollups: jest.SpiedFunction<
+  const siteRollups: SpyInstance<
     typeof NetworkSiteService.recomputeRollupForSiteAndAncestors
   > = jest.spyOn(NetworkSiteService, "recomputeRollupForSiteAndAncestors");
 
@@ -604,7 +603,7 @@ function stubTheWorld(): Spies {
     id: new ObjectID(SEVERITY_ID),
   } as never);
 
-  const alertsCreated: jest.SpiedFunction<typeof AlertService.create> = jest
+  const alertsCreated: SpyInstance<typeof AlertService.create> = jest
     .spyOn(AlertService, "create")
     .mockImplementation((async (data: { data: Alert }): Promise<Alert> => {
       alertCounter++;
@@ -630,7 +629,7 @@ function stubTheWorld(): Spies {
       });
 
       const created: Alert = new Alert(new ObjectID(id));
-      created.title = data.data.title;
+      created.title = String(data.data.title);
       return created;
     }) as never);
 
@@ -1095,7 +1094,7 @@ describe("NetworkDeviceService.refreshStampsOfDevicesBoundToMonitors", () => {
       }),
     );
     world.monitors.push(pingMonitor({ id: SECOND_MONITOR_ID }));
-    const refresh: jest.SpiedFunction<
+    const refresh: SpyInstance<
       typeof NetworkDeviceService.refreshStampedMonitorStatus
     > = jest.spyOn(NetworkDeviceService, "refreshStampedMonitorStatus");
 
@@ -1141,7 +1140,7 @@ describe("NetworkDeviceService.refreshStampsOfDevicesBoundToMonitors", () => {
     spies.devicesRead
       .mockResolvedValueOnce(pageOfDevices)
       .mockResolvedValueOnce([deviceRow(monitorBackedDevice())]);
-    const refresh: jest.SpiedFunction<
+    const refresh: SpyInstance<
       typeof NetworkDeviceService.refreshStampedMonitorStatus
     > = jest
       .spyOn(NetworkDeviceService, "refreshStampedMonitorStatus")
@@ -1158,12 +1157,12 @@ describe("NetworkDeviceService.refreshStampsOfDevicesBoundToMonitors", () => {
 
   it("one device that fails is logged, and the others are still re-stamped", async () => {
     world.devices.push(monitorBackedDevice({ id: SECOND_DEVICE_ID }));
-    const errors: jest.SpiedFunction<typeof logger.error> = jest
+    const errors: SpyInstance<typeof logger.error> = jest
       .spyOn(logger, "error")
       .mockImplementation((): void => {
         return undefined;
       });
-    const refresh: jest.SpiedFunction<
+    const refresh: SpyInstance<
       typeof NetworkDeviceService.refreshStampedMonitorStatus
     > = jest
       .spyOn(NetworkDeviceService, "refreshStampedMonitorStatus")
@@ -1428,9 +1427,8 @@ describe("NetworkSiteService.recomputeRollupForSite when nothing at the site rep
     findSite(SITE_ID).currentMonitorStatusId = OFFLINE_STATUS_ID;
     findSite(SITE_ID).currentActiveAlertId =
       "6965aaaa-0000-4000-8000-0000000000a9";
-    const resolutions: jest.SpiedFunction<
-      typeof AlertStateTimelineService.create
-    > = jest.spyOn(AlertStateTimelineService, "create");
+    const resolutions: SpyInstance<typeof AlertStateTimelineService.create> =
+      jest.spyOn(AlertStateTimelineService, "create");
 
     await sweep();
 
@@ -1446,7 +1444,7 @@ describe("NetworkSiteService.recomputeRollupForSite when nothing at the site rep
     jest
       .spyOn(AlertService, "findOneById")
       .mockRejectedValue(new Error("database is down"));
-    const errors: jest.SpiedFunction<typeof logger.error> = jest
+    const errors: SpyInstance<typeof logger.error> = jest
       .spyOn(logger, "error")
       .mockImplementation((): void => {
         return undefined;
@@ -1459,7 +1457,7 @@ describe("NetworkSiteService.recomputeRollupForSite when nothing at the site rep
   });
 
   it("a site with no status yet only has its run stamped", async () => {
-    const writes: jest.SpiedFunction<
+    const writes: SpyInstance<
       typeof NetworkSiteService.updateColumnsByIdWithoutHooks
     > = jest.spyOn(NetworkSiteService, "updateColumnsByIdWithoutHooks");
 
