@@ -116,12 +116,11 @@ describe("the line itself", () => {
     const drawn: HTMLElement = line();
     const parts: Array<Element> = Array.from(drawn.querySelectorAll("bdi"));
 
-    expect(parts.map((part: Element) => part.textContent)).toEqual([
-      "المحاولة 3/3",
-      "نجح",
-      "1,234 ms",
-      "HTTP 200",
-    ]);
+    expect(
+      parts.map((part: Element) => {
+        return part.textContent;
+      }),
+    ).toEqual(["المحاولة 3/3", "نجح", "1,234 ms", "HTTP 200"]);
     expect(parts[1]).toHaveClass("text-green-700");
     expect(parts[0]!.className).toBe("");
   });
