@@ -424,7 +424,8 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
             dataTestId="guided-setup-pick-continue"
             onClick={() => {
               setOpenStepKey(
-                getFirstOpenStepKey(progress) || StatusPageSetupStep.Review,
+                // The next step not done, or the summary.
+                getFirstOpenStepKey(progress),
               );
             }}
           />

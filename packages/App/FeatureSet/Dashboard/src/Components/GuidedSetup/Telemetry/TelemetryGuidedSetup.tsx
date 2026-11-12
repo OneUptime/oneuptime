@@ -302,7 +302,8 @@ const TelemetryGuidedSetup: FunctionComponent = (): ReactElement => {
           dataTestId="guided-setup-send-continue"
           onClick={() => {
             setOpenStepKey(
-              getFirstOpenStepKey(progress) || TelemetrySetupStep.Alert,
+              // The next step not done, or the summary.
+              getFirstOpenStepKey(progress),
             );
           }}
         />
