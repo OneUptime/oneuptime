@@ -71,6 +71,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * THE RESOLVER (WhoIsToldService, #6810): from a monitor's criteria to the
@@ -992,12 +993,10 @@ describe("WhoIsToldService", () => {
     }
 
     function stubRuleReads(): {
-      incident: jest.SpiedFunction<
+      incident: SpyInstance<
         typeof IncidentOnCallRuleEngineService.readEnabledRules
       >;
-      alert: jest.SpiedFunction<
-        typeof AlertOnCallRuleEngineService.readEnabledRules
-      >;
+      alert: SpyInstance<typeof AlertOnCallRuleEngineService.readEnabledRules>;
     } {
       return {
         incident: jest
@@ -1113,7 +1112,7 @@ describe("WhoIsToldService", () => {
         .mocked(IncidentOnCallRuleEngineService.getMatchingRules)
         .mockRestore();
 
-      const read: jest.SpiedFunction<typeof MonitorService.findOneById> = jest
+      const read: SpyInstance<typeof MonitorService.findOneById> = jest
         .spyOn(MonitorService, "findOneById")
         .mockResolvedValue(null as never);
       read.mockClear();

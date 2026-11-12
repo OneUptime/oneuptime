@@ -202,8 +202,9 @@ function monitor(data: {
   item.name = data.name;
   item.projectId = PROJECT_ID;
   item.monitorType = data.monitorType || MonitorType.API;
-  item.monitorSteps =
-    data.monitorType === MonitorType.Manual ? undefined : offlineSteps();
+  if (data.monitorType !== MonitorType.Manual) {
+    item.monitorSteps = offlineSteps();
+  }
   item.labels = [];
   item.isArchived = Boolean(data.isArchived);
   item.disableActiveMonitoring = Boolean(data.disableActiveMonitoring);

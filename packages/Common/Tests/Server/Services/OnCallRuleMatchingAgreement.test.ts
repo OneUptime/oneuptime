@@ -30,6 +30,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * WHAT "WHEN THIS GOES DOWN" SAYS WOULD PAGE IS WHAT PAGES (#6810).
@@ -639,7 +640,7 @@ describe.each(ENGINES)("$label", (engine: EngineCase) => {
   test("matched from rules read once and monitors already read, a rule on the monitor's name reads no monitor", async () => {
     engine.stubMonitorNameRule("^Checkout");
 
-    const read: jest.SpiedFunction<typeof MonitorService.findOneById> = jest
+    const read: SpyInstance<typeof MonitorService.findOneById> = jest
       .spyOn(MonitorService, "findOneById")
       .mockResolvedValue(null as never);
 

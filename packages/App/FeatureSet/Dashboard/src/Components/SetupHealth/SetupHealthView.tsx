@@ -23,6 +23,7 @@ import {
   SetupHealthLevel,
 } from "Common/Types/SetupHealth/SetupHealth";
 import RecommendationDismissal from "Common/Models/DatabaseModels/RecommendationDismissal";
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import Card from "Common/UI/Components/Card/Card";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
@@ -88,10 +89,24 @@ const LEVEL_STYLE: Readonly<
  */
 const LIST_BODY_CLASS_NAME: string = "mt-4 -mx-5 -mb-6 md:-mx-6";
 
-const LINK_CLASS_NAME: string =
-  "text-sm font-medium text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded";
+const LINK_BASE_CLASS_NAME: string =
+  "text-sm font-medium text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded";
 
-const BUTTON_LINK_CLASS_NAME: string = `${LINK_CLASS_NAME} disabled:cursor-not-allowed disabled:opacity-50`;
+const LINK_HOVER_CLASS_NAME: string = "hover:underline";
+
+const LINK_CLASS_NAME: string = `${LINK_BASE_CLASS_NAME} ${LINK_HOVER_CLASS_NAME}`;
+
+/*
+ * A link drawn as a button that works for a while (Recheck, Restore): busy
+ * then, it keeps its look without its hover, as a busy Button does
+ * (getHandDrawnButtonStateClassName); its hover otherwise.
+ */
+function getBusyLinkClassName(isBusy: boolean): string {
+  return `${LINK_BASE_CLASS_NAME} ${getHandDrawnButtonStateClassName({
+    isBusy: isBusy,
+    hoverClassName: LINK_HOVER_CLASS_NAME,
+  })}`.trim();
+}
 
 // Where the page was opened from, for setup_health/opened.
 function getSource(): string {
@@ -253,7 +268,7 @@ const FindingGroup: FunctionComponent<{
         <div className="pb-3 pe-5 ps-12 md:pe-6 md:ps-[3.25rem]">
           <button
             type="button"
-            className={BUTTON_LINK_CLASS_NAME}
+            className={LINK_CLASS_NAME}
             aria-expanded={isOpen}
             data-testid="setup-health-group-toggle"
             onClick={() => {
@@ -324,7 +339,7 @@ const DismissedRow: FunctionComponent<{
         <div className="shrink-0">
           <button
             type="button"
-            className={BUTTON_LINK_CLASS_NAME}
+            className={getBusyLinkClassName(Boolean(props.isRestoring))}
             disabled={props.isRestoring}
             data-testid="setup-health-restore"
             onClick={() => {
@@ -490,7 +505,9 @@ const SetupHealthView: FunctionComponent = (): ReactElement => {
             )}
             <button
               type="button"
-              className={BUTTON_LINK_CLASS_NAME}
+              className={getBusyLinkClassName(
+                isRechecking || state.status === "loading",
+              )}
               disabled={isRechecking || state.status === "loading"}
               data-testid="setup-health-recheck"
               onClick={() => {
@@ -631,7 +648,7 @@ const SetupHealthView: FunctionComponent = (): ReactElement => {
               rightElement={
                 <button
                   type="button"
-                  className={BUTTON_LINK_CLASS_NAME}
+                  className={LINK_CLASS_NAME}
                   aria-expanded={isDismissedOpen}
                   data-testid="setup-health-dismissed-toggle"
                   onClick={() => {

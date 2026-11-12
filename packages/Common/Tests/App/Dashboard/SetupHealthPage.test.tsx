@@ -461,8 +461,11 @@ describe("the page lives under Home, and Search finds it", () => {
     expect(home).toBeDefined();
     expect(home!.productPage).toBe(PageMap.HOME);
 
-    const page: { page: string; title: string; keywords?: Array<string> } =
-      home!.sections[0]!.pages[0]!;
+    const page: {
+      page: string;
+      title: string;
+      keywords?: Array<string> | undefined;
+    } = home!.sections[0]!.pages[0]!;
 
     expect(page.page).toBe(PageMap.HOME_SETUP_HEALTH);
     expect(page.title).toBe("Setup Health");

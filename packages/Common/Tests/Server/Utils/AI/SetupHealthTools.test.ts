@@ -29,6 +29,7 @@ import {
 } from "../../../../Types/SetupHealth/SetupHealth";
 import DashboardPages from "../../../../Server/Utils/AI/Docs/DashboardPages.json";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * get_setup_health (#6812): Ask AI answers "is my setup OK?" from the
@@ -95,11 +96,10 @@ afterEach(() => {
 
 describe("get_setup_health", () => {
   test("reads the findings as the person asking may see them, for the project they asked in", async () => {
-    const getForCaller: jest.SpiedFunction<
-      typeof SetupHealthService.getForCaller
-    > = jest
-      .spyOn(SetupHealthService, "getForCaller")
-      .mockResolvedValue(answer([finding(1)]) as never);
+    const getForCaller: SpyInstance<typeof SetupHealthService.getForCaller> =
+      jest
+        .spyOn(SetupHealthService, "getForCaller")
+        .mockResolvedValue(answer([finding(1)]) as never);
 
     await GetSetupHealthTool.execute({}, ctx);
 
