@@ -122,7 +122,7 @@ Duas barras atravessam o topo de cada página.
 | Canto superior direito | **Pesquisar** e **Pergunte à IA**, o sino de notificações com o que precisa de você agora (incidentes e alertas ativos, as políticas de plantão em que você está de turno, convites pendentes), **Ajuda**, e sua foto, que abre o menu da sua [conta](/docs/introduction/your-account). |
 | Abaixo delas | **Início** e **Produtos** à esquerda, **Configurações do usuário** à direita: como o OneUptime contata você neste projeto. |
 
-**Ajuda** começa pelo que ajuda a aprender: **Início rápido**, **Como o OneUptime funciona**, **Glossário** e esta documentação (**Documentação**). Abaixo ficam a lista **Keyboard shortcuts** e o suporte por e-mail e no Slack. Em um tablet ou em uma janela estreita, **Pergunte à IA** sai para ganhar espaço: ela está entre as ações de **Pesquisar**. Em um celular, **Pesquisar** e **Ajuda** passam para a lista do botão de menu, no topo e no final; o sino e sua foto ficam.
+**Ajuda** começa pelo que ajuda a aprender: **Início rápido**, **Como o OneUptime funciona**, **Glossário** e esta documentação (**Documentação**). Abaixo ficam a lista **Atalhos de teclado** e o suporte por e-mail e no Slack. Em um tablet ou em uma janela estreita, **Pergunte à IA** sai para ganhar espaço: ela está entre as ações de **Pesquisar**. Em um celular, **Pesquisar** e **Ajuda** passam para a lista do botão de menu, no topo e no final; o sino e sua foto ficam.
 
 Uma palavra com uma linha pontilhada embaixo, como **Sondas** no formulário de um novo monitor, diz o que significa quando você aponta para ela, chega a ela com Tab ou toca nela. O **Ler mais** dela abre a palavra no [Glossário](/docs/introduction/glossary).
 
@@ -158,7 +158,7 @@ Com a caixa de pesquisa vazia, a pesquisa lista as páginas que você abriu rece
 
 ## Atalhos de teclado
 
-Pressione `?` em qualquer lugar do painel para ver todos os atalhos, ou abra **Ajuda** e escolha **Keyboard shortcuts**. No Mac, `Mod` é a tecla Command; no Windows e no Linux, é Ctrl.
+Pressione `?` em qualquer lugar do painel para ver todos os atalhos, ou abra **Ajuda** e escolha **Atalhos de teclado**. No Mac, `Mod` é a tecla Command; no Windows e no Linux, é Ctrl.
 
 | Teclas | O que fazem |
 | --- | --- |

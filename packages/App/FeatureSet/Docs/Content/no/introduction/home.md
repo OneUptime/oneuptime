@@ -122,7 +122,7 @@ To linjer går over toppen av hver side.
 | Øverst til høyre | **Søk** og **Spør AI**, varselklokken med det som trenger deg nå (aktive hendelser og varsler, vaktpolicyene du har vakt i, ventende invitasjoner), **Hjelp**, og bildet ditt, som åpner menyen for [kontoen](/docs/introduction/your-account) din. |
 | Under dem | **Hjem** og **Produkter** til venstre, **Brukerinnstillinger** til høyre: hvordan OneUptime når deg i dette prosjektet. |
 
-**Hjelp** starter med det som hjelper deg å lære: **Hurtigstart**, **Slik fungerer OneUptime**, **Ordliste** og denne dokumentasjonen (**Dokumentasjon**). Under dem ligger listen **Keyboard shortcuts** og støtte på e-post og på Slack. På et nettbrett eller i et smalt vindu er **Spør AI** utelatt for å spare plass: den finnes blant handlingene i **Søk**. På en telefon flytter **Søk** og **Hjelp** inn i listen til menyknappen, øverst og nederst; klokken og bildet ditt blir værende.
+**Hjelp** starter med det som hjelper deg å lære: **Hurtigstart**, **Slik fungerer OneUptime**, **Ordliste** og denne dokumentasjonen (**Dokumentasjon**). Under dem ligger listen **Hurtigtaster** og støtte på e-post og på Slack. På et nettbrett eller i et smalt vindu er **Spør AI** utelatt for å spare plass: den finnes blant handlingene i **Søk**. På en telefon flytter **Søk** og **Hjelp** inn i listen til menyknappen, øverst og nederst; klokken og bildet ditt blir værende.
 
 Et ord med en prikket linje under, som **Sonder** i skjemaet for en ny monitor, forteller hva det betyr når du peker på det, tabber til det eller trykker på det. **Les mer** åpner ordet i [Ordliste](/docs/introduction/glossary).
 
@@ -158,7 +158,7 @@ Med tomt søkefelt viser søket sidene du nylig har åpnet, handlingene og produ
 
 ## Hurtigtaster
 
-Trykk `?` hvor som helst i dashbordet for å se alle hurtigtastene, eller åpne **Hjelp** og velg **Keyboard shortcuts**. På en Mac er `Mod` Command-tasten; på Windows og Linux er det Ctrl.
+Trykk `?` hvor som helst i dashbordet for å se alle hurtigtastene, eller åpne **Hjelp** og velg **Hurtigtaster**. På en Mac er `Mod` Command-tasten; på Windows og Linux er det Ctrl.
 
 | Taster | Hva de gjør |
 | --- | --- |
