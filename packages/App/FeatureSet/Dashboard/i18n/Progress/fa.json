@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 51094,
-    "untranslated": 5043
+    "untranslated": 4793
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -324,6 +324,7 @@
     "text-emerald-700/80",
     "text-rose-700/80",
     "text-sky-700/80",
+    "text-white",
     "timeout|connection refused",
     "unit-1042-*",
     "vApp {{name}}",
