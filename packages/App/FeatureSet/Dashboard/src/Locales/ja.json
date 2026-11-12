@@ -51238,5 +51238,7 @@
   "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder.": "何が失敗したかを確認するには、サーバーの oneuptime フォルダーで npm run doctor -- --logs を実行してください。",
   "Try again in a moment.": "少し待ってから、もう一度お試しください。",
   "Try again. If it keeps failing, contact OneUptime support and give them this reference:": "もう一度お試しください。それでも失敗する場合は、OneUptime サポートに連絡し、この参照番号を伝えてください:",
-  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "もう一度お試しください。それでも失敗する場合は、OneUptime サーバーを運用している担当者にこの参照番号を伝えてください:"
+  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "もう一度お試しください。それでも失敗する場合は、OneUptime サーバーを運用している担当者にこの参照番号を伝えてください:",
+  "The agent reads the cluster from the next node whose API answers, with no virtual IP to set up.": "エージェントは API が応答する次のノードからクラスターを読み取るため、仮想 IP を設定する必要はありません。",
+  "When a node goes down": "ノードが停止したとき"
 }

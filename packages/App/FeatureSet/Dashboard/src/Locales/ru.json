@@ -51238,5 +51238,7 @@
   "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder.": "Чтобы узнать, что не сработало, выполните npm run doctor -- --logs в папке oneuptime на сервере.",
   "Try again in a moment.": "Повторите попытку чуть позже.",
   "Try again. If it keeps failing, contact OneUptime support and give them this reference:": "Повторите попытку. Если ошибка повторится, обратитесь в поддержку OneUptime и сообщите этот код:",
-  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "Повторите попытку. Если ошибка повторится, сообщите этот код тому, кто управляет вашим сервером OneUptime:"
+  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "Повторите попытку. Если ошибка повторится, сообщите этот код тому, кто управляет вашим сервером OneUptime:",
+  "The agent reads the cluster from the next node whose API answers, with no virtual IP to set up.": "Агент читает кластер со следующего узла, чей API отвечает, и виртуальный IP настраивать не нужно.",
+  "When a node goes down": "Когда узел выходит из строя"
 }

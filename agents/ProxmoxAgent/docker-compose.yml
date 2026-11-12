@@ -17,6 +17,9 @@ services:
     container_name: oneuptime-proxmox-agent
     volumes:
       - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+      # The node pve-api-failover (below) picked to read the cluster from,
+      # which the collector's cluster scrape takes as its target.
+      - pve-api-target:/etc/oneuptime/pve-api:ro
       # Uncomment (together with the journald receiver and logs pipeline
       # in otel-collector-config.yaml) to give the collector read access
       # to the systemd journal. Only meaningful when this compose file
@@ -30,10 +33,10 @@ services:
       # Address (host:port, no scheme) of prometheus-pve-exporter. The
       # default points at the bundled exporter service below.
       - PVE_EXPORTER_URL=${PVE_EXPORTER_URL:-pve-exporter:9221}
-      # Proxmox VE API host (any node of the cluster, or a virtual IP that
-      # fails over between them) that the exporter reads the cluster from.
-      # "localhost" only works when the exporter runs directly on a PVE
-      # node — set this when using the bundled exporter.
+      # The node whose Proxmox VE API the exporter reads the cluster from
+      # while it answers (pve-api-failover picks another node of PVE_NODES
+      # when it does not). "localhost" only works when the exporter runs
+      # directly on a PVE node — set this when using the bundled exporter.
       - PVE_HOST=${PVE_HOST:-localhost}
       # Every node's own API address, comma-separated in square brackets so
       # the collector reads a list, e.g.
@@ -41,8 +44,164 @@ services:
       # The exporter reads start-on-boot (Guest Down), replication and the
       # subscription only for the node it queries, so each node is queried
       # in turn. Unset, only PVE_HOST is: fine for a single node, but on a
-      # cluster the guests and jobs of every other node go unseen.
+      # cluster the guests and jobs of every other node go unseen, and
+      # there is no other node to read the cluster from when PVE_HOST's
+      # goes down.
       - PVE_NODES=${PVE_NODES:-[${PVE_HOST:-localhost}]}
+    depends_on:
+      - pve-api-failover
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Keeps the agent reading the cluster when a node goes down, with no
+  # virtual IP to set up. Every 15 seconds it asks PVE_HOST's Proxmox VE API,
+  # then each node of PVE_NODES in turn, and writes the first that answers
+  # where the collector's cluster scrape takes its target (file_sd in
+  # otel-collector-config.yaml). With the API token it asks /cluster/status
+  # and also passes over a node cut off from the quorate part of the
+  # cluster, whose view would report every other node down; without one it
+  # can only ask /version whether the node answers. It reads the cluster
+  # from the first node that answers at all when none of them is quorate,
+  # and keeps its last choice when none answers. It writes nothing else and
+  # sends nothing but these checks: docker logs oneuptime-pve-api-failover
+  # says which node it reads the cluster from, and why.
+  pve-api-failover:
+    image: curlimages/curl:8.22.0@sha256:58adaa4e8dca9c988bae2aba4ab3434a0bb2da16bbe3f92dec39ec7785166777
+    container_name: oneuptime-pve-api-failover
+    # tini forwards docker stop's SIGTERM to the script, which exits at once.
+    init: true
+    # The image's own user, which owns the pve-api-target volume below.
+    user: "100:101"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - pve-api-target:/run/oneuptime/pve-api
+    environment:
+      # The order the nodes are tried in: PVE_HOST, then PVE_NODES.
+      - PVE_HOST=${PVE_HOST:-localhost}
+      - PVE_NODES=${PVE_NODES:-[${PVE_HOST:-localhost}]}
+      # The exporter's token, sent on stdin to curl (never on its command
+      # line) to ask whether a node is part of the quorate cluster.
+      - PVE_API_TOKEN_ID=${PVE_API_TOKEN_ID:-}
+      - PVE_API_TOKEN_SECRET=${PVE_API_TOKEN_SECRET:-}
+      # Checks the nodes' certificates only when the exporter does.
+      - PVE_VERIFY_SSL=${PVE_VERIFY_SSL:-false}
+    # Every $ is written $$ so Docker Compose leaves it to the shell.
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -f
+        dir=/run/oneuptime/pve-api
+        trap 'exit 0' TERM INT
+        insecure=-k
+        case "$$(printf '%s' "$${PVE_VERIFY_SSL:-false}" | tr 'A-Z' 'a-z')" in
+          true|1|yes|on) insecure="" ;;
+        esac
+        nodes=$${PVE_NODES:-}
+        nodes=$${nodes#\[}
+        nodes=$${nodes%\]}
+        candidates=""
+        for c in $${PVE_HOST:-localhost} $$(printf '%s' "$$nodes" | tr ',' ' '); do
+          c=$$(printf '%s' "$$c" | tr -d "\"'")
+          case "$$c" in
+            "") continue ;;
+            *[!]A-Za-z0-9.:_[-]*) echo "Skipping \"$$c\": not a host name or address."; continue ;;
+          esac
+          case " $$candidates " in *" $$c "*) continue ;; esac
+          candidates="$${candidates:+$$candidates }$$c"
+        done
+        if [ -z "$$candidates" ]; then
+          echo "Neither PVE_HOST nor PVE_NODES names a node: set PVE_HOST in .env to a node's address, then run docker compose up -d."
+          while :; do sleep 3600 & wait $$!; done
+        fi
+        first=$${candidates%% *}
+        url() {
+          case "$$1" in
+            \[*\]:*) printf 'https://%s' "$$1" ;;
+            \[*\]) printf 'https://%s:8006' "$$1" ;;
+            *:*:*) printf 'https://[%s]:8006' "$$1" ;;
+            *:*) printf 'https://%s' "$$1" ;;
+            *) printf 'https://%s:8006' "$$1" ;;
+          esac
+        }
+        probe() {
+          if [ -n "$${PVE_API_TOKEN_ID:-}" ] && [ -n "$${PVE_API_TOKEN_SECRET:-}" ]; then
+            out=$$(printf 'Authorization: PVEAPIToken=%s=%s\n' "$$PVE_API_TOKEN_ID" "$$PVE_API_TOKEN_SECRET" | curl -s $$insecure -H @- --connect-timeout 3 --max-time 6 -w '\n%{http_code}' "$$(url "$$1")/api2/json/cluster/status" 2>/dev/null; printf ' %s' "$$?")
+          else
+            out=$$(curl -s $$insecure -o /dev/null --connect-timeout 3 --max-time 6 -w '\n%{http_code}' "$$(url "$$1")/api2/json/version" 2>/dev/null; printf ' %s' "$$?")
+          fi
+          last=$$(printf '%s\n' "$$out" | tail -n 1)
+          code=$${last% *}
+          rc=$${last##* }
+          case "$$code" in
+            200)
+              if [ -z "$${PVE_API_TOKEN_ID:-}" ] || [ -z "$${PVE_API_TOKEN_SECRET:-}" ]; then echo 2; return; fi
+              cluster=$$(printf '%s\n' "$$out" | sed '$$d' | tr -d ' \t\r' | tr '{}' '\n\n' | grep '"type":"cluster"')
+              if [ -z "$$cluster" ] || printf '%s\n' "$$cluster" | grep -Eq '"quorate":"?1"?(,|$$)'; then echo 2; else echo "1 is not part of the quorate cluster"; fi ;;
+            401) if [ -z "$${PVE_API_TOKEN_ID:-}" ] || [ -z "$${PVE_API_TOKEN_SECRET:-}" ]; then echo 2; else echo "1 refuses the API token (HTTP 401)"; fi ;;
+            [1-9][0-9][0-9]) echo "1 answers HTTP $$code" ;;
+            *)
+              case "$$rc" in
+                35|51|53|54|58|59|60|64|66|77|80|82|83|90|91) echo "0 fails the TLS check" ;;
+                *) echo "0 does not answer" ;;
+              esac ;;
+          esac
+        }
+        current=""
+        status=""
+        echo "Reading the cluster from the first of these whose Proxmox VE API answers, checked every 15 seconds: $$candidates"
+        while :; do
+          chosen=""
+          fallback=""
+          skipped=""
+          for c in $$candidates; do
+            result=$$(probe "$$c")
+            level=$${result%% *}
+            if [ "$$level" = 2 ]; then chosen=$$c; break; fi
+            if [ "$$level" = 1 ] && [ -z "$$fallback" ]; then fallback=$$c; fi
+            skipped="$${skipped:+$$skipped; }$$c $${result#* }"
+          done
+          if [ -n "$$chosen" ]; then
+            next="ok $$chosen"
+          elif [ -n "$$fallback" ]; then
+            chosen=$$fallback
+            next="fallback $$chosen"
+          else
+            chosen=$${current:-$$first}
+            next="none $$chosen"
+          fi
+          if [ "$$chosen" != "$$current" ] || [ ! -s "$$dir/target.json" ]; then
+            if printf '[{"targets":["%s"]}]\n' "$$chosen" > "$$dir/.target.json.tmp" && mv -f "$$dir/.target.json.tmp" "$$dir/target.json"; then
+              current=$$chosen
+            else
+              echo "Could not write $$dir/target.json: the collector keeps its last target."
+            fi
+          fi
+          if [ "$$next" != "$$status" ]; then
+            case "$$next" in
+              ok\ *) if [ -z "$$skipped" ]; then echo "Reading the cluster from $$chosen."; else echo "Reading the cluster from $$chosen: $$skipped."; fi ;;
+              fallback\ *) echo "No node answers as part of the quorate cluster ($$skipped): reading the cluster from $$chosen." ;;
+              *) echo "No node's Proxmox VE API answers ($$skipped): still reading the cluster from $$chosen." ;;
+            esac
+            status=$$next
+          fi
+          sleep 15 &
+          wait $$!
+        done
+    healthcheck:
+      # Unhealthy until it has written a node for the collector to read.
+      test: ["CMD", "test", "-s", "/run/oneuptime/pve-api/target.json"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     restart: unless-stopped
     logging:
       driver: json-file
@@ -120,6 +279,9 @@ services:
       # Any node of the cluster (host or IP; no "localhost": inside this
       # container that is the container itself).
       - PVE_HOST=${PVE_HOST:-}
+      # Every node's own address: when PVE_HOST's API cannot be reached, the
+      # AI agent calls the first of them that can be, and keeps using it.
+      - PVE_NODES=${PVE_NODES:-}
       # The API port when PVE_HOST names none (8006 when both are empty).
       - PVE_PORT=${PVE_PORT:-}
       # Proxmox VE ships a self-signed certificate, so verification is off
@@ -174,3 +336,12 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+volumes:
+  # pve-api-failover's choice, in memory: it writes it, the collector reads
+  # it. Owned by the user pve-api-failover runs as, so it needs no root.
+  pve-api-target:
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+      o: "size=64k,uid=100,gid=101,mode=0755"

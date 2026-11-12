@@ -51238,5 +51238,7 @@
   "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder.": "要查看失敗原因，請在伺服器的 oneuptime 資料夾中執行 npm run doctor -- --logs。",
   "Try again in a moment.": "請稍後再試一次。",
   "Try again. If it keeps failing, contact OneUptime support and give them this reference:": "請再試一次。如果仍然失敗，請聯絡 OneUptime 支援團隊並提供這個參考編號：",
-  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "請再試一次。如果仍然失敗，請把這個參考編號提供給負責執行您的 OneUptime 伺服器的人："
+  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "請再試一次。如果仍然失敗，請把這個參考編號提供給負責執行您的 OneUptime 伺服器的人：",
+  "The agent reads the cluster from the next node whose API answers, with no virtual IP to set up.": "代理程式會從下一個 API 有回應的節點讀取叢集，無需設定虛擬 IP。",
+  "When a node goes down": "當節點當機時"
 }

@@ -51238,5 +51238,7 @@
   "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder.": "برای دیدن اینکه چه چیزی شکست خورد، npm run doctor -- --logs را در پوشهٔ oneuptime سرور اجرا کنید.",
   "Try again in a moment.": "کمی بعد دوباره امتحان کنید.",
   "Try again. If it keeps failing, contact OneUptime support and give them this reference:": "دوباره امتحان کنید. اگر باز هم نشد، با پشتیبانی OneUptime تماس بگیرید و این شناسه را به آن‌ها بدهید:",
-  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "دوباره امتحان کنید. اگر باز هم نشد، این شناسه را به کسی بدهید که سرور OneUptime شما را اداره می‌کند:"
+  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "دوباره امتحان کنید. اگر باز هم نشد، این شناسه را به کسی بدهید که سرور OneUptime شما را اداره می‌کند:",
+  "The agent reads the cluster from the next node whose API answers, with no virtual IP to set up.": "عامل خوشه را از گره بعدی که API آن پاسخ می‌دهد می‌خواند و نیازی به راه‌اندازی IP مجازی نیست.",
+  "When a node goes down": "وقتی یک گره از کار می‌افتد"
 }

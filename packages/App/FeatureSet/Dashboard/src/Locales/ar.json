@@ -51238,5 +51238,7 @@
   "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder.": "لمعرفة ما فشل، شغّل npm run doctor -- --logs في مجلد oneuptime على الخادم.",
   "Try again in a moment.": "حاول مرة أخرى بعد قليل.",
   "Try again. If it keeps failing, contact OneUptime support and give them this reference:": "حاول مرة أخرى. إذا استمر الفشل، فتواصل مع دعم OneUptime وأعطهم هذا المرجع:",
-  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "حاول مرة أخرى. إذا استمر الفشل، فأعطِ هذا المرجع لمن يدير خادم OneUptime لديكم:"
+  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "حاول مرة أخرى. إذا استمر الفشل، فأعطِ هذا المرجع لمن يدير خادم OneUptime لديكم:",
+  "The agent reads the cluster from the next node whose API answers, with no virtual IP to set up.": "يقرأ الوكيل العنقود من العقدة التالية التي تجيب واجهة API الخاصة بها، دون عنوان IP افتراضي لإعداده.",
+  "When a node goes down": "عندما تتعطل عقدة"
 }

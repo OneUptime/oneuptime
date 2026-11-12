@@ -51238,5 +51238,7 @@
   "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder.": "Para ver o que falhou, execute npm run doctor -- --logs na pasta oneuptime do servidor.",
   "Try again in a moment.": "Tente novamente daqui a pouco.",
   "Try again. If it keeps failing, contact OneUptime support and give them this reference:": "Tente novamente. Se continuar a falhar, contacte o suporte do OneUptime e indique esta referência:",
-  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "Tente novamente. Se continuar a falhar, indique esta referência a quem gere o seu servidor do OneUptime:"
+  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "Tente novamente. Se continuar a falhar, indique esta referência a quem gere o seu servidor do OneUptime:",
+  "The agent reads the cluster from the next node whose API answers, with no virtual IP to set up.": "O agente lê o cluster a partir do próximo nó cuja API responde, sem IP virtual para configurar.",
+  "When a node goes down": "Quando um nó cai"
 }
