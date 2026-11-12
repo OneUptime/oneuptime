@@ -149,7 +149,7 @@ const START_NOW_MESSAGES: Partial<Record<StartNowProblem, string>> = {
   ai_disabled:
     "AI is turned off for this project (Project Settings → AI → AI Features).",
   provider_missing:
-    "This project has no AI provider OneUptime AI can use (Project Settings → AI → LLM Providers).",
+    "This project has no LLM provider OneUptime AI can use (Project Settings → AI → LLM Providers).",
   insufficient_ai_balance:
     "This project is out of AI credits (Project Settings → AI → AI Credits).",
   project_daily_limit_reached:
