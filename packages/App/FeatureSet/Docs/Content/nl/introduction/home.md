@@ -125,7 +125,7 @@ Twee balken lopen bovenaan over elke pagina.
 | Rechtsboven | **Zoeken** en **AI vragen**, de meldingenbel met wat u nu nodig heeft (actieve incidenten en waarschuwingen, het bereikbaarheidsbeleid waarin u dienst hebt, openstaande uitnodigingen), **Hulp**, en uw foto, die het menu van uw [account](/docs/introduction/your-account) opent. |
 | Daaronder | **Start** en **Producten** links, **Gebruikersinstellingen** rechts: hoe OneUptime u in dit project bereikt. |
 
-**Hulp** begint met wat u helpt leren: **Snelstart**, **Hoe OneUptime werkt**, **Woordenlijst** en deze documentatie (**Documentatie**). Daaronder staan de lijst **Keyboard shortcuts** en ondersteuning per e-mail en op Slack. Op een smal scherm, zoals een telefoon, verdwijnen **Zoeken**, **AI vragen** en **Hulp** om ruimte te besparen; de bel en uw foto blijven.
+**Hulp** begint met wat u helpt leren: **Snelstart**, **Hoe OneUptime werkt**, **Woordenlijst** en deze documentatie (**Documentatie**). Daaronder staan de lijst **Keyboard shortcuts** en ondersteuning per e-mail en op Slack. Op een tablet of in een smal venster verdwijnt **AI vragen** om ruimte te besparen: u vindt het tussen de acties in **Zoeken**. Op een telefoon staan **Zoeken** en **Hulp** in de lijst van de menuknop, helemaal bovenaan en helemaal onderaan; de bel en uw foto blijven.
 
 Een woord met een stippellijn eronder, zoals **Sondes** in het formulier van een nieuwe monitor, zegt wat het betekent als u ernaar wijst, er met Tab naartoe gaat of erop tikt. Met **Lees meer** opent u het woord in de [Woordenlijst](/docs/introduction/glossary).
 
@@ -148,6 +148,7 @@ Druk op **Cmd+K** (Mac) of **Ctrl+K** (Windows en Linux), of klik op het zoekpic
 - **De instellingen op een pagina**, onder de naam die hun kaart of schakelaar toont: *SSO vereisen voor inloggen* vindt SSO, en *Meldingskanalen* vindt Meldingsinstellingen. Typ de naam in het Engels of in uw eigen taal.
 - **Acties**, naar wat u wilt doen: Incident melden, Monitor maken of Delete Project, dat de Gevarenzone opent. Een actie die iets verandert, wordt alleen aangeboden aan wie die mag uitvoeren.
 - **Uw monitoren, incidenten, waarschuwingen, statuspagina's en bereikbaarheidsbeleid**, op naam, en incidenten en waarschuwingen ook op nummer, zoals `INC-42`. Elk resultaat van een incident of waarschuwing begint met zijn nummer, zodat twee met dezelfde titel uit elkaar te houden zijn.
+- **De documentatie**, in een groep *Documentatie* onder al het andere: de pagina's en secties waarvan de woorden overeenkomen met wat u typt, in uw taal, ook met een typfout. Elke opent in een nieuw tabblad, zodat u uw plek houdt.
 
 Zoeken leest wat u typt zoals u het bedoelt:
 

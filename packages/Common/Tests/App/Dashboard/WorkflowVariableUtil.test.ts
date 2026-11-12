@@ -897,7 +897,12 @@ describe("fetchTokenRefreshOutcome", () => {
         variable: (): WorkflowVariable => {
           return makeVariable({ id: VARIABLE_ID, name: "API_TOKEN" });
         },
-        reason: "Internal server error.",
+        /*
+         * "Internal server error." says nothing, so it reads as a failure
+         * the server did not explain, with what to do next (#6836).
+         */
+        reason:
+          "The server ran into a problem it could not explain, so this did not finish. Try again in a moment.",
       },
       {
         label: "a network error",

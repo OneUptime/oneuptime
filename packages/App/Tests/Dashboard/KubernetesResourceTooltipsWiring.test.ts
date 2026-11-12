@@ -750,11 +750,18 @@ describe("the texts match the computations behind the lists", () => {
     expect(table).toContain(
       compact("const pct: number = Math.min(resource.memoryUtilization, 100);"),
     );
+    // In full, in the reader's digits (issue #7106).
     expect(table).toContain(
-      compact("{resource.memoryUtilization.toFixed(1)}%"),
+      compact(
+        "{formatReaderFigure(resource.memoryUtilization, { decimals: 1, isPercent: true })}",
+      ),
     );
     // A limit-based percentage is capped in the number too.
-    expect(table).toContain(compact("{Math.round(pct)}%"));
+    expect(table).toContain(
+      compact(
+        "{formatReaderFigure(Math.round(pct), { decimals: 0, isPercent: true })}",
+      ),
+    );
   });
 
   test("workload sums are keyed by namespace and name - the texts make no same-name caveat", () => {

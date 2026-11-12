@@ -2408,6 +2408,24 @@
     "kind": "page"
   },
   {
+    "title": "Page the right person when something breaks",
+    "where": [
+      "On-Call Duty",
+      "Policies"
+    ],
+    "keywords": [
+      "guided setup",
+      "get paged",
+      "page me by phone",
+      "sms",
+      "phone call",
+      "escalate",
+      "set up on-call"
+    ],
+    "path": "/dashboard/:projectId/on-call-duty/setup",
+    "kind": "page"
+  },
+  {
     "title": "Readiness",
     "where": [
       "On-Call Duty",

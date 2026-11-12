@@ -125,7 +125,7 @@ Dos barras recorren la parte superior de cada página.
 | Arriba a la derecha | **Buscar** y **Preguntar a la IA**, la campana de notificaciones con lo que te necesita ahora (incidentes y alertas activos, las políticas de guardia en las que estás de turno, invitaciones pendientes), **Ayuda**, y tu foto, que abre el menú de tu [cuenta](/docs/introduction/your-account). |
 | Debajo | **Inicio** y **Productos** a la izquierda, **Ajustes de usuario** a la derecha: cómo te localiza OneUptime en este proyecto. |
 
-**Ayuda** empieza por lo que te ayuda a aprender: **Inicio rápido**, **Cómo funciona OneUptime**, **Glosario** y esta documentación (**Documentación**). Debajo están la lista **Atajos de teclado** y el soporte por correo y en Slack. En una pantalla estrecha, como la de un teléfono, **Buscar**, **Preguntar a la IA** y **Ayuda** se quitan para ganar espacio; la campana y tu foto se quedan.
+**Ayuda** empieza por lo que te ayuda a aprender: **Inicio rápido**, **Cómo funciona OneUptime**, **Glosario** y esta documentación (**Documentación**). Debajo están la lista **Atajos de teclado** y el soporte por correo y en Slack. En una tableta o en una ventana estrecha, **Preguntar a la IA** se quita para ganar espacio: está entre las acciones de **Buscar**. En un teléfono, **Buscar** y **Ayuda** pasan a la lista del botón de menú, arriba del todo y abajo del todo; la campana y tu foto se quedan.
 
 Una palabra con una línea de puntos debajo, como **Sondas** en el formulario de un monitor nuevo, dice qué significa cuando la señalas, llegas a ella con Tab o la tocas. Su **Leer más** abre la palabra en el [Glosario](/docs/introduction/glossary).
 
@@ -148,6 +148,7 @@ Pulsa **Cmd+K** (Mac) o **Ctrl+K** (Windows y Linux), o haz clic en el icono de 
 - **Los ajustes de una página**, por el nombre que muestra su tarjeta o su interruptor: *Requerir SSO para iniciar sesión* encuentra SSO, y *Canales de notificación* encuentra Ajustes de notificaciones. Escribe el nombre en inglés o en tu idioma.
 - **Acciones**, por lo que quieres hacer: Declarar incidente, Crear monitor o Eliminar proyecto, que abre la Zona de peligro. Una acción que cambia algo solo se ofrece a quien tiene permiso para hacerla.
 - **Tus monitores, incidentes, alertas, páginas de estado y políticas de guardia**, por su nombre, y los incidentes y las alertas también por su número, como `INC-42`. Cada resultado de un incidente o una alerta empieza por su número, así que dos con el mismo título se distinguen.
+- **La documentación**, en un grupo *Documentación* debajo de todo lo demás: las páginas y secciones cuyas palabras coinciden con lo que escribes, en tu idioma, aunque haya una errata. Cada una se abre en una pestaña nueva, para que no pierdas tu sitio.
 
 La búsqueda lee lo que escribes como lo quieres decir:
 

@@ -125,7 +125,7 @@ Duas barras atravessam o topo de cada página.
 | Canto superior direito | **Pesquisar** e **Pergunte à IA**, o sino de notificações com o que precisa de você agora (incidentes e alertas ativos, as políticas de plantão em que você está de turno, convites pendentes), **Ajuda**, e sua foto, que abre o menu da sua [conta](/docs/introduction/your-account). |
 | Abaixo delas | **Início** e **Produtos** à esquerda, **Configurações do usuário** à direita: como o OneUptime contata você neste projeto. |
 
-**Ajuda** começa pelo que ajuda a aprender: **Início rápido**, **Como o OneUptime funciona**, **Glossário** e esta documentação (**Documentação**). Abaixo ficam a lista **Keyboard shortcuts** e o suporte por e-mail e no Slack. Em uma tela estreita, como a de um celular, **Pesquisar**, **Pergunte à IA** e **Ajuda** saem para ganhar espaço; o sino e sua foto ficam.
+**Ajuda** começa pelo que ajuda a aprender: **Início rápido**, **Como o OneUptime funciona**, **Glossário** e esta documentação (**Documentação**). Abaixo ficam a lista **Keyboard shortcuts** e o suporte por e-mail e no Slack. Em um tablet ou em uma janela estreita, **Pergunte à IA** sai para ganhar espaço: ela está entre as ações de **Pesquisar**. Em um celular, **Pesquisar** e **Ajuda** passam para a lista do botão de menu, no topo e no final; o sino e sua foto ficam.
 
 Uma palavra com uma linha pontilhada embaixo, como **Sondas** no formulário de um novo monitor, diz o que significa quando você aponta para ela, chega a ela com Tab ou toca nela. O **Ler mais** dela abre a palavra no [Glossário](/docs/introduction/glossary).
 
@@ -148,6 +148,7 @@ Pressione **Cmd+K** (Mac) ou **Ctrl+K** (Windows e Linux), ou clique no ícone d
 - **As configurações de uma página**, pelo nome que o cartão ou o botão delas mostra: *Exigir SSO para login* encontra SSO, e *Canais de notificação* encontra Configurações de notificação. Digite o nome em inglês ou no seu idioma.
 - **Ações**, pelo que você quer fazer: Declarar incidente, Criar monitor ou Delete Project, que abre a Zona de perigo. Uma ação que muda algo só é oferecida a quem tem permissão para fazê-la.
 - **Seus monitores, incidentes, alertas, páginas de status e políticas de plantão**, pelo nome, e incidentes e alertas também pelo número, como `INC-42`. Cada resultado de incidente ou alerta começa pelo número dele, para que dois com o mesmo título se distingam.
+- **A documentação**, em um grupo *Documentação* abaixo de todo o resto: as páginas e seções cujas palavras correspondem ao que você digitou, no seu idioma, mesmo com um erro de digitação. Cada uma abre em uma nova aba, para você não perder seu lugar.
 
 A pesquisa lê o que você digita do jeito que você quer dizer:
 

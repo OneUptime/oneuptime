@@ -103,10 +103,11 @@ export interface ComponentProps {
    */
   disableCommandKShortcut?: boolean | undefined;
   /*
-   * Rows of the phone's menu (below 768px, where the products dialog never
-   * opens): drawn first, above Home, and last, after User Settings. The
-   * Dashboard puts its Search and Help there, which its header has no room
-   * for on a phone (#6816). Each is handed the function that closes the
+   * Rows of the phone's menu (below 768px, PHONE_MENU_BELOW_WIDTH_IN_PX,
+   * where the products dialog never opens): drawn first, above Home, and
+   * last, after User Settings. The Dashboard puts its Search and Help there,
+   * which its header has no room for on a phone (#6816) and draws itself
+   * from 768px up (#7037). Each is handed the function that closes the
    * menu, for when it opens something.
    */
   mobileMenuTop?: ((closeMenu: () => void) => ReactElement) | undefined;
@@ -150,6 +151,16 @@ export interface ComponentProps {
  */
 const MOBILE_MENU_BOTTOM_GAP_IN_PX: number = 16;
 const MOBILE_MENU_MIN_HEIGHT_IN_PX: number = 160;
+
+/*
+ * Below this width the nav bar is the phone's menu (a toggle that lists the
+ * products, with mobileMenuTop and mobileMenuBottom); from it up, the
+ * desktop row and the products dialog. Tailwind's md: a header entry the
+ * phone's menu carries instead (the Dashboard's Search and Help) is drawn
+ * from md (`max-md:hidden md:flex`), so at every width it is in exactly one
+ * of the two.
+ */
+export const PHONE_MENU_BELOW_WIDTH_IN_PX: number = 768;
 
 /*
  * Keep the products-menu shortcut and the dashboard command palette on the
@@ -242,7 +253,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
   // Check if we're on mobile
   useEffect(() => {
     const checkMobile: () => void = (): void => {
-      setIsMobile(window.innerWidth < 768); // md breakpoint
+      setIsMobile(window.innerWidth < PHONE_MENU_BELOW_WIDTH_IN_PX);
     };
 
     checkMobile();

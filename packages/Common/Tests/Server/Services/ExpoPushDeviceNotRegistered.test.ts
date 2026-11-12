@@ -24,6 +24,9 @@ import PushDeviceType from "../../../Types/PushNotification/PushDeviceType";
 import PushStatus from "../../../Types/PushNotification/PushStatus";
 import UserNotificationStatus from "../../../Types/UserNotification/UserNotificationStatus";
 import API, { APIRequestOptions } from "../../../Utils/API";
+import OnCallTimelineRows, {
+  OnCallNotificationWrite,
+} from "../TestingUtils/OnCallTimelineRows";
 import { Expo, ExpoPushMessage, ExpoPushTicket } from "expo-server-sdk";
 import {
   afterEach,
@@ -135,7 +138,14 @@ describe("an Expo push token Expo says is gone, sent with the deployment's own E
   >;
   let relayPosts: Array<APIRequestOptions>;
   let logs: Array<PushNotificationLog>;
-  let timelineUpdates: Array<{ status: unknown; statusMessage: unknown }>;
+  let timeline: OnCallTimelineRows;
+
+  // What was written to the page's on-call timeline row, in order.
+  function timelineUpdates(): Array<OnCallNotificationWrite["data"]> {
+    return timeline.writes.map((write: OnCallNotificationWrite) => {
+      return write.data;
+    });
+  }
 
   // Expo's answer to each token; anything else is accepted.
   let answers: Map<string, ExpoPushTicket | Error>;
@@ -147,7 +157,9 @@ describe("an Expo push token Expo says is gone, sent with the deployment's own E
       .mockResolvedValue(false);
     answers = new Map<string, ExpoPushTicket | Error>();
     logs = [];
-    timelineUpdates = [];
+    // The page's timeline row, as written when the page went out.
+    timeline = new OnCallTimelineRows();
+    timeline.add(TIMELINE_ID, UserNotificationStatus.Sending);
     relayPosts = [];
 
     jest
@@ -191,14 +203,7 @@ describe("an Expo push token Expo says is gone, sent with the deployment's own E
         return createBy.data;
       }) as never);
 
-    jest
-      .spyOn(UserOnCallLogTimelineService, "updateOneById")
-      .mockImplementation((async (updateBy: {
-        data: { status: unknown; statusMessage: unknown };
-      }) => {
-        timelineUpdates.push(updateBy.data);
-        return 1;
-      }) as never);
+    timeline.standIn(UserOnCallLogTimelineService);
   });
 
   afterEach(() => {
@@ -257,7 +262,7 @@ describe("an Expo push token Expo says is gone, sent with the deployment's own E
       userOnCallLogTimelineId: TIMELINE_ID,
     });
 
-    expect(timelineUpdates).toEqual([
+    expect(timelineUpdates()).toEqual([
       { status: UserNotificationStatus.Error, statusMessage: GONE_MESSAGE },
     ]);
     // What the caller writes to the same row when the send rejects.
@@ -283,7 +288,7 @@ describe("an Expo push token Expo says is gone, sent with the deployment's own E
         return log.status;
       }),
     ).toEqual([PushStatus.Error, PushStatus.Success]);
-    expect(timelineUpdates).toEqual([
+    expect(timelineUpdates()).toEqual([
       {
         status: UserNotificationStatus.Sent,
         statusMessage: "Push notification sent successfully",
@@ -367,7 +372,7 @@ describe("an Expo push token Expo says is gone, sent with the deployment's own E
       logs: logs.map((log: PushNotificationLog) => {
         return log.statusMessage;
       }),
-      timeline: timelineUpdates,
+      timeline: timelineUpdates(),
     });
 
     expect(written).not.toContain(GONE_TOKEN);
@@ -398,7 +403,7 @@ describe("an Expo push token Expo says is gone, sent with the deployment's own E
     expect(failure).toBeNull();
     expect(markAsGone).not.toHaveBeenCalled();
     expect(logs[0]!.status).toBe(PushStatus.Success);
-    expect(timelineUpdates).toEqual([
+    expect(timelineUpdates()).toEqual([
       {
         status: UserNotificationStatus.Sent,
         statusMessage: "Push notification sent successfully",

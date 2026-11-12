@@ -228,7 +228,9 @@ describe.each(CHANNELS)("$name verification status", (channel: Channel) => {
   it("requires an item ID", async () => {
     await callStatus({});
 
-    expect(lastError().message).toBe("Invalid item ID");
+    expect(lastError().message).toBe(
+      "The request did not say which notification method to verify. Reload the page and try again.",
+    );
     expect(service["findOneById"]).not.toHaveBeenCalled();
   });
 
@@ -237,7 +239,9 @@ describe.each(CHANNELS)("$name verification status", (channel: Channel) => {
 
     await callStatus({ itemId: ITEM_ID });
 
-    expect(lastError().message).toBe("Invalid user ID");
+    expect(lastError().message).toBe(
+      "Sign in again, then verify this notification method.",
+    );
     expect(service["findOneById"]).not.toHaveBeenCalled();
   });
 
@@ -246,7 +250,9 @@ describe.each(CHANNELS)("$name verification status", (channel: Channel) => {
 
     await callStatus({ itemId: ITEM_ID });
 
-    expect(lastError().message).toBe("Item not found");
+    expect(lastError().message).toBe(
+      "This notification method is not in your list any more. Add it again, then verify it.",
+    );
   });
 
   /*
@@ -260,7 +266,9 @@ describe.each(CHANNELS)("$name verification status", (channel: Channel) => {
 
     await callStatus({ itemId: ITEM_ID });
 
-    expect(lastError().message).toBe("Invalid user ID");
+    expect(lastError().message).toBe(
+      "This notification method is not in your list any more. Add it again, then verify it.",
+    );
     expect(service["getVerificationStatus"]).not.toHaveBeenCalled();
     expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
   });
@@ -275,7 +283,9 @@ describe.each(CHANNELS)("$name verification status", (channel: Channel) => {
 
     await callStatus({ itemId: ITEM_ID });
 
-    expect(lastError().message).toBe("Item not found");
+    expect(lastError().message).toBe(
+      "This notification method is not in your list any more. Add it again, then verify it.",
+    );
     expect(service["getVerificationStatus"]).not.toHaveBeenCalled();
     expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
   });

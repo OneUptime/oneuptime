@@ -175,10 +175,16 @@ const ExploreProducts: FunctionComponent<ComponentProps> = (
           </button>
         }
       >
+        {/*
+         * The strip scrolls sideways on a phone, and a scroller clips what
+         * reaches past its edges: it reaches 4px past the card's padding on
+         * every side and pads that back, so a tab's focus ring shows whole
+         * and the tabs still start under the title's first letter.
+         */}
         <div
           role="tablist"
           aria-label={translator.translateText("Product categories")}
-          className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1"
+          className="-m-1 flex gap-1 overflow-x-auto p-1"
         >
           {categories.map(
             (category: MenuCategory, index: number): ReactElement => {
@@ -234,7 +240,7 @@ const ExploreProducts: FunctionComponent<ComponentProps> = (
           aria-labelledby={`home-explore-tab-${slugify(activeCategory.title)}`}
           data-testid="home-explore-panel"
           data-category={activeCategory.title}
-          className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
+          className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
         >
           {activeCategory.items.map((item: MoreMenuItem): ReactElement => {
             const colors: IconColorClasses =

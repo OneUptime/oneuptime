@@ -125,7 +125,7 @@ Deux barres traversent le haut de chaque page.
 | En haut à droite | **Rechercher** et **Demander à l'IA**, la cloche de notifications avec ce qui vous attend (incidents et alertes actifs, politiques d'astreinte dont vous êtes de garde, invitations en attente), **Aide**, et votre photo, qui ouvre le menu de votre [compte](/docs/introduction/your-account). |
 | En dessous | **Accueil** et **Produits** à gauche, **Paramètres utilisateur** à droite : comment OneUptime vous joint dans ce projet. |
 
-**Aide** commence par ce qui aide à apprendre : **Démarrage rapide**, **Comment fonctionne OneUptime**, **Glossaire** et cette documentation (**Documentation**). En dessous viennent la liste **Raccourcis clavier** et le support par e-mail et sur Slack. Sur un écran étroit, comme un téléphone, **Rechercher**, **Demander à l'IA** et **Aide** disparaissent pour gagner de la place ; la cloche et votre photo restent.
+**Aide** commence par ce qui aide à apprendre : **Démarrage rapide**, **Comment fonctionne OneUptime**, **Glossaire** et cette documentation (**Documentation**). En dessous viennent la liste **Raccourcis clavier** et le support par e-mail et sur Slack. Sur une tablette ou dans une fenêtre étroite, **Demander à l'IA** disparaît pour gagner de la place : vous le trouvez parmi les actions de **Rechercher**. Sur un téléphone, **Rechercher** et **Aide** passent dans la liste du bouton de menu, tout en haut et tout en bas ; la cloche et votre photo restent.
 
 Un mot souligné de pointillés, comme **Sondes** dans le formulaire d'un nouveau moniteur, dit ce qu'il signifie quand vous le survolez, l'atteignez avec Tab ou le touchez. Son lien **Lire la suite** ouvre le mot dans le [Glossaire](/docs/introduction/glossary).
 
@@ -148,6 +148,7 @@ Appuyez sur **Cmd+K** (Mac) ou **Ctrl+K** (Windows et Linux), ou cliquez sur l'i
 - **Les paramètres d'une page**, sous le nom qu'affiche leur carte ou leur interrupteur : *Exiger le SSO pour la connexion* trouve SSO, et *Canaux de notification* trouve Paramètres de notification. Tapez le nom en anglais ou dans votre langue.
 - **Actions**, d'après ce que vous voulez faire : Déclarer un incident, Créer un moniteur, ou Supprimer le projet, qui ouvre la Zone de danger. Une action qui modifie quelque chose n'est proposée qu'aux personnes autorisées à la faire.
 - **Vos moniteurs, incidents, alertes, pages de statut et politiques d'astreinte**, par leur nom, et les incidents et les alertes aussi par leur numéro, comme `INC-42`. Chaque résultat d'incident ou d'alerte commence par son numéro, si bien que deux du même titre se distinguent.
+- **La documentation**, dans un groupe *Documentation* sous tout le reste : les pages et les sections dont les mots correspondent à ce que vous tapez, dans votre langue, même avec une faute de frappe. Chacune s'ouvre dans un nouvel onglet, pour que vous gardiez votre place.
 
 La recherche lit ce que vous tapez comme vous l'entendez :
 

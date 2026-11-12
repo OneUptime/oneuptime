@@ -11,25 +11,36 @@ import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import NavBarMenuModal from "Common/UI/Components/Navbar/NavBarMenuModal";
 import Navigation from "Common/UI/Utils/Navigation";
+import { followLanguageForPage } from "Common/UI/Utils/PageLanguage";
 import DashboardCommandPalette from "../../App/FeatureSet/Dashboard/src/Components/CommandPalette/DashboardCommandPalette";
 import DashboardNavbar from "../../App/FeatureSet/Dashboard/src/Components/NavBar/NavBar";
 import HiddenProductsWithData from "../../App/FeatureSet/Dashboard/src/Components/ProjectProducts/HiddenProductsWithData";
 import ProductsSettings from "../../App/FeatureSet/Dashboard/src/Components/ProjectProducts/ProductsSettings";
 import { useDashboardNavigationItems } from "../../App/FeatureSet/Dashboard/src/Utils/NavigationItems";
-import en from "../../App/FeatureSet/Dashboard/src/Locales/en.json";
+import ar from "../../App/FeatureSet/Dashboard/src/Locales/ar.json";
 import de from "../../App/FeatureSet/Dashboard/src/Locales/de.json";
-import fa from "../../App/FeatureSet/Dashboard/src/Locales/fa.json";
+import en from "../../App/FeatureSet/Dashboard/src/Locales/en.json";
+import {
+  HeaderFixture,
+  headerLanguage,
+  installHeaderFixture,
+  isHeaderMode,
+} from "./HeaderFixture";
 
 /*
- * English, or the Dashboard's German (?lang=de) or Persian (?lang=fa, read
- * from right to left). Read once: links navigate without the query.
+ * The header page reads ?lang= its own way (HeaderFixture.js: en, de or ar).
+ * Every other page is English, or the Dashboard's German (?lang=de) or
+ * Arabic (?lang=ar, read from right to left). Read once: links navigate
+ * without the query.
  */
 const requestedLanguage = new URLSearchParams(window.location.search).get(
   "lang",
 );
-const language = ["de", "fa"].includes(requestedLanguage)
-  ? requestedLanguage
-  : "en";
+const language = isHeaderMode
+  ? headerLanguage
+  : ["de", "ar"].includes(requestedLanguage)
+    ? requestedLanguage
+    : "en";
 
 await i18n.use(initReactI18next).init({
   lng: language,
@@ -37,12 +48,17 @@ await i18n.use(initReactI18next).init({
   resources: {
     en: { translation: en },
     de: { translation: de },
-    fa: { translation: fa },
+    ar: { translation: ar },
   },
   interpolation: { escapeValue: false },
 });
-document.documentElement.lang = language;
-document.documentElement.dir = language === "fa" ? "rtl" : "ltr";
+
+// <html lang dir> follow the reader's language: Arabic reads right to left.
+followLanguageForPage(i18n);
+
+if (isHeaderMode) {
+  installHeaderFixture();
+}
 
 // The production catalog, filtering, keyboard handling and links run unchanged.
 // A synthetic project URL supplies route context without an account or database.
@@ -69,6 +85,11 @@ function Fixture() {
   Navigation.setParams(useParams());
   const { moreMenuItems, moreMenuCategoriesOpenByDefault } =
     useDashboardNavigationItems();
+
+  // The header and nav bar of every page: ?header=true (HeaderFixture.js).
+  if (isHeaderMode) {
+    return <HeaderFixture pathname={location.pathname} />;
+  }
 
   if (showProducts) {
     return (

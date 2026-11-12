@@ -125,7 +125,7 @@ Two bars run across the top of every page.
 | Top right | **Search** and **Ask AI**, the notification bell with what needs you now (active incidents and alerts, the on-call policies you are on duty for, pending invitations), **Help**, and your picture, which opens your [account](/docs/introduction/your-account) menu. |
 | Below them | **Home** and **Products** on the left, **User Settings** on the right: how OneUptime reaches you in this project. |
 
-**Help** starts with what helps you learn: the **Quickstart**, **How OneUptime works**, the **Glossary** and these docs (**Documentation**). Under them are the **Keyboard shortcuts** list and support by email and on Slack. On a narrow screen, such as a phone, **Search**, **Ask AI** and **Help** are left out to save room; the bell and your picture stay.
+**Help** starts with what helps you learn: the **Quickstart**, **How OneUptime works**, the **Glossary** and these docs (**Documentation**). Under them are the **Keyboard shortcuts** list and support by email and on Slack. On a tablet or in a narrow window, **Ask AI** is left out to save room: it is among the actions in **Search**. On a phone, **Search** and **Help** move into the menu button's list, at its top and at its bottom; the bell and your picture stay.
 
 A word with a dotted line under it, such as **Probes** on a new monitor's form, says what it means when you point at it, tab to it or tap it. Its **Read more** opens the word in the [Glossary](/docs/introduction/glossary).
 
@@ -148,6 +148,7 @@ Press **Cmd+K** (Mac) or **Ctrl+K** (Windows and Linux), or click the search ico
 - **The settings on a page**, by the name their card or switch shows: *Require SSO for Login* finds SSO, and *Notification Channels* finds Notification Settings. Type the name in English or in your language.
 - **Actions**, by what you want to do: Declare Incident, Create Monitor, or Delete Project, which opens the Danger Zone. An action that changes something is offered only to people allowed to do it.
 - **Your monitors, incidents, alerts, status pages and on-call policies**, by name, and incidents and alerts by number too, such as `INC-42`. Each incident and alert result starts with its number, so two of one title are told apart.
+- **The docs**, in a *Documentation* group under everything else: the pages and sections whose words match what you typed, in your language, even with a typo. Each opens in a new tab, so you keep your place.
 
 Search reads what you type the way you mean it:
 

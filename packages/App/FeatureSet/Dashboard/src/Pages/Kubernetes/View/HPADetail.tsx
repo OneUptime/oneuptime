@@ -27,6 +27,7 @@ import {
 } from "../Utils/KubernetesObjectParser";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
 import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
+import { formatKubernetesCount } from "../Utils/KubernetesCount";
 import KubernetesYamlTab from "../../../Components/Kubernetes/KubernetesYamlTab";
 import StatusBadge, {
   StatusBadgeType,
@@ -165,22 +166,22 @@ const KubernetesClusterHPADetail: FunctionComponent<
       {
         title: "Min Replicas",
         description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.hpaMinReplicas,
-        value: String(objectData.spec.minReplicas),
+        value: formatKubernetesCount(objectData.spec.minReplicas),
       },
       {
         title: "Max Replicas",
         description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.hpaMaxReplicas,
-        value: String(objectData.spec.maxReplicas),
+        value: formatKubernetesCount(objectData.spec.maxReplicas),
       },
       {
         title: "Current Replicas",
         description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.hpaCurrentReplicas,
-        value: String(currentReplicas),
+        value: formatKubernetesCount(currentReplicas),
       },
       {
         title: "Desired Replicas",
         description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.hpaDesiredReplicas,
-        value: String(desiredReplicas),
+        value: formatKubernetesCount(desiredReplicas),
       },
       {
         title: "Scaling Status",

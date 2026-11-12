@@ -38,7 +38,7 @@ Une sonde qui a perdu sa propre connexion réseau ne rapporte aucun résultat, e
 :::steps
 ### Commencer un nouveau moniteur
 
-Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**. Sous **Type de moniteur**, choisissez **SSL Certificate**.
+Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**. Sous **Type de moniteur**, choisissez **Certificat SSL**.
 
 ### Le nommer
 

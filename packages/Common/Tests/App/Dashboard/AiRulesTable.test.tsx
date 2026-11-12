@@ -84,6 +84,7 @@ import {
   AI_RULE_FIX_FIELD_COPY,
   AI_RULE_FIX_FIELD_KEY,
   AI_RULE_FIX_OPTIONS,
+  AI_RULE_FIX_TEXT,
   AI_RULE_ONLY_FIXES_COPY,
   AI_RULE_TEST_IDS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/AiRuleCopy";
@@ -167,6 +168,12 @@ import {
 } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
+import Pill, {
+  WHOLE_WORDS_PILL_TEXT_CLASS_NAME,
+  WRAPPING_PILL_TEXT_CLASS_NAME,
+} from "../../../UI/Components/Pill/Pill";
+import { TABLE_SHRINKABLE_ATTRIBUTE } from "../../../UI/Components/Table/TableLayout";
+import { Blue } from "../../../Types/BrandColors";
 
 // ModelAPI.count spied on, as jest-mock's spyOn types it.
 type CountSpy = SpyInstance<
@@ -2810,6 +2817,90 @@ describe("read and used by a person", () => {
     // A wrapping pill's words may run on: no ellipsis.
     expect(pillText).toHaveClass("whitespace-normal");
     expect(pillText).not.toHaveClass("truncate");
+  });
+
+  /*
+   * The pill wraps between its words, never inside one (#7111). With
+   * isWrapping alone it took the shared [overflow-wrap:anywhere], which lets
+   * a column held narrow break a longer language's word in the middle - a
+   * Russian "исправлением" over two lines, as Security Events' Health read
+   * "приостановле / но" (#6891). Kept whole ([overflow-wrap:break-word]),
+   * the pill is never narrower than its longest word, and the table still
+   * finds nothing in it to cut short.
+   */
+  const FIX_PILL_RULES: Array<[AiRuleFix, Partial<AutoRemediationRule>]> = [
+    [
+      AiRuleFix.AskFirst,
+      {
+        investigates: true,
+        fixes: true,
+        executionMode: AutoRemediationExecutionMode.Suggest,
+      },
+    ],
+    [
+      AiRuleFix.WithoutAsking,
+      {
+        investigates: true,
+        fixes: true,
+        executionMode: AutoRemediationExecutionMode.FullAuto,
+      },
+    ],
+    [AiRuleFix.DoNotFix, { investigates: true, fixes: false }],
+  ];
+
+  describe.each([AiLane.Incident, AiLane.Alert])(
+    "%s: the fix pill keeps its words whole (#7111)",
+    (lane: AiLane) => {
+      test.each(FIX_PILL_RULES)(
+        "%s wraps between its words, never inside one",
+        (fix: AiRuleFix, fields: Partial<AutoRemediationRule>) => {
+          const column: CapturedColumn = columnTitled(
+            tableFor(lane),
+            AI_RULE_COLUMN_TITLE,
+          );
+
+          cleanup();
+          render(column.getElement!(rule(fields)));
+
+          const cell: HTMLElement = screen.getByTestId(
+            AI_RULE_TEST_IDS.fixColumn,
+          );
+          const pill: HTMLElement = within(cell).getByTestId("pill");
+          const words: HTMLElement = within(pill).getByTestId("pill-text");
+
+          expect(words).toHaveTextContent(AI_RULE_FIX_TEXT[fix]);
+          expect(words.className).toBe(WHOLE_WORDS_PILL_TEXT_CLASS_NAME);
+          expect(words).toHaveClass(
+            "whitespace-normal",
+            "[overflow-wrap:break-word]",
+          );
+          expect(words).not.toHaveClass("[overflow-wrap:anywhere]");
+          expect(words).not.toHaveClass("truncate");
+          // It wraps rather than end in "...": nothing for the table to cut.
+          expect(pill).not.toHaveAttribute(TABLE_SHRINKABLE_ATTRIBUTE);
+          // One pill a rule, its dot on the first line (a wrapping pill).
+          expect(within(cell).getAllByTestId("pill")).toHaveLength(1);
+          expect(pill).toHaveClass("items-start");
+        },
+      );
+    },
+  );
+
+  test("negative control: a pill that only wraps may break a word, which is what the checks above tell apart", () => {
+    render(
+      <Pill
+        text={AI_RULE_FIX_TEXT[AiRuleFix.AskFirst]}
+        color={Blue}
+        isWrapping={true}
+      />,
+    );
+
+    const words: HTMLElement = screen.getByTestId("pill-text");
+
+    expect(words.className).toBe(WRAPPING_PILL_TEXT_CLASS_NAME);
+    expect(words).toHaveClass("[overflow-wrap:anywhere]");
+    expect(words).not.toHaveClass("[overflow-wrap:break-word]");
+    expect(words.className).not.toBe(WHOLE_WORDS_PILL_TEXT_CLASS_NAME);
   });
 
   test("the Description field draws no line that only says its title again", () => {

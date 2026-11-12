@@ -124,7 +124,9 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       disableCommandKShortcut={true}
       /*
        * The header has no room for Search and Help on a phone (#6816):
-       * the phone's menu starts with Search and ends with Help.
+       * the phone's menu starts with Search and ends with Help. It is the
+       * phone's menu below 768px only; from there up the header draws
+       * them (#7037).
        */
       mobileMenuTop={(closeMenu: () => void): ReactElement => {
         return <PhoneMenuSearch closeMenu={closeMenu} />;

@@ -66,6 +66,34 @@ so a new page or a new translation needs nothing more:
   (`/docs/<category>`) to the English copy of the category's first page,
   and the page as Markdown (`/docs/as-markdown/...`) is never indexed.
 
+## Search
+
+The docs' search box and the Documentation group of the product's Search
+(Cmd/Ctrl+K) both ask the docs server, `/docs/search/<lang>.json?q=`
+(`Utils/DocsSearch.ts`), as the reader types. It reads every page in the
+nav in full, split at its h2 and h3 headings, from the index Ask AI keeps
+per language (`Utils/AIDocsReader.ts`), so a new page or section needs
+nothing more to be found. It forgives:
+
+- a wrong letter (one up to seven letters, two from eight; never the first
+  letter): *escalaton* finds escalation;
+- the start of a word as it is typed: *kube* finds Kubernetes;
+- a reader's word for what the docs call otherwise: *pager* finds on-call
+  (`DOCS_SEARCH_SYNONYMS` in `Utils/DocsSearchWords.ts`, a short list per
+  language, which Ask AI reads too). Every word a list names must be a word
+  that language's docs use; `DocsSearchRealDocs` fails one that is not.
+
+A page's title counts most, then a section's heading, then its text, and a
+phrase typed word for word lands on its section. A guide - a page written to
+be followed from its first line to its last - goes above a reference page
+for the same words: mark it `isGuide: true` in `Utils/Nav.ts`.
+
+Search runs on the server, not in the browser: the whole docs as an index a
+browser could search measured 1.2 to 3 MB a language (470 KB to 1.6 MB
+compressed). Every installation serves its own docs, so it works on an
+air-gapped server too, and the page titles embedded in each page answer
+when the server cannot be reached.
+
 ## What a page looks like
 
 Every page answers, in this order: what is this, why would I use it, how do I

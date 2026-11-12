@@ -11,7 +11,6 @@ import {
 } from "Common/UI/Utils/ModelDisplayName";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { formatDurationCompactInLanguage } from "Common/Utils/Slo/SloDuration";
 import {
   SloBulkRecommendedRulesResult,
   SloBulkRecommendedRulesSummary,
@@ -20,6 +19,7 @@ import {
   getSloBulkResultKey,
   summarizeSloBulkRecommendedRules,
 } from "Common/Utils/Slo/SloBulkRecommendedBurnRateRules";
+import { formatSloBurnRate } from "Common/Utils/Slo/SloWidgetFormat";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -28,6 +28,9 @@ import React, {
 } from "react";
 import {
   BURN_RATE_RULE_NOTHING_PICKED,
+  BurnRateRuleWindowsText,
+  formatBurnRateRuleFiresWhen,
+  formatBurnRateRuleWindows,
   getNamesOrNothingPicked,
 } from "../../Pages/Slo/Utils/BurnRateRuleLines";
 import RecommendedBurnRateRulesApi from "../../Pages/Slo/Utils/RecommendedBurnRateRulesApi";
@@ -237,17 +240,15 @@ const SloBulkRecommendedRulesDetails: FunctionComponent<ComponentProps> = (
     variant: SloRecommendedRuleVariantCount,
     index: number,
   ): ReactElement => {
+    // "۴۳۲۰ دقیقه / ۳۶۰ دقیقه" in Persian, as the rules table writes it.
+    const windows: BurnRateRuleWindowsText = formatBurnRateRuleWindows(
+      variant.rule,
+      translator,
+    );
+
     const facts: Array<string> = [
-      translator.translateTemplate("{{long}}m / {{short}}m", {
-        long: variant.rule.longWindowInMinutes,
-        short: variant.rule.shortWindowInMinutes,
-      }),
-      translator.translateTemplate("Suppress {{minutes}}m after resolve", {
-        // Empty suppression is one long window, as the rules table says.
-        minutes:
-          variant.rule.refireSuppressionMinutes ??
-          variant.rule.longWindowInMinutes,
-      }),
+      windows.windows,
+      windows.suppression,
       translator.translateTemplate("Alert: {{severity}}", {
         severity: getNamesOrNothingPicked(
           [variant.rule.alertSeverityName || undefined],
@@ -266,22 +267,17 @@ const SloBulkRecommendedRulesDetails: FunctionComponent<ComponentProps> = (
       >
         <div className="flex items-baseline justify-between gap-3">
           <span className="text-gray-700">
+            {/*
+             * The threshold as the rules table and the single SLO's dialog
+             * write it: its "×" after its figure in Arabic and Persian too.
+             */}
             <span className="font-medium tabular-nums text-gray-900">
-              {translator.formatNumber(variant.rule.burnRateThreshold)}×
+              {formatSloBurnRate(variant.rule.burnRateThreshold, translator)}
             </span>
             <span aria-hidden="true" className="text-gray-400">
               {separator}
             </span>
-            {translator.translateTemplate(
-              "Fires when about {{percent}}% of the error budget burns in {{duration}}",
-              {
-                percent: variant.rule.budgetPercentage,
-                duration: formatDurationCompactInLanguage(
-                  variant.rule.longWindowInMinutes * 60,
-                  translator.language,
-                ),
-              },
-            )}
+            {formatBurnRateRuleFiresWhen(variant.rule, translator)}
           </span>
           {rule.variants.length > 1 ? (
             <span className="flex-shrink-0 tabular-nums text-gray-500">

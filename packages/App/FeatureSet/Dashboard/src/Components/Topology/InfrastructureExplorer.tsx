@@ -15,6 +15,10 @@ import useResizableColumns, {
 } from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
 import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
 import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
+import {
+  TABLE_CELL_INNER_PADDING_LEFT_CLASS_NAME,
+  TABLE_CELL_INNER_PADDING_RIGHT_CLASS_NAME,
+} from "Common/UI/Components/Table/TableLayout";
 import IconProp from "Common/Types/Icon/IconProp";
 import Link from "Common/UI/Components/Link/Link";
 import Route from "Common/Types/API/Route";
@@ -23,6 +27,13 @@ import EntityType from "Common/Types/Telemetry/EntityType";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import Navigation from "Common/UI/Utils/Navigation";
 import useTranslateValue from "Common/UI/Utils/Translation";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import {
+  Translator,
+  formatInline,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import { getInventoryTypeIcon } from "../Inventory/InventoryTypeCatalog";
@@ -70,7 +81,6 @@ import {
   TopologyTruncation,
 } from "./TopologyData";
 import { metaForEntityType } from "./TopologyMeta";
-import { nounForType } from "./ServiceMapViewModel";
 import { ResourceTopologyLink } from "../ResourceTopology/ResourceTopologyLinks";
 import useResourceTopologyLink from "../ResourceTopology/UseResourceTopologyLink";
 import { getReaderNumberLocale } from "Common/Types/DateLanguage";
@@ -165,6 +175,49 @@ interface ExplorerSummary {
 const BUTTON: string =
   "rounded-lg px-3 py-2 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2";
 
+/*
+ * The lists' cells, spaced as every table the product draws (Common's
+ * TableLayout): 12px at each side of a value, 24px between two columns.
+ * The row's name starts 16px in from the box's edge, as it did, and the
+ * chevron ends 12px from the other.
+ *
+ * At 16px a side (32px between columns) the Russian resources list was
+ * 622px in its 608px pane at 1280, and the pane scrolled 14px to reach
+ * each row's chevron (#7103). Every column was as narrow as it can be
+ * drawn: the name at its 10rem floor, and the others at their header's
+ * longest word - "Содержит", "Запущенные", "появление" - since a header
+ * already wraps between its words, and at a value under it ("83 дня
+ * назад") that stays whole. Only the room between them could give: 28px,
+ * which the Russian list fits in with 14px to spare, while no header and
+ * no value is cut or wraps where it did not.
+ */
+export const INFRASTRUCTURE_TABLE_NAME_CELL_PADDING_CLASS_NAME: string = `pl-4 ${TABLE_CELL_INNER_PADDING_RIGHT_CLASS_NAME}`;
+export const INFRASTRUCTURE_TABLE_CELL_PADDING_CLASS_NAME: string = `${TABLE_CELL_INNER_PADDING_LEFT_CLASS_NAME} ${TABLE_CELL_INNER_PADDING_RIGHT_CLASS_NAME}`;
+export const INFRASTRUCTURE_TABLE_OPEN_CELL_PADDING_CLASS_NAME: string = "px-3";
+
+/*
+ * The tree beside the list from 1280px up, and over it below that. Beside
+ * a 1024px window's side menu the tree left the list a 352px pane (428px
+ * at 1100), where every language's list scrolled sideways by 150 to 270px,
+ * its Last seen and each row's chevron out of sight. Over the list, the
+ * list has the card's whole width (644px at 1024), as it already had below
+ * 1024.
+ */
+export const INFRASTRUCTURE_PANES_CLASS_NAME: string =
+  "flex flex-col xl:flex-row";
+export const INFRASTRUCTURE_TREE_PANE_CLASS_NAME: string =
+  "border-b border-gray-200 bg-gray-50/70 p-3 xl:w-72 xl:flex-shrink-0 xl:border-b-0 xl:border-r";
+
+/*
+ * The tree's own scroll. Beside the list it may be as tall as the list
+ * (60vh); over it, it is held to 18rem - some nine rows - so a large estate's
+ * tree does not push the list, which is what the page is for, a screen
+ * further down (at 1024 by 768 a 60vh tree was 460px over it). It scrolls
+ * to the open row either way.
+ */
+export const INFRASTRUCTURE_TREE_LIST_CLASS_NAME: string =
+  "relative max-h-72 overflow-y-auto xl:max-h-[60vh]";
+
 function iconForNode(node: InfrastructureNode): IconProp {
   if (node.kind === "category") {
     return IconProp.Folder;
@@ -249,6 +302,13 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
   const t: (value: string) => string = (value: string): string => {
     return translateString(value) || value;
   };
+  /*
+   * Every text with a name or a number in it is one sentence of its own
+   * (#7105): a language puts the name where its grammar does ("{{name}}
+   * を開く"), and a translator words the whole sentence, never "Open" and
+   * "in" on their own.
+   */
+  const translator: Translator = useTranslator();
 
   /*
    * The resources' and each collection's columns as wide as a person makes
@@ -868,6 +928,8 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
     }
     const containers: Array<string> = summary.containerChildren.get(id) || [];
     const expanded: boolean = isExpanded(node);
+    const treeName: string =
+      node.kind === "category" ? t(node.name) : node.name;
     const selected: boolean = effectiveScopeId === id;
     /*
      * A level with thousands of containers lists the first ones and offers
@@ -889,7 +951,15 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
           {containers.length > 0 ? (
             <button
               type="button"
-              aria-label={`${t(expanded ? "Collapse" : "Expand")} ${node.kind === "category" ? t(node.name) : node.name}`}
+              aria-label={
+                expanded
+                  ? translator.translateTemplate("Collapse {{name}}", {
+                      name: treeName,
+                    })
+                  : translator.translateTemplate("Expand {{name}}", {
+                      name: treeName,
+                    })
+              }
               aria-expanded={expanded}
               className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded text-gray-400 hover:text-gray-700"
               onClick={() => {
@@ -927,7 +997,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
               <Icon icon={iconForNode(node)} className="h-4 w-4" />
             </span>
             <span className="min-w-0 flex-1 truncate font-medium">
-              {node.kind === "category" ? t(node.name) : node.name}
+              {treeName}
             </span>
             <span className="flex-shrink-0 rounded bg-white/70 px-1.5 text-xs text-gray-500">
               {(node.kind === "resource"
@@ -950,15 +1020,22 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                   type="button"
                   className="my-1 rounded px-2 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-50"
                   style={{ marginInlineStart: 4 + (depth + 1) * 14 + 28 }}
-                  aria-label={`${t("Show all")} ${containers.length.toLocaleString(getReaderNumberLocale())} ${t("in")} ${node.kind === "category" ? t(node.name) : node.name}`}
+                  aria-label={translator.translateTemplate(
+                    "Show all {{count}} in {{name}}",
+                    {
+                      count: translator.formatNumber(containers.length),
+                      name: treeName,
+                    },
+                  )}
                   onClick={() => {
                     setTreeShowAll((previous: Set<string>) => {
                       return new Set<string>([...previous, id]);
                     });
                   }}
                 >
-                  {t("Show all")}{" "}
-                  {containers.length.toLocaleString(getReaderNumberLocale())}
+                  {translator.translateTemplate("Show all {{count}}", {
+                    count: translator.formatNumber(containers.length),
+                  })}
                 </button>
               </li>
             )}
@@ -1025,7 +1102,10 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
               key={key}
               type="button"
               className="rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100"
-              aria-label={`${t("Show")} ${name} ${t("on the service map")}`}
+              aria-label={translator.translateTemplate(
+                "Show {{name}} on the service map",
+                { name: name },
+              )}
               onClick={(event: React.MouseEvent) => {
                 event.stopPropagation();
                 props.onOpenServiceMap?.(key);
@@ -1065,6 +1145,12 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
     const typeLabel: string = metaForEntityType(
       node.entityType || undefined,
     ).label;
+    const kindText: string =
+      node.kind === "group"
+        ? t(`${typeLabel} replicas`)
+        : node.kind === "collection"
+          ? t("Collection")
+          : t(typeLabel);
     return (
       <tr
         key={id}
@@ -1074,7 +1160,9 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
           openNode(id);
         }}
       >
-        <td className="px-4 py-3">
+        <td
+          className={`${INFRASTRUCTURE_TABLE_NAME_CELL_PADDING_CLASS_NAME} py-3`}
+        >
           <div className="flex items-center gap-3">
             <span
               className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg"
@@ -1090,7 +1178,16 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
               <button
                 type="button"
                 className="block min-w-[10rem] max-w-md break-words text-left text-sm font-medium text-gray-900 hover:text-indigo-600"
-                aria-label={`${t(container ? "Open" : "View details for")} ${node.name}`}
+                aria-label={
+                  container
+                    ? translator.translateTemplate("Open {{name}}", {
+                        name: node.name,
+                      })
+                    : translator.translateTemplate(
+                        "View details for {{name}}",
+                        { name: node.name },
+                      )
+                }
                 onClick={(event: React.MouseEvent) => {
                   event.stopPropagation();
                   openNode(id);
@@ -1099,30 +1196,39 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                 {node.name}
               </button>
               <span className="mt-0.5 block text-xs text-gray-500">
-                {node.kind === "group"
-                  ? t(`${typeLabel} replicas`)
-                  : node.kind === "collection"
-                    ? t("Collection")
-                    : t(typeLabel)}
                 {searching && parent && parent.kind !== "category"
-                  ? ` · ${t("in")} ${parent.name}`
-                  : ""}
+                  ? formatInline(
+                      [
+                        kindText,
+                        translator.translateTemplate("in {{name}}", {
+                          name: parent.name,
+                        }),
+                      ],
+                      translator,
+                    )
+                  : kindText}
               </span>
             </span>
           </div>
         </td>
-        <td className="whitespace-nowrap px-4 py-3 text-xs text-gray-600">
+        <td
+          className={`whitespace-nowrap ${INFRASTRUCTURE_TABLE_CELL_PADDING_CLASS_NAME} py-3 text-xs text-gray-600`}
+        >
           {container
             ? node.kind === "group" || node.kind === "collection"
               ? describeInfrastructureNode(node)
               : summarizeCounts(node.countsByType) || "—"
             : "—"}
         </td>
-        <td className="px-4 py-3">{renderServiceChips(node)}</td>
-        <td className="px-4 py-3">
+        <td className={`${INFRASTRUCTURE_TABLE_CELL_PADDING_CLASS_NAME} py-3`}>
+          {renderServiceChips(node)}
+        </td>
+        <td className={`${INFRASTRUCTURE_TABLE_CELL_PADDING_CLASS_NAME} py-3`}>
           {renderLastSeen(node.isActive, node.lastSeenAt || undefined)}
         </td>
-        <td className="px-3 py-3 text-right text-gray-400">
+        <td
+          className={`${INFRASTRUCTURE_TABLE_OPEN_CELL_PADDING_CLASS_NAME} py-3 text-right text-gray-400`}
+        >
           <Icon icon={IconProp.ChevronRight} className="ml-auto h-4 w-4" />
         </td>
       </tr>
@@ -1208,7 +1314,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
               <tr>
                 <ResizableHeaderCell
                   scope="col"
-                  className="px-4 py-2.5 font-medium"
+                  className={`${INFRASTRUCTURE_TABLE_NAME_CELL_PADDING_CLASS_NAME} py-2.5 font-medium`}
                   resize={explorerColumns.getResize(
                     "name",
                     t("Name"),
@@ -1219,7 +1325,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                 </ResizableHeaderCell>
                 <ResizableHeaderCell
                   scope="col"
-                  className="px-4 py-2.5 font-medium"
+                  className={`${INFRASTRUCTURE_TABLE_CELL_PADDING_CLASS_NAME} py-2.5 font-medium`}
                   resize={explorerColumns.getResize(
                     "contains",
                     t("Contains"),
@@ -1230,7 +1336,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                 </ResizableHeaderCell>
                 <ResizableHeaderCell
                   scope="col"
-                  className="px-4 py-2.5 font-medium"
+                  className={`${INFRASTRUCTURE_TABLE_CELL_PADDING_CLASS_NAME} py-2.5 font-medium`}
                   resize={explorerColumns.getResize(
                     "servicesRunning",
                     t("Services running"),
@@ -1241,7 +1347,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                 </ResizableHeaderCell>
                 <ResizableHeaderCell
                   scope="col"
-                  className="px-4 py-2.5 font-medium"
+                  className={`${INFRASTRUCTURE_TABLE_CELL_PADDING_CLASS_NAME} py-2.5 font-medium`}
                   resize={explorerColumns.getResize(
                     "lastSeen",
                     t("Last seen"),
@@ -1250,7 +1356,10 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                 >
                   <span>{t("Last seen")}</span>
                 </ResizableHeaderCell>
-                <th scope="col" className="px-3 py-2.5">
+                <th
+                  scope="col"
+                  className={`${INFRASTRUCTURE_TABLE_OPEN_CELL_PADDING_CLASS_NAME} py-2.5`}
+                >
                   <span className="sr-only">{t("Open")}</span>
                 </th>
               </tr>
@@ -1264,7 +1373,13 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
         </div>
         {pageCount > 1 &&
           renderPager({
-            label: `${t("Page")} ${(currentPage + 1).toLocaleString(getReaderNumberLocale())} / ${pageCount.toLocaleString(getReaderNumberLocale())}`,
+            label: translator.translateTemplate(
+              "Page {{current}} of {{total}}",
+              {
+                current: translator.formatNumber(currentPage + 1),
+                total: translator.formatNumber(pageCount),
+              },
+            ),
             canGoBack: currentPage > 0,
             canGoForward: currentPage + 1 < pageCount,
             onBack: () => {
@@ -1318,19 +1433,38 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
       collectionPageState && collectionPageState.key === collectionPageKey
         ? collectionPageState
         : null;
-    const noun: (count: number) => string = (count: number): string => {
-      return nounForType(collection.entityType || "", count);
-    };
+    /*
+     * The terms a name must hold, each a chip of its own and read as it
+     * was typed: no quotation marks or plus sign of English's between
+     * them, and a language puts them where its sentence does ("{{terms}}
+     * を含む名前").
+     */
     const filterNote: ReactElement | null =
       collectionFilter.length > 0 ? (
         <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-gray-600">
-          <span>
-            {t("Names containing")}{" "}
-            {collectionFilter
-              .map((term: string): string => {
-                return `“${term}”`;
-              })
-              .join(" + ")}
+          <span data-testid="infrastructure-collection-filter-note">
+            <TranslatedSentence
+              template="Names containing {{terms}}"
+              slots={{
+                terms: (
+                  <span className="inline-flex flex-wrap gap-1 align-middle">
+                    {collectionFilter.map(
+                      (term: string, index: number): ReactElement => {
+                        return (
+                          <bdi
+                            key={`${index}-${term}`}
+                            data-testid="infrastructure-collection-filter-term"
+                            className="rounded bg-gray-100 px-1.5 py-0.5 font-medium text-gray-700"
+                          >
+                            {term}
+                          </bdi>
+                        );
+                      },
+                    )}
+                  </span>
+                ),
+              }}
+            />
           </span>
           <button
             type="button"
@@ -1339,7 +1473,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
               setCollectionFilter([]);
             }}
           >
-            {t("Show all")} {noun(2)}
+            {t("Show all")}
           </button>
         </div>
       ) : null;
@@ -1360,7 +1494,9 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
             aria-busy="true"
             className="rounded-xl border border-gray-200 px-6 py-10 text-center text-sm text-gray-500"
           >
-            {t("Loading")} {collection.name}…
+            {translator.translateTemplate("Loading {{name}}…", {
+              name: collection.name,
+            })}
           </div>
         </div>
       );
@@ -1399,7 +1535,19 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
       pageIndex + 1,
     );
     const pager: ReactElement = renderPager({
-      label: `${t("Page")} ${(pageIndex + 1).toLocaleString(getReaderNumberLocale())} ${t("of")} ${pageCount.toLocaleString(getReaderNumberLocale())} · ${page.total.toLocaleString(getReaderNumberLocale())} ${noun(page.total)}`,
+      label: formatInline(
+        [
+          translator.translateTemplate("Page {{current}} of {{total}}", {
+            current: translator.formatNumber(pageIndex + 1),
+            total: translator.formatNumber(pageCount),
+          }),
+          translator.translatePlural(
+            { one: "{{count}} resource", other: "{{count}} resources" },
+            page.total,
+          ),
+        ],
+        translator,
+      ),
       canGoBack: pageIndex > 0,
       canGoForward: Boolean(page.nextCursor),
       onBack: () => {
@@ -1475,7 +1623,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                   <tr>
                     <ResizableHeaderCell
                       scope="col"
-                      className="px-4 py-2.5 font-medium"
+                      className={`${INFRASTRUCTURE_TABLE_NAME_CELL_PADDING_CLASS_NAME} py-2.5 font-medium`}
                       resize={collectionColumns.getResize(
                         "name",
                         t("Name"),
@@ -1486,7 +1634,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                     </ResizableHeaderCell>
                     <ResizableHeaderCell
                       scope="col"
-                      className="px-4 py-2.5 font-medium"
+                      className={`${INFRASTRUCTURE_TABLE_CELL_PADDING_CLASS_NAME} py-2.5 font-medium`}
                       resize={collectionColumns.getResize(
                         "lastSeen",
                         t("Last seen"),
@@ -1495,7 +1643,10 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                     >
                       <span>{t("Last seen")}</span>
                     </ResizableHeaderCell>
-                    <th scope="col" className="px-3 py-2.5">
+                    <th
+                      scope="col"
+                      className={`${INFRASTRUCTURE_TABLE_OPEN_CELL_PADDING_CLASS_NAME} py-2.5`}
+                    >
                       <span className="sr-only">{t("Open")}</span>
                     </th>
                   </tr>
@@ -1521,11 +1672,16 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                         className={`cursor-pointer hover:bg-gray-50 ${active ? "" : "text-gray-400"}`}
                         onClick={open}
                       >
-                        <td className="px-4 py-3">
+                        <td
+                          className={`${INFRASTRUCTURE_TABLE_NAME_CELL_PADDING_CLASS_NAME} py-3`}
+                        >
                           <button
                             type="button"
                             className="block min-w-[10rem] max-w-md break-words text-left text-sm font-medium text-gray-900 hover:text-indigo-600"
-                            aria-label={`${t("View details for")} ${name}`}
+                            aria-label={translator.translateTemplate(
+                              "View details for {{name}}",
+                              { name: name },
+                            )}
                             onClick={(event: React.MouseEvent) => {
                               event.stopPropagation();
                               open();
@@ -1534,10 +1690,14 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                             {name}
                           </button>
                         </td>
-                        <td className="px-4 py-3">
+                        <td
+                          className={`${INFRASTRUCTURE_TABLE_CELL_PADDING_CLASS_NAME} py-3`}
+                        >
                           {renderLastSeen(active, item.lastSeenAt)}
                         </td>
-                        <td className="px-3 py-3 text-right text-gray-400">
+                        <td
+                          className={`${INFRASTRUCTURE_TABLE_OPEN_CELL_PADDING_CLASS_NAME} py-3 text-right text-gray-400`}
+                        >
                           <Icon
                             icon={IconProp.ChevronRight}
                             className="ml-auto h-4 w-4"
@@ -1568,7 +1728,10 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
       return (
         <div className="mb-4 space-y-2">
           {collectionMatches.map((match: CollectionMatch): ReactElement => {
-            const label: string = `${match.count.toLocaleString(getReaderNumberLocale())} ${t("matching")} ${nounForType(match.node.entityType || "", match.count)}`;
+            const label: string = translator.translatePlural(
+              { one: "{{count}} match", other: "{{count}} matches" },
+              match.count,
+            );
             return (
               <button
                 key={match.node.id}
@@ -1594,7 +1757,9 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                     {label}
                   </span>
                   <span className="block text-xs text-gray-500">
-                    {t("in")} {match.node.name}
+                    {translator.translateTemplate("in {{name}}", {
+                      name: match.node.name,
+                    })}
                   </span>
                 </span>
                 <Icon
@@ -1805,17 +1970,24 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
               {t("Nothing reported in this time range")}
             </h3>
             <p className="mt-2 text-sm text-gray-500">
-              {inactiveHidden.toLocaleString(getReaderNumberLocale())}{" "}
-              {t(
-                "resources are known but have been silent. Pick a longer time range or show inactive resources.",
+              {translator.translatePlural(
+                {
+                  one: "{{count}} resource is known but has been silent. Pick a longer time range or show inactive resources.",
+                  other:
+                    "{{count}} resources are known but have been silent. Pick a longer time range or show inactive resources.",
+                },
+                inactiveHidden,
               )}
             </p>
           </div>
         ) : (
-          <div className="flex flex-col lg:flex-row">
+          <div
+            className={INFRASTRUCTURE_PANES_CLASS_NAME}
+            data-testid="infrastructure-panes"
+          >
             <aside
               aria-label={t("Infrastructure tree")}
-              className="border-b border-gray-200 bg-gray-50/70 p-3 lg:w-72 lg:flex-shrink-0 lg:border-b-0 lg:border-r"
+              className={INFRASTRUCTURE_TREE_PANE_CLASS_NAME}
             >
               <button
                 type="button"
@@ -1834,7 +2006,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
               </button>
               <ul
                 ref={treeListRef}
-                className="relative max-h-[60vh] overflow-y-auto"
+                className={INFRASTRUCTURE_TREE_LIST_CLASS_NAME}
               >
                 {model.rootIds.map((rootId: string): ReactElement | null => {
                   return renderTree(rootId, 0);
@@ -1911,10 +2083,37 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                     </h3>
                     <p role="status" className="mt-0.5 text-xs text-gray-500">
                       {searching
-                        ? `${(results.length + collectionMatchCount).toLocaleString(getReaderNumberLocale())} ${t(results.length + collectionMatchCount === 1 ? "match" : "matches")}`
+                        ? translator.translatePlural(
+                            {
+                              one: "{{count}} match",
+                              other: "{{count}} matches",
+                            },
+                            results.length + collectionMatchCount,
+                          )
                         : scope
-                          ? `${scope.kind === "resource" ? `${t(metaForEntityType(scope.entityType || undefined).label)} · ` : ""}${summarizeCounts(scope.countsByType, 4) || t("Empty")}`
-                          : `${model.resourceCount.toLocaleString(getReaderNumberLocale())} ${t("resources")}`}
+                          ? formatInline(
+                              [
+                                ...(scope.kind === "resource"
+                                  ? [
+                                      t(
+                                        metaForEntityType(
+                                          scope.entityType || undefined,
+                                        ).label,
+                                      ),
+                                    ]
+                                  : []),
+                                summarizeCounts(scope.countsByType, 4) ||
+                                  t("Empty"),
+                              ],
+                              translator,
+                            )
+                          : translator.translatePlural(
+                              {
+                                one: "{{count}} resource",
+                                other: "{{count}} resources",
+                              },
+                              model.resourceCount,
+                            )}
                     </p>
                     {!searching && scope && scope.serviceKeys.length > 0 && (
                       <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-500">
@@ -2093,7 +2292,13 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
               : undefined
           }
           focusButtonLabel={
-            detailNode ? "Show where it is" : "Show on the service map"
+            /*
+             * The panel looks the label up when it draws it; registered
+             * here, so every language has it to look up.
+             */
+            detailNode
+              ? translationKey("Show where it is")
+              : translationKey("Show on the service map")
           }
           onSelectEntity={(target: EntityDetailTarget) => {
             setDetailTarget(target);

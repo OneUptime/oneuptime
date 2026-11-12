@@ -66,7 +66,7 @@ learned one can find their way around the next.
   monitor, who is told and a test page; three products would leave the person to find the chain. A
   guided setup draws its steps in `Components/GuidedSetup/GuidedSetupFrame`: each step saves real
   records, coming back opens the first step not done, and it ends with a summary read from the
-  records and what to do next (`/monitors/setup`, #6804). Its journey gets a budget of its own, with
+  records and what to do next (`/monitors/setup`, #6804; `/on-call-duty/setup`, #6805). Its journey gets a budget of its own, with
   `"path": "guided"`. Enforced by
   [GuidedSetupFrame](../../packages/Common/Tests/App/Dashboard/GuidedSetupFrame.test.tsx).
 
@@ -273,8 +273,40 @@ work out, starts from a default for everything else, and folds what most people 
   [FieldErrorColorGuard](../../packages/Common/Tests/UI/FieldErrorColorGuard.test.ts).
 - **A field says what is wrong in the reader's language.** Enforced by
   [FormValidationMessagesInLocales](../../packages/App/Tests/FormValidationMessagesInLocales.test.ts).
-- **An error says what happened and what to do next,** in the reader's words: which value is wrong
-  and where to change it, not "Request failed". Not enforced: use judgement.
+- **An error says what happened, why if OneUptime knows, and what to do next.** It is the moment a
+  person most needs the product to be clear (#6836). What to do next is a fix they can make, who can
+  make it, or Try again. Good, from the product: "You already have a project with the same name.
+  Choose another name."; "That code is not right. Enter the code from the latest message we sent, or
+  send a new code."; "This project has no monitor status marked as operational, so a new monitor has
+  no status to start in. Add one under Monitors > Settings > Monitor Status, then create the monitor
+  again." Bad, as they were: "Project with the same name already exists", "Invalid code",
+  "Operational status not found for this project". Not enforced: use judgement.
+- **An error never blames the person, never shows an internal name or code alone, and never ends at
+  an empty phrase:** "Server Error", "Something went wrong", "Invalid request", "Bad request" or "An
+  error occurred" on their own (`EMPTY_ERROR_PHRASES` in `Common/Types/Exception/ErrorMessageRule`).
+  Every message thrown with its words written where it is thrown is a sentence, a capital letter first
+  and a full stop last; the first-hour flows' files (sign-up, a project, an invitation, a monitor, a
+  notification method, on-call, a status page, an ingestion key) have no exception, and everywhere
+  else a per-file baseline of messages that are not sentences may not grow (lower it with
+  `UPDATE_ERROR_MESSAGES_BASELINE=true` when you rewrite one). Enforced by
+  [ErrorMessagesGuard](../../packages/Common/Tests/App/ErrorMessagesGuard.test.ts).
+- **A failure nobody explained still says what to do next, with a reference.** When the server fails
+  in a way no message describes, it answers with what happened and what to do next, and a reference
+  (the start of the request's id) that one of its log lines names
+  (`Common/Server/Utils/UnexplainedServerError`). `API.getFriendlyMessage` turns every unexplained
+  failure into one of four sentences (`Common/Types/Exception/UnexplainedError`): the server failed,
+  the server did not answer, OneUptime could not be reached, or the page failed; never a
+  TypeError's words or a URL. A form's alert, a list or table that did not load, a dialog and the
+  page that did not load draw them with `ErrorExplanation`: what failed ("The monitor was not
+  saved."), why, Try again, the reference with a copy button, and, for a master admin of a
+  self-hosted server, where to look (`npm run doctor -- --logs`, OneUptime Health). Use
+  `API.getFriendlyMessage` for every error you show, and hand a sentence of what failed to the form
+  or list (`whatFailed`) where the page knows it. Enforced by
+  [ErrorMessagesGuard](../../packages/Common/Tests/App/ErrorMessagesGuard.test.ts) for the words of
+  the last resort; for everything else, not enforced: use judgement.
+- **Another system's failure is said in OneUptime's words first,** and that system's own words
+  second: "The verification code was not sent to +15551230100. No Twilio account is set up to send
+  SMS." Not enforced: use judgement.
 
 ## Lists and empty states
 
@@ -329,6 +361,11 @@ work out, starts from a default for everything else, and folds what most people 
 - **A dialog is for a short job that returns the person where they were.** Creating a record from a
   list, a confirmation, a quick edit. Something people read, compare or come back to is a page. Not
   enforced: use judgement.
+- **A preview in a dialog never leaves the page.** It draws a thing as its reader will see it, over
+  work the dialog has not saved yet, so a click in it must not open another page and drop that work.
+  In a dashboard widget's Live Preview a link is its words, and a tile, a map's site, an incident's
+  marker or an exemplar opens nothing (#6859). Enforced by
+  [DashboardWidgetPreviewGuard](../../packages/Common/Tests/App/Dashboard/DashboardWidgetPreviewGuard.test.tsx).
 - **Confirm only what cannot be undone.** A switch that can be flipped back saves without asking.
   Not enforced: use judgement.
 
@@ -340,10 +377,14 @@ work out, starts from a default for everything else, and folds what most people 
   [CardHeaderActionsGuard](../../packages/Common/Tests/UI/Components/CardHeaderActionsGuard.test.tsx).
 - **A card's description sits right under its title,** with no gap. Enforced by
   [CardDescriptionUnderTitleGuard](../../packages/Common/Tests/UI/Components/CardDescriptionUnderTitleGuard.test.tsx).
-- **What a card holds lines up with its title.** Enforced by
-  [DataObservabilityCardPaddingGuard](../../packages/Common/Tests/App/Dashboard/DataObservabilityCardPaddingGuard.test.ts).
+- **What a card holds lines up with its title,** in every product: the card pads its body, and the
+  body does not pad it again. Enforced by
+  [CardBodyPaddingGuard](../../packages/Common/Tests/App/Dashboard/CardBodyPaddingGuard.test.ts).
 - **A row of cards ends on one line.** Enforced by
   [CardRowsGuard](../../packages/Common/Tests/UI/Components/CardRowsGuard.test.ts).
+- **A chart's legend names its series in the order the page gives them,** not alphabetically, so it reads
+  the same in every language: every recharts `Legend` passes an `itemSorter` (never `itemSorter={null}`). Enforced by
+  [ChartLegendOrderGuard](../../packages/Common/Tests/UI/ChartLegendOrderGuard.test.ts).
 - **A details card lays its fields out by its own width,** not by a share of the page's. Enforced by
   [DetailCardsSourceGuard](../../packages/Common/Tests/UI/Components/Detail/DetailCardsSourceGuard.test.ts)
   and
@@ -402,11 +443,31 @@ work out, starts from a default for everything else, and folds what most people 
 ### Numbers, dates and plurals
 
 - **A count goes through the plural forms of the reader's language** (`translatePlural`), and a
-  second count beside it is written in the reader's digits too: "۵/۸" on a Persian page. Enforced by
-  [CountPairsInReadersDigitsGuard](../../packages/Common/Tests/UI/CountPairsInReadersDigitsGuard.test.ts).
+  second count beside it, joined by "/", " of " or ":", is written in the reader's digits too
+  (`translator.formatNumber`): "۵/۸" and "۳۹ از ۴۰" on a Persian page. Enforced by
+  [CountPairsInReadersDigitsGuard](../../packages/Common/Tests/UI/CountPairsInReadersDigitsGuard.test.ts),
+  whose list of " of " pairs still to write only shrinks.
+- **A figure on its own is written in the reader's digits, decimal sign and percent sign:** a tile's
+  "97.5%" is "۹۷٫۵٪" in Persian and "97,5 %" in German, with `formatReaderFigure` (toFixed's
+  decimals, English exactly as toFixed writes it) or `translator.formatNumber`; a figure inside a
+  sentence takes the sentence's language (`figureInSentence`, `withSentenceDigits`), and a count in
+  a list column is a count column (`isCount`). Arabic is written in Latin digits. A name, an id, a
+  port or a Kubernetes quantity ("500m") is drawn as written. Checked on the Host and Kubernetes
+  pages. Enforced by
+  [HostOverviewFiguresInPersian](../../packages/Common/Tests/App/Dashboard/HostOverviewFiguresInPersian.test.tsx)
+  and
+  [KubernetesOverviewFiguresInPersian](../../packages/Common/Tests/App/Dashboard/KubernetesOverviewFiguresInPersian.test.tsx).
+- **A negative number in a right-to-left sentence takes the language's own minus:** in Persian a
+  left-to-right mark and a minus sign (U+2212) before the digits, in Arabic the word
+  ([ARABIC.md](../../packages/App/FeatureSet/Dashboard/src/Locales/ARABIC.md)),
+  never a hyphen that a right-to-left line moves after the number. Enforced by
+  [NegativeNumbersInRightToLeftSentences](../../packages/Common/Tests/App/NegativeNumbersInRightToLeftSentences.test.ts).
 - **A date is written by `OneUptimeDate` in the reader's language,** never put into an English
   template literal. Enforced by
   [DatesInEnglishTextGuard](../../packages/App/Tests/Dashboard/DatesInEnglishTextGuard.test.ts).
+- **A chart of one point a day labels its axis by the day** (`xAxisPrecision={XAxisPrecision.EVERY_DAY}`),
+  never by an hour or a step guessed from the window's length. Enforced by
+  [ProductAnalyticsDayAxisGuard](../../packages/Common/Tests/App/Dashboard/ProductAnalyticsDayAxisGuard.test.ts).
 - **A whole sentence is translated, never a word at a time.** Word by word, German read "Nein monitors
   yet". Use `TranslatedSentence` for a sentence with values in it. Not enforced: use judgement.
 
@@ -425,6 +486,9 @@ then `npm run i18n:validate` from the root.
   [DashboardSloTopologyWorkspaceHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardSloTopologyWorkspaceHardcodedGuard.test.ts)
   and
   [DashboardTraceViewHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardTraceViewHardcodedGuard.test.ts).
+- **A phone number is never printed as it is.** On a page that reads right to left its "+" would go after
+  its digits; print it so it keeps its own direction. Enforced by
+  [PhoneNumberTextGuard](../../packages/Common/Tests/UI/PhoneNumberTextGuard.test.ts).
 - **A right-to-left page reads right to left.** Use start and end, never an inline left or right; a
   canvas's panels are mirrored once, by the page; a name in a table reads the way its words do; a
   sentence in a flex row is one item of it. Enforced by

@@ -12,7 +12,14 @@
  * window, two disagreeing renderings, neither of them the user's.
  */
 import "@testing-library/jest-dom";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -64,6 +71,7 @@ postMock.mockImplementation(() => {
 
 // Imported after the mocks so the module picks the mocked API surfaces up.
 import { getEmptyMessageWithTimeRange } from "../../../UI/Components/LogsViewer/LogsViewer";
+import { getTimeRangeButtonLabel } from "../../../UI/Components/Date/TimeRangePickerDropdown";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import OneUptimeDate from "../../../Types/Date";
 import TimeRange from "../../../Types/Time/TimeRange";
@@ -83,6 +91,18 @@ function pin(use12HourFormat: boolean): void {
 afterEach(() => {
   jest.restoreAllMocks();
   OneUptimeDate.setUserTimezone(null);
+});
+
+/*
+ * The window here is in 2024, and a window that is not all in the current
+ * year names its years (issue #7124; "the years" below). The rest of these
+ * are about the clock and the zone, so "now" is pinned into 2024, where the
+ * window is written short.
+ */
+beforeEach(() => {
+  jest
+    .spyOn(OneUptimeDate, "getCurrentDate")
+    .mockReturnValue(new Date("2024-06-15T12:00:00.000Z"));
 });
 
 describe("getEmptyMessageWithTimeRange", () => {
@@ -206,6 +226,81 @@ describe("getEmptyMessageWithTimeRange", () => {
     test("falls back when a custom range carries no dates", () => {
       expect(getEmptyMessageWithTimeRange({ range: TimeRange.CUSTOM })).toBe(
         "Time range: custom. Try adjusting filters or expanding the time range.",
+      );
+    });
+  });
+
+  /*
+   * The same years as the picker button above it (issue #7124): a window
+   * not all in this year names its years at both ends, and one in this year
+   * does not.
+   */
+  describe("the years", () => {
+    const NOW: Date = new Date("2026-11-12T10:00:00.000Z");
+
+    test("a window of exactly a year names both years", () => {
+      pin(true);
+
+      expect(
+        getEmptyMessageWithTimeRange(
+          {
+            range: TimeRange.CUSTOM,
+            startAndEndDate: new InBetween<Date>(
+              new Date("2025-11-12T09:49:00.000Z"),
+              new Date("2026-11-12T09:49:00.000Z"),
+            ),
+          },
+          NOW,
+        ),
+      ).toBe(
+        "Time range: Nov 12, 2025, 9:49 AM – Nov 12, 2026, 9:49 AM. Try adjusting filters or expanding the time range.",
+      );
+    });
+
+    test("a window in an earlier year names it at both ends", () => {
+      pin(false);
+
+      expect(
+        getEmptyMessageWithTimeRange(
+          { range: TimeRange.CUSTOM, startAndEndDate: AFTERNOON },
+          NOW,
+        ),
+      ).toBe(
+        "Time range: Mar 1, 2024, 14:30 – Mar 1, 2024, 18:45. Try adjusting filters or expanding the time range.",
+      );
+    });
+
+    test("a window in this year names none, as before", () => {
+      pin(false);
+
+      expect(
+        getEmptyMessageWithTimeRange(
+          { range: TimeRange.CUSTOM, startAndEndDate: AFTERNOON },
+          new Date("2024-11-12T10:00:00.000Z"),
+        ),
+      ).toBe(
+        "Time range: Mar 1, 14:30 – Mar 1, 18:45. Try adjusting filters or expanding the time range.",
+      );
+    });
+
+    test("it says what the picker button says about the same window", () => {
+      pin(true);
+
+      const window: InBetween<Date> = new InBetween<Date>(
+        new Date("2025-12-20T09:00:00.000Z"),
+        new Date("2026-01-05T17:00:00.000Z"),
+      );
+
+      expect(
+        getEmptyMessageWithTimeRange(
+          { range: TimeRange.CUSTOM, startAndEndDate: window },
+          NOW,
+        ),
+      ).toContain(
+        getTimeRangeButtonLabel(
+          { range: TimeRange.CUSTOM, startAndEndDate: window },
+          NOW,
+        ),
       );
     });
   });

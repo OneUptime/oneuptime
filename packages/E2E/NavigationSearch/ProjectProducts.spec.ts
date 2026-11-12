@@ -642,7 +642,7 @@ test.describe("products the project hides", () => {
   });
 });
 
-test.describe("in German, in Persian and in the dark", () => {
+test.describe("in German, in Arabic and in the dark", () => {
   test.beforeEach(({ isMobile }: { isMobile: boolean }) => {
     test.skip(isMobile, "The bar's pins are a desktop row.");
   });
@@ -684,25 +684,25 @@ test.describe("in German, in Persian and in the dark", () => {
     await screenshot(page, "menu-more-products-1280-de");
   });
 
-  test("in Persian the bar reads from the right: the pins sit after Products, to its left", async ({
+  test("in Arabic the bar reads from the right: the pins sit after Products, to its left", async ({
     page,
   }: {
     page: Page;
   }) => {
     await serveProducts(page, UPTIME_PROJECT);
-    await page.goto(`${projectPath}/home?navbar=true&lang=fa`);
+    await page.goto(`${projectPath}/home?navbar=true&lang=ar`);
 
     const pins: Locator = page.getByTestId("navbar-pinned").getByRole("link");
     await expect(pins).toHaveCount(2);
     const products: Box = await boxOf(
-      navbarOf(page).getByRole("button", { name: "محصولات", exact: true }),
+      navbarOf(page).getByRole("button", { name: "المنتجات", exact: true }),
     );
     const first: Box = await boxOf(pins.nth(0));
     const second: Box = await boxOf(pins.nth(1));
     expect(first.x + first.width).toBeLessThanOrEqual(products.x + 1);
     expect(second.x + second.width).toBeLessThanOrEqual(first.x + 1);
     await expectNoSidewaysScroll(page);
-    await screenshot(page, "bar-with-pins-1280-fa");
+    await screenshot(page, "bar-with-pins-1280-ar");
   });
 
   test("in the dark, the pins and the menu's hidden row are drawn in the dark theme", async ({

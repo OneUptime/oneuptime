@@ -44,6 +44,7 @@ import WhatsAppService from "../../../Server/Services/WhatsAppService";
 import WorkspaceUserNotificationService from "../../../Server/Services/WorkspaceUserNotificationService";
 import LinkedAffectedResources from "../../../Server/Utils/AffectedResources/LinkedAffectedResources";
 import logger from "../../../Server/Utils/Logger";
+import OnCallPageLinkToken from "../../../Server/Utils/OnCall/OnCallPageLinkToken";
 import UserLanguage from "../../../Server/Utils/Notification/UserLanguage";
 import PushNotificationUtil from "../../../Server/Utils/PushNotificationUtil";
 import {
@@ -118,7 +119,32 @@ const VIEW: string = "https://oneuptime.example.com/dashboard/record";
 
 const service: typeof UserNotificationRuleService = UserNotificationRuleService;
 
+// The real signer of a page's links, before any test stands in for it.
+const signLinkToken: typeof OnCallPageLinkToken.sign =
+  OnCallPageLinkToken.sign.bind(OnCallPageLinkToken);
+
+// The token every link of one notification carries here.
+function linkTokenOf(userOnCallLogTimelineId: ObjectID): string {
+  return `page-token-of-${userOnCallLogTimelineId.toString()}`;
+}
+
 beforeEach(() => {
+  /*
+   * A page's links carry a token signed with the second it was signed in
+   * (OnCallPageLinkToken, a JSON web token's iat), so two renders of one
+   * page that straddle a second read differently - one link's short id
+   * differs - and a test comparing them failed now and then under load
+   * (issue #7084). Here each notification's token is its own, whenever it
+   * is signed.
+   */
+  jest
+    .spyOn(OnCallPageLinkToken, "sign")
+    .mockImplementation(
+      (data: { userOnCallLogTimelineId: ObjectID }): string => {
+        return linkTokenOf(data.userOnCallLogTimelineId);
+      },
+    );
+
   // One short link per long one, so two messages for one page read alike.
   const shortIds: Map<string, string> = new Map<string, string>();
 
@@ -1023,6 +1049,110 @@ describe("every channel's message for every kind of record", () => {
         withoutLanguage.email.subject.startsWith("ACTION REQUIRED: "),
       ).toBe(true);
       expect(withoutLanguage.sms.message).toContain("Ack or escalate: ");
+    }
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * A page's links, whenever they are signed (issue #7084).
+ * ---------------------------------------------------------------------------
+ */
+
+describe("a page's links read alike whenever they are signed", () => {
+  // Just before a second ends: the next render signs in the next second.
+  const JUST_BEFORE_A_SECOND_ENDS: number = Date.UTC(
+    2026,
+    10,
+    12,
+    9,
+    30,
+    0,
+    999,
+  );
+
+  test("the real signer's token moves with its clock: two signings a second apart differ", () => {
+    let now: number = JUST_BEFORE_A_SECOND_ENDS;
+    jest.spyOn(Date, "now").mockImplementation((): number => {
+      return now;
+    });
+
+    const first: string = signLinkToken({
+      userOnCallLogTimelineId: NOTIFICATION,
+    });
+    now += 1000;
+    const second: string = signLinkToken({
+      userOnCallLogTimelineId: NOTIFICATION,
+    });
+
+    expect(second).not.toBe(first);
+
+    // Both are good for the notification: only the second they carry differs.
+    for (const token of [first, second]) {
+      expect(
+        OnCallPageLinkToken.isValid({
+          token: token,
+          userOnCallLogTimelineId: NOTIFICATION,
+        }),
+      ).toBe(true);
+    }
+  });
+
+  test("every message's links carry the notification's own token here", async () => {
+    const saved: Array<string> = [];
+
+    (
+      ShortLinkService.saveShortLinkFor as unknown as jest.Mock
+    ).mockImplementation((async (link: URL) => {
+      saved.push(link.toString());
+      return { shortId: String(saved.length) };
+    }) as never);
+
+    for (const kind of KINDS) {
+      await kind.messages();
+    }
+
+    const pageLinks: Array<string> = saved.filter((link: string): boolean => {
+      return link.includes("pageToken=");
+    });
+
+    expect(pageLinks.length).toBeGreaterThan(0);
+
+    for (const link of pageLinks) {
+      expect(link).toContain(`pageToken=${linkTokenOf(NOTIFICATION)}`);
+    }
+  });
+
+  test("a responder's messages, rendered twice with the clock a second on between the two, read alike", async () => {
+    let now: number = JUST_BEFORE_A_SECOND_ENDS;
+    jest.spyOn(Date, "now").mockImplementation((): number => {
+      return now;
+    });
+
+    for (const kind of KINDS) {
+      const first: Messages = await kind.messages();
+      now += 1000;
+      const second: Messages = await kind.messages(getServerTranslator("en"));
+
+      expect([kind.name, second]).toEqual([kind.name, first]);
+    }
+  });
+
+  test("an observer's messages, rendered twice with the clock a second on between the two, read alike", async () => {
+    let now: number = JUST_BEFORE_A_SECOND_ENDS;
+    jest.spyOn(Date, "now").mockImplementation((): number => {
+      return now;
+    });
+
+    for (const kind of KINDS) {
+      const first: Messages = await kind.messages(undefined, true);
+      now += 1000;
+      const second: Messages = await kind.messages(
+        getServerTranslator("en"),
+        true,
+      );
+
+      expect([kind.name, second]).toEqual([kind.name, first]);
     }
   });
 });

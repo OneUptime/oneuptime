@@ -125,7 +125,7 @@ Zwei Leisten ziehen sich oben über jede Seite.
 | Oben rechts | **Suchen** und **KI fragen**, die Benachrichtigungsglocke mit dem, was Sie jetzt braucht (aktive Vorfälle und Warnungen, die Bereitschaftsrichtlinien, in denen Sie Dienst haben, offene Einladungen), **Hilfe**, und Ihr Bild, das Ihr [Konto](/docs/introduction/your-account)-Menü öffnet. |
 | Darunter | **Startseite** und **Produkte** links, **Benutzereinstellungen** rechts: wie OneUptime Sie in diesem Projekt erreicht. |
 
-**Hilfe** beginnt mit dem, was beim Lernen hilft: **Schnellstart**, **So funktioniert OneUptime**, **Glossar** und diese Dokumentation (**Dokumentation**). Darunter folgen die Liste **Tastenkürzel** und Support per E-Mail und auf Slack. Auf einem schmalen Bildschirm, etwa einem Telefon, fallen **Suchen**, **KI fragen** und **Hilfe** weg, um Platz zu sparen; die Glocke und Ihr Bild bleiben.
+**Hilfe** beginnt mit dem, was beim Lernen hilft: **Schnellstart**, **So funktioniert OneUptime**, **Glossar** und diese Dokumentation (**Dokumentation**). Darunter folgen die Liste **Tastenkürzel** und Support per E-Mail und auf Slack. Auf einem Tablet oder in einem schmalen Fenster fällt **KI fragen** weg, um Platz zu sparen: Sie finden es unter den Aktionen in **Suchen**. Auf einem Telefon wandern **Suchen** und **Hilfe** in die Liste der Menüschaltfläche, ganz nach oben und ganz nach unten; die Glocke und Ihr Bild bleiben.
 
 Ein Wort mit gepunkteter Linie darunter, etwa **Sonden** im Formular eines neuen Monitors, sagt, was es bedeutet, wenn Sie darauf zeigen, mit der Tabulatortaste dorthin wechseln oder darauf tippen. Sein **Mehr lesen** öffnet das Wort im [Glossar](/docs/introduction/glossary).
 
@@ -148,6 +148,7 @@ Drücken Sie **Cmd+K** (Mac) oder **Ctrl+K** (Windows und Linux), oder klicken S
 - **Die Einstellungen auf einer Seite**, unter dem Namen, den ihre Karte oder ihr Schalter zeigt: *SSO für die Anmeldung erzwingen* findet SSO, und *Benachrichtigungskanäle* findet Benachrichtigungseinstellungen. Tippen Sie den Namen auf Englisch oder in Ihrer Sprache.
 - **Aktionen**, nach dem, was Sie tun möchten: Vorfall melden, Monitor erstellen oder Projekt löschen, das die Gefahrenzone öffnet. Eine Aktion, die etwas ändert, wird nur Personen angeboten, die sie ausführen dürfen.
 - **Ihre Monitore, Vorfälle, Warnungen, Statusseiten und Bereitschaftsrichtlinien**, nach Namen, und Vorfälle und Warnungen auch nach Nummer, etwa `INC-42`. Jedes Ergebnis für einen Vorfall oder eine Warnung beginnt mit seiner Nummer, sodass sich zwei mit demselben Titel unterscheiden lassen.
+- **Die Dokumentation**, in einer Gruppe *Dokumentation* unter allem anderen: die Seiten und Abschnitte, deren Wörter zu Ihrer Eingabe passen, in Ihrer Sprache, auch mit Tippfehler. Jede öffnet sich in einem neuen Tab, damit Sie Ihren Platz behalten.
 
 Die Suche liest, was Sie tippen, so, wie Sie es meinen:
 
