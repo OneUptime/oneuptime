@@ -45,16 +45,16 @@ export const INVITATION_LINK_COPY: {
 } = {
   // What a master admin's invite dialog says before Invite is pressed.
   inviteDescriptionForAdmin: translationKey(
-    "This server cannot send email yet, so they will not get an invitation email. The invitation is still created, and you get a link to send them yourself.",
+    "This server cannot send email yet, so they get no invitation email. The invitation is still created, and you get a link to send them yourself.",
   ),
   // A pending member's pill, where "Invitation Sent" would not be true.
   invitedPill: translationKey("Invited"),
   title: translationKey("Send them their invitation link"),
   description: translationKey(
-    "This server cannot send email, so {{email}} was not emailed. Copy this link and send it to them yourself. It works once, only for this address, for 7 days.",
+    "This server cannot send email, so {{email}} was not emailed. Copy this link and send it yourself. It works once, only for this address, for 7 days.",
   ),
   registeredDescription: translationKey(
-    "This server cannot send email, so {{email}} was not emailed. They already have an account: send them this link to sign in, and they accept the invitation from there.",
+    "This server cannot send email, so {{email}} was not emailed. They already have an account: send them this link to sign in and accept the invitation.",
   ),
   failed: translationKey(
     "The invitation was created, but its link could not be read. Open the Admin Dashboard to set their password instead.",

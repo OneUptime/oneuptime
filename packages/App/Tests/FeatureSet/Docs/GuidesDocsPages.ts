@@ -30,6 +30,20 @@ export interface DocsGuide {
   referencePages: ReadonlyArray<string>;
   // The Quickstart section, by its English heading, that ends with a link here.
   quickstartSection?: string | undefined;
+  /*
+   * Where the product starts the job, each linking the guide as "Step-by-step
+   * guide": the products whose explanation (the empty list's showcase and
+   * "How it works") does, by ProductKey, and the guided setup that does,
+   * by the copy file naming the guide and the page drawing the frame.
+   */
+  products: ReadonlyArray<string>;
+  guidedSetup?:
+    | {
+        copyFile: string;
+        constant: string;
+        pageFile: string;
+      }
+    | undefined;
 }
 
 // The sections every guide has, in this order.
@@ -117,6 +131,12 @@ export const DOCS_GUIDES: ReadonlyArray<DocsGuide> = [
       "notifications/notification-methods",
     ],
     quickstartSection: "Get paged when it goes down",
+    products: ["OnCall"],
+    guidedSetup: {
+      copyFile: "Components/GuidedSetup/OnCall/OnCallSetup.ts",
+      constant: "ON_CALL_SETUP_GUIDE_DOCS_PATH",
+      pageFile: "Components/GuidedSetup/OnCall/OnCallGuidedSetup.tsx",
+    },
   },
   {
     page: "guides/status-page",
@@ -161,6 +181,12 @@ export const DOCS_GUIDES: ReadonlyArray<DocsGuide> = [
       "status-pages/branding-and-domains",
     ],
     quickstartSection: "Publish a status page",
+    products: ["StatusPages"],
+    guidedSetup: {
+      copyFile: "Components/GuidedSetup/StatusPage/StatusPageSetup.ts",
+      constant: "STATUS_PAGE_SETUP_GUIDE_DOCS_PATH",
+      pageFile: "Components/GuidedSetup/StatusPage/StatusPageGuidedSetup.tsx",
+    },
   },
 ];
 

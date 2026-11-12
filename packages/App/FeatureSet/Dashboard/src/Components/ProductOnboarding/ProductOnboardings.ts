@@ -95,12 +95,14 @@ export const PRODUCT_ONBOARDINGS: Record<
     name: translationKey("On-Call"),
     showcase: ON_CALL_SHOWCASE,
     docsRoute: docs("on-call/index"),
+    guideRoute: docs("guides/paging"),
   },
   [ProductKey.StatusPages]: {
     page: PageMap.STATUS_PAGES,
     name: translationKey("Status Pages"),
     showcase: STATUS_PAGES_SHOWCASE,
     docsRoute: docs("status-pages/index"),
+    guideRoute: docs("guides/status-page"),
   },
   [ProductKey.ScheduledMaintenance]: {
     page: PageMap.SCHEDULED_MAINTENANCE_EVENTS,
