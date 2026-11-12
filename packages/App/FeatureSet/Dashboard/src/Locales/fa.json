@@ -50740,5 +50740,8 @@
   "Only you see this, as the server's admin.": "فقط شما، به‌عنوان مدیر سرور، این را می‌بینید.",
   "Server Setup Choices": "انتخاب‌های راه‌اندازی سرور",
   "This server is not finished: {{count}} things to set up": "راه‌اندازی این سرور تمام نشده است: {{count}} مورد مانده",
-  "This server is not finished: {{count}} things to set up_one": "راه‌اندازی این سرور تمام نشده است: {{count}} مورد مانده"
+  "This server is not finished: {{count}} things to set up_one": "راه‌اندازی این سرور تمام نشده است: {{count}} مورد مانده",
+  "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}.": "هوش مصنوعی این {{count}} فایل را پیش‌تر در همین پاسخ خوانده است و دیگر متن آن‌ها را ندارد و نسخه‌های هوش مصنوعی جایگزین کل این فایل‌ها می‌شوند: {{files}}.",
+  "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}._one": "هوش مصنوعی این فایل را پیش‌تر در همین پاسخ خوانده است و دیگر متن آن را ندارد و نسخهٔ هوش مصنوعی جایگزین کل فایل می‌شود: {{files}}.",
+  "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "هوش مصنوعی این فایل را پیش‌تر در همین پاسخ خوانده است و دیگر متن آن را ندارد و نسخهٔ هوش مصنوعی جایگزین کل فایل می‌شود: {{files}}."
 }

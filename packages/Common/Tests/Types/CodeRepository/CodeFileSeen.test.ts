@@ -1050,7 +1050,8 @@ describe("every interleaving of reads, pushes, Ask AI's own commits, proposals a
         return (
           unseen !== CodeFileUnseen.ReadInPart &&
           unseen !== CodeFileUnseen.ValuesHidden &&
-          unseen !== CodeFileUnseen.ReadInEarlierAnswer
+          unseen !== CodeFileUnseen.ReadInEarlierAnswer &&
+          unseen !== CodeFileUnseen.ReadEarlierInThisAnswer
         );
       }),
     ]) {
@@ -1065,5 +1066,7 @@ describe("every interleaving of reads, pushes, Ask AI's own commits, proposals a
     expect(said[CodeFileUnseen.ValuesHidden]).toBeUndefined();
     // Every record here is of this turn: none is from an earlier answer (issue #6365).
     expect(said[CodeFileUnseen.ReadInEarlierAnswer]).toBeUndefined();
+    // And none was left out of it since (issue #6570).
+    expect(said[CodeFileUnseen.ReadEarlierInThisAnswer]).toBeUndefined();
   });
 });

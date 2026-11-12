@@ -50740,5 +50740,8 @@
   "Only you see this, as the server's admin.": "서버 관리자인 회원님에게만 보입니다.",
   "Server Setup Choices": "서버 설정 선택 사항",
   "This server is not finished: {{count}} things to set up": "이 서버는 아직 준비되지 않았습니다: 설정할 항목 {{count}}개",
-  "This server is not finished: {{count}} things to set up_one": "이 서버는 아직 준비되지 않았습니다: 설정할 항목 {{count}}개"
+  "This server is not finished: {{count}} things to set up_one": "이 서버는 아직 준비되지 않았습니다: 설정할 항목 {{count}}개",
+  "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}.": "AI가 이 답변의 앞부분에서 파일 {{count}}개를 읽었지만 더 이상 그 내용을 가지고 있지 않으며, AI의 버전은 파일 전체를 대체합니다: {{files}}.",
+  "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}._one": "AI가 이 답변의 앞부분에서 이 파일을 읽었지만 더 이상 그 내용을 가지고 있지 않으며, AI의 버전은 파일 전체를 대체합니다: {{files}}.",
+  "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "AI가 이 답변의 앞부분에서 이 파일을 읽었지만 더 이상 그 내용을 가지고 있지 않으며, AI의 버전은 파일 전체를 대체합니다: {{files}}."
 }

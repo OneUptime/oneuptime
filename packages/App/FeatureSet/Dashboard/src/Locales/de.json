@@ -50740,5 +50740,8 @@
   "Only you see this, as the server's admin.": "Nur Sie sehen das, als Administrator des Servers.",
   "Server Setup Choices": "Auswahl bei der Server-Einrichtung",
   "This server is not finished: {{count}} things to set up": "Dieser Server ist nicht fertig: {{count}} Dinge sind noch einzurichten",
-  "This server is not finished: {{count}} things to set up_one": "Dieser Server ist nicht fertig: {{count}} Ding ist noch einzurichten"
+  "This server is not finished: {{count}} things to set up_one": "Dieser Server ist nicht fertig: {{count}} Ding ist noch einzurichten",
+  "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}.": "Die KI hat diese {{count}} Dateien zuvor in dieser Antwort gelesen und kennt ihren Text nicht mehr, und die Versionen der KI ersetzen die Dateien ganz: {{files}}.",
+  "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}._one": "Die KI hat diese Datei zuvor in dieser Antwort gelesen und kennt ihren Text nicht mehr, und die Version der KI ersetzt die ganze Datei: {{files}}.",
+  "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "Die KI hat diese Datei zuvor in dieser Antwort gelesen und kennt ihren Text nicht mehr, und die Version der KI ersetzt die ganze Datei: {{files}}."
 }

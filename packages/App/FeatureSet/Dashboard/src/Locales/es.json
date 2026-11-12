@@ -50740,5 +50740,8 @@
   "Only you see this, as the server's admin.": "Solo usted ve esto, como administrador del servidor.",
   "Server Setup Choices": "Elecciones de configuración del servidor",
   "This server is not finished: {{count}} things to set up": "Este servidor no está terminado: quedan {{count}} cosas por configurar",
-  "This server is not finished: {{count}} things to set up_one": "Este servidor no está terminado: queda {{count}} cosa por configurar"
+  "This server is not finished: {{count}} things to set up_one": "Este servidor no está terminado: queda {{count}} cosa por configurar",
+  "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}.": "La IA leyó estos {{count}} archivos antes en esta misma respuesta y ya no tiene su texto, y sus versiones los reemplazan enteros: {{files}}.",
+  "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}._one": "La IA leyó este archivo antes en esta misma respuesta y ya no tiene su texto, y su versión lo reemplaza entero: {{files}}.",
+  "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "La IA leyó este archivo antes en esta misma respuesta y ya no tiene su texto, y su versión lo reemplaza entero: {{files}}."
 }

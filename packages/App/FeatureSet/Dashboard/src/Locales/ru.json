@@ -50740,5 +50740,8 @@
   "Only you see this, as the server's admin.": "Это видите только вы как администратор сервера.",
   "Server Setup Choices": "Выбор при настройке сервера",
   "This server is not finished: {{count}} things to set up": "Сервер не настроен до конца: осталось пунктов — {{count}}",
-  "This server is not finished: {{count}} things to set up_one": "Сервер не настроен до конца: остался {{count}} пункт"
+  "This server is not finished: {{count}} things to set up_one": "Сервер не настроен до конца: остался {{count}} пункт",
+  "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}.": "ИИ прочитал эти файлы ({{count}}) раньше в этом же ответе и больше не видит их текста, а версии ИИ заменяют их целиком: {{files}}.",
+  "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}._one": "ИИ прочитал этот файл раньше в этом же ответе и больше не видит его текста, а версия ИИ заменяет его целиком: {{files}}.",
+  "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "ИИ прочитал этот файл раньше в этом же ответе и больше не видит его текста, а версия ИИ заменяет его целиком: {{files}}."
 }

@@ -50740,5 +50740,8 @@
   "Only you see this, as the server's admin.": "Bara du ser det här, som serverns administratör.",
   "Server Setup Choices": "Val vid serverkonfiguration",
   "This server is not finished: {{count}} things to set up": "Den här servern är inte klar: {{count}} saker återstår att konfigurera",
-  "This server is not finished: {{count}} things to set up_one": "Den här servern är inte klar: {{count}} sak återstår att konfigurera"
+  "This server is not finished: {{count}} things to set up_one": "Den här servern är inte klar: {{count}} sak återstår att konfigurera",
+  "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}.": "AI läste de här {{count}} filerna tidigare i det här svaret och har inte längre deras text, och AI:s versioner ersätter filerna i sin helhet: {{files}}.",
+  "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}._one": "AI läste den här filen tidigare i det här svaret och har inte längre dess text, och AI:s version ersätter hela filen: {{files}}.",
+  "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "AI läste den här filen tidigare i det här svaret och har inte längre dess text, och AI:s version ersätter hela filen: {{files}}."
 }

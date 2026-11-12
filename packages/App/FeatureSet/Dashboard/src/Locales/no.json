@@ -50740,5 +50740,8 @@
   "Only you see this, as the server's admin.": "Bare du ser dette, som serverens administrator.",
   "Server Setup Choices": "Valg ved serveroppsett",
   "This server is not finished: {{count}} things to set up": "Denne serveren er ikke ferdig: {{count}} ting gjenstår å sette opp",
-  "This server is not finished: {{count}} things to set up_one": "Denne serveren er ikke ferdig: {{count}} ting gjenstår å sette opp"
+  "This server is not finished: {{count}} things to set up_one": "Denne serveren er ikke ferdig: {{count}} ting gjenstår å sette opp",
+  "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}.": "AI leste disse {{count}} filene tidligere i dette svaret og har ikke lenger teksten i dem, og AI-versjonene erstatter filene i sin helhet: {{files}}.",
+  "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}._one": "AI leste denne filen tidligere i dette svaret og har ikke lenger teksten i den, og AI-versjonen erstatter hele filen: {{files}}.",
+  "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "AI leste denne filen tidligere i dette svaret og har ikke lenger teksten i den, og AI-versjonen erstatter hele filen: {{files}}."
 }

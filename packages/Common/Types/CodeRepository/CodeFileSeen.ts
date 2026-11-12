@@ -4,6 +4,7 @@ import {
   AIChatRecordPartSeen,
   AIChatRecordSeen,
   AIChatRecordSeenType,
+  isAIChatRecordInHand,
   MAX_RECORD_ID_LENGTHS,
   readAIChatLineRanges,
   readAIChatRecordSeen,
@@ -60,6 +61,14 @@ import {
  * only this turn's reads and writes count as the lines in hand. With none
  * of the version in hand, Ask AI writes it from memory; with some, it
  * reads it in part, as above.
+ *
+ * Nor are all of this turn's reads in hand (issue #6570): a long answer
+ * leaves out its oldest results once it outgrows what the model can take,
+ * so a read early in the answer may be gone by the time Ask AI commits.
+ * Its record still says what Ask AI saw of the version, but its lines are
+ * not in hand either: with none of the version in hand, Ask AI read it
+ * earlier in this answer and writes it from memory - or, when only an
+ * earlier answer showed it, it read it in an earlier answer.
  *
  * And a line Ask AI saw is not every value in it (issue #6364): what looks
  * like a secret or personal data reads as a placeholder, "[redacted-ip]",
@@ -388,9 +397,16 @@ type CodeFileViewsFunction = (data: {
   filePath: string;
   /*
    * Only what the model still has (issue #6365): a record from an earlier
-   * answer is left out.
+   * answer is left out, and so is one of this answer whose result the
+   * conversation has left out since (issue #6570).
    */
   inHandOnly?: boolean | undefined;
+  /*
+   * Only what this answer showed the model (issue #6570): a record from an
+   * earlier answer is left out, and one whose result was left out since is
+   * kept.
+   */
+  inThisAnswerOnly?: boolean | undefined;
 }) => Array<CodeFileView>;
 
 /*
@@ -405,6 +421,7 @@ export const getCodeFileViews: CodeFileViewsFunction = (data: {
   repositoryId: string;
   filePath: string;
   inHandOnly?: boolean | undefined;
+  inThisAnswerOnly?: boolean | undefined;
 }): Array<CodeFileView> => {
   const repositoryId: string = data.repositoryId.trim().toLowerCase();
   const byBranch: Map<string, CodeFileView> = new Map<string, CodeFileView>();
@@ -419,7 +436,8 @@ export const getCodeFileViews: CodeFileViewsFunction = (data: {
       !record ||
       record.recordType !== AIChatRecordSeenType.CodeFile ||
       record.isPartial ||
-      (data.inHandOnly && record.fromEarlierAnswer)
+      (data.inHandOnly && !isAIChatRecordInHand(record)) ||
+      (data.inThisAnswerOnly && record.fromEarlierAnswer)
     ) {
       continue;
     }
@@ -489,6 +507,13 @@ export enum CodeFileUnseen {
    * memory.
    */
   ReadInEarlierAnswer = "ReadInEarlierAnswer",
+  /*
+   * Ask AI read this version earlier in this answer, and no longer has its
+   * text (issue #6570): a long answer leaves out its oldest results once it
+   * outgrows what the model can take, and that read was one of them. The
+   * change writes all of it from memory.
+   */
+  ReadEarlierInThisAnswer = "ReadEarlierInThisAnswer",
   /*
    * Ask AI saw this version, but only some of its lines (issue #6330): the
    * change writes all of it, and drops what Ask AI never saw.
@@ -575,18 +600,27 @@ type FindLinesNotInHandFunction = (data: {
   views: ReadonlyArray<CodeFileView>;
   // The views of what the model still has (issue #6365); left out, all of them.
   viewsInHand?: ReadonlyArray<CodeFileView> | undefined;
+  /*
+   * The views of this answer, whether still in hand or left out since
+   * (issue #6570); left out, a version none of whose lines are in hand was
+   * seen in an earlier answer.
+   */
+  viewsInThisAnswer?: ReadonlyArray<CodeFileView> | undefined;
   fingerprint: string | null;
 }) => Omit<CodeFileUnseenFinding, "filePath"> | null;
 
 /*
  * What Ask AI does not have in front of it of a version it saw, to write
- * it whole (issue #6365): the lines its views of that version showed in
- * this turn - a view from an earlier answer says only that it saw the
- * version. None of it in hand: read in an earlier answer.
+ * it whole (issue #6365): the lines its views of that version showed that
+ * it still has - a view from an earlier answer, or of a result this answer
+ * has left out since (issue #6570), says only that it saw the version.
+ * None of it in hand: read earlier in this answer when this answer showed
+ * it, else read in an earlier answer.
  */
 const findLinesNotInHand: FindLinesNotInHandFunction = (data: {
   views: ReadonlyArray<CodeFileView>;
   viewsInHand?: ReadonlyArray<CodeFileView> | undefined;
+  viewsInThisAnswer?: ReadonlyArray<CodeFileView> | undefined;
   fingerprint: string | null;
 }): Omit<CodeFileUnseenFinding, "filePath"> | null => {
   if (!data.viewsInHand) {
@@ -602,12 +636,16 @@ const findLinesNotInHand: FindLinesNotInHandFunction = (data: {
 
   const fingerprint: string = data.fingerprint;
 
-  if (
-    !data.viewsInHand.some((view: CodeFileView): boolean => {
-      return view.fingerprint === fingerprint;
-    })
-  ) {
-    return { unseen: CodeFileUnseen.ReadInEarlierAnswer };
+  const showsVersion: (view: CodeFileView) => boolean = (
+    view: CodeFileView,
+  ): boolean => {
+    return view.fingerprint === fingerprint;
+  };
+
+  if (!data.viewsInHand.some(showsVersion)) {
+    return data.viewsInThisAnswer?.some(showsVersion)
+      ? { unseen: CodeFileUnseen.ReadEarlierInThisAnswer }
+      : { unseen: CodeFileUnseen.ReadInEarlierAnswer };
   }
 
   return findLinesNotRead({
@@ -623,9 +661,15 @@ type FindCodeFileUnseenFunction = (data: {
   now: CodeFileOnBranch;
   /*
    * The views of what the model still has: this turn's reads and writes
-   * (issue #6365). Left out, every view is in hand, as before.
+   * (issue #6365), less the reads this turn has left out since (issue
+   * #6570). Left out, every view is in hand, as before.
    */
   viewsInHand?: ReadonlyArray<CodeFileView> | undefined;
+  /*
+   * The views of this turn, in hand or left out since (issue #6570): what
+   * tells a read earlier in this answer from one in an earlier answer.
+   */
+  viewsInThisAnswer?: ReadonlyArray<CodeFileView> | undefined;
 }) => Omit<CodeFileUnseenFinding, "filePath"> | null;
 
 /*
@@ -640,6 +684,7 @@ export const findCodeFileUnseen: FindCodeFileUnseenFunction = (data: {
   branchName: string;
   now: CodeFileOnBranch;
   viewsInHand?: ReadonlyArray<CodeFileView> | undefined;
+  viewsInThisAnswer?: ReadonlyArray<CodeFileView> | undefined;
 }): Omit<CodeFileUnseenFinding, "filePath"> | null => {
   if (data.now.state === "unreadable") {
     return { unseen: CodeFileUnseen.NotChecked };
@@ -659,6 +704,7 @@ export const findCodeFileUnseen: FindCodeFileUnseenFunction = (data: {
       ? findLinesNotInHand({
           views: data.views,
           viewsInHand: data.viewsInHand,
+          viewsInThisAnswer: data.viewsInThisAnswer,
           fingerprint: fingerprintNow,
         })
       : { unseen: CodeFileUnseen.ChangedSinceRead };
@@ -683,6 +729,7 @@ export const findCodeFileUnseen: FindCodeFileUnseenFunction = (data: {
     return findLinesNotInHand({
       views: data.views,
       viewsInHand: data.viewsInHand,
+      viewsInThisAnswer: data.viewsInThisAnswer,
       fingerprint: fingerprintNow,
     });
   }
@@ -733,12 +780,21 @@ export const findCodeFilesUnseen: FindCodeFilesUnseenFunction = (data: {
         }),
         branchName: data.branchName,
         now: file.now,
-        // Only this turn's lines are in hand (issue #6365).
+        /*
+         * Only this turn's lines are in hand (issue #6365), and of those
+         * only the ones it has not left out since (issue #6570).
+         */
         viewsInHand: getCodeFileViews({
           records: data.records,
           repositoryId: data.repositoryId,
           filePath: file.filePath,
           inHandOnly: true,
+        }),
+        viewsInThisAnswer: getCodeFileViews({
+          records: data.records,
+          repositoryId: data.repositoryId,
+          filePath: file.filePath,
+          inThisAnswerOnly: true,
         }),
       });
 

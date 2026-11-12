@@ -50740,5 +50740,8 @@
   "Only you see this, as the server's admin.": "Only you see this, as the server's admin.",
   "Server Setup Choices": "Server Setup Choices",
   "This server is not finished: {{count}} things to set up": "This server is not finished: {{count}} things to set up",
-  "This server is not finished: {{count}} things to set up_one": "This server is not finished: {{count}} thing to set up"
+  "This server is not finished: {{count}} things to set up_one": "This server is not finished: {{count}} thing to set up",
+  "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}.": "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}.",
+  "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}._one": "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.",
+  "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}."
 }

@@ -50740,5 +50740,8 @@
   "Only you see this, as the server's admin.": "لا يرى هذا غيرك، بصفتك مسؤول الخادم.",
   "Server Setup Choices": "اختيارات إعداد الخادم",
   "This server is not finished: {{count}} things to set up": "لم يكتمل إعداد هذا الخادم. العناصر المتبقية: {{count}}",
-  "This server is not finished: {{count}} things to set up_one": "لم يكتمل إعداد هذا الخادم. العناصر المتبقية: {{count}}"
+  "This server is not finished: {{count}} things to set up_one": "لم يكتمل إعداد هذا الخادم. العناصر المتبقية: {{count}}",
+  "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}.": "قرأ الذكاء الاصطناعي هذه الملفات (العدد: {{count}}) في وقت سابق من هذه الإجابة ولم يعد لديه نصها، وتحل نسخ الذكاء الاصطناعي محلها بالكامل: {{files}}.",
+  "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}._one": "قرأ الذكاء الاصطناعي هذا الملف في وقت سابق من هذه الإجابة ولم يعد لديه نصه، وتحل نسخة الذكاء الاصطناعي محل الملف بالكامل: {{files}}.",
+  "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "قرأ الذكاء الاصطناعي هذا الملف في وقت سابق من هذه الإجابة ولم يعد لديه نصه، وتحل نسخة الذكاء الاصطناعي محل الملف بالكامل: {{files}}."
 }
