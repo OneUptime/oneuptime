@@ -37,7 +37,7 @@ Chaque contrôle s'exécute toutes les 15 minutes, toutes les heures, toutes les
 
 Renseignez **Alerter quand** pour déclencher une alerte sur un contrôle :
 
-- **Unusually High** ou **Unusually Low** compare chaque valeur à sa propre référence apprise pour cette heure de la semaine.
+- **Anormalement haut** ou **Anormalement bas** compare chaque valeur à sa propre référence apprise pour cette heure de la semaine.
 - **Au-dessus de** ou **En dessous de** la compare à un seuil.
 
 L'enregistrement du contrôle crée un moniteur de métrique pour lui, en votre nom et avec vos autorisations. Vider la condition supprime le moniteur.

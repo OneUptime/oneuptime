@@ -848,9 +848,13 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
 
   /*
    * When the entry recorded now is deleted: the project's retention in
-   * calendar days, read by the one rule a failing export reckons with too
-   * (Common/Types/AuditLog/AuditLogRetention), so its "will start losing
-   * entries" email goes a day before this moment, whatever the stored value.
+   * calendar days, read by the one rule
+   * (Common/Types/AuditLog/AuditLogRetention). A failing export reads this
+   * stamp back - the soonest among the entries it has not sent - so its
+   * "will start losing entries" email goes a day before this moment,
+   * whatever the stored value and whatever the retention is changed to
+   * later (#6563); only when it cannot read the stamps does it reckon the
+   * moment by the same rule.
    */
   private computeRetentionDate(retentionInDays: number): Date {
     return getAuditLogRetentionDate({
