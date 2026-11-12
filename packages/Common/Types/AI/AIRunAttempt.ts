@@ -1,4 +1,9 @@
 import { JSONObject } from "../JSON";
+import {
+  readRecordAiTokenLimitStop,
+  RecordAiTokenLimitKind,
+  RecordAiTokenLimitStop,
+} from "./RecordAiTokenLimit";
 
 /*
  * How an attempt of a durable AI run ended, and why (issues #6437, #6438).
@@ -14,21 +19,31 @@ import { JSONObject } from "../JSON";
 
 // Why an attempt failed, as the thing a person can act on.
 export enum AIRunFailureKind {
-  // The AI provider did not answer within its response timeout.
+  // The LLM provider did not answer within its response timeout.
   ProviderTimeout = "ProviderTimeout",
-  // The AI provider could not be reached, was overloaded or rate limited.
+  // The LLM provider could not be reached, was overloaded or rate limited.
   ProviderUnavailable = "ProviderUnavailable",
   /*
-   * The AI provider refused the request: its key, its model or its access,
+   * The LLM provider refused the request: its key, its model or its access,
    * the provider account's quota or credit among it.
    */
   ProviderRejected = "ProviderRejected",
   // The request no longer fitted in the model's context window.
   ContextWindow = "ContextWindow",
-  // There is no AI provider to use, or the provider is not set up.
+  // There is no LLM provider to use, or the provider is not set up.
   NotConfigured = "NotConfigured",
   // One of the project's own daily AI limits was reached.
   LimitReached = "LimitReached",
+  /*
+   * The incident's (alert's) own daily AI token limit (issue #7157,
+   * Types/AI/RecordAiTokenLimit): set to 0, which pauses the work until
+   * someone raises it, or used up today, until midnight UTC. Not the
+   * project's daily AI limits above, which are another setting.
+   */
+  IncidentTokenLimitPaused = "IncidentTokenLimitPaused",
+  IncidentTokenLimitUsedUp = "IncidentTokenLimitUsedUp",
+  AlertTokenLimitPaused = "AlertTokenLimitPaused",
+  AlertTokenLimitUsedUp = "AlertTokenLimitUsedUp",
   // The project's OneUptime AI credits are used up.
   CreditsUsedUp = "CreditsUsedUp",
   // The server running it shut down, or the attempt stopped reporting.
@@ -158,11 +173,64 @@ const TIMEOUT_PATTERN: RegExp =
  */
 const CONTEXT_WINDOW_PATTERN: RegExp =
   /larger than the model's context window|context length|context window|context_length_exceeded|prompt is too long|input is too long|exceeds? (?:the )?context limit|exceeds the maximum number of tokens/i;
+/*
+ * No provider: AIService's own words, and "no AI provider" in the errors
+ * older runs failed with, which they keep. "There is no LLM provider ..." is
+ * a sentence the Dashboard says, never a run's error.
+ */
 const NOT_CONFIGURED_PATTERN: RegExp =
   /no llm provider configured|llm provider type is not configured|no ai provider/i;
-// The project's own daily AI limits (AIService), and the autonomous budget.
+/*
+ * The project's own daily AI limits (AIService), and the record's daily
+ * token limit in the words of the oldest runs, which named no record. A
+ * record's limit is read first, by readRecordAiTokenLimitStop.
+ */
 const LIMIT_PATTERN: RegExp =
   /token budget exhausted|reached its daily AI (?:token|spend) limit/i;
+
+// The failure kind of a record's daily AI token limit, by record and state.
+const RECORD_TOKEN_LIMIT_KINDS: Readonly<
+  Record<
+    RecordAiTokenLimitKind,
+    { paused: AIRunFailureKind; usedUp: AIRunFailureKind }
+  >
+> = {
+  incident: {
+    paused: AIRunFailureKind.IncidentTokenLimitPaused,
+    usedUp: AIRunFailureKind.IncidentTokenLimitUsedUp,
+  },
+  alert: {
+    paused: AIRunFailureKind.AlertTokenLimitPaused,
+    usedUp: AIRunFailureKind.AlertTokenLimitUsedUp,
+  },
+};
+
+export const RECORD_TOKEN_LIMIT_FAILURE_KINDS: ReadonlyArray<AIRunFailureKind> =
+  [
+    AIRunFailureKind.IncidentTokenLimitPaused,
+    AIRunFailureKind.IncidentTokenLimitUsedUp,
+    AIRunFailureKind.AlertTokenLimitPaused,
+    AIRunFailureKind.AlertTokenLimitUsedUp,
+  ];
+
+// Whether a failure is an incident's or alert's own daily AI token limit.
+export function isRecordTokenLimitFailureKind(
+  failureKind: AIRunFailureKind | null | undefined,
+): boolean {
+  return Boolean(
+    failureKind && RECORD_TOKEN_LIMIT_FAILURE_KINDS.includes(failureKind),
+  );
+}
+
+// The failure kind of a record's limit that stopped a run.
+export function getRecordTokenLimitFailureKind(
+  stop: RecordAiTokenLimitStop,
+): AIRunFailureKind {
+  const kinds: { paused: AIRunFailureKind; usedUp: AIRunFailureKind } =
+    RECORD_TOKEN_LIMIT_KINDS[stop.kind];
+
+  return stop.isPaused ? kinds.paused : kinds.usedUp;
+}
 /*
  * The project's OneUptime AI credits (Utils/Project/ProjectBalance,
  * AIService), and the words an older run failed with.
@@ -200,6 +268,15 @@ export const classifyAIRunFailureMessage: (message: string) => {
 
   if (NOT_CONFIGURED_PATTERN.test(text)) {
     return { failureKind: AIRunFailureKind.NotConfigured };
+  }
+
+  const recordTokenLimit: RecordAiTokenLimitStop | null =
+    readRecordAiTokenLimitStop(text);
+
+  if (recordTokenLimit) {
+    return {
+      failureKind: getRecordTokenLimitFailureKind(recordTokenLimit),
+    };
   }
 
   if (LIMIT_PATTERN.test(text)) {

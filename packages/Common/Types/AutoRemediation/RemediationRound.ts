@@ -29,8 +29,13 @@
  *
  * Shared by the server (the routes, the runners' tool) and the Dashboard
  * (the step, and the refusals in the reader's language), so both read the
- * same shapes and say the same sentences. Dependency-free.
+ * same shapes and say the same sentences. Dependency-free, but for the
+ * words of an incident's or alert's daily AI token limit, which every
+ * message about it shares (Types/AI/RecordAiTokenLimit, itself
+ * dependency-free).
  */
+
+import { getRecordAiTokenLimitMessage } from "../AI/RecordAiTokenLimit";
 
 export const REMEDIATION_ROUND_PATH: string = "/auto-remediation/round";
 
@@ -210,7 +215,16 @@ export enum RemediationRoundTryAgainRefusal {
   AiOff = "AiOff",
   NoProvider = "NoProvider",
   CreditsUsedUp = "CreditsUsedUp",
+  // The project's own daily AI limits (Project Settings → AI → AI Features).
   LimitReached = "LimitReached",
+  /*
+   * The incident's (alert's) own daily AI token limit (#7157): set to 0,
+   * which pauses the work until it is raised, or used up until midnight UTC.
+   */
+  IncidentTokenLimitPaused = "IncidentTokenLimitPaused",
+  IncidentTokenLimitUsedUp = "IncidentTokenLimitUsedUp",
+  AlertTokenLimitPaused = "AlertTokenLimitPaused",
+  AlertTokenLimitUsedUp = "AlertTokenLimitUsedUp",
   // The queue did not take it, for no reason it could name.
   NotStarted = "NotStarted",
 }
@@ -235,11 +249,19 @@ export const REMEDIATION_ROUND_TRY_AGAIN_REFUSALS: Readonly<
   [RemediationRoundTryAgainRefusal.AiOff]:
     "OneUptime AI is switched off for this project. A project owner or someone with Manage Billing can turn it on in Project Settings > AI > AI Features.",
   [RemediationRoundTryAgainRefusal.NoProvider]:
-    "This project has no AI provider to work out a fix with. Add one in Project Settings > AI > LLM Providers, then try again.",
+    "This project has no LLM provider to work out a fix with. Add one in Project Settings > AI > LLM Providers, then try again.",
   [RemediationRoundTryAgainRefusal.CreditsUsedUp]:
     "This project's AI credits are used up. A project owner or someone with Manage Billing can add AI credits in Project Settings > AI > AI Credits.",
   [RemediationRoundTryAgainRefusal.LimitReached]:
     "The project reached its daily AI limit. OneUptime AI starts again at midnight UTC.",
+  [RemediationRoundTryAgainRefusal.IncidentTokenLimitPaused]:
+    getRecordAiTokenLimitMessage("incident", { limitInTokens: 0 }),
+  [RemediationRoundTryAgainRefusal.IncidentTokenLimitUsedUp]:
+    getRecordAiTokenLimitMessage("incident"),
+  [RemediationRoundTryAgainRefusal.AlertTokenLimitPaused]:
+    getRecordAiTokenLimitMessage("alert", { limitInTokens: 0 }),
+  [RemediationRoundTryAgainRefusal.AlertTokenLimitUsedUp]:
+    getRecordAiTokenLimitMessage("alert"),
   [RemediationRoundTryAgainRefusal.NotStarted]:
     "The fix could not start again. Try again in a few minutes.",
 };

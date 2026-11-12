@@ -118,6 +118,11 @@ describe("AIRunRetryPolicy attempts and waits", () => {
       AIRunFailureKind.NotConfigured,
       AIRunFailureKind.LimitReached,
       AIRunFailureKind.CreditsUsedUp,
+      // The record's own daily AI token limit (#7157): no repeat gets past it.
+      AIRunFailureKind.IncidentTokenLimitPaused,
+      AIRunFailureKind.IncidentTokenLimitUsedUp,
+      AIRunFailureKind.AlertTokenLimitPaused,
+      AIRunFailureKind.AlertTokenLimitUsedUp,
     ]) {
       expect(AIRunRetryPolicy.isPermanent(kind)).toBe(true);
       expect(AIRunRetryPolicy.getMaxAttempts(kind)).toBe(1);

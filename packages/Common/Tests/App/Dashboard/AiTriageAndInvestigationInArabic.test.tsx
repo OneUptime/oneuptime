@@ -673,7 +673,7 @@ describe("the insight's AI Triage, in Arabic, right to left", () => {
     expect(
       within(panel).getByTestId("ai-triage-failure-cause"),
     ).toHaveTextContent(
-      fill(word("The AI provider did not answer within {{count}} seconds."), {
+      fill(word("The LLM provider did not answer within {{count}} seconds."), {
         count: "120",
       }),
     );
@@ -936,7 +936,7 @@ describe("the AI investigation card, in Arabic", () => {
       word("The investigation stopped before it could report."),
     );
     expect(screen.getByTestId("investigation-error-cause")).toHaveTextContent(
-      fill(word("The AI provider did not answer within {{count}} seconds."), {
+      fill(word("The LLM provider did not answer within {{count}} seconds."), {
         count: "120",
       }),
     );
