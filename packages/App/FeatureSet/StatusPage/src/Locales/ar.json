@@ -50,6 +50,7 @@
     "allClearTitle": "كل شيء يعمل على ما يرام",
     "allClearDescription": "لم تُضف أي موارد إلى صفحة الحالة هذه بعد. يُرجى إضافة بعض الموارد من لوحة المعلومات.",
     "allResourcesAre": "حالة جميع الموارد: {{status}}",
+    "allMonitoredResourcesAre": "حالة جميع الموارد المراقَبة: {{status}}",
     "someResourcesAre": "حالة بعض الموارد: {{status}}",
     "someResourcesAreUnder": "بعض الموارد في حالة: {{status}}",
     "noResourcesAreMonitored": "لا يخضع أي مورد للمراقبة الآن",

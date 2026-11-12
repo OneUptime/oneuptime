@@ -348,6 +348,77 @@ describe("the group's uptime, beside its Uptime Graph", () => {
     expect(uptimePercent()).toBeNull();
   });
 
+  test("every monitor with monitoring off: the graph says why it has no uptime to show", async () => {
+    summary = { monitorCount: 3, monitoringOffCount: 3 };
+
+    await renderOverview();
+
+    expect(
+      screen.getByText(
+        "Monitoring is off for every monitor in this group, so it has no uptime to show.",
+      ),
+    ).toBeVisible();
+    expect(screen.queryByText(/over the last 90 days/)).toBeNull();
+  });
+
+  test("some monitors with monitoring off: the graph says they are left out", async () => {
+    summary = { monitorCount: 3, monitoringOffCount: 1 };
+
+    await renderOverview();
+
+    expect(
+      screen.getByText(
+        "This group's status over the last 90 days, one bar per day. Monitors whose monitoring is off are left out.",
+      ),
+    ).toBeVisible();
+  });
+
+  test("every monitor checked, or the group's monitoring unread: the graph's description is as before", async () => {
+    await renderOverview();
+
+    expect(
+      screen.getByText(
+        "This group's status over the last 90 days, one bar per day.",
+      ),
+    ).toBeVisible();
+
+    cleanup();
+    summary = new Error("Server Error. Please try again");
+    await renderOverview();
+
+    expect(
+      screen.getByText(
+        "This group's status over the last 90 days, one bar per day.",
+      ),
+    ).toBeVisible();
+    expect(screen.queryByText(/left out/)).toBeNull();
+  });
+
+  test("monitoring turned off from the card: the graph's description follows at once", async () => {
+    mockSetMonitoring.mockResolvedValue({
+      monitorCount: 3,
+      monitoringOffCount: 3,
+    } as never);
+
+    await renderOverview();
+
+    fireEvent.click(
+      screen.getByTestId(MONITOR_GROUP_TURN_MONITORING_OFF_TEST_ID),
+    );
+    fireEvent.click(
+      within(screen.getByRole("dialog")).getByRole("button", {
+        name: "Turn off monitoring",
+      }),
+    );
+    await flush();
+
+    expect(
+      screen.getByText(
+        "Monitoring is off for every monitor in this group, so it has no uptime to show.",
+      ),
+    ).toBeVisible();
+  });
+
   test("monitoring turned back on from the card: the percentage is back", async () => {
     summary = { monitorCount: 3, monitoringOffCount: 3 };
     mockSetMonitoring.mockResolvedValue({

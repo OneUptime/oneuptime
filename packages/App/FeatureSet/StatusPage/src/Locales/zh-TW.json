@@ -50,6 +50,7 @@
     "allClearTitle": "一切正常",
     "allClearDescription": "此狀態頁尚未新增任何資源。請從控制台新增一些資源。",
     "allResourcesAre": "所有資源{{status}}",
+    "allMonitoredResourcesAre": "所有受監控的資源{{status}}",
     "someResourcesAre": "部分資源{{status}}",
     "someResourcesAreUnder": "部分資源處於{{status}}狀態",
     "noResourcesAreMonitored": "目前沒有受監控的資源",

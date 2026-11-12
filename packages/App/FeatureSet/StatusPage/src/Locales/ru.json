@@ -50,6 +50,7 @@
     "allClearTitle": "Всё работает отлично",
     "allClearDescription": "На эту страницу статуса ещё не добавлены ресурсы. Пожалуйста, добавьте ресурсы через панель управления.",
     "allResourcesAre": "Все ресурсы — {{status}}",
+    "allMonitoredResourcesAre": "Все отслеживаемые ресурсы — {{status}}",
     "someResourcesAre": "Некоторые ресурсы — {{status}}",
     "someResourcesAreUnder": "Некоторые ресурсы находятся в состоянии {{status}}",
     "noResourcesAreMonitored": "Сейчас ни один ресурс не отслеживается",

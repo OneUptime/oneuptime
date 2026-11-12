@@ -42,6 +42,7 @@ import MonitorGroupDisabledStatus from "../../../Components/MonitorGroup/Monitor
 import MonitorGroupMonitoringCard from "../../../Components/MonitorGroup/MonitorGroupMonitoringCard";
 import { fetchMonitorGroupMonitoringSummary } from "../../../Components/MonitorGroup/MonitorGroupMonitoringAPI";
 import MonitorGroupMonitoring, {
+  MonitorGroupMonitoringState,
   MonitorGroupMonitoringSummary,
 } from "Common/Utils/Monitor/MonitorGroupMonitoring";
 import React, {
@@ -289,6 +290,18 @@ const MonitorGroupView: FunctionComponent<
     ModelAction.Create,
   ).isAllowed;
 
+  /*
+   * Monitors whose monitoring is off are left out of the group's timeline,
+   * as from its status (issue #6478), so the Uptime Graph's description says
+   * so - and, when that is every monitor, why the graph has no uptime to
+   * show, rather than 90 empty days with no word on why. Null when the
+   * group's monitoring could not be read: the description is then as before.
+   */
+  const uptimeGraphMonitoringState: MonitorGroupMonitoringState | null =
+    monitoringSummary
+      ? MonitorGroupMonitoring.getState(monitoringSummary)
+      : null;
+
   return (
     <Fragment>
       {/* MonitorGroup View  */}
@@ -440,7 +453,13 @@ const MonitorGroupView: FunctionComponent<
       ) : (
         <Card
           title="Uptime Graph"
-          description="This group's status over the last 90 days, one bar per day."
+          description={
+            uptimeGraphMonitoringState === MonitorGroupMonitoringState.Off
+              ? "Monitoring is off for every monitor in this group, so it has no uptime to show."
+              : uptimeGraphMonitoringState === MonitorGroupMonitoringState.Mixed
+                ? "This group's status over the last 90 days, one bar per day. Monitors whose monitoring is off are left out."
+                : "This group's status over the last 90 days, one bar per day."
+          }
           rightElement={getUptimePercent()}
         >
           {/*

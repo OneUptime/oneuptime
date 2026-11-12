@@ -50,6 +50,7 @@
     "allClearTitle": "すべて順調です",
     "allClearDescription": "このステータスページにはまだリソースが追加されていません。ダッシュボードからリソースを追加してください。",
     "allResourcesAre": "すべてのリソースは {{status}} です",
+    "allMonitoredResourcesAre": "監視中のすべてのリソースは {{status}} です",
     "someResourcesAre": "一部のリソースは {{status}} です",
     "someResourcesAreUnder": "一部のリソースは {{status}} 中です",
     "noResourcesAreMonitored": "現在監視されているリソースはありません",

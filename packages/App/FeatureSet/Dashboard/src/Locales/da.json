@@ -50775,5 +50775,7 @@
   "{{count}} steps left in your setup checklist": "{{count}} trin tilbage i din opsætningstjekliste",
   "{{count}} steps left in your setup checklist_one": "{{count}} trin tilbage i din opsætningstjekliste",
   "{{schedule}}, until at least {{time}}": "{{schedule}}, indtil mindst {{time}}",
-  "{{schedule}}, until {{time}}": "{{schedule}}, indtil {{time}}"
+  "{{schedule}}, until {{time}}": "{{schedule}}, indtil {{time}}",
+  "Monitoring is off for every monitor in this group, so it has no uptime to show.": "Overvågning er slået fra for alle monitorer i denne gruppe, så der er ingen oppetid at vise.",
+  "This group's status over the last 90 days, one bar per day. Monitors whose monitoring is off are left out.": "Denne gruppes status de seneste 90 dage, én bjælke pr. dag. Monitorer, hvor overvågning er slået fra, er udeladt."
 }

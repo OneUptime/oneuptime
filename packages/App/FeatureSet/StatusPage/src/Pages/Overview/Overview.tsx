@@ -2159,6 +2159,22 @@ const Overview: FunctionComponent<PageComponentProps> = (
                   const isMaintenance: boolean =
                     rawStatusName.toLowerCase() === "maintenance";
                   if (currentStatus.isOperationalState) {
+                    /*
+                     * A resource drawn as Not monitored has no status at
+                     * all, so the banner speaks for the monitored ones
+                     * rather than say all of them are Operational.
+                     */
+                    if (
+                      FrozenMonitorResources.isSomeResourceNotMonitored(
+                        statusPageResources,
+                        notMonitoredResourceIds,
+                      )
+                    ) {
+                      return t("overview.allMonitoredResourcesAre", {
+                        status: statusName,
+                      });
+                    }
+
                     return t("overview.allResourcesAre", {
                       status: statusName,
                     });

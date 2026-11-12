@@ -50,6 +50,7 @@
     "allClearTitle": "모든 것이 정상입니다",
     "allClearDescription": "이 상태 페이지에 아직 리소스가 추가되지 않았습니다. 대시보드에서 리소스를 추가해주세요.",
     "allResourcesAre": "모든 리소스가 {{status}}입니다",
+    "allMonitoredResourcesAre": "모니터링되는 모든 리소스가 {{status}}입니다",
     "someResourcesAre": "일부 리소스가 {{status}}입니다",
     "someResourcesAreUnder": "일부 리소스가 {{status}} 중입니다",
     "noResourcesAreMonitored": "현재 모니터링되는 리소스가 없습니다",

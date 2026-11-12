@@ -50,6 +50,7 @@
     "allClearTitle": "Alles ziet er goed uit",
     "allClearDescription": "Er zijn nog geen bronnen toegevoegd aan deze statuspagina. Voeg alstublieft enkele bronnen toe vanaf het dashboard.",
     "allResourcesAre": "Alle bronnen zijn {{status}}",
+    "allMonitoredResourcesAre": "Alle bewaakte bronnen zijn {{status}}",
     "someResourcesAre": "Sommige bronnen zijn {{status}}",
     "someResourcesAreUnder": "Sommige bronnen zijn in {{status}}",
     "noResourcesAreMonitored": "Er worden momenteel geen bronnen bewaakt",

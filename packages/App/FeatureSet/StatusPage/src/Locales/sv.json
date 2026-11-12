@@ -50,6 +50,7 @@
     "allClearTitle": "Allt ser bra ut",
     "allClearDescription": "Inga resurser har ännu lagts till på den här statussidan. Lägg till några resurser från kontrollpanelen.",
     "allResourcesAre": "Alla resurser är {{status}}",
+    "allMonitoredResourcesAre": "Alla övervakade resurser är {{status}}",
     "someResourcesAre": "Vissa resurser är {{status}}",
     "someResourcesAreUnder": "Vissa resurser är under {{status}}",
     "noResourcesAreMonitored": "Inga resurser övervakas just nu",

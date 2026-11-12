@@ -270,4 +270,22 @@ export default class FrozenMonitorResources {
       })
     );
   }
+
+  /*
+   * Whether at least one of these resources is drawn as Not monitored. A
+   * page whose checked resources are all operational then says all the
+   * monitored ones are, never that all of them are: nothing knows the
+   * status of the one drawn as Not monitored below. False for none at all.
+   */
+  public static isSomeResourceNotMonitored(
+    resources: Array<{ _id?: unknown }>,
+    notMonitoredResourceIds: NotMonitoredResourceIds,
+  ): boolean {
+    return resources.some((resource: { _id?: unknown }): boolean => {
+      return FrozenMonitorResources.isNotMonitored(
+        resource,
+        notMonitoredResourceIds,
+      );
+    });
+  }
 }

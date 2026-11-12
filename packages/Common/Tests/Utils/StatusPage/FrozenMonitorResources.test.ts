@@ -654,3 +654,47 @@ describe("FrozenMonitorResources.isEveryResourceNotMonitored", () => {
     ).toBe(false);
   });
 });
+
+describe("FrozenMonitorResources.isSomeResourceNotMonitored", () => {
+  test("true when one resource of several is Not monitored", () => {
+    expect(
+      FrozenMonitorResources.isSomeResourceNotMonitored(
+        [{ _id: "r-1" }, { _id: "r-4" }],
+        ["r-1", "r-2"],
+      ),
+    ).toBe(true);
+  });
+
+  test("true when every resource is Not monitored", () => {
+    expect(
+      FrozenMonitorResources.isSomeResourceNotMonitored(
+        [{ _id: "r-1" }, { _id: "r-2" }],
+        new Set<string>(["r-1", "r-2"]),
+      ),
+    ).toBe(true);
+  });
+
+  test("false when every resource is monitored", () => {
+    expect(
+      FrozenMonitorResources.isSomeResourceNotMonitored(
+        [{ _id: "r-3" }, { _id: "r-4" }],
+        ["r-1", "r-2"],
+      ),
+    ).toBe(false);
+  });
+
+  test("false for no resources, and for no ids", () => {
+    expect(FrozenMonitorResources.isSomeResourceNotMonitored([], ["r-1"])).toBe(
+      false,
+    );
+    expect(
+      FrozenMonitorResources.isSomeResourceNotMonitored([{ _id: "r-1" }], []),
+    ).toBe(false);
+  });
+
+  test("a resource without an id is never the one", () => {
+    expect(FrozenMonitorResources.isSomeResourceNotMonitored([{}], [""])).toBe(
+      false,
+    );
+  });
+});

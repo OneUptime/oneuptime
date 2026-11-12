@@ -621,6 +621,53 @@ describe("Status page overview - monitors whose monitoring is off", () => {
     ).not.toBeInTheDocument();
   });
 
+  test("a page whose checked resources are all Operational says all the monitored ones are, not all of them", async () => {
+    // Checkout API is checked and Operational; Search is Not monitored.
+    serve(
+      overviewPayload({
+        resources: departmentResources().filter(
+          (resource: JSONObject): boolean => {
+            return [CHECKOUT_ID, SEARCH_ID].includes(resource["_id"] as string);
+          },
+        ),
+        overallStatusId: OPERATIONAL_STATUS_ID,
+        notMonitoredResourceIds: [SEARCH_ID],
+      }),
+    );
+    await renderOverview();
+
+    const banner: HTMLElement = document.getElementById("overview-alert")!;
+
+    expect(banner).toHaveTextContent("All monitored Resources are Operational");
+    expect(banner.textContent).not.toContain("All Resources are");
+    // Search is still drawn below it, as Not monitored.
+    expect(
+      within(headerOf("Search")).getByTestId("resource-not-monitored"),
+    ).toHaveTextContent("Not monitored");
+  });
+
+  test("a page whose every resource is checked and Operational says all of them are, as before", async () => {
+    serve(
+      overviewPayload({
+        resources: departmentResources().filter(
+          (resource: JSONObject): boolean => {
+            return resource["_id"] === CHECKOUT_ID;
+          },
+        ),
+        overallStatusId: OPERATIONAL_STATUS_ID,
+        notMonitoredResourceIds: [],
+      }),
+    );
+    await renderOverview();
+
+    expect(document.getElementById("overview-alert")).toHaveTextContent(
+      "All Resources are Operational",
+    );
+    expect(
+      screen.queryByText(/All monitored Resources/),
+    ).not.toBeInTheDocument();
+  });
+
   test("a page nothing on which is checked says so in its banner", async () => {
     serve(
       overviewPayload({

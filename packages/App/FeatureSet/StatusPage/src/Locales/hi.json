@@ -50,6 +50,7 @@
     "allClearTitle": "सब कुछ ठीक दिख रहा है",
     "allClearDescription": "इस स्थिति पृष्ठ में अभी तक कोई संसाधन नहीं जोड़ा गया है। कृपया डैशबोर्ड से कुछ संसाधन जोड़ें।",
     "allResourcesAre": "सभी संसाधन {{status}} हैं",
+    "allMonitoredResourcesAre": "जिन संसाधनों की निगरानी हो रही है, वे सभी {{status}} हैं",
     "someResourcesAre": "कुछ संसाधन {{status}} हैं",
     "someResourcesAreUnder": "कुछ संसाधन {{status}} में हैं",
     "noResourcesAreMonitored": "अभी किसी भी संसाधन की निगरानी नहीं हो रही है",

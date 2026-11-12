@@ -50,6 +50,7 @@
     "allClearTitle": "Alt ser godt ud",
     "allClearDescription": "Der er endnu ikke tilføjet nogen ressourcer til denne statusside. Tilføj venligst ressourcer fra kontrolpanelet.",
     "allResourcesAre": "Alle ressourcer er {{status}}",
+    "allMonitoredResourcesAre": "Alle overvågede ressourcer er {{status}}",
     "someResourcesAre": "Nogle ressourcer er {{status}}",
     "someResourcesAreUnder": "Nogle ressourcer er under {{status}}",
     "noResourcesAreMonitored": "Ingen ressourcer overvåges lige nu",

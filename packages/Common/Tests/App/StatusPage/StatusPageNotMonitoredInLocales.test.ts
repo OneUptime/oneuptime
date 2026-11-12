@@ -8,10 +8,12 @@ import path from "path";
  * A status page draws a resource nothing checks - its monitor's monitoring
  * is off, or every monitor of its monitor group has it off - as Not
  * monitored (overview.notMonitored), and a page nothing on which is checked
- * says so in its banner (overview.noResourcesAreMonitored). Both are said in
- * each of the page's languages, and Not monitored in the very words the
- * Dashboard uses for a monitor whose monitoring is off, so a team reads the
- * same thing on both.
+ * says so in its banner (overview.noResourcesAreMonitored). A page whose
+ * checked resources are all operational, beside one drawn as Not monitored,
+ * says all the monitored ones are (overview.allMonitoredResourcesAre) - not
+ * that all of them are. Each is said in each of the page's languages, and
+ * Not monitored in the very words the Dashboard uses for a monitor whose
+ * monitoring is off, so a team reads the same thing on both.
  */
 
 const STATUS_PAGE_LOCALES: string = path.resolve(
@@ -80,6 +82,9 @@ describe("the status page's Not monitored words", () => {
     expect(ENGLISH["noResourcesAreMonitored"]).toBe(
       "No Resources are monitored right now",
     );
+    expect(ENGLISH["allMonitoredResourcesAre"]).toBe(
+      "All monitored Resources are {{status}}",
+    );
   });
 
   test.each(LANGUAGES)(
@@ -133,6 +138,37 @@ describe("the status page's Not monitored words", () => {
       expect(keys.indexOf("noResourcesAreMonitored")).toBe(
         keys.indexOf("someResourcesAreUnder") + 1,
       );
+      expect(keys.indexOf("allMonitoredResourcesAre")).toBe(
+        keys.indexOf("allResourcesAre") + 1,
+      );
+    },
+  );
+
+  test.each(LANGUAGES)(
+    "%s says all the monitored Resources are a status in words of its own, the status filled in once",
+    (language: string) => {
+      const overview: Record<string, unknown> = overviewOf(language);
+      const value: unknown = overview["allMonitoredResourcesAre"];
+
+      expect({ language, type: typeof value }).toEqual({
+        language,
+        type: "string",
+      });
+      expect(value as string).toBe((value as string).trim());
+      // The one placeholder the page fills, once, and no markup.
+      expect((value as string).match(/{{\s*status\s*}}/g)).toEqual([
+        "{{status}}",
+      ]);
+      expect((value as string).replace("{{status}}", "")).not.toMatch(/[{}<>]/);
+      // Not the line for a page whose every resource is monitored.
+      expect(value).not.toBe(overview["allResourcesAre"]);
+
+      if (language !== "en") {
+        expect({ language, value }).not.toEqual({
+          language,
+          value: ENGLISH["allMonitoredResourcesAre"],
+        });
+      }
     },
   );
 });
