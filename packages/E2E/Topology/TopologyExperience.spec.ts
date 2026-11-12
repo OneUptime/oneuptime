@@ -344,6 +344,152 @@ test("a self-hosted estate before the fix: no calls explained, pods grouped, old
   await screenshot(page, "legacy-infrastructure-inactive-synthetic");
 });
 
+/*
+ * The Infrastructure list fits its pane in every language, so each row's
+ * Last seen and chevron are in view without scrolling it sideways (#7103).
+ * The self-hosted estate's oneuptime-app hosts, with the clock two months
+ * on, last seen 60 to 86 days ago: Russian's "83 дня назад" is the widest
+ * age, and its headers' longest words ("Содержит", "Запущенные",
+ * "появление") the widest of every language's. At 32px between columns
+ * that list was 622px in its 608px pane at 1280, and beside a 1024px
+ * window's side menu the tree left every language's list a 352px pane.
+ */
+const LIST_FIT_LANGUAGES: Array<string> = [
+  "en",
+  "de",
+  "fr",
+  "ru",
+  "hi",
+  "ar",
+  "fa",
+];
+
+async function openLegacyHostsList(
+  page: Page,
+  language: string,
+  width: number,
+): Promise<void> {
+  await page.setViewportSize({ width: width, height: 900 });
+  await page.clock.setFixedTime(new Date("2026-11-06T10:00:00Z"));
+  await page.goto(
+    `${ROUTE}?tab=Infrastructure&dataset=selfHostedLegacy&lang=${language}`,
+  );
+  await expect(page.locator("html")).toHaveAttribute("lang", language);
+  await page.getByTestId("topology-show-inactive").check();
+  await infrastructureRows(page)
+    .filter({ hasText: "oneuptime-app" })
+    .first()
+    .click();
+  await expect(page.getByTestId("infrastructure-scope-title")).toHaveText(
+    "oneuptime-app",
+  );
+  await expect(infrastructureRows(page)).toHaveCount(50);
+}
+
+async function expectListFitsItsPane(page: Page, label: string): Promise<void> {
+  const table: ReturnType<Page["getByTestId"]> = page.getByTestId(
+    "infrastructure-table",
+  );
+  const pane: ReturnType<Page["locator"]> = table.locator("xpath=..");
+
+  // The pane the list scrolls in, read until the page has settled.
+  await expect
+    .poll(
+      async (): Promise<number> => {
+        return pane.evaluate((element: Element): number => {
+          return element.scrollWidth - element.clientWidth;
+        });
+      },
+      { message: `${label}: the Infrastructure list scrolls sideways` },
+    )
+    .toBe(0);
+  await expectNoSidewaysScroll(page, { message: label });
+
+  // The first row's chevron is inside the pane, whichever side it is on.
+  const [paneBox, chevronBox] = await boxesInOneFrame([
+    pane,
+    infrastructureRows(page).first().locator("td").last(),
+  ]);
+  expect(chevronBox!.x, `${label}: the chevron's start`).toBeGreaterThanOrEqual(
+    paneBox!.x - 1,
+  );
+  expect(
+    chevronBox!.x + chevronBox!.width,
+    `${label}: the chevron's end`,
+  ).toBeLessThanOrEqual(paneBox!.x + paneBox!.width + 1);
+
+  // Nothing is cut to make it fit: each header and each age is whole.
+  const overflowing: Array<string> = await table.evaluate(
+    (element: Element): Array<string> => {
+      return Array.from(
+        element.querySelectorAll(
+          "thead th, [data-testid=infrastructure-last-seen-age], [data-testid=infrastructure-last-seen-status]",
+        ),
+      )
+        .filter((cell: Element): boolean => {
+          return cell.scrollWidth > cell.clientWidth + 1;
+        })
+        .map((cell: Element): string => {
+          return cell.textContent || "";
+        });
+    },
+  );
+  expect(overflowing, `${label}: headers or ages cut short`).toEqual([]);
+}
+
+test("the Infrastructure list fits its pane at 1280 pixels in every language (#7103)", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  for (const language of LIST_FIT_LANGUAGES) {
+    await openLegacyHostsList(page, language, 1280);
+    await expectListFitsItsPane(page, `${language} at 1280`);
+
+    // The tree beside the list, where the window has the room.
+    const [treeBox, listBox] = await boxesInOneFrame([
+      page.getByTestId("infrastructure-panes").locator("aside"),
+      page.getByTestId("infrastructure-table"),
+    ]);
+    const isBeside: boolean =
+      treeBox!.x + treeBox!.width <= listBox!.x + 1 ||
+      listBox!.x + listBox!.width <= treeBox!.x + 1;
+    expect(
+      isBeside,
+      `${language} at 1280: the tree beside the list, not over it`,
+    ).toBe(true);
+    expect(treeBox!.y + treeBox!.height).toBeGreaterThan(listBox!.y);
+
+    if (language === "ru" || language === "de") {
+      await screenshot(page, `infrastructure-list-fits-${language}-1280`);
+    }
+  }
+});
+
+test("beside a 1024 pixel window's side menu the tree is over the Infrastructure list, which fits (#7103)", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  for (const language of ["en", "de", "ru", "ar"]) {
+    await openLegacyHostsList(page, language, 1024);
+    await expectListFitsItsPane(page, `${language} at 1024`);
+
+    const [treeBox, listBox] = await boxesInOneFrame([
+      page.getByTestId("infrastructure-panes").locator("aside"),
+      page.getByTestId("infrastructure-table"),
+    ]);
+    expect(
+      treeBox!.y + treeBox!.height,
+      `${language} at 1024: the tree over the list`,
+    ).toBeLessThanOrEqual(listBox!.y);
+
+    if (language === "en") {
+      await screenshot(page, "infrastructure-list-fits-en-1024");
+    }
+  }
+});
+
 test("a self-hosted estate after the fix: databases and APIs on the map, workloads by deployment", async ({
   page,
 }: {
