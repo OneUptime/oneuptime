@@ -130,7 +130,7 @@ jest.mock("@opentelemetry/sdk-node", () => {
 jest.mock("../../../Server/Utils/GracefulShutdown", () => {
   const actual: { ShutdownPriority: unknown } = jest.requireActual(
     "../../../Server/Utils/GracefulShutdown",
-  );
+  ) as { ShutdownPriority: unknown };
 
   return {
     __esModule: true,
