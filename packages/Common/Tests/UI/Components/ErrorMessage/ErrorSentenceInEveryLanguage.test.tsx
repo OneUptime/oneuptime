@@ -15,7 +15,13 @@ import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import React from "react";
 import "@testing-library/jest-dom";
-import { act, cleanup, render, RenderResult } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  render,
+  RenderResult,
+  within,
+} from "@testing-library/react";
 import {
   afterAll,
   afterEach,
@@ -170,6 +176,47 @@ describe("the languages", () => {
   });
 });
 
+describe("a sentence the reader's language has no wording of", () => {
+  test("is English throughout: the card's words, the error's and where to look", async () => {
+    await readIn("de");
+
+    const locale: Record<string, string> = readDashboardLocale("de");
+    const notAKey: string = "Couldn't read the review harness. {{error}}";
+
+    expect(locale[notAKey]).toBeUndefined();
+
+    const result: RenderResult = render(
+      <div>
+        <p data-testid="english">
+          <ErrorSentence template={notAKey} error={WITH_REFERENCE} />
+        </p>
+        <p data-testid="german">
+          <ErrorSentence template={WHO_IS_TOLD} error={WITH_REFERENCE} />
+        </p>
+      </div>,
+    );
+
+    const english: HTMLElement = result.getByTestId("english");
+
+    expect(
+      within(english).getByTestId("error-where-to-look").textContent,
+    ).toBe(
+      `${UnexplainedErrorWords.adminWhereToLookWithReference} ${UnexplainedErrorWords.openHealth}`,
+    );
+    expect(english.textContent).toContain(UnexplainedErrorWords.serverWhy);
+
+    const german: HTMLElement = result.getByTestId("german");
+
+    expect(
+      within(german).getByTestId("error-where-to-look").textContent,
+    ).toBe(
+      `${locale[UnexplainedErrorWords.adminWhereToLookWithReference]!} ${locale[UnexplainedErrorWords.openHealth]!}`,
+    );
+
+    await readIn("en");
+  });
+});
+
 describe.each(["en", ...DASHBOARD_LANGUAGES])("in %s", (language: string) => {
   test("the who-is-told sentence reads wholly in the language, the error's words its own", async () => {
     await readIn(language);
@@ -218,6 +265,19 @@ describe.each(["en", ...DASHBOARD_LANGUAGES])("in %s", (language: string) => {
       if (whereToLook) {
         expect(text).toContain(whereToLook);
         expect(text).toContain(locale[UnexplainedErrorWords.openHealth]!);
+
+        // A line of its own after the card's whole sentence.
+        const line: HTMLElement = result.getByTestId("error-where-to-look");
+        const sentence: string = withoutIsolateMarks(
+          (result.getByTestId("sentence").textContent || "").replace(
+            line.textContent || "",
+            "",
+          ),
+        ).trim();
+
+        expect(result.getByTestId("sentence").lastElementChild).toBe(line);
+        expect(sentence.endsWith(after.trim())).toBe(true);
+        expect(sentence).not.toContain(whereToLook);
       }
 
       // Never the fixed English the error came as.

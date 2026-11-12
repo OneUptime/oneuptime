@@ -221,6 +221,33 @@ describe("a server failure with its reference", () => {
 
     expect(screen.queryByTestId("error-where-to-look")).toBeNull();
   });
+
+  /*
+   * Where to look is advice for one reader, not part of what the card
+   * says: a line of its own after the card's whole sentence. Inside the
+   * {{error}} slot, a sentence that goes on after the error ran on from
+   * "Open OneUptime Health" into "Showing the last known status".
+   */
+  test("where to look is a line of its own after the card's whole sentence, never inside it", () => {
+    isMasterAdmin = true;
+
+    const sentence: HTMLElement = drawSentence(
+      WITH_REFERENCE,
+      "{{error}} Showing the last known status; this page retries on its own.",
+    );
+    const whereToLook: HTMLElement = screen.getByTestId("error-where-to-look");
+
+    expect(
+      within(screen.getByTestId("error-in-sentence")).queryByTestId(
+        "error-where-to-look",
+      ),
+    ).toBeNull();
+    expect(sentence.lastElementChild).toBe(whereToLook);
+    expect(whereToLook).toHaveClass("block");
+    expect(sentence.textContent).toBe(
+      `${UnexplainedErrorWords.serverWhy} ${UnexplainedErrorWords.serverNextWithReferenceSelfHosted} ${REFERENCE}. Showing the last known status; this page retries on its own.${UnexplainedErrorWords.adminWhereToLookWithReference} ${UnexplainedErrorWords.openHealth}`,
+    );
+  });
 });
 
 describe("the other errors nobody explained", () => {
@@ -352,5 +379,42 @@ describe("the sentence around the error", () => {
     );
 
     expect(screen.getByTestId("alone").textContent).toBe(SERVER_DOWN_WORDS);
+  });
+
+  test("ErrorInSentence says where to look only when asked, for an error drawn on its own", () => {
+    isMasterAdmin = true;
+
+    render(
+      <div>
+        <p data-testid="in-a-sentence">
+          <ErrorInSentence message={WITH_REFERENCE} />
+        </p>
+        <p data-testid="on-its-own">
+          <ErrorInSentence message={WITH_REFERENCE} showWhereToLook={true} />
+        </p>
+        <p data-testid="explained">
+          <ErrorInSentence message="Monitor not found." showWhereToLook={true} />
+        </p>
+      </div>,
+    );
+
+    expect(
+      within(screen.getByTestId("in-a-sentence")).queryByTestId(
+        "error-where-to-look",
+      ),
+    ).toBeNull();
+
+    const onItsOwn: HTMLElement = screen.getByTestId("on-its-own");
+
+    expect(onItsOwn.lastElementChild).toBe(
+      within(onItsOwn).getByTestId("error-where-to-look"),
+    );
+    expect(within(onItsOwn).getByTestId("error-open-health")).toHaveAttribute(
+      "href",
+      expect.stringContaining("/admin/health"),
+    );
+    expect(screen.getByTestId("explained").textContent).toBe(
+      "Monitor not found.",
+    );
   });
 });
