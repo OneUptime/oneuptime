@@ -9,7 +9,10 @@ import Icon, { ThickProp } from "../Icon/Icon";
 import MoreMenu from "../MoreMenu/MoreMenu";
 import MoreMenuItem from "../MoreMenu/MoreMenuItem";
 import IsolatedLine from "../IsolatedText/IsolatedLine";
-import { RESOURCE_CHIP_NAME_CLASS_NAME } from "./ResourceNameClassNames";
+import {
+  RESOURCE_CHIP_NAME_CLASS_NAME,
+  RESOURCE_CHIP_TEXT_CLASS_NAME,
+} from "./ResourceNameClassNames";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import {
   translatableTerm,
@@ -277,7 +280,14 @@ const ResourceGrid: FunctionComponent<ComponentProps> = (
       >
         {renderSelect(statusPageResource)}
 
-        <div className="min-w-0 flex-1">
+        {/*
+         * Its words never widen the column (RESOURCE_CHIP_TEXT_CLASS_NAME):
+         * a name too long for it ends in "...".
+         */}
+        <div
+          className={RESOURCE_CHIP_TEXT_CLASS_NAME}
+          data-testid="status-page-resource-grid-chip-text"
+        >
           {/*
            * One line that ends in "...", as a list's row draws it: the
            * bare name's span laid out as a block that truncates, on a line

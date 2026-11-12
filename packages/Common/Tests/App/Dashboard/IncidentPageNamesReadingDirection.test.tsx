@@ -13,6 +13,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
 import { createInstance, i18n } from "i18next";
@@ -37,7 +38,8 @@ import { I18nextProvider } from "react-i18next";
  *   - the on-call policies an incident or an alert paged, listed the
  *     reader's way ("، " between them in Arabic and Persian);
  *   - a note template's name and first line, and a runbook's name and
- *     description, cut short at their own end.
+ *     description, cut short at their own end, with room to show: the
+ *     runbook's Run keeps its own width beside them, on a phone too.
  *
  * A name that reads the page's way is drawn exactly as it was. The channel
  * card's people and a call's title are in RecordChannelMembersCard.test
@@ -92,12 +94,17 @@ import OnCallDutyPoliciesView from "../../../../App/FeatureSet/Dashboard/src/Com
 import NoteTemplateMenu, {
   NoteTemplateOption,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/EventNotes/NoteTemplateMenu";
-import RunbookPicker from "../../../../App/FeatureSet/Dashboard/src/Components/Runbook/RunbookPicker";
+import RunbookPicker, {
+  RUNBOOK_PICKER_RUN_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Runbook/RunbookPicker";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import Runbook from "../../../Models/DatabaseModels/Runbook";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
+import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import { createTranslator } from "../../../UI/Utils/TranslateTemplate";
 import {
@@ -748,4 +755,103 @@ describe("a runbook's name and description in the runbook picker", () => {
     );
     expect(nameLine(ARABIC_NAME)).toHaveAttribute("dir", "rtl");
   });
+
+  // The box of the runbook's row its Run sits in.
+  const runBoxOf: (name: string) => HTMLElement = (
+    name: string,
+  ): HTMLElement => {
+    const row: HTMLElement = screen
+      .getAllByTestId("runbook-picker-run")
+      .map((each: HTMLElement): HTMLElement => {
+        return each.parentElement as HTMLElement;
+      })
+      .find((each: HTMLElement): boolean => {
+        return within(each)
+          .getAllByTestId("runbook-picker-name")
+          .some((line: HTMLElement): boolean => {
+            return line.textContent === name;
+          });
+      })!;
+
+    return within(row).getByTestId("runbook-picker-run");
+  };
+
+  /*
+   * A button is as wide as its row below md. Beside a runbook's words,
+   * Run took the whole row on a phone, and no runbook showed its name or
+   * what it does. In a box that keeps its own width, Run is as wide as its
+   * word, and the runbook's words have the rest of the row.
+   */
+  test("each runbook's Run keeps its own width", () => {
+    expect(RUNBOOK_PICKER_RUN_CLASS_NAME).toBe("shrink-0");
+  });
+
+  test.each(["en", ...RIGHT_TO_LEFT_LANGUAGES])(
+    "%s: every runbook's Run sits in a box of its own width, after the runbook's words",
+    async (language: string) => {
+      await openPicker(language);
+
+      expect(screen.getAllByTestId("runbook-picker-run")).toHaveLength(2);
+
+      for (const name of [ENGLISH_NAME, ARABIC_NAME]) {
+        const run: HTMLElement = runBoxOf(name);
+        const row: HTMLElement = run.parentElement as HTMLElement;
+        const words: HTMLElement = row.firstElementChild as HTMLElement;
+
+        // The runbook's words first, taking what room is left, then its Run.
+        expect(row).toHaveClass("flex");
+        expect(Array.from(row.children)).toEqual([words, run]);
+        expect(words.getAttribute("class")).toBe("min-w-0 flex-1");
+        expect(
+          within(words).getByTestId("runbook-picker-name"),
+        ).toHaveTextContent(name);
+
+        expect(run.getAttribute("class")).toBe(RUNBOOK_PICKER_RUN_CLASS_NAME);
+        expect(Array.from(run.children)).toEqual([
+          within(run).getByRole("button", { name: "Run" }),
+        ]);
+      }
+    },
+  );
+
+  test.each(["en", ...RIGHT_TO_LEFT_LANGUAGES])(
+    "%s: Run, in its own box, still starts its own runbook",
+    async (language: string) => {
+      const english: Runbook = runbookNamed(ENGLISH_NAME, ENGLISH_DESCRIPTION);
+      const arabic: Runbook = runbookNamed(ARABIC_NAME);
+
+      jest
+        .spyOn(ModelAPI, "getList")
+        .mockImplementation(async (): Promise<ListResult<Runbook>> => {
+          return { data: [english, arabic], count: 2, skip: 0, limit: 200 };
+        });
+
+      const post: jest.SpiedFunction<typeof API.post> = jest
+        .spyOn(API, "post")
+        .mockResolvedValue(new HTTPResponse<JSONObject>(200, {}, {}));
+      const onClose: jest.Mock<() => void> = jest.fn<() => void>();
+      const onStarted: jest.Mock<() => void> = jest.fn<() => void>();
+
+      drawOn(
+        language,
+        <RunbookPicker isOpen={true} onClose={onClose} onStarted={onStarted} />,
+      );
+
+      await screen.findAllByTestId("runbook-picker-name");
+
+      fireEvent.click(
+        within(runBoxOf(ARABIC_NAME)).getByRole("button", { name: "Run" }),
+      );
+
+      await waitFor(() => {
+        expect(onStarted).toHaveBeenCalledTimes(1);
+      });
+
+      expect(post).toHaveBeenCalledTimes(1);
+      expect(post.mock.calls[0]![0].url.toString()).toContain(
+        `/run/${arabic._id!.toString()}`,
+      );
+      expect(onClose).toHaveBeenCalledTimes(1);
+    },
+  );
 });

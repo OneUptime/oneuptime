@@ -28,3 +28,18 @@ export const RESOURCE_BARE_NAME_CLASS_NAME: string =
  * in the chip's smaller type.
  */
 export const RESOURCE_CHIP_NAME_CLASS_NAME: string = `truncate font-medium text-gray-900 ${RESOURCE_BARE_NAME_CLASS_NAME}`;
+
+/*
+ * A chip's words in a grid's cell (ResourceGrid): its name and the name it
+ * is shown under. A table's column is as wide as the longest line in it,
+ * and these are lines that do not wrap, so a long name widened its column
+ * instead of ending in "...": the grid ran past its card at any width, the
+ * next column was cut off mid-word, and on an Arabic or Persian phone,
+ * where the grid scrolls from the right, an English name showed its end
+ * and not its start. Contained in the inline axis (contain: inline-size),
+ * the words never size their column: it is as wide as its heading and its
+ * share of the grid, and a name too long for it ends in "..." at its own
+ * end, the whole of it on hover.
+ */
+export const RESOURCE_CHIP_TEXT_CLASS_NAME: string =
+  "min-w-0 flex-1 [contain:inline-size]";

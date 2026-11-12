@@ -71,6 +71,7 @@ import ResourceGrid from "../../../UI/Components/StatusPage/ResourceGrid";
 import {
   RESOURCE_BARE_NAME_CLASS_NAME,
   RESOURCE_CHIP_NAME_CLASS_NAME,
+  RESOURCE_CHIP_TEXT_CLASS_NAME,
 } from "../../../UI/Components/StatusPage/ResourceNameClassNames";
 import StatusPageResourceName, {
   STATUS_PAGE_RESOURCE_NAME_TEST_ID,
@@ -108,6 +109,8 @@ const GRID_DISPLAY_NAME_TEST_ID: string =
   "status-page-resource-grid-display-name";
 const GRID_ORPHAN_NAME_TEST_ID: string =
   "status-page-resource-grid-orphan-name";
+const GRID_CHIP_TEST_ID: string = "status-page-resource-grid-cell-item";
+const GRID_CHIP_TEXT_TEST_ID: string = "status-page-resource-grid-chip-text";
 
 const RIGHT_TO_LEFT_LANGUAGES: Array<string> = ["ar", "fa"];
 
@@ -414,6 +417,19 @@ describe("the classes a resource's name is drawn with", () => {
     );
     expect(descendantRulesOf(RESOURCE_CHIP_NAME_CLASS_NAME)).toEqual(
       BARE_NAME_RULES,
+    );
+  });
+
+  /*
+   * A grid's column is as wide as the longest line in it, and a chip's
+   * names are lines that never wrap: a long one widened its column, the
+   * grid ran past its card and the next column was cut off mid-word, and
+   * no name ever ended in "...". Contained in the inline axis, the chip's
+   * words never size their column; they take the room the chip has left.
+   */
+  test("a grid's chip holds its words in the room it has left, never sized by them", () => {
+    expect(RESOURCE_CHIP_TEXT_CLASS_NAME).toBe(
+      "min-w-0 flex-1 [contain:inline-size]",
     );
   });
 });
@@ -733,6 +749,88 @@ describe("a list's row: the name published on the status page", () => {
 });
 
 describe("a grid's chip: its name ends in '...' at its own end", () => {
+  test.each(["en", ...RIGHT_TO_LEFT_LANGUAGES])(
+    "on an %s page a long name never widens its column: the chip's words are contained, its column as wide as its heading",
+    (language: string) => {
+      drawGrid({
+        language: language,
+        resources: [
+          monitorResource({
+            name: ENGLISH_MONITOR,
+            displayName: ENGLISH_PUBLISHED,
+            rowAxisValue: "EU",
+            columnAxisValue: "API",
+          }),
+          monitorResource({
+            name: ARABIC_MONITOR,
+            rowAxisValue: "EU",
+            columnAxisValue: "API",
+          }),
+        ],
+      });
+
+      const chips: Array<HTMLElement> =
+        screen.getAllByTestId(GRID_CHIP_TEST_ID);
+
+      expect(chips).toHaveLength(2);
+
+      for (const chip of chips) {
+        const words: HTMLElement = within(chip).getByTestId(
+          GRID_CHIP_TEXT_TEST_ID,
+        );
+
+        // Between the chip's box and its actions, which keep their width.
+        expect(words.parentElement).toBe(chip);
+        expect(words.getAttribute("class")).toBe(RESOURCE_CHIP_TEXT_CLASS_NAME);
+        expect(words.previousElementSibling).toBe(
+          within(chip).getByTestId("status-page-resource-grid-select"),
+        );
+        expect(words.nextElementSibling).toBe(
+          within(chip).getByTestId("status-page-resource-grid-actions"),
+        );
+
+        for (const side of [
+          words.previousElementSibling!,
+          words.nextElementSibling!,
+        ]) {
+          expect(side).toHaveClass("flex-shrink-0");
+        }
+        expect(within(words).getByTestId(GRID_NAME_TEST_ID).parentElement).toBe(
+          words,
+        );
+
+        // The chip is not contained: its box and its actions size it.
+        expect(chip.getAttribute("class")).not.toContain("contain");
+      }
+
+      /*
+       * Both of a chip's names are in its words: the monitor's, and the
+       * name it is shown under on the status page.
+       */
+      const english: HTMLElement = boxReading(
+        GRID_NAME_TEST_ID,
+        ENGLISH_MONITOR,
+      ).parentElement as HTMLElement;
+
+      expect(english).toHaveAttribute("data-testid", GRID_CHIP_TEXT_TEST_ID);
+      expect(Array.from(english.children)).toEqual([
+        boxReading(GRID_NAME_TEST_ID, ENGLISH_MONITOR),
+        boxReading(GRID_DISPLAY_NAME_TEST_ID, ENGLISH_PUBLISHED),
+      ]);
+
+      /*
+       * With its words out of the count, a column is as wide as its
+       * heading asks, or its share of the grid: never too narrow for a
+       * name to show its start.
+       */
+      const heading: HTMLElement = screen.getByText("API", {
+        selector: "thead th",
+      });
+
+      expect(heading).toHaveClass("min-w-[13rem]");
+    },
+  );
+
   test.each(["en", ...RIGHT_TO_LEFT_LANGUAGES])(
     "on an %s page the chip lays the bare name's span out as a block that truncates",
     (language: string) => {

@@ -28,6 +28,13 @@ import React, {
   useState,
 } from "react";
 
+/*
+ * Where each runbook's Run sits: at its own width beside the runbook. A
+ * button is as wide as its row below md, which beside the runbook's name
+ * left the name no room at all.
+ */
+export const RUNBOOK_PICKER_RUN_CLASS_NAME: string = "shrink-0";
+
 export interface ComponentProps {
   isOpen: boolean;
   onClose: () => void;
@@ -247,18 +254,26 @@ const RunbookPicker: FunctionComponent<ComponentProps> = (
                       {/*
                        * One Run per row, so a plain one: a filled button on
                        * every row is as many "main actions" as there are
-                       * runbooks.
+                       * runbooks. It keeps its own width: a button is as
+                       * wide as its row on a phone, and beside the runbook
+                       * it took the whole row, so no runbook showed its
+                       * name or what it does.
                        */}
-                      <Button
-                        title={isStarting ? "Starting..." : "Run"}
-                        buttonStyle={ButtonStyleType.NORMAL}
-                        buttonSize={ButtonSize.Small}
-                        icon={IconProp.Play}
-                        onClick={() => {
-                          void startRunbook(rbId);
-                        }}
-                        disabled={startingRunbookId !== null}
-                      />
+                      <div
+                        className={RUNBOOK_PICKER_RUN_CLASS_NAME}
+                        data-testid="runbook-picker-run"
+                      >
+                        <Button
+                          title={isStarting ? "Starting..." : "Run"}
+                          buttonStyle={ButtonStyleType.NORMAL}
+                          buttonSize={ButtonSize.Small}
+                          icon={IconProp.Play}
+                          onClick={() => {
+                            void startRunbook(rbId);
+                          }}
+                          disabled={startingRunbookId !== null}
+                        />
+                      </div>
                     </div>
                   </li>
                 );
