@@ -102,7 +102,13 @@
  *              (paging runs through a policy the reader may not see, an
  *              owner rule and a status page they may not see) | rules
  *              (owner rules add the owners it emails, and a second status
- *              page shows it through a monitor group).
+ *              page shows it through a monitor group) | gaps (the policy
+ *              pages Ben Ito as the next in Weekly Rotation's rotation,
+ *              and two targets of its first level reach nobody: Team Night
+ *              Shift has no members, and nobody is on call in schedule
+ *              Holiday Cover now). Each "why them" and "who is not paged"
+ *              comes as the server sends it: a code with its name, beside
+ *              its English.
  *   ?settings=1  the subject monitor's Settings page
  *              (/monitors/<id>/settings) is the production one rather than
  *              the stub every other page has: its Monitoring card, and the
@@ -342,7 +348,7 @@ const securityMode = ["news", "quiet"].includes(params.get("security"))
   ? params.get("security")
   : "none";
 // What "When this goes down" answers (?whoIsTold=).
-const whoIsToldMode = ["nobody", "hidden", "rules"].includes(
+const whoIsToldMode = ["nobody", "hidden", "rules", "gaps"].includes(
   params.get("whoIsTold"),
 )
   ? params.get("whoIsTold")
@@ -3306,6 +3312,29 @@ function whoIsTold(monitorId) {
         teamNames: ["Checkout SRE"],
       }
     : owners;
+  /*
+   * Why the policy pages Ben Ito, and the targets of its first level that
+   * reach nobody (?whoIsTold=gaps): codes with their names, beside the
+   * English, as OnCallTestPageService.readFirstLevel writes them.
+   */
+  const isGaps = whoIsToldMode === "gaps";
+  const benReachedThroughCode = isGaps
+    ? { code: "ScheduleNextInRotation", name: "Weekly Rotation" }
+    : { code: "Schedule", name: "Weekly Rotation" };
+  const notPagedCodes = isGaps
+    ? [
+        {
+          code: "TeamHasNoMembers",
+          teamName: "Night Shift",
+          message: "Team Night Shift has no members.",
+        },
+        {
+          code: "NobodyOnCall",
+          scheduleName: "Holiday Cover",
+          message: "Nobody is on call in schedule Holiday Cover now.",
+        },
+      ]
+    : [];
   const policy = {
     id: "5f000000-0000-4000-8000-0000000000a1",
     name: isHidden ? "" : "Primary On-Call",
@@ -3326,13 +3355,19 @@ function whoIsTold(monitorId) {
           {
             userId: "5f000000-0000-4000-8000-0000000000c2",
             name: "Ben Ito",
-            reachedThrough: "Schedule Weekly Rotation",
+            reachedThrough: isGaps
+              ? "Schedule Weekly Rotation (next in rotation)"
+              : "Schedule Weekly Rotation",
+            reachedThroughCode: benReachedThroughCode,
             channels: ["Push"],
             isFallback: true,
             isReachable: true,
           },
         ],
-    notPaged: [],
+    notPaged: notPagedCodes.map((notPaged) => {
+      return notPaged.message;
+    }),
+    notPagedCodes: isHidden ? [] : notPagedCodes,
   };
   const criteria = [
     {

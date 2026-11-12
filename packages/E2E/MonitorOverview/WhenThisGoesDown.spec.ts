@@ -15,10 +15,15 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
  * The side card says what happens when the monitor fails and who is told,
  * names each break in the chain with a link to the page that fixes it, and
  * opens the chain link by link. The fixture answers GET /who-is-told/
- * monitor/:id as the resolver does (?whoIsTold=pages|nobody|hidden|rules),
- * its breaks worked out by the same pure helper. Checked at 1440 and 390,
- * in the dark theme, and in German and Persian; screenshots go to
- * output/playwright/monitor-overview-ui.
+ * monitor/:id as the resolver does
+ * (?whoIsTold=pages|nobody|hidden|rules|gaps), its breaks worked out by the
+ * same pure helper. Checked at 1440 and 390, in the dark theme, and in
+ * German and Persian; screenshots go to output/playwright/monitor-overview-ui.
+ *
+ * Why the policy pages somebody, and which of its targets reach nobody,
+ * come as codes worded in the reader's language (#7217, #7261); each
+ * target that reaches nobody is a row of the policy's list with its
+ * warning where the people's icons are.
  *
  * The chain says the title the incident opens with and the owner rules
  * that add the owners it emails (#7076), and every status page that shows
@@ -97,7 +102,7 @@ test.afterEach(async ({ page }: { page: Page }) => {
 async function open(
   page: Page,
   options: {
-    whoIsTold?: "nobody" | "hidden" | "rules";
+    whoIsTold?: "nobody" | "hidden" | "rules" | "gaps";
     theme?: "dark";
     lang?: "de" | "fa";
     width?: number;
@@ -198,12 +203,15 @@ async function getRowNamesOverValues(card: Locator): Promise<Array<string>> {
 /*
  * How each row of the open chain is laid out - its name "over" its value or
  * "beside" it - and the rows whose value runs out of its criteria's box;
- * and each person's line whose icon is not beside the name.
+ * and each line of a policy's list - a person, or a target that reaches
+ * nobody - whose icon is not beside its words, or not at the line's start
+ * (the right on a right-to-left page).
  */
 async function getChainLayout(card: Locator): Promise<{
   rows: Array<string>;
   outOfTheirBox: Array<string>;
   iconsNotBesideTheName: Array<string>;
+  iconsNotAtTheStart: Array<string>;
 }> {
   return await card.evaluate(
     (
@@ -212,10 +220,12 @@ async function getChainLayout(card: Locator): Promise<{
       rows: Array<string>;
       outOfTheirBox: Array<string>;
       iconsNotBesideTheName: Array<string>;
+      iconsNotAtTheStart: Array<string>;
     } => {
       const rows: Array<string> = [];
       const outOfTheirBox: Array<string> = [];
       const iconsNotBesideTheName: Array<string> = [];
+      const iconsNotAtTheStart: Array<string> = [];
 
       for (const row of Array.from(
         element.querySelectorAll(
@@ -259,7 +269,9 @@ async function getChainLayout(card: Locator): Promise<{
       }
 
       for (const line of Array.from(
-        element.querySelectorAll('[data-testid="who-is-told-person"]'),
+        element.querySelectorAll(
+          '[data-testid="who-is-told-person"], [data-testid="who-is-told-not-paged-row"]',
+        ),
       )) {
         const icon: Element | undefined = line.children[0];
         const words: Element | undefined = line.children[1];
@@ -279,9 +291,19 @@ async function getChainLayout(card: Locator): Promise<{
         if (!isBeside || Math.abs(iconBox.top - wordsBox.top) > 6) {
           iconsNotBesideTheName.push(line.textContent || "");
         }
+
+        // Where the line starts: the left, or the right read from the right.
+        const isAtTheStart: boolean =
+          getComputedStyle(line).direction === "rtl"
+            ? iconBox.left >= wordsBox.right - 1
+            : iconBox.right <= wordsBox.left + 1;
+
+        if (!isAtTheStart) {
+          iconsNotAtTheStart.push(line.textContent || "");
+        }
       }
 
-      return { rows, outOfTheirBox, iconsNotBesideTheName };
+      return { rows, outOfTheirBox, iconsNotBesideTheName, iconsNotAtTheStart };
     },
   );
 }
@@ -566,6 +588,84 @@ test.describe("When this goes down", () => {
     expect(layout.iconsNotBesideTheName).toEqual([]);
     await expectNoSidewaysScroll(page, { message: "390 wide, chain open" });
     await shoot(card, "rules-390-chain");
+  });
+
+  /*
+   * Why a policy pages somebody and which of its targets reach nobody
+   * (#7217, #7261) come as codes, worded in the reader's language; each
+   * target that reaches nobody is a row of the policy's list, its warning
+   * where the people's icons are - on a Persian page at the right, where
+   * the line starts.
+   */
+  test("says why each is paged and who is not in the reader's words, each target that reaches nobody beside its warning", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    let card: Locator = await open(page, { whoIsTold: "gaps" });
+    await card.getByTestId("who-is-told-chain-toggle").click();
+    await expect(card.getByTestId("who-is-told-reached-through")).toHaveText([
+      "Schedule Weekly Rotation (next in rotation)",
+    ]);
+    await expect(card.getByTestId("who-is-told-not-paged")).toHaveText([
+      "Team Night Shift has no members.",
+      "Nobody is on call in schedule Holiday Cover now.",
+    ]);
+    // Rows of the policy's list, after its people.
+    await expect(
+      card.locator(
+        '[data-testid="who-is-told-policy"] ul > li[data-testid="who-is-told-not-paged-row"]',
+      ),
+    ).toHaveCount(2);
+    await expect(
+      card.locator('[data-testid="who-is-told-policy"] ul > li').last(),
+    ).toHaveAttribute("data-testid", "who-is-told-not-paged-row");
+
+    let layout: Awaited<ReturnType<typeof getChainLayout>> =
+      await getChainLayout(card);
+    expect(layout.iconsNotBesideTheName).toEqual([]);
+    expect(layout.iconsNotAtTheStart).toEqual([]);
+    await shoot(card, "gaps-1440-chain");
+
+    card = await open(page, { whoIsTold: "gaps", lang: "de" });
+    await card.getByTestId("who-is-told-chain-toggle").click();
+    await expect(card.getByTestId("who-is-told-reached-through")).toHaveText([
+      "Dienstplan Weekly Rotation (nächste in der Rotation)",
+    ]);
+    await expect(card.getByTestId("who-is-told-not-paged")).toHaveText([
+      "Team Night Shift hat keine Mitglieder.",
+      "Im Dienstplan Holiday Cover hat gerade niemand Bereitschaft.",
+    ]);
+    await shoot(card, "gaps-de-chain");
+
+    card = await open(page, { whoIsTold: "gaps", lang: "fa", width: 390 });
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    await card.getByTestId("who-is-told-chain-toggle").click();
+
+    const notPaged: Locator = card.getByTestId("who-is-told-not-paged");
+    await expect(notPaged).toHaveCount(2);
+    await expect(card.getByTestId("who-is-told-not-paged-row")).toHaveCount(2);
+    await expect(notPaged.nth(0)).toContainText("Night Shift");
+    await expect(notPaged.nth(0)).toContainText("عضوی ندارد");
+    await expect(notPaged.nth(1)).toContainText("Holiday Cover");
+    await expect(notPaged.nth(1)).toContainText("آنکال نیست");
+
+    // Persian sentences, read the page's way: no direction of their own.
+    for (const line of await notPaged.all()) {
+      await expect(line).not.toHaveAttribute("dir");
+    }
+
+    await expect(card).not.toContainText("has no members");
+    await expect(card).not.toContainText("next in rotation");
+
+    layout = await getChainLayout(card);
+    expect(layout.iconsNotBesideTheName).toEqual([]);
+    expect(layout.iconsNotAtTheStart).toEqual([]);
+    expect(layout.outOfTheirBox).toEqual([]);
+    await expectNoSidewaysScroll(page, {
+      message: "Persian, 390 wide, chain open with its gaps",
+    });
+    await shoot(card, "gaps-fa-390-chain");
   });
 
   test("a failed read says so, and Try again reads it again", async ({
