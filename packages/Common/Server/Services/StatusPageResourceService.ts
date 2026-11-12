@@ -336,7 +336,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (!statusPageId) {
       throw new BadDataException(
-        "Status Page Resource statusPageId is required",
+        "Pick the status page to add this resource to.",
       );
     }
 
@@ -350,7 +350,7 @@ export class Service extends ProjectReferencesService<Model> {
       createBy.props.tenantId || createBy.data.projectId;
 
     if (!projectId) {
-      throw new BadDataException("Status Page Resource projectId is required");
+      throw new BadDataException("The status page resource has no project.");
     }
 
     const target: StatusPageResourceTarget = this.getResourceMonitorTarget(
@@ -443,7 +443,7 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnDelete<Model>> {
     if (!deleteBy.query._id && !deleteBy.props.isRoot) {
       throw new BadDataException(
-        "_id should be present when deleting status page resource. Please try the delete with objectId",
+        "Name the status page resource to delete by its ID.",
       );
     }
 

@@ -2,6 +2,7 @@ import UserMiddleware from "../Middleware/UserAuthorization";
 import DatabaseService from "../Services/DatabaseService";
 import Select from "../Types/Database/Select";
 import ChannelVerification, {
+  ChannelVerificationMessages,
   ChannelVerificationStatus,
   VerifiableChannelModel,
 } from "../Utils/ChannelVerification";
@@ -96,7 +97,7 @@ export default class ChannelVerificationStatusRoute {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Invalid item ID"),
+              new BadDataException(ChannelVerificationMessages.noItem),
             );
           }
 
@@ -107,7 +108,7 @@ export default class ChannelVerificationStatusRoute {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Invalid user ID"),
+              new BadDataException(ChannelVerificationMessages.notSignedIn),
             );
           }
 
@@ -125,15 +126,16 @@ export default class ChannelVerificationStatusRoute {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Item not found"),
+              new BadDataException(ChannelVerificationMessages.notFound),
             );
           }
 
+          // Somebody else's: answered like a row that does not exist.
           if (item.userId?.toString() !== userId.toString()) {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Invalid user ID"),
+              new BadDataException(ChannelVerificationMessages.notFound),
             );
           }
 
@@ -146,7 +148,7 @@ export default class ChannelVerificationStatusRoute {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Item not found"),
+              new BadDataException(ChannelVerificationMessages.notFound),
             );
           }
 

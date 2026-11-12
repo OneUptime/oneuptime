@@ -50,6 +50,14 @@ import {
 } from "../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 import Timezone from "../../../Types/Timezone";
 import UserNotificationStatus from "../../../Types/UserNotification/UserNotificationStatus";
+import {
+  MAX_NOTIFICATION_WRITE_ATTEMPTS,
+  ON_CALL_NOTIFICATION_NOT_ACKNOWLEDGED_MESSAGE,
+} from "../../../Server/Utils/OnCall/OnCallNotificationStatus";
+import {
+  UpdateOneByInput,
+  updateNotificationWhileStill,
+} from "../TestingUtils/OnCallTimelineRows";
 import { beforeAll, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -153,6 +161,9 @@ function timelineItem(
 ): UserOnCallLogTimeline {
   const item: UserOnCallLogTimeline = new UserOnCallLogTimeline();
   item.id = ITEM;
+  // As the send left it, at the first version.
+  item.status = UserNotificationStatus.Sent;
+  item.version = 1;
   item.projectId = PROJECT;
   item.userId = PERSON;
   item.onCallDutyPolicyExecutionLogId = RUN;
@@ -178,6 +189,10 @@ function timelineItem(
   item.user = user;
 
   Object.assign(item, overrides);
+
+  if (overrides.isAcknowledged && !overrides.status) {
+    item.status = UserNotificationStatus.Acknowledged;
+  }
 
   return item;
 }
@@ -224,7 +239,11 @@ let recordState: jest.SpyInstance;
 let previewSpy: jest.SpyInstance;
 let updateSpy: jest.SpyInstance;
 
+// The notification every read returns, and every write lands on.
+let currentItem: UserOnCallLogTimeline;
+
 function givenItem(item: UserOnCallLogTimeline): void {
+  currentItem = item;
   findItem.mockResolvedValue(item);
 }
 
@@ -338,9 +357,15 @@ beforeEach(() => {
     passedOn: false,
   });
 
+  /*
+   * The acknowledgement is written as OnCallNotificationStatus writes it:
+   * only while the notification still holds the status and the version read.
+   */
   updateSpy = jest
-    .spyOn(UserOnCallLogTimelineService, "updateOneById")
-    .mockResolvedValue(1);
+    .spyOn(UserOnCallLogTimelineService, "updateOneBy")
+    .mockImplementation((async (updateBy: UpdateOneByInput) => {
+      return updateNotificationWhileStill(currentItem, updateBy);
+    }) as never);
 });
 
 describe("the acknowledge page links the record in the Dashboard", () => {
@@ -827,7 +852,11 @@ describe("the address the Acknowledge button opens asks again", () => {
     expect(updateSpy).toHaveBeenCalledTimes(1);
     expect(updateSpy.mock.calls[0]![0]).toEqual(
       expect.objectContaining({
-        id: ITEM,
+        query: {
+          _id: ITEM.toString(),
+          status: UserNotificationStatus.Sent,
+          version: 1,
+        },
         data: expect.objectContaining({
           isAcknowledged: true,
           status: UserNotificationStatus.Acknowledged,
@@ -925,5 +954,136 @@ describe("the address the Acknowledge button opens asks again", () => {
 
     expect(updateSpy).toHaveBeenCalledTimes(1);
     expect(Response.redirect).toHaveBeenCalledTimes(1);
+  });
+});
+
+/*
+ * Issue #7082: the press is asked again as it lands, and the acknowledgement
+ * is then written at the status and the version read
+ * (OnCallNotificationStatus.recordAcknowledgement). A second press landing
+ * between the two - the button pressed twice, the link open on two phones -
+ * wins; this one acknowledges nothing again, and says what the page says
+ * now.
+ */
+describe("two presses at once", () => {
+  // The other press: it lands just before this one's write.
+  function pressedMeanwhile(): void {
+    let landed: boolean = false;
+
+    updateSpy.mockImplementation((async (updateBy: UpdateOneByInput) => {
+      if (!landed) {
+        landed = true;
+        updateNotificationWhileStill(currentItem, {
+          query: {
+            _id: ITEM.toString(),
+            status: currentItem.status,
+            version: currentItem.version,
+          },
+          data: {
+            status: UserNotificationStatus.Acknowledged,
+            statusMessage: "Notification Acknowledged",
+            isAcknowledged: true,
+            acknowledgedAt: ACKNOWLEDGED_AT,
+          },
+        });
+      }
+
+      return updateNotificationWhileStill(currentItem, updateBy);
+    }) as never);
+  }
+
+  test("the other press wins: this one is told the page was acknowledged already, and opens nothing", async () => {
+    pressedMeanwhile();
+
+    await callRoute(ACKNOWLEDGE_ROUTE);
+
+    // Written once - by the other press - and refused here at the version read.
+    expect(updateSpy).toHaveBeenCalledTimes(1);
+    expect(currentItem.acknowledgedAt).toBe(ACKNOWLEDGED_AT);
+    expect(Response.redirect).not.toHaveBeenCalled();
+
+    const { path, variables } = rendered();
+
+    expect(path).toContain(MESSAGE_VIEW);
+    expect(variables["title"]).toBe("Already acknowledged - Checkout is down");
+    // When the other press acknowledged it.
+    expect(variables["message"]).toBe(
+      `You already acknowledged Incident INC-7 at ${kept("2:15 AM UTC")}.`,
+    );
+    expect(variables["viewDetailsText"]).toBe("View Incident");
+  });
+
+  test("an observer's second press is told the page was marked as seen already", async () => {
+    givenRun(policyRun({ isObserverPage: true }));
+    pressedMeanwhile();
+
+    await callRoute(ACKNOWLEDGE_ROUTE);
+
+    expect(Response.redirect).not.toHaveBeenCalled();
+    expect(rendered().variables["title"]).toBe(
+      "Already marked as seen - Checkout is down",
+    );
+  });
+
+  test("the send's own result landing meanwhile is no answer: the press reads it again and acknowledges", async () => {
+    givenItem(
+      timelineItem("incident", { status: UserNotificationStatus.Sending }),
+    );
+
+    let sent: boolean = false;
+
+    updateSpy.mockImplementation((async (updateBy: UpdateOneByInput) => {
+      if (!sent) {
+        sent = true;
+        currentItem.status = UserNotificationStatus.Sent;
+        currentItem.version = (currentItem.version || 0) + 1;
+      }
+
+      return updateNotificationWhileStill(currentItem, updateBy);
+    }) as never);
+
+    await callRoute(ACKNOWLEDGE_ROUTE);
+
+    expect(updateSpy).toHaveBeenCalledTimes(2);
+    expect(currentItem.status).toBe(UserNotificationStatus.Acknowledged);
+    expect(Response.redirect).toHaveBeenCalledTimes(1);
+  });
+
+  test("a notification that keeps changing under every try, and still answers nothing: try again", async () => {
+    updateSpy.mockImplementation((async () => {
+      currentItem.version = (currentItem.version || 0) + 1;
+      return 0;
+    }) as never);
+
+    await callRoute(ACKNOWLEDGE_ROUTE);
+
+    expect(updateSpy).toHaveBeenCalledTimes(MAX_NOTIFICATION_WRITE_ATTEMPTS);
+    expect(Response.redirect).not.toHaveBeenCalled();
+    expect(Response.render).not.toHaveBeenCalled();
+
+    const sendErrorResponse: jest.Mock =
+      Response.sendErrorResponse as unknown as jest.Mock;
+
+    expect(sendErrorResponse).toHaveBeenCalledTimes(1);
+    expect((sendErrorResponse.mock.calls[0]?.[2] as Error).message).toBe(
+      ON_CALL_NOTIFICATION_NOT_ACKNOWLEDGED_MESSAGE,
+    );
+  });
+
+  test("not written, while a colleague acknowledged the incident meanwhile: told so, by name", async () => {
+    updateSpy.mockImplementation((async () => {
+      // The colleague's acknowledgement reaches the run and the record.
+      givenRun(policyRun(answeredBy(ANA, "Ana Lopez")));
+      givenRecord(ACKNOWLEDGED);
+      currentItem.version = (currentItem.version || 0) + 1;
+      return 0;
+    }) as never);
+
+    await callRoute(ACKNOWLEDGE_ROUTE);
+
+    expect(Response.redirect).not.toHaveBeenCalled();
+    expect(rendered().variables["message"]).toBe(
+      `Incident INC-7 was already acknowledged by Ana Lopez ${AT_ANSWERED}.`,
+    );
   });
 });
