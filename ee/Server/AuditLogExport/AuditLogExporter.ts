@@ -832,6 +832,8 @@ export default class AuditLogExporter {
         failingSince: data.failingSince,
         oldestUnsentAt,
         entriesLostAt,
+        // The try's own time: the email reads whether entriesLostAt has passed against it.
+        now: data.now,
         error: data.message,
         retentionInDays,
       });
