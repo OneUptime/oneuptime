@@ -7,6 +7,8 @@ import {
   getStatusTimelineTicks,
   getStatusTimelineZoomWindow,
   getVisibleStatusTimelineTickIndexes,
+  MONITORING_OFF_CLASS_NAME,
+  MONITORING_OFF_STRIPES,
   ResolvedStatusTimelineEntry,
   StatusTimelineBandGap,
   StatusTimelineBandLayout,
@@ -23,6 +25,8 @@ import {
   formatStatusTimelineTickLabel,
   StatusTimelineClock,
 } from "./StatusTimelineTime";
+import MonitoringOffIndicator from "../StateTimeline/MonitoringOffIndicator";
+import { PillSize } from "../Pill/Pill";
 import { formatDurationInSeconds } from "../../Utils/UseLiveDuration";
 import { Translator, translationKey } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
@@ -123,9 +127,17 @@ const getMarkLabel: (data: {
     ),
   );
 
+  /*
+   * A status held with monitoring off says so, as the list's pill does:
+   * nothing checked the monitor then (issue #6480).
+   */
+  const isMonitoringOff: boolean = entry.isMonitoringOff === true;
+
   if (!entry.listEnd) {
     return translator.translateTemplate(
-      "{{status}}, since {{start}}, {{duration}} so far. Currently Active.",
+      isMonitoringOff
+        ? "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active."
+        : "{{status}}, since {{start}}, {{duration}} so far. Currently Active.",
       {
         status: entry.name,
         start: formatStatusTimelineShortDateTime(entry.startsAt, clock),
@@ -135,7 +147,9 @@ const getMarkLabel: (data: {
   }
 
   return translator.translateTemplate(
-    "{{status}}, {{start}} – {{end}}, {{duration}}",
+    isMonitoringOff
+      ? "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}"
+      : "{{status}}, {{start}} – {{end}}, {{duration}}",
     {
       status: entry.name,
       ...formatStatusTimelineDateRange({
@@ -164,8 +178,14 @@ const MarkTooltipContent: FunctionComponent<{
       <div className="max-w-[16rem] p-1 text-left text-xs text-gray-700">
         <div className="flex items-center gap-2">
           <span
-            className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
-            style={{ backgroundColor: props.mark.color }}
+            className={`inline-block h-2.5 w-2.5 shrink-0 rounded-full ${
+              props.mark.isMonitoringOff ? MONITORING_OFF_CLASS_NAME : ""
+            }`}
+            style={
+              props.mark.isMonitoringOff
+                ? { backgroundImage: MONITORING_OFF_STRIPES }
+                : { backgroundColor: props.mark.color }
+            }
             aria-hidden="true"
           ></span>
           <span className="font-semibold text-gray-900">
@@ -222,6 +242,11 @@ const MarkTooltipContent: FunctionComponent<{
           {entry.name}
         </span>
       </div>
+      {entry.isMonitoringOff === true && (
+        <div className="mt-1">
+          <MonitoringOffIndicator size={PillSize.Small} />
+        </div>
+      )}
       <div className="mt-1 font-medium tabular-nums text-gray-700">
         {range
           ? translator.translateTemplate("{{day}}, {{start}} – {{end}}", {
@@ -744,6 +769,7 @@ const StatusTimelineBand: FunctionComponent<ComponentProps> = (
                 data-entry-ids={mark.entryIds.join(",")}
                 data-ongoing={mark.isOngoing ? "true" : "false"}
                 data-widened={mark.isWidened ? "true" : "false"}
+                data-monitoring-off={mark.isMonitoringOff ? "true" : "false"}
                 className={`absolute inset-y-0 cursor-pointer transition-opacity duration-150 focus:outline-none focus-visible:z-30 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${getEdgeRounding(
                   mark.left,
                   mark.width,
@@ -751,14 +777,27 @@ const StatusTimelineBand: FunctionComponent<ComponentProps> = (
                   isSelected ? "z-20" : ""
                 } ${
                   isDimmingOthers && !isFocused ? "opacity-40" : "opacity-100"
-                }`}
+                } ${mark.isMonitoringOff ? MONITORING_OFF_CLASS_NAME : ""}`}
                 style={{
                   left: `${mark.left}%`,
                   width: `${mark.width}%`,
-                  backgroundColor: mark.color,
-                  backgroundImage: mark.isCluster
-                    ? "repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.45) 0, rgba(255, 255, 255, 0.45) 1px, transparent 1px, transparent 3px)"
-                    : undefined,
+                  /*
+                   * Time with monitoring off is drawn as time nothing
+                   * measured (MONITORING_OFF_CLASS_NAME and its stripes),
+                   * never in the colour of the status it was left at.
+                   */
+                  backgroundColor: mark.isMonitoringOff
+                    ? undefined
+                    : mark.color,
+                  backgroundImage:
+                    [
+                      mark.isCluster
+                        ? "repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.45) 0, rgba(255, 255, 255, 0.45) 1px, transparent 1px, transparent 3px)"
+                        : "",
+                      mark.isMonitoringOff ? MONITORING_OFF_STRIPES : "",
+                    ]
+                      .filter(Boolean)
+                      .join(", ") || undefined,
                   /*
                    * A blip's edges stay crisp against the colour around it:
                    * a hairline in the card's own colour, in either theme.

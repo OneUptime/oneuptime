@@ -1127,6 +1127,38 @@ test.describe("probe checks", () => {
     expect(await factValue(page, "Probes")).toBe("3 enabledChecks paused");
   });
 
+  /*
+   * Turning monitoring off starts a status event with the status the
+   * monitor holds (issue #6480): six hours ago here. Recent status changes
+   * marks it, so the two Operational rows read as one status with
+   * monitoring turned off, not as the same status twice.
+   */
+  test("a disabled monitor's recent status changes mark the time with monitoring off", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, { query: "state=disabled" });
+
+    const statusChanges: Locator = page.getByTestId(
+      "monitor-status-change-row",
+    );
+    const newest: Locator = statusChanges.first();
+
+    await expect(newest).toContainText("Operational");
+    await expect(newest.getByTestId("monitoring-off-indicator")).toHaveText(
+      "Monitoring Off",
+    );
+    await expect(
+      newest.getByTestId("currently-active-indicator"),
+    ).toBeVisible();
+    await expect(newest).toContainText("for 6 hours · started 6 hours ago");
+    await expect(statusChanges.nth(1)).toContainText("Operational");
+    await expect(
+      statusChanges.getByTestId("monitoring-off-indicator"),
+    ).toHaveCount(1);
+  });
+
   test("stale", async ({ page }: { page: Page }) => {
     await openReady(page, { query: "state=stale" });
 

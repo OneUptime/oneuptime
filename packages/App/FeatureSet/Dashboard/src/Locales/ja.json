@@ -50758,9 +50758,7 @@
   "Also: {{facts}}.": "このほか: {{facts}}。",
   "Arming a recording of a named person is a capture-policy change, so it needs the \"{{permission}}\" permission (project owners, admins and telemetry admins have it). Ask a project admin to arm the target for you.": "特定の人物の記録を設定することはキャプチャポリシーの変更にあたるため、「{{permission}}」権限が必要です（プロジェクトのオーナー、管理者、テレメトリ管理者が持っています）。プロジェクト管理者に記録対象の設定を依頼してください。",
   "CSV line": "CSV の行",
-  "Monitoring is off for every monitor in this group, so it has no uptime to show.": "このグループのすべてのモニターで監視がオフのため、表示する稼働率はありません。",
   "Reading recording health needs the \"{{permission}}\" permission (project owners, admins and telemetry admins have it). Ask a project admin to grant it, or to run this check for you.": "録画のヘルスを読み取るには「{{permission}}」権限が必要です（プロジェクトのオーナー、管理者、テレメトリ管理者が持っています）。プロジェクト管理者に、権限の付与またはこのチェックの代行を依頼してください。",
-  "This group's status over the last 90 days, one bar per day. Monitors whose monitoring is off are left out.": "過去 90 日間のこのグループのステータス（1 日 1 本のバー）。監視がオフのモニターは含まれません。",
   "Your role cannot read end-user identity, so the server dropped the user filter \"{{user}}\" and this list is NOT narrowed to that user. Ask a project admin for the \"{{permission}}\" permission, or filter by URL, tag or device instead.": "あなたのロールではエンドユーザーの身元を読み取れないため、サーバーはユーザーフィルター \"{{user}}\" を除外しました。この一覧はそのユーザーに絞り込まれていません。プロジェクト管理者に「{{permission}}」権限を依頼するか、代わりに URL、タグ、デバイスで絞り込んでください。",
   "Your role cannot read end-user identity, so this filter is ignored by the server. Ask a project admin for the \"{{permission}}\" permission.": "あなたのロールではエンドユーザーの身元を読み取れないため、このフィルターはサーバーで無視されます。プロジェクト管理者に「{{permission}}」権限を依頼してください。",
   "Your role lacks the \"{{permission}}\" permission. Ask a project admin for it.": "あなたのロールには「{{permission}}」権限がありません。プロジェクト管理者に依頼してください。",
@@ -50927,5 +50925,11 @@
   "{{name}} has no on-call rule for this severity, and this project doesn't fall back to verified methods.": "{{name}} has no on-call rule for this severity, and this project doesn't fall back to verified methods.",
   "{{name}} has no verified notification method.": "{{name}} has no verified notification method.",
   "{{name}} is reached only by channels that are off in this project.": "{{name}} is reached only by channels that are off in this project.",
-  "{{name}} opted out of pages of this severity.": "{{name}} opted out of pages of this severity."
+  "{{name}} opted out of pages of this severity.": "{{name}} opted out of pages of this severity.",
+  "Monitoring Off": "監視オフ",
+  "This group's status over the last 90 days, one bar per day, up to when monitoring was turned off for all of its monitors.": "過去 90 日間のこのグループのステータス（1 日 1 本のバー）。すべてのモニターの監視がオフになった時点までを表示します。",
+  "This group's status over the last 90 days, one bar per day. Each monitor counts only while its monitoring is on.": "過去 90 日間のこのグループのステータス（1 日 1 本のバー）。各モニターは監視がオンの間だけ計算に含まれます。",
+  "leaves out time with monitoring off": "監視がオフの時間を除く",
+  "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}、監視オフ、{{start}} から、{{duration}} 経過。現在アクティブ。",
+  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}、監視オフ、{{start}} – {{end}}、{{duration}}"
 }

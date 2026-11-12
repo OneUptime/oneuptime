@@ -50758,9 +50758,7 @@
   "Also: {{facts}}.": "En outre : {{facts}}.",
   "Arming a recording of a named person is a capture-policy change, so it needs the \"{{permission}}\" permission (project owners, admins and telemetry admins have it). Ask a project admin to arm the target for you.": "Armer l'enregistrement d'une personne identifiée est une modification de la politique de capture ; cela nécessite donc l'autorisation « {{permission}} » (les propriétaires, administrateurs et administrateurs de télémétrie du projet l'ont). Demandez à un administrateur du projet d'armer la cible pour vous.",
   "CSV line": "Ligne CSV",
-  "Monitoring is off for every monitor in this group, so it has no uptime to show.": "La surveillance est désactivée pour tous les moniteurs de ce groupe, il n'y a donc aucune disponibilité à afficher.",
   "Reading recording health needs the \"{{permission}}\" permission (project owners, admins and telemetry admins have it). Ask a project admin to grant it, or to run this check for you.": "La lecture de l'état de l'enregistrement nécessite l'autorisation « {{permission}} » (les propriétaires, administrateurs et administrateurs de télémétrie du projet l'ont). Demandez à un administrateur du projet de vous l'accorder, ou d'effectuer cette vérification pour vous.",
-  "This group's status over the last 90 days, one bar per day. Monitors whose monitoring is off are left out.": "Le statut de ce groupe au cours des 90 derniers jours, une barre par jour. Les moniteurs dont la surveillance est désactivée ne sont pas pris en compte.",
   "Your role cannot read end-user identity, so the server dropped the user filter \"{{user}}\" and this list is NOT narrowed to that user. Ask a project admin for the \"{{permission}}\" permission, or filter by URL, tag or device instead.": "Votre rôle ne peut pas lire l'identité de l'utilisateur final : le serveur a donc ignoré le filtre d'utilisateur \"{{user}}\" et cette liste n'est PAS restreinte à cet utilisateur. Demandez à un administrateur du projet l'autorisation « {{permission}} », ou filtrez plutôt par URL, étiquette ou appareil.",
   "Your role cannot read end-user identity, so this filter is ignored by the server. Ask a project admin for the \"{{permission}}\" permission.": "Votre rôle ne peut pas lire l'identité de l'utilisateur final : ce filtre est donc ignoré par le serveur. Demandez à un administrateur du projet l'autorisation « {{permission}} ».",
   "Your role lacks the \"{{permission}}\" permission. Ask a project admin for it.": "Votre rôle ne dispose pas de l'autorisation « {{permission}} ». Demandez-la à un administrateur du projet.",
@@ -50927,5 +50925,11 @@
   "{{name}} has no on-call rule for this severity, and this project doesn't fall back to verified methods.": "{{name}} has no on-call rule for this severity, and this project doesn't fall back to verified methods.",
   "{{name}} has no verified notification method.": "{{name}} has no verified notification method.",
   "{{name}} is reached only by channels that are off in this project.": "{{name}} is reached only by channels that are off in this project.",
-  "{{name}} opted out of pages of this severity.": "{{name}} opted out of pages of this severity."
+  "{{name}} opted out of pages of this severity.": "{{name}} opted out of pages of this severity.",
+  "Monitoring Off": "Surveillance désactivée",
+  "This group's status over the last 90 days, one bar per day, up to when monitoring was turned off for all of its monitors.": "Le statut de ce groupe au cours des 90 derniers jours, une barre par jour, jusqu'à la désactivation de la surveillance de tous ses moniteurs.",
+  "This group's status over the last 90 days, one bar per day. Each monitor counts only while its monitoring is on.": "Le statut de ce groupe au cours des 90 derniers jours, une barre par jour. Chaque moniteur ne compte que lorsque sa surveillance est activée.",
+  "leaves out time with monitoring off": "exclut le temps où la surveillance est désactivée",
+  "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, surveillance désactivée, depuis {{start}}, {{duration}} jusqu'ici. Actuellement actif.",
+  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, surveillance désactivée, {{start}} – {{end}}, {{duration}}"
 }

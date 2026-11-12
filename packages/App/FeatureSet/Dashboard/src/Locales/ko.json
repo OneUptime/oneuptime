@@ -50758,9 +50758,7 @@
   "Also: {{facts}}.": "또한: {{facts}}.",
   "Arming a recording of a named person is a capture-policy change, so it needs the \"{{permission}}\" permission (project owners, admins and telemetry admins have it). Ask a project admin to arm the target for you.": "특정 인물의 녹화를 설정하는 것은 캡처 정책 변경이므로 \"{{permission}}\" 권한이 필요합니다(프로젝트 소유자, 관리자, 텔레메트리 관리자에게 있음). 프로젝트 관리자에게 대상 설정을 요청하세요.",
   "CSV line": "CSV 행",
-  "Monitoring is off for every monitor in this group, so it has no uptime to show.": "이 그룹의 모든 모니터에서 모니터링이 꺼져 있어 표시할 가동 시간이 없습니다.",
   "Reading recording health needs the \"{{permission}}\" permission (project owners, admins and telemetry admins have it). Ask a project admin to grant it, or to run this check for you.": "녹화 상태를 보려면 \"{{permission}}\" 권한이 필요합니다(프로젝트 소유자, 관리자, 텔레메트리 관리자에게 있음). 프로젝트 관리자에게 이 권한을 부여하거나 대신 이 확인을 실행해 달라고 요청하세요.",
-  "This group's status over the last 90 days, one bar per day. Monitors whose monitoring is off are left out.": "지난 90일 동안 이 그룹의 상태입니다(하루에 막대 하나). 모니터링이 꺼진 모니터는 제외됩니다.",
   "Your role cannot read end-user identity, so the server dropped the user filter \"{{user}}\" and this list is NOT narrowed to that user. Ask a project admin for the \"{{permission}}\" permission, or filter by URL, tag or device instead.": "현재 역할로는 최종 사용자 신원을 읽을 수 없어 서버가 \"{{user}}\" 사용자 필터를 제외했으며, 이 목록은 해당 사용자로 좁혀지지 않았습니다. 프로젝트 관리자에게 \"{{permission}}\" 권한을 요청하거나, 대신 URL, 태그 또는 디바이스로 필터링하세요.",
   "Your role cannot read end-user identity, so this filter is ignored by the server. Ask a project admin for the \"{{permission}}\" permission.": "현재 역할로는 최종 사용자 신원을 읽을 수 없어 서버가 이 필터를 무시합니다. 프로젝트 관리자에게 \"{{permission}}\" 권한을 요청하세요.",
   "Your role lacks the \"{{permission}}\" permission. Ask a project admin for it.": "현재 역할에는 \"{{permission}}\" 권한이 없습니다. 프로젝트 관리자에게 요청하세요.",
@@ -50927,5 +50925,11 @@
   "{{name}} has no on-call rule for this severity, and this project doesn't fall back to verified methods.": "{{name}} has no on-call rule for this severity, and this project doesn't fall back to verified methods.",
   "{{name}} has no verified notification method.": "{{name}} has no verified notification method.",
   "{{name}} is reached only by channels that are off in this project.": "{{name}} is reached only by channels that are off in this project.",
-  "{{name}} opted out of pages of this severity.": "{{name}} opted out of pages of this severity."
+  "{{name}} opted out of pages of this severity.": "{{name}} opted out of pages of this severity.",
+  "Monitoring Off": "모니터링 꺼짐",
+  "This group's status over the last 90 days, one bar per day, up to when monitoring was turned off for all of its monitors.": "지난 90일 동안 이 그룹의 상태입니다(하루에 막대 하나). 모든 모니터의 모니터링이 꺼진 시점까지 표시됩니다.",
+  "This group's status over the last 90 days, one bar per day. Each monitor counts only while its monitoring is on.": "지난 90일 동안 이 그룹의 상태입니다(하루에 막대 하나). 각 모니터는 모니터링이 켜져 있는 동안에만 계산됩니다.",
+  "leaves out time with monitoring off": "모니터링이 꺼진 시간 제외",
+  "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, 모니터링 꺼짐, {{start}}부터, 현재까지 {{duration}}. 현재 활성.",
+  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, 모니터링 꺼짐, {{start}} – {{end}}, {{duration}}"
 }

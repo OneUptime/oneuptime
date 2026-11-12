@@ -1958,6 +1958,12 @@ async function fetchPerMonitorTimelines(data: {
           endsAt: true,
           monitorId: true,
           monitorStatusId: true,
+          /*
+           * The time with the monitor's monitoring off, which SloUtil leaves
+           * out of the SLI: it neither spends the budget nor counts as good
+           * (issue #6480).
+           */
+          isMonitoringOff: true,
           monitorStatus: {
             _id: true,
             priority: true,

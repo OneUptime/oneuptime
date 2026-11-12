@@ -130,6 +130,7 @@ import {
 import MonitorGroupView from "../../../../App/FeatureSet/Dashboard/src/Pages/MonitorGroup/View/Index";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
+import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusTimeline";
 import Route from "../../../Types/API/Route";
 import Color from "../../../Types/Color";
 import ObjectID from "../../../Types/ObjectID";
@@ -171,17 +172,33 @@ let summary: MonitorGroupMonitoringSummary | Error = {
   monitoringOffCount: 0,
 };
 let monitorCount: number = 3;
+// The group's status timeline (MonitorGroupService.getStatusTimeline).
+let timelineRows: Array<MonitorStatusTimeline> = [];
+
+// How many times the page has read the group's timeline.
+function timelineReads(): number {
+  return mockGetList.mock.calls.filter((call: Array<unknown>): boolean => {
+    return (
+      (call[0] as { modelType: unknown }).modelType === MonitorStatusTimeline
+    );
+  }).length;
+}
 
 beforeEach(() => {
   groupStatus = OPERATIONAL;
   summary = { monitorCount: 3, monitoringOffCount: 0 };
   monitorCount = 3;
+  timelineRows = [];
 
   mockGetList.mockReset();
   mockGetList.mockImplementation(async (...args: Array<unknown>) => {
     const request: { modelType: unknown } = args[0] as { modelType: unknown };
     const data: Array<unknown> =
-      request.modelType === MonitorStatus ? [OPERATIONAL, OFFLINE] : [];
+      request.modelType === MonitorStatus
+        ? [OPERATIONAL, OFFLINE]
+        : request.modelType === MonitorStatusTimeline
+          ? timelineRows
+          : [];
     return { data, count: data.length, skip: 0, limit: 10 };
   });
 
@@ -280,15 +297,162 @@ describe("the group's Current Status", () => {
 });
 
 /*
- * THE GROUP'S UPTIME, BESIDE ITS UPTIME GRAPH (issue #6478).
+ * THE GROUP'S UPTIME, BESIDE ITS UPTIME GRAPH (issues #6478, #6480, #6987).
  *
- * Monitors whose monitoring is off are left out of the group's timeline, as
- * from its status. A group none of whose monitors is checked has no
- * timeline left to measure, so it shows no percentage at all, rather than
- * the 100% an empty timeline would read as.
+ * A monitor counts in the group's timeline only while its monitoring is on:
+ * its rows up to when monitoring was turned off count, and the rows from
+ * then on mark it (isMonitoringOff), which uptime leaves out. So the
+ * percentage is of the time some monitor was monitored in the 90 days, and
+ * a group none of whose monitors was monitored in them shows none at all,
+ * rather than the 100% that no time reads as.
  */
+const DAY_MS: number = 24 * 60 * 60 * 1000;
+const MONITOR_A: string = "a1a1a1a1-a1a1-4a1a-8a1a-a1a1a1a1a1a1";
+const MONITOR_B: string = "b2b2b2b2-b2b2-4b2b-8b2b-b2b2b2b2b2b2";
+
+function daysAgo(days: number): Date {
+  return new Date(Date.now() - days * DAY_MS);
+}
+
+function timelineRow(data: {
+  monitorId: string;
+  status: MonitorStatus;
+  startsAt: Date;
+  endsAt?: Date | undefined;
+  isMonitoringOff?: boolean | undefined;
+}): MonitorStatusTimeline {
+  const item: MonitorStatusTimeline = new MonitorStatusTimeline();
+  item._id = ObjectID.generate().toString();
+  item.monitorId = new ObjectID(data.monitorId);
+  item.monitorStatus = data.status;
+  item.startsAt = data.startsAt;
+  if (data.endsAt) {
+    item.endsAt = data.endsAt;
+  }
+  item.isMonitoringOff = data.isMonitoringOff === true;
+  return item;
+}
+
+/*
+ * Issue #6987's member: Offline for a day ten days ago, then operational,
+ * and - when offSince is given - its monitoring turned off then: the row
+ * the switch starts marks it.
+ */
+function offlineTenDaysAgo(
+  monitorId: string,
+  offSince: Date | null,
+): Array<MonitorStatusTimeline> {
+  const rows: Array<MonitorStatusTimeline> = [
+    timelineRow({
+      monitorId: monitorId,
+      status: OPERATIONAL,
+      startsAt: daysAgo(120),
+      endsAt: daysAgo(10),
+    }),
+    timelineRow({
+      monitorId: monitorId,
+      status: OFFLINE,
+      startsAt: daysAgo(10),
+      endsAt: daysAgo(9),
+    }),
+    timelineRow({
+      monitorId: monitorId,
+      status: OPERATIONAL,
+      startsAt: daysAgo(9),
+      endsAt: offSince || undefined,
+    }),
+  ];
+
+  if (offSince) {
+    rows.push(
+      timelineRow({
+        monitorId: monitorId,
+        status: OPERATIONAL,
+        startsAt: offSince,
+        isMonitoringOff: true,
+      }),
+    );
+  }
+
+  return rows;
+}
+
+function offlineTenDaysAgoOffSinceYesterday(
+  monitorId: string,
+): Array<MonitorStatusTimeline> {
+  return offlineTenDaysAgo(monitorId, daysAgo(1));
+}
+
+// Operational throughout; when offSince is given, monitoring off since then.
+function operationalThroughout(
+  monitorId: string,
+  offSince?: Date | undefined,
+): Array<MonitorStatusTimeline> {
+  if (!offSince) {
+    return [
+      timelineRow({
+        monitorId: monitorId,
+        status: OPERATIONAL,
+        startsAt: daysAgo(120),
+      }),
+    ];
+  }
+
+  return [
+    timelineRow({
+      monitorId: monitorId,
+      status: OPERATIONAL,
+      startsAt: daysAgo(120),
+      endsAt: offSince,
+    }),
+    timelineRow({
+      monitorId: monitorId,
+      status: OPERATIONAL,
+      startsAt: offSince,
+      isMonitoringOff: true,
+    }),
+  ];
+}
+
+// Monitoring off since before the 90 days the graph is drawn over.
+function offSinceLongAgo(monitorId: string): Array<MonitorStatusTimeline> {
+  return [
+    timelineRow({
+      monitorId: monitorId,
+      status: OFFLINE,
+      startsAt: daysAgo(130),
+      endsAt: daysAgo(100),
+    }),
+    timelineRow({
+      monitorId: monitorId,
+      status: OFFLINE,
+      startsAt: daysAgo(100),
+      isMonitoringOff: true,
+    }),
+  ];
+}
+
 function uptimePercent(): HTMLElement | null {
   return screen.queryByText(/% uptime$/);
+}
+
+const MIXED_DESCRIPTION: string =
+  "This group's status over the last 90 days, one bar per day. Each monitor counts only while its monitoring is on.";
+const OFF_DESCRIPTION: string =
+  "This group's status over the last 90 days, one bar per day, up to when monitoring was turned off for all of its monitors.";
+const DEFAULT_DESCRIPTION: string =
+  "This group's status over the last 90 days, one bar per day.";
+
+async function turnMonitoringOffFromTheCard(): Promise<void> {
+  fireEvent.click(
+    screen.getByTestId(MONITOR_GROUP_TURN_MONITORING_OFF_TEST_ID),
+  );
+  fireEvent.click(
+    within(screen.getByRole("dialog")).getByRole("button", {
+      name: "Turn off monitoring",
+    }),
+  );
+  await flush();
 }
 
 describe("the group's uptime, beside its Uptime Graph", () => {
@@ -308,14 +472,85 @@ describe("the group's uptime, beside its Uptime Graph", () => {
     expect(uptimePercent()).not.toBeNull();
   });
 
-  test("every monitor with monitoring off: no percentage, though the graph is still there", async () => {
-    summary = { monitorCount: 3, monitoringOffCount: 3 };
+  /*
+   * Issue #6987's group: the member's Offline day ten days ago still counts
+   * against the group, and the day since its monitoring was turned off is
+   * left out. The other monitor is checked throughout, so the group was
+   * monitored for all 90 days: 89 of them up. Before, the member's rows
+   * were all left out and the group read 100%.
+   */
+  test("a member Offline for a day ten days ago, its monitoring off since yesterday: its day still counts", async () => {
+    summary = { monitorCount: 2, monitoringOffCount: 1 };
+    timelineRows = [
+      ...offlineTenDaysAgoOffSinceYesterday(MONITOR_A),
+      ...operationalThroughout(MONITOR_B),
+    ];
+
+    await renderOverview();
+
+    expect(uptimePercent()).toHaveTextContent("98.888% uptime");
+    expect(screen.getByText(MIXED_DESCRIPTION)).toBeVisible();
+    // In the colour of the group's status: some monitors are still checked.
+    expect(screen.getByTestId("monitor-group-uptime-percent")).toHaveStyle({
+      color: OPERATIONAL.color!.toString(),
+    });
+  });
+
+  /*
+   * Every member like that one: the group was monitored until yesterday,
+   * so its uptime is of those 89 days, one of them Offline - not of the
+   * day since, which nothing checked.
+   */
+  test("every member's monitoring off since yesterday: the percentage of the time before, in grey", async () => {
+    summary = { monitorCount: 2, monitoringOffCount: 2 };
+    groupStatus = OFFLINE;
+    timelineRows = [
+      ...offlineTenDaysAgoOffSinceYesterday(MONITOR_A),
+      ...offlineTenDaysAgoOffSinceYesterday(MONITOR_B),
+    ];
+
+    await renderOverview();
+
+    expect(uptimePercent()).toHaveTextContent("98.876% uptime");
+    expect(screen.getByText(OFF_DESCRIPTION)).toBeVisible();
+    // Grey, as the group's Disabled status: not the Offline its monitors were left at.
+    expect(screen.getByTestId("monitor-group-uptime-percent")).toHaveStyle({
+      color: "#6b7280",
+    });
+    expect(
+      within(currentStatus()).getByTestId(
+        MONITOR_GROUP_DISABLED_STATUS_TEST_ID,
+      ),
+    ).toBeVisible();
+  });
+
+  test("every member's monitoring off since before the 90 days: no percentage, though the graph is still there", async () => {
+    summary = { monitorCount: 2, monitoringOffCount: 2 };
+    timelineRows = [
+      ...offSinceLongAgo(MONITOR_A),
+      ...offSinceLongAgo(MONITOR_B),
+    ];
 
     await renderOverview();
 
     expect(screen.getByText("Uptime Graph")).toBeVisible();
+    expect(screen.getByText(OFF_DESCRIPTION)).toBeVisible();
     expect(uptimePercent()).toBeNull();
     expect(screen.queryByText(/100% uptime/)).toBeNull();
+  });
+
+  // One member checked throughout: the group was monitored, and up.
+  test("one member off since before the 90 days, the other checked: the other's uptime", async () => {
+    summary = { monitorCount: 2, monitoringOffCount: 1 };
+    timelineRows = [
+      ...offSinceLongAgo(MONITOR_A),
+      ...operationalThroughout(MONITOR_B),
+    ];
+
+    await renderOverview();
+
+    // The Offline the first was left at counts for nothing.
+    expect(uptimePercent()).toHaveTextContent("100% uptime");
   });
 
   test("when the group's monitoring cannot be read, the percentage is shown as before", async () => {
@@ -326,72 +561,77 @@ describe("the group's uptime, beside its Uptime Graph", () => {
     expect(uptimePercent()).not.toBeNull();
   });
 
-  test("monitoring turned off from the card: the percentage goes at once", async () => {
+  /*
+   * Turning monitoring off from the card leaves the group's history as it
+   * was: the percentage stays, grey now, and the timeline is read again so
+   * the time from the switch on is left out.
+   */
+  test("monitoring turned off from the card: the percentage stays, in grey, and the timeline is read again", async () => {
+    summary = { monitorCount: 2, monitoringOffCount: 0 };
     mockSetMonitoring.mockResolvedValue({
-      monitorCount: 3,
-      monitoringOffCount: 3,
+      monitorCount: 2,
+      monitoringOffCount: 2,
     } as never);
+    timelineRows = [
+      ...offlineTenDaysAgo(MONITOR_A, null),
+      ...operationalThroughout(MONITOR_B),
+    ];
 
     await renderOverview();
-    expect(uptimePercent()).not.toBeNull();
+    expect(uptimePercent()).toHaveTextContent("98.888% uptime");
+    expect(screen.getByTestId("monitor-group-uptime-percent")).toHaveStyle({
+      color: OPERATIONAL.color!.toString(),
+    });
+    const timelineReadsBefore: number = timelineReads();
 
-    fireEvent.click(
-      screen.getByTestId(MONITOR_GROUP_TURN_MONITORING_OFF_TEST_ID),
-    );
-    fireEvent.click(
-      within(screen.getByRole("dialog")).getByRole("button", {
-        name: "Turn off monitoring",
-      }),
-    );
-    await flush();
+    // What the server answers once the switch has marked both timelines.
+    const switchedAt: Date = new Date(Date.now() - 60 * 1000);
+    timelineRows = [
+      ...offlineTenDaysAgo(MONITOR_A, switchedAt),
+      ...operationalThroughout(MONITOR_B, switchedAt),
+    ];
 
-    expect(uptimePercent()).toBeNull();
+    await turnMonitoringOffFromTheCard();
+
+    expect(timelineReads()).toBe(timelineReadsBefore + 1);
+    // The 90 days before the switch still count, the Offline day with them.
+    expect(uptimePercent()).toHaveTextContent("98.888% uptime");
+    expect(screen.getByTestId("monitor-group-uptime-percent")).toHaveStyle({
+      color: "#6b7280",
+    });
   });
 
-  test("every monitor with monitoring off: the graph says why it has no uptime to show", async () => {
+  test("every monitor with monitoring off: the graph says it ends where monitoring was turned off", async () => {
     summary = { monitorCount: 3, monitoringOffCount: 3 };
 
     await renderOverview();
 
-    expect(
-      screen.getByText(
-        "Monitoring is off for every monitor in this group, so it has no uptime to show.",
-      ),
-    ).toBeVisible();
-    expect(screen.queryByText(/over the last 90 days/)).toBeNull();
+    expect(screen.getByText(OFF_DESCRIPTION)).toBeVisible();
+    expect(screen.queryByText(MIXED_DESCRIPTION)).toBeNull();
+    expect(screen.queryByText(/has no uptime to show/)).toBeNull();
   });
 
-  test("some monitors with monitoring off: the graph says they are left out", async () => {
+  test("some monitors with monitoring off: the graph says each counts only while it is on", async () => {
     summary = { monitorCount: 3, monitoringOffCount: 1 };
 
     await renderOverview();
 
-    expect(
-      screen.getByText(
-        "This group's status over the last 90 days, one bar per day. Monitors whose monitoring is off are left out.",
-      ),
-    ).toBeVisible();
+    expect(screen.getByText(MIXED_DESCRIPTION)).toBeVisible();
+    expect(screen.queryByText(/are left out/)).toBeNull();
   });
 
   test("every monitor checked, or the group's monitoring unread: the graph's description is as before", async () => {
     await renderOverview();
 
-    expect(
-      screen.getByText(
-        "This group's status over the last 90 days, one bar per day.",
-      ),
-    ).toBeVisible();
+    expect(screen.getByText(DEFAULT_DESCRIPTION)).toBeVisible();
 
     cleanup();
     summary = new Error("Server Error. Please try again");
     await renderOverview();
 
-    expect(
-      screen.getByText(
-        "This group's status over the last 90 days, one bar per day.",
-      ),
-    ).toBeVisible();
-    expect(screen.queryByText(/left out/)).toBeNull();
+    expect(screen.getByText(DEFAULT_DESCRIPTION)).toBeVisible();
+    expect(screen.queryByText(/monitoring is on/)).toBeNull();
+    expect(screen.queryByText(/turned off/)).toBeNull();
   });
 
   test("monitoring turned off from the card: the graph's description follows at once", async () => {
@@ -401,40 +641,54 @@ describe("the group's uptime, beside its Uptime Graph", () => {
     } as never);
 
     await renderOverview();
+    expect(screen.getByText(DEFAULT_DESCRIPTION)).toBeVisible();
 
-    fireEvent.click(
-      screen.getByTestId(MONITOR_GROUP_TURN_MONITORING_OFF_TEST_ID),
-    );
-    fireEvent.click(
-      within(screen.getByRole("dialog")).getByRole("button", {
-        name: "Turn off monitoring",
-      }),
-    );
-    await flush();
+    await turnMonitoringOffFromTheCard();
 
-    expect(
-      screen.getByText(
-        "Monitoring is off for every monitor in this group, so it has no uptime to show.",
-      ),
-    ).toBeVisible();
+    expect(screen.getByText(OFF_DESCRIPTION)).toBeVisible();
   });
 
-  test("monitoring turned back on from the card: the percentage is back", async () => {
-    summary = { monitorCount: 3, monitoringOffCount: 3 };
+  test("monitoring turned back on from the card: the timeline is read again, and the percentage is back", async () => {
+    summary = { monitorCount: 2, monitoringOffCount: 2 };
+    timelineRows = [
+      ...offSinceLongAgo(MONITOR_A),
+      ...offSinceLongAgo(MONITOR_B),
+    ];
     mockSetMonitoring.mockResolvedValue({
-      monitorCount: 3,
+      monitorCount: 2,
       monitoringOffCount: 0,
     } as never);
 
     await renderOverview();
     expect(uptimePercent()).toBeNull();
 
+    // Turned back on an hour ago: that hour counts.
+    timelineRows = [MONITOR_A, MONITOR_B].flatMap(
+      (monitorId: string): Array<MonitorStatusTimeline> => {
+        return [
+          timelineRow({
+            monitorId: monitorId,
+            status: OFFLINE,
+            startsAt: daysAgo(100),
+            endsAt: new Date(Date.now() - 60 * 60 * 1000),
+            isMonitoringOff: true,
+          }),
+          timelineRow({
+            monitorId: monitorId,
+            status: OPERATIONAL,
+            startsAt: new Date(Date.now() - 60 * 60 * 1000),
+          }),
+        ];
+      },
+    );
+
     fireEvent.click(
       screen.getByTestId(MONITOR_GROUP_TURN_MONITORING_ON_TEST_ID),
     );
     await flush();
 
-    expect(uptimePercent()).not.toBeNull();
+    expect(uptimePercent()).toHaveTextContent("100% uptime");
+    expect(screen.getByText(DEFAULT_DESCRIPTION)).toBeVisible();
   });
 });
 

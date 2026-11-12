@@ -1633,6 +1633,12 @@ export class Service extends ProjectReferencesService<StatusPage> {
           endsAt: true,
           startsAt: true,
           /*
+           * Whether the monitor's monitoring was off for the row: uptime
+           * leaves that time out (UptimeUtil.getMonitorEventsForId, issue
+           * #6480), and needs it to know which time that is.
+           */
+          isMonitoringOff: true,
+          /*
            * `_id` is selected explicitly because UptimeUtil reads `monitorStatus.id` (a getter
            * over `_id`) to match events against the downtime statuses. It works today only
            * because SelectUtil.sanitizeSelect force injects `_id: true` into every relation
@@ -3074,10 +3080,14 @@ export class Service extends ProjectReferencesService<StatusPage> {
 
   /*
    * The status of each monitor group on the page, by its id: what the
-   * embedded badge reads. Only the group's monitors that are checked count
-   * - an archived monitor, or one whose monitoring is off, holds a frozen
-   * status (FrozenMonitorResources) - so a group whose monitors all have
-   * monitoring off has no entry, and colors nothing.
+   * embedded badge reads. The status the group has everywhere else
+   * (MonitorGroupService.getCurrentStatusesForMonitorGroups, as the page's
+   * overview reads it): the WORST status among its monitors that are
+   * checked - an archived monitor, or one whose monitoring is off, holds a
+   * frozen status (FrozenMonitorResources) - so a group whose monitors all
+   * have monitoring off has no entry, and colors nothing. This used to keep
+   * the best status instead (the lowest priority number), so a group with
+   * one monitor Offline and one Operational colored the badge Operational.
    *
    * monitorGroupResources, when the caller has them, are the groups'
    * members as MonitorGroupService.getMonitorGroupResourcesByGroupIds reads
@@ -3091,6 +3101,25 @@ export class Service extends ProjectReferencesService<StatusPage> {
   }): Promise<Dictionary<ObjectID>> {
     const monitorGroupCurrentStatuses: Dictionary<ObjectID> = {};
 
+    const monitorGroupIds: Array<ObjectID> = [];
+    const seen: Set<string> = new Set<string>();
+
+    for (const resource of data.statusPageResources) {
+      const monitorGroupId: string | undefined =
+        resource.monitorGroupId?.toString();
+
+      if (!monitorGroupId || seen.has(monitorGroupId)) {
+        continue;
+      }
+
+      seen.add(monitorGroupId);
+      monitorGroupIds.push(resource.monitorGroupId!);
+    }
+
+    if (monitorGroupIds.length === 0) {
+      return monitorGroupCurrentStatuses;
+    }
+
     /*
      * Batched: this used to issue one MonitorGroupResource query per status
      * page resource (not even per distinct group) on every badge render and
@@ -3099,55 +3128,26 @@ export class Service extends ProjectReferencesService<StatusPage> {
     const resourcesByGroupId: Dictionary<Array<MonitorGroupResource>> =
       data.monitorGroupResources ||
       (await MonitorGroupService.getMonitorGroupResourcesByGroupIds(
-        data.statusPageResources
-          .map((resource: StatusPageResource) => {
-            return resource.monitorGroupId!;
-          })
-          .filter((id: ObjectID) => {
-            return Boolean(id); // remove nulls
-          }),
+        monitorGroupIds,
       ));
 
-    for (const resource of data.statusPageResources) {
-      if (resource.monitorGroupId) {
-        const monitorGroupResources: Array<MonitorGroupResource> =
-          FrozenMonitorResources.withoutFrozenMonitors(
-            resourcesByGroupId[resource.monitorGroupId.toString()] || [],
-          );
+    const monitorGroupStatuses: Dictionary<MonitorStatus> =
+      FrozenMonitorResources.withoutNotMonitoredMonitorGroups({
+        monitorGroupStatuses:
+          await MonitorGroupService.getCurrentStatusesForMonitorGroups({
+            monitorGroupIds: monitorGroupIds,
+            monitorStatuses: data.monitorStatuses,
+            monitorGroupResources: resourcesByGroupId,
+          }),
+        monitorGroupResources: resourcesByGroupId,
+      });
 
-        const statuses: Array<ObjectID> = monitorGroupResources
-          .filter((item: MonitorGroupResource) => {
-            return (
-              item.monitor &&
-              item.monitor.currentMonitorStatusId &&
-              item.monitorId
-            );
-          })
-          .map((item: MonitorGroupResource) => {
-            return item.monitor!.currentMonitorStatusId!;
-          });
+    for (const monitorGroupId of Object.keys(monitorGroupStatuses)) {
+      const statusId: ObjectID | null =
+        monitorGroupStatuses[monitorGroupId]?.id || null;
 
-        let worstStatus: MonitorStatus | null = null;
-
-        for (const statusId of statuses) {
-          const status: MonitorStatus | undefined = data.monitorStatuses.find(
-            (status: MonitorStatus) => {
-              return status._id?.toString() === statusId.toString();
-            },
-          );
-
-          if (
-            status &&
-            (!worstStatus || status.priority! < worstStatus.priority!)
-          ) {
-            worstStatus = status;
-          }
-        }
-
-        if (worstStatus && worstStatus._id) {
-          monitorGroupCurrentStatuses[resource.monitorGroupId.toString()] =
-            new ObjectID(worstStatus._id);
-        }
+      if (statusId) {
+        monitorGroupCurrentStatuses[monitorGroupId] = statusId;
       }
     }
 

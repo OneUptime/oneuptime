@@ -11,7 +11,7 @@ Un objetivo de nivel de servicio (SLO) es un objetivo de fiabilidad para lo que 
 
 ## Cómo funciona
 
-Un SLO lee las líneas de tiempo de estado de los monitores asociados a él: los mismos datos que muestran tus páginas de estado. A partir de ellas, OneUptime calcula qué parte de la ventana de cumplimiento fue tiempo bueno, cuánto queda del presupuesto de errores y a qué velocidad se consume.
+Un SLO lee las líneas de tiempo de estado de los monitores asociados a él: los mismos datos que muestran tus páginas de estado. A partir de ellas, OneUptime calcula qué parte de la ventana de cumplimiento fue tiempo bueno, cuánto queda del presupuesto de errores y a qué velocidad se consume. El tiempo con el monitoreo de un monitor desactivado queda fuera: nada comprueba entonces el monitor, así que ese tiempo ni consume presupuesto de errores ni cuenta como tiempo bueno.
 
 ```mermaid title="De las comprobaciones de los monitores al estado de un SLO"
 flowchart TB

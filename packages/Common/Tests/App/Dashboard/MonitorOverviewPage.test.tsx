@@ -2324,7 +2324,9 @@ describe("Monitor overview page: the uptime caveat", () => {
   test("a paused probe check's windows include paused time", async () => {
     setUpServer({
       ...API_MONITOR,
-      overrides: { disableActiveMonitoring: true },
+      overrides: {
+        disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
+      },
     });
 
     await renderPage();
@@ -2335,6 +2337,30 @@ describe("Monitor overview page: the uptime caveat", () => {
       "monitor-uptime-30d",
     ]) {
       expect(tile(id)).toHaveTextContent("No downtime · includes paused time");
+    }
+  });
+
+  /*
+   * Monitoring turned off: the windows leave that time out rather than
+   * count the status it was left at (issue #6480), and say so.
+   */
+  test("a probe check with monitoring off: its windows leave that time out", async () => {
+    setUpServer({
+      ...API_MONITOR,
+      overrides: { disableActiveMonitoring: true },
+    });
+
+    await renderPage();
+
+    for (const id of [
+      "monitor-uptime-24h",
+      "monitor-uptime-7d",
+      "monitor-uptime-30d",
+    ]) {
+      expect(tile(id)).toHaveTextContent(
+        "No downtime · leaves out time with monitoring off",
+      );
+      expect(tile(id)).not.toHaveTextContent("includes paused time");
     }
   });
 });

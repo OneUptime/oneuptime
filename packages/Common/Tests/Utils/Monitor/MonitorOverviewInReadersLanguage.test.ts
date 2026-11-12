@@ -1568,4 +1568,33 @@ describe("the uptime windows in the reader's language", () => {
       }
     },
   );
+
+  // Issue #6480: a window with monitoring off for part of it says so, in the reader's words.
+  test.each(LANGUAGES)(
+    "%s: the monitoring-off caveat is in the reader's language",
+    (language: string) => {
+      setDateDisplayLanguage(language);
+
+      const translated: UptimeWindowPresentation =
+        MonitorUptimeSummaryUtil.getWindowPresentation({
+          window: windowOf({
+            windowSeconds: 7 * DAY,
+            coveredSeconds: 3 * DAY,
+            downSeconds: 0,
+          }),
+          downtimeStatusIds: new Set<string>([DOWN_STATUS]),
+          caveat: "monitoring-off",
+          translator: translatorFor(language),
+        })!;
+
+      expect(translated.description).not.toContain(
+        "leaves out time with monitoring off",
+      );
+      expect(translated.description).toContain(
+        translatorFor(language).translateTemplate(
+          "leaves out time with monitoring off",
+        ),
+      );
+    },
+  );
 });

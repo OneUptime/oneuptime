@@ -269,6 +269,12 @@ export default class SloUtil {
    * - MonitorSecondsAverage: the clamp happens PER MONITOR (each monitor's own
    *   first event), mirroring UptimeUtil.getTotalDowntimeInSeconds - otherwise
    *   adding a young monitor dilutes the SLI.
+   * - Time with monitoring off (MonitorStatusTimeline.isMonitoringOff, issue
+   *   #6480) is in neither the numerator nor the denominator: nothing checked
+   *   the monitor, so it neither spends the error budget nor counts as good.
+   *   AnyDown leaves out the time NONE of the monitors was monitored;
+   *   MonitorSecondsAverage each monitor's own (UptimeUtil.getNotMonitoredSeconds).
+   *   A calendar window's budget is still the full month's.
    *
    * No data at all (no timeline rows for any monitor) => totalSeconds 0,
    * sliPercentage 100 - callers decide what "no data" means (the evaluator marks
@@ -349,10 +355,21 @@ export default class SloUtil {
       ? OneUptimeDate.getGreaterDate(window.startDate, earliestEventStart)
       : window.startDate;
 
-    const totalSeconds: number = OneUptimeDate.getSecondsBetweenDates(
-      windowStartDate,
-      windowEndDate,
-    );
+    /*
+     * Time with monitoring off is left out (issue #6480): when none of the
+     * monitors was monitored - each had its monitoring turned off, or no row
+     * yet - nothing measured the service, so that time neither spends the
+     * error budget nor counts as good. Their rows hold no downtime for it
+     * (getMonitorEventsForId skips them), so without this it would count as
+     * good.
+     */
+    const totalSeconds: number =
+      OneUptimeDate.getSecondsBetweenDates(windowStartDate, windowEndDate) -
+      UptimeUtil.getNotMonitoredSeconds({
+        items: this.getOwnTimelines(perMonitorTimelines),
+        startDate: windowStartDate,
+        endDate: windowEndDate,
+      });
 
     if (totalSeconds <= 0) {
       return {
@@ -373,6 +390,26 @@ export default class SloUtil {
       totalSeconds,
       sliPercentage: ((totalSeconds - badSeconds) / totalSeconds) * 100,
     };
+  }
+
+  /*
+   * Every monitor's own rows, in one list: a row of another monitor that
+   * came in a monitor's set is left out, as getMonitorEventsForId leaves it.
+   */
+  private static getOwnTimelines(
+    perMonitorTimelines: Array<MonitorTimelineSet>,
+  ): Array<MonitorStatusTimeline> {
+    const timelines: Array<MonitorStatusTimeline> = [];
+
+    for (const monitor of perMonitorTimelines) {
+      for (const timeline of monitor.timelines) {
+        if (timeline.monitorId?.toString() === monitor.monitorId.toString()) {
+          timelines.push(timeline);
+        }
+      }
+    }
+
+    return timelines;
   }
 
   private static computeMonitorSecondsAverageSli(data: {

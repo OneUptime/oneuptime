@@ -27,9 +27,9 @@ flowchart TB
 ```
 
 - **Arkiverte monitorer teller ikke.** En arkivert monitor kontrolleres ikke, så statusen er frosset; gruppen utelater den.
-- **Monitorer med overvåking slått av teller ikke.** Ingenting sjekker en monitor med overvåking slått av, så statusen er bare det den siste kontrollen så. Gruppen utelater den fra statusen sin, og på dashbordet også fra oppetiden og **Oppetidsgraf**: en monitor som sto på **Frakoblet** da overvåkingen ble slått av, gjør ikke gruppen **Frakoblet**.
+- **Monitorer med overvåking slått av teller ikke.** Ingenting sjekker en monitor med overvåking slått av, så statusen er bare det den siste kontrollen så. Gruppen utelater den fra statusen sin: en monitor som sto på **Frakoblet** da overvåkingen ble slått av, gjør ikke gruppen **Frakoblet**. Gruppens oppetid og **Oppetidsgraf** beholder monitorens historikk frem til overvåkingen ble slått av, og utelater tiden etterpå, både på dashbordet og på statussider. Slås den på igjen, teller monitoren med fra det øyeblikket.
 - **En tom gruppe er i drift.** En gruppe uten monitorer, eller bare med arkiverte, viser den driftsklare statusen din. Til du legger til en monitor, viser dashbordet **Ingen monitorer ennå** i stedet for statusen.
-- **Overvåking slått av viser Deaktivert.** Når overvåking er slått av for alle monitorer i en gruppe, sjekker ingenting dem, så dashbordet viser **Deaktivert** i stedet for gruppens status, og ingen oppetidsprosent ved **Oppetidsgraf**. En statusside viser gruppen som **Ikke overvåket**.
+- **Overvåking slått av viser Deaktivert.** Når overvåking er slått av for alle monitorer i en gruppe, sjekker ingenting dem, så dashbordet viser **Deaktivert** i stedet for gruppens status, og **Oppetidsgraf** og oppetiden slutter der overvåkingen ble slått av for den siste av dem. En statusside viser gruppen som **Ikke overvåket**.
 - **Rekkefølgen er din.** Hvilken status som er verst, følger rekkefølgen under **Overvåkere → Innstillinger → Monitorstatus**. Se [Monitorstatuser](/docs/monitor/criteria-and-statuses#monitorstatuser).
 
 En monitorgruppe er ikke en statussidegruppe. En statussidegruppe er en overskrift på én statusside som rommer rader. En monitorgruppe er én rad som står for flere monitorer, og enhver statusside kan vise den.

@@ -419,6 +419,9 @@ describe("MonitorUptimeSummaryUtil.getWindowPresentation", () => {
     expect(describeWith("no-results")).toBe(
       "No downtime · no check has completed yet",
     );
+    expect(describeWith("monitoring-off")).toBe(
+      "No downtime · leaves out time with monitoring off",
+    );
     expect(describeWith(null)).toBe("No downtime");
 
     // isPausedNow is the older spelling of "paused"; a given caveat wins.
@@ -428,6 +431,34 @@ describe("MonitorUptimeSummaryUtil.getWindowPresentation", () => {
     expect(describeWith(null, true)).toBe("No downtime");
     expect(describeWith("not-checking", true)).toBe(
       "No downtime · includes time with no checks running",
+    );
+  });
+
+  /*
+   * Monitoring turned off a day into a thirty-day window (issue #6480): the
+   * day since is not covered, so the window is measured over the rest, and
+   * says why.
+   */
+  it("a window with monitoring off for part of it is measured over the rest, and says so", () => {
+    const DAY: number = 24 * 60 * 60;
+    const result: UptimeWindowPresentation =
+      MonitorUptimeSummaryUtil.getWindowPresentation({
+        window: windowTotal({
+          windowSeconds: THIRTY_DAYS,
+          coveredSeconds: THIRTY_DAYS - DAY,
+          durations: [
+            [OPERATIONAL_ID, THIRTY_DAYS - DAY - 3600],
+            [OFFLINE_ID, 3600],
+          ],
+        }),
+        downtimeStatusIds: DOWNTIME_IDS,
+        caveat: "monitoring-off",
+      })!;
+
+    expect(result.isPartial).toBe(true);
+    expect(result.coveredSeconds).toBe(THIRTY_DAYS - DAY);
+    expect(result.description).toBe(
+      "Down 1h · measured over 29d · leaves out time with monitoring off",
     );
   });
 

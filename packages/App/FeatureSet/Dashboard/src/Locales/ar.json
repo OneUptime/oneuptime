@@ -50758,9 +50758,7 @@
   "Also: {{facts}}.": "وأيضًا: {{facts}}.",
   "Arming a recording of a named person is a capture-policy change, so it needs the \"{{permission}}\" permission (project owners, admins and telemetry admins have it). Ask a project admin to arm the target for you.": "تفعيل تسجيل لشخص محدد بالاسم هو تغيير في سياسة الالتقاط، لذا يتطلب إذن «{{permission}}» (يملكه مالكو المشروع ومسؤولوه ومسؤولو القياس عن بُعد). اطلب من مسؤول المشروع تفعيل الهدف نيابةً عنك.",
   "CSV line": "سطر CSV",
-  "Monitoring is off for every monitor in this group, so it has no uptime to show.": "المراقبة متوقفة لكل مراقبة في هذه المجموعة، لذا لا يوجد وقت تشغيل لعرضه.",
   "Reading recording health needs the \"{{permission}}\" permission (project owners, admins and telemetry admins have it). Ask a project admin to grant it, or to run this check for you.": "تتطلب قراءة صحة التسجيل إذن «{{permission}}» (يملكه مالكو المشروع ومسؤولوه ومسؤولو القياس عن بُعد). اطلب من مسؤول المشروع منحك إياه، أو إجراء هذا التحقق نيابةً عنك.",
-  "This group's status over the last 90 days, one bar per day. Monitors whose monitoring is off are left out.": "حالة هذه المجموعة خلال آخر 90 يومًا، شريط لكل يوم. لا تُحتسب المراقبات التي مراقبتها متوقفة.",
   "Your role cannot read end-user identity, so the server dropped the user filter \"{{user}}\" and this list is NOT narrowed to that user. Ask a project admin for the \"{{permission}}\" permission, or filter by URL, tag or device instead.": "لا يستطيع دورك قراءة هوية المستخدم النهائي، لذا أسقط الخادم عامل تصفية المستخدم \"{{user}}\"، وهذه القائمة ليست مقتصرة على ذلك المستخدم. اطلب من مسؤول المشروع إذن «{{permission}}»، أو صفِّ حسب URL أو الوسم أو الجهاز بدلًا من ذلك.",
   "Your role cannot read end-user identity, so this filter is ignored by the server. Ask a project admin for the \"{{permission}}\" permission.": "لا يستطيع دورك قراءة هوية المستخدم النهائي، لذا يتجاهل الخادم عامل التصفية هذا. اطلب من مسؤول المشروع إذن «{{permission}}».",
   "Your role lacks the \"{{permission}}\" permission. Ask a project admin for it.": "يفتقر دورك إلى إذن «{{permission}}». اطلبه من مسؤول المشروع.",
@@ -50927,5 +50925,11 @@
   "{{name}} has no on-call rule for this severity, and this project doesn't fall back to verified methods.": "ليس لدى {{name}} قاعدة مناوبة لهذه الخطورة، وهذا المشروع لا يرجع إلى الطرق المتحقق منها.",
   "{{name}} has no verified notification method.": "ليس لدى {{name}} طريقة إشعار متحقق منها.",
   "{{name}} is reached only by channels that are off in this project.": "لا يمكن الوصول إلى {{name}} إلا عبر قنوات متوقفة في هذا المشروع.",
-  "{{name}} opted out of pages of this severity.": "ألغى {{name}} الاشتراك في استدعاءات هذه الخطورة."
+  "{{name}} opted out of pages of this severity.": "ألغى {{name}} الاشتراك في استدعاءات هذه الخطورة.",
+  "Monitoring Off": "المراقبة متوقفة",
+  "This group's status over the last 90 days, one bar per day, up to when monitoring was turned off for all of its monitors.": "حالة هذه المجموعة خلال آخر 90 يومًا، شريط لكل يوم، حتى إيقاف المراقبة لجميع مراقباتها.",
+  "This group's status over the last 90 days, one bar per day. Each monitor counts only while its monitoring is on.": "حالة هذه المجموعة خلال آخر 90 يومًا، شريط لكل يوم. لا تُحتسب كل مراقبة إلا ما دامت مراقبتها مفعّلة.",
+  "leaves out time with monitoring off": "يستثني الوقت الذي كانت فيه المراقبة متوقفة",
+  "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}، المراقبة متوقفة، منذ {{start}}، {{duration}} حتى الآن. نشط حاليًا.",
+  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}، المراقبة متوقفة، {{start}} – {{end}}، {{duration}}"
 }

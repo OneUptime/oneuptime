@@ -11,7 +11,7 @@ Et service level objective (SLO) er et pålitelighetsmål for det du overvåker,
 
 ## Slik fungerer det
 
-Et SLO leser statustidslinjene til monitorene som er knyttet til det: de samme dataene som statussidene dine viser. Ut fra dem beregner OneUptime hvor stor del av samsvarsvinduet som var god tid, hvor mye av feilbudsjettet som er igjen, og hvor fort det brukes opp.
+Et SLO leser statustidslinjene til monitorene som er knyttet til det: de samme dataene som statussidene dine viser. Ut fra dem beregner OneUptime hvor stor del av samsvarsvinduet som var god tid, hvor mye av feilbudsjettet som er igjen, og hvor fort det brukes opp. Tid der overvåkingen av en monitor er slått av, utelates: ingenting sjekker monitoren da, så den tiden verken bruker av feilbudsjettet eller teller som god tid.
 
 ```mermaid title="Fra monitorsjekker til statusen til et SLO"
 flowchart TB
