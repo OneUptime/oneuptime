@@ -86,6 +86,15 @@ export interface ComponentProps {
    * false so existing consumers keep the products shortcut.
    */
   disableCommandKShortcut?: boolean | undefined;
+  /*
+   * Rows of the phone's menu (below 768px, where the products dialog never
+   * opens): drawn first, above Home, and last, after User Settings. The
+   * Dashboard puts its Search and Help there, which its header has no room
+   * for on a phone (#6816). Each is handed the function that closes the
+   * menu, for when it opens something.
+   */
+  mobileMenuTop?: ((closeMenu: () => void) => ReactElement) | undefined;
+  mobileMenuBottom?: ((closeMenu: () => void) => ReactElement) | undefined;
   className?: string;
   // Legacy support for children-based usage
   children?: ReactElement | Array<ReactElement>;
@@ -156,6 +165,10 @@ const Navbar: FunctionComponent<ComponentProps> = (
     isComponentVisible: isMobileMenuOpen,
     setIsComponentVisible: setIsMobileMenuOpen,
   } = useComponentOutsideClick(false);
+
+  const closeMobileMenu: () => void = (): void => {
+    setIsMobileMenuOpen(false);
+  };
 
   // Sync local state with hook state
   useEffect(() => {
@@ -412,9 +425,10 @@ const Navbar: FunctionComponent<ComponentProps> = (
                 moreMenuItems={props.moreMenuItems || []}
                 categoriesOpenByDefault={props.moreMenuCategoriesOpenByDefault}
                 rightElement={props.rightElement}
-                onNavigate={() => {
-                  return setIsMobileMenuOpen(false);
-                }}
+                recentLabel={props.moreMenuRecentLabel}
+                topElement={props.mobileMenuTop?.(closeMobileMenu)}
+                bottomElement={props.mobileMenuBottom?.(closeMobileMenu)}
+                onNavigate={closeMobileMenu}
               />
             </nav>
           </div>

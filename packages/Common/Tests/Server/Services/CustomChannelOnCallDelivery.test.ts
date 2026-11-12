@@ -50,6 +50,14 @@ import NotificationRuleType from "../../../Types/NotificationRule/NotificationRu
 import ObjectID from "../../../Types/ObjectID";
 import UserNotificationEventType from "../../../Types/UserNotification/UserNotificationEventType";
 import UserNotificationStatus from "../../../Types/UserNotification/UserNotificationStatus";
+import OnCallTimelineRows from "../TestingUtils/OnCallTimelineRows";
+import {
+  hungUpRequestError,
+  refusedRequestError,
+  resetRequestError,
+  timedOutRequestError,
+  unresolvedNameRequestError,
+} from "../TestingUtils/NotificationRequestErrors";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 jest.mock("../../../Server/Utils/Logger");
@@ -469,9 +477,18 @@ describe("a page through a custom channel", () => {
     });
   });
 
-  test("a send that fails is recorded as an error on its log row", async () => {
+  /*
+   * A send that threw (issue #6873): the request to the Notification service
+   * is read by what failed (OnCallSendFailure) - and the row written over
+   * Sending only, at the version read.
+   */
+  async function sendThatThrows(error: unknown): Promise<OnCallTimelineRows> {
+    const timeline: OnCallTimelineRows = new OnCallTimelineRows();
+    timeline.add(TIMELINE_ID, UserNotificationStatus.Sending);
+    timeline.standIn(UserOnCallLogTimelineService);
+
     jest.spyOn(IncidentService, "findOneById").mockResolvedValue(incident());
-    send.mockRejectedValue(new Error("Notification service unreachable"));
+    send.mockRejectedValue(error);
 
     await internals().deliverNotificationForRule(
       channelRule(),
@@ -480,18 +497,79 @@ describe("a page through a custom channel", () => {
       }),
     );
 
-    // The send is not awaited: let its rejection settle.
-    await new Promise((resolve: (value: unknown) => void) => {
-      setTimeout(resolve, 0);
-    });
+    // The send is not awaited: let its rejection, and the row's write, settle.
+    for (let i: number = 0; i < 5; i++) {
+      await new Promise((resolve: (value: unknown) => void) => {
+        setTimeout(resolve, 0);
+      });
+    }
 
-    expect(updateTimeline).toHaveBeenCalledWith({
-      id: TIMELINE_ID,
-      data: {
-        status: UserNotificationStatus.Error,
-        statusMessage: "Notification service unreachable",
+    // Never the blind write by id.
+    expect(updateTimeline).not.toHaveBeenCalled();
+
+    return timeline;
+  }
+
+  test("a send that fails before its request is recorded as an error on its log row, in its words", async () => {
+    const timeline: OnCallTimelineRows = await sendThatThrows(
+      new Error("Notification service unreachable"),
+    );
+
+    expect(timeline.writes).toEqual([
+      {
+        id: TIMELINE_ID.toString(),
+        data: {
+          status: UserNotificationStatus.Error,
+          statusMessage: "Notification service unreachable",
+        },
       },
-      props: { isRoot: true },
+    ]);
+  });
+
+  test.each([
+    ["refused", refusedRequestError, "ECONNREFUSED"],
+    [
+      "a name that did not resolve",
+      (): Error => {
+        return unresolvedNameRequestError("ENOTFOUND");
+      },
+      "ENOTFOUND",
+    ],
+  ])(
+    "a request that never reached the Notification service (%s): the row says it could not be reached, not where",
+    async (_name: string, error: () => Error, code: string) => {
+      const timeline: OnCallTimelineRows = await sendThatThrows(error());
+
+      expect(timeline.get(TIMELINE_ID)).toMatchObject({
+        status: UserNotificationStatus.Error,
+        statusMessage: `Could not reach the Notification service to send this (${code}).`,
+      });
+    },
+  );
+
+  test.each([
+    ["reset", resetRequestError],
+    ["hung up", hungUpRequestError],
+    ["timed out", timedOutRequestError],
+  ])(
+    "a request that got no answer (%s): the row stays Sending - the channel may still have it, and the service writes how it went",
+    async (_name: string, error: () => Error) => {
+      const timeline: OnCallTimelineRows = await sendThatThrows(error());
+
+      expect(timeline.get(TIMELINE_ID)!.status).toBe(
+        UserNotificationStatus.Sending,
+      );
+      expect(timeline.writes).toEqual([]);
+      expect(UserOnCallLogTimelineService.findOneById).not.toHaveBeenCalled();
+    },
+  );
+
+  test("a failure with no words: the channel named", async () => {
+    const timeline: OnCallTimelineRows = await sendThatThrows(new Error(""));
+
+    expect(timeline.get(TIMELINE_ID)).toMatchObject({
+      status: UserNotificationStatus.Error,
+      statusMessage: "Error sending to CorpoApp.",
     });
   });
 });

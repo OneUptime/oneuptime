@@ -277,6 +277,8 @@ describe("one rule for every Not Operational list and count", () => {
     "App/FeatureSet/Dashboard/src/Pages/Home/SideMenu.tsx",
     "App/FeatureSet/Dashboard/src/Components/Home/HomeOverviewData.ts",
     "Common/Server/Utils/AI/Toolbox/MonitorTools.ts",
+    // The Monitor List widget's "non-operational", on a board and a public page (#6476).
+    "Common/Utils/Dashboard/MonitorListWidgetFormat.ts",
   ])("%s reads NotOperationalMonitorQuery", (relativePath: string) => {
     const source: string = fs.readFileSync(
       path.join(PACKAGES, relativePath),

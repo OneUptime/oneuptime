@@ -920,7 +920,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
       <Header
         leftComponents={
           <>
-            <Logo onClick={() => {}} />
+            <Logo />
 
             <ProjectPicker
               showProjectModal={props.showProjectModal}

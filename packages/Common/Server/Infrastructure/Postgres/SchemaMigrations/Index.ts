@@ -967,6 +967,7 @@ import { AddIndexesForIncidentAndAlertDeletes1809110700000 } from "./18091107000
 import { AddOnCallTestPages1809110800000 } from "./1809110800000-AddOnCallTestPages";
 import { AddProjectGoalsAndWelcomeChecklist1809110900000 } from "./1809110900000-AddProjectGoalsAndWelcomeChecklist";
 import { AddServerSetupChoices1809110968240 } from "./1809110968240-AddServerSetupChoices";
+import { AddUserOnCallLogTimelineSendingIndex1809120200000 } from "./1809120200000-AddUserOnCallLogTimelineSendingIndex";
 
 export default [
   InitialMigration,
@@ -1938,4 +1939,5 @@ export default [
   AddOnCallTestPages1809110800000,
   AddProjectGoalsAndWelcomeChecklist1809110900000,
   AddServerSetupChoices1809110968240,
+  AddUserOnCallLogTimelineSendingIndex1809120200000,
 ];

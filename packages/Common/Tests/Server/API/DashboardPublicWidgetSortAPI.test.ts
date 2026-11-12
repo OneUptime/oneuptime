@@ -568,16 +568,27 @@ describe("a public dashboard's list widgets sorted by a viewer", () => {
       widgetSort: "status:desc",
     });
 
+    /*
+     * A monitor whose monitoring is off comes after every monitor that is
+     * checked, whatever status it was frozen at (issue #6476).
+     */
     expect(reads[0]!["sort"]).toEqual({
+      disableActiveMonitoring: SortOrder.Ascending,
       currentMonitorStatus: {
         priority: { direction: SortOrder.Descending, nulls: "LAST" },
       },
       name: SortOrder.Ascending,
     });
+    expect(Object.keys(reads[0]!["sort"] as JSONObject)).toEqual([
+      "disableActiveMonitoring",
+      "currentMonitorStatus",
+      "name",
+    ]);
     expect(reads[0]!["select"]).toEqual({
       _id: true,
       name: true,
       monitorType: true,
+      disableActiveMonitoring: true,
       currentMonitorStatus: { name: true, color: true, priority: true },
     });
   });

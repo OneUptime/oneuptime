@@ -39,12 +39,12 @@ const IncidentOrAlertNote: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const incidents: string = translator.translateText(
-    INCIDENT_OR_ALERT_NOTE_INCIDENTS,
-  );
-  const alerts: string = translator.translateText(
-    INCIDENT_OR_ALERT_NOTE_ALERTS,
-  );
+  const incidents: string =
+    translator.translateText(INCIDENT_OR_ALERT_NOTE_INCIDENTS) ||
+    INCIDENT_OR_ALERT_NOTE_INCIDENTS;
+  const alerts: string =
+    translator.translateText(INCIDENT_OR_ALERT_NOTE_ALERTS) ||
+    INCIDENT_OR_ALERT_NOTE_ALERTS;
 
   return (
     <p

@@ -164,6 +164,8 @@ Ett larm som inte skickas säger varför i personens **Jourloggar** (Användarin
 
 Projektets ägare får ett e-postmeddelande om det en gång, tills saldot har fyllts på eller kanalen är på igen.
 
+Ett larm som inte nådde OneUptimes aviseringstjänst säger `Could not reach the Notification service to send this (ECONNREFUSED).`, med nätverksfelets kod inom parentesen. Ett larm vars sändning aldrig blev klar, till exempel för att en server startade om under sändningen, säger `Sending did not finish within 15 minutes, so this notification may not have been sent.` Blir sändningen klar ändå ersätter resultatet det meddelandet.
+
 På OneUptime Cloud betalas varje SMS, samtal, WhatsApp- och Telegram-meddelande från projektets saldo på **Projektinställningar > Aviseringar > Aviseringsinställningar**: den exakta kostnaden dras från saldot när leverantören tar emot meddelandet, oavsett hur många meddelanden som går ut samtidigt.
 
 - Med **Automatisk påfyllning** påslaget där lägger meddelandet som hittar saldot under tröskeln först till det belopp som automatisk påfyllning är inställd på och debiterar projektets kort; meddelanden som hittar saldot lågt i samma ögonblick debiterar kortet en gång.

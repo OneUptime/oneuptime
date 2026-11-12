@@ -16,6 +16,7 @@ import ProjectMilestoneService, {
   Service as ProjectMilestoneServiceClass,
 } from "../../../Server/Services/ProjectMilestoneService";
 import ProjectService from "../../../Server/Services/ProjectService";
+import WelcomeChecklistService from "../../../Server/Services/WelcomeChecklistService";
 import ActivationMilestone from "../../../Types/Analytics/ActivationMilestone";
 import Email from "../../../Types/Email";
 import Name from "../../../Types/Name";
@@ -283,6 +284,7 @@ describe("the message a test page is acknowledged from", () => {
 describe("what a test page records", () => {
   let capture: jest.SpyInstance;
   let reach: jest.SpyInstance;
+  let note: jest.SpyInstance;
 
   // The events are sent once the project's plan is read.
   async function settled(): Promise<void> {
@@ -307,6 +309,38 @@ describe("what a test page records", () => {
       .mockImplementation(() => {
         return undefined;
       });
+    note = jest
+      .spyOn(WelcomeChecklistService, "noteTestPageAcknowledgedInBackground")
+      .mockImplementation(() => {
+        return undefined;
+      });
+  });
+
+  test("one acknowledged: that person's first steps on Home are done (#6807)", () => {
+    OnCallTestPageEvents.onTestPageAcknowledged({
+      projectId: PROJECT,
+      executionLogId: RUN,
+      acknowledgedByUserId: ANA,
+    });
+
+    expect(note).toHaveBeenCalledWith({ projectId: PROJECT, userId: ANA });
+  });
+
+  test("one sent, or one with no project, notes nobody", () => {
+    OnCallTestPageEvents.onTestPageSent({
+      projectId: PROJECT,
+      executionLogId: RUN,
+      sentByUserId: ANA,
+      kind: OnCallTestPageKind.Policy,
+      recordKind: OnCallTestPageRecordKind.Alert,
+    });
+    OnCallTestPageEvents.onTestPageAcknowledged({
+      projectId: undefined,
+      executionLogId: RUN,
+      acknowledgedByUserId: ANA,
+    });
+
+    expect(note).not.toHaveBeenCalled();
   });
 
   test("one sent: who sent which kind, in which project, by the events' rule", async () => {

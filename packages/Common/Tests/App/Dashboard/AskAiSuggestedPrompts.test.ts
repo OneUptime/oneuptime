@@ -6,6 +6,7 @@ import PageContextUtil, {
 import { PageEntityState } from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/PageEntityState";
 import { buildPageContextSection } from "../../../Server/Utils/AI/Chat/ObservabilityChatPrompt";
 import { QueryAlertsTool } from "../../../Server/Utils/AI/Toolbox/AlertTools";
+import { QueryMonitorsTool } from "../../../Server/Utils/AI/Toolbox/MonitorTools";
 import AIChatPageContextType, {
   AIChatPageContextHelper,
 } from "../../../Types/AI/AIChatPageContext";
@@ -300,6 +301,7 @@ describe("the questions that follow the record are backed too", () => {
     [AIChatPageContextType.Incident, PageEntityState.Resolved],
     [AIChatPageContextType.Alert, PageEntityState.Resolved],
     [AIChatPageContextType.Monitor, PageEntityState.NotOperational],
+    [AIChatPageContextType.Monitor, PageEntityState.MonitoringOff],
     [AIChatPageContextType.ScheduledMaintenanceEvent, PageEntityState.Upcoming],
     [AIChatPageContextType.ScheduledMaintenanceEvent, PageEntityState.Ended],
   ];
@@ -404,6 +406,31 @@ describe("the questions that follow the record are backed too", () => {
     ).toMatch(/not operational right now/);
     expect(getGuidance(AIChatPageContextType.Monitor)).toContain(
       `query_monitors using monitorId="${ENTITY_ID}"`,
+    );
+  });
+
+  /*
+   * Issue #6477: the questions for a monitor whose monitoring is off ask
+   * about the status it had before then, and query_monitors - which the
+   * page's guidance names - says when a monitor's monitoring is off, so the
+   * answer can tell a stale status from a live one.
+   */
+  test("a monitor whose monitoring is off: its status before then, from a read that says so", () => {
+    for (const title of ["Status summary", "Was it flapping?"]) {
+      expect(
+        card(
+          AIChatPageContextType.Monitor,
+          PageEntityState.MonitoringOff,
+          title,
+        ).question,
+      ).toMatch(/before its monitoring was turned off/);
+    }
+    expect(getGuidance(AIChatPageContextType.Monitor)).toContain(
+      `query_monitors using monitorId="${ENTITY_ID}"`,
+    );
+    expect(QueryMonitorsTool.description).toContain("monitoringOff=true");
+    expect(QueryMonitorsTool.description).toContain(
+      "whether its monitoring is off",
     );
   });
 

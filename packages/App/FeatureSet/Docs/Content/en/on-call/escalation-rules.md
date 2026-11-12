@@ -164,6 +164,8 @@ A page that is not sent says why in the person's **On-Call Logs** (User Settings
 
 The project's owners are emailed about it once, until the balance is topped up or the channel is on again.
 
+A page that could not reach OneUptime's notification service says `Could not reach the Notification service to send this (ECONNREFUSED).`, with the network error's code in the brackets. A page whose send never finished, for example because a server restarted while sending it, says `Sending did not finish within 15 minutes, so this notification may not have been sent.` If the send finishes after all, its result replaces that message.
+
 On OneUptime Cloud each SMS, call, WhatsApp and Telegram message is paid from the project's balance on **Project Settings > Notifications > Notification Settings**: its exact cost comes off the balance when the provider takes it, however many messages go out at once.
 
 - With **Auto Recharge** on there, the message that finds the balance below its threshold adds the amount Auto Recharge is set to first, charging the project's card; messages that find it low at the same moment charge the card once.
