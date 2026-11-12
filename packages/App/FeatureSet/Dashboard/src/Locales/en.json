@@ -17030,7 +17030,6 @@
   "The environment key has an empty account segment": "The environment key has an empty account segment",
   "The error cause referred back to an earlier error.": "The error cause referred back to an earlier error.",
   "The exact docker-compose.yml and otel-collector-config.yaml the agent runs.": "The exact docker-compose.yml and otel-collector-config.yaml the agent runs.",
-  "The exact reference your page passed to identify(). Needs the end-user identity permission; never written to the URL.": "The exact reference your page passed to identify(). Needs the end-user identity permission; never written to the URL.",
   "The exporter returns 401 or 595 errors": "The exporter returns 401 or 595 errors",
   "The field ends with the value.": "The field ends with the value.",
   "The field matches a regular expression (RE2 syntax).": "The field matches a regular expression (RE2 syntax).",
@@ -47998,7 +47997,6 @@
   "None: every element is recorded (subject to masking)": "None: every element is recorded (subject to masking)",
   "None: every uncaught error can trigger an upload": "None: every uncaught error can trigger an upload",
   "None: no cross-origin request gets a traceparent": "None: no cross-origin request gets a traceparent",
-  "Not shown - viewing identity needs the identity permission": "Not shown - viewing identity needs the identity permission",
   "Nothing arrives until a page calls OneUptimeReplay.grantConsent(). Grant consent on an instrumented page, then reload.": "Nothing arrives until a page calls OneUptimeReplay.grantConsent(). Grant consent on an instrumented page, then reload.",
   "Nothing can arrive while sampling is 0%.": "Nothing can arrive while sampling is 0%.",
   "Nothing is broken or late right now.": "Nothing is broken or late right now.",
@@ -48162,7 +48160,6 @@
   "The data broke this check, and its alert is open.": "The data broke this check, and its alert is open.",
   "The deployment is serving a bad recorder version; only the operator of this deployment can fix that.": "The deployment is serving a bad recorder version; only the operator of this deployment can fix that.",
   "The drop counter store was unreachable; this is not the same as zero.": "The drop counter store was unreachable; this is not the same as zero.",
-  "The end user's identity needs the identity permission to view.": "The end user's identity needs the identity permission to view.",
   "The end-to-end path works: a recorder on your site reached this server and its chunk was accepted.": "The end-to-end path works: a recorder on your site reached this server and its chunk was accepted.",
   "The health request failed, so nothing here says whether recording works. It retries on its own; the next poll may succeed.": "The health request failed, so nothing here says whether recording works. It retries on its own; the next poll may succeed.",
   "The health status could not be loaded, so nothing here says whether recording works. Reload to try again.": "The health status could not be loaded, so nothing here says whether recording works. Reload to try again.",
@@ -51241,5 +51238,10 @@
   "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:",
   "A status page you can't see": "A status page you can't see",
   "It emails the owners added by owner rules ({{names}}).": "It emails the owners added by owner rules ({{names}}).",
-  "It emails the owners added by owner rules.": "It emails the owners added by owner rules."
+  "It emails the owners added by owner rules.": "It emails the owners added by owner rules.",
+  "Hidden - your role needs the \"{{permission}}\" permission": "Hidden - your role needs the \"{{permission}}\" permission",
+  "Your role cannot read end-user identity. Ask a project admin for the \"{{permission}}\" permission.": "Your role cannot read end-user identity. Ask a project admin for the \"{{permission}}\" permission.",
+  "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.": "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.",
+  "That turn is not part of this task": "That turn is not part of this task",
+  "The task's first turn is shown instead.": "The task's first turn is shown instead."
 }
