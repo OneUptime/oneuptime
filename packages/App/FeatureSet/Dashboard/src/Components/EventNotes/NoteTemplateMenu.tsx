@@ -2,7 +2,7 @@ import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import DROPDOWN_MENU_Z_INDEX from "Common/UI/Components/Dropdown/DropdownMenuZIndex";
 import Icon from "Common/UI/Components/Icon/Icon";
-import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import Link from "Common/UI/Components/Link/Link";
 import useAnchoredFieldPopup, {
@@ -264,21 +264,24 @@ const NoteTemplateMenu: FunctionComponent<ComponentProps> = (
                 >
                   {/*
                    * A template's name and first line are what someone
-                   * wrote, read the way they are written (IsolatedText):
-                   * an English one in a Persian menu put its colon at its
-                   * start (":Contained").
+                   * wrote, each a line that reads the way it is written
+                   * (IsolatedLine): an English one in a Persian menu put
+                   * its colon at its start (":Contained"), and one too long
+                   * for the menu lost its start, not its end.
                    */}
-                  <span className="w-full truncate text-sm font-medium text-gray-900">
-                    {template.name ? (
-                      <IsolatedText text={template.name} />
-                    ) : (
-                      tx("Untitled template")
-                    )}
-                  </span>
+                  <IsolatedLine
+                    as="span"
+                    text={template.name || tx("Untitled template")}
+                    className="w-full truncate text-sm font-medium text-gray-900"
+                    dataTestId="note-template-name"
+                  />
                   {preview && (
-                    <span className="w-full truncate text-xs text-gray-500">
-                      <IsolatedText text={preview} />
-                    </span>
+                    <IsolatedLine
+                      as="span"
+                      text={preview}
+                      className="w-full truncate text-xs text-gray-500"
+                      dataTestId="note-template-preview"
+                    />
                   )}
                 </button>
               </li>

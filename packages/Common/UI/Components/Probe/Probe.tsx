@@ -16,6 +16,19 @@ export interface ComponentProps {
   suffix?: string | undefined;
 }
 
+/*
+ * The probe's name. In a table's row the cell keeps it to one line
+ * (whitespace-nowrap), and it ends in "..." at its own end; on a phone's
+ * card it wraps, breaking a name with no place to break anywhere rather
+ * than run past the card. Said to wrap ([overflow-wrap:anywhere]), a name
+ * that reads the other way from the page is as wide as its words beside
+ * its icon (IsolatedLine's CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME):
+ * aligned to its end, as a one-line box is, an English probe's wrapped
+ * lines all lined up on the right of an Arabic card.
+ */
+export const PROBE_NAME_CLASS_NAME: string =
+  "overflow-hidden text-ellipsis [overflow-wrap:anywhere]";
+
 const ProbeElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -67,11 +80,11 @@ const ProbeElement: FunctionComponent<ComponentProps> = (
          * narrow for it - a table's cell - it is cut short at its own end
          * (IsolatedLine): an English probe name on an Arabic page lost its
          * start ("gapore office behind the corporate proxy"), with no "..."
-         * to say so. It wraps wherever its line may.
+         * to say so. It wraps wherever its line may (PROBE_NAME_CLASS_NAME).
          */}
         <IsolatedLine
           text={name}
-          className="overflow-hidden text-ellipsis"
+          className={PROBE_NAME_CLASS_NAME}
           dataTestId="probe-name"
         >
           {`${name} ${props.suffix || ""}`}

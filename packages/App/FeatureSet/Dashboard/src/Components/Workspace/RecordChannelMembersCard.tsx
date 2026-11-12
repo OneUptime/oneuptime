@@ -20,6 +20,7 @@ import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Icon from "Common/UI/Components/Icon/Icon";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 import Link from "Common/UI/Components/Link/Link";
 import PeopleAvatar from "Common/UI/Components/PeoplePicker/PeopleAvatar";
 import { PeopleSearchNotice } from "Common/UI/Components/PeoplePicker/PeopleSearchNotice";
@@ -181,12 +182,17 @@ const PersonRow: FunctionComponent<{
         }}
         size="xs"
       />
-      <span
-        data-testid="record-channel-person-name"
+      {/*
+       * Cut short at its own end (IsolatedLine): an English name on an
+       * Arabic page lost its start.
+       */}
+      <IsolatedLine
+        as="span"
+        text={props.person.name}
         className="min-w-0 truncate text-sm text-gray-900"
-      >
-        {props.person.name}
-      </span>
+        title={props.person.name}
+        dataTestId="record-channel-person-name"
+      />
       {props.person.isViewer && (
         <span
           data-testid="record-channel-person-you"

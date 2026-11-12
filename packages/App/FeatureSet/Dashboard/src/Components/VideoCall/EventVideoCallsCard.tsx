@@ -13,6 +13,7 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -214,7 +215,18 @@ const CallRow: FunctionComponent<CallRowProps> = (
           {props.isPrimary &&
             call.title &&
             call.provider !== VideoCallProvider.CustomLink && (
-              <p className="truncate text-sm text-gray-600">{call.title}</p>
+              /*
+               * The meeting's own title, cut short at its own end
+               * (IsolatedLine): an English one on an Arabic page lost its
+               * start.
+               */
+              <IsolatedLine
+                as="p"
+                text={call.title}
+                className="truncate text-sm text-gray-600"
+                title={call.title}
+                dataTestId="event-video-call-title"
+              />
             )}
           <p className="mt-0.5 truncate text-xs text-gray-500">
             {startedAt ? `${startedBy} · ${startedAt}` : startedBy}

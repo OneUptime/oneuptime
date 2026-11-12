@@ -27,6 +27,7 @@ import {
 } from "../Button/Button";
 import { getHandDrawnButtonStateClassName } from "../Button/ButtonStates";
 import ArchivedTag from "../ArchivedTag/ArchivedTag";
+import IsolatedLine from "../IsolatedText/IsolatedLine";
 import Tooltip from "../Tooltip/Tooltip";
 import { PermissionGateResult } from "../../Utils/PermissionGate";
 
@@ -448,20 +449,29 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
               </span>
             </div>
           )}
+          {/*
+           * The name and the email read the way they are written
+           * (IsolatedLine): on an Arabic or Persian page an English email
+           * too long for the card was cut where the page's lines end, at
+           * its start ("...e-commerce.example"). It ends in "..." at its
+           * own end now, and a short one starts beside the avatar.
+           */}
           <div className="min-w-0 flex-1">
-            <p
+            <IsolatedLine
+              as="p"
+              text={memberLabel}
               className="text-sm font-medium text-gray-900 truncate"
               title={memberLabel}
-            >
-              {memberLabel}
-            </p>
+              dataTestId="member-role-member-name"
+            />
             {member.userName && member.userEmail && (
-              <p
+              <IsolatedLine
+                as="p"
+                text={member.userEmail}
                 className="text-xs text-gray-500 truncate"
                 title={member.userEmail}
-              >
-                {member.userEmail}
-              </p>
+                dataTestId="member-role-member-email"
+              />
             )}
           </div>
         </div>
@@ -658,9 +668,17 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                            <span className="min-w-0 break-words text-sm font-semibold text-gray-900">
-                              {role.name}
-                            </span>
+                            {/*
+                             * A role's name is the project's own: read the
+                             * way it is written, its wrapped lines from its
+                             * own start.
+                             */}
+                            <IsolatedLine
+                              as="span"
+                              text={role.name}
+                              className="min-w-0 break-words text-sm font-semibold text-gray-900"
+                              dataTestId="member-role-name"
+                            />
                             {role.isPrimaryRole && (
                               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
                                 {translator.translateText("Primary")}
