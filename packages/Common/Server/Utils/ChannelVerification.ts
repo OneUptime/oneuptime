@@ -129,6 +129,31 @@ export const SEND_FAILURE_NOT_EXPLAINED: string =
   "The message service did not say why. Try again in a moment.";
 
 /*
+ * What the verify dialog and its routes answer when a code cannot be
+ * checked or sent (#6836): what happened and what to do next, never "Item
+ * not found" or "Invalid code". A row that is not the caller's is answered
+ * exactly like one that does not exist, so the answer never says whether
+ * somebody else has the address or number.
+ */
+export const ChannelVerificationMessages: {
+  noItem: string;
+  notSignedIn: string;
+  notFound: string;
+  alreadyVerified: string;
+  incorrectCode: string;
+} = {
+  noItem:
+    "The request did not say which notification method to verify. Reload the page and try again.",
+  notSignedIn: "Sign in again, then verify this notification method.",
+  notFound:
+    "This notification method is not in your list any more. Add it again, then verify it.",
+  alreadyVerified:
+    "This notification method is already verified. You can close this dialog.",
+  incorrectCode:
+    "That code is not right. Enter the code from the latest message we sent, or send a new code.",
+};
+
+/*
  * The verification-related columns every channel model carries. Structural
  * rather than a base class because these are TypeORM entities whose
  * inheritance chain is already spoken for.
@@ -789,11 +814,12 @@ export default class ChannelVerification {
     switch (outcome) {
       case ChannelVerificationOutcome.NotFound:
       case ChannelVerificationOutcome.NotProjectMember:
-        return new BadDataException("Item not found");
       case ChannelVerificationOutcome.NotOwner:
-        return new BadDataException("Invalid user ID");
+        return new BadDataException(ChannelVerificationMessages.notFound);
       case ChannelVerificationOutcome.AlreadyVerified:
-        return new BadDataException("This is already verified");
+        return new BadDataException(
+          ChannelVerificationMessages.alreadyVerified,
+        );
       case ChannelVerificationOutcome.Expired:
         return new BadDataException(
           "This verification code has expired. Please request a new code.",
@@ -803,7 +829,7 @@ export default class ChannelVerification {
           "Too many incorrect attempts. This verification code is no longer valid. Please request a new code.",
         );
       default:
-        return new BadDataException("Invalid code");
+        return new BadDataException(ChannelVerificationMessages.incorrectCode);
     }
   }
 

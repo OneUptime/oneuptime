@@ -1530,7 +1530,7 @@ describe("POST /login-with-magic-link - an account with two factor authenticatio
 
     await verifyTotp({ magicLinkToken: TOKEN, code: wrongCodeFor(app.code()) });
 
-    expect(errorMessage()).toBe("Invalid code.");
+    expect(errorMessage()).toBe("That code is not right. Enter the 6-digit code your authenticator app shows now.");
     expect(createSession).not.toHaveBeenCalled();
     expect(isLinkStillStored()).toBe(true);
 
@@ -1557,7 +1557,7 @@ describe("POST /login-with-magic-link - an account with two factor authenticatio
 
     await verifyTotp({ magicLinkToken: TOKEN, code: wrongCodeFor(app.code()) });
 
-    expect(errorMessage()).toBe("Invalid code.");
+    expect(errorMessage()).toBe("That code is not right. Enter the 6-digit code your authenticator app shows now.");
     expect(isLinkStillStored()).toBe(true);
 
     sendErrorResponse.mockClear();
@@ -1618,7 +1618,7 @@ describe("POST /login-with-magic-link - an account with two factor authenticatio
         code: wrongCodeFor(app.code()),
       });
 
-      expect(errorMessage()).toBe("Invalid code.");
+      expect(errorMessage()).toBe("That code is not right. Enter the 6-digit code your authenticator app shows now.");
       expect(saidASignInLinkBeganIt()).toBe(true);
     });
 
@@ -1629,7 +1629,7 @@ describe("POST /login-with-magic-link - an account with two factor authenticatio
 
       await enterBackupCode({ magicLinkToken: TOKEN });
 
-      expect(errorMessage()).toBe("Invalid backup code.");
+      expect(errorMessage()).toBe("That backup code is not right, or it was already used. Each backup code works once.");
       expect(saidASignInLinkBeganIt()).toBe(true);
     });
 
@@ -1639,7 +1639,7 @@ describe("POST /login-with-magic-link - an account with two factor authenticatio
 
       await verifyTotp({ ...PASSWORD_FIELD, code: wrongCodeFor(app.code()) });
 
-      expect(errorMessage()).toBe("Invalid code.");
+      expect(errorMessage()).toBe("That code is not right. Enter the 6-digit code your authenticator app shows now.");
       expect(saidASignInLinkBeganIt()).toBe(false);
     });
 
@@ -1649,7 +1649,7 @@ describe("POST /login-with-magic-link - an account with two factor authenticatio
 
       await enterBackupCode(PASSWORD_FIELD);
 
-      expect(errorMessage()).toBe("Invalid backup code.");
+      expect(errorMessage()).toBe("That backup code is not right, or it was already used. Each backup code works once.");
       expect(saidASignInLinkBeganIt()).toBe(false);
     });
 
@@ -1836,7 +1836,7 @@ describe("POST /login-with-magic-link - an account with two factor authenticatio
 
       await verifyBackupCode();
 
-      expect(errorMessage()).toBe("Invalid backup code.");
+      expect(errorMessage()).toBe("That backup code is not right, or it was already used. Each backup code works once.");
       expect(createSession).not.toHaveBeenCalled();
       expect(isLinkStillStored()).toBe(false);
     });
@@ -1910,7 +1910,7 @@ describe("POST /login-with-magic-link - an account with two factor authenticatio
 
       await verifyEnrolment(wrongCodeFor(enrolment.code()));
 
-      expect(errorMessage()).toBe("Invalid code.");
+      expect(errorMessage()).toBe("That code is not right. Enter the 6-digit code your authenticator app shows now.");
       expect(isLinkStillStored()).toBe(true);
       expect(totpUpdateOneById).not.toHaveBeenCalled();
     });

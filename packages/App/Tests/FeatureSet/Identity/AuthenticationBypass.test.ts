@@ -355,7 +355,7 @@ describe("Identity /verify-email - email verification bypass", () => {
     expect(userUpdateOneBy).not.toHaveBeenCalled();
     expect(result.nextError).toBeInstanceOf(BadDataException);
     expect((result.nextError as unknown as Exception).message).toBe(
-      "Verification token is required.",
+      "This verification link is incomplete. Open the link from the email again, or sign in to get a new one.",
     );
   });
 
@@ -573,7 +573,7 @@ describe("Identity /reset-password - password must be present", () => {
     expect(userUpdateOneById).not.toHaveBeenCalled();
     expect(result.nextError).toBeInstanceOf(BadDataException);
     expect((result.nextError as unknown as Exception).message).toBe(
-      "Reset password token is required.",
+      "This password reset link is incomplete. Open the link from the email again, or ask for a new one on the Forgot Password page.",
     );
   });
 

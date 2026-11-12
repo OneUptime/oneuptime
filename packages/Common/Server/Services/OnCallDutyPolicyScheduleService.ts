@@ -1488,7 +1488,9 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
         "Schedule not found for scheduleId: " + scheduleId.toString(),
         { onCallDutyPolicyScheduleId: scheduleId.toString() } as LogAttributes,
       );
-      throw new BadDataException("Schedule not found");
+      throw new BadDataException(
+        "This on-call schedule no longer exists. It may have been deleted.",
+      );
     }
 
     logger.debug(
@@ -2131,7 +2133,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
       !OneUptimeDate.isBefore(options.windowStart, options.windowEnd) &&
       options.windowStart.getTime() !== options.windowEnd.getTime()
     ) {
-      throw new BadDataException("windowStart must be before windowEnd");
+      throw new BadDataException("The start of the time window must be before its end.");
     }
 
     const inputsById: Map<string, ScheduleResolutionInputs> =

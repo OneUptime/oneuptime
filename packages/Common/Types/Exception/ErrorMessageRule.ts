@@ -144,6 +144,16 @@ export const isErrorSentence: (message: string | undefined | null) => boolean = 
     return false;
   }
 
+  /*
+   * A value after a full stop is a sentence of its own - another message,
+   * passed on: "The code was not sent to {{number}}. {{reason}}".
+   */
+  for (const value of ["${value}", "{{reason}}", "{{error}}", "{{message}}"]) {
+    if (text.endsWith(`. ${value}`)) {
+      return true;
+    }
+  }
+
   // The last character that is not a closing mark.
   let end: number = text.length - 1;
 
