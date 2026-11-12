@@ -1,6 +1,9 @@
 import { describe, expect, test } from "@jest/globals";
 import DockerSwarmResource from "../../../Models/DatabaseModels/DockerSwarmResource";
-import { withDateDisplayLanguage } from "../../../Types/DateLanguage";
+import { Translator } from "../../../Types/Translator";
+import { withSentenceDigits } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/SentenceDigits";
+import { dashboardTranslator } from "../../Helpers/DashboardLocales";
+import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 import Route from "../../../Types/API/Route";
 import IconProp from "../../../Types/Icon/IconProp";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
@@ -1186,126 +1189,68 @@ describe("which part an open incident or alert is about", () => {
 });
 
 /*
- * The numbers a reason sentence is filled with are written in the reader's
- * digits (issue #7107): "۲ از ۳ رونوشت اجرا می‌شوند" on a Persian page, not
- * "2 از 3", beside the Persian counts and durations around it. English
- * reads as it always has (the cases above).
+ * A reason's counts are kept as plain digits ("2", "3"): every place that
+ * draws a reason fills its sentence through withSentenceDigits, which
+ * writes a whole number in the sentence's own digits (issue #7107) - "۲
+ * از ۳ رونوشت اجرا می‌شوند" on a Persian page, and English digits in a
+ * sentence the reader's language has not worded yet.
  */
-describe("the numbers in a reason, in the reader's digits", () => {
-  const LATIN_DIGIT: RegExp = /[0-9]/;
-
-  const valuesOf: (texts: Array<ResourceAttentionText>) => Array<string> = (
-    texts: Array<ResourceAttentionText>,
-  ): Array<string> => {
-    return texts.flatMap((text: ResourceAttentionText): Array<string> => {
-      return Object.values(text.values || {});
-    });
+describe("a reason's counts, drawn in the sentence's digits", () => {
+  const drawn: (
+    translator: Translator,
+    reason: ResourceAttentionText,
+  ) => string = (
+    translator: Translator,
+    reason: ResourceAttentionText,
+  ): string => {
+    return withoutIsolateMarks(
+      translator.translateTemplate(
+        reason.text,
+        withSentenceDigits(reason.values),
+      ),
+    );
   };
 
-  test("a service short of replicas, and one with none running, in Persian", () => {
-    withDateDisplayLanguage("fa", () => {
-      expect(
-        assessDockerSwarmService(
-          service("shop_web", { runningReplicas: 2 }),
-          NOW,
-        ).reasons,
-      ).toEqual([
-        {
-          text: "{{running}} of {{desired}} replicas run",
-          values: { running: "۲", desired: "۳" },
-        },
-      ]);
-      expect(
-        assessDockerSwarmService(
-          service("shop_db", { runningReplicas: 0, desiredReplicas: 12 }),
-          NOW,
-        ).reasons,
-      ).toEqual([
-        {
-          text: "None of its {{desired}} replicas run",
-          values: { desired: "۱۲" },
-        },
-      ]);
-    });
-  });
+  test("a service short of replicas and the managers a swarm can reach, in Persian", () => {
+    const persian: Translator = dashboardTranslator("fa");
+    const short: ResourceAttentionText = assessDockerSwarmService(
+      service("shop_web", { runningReplicas: 2 }),
+      NOW,
+    ).reasons[0]!;
 
-  test("a task close to its memory limit: Persian's own digits and percent sign; German's space before it", () => {
-    const hot: () => Array<ResourceAttentionText> =
-      (): Array<ResourceAttentionText> => {
-        return assessDockerSwarmTask(
-          task("shop_web.1", {
-            latestMemoryPercent: 91.4,
-            metricsUpdatedAt: minutesBefore(1),
-          }),
-          NOW,
-        ).reasons;
-      };
+    // Plain digits in the rules: the filter and the sort read them.
+    expect(short.values).toEqual({ running: "2", desired: "3" });
+    expect(drawn(persian, short)).toBe("۲ از ۳ رونوشت اجرا می‌شوند");
 
-    expect(
-      withDateDisplayLanguage("fa", () => {
-        return valuesOf(hot());
-      }),
-    ).toEqual(["۹۱٪"]);
-    expect(
-      withDateDisplayLanguage("de", () => {
-        return valuesOf(hot());
-      }),
-    ).toEqual(["91\u00a0%"]);
-    // Arabic is written in Latin digits, with Intl's percent sign.
-    expect(
-      withDateDisplayLanguage("ar", () => {
-        return valuesOf(hot());
-      }).every((value: string): boolean => {
-        return value.includes("91") && !value.includes("٩");
-      }),
-    ).toBe(true);
-    expect(valuesOf(hot())).toEqual(["91%"]);
-  });
+    const none: ResourceAttentionText = assessDockerSwarmService(
+      service("shop_db", { runningReplicas: 0, desiredReplicas: 12 }),
+      NOW,
+    ).reasons[0]!;
+    expect(drawn(persian, none)).toBe("هیچ‌یک از ۱۲ رونوشت آن اجرا نمی‌شود");
 
-  test("the managers a swarm can still reach, in Persian: no Latin digit in the cluster's reasons", () => {
-    const items: Array<ResourceAttentionItem> = withDateDisplayLanguage(
-      "fa",
-      () => {
-        return getDockerSwarmAttentionItems({
-          rows: [
-            manager("manager-1", "Leader"),
-            manager("manager-2", "Reachable"),
-            manager("manager-3", "Unreachable"),
-          ],
-          clusterName: "prod-swarm",
-          routeFor: routeFor,
-          now: NOW,
-        });
-      },
-    );
-    const swarm: ResourceAttentionItem | undefined = items.find(
-      (item: ResourceAttentionItem): boolean => {
-        return item.key === DOCKER_SWARM_CLUSTER_ATTENTION_KEY;
-      },
-    );
-
-    expect(swarm?.reasons).toContainEqual({
+    const managers: ResourceAttentionText = {
       text: "{{reachable}} of {{total}} managers reachable",
-      values: { reachable: "۲", total: "۳" },
-    });
-    expect(
-      valuesOf(swarm?.reasons || []).filter((value: string): boolean => {
-        return LATIN_DIGIT.test(value);
-      }),
-    ).toEqual([]);
+      values: { reachable: "2", total: "3" },
+    };
+    expect(drawn(persian, managers)).toBe("۲ از ۳ مدیر در دسترس");
   });
 
-  test("a reason built in English after a Persian one reads in Latin digits again", () => {
-    withDateDisplayLanguage("fa", () => {
-      return assessDockerSwarmService(
-        service("shop_web", { runningReplicas: 2 }),
-        NOW,
-      );
-    });
+  test("in English and Arabic, Latin digits", () => {
+    const short: ResourceAttentionText = assessDockerSwarmService(
+      service("shop_web", { runningReplicas: 2 }),
+      NOW,
+    ).reasons[0]!;
 
+    expect(drawn(dashboardTranslator("en"), short)).toBe("2 of 3 replicas run");
+    expect(drawn(dashboardTranslator("ar"), short)).toMatch(/2.*3/);
+  });
+
+  test("a sentence the reader's language has not worded yet keeps English digits", () => {
     expect(
-      assessDockerSwarmService(service("shop_web", { runningReplicas: 2 }), NOW)
-        .reasons[0]?.values,
-    ).toEqual({ running: "2", desired: "3" });
+      drawn(dashboardTranslator("fa"), {
+        text: "{{running}} of {{desired}} replicas in a sentence no locale has",
+        values: { running: "2", desired: "3" },
+      }),
+    ).toBe("2 of 3 replicas in a sentence no locale has");
   });
 });

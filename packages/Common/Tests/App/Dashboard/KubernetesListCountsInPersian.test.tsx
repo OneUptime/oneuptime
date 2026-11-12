@@ -42,13 +42,14 @@ const COLUMNS: Array<ResourceColumn> = [
 function pod(
   name: string,
   attributes: Record<string, string>,
+  memoryLimitBytes: number | null = null,
 ): InfrastructureResource {
   return {
     name: name,
     namespace: "shop",
     cpuUtilization: 0.4,
     memoryUsageBytes: 512 * 1024 * 1024,
-    memoryLimitBytes: null,
+    memoryLimitBytes: memoryLimitBytes,
     memoryUtilization: null,
     status: "Running",
     age: "",
@@ -101,6 +102,17 @@ function rowCells(language: string, name: string): Array<string> {
             node: "node-b2",
             containers: "1200",
           }),
+          // Half of a 1 GiB limit: the share of the limit is drawn.
+          pod(
+            "cache-9f1a",
+            {
+              ready: "1/1",
+              restarts: "0",
+              node: "node-c3",
+              containers: "1",
+            },
+            1024 * 1024 * 1024,
+          ),
         ]}
         title="Pods"
         description="All pods running in this cluster."
@@ -147,6 +159,34 @@ describe("a count column on a Persian page", () => {
     expect(cells).toContain("N/A");
     expect(cells).toContain("۱٬۲۰۰");
     expect(cells).toContain("node-b2");
+  });
+
+  test("the memory share of a limit, in Persian digits and Persian's percent sign", () => {
+    const cells: Array<string> = rowCells("fa", "cache-9f1a");
+
+    expect(
+      cells.some((cell: string): boolean => {
+        return cell.startsWith("۵۰٪");
+      }),
+    ).toBe(true);
+
+    const latin: Array<string> = cells.filter((cell: string): boolean => {
+      return (
+        LATIN_DIGIT.test(cell) && cell !== "node-c3" && cell !== "cache-9f1a"
+      );
+    });
+
+    expect(latin).toEqual([]);
+  });
+
+  test("the memory share of a limit, in English, as before", () => {
+    const cells: Array<string> = rowCells("en", "cache-9f1a");
+
+    expect(
+      cells.some((cell: string): boolean => {
+        return cell.startsWith("50%");
+      }),
+    ).toBe(true);
   });
 
   test("in English, as before", () => {

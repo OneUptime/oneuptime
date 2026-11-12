@@ -2,10 +2,6 @@ import DockerSwarmResource from "Common/Models/DatabaseModels/DockerSwarmResourc
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
-import {
-  formatReaderFigure,
-  formatReaderNumber,
-} from "Common/Types/DateLanguage";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
   ResourceAttentionItem,
@@ -350,9 +346,8 @@ export function getDockerSwarmTaskReadings(
   };
 }
 
-// "91%" in English, "۹۱٪" in Persian, "91 %" in German (issue #7107).
 function formatPercentForReason(percent: number): string {
-  return formatReaderFigure(percent, { decimals: 0, isPercent: true });
+  return `${Math.round(percent)}%`;
 }
 
 function status(
@@ -508,14 +503,14 @@ export function assessDockerSwarmService(
   } else {
     const have: number = running ?? 0;
     const values: Record<string, string> = {
-      running: formatReaderNumber(have),
-      desired: formatReaderNumber(desired),
+      running: String(have),
+      desired: String(desired),
     };
     if (have === 0) {
       partStatus = status(STATUS_REPLICAS, "danger", values);
       reasons.push({
         text: REASON_NONE_RUNNING,
-        values: { desired: formatReaderNumber(desired) },
+        values: { desired: String(desired) },
       });
       severities.push(ResourceAttentionSeverity.Critical);
     } else if (have < desired) {
@@ -811,8 +806,8 @@ export function getDockerSwarmAttentionItems(data: {
       const managers: ResourceAttentionText = {
         text: REASON_MANAGERS_REACHABLE,
         values: {
-          reachable: formatReaderNumber(quorum.reachable),
-          total: formatReaderNumber(quorum.total),
+          reachable: String(quorum.reachable),
+          total: String(quorum.total),
         },
       };
       if (!quorum.hasQuorum) {

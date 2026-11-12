@@ -718,11 +718,11 @@ test.describe("the Hosts list", () => {
     await expect(
       tableRow(page, "Payments database").getByTestId("host-os"),
     ).toHaveAttribute("dir", "ltr");
-    // "of 64 GiB": the size set apart, so it never reads "GiB 64".
+    // "of 64 GiB" in Persian digits, set apart, so it never reads "GiB 64".
     await expect(
       tableRow(page, "Payments database").getByTestId("host-usage-memory"),
     ).toContainText(
-      fill(PERSIAN, "of {{total}}", { total: isolated("64 GiB") }),
+      fill(PERSIAN, "of {{total}}", { total: isolated("۶۴ GiB") }),
     );
 
     await expectNoSidewaysScroll(page);

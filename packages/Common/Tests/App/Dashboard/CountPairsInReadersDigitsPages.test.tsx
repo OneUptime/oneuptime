@@ -640,6 +640,15 @@ describe("a device ping's packet loss", () => {
     expect(loss).not.toMatch(ARABIC_INDIC_DIGIT);
   });
 
+  test("an English sentence on a Persian page keeps English digits: the numbers follow the sentence", () => {
+    // The page's dates are Persian, but the sentence itself is English.
+    setDateDisplayLanguage("fa");
+
+    expect(rowValue(describePingResult(result), "Packet loss")).toBe(
+      "40% (3/5 received)",
+    );
+  });
+
   test("in English, exactly as before", () => {
     const summary: PingResultSummary = describePingResult(result);
 

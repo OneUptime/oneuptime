@@ -25,8 +25,9 @@ import {
  * whose sentence joins two values by a slash or by " of ", or joins a value
  * to {{count}} by a slash or a colon, each value must be written by a
  * format function - translator.formatNumber, formatReaderNumber, a page's
- * formatCount built on them, or Intl with the reader's locale - and so must
- * a {{count}} that translatePlural does not write itself. A value handed
+ * formatCount built on them, or Intl with the reader's locale, directly or
+ * as a composedValue's return - and so must a {{count}} that
+ * translatePlural does not write itself. A value handed
  * as a slot is read inside its element. A value that names something (a
  * metric, a page, a list of steps) is no count: NOT_A_COUNT says why. The
  * pairs joined by " of " on pages this rule reached later wait in
@@ -349,6 +350,31 @@ const findCountPairSites: (
     return [];
   };
 
+  // What a function hands back: its arrow's body, or its one return.
+  const returnedBy: (
+    expression: ts.Expression | undefined,
+  ) => ts.Expression | undefined = (
+    expression: ts.Expression | undefined,
+  ): ts.Expression | undefined => {
+    const node: ts.Expression | undefined = expression
+      ? unwrap(expression)
+      : undefined;
+
+    if (!node || !(ts.isArrowFunction(node) || ts.isFunctionExpression(node))) {
+      return undefined;
+    }
+
+    if (!ts.isBlock(node.body)) {
+      return node.body;
+    }
+
+    const statements: ts.NodeArray<ts.Statement> = node.body.statements;
+    const only: ts.Statement | undefined =
+      statements.length === 1 ? statements[0] : undefined;
+
+    return only && ts.isReturnStatement(only) ? only.expression : undefined;
+  };
+
   // Whether an expression writes its number the reader's way.
   const howWritten: (expression: ts.Expression, depth: number) => Filled = (
     expression: ts.Expression,
@@ -358,6 +384,24 @@ const findCountPairSites: (
       .getText(source)
       .replace(WHITESPACE_RUN, " ");
     const node: ts.Expression = unwrap(expression);
+
+    /*
+     * A value composed for its sentence - composedValue((sentence) =>
+     * sentence.formatNumber(sent)) - is written as its function returns it.
+     */
+    if (
+      ts.isCallExpression(node) &&
+      calleeName(node.expression) === "composedValue"
+    ) {
+      const returned: ts.Expression | undefined = returnedBy(node.arguments[0]);
+
+      return {
+        filledWith: written,
+        isInReadersDigits: returned
+          ? howWritten(returned, depth).isInReadersDigits
+          : false,
+      };
+    }
 
     if (ts.isCallExpression(node)) {
       const name: string = calleeName(node.expression);
@@ -855,6 +899,40 @@ describe("the guard itself", () => {
         }),
       ).toEqual([true]);
     }
+  });
+
+  test("passes a value composed for its sentence only when the sentence writes it", () => {
+    const composed: (body: string) => Array<[string, boolean]> = (
+      body: string,
+    ): Array<[string, boolean]> => {
+      return verdicts(
+        findCountPairSites(
+          "Ping.ts",
+          `translateTemplate("{{received}}/{{sent}} received", {
+            received: composedValue((sentence: Translator): string => {
+              ${body}
+            }),
+            sent: composedValue((sentence: Translator): string => sentence.formatNumber(sent)),
+          });`,
+        ),
+      );
+    };
+
+    expect(composed("return sentence.formatNumber(received);")).toEqual([
+      ["received", true],
+      ["sent", true],
+    ]);
+    // Composed, but still the raw number: no reader's digits.
+    expect(composed("return String(received);")).toEqual([
+      ["received", false],
+      ["sent", true],
+    ]);
+    expect(
+      composed("const written = String(received); return written;"),
+    ).toEqual([
+      ["received", false],
+      ["sent", true],
+    ]);
   });
 
   test("finds a translateTemplate pair passed as plain numbers, and passes it written", () => {

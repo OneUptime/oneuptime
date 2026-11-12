@@ -891,7 +891,10 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
                     />
                   </div>
                   <span className="text-xs text-gray-600 whitespace-nowrap">
-                    {Math.round(pct)}%
+                    {formatReaderFigure(Math.round(pct), {
+                      decimals: 0,
+                      isPercent: true,
+                    })}
                   </span>
                 </div>
                 <div className="text-xs text-gray-500 mt-0.5">
