@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 51094,
-    "untranslated": 5486
+    "untranslated": 5258
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -250,6 +250,7 @@
     "aws_lambda · us-east-1 · nodejs 20",
     "build=1.4.2, plan=pro",
     "checkout-.*",
+    "checkout-api",
     "compute-01 · RegionTwo",
     "compute-07 · RegionOne",
     "customer facing|tier-1",
@@ -263,6 +264,7 @@
     "exports/orders/\nevents/2026/",
     "f3a1c0d2e4b64f7c8a9d0e1f2a3b4c5d",
     "failed password",
+    "finance@yourcompany.com, accounting@yourcompany.com",
     "govc",
     "history {{kind}}",
     "host:port",
@@ -294,12 +296,14 @@
     "orders_.*",
     "p95",
     "p95 {{latency}}",
+    "payment-.*",
     "pending\npaid\nrefunded",
     "prod, staging",
     "prod-.*",
     "prod-eu",
     "prod-vcenter",
     "production, staging",
+    "pve-production",
     "recordset",
     "resolved",
     "s",
@@ -322,6 +326,7 @@
     "vApp {{name}}",
     "vCenter",
     "vSphere Client",
+    "web-.*",
     "writesets",
     "x86",
     "you@company.com",
