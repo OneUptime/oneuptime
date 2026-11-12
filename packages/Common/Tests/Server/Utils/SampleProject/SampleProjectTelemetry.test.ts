@@ -28,9 +28,15 @@ import { afterEach, describe, expect, test } from "@jest/globals";
  */
 
 const NOW: Date = new Date("2026-11-12T12:00:00.000Z");
-const PROJECT_ID: ObjectID = new ObjectID("5a3c0000-0000-4000-8000-0000000000a1");
-const SERVICE_ID: ObjectID = new ObjectID("5a3c0000-0000-4000-8000-0000000000e1");
-const MONITOR_ID: ObjectID = new ObjectID("5a3c0000-0000-4000-8000-0000000000f1");
+const PROJECT_ID: ObjectID = new ObjectID(
+  "5a3c0000-0000-4000-8000-0000000000a1",
+);
+const SERVICE_ID: ObjectID = new ObjectID(
+  "5a3c0000-0000-4000-8000-0000000000e1",
+);
+const MONITOR_ID: ObjectID = new ObjectID(
+  "5a3c0000-0000-4000-8000-0000000000f1",
+);
 const SLOW_MONITOR_ID: ObjectID = new ObjectID(
   "5a3c0000-0000-4000-8000-0000000000f2",
 );
@@ -72,7 +78,9 @@ const rows: SampleTelemetryRows = build();
 const minutesAgoOf: (clickhouseTime: string) => number = (
   clickhouseTime: string,
 ): number => {
-  const at: Date = new Date(`${clickhouseTime.slice(0, 19).replace(" ", "T")}Z`);
+  const at: Date = new Date(
+    `${clickhouseTime.slice(0, 19).replace(" ", "T")}Z`,
+  );
   return (NOW.getTime() - at.getTime()) / 60_000;
 };
 
@@ -107,7 +115,10 @@ describe("how much", () => {
 describe("every row", () => {
   test("is the sample's, kept as long as the sample lives, and written once now", () => {
     const retentionDate: string = OneUptimeDate.toClickhouseDateTime(
-      OneUptimeDate.addRemoveDays(NOW, SAMPLE_PROJECT_TELEMETRY_RETENTION_IN_DAYS),
+      OneUptimeDate.addRemoveDays(
+        NOW,
+        SAMPLE_PROJECT_TELEMETRY_RETENTION_IN_DAYS,
+      ),
     );
 
     for (const row of [...rows.logs, ...rows.spans, ...rows.metrics]) {
@@ -136,9 +147,9 @@ describe("every row", () => {
       expect(row["primaryEntityId"]).toBe(SERVICE_ID.toString());
       expect(row["primaryEntityType"]).toBe(ServiceType.OpenTelemetry);
       expect(row["entityKeys"]).toEqual(["service-key"]);
-      expect(
-        (row["attributes"] as JSONObject)["resource.service.name"],
-      ).toBe("checkout-api");
+      expect((row["attributes"] as JSONObject)["resource.service.name"]).toBe(
+        "checkout-api",
+      );
     }
   });
 });
@@ -182,8 +193,9 @@ describe("the traces", () => {
         return span["parentSpanId"] === "";
       })!;
       const minutesAgo: number = minutesAgoOf(root["startTime"] as string);
-      const durationMs: number =
-        Number(BigInt(root["durationUnixNano"] as string) / BigInt(1_000_000));
+      const durationMs: number = Number(
+        BigInt(root["durationUnixNano"] as string) / BigInt(1_000_000),
+      );
 
       if (minutesAgo > SAMPLE_SLOWDOWN_STARTED_MINUTES_AGO + 1) {
         expect(durationMs).toBeLessThan(600);

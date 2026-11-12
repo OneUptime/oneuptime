@@ -5,7 +5,14 @@ import ProductEvents, {
   SAMPLE_PROJECT_EVENTS,
 } from "../../../UI/Utils/ProductEvents";
 import ProjectUtil from "../../../UI/Utils/Project";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 /*
  * A SAMPLE PROJECT IS NO ACTIVATION (issue #6808): nothing done inside one
@@ -55,7 +62,9 @@ describe("ProductEvents in a sample project", () => {
     ProductEvents.send(ProductEventName.SampleProjectDeleted, { days_kept: 2 });
 
     expect(capture).toHaveBeenCalledTimes(1);
-    expect(capture.mock.calls[0]![0]).toBe(ProductEventName.SampleProjectDeleted);
+    expect(capture.mock.calls[0]![0]).toBe(
+      ProductEventName.SampleProjectDeleted,
+    );
     expect(SAMPLE_PROJECT_EVENTS).toEqual([
       ProductEventName.SampleProjectStarted,
       ProductEventName.SampleProjectDeleted,

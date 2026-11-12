@@ -66,7 +66,9 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  */
 
 const USER_ID: ObjectID = new ObjectID("5a3c0000-0000-4000-8000-0000000000c1");
-const SAMPLE_ID: ObjectID = new ObjectID("5a3c0000-0000-4000-8000-0000000000a1");
+const SAMPLE_ID: ObjectID = new ObjectID(
+  "5a3c0000-0000-4000-8000-0000000000a1",
+);
 const REAL_ID: ObjectID = new ObjectID("5a3c0000-0000-4000-8000-0000000000b1");
 const NOW: Date = new Date("2026-11-12T12:00:00.000Z");
 
@@ -180,10 +182,14 @@ describe("the routes", () => {
 
     await call("POST", SAMPLE_PROJECT_CREATE_ROUTE);
 
-    expect(sendJson).toHaveBeenCalledWith(expect.anything(), expect.anything(), {
-      projectId: SAMPLE_ID.toString(),
-      isNew: true,
-    });
+    expect(sendJson).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      {
+        projectId: SAMPLE_ID.toString(),
+        isNew: true,
+      },
+    );
   });
 
   test("deleting one needs a member of it, and deletes as them", async () => {
@@ -284,7 +290,9 @@ describe("making a person's sample", () => {
 
     await expect(
       SampleProjectService.createForUser({ userId: USER_ID, now: NOW }),
-    ).rejects.toThrow("The sample project could not be made. Try again in a minute.");
+    ).rejects.toThrow(
+      "The sample project could not be made. Try again in a minute.",
+    );
     expect(deleteOneById).toHaveBeenCalledWith({
       id: SAMPLE_ID,
       props: { isRoot: true },

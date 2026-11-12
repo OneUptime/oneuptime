@@ -326,7 +326,8 @@ export const SAMPLE_INCIDENTS: ReadonlyArray<SampleIncident> = [
         note: "Checkout is failing for every customer. We have found the cause and are rolling back.",
       },
     ],
-    rootCause: "Release 2.14 moved checkout to a port the load balancer did not know.",
+    rootCause:
+      "Release 2.14 moved checkout to a port the load balancer did not know.",
     postmortemNote: null,
     isPagedByOnCall: false,
   },
@@ -391,7 +392,8 @@ export const SAMPLE_ALERTS: ReadonlyArray<SampleAlert> = [
   {
     key: "checkout-error-rate",
     title: "Error rate above 2% on checkout-api",
-    description: "checkout-api answered 5xx to more than 2% of requests for 5 minutes.",
+    description:
+      "checkout-api answered 5xx to more than 2% of requests for 5 minutes.",
     severity: SampleAlertSeverity.High,
     monitorKey: "checkout",
     states: [
@@ -402,7 +404,8 @@ export const SAMPLE_ALERTS: ReadonlyArray<SampleAlert> = [
   {
     key: "checkout-latency",
     title: "p95 latency above 800 ms on checkout-api",
-    description: "checkout-api's p95 latency stayed above 800 ms for 5 minutes.",
+    description:
+      "checkout-api's p95 latency stayed above 800 ms for 5 minutes.",
     severity: SampleAlertSeverity.High,
     monitorKey: "checkout",
     states: [{ state: SampleAlertState.Identified, minutesAgo: 26 }],
@@ -458,7 +461,8 @@ export const SAMPLE_MAINTENANCE = {
 // The one service with telemetry, and what is built on it.
 export const SAMPLE_SERVICE = {
   name: "checkout-api",
-  description: "Takes the cart, prices it and asks the Payments API to charge it.",
+  description:
+    "Takes the cart, prices it and asks the Payments API to charge it.",
 } as const;
 
 export const SAMPLE_SLO = {

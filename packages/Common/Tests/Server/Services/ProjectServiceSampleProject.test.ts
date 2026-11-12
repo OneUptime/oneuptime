@@ -71,7 +71,9 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * ---------------------------------------------------------------------------
  */
 
-const SAMPLE_ID: ObjectID = new ObjectID("5a3c0000-0000-4000-8000-000000000001");
+const SAMPLE_ID: ObjectID = new ObjectID(
+  "5a3c0000-0000-4000-8000-000000000001",
+);
 const REAL_ID: ObjectID = new ObjectID("5a3c0000-0000-4000-8000-000000000002");
 const USER_ID: ObjectID = new ObjectID("5a3c0000-0000-4000-8000-0000000000aa");
 
@@ -121,7 +123,12 @@ describe("isSampleProject", () => {
   test("answers from the flag, and keeps the answer", async () => {
     const findOneById: jest.SpyInstance = jest
       .spyOn(ProjectService, "findOneById")
-      .mockResolvedValue(projectRow({ _id: SAMPLE_ID.toString(), isSampleProject: true }) as never);
+      .mockResolvedValue(
+        projectRow({
+          _id: SAMPLE_ID.toString(),
+          isSampleProject: true,
+        }) as never,
+      );
 
     await expect(ProjectService.isSampleProject(SAMPLE_ID)).resolves.toBe(true);
     await expect(
@@ -175,8 +182,12 @@ describe("isSampleProject", () => {
       .spyOn(ProjectService, "findOneById")
       .mockResolvedValue(null as never);
 
-    await expect(ProjectService.isSampleProject(SAMPLE_ID)).resolves.toBe(false);
-    await expect(ProjectService.isSampleProject(SAMPLE_ID)).resolves.toBe(false);
+    await expect(ProjectService.isSampleProject(SAMPLE_ID)).resolves.toBe(
+      false,
+    );
+    await expect(ProjectService.isSampleProject(SAMPLE_ID)).resolves.toBe(
+      false,
+    );
 
     expect(findOneById).toHaveBeenCalledTimes(2);
   });
@@ -188,7 +199,9 @@ describe("isSampleProject", () => {
       "findOneById",
     );
 
-    await expect(ProjectService.isSampleProject(SAMPLE_ID)).resolves.toBe(false);
+    await expect(ProjectService.isSampleProject(SAMPLE_ID)).resolves.toBe(
+      false,
+    );
     expect(findOneById).not.toHaveBeenCalled();
   });
 
@@ -406,7 +419,9 @@ describe("deleting a sample project", () => {
       .mockResolvedValue(undefined as never);
 
     await internals().onDeleteSuccess(
-      onDelete([projectRow({ _id: SAMPLE_ID.toString(), isSampleProject: true })]),
+      onDelete([
+        projectRow({ _id: SAMPLE_ID.toString(), isSampleProject: true }),
+      ]),
       [],
     );
 

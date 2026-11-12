@@ -415,7 +415,7 @@ export const PRODUCT_EVENTS: ReadonlyArray<ProductEventDefinition> = [
   {
     name: ProductEventName.SampleProjectStarted,
     description:
-      'Explore Sample Project was pressed: where (from - welcome, goals, home), and whether a sample was made or the person\'s existing one opened (is_new).',
+      "Explore Sample Project was pressed: where (from - welcome, goals, home), and whether a sample was made or the person's existing one opened (is_new).",
     properties: [token("from"), { name: "is_new" }],
   },
   {

@@ -39,7 +39,9 @@ const handles: Set<string> = new Set<string>(
   }),
 );
 
-const openOutage: (monitor: SampleMonitor) => SampleMonitorOutage | undefined = (
+const openOutage: (
+  monitor: SampleMonitor,
+) => SampleMonitorOutage | undefined = (
   monitor: SampleMonitor,
 ): SampleMonitorOutage | undefined => {
   return monitor.outages.find((outage: SampleMonitorOutage): boolean => {
@@ -200,7 +202,9 @@ describe("the incidents", () => {
   test("notes are posted while the incident was there, by its people", () => {
     for (const incident of SAMPLE_INCIDENTS) {
       for (const note of [...incident.internalNotes, ...incident.publicNotes]) {
-        expect(note.minutesAgo).toBeLessThanOrEqual(incident.declaredMinutesAgo);
+        expect(note.minutesAgo).toBeLessThanOrEqual(
+          incident.declaredMinutesAgo,
+        );
         expect(note.minutesAgo).toBeGreaterThanOrEqual(0);
 
         if (note.authorHandle) {

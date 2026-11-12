@@ -49,7 +49,9 @@ import SampleProjectTelemetry, {
   SampleTelemetryRows,
 } from "./SampleProjectTelemetry";
 import Alert from "../../../Models/DatabaseModels/Alert";
-import AlertFeed, { AlertFeedEventType } from "../../../Models/DatabaseModels/AlertFeed";
+import AlertFeed, {
+  AlertFeedEventType,
+} from "../../../Models/DatabaseModels/AlertFeed";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import AlertState from "../../../Models/DatabaseModels/AlertState";
 import AlertStateTimeline from "../../../Models/DatabaseModels/AlertStateTimeline";
@@ -252,7 +254,9 @@ export default class SampleProjectSeeder {
     const personIdOf: (handle: string | null) => ObjectID = (
       handle: string | null,
     ): ObjectID => {
-      return handle ? required(people[handle], `person ${handle}`) : data.ownerUserId;
+      return handle
+        ? required(people[handle], `person ${handle}`)
+        : data.ownerUserId;
     };
 
     const monitorIds: Record<string, ObjectID> =
@@ -262,12 +266,15 @@ export default class SampleProjectSeeder {
         now: now,
       });
 
-    const onCall: { policyId: ObjectID; scheduleId: ObjectID; firstLevelId: ObjectID } =
-      await SampleProjectSeeder.createOnCall({
-        projectId: projectId,
-        personIdOf: personIdOf,
-        now: now,
-      });
+    const onCall: {
+      policyId: ObjectID;
+      scheduleId: ObjectID;
+      firstLevelId: ObjectID;
+    } = await SampleProjectSeeder.createOnCall({
+      projectId: projectId,
+      personIdOf: personIdOf,
+      now: now,
+    });
 
     const incidentIds: Record<string, ObjectID> = {};
 
@@ -381,7 +388,12 @@ export default class SampleProjectSeeder {
     ] = await Promise.all([
       MonitorStatusService.findBy({
         query: { projectId: projectId },
-        select: { _id: true, name: true, isOperationalState: true, isOfflineState: true },
+        select: {
+          _id: true,
+          name: true,
+          isOperationalState: true,
+          isOfflineState: true,
+        },
         skip: 0,
         limit: 50,
         props: ROOT,
@@ -436,7 +448,11 @@ export default class SampleProjectSeeder {
       }),
       IncidentPostmortemStatusService.findBy({
         query: { projectId: projectId },
-        select: { _id: true, isNotStartedStatus: true, isCompletedStatus: true },
+        select: {
+          _id: true,
+          isNotStartedStatus: true,
+          isCompletedStatus: true,
+        },
         skip: 0,
         limit: 50,
         props: ROOT,
@@ -450,7 +466,9 @@ export default class SampleProjectSeeder {
       }),
     ]);
 
-    const byName: <T extends { name?: string | undefined; id: ObjectID | null }>(
+    const byName: <
+      T extends { name?: string | undefined; id: ObjectID | null },
+    >(
       rows: Array<T>,
       name: string,
       what: string,
@@ -523,7 +541,10 @@ export default class SampleProjectSeeder {
         ),
       },
       incidentStateIds: {
-        [SampleIncidentState.Identified]: required(identified.id, "incident state"),
+        [SampleIncidentState.Identified]: required(
+          identified.id,
+          "incident state",
+        ),
         [SampleIncidentState.Acknowledged]: required(
           acknowledged.id,
           "incident state",
@@ -712,7 +733,8 @@ export default class SampleProjectSeeder {
         const timeline: MonitorStatusTimeline = new MonitorStatusTimeline();
         timeline.projectId = data.projectId;
         timeline.monitorId = monitorId;
-        timeline.monitorStatusId = data.defaults.monitorStatusIds[period.status];
+        timeline.monitorStatusId =
+          data.defaults.monitorStatusIds[period.status];
         timeline.startsAt = period.startsAt;
         if (period.endsAt) {
           timeline.endsAt = period.endsAt;
@@ -812,7 +834,10 @@ export default class SampleProjectSeeder {
     );
 
     for (const outage of outages) {
-      const outageStartsAt: Date = minutesAgo(data.now, outage.startsMinutesAgo);
+      const outageStartsAt: Date = minutesAgo(
+        data.now,
+        outage.startsMinutesAgo,
+      );
 
       periods.push({
         status: SampleMonitorStatus.Operational,
@@ -858,7 +883,11 @@ export default class SampleProjectSeeder {
     projectId: ObjectID;
     personIdOf: (handle: string | null) => ObjectID;
     now: Date;
-  }): Promise<{ policyId: ObjectID; scheduleId: ObjectID; firstLevelId: ObjectID }> {
+  }): Promise<{
+    policyId: ObjectID;
+    scheduleId: ObjectID;
+    firstLevelId: ObjectID;
+  }> {
     const schedule: OnCallDutyPolicySchedule = new OnCallDutyPolicySchedule();
     schedule.projectId = data.projectId;
     schedule.name = SAMPLE_ON_CALL.scheduleName;
@@ -1004,7 +1033,11 @@ export default class SampleProjectSeeder {
     defaults: SampleProjectDefaults;
     monitorIds: Record<string, ObjectID>;
     personIdOf: (handle: string | null) => ObjectID;
-    onCall: { policyId: ObjectID; scheduleId: ObjectID; firstLevelId: ObjectID };
+    onCall: {
+      policyId: ObjectID;
+      scheduleId: ObjectID;
+      firstLevelId: ObjectID;
+    };
     now: Date;
   }): Promise<ObjectID> {
     const sample: SampleIncident = data.incident;
@@ -1024,8 +1057,7 @@ export default class SampleProjectSeeder {
     incident.declaredAt = declaredAt;
     incident.incidentSeverityId =
       data.defaults.incidentSeverityIds[sample.severity];
-    incident.currentIncidentStateId =
-      data.defaults.incidentStateIds[lastState];
+    incident.currentIncidentStateId = data.defaults.incidentStateIds[lastState];
     incident.incidentNumber = numbering.counter;
     incident.incidentNumberWithPrefix = NumberPrefixUtil.formatNumber(
       numbering.prefix,
@@ -1093,8 +1125,9 @@ export default class SampleProjectSeeder {
     for (let index: number = 0; index < sample.states.length; index++) {
       const step: { state: SampleIncidentState; minutesAgo: number } =
         sample.states[index]!;
-      const next: { state: SampleIncidentState; minutesAgo: number } | undefined =
-        sample.states[index + 1];
+      const next:
+        | { state: SampleIncidentState; minutesAgo: number }
+        | undefined = sample.states[index + 1];
       const startsAt: Date = minutesAgo(data.now, step.minutesAgo);
 
       const timeline: IncidentStateTimeline = new IncidentStateTimeline();
@@ -1199,7 +1232,8 @@ export default class SampleProjectSeeder {
         StatusPageSubscriberNotificationStatus.Skipped;
 
       const noteId: ObjectID = required(
-        (await IncidentPublicNoteService.create({ data: note, props: ROOT })).id,
+        (await IncidentPublicNoteService.create({ data: note, props: ROOT }))
+          .id,
         "public note",
       );
 
@@ -1254,7 +1288,11 @@ export default class SampleProjectSeeder {
     projectId: ObjectID;
     incidentId: ObjectID;
     incidentNumber: string;
-    onCall: { policyId: ObjectID; scheduleId: ObjectID; firstLevelId: ObjectID };
+    onCall: {
+      policyId: ObjectID;
+      scheduleId: ObjectID;
+      firstLevelId: ObjectID;
+    };
     personIdOf: (handle: string | null) => ObjectID;
     declaredAt: Date;
   }): Promise<void> {
@@ -1536,8 +1574,12 @@ export default class SampleProjectSeeder {
       timeline.isOwnerNotified = true;
 
       const timelineId: ObjectID = required(
-        (await AlertStateTimelineService.create({ data: timeline, props: ROOT }))
-          .id,
+        (
+          await AlertStateTimelineService.create({
+            data: timeline,
+            props: ROOT,
+          })
+        ).id,
         "alert state timeline",
       );
 
@@ -1696,8 +1738,12 @@ export default class SampleProjectSeeder {
       StatusPageSubscriberNotificationStatus.Skipped;
 
     const maintenanceId: ObjectID = required(
-      (await ScheduledMaintenanceService.create({ data: maintenance, props: ROOT }))
-        .id,
+      (
+        await ScheduledMaintenanceService.create({
+          data: maintenance,
+          props: ROOT,
+        })
+      ).id,
       "scheduled maintenance",
     );
 
@@ -1762,12 +1808,17 @@ export default class SampleProjectSeeder {
       },
     ).map((sample: SampleMonitor): SampleTelemetryMonitor => {
       return {
-        monitorId: required(data.monitorIds[sample.key], `monitor ${sample.key}`),
+        monitorId: required(
+          data.monitorIds[sample.key],
+          `monitor ${sample.key}`,
+        ),
         name: sample.name,
         baseResponseTimeInMs: BASE_RESPONSE_TIME_IN_MS[sample.key]!,
-        isSlowNow: sample.outages.some((outage: SampleMonitorOutage): boolean => {
-          return outage.endsMinutesAgo === null;
-        }),
+        isSlowNow: sample.outages.some(
+          (outage: SampleMonitorOutage): boolean => {
+            return outage.endsMinutesAgo === null;
+          },
+        ),
       };
     });
 
@@ -1830,7 +1881,8 @@ export default class SampleProjectSeeder {
     slo.lastEvaluatedAt = data.now;
 
     return required(
-      (await ServiceLevelObjectiveService.create({ data: slo, props: ROOT })).id,
+      (await ServiceLevelObjectiveService.create({ data: slo, props: ROOT }))
+        .id,
       "SLO",
     );
   }

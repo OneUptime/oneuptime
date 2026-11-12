@@ -87,12 +87,14 @@ let deleteOneById: jest.SpyInstance;
 
 beforeEach(() => {
   flags.billingEnabled = true;
-  findBy = jest.spyOn(ProjectService, "findBy").mockResolvedValue([
-    sample("idle", { lastActiveDaysAgo: 20, createdDaysAgo: 30 }),
-    sample("visited", { lastActiveDaysAgo: 1, createdDaysAgo: 30 }),
-    sample("never", { lastActiveDaysAgo: null, createdDaysAgo: 15 }),
-    sample("new", { lastActiveDaysAgo: null, createdDaysAgo: 2 }),
-  ] as never);
+  findBy = jest
+    .spyOn(ProjectService, "findBy")
+    .mockResolvedValue([
+      sample("idle", { lastActiveDaysAgo: 20, createdDaysAgo: 30 }),
+      sample("visited", { lastActiveDaysAgo: 1, createdDaysAgo: 30 }),
+      sample("never", { lastActiveDaysAgo: null, createdDaysAgo: 15 }),
+      sample("new", { lastActiveDaysAgo: null, createdDaysAgo: 2 }),
+    ] as never);
   deleteOneById = jest
     .spyOn(ProjectService, "deleteOneById")
     .mockResolvedValue(undefined as never);
@@ -132,8 +134,14 @@ describe("SampleProject:DeleteIdleSampleProjects", () => {
     );
 
     expect(deleted).toEqual([
-      sample("idle", { lastActiveDaysAgo: 20, createdDaysAgo: 30 }).id!.toString(),
-      sample("never", { lastActiveDaysAgo: null, createdDaysAgo: 15 }).id!.toString(),
+      sample("idle", {
+        lastActiveDaysAgo: 20,
+        createdDaysAgo: 30,
+      }).id!.toString(),
+      sample("never", {
+        lastActiveDaysAgo: null,
+        createdDaysAgo: 15,
+      }).id!.toString(),
     ]);
     expect(deleteOneById).toHaveBeenCalledWith(
       expect.objectContaining({ props: { isRoot: true } }),

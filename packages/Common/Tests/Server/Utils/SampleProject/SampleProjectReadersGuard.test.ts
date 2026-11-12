@@ -158,7 +158,8 @@ const READERS: ReadonlyArray<Reader> = [
   // Billing, plan limits and usage.
   {
     file: "packages/Common/Server/Services/ProjectService.ts",
-    keeps: "the plan, the payment customer and subscription, the operator's notices",
+    keeps:
+      "the plan, the payment customer and subscription, the operator's notices",
     reads: /isSampleProject/,
   },
   {
@@ -368,7 +369,10 @@ describe("SampleProjectReadersGuard", () => {
     );
     const deleted: Array<string> = namesIn(
       read(
-        path.join(COMMON, "Server/Utils/SampleProject/SampleProjectAnalyticsData.ts"),
+        path.join(
+          COMMON,
+          "Server/Utils/SampleProject/SampleProjectAnalyticsData.ts",
+        ),
       ),
       "export const SAMPLE_PROJECT_ANALYTICS_SERVICES",
     );
@@ -388,9 +392,10 @@ describe("SampleProjectReadersGuard", () => {
 
       expect({
         counter: counter,
-        leavesOutSamplePeople: /sampleProjectId:\s*QueryHelper\.isNull\(\)/.test(
-          stripComments(read(file)),
-        ),
+        leavesOutSamplePeople:
+          /sampleProjectId:\s*QueryHelper\.isNull\(\)/.test(
+            stripComments(read(file)),
+          ),
       }).toEqual({ counter: counter, leavesOutSamplePeople: true });
     }
   });

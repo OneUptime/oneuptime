@@ -399,7 +399,11 @@ describe("chat messages from a sample project", () => {
     const reason: string = getSampleProjectNotSentReason("Workspace message");
 
     expect(responses).toEqual([
-      { workspaceType: WorkspaceType.Slack, threads: [], notSentReason: reason },
+      {
+        workspaceType: WorkspaceType.Slack,
+        threads: [],
+        notSentReason: reason,
+      },
       {
         workspaceType: WorkspaceType.MicrosoftTeams,
         threads: [],

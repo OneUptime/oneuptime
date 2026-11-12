@@ -470,9 +470,7 @@ export default class SampleProjectTelemetry {
       };
 
       const valueOf: Record<string, number> = {
-        [MetricDashboardMetricType.HttpRequestCount]: Math.round(
-          42 * jitter(),
-        ),
+        [MetricDashboardMetricType.HttpRequestCount]: Math.round(42 * jitter()),
         [MetricDashboardMetricType.HttpRequestDuration]: Math.round(
           (isSlow ? 820 : 310) * jitter(),
         ),

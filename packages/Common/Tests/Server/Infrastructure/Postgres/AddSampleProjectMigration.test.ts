@@ -48,11 +48,12 @@ async function record(
   const recorded: Recorded = { queries: [], online: [] };
 
   for (const step of ["createIndex", "dropIndex", "addForeignKey"] as const) {
-    jest
-      .spyOn(OnlineDdl, step)
-      .mockImplementation((async (_runner: QueryRunner, sql: string) => {
-        recorded.online.push({ step: step, sql: sql });
-      }) as never);
+    jest.spyOn(OnlineDdl, step).mockImplementation((async (
+      _runner: QueryRunner,
+      sql: string,
+    ) => {
+      recorded.online.push({ step: step, sql: sql });
+    }) as never);
   }
 
   const runner: QueryRunner = {
@@ -94,7 +95,10 @@ describe("AddSampleProject1809123500000", () => {
   });
 
   test("down undoes up, in the reverse order", async () => {
-    const { queries } = await record(new AddSampleProject1809123500000(), "down");
+    const { queries } = await record(
+      new AddSampleProject1809123500000(),
+      "down",
+    );
 
     expect(queries).toEqual([
       `ALTER TABLE "User" DROP COLUMN "sampleProjectId"`,
@@ -105,7 +109,9 @@ describe("AddSampleProject1809123500000", () => {
 
 describe("AddSampleProjectUserIndex1809123500001", () => {
   test("runs outside a transaction, as CREATE INDEX CONCURRENTLY must", () => {
-    expect(new AddSampleProjectUserIndex1809123500001().transaction).toBe(false);
+    expect(new AddSampleProjectUserIndex1809123500001().transaction).toBe(
+      false,
+    );
   });
 
   test("builds the index and the cascading foreign key online, under TypeORM's names", async () => {

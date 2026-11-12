@@ -100,7 +100,9 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * ---------------------------------------------------------------------------
  */
 
-const PROJECT_ID: ObjectID = new ObjectID("5a3c0000-0000-4000-8000-0000000000a1");
+const PROJECT_ID: ObjectID = new ObjectID(
+  "5a3c0000-0000-4000-8000-0000000000a1",
+);
 const OWNER_ID: ObjectID = new ObjectID("5a3c0000-0000-4000-8000-0000000000b1");
 const NOW: Date = new Date("2026-11-12T12:00:00.000Z");
 
@@ -199,7 +201,11 @@ beforeEach(async () => {
           props: createBy.props,
         });
         counter++;
-        return { id: new ObjectID(`5a3c0000-0000-4000-9000-${String(counter).padStart(12, "0")}`) };
+        return {
+          id: new ObjectID(
+            `5a3c0000-0000-4000-9000-${String(counter).padStart(12, "0")}`,
+          ),
+        };
       }) as never);
 
     jest
@@ -258,9 +264,13 @@ beforeEach(async () => {
       { name: "Low", id: id("al2") },
     ]) as never,
   );
-  jest.spyOn(ScheduledMaintenanceStateService, "findBy").mockResolvedValue(
-    named([{ name: "Scheduled", id: id("sm1"), isScheduledState: true }]) as never,
-  );
+  jest
+    .spyOn(ScheduledMaintenanceStateService, "findBy")
+    .mockResolvedValue(
+      named([
+        { name: "Scheduled", id: id("sm1"), isScheduledState: true },
+      ]) as never,
+    );
   jest.spyOn(IncidentPostmortemStatusService, "findBy").mockResolvedValue(
     named([
       { name: "Not Started", id: id("pm1"), isNotStartedStatus: true },
@@ -287,12 +297,14 @@ beforeEach(async () => {
     .spyOn(ProjectService, "incrementAndGetScheduledMaintenanceCounter")
     .mockResolvedValue({ counter: 1, prefix: "SM-" });
 
-  jest.spyOn(OpenTelemetryIngestService, "telemetryServiceFromName").mockResolvedValue({
-    serviceName: "checkout-api",
-    primaryEntityId: id("svc"),
-    primaryEntityType: ServiceType.OpenTelemetry,
-    entityKeys: ["service-key"],
-  } as TelemetryServiceMetadata);
+  jest
+    .spyOn(OpenTelemetryIngestService, "telemetryServiceFromName")
+    .mockResolvedValue({
+      serviceName: "checkout-api",
+      primaryEntityId: id("svc"),
+      primaryEntityType: ServiceType.OpenTelemetry,
+      entityKeys: ["service-key"],
+    } as TelemetryServiceMetadata);
 
   written = jest
     .spyOn(SampleProjectTelemetry, "write")
@@ -327,9 +339,10 @@ describe("it never does what a real record does", () => {
         continue;
       }
 
-      expect({ service: call.service, projectId: call.data["projectId"] }).toEqual(
-        { service: call.service, projectId: PROJECT_ID },
-      );
+      expect({
+        service: call.service,
+        projectId: call.data["projectId"],
+      }).toEqual({ service: call.service, projectId: PROJECT_ID });
     }
   });
 
@@ -344,7 +357,9 @@ describe("it never does what a real record does", () => {
           });
         }
 
-        if (/^shouldStatusPageSubscribersBeNotified|^notifySubscribers/.test(key)) {
+        if (
+          /^shouldStatusPageSubscribersBeNotified|^notifySubscribers/.test(key)
+        ) {
           expect({ service: call.service, key, value }).toEqual({
             service: call.service,
             key,
@@ -423,7 +438,11 @@ describe("the sample people can never sign in or be reached", () => {
   const users: Array<User> = [];
 
   beforeEach(() => {
-    users.splice(0, users.length, ...(rowsOf("UserService") as unknown as Array<User>));
+    users.splice(
+      0,
+      users.length,
+      ...(rowsOf("UserService") as unknown as Array<User>),
+    );
   });
 
   test("one for each sample person, blocked, unverified, with no password, at the reserved domain", () => {
@@ -555,8 +574,12 @@ describe("what it makes", () => {
 
   test("a feed and notes for each incident, posted when they happened", () => {
     expect(rowsOf("IncidentFeedService").length).toBeGreaterThanOrEqual(10);
-    expect(rowsOf("IncidentInternalNoteService").length).toBeGreaterThanOrEqual(3);
-    expect(rowsOf("IncidentPublicNoteService").length).toBeGreaterThanOrEqual(3);
+    expect(rowsOf("IncidentInternalNoteService").length).toBeGreaterThanOrEqual(
+      3,
+    );
+    expect(rowsOf("IncidentPublicNoteService").length).toBeGreaterThanOrEqual(
+      3,
+    );
 
     for (const feed of rowsOf("IncidentFeedService")) {
       expect((feed["postedAt"] as Date).getTime()).toBeLessThanOrEqual(
@@ -570,9 +593,9 @@ describe("what it makes", () => {
     expect(rowsOf("OnCallDutyPolicyEscalationRuleService")).toHaveLength(2);
     expect(rowsOf("OnCallDutyPolicyScheduleLayerUserService")).toHaveLength(3);
     expect(rowsOf("OnCallDutyPolicyEscalationRuleUserService")).toHaveLength(1);
-    expect(rowsOf("OnCallDutyPolicyEscalationRuleScheduleService")).toHaveLength(
-      1,
-    );
+    expect(
+      rowsOf("OnCallDutyPolicyEscalationRuleScheduleService"),
+    ).toHaveLength(1);
   });
 
   test("a private status page, kept out of search results", () => {
@@ -582,7 +605,9 @@ describe("what it makes", () => {
 
     expect(statusPage!.isPublicStatusPage).toBe(false);
     expect(statusPage!.enableSearchEngineIndexing).toBe(false);
-    expect(rowsOf("StatusPageResourceService").length).toBeGreaterThanOrEqual(3);
+    expect(rowsOf("StatusPageResourceService").length).toBeGreaterThanOrEqual(
+      3,
+    );
   });
 
   test("a maintenance window to come", () => {

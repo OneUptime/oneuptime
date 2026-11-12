@@ -7,7 +7,13 @@ import {
   test,
 } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
@@ -178,7 +184,10 @@ describe("the button", () => {
     } as never);
 
     render(
-      <ExploreSampleProject from={SampleProjectEntryPoint.Goals} isOffered={true} />,
+      <ExploreSampleProject
+        from={SampleProjectEntryPoint.Goals}
+        isOffered={true}
+      />,
     );
 
     await act(async () => {
@@ -207,7 +216,10 @@ describe("the button", () => {
     } as never);
 
     render(
-      <ExploreSampleProject from={SampleProjectEntryPoint.Home} isOffered={true} />,
+      <ExploreSampleProject
+        from={SampleProjectEntryPoint.Home}
+        isOffered={true}
+      />,
     );
 
     await act(async () => {
@@ -238,9 +250,9 @@ describe("the button", () => {
       fireEvent.click(screen.getByTestId("explore-sample-project-button"));
     });
 
-    expect(screen.getByTestId("explore-sample-project-error")).toHaveTextContent(
-      "Ask your server admin to add you to a project.",
-    );
+    expect(
+      screen.getByTestId("explore-sample-project-error"),
+    ).toHaveTextContent("Ask your server admin to add you to a project.");
     expect(navigateMock).not.toHaveBeenCalled();
     expect(sendMock).not.toHaveBeenCalled();
   });

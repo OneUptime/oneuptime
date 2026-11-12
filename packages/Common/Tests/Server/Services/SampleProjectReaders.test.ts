@@ -75,7 +75,9 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * ---------------------------------------------------------------------------
  */
 
-const SAMPLE_ID: ObjectID = new ObjectID("5a3c0000-0000-4000-8000-0000000000a1");
+const SAMPLE_ID: ObjectID = new ObjectID(
+  "5a3c0000-0000-4000-8000-0000000000a1",
+);
 const REAL_ID: ObjectID = new ObjectID("5a3c0000-0000-4000-8000-0000000000b1");
 const USER_ID: ObjectID = new ObjectID("5a3c0000-0000-4000-8000-0000000000c1");
 const STATUS_PAGE_ID: ObjectID = new ObjectID(
@@ -619,7 +621,9 @@ describe("a deleted sample leaves nothing in the analytics database", () => {
 describe("a sample's project row is read by the readers, not asked again", () => {
   test("a real project is asked once, and stays a real one", async () => {
     // A guard against the stubs above leaking: the real answer is a lookup.
-    (ProjectService.isSampleProject as unknown as jest.SpyInstance).mockRestore();
+    (
+      ProjectService.isSampleProject as unknown as jest.SpyInstance
+    ).mockRestore();
     jest.spyOn(PostgresAppInstance, "isConnected").mockReturnValue(false);
 
     await expect(ProjectService.isSampleProject(REAL_ID)).resolves.toBe(false);
