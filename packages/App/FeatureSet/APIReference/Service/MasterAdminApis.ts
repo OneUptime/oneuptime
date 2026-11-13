@@ -30,7 +30,9 @@ export interface MasterAdminApiDocumentation {
    * available on every edition so Community operators can debug an upgrade and
    * raise a support request, and so are /clickhouse-capacity and
    * /instance-health-logs: ClickHouse capacity alerts and automatic pruning are
-   * Community features, and the instance log is their audit trail.
+   * Community features, and the instance log is their audit trail. So is
+   * /doctor (#6826): a self-hoster who cannot tell why their server is broken
+   * needs the answer, not an upsell.
    */
   isEnterpriseEdition: boolean;
 }
@@ -42,10 +44,14 @@ export interface MasterAdminApiDocumentation {
  *
  * The read/write query console routes (POST /query/postgres, /query/clickhouse,
  * /query/redis) are deliberately absent: they stay on the JWT-only middleware so
- * a leaked static key cannot execute arbitrary queries headlessly.
+ * a leaked static key cannot execute arbitrary queries headlessly. So is
+ * POST /doctor, which takes the cluster key instead, for `npm run doctor` and
+ * diagnose.sh on the server itself.
  */
 export const MasterAdminApis: Array<MasterAdminApiDocumentation> = [
   { path: "/overview", key: "overview", isEnterpriseEdition: true },
+  // What needs attention: the list the OneUptime Health page starts with.
+  { path: "/doctor", key: "doctor", isEnterpriseEdition: false },
   { path: "/queues", key: "queues", isEnterpriseEdition: true },
   {
     path: "/queues/{queueName}/failed-jobs",
