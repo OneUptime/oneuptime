@@ -43,6 +43,7 @@ import { isFirstPollSinceRefresh } from "../../../Utils/NetworkDevice/NetworkDev
 import { NetworkDevicePollMode } from "./NetworkDeviceHydrationUtil";
 import { mirrorInventoryRow } from "../Telemetry/InventoryEntityRegistry";
 import { isPostgresLockContentionError } from "../Database/PostgresLockContention";
+import stableStringify from "../../../Utils/StableStringify";
 import logger from "../Logger";
 
 /*
@@ -52,6 +53,47 @@ import logger from "../Logger";
  * one small write per device per hour rather than one per poll.
  */
 export const RESOLVED_ADDRESS_REFRESH_INTERVAL_IN_MS: number = 60 * 60 * 1000;
+
+/*
+ * The columns of a walk's device enrichment that are compared with what the
+ * device already holds before they are written
+ * (NetworkInventoryUtil.withoutUnchangedInventory): its system group, its
+ * last reboot, vendor, model, serial number, firmware and software, and its
+ * LLDP and CDP neighbours - what stays the same from one poll to the next.
+ * The SNMP table and transceiver snapshots carry readings that change on
+ * every poll, so they are written as they come; the vendor template's OIDs
+ * and tables are only ever written into an empty list.
+ */
+export const INVENTORY_COMPARED_COLUMNS: Array<keyof NetworkDevice> = [
+  "sysDescr",
+  "sysName",
+  "sysObjectId",
+  "sysLocation",
+  "sysContact",
+  "lastRebootedAt",
+  "vendor",
+  "deviceModel",
+  "serialNumber",
+  "firmwareVersion",
+  "softwareVersion",
+  "lldpNeighbors",
+  "cdpNeighbors",
+];
+
+const INVENTORY_COMPARED_SELECT: Record<string, true> = Object.fromEntries(
+  INVENTORY_COMPARED_COLUMNS.map((column: keyof NetworkDevice) => {
+    return [column, true];
+  }),
+);
+
+/*
+ * How far a newly read last reboot may sit from the stored one and still be
+ * the same reboot. It is counted back from when the poll was received by the
+ * device's uptime, which was read during the walk, so it moves by however
+ * long each walk took - seconds, or a minute for a long one. A real reboot
+ * moves it by the whole time the device had been up.
+ */
+export const LAST_REBOOT_TOLERANCE_IN_MS: number = 5 * 60 * 1000;
 
 /*
  * What the device's probe resolved the DNS name it polls the device at to,
@@ -75,6 +117,64 @@ export interface NetworkDeviceDnsResolution {
  * registered device, credentials or not, and no Monitor is required.
  */
 export default class NetworkInventoryUtil {
+  /*
+   * The walk's device enrichment without what the device already holds:
+   * each INVENTORY_COMPARED_COLUMNS value is dropped when it equals the
+   * stored one - a list or an object by its content whatever order jsonb
+   * keeps its keys in (stableStringify), the last reboot within
+   * LAST_REBOOT_TOLERANCE_IN_MS. Every other column is kept as it is.
+   */
+  public static withoutUnchangedInventory(data: {
+    update: Record<string, unknown>;
+    stored: NetworkDevice;
+  }): Record<string, unknown> {
+    const changed: Record<string, unknown> = {};
+    const stored: Record<string, unknown> = data.stored as unknown as Record<
+      string,
+      unknown
+    >;
+
+    for (const [column, value] of Object.entries(data.update)) {
+      if (
+        INVENTORY_COMPARED_COLUMNS.includes(column as keyof NetworkDevice) &&
+        NetworkInventoryUtil.isSameInventoryValue({
+          column: column,
+          stored: stored[column],
+          value: value,
+        })
+      ) {
+        continue;
+      }
+
+      changed[column] = value;
+    }
+
+    return changed;
+  }
+
+  private static isSameInventoryValue(data: {
+    column: string;
+    stored: unknown;
+    value: unknown;
+  }): boolean {
+    if (data.stored === undefined || data.stored === null) {
+      return data.value === undefined || data.value === null;
+    }
+
+    if (data.column === "lastRebootedAt") {
+      const storedAt: number = new Date(data.stored as Date | string).getTime();
+      const newAt: number = new Date(data.value as Date | string).getTime();
+
+      return (
+        !isNaN(storedAt) &&
+        !isNaN(newAt) &&
+        Math.abs(storedAt - newAt) <= LAST_REBOOT_TOLERANCE_IN_MS
+      );
+    }
+
+    return stableStringify(data.stored) === stableStringify(data.value);
+  }
+
   public static async updateFromWalk(data: {
     projectId: ObjectID;
     deviceId: ObjectID;
@@ -157,6 +257,11 @@ export default class NetworkInventoryUtil {
            */
           refreshRequestedAt: true,
           lastPolledAt: true,
+          /*
+           * What the walk's device enrichment below would write, so only
+           * what changed is written (withoutUnchangedInventory).
+           */
+          ...INVENTORY_COMPARED_SELECT,
         },
         props: {
           isRoot: true,
@@ -533,15 +638,30 @@ export default class NetworkInventoryUtil {
        * vendor template's OIDs and tables. Empty on a ping-only poll and on
        * a failed walk, which then cost no write at all.
        *
+       * Only what changed. A device's system group, model, serial,
+       * firmware and neighbours are the same poll after poll, and this
+       * wrote all of them back on every one - a full hooked update of the
+       * product's most-written table (a read, the UPDATE, the hooks, a new
+       * row version and the neighbour lists rewritten out of line), one
+       * more writer queueing for the device's row lock beside the claim
+       * and the poll verdict. A walk that read nothing new now writes
+       * nothing here.
+       *
        * Only from the newest poll. An older one - see isNewestPoll above -
        * read the device before the poll whose result it already holds, so
        * its system group, neighbours and snapshots are older than what is
        * stored, and would put the topology back to what it was.
        */
-      if (isNewestPoll && Object.keys(deviceUpdate).length > 0) {
+      const changedInventory: Record<string, unknown> =
+        NetworkInventoryUtil.withoutUnchangedInventory({
+          update: deviceUpdate,
+          stored: ownedDevice,
+        });
+
+      if (isNewestPoll && Object.keys(changedInventory).length > 0) {
         await NetworkDeviceService.updateOneById({
           id: deviceId,
-          data: deviceUpdate as any,
+          data: changedInventory as any,
           props: {
             isRoot: true,
           },
