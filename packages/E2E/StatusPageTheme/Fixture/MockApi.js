@@ -22,6 +22,7 @@ const fixture = buildFixture({
   hasSso: params.get("sso") === "1",
   hasDarkLogo: params.get("darkLogo") === "1",
   language: params.get("lang") || null,
+  wideGrid: params.get("grid") === "wide",
 });
 
 const record = {

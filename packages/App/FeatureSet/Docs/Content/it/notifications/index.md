@@ -29,7 +29,7 @@ flowchart TB
 | Pagina | Cosa contiene | La domanda a cui risponde |
 | --- | --- | --- |
 | **Metodi di notifica** | I vostri indirizzi e-mail, numeri di telefono, numeri WhatsApp, account Telegram, Slack, Microsoft Teams e Mattermost, dispositivi push e webhook | Dove può raggiungermi OneUptime? |
-| **Regole di reperibilità** | Per ogni tipo di chiamata e ogni gravità, quale metodo provare e dopo quanto tempo | Come vengo chiamato mentre sono di reperibilità? |
+| **Come contattarmi** | Per ogni tipo di chiamata e ogni gravità, quale metodo provare e dopo quanto tempo | Come vengo chiamato mentre sono di reperibilità? |
 | **Impostazioni notifiche** | Per ogni evento su un elemento vostro o sui vostri turni, quali canali usare | Di cos'altro vengo a sapere, e dove? |
 
 Sono separate di proposito. Attivare tutti i canali nelle **Impostazioni notifiche** non vi chiama mai, e un metodo che non avete verificato non viene mai usato, qualunque cosa dicano le vostre regole.
@@ -44,7 +44,7 @@ Aprite le **Impostazioni utente**, a destra della barra sotto la barra superiore
 | Sezione | Pagine |
 | --- | --- |
 | **Per iniziare** | **Elenco di configurazione**: cosa resta da configurare, nell'ordine che conta |
-| **Avvisi e notifiche** | **Metodi di notifica**, **Regole di reperibilità**, **Impostazioni notifiche** e **Preferenze e-mail**, che stabilisce quante e-mail producono i vostri aggiornamenti |
+| **Avvisi e notifiche** | **Metodi di notifica**, **Come contattarmi**, **Impostazioni notifiche** e **Preferenze e-mail**, che stabilisce quante e-mail producono i vostri aggiornamenti |
 | **Registri di reperibilità** | **Registri di reperibilità**: ogni volta che siete stati chiamati in questo progetto, e cosa è stato inviato |
 | **Policy chiamate in entrata** | **Numeri di telefono in entrata**: il numero su cui vi chiama una policy di chiamate in entrata |
 | **Calendario** | **Feed calendario**: i vostri turni nella vostra app di calendario, e promemoria prima che inizino |
@@ -53,14 +53,14 @@ Aprite le **Impostazioni utente**, a destra della barra sotto la barra superiore
 
 **Per iniziare** e **Avvisi e notifiche** sono aperte; le altre sezioni partono chiuse, e una sezione si apre da sola quando siete su una delle sue pagine. **Area di lavoro** compare solo se il progetto ha collegato Slack, Microsoft Teams o Mattermost.
 
-Anche i proprietari e gli amministratori del progetto possono vedere la vostra configurazione: in **Utenti** aprono la vostra riga e la sua sezione **Reperibilità**, con **Prontezza**, **Metodi di notifica** e **Regole di reperibilità**. Lì possono aggiungere un metodo per voi, ma il codice va al metodo stesso, quindi solo voi potete verificarlo.
+Anche i proprietari e gli amministratori del progetto possono vedere la vostra configurazione: in **Utenti** aprono la vostra riga e la sua sezione **Reperibilità**, con **Prontezza**, **Metodi di notifica** e **Come contattarmi**. Lì possono aggiungere un metodo per voi, ma il codice va al metodo stesso, quindi solo voi potete verificarlo.
 
 ## Con cosa partite
 
 Quando entrate in un progetto con un'e-mail di accesso verificata, OneUptime vi configura in modo che una chiamata possa sempre raggiungervi:
 
 1. La vostra e-mail di accesso viene aggiunta come metodo e-mail verificato.
-2. Per ogni gravità, su ciascuna delle quattro schede delle **Regole di reperibilità**, una regola vi invia un'e-mail appena venite chiamati.
+2. Per ogni gravità, su ciascuna delle quattro schede delle **Come contattarmi**, una regola vi invia un'e-mail appena venite chiamati.
 3. Un insieme di aggiornamenti su ciò che è vostro, e sui vostri turni, viene attivato via e-mail. Vedete [Impostazioni notifiche](/docs/notifications/notification-settings#cosa-è-attivo-per-un-nuovo-membro).
 
 Ogni metodo che verificate in seguito riceve le stesse regole: una regola per ogni gravità, inviata appena venite chiamati. Quindi verificare un numero di telefono per gli SMS significa che ogni chiamata vi manda anche un SMS. Per tenere gli SMS solo per le chiamate critiche, eliminate le regole SMS delle altre gravità. Vedete [Regole di reperibilità personali](/docs/notifications/on-call-rules#le-regole-con-cui-partite).
@@ -72,7 +72,7 @@ Ogni metodo che verificate in seguito riceve le stesse regole: una regola per og
 | Sezione | Cosa controlla |
 | --- | --- |
 | **So we can reach you** | Avete un metodo, ogni metodo aggiunto è verificato, e almeno uno è su un canale che il progetto ha attivato |
-| **How you want to be paged** | Ogni gravità ha una regola, su ciascuna delle quattro schede delle **Regole di reperibilità** |
+| **How you want to be paged** | Ogni gravità ha una regola, su ciascuna delle quattro schede delle **Come contattarmi** |
 | **Staying informed** | Venite a sapere quando inizia un turno, e dietro ogni canale attivato nelle **Impostazioni notifiche** c'è un metodo verificato |
 | **Nice to have** | Un numero per le chiamate in entrata, i vostri account Slack e Microsoft Teams, un link al calendario e i vostri campi del profilo |
 

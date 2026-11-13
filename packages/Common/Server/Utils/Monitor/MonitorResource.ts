@@ -6,7 +6,8 @@ import MonitorStatusTimelineService, {
   MONITOR_STATUS_TIMELINE_LOCK_ERROR_MESSAGE,
 } from "../../Services/MonitorStatusTimelineService";
 import ServerException from "../../../Types/Exception/ServerException";
-import logger from "../Logger";
+import logger, { LogAttributes } from "../Logger";
+import { isPostgresLockContentionError } from "../Database/PostgresLockContention";
 import MonitorCriteriaEvaluator from "./MonitorCriteriaEvaluator";
 import { CriteriaFilterMatchHistoryReads } from "./Criteria/CriteriaFilterMatchHistory";
 import CriteriaInEffect from "./CriteriaInEffect";
@@ -434,6 +435,20 @@ export default class MonitorResourceUtil {
     }
 
     /*
+     * Nor is a sample project's (issue #6808): its monitors show a made-up
+     * history, are handed to no probe and swept by no job, and a result
+     * that reaches one anyway - a heartbeat someone sends to its address -
+     * opens nothing and changes nothing.
+     */
+    if (await ProjectService.isSampleProject(monitor.projectId)) {
+      logger.debug(
+        `${dataToProcess.monitorId.toString()} Monitor's project is a sample project. Skipping.`,
+      );
+
+      return response;
+    }
+
+    /*
      * Acquire a per-monitor lock so concurrent results for the same monitor are
      * processed serially. This MUST come after the validation above: acquiring
      * before the not-found/disabled checks meant those throw paths held — and
@@ -628,12 +643,37 @@ export default class MonitorResourceUtil {
               },
             };
 
-            await MonitorProbeService.updateColumnsByIdWithoutHooks({
-              id: monitorProbe.id!,
-              data: {
-                lastMonitoringLog: updatedLastMonitoringLog as any,
-              },
-            });
+            /*
+             * A row lock another writer held past lock_timeout costs the
+             * stored copy of this one result, not the result (OneUptime
+             * issue #7194): the evaluation below runs on it all the same,
+             * and the probe's next result is stored over it. Thrown, it
+             * failed the whole job, and the queue ran it again from the
+             * start - twice - on the database that was already too busy.
+             * Any other failure is still thrown.
+             */
+            try {
+              await MonitorProbeService.updateColumnsByIdWithoutHooks({
+                id: monitorProbe.id!,
+                data: {
+                  lastMonitoringLog: updatedLastMonitoringLog as any,
+                },
+              });
+            } catch (err) {
+              if (!isPostgresLockContentionError(err)) {
+                throw err;
+              }
+
+              logger.warn(
+                `${dataToProcess.monitorId.toString()} - the result of probe ${resultProbeId} is evaluated but not stored as its last result: another writer held the monitor probe's row (${
+                  err instanceof Error ? err.message : String(err)
+                }). Its next result is stored as usual.`,
+                {
+                  projectId: monitor.projectId?.toString(),
+                  monitorId: monitor.id?.toString(),
+                } as LogAttributes,
+              );
+            }
 
             /*
              * Mirror the write onto the in-memory row so checkProbeAgreement

@@ -2,7 +2,10 @@ import { HOME_ROW_CARD_BODY_CLASS_NAME } from "./HomeRowCard";
 import AppLink from "../AppLink/AppLink";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import useProjectProducts from "../../Utils/ProjectProducts/UseProjectProducts";
+import { ProjectProductsState } from "../../Utils/ProjectProducts/ProjectProductsStore";
 import Route from "Common/Types/API/Route";
+import ProductKey from "Common/Types/Product/ProductKey";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
@@ -37,6 +40,10 @@ import React, {
  * Monitors and SLOs are already counted in Home's batch; the other five are
  * counted here, in parallel. Each count stands alone: a role that may not
  * read workflows loses that row, not the card.
+ *
+ * A product the project hides (Project Settings > Products, #6814) is left
+ * out, as it is from the rest of Home: Home does not ask a team to set up
+ * what it chose not to use.
  */
 
 export enum ProjectResourceKey {
@@ -51,6 +58,8 @@ export enum ProjectResourceKey {
 
 export interface ProjectResourceDefinition {
   key: ProjectResourceKey;
+  // The product it belongs to: its row goes when the project hides it.
+  product: ProductKey;
   title: string;
   icon: IconProp;
   // The products menu's colour for the product (NavigationItems).
@@ -70,6 +79,7 @@ export interface ProjectResourceDefinition {
 export const PROJECT_RESOURCES: Array<ProjectResourceDefinition> = [
   {
     key: ProjectResourceKey.Monitors,
+    product: ProductKey.Monitors,
     title: translationKey("Monitors"),
     icon: IconProp.AltGlobe,
     iconColor: "blue",
@@ -77,6 +87,7 @@ export const PROJECT_RESOURCES: Array<ProjectResourceDefinition> = [
   },
   {
     key: ProjectResourceKey.StatusPages,
+    product: ProductKey.StatusPages,
     title: translationKey("Status Pages"),
     icon: IconProp.CheckCircle,
     iconColor: "emerald",
@@ -90,6 +101,7 @@ export const PROJECT_RESOURCES: Array<ProjectResourceDefinition> = [
   },
   {
     key: ProjectResourceKey.OnCallPolicies,
+    product: ProductKey.OnCall,
     title: translationKey("On-Call Policies"),
     icon: IconProp.Call,
     iconColor: "stone",
@@ -103,6 +115,7 @@ export const PROJECT_RESOURCES: Array<ProjectResourceDefinition> = [
   },
   {
     key: ProjectResourceKey.Slos,
+    product: ProductKey.Slos,
     title: translationKey("SLOs"),
     icon: IconProp.Gauge,
     iconColor: "violet",
@@ -110,6 +123,7 @@ export const PROJECT_RESOURCES: Array<ProjectResourceDefinition> = [
   },
   {
     key: ProjectResourceKey.Services,
+    product: ProductKey.Services,
     title: translationKey("Services"),
     icon: IconProp.SquareStack,
     iconColor: "indigo",
@@ -123,6 +137,7 @@ export const PROJECT_RESOURCES: Array<ProjectResourceDefinition> = [
   },
   {
     key: ProjectResourceKey.Dashboards,
+    product: ProductKey.Dashboards,
     title: translationKey("Dashboards"),
     icon: IconProp.ChartPie,
     iconColor: "indigo",
@@ -136,6 +151,7 @@ export const PROJECT_RESOURCES: Array<ProjectResourceDefinition> = [
   },
   {
     key: ProjectResourceKey.Workflows,
+    product: ProductKey.Workflows,
     title: translationKey("Workflows"),
     icon: IconProp.FlowDiagram,
     iconColor: "sky",
@@ -171,6 +187,7 @@ const ProjectResources: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const projectIdString: string = props.projectId.toString();
+  const products: ProjectProductsState = useProjectProducts(projectIdString);
 
   const [counts, setCounts] = useState<ProjectResourceCounts>({});
 
@@ -247,7 +264,12 @@ const ProjectResources: FunctionComponent<ComponentProps> = (
   const visibleResources: Array<ProjectResourceDefinition> =
     PROJECT_RESOURCES.filter((resource: ProjectResourceDefinition): boolean => {
       // A count that failed hides its row; a loading one keeps it.
-      return countOf(resource) !== undefined;
+      return (
+        countOf(resource) !== undefined &&
+        !products.answer.hidden.includes(resource.product) &&
+        // Switched off on the server (#6815): not the project's to show.
+        !(products.answer.offOnServer || {})[resource.product]
+      );
     });
 
   return (

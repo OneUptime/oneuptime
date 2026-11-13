@@ -137,9 +137,6 @@ const TRANSLATIONS: Array<string> = LANGUAGES.filter(
   },
 );
 
-// The Persian pages name the Dashboard's labels in English.
-const ENGLISH_UI_LANGUAGES: ReadonlySet<string> = new Set<string>(["en", "fa"]);
-
 const BOLD: RegExp = /\*\*([^*\n]+?)\*\*/g;
 const MENU_PATH_SEPARATOR: string = " → ";
 const INLINE_CODE: RegExp = /`([^`\n]+)`/g;
@@ -420,12 +417,15 @@ const docsLocaleOf: StringsFunction = (
 
 type DashboardWordFunction = (language: string, english: string) => string;
 
-// A label as the Dashboard draws it in a language: its translation, or English.
+/*
+ * A label as the Dashboard draws it in a language: its translation, or
+ * English. Every language's page names it so, Persian included.
+ */
 const dashboardWord: DashboardWordFunction = (
   language: string,
   english: string,
 ): string => {
-  if (ENGLISH_UI_LANGUAGES.has(language)) {
+  if (language === "en") {
     return english;
   }
 
@@ -447,7 +447,7 @@ const createButtonWord: DashboardWordFunction = (
 ): string => {
   const english: string = `Create ${noun}`;
 
-  if (ENGLISH_UI_LANGUAGES.has(language)) {
+  if (language === "en") {
     return english;
   }
 

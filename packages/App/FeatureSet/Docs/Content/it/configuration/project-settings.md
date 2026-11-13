@@ -5,6 +5,7 @@ Le impostazioni del progetto raccolgono ciò che vale per l'intero progetto: il 
 :::cards
 - [Trovare un'impostazione](#trovare-unimpostazione): Che cosa contiene ogni sezione del menu laterale.
 - [I dettagli del progetto](#i-dettagli-del-progetto): Il nome, l'ID e l'accesso del supporto.
+- [Prodotti](#prodotti): I prodotti che questo progetto mostra e quelli che nasconde.
 - [Etichette](#etichette): Contrassegni per risorse, autorizzazioni e regole.
 - [Eliminare il progetto](#eliminare-il-progetto): Che cosa serve, e che cosa se ne va con lui.
 :::
@@ -30,7 +31,7 @@ flowchart LR
 
 | Sezione | Pagine | Dove leggere di più |
 | --- | --- | --- |
-| **Base** | **Progetto**, **Etichette** | [I dettagli del progetto](#i-dettagli-del-progetto), [Etichette](#etichette) |
+| **Base** | **Progetto**, **Prodotti**, **Etichette** | [I dettagli del progetto](#i-dettagli-del-progetto), [Prodotti](#prodotti), [Etichette](#etichette) |
 | **Area di lavoro** | **Slack**, **Microsoft Teams**, **Mattermost**, **Videochiamate** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [Videochiamate](/docs/workspace-connections/video-calls) |
 | **Telemetria e APM** | **Chiavi di acquisizione**, **Conservazione dei dati**, **Utilizzo** | [Chiavi di acquisizione](/docs/telemetry/ingestion-keys), [Conservazione dei dati](/docs/telemetry/data-retention), [Utilizzo della telemetria](/docs/telemetry/usage) |
 | **Notifiche** | **Impostazioni notifiche**, **Registri di notifica**, **App mobili** | [Notifiche](#notifiche) |
@@ -54,6 +55,20 @@ flowchart LR
 - **Data Residency**: su OneUptime Cloud, dove devono stare i dati del tuo progetto, quando OneUptime lo ha registrato. Solo OneUptime lo imposta.
 
 **Accesso dell'assistenza clienti**, su OneUptime Cloud, decide se il team di supporto di OneUptime può aprire il progetto. Attiva **Consenti al supporto di OneUptime di accedere a questo progetto** quando vuoi il suo aiuto: OneUptime chiede prima, perché il supporto potrà vedere e modificare tutto nel progetto, e tu fai clic su **Fai entrare il supporto**. Disattivalo quando ha finito: viene salvato subito. I Project Owner e i Project Admin lo modificano.
+
+## Prodotti
+
+**Impostazioni del progetto → Base → Prodotti** sceglie i prodotti che questo progetto mostra nel menu **Prodotti**, nella Home e nell'elenco della ricerca. Ogni prodotto ha un interruttore che salva appena lo sposti: attivo, mostra il prodotto. Utenti, Team e Impostazioni del progetto sono sempre mostrati, e **Mostra tutti i prodotti** li mostra di nuovo tutti.
+
+Un prodotto nascosto non è disattivato. Passa in **Altri prodotti**, l'ultima riga del menu **Prodotti**: la ricerca lo trova ancora, le sue pagine e la sua API funzionano, e i suoi dati continuano ad arrivare. Chi lo ha fissato lo tiene fissato.
+
+Su un server self-hosted, un amministratore principale può anche disattivare un prodotto per tutti i progetti, in **Impostazioni → Prodotti** nell'Admin Dashboard (vedi [Esegui solo ciò che ti serve](/docs/installation/docker-compose#esegui-solo-ciò-che-ti-serve)). Un prodotto così non ha un interruttore qui: mostra **Disattivato su questo server**, con chi può attivarlo.
+
+Un nuovo progetto parte da ciò che il suo proprietario ha detto di voler fare nella Home: sono mostrati gli essenziali, le impostazioni e ciò che servono a quegli obiettivi, e il resto è nascosto. Un progetto che ha saltato la domanda, o creato prima di essa, mostra tutti i prodotti. Appena qualcuno cambia l'elenco qui, gli obiettivi non lo cambiano più.
+
+Ogni prodotto dice cosa è per questo progetto: **In uso**, **Non configurato** oppure, su OneUptime Cloud, il piano di cui ha bisogno. Quando un prodotto nascosto inizia a ricevere dati, la Home lo dice ai proprietari e agli amministratori del progetto e offre **Mostralo** o **Lascia nascosto**.
+
+I proprietari del progetto, i suoi amministratori e chiunque possa modificare il progetto la cambiano; tutti gli altri nel progetto possono vederla.
 
 ## Etichette
 

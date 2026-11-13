@@ -1387,7 +1387,7 @@ describe("GAP A CLOSED - a severity added after the fact still pages, via the fa
         (update: { statusMessage?: string | undefined }): boolean => {
           return (
             update.statusMessage ===
-            "No notification rules found for this user. User should add the rules in User Settings > On-Call Rules."
+            "No notification rules found for this user. User should add the rules in User Settings > How to Reach Me."
           );
         },
       ),

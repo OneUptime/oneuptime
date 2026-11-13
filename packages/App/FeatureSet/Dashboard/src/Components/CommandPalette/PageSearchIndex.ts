@@ -68,6 +68,11 @@ export enum PageSearchGate {
   Billing = "billing",
   // Monitor groups are behind a per-project feature flag.
   MonitorGroups = "monitor-groups",
+  /*
+   * The switches that turn off recording of the setup pages (#6834) are
+   * shown only where OneUptime Cloud records them.
+   */
+  DashboardRecording = "dashboard-recording",
 }
 
 // What someone must be allowed to do for an action to be offered.
@@ -507,6 +512,34 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
                 name: "Customer Support Access",
                 gate: PageSearchGate.Billing,
               },
+              {
+                name: "Recordings of Setup Pages",
+                gate: PageSearchGate.DashboardRecording,
+              },
+              {
+                name: "Record setup pages in this project",
+                gate: PageSearchGate.DashboardRecording,
+              },
+            ],
+          },
+          /*
+           * The products this project shows (#6814): found by what people
+           * call what it does - hiding what they do not use, choosing what
+           * the menu lists.
+           */
+          {
+            page: PageMap.SETTINGS_PRODUCTS,
+            title: "Products",
+            icon: IconProp.Squares,
+            keywords: [
+              "hide products",
+              "show products",
+              "hidden products",
+              "choose products",
+              "products menu",
+              "more products",
+              "customize menu",
+              "show every product",
             ],
           },
           {
@@ -961,6 +994,38 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
                 keywords: ["remove project", "close project"],
                 permission: PageSearchPermission.DeleteProject,
               },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    /*
+     * The pages under Home: Setup health, what is misconfigured in the
+     * project (#6812), which no menu links to - Home's "Needs attention"
+     * does - so Search finds it by name and by what people ask.
+     */
+    id: "home",
+    title: "Home",
+    productPage: PageMap.HOME,
+    icon: IconProp.Home,
+    iconColor: "slate",
+    sections: [
+      {
+        pages: [
+          {
+            page: PageMap.HOME_SETUP_HEALTH,
+            title: "Setup Health",
+            icon: IconProp.Wrench,
+            keywords: [
+              "misconfigured",
+              "is my setup ok",
+              "setup check",
+              "health check",
+              "nobody is paged",
+              "what is broken",
+              "configuration problems",
             ],
           },
         ],
@@ -4153,9 +4218,17 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           },
           {
             page: PageMap.USER_SETTINGS_ON_CALL_RULES,
-            title: "On-Call Rules",
+            title: "How to Reach Me",
             icon: IconProp.BellRinging,
-            keywords: ["how i get paged", "my notification rules"],
+            // Its old name finds it still (#6817).
+            keywords: [
+              "on-call rules",
+              "how i get paged",
+              "my notification rules",
+              "paging ladder",
+              "escalation order",
+              "call after minutes",
+            ],
           },
           {
             page: PageMap.USER_SETTINGS_NOTIFICATION_SETTINGS,
@@ -4254,8 +4327,30 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.USER_PROFILE_OVERVIEW,
             title: "Overview",
             icon: IconProp.Info,
-            keywords: ["my profile", "profile", "my name", "my email"],
-            settings: ["Basic Info", "Full Name", "Timezone"],
+            keywords: [
+              "my profile",
+              "profile",
+              "my name",
+              "my email",
+              "feedback",
+              "survey",
+              "stop asking",
+            ],
+            settings: [
+              "Basic Info",
+              "Full Name",
+              "Timezone",
+              "Feedback Questions",
+              "Ask me how things went",
+              {
+                name: "Recordings of Setup Pages",
+                gate: PageSearchGate.DashboardRecording,
+              },
+              {
+                name: "Record how I use setup pages",
+                gate: PageSearchGate.DashboardRecording,
+              },
+            ],
           },
           {
             page: PageMap.USER_PROFILE_PICTURE,

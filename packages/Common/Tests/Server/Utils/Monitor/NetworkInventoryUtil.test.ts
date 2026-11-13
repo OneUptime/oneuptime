@@ -131,15 +131,17 @@ function mockServices(
    * Device MAC learning follows the endpoint upsert on any walk that
    * carried ARP bindings: one findBy for the devices registered at the
    * bound addresses, then a hook-free compare-and-set write per device the
-   * planner picked. Stubbed here so the ARP cases never reach a database;
-   * the learning block seeds findBy with real rows where it matters.
+   * planner picked - one that skips a device another writer holds instead
+   * of waiting for it (issue #7194). Stubbed here so the ARP cases never
+   * reach a database; the learning block seeds findBy with real rows where
+   * it matters.
    */
   deviceLookupSpy = jest
     .spyOn(NetworkDeviceService, "findBy")
     .mockResolvedValue([]);
   macWriteSpy = jest
-    .spyOn(NetworkDeviceService, "updateColumnsByIdWithoutHooks")
-    .mockResolvedValue(undefined);
+    .spyOn(NetworkDeviceService, "updateColumnsByIdIfUnlockedWithoutHooks")
+    .mockResolvedValue(true);
 }
 
 function deviceUpdatePayload(): DeviceUpdatePayload {
@@ -1358,6 +1360,44 @@ describe("NetworkInventoryUtil.updateFromWalk — device MAC learning", () => {
 
     expect(endpointUpsertSpy).toHaveBeenCalledTimes(1);
     expect(error).toHaveBeenCalled();
+  });
+
+  /*
+   * The other way round (OneUptime issue #7388): the endpoint inventory has
+   * its own catch too, so a write of it that fails no longer takes the ARP
+   * table's MAC learning with it.
+   */
+  test("a failing endpoint write is logged on its own, and the ARP table's MAC learning still runs", async () => {
+    mockServices([], { siteId: SITE_ID });
+    deviceLookupSpy.mockResolvedValue([
+      registeredDevice(REGISTER_ID, { siteId: SITE_ID }),
+    ]);
+    endpointUpsertSpy.mockRejectedValue(new Error("connection reset"));
+    const error: jest.SpyInstance = spyError();
+
+    await expect(runWalk(arpWalk())).resolves.toBeDefined();
+
+    expect(endpointUpsertSpy).toHaveBeenCalledTimes(1);
+    expect(macWriteSpy).toHaveBeenCalledTimes(1);
+
+    const messages: Array<string> = error.mock.calls.map(
+      (call: Array<unknown>) => {
+        return String(call[0]);
+      },
+    );
+
+    expect(
+      messages.some((message: string) => {
+        return (
+          message.includes("endpoint inventory") && message.includes(DEVICE_ID)
+        );
+      }),
+    ).toBe(true);
+    expect(
+      messages.some((message: string) => {
+        return message.includes("Failed to update network inventory");
+      }),
+    ).toBe(false);
   });
 
   test("the observing device's site scopes the match: a device in another site is not stamped", async () => {

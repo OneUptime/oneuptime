@@ -5,9 +5,9 @@ OneUptime 是一個開源的可觀測性平台。它檢查你的網站、API 和
 ## 你想做什麼?
 
 :::cards
-- [在網站或 API 停擺時收到通知](/docs/monitor/website-monitor): 從全球各地的探測器檢查它，並在它故障時收到電子郵件或呼叫。
-- [透過電話、簡訊或推播接收呼叫，並逐級上報](/docs/on-call/index): 呼叫正在待命的人，無人回應時再呼叫下一個人。
-- [在你自己的網域上發布狀態頁面](/docs/status-pages/index): 在屬於你自己的網址上，告訴客戶正在發生什麼。
+- [在網站或 API 停擺時收到通知](/docs/guides/website-down): 從全球各地的探測器檢查它，並在它故障時收到電子郵件或呼叫。
+- [透過電話、簡訊或推播接收呼叫，並逐級上報](/docs/guides/paging): 呼叫正在待命的人，無人回應時再呼叫下一個人。
+- [在你自己的網域上發布狀態頁面](/docs/guides/status-page): 在屬於你自己的網址上，告訴客戶正在發生什麼。
 - [傳送日誌、指標和追蹤](/docs/telemetry/open-telemetry): 使用 OpenTelemetry 傳送應用程式的遙測資料，搜尋它，並據此接收警示。
 - [監控一台伺服器](/docs/telemetry/hosts): 以一個命令新增主機，並關注它的 CPU、記憶體和磁碟。
 - [監控一個 Kubernetes 叢集](/docs/telemetry/kubernetes-agent): 使用 Helm 安裝代理程式，並關注每個節點和 Pod。

@@ -101,6 +101,25 @@
     "billing": true
   },
   {
+    "title": "Products",
+    "where": [
+      "Project Settings",
+      "Basic"
+    ],
+    "keywords": [
+      "hide products",
+      "show products",
+      "hidden products",
+      "choose products",
+      "products menu",
+      "more products",
+      "customize menu",
+      "show every product"
+    ],
+    "path": "/dashboard/:projectId/settings/products",
+    "kind": "page"
+  },
+  {
     "title": "Labels",
     "where": [
       "Project Settings",
@@ -1198,6 +1217,23 @@
       "remove project"
     ],
     "path": "/dashboard/:projectId/settings/danger-zone",
+    "kind": "page"
+  },
+  {
+    "title": "Setup Health",
+    "where": [
+      "Home"
+    ],
+    "keywords": [
+      "misconfigured",
+      "is my setup ok",
+      "setup check",
+      "health check",
+      "nobody is paged",
+      "what is broken",
+      "configuration problems"
+    ],
+    "path": "/dashboard/:projectId/home/setup-health",
     "kind": "page"
   },
   {
@@ -8514,14 +8550,18 @@
     "kind": "setting"
   },
   {
-    "title": "On-Call Rules",
+    "title": "How to Reach Me",
     "where": [
       "User Settings",
       "Alerts & Notifications"
     ],
     "keywords": [
+      "on-call rules",
       "how i get paged",
-      "my notification rules"
+      "my notification rules",
+      "paging ladder",
+      "escalation order",
+      "call after minutes"
     ],
     "path": "/dashboard/:projectId/user-settings/on-call-rules",
     "kind": "page"
@@ -8712,7 +8752,10 @@
       "my profile",
       "profile",
       "my name",
-      "my email"
+      "my email",
+      "feedback",
+      "survey",
+      "stop asking"
     ],
     "path": "/dashboard/user-profile/overview",
     "kind": "page"
@@ -8739,6 +8782,26 @@
   },
   {
     "title": "Timezone",
+    "where": [
+      "User Profile",
+      "Basic",
+      "Overview"
+    ],
+    "path": "/dashboard/user-profile/overview",
+    "kind": "setting"
+  },
+  {
+    "title": "Feedback Questions",
+    "where": [
+      "User Profile",
+      "Basic",
+      "Overview"
+    ],
+    "path": "/dashboard/user-profile/overview",
+    "kind": "setting"
+  },
+  {
+    "title": "Ask me how things went",
     "where": [
       "User Profile",
       "Basic",

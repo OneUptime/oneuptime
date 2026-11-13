@@ -5,9 +5,9 @@ OneUptime is an open-source observability platform. It checks that your websites
 ## What do you want to do?
 
 :::cards
-- [Know when your website or API is down](/docs/monitor/website-monitor): Check it from probes around the world, and get an email or a page when it fails.
-- [Get paged by phone, SMS or push, and escalate](/docs/on-call/index): Page whoever is on call, and the next person if nobody answers.
-- [Publish a status page on your own domain](/docs/status-pages/index): Tell your customers what is happening, at an address of your own.
+- [Know when your website or API is down](/docs/guides/website-down): Check it from probes around the world, and get an email or a page when it fails.
+- [Get paged by phone, SMS or push, and escalate](/docs/guides/paging): Page whoever is on call, and the next person if nobody answers.
+- [Publish a status page on your own domain](/docs/guides/status-page): Tell your customers what is happening, at an address of your own.
 - [Send logs, metrics and traces](/docs/telemetry/open-telemetry): Send your apps' telemetry with OpenTelemetry, search it, and get alerted on it.
 - [Monitor a server](/docs/telemetry/hosts): Add a host in one command, and watch its CPU, memory and disks.
 - [Monitor a Kubernetes cluster](/docs/telemetry/kubernetes-agent): Install the agent with Helm, and watch every node and pod.

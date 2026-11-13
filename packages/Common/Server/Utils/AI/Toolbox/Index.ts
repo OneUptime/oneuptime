@@ -1,4 +1,11 @@
 import { JSONObject } from "../../../../Types/JSON";
+import ServerProducts from "../../ServerProducts/ServerProducts";
+import { getToolProducts } from "./ToolProducts";
+import ProductKey from "../../../../Types/Product/ProductKey";
+import {
+  ServerProductOffReason,
+  getProductOffMessage,
+} from "../../../../Types/Product/ServerProducts";
 import Permission, { PermissionHelper } from "../../../../Types/Permission";
 import ConflictException from "../../../../Types/Exception/ConflictException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
@@ -11,6 +18,7 @@ import { LLMToolDefinition } from "../../LLM/LLMService";
 import logger from "../../Logger";
 import {
   ObservabilityTool,
+  SetupActionRefusal,
   ToolContext,
   ToolExecutionResult,
 } from "./ToolTypes";
@@ -51,6 +59,7 @@ import {
   UpdateWorkflowTool,
 } from "./WorkflowBuilderTools";
 import { QueryTeamsTool } from "./TeamTools";
+import { GetSetupHealthTool } from "./SetupHealthTools";
 import { CreateAlertNoteTool, CreateIncidentNoteTool } from "./NoteWriteTools";
 import { TopExceptionsTool } from "./ExceptionTools";
 import { LogHistogramTool, SearchLogsTool } from "./LogTools";
@@ -118,6 +127,13 @@ import {
   PostIncidentStatusUpdateTool,
   ChangeIncidentSeverityTool,
 } from "./AIActionTools";
+import {
+  AddMonitorsToStatusPageTool,
+  PublishStatusPageTool,
+  SetUpPagingTool,
+  SetUpWebsiteMonitoringTool,
+} from "./SetupTools";
+import { WhoIsToldTool } from "./WhoIsToldTools";
 import AIChatPermissionMode from "../../../../Types/AI/AIChatPermissionMode";
 import { AIToolRefusal } from "../../../../Types/AI/AIChatTypes";
 
@@ -190,6 +206,17 @@ export default class AIToolbox {
     CheckWorkflowDraftTool,
     QueryProbesTool,
     QueryTeamsTool,
+    /*
+     * Who is told when a monitor goes down, and where that breaks (#6810's
+     * resolver): how Ask AI answers it once a monitor is set up (#6829).
+     */
+    WhoIsToldTool,
+    /*
+     * "Is my setup OK?" (#6812): what would stop the right people from
+     * being told, each with its fix - the Setup health list, as the
+     * person may see it (SetupHealthTools).
+     */
+    GetSetupHealthTool,
     /*
      * OneUptime itself (#6828): "how do I...?" answered from the docs this
      * installation serves, ending at the page of the project where it is
@@ -301,10 +328,108 @@ export default class AIToolbox {
      */
     CreateWorkflowTool,
     UpdateWorkflowTool,
+    /*
+     * Setting things up by conversation (#6829): a website monitor, who is
+     * paged, a status page and the monitors on it - the guided setups'
+     * records, as the person, each part of a plan approved on one card in
+     * every mode (SetupTools).
+     */
+    SetUpPagingTool,
+    SetUpWebsiteMonitoringTool,
+    PublishStatusPageTool,
+    AddMonitorsToStatusPageTool,
   ];
 
   public static getTools(): Array<ObservabilityTool> {
     return this.tools;
+  }
+
+  /*
+   * Whether a tool is one of Ask AI's setup actions (#6829): it asks for
+   * approval in every permission mode, Auto-run included, and is checked
+   * before its card is shown (checkBeforeApproval).
+   */
+  public static isSetupAction(name: string): boolean {
+    return Boolean(this.getToolByName(name)?.setupAction);
+  }
+
+  /*
+   * Where a setup action runs in its plan once approved (setupAction.
+   * planOrder); every other tool keeps its place, after them.
+   */
+  public static getSetupPlanOrder(name: string): number {
+    return (
+      this.getToolByName(name)?.setupAction?.planOrder ??
+      Number.MAX_SAFE_INTEGER
+    );
+  }
+
+  /*
+   * WHY A SETUP ACTION IS NOT PROPOSED AT ALL, before its card is shown
+   * (#6829): the gates a run checks - the request is for this project, there
+   * is a signed-in person to act as, and they hold the permissions - and
+   * then the tool's own check of what is missing (an address, monitors,
+   * paging the project has already). A refused setup is never shown to be
+   * approved and then refused: the model is told what is needed, and says
+   * it. Null when nothing stops it, and for any other tool.
+   */
+  public static async checkBeforeApproval(data: {
+    name: string;
+    args: JSONObject;
+    ctx: ToolContext;
+  }): Promise<ToolCallOutcome | null> {
+    const tool: ObservabilityTool | undefined = this.getToolByName(data.name);
+
+    if (!tool?.setupAction) {
+      return null;
+    }
+
+    // The same refusal running it would give, without running it.
+    const refusedByGates: ToolCallOutcome | null = this.refuseByGates(
+      tool,
+      data,
+    );
+
+    if (refusedByGates) {
+      return refusedByGates;
+    }
+
+    // A product switched off on the server: no card for it (#6815).
+    const refusedAsOff: ToolCallOutcome | null =
+      await this.refuseProductsOffOnServer(tool);
+
+    if (refusedAsOff) {
+      return refusedAsOff;
+    }
+
+    if (!tool.checkBeforeApproval) {
+      return null;
+    }
+
+    let refused: SetupActionRefusal | null = null;
+
+    try {
+      refused = await tool.checkBeforeApproval(data.args, data.ctx);
+    } catch (error) {
+      // A check that fails lets the card show: running it says what went wrong.
+      logger.debug(
+        `AI toolbox could not check ${data.name} before its approval: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      return null;
+    }
+
+    if (!refused) {
+      return null;
+    }
+
+    return {
+      success: false,
+      textForLlm: refused.toldModel,
+      errorMessage: refused.toldModel,
+      ...(refused.refusal ? { refusal: refused.refusal } : {}),
+    };
   }
 
   /*
@@ -448,64 +573,20 @@ export default class AIToolbox {
       };
     }
 
-    // Checked first so the refusal names the real problem, not a permission.
-    if (!this.isContextScopedToOneProject(data.ctx)) {
-      return {
-        success: false,
-        textForLlm: `Error: ${data.name} can only run inside the single project this request is authorized for. Answer with the data you already have.`,
-        errorMessage: `Permission denied for tool: ${data.name} (the request is not scoped to this project)`,
-        refusal: AIToolRefusal.NotAllowed,
-      };
+    const refusedByGates: ToolCallOutcome | null = this.refuseByGates(
+      tool,
+      data,
+    );
+
+    if (refusedByGates) {
+      return refusedByGates;
     }
 
-    /*
-     * Tool JSON is untrusted at runtime even though callers are typed. Check
-     * the envelope before argument-dependent permission functions read it.
-     */
-    if (
-      !data.args ||
-      typeof data.args !== "object" ||
-      Array.isArray(data.args)
-    ) {
-      return {
-        success: false,
-        textForLlm: `Error: arguments for ${data.name} must be a JSON object. Adjust the arguments and try again.`,
-        errorMessage: `Invalid arguments for tool: ${data.name}; expected a JSON object`,
-      };
-    }
+    const refusedAsOff: ToolCallOutcome | null =
+      await this.refuseProductsOffOnServer(tool);
 
-    /*
-     * A tool that changes the project writes as the person who asked for it,
-     * with their props: what they may not do in the dashboard, it does not
-     * do (every write tool makes the dashboard's own write). A run with no
-     * such person - a system run as OneUptime - has nobody to write as, so
-     * it changes nothing.
-     */
-    if (tool.isMutation && !this.isPersonContext(data.ctx)) {
-      if (this.hasPerson(data.ctx)) {
-        return {
-          success: false,
-          textForLlm: `Error: ${data.name} changes the project, and only runs inside the project the request is for. Answer with the data you already have.`,
-          errorMessage: `Permission denied for tool: ${data.name} (the request is not for this project)`,
-          refusal: AIToolRefusal.NotAllowed,
-        };
-      }
-
-      return {
-        success: false,
-        textForLlm: `Error: ${data.name} changes the project, and only runs for a signed-in person who asked for it. Answer with the data you already have.`,
-        errorMessage: `Permission denied for tool: ${data.name} (no signed-in person to act as)`,
-        refusal: AIToolRefusal.NotAllowed,
-      };
-    }
-
-    if (!this.hasPermissionForTool(tool, data.ctx, data.args)) {
-      return {
-        success: false,
-        textForLlm: this.describePermissionRefusal(tool, data.ctx, data.args),
-        errorMessage: `Permission denied for tool: ${data.name}`,
-        refusal: this.getPermissionRefusal(tool, data.ctx, data.args),
-      };
+    if (refusedAsOff) {
+      return refusedAsOff;
     }
 
     try {
@@ -577,6 +658,109 @@ export default class AIToolbox {
         errorMessage: message,
       };
     }
+  }
+
+  /*
+   * The gates every call passes before its tool runs, in order - the
+   * request is for this one project, the arguments are an object, a change
+   * has a signed-in person to be made as, and they hold the tool's
+   * permissions - and the refusal of the first it fails, or null. Shared by
+   * executeTool and checkBeforeApproval, which asks them before a setup
+   * action's card is shown and never runs the tool.
+   */
+  private static refuseByGates(
+    tool: ObservabilityTool,
+    data: { name: string; args: JSONObject; ctx: ToolContext },
+  ): ToolCallOutcome | null {
+    // Checked first so the refusal names the real problem, not a permission.
+    if (!this.isContextScopedToOneProject(data.ctx)) {
+      return {
+        success: false,
+        textForLlm: `Error: ${data.name} can only run inside the single project this request is authorized for. Answer with the data you already have.`,
+        errorMessage: `Permission denied for tool: ${data.name} (the request is not scoped to this project)`,
+        refusal: AIToolRefusal.NotAllowed,
+      };
+    }
+
+    /*
+     * Tool JSON is untrusted at runtime even though callers are typed. Check
+     * the envelope before argument-dependent permission functions read it.
+     */
+    if (
+      !data.args ||
+      typeof data.args !== "object" ||
+      Array.isArray(data.args)
+    ) {
+      return {
+        success: false,
+        textForLlm: `Error: arguments for ${data.name} must be a JSON object. Adjust the arguments and try again.`,
+        errorMessage: `Invalid arguments for tool: ${data.name}; expected a JSON object`,
+      };
+    }
+
+    /*
+     * A tool that changes the project writes as the person who asked for it,
+     * with their props: what they may not do in the dashboard, it does not
+     * do (every write tool makes the dashboard's own write). A run with no
+     * such person - a system run as OneUptime - has nobody to write as, so
+     * it changes nothing.
+     */
+    if (tool.isMutation && !this.isPersonContext(data.ctx)) {
+      if (this.hasPerson(data.ctx)) {
+        return {
+          success: false,
+          textForLlm: `Error: ${data.name} changes the project, and only runs inside the project the request is for. Answer with the data you already have.`,
+          errorMessage: `Permission denied for tool: ${data.name} (the request is not for this project)`,
+          refusal: AIToolRefusal.NotAllowed,
+        };
+      }
+
+      return {
+        success: false,
+        textForLlm: `Error: ${data.name} changes the project, and only runs for a signed-in person who asked for it. Answer with the data you already have.`,
+        errorMessage: `Permission denied for tool: ${data.name} (no signed-in person to act as)`,
+        refusal: AIToolRefusal.NotAllowed,
+      };
+    }
+
+    if (!this.hasPermissionForTool(tool, data.ctx, data.args)) {
+      return {
+        success: false,
+        textForLlm: this.describePermissionRefusal(tool, data.ctx, data.args),
+        errorMessage: `Permission denied for tool: ${data.name}`,
+        refusal: this.getPermissionRefusal(tool, data.ctx, data.args),
+      };
+    }
+
+    return null;
+  }
+
+  /*
+   * A tool of a product switched off on this server (#6815, ToolProducts):
+   * not run, and - for a setup action - not proposed. The model is told
+   * what happened and who can switch it on, and to say so rather than try
+   * again. Null when every product the tool names is on, or it names none.
+   */
+  public static async refuseProductsOffOnServer(
+    tool: ObservabilityTool,
+  ): Promise<ToolCallOutcome | null> {
+    const products: ReadonlyArray<ProductKey> = getToolProducts(tool.name);
+
+    const off: { product: ProductKey; reason: ServerProductOffReason } | null =
+      await ServerProducts.getFirstOff(products);
+
+    if (!off) {
+      return null;
+    }
+
+    const message: string = getProductOffMessage(off);
+
+    return {
+      success: false,
+      textForLlm: `Not done: ${message} Do not retry it, and do not offer to set it up another way. Tell the user plainly that it was not done, and who can switch it on.`,
+      errorMessage: message,
+      refusal: AIToolRefusal.ProductOff,
+    };
   }
 
   /*

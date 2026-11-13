@@ -41,6 +41,7 @@ import {
   PublicDashboardContext,
   setPublicDashboardContext,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Utils/PublicDashboardContext";
+import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
 import AggregatedModel from "../../../Types/BaseDatabase/AggregatedModel";
 import AggregatedResult from "../../../Types/BaseDatabase/AggregatedResult";
@@ -66,6 +67,7 @@ import {
   LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
 } from "../../../UI/Utils/LineDirection";
 import { readDashboardLocale } from "../../Helpers/DashboardLocales";
+import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 
 /*
  * A DASHBOARD WIDGET'S TITLE, AND A TABLE WIDGET'S NAMES, ON AN ARABIC OR
@@ -719,11 +721,18 @@ describe("a Gauge's title, centred over the gauge", () => {
   /*
    * The arc fills from the left in every language, as a chart's time runs,
    * so its bounds under it are laid out left to right too: mirrored on an
-   * Arabic board, "100" sat under the end the fill starts from.
+   * Arabic board, "100" sat under the end the fill starts from. The bounds
+   * are written in the board's digits: Persian's own on a Persian board
+   * (#7094).
    */
-  test.each(["ar", "fa", "de", "en"])(
+  test.each([
+    ["ar", ["0", "100"]],
+    ["fa", ["۰", "۱۰۰"]],
+    ["de", ["0", "100"]],
+    ["en", ["0", "100"]],
+  ])(
     "on a %s board the minimum sits under the arc's left end and the maximum under its right",
-    async (language: string) => {
+    async (language: string, expectedBounds: Array<string>) => {
       await inLanguage(language);
       render(<GaugeWidgetView {...GAUGE_PROPS} />);
 
@@ -734,7 +743,7 @@ describe("a Gauge's title, centred over the gauge", () => {
         Array.from(bounds.children).map((bound: Element): string => {
           return bound.textContent || "";
         }),
-      ).toEqual(["0", "100"]);
+      ).toEqual(expectedBounds);
     },
   );
 
@@ -921,6 +930,22 @@ describe("a Network Map widget's title", () => {
     },
   );
 
+  /*
+   * As plain as the title beside it, as a list's count is: gray-300 all but
+   * vanished on a light board and outshone the title on a dark one.
+   */
+  test("the sites' count is drawn in its title's gray", async () => {
+    await drawMap(ENGLISH_TITLE);
+
+    const summary: HTMLElement = screen.getByTestId(
+      "network-map-widget-summary",
+    );
+
+    expect(lineOf(ENGLISH_TITLE)).toHaveClass("text-gray-400");
+    expect(summary).toHaveClass("text-gray-400");
+    expect(summary).not.toHaveClass("text-gray-300");
+  });
+
   test("on an Arabic board the widget's own name, in Arabic, is drawn as it was", async () => {
     await inLanguage("ar");
     await drawMap(undefined);
@@ -1027,5 +1052,116 @@ describe("a list's honeycomb: a tile's name over its tooltip", () => {
     fireEvent.mouseLeave(container.querySelectorAll("div.select-none")[0]!);
 
     expect(document.querySelector("div.fixed.z-50")).toBeNull();
+  });
+
+  /*
+   * A Kubernetes pod list's tile, as the pod list widget builds it: its
+   * phase, its namespace and cluster under it, and a link to the pod. On a
+   * Persian board the tooltip's own words - Status, the phase, Cluster and
+   * Click to open - read in Persian (#7088); what the tile names (the pod,
+   * its namespace and cluster) is drawn as written, and so is the
+   * Kubernetes kind Namespace, which the Persian Dashboard writes as
+   * Kubernetes does.
+   */
+  const POD_TILE: HoneycombTile = {
+    id: "pod-3",
+    status: "Running",
+    color: "#10b981",
+    route: new Route("/dashboard/kubernetes/pod"),
+    tooltip: {
+      title: "checkout-api-7d9f8b6c4-x2x9z",
+      details: [
+        { label: "Namespace", value: "payments" },
+        { label: "Cluster", value: "prod-eu-west" },
+      ],
+    },
+  };
+
+  const FA: Record<string, string> = readDashboardLocale("fa");
+  const LATIN_LETTER: RegExp = /[A-Za-z]/;
+
+  // The tooltip's words with what the tile names, and the kind, taken out.
+  function tooltipOwnWords(tooltip: HTMLElement): string {
+    let words: string = withoutIsolateMarks(tooltip.textContent || "");
+
+    for (const named of [
+      "checkout-api-7d9f8b6c4-x2x9z",
+      "payments",
+      "prod-eu-west",
+      "Namespace",
+    ]) {
+      words = words.split(named).join("");
+    }
+
+    return words;
+  }
+
+  test("on a Persian board the tooltip's own words read in Persian: Status, the phase, Cluster and Click to open", async () => {
+    await inLanguage("fa");
+    const { container } = render(
+      <DashboardResourceHoneycomb tiles={[POD_TILE]} />,
+    );
+
+    const tooltip: HTMLElement = hoverTile(container, 0);
+
+    for (const key of ["Status", "Running", "Cluster", "Click to open"]) {
+      expect({ key, worded: FA[key] !== key }).toEqual({ key, worded: true });
+      expect(within(tooltip).getByText(FA[key] as string)).toBeTruthy();
+    }
+
+    expect(
+      within(tooltip).getByText(FA["Click to open"] as string),
+    ).toHaveTextContent("برای باز کردن کلیک کنید");
+    expect(LATIN_LETTER.test(tooltipOwnWords(tooltip))).toBe(false);
+  });
+
+  test("on a Persian board the tooltip draws what the tile names as written", async () => {
+    await inLanguage("fa");
+    const { container } = render(
+      <DashboardResourceHoneycomb tiles={[POD_TILE]} />,
+    );
+
+    const tooltip: HTMLElement = hoverTile(container, 0);
+
+    expectOneLineReadLeftToRight(
+      within(tooltip).getByText("checkout-api-7d9f8b6c4-x2x9z"),
+    );
+    expectOneLineReadLeftToRight(within(tooltip).getByText("payments"));
+    expectOneLineReadLeftToRight(within(tooltip).getByText("prod-eu-west"));
+    expect(within(tooltip).getByText("Namespace")).toBeTruthy();
+  });
+
+  test("a tile with no page to open says nothing about a click", async () => {
+    await inLanguage("fa");
+    const { container } = render(
+      <DashboardResourceHoneycomb
+        tiles={[{ ...POD_TILE, route: undefined }]}
+      />,
+    );
+
+    const tooltip: HTMLElement = hoverTile(container, 0);
+
+    expect(
+      within(tooltip).queryByText(FA["Click to open"] as string),
+    ).toBeNull();
+  });
+
+  test("on an English board the tooltip reads as it always did", async () => {
+    await inLanguage("en");
+    const { container } = render(
+      <DashboardResourceHoneycomb tiles={[POD_TILE]} />,
+    );
+
+    const tooltip: HTMLElement = hoverTile(container, 0);
+
+    for (const text of [
+      "Status",
+      "Running",
+      "Namespace",
+      "Cluster",
+      "Click to open",
+    ]) {
+      expect(within(tooltip).getByText(text)).toBeTruthy();
+    }
   });
 });

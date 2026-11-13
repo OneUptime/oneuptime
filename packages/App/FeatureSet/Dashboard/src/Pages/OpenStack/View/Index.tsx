@@ -72,7 +72,6 @@ import {
 } from "../../../Components/ResourcePart/ResourceAttention";
 import ResourcePartReadError from "../../../Components/ResourcePart/ResourcePartReadError";
 import { getConfiguredOneUptimeUrl } from "../../../Components/SetupGuide/ConfiguredOneUptimeUrl";
-import { formatBytes } from "../../../Components/TelemetryResource/telemetryFormat";
 import {
   getResourceConnectionLabel,
   getResourceHealthLabel,
@@ -94,6 +93,7 @@ import {
   fetchOpenStackBlastRadius,
   fetchOpenStackRows,
 } from "../Utils/OpenStackPartData";
+import { formatOpenStackBytes } from "../Utils/OpenStackFigures";
 import { getOpenStackRegionRoute } from "../Utils/OpenStackRegion";
 import {
   OpenStackInventorySummary,
@@ -1090,14 +1090,28 @@ const OpenStackCloudOverview: FunctionComponent<
             )
           : translator.translateText("up") || "up";
 
+  /*
+   * Drawn in the page's direction with each value set apart: a Persian tile
+   * reads "۴۸۰ GiB از ۱٫۰ TiB" from the right, each size with its number
+   * before its unit (issue #7191).
+   */
   const amountSublabel: (used: string, total: string) => string = (
     used: string,
     total: string,
   ): string => {
-    return translator.translateTemplate("{{used}} of {{total}}", {
-      used: used,
-      total: total,
-    });
+    return translator.translateTemplate(
+      "{{used}} of {{total}}",
+      {
+        used: used,
+        total: total,
+      },
+      { setsValuesApart: true },
+    );
+  };
+
+  // A size in the reader's digits: "۶٫۰ TiB".
+  const formatSize: (bytes: number) => string = (bytes: number): string => {
+    return formatOpenStackBytes(bytes, { language: translator.language });
   };
 
   /*
@@ -1464,8 +1478,8 @@ const OpenStackCloudOverview: FunctionComponent<
                   : memoryPercent === null || !summary
                     ? NOT_REPORTED
                     : amountSublabel(
-                        formatBytes(summary.memoryAllocatedBytes),
-                        formatBytes(summary.memoryCapacityBytes),
+                        formatSize(summary.memoryAllocatedBytes),
+                        formatSize(summary.memoryCapacityBytes),
                       )
           }
           percent={isConnected ? memoryPercent : null}
@@ -1490,17 +1504,18 @@ const OpenStackCloudOverview: FunctionComponent<
                       ? translator.translateTemplate(
                           "{{used}} of {{total}} · fullest pool {{percent}}",
                           {
-                            used: formatBytes(summary.storageUsedBytes),
-                            total: formatBytes(summary.storageCapacityBytes),
+                            used: formatSize(summary.storageUsedBytes),
+                            total: formatSize(summary.storageCapacityBytes),
                             percent: formatPercent(
                               fullestPoolPercent,
                               translator,
                             ),
                           },
+                          { setsValuesApart: true },
                         )
                       : amountSublabel(
-                          formatBytes(summary.storageUsedBytes),
-                          formatBytes(summary.storageCapacityBytes),
+                          formatSize(summary.storageUsedBytes),
+                          formatSize(summary.storageCapacityBytes),
                         )
           }
           percent={isConnected ? storagePercent : null}

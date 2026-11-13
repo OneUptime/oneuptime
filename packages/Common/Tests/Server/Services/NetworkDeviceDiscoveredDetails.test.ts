@@ -3,6 +3,7 @@ import {
   Service as NetworkDeviceServiceType,
 } from "../../../Server/Services/NetworkDeviceService";
 import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequestType";
+import logger from "../../../Server/Utils/Logger";
 import ColumnPermissions from "../../../Server/Types/Database/Permissions/ColumnPermission";
 import ColumnWriteRefusedException from "../../../Server/Types/Database/Permissions/ColumnWriteRefusedException";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
@@ -93,12 +94,33 @@ describe("mergeDiscoveredDetails - the one write after create", () => {
   let query: Mock<QueryFunction>;
   let service: NetworkDeviceServiceType;
 
+  /*
+   * What Postgres answers a merge statement: the devices it wrote. By
+   * default every device it was sent; `held` are devices another writer
+   * holds, which a SKIP LOCKED statement leaves out.
+   */
+  let held: Set<string>;
+
   beforeEach(() => {
     jest.restoreAllMocks();
     service = new NetworkDeviceServiceType();
-    query = jest.fn<QueryFunction>(async (): Promise<unknown> => {
-      return [];
-    });
+    held = new Set<string>();
+    query = jest.fn<QueryFunction>(
+      async (sql: string, parameters: Array<unknown>): Promise<unknown> => {
+        const sent: Array<{ id: string }> = JSON.parse(
+          parameters[0] as string,
+        ) as Array<{ id: string }>;
+        const skipsLocked: boolean = sql.includes("SKIP LOCKED");
+
+        return sent
+          .filter((row: { id: string }) => {
+            return !(skipsLocked && held.has(row.id));
+          })
+          .map((row: { id: string }) => {
+            return { _id: row.id };
+          });
+      },
+    );
     jest
       .spyOn(service, "getRepository")
       .mockReturnValue({ manager: { query } } as never);
@@ -126,6 +148,12 @@ describe("mergeDiscoveredDetails - the one write after create", () => {
 
     const sql: string = query.mock.calls[0]![0].replace(/\s+/g, " ");
     expect(sql).toContain('UPDATE "NetworkDevice" AS nd');
+    // The devices are locked first - only those nobody else holds.
+    expect(sql).toContain("FOR NO KEY UPDATE OF device SKIP LOCKED");
+    expect(sql).toContain('AND nd."_id" IN (SELECT "_id" FROM "locked")');
+    // A SELECT of what it wrote, so the answer is the devices written.
+    expect(sql).toContain('RETURNING nd."_id"');
+    expect(sql).toContain('SELECT "_id" FROM "merged"');
     expect(sql).toContain(
       'SET "discoveredDetails" = (COALESCE(nd."discoveredDetails", \'{}\'::jsonb) - patch."unset") || patch."set"',
     );
@@ -243,6 +271,166 @@ describe("mergeDiscoveredDetails - the one write after create", () => {
         patches: [{ deviceId: DEVICE_ID, set: { sysName: sysNameEntry() } }],
       }),
     ).rejects.toThrow("connection reset");
+  });
+
+  /*
+   * OneUptime issue #7194. A merge never waits for a device while it holds
+   * others: the batch takes the devices nobody holds, and only then is each
+   * device it had to leave merged on its own - waiting for that one alone.
+   */
+  describe("a device another writer holds", () => {
+    const OTHER_DEVICE_ID: string = "44444444-4444-4444-8444-444444444444";
+
+    test("is merged on its own after the batch, waiting for that device only", async () => {
+      held.add(OTHER_DEVICE_ID);
+
+      const written: number = await service.mergeDiscoveredDetails({
+        projectId: PROJECT_ID,
+        patches: [
+          { deviceId: DEVICE_ID, set: { sysName: sysNameEntry() } },
+          { deviceId: OTHER_DEVICE_ID, set: { sysName: sysNameEntry("b") } },
+        ],
+      });
+
+      expect(written).toBe(2);
+      expect(query).toHaveBeenCalledTimes(2);
+
+      // The batch: both, skipping any device someone holds.
+      expect(query.mock.calls[0]![0]).toContain("SKIP LOCKED");
+      expect(rowsOf(0)).toHaveLength(2);
+
+      // Then the one it left, alone, waiting for it.
+      const single: string = query.mock.calls[1]![0].replace(/\s+/g, " ");
+      expect(single).toContain("FOR NO KEY UPDATE OF device");
+      expect(single).not.toContain("SKIP LOCKED");
+      expect(rowsOf(1)).toEqual([
+        { id: OTHER_DEVICE_ID, set: { sysName: sysNameEntry("b") }, unset: [] },
+      ]);
+    });
+
+    test("is left for the next reading when the caller says so", async () => {
+      held.add(OTHER_DEVICE_ID);
+
+      const written: number = await service.mergeDiscoveredDetails({
+        projectId: PROJECT_ID,
+        patches: [
+          { deviceId: DEVICE_ID, set: { sysName: sysNameEntry() } },
+          { deviceId: OTHER_DEVICE_ID, set: { sysName: sysNameEntry("b") } },
+        ],
+        skipLockedDevices: true,
+      });
+
+      expect(written).toBe(1);
+      expect(query).toHaveBeenCalledTimes(1);
+      expect(query.mock.calls[0]![0]).toContain("SKIP LOCKED");
+    });
+
+    test("held past the lock timeout, is logged and does not fail the devices around it", async () => {
+      const warn: ReturnType<typeof jest.spyOn> = jest
+        .spyOn(logger, "warn")
+        .mockImplementation((() => {
+          return undefined;
+        }) as never);
+      const THIRD_DEVICE_ID: string = "55555555-5555-4555-8555-555555555555";
+      held.add(OTHER_DEVICE_ID);
+      held.add(THIRD_DEVICE_ID);
+
+      const lockTimeout: Error & { driverError?: { code: string } } = new Error(
+        "canceling statement due to lock timeout",
+      );
+      lockTimeout.driverError = { code: "55P03" };
+
+      query.mockImplementation(
+        async (sql: string, parameters: Array<unknown>): Promise<unknown> => {
+          const sent: Array<{ id: string }> = JSON.parse(
+            parameters[0] as string,
+          ) as Array<{ id: string }>;
+
+          if (sql.includes("SKIP LOCKED")) {
+            return sent
+              .filter((row: { id: string }) => {
+                return !held.has(row.id);
+              })
+              .map((row: { id: string }) => {
+                return { _id: row.id };
+              });
+          }
+
+          if (sent[0]!.id === OTHER_DEVICE_ID) {
+            throw lockTimeout;
+          }
+
+          return [{ _id: sent[0]!.id }];
+        },
+      );
+
+      const written: number = await service.mergeDiscoveredDetails({
+        projectId: PROJECT_ID,
+        patches: [
+          { deviceId: DEVICE_ID, set: { sysName: sysNameEntry() } },
+          { deviceId: OTHER_DEVICE_ID, set: { sysName: sysNameEntry("b") } },
+          { deviceId: THIRD_DEVICE_ID, set: { sysName: sysNameEntry("c") } },
+        ],
+      });
+
+      // The first in the batch, the third on its own; the second logged.
+      expect(written).toBe(2);
+      expect(query).toHaveBeenCalledTimes(3);
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(String(warn.mock.calls[0]![0])).toContain(OTHER_DEVICE_ID);
+    });
+
+    test("any other failure on its own still surfaces", async () => {
+      held.add(OTHER_DEVICE_ID);
+      query.mockImplementationOnce(
+        async (_sql: string, parameters: Array<unknown>): Promise<unknown> => {
+          return (JSON.parse(parameters[0] as string) as Array<{ id: string }>)
+            .filter((row: { id: string }) => {
+              return !held.has(row.id);
+            })
+            .map((row: { id: string }) => {
+              return { _id: row.id };
+            });
+        },
+      );
+      query.mockRejectedValueOnce(new Error("connection reset"));
+
+      await expect(
+        service.mergeDiscoveredDetails({
+          projectId: PROJECT_ID,
+          patches: [
+            { deviceId: DEVICE_ID, set: { sysName: sysNameEntry() } },
+            { deviceId: OTHER_DEVICE_ID, set: { sysName: sysNameEntry("b") } },
+          ],
+        }),
+      ).rejects.toThrow("connection reset");
+    });
+
+    test("an id in upper case is matched to the lower-case id Postgres answers", async () => {
+      // Hex letters, so upper case is a different string from what Postgres answers.
+      const lower: string = "abcdef01-2345-4678-9abc-def012345678";
+      const upper: string = lower.toUpperCase();
+      expect(upper).not.toBe(lower);
+
+      query.mockImplementationOnce(
+        async (_sql: string, parameters: Array<unknown>): Promise<unknown> => {
+          return (
+            JSON.parse(parameters[0] as string) as Array<{ id: string }>
+          ).map((row: { id: string }) => {
+            return { _id: row.id.toLowerCase() };
+          });
+        },
+      );
+
+      const written: number = await service.mergeDiscoveredDetails({
+        projectId: PROJECT_ID,
+        patches: [{ deviceId: upper, set: { sysName: sysNameEntry() } }],
+      });
+
+      // Written by the batch; not sent a second time on its own.
+      expect(written).toBe(1);
+      expect(query).toHaveBeenCalledTimes(1);
+    });
   });
 });
 

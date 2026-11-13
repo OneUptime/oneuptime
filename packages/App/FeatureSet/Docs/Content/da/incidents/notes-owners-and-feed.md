@@ -68,7 +68,7 @@ Skriv noten i Markdown, eller start fra en af dine **Skabeloner** eller fra **Ud
 
 ### Bestem, hvem der får besked
 
-Lad **Giv abonnenter på statussiden besked** være markeret for at give abonnenterne besked, eller fjern markeringen for at offentliggøre i stilhed. **Will notify** under det viser, hvilke statussider noten når, og **Forhåndsvisning** viser den e-mail, de får.
+Lad **Giv abonnenter på statussiden besked** være markeret for at give abonnenterne besked, eller fjern markeringen for at offentliggøre i stilhed. **Underretter** under det viser, hvilke statussider noten når, og **Forhåndsvisning** viser den e-mail, de får.
 
 ### Slå den op
 
@@ -88,7 +88,7 @@ Den samme editor åbner i en dialog fra **Tilføj offentlig note** i menuen **Ha
 
 **Stille hændelser forbliver stille.** Blev en hændelse erklæret med **Underret statussideabonnenter** slået fra (eller som en privat hændelse), har dens abonnenter aldrig fået besked om den, så en offentlig note bør ikke være det første, de hører. På sådan en hændelse starter afkrydsningsfeltet slået fra, med en linje under, der forklarer hvorfor. Du kan stadig markere det for at give abonnenterne besked om den note. Noter, der slås op uden et udtrykkeligt valg, følger samme regel: noter fra Slack og Microsoft Teams, workflows og API-anmodninger, der udelader `shouldStatusPageSubscribersBeNotifiedOnNoteCreated`. Et udtrykkeligt `true` eller `false` bevares altid. Offentlige noter på [planlagte vedligeholdelseshændelser](/docs/status-pages/subscribers#planlagte-vedligeholdelsesbegivenheder) og [hændelsesepisoder](/docs/status-pages/subscribers#hændelsesepisoder) følger en lignende regel, baseret på om begivenheden eller episoden selv gav abonnenterne besked, da den blev oprettet. En privat hændelse eller episode tager slet ingen offentlige noter.
 
-**Se, hvem noten når.** Mens **Giv abonnenter på statussiden besked** er markeret, viser en linje **Will notify** under det de statussider, noten går til, med et "op til"-antal abonnenter pr. kanal, og de sider, der viser hændelsens monitorer, men ikke får besked, med årsagen. Får ingen besked, viser den intet, medmindre hændelsen er skjult for statussider, eller dens statussideomfang er årsagen. Den følger hændelsens statussideomfang, så en note på en hændelse, der er begrænset til to lokationssider, siger, at den når de to. Se [Én statusside pr. målgruppe](/docs/status-pages/one-status-page-per-audience).
+**Se, hvem noten når.** Mens **Giv abonnenter på statussiden besked** er markeret, viser en linje **Underretter** under det de statussider, noten går til, med et "op til"-antal abonnenter pr. kanal, og de sider, der viser hændelsens monitorer, men ikke får besked, med årsagen. Får ingen besked, viser den intet, medmindre hændelsen er skjult for statussider, eller dens statussideomfang er årsagen. Den følger hændelsens statussideomfang, så en note på en hændelse, der er begrænset til to lokationssider, siger, at den når de to. Se [Én statusside pr. målgruppe](/docs/status-pages/one-status-page-per-audience).
 
 **Se, hvad de får.** Ved siden af samme afkrydsningsfelt viser **Forhåndsvisning** den e-mail, abonnenterne på hver af de statussider får for den note, du skriver, og hvilken skabelon den bruger og hvorfor. Den forbliver grå, indtil noten har noget tekst. **Send test til mig** sender den e-mail til din egen kontos e-mail og til ingen andre. Se [Abonnenter og meddelelser](/docs/status-pages/subscribers#forhåndsvis-e-mailen-før-den-sendes).
 

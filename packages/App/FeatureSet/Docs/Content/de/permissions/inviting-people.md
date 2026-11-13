@@ -86,7 +86,7 @@ Filtern Sie die Liste nach **Benutzer**, **Status** oder **Team**. Klicken Sie a
 | --- | --- |
 | **Profil** | Name, E-Mail-Adresse, Bild und Benutzer-ID. |
 | **Teams** | Die Teams, in denen die Person ist. Hier fügen Sie ein Team hinzu oder entfernen es. |
-| **Einsatzbereitschaft**, **Benachrichtigungsmethoden**, **Bereitschaftsregeln** | Ob die Person alarmiert werden kann, und wie. Sichtbar für Project Owners, Project Admins, die Person selbst und alle, die die Benachrichtigungsregeln anderer lesen dürfen. Siehe [Einsatzbereitschaft & Berichte](/docs/on-call/readiness). |
+| **Einsatzbereitschaft**, **Benachrichtigungsmethoden**, **Wie ich erreichbar bin** | Ob die Person alarmiert werden kann, und wie. Sichtbar für Project Owners, Project Admins, die Person selbst und alle, die die Benachrichtigungsregeln anderer lesen dürfen. Siehe [Einsatzbereitschaft & Berichte](/docs/on-call/readiness). |
 | **Benutzerdefinierte Felder** | Die benutzerdefinierten Felder des Projekts für Personen, wenn es welche hat. |
 | **Aus Projekt entfernen** | Die Person aus dem Projekt nehmen. |
 

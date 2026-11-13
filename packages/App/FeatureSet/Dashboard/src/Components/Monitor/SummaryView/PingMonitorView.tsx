@@ -3,8 +3,10 @@ import PingMonitorResponse from "Common/Types/Monitor/PingMonitor/PingMonitorRes
 import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import HostAddressUtil from "Common/Utils/HostAddressUtil";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { composedValue, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { formatPercent } from "../../NetworkDevice/DeviceDiagnosticsViewModel";
+import { formatMilliseconds } from "../../../Utils/Milliseconds";
 import React, { FunctionComponent, ReactElement } from "react";
 import NetworkPathView from "./NetworkPathView";
 import ProbeAttemptsView from "./ProbeAttemptsView";
@@ -59,7 +61,11 @@ const PingMonitorView: FunctionComponent<ComponentProps> = (
         />
         <SummaryFact
           title="Response Time (in ms)"
-          value={responseTimeInMs ? responseTimeInMs + " ms" : "-"}
+          value={
+            responseTimeInMs
+              ? formatMilliseconds(translator, responseTimeInMs)
+              : "-"
+          }
         />
         <SummaryFact
           title="Monitored At"
@@ -77,15 +83,35 @@ const PingMonitorView: FunctionComponent<ComponentProps> = (
 
       {pingResponse && (
         <SummaryFacts dataTestId="ping-monitor-packet-facts">
+          {/*
+           * The share and the pair in the sentence's digits, as a device's
+           * ping drawer says it: "۴۰٪ (۳/۵ دریافت‌شده)" in Persian.
+           */}
           <SummaryFact
             title="Packet Loss"
-            value={`${pingResponse.packetLossPercent}% (${pingResponse.packetsReceived}/${pingResponse.packetsSent} received)`}
+            value={translator.translateTemplate(
+              "{{percent}} ({{received}}/{{sent}} received)",
+              {
+                percent: composedValue((sentence: Translator): string => {
+                  return formatPercent(
+                    pingResponse.packetLossPercent,
+                    sentence.language,
+                  );
+                }),
+                received: composedValue((sentence: Translator): string => {
+                  return sentence.formatNumber(pingResponse.packetsReceived);
+                }),
+                sent: composedValue((sentence: Translator): string => {
+                  return sentence.formatNumber(pingResponse.packetsSent);
+                }),
+              },
+            )}
           />
           <SummaryFact
             title="Jitter"
             value={
               pingResponse.jitterInMs !== undefined
-                ? pingResponse.jitterInMs + " ms"
+                ? formatMilliseconds(translator, pingResponse.jitterInMs)
                 : "-"
             }
           />
@@ -93,7 +119,10 @@ const PingMonitorView: FunctionComponent<ComponentProps> = (
             title="Min RTT"
             value={
               pingResponse.minRoundTripTimeInMs !== undefined
-                ? pingResponse.minRoundTripTimeInMs + " ms"
+                ? formatMilliseconds(
+                    translator,
+                    pingResponse.minRoundTripTimeInMs,
+                  )
                 : "-"
             }
           />
@@ -101,7 +130,10 @@ const PingMonitorView: FunctionComponent<ComponentProps> = (
             title="Max RTT"
             value={
               pingResponse.maxRoundTripTimeInMs !== undefined
-                ? pingResponse.maxRoundTripTimeInMs + " ms"
+                ? formatMilliseconds(
+                    translator,
+                    pingResponse.maxRoundTripTimeInMs,
+                  )
                 : "-"
             }
           />

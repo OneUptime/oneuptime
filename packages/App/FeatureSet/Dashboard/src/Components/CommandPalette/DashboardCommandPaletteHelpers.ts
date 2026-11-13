@@ -13,6 +13,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import Permission from "Common/Types/Permission";
+import ProductKey from "Common/Types/Product/ProductKey";
 import HeldPermissionsUtil, {
   HeldPermissions,
 } from "Common/Types/HeldPermissions";
@@ -107,6 +108,11 @@ export interface PaletteNavigationCatalogEntry {
    * recents are persisted under.
    */
   templatePath: string;
+  /*
+   * Offered only to someone searching (#6814): a product the project hides
+   * is still found by Search, but browsing lists the products it shows.
+   */
+  isSearchOnly?: boolean | undefined;
 }
 
 export interface PaletteNavigationCommandDescriptor
@@ -156,6 +162,11 @@ export interface PageSearchAvailability {
   isBillingEnabled: boolean;
   // The project has monitor groups turned on.
   isMonitorGroupsEnabled: boolean;
+  /*
+   * OneUptime Cloud records its setup pages (#6834), so the switches that
+   * turn it off are on the page. Absent is off.
+   */
+  isDashboardRecordingOn?: boolean | undefined;
   // May delete the project (Project Owner, or Delete Project).
   canDeleteProject: boolean;
 }
@@ -233,6 +244,10 @@ const isGateOpen: (
 
   if (gate === PageSearchGate.MonitorGroups) {
     return availability.isMonitorGroupsEnabled;
+  }
+
+  if (gate === PageSearchGate.DashboardRecording) {
+    return availability.isDashboardRecordingOn === true;
   }
 
   return true;
@@ -583,6 +598,7 @@ export type PaletteActionId =
   | "action-keyboard-shortcuts"
   | "action-how-oneuptime-works"
   | "action-glossary"
+  | "action-give-feedback"
   | "action-log-out"
   | "action-project-invitations"
   | "action-active-incidents"
@@ -728,6 +744,11 @@ export interface PaletteActionAvailability extends PaletteCreateActionGates {
    * Left out, the palette offers only the switch to the other theme.
    */
   isThemeFollowingDevice?: boolean | undefined;
+  /*
+   * Whether this server takes feedback (#6832, ProductFeedback.isOn): Give
+   * feedback is offered beside the Glossary. Left out, it is not.
+   */
+  canGiveFeedback?: boolean | undefined;
 }
 
 /*
@@ -777,6 +798,12 @@ export function getVisibleActionIds(
    */
   actionIds.push("action-how-oneuptime-works");
   actionIds.push("action-glossary");
+
+  // Tell OneUptime what was hard (#6832), where the server takes feedback.
+  if (availability.canGiveFeedback) {
+    actionIds.push("action-give-feedback");
+  }
+
   actionIds.push("action-active-incidents");
   actionIds.push("action-my-on-call-policies");
   actionIds.push("action-project-invitations");
@@ -788,6 +815,35 @@ export function getVisibleActionIds(
   actionIds.push("action-log-out");
 
   return actionIds;
+}
+
+/*
+ * The product each action belongs to (#6815): an action of a product
+ * switched off on the server is not offered. The rest belong to OneUptime
+ * itself.
+ */
+export const PALETTE_ACTION_PRODUCTS: Readonly<
+  Partial<Record<PaletteActionId, ProductKey>>
+> = {
+  "action-declare-incident": ProductKey.Incidents,
+  "action-create-monitor": ProductKey.Monitors,
+  "action-create-alert": ProductKey.Alerts,
+  "action-create-scheduled-maintenance": ProductKey.ScheduledMaintenance,
+  "action-create-announcement": ProductKey.StatusPages,
+  "action-ask-ai": ProductKey.AIChat,
+  "action-active-incidents": ProductKey.Incidents,
+  "action-my-on-call-policies": ProductKey.OnCall,
+};
+
+// The actions left once those of products switched off on the server go.
+export function withoutActionsOfProductsOff(
+  actionIds: ReadonlyArray<PaletteActionId>,
+  offProducts: ReadonlyArray<ProductKey>,
+): Array<PaletteActionId> {
+  return actionIds.filter((actionId: PaletteActionId): boolean => {
+    const product: ProductKey | undefined = PALETTE_ACTION_PRODUCTS[actionId];
+    return !product || !offProducts.includes(product);
+  });
 }
 
 // ---- entity search providers ------------------------------------------------

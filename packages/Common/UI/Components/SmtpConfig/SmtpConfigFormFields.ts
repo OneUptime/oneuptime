@@ -3,6 +3,9 @@ import GlobalConfig, {
 } from "../../../Models/DatabaseModels/GlobalConfig";
 import ProjectSmtpConfig from "../../../Models/DatabaseModels/ProjectSmtpConfig";
 import { isAwsRegion } from "../../../Types/Cloud/AwsRegionCode";
+import AmazonSesAuthenticationType, {
+  toAmazonSesAuthenticationType,
+} from "../../../Types/Email/AmazonSesAuthenticationType";
 import { isMailgunDomain } from "../../../Types/Email/MailgunDomain";
 import MailgunRegion, {
   DEFAULT_MAILGUN_REGION,
@@ -995,6 +998,64 @@ export const AMAZON_SES_REGION_INVALID: string = translationKey(
   "Enter an AWS Region code, such as us-east-1.",
 );
 
+/*
+ * How the server signs in to Amazon SES (#7000), on the server's own Amazon
+ * SES card only: with an IAM user's access key, as it always has, or as the
+ * IAM role AWS gives the server - IAM roles for service accounts or EKS Pod
+ * Identity, an ECS task role, an EC2 instance profile - with no key stored.
+ * A project's Amazon SES config keeps its access key: the server's role is
+ * the server's own AWS identity, never a project's to send with.
+ */
+export const AMAZON_SES_AUTHENTICATION_TYPE_DESCRIPTION: string =
+  translationKey("How OneUptime signs in to Amazon SES.");
+
+export const AMAZON_SES_AUTHENTICATION_TYPE_CHOICES: Array<RadioButton> = [
+  {
+    value: AmazonSesAuthenticationType.AccessKey,
+    title: translationKey("Access Key"),
+    description: translationKey(
+      "An IAM user's access key ID and secret access key, stored encrypted.",
+    ),
+  },
+  {
+    value: AmazonSesAuthenticationType.ServerIamRole,
+    title: translationKey("This Server's IAM Role"),
+    description: translationKey(
+      "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.",
+    ),
+  },
+];
+
+/*
+ * The sign-in a stored Authentication Type reads as, in the Edit dialog's
+ * words. Never picked, the server signs in with the access key.
+ */
+export const getAmazonSesAuthenticationTypeTitle: (value: unknown) => string = (
+  value: unknown,
+): string => {
+  const type: AmazonSesAuthenticationType =
+    toAmazonSesAuthenticationType(value);
+  const choice: RadioButton | undefined =
+    AMAZON_SES_AUTHENTICATION_TYPE_CHOICES.find(
+      (candidate: RadioButton): boolean => {
+        return candidate.value === type;
+      },
+    );
+
+  return choice ? choice.title : type;
+};
+
+// Whether the server's Amazon SES card signs in with the server's IAM role.
+export const usesAmazonSesServerIamRole: (values: unknown) => boolean = (
+  values: unknown,
+): boolean => {
+  return (
+    toAmazonSesAuthenticationType(
+      readSmtpFormValue(values, "amazonSesAuthenticationType"),
+    ) === AmazonSesAuthenticationType.ServerIamRole
+  );
+};
+
 export const SENDGRID_API_KEY_DESCRIPTION: string = translationKey(
   "A SendGrid API key with the Mail Send permission, from SendGrid's Settings > API Keys. It is stored encrypted.",
 );
@@ -1179,6 +1240,49 @@ export const getAmazonSesFormFields: <TEntity>() => Array<Field<TEntity>> = <
         return AMAZON_SES_REGION_INVALID;
       },
     },
+  ];
+};
+
+/*
+ * The server's own Amazon SES card (#7000): how it signs in first - its
+ * access key, or the IAM role AWS gives the server - then the access key
+ * only when it signs in with one, then the Region either way. The key's
+ * fields are hidden for the role, so they are neither asked for nor
+ * checked; the server clears a stored key when the role is saved.
+ */
+export const getGlobalAmazonSesFormFields: () => Array<
+  Field<GlobalConfig>
+> = (): Array<Field<GlobalConfig>> => {
+  const usesAccessKey: (values: FormValues<GlobalConfig>) => boolean = (
+    values: FormValues<GlobalConfig>,
+  ): boolean => {
+    return !usesAmazonSesServerIamRole(values);
+  };
+
+  return [
+    {
+      field: { amazonSesAuthenticationType: true },
+      title: "Authentication Type",
+      stepId: "amazon-ses",
+      fieldType: FormFieldSchemaType.RadioButton,
+      radioButtonOptions: AMAZON_SES_AUTHENTICATION_TYPE_CHOICES,
+      required: true,
+      defaultValue: AmazonSesAuthenticationType.AccessKey,
+      // A server that has never picked one signs in with its access key.
+      startsOnDefaultWhenEmpty: true,
+      description: AMAZON_SES_AUTHENTICATION_TYPE_DESCRIPTION,
+      dataTestId: "amazon-ses-authentication-type",
+    },
+    ...getAmazonSesFormFields<GlobalConfig>().map(
+      (field: Field<GlobalConfig>): Field<GlobalConfig> => {
+        const isRegion: boolean = Boolean(
+          field.field &&
+            (field.field as Record<string, unknown>)["amazonSesRegion"],
+        );
+
+        return isRegion ? field : { ...field, showIf: usesAccessKey };
+      },
+    ),
   ];
 };
 
@@ -1552,10 +1656,21 @@ export const GLOBAL_EMAIL_PROVIDERS: ReadonlyArray<{
 ];
 
 /*
+ * The server's Amazon SES card's line: unlike a project's config, the
+ * server can also sign in as the IAM role AWS gives it (#7000). The card's
+ * title names the service, so the line is short enough to wrap like the
+ * cards beside it.
+ */
+export const GLOBAL_AMAZON_SES_PROVIDER_DESCRIPTION: string = translationKey(
+  "Send through Amazon SES with an access key or this server's IAM role.",
+);
+
+/*
  * An Email Server Type's card in the Email Server Settings dialog: the card
  * its provider has in a project's form - the same icon and line - for the
  * Email Server Type's own value. Undefined for a type with no provider of
- * its own (Custom SMTP, SendGrid).
+ * its own (Custom SMTP, SendGrid). Amazon SES says the server may also
+ * sign in with its IAM role.
  */
 export const getGlobalEmailProviderCard: (
   serverType: EmailServerType,
@@ -1579,7 +1694,17 @@ export const getGlobalEmailProviderCard: (
       })
     : undefined;
 
-  return choice ? { ...choice, value: serverType } : undefined;
+  if (!choice) {
+    return undefined;
+  }
+
+  return serverType === EmailServerType.AmazonSES
+    ? {
+        ...choice,
+        value: serverType,
+        description: GLOBAL_AMAZON_SES_PROVIDER_DESCRIPTION,
+      }
+    : { ...choice, value: serverType };
 };
 
 export const GLOBAL_EMAIL_PROVIDER_SENDER_COLUMNS: Readonly<
@@ -1638,7 +1763,11 @@ export const getGlobalEmailProviderMissingSetting: (
   };
 
   if (transport === MailTransportType.AmazonSES) {
-    if (!isSet("amazonSesAccessKeyId") || !isSet("amazonSesSecretAccessKey")) {
+    // Signing in with the server's IAM role, no key is stored (#7000).
+    if (
+      !usesAmazonSesServerIamRole(values) &&
+      (!isSet("amazonSesAccessKeyId") || !isSet("amazonSesSecretAccessKey"))
+    ) {
       return GlobalEmailProviderMissingSetting.AccessKey;
     }
 
@@ -1720,7 +1849,7 @@ export const getGlobalEmailProviderFormFields: (
     GlobalEmailProviderTransport,
     () => Array<Field<GlobalConfig>>
   > = {
-    [MailTransportType.AmazonSES]: getAmazonSesFormFields<GlobalConfig>,
+    [MailTransportType.AmazonSES]: getGlobalAmazonSesFormFields,
     [MailTransportType.Mailgun]: getMailgunFormFields<GlobalConfig>,
     [MailTransportType.Postmark]: getPostmarkFormFields<GlobalConfig>,
     [MailTransportType.Resend]: getResendFormFields<GlobalConfig>,

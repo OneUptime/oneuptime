@@ -5,6 +5,7 @@ Projektindstillinger rummer det, der gælder for hele projektet: navnet, de vær
 :::cards
 - [Find en indstilling](#find-en-indstilling): Hvad hvert afsnit i sidemenuen rummer.
 - [Projektets detaljer](#projektets-detaljer): Navnet, ID'et og supportadgang.
+- [Produkter](#produkter): De produkter, dette projekt viser, og dem, det skjuler.
 - [Etiketter](#etiketter): Mærker til ressourcer, tilladelser og regler.
 - [Slet projektet](#slet-projektet): Hvad det kræver, og hvad der forsvinder med det.
 :::
@@ -30,7 +31,7 @@ flowchart LR
 
 | Afsnit | Sider | Hvor du læser mere |
 | --- | --- | --- |
-| **Grundlæggende** | **Projekt**, **Etiketter** | [Projektets detaljer](#projektets-detaljer), [Etiketter](#etiketter) |
+| **Grundlæggende** | **Projekt**, **Produkter**, **Etiketter** | [Projektets detaljer](#projektets-detaljer), [Produkter](#produkter), [Etiketter](#etiketter) |
 | **Arbejdsområde** | **Slack**, **Microsoft Teams**, **Mattermost**, **Videoopkald** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [Videoopkald](/docs/workspace-connections/video-calls) |
 | **Telemetri og APM** | **Indtagelsesnøgler**, **Dataopbevaring**, **Forbrug** | [Indtagelsesnøgler](/docs/telemetry/ingestion-keys), [Dataopbevaring](/docs/telemetry/data-retention), [Telemetriforbrug](/docs/telemetry/usage) |
 | **Notifikationer** | **Notifikationsindstillinger**, **Notifikationslogs**, **Mobilapps** | [Notifikationer](#notifikationer) |
@@ -54,6 +55,20 @@ flowchart LR
 - **Data Residency**: i OneUptime Cloud, hvor dit projekts data skal ligge, når OneUptime har registreret det. Kun OneUptime angiver det.
 
 **Kundesupportadgang** afgør i OneUptime Cloud, om OneUptimes supportteam må åbne projektet. Slå **Giv OneUptime-support adgang til dette projekt** til, når du vil have hjælp: OneUptime spørger først, fordi support så kan se og ændre alt i projektet, og du klikker på **Giv support adgang**. Slå det fra, når de er færdige: det gemmes med det samme. Project Owners og Project Admins ændrer det.
+
+## Produkter
+
+**Projektindstillinger → Grundlæggende → Produkter** vælger de produkter, dette projekt viser i menuen **Produkter**, på Hjem og i Søgs liste. Hvert produkt har en kontakt, der gemmer, når du slår den om: slået til viser den produktet. Brugere, Teams og Projektindstillinger vises altid, og **Vis alle produkter** viser dem alle igen.
+
+Et skjult produkt er ikke slået fra. Det flytter ned under **Flere produkter**, den sidste række i menuen **Produkter**: Søgning finder det stadig, dets sider og API virker fortsat, og dets data bliver ved med at komme. Den, der har fastgjort det, beholder sin fastgørelse.
+
+På en selv-hostet server kan en masteradministrator også slå et produkt fra for alle projekter under **Indstillinger → Produkter** i Admin Dashboard (se [Kør kun det, du har brug for](/docs/installation/docker-compose#kør-kun-det-du-har-brug-for)). Sådan et produkt har ingen kontakt her: Der står **Slået fra på denne server** sammen med, hvem der kan slå det til.
+
+Et nyt projekt starter med det, ejeren sagde på Hjem, at det skal bruges til: det grundlæggende, indstillingerne og det, de mål kræver, vises, og resten skjules. Et projekt, der sprang spørgsmålet over, eller som blev oprettet før det, viser alle produkter. Så snart nogen ændrer listen her, ændrer målene den ikke længere.
+
+Hvert produkt siger, hvad det er for dette projekt: **I brug**, **Ikke sat op** eller, i OneUptime Cloud, det abonnement, det kræver. Når et skjult produkt begynder at modtage data, siger Hjem det til projektets ejere og administratorer og tilbyder **Vis det** eller **Hold skjult**.
+
+Projektejere, projektadministratorer og alle, der må redigere projektet, ændrer den; alle andre i projektet kan se den.
 
 ## Etiketter
 

@@ -24,6 +24,14 @@ export default class ActiveMonitoringMeteredPlan extends ServerMeteredPlan {
     },
   ): Promise<void> {
     /*
+     * A sample project (issue #6808) is never billed: nothing of it is
+     * counted, written or reported to the payment provider.
+     */
+    if (await ProjectService.isSampleProject(projectId)) {
+      return;
+    }
+
+    /*
      * Every monitor but a Manual one, counted and written on the project
      * (Project.currentActiveMonitorsCount) under the active monitor limit's
      * lock, so the count the project shows is what the Monitor table holds

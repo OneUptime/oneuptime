@@ -134,6 +134,15 @@ export interface SessionReplayApi {
   onSessionChange: (listener: SessionChangeListener) => () => void;
 
   stop: () => void;
+
+  /*
+   * Hold recording while the page shows what it does not want recorded,
+   * and let it go on again: the same session, on a fresh snapshot. The
+   * visitor's input does not resume it; only resume() does.
+   */
+  pause: () => void;
+  resume: () => void;
+
   getSessionId: () => string | null;
 
   /*
@@ -799,6 +808,39 @@ export function stop(): void {
   }
 }
 
+/*
+ * The page pauses recording: nothing on screen is captured from here until
+ * resume(), and the visitor's own input does not resume it. A page that
+ * records only some of its parts pauses on the others - OneUptime's
+ * Dashboard records its first-run pages only (issue #6834). Queued like
+ * the consent decisions, so a pause() pushed while the artifact loads
+ * means the recorder starts paused and never snapshots that page.
+ */
+export function pause(): void {
+  if (!activeRecorder) {
+    if (!queueUntilOpened(["pause"])) {
+      warnNoRecorder("pause()");
+    }
+
+    return;
+  }
+
+  activeRecorder.pause();
+}
+
+// Recording goes on: the same session, on a fresh snapshot of the page now.
+export function resume(): void {
+  if (!activeRecorder) {
+    if (!queueUntilOpened(["resume"])) {
+      warnNoRecorder("resume()");
+    }
+
+    return;
+  }
+
+  activeRecorder.resume();
+}
+
 export function getSessionId(): string | null {
   return activeRecorder && !activeRecorder.isStopped()
     ? activeRecorder.getSessionId()
@@ -830,6 +872,8 @@ const PRE_START_COMMANDS: ReadonlyArray<string> = [
   "grantConsent",
   "revokeConsent",
   "stop",
+  "pause",
+  "resume",
   "identify",
   "setTags",
   "addTag",
@@ -964,6 +1008,10 @@ function applyCommand(entry: Array<unknown>): void {
     onSessionChange(first as SessionChangeListener);
   } else if (command === "stop") {
     stop();
+  } else if (command === "pause") {
+    pause();
+  } else if (command === "resume") {
+    resume();
   } else {
     /*
      * Unknown names are ignored rather than thrown on - the page may have

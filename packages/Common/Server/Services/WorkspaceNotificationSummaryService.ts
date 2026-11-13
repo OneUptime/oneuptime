@@ -75,6 +75,8 @@ import WorkspaceSummaryScheduleUtil, {
   WorkspaceSummaryScheduleWrite,
 } from "../../Utils/Workspace/WorkspaceSummarySchedule";
 import WorkspaceSummarySetup, {
+  DEFAULT_LOOKBACK_DAYS,
+  LOOKBACK_DAYS_COLUMN,
   WorkspaceSummaryNotSendableException,
 } from "../../Utils/Workspace/WorkspaceSummarySetup";
 import Timezone from "../../Types/Timezone";
@@ -275,13 +277,25 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
      * A summary with no channel to post in, or nothing to include, could
      * never be sent: refused, as the report worker would only skip it
      * (WorkspaceSummarySetup). Channel names typed as one text are saved
-     * as the list they name.
+     * as the list they name. A Lookback Period that is not 1 to 365 whole
+     * days is refused in the field's words; text spelling one is saved as
+     * the number.
      */
     const setupProblem: string | null =
       WorkspaceSummarySetup.normalizeWrite(data);
 
     if (setupProblem) {
       throw new BadDataException(setupProblem);
+    }
+
+    /*
+     * A summary created without a Lookback Period - through the API; the
+     * dashboard's form starts on 7 - covers the last 7 days, as the column
+     * defaults to and as a weekly summary does. It was refused as
+     * "numberOfDaysOfData is required".
+     */
+    if (data[LOOKBACK_DAYS_COLUMN] === undefined) {
+      data[LOOKBACK_DAYS_COLUMN] = DEFAULT_LOOKBACK_DAYS;
     }
 
     const write: WorkspaceSummaryScheduleColumns = getScheduleColumns(data);
@@ -358,7 +372,10 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       unknown
     >;
 
-    // As on create: channels and items it writes are never left empty.
+    /*
+     * As on create: channels and items it writes are never left empty, and
+     * a Lookback Period it writes is 1 to 365 whole days.
+     */
     const setupProblem: string | null =
       WorkspaceSummarySetup.normalizeWrite(data);
 
@@ -939,7 +956,13 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     const teamName: string = (summary.teamName || "").trim();
     const projectId: ObjectID = summary.projectId!;
 
-    if (await BlockedProjectNotifications.isBlocked(projectId)) {
+    // Nor for a sample project (issue #6808), which posts nothing.
+    if (
+      await BlockedProjectNotifications.getSilencedReason({
+        channel: "Workspace message",
+        projectId: projectId,
+      })
+    ) {
       return { teamId: teamName || undefined };
     }
 
@@ -1824,7 +1847,13 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     const blocks: Array<WorkspaceMessageBlock> = [];
     const items: Array<WorkspaceNotificationSummaryItem> =
       summary.summaryItems!;
-    const days: number = summary.numberOfDaysOfData || 7;
+    /*
+     * The days it covers: a summary stored with less than a day - before
+     * writes were checked - covers 7, never a window in the future.
+     */
+    const days: number = WorkspaceSummarySetup.getLookbackDays(
+      summary.numberOfDaysOfData,
+    );
     const type: WorkspaceNotificationSummaryType = summary.summaryType!;
 
     const fromDate: Date = OneUptimeDate.addRemoveDays(

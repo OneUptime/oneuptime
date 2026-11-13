@@ -10,9 +10,13 @@ import OpenStackCheckStore, {
   sanitizeOpenStackLifecycleRun,
 } from "../../../../Server/Utils/OpenStack/OpenStackCheckStore";
 import { OpenStackSqlManager } from "../../../../Server/Utils/OpenStack/OpenStackProbeCollectionStore";
+import { IsBillingEnabled } from "../../../../Server/EnvironmentConfig";
+import { SubscriptionStatusUtil } from "../../../../Types/Billing/SubscriptionStatus";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import {
+  DEFAULT_OPENSTACK_API_CHECK_INTERVAL_IN_MINUTES,
+  DEFAULT_OPENSTACK_LIFECYCLE_CHECK_INTERVAL_IN_MINUTES,
   OPENSTACK_LIFECYCLE_RUNS_KEPT,
   OpenStackApiCheckJob,
   OpenStackApiCheckResult,
@@ -97,23 +101,30 @@ function checkOf(
 
 interface FakeService extends OpenStackCheckService {
   updates: Array<Record<string, unknown>>;
+  // Every statement the claim sent, as it sent it.
+  statements: Array<{ sql: string; parameters: Array<unknown> }>;
 }
 
 function serviceWith(check: OpenStackCheckRecord | null): FakeService {
   const updates: Array<Record<string, unknown>> = [];
+  const statements: Array<{ sql: string; parameters: Array<unknown> }> = [];
 
   return {
     updates: updates,
-    executeTransaction: async <T>(
-      run: (manager: OpenStackSqlManager) => Promise<T>,
-    ): Promise<T> => {
-      return await run({
-        query: async (sql: string): Promise<unknown> => {
-          return sql.trim().startsWith("SELECT") && check
-            ? [{ _id: check._id, interval: 1 }]
-            : [];
+    statements: statements,
+    // No transaction to open: the claim is one self-committing statement.
+    getRepository: (): { manager: OpenStackSqlManager } => {
+      return {
+        manager: {
+          query: async (
+            sql: string,
+            parameters: Array<unknown>,
+          ): Promise<unknown> => {
+            statements.push({ sql: sql, parameters: parameters });
+            return check ? [{ _id: check._id }] : [];
+          },
         },
-      });
+      };
     },
     findBy: async (): Promise<Array<OpenStackCheckRecord>> => {
       return check ? [check] : [];
@@ -322,10 +333,6 @@ describe("the API check a probe is handed", () => {
 
   test("no room is no claim", async () => {
     const service: FakeService = serviceWith(checkOf());
-    const transaction: ReturnType<typeof jest.spyOn> = jest.spyOn(
-      service,
-      "executeTransaction",
-    );
 
     expect(
       await OpenStackCheckStore.claimApiChecks(service, {
@@ -334,7 +341,113 @@ describe("the API check a probe is handed", () => {
         limit: 0,
       }),
     ).toEqual([]);
-    expect(transaction).not.toHaveBeenCalled();
+    expect(service.statements).toEqual([]);
+  });
+});
+
+/*
+ * A claim is one self-committing statement (OneUptime issue #7194): the due
+ * checks locked FOR NO KEY UPDATE SKIP LOCKED and moved an interval on by
+ * the same statement, so no check stays locked past it, and the foreign-key
+ * check of a row naming one never waits. A real Postgres runs it in
+ * OpenStackProbeCollectionSqlPostgres.
+ */
+describe("the claim's one statement", () => {
+  const OTHER_CHECK_ID: string = "66666666-6666-4666-8666-666666666666";
+
+  test("an API check claim takes the API checks that are due, and moves each by its own API interval", async () => {
+    const service: FakeService = serviceWith(checkOf());
+
+    await OpenStackCheckStore.claimApiChecks(service, {
+      probeId: PROBE_ID,
+      runningIds: [OTHER_CHECK_ID, "not-an-id"],
+      limit: 3,
+    });
+
+    expect(service.statements).toHaveLength(1);
+    const statement: { sql: string; parameters: Array<unknown> } =
+      service.statements[0]!;
+    const sql: string = statement.sql.replace(/\s+/g, " ");
+
+    expect(sql).toContain("FOR NO KEY UPDATE OF ck SKIP LOCKED");
+    expect(sql).not.toMatch(/FOR UPDATE/);
+    expect(sql).toContain('ck."isApiCheckEnabled" = true');
+    expect(sql).toContain(
+      '(ck."nextApiCheckAt" IS NULL OR ck."nextApiCheckAt" <= $2)',
+    );
+    expect(sql).toContain('NOT (ck."_id" = ANY($5::uuid[]))');
+    expect(sql).toContain(
+      'ORDER BY ck."nextApiCheckAt" ASC NULLS FIRST LIMIT $3',
+    );
+    // getSafeApiInterval's rule: a whole minute or more, else the default.
+    expect(sql).toContain(
+      'UPDATE "OpenStackCloudCheck" AS ck SET "nextApiCheckAt" = $2::timestamptz + ( CASE WHEN ck."apiCheckIntervalInMinutes" >= 1 THEN ck."apiCheckIntervalInMinutes" ELSE $7::int END ) * INTERVAL \'1 minute\'',
+    );
+    // Only what the statement wrote is answered, the longest overdue first.
+    expect(sql).toContain(
+      'INNER JOIN "claimed" ON "claimed"."_id" = "due"."_id" ORDER BY "due"."dueAt" ASC NULLS FIRST',
+    );
+
+    expect(statement.parameters[0]).toBe(PROBE_ID.toString());
+    expect(statement.parameters[1]).toBeInstanceOf(Date);
+    expect(statement.parameters[2]).toBe(3);
+    expect(statement.parameters[3]).toEqual(
+      SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
+    );
+    // Only real ids reach the statement - as a bound array, never as SQL.
+    expect(statement.parameters[4]).toEqual([OTHER_CHECK_ID]);
+    expect(statement.parameters[5]).toBe(IsBillingEnabled);
+    expect(statement.parameters[6]).toBe(
+      DEFAULT_OPENSTACK_API_CHECK_INTERVAL_IN_MINUTES,
+    );
+  });
+
+  test("a lifecycle check claim takes a pending sweep too, and moves each by its own lifecycle interval", async () => {
+    const service: FakeService = serviceWith(checkOf());
+
+    await OpenStackCheckStore.claimLifecycleChecks(service, {
+      probeId: PROBE_ID,
+      runningIds: [],
+      limit: 2,
+    });
+
+    expect(service.statements).toHaveLength(1);
+    const statement: { sql: string; parameters: Array<unknown> } =
+      service.statements[0]!;
+    const sql: string = statement.sql.replace(/\s+/g, " ");
+
+    expect(sql).toContain("FOR NO KEY UPDATE OF ck SKIP LOCKED");
+    expect(sql).not.toMatch(/FOR UPDATE/);
+    expect(sql).toContain(
+      '(ck."isLifecycleCheckEnabled" = true OR ck."isSweepPending" = true)',
+    );
+    expect(sql).toContain(
+      '(ck."nextLifecycleCheckAt" IS NULL OR ck."nextLifecycleCheckAt" <= $2)',
+    );
+    expect(sql).toContain(
+      'UPDATE "OpenStackCloudCheck" AS ck SET "nextLifecycleCheckAt" = $2::timestamptz + ( CASE WHEN ck."lifecycleCheckIntervalInMinutes" >= 1 THEN ck."lifecycleCheckIntervalInMinutes" ELSE $7::int END ) * INTERVAL \'1 minute\'',
+    );
+    expect(sql).not.toContain("nextApiCheckAt");
+    expect(statement.parameters[2]).toBe(2);
+    expect(statement.parameters[6]).toBe(
+      DEFAULT_OPENSTACK_LIFECYCLE_CHECK_INTERVAL_IN_MINUTES,
+    );
+  });
+
+  test("nothing claimed reads nothing back", async () => {
+    const service: FakeService = serviceWith(null);
+    const read: ReturnType<typeof jest.fn> = jest.fn();
+    service.findBy = read as unknown as OpenStackCheckService["findBy"];
+
+    expect(
+      await OpenStackCheckStore.claimApiChecks(service, {
+        probeId: PROBE_ID,
+        runningIds: [],
+        limit: 4,
+      }),
+    ).toEqual([]);
+    expect(service.statements).toHaveLength(1);
+    expect(read).not.toHaveBeenCalled();
   });
 });
 

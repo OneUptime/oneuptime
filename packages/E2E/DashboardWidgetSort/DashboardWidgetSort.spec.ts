@@ -1,4 +1,12 @@
-import { expect, Locator, Page, Route, test, TestInfo } from "@playwright/test";
+import {
+  Dialog,
+  expect,
+  Locator,
+  Page,
+  Route,
+  test,
+  TestInfo,
+} from "@playwright/test";
 import {
   DrawnBox,
   DrawnBoxes,
@@ -26,6 +34,8 @@ import {
  *     setting, or a click on a header in its Live Preview, and Save Changes.
  *   - On a public dashboard the visitor's sort travels as widgetSort, and
  *     the server orders the list itself.
+ *   - A board being edited is left at once while nothing changed; with a
+ *     change unsaved, the side menu, Back and a reload ask first (#7173).
  *
  * Screenshots of the sorted widgets (light, dark, German, the settings and
  * a phone) are saved for review under output/playwright/dashboard-widget-sort-ui.
@@ -76,6 +86,17 @@ const SCREENSHOTS: string = "../../output/playwright/dashboard-widget-sort-ui";
 
 const APP_PATH: string = `/dashboard/${PROJECT_ID}/dashboards/${DASHBOARD_ID}`;
 const PUBLIC_PATH: string = `/public-dashboard/${DASHBOARD_ID}`;
+// The dashboard's Overview, a stand-in in the fixture (Fixture/AppFixture.js).
+const OVERVIEW_PATH: string = `${APP_PATH}/overview`;
+
+// What the board asks before it is left with unsaved changes (#7173).
+const LEAVE_TITLE: string = "Leave without saving?";
+const LEAVE_DESCRIPTION: string =
+  "You have unsaved changes to this dashboard. If you leave now, they will be lost.";
+// And what the toolbar's Cancel asks then, in the same voice.
+const CANCEL_TITLE: string = "Discard unsaved changes?";
+const CANCEL_DESCRIPTION: string =
+  "You have unsaved changes to this dashboard. If you discard them, the dashboard goes back to how it was last saved.";
 
 /*
  * The fixture's rows, in the orders the database answers them. legacy-api's
@@ -865,6 +886,422 @@ test.describe("a list on the dashboard inside OneUptime", () => {
 });
 
 /*
+ * A monitor list drawn as a honeycomb (?view=honeycomb, #6966): a tile per
+ * monitor, which says what it is only in the tooltip under the pointer.
+ * legacy-api, whose monitoring is off, is the gray tile, and the honeycomb
+ * has no legend: the tooltip is the one place that says gray is Disabled.
+ *
+ * The tooltip is position:fixed, at the tile's place in the window. A
+ * widget's card is overflow-hidden and transformed, which makes a fixed
+ * layer inside it fixed to the card - so the tooltip is drawn outside the
+ * card: on the body, or on the board while the board is in full screen
+ * (the browser draws nothing else then).
+ */
+test.describe("a honeycomb tile's tooltip", () => {
+  // Gray500, the color of a monitor whose monitoring is off.
+  const GRAY: string = "rgb(107, 114, 128)";
+
+  interface Box {
+    left: number;
+    top: number;
+    right: number;
+    bottom: number;
+  }
+
+  // Where the tooltip is drawn, and what of it can be seen.
+  interface TooltipPlace {
+    parent: "body" | "full-screen element" | "elsewhere";
+    box: Box;
+    window: { width: number; height: number };
+    // The tooltip's center and four corners, each drawn on top of the page.
+    pointsOnTop: number;
+    background: string;
+  }
+
+  const tiles: (page: Page) => Locator = (page: Page): Locator => {
+    return page.getByTestId("dashboard-honeycomb-tile");
+  };
+
+  const tooltip: (page: Page) => Locator = (page: Page): Locator => {
+    return page.getByTestId("dashboard-honeycomb-tooltip");
+  };
+
+  const openHoneycomb: (page: Page, search?: string) => Promise<void> = async (
+    page: Page,
+    search?: string,
+  ): Promise<void> => {
+    await page.goto(`${APP_PATH}?view=honeycomb${search || ""}`);
+    // A tile for every monitor listed; archived-cdn is not.
+    await expect(tiles(page)).toHaveCount(MONITORS_BY_NAME.length, {
+      timeout: 60000,
+    });
+  };
+
+  // The one gray tile: legacy-api's.
+  const grayTile: (page: Page) => Promise<Locator> = async (
+    page: Page,
+  ): Promise<Locator> => {
+    const colors: Array<string> = await tiles(page).evaluateAll(
+      (elements: Array<Element>): Array<string> => {
+        return elements.map((element: Element): string => {
+          return window.getComputedStyle(element).backgroundColor;
+        });
+      },
+    );
+
+    expect(
+      colors.filter((color: string): boolean => {
+        return color === GRAY;
+      }),
+    ).toHaveLength(1);
+
+    return tiles(page).nth(colors.indexOf(GRAY));
+  };
+
+  const boxOf: (locator: Locator) => Promise<Box> = async (
+    locator: Locator,
+  ): Promise<Box> => {
+    return locator.evaluate((element: Element): Box => {
+      const rect: DOMRect = element.getBoundingClientRect();
+      return {
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+      };
+    });
+  };
+
+  /*
+   * The tooltip lets the pointer through (pointer-events: none), so the
+   * check of what is drawn on top of it lets it take the pointer for the
+   * moment of the check.
+   */
+  const placeOf: (page: Page) => Promise<TooltipPlace> = async (
+    page: Page,
+  ): Promise<TooltipPlace> => {
+    return tooltip(page).evaluate((element: HTMLElement): TooltipPlace => {
+      const rect: DOMRect = element.getBoundingClientRect();
+      const inset: number = 4;
+      const points: Array<[number, number]> = [
+        [(rect.left + rect.right) / 2, (rect.top + rect.bottom) / 2],
+        [rect.left + inset, rect.top + inset],
+        [rect.right - inset, rect.top + inset],
+        [rect.left + inset, rect.bottom - inset],
+        [rect.right - inset, rect.bottom - inset],
+      ];
+
+      element.style.pointerEvents = "auto";
+      const pointsOnTop: number = points.filter(
+        ([x, y]: [number, number]): boolean => {
+          const hit: Element | null = document.elementFromPoint(x, y);
+          return Boolean(hit && element.contains(hit));
+        },
+      ).length;
+      element.style.pointerEvents = "";
+
+      const parent: HTMLElement | null = element.parentElement;
+
+      return {
+        parent:
+          parent === document.body
+            ? "body"
+            : parent && parent === document.fullscreenElement
+              ? "full-screen element"
+              : "elsewhere",
+        box: {
+          left: rect.left,
+          top: rect.top,
+          right: rect.right,
+          bottom: rect.bottom,
+        },
+        window: { width: window.innerWidth, height: window.innerHeight },
+        pointsOnTop,
+        background: window.getComputedStyle(element).backgroundColor,
+      };
+    });
+  };
+
+  /*
+   * The pointer on a tile. On a phone the board shows one widget under
+   * another, so the tile is scrolled to first.
+   */
+  const pointAt: (tile: Locator) => Promise<void> = async (
+    tile: Locator,
+  ): Promise<void> => {
+    await tile.scrollIntoViewIfNeeded();
+    await tile.hover();
+  };
+
+  /*
+   * All of the tooltip in the window, on top of everything, beside its tile
+   * (above it, or below when there is no room above) and over it from side
+   * to side, as far as the window's 8px margins let it be.
+   */
+  const expectBesideItsTile: (place: TooltipPlace, tile: Box) => void = (
+    place: TooltipPlace,
+    tile: Box,
+  ): void => {
+    expect(place.box.left).toBeGreaterThanOrEqual(0);
+    expect(place.box.top).toBeGreaterThanOrEqual(0);
+    expect(place.box.right).toBeLessThanOrEqual(place.window.width);
+    expect(place.box.bottom).toBeLessThanOrEqual(place.window.height);
+    expect(place.pointsOnTop).toBe(5);
+
+    const isAbove: boolean = place.box.bottom <= tile.top + 1;
+    const gap: number = isAbove
+      ? tile.top - place.box.bottom
+      : place.box.top - tile.bottom;
+
+    /*
+     * 8px from the tile, as it is placed. It measures its own height once,
+     * when it opens, so a line that settles after that can move its far
+     * edge by a pixel or two - never by the card's distance from the window.
+     */
+    expect(gap).toBeGreaterThanOrEqual(-1);
+    expect(gap).toBeLessThanOrEqual(16);
+    expect(place.box.left).toBeLessThan(tile.right);
+    expect(place.box.right).toBeGreaterThan(tile.left);
+  };
+
+  test("a gray tile says it is Disabled, in a tooltip on the page beside it that nothing covers, gone when the pointer leaves", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openHoneycomb(page);
+
+    const tile: Locator = await grayTile(page);
+    await pointAt(tile);
+
+    await expect(tooltip(page)).toHaveCount(1);
+    await expect(tooltip(page)).toBeVisible();
+    await expect(tooltip(page)).toContainText("legacy-api");
+    await expect(tooltip(page)).toContainText("Disabled");
+    await expect(tooltip(page)).toContainText("Click to open");
+    // The keyboard's words are for a tile reached with Tab (#7347).
+    await expect(tooltip(page)).not.toContainText("Press Enter to open");
+
+    const place: TooltipPlace = await placeOf(page);
+    expect(place.parent).toBe("body");
+    expectBesideItsTile(place, await boxOf(tile));
+
+    await shoot(page, testInfo, "honeycomb-tooltip", undefined);
+
+    // Off the board, and the tooltip goes with the pointer.
+    await page.mouse.move(1, 1);
+    await expect(tooltip(page)).toHaveCount(0);
+  });
+
+  test("a checked tile's tooltip says its status, the one tooltip on the page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    atDesktopOnly();
+    await openHoneycomb(page);
+
+    const gray: Locator = await grayTile(page);
+    await pointAt(gray);
+    await expect(tooltip(page)).toContainText("Disabled");
+
+    // auth is Offline: red, and checked.
+    const colors: Array<string> = await tiles(page).evaluateAll(
+      (elements: Array<Element>): Array<string> => {
+        return elements.map((element: Element): string => {
+          return window.getComputedStyle(element).backgroundColor;
+        });
+      },
+    );
+    const red: Locator = tiles(page).nth(colors.indexOf("rgb(239, 68, 68)"));
+
+    await pointAt(red);
+    await expect(tooltip(page)).toHaveCount(1);
+    await expect(tooltip(page)).toContainText("Offline");
+    await expect(tooltip(page)).not.toContainText("Disabled");
+    expectBesideItsTile(await placeOf(page), await boxOf(red));
+  });
+
+  // At 1280 and in a phone's window, as the light theme's test above.
+  test("in the dark theme the tooltip is drawn dark, on the page beside its tile", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openHoneycomb(page, "&theme=dark");
+    const tile: Locator = await grayTile(page);
+    await pointAt(tile);
+
+    await expect(tooltip(page)).toHaveCount(1);
+    await expect(tooltip(page)).toContainText("Disabled");
+    const dark: TooltipPlace = await placeOf(page);
+    expect(dark.parent).toBe("body");
+    expect(dark.background).not.toBe("rgb(255, 255, 255)");
+    expectBesideItsTile(dark, await boxOf(tile));
+    await shoot(page, testInfo, "honeycomb-tooltip-dark", undefined);
+  });
+
+  test("in German the tooltip says Deaktiviert", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    atDesktopOnly();
+
+    await openHoneycomb(page, "&lang=de");
+    const tile: Locator = await grayTile(page);
+    await pointAt(tile);
+
+    await expect(tooltip(page)).toContainText("Deaktiviert");
+    await expect(tooltip(page)).toContainText("Zum Öffnen klicken");
+    await expect(tooltip(page)).not.toContainText("Disabled");
+    expectBesideItsTile(await placeOf(page), await boxOf(tile));
+    await shoot(page, testInfo, "honeycomb-tooltip-german", undefined);
+  });
+
+  /*
+   * A tile reached from the keyboard says what it is, as one under the
+   * pointer does, and shows where the focus is: a ring round the hexagon
+   * the tile is clipped to (the clip cuts away any outline drawn on the
+   * tile itself), in the theme's focus color. Escape puts the tooltip away
+   * and leaves the focus, and the ring, where they are.
+   */
+  test("a tile reached with Tab is ringed and says it is Disabled, and Escape puts its tooltip away", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    atDesktopOnly();
+    await openHoneycomb(page);
+
+    const gray: Locator = await grayTile(page);
+    const colors: Array<string> = await tiles(page).evaluateAll(
+      (elements: Array<Element>): Array<string> => {
+        return elements.map((element: Element): string => {
+          return window.getComputedStyle(element).backgroundColor;
+        });
+      },
+    );
+    const grayIndex: number = colors.indexOf(GRAY);
+
+    /*
+     * From the tile beside it, with the key a keyboard reader presses:
+     * Tab from the one before, or Shift+Tab from the one after.
+     */
+    const from: number = grayIndex > 0 ? grayIndex - 1 : grayIndex + 1;
+    await tiles(page).nth(from).focus();
+    await page.keyboard.press(grayIndex > 0 ? "Tab" : "Shift+Tab");
+
+    await expect(gray).toBeFocused();
+    await expect(tooltip(page)).toHaveCount(1);
+    await expect(tooltip(page)).toContainText("legacy-api");
+    await expect(tooltip(page)).toContainText("Disabled");
+    // Reached with the keyboard, it says how the keyboard opens it (#7347).
+    await expect(tooltip(page)).toContainText("Press Enter to open");
+    await expect(tooltip(page)).not.toContainText("Click to open");
+    expectBesideItsTile(await placeOf(page), await boxOf(gray));
+
+    // A button named for its monitor, which its open tooltip describes.
+    await expect(gray).toHaveAttribute("role", "button");
+    await expect(gray).toHaveAttribute("aria-label", "legacy-api");
+    const tooltipId: string | null = await tooltip(page).getAttribute("id");
+    expect(tooltipId).toBeTruthy();
+    await expect(gray).toHaveAttribute("aria-describedby", tooltipId!);
+
+    // The ring: round the tile on every side, in the light theme's focus color.
+    const ring: Locator = page.getByTestId("dashboard-honeycomb-focus-ring");
+    await expect(ring).toHaveCount(1);
+    await expect(ring).toBeVisible();
+    const tileBox: Box = await boxOf(gray);
+    const ringPlace: { box: Box; stroke: string; strokeWidth: string } =
+      await ring.evaluate(
+        (
+          element: Element,
+        ): { box: Box; stroke: string; strokeWidth: string } => {
+          const polygon: Element = element.querySelector("polygon")!;
+          const rect: DOMRect = polygon.getBoundingClientRect();
+          const style: CSSStyleDeclaration = window.getComputedStyle(polygon);
+          return {
+            box: {
+              left: rect.left,
+              top: rect.top,
+              right: rect.right,
+              bottom: rect.bottom,
+            },
+            stroke: style.stroke,
+            strokeWidth: style.strokeWidth,
+          };
+        },
+      );
+    expect(ringPlace.box.left).toBeLessThan(tileBox.left - 1);
+    expect(ringPlace.box.right).toBeGreaterThan(tileBox.right + 1);
+    expect(ringPlace.box.top).toBeLessThan(tileBox.top - 1);
+    expect(ringPlace.box.bottom).toBeGreaterThan(tileBox.bottom + 1);
+    expect(ringPlace.stroke).toBe("rgb(79, 70, 229)");
+    expect(ringPlace.strokeWidth).toBe("2px");
+
+    await shoot(page, testInfo, "honeycomb-keyboard", undefined);
+
+    await page.keyboard.press("Escape");
+    await expect(tooltip(page)).toHaveCount(0);
+    await expect(gray).toBeFocused();
+    await expect(ring).toBeVisible();
+
+    // Moving on: the next tile's tooltip, and the ring goes with the focus.
+    await page.keyboard.press(grayIndex > 0 ? "Shift+Tab" : "Tab");
+    await expect(tiles(page).nth(from)).toBeFocused();
+    await expect(tooltip(page)).toHaveCount(1);
+    await expect(tooltip(page)).not.toContainText("legacy-api");
+    await expect(tooltip(page)).toContainText("Press Enter to open");
+    await expect(ring).toHaveCount(1);
+  });
+
+  test("in full screen the tooltip is drawn on the board, and leaving full screen takes it away", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    atDesktopOnly();
+    await openHoneycomb(page);
+
+    await press(page.getByRole("button", { name: "More dashboard options" }));
+    await press(page.getByRole("menuitem", { name: "Full Screen" }));
+    await expect
+      .poll(async (): Promise<boolean> => {
+        return page.evaluate((): boolean => {
+          return document.fullscreenElement !== null;
+        });
+      })
+      .toBe(true);
+
+    const tile: Locator = await grayTile(page);
+    await pointAt(tile);
+
+    await expect(tooltip(page)).toBeVisible();
+    await expect(tooltip(page)).toContainText("Disabled");
+    const place: TooltipPlace = await placeOf(page);
+    expect(place.parent).toBe("full-screen element");
+    expectBesideItsTile(place, await boxOf(tile));
+    await shoot(page, testInfo, "honeycomb-tooltip-full-screen", undefined);
+
+    /*
+     * Out of full screen the board moves back into the page, and the
+     * tooltip it opened in full screen is gone.
+     */
+    await page.evaluate(async (): Promise<void> => {
+      await document.exitFullscreen();
+    });
+    await expect(tooltip(page)).toHaveCount(0);
+
+    // The next tooltip is on the page's body again.
+    await page.mouse.move(1, 1);
+    await pointAt(tile);
+    await expect(tooltip(page)).toBeVisible();
+    expect((await placeOf(page)).parent).toBe("body");
+  });
+});
+
+/*
  * A sortable header takes no more room than the plain one it replaced: its
  * words wrap as before, and its arrow and hint hang in the cell's padding.
  * So a table that fitted its widget still fits it (#5122's UI review), and
@@ -1132,6 +1569,229 @@ test.describe("the order everyone sees", () => {
 
     // The preview is the widget as everyone will see it: no viewer pick.
     expect(await kept(page, pickKey(PODS_WIDGET))).toBeNull();
+  });
+});
+
+// ---- leaving a board being edited (#7173) ----------------------------------
+
+// An entry of the dashboard's side menu, by its name.
+const sideMenuLink: (page: Page, name: string) => Locator = (
+  page: Page,
+  name: string,
+): Locator => {
+  return page
+    .getByRole("navigation", { name: "Main navigation" })
+    .getByRole("link", { name, exact: true });
+};
+
+// The fixture's stand-in for every page but the board: it says its address.
+const elsewhere: (page: Page) => Locator = (page: Page): Locator => {
+  return page.getByTestId("fixture-elsewhere");
+};
+
+const leaveDialog: (page: Page) => Locator = (page: Page): Locator => {
+  return page.getByRole("dialog", { name: LEAVE_TITLE });
+};
+
+// The board's own text widget, as Add Widget adds it.
+const addedTextWidget: (page: Page) => Locator = (page: Page): Locator => {
+  return page.getByText("Hello, World!", { exact: true });
+};
+
+// Add Widget, Text, then Done on the new widget's settings.
+const addTextWidget: (page: Page) => Promise<void> = async (
+  page: Page,
+): Promise<void> => {
+  await press(page.getByTitle("Add Widget").first());
+  await press(page.getByTestId("widget-card-Text"));
+
+  const settings: Locator = page.getByTestId("modal");
+
+  await press(settings.getByRole("button", { name: "Done" }));
+  await expect(settings).toHaveCount(0);
+  await expect(addedTextWidget(page)).toBeVisible();
+};
+
+/*
+ * The browser's own questions before the page unloads, as a reload or a
+ * closed tab asks them: the kind of each one the page raises, answered as
+ * `answer.now` says - Stay keeps the page, Leave lets it go.
+ */
+interface BrowserAnswer {
+  now: "stay" | "leave";
+}
+
+const recordBrowserQuestions: (
+  page: Page,
+  answer: BrowserAnswer,
+) => Array<string> = (page: Page, answer: BrowserAnswer): Array<string> => {
+  const raised: Array<string> = [];
+
+  page.on("dialog", async (dialog: Dialog): Promise<void> => {
+    raised.push(dialog.type());
+
+    if (answer.now === "stay") {
+      await dialog.dismiss();
+      return;
+    }
+
+    await dialog.accept();
+  });
+
+  return raised;
+};
+
+// A reload the page starts, after the call returns: it never waits on one.
+const startReload: (page: Page) => Promise<void> = async (
+  page: Page,
+): Promise<void> => {
+  await page.evaluate((): void => {
+    window.setTimeout((): void => {
+      window.location.reload();
+    }, 0);
+  });
+};
+
+test.describe("leaving a dashboard being edited (#7173)", () => {
+  test("a board opened for editing and not changed is left at once; with a new widget, leaving asks first, by the side menu and by Back", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    atDesktopOnly();
+    // Opened from its Overview, so Back has a page of the app to go to.
+    await page.goto(OVERVIEW_PATH);
+    await expect(elsewhere(page)).toHaveText(OVERVIEW_PATH, {
+      timeout: 60000,
+    });
+    await press(sideMenuLink(page, "Dashboard"));
+    await expect(monitorsTable(page)).toBeVisible({ timeout: 60000 });
+    await expect(monitorsTable(page).locator("tbody tr").first()).toBeVisible();
+
+    // Nothing changed: the toolbar's Cancel stops editing without a question.
+    await enterEditMode(page);
+    await press(page.getByTitle("Cancel", { exact: true }));
+    await expect(page.getByTitle("Save Changes")).toHaveCount(0);
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+
+    // Nothing changed: the side menu leaves at once.
+    await enterEditMode(page);
+    await press(sideMenuLink(page, "Overview"));
+    await expect(elsewhere(page)).toHaveText(OVERVIEW_PATH);
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+
+    await press(sideMenuLink(page, "Dashboard"));
+    await expect(monitorsTable(page).locator("tbody tr").first()).toBeVisible();
+    await enterEditMode(page);
+    await addTextWidget(page);
+
+    // A new widget, unsaved: the side menu asks, in the toolbar's Cancel words.
+    await press(sideMenuLink(page, "Overview"));
+
+    const dialog: Locator = leaveDialog(page);
+
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText(LEAVE_DESCRIPTION);
+    await expect(
+      dialog.getByRole("button", { name: "Keep Editing" }),
+    ).toBeVisible();
+    await expect(
+      dialog.getByRole("button", { name: "Discard Changes" }),
+    ).toBeVisible();
+    await expect(page).toHaveURL(APP_PATH);
+    await expect(elsewhere(page)).toHaveCount(0);
+    await shoot(page, testInfo, "leave-unsaved-dialog", dialog);
+
+    // Keep Editing: the board as it was, still being edited.
+    await press(dialog.getByRole("button", { name: "Keep Editing" }));
+    await expect(dialog).toHaveCount(0);
+    await expect(page.getByTitle("Save Changes")).toBeVisible();
+    await expect(addedTextWidget(page)).toBeVisible();
+    await expect(page).toHaveURL(APP_PATH);
+
+    // The toolbar's Cancel asks in the same voice; Keep Editing stays.
+    await press(page.getByTitle("Cancel", { exact: true }));
+
+    const cancelDialog: Locator = page.getByRole("dialog", {
+      name: CANCEL_TITLE,
+    });
+
+    await expect(cancelDialog).toBeVisible();
+    await expect(cancelDialog).toContainText(CANCEL_DESCRIPTION);
+    await shoot(page, testInfo, "cancel-unsaved-dialog", cancelDialog);
+    await press(cancelDialog.getByRole("button", { name: "Keep Editing" }));
+    await expect(cancelDialog).toHaveCount(0);
+    await expect(page.getByTitle("Save Changes")).toBeVisible();
+    await expect(addedTextWidget(page)).toBeVisible();
+
+    // The browser's Back asks too, and the board stays where it is.
+    await page.evaluate((): void => {
+      window.history.back();
+    });
+    await expect(dialog).toBeVisible();
+    await expect(page).toHaveURL(APP_PATH);
+    await expect(elsewhere(page)).toHaveCount(0);
+    await press(dialog.getByRole("button", { name: "Keep Editing" }));
+    await expect(dialog).toHaveCount(0);
+    await expect(page).toHaveURL(APP_PATH);
+    await expect(addedTextWidget(page)).toBeVisible();
+
+    // Back again, and Discard Changes: the page before, nothing saved.
+    await page.evaluate((): void => {
+      window.history.back();
+    });
+    await press(dialog.getByRole("button", { name: "Discard Changes" }));
+    await expect(elsewhere(page)).toHaveText(OVERVIEW_PATH);
+    await expect(page).toHaveURL(OVERVIEW_PATH);
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    expect((await record(page)).saves || []).toEqual([]);
+  });
+
+  test("a reload asks the browser's question while a change is unsaved, and after Save Changes nothing asks", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    atDesktopOnly();
+    await openApp(page);
+    await enterEditMode(page);
+    await addTextWidget(page);
+
+    const answer: BrowserAnswer = { now: "stay" };
+    const raised: Array<string> = recordBrowserQuestions(page, answer);
+
+    // The browser asks; staying keeps the board as it was being edited.
+    await startReload(page);
+    await expect
+      .poll((): Array<string> => {
+        return raised;
+      })
+      .toEqual(["beforeunload"]);
+    await expect(page.getByTitle("Save Changes")).toBeVisible();
+    await expect(addedTextWidget(page)).toBeVisible();
+
+    await press(page.getByRole("button", { name: "Save Changes" }));
+    await expect
+      .poll(async (): Promise<number> => {
+        return ((await record(page)).saves || []).length;
+      })
+      .toBe(1);
+    await expect(page.getByTitle("Save Changes")).toHaveCount(0);
+
+    /*
+     * Saved: a reload asks nothing, and opens the board as saved. Were it to
+     * ask, Leave lets the reload go on, and the question is counted.
+     */
+    answer.now = "leave";
+    await page.reload();
+    await expect(monitorsTable(page)).toBeVisible({ timeout: 60000 });
+    await expect(addedTextWidget(page)).toBeVisible();
+    expect(raised).toEqual(["beforeunload"]);
+
+    // And the side menu leaves at once.
+    await press(sideMenuLink(page, "Overview"));
+    await expect(elsewhere(page)).toHaveText(OVERVIEW_PATH);
+    await expect(page.getByRole("dialog")).toHaveCount(0);
   });
 });
 

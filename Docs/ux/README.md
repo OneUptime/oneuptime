@@ -88,7 +88,8 @@ and phone summary: change the suite in the same pull request as the menu.
   `useWorkspaceSideMenuSection`, which lists only the workspaces the project has connected. Enforced by
   [WorkspaceConnectionsGuards](../../packages/Common/Tests/App/Dashboard/WorkspaceConnectionsGuards.test.ts).
 - **One kind of record is one page.** Kinds of the same thing are tabs on that page, not a page each:
-  your on-call rules are one page with a tab per kind, not four pages in two menu sections. Enforced by
+  How to Reach Me is one page, a ladder with a tab per kind behind it, not four pages in two menu
+  sections. Enforced by
   [OnCallRulesOnePageGuard](../../packages/App/Tests/Dashboard/OnCallRulesOnePageGuard.test.ts).
 - **Every entry in the More menu has an icon.** Enforced by
   [MoreMenuItemIconsGuard](../../packages/App/Tests/MoreMenuItemIconsGuard.test.ts).
@@ -391,6 +392,13 @@ work out, starts from a default for everything else, and folds what most people 
   [MonitorSummaryViewsLayoutGuard](../../packages/App/Tests/Dashboard/MonitorSummaryViewsLayoutGuard.test.ts).
 - **Banners are for exceptions the person must act on,** never for the default state. Enforced by
   [NoAlwaysOnInfoBannersGuard](../../packages/App/Tests/Dashboard/NoAlwaysOnInfoBannersGuard.test.ts).
+- **A sample project says what it is on every page.** It is the one bar a project shows on every
+  page, because there the project itself is the exception: nobody may take its made-up incidents
+  for their own (#6808). One dark bar at the top says "This is a sample project. Nothing here is
+  real, and nobody is notified.", with the ways out (back to their own project, Delete Sample
+  Project) and How OneUptime works, and it is drawn for a sample alone. Enforced by
+  [SampleProjectBar](../../packages/Common/Tests/App/Dashboard/SampleProjectBar.test.tsx) and
+  [NoAlwaysOnInfoBannersGuard](../../packages/App/Tests/Dashboard/NoAlwaysOnInfoBannersGuard.test.ts).
 - **A button that cannot be pressed looks it,** the same way everywhere: faded, with the not-allowed
   cursor. Enforced by
   [HandDrawnButtonLockedLookGuard](../../packages/Common/Tests/UI/HandDrawnButtonLockedLookGuard.test.ts).
@@ -514,6 +522,31 @@ then `npm run i18n:validate` from the root.
 - **No jargon, no made-up words, no vendor names in examples.** "Not Operational", not
   "Inoperational"; neutral model names (chat-large), not a vendor's model ids. Not enforced: use
   judgement.
+
+## Asking people
+
+People who are lost leave quietly, so the product asks them, in five seconds, what was hard
+(#6832). Answers stay on the server, for its master admins (Admin Dashboard > Feedback).
+
+- **Ask at most one question a week, once per question, and never while something is down.** A
+  question OneUptime asks goes through `ProductFeedback.ask` (`Common/UI/Utils/ProductFeedback`),
+  and the server decides: never once the person or the server has switched questions off, never
+  while the project has an open incident or alert, and never a question the person was asked
+  before. The end of every guided setup already asks once, from `GuidedSetupFrame`, so a new setup
+  needs no question of its own. A new place that asks is added to the guard's list, with the
+  reason. Enforced by
+  [FeedbackQuestionsGuard](../../packages/App/Tests/Dashboard/FeedbackQuestionsGuard.test.ts).
+- **Ask what to fix, not how much people like OneUptime.** "How easy was that?" at the end of a
+  flow says what to fix. A product-wide score, the "how likely are you to recommend" kind, does
+  not, so the product asks none. Enforced by
+  [FeedbackQuestionsGuard](../../packages/App/Tests/Dashboard/FeedbackQuestionsGuard.test.ts).
+- **An answer carries the page as a route with no ids, and the version, and nothing else.** No
+  person, no project, no address. Say where it goes where it is given: to the server's admins on a
+  self-hosted server, and to the OneUptime team on Cloud. Enforced by
+  [FeedbackQuestionsGuard](../../packages/App/Tests/Dashboard/FeedbackQuestionsGuard.test.ts).
+- **Before each release, someone who has not seen the changes walks the core jobs as a newcomer**,
+  and posts what made them hesitate, guess or go back on the epic #6802:
+  [the newcomer walkthrough](newcomer-walkthrough.md). Not enforced: use judgement.
 
 ## Before you open a pull request
 

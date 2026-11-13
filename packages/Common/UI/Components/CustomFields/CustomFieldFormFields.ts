@@ -8,6 +8,7 @@ import { rememberFileSize } from "../FilePicker/KnownFileSizes";
 import Color from "../../../Types/Color";
 import { CustomFieldDefinition } from "../../../Types/CustomField/CustomFieldDefinition";
 import {
+  CUSTOM_FIELD_FILE_MAX_SIZE_IN_BYTES,
   CUSTOM_FIELD_FILE_TYPES,
   CUSTOM_FIELD_MAX_FILES,
   CustomFieldFile,
@@ -192,10 +193,13 @@ export const getCustomFieldDropdownOptions: GetCustomFieldDropdownOptionsFunctio
 
 /*
  * What a file field's picker says it takes, in place of its list of 25
- * types. The English texts are their keys in the locale files.
+ * types. The English texts are their keys in the locale files. {{size}} is
+ * the picker's own limit, which it fills in the reader's digits and sets
+ * apart from the words (getFilePickerPromptWords), so an Arabic or Persian
+ * page draws "۱۰ MB" with its number first, never "MB 10" (issue #7233).
  */
 export const CUSTOM_FIELD_FILE_HINT: string = translationKey(
-  "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to 10 MB.",
+  "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to {{size}}.",
 );
 
 // What a File field's picker offers to do.
@@ -203,7 +207,7 @@ export const CUSTOM_FIELD_FILE_PLACEHOLDER: string =
   translationKey("Upload a file");
 
 export const CUSTOM_FIELD_FILES_HINT: string = translationKey(
-  "Up to 10 files of 10 MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
+  "Up to 10 files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
 );
 
 export type SetCustomFieldFilePickerFunction = (data: {
@@ -220,7 +224,9 @@ export type SetCustomFieldFilePickerFunction = (data: {
  * types. One file: "Upload a file", and no drop zone once it holds one
  * (Replace stays). The custom fields' forms and a public form's file
  * questions set their pickers here, so the two always agree, as the server
- * holds both to the same (CustomFieldFiles, FormFileAnswer).
+ * holds both to the same (CustomFieldFiles, FormFileAnswer). The limit is
+ * the server's, and the sentence's {{size}} names it; a form question
+ * that says a limit of its own sets it after.
  */
 export const setCustomFieldFilePicker: SetCustomFieldFilePickerFunction =
   (data: {
@@ -229,6 +235,7 @@ export const setCustomFieldFilePicker: SetCustomFieldFilePickerFunction =
     maxFiles?: number | undefined;
   }): void => {
     data.field.fileTypes = [...CUSTOM_FIELD_FILE_TYPES];
+    data.field.maxFileSizeInBytes = CUSTOM_FIELD_FILE_MAX_SIZE_IN_BYTES;
 
     if (data.isMultiple) {
       data.field.maxFiles = data.maxFiles || CUSTOM_FIELD_MAX_FILES;

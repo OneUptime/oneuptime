@@ -2,6 +2,9 @@
 
 En jourpolicy larmar personer i nivåer. Varje eskaleringsregel är ett nivå: vem som larmas och hur länge det väntas på att någon bekräftar innan nästa nivå larmas. En policys regler visas i ordning på dess sida **Eskaleringsregler**.
 
+> [!TIP]
+> Ny här? Följ guiden först: [Bli larmad via samtal, SMS eller push](/docs/guides/paging).
+
 ```mermaid title="En jourpolicy larmar nivå för nivå tills någon bekräftar"
 flowchart TB
     trigger["Incident eller larm"] --> level1["Level 1 larmar"]
@@ -89,7 +92,7 @@ För att upprepa en policy klickar du på **Redigera** på kortet **Upprepningsp
 
 ### Så nås varje person
 
-Varje person som en nivå larmar nås på det sätt som personens egna jourregler säger: **Användarinställningar** > **Jourregler**, med en flik för incidenter, incidentepisoder, larm och larmepisoder, och ett kort per allvarlighetsgrad som visar vilken aviseringsmetod som prövas och efter hur lång tid. En projektadministratör kan se och ändra en medlems regler under **Användare** > medlemmen > **Jourregler**. Se [Personliga jourregler](/docs/notifications/on-call-rules).
+Varje person som en nivå larmar nås på det sätt som personens egna jourregler säger: **Användarinställningar** > **Så når man mig**, med en flik för incidenter, incidentepisoder, larm och larmepisoder, och ett kort per allvarlighetsgrad som visar vilken aviseringsmetod som prövas och efter hur lång tid. En projektadministratör kan se och ändra en medlems regler under **Användare** > medlemmen > **Så når man mig**. Se [Personliga jourregler](/docs/notifications/on-call-rules).
 
 ```mermaid title="Vem en nivå larmar och hur varje person nås"
 flowchart TB

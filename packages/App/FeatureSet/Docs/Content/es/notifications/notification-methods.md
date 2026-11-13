@@ -2,6 +2,9 @@
 
 Un método de notificación es una dirección en la que OneUptime puede contactarte dentro de un proyecto: una dirección de correo, un número de teléfono para SMS o llamadas, un número de WhatsApp, una cuenta de Telegram, tu cuenta de Slack, Microsoft Teams o Mattermost, un teléfono o navegador para notificaciones push, o un webhook. Los añades en **Ajustes de usuario → Métodos de notificación**, los verificas, y OneUptime empieza a usarlos para tus avisos de inmediato.
 
+> [!TIP]
+> ¿Eres nuevo? Sigue primero la guía: [Recibir avisos por llamada, SMS o push](/docs/guides/paging).
+
 :::cards
 - [Elige un método](#elige-un-método): Lo que necesita cada método, y cómo se verifica.
 - [Añade y verifica un método](#añade-y-verifica-un-método): Correo, SMS, llamadas y WhatsApp, con un código de 6 dígitos.

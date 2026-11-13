@@ -63,6 +63,15 @@ import ts from "typescript";
  *     or its global probes are silent, and gone by itself once they work.
  *     Its suite (Common/Tests/UI/Components/ServerSendingTopAlert) holds it
  *     to drawing nothing otherwise.
+ *   - "This is a sample project. Nothing here is real, and nobody is
+ *     notified." (Dashboard/Components/SampleProject/SampleProjectBar,
+ *     #6808): the bar on every page of a sample project, and of no other -
+ *     there the project itself is the exception, and the person must never
+ *     take its made-up incidents for their own. It carries what they act on:
+ *     back to their own project, and Delete Sample Project. Dark, not an
+ *     info tint, and drawn by the master page only for a sample. Its suite
+ *     (Common/Tests/App/Dashboard/SampleProjectBar) holds it to drawing
+ *     nothing for any other project.
  */
 
 const FEATURE_SET_DIR: string = path.resolve(

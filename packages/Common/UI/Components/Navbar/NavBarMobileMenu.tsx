@@ -3,6 +3,8 @@ import NavBarItem from "./NavBarItem";
 import type { MoreMenuItem, NavItem } from "./NavBar";
 import {
   CategoryFolds,
+  DEFAULT_HIDDEN_PRODUCTS_TITLE,
+  getMenuItemsWithHidden,
   groupItemsByCategory,
   isMoreMenuItemActive,
   MenuCategory,
@@ -14,7 +16,15 @@ import {
   readRecentProductRoutes,
 } from "./NavBarRecentProducts";
 import useTranslateValue from "../../Utils/Translation";
-import React, { FunctionComponent, ReactElement, useId, useState } from "react";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  ReactNode,
+  useId,
+  useState,
+} from "react";
 
 /*
  * How many recently visited products the phone's menu lists: one row each,
@@ -25,6 +35,8 @@ import React, { FunctionComponent, ReactElement, useId, useState } from "react";
 export const RECENT_PRODUCTS_SHOWN_ON_PHONE: number = 4;
 
 export const MOBILE_MENU_RECENT_TEST_ID: string = "navbar-mobile-recent";
+
+export const MOBILE_MENU_PINNED_TEST_ID: string = "navbar-mobile-pinned";
 
 export interface ComponentProps {
   // Home and any other top-level entries, listed first.
@@ -44,6 +56,19 @@ export interface ComponentProps {
    */
   topElement?: ReactElement | undefined;
   bottomElement?: ReactElement | undefined;
+  /*
+   * The products the project hides (#6814), as one more folded row at the
+   * end of the categories (hiddenTitle, "More products"), as the desktop
+   * products menu lists them.
+   */
+  hiddenItems?: Array<MoreMenuItem> | undefined;
+  hiddenTitle?: string | undefined;
+  /*
+   * The products this person pinned, in order: the first rows after Home,
+   * under pinnedLabel ("Pinned"), and left out of the Recently visited row.
+   */
+  pinnedItems?: Array<MoreMenuItem> | undefined;
+  pinnedLabel?: string | undefined;
   // Following a link closes the menu.
   onNavigate: () => void;
 }
@@ -76,12 +101,24 @@ const slug: (title: string) => string = (title: string): string => {
 const NavBarMobileMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const menuItems: Array<MoreMenuItem> = getMenuItemsWithHidden({
+    items: props.moreMenuItems,
+    hiddenItems: props.hiddenItems,
+    hiddenTitle: props.hiddenTitle || DEFAULT_HIDDEN_PRODUCTS_TITLE,
+  });
   const folds: CategoryFolds = useCategoryFolds(
-    props.moreMenuItems,
+    menuItems,
     props.categoriesOpenByDefault,
   );
   const idPrefix: string = `navbar-mobile-${useId()}`;
   const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
+  const pinnedItems: Array<MoreMenuItem> = props.pinnedItems || [];
+  const pinnedRoutes: Array<string> = pinnedItems.map(
+    (item: MoreMenuItem): string => {
+      return item.route.toString();
+    },
+  );
 
   /*
    * Read when the menu opens, as the desktop dialog reads them: a menu that
@@ -99,20 +136,29 @@ const NavBarMobileMenu: FunctionComponent<ComponentProps> = (
         readRecentProductRoutes(),
         props.moreMenuItems,
         isMoreMenuItemActive,
-      ).slice(0, RECENT_PRODUCTS_SHOWN_ON_PHONE);
+      )
+        .filter((item: MoreMenuItem): boolean => {
+          // A pinned product is listed already, above.
+          return !pinnedRoutes.includes(item.route.toString());
+        })
+        .slice(0, RECENT_PRODUCTS_SHOWN_ON_PHONE);
     },
   );
   const recentHeadingId: string = `${idPrefix}-recent`;
   const recentLabel: string = props.recentLabel || "Recently visited";
+  const pinnedHeadingId: string = `${idPrefix}-pinned`;
+  const pinnedLabel: string = props.pinnedLabel || "Pinned";
 
   const row: (
     item: NavItem | MoreMenuItem,
     id: string,
     exact: boolean,
+    trailing?: ReactNode,
   ) => ReactElement = (
     item: NavItem | MoreMenuItem,
     id: string,
     exact: boolean,
+    trailing?: ReactNode,
   ): ReactElement => {
     return (
       <div key={id} className="block w-full">
@@ -125,20 +171,53 @@ const NavBarMobileMenu: FunctionComponent<ComponentProps> = (
           activeRoute={item.activeRoute}
           onClick={props.onNavigate}
           isRenderedOnMobile={true}
+          trailing={trailing}
         />
       </div>
     );
   };
 
+  /*
+   * A product's quiet marks, as the desktop menu's card draws them (#6814):
+   * the plan that can use it, or "Not set up".
+   */
+  const productMarks: (item: MoreMenuItem) => ReactNode = (
+    item: MoreMenuItem,
+  ): ReactNode => {
+    if (item.neededPlan) {
+      return (
+        <span
+          data-testid="navbar-mobile-plan"
+          className="ml-2 flex-shrink-0 rounded-full bg-yellow-50 px-1.5 text-[10px] font-medium leading-4 text-yellow-800 ring-1 ring-inset ring-yellow-200"
+        >
+          {translator.translateTemplate("{{planName}} Plan", {
+            planName: item.neededPlan,
+          })}
+        </span>
+      );
+    }
+
+    if (item.isNotSetUp) {
+      return (
+        <span
+          data-testid="navbar-mobile-not-set-up"
+          className="ml-2 flex-shrink-0 text-xs font-normal text-gray-400"
+        >
+          {translator.translateText("Not set up")}
+        </span>
+      );
+    }
+
+    return null;
+  };
+
   const productRow: (item: MoreMenuItem) => ReactElement = (
     item: MoreMenuItem,
   ): ReactElement => {
-    return row(item, `more-${slug(item.title)}`, false);
+    return row(item, `more-${slug(item.title)}`, false, productMarks(item));
   };
 
-  const categories: Array<MenuCategory> = groupItemsByCategory(
-    props.moreMenuItems,
-  );
+  const categories: Array<MenuCategory> = groupItemsByCategory(menuItems);
 
   return (
     <>
@@ -147,6 +226,30 @@ const NavBarMobileMenu: FunctionComponent<ComponentProps> = (
       {props.items.map((item: NavItem) => {
         return row(item, item.id, item.exact ?? false);
       })}
+
+      {pinnedItems.length > 0 && (
+        <div
+          role="group"
+          aria-labelledby={pinnedHeadingId}
+          data-testid={MOBILE_MENU_PINNED_TEST_ID}
+          className="block w-full mt-1 border-t border-gray-100 pt-2"
+        >
+          <p
+            id={pinnedHeadingId}
+            className="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-gray-400"
+          >
+            {translateString(pinnedLabel) || pinnedLabel}
+          </p>
+          {pinnedItems.map((item: MoreMenuItem): ReactElement => {
+            return row(
+              item,
+              `pinned-${item.key || slug(item.title)}`,
+              false,
+              productMarks(item),
+            );
+          })}
+        </div>
+      )}
 
       {recentProducts.length > 0 && (
         <div
@@ -215,7 +318,7 @@ const NavBarMobileMenu: FunctionComponent<ComponentProps> = (
               </div>
             );
           })
-        : props.moreMenuItems.map(productRow)}
+        : menuItems.map(productRow)}
 
       {props.rightElement &&
         row(

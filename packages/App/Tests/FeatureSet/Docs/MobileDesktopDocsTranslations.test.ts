@@ -982,7 +982,7 @@ describe("the helpers, on these pages' shapes", () => {
       }),
     ).toEqual([
       "User Settings → Notification Methods",
-      "User Settings → On-Call Rules",
+      "User Settings → How to Reach Me",
     ]);
   });
 

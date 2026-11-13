@@ -189,15 +189,23 @@ export default class NtpMonitorUtil {
     return `${stratum} (not synchronized)`;
   }
 
-  // 0.042 ms, 12.3 ms, 1,532 ms: three significant digits at most below 1 s.
-  public static formatMilliseconds(value: number): string {
+  /*
+   * The decimals an NTP reading in milliseconds is written with: three
+   * significant digits at most below 1 s (0.042, 12.3, 1,532). The
+   * Dashboard's summary writes the same figure in the reader's language
+   * with it.
+   */
+  public static getMillisecondsFractionDigits(value: number): number {
     const absolute: number = Math.abs(value);
 
-    const maximumFractionDigits: number =
-      absolute >= 100 ? 0 : absolute >= 10 ? 1 : absolute >= 1 ? 2 : 3;
+    return absolute >= 100 ? 0 : absolute >= 10 ? 1 : absolute >= 1 ? 2 : 3;
+  }
 
+  // 0.042 ms, 12.3 ms, 1,532 ms: three significant digits at most below 1 s.
+  public static formatMilliseconds(value: number): string {
     return `${value.toLocaleString("en-US", {
-      maximumFractionDigits: maximumFractionDigits,
+      maximumFractionDigits:
+        NtpMonitorUtil.getMillisecondsFractionDigits(value),
     })} ms`;
   }
 

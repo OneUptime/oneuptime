@@ -1,4 +1,8 @@
-import { StatusPageSetupMonitor } from "./StatusPageSetup";
+import {
+  StatusPageSetupMonitor,
+  getStatusPageNameIdentity,
+  isSameStatusPageName,
+} from "./StatusPageSetup";
 import bulkAddStatusPageMonitors, {
   BulkAddStatusPageMonitorsResult,
 } from "../../StatusPage/BulkAddStatusPageMonitors";
@@ -13,6 +17,10 @@ import ObjectID from "Common/Types/ObjectID";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
+import {
+  GUIDED_SETUP_RESOURCE_OPTIONS,
+  buildGuidedStatusPage,
+} from "Common/Utils/GuidedSetup/StatusPageRecords";
 
 /*
  * THE RECORDS THE STATUS PAGE GUIDED SETUP READS AND WRITES (issue #6806),
@@ -37,6 +45,13 @@ export const mayCreateStatusPage: () => boolean = (): boolean => {
 const getProjectId: () => ObjectID = (): ObjectID => {
   return ProjectUtil.getCurrentProjectId()!;
 };
+
+/*
+ * How many of this person's newest status pages are read to find one with
+ * a name: the page a lost run made is the newest, and a person the guided
+ * setup is for has a handful (as WebsiteDownApi's OWN_MONITORS_READ_LIMIT).
+ */
+export const OWN_STATUS_PAGES_READ_LIMIT: number = 100;
 
 export default class StatusPageSetupApi {
   // The project's monitors, by name, with their current status.
@@ -82,9 +97,11 @@ export default class StatusPageSetupApi {
    * the server's defaults (public, at <host>/status-page/<id>).
    */
   public static async createStatusPage(name: string): Promise<string> {
-    const statusPage: StatusPage = new StatusPage();
-    statusPage.name = name.trim();
-    statusPage.projectId = getProjectId();
+    // Built as Ask AI's publish_status_page builds it (Common).
+    const statusPage: StatusPage = buildGuidedStatusPage({
+      name: name,
+      projectId: getProjectId(),
+    });
 
     const response: HTTPResponse<StatusPage> =
       (await ModelAPI.create<StatusPage>({
@@ -99,6 +116,53 @@ export default class StatusPageSetupApi {
     }
 
     return id;
+  }
+
+  /*
+   * The status page this person already made with a name (#7252): one they
+   * created - from this setup or from Create Status Page - whose name is the
+   * one typed, trimmed and in any case (isSameStatusPageName), and that is
+   * not archived (an archived page is offline), the newest first. A run the
+   * browser lost - a private window, another device, storage cleared - or a
+   * second tab finds the page it made instead of making a second page with
+   * the same name. A teammate's page is never taken over. Null when they
+   * have none. A read that fails throws, so nothing is made on a guess.
+   */
+  public static async findOwnStatusPage(data: {
+    name: string;
+    userId: string;
+  }): Promise<StatusPageSetupRecord | null> {
+    if (!data.userId || !getStatusPageNameIdentity(data.name)) {
+      return null;
+    }
+
+    const pages: ListResult<StatusPage> = await ModelAPI.getList<StatusPage>({
+      modelType: StatusPage,
+      query: {
+        projectId: getProjectId(),
+        createdByUserId: new ObjectID(data.userId),
+      },
+      limit: OWN_STATUS_PAGES_READ_LIMIT,
+      skip: 0,
+      select: { _id: true, name: true, isArchived: true },
+      sort: { createdAt: SortOrder.Descending },
+    });
+
+    const found: StatusPage | undefined = pages.data.find(
+      (page: StatusPage): boolean => {
+        return (
+          Boolean(page._id) &&
+          !page.isArchived &&
+          isSameStatusPageName(page.name || "", data.name)
+        );
+      },
+    );
+
+    if (!found?._id) {
+      return null;
+    }
+
+    return { id: found._id.toString(), name: found.name || "" };
   }
 
   /*
@@ -141,11 +205,8 @@ export default class StatusPageSetupApi {
             return resource.monitorId?.toString() || "";
           })
           .filter(Boolean),
-        resourceOptions: {
-          showCurrentStatus: true,
-          showUptimePercent: true,
-          showStatusHistoryChart: true,
-        },
+        // Shown as Ask AI's publish_status_page shows them (Common).
+        resourceOptions: GUIDED_SETUP_RESOURCE_OPTIONS,
       });
 
     if (result.succeeded.length + result.skipped.length === 0) {

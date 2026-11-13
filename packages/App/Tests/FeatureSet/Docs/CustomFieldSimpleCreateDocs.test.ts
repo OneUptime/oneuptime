@@ -116,7 +116,11 @@ describe("the incident custom field docs describe the simple form", () => {
         CustomFieldFormCopy.createMappedFieldTitle,
         "Create Incident Custom Field",
       ]) {
-        expect({ language, name, named: names.has(name) }).toEqual({
+        expect({
+          language,
+          name,
+          named: names.has(drawnDashboardLabel(language, name)),
+        }).toEqual({
           language,
           name,
           named: true,
@@ -132,10 +136,12 @@ describe("the incident custom field docs describe the simple form", () => {
         readSettingsPage(language),
         CUSTOM_FIELDS_SECTION[language] as string,
       );
+      const moreFields: string = drawnDashboardLabel(
+        language,
+        MORE_FIELDS_SECTION_TITLE,
+      );
       const under: string =
-        language === "en"
-          ? `under **${MORE_FIELDS_SECTION_TITLE}**`
-          : `زیر **${MORE_FIELDS_SECTION_TITLE}**`;
+        language === "en" ? `under **${moreFields}**` : `زیر **${moreFields}**`;
 
       for (const setting of [
         IncidentCustomFieldSettingsCopy.showOnCreateTitle,
@@ -145,7 +151,9 @@ describe("the incident custom field docs describe the simple form", () => {
         const bullet: string | undefined = section
           .split("\n")
           .find((line: string): boolean => {
-            return line.startsWith(`- **${setting}** — `);
+            return line.startsWith(
+              `- **${drawnDashboardLabel(language, setting)}** — `,
+            );
           });
 
         expect({ language, setting, bullet: Boolean(bullet) }).toEqual({
@@ -178,7 +186,11 @@ describe("the incident custom field docs describe the simple form", () => {
         MORE_FIELDS_SECTION_TITLE,
         "Edit",
       ]) {
-        expect({ language, name, named: names.has(name) }).toEqual({
+        expect({
+          language,
+          name,
+          named: names.has(drawnDashboardLabel(language, name)),
+        }).toEqual({
           language,
           name,
           named: true,

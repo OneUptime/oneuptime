@@ -11,12 +11,18 @@ import React, {
 import { DashboardValueTrendDirection } from "Common/Types/Dashboard/DashboardComponents/DashboardValueComponent";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
-import DashboardWidgetLine from "./DashboardWidgetLine";
+import DashboardWidgetLine, {
+  getWidgetPageLanguage,
+} from "./DashboardWidgetLine";
+import { getNumberSpacingClassName } from "./DashboardWidgetDigits";
+import { getLineDirection } from "Common/UI/Utils/LineDirection";
+import { ReadingDirection } from "Common/Types/ReadingDirection";
 import IconProp from "Common/Types/Icon/IconProp";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import ValueFormatter, { FormattedValue } from "Common/Utils/ValueFormatter";
+import { formatReaderFigure } from "Common/Types/DateLanguage";
 import {
   getValueContentBox,
   getValueWidgetLayout,
@@ -38,6 +44,7 @@ import {
   getDashboardSpanLabeller,
   getDashboardSpanLabels,
 } from "../Utils/DashboardDateTime";
+import { DASHBOARD_WIDGET_SETUP_LINE_TEST_ID } from "./DashboardWidgetSetupCopy";
 
 /*
  * The big-number widget's PRESENTATION, with no opinion about where its
@@ -573,9 +580,11 @@ export interface ValueWidgetViewProps {
   noDataMessage: string;
 
   /*
-   * False while the widget has no query yet — renders the "click to
-   * configure" prompt rather than a no-data state, because nothing has been
-   * asked of the data source at all.
+   * False while the widget has no query yet — renders the setup prompt
+   * rather than a no-data state, because nothing has been asked of the data
+   * source at all. setupMessage is the host's line for where the widget is
+   * drawn (DashboardWidgetSetupCopy): a click only where one opens its
+   * settings.
    */
   isConfigured: boolean;
   setupTitle: string;
@@ -624,6 +633,8 @@ export enum ValueWidgetState {
   Value = "value",
 }
 
+// The big number, with its unit in a span of its own.
+export const VALUE_WIDGET_NUMBER_TEST_ID: string = "value-widget-number";
 export const TREND_TEST_ID: string = "value-widget-trend";
 export const TREND_DETAILS_TEST_ID: string = "value-widget-trend-details";
 export const SPARKLINE_START_LABEL_TEST_ID: string =
@@ -691,6 +702,22 @@ export const getValueWidgetTrendTone: (data: {
 };
 
 /*
+ * The trend's percentage (rounded to a tenth), as the reader's language
+ * writes it (#7094): "12.5%", "12,5 %" in German, "۱۲٫۵٪" in Persian.
+ */
+export const writeValueWidgetTrendPercent: (
+  percent: number,
+  translator: Translator,
+) => string = (percent: number, translator: Translator): string => {
+  return formatReaderFigure(Math.abs(percent), {
+    decimals: 1,
+    dropTrailingZeros: true,
+    isPercent: true,
+    language: translator.language,
+  });
+};
+
+/*
  * The one sentence that says what the arrow means: which way, by how much,
  * and against what. It is the chip's accessible name and the first line of
  * its tooltip.
@@ -699,7 +726,10 @@ export const getValueWidgetTrendSentence: (
   trend: ValueWidgetTrend,
   translator: Translator,
 ) => string = (trend: ValueWidgetTrend, translator: Translator): string => {
-  const percent: string = `${Math.abs(trend.percent ?? 0)}%`;
+  const percent: string = writeValueWidgetTrendPercent(
+    trend.percent ?? 0,
+    translator,
+  );
 
   if (trend.direction === ValueWidgetTrendDirection.Flat) {
     return translator.translateTemplate(
@@ -850,7 +880,7 @@ export const ValueWidgetTrendChip: FunctionComponent<
         <span className="font-medium tabular-nums">
           {trend.percent === null
             ? translator.translateTemplate("from 0")
-            : `${Math.abs(trend.percent)}%`}
+            : writeValueWidgetTrendPercent(trend.percent, translator)}
         </span>
       </span>
     </Tooltip>
@@ -888,6 +918,23 @@ export const getSparklineSpanLabelsFit: (data: {
     roomInPx
   );
 };
+
+/*
+ * The room a state's icon disc (40px and the 6px gap under it) and its
+ * name (one 16px line and its gap) take above its message, and one line of
+ * the message: what decides how many lines the message may take.
+ */
+const STATE_ICON_ROOM_IN_PX: number = 46;
+const STATE_TITLE_ROOM_IN_PX: number = 22;
+const STATE_MESSAGE_LINE_HEIGHT_IN_PX: number = 16;
+
+// Written out whole, so the stylesheet keeps each one.
+const STATE_MESSAGE_CLAMP_CLASS_NAMES: ReadonlyArray<string> = [
+  "line-clamp-1",
+  "line-clamp-2",
+  "line-clamp-3",
+  "line-clamp-4",
+];
 
 const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
   props: ValueWidgetViewProps,
@@ -959,10 +1006,28 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
 
   /*
    * A state's message wraps to a second line only where two lines fit; in a
-   * shorter box the second line was cut through the middle.
+   * shorter box the second line was cut through the middle. Where the tile
+   * holds more under its icon and name it takes up to four: two units tall,
+   * a German "Noch keine Metrik ausgewählt." was cut to "Noch keine
+   * Metrik..." at two lines with room for a third below it.
    */
-  const stateMessageClampClass: string =
-    contentBox.heightInPx >= 32 ? "line-clamp-2" : "line-clamp-1";
+  const getStateMessageClampClass: (hasTitle: boolean) => string = (
+    hasTitle: boolean,
+  ): string => {
+    const roomInPx: number =
+      contentBox.heightInPx -
+      (showStateIcon ? STATE_ICON_ROOM_IN_PX : 0) -
+      (hasTitle ? STATE_TITLE_ROOM_IN_PX : 0);
+    const lines: number = Math.min(
+      Math.max(
+        Math.floor(roomInPx / STATE_MESSAGE_LINE_HEIGHT_IN_PX),
+        contentBox.heightInPx >= 32 ? 2 : 1,
+      ),
+      STATE_MESSAGE_CLAMP_CLASS_NAMES.length,
+    );
+
+    return STATE_MESSAGE_CLAMP_CLASS_NAMES[lines - 1] || "line-clamp-1";
+  };
 
   /*
    * The states' words come from the hosts in English (each wraps them in
@@ -1044,8 +1109,9 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
           <></>
         )}
         <p
-          className={`text-xs text-gray-500 text-center max-w-full ${stateMessageClampClass} px-1`}
+          className={`text-xs text-gray-500 text-center max-w-full ${getStateMessageClampClass(showStateTitle)} px-1`}
           title={setupMessage}
+          data-testid={DASHBOARD_WIDGET_SETUP_LINE_TEST_ID}
         >
           {setupMessage}
         </p>
@@ -1068,7 +1134,7 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
           </div>
         )}
         <p
-          className={`text-xs text-gray-500 text-center max-w-full ${stateMessageClampClass} px-1`}
+          className={`text-xs text-gray-500 text-center max-w-full ${getStateMessageClampClass(false)} px-1`}
           title={props.error}
         >
           {props.error}
@@ -1124,7 +1190,9 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
           <></>
         )}
         <p
-          className={`text-xs text-gray-500 text-center max-w-full ${stateMessageClampClass} px-1`}
+          className={`text-xs text-gray-500 text-center max-w-full ${getStateMessageClampClass(
+            Boolean(showStateTitle && props.title),
+          )} px-1`}
           title={noDataMessage}
         >
           {noDataMessage}
@@ -1159,10 +1227,16 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
     ? hoveredPoint.value
     : aggregatedValue;
 
+  /*
+   * In the reader's language (#7094): "73,40 %" in German, "۷۳٫۴۰٪" in
+   * Persian, as the SLO tiles write theirs.
+   */
+  const language: string = translator.language;
+
   const displayParts: FormattedValue = ValueFormatter.formatValueCompact(
     displayValue,
     rawUnit,
-    { metricName },
+    { metricName, language },
   );
 
   /*
@@ -1176,6 +1250,7 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
   const sizingParts: FormattedValue = hoveredPoint
     ? ValueFormatter.formatValueCompact(aggregatedValue, rawUnit, {
         metricName,
+        language,
       })
     : displayParts;
 
@@ -1255,6 +1330,21 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
     unitText: props.hideUnit ? "" : sizingParts.unit,
   });
 
+  const shownUnit: string =
+    layout.showUnit && displayParts.unit ? displayParts.unit : "";
+
+  /*
+   * The number's line reads the way its unit's letters do: on an Arabic or
+   * a Persian board a unit in Latin letters stays after its number -
+   * "۱٫۹۶ MB/s", as the Gauge beside it writes it - where the space
+   * between the two put the unit first: "MB/s ۱٫۹۶". A number alone, or
+   * with its percent sign, reads the board's way.
+   */
+  const valueLineDirection: ReadingDirection | undefined = getLineDirection(
+    shownUnit,
+    getWidgetPageLanguage(translator.language),
+  );
+
   /*
    * The number as the widget writes it, for the halves the trend's tooltip
    * lists: the same formatter, unit and scale as the big number above it.
@@ -1263,7 +1353,7 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
     const parts: FormattedValue = ValueFormatter.formatValueCompact(
       value,
       rawUnit,
-      { metricName },
+      { metricName, language },
     );
 
     return props.hideUnit ? parts.value : parts.formatted;
@@ -1390,7 +1480,9 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
         style={{ height: `${layout.valueRowHeightInPx}px` }}
       >
         <div
-          className={`w-full text-center font-bold tabular-nums truncate ${valueColorClass}`}
+          dir={valueLineDirection}
+          data-testid={VALUE_WIDGET_NUMBER_TEST_ID}
+          className={`w-full text-center font-bold ${getNumberSpacingClassName(displayParts.value)} truncate ${valueColorClass}`}
           style={{
             fontSize: `${layout.valueFontSizeInPx}px`,
             lineHeight: VALUE_LINE_HEIGHT_RATIO,
@@ -1399,14 +1491,15 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
           title={displayParts.formatted}
         >
           {displayParts.value || "0"}
-          {layout.showUnit && displayParts.unit && (
+          {shownUnit && (
             <span
               className="text-gray-500 font-normal"
               style={{ fontSize: `${layout.unitFontSizeInPx}px` }}
             >
-              {displayParts.unit === "%"
-                ? displayParts.unit
-                : ` ${displayParts.unit}`}
+              {/* "1.5 MB" and German's "73,40 %" leave a gap; "73.40%" none. */}
+              {ValueFormatter.isUnitSetApart(displayParts)
+                ? ` ${shownUnit}`
+                : shownUnit}
             </span>
           )}
         </div>

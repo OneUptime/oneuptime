@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 51203,
-    "untranslated": 9585
+    "keys": 51296,
+    "untranslated": 9546
   },
   "sameAsEnglish": [
     " is",
@@ -56,6 +56,7 @@
     "Band",
     "Binary",
     "Bits",
+    "Blade",
     "Body",
     "Branch",
     "Branches",
@@ -74,6 +75,7 @@
     "Canonical Sunbeam",
     "Capture",
     "Celsius",
+    "Chassis",
     "Chat",
     "Chats",
     "Claim",
@@ -533,6 +535,7 @@
     "cursors",
     "customer facing|tier-1",
     "dashboard",
+    "dashboards",
     "database",
     "databases",
     "datastore",
@@ -655,6 +658,7 @@
     "svc-backup",
     "syslog",
     "tag",
+    "team",
     "teams",
     "thread",
     "threads",
@@ -672,6 +676,7 @@
     "volume",
     "volumes",
     "workflow",
+    "workflows",
     "workload",
     "writesets",
     "x86",
@@ -685,6 +690,7 @@
     "{{count}} KB",
     "{{count}} Kubernetes",
     "{{count}} MB",
+    "{{count}} OSD",
     "{{count}} SLO",
     "{{count}} VM",
     "{{count}} alarm",
@@ -697,6 +703,7 @@
     "{{count}} client",
     "{{count}} cluster",
     "{{count}} clusters",
+    "{{count}} component",
     "{{count}} container",
     "{{count}} containers",
     "{{count}} dashboard",
@@ -788,6 +795,7 @@
     "{{in}} in",
     "{{minutes}} min",
     "{{monitorName}} is offline",
+    "{{name}} (monitor: {{monitor}})",
     "{{size}} in {{duration}}",
     "{{subject}} is {{values}}.",
     "{{subject}} is {{value}}.",

@@ -89,6 +89,7 @@
   },
   "navGroups": {
     "Introduction": "Introduction",
+    "Guides": "Guides",
     "Moving to OneUptime": "Moving to OneUptime",
     "Installation": "Installation",
     "Mobile & Desktop Apps": "Mobile & Desktop Apps",
@@ -138,6 +139,9 @@
     "Which One Do I Use?": "Which One Do I Use?",
     "Home Page & Shortcuts": "Home Page & Shortcuts",
     "Your Account": "Your Account",
+    "Know When Your Website or API Is Down": "Know When Your Website or API Is Down",
+    "Get Paged by Phone, SMS or Push": "Get Paged by Phone, SMS or Push",
+    "Publish a Status Page": "Publish a Status Page",
     "Moving from Opsgenie": "Moving from Opsgenie",
     "Moving from PagerDuty": "Moving from PagerDuty",
     "Moving from incident.io": "Moving from incident.io",

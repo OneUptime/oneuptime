@@ -1,4 +1,5 @@
 import useTranslateValue from "../../Utils/Translation";
+import { PRODUCT_TEXT_CLASS_NAME } from "../../Utils/ProductText";
 import Badge, { BadgeType } from "../Badge/Badge";
 import Icon from "../Icon/Icon";
 import UILink, { LinkAriaCurrent } from "../Link/Link";
@@ -173,7 +174,7 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
             className={`min-w-0 ${getMenuWordsBreakClassName({
               text: translatedTitle,
               lang: titleLanguage,
-            })} transition-colors duration-150`}
+            })} transition-colors duration-150 ${PRODUCT_TEXT_CLASS_NAME}`}
             data-testid={SIDE_MENU_ITEM_TITLE_TEST_ID}
             lang={titleLanguage}
           >

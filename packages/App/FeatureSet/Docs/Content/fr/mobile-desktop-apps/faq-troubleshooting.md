@@ -126,7 +126,7 @@ Les clés d'accès demandent une adresse de votre OneUptime qui commence par `ht
 - Vérifiez que le téléphone autorise les notifications de OneUptime On-Call, et que Ne pas déranger ou un mode de concentration ne les retient pas.
 - Dans **Paramètres utilisateur → Méthodes de notification**, onglet **Notifications push**, vérifiez que le téléphone est listé, et envoyez-lui une **Notification de test**.
 - S'il est marqué **Ne reçoit pas de notifications**, ouvrez l'application en étant connecté : voir [Quand un téléphone doit se réenregistrer](#quand-un-téléphone-doit-se-réenregistrer).
-- Vérifiez vos règles d'astreinte sous **Paramètres utilisateur → Règles d'astreinte** : elles décident quelles alertes atteignent quelle méthode.
+- Vérifiez vos règles d'astreinte sous **Paramètres utilisateur → Comment me joindre** : elles décident quelles alertes atteignent quelle méthode.
 - Sur un OneUptime auto-hébergé, vérifiez que le serveur joint son relais push : voir [Notifications push](/docs/self-hosted/push-notifications#accès-réseau).
 :::
 
@@ -135,7 +135,7 @@ Réglez l'utilisation de la batterie de l'application sur **Sans restriction** d
 :::
 
 :::details Les alertes critiques ne sonnent pas malgré le mode silencieux
-Ouvrez **Settings** dans l'application : la ligne sous **Critical On-Call Alerts** indique ce qui manque sur ce téléphone. Vérifiez ensuite, sous **Paramètres utilisateur → Règles d'astreinte**, que la règle d'astreinte qui a envoyé l'alerte est réglée sur **Alerte critique**, et non sur **Standard**. Chaque téléphone a son propre interrupteur.
+Ouvrez **Settings** dans l'application : la ligne sous **Critical On-Call Alerts** indique ce qui manque sur ce téléphone. Vérifiez ensuite, sous **Paramètres utilisateur → Comment me joindre**, que la règle d'astreinte qui a envoyé l'alerte est réglée sur **Alerte critique**, et non sur **Standard**. Chaque téléphone a son propre interrupteur.
 :::
 
 ### Application de bureau
