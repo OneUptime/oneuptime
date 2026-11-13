@@ -23,7 +23,8 @@ import React, { FunctionComponent, ReactElement } from "react";
  */
 export const PROBE_MESSAGE_LINE_CLASS_NAME: string = "block break-words";
 
-export const PROBE_MESSAGE_LINE_TEST_ID: string = "monitor-summary-probe-message";
+export const PROBE_MESSAGE_LINE_TEST_ID: string =
+  "monitor-summary-probe-message";
 
 export interface ComponentProps {
   // The message as the probe stored it.

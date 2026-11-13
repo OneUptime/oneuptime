@@ -88,8 +88,11 @@ export const writeProbeTimeoutFailureCause: (
  */
 export const readProbeTimeoutFailureCause: (
   failureCause: string | null | undefined,
-) => number | null = (failureCause: string | null | undefined): number | null => {
-  const text: string = typeof failureCause === "string" ? failureCause.trim() : "";
+) => number | null = (
+  failureCause: string | null | undefined,
+): number | null => {
+  const text: string =
+    typeof failureCause === "string" ? failureCause.trim() : "";
 
   if (
     text.length <= TIMEOUT_BEFORE_COUNT.length + TIMEOUT_AFTER_COUNT.length ||
@@ -163,7 +166,10 @@ export const REQUEST_FAILED_PHASE_WORDS: Readonly<
 const isRequestFailedPhase: (value: string) => value is RequestFailedPhase = (
   value: string,
 ): value is RequestFailedPhase => {
-  return Object.prototype.hasOwnProperty.call(REQUEST_FAILED_PHASE_WORDS, value);
+  return Object.prototype.hasOwnProperty.call(
+    REQUEST_FAILED_PHASE_WORDS,
+    value,
+  );
 };
 
 /*

@@ -553,8 +553,9 @@ export default class SnmpMonitor {
           isOnline: false,
           isTimeout: true,
           responseTimeInMs: responseTimeInMs,
-          failureCause:
-            writeProbeTimeoutFailureCause(options.currentRetryCount),
+          failureCause: writeProbeTimeoutFailureCause(
+            options.currentRetryCount,
+          ),
           oidResponses: [],
           probeAttempts: options.attempts,
           totalAttempts: options.attempts.length,

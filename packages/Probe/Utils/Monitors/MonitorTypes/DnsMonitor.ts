@@ -190,8 +190,9 @@ export default class DnsMonitorUtil {
           isOnline: false,
           isTimeout: true,
           responseTimeInMs: responseTimeInMs,
-          failureCause:
-            writeProbeTimeoutFailureCause(options.currentRetryCount),
+          failureCause: writeProbeTimeoutFailureCause(
+            options.currentRetryCount,
+          ),
           records: [],
           probeAttempts: options.attempts,
           totalAttempts: options.attempts.length,

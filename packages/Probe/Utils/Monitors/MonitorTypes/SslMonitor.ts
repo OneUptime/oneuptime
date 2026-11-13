@@ -287,8 +287,9 @@ export default class SSLMonitor {
           isOnline: false,
           isTimeout: true,
           isValidCertificate: false,
-          failureCause:
-            writeProbeTimeoutFailureCause(pingOptions.currentRetryCount),
+          failureCause: writeProbeTimeoutFailureCause(
+            pingOptions.currentRetryCount,
+          ),
           probeAttempts: pingOptions.attempts,
           totalAttempts: pingOptions.attempts.length,
         };

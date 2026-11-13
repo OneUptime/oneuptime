@@ -498,8 +498,9 @@ export default class ApiMonitor {
           `API Monitor - Timeout exceeded ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err}`,
         );
 
-        apiResponse.failureCause =
-          writeProbeTimeoutFailureCause(options.currentRetryCount);
+        apiResponse.failureCause = writeProbeTimeoutFailureCause(
+          options.currentRetryCount,
+        );
         apiResponse.isOnline = false;
         apiResponse.isTimeout = true;
       }

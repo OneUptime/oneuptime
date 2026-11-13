@@ -938,8 +938,9 @@ export default class PingMonitor {
         return {
           isOnline: true,
           isTimeout: true,
-          failureCause:
-            writeProbeTimeoutFailureCause(pingOptions.currentRetryCount),
+          failureCause: writeProbeTimeoutFailureCause(
+            pingOptions.currentRetryCount,
+          ),
           probeAttempts: pingOptions.attempts,
           totalAttempts: pingOptions.attempts.length,
         };

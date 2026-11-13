@@ -589,8 +589,9 @@ export default class ExternalStatusPageMonitorUtil {
           componentStatuses: [],
           activeIncidentCount: 0,
           responseTimeInMs: responseTimeInMs,
-          failureCause:
-            writeProbeTimeoutFailureCause(options.currentRetryCount),
+          failureCause: writeProbeTimeoutFailureCause(
+            options.currentRetryCount,
+          ),
           probeAttempts: options.attempts,
           totalAttempts: options.attempts.length,
         };

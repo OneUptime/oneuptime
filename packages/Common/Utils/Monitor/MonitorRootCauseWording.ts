@@ -268,7 +268,10 @@ export default class MonitorRootCauseWording {
            */
           let value: MarkdownValue = FeedMarkdown.asMarkdown(stored);
 
-          if (YES_NO_FACTS.has(label) && (stored === "Yes" || stored === "No")) {
+          if (
+            YES_NO_FACTS.has(label) &&
+            (stored === "Yes" || stored === "No")
+          ) {
             value = MonitorRootCauseWording.word(stored, translator);
           } else if (label === FAILED_PHASE) {
             value = MonitorRootCauseWording.wordFailedPhase(stored, translator);
@@ -341,9 +344,7 @@ export default class MonitorRootCauseWording {
       failedPhase: phase,
     });
 
-    return phase && worded !== phase
-      ? worded
-      : FeedMarkdown.asMarkdown(stored);
+    return phase && worded !== phase ? worded : FeedMarkdown.asMarkdown(stored);
   }
 
   // Each finding with a sentence its reader's language words.

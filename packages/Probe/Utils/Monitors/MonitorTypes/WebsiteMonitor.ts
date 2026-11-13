@@ -494,8 +494,9 @@ export default class WebsiteMonitor {
           `Website Monitor - Timeout exceeded ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err}`,
         );
 
-        probeWebsiteResponse.failureCause =
-          writeProbeTimeoutFailureCause(options.currentRetryCount);
+        probeWebsiteResponse.failureCause = writeProbeTimeoutFailureCause(
+          options.currentRetryCount,
+        );
         probeWebsiteResponse.isOnline = false;
         probeWebsiteResponse.isTimeout = true;
 
