@@ -11,11 +11,9 @@ import NotificationRuleUpdatesForm from "../../../../App/FeatureSet/Dashboard/sr
 import {
   CHOOSE_UPDATES_DESCRIPTION,
   CHOOSE_UPDATES_TITLE,
-  CHOSEN_UPDATES_TITLE,
   EVERY_UPDATE_TITLE,
   isUpdatesEventType,
   KEY_UPDATES_TITLE,
-  ONLY_FIRST_MESSAGE_TITLE,
   UPDATES_COPY,
   UPDATES_SECTION_TITLE,
   UpdateKindCopy,
@@ -115,8 +113,6 @@ function everySentence(): Array<string> {
     KEY_UPDATES_TITLE,
     CHOOSE_UPDATES_TITLE,
     CHOOSE_UPDATES_DESCRIPTION,
-    CHOSEN_UPDATES_TITLE,
-    ONLY_FIRST_MESSAGE_TITLE,
   ];
 
   for (const eventType of UPDATES_EVENT_TYPES) {
@@ -127,6 +123,7 @@ function everySentence(): Array<string> {
       copy.everyUpdateDescription,
       copy.keyUpdatesDescription,
       copy.nothingChosenNote,
+      copy.nothingChosenTitle,
     );
 
     for (const kindCopy of Object.values(copy.kinds) as Array<UpdateKindCopy>) {
@@ -594,6 +591,31 @@ describe("the step, as the rule form draws it", () => {
     }
   });
 
+  /*
+   * The note shows below the boxes, often off screen on a phone: a screen
+   * reader hears it as the last box is cleared, from a polite live region
+   * that was on the page before the note came into it.
+   */
+  test("clearing the last box reads out when the rule still posts", async () => {
+    renderStep({
+      rule: ruleOf([Paging]),
+      instance: await dashboardIn(ENGLISH),
+    });
+
+    const region: Element | null = screen
+      .getByTestId("notification-rule-updates-checklist")
+      .querySelector('[aria-live="polite"]');
+
+    expect(region).not.toBeNull();
+    expect(region).toBeEmptyDOMElement();
+
+    await userEvent.click(box("Paging"));
+
+    expect(region).toHaveTextContent(
+      "With none ticked, the rule posts only when an incident is declared or a video call starts.",
+    );
+  });
+
   test("shows the form's own error for the step", async () => {
     renderStep({
       rule: ruleOf(),
@@ -718,10 +740,37 @@ describe("an on-call policy rule's step", () => {
       screen.getByTestId("notification-rule-updates-summary-title"),
     ).toHaveTextContent("Key updates only");
     expect(
-      screen.getByTestId("notification-rule-updates-summary-detail"),
+      screen.getByTestId("notification-rule-updates-summary-list"),
     ).toHaveTextContent(
       ["Who is on call now", "Nobody on call"].join(INLINE_SEPARATOR),
     );
+  });
+
+  test("with every box cleared, the step and the card say it posts only when the policy is created", async () => {
+    const instance: i18n = await dashboardIn(ENGLISH);
+
+    renderStep({ rule: ruleOf([]), eventType: ON_CALL, instance: instance });
+
+    expect(
+      screen.getByTestId("notification-rule-updates-nothing-chosen"),
+    ).toHaveTextContent(
+      "With none ticked, the rule posts only when an on-call policy is created.",
+    );
+
+    cleanup();
+
+    render(
+      <I18nextProvider i18n={instance}>
+        <UpdatesRuleSummary rule={ruleOf([])} eventType={ON_CALL} />
+      </I18nextProvider>,
+    );
+
+    expect(
+      screen.getByTestId("notification-rule-updates-summary-title"),
+    ).toHaveTextContent("Only when an on-call policy is created");
+    expect(
+      screen.queryByTestId("notification-rule-updates-summary-list"),
+    ).not.toBeInTheDocument();
   });
 
   test("German: a new rule's step, in German words", async () => {
@@ -783,22 +832,23 @@ describe("the step and the card's row in other languages", () => {
   async function cardRow(
     language: string,
     updatesToPost: Array<NotificationRuleUpdateKind>,
-  ): Promise<{ title: string; detail: string | null }> {
+    eventType: UpdatesEventType = NotificationRuleEventType.Incident,
+  ): Promise<{ title: string | null; updates: string | null }> {
     render(
       <I18nextProvider i18n={await dashboardIn(language)}>
         <UpdatesRuleSummary
           rule={ruleOf(updatesToPost)}
-          eventType={NotificationRuleEventType.Incident}
+          eventType={eventType}
         />
       </I18nextProvider>,
     );
 
     return {
       title:
-        screen.getByTestId("notification-rule-updates-summary-title")
-          .textContent || "",
-      detail:
-        screen.queryByTestId("notification-rule-updates-summary-detail")
+        screen.queryByTestId("notification-rule-updates-summary-title")
+          ?.textContent || null,
+      updates:
+        screen.queryByTestId("notification-rule-updates-summary-list")
           ?.textContent || null,
     };
   }
@@ -813,7 +863,7 @@ describe("the step and the card's row in other languages", () => {
       ]),
     ).toEqual({
       title: "Nur wichtige Aktualisierungen",
-      detail: [
+      updates: [
         "Behoben und wieder geöffnet",
         "Änderungen des Schweregrads",
         "Öffentliche Notizen",
@@ -826,17 +876,40 @@ describe("the step and the card's row in other languages", () => {
     const persian: Locale = readLocale("fa");
 
     expect(await cardRow("fa", [PrivateNotes, Paging])).toEqual({
-      title: persian[CHOSEN_UPDATES_TITLE],
-      detail: [persian["Private notes"], persian["Paging"]].join(
+      title: null,
+      updates: [persian["Private notes"], persian["Paging"]].join(
         DOT_ZERO_INLINE_SEPARATOR,
       ),
     });
   });
 
-  test("Arabic: a rule with every box cleared says it posts only the first message", async () => {
-    expect(await cardRow("ar", [])).toEqual({
-      title: readLocale("ar")[ONLY_FIRST_MESSAGE_TITLE],
-      detail: null,
-    });
+  test("Arabic: a rule with every box cleared says when it still posts, for each kind of rule", async () => {
+    const arabic: Locale = readLocale("ar");
+
+    for (const eventType of UPDATES_EVENT_TYPES) {
+      expect(await cardRow("ar", [], eventType)).toEqual({
+        title: arabic[UPDATES_COPY[eventType].nothingChosenTitle],
+        updates: null,
+      });
+
+      cleanup();
+    }
+
+    // "Only when an incident is declared or a video call starts".
+    expect(
+      arabic[
+        UPDATES_COPY[NotificationRuleEventType.Incident].nothingChosenTitle
+      ],
+    ).toBe("عند إعلان حادثة أو بدء مكالمة فيديو فقط");
+  });
+
+  test("German: the step's note with every box cleared, in German", async () => {
+    renderStep({ rule: ruleOf([]), instance: await dashboardIn("de") });
+
+    expect(
+      screen.getByTestId("notification-rule-updates-nothing-chosen"),
+    ).toHaveTextContent(
+      "Ist nichts ausgewählt, postet die Regel nur, wenn ein Vorfall gemeldet oder ein Videoanruf gestartet wird.",
+    );
   });
 });

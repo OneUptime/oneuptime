@@ -1370,7 +1370,7 @@ describe("Choose which updates a rule posts (#7581)", () => {
     expect(
       within(dialog()).getByTestId("notification-rule-updates-nothing-chosen"),
     ).toHaveTextContent(
-      "With none ticked, the rule posts only that the incident was declared, and a video call's Join button.",
+      "With none ticked, the rule posts only when an incident is declared or a video call starts.",
     );
 
     await next(user);

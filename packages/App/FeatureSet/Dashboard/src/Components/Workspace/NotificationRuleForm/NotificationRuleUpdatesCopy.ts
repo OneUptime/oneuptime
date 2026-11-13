@@ -4,11 +4,7 @@ import NotificationRuleUpdates, {
   NotificationRuleUpdatesChoice,
   StoredRuleUpdates,
 } from "Common/Types/Workspace/NotificationRules/NotificationRuleUpdates";
-import {
-  formatInline,
-  Translator,
-  translationKey,
-} from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * WHICH UPDATES A RULE POSTS, IN PLAIN WORDS (issue #7581).
@@ -27,6 +23,11 @@ import {
  *   ( ) Choose updates
  *       Pick the updates to post.
  *         [x] Resolved and reopened   [ ] Private notes ...
+ *
+ * and on the card of a rule that leaves some updates out:
+ *
+ *   Updates   Key updates only
+ *             Resolved and reopened · Severity changes · Public notes ...
  *
  * Only the kinds of rule that choose their updates have them
  * (NotificationRuleUpdates.canChooseUpdates): incidents, alerts, their
@@ -62,8 +63,13 @@ export interface UpdatesCopy {
   // Under Every update, and under Key updates only: what each posts.
   everyUpdateDescription: string;
   keyUpdatesDescription: string;
-  // Under the boxes when none is ticked: what the rule still posts.
+  // Under the boxes when none is ticked: when the rule still posts.
   nothingChosenNote: string;
+  /*
+   * The card's Updates row of a rule with every box cleared, saying the
+   * same: "Only when an incident is declared or a video call starts".
+   */
+  nothingChosenTitle: string;
   // Each update the rule can choose, by the update it stands for.
   kinds: Readonly<Partial<Record<NotificationRuleUpdateKind, UpdateKindCopy>>>;
 }
@@ -79,12 +85,6 @@ export const KEY_UPDATES_TITLE: string = translationKey("Key updates only");
 export const CHOOSE_UPDATES_TITLE: string = translationKey("Choose updates");
 export const CHOOSE_UPDATES_DESCRIPTION: string = translationKey(
   "Pick the updates to post.",
-);
-
-// The card's Updates row, for a rule that chose its updates.
-export const CHOSEN_UPDATES_TITLE: string = translationKey("Chosen updates");
-export const ONLY_FIRST_MESSAGE_TITLE: string = translationKey(
-  "Only the first message",
 );
 
 // Words more than one kind of rule says the same way.
@@ -133,7 +133,10 @@ export const UPDATES_COPY: Readonly<Record<UpdatesEventType, UpdatesCopy>> = {
       "Resolved and reopened, severity changes, public notes and the postmortem.",
     ),
     nothingChosenNote: translationKey(
-      "With none ticked, the rule posts only that the incident was declared, and a video call's Join button.",
+      "With none ticked, the rule posts only when an incident is declared or a video call starts.",
+    ),
+    nothingChosenTitle: translationKey(
+      "Only when an incident is declared or a video call starts",
     ),
     kinds: {
       [NotificationRuleUpdateKind.ResolvedAndReopened]: {
@@ -205,7 +208,10 @@ export const UPDATES_COPY: Readonly<Record<UpdatesEventType, UpdatesCopy>> = {
       "Resolved and reopened, and severity changes.",
     ),
     nothingChosenNote: translationKey(
-      "With none ticked, the rule posts only that the alert was created, and a video call's Join button.",
+      "With none ticked, the rule posts only when an alert is created or a video call starts.",
+    ),
+    nothingChosenTitle: translationKey(
+      "Only when an alert is created or a video call starts",
     ),
     kinds: {
       [NotificationRuleUpdateKind.ResolvedAndReopened]: {
@@ -263,7 +269,10 @@ export const UPDATES_COPY: Readonly<Record<UpdatesEventType, UpdatesCopy>> = {
       "Resolved and reopened, and public notes.",
     ),
     nothingChosenNote: translationKey(
-      "With none ticked, the rule posts only that the incident episode was created.",
+      "With none ticked, the rule posts only when an incident episode is created.",
+    ),
+    nothingChosenTitle: translationKey(
+      "Only when an incident episode is created",
     ),
     kinds: {
       [NotificationRuleUpdateKind.ResolvedAndReopened]: {
@@ -311,8 +320,9 @@ export const UPDATES_COPY: Readonly<Record<UpdatesEventType, UpdatesCopy>> = {
     ),
     keyUpdatesDescription: translationKey("Resolved and reopened."),
     nothingChosenNote: translationKey(
-      "With none ticked, the rule posts only that the alert episode was created.",
+      "With none ticked, the rule posts only when an alert episode is created.",
     ),
+    nothingChosenTitle: translationKey("Only when an alert episode is created"),
     kinds: {
       [NotificationRuleUpdateKind.ResolvedAndReopened]: {
         title: RESOLVED_AND_REOPENED,
@@ -355,7 +365,10 @@ export const UPDATES_COPY: Readonly<Record<UpdatesEventType, UpdatesCopy>> = {
     ),
     keyUpdatesDescription: translationKey("State changes and public notes."),
     nothingChosenNote: translationKey(
-      "With none ticked, the rule posts only that the scheduled maintenance event was created.",
+      "With none ticked, the rule posts only when a scheduled maintenance event is created.",
+    ),
+    nothingChosenTitle: translationKey(
+      "Only when a scheduled maintenance event is created",
     ),
     kinds: {
       [NotificationRuleUpdateKind.StateChanges]: {
@@ -396,7 +409,10 @@ export const UPDATES_COPY: Readonly<Record<UpdatesEventType, UpdatesCopy>> = {
       "Who is on call now, and when nobody is.",
     ),
     nothingChosenNote: translationKey(
-      "With none ticked, the rule posts only that the on-call policy was created.",
+      "With none ticked, the rule posts only when an on-call policy is created.",
+    ),
+    nothingChosenTitle: translationKey(
+      "Only when an on-call policy is created",
     ),
     kinds: {
       [NotificationRuleUpdateKind.OnCallNow]: {
@@ -458,22 +474,33 @@ export function getUpdateKindCopy(
   return UPDATES_COPY[eventType].kinds[kind];
 }
 
-// What a rule's card says about the updates it posts.
+// What a rule's card says about the updates it posts, translated.
 export interface UpdatesSummary {
-  // The answer it picked, translated: "Key updates only".
-  title: string;
   /*
-   * The updates it posts, translated and set apart as the reader's
-   * language does ("Resolved and reopened · Public notes"); none for a rule
-   * that posts every update, or only its first message.
+   * The answer it picked - "Every update", "Key updates only" - or, with
+   * every box cleared, when it still posts: "Only when an incident is
+   * declared or a video call starts". None for a rule that ticked its own
+   * boxes: the updates it posts say it.
    */
-  detail: string | undefined;
+  title: string | undefined;
+  /*
+   * The updates it posts, in the order of the step's boxes: "Resolved and
+   * reopened", "Public notes". Empty for a rule that posts every update, or
+   * none after its first message.
+   */
+  updates: Array<string>;
 }
 
 /*
- * What a rule's card says about its updates: the answer it picked and,
- * when it picked some, the updates it posts. A rule with every box
- * cleared posts only its first message.
+ * What a rule's card says about its updates:
+ *
+ *   Key updates only                          its answer, and what it posts
+ *   Resolved and reopened · Public notes
+ *
+ *   Private notes · Paging                    the boxes it ticked
+ *
+ *   Only when an incident is declared or a video call starts
+ *                                             every box cleared
  */
 export function getUpdatesSummary(data: {
   rule: StoredRuleUpdates;
@@ -492,7 +519,7 @@ export function getUpdatesSummary(data: {
     });
 
   if (choice === NotificationRuleUpdatesChoice.EveryUpdate) {
-    return { title: tx(EVERY_UPDATE_TITLE), detail: undefined };
+    return { title: tx(EVERY_UPDATE_TITLE), updates: [] };
   }
 
   const posted: Array<NotificationRuleUpdateKind> =
@@ -502,7 +529,10 @@ export function getUpdatesSummary(data: {
     });
 
   if (posted.length === 0) {
-    return { title: tx(ONLY_FIRST_MESSAGE_TITLE), detail: undefined };
+    return {
+      title: tx(UPDATES_COPY[data.eventType].nothingChosenTitle),
+      updates: [],
+    };
   }
 
   const names: Array<string> = posted.map(
@@ -517,11 +547,10 @@ export function getUpdatesSummary(data: {
   );
 
   return {
-    title: tx(
+    title:
       choice === NotificationRuleUpdatesChoice.KeyUpdates
-        ? KEY_UPDATES_TITLE
-        : CHOSEN_UPDATES_TITLE,
-    ),
-    detail: formatInline(names, data.translator),
+        ? tx(KEY_UPDATES_TITLE)
+        : undefined,
+    updates: names,
   };
 }
