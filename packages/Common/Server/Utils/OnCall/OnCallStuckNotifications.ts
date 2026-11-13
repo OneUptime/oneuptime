@@ -170,8 +170,9 @@ export async function settleStuckNotifications(data?: {
  * upgraded, by the data migration SettleOnCallNotificationsStuckBeforeUpgrade.
  * Every run, not once a day: the partial index holds only the notifications
  * that say Sending - those of the last few minutes - so a statement with
- * none to settle is one index lookup that finds nothing, and a notification
- * the workers left behind is settled within five minutes of their return.
+ * none to settle reads a page or two of that index, finds nothing and
+ * reads no notification (pinned on Postgres), and a notification the
+ * workers left behind is settled within five minutes of their return.
  *
  * Written straight to the table, with no hooks: their pages are long over,
  * and the hooks would tell the record's feed, and edit the run's chat
