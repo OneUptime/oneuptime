@@ -185,12 +185,19 @@ export const SAMPLE_STATUS_PAGE_GROUPS: ReadonlyArray<string> = [
   "API",
 ];
 
-export const SAMPLE_STATUS_PAGE = {
+export interface SampleStatusPage {
+  readonly name: string;
+  readonly description: string;
+  readonly pageTitle: string;
+  readonly pageDescription: string;
+}
+
+export const SAMPLE_STATUS_PAGE: SampleStatusPage = {
   name: "Acme Shop Status",
   description: "What customers see: the shop, its checkout and its APIs.",
   pageTitle: "Acme Shop Status",
   pageDescription: "Live status of the Acme Shop website and APIs.",
-} as const;
+};
 
 export enum SampleIncidentState {
   Identified = "Identified",
@@ -431,7 +438,21 @@ export const SAMPLE_ALERTS: ReadonlyArray<SampleAlert> = [
  * rotation of three), and after ten minutes without an acknowledgement,
  * the engineering manager.
  */
-export const SAMPLE_ON_CALL = {
+export interface SampleOnCall {
+  readonly policyName: string;
+  readonly policyDescription: string;
+  readonly scheduleName: string;
+  readonly scheduleDescription: string;
+  readonly layerName: string;
+  readonly rotationHandles: ReadonlyArray<string>;
+  readonly firstLevelName: string;
+  readonly secondLevelName: string;
+  readonly secondLevelHandle: string;
+  readonly escalateAfterInMinutes: number;
+  readonly acknowledgedAfterMinutes: number;
+}
+
+export const SAMPLE_ON_CALL: SampleOnCall = {
   policyName: "Acme Shop Production",
   policyDescription:
     "Pages whoever is on call for the shop, then the engineering manager.",
@@ -446,9 +467,17 @@ export const SAMPLE_ON_CALL = {
   escalateAfterInMinutes: 10,
   // How long the engineer on call took to acknowledge the open incident.
   acknowledgedAfterMinutes: 4,
-} as const;
+};
 
-export const SAMPLE_MAINTENANCE = {
+export interface SampleMaintenance {
+  readonly title: string;
+  readonly description: string;
+  readonly startsInMinutes: number;
+  readonly durationInMinutes: number;
+  readonly monitorKeys: ReadonlyArray<string>;
+}
+
+export const SAMPLE_MAINTENANCE: SampleMaintenance = {
   title: "Database upgrade to PostgreSQL 17",
   description:
     "Checkout may be slow for up to 15 minutes while the database fails over.",
@@ -456,24 +485,42 @@ export const SAMPLE_MAINTENANCE = {
   startsInMinutes: 3 * MINUTES_IN_A_DAY,
   durationInMinutes: 60,
   monitorKeys: ["checkout", "database"],
-} as const;
+};
 
 // The one service with telemetry, and what is built on it.
-export const SAMPLE_SERVICE = {
+export interface SampleService {
+  readonly name: string;
+  readonly description: string;
+}
+
+export const SAMPLE_SERVICE: SampleService = {
   name: "checkout-api",
   description:
     "Takes the cart, prices it and asks the Payments API to charge it.",
-} as const;
+};
 
-export const SAMPLE_SLO = {
+export interface SampleSlo {
+  readonly name: string;
+  readonly description: string;
+  readonly monitorKey: string;
+  readonly targetPercentage: number;
+  readonly windowDays: number;
+}
+
+export const SAMPLE_SLO: SampleSlo = {
   name: "Checkout availability",
   description: "Checkout is up 99.9% of the time, over 30 days.",
   monitorKey: "checkout",
   targetPercentage: 99.9,
   windowDays: 30,
-} as const;
+};
 
-export const SAMPLE_DASHBOARD = {
+export interface SampleDashboard {
+  readonly name: string;
+  readonly description: string;
+}
+
+export const SAMPLE_DASHBOARD: SampleDashboard = {
   name: "Checkout Service",
   description: "Request rate, latency, errors and resources of checkout-api.",
-} as const;
+};

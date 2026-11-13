@@ -799,13 +799,18 @@ describePostgres(
 
         const before: unknown = await storedRows("schedule");
 
+        /*
+         * In the names a person reads since #6817: the row is an escalation
+         * rule schedule, and what it names an On-Call Schedule. The API
+         * keeps the row's old name (apiSingularName).
+         */
         await expect(
           services["schedule"].create({
             data: pagingProductionSchedule(),
             props: memberProps(),
           }),
         ).rejects.toThrow(
-          `This schedule's on-call duty escalation rule references records that are not in this project: On Call Policy Schedule "${productionScheduleId.toString()}". Please pick values from this project and try again.`,
+          `This escalation rule schedule references records that are not in this project: On-Call Schedule "${productionScheduleId.toString()}". Please pick values from this project and try again.`,
         );
         expect(await storedRows("schedule")).toEqual(before);
       });
