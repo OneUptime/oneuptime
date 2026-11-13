@@ -58,10 +58,14 @@ jest.mock("react-i18next", () => {
 /*
  * Incidents -> Settings -> Subscriber Notifications (#7606).
  *
- * The customer: "When creating a new incident, the 'Notify Status Page
- * Subscribers' option is currently enabled (ticked) by default ... we would
- * like to request a change so that this option is unticked by default", or
- * a project setting that decides it.
+ * The request: on Declare New Incident, "the 'Notify Status Page
+ * Subscribers' checkbox is currently checked by default", so in the rush of
+ * declaring a critical incident every status page subscriber can be told
+ * before the team is ready. It offered two ways out: uncheck the box for
+ * everyone, or "add a project or admin-level setting that allows
+ * administrators to configure the default state of this checkbox". This is
+ * the second: a project setting, so a team that wants the box ticked keeps
+ * it, and one that does not turns it off once.
  *
  * The page is one card, "Subscriber Notifications", holding one switch -
  * "Notify status page subscribers by default" - that saves its Project
