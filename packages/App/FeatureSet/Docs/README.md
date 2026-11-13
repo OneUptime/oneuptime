@@ -390,6 +390,15 @@ page with no translation is served in English.
   digit (`HTTP 200 OK`, `config.toml (~/.codex)`): a line laid out right to
   left draws a number or punctuation that starts or ends it on its other
   side. `DiagramReadingDirection` checks every line of every page.
+- A browser never turns "→" round, so on a Persian page it points each step
+  of a path back at the one before. Write "←" beside a step in Persian words
+  (**تنظیمات پروژه ← پیشرفته**, `RunbookAgent` ← `Runner`), and keep "→"
+  between two steps left in Latin letters, which are drawn from the left
+  (**AWS Console → App Runner**). A page in any other language writes "←"
+  only as the left arrow key's name. `PathArrowsInRightToLeftSentences`
+  draws every page as the docs do and checks each arrow; the translation
+  suites read a path's steps whichever way its arrows point
+  (`DocsPageShape`: `pathSteps`, `pathWithArrows`).
 
 ## Checking your work
 

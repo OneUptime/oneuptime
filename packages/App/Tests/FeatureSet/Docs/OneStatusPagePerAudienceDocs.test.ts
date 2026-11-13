@@ -37,7 +37,7 @@ import {
   dashboardLocale,
   drawnActionLabel,
 } from "./DocsDashboardLabels";
-import { PATH_SEPARATOR } from "./DocsPageShape";
+import { pathArrowPattern, pathWithArrows } from "./DocsPageShape";
 import { comparableFence, escapeRegExp } from "./DocsTranslationChecks";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
@@ -407,17 +407,22 @@ type MenuPathFunction = (
   draw?: DrawnFunction,
 ) => string;
 
-// A menu path as a page in this language writes it: each label drawn, one bold span.
+/*
+ * A menu path as a page in this language writes it: each label drawn, one
+ * bold span, with the arrows the language's pages draw between its steps
+ * ("←" beside a Persian step, #7611).
+ */
 const menuPath: MenuPathFunction = (
   language: string,
   segments: ReadonlyArray<string>,
   draw: DrawnFunction = drawnActionLabel,
 ): string => {
-  return `**${segments
-    .map((segment: string): string => {
+  return `**${pathWithArrows(
+    segments.map((segment: string): string => {
       return draw(language, segment);
-    })
-    .join(PATH_SEPARATOR)}**`;
+    }),
+    language,
+  )}**`;
 };
 
 type StepsOfFunction = (markdown: string) => Array<string>;
@@ -1026,18 +1031,23 @@ describe("One Status Page per Audience docs", () => {
         const draw: (english: string) => string = (english: string): string => {
           return escapeRegExp(drawnActionLabel(language, english));
         };
+        const arrow: string = pathArrowPattern(language);
 
         expect(guide).toContain(menuPath(language, ["Advanced", "Settings"]));
         expect(guide).toContain(menuPath(language, ["Rules", "Monitor Rules"]));
-        // Not the section it left.
-        expect(guide).not.toContain(
-          menuPath(language, ["Resources", "Monitor Rules"]),
-        );
+
+        // Not the section it left, whichever way the path's arrow points.
+        for (const written of ["→", "←"]) {
+          expect(guide).not.toContain(
+            `**${drawnActionLabel(language, "Resources")} ${written} ${drawnActionLabel(language, "Monitor Rules")}**`,
+          );
+        }
+
         expect({
           language: language,
           // The status page's own name is the reader's word for "your page".
           found: new RegExp(
-            `\\*\\*${draw("Status Pages")}${PATH_SEPARATOR}[^*→\\n]+${PATH_SEPARATOR}${draw("Advanced")}${PATH_SEPARATOR}${draw("Advanced Settings")}\\*\\*`,
+            `\\*\\*${draw("Status Pages")}${arrow}[^*→←\\n]+${arrow}${draw("Advanced")}${arrow}${draw("Advanced Settings")}\\*\\*`,
           ).test(guide),
         }).toEqual({ language: language, found: true });
       }
