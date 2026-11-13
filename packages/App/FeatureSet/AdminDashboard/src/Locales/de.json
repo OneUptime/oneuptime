@@ -2853,8 +2853,8 @@
   "Only incident episodes that match conditions": "Nur Vorfallsepisoden, die den Bedingungen entsprechen",
   "All alert episodes": "Alle Warnungsepisoden",
   "Only alert episodes that match conditions": "Nur Warnungsepisoden, die den Bedingungen entsprechen",
-  "All scheduled maintenance events": "Alle geplanten Wartungsereignisse",
-  "Only scheduled maintenance events that match conditions": "Nur geplante Wartungsereignisse, die den Bedingungen entsprechen",
+  "All maintenance events": "Alle Wartungsereignisse",
+  "Only maintenance events that match conditions": "Nur Wartungsereignisse, die den Bedingungen entsprechen",
   "All monitors": "Alle Monitore",
   "Only monitors that match conditions": "Nur Monitore, die den Bedingungen entsprechen",
   "All status pages": "Alle Statusseiten",
@@ -2994,5 +2994,9 @@
   "You need one of these permissions: {{permissions}}.": "Sie benötigen eine dieser Berechtigungen: {{permissions}}.",
   "You need this role: {{role}}.": "Sie benötigen diese Rolle: {{role}}.",
   "You need one of these roles: {{roles}}.": "Sie benötigen eine dieser Rollen: {{roles}}.",
-  "You do not have permission to {{action}} this {{itemName}}.": "Sie haben keine Berechtigung für „{{action}}“ bei diesem Eintrag ({{itemName}})."
+  "You do not have permission to {{action}} this {{itemName}}.": "Sie haben keine Berechtigung für „{{action}}“ bei diesem Eintrag ({{itemName}}).",
+  "This monitor does not exist in this project, or you do not have access to it.": "Dieser Monitor existiert in diesem Projekt nicht, oder Sie haben keinen Zugriff darauf.",
+  "This monitor and this template are in different projects.": "Dieser Monitor und diese Vorlage gehören zu verschiedenen Projekten.",
+  "This monitor is not linked to this template.": "Dieser Monitor ist nicht mit dieser Vorlage verknüpft.",
+  "This monitor's type is {{monitorType}}, and this template's type is {{templateType}}. Only monitors of the template's type can be linked to it.": "Dieser Monitor hat den Typ {{monitorType}}, diese Vorlage den Typ {{templateType}}. Nur Monitore vom Typ der Vorlage können mit ihr verknüpft werden."
 }
