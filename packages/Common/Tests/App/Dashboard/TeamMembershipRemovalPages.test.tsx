@@ -27,7 +27,8 @@ import { MemoryRouter } from "react-router-dom";
  * TeamMembershipRemoval.test.ts pins the words. This file pins that each page
  * actually asks for them - a dropped prop brings the blank dialog straight
  * back with every unit test still green - and that the Teams tab leaves the
- * page once the user is gone.
+ * page once the user is gone. It also pins that the Teams tab's Team filter
+ * offers teams (#7820).
  */
 
 jest.mock("../../../UI/Utils/Permission", () => {
@@ -93,6 +94,7 @@ type CapturedTableProps = {
         deleteConfirmationWarning?: string | undefined;
       }
     | undefined;
+  filters?: Array<Filter<TeamMember>> | undefined;
 };
 
 let capturedTableProps: CapturedTableProps | null = null;
@@ -115,6 +117,7 @@ import RouteMap, {
   RouteUtil,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import { DeleteConfirmation } from "../../../UI/Components/ModelTable/BaseModelTable";
+import Filter from "../../../UI/Components/ModelFilter/Filter";
 import ModelAPI, { ListResult } from "../../../UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
@@ -315,6 +318,31 @@ describe("Users > View User > Teams", () => {
     expect(confirmation.description).toContain(
       "so they will also be removed from the project",
     );
+  });
+
+  /*
+   * #7820: the Team filter fetched its options with the people fetcher of the
+   * User filter on a team's Members page, so its menu listed the project's
+   * people, and picking one filtered the memberships by a person's id as if
+   * it were a team's: an empty table. A filter's own fetcher replaces the
+   * table's read of its filterEntityType (BaseModelTable); without one, the
+   * table lists the project's teams, by name and id.
+   */
+  test("offers the project's teams in its Team filter, not its people", () => {
+    const teamFilter: Filter<TeamMember> | undefined =
+      capturedTableProps!.filters?.find(
+        (filter: Filter<TeamMember>): boolean => {
+          return Object.keys(filter.field)[0] === "team";
+        },
+      );
+
+    expect(teamFilter).toBeDefined();
+    expect(teamFilter!.fetchFilterDropdownOptions).toBeUndefined();
+    expect(teamFilter!.filterEntityType).toBe(Team);
+    expect(teamFilter!.filterDropdownField).toEqual({
+      label: "name",
+      value: "_id",
+    });
   });
 
   describe("after a removal", () => {

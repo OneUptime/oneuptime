@@ -283,7 +283,7 @@ Il messaggio di un incidente ha quattro pulsanti, **Acknowledge Incident**, **Re
 | **Change Severity** | Imposta la gravità dell'incidente. |
 | **Change Incident State** | Porta l'incidente a uno stato successivo. |
 | **Assign Role** | Dà a qualcuno un ruolo nell'incidente, come **Incident Commander**. Un ruolo per una sola persona passa a lei. |
-| **Page Someone** | Chiama persone, un team, chi è reperibile in una pianificazione, o una policy di reperibilità per l'incidente, con un messaggio facoltativo. Le persone vengono chiamate finché una di loro non risponde; una policy chiama finché qualcuno non conferma l'incidente. |
+| **Page Someone** | Chiama persone, un team, chi è reperibile in una pianificazione, o una policy di reperibilità per l'incidente, con un messaggio facoltativo. Tutte le persone che chiama, anche quelle di una policy, vengono chiamate finché una di loro non risponde o l'incidente non viene risolto. |
 | **Edit Custom Fields** | Imposta i campi personalizzati dell'incidente, ognuno compilato con ciò che l'incidente contiene. Un campo lasciato vuoto viene svuotato. |
 
 `/oneuptime incident 42` mostra l'incidente 42, con questi pulsanti e il suo menu, in un messaggio che vedi solo tu. Scrivi il numero come lo mostra OneUptime: `42`, `#42` o `INC-42`. Nel canale proprio di un incidente, `/oneuptime incident` da solo mostra quell'incidente.

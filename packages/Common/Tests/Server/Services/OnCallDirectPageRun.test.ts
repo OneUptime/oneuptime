@@ -14,6 +14,10 @@ import OnCallDutyPolicyExecutionLogService, {
 } from "../../../Server/Services/OnCallDutyPolicyExecutionLogService";
 import OnCallDutyPolicyService from "../../../Server/Services/OnCallDutyPolicyService";
 import UserOnCallLogService from "../../../Server/Services/UserOnCallLogService";
+import OnCallAcknowledgementTimeout, {
+  OnCallTimeoutRecordKind,
+  OnCallTimeoutRecordState,
+} from "../../../Server/Utils/OnCall/OnCallAcknowledgementTimeout";
 import UserService from "../../../Server/Services/UserService";
 import logger from "../../../Server/Utils/Logger";
 import { OnCallDirectPagePager } from "../../../Server/Utils/OnCall/OnCallFeedText";
@@ -37,6 +41,7 @@ import {
   ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE,
 } from "../../../Types/OnCallDutyPolicy/OnCallDutyPolicyRunEnding";
 import OnCallDutyPolicyStatus from "../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
+import { isOnCallPolicyStartedByHand } from "../../../Types/OnCallDutyPolicy/OnCallPolicyStartedByHand";
 import Permission from "../../../Types/Permission";
 import UserNotificationEventType from "../../../Types/UserNotification/UserNotificationEventType";
 import UserNotificationExecutionStatus from "../../../Types/UserNotification/UserNotificationExecutionStatus";
@@ -78,6 +83,8 @@ import type { SpyInstance } from "jest-mock";
  *     policy, as they always were, and nothing is written;
  *   - a run a workflow's step started records the workflow, and nobody can
  *     write that record themselves;
+ *   - a person who starts a policy by hand on a record that is resolved is
+ *     told so, and nothing is paged (OnCallPolicyStartedByHand, #7596);
  *   - startDirectPage: what it refuses, the run it writes, the statuses the
  *     run passes through, and what it does when paging fails;
  *   - a direct page ends when every one of its pages is over;
@@ -650,6 +657,201 @@ describe("a direct page's run", () => {
         }
       },
     );
+  });
+
+  /*
+   * A POLICY A PERSON STARTS BY HAND ON A RESOLVED RECORD (issue #7596).
+   *
+   * The Dashboard's Execute On-Call Policy, a page that names a policy and
+   * the API signed in as a person all create the run as that person. On a
+   * record that is resolved nobody is needed any more: the person is told
+   * so, as Slack and Microsoft Teams already tell them, and nothing is
+   * written or paged - where it used to page the policy's first level and
+   * end a minute later. OneUptime's own runs, a workflow's and an API key's
+   * are not asked about, and a record whose state cannot be read is paged
+   * for, as it always was.
+   */
+  describe("a policy a person starts on a resolved record", () => {
+    let recordStates: Array<{
+      kind: OnCallTimeoutRecordKind;
+      recordId: string;
+    }>;
+    let recordState: OnCallTimeoutRecordState | null;
+    let readError: Error | null;
+
+    beforeEach(() => {
+      recordStates = [];
+      recordState = { isAcknowledged: true, isResolved: true };
+      readError = null;
+
+      jest
+        .spyOn(OnCallAcknowledgementTimeout, "readRecordState")
+        .mockImplementation(
+          async (data: {
+            kind: OnCallTimeoutRecordKind;
+            recordId: ObjectID;
+          }): Promise<OnCallTimeoutRecordState | null> => {
+            recordStates.push({
+              kind: data.kind,
+              recordId: data.recordId.toString(),
+            });
+
+            if (readError) {
+              throw readError;
+            }
+
+            return recordState;
+          },
+        );
+    });
+
+    function alertPolicyRun(): OnCallDutyPolicyExecutionLog {
+      const run: OnCallDutyPolicyExecutionLog =
+        new OnCallDutyPolicyExecutionLog();
+
+      run.projectId = PROJECT_ID;
+      run.onCallDutyPolicyId = POLICY_ID;
+      run.triggeredByAlertId = ALERT_ID;
+      run.userNotificationEventType = UserNotificationEventType.AlertCreated;
+
+      return run;
+    }
+
+    test.each([
+      [
+        "incident",
+        policyRun,
+        INCIDENT_ID,
+        "This incident is resolved, so no on-call policy was started.",
+      ],
+      [
+        "alert",
+        alertPolicyRun,
+        ALERT_ID,
+        "This alert is resolved, so no on-call policy was started.",
+      ],
+    ])(
+      "on a resolved %s: told so, and nothing is written or paged",
+      async (
+        kind: string,
+        getRun: () => OnCallDutyPolicyExecutionLog,
+        recordId: ObjectID,
+        message: string,
+      ): Promise<void> => {
+        const error: Error = await refusalOf(
+          create(getRun(), member([Permission.ProjectMember])),
+        );
+
+        expect(error).toBeInstanceOf(BadDataException);
+        expect(error.message).toBe(message);
+        // The record the run is about, read by its kind and id.
+        expect(recordStates).toEqual([
+          { kind: kind, recordId: recordId.toString() },
+        ]);
+        expect(runs.rows).toEqual([]);
+        expect(ruleExecution).not.toHaveBeenCalled();
+        expect(incidentFeed).toEqual([]);
+        expect(alertFeed).toEqual([]);
+      },
+    );
+
+    test("a project owner is told the same", async () => {
+      const error: Error = await refusalOf(
+        create(policyRun(), member([Permission.ProjectOwner])),
+      );
+
+      expect(error.message).toBe(
+        "This incident is resolved, so no on-call policy was started.",
+      );
+      expect(runs.rows).toEqual([]);
+    });
+
+    test("on an incident somebody acknowledged and nobody resolved: it starts, and pages its first level - a policy started by hand", async () => {
+      recordState = { isAcknowledged: true, isResolved: false };
+      const props: DatabaseCommonInteractionProps = member([
+        Permission.ProjectMember,
+      ]);
+
+      await create(policyRun(), props);
+
+      const run: StoredRow = onlyRun();
+
+      expect(text(run["triggeredByUserId"])).toBe(props.userId!.toString());
+      expect(ruleExecution).toHaveBeenCalledTimes(1);
+      expect(
+        isOnCallPolicyStartedByHand({
+          onCallDutyPolicyId: text(run["onCallDutyPolicyId"]),
+          triggeredByUserId: text(run["triggeredByUserId"]),
+          triggeredByWorkflowId: text(run["triggeredByWorkflowId"]),
+        }),
+      ).toBe(true);
+    });
+
+    test("on an incident nobody acknowledged: it starts", async () => {
+      recordState = { isAcknowledged: false, isResolved: false };
+
+      await create(policyRun(), member([Permission.ProjectMember]));
+
+      expect(runs.rows).toHaveLength(1);
+      expect(ruleExecution).toHaveBeenCalledTimes(1);
+    });
+
+    test.each([
+      [
+        "an API key",
+        (): DatabaseCommonInteractionProps => {
+          return apiKey([
+            Permission.CreateProjectOnCallDutyPolicyExecutionLog,
+            Permission.ReadProjectOnCallDutyPolicy,
+          ]);
+        },
+      ],
+      [
+        "a workflow's own step",
+        (): DatabaseCommonInteractionProps => {
+          return workflowStep("Page the on-call engineer");
+        },
+      ],
+      [
+        "OneUptime itself",
+        (): DatabaseCommonInteractionProps => {
+          return { isRoot: true };
+        },
+      ],
+    ])(
+      "%s starting it on a resolved incident: not asked, started as it always was",
+      async (
+        _who: string,
+        getProps: () => DatabaseCommonInteractionProps,
+      ): Promise<void> => {
+        await create(policyRun(), getProps());
+
+        expect(recordStates).toEqual([]);
+        expect(runs.rows).toHaveLength(1);
+        expect(ruleExecution).toHaveBeenCalledTimes(1);
+      },
+    );
+
+    test("a record whose state cannot be read: the policy starts, and the reason is logged", async () => {
+      readError = new Error("connection lost");
+
+      await create(policyRun(), member([Permission.ProjectMember]));
+
+      expect(runs.rows).toHaveLength(1);
+      expect(ruleExecution).toHaveBeenCalledTimes(1);
+      expect(logger.error).toHaveBeenCalledWith(
+        "Could not read whether the record of a policy started by hand is resolved; starting it.",
+        { projectId: PROJECT_ID.toString() },
+      );
+    });
+
+    test("a record that is gone is not refused here: the create goes on to whatever else holds it", async () => {
+      recordState = null;
+
+      await create(policyRun(), member([Permission.ProjectMember]));
+
+      expect(runs.rows).toHaveLength(1);
+    });
   });
 
   describe("starting a direct page", () => {

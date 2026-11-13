@@ -406,6 +406,16 @@ describe("set by environment variables", () => {
       ),
     ).toBeVisible();
     expect(within(card).getByText(CALL_SMS["authTokenNotSet"]!)).toBeVisible();
+    /*
+     * English, by the variables' names: isolated, so in Persian or Arabic
+     * each line still reads left to right, its full stop at its end (#7804).
+     */
+    for (const problem of [
+      "GLOBAL_TWILIO_AUTH_TOKEN is not set: Twilio refuses the account without its auth token.",
+      'GLOBAL_TWILIO_PRIMARY_PHONE_NUMBER: "call me" is not a phone number. Write it with its country code, like +14155550100.',
+    ]) {
+      expect(within(card).getByText(problem).tagName).toBe("BDI");
+    }
     // Still no Edit button: the account is fixed where the variables are set.
     expect(screen.queryByRole("button", { name: EDIT_BUTTON })).toBeNull();
   });
@@ -444,11 +454,13 @@ describe("not set by environment variables", () => {
     expect(
       within(warning).getByText(CALL_SMS["environmentUnusedTitle"]!),
     ).toBeVisible();
-    expect(
-      within(warning).getByText(
-        "GLOBAL_TWILIO_AUTH_TOKEN and GLOBAL_TWILIO_PRIMARY_PHONE_NUMBER are set, but GLOBAL_TWILIO_ACCOUNT_SID is not, so nothing reads them: the Twilio account saved in the Admin Dashboard is used. Set GLOBAL_TWILIO_ACCOUNT_SID too, or remove them.",
-      ),
-    ).toBeVisible();
+    const line: HTMLElement = within(warning).getByText(
+      "GLOBAL_TWILIO_AUTH_TOKEN and GLOBAL_TWILIO_PRIMARY_PHONE_NUMBER are set, but GLOBAL_TWILIO_ACCOUNT_SID is not, so nothing reads them: the Twilio account saved in the Admin Dashboard is used. Set GLOBAL_TWILIO_ACCOUNT_SID too, or remove them.",
+    );
+
+    expect(line).toBeVisible();
+    // The server's English line keeps its own direction in Persian or Arabic.
+    expect(line.tagName).toBe("BDI");
     expect(document.body.textContent).not.toContain(TOKEN);
   });
 
@@ -515,6 +527,59 @@ describe("the field values", () => {
       CALL_SMS["authTokenSet"],
     );
     expect(fieldValue(card, "Twilio Auth Token")).not.toContain(TOKEN);
+  });
+
+  /*
+   * A value as written in its variable keeps its own direction in a
+   * right-to-left page (#7804): Detail isolates the SID, a text value
+   * (IsolatedText). A word for a value is the page's own, and reads in the
+   * page's direction - a <bdi> would turn a translated phrase around.
+   */
+  test("the account SID as written is isolated; Used For and the token's Set are the page's words", async () => {
+    environmentAnswer = answerFor(environmentAccount());
+
+    await renderPage();
+
+    const card: HTMLElement = await environmentCard();
+
+    expect(within(card).getByText(ENV_SID).tagName).toBe("BDI");
+    expect(within(card).getByText("Calls and SMS").tagName).not.toBe("BDI");
+    expect(within(card).getByText(CALL_SMS["authTokenSet"]!).tagName).not.toBe(
+      "BDI",
+    );
+  });
+});
+
+describe("in a right-to-left language", () => {
+  /*
+   * Between a Latin word and Persian or Arabic text, GLOBAL_TWILIO_'s last
+   * underscore takes the line's direction and is drawn before the word:
+   * "_GLOBAL_TWILIO". A left-to-right mark after it keeps it in the word
+   * (#7804), as the email card's description does.
+   */
+  test.each(["fa", "ar"])(
+    "%s: the card's description keeps GLOBAL_TWILIO_'s underscore at its end",
+    (language: string) => {
+      const locale: Locale = JSON.parse(
+        fs.readFileSync(path.join(LOCALES_DIR, `${language}.json`), "utf8"),
+      ) as Locale;
+      const description: string = (
+        ((locale["pages"] as Locale)["settings"] as Locale)[
+          "callSms"
+        ] as Record<string, string>
+      )["environmentCardDescription"]!;
+      const leftToRightMark: string = String.fromCharCode(0x200e);
+
+      expect(description.split("GLOBAL_TWILIO_").length - 1).toBe(1);
+      expect(description).toContain(`GLOBAL_TWILIO_${leftToRightMark}`);
+    },
+  );
+
+  // Only the right-to-left languages need it: elsewhere it would be noise.
+  test("English keeps no mark", () => {
+    expect(CALL_SMS["environmentCardDescription"]).not.toContain(
+      String.fromCharCode(0x200e),
+    );
   });
 });
 
