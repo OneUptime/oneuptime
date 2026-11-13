@@ -1,6 +1,6 @@
 # Pasos del monitor
 
-`monitor_steps` es el atributo de `oneuptime_monitor` que dice qué comprueba un monitor y cómo se juzga cada resultado: la dirección que comprobar, la solicitud que enviar y los criterios que convierten un resultado en un estado del monitor, un incidente o una alerta. Esta página explica cada parte.
+`monitor_steps` es el atributo de `oneuptime_monitor` que dice qué comprueba un monitor y cómo se juzga cada resultado: la dirección que comprobar, la solicitud que enviar y los criterios que convierten un resultado en un estado del monitor, un incidente o una alerta. Esta página explica cada parte. El panel muestra los criterios de un paso en la página **Criterios** del monitor, como describe [Criterios y estados](/docs/monitor/criteria-and-statuses).
 
 :::cards
 - [Cómo se juzga una comprobación](#cómo-se-juzga-una-comprobación): Los criterios en orden, y el primero que coincide.

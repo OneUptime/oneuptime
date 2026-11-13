@@ -94,6 +94,7 @@ export interface PackageManifest {
 
 export interface BuildOptions {
   sourceRoot?: string;
+  // Where to build (default: <sourceRoot>/build/npm). The build deletes it first, so it refuses one not its own.
   buildDirectory?: string;
   typescript?: typeof TypeScript;
   leftOut?: Record<string, string>;

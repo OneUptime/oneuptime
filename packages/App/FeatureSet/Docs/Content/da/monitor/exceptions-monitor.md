@@ -193,7 +193,7 @@ Du vil have en hændelse, hver gang API'et kaster en undtagelse i produktion, og
 ## Fejlfinding
 
 :::details Undtagelser vises i explorer, men monitoren tæller 0
-Sammenlign værdien i **Miljøer** med explorerens filter `env:`: sammenligningen er præcis og skelner mellem store og små bogstaver, og undtagelser uden miljø udelades, når filteret er angivet. Tjek derefter, om de undtagelser er løst eller arkiveret. Åbn monitorens side **Kriterier** (under **Konfiguration**), og klik på **Rediger overvågningskriterier**: **Matchende undtagelser** viser, hvad filtrene matcher.
+Sammenlign værdien i **Miljøer** med explorerens filter `env:`: sammenligningen er præcis og skelner mellem store og små bogstaver, og undtagelser uden miljø udelades, når filteret er angivet. Tjek derefter, om de undtagelser er løst eller arkiveret. Åbn monitorens side **Kriterier** (under **Konfiguration**), og klik på **Rediger kriterier**: **Matchende undtagelser** viser, hvad filtrene matcher.
 :::
 
 :::details Hændelsen blev løst, da jeg løste undtagelsen

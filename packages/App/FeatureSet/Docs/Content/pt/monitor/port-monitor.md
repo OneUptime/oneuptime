@@ -55,7 +55,7 @@ Clique em **Testar monitor**, escolha uma sonda em **Selecionar Sonda** e clique
 
 ### Revisar os critérios
 
-**Critérios do monitor** começa com os [critérios padrão](#critérios-padrão): offline quando a porta não aceita uma conexão, online quando aceita. Altere-os se precisar e clique em **Próximo**.
+**Critérios** começa com os [critérios padrão](#critérios-padrão): offline quando a porta não aceita uma conexão, online quando aceita. Altere-os se precisar e clique em **Próximo**.
 
 ### Escolher as sondas e criar
 

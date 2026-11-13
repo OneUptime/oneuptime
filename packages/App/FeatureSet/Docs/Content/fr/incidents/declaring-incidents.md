@@ -178,7 +178,7 @@ Quelques règles rapides :
 La plupart des incidents ne devraient pas avoir besoin d'un humain pour les saisir. Les critères d'un moniteur peuvent en déclarer un dès qu'un filtre correspond :
 
 :::steps
-1. Ouvrez le moniteur, choisissez **Critères** dans son menu latéral et cliquez sur **Modifier les critères de surveillance**. (Un nouveau moniteur demande les mêmes critères pendant sa création.)
+1. Ouvrez le moniteur, choisissez **Critères** dans son menu latéral et cliquez sur **Modifier les critères**. (Un nouveau moniteur demande les mêmes critères pendant sa création.)
 2. Dans le filtre de critères qui doit déclarer, activez **Lorsque les filtres correspondent, déclarer un incident.** Une section **Créer un incident** apparaît avec un bouton **Ajouter un incident** — un même filtre de critères peut déclarer plusieurs incidents.
 3. Remplissez les champs de l'incident (ci-dessous) et enregistrez. La prochaine fois que le filtre correspond, l'incident est déclaré et alerte ses politiques d'astreinte.
 :::

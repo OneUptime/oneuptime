@@ -193,7 +193,7 @@ Du vil ha en hendelse hver gang API-et kaster et unntak i produksjon, og ingenti
 ## Feilsøking
 
 :::details Unntak vises i utforskeren, men monitoren teller 0
-Sammenlign verdien i **Miljøer** med utforskerens filter `env:`: sammenligningen er nøyaktig og skiller mellom store og små bokstaver, og unntak uten miljø utelates når filteret er angitt. Sjekk deretter om unntakene er løst eller arkivert. Åpne monitorens side **Kriterier** (under **Konfigurasjon**), og klikk på **Rediger overvåkingskriterier**: **Samsvarende unntak** viser hva filtrene samsvarer med.
+Sammenlign verdien i **Miljøer** med utforskerens filter `env:`: sammenligningen er nøyaktig og skiller mellom store og små bokstaver, og unntak uten miljø utelates når filteret er angitt. Sjekk deretter om unntakene er løst eller arkivert. Åpne monitorens side **Kriterier** (under **Konfigurasjon**), og klikk på **Rediger kriterier**: **Samsvarende unntak** viser hva filtrene samsvarer med.
 :::
 
 :::details Hendelsen ble løst da jeg løste unntaket

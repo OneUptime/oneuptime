@@ -155,7 +155,7 @@ flowchart TB
 ## अगले कदम
 
 :::cards
-- [मॉनिटर मानदंड और स्थितियाँ](/docs/monitor/criteria-and-statuses): हर मॉनिटर की स्थिति कौन तय करता है।
+- [मानदंड और स्थितियाँ](/docs/monitor/criteria-and-statuses): हर मॉनिटर की स्थिति कौन तय करता है।
 - [स्थिति पृष्ठ संसाधन और समूह](/docs/status-pages/resources-and-groups): स्थिति पृष्ठ की पंक्तियाँ सजाएं।
 - [सब्सक्राइबर और घोषणाएँ](/docs/status-pages/subscribers): ग्राहकों को समूह की घटनाओं के बारे में बताएं।
 :::

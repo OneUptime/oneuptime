@@ -65,6 +65,15 @@ const COMPILED_DIRECTORY_NAME = "compiled";
 const PACKAGE_DIRECTORY_NAME = "package";
 const PACKAGE_DIRECTORY = path.join(BUILD_DIRECTORY, PACKAGE_DIRECTORY_NAME);
 
+/*
+ * The file the build writes into each directory it builds into, so that a
+ * later build knows the directory is its own and may delete it
+ * (assertDeletable).
+ */
+const BUILD_MARKER_NAME = ".oneuptime-npm-build";
+const BUILD_MARKER_TEXT =
+  "A build of the @oneuptime/common npm package (packages/Common/Scripts/NpmPackage/BuildNpmPackage.js) wrote this directory, and deletes it before it builds here again.\n";
+
 // The directories whose modules npm users get, and the files at Common's root.
 const PUBLIC_DIRECTORIES = Object.freeze(["Types", "Utils", "Models"]);
 const PUBLIC_FILES = Object.freeze(["ServiceRoute"]);
@@ -2193,28 +2202,166 @@ function directorySize(directory) {
 }
 
 /**
+ * Where a path really is: the deepest part of it that exists, with every
+ * symlink in it resolved, and the rest of the path below that.
+ * @param {string} location - a path
+ * @returns {string} the real path
+ */
+function realLocation(location) {
+  const resolved = path.resolve(location);
+  const below = [];
+  let existing = resolved;
+
+  for (;;) {
+    try {
+      return path.join(fs.realpathSync(existing), ...below);
+    } catch {
+      const parent = path.dirname(existing);
+
+      if (parent === existing) {
+        return resolved;
+      }
+
+      below.unshift(path.basename(existing));
+      existing = parent;
+    }
+  }
+}
+
+/**
+ * Whether `location` is below `directory` (the directory itself is not).
+ * @param {string} directory - a directory
+ * @param {string} location - a path
+ * @returns {boolean} whether it is
+ */
+function isBelow(directory, location) {
+  const relative = path.relative(directory, location);
+
+  return (
+    relative.length > 0 &&
+    relative !== ".." &&
+    !relative.startsWith(`..${path.sep}`) &&
+    !path.isAbsolute(relative)
+  );
+}
+
+/**
+ * Whether deleting `location` deletes `other` too: it is `other`, or holds it.
+ * @param {string} location - what is deleted
+ * @param {string} other - a path
+ * @returns {boolean} whether it does
+ */
+function deletesToo(location, other) {
+  return (
+    path.relative(location, other).length === 0 || isBelow(location, other)
+  );
+}
+
+/**
+ * Why a directory under the system's temporary directory is not the build's
+ * to delete, or null when it is: when nothing is there yet, when it is
+ * empty, or when it holds the file a build writes into each directory it
+ * builds into (BUILD_MARKER_NAME). Checkouts, CI scratch trees and other
+ * tools' files live under the temporary directory too.
+ * @param {string} location - the directory
+ * @returns {string|null} why not, or null
+ */
+function notTheBuildsOwn(location) {
+  let entries;
+
+  try {
+    if (!fs.lstatSync(location).isDirectory()) {
+      return "it is not a directory a build made";
+    }
+
+    entries = fs.readdirSync(location);
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      return null;
+    }
+
+    throw error;
+  }
+
+  if (entries.length === 0 || entries.includes(BUILD_MARKER_NAME)) {
+    return null;
+  }
+
+  return `it holds files a build did not write: a build leaves ${BUILD_MARKER_NAME} in each directory it builds into`;
+}
+
+/**
  * Refuses to start over in a directory the build does not own: it deletes
- * the build directory first, so that must be under the source root's build/
- * or under the system's temporary directory.
+ * the build directory first. Whatever the temporary directory allows, that
+ * is never the source root, a directory that holds it, or one inside it
+ * other than under its build/; nor the repository this script is in, a
+ * directory that holds it, or one inside it other than under Common's
+ * build/, so a stand-in source root cannot point the build at the real tree
+ * either. Each is compared where it really is, symlinks resolved. Beyond
+ * those, the build directory is under the source root's build/, or under the
+ * system's temporary directory and the build's own (notTheBuildsOwn).
+ *
+ * Being under the temporary directory used to be enough. A checkout can be
+ * there too, as CI scratch trees and containers often are, and from one, the
+ * test of this refusal deleted Common's Scripts/ (#7547).
  * @param {string} buildDirectory - where the build writes
  * @param {string} sourceRoot - Common's root, or a stand-in for it
  */
 function assertDeletable(buildDirectory, sourceRoot) {
   const resolved = path.resolve(buildDirectory);
-  const inside = (parent) => {
-    const relative = path.relative(path.resolve(parent), resolved);
-
-    return (
-      relative.length > 0 &&
-      !relative.startsWith("..") &&
-      !path.isAbsolute(relative)
+  // What fs.rmSync deletes: it follows a symlink on the way, not one at the end.
+  const target = path.join(
+    realLocation(path.dirname(resolved)),
+    path.basename(resolved),
+  );
+  const source = realLocation(sourceRoot);
+  const repository = realLocation(REPOSITORY_ROOT);
+  const sourceBuild = path.join(sourceRoot, "build");
+  const commonBuild = path.join(COMMON_ROOT, "build");
+  const temporary = os.tmpdir();
+  const refusal = (why) => {
+    return new Error(
+      `Refusing to build into ${buildDirectory}: the build deletes it first, ${why}`,
     );
   };
 
-  if (!inside(path.join(sourceRoot, "build")) && !inside(os.tmpdir())) {
-    throw new Error(
-      `Refusing to build into ${buildDirectory}: the build deletes it first, so it must be under ${path.join(sourceRoot, "build")} or ${os.tmpdir()}`,
+  if (deletesToo(target, source)) {
+    throw refusal(`and that would delete the source root, ${sourceRoot}`);
+  }
+
+  if (isBelow(source, target) && !isBelow(path.join(source, "build"), target)) {
+    throw refusal(
+      `and it is inside the source root, ${sourceRoot}, where only ${sourceBuild} is the build's own`,
     );
+  }
+
+  if (deletesToo(target, repository)) {
+    throw refusal(
+      `and that would delete the repository the build runs from, ${REPOSITORY_ROOT}`,
+    );
+  }
+
+  if (
+    isBelow(repository, target) &&
+    !isBelow(path.join(realLocation(COMMON_ROOT), "build"), target)
+  ) {
+    throw refusal(
+      `and it is inside the repository the build runs from, ${REPOSITORY_ROOT}, where only ${commonBuild} is the build's own`,
+    );
+  }
+
+  if (isBelow(realLocation(sourceBuild), target)) {
+    return;
+  }
+
+  if (!isBelow(realLocation(temporary), target)) {
+    throw refusal(`so it must be under ${sourceBuild} or ${temporary}`);
+  }
+
+  const notOwn = notTheBuildsOwn(target);
+
+  if (notOwn) {
+    throw refusal(`and ${notOwn}`);
   }
 }
 
@@ -2222,7 +2369,7 @@ function assertDeletable(buildDirectory, sourceRoot) {
  * Builds the package.
  * @param {object} [options] - for tests: a stand-in Common and where to write
  * @param {string} [options.sourceRoot] - Common's root (default: this package)
- * @param {string} [options.buildDirectory] - where to build (default: <sourceRoot>/build/npm)
+ * @param {string} [options.buildDirectory] - where to build (default: <sourceRoot>/build/npm), which the build deletes first: assertDeletable says where it may be
  * @param {object} [options.typescript] - the typescript module (default: Common's)
  * @param {Record<string, string>} [options.leftOut] - modules left out on purpose (default: LEFT_OUT)
  * @param {Record<string, string>} [options.pinnedLeftOut] - the other modules the build must find left out (default: PINNED_LEFT_OUT)
@@ -2257,6 +2404,8 @@ function buildNpmPackage(options) {
 
   assertDeletable(buildDirectory, sourceRoot);
   fs.rmSync(buildDirectory, { recursive: true, force: true });
+  // First, so that even a build that fails leaves a directory a build may delete.
+  writeFile(path.join(buildDirectory, BUILD_MARKER_NAME), BUILD_MARKER_TEXT);
 
   const compiled = compileSources({
     ts,

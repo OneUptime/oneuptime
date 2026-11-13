@@ -848,7 +848,7 @@ const MonitorTemplatesView: FunctionComponent<
           key={monitorType}
           name="Monitoring Criteria"
           cardProps={{
-            title: "Monitoring Criteria",
+            title: "Criteria",
             description:
               "What this template watches for and when it should fire.",
             buttons: [

@@ -42,13 +42,13 @@ Zie [Een monitor maken](/docs/monitor/create-monitor).
 
 De regels van een monitor: wat elk controleresultaat betekent. Ze worden op volgorde bekeken, en de eerste die overeenkomt kan de status van de monitor wijzigen, een incident melden, een waarschuwing aanmaken, of alle drie.
 
-Ook wel: **Bewakingscriteria**, **Monitorcriteria**, **Monitor Steps**. Zie [Monitorcriteria en statussen](/docs/monitor/criteria-and-statuses).
+Ook wel: **Bewakingscriteria**, **Monitorcriteria**, **Monitor Steps**. Zie [Criteria en statussen](/docs/monitor/criteria-and-statuses).
 
 ### Monitorstatus
 
 Hoe een monitor er op dit moment voor staat. Elk nieuw project heeft drie monitorstatussen, **Operationeel**, **Verminderd** en **Offline**, en u kunt er zelf meer toevoegen.
 
-Zie [Monitorcriteria en statussen](/docs/monitor/criteria-and-statuses).
+Zie [Criteria en statussen](/docs/monitor/criteria-and-statuses).
 
 ### Sonde
 
@@ -262,7 +262,7 @@ Zie [Label- en eigenaarsregels](/docs/configuration/label-and-owner-rules).
 
 Een fout die uw code opwerpt. OneUptime groepeert elk voorkomen van dezelfde fout tot één uitzondering, met de stacktrace, het verloop en de verzoeken waarin ze optrad.
 
-Ook wel: **Uitzonderingen volgen**, `/telemetry-exception`. Zie [Uitzonderingen volgen](/docs/telemetry/exceptions).
+Ook wel: **Uitzonderingen volgen**, `/telemetry-exception`. Zie [Uitzonderingen](/docs/telemetry/exceptions).
 
 ### AI-inzichten
 
@@ -306,7 +306,7 @@ Zie [Traceverkenner](/docs/telemetry/traces-explorer).
 
 Hoe uw applicatie CPU-tijd en geheugen besteedt, functie voor functie, verstuurd door een profiler die naar de Pyroscope-compatibele API van OneUptime pusht.
 
-Ook wel: **Prestatieprofielen**, **Continue profilering**. Zie [Continue profilering](/docs/telemetry/profiles).
+Ook wel: **Prestatieprofielen**, **Continue profilering**. Zie [Profielen](/docs/telemetry/profiles).
 
 ### AI / LLM
 

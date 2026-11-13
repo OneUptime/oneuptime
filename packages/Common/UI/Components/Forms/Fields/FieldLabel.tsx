@@ -84,17 +84,14 @@ const FieldLabelElement: FunctionComponent<ComponentProps> = (
   const showsOptionalMark: boolean =
     Boolean(titleMark.mark) || !(props.required || props.hideOptionalLabel);
 
-  const label: ReactElement = (
-    <label
-      id={props.id}
-      htmlFor={props.htmlFor}
-      className={
-        props.className ||
-        `block ${
-          props.isHeading ? "text-lg" : "text-sm"
-        }  font-medium text-gray-700 flex justify-between`
-      }
-    >
+  const className: string =
+    props.className ||
+    `block ${
+      props.isHeading ? "text-lg" : "text-sm"
+    }  font-medium text-gray-700 flex justify-between`;
+
+  const words: ReactElement = (
+    <>
       <span className={PRODUCT_TEXT_CLASS_NAME}>
         {props.glossaryTerm ? (
           <DefinedTerm term={props.glossaryTerm}>{drawnTitle}</DefinedTerm>
@@ -118,8 +115,29 @@ const FieldLabelElement: FunctionComponent<ComponentProps> = (
           </Link>
         </span>
       )}
-    </label>
+    </>
   );
+
+  /*
+   * A title with no control to point at (no `for`: a dropdown's, a
+   * picker's) whose word is a defined term is not a <label>. A <label> with
+   * no `for` takes the first button inside it, the word's, for the control
+   * it labels, and the browser hands that control a click on any of the
+   * label's own words or space: a click on "(Optional)", or on the empty
+   * end of the row, opened the definition. The control is named by the
+   * title through its id (aria-labelledby) all the same, and the title
+   * keeps a label's arrow over its words.
+   */
+  const label: ReactElement =
+    props.glossaryTerm && !props.htmlFor ? (
+      <span id={props.id} className={`${className} cursor-default`}>
+        {words}
+      </span>
+    ) : (
+      <label id={props.id} htmlFor={props.htmlFor} className={className}>
+        {words}
+      </label>
+    );
 
   return (
     <>

@@ -26,7 +26,7 @@ flowchart TB
 
 - Un'app web di cui puoi modificare e ridistribuire il codice, con le dipendenze installate tramite npm.
 - Le origini da cui vengono servite le tue pagine, per esempio `https://app.example.com`. Una chiave Browser accetta richieste solo dalle origini che vi elenchi.
-- Un ruolo che può creare chiavi di acquisizione: possono farlo i proprietari e gli amministratori del progetto, e chiunque abbia il permesso **Create Telemetry Ingestion Key**.
+- Un ruolo che può creare chiavi di acquisizione: possono farlo i proprietari e gli amministratori del progetto, e chiunque abbia il permesso Create Ingestion Key.
 
 ## Configurazione
 

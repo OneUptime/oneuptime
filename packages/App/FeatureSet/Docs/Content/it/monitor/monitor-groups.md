@@ -155,7 +155,7 @@ L'interruttore **Gruppi di monitor** è disattivato. Attivatelo in **Impostazion
 ## Passaggi successivi
 
 :::cards
-- [Criteri e stati dei monitor](/docs/monitor/criteria-and-statuses): Cosa imposta lo stato di ogni monitor.
+- [Criteri e stati](/docs/monitor/criteria-and-statuses): Cosa imposta lo stato di ogni monitor.
 - [Risorse e gruppi della pagina di stato](/docs/status-pages/resources-and-groups): Organizzare le righe di una pagina di stato.
 - [Iscritti e annunci](/docs/status-pages/subscribers): Informare i clienti degli incidenti di un gruppo.
 :::

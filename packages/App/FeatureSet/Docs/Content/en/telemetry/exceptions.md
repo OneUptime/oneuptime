@@ -1,6 +1,6 @@
-# Exception Tracking
+# Exceptions
 
-Exception Tracking collects the errors your code throws and groups every occurrence of the same error into one exception, with its stack trace, its trend and the requests it happened in. Triage them like a to-do list: fix, resolve, or archive the noise, and let AI open a pull request for the ones it can fix.
+Exceptions collects the errors your code throws and groups every occurrence of the same error into one exception, with its stack trace, its trend and the requests it happened in. Triage them like a to-do list: fix, resolve, or archive the noise, and let AI open a pull request for the ones it can fix.
 
 :::cards
 - [Where exceptions come from](#where-exceptions-come-from): Spans and logs your services already send.
@@ -34,7 +34,7 @@ flowchart TB
 - **An archived exception stays archived.** Its new occurrences are still counted, but they stop notifying.
 
 > [!TIP]
-> To keep an expected error out of Exception Tracking, such as invalid input your service rejected, set the `error.class` attribute to `user-error` or `expected-denial` on the span's exception event. OneUptime then records no exception for it.
+> To keep an expected error out of Exceptions, such as invalid input your service rejected, set the `error.class` attribute to `user-error` or `expected-denial` on the span's exception event. OneUptime then records no exception for it.
 
 ## Before you begin
 

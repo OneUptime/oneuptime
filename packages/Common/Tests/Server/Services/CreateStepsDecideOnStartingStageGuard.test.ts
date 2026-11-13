@@ -119,6 +119,8 @@ const SERVICES: Array<ServiceSteps> = [
         "who its new channels could not add - nobody, when it opened none",
       "this.handleAlertStateChangeAsync": "its first state",
       "this.addOwners": "its owners",
+      "this.releaseCreatedNotificationHeldForOwners":
+        "its owners' created notification",
       "AlertOwnerRuleEngineService.applyRulesToAlert": "its owners",
       "AlertLabelRuleEngineService.applyRulesToAlert": "its labels",
       "AlertOnCallRuleEngineService.applyRulesToAlert":

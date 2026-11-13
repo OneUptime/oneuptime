@@ -55,7 +55,7 @@ Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **K
 
 ### Gå gjennom kriteriene
 
-**Monitorkriterier** starter med [standardkriteriene](#standardkriterier): frakoblet når porten ikke godtar en tilkobling, tilkoblet når den gjør det. Endre dem ved behov, og klikk så på **Neste**.
+**Kriterier** starter med [standardkriteriene](#standardkriterier): frakoblet når porten ikke godtar en tilkobling, tilkoblet når den gjør det. Endre dem ved behov, og klikk så på **Neste**.
 
 ### Velg sonder og opprett
 

@@ -11,7 +11,7 @@ One agent watches one cloud: one Keystone, with one region or several. It only r
 - Docker Engine 20.10+ with the Docker Compose v2 plugin, or, to [install without Docker](#quick-start-without-docker), a Linux machine (x86_64 or arm64) with systemd 235 or later, glibc 2.34 or later (RHEL 9, Ubuntu 22.04, Debian 12) and root
 - A route from that machine to Keystone and to each service's public endpoint
 - A credential for the cloud: see [Access](#access)
-- A **OneUptime Telemetry Ingestion Key**: create one from *Project Settings → Telemetry Ingestion Keys*
+- A **OneUptime ingestion key**: create one from *Project Settings → Telemetry & APM → Ingestion Keys*
 
 ## Where to run it
 
@@ -507,7 +507,7 @@ Answers to the installer. Set any of them in the environment to skip its questio
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `ONEUPTIME_URL` | Yes | Your OneUptime instance URL |
-| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes | Telemetry ingestion key (*Project Settings → Telemetry Ingestion Keys*) |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes | Ingestion key (*Project Settings → Telemetry & APM → Ingestion Keys*) |
 | `OPENSTACK_CLOUD_NAME` | Yes | The name this cloud has in OneUptime, stamped on every metric as `openstack.cloud.name`. Keep it stable: changing it registers a new cloud (default: `openstack`) |
 | `OPENSTACK_AUTH_URL` | Bundled exporter | The Keystone auth URL. `/v3` is added if it is missing |
 | `OPENSTACK_EXPORTER_CLOUDS` | Yes | The regions, comma-separated, with or without square brackets. `.env` holds them in brackets, which the collector reads as a list: `[RegionOne,RegionTwo]` (default: `RegionOne`) |

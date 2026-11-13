@@ -56,7 +56,7 @@ Klik op **Monitor testen**, kies een sonde onder **Selecteer sonde** en klik op 
 
 ### De criteria nakijken
 
-**Monitorcriteria** begint met de [standaardcriteria](#standaardcriteria): offline wanneer de host niet antwoordt, online wanneer hij wel antwoordt. Wijzig ze indien nodig en klik dan op **Volgende**.
+**Criteria** begint met de [standaardcriteria](#standaardcriteria): offline wanneer de host niet antwoordt, online wanneer hij wel antwoordt. Wijzig ze indien nodig en klik dan op **Volgende**.
 
 ### Sondes kiezen en maken
 

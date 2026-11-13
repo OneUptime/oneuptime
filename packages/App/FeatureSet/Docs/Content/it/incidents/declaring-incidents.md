@@ -178,7 +178,7 @@ Qualche regola veloce:
 La maggior parte degli incidenti non dovrebbe aver bisogno di una persona che li digiti. I criteri di un monitor possono dichiararne uno nel momento in cui un filtro corrisponde:
 
 :::steps
-1. Aprite il monitor, scegliete **Criteri** nel suo menu laterale e fate clic su **Modifica criteri di monitoraggio**. (Un nuovo monitor chiede gli stessi criteri mentre lo create.)
+1. Aprite il monitor, scegliete **Criteri** nel suo menu laterale e fate clic su **Modifica criteri**. (Un nuovo monitor chiede gli stessi criteri mentre lo create.)
 2. Nel filtro dei criteri che deve dichiarare, attivate **Quando i filtri corrispondono, dichiara un incidente.** Compare una sezione **Crea incidente** con un pulsante **Aggiungi incidente** — un filtro dei criteri può dichiarare più di un incidente.
 3. Compilate i campi dell'incidente (sotto) e salvate. La prossima volta che il filtro corrisponde, l'incidente viene dichiarato e avvisa le sue policy di reperibilità.
 :::

@@ -601,13 +601,13 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             title: "Ingestion Keys",
             icon: IconProp.Terminal,
             keywords: [
+              // Its name before it became Ingestion Keys (#6817).
               "telemetry ingestion keys",
               "opentelemetry",
               "otel",
               "otlp",
               "send telemetry",
             ],
-            settings: ["Telemetry Ingestion Keys"],
           },
           {
             page: PageMap.SETTINGS_TELEMETRY_SETTINGS,
@@ -1048,7 +1048,14 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       {
         title: "Monitors",
         pages: [
-          allListPage(PageMap.MONITORS, "All Monitors"),
+          {
+            ...allListPage(PageMap.MONITORS, "All Monitors"),
+            /*
+             * A monitor's Criteria were its "Monitor Criteria" (#6817): a
+             * page of each monitor, one click from the list.
+             */
+            keywords: ["monitor criteria", "monitoring criteria"],
+          },
           /*
            * The guided setup (#6804): an address, who is told and a test
            * page on one page. Found by what people come to do.
@@ -2100,19 +2107,26 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
   },
   {
     id: "profiles",
-    title: "Performance Profiles",
+    title: "Profiles",
     productPage: PageMap.PROFILES,
     icon: IconProp.Fire,
     iconColor: "red",
     sections: [
       {
-        title: "Profiler",
+        title: "Profiles",
         pages: [
           {
             page: PageMap.PROFILES,
             title: "Overview",
             icon: IconProp.Bolt,
-            keywords: ["flame graph", "cpu profiling"],
+            keywords: [
+              "flame graph",
+              "cpu profiling",
+              // Its names before they became Profiles (#6817).
+              "performance profiles",
+              "profiler",
+              "continuous profiling",
+            ],
           },
           {
             page: PageMap.PROFILES_INSIGHTS,
@@ -2168,6 +2182,8 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.EXCEPTIONS,
             title: "Exceptions",
             icon: IconProp.Alert,
+            // Its name in the docs before it became Exceptions (#6817).
+            keywords: ["exception tracking"],
           },
           {
             page: PageMap.EXCEPTIONS_OVERVIEW,

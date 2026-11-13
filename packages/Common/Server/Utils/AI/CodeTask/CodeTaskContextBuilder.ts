@@ -493,7 +493,7 @@ export default class CodeTaskContextBuilder {
 
     if (outcome.result.rowCount === 0) {
       throw new BadDataException(
-        "That function took no time in this service's profiles in that time range. Pick a function the Profiler shows, or a longer time range.",
+        "That function took no time in this service's profiles in that time range. Pick a function shown in Profiles, or a longer time range.",
       );
     }
 

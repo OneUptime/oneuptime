@@ -25,6 +25,7 @@ import ServiceOwnerUser from "../../../Models/DatabaseModels/ServiceOwnerUser";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import StatusPageResource from "../../../Models/DatabaseModels/StatusPageResource";
 import Team from "../../../Models/DatabaseModels/Team";
+import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import User from "../../../Models/DatabaseModels/User";
 import { IsBillingEnabled } from "../../../Server/EnvironmentConfig";
 import AlertOnCallRuleEngineService from "../../../Server/Services/AlertOnCallRuleEngineService";
@@ -60,6 +61,7 @@ import ServiceOwnerUserService from "../../../Server/Services/ServiceOwnerUserSe
 import StatusPageResourceService from "../../../Server/Services/StatusPageResourceService";
 import StatusPageService from "../../../Server/Services/StatusPageService";
 import StatusPageSubscriberService from "../../../Server/Services/StatusPageSubscriberService";
+import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import TeamService from "../../../Server/Services/TeamService";
 import UserService from "../../../Server/Services/UserService";
 import WhoIsToldService, {
@@ -88,7 +90,11 @@ import {
 import ObjectID from "../../../Types/ObjectID";
 import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
 import {
+  OnCallTestPageNotPaged,
+  OnCallTestPageNotPagedCode,
   OnCallTestPagePreviewPerson,
+  OnCallTestPageReachedThrough,
+  OnCallTestPageReachedThroughCode,
   OnCallTestPageRecordKind,
 } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
 import PositiveNumber from "../../../Types/PositiveNumber";
@@ -470,11 +476,24 @@ interface World {
   levels: Record<
     string,
     {
-      targets: Array<{ userId: ObjectID; reachedThrough?: string }>;
+      targets: Array<{
+        userId: ObjectID;
+        reachedThrough?: string;
+        reachedThroughCode?: OnCallTestPageReachedThrough;
+      }>;
       notPaged: Array<string>;
+      // As readFirstLevel reads them (#7261): none when left out.
+      notPagedCodes?: Array<OnCallTestPageNotPaged>;
       levelCount: number;
     }
   >;
+  /*
+   * Who is a member of the project (an accepted invitation to one of its
+   * teams), and the member rows of each of its teams, pending invitations
+   * too: who an owner's Created email reaches (#7211).
+   */
+  projectMemberIds: Array<string>;
+  teamMemberIds: Record<string, Array<string>>;
   previews: Record<string, OnCallTestPagePreviewPerson>;
   verified: Record<string, Array<string>>;
   serverStatuses: Array<ServerChannelStatus>;
@@ -554,13 +573,28 @@ function defaultWorld(): World {
     ],
     monitorGroupIds: [],
     statusPages: [{ id: STATUS_PAGE, name: "Public status" }],
+    projectMemberIds: [ANA, BEN, CARA, DAN],
+    teamMemberIds: {
+      [PLATFORM_TEAM]: [ANA, BEN],
+      [SRE_TEAM]: [CARA],
+      // Its rows are another project's: a read of this project's finds none.
+      [ELSEWHERE_TEAM]: [DAN],
+    },
     levels: {
       [PRIMARY]: {
         targets: [
           { userId: new ObjectID(ANA) },
-          { userId: new ObjectID(BEN), reachedThrough: "Schedule Primary" },
+          {
+            userId: new ObjectID(BEN),
+            reachedThrough: "Schedule Primary",
+            reachedThroughCode: {
+              code: OnCallTestPageReachedThroughCode.Schedule,
+              name: "Primary",
+            },
+          },
         ],
         notPaged: [],
+        notPagedCodes: [],
         levelCount: 2,
       },
       [SECONDARY]: { targets: [], notPaged: [], levelCount: 0 },
@@ -1007,8 +1041,54 @@ function stubWorld(): void {
   jest
     .spyOn(OnCallTestPageService, "readFirstLevel")
     .mockImplementation((async (args: { policyId: ObjectID }) => {
-      return world.levels[args.policyId.toString()]!;
+      const level: World["levels"][string] =
+        world.levels[args.policyId.toString()]!;
+
+      return { ...level, notPagedCodes: level.notPagedCodes || [] };
     }) as never);
+
+  // Who of these is a member of the project: one read for all of them.
+  jest
+    .spyOn(TeamMemberService, "getProjectMemberUserIds")
+    .mockImplementation((async (args: {
+      projectId: ObjectID;
+      userIds: Array<ObjectID | string>;
+    }) => {
+      return args.userIds
+        .filter((id: ObjectID | string): boolean => {
+          return (
+            args.projectId.toString() === PROJECT_ID.toString() &&
+            world.projectMemberIds.includes(id.toString().toLowerCase())
+          );
+        })
+        .map((id: ObjectID | string): ObjectID => {
+          return new ObjectID(id.toString());
+        });
+    }) as never);
+
+  // The member rows of teams, read as one project's: another's has none here.
+  jest.spyOn(TeamMemberService, "findBy").mockImplementation((async (args: {
+    query: { projectId?: ObjectID };
+  }) => {
+    if (args.query.projectId?.toString() !== PROJECT_ID.toString()) {
+      return [];
+    }
+
+    return idsAt(args.query, "teamId")
+      .filter((teamId: string): boolean => {
+        return Boolean(TEAMS[teamId]);
+      })
+      .flatMap((teamId: string): Array<TeamMember> => {
+        return (world.teamMemberIds[teamId] || []).map(
+          (userId: string): TeamMember => {
+            const row: TeamMember = new TeamMember();
+            row.teamId = new ObjectID(teamId);
+            row.userId = new ObjectID(userId);
+            return row;
+          },
+        );
+      });
+  }) as never);
 
   jest
     .spyOn(OnCallTestPageService, "getPersonPreview")
@@ -1119,11 +1199,17 @@ describe("WhoIsToldService", () => {
         userId: BEN,
         name: "Ben Ito",
         reachedThrough: "Schedule Primary",
+        reachedThroughCode: {
+          code: OnCallTestPageReachedThroughCode.Schedule,
+          name: "Primary",
+        },
         channels: [OnCallPageChannel.Push],
         isFallback: true,
         isReachable: true,
       },
     ]);
+    expect(event.policies[0]!.notPaged).toEqual([]);
+    expect(event.policies[0]!.notPagedCodes).toEqual([]);
     // The status page is listed once, though two of its resources show the monitor.
     expect(event.statusPages).toEqual([
       { id: STATUS_PAGE, name: "Public status" },
@@ -1181,6 +1267,240 @@ describe("WhoIsToldService", () => {
       source: WhoIsToldOwnersSource.Named,
       userNames: ["Ana Lopez"],
       teamNames: [],
+    });
+  });
+
+  /*
+   * ONLY WHO THE CREATED EMAIL REACHES IS NAMED (#7211): a real incident
+   * gets no owner row for somebody who left the project
+   * (OwnerRuleAssignment.createOwner), and its findOwners keeps only the
+   * project's members - a team's too, into whom it expands the team. So a
+   * person who left, and a team with nobody in it who is a member, are
+   * never named; with nobody left, the email - and the card - go to the
+   * project's owners.
+   */
+  describe("owners who left the project, and teams with nobody in them", () => {
+    test("a named owner who left the project is not named; the others still are, in order", async () => {
+      world.monitorSteps = opensIncidents(
+        incidentTemplate({ ownerUserIds: ids([BEN, ANA, CARA]) }),
+      );
+      world.projectMemberIds = [ANA, CARA, DAN];
+
+      expect(firstEvent(await resolve()).owners).toEqual({
+        source: WhoIsToldOwnersSource.Named,
+        userNames: ["Ana Lopez", "Cara Diaz"],
+        teamNames: [],
+      });
+    });
+
+    test("when every owner it names has left, it emails the project's owners, as the email does", async () => {
+      world.monitorSteps = opensIncidents(
+        incidentTemplate({ ownerUserIds: ids([BEN]) }),
+      );
+      world.deviceOwners = { ownerUserIds: ids([DAN]), ownerTeamIds: [] };
+      world.projectMemberIds = [ANA, CARA];
+
+      expect(firstEvent(await resolve()).owners).toEqual({
+        source: WhoIsToldOwnersSource.ProjectOwners,
+        userNames: ["Owner One"],
+        teamNames: [],
+      });
+    });
+
+    test("a team with no members is not named, and a team with one member still is", async () => {
+      world.monitorSteps = opensIncidents(
+        incidentTemplate({ ownerTeamIds: ids([PLATFORM_TEAM, SRE_TEAM]) }),
+      );
+      world.teamMemberIds = { [PLATFORM_TEAM]: [], [SRE_TEAM]: [CARA] };
+
+      expect(firstEvent(await resolve()).owners).toEqual({
+        source: WhoIsToldOwnersSource.Named,
+        userNames: [],
+        teamNames: ["Checkout SRE"],
+      });
+    });
+
+    test("a team whose members have all left the project reaches nobody, and is not named", async () => {
+      world.monitorSteps = opensIncidents(
+        incidentTemplate({ ownerTeamIds: ids([PLATFORM_TEAM]) }),
+      );
+      world.teamMemberIds = { [PLATFORM_TEAM]: [BEN, DAN] };
+      world.projectMemberIds = [ANA, CARA];
+
+      expect(firstEvent(await resolve()).owners).toEqual({
+        source: WhoIsToldOwnersSource.ProjectOwners,
+        userNames: ["Owner One"],
+        teamNames: [],
+      });
+    });
+
+    test("a team is named when one of its rows is somebody in the project - an invitation to it still pending, as the email counts it", async () => {
+      world.monitorSteps = opensIncidents(
+        incidentTemplate({ ownerTeamIds: ids([PLATFORM_TEAM]) }),
+      );
+      // Dan's invitation to Platform is pending; he is a member through another team.
+      world.teamMemberIds = { [PLATFORM_TEAM]: [DAN] };
+      world.projectMemberIds = [DAN];
+
+      expect(firstEvent(await resolve()).owners).toEqual({
+        source: WhoIsToldOwnersSource.Named,
+        userNames: [],
+        teamNames: ["Platform"],
+      });
+    });
+
+    test("named owners who all left leave the owner rules' owners: they are who is emailed", async () => {
+      world.monitorSteps = opensIncidents(
+        incidentTemplate({
+          ownerUserIds: ids([BEN]),
+          ownerTeamIds: ids([PLATFORM_TEAM]),
+        }),
+      );
+      world.projectMemberIds = [ANA, CARA];
+      world.teamMemberIds = { [PLATFORM_TEAM]: [], [SRE_TEAM]: [CARA] };
+      world.incidentOwnerRules = [
+        incidentOwnerRule({
+          id: OWNER_RULE,
+          name: "SRE owns checkout",
+          userIds: [ANA],
+          teamIds: [SRE_TEAM],
+        }),
+      ];
+
+      const event: WhoIsToldEvent = firstEvent(await resolve());
+
+      expect(event.owners).toEqual({
+        source: WhoIsToldOwnersSource.OwnerRules,
+        userNames: ["Ana Lopez"],
+        teamNames: ["Checkout SRE"],
+      });
+      expect(event.ownerRules).toEqual([
+        { id: OWNER_RULE, name: "SRE owns checkout" },
+      ]);
+    });
+
+    test("an owner rule that adds only people and teams the email does not reach is not said, and adds nobody", async () => {
+      world.projectMemberIds = [ANA, CARA];
+      world.teamMemberIds = { [PLATFORM_TEAM]: [], [SRE_TEAM]: [CARA] };
+      world.incidentOwnerRules = [
+        incidentOwnerRule({
+          id: OWNER_RULE,
+          name: "Gone and empty",
+          userIds: [BEN],
+          teamIds: [PLATFORM_TEAM],
+        }),
+        incidentOwnerRule({
+          id: OTHER_OWNER_RULE,
+          name: "SRE owns checkout",
+          teamIds: [SRE_TEAM],
+        }),
+      ];
+
+      const event: WhoIsToldEvent = firstEvent(await resolve());
+
+      expect(event.owners).toEqual({
+        source: WhoIsToldOwnersSource.OwnerRules,
+        userNames: [],
+        teamNames: ["Checkout SRE"],
+      });
+      expect(event.ownerRules).toEqual([
+        { id: OTHER_OWNER_RULE, name: "SRE owns checkout" },
+      ]);
+
+      // With only the first, the email - and the card - go to the project's owners.
+      world.incidentOwnerRules = [world.incidentOwnerRules[0]!];
+
+      const alone: WhoIsToldEvent = firstEvent(await resolve());
+
+      expect(alone.owners.source).toBe(WhoIsToldOwnersSource.ProjectOwners);
+      expect(alone.ownerRules).toEqual([]);
+    });
+
+    test("an alert's owners are read the same way", async () => {
+      world.monitorSteps = opensAlerts(
+        alertTemplate({
+          ownerUserIds: ids([BEN, ANA]),
+          ownerTeamIds: ids([PLATFORM_TEAM, SRE_TEAM]),
+        }),
+      );
+      world.projectMemberIds = [ANA, CARA];
+      world.teamMemberIds = { [PLATFORM_TEAM]: [BEN], [SRE_TEAM]: [CARA] };
+
+      expect(firstEvent(await resolve()).owners).toEqual({
+        source: WhoIsToldOwnersSource.Named,
+        userNames: ["Ana Lopez"],
+        teamNames: ["Checkout SRE"],
+      });
+
+      world.projectMemberIds = [];
+      WhoIsToldService.clearCache();
+
+      expect(firstEvent(await resolve()).owners.source).toBe(
+        WhoIsToldOwnersSource.ProjectOwners,
+      );
+    });
+
+    test("who is a member, and who is in each team, is read once for every owner of the answer", async () => {
+      world.monitorSteps = stepsOf([
+        ONLINE_CRITERIA,
+        criteriaInstance({
+          id: "offline",
+          name: "Offline",
+          monitorStatusId: new ObjectID(OFFLINE),
+          changeMonitorStatus: true,
+          createIncidents: true,
+          incidents: [
+            incidentTemplate({
+              ownerUserIds: ids([ANA, BEN]),
+              ownerTeamIds: ids([PLATFORM_TEAM]),
+            }),
+          ],
+        }),
+        criteriaInstance({
+          id: "slow",
+          name: "Slow",
+          createAlerts: true,
+          alerts: [
+            alertTemplate({
+              ownerUserIds: ids([BEN]),
+              ownerTeamIds: ids([PLATFORM_TEAM]),
+            }),
+          ],
+        }),
+      ]);
+      world.projectMemberIds = [ANA];
+
+      const result: WhoIsToldResult = await resolve();
+
+      expect(
+        events(result).map((event: WhoIsToldEvent): unknown => {
+          return event.owners;
+        }),
+      ).toEqual([
+        {
+          source: WhoIsToldOwnersSource.Named,
+          userNames: ["Ana Lopez"],
+          teamNames: ["Platform"],
+        },
+        {
+          source: WhoIsToldOwnersSource.Named,
+          userNames: [],
+          teamNames: ["Platform"],
+        },
+      ]);
+      expect(TeamMemberService.findBy).toHaveBeenCalledTimes(1);
+      expect(TeamMemberService.getProjectMemberUserIds).toHaveBeenCalledTimes(
+        1,
+      );
+      expect(
+        (
+          TeamMemberService.getProjectMemberUserIds as unknown as {
+            mock: { calls: Array<[{ userIds: Array<string> }]> };
+          }
+        ).mock.calls[0]![0].userIds.map((id: string): string => {
+          return id.toString().toLowerCase();
+        }),
+      ).toEqual([ANA, BEN]);
     });
   });
 
@@ -1287,6 +1607,186 @@ describe("WhoIsToldService", () => {
       "Nobody is on call in schedule Primary now.",
     ]);
     expect(kinds(result)).toEqual([WhoIsToldBreakKind.PolicyReachesNobody]);
+  });
+
+  /*
+   * IN THE READER'S LANGUAGE (#7261): why a policy pages each person, and
+   * why a target of its first level reaches nobody, come as the codes the
+   * test page's reader hands back (OnCallTestPageService.readFirstLevel),
+   * next to its English - which a Dashboard without them still shows.
+   */
+  describe("why somebody is paged, and why nobody is, as codes", () => {
+    const AWAY_UNTIL: string = "2026-11-14T09:00:00.000Z";
+    const NOT_PAGED: Array<OnCallTestPageNotPaged> = [
+      {
+        code: OnCallTestPageNotPagedCode.TeamHasNoMembers,
+        teamName: "Platform",
+        message: "Team Platform has no members.",
+      },
+      {
+        code: OnCallTestPageNotPagedCode.NobodyNextInRotation,
+        scheduleName: "Weekly",
+        message: "Nobody is next in the rotation of schedule Weekly.",
+      },
+      {
+        code: OnCallTestPageNotPagedCode.AwayWithNobodyCovering,
+        userName: "Lee Park",
+        awayUntil: AWAY_UNTIL,
+        message: `Lee Park is away until ${AWAY_UNTIL}, with nobody covering.`,
+      },
+      {
+        code: OnCallTestPageNotPagedCode.NotProjectMember,
+        userName: "Dan Okafor",
+        message: "Dan Okafor is not a member of this project.",
+      },
+    ];
+
+    test("each person carries how the policy reaches them, and the policy who it can't reach, with the English unchanged", async () => {
+      world.levels[PRIMARY] = {
+        targets: [
+          {
+            userId: new ObjectID(ANA),
+            reachedThrough: "Team Platform",
+            reachedThroughCode: {
+              code: OnCallTestPageReachedThroughCode.Team,
+              name: "Platform",
+            },
+          },
+          {
+            userId: new ObjectID(BEN),
+            reachedThrough: "Schedule Primary (next in rotation)",
+            reachedThroughCode: {
+              code: OnCallTestPageReachedThroughCode.ScheduleNextInRotation,
+              name: "Primary",
+            },
+          },
+          {
+            userId: new ObjectID(CARA),
+            reachedThrough: "Covering for Lee Park",
+            reachedThroughCode: {
+              code: OnCallTestPageReachedThroughCode.CoveringFor,
+              name: "Lee Park",
+            },
+          },
+        ],
+        notPaged: NOT_PAGED.map((item: OnCallTestPageNotPaged): string => {
+          return item.message;
+        }),
+        notPagedCodes: NOT_PAGED,
+        levelCount: 2,
+      };
+      world.previews[CARA] = preview({ userId: CARA, userName: "Cara Diaz" });
+
+      const policy: WhoIsToldEvent["policies"][number] = firstEvent(
+        await resolve(),
+      ).policies[0]!;
+
+      expect(
+        policy.people.map(
+          (
+            person: WhoIsToldEvent["policies"][number]["people"][number],
+          ): unknown => {
+            return [
+              person.userId,
+              person.reachedThrough,
+              person.reachedThroughCode,
+            ];
+          },
+        ),
+      ).toEqual([
+        [
+          ANA,
+          "Team Platform",
+          { code: OnCallTestPageReachedThroughCode.Team, name: "Platform" },
+        ],
+        [
+          BEN,
+          "Schedule Primary (next in rotation)",
+          {
+            code: OnCallTestPageReachedThroughCode.ScheduleNextInRotation,
+            name: "Primary",
+          },
+        ],
+        [
+          CARA,
+          "Covering for Lee Park",
+          {
+            code: OnCallTestPageReachedThroughCode.CoveringFor,
+            name: "Lee Park",
+          },
+        ],
+      ]);
+      // The English as it was, and the codes in its order, the away date as a date.
+      expect(policy.notPaged).toEqual([
+        "Team Platform has no members.",
+        "Nobody is next in the rotation of schedule Weekly.",
+        `Lee Park is away until ${AWAY_UNTIL}, with nobody covering.`,
+        "Dan Okafor is not a member of this project.",
+      ]);
+      expect(policy.notPagedCodes).toEqual(NOT_PAGED);
+    });
+
+    test("somebody the level names directly carries no code: there is no why", async () => {
+      const people: WhoIsToldEvent["policies"][number]["people"] = firstEvent(
+        await resolve(),
+      ).policies[0]!.people;
+
+      expect(people[0]!.userId).toBe(ANA);
+      expect(people[0]).not.toHaveProperty("reachedThrough");
+      expect(people[0]).not.toHaveProperty("reachedThroughCode");
+    });
+
+    test("a policy with no escalation rules says nobody and carries no codes: the break says it", async () => {
+      world.levels[PRIMARY] = {
+        targets: [],
+        notPaged: ["This policy has no escalation rules yet."],
+        notPagedCodes: [
+          {
+            code: OnCallTestPageNotPagedCode.PolicyHasNoLevels,
+            message: "This policy has no escalation rules yet.",
+          },
+        ],
+        levelCount: 0,
+      };
+
+      const result: WhoIsToldResult = await resolve();
+
+      expect(firstEvent(result).policies[0]).toMatchObject({
+        levelCount: 0,
+        notPaged: [],
+        notPagedCodes: [],
+      });
+      expect(kinds(result)).toEqual([WhoIsToldBreakKind.PolicyHasNoLevels]);
+    });
+
+    test("a caller who may not read the policy is handed none of it: no names, no codes", async () => {
+      world.levels[PRIMARY] = {
+        ...world.levels[PRIMARY]!,
+        notPaged: [NOT_PAGED[0]!.message],
+        notPagedCodes: [NOT_PAGED[0]!],
+      };
+      world.callerPolicies = [];
+
+      const policy: WhoIsToldEvent["policies"][number] = firstEvent(
+        await WhoIsToldService.getForMonitor({
+          projectId: PROJECT_ID,
+          monitorId: MONITOR_ID,
+          props: CALLER,
+        }),
+      ).policies[0]!;
+
+      expect(policy).toEqual({
+        id: PRIMARY,
+        name: "",
+        isHidden: true,
+        isNamedByCriteria: false,
+        ruleIds: [RULE],
+        levelCount: 0,
+        people: [],
+        notPaged: [],
+        notPagedCodes: [],
+      });
+    });
   });
 
   test("a person with no rule for the severity, in a project that doesn't fall back, can't be paged", async () => {
@@ -1631,9 +2131,14 @@ describe("WhoIsToldService", () => {
         teamNames: [],
       });
       expect(firstEvent(result!).ownerRules).toEqual([]);
-      // No owner rule, network device or status page is read for breaks only.
+      /*
+       * No owner rule, network device, project membership or status page is
+       * read for breaks only.
+       */
       expect(IncidentOwnerRuleService.findBy).not.toHaveBeenCalled();
       expect(AlertOwnerRuleService.findBy).not.toHaveBeenCalled();
+      expect(TeamMemberService.findBy).not.toHaveBeenCalled();
+      expect(TeamMemberService.getProjectMemberUserIds).not.toHaveBeenCalled();
       expect(
         NetworkDeviceOwnerUserService.getDeviceOwnersForMonitor,
       ).not.toHaveBeenCalled();
@@ -1674,6 +2179,9 @@ describe("WhoIsToldService", () => {
         WhoIsToldOwnersSource.Named,
       );
       expect(TeamService.findBy).not.toHaveBeenCalled();
+      // Nor whether the team has anybody in the project (#7211).
+      expect(TeamMemberService.findBy).not.toHaveBeenCalled();
+      expect(TeamMemberService.getProjectMemberUserIds).not.toHaveBeenCalled();
     });
 
     test("the project's Readiness gives every responder's verified methods up front", async () => {

@@ -155,7 +155,7 @@ A chave **Grupos de monitores** está desligada. Ligue-a em **Configurações do
 ## Próximos passos
 
 :::cards
-- [Critérios e status de monitores](/docs/monitor/criteria-and-statuses): O que define o status de cada monitor.
+- [Critérios e status](/docs/monitor/criteria-and-statuses): O que define o status de cada monitor.
 - [Recursos e grupos da página de status](/docs/status-pages/resources-and-groups): Organizar as linhas de uma página de status.
 - [Assinantes e comunicados](/docs/status-pages/subscribers): Avisar os clientes sobre os incidentes de um grupo.
 :::

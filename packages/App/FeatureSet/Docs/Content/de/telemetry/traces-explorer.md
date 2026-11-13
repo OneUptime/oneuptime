@@ -183,6 +183,6 @@ Jede Zeile ist ein Span, keine Anfrage: Mit **Entry spans**, dem Standard, ersch
 :::cards
 - [Suchsyntax](/docs/telemetry/search-syntax): Jeder Filter, den das Suchfeld versteht.
 - [Traces-Überwachung](/docs/monitor/traces-monitor): Bei fehlgeschlagenen oder langsamen Anfragen benachrichtigt werden.
-- [Ausnahmenverfolgung](/docs/telemetry/exceptions): Die Fehler sichten, die Ihre Spans aufzeichnen.
+- [Ausnahmen](/docs/telemetry/exceptions): Die Fehler sichten, die Ihre Spans aufzeichnen.
 - [Protokoll-Explorer](/docs/telemetry/logs-explorer): Die Protokollzeilen lesen, die eine Anfrage geschrieben hat.
 :::

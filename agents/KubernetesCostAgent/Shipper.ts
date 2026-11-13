@@ -104,7 +104,7 @@ export class Shipper {
            * missing/revoked, so retrying cannot help. Surface loudly.
            */
           throw new Error(
-            "OneUptime rejected the ingestion token (HTTP 401). Create or copy a live key from Project Settings > Telemetry Ingestion Keys and redeploy the agent.",
+            "OneUptime rejected the ingestion token (HTTP 401). Create or copy a live key from Project Settings > Telemetry & APM > Ingestion Keys and redeploy the agent.",
           );
         }
 

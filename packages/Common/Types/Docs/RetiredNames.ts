@@ -86,6 +86,54 @@ export const RETIRED_NAMES: ReadonlyArray<RetiredName> = [
       /Project Settings\**\s*(?:→|>|›)\s*\**Notifications\**\s*(?:→|>|›)\s*\**Notification Settings/,
     retiredIn: "#6817 part 1",
   },
+  {
+    name: "Performance Profiles",
+    nowCalled: "Profiles",
+    glossaryTerm: GlossaryTerm.Profiles,
+    pattern: /\bPerformance Profiles?\b/,
+    retiredIn: "#6817 part 2",
+  },
+  {
+    name: "Profiler",
+    nowCalled: "Profiles",
+    glossaryTerm: GlossaryTerm.Profiles,
+    /*
+     * The page's title. Never "a profiler", the tool that sends profiles,
+     * nor one's own name: React's <Profiler>, the OpenTelemetry eBPF
+     * Profiler, Pyroscope.Profiler.Native.so.
+     */
+    pattern: /(?<!<|\w\.|eBPF )\bProfiler\b(?!>|\.\w)/,
+    retiredIn: "#6817 part 2",
+  },
+  {
+    name: "Continuous Profiling",
+    nowCalled: "Profiles",
+    glossaryTerm: GlossaryTerm.Profiles,
+    pattern: /\bContinuous Profiling\b/,
+    retiredIn: "#6817 part 2",
+  },
+  {
+    name: "Exception Tracking",
+    nowCalled: "Exceptions",
+    glossaryTerm: GlossaryTerm.Exception,
+    pattern: /\bException Tracking\b/,
+    retiredIn: "#6817 part 2",
+  },
+  {
+    name: "Monitor Criteria",
+    nowCalled: "Criteria",
+    glossaryTerm: GlossaryTerm.Criteria,
+    // Also "Monitoring Criteria"; the API's monitor steps keep their name.
+    pattern: /\bMonitor(?:ing)? Criteria\b/,
+    retiredIn: "#6817 part 2",
+  },
+  {
+    name: "Telemetry Ingestion Key",
+    nowCalled: "Ingestion Key",
+    glossaryTerm: GlossaryTerm.IngestionKey,
+    pattern: /\bTelemetry Ingestion Keys?\b/,
+    retiredIn: "#6817 part 2",
+  },
 ];
 
 // The retired names a text uses, by name.

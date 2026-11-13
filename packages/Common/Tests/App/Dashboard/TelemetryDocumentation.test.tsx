@@ -431,7 +431,7 @@ describe("TelemetryDocumentation", () => {
 
       // Two real steps: installing the agent is not a numbered step of its own.
       expect(stepTitles()).toEqual([
-        "Turn On the Agent's Profiler",
+        "Turn On Profiling in the Agent",
         "Verify It Is Working",
       ]);
       expect(container.textContent).toContain("--set profiling.enabled=true");
@@ -467,7 +467,7 @@ describe("TelemetryDocumentation", () => {
       expect(stepTitles()).toEqual([
         "Get Your Ingestion Credentials",
         "Install Dependencies",
-        "Configure the Profiler",
+        "Configure the SDK",
         "Verify It Is Working",
       ]);
       expect(

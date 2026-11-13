@@ -183,6 +183,6 @@ Hver række er et span, ikke en forespørgsel: med **Entry spans**, som er stand
 :::cards
 - [Søgesyntaks](/docs/telemetry/search-syntax): Hvert filter, søgefeltet forstår.
 - [Trace-monitor](/docs/monitor/traces-monitor): Få besked om fejlede eller langsomme forespørgsler.
-- [Undtagelsessporing](/docs/telemetry/exceptions): Gennemgå de fejl, dine spans registrerer.
+- [Undtagelser](/docs/telemetry/exceptions): Gennemgå de fejl, dine spans registrerer.
 - [Protokoludforsker](/docs/telemetry/logs-explorer): Læs de protokollinjer, en forespørgsel skrev.
 :::

@@ -34,7 +34,7 @@ flowchart TB
 ## Avant de commencer
 
 - **Pour les budgets de l'instance et d'un projet, l'Admin Dashboard.** Sur une installation auto-hébergée, seul l'administrateur de l'instance les définit. Les propriétaires et les administrateurs d'un projet voient ses budgets, mais ne peuvent pas les modifier.
-- **Pour le budget propre d'une clé, un rôle qui modifie les clés d'ingestion.** Project Owner ou Project Admin, ou un rôle personnalisé avec la permission Edit Telemetry Ingestion Key.
+- **Pour le budget propre d'une clé, un rôle qui modifie les clés d'ingestion.** Project Owner ou Project Admin, ou un rôle personnalisé avec la permission Edit Ingestion Key.
 - **Pour voir les budgets, un rôle qui voit l'utilisation du projet.** Les rôles qui voient la page [Utilisation de la télémétrie](/docs/telemetry/usage) y voient les budgets du projet.
 
 ## Définir les budgets par défaut de tous les projets

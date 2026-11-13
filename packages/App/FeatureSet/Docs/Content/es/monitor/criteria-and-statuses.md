@@ -1,4 +1,4 @@
-# Criterios y estados de monitores
+# Criterios y estados
 
 Los criterios de un monitor deciden qué significa cada comprobación: si el monitor está en línea o caído, y si OneUptime declara un incidente o crea una alerta. Los estados son la lista de su proyecto con lo que puede ser un monitor, de **Operativo** a **Sin conexión**. Esta página explica ambos para cada tipo de monitor; la página de cada tipo enumera los filtros que ofrece.
 
@@ -111,7 +111,7 @@ Los secretos y los datos personales se enmascaran antes de conservar nada: encab
 :::steps
 ### Abrir la página de criterios
 
-Vaya a **Monitores** y abra el monitor. Despliegue **Configuración** en su menú lateral y haga clic en **Criterios**. La tarjeta **Criterios de monitoreo** muestra cada criterio, qué comprueba y qué hace.
+Vaya a **Monitores** y abra el monitor. Despliegue **Configuración** en su menú lateral y haga clic en **Criterios**. La tarjeta **Criterios** muestra cada criterio, qué comprueba y qué hace.
 
 ### Hacer clic en Editar criterios de monitoreo
 

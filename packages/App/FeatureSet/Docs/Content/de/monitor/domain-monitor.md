@@ -64,7 +64,7 @@ Klicken Sie auf **Monitor testen**, wählen Sie unter **Sonde auswählen** eine 
 
 ### Die Kriterien prüfen
 
-**Monitor-Kriterien** beginnt mit den [Standardkriterien](#standardkriterien): offline, wenn die Registrierung abgelaufen ist oder nicht gelesen werden kann, eine Warnung, wenn sie in 30 Tagen oder früher abläuft. Ändern Sie sie bei Bedarf und klicken Sie dann auf **Weiter**.
+**Kriterien** beginnt mit den [Standardkriterien](#standardkriterien): offline, wenn die Registrierung abgelaufen ist oder nicht gelesen werden kann, eine Warnung, wenn sie in 30 Tagen oder früher abläuft. Ändern Sie sie bei Bedarf und klicken Sie dann auf **Weiter**.
 
 ### Sonden wählen und erstellen
 
@@ -135,7 +135,7 @@ Um früher gewarnt zu werden, ändern Sie den Wert des Filters **Tage bis zum Ab
 :::details Die Warnung einem Monitor hinzufügen, der vor ihr erstellt wurde
 Monitore, die erstellt wurden, bevor OneUptime diese Warnung eingeführt hat, haben kein Kriterium „läuft bald ab“. So fügen Sie es hinzu:
 
-1. Öffnen Sie beim Monitor **Konfiguration → Kriterien** und klicken Sie auf **Überwachungskriterien bearbeiten**.
+1. Öffnen Sie beim Monitor **Konfiguration → Kriterien** und klicken Sie auf **Kriterien bearbeiten**.
 2. Klicken Sie auf **Kriterien hinzufügen**. Setzen Sie seinen Filter auf **Domain ist abgelaufen** / **Falsch**, klicken Sie auf **Filter hinzufügen** und setzen Sie den zweiten auf **Tage bis zum Ablauf der Domain** / **Kleiner als oder gleich** / `30`. Lassen Sie **Abgleichsbedingung** auf **Alle** (es erscheint unter den Filtern, sobald es zwei sind).
 3. Schalten Sie unter **Aktionen** **Wenn Filter übereinstimmen, eine Warnung erstellen.** ein und lassen Sie **Wenn Filter übereinstimmen, Monitorstatus ändern.** ausgeschaltet, sodass es eine Warnung erstellt und den Monitorstatus nicht ändert.
 4. Ziehen Sie das neue Kriterium über das Kriterium, das den Monitor als online markiert, und speichern Sie dann.

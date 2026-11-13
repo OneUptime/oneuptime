@@ -599,9 +599,7 @@ describe("the criteria of these monitors", () => {
   // The Proxmox page's criteria table, which InfrastructureMonitorDocsFacts holds to the form.
   const proxmoxRows: Array<Array<string>> = tableBody(
     readPage("en", "monitor/proxmox-monitor").slice(
-      readPage("en", "monitor/proxmox-monitor").indexOf(
-        "## Monitoring criteria",
-      ),
+      readPage("en", "monitor/proxmox-monitor").indexOf("## Criteria"),
     ),
   );
 
@@ -659,7 +657,7 @@ describe("the criteria of these monitors", () => {
     "%s describes the criteria fields as the Proxmox page does",
     (page: string) => {
       const all: Array<Array<string>> = tableBody(
-        sectionOf(page, "## Monitoring criteria"),
+        sectionOf(page, "## Criteria"),
       );
       // The IoT form draws the Filter Type, and the metric field under its general title.
       const rows: Array<Array<string>> =

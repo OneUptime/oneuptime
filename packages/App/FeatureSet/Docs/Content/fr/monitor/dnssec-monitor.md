@@ -66,7 +66,7 @@ Cliquez sur **Tester le moniteur**, choisissez une sonde sous **Sélectionner la
 
 ### Passer en revue les critères
 
-**Critères du moniteur** commence avec les [critères par défaut](#critères-par-défaut) : hors ligne quand la chaîne est rompue, en ligne quand elle est valide. Pour être averti avant l'expiration des signatures, ajoutez un critère (voir [Bonnes pratiques](#bonnes-pratiques)), puis cliquez sur **Suivant**.
+**Critères** commence avec les [critères par défaut](#critères-par-défaut) : hors ligne quand la chaîne est rompue, en ligne quand elle est valide. Pour être averti avant l'expiration des signatures, ajoutez un critère (voir [Bonnes pratiques](#bonnes-pratiques)), puis cliquez sur **Suivant**.
 
 ### Choisir les sondes et créer
 

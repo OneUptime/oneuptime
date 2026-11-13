@@ -251,6 +251,11 @@ Desktop, and with no browser picked Next says so by the button and goes nowhere;
 Failure and Request Timeout say what they are in one line, and the retry rule waits in the
 (i) by the title, wrapped inside the window.
 
+Probes' title is a defined term (issue #7543): only a press on the word opens its
+definition, and it stays open once the pointer moves away; a click on the empty end of the
+title's row, under the arrow every title has, leaves it closed. The dropdown is still named
+Probes, and so is the word.
+
 At the plan's limit on active monitors (`?billing=true&monitorLimit=`), a notice above the
 form says which limit, how many active monitors the project has, what to do (with the plan
 a click away) and what counts; past the limit it says the monitors keep running and when the

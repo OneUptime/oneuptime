@@ -62,7 +62,7 @@ En tjänsts sidomeny har fem avsnitt:
 | Avsnitt | Sidor |
 | --- | --- |
 | **Grundläggande** | **Översikt**: förfrågningar, felfrekvens och p95-latens från dess spans, diagram och dess detaljer. **Rekommendationer**: färdiga monitorer för tjänsten, valda efter dess språk. **Ägare**: de personer och team som ansvarar för den. **Feed**: allt som har hänt den, från hur den skapades till varje ändring sedan dess. |
-| **Telemetri** | Dess **Loggar**, **Spår**, **Mätvärden**, **Prestandaprofiler**, **Undantag** och **Source maps**, redan filtrerade på den här tjänsten. |
+| **Telemetri** | Dess **Loggar**, **Spår**, **Mätvärden**, **Profiler**, **Undantag** och **Source maps**, redan filtrerade på den här tjänsten. |
 | **Aktivitet** | De **Incidenter**, **Larm** och händelser under **Schemalagt underhåll** som berör den. |
 | **Utvecklare** | **Terraform**, **API**, **CLI** och **AI-assistenter**: tjänsten styrd från kod. Avsnittet är hopfällt från början. |
 | **Avancerad** | **Inställningar**, **Granskningsloggar** och **Ta bort tjänst**. **Avancerad** är hopfälld från början: fäll ut den först. |
@@ -123,6 +123,6 @@ Inget har kommit från den under de senaste 30 minuterna. Det är väntat för e
 :::cards
 - [Loggutforskare](/docs/telemetry/logs-explorer): Sök i en tjänsts loggar.
 - [Spårutforskare](/docs/telemetry/traces-explorer): Följ dess förfrågningar.
-- [Undantagsspårning](/docs/telemetry/exceptions): Gå igenom felen den kastar.
+- [Undantag](/docs/telemetry/exceptions): Gå igenom felen den kastar.
 - [Etikett- och ägarregler](/docs/configuration/label-and-owner-rules): Ge nya tjänster etiketter och ägare.
 :::

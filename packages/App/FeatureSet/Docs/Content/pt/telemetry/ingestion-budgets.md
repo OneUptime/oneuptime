@@ -34,7 +34,7 @@ flowchart TB
 ## Antes de começar
 
 - **Para os orçamentos da instância e de um projeto, o Admin Dashboard.** Em uma instalação de hospedagem própria, só o administrador da instância os define. Os proprietários e administradores de um projeto veem os orçamentos dele, mas não podem alterá-los.
-- **Para o orçamento próprio de uma chave, uma função que edite chaves de ingestão.** Project Owner ou Project Admin, ou uma função personalizada com a permissão Edit Telemetry Ingestion Key.
+- **Para o orçamento próprio de uma chave, uma função que edite chaves de ingestão.** Project Owner ou Project Admin, ou uma função personalizada com a permissão Edit Ingestion Key.
 - **Para ver os orçamentos, uma função que veja o uso do projeto.** As funções que veem a página [Uso de telemetria](/docs/telemetry/usage) veem nela os orçamentos do projeto.
 
 ## Definir os orçamentos padrão de todos os projetos

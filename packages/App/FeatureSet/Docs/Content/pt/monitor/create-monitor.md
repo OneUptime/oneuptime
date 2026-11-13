@@ -44,7 +44,7 @@ Para um monitor que as sondas verificam, **Testar monitor** executa a verificaç
 
 ### Revisar os critérios
 
-Logo abaixo, os **Critérios do monitor** decidem quando o monitor muda de status, declara um incidente ou cria um alerta. Um monitor novo começa com critérios que servem para a maioria dos monitores, cada um recolhido em uma linha que diz o que verifica e o que faz. Um monitor de site novo, por exemplo, é marcado como offline e declara um incidente quando o site não responde ou responde com um código de status de erro.
+Logo abaixo, os **Critérios** decidem quando o monitor muda de status, declara um incidente ou cria um alerta. Um monitor novo começa com critérios que servem para a maioria dos monitores, cada um recolhido em uma linha que diz o que verifica e o que faz. Um monitor de site novo, por exemplo, é marcado como offline e declara um incidente quando o site não responde ou responde com um código de status de erro.
 
 Clique em um critério para abri-lo e alterá-lo. **Adicionar critérios** adiciona um, aberto e pronto para preencher. Para mudar a ordem, arraste um critério pela alça à esquerda dele.
 
@@ -72,7 +72,7 @@ flowchart TB
     end
 ```
 
-Incidentes e alertas configurados para se resolver automaticamente, como os dos critérios padrão, se resolvem sozinhos assim que o critério deixa de corresponder. Um monitor verificado por mais de uma sonda só muda quando as sondas concordam: por padrão, toda sonda ativada e conectada precisa chegar ao mesmo resultado. Para exigir menos, defina **Concordância de sondas** na página **Configuração → Sondas e intervalo** do monitor. Para tudo o que um critério pode conter e os status que um monitor pode mostrar, veja [Critérios e status de monitores](/docs/monitor/criteria-and-statuses).
+Incidentes e alertas configurados para se resolver automaticamente, como os dos critérios padrão, se resolvem sozinhos assim que o critério deixa de corresponder. Um monitor verificado por mais de uma sonda só muda quando as sondas concordam: por padrão, toda sonda ativada e conectada precisa chegar ao mesmo resultado. Para exigir menos, defina **Concordância de sondas** na página **Configuração → Sondas e intervalo** do monitor. Para tudo o que um critério pode conter e os status que um monitor pode mostrar, veja [Critérios e status](/docs/monitor/criteria-and-statuses).
 
 ## Sondas e intervalo
 
@@ -103,7 +103,7 @@ Cada tipo de monitor tem a sua própria página, com as suas configurações, os
 :::cards
 - [Monitor de site](/docs/monitor/website-monitor): Verificar se uma página carrega, e o que ela responde.
 - [Monitor de API](/docs/monitor/api-monitor): Chamar um endpoint com um método, cabeçalhos e um corpo.
-- [Critérios e status de monitores](/docs/monitor/criteria-and-statuses): O que define o status de cada monitor.
+- [Critérios e status](/docs/monitor/criteria-and-statuses): O que define o status de cada monitor.
 - [Modelos de monitor](/docs/monitor/monitor-templates): Criar muitos monitores a partir de uma configuração e mantê-los alinhados.
 - [Grupos de monitores](/docs/monitor/monitor-groups): Reunir vários monitores em um único status.
 - [Incidentes](/docs/incidents/index): O que acontece depois que um monitor declara um incidente.

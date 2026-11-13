@@ -334,7 +334,7 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 
 ## 継続的な CPU プロファイリング
 
-[OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) も、`otel/opentelemetry-collector-ebpf-profiler` イメージとして各ノードで実行できます。Go、Java、.NET、Python、Ruby、Node.js、PHP、Perl、C、C++、Rust で、すべてのプロセスが実行している内容を 1 秒間に 19 回サンプリングし、プロファイルを OneUptime に送信します。プロファイルは **製品 → パフォーマンスプロファイル** に表示され、トレースの各スパンにもフレームグラフとして表示されます。
+[OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) も、`otel/opentelemetry-collector-ebpf-profiler` イメージとして各ノードで実行できます。Go、Java、.NET、Python、Ruby、Node.js、PHP、Perl、C、C++、Rust で、すべてのプロセスが実行している内容を 1 秒間に 19 回サンプリングし、プロファイルを OneUptime に送信します。プロファイルは **製品 → プロファイル** に表示され、トレースの各スパンにもフレームグラフとして表示されます。
 
 **プロファイリングはデフォルトではオフです。** ノードあたりの CPU とメモリのコストが eBPF インストルメンテーションより大きいためです。`--set profiling.enabled=true` でオンにしてください。
 

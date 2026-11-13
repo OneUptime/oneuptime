@@ -242,6 +242,13 @@ export interface ClusterKeyRouteToolCaller {
   // Where the script reads the key: the installation's own configuration.
   key: string;
   /*
+   * The header's value, as the script writes it: the key URI-encoded with
+   * the global encodeURIComponent, as ClusterKeyAuthorization.getClusterKey()
+   * presents the app's own and isAcceptedClusterKey compares what it is
+   * sent, so a key with + / = @ & % or a letter beyond ASCII is accepted.
+   */
+  presents: string;
+  /*
    * How the request never follows a redirect, which would hand the key's
    * header to wherever it points: fetch told not to ("manual"), or Node's
    * http and https, which never follow one.
@@ -266,6 +273,7 @@ export const CLUSTER_KEY_ROUTE_TOOL_CALLERS: Array<ClusterKeyRouteToolCaller> =
       address: ['const port = process.env.PORT || "3002";'],
       path: "/api/admin/health/doctor",
       key: 'process.env.ONEUPTIME_SECRET || ""',
+      presents: 'encodeURIComponent(process.env.ONEUPTIME_SECRET || "")',
       client: "fetch",
     },
     // `npm run doctor`: the ingress on this host, with the key in its config.env.
@@ -282,6 +290,7 @@ export const CLUSTER_KEY_ROUTE_TOOL_CALLERS: Array<ClusterKeyRouteToolCaller> =
       ],
       path: "/api/admin/health/doctor",
       key: 'String(settings.get("ONEUPTIME_SECRET") || "").trim()',
+      presents: "encodeURIComponent(secret)",
       client: "node-http",
     },
   ];

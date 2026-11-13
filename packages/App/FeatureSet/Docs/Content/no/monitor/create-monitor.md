@@ -44,7 +44,7 @@ For en monitor som sonder sjekker, kjører **Test monitor** sjekken én gang fø
 
 ### Gå gjennom kriteriene
 
-Nedenfor avgjør **Monitorkriterier** når monitoren endrer status, erklærer en hendelse eller oppretter et varsel. En ny monitor starter med kriterier som passer for de fleste monitorer, hvert brettet sammen til én linje som sier hva det sjekker og hva det gjør. En ny nettstedsmonitor blir for eksempel merket som frakoblet og erklærer en hendelse når nettstedet ikke svarer eller svarer med en feilstatuskode.
+Nedenfor avgjør **Kriterier** når monitoren endrer status, erklærer en hendelse eller oppretter et varsel. En ny monitor starter med kriterier som passer for de fleste monitorer, hvert brettet sammen til én linje som sier hva det sjekker og hva det gjør. En ny nettstedsmonitor blir for eksempel merket som frakoblet og erklærer en hendelse når nettstedet ikke svarer eller svarer med en feilstatuskode.
 
 Klikk på et kriterium for å åpne og endre det. **Legg til kriterier** legger til ett, åpent og klart til å fylles ut. For å endre rekkefølgen drar du et kriterium i håndtaket til venstre for det.
 
@@ -72,7 +72,7 @@ flowchart TB
     end
 ```
 
-Hendelser og varsler som er satt til å løses automatisk, slik standardkriterienes er, løser seg selv så snart kriteriet deres ikke lenger samsvarer. En monitor som sjekkes av mer enn én sonde, endres bare når sondene er enige: som standard må hver sonde som er slått på og tilkoblet, komme til samme resultat. For å kreve færre setter du **Sondeenighet** på monitorens side **Konfigurasjon → Sonder og intervall**. Alt et kriterium kan inneholde, og statusene en monitor kan vise, finner du i [Monitorkriterier og statuser](/docs/monitor/criteria-and-statuses).
+Hendelser og varsler som er satt til å løses automatisk, slik standardkriterienes er, løser seg selv så snart kriteriet deres ikke lenger samsvarer. En monitor som sjekkes av mer enn én sonde, endres bare når sondene er enige: som standard må hver sonde som er slått på og tilkoblet, komme til samme resultat. For å kreve færre setter du **Sondeenighet** på monitorens side **Konfigurasjon → Sonder og intervall**. Alt et kriterium kan inneholde, og statusene en monitor kan vise, finner du i [Kriterier og statuser](/docs/monitor/criteria-and-statuses).
 
 ## Sonder og intervall
 
@@ -103,7 +103,7 @@ Hver monitortype har sin egen side med innstillingene sine, standardkriteriene o
 :::cards
 - [Nettsted-overvåking](/docs/monitor/website-monitor): Sjekk at en side lastes, og hva den svarer.
 - [API-overvåking](/docs/monitor/api-monitor): Kall et endepunkt med en metode, hoder og en brødtekst.
-- [Monitorkriterier og statuser](/docs/monitor/criteria-and-statuses): Hva som setter statusen til hver monitor.
+- [Kriterier og statuser](/docs/monitor/criteria-and-statuses): Hva som setter statusen til hver monitor.
 - [Monitormaler](/docs/monitor/monitor-templates): Opprett mange monitorer fra én konfigurasjon, og hold dem like.
 - [Monitorgrupper](/docs/monitor/monitor-groups): Samle flere monitorer i én status.
 - [Hendelser](/docs/incidents/index): Hva som skjer etter at en monitor har erklært en hendelse.

@@ -1,4 +1,4 @@
-# Rastreamento de exceções
+# Exceções
 
 O rastreamento de exceções reúne os erros que seu código lança e agrupa cada ocorrência do mesmo erro em uma única exceção, com o stack trace, a tendência e as requisições em que ela aconteceu. Trate-as como uma lista de tarefas: corrija, resolva ou arquive o ruído, e deixe a IA abrir um pull request para as que ela consegue corrigir.
 

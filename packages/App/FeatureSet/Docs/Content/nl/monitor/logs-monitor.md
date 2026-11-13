@@ -240,7 +240,7 @@ De waarde van elk Group By-attribuut is een [templatevariabele](/docs/monitor/in
 ## Problemen oplossen
 
 :::details De monitor is offline, maar mijn service schrijft wel logs
-Het aantal was 0, dus de filters komen met geen enkele log van de service overeen. Open de pagina **Criteria** van de monitor (onder **Configuratie**) en klik op **Bewakingscriteria bewerken**: **Overeenkomende logs** toont wat de filters nu selecteren, en de grafiek in **Wanneer waarschuwen** telt ze in elk venster. De gebruikelijke oorzaken zijn een ernst gekozen op de tekst die de logger afdrukt in plaats van op het ernstnummer (zie [Ernst van logs](#ernst-van-logs)), een service- of attribuutfilter dat niet overeenkomt, en een tijdvenster dat korter is dan de tussenpoos tussen de logs van de service.
+Het aantal was 0, dus de filters komen met geen enkele log van de service overeen. Open de pagina **Criteria** van de monitor (onder **Configuratie**) en klik op **Criteria bewerken**: **Overeenkomende logs** toont wat de filters nu selecteren, en de grafiek in **Wanneer waarschuwen** telt ze in elk venster. De gebruikelijke oorzaken zijn een ernst gekozen op de tekst die de logger afdrukt in plaats van op het ernstnummer (zie [Ernst van logs](#ernst-van-logs)), een service- of attribuutfilter dat niet overeenkomt, en een tijdvenster dat korter is dan de tussenpoos tussen de logs van de service.
 :::
 
 :::details Er was een piek, maar er kwam geen waarschuwing

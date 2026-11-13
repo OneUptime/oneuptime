@@ -26,7 +26,7 @@ flowchart TB
 
 - Een web-app waarvan je de code kunt wijzigen en opnieuw kunt uitrollen, met afhankelijkheden die via npm worden geïnstalleerd.
 - De origins waarvandaan je pagina's worden geserveerd, bijvoorbeeld `https://app.example.com`. Een Browser-sleutel accepteert alleen verzoeken van de origins die je erop opgeeft.
-- Een rol die ingestiesleutels mag aanmaken: projecteigenaren en -beheerders mogen dat, en ook iedereen met de machtiging **Create Telemetry Ingestion Key**.
+- Een rol die ingestiesleutels mag aanmaken: projecteigenaren en -beheerders mogen dat, en ook iedereen met de machtiging Create Ingestion Key.
 
 ## Instellen
 
