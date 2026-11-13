@@ -482,14 +482,32 @@ test.describe("a deploy under the open tab", () => {
     page: Page;
     request: APIRequestContext;
   }) => {
+    const scrollYOf: () => Promise<number> = async (): Promise<number> => {
+      return await page.evaluate((): number => {
+        return Math.round(window.scrollY);
+      });
+    };
+
     await page.goto("/dashboard/home?gap=0#latest");
     await expect(page.getByTestId("page-home")).toBeVisible();
+    /*
+     * Its font in first. Inter landing after the scroll below redraws the
+     * text above the place, and the browser's scroll anchoring moves the
+     * reader with it - on a phone from 1200 to 1180: the place the reader is
+     * at as they press Reload, and the one the new version brings them back
+     * to.
+     */
+    await page.evaluate(async (): Promise<void> => {
+      await document.fonts.ready;
+    });
     await page.evaluate((): void => {
       window.scrollTo(0, 1200);
     });
     await deploy(request);
     await lookNow(page);
     await expect(notice(page)).toBeVisible();
+    // Where the reader is as they press Reload.
+    expect(await scrollYOf()).toBe(1200);
 
     await page.getByTestId("new-version-notice-reload").click();
 
@@ -505,13 +523,7 @@ test.describe("a deploy under the open tab", () => {
       "/dashboard/home?gap=0#latest",
     );
 
-    await expect
-      .poll(async (): Promise<number> => {
-        return await page.evaluate((): number => {
-          return Math.round(window.scrollY);
-        });
-      })
-      .toBe(1200);
+    await expect.poll(scrollYOf).toBe(1200);
   });
 
   test("Dismiss puts the notice away, and the next page still loads the new version", async ({
@@ -1168,6 +1180,14 @@ test.describe("the browser going offline under an open page", () => {
 
     await page.goto(`/dashboard/home?shell=master&${NO_LOOKING}`);
     await expect(page.getByTestId("page-home")).toBeVisible();
+    /*
+     * Its font in first: Inter landing after the scroll below moves the
+     * reader with the text above the place (on a phone to 1180), and the
+     * page comes back to where the reader was as the connection dropped.
+     */
+    await page.evaluate(async (): Promise<void> => {
+      await document.fonts.ready;
+    });
     await page.evaluate((): void => {
       window.scrollTo(0, 1200);
     });
