@@ -30,6 +30,7 @@ import Query from "Common/Types/BaseDatabase/Query";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ProjectUtil from "Common/UI/Utils/Project";
+import { getUnnamedText } from "./DashboardWidgetFallbackWords";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardDockerVolumeListComponent;
@@ -149,7 +150,7 @@ const DashboardDockerVolumeListComponentElement: FunctionComponent<
   const honeycombTiles: Array<HoneycombTile> = volumes.map(
     (v: DockerResource): HoneycombTile => {
       const id: string = (v._id as string) || "";
-      const name: string = (v.name as string) || "Unnamed";
+      const name: string = (v.name as string) || getUnnamedText();
       const driverScope: string = (v.state as string) || "—";
       const hostName: string = (v.dockerHost?.name as string) || "—";
 
@@ -170,7 +171,7 @@ const DashboardDockerVolumeListComponentElement: FunctionComponent<
 
   const rows: Array<ReactElement> = volumes.map((v: DockerResource) => {
     const id: string = (v._id as string) || "";
-    const name: string = (v.name as string) || "Unnamed";
+    const name: string = (v.name as string) || getUnnamedText();
     const driverScope: string = (v.state as string) || "—";
     const hostName: string = (v.dockerHost?.name as string) || "—";
 
@@ -198,7 +199,10 @@ const DashboardDockerVolumeListComponentElement: FunctionComponent<
   return (
     <DashboardResourceListBase
       title={args.title}
-      pluralLabel="volumes"
+      countLabel={{
+        one: "{{count}} volume",
+        other: "{{count}} volumes",
+      }}
       columns={COLUMNS}
       count={volumes.length}
       isLoading={isLoading}

@@ -509,7 +509,10 @@ const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
         props.component.arguments.title,
         props.variables,
       )}
-      pluralLabel={slos.length === 1 ? "SLO" : "SLOs"}
+      countLabel={{
+        one: "{{count}} SLO",
+        other: "{{count}} SLOs",
+      }}
       columns={COLUMNS}
       count={slos.length}
       isLoading={isLoading}

@@ -691,6 +691,7 @@
     "{{amount}}, ratio {{ratio}}",
     "{{count}} CPU",
     "{{count}} Kubernetes",
+    "{{count}} OSD",
     "{{count}} SLO",
     "{{count}} SMS",
     "{{count}} VM",
