@@ -18,7 +18,10 @@ import GlossaryTerm from "./GlossaryTerm";
  *     would not find the page by itself;
  *   - an address or an API name, which never change: /on-call-duty,
  *     OnCallDutyPolicy, a model's apiSingularName (Common/Utils/ModelApiName),
- *     a stored value a rule keeps matching on.
+ *     a stored value a rule keeps matching on;
+ *   - a name another app keeps: the Slack app's shortcuts, as its manifest
+ *     (Workspace/Slack/app-manifest.json) names them, which every installed
+ *     app keeps until it is updated.
  *
  * To retire a name, add it here with what it is called now, give its
  * glossary term the old name under "Also called", and make Search find the

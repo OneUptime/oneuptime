@@ -2122,7 +2122,7 @@ describe("the create form", () => {
       "Only the title has to be typed; everything else starts with a sensible default.",
     );
     expect(fieldsTable).toContain(
-      "| **Title**                            | **Event**          | Empty, and required",
+      "| **Title**                            | **Maintenance Details** | Empty, and required",
     );
   });
 
@@ -2661,7 +2661,7 @@ describe("changing an event later", () => {
     expect(quotedTitles(steps)).toEqual(["Maintenance Details", "Status Pages"]);
     expect(details).toContain('editButtonText="Edit"');
     expect(later).toContain(
-      "| The title, the window or the labels         | **Edit** on the **Maintenance Details** card of its **Overview**, step **Event** |",
+      "| The title, the window or the labels         | **Edit** on the **Maintenance Details** card of its **Overview**, step **Maintenance Details** |",
     );
     expect(later).toContain(
       "| The status pages, when it is published, or the reminders | The same **Edit**, step **Status Pages**",
@@ -2819,7 +2819,7 @@ describe("creating events from code", () => {
       'resource "oneuptime_scheduled_maintenance_event"',
     );
     expect(code).toContain(
-      "The same event as code is the `oneuptime_scheduled_maintenance_event` Terraform resource: see [Examples](/docs/terraform/examples#scheduled-maintenance). A workflow creates one with its **Create One Scheduled Maintenance Event** step",
+      "The same event as code is the `oneuptime_scheduled_maintenance_event` Terraform resource: see [Examples](/docs/terraform/examples#scheduled-maintenance). A workflow creates one with its **Create One Maintenance Event** step",
     );
   });
 });
@@ -2843,13 +2843,13 @@ describe("maintenance templates", () => {
     );
   });
 
-  it("walk the form's steps: Template Info, Event, Resources Affected, Recurring - Status Pages on the view page's Edit", () => {
+  it("walk the form's steps: Template Info, Maintenance Details, Resources Affected, Recurring - Status Pages on the view page's Edit", () => {
     expect(TEMPLATES_PAGE).toContain(
       '{\n      title: "Template Info",\n      id: "template-info",\n    },\n    {\n      title: "Maintenance Details",\n      id: "event",\n    },\n    {\n      title: data.excludeAffectedResources\n        ? "Status Pages"\n        : "Resources Affected",\n      id: "resources-affected",\n    },\n    {\n      title: "Recurring",\n      id: "recurring",\n    },',
     );
     expect(TEMPLATE_VIEW_PAGE).toContain("excludeAffectedResources: true,");
     expect(templates).toContain(
-      "Its **Edit** walks **Template Info**, **Event**, **Status Pages** and **Recurring**.",
+      "Its **Edit** walks **Template Info**, **Maintenance Details**, **Status Pages** and **Recurring**.",
     );
   });
 

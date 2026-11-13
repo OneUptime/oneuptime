@@ -102,6 +102,6 @@ describe("Users, Teams & Permissions: what reading a record reads", () => {
   test("the metric permission reads metrics", () => {
     expect(
       PermissionHelper.getDescription(Permission.ReadTelemetryServiceMetrics),
-    ).toContain("read Telemetry Service Metrics");
+    ).toContain("read the metrics of this project");
   });
 });
