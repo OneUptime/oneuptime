@@ -269,9 +269,9 @@ const APPLIES_TO: Array<{
   },
   {
     eventType: NotificationRuleEventType.ScheduledMaintenance,
-    heading: "Which scheduled maintenance events",
-    all: "All scheduled maintenance events",
-    matching: "Only scheduled maintenance events that match conditions",
+    heading: "Which maintenance events",
+    all: "All maintenance events",
+    matching: "Only maintenance events that match conditions",
   },
   {
     eventType: NotificationRuleEventType.Monitor,

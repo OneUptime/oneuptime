@@ -152,6 +152,10 @@ import { DataSource } from "typeorm";
  *     whether or not it has been marked yet, and returns the pruned count;
  *     with silent-node detection off (PVE_NATIVE_NODE_SILENCE_DETECTION=
  *     false) it runs the plain two-parameter DELETE and the keep is off;
+ *     either way it never deletes a cluster's whole inventory at once
+ *     (issue #7439): while no live row of that cluster was seen at or after
+ *     the cutoff - another cluster's row, or a soft-deleted one, does not
+ *     count - nothing goes and no large-delete warning is logged;
  *   - removeOfflineNode deletes an Offline native-push Node row and nothing
  *     else - never a soft-deleted one - finds a node named past the column
  *     by its id clamped as bulkUpsert stored it, and says why it deleted
@@ -2226,9 +2230,14 @@ describePostgres("Proxmox inventory SQL against a migrated Postgres", () => {
         expect(row.metricsUpdatedAt).toEqual(at(-16 * MINUTE_MS));
       });
 
-      // The driver's affected count survives a large delete.
+      /*
+       * The driver's affected count survives a large delete. The cluster is
+       * read just now (pve1), as a cluster being pruned is: the prune never
+       * deletes a cluster's whole inventory at once (issue #7439).
+       */
+      await upsert([node("pve1")], { isNativePush: false });
       expect(await prune()).toBe(count);
-      expect(await countRows()).toBe(0);
+      expect(externalIdsOf(await readRows())).toEqual(["node/pve1"]);
       expect(warn).toHaveBeenCalledWith(
         expect.stringContaining(`deleted ${count} stale rows`),
       );
@@ -3369,6 +3378,14 @@ describePostgres("Proxmox inventory SQL against a migrated Postgres", () => {
   describe("deleteStaleForCluster", () => {
     const stale: Date = at(-20 * MINUTE_MS);
 
+    /*
+     * The prune never deletes a cluster's whole inventory at once (issue
+     * #7439): while no row of the cluster was seen at or after the cutoff,
+     * nothing goes. So a test of what goes keeps the cluster read, as a
+     * cluster being pruned is - a node that pushed a minute ago, n-live - and
+     * the tests at the end pin the rule itself.
+     */
+
     // Every kind of row the prune decides on, 20 minutes stale or not.
     async function seedPruneCluster(): Promise<void> {
       await upsert(
@@ -3442,6 +3459,7 @@ describePostgres("Proxmox inventory SQL against a migrated Postgres", () => {
       process.env["PVE_SILENT_NODE_RETENTION_HOURS"] = "24";
       await upsert(
         [
+          node("n-live", { lastSeenAt: at(-MINUTE_MS) }),
           node("n-23h", { lastSeenAt: at(-23 * HOUR_MS) }),
           node("n-25h", { lastSeenAt: at(-25 * HOUR_MS) }),
         ],
@@ -3449,13 +3467,17 @@ describePostgres("Proxmox inventory SQL against a migrated Postgres", () => {
       );
 
       expect(await prune()).toBe(1);
-      expect(externalIdsOf(await readRows())).toEqual(["node/n-23h"]);
+      expect(externalIdsOf(await readRows())).toEqual([
+        "node/n-23h",
+        "node/n-live",
+      ]);
     });
 
     test("without now, the retention window is measured on the wall clock", async () => {
       const wallNow: number = Date.now();
       await upsert(
         [
+          node("n-live", { lastSeenAt: new Date(wallNow - MINUTE_MS) }),
           node("n-hour", { lastSeenAt: new Date(wallNow - HOUR_MS) }),
           node("n-8d", { lastSeenAt: new Date(wallNow - 8 * DAY_MS) }),
         ],
@@ -3468,7 +3490,10 @@ describePostgres("Proxmox inventory SQL against a migrated Postgres", () => {
           olderThan: new Date(wallNow - 15 * MINUTE_MS),
         }),
       ).toBe(1);
-      expect(externalIdsOf(await readRows())).toEqual(["node/n-hour"]);
+      expect(externalIdsOf(await readRows())).toEqual([
+        "node/n-hour",
+        "node/n-live",
+      ]);
     });
 
     test("a Node row the agent took over is pruned at the normal cutoff", async () => {
@@ -3478,9 +3503,13 @@ describePostgres("Proxmox inventory SQL against a migrated Postgres", () => {
       await upsert([node("pve1", { lastSeenAt: at(-16 * MINUTE_MS) })], {
         isNativePush: false,
       });
+      // The agent's read since lists the cluster without pve1.
+      await upsert([node("pve2", { lastSeenAt: at(-MINUTE_MS) })], {
+        isNativePush: false,
+      });
 
       expect(await prune()).toBe(1);
-      expect(await countRows()).toBe(0);
+      expect(externalIdsOf(await readRows())).toEqual(["node/pve2"]);
     });
 
     /*
@@ -3491,9 +3520,13 @@ describePostgres("Proxmox inventory SQL against a migrated Postgres", () => {
      * so this also pins that the two-parameter statement gets two.
      */
     test("with PVE_NATIVE_NODE_SILENCE_DETECTION=false a native Node row goes at the normal cutoff; by default the same row is kept", async () => {
-      await upsert([node("n-silent", { lastSeenAt: stale })], {
-        isNativePush: true,
-      });
+      await upsert(
+        [
+          node("n-live", { lastSeenAt: at(-MINUTE_MS) }),
+          node("n-silent", { lastSeenAt: stale }),
+        ],
+        { isNativePush: true },
+      );
 
       expect(await prune()).toBe(0);
       expect(await nodeRow("n-silent")).toMatchObject({
@@ -3503,7 +3536,7 @@ describePostgres("Proxmox inventory SQL against a migrated Postgres", () => {
 
       process.env[DETECTION_ENV] = "false";
       expect(await prune()).toBe(1);
-      expect(await countRows()).toBe(0);
+      expect(externalIdsOf(await readRows())).toEqual(["node/n-live"]);
     });
 
     test("with detection off the keep is off for every native Node row - marked or not, within retention or not - and the cutoff is exclusive as before", async () => {
@@ -3548,15 +3581,120 @@ describePostgres("Proxmox inventory SQL against a migrated Postgres", () => {
     ])(
       'PVE_NATIVE_NODE_SILENCE_DETECTION="$value": only false turns the keep off (kept: $kept)',
       async (row: { value: string; kept: boolean }) => {
-        await upsert([node("n-silent", { lastSeenAt: stale })], {
-          isNativePush: true,
-        });
+        await upsert(
+          [
+            node("n-live", { lastSeenAt: at(-MINUTE_MS) }),
+            node("n-silent", { lastSeenAt: stale }),
+          ],
+          { isNativePush: true },
+        );
         process.env[DETECTION_ENV] = row.value;
 
         expect(await prune()).toBe(row.kept ? 0 : 1);
-        expect(await countRows()).toBe(row.kept ? 1 : 0);
+        expect(externalIdsOf(await readRows())).toEqual(
+          row.kept ? ["node/n-live", "node/n-silent"] : ["node/n-live"],
+        );
       },
     );
+
+    /*
+     * The rule itself (issue #7439). Every read of a cluster reports at
+     * least one node, so a cluster with no row seen at or after the cutoff
+     * has not lost every node: its reads stopped describing it - the agent
+     * cannot read the Proxmox VE API, ingest is behind, the agent's clock is
+     * - and nothing of it goes until a read refreshes a row. Both DELETEs
+     * end with the check: EXISTS a live row of the same cluster at or after
+     * the cutoff.
+     */
+    function staleInventory(): Array<ParsedProxmoxResource> {
+      // More rows than the large-delete warning's threshold (100).
+      return [
+        node("pve1", { lastSeenAt: stale }),
+        node("pve2", { isUp: false, uptimeSeconds: null, lastSeenAt: stale }),
+        ...Array.from(
+          { length: 120 },
+          (_: unknown, index: number): ParsedProxmoxResource => {
+            return guest(1000 + index, "pve1", { lastSeenAt: stale });
+          },
+        ),
+        storage("pve1", "local", { lastSeenAt: stale }),
+      ];
+    }
+
+    test.each<{ detection: string; value: string | undefined }>([
+      { detection: "on", value: undefined },
+      { detection: "switched off", value: "false" },
+    ])(
+      "with silent-node detection $detection, a cluster with no row at or after the cutoff keeps every row - nothing pruned, no large-delete warning - and once a read refreshes one, what it no longer reports goes",
+      async (row: { detection: string; value: string | undefined }) => {
+        if (row.value !== undefined) {
+          process.env[DETECTION_ENV] = row.value;
+        }
+        const inventory: Array<ParsedProxmoxResource> = staleInventory();
+        await upsert(inventory, { isNativePush: false });
+
+        expect(await prune()).toBe(0);
+        expect(await countRows()).toBe(inventory.length);
+        expect(warn).not.toHaveBeenCalledWith(
+          expect.stringContaining("stale rows"),
+        );
+
+        // The read comes back - through pve1 alone.
+        await upsert([node("pve1")], { isNativePush: false });
+        expect(await prune()).toBe(inventory.length - 1);
+        expect(externalIdsOf(await readRows())).toEqual(["node/pve1"]);
+        expect(warn).toHaveBeenCalledWith(
+          expect.stringContaining(`deleted ${inventory.length - 1} stale rows`),
+        );
+      },
+    );
+
+    test("another cluster's fresh rows do not count, not even rows of the same names in the same project", async () => {
+      const inventory: Array<ParsedProxmoxResource> = staleInventory();
+      await upsert(inventory, { isNativePush: false });
+      // Another cluster of the project, read just now.
+      await upsert(
+        inventory.map(
+          (resource: ParsedProxmoxResource): ParsedProxmoxResource => {
+            return { ...resource, lastSeenAt: NOW };
+          },
+        ),
+        { isNativePush: false, proxmoxClusterId: OTHER_CLUSTER_ID },
+      );
+
+      expect(await prune()).toBe(0);
+      expect(await readRows()).toHaveLength(inventory.length);
+      expect(await readRows(OTHER_CLUSTER_ID)).toHaveLength(inventory.length);
+    });
+
+    test("a soft-deleted row does not count, however fresh", async () => {
+      const inventory: Array<ParsedProxmoxResource> = staleInventory();
+      await upsert(inventory, { isNativePush: false });
+      await upsert([node("pve3")], { isNativePush: false });
+      await softDelete("Node", "node/pve3");
+
+      expect(await prune()).toBe(0);
+      expect(await countRows()).toBe(inventory.length + 1);
+    });
+
+    test("a row seen exactly at the cutoff counts - the DELETE keeps it too - and one a millisecond before it does not", async () => {
+      const cutoff: Date = ProxmoxResourceService.getStaleThresholdDate(NOW);
+      const inventory: Array<ParsedProxmoxResource> = staleInventory();
+      await upsert(inventory, { isNativePush: false });
+      await upsert(
+        [node("pve3", { lastSeenAt: new Date(cutoff.getTime() - 1) })],
+        { isNativePush: false },
+      );
+
+      expect(await prune({ olderThan: cutoff })).toBe(0);
+      expect(await countRows()).toBe(inventory.length + 1);
+
+      await upsert([node("pve3", { lastSeenAt: cutoff })], {
+        isNativePush: false,
+      });
+      expect(await prune({ olderThan: cutoff })).toBe(inventory.length);
+      expect(externalIdsOf(await readRows())).toEqual(["node/pve3"]);
+    });
   });
 
   describe("removeOfflineNode", () => {
@@ -4075,8 +4213,13 @@ describePostgres("Proxmox inventory SQL against a migrated Postgres", () => {
 
       // The agent's node: not removable here…
       expect(await removeNode("node/pve3")).toBe("not-native");
-      // …and pruned once the agent stops listing it; the adopted one is kept.
+      /*
+       * …and pruned once the agent stops listing it; the adopted one is kept
+       * by the native keep while its cluster is read (pve1's push there,
+       * just now - with no fresh row nothing is pruned at all, issue #7439).
+       */
       await upsertFrom(false, [node("pve1"), node("pve2")]);
+      await upsertFrom(true, [node("pve1")], OTHER_CLUSTER_ID);
       expect(await prune({ olderThan: at(-5 * MINUTE_MS) })).toBe(1);
       expect(externalIdsOf(await readRows())).toEqual([
         "node/pve1",
@@ -4129,6 +4272,13 @@ describePostgres("Proxmox inventory SQL against a migrated Postgres", () => {
         [node("pve3", { isUp: false, lastSeenAt: stale })],
         OTHER_CLUSTER_ID,
       );
+      /*
+       * Both clusters are read just now - pve2's first native push here, the
+       * agent there: the prune never deletes a cluster's whole inventory at
+       * once (issue #7439).
+       */
+      await upsertFrom(true, [node("pve2")]);
+      await upsertFrom(false, [node("pve2")], OTHER_CLUSTER_ID);
 
       // Not removable while it is the agent's.
       expect(await removeNode("node/pve3")).toBe("not-native");
@@ -4138,6 +4288,7 @@ describePostgres("Proxmox inventory SQL against a migrated Postgres", () => {
       expect(await prune()).toBe(3);
       expect(externalIdsOf(await readRows())).toEqual([
         "node/pve1",
+        "node/pve2",
         "node/pve3",
       ]);
       expect(await nodeRow("pve3")).toMatchObject({
@@ -4148,18 +4299,22 @@ describePostgres("Proxmox inventory SQL against a migrated Postgres", () => {
       });
       expect(rosterStatesOf(await roster())).toEqual([
         { nodeName: "pve1", isUp: true },
+        { nodeName: "pve2", isUp: true },
         { nodeName: "pve3", isUp: false },
       ]);
 
       // Not adopted: pruned at the same cutoff.
       expect(await prune({ proxmoxClusterId: OTHER_CLUSTER_ID })).toBe(1);
-      expect(await readRows(OTHER_CLUSTER_ID)).toEqual([]);
+      expect(externalIdsOf(await readRows(OTHER_CLUSTER_ID))).toEqual([
+        "node/pve2",
+      ]);
 
       // Adopted and Offline, it can be removed; its sibling that is up cannot.
       expect(await removeNode("node/pve1")).toBe("still-reporting");
       expect(await removeNode("node/pve3")).toBe("removed");
       expect(rosterStatesOf(await roster())).toEqual([
         { nodeName: "pve1", isUp: true },
+        { nodeName: "pve2", isUp: true },
       ]);
     });
   });

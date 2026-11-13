@@ -66,7 +66,7 @@ export const NOTIFICATION_RULE_CONDITIONS_TITLES: ByEventType = {
     "Which alert episodes",
   ),
   [NotificationRuleEventType.ScheduledMaintenance]: translationKey(
-    "Which scheduled maintenance events",
+    "Which maintenance events",
   ),
   [NotificationRuleEventType.Monitor]: translationKey("Which monitors"),
   [NotificationRuleEventType.OnCallDutyPolicy]: translationKey(
