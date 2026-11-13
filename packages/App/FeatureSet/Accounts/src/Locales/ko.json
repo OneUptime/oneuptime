@@ -42,6 +42,13 @@
     "errorOnSignUp": "가입하기 전에 captcha 챌린지를 완료해 주세요."
   },
   "login": {
+    "title": "계정에 로그인",
+    "subtitle": "비밀번호, 조직의 SSO 또는 패스키로 로그인하세요.",
+    "sessionEnded": {
+      "lengthReached": "세션이 시간 제한에 도달하여 로그아웃되었습니다. 다시 로그인하면 중단한 곳에서 이어서 할 수 있습니다.",
+      "inactive": "한동안 활동이 없어 로그아웃되었습니다. 다시 로그인하면 중단한 곳에서 이어서 할 수 있습니다."
+    },
+    "submitButton": "로그인",
     "passkey": {
       "signIn": "패스키로 로그인",
       "inProgress": "비밀번호를 사용하기 전에 패스키 로그인을 완료하거나 취소하세요.",
@@ -57,13 +64,6 @@
       "insecure": "패스키를 사용하려면 보안 연결(HTTPS)이 필요합니다. 비밀번호 또는 SSO로 로그인할 수 있습니다.",
       "tryAgain": "패스키로 다시 시도"
     },
-    "title": "계정에 로그인",
-    "subtitle": "비밀번호, 조직의 SSO 또는 패스키로 로그인하세요.",
-    "sessionEnded": {
-      "lengthReached": "세션이 시간 제한에 도달하여 로그아웃되었습니다. 다시 로그인하면 중단한 곳에서 이어서 할 수 있습니다.",
-      "inactive": "한동안 활동이 없어 로그아웃되었습니다. 다시 로그인하면 중단한 곳에서 이어서 할 수 있습니다."
-    },
-    "submitButton": "로그인",
     "forgotPassword": "비밀번호를 잊으셨나요?",
     "signInWithSso": "SSO로 로그인",
     "signInWithMicrosoft": "Microsoft로 로그인",

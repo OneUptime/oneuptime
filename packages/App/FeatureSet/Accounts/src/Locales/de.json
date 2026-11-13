@@ -42,6 +42,13 @@
     "errorOnSignUp": "Bitte vervollständigen Sie das Captcha, bevor Sie sich registrieren."
   },
   "login": {
+    "title": "Melden Sie sich bei Ihrem Konto an",
+    "subtitle": "Verwenden Sie Ihr Passwort, das SSO Ihrer Organisation oder einen Passkey.",
+    "sessionEnded": {
+      "lengthReached": "Sie wurden abgemeldet, weil Ihre Sitzung ihr Zeitlimit erreicht hat. Melden Sie sich erneut an, um dort weiterzumachen, wo Sie aufgehört haben.",
+      "inactive": "Sie wurden nach einer Zeit ohne Aktivität abgemeldet. Melden Sie sich erneut an, um dort weiterzumachen, wo Sie aufgehört haben."
+    },
+    "submitButton": "Anmelden",
     "passkey": {
       "signIn": "Mit einem Passkey anmelden",
       "inProgress": "Beenden oder brechen Sie die Passkey-Anmeldung ab, bevor Sie Ihr Passwort verwenden.",
@@ -57,13 +64,6 @@
       "insecure": "Passkeys benötigen eine sichere Verbindung (HTTPS). Sie können sich weiterhin mit Ihrem Passwort oder SSO anmelden.",
       "tryAgain": "Passkey erneut versuchen"
     },
-    "title": "Melden Sie sich bei Ihrem Konto an",
-    "subtitle": "Verwenden Sie Ihr Passwort, das SSO Ihrer Organisation oder einen Passkey.",
-    "sessionEnded": {
-      "lengthReached": "Sie wurden abgemeldet, weil Ihre Sitzung ihr Zeitlimit erreicht hat. Melden Sie sich erneut an, um dort weiterzumachen, wo Sie aufgehört haben.",
-      "inactive": "Sie wurden nach einer Zeit ohne Aktivität abgemeldet. Melden Sie sich erneut an, um dort weiterzumachen, wo Sie aufgehört haben."
-    },
-    "submitButton": "Anmelden",
     "forgotPassword": "Passwort vergessen?",
     "signInWithSso": "Mit SSO anmelden",
     "signInWithMicrosoft": "Mit Microsoft anmelden",

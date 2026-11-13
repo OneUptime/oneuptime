@@ -42,6 +42,13 @@
     "errorOnSignUp": "Slutför captcha-utmaningen innan du registrerar dig."
   },
   "login": {
+    "title": "Logga in på ditt konto",
+    "subtitle": "Använd ditt lösenord, organisationens SSO eller en passnyckel.",
+    "sessionEnded": {
+      "lengthReached": "Du loggades ut eftersom din session nådde sin tidsgräns. Logga in igen för att fortsätta där du slutade.",
+      "inactive": "Du loggades ut efter en tid utan aktivitet. Logga in igen för att fortsätta där du slutade."
+    },
+    "submitButton": "Logga in",
     "passkey": {
       "signIn": "Logga in med en passnyckel",
       "inProgress": "Slutför eller avbryt inloggningen med passnyckel innan du använder lösenordet.",
@@ -57,13 +64,6 @@
       "insecure": "Passnycklar kräver en säker anslutning (HTTPS). Du kan fortfarande logga in med ditt lösenord eller SSO.",
       "tryAgain": "Försök med passnyckeln igen"
     },
-    "title": "Logga in på ditt konto",
-    "subtitle": "Använd ditt lösenord, organisationens SSO eller en passnyckel.",
-    "sessionEnded": {
-      "lengthReached": "Du loggades ut eftersom din session nådde sin tidsgräns. Logga in igen för att fortsätta där du slutade.",
-      "inactive": "Du loggades ut efter en tid utan aktivitet. Logga in igen för att fortsätta där du slutade."
-    },
-    "submitButton": "Logga in",
     "forgotPassword": "Glömt lösenord?",
     "signInWithSso": "Logga in med SSO",
     "signInWithMicrosoft": "Logga in med Microsoft",

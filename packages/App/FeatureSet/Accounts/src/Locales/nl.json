@@ -42,6 +42,13 @@
     "errorOnSignUp": "Voltooi de captcha-uitdaging voordat u zich registreert."
   },
   "login": {
+    "title": "Meld u aan bij uw account",
+    "subtitle": "Gebruik je wachtwoord, de SSO van je organisatie of een passkey.",
+    "sessionEnded": {
+      "lengthReached": "Je bent afgemeld omdat je sessie de tijdslimiet heeft bereikt. Meld je opnieuw aan om verder te gaan waar je gebleven was.",
+      "inactive": "Je bent afgemeld na een periode zonder activiteit. Meld je opnieuw aan om verder te gaan waar je gebleven was."
+    },
+    "submitButton": "Inloggen",
     "passkey": {
       "signIn": "Inloggen met een passkey",
       "inProgress": "Voltooi of annuleer het inloggen met een passkey voordat je je wachtwoord gebruikt.",
@@ -57,13 +64,6 @@
       "insecure": "Passkeys vereisen een beveiligde verbinding (HTTPS). Je kunt je nog steeds aanmelden met je wachtwoord of SSO.",
       "tryAgain": "Passkey opnieuw proberen"
     },
-    "title": "Meld u aan bij uw account",
-    "subtitle": "Gebruik je wachtwoord, de SSO van je organisatie of een passkey.",
-    "sessionEnded": {
-      "lengthReached": "Je bent afgemeld omdat je sessie de tijdslimiet heeft bereikt. Meld je opnieuw aan om verder te gaan waar je gebleven was.",
-      "inactive": "Je bent afgemeld na een periode zonder activiteit. Meld je opnieuw aan om verder te gaan waar je gebleven was."
-    },
-    "submitButton": "Inloggen",
     "forgotPassword": "Wachtwoord vergeten?",
     "signInWithSso": "Inloggen met SSO",
     "signInWithMicrosoft": "Inloggen met Microsoft",
