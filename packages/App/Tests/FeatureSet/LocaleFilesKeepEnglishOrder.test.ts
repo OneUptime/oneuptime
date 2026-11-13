@@ -49,9 +49,7 @@ const frontendsWithLocales: () => Array<string> = (): Array<string> => {
   return fs
     .readdirSync(FEATURE_SET)
     .filter((name: string): boolean => {
-      return fs.existsSync(
-        path.join(localesDirectoryOf(name), "en.json"),
-      );
+      return fs.existsSync(path.join(localesDirectoryOf(name), "en.json"));
     })
     .sort();
 };
@@ -131,7 +129,11 @@ const firstOrderDifference: (
       : keyPath.split(PATH_SEPARATOR).join(" > ");
   };
 
-  for (let index: number = 0; index < Math.max(ours.length, theirs.length); index++) {
+  for (
+    let index: number = 0;
+    index < Math.max(ours.length, theirs.length);
+    index++
+  ) {
     if (ours[index] !== theirs[index]) {
       return `${readable(ours[index])} where en.json has ${readable(theirs[index])}`;
     }
