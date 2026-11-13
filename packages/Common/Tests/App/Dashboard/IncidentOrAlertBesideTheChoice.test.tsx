@@ -219,8 +219,14 @@ describe("a monitor's criteria", () => {
   });
 });
 
-describe("the personal on-call rules", () => {
-  test("say what they are, with the word defined, and link their docs page", () => {
+/*
+ * A person's own rules, the grid behind How to Reach Me. They were "on-call
+ * rules", the name the project's rules under Incidents and Alerts keep
+ * (#6817): the line defines the word they turn on, the notification method,
+ * and never marks them with the project's term.
+ */
+describe("the rules behind How to Reach Me", () => {
+  test("say what they are, with the word they turn on defined, and link their docs page", () => {
     render(
       <OnCallRulesTabs userPreferencesKeyPrefix="glossary-on-call-rules" />,
     );
@@ -228,12 +234,13 @@ describe("the personal on-call rules", () => {
     const intro: HTMLElement = screen.getByTestId(ON_CALL_RULES_INTRO_TEST_ID);
 
     expect(intro).toHaveTextContent(
-      "On-call rules decide which notification method a page tries, and after how long, for each severity.",
+      "These rules decide which notification method a page tries, and after how long, for each severity.",
     );
     expect(within(intro).getByTestId(DEFINED_TERM_TEST_ID)).toHaveAttribute(
       "data-glossary-term",
-      "on-call-rules",
+      "notification-method",
     );
+    expect(intro.textContent?.toLowerCase()).not.toContain("on-call rules");
     expect(
       within(intro).getByTestId("on-call-rules-learn-more"),
     ).toHaveAttribute(
@@ -254,7 +261,10 @@ describe("the personal on-call rules", () => {
 
     expect(german).not.toBe(ON_CALL_RULES_INTRO);
     expect(intro).toHaveTextContent(
-      german.replace("{{onCallRules}}", LOCALES["de"]!["On-call rules"]!),
+      german.replace(
+        "{{notificationMethod}}",
+        LOCALES["de"]!["notification method"]!,
+      ),
     );
     expect(
       within(intro).getByTestId("on-call-rules-learn-more"),

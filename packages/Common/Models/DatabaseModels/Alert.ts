@@ -636,8 +636,8 @@ export default class Alert extends BaseModel {
     required: false,
     type: TableColumnType.EntityArray,
     modelType: OnCallDutyPolicy,
-    title: "On-Call Duty Policies",
-    description: "List of on-call duty policies affected by this alert.",
+    title: "On-Call Policies",
+    description: "List of on-call policies affected by this alert.",
   })
   @ManyToMany(
     () => {

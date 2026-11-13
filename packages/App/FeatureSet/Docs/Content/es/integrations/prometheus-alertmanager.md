@@ -53,7 +53,7 @@ En el paso **Criterios**, abre el primer criterio, el que marca el monitor como 
 
 - **Título del incidente**: `{{requestBody.commonLabels.alertname}} on {{requestBody.commonLabels.instance}}`.
 - **Gravedad**: la gravedad de incidente que deben tener estas alertas.
-- **Políticas de guardia**, en **De guardia**: las políticas a las que avisar.
+- **Políticas de guardia**, en **Guardia**: las políticas a las que avisar.
 - **Resolver incidente automáticamente**, en **Más campos**: déjalo activado, como viene. Sin él, las recuperaciones se ignoran y los incidentes siguen abiertos.
 
 ### Abrir un incidente por alerta

@@ -983,14 +983,14 @@ describe.each(LANGUAGES)("%s", (language: string) => {
 
 describe("the helpers, on these pages' shapes", () => {
   it("draw the Dashboard's paths from its own keys", () => {
-    expect(
-      drawnPath("en", ["On-Call Duty", "Advanced", "User Overrides"]),
-    ).toBe("**On-Call Duty → Advanced → User Overrides**");
-    expect(
-      drawnPath("de", ["On-Call Duty", "Advanced", "User Overrides"]),
-    ).toBe("**Bereitschaftsdienst → Erweitert → Benutzerüberschreibungen**");
+    expect(drawnPath("en", ["On-Call", "Advanced", "User Overrides"])).toBe(
+      "**On-Call → Advanced → User Overrides**",
+    );
+    expect(drawnPath("de", ["On-Call", "Advanced", "User Overrides"])).toBe(
+      "**Bereitschaft → Erweitert → Benutzerüberschreibungen**",
+    );
     // Persian bolds each segment, joined by " > ".
-    expect(drawnPath("fa", ["On-Call Duty", "Readiness"])).toContain(" > ");
+    expect(drawnPath("fa", ["On-Call", "Readiness"])).toContain(" > ");
   });
 
   it("tell the Dashboard's labels from the words a page keeps", () => {
@@ -1013,7 +1013,7 @@ describe("the helpers, on these pages' shapes", () => {
           return segments.join(PATH_SEPARATOR);
         },
       ),
-    ).toContain("On-Call Duty → Reports → User On Call Time");
+    ).toContain("On-Call → Reports → User On-Call Time");
   });
 
   it("read the numbers a row states, in any digits, code left out", () => {

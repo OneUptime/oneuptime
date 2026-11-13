@@ -586,7 +586,7 @@ describe("buildPageSearchCommandDescriptors", () => {
         // Same place, other name: the page stays ("On-Call Policies").
         {
           routePath: "/dashboard/project-a/on_call_duty_policies",
-          title: "On-Call Duty",
+          title: "On-Call",
         },
       ],
     });
@@ -739,7 +739,7 @@ describe("what the maintainer asked for, through the real search", () => {
 
 /*
  * The project's own mail servers and Twilio accounts wait folded under
- * Notification Settings' More settings (OwnSendersFold). Search finds each
+ * Notification Channels' More settings (OwnSendersFold). Search finds each
  * by name - a thing on the page, as Delete Project is - and opens the page
  * at its table, where the fold opens by itself: a result never lands on a
  * page with what it was for hidden.
@@ -759,7 +759,7 @@ describe("results for what is folded under More settings", () => {
   ];
 
   test.each(FOLDED)(
-    "$title opens Notification Settings at its table",
+    "$title opens Notification Channels at its table",
     (folded: { id: string; title: string; place: string }) => {
       const descriptor: PageSearchCommandDescriptor | undefined = build().find(
         (candidate: PageSearchCommandDescriptor) => {
@@ -772,7 +772,7 @@ describe("results for what is folded under More settings", () => {
         breadcrumb: [
           "Project Settings",
           "Notifications",
-          "Notification Settings",
+          "Notification Channels",
         ],
         routePath: `/dashboard/project-a/settings_notification_settings#${folded.place}`,
         isAction: true,
@@ -801,7 +801,7 @@ describe("results for what is folded under More settings", () => {
       }),
     );
 
-    // Both on Notification Settings.
+    // Both on Notification Channels.
     for (const entry of ENTRIES) {
       for (const action of entry.page.actions || []) {
         if (action.anchor) {
@@ -837,6 +837,6 @@ describe("results for what is folded under More settings", () => {
       },
     );
 
-    expect(page?.title).toBe("Notification Settings");
+    expect(page?.title).toBe("Notification Channels");
   });
 });

@@ -335,7 +335,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
 
     filters = filters.concat([
       {
-        title: "On Call Policy",
+        title: "On-Call Policy",
         type: FieldType.Entity,
         field: {
           onCallDutyPolicy: true,

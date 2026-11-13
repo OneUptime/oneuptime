@@ -779,7 +779,7 @@ export default class PushNotificationUtil {
     const { policyName } = params;
     return PushNotificationUtil.applyDefaults({
       title: "Added to On-Call Policy",
-      body: `You have been added to the on-call duty policy ${policyName}.`,
+      body: `You have been added to the on-call policy ${policyName}.`,
       tag: "on-call-policy-added",
       requireInteraction: false,
       data: {
@@ -795,7 +795,7 @@ export default class PushNotificationUtil {
     const { policyName } = params;
     return PushNotificationUtil.applyDefaults({
       title: "Removed from On-Call Policy",
-      body: `You have been removed from the on-call duty policy ${policyName}.`,
+      body: `You have been removed from the on-call policy ${policyName}.`,
       tag: "on-call-policy-removed",
       requireInteraction: false,
       data: {

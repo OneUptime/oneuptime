@@ -698,7 +698,7 @@ export const describeMethodDeletion: (params: {
   if (params.impact.ruleCount === 0) {
     sentences.push(
       translateTemplate(
-        "No notification rules use {{methodLabel}}, so deleting it does not change how you are paged.",
+        "No rule in How to Reach Me uses {{methodLabel}}, so deleting it does not change how you are paged.",
         { methodLabel: params.methodLabel },
       ),
     );
@@ -712,9 +712,9 @@ export const describeMethodDeletion: (params: {
     sentences.push(
       translatePlural(
         {
-          one: "Deleting {{methodLabel}} removes {{count}} notification rule and leaves {{cells}} with no rule.",
+          one: "Deleting {{methodLabel}} removes {{count}} rule from How to Reach Me and leaves {{cells}} with no rule.",
           other:
-            "Deleting {{methodLabel}} removes {{count}} notification rules and leaves {{cells}} with no rule.",
+            "Deleting {{methodLabel}} removes {{count}} rules from How to Reach Me and leaves {{cells}} with no rule.",
         },
         params.impact.ruleCount,
         { methodLabel: params.methodLabel, cells: orphaned },
@@ -724,9 +724,9 @@ export const describeMethodDeletion: (params: {
     sentences.push(
       translatePlural(
         {
-          one: "Deleting {{methodLabel}} removes {{count}} notification rule.",
+          one: "Deleting {{methodLabel}} removes {{count}} rule from How to Reach Me.",
           other:
-            "Deleting {{methodLabel}} removes {{count}} notification rules.",
+            "Deleting {{methodLabel}} removes {{count}} rules from How to Reach Me.",
         },
         params.impact.ruleCount,
         { methodLabel: params.methodLabel },
@@ -810,7 +810,7 @@ export const describeRuleDeletion: (params: {
   if (params.impact.ruleCount === 0) {
     sentences.push(
       translateTemplate(
-        "We could not match this rule to your notification rules, so we cannot tell what deleting it leaves uncovered.",
+        "We could not match this rule to How to Reach Me, so we cannot tell what deleting it leaves uncovered.",
       ),
     );
 

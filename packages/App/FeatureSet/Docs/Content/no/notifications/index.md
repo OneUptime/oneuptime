@@ -63,7 +63,7 @@ Når du blir medlem av et prosjekt med en verifisert påloggings-e-post, setter 
 2. For hver alvorlighetsgrad, på hver av de fire fanene i **Slik når man meg**, sender en regel deg en e-post så snart du blir tilkalt.
 3. En rekke oppdateringer om det du eier, og om vaktene dine, er slått på via e-post. Se [Varselinnstillinger](/docs/notifications/notification-settings#hva-som-er-slått-på-for-et-nytt-medlem).
 
-Hver metode du verifiserer senere, får de samme reglene: en regel for hver alvorlighetsgrad, sendt så snart du blir tilkalt. Å verifisere et telefonnummer for SMS betyr altså at hver tilkalling også sender deg en SMS. Vil du bare ha SMS ved kritiske tilkallinger, sletter du SMS-reglene for de andre alvorlighetsgradene. Se [Personlige vaktregler](/docs/notifications/on-call-rules#reglene-du-starter-med).
+Hver metode du verifiserer senere, får de samme reglene: en regel for hver alvorlighetsgrad, sendt så snart du blir tilkalt. Å verifisere et telefonnummer for SMS betyr altså at hver tilkalling også sender deg en SMS. Vil du bare ha SMS ved kritiske tilkallinger, sletter du SMS-reglene for de andre alvorlighetsgradene. Se [Slik når man meg](/docs/notifications/on-call-rules#reglene-du-starter-med).
 
 ## Oppsettsjekklisten
 
@@ -95,7 +95,7 @@ En tilkalling kan nå deg for en type og en alvorlighetsgrad du ikke har noen re
 2. Har du ingen av dem, én betalt metode, i denne rekkefølgen: SMS, et telefonanrop, WhatsApp, Telegram. Det er den første du har verifisert, på en kanal prosjektet har slått på.
 3. Har du heller ingen av dem, en webhook.
 
-Du får en e-post om det, og det gjør også eierne av vaktpolicyen, eller prosjektets eiere hvis policyen ikke har noen. Er ingenting verifisert, kan tilkallingen ikke leveres, og e-posten sier det i stedet. Disse e-postene holdes tilbake mens tilkallingene fortsetter å komme, slik at en storm av tilkallinger ikke blir en storm av e-poster. Hvordan du legger til den manglende regelen, står under [Personlige vaktregler](/docs/notifications/on-call-rules#når-en-alvorlighetsgrad-ikke-har-noen-regel).
+Du får en e-post om det, og det gjør også eierne av vaktpolicyen, eller prosjektets eiere hvis policyen ikke har noen. Er ingenting verifisert, kan tilkallingen ikke leveres, og e-posten sier det i stedet. Disse e-postene holdes tilbake mens tilkallingene fortsetter å komme, slik at en storm av tilkallinger ikke blir en storm av e-poster. Hvordan du legger til den manglende regelen, står under [Slik når man meg](/docs/notifications/on-call-rules#når-en-alvorlighetsgrad-ikke-har-noen-regel).
 
 ## Språket i tilkallingene dine
 
@@ -131,7 +131,7 @@ Et nummer kommer med i reglene dine når det er verifisert. Klikk **Verifiser** 
 
 :::cards
 - [Varselmetoder](/docs/notifications/notification-methods): Legg til og verifiser adressene OneUptime kan nå deg på.
-- [Personlige vaktregler](/docs/notifications/on-call-rules): Bestem hvilken metode hver tilkalling prøver, og når.
+- [Slik når man meg](/docs/notifications/on-call-rules): Bestem hvilken metode hver tilkalling prøver, og når.
 - [Varselinnstillinger](/docs/notifications/notification-settings): Velg oppdateringene du får vite om, og via hvilke kanaler.
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Hvordan en vaktpolicy avgjør hvem som tilkalles, nivå for nivå.
 :::

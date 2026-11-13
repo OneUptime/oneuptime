@@ -61,7 +61,7 @@ Cada acción es un interruptor en **Acciones**:
 | **Cuando los filtros coinciden, crear una alerta.** | Crea las alertas configuradas en **Crear alerta**. Una alerta avisa a su equipo y nunca aparece en una página de estado. |
 | **Cuando los filtros coinciden, declarar un incidente.** | Declara los incidentes configurados en **Crear incidente**. Sus páginas de estado pueden mostrarlos. |
 
-Un incidente o una alerta pide un título, una **Gravedad** y, plegados, una descripción, propietarios, etiquetas y políticas de guardia. Los títulos y las descripciones pueden incluir valores de la comprobación, como `{{monitorName}}`: consulte [Plantillas de incidentes y alertas](/docs/monitor/incident-alert-templating). Para avisar a alguien cuando el criterio coincide, elija una política en **De guardia**: consulte [Políticas de guardia](/docs/on-call/policies).
+Un incidente o una alerta pide un título, una **Gravedad** y, plegados, una descripción, propietarios, etiquetas y políticas de guardia. Los títulos y las descripciones pueden incluir valores de la comprobación, como `{{monitorName}}`: consulte [Plantillas de incidentes y alertas](/docs/monitor/incident-alert-templating). Para avisar a alguien cuando el criterio coincide, elija una política en **Guardia**: consulte [Políticas de guardia](/docs/on-call/policies).
 
 ### Ajustes
 

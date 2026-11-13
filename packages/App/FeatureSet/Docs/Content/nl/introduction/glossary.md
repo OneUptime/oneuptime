@@ -90,7 +90,7 @@ Zie [Escalatieregels](/docs/on-call/escalation-rules).
 
 Wie er op elk moment dienst heeft: mensen wisselen elkaar af, en ieder draagt over aan de volgende. Een escalatieregel die een schema oproept, roept degene op die daarin dienst heeft.
 
-Ook wel: **Rotation**. Zie [Bereikbaarheidsschema's](/docs/on-call/schedules).
+Ook wel: **Rotation**, **Schema van bereikbaarheidsbeleid**. Zie [Bereikbaarheidsschema's](/docs/on-call/schedules).
 
 ### Laag
 
@@ -103,6 +103,12 @@ Zie [Bereikbaarheidsschema's](/docs/on-call/schedules#lagen).
 Een adres waarop OneUptime u in een project mag bereiken: een e-mailadres, een telefoonnummer voor sms of oproepen, uw Slack- of Microsoft Teams-account, of de OneUptime-app op uw telefoon. Ieder voegt zijn eigen adressen toe onder **Gebruikersinstellingen**.
 
 Zie [Meldingsmethoden](/docs/notifications/notification-methods).
+
+### Hoe ik bereikbaar ben
+
+Uw eigen regels om opgeroepen te worden: welke van uw meldingsmethoden een oproep probeert, en na hoe lang. Eén ladder geldt voor elk incident, elke waarschuwing en elke episode, en een ernst kan eigen regels hebben. Ieder stelt de eigen regels in onder **Gebruikersinstellingen**.
+
+Ook wel: **Persoonlijke bereikbaarheidsregels**. Zie [Hoe ik bereikbaar ben](/docs/notifications/on-call-rules).
 
 ### Statuspagina
 
@@ -472,13 +478,13 @@ Zie [Welke gebruik ik?](/docs/introduction/which-one#sonde-agent-collector-of-ru
 
 ### Bereikbaarheidsregels
 
-Twee verschillende dingen. Onder **Incidenten** en **Waarschuwingen** kiezen bereikbaarheidsregels het bereikbaarheidsbeleid dat een nieuw incident of een nieuwe waarschuwing uitvoert. Onder **Gebruikersinstellingen** bepalen uw eigen bereikbaarheidsregels welke van uw meldingsmethoden een oproep probeert, en na hoe lang.
+Onder **Incidenten** en **Waarschuwingen** kiezen bereikbaarheidsregels het bereikbaarheidsbeleid dat een nieuw incident of een nieuwe waarschuwing uitvoert. De eigen regels van iemand over hoe een oproep die persoon bereikt, heetten ook bereikbaarheidsregels: ze heten nu **Hoe ik bereikbaar ben**, onder **Gebruikersinstellingen**.
 
-Zie [Incidentinstellingen en automatisering](/docs/incidents/settings#bereikbaarheidsregels-voor-incidenten) en [Persoonlijke bereikbaarheidsregels](/docs/notifications/on-call-rules).
+Zie [Incidentinstellingen en automatisering](/docs/incidents/settings#bereikbaarheidsregels-voor-incidenten) en [Hoe ik bereikbaar ben](/docs/notifications/on-call-rules).
 
 ### Meldingsinstellingen
 
-Twee verschillende pagina's. Onder **Gebruikersinstellingen**: welke updates over wat van u is u bereiken, en via welke kanalen. Onder **Projectinstellingen**: de schakelaars van het project voor sms en oproepen, het berichtentegoed ervan, en de eigen SMTP en Twilio ervan.
+Onder **Gebruikersinstellingen**: welke updates over wat van u is u bereiken, en via welke kanalen. De schakelaars van het project voor sms en oproepen, het berichtentegoed ervan en de eigen SMTP en Twilio ervan heetten ook meldingsinstellingen: ze heten nu **Meldingskanalen**, onder **Projectinstellingen**.
 
 Zie [Meldingsinstellingen](/docs/notifications/notification-settings).
 

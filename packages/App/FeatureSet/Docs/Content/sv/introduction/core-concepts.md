@@ -198,7 +198,7 @@ En monitors egna regler är dess kriterier. Jourreglerna under **Användarinstä
 
 :::cards
 - [Incidentinställningar och automatisering](/docs/incidents/settings#regler-som-körs-när-en-incident-skapas): Reglerna som körs när en incident skapas, i ordning.
-- [Personliga jourregler](/docs/notifications/on-call-rules): Hur ett larm når dig.
+- [Så når man mig](/docs/notifications/on-call-rules): Hur ett larm når dig.
 :::
 
 ## Nästa steg

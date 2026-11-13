@@ -108,7 +108,7 @@ export function getTestPageDialogDescription(
   if (target.kind === "policy") {
     return (
       translator.translateText(
-        "It goes through each person's own on-call rules for the severity you pick, as a real page would - without the waits. Every message says TEST. No incident is created, nothing shows on a status page, and no subscriber or channel is told.",
+        "It goes through each person's How to Reach Me for the severity you pick, as a real page would - without the waits. Every message says TEST. No incident is created, nothing shows on a status page, and no subscriber or channel is told.",
       ) || ""
     );
   }
@@ -116,14 +116,14 @@ export function getTestPageDialogDescription(
   if (target.kind === "member") {
     return (
       translator.translateText(
-        "It goes through their own on-call rules for the severity you pick, as a real page would - without the waits. Every message says TEST. No incident is created, and nobody else is told.",
+        "It goes through their How to Reach Me for the severity you pick, as a real page would - without the waits. Every message says TEST. No incident is created, and nobody else is told.",
       ) || ""
     );
   }
 
   return (
     translator.translateText(
-      "It goes through your own on-call rules for the severity you pick, as a real page would - without the waits. Every message says TEST. No incident is created, and nobody else is told.",
+      "It goes through your How to Reach Me for the severity you pick, as a real page would - without the waits. Every message says TEST. No incident is created, and nobody else is told.",
     ) || ""
   );
 }

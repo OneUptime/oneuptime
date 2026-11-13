@@ -181,13 +181,13 @@ describe("the Incoming Call Policy page", () => {
     "App/FeatureSet/Notification/API/IncomingCall.ts",
   );
 
-  it("creates a policy from On-Call Duty, as the menu and the table name it", () => {
+  it("creates a policy from On-Call, as the menu and the table name it", () => {
     const menu: string = readDashboardFile("Pages/OnCallDuty/SideMenu.tsx");
 
     expect(menu).toContain('title: "Incoming Call Policies"');
     expect(new IncomingCallPolicy().singularName).toBe("Incoming Call Policy");
     expect(page).toContain(
-      "Go to **On-Call Duty** > **Incoming Call Policies** and click **Create Incoming Call Policy**.",
+      "Go to **On-Call** > **Incoming Call Policies** and click **Create Incoming Call Policy**.",
     );
   });
 

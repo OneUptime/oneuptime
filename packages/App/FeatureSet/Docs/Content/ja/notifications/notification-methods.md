@@ -173,7 +173,7 @@ Webhook は確認が不要なため、追加するとすぐにルールが追加
 
 **SMS**、 **音声通話**、 **WhatsApp**、 **Telegram** は、メッセージごとに費用がかかるため、新しいプロジェクトではすべてオフで始まります。OneUptime Cloud ではプロジェクトの残高から支払われ、プロジェクトのデフォルトの Twilio アカウントがそれらを送る場合、SMS と通話は代わりにそのアカウントを経由します。メール、プッシュ、Slack、Microsoft Teams、Mattermost、Webhook は常にオンです。
 
-チャネルがオフの間は、プロジェクトの誰もそのチャネルの通知方法を追加できません。カードに追加ボタンがなく、誰がオンにできるかが表示されます。オンにするのは、プロジェクトの所有者、 **請求管理者**、または **Manage Billing** の権限を持つ人で、 **プロジェクト設定 → 通知 → 通知設定** の **通知チャネル** カードで行います。プロジェクトの管理者にはできません。セルフホストの OneUptime では、SMS と通話には Twilio アカウントまたは自分で運用するゲートウェイも必要で、Telegram にはサーバーの管理者が接続するボットが必要です。 [Twilio 統合](/docs/self-hosted/twilio-integration) と [SMS・通話ゲートウェイ](/docs/self-hosted/sms-and-call-gateway) を参照してください。
+チャネルがオフの間は、プロジェクトの誰もそのチャネルの通知方法を追加できません。カードに追加ボタンがなく、誰がオンにできるかが表示されます。オンにするのは、プロジェクトの所有者、 **請求管理者**、または **Manage Billing** の権限を持つ人で、 **プロジェクト設定 → 通知 → 通知チャネル** の **通知チャネル** カードで行います。プロジェクトの管理者にはできません。セルフホストの OneUptime では、SMS と通話には Twilio アカウントまたは自分で運用するゲートウェイも必要で、Telegram にはサーバーの管理者が接続するボットが必要です。 [Twilio 統合](/docs/self-hosted/twilio-integration) と [SMS・通話ゲートウェイ](/docs/self-hosted/sms-and-call-gateway) を参照してください。
 
 ## 通知方法を削除する
 
@@ -200,7 +200,7 @@ Webhook は確認が不要なため、追加するとすぐにルールが追加
 ## 次のステップ
 
 :::cards
-- [個人のオンコールルール](/docs/notifications/on-call-rules): 各呼び出しがどの通知方法をいつ試すかを決めます。
+- [私への連絡方法](/docs/notifications/on-call-rules): 各呼び出しがどの通知方法をいつ試すかを決めます。
 - [通知設定](/docs/notifications/notification-settings): 知らされる最新情報と、そのチャネルを選びます。
 - [アプリの概要](/docs/mobile-desktop-apps/index): スマートフォンやデスクトップで呼び出しを受け取ります。
 - [OneUptime からの連絡の仕組み](/docs/notifications/index): 通知方法、ルール、設定の関係。

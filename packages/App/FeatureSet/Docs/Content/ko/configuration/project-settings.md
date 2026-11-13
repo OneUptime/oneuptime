@@ -34,7 +34,7 @@ flowchart LR
 | **기본** | **프로젝트**, **제품**, **레이블** | [프로젝트 세부 정보](#프로젝트-세부-정보), [제품](#제품), [레이블](#레이블) |
 | **워크스페이스** | **Slack**, **Microsoft Teams**, **Mattermost**, **화상 통화** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [화상 통화](/docs/workspace-connections/video-calls) |
 | **텔레메트리 및 APM** | **수집 키**, **데이터 보존**, **사용량** | [수집 키](/docs/telemetry/ingestion-keys), [데이터 보존](/docs/telemetry/data-retention), [텔레메트리 사용량](/docs/telemetry/usage) |
-| **알림** | **알림 설정**, **알림 로그**, **모바일 앱** | [알림](#알림) |
+| **알림** | **알림 채널**, **알림 로그**, **모바일 앱** | [알림](#알림) |
 | **AI** | **AI 기능**, **LLM 공급자**, **외부 MCP 서버**, **AI 크레딧**, **AI 로그**, **MCP 서버** | [LLM 공급자](/docs/ai/llm-provider), [외부 MCP 서버](/docs/ai/external-mcp-servers), [MCP 서버](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#비용-관리) |
 | **고급** | **도메인**, **API 키**, **기능 플래그**, **다른 도구에서 가져오기** | [사용자 지정 도메인](/docs/status-pages/branding-and-domains#사용자-정의-도메인), [API 키](/docs/permissions/index#api-키), [기능 플래그](#기능-플래그), [Opsgenie에서 이전](/docs/moving-to-oneuptime/opsgenie) 및 기타 이전 가이드 |
 | **보안** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
@@ -96,7 +96,7 @@ OneUptime Cloud에서 레이블을 만들고 변경하려면 Growth 요금제가
 
 **프로젝트 설정 → 알림**에서는 프로젝트가 알림을 보내는 방식을 정합니다.
 
-- **알림 설정**: **알림 채널** 카드에서 프로젝트의 SMS, 전화, WhatsApp, Telegram을 켜거나 끕니다. 처음에는 모두 꺼져 있습니다. Project Owner, **결제 관리자**, 또는 **Manage Billing** 권한이 있는 사람이 켭니다. 이 페이지의 **추가 설정**에는 **사용자 지정 SMTP 구성**에 있는 프로젝트 자체 메일 서버([SMTP](/docs/emails/smtp) 참조)와 프로젝트 자체 Twilio 계정([Twilio 통합](/docs/self-hosted/twilio-integration) 참조)도 있습니다. OneUptime Cloud에서는 이 메시지들의 비용을 내는 잔액도 여기 있습니다. [선불 잔액](/docs/configuration/billing#선불-잔액)을 참조하세요.
+- **알림 채널**: **알림 채널** 카드에서 프로젝트의 SMS, 전화, WhatsApp, Telegram을 켜거나 끕니다. 처음에는 모두 꺼져 있습니다. Project Owner, **결제 관리자**, 또는 **Manage Billing** 권한이 있는 사람이 켭니다. 이 페이지의 **추가 설정**에는 **사용자 지정 SMTP 구성**에 있는 프로젝트 자체 메일 서버([SMTP](/docs/emails/smtp) 참조)와 프로젝트 자체 Twilio 계정([Twilio 통합](/docs/self-hosted/twilio-integration) 참조)도 있습니다. OneUptime Cloud에서는 이 메시지들의 비용을 내는 잔액도 여기 있습니다. [선불 잔액](/docs/configuration/billing#선불-잔액)을 참조하세요.
 - **알림 로그**: 프로젝트가 보낸 모든 알림. 채널마다 탭이 있습니다: **이메일**, **SMS**, **WhatsApp**, **Telegram**, **웹훅**, **호출**, **푸시**, **워크스페이스**.
 - **모바일 앱**: iOS 및 Android 앱을 받는 곳. [앱 개요](/docs/mobile-desktop-apps/index)를 참조하세요.
 

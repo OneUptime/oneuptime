@@ -63,7 +63,7 @@ Wenn Sie einem Projekt mit einer verifizierten Anmelde-E-Mail beitreten, richtet
 2. Für jeden Schweregrad, auf jedem der vier Tabs der **Wie ich erreichbar bin**, schickt Ihnen eine Regel eine E-Mail, sobald Sie alarmiert werden.
 3. Eine Reihe von Neuigkeiten zu dem, was Ihnen gehört, und zu Ihren Schichten ist per E-Mail eingeschaltet. Siehe [Benachrichtigungseinstellungen](/docs/notifications/notification-settings#was-für-ein-neues-mitglied-eingeschaltet-ist).
 
-Jede Methode, die Sie später verifizieren, erhält dieselben Regeln: eine Regel für jeden Schweregrad, die gesendet wird, sobald Sie alarmiert werden. Eine Telefonnummer für SMS zu verifizieren heißt also, dass jeder Alarm Ihnen auch eine SMS schickt. Um SMS nur für kritische Alarme zu behalten, löschen Sie die SMS-Regeln der anderen Schweregrade. Siehe [Persönliche Bereitschaftsregeln](/docs/notifications/on-call-rules#die-regeln-mit-denen-sie-starten).
+Jede Methode, die Sie später verifizieren, erhält dieselben Regeln: eine Regel für jeden Schweregrad, die gesendet wird, sobald Sie alarmiert werden. Eine Telefonnummer für SMS zu verifizieren heißt also, dass jeder Alarm Ihnen auch eine SMS schickt. Um SMS nur für kritische Alarme zu behalten, löschen Sie die SMS-Regeln der anderen Schweregrade. Siehe [Wie ich erreichbar bin](/docs/notifications/on-call-rules#die-regeln-mit-denen-sie-starten).
 
 ## Die Einrichtungs-Checkliste
 
@@ -95,7 +95,7 @@ Ein Alarm kann Sie für eine Art und einen Schweregrad erreichen, für die Sie k
 2. Wenn Sie keine davon haben, eine kostenpflichtige Methode, in dieser Reihenfolge: SMS, ein Telefonanruf, WhatsApp, Telegram. Es ist die erste, die Sie verifiziert haben, auf einem Kanal, den das Projekt eingeschaltet hat.
 3. Wenn Sie auch davon keine haben, ein Webhook.
 
-Sie erhalten darüber eine E-Mail, ebenso die Eigentümer der Bereitschaftsrichtlinie, oder die Eigentümer des Projekts, wenn die Richtlinie keine hat. Ist gar nichts verifiziert, kann der Alarm nicht zugestellt werden, und die E-Mail sagt stattdessen das. Diese E-Mails werden zurückgehalten, solange weitere Alarme eintreffen, sodass ein Sturm von Alarmen kein Sturm von E-Mails wird. Wie Sie die fehlende Regel hinzufügen, steht unter [Persönliche Bereitschaftsregeln](/docs/notifications/on-call-rules#wenn-ein-schweregrad-keine-regel-hat).
+Sie erhalten darüber eine E-Mail, ebenso die Eigentümer der Bereitschaftsrichtlinie, oder die Eigentümer des Projekts, wenn die Richtlinie keine hat. Ist gar nichts verifiziert, kann der Alarm nicht zugestellt werden, und die E-Mail sagt stattdessen das. Diese E-Mails werden zurückgehalten, solange weitere Alarme eintreffen, sodass ein Sturm von Alarmen kein Sturm von E-Mails wird. Wie Sie die fehlende Regel hinzufügen, steht unter [Wie ich erreichbar bin](/docs/notifications/on-call-rules#wenn-ein-schweregrad-keine-regel-hat).
 
 ## Die Sprache Ihrer Alarme
 
@@ -131,7 +131,7 @@ Eine Nummer kommt in Ihre Regeln, sobald sie verifiziert ist. Klicken Sie in ihr
 
 :::cards
 - [Benachrichtigungsmethoden](/docs/notifications/notification-methods): Fügen Sie die Adressen hinzu, unter denen OneUptime Sie erreichen darf, und verifizieren Sie sie.
-- [Persönliche Bereitschaftsregeln](/docs/notifications/on-call-rules): Legen Sie fest, welche Methode jeder Alarm versucht, und wann.
+- [Wie ich erreichbar bin](/docs/notifications/on-call-rules): Legen Sie fest, welche Methode jeder Alarm versucht, und wann.
 - [Benachrichtigungseinstellungen](/docs/notifications/notification-settings): Wählen Sie die Neuigkeiten, von denen Sie erfahren, und über welche Kanäle.
 - [Eskalationsregeln](/docs/on-call/escalation-rules): Wie eine Bereitschaftsrichtlinie Stufe für Stufe entscheidet, wer alarmiert wird.
 :::

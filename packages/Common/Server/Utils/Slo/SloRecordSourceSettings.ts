@@ -871,12 +871,12 @@ export default class SloRecordSourceSettings<
     return [
       {
         column: "onCallDutyPolicies",
-        modelName: "On-Call Duty Policy",
+        modelName: "On-Call Policy",
         service: onCallDutyPolicyService,
       },
       {
         column: "incidentOnCallDutyPolicies",
-        modelName: "On-Call Duty Policy",
+        modelName: "On-Call Policy",
         service: onCallDutyPolicyService,
       },
       {

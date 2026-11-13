@@ -103,6 +103,6 @@ flowchart TB
 :::cards
 - [待命排程](/docs/on-call/schedules): 輪流待命，讓每次呼叫都送到正在待命的人。在 Cloud 上，從 Growth 方案起提供。
 - [上報規則](/docs/on-call/escalation-rules): 為策略新增級別、團隊和待命排程。
-- [個人待命規則](/docs/notifications/on-call-rules): 選擇先用哪種方式聯絡你，以及何時聯絡。
+- [如何聯絡我](/docs/notifications/on-call-rules): 選擇先用哪種方式聯絡你，以及何時聯絡。
 - [發布狀態頁面](/docs/guides/status-page): 在你自己的網域上告訴客戶正在發生什麼。
 :::

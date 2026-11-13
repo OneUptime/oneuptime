@@ -465,7 +465,7 @@ function formatReadResponse(
     resourceType: modelName,
     resourceId: id ?? null,
     error: `${modelName} not found with ID: ${id}`,
-    suggestion: `Use list_${sanitizeToolName(tool.pluralName)} to find valid IDs`,
+    suggestion: `Use list_${sanitizeToolName(tool.apiPluralName || tool.pluralName)} to find valid IDs`,
   } as JSONObject;
 }
 
@@ -538,7 +538,7 @@ function formatUpdateResponse(
     resourceType: tool.singularName,
     resourceId: id ?? null,
     message: `Successfully updated ${tool.singularName} (ID: ${id}).`,
-    note: `Use get_${sanitizeToolName(tool.singularName)} with this id to see the updated record.`,
+    note: `Use get_${sanitizeToolName(tool.apiSingularName || tool.singularName)} with this id to see the updated record.`,
   } as JSONObject;
 }
 

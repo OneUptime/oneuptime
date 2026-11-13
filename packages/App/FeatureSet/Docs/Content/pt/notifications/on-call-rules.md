@@ -1,4 +1,4 @@
-# Regras de Plantão pessoais
+# Como me contatar
 
 As suas regras de plantão decidem como um acionamento chega até você: quais dos seus métodos de notificação o OneUptime tenta, e quanto tempo depois do início do acionamento. Cada tipo de acionamento tem as próprias regras, um conjunto por gravidade, então um incidente crítico pode ligar para você na hora enquanto um alerta de baixa gravidade espera por um e-mail. Você as define em **Configurações do usuário → Como me contatar**.
 

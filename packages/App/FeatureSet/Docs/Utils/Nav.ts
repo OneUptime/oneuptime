@@ -526,7 +526,7 @@ const DocsNav: NavGroup[] = [
     ],
   },
   {
-    title: "On Call",
+    title: "On-Call",
     section: "Incident Response",
     links: [
       {
@@ -584,7 +584,7 @@ const DocsNav: NavGroup[] = [
         url: "/docs/notifications/notification-methods",
       },
       {
-        title: "Personal On-Call Rules",
+        title: "How to Reach Me",
         url: "/docs/notifications/on-call-rules",
       },
       {

@@ -125,7 +125,7 @@ API 密钥需要 Growth 或更高的套餐，而在 Scale 套餐以下，SCIM �
 
 | 余额 | 位置 |
 | --- | --- |
-| 短信、电话、WhatsApp 和 Telegram | **项目设置 → 通知 → 通知设置** |
+| 短信、电话、WhatsApp 和 Telegram | **项目设置 → 通知 → 通知渠道** |
 | OneUptime AI | **项目设置 → 人工智能 → AI 积分** |
 
 :::steps

@@ -184,7 +184,7 @@ describe("BreadcrumbTrailResolver", () => {
   });
 
   describe("bare section prefix with an off-path landing", () => {
-    test('"On-Call Duty" links to /policies while viewing /schedules', () => {
+    test('"On-Call" links to /policies while viewing /schedules', () => {
       const target: BreadcrumbTarget = resolveOne({
         index: 1,
         crumbCount: 3,
@@ -194,7 +194,7 @@ describe("BreadcrumbTrailResolver", () => {
       expect(target.routePattern).toBe(`${PROJECT}/on-call-duty/policies`);
     });
 
-    test('"On-Call Duty" is plain text on the /policies landing page itself', () => {
+    test('"On-Call" is plain text on the /policies landing page itself', () => {
       const target: BreadcrumbTarget = resolveOne({
         index: 1,
         crumbCount: 3,

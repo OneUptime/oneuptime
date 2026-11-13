@@ -1,4 +1,4 @@
-# Personliga jourregler
+# Så når man mig
 
 Dina jourregler avgör hur ett larm når dig: vilka av dina aviseringsmetoder OneUptime försöker med, och hur lång tid efter att larmet startade. Varje typ av larm har egna regler, en uppsättning per allvarlighetsgrad, så att en kritisk incident kan ringa dig direkt medan ett lågt larm väntar på ett e-postmeddelande. Du ställer in dem under **Användarinställningar → Så når man mig**.
 
@@ -29,7 +29,7 @@ De flesta meddelanden kan bekräfta larmet: e-post, SMS och meddelanden i WhatsA
 
 ## En ordning för allt
 
-**Användarinställningar → Så når man mig** öppnas med din ordning: stegen varje larm provar, för incidenter, varningar och episoder av alla allvarlighetsgrader. Varje steg är en av dina verifierade metoder och när den används, till exempel ett sms direkt och ett samtal efter 5 minuter. Steg med samma väntetid går ut tillsammans, så ordningen läses i den följd den larmar.
+**Användarinställningar → Så når man mig** öppnas med din ordning: stegen varje larm provar, för incidenter, larm och episoder av alla allvarlighetsgrader. Varje steg är en av dina verifierade metoder och när den används, till exempel ett sms direkt och ett samtal efter 5 minuter. Steg med samma väntetid går ut tillsammans, så ordningen läses i den följd den larmar.
 
 :::steps
 ### Lägg till ett sätt att nå dig

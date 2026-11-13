@@ -1095,7 +1095,7 @@ describe("Inviting People", () => {
     expect(pages).toEqual([
       "**Profile**",
       "**Teams**",
-      "**Readiness**, **Notification Methods**, **On-Call Rules**",
+      "**Readiness**, **Notification Methods**, **How to Reach Me**",
       "**Custom Fields**",
       "**Remove from Project**",
     ]);
@@ -1105,7 +1105,7 @@ describe("Inviting People", () => {
       'title: "Teams"',
       'title: "Readiness"',
       'title: "Notification Methods"',
-      'title: "On-Call Rules"',
+      'title: "How to Reach Me"',
       'title: "Custom Fields"',
       'title: "Remove from Project"',
     ]) {
@@ -2443,7 +2443,7 @@ describe("Audit Logs", () => {
     }
 
     expect(section(page, "## What is recorded")).toContain(
-      "An administrator adding or removing a notification method or a personal on-call rule on someone else's account is recorded too, without the address or number itself.",
+      "An administrator adding or removing a notification method or a rule in How to Reach Me on someone else's account is recorded too, without the address or number itself.",
     );
   });
 

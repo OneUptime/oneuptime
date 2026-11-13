@@ -38,7 +38,7 @@ flowchart TB
 :::steps
 ### Añade tu cuenta de Twilio
 
-Ve a **Ajustes del proyecto** > **Notificaciones** > **Ajustes de notificaciones** y abre **Más ajustes**. En la tarjeta **Configuración de Twilio**, haz clic en **Crear configuración de Twilio** y rellena el formulario:
+Ve a **Ajustes del proyecto** > **Notificaciones** > **Canales de notificación** y abre **Más ajustes**. En la tarjeta **Configuración de Twilio**, haz clic en **Crear configuración de Twilio** y rellena el formulario:
 
 - **Nombre** y **Descripción**: para qué es la cuenta, por ejemplo «Línea de soporte».
 - **SID de cuenta de Twilio**: de la consola de Twilio. Empieza por `AC`.
@@ -160,7 +160,7 @@ Una regla hace sonar a una persona en el número que verificó para llamadas ent
 
 Cada persona puede tener un número verificado por proyecto. Para cambiarlo, elimina primero el número antiguo. Estos números son distintos de los números de teléfono de **Métodos de notificación**, que usan los avisos de guardia. Consulta [Métodos de notificación](/docs/notifications/notification-methods).
 
-Los números para llamadas entrantes se verifican por SMS, así que primero el proyecto debe tener **SMS** activado. Un propietario del proyecto o alguien con el rol **Administrador de facturación** o el permiso **Manage Billing** lo activa en la tarjeta **Canales de notificación** de **Ajustes del proyecto > Notificaciones > Ajustes de notificaciones**.
+Los números para llamadas entrantes se verifican por SMS, así que primero el proyecto debe tener **SMS** activado. Un propietario del proyecto o alguien con el rol **Administrador de facturación** o el permiso **Manage Billing** lo activa en la tarjeta **Canales de notificación** de **Ajustes del proyecto > Notificaciones > Canales de notificación**.
 
 ## Mensajes de voz y ajustes de la política
 
@@ -202,7 +202,7 @@ Cuando se pierde una llamada, OneUptime avisa a los propietarios de la política
 
 El aviso dice quién llamó, qué número marcó, por qué nadie contestó, y a quién sonó y cómo terminó cada intento. Enlaza la llamada en el registro de llamadas.
 
-Los propietarios reciben un correo por defecto. Cada persona puede elegir otros canales (SMS, llamada, push y más) o desactivarlo en **Ajustes de usuario** > **Ajustes de notificaciones**, en **De guardia** > **Políticas de llamadas entrantes** > **Llamada perdida**. Consulta [Ajustes de notificaciones](/docs/notifications/notification-settings).
+Los propietarios reciben un correo por defecto. Cada persona puede elegir otros canales (SMS, llamada, push y más) o desactivarlo en **Ajustes de usuario** > **Ajustes de notificaciones**, en **Guardia** > **Políticas de llamadas entrantes** > **Llamada perdida**. Consulta [Ajustes de notificaciones](/docs/notifications/notification-settings).
 
 ### Reacciona a las llamadas perdidas en un flujo de trabajo
 

@@ -64,7 +64,7 @@ Never delayed, and never counted:
 | On-call paging                            | Every escalation-policy page, and every acknowledgement request                                      |
 | On-call timing                            | "You are on call now", "you are next on call", "your shift starts soon", "your shift was reassigned" |
 | Account security                          | Password reset, email verification, password changed, two-factor backup code used or regenerated     |
-| Administrative notices about your account | An administrator changed your notification methods or your on-call rules                             |
+| Administrative notices about your account | An administrator changed your notification methods or How to Reach Me                                |
 | Billing and balance                       | Invoices, subscription overdue, "we could not page anyone because the card declined"                 |
 | Instance health                           | Postgres, Valkey and ClickHouse warnings to instance admins                                          |
 | Status page subscribers                   | Every email your status page sends to your own subscribers                                           |

@@ -22,7 +22,7 @@ flowchart TB
     Provider --> Phone
 ```
 
-Das Gateway tritt an die Stelle des eigenen Twilio-Kontos des Servers, für alles, was darüber laufen würde: Bereitschaftsalarme, Benachrichtigungen, Verifizierungscodes und SMS an Abonnenten von Statusseiten. Projekte, die auf der Karte **Twilio-Konfiguration** unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungseinstellungen** eine eigene Twilio-Konfiguration hinzufügen, senden weiterhin über diese Konfiguration. Die SMS- und Anrufschalter jedes Projekts und, wo die Abrechnung eingeschaltet ist, sein Guthaben werden wie bei Twilio geprüft.
+Das Gateway tritt an die Stelle des eigenen Twilio-Kontos des Servers, für alles, was darüber laufen würde: Bereitschaftsalarme, Benachrichtigungen, Verifizierungscodes und SMS an Abonnenten von Statusseiten. Projekte, die auf der Karte **Twilio-Konfiguration** unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungskanäle** eine eigene Twilio-Konfiguration hinzufügen, senden weiterhin über diese Konfiguration. Die SMS- und Anrufschalter jedes Projekts und, wo die Abrechnung eingeschaltet ist, sein Guthaben werden wie bei Twilio geprüft.
 
 ## Gateway einrichten
 

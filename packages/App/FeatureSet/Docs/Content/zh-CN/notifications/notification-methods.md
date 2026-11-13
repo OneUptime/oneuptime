@@ -173,7 +173,7 @@ Webhook 无需验证，因此添加后会立即添加其规则。私有地址和
 
 **SMS**、 **语音电话**、 **WhatsApp** 和 **Telegram** 在每个新项目中默认关闭，因为每条消息都要花钱：在 OneUptime Cloud 上，费用从项目余额中支付；如果项目的默认 Twilio 账户用于发送短信和电话，它们会改为通过项目自己的 Twilio 账户发送。邮件、推送、Slack、Microsoft Teams、Mattermost 和 Webhook 始终开启。
 
-渠道关闭期间，项目中的任何人都无法在该渠道上添加通知方式：它的卡片上没有添加按钮，并会说明谁可以开启它。由项目所有者、 **账单管理员** 或拥有 **Manage Billing** 权限的人在 **项目设置 → 通知 → 通知设置** 的 **通知渠道** 卡片中开启。项目管理员无法开启。在自托管的 OneUptime 上，短信和电话还需要 Twilio 账户或你自己运行的网关，Telegram 还需要服务器管理员连接的机器人；参见 [Twilio 集成](/docs/self-hosted/twilio-integration) 和 [短信和电话网关](/docs/self-hosted/sms-and-call-gateway)。
+渠道关闭期间，项目中的任何人都无法在该渠道上添加通知方式：它的卡片上没有添加按钮，并会说明谁可以开启它。由项目所有者、 **账单管理员** 或拥有 **Manage Billing** 权限的人在 **项目设置 → 通知 → 通知渠道** 的 **通知渠道** 卡片中开启。项目管理员无法开启。在自托管的 OneUptime 上，短信和电话还需要 Twilio 账户或你自己运行的网关，Telegram 还需要服务器管理员连接的机器人；参见 [Twilio 集成](/docs/self-hosted/twilio-integration) 和 [短信和电话网关](/docs/self-hosted/sms-and-call-gateway)。
 
 ## 删除通知方式
 
@@ -200,7 +200,7 @@ Webhook 无需验证，因此添加后会立即添加其规则。私有地址和
 ## 后续步骤
 
 :::cards
-- [个人值班规则](/docs/notifications/on-call-rules): 决定每次呼叫尝试哪种方式，以及何时尝试。
+- [如何联系我](/docs/notifications/on-call-rules): 决定每次呼叫尝试哪种方式，以及何时尝试。
 - [通知设置](/docs/notifications/notification-settings): 选择你要收到的更新，以及通过哪些渠道。
 - [应用概览](/docs/mobile-desktop-apps/index): 在手机或桌面上接收呼叫。
 - [OneUptime 如何联系你](/docs/notifications/index): 通知方式、规则和设置如何配合。

@@ -121,5 +121,5 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
 - [升级规则](/docs/on-call/escalation-rules): 让值班策略的某个级别呼叫此计划。
 - [值班时间线](/docs/on-call/schedule-timeline): 并排查看所有计划及覆盖空档。
 - [日历订阅源](/docs/on-call/calendar-feeds): 将班次放入 Google 日历、Outlook 或 Apple 日历。
-- [个人值班规则](/docs/notifications/on-call-rules): 决定值班时呼叫如何送达你。
+- [如何联系我](/docs/notifications/on-call-rules): 决定值班时呼叫如何送达你。
 :::

@@ -90,7 +90,7 @@ Se [Eskaleringsregler](/docs/on-call/escalation-rules).
 
 Hvem som har vakt til enhver tid: folk bytter på, og hver av dem overlater til den neste. En eskaleringsregel som tilkaller en vaktplan, tilkaller den som har vakt i den.
 
-Også kalt: **Rotation**. Se [Vaktplaner](/docs/on-call/schedules).
+Også kalt: **Rotation**, **Vaktplan for vaktpolicy**. Se [Vaktplaner](/docs/on-call/schedules).
 
 ### Lag
 
@@ -103,6 +103,12 @@ Se [Vaktplaner](/docs/on-call/schedules#lag).
 En adresse OneUptime kan nå deg på i et prosjekt: en e-postadresse, et telefonnummer for SMS eller anrop, Slack- eller Microsoft Teams-kontoen din eller OneUptime-appen på telefonen din. Hver person legger til sine egne under **Brukerinnstillinger**.
 
 Se [Varselmetoder](/docs/notifications/notification-methods).
+
+### Slik når man meg
+
+Dine egne regler for å bli tilkalt: hvilke av varselmetodene dine en tilkalling prøver, og etter hvor lang tid. Én stige dekker hver hendelse, hvert varsel og hver episode, og en alvorlighetsgrad kan ha egne regler. Hver person setter opp sine egne under **Brukerinnstillinger**.
+
+Også kalt: **Personlige vaktregler**. Se [Slik når man meg](/docs/notifications/on-call-rules).
 
 ### Statusside
 
@@ -472,13 +478,13 @@ Se [Hvilken skal jeg bruke?](/docs/introduction/which-one#sonde-agent-collector-
 
 ### Vaktregler
 
-To forskjellige ting. Under **Hendelser** og **Varsler** velger vaktregler vaktpolicyene en ny hendelse eller et nytt varsel kjører. Under **Brukerinnstillinger** avgjør dine egne vaktregler hvilke av varselmetodene dine en tilkalling prøver, og etter hvor lang tid.
+Under **Hendelser** og **Varsler** velger vaktregler vaktpolicyene en ny hendelse eller et nytt varsel kjører. En persons egne regler for hvordan en tilkalling når fram, het også vaktregler: De heter nå **Slik når man meg**, under **Brukerinnstillinger**.
 
-Se [Hendelsesinnstillinger og automatisering](/docs/incidents/settings#vaktregler-for-hendelser) og [Personlige vaktregler](/docs/notifications/on-call-rules).
+Se [Hendelsesinnstillinger og automatisering](/docs/incidents/settings#vaktregler-for-hendelser) og [Slik når man meg](/docs/notifications/on-call-rules).
 
 ### Varselinnstillinger
 
-To forskjellige sider. Under **Brukerinnstillinger**: hvilke oppdateringer du får om det du eier, og på hvilke kanaler. Under **Prosjektinnstillinger**: prosjektets brytere for SMS og anrop, meldingssaldoen og prosjektets egen SMTP og Twilio.
+Under **Brukerinnstillinger**: hvilke oppdateringer du får om det du eier, og på hvilke kanaler. Prosjektets brytere for SMS og anrop, meldingssaldoen og prosjektets egen SMTP og Twilio het også varselinnstillinger: De heter nå **Varslingskanaler**, under **Prosjektinnstillinger**.
 
 Se [Varselinnstillinger](/docs/notifications/notification-settings).
 

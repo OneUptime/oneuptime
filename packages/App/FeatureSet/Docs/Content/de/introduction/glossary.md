@@ -90,7 +90,7 @@ Siehe [Eskalationsregeln](/docs/on-call/escalation-rules).
 
 Wer zu jedem Zeitpunkt Bereitschaft hat: Personen wechseln sich ab, und jede übergibt an die nächste. Eine Eskalationsregel, die einen Plan alarmiert, alarmiert die Person, die darin gerade Bereitschaft hat.
 
-Auch genannt: **Rotation**. Siehe [Bereitschaftspläne](/docs/on-call/schedules).
+Auch genannt: **Rotation**, **Bereitschaftsplan der Richtlinie**. Siehe [Bereitschaftspläne](/docs/on-call/schedules).
 
 ### Ebene
 
@@ -103,6 +103,12 @@ Siehe [Bereitschaftspläne](/docs/on-call/schedules#ebenen).
 Eine Adresse, unter der OneUptime Sie in einem Projekt erreichen darf: eine E-Mail-Adresse, eine Telefonnummer für SMS oder Anrufe, Ihr Slack- oder Microsoft-Teams-Konto oder die OneUptime-App auf Ihrem Telefon. Jede Person fügt ihre eigenen unter **Benutzereinstellungen** hinzu.
 
 Siehe [Benachrichtigungsmethoden](/docs/notifications/notification-methods).
+
+### Wie ich erreichbar bin
+
+Ihre eigenen Regeln, wie Sie alarmiert werden: welche Ihrer Benachrichtigungsmethoden eine Alarmierung versucht, und nach welcher Zeit. Eine Leiter gilt für jeden Vorfall, jede Warnung und jede Episode, und ein Schweregrad kann eigene Regeln haben. Jede Person legt ihre eigenen unter **Benutzereinstellungen** fest.
+
+Auch genannt: **Persönliche Bereitschaftsregeln**. Siehe [Wie ich erreichbar bin](/docs/notifications/on-call-rules).
 
 ### Statusseite
 
@@ -472,13 +478,13 @@ Siehe [Was nehme ich wann?](/docs/introduction/which-one#sonde-agent-collector-o
 
 ### Bereitschaftsregeln
 
-Zwei verschiedene Dinge. Unter **Vorfälle** und **Warnungen** wählen Bereitschaftsregeln die Bereitschaftsrichtlinien aus, die ein neuer Vorfall oder eine neue Warnung durchläuft. Unter **Benutzereinstellungen** entscheiden Ihre eigenen Bereitschaftsregeln, welche Ihrer Benachrichtigungsmethoden eine Alarmierung versucht, und nach welcher Zeit.
+Unter **Vorfälle** und **Warnungen** wählen Bereitschaftsregeln die Bereitschaftsrichtlinien aus, die ein neuer Vorfall oder eine neue Warnung durchläuft. Die eigenen Regeln einer Person, wie eine Alarmierung sie erreicht, hießen auch Bereitschaftsregeln: Sie heißen jetzt **Wie ich erreichbar bin**, unter **Benutzereinstellungen**.
 
-Siehe [Vorfalleinstellungen & Automatisierung](/docs/incidents/settings#bereitschaftsregeln-für-vorfälle) und [Persönliche Bereitschaftsregeln](/docs/notifications/on-call-rules).
+Siehe [Vorfalleinstellungen & Automatisierung](/docs/incidents/settings#bereitschaftsregeln-für-vorfälle) und [Wie ich erreichbar bin](/docs/notifications/on-call-rules).
 
 ### Benachrichtigungseinstellungen
 
-Zwei verschiedene Seiten. Unter **Benutzereinstellungen** legen Sie fest, welche Updates Sie zu dem erreichen, was Ihnen gehört, und über welche Kanäle. Unter **Projekteinstellungen** liegen die Schalter des Projekts für SMS und Anrufe, sein Nachrichtenguthaben und sein eigenes SMTP und Twilio.
+Unter **Benutzereinstellungen** legen Sie fest, welche Updates Sie zu dem erreichen, was Ihnen gehört, und über welche Kanäle. Die Schalter des Projekts für SMS und Anrufe, sein Nachrichtenguthaben und sein eigenes SMTP und Twilio hießen auch Benachrichtigungseinstellungen: Sie heißen jetzt **Benachrichtigungskanäle**, unter **Projekteinstellungen**.
 
 Siehe [Benachrichtigungseinstellungen](/docs/notifications/notification-settings).
 

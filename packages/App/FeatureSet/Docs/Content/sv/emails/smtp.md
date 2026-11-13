@@ -27,14 +27,14 @@ I en egenvärdad installation är OneUptimes egen e-postserver den som anges i A
 
 ## Lägg till en SMTP-server
 
-Lägg till ett projekts e-postserver under **Projektinställningar > Aviseringar > Aviseringsinställningar**, i kortet **Anpassade SMTP-konfigurationer** under **Fler inställningar**. I en egenvärdad installation anges servern som OneUptime själv skickar från under **Admin Dashboard > Inställningar > Notifieringar > E-post**, i kortet **Anpassade e-post- och SMTP-inställningar**. Båda formulären frågar efter servern och avsändaren; ett projekts formulär frågar först efter **Leverantör**.
+Lägg till ett projekts e-postserver under **Projektinställningar > Aviseringar > Aviseringskanaler**, i kortet **Anpassade SMTP-konfigurationer** under **Fler inställningar**. I en egenvärdad installation anges servern som OneUptime själv skickar från under **Admin Dashboard > Inställningar > Notifieringar > E-post**, i kortet **Anpassade e-post- och SMTP-inställningar**. Båda formulären frågar efter servern och avsändaren; ett projekts formulär frågar först efter **Leverantör**.
 
 :::steps
 ### Öppna formuläret
 
 :::tabs
 @tab Projekt
-Öppna **Fler inställningar** under **Projektinställningar > Aviseringar > Aviseringsinställningar** och klicka på **Skapa SMTP-konfiguration** i kortet **Anpassade SMTP-konfigurationer**.
+Öppna **Fler inställningar** under **Projektinställningar > Aviseringar > Aviseringskanaler** och klicka på **Skapa SMTP-konfiguration** i kortet **Anpassade SMTP-konfigurationer**.
 @tab Egenvärdad instans
 Öppna **Inställningar** i Admin Dashboard och sedan **Notifieringar > E-post** i sidomenyn (**Notifieringar** är hopfällt från början). Klicka i kortet **E-post-serverinställningar** på **Redigera server** och sätt **Typ av e-postserver** till `Custom SMTP`. Klicka sedan på **Redigera SMTP-konfig** i kortet **Anpassade e-post- och SMTP-inställningar**, som visas nedanför.
 :::

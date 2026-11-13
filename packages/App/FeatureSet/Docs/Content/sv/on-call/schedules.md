@@ -17,7 +17,7 @@ Ett jourschema bestämmer vem som har jour vid varje tidpunkt. Personer turas om
 När du skapar ett schema på sidan **Jourscheman** frågar formuläret efter dess **Namn** och **Vilka turas om?**. De personer du väljer blir schemats första lager, **Layer 1**, med jour dygnet runt.
 
 :::steps
-1. Gå till **Jourtjänst** > **Jourscheman** och klicka på **Skapa jourschema**.
+1. Gå till **Jour** > **Jourscheman** och klicka på **Skapa jourschema**.
 2. Ange ett **Namn**.
 3. Klicka på **Lägg till användare** under **Vilka turas om?** och välj personerna i den ordning de turas om.
 4. Öppna eventuellt **Fler fält** för att ändra hur länge varje pass varar, tidszonen, beskrivningen eller etiketterna.
@@ -86,7 +86,7 @@ Medan personen är borta:
 
 Väljer du i stället någon under **Vem täcker upp?** får den personen alla hens larm, från varje schema och varje policy, i stället för att rotationen tar hens pass.
 
-Frånvaro som läggs till på det här sättet gäller för alla jourpolicyer, så den kräver behörigheten för åsidosättningar över hela projektet. Är ditt teams roll begränsad till dess egna policyer eller till några etiketter läggs den i stället på de policyer i det här schemat som du får lägga till åsidosättningar på, med en åsidosättning per policy, som listas på varje policys egen sida **Användaråsidosättningar**; är de flera markerar du dem under **Jourpolicyer**. **Hoppa över till…** är bara låst och säger varför där du inte får på någon av dem. Den listas under **Jourtjänst** > **Avancerad** > **Användaråsidosättningar**, där du kan ta bort den för att få tillbaka personen tidigare. För att hoppa över någon i bara en policy lägger du till åsidosättningen på den policyns sida **Användaråsidosättningar** och låter **Vem täcker upp?** vara som det är. Se [Användaråsidosättningar](/docs/on-call/user-overrides).
+Frånvaro som läggs till på det här sättet gäller för alla jourpolicyer, så den kräver behörigheten för åsidosättningar över hela projektet. Är ditt teams roll begränsad till dess egna policyer eller till några etiketter läggs den i stället på de policyer i det här schemat som du får lägga till åsidosättningar på, med en åsidosättning per policy, som listas på varje policys egen sida **Användaråsidosättningar**; är de flera markerar du dem under **Jourpolicyer**. **Hoppa över till…** är bara låst och säger varför där du inte får på någon av dem. Den listas under **Jour** > **Avancerad** > **Användaråsidosättningar**, där du kan ta bort den för att få tillbaka personen tidigare. För att hoppa över någon i bara en policy lägger du till åsidosättningen på den policyns sida **Användaråsidosättningar** och låter **Vem täcker upp?** vara som det är. Se [Användaråsidosättningar](/docs/on-call/user-overrides).
 
 Via API:et hoppar en användaråsidosättning (`/api/on-call-duty-policy-user-override`) som skapas utan `routeAlertsToUserId` över personen i `overrideUserId` från `startsAt` till `endsAt`.
 
@@ -121,5 +121,5 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Låt en nivå i en jourpolicy larma det här schemat.
 - [Tidslinje för jourscheman](/docs/on-call/schedule-timeline): Se alla scheman sida vid sida, med täckningsluckorna.
 - [Kalenderflöden](/docs/on-call/calendar-feeds): Lägg in pass i Google Kalender, Outlook eller Apple Kalender.
-- [Personliga jourregler](/docs/notifications/on-call-rules): Bestäm hur ett larm når dig medan du har jour.
+- [Så når man mig](/docs/notifications/on-call-rules): Bestäm hur ett larm når dig medan du har jour.
 :::

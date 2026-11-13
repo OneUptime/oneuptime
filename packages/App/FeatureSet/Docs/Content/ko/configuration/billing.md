@@ -125,7 +125,7 @@ SMS, 전화, WhatsApp 및 Telegram 메시지는 프로젝트 잔액에서, OneUp
 
 | 잔액 | 위치 |
 | --- | --- |
-| SMS, 전화, WhatsApp, Telegram | **프로젝트 설정 → 알림 → 알림 설정** |
+| SMS, 전화, WhatsApp, Telegram | **프로젝트 설정 → 알림 → 알림 채널** |
 | OneUptime AI | **프로젝트 설정 → AI → AI 크레딧** |
 
 :::steps

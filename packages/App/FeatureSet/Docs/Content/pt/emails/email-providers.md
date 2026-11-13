@@ -15,7 +15,7 @@ Envie o e-mail do OneUptime pela API HTTPS de um provedor de e-mail em vez de um
 
 :::tabs
 @tab Projeto
-Em **Configurações do projeto > Notificações > Configurações de notificação**, abra **Mais configurações** e clique em **Criar: Configuração SMTP** no cartão **Configurações SMTP Personalizadas**. Na etapa **Provedor**, informe um **Nome** e escolha o provedor. A etapa seguinte pede as configurações desse provedor, e a etapa **Remetente**, o **E-mail de origem** e o **Nome de origem**. Depois que a configuração é salva, **Enviar e-mail de teste** na linha dela verifica se funciona.
+Em **Configurações do projeto > Notificações > Canais de notificação**, abra **Mais configurações** e clique em **Criar: Configuração SMTP** no cartão **Configurações SMTP Personalizadas**. Na etapa **Provedor**, informe um **Nome** e escolha o provedor. A etapa seguinte pede as configurações desse provedor, e a etapa **Remetente**, o **E-mail de origem** e o **Nome de origem**. Depois que a configuração é salva, **Enviar e-mail de teste** na linha dela verifica se funciona.
 @tab Instância auto-hospedada
 No Admin Dashboard, abra **Configurações** e depois **Notificações > E-mails**. No cartão **Configurações do servidor de e-mail**, clique em **Editar servidor** e escolha o provedor como **Tipo de servidor de e-mail**. O cartão do provedor aparece abaixo, como **Configurações Amazon SES**: clique no botão de edição dele, como **Editar Amazon SES**, e preencha as configurações do provedor e a etapa **Remetente**. Enquanto faltar algo, o cartão diz o que falta, e cada e-mail é recusado com a configuração que ainda precisa ser preenchida.
 :::

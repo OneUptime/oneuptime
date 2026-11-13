@@ -38,7 +38,7 @@ flowchart TB
 :::steps
 ### Ihr Twilio-Konto hinzufügen
 
-Öffnen Sie **Projekteinstellungen** > **Benachrichtigungen** > **Benachrichtigungseinstellungen** und dort **Weitere Einstellungen**. Klicken Sie in der Karte **Twilio-Konfiguration** auf **Twilio-Konfiguration erstellen** und füllen Sie das Formular aus:
+Öffnen Sie **Projekteinstellungen** > **Benachrichtigungen** > **Benachrichtigungskanäle** und dort **Weitere Einstellungen**. Klicken Sie in der Karte **Twilio-Konfiguration** auf **Twilio-Konfiguration erstellen** und füllen Sie das Formular aus:
 
 - **Name** und **Beschreibung**: wofür das Konto da ist, etwa „Support-Hotline“.
 - **Twilio Account SID**: aus der Twilio-Konsole. Sie beginnt mit `AC`.
@@ -48,7 +48,7 @@ flowchart TB
 
 ### Die Richtlinie anlegen
 
-Öffnen Sie **Bereitschaftsdienst** > **Richtlinien für eingehende Anrufe** und klicken Sie auf **Richtlinie für eingehende Anrufe erstellen**. Geben Sie ihr einen **Name**, etwa „Support-Hotline“; **Beschreibung** und **Beschriftungen** sind optional, unter **Weitere Felder**. Die neue Richtlinie öffnet sich in ihrer **Übersicht**.
+Öffnen Sie **Bereitschaft** > **Richtlinien für eingehende Anrufe** und klicken Sie auf **Richtlinie für eingehende Anrufe erstellen**. Geben Sie ihr einen **Name**, etwa „Support-Hotline“; **Beschreibung** und **Beschriftungen** sind optional, unter **Weitere Felder**. Die neue Richtlinie öffnet sich in ihrer **Übersicht**.
 
 ### Das Twilio-Konto wählen
 
@@ -160,7 +160,7 @@ Eine Regel lässt bei einer Person auf der Nummer klingeln, die sie in diesem Pr
 
 Jede Person kann pro Projekt eine verifizierte Nummer haben. Um sie zu ändern, löschen Sie zuerst die alte Nummer. Diese Nummern sind getrennt von den Telefonnummern unter **Benachrichtigungsmethoden**, die die Bereitschaftsalarmierung nutzt. Siehe [Benachrichtigungsmethoden](/docs/notifications/notification-methods).
 
-Nummern für eingehende Anrufe werden per SMS verifiziert, deshalb muss **SMS** im Projekt zuerst eingeschaltet sein. Ein Projekteigentümer oder jemand mit der Rolle **Abrechnungs-Administrator** oder der Berechtigung **Manage Billing** schaltet es in der Karte **Benachrichtigungskanäle** unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungseinstellungen** ein.
+Nummern für eingehende Anrufe werden per SMS verifiziert, deshalb muss **SMS** im Projekt zuerst eingeschaltet sein. Ein Projekteigentümer oder jemand mit der Rolle **Abrechnungs-Administrator** oder der Berechtigung **Manage Billing** schaltet es in der Karte **Benachrichtigungskanäle** unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungskanäle** ein.
 
 ## Sprachnachrichten und Richtlinieneinstellungen
 

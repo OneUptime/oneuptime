@@ -74,7 +74,7 @@ import {
   pluralName: "Alert Episode On-Call Rules",
   icon: IconProp.Call,
   tableDescription:
-    "Configure rules for automatically executing on-call duty policies when matching alert episodes are created",
+    "Configure rules for automatically executing on-call policies when matching alert episodes are created",
 })
 export default class AlertEpisodeOnCallRule extends OnCallRuleBaseModel {
   @ColumnAccessControl({
@@ -454,9 +454,9 @@ export default class AlertEpisodeOnCallRule extends OnCallRuleBaseModel {
     required: false,
     type: TableColumnType.EntityArray,
     modelType: OnCallDutyPolicy,
-    title: "On-Call Duty Policies",
+    title: "On-Call Policies",
     description:
-      "On-call duty policies to execute when an alert episode matches this rule.",
+      "On-call policies to execute when an alert episode matches this rule.",
   })
   @ManyToMany(
     () => {

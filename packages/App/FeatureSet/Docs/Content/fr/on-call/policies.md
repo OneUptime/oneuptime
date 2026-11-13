@@ -125,7 +125,7 @@ Archiver retire une politique du service et conserve tout : ouvrez les **Paramè
 
 ## Qui peut modifier une politique
 
-**Propriétaire du projet**, **Administrateur du projet**, **Membre du projet**, **Administrateur des astreintes** et **Membre des astreintes** peuvent créer, modifier et supprimer des politiques ; **Lecteur** et **Lecteur des astreintes** peuvent les consulter. Dans un rôle personnalisé, les permissions sont **Create On-Call Duty Policy**, **Edit On-Call Duty Policy**, **Delete On-Call Duty Policy** et **Read On-Call Duty Policy**, et un rôle limité à certaines étiquettes n'atteint que les politiques qui les portent. Ajouter des propriétaires et des champs personnalisés nécessite l'offre **Growth** sur OneUptime Cloud.
+**Propriétaire du projet**, **Administrateur du projet**, **Membre du projet**, **Administrateur des astreintes** et **Membre des astreintes** peuvent créer, modifier et supprimer des politiques ; **Lecteur** et **Lecteur des astreintes** peuvent les consulter. Dans un rôle personnalisé, les permissions sont **Create On-Call Policy**, **Edit On-Call Policy**, **Delete On-Call Policy** et **Read On-Call Policy**, et un rôle limité à certaines étiquettes n'atteint que les politiques qui les portent. Ajouter des propriétaires et des champs personnalisés nécessite l'offre **Growth** sur OneUptime Cloud.
 
 ## API et Terraform
 

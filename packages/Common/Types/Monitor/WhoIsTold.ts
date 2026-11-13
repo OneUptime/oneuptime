@@ -471,7 +471,7 @@ export function getWhoIsToldBreakMessage(
         ]
       }, so a page won't reach them.`;
     case WhoIsToldBreakKind.ChannelOff:
-      return `${brk.channel ? getOnCallPageChannelName(brk.channel as OnCallPageChannel) : "A channel"} is off in this project, so pages that use it are not sent. A project owner or admin turns it on in Notification Settings.`;
+      return `${brk.channel ? getOnCallPageChannelName(brk.channel as OnCallPageChannel) : "A channel"} is off in this project, so pages that use it are not sent. A project owner or admin turns it on in Notification Channels.`;
     case WhoIsToldBreakKind.NoBalance:
       return "This project has no balance left for SMS and calls, so they are not sent. Add balance, or turn on auto-recharge, in Billing.";
     case WhoIsToldBreakKind.ServerCannotSend:

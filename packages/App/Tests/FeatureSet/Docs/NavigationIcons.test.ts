@@ -152,7 +152,7 @@ describe("category icons", () => {
   it.each([
     ["CLI", "M8 9l3 3-3 3m5 0h3"],
     ["Monitor", "M9 19v-6a2 2 0 00-2-2"],
-    ["On Call", "M3 5a2 2 0 012-2h3.28"],
+    ["On-Call", "M3 5a2 2 0 012-2h3.28"],
     ["Workspace Connections", "M13.828 10.172a4 4 0 00-5.656 0"],
     ["API Reference", "M10 20l4-16m4 4l4 4-4 4"],
     ["Self Hosted", "M5 12h14M5 12a2 2 0 01-2-2"],

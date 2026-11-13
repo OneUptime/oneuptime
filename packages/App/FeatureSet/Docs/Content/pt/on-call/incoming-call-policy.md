@@ -38,7 +38,7 @@ flowchart TB
 :::steps
 ### Adicione sua conta do Twilio
 
-Vá em **Configurações do projeto** > **Notificações** > **Configurações de notificação** e abra **Mais configurações**. No cartão **Configuração do Twilio**, clique em **Criar configuração do Twilio** e preencha o formulário:
+Vá em **Configurações do projeto** > **Notificações** > **Canais de notificação** e abra **Mais configurações**. No cartão **Configuração do Twilio**, clique em **Criar configuração do Twilio** e preencha o formulário:
 
 - **Nome** e **Descrição**: para que serve a conta, por exemplo "Linha de suporte".
 - **SID da Conta Twilio**: do console do Twilio. Começa com `AC`.
@@ -160,7 +160,7 @@ Uma regra faz tocar uma pessoa no número que ela verificou para chamadas recebi
 
 Cada pessoa pode ter um número verificado por projeto. Para trocá-lo, exclua antes o número antigo. Esses números são separados dos números de telefone em **Métodos de notificação**, que os acionamentos de plantão usam. Veja [Métodos de notificação](/docs/notifications/notification-methods).
 
-Os números para chamadas recebidas são verificados por SMS, então o **SMS** precisa estar ligado no projeto antes. Um proprietário do projeto ou alguém com o papel **Administrador de cobrança** ou a permissão **Manage Billing** o liga no cartão **Canais de notificação** de **Configurações do projeto > Notificações > Configurações de notificação**.
+Os números para chamadas recebidas são verificados por SMS, então o **SMS** precisa estar ligado no projeto antes. Um proprietário do projeto ou alguém com o papel **Administrador de cobrança** ou a permissão **Manage Billing** o liga no cartão **Canais de notificação** de **Configurações do projeto > Notificações > Canais de notificação**.
 
 ## Mensagens de voz e configurações da política
 

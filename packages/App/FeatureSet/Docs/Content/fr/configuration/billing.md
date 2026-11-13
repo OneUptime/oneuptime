@@ -125,7 +125,7 @@ Les SMS, les appels téléphoniques et les messages WhatsApp et Telegram sont pa
 
 | Solde | Où |
 | --- | --- |
-| SMS, appels, WhatsApp et Telegram | **Paramètres du projet → Notifications → Paramètres de notification** |
+| SMS, appels, WhatsApp et Telegram | **Paramètres du projet → Notifications → Canaux de notification** |
 | OneUptime AI | **Paramètres du projet → IA → Crédits IA** |
 
 :::steps

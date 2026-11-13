@@ -106,14 +106,14 @@ flowchart TB
 :::
 
 :::details 모두 껐는데도 이메일이 옵니다
-호출은 이 스위치가 아니라 온콜 규칙을 따르며, 로그인, 보안, 결제 이메일은 레코드에 관한 소식이 아닙니다. 프로젝트마다 설정이 따로 있으니, 이메일을 보낸 프로젝트를 확인하세요. [개인 온콜 규칙](/docs/notifications/on-call-rules)을 참고하세요.
+호출은 이 스위치가 아니라 온콜 규칙을 따르며, 로그인, 보안, 결제 이메일은 레코드에 관한 소식이 아닙니다. 프로젝트마다 설정이 따로 있으니, 이메일을 보낸 프로젝트를 확인하세요. [나에게 연락하는 방법](/docs/notifications/on-call-rules)을 참고하세요.
 :::
 
 ## 다음 단계
 
 :::cards
 - [알림 방법](/docs/notifications/notification-methods): 설정이 보내는 알림 방법을 추가합니다.
-- [개인 온콜 규칙](/docs/notifications/on-call-rules): 호출이 어떻게 전달될지 정합니다.
+- [나에게 연락하는 방법](/docs/notifications/on-call-rules): 호출이 어떻게 전달될지 정합니다.
 - [알림 요약](/docs/emails/notification-rollup): 몰릴 때는 더 적고 더 알찬 이메일로.
 - [OneUptime이 연락하는 방법](/docs/notifications/index): 알림 방법, 규칙, 설정이 맞물리는 방식.
 :::

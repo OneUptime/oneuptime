@@ -198,7 +198,7 @@ OneUptime 中有許多東西都叫做規則。每一種都會在新內容進來�
 
 :::cards
 - [事件設定與自動化](/docs/incidents/settings#事件建立時執行的規則): 建立事件時執行的規則，依執行順序排列。
-- [個人待命規則](/docs/notifications/on-call-rules): 呼叫如何送達你。
+- [如何聯絡我](/docs/notifications/on-call-rules): 呼叫如何送達你。
 :::
 
 ## 後續步驟

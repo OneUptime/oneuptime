@@ -128,7 +128,7 @@ describe("the notice", () => {
       `${SafeHtml.escape(getProjectBalanceOwnerSentence(ProjectBalanceType.SmsOrCall))} <br/> <br/> <a href="${NOTIFICATION_SETTINGS_LINK}">${NOTIFICATION_SETTINGS_LINK}</a>`,
     );
     expect(html).toContain(
-      "Add balance in Project Settings &gt; Notifications &gt; Notification Settings, or turn on Auto Recharge there so it does not run out.",
+      "Add balance in Project Settings &gt; Notifications &gt; Notification Channels, or turn on Auto Recharge there so it does not run out.",
     );
   });
 
@@ -150,7 +150,7 @@ describe("the notice", () => {
     });
 
     expect(html).not.toContain(
-      "Project Settings > Notifications > Notification Settings",
+      "Project Settings > Notifications > Notification Channels",
     );
     expect(html.match(/<a href=/g)).toHaveLength(1);
   });
@@ -211,7 +211,7 @@ describe("the notice", () => {
         projectId: PROJECT_ID,
       }),
     ).toBe(
-      "Add balance in Project Settings &gt; Notifications &gt; Notification Settings, or turn on Auto Recharge there so it does not run out.",
+      "Add balance in Project Settings &gt; Notifications &gt; Notification Channels, or turn on Auto Recharge there so it does not run out.",
     );
   });
 });
