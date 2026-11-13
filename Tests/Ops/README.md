@@ -23,10 +23,11 @@ Test" workflow provides both:
   fails, because a parity check must not pass by skipping. The workflow
   installs the release binary at the `GOMPLATE_VERSION` that
   `Scripts/Install/configure.sh` pins.
-- **helm.** `KubernetesAgentOpenShiftAdmission.test.js` renders the
-  `kubernetes-agent` chart, and `HelmEnvValuesQuoted.test.js` the `oneuptime`
-  chart. Without helm on PATH their renders are skipped with the reason
-  logged, except when `CI` is set: then they fail. GitHub's runners have helm.
+- **helm.** `KubernetesAgentOpenShiftAdmission.test.js` and
+  `KubernetesAgentClusterName.test.js` render the `kubernetes-agent` chart,
+  and `HelmEnvValuesQuoted.test.js` the `oneuptime` chart. Without helm on
+  PATH their renders are skipped with the reason logged, except when `CI` is
+  set: then they fail. GitHub's runners have helm.
 - **git.** `HomeBlogClone.test.js` runs `packages/Home/Scripts/CloneBlog.sh`,
   the Home image's blog clone, with the real git against git's own
   `http-backend` on 127.0.0.1 - a server that stalls a pack part-way, never
@@ -1203,18 +1204,61 @@ holds both charts to writing every such value as a quoted string:
 - the source: in every template under `HelmChart/`, an env value written as
   one template action goes through the `oneuptime.envValue` helper or ends its
   pipeline in `quote` (or `squote`, which the charts keep for numbers and
-  switches); a value built from several pieces, such as a Service's DNS
-  name, is left alone. The helper also leaves the whitespace around a value
-  out, as YAML always did, so a secret read from a file with its final newline
-  stays the secret the pods had;
+  switches). A value built from several pieces may splice in only a Service's
+  address pieces (`global.clusterDomain` and the `ports` settings); any other
+  setting inside literal quotes or joined to other text is refused, as the
+  agent's cluster name was in `"kubernetes-agent-{{ .Values.clusterName }}"`
+  (#7336), and is built with `printf ... | quote` instead. The helper also
+  leaves the whitespace around a value out, as YAML always did, so a secret
+  read from a file with its final newline stays the secret the pods had;
 - the render: the `oneuptime` chart with every workload on, in the built-in and
   the external database layouts, with each credential and free-text setting
   it hands its pods set to a value full of YAML syntax and to number, boolean
-  and null lookalikes; every env entry that carries one holds it exactly, and
-  the exporter's headers reach every workload that sends OneUptime's own
-  telemetry (a workload added or dropped fails it).
+  and null lookalikes; every env entry that carries one holds it exactly,
+  the built-in databases' own StatefulSets included, and the exporter's
+  headers reach every workload that sends OneUptime's own telemetry (a
+  workload added or dropped fails it);
+- the copies: every copy of a setting the chart keeps beside the pods' env
+  holds what the pods use (#7337). With each key read from a file (whitespace
+  and a final newline around it), on install and on upgrade
+  (`helm template --is-upgrade`), the release Secret stores the cluster,
+  encryption, probe-registration and probe keys as the pods get them; KEDA's
+  TriggerAuthentication presents the cluster key the app compares, in all
+  four layouts (inline, inline beside a Secret of the user's, the user's
+  Secret, generated); the global Runner and the server get one key; vLLM's
+  Secret stores the API key and token the pods read; and the user and
+  database the built-in ClickHouse and Postgres, CloudNativePG's Cluster and
+  the Altinity installation create are the ones the app connects as and to.
 
 The render needs `helm`, as the OpenShift admission check above does.
+
+### `KubernetesAgentClusterName.test.js`
+
+OneUptime folds `k8s.cluster.name` into the identity of every Kubernetes
+entity it derives, so a component of the `kubernetes-agent` chart that
+reports another name reports another cluster. #7336 found both collectors'
+`service.name` and the eBPF DaemonSet's `OTEL_RESOURCE_ATTRIBUTES` splicing
+`clusterName` inside literal double quotes (a `"` broke the render or the
+collector config, a `\` started an escape), and six lines reading the setting
+untrimmed while the collectors read it trimmed. This holds:
+
+- the source: no template reads `.Values.clusterName` outside the
+  `kubernetes-agent.clusterName` helper, which trims it and refuses a missing
+  one;
+- the render, with every component on (eBPF, cost, profiling, audit logs) and
+  with the API log tailer, for names full of YAML's and OBI's syntax (`"`,
+  `\`, `,`, `=`, `: `, ` #`, whitespace around it, digits): every collector
+  config parses, and its resource processor, `service.name` and audit log
+  reader carry the trimmed name; every env entry that names the cluster holds
+  it; and `OTEL_RESOURCE_ATTRIBUTES`, read back the way OBI reads it (split at
+  every `,`, cut at the first `=`, spaces trimmed, nothing decoded), says
+  `k8s.cluster.name` is that name. A name with a comma cannot be written there
+  in any form OBI reads back, so the variable is left out and the cluster
+  collector, which inserts the name on every OTLP pipeline, names the eBPF
+  spans.
+
+The chart's helm-unittest suite `tests/cluster-name-whole_test.yaml` holds the
+same lines name by name.
 
 ### `KubernetesAiAgentRelease.test.js`
 

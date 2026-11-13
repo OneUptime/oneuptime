@@ -83,8 +83,10 @@ spec:
         env:
         - name: POSTGRES_USER
           value: "postgres"
+        # The database the app connects to (its DATABASE_NAME), written the
+        # same way: through oneuptime.envValue, without the whitespace around it.
         - name: POSTGRES_DB
-          value: {{ .Values.postgresql.auth.database | quote }}
+          value: {{ include "oneuptime.envValue" .Values.postgresql.auth.database }}
         - name: POSTGRES_PASSWORD
           valueFrom:
             secretKeyRef:
@@ -99,7 +101,7 @@ spec:
             command:
             - sh
             - -c
-            - exec pg_isready -U "postgres" -d "dbname={{ .Values.postgresql.auth.database }}" -h 127.0.0.1 -p 5432
+            - exec pg_isready -U "postgres" -d "dbname={{ toString .Values.postgresql.auth.database | trim }}" -h 127.0.0.1 -p 5432
           initialDelaySeconds: 30
           periodSeconds: 10
           timeoutSeconds: 5
@@ -110,7 +112,7 @@ spec:
             command:
             - sh
             - -c
-            - exec pg_isready -U "postgres" -d "dbname={{ .Values.postgresql.auth.database }}" -h 127.0.0.1 -p 5432
+            - exec pg_isready -U "postgres" -d "dbname={{ toString .Values.postgresql.auth.database | trim }}" -h 127.0.0.1 -p 5432
           initialDelaySeconds: 5
           periodSeconds: 10
           timeoutSeconds: 5

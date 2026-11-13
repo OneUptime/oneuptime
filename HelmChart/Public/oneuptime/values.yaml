@@ -132,6 +132,14 @@ testHook:
 # other. OneUptime refuses a value its repository ships ("secret", or a
 # "please-change-this-..." placeholder) from every caller. The bundled global
 # Runner does not hold it: it presents its own key (globalRunner.key below).
+#
+# The chart drops the whitespace around each of these keys (and around each
+# probe's key, globalRunner.key and vllm.apiKey), so a key read from a file
+# with its final newline (helm --set-file, Terraform's file()) is used, and
+# stored in `<release>-secrets`, without it. Older charts stored such a key
+# with its newline. The first upgrade that still sets the key here stores it
+# without; take a key out of these values only on a later upgrade, or the pods
+# switch to the copy stored with the newline, which is a different key.
 oneuptimeSecret:
 registerProbeKey:
 encryptionSecret:
