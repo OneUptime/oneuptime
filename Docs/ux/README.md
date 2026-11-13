@@ -480,6 +480,7 @@ then `npm run i18n:validate` from the root.
 - **Every word a person reads is translated.** Enforced by
   [DashboardLocalesGuard](../../packages/App/Tests/Dashboard/DashboardLocalesGuard.test.ts),
   [ArabicLocaleGuards](../../packages/Common/Tests/App/ArabicLocaleGuards.test.ts),
+  [DashboardWordsInPersian](../../packages/App/Tests/Dashboard/DashboardWordsInPersian.test.ts),
   [DashboardComponentsAToLHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardComponentsAToLHardcodedGuard.test.ts),
   [DashboardComponentsMRHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardComponentsMRHardcodedGuard.test.ts),
   [DashboardPagesUtilsHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardPagesUtilsHardcodedGuard.test.ts),
@@ -511,6 +512,11 @@ then `npm run i18n:validate` from the root.
   only when it was sent. Enforced by
   [ClipboardWritesGuard](../../packages/Common/Tests/UI/ClipboardWritesGuard.test.ts) for copy buttons;
   for everything else, not enforced: use judgement.
+- **Never ask for a click that does nothing where it is drawn.** A dashboard widget is drawn on the
+  board being edited, in its settings' Live Preview, on a board out of edit mode and on a public
+  dashboard: "Click to configure metric" is true only on the first, so a widget that is not set up
+  takes its line for each place from `DashboardWidgetSetupCopy`. Enforced by
+  [WidgetSetupLineGuard](../../packages/Common/Tests/App/Dashboard/WidgetSetupLineGuard.test.ts).
 - **No jargon, no made-up words, no vendor names in examples.** "Not Operational", not
   "Inoperational"; neutral model names (chat-large), not a vendor's model ids. Not enforced: use
   judgement.
