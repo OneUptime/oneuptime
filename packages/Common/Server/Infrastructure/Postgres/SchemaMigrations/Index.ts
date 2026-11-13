@@ -977,6 +977,7 @@ import { AddSampleProjectUserIndex1809123500001 } from "./1809123500001-AddSampl
 import { AddServerProducts1809123600000 } from "./1809123600000-AddServerProducts";
 import { AddDashboardRecordingSwitches1809123700000 } from "./1809123700000-AddDashboardRecordingSwitches";
 import { AddNetworkDeviceLastPollReceivedAt1809123800000 } from "./1809123800000-AddNetworkDeviceLastPollReceivedAt";
+import { AddGroupByConnectedServicesToGroupingRules1809123900000 } from "./1809123900000-AddGroupByConnectedServicesToGroupingRules";
 
 export default [
   InitialMigration,
@@ -1958,4 +1959,5 @@ export default [
   AddServerProducts1809123600000,
   AddDashboardRecordingSwitches1809123700000,
   AddNetworkDeviceLastPollReceivedAt1809123800000,
+  AddGroupByConnectedServicesToGroupingRules1809123900000,
 ];
