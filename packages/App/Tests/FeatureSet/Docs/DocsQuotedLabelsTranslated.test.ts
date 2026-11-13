@@ -1,5 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import { slugifyMarkdownHeading } from "Common/Server/Types/MarkdownSlugify";
+import { isRightToLeftLanguage } from "Common/Types/ReadingDirection";
 import fs from "fs";
 import path from "path";
 import {
@@ -694,9 +695,15 @@ describe("the Dashboard's own sentences that name a label", () => {
       return;
     }
 
+    /*
+     * And ends with the arrow that leads on in its language: "←" in one read
+     * from the right, where "→" points back (#7610).
+     */
     expect({ language, link: worded }).toEqual({
       language,
-      link: entry.isTheHeading ? `${words} →` : expect.stringContaining(words),
+      link: entry.isTheHeading
+        ? `${words} ${isRightToLeftLanguage(language) ? "←" : "→"}`
+        : expect.stringContaining(words),
     });
   });
 });

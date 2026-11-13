@@ -35,6 +35,7 @@ import {
   formatCloudMoney,
 } from "./CloudCostWords";
 import { CloudCostFigure } from "./CloudSpendCard";
+import { joinWithArrowsOn } from "Common/Types/DirectionArrow";
 import {
   SAVING_NOT_KNOWN_YET,
   isCloudSavingAmountKnown,
@@ -285,14 +286,15 @@ export const CloudResourceCostCardView: FunctionComponent<ViewProps> = (
                 const kind: CloudSavingKind =
                   (recommendation.kind as CloudSavingKind) ||
                   CloudSavingKind.Other;
-                const change: string = [
-                  recommendation.currentConfiguration || "",
-                  recommendation.recommendedConfiguration || "",
-                ]
-                  .filter((part: string): boolean => {
+                const change: string = joinWithArrowsOn(
+                  [
+                    recommendation.currentConfiguration || "",
+                    recommendation.recommendedConfiguration || "",
+                  ].filter((part: string): boolean => {
                     return part.length > 0;
-                  })
-                  .join(" → ");
+                  }),
+                  translator.language,
+                );
 
                 return (
                   <li
@@ -313,13 +315,15 @@ export const CloudResourceCostCardView: FunctionComponent<ViewProps> = (
                         /*
                          * The line takes the card's direction, so it sits
                          * under what to do on a page read right to left;
-                         * the configuration's own words keep theirs (bdi).
+                         * each configuration keeps its own words' reading,
+                         * and the arrow points the card's way
+                         * (joinWithArrowsOn).
                          */
                         <div
                           className="mt-0.5 break-words text-xs text-gray-500"
                           data-testid="cloud-resource-saving-change"
                         >
-                          <bdi>{change}</bdi>
+                          {change}
                         </div>
                       ) : (
                         <></>

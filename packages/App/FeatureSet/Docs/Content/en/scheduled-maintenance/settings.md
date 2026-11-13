@@ -69,7 +69,7 @@ A rule matches only when every condition you fill in holds; a condition left emp
 :::steps
 ### Choose which events to remind about
 
-Click **Create Scheduled Maintenance Reminder Rule**. On **Match**, leave **All scheduled maintenance events** picked to remind about every event, or pick **Only scheduled maintenance events that match conditions** and choose the **Labels** it applies to.
+Click **Create Scheduled Maintenance Reminder Rule**. On **Match**, leave **All maintenance events** picked to remind about every event, or pick **Only maintenance events that match conditions** and choose the **Labels** it applies to.
 
 ### Set the interval
 

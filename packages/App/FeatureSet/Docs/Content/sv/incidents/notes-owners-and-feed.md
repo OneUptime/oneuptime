@@ -99,7 +99,7 @@ Varje anteckning visar vem som skrev den, dess publiceringstid, den återgivna M
 
 ## Publicera en privat anteckning
 
-**Anteckningar → Privata anteckningar** är medvetet enklare. Det är samma redigerare, som säger **Private · Only your team can see this**, med anteckningen, **Mallar**, **Utkast med AI** och **Bifoga** för filer som är avsedda för teamet som ingriper i incidenten. **Lägg till privat anteckning** i menyn **Åtgärder** i incidentens flöde öppnar den i en dialog. Via API:t är privata anteckningar `/api/incident-internal-note`.
+**Anteckningar → Privata anteckningar** är medvetet enklare. Det är samma redigerare, som säger **Privat · Bara de som kan se den här incidenten kan läsa detta**, med anteckningen, **Mallar**, **Utkast med AI** och **Bifoga** för filer, som bara de som kan läsa anteckningen kan öppna. **Lägg till privat anteckning** i menyn **Åtgärder** i incidentens flöde öppnar den i en dialog. Via API:t är privata anteckningar `/api/incident-internal-note`.
 
 Ingen publiceringstid, ingen kryssruta för prenumeranter — anteckningen stämplas när den skapas.
 
@@ -164,7 +164,7 @@ Du hanterar dem under **Incidenter → Inställningar → Anteckningsmallar** �
 
 ## Publicera anteckningar från Slack eller Microsoft Teams
 
-Har du anslutit en arbetsyta behöver de som ingriper aldrig lämna kanalen. Både Slack och Microsoft Teams erbjuder en åtgärd för att lägga till en anteckning som öppnar en dialog med en rullgardinsmeny **Note Type** — **Public Note** (publicerad på statussidan) eller **Private Note** (bara synlig för teammedlemmar) — och en textruta **Note**, och som skriver resultatet direkt på incidenten. På en privat incident frågar den inte efter **Note Type** och lägger till en privat anteckning: se [Privata incidenter tar bara privata anteckningar](#privata-incidenter-tar-bara-privata-anteckningar).
+Har du anslutit en arbetsyta behöver de som ingriper aldrig lämna kanalen. Både Slack och Microsoft Teams erbjuder en åtgärd för att lägga till en anteckning som öppnar en dialog med en rullgardinsmeny **Note Type** — **Public Note** (publicerad på statussidan) eller **Private Note** (bara de som kan se incidenten kan läsa den) — och en textruta **Note**, och som skriver resultatet direkt på incidenten. På en privat incident frågar den inte efter **Note Type** och lägger till en privat anteckning: se [Privata incidenter tar bara privata anteckningar](#privata-incidenter-tar-bara-privata-anteckningar).
 
 Tre detaljer som är värda att känna till:
 

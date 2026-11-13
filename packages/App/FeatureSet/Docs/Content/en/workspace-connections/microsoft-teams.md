@@ -100,6 +100,8 @@ Creating a rule walks four steps:
 | **Destination** | Where it posts: an existing channel of a team you pick, the chats you pick, a channel for each incident (or alert, episode, event, monitor or on-call policy) created in a team you pick, or any of these together. Under the step, **What this rule does** says it in sentences, as the rule's card does. |
 | **Video Call** | Incidents and alerts only: start a call for each one. See [Video Calls](/docs/workspace-connections/video-calls). |
 
+Each condition reads as a sentence: the field, how it compares and the value. Values to pick come from the project's own lists, such as its states, severities, labels and monitors. An on-call rule picks its policies under **On-Call Policy**, which keeps matching a policy after it is renamed, while **On-Call Policy Name** matches words in a policy's name. Every kind of event that has owners has an owner condition, such as **Incident Owner**: pick people and teams, and it matches the people and teams recorded as the event's owners. Being in a team that owns the event does not count. An owner added later makes the rule match from that update on, and a rule that creates channels creates the channel then. An archived value, such as a severity or an on-call policy, is not offered for a new condition. A rule that already has one keeps it, marked **Archived**, and still matches the events that have it. A person, team or policy the project no longer has stays in the condition, and the rule's card says so.
+
 An SLO's rule posts the changes of its error budget policy: when the SLO enters a tier, recovers to a less severe one or leaves every tier, and when its deployments are frozen or allowed again. It posts only to existing channels and chats, as an SLO gets no channel of its own. See [Post to Slack, Microsoft Teams and Mattermost](/docs/slo/error-budget-policy#post-to-slack-microsoft-teams-and-mattermost).
 
 A channel the rule creates is named after its record: incident INC-42 gets `inc-42`, alert ALT-7 gets `alt-7`, and in a project without number prefixes, incident 42 gets `incident-42`. Text in **Channel Name Prefix** goes in front, so `prod-` makes `prod-inc-42`, and the form shows the name as you type. For a scheduled maintenance event, the prefix takes the place of its number prefix: SM-5 gets `sm-5`, and `maint-` makes `maint-5`. OneUptime keeps letters, numbers, spaces, `-` and `_`, up to the 50 characters Microsoft Teams takes. If the team already has a channel by that name, such as another project's or one deleted in the last 30 days, OneUptime adds `-2`, `-3` and so on.
@@ -158,7 +160,7 @@ React to a message, or a reply, in the channel OneUptime created for an incident
 
 | Reaction | Saved as |
 | --- | --- |
-| 📌 or 📍 | A private note, seen only by your team |
+| 📌 or 📍 | A private note, read only by the people who can see the record |
 | 📣 or 📢 | A public note, shown on the status page. Incidents and scheduled maintenance events only. On a private incident, a private note, and the confirmation says why. When the project's public notes need approval, it is shown once approved, and the confirmation says who it waits for: see [Public note approval](/docs/incidents/notes-owners-and-feed#public-note-approval). |
 
 The note keeps the message as Microsoft Teams showed it: its formatting, links and code, the people it mentions by name, and its files and images as links to them. A public note leaves the files and images out, since they open only for your team.
@@ -253,7 +255,7 @@ An incident's card has four buttons, **Acknowledge Incident**, **Resolve Inciden
 | **Change Severity** | Sets the incident's severity. |
 | **Change Incident State** | Moves the incident to a later state. |
 | **Assign Role** | Gives somebody a role on the incident, such as **Incident Commander**. A role that takes one person moves to them. |
-| **Page Someone** | Pages people, a team, whoever is on call in a schedule, or an on-call policy about the incident, with an optional message. People are paged until one of them answers; a policy pages until somebody acknowledges the incident. |
+| **Page Someone** | Pages people, a team, whoever is on call in a schedule, or an on-call policy about the incident, with an optional message. Whoever it pages, a policy's people too, is paged until one of them answers or the incident is resolved. |
 | **Edit Custom Fields** | Sets the incident's custom fields, each filled in with what the incident holds. A field left empty is cleared. |
 
 `incident 42`, typed to the bot, answers with incident 42, these buttons and its menu. Type the number as OneUptime shows it: `42`, `#42` or `INC-42`. In an incident's own channel, `incident` alone shows that incident.

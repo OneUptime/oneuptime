@@ -6,6 +6,7 @@ import IncidentState from "../../../Models/DatabaseModels/IncidentState";
 import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
+import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import ScheduledMaintenanceState from "../../../Models/DatabaseModels/ScheduledMaintenanceState";
 import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelObjective";
 import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
@@ -16,6 +17,7 @@ import SecurityCaseStatus from "../../../Models/DatabaseModels/SecurityCaseStatu
 import SecurityDetectionSource from "../../SecurityCase/SecurityDetectionSource";
 import SecurityCasePriorities from "../../../Utils/SecurityCase/SecurityCasePriorities";
 import SecurityCaseStatuses from "../../../Utils/SecurityCase/SecurityCaseStatuses";
+import { isArchivedValue } from "../../../Utils/ArchivableValues";
 import SloErrorBudgetPolicyChange, {
   SLO_ERROR_BUDGET_POLICY_CHANGES,
 } from "../../ServiceLevelObjective/SloErrorBudgetPolicyChange";
@@ -58,6 +60,13 @@ export enum NotificationRuleConditionCheckOn {
   OnCallDutyPolicyName = "On Call Duty Policy Name",
   OnCallDutyPolicyDescription = "On Call Duty Policy Description",
   OnCallDutyPolicyLabels = "On Call Duty Policy Labels",
+  /*
+   * The policy itself, picked from the project's and stored by its id
+   * (#7554), as Monitors names monitors: a rule that names a policy keeps
+   * matching when the policy is renamed. The name and description
+   * conditions match words, for policies named alike.
+   */
+  OnCallDutyPolicies = "On-Call Policy",
 
   // Security Case
   SecurityCaseTitle = "Security Case Title",
@@ -79,7 +88,67 @@ export enum NotificationRuleConditionCheckOn {
   Slos = "SLOs",
   SloLabels = "SLO Labels",
   SloErrorBudgetPolicyChange = "Error Budget Policy Change",
+
+  /*
+   * WHO OWNS THE RECORD (#7554, #7583): the people and teams on its list of
+   * owners, as they were added to it. The value is their ids, people's and
+   * teams' in one list, and a record matches "is any of" when one of its
+   * owner users or owner teams is picked. Owners are taken as recorded: a
+   * member of an owning team is not an owner by being in the team, so
+   * picking a person matches only what they own themselves. A record's
+   * owners are read when it is posted about, so one added later is matched
+   * from then on (an owner's arrival is posted, which checks the rules
+   * again: createChannelsForRulesThatNowMatch).
+   */
+  IncidentOwners = "Incident Owner",
+  AlertOwners = "Alert Owner",
+  IncidentEpisodeOwners = "Incident Episode Owner",
+  AlertEpisodeOwners = "Alert Episode Owner",
+  ScheduledMaintenanceOwners = "Scheduled Maintenance Owner",
+  MonitorOwners = "Monitor Owner",
+  OnCallDutyPolicyOwners = "On-Call Policy Owner",
+  SloOwners = "SLO Owner",
 }
+
+/*
+ * What a record holds for each condition, by the field the condition checks:
+ * its text, its ids, or undefined for a field the record does not have - a
+ * condition on one never matches. A map lists every field, so a field added
+ * here is one the matcher reads for every record (getValues fills the rest).
+ */
+export type NotificationRuleConditionValues = {
+  [key in NotificationRuleConditionCheckOn]: string | Array<string> | undefined;
+};
+
+/*
+ * The owners condition of each kind of record that has owners: the people
+ * and teams on its list of owners. A security case and a hunt have none.
+ */
+export const OWNER_CHECK_ON_BY_EVENT_TYPE: Readonly<
+  Partial<Record<NotificationRuleEventType, NotificationRuleConditionCheckOn>>
+> = {
+  [NotificationRuleEventType.Incident]:
+    NotificationRuleConditionCheckOn.IncidentOwners,
+  [NotificationRuleEventType.Alert]:
+    NotificationRuleConditionCheckOn.AlertOwners,
+  [NotificationRuleEventType.IncidentEpisode]:
+    NotificationRuleConditionCheckOn.IncidentEpisodeOwners,
+  [NotificationRuleEventType.AlertEpisode]:
+    NotificationRuleConditionCheckOn.AlertEpisodeOwners,
+  [NotificationRuleEventType.ScheduledMaintenance]:
+    NotificationRuleConditionCheckOn.ScheduledMaintenanceOwners,
+  [NotificationRuleEventType.Monitor]:
+    NotificationRuleConditionCheckOn.MonitorOwners,
+  [NotificationRuleEventType.OnCallDutyPolicy]:
+    NotificationRuleConditionCheckOn.OnCallDutyPolicyOwners,
+  [NotificationRuleEventType.ServiceLevelObjective]:
+    NotificationRuleConditionCheckOn.SloOwners,
+};
+
+export const OWNER_CHECK_ONS: ReadonlyArray<NotificationRuleConditionCheckOn> =
+  Object.values(
+    OWNER_CHECK_ON_BY_EVENT_TYPE,
+  ) as Array<NotificationRuleConditionCheckOn>;
 
 /*
  * The words a condition's field is shown with, where they differ from the
@@ -351,6 +420,7 @@ export class NotificationRuleConditionUtil {
       case NotificationRuleConditionCheckOn.IncidentEpisodeLabels:
       case NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels:
       case NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels:
+      case NotificationRuleConditionCheckOn.OnCallDutyPolicies:
       case NotificationRuleConditionCheckOn.Monitors:
       case NotificationRuleConditionCheckOn.SecurityCasePriority:
       case NotificationRuleConditionCheckOn.SecurityCaseStatus:
@@ -366,9 +436,97 @@ export class NotificationRuleConditionUtil {
   }
 
   /*
+   * Whether a condition's value is people and teams, picked as owners are
+   * (the people picker): an owners condition.
+   */
+  public static isPeopleValueField(data: {
+    checkOn: NotificationRuleConditionCheckOn | undefined;
+    conditionType: ConditionType | undefined;
+  }): boolean {
+    if (!data.checkOn || !data.conditionType) {
+      return false;
+    }
+
+    return NotificationRuleConditionUtil.isOwnerCheckOn(data.checkOn);
+  }
+
+  // Whether a condition checks who owns the record (OWNER_CHECK_ONS).
+  public static isOwnerCheckOn(
+    checkOn: NotificationRuleConditionCheckOn | undefined,
+  ): boolean {
+    return Boolean(checkOn && OWNER_CHECK_ONS.includes(checkOn));
+  }
+
+  // Every field a record holds, each undefined unless `values` gives it.
+  public static getValues(
+    values: Partial<NotificationRuleConditionValues>,
+  ): NotificationRuleConditionValues {
+    const all: Partial<NotificationRuleConditionValues> = {};
+
+    for (const checkOn of Object.values(NotificationRuleConditionCheckOn)) {
+      all[checkOn] = undefined;
+    }
+
+    return { ...all, ...values } as NotificationRuleConditionValues;
+  }
+
+  /*
+   * The fields a rule's conditions check: what a record has to be read for
+   * before the rule is matched against it. A field no rule checks - who
+   * owns the record, say - is not read at all.
+   */
+  public static getCheckOnsUsed(
+    filters: Array<NotificationRuleCondition> | undefined | null,
+  ): Set<NotificationRuleConditionCheckOn> {
+    const used: Set<NotificationRuleConditionCheckOn> = new Set();
+
+    for (const filter of filters || []) {
+      if (filter?.checkOn) {
+        used.add(filter.checkOn);
+      }
+    }
+
+    return used;
+  }
+
+  /*
+   * The ids a condition holds, as text: a list, or one id saved as text
+   * before its field was a list. Blank entries are left out.
+   */
+  public static getValueIds(
+    condition: NotificationRuleCondition | undefined | null,
+  ): Array<string> {
+    const value: unknown = condition?.value;
+    const values: Array<unknown> = Array.isArray(value)
+      ? value
+      : value
+        ? [value]
+        : [];
+
+    return values
+      .map((item: unknown): string => {
+        return item === undefined || item === null ? "" : String(item).trim();
+      })
+      .filter((item: string): boolean => {
+        return item.length > 0;
+      });
+  }
+
+  /*
    * What a condition's value dropdown offers. States, severities, monitor
    * statuses and labels come with their colours (when the rows were fetched
    * with them), as they do in every other picker.
+   *
+   * An archived value (Common/Utils/ArchivableValues) - a severity, a
+   * state, a label, or an archived monitor, SLO or on-call policy - is not
+   * offered for a new pick (#7582): no record can get it any more, so a
+   * condition that picked it would match fewer records every day. One the
+   * condition holds already (`keptIds`) stays, marked Archived and closed
+   * to a new pick, so it can be kept or taken out. It is the rule every
+   * picker follows (UI/Utils/ArchivedValuePicker.getPickerOptions), written
+   * out here because the server reads this module and loads none of the
+   * UI's translations. Rows read without their archive switch are offered
+   * as before.
    */
   public static getDropdownOptionsByCheckOn(data: {
     alertSeverities: Array<AlertSeverity>;
@@ -384,18 +542,51 @@ export class NotificationRuleConditionUtil {
     securityCaseStatuses?: Array<SecurityCaseStatus> | undefined;
     // The project's SLOs, for an SLO rule's SLOs condition.
     serviceLevelObjectives?: Array<ServiceLevelObjective> | undefined;
+    // The project's on-call policies, for an on-call rule's policy condition.
+    onCallDutyPolicies?: Array<OnCallDutyPolicy> | undefined;
+    // The ids the condition holds now: archived ones among them stay listed.
+    keptIds?: Array<string> | undefined;
     checkOn: NotificationRuleConditionCheckOn;
   }): Array<DropdownOption> {
     type ToOptionsFunction = (rows: Array<BaseModel>) => Array<DropdownOption>;
 
+    const kept: Set<string> = new Set(
+      (data.keptIds || []).map((id: string): string => {
+        return id.toString().toLowerCase();
+      }),
+    );
+
     const toOptions: ToOptionsFunction = (
       rows: Array<BaseModel>,
     ): Array<DropdownOption> => {
-      return DropdownUtil.getDropdownOptionsFromEntityArray({
+      const archivedIds: Set<string> = new Set();
+
+      for (const row of rows) {
+        if (isArchivedValue(row) && row._id) {
+          archivedIds.add(row._id.toString().toLowerCase());
+        }
+      }
+
+      const options: Array<DropdownOption> = [];
+
+      for (const option of DropdownUtil.getDropdownOptionsFromEntityArray({
         array: rows,
         labelField: "name",
         valueField: "_id",
-      });
+      })) {
+        const id: string = String(option.value).toLowerCase();
+
+        if (!archivedIds.has(id)) {
+          options.push(option);
+          continue;
+        }
+
+        if (kept.has(id)) {
+          options.push({ ...option, isArchived: true, isDisabled: true });
+        }
+      }
+
+      return options;
     };
 
     if (
@@ -479,6 +670,15 @@ export class NotificationRuleConditionUtil {
       return toOptions(data.monitors);
     }
 
+    // A policy's name is the team's own, drawn as written in every language.
+    if (data.checkOn === NotificationRuleConditionCheckOn.OnCallDutyPolicies) {
+      return toOptions(data.onCallDutyPolicies || []).map(
+        (option: DropdownOption): DropdownOption => {
+          return { ...option, isUserContent: true };
+        },
+      );
+    }
+
     // alert states (also used for alert episodes)
     if (
       data.checkOn === NotificationRuleConditionCheckOn.AlertState ||
@@ -530,6 +730,7 @@ export class NotificationRuleConditionUtil {
           NotificationRuleConditionCheckOn.IncidentSeverity,
           NotificationRuleConditionCheckOn.IncidentState,
           NotificationRuleConditionCheckOn.IncidentLabels,
+          NotificationRuleConditionCheckOn.IncidentOwners,
           NotificationRuleConditionCheckOn.MonitorLabels,
           NotificationRuleConditionCheckOn.Monitors,
         ];
@@ -539,10 +740,9 @@ export class NotificationRuleConditionUtil {
           NotificationRuleConditionCheckOn.AlertDescription,
           NotificationRuleConditionCheckOn.AlertSeverity,
           NotificationRuleConditionCheckOn.AlertState,
-
           NotificationRuleConditionCheckOn.AlertLabels,
+          NotificationRuleConditionCheckOn.AlertOwners,
           NotificationRuleConditionCheckOn.MonitorLabels,
-
           NotificationRuleConditionCheckOn.Monitors,
         ];
       case NotificationRuleEventType.AlertEpisode:
@@ -552,6 +752,7 @@ export class NotificationRuleConditionUtil {
           NotificationRuleConditionCheckOn.AlertEpisodeSeverity,
           NotificationRuleConditionCheckOn.AlertEpisodeState,
           NotificationRuleConditionCheckOn.AlertEpisodeLabels,
+          NotificationRuleConditionCheckOn.AlertEpisodeOwners,
         ];
       case NotificationRuleEventType.IncidentEpisode:
         return [
@@ -560,6 +761,7 @@ export class NotificationRuleConditionUtil {
           NotificationRuleConditionCheckOn.IncidentEpisodeSeverity,
           NotificationRuleConditionCheckOn.IncidentEpisodeState,
           NotificationRuleConditionCheckOn.IncidentEpisodeLabels,
+          NotificationRuleConditionCheckOn.IncidentEpisodeOwners,
         ];
       case NotificationRuleEventType.Monitor:
         return [
@@ -568,6 +770,7 @@ export class NotificationRuleConditionUtil {
           NotificationRuleConditionCheckOn.MonitorType,
           NotificationRuleConditionCheckOn.Monitors,
           NotificationRuleConditionCheckOn.MonitorLabels,
+          NotificationRuleConditionCheckOn.MonitorOwners,
         ];
       case NotificationRuleEventType.ScheduledMaintenance:
         return [
@@ -575,14 +778,23 @@ export class NotificationRuleConditionUtil {
           NotificationRuleConditionCheckOn.ScheduledMaintenanceDescription,
           NotificationRuleConditionCheckOn.ScheduledMaintenanceState,
           NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels,
+          NotificationRuleConditionCheckOn.ScheduledMaintenanceOwners,
           NotificationRuleConditionCheckOn.MonitorLabels,
           NotificationRuleConditionCheckOn.Monitors,
         ];
+      /*
+       * Which policies a rule is for: picked from the project's - which a
+       * new condition starts on, and which keeps matching a policy that is
+       * renamed (#7554) - or by words in their name or description, for
+       * policies named alike; by their labels, and by who owns them.
+       */
       case NotificationRuleEventType.OnCallDutyPolicy:
         return [
+          NotificationRuleConditionCheckOn.OnCallDutyPolicies,
           NotificationRuleConditionCheckOn.OnCallDutyPolicyName,
           NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription,
           NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels,
+          NotificationRuleConditionCheckOn.OnCallDutyPolicyOwners,
         ];
       case NotificationRuleEventType.SecurityCase:
         return [
@@ -613,6 +825,7 @@ export class NotificationRuleConditionUtil {
           NotificationRuleConditionCheckOn.SloLabels,
           NotificationRuleConditionCheckOn.SloName,
           NotificationRuleConditionCheckOn.SloErrorBudgetPolicyChange,
+          NotificationRuleConditionCheckOn.SloOwners,
         ];
       default:
         return [];
@@ -668,6 +881,22 @@ export class NotificationRuleConditionUtil {
         return [ConditionType.ContainsAny, ConditionType.NotContains];
       // An SLO's rule names the SLOs it is for, by id, as a monitor's names monitors.
       case NotificationRuleConditionCheckOn.Slos:
+        return [ConditionType.ContainsAny, ConditionType.NotContains];
+      // An on-call rule names its policies by id the same way.
+      case NotificationRuleConditionCheckOn.OnCallDutyPolicies:
+        return [ConditionType.ContainsAny, ConditionType.NotContains];
+      /*
+       * Who owns the record: one of the people and teams picked is among
+       * its owners, or none of them is.
+       */
+      case NotificationRuleConditionCheckOn.IncidentOwners:
+      case NotificationRuleConditionCheckOn.AlertOwners:
+      case NotificationRuleConditionCheckOn.IncidentEpisodeOwners:
+      case NotificationRuleConditionCheckOn.AlertEpisodeOwners:
+      case NotificationRuleConditionCheckOn.ScheduledMaintenanceOwners:
+      case NotificationRuleConditionCheckOn.MonitorOwners:
+      case NotificationRuleConditionCheckOn.OnCallDutyPolicyOwners:
+      case NotificationRuleConditionCheckOn.SloOwners:
         return [ConditionType.ContainsAny, ConditionType.NotContains];
       case NotificationRuleConditionCheckOn.AlertLabels:
       case NotificationRuleConditionCheckOn.AlertEpisodeLabels:

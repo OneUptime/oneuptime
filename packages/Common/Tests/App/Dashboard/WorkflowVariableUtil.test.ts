@@ -76,6 +76,32 @@ jest.mock("../../../UI/Utils/API/API", () => {
   };
 });
 
+/*
+ * Who reads the page decides what an error nobody explained tells them to
+ * do next (#7307): API.getFriendlyMessage gives ErrorInSentence the page's
+ * reader (ErrorReader), which is on OneUptime Cloud when BILLING_ENABLED is
+ * on. The suite says which, rather than taking the environment's: CI's
+ * config.env turns billing on. A server somebody runs unless a test says
+ * Cloud.
+ */
+const mockConfig: { billingEnabled: boolean } = { billingEnabled: false };
+
+jest.mock("../../../UI/Config", () => {
+  const actualConfig: Record<string, unknown> = jest.requireActual(
+    "../../../UI/Config",
+  ) as Record<string, unknown>;
+
+  const mockedConfig: Record<string, unknown> = { ...actualConfig };
+
+  Object.defineProperty(mockedConfig, "BILLING_ENABLED", {
+    get: (): boolean => {
+      return mockConfig.billingEnabled;
+    },
+  });
+
+  return mockedConfig;
+});
+
 import {
   CLIENT_AUTHENTICATION_DROPDOWN_OPTIONS,
   GRANT_TYPE_OPTIONS,
@@ -999,6 +1025,29 @@ describe("fetchTokenRefreshOutcome", () => {
         expect(description).not.toContain("did not ask");
       },
     );
+
+    /*
+     * The cases above are read on a server somebody runs. On OneUptime
+     * Cloud nobody reading the page runs the server, so the reference goes
+     * to OneUptime support instead.
+     */
+    test("on OneUptime Cloud, a server error with its reference sends the reader to OneUptime support", async () => {
+      mockConfig.billingEnabled = true;
+
+      try {
+        failWith(500, { message: "", reference: "a1b2c3d4" });
+
+        const outcome: TokenRefreshOutcome = await fetchTokenRefreshOutcome({
+          variable: makeVariable({ id: VARIABLE_ID, name: "API_TOKEN" }),
+        });
+
+        expect(getTokenRefreshDescription(outcome)).toBe(
+          'OneUptime could not fetch an access token for "API_TOKEN": The server ran into a problem it could not explain. Try again. If it keeps failing, contact OneUptime support and give them this reference: a1b2c3d4.',
+        );
+      } finally {
+        mockConfig.billingEnabled = false;
+      }
+    });
   });
 
   test("reads the error from the response's `data` field too", async () => {

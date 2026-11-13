@@ -25,6 +25,7 @@ import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
+import { MONITOR_NOT_LINKED_REFUSAL } from "../../../Utils/Monitor/MonitorTemplateLinkRefusal";
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
@@ -845,7 +846,7 @@ describe("MonitorTemplateService field exclusions", () => {
         fields: ["monitorSteps"],
         props,
       }),
-    ).rejects.toThrow("Monitor is not linked to this template");
+    ).rejects.toThrow(MONITOR_NOT_LINKED_REFUSAL);
     expect(mocks.updateOne).not.toHaveBeenCalled();
   });
 

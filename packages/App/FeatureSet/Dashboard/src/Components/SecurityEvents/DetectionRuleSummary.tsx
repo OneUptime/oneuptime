@@ -8,6 +8,7 @@ import { DetectionRuleType } from "Common/Types/SecurityEvent/SigmaCorrelation";
 import Icon from "Common/UI/Components/Icon/Icon";
 import { Translator, composedValue } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { getArrowOn } from "Common/Types/DirectionArrow";
 import React, { FunctionComponent, ReactElement } from "react";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
@@ -207,7 +208,9 @@ function describeMarkedShape(
           );
 
     case DetectionRuleType.TemporalOrdered: {
-      const steps: string = shape.stepTitles.map(markRule).join(" → ");
+      const steps: string = shape.stepTitles
+        .map(markRule)
+        .join(` ${getArrowOn(translator.language)} `);
 
       return grouped
         ? translator.translateTemplate(
@@ -349,19 +352,20 @@ const DetectionRuleSummary: FunctionComponent<{
         <InlineSeparator />
         {/*
          * The rules it reads by their titles, set apart from the sentence's
-         * own words, and each field as the column name it is.
+         * own words (bdi: the arrow between two of them points the way the
+         * page reads), and each field as the column name it is.
          */}
         {describeDetectionRuleShapeParts(props.shape, translator).map(
           (part: DetectionRuleSentencePart, index: number): ReactElement => {
             if (part.kind === "rule") {
               return (
-                <span
+                <bdi
                   key={index}
                   className="font-medium"
                   data-testid="detection-rule-summary-rule"
                 >
                   {part.text}
-                </span>
+                </bdi>
               );
             }
 

@@ -105,6 +105,20 @@ export interface ComponentProps {
    * given and never looked up (a form Field's isPlaceholderIdentifier).
    */
   isPlaceholderIdentifier?: boolean | undefined;
+  /*
+   * The placeholder is in the reader's words already - a sentence the page
+   * built around a value, or a front end's own keyed text - so it is drawn
+   * as given (a form Field's isPlaceholderTranslated, #7682).
+   */
+  isPlaceholderTranslated?: boolean | undefined;
+  /*
+   * A datetime-local field shows and keeps hours and minutes: a time people
+   * schedule or record something at is picked to the minute, and a value
+   * with seconds made the browser's picker show a seconds column too
+   * ("13/11/2026 11:15:52"). A field whose time is compared with event
+   * timestamps to the second - a telemetry time range - opts in to seconds
+   * here, with its reason beside it (MinutePickersGuard lists every one).
+   */
   showSecondsForDateTime?: boolean | undefined;
   autoComplete?: string | undefined;
   // The most characters it takes, as the column it fills keeps them.
@@ -142,6 +156,7 @@ export interface ComponentProps {
 type GetDateDisplayValueFunction = (
   value: string | Date,
   type: InputType | undefined,
+  showSecondsForDateTime?: boolean | undefined,
 ) => string | undefined;
 
 /*
@@ -151,10 +166,16 @@ type GetDateDisplayValueFunction = (
  * So does anything that is neither a string nor a Date - an untyped caller's
  * number or JSON object - which the input has never tried to parse, and which
  * would now be parsed during render, where a throw takes the page down.
+ *
+ * A date and time is shown to the minute ("2026-11-13T11:15"), unless the
+ * field opts in to seconds (showSecondsForDateTime). Only what is shown
+ * drops the seconds: the value stays as it was given until the person
+ * changes the field, so a stored 11:15:52 left alone is saved as 11:15:52.
  */
-const getDateDisplayValue: GetDateDisplayValueFunction = (
+export const getDateDisplayValue: GetDateDisplayValueFunction = (
   value: string | Date,
   type: InputType | undefined,
+  showSecondsForDateTime?: boolean | undefined,
 ): string | undefined => {
   if (!value) {
     return "";
@@ -172,9 +193,13 @@ const getDateDisplayValue: GetDateDisplayValueFunction = (
     value instanceof Date ? value : OneUptimeDate.fromString(value);
 
   try {
-    return type === InputType.DATETIME_LOCAL
+    if (type !== InputType.DATETIME_LOCAL) {
+      return OneUptimeDate.asDateForDatabaseQuery(date);
+    }
+
+    return showSecondsForDateTime
       ? OneUptimeDate.toDateTimeLocalString(date)
-      : OneUptimeDate.asDateForDatabaseQuery(date);
+      : OneUptimeDate.toDateTimeLocalMinuteString(date);
   } catch (err: unknown) {
     Logger.error(err as Error);
     return "";
@@ -338,7 +363,13 @@ const Input: FunctionComponent<ComponentProps> = (
    */
   const [dateDisplayValue, setDateDisplayValue] = useState<string>(
     (): string => {
-      return isDateInput ? getDateDisplayValue(value, props.type) ?? "" : "";
+      return isDateInput
+        ? getDateDisplayValue(
+            value,
+            props.type,
+            props.showSecondsForDateTime,
+          ) ?? ""
+        : "";
     },
   );
   const ref: React.MutableRefObject<HTMLInputElement | null> =
@@ -352,12 +383,13 @@ const Input: FunctionComponent<ComponentProps> = (
     const nextDateDisplayValue: string | undefined = getDateDisplayValue(
       value,
       props.type,
+      props.showSecondsForDateTime,
     );
 
     if (nextDateDisplayValue !== undefined) {
       setDateDisplayValue(nextDateDisplayValue);
     }
-  }, [value]);
+  }, [value, props.showSecondsForDateTime]);
 
   /*
    * For text the display value IS the value, derived here rather than kept in
@@ -504,7 +536,7 @@ const Input: FunctionComponent<ComponentProps> = (
               : undefined
           }
           placeholder={
-            props.isPlaceholderIdentifier
+            props.isPlaceholderIdentifier || props.isPlaceholderTranslated
               ? props.placeholder
               : translateString(props.placeholder)
           }

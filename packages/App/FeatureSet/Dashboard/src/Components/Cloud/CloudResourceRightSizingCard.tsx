@@ -6,6 +6,7 @@ import {
 import Color from "Common/Types/Color";
 import IconProp from "Common/Types/Icon/IconProp";
 import Card from "Common/UI/Components/Card/Card";
+import DirectionArrow from "Common/UI/Components/DirectionArrow/DirectionArrow";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Pill from "Common/UI/Components/Pill/Pill";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
@@ -79,16 +80,18 @@ const CloudResourceRightSizingCard: FunctionComponent<ComponentProps> = (
           </span>
           {text.change ? (
             /*
-             * The cloud's own size names, set apart in their own direction:
-             * "m5.2xlarge → m5.xlarge" reads the same on a page read right
-             * to left.
+             * The cloud's own size names, each set apart in its own
+             * direction, and the arrow the page's: "m5.2xlarge →
+             * m5.xlarge", and on a page read right to left the same names
+             * read from the right with "←" between them.
              */
-            <bdi
+            <span
               className="break-words font-mono text-sm font-semibold text-gray-900"
               data-testid="cloud-right-sizing-change"
             >
-              {`${text.change.from} → ${text.change.to}`}
-            </bdi>
+              <bdi>{text.change.from}</bdi> <DirectionArrow />{" "}
+              <bdi>{text.change.to}</bdi>
+            </span>
           ) : (
             <></>
           )}

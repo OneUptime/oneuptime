@@ -81,6 +81,17 @@ Les minutes sont comptées à partir de chaque prise en compte, et une politique
 
 La personne alertée de nouveau la prend en compte depuis son message, ou avec **Prendre en compte de nouveau** sur la page de l'incident ou de l'alerte, et les minutes recommencent ; **Escalader** la passe au niveau suivant. Résoudre ou supprimer l'incident ou l'alerte, archiver ou supprimer la politique, ou choisir **Ne pas alerter de nouveau** l'arrête. La ligne **Après une prise en compte** de la carte dit ce que fait la politique, et **Plus de paramètres** affiche les minutes tant qu'il est replié. **La politique en un coup d'œil** sur la **Vue d'ensemble** et le **Résumé de l'escalade** disent la même chose en toutes lettres.
 
+## Quand plusieurs politiques alertent
+
+Un incident, une alerte ou un épisode exécute chacune de ses politiques séparément, en même temps.
+
+- Une personne d'astreinte dans deux d'entre elles est alertée par les deux, une fois par chacune : OneUptime ne fusionne pas les alertes de politiques différentes. Au sein d'une politique, une personne qu'un niveau nomme deux fois, en personne et via une équipe ou un planning, n'est alertée qu'une fois.
+- La prise en compte de l'incident ou de l'alerte arrête en moins d'une minute toutes les politiques en cours pour lui, où qu'elle ait lieu : depuis n'importe quelle alerte à son sujet, sur sa propre page, dans l'application mobile, ou dans Slack ou Microsoft Teams. Aucun niveau suivant n'est alerté, et aucun appel ni SMS encore en attente n'est envoyé. Les notifications déjà envoyées le restent.
+
+Certaines alertes continuent après la prise en compte, jusqu'à ce qu'une personne qu'elles ont alertée réponde ou que ce soit résolu : une nouvelle alerte, une alerte aux observateurs, une alerte que quelqu'un a envoyée à des personnes depuis Slack ou Microsoft Teams, et une politique lancée à la main.
+
+Une politique lancée à la main est une politique lancée avec **Exécuter la politique d'astreinte**, ou par une alerte depuis Slack ou Microsoft Teams qui la nomme. Elle alerte niveau par niveau comme toute exécution, appels et notifications push répétées compris, et la prise en compte de l'incident par quelqu'un d'autre ne l'arrête pas : c'est ainsi que vous alertez une autre équipe sur un incident dont quelqu'un s'occupe déjà. La personne qu'elle a alertée répond depuis le message de son alerte, par un appel ou un SMS, ou en prenant elle-même l'incident en compte ; une fois l'incident pris en compte, sa page lui propose **Prendre en compte de nouveau**. **Escalader** la passe au niveau suivant. Sur un incident, une alerte ou un épisode résolu, rien n'est lancé, et on vous dit pourquoi.
+
 ## Journaux d'exécution
 
 Chaque fois qu'une politique s'exécute, elle écrit un journal d'exécution, et ce journal passe par ses statuts au fil de l'exécution :
@@ -162,6 +173,14 @@ Le niveau précédent n'avait personne à alerter : aucun intervenant, personne 
 
 :::details Un incident affiche une politique qui n'a alerté personne
 La politique est archivée : une politique archivée reste sur les incidents et les alertes qui l'utilisent, n'alerte personne, et son journal d'exécution indique qu'elle n'a pas été exécutée. Désarchivez-la sous **Astreinte → Avancé → Politiques archivées**.
+:::
+
+:::details Quelqu'un a été alerté deux fois pour un même incident
+Cette personne est d'astreinte dans deux des politiques que l'incident exécute, et chaque politique alerte ses propres personnes. Prendre l'incident en compte depuis l'une ou l'autre alerte arrête les deux. Pour qu'elle ne soit alertée qu'une fois, placez les deux équipes ou plannings dans un même niveau d'une politique.
+:::
+
+:::details Une politique a continué d'alerter après la prise en compte de l'incident
+Elle a été lancée à la main, ou c'est une nouvelle alerte : elle continue jusqu'à ce qu'une personne qu'elle a alertée réponde, ou que l'incident soit résolu. Voir [Quand plusieurs politiques alertent](#quand-plusieurs-politiques-alertent).
 :::
 
 ## Étapes suivantes

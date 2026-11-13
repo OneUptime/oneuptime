@@ -26,7 +26,7 @@ flowchart TB
 ```
 
 - **Les conditions de la règle** décident à quelles alertes elle s'applique. Une règle sans condition s'applique à chaque nouvelle alerte.
-- **La clé de regroupement** décide quelles alertes partagent un épisode : celles qui ont le même moniteur, la même gravité, le même titre, ou toute combinaison selon laquelle la règle regroupe. Une règle qui ne regroupe selon rien met dans un seul épisode chaque alerte qui lui correspond.
+- **La clé de regroupement** décide quelles alertes partagent un épisode : celles qui ont le même moniteur, la même gravité, le même titre, celles des services qui s'appellent entre eux sur la carte des services, ou toute combinaison selon laquelle la règle regroupe. Une règle qui ne regroupe selon rien met dans un seul épisode chaque alerte qui lui correspond.
 - **La fenêtre de temps** décide combien de temps un épisode continue d'accepter des alertes. Activée, une alerte ne le rejoint que si elle arrive dans la fenêtre suivant la dernière alerte de l'épisode. Désactivée, les alertes correspondantes continuent de le rejoindre jusqu'à ce que l'épisode soit résolu.
 - **Attendre d'autres alertes** décide quand un nouvel épisode s'ouvre. Désactivé, comme dans une nouvelle règle, la première alerte correspondante en ouvre un. Activé, une alerte attend seule jusqu'à ce que son groupe compte en cours le nombre d'alertes correspondantes que vous avez fixé, puis un seul épisode s'ouvre avec toutes ces alertes. Voir [Ouvrir un épisode seulement pour plusieurs alertes](#ouvrir-un-épisode-seulement-pour-plusieurs-alertes).
 
@@ -41,12 +41,13 @@ Allez dans **Alertes → Règles → Règles de regroupement**. La section **Rè
 
 ### Partir d'un modèle
 
-Un projet sans règle de regroupement voit quatre règles toutes prêtes au lieu d'une liste vide ; une fois que vous avez des règles, **Créer à partir d'un modèle** sur la carte les ouvre. **Ajouter une règle** en enregistre une en un clic, activée, en fin de liste et appliquée à chaque nouvelle alerte. Modifiez-la ensuite comme n'importe quelle autre règle.
+Un projet sans règle de regroupement voit cinq règles toutes prêtes au lieu d'une liste vide ; une fois que vous avez des règles, **Créer à partir d'un modèle** sur la carte les ouvre. **Ajouter une règle** en enregistre une en un clic, activée, en fin de liste et appliquée à chaque nouvelle alerte. Modifiez-la ensuite comme n'importe quelle autre règle.
 
 | Modèle                                              | Regroupe                                                                  | Fenêtre de temps |
 | --------------------------------------------------- | ------------------------------------------------------------------------- | ---------------- |
 | **Regrouper les alertes d'un même moniteur**        | Un épisode par moniteur                                                   | 30 minutes       |
 | **Regrouper les alertes simultanées**               | Un épisode commun, quel que soit le moniteur                              | 10 minutes       |
+| **Regrouper les alertes des services connectés** | Un épisode pour les services qui s'appellent entre eux sur la carte des services | 30 minutes       |
 | **Regrouper les alertes par gravité**               | Un épisode par gravité                                                    | 30 minutes       |
 | **Regrouper les répétitions d'une même alerte**     | Un épisode par titre d'alerte, sans tenir compte des chiffres ni de la casse | 1 heure       |
 
@@ -55,7 +56,7 @@ Un projet sans règle de regroupement voit quatre règles toutes prêtes au lieu
 :::steps
 #### Répondre à la question du regroupement
 
-Cliquez sur **Créer une règle personnalisée** sous les modèles, ou sur **Créer une règle de regroupement d'alertes** sur la carte une fois que vous avez des règles. À l'étape **Regroupement**, **Regrouper les alertes par** pose une seule question : **Moniteur**, **Tout ensemble**, **Gravité**, **Titre** ou **Personnalisé**. Le **Nom** suit votre réponse jusqu'à ce que vous saisissiez le vôtre.
+Cliquez sur **Créer une règle personnalisée** sous les modèles, ou sur **Créer une règle de regroupement d'alertes** sur la carte une fois que vous avez des règles. À l'étape **Regroupement**, **Regrouper les alertes par** pose une seule question : **Moniteur**, **Tout ensemble**, **Services connectés**, **Gravité**, **Titre** ou **Personnalisé**. Le **Nom** suit votre réponse jusqu'à ce que vous saisissiez le vôtre.
 
 #### Régler la fenêtre de temps
 
@@ -63,7 +64,7 @@ Cliquez sur **Créer une règle personnalisée** sous les modèles, ou sur **Cr�
 
 #### Combiner des champs, pour Personnalisé
 
-**Personnalisé** ajoute une étape **Regrouper par** avec cinq interrupteurs : **Regrouper par moniteur**, **Regrouper par gravité d'alerte**, **Regrouper par titre d'alerte**, **Regrouper par étiquettes d'alerte** et **Regrouper par étiquettes de moniteur**. Les étiquettes regroupent selon leur ensemble exact.
+**Personnalisé** ajoute une étape **Regrouper par** avec six interrupteurs : **Regrouper par moniteur**, **Regrouper par gravité d'alerte**, **Regrouper par titre d'alerte**, **Regrouper par étiquettes d'alerte**, **Regrouper par étiquettes de moniteur** et **Regrouper par services connectés**. Les étiquettes regroupent selon leur ensemble exact.
 
 #### Restreindre
 
@@ -90,6 +91,17 @@ Les règles sont vérifiées de haut en bas de la liste, et la première corresp
 - **Le compte se fait par groupe.** Avec **Tout ensemble**, toutes les alertes correspondantes comptent, si bien qu'un épisode ne s'ouvre que pour une panne qui déclenche plusieurs moniteurs à la fois. Avec **Moniteur**, l'épisode d'un moniteur s'ouvre dès que ce moniteur a plusieurs alertes en cours.
 
 La colonne **Regroupement** de la liste dit « Ouvre un épisode dès que 3 alertes correspondantes sont en cours ». Dans l'API et dans Terraform, ce sont `enableMinimumAlertCount` et `minimumAlertCount`.
+
+### Regrouper les alertes des services connectés
+
+Quand un service tombe en panne, les services qui l'appellent commencent eux aussi à échouer, et chacun déclenche une alerte sur son propre moniteur. **Services connectés** réunit ces alertes dans un seul épisode, à l'aide de la [carte des services](/docs/telemetry/topology) que OneUptime dessine à partir de vos traces.
+
+- Les services d'une alerte sont ceux qui lui sont liés sous **Ressources affectées**, et ceux qui sont liés à son moniteur.
+- Une alerte rejoint un épisode ouvert de la règle quand l'un de ses services est, appelle ou est appelé par un service d'une alerte qui s'y trouve déjà ; une défaillance qui se propage garde ainsi un seul épisode.
+- Connecté veut dire à un appel de distance : deux services qui appellent seulement la même base de données ou la même API externe ne sont pas connectés, sinon une dépendance appelée par la moitié de vos services mettrait chaque alerte dans un seul épisode.
+- Une alerte sans service est regroupée par son moniteur, comme le fait **Moniteur**.
+
+Un appel qui n'a pas été vu depuis 30 jours disparaît de la carte des services, et la connexion avec lui. La colonne **Regroupement** de la liste dit « Les alertes des services connectés partagent un même épisode ». Dans l'API et dans Terraform, c'est `groupByConnectedServices`.
 
 ## Titres des épisodes
 
