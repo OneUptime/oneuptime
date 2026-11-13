@@ -1,4 +1,12 @@
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
+import {
+  GUIDED_SETUP_POLICY_NAME,
+  WhoIsToldFacts,
+  WhoIsToldMode,
+  buildFirstOnCallPolicy,
+  getWhoIsToldMode,
+} from "Common/Utils/GuidedSetup/OnCallPolicyRecords";
+import { PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY } from "Common/Types/OnCallDutyPolicy/EveryNewEventRules";
 import { drawnActionLabel, drawnDashboardLabel } from "./DocsDashboardLabels";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
@@ -10,11 +18,12 @@ import path from "path";
  * Four docs pages say what a newcomer meets while they set up who is told
  * when something breaks:
  *
- *   - the Quickstart's "Get paged when it goes down": a project's first
- *     on-call policy is asked "Page this policy for every new incident and
- *     alert",
- *     which starts on, and the rule it adds is listed under Incidents >
- *     Rules > On-Call Rules, matching All incidents;
+ *   - the Quickstart's "Monitor your website" and "Get paged when it goes
+ *     down": a project's first on-call policy is made by the website guided
+ *     setup (#7332), paging for every new incident and alert, and the rule
+ *     it adds is listed under Incidents > Rules > On-Call Rules, matching
+ *     All incidents - so the Quickstart never asks the reader the
+ *     create form's "Page this policy for every new incident and alert";
  *   - On-Call Policies' "Create a policy", and the On-Call overview's "Run
  *     the policy automatically": when that switch is asked, and what it adds;
  *   - How OneUptime Reaches You's setup checklist: "Staying informed" names
@@ -75,19 +84,39 @@ const TRANSLATIONS: Array<string> = SUPPORTED_DOCS_LANGUAGE_CODES.filter(
 
 describe("the Quickstart's first on-call policy", () => {
   const english: string = page("en", QUICKSTART);
+  const firstPolicy: WhoIsToldFacts = {
+    policyCount: 0,
+    incidentRuleCount: 0,
+    alertRuleCount: 0,
+    mayCreatePolicy: true,
+    mayAddEscalationRules: true,
+    mayAddRules: true,
+  };
 
-  it("leaves the switch on, as the create form starts it", () => {
-    expect(FORM).toContain(`translationKey("${SWITCH}")`);
-    expect(FORM).toContain("defaultValue: true,");
+  it("is made by the website setup, paging for every new incident and alert, so the switch is never asked", () => {
+    const create: { miscDataProps: Record<string, unknown> } =
+      buildFirstOnCallPolicy({ userIds: ["you"], teamIds: [] });
+
+    expect(
+      create.miscDataProps[PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY],
+    ).toBe(true);
     expect(english).toContain(
-      `Leave **${SWITCH}** on, and click **Create On-Call Policy**.`,
+      `this makes \`${GUIDED_SETUP_POLICY_NAME}\`, which pages you for every new incident and alert in the project`,
     );
+    expect(english).not.toContain(`**${SWITCH}**`);
   });
 
-  it("says the first policy in a project pages for everything new, as the page offers it only then", () => {
-    expect(RULES).toContain("facts.policyCount === 0");
+  it("is made only where the project has no on-call policy or rule yet, as the setup decides", () => {
+    expect(getWhoIsToldMode(firstPolicy)).toBe(WhoIsToldMode.CreatePolicy);
+    expect(getWhoIsToldMode({ ...firstPolicy, policyCount: 1 })).toBe(
+      WhoIsToldMode.ExistingPolicy,
+    );
+    expect(getWhoIsToldMode({ ...firstPolicy, incidentRuleCount: 1 })).toBe(
+      WhoIsToldMode.ExistingPolicy,
+    );
+    // The Quickstart walks a new project: its policy is the setup's.
     expect(english).toContain(
-      "create an on-call policy: the first one in a project pages for every new incident and alert.",
+      `The website setup already made \`${GUIDED_SETUP_POLICY_NAME}\``,
     );
   });
 
@@ -116,7 +145,9 @@ describe("the Quickstart's first on-call policy", () => {
       ),
     ).toContain('all: translationKey("All incidents")');
 
-    expect(english).toContain("### See the rule that pages it");
+    expect(english).toContain(
+      "Two on-call rules run the policy: one for every new incident and one for every new alert.",
+    );
     expect(english).toContain(
       "expand **Rules** in the side menu and choose **On-Call Rules**: it matches **All incidents**.",
     );
@@ -159,6 +190,9 @@ describe("On-Call Policies and the On-Call overview", () => {
   });
 
   it("the overview's set-up steps let the first policy do it as it is created", () => {
+    // The create form asks it, on to start with.
+    expect(FORM).toContain(`translationKey("${SWITCH}")`);
+    expect(FORM).toContain("defaultValue: true,");
     expect(page("en", ON_CALL)).toContain(
       `A project's first policy can do this as it is created: leave **${SWITCH}** on. For any other policy, go to`,
     );
@@ -189,7 +223,6 @@ describe("the setup checklist names push only when nothing else carries the upda
 
 describe("every translation tells the same story, where the English does", () => {
   const ENGLISH_LINES: Record<string, number> = {
-    [QUICKSTART]: lineWith(page("en", QUICKSTART), `**${SWITCH}**`),
     [POLICIES]: lineWith(page("en", POLICIES), `**${SWITCH}**`),
     [ON_CALL]: lineWith(page("en", ON_CALL), `**${SWITCH}**`),
     [REACHING_YOU]: lineWith(
@@ -215,7 +248,7 @@ describe("every translation tells the same story, where the English does", () =>
       // The switch is translated in every Dashboard language.
       expect(drawn).not.toBe(SWITCH);
 
-      for (const relative of [QUICKSTART, POLICIES, ON_CALL]) {
+      for (const relative of [POLICIES, ON_CALL]) {
         const lines: Array<string> = page(language, relative).split("\n");
 
         expect({
@@ -233,6 +266,21 @@ describe("every translation tells the same story, where the English does", () =>
       const drawn: string = drawnDashboardLabel(language, STAYING_INFORMED);
 
       expect(lines[ENGLISH_LINES[REACHING_YOU]!]).toContain(`**${drawn}**`);
+    },
+  );
+
+  it.each(TRANSLATIONS)(
+    "%s's Quickstart names the policy the website setup makes, never the create form's switch",
+    (language: string) => {
+      const quickstart: string = page(language, QUICKSTART);
+      const policyName: string = `\`${GUIDED_SETUP_POLICY_NAME}\``;
+
+      expect(quickstart).not.toContain(
+        `**${drawnDashboardLabel(language, SWITCH)}**`,
+      );
+      expect(quickstart.split(policyName).length).toBe(
+        page("en", QUICKSTART).split(policyName).length,
+      );
     },
   );
 
