@@ -281,8 +281,9 @@ const UserOverrideOverlapNotice: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
+  // A div: Icon draws one, and a div may not sit in a paragraph.
   return (
-    <p
+    <div
       data-testid="user-override-overlap-note"
       className="mt-2 flex items-start gap-1.5 text-sm text-gray-600"
     >
@@ -301,7 +302,7 @@ const UserOverrideOverlapNotice: FunctionComponent<ComponentProps> = (
           }),
         )}
       </span>
-    </p>
+    </div>
   );
 };
 

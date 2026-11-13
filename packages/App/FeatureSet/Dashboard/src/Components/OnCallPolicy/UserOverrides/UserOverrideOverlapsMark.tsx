@@ -5,6 +5,7 @@ import UserOverrideOverlap, {
   UserOverrideSentence,
   UserOverrideTimes,
 } from "Common/Types/OnCallDutyPolicy/UserOverrideOverlap";
+import { joinSentences } from "Common/UI/Components/DeleteConfirmation/DeleteConsequences";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -45,20 +46,21 @@ export const getUserOverrideOverlapsText: (data: {
   from: string;
   until: string;
 }): string => {
-  return UserOverrideOverlap.getOverlapNoteSentences({
-    note: data.note,
-    awayName: data.awayName,
-    otherCoverName: data.otherCoverName,
-    from: data.from,
-    until: data.until,
-  })
-    .map((sentence: UserOverrideSentence): string => {
+  // Run together as the reader's script runs sentences: no space after a "。".
+  return joinSentences(
+    UserOverrideOverlap.getOverlapNoteSentences({
+      note: data.note,
+      awayName: data.awayName,
+      otherCoverName: data.otherCoverName,
+      from: data.from,
+      until: data.until,
+    }).map((sentence: UserOverrideSentence): string => {
       return data.translator.translateTemplate(
         sentence.template,
         sentence.values,
       );
-    })
-    .join(" ");
+    }),
+  );
 };
 
 export interface ComponentProps {
@@ -74,12 +76,17 @@ const UserOverrideOverlapsMark: FunctionComponent<ComponentProps> = (
     translator.translateText(USER_OVERRIDE_OVERLAPS_LABEL) ||
     USER_OVERRIDE_OVERLAPS_LABEL;
 
+  /*
+   * Read out whole: the text starts with what the mark says ("Overlaps
+   * another override for ..."), so the word is not said twice.
+   */
   return (
     <Tooltip text={props.text}>
       <span
         data-testid="user-override-overlaps"
+        role="img"
         tabIndex={0}
-        aria-label={`${label}. ${props.text}`}
+        aria-label={props.text}
         className="inline-flex flex-shrink-0 items-center gap-1 rounded-md bg-amber-50 px-1.5 py-0.5 text-[11px] font-medium text-amber-800 ring-1 ring-inset ring-amber-200"
       >
         <Icon icon={IconProp.Alert} className="h-3 w-3" />

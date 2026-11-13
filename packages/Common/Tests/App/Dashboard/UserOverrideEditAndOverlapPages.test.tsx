@@ -1197,7 +1197,7 @@ describe("overlaps saved before the rule are marked on both rows", () => {
     // The one that names who covers is used, over the skip.
     expect(markOf(coverRow)).toHaveAttribute(
       "aria-label",
-      `Overlaps. ${fillTemplate(USER_OVERRIDE_OVERLAPS_SKIPPED, {
+      `${fillTemplate(USER_OVERRIDE_OVERLAPS_SKIPPED, {
         away: "Alex Chen",
         from: shown(SKIP_FROM_NOON.startsAt),
         until: shown(SKIP_FROM_NOON.endsAt),
@@ -1205,13 +1205,20 @@ describe("overlaps saved before the rule are marked on both rows", () => {
     );
     expect(markOf(skipRow)).toHaveAttribute(
       "aria-label",
-      `Overlaps. ${fillTemplate(USER_OVERRIDE_OVERLAPS_COVERED, {
+      `${fillTemplate(USER_OVERRIDE_OVERLAPS_COVERED, {
         away: "Alex Chen",
         cover: "Sam Rivera",
         from: shown(UPCOMING.startsAt),
         until: shown(UPCOMING.endsAt),
       })} Where they overlap, that one is used, as it names who covers.`,
     );
+
+    // The row shows the word; a screen reader reads the whole of it, once.
+    for (const mark of [markOf(coverRow)!, markOf(skipRow)!]) {
+      expect(mark).toHaveTextContent(/^Overlaps$/);
+      expect(mark).toHaveAttribute("role", "img");
+      expect(mark).toHaveAttribute("tabindex", "0");
+    }
   });
 
   test("an override of the policy over a global one is allowed, so neither is marked", async () => {
@@ -1370,7 +1377,7 @@ describe("a schedule's active overrides card", () => {
     expect(marks).toHaveLength(2);
     expect(marks[0]).toHaveAttribute(
       "aria-label",
-      `Overlaps. ${fillTemplate(USER_OVERRIDE_OVERLAPS_SKIPPED, {
+      `${fillTemplate(USER_OVERRIDE_OVERLAPS_SKIPPED, {
         away: "Alex Chen",
         from: formatShiftInstant(skip.startsAt, "UTC"),
         until: formatShiftInstant(skip.endsAt, "UTC"),
@@ -1378,7 +1385,7 @@ describe("a schedule's active overrides card", () => {
     );
     expect(marks[1]).toHaveAttribute(
       "aria-label",
-      `Overlaps. ${fillTemplate(USER_OVERRIDE_OVERLAPS_COVERED, {
+      `${fillTemplate(USER_OVERRIDE_OVERLAPS_COVERED, {
         away: "Alex Chen",
         cover: "Sam Rivera",
         from: formatShiftInstant(UPCOMING.startsAt, "UTC"),
