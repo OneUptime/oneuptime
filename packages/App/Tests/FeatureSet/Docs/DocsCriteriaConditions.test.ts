@@ -81,10 +81,14 @@ const KEYED_IN_31EADAEE92E: ReadonlyArray<string> = [
 /*
  * The criteria form's option for a condition, as a Dropdown draws it: looked
  * up in the locale, unless the option is something a person named
- * (isUserContent), which no condition is.
+ * (isUserContent), which no condition is. The Dropdown draws every option
+ * through getDropdownOptionText, with its translator (#7690).
  */
 const DRAWN_OPTION: string = "{getOptionLabelText(option)}";
-const TRANSLATED_LABEL: string = "return tx(option.label) ?? option.label;";
+const DRAWN_THROUGH_TRANSLATOR: string =
+  "return getDropdownOptionText(option, tx);";
+const TRANSLATED_LABEL: string =
+  "return translate(option.label) ?? option.label;";
 const CONDITION_DROPDOWN: string = "options={filterTypeOptions}";
 
 // A finding, as a failure prints it: where, what, and what the page should say.
@@ -183,6 +187,7 @@ describe("the conditions this suite reads", () => {
     expect(criteriaFilter).toContain(CONDITION_DROPDOWN);
     expect(criteriaFilter).not.toContain("isUserContent");
     expect(dropdown).toContain(DRAWN_OPTION);
+    expect(dropdown).toContain(DRAWN_THROUGH_TRANSLATOR);
     expect(dropdown).toContain(TRANSLATED_LABEL);
   });
 
