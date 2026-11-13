@@ -771,19 +771,31 @@ const readDefinition: (
  * changes the spaces, tabs and markers it starts with, so from the first of
  * its characters that is neither a space nor a tab on, a line is the whole
  * text's, character for character.
+ *
+ * Or nearly: marked makes those replacements with "^" in multiline mode
+ * (`/^( *)(\t+)/gm`, and a quote's `/^ *>[ \t]?/gm`), and there "^" also
+ * matches right after a line or paragraph separator (U+2028, U+2029),
+ * which is no line break to its block rules. So after such a separator a
+ * line's tabs are made spaces too, and a quote's marker stripped, and the
+ * line is the whole text's again from the first character after them: a
+ * line is pieces, each the whole text's from where it starts.
  */
 interface LevelLines {
-  // Where each line starts in the level's text.
+  /*
+   * Where each piece of a line starts in the level's text: the line's start,
+   * and after each separator that marked changes what follows.
+   */
   starts: Array<number>;
   // Where the line of the whole text it comes from starts, markers and all.
   wholeLineStarts: Array<number>;
   /*
-   * Where its first character that is neither a space nor a tab is, in the
-   * level's text and in the whole text: its end, when it has none.
+   * From where the piece is the whole text's, in the level's text and in the
+   * whole text: its line's first character that is neither a space nor a
+   * tab (its end, when it has none), or a later piece's start.
    */
   solidStarts: Array<number>;
   wholeSolidStarts: Array<number>;
-  // The line asked of last: positions are asked of in order, mostly.
+  // The piece asked of last: positions are asked of in order, mostly.
   cursor: number;
 }
 
@@ -793,9 +805,77 @@ interface BlockLevel {
   depth: number;
   // null when `text` is the whole text itself.
   lines: LevelLines | null;
+  // Where its line and paragraph separators are, in order: found when asked.
+  separators: ReadonlyArray<number> | null;
 }
 
-// The line of `lines` that `position` is on: the last to start at or before it.
+// Where `part` is in `text`, in order.
+const findEvery: (text: string, part: string) => Array<number> = (
+  text: string,
+  part: string,
+): Array<number> => {
+  const found: Array<number> = [];
+
+  for (
+    let at: number = text.indexOf(part);
+    at !== -1;
+    at = text.indexOf(part, at + 1)
+  ) {
+    found.push(at);
+  }
+
+  return found;
+};
+
+/*
+ * Where the line and paragraph separators (U+2028, U+2029) of a level's
+ * text are, in order: found the first time they are asked.
+ */
+const NO_POSITIONS: ReadonlyArray<number> = [];
+
+const getSeparators: (level: BlockLevel) => ReadonlyArray<number> = (
+  level: BlockLevel,
+): ReadonlyArray<number> => {
+  if (level.separators === null) {
+    const text: string = level.text;
+
+    // Most texts have none: a level of each list item is made.
+    level.separators =
+      text.indexOf(LINE_SEPARATOR) === -1 &&
+      text.indexOf(PARAGRAPH_SEPARATOR) === -1
+        ? NO_POSITIONS
+        : findEvery(text, LINE_SEPARATOR)
+            .concat(findEvery(text, PARAGRAPH_SEPARATOR))
+            .sort((one: number, other: number): number => {
+              return one - other;
+            });
+  }
+
+  return level.separators;
+};
+
+// The index of the first of the ordered `positions` at or after `from`, by halves.
+const firstAtOrAfter: (
+  positions: ReadonlyArray<number>,
+  from: number,
+) => number = (positions: ReadonlyArray<number>, from: number): number => {
+  let low: number = 0;
+  let high: number = positions.length;
+
+  while (low < high) {
+    const middle: number = Math.floor((low + high) / 2);
+
+    if (positions[middle]! < from) {
+      low = middle + 1;
+    } else {
+      high = middle;
+    }
+  }
+
+  return low;
+};
+
+// The piece of `lines` that `position` is in: the last to start at or before it.
 const getLevelLine: (lines: LevelLines, position: number) => number = (
   lines: LevelLines,
   position: number,
@@ -836,7 +916,8 @@ const getLevelLine: (lines: LevelLines, position: number) => number = (
 
 /*
  * Where a position of the level's text is in the whole text: one at or
- * after the first character of its line that is neither a space nor a tab.
+ * after the first character of its line that is neither a space nor a tab,
+ * and not among the spaces marked makes of tabs after a separator.
  */
 const toWhole: (level: BlockLevel, position: number) => number = (
   level: BlockLevel,
@@ -877,19 +958,73 @@ interface LevelLine {
 }
 
 /*
- * The level of `lines` of `source`, each with the tabs that start it made
- * four spaces, as blockTokens makes them.
+ * After the run of `code` in text[at, to): where the first other character
+ * is, or `to`.
+ */
+const skipRun: (
+  text: string,
+  at: number,
+  to: number,
+  code: number,
+) => number = (text: string, at: number, to: number, code: number): number => {
+  let end: number = at;
+
+  while (end < to && text.charCodeAt(end) === code) {
+    end++;
+  }
+
+  return end;
+};
+
+/*
+ * Adds to `made`, the lines of a level made from `source`, a piece that
+ * starts at `start` and is the whole text's from `solid` - `sourceSolid` in
+ * the source - on.
+ */
+const addPiece: (
+  made: LevelLines,
+  source: BlockLevel,
+  start: number,
+  wholeLineStart: number,
+  solid: number,
+  sourceSolid: number,
+) => void = (
+  made: LevelLines,
+  source: BlockLevel,
+  start: number,
+  wholeLineStart: number,
+  solid: number,
+  sourceSolid: number,
+): void => {
+  made.starts.push(start);
+  made.wholeLineStarts.push(wholeLineStart);
+  made.solidStarts.push(solid);
+  made.wholeSolidStarts.push(toWhole(source, sourceSolid));
+};
+
+/*
+ * The level of `lines` of `source`, as blockTokens makes it: the tabs that
+ * start each line made four spaces each, and so the tabs that come right
+ * after a line or paragraph separator, spaces before them or none - and, in
+ * a block quote (`stripsQuoteMarkers`), a quote's marker right after such a
+ * separator stripped first, spaces before it and a space or a tab after it,
+ * as marked strips each line's.
  */
 const makeLevel: (
   source: BlockLevel,
   lines: Array<LevelLine>,
   depth: number,
+  stripsQuoteMarkers: boolean,
 ) => BlockLevel = (
   source: BlockLevel,
   lines: Array<LevelLine>,
   depth: number,
+  stripsQuoteMarkers: boolean,
 ): BlockLevel => {
   const text: string = source.text;
+  const separators: ReadonlyArray<number> = getSeparators(source);
+  let separator: number =
+    lines.length > 0 ? firstAtOrAfter(separators, lines[0]!.from) : 0;
   const pieces: Array<string> = [];
   const made: LevelLines = {
     starts: [],
@@ -900,8 +1035,10 @@ const makeLevel: (
   };
   let length: number = 0;
 
-  for (const line of lines) {
-    if (made.starts.length > 0) {
+  for (let index: number = 0; index < lines.length; index++) {
+    const line: LevelLine = lines[index]!;
+
+    if (index > 0) {
       pieces.push("\n");
       length++;
     }
@@ -932,30 +1069,102 @@ const makeLevel: (
       solid++;
     }
 
-    made.starts.push(length);
-    made.wholeLineStarts.push(getWholeLineStart(source, line.from));
-    made.solidStarts.push(length + spaces + (solid - copiedFrom));
-    made.wholeSolidStarts.push(toWhole(source, solid));
+    const wholeLineStart: number = getWholeLineStart(source, line.from);
+
+    addPiece(
+      made,
+      source,
+      length,
+      wholeLineStart,
+      length + spaces + (solid - copiedFrom),
+      solid,
+    );
 
     if (spaces > 0) {
       pieces.push(" ".repeat(spaces));
+      length += spaces;
     }
 
-    if (line.to > copiedFrom) {
-      pieces.push(text.slice(copiedFrom, line.to));
+    // The rest of the line, and what marked makes of it after a separator.
+    let copyFrom: number = copiedFrom;
+
+    while (
+      separator < separators.length &&
+      separators[separator]! < copiedFrom
+    ) {
+      separator++;
     }
 
-    length += spaces + (line.to - copiedFrom);
+    for (
+      ;
+      separator < separators.length && separators[separator]! < line.to;
+      separator++
+    ) {
+      const after: number = separators[separator]! + 1;
+      let rest: number = after;
+
+      if (stripsQuoteMarkers) {
+        const marker: number = skipRun(text, after, line.to, SPACE);
+
+        if (marker < line.to && text.charCodeAt(marker) === GREATER_THAN) {
+          rest = marker + 1;
+
+          if (rest < line.to && isSpaceOrTab(text.charCodeAt(rest))) {
+            rest++;
+          }
+        }
+      }
+
+      const restSpacesEnd: number = skipRun(text, rest, line.to, SPACE);
+      const restTabsEnd: number = skipRun(text, restSpacesEnd, line.to, TAB);
+      const restSpaces: number =
+        restSpacesEnd - rest + 4 * (restTabsEnd - restSpacesEnd);
+
+      /*
+       * Up to the separator's end as it is, then its spaces and its tabs as
+       * spaces, and a piece from the first character after them: from there
+       * the line is the whole text's again - after the spaces of tabs the
+       * level it is made from made spaces too, which this piece reads past.
+       */
+      pieces.push(text.slice(copyFrom, after));
+      length += after - copyFrom;
+
+      if (restSpaces > 0) {
+        pieces.push(" ".repeat(restSpaces));
+        length += restSpaces;
+      }
+
+      copyFrom = restTabsEnd;
+      addPiece(made, source, length, wholeLineStart, length, copyFrom);
+    }
+
+    if (line.to > copyFrom) {
+      pieces.push(text.slice(copyFrom, line.to));
+      length += line.to - copyFrom;
+    }
   }
 
-  return { text: pieces.join(""), depth: depth, lines: made };
+  return {
+    text: pieces.join(""),
+    depth: depth,
+    lines: made,
+    separators: null,
+  };
 };
 
-// The whole text as a level: a copy only when a line of it starts with a tab.
+/*
+ * The whole text as a level: a copy only when a line of it starts with a
+ * tab, or a separator comes right before tabs, spaces before them or none.
+ */
 const getWholeLevel: (text: string) => BlockLevel = (
   text: string,
 ): BlockLevel => {
-  const whole: BlockLevel = { text: text, depth: 0, lines: null };
+  const whole: BlockLevel = {
+    text: text,
+    depth: 0,
+    lines: null,
+    separators: null,
+  };
 
   if (text.indexOf("\t") === -1) {
     return whole;
@@ -973,7 +1182,12 @@ const getWholeLevel: (text: string) => BlockLevel = (
     lineStart = lineEnd + 1;
   }
 
-  return startsWithTab ? makeLevel(whole, lines, 0) : whole;
+  for (const separator of getSeparators(whole)) {
+    startsWithTab =
+      startsWithTab || text.charCodeAt(skipSpaces(text, separator + 1)) === TAB;
+  }
+
+  return startsWithTab ? makeLevel(whole, lines, 0, false) : whole;
 };
 
 /*
@@ -984,8 +1198,6 @@ interface LevelReading {
   level: BlockLevel;
   definitions: Array<LinkReferenceDefinition>;
   finders: TitleFinders | null;
-  // Where the line and paragraph separators are, in order.
-  separators: Array<number> | null;
   // The next "]:", which a definition holds.
   nextDefinitionColon: NextPositionFunction;
   // The next line break a line of spaces and a line break come after.
@@ -1012,7 +1224,6 @@ const startReading: (
     level: level,
     definitions: definitions,
     finders: null,
-    separators: null,
     nextDefinitionColon: remembered((from: number): number => {
       return text.indexOf("]:", from);
     }),
@@ -1042,24 +1253,6 @@ const getFinders: (reading: LevelReading) => TitleFinders = (
   return reading.finders;
 };
 
-// Where `part` is in `text`, in order.
-const findEvery: (text: string, part: string) => Array<number> = (
-  text: string,
-  part: string,
-): Array<number> => {
-  const found: Array<number> = [];
-
-  for (
-    let at: number = text.indexOf(part);
-    at !== -1;
-    at = text.indexOf(part, at + 1)
-  ) {
-    found.push(at);
-  }
-
-  return found;
-};
-
 /*
  * The first line or paragraph separator (U+2028, U+2029) in text[from,
  * to), or -1: what "." does not match either, so a line that holds one is
@@ -1070,32 +1263,9 @@ const findSeparator: (
   from: number,
   to: number,
 ) => number = (reading: LevelReading, from: number, to: number): number => {
-  if (reading.separators === null) {
-    const text: string = reading.level.text;
-
-    reading.separators = findEvery(text, LINE_SEPARATOR)
-      .concat(findEvery(text, PARAGRAPH_SEPARATOR))
-      .sort((one: number, other: number): number => {
-        return one - other;
-      });
-  }
-
-  // The first at or after `from`, by halves.
-  const separators: Array<number> = reading.separators;
-  let low: number = 0;
-  let high: number = separators.length;
-
-  while (low < high) {
-    const middle: number = Math.floor((low + high) / 2);
-
-    if (separators[middle]! < from) {
-      low = middle + 1;
-    } else {
-      high = middle;
-    }
-  }
-
-  const first: number | undefined = separators[low];
+  const separators: ReadonlyArray<number> = getSeparators(reading.level);
+  const first: number | undefined =
+    separators[firstAtOrAfter(separators, from)];
 
   return first !== undefined && first < to ? first : -1;
 };
@@ -1345,49 +1515,52 @@ const startsWithAny: (
  * paragraph rule, which reads it in lower case alone (`anyCase` false). -1
  * when none is there.
  */
-const readBlockTag: (text: string, open: number, anyCase: boolean) => number =
-  (text: string, open: number, anyCase: boolean): number => {
-    let name: number = open + 1;
+const readBlockTag: (text: string, open: number, anyCase: boolean) => number = (
+  text: string,
+  open: number,
+  anyCase: boolean,
+): number => {
+  let name: number = open + 1;
 
-    if (text.charCodeAt(name) === SLASH) {
-      name++;
-    }
+  if (text.charCodeAt(name) === SLASH) {
+    name++;
+  }
 
-    let nameEnd: number = name;
+  let nameEnd: number = name;
 
-    while (
-      nameEnd - name <= LONGEST_BLOCK_TAG_NAME &&
-      (isAsciiLetterCode(text.charCodeAt(nameEnd)) ||
-        isDigitCode(text.charCodeAt(nameEnd)))
-    ) {
-      nameEnd++;
-    }
+  while (
+    nameEnd - name <= LONGEST_BLOCK_TAG_NAME &&
+    (isAsciiLetterCode(text.charCodeAt(nameEnd)) ||
+      isDigitCode(text.charCodeAt(nameEnd)))
+  ) {
+    nameEnd++;
+  }
 
-    const written: string = text.slice(name, nameEnd);
+  const written: string = text.slice(name, nameEnd);
 
-    if (
-      nameEnd - name > LONGEST_BLOCK_TAG_NAME ||
-      !BLOCK_TAG_NAMES.has(anyCase ? written.toLowerCase() : written)
-    ) {
-      return -1;
-    }
-
-    const after: number = text.charCodeAt(nameEnd);
-
-    if (after === SPACE) {
-      return skipSpaces(text, nameEnd);
-    }
-
-    if (after === LINE_FEED || after === GREATER_THAN) {
-      return nameEnd + 1;
-    }
-
-    if (after === SLASH && text.charCodeAt(nameEnd + 1) === GREATER_THAN) {
-      return nameEnd + 2;
-    }
-
+  if (
+    nameEnd - name > LONGEST_BLOCK_TAG_NAME ||
+    !BLOCK_TAG_NAMES.has(anyCase ? written.toLowerCase() : written)
+  ) {
     return -1;
-  };
+  }
+
+  const after: number = text.charCodeAt(nameEnd);
+
+  if (after === SPACE) {
+    return skipSpaces(text, nameEnd);
+  }
+
+  if (after === LINE_FEED || after === GREATER_THAN) {
+    return nameEnd + 1;
+  }
+
+  if (after === SLASH && text.charCodeAt(nameEnd + 1) === GREATER_THAN) {
+    return nameEnd + 2;
+  }
+
+  return -1;
+};
 
 /*
  * Whether HTML that ends a paragraph starts the line - right at its start,
@@ -1920,7 +2093,7 @@ const readBlockQuote: (reading: LevelReading, at: number) => number = (
     }
 
     readBlocks(
-      makeLevel(reading.level, lines, reading.level.depth + 1),
+      makeLevel(reading.level, lines, reading.level.depth + 1, true),
       true,
       reading.definitions,
     );
@@ -2239,8 +2412,7 @@ const readList: (reading: LevelReading, at: number) => number = (
   if (
     bullet === null ||
     (bullet.end < lineEnd &&
-      (!isSpaceOrTab(text.charCodeAt(bullet.end)) ||
-        bullet.end + 1 >= lineEnd))
+      (!isSpaceOrTab(text.charCodeAt(bullet.end)) || bullet.end + 1 >= lineEnd))
   ) {
     return -1;
   }
@@ -2295,7 +2467,7 @@ const readList: (reading: LevelReading, at: number) => number = (
         )
       ) {
         readBlocks(
-          makeLevel(reading.level, lines, reading.level.depth + 1),
+          makeLevel(reading.level, lines, reading.level.depth + 1, false),
           false,
           reading.definitions,
         );
@@ -2617,56 +2789,59 @@ const readHtml: (reading: LevelReading, at: number) => number = (
  * colon and as many cells, then the rows up to a line that is none -
  * blank, or what starts another block - and the line breaks after them.
  */
-const readTable: (reading: LevelReading, at: number, lineEnd: number) => number =
-  (reading: LevelReading, at: number, lineEnd: number): number => {
-    const text: string = reading.level.text;
+const readTable: (
+  reading: LevelReading,
+  at: number,
+  lineEnd: number,
+) => number = (reading: LevelReading, at: number, lineEnd: number): number => {
+  const text: string = reading.level.text;
 
-    if (!startsTable(reading, at, lineEnd)) {
-      return -1;
-    }
+  if (!startsTable(reading, at, lineEnd)) {
+    return -1;
+  }
 
-    const delimiterEnd: number = getLineEnd(text, lineEnd + 1);
-    const delimiter: DelimiterRow = readDelimiterRow(
-      text,
-      lineEnd + 1,
-      delimiterEnd,
-    )!;
+  const delimiterEnd: number = getLineEnd(text, lineEnd + 1);
+  const delimiter: DelimiterRow = readDelimiterRow(
+    text,
+    lineEnd + 1,
+    delimiterEnd,
+  )!;
+
+  if (
+    !delimiter.holdsPipeOrColon ||
+    delimiter.cells !== countHeaderCells(text, skipSpaces(text, at), lineEnd)
+  ) {
+    return -1;
+  }
+
+  let rowStart: number = nextLineStart(text, delimiterEnd);
+
+  while (rowStart < text.length) {
+    const rowEnd: number = getLineEnd(text, rowStart);
+    const first: number = skipSpaces(text, rowStart);
 
     if (
-      !delimiter.holdsPipeOrColon ||
-      delimiter.cells !== countHeaderCells(text, skipSpaces(text, at), lineEnd)
+      // Spaces alone, a line break after them.
+      (first === rowEnd && rowEnd < text.length) ||
+      isThematicBreak(text, rowStart, rowEnd) ||
+      startsAtxHeading(text, rowStart) ||
+      startsBlockQuote(text, rowStart) ||
+      // Four spaces, and anything after them.
+      (first - rowStart >= 4 && rowStart + 4 < rowEnd) ||
+      (rowEnd < text.length &&
+        getOpeningFence(text, rowStart, rowEnd) !== null) ||
+      startsListInParagraph(text, rowStart) ||
+      startsHtmlInParagraph(text, rowStart) ||
+      findSeparator(reading, rowStart, rowEnd) !== -1
     ) {
-      return -1;
+      break;
     }
 
-    let rowStart: number = nextLineStart(text, delimiterEnd);
+    rowStart = nextLineStart(text, rowEnd);
+  }
 
-    while (rowStart < text.length) {
-      const rowEnd: number = getLineEnd(text, rowStart);
-      const first: number = skipSpaces(text, rowStart);
-
-      if (
-        // Spaces alone, a line break after them.
-        (first === rowEnd && rowEnd < text.length) ||
-        isThematicBreak(text, rowStart, rowEnd) ||
-        startsAtxHeading(text, rowStart) ||
-        startsBlockQuote(text, rowStart) ||
-        // Four spaces, and anything after them.
-        (first - rowStart >= 4 && rowStart + 4 < rowEnd) ||
-        (rowEnd < text.length &&
-          getOpeningFence(text, rowStart, rowEnd) !== null) ||
-        startsListInParagraph(text, rowStart) ||
-        startsHtmlInParagraph(text, rowStart) ||
-        findSeparator(reading, rowStart, rowEnd) !== -1
-      ) {
-        break;
-      }
-
-      rowStart = nextLineStart(text, rowEnd);
-    }
-
-    return skipLineBreaks(text, rowStart);
-  };
+  return skipLineBreaks(text, rowStart);
+};
 
 /*
  * A setext heading (lheading rule): lines up to the first underline of "="
@@ -2711,14 +2886,12 @@ const readSetextHeading: (reading: LevelReading, at: number) => number = (
   }
 };
 
-// A paragraph: lines up to one that is empty or ends it.
-const readParagraph: (
+/*
+ * A paragraph whose first line ends at `lineEnd`: lines up to one that is
+ * empty or ends it.
+ */
+const readParagraph: (reading: LevelReading, lineEnd: number) => number = (
   reading: LevelReading,
-  at: number,
-  lineEnd: number,
-) => number = (
-  reading: LevelReading,
-  at: number,
   lineEnd: number,
 ): number => {
   const text: string = reading.level.text;
@@ -2893,7 +3066,7 @@ const readBlocks: (
       continue;
     }
 
-    at = isTop ? readParagraph(reading, at, lineEnd) : lineEnd;
+    at = isTop ? readParagraph(reading, lineEnd) : lineEnd;
     carriesOn = true;
   }
 };
