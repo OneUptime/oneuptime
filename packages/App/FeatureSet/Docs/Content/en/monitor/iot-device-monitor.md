@@ -62,7 +62,7 @@ A new monitor starts on **Device Offline**, under **What to alert on**. To watch
 
 ### Check the criteria
 
-Open each criteria under **Monitor Criteria** and check its **Select Metric Variable**, **Aggregation**, **Condition** and **Threshold**. A template fills these in. With **Custom Metric** or **Advanced**, the monitor starts with the [default criteria](#default-criteria), which only notice the metric sending no data, so set your own threshold.
+Open each criteria under **Criteria** and check its **Select Metric Variable**, **Aggregation**, **Condition** and **Threshold**. A template fills these in. With **Custom Metric** or **Advanced**, the monitor starts with the [default criteria](#default-criteria), which only notice the metric sending no data, so set your own threshold.
 
 ### Create the monitor
 
@@ -137,7 +137,7 @@ Each series carries the device's `device.id` label, and the `iot.device.type` an
 | `iot_memory_usage_bytes` | `bytes` | Memory in use. Compare it with the device's memory size to see memory pressure. |
 | `iot_uptime_seconds` | `s` | How long the device has been running. Drops to zero when it restarts. |
 
-## Monitoring criteria
+## Criteria
 
 A criteria compares one of the monitor's queries or formulas with a threshold. An IoT device monitor's criteria offer one **Filter Type**, **Metric Value**: every rule checks the metric value, with these fields.
 

@@ -300,7 +300,7 @@ const HostViewSideMenu: FunctionComponent<ComponentProps> = (
         />
         <SideMenuItem
           link={{
-            title: "Performance Profiles",
+            title: "Profiles",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.HOST_VIEW_PROFILES] as Route,
               { modelId: props.modelId },

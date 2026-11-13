@@ -2188,7 +2188,7 @@ const products: Dictionary<Product> = {
             oneuptimeColumn: "tick",
           },
           {
-            title: "Error & Exception Tracking",
+            title: "Errors & Exceptions",
             description: "Capture and group exceptions",
             productColumn: "tick",
             oneuptimeColumn: "tick",

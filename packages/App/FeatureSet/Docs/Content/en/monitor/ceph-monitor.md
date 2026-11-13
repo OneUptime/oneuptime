@@ -69,7 +69,7 @@ A new monitor starts on **Cluster Stopped Reporting**, under **What to alert on*
 
 ### Check the criteria
 
-Open each criteria under **Monitor Criteria** and check its **Metric**, **Aggregation**, **Condition** and **Threshold**. A template fills these in. With **Custom Metric** or **Advanced**, the monitor starts with the [default criteria](#default-criteria), which only notice the metric sending no data, so set your own threshold.
+Open each criteria under **Criteria** and check its **Metric**, **Aggregation**, **Condition** and **Threshold**. A template fills these in. With **Custom Metric** or **Advanced**, the monitor starts with the [default criteria](#default-criteria), which only notice the metric sending no data, so set your own threshold.
 
 ### Create the monitor
 
@@ -220,7 +220,7 @@ Every `ceph_pg_*` series is per pool, labeled `pool_id`. A Sum adds every scrape
 | `ceph_num_objects_degraded` | count | Objects with fewer replicas than configured. |
 | `ceph_num_objects_misplaced` | count | Objects not where CRUSH wants them. The data is safe; only the placement is wrong. |
 
-## Monitoring criteria
+## Criteria
 
 A criteria compares one of the monitor's queries or formulas with a threshold. A Ceph monitor's criteria have no **Filter Type**: every rule checks the metric value, with these fields.
 

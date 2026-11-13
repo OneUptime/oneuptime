@@ -193,7 +193,7 @@ The **Exception Count** is 3, so **More than** `0` matches: the monitor goes off
 ## Troubleshooting
 
 :::details Exceptions appear in the explorer, but the monitor counts 0
-Check the **Environments** value against the explorer's `env:` filter: matching is exact and case-sensitive, and exceptions without an environment are left out when the filter is set. Then check whether those exceptions are resolved or archived. Open the monitor's **Criteria** page (under **Configuration**) and click **Edit Monitoring Criteria**: **Matching exceptions** shows what the filters match.
+Check the **Environments** value against the explorer's `env:` filter: matching is exact and case-sensitive, and exceptions without an environment are left out when the filter is set. Then check whether those exceptions are resolved or archived. Open the monitor's **Criteria** page (under **Configuration**) and click **Edit Criteria**: **Matching exceptions** shows what the filters match.
 :::
 
 :::details The incident resolved when I resolved the exception

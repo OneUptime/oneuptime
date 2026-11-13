@@ -397,7 +397,7 @@ const ProfileMonitorStepForm: FunctionComponent<ComponentProps> = (
             fieldType: FormFieldSchemaType.Text,
             title: "Function",
             description:
-              "Its name, or part of its file or package path, as the Profiler shows it.",
+              "Its name, or part of its file or package path, as shown in Profiles.",
             placeholder: "parseOrder",
             hideOptionalLabel: true,
           },

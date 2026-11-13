@@ -244,7 +244,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
     return (
       <div>
         {translator.translateText(
-          "Monitor Criteria not defined for this resource.",
+          "No criteria are set yet.",
         )}
       </div>
     );

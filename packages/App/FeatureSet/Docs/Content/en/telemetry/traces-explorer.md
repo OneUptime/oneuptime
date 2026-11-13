@@ -183,6 +183,6 @@ Each row is a span, not a request: with **Entry spans**, the default, a request 
 :::cards
 - [Search Syntax](/docs/telemetry/search-syntax): Every filter the search box understands.
 - [Traces Monitor](/docs/monitor/traces-monitor): Get alerted on failed or slow requests.
-- [Exception Tracking](/docs/telemetry/exceptions): Triage the errors your spans record.
+- [Exceptions](/docs/telemetry/exceptions): Triage the errors your spans record.
 - [Logs Explorer](/docs/telemetry/logs-explorer): Read the log lines a request wrote.
 :::

@@ -329,7 +329,7 @@ export function getKubernetesBreadcrumbs(
       "Project",
       "Kubernetes",
       "View Cluster",
-      "Performance Profiles",
+      "Profiles",
     ]),
 
     // Observability

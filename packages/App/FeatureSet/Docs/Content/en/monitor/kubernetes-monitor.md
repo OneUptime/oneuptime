@@ -6,7 +6,7 @@ A Kubernetes monitor alerts on the metrics the OneUptime Kubernetes agent sends 
 - [Install the agent](/docs/monitor/kubernetes-agent): One Helm command puts the cluster into OneUptime.
 - [Create the monitor](#create-a-kubernetes-monitor): Pick the cluster, then a template, a metric or a query.
 - [Alert templates](#pre-built-alert-templates): Twenty-one ready-made alerts, from a silent cluster to etcd.
-- [Criteria](#monitoring-criteria): Static thresholds and anomaly detection.
+- [Criteria](#criteria): Static thresholds and anomaly detection.
 :::
 
 ## How it works
@@ -48,7 +48,7 @@ A new monitor starts on **Cluster Stopped Reporting**, under **What to alert on*
 
 ### Set the criteria
 
-Set when the monitor changes status and when it opens an alert or incident — see [Monitoring criteria](#monitoring-criteria). A template has already filled them in: review the thresholds, severities and on-call policies.
+Set when the monitor changes status and when it opens an alert or incident — see [Criteria](#criteria). A template has already filled them in: review the thresholds, severities and on-call policies.
 
 ### Save the monitor
 
@@ -95,7 +95,7 @@ The **Custom Metric** tab offers these metrics, grouped by resource type:
 > [!NOTE]
 > **Pod CPU Usage** and **Node CPU Usage** are in cores, not percent: `0.18` is 0.18 of a core. **Pod Phase (Code)** is a code (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) — aggregate it with Maximum or Minimum, never Sum. **Node Ready Condition** is 1 when Ready, 0 when NotReady and -1 when Unknown, which is what a node that went down reports: alert on less than 1. **Container Restarts** is the container's running restart count; **Container Restarts (Increase)** is what the agent sends with every sample, the restarts since its previous sample of the container, so its sum over a window is the restarts in it. It carries what **Container Restarts** carries, the workload names of the container's pod included, but not the container's ID, which changes with every restart. **Job Failed Pods** is a Job's running count of failed pods; **Job Failed Pods (Increase)** is what the agent sends with every sample, the Job's pods that failed since its previous sample of the Job, so its sum over a window is the failures in it. It carries what **Job Failed Pods** carries: the Job's name and namespace. Control-plane metrics only arrive when the agent's control-plane scrape is on.
 
-## Monitoring criteria
+## Criteria
 
 ### What gets evaluated
 

@@ -1502,7 +1502,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
     logs: translationKey("Log Ingestion Setup"),
     metrics: translationKey("Metrics Ingestion Setup"),
     traces: translationKey("Trace Ingestion Setup"),
-    exceptions: translationKey("Exception Tracking Setup"),
+    exceptions: translationKey("Exception Ingestion Setup"),
     profiles: translationKey("Profiles Ingestion Setup"),
   };
 
@@ -1831,7 +1831,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                   RouteMap[PageMap.PROFILES] as Route,
                 )}
               >
-                {translate("Open the Profiler")}
+                {translate("Open Profiles")}
               </AppLink>
             </div>
           </div>
@@ -1922,9 +1922,8 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
 
           {renderStep(
             3,
-            isProfiles
-              ? translationKey("Configure the Profiler")
-              : translationKey("Configure the SDK"),
+            // The Pyroscope SDK for profiles, OpenTelemetry's for the rest.
+            translationKey("Configure the SDK"),
             isProfiles
               ? translationKey(
                   "Initialize the Pyroscope profiling SDK and point it to your OneUptime instance. Profiles will be continuously captured and sent.",
@@ -2301,7 +2300,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
           <div className="mt-2">
             {renderStep(
               1,
-              translationKey("Turn On the Agent's Profiler"),
+              translationKey("Turn On Profiling in the Agent"),
               translationKey(
                 "It profiles every container on every Linux node, in any language, with no code changes. It needs privileged pods, so it is not available on GKE Autopilot or EKS Fargate.",
               ),

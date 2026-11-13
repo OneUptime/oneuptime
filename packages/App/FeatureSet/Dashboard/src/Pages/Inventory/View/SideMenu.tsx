@@ -89,7 +89,7 @@ const InventoryItemSideMenu: FunctionComponent<ComponentProps> = (
         },
         {
           link: {
-            title: "Performance Profiles",
+            title: "Profiles",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.INVENTORY_VIEW_PROFILES] as Route,
               { modelId: props.modelId },

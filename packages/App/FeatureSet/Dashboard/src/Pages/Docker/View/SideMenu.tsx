@@ -233,7 +233,7 @@ const DockerHostSideMenu: FunctionComponent<ComponentProps> = (
         />
         <SideMenuItem
           link={{
-            title: "Performance Profiles",
+            title: "Profiles",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.DOCKER_HOST_VIEW_PROFILES] as Route,
               { modelId: props.modelId },

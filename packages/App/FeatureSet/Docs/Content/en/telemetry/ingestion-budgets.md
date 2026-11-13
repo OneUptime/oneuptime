@@ -34,7 +34,7 @@ flowchart TB
 ## Before you begin
 
 - **For the instance's and a project's budgets, the Admin Dashboard.** On a self-hosted installation, only the instance admin sets them. A project's owners and admins see its budgets, but cannot change them.
-- **For a key's own budget, a role that edits ingestion keys.** Project Owner or Project Admin, or a custom role with the Edit Telemetry Ingestion Key permission.
+- **For a key's own budget, a role that edits ingestion keys.** Project Owner or Project Admin, or a custom role with the Edit Ingestion Key permission.
 - **To see the budgets, a role that sees the project's usage.** The roles that see the [Telemetry Usage](/docs/telemetry/usage) page see its budgets on it.
 
 ## Set every project's default budgets
