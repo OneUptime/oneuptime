@@ -65,6 +65,7 @@ import WorkspaceIncidentFromAlert, {
   WorkspaceDeclaringAlert,
 } from "../../WorkspaceIncidentFromAlert";
 import MicrosoftTeamsAffectedResources from "../MicrosoftTeamsAffectedResources";
+import NewIncidentSubscriberNotificationDefaultReader from "../../../StatusPage/NewIncidentSubscriberNotificationDefaultReader";
 
 // Incident.title is a LongText column.
 const MICROSOFT_TEAMS_INCIDENT_TITLE_MAX_LENGTH: number = ColumnLength.LongText;
@@ -1048,6 +1049,19 @@ export default class MicrosoftTeamsIncidentActions {
     if (data.alert?.isPrivate || data.isPrivate) {
       incident.isPrivate = true;
     }
+
+    /*
+     * The card asks nothing about status page subscribers, so they are told
+     * as the project starts "Notify Status Page Subscribers" on Declare New
+     * Incident (Incidents > Settings > Subscriber Notifications): unticked
+     * there, declared here without notifying.
+     */
+    await NewIncidentSubscriberNotificationDefaultReader.applyToIncidentDeclaredWithoutBox(
+      {
+        incident: incident,
+        projectId: projectId,
+      },
+    );
 
     // Save the incident - linked to its alert, as one declared from it.
     const createdIncident: Incident = await IncidentService.create({

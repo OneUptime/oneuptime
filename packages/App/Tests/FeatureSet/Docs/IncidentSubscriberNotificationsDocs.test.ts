@@ -35,7 +35,11 @@ import path from "path";
  *    as that language's Dashboard draws them (DocsDashboardLabels), and the
  *    switch's API name;
  *  - the Declare page's Notify bullet names No and Change to Yes the same
- *    way, and links to the settings page's section that has the switch.
+ *    way, and links to the settings page's section that has the switch;
+ *  - the settings page says an incident declared from Slack or Microsoft
+ *    Teams, or by OneUptime AI, follows the switch too, and names none of
+ *    them among the ways that keep the incident's own value - as the server
+ *    declares them (NewIncidentSubscriberNotificationDefaultReader).
  *
  * (The settings table and the overview list the page as the side menu does:
  * IncidentSettingsMenuDocs. Every link landing: DocsLinksResolve.)
@@ -50,6 +54,35 @@ const INCIDENTS_SIDE_MENU_FILE: string = path.join(
   REPO_ROOT,
   "App/FeatureSet/Dashboard/src/Pages/Incidents/SideMenu.tsx",
 );
+
+/*
+ * Where people declare an incident and nothing asks about subscribers: each
+ * declares it as the project starts the box, through the one reader.
+ */
+const DECLARED_WITHOUT_BOX_FILES: ReadonlyArray<string> = [
+  "Common/Server/Utils/Workspace/Slack/Actions/Incident.ts",
+  "Common/Server/Utils/Workspace/MicrosoftTeams/Actions/Incident.ts",
+  "Common/Server/Utils/AI/Toolbox/IncidentWriteTools.ts",
+];
+const DECLARED_WITHOUT_BOX_CALL: string =
+  "NewIncidentSubscriberNotificationDefaultReader.applyToIncidentDeclaredWithoutBox(";
+
+// The names the settings page gives those three, in every language.
+const DECLARED_WITHOUT_BOX_NAMES: ReadonlyArray<string> = [
+  "Slack",
+  "Microsoft Teams",
+  "OneUptime AI",
+];
+
+const INCIDENT_COLUMN_SPAN: string =
+  "`shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`";
+
+/*
+ * Where a sentence ends, in every docs language: a Latin or Cyrillic stop
+ * before a space, the ideographic full stop of Chinese and Japanese, and the
+ * Devanagari danda.
+ */
+const SENTENCE_END: RegExp = /[.!?]\s|\u3002|\u0964\s?/g;
 
 const LANGUAGES: ReadonlyArray<string> = [...SUPPORTED_DOCS_LANGUAGE_CODES];
 
@@ -133,6 +166,17 @@ describe("what the docs lean on in the Dashboard", () => {
     expect(NEW_INCIDENT_NOTIFY_DEFAULT_SETTING_COPY.cardTitle).toBe(MENU_TITLE);
   });
 
+  it("Slack's and Microsoft Teams' Declare Incident forms and OneUptime AI's create_incident declare as the project starts the box", () => {
+    for (const file of DECLARED_WITHOUT_BOX_FILES) {
+      expect([
+        file,
+        fs
+          .readFileSync(path.join(REPO_ROOT, file), "utf8")
+          .includes(DECLARED_WITHOUT_BOX_CALL),
+      ]).toEqual([file, true]);
+    }
+  });
+
   it("the switch's API name is the Project column the switch writes", () => {
     expect(NEW_INCIDENT_NOTIFY_DEFAULT_SETTING_COPY.column).toBe(
       NEW_INCIDENT_NOTIFY_DEFAULT_COLUMN,
@@ -204,6 +248,44 @@ describe.each(LANGUAGES)("the %s docs", (language: string) => {
     expect(settings).toContain(
       "`shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`",
     );
+  });
+
+  it("the settings page says incidents declared from Slack, Microsoft Teams or OneUptime AI follow the switch, and leaves them out of the ways that keep their own", () => {
+    const paragraph: string | undefined = linesOf(
+      language,
+      SETTINGS_PAGE,
+    ).find((line: string): boolean => {
+      return (
+        line.includes(INCIDENT_COLUMN_SPAN) &&
+        line.includes(`\`${NEW_INCIDENT_NOTIFY_DEFAULT_COLUMN}\``)
+      );
+    });
+
+    expect(paragraph).toBeDefined();
+
+    // Up to the incident's own column: the sentences before the one it is in.
+    const head: string = paragraph!.slice(
+      0,
+      paragraph!.indexOf(INCIDENT_COLUMN_SPAN),
+    );
+    const ends: Array<RegExpMatchArray> = [...head.matchAll(SENTENCE_END)];
+    const lastEnd: RegExpMatchArray | undefined = ends[ends.length - 1];
+    const keepFrom: number = lastEnd
+      ? lastEnd.index! + lastEnd[0].length
+      : 0;
+
+    for (const name of DECLARED_WITHOUT_BOX_NAMES) {
+      // Named as following the switch, before the sentence about the rest.
+      expect([name, head.slice(0, keepFrom).includes(name)]).toEqual([
+        name,
+        true,
+      ]);
+      // And not among the ways of creating one that keep their own value.
+      expect([name, head.slice(keepFrom).includes(name)]).toEqual([
+        name,
+        false,
+      ]);
+    }
   });
 
   it("the Declare page's Notify bullet names the summary's No and Change to Yes as the Dashboard draws them", () => {

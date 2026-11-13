@@ -2853,8 +2853,10 @@ export default class Project extends TenantModel {
    * On for every project, existing and new, as the box always started, so
    * nothing changes until an owner or admin turns it off. It moves only
    * where the Declare New Incident box starts: the incident records what the
-   * person declaring leaves it at, and incidents created by monitors, the
-   * API, workflows or chat keep their own value.
+   * person declaring leaves it at. Incidents people declare where no box
+   * asks - from Slack or Microsoft Teams, or through OneUptime AI - follow
+   * it as the box would have started; incidents created by monitors, the
+   * API or workflows keep their own value.
    */
   @ColumnAccessControl({
     create: [],
@@ -2875,7 +2877,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Notify Status Page Subscribers of New Incidents by Default",
     description:
-      "Whether the Notify Status Page Subscribers box starts ticked when someone declares an incident in the dashboard. When enabled, status page subscribers are notified of a new incident unless the person declaring it unticks the box. When disabled, the box starts unticked and subscribers are notified only if it is ticked. Incidents created by monitors, the API, workflows, Slack and Microsoft Teams are not affected: each keeps its own Notify Status Page Subscribers value. On by default.",
+      "Whether the Notify Status Page Subscribers box starts ticked when someone declares an incident in the dashboard. When enabled, status page subscribers are notified of a new incident unless the person declaring it unticks the box. When disabled, the box starts unticked and subscribers are notified only if it is ticked. Incidents declared from Slack or Microsoft Teams, or by OneUptime AI, follow it too: while it is disabled they are declared without notifying. Incidents created by monitors, the API and workflows are not affected: each keeps its own Notify Status Page Subscribers value. On by default.",
     defaultValue: true,
     example: false,
   })

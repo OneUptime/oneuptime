@@ -20,11 +20,18 @@
  * Only where the box starts moves. What the person declaring leaves it at is
  * what the incident records, and everything after reads that: an incident
  * declared without notifying stays quiet
- * (PublicNoteSubscriberNotificationDefault). Incidents created without the
- * form - by monitors, the API, workflows, Slack, Microsoft Teams or OneUptime
- * AI - keep their own value, which notifies unless they say otherwise.
+ * (PublicNoteSubscriberNotificationDefault).
  *
- * Shared by the dashboard, which starts the box from it, and its tests.
+ * People also declare incidents where no box asks: Slack's and Microsoft
+ * Teams' Declare Incident forms, and OneUptime AI when someone asks it to.
+ * Those follow the switch too, as the box would have started
+ * (Server/Utils/StatusPage/NewIncidentSubscriberNotificationDefaultReader):
+ * off, they are declared without notifying. Incidents nobody declares by
+ * hand - by monitors, the API, Terraform, workflows or a public form - keep
+ * their own value, which notifies unless they say otherwise.
+ *
+ * Shared by the dashboard, which starts the box from it, the server, which
+ * declares the chat and AI incidents by it, and their tests.
  */
 
 // The Project column that says how the box starts.
