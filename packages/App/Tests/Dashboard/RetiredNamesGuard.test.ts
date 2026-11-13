@@ -27,7 +27,8 @@ import path from "path";
  *
  *   - every word the Dashboard draws, as its translation extractor finds
  *     them: menus, titles, cards, buttons, sentences, model and column
- *     names, and the nested menu words of en.json;
+ *     names, and the nested menu words of en.json; and every key of en.json,
+ *     so an old text's translations are deleted with it;
  *   - the permission picker's titles and descriptions;
  *   - the emails' templates, and what the server says in English;
  *   - every string the server, the emails and each front end write
@@ -363,6 +364,28 @@ describe("the Dashboard never draws a retired name", () => {
         return sightings(`en.json ${key}`, value);
       },
     );
+
+    expect(found).toEqual([]);
+  });
+
+  /*
+   * The locale files keep a key until it is deleted from en.json
+   * (i18n:extract then drops it from every other locale). A text rewritten
+   * away from a retired name leaves its old key, and the old key's 17
+   * translations, behind: they are deleted with it, so a stale translation
+   * of a retired name never comes back.
+   */
+  test("no key of the Dashboard's English locale uses one: an old text's key goes with it", () => {
+    const english: Record<string, unknown> = JSON.parse(
+      fs.readFileSync(path.join(DASHBOARD_LOCALES, "en.json"), "utf8"),
+    ) as Record<string, unknown>;
+    const found: Array<Sighting> = Object.keys(english)
+      .filter((key: string): boolean => {
+        return typeof english[key] === "string";
+      })
+      .flatMap((key: string): Array<Sighting> => {
+        return sightings("en.json key", key);
+      });
 
     expect(found).toEqual([]);
   });
