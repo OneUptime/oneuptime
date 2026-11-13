@@ -117,14 +117,17 @@ describe("Setup Guide: Already using another tool?", () => {
     ["metrics", ["Prometheus", "Splunk HEC", "Datadog Agent"]],
     ["traces", ["Sentry SDK"]],
     ["exceptions", ["Sentry SDK"]],
-  ])("the %s guide lists the tools that fill it", (telemetryType: TelemetryType, expected: Array<string>) => {
-    renderGuide(telemetryType);
+  ])(
+    "the %s guide lists the tools that fill it",
+    (telemetryType: TelemetryType, expected: Array<string>) => {
+      renderGuide(telemetryType);
 
-    expect(
-      within(compatibleGroup()).getByText("Already using another tool?"),
-    ).toBeInTheDocument();
-    expect(compatibleLabels()).toEqual(expected);
-  });
+      expect(
+        within(compatibleGroup()).getByText("Already using another tool?"),
+      ).toBeInTheDocument();
+      expect(compatibleLabels()).toEqual(expected);
+    },
+  );
 
   test("the profiles guide has no such group", () => {
     renderGuide("profiles");
@@ -181,9 +184,7 @@ describe("Setup Guide: Already using another tool?", () => {
     fireEvent.click(screen.getByTestId("compatible-ingest-datadog"));
 
     await waitFor(() => {
-      expect(codeOnScreen()).toContain(
-        `api_key: ${SECRET.replace(/-/g, "")}`,
-      );
+      expect(codeOnScreen()).toContain(`api_key: ${SECRET.replace(/-/g, "")}`);
     });
 
     expect(codeOnScreen()).toContain("/telemetry/datadog");
@@ -216,7 +217,9 @@ describe("Setup Guide: Already using another tool?", () => {
     // A server app: Node, Python and the environment, as tabs.
     expect(screen.getByRole("tab", { name: "Python" })).toBeInTheDocument();
 
-    fireEvent.click(within(runtime).getByRole("button", { name: /In the browser/ }));
+    fireEvent.click(
+      within(runtime).getByRole("button", { name: /In the browser/ }),
+    );
 
     await waitFor(() => {
       const calls: Array<Array<unknown>> = (ModelAPI.getList as jest.Mock).mock

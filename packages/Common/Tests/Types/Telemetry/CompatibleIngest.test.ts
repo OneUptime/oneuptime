@@ -39,9 +39,11 @@ describe("isCompatibleIngestPath", () => {
     "/sentry/api/42/store",
   ];
 
-  test.each(ownPaths.map((own: string): [string] => {
-    return [own];
-  }))("%s is read raw, with and without /telemetry", (own: string) => {
+  test.each(
+    ownPaths.map((own: string): [string] => {
+      return [own];
+    }),
+  )("%s is read raw, with and without /telemetry", (own: string) => {
     expect(isCompatibleIngestPath(own)).toBe(true);
     expect(isCompatibleIngestPath(`/telemetry${own}`)).toBe(true);
   });

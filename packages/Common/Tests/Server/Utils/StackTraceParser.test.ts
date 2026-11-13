@@ -256,9 +256,11 @@ describe("StackTraceParser.parse - Java constructors and static initializers", (
       ].join("\n"),
     );
 
-    expect(result.frames.map((frame: { functionName: string }) => {
-      return frame.functionName;
-    })).toEqual([
+    expect(
+      result.frames.map((frame: { functionName: string }) => {
+        return frame.functionName;
+      }),
+    ).toEqual([
       "sun.reflect.NativeConstructorAccessorImpl.newInstance0",
       "com.example.Widget.<init>",
     ]);
