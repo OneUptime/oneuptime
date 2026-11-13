@@ -134,7 +134,8 @@ const FOLDED_PAGES: ReadonlyArray<FoldedPage> = MENU.sections
 /*
  * Where a text goes from On-Call Duty straight to a page of a folded
  * section, in the words a language's Dashboard draws them, with what it
- * should name in between.
+ * should name in between. A Persian page points "←" from a step in Persian
+ * words (#7611).
  */
 function foldedSectionsLeftOut(text: string, language: string): Array<string> {
   const readable: string = readableText(text);
@@ -143,7 +144,7 @@ function foldedSectionsLeftOut(text: string, language: string): Array<string> {
 
   for (const folded of FOLDED_PAGES) {
     const pattern: RegExp = new RegExp(
-      `${escapeRegExp(menuName)}\\s*(?:->|>|→)\\s*${escapeRegExp(
+      `${escapeRegExp(menuName)}\\s*(?:->|>|→|←)\\s*${escapeRegExp(
         drawnDashboardLabel(language, folded.page),
       )}`,
       "u",
@@ -199,6 +200,7 @@ describe("the checks themselves", () => {
     ["ja", "オンコール > ユーザーオーバーライドで削除してください。"],
     ["zh-CN", "它列在 **值班** > **用户覆盖** 下"],
     ["fa", "در **آنکال** > **جایگزینی‌های کاربر** فهرست می‌شود"],
+    ["fa", "در **آنکال ← جایگزینی‌های کاربر** فهرست می‌شود"],
     ["de", "Siehe **Bereitschaft → Ausführungsprotokolle**."],
   ])(
     "flags a %s path that leaves the folded section out: %s",
