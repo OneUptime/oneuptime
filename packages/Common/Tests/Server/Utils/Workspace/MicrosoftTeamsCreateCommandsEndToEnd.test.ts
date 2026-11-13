@@ -5603,7 +5603,8 @@ describe("Add Note while public notes need approval: the answer says it waits, a
         value: "public",
       },
       {
-        title: "Private Note (Only visible to team members)",
+        title:
+          "Private Note (Only people who can see the incident can read it)",
         value: "private",
       },
     ]);

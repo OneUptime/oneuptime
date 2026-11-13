@@ -33,7 +33,7 @@ Begge registrerer et problem, og begge kan tilkalle den som har vakt. Forskjelle
 | ---------------------------- | ------------------------------------------------------ | ------------------------------------------------- |
 | **Hva det er**               | Et problem teamet ditt bør undersøke før brukerne rammes | Et problem som rammer brukerne dine, som et avbrudd |
 | **På statussider**           | Aldri                                                  | Kan vises og gir abonnenter beskjed               |
-| **Notater**                  | Private notater, bare for teamet ditt                  | Offentlige notater for kunder og private notater  |
+| **Notater**                  | Private notater, bare for de som kan se varselet                  | Offentlige notater for kunder og private notater  |
 | **Starttilstander**          | **Identifisert**, **Bekreftet**, **Løst**                | **Identifisert**, **Bekreftet**, **Løst**           |
 | **Startalvorlighetsgrader**  | **Høy**, **Lav**                                      | Critical Incident, Major Incident, Minor Incident |
 | **Numre i et nytt prosjekt** | `ALT-42` og `AE-42` for episoder                       | `INC-42` og `IE-42` for episoder                  |

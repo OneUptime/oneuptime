@@ -1157,9 +1157,18 @@ describe("event notes: reading the feed", () => {
     const empty: HTMLElement = screen.getByTestId("notes-empty");
     expect(within(empty).getByText("No private notes yet")).toBeInTheDocument();
     expect(within(empty).getByText("Write the first note")).toBeInTheDocument();
+    /*
+     * A private note is read through its incident, so the empty feed names
+     * the same readers as the composer's badge (#7595); it once said
+     * "people in your project", which a role limited to some incidents is
+     * not, and "your team", which read as one of OneUptime's Teams.
+     */
     expect(
-      within(empty).getByText(/Only people in your project/),
+      within(empty).getByText(
+        "Capture what you learn while working on this incident. Only people who can see it can read these notes.",
+      ),
     ).toBeInTheDocument();
+    expect(empty).not.toHaveTextContent(/in your project|team/i);
   });
 
   test("a failed load says so and tries again on request", async () => {
@@ -1724,7 +1733,7 @@ describe("event notes: the composer", () => {
     expect(screen.queryByTestId("note-notify-checkbox")).toBeNull();
     expect(screen.queryByTestId("note-posted-at-button")).toBeNull();
     expect(screen.getByTestId("note-audience")).toHaveTextContent(
-      "Private·Only your team can see this",
+      "Private·Only people who can see this incident can read this",
     );
 
     type(editor(), "Internal finding.");
@@ -1736,6 +1745,58 @@ describe("event notes: the composer", () => {
       payload["shouldStatusPageSubscribersBeNotifiedOnNoteCreated"],
     ).toBeUndefined();
     expect(payload["postedAt"]).toBeUndefined();
+  });
+
+  /*
+   * The closed composer's row holds the prompt, Templates and Draft with AI
+   * beside the kind of note. The whole badge there cut the prompt down to
+   * its first word on a 1280 px screen (#7595): the row says "Private" in a
+   * chip, who can read the note is the chip's tooltip and is read out with
+   * it, and the open composer's badge says it in full.
+   */
+  test("the prompt row says Private in a chip, and who can read it on hover", async () => {
+    await renderPrivate();
+
+    const sentence: string =
+      "Only people who can see this incident can read this";
+    const prompt: HTMLElement = screen.getByTestId("note-composer-prompt");
+    const chip: HTMLElement = within(prompt).getByTestId("note-audience-chip");
+
+    expect(within(prompt).getByText("Write a private note…")).toBeVisible();
+    expect(within(prompt).queryByTestId("note-audience")).toBeNull();
+    expect(chip.textContent).toBe(`Private${sentence}`);
+    expect(chip.querySelector(".sr-only")).toHaveTextContent(sentence);
+    expect(prompt).not.toHaveTextContent(/team/i);
+
+    fireEvent.mouseEnter(chip);
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(sentence);
+
+    await openComposer();
+    expect(screen.getByTestId("note-audience")).toHaveTextContent(
+      `Private·${sentence}`,
+    );
+    expect(screen.queryByTestId("note-audience-chip")).toBeNull();
+    expect(
+      within(screen.getByTestId("note-composer")).getByLabelText("Note text"),
+    ).toHaveAttribute(
+      "placeholder",
+      "Share findings, decisions and next steps.",
+    );
+  });
+
+  test("a public note's chip says Public, and where the note is shown on hover", async () => {
+    await renderPublic();
+
+    const chip: HTMLElement = within(
+      screen.getByTestId("note-composer-prompt"),
+    ).getByTestId("note-audience-chip");
+
+    expect(chip.textContent).toBe("PublicVisible on your status page");
+
+    fireEvent.mouseEnter(chip);
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(
+      "Visible on your status page",
+    );
   });
 
   test("backdates a public note to the time chosen, and can go back to now", async () => {

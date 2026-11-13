@@ -66,7 +66,7 @@
               "description": "Acknowledge an incident and add an internal note, asking before each change",
               "prompt": "Acknowledge the most recent open incident and add an internal note saying that we are investigating.",
               "tools_triggered": "list_incidents, acknowledge_incident, add_incident_note",
-              "expected_behavior": "Finds the most recent incident that is not resolved, asks for approval before each change, moves it to the Acknowledged state (or reports that it already is), and adds an internal note that only the team can see. The incident's timeline in OneUptime shows both."
+              "expected_behavior": "Finds the most recent incident that is not resolved, asks for approval before each change, moves it to the Acknowledged state (or reports that it already is), and adds an internal note that only the people who can see the incident can read. The incident's timeline in OneUptime shows both."
             },
             {
               "description": "Summarize recent incidents by severity",
