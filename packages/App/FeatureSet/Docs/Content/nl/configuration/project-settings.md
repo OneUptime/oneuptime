@@ -62,6 +62,8 @@ flowchart LR
 
 Een verborgen product is niet uitgeschakeld. Het verhuist naar **Meer producten**, de laatste rij van het menu **Producten**: Zoeken vindt het nog steeds, de pagina's en de API blijven werken, en de gegevens blijven binnenkomen. Wie het heeft vastgezet, houdt het vastgezet.
 
+Op een zelf gehoste server kan een hoofdbeheerder een product ook voor alle projecten uitschakelen, onder **Instellingen → Producten** in het Admin Dashboard (zie [Draai alleen wat u nodig hebt](/docs/installation/docker-compose#draai-alleen-wat-u-nodig-hebt)). Zo'n product heeft hier geen schakelaar: het toont **Uitgeschakeld op deze server**, met wie het kan inschakelen.
+
 Een nieuw project begint met waarvoor het volgens de eigenaar op Start bedoeld is: de essenties, de instellingen en wat die doelen nodig hebben worden getoond, de rest wordt verborgen. Een project dat de vraag oversloeg, of dat ervoor werd aangemaakt, toont alle producten. Zodra iemand de lijst hier wijzigt, wijzigen de doelen hem niet meer.
 
 Elk product zegt wat het voor dit project is: **In gebruik**, **Niet ingesteld** of, in OneUptime Cloud, het abonnement dat het nodig heeft. Zodra een verborgen product gegevens ontvangt, meldt Start dat aan de projecteigenaren en -beheerders en biedt **Tonen** of **Verborgen houden** aan.

@@ -25,6 +25,7 @@ import {
   getEntitySearchSpecs,
   getPageSearchCommandRanking,
   getVisibleActionIds,
+  withoutActionsOfProductsOff,
   isQuestion,
   isRoutePathNavigable,
   PageSearchAvailability,
@@ -42,6 +43,12 @@ import {
   PROJECT_SWITCH_KEYWORDS,
 } from "./DashboardCommandPaletteHelpers";
 import { openAskAi } from "../AIChat/AskAiEvents";
+import {
+  getProductOfPage,
+  getProductOfPath,
+} from "../../Utils/ProjectProducts/ProductOfRoute";
+import { getOffProducts } from "Common/Types/Product/ServerProducts";
+import ProductKey from "Common/Types/Product/ProductKey";
 import {
   HowOneUptimeWorksOpenedFrom,
   openHowOneUptimeWorks,
@@ -461,6 +468,13 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
    * offered at all.
    */
   const products: ProjectProductsState = useProjectProducts();
+  /*
+   * Switched off on the server (#6815): its actions, its records, its pages
+   * and Ask AI's row are left out too.
+   */
+  const offProducts: Array<ProductKey> = getOffProducts(
+    products.answer.offOnServer || {},
+  );
 
   /*
    * Navigate to a PageMap entry, refusing routes whose populated path still
@@ -575,16 +589,20 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
       PermissionGate.getHeldPermissions();
     const isMasterAdmin: boolean = User.isMasterAdmin();
 
-    const visibleActionIds: Array<PaletteActionId> = getVisibleActionIds({
-      ...computeCreateActionGates({
-        held: heldPermissions,
-        isMasterAdmin,
-      }),
-      hasProjectSelected,
-      isMasterAdmin,
-      isThemeFollowingDevice: themePreference === ThemePreference.System,
-      canGiveFeedback: feedbackSettings?.isOn === true,
-    });
+    const visibleActionIds: Array<PaletteActionId> =
+      withoutActionsOfProductsOff(
+        getVisibleActionIds({
+          ...computeCreateActionGates({
+            held: heldPermissions,
+            isMasterAdmin,
+          }),
+          hasProjectSelected,
+          isMasterAdmin,
+          isThemeFollowingDevice: themePreference === ThemePreference.System,
+          canGiveFeedback: feedbackSettings?.isOn === true,
+        }),
+        offProducts,
+      );
 
     const actionsCategory: string = t(
       "commandPalette.categories.actions",
@@ -996,6 +1014,20 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
 
       searchProviders = ENTITY_SEARCH_KINDS.filter(
         (kind: EntitySearchKind): boolean => {
+          // Records of a product switched off on the server are not offered.
+          const viewPage: PageMap | undefined = specs.find(
+            (spec: PaletteEntitySearchSpec): boolean => {
+              return spec.id === kind.specId;
+            },
+          )?.viewPageMap;
+          const product: ProductKey | null = viewPage
+            ? getProductOfPage(viewPage)
+            : null;
+
+          if (product && offProducts.includes(product)) {
+            return false;
+          }
+
           return canSearchRecordsOf({
             model: new kind.modelType(),
             held: heldPermissions,
@@ -1044,6 +1076,7 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
         currentProjectId,
         translator.language,
         pageAvailability,
+        offProducts,
         pageCatalogEntries.map(
           (entry: PaletteNavigationCatalogEntry): Array<string> => {
             return [entry.routePath, entry.title];
@@ -1090,35 +1123,43 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
         return translator.translateText(text) || text;
       },
       catalog: pageCatalogEntries,
-    }).map((descriptor: PageSearchCommandDescriptor): PaletteCommand => {
-      return {
-        id: descriptor.id,
-        title: descriptor.title,
-        titleAliases: descriptor.titleAliases,
-        keywords: descriptor.keywords,
-        breadcrumb: descriptor.breadcrumb,
-        breadcrumbKeywords: descriptor.breadcrumbKeywords,
-        icon: descriptor.icon,
-        iconColor: descriptor.iconColor,
-        /*
-         * A setting is listed among the pages, by how well it matches: in
-         * a group of its own, a page that only held the words somewhere in
-         * a keyword ("processors" for "sso") was drawn above "Require SSO
-         * for Login".
-         */
-        category: descriptor.isAction ? actionsCategory : pagesCategory,
-        isSearchOnly: true,
-        /*
-         * Between equally good matches a page before a setting, and a
-         * setting never before its page.
-         */
-        ...getPageSearchCommandRanking(descriptor),
-        onSelect: () => {
-          closePalette();
-          Navigation.navigate(new Route(descriptor.routePath));
-        },
-      };
-    });
+    })
+      .filter((descriptor: PageSearchCommandDescriptor): boolean => {
+        // A page of a product switched off on the server is not offered.
+        const product: ProductKey | null = getProductOfPath(
+          descriptor.routePath,
+        );
+        return !product || !offProducts.includes(product);
+      })
+      .map((descriptor: PageSearchCommandDescriptor): PaletteCommand => {
+        return {
+          id: descriptor.id,
+          title: descriptor.title,
+          titleAliases: descriptor.titleAliases,
+          keywords: descriptor.keywords,
+          breadcrumb: descriptor.breadcrumb,
+          breadcrumbKeywords: descriptor.breadcrumbKeywords,
+          icon: descriptor.icon,
+          iconColor: descriptor.iconColor,
+          /*
+           * A setting is listed among the pages, by how well it matches: in
+           * a group of its own, a page that only held the words somewhere in
+           * a keyword ("processors" for "sso") was drawn above "Require SSO
+           * for Login".
+           */
+          category: descriptor.isAction ? actionsCategory : pagesCategory,
+          isSearchOnly: true,
+          /*
+           * Between equally good matches a page before a setting, and a
+           * setting never before its page.
+           */
+          ...getPageSearchCommandRanking(descriptor),
+          onSelect: () => {
+            closePalette();
+            Navigation.navigate(new Route(descriptor.routePath));
+          },
+        };
+      });
   }, [pageCommandsKey]);
 
   if (pageCommands.length > 0) {
@@ -1149,7 +1190,7 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
   const getFallbackCommands: (query: string) => Array<PaletteCommand> = (
     query: string,
   ): Array<PaletteCommand> => {
-    if (!isQuestion(query)) {
+    if (!isQuestion(query) || offProducts.includes(ProductKey.AIChat)) {
       return [];
     }
 

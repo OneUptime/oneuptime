@@ -2091,6 +2091,7 @@ import WhoIsToldAPI from "Common/Server/API/WhoIsToldAPI";
 import SetupHealthAPI from "Common/Server/API/SetupHealthAPI";
 import UsedByAPI from "Common/Server/API/UsedByAPI";
 import WelcomeChecklistAPI from "Common/Server/API/WelcomeChecklistAPI";
+import SampleProjectAPI from "Common/Server/API/SampleProjectAPI";
 import ProjectProductsAPI from "Common/Server/API/ProjectProductsAPI";
 import TelemetryUsageAPI from "Common/Server/API/TelemetryUsageAPI";
 import ProductFeedbackAPI from "Common/Server/API/ProductFeedbackAPI";
@@ -6619,6 +6620,14 @@ const BaseAPIFeatureSet: FeatureSet = {
      * own checks are the gate.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, WelcomeChecklistAPI);
+
+    /*
+     * A person's sample project (issue #6808): made in one click to look
+     * around in, and deleted from its banner. A bare router for the same
+     * reason as WelcomeChecklistAPI: no model's CRUD, and the sample is made
+     * as OneUptime (root), so its own checks are the gate.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, SampleProjectAPI);
 
     /*
      * Asking people how things went (issue #6832): the question at the end

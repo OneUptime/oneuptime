@@ -1,5 +1,6 @@
 import ProjectProducts, { ProjectProductsState } from "./ProjectProductsStore";
 import ObjectID from "Common/Types/ObjectID";
+import ProductKey from "Common/Types/Product/ProductKey";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { useEffect, useSyncExternalStore } from "react";
 
@@ -68,3 +69,16 @@ export const useLoadedProjectProducts: (
 };
 
 export default useProjectProducts;
+
+/*
+ * Whether a product is switched off on the whole server (#6815), from the
+ * current project's products answer: a place that offers it - the Ask AI
+ * button, a Search action - draws nothing for it.
+ */
+export const useIsProductOffOnServer: (product: ProductKey) => boolean = (
+  product: ProductKey,
+): boolean => {
+  const state: ProjectProductsState = useProjectProducts();
+
+  return Boolean((state.answer.offOnServer || {})[product]);
+};
