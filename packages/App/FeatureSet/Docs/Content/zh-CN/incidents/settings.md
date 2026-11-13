@@ -189,7 +189,7 @@ flowchart TB
 
 有人声明事件时，**通知状态页订阅者** 默认勾选，因此除非声明者取消勾选，状态页订阅者都会得知该事件。如果你的团队要在外部得知之前先处理事件，可以让它默认不勾选：前往 **事件 → 设置 → 订阅者通知**（`/dashboard/{projectId}/incidents/settings/subscriber-notifications`），关闭 **默认通知状态页订阅者**。在你关闭之前，它在每个项目中都是开启的，一切换就会保存。只有 Project Owners 和 Project Admins 可以更改它；对其他所有人，开关是锁定的，并会说明需要什么权限。
 
-关闭期间，无论从事件列表、模板、告警还是监控器声明事件，**声明新事件** 上的复选框都默认不勾选，它的说明也会注明此项目中默认未勾选。只有声明者勾选它，订阅者才会得到通知。这个开关只改变复选框的初始状态：事件会记录复选框最终的状态，未通知就声明的事件会保持安静，详见 [声明事件](/docs/incidents/declaring-incidents)。以其他任何方式创建的事件——由监控器、通过 API、Terraform 或工作流、从 Slack 或 Microsoft Teams，或由 OneUptime AI 创建——都保留各自的 `shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`，只要它不是 `false` 就会通知订阅者。通过 API，这个开关是项目的 `notifyStatusPageSubscribersOfNewIncidentsByDefault`。
+关闭期间，无论从事件列表、模板、告警还是监控器声明事件，**声明新事件** 上的复选框都默认不勾选，它的说明也会注明此项目中默认未勾选。只有声明者勾选它，订阅者才会得到通知。提交前的摘要上，它的 **否** 旁边会有 **改为“是”**，无需回到 **受影响的资源** 就能勾选复选框。私密事件不会出现在任何状态页上，因此不提供此项。这个开关只改变复选框的初始状态：事件会记录复选框最终的状态，未通知就声明的事件会保持安静，详见 [声明事件](/docs/incidents/declaring-incidents)。以其他任何方式创建的事件——由监控器、通过 API、Terraform 或工作流、从 Slack 或 Microsoft Teams，或由 OneUptime AI 创建——都保留各自的 `shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`，只要它不是 `false` 就会通知订阅者。通过 API，这个开关是项目的 `notifyStatusPageSubscribersOfNewIncidentsByDefault`。
 
 ## 事后分析模板
 
