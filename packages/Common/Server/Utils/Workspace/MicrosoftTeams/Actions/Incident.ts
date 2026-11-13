@@ -1160,7 +1160,9 @@ export default class MicrosoftTeamsIncidentActions {
               value: WorkspaceNoteFormType.Public,
             },
             {
-              title: WORKSPACE_NOTE_FORM_TEXT.privateOption,
+              title: WorkspaceNoteForm.getRecordPrivateOption(
+                PrivateRecordKind.Incident,
+              ),
               value: WorkspaceNoteFormType.Private,
             },
           ],

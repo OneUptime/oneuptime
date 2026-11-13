@@ -160,7 +160,7 @@ Reagieren Sie auf eine Nachricht oder eine Antwort in dem Kanal, den OneUptime f
 
 | Reaktion | Gespeichert als |
 | --- | --- |
-| 📌 oder 📍 | Eine private Notiz, die nur Ihr Team sieht |
+| 📌 oder 📍 | Eine private Notiz, die nur lesen kann, wer den Datensatz sehen kann |
 | 📣 oder 📢 | Eine öffentliche Notiz, die auf der Statusseite erscheint. Nur Vorfälle und geplante Wartungsereignisse. Bei einem privaten Vorfall eine private Notiz, und die Bestätigung sagt, warum. Wenn öffentliche Notizen im Projekt eine Genehmigung brauchen, erscheint sie erst nach der Genehmigung, und die Bestätigung sagt, auf wen sie wartet: siehe [Genehmigung öffentlicher Notizen](/docs/incidents/notes-owners-and-feed#genehmigung-öffentlicher-notizen). |
 
 Die Notiz übernimmt die Nachricht so, wie Microsoft Teams sie gezeigt hat: ihre Formatierung, Links und Code, die erwähnten Personen mit Namen und ihre Dateien und Bilder als Links darauf. Eine öffentliche Notiz lässt die Dateien und Bilder weg, da sie sich nur für Ihr Team öffnen.

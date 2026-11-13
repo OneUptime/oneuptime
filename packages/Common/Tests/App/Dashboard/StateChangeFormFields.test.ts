@@ -81,7 +81,7 @@ function alertFields(
   return getStateChangeFormFields<JSONObject>({
     noteType: BulkStateChangeNoteType.Private,
     noteDescription:
-      "Add an optional private note about this state change. Only your team can see it.",
+      "Add an optional private note about this state change. Only people who can see this alert can read it.",
     noteTemplates: TEMPLATES,
     ...(overrides || {}),
   });
@@ -164,7 +164,7 @@ describe("the state change dialog's body", () => {
       [
         alertFields(),
         "privateNote",
-        "Add an optional private note about this state change. Only your team can see it.",
+        "Add an optional private note about this state change. Only people who can see this alert can read it.",
       ],
     ] as Array<[Fields<JSONObject>, string, string]>) {
       const note: Field<JSONObject> = byKey(fields, key);
