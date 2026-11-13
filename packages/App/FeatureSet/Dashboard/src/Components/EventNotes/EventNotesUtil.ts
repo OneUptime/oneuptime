@@ -846,7 +846,7 @@ export function canWriteNoteColumn(data: {
  * backdates an update to the second.
  */
 export function toDateTimeInputValue(date: Date): string {
-  return OneUptimeDate.toDateTimeLocalString(date).substring(0, 16);
+  return OneUptimeDate.toDateTimeLocalMinuteString(date);
 }
 
 export function fromDateTimeInputValue(value: string): Date | null {

@@ -15,6 +15,8 @@ export interface ComponentProps {
   value?: Date | string | undefined;
   initialValue?: Date | string | undefined;
   dataTestId?: string | undefined;
+  // The form's label for the field ("Rotation starts at"), which names the input.
+  ariaLabelledby?: string | undefined;
   /*
    * The schedule's IANA timezone. The rotation-start / hand-off instant is
    * ENFORCED by the engine as wall-clock in this zone (Layer.addRotationUnits
@@ -43,9 +45,11 @@ const LayerDateTimeFieldElement: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   /*
    * Display the stored instant in the input as its wall-clock IN THE SCHEDULE
-   * TIMEZONE. The Input renders a Date at its current-timezone wall clock
-   * (OneUptimeDate.toDateTimeLocalString), so we hand it a Date whose
-   * current-timezone wall clock is the schedule-zone wall-clock.
+   * TIMEZONE. The Input renders a Date at its current-timezone wall clock, to
+   * the minute (OneUptimeDate.toDateTimeLocalMinuteString), so we hand it a
+   * Date whose current-timezone wall clock is the schedule-zone wall-clock.
+   * A time saved with seconds (08:00:17) reads 08:00, and is saved as it was
+   * unless the person picks another (#7593).
    */
   const displayValue: Date | undefined = storedInstantToWallClockInput(
     props.value !== undefined && props.value !== null
@@ -58,6 +62,7 @@ const LayerDateTimeFieldElement: FunctionComponent<ComponentProps> = (
     <div>
       <Input
         dataTestId={props.dataTestId}
+        ariaLabelledby={props.ariaLabelledby}
         type={InputType.DATETIME_LOCAL}
         value={displayValue}
         error={props.error}
