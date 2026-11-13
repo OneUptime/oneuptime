@@ -1,3 +1,4 @@
+// UX rule: Docs/ux/README.md#dialogs-and-confirmations
 import LeaveGuard, {
   AskToLeaveFunction,
   LeavePageFunction,

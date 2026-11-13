@@ -308,11 +308,7 @@ afterEach(() => {
 async function openCreateForm(): Promise<HTMLElement> {
   render(<OnCallDutyPoliciesPage {...pageProps} />);
 
-  await screen.findByText(
-    "No on-call duty policies yet",
-    {},
-    { timeout: 10000 },
-  );
+  await screen.findByText("No on-call policies yet", {}, { timeout: 10000 });
 
   const createButton: HTMLElement = await waitFor((): HTMLElement => {
     const button: HTMLElement | undefined = screen

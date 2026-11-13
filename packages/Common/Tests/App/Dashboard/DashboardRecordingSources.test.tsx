@@ -76,7 +76,7 @@ describe("FormRefusals", () => {
     const submitted: Array<JSONObject> = [];
 
     render(
-      <BasicForm<JSONObject>
+      <BasicForm
         id="refusal-form"
         name="Refusal form"
         initialValues={{ name: "" }}
