@@ -2337,3 +2337,288 @@ describe("NetworkInventoryUtil.updateFromWalk — a poll received before it was 
     expect(interfaceUpsertSpy.mock.calls[0][0].now).toEqual(RECEIVED_AT);
   });
 });
+
+/*
+ * A walk reads the same system group, model, serial, firmware and
+ * neighbours poll after poll, and every one of those polls used to write
+ * them all back through the full hooked update of the device: a read, the
+ * UPDATE, the hooks and a new row version of the most-written table in the
+ * product, one more writer queueing for the device's row lock beside the
+ * claim and the poll verdict. Only what changed is written now
+ * (withoutUnchangedInventory); the poll verdict is written as before.
+ */
+describe("NetworkInventoryUtil.updateFromWalk — only what changed is written", () => {
+  const STORED_LLDP: Array<LldpNeighbor> = [
+    {
+      localInterfaceIndex: 1,
+      remoteChassisId: "aa:bb:cc:00:00:01",
+      remotePortId: "Gi0/1",
+      remoteSysName: "dist-sw-01",
+    },
+  ];
+
+  const STORED: Partial<NetworkDevice> = {
+    sysDescr: "Cisco IOS Software, C2960X",
+    sysName: "core-sw-01",
+    sysObjectId: CISCO_SYS_OBJECT_ID,
+    sysLocation: "rack 12",
+    sysContact: "netops@example.com",
+    vendor: "Cisco",
+    lldpNeighbors: STORED_LLDP,
+    // NOW is 12:00; an uptime of an hour puts the reboot at 11:00.
+    lastRebootedAt: new Date("2026-07-16T11:00:00.000Z"),
+  };
+
+  function sameWalk(
+    overrides: Partial<SnmpMonitorResponse> = {},
+  ): Partial<SnmpMonitorResponse> {
+    return {
+      systemInfo: {
+        sysDescr: "Cisco IOS Software, C2960X",
+        sysName: "core-sw-01",
+        sysObjectId: CISCO_SYS_OBJECT_ID,
+        sysLocation: "rack 12",
+        sysContact: "netops@example.com",
+        sysUpTimeSeconds: 3600,
+      },
+      lldpNeighbors: STORED_LLDP.map((neighbor: LldpNeighbor) => {
+        return { ...neighbor };
+      }),
+      ...overrides,
+    };
+  }
+
+  test("reads what it compares with the device it already resolves", async () => {
+    mockServices();
+
+    await runWalk(sameWalk());
+
+    const select: Record<string, unknown> = deviceFindSpy.mock.calls[0][0]
+      .select as Record<string, unknown>;
+
+    for (const column of [
+      "sysDescr",
+      "sysName",
+      "sysObjectId",
+      "sysLocation",
+      "sysContact",
+      "lastRebootedAt",
+      "vendor",
+      "deviceModel",
+      "serialNumber",
+      "firmwareVersion",
+      "softwareVersion",
+      "lldpNeighbors",
+      "cdpNeighbors",
+    ]) {
+      expect(select[column]).toBe(true);
+    }
+  });
+
+  test("a walk that read nothing new writes no device details, only its verdict", async () => {
+    mockServices([], STORED);
+
+    await runWalk(sameWalk());
+
+    expect(deviceUpdateSpy).not.toHaveBeenCalled();
+    expect(pollVerdictSpy).toHaveBeenCalledTimes(1);
+  });
+
+  test("writes the one field that changed, and none of the rest", async () => {
+    mockServices([], STORED);
+
+    await runWalk(
+      sameWalk({
+        systemInfo: {
+          sysDescr: "Cisco IOS Software, C2960X",
+          sysName: "core-sw-01-renamed",
+          sysObjectId: CISCO_SYS_OBJECT_ID,
+          sysLocation: "rack 12",
+          sysContact: "netops@example.com",
+          sysUpTimeSeconds: 3600,
+        },
+      }),
+    );
+
+    expect(deviceUpdateSpy).toHaveBeenCalledTimes(1);
+    expect(deviceUpdateSpy.mock.calls[0][0].data).toEqual({
+      sysName: "core-sw-01-renamed",
+    });
+  });
+
+  /*
+   * jsonb hands an object's keys back in its own order; the same neighbour
+   * must not read as a new one because of it.
+   */
+  test("neighbours are compared by what they say, not the order of their keys", async () => {
+    mockServices([], {
+      ...STORED,
+      lldpNeighbors: [
+        {
+          remoteSysName: "dist-sw-01",
+          remotePortId: "Gi0/1",
+          remoteChassisId: "aa:bb:cc:00:00:01",
+          localInterfaceIndex: 1,
+        },
+      ],
+    });
+
+    await runWalk(sameWalk());
+
+    expect(deviceUpdateSpy).not.toHaveBeenCalled();
+  });
+
+  test("a neighbour that came, went or moved is written", async () => {
+    mockServices([], STORED);
+
+    await runWalk(
+      sameWalk({
+        lldpNeighbors: [
+          { ...STORED_LLDP[0]!, remotePortId: "Gi0/2" },
+          {
+            localInterfaceIndex: 2,
+            remoteChassisId: "aa:bb:cc:00:00:02",
+            remoteSysName: "dist-sw-02",
+          },
+        ],
+      }),
+    );
+
+    expect(deviceUpdateSpy).toHaveBeenCalledTimes(1);
+    expect(deviceUpdateSpy.mock.calls[0][0].data["lldpNeighbors"]).toHaveLength(
+      2,
+    );
+    expect(deviceUpdateSpy.mock.calls[0][0].data).not.toHaveProperty("sysName");
+  });
+
+  test("neighbours all gone is a change, written as an empty list", async () => {
+    mockServices([], STORED);
+
+    await runWalk(sameWalk({ lldpNeighbors: [] }));
+
+    expect(deviceUpdateSpy).toHaveBeenCalledTimes(1);
+    expect(deviceUpdateSpy.mock.calls[0][0].data["lldpNeighbors"]).toEqual([]);
+  });
+
+  /*
+   * The reboot time is counted back from when the poll was received by an
+   * uptime read during the walk, so it moves by however long each walk took.
+   */
+  test("a last reboot within five minutes of the stored one is the same reboot", async () => {
+    mockServices([], {
+      ...STORED,
+      lastRebootedAt: new Date("2026-07-16T11:03:00.000Z"),
+    });
+
+    await runWalk(sameWalk());
+
+    expect(deviceUpdateSpy).not.toHaveBeenCalled();
+  });
+
+  test("a reboot since the last poll is written", async () => {
+    mockServices([], STORED);
+
+    // Up for ten minutes: it rebooted at 11:50, not 11:00.
+    await runWalk(
+      sameWalk({
+        systemInfo: {
+          sysDescr: "Cisco IOS Software, C2960X",
+          sysName: "core-sw-01",
+          sysObjectId: CISCO_SYS_OBJECT_ID,
+          sysLocation: "rack 12",
+          sysContact: "netops@example.com",
+          sysUpTimeSeconds: 600,
+        },
+      }),
+    );
+
+    expect(deviceUpdateSpy).toHaveBeenCalledTimes(1);
+    expect(deviceUpdateSpy.mock.calls[0][0].data).toEqual({
+      lastRebootedAt: new Date("2026-07-16T11:50:00.000Z"),
+    });
+  });
+
+  test("a field the device never had is written", async () => {
+    mockServices([], { ...STORED, sysContact: undefined });
+
+    await runWalk(sameWalk());
+
+    expect(deviceUpdateSpy.mock.calls[0][0].data).toEqual({
+      sysContact: "netops@example.com",
+    });
+  });
+
+  test("the SNMP table and transceiver snapshots, per-poll readings, are written as they come", async () => {
+    mockServices([], STORED);
+
+    await NetworkInventoryUtil.updateFromWalk({
+      projectId: new ObjectID(PROJECT_ID),
+      deviceId: new ObjectID(DEVICE_ID),
+      snmpResponse: buildSnmpResponse(sameWalk()),
+      isOnline: true,
+      snmpTableSnapshot: [],
+      transceiverSnapshot: [],
+    });
+
+    expect(deviceUpdateSpy).toHaveBeenCalledTimes(1);
+    expect(deviceUpdateSpy.mock.calls[0][0].data).toEqual({
+      snmpTableSnapshot: [],
+      transceiverSnapshot: [],
+    });
+  });
+});
+
+describe("NetworkInventoryUtil.withoutUnchangedInventory", () => {
+  function stored(values: Partial<NetworkDevice>): NetworkDevice {
+    const device: NetworkDevice = new NetworkDevice();
+    Object.assign(device, values);
+    return device;
+  }
+
+  test("drops the compared columns that hold the same value", () => {
+    expect(
+      NetworkInventoryUtil.withoutUnchangedInventory({
+        update: { sysName: "a", vendor: "Cisco", deviceModel: "C9300" },
+        stored: stored({ sysName: "a", vendor: "Cisco", deviceModel: "C9200" }),
+      }),
+    ).toEqual({ deviceModel: "C9300" });
+  });
+
+  test("keeps every column it does not compare, whatever it holds", () => {
+    expect(
+      NetworkInventoryUtil.withoutUnchangedInventory({
+        update: { snmpOids: [], snmpTables: [], snmpTableSnapshot: [] },
+        stored: stored({ snmpOids: [], snmpTables: [] }),
+      }),
+    ).toEqual({ snmpOids: [], snmpTables: [], snmpTableSnapshot: [] });
+  });
+
+  test("a value against nothing stored is a change; nothing against nothing is not", () => {
+    expect(
+      NetworkInventoryUtil.withoutUnchangedInventory({
+        update: { serialNumber: "FOC123", firmwareVersion: null },
+        stored: stored({}),
+      }),
+    ).toEqual({ serialNumber: "FOC123" });
+  });
+
+  test("an unreadable last reboot is a change", () => {
+    expect(
+      NetworkInventoryUtil.withoutUnchangedInventory({
+        update: { lastRebootedAt: new Date("2026-07-16T11:00:00.000Z") },
+        stored: stored({ lastRebootedAt: "not a time" as unknown as Date }),
+      }),
+    ).toEqual({ lastRebootedAt: new Date("2026-07-16T11:00:00.000Z") });
+  });
+
+  test("a stored last reboot handed back as text compares as a time", () => {
+    expect(
+      NetworkInventoryUtil.withoutUnchangedInventory({
+        update: { lastRebootedAt: new Date("2026-07-16T11:00:00.000Z") },
+        stored: stored({
+          lastRebootedAt: "2026-07-16T11:04:59.000Z" as unknown as Date,
+        }),
+      }),
+    ).toEqual({});
+  });
+});
