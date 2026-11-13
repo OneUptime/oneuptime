@@ -205,6 +205,22 @@ export const getGlobalSMTPConfig: GetGlobalSMTPConfig =
 
     // OAuth credentials are required for both Microsoft Graph and SMTP+OAuth.
     if (smtpAuthType === SMTPAuthenticationType.OAuth) {
+      /*
+       * Over SMTP, OAuth signs in as a mailbox: the user the XOAUTH2 sign-in
+       * names, with either grant, which MailService.createOAuthTransporter
+       * refuses every email without (#7833). Microsoft Graph sends as the
+       * From Email, and needs none.
+       */
+      if (
+        transportType === MailTransportType.SMTP &&
+        !globalConfig.smtpUsername
+      ) {
+        throw new BadDataException(
+          "SMTP Username not found. Please set this in the Admin Dashboard: " +
+            AdminDashboardClientURL.toString(),
+        );
+      }
+
       if (!globalConfig.smtpClientId) {
         throw new BadDataException(
           "SMTP OAuth Client ID not found. Please set this in the Admin Dashboard: " +

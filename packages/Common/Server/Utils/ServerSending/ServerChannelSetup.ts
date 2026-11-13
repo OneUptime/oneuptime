@@ -445,6 +445,15 @@ export default class ServerChannelSetup {
     }
 
     if (authType === SMTPAuthenticationType.OAuth) {
+      /*
+       * Over SMTP, OAuth signs in as a mailbox, which the sender refuses
+       * every email without (#7833). Microsoft Graph sends as the From
+       * Email, and needs none.
+       */
+      if (!isMicrosoftGraph && !isPresent(config.smtpUsername)) {
+        return notSet(provider, "Username");
+      }
+
       if (!isPresent(config.smtpClientId)) {
         return notSet(provider, "OAuth Client ID");
       }
