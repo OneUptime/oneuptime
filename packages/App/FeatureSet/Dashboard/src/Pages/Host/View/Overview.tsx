@@ -147,6 +147,7 @@ import React, {
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator, composedValue } from "Common/UI/Utils/TranslateTemplate";
 import { formatReaderFigure } from "Common/Types/DateLanguage";
+import { formatHostBytes } from "../Utils/HostFacts";
 
 // Every alert OneUptime recommends for a host, as its Recommendations lists.
 const HOST_ALERT_TEMPLATE_IDS: Array<string> = getAllHostAlertTemplates().map(
@@ -204,21 +205,9 @@ const formatInt: (value: number | null) => string = (
   return formatReaderFigure(Math.round(value), { decimals: 0 });
 };
 
-const formatMemoryBytes: (bytes: number | null | undefined) => string = (
-  bytes: number | null | undefined,
-): string => {
-  if (bytes === null || bytes === undefined || !Number.isFinite(bytes)) {
-    return "—";
-  }
-  const units: Array<string> = ["B", "KiB", "MiB", "GiB", "TiB"];
-  let v: number = bytes;
-  let i: number = 0;
-  while (v >= 1024 && i < units.length - 1) {
-    v /= 1024;
-    i++;
-  }
-  return `${formatReaderFigure(v, { decimals: v < 10 ? 1 : 0 })} ${units[i]}`;
-};
+// Sizes as every host page writes them: "64 GiB", plain bytes whole (HostFacts).
+const formatMemoryBytes: (bytes: number | null | undefined) => string =
+  formatHostBytes;
 
 /*
  * Tile values use a short recent-window mean regardless of how wide

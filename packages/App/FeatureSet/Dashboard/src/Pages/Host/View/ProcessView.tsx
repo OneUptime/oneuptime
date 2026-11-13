@@ -79,6 +79,7 @@ import React, {
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { formatReaderFigure } from "Common/Types/DateLanguage";
+import { formatHostBytes } from "../Utils/HostFacts";
 /*
  * The OTel hostmetrics `process` scraper attaches per-process identity
  * (pid, executable name, command, owner) to the *resource*, which ingest
@@ -134,21 +135,9 @@ const formatInt: (value: number | null) => string = (
   return formatReaderFigure(Math.round(value), { decimals: 0 });
 };
 
-const formatBytes: (value: number | null | undefined) => string = (
-  value: number | null | undefined,
-): string => {
-  if (value === null || value === undefined || !Number.isFinite(value)) {
-    return "—";
-  }
-  const units: Array<string> = ["B", "KiB", "MiB", "GiB", "TiB"];
-  let v: number = value;
-  let i: number = 0;
-  while (v >= 1024 && i < units.length - 1) {
-    v /= 1024;
-    i++;
-  }
-  return `${formatReaderFigure(v, { decimals: v < 10 ? 1 : 0 })} ${units[i]}`;
-};
+// Sizes as every host page writes them: "512 MiB", plain bytes whole (HostFacts).
+const formatBytes: (value: number | null | undefined) => string =
+  formatHostBytes;
 
 /*
  * Tile values use a short recent-window mean regardless of how wide

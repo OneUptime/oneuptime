@@ -58,6 +58,7 @@ import {
   resolveProcessSort,
   sortProcessRows,
 } from "../Utils/Processes";
+import { formatHostBytes } from "../Utils/HostFacts";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import { formatReaderFigure } from "Common/Types/DateLanguage";
@@ -72,21 +73,11 @@ const formatPercent: (value: number | null) => string = (
   return formatReaderFigure(value, { decimals: 1, isPercent: true });
 };
 
-const formatBytes: (value: number | null) => string = (
-  value: number | null,
-): string => {
-  if (value === null || !isFinite(value)) {
-    return "—";
-  }
-  const units: Array<string> = ["B", "KiB", "MiB", "GiB", "TiB"];
-  let v: number = value;
-  let i: number = 0;
-  while (v >= 1024 && i < units.length - 1) {
-    v /= 1024;
-    i++;
-  }
-  return `${formatReaderFigure(v, { decimals: 1 })} ${units[i]}`;
-};
+/*
+ * A process's memory as its own page writes it (HostFacts): "512 MiB",
+ * "1.6 GiB", plain bytes whole - never "0.0 B" or "512.0 MiB".
+ */
+const formatBytes: (value: number | null) => string = formatHostBytes;
 
 /*
  * Processes are ephemeral — pids come and go on every collector scrape

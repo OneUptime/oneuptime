@@ -67,10 +67,15 @@ const MIB: number = KIB * 1024;
 const GIB: number = MIB * 1024;
 const TIB: number = GIB * 1024;
 
-// Sizes across every unit and both roundings (one decimal under ten, none from ten up).
+/*
+ * Sizes across every unit and every rounding: plain bytes whole, and from
+ * KiB up one decimal under ten, none from ten up.
+ */
 const SIZES: Array<number> = [
   0,
+  5,
   512,
+  1023,
   1536,
   9.96 * KIB,
   100 * MIB,
@@ -82,7 +87,11 @@ const SIZES: Array<number> = [
   2048 * TIB,
 ];
 
-// The size as OpenStack wrote it before: telemetryFormat's toFixed, which English keeps.
+/*
+ * The size as English reads it: telemetryFormat's toFixed, which English
+ * keeps - a count of bytes whole ("0 B", "5 B", issue #7417), and from KiB
+ * up one decimal under ten.
+ */
 function writtenTheOldWay(bytes: number): string {
   const units: Array<string> = ["B", "KiB", "MiB", "GiB", "TiB"];
   let value: number = bytes;
@@ -91,7 +100,7 @@ function writtenTheOldWay(bytes: number): string {
     value /= 1024;
     index++;
   }
-  return `${value.toFixed(value < 10 ? 1 : 0)} ${units[index]}`;
+  return `${value.toFixed(index > 0 && value < 10 ? 1 : 0)} ${units[index]}`;
 }
 
 const DASHBOARD_SRC: string = path.resolve(
@@ -136,7 +145,7 @@ async function pageIn(language: string): Promise<void> {
   });
 }
 
-describe("telemetryFormat's formatBytes, which other products share, is unchanged", () => {
+describe("telemetryFormat's formatBytes, which other products share, writes what English reads", () => {
   test("its output is what it always wrote, read from its pieces", () => {
     for (const bytes of SIZES) {
       expect(formatBytes(bytes)).toBe(writtenTheOldWay(bytes));
@@ -161,6 +170,19 @@ describe("telemetryFormat's formatBytes, which other products share, is unchange
       unit: "B",
       decimals: 0,
     });
+    // A count of bytes is whole, however small (issue #7417).
+    expect(getBytesReading(0)).toEqual({ value: 0, unit: "B", decimals: 0 });
+    expect(getBytesReading(5)).toEqual({ value: 5, unit: "B", decimals: 0 });
+    expect(getBytesReading(1023)).toEqual({
+      value: 1023,
+      unit: "B",
+      decimals: 0,
+    });
+    expect(getBytesReading(1536)).toEqual({
+      value: 1.5,
+      unit: "KiB",
+      decimals: 1,
+    });
     // Past the largest unit it stays in TiB.
     expect(getBytesReading(2048 * TIB).unit).toBe("TiB");
   });
@@ -181,8 +203,10 @@ describe("formatOpenStackBytes", () => {
         return formatOpenStackBytes(bytes, { language: "fa" });
       }),
     ).toEqual([
-      "۰٫۰ B",
+      "۰ B",
+      "۵ B",
       "۵۱۲ B",
+      "۱٬۰۲۳ B",
       "۱٫۵ KiB",
       "۱۰٫۰ KiB",
       "۱۰۰ MiB",
