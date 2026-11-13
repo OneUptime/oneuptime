@@ -424,10 +424,14 @@ const ServerEmailEnvironmentCard: FunctionComponent<ComponentProps> = (
           ) : (
             <></>
           )}
+          {/*
+           * The variables are server settings, not a record: no ID or
+           * creation time, so Detail draws no line under the fields, with no
+           * switch to turn it off (RecordIdLineGuard, #7775).
+           */}
           <Detail<EnvironmentSettingsItem>
             id="server-email-environment-detail"
             item={item}
-            showRecordLine={false}
             fields={fields}
           />
         </div>
