@@ -86,6 +86,7 @@ interface OpenOptions {
     | "notes-fail-with-reference"
     | "notes-fail-twice"
     | "notes-more-fail"
+    | "note-post-fail"
     | undefined;
 }
 
@@ -94,6 +95,13 @@ interface Box {
   y: number;
   width: number;
   height: number;
+}
+
+// A piece of a line of text, and where the browser drew it.
+interface DrawnPiece {
+  text: string;
+  left: number;
+  right: number;
 }
 
 test.use({ deviceScaleFactor: 2, actionTimeout: 15000 });
@@ -1638,6 +1646,135 @@ test.describe("a case's notes feed, when Load more fails", () => {
     await page.keyboard.press("Enter");
     await expect(page.getByTestId("note-card")).toHaveCount(ALL_NOTES);
     await expect(page.getByTestId("notes-action-error")).toHaveCount(0);
+  });
+});
+
+/*
+ * A note whose post fails (#7647). The composer's error line drew what
+ * API.getFriendlyMessage said: English on every page - on a Persian one
+ * with its full stop at its start - and, for a failure the server could not
+ * explain, nothing of why, what to do next or the reference to give. It
+ * says what failed now, then why and what to do next with the reference
+ * and its copy button, in the reader's language, read from the right; the
+ * draft is kept, and the next post saves it.
+ */
+test.describe("a case's note composer, when a post fails", () => {
+  test("says in Persian that the note was not posted, why, what to do and its reference, read from the right; posted again, the draft is saved", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // The Dashboard's Persian words, as the fixture draws them with ?lang=fa.
+    const persian: Record<string, string> = JSON.parse(
+      await fs.readFile(
+        path.resolve(
+          __dirname,
+          "../../App/FeatureSet/Dashboard/src/Locales/fa.json",
+        ),
+        "utf8",
+      ),
+    ) as Record<string, string>;
+    const NOTE: string = "Paged the identity on-call.";
+
+    await open(page, CASE_NOTES_PATH, {
+      caseSetup: "note-post-fail",
+      lang: "fa",
+    });
+    await page
+      .getByTestId("note-composer-prompt")
+      .getByRole("button")
+      .first()
+      .click({ timeout: 30000 });
+    const composer: Locator = page.getByTestId("note-composer");
+    await expect(composer).toBeVisible();
+    await page.keyboard.type(NOTE);
+    await composer.getByTestId("note-submit").click();
+
+    const line: Locator = composer.getByTestId("note-composer-error");
+    await expect(line).toBeVisible();
+    await expect(line).toHaveAttribute("role", "alert");
+
+    // What failed, then why and what to do next.
+    const whatFailed: Locator = line.getByTestId("error-what-failed");
+    await expect(whatFailed).toHaveText(persian["Couldn't post the note."]!);
+    const whyAndNext: Locator = line.getByTestId("error-why-and-next");
+    await expect(whyAndNext).toContainText(
+      persian["The server ran into a problem it could not explain."]!,
+    );
+    await expect(whyAndNext).toContainText(
+      persian[
+        "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:"
+      ]!,
+    );
+    // The reference as written, left to right, with its copy button.
+    const reference: Locator = line.getByTestId("error-reference");
+    await expect(reference.locator("code")).toHaveText(FAILED_READ_REFERENCE);
+    await expect(reference.locator("code")).toHaveAttribute("dir", "ltr");
+    await expect(reference.getByRole("button")).toBeVisible();
+    // Never the sentence as API.getFriendlyMessage wrote it, nor English.
+    for (const english of [
+      "Couldn't post the note.",
+      "The server ran into a problem",
+      "so this did not finish",
+      "This did not finish.",
+    ]) {
+      await expect(line).not.toContainText(english);
+    }
+
+    /*
+     * Read from the right: "یادداشت افزوده نشد." ends with its full stop,
+     * drawn to the left of its last word - not at the line's start.
+     */
+    const drawn: { stop: DrawnPiece; lastWord: DrawnPiece } =
+      await whatFailed.evaluate(
+        (element: Element): { stop: DrawnPiece; lastWord: DrawnPiece } => {
+          const text: Node = element.firstChild!;
+          const content: string = text.textContent || "";
+          const boxOf: (from: number, to: number) => DrawnPiece = (
+            from: number,
+            to: number,
+          ): DrawnPiece => {
+            const range: Range = document.createRange();
+            range.setStart(text, from);
+            range.setEnd(text, to);
+            const box: DOMRect = range.getBoundingClientRect();
+            return {
+              text: content.slice(from, to),
+              left: box.left,
+              right: box.right,
+            };
+          };
+          const stopAt: number = content.length - 1;
+          const lastWordAt: number = content.lastIndexOf(" ") + 1;
+          return {
+            stop: boxOf(stopAt, stopAt + 1),
+            lastWord: boxOf(lastWordAt, stopAt),
+          };
+        },
+      );
+    expect(drawn.stop.text, "the sentence's last character").toBe(".");
+    expect(drawn.lastWord.text).toBe("نشد");
+    expect(drawn.stop.right).toBeLessThanOrEqual(drawn.lastWord.left + 0.5);
+
+    // The draft is kept.
+    await expect(composer.locator('[contenteditable="true"]')).toHaveText(NOTE);
+
+    await expectNoSidewaysScroll(page, {
+      message: "the composer's error line",
+    });
+    await line.scrollIntoViewIfNeeded();
+    await screenshot(page, "case-note-post-fail-fa-1280", { fullPage: false });
+
+    // Posted again, the note is saved, and the line goes.
+    await composer.getByTestId("note-submit").click();
+    await expect(page.getByTestId("note-composer-error")).toHaveCount(0);
+    const posted: FixtureState["creates"] = (
+      await fixture(page)
+    ).creates.filter((entry: FixtureState["creates"][number]): boolean => {
+      return entry.modelName === "SecurityCaseNote";
+    });
+    expect(posted).toHaveLength(1);
+    expect(posted[0]?.data["note"]).toBe(NOTE);
   });
 });
 
