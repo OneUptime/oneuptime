@@ -280,6 +280,101 @@
     "width": 768,
     "height": 564
   },
+  "paging-who-else": {
+    "text": [
+      "2",
+      "Vem mer har jour?",
+      "Detta skapar jourpolicyn ”Default on-call policy”. Den larmar först de här personerna, vid varje ny incident och varje nytt larm i det här projektet.",
+      "Larmas först",
+      "Lägg till teammedlemmar",
+      "AL",
+      "Ada Lovelace",
+      "Spara och fortsätt"
+    ],
+    "outline": [
+      "button: Lägg till teammedlemmar",
+      "button: Ta bort Ada Lovelace",
+      "button: Spara och fortsätt"
+    ],
+    "width": 768,
+    "height": 246
+  },
+  "paging-no-answer": {
+    "text": [
+      "3",
+      "Tänk om ingen svarar?",
+      "Ett larm väntar på att någon kvitterar det. Om ingen gör det i tid:",
+      "Larma någon annan",
+      "Larma samma personer igen",
+      "Gör inget mer",
+      "Minuter att vänta",
+      "Larmas sedan",
+      "Lägg till teammedlemmar",
+      "GH",
+      "Grace Hopper",
+      "Spara och fortsätt",
+      "radio: on",
+      "radio: off",
+      "radio: off",
+      "value: 30"
+    ],
+    "outline": [
+      "field radio: ",
+      "field radio: ",
+      "field radio: ",
+      "field number: ",
+      "button: Lägg till teammedlemmar",
+      "button: Ta bort Grace Hopper",
+      "button: Spara och fortsätt"
+    ],
+    "width": 768,
+    "height": 510
+  },
+  "paging-test": {
+    "text": [
+      "4",
+      "Skicka ett testlarm",
+      "Testa policyn nu: den larmar sin första eskaleringsregel som en riktig incident skulle göra, och varje meddelande säger TEST. Kvittera från meddelandet för att slutföra.",
+      "Testa den här policyn",
+      "Hoppa över testet"
+    ],
+    "outline": [
+      "button: Testa den här policyn",
+      "button: Hoppa över testet"
+    ],
+    "width": 768,
+    "height": 178
+  },
+  "paging-summary": {
+    "text": [
+      "Larmningen är konfigurerad",
+      "Vem som larmas",
+      "Varje ny incident och varje nytt larm kör ”Default on-call policy”, som larmar Ada Lovelace (E-post, SMS, Telefonsamtal).",
+      "Om ingen svarar",
+      "Om ingen kvitterar inom 30 minuter larmas Grace Hopper.",
+      "Testat",
+      "Ada Lovelace bekräftade det via e-post efter 14 sekunder.",
+      "Nästa steg",
+      "Turas om med ett jourschema",
+      "Anslut Slack eller Microsoft Teams",
+      "Larma bara under arbetstid för mindre brådskande incidenter",
+      "Se vem som kan larmas",
+      "Öppna jourpolicyn",
+      "Konfigurera en annan policy"
+    ],
+    "outline": [
+      "heading: Larmningen är konfigurerad",
+      "heading: Nästa steg",
+      "link: Turas om med ett jourschema",
+      "link: Anslut Slack eller Microsoft Teams",
+      "link: Larma bara under arbetstid för mindre brådskande incidenter",
+      "link: Se vem som kan larmas",
+      "link: Öppna jourpolicyn",
+      "button: Konfigurera en annan policy"
+    ],
+    "width": 768,
+    "height": 482
+  },
   "status-page-pick": {
     "text": [
       "1",

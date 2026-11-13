@@ -280,6 +280,101 @@
     "width": 768,
     "height": 524
   },
+  "paging-who-else": {
+    "text": [
+      "2",
+      "还有谁值班？",
+      "这会创建值班策略“Default on-call policy”。在此项目中每出现一个新事件和警报，它都会先呼叫这些人。",
+      "首先呼叫",
+      "添加团队成员",
+      "AL",
+      "Ada Lovelace",
+      "保存并继续"
+    ],
+    "outline": [
+      "button: 添加团队成员",
+      "button: 移除 Ada Lovelace",
+      "button: 保存并继续"
+    ],
+    "width": 768,
+    "height": 226
+  },
+  "paging-no-answer": {
+    "text": [
+      "3",
+      "如果无人响应怎么办？",
+      "呼叫会等待有人确认。如果没有人及时确认：",
+      "呼叫其他人",
+      "再次呼叫同一批人",
+      "不再执行任何操作",
+      "等待分钟数",
+      "接着呼叫",
+      "添加团队成员",
+      "GH",
+      "Grace Hopper",
+      "保存并继续",
+      "radio: on",
+      "radio: off",
+      "radio: off",
+      "value: 30"
+    ],
+    "outline": [
+      "field radio: ",
+      "field radio: ",
+      "field radio: ",
+      "field number: ",
+      "button: 添加团队成员",
+      "button: 移除 Grace Hopper",
+      "button: 保存并继续"
+    ],
+    "width": 768,
+    "height": 510
+  },
+  "paging-test": {
+    "text": [
+      "4",
+      "发送测试呼叫",
+      "立即测试该策略：它会像真实事件一样呼叫第一条升级规则，每条消息都标有 TEST。在消息中确认即可完成。",
+      "测试此策略",
+      "跳过测试"
+    ],
+    "outline": [
+      "button: 测试此策略",
+      "button: 跳过测试"
+    ],
+    "width": 768,
+    "height": 178
+  },
+  "paging-summary": {
+    "text": [
+      "呼叫已设置",
+      "呼叫对象",
+      "每个新事件或警报都会运行“Default on-call policy”，它会呼叫 Ada Lovelace (电子邮件, SMS, 电话)。",
+      "如果无人响应",
+      "如果 30 分钟内无人确认，将呼叫 Grace Hopper。",
+      "已测试",
+      "Ada Lovelace 在 14 秒 后通过电子邮件确认。",
+      "下一步",
+      "使用值班排班轮流值班",
+      "连接 Slack 或 Microsoft Teams",
+      "不太紧急的事件只在工作时间呼叫",
+      "查看谁可以被呼叫",
+      "打开值班策略",
+      "设置另一个策略"
+    ],
+    "outline": [
+      "heading: 呼叫已设置",
+      "heading: 下一步",
+      "link: 使用值班排班轮流值班",
+      "link: 连接 Slack 或 Microsoft Teams",
+      "link: 不太紧急的事件只在工作时间呼叫",
+      "link: 查看谁可以被呼叫",
+      "link: 打开值班策略",
+      "button: 设置另一个策略"
+    ],
+    "width": 768,
+    "height": 482
+  },
   "status-page-pick": {
     "text": [
       "1",

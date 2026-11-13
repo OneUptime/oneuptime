@@ -11,6 +11,7 @@ import {
   manifestOfFiles,
   planLanguages,
   SCREEN_EXTENSION,
+  screenFile,
   SCREENS_FOLDER,
   STATIC_FOLDER,
 } from "../../App/FeatureSet/Docs/Screens/DocsScreenFiles";
@@ -22,6 +23,7 @@ import {
   LanguageResult,
   MODE,
   OUTPUT,
+  pruneFingerprints,
   RESULTS,
   ShotResult,
 } from "./DocsScreenRun";
@@ -138,6 +140,9 @@ export default async function finish(): Promise<void> {
 
   if (MODE === "write") {
     const deleted: Array<string> = deleteOrphans();
+    pruneFingerprints((lang: string, name: string): boolean => {
+      return fs.existsSync(path.join(STATIC_FOLDER, screenFile(lang, name)));
+    });
     const manifest: string = `${JSON.stringify(
       manifestOfFiles(DOCS_SCREENS, DOCS_SCREEN_LANGUAGES),
       null,

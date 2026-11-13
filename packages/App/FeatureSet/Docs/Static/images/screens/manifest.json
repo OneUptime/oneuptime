@@ -422,11 +422,19 @@
       }
     },
     "paging-no-answer": {
+      "da": {
+        "width": 780,
+        "height": 522
+      },
       "de": {
         "width": 780,
         "height": 522
       },
       "en": {
+        "width": 780,
+        "height": 522
+      },
+      "es": {
         "width": 780,
         "height": 522
       },
@@ -442,7 +450,43 @@
         "width": 780,
         "height": 522
       },
+      "it": {
+        "width": 780,
+        "height": 522
+      },
+      "ja": {
+        "width": 780,
+        "height": 522
+      },
+      "ko": {
+        "width": 780,
+        "height": 522
+      },
       "nl": {
+        "width": 780,
+        "height": 522
+      },
+      "no": {
+        "width": 780,
+        "height": 522
+      },
+      "pt": {
+        "width": 780,
+        "height": 522
+      },
+      "ru": {
+        "width": 780,
+        "height": 522
+      },
+      "sv": {
+        "width": 780,
+        "height": 522
+      },
+      "zh-CN": {
+        "width": 780,
+        "height": 522
+      },
+      "zh-TW": {
         "width": 780,
         "height": 522
       }
@@ -588,11 +632,19 @@
       }
     },
     "paging-summary": {
+      "da": {
+        "width": 768,
+        "height": 482
+      },
       "de": {
         "width": 768,
         "height": 482
       },
       "en": {
+        "width": 768,
+        "height": 482
+      },
+      "es": {
         "width": 768,
         "height": 482
       },
@@ -608,17 +660,61 @@
         "width": 768,
         "height": 482
       },
+      "it": {
+        "width": 768,
+        "height": 482
+      },
+      "ja": {
+        "width": 768,
+        "height": 482
+      },
+      "ko": {
+        "width": 768,
+        "height": 482
+      },
       "nl": {
+        "width": 768,
+        "height": 482
+      },
+      "no": {
+        "width": 768,
+        "height": 482
+      },
+      "pt": {
+        "width": 768,
+        "height": 482
+      },
+      "ru": {
+        "width": 768,
+        "height": 502
+      },
+      "sv": {
+        "width": 768,
+        "height": 482
+      },
+      "zh-CN": {
+        "width": 768,
+        "height": 482
+      },
+      "zh-TW": {
         "width": 768,
         "height": 482
       }
     },
     "paging-test": {
+      "da": {
+        "width": 780,
+        "height": 190
+      },
       "de": {
         "width": 780,
         "height": 190
       },
       "en": {
+        "width": 780,
+        "height": 190
+      },
+      "es": {
         "width": 780,
         "height": 190
       },
@@ -634,17 +730,61 @@
         "width": 780,
         "height": 190
       },
+      "it": {
+        "width": 780,
+        "height": 190
+      },
+      "ja": {
+        "width": 780,
+        "height": 190
+      },
+      "ko": {
+        "width": 780,
+        "height": 190
+      },
       "nl": {
+        "width": 780,
+        "height": 190
+      },
+      "no": {
+        "width": 780,
+        "height": 190
+      },
+      "pt": {
+        "width": 780,
+        "height": 190
+      },
+      "ru": {
+        "width": 780,
+        "height": 210
+      },
+      "sv": {
+        "width": 780,
+        "height": 190
+      },
+      "zh-CN": {
+        "width": 780,
+        "height": 190
+      },
+      "zh-TW": {
         "width": 780,
         "height": 190
       }
     },
     "paging-who-else": {
+      "da": {
+        "width": 780,
+        "height": 258
+      },
       "de": {
         "width": 780,
         "height": 258
       },
       "en": {
+        "width": 780,
+        "height": 258
+      },
+      "es": {
         "width": 780,
         "height": 258
       },
@@ -660,9 +800,45 @@
         "width": 780,
         "height": 258
       },
+      "it": {
+        "width": 780,
+        "height": 258
+      },
+      "ja": {
+        "width": 780,
+        "height": 258
+      },
+      "ko": {
+        "width": 780,
+        "height": 258
+      },
       "nl": {
         "width": 780,
         "height": 258
+      },
+      "no": {
+        "width": 780,
+        "height": 258
+      },
+      "pt": {
+        "width": 780,
+        "height": 258
+      },
+      "ru": {
+        "width": 780,
+        "height": 258
+      },
+      "sv": {
+        "width": 780,
+        "height": 258
+      },
+      "zh-CN": {
+        "width": 780,
+        "height": 238
+      },
+      "zh-TW": {
+        "width": 780,
+        "height": 238
       }
     },
     "status-page-pick": {

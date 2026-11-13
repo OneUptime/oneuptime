@@ -129,3 +129,45 @@ export const writeFingerprints: (
     `${JSON.stringify(written, null, 2)}\n`,
   );
 };
+
+/*
+ * Every language's fingerprints, without the shots that have no picture in
+ * it any more: a shot taken off the list, or a language its fixture no
+ * longer draws. Run once every language has written its own.
+ */
+export const pruneFingerprints: (
+  hasPicture: (lang: string, name: string) => boolean,
+) => Array<string> = (
+  hasPicture: (lang: string, name: string) => boolean,
+): Array<string> => {
+  const pruned: Array<string> = [];
+
+  for (const lang of DOCS_SCREEN_LANGUAGES) {
+    const file: string = fingerprintFile(lang);
+
+    if (!fs.existsSync(file)) {
+      continue;
+    }
+
+    const recorded: DocsScreenFingerprints = readFingerprints(lang);
+    const kept: DocsScreenFingerprints = {};
+
+    for (const shot of DOCS_SCREENS) {
+      if (recorded[shot.name] && hasPicture(lang, shot.name)) {
+        kept[shot.name] = recorded[shot.name]!;
+      }
+    }
+
+    for (const name of Object.keys(recorded)) {
+      if (!kept[name]) {
+        pruned.push(`${lang}/${name}`);
+      }
+    }
+
+    if (pruned.length > 0) {
+      fs.writeFileSync(file, `${JSON.stringify(kept, null, 2)}\n`);
+    }
+  }
+
+  return pruned;
+};

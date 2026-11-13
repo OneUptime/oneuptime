@@ -280,6 +280,101 @@
     "width": 768,
     "height": 544
   },
+  "paging-who-else": {
+    "text": [
+      "2",
+      "다른 온콜 담당자는 누구인가요?",
+      "온콜 정책이 만들어집니다: \"Default on-call policy\". 이 프로젝트에서 새 인시던트와 경고가 생길 때마다 이 사람들을 먼저 호출합니다.",
+      "먼저 호출",
+      "팀 멤버 추가",
+      "AL",
+      "Ada Lovelace",
+      "저장하고 계속"
+    ],
+    "outline": [
+      "button: 팀 멤버 추가",
+      "button: Ada Lovelace 제거",
+      "button: 저장하고 계속"
+    ],
+    "width": 768,
+    "height": 246
+  },
+  "paging-no-answer": {
+    "text": [
+      "3",
+      "아무도 응답하지 않으면?",
+      "호출은 누군가 확인할 때까지 기다립니다. 제때 아무도 확인하지 않으면:",
+      "다른 사람 호출",
+      "같은 사람을 다시 호출",
+      "더 이상 아무것도 하지 않음",
+      "대기 시간(분)",
+      "다음에 호출",
+      "팀 멤버 추가",
+      "GH",
+      "Grace Hopper",
+      "저장하고 계속",
+      "radio: on",
+      "radio: off",
+      "radio: off",
+      "value: 30"
+    ],
+    "outline": [
+      "field radio: ",
+      "field radio: ",
+      "field radio: ",
+      "field number: ",
+      "button: 팀 멤버 추가",
+      "button: Grace Hopper 제거",
+      "button: 저장하고 계속"
+    ],
+    "width": 768,
+    "height": 510
+  },
+  "paging-test": {
+    "text": [
+      "4",
+      "테스트 호출 보내기",
+      "지금 정책을 테스트하세요. 실제 인시던트처럼 첫 번째 에스컬레이션 규칙을 호출하며, 모든 메시지에 TEST가 표시됩니다. 마치려면 메시지에서 확인하세요.",
+      "이 정책 테스트",
+      "테스트 건너뛰기"
+    ],
+    "outline": [
+      "button: 이 정책 테스트",
+      "button: 테스트 건너뛰기"
+    ],
+    "width": 768,
+    "height": 178
+  },
+  "paging-summary": {
+    "text": [
+      "호출이 설정되었습니다",
+      "호출 대상",
+      "새 인시던트나 경고가 생길 때마다 \"Default on-call policy\"가 실행되어 Ada Lovelace (이메일, SMS, 전화 통화)을(를) 호출합니다.",
+      "아무도 응답하지 않으면",
+      "30분 안에 아무도 확인하지 않으면 Grace Hopper을(를) 호출합니다.",
+      "테스트 완료",
+      "Ada Lovelace 님이 14초 후 이메일로 인지했습니다.",
+      "다음 단계",
+      "온콜 일정으로 교대하기",
+      "Slack 또는 Microsoft Teams 연결",
+      "덜 긴급한 인시던트는 근무 시간에만 호출",
+      "호출할 수 있는 사람 보기",
+      "온콜 정책 열기",
+      "다른 정책 설정"
+    ],
+    "outline": [
+      "heading: 호출이 설정되었습니다",
+      "heading: 다음 단계",
+      "link: 온콜 일정으로 교대하기",
+      "link: Slack 또는 Microsoft Teams 연결",
+      "link: 덜 긴급한 인시던트는 근무 시간에만 호출",
+      "link: 호출할 수 있는 사람 보기",
+      "link: 온콜 정책 열기",
+      "button: 다른 정책 설정"
+    ],
+    "width": 768,
+    "height": 482
+  },
   "status-page-pick": {
     "text": [
       "1",

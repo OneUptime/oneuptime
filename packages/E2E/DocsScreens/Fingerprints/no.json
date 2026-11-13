@@ -280,6 +280,101 @@
     "width": 768,
     "height": 564
   },
+  "paging-who-else": {
+    "text": [
+      "2",
+      "Hvem andre har vakt?",
+      "Dette oppretter vaktpolicyen «Default on-call policy». Den tilkaller først disse personene, for hver nye hendelse og hvert nye varsel i dette prosjektet.",
+      "Tilkalles først",
+      "Legg til teammedlemmer",
+      "AL",
+      "Ada Lovelace",
+      "Lagre og fortsett"
+    ],
+    "outline": [
+      "button: Legg til teammedlemmer",
+      "button: Fjern Ada Lovelace",
+      "button: Lagre og fortsett"
+    ],
+    "width": 768,
+    "height": 246
+  },
+  "paging-no-answer": {
+    "text": [
+      "3",
+      "Hva om ingen svarer?",
+      "Et tilkall venter på at noen kvitterer for det. Hvis ingen gjør det i tide:",
+      "Tilkall noen andre",
+      "Tilkall de samme personene igjen",
+      "Ikke gjør mer",
+      "Minutter å vente",
+      "Tilkalles deretter",
+      "Legg til teammedlemmer",
+      "GH",
+      "Grace Hopper",
+      "Lagre og fortsett",
+      "radio: on",
+      "radio: off",
+      "radio: off",
+      "value: 30"
+    ],
+    "outline": [
+      "field radio: ",
+      "field radio: ",
+      "field radio: ",
+      "field number: ",
+      "button: Legg til teammedlemmer",
+      "button: Fjern Grace Hopper",
+      "button: Lagre og fortsett"
+    ],
+    "width": 768,
+    "height": 510
+  },
+  "paging-test": {
+    "text": [
+      "4",
+      "Send et testoppkall",
+      "Test policyen nå: den tilkaller sin første eskaleringsregel slik en ekte hendelse ville gjort, og hver melding sier TEST. Kvitter fra meldingen for å fullføre.",
+      "Test denne policyen",
+      "Hopp over testen"
+    ],
+    "outline": [
+      "button: Test denne policyen",
+      "button: Hopp over testen"
+    ],
+    "width": 768,
+    "height": 178
+  },
+  "paging-summary": {
+    "text": [
+      "Tilkalling er satt opp",
+      "Hvem som tilkalles",
+      "Hver nye hendelse og hvert nye varsel kjører «Default on-call policy», som tilkaller Ada Lovelace (E-post, SMS, Telefonanrop).",
+      "Hvis ingen svarer",
+      "Hvis ingen kvitterer innen 30 minutter, tilkalles Grace Hopper.",
+      "Testet",
+      "Ada Lovelace bekreftet den via e-post etter 14 sekunder.",
+      "Neste steg",
+      "Bytt på med en vaktplan",
+      "Koble til Slack eller Microsoft Teams",
+      "Tilkall bare i arbeidstiden for mindre hastende hendelser",
+      "Se hvem som kan tilkalles",
+      "Åpne vaktpolicyen",
+      "Sett opp en annen policy"
+    ],
+    "outline": [
+      "heading: Tilkalling er satt opp",
+      "heading: Neste steg",
+      "link: Bytt på med en vaktplan",
+      "link: Koble til Slack eller Microsoft Teams",
+      "link: Tilkall bare i arbeidstiden for mindre hastende hendelser",
+      "link: Se hvem som kan tilkalles",
+      "link: Åpne vaktpolicyen",
+      "button: Sett opp en annen policy"
+    ],
+    "width": 768,
+    "height": 482
+  },
   "status-page-pick": {
     "text": [
       "1",
