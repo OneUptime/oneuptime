@@ -148,6 +148,7 @@ import { FORM_NEXT_BUTTON_TEST_ID } from "../../../UI/Components/Forms/Utils/Ste
 import { getOidcProviderFormFields } from "../../../UI/Components/Sso/OidcProviderFormFields";
 import { getSsoProviderFormSteps } from "../../../UI/Components/Sso/SsoProviderFormFields";
 import { readDashboardLocale } from "../../Helpers/DashboardLocales";
+import escapeRegExp from "../../../Utils/RegExpEscape";
 
 const LANGUAGES: Array<string> = ["de", "fa"];
 
@@ -165,10 +166,6 @@ function word(text: string): string {
     keySeparator: false,
     nsSeparator: false,
   });
-}
-
-function escaped(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 async function settle(): Promise<void> {
@@ -210,7 +207,7 @@ async function openSignIn(): Promise<HTMLElement> {
   await settle();
 
   const moreFields: HTMLElement = within(view.container).getByRole("button", {
-    name: new RegExp(escaped(word("More fields"))),
+    name: new RegExp(escapeRegExp(word("More fields"))),
   });
 
   if (moreFields.getAttribute("aria-expanded") !== "true") {
@@ -269,7 +266,7 @@ describe.each(LANGUAGES)(
         expect(title).not.toBe(field.title);
 
         const input: HTMLInputElement = within(form).getByRole("textbox", {
-          name: new RegExp(`^${escaped(title)}`),
+          name: new RegExp(`^${escapeRegExp(title)}`),
         }) as HTMLInputElement;
 
         expect({

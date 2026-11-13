@@ -61,7 +61,7 @@ Værdier, der er sat under **Standardværdier for brugerdefinerede felter**, skr
 
 ## Synkronisér ændringer til tilknyttede monitorer
 
-At redigere en skabelon ændrer kun skabelonen. For at kopiere en ændring til de tilknyttede monitorer bruger du synkroniseringsknappen på det kort, du har ændret. Hver knap nævner, hvor mange monitorer den når, som **Sync Criteria to 3 Linked Monitors**, og er nedtonet, så længe intet er tilknyttet. En synkronisering kan ikke fortrydes.
+At redigere en skabelon ændrer kun skabelonen. For at kopiere en ændring til de tilknyttede monitorer bruger du synkroniseringsknappen på det kort, du har ændret. Hver knap nævner, hvor mange monitorer den når, som **Synkronisér kriterier til 3 tilknyttede overvågninger**, og er nedtonet, så længe intet er tilknyttet. En synkronisering kan ikke fortrydes.
 
 | Knap | Kopierer til hver tilknyttet monitor | Lader være |
 | --- | --- | --- |
