@@ -32,6 +32,9 @@
  *         explain it does since #6836: its sentence, and the reference of
  *         its log lines (FAILED_READ_REFERENCE), which the page shows with a
  *         copy button.
+ *   fail-twice
+ *         as fail, but the first two reads of each fail: a Try again that
+ *         fails once more, then one that answers.
  */
 import Project from "Common/Models/DatabaseModels/Project";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
@@ -60,7 +63,15 @@ export const HAND_OVER_TEMPLATE_NOTE = [
   "**Next steps:** ",
 ].join("\n\n");
 
-export const CASE_SETUP_SCENARIOS = ["none", "fail", "fail-with-reference"];
+export const CASE_SETUP_SCENARIOS = [
+  "none",
+  "fail",
+  "fail-with-reference",
+  "fail-twice",
+];
+
+// How many of each table's first reads fail, by ?casesetup= scenario.
+const FAILING_READS = { fail: 1, "fail-with-reference": 1, "fail-twice": 2 };
 
 // The reference a ?casesetup=fail-with-reference failure names.
 export const FAILED_READ_REFERENCE = "3f9a2c1b";
@@ -157,19 +168,21 @@ export function createCaseSetupFixture(options) {
     );
   }
 
-  // ?casesetup=fail (or fail-with-reference): each table's first read fails, the next answers.
+  /*
+   * ?casesetup=fail (or fail-with-reference): each table's first read fails,
+   * the next answers; fail-twice: its first two.
+   */
   function failsRead(modelName) {
-    if (
-      (scenario !== "fail" && scenario !== "fail-with-reference") ||
-      !isCaseSetupTable(modelName)
-    ) {
+    const failingReads = FAILING_READS[scenario] || 0;
+
+    if (!failingReads || !isCaseSetupTable(modelName)) {
       return false;
     }
 
     const reads = (readsSoFar.get(modelName) || 0) + 1;
     readsSoFar.set(modelName, reads);
 
-    return reads === 1;
+    return reads <= failingReads;
   }
 
   /*

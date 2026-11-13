@@ -9,6 +9,7 @@ import {
   test,
 } from "@jest/globals";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -26,6 +27,7 @@ import NoteTemplateMenu, {
   NoteTemplateOption,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/EventNotes/NoteTemplateMenu";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import Route from "../../../Types/API/Route";
 import {
   getUnexplainedServerErrorMessage,
   SERVER_DOWN_MESSAGE,
@@ -196,6 +198,39 @@ const openFailedMenu: (
   await within(menu).findByTestId("note-templates-error");
 
   return { menu, loadTemplates };
+};
+
+// Where the menu's footer and its empty state lead, as every page passes it.
+const SETTINGS_ROUTE: Route = new Route(
+  "/dashboard/security-events/settings/note-templates",
+);
+
+/*
+ * The menu as a page draws it, opened from the keyboard: Enter on its
+ * button, which moves the focus into the menu.
+ */
+const openMenuFromKeyboard: (
+  loadTemplates: MockFunction,
+) => Promise<HTMLElement> = async (
+  loadTemplates: MockFunction,
+): Promise<HTMLElement> => {
+  render(
+    <I18nextProvider i18n={instances["en"]!}>
+      <NoteTemplateMenu
+        loadTemplates={() => {
+          return loadTemplates() as Promise<Array<NoteTemplateOption>>;
+        }}
+        onPick={() => {}}
+        settingsRoute={SETTINGS_ROUTE}
+      />
+    </I18nextProvider>,
+  );
+
+  const trigger: HTMLElement = screen.getByTestId("note-template-menu-button");
+  trigger.focus();
+  fireEvent.keyDown(trigger, { key: "Enter" });
+
+  return screen.findByTestId("note-template-menu");
 };
 
 // The failure's words as a reader sees them.
@@ -399,24 +434,7 @@ describe("NoteTemplateMenu, when its templates do not load", () => {
     const loadTemplates: MockFunction = getJestMockFunction();
     loadTemplates.mockRejectedValueOnce(SERVER_FAILURE as never);
 
-    render(
-      <I18nextProvider i18n={instances["en"]!}>
-        <NoteTemplateMenu
-          loadTemplates={() => {
-            return loadTemplates() as Promise<Array<NoteTemplateOption>>;
-          }}
-          onPick={() => {}}
-        />
-      </I18nextProvider>,
-    );
-
-    const trigger: HTMLElement = screen.getByTestId(
-      "note-template-menu-button",
-    );
-    trigger.focus();
-    fireEvent.keyDown(trigger, { key: "Enter" });
-
-    const menu: HTMLElement = await screen.findByTestId("note-template-menu");
+    const menu: HTMLElement = await openMenuFromKeyboard(loadTemplates);
     const failure: HTMLElement = await within(menu).findByTestId(
       "note-templates-error",
     );
@@ -432,6 +450,129 @@ describe("NoteTemplateMenu, when its templates do not load", () => {
 
     await waitFor(() => {
       expect(document.activeElement).toBe(tryAgain);
+    });
+  });
+});
+
+/*
+ * The menu reads its templates once it has opened, so it has a moment with
+ * nothing read yet - with no failure to draw, and no templates. It drew an
+ * empty list there, with its footer's Manage templates: in a browser the
+ * focus of an opening from the keyboard took the link, and lost it to the
+ * page when the read ended and the link went. It draws its loading rows
+ * instead, which hold nothing to focus but the menu itself.
+ */
+describe("NoteTemplateMenu, opened from the keyboard", () => {
+  test("the focus lands on the first template, not on Manage templates", async () => {
+    const loadTemplates: MockFunction = getJestMockFunction();
+    loadTemplates.mockResolvedValue(TEMPLATES as never);
+
+    const menu: HTMLElement = await openMenuFromKeyboard(loadTemplates);
+
+    await waitFor(() => {
+      expect(document.activeElement).toBe(
+        within(menu).getByRole("button", { name: /^Identified/ }),
+      );
+    });
+  });
+});
+
+// A read of the templates that waits until the test answers it.
+interface PendingRead {
+  resolve: (templates: Array<NoteTemplateOption>) => void;
+  reject: (error: unknown) => void;
+}
+
+/*
+ * Try again gives way to the loading rows, which hold nothing to focus.
+ * Pressed from the keyboard, it leaves the focus with the menu while the
+ * templates load again - it fell to the page behind it, and stayed there -
+ * and the menu hands it on when they arrive, as after an opening from the
+ * keyboard: to the first template, or to Try again if they fail once more.
+ */
+describe("NoteTemplateMenu's Try again, pressed from the keyboard", () => {
+  /*
+   * The menu, opened from the keyboard on a failed read, with Try again
+   * pressed: the read it starts waits in `pending`.
+   */
+  const pressTryAgain: () => Promise<{
+    menu: HTMLElement;
+    pending: Array<PendingRead>;
+  }> = async (): Promise<{
+    menu: HTMLElement;
+    pending: Array<PendingRead>;
+  }> => {
+    const pending: Array<PendingRead> = [];
+    const loadTemplates: MockFunction = getJestMockFunction();
+    loadTemplates.mockRejectedValueOnce(SERVER_FAILURE as never);
+    loadTemplates.mockImplementation((): Promise<Array<NoteTemplateOption>> => {
+      return new Promise<Array<NoteTemplateOption>>(
+        (
+          resolve: (templates: Array<NoteTemplateOption>) => void,
+          reject: (error: unknown) => void,
+        ) => {
+          pending.push({ resolve, reject });
+        },
+      );
+    });
+
+    const menu: HTMLElement = await openMenuFromKeyboard(loadTemplates);
+    const failure: HTMLElement = await within(menu).findByTestId(
+      "note-templates-error",
+    );
+    const tryAgain: HTMLElement = within(failure).getByRole("button", {
+      name: "Try again",
+    });
+
+    await waitFor(() => {
+      expect(document.activeElement).toBe(tryAgain);
+    });
+
+    /*
+     * Enter or Space on a focused button is a click on it, with the focus
+     * where it is.
+     */
+    fireEvent.click(tryAgain);
+
+    // Loading again, with the focus in the menu - not on the page.
+    expect(
+      within(menu).getByTestId("note-templates-loading"),
+    ).toBeInTheDocument();
+    expect(document.activeElement).toBe(menu);
+    expect(pending).toHaveLength(1);
+
+    return { menu, pending };
+  };
+
+  test("when the templates arrive, the focus moves on to the first of them", async () => {
+    const { menu, pending } = await pressTryAgain();
+
+    await act(async () => {
+      pending[0]!.resolve(TEMPLATES);
+    });
+
+    await waitFor(() => {
+      expect(document.activeElement).toBe(
+        within(menu).getByRole("button", { name: /^Identified/ }),
+      );
+    });
+  });
+
+  test("when they fail once more, the focus moves on to Try again", async () => {
+    const { menu, pending } = await pressTryAgain();
+
+    await act(async () => {
+      pending[0]!.reject(GATEWAY_FAILURE);
+    });
+
+    const failure: HTMLElement = await within(menu).findByTestId(
+      "note-templates-error",
+    );
+
+    await waitFor(() => {
+      expect(document.activeElement).toBe(
+        within(failure).getByRole("button", { name: "Try again" }),
+      );
     });
   });
 });

@@ -78,7 +78,12 @@ interface OpenOptions {
   theme?: "dark" | undefined;
   lang?: "de" | "fa" | undefined;
   // CaseSetupFixture.js's ?casesetup= scenarios.
-  caseSetup?: "none" | "fail" | "fail-with-reference" | undefined;
+  caseSetup?:
+    | "none"
+    | "fail"
+    | "fail-with-reference"
+    | "fail-twice"
+    | undefined;
 }
 
 interface Box {
@@ -685,6 +690,36 @@ test.describe("note templates", () => {
       .click();
     await expect(page).toHaveURL(new RegExp(`${NOTE_TEMPLATES_PATH}$`));
   });
+
+  /*
+   * The menu reads its templates once it has opened. Until they arrive it
+   * draws its loading rows, with nothing to focus but itself: it drew an
+   * empty list with Manage templates, which the focus took and then lost to
+   * the page when the templates arrived.
+   */
+  test("opened from the keyboard, the composer's Templates menu puts the focus on the first template", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CASE_NOTES_PATH);
+    await page
+      .getByTestId("note-composer-prompt")
+      .getByRole("button")
+      .first()
+      .click({ timeout: 30000 });
+    await page
+      .getByTestId("note-composer")
+      .getByTestId("note-template-menu-button")
+      .focus();
+    await page.keyboard.press("Enter");
+
+    await expect(
+      page
+        .getByTestId("note-template-menu")
+        .getByRole("button", { name: /^Containment checklist/ }),
+    ).toBeFocused();
+  });
 });
 
 /*
@@ -817,6 +852,98 @@ async function caseFieldsCardGeometry(page: Page): Promise<{
   });
 }
 
+/*
+ * The Templates menu is only as tall as the room beside its button, and cuts
+ * off what runs past its end. On a phone held sideways (844 x 390), with the
+ * button in the middle of the window, that is less room than its failure or
+ * its empty state needs: each scrolls inside the menu, as the list does, and
+ * the wheel over it brings its end into sight without moving the page under
+ * the menu.
+ */
+const SHORT_WINDOW: { width: number; height: number } = {
+  width: 844,
+  height: 390,
+};
+
+// The composer's Templates menu, opened with its button mid-window.
+async function openTemplateMenuMidWindow(
+  page: Page,
+  caseSetup: "none" | "fail-with-reference",
+): Promise<Locator> {
+  await open(page, CASE_NOTES_PATH, { ...SHORT_WINDOW, caseSetup });
+  await page
+    .getByTestId("note-composer-prompt")
+    .getByRole("button")
+    .first()
+    .click({ timeout: 30000 });
+  const trigger: Locator = page
+    .getByTestId("note-composer")
+    .getByTestId("note-template-menu-button");
+  // The button in the middle of the window: the least room on either side.
+  await trigger.evaluate((element: Element) => {
+    element.scrollIntoView({ block: "center" });
+  });
+  await trigger.click();
+
+  return page.getByTestId("note-template-menu");
+}
+
+// Whether the whole of `control` is inside the menu's box.
+async function isInsideMenu(menu: Locator, control: Locator): Promise<boolean> {
+  const own: Box | null = await menu.boundingBox();
+  const box: Box | null = await control.boundingBox();
+
+  return Boolean(
+    own &&
+      box &&
+      box.y >= own.y - 0.5 &&
+      box.y + box.height <= own.y + own.height + 0.5,
+  );
+}
+
+/*
+ * `control` starts past the menu's end; the wheel over the menu brings it
+ * into sight, whole, and the page and the menu stay where they were.
+ */
+async function expectTheWheelScrollsTheMenuTo(
+  page: Page,
+  menu: Locator,
+  control: Locator,
+): Promise<void> {
+  expect(
+    await isInsideMenu(menu, control),
+    "the window leaves the menu less room than it needs",
+  ).toBe(false);
+
+  const opened: Box = (await menu.boundingBox())!;
+  expect(opened.y).toBeGreaterThanOrEqual(0);
+  expect(opened.y + opened.height).toBeLessThanOrEqual(SHORT_WINDOW.height);
+  const pageScrolled: number = await page.evaluate((): number => {
+    return window.scrollY;
+  });
+
+  await page.mouse.move(
+    opened.x + opened.width / 2,
+    opened.y + opened.height / 2,
+  );
+  await page.mouse.wheel(0, 400);
+
+  await expect
+    .poll((): Promise<boolean> => {
+      return isInsideMenu(menu, control);
+    })
+    .toBe(true);
+  // Not cut off by the menu, nor by what scrolls inside it.
+  await expect(control).toBeInViewport({ ratio: 1 });
+  // What the menu draws scrolled, not the page: the menu is where it opened.
+  expect(
+    await page.evaluate((): number => {
+      return window.scrollY;
+    }),
+  ).toBe(pageScrolled);
+  expect((await menu.boundingBox())!.y).toBe(opened.y);
+}
+
 test.describe("a project with no case fields or note templates yet", () => {
   test("a case's Custom Fields page says so and leads to where fields are added; its Overview draws no card", async ({
     page,
@@ -876,6 +1003,28 @@ test.describe("a project with no case fields or note templates yet", () => {
     await expect(page.getByText("No note templates yet")).toBeVisible({
       timeout: 30000,
     });
+  });
+
+  test("on a short window, the menu's empty state scrolls inside the menu to Create a template (844 x 390)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const menu: Locator = await openTemplateMenuMidWindow(page, "none");
+    const empty: Locator = menu.getByTestId("note-templates-empty");
+    const create: Locator = empty.getByRole("link", {
+      name: "Create a template",
+    });
+    await expect(empty).toContainText("No note templates yet");
+
+    await expectTheWheelScrollsTheMenuTo(page, menu, create);
+    await screenshot(page, "case-note-templates-menu-empty-844x390", {
+      fullPage: false,
+    });
+
+    // Where it scrolled to, it is a link like any other.
+    await create.click();
+    await expect(page).toHaveURL(new RegExp(`${NOTE_TEMPLATES_PATH}$`));
   });
 });
 
@@ -1095,23 +1244,43 @@ test.describe("the Templates menu's failure", () => {
     });
   }
 
-  /*
-   * The menu is only as tall as the room beside its button. On a phone held
-   * sideways, with the button in the middle of the window, that is less
-   * than the failure needs: the failure scrolls inside the menu, as the
-   * list does, and the wheel over it brings Try again into sight without
-   * moving the page under the menu.
-   */
+  // On a short window (SHORT_WINDOW), the failure scrolls as the list does.
   test("on a short window, it scrolls inside the menu to its Try again (844 x 390)", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await open(page, CASE_NOTES_PATH, {
-      width: 844,
-      height: 390,
-      caseSetup: "fail-with-reference",
+    const menu: Locator = await openTemplateMenuMidWindow(
+      page,
+      "fail-with-reference",
+    );
+    const failure: Locator = menu.getByTestId("note-templates-error");
+    await expect(failure.getByTestId("error-reference")).toBeVisible();
+
+    await expectTheWheelScrollsTheMenuTo(
+      page,
+      menu,
+      failure.getByRole("button", { name: "Try again" }),
+    );
+    await screenshot(page, "case-note-templates-menu-fail-844x390", {
+      fullPage: false,
     });
+  });
+
+  /*
+   * Try again gives way to the loading rows, which hold nothing to focus.
+   * Pressed from the keyboard, it leaves the focus in the menu while the
+   * templates load again - it fell to the page behind the menu, and stayed
+   * there - and the menu hands it on when the read ends, as it does when it
+   * opens: to Try again if the templates fail once more, to the first of
+   * them when they arrive.
+   */
+  test("pressed from the keyboard, Try again keeps the focus in the menu: on Try again after another failure, then on the first template", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CASE_NOTES_PATH, { caseSetup: "fail-twice" });
     await page
       .getByTestId("note-composer-prompt")
       .getByRole("button")
@@ -1120,60 +1289,24 @@ test.describe("the Templates menu's failure", () => {
     const trigger: Locator = page
       .getByTestId("note-composer")
       .getByTestId("note-template-menu-button");
-    // The button in the middle of the window: the least room on either side.
-    await trigger.evaluate((element: Element) => {
-      element.scrollIntoView({ block: "center" });
-    });
-    await trigger.click();
+    await trigger.focus();
+    await page.keyboard.press("Enter");
     const menu: Locator = page.getByTestId("note-template-menu");
-    const failure: Locator = menu.getByTestId("note-templates-error");
-    const tryAgain: Locator = failure.getByRole("button", {
-      name: "Try again",
-    });
-    await expect(failure.getByTestId("error-reference")).toBeVisible();
+    const tryAgain: Locator = menu
+      .getByTestId("note-templates-error")
+      .getByRole("button", { name: "Try again" });
+    await expect(tryAgain).toBeFocused();
 
-    const tryAgainInsideMenu: () => Promise<boolean> =
-      async (): Promise<boolean> => {
-        const own: Box | null = await menu.boundingBox();
-        const button: Box | null = await tryAgain.boundingBox();
+    // The second read fails too.
+    await page.keyboard.press("Enter");
+    await expect(tryAgain).toBeFocused();
 
-        return Boolean(
-          own &&
-            button &&
-            button.y >= own.y - 0.5 &&
-            button.y + button.height <= own.y + own.height + 0.5,
-        );
-      };
-
-    expect(
-      await tryAgainInsideMenu(),
-      "the window leaves the menu less room than its failure needs",
-    ).toBe(false);
-
-    const opened: Box = (await menu.boundingBox())!;
-    expect(opened.y).toBeGreaterThanOrEqual(0);
-    expect(opened.y + opened.height).toBeLessThanOrEqual(390);
-    const pageScrolled: number = await page.evaluate((): number => {
-      return window.scrollY;
-    });
-
-    await page.mouse.move(
-      opened.x + opened.width / 2,
-      opened.y + opened.height / 2,
-    );
-    await page.mouse.wheel(0, 400);
-
-    await expect.poll(tryAgainInsideMenu).toBe(true);
-    // The failure scrolled, not the page: the menu is where it opened.
-    expect(
-      await page.evaluate((): number => {
-        return window.scrollY;
-      }),
-    ).toBe(pageScrolled);
-    expect((await menu.boundingBox())!.y).toBe(opened.y);
-    await screenshot(page, "case-note-templates-menu-fail-844x390", {
-      fullPage: false,
-    });
+    // The third answers.
+    await page.keyboard.press("Enter");
+    await expect(
+      menu.getByRole("button", { name: /^Containment checklist/ }),
+    ).toBeFocused();
+    await expect(menu.getByTestId("note-templates-error")).toHaveCount(0);
   });
 });
 
