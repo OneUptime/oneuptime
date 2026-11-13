@@ -47,6 +47,8 @@ OneUptime एक ओपन-सोर्स ऑब्ज़र्वेबिल�
 - **[API, CLI और Terraform](https://oneuptime.com/docs/hi/api-reference/api-reference)**: अपनी स्क्रिप्ट और CI से OneUptime को स्वचालित करें, और मॉनिटर, स्थिति पृष्ठ और ऑन-कॉल को कोड के रूप में प्रबंधित करें।
 - **[MCP सर्वर](https://oneuptime.com/docs/hi/ai/mcp-server)** (`https://oneuptime.com/mcp`): Claude, Cursor, GitHub Copilot वाला VS Code या Model Context Protocol (MCP) का कोई भी दूसरा क्लाइंट कनेक्ट करें, और उससे किसी घटना की पड़ताल करने, लॉग और ट्रेस क्वेरी करने, किसी अलर्ट को स्वीकार करने या कोई मॉनिटर सेट करने को कहें।
 
+चरण-दर-चरण गाइड एक काम को शुरू से अंत तक पूरा कराते हैं, OneUptime Cloud पर या आपके अपने सर्वर पर: [जानें कि आपकी वेबसाइट या API कब डाउन होती है](https://oneuptime.com/docs/hi/guides/website-down), [फ़ोन, SMS या पुश से पेज पाएँ](https://oneuptime.com/docs/hi/guides/paging) और [एक स्थिति पृष्ठ प्रकाशित करें](https://oneuptime.com/docs/hi/guides/status-page)।
+
 बाक़ी सब कुछ [दस्तावेज़](https://oneuptime.com/docs/hi/introduction/getting-started) में है।
 
 ## शुरू करें

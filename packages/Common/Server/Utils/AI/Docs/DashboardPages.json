@@ -8550,14 +8550,18 @@
     "kind": "setting"
   },
   {
-    "title": "On-Call Rules",
+    "title": "How to Reach Me",
     "where": [
       "User Settings",
       "Alerts & Notifications"
     ],
     "keywords": [
+      "on-call rules",
       "how i get paged",
-      "my notification rules"
+      "my notification rules",
+      "paging ladder",
+      "escalation order",
+      "call after minutes"
     ],
     "path": "/dashboard/:projectId/user-settings/on-call-rules",
     "kind": "page"
@@ -8748,7 +8752,10 @@
       "my profile",
       "profile",
       "my name",
-      "my email"
+      "my email",
+      "feedback",
+      "survey",
+      "stop asking"
     ],
     "path": "/dashboard/user-profile/overview",
     "kind": "page"
@@ -8775,6 +8782,26 @@
   },
   {
     "title": "Timezone",
+    "where": [
+      "User Profile",
+      "Basic",
+      "Overview"
+    ],
+    "path": "/dashboard/user-profile/overview",
+    "kind": "setting"
+  },
+  {
+    "title": "Feedback Questions",
+    "where": [
+      "User Profile",
+      "Basic",
+      "Overview"
+    ],
+    "path": "/dashboard/user-profile/overview",
+    "kind": "setting"
+  },
+  {
+    "title": "Ask me how things went",
     "where": [
       "User Profile",
       "Basic",

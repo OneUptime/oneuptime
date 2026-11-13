@@ -159,7 +159,7 @@ flowchart TB
 Quatro coisas precisam ser verdadeiras para um alerta ignorar o modo silencioso. Se faltar qualquer uma delas, o alerta ainda é entregue – só que em silêncio.
 
 1. **A pessoa ligou a configuração nesse dispositivo.** Guardada por dispositivo, desligada por padrão, em `UserPush.isCriticalAlertEnabled`. O celular e o tablet de uma mesma pessoa são decisões separadas. Versões do app posteriores à 1.6.0 informam isso de novo sempre que são abertas, como desligado enquanto as configurações do próprio celular não permitirem alertas críticos, para que a lista de dispositivos mostre o que o celular vai realmente fazer.
-2. **A regra de plantão que enviou o alerta pede isso.** Em **Configurações do usuário > Regras de Plantão**, cada regra que notifica um celular está em “Alerta crítico”, o padrão, ou em “Normal”, que segue as configurações de som do celular – assim uma pessoa pode ser acordada por um incidente crítico e avisada em silêncio por um menor. Guardada por regra em `UserNotificationRule.pushNotificationLevel`.
+2. **A regra de plantão que enviou o alerta pede isso.** Em **Configurações do usuário > Como me contatar**, cada regra que notifica um celular está em “Alerta crítico”, o padrão, ou em “Normal”, que segue as configurações de som do celular – assim uma pessoa pode ser acordada por um incidente crítico e avisada em silêncio por um menor. Guardada por regra em `UserNotificationRule.pushNotificationLevel`.
 3. **O servidor marca o alerta como crítico.** Ele envia o payload de som crítico do APNs mais `interruptionLevel: critical` para iOS, e usa um canal de notificação crítico para Android: `oncall_critical`, ou o canal próprio do alarme escolhido (veja [Escolhendo o som do alarme](#escolhendo-o-som-do-alarme)).
 4. **O sistema operacional permite**, e é aí que as duas plataformas diferem.
 
@@ -204,7 +204,7 @@ Um dispositivo mantém o som do sistema até rodar uma versão do app que oferec
 
 ### Repetindo um alerta até a confirmação
 
-Uma regra de push pode enviar seu alerta de novo até alguém confirmá-lo. Em **Configurações do usuário > Regras de Plantão**, defina **Repetir até a confirmação** ao adicionar uma regra de push, ou altere depois na linha da regra: a cada minuto, ou a cada 2, 3, 5, 10, 15 ou 30 minutos. O alerta é enviado de novo nesse intervalo, no máximo mais 10 vezes, e para assim que o incidente, alerta ou episódio é confirmado. Guardado por regra em `UserNotificationRule.repeatEveryMinutes`, onde 0, o padrão, envia o alerta uma única vez.
+Uma regra de push pode enviar seu alerta de novo até alguém confirmá-lo. Em **Configurações do usuário > Como me contatar**, defina **Repetir até a confirmação** ao adicionar uma regra de push, ou altere depois na linha da regra: a cada minuto, ou a cada 2, 3, 5, 10, 15 ou 30 minutos. O alerta é enviado de novo nesse intervalo, no máximo mais 10 vezes, e para assim que o incidente, alerta ou episódio é confirmado. Guardado por regra em `UserNotificationRule.repeatEveryMinutes`, onde 0, o padrão, envia o alerta uma única vez.
 
 ## Solução de problemas
 
@@ -225,7 +225,7 @@ Uma regra de push pode enviar seu alerta de novo até alguém confirmá-lo. Em *
 ### Os alertas críticos não ignoram o modo silencioso
 
 - Verifique se o interruptor está ligado **nesse** dispositivo – a configuração é por dispositivo, e uma reinstalação ou um celular novo configurado do zero cria um novo registro de dispositivo (um celular configurado a partir de um backup do antigo assume o registro do celular antigo assim que este deixa de receber notificações, com a configuração que o app tinha)
-- Verifique a regra de plantão dessa gravidade em **Configurações do usuário > Regras de Plantão**: uma regra de push em “Normal” segue as configurações de som do celular, seja qual for o interruptor do dispositivo
+- Verifique a regra de plantão dessa gravidade em **Configurações do usuário > Como me contatar**: uma regra de push em “Normal” segue as configurações de som do celular, seja qual for o interruptor do dispositivo
 - **iOS**: confirme que o build tem o entitlement de alertas críticos da Apple (veja acima) e que Critical Alerts está permitido em iOS Settings > Notifications > OneUptime On-Call
 - **Android**: confirme que o app tem acesso ao Não Perturbe em Settings > Notifications > Do Not Disturb access
 - **Android**: se você escolheu um som de alarme, o canal de notificação próprio dele também precisa ter permissão para ignorar o Não Perturbe; a tela Alarm sound do app avisa quando não tem

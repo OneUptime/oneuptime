@@ -47,6 +47,8 @@ OneUptime はオープンソースのオブザーバビリティプラットフ�
 - **[API、CLI、Terraform](https://oneuptime.com/docs/ja/api-reference/api-reference)**: スクリプトや CI から OneUptime を自動化し、モニター、ステータスページ、オンコールをコードとして管理します。
 - **[MCP サーバー](https://oneuptime.com/docs/ja/ai/mcp-server)** (`https://oneuptime.com/mcp`): Claude、Cursor、GitHub Copilot 付きの VS Code など、Model Context Protocol(MCP)の任意のクライアントを接続し、インシデントの調査、ログやトレースの照会、アラートの確認、モニターの設定を依頼できます。
 
+ステップバイステップのガイドは、OneUptime Cloud でも自分のサーバーでも、1 つの作業を最初から最後まで案内します: [ウェブサイトや API が落ちたときに知る](https://oneuptime.com/docs/ja/guides/website-down)、[電話、SMS、プッシュで呼び出しを受ける](https://oneuptime.com/docs/ja/guides/paging)、[ステータスページを公開する](https://oneuptime.com/docs/ja/guides/status-page)。
+
 そのほかのことはすべて[ドキュメント](https://oneuptime.com/docs/ja/introduction/getting-started)にあります。
 
 ## 使い始める

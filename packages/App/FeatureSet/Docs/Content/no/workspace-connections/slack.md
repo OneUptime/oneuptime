@@ -166,7 +166,7 @@ For å bli tilkalt med direktemelding når du har vakt, legger du til Slack som 
 3. Klikk på **Send Test Message** i raden. Meldingen kommer i direktemeldingene dine i Slack.
 :::
 
-Å legge den til setter den straks inn i vaktreglene dine, så tilkallinger når deg i Slack fra da av. Endre hvilke tilkallinger den får, under **Brukerinnstillinger** > **Vaktregler**.
+Å legge den til setter den straks inn i vaktreglene dine, så tilkallinger når deg i Slack fra da av. Endre hvilke tilkallinger den får, under **Brukerinnstillinger** > **Slik når man meg**.
 
 ## Lagre meldinger som notater
 

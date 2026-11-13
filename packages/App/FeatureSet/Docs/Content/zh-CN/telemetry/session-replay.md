@@ -102,6 +102,8 @@ window.__ONEUPTIME_SESSION_REPLAY__ = {
   respectDoNotTrack: true, // optional
   debug: false, // optional
   offlineStorage: true, // optional; false keeps offline chunks in memory only
+  maskAllText: false, // optional; true masks all text, whatever the policy says
+  blockSelectors: [], // optional; added to the policy's block selectors
 };
 ```
 
@@ -253,7 +255,7 @@ OneUptimeReplay.identify("user-123", { plan: "pro", tenant: "acme" });
 );
 ```
 
-`grantConsent` 、 `revokeConsent` 、 `stop` 、 `identify` 、 `setTags` 和 `addTag` 会在录制器启动之前应用，因此队列中的同意决定决定了是否有任何内容会被上传，而队列中的身份会随第一个分块一起发送。 `track` 、 `metric` 、 `captureSession` 和 `onSessionChange` 会在启动后立即运行。
+`grantConsent` 、 `revokeConsent` 、 `stop` 、 `pause` 、 `resume` 、 `identify` 、 `setTags` 和 `addTag` 会在录制器启动之前应用，因此队列中的同意决定决定了是否有任何内容会被上传，而队列中的身份会随第一个分块一起发送。 `track` 、 `metric` 、 `captureSession` 和 `onSessionChange` 会在启动后立即运行。
 
 | 方法 | 作用 |
 | --- | --- |
@@ -268,6 +270,8 @@ OneUptimeReplay.identify("user-123", { plan: "pro", tenant: "acme" });
 | `getSessionId()` | 当前会话 ID，在没有录制时为 `null` 。优先使用 `onSessionChange()` ，它还能跟踪会话轮换。 |
 | `getVisitorId()` | [匿名访客 ID](#匿名访客) — 32 个十六进制字符，每个浏览器配置文件一个，在会话轮换时保持不变 — 在录制器启动之前、 `stop()` 之后以及同意被撤销期间为 `""` 。它是随机的，不是身份；不取决于 **捕获最终用户身份** 。 |
 | `stop()` | 上传最后一个分块，封口会话，并在页面的剩余生命周期内停止。 |
+| `pause()` | 在 `resume()` 之前停止记录屏幕上的内容：已打开的分块会带着 _paused_ 标记发出，在此期间页面、输入、请求、控制台和点击都不会被记录。会话保持打开，访客的操作不会让它恢复。适用于只记录部分内容的页面；如果在记录器加载前放入队列，记录器会以暂停状态启动。 |
+| `resume()` | 在 `pause()` 之后于同一会话中继续记录，从页面当前状态的新快照开始。播放器会跳过暂停的这一段。 |
 | `setDebug(enabled)` | 从现在开始把录制器的决定输出到控制台。 |
 | `getDiagnostics()` | 录制器做出的所有决定，无论诊断当时是否开启。见下文。 |
 
@@ -370,7 +374,12 @@ copy(JSON.stringify(OneUptimeReplay.getDiagnostics(), null, 2));
 
 <!-- Recorded, but input events inside are dropped. -->
 <div class="oneuptime-ignore">...</div>
+
+<!-- Under Mask all text, the text inside is recorded as written. -->
+<div class="oneuptime-unmask">...</div>
 ```
+
+在 _Mask all text_ 下，带有 `oneuptime-unmask` 类的元素内的文本会按原样记录：请把它用于页面自身的界面文字，例如按钮、标题和菜单。其中的 `oneuptime-mask` 元素或匹配你的额外遮蔽选择器的元素会再次遮蔽文本，表单字段始终被遮蔽，在其他遮蔽模式下这个类不起作用。页面还可以在初始化全局对象上要求比策略更多的遮蔽：`maskAllText: true` 无论策略如何都以 _Mask all text_ 记录，`blockSelectors` 会添加到策略的屏蔽选择器中。两者都不能让记录显示更多内容。
 
 你也可以在应用程序的 **回放策略** 页面上添加 **额外的遮盖选择器** 和 **屏蔽选择器** ，而无需修改你的标记。在默认遮盖模式下，它们是保护你的标记没有声明为敏感的内容的主要工具。
 

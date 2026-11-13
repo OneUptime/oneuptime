@@ -28,17 +28,25 @@ Ihr Server braucht einen eigenen Hostnamen mit einem A-Eintrag, der auf ihn zeig
 :::steps
 ### Die geführte Einrichtung öffnen
 
+![Die Startseite fragt „Was möchten Sie zuerst tun?“, „Meine Kunden über eine Statusseite informieren“ ist angehakt](screen:home-goal-status-page)
+
 Klicken Sie auf der **Startseite** Ihres Projekts in der Checkliste **Willkommen bei OneUptime 👋** auf **Statusseite veröffentlichen**. Die Startseite eines neuen Projekts fragt vorher **Was möchten Sie zuerst tun?**: Haken Sie **Meine Kunden über eine Statusseite informieren** an und klicken Sie auf **Weiter**. Fehlt der Schritt oder ist er schon erledigt, drücken Sie `Ctrl+K` (`Cmd+K` auf einem Mac), geben Sie `status page` ein und wählen Sie **Statusseite veröffentlichen**.
 
 ### Die Seite benennen und auswählen, was sie zeigt
+
+![Der Schritt „Benennen Sie sie und wählen Sie aus, was sie zeigt“, „Statusseite erstellen“ ist markiert](screen:status-page-pick)
 
 Behalten Sie unter **Benennen Sie sie und wählen Sie aus, was sie zeigt** im Feld **Name der Statusseite** den Vorschlag bei oder geben Sie einen eigenen Namen ein. Haken Sie unter **Was sie zeigt** die Monitore an, die Ihre Kunden sehen sollen, oder klicken Sie auf **Alle auswählen**. Klicken Sie auf **Statusseite erstellen**. Ab diesem Moment ist die Seite unter ihrem Link öffentlich und zeigt nur die Monitore, die Sie angehakt haben.
 
 ### Ansehen, was Ihre Kunden sehen
 
+![Der Schritt „Das sehen Ihre Kunden“, „Sieht gut aus“ ist markiert](screen:status-page-review)
+
 Öffnen Sie unter **Das sehen Ihre Kunden** die Adresse unter **Öffentlicher Link**: Ihre Monitore werden mit ihrem Status aufgeführt. Zurück in der Einrichtung klicken Sie auf **Sieht gut aus**.
 
 ### Benutzerdefinierte Domains öffnen
+
+![Die Zusammenfassung, „Ihre eigene Domain“ unter „Individuell anpassen (optional)“ ist markiert](screen:status-page-summary)
 
 Die Einrichtung endet mit einer Zusammenfassung. Klicken Sie unter **Individuell anpassen (optional)** auf **Ihre eigene Domain**. Die Seite **Benutzerdefinierte Domains** der Statusseite öffnet sich.
 
