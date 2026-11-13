@@ -15,7 +15,11 @@ const TONE_CLASS_NAMES: Record<SloOverviewEmptyStateTone, string> = {
 export interface ComponentProps {
   icon: IconProp;
   title: string;
-  description: string;
+  /*
+   * English text, as the title; or an element drawn as it is - an error's
+   * words (ErrorInSentence), in the reader's language with its reference.
+   */
+  description: string | ReactElement;
   tone?: SloOverviewEmptyStateTone | undefined;
   actions?: ReactElement | undefined;
   dataTestId?: string | undefined;
@@ -56,7 +60,9 @@ const SloOverviewEmptyState: FunctionComponent<ComponentProps> = (
         {translator.translateText(props.title)}
       </p>
       <p className="mt-1 max-w-md text-sm text-gray-500">
-        {translator.translateText(props.description)}
+        {typeof props.description === "string"
+          ? translator.translateText(props.description)
+          : props.description}
       </p>
       {props.actions ? (
         <div className="mt-4 flex flex-wrap items-center justify-center gap-2">

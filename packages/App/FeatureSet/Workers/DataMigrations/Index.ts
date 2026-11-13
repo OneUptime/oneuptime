@@ -1055,6 +1055,19 @@ const DataMigrations: Array<DataMigrationBase> = [
    */
   new SettleOnCallNotificationsStuckBeforeUpgrade(),
   /*
+   * A network device takes no status from a monitor that is not checked -
+   * its monitoring turned off, or archived (issue #6965). The devices of
+   * monitors turned off or archived before that kept the status their
+   * monitor was left at; this stamps them again, which takes it off their
+   * sites' roll-ups and resolves those sites' alerts. After
+   * BackfillMonitorBackedDeviceReachability, whose stamps it corrects;
+   * idempotent; it reads network devices and their monitors' switches and
+   * writes only the devices and their sites, no runbook, so it sits above
+   * the runbook migrations that keep their places before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new RestampDevicesOfMonitorsNotChecked(),
+  /*
    * A runbook step's approval moved to the step it guards ("Require approval
    * before running this step"): every stored runbook's approval after step
    * N becomes an approval before step N+1, and one after the last step a
@@ -1088,17 +1101,6 @@ const DataMigrations: Array<DataMigrationBase> = [
    * AddAuditLogMcpClientColumns asserts for itself.
    */
   new RemoveRunbookCredentials(),
-  /*
-   * A network device takes no status from a monitor that is not checked -
-   * its monitoring turned off, or archived (issue #6965). The devices of
-   * monitors turned off or archived before that kept the status their
-   * monitor was left at; this stamps them again, which takes it off their
-   * sites' roll-ups and resolves those sites' alerts. After
-   * BackfillMonitorBackedDeviceReachability, whose stamps it corrects;
-   * idempotent; it sits before the last slot AddAuditLogMcpClientColumns
-   * asserts for itself.
-   */
-  new RestampDevicesOfMonitorsNotChecked(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

@@ -622,7 +622,11 @@ export function isOnCallTestPageResultFinal(
  * SMS on the project's bill.
  */
 
-// One method a person's rules for the test's severity page them by.
+/*
+ * One method a person's rules for the test's severity page them by - or,
+ * for a person with no rule for it, one the project's fallback pages them
+ * by (isFallback, #7262).
+ */
 export interface OnCallTestPagePreviewMethod {
   channel: OnCallPageChannel;
   // Where to: shown to the person themselves only.
@@ -631,6 +635,14 @@ export interface OnCallTestPagePreviewMethod {
   notifyAfterMinutes: number;
   isVerified: boolean;
   canAcknowledge: boolean;
+  /*
+   * No rule of theirs covers the severity, and a real page - so the test -
+   * falls back to this method: the fallback's own pick of their methods
+   * (UserNotificationRuleService.getFallbackRules). Absent for a method a
+   * rule names, and from an older server's preview, which listed no
+   * method for a person with no rule.
+   */
+  isFallback?: boolean | undefined;
 }
 
 /*
@@ -666,8 +678,23 @@ export enum OnCallTestPageWarningCode {
   OptedOut = "OptedOut",
   // No rule covers the severity, and the project does not fall back.
   NoRuleNoFallback = "NoRuleNoFallback",
-  // No rule covers the severity: the test goes to every verified method.
+  /*
+   * No rule covers the severity: the test goes to every verified method.
+   * Said by a preview that does not read what the fallback picks; one that
+   * does says one of the two below instead (#7262).
+   */
   NoRuleFallsBack = "NoRuleFallsBack",
+  /*
+   * No rule covers the severity: like a real page, the test falls back to
+   * the methods listed for the person - the ones the fallback picks.
+   */
+  NoRuleFallsBackToListed = "NoRuleFallsBackToListed",
+  /*
+   * No rule covers the severity, and the fallback has no method it may use
+   * (none verified, or only ones on channels the project turned off): the
+   * test sends the person nothing.
+   */
+  NoRuleNothingToFallBackTo = "NoRuleNothingToFallBackTo",
   // A channel a rule of theirs uses is switched off in the project.
   ChannelOff = "ChannelOff",
   // A method a rule of theirs uses is not verified (a custom channel: off).
@@ -727,8 +754,9 @@ export interface OnCallTestPagePreviewPerson {
   methods: Array<OnCallTestPagePreviewMethod>;
   /*
    * No rule of theirs covers the test's severity: a real page - and so the
-   * test - falls back to their verified methods, or reaches nobody when the
-   * project turned the fallback off or they opted out of it.
+   * test - falls back to their verified methods (listed in `methods`, each
+   * isFallback, since #7262), or reaches nobody when the project turned the
+   * fallback off or they opted out of it.
    */
   hasNoRule: boolean;
   isOptedOut: boolean;
@@ -742,10 +770,21 @@ export interface OnCallTestPagePreviewPerson {
 export interface OnCallTestPageCost {
   // Whether anything it sends is paid from the project's balance.
   isPaid: boolean;
+  // What it sends, by channel - whoever pays for it.
   smsCount: number;
   callCount: number;
   whatsAppCount: number;
   telegramCount: number;
+  /*
+   * What of that the project's balance pays for (#7263): nothing where
+   * billing is off, and no SMS or call the project's own Twilio account
+   * sends. WhatsApp and Telegram are paid wherever billing is on. Absent
+   * from an older server's preview, whose counts were all read as paid.
+   */
+  paidSmsCount?: number | undefined;
+  paidCallCount?: number | undefined;
+  paidWhatsAppCount?: number | undefined;
+  paidTelegramCount?: number | undefined;
   // About how much, in US cents; absent when the prices are not known.
   estimatedCostInUSDCents?: number | undefined;
 }
@@ -823,9 +862,13 @@ export function isOnCallTestPageWalkLevelReached(
 }
 
 /*
- * What a test costs, from what each person's methods are. A project's own
- * Twilio account pays for its SMS and calls itself; WhatsApp and Telegram
- * are always paid from the balance where billing is on.
+ * What a test costs, from what each person's methods are - the ones their
+ * rules name, or the ones the fallback picks for a person with no rule
+ * (#7262): each verified one is sent. A project's own Twilio account pays
+ * for its SMS and calls itself; WhatsApp and Telegram are always paid from
+ * the balance where billing is on. It counts what is sent, and beside it
+ * what the balance pays for (#7263): a sentence that says "paid from this
+ * project's SMS and call balance" lists only that.
  */
 export function getOnCallTestPageCost(data: {
   people: ReadonlyArray<Pick<OnCallTestPagePreviewPerson, "methods">>;
@@ -879,6 +922,10 @@ export function getOnCallTestPageCost(data: {
     callCount: callCount,
     whatsAppCount: whatsAppCount,
     telegramCount: telegramCount,
+    paidSmsCount: paidSms,
+    paidCallCount: paidCalls,
+    paidWhatsAppCount: paidWhatsApp,
+    paidTelegramCount: paidTelegram,
   };
 
   if (isPaid && data.prices) {

@@ -2684,7 +2684,8 @@ test("a prerendered page's vitals name their view, and a CLS reported again link
   const fcpDetail: Locator =
     vitalRow("FCP 68ms good").getByTestId("rail-row-detail");
 
-  await expect(fcpDetail).toContainText("View");
+  /* The fact is labelled Navigation: "View" reads as a verb in most languages. */
+  await expect(fcpDetail).toContainText("Navigation");
   await expect(fcpDetail).toContainText(
     "Prerendered page load (measured from when it was opened)",
   );

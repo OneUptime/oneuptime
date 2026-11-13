@@ -826,7 +826,14 @@ describe("editing a template's Custom Fields on Create", () => {
 
     await save();
 
-    await screen.findByText("Try again.");
+    /*
+     * "Try again." alone says nothing about what happened, so since #6836
+     * the modal says the server could not explain the problem, and what to
+     * do next.
+     */
+    await screen.findByText(
+      "The server ran into a problem it could not explain. Try again in a moment.",
+    );
 
     await save();
 

@@ -23,7 +23,10 @@ import path from "path";
  *   - a message to a status page's subscribers passes that page's own config
  *     (ProjectCallSMSConfigService.toTwilioConfig of its callSmsConfig);
  *   - the Notification service's own routes pass on the config they were
- *     handed, or the one being tested.
+ *     handed, or the one being tested;
+ *   - a master admin's test of the server's own settings goes through the
+ *     server's own account, and says so: it passes no config
+ *     (customTwilioConfig: undefined) and names no project.
  *
  * A file that starts sending SMS or calls has to be put on one of the lists
  * below, so whoever adds it decides which rule it follows.
@@ -45,6 +48,8 @@ const MEMBER_SENDERS: Array<string> = [
   "Common/Server/Services/UserNotificationRuleService.ts",
   "Common/Server/Services/UserNotificationSettingService.ts",
   "Common/Server/Services/UserSmsService.ts",
+  // An on-call test page, sent the way every page to a person is.
+  "Common/Server/Utils/OnCall/OnCallTestPageDelivery.ts",
 ];
 
 // SMS to a status page's subscribers.
@@ -68,6 +73,11 @@ const STATUS_PAGE_SENDERS: Array<string> = [
 const NOTIFICATION_ROUTES: Array<string> = [
   "App/FeatureSet/Notification/API/Call.ts",
   "App/FeatureSet/Notification/API/SMS.ts",
+];
+
+// A master admin's test SMS and call, through the server's own settings.
+const SERVER_SETTINGS_TESTS: Array<string> = [
+  "App/FeatureSet/Notification/Services/ServerTestSendService.ts",
 ];
 
 const SEND_CALL: RegExp = /\b(SmsService\.sendSms|CallService\.makeCall)\(/g;
@@ -190,6 +200,7 @@ describe("the SMS and calls the server sends", () => {
       MEMBER_SENDERS,
       STATUS_PAGE_SENDERS,
       NOTIFICATION_ROUTES,
+      SERVER_SETTINGS_TESTS,
     ];
 
     const unlisted: Array<string> = Array.from(filesSending).filter(
@@ -324,6 +335,33 @@ describe("the SMS and calls the server sends", () => {
           !STATUS_PAGE_CONFIG.test(call.text)
         );
       }).map(describeCall),
+    ).toEqual([]);
+  });
+
+  /*
+   * The server setup's test send checks what the server itself sends with,
+   * so it passes no project's config and names no project: a config or a
+   * project in it would test something else, and be paid for by a project.
+   */
+  test("that test the server's own settings go through the server's own account", () => {
+    const calls: Array<SendCall> = SEND_CALLS.filter(
+      (call: SendCall): boolean => {
+        return SERVER_SETTINGS_TESTS.includes(call.file);
+      },
+    );
+
+    // The test SMS and the test call.
+    expect(calls.length).toBeGreaterThanOrEqual(2);
+
+    expect(
+      calls
+        .filter((call: SendCall): boolean => {
+          return (
+            !call.text.includes("customTwilioConfig:undefined,") ||
+            call.text.includes("projectId")
+          );
+        })
+        .map(describeCall),
     ).toEqual([]);
   });
 });

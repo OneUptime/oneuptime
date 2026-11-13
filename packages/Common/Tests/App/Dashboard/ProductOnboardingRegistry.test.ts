@@ -370,6 +370,12 @@ const LISTS_UNDER_A_TABLE: Array<OnboardedProductKey> = [
   ProductKey.Forms,
 ];
 
+// The pages whose own words say what their product is for: the lists, and Code.
+const UNDER_THEIR_PAGES_OWN_WORDS: Array<OnboardedProductKey> = [
+  ...LISTS_UNDER_A_TABLE,
+  ProductKey.Code,
+];
+
 // What draws the showcase of a list whose first step is a page of its own.
 const CREATE_PAGE_FIRST_RUN: string =
   "Components/ProductOnboarding/UseCreatePageFirstRun.tsx";
@@ -887,7 +893,7 @@ describe("the explanation is where each product is", () => {
    * Its title, steps, example and documentation follow; About, with no
    * table above it, says it all.
    */
-  test.each([...LISTS_UNDER_A_TABLE, ProductKey.Code])(
+  test.each(UNDER_THEIR_PAGES_OWN_WORDS)(
     "%s: under the page's own words, its showcase leaves its description to them",
     (product: OnboardedProductKey) => {
       const firstPage: { file: string; draws: string } = FIRST_PAGES[product];
@@ -916,7 +922,7 @@ describe("the explanation is where each product is", () => {
 
   test("a showcase drawn alone says what its product is for", () => {
     for (const [product] of ONBOARDINGS) {
-      if ([...LISTS_UNDER_A_TABLE, ProductKey.Code].includes(product)) {
+      if (UNDER_THEIR_PAGES_OWN_WORDS.includes(product)) {
         continue;
       }
 

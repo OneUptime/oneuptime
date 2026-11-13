@@ -60,6 +60,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * GUIDED SETUP: SEND LOGS, METRICS AND TRACES, THEN GET ALERTED ON THEM
@@ -585,10 +586,12 @@ const TelemetryGuidedSetup: FunctionComponent = (): ReactElement => {
               (failure: { name: string; message: string }, index: number) => {
                 return (
                   <li key={`${failure.name}-${index}`}>
-                    {translator.translateTemplate("{{name}}: {{reason}}", {
-                      name: failure.name,
-                      reason: failure.message,
-                    })}
+                    <ErrorSentence
+                      template="{{name}}: {{reason}}"
+                      error={failure.message}
+                      errorPlaceholder="reason"
+                      values={{ name: failure.name }}
+                    />
                   </li>
                 );
               },
@@ -598,26 +601,10 @@ const TelemetryGuidedSetup: FunctionComponent = (): ReactElement => {
           <></>
         )}
         <div className={ACTIONS_CLASS_NAME}>
-          {canCreate && offered.length > 0 ? (
-            <Button
-              title={translator.translatePlural(
-                {
-                  one: "Create {{count}} monitor",
-                  other: "Create {{count}} monitors",
-                },
-                picked.length,
-              )}
-              buttonStyle={ButtonStyleType.PRIMARY}
-              isLoading={isSaving}
-              disabled={needsBillingConsent && !hasAcknowledgedBilling}
-              dataTestId="guided-setup-create-monitors"
-              onClick={() => {
-                void createPicked();
-              }}
-            />
-          ) : (
-            <></>
-          )}
+          {/*
+           * One filled button, the thing to do next: Continue once every
+           * recommended monitor is watched, else Create (with Not now).
+           */}
           {offered.length === 0 ? (
             <Button
               title={TELEMETRY_SETUP_COPY.continueButton}
@@ -629,7 +616,29 @@ const TelemetryGuidedSetup: FunctionComponent = (): ReactElement => {
               }}
             />
           ) : (
-            notNow
+            <>
+              {canCreate ? (
+                <Button
+                  title={translator.translatePlural(
+                    {
+                      one: "Create {{count}} monitor",
+                      other: "Create {{count}} monitors",
+                    },
+                    picked.length,
+                  )}
+                  buttonStyle={ButtonStyleType.PRIMARY}
+                  isLoading={isSaving}
+                  disabled={needsBillingConsent && !hasAcknowledgedBilling}
+                  dataTestId="guided-setup-create-monitors"
+                  onClick={() => {
+                    void createPicked();
+                  }}
+                />
+              ) : (
+                <></>
+              )}
+              {notNow}
+            </>
           )}
           {monitors.length > 0 && failures.length > 0 ? (
             <Button

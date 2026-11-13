@@ -8,14 +8,14 @@ Ajoutez un contrôle dans l'onglet **Vérifications** d'une table :
 
 | Contrôle | Ce qu'il lit |
 | --- | --- |
-| **Null Percent** | Pourcentage de lignes dont la colonne est vide |
-| **Duplicate Percent** | Pourcentage de valeurs qui répètent celle d'une autre ligne |
-| **Distinct Count** | Nombre de valeurs différentes que contient la colonne |
+| **Pourcentage de NULL** | Pourcentage de lignes dont la colonne est vide |
+| **Pourcentage de doublons** | Pourcentage de valeurs qui répètent celle d'une autre ligne |
+| **Nombre de valeurs distinctes** | Nombre de valeurs différentes que contient la colonne |
 | **Minimum**, **Maximum**, **Moyenne**, **Somme** | D'une colonne numérique (la somme de zéro ligne vaut 0) |
-| **Invalid Percent** | Pourcentage de valeurs hors d'une liste que vous fournissez |
-| **Format Mismatch Percent** | Pourcentage de valeurs qui ne sont pas dans un format que vous choisissez, comme Email, UUID ou Country Code, ou qui ne correspondent pas à une expression régulière de votre choix (tous les moteurs sauf SQL Server et Dataverse) |
-| **Orphan Count** | Lignes dont la valeur n'a aucune correspondance dans la colonne d'une autre table |
-| **Row Count** | Lignes de la table, surtout utile avec **Segmenter par** |
+| **Pourcentage de valeurs invalides** | Pourcentage de valeurs hors d'une liste que vous fournissez |
+| **Pourcentage d'erreurs de format** | Pourcentage de valeurs qui ne sont pas dans un format que vous choisissez, comme Email, UUID ou Country Code, ou qui ne correspondent pas à une expression régulière de votre choix (tous les moteurs sauf SQL Server et Dataverse) |
+| **Nombre de lignes orphelines** | Lignes dont la valeur n'a aucune correspondance dans la colonne d'une autre table |
+| **Nombre de lignes** | Lignes de la table, surtout utile avec **Segmenter par** |
 | **SQL personnalisé** | Le nombre que renvoie l'un de vos SELECT en lecture seule, nommé `value` (sur MongoDB, celui d'un pipeline d'agrégation) |
 | **Lignes en échec** | Combien de lignes renvoie l'un de vos SELECT en lecture seule : les lignes qui ne devraient pas exister. 0 est sain (sur MongoDB, les documents auxquels aboutit un pipeline) |
 
@@ -48,13 +48,13 @@ Le **Statut** d'un contrôle, dans **Vérifications** et dans l'onglet **Vérifi
 
 Un contrôle se dispute la base de données avec votre application, et sur un entrepôt qui facture selon ce qu'une requête lit, il coûte de l'argent. Trois choses permettent de le maîtriser :
 
-- **Pourcentage d'échantillon** lit une part des lignes au lieu de toutes, pour un contrôle qui lit un taux : Null Percent, Moyenne, Invalid Percent et Format Mismatch Percent. La plupart des moteurs sautent des pages entières de la table ; MySQL, Redshift, ClickHouse et MongoDB lisent encore chaque ligne, et s'épargnent le travail sur les autres. Dataverse ne prend aucun échantillon : un contrôle y lit chaque ligne. Une vue peut le refuser, et le contrôle l'indique.
+- **Pourcentage d'échantillon** lit une part des lignes au lieu de toutes, pour un contrôle qui lit un taux : Pourcentage de NULL, Moyenne, Pourcentage de valeurs invalides et Pourcentage d'erreurs de format. La plupart des moteurs sautent des pages entières de la table ; MySQL, Redshift, ClickHouse et MongoDB lisent encore chaque ligne, et s'épargnent le travail sur les autres. Dataverse ne prend aucun échantillon : un contrôle y lit chaque ligne. Une vue peut le refuser, et le contrôle l'indique.
 - **Maximum lisible par une vérification (Go)**, sous **Paramètres**, arrête un contrôle sur BigQuery ou Athena avant qu'il ne lise plus de gigaoctets que cela. Il vaut 10 tant que vous ne le changez pas.
 - **Attendre quand une base de données est occupée**, sous **Paramètres**, laisse les contrôles dus pour la prochaine collecte quand une base de données PostgreSQL, MySQL ou SQL Server semble occupée. Il est activé tant que vous ne le désactivez pas, et la base de données indique quand des contrôles ont attendu.
 
 ## Lignes en échec
 
-Un nombre dit que quelque chose ne va pas ; quelques lignes disent quoi. **Conserver les Failing Rows** sous **Paramètres** conserve jusqu'à 20 des lignes qu'a trouvées un contrôle Failing Rows, Invalid Percent, Format Mismatch Percent ou Orphan Count, et **Lignes en échec** sur le contrôle les affiche. Ce réglage reste désactivé tant que vous ne l'activez pas. Les colonnes sensibles sont masquées à l'endroit où la ligne est lue, d'après ce que Sécurité des données y a trouvé ou d'après leurs noms, de sorte que ce qui quitte la base de données, ou une sonde, est déjà masqué. Une colonne sensible qu'aucune analyse n'a trouvée et dont le nom ne la trahit pas est conservée telle quelle.
+Un nombre dit que quelque chose ne va pas ; quelques lignes disent quoi. **Conserver les Failing Rows** sous **Paramètres** conserve jusqu'à 20 des lignes qu'a trouvées un contrôle Lignes en échec, Pourcentage de valeurs invalides, Pourcentage d'erreurs de format ou Nombre de lignes orphelines, et **Lignes en échec** sur le contrôle les affiche. Ce réglage reste désactivé tant que vous ne l'activez pas. Les colonnes sensibles sont masquées à l'endroit où la ligne est lue, d'après ce que Sécurité des données y a trouvé ou d'après leurs noms, de sorte que ce qui quitte la base de données, ou une sonde, est déjà masqué. Une colonne sensible qu'aucune analyse n'a trouvée et dont le nom ne la trahit pas est conservée telle quelle.
 
 Les lignes sont stockées dans OneUptime : sur les serveurs de OneUptime avec OneUptime Cloud, et sur les vôtres avec une installation auto-hébergée. Toute personne autorisée à lire les contrôles du projet peut les voir. Un contrôle ne conserve que les lignes de sa dernière exécution, et désactiver **Conserver les Failing Rows** supprime ce que chaque contrôle avait conservé.
 
@@ -104,9 +104,9 @@ Les clés sont `name`, `table`, `database`, `type`, `column`, `segment`, `accept
 
 Les copies dérivent : l'entrepôt a moins de commandes que la base de données de l'application, ou une migration a perdu des lignes. Un rapprochement compare une mesure de deux tables, dans une même base de données ou dans deux, sous **Rapprochements** :
 
-- **Row Count**
+- **Nombre de lignes**
 - **Somme** d'une colonne
-- **Distinct Count** d'une colonne
+- **Nombre de valeurs distinctes** d'une colonne
 - **SQL personnalisé** : une requête en lecture seule qui renvoie un seul nombre, nommé `value`
 
 Il a une tolérance : un montant fixe (**Absolue**) ou un pourcentage de la valeur de la source (**Pourcentage**). Chaque côté est lu par un contrôle qui lui est propre, que le rapprochement crée et maintient, avec la collecte de sa base de données : un rapprochement peut ainsi comparer une table PostgreSQL de votre réseau à sa copie dans Snowflake. Les deux valeurs sont comparées dès que les deux ont été lues à 15 minutes d'intervalle au plus. Un rapprochement écrit :

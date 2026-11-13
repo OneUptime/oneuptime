@@ -151,6 +151,11 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/OverviewSection";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import Route from "../../../Types/API/Route";
+import {
+  getUnexplainedServerErrorMessage,
+  SERVER_DOWN_MESSAGE,
+  UnexplainedErrorWords,
+} from "../../../Types/Exception/UnexplainedError";
 import { Green } from "../../../Types/BrandColors";
 import {
   MonitorUptimeSummary,
@@ -856,6 +861,55 @@ describe("MonitorUptimeHistoryCard", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * The first read failing is drawn as the card's refresh line draws an
+   * error (#7307): an error nobody explained says why and what to do next
+   * in the reader's words, never the fixed English it came as, and a server
+   * failure's reference is in code with its copy button.
+   */
+  test("a gateway's 502 says the server did not answer and to try again in a few minutes", () => {
+    renderCard({
+      summary: failSection<MonitorUptimeSummary>({
+        previous: getLoadingSection<MonitorUptimeSummary>(),
+        message: SERVER_DOWN_MESSAGE,
+        subjectId: SUBJECT,
+      }),
+    });
+
+    const error: HTMLElement = screen.getByTestId("monitor-uptime-error");
+
+    expect(error).toHaveTextContent(
+      `${UnexplainedErrorWords.serverDownWhy} ${UnexplainedErrorWords.serverDownNext}`,
+    );
+    expect(error.textContent).not.toContain(SERVER_DOWN_MESSAGE);
+    expect(error.textContent).not.toContain("Error connecting to server");
+    expect(within(error).getByRole("button", { name: "Try again" })).toBe(
+      within(error).getAllByRole("button")[0],
+    );
+  });
+
+  test("a server failure keeps its reference, in code, with its copy button", () => {
+    const message: string = getUnexplainedServerErrorMessage("1f0c9a2b");
+
+    renderCard({
+      summary: failSection<MonitorUptimeSummary>({
+        previous: getLoadingSection<MonitorUptimeSummary>(),
+        message: message,
+        subjectId: SUBJECT,
+      }),
+    });
+
+    const error: HTMLElement = screen.getByTestId("monitor-uptime-error");
+    const reference: HTMLElement = within(error).getByTestId("error-reference");
+
+    expect(error.textContent).not.toContain(message);
+    expect(error).toHaveTextContent(UnexplainedErrorWords.serverWhy);
+    expect(within(reference).getByText("1f0c9a2b").tagName).toBe("CODE");
+    expect(
+      within(reference).getByRole("button", { name: "Copy" }),
+    ).toBeInTheDocument();
   });
 
   test("clicking a bar opens the day dialog with that day's reading", () => {

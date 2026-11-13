@@ -59,6 +59,7 @@ import {
   describePollInterval,
 } from "./RecordingHealthModel";
 import { RUM_RECORDING_HEALTH_METRIC_DESCRIPTIONS } from "../MetricDescriptions/RumMetricDescriptions";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * RecordingHealthDashboard: the Replay Health page.
@@ -370,11 +371,11 @@ function HealthHero(props: {
                 className="mt-1 text-xs text-gray-500"
                 data-testid="health-error-message"
               >
-                {translator.translateTemplate(
-                  "Server said: {{message}}",
-                  { message: health.error.message },
-                  { setsValuesApart: true },
-                )}
+                <ErrorSentence
+                  template="Server said: {{message}}"
+                  error={health.error.message}
+                  errorPlaceholder="message"
+                />
               </p>
             )}
             {!health.isLoading && !hasNoStatus && health.diagnosis.action && (

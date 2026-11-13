@@ -237,6 +237,7 @@ import Route from "../../../Types/API/Route";
 import Link from "../../../Types/Link";
 import ObjectID from "../../../Types/ObjectID";
 import Navigation from "../../../UI/Utils/Navigation";
+import { SIDE_MENU_FOLDS_STORAGE_KEY } from "../../../UI/Components/SideMenu/SideMenuSectionState";
 import {
   DESKTOP_WIDTH,
   MOBILE_WIDTH,
@@ -415,6 +416,13 @@ function entry(section: string, title: string): HTMLElement {
 
 beforeEach(() => {
   setViewportWidth(DESKTOP_WIDTH);
+  /*
+   * Each test's menu starts from its defaults: a section an earlier test
+   * folded or opened by hand would otherwise be remembered in the browser
+   * (SideMenuSectionState's remembered folds, #6816). The routed tests draw
+   * the real layout, not the harness's renderMenu, which clears it too.
+   */
+  window.localStorage.removeItem(SIDE_MENU_FOLDS_STORAGE_KEY);
 });
 
 afterEach(() => {

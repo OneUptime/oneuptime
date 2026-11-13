@@ -187,12 +187,14 @@ describe("the scanner reads every thrown message, and only those", () => {
     expect(files).toContain(
       "packages/App/FeatureSet/Identity/API/Authentication.ts",
     );
+    // Named: wrap-regex wants a literal called on in parens, which Prettier drops.
+    const notTheProduct: RegExp =
+      /\/(Tests|node_modules|SchemaMigrations|dist)\//;
+    const testFileName: RegExp = /\.(test|spec)\.tsx?$/;
+
     expect(
       files.some((file: string): boolean => {
-        return (
-          /\/(Tests|node_modules|SchemaMigrations|dist)\//.test(file) ||
-          /\.(test|spec)\.tsx?$/.test(file)
-        );
+        return notTheProduct.test(file) || testFileName.test(file);
       }),
     ).toBe(false);
   });

@@ -221,6 +221,8 @@ const DefinedTerm: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const triggerId: string = useId();
+  // The word itself, which names the button.
+  const wordId: string = `${triggerId}-word`;
   const [read, setRead] = useState<ReadState>({ status: "idle" });
   const instanceRef: React.MutableRefObject<Instance | null> =
     useRef<Instance | null>(null);
@@ -345,6 +347,15 @@ const DefinedTerm: FunctionComponent<ComponentProps> = (
         <button
           type="button"
           id={triggerId}
+          /*
+           * Named by its own word. A field's <label> with no `for` (a
+           * dropdown's, a picker's) takes this button for the control it
+           * labels, so the button was named by that label - nothing on a
+           * required field, "(Optional)" on another - and the field, named
+           * by the label, could lose its title from its own name ("Probes",
+           * "Incident Severity").
+           */
+          aria-labelledby={wordId}
           data-testid={props.dataTestId || DEFINED_TERM_TEST_ID}
           data-glossary-term={props.term}
           className={DEFINED_TERM_CLASS_NAME}
@@ -362,7 +373,7 @@ const DefinedTerm: FunctionComponent<ComponentProps> = (
             }
           }}
         >
-          {props.children}
+          <span id={wordId}>{props.children}</span>
         </button>
       </Tippy>
     </span>

@@ -25,6 +25,7 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 import {
   ProfileCategory,
   formatProfileShare,
@@ -430,7 +431,7 @@ const ProfileFixStrip: FunctionComponent<ComponentProps> = (
           data-testid="profiles-fix-error"
         >
           {translator.translateTemplate(FIX_COULD_NOT_START, {
-            reason: error.reason,
+            reason: errorInSentence(error.reason),
           })}
         </p>
       ) : (

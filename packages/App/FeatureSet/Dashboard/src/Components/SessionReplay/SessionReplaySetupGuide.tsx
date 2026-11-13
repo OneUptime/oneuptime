@@ -56,6 +56,7 @@ import SessionReplayInstallSnippet, {
   getOneUptimeUrl,
 } from "./SessionReplayInstallSnippet";
 import { RecordingHealthDiagnosisBanner } from "./RecordingHealthCard";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /* Installation instructions and live checks on the Session Replay > Documentation page. */
 
@@ -765,15 +766,17 @@ const SessionReplaySetupGuide: FunctionComponent<ComponentProps> = (
                 className="mt-2 text-xs text-rose-700"
                 data-testid="setup-watch-error"
               >
-                {watchError.kind === "no-session"
-                  ? translator.translateText(
-                      "No playable session came back from the list. The count and the list disagree for a moment while a session is being written; try again in a few seconds.",
-                    )
-                  : translator.translateTemplate(
-                      "Could not open the newest session: {{reason}}",
-                      { reason: watchError.reason },
-                      { setsValuesApart: true },
-                    )}
+                {watchError.kind === "no-session" ? (
+                  translator.translateText(
+                    "No playable session came back from the list. The count and the list disagree for a moment while a session is being written; try again in a few seconds.",
+                  )
+                ) : (
+                  <ErrorSentence
+                    template="Could not open the newest session: {{reason}}"
+                    error={watchError.reason}
+                    errorPlaceholder="reason"
+                  />
+                )}
               </div>
             )}
           </>

@@ -31,7 +31,7 @@ La sonde ne rapporte que :
 
 | Valeur | Ce que c'est |
 |---|---|
-| **Row Count** | Le nombre de lignes renvoyées par la requête (borné par la limite Lignes max). |
+| **Nombre de lignes** | Le nombre de lignes renvoyées par la requête (borné par la limite Lignes max). |
 | **Valeur scalaire** | La première colonne de la première ligne. C'est la valeur naturelle d'une requête de type `SELECT COUNT(*)`. |
 | **Première ligne** | La première ligne sous forme de paires colonne/valeur, affichée dans le résumé de la vérification pour le contexte. |
 | **Durée d'exécution** | La durée de la vérification, en millisecondes — connexion comprise, pas seulement la requête. |
@@ -204,7 +204,7 @@ WHERE status = 'CANCELLED'
 :::
 
 > [!TIP]
-> Pour une requête de type `COUNT(*)`, le nombre est disponible à la fois comme **Row Count** (qui vaut `1`, puisqu'une ligne est renvoyée) et comme **Valeur scalaire** (le nombre lui-même, tiré de la première colonne). Pour alerter sur « combien », comparez à la **Valeur scalaire**.
+> Pour une requête de type `COUNT(*)`, le nombre est disponible à la fois comme **Nombre de lignes** (qui vaut `1`, puisqu'une ligne est renvoyée) et comme **Valeur scalaire** (le nombre lui-même, tiré de la première colonne). Pour alerter sur « combien », comparez à la **Valeur scalaire**.
 
 ## Utiliser un secret de moniteur pour le mot de passe
 

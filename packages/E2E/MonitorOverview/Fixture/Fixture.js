@@ -48,6 +48,10 @@
  *              who-is-told     the FIRST who-is-told request fails, as a
  *                              gateway's 502 does ("When this goes down"
  *                              says so; its Try again reads it again)
+ *              who-is-told-reference  the FIRST who-is-told request fails
+ *                              as a failure the server could not explain
+ *                              does: a 500 naming the reference of its log
+ *                              lines (1f0c9a2b)
  *   ?maintenance=1  the subject monitor has scheduled maintenance on its
  *              uptime strip: a completed database upgrade two days ago and
  *              load balancer patching in progress now. Without it the
@@ -229,6 +233,10 @@ import Team from "Common/Models/DatabaseModels/Team";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import {
+  ERROR_REFERENCE_FIELD,
+  getUnexplainedServerErrorMessage,
+} from "Common/Types/Exception/UnexplainedError";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import CommonURL from "Common/Types/API/URL";
@@ -261,6 +269,7 @@ import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import { APP_API_URL } from "Common/UI/Config";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import API from "Common/UI/Utils/API/API";
+import BaseAPI from "Common/Utils/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -3545,6 +3554,20 @@ async function handleApi(method, options) {
   });
   const parsed = new window.URL(url);
 
+  /*
+   * GET /global-config/vars, which anybody may read, as the server answers
+   * it (GlobalConfigAPI.buildVarsResponse): Create Monitor's card asks
+   * whether the server can send email (#6877). This one can, so the card
+   * says what it always said.
+   */
+  if (method === "GET" && parsed.pathname.endsWith("/global-config/vars")) {
+    return ok({
+      disableUserProjectCreation: false,
+      disablePushNotifications: false,
+      canSendEmail: true,
+    });
+  }
+
   if (
     method === "GET" &&
     parsed.pathname.endsWith("/monitor/active-monitor-limit")
@@ -3718,6 +3741,23 @@ async function handleApi(method, options) {
       return fail(502, "Bad Gateway");
     }
 
+    if (failures.has("who-is-told-reference") && !hasFailedWhoIsTold) {
+      hasFailedWhoIsTold = true;
+      /*
+       * A failure the server could not explain, as its last-resort handler
+       * answers it (Server/Utils/UnexplainedServerError): its sentence and
+       * the reference of its log lines.
+       */
+      return new HTTPErrorResponse(
+        500,
+        {
+          message: getUnexplainedServerErrorMessage("1f0c9a2b"),
+          [ERROR_REFERENCE_FIELD]: "1f0c9a2b",
+        },
+        {},
+      );
+    }
+
     return ok(whoIsTold(parsed.pathname.split("/").pop()));
   }
 
@@ -3743,21 +3783,27 @@ async function handleApi(method, options) {
   return ok({ data: [], count: 0 });
 }
 
-API.get = async (options) => {
-  return handleApi("GET", options);
-};
-API.post = async (options) => {
-  return handleApi("POST", options);
-};
-API.put = async (options) => {
-  return handleApi("PUT", options);
-};
-API.delete = async (options) => {
-  return handleApi("DELETE", options);
-};
-API.fetch = async (options) => {
-  return handleApi(options.method || "GET", options);
-};
+/*
+ * The Dashboard's API, and the base one under it: GlobalConfigUtil reads
+ * GET /global-config/vars through that one.
+ */
+for (const api of [API, BaseAPI]) {
+  api.get = async (options) => {
+    return handleApi("GET", options);
+  };
+  api.post = async (options) => {
+    return handleApi("POST", options);
+  };
+  api.put = async (options) => {
+    return handleApi("PUT", options);
+  };
+  api.delete = async (options) => {
+    return handleApi("DELETE", options);
+  };
+  api.fetch = async (options) => {
+    return handleApi(options.method || "GET", options);
+  };
+}
 
 // The production helpers, handed the page's i18next instance before it starts.
 followLanguageForPage(i18next);

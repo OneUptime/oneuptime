@@ -7,6 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import "@testing-library/jest-dom";
 import {
   act,
@@ -210,9 +211,7 @@ describe("the nav bar", () => {
 
   test("a pin from a card keeps the product for the person, and says so", async () => {
     given({ pinned: [] });
-    const post: jest.SpiedFunction<
-      typeof ProjectProductsApi.postPinnedProducts
-    > = jest
+    const post: SpyInstance<typeof ProjectProductsApi.postPinnedProducts> = jest
       .spyOn(ProjectProductsApi, "postPinnedProducts")
       .mockImplementation(
         async (
@@ -308,12 +307,11 @@ describe("Project Settings > Products", () => {
 
   test("flipping a switch hides the product, says Saved, and sends the event", async () => {
     given({ canChooseProducts: true });
-    const post: jest.SpiedFunction<typeof ProjectProductsApi.postProductShown> =
-      jest
-        .spyOn(ProjectProductsApi, "postProductShown")
-        .mockResolvedValue(
-          answer({ hidden: [ProductKey.Kubernetes], canChooseProducts: true }),
-        );
+    const post: SpyInstance<typeof ProjectProductsApi.postProductShown> = jest
+      .spyOn(ProjectProductsApi, "postProductShown")
+      .mockResolvedValue(
+        answer({ hidden: [ProductKey.Kubernetes], canChooseProducts: true }),
+      );
 
     render(wrap(<ProductsSettings />));
 
@@ -517,10 +515,9 @@ describe("Home's line about a hidden product with data", () => {
       hiddenWithData: [ProductKey.Logs],
       canChooseProducts: true,
     });
-    const post: jest.SpiedFunction<typeof ProjectProductsApi.postProductShown> =
-      jest
-        .spyOn(ProjectProductsApi, "postProductShown")
-        .mockResolvedValue(answer({ canChooseProducts: true }));
+    const post: SpyInstance<typeof ProjectProductsApi.postProductShown> = jest
+      .spyOn(ProjectProductsApi, "postProductShown")
+      .mockResolvedValue(answer({ canChooseProducts: true }));
 
     render(wrap(<HiddenProductsWithData />));
 
@@ -551,12 +548,11 @@ describe("Home's line about a hidden product with data", () => {
       hiddenWithData: [ProductKey.Logs],
       canChooseProducts: true,
     });
-    const post: jest.SpiedFunction<typeof ProjectProductsApi.postProductShown> =
-      jest
-        .spyOn(ProjectProductsApi, "postProductShown")
-        .mockResolvedValue(
-          answer({ hidden: [ProductKey.Logs], canChooseProducts: true }),
-        );
+    const post: SpyInstance<typeof ProjectProductsApi.postProductShown> = jest
+      .spyOn(ProjectProductsApi, "postProductShown")
+      .mockResolvedValue(
+        answer({ hidden: [ProductKey.Logs], canChooseProducts: true }),
+      );
 
     render(wrap(<HiddenProductsWithData />));
 
