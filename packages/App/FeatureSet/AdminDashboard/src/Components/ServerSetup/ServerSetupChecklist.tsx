@@ -90,7 +90,7 @@ export const SERVER_SETUP_COPY: {
     setUpBackups: string;
     isBackedUp: string;
     readTheGuide: string;
-    addAiProvider: string;
+    addLlmProvider: string;
     setUpSingleSignOn: string;
     undo: string;
   };
@@ -128,7 +128,7 @@ export const SERVER_SETUP_COPY: {
     setUpBackups: "Set up backups",
     isBackedUp: "This server is backed up",
     readTheGuide: "Read the guide",
-    addAiProvider: "Add an AI provider",
+    addLlmProvider: "Add an LLM provider",
     setUpSingleSignOn: "Set up single sign-on",
     undo: "Undo",
   },
@@ -520,7 +520,7 @@ export const getServerSetupRow: (data: {
       if (!check.isFinished) {
         actions.push({
           kind: "route",
-          title: SERVER_SETUP_COPY.actions.addAiProvider,
+          title: SERVER_SETUP_COPY.actions.addLlmProvider,
           route: route(PageMap.SETTINGS_LLM_PROVIDERS),
         });
       }

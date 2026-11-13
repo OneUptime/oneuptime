@@ -460,7 +460,7 @@ describe("the rows of a server that has just started", () => {
       `guide | Read the guide | ${SERVER_SETUP_GUIDES.browserPush}`,
     ]);
     expect(actionsOf(row(rows, ServerSetupCheckId.AiProvider))).toEqual([
-      "route | Add an AI provider | /admin/settings/llm-providers",
+      "route | Add an LLM provider | /admin/settings/llm-providers",
     ]);
     expect(actionsOf(row(rows, ServerSetupCheckId.SingleSignOn))).toEqual([
       "route | Set up single sign-on | /admin/settings/sso",
@@ -990,6 +990,7 @@ describe("its words, in every language the Admin Dashboard speaks", () => {
           "VAPID",
           "GitHub",
           "HTTPS",
+          "LLM",
         ]) {
           if (word.includes(literal)) {
             expect({

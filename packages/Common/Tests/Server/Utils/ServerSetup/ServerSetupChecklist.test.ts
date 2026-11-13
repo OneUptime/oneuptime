@@ -14,7 +14,7 @@ import type { Mock } from "jest-mock";
  * ServerSetupChecklist reads every fact the checks need - the settings row
  * (email, SMS and calls as #6825's ServerSendingStatus words them, the
  * sign-up switch, the update check, the admins' choices), the global
- * probes, the last backup, the AI providers, single sign-on, and the
+ * probes, the last backup, the global LLM providers, single sign-on, and the
  * server's own settings (HTTP_PROTOCOL, DISABLE_UPDATE_CHECK, VAPID keys) -
  * and answers the checklist from them. A read that fails costs one check,
  * never the page. Choices and hides are written as OneUptime, with who made
@@ -486,7 +486,7 @@ describe("what it reads", () => {
     ).toBe(ServerSetupStatus.Done);
   });
 
-  test("an AI provider is a global one; single sign-on an enabled global SSO or OIDC provider", async () => {
+  test("an LLM provider is a global one; single sign-on an enabled global SSO or OIDC provider", async () => {
     storedConfig = {};
 
     await ServerSetupChecklist.getAnswer();
