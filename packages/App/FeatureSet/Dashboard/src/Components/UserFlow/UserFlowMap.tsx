@@ -32,6 +32,8 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { joinWithArrowsInDirection } from "Common/Types/DirectionArrow";
+import { LEFT_TO_RIGHT } from "Common/Types/ReadingDirection";
 import { getLineDirection } from "Common/UI/Utils/LineDirection";
 
 /*
@@ -559,12 +561,20 @@ const UserFlowMap: FunctionComponent<ComponentProps> = (
 
                     setHoverLinkId(band.link.id);
                     setHoverNodeId(null);
+                    /*
+                     * The map runs left to right on every page, so its
+                     * band is named the map's way: "/home → /cart".
+                     */
                     setTooltip({
                       x: at.x,
                       y: at.y,
-                      title: `${source ? labelOf(source.node) : ""} → ${
-                        target ? labelOf(target.node) : ""
-                      }`,
+                      title: joinWithArrowsInDirection(
+                        [
+                          source ? labelOf(source.node) : "",
+                          target ? labelOf(target.node) : "",
+                        ],
+                        LEFT_TO_RIGHT,
+                      ),
                       lines: describeLink(band.link),
                     });
                   }}

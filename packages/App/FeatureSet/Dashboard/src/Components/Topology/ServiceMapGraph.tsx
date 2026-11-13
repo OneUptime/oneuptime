@@ -24,6 +24,7 @@ import ReactFlow, {
 } from "reactflow";
 import "reactflow/dist/style.css";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import DirectionArrow from "Common/UI/Components/DirectionArrow/DirectionArrow";
 import Icon from "Common/UI/Components/Icon/Icon";
 import useResizableColumns, {
   ResizableColumns,
@@ -968,7 +969,11 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
               )}
               className="mt-4 inline-flex text-sm font-medium text-indigo-600 hover:text-indigo-800"
             >
-              {t("Set up tracing")} <span aria-hidden={true}>&nbsp;→</span>
+              {t("Set up tracing")}{" "}
+              <span aria-hidden={true}>
+                &nbsp;
+                <DirectionArrow />
+              </span>
             </Link>
           </div>
         </div>
@@ -1221,7 +1226,8 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
                           focusOn(entry.key);
                         }}
                       >
-                        {t("Show on map")} <span aria-hidden={true}>→</span>
+                        {t("Show on map")}{" "}
+                        <DirectionArrow isDecorative={true} />
                       </button>
                     </td>
                   </tr>
