@@ -36,6 +36,23 @@ export type LayersSaveStatus =
 export const LAYERS_SAVE_BAR_SHOWN_CHANGES: number = 3;
 
 /*
+ * The row the bar's buttons sit in. Narrower than 40rem it is the bar's
+ * last row, under the words; from 40rem it is at the bar's end, beside
+ * them. Its buttons undo the dialog footer's left margin Button gives them.
+ */
+export const LAYERS_SAVE_BAR_ACTIONS_CLASS_NAME: string =
+  "flex flex-shrink-0 flex-wrap items-center gap-2 [@container(min-width:40rem)]:justify-end [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0";
+
+/*
+ * Each button of the bar. Narrower than 40rem the buttons share their row,
+ * half the bar each, and one goes to a row of its own only when a
+ * language's words do not fit both: their words never break inside a
+ * button. From 40rem each is as wide as its words.
+ */
+export const LAYERS_SAVE_BAR_BUTTON_CLASS_NAME: string =
+  "flex-1 whitespace-nowrap [@container(min-width:40rem)]:w-auto [@container(min-width:40rem)]:flex-none";
+
+/*
  * The changes, one line each, as the bar names them: the layers deleted, a
  * new priority order, then each layer's people added, taken out and put in
  * another turn order. Without the changes worked out, one line that says
@@ -135,10 +152,13 @@ const LayersSaveBar: FunctionComponent<ComponentProps> = (
    * In view at the foot of the window while the page scrolls under it, and
    * in the page's flow at its end. It lays itself out by its own width, not
    * the window's: beside a record page's side menu it is some 460px wide in
-   * a 768px window. Narrower than 40rem, its buttons stack as wide as the
-   * bar, as a dialog's do; from 40rem they sit beside the words. A button
-   * keeps a dialog footer's left margin (md:ml-3) and, below md, a phone's
-   * full width: both are cleared here so the two sit as a pair.
+   * a 768px window. Narrower than 40rem, its buttons share one row under the
+   * words, half the bar each, and a button goes to a row of its own only
+   * when a language's words do not fit both: stacked one above the other,
+   * they made the bar a third of a phone's screen, over the layers being
+   * changed. From 40rem they sit beside the words. A button keeps a dialog
+   * footer's left margin (md:ml-3) and, below md, a phone's full width:
+   * both are cleared here so the two sit as a pair.
    */
   const frame: (children: ReactElement, testId: string) => ReactElement = (
     children: ReactElement,
@@ -156,11 +176,9 @@ const LayersSaveBar: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const actionsClassName: string =
-    "grid flex-shrink-0 grid-cols-1 gap-2 [@container(min-width:40rem)]:flex [@container(min-width:40rem)]:flex-wrap [@container(min-width:40rem)]:items-center [@container(min-width:40rem)]:justify-end [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0";
+  const actionsClassName: string = LAYERS_SAVE_BAR_ACTIONS_CLASS_NAME;
 
-  // A primary button is as wide as a phone: in a wide bar, as wide as its words.
-  const primaryButtonClassName: string = "[@container(min-width:40rem)]:w-auto";
+  const buttonClassName: string = LAYERS_SAVE_BAR_BUTTON_CLASS_NAME;
 
   if (status.kind === "conflict") {
     return frame(
@@ -175,7 +193,7 @@ const LayersSaveBar: FunctionComponent<ComponentProps> = (
             </p>
             <p className="mt-0.5 text-sm text-gray-600">
               {translator.translateText(
-                "They were changed after you opened this page, so your changes were not saved. Reload to see the layers as they are now, then make your changes again.",
+                "Your changes were not saved. Reload to see the layers as they are now, then make your changes again.",
               )}
             </p>
           </div>
@@ -185,7 +203,7 @@ const LayersSaveBar: FunctionComponent<ComponentProps> = (
             title="Reload layers"
             icon={IconProp.Refresh}
             buttonStyle={ButtonStyleType.PRIMARY}
-            className={primaryButtonClassName}
+            className={buttonClassName}
             isLoading={Boolean(props.isReloading)}
             disabled={Boolean(props.isReloading)}
             dataTestId="layers-save-bar-reload"
@@ -231,7 +249,7 @@ const LayersSaveBar: FunctionComponent<ComponentProps> = (
             title="Reload layers"
             icon={IconProp.Refresh}
             buttonStyle={ButtonStyleType.PRIMARY}
-            className={primaryButtonClassName}
+            className={buttonClassName}
             isLoading={Boolean(props.isReloading)}
             disabled={Boolean(props.isReloading)}
             dataTestId="layers-save-bar-reload"
@@ -334,7 +352,7 @@ const LayersSaveBar: FunctionComponent<ComponentProps> = (
         <Button
           title="Discard"
           buttonStyle={ButtonStyleType.OUTLINE}
-          className="w-full [@container(min-width:40rem)]:w-auto"
+          className={buttonClassName}
           disabled={isSaving}
           dataTestId="layers-save-bar-discard"
           onClick={props.onDiscard}
@@ -342,7 +360,7 @@ const LayersSaveBar: FunctionComponent<ComponentProps> = (
         <Button
           title={isSaving ? "Saving…" : "Save changes"}
           buttonStyle={ButtonStyleType.PRIMARY}
-          className={primaryButtonClassName}
+          className={buttonClassName}
           isLoading={isSaving}
           disabled={isSaving}
           dataTestId="layers-save-bar-save"

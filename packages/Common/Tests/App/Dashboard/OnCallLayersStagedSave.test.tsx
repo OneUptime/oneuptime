@@ -683,6 +683,60 @@ async function clickSave(): Promise<void> {
   });
 }
 
+// What the page's changes are made with, each a button of its own.
+const CHANGE_BUTTONS: ReadonlyArray<string> = [
+  "Remove user from layer",
+  "Add User",
+  "Delete layer",
+  "Add Layer",
+  "Add another layer",
+];
+
+// Each change button on the page, by name, and whether it can be pressed.
+function changeButtons(): Array<{ name: string; disabled: boolean }> {
+  return CHANGE_BUTTONS.flatMap(
+    (name: string): Array<{ name: string; disabled: boolean }> => {
+      return screen
+        .getAllByRole("button", { name: name })
+        .map((button: HTMLElement): { name: string; disabled: boolean } => {
+          return { name, disabled: (button as HTMLButtonElement).disabled };
+        });
+    },
+  );
+}
+
+/*
+ * The page's changes wait: nobody can be dragged, taken out or added, and
+ * no layer moved, deleted or added.
+ */
+function expectChangesToWait(): void {
+  expect(
+    document.querySelectorAll("[data-rbd-drag-handle-draggable-id]").length,
+  ).toBe(0);
+  expect(
+    changeButtons().filter((button: { disabled: boolean }): boolean => {
+      return !button.disabled;
+    }),
+  ).toEqual([]);
+  for (const button of screen.queryAllByRole("button", {
+    name: /^Move layer (up|down)/,
+  })) {
+    expect(button).toBeDisabled();
+  }
+}
+
+// The page takes changes again.
+function expectChangesToBeOpen(): void {
+  expect(
+    document.querySelectorAll("[data-rbd-drag-handle-draggable-id]").length,
+  ).toBeGreaterThan(0);
+  expect(
+    changeButtons().filter((button: { disabled: boolean }): boolean => {
+      return button.disabled;
+    }),
+  ).toEqual([]);
+}
+
 function onCallNow(): string {
   return (
     screen.getAllByTestId("layer-card-live-status")[0]!.textContent || ""
@@ -1104,7 +1158,7 @@ describe("Save changes", () => {
     ).not.toContain(BOB);
   });
 
-  test("someone else changed the layers first: nothing is saved, and the bar asks for a reload", async () => {
+  test("someone else changed the layers first: nothing is saved, changes wait, and the bar asks for a reload", async () => {
     await renderLayers();
     await drag(CAROL, -2);
 
@@ -1123,7 +1177,7 @@ describe("Save changes", () => {
     );
     expect(conflict).toHaveTextContent("Someone else changed these layers");
     expect(conflict).toHaveTextContent(
-      "They were changed after you opened this page, so your changes were not saved.",
+      "Your changes were not saved. Reload to see the layers as they are now, then make your changes again.",
     );
     // Nothing of this page's was saved; its changes are still on it.
     expect(
@@ -1142,6 +1196,15 @@ describe("Save changes", () => {
     ]);
     expect(LeaveGuard.isHeld()).toBe(true);
 
+    /*
+     * A change made now would be refused as well - the layers have moved on
+     * - so every change waits for Reload layers, and the bar offers nothing
+     * else to press.
+     */
+    expectChangesToWait();
+    expect(screen.queryByTestId("layers-save-bar-save")).toBeNull();
+    expect(screen.queryByTestId("layers-save-bar-discard")).toBeNull();
+
     await act(async () => {
       fireEvent.click(screen.getByTestId("layers-save-bar-reload"));
     });
@@ -1158,6 +1221,9 @@ describe("Save changes", () => {
     expect(screen.queryByTestId("layers-save-bar")).toBeNull();
     expect(LeaveGuard.isHeld()).toBe(false);
     expect(saveCalls.length).toBe(1);
+
+    // Read again: changes are made once more.
+    expectChangesToBeOpen();
   });
 
   test("saved, but the layers could not be read back: nothing is marked unsaved, and changes wait for Reload layers", async () => {
@@ -1400,6 +1466,11 @@ describe("Add Layer while changes are held", () => {
     expect(saveCalls).toEqual([]);
     // The drag is still on the page, unsaved, until the reload.
     expect(shownPeople()[0]).toBe("Carol Chen");
+    // Another layer, like any other change, waits for the reload.
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Add Layer" })).toBeDisabled();
+    });
+    expectChangesToWait();
 
     await act(async () => {
       fireEvent.click(screen.getByTestId("layers-save-bar-reload"));
@@ -1414,6 +1485,7 @@ describe("Add Layer while changes are held", () => {
     expect(screen.queryByTestId("layers-save-bar")).toBeNull();
     expect(LeaveGuard.isHeld()).toBe(false);
     expect(saveCalls).toEqual([]);
+    expectChangesToBeOpen();
   });
 });
 

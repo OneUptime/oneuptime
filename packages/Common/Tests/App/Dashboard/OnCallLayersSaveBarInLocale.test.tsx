@@ -57,12 +57,12 @@ const TEXTS: ReadonlyArray<string> = [
   "Removed when you save",
   "Someone else changed these layers",
   "The page could not load the layers again. Reload to keep editing them.",
-  "They were changed after you opened this page, so your changes were not saved. Reload to see the layers as they are now, then make your changes again.",
   "Undo deleting {{name}}",
   "Undo removing {{name}}",
   "Unsaved changes to the layers",
   "You have unsaved changes to this schedule's layers. If you discard them, the layers go back to how they were last saved.",
   "You have unsaved changes to this schedule's layers. If you leave now, they will be lost.",
+  "Your changes were not saved. Reload to see the layers as they are now, then make your changes again.",
   "Your changes were saved",
   "and {{count}} more changes",
   "and {{count}} more changes_one",
@@ -245,7 +245,7 @@ const ENGLISH_SENTENCES: ReadonlyArray<string> = [
   "Save changes",
   "Discard",
   "Someone else changed these layers",
-  "They were changed after you opened this page",
+  "Your changes were not saved.",
   "Reload layers",
   "Your changes were saved",
   "The page could not load the layers again.",
@@ -436,7 +436,7 @@ describe.each([...DRAWN_LANGUAGES])(
       expect(text).toContain(
         word(
           language,
-          "They were changed after you opened this page, so your changes were not saved. Reload to see the layers as they are now, then make your changes again.",
+          "Your changes were not saved. Reload to see the layers as they are now, then make your changes again.",
         ),
       );
       expect(text).toContain(word(language, "Reload layers"));

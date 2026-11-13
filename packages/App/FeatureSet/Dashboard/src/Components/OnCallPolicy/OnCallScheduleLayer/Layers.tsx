@@ -1009,14 +1009,17 @@ const Layers: FunctionComponent<ComponentProps> = (
   /*
    * While the page saves, adds a layer or reads the layers again, its other
    * changes wait: Add layer, and moving, deleting or changing the people of
-   * a layer. So they do after a save the page could not read back, until
-   * Reload layers: a change made to the layers as the page last read them
-   * would be refused, since the save moved them on.
+   * a layer. So they do after a save the page could not read back, and
+   * after someone else changed the layers first, until Reload layers: a
+   * change made to the layers as the page last read them would be refused,
+   * since they have moved on. The page's changes stay in view meanwhile, so
+   * whoever made them can see what to make again once the layers are read.
    */
   const isMutating: boolean =
     isAddButtonLoading ||
     saveStatus.kind === "saving" ||
     saveStatus.kind === "reloadFailed" ||
+    saveStatus.kind === "conflict" ||
     isReloading;
 
   const addLayerButton: GetReactElementFunction = (): ReactElement => {
