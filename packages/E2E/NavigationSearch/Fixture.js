@@ -60,6 +60,9 @@ await i18n.use(initReactI18next).init({
  */
 followLanguageForDates(i18n);
 
+// Dates in the reader's language ("vor 2 Stunden"), as Utils/i18n.ts sets them.
+followLanguageForDates(i18n);
+
 // <html lang dir> follow the reader's language: Arabic reads right to left.
 followLanguageForPage(i18n);
 

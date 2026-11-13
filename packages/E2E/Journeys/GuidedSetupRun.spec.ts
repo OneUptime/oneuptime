@@ -8,8 +8,9 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
  * run it lost - a private window, another device, storage cleared - makes
  * no second monitor for the same address: the setup goes on with the one
  * this person already has, and says so, in a line that wraps inside the
- * step on a phone however long the address. What the fixture's server kept
- * is the proof, as it is for a journey.
+ * step on a phone however long the address. The status page setup does the
+ * same for a page's name (#7252). What the fixture's server kept is the
+ * proof, as it is for a journey.
  *
  * Not a journey: nothing is counted or budgeted (Tests/Ops/JourneyBudgets.json).
  */
@@ -121,10 +122,14 @@ async function openSetup(page: Page): Promise<void> {
 
 /*
  * The browser forgets the run, as a private window, another device or
- * cleared site data would; the fixture's server keeps the monitor (its
- * writes live in the tab's sessionStorage). Then the page opens again.
+ * cleared site data would; the fixture's server keeps what the run made
+ * (its writes live in the tab's sessionStorage). Then the page opens
+ * again, on the setup's first step.
  */
-async function loseTheRunAndReload(page: Page): Promise<void> {
+async function loseTheRunAndReload(
+  page: Page,
+  firstStep: string = "check",
+): Promise<void> {
   await page.evaluate((prefix: string) => {
     for (const key of Object.keys(window.localStorage)) {
       if (key.startsWith(prefix)) {
@@ -136,7 +141,41 @@ async function loseTheRunAndReload(page: Page): Promise<void> {
   await expect(page.getByTestId("guided-setup")).toBeVisible();
   await expect
     .poll(async () => {
-      return await stepState(page, "check");
+      return await stepState(page, firstStep);
+    })
+    .toBe("open");
+}
+
+/*
+ * THE STATUS PAGE SETUP (#7252), over the website monitor the first journey
+ * leaves (?seed=monitor): step 1 names the page and picks what it shows,
+ * and the page is made with them.
+ */
+const STATUS_PAGE_SETUP: string = `/dashboard/${PROJECT}/status-pages/setup?seed=monitor`;
+// The seeded monitor's name (Fixture/NewProject.js).
+const SEEDED_MONITOR: string = "Acme website";
+
+async function openStatusPageSetup(page: Page): Promise<void> {
+  await page.goto(`${ORIGIN}${STATUS_PAGE_SETUP}`);
+  await expect(page.getByTestId("guided-setup")).toBeVisible();
+  await expect
+    .poll(async () => {
+      return await stepState(page, "pick");
+    })
+    .toBe("open");
+}
+
+// Step 1, as a person does it: a name (left as it starts when none is given), the monitor, Create.
+async function nameAndPublish(page: Page, name?: string): Promise<void> {
+  if (name !== undefined) {
+    await page.getByLabel("Status page name").fill(name);
+  }
+
+  await page.getByLabel(SEEDED_MONITOR).check();
+  await page.getByRole("button", { name: "Create the status page" }).click();
+  await expect
+    .poll(async () => {
+      return await stepState(page, "review");
     })
     .toBe("open");
 }
@@ -264,5 +303,137 @@ test("a long address on a phone: the note comes first, and both lines of the ste
   });
   await expectNoSidewaysScroll(page, {
     message: "the first step, a long address, 390 pixels wide",
+  });
+});
+
+/*
+ * A STATUS PAGE RUN THE BROWSER LOST (#7252): the status page setup keeps
+ * its run in the browser too, and a lost run - a private window, another
+ * device, storage cleared, another tab - made a second page with the same
+ * name. Now the name typed, however it is typed, goes on with this
+ * person's own page of that name, adds the monitors picked to it, and step
+ * 2 says so; the fixture's server kept one status page and one monitor on
+ * it. Setting up another page after it starts with no name, so the next
+ * page is a page of its own.
+ */
+test("a status page run this browser lost: the same name goes on with the page already made, and says so; another name gets its own", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openStatusPageSetup(page);
+  // The name the setup starts with: the project's.
+  await expect(page.getByLabel("Status page name")).toHaveValue(
+    "Acme Commerce Status",
+  );
+  await nameAndPublish(page);
+  expect(await creates(page, "StatusPage")).toBe(1);
+  expect(await creates(page, "StatusPageResource")).toBe(1);
+  await expect(
+    page.getByTestId("guided-setup-existing-status-page"),
+  ).toHaveCount(0);
+
+  await loseTheRunAndReload(page, "pick");
+
+  // The same name, typed another way.
+  await nameAndPublish(page, "  acme commerce   STATUS ");
+  await expect(
+    page.getByTestId("guided-setup-existing-status-page"),
+  ).toHaveText(
+    'You already have a status page named "Acme Commerce Status", so no new one was made.',
+  );
+  // The monitor is on the page already: nothing is added twice.
+  expect(await creates(page, "StatusPage")).toBe(1);
+  expect(await creates(page, "StatusPageResource")).toBe(1);
+
+  // And the run goes on with it, to the summary.
+  await page.getByRole("button", { name: "Looks good" }).click();
+  await expect(page.getByTestId("guided-setup-summary")).toContainText(
+    '"Acme Commerce Status" is live',
+  );
+
+  // Another page starts with no name, and a name of its own is its own page.
+  await page
+    .getByRole("button", { name: "Set up another status page" })
+    .click();
+  await expect
+    .poll(async () => {
+      return await stepState(page, "pick");
+    })
+    .toBe("open");
+  await expect(page.getByLabel("Status page name")).toHaveValue("");
+  await nameAndPublish(page, "Acme Commerce Internal Status");
+  await expect(
+    page.getByTestId("guided-setup-existing-status-page"),
+  ).toHaveCount(0);
+  expect(await creates(page, "StatusPage")).toBe(2);
+  expect(await creates(page, "StatusPageResource")).toBe(2);
+});
+
+/*
+ * A long name is one word to the browser: on a phone the note naming the
+ * page, the preview's name and the summary's title wrap inside the step
+ * and the summary instead of running past them.
+ */
+test("a long status page name on a phone: the note comes first in step 2, and every line naming the page wraps", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  const name: string =
+    "Storefrontcheckoutandpaymentsreadinessforeuropeandasiacustomers";
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openStatusPageSetup(page);
+  await nameAndPublish(page, name);
+  expect(await creates(page, "StatusPage")).toBe(1);
+
+  await loseTheRunAndReload(page, "pick");
+
+  await nameAndPublish(page, name.toUpperCase());
+  await expect(
+    page.getByTestId("guided-setup-existing-status-page"),
+  ).toHaveText(
+    `You already have a status page named "${name}", so no new one was made.`,
+  );
+  expect(await creates(page, "StatusPage")).toBe(1);
+
+  // The note first in the step.
+  await expect(
+    page.getByTestId("guided-setup-step-review-content").locator("p").first(),
+  ).toHaveAttribute("data-testid", "guided-setup-existing-status-page");
+
+  expect(
+    await textOverflowOf(page, [
+      "guided-setup-existing-status-page",
+      "guided-setup-preview-name",
+      "guided-setup-preview",
+      "guided-setup-step-review",
+    ]),
+  ).toEqual({
+    "guided-setup-existing-status-page": 0,
+    "guided-setup-preview-name": 0,
+    "guided-setup-preview": 0,
+    "guided-setup-step-review": 0,
+  });
+  await expectNoSidewaysScroll(page, {
+    message: "step 2, a long status page name, 390 pixels wide",
+  });
+
+  await page.getByRole("button", { name: "Looks good" }).click();
+  await expect(page.getByTestId("guided-setup-summary-title")).toHaveText(
+    `"${name}" is live`,
+  );
+  expect(
+    await textOverflowOf(page, [
+      "guided-setup-summary-title",
+      "guided-setup-summary",
+    ]),
+  ).toEqual({
+    "guided-setup-summary-title": 0,
+    "guided-setup-summary": 0,
+  });
+  await expectNoSidewaysScroll(page, {
+    message: "the summary, a long status page name, 390 pixels wide",
   });
 });

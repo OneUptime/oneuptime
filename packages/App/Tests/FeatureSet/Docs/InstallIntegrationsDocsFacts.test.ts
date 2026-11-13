@@ -27,6 +27,7 @@ import { RETENTION_TTL_ROUNDED_UP_TO_EVENT_DAY } from "Common/Types/AnalyticsDat
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import { getTableColumns } from "Common/Types/Database/TableColumn";
 import Domain from "Common/Types/Domain";
+import { isEmptyErrorPhrase } from "Common/Types/Exception/ErrorMessageRule";
 import Permission, {
   PermissionHelper,
   PermissionProps,
@@ -2768,9 +2769,21 @@ describe("Microsoft Teams Integration, against the server and the Teams card", (
     expect(readSource("startServer")).toContain(
       "new NotFoundException(`Page not found - ${req.url}`)",
     );
-    expect(readSource("response")).toContain(
-      "oneUptimeResponse.status(status).send({ message });",
+    /*
+     * The answer is the message alone: only a BadDataExceptionWithDetails
+     * adds fields beside it, and only an empty message is answered with the
+     * unexplained-error body instead.
+     */
+    const response: string = readSource("response");
+    expect(response).toContain(
+      "error instanceof BadDataExceptionWithDetails ? error.details : {};",
     );
+    expect(response).toContain(
+      ".send({ ...details, message: error.message });",
+    );
+    expect(
+      isEmptyErrorPhrase("Page not found - /api/microsoft-bot/messages"),
+    ).toBe(false);
     expect(Buffer.byteLength(body)).toBe(58);
     expect(page).toContain(`\`${body}\``);
     expect(page).toContain(

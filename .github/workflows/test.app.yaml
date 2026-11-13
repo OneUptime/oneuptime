@@ -1772,6 +1772,10 @@ jobs:
           # 2026-11-12, when Status Page Theme's resource grid spec (#7238)
           # would have taken that group to 22.7: about 15.5, the rest still
           # room for the journeys.
+          # The status page setup's lost run (#7252) added 2 tests to the
+          # journeys, the second a long name at 390 pixels: 17 seconds locally
+          # (on a loaded machine) - test-journeys-ui planned as 3.2, this group
+          # about 16.0 (Ask AI is planned as 4.7 now).
           - group: 22
             suites: >-
               test-journeys-ui

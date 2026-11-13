@@ -34,6 +34,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import DashboardModelQueryInterpolation, {
   AttributeToColumnMap,
 } from "Common/Utils/Dashboard/ModelQueryVariableInterpolation";
+import { getUnnamedText } from "./DashboardWidgetFallbackWords";
 
 const ATTRIBUTE_TO_COLUMN: AttributeToColumnMap = {
   "container.image.name": "name",
@@ -169,7 +170,7 @@ const DashboardDockerImageListComponentElement: FunctionComponent<
   const honeycombTiles: Array<HoneycombTile> = images.map(
     (img: DockerResource): HoneycombTile => {
       const id: string = (img._id as string) || "";
-      const name: string = (img.name as string) || "Unnamed";
+      const name: string = (img.name as string) || getUnnamedText();
       const imageId: string = (img.containerId as string) || "—";
       const hostName: string = (img.dockerHost?.name as string) || "—";
 
@@ -190,7 +191,7 @@ const DashboardDockerImageListComponentElement: FunctionComponent<
 
   const rows: Array<ReactElement> = images.map((img: DockerResource) => {
     const id: string = (img._id as string) || "";
-    const name: string = (img.name as string) || "Unnamed";
+    const name: string = (img.name as string) || getUnnamedText();
     const imageId: string = (img.containerId as string) || "—";
     const hostName: string = (img.dockerHost?.name as string) || "—";
 
@@ -218,7 +219,10 @@ const DashboardDockerImageListComponentElement: FunctionComponent<
   return (
     <DashboardResourceListBase
       title={args.title}
-      pluralLabel="images"
+      countLabel={{
+        one: "{{count}} container image",
+        other: "{{count}} container images",
+      }}
       columns={COLUMNS}
       count={images.length}
       isLoading={isLoading}

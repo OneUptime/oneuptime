@@ -1054,6 +1054,15 @@ describe("a resource off the grid: the line that says where it is", () => {
   const LONG_ROW: string = "europe-west1-legacy-datacenter";
   const LONG_COLUMN: string = "Background workers (legacy queue)";
 
+  /*
+   * What sets the two axes apart, as the page's language sets two facts
+   * apart (InlineSeparator): a bullet on a Persian page, where a middle dot
+   * reads as its zero.
+   */
+  const dotOf: (language: string) => string = (language: string): string => {
+    return language === "fa" ? "•" : "·";
+  };
+
   // Each name and value on the line: its words and the way it reads.
   const partsOf: (
     line: HTMLElement,
@@ -1114,7 +1123,7 @@ describe("a resource off the grid: the line that says where it is", () => {
       });
 
       const line: HTMLElement = screen.getByTestId(AXES_TEST_ID);
-      const whole: string = `Region: ${LONG_ROW} · Service: ${LONG_COLUMN}`;
+      const whole: string = `Region: ${LONG_ROW} ${dotOf(language)} Service: ${LONG_COLUMN}`;
 
       expect(line).toHaveAttribute("dir", "ltr");
       /*
@@ -1129,7 +1138,9 @@ describe("a resource off the grid: the line that says where it is", () => {
 
       const axes: Array<HTMLElement> = axesOf(line);
 
-      expect(axes[0]!.textContent).toBe(`Region: ${LONG_ROW} ·`);
+      expect(axes[0]!.textContent).toBe(
+        `Region: ${LONG_ROW} ${dotOf(language)}`,
+      );
       expect(axes[1]!.textContent).toBe(`Service: ${LONG_COLUMN}`);
       expect(partsOf(line)).toEqual([
         { text: "Region", dir: "ltr" },
@@ -1172,7 +1183,7 @@ describe("a resource off the grid: the line that says where it is", () => {
         axesOf(line).map((axis: HTMLElement) => {
           return axis.textContent;
         }),
-      ).toEqual(["المنطقة: القاهرة الجديدة ·", "الخدمة: API"]);
+      ).toEqual([`المنطقة: القاهرة الجديدة ${dotOf(language)}`, "الخدمة: API"]);
       expect(partsOf(line)).toEqual([
         { text: "المنطقة", dir: "rtl" },
         { text: "القاهرة الجديدة", dir: "rtl" },
@@ -1226,7 +1237,9 @@ describe("a resource off the grid: the line that says where it is", () => {
 
       const line: HTMLElement = screen.getByTestId(AXES_TEST_ID);
 
-      expect(line.textContent).toBe("Region: Mars · Service: —");
+      expect(line.textContent).toBe(
+        `Region: Mars ${dotOf(language)} Service: —`,
+      );
       expect(partsOf(line)[3]).toEqual({ text: "—", dir: null });
     },
   );

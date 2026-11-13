@@ -6,6 +6,7 @@ import { StartingStage } from "Common/Utils/StartingStage";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { drawnDashboardLabel } from "./DocsDashboardLabels";
 
 /*
  * A record created already acknowledged or resolved pages nobody, and one
@@ -140,15 +141,22 @@ describe("the Persian declare page keeps the section in step", () => {
   const text: string = section(page, FA_HEADING);
 
   test("the section is there, with the same field names and the feed line as written", () => {
+    // The fields, as the Persian Dashboard draws them (#7100).
+    for (const label of [
+      "Initial State",
+      "Initial Incident State",
+      "OneUptime AI",
+      "Ask OneUptime AI",
+      "Change Monitor Status to",
+      "Incident Created",
+      "Notify Status Page Subscribers",
+    ]) {
+      expect(text).toContain(`**${drawnDashboardLabel("fa", label)}**`);
+    }
+
+    // The API field, and the feed line in the English the server writes.
     for (const name of [
-      "**Initial State**",
-      "**Initial Incident State**",
       "`currentIncidentStateId`",
-      "**OneUptime AI**",
-      "**Ask OneUptime AI**",
-      "**Change Monitor Status to**",
-      "**Incident Created**",
-      "**Notify Status Page Subscribers**",
       "_No one was paged. This incident was created already acknowledged, so its on-call policy **Primary** was not run._",
     ]) {
       expect(text).toContain(name);
@@ -163,7 +171,7 @@ describe("the Persian declare page keeps the section in step", () => {
 
   test("it names the resolved state and every state below it, as the English does", () => {
     expect(text).toContain(
-      "**در وضعیت برطرف‌شده پروژه‌تان یا پس از آن** — **Resolved**",
+      `**در وضعیت برطرف‌شده پروژه‌تان یا پس از آن** — **${drawnDashboardLabel("fa", "Resolved")}**`,
     );
   });
 });

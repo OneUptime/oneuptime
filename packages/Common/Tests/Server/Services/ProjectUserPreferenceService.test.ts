@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import ProjectUserPreferenceService from "../../../Server/Services/ProjectUserPreferenceService";
 import ProjectUserPreference from "../../../Models/DatabaseModels/ProjectUserPreference";
 import ObjectID from "../../../Types/ObjectID";
@@ -23,11 +24,10 @@ describe("reading a person's pins", () => {
   test("reads the person's own row in the project, as root, and only its pins", async () => {
     const row: ProjectUserPreference = new ProjectUserPreference();
     row.pinnedProducts = [ProductKey.Logs, ProductKey.StatusPages];
-    const find: jest.SpiedFunction<
-      typeof ProjectUserPreferenceService.findOneBy
-    > = jest
-      .spyOn(ProjectUserPreferenceService, "findOneBy")
-      .mockResolvedValue(row);
+    const find: SpyInstance<typeof ProjectUserPreferenceService.findOneBy> =
+      jest
+        .spyOn(ProjectUserPreferenceService, "findOneBy")
+        .mockResolvedValue(row);
 
     expect(
       await ProjectUserPreferenceService.getPinnedProducts({

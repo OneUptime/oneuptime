@@ -15,7 +15,6 @@ import NewVersion, {
   NewVersionAudience,
 } from "../../../../UI/Utils/NewVersion/NewVersion";
 import User from "../../../../UI/Utils/User";
-import { JSONObject } from "../../../../Types/JSON";
 import {
   getUnexplainedServerErrorMessage,
   SERVER_DOWN_MESSAGE,
@@ -354,7 +353,7 @@ describe("the shared places an error is drawn", () => {
     whatFailed?: string,
   ): void => {
     render(
-      <BasicForm<JSONObject>
+      <BasicForm
         disableAutofocus={true}
         error={error}
         whatFailed={whatFailed}

@@ -784,8 +784,9 @@ describePostgres(
         return rows;
       }
 
-      for (const zone of ZONES) {
-        test(`matches the reference day by day in ${zone}`, async () => {
+      test.each(ZONES)(
+        "matches the reference day by day in %s",
+        async (zone: string) => {
           for (let draw: number = 0; draw < 6; draw++) {
             await database.query(`DELETE FROM "MonitorStatusTimeline"`);
 
@@ -816,8 +817,8 @@ describePostgres(
               referenceDays({ rows, monitorIds: [ids[0]!], zone }),
             );
           }
-        });
-      }
+        },
+      );
 
       test("a group's days add up to the merged downtime and coverage its uptime percentage is read from", async () => {
         for (let draw: number = 0; draw < 8; draw++) {

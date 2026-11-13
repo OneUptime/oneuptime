@@ -1,6 +1,8 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { drawnDashboardLabel } from "./DocsDashboardLabels";
+import { escapeRegExp } from "./DocsTranslationChecks";
 
 /*
  * The dashboard asks for owners with one Owners field - people and teams in
@@ -52,6 +54,16 @@ function listMarkdown(directory: string): Array<string> {
     });
 }
 
+// A Dashboard label in bold, as this language's Dashboard draws it.
+function bold(language: string, english: string): string {
+  return `**${drawnDashboardLabel(language, english)}**`;
+}
+
+// The same, as a regular expression source.
+function boldPattern(language: string, english: string): string {
+  return escapeRegExp(bold(language, english));
+}
+
 function read(language: string, page: string): string {
   return fs.readFileSync(
     path.join(CONTENT_DIR, language, `${page}.md`),
@@ -98,14 +110,18 @@ describe("the docs on picking owners", () => {
       const settings: string = read(language, "incidents/settings");
       const declaring: string = read(language, "incidents/declaring-incidents");
 
-      expect(settings).not.toMatch(/^- \*\*Owners\*\* — \*\*Owners\*\*/m);
-      expect(settings).toMatch(/^ {2}- \*\*Owners\*\* — /m);
-      expect(settings).toContain("**Add owner**");
+      const owners: string = boldPattern(language, "Owners");
+
+      expect(settings).not.toMatch(new RegExp(`^- ${owners} — ${owners}`, "m"));
+      expect(settings).toMatch(new RegExp(`^ {2}- ${owners} — `, "m"));
+      expect(settings).toContain(bold(language, "Add owner"));
       expect(declaring).toMatch(
-        /\*\*Owners\*\*.{1,10}\*\*Labels\*\*.{1,40}\*\*More fields\*\*/,
+        new RegExp(
+          `${owners}.{1,10}${boldPattern(language, "Labels")}.{1,40}${boldPattern(language, "More fields")}`,
+        ),
       );
       // One row for owners in the template fields table.
-      expect(declaring).toMatch(/^\| \*\*Owners\*\* +\|/m);
+      expect(declaring).toMatch(new RegExp(`^\\| ${owners} +\\|`, "m"));
     },
   );
 
@@ -130,13 +146,20 @@ describe("the docs on picking owners", () => {
       const settings: string = read(language, "incidents/settings");
 
       expect(settings).toMatch(
-        /\*\*On-Call & Ownership\*\* \([^)]*\*\*Episode Owners\*\*/,
+        new RegExp(
+          `${boldPattern(language, "On-Call & Ownership")} \\([^)]*${boldPattern(language, "Episode Owners")}`,
+        ),
       );
-      expect(settings).toContain("**Episode Owners**");
-      expect(settings).toContain("**Add owner**");
-      expect(settings).toContain("**Default assignee**");
-      expect(settings).toContain("**Add as owners**");
-      expect(settings).toContain("**Remove**");
+
+      for (const label of [
+        "Episode Owners",
+        "Add owner",
+        "Default assignee",
+        "Add as owners",
+        "Remove",
+      ]) {
+        expect(settings).toContain(bold(language, label));
+      }
       // The API keeps its contract, and says so by the columns' names.
       for (const column of [
         "`defaultAssignToUser`",

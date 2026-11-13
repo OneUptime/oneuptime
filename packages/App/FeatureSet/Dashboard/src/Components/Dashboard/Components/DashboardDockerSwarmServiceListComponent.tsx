@@ -23,6 +23,7 @@ import {
   HoneycombLegendItem,
   HoneycombTile,
 } from "./DashboardResourceHoneycomb";
+import { getUnnamedText } from "./DashboardWidgetFallbackWords";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardDockerSwarmServiceListComponent;
@@ -131,7 +132,7 @@ function getServiceRoute(r: DockerSwarmResource): Route | undefined {
 }
 
 function getServiceDisplayName(r: DockerSwarmResource): string {
-  return (r.name as string) || (r.externalId as string) || "Unnamed";
+  return (r.name as string) || (r.externalId as string) || getUnnamedText();
 }
 
 function getServiceStatus(r: DockerSwarmResource): {
@@ -311,7 +312,10 @@ const DashboardDockerSwarmServiceListComponentElement: FunctionComponent<
       componentId={props.componentId}
       publicResourceType="docker-swarm-resource"
       title={args.title}
-      pluralLabel="services"
+      countLabel={{
+        one: "{{count}} service",
+        other: "{{count}} services",
+      }}
       emptyMessage="No Docker Swarm services found"
       emptyIcon={IconProp.Cube}
       columns={COLUMNS}

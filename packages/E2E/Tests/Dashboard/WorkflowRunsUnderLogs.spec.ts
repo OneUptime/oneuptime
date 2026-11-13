@@ -224,8 +224,12 @@ test.describe("Workflow runs live under Logs → Runs", () => {
       await page.reload();
       await expect(runsCard(page)).toBeVisible(SERVER);
       await expect(workflowRuns).toBeVisible(SERVER);
-      // Runs is not in Advanced, so Advanced is folded away here too.
-      await expect(advancedToggle).toHaveAttribute("aria-expanded", "false");
+      /*
+       * Runs is not in Advanced, but Advanced was opened by hand above, and
+       * the side menu remembers a section opened by hand (#6816): it is still
+       * open here, after a full load too.
+       */
+      await expect(advancedToggle).toHaveAttribute("aria-expanded", "true");
 
       // On a page inside Advanced, it is open from the first load.
       const workflowSettingsPath: string = `${workflowPath}/settings`;

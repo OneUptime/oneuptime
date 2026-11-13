@@ -5,6 +5,7 @@ import {
   HoneycombTileDetail,
 } from "./DashboardResourceHoneycomb";
 import Route from "Common/Types/API/Route";
+import { getUnnamedText } from "./DashboardWidgetFallbackWords";
 
 export const READINESS_COLORS: {
   ready: string;
@@ -49,7 +50,7 @@ export function buildReadinessTile(options: {
 }): HoneycombTile {
   const r: KubernetesResource = options.resource;
   const id: string = (r._id as string) || "";
-  const name: string = (r.name as string) || "Unnamed";
+  const name: string = (r.name as string) || getUnnamedText();
   const namespace: string | undefined = r.namespaceKey as string | undefined;
   const clusterName: string = (r.kubernetesCluster?.name as string) || "—";
   const isReady: boolean | undefined = r.isReady as boolean | undefined;

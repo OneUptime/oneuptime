@@ -1,10 +1,7 @@
 import RouteMap from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
-import {
-  PRODUCT_FEEDBACK_GITHUB_LABEL,
-  toFeedbackPage,
-} from "Common/Types/ProductFeedback/ProductFeedback";
-import { getNewGitHubIssueUrl } from "Common/Types/ProductFeedback/NewGitHubIssue";
+import { toFeedbackPage } from "Common/Types/ProductFeedback/ProductFeedback";
+import { getProductFeedbackGitHubIssueUrl } from "Common/Types/ProductFeedback/NewGitHubIssue";
 import { matchPath } from "react-router-dom";
 
 /*
@@ -89,31 +86,12 @@ export const getCurrentFeedbackPage: () => string = (): string => {
 /*
  * "Also tell OneUptime on GitHub", on a self-hosted server: a new issue
  * with the person's words, the page and the version filled in, which they
- * read on GitHub before sending it, or not. In English, as the maintainers
- * read the issues; the words are the person's own.
+ * read on GitHub before sending it, or not. The issue is GitHub's, not a
+ * Dashboard page's, so its English is worded beside the issue builder
+ * (getProductFeedbackGitHubIssueUrl), as the maintainers read the issues.
  */
 export const getFeedbackGitHubIssueUrl: (data: {
   details: string;
   page: string;
   version: string;
-}) => string = (data: {
-  details: string;
-  page: string;
-  version: string;
-}): string => {
-  const firstLine: string = (data.details.split("\n")[0] || "").trim();
-  const title: string =
-    firstLine.length > 60 ? `${firstLine.slice(0, 57)}...` : firstLine;
-
-  return getNewGitHubIssueUrl({
-    title: `Feedback: ${title || "OneUptime"}`,
-    body: [
-      data.details.trim(),
-      "",
-      `Page: ${data.page}`,
-      `Version: ${data.version || "unknown"}`,
-      "",
-    ].join("\n"),
-    labels: [PRODUCT_FEEDBACK_GITHUB_LABEL],
-  });
-};
+}) => string = getProductFeedbackGitHubIssueUrl;

@@ -139,13 +139,7 @@ npm run doctor
 
 Den tjekker hver container, `config.env`, at `HOST` når denne server, certifikatet og ledig diskplads, og spørger OneUptime, hvad det ser af sig selv, som e-mail og probes. Hvert problem kommer med sin løsning: se [Tjek din installation](/docs/installation/docker-compose#tjek-din-installation).
 @tab Kubernetes
-Hent chartets diagnosescript, og kør det mod din klynge. Det læser kun og slutter med et resumé af, hvad det fandt, det værste først:
-
-```bash
-curl -sLO https://raw.githubusercontent.com/OneUptime/oneuptime/main/HelmChart/Public/diagnose.sh
-chmod +x diagnose.sh
-./diagnose.sh
-```
+Kør chartets diagnosescript mod din klynge, som [chartets fejlfindingsvejledning](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/troubleshooting.md#run-it) viser. Det læser kun og slutter med et resumé af, hvad det fandt, det værste først.
 :::
 
 **Det virkede, når** doctor slutter med **Everything looks right.** og afslutter med `0`. Den afslutter med `1`, når noget skal rettes, og med `2`, når den ikke kunne køre sine tjek. På Kubernetes har resuméet intet fund `CRITICAL`.

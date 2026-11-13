@@ -539,12 +539,32 @@ describe("an amphora's page", () => {
   });
 
   test("a certificate with 21 days left needs nothing, since Octavia renews at 14", async () => {
-    server.rows = recorded("amphora-near-expiry");
+    /*
+     * 21 days from now, as the rows below are 10 days from their end and past
+     * it: the recorded end (2026-11-26) was 21 days off when it was recorded,
+     * and the page reads it against today, so it came under 14 days on
+     * 2026-11-12.
+     */
+    const rows: Array<Row> = recorded("amphora-near-expiry");
     const near: string = amphoraIdWhere(
-      server.rows,
+      rows,
       "certExpiresAt",
       "2026-11-26T06:06:07Z",
     );
+    const endsAt: string = new Date(
+      Date.now() + 21.5 * 24 * 60 * 60 * 1000,
+    ).toISOString();
+    server.rows = rows.map((row: Row): Row => {
+      return row["externalId"] === near
+        ? {
+            ...row,
+            facts: {
+              ...(row["facts"] as Record<string, unknown>),
+              certExpiresAt: endsAt,
+            },
+          }
+        : row;
+    });
 
     await renderPage(OpenStackCloudAmphoraDetail, partPath("amphorae", near));
     await screen.findByTestId("openstack-amphora-details");
@@ -552,7 +572,7 @@ describe("an amphora's page", () => {
     expect(attentionRowsOf("openstack-amphora-attention")).toEqual([]);
     expect(
       screen.getByTestId("openstack-amphora-details-certificate"),
-    ).toHaveTextContent("2026-11-26T06:06:07Z");
+    ).toHaveTextContent(endsAt);
   });
 
   test("and the same row 10 days from its end is a warning that says how many days", async () => {

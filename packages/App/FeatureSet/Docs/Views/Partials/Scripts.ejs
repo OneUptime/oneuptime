@@ -531,36 +531,45 @@
             return Boolean(searchModal) && searchModal.classList.contains('is-open');
         }
 
-        function escapeRegExp(value) {
-            return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        }
-
         /*
          * `text`, escaped, with every one of `words` in it marked: the words
          * the docs server found for what was typed ("escalation" for
-         * "escalaton"), or what was typed itself in the titles search.
+         * "escalaton"), or what was typed itself in the titles search. A
+         * word is found as the titles search finds one, by its lower-case
+         * letters (normalize), and read as text: no pattern is built from
+         * it, so nothing in it needs escaping.
          */
         function highlightWords(text, words) {
+            var source = String(text);
             var wanted = (words || []).filter(function (word) {
                 return word && word.length > 0;
+            }).map(function (word) {
+                return { length: String(word).length, letters: normalize(word) };
             });
             if (wanted.length === 0) {
-                return escapeHtml(text);
-            }
-            var pattern;
-            try {
-                pattern = new RegExp(wanted.map(escapeRegExp).join('|'), 'giu');
-            } catch (error) {
-                return escapeHtml(text);
+                return escapeHtml(source);
             }
             var html = '';
             var last = 0;
-            String(text).replace(pattern, function (found, offset) {
-                html += escapeHtml(text.slice(last, offset)) + '<mark>' + escapeHtml(found) + '</mark>';
-                last = offset + found.length;
-                return found;
-            });
-            return html + escapeHtml(text.slice(last));
+            var offset = 0;
+            while (offset < source.length) {
+                /* The first of the words that starts here, as an alternation would take it. */
+                var length = 0;
+                for (var index = 0; index < wanted.length; index++) {
+                    if (normalize(source.slice(offset, offset + wanted[index].length)) === wanted[index].letters) {
+                        length = wanted[index].length;
+                        break;
+                    }
+                }
+                if (length === 0) {
+                    offset += 1;
+                    continue;
+                }
+                html += escapeHtml(source.slice(last, offset)) + '<mark>' + escapeHtml(source.slice(offset, offset + length)) + '</mark>';
+                offset += length;
+                last = offset;
+            }
+            return html + escapeHtml(source.slice(last));
         }
 
         /*

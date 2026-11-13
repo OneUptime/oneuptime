@@ -1,3 +1,4 @@
+// UX rule: Docs/ux/README.md#what-never-to-write
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
