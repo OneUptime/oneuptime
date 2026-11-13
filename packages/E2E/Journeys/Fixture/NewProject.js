@@ -34,6 +34,7 @@ import UserEmail from "Common/Models/DatabaseModels/UserEmail";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import BillingPaymentMethod from "Common/Models/DatabaseModels/BillingPaymentMethod";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import OnCallDutyPolicyEscalationRule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import OnCallDutyPolicyEscalationRuleUser from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleUser";
 import IncidentOnCallRule from "Common/Models/DatabaseModels/IncidentOnCallRule";
@@ -373,6 +374,21 @@ export function dashboardHooks(project) {
               failureCause: "",
             },
           },
+        });
+      }
+    },
+
+    /*
+     * Made by who is signed in (DatabaseService stamps createdByUserId): the
+     * status page guided setup looks for this person's own page with the
+     * name typed before it makes one (#7252).
+     */
+    StatusPage: async (record) => {
+      if (!record.createdByUserId) {
+        store.update(StatusPage, record._id, {
+          createdByUserId: new ObjectID(
+            project.signedInAs === "member" ? GRACE_ID : ADA_ID,
+          ),
         });
       }
     },

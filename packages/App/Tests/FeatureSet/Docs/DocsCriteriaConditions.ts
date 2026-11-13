@@ -1,8 +1,4 @@
-import {
-  dashboardLabel,
-  drawnDashboardLabel,
-  isDashboardLabel,
-} from "./DocsDashboardLabels";
+import { drawnDashboardLabel, isDashboardLabel } from "./DocsDashboardLabels";
 import { boldSpans } from "./DocsTranslationChecks";
 import { FilterType } from "Common/Types/Monitor/CriteriaFilter";
 
@@ -31,9 +27,10 @@ import { FilterType } from "Common/Types/Monitor/CriteriaFilter";
  * True and False are read in bold only: in plain text they are as often a
  * word of a longer English name ("False Positive") as the condition.
  *
- * The Persian incident pages keep the Dashboard's English names, as they
- * always have (DocsDashboardLabels.dashboardLabel); every other page names a
- * condition as its language's Dashboard draws it (drawnDashboardLabel).
+ * Every page names a condition as its language's Dashboard draws it
+ * (drawnDashboardLabel), the Persian incident pages included: they kept the
+ * Dashboard's English names until the Persian Dashboard drew them in Persian
+ * (#7100).
  *
  * DocsCriteriaConditions.test.ts holds every page in every language to it.
  */
@@ -66,8 +63,6 @@ export const LONGER_NAMES: ReadonlyArray<string> = [
   "Contains All",
 ];
 
-const INCIDENT_PAGES_PREFIX: string = "incidents/";
-
 // A fenced code block's opening or closing line, as prose() reads one.
 const FENCE_LINE: RegExp = /^ {0,3}```/;
 // An inline code span, which is a value as typed, not a name.
@@ -77,17 +72,14 @@ const LATIN_LETTER: RegExp = /[A-Za-z]/;
 const BOLD_MARKER: string = "**";
 
 /*
- * How a page in this language names a condition: as the Dashboard draws it,
- * or, on the Persian incident pages, in English.
+ * How a page in this language names a condition: as the language's
+ * Dashboard draws it, on every page.
  */
 export function expectedConditionName(
   language: string,
-  page: string,
   condition: string,
 ): string {
-  return page.startsWith(INCIDENT_PAGES_PREFIX)
-    ? dashboardLabel(language, condition)
-    : drawnDashboardLabel(language, condition);
+  return drawnDashboardLabel(language, condition);
 }
 
 /*
@@ -184,12 +176,11 @@ export interface EnglishCondition {
  */
 export function englishConditionsOn(
   language: string,
-  page: string,
   markdown: string,
 ): Array<EnglishCondition> {
   const drawnOtherwise: Array<string> = DRAWN_CONDITIONS.filter(
     (condition: string): boolean => {
-      return expectedConditionName(language, page, condition) !== condition;
+      return expectedConditionName(language, condition) !== condition;
     },
   );
   const findings: Array<EnglishCondition> = [];
@@ -219,7 +210,7 @@ export function englishConditionsOn(
       findings.push({
         line: index + 1,
         condition: found.name,
-        drawn: expectedConditionName(language, page, found.name),
+        drawn: expectedConditionName(language, found.name),
         bold: bold,
       });
     }

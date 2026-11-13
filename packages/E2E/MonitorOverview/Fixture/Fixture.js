@@ -269,6 +269,7 @@ import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import { APP_API_URL } from "Common/UI/Config";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import API from "Common/UI/Utils/API/API";
+import BaseAPI from "Common/Utils/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -3553,6 +3554,20 @@ async function handleApi(method, options) {
   });
   const parsed = new window.URL(url);
 
+  /*
+   * GET /global-config/vars, which anybody may read, as the server answers
+   * it (GlobalConfigAPI.buildVarsResponse): Create Monitor's card asks
+   * whether the server can send email (#6877). This one can, so the card
+   * says what it always said.
+   */
+  if (method === "GET" && parsed.pathname.endsWith("/global-config/vars")) {
+    return ok({
+      disableUserProjectCreation: false,
+      disablePushNotifications: false,
+      canSendEmail: true,
+    });
+  }
+
   if (
     method === "GET" &&
     parsed.pathname.endsWith("/monitor/active-monitor-limit")
@@ -3768,21 +3783,27 @@ async function handleApi(method, options) {
   return ok({ data: [], count: 0 });
 }
 
-API.get = async (options) => {
-  return handleApi("GET", options);
-};
-API.post = async (options) => {
-  return handleApi("POST", options);
-};
-API.put = async (options) => {
-  return handleApi("PUT", options);
-};
-API.delete = async (options) => {
-  return handleApi("DELETE", options);
-};
-API.fetch = async (options) => {
-  return handleApi(options.method || "GET", options);
-};
+/*
+ * The Dashboard's API, and the base one under it: GlobalConfigUtil reads
+ * GET /global-config/vars through that one.
+ */
+for (const api of [API, BaseAPI]) {
+  api.get = async (options) => {
+    return handleApi("GET", options);
+  };
+  api.post = async (options) => {
+    return handleApi("POST", options);
+  };
+  api.put = async (options) => {
+    return handleApi("PUT", options);
+  };
+  api.delete = async (options) => {
+    return handleApi("DELETE", options);
+  };
+  api.fetch = async (options) => {
+    return handleApi(options.method || "GET", options);
+  };
+}
 
 // The production helpers, handed the page's i18next instance before it starts.
 followLanguageForPage(i18next);

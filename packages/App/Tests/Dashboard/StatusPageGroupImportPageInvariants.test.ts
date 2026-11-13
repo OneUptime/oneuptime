@@ -73,10 +73,11 @@ describe("the Resources page owns the CSV import", () => {
   });
 
   /*
-   * The page's own header slot belongs to "New Group". A bulk import lives in
-   * the ⋯ overflow next to the other page-wide actions — the same place every
-   * other bulk import in the product lives — which here means a MoreMenuItem
-   * inside the card's MoreMenu rather than a CardButtonSchema.
+   * The page's own header slot belongs to View Documentation (#6822) and
+   * "New Group". A bulk import lives in the ⋯ overflow next to the other
+   * page-wide actions — the same place every other bulk import in the
+   * product lives — which here means a MoreMenuItem inside the card's
+   * MoreMenu rather than a CardButtonSchema.
    */
   test("it stays in the overflow menu, not in the header slot", () => {
     const menuBlock: string = code
@@ -87,7 +88,7 @@ describe("the Resources page owns the CSV import", () => {
     expect(menuBlock).toContain("icon={IconProp.Upload}");
 
     const cardButtonBlock: string = code
-      .split("const buttons: Array<CardButtonSchema | ReactElement> = [];")[1]!
+      .split("const buttons: Array<CardButtonSchema | ReactElement> = [")[1]!
       .split("const menuItems: Array<ReactElement> = [];")[0]!;
 
     expect(cardButtonBlock).not.toContain("Import groups from CSV");

@@ -57,11 +57,11 @@ import { writtenPermissionTitle } from "./DocsRoleNames";
  * shared copy constants the dashboard renders, the models, the side menus and
  * the API - and checks the shipped pages still tell the same story.
  *
- * Every language names the Dashboard as that language's Dashboard draws it:
- * the guide and the status page overview with drawnActionLabel, Persian
- * included, as StatusPageDocsTranslations holds them; the incident pages with
- * dashboardLabel, which keeps Persian in English, as IncidentDocsTranslations
- * holds them (DocsDashboardLabels).
+ * Every language names the Dashboard as that language's Dashboard draws it,
+ * Persian included: the guide and the status page overview with
+ * drawnActionLabel, as StatusPageDocsTranslations holds them; the incident
+ * pages with dashboardLabel, as IncidentDocsTranslations holds them
+ * (DocsDashboardLabels, #7100).
  */
 
 const REPO_ROOT: string = path.resolve(__dirname, "../../../..");

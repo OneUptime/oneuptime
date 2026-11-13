@@ -100,7 +100,7 @@ Gem dine ændringer. Kortet **Overvågningskriterier** og bekræftelsen af begge
 Brug **Synkronisér kriterier til tilknyttede overvågninger** eller **Synkronisér fra skabelon** på en enkelt tilknyttet monitor.
 :::
 
-Beskyt for eksempel **Monitor destination** og **Request headers** på en API-skabelon. Produktions- og staging-monitorer beholder deres egne URL'er og headere, mens begge får skabelonens opdaterede kriterier og de øvrige ubeskyttede indstillinger.
+Beskyt for eksempel **Monitor destination** og **Anmodningsheadere** på en API-skabelon. Produktions- og staging-monitorer beholder deres egne URL'er og headere, mens begge får skabelonens opdaterede kriterier og de øvrige ubeskyttede indstillinger.
 
 Hvilke muligheder der findes, afhænger af monitortypen. De omfatter destinationer og porte, HTTP-anmodningsindstillinger, databaseforbindelser, DNS-indstillinger, infrastrukturvælgere og telemetriforespørgsler. Relaterede legitimationsoplysninger, som et klientcertifikat og dets private nøgle, holdes sammen.
 

@@ -38,6 +38,11 @@ import {
   getHardwareTypeText,
   humanizeArrayValue,
 } from "./StorageArrayWidgetData";
+import { getUnnamedText } from "./DashboardWidgetFallbackWords";
+import {
+  getGlobalTranslator,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * `component_name` is the datapoint label every FlashArray hardware and
@@ -119,10 +124,12 @@ function getHardwareRoute(r: StorageArrayResource): Route | undefined {
 }
 
 function getComponentDisplayName(r: StorageArrayResource): string {
-  return (r.name as string) || (r.externalId as string) || "Unnamed";
+  return (r.name as string) || (r.externalId as string) || getUnnamedText();
 }
 
 function renderComponentRow(r: StorageArrayResource): ReactElement {
+  // Its type and detail in the reader's words (#7091).
+  const translator: Translator = getGlobalTranslator();
   const id: string = (r._id as string) || "";
   const name: string = getComponentDisplayName(r);
   const state: StorageArrayWidgetState = getHardwareStatusState(r.status);
@@ -153,7 +160,7 @@ function renderComponentRow(r: StorageArrayResource): ReactElement {
         {detailLink}
       </ResourceListNameCell>
       <ResourceListNameCell
-        name={getHardwareTypeText(r)}
+        name={getHardwareTypeText(r, translator)}
         className="px-3 py-2 text-xs text-gray-500 truncate"
       />
       <td className="px-3 py-2">
@@ -171,7 +178,7 @@ function renderComponentRow(r: StorageArrayResource): ReactElement {
         </span>
       </td>
       <ResourceListNameCell
-        name={getHardwareDetail(r)}
+        name={getHardwareDetail(r, translator)}
         className="px-3 py-2 text-xs text-gray-500 truncate"
       />
       <ResourceListNameCell
@@ -183,6 +190,7 @@ function renderComponentRow(r: StorageArrayResource): ReactElement {
 }
 
 function buildComponentTile(r: StorageArrayResource): HoneycombTile {
+  const translator: Translator = getGlobalTranslator();
   const id: string = (r._id as string) || "";
   const name: string = getComponentDisplayName(r);
   const state: StorageArrayWidgetState = getHardwareStatusState(r.status);
@@ -196,9 +204,9 @@ function buildComponentTile(r: StorageArrayResource): HoneycombTile {
       title: name,
       details: [
         { label: "Array", value: (r.storageArray?.name as string) || "—" },
-        { label: "Type", value: getHardwareTypeText(r) },
+        { label: "Type", value: getHardwareTypeText(r, translator) },
         { label: "Reported Status", value: humanizeArrayValue(r.status) },
-        { label: "Detail", value: getHardwareDetail(r) },
+        { label: "Detail", value: getHardwareDetail(r, translator) },
       ],
     },
   };
@@ -252,7 +260,10 @@ const DashboardStorageArrayHardwareListComponentElement: FunctionComponent<
       componentId={props.componentId}
       publicResourceType="storage-array-resource"
       title={args.title}
-      pluralLabel="components"
+      countLabel={{
+        one: "{{count}} component",
+        other: "{{count}} components",
+      }}
       emptyMessage="No storage array hardware found"
       emptyIcon={IconProp.CPUChip}
       columns={COLUMNS}

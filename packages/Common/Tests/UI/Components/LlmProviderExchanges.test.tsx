@@ -79,7 +79,8 @@ const UNREACHABLE_EXCHANGE: LLMProviderExchange = {
   url: "http://llm.internal:8000/v1/chat/completions",
   requestHeaders: {},
   requestBody: { model: "chat-large" },
-  error: "OneUptime could not reach the OpenAI-compatible server: connection refused.",
+  error:
+    "OneUptime could not reach the OpenAI-compatible server: connection refused.",
   durationMs: 5,
 };
 
@@ -294,7 +295,9 @@ describe("the helpers", () => {
     expect(text).toContain(
       "POST https://api.openai.com/v1/chat/completions\nAuthorization: Bearer sk-p…1234",
     );
-    expect(text).toContain("### Response 1 (87 ms)\nHTTP 401\nx-request-id: req_401");
+    expect(text).toContain(
+      "### Response 1 (87 ms)\nHTTP 401\nx-request-id: req_401",
+    );
     expect(text).toContain('"code": "invalid_api_key"');
     expect(text).toContain("### Request 2");
     expect(text).toContain("### Response 2 (5 ms)\nNo response");

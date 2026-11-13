@@ -106,12 +106,16 @@ describe("record() collects; nothing else does", () => {
       }),
     ]);
 
-    expect(first.exchanges.map((e: LLMProviderExchange) => e.url)).toEqual([
-      "https://first.example/",
-    ]);
-    expect(second.exchanges.map((e: LLMProviderExchange) => e.url)).toEqual([
-      "https://second.example/",
-    ]);
+    expect(
+      first.exchanges.map((e: LLMProviderExchange) => {
+        return e.url;
+      }),
+    ).toEqual(["https://first.example/"]);
+    expect(
+      second.exchanges.map((e: LLMProviderExchange) => {
+        return e.url;
+      }),
+    ).toEqual(["https://second.example/"]);
   });
 
   test(`at most ${LLM_PROVIDER_EXCHANGE_MAX_COUNT} requests are kept`, async () => {
@@ -211,9 +215,7 @@ describe("credentials are masked", () => {
     ).toBe("https://api.openai.com/v1/chat/completions");
 
     // Not a URL: kept as it is.
-    expect(LLMProviderExchangeRecorder.maskUrl("not a url")).toBe(
-      "not a url",
-    );
+    expect(LLMProviderExchangeRecorder.maskUrl("not a url")).toBe("not a url");
   });
 });
 
@@ -299,7 +301,9 @@ describe("what is kept, and how", () => {
         LLM_PROVIDER_EXCHANGE_MAX_BODY_LENGTH +
           LLM_PROVIDER_EXCHANGE_TRUNCATED_SUFFIX.length,
       );
-      expect((body as string).endsWith(LLM_PROVIDER_EXCHANGE_TRUNCATED_SUFFIX)).toBe(true);
+      expect(
+        (body as string).endsWith(LLM_PROVIDER_EXCHANGE_TRUNCATED_SUFFIX),
+      ).toBe(true);
     }
   });
 

@@ -1079,6 +1079,8 @@ test.describe("a honeycomb tile's tooltip", () => {
     await expect(tooltip(page)).toContainText("legacy-api");
     await expect(tooltip(page)).toContainText("Disabled");
     await expect(tooltip(page)).toContainText("Click to open");
+    // The keyboard's words are for a tile reached with Tab (#7347).
+    await expect(tooltip(page)).not.toContainText("Press Enter to open");
 
     const place: TooltipPlace = await placeOf(page);
     expect(place.parent).toBe("body");
@@ -1194,6 +1196,9 @@ test.describe("a honeycomb tile's tooltip", () => {
     await expect(tooltip(page)).toHaveCount(1);
     await expect(tooltip(page)).toContainText("legacy-api");
     await expect(tooltip(page)).toContainText("Disabled");
+    // Reached with the keyboard, it says how the keyboard opens it (#7347).
+    await expect(tooltip(page)).toContainText("Press Enter to open");
+    await expect(tooltip(page)).not.toContainText("Click to open");
     expectBesideItsTile(await placeOf(page), await boxOf(gray));
 
     // A button named for its monitor, which its open tooltip describes.
@@ -1247,6 +1252,7 @@ test.describe("a honeycomb tile's tooltip", () => {
     await expect(tiles(page).nth(from)).toBeFocused();
     await expect(tooltip(page)).toHaveCount(1);
     await expect(tooltip(page)).not.toContainText("legacy-api");
+    await expect(tooltip(page)).toContainText("Press Enter to open");
     await expect(ring).toHaveCount(1);
   });
 

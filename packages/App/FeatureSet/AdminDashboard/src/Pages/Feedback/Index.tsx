@@ -7,6 +7,7 @@ import {
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import Route from "Common/Types/API/Route";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
@@ -431,6 +432,11 @@ const FeedbackPage: FunctionComponent = (): ReactElement => {
             error={summaryError}
             isLoading={isSummaryLoading}
             onNavigateToPage={() => {}}
+            sortBy={null}
+            sortOrder={SortOrder.Ascending}
+            onSortChanged={() => {
+              // The server's order: the hardest setups come first.
+            }}
             onRefreshClick={() => {
               setRefreshCount(refreshCount + 1);
             }}
@@ -478,6 +484,11 @@ const FeedbackPage: FunctionComponent = (): ReactElement => {
           onNavigateToPage={(newPage: number, newItemsOnPage: number) => {
             setPageNumber(newPage);
             setItemsOnPage(newItemsOnPage);
+          }}
+          sortBy={null}
+          sortOrder={SortOrder.Descending}
+          onSortChanged={() => {
+            // Newest first: the only order the server lists answers in.
           }}
           onRefreshClick={() => {
             setRefreshCount(refreshCount + 1);

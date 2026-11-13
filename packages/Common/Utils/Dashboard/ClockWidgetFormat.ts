@@ -3,6 +3,12 @@ import {
   ClockWidgetHourFormat,
 } from "../../Types/Dashboard/DashboardComponents/DashboardClockComponent";
 import OneUptimeDate, { Moment } from "../../Types/Date";
+import {
+  getDateLocale,
+  getDateTimeFormat,
+  isEnglishDateLanguage,
+  writeDigitsInLocale,
+} from "../../Types/DateLanguage";
 import Timezone from "../../Types/Timezone";
 import type { Moment as MomentType } from "moment-timezone";
 
@@ -158,9 +164,17 @@ export interface ClockWidgetDisplay {
   time: string;
   /** "07", or null when the widget is configured without seconds. */
   seconds: string | null;
-  /** "AM" / "PM" in 12-hour mode, null in 24-hour mode. */
+  /**
+   * "AM" / "PM" in 12-hour mode - in the reader's words ("午後", "ب.ظ."),
+   * see getClockWidgetDisplay - null in 24-hour mode.
+   */
   meridiem: string | null;
-  /** "Mon, Aug 3", or null when the date is switched off. */
+  /**
+   * True where the reader's language writes the meridiem before the time
+   * ("午後 9:05" in Japanese, Korean and Chinese); after it otherwise.
+   */
+  isMeridiemFirst: boolean;
+  /** "Mon, Aug 3" ("Do., 12. Nov."), or null when the date is switched off. */
   dateText: string | null;
   /** DST-aware "EDT" / "GMT+05:30", or null when switched off. */
   zoneAbbreviation: string | null;
@@ -193,12 +207,85 @@ export const isClockTimezoneFallback: IsClockTimezoneFallbackFunction = (
   return !isSupportedClockTimezone(timezone);
 };
 
+/*
+ * THE DATE AND THE AM/PM, IN THE READER'S LANGUAGE (#7093).
+ *
+ * The clock wrote its date and its meridiem with fixed English formats:
+ * every board read "Thu, Nov 12" and "PM", and a Persian one drew Latin
+ * digits beside Persian words. In another language than English they are
+ * Intl's words for it, in the clock's zone and on the Gregorian calendar
+ * (getDateLocale): "Do., 12. Nov." and "PM" in German, "پنجشنبه ۱۲ نوامبر"
+ * and "ب.ظ." in Persian, "11月12日(木)" and "午後" - before the time - in
+ * Japanese. The digits are the ones the Dashboard writes in that language
+ * (writeDigitsInLocale): Persian ones in Persian, Latin ones everywhere
+ * else, Arabic too. English is written as it always was.
+ */
+
+// The weekday, the month and the day: "Thu, Nov 12".
+const CLOCK_DATE_OPTIONS: Intl.DateTimeFormatOptions = {
+  weekday: "short",
+  month: "short",
+  day: "numeric",
+};
+
+// An hour on a 12-hour clock, for its day period: "9 PM", "午後9時".
+const CLOCK_MERIDIEM_OPTIONS: Intl.DateTimeFormatOptions = {
+  hour: "numeric",
+  hour12: true,
+};
+
+/*
+ * The meridiem the reader's language writes at `date` in `timezone`, and
+ * whether it comes before the hour; null when Intl cannot say.
+ */
+const getClockMeridiemInLocale: (data: {
+  date: Date;
+  timezone: string;
+  locale: string;
+}) => { text: string; isFirst: boolean } | null = (data: {
+  date: Date;
+  timezone: string;
+  locale: string;
+}): { text: string; isFirst: boolean } | null => {
+  const format: Intl.DateTimeFormat | null = getDateTimeFormat({
+    locale: data.locale,
+    timezones: [data.timezone],
+    options: CLOCK_MERIDIEM_OPTIONS,
+  });
+
+  if (!format) {
+    return null;
+  }
+
+  const parts: Array<Intl.DateTimeFormatPart> = format.formatToParts(data.date);
+  const dayPeriodIndex: number = parts.findIndex(
+    (part: Intl.DateTimeFormatPart): boolean => {
+      return part.type === "dayPeriod";
+    },
+  );
+  const hourIndex: number = parts.findIndex(
+    (part: Intl.DateTimeFormatPart): boolean => {
+      return part.type === "hour";
+    },
+  );
+  const text: string = (parts[dayPeriodIndex]?.value || "").trim();
+
+  if (dayPeriodIndex < 0 || !text) {
+    return null;
+  }
+
+  return { text: text, isFirst: hourIndex >= 0 && dayPeriodIndex < hourIndex };
+};
+
 /**
  * Everything the digital face draws, for one instant.
  *
  * Seconds and meridiem come back separately from the time so the renderer can
  * set them in a smaller type beside the big digits without re-parsing a
  * formatted string.
+ *
+ * `language` is the reader's: the date and the meridiem are its words, and
+ * the digits its digits. None, or English, writes them as they always were.
  */
 export type GetClockWidgetDisplayFunction = (data: {
   date: Date;
@@ -208,6 +295,7 @@ export type GetClockWidgetDisplayFunction = (data: {
   showSeconds?: boolean | undefined;
   showDate?: boolean | undefined;
   showTimezoneAbbreviation?: boolean | undefined;
+  language?: string | undefined;
 }) => ClockWidgetDisplay;
 
 export const getClockWidgetDisplay: GetClockWidgetDisplayFunction = (data: {
@@ -218,6 +306,7 @@ export const getClockWidgetDisplay: GetClockWidgetDisplayFunction = (data: {
   showSeconds?: boolean | undefined;
   showDate?: boolean | undefined;
   showTimezoneAbbreviation?: boolean | undefined;
+  language?: string | undefined;
 }): ClockWidgetDisplay => {
   const isFallbackTimezone: boolean = isClockTimezoneFallback(data.timezone);
   const timezone: string = resolveClockTimezone(data.timezone);
@@ -225,11 +314,12 @@ export const getClockWidgetDisplay: GetClockWidgetDisplayFunction = (data: {
 
   const zoned: MomentType = Moment(data.date).tz(timezone);
 
-  return {
+  const display: ClockWidgetDisplay = {
     label: getClockLabel({ label: data.label, timezone: timezone }),
     time: zoned.format(use12HourFormat ? "h:mm" : "HH:mm"),
     seconds: data.showSeconds ? zoned.format("ss") : null,
     meridiem: use12HourFormat ? zoned.format("A") : null,
+    isMeridiemFirst: false,
     dateText: data.showDate ? zoned.format("ddd, MMM D") : null,
     zoneAbbreviation: data.showTimezoneAbbreviation
       ? OneUptimeDate.getZoneAbbrByTimezone(timezone as Timezone, data.date)
@@ -237,6 +327,47 @@ export const getClockWidgetDisplay: GetClockWidgetDisplayFunction = (data: {
     timezone: timezone,
     isFallbackTimezone: isFallbackTimezone,
   };
+
+  if (isEnglishDateLanguage(data.language)) {
+    return display;
+  }
+
+  const locale: string = getDateLocale(data.language);
+
+  display.time = writeDigitsInLocale(display.time, locale);
+  display.seconds =
+    display.seconds === null
+      ? null
+      : writeDigitsInLocale(display.seconds, locale);
+
+  if (use12HourFormat) {
+    const meridiem: { text: string; isFirst: boolean } | null =
+      getClockMeridiemInLocale({
+        date: data.date,
+        timezone: timezone,
+        locale: locale,
+      });
+
+    // Where Intl has no words for it, the English ones, as before.
+    if (meridiem) {
+      display.meridiem = meridiem.text;
+      display.isMeridiemFirst = meridiem.isFirst;
+    }
+  }
+
+  if (data.showDate) {
+    const dateFormat: Intl.DateTimeFormat | null = getDateTimeFormat({
+      locale: locale,
+      timezones: [timezone],
+      options: CLOCK_DATE_OPTIONS,
+    });
+
+    if (dateFormat) {
+      display.dateText = dateFormat.format(data.date);
+    }
+  }
+
+  return display;
 };
 
 /**
@@ -378,6 +509,29 @@ export const CLOCK_SECONDARY_FONT_SCALE: number = 0.45;
 /** Advance width of one tabular-numeral, as a fraction of the font size. */
 const TABULAR_DIGIT_WIDTH_RATIO: number = 0.62;
 
+/*
+ * A character set as wide as it is tall - Chinese, Japanese and Korean,
+ * and the full-width forms - in a meridiem: "午後", "오후", "下午".
+ */
+const FULL_WIDTH_CHARACTER: RegExp =
+  /[\u1100-\u115f\u2e80-\ua4cf\uac00-\ud7a3\uf900-\ufaff\ufe30-\ufe4f\uff00-\uff60\uffe0-\uffe6]/;
+
+/*
+ * How many digit widths `text` takes: one for each character, and a
+ * full-width one's own width (an em) for each of those.
+ */
+const getWidthInDigits: (text: string) => number = (text: string): number => {
+  let width: number = 0;
+
+  for (const character of text) {
+    width += FULL_WIDTH_CHARACTER.test(character)
+      ? 1 / TABULAR_DIGIT_WIDTH_RATIO
+      : 1;
+  }
+
+  return width;
+};
+
 /** Vertical space one secondary line (label / date / zone) occupies. */
 const SECONDARY_LINE_HEIGHT_IN_PX: number = 16;
 
@@ -497,7 +651,7 @@ export const getClockTimeWidthInFontUnits: GetClockTimeWidthInFontUnitsFunction 
       ? (display.seconds.length + 1) * CLOCK_SECONDARY_FONT_SCALE
       : 0;
     const meridiemChars: number = display.meridiem
-      ? (display.meridiem.length + 1) * CLOCK_SECONDARY_FONT_SCALE
+      ? (getWidthInDigits(display.meridiem) + 1) * CLOCK_SECONDARY_FONT_SCALE
       : 0;
 
     return (

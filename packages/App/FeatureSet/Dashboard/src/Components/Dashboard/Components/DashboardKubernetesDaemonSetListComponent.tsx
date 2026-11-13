@@ -22,6 +22,7 @@ import {
   buildReadinessTile,
   READINESS_LEGEND,
 } from "./DashboardKubernetesTileHelpers";
+import { getUnnamedText } from "./DashboardWidgetFallbackWords";
 
 const ATTRIBUTE_TO_COLUMN: AttributeToColumnMap = {
   "k8s.daemonset.name": "name",
@@ -42,7 +43,7 @@ const COLUMNS: Array<ResourceListColumn> = [
 
 function renderRow(r: KubernetesResource): ReactElement {
   const id: string = (r._id as string) || "";
-  const name: string = (r.name as string) || "Unnamed";
+  const name: string = (r.name as string) || getUnnamedText();
   const namespace: string = (r.namespaceKey as string) || "—";
   const clusterName: string = (r.kubernetesCluster?.name as string) || "—";
   const clusterId: string = (r.kubernetesClusterId?.toString() as string) || "";
@@ -114,7 +115,10 @@ const DashboardKubernetesDaemonSetListComponentElement: FunctionComponent<
       componentType={DashboardComponentType.KubernetesDaemonSetList}
       widgetProps={props}
       title={args.title}
-      pluralLabel="daemonsets"
+      countLabel={{
+        one: "{{count}} daemonset",
+        other: "{{count}} daemonsets",
+      }}
       emptyMessage="No daemon sets found"
       emptyIcon={IconProp.ServerStack}
       columns={COLUMNS}

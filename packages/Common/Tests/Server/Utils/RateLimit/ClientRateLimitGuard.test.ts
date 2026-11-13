@@ -66,7 +66,7 @@ const COUNTERS_NOT_KEYED_ON_A_CLIENT: Record<string, string> = {
   "packages/App/FeatureSet/Workers/Jobs/Rum/FinalizeSessions.ts":
     "the project a worker run starts from",
   "packages/Common/Server/Infrastructure/GlobalCache.ts":
-    "the counters its callers name: certificate orders, production review AI reads, cloud live reads and Cloud AI agent registrations, below",
+    "the counters its callers name: certificate orders, production review AI reads, cloud live reads, Cloud AI agent registrations and on-call test pages, below",
   "packages/Common/Server/Utils/CodeRepository/ProductionReview/ProductionReviewRunner.ts":
     "OneUptime AI's production review reads per repository and day",
   "packages/Common/Server/Utils/Greenlock/CertificateOrder.ts":
@@ -85,6 +85,8 @@ const COUNTERS_NOT_KEYED_ON_A_CLIENT: Record<string, string> = {
     "megabytes of files a form takes in per hour, every address together",
   "packages/Common/Server/API/MattermostAPI.ts":
     "Mattermost sign-in links sent per OneUptime user in 15 minutes",
+  "packages/Common/Server/Services/OnCallTestPageService.ts":
+    "on-call test pages sent per project and hour",
 };
 
 /*

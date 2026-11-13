@@ -247,7 +247,7 @@ const DashboardLogStreamComponentElement: FunctionComponent<ComponentProps> = (
            * One line beside a title that wraps, as a list's count is:
            * squeezed by a long title, "12 entries" broke in two.
            */}
-          <span className="shrink-0 whitespace-nowrap text-xs text-gray-300 tabular-nums">
+          <span className="shrink-0 whitespace-nowrap text-xs text-gray-400 tabular-nums">
             {translator.translatePlural(
               { one: "{{count}} entry", other: "{{count}} entries" },
               logs.length,
