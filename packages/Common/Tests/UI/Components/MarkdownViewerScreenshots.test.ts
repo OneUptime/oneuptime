@@ -1517,9 +1517,11 @@ describe("the real MarkdownViewer shows a synthetic monitor's screenshot, in a p
  * the address to the title, and remark read no link. Now the rest of the
  * address and of the title are held back apart, and the viewer shows the
  * link with its address and its title - in a process that compiles regular
- * expressions unoptimized, as a browser tab that has run a while does.
+ * expressions unoptimized, as a browser tab that has run a while does. The
+ * same at the middle's other end: a link whose address runs into the
+ * line's kept end keeps its "[Run](" in view.
  */
-describe("the real MarkdownViewer shows a link across the start of an over-long line's middle (#7229)", () => {
+describe("the real MarkdownViewer shows a link across either end of an over-long line's middle (#7229)", () => {
   // The issue's title: 68 KB, so each row is a line of about 70 KB.
   const TITLE: string = "Checkout failed. ".repeat(4000);
   // No run of base64 in it: it comes back as it is, not compacted.
@@ -1539,6 +1541,15 @@ describe("the real MarkdownViewer shows a link across the start of an over-long 
     {
       name: "a bare address",
       text: `See ${ADDRESS}. Then ${"lorem ipsum ".repeat(6000)}`,
+    },
+    // The other end of the middle: a long address at the end of a long line.
+    {
+      name: "a link at the end",
+      text: `${"lorem ipsum ".repeat(6000)}see [Run](${ADDRESS}) now`,
+    },
+    {
+      name: "an image at the end",
+      text: `${"lorem ipsum ".repeat(6000)}![Shot](${ADDRESS}.png "Home page")`,
     },
   ];
 
@@ -1610,5 +1621,21 @@ describe("the real MarkdownViewer shows a link across the start of an over-long 
     const html: string = htmlOf("a bare address");
 
     expect(hrefsIn(html)).toEqual([ADDRESS]);
+  });
+
+  test("a link whose address runs into the line's kept end is shown with its whole address", () => {
+    const html: string = htmlOf("a link at the end");
+
+    expect(hrefsIn(html)).toEqual([ADDRESS]);
+    expect(html).not.toContain("[Run](");
+  });
+
+  test("an image whose address runs into the line's kept end is shown, with its title", () => {
+    const html: string = htmlOf("an image at the end");
+
+    expect(imagesIn(html)).toEqual([
+      { src: `${ADDRESS}.png`, alt: "Shot", title: "Home page" },
+    ]);
+    expect(html).not.toContain("![Shot](");
   });
 });

@@ -27,7 +27,8 @@ import { isWhiteSpaceCode } from "../RegExpCharacterClasses";
  *     asterisks of bold, a link's brackets - on both ends. A link that goes
  *     on from the kept start into the middle keeps its structure: its
  *     address and its title are held back apart, with what parts them in
- *     view (holdBackMiddle).
+ *     view (holdBackMiddle). So does one that goes on from the middle
+ *     into the kept end: its "[" and "](" stay in view.
  *   - in every run of lines with no blank line between them that is longer
  *     than OVER_LONG_RUN_LENGTH characters, each group of consecutive lines
  *     that only continue the block they are in (isContinuationLine: plain
@@ -272,6 +273,20 @@ const getCut: (text: string, position: number) => number = (
  * Where the link is is read from the start of the line to the cut - at
  * most OVER_LONG_LINE_KEPT_LENGTH characters - and then on to where its
  * address or title ends: each character of the line once.
+ *
+ * A LINK ACROSS THE END OF A LINE'S MIDDLE.
+ *
+ * The same holds at the middle's other end: a link or an image can start
+ * in the middle and go on into the line's kept end - a long address at the
+ * end of a long log line, with or without a title. Held back in one piece
+ * with the rest of the middle, its "[text](" went into the token, and the
+ * parser read what the kept end holds of its address as text: an email
+ * showed "[Run](https://..." as text. So the middle's last pieces leave
+ * such a link's "[" - an image's "![" - and its "](" in view, its text held
+ * back between them, and then its address and its title apart, as above.
+ * An autolink keeps its "<" and its scheme. The link is found as the rest
+ * of the middle is read, on from where a link across its start ended: each
+ * character once, with at most MAX_OPEN_LABELS labels' starts remembered.
  */
 
 // The parts of a link a line is read in (readLinkUnit).
@@ -311,9 +326,25 @@ const LESS_THAN: number = 0x3c;
 const COLON: number = 0x3a;
 const QUOTATION_MARK: number = 0x22;
 const APOSTROPHE: number = 0x27;
+const EXCLAMATION_MARK: number = 0x21;
 
 // The most characters an autolink's scheme has (CommonMark: 2 to 32).
 const MAX_SCHEME_LENGTH: number = 32;
+
+/*
+ * The most labels, one inside another, whose start is remembered as the
+ * middle is read for a link across its end: a "](" that closes one opened
+ * deeper - a line of "[" - finds no start, and its link stays in one
+ * piece with the rest of the middle, as before.
+ */
+const MAX_OPEN_LABELS: number = 1024;
+
+/*
+ * The longest text of a link across the end of a line's middle that stays
+ * in view as written - "**Run 42**" bold, as in the whole line. A longer
+ * one is held back between its "[" and its "](", read as plain text.
+ */
+const MAX_KEPT_LINK_TEXT_LENGTH: number = OVER_LONG_LINE_KEPT_LENGTH;
 
 /*
  * The most white space kept in view between a link's parts in a line's
@@ -631,8 +662,10 @@ const readDefinitionStart: (
 /*
  * Holds back the middle text[middleStart, middleEnd) of the over-long line
  * that starts at `lineStart` - in pieces where a link, or a word, goes on
- * into it from the line's kept start (see "A link across the start of a
- * line's middle" above) - and adds what stands for it to `pieces`.
+ * into it from the line's kept start, or a link goes on from it into the
+ * kept end (see "A link across the start of a line's middle" and "A link
+ * across the end of a line's middle" above) - and adds what stands for it
+ * to `pieces`.
  */
 const holdBackMiddle: (data: {
   text: string;
@@ -665,6 +698,183 @@ const holdBackMiddle: (data: {
       data.pieces.push(text.slice(position, end));
       position = end;
     }
+  };
+
+  // Whether white space too long to keep ended holdBackLinkParts.
+  let isSeparatorTooLong: boolean = false;
+
+  /*
+   * While `linkReading` is in a link, from `from` on: holds back an
+   * address's and a title's own characters, and keeps what parts them in
+   * view. Returns where it stopped - where the link ended, at the middle's
+   * end, or at white space too long to keep (isSeparatorTooLong).
+   */
+  const holdBackLinkParts: (
+    linkReading: LinkReading,
+    from: number,
+  ) => number = (linkReading: LinkReading, from: number): number => {
+    let at: number = from;
+    // White space kept since the last address or title character.
+    let separatorLength: number = 0;
+
+    while (at < middleEnd && isInLink(linkReading)) {
+      const part: LinkPart = linkReading.part;
+      const next: number = Math.min(
+        readLinkUnit(text, at, linkReading),
+        middleEnd,
+      );
+
+      if (next === at) {
+        // A part ended on a character the next part reads.
+        continue;
+      }
+
+      if (
+        part === "beforeDestination" ||
+        part === "afterDestination" ||
+        part === "afterTitle"
+      ) {
+        // White space between the parts, a title's opening quote, a ")": kept.
+        separatorLength += next - at;
+
+        if (separatorLength > MAX_KEPT_SEPARATOR_LENGTH) {
+          isSeparatorTooLong = true;
+          break;
+        }
+
+        holdTo(at);
+        keepTo(next);
+      } else {
+        separatorLength = 0;
+
+        /*
+         * An address's or a title's own characters are held back; what
+         * ends it - a ">", a closing quote, the ")" that closes the link -
+         * is kept.
+         */
+        if (linkReading.part !== part) {
+          holdTo(at);
+          keepTo(next);
+        }
+      }
+
+      at = next;
+    }
+
+    return at;
+  };
+
+  /*
+   * Reads the rest of the middle, on from `from` - where `reading` is - and
+   * holds it back, keeping in view what a link or an autolink that goes on
+   * into the kept end needs there (see "A link across the end of a line's
+   * middle" above).
+   */
+  const holdBackToEnd: (from: number) => void = (from: number): void => {
+    /*
+     * Where each label the reading is in starts - its "[", or the "!" of
+     * an image's "![" - the innermost last; and how many more were opened
+     * inside them, past MAX_OPEN_LABELS.
+     */
+    const labelStarts: Array<number> = [];
+    let labelsLeftOut: number = 0;
+    // The start of the link the reading is in, and its "](", or -1.
+    let linkStart: number = -1;
+    let linkClose: number = -1;
+    // The "<" of the autolink the reading is in, or -1.
+    let autolinkStart: number = -1;
+    // The last "!" read as text: an "[" right after it opens an image.
+    let exclamationMark: number = -1;
+
+    // The start of the label a "]" closes, or -1 when it is not known.
+    const closeLabel: () => number = (): number => {
+      if (labelsLeftOut > 0) {
+        labelsLeftOut--;
+
+        return -1;
+      }
+
+      return labelStarts.pop() ?? -1;
+    };
+
+    let at: number = from;
+
+    while (at < middleEnd) {
+      const part: LinkPart = reading.part;
+
+      if (part === "text") {
+        const code: number = text.charCodeAt(at);
+
+        if (code === OPEN_BRACKET) {
+          if (labelStarts.length < MAX_OPEN_LABELS) {
+            labelStarts.push(exclamationMark === at - 1 ? at - 1 : at);
+          } else {
+            labelsLeftOut++;
+          }
+        } else if (
+          code === CLOSE_BRACKET &&
+          text.charCodeAt(at + 1) !== OPEN_PARENTHESIS
+        ) {
+          closeLabel();
+        } else if (code === EXCLAMATION_MARK) {
+          exclamationMark = at;
+        }
+      }
+
+      const next: number = readLinkUnit(text, at, reading);
+
+      if (part === "text" && reading.part === "beforeDestination") {
+        // A "](" closes a label: a link starts, if a "[" opened it.
+        linkStart = closeLabel();
+        linkClose = at;
+      } else if (part === "text" && reading.part === "autolink") {
+        autolinkStart = at;
+      } else if (part !== "text" && reading.part === "text") {
+        linkStart = -1;
+        autolinkStart = -1;
+      }
+
+      at = next;
+    }
+
+    if (reading.part === "autolink" && autolinkStart >= position) {
+      // Its "<", its scheme and the ":" after it stay in view.
+      holdTo(autolinkStart);
+      keepTo(Math.min(text.indexOf(":", autolinkStart) + 1, middleEnd));
+    } else if (
+      isInLink(reading) &&
+      reading.part !== "autolink" &&
+      linkStart >= position
+    ) {
+      /*
+       * Its "[" or "![" and its "](" stay in view, and its text between
+       * them as written - or, when it is longer than
+       * MAX_KEPT_LINK_TEXT_LENGTH, held back.
+       */
+      const labelOpen: number =
+        text.charCodeAt(linkStart) === OPEN_BRACKET ? linkStart : linkStart + 1;
+
+      holdTo(linkStart);
+
+      if (linkClose - labelOpen - 1 > MAX_KEPT_LINK_TEXT_LENGTH) {
+        keepTo(Math.min(labelOpen + 1, middleEnd));
+        holdTo(Math.min(linkClose, middleEnd));
+      }
+
+      keepTo(Math.min(linkClose + 2, middleEnd));
+      holdBackLinkParts(
+        {
+          part: "beforeDestination",
+          isInline: true,
+          depth: 0,
+          closer: 0,
+          spaced: false,
+        },
+        linkClose + 2,
+      );
+    }
+
+    holdTo(middleEnd);
   };
 
   // Where the kept start leaves the line: read from the line's start.
@@ -726,7 +936,7 @@ const holdBackMiddle: (data: {
       }
     }
 
-    holdTo(middleEnd);
+    holdBackToEnd(index);
 
     return;
   }
@@ -737,52 +947,7 @@ const holdBackMiddle: (data: {
    * backslash before it is.
    */
   keepTo(Math.min(index, middleEnd));
-
-  // White space kept since the last address or title character.
-  let separatorLength: number = 0;
-
-  while (index < middleEnd && isInLink(reading)) {
-    const part: LinkPart = reading.part;
-    const next: number = Math.min(
-      readLinkUnit(text, index, reading),
-      middleEnd,
-    );
-
-    if (next === index) {
-      // A part ended on a character the next part reads.
-      continue;
-    }
-
-    if (
-      part === "beforeDestination" ||
-      part === "afterDestination" ||
-      part === "afterTitle"
-    ) {
-      // White space between the parts, a title's opening quote, a ")": kept.
-      separatorLength += next - index;
-
-      if (separatorLength > MAX_KEPT_SEPARATOR_LENGTH) {
-        break;
-      }
-
-      holdTo(index);
-      keepTo(next);
-    } else {
-      separatorLength = 0;
-
-      /*
-       * An address's or a title's own characters are held back; what ends
-       * it - a ">", a closing quote, the ")" that closes the link - is
-       * kept.
-       */
-      if (reading.part !== part) {
-        holdTo(index);
-        keepTo(next);
-      }
-    }
-
-    index = next;
-  }
+  index = holdBackLinkParts(reading, index);
 
   /*
    * The link ended before the middle did - or what looked like one was
@@ -809,7 +974,16 @@ const holdBackMiddle: (data: {
     }
   }
 
-  holdTo(middleEnd);
+  /*
+   * Read on for a link across the middle's end - unless white space too
+   * long to keep left the reading where it does not know the line's parts
+   * (or the link across the start runs on to the end).
+   */
+  if (isSeparatorTooLong || isInLink(reading)) {
+    holdTo(middleEnd);
+  } else {
+    holdBackToEnd(index);
+  }
 };
 
 /*
@@ -818,7 +992,8 @@ const holdBackMiddle: (data: {
  * after a space where there is one near (getCut), and never between the two
  * halves of a surrogate pair, such as an emoji. A link, or a word, that
  * goes on from the line's kept start into its middle is held back in pieces
- * (holdBackMiddle).
+ * (holdBackMiddle), and so is a link that goes on from the middle into the
+ * line's kept end.
  */
 export const holdBackOverLongLines: (
   text: string,

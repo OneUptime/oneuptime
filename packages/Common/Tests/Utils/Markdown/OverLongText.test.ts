@@ -660,15 +660,22 @@ describe("OverLongText - a link across the start of a line's middle (#7229)", ()
       const heldLine: HeldLine = holdBackLine(line);
       const inViewLength: number = heldLine.inView.join("").length;
 
-      // At most an address, a title and what follows: three pieces.
-      expect(heldLine.held.length).toBeLessThanOrEqual(3);
+      /*
+       * At most an address and a title for a link across the middle's
+       * start; then what follows it, up to a link across the middle's end,
+       * and that link's text, address, title and white space too long to
+       * keep: seven pieces. In view, besides both kept ends: what parts
+       * them, at most 64 characters a run, and a link's text of at most
+       * 1 KB.
+       */
+      expect(heldLine.held.length).toBeLessThanOrEqual(7);
       expect(inViewLength).toBeLessThanOrEqual(
-        2 * OVER_LONG_LINE_KEPT_LENGTH + 4 * 64,
+        3 * OVER_LONG_LINE_KEPT_LENGTH + 8 * 64,
       );
     }
   });
 
-  test("a megabyte line of such links is held back in time in line with its length", () => {
+  test("a megabyte line of such links is held back in time in line with its length: the first and the last keep their parts in view", () => {
     const link: string = `[Run](${ADDRESS} "Checkout failed: the payment step timed out") `;
     const line: string = repeatTo(link, 1024 * 1024);
     let heldLine: HeldLine | null = null;
@@ -683,9 +690,13 @@ describe("OverLongText - a link across the start of a line's middle (#7229)", ()
     });
 
     expect(run.inMs).toBeLessThan(2000);
-    expect(heldLine!.held).toHaveLength(3);
-    expect(heldLine!.inView[1]).toBe(' "');
-    expect(heldLine!.inView[2]).toBe('") ');
+    /*
+     * The first link's address and title, the links between, and the
+     * part of the last link's address the middle holds: the last one's
+     * address runs on into the kept end, so its "[Run](" stays in view.
+     */
+    expect(heldLine!.held).toHaveLength(4);
+    expect(heldLine!.inView.slice(1, 4)).toEqual([' "', '") ', "[Run]("]);
   });
 
   test.each([
@@ -694,6 +705,10 @@ describe("OverLongText - a link across the start of a line's middle (#7229)", ()
     ["a line of backslashes", repeatTo("\\", 1024 * 1024)],
     ["a line of '<a:' ", repeatTo("<ab:", 1024 * 1024)],
     ["a title that never ends", `[a](b "${repeatTo("c", 1024 * 1024)}`],
+    ["a line of '['", repeatTo("[", 1024 * 1024)],
+    ["a line of '![a](' ", repeatTo("![a](", 1024 * 1024)],
+    ["a line of '[a] ' ", repeatTo("[a] ", 1024 * 1024)],
+    ["a line of '!' ", repeatTo("!", 1024 * 1024)],
   ])(
     "%s is read once: held back in time in line with its length",
     (_label: string, line: string) => {
@@ -707,6 +722,206 @@ describe("OverLongText - a link across the start of a line's middle (#7229)", ()
       expect(run.inMs).toBeLessThan(2000);
     },
   );
+});
+
+/*
+ * The other end of the middle: a link or an image that starts in the
+ * middle and goes on into the line's kept end - a long address at the end
+ * of a long log line. Held back in one piece with the rest of the middle,
+ * its "[text](" went into the token and the parser read what the kept end
+ * holds of the address as text: an email showed "[Run](https://..." as
+ * text. Now its "[" and "](" stay in view, its address is held back apart.
+ */
+describe("OverLongText - a link across the end of a line's middle (#7229)", () => {
+  const ADDRESS: string = `https://example.com/${"a".repeat(2000)}`;
+  const WORDS: string = repeatTo("lorem ipsum ", 70000).trim();
+  const TOKEN: RegExp = /\d+/;
+
+  interface HeldLine {
+    // What the parser reads of the line, between the tokens.
+    inView: Array<string>;
+    // What each token stands for, in order.
+    held: Array<string>;
+  }
+
+  // `line` held back, read apart - and always put back together exactly.
+  const holdBackLine: (line: string) => HeldLine = (line: string): HeldLine => {
+    const holder: Holder = makeHolder();
+    const heldText: string = holdBackOverLongLines(line, holder.hold);
+
+    expect(holder.putBack(heldText) === line).toBe(true);
+
+    return { inView: heldText.split(TOKEN), held: holder.held };
+  };
+
+  // Where the kept start ends: right after a space of the words.
+  const middleStartOf: (line: string) => number = (line: string): number => {
+    return line.lastIndexOf(" ", OVER_LONG_LINE_KEPT_LENGTH - 1) + 1;
+  };
+
+  test.each([
+    ["a link", `[Run](${ADDRESS}) now`, "[Run]("],
+    ["a link with a title", `[Run](${ADDRESS} "Checkout failed")`, "[Run]("],
+    ["an image", `![Shot](${ADDRESS}.png) now`, "![Shot]("],
+    [
+      "an image with a title",
+      `![Shot](${ADDRESS}.png "Home page")`,
+      "![Shot](",
+    ],
+    ["an address in angle brackets", `[Run](<${ADDRESS}> "t")`, "[Run](<"],
+    ["a text with emphasis", `[**Run 42**](${ADDRESS}) now`, "[**Run 42**]("],
+    ["a text with brackets in it", `[a [b] c](${ADDRESS}) now`, "[a [b] c]("],
+    ["an autolink", `<${ADDRESS}> now`, "<https:"],
+  ])(
+    "%s whose address runs into the kept end keeps its opening in view, and what the middle holds of its address is held back alone",
+    (_label: string, link: string, opening: string) => {
+      const line: string = `${WORDS} see ${link}`;
+      const heldLine: HeldLine = holdBackLine(line);
+      const linkAt: number = line.lastIndexOf(" see ") + " see ".length;
+      // No space near the end's cut: it is exactly 1 KB before the end.
+      const middleEnd: number = line.length - OVER_LONG_LINE_KEPT_LENGTH;
+      const middleStart: number = middleStartOf(line);
+
+      expect(line.length).toBeGreaterThan(OVER_LONG_LINE_LENGTH);
+      expect(heldLine.inView).toEqual([
+        line.slice(0, middleStart),
+        opening,
+        line.slice(middleEnd),
+      ]);
+      expect(heldLine.held).toEqual([
+        line.slice(middleStart, linkAt),
+        line.slice(linkAt + opening.length, middleEnd),
+      ]);
+    },
+  );
+
+  test("a link's text over 1 KB is held back between its '[' and its '](', which stay in view", () => {
+    const text: string = "run ".repeat(300);
+    const line: string = `${WORDS} see [${text}](${ADDRESS}) now`;
+
+    const heldLine: HeldLine = holdBackLine(line);
+
+    expect(heldLine.inView.slice(1, 3)).toEqual(["[", "]("]);
+    expect(heldLine.held[1]).toBe(text);
+    expect(heldLine.held[2]!.startsWith("https://example.com/aaa")).toBe(true);
+  });
+
+  test("a title the middle ends inside of: the address and the rest of the title the middle holds are held back apart", () => {
+    const title: string = "Checkout failed. ".repeat(100);
+    const line: string = `${WORDS} see [Run](https://example.com/x "${title}") now`;
+
+    const heldLine: HeldLine = holdBackLine(line);
+
+    expect(heldLine.inView.slice(1, 3)).toEqual(["[Run](", ' "']);
+    expect(heldLine.held[1]).toBe("https://example.com/x");
+    expect(title.startsWith(heldLine.held[2]!)).toBe(true);
+
+    // The end is cut right after a space in the title, as it always was.
+    const cut: number = line.length - OVER_LONG_LINE_KEPT_LENGTH;
+    const middleEnd: number = line.lastIndexOf(" ", cut - 1) + 1;
+
+    expect(cut - middleEnd).toBeLessThanOrEqual(64);
+    expect(heldLine.inView[3]).toBe(line.slice(middleEnd));
+  });
+
+  test("a link across each end of the middle keeps both in view", () => {
+    const line: string = `[Run](${ADDRESS} "Checkout failed") ${WORDS} see [Again](${ADDRESS}) now`;
+
+    const heldLine: HeldLine = holdBackLine(line);
+
+    expect(heldLine.inView.slice(1, 4)).toEqual([' "', '") ', "[Again]("]);
+    expect(heldLine.held[1]).toBe("Checkout failed");
+    expect(heldLine.held).toHaveLength(4);
+  });
+
+  test.each([
+    ["a '](' that no '[' opened", `${WORDS} see x](${ADDRESS}) now`],
+    ["an escaped '['", `${WORDS} see \\[Run](${ADDRESS}) now`],
+    [
+      "a label opened deeper than MAX_OPEN_LABELS",
+      `${WORDS} see ${"[".repeat(1100)}Run](${ADDRESS}) now`,
+    ],
+    [
+      "a link that ends in the middle",
+      `${WORDS} see [Run](https://example.com/x) ${"a".repeat(1100)}`,
+    ],
+    ["a bare address", `${WORDS} see ${ADDRESS} now`],
+  ])(
+    "%s: the middle is one piece, as before",
+    (_label: string, line: string) => {
+      const heldLine: HeldLine = holdBackLine(line);
+
+      expect(heldLine.held).toHaveLength(1);
+      expect(heldLine.inView).toHaveLength(2);
+    },
+  );
+
+  test("after white space too long to keep before a title, nothing in that title is read as a link across the end", () => {
+    // 64 spaces and the title's quote: one character more than is kept.
+    const line: string = `[Run](${ADDRESS}${" ".repeat(64)}"${WORDS} see [Again](${ADDRESS}) now")`;
+
+    const heldLine: HeldLine = holdBackLine(line);
+
+    expect(heldLine.inView[1]).toBe(" ".repeat(64));
+    expect(heldLine.held).toHaveLength(2);
+    expect(heldLine.held[1]!.startsWith(`"${WORDS.slice(0, 20)}`)).toBe(true);
+  });
+
+  test("an escaped '!' before the '[' opens a link, not an image: the '!' stays in the middle's piece", () => {
+    const line: string = `${WORDS} see \\![Run](${ADDRESS}) now`;
+
+    const heldLine: HeldLine = holdBackLine(line);
+
+    expect(heldLine.inView[1]).toBe("[Run](");
+    expect(heldLine.held[0]!.endsWith("see \\!")).toBe(true);
+  });
+
+  test("lines of links near their end, drawn at random, are always put back exactly, and a link that runs into the kept end keeps its '](' in view", () => {
+    const random: SeededRandom = seededRandom(72291);
+    const fragments: Array<string> = [
+      "[Run](",
+      "![Shot](",
+      "[",
+      "]",
+      "](",
+      "<https:",
+      "<",
+      ">",
+      " ",
+      '"',
+      "(",
+      ")",
+      "\\",
+      "!",
+      "word",
+      "a".repeat(300),
+    ];
+    let linksInView: number = 0;
+
+    for (let attempt: number = 0; attempt < 300; attempt++) {
+      let line: string = `${WORDS} `;
+
+      while (line.length < WORDS.length + 3 * OVER_LONG_LINE_KEPT_LENGTH) {
+        line += fragments[random(fragments.length)]!;
+      }
+
+      const heldLine: HeldLine = holdBackLine(line);
+
+      // The words up to the link, its text, address and title, and white space too long to keep.
+      expect(heldLine.held.length).toBeLessThanOrEqual(5);
+
+      if (
+        heldLine.inView.some((piece: string): boolean => {
+          return piece.endsWith("](");
+        })
+      ) {
+        linksInView++;
+      }
+    }
+
+    // The fragments make such links often enough to be read.
+    expect(linksInView).toBeGreaterThan(30);
+  });
 });
 
 describe("OverLongText - which lines only continue the block they are in", () => {

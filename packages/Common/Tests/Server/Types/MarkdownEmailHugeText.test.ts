@@ -378,9 +378,92 @@ describe("Markdown email renderer - a link across the start of an over-long line
         `<p><a href="${ADDRESS}" title="${title}">Run</a> [Run](${ADDRESS} &quot;${title}&quot;) `,
       ),
     ).toBe(true);
-    // One link: the rest of the line is its middle, shown as written.
+    /*
+     * One link: the rest of the line is its middle, shown as written - and
+     * the field is cut to fit before the line's last link.
+     */
     expect(html.split("<a ")).toHaveLength(2);
     expect(html).not.toContain("%20");
+  });
+});
+
+/*
+ * The other end of an over-long line's middle: a link or an image whose
+ * address is longer than the line's kept end (1 KB), at the end of a long
+ * line - a dashboard link with a long query after a log. Its "[text](" was
+ * held back with the middle, and the email showed "[Run](https://..." as
+ * text. Now its "[" and "](" stay in view and each renders as marked alone
+ * renders it.
+ */
+describe("Markdown email renderer - a link across the end of an over-long line's middle (#7229)", () => {
+  const ADDRESS: string = `https://example.com/${"a".repeat(2000)}`;
+  const QUERY: string = `https://grafana.example.com/d/abc/checkout?${Array.from(
+    { length: 200 },
+    (_: unknown, index: number): string => {
+      return `k${index}=v${index}`;
+    },
+  ).join("&")}`;
+  const WORDS: string = "lorem ipsum ".repeat(6000).trim();
+
+  test.each([
+    ["a link", `${WORDS} see [Run](${ADDRESS}) now`],
+    ["a link with a title", `${WORDS} see [Run](${ADDRESS} "Checkout failed")`],
+    ["an image", `${WORDS} ![Shot](${ADDRESS}.png)`],
+    ["an image with a title", `${WORDS} ![Shot](${ADDRESS}.png "Home page")`],
+    [
+      "a dashboard link with a long query",
+      `${WORDS} see [the dashboard](${QUERY}) for the run.`,
+    ],
+    [
+      "an address in angle brackets",
+      `${WORDS} see [Run](<${ADDRESS}> "t") now`,
+    ],
+    ["an autolink", `${WORDS} see <${ADDRESS}> now`],
+    [
+      "a link's text with emphasis",
+      `${WORDS} see [**Run 42**](${ADDRESS}) now`,
+    ],
+    [
+      "a title the middle ends inside of",
+      `${WORDS} see [Run](https://example.com/x "${"Checkout failed. ".repeat(100)}") now`,
+    ],
+    [
+      "a link across each end",
+      `[Run](${ADDRESS} "Checkout failed") ${WORDS} see [Again](${ADDRESS}) now`,
+    ],
+    ["a link in a list item, in a quote", `> - ${WORDS} see [Run](${ADDRESS})`],
+  ])(
+    "renders exactly as marked alone does: %s",
+    async (_label: string, markdown: string) => {
+      const html: string = await render(markdown);
+      const expected: string = await renderWithMarkedAlone(markdown);
+
+      expect(markdown.length).toBeGreaterThan(OVER_LONG_LINE_LENGTH);
+      // A boolean, so a failure does not print hundreds of kilobytes.
+      expect(html === expected).toBe(true);
+    },
+  );
+
+  test("a link, an image and a query link at a long line's end: each to its whole address, and none of their Markdown is shown", async () => {
+    const link: string = await render(`${WORDS} see [Run](${ADDRESS}) now`);
+    const image: string = await render(`${WORDS} ![Shot](${ADDRESS}.png)`);
+    const query: string = await render(
+      `${WORDS} see [the dashboard](${QUERY}) for the run.`,
+    );
+
+    expect(link.endsWith(` see <a href="${ADDRESS}">Run</a> now</p>\n`)).toBe(
+      true,
+    );
+    expect(image).toContain(`<img src="${ADDRESS}.png" alt="Shot"`);
+    expect(query).toContain(
+      `<a href="${QUERY.split("&").join("&amp;")}">the dashboard</a> for the run.`,
+    );
+
+    for (const html of [link, image, query]) {
+      expect(html).not.toContain("[Run](");
+      expect(html).not.toContain("![Shot](");
+      expect(html).not.toContain("[the dashboard](");
+    }
   });
 });
 
