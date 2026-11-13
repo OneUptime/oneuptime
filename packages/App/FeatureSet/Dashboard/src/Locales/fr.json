@@ -39674,7 +39674,7 @@
   "Cloud Run service": "Service Cloud Run",
   "Cloud SQL instance": "Instance Cloud SQL",
   "Compute Engine VM": "VM Compute Engine",
-  "Container App": "application conteneur",
+  "Container App": "Application conteneur",
   "Didn't work here": "N'a pas fonctionné ici",
   "Didn't work any of the {{count}} times it ran here before": "N'a fonctionné aucune des {{count}} fois où il a été exécuté ici",
   "Didn't work any of the {{count}} times it ran here before_one": "N'a pas fonctionné la seule fois où il a été exécuté ici",

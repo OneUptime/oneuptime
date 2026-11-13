@@ -557,6 +557,14 @@ then `npm run i18n:validate` from the root.
 - **A bare word has one meaning everywhere,** because a label is translated by its English text.
   "Any" is the Match Condition's word. Enforced by
   [MatchConditionAnyWordGuard](../../packages/Common/Tests/UI/Components/Forms/MatchConditionAnyWordGuard.test.ts).
+- **A noun the sentences share starts a label with a capital.** Many nouns are worded for the middle
+  of a sentence, so Spanish says "clúster de Kubernetes" and French "ressource cloud". Where the same
+  key names a row, a chip or a line of a card, draw it through `toLabelTerm`, which starts it with a
+  capital in the reader's language: "Clúster de Kubernetes". A key that is only ever a label is worded
+  with a capital in every language instead. Enforced by
+  [NounKeysDrawnAsLabelsGuard](../../packages/Common/Tests/App/Dashboard/NounKeysDrawnAsLabelsGuard.test.ts)
+  and
+  [NounLabelsStartWithACapital](../../packages/Common/Tests/App/Dashboard/NounLabelsStartWithACapital.test.tsx).
 - **Pick words that translate as you mean them.** "About" read "Regarding" in 13 languages, so the
   button says "How it works"; "Uptime" read "runtime", so a share of time up says "Availability". Not
   enforced: use judgement.
