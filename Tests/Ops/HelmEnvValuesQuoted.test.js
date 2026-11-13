@@ -637,7 +637,9 @@ if (HELM_MISSING && !process.env.CI) {
 
 const testWithHelm = HELM_MISSING && !process.env.CI ? test.skip : test;
 
-function render(values) {
+// `args` adds helm template flags, such as --is-upgrade for the upgrade
+// branch of templates/secrets.yaml.
+function render(values, args = []) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "helm-env-quoted-"));
   const file = path.join(dir, "values.json");
 
@@ -654,6 +656,7 @@ function render(values) {
         "oneuptime",
         "--values",
         file,
+        ...args,
       ],
       { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
     );
@@ -817,8 +820,8 @@ describe("the oneuptime chart hands every credential and free-text setting to it
    * read from a file with its final newline reached the pods without it. The
    * helper keeps it so: an ENCRYPTION_SECRET that gained a newline would
    * leave every value encrypted with the old one unreadable. The built-in
-   * ClickHouse's own StatefulSet takes its user as written, as it always did,
-   * so it is left out here; the render above holds it to the app's.
+   * ClickHouse's own StatefulSet is held to it too: it creates the user the
+   * app connects as, so it gets the user the app gets (#7337).
    */
   testWithHelm(
     "a value wrapped in whitespace and a final newline reaches every env entry without them, as it always did",
@@ -838,13 +841,8 @@ describe("the oneuptime chart hands every credential and free-text setting to it
           }),
         );
         const documents = render(deepMerge(ALL_ON, layout, nest(wrapped)));
-        const datastore = (workload) => {
-          return workload.startsWith("StatefulSet/");
-        };
 
-        expect(
-          misread(documents, byEnvName(settings, values), datastore),
-        ).toEqual([]);
+        expect(misread(documents, byEnvName(settings, values))).toEqual([]);
       }
     },
   );
@@ -908,6 +906,368 @@ describe("the oneuptime chart hands every credential and free-text setting to it
       }
 
       expect([...holders].sort()).toEqual(EXPORTER_WORKLOADS);
+    },
+  );
+});
+
+/*
+ * The copies of a setting the chart keeps beside the pods' env: the keys
+ * templates/secrets.yaml stores, the cluster key KEDA presents, the global
+ * Runner's key, vLLM's Secret, and the user and database the built-in and
+ * operator-run databases create. Each must be the value the pods use, or the
+ * two sides disagree: KEDA's TriggerAuthentication presented "key\n" to an
+ * app that compared it with "key", and taking an inline key out of the values
+ * later switched the pods to the Secret's copy, newline and all (#7337).
+ */
+
+// A value as a file leaves it: whitespace around it and a final newline.
+function fromAFile(value) {
+  return ` \t ${value} \r\n`;
+}
+
+// { key: value } of the Secret of that name in a render, data decoded.
+function secretValues(documents, name) {
+  const secret = documents.find((document) => {
+    return document.kind === "Secret" && document.metadata.name === name;
+  });
+
+  if (!secret) {
+    return null;
+  }
+
+  const values = { ...(secret.stringData || {}) };
+
+  for (const [key, encoded] of Object.entries(secret.data || {})) {
+    values[key] = Buffer.from(encoded, "base64").toString("utf8");
+  }
+
+  return values;
+}
+
+// What a pod reads from an env entry: its value, or the Secret key it names.
+function podValue(documents, entry) {
+  if (!entry.valueFrom) {
+    return entry.value;
+  }
+
+  const ref = entry.valueFrom.secretKeyRef;
+  const values = ref ? secretValues(documents, ref.name) : null;
+
+  if (!values || !(ref.key in values)) {
+    return `<${JSON.stringify(entry.valueFrom)}, not in the render>`;
+  }
+
+  return values[ref.key];
+}
+
+/*
+ * Each env entry named in `expected` whose pod would not read the expected
+ * value, as "<workload> <name>: <what it reads>", and the names no workload
+ * has, as "<name>: in no workload".
+ */
+function podsMisread(documents, expected) {
+  const wrong = [];
+  const seen = new Set();
+
+  for (const [workload, entry] of envEntries(documents)) {
+    if (!(entry.name in expected)) {
+      continue;
+    }
+
+    seen.add(entry.name);
+
+    const read = podValue(documents, entry);
+
+    if (read !== expected[entry.name]) {
+      wrong.push(`${workload} ${entry.name}: ${JSON.stringify(read)}`);
+    }
+  }
+
+  for (const name of Object.keys(expected)) {
+    if (!seen.has(name)) {
+      wrong.push(`${name}: in no workload`);
+    }
+  }
+
+  return wrong.sort();
+}
+
+function documentOf(documents, kind, name) {
+  return documents.find((document) => {
+    return document.kind === kind && document.metadata.name === name;
+  });
+}
+
+// The four keys templates/secrets.yaml stores when set inline, by setting:
+// the release Secret's key and the env entry the pods read it as.
+const STORED_KEYS = {
+  oneuptimeSecret: ["oneuptime-secret", "ONEUPTIME_SECRET"],
+  encryptionSecret: ["encryption-secret", "ENCRYPTION_SECRET"],
+  registerProbeKey: ["register-probe-key", "REGISTER_PROBE_KEY"],
+  "probes.one.key": ["probe-one", "PROBE_KEY"],
+};
+
+const KEDA = {
+  keda: { enabled: true },
+  app: { keda: { enabled: true } },
+};
+
+describe("every copy of a setting the chart keeps beside the pods' env holds what the pods use", () => {
+  for (const [branch, args] of [
+    ["install", []],
+    ["upgrade", ["--is-upgrade"]],
+  ]) {
+    testWithHelm(
+      `on ${branch}, the release Secret stores each inline key as every pod gets it`,
+      () => {
+        const values = assign(STORED_KEYS, syntaxValue, 3);
+        const wrapped = Object.fromEntries(
+          Object.entries(values).map(([setting, value]) => {
+            return [setting, fromAFile(value)];
+          }),
+        );
+        const documents = render(deepMerge(ALL_ON, nest(wrapped)), args);
+        const stored = secretValues(documents, "oneuptime-secrets");
+
+        expect(
+          Object.fromEntries(
+            Object.entries(STORED_KEYS).map(([, [key]]) => {
+              return [key, stored[key]];
+            }),
+          ),
+        ).toEqual(
+          Object.fromEntries(
+            Object.entries(STORED_KEYS).map(([setting, [key]]) => {
+              return [key, values[setting]];
+            }),
+          ),
+        );
+        expect(
+          podsMisread(
+            documents,
+            Object.fromEntries(
+              Object.entries(STORED_KEYS).map(([setting, [, env]]) => {
+                return [env, values[setting]];
+              }),
+            ),
+          ),
+        ).toEqual([]);
+      },
+    );
+  }
+
+  testWithHelm(
+    "without an inline key, every pod reads the key the release Secret keeps",
+    () => {
+      const documents = render(ALL_ON, ["--is-upgrade"]);
+      const stored = secretValues(documents, "oneuptime-secrets");
+
+      expect(
+        podsMisread(
+          documents,
+          Object.fromEntries(
+            Object.values(STORED_KEYS).map(([key, env]) => {
+              return [env, stored[key]];
+            }),
+          ),
+        ),
+      ).toEqual([]);
+    },
+  );
+
+  /*
+   * KEDA presents the cluster key it reads to the app, which compares it with
+   * its own ONEUPTIME_SECRET; an inline key wins over a Secret of the user's
+   * for the app, and so for KEDA.
+   */
+  for (const [layout, values] of [
+    ["an inline key read from a file", { oneuptimeSecret: fromAFile("k: v #1") }],
+    [
+      "an inline key beside a Secret of the user's",
+      {
+        oneuptimeSecret: fromAFile("k: v #1"),
+        externalSecrets: {
+          oneuptimeSecret: {
+            existingSecret: { name: "my-keys", passwordKey: "cluster-key" },
+          },
+        },
+      },
+    ],
+    [
+      "a Secret of the user's",
+      {
+        externalSecrets: {
+          oneuptimeSecret: {
+            existingSecret: { name: "my-keys", passwordKey: "cluster-key" },
+          },
+        },
+      },
+    ],
+    ["the generated key", {}],
+  ]) {
+    testWithHelm(
+      `with ${layout}, KEDA presents the cluster key the app compares`,
+      () => {
+        const documents = render(deepMerge(KEDA, values));
+        const app = envEntries(documents).find(([workload, entry]) => {
+          return (
+            workload === "Deployment/oneuptime-app" &&
+            entry.name === "ONEUPTIME_SECRET"
+          );
+        })[1];
+        const auth = documentOf(
+          documents,
+          "TriggerAuthentication",
+          "oneuptime-app-trigger-auth",
+        );
+        const [ref] = auth.spec.secretTargetRef;
+
+        expect(ref.parameter).toBe("clusterkey");
+
+        if (app.valueFrom) {
+          // The app reads a Secret too: the same one, by the same key.
+          expect({ name: ref.name, key: ref.key }).toEqual(
+            app.valueFrom.secretKeyRef,
+          );
+        } else {
+          expect(secretValues(documents, ref.name)[ref.key]).toBe(app.value);
+          expect(app.value).toBe("k: v #1");
+        }
+      },
+    );
+  }
+
+  testWithHelm(
+    "the global Runner presents the key the server keeps its row from",
+    () => {
+      const documents = render(
+        deepMerge(ALL_ON, { globalRunner: { key: fromAFile("runner #key") } }),
+      );
+
+      expect(
+        podsMisread(documents, {
+          GLOBAL_RUNNER_KEY: "runner #key",
+          ONEUPTIME_RUNNER_KEY: "runner #key",
+        }),
+      ).toEqual([]);
+    },
+  );
+
+  testWithHelm(
+    "vLLM and the server read the API key vLLM's Secret stores, without the whitespace around it",
+    () => {
+      const documents = render(
+        deepMerge(ALL_ON, {
+          vllm: {
+            apiKey: fromAFile("vllm-api-key"),
+            huggingFace: { token: fromAFile("hf_token") },
+          },
+        }),
+      );
+
+      expect(secretValues(documents, "oneuptime-vllm")).toEqual({
+        "api-key": "vllm-api-key",
+        "hf-token": "hf_token",
+      });
+      expect(
+        podsMisread(documents, {
+          VLLM_API_KEY: "vllm-api-key",
+          GLOBAL_LLM_PROVIDER_API_KEY: "vllm-api-key",
+          HF_TOKEN: "hf_token",
+        }),
+      ).toEqual([]);
+    },
+  );
+
+  testWithHelm(
+    "the built-in databases create the user and the database the app connects as and to",
+    () => {
+      const documents = render(
+        deepMerge(ALL_ON, {
+          clickhouse: { auth: { username: fromAFile("oneuptime-user") } },
+          postgresql: { auth: { database: fromAFile("oneuptime-db") } },
+        }),
+      );
+      const postgres = documentOf(
+        documents,
+        "StatefulSet",
+        "oneuptime-postgresql",
+      ).spec.template.spec.containers[0];
+
+      expect(
+        podsMisread(documents, {
+          CLICKHOUSE_USER: "oneuptime-user",
+          POSTGRES_DB: "oneuptime-db",
+          DATABASE_NAME: "oneuptime-db",
+        }),
+      ).toEqual([]);
+      expect([
+        postgres.livenessProbe.exec.command[2],
+        postgres.readinessProbe.exec.command[2],
+      ]).toEqual([
+        'exec pg_isready -U "postgres" -d "dbname=oneuptime-db" -h 127.0.0.1 -p 5432',
+        'exec pg_isready -U "postgres" -d "dbname=oneuptime-db" -h 127.0.0.1 -p 5432',
+      ]);
+    },
+  );
+
+  testWithHelm(
+    "CloudNativePG creates the database the app connects to",
+    () => {
+      const documents = render(
+        deepMerge(ALL_ON, {
+          postgresOperator: {
+            cnpg: { enabled: true, database: fromAFile("oneuptime-db") },
+          },
+        }),
+      );
+
+      expect(
+        documentOf(documents, "Cluster", "oneuptime-postgresql-cnpg").spec
+          .bootstrap.initdb.database,
+      ).toBe("oneuptime-db");
+      expect(podsMisread(documents, { DATABASE_NAME: "oneuptime-db" })).toEqual(
+        [],
+      );
+    },
+  );
+
+  testWithHelm(
+    "the Altinity installation creates the user the app connects as",
+    () => {
+      const documents = render(
+        deepMerge(ALL_ON, {
+          clickhouseOperator: {
+            altinity: {
+              enabled: true,
+              auth: { username: fromAFile("oneuptime-user") },
+            },
+          },
+        }),
+      );
+      const users = Object.keys(
+        documentOf(
+          documents,
+          "ClickHouseInstallation",
+          "oneuptime-clickhouse-altinity",
+        ).spec.configuration.users,
+      );
+
+      expect(users).toEqual(
+        expect.arrayContaining([
+          "oneuptime-user/password",
+          "oneuptime-user/networks/ip",
+          "oneuptime-user/access_management",
+        ]),
+      );
+      expect(
+        users.filter((user) => {
+          return !user.startsWith("oneuptime-user/");
+        }),
+      ).toEqual([]);
+      expect(
+        podsMisread(documents, { CLICKHOUSE_USER: "oneuptime-user" }),
+      ).toEqual([]);
     },
   );
 });
