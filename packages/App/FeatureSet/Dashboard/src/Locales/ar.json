@@ -51911,5 +51911,6 @@
   "{{count}} service instances": "مثيلات الخدمات: {{count}}",
   "{{count}} service instances_one": "{{count}} مثيل خدمة",
   "{{count}} telemetry SDKs": "SDK القياس عن بُعد: {{count}}",
-  "{{count}} telemetry SDKs_one": "{{count}} SDK القياس عن بُعد"
+  "{{count}} telemetry SDKs_one": "{{count}} SDK القياس عن بُعد",
+  "{{start}} → {{end}}": "{{start}} ← {{end}}"
 }

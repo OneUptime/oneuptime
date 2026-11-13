@@ -51911,5 +51911,6 @@
   "{{count}} service instances": "{{count}} 个服务实例",
   "{{count}} service instances_one": "{{count}} 个服务实例",
   "{{count}} telemetry SDKs": "{{count}} 个遥测 SDK",
-  "{{count}} telemetry SDKs_one": "{{count}} 个遥测 SDK"
+  "{{count}} telemetry SDKs_one": "{{count}} 个遥测 SDK",
+  "{{start}} → {{end}}": "{{start}} → {{end}}"
 }

@@ -51911,5 +51911,6 @@
   "{{count}} service instances": "서비스 인스턴스 {{count}}개",
   "{{count}} service instances_one": "서비스 인스턴스 {{count}}개",
   "{{count}} telemetry SDKs": "텔레메트리 SDK {{count}}개",
-  "{{count}} telemetry SDKs_one": "텔레메트리 SDK {{count}}개"
+  "{{count}} telemetry SDKs_one": "텔레메트리 SDK {{count}}개",
+  "{{start}} → {{end}}": "{{start}} → {{end}}"
 }

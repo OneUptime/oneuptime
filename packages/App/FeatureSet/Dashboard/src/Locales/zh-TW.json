@@ -51911,5 +51911,6 @@
   "{{count}} service instances": "{{count}} 個服務執行個體",
   "{{count}} service instances_one": "{{count}} 個服務執行個體",
   "{{count}} telemetry SDKs": "{{count}} 個遙測 SDK",
-  "{{count}} telemetry SDKs_one": "{{count}} 個遙測 SDK"
+  "{{count}} telemetry SDKs_one": "{{count}} 個遙測 SDK",
+  "{{start}} → {{end}}": "{{start}} → {{end}}"
 }

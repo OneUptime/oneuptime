@@ -51911,5 +51911,6 @@
   "{{count}} service instances": "Экземпляров сервиса: {{count}}",
   "{{count}} service instances_one": "{{count}} экземпляр сервиса",
   "{{count}} telemetry SDKs": "SDK телеметрии: {{count}}",
-  "{{count}} telemetry SDKs_one": "{{count}} SDK телеметрии"
+  "{{count}} telemetry SDKs_one": "{{count}} SDK телеметрии",
+  "{{start}} → {{end}}": "{{start}} → {{end}}"
 }

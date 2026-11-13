@@ -51911,5 +51911,6 @@
   "{{count}} service instances": "{{count}} tjenesteinstanser",
   "{{count}} service instances_one": "{{count}} tjenesteinstans",
   "{{count}} telemetry SDKs": "{{count}} telemetri-SDK'er",
-  "{{count}} telemetry SDKs_one": "{{count}} telemetri-SDK"
+  "{{count}} telemetry SDKs_one": "{{count}} telemetri-SDK",
+  "{{start}} → {{end}}": "{{start}} → {{end}}"
 }
