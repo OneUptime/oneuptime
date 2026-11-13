@@ -344,15 +344,24 @@ describe("the glossary keeps the old name, or says what it is called now", () =>
       },
     );
     const mentions: string = FINDABLE[name]!.glossaryMentions;
+    /*
+     * The old name itself is one of the term's other names: its definition
+     * may use the same words as ordinary English ("sent by a profiler"),
+     * which says nothing about the Profiler. A term that says what the
+     * thing is called now may say it in its definition.
+     */
+    const where: Array<string> =
+      mentions === name
+        ? entry?.alsoCalled || []
+        : [...(entry?.alsoCalled || []), entry?.definition || ""];
 
     expect(entry).toBeDefined();
-    expect(
-      [...entry!.alsoCalled, entry!.definition].some(
-        (text: string): boolean => {
-          return text.toLowerCase().includes(mentions.toLowerCase());
-        },
-      ),
-    ).toBe(true);
+    expect({
+      name,
+      found: where.some((text: string): boolean => {
+        return text.toLowerCase().includes(mentions.toLowerCase());
+      }),
+    }).toEqual({ name, found: true });
   });
 });
 
