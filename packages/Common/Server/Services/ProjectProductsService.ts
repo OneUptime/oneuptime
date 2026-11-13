@@ -276,11 +276,15 @@ export class ProjectProductsServiceClass {
     this.assertCanChoose(caller.props);
 
     if (!isProductKey(data.product)) {
-      throw new BadDataException("product must be one of the products.");
+      throw new BadDataException(
+        "That is not one of OneUptime's products, so nothing was shown or hidden. Reload the page and choose the product again.",
+      );
     }
 
     if (typeof data.isShown !== "boolean") {
-      throw new BadDataException("isShown must be true or false.");
+      throw new BadDataException(
+        "The request did not say whether to show or hide the product. Reload the page and try again.",
+      );
     }
 
     if (!isHideableProduct(data.product)) {
@@ -335,14 +339,16 @@ export class ProjectProductsServiceClass {
     pinned: unknown,
   ): Promise<Array<ProductKey>> {
     if (!Array.isArray(pinned)) {
-      throw new BadDataException("pinned must be a list of products.");
+      throw new BadDataException(
+        "Your pins were not saved: they did not come as a list of products. Reload the page and pin them again.",
+      );
     }
 
     const known: Array<ProductKey> = parseProductKeys(pinned);
 
     if (known.length !== pinned.length) {
       throw new BadDataException(
-        "pinned may only name each product once, by its key.",
+        "Your pins were not saved: only OneUptime's products can be pinned, each once. Reload the page and pin them again.",
       );
     }
 
