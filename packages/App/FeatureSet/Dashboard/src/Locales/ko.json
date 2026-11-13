@@ -9100,7 +9100,7 @@
   "Connection labels": "연결 레이블",
   "Connection refused or reset": "Connection refused or reset",
   "Connection successful.": "Connection successful.",
-  "Connection successful. The LLM provider responded to a test prompt.": "Connection successful. The LLM provider responded to a test prompt.",
+  "Connection successful. The LLM provider responded to a test prompt.": "연결에 성공했습니다. LLM 제공자가 테스트 프롬프트에 응답했습니다.",
   "Connection test report": "연결 테스트 보고서",
   "Connections": "연결",
   "Connections between these top-level sites.": "Connections between these top-level sites.",
