@@ -342,6 +342,24 @@ the Dashboard translates, unless its allowlist says why the page shows it in
 English. `ARABIC.md` has the Arabic details. Texts the server sends
 (`Common/Server/Locales`: emails, chat messages) are not set apart.
 
+### A path in a sentence read from the right (ar, fa)
+
+A browser draws `→` and `←` as they are written: neither turns round in a
+line read from the right, as `>` and `›` do. Written `→`, each arrow of a
+Persian path points back at the step before it. So between two steps:
+
+- `←` beside a step in the language: `تنظیمات پروژه ← پیشرفته ← کلیدهای API`,
+  `Services ← سرویس شما ← Configuration`.
+- `→` between two steps left in Latin letters, which the page draws from the
+  left as English does: `**AWS Console → App Runner → Services ← سرویس شما**`.
+
+`PathArrowsInRightToLeftSentences.test.ts` in `packages/Common/Tests/App`
+lays out every Arabic and Persian text of every app's locale files (the
+frontends', the server's, the API Reference's and the docs') with the same
+copy of the bidi algorithm, and fails on an arrow between two steps that
+points back. An arrow at either end of a text leads a link on or back, and
+is left alone.
+
 ## What "untranslated" means
 
 A locale must have every `en.json` key and no others. A key is

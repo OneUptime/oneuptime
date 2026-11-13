@@ -13,6 +13,7 @@ import React, {
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
+  composedValue,
   getGlobalTranslator,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
@@ -47,7 +48,8 @@ export const getMonitorTemplateSyncFieldSummary: (
     MonitorTemplateSyncFieldUtil.getFields(props.monitorType);
   const steps: Array<MonitorStep> =
     props.monitorSteps?.data?.monitorStepsInstanceArray || [];
-  const protectedSteps: Array<string> = [];
+  // Each step that protects fields: its number and the fields' English names.
+  const protectedSteps: Array<{ number: number; labels: Array<string> }> = [];
 
   steps.forEach((step: MonitorStep, index: number) => {
     const labels: Array<string> = fields
@@ -55,18 +57,11 @@ export const getMonitorTemplateSyncFieldSummary: (
         return step.data?.doNotSyncFields?.includes(field.path);
       })
       .map((field: MonitorTemplateSyncField) => {
-        return translator.translateText(field.label) as string;
+        return field.label;
       });
 
     if (labels.length > 0) {
-      protectedSteps.push(
-        steps.length > 1
-          ? translator.translateTemplate("Step {{number}}: {{fields}}", {
-              number: index + 1,
-              fields: joinList(labels),
-            })
-          : joinList(labels),
-      );
+      protectedSteps.push({ number: index + 1, labels: labels });
     }
   });
 
@@ -76,9 +71,33 @@ export const getMonitorTemplateSyncFieldSummary: (
     ) as string;
   }
 
+  /*
+   * The fields are named in the sentence's own language: the reader's when
+   * it words the sentence, English while it words only the names, so the
+   * line never puts translated names in an English sentence.
+   */
   return translator.translateTemplate(
     "These fields keep each monitor's current values during sync: {{fields}}. All other step settings are copied from the template.",
-    { fields: protectedSteps.join("; ") },
+    {
+      fields: composedValue((sentence: Translator): string => {
+        return protectedSteps
+          .map((protectedStep: { number: number; labels: Array<string> }) => {
+            const names: string = joinList(
+              protectedStep.labels.map((label: string): string => {
+                return sentence.translateText(label) as string;
+              }),
+            );
+
+            return steps.length > 1
+              ? sentence.translateTemplate("Step {{number}}: {{fields}}", {
+                  number: protectedStep.number,
+                  fields: names,
+                })
+              : names;
+          })
+          .join("; ");
+      }),
+    },
   );
 };
 

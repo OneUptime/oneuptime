@@ -69,6 +69,15 @@ export interface ComponentProps {
   // The word as the page draws it, already in the reader's language.
   children: ReactNode;
   dataTestId?: string | undefined;
+  /*
+   * Where the definition is drawn, when not beside its word: for a word
+   * inside something its words name. A form field's title names its field
+   * (Forms/Fields/FieldLabel), and a field is named by every word inside
+   * its title, so a definition drawn there was read out as part of the
+   * field's name while it showed. The place comes right after the word in
+   * the page's order, so Tab still goes from the word to Read more.
+   */
+  popoverPlace?: React.RefObject<HTMLElement> | undefined;
 }
 
 // The word, as its place draws it too (DefinedTermWord).
@@ -147,9 +156,11 @@ const DefinedTermPopover: FunctionComponent<PopoverProps> = (
       onClick={(event: React.MouseEvent<HTMLDivElement>): void => {
         /*
          * The popover is drawn beside its word, which can be inside a
-         * field's <label> or a clickable card: a click on its words must
-         * not tick that label's box or open that card. A click on Read
-         * more still follows the link.
+         * <label> or a clickable card, and a click inside it reaches what
+         * its word is drawn in wherever it is placed (React hands it on
+         * through the portal): a click on its words must not tick that
+         * label's box or open that card. A click on Read more still
+         * follows the link.
          */
         event.stopPropagation();
 
@@ -271,11 +282,17 @@ const DefinedTerm: FunctionComponent<ComponentProps> = (
   /*
    * An interactive popover is placed in its word's parent, at its end: the
    * span of its own puts it right after the word, so Tab goes from the word
-   * to Read more, and not first through what follows the word.
+   * to Read more, and not first through what follows the word. A place
+   * given for it (popoverPlace) comes right after the word too.
    */
   return (
     <span className="inline">
       <Tippy
+        appendTo={(reference: Element): Element => {
+          return (
+            props.popoverPlace?.current || (reference.parentNode as Element)
+          );
+        }}
         content={
           <DefinedTermPopover
             term={props.term}

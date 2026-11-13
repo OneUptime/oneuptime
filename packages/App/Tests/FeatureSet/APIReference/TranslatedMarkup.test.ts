@@ -1,5 +1,9 @@
 import { MasterAdminApis } from "../../../FeatureSet/APIReference/Service/MasterAdminApis";
-import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/APIReference/Utils/I18n";
+import {
+  DocsLanguageDirection,
+  SUPPORTED_DOCS_LANGUAGE_CODES,
+  getDocsLanguageDirection,
+} from "../../../FeatureSet/APIReference/Utils/I18n";
 import {
   DATA_TYPE_PAGE,
   PAGE_FIXTURES,
@@ -10,10 +14,20 @@ import {
 import {
   RenderedElement,
   RenderedPage,
+  attributeOf,
   listTemplates,
+  only,
   parsePage,
   textOf,
 } from "Common/Tests/RenderedMarkup";
+import {
+  LEFTWARDS_ARROW,
+  PathArrow,
+  RIGHTWARDS_ARROW,
+  getPathArrows,
+  withArrowsDecoded,
+} from "Common/Tests/Helpers/PathArrows";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import { beforeAll, describe, expect, it, jest } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -280,6 +294,62 @@ describe.each(LOCALES)(
         ),
       );
     });
+
+    /*
+     * The first step of making a master API key names a path: Admin
+     * Dashboard, then Settings, then API Key. A browser draws "→" as it is
+     * written on a page read from the right, so the Persian step's arrows
+     * pointed back at the step before each (#7585): laid out the way the
+     * page says it reads, every arrow points on, "←" in Persian.
+     */
+    it("points the master API key path's arrows the way the page reads", () => {
+      const heading: RenderedElement = only(
+        page,
+        (element: RenderedElement): boolean => {
+          return (
+            element.tagName === "h2" &&
+            attributeOf(element, "id") === "master-api-key"
+          );
+        },
+      );
+      const steps: RenderedElement | undefined = page.elements
+        .slice(page.elements.indexOf(heading))
+        .find((element: RenderedElement): boolean => {
+          return element.tagName === "ol";
+        });
+      const firstStep: RenderedElement | undefined = page.elements.find(
+        (element: RenderedElement): boolean => {
+          return element.tagName === "li" && element.ancestors[0] === steps;
+        },
+      );
+      const direction: DocsLanguageDirection = getDocsLanguageDirection(code);
+      const words: string = withArrowsDecoded(textOf(page, firstStep!));
+      const onward: string =
+        direction === "rtl" ? LEFTWARDS_ARROW : RIGHTWARDS_ARROW;
+
+      expect(
+        attributeOf(
+          only(page, (element: RenderedElement): boolean => {
+            return element.tagName === "html";
+          }),
+          "dir",
+        ),
+      ).toBe(direction);
+      expect(
+        getPathArrows(words, direction).map(
+          (arrow: PathArrow): [string, boolean] => {
+            return [arrow.arrow, arrow.pointsBack];
+          },
+        ),
+      ).toEqual([
+        [onward, false],
+        [onward, false],
+      ]);
+      // No arrow on the step points the other way, between its steps or not.
+      expect(words).not.toContain(
+        onward === LEFTWARDS_ARROW ? RIGHTWARDS_ARROW : LEFTWARDS_ARROW,
+      );
+    });
   },
 );
 
@@ -381,9 +451,7 @@ function keysAskedFor(expression: string): Array<string> {
   const source: string = expression
     .split(/\s*\+\s*/)
     .map((part: string): string => {
-      return QUOTED.test(part)
-        ? part.slice(1, -1).replace(/[.*+?^$()|[\]\\{}]/g, "\\$&")
-        : "[^.]+";
+      return QUOTED.test(part) ? escapeRegExp(part.slice(1, -1)) : "[^.]+";
     })
     .join("");
   const pattern: RegExp = new RegExp(`^${source}$`);

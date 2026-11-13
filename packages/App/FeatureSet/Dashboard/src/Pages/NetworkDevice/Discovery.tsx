@@ -1057,13 +1057,10 @@ const NetworkDeviceDiscovery: FunctionComponent<
             type: FieldType.Text,
             isHiddenByDefault: true,
             /*
-             * `cidr` is NOT NULL, so this is near-hypothetical — but a bare
-             * FieldType.Text cell renders "" for a missing value, and the
-             * mobile card drops the whole labelled block, so the "Scan Target"
-             * label itself would vanish. Every other cell on this table shows
-             * an em-dash instead.
+             * `cidr` is NOT NULL, so an empty target is near-hypothetical; it
+             * would be the quiet dash every other empty cell on this table
+             * is (TableEmptyValue), with no words of its own to set.
              */
-            noValueMessage: "—",
             /*
              * The six sibling columns all wrap their content in a gray-900 /
              * gray-600 span; the default cell class is a lighter gray-500,
