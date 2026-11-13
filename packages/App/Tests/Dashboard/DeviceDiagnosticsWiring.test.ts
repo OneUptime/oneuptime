@@ -241,7 +241,7 @@ describe("the pure view-model", () => {
     }
   });
 
-  test("the error words it reads import only types and the sentence joiner, which imports only the translation helpers", () => {
+  test("the error words it reads import only types, the sentence joiner and the refusals that carry values, which import only the translation helpers", () => {
     const importsOf: (raw: string) => Array<string> = (
       raw: string,
     ): Array<string> => {
@@ -257,12 +257,37 @@ describe("the pure view-model", () => {
         .sort();
     };
 
+    /*
+     * A refusal that carries values (#7704: a monitor template's type
+     * mismatch) is said in the reader's words here too: its module and the
+     * type it is built on import only the translation helpers.
+     */
     expect(
       importsOf(readRaw(COMMON_ROOT, "UI", "Utils", "ErrorInSentence.ts")),
     ).toEqual([
+      "../../Types/Exception/RefusalWithValues",
       "../../Types/Exception/UnexplainedError",
       "../../Types/Translator",
+      "../../Utils/Monitor/MonitorTemplateLinkRefusal",
       "../Components/DeleteConfirmation/DeleteConsequences",
+    ]);
+    expect(
+      importsOf(
+        readRaw(COMMON_ROOT, "Types", "Exception", "RefusalWithValues.ts"),
+      ),
+    ).toEqual(["../Translator"]);
+    expect(
+      importsOf(
+        readRaw(
+          COMMON_ROOT,
+          "Utils",
+          "Monitor",
+          "MonitorTemplateLinkRefusal.ts",
+        ),
+      ),
+    ).toEqual([
+      "../../Types/Exception/RefusalWithValues",
+      "../../Types/Translator",
     ]);
     expect(
       importsOf(

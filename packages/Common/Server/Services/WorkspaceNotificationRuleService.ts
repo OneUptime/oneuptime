@@ -279,8 +279,7 @@ const LATER_CHANNEL_RECORD_WORDS: Record<NotificationRuleEventType, string> = {
   [NotificationRuleEventType.Alert]: "alert",
   [NotificationRuleEventType.IncidentEpisode]: "incident episode",
   [NotificationRuleEventType.AlertEpisode]: "alert episode",
-  [NotificationRuleEventType.ScheduledMaintenance]:
-    "scheduled maintenance event",
+  [NotificationRuleEventType.ScheduledMaintenance]: "maintenance event",
   [NotificationRuleEventType.Monitor]: "monitor",
   [NotificationRuleEventType.OnCallDutyPolicy]: "on-call policy",
   [NotificationRuleEventType.SecurityCase]: "security case",
