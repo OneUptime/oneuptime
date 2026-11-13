@@ -273,7 +273,13 @@ describe("one key's page", () => {
  */
 describe("an answer that is not a status", () => {
   const PAGE_TEST_ID: string = "page-under-the-card";
-  const UNREADABLE: string = "Something went wrong. Please try again.";
+  /*
+   * The card's own "Something went wrong. Please try again." explains
+   * nothing, so since #6836 it is said as a failure the server could not
+   * explain, with Try again.
+   */
+  const UNREADABLE: string =
+    "The server ran into a problem it could not explain. Try again in a moment.";
 
   type ConsoleErrorSpy = ReturnType<typeof jest.spyOn>;
 
@@ -348,6 +354,9 @@ describe("an answer that is not a status", () => {
     drawOverPage(fetchStatus);
 
     expect(await screen.findByText(UNREADABLE)).toBeInTheDocument();
+    expect(
+      screen.queryByText("Something went wrong. Please try again."),
+    ).toBeNull();
     expect(screen.getByTestId(PAGE_TEST_ID)).toHaveTextContent("Usage history");
     // No sentence about a reset it could not read.
     expect(
