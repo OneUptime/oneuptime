@@ -269,13 +269,11 @@ const CephClusterDaemons: FunctionComponent<
         title: "Host",
         type: FieldType.Text,
         key: "hostname",
-        noValueMessage: "—",
       },
       {
         title: "Version",
         type: FieldType.Text,
         key: "version",
-        noValueMessage: "—",
       },
     ];
   }, [translator]);

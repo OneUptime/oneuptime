@@ -252,6 +252,7 @@ export default class SlackUtil extends WorkspaceBase {
     holdBackCodeBlockContent: true,
     countUrlLiterals: true,
     countWordUnderscores: true,
+    countAsMarked: false,
   };
 
   // Closes and reopens a ``` code block that a section boundary cuts through.

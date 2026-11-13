@@ -1140,6 +1140,40 @@ describe("Markdown email renderer - titles references copy (#6481)", () => {
     ).toBe(true);
   });
 
+  /*
+   * #7229: the address longer than the line's kept start, so the line's
+   * middle starts inside it. Held back in one piece with the title, the
+   * definition was none, and every reference was its Markdown.
+   */
+  test("a definition whose address is over 1 KB, its title taking the line over 64 KB: every reference links to the address, the first with the title (#7229)", async () => {
+    const title: string = "Checkout failed. ".repeat(4000);
+    const address: string = `https://status.example.com/${"a".repeat(2000)}`;
+    const references: Array<string> = [];
+
+    // As many as copies of an address of 2 KB may write.
+    for (let index: number = 0; index < 20; index++) {
+      references.push(`[Run ${index}][s]`);
+    }
+
+    const html: string = await render(
+      `${references.join("\n")}\n\n[s]: ${address} "${title}"`,
+    );
+
+    expect(linkAddressesIn(html)).toEqual(
+      references.map((): string => {
+        return fingerprint(address);
+      }),
+    );
+    expect(
+      html.startsWith(
+        `<p><a href="${address}" title="${title}">Run 0</a>\n<a href="${address}">Run 1</a>\n`,
+      ),
+    ).toBe(true);
+    expect(countOf(html, " title=")).toBe(1);
+    expect(html).not.toContain("[Run ");
+    expect(html).not.toContain("[s]:");
+  });
+
   test("a short title is copied into every reference, as it always was", async () => {
     const html: string = await render(
       `![One][s] ![Two][s] ![Three][s]\n\n[s]: https://example.com/shot.png "Home page"`,

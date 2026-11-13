@@ -51,9 +51,10 @@ import { isPermissionTitleKeptInEnglish } from "./DocsRoleNames";
  *   - The Admin Dashboard, where a master admin sets up global providers and
  *     the instance-wide Require SSO for Login: it looks a label up whole in
  *     its own locale (AdminDashboard/src/Locales, nested keys off) and shows
- *     the English where that locale has no wording, which is most of the
- *     global provider screens (ADMIN_LABELS). Its side menu and top bar use
- *     keys of their own (ADMIN_KEYS).
+ *     the English where that locale has no wording: a provider page's own
+ *     cards, while the provider forms' fields, which Common's SSO forms
+ *     draw, are in it since #7567 (ADMIN_LABELS). Its side menu and top bar
+ *     use keys of their own (ADMIN_KEYS).
  *   - The sign-in pages (Accounts): "Sign in with SSO" is the Accounts
  *     locale's sso.title, and "Admin Settings" in the user menu is the
  *     Dashboard's userProfile.adminSettings.
@@ -1101,6 +1102,17 @@ describe("the lists this test keeps", () => {
       "Where this sign-in counts as SSO",
       "Every project",
       "Attached projects only",
+      // The provider forms' fields, which Common's SSO forms draw (#7567).
+      "Sign On URL",
+      "Issuer",
+      "Public Certificate",
+      "Signature Method",
+      "Digest Method",
+      "Issuer URL",
+      "Client ID",
+      "Client Secret",
+      "Discovery URL",
+      "Scopes",
     ]) {
       expect({ label, inLocale: adminEnglish[label] }).toEqual({
         label,
@@ -1112,7 +1124,6 @@ describe("the lists this test keeps", () => {
     for (const label of [
       "Identity Provider URLs",
       "Test this SSO provider",
-      "Sign On URL",
       "Attached Projects",
       "Edit Configuration",
     ]) {

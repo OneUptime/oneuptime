@@ -58,8 +58,9 @@ const { MARKS } = require("./StartOutput");
  * ClickHouse's disks, the queues, the version and the server setup
  * checklist - email, HTTPS, sign-ups, SMS and calls, probes, backups and
  * update checks (Common/Types/InstallationHealth). It asks with a POST to
- * /api/admin/health/doctor, the key in the clusterkey header, as every
- * request that presents the cluster key does; the POST changes nothing.
+ * /api/admin/health/doctor, the key in the clusterkey header, URI-encoded,
+ * as every request that presents the cluster key does; the POST changes
+ * nothing.
  * The Admin Dashboard's OneUptime Health page shows the same answer in
  * every edition, and on Kubernetes HelmChart/Public/diagnose.sh prints it.
  *
@@ -998,10 +999,15 @@ const run = async (options) => {
   let addressProof = null;
 
   if (ready && ready.status === 200 && secret && !isPlaceholderValue(secret)) {
-    // A POST, as every request that presents the cluster key.
+    /*
+     * A POST, as every request that presents the cluster key, and the key
+     * URI-encoded, as the app presents its own and compares what it is sent
+     * (ClusterKeyAuthorization.getClusterKey): a key with + / = @ & % or a
+     * letter beyond ASCII is accepted too, and Node's http can send it.
+     */
     const answer = await request(`${ingressUrl}${DOCTOR_PATH}`, {
       method: "POST",
-      headers: { clusterkey: secret },
+      headers: { clusterkey: encodeURIComponent(secret) },
     });
 
     add(serverFindings(answer, publicUrl));

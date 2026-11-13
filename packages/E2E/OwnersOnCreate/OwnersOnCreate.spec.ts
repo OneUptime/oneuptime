@@ -788,7 +788,7 @@ test.describe("Declare Incident's defined words", () => {
     });
   }
 
-  test("Initial State: a click on its (Optional), or past its words, leaves the definition closed; a press on the word opens it", async ({
+  test("Initial State: a click on its (Optional), or past its words, leaves the definition closed; a press on the word opens it, and the dropdown keeps its name", async ({
     page,
   }: {
     page: Page;
@@ -878,6 +878,29 @@ test.describe("Declare Incident's defined words", () => {
     );
     await page.mouse.move(0, 0);
     await nextFrames(page);
+    await expect(definition).toBeVisible();
+
+    /*
+     * While it shows, the dropdown is still named by its title alone
+     * (#7561): the definition is drawn right after the title's row, which
+     * names the dropdown with every word inside it, and not in it.
+     */
+    await expect(
+      page.getByRole("combobox", {
+        name: "Initial State (Optional)",
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(state).toHaveAccessibleName("Initial State (Optional)");
+
+    // The keyboard still goes from the word to Read more, and back.
+    await word.focus();
+    await page.keyboard.press("Tab");
+    await expect(
+      definition.getByTestId("defined-term-read-more"),
+    ).toBeFocused();
+    await page.keyboard.press("Shift+Tab");
+    await expect(word).toBeFocused();
     await expect(definition).toBeVisible();
   });
 });

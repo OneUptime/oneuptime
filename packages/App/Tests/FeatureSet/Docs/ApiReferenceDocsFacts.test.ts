@@ -890,7 +890,7 @@ describe("Exporting to a CMDB: the requests", () => {
     );
   });
 
-  it("reads with Read Telemetry Service, writes custom fields with Edit and adds items with Create", () => {
+  it("reads with Read Inventory Item, writes custom fields with Edit and adds items with Create", () => {
     const item: InventoryItem = new InventoryItem();
 
     expect(item.readRecordPermissions).toContain(
@@ -915,14 +915,10 @@ describe("Exporting to a CMDB: the requests", () => {
     }
 
     expect(page).toContain(
-      "A read-only export needs one permission, **Read Telemetry Service**",
+      "A read-only export needs one permission, **Read Inventory Item**",
     );
-    expect(page).toContain(
-      "The key needs **Edit Telemetry Service** for that.",
-    );
-    expect(page).toContain(
-      "The key needs **Create Telemetry Service** for that.",
-    );
+    expect(page).toContain("The key needs **Edit Inventory Item** for that.");
+    expect(page).toContain("The key needs **Create Inventory Item** for that.");
   });
 
   it("adds only the types a person may add, and works out their identity key", () => {

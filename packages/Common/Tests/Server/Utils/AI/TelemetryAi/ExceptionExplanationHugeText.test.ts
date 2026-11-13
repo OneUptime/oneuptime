@@ -10,10 +10,10 @@ import path from "path";
  * applications sent: a message, a stack trace or a log body can be megabytes
  * on one line, and the scrubbers (ExceptionSanitizer) run regular expressions
  * with quantifiers. A process that has compiled enough code compiles them
- * unoptimized, and V8 then runs out of stack on a few megabytes (AGENTS.md,
- * "Megabyte-long values"). ExceptionExplanationPrompt cuts every value to a
- * fixed length before anything reads it, and reads the model's answer with
- * indexOf.
+ * unoptimized, and V8 then runs out of stack on a few megabytes
+ * (Docs/notifications/README.md, "Megabyte-long values").
+ * ExceptionExplanationPrompt cuts every value to a fixed length before anything
+ * reads it, and reads the model's answer with indexOf.
  *
  * So the prompt is built here from sixteen megabytes of each, and an answer
  * of sixteen megabytes is read, in a node process started with

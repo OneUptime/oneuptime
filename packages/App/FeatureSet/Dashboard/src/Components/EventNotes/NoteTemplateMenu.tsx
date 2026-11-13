@@ -1,6 +1,7 @@
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import DROPDOWN_MENU_Z_INDEX from "Common/UI/Components/Dropdown/DropdownMenuZIndex";
+import ErrorMessageText from "Common/UI/Components/ErrorMessage/ErrorMessageText";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
@@ -14,6 +15,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import { createPortal } from "react-dom";
@@ -43,6 +45,15 @@ export const TEMPLATE_FILTER_THRESHOLD: number = 6;
 // The menu's width (w-80), and its height with a filter box and a full list.
 export const TEMPLATE_MENU_WIDTH_PX: number = 320;
 export const TEMPLATE_MENU_MAX_HEIGHT_PX: number = 420;
+
+/*
+ * What the menu draws in place of its list - a failure, or the empty state -
+ * scrolls as the list does. The menu is only as tall as the room beside its
+ * button, and cuts off what runs past its end: on a phone held sideways, a
+ * failure's reference and Try again, and the empty state's Create a
+ * template, were out of sight, and the wheel scrolled the page instead.
+ */
+const BODY_SCROLL_CLASS_NAME: string = "min-h-0 overflow-y-auto";
 
 type TemplatePreviewFunction = (note: string) => string;
 
@@ -99,6 +110,9 @@ const NoteTemplateMenu: FunctionComponent<ComponentProps> = (
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [filterText, setFilterText] = useState<string>("");
+  // Try again, while a failed load is drawn.
+  const retryButtonRef: React.RefObject<HTMLButtonElement> =
+    useRef<HTMLButtonElement>(null);
 
   const load: () => Promise<void> = async (): Promise<void> => {
     setIsLoading(true);
@@ -111,6 +125,24 @@ const NoteTemplateMenu: FunctionComponent<ComponentProps> = (
     }
 
     setIsLoading(false);
+  };
+
+  /*
+   * Try again gives way to the loading rows, which hold nothing to focus: a
+   * focus left on it fell to the page and stayed there. The menu holds it
+   * instead while the templates load again, and hands it on when they
+   * arrive, as after an opening from the keyboard - to the first template,
+   * or to Try again if they fail once more. A focus that was not in the menu
+   * is left where it is.
+   */
+  const tryAgain: () => void = (): void => {
+    const menu: HTMLDivElement | null = popup.popupRef.current;
+
+    if (menu && menu.contains(document.activeElement)) {
+      menu.focus();
+    }
+
+    load();
   };
 
   useEffect(() => {
@@ -129,6 +161,10 @@ const NoteTemplateMenu: FunctionComponent<ComponentProps> = (
    * arrive the focus moves on to the first of them (or the filter box, the
    * retry, or the link to make one), so a keyboard user lands where they can
    * pick. A pointer user's focus stays on the trigger and is left alone.
+   * After a failure the retry comes first, though the explanation above it
+   * may hold a control of its own: the reference's copy button. Try again
+   * gives the focus back to the menu while the templates load again
+   * (tryAgain), so this moves it on once more when they arrive.
    */
   useEffect(() => {
     const menu: HTMLDivElement | null = popup.popupRef.current;
@@ -137,7 +173,10 @@ const NoteTemplateMenu: FunctionComponent<ComponentProps> = (
       return;
     }
 
-    menu.querySelector<HTMLElement>("input, button, [href]")?.focus();
+    (
+      retryButtonRef.current ||
+      menu.querySelector<HTMLElement>("input, button, [href]")
+    )?.focus();
   }, [popup.isPopupOpen, popup.popupPosition, templates, isLoading, error]);
 
   const visibleTemplates: Array<NoteTemplateOption> = (templates || []).filter(
@@ -156,7 +195,14 @@ const NoteTemplateMenu: FunctionComponent<ComponentProps> = (
   );
 
   const getBody: () => ReactElement = (): ReactElement => {
-    if (isLoading) {
+    /*
+     * The read starts once the menu has opened, so the menu has a moment
+     * with nothing read yet and no failure: it draws its loading rows for
+     * it, as for the read. It drew an empty list there, with its footer's
+     * Manage templates - the focus of an opening from the keyboard took the
+     * link, and fell to the page when the read ended and the link went.
+     */
+    if (isLoading || (templates === null && !error)) {
       return (
         <div
           className="space-y-2 px-3 py-3"
@@ -177,13 +223,31 @@ const NoteTemplateMenu: FunctionComponent<ComponentProps> = (
 
     if (error) {
       return (
-        <div className="px-4 py-4 text-sm">
-          <p className="text-red-700">{error}</p>
+        <div
+          className={`${BODY_SCROLL_CLASS_NAME} px-4 py-4 text-sm`}
+          data-testid="note-templates-error"
+        >
+          {/*
+           * Read as a list's failure reads (ErrorMessageText): an error
+           * nobody explained says what failed, why and what to do next,
+           * with the reference to give when the server failed (#6836);
+           * any other is in the reader's language, read the way it is
+           * written. It was the message as API.getFriendlyMessage words it:
+           * English on every page, and on a Persian one with its full stop
+           * at its start.
+           */}
+          <p className="text-red-700">
+            <ErrorMessageText
+              message={error}
+              whatFailed={tx("Couldn't load note templates.")}
+            />
+          </p>
           <button
+            ref={retryButtonRef}
             type="button"
             className="mt-2 font-medium text-indigo-600 hover:text-indigo-500"
             onClick={() => {
-              load();
+              tryAgain();
             }}
           >
             {tx("Try again")}
@@ -195,7 +259,7 @@ const NoteTemplateMenu: FunctionComponent<ComponentProps> = (
     if (templates && templates.length === 0) {
       return (
         <div
-          className="px-4 py-5 text-center"
+          className={`${BODY_SCROLL_CLASS_NAME} px-4 py-5 text-center`}
           data-testid="note-templates-empty"
         >
           <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-full bg-gray-100">

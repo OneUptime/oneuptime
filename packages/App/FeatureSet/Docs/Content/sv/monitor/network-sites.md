@@ -186,7 +186,7 @@ Ett medelvärde över barn väger en butik med två enheter lika tungt som ett d
 
 ## Schemalagt underhåll för nätverksplatser
 
-Koppla platser till ett schemalagt underhåll under **Andra påverkade resurser**, i händelsens steg **Berörda resurser**, som du skulle göra med en värd. En plats egen sida **Schemalagt underhåll** listar de händelser som är kopplade till den, och dess **Skapa schemalagt underhållsevenemang** öppnar formuläret med platsen redan vald.
+Koppla platser till ett schemalagt underhåll under **Andra påverkade resurser**, i händelsens steg **Berörda resurser**, som du skulle göra med en värd. En plats egen sida **Schemalagt underhåll** listar de händelser som är kopplade till den, och dess **Skapa underhållshändelse** öppnar formuläret med platsen redan vald.
 
 Ett fönster på en förälder täcker allt under den: ett fönster på en region täcker varje marknad och enhet i den, inklusive platser som skapats efter att fönstret schemalades, så ett regionalt operatörsbyte behöver inte räkna upp fyrahundra butiker.
 

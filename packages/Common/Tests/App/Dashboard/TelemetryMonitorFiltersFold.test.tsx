@@ -29,7 +29,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *   - folded on a new monitor and on an edited one alike, its header naming
  *     what it holds;
  *   - each filter a monitor uses drawn on that header as a chip with what it
- *     is set to ("Filter by Telemetry Service: 1"), so nothing in force is
+ *     is set to ("Filter by Service: 1"), so nothing in force is
  *     hidden;
  *   - the filters most monitors use (severity, span status, text,
  *     exception types, environments) left on screen; the time window is the
@@ -302,13 +302,13 @@ describe("Log monitor filters", () => {
 
     expect(moreFields()).toHaveAttribute("aria-expanded", "false");
     expect(listedNames(moreFields())).toEqual([
-      "Filter by Telemetry Service",
+      "Filter by Service",
       "Filter by Infrastructure Entity",
       "Filter by Attributes",
     ]);
     expect(setChips(moreFields())).toEqual([]);
 
-    expect(fieldLabel("Filter by Telemetry Service")).not.toBeVisible();
+    expect(fieldLabel("Filter by Service")).not.toBeVisible();
     expect(fieldLabel("Filter by Infrastructure Entity")).not.toBeVisible();
     expect(fieldLabel("Filter by Attributes")).not.toBeVisible();
 
@@ -338,7 +338,7 @@ describe("Log monitor filters", () => {
     fireEvent.click(moreFields());
 
     expect(moreFields()).toHaveAttribute("aria-expanded", "true");
-    expect(fieldLabel("Filter by Telemetry Service")).toBeVisible();
+    expect(fieldLabel("Filter by Service")).toBeVisible();
     expect(fieldLabel("Filter by Infrastructure Entity")).toBeVisible();
     expect(fieldLabel("Filter by Attributes")).toBeVisible();
     expectNoOldAdvancedLink();
@@ -355,7 +355,7 @@ describe("Log monitor filters", () => {
 
     expect(moreFields()).toHaveAttribute("aria-expanded", "false");
     expect(setChips(moreFields())).toEqual([
-      "Filter by Telemetry Service: 1",
+      "Filter by Service: 1",
       "Filter by Infrastructure Entity: 1",
       "Filter by Attributes: 1",
     ]);
@@ -377,7 +377,7 @@ describe("Log monitor filters", () => {
 
     openMatching("Matching logs");
     fireEvent.click(moreFields());
-    pick(comboboxOf("Filter by Telemetry Service"), "checkout");
+    pick(comboboxOf("Filter by Service"), "checkout");
 
     expect(recorder.latest).toMatchObject({
       body: "timeout",
@@ -404,7 +404,7 @@ describe("Log monitor filters", () => {
     fireEvent.click(moreFields());
 
     expect(setChips(moreFields())).toEqual([
-      "Filter by Telemetry Service: 1",
+      "Filter by Service: 1",
       "Filter by Attributes: 1",
     ]);
   });
@@ -521,7 +521,7 @@ describe("Trace monitor filters", () => {
 
     expect(moreFields()).toHaveAttribute("aria-expanded", "false");
     expect(listedNames(moreFields())).toEqual([
-      "Filter by Telemetry Service",
+      "Filter by Service",
       "Filter by Infrastructure Entity",
       "Filter by Attributes",
     ]);
@@ -540,7 +540,7 @@ describe("Trace monitor filters", () => {
 
     expect(moreFields()).toHaveAttribute("aria-expanded", "false");
     expect(setChips(moreFields())).toEqual([
-      "Filter by Telemetry Service: 1",
+      "Filter by Service: 1",
       "Filter by Attributes: 1",
     ]);
 
@@ -642,13 +642,13 @@ describe("Exception monitor filters", () => {
 
     expect(moreFields()).toHaveAttribute("aria-expanded", "false");
     expect(listedNames(moreFields())).toEqual([
-      "Filter by Telemetry Service",
+      "Filter by Service",
       "Filter by Infrastructure Entity",
       "Include Resolved Exceptions",
       "Include Archived Exceptions",
     ]);
     expect(setChips(moreFields())).toEqual([]);
-    expect(fieldLabel("Filter by Telemetry Service")).not.toBeVisible();
+    expect(fieldLabel("Filter by Service")).not.toBeVisible();
 
     expectNoOldAdvancedLink();
   });
@@ -696,7 +696,7 @@ describe("Exception monitor filters", () => {
 
     expect(moreFields()).toHaveAttribute("aria-expanded", "false");
     expect(setChips(moreFields())).toEqual([
-      "Filter by Telemetry Service: 1",
+      "Filter by Service: 1",
       "Include Resolved Exceptions: On",
     ]);
 

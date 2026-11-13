@@ -73,7 +73,7 @@ Haz clic en **Crear monitor**. El monitor se abre en su página **Vista general*
 | **Estado del span** | Spans con cualquiera de los estados elegidos: **Sin establecer**, **Correcto** o **Error**. | Vacío: todos los estados |
 | **El nombre del span contiene** | Spans cuyo nombre contiene este texto, sin distinguir mayúsculas y minúsculas. | Vacío: todos los spans |
 | **Ventana de tiempo** (en **Cuándo alertar**) | Spans que empezaron en los últimos 5 segundos hasta las últimas 24 horas. | **Últimos 5 minutos** |
-| **Filtrar por servicio de telemetría** (en **Más campos**) | Spans de cualquiera de los servicios elegidos. | Vacío: todos los servicios |
+| **Filtrar por servicio** (en **Más campos**) | Spans de cualquiera de los servicios elegidos. | Vacío: todos los servicios |
 | **Filtrar por entidad de infraestructura** (en **Más campos**) | Spans de cualquiera de los hosts, pods, contenedores y otras entidades elegidos. | Vacío: todas las entidades |
 | **Filtrar por atributos** (en **Más campos**) | Spans cuyos atributos cumplen todas las condiciones. Cada condición tiene su propio operador, como «es igual a» o «contiene». | Vacío: ninguna condición |
 

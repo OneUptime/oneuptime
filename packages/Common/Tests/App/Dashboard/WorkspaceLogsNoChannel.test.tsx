@@ -172,14 +172,29 @@ describe("the Workspace Logs table's Channel cell, for a row in no channel", () 
     expect(within(rows).queryByTestId(TABLE_EMPTY_VALUE_TEST_ID)).toBeNull();
   });
 
-  test("the check can fail: a column with a '-' of its own draws the hyphen, and no quiet dash", () => {
+  /*
+   * #7264: the column's own "-" is the quiet dash too now, so the fix this
+   * table took (dropping it) and the table's own rule agree.
+   */
+  test("a '-' of the column's own is the quiet dash as well, not a hyphen", () => {
     const rows: HTMLElement = drawCell({
       column: { ...channelColumn(), noValueMessage: "-" },
       row: IN_NO_CHANNEL,
       isMobile: false,
     });
 
-    expect(within(rows).getByText("-")).toBeVisible();
+    expect(within(rows).getByTestId(TABLE_EMPTY_VALUE_TEST_ID)).toBeVisible();
+    expect(within(rows).queryByText("-")).toBeNull();
+  });
+
+  test("the check can fail: a column with words of its own draws them, and no quiet dash", () => {
+    const rows: HTMLElement = drawCell({
+      column: { ...channelColumn(), noValueMessage: "Not posted" },
+      row: IN_NO_CHANNEL,
+      isMobile: false,
+    });
+
+    expect(within(rows).getByText("Not posted")).toBeVisible();
     expect(within(rows).queryByTestId(TABLE_EMPTY_VALUE_TEST_ID)).toBeNull();
   });
 });

@@ -36,7 +36,7 @@ flowchart TB
 ## 始める前に
 
 - **届いているメトリクス。** [OpenTelemetry](/docs/telemetry/open-telemetry) で送るか、[ホスト用 OpenTelemetry Collector](/docs/telemetry/host-otel-collector) や [Kubernetes エージェント](/docs/telemetry/kubernetes-agent) などのエージェントから送ります。
-- **テレメトリを読み取れるロール。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member、Telemetry Viewer のいずれか、または Read Telemetry Service Metrics 権限を持つカスタムロール。ロールがどのメトリクスを読み取るかは、[テレメトリー](/docs/permissions/index#テレメトリー) を参照してください。
+- **テレメトリを読み取れるロール。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member、Telemetry Viewer のいずれか、または Read Metrics 権限を持つカスタムロール。ロールがどのメトリクスを読み取るかは、[テレメトリー](/docs/permissions/index#テレメトリー) を参照してください。
 
 ## メトリクスを探す
 

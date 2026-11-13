@@ -84,7 +84,7 @@ Inserite l'ID del servizio in `telemetryServiceIds`, oppure lasciate vuoto l'ele
 | `attributes` | Profili i cui attributi hanno questi valori. | Vuoto: nessuna condizione |
 | `lastXSecondsOfProfiles` | Profili iniziati entro questo numero di secondi prima della valutazione. | Nessuno: impostatelo sempre, altrimenti viene contato ogni profilo memorizzato e il conteggio non scende mai a 0 |
 
-Tutti i filtri che impostate devono corrispondere perché un profilo venga letto. Nel modulo, **Funzione** imposta `functionName`, **Cosa analizzare** imposta `profileTypes` (**Ogni tipo di profilo** lo lascia vuoto), **Monitora i profili per (tempo)** imposta `lastXSecondsOfProfiles`, e **Filtra per servizio di telemetria** e **Filtra per entità dell'infrastruttura** impostano `telemetryServiceIds` ed `entityKeys`.
+Tutti i filtri che impostate devono corrispondere perché un profilo venga letto. Nel modulo, **Funzione** imposta `functionName`, **Cosa analizzare** imposta `profileTypes` (**Ogni tipo di profilo** lo lascia vuoto), **Monitora i profili per (tempo)** imposta `lastXSecondsOfProfiles`, e **Filtra per servizio** e **Filtra per entità dell'infrastruttura** impostano `telemetryServiceIds` ed `entityKeys`.
 
 ## Come viene valutato
 

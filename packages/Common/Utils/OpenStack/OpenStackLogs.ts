@@ -36,8 +36,9 @@ import {
  *
  * Logs are text anyone can write into. Nothing here runs a regular expression with a
  * quantifier: lines are read with indexOf and loops, so the time this takes is in line
- * with the record however long it is and whatever it holds (AGENTS.md, and the hostile
- * shapes in OpenStackLogs.test.ts). The most this reads of one record is
+ * with the record however long it is and whatever it holds
+ * (Docs/notifications/README.md, "Megabyte-long values", and the hostile shapes in
+ * OpenStackLogs.test.ts). The most this reads of one record is
  * MAX_OPENSTACK_LOG_BODY_LENGTH, and what is past it is not stored: an unread stretch
  * could hold what the scrub is there to take out.
  *

@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { exec } from "child_process";
 import { promisify } from "util";
+import { goEnvironment } from "../../TerraformProvider/Core/GoCommand";
 import { OpenAPIParser } from "../../TerraformProvider/Core/OpenAPIParser";
 import { TerraformResource } from "../../TerraformProvider/Core/Types";
 import {
@@ -94,6 +95,28 @@ export function goSteps(options: CrossplaneProviderOptions): Array<GoStep> {
       command: `go build -ldflags "-X ${MODULE_PATH}/internal/version.Version=v${options.version}" -o bin/provider ./cmd/provider`,
     },
   ];
+}
+
+/*
+ * The environment every Go step runs in: the code generators' folder first
+ * on PATH, no C library, and Go's memory limit
+ * (TerraformProvider/Core/GoCommand.ts). Reading the schema, generating the
+ * resources and building the provider all link the Terraform provider's
+ * internal/provider, which this provider runs in process, and without the
+ * limit compiling it took the compiler alone to ~15 GB of a 16 GB CI runner.
+ */
+export function goStepsEnvironment(
+  options: CrossplaneProviderOptions,
+  environment: NodeJS.ProcessEnv,
+): NodeJS.ProcessEnv {
+  return {
+    ...goEnvironment(environment),
+    PATH: [path.join(options.outputDir, "bin"), environment["PATH"]]
+      .filter(Boolean)
+      .join(path.delimiter),
+    // A provider runs on any Linux: no C library.
+    CGO_ENABLED: "0",
+  };
 }
 
 // Every file under a folder, by its path relative to the folder.
@@ -201,14 +224,10 @@ export class CrossplaneProviderGenerator {
   }
 
   public async runGoSteps(log: (message: string) => void): Promise<void> {
-    const env: NodeJS.ProcessEnv = {
-      ...process.env,
-      PATH: [path.join(this.options.outputDir, "bin"), process.env["PATH"]]
-        .filter(Boolean)
-        .join(path.delimiter),
-      // A provider runs on any Linux: no C library.
-      CGO_ENABLED: "0",
-    };
+    const env: NodeJS.ProcessEnv = goStepsEnvironment(
+      this.options,
+      process.env,
+    );
     for (const step of goSteps(this.options)) {
       log(`${step.title}: ${step.command}`);
       try {

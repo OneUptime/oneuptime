@@ -278,7 +278,7 @@ describe("Status page detail pages when the item is not available", () => {
     });
 
     expect(
-      screen.getByText("No scheduled event found for this status page."),
+      screen.getByText("No maintenance event found for this status page."),
     ).toBeInTheDocument();
     expect(screen.queryByTestId("bar-loader")).not.toBeInTheDocument();
   });

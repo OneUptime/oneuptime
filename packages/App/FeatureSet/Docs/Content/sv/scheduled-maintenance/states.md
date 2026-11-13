@@ -37,7 +37,7 @@ flowchart TB
 Modellen `ScheduledMaintenanceState` har `name`, `description`, `color` och `order`, plus fyra flaggor: `isScheduledState`, `isOngoingState`, `isEndedState` och `isResolvedState`. OneUptime läser flaggorna och ordningen, aldrig namnet, så du kan byta namn på **Slutförd** till "Godkänd" utan att något går sönder.
 
 > [!TIP]
-> Listan finns under **Schemalagt underhåll → Inställningar → Händelsestatus**. **Inställningar** börjar hopfällt i sidomenyn: fäll ut det först.
+> Listan finns under **Schemalagt underhåll → Inställningar → Underhållsstatus**. **Inställningar** börjar hopfällt i sidomenyn: fäll ut det först.
 
 ## Standardtillstånden
 
@@ -74,7 +74,7 @@ En händelse börjar när den går från ett tillstånd där den väntar till **
 
 - **Dess monitorer slutar kontrolleras**, och går över till dess **Ändra övervakningsstatus till**, om den har en. En monitor som du lägger till händelsen medan den pågår går också över.
 - **Dess statussidor visar den som pågående**, och dess prenumeranter får veta: i tid om **När händelsen börjar** är på, och manuellt som dialogens **Meddela statussideprenumeranter** säger.
-- **Dess ägare får veta**, om de har slagit på aviseringen om tillståndsändringar, och händelsen visas under **Pågående händelser**.
+- **Dess ägare får veta**, om de har slagit på aviseringen om tillståndsändringar, och händelsen visas under **Pågående underhållshändelser**.
 
 En händelse avslutas när den går från ett tillstånd där den pågår till **Avslutad**, **Slutförd** eller ett eget tillstånd placerat efter **Avslutad**. Då kontrolleras dess monitorer igen och går tillbaka till "i drift", om inte en annan pågående händelse fortfarande håller dem, och dess prenumeranter får veta på samma sätt: i tid om **När händelsen slutar** är på, och manuellt som dialogen säger.
 
@@ -106,7 +106,7 @@ Ett tillstånd som du lägger till är ett steg som ditt team går igenom och so
 :::steps
 ### Öppna tillståndslistan
 
-Gå till **Schemalagt underhåll → Inställningar → Händelsestatus**. Kortet **Tillstånd för schemalagt underhåll** listar dina tillstånd i ordning. Varje rad visar sin färg och sitt namn, vad en händelse i det räknas som (kolumnen **Räknas som**) och sin beskrivning.
+Gå till **Schemalagt underhåll → Inställningar → Underhållsstatus**. Kortet **Tillstånd för schemalagt underhåll** listar dina tillstånd i ordning. Varje rad visar sin färg och sitt namn, vad en händelse i det räknas som (kolumnen **Räknas som**) och sin beskrivning.
 
 ### Skapa tillståndet
 

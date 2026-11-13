@@ -1,6 +1,6 @@
 # Cosa crea un invio
 
-Ogni invio tramite un modulo crea un record nel tuo progetto: un **incidente** o un **evento di manutenzione programmata**. La pagina **All'invio** di un modulo mostra quale, e come viene compilato ogni campo del nuovo record — da una risposta, da un valore predefinito, da un'impostazione che si applica sempre, o dal modello di incidente. **Modifica impostazioni** cambia i valori predefiniti e ciò che si applica sempre.
+Ogni invio tramite un modulo crea un record nel tuo progetto: un **incidente** o un **evento di manutenzione**. La pagina **All'invio** di un modulo mostra quale, e come viene compilato ogni campo del nuovo record — da una risposta, da un valore predefinito, da un'impostazione che si applica sempre, o dal modello di incidente. **Modifica impostazioni** cambia i valori predefiniti e ciò che si applica sempre.
 
 :::cards
 - [Come un invio diventa un incidente](#come-un-invio-diventa-un-incidente): Ogni campo del nuovo incidente, e da dove viene il suo valore.

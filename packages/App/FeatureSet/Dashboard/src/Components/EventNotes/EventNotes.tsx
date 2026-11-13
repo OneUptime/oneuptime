@@ -11,6 +11,7 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpdateNotification";
+import ErrorMessageText from "Common/UI/Components/ErrorMessage/ErrorMessageText";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import Icon from "Common/UI/Components/Icon/Icon";
 import API from "Common/UI/Utils/API/API";
@@ -28,6 +29,7 @@ import User from "Common/UI/Utils/User";
 import React, {
   ReactElement,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -280,6 +282,12 @@ function EventNotes<TNote extends BaseModel>(
   const loadedCount: React.MutableRefObject<number> = useRef<number>(0);
   loadedCount.current = notes.length;
 
+  // The feed's body, and its Try again while a failed load is drawn.
+  const feedBodyRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
+  const tryAgainButtonRef: React.RefObject<HTMLButtonElement> =
+    useRef<HTMLButtonElement>(null);
+
   const select: JSONObject = useMemo(() => {
     return buildNotesSelect({
       model,
@@ -411,6 +419,44 @@ function EventNotes<TNote extends BaseModel>(
       limit: Math.max(NOTES_PAGE_SIZE, loadedCount.current),
     });
   };
+
+  /*
+   * Try again gives way to the loading skeleton, which holds nothing to
+   * focus: a focus left on it fell to the page, and the next Tab started
+   * again from the top of the page. The feed's body holds it instead while
+   * the notes load again - once they are drawn, the next Tab reaches the
+   * first of them - and hands it back to Try again if they fail once more
+   * (below). A focus that was not in the feed is left where it is.
+   */
+  const tryAgain: () => void = (): void => {
+    const body: HTMLDivElement | null = feedBodyRef.current;
+
+    if (body && body.contains(document.activeElement)) {
+      body.focus();
+    }
+
+    fetchNotes({ mode: "initial" });
+  };
+
+  /*
+   * The notes failed to load once more while the feed's body held the
+   * focus: it goes back to Try again - not to the copy button of the
+   * reference the explanation above it may hold - so trying once more is
+   * one key away. A layout effect, so it runs as the failure is drawn: a
+   * passive one can wait for the next task on a busy page, and run only
+   * after the next press of Try again has given the focus to the feed's
+   * body - then it put the focus on the Try again that press was taking
+   * away, and the focus fell to the page.
+   */
+  useLayoutEffect(() => {
+    const body: HTMLDivElement | null = feedBodyRef.current;
+
+    if (isLoading || !loadError || !body || document.activeElement !== body) {
+      return;
+    }
+
+    tryAgainButtonRef.current?.focus();
+  }, [isLoading, loadError]);
 
   const hasFetchedOnce: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
@@ -654,12 +700,30 @@ function EventNotes<TNote extends BaseModel>(
           <p className="mt-3 text-sm font-medium text-gray-900">
             {tx("Notes could not be loaded")}
           </p>
-          <p className="mt-1 max-w-md text-sm text-gray-500">{loadError}</p>
+          {/*
+           * Read as a list's failure reads (ErrorMessageText): an error
+           * nobody explained says why and what to do next, with the
+           * reference to give when the server failed (#6836); any other is
+           * in the reader's language, read the way it is written. The
+           * heading above says what failed, so the explanation does not say
+           * it again, and the reference's row is centred as the lines around
+           * it are. It was the message as API.getFriendlyMessage words it:
+           * English on every page, and on a Persian one with its full stop
+           * at its start.
+           */}
+          <p className="mt-1 max-w-md text-sm text-gray-500">
+            <ErrorMessageText
+              message={loadError}
+              hideWhatFailed={true}
+              isCentered={true}
+            />
+          </p>
           <button
+            ref={tryAgainButtonRef}
             type="button"
             className="mt-4 inline-flex h-9 items-center gap-2 rounded-md border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
             onClick={() => {
-              fetchNotes({ mode: "initial" });
+              tryAgain();
             }}
           >
             <Icon icon={IconProp.Refresh} className="h-4 w-4" />
@@ -1073,7 +1137,18 @@ function EventNotes<TNote extends BaseModel>(
               </div>
             </div>
           )}
-          <div className="px-4 py-5 sm:px-5">{getFeedBody()}</div>
+          {/*
+           * Focusable from script alone, without a ring: it holds the focus
+           * while Try again reads the notes again (tryAgain).
+           */}
+          <div
+            ref={feedBodyRef}
+            tabIndex={-1}
+            className="px-4 py-5 focus:outline-none sm:px-5"
+            data-testid="notes-feed-body"
+          >
+            {getFeedBody()}
+          </div>
         </section>
       )}
     </div>

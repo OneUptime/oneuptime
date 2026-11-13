@@ -28,7 +28,7 @@ flowchart LR
 ## 開始之前
 
 - **正在到達的遙測。** 服務地圖需要追蹤：請參閱 [OpenTelemetry](/docs/telemetry/open-telemetry)。基礎設施檢視需要一台傳送資料的主機或一個叢集：請參閱 [Kubernetes 代理程式](/docs/telemetry/kubernetes-agent)。網路檢視需要網路設備：請參閱 [網路設備監控](/docs/monitor/network-device-monitor)。
-- **能夠讀取遙測的角色。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member 或 Telemetry Viewer，或者擁有 Read Telemetry Service 權限的自訂角色。
+- **能夠讀取遙測的角色。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member 或 Telemetry Viewer，或者擁有 Read Inventory Item 權限的自訂角色。
 
 ## 開啟拓撲
 
@@ -114,7 +114,7 @@ OneUptime 每 10 分鐘在你的追蹤中尋找一次服務之間的呼叫。當
 ## 後續步驟
 
 :::cards
-- [服務目錄](/docs/telemetry/services): 關於一個服務的一切。
+- [服務](/docs/telemetry/services): 關於一個服務的一切。
 - [追蹤瀏覽器](/docs/telemetry/traces-explorer): 每個箭頭背後的請求。
 - [資產清單概觀](/docs/inventory/overview): 地圖繪製的每個資源。
 - [網路設備監控](/docs/monitor/network-device-monitor): 把你的網路放到地圖上。

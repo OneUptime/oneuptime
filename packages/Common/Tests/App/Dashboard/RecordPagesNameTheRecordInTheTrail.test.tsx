@@ -93,7 +93,7 @@ const RECORD_KINDS: Array<RecordKind> = [
   },
   {
     viewKey: "SCHEDULED_MAINTENANCE_VIEW",
-    viewTitle: "View Scheduled Maintenance Event",
+    viewTitle: "View Maintenance Event",
     builder: getScheduleMaintenanceBreadcrumbs,
   },
   {

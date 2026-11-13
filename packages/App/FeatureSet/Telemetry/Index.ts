@@ -145,7 +145,7 @@ const TelemetryFeatureSet: FeatureSet = {
       // Transport itself is installed at module scope above (boot-race note there).
       if (isTelemetryWriterForwardingEnabled()) {
         logger.info(
-          `Telemetry Service - forwarding ClickHouse inserts to telemetry-writer tier at ${getTelemetryWriterUrl()}`,
+          `Telemetry ingest - forwarding ClickHouse inserts to telemetry-writer tier at ${getTelemetryWriterUrl()}`,
           { service: "telemetry" },
         );
       }
@@ -177,7 +177,7 @@ const TelemetryFeatureSet: FeatureSet = {
       app.use(INCOMING_REQUEST_PREFIXES, IncomingRequestAPI);
 
       logger.info(
-        `Telemetry Service - Queue concurrency: ${TELEMETRY_CONCURRENCY}`,
+        `Telemetry ingest - Queue concurrency: ${TELEMETRY_CONCURRENCY}`,
         { service: "telemetry" },
       );
 

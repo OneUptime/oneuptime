@@ -77,7 +77,7 @@ const ENTRY_POINTS: Array<CreateEntryPoint> = [
       "ScheduledMaintenanceTable.tsx",
     ],
     model: "ScheduledMaintenance",
-    buttons: ["Create Scheduled Maintenance Event", "Create from Template"],
+    buttons: ["Create Maintenance Event", "Create from Template"],
   },
   {
     file: ["Components", "Announcement", "AnnouncementsTable.tsx"],

@@ -56,7 +56,7 @@ const NAME_CHARACTER: RegExp = /^[A-Za-z0-9._-]$/;
  * differently. Empty when nothing usable was typed.
  *
  * A loop, not a regular expression, over a paste cut short first: a paste
- * can be long (AGENTS.md, "Megabyte-long values").
+ * can be long (Docs/notifications/README.md, "Megabyte-long values").
  */
 export function toResourceName(typed: string): string {
   const characters: Array<string> = Array.from(

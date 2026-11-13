@@ -964,7 +964,7 @@ ${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, un
       );
 
       if (!scheduledMaintenance) {
-        throw new BadDataException("Scheduled Maintenance Event not found");
+        throw new BadDataException("Maintenance event not found");
       }
 
       const startsAt: Date =
@@ -1729,7 +1729,7 @@ ${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, un
 
       await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
         projectId: projectId,
-        subject: "scheduled maintenance event",
+        subject: "maintenance event",
         references: referencesInProject,
       });
     }
@@ -1999,7 +1999,7 @@ ${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, un
      */
     await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
       projectId: projectId,
-      subject: "scheduled maintenance event",
+      subject: "maintenance event",
       references: [
         ...getWrittenRelationReferences({
           payload: createBy.data,

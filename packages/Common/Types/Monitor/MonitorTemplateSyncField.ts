@@ -1,6 +1,7 @@
 import BadDataException from "../Exception/BadDataException";
 import MonitorType from "./MonitorType";
 import { refusedValue } from "../../Utils/RefusedValue";
+import { translationKey } from "../Translator";
 
 export interface MonitorTemplateSyncField {
   path: string;
@@ -13,6 +14,12 @@ export interface MonitorTemplateSyncField {
  * named fields can be preserved; criteria and step identities always sync.
  * Some options preserve related values together to keep credentials and
  * resource selectors consistent.
+ *
+ * Each field's label and description is a translationKey: the Template sync
+ * settings card and its summary line say them in the reader's language (the
+ * Dashboard's extractor reads this file as a "keys" root). A field's path is
+ * never one: templates store it in doNotSyncFields, and parse() reads it back
+ * as written.
  */
 export default class MonitorTemplateSyncFieldUtil {
   public static getFields(
@@ -38,33 +45,38 @@ export default class MonitorTemplateSyncFieldUtil {
         MonitorType.NTP,
       ].includes(monitorType)
     ) {
-      add("monitorDestination", "Monitor destination");
-      add("requestTimeoutInMs", "Request timeout");
-      add("retryCount", "Retry count");
+      add("monitorDestination", translationKey("Monitor destination"));
+      add("requestTimeoutInMs", translationKey("Request timeout"));
+      add("retryCount", translationKey("Retry count"));
     }
 
     if (monitorType === MonitorType.API) {
       add(
         "requestHeaders",
-        "Request headers",
-        "Keep the monitor's entire set of request headers.",
+        translationKey("Request headers"),
+        translationKey("Keep the monitor's entire set of request headers."),
       );
-      add("requestType", "Request method");
-      add("requestBody", "Request body");
+      add("requestType", translationKey("Request method"));
+      add("requestBody", translationKey("Request body"));
     }
 
     if ([MonitorType.Website, MonitorType.API].includes(monitorType)) {
-      add("doNotFollowRedirects", "Redirect behavior");
-      add("allowSelfSignedCertificates", "Allow self-signed certificates");
+      add("doNotFollowRedirects", translationKey("Redirect behavior"));
+      add(
+        "allowSelfSignedCertificates",
+        translationKey("Allow self-signed certificates"),
+      );
       add(
         "tlsClientAuthentication",
-        "Client certificate authentication",
-        "Keep the certificate, private key, and key passphrase together.",
+        translationKey("Client certificate authentication"),
+        translationKey(
+          "Keep the certificate, private key, and key passphrase together.",
+        ),
       );
     }
 
     if ([MonitorType.Port, MonitorType.NTP].includes(monitorType)) {
-      add("monitorDestinationPort", "Port");
+      add("monitorDestinationPort", translationKey("Port"));
     }
 
     if (
@@ -72,47 +84,47 @@ export default class MonitorTemplateSyncFieldUtil {
         monitorType,
       )
     ) {
-      add("customCode", "Check code");
+      add("customCode", translationKey("Check code"));
     }
 
     if (monitorType === MonitorType.SyntheticMonitor) {
-      add("browserTypes", "Browsers");
-      add("screenSizeTypes", "Screen sizes");
-      add("retryCountOnError", "Retry count on error");
+      add("browserTypes", translationKey("Browsers"));
+      add("screenSizeTypes", translationKey("Screen sizes"));
+      add("retryCountOnError", translationKey("Retry count on error"));
     }
 
     if (monitorType === MonitorType.DNS) {
-      add("dnsMonitor.queryName", "DNS query name");
-      add("dnsMonitor.recordType", "DNS record type");
+      add("dnsMonitor.queryName", translationKey("DNS query name"));
+      add("dnsMonitor.recordType", translationKey("DNS record type"));
       add(
         "dnsMonitor.resolver",
-        "DNS resolver",
-        "Keep the DNS server and port together.",
+        translationKey("DNS resolver"),
+        translationKey("Keep the DNS server and port together."),
       );
-      add("dnsMonitor.timeout", "DNS timeout");
-      add("dnsMonitor.retries", "DNS retries");
+      add("dnsMonitor.timeout", translationKey("DNS timeout"));
+      add("dnsMonitor.retries", translationKey("DNS retries"));
     }
 
     if (monitorType === MonitorType.Domain) {
-      add("domainMonitor.domainName", "Domain name");
-      add("domainMonitor.lookupMethod", "Domain lookup method");
-      add("domainMonitor.timeout", "Lookup timeout");
-      add("domainMonitor.retries", "Lookup retries");
+      add("domainMonitor.domainName", translationKey("Domain name"));
+      add("domainMonitor.lookupMethod", translationKey("Domain lookup method"));
+      add("domainMonitor.timeout", translationKey("Lookup timeout"));
+      add("domainMonitor.retries", translationKey("Lookup retries"));
     }
 
     if (monitorType === MonitorType.DNSSEC) {
-      add("dnssecMonitor.domainName", "Domain name");
-      add("dnssecMonitor.resolvers", "DNS resolvers");
+      add("dnssecMonitor.domainName", translationKey("Domain name"));
+      add("dnssecMonitor.resolvers", translationKey("DNS resolvers"));
       add(
         "dnssecMonitor.checkNameserverConsistency",
-        "Nameserver consistency check",
+        translationKey("Nameserver consistency check"),
       );
       add(
         "dnssecMonitor.signatureExpiryWarningDays",
-        "Signature expiry warning",
+        translationKey("Signature expiry warning"),
       );
-      add("dnssecMonitor.timeout", "DNSSEC timeout");
-      add("dnssecMonitor.retries", "DNSSEC retries");
+      add("dnssecMonitor.timeout", translationKey("DNSSEC timeout"));
+      add("dnssecMonitor.retries", translationKey("DNSSEC retries"));
     }
 
     if ([MonitorType.SQLQuery, MonitorType.Database].includes(monitorType)) {
@@ -120,34 +132,59 @@ export default class MonitorTemplateSyncFieldUtil {
         monitorType === MonitorType.SQLQuery ? "sqlMonitor" : "databaseMonitor";
       add(
         `${prefix}.connection`,
-        "Database connection",
-        "Keep the database engine, host, port, database name, credentials, and TLS settings together.",
+        translationKey("Database connection"),
+        translationKey(
+          "Keep the database engine, host, port, database name, credentials, and TLS settings together.",
+        ),
       );
-      add(`${prefix}.connectionTimeoutInMs`, "Connection timeout");
-      add(`${prefix}.statementTimeoutInMs`, "Statement timeout");
+      add(
+        `${prefix}.connectionTimeoutInMs`,
+        translationKey("Connection timeout"),
+      );
+      add(
+        `${prefix}.statementTimeoutInMs`,
+        translationKey("Statement timeout"),
+      );
       if (monitorType === MonitorType.SQLQuery) {
-        add("sqlMonitor.query", "SQL query");
-        add("sqlMonitor.maxRows", "Maximum result rows");
+        add("sqlMonitor.query", translationKey("SQL query"));
+        add("sqlMonitor.maxRows", translationKey("Maximum result rows"));
       } else {
-        add("databaseMonitor.enabledMetricGroups", "Collected metric groups");
+        add(
+          "databaseMonitor.enabledMetricGroups",
+          translationKey("Collected metric groups"),
+        );
       }
     }
 
     if (monitorType === MonitorType.ExternalStatusPage) {
-      add("externalStatusPageMonitor.statusPageUrl", "Status page URL");
-      add("externalStatusPageMonitor.provider", "Status page provider");
+      add(
+        "externalStatusPageMonitor.statusPageUrl",
+        translationKey("Status page URL"),
+      );
+      add(
+        "externalStatusPageMonitor.provider",
+        translationKey("Status page provider"),
+      );
       add(
         "externalStatusPageMonitor.components",
-        "Status page components",
-        "Keep the component group and the chosen components together.",
+        translationKey("Status page components"),
+        translationKey(
+          "Keep the component group and the chosen components together.",
+        ),
       );
-      add("externalStatusPageMonitor.timeout", "Status page timeout");
-      add("externalStatusPageMonitor.retries", "Status page retries");
+      add(
+        "externalStatusPageMonitor.timeout",
+        translationKey("Status page timeout"),
+      );
+      add(
+        "externalStatusPageMonitor.retries",
+        translationKey("Status page retries"),
+      );
     }
 
     // The probes each monitor made from a Probe Status template watches.
     if (monitorType === MonitorType.ProbeStatus) {
-      add("probeStatusMonitor.probeIds", "Probes to watch");
+      add("probeStatusMonitor.probeIds", translationKey("Probes to watch"));
     }
 
     const infrastructure: Partial<
@@ -156,33 +193,53 @@ export default class MonitorTemplateSyncFieldUtil {
       [MonitorType.Kubernetes]: [
         "kubernetesMonitor",
         "clusterIdentifier",
-        "Kubernetes cluster",
+        translationKey("Kubernetes cluster"),
       ],
-      [MonitorType.Docker]: ["dockerMonitor", "hostIdentifier", "Docker host"],
-      [MonitorType.Host]: ["hostMonitor", "hostIdentifier", "Host"],
-      [MonitorType.Podman]: ["podmanMonitor", "hostIdentifier", "Podman host"],
+      [MonitorType.Docker]: [
+        "dockerMonitor",
+        "hostIdentifier",
+        translationKey("Docker host"),
+      ],
+      [MonitorType.Host]: [
+        "hostMonitor",
+        "hostIdentifier",
+        translationKey("Host"),
+      ],
+      [MonitorType.Podman]: [
+        "podmanMonitor",
+        "hostIdentifier",
+        translationKey("Podman host"),
+      ],
       [MonitorType.Proxmox]: [
         "proxmoxMonitor",
         "clusterIdentifier",
-        "Proxmox cluster",
+        translationKey("Proxmox cluster"),
       ],
       [MonitorType.OpenStack]: [
         "openstackMonitor",
         "cloudIdentifier",
-        "OpenStack cloud",
+        translationKey("OpenStack cloud"),
       ],
       [MonitorType.DockerSwarm]: [
         "dockerSwarmMonitor",
         "clusterIdentifier",
-        "Docker Swarm cluster",
+        translationKey("Docker Swarm cluster"),
       ],
-      [MonitorType.Ceph]: ["cephMonitor", "clusterIdentifier", "Ceph cluster"],
+      [MonitorType.Ceph]: [
+        "cephMonitor",
+        "clusterIdentifier",
+        translationKey("Ceph cluster"),
+      ],
       [MonitorType.StorageArray]: [
         "storageArrayMonitor",
         "arrayIdentifier",
-        "Storage array",
+        translationKey("Storage array"),
       ],
-      [MonitorType.IoTDevice]: ["iotMonitor", "fleetIdentifier", "IoT fleet"],
+      [MonitorType.IoTDevice]: [
+        "iotMonitor",
+        "fleetIdentifier",
+        translationKey("IoT fleet"),
+      ],
     };
     const infrastructureConfig: [string, string, string] | undefined =
       infrastructure[monitorType];
@@ -193,36 +250,54 @@ export default class MonitorTemplateSyncFieldUtil {
         `${prefix}.${identity}`,
         label,
         monitorType === MonitorType.StorageArray
-          ? "Keep the array and its storage platform together."
+          ? translationKey("Keep the array and its storage platform together.")
           : undefined,
       );
       if (monitorType === MonitorType.Kubernetes) {
-        add(`${prefix}.resources`, "Resource scope and filters");
+        add(
+          `${prefix}.resources`,
+          translationKey("Resource scope and filters"),
+        );
       } else if (
         [MonitorType.Docker, MonitorType.Podman].includes(monitorType)
       ) {
-        add(`${prefix}.containerFilters`, "Container filters");
+        add(`${prefix}.containerFilters`, translationKey("Container filters"));
       } else if (monitorType !== MonitorType.Host) {
-        add(`${prefix}.resourceFilters`, "Resource filters");
+        add(`${prefix}.resourceFilters`, translationKey("Resource filters"));
       }
-      add(`${prefix}.metricViewConfig`, "Metric queries");
-      add(`${prefix}.rollingTime`, "Query time window");
+      add(`${prefix}.metricViewConfig`, translationKey("Metric queries"));
+      add(`${prefix}.rollingTime`, translationKey("Query time window"));
     }
 
     const telemetry: Partial<Record<MonitorType, [string, string]>> = {
-      [MonitorType.Logs]: ["logMonitor", "Log query configuration"],
+      [MonitorType.Logs]: [
+        "logMonitor",
+        translationKey("Log query configuration"),
+      ],
       [MonitorType.SecurityEvents]: [
         "securityEventsMonitor",
-        "Security event query configuration",
+        translationKey("Security event query configuration"),
       ],
-      [MonitorType.Traces]: ["traceMonitor", "Trace query configuration"],
-      [MonitorType.Llm]: ["llmMonitor", "AI / LLM answer configuration"],
-      [MonitorType.Metrics]: ["metricMonitor", "Metric query configuration"],
+      [MonitorType.Traces]: [
+        "traceMonitor",
+        translationKey("Trace query configuration"),
+      ],
+      [MonitorType.Llm]: [
+        "llmMonitor",
+        translationKey("AI / LLM answer configuration"),
+      ],
+      [MonitorType.Metrics]: [
+        "metricMonitor",
+        translationKey("Metric query configuration"),
+      ],
       [MonitorType.Exceptions]: [
         "exceptionMonitor",
-        "Exception query configuration",
+        translationKey("Exception query configuration"),
       ],
-      [MonitorType.Profiles]: ["profileMonitor", "Profile query configuration"],
+      [MonitorType.Profiles]: [
+        "profileMonitor",
+        translationKey("Profile query configuration"),
+      ],
     };
     const telemetryConfig: [string, string] | undefined =
       telemetry[monitorType];

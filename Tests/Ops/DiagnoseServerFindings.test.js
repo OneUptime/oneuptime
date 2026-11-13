@@ -5,7 +5,8 @@
  * itself, on Kubernetes (#6826): the same findings as `npm run doctor` and
  * the Admin Dashboard's OneUptime Health overview, from a POST to
  * /api/admin/health/doctor, asked from inside the app pod with the cluster
- * key the pod holds in the clusterkey header, following no redirect.
+ * key the pod holds in the clusterkey header, URI-encoded as the app compares
+ * it, following no redirect.
  *
  * The script the pod runs is run here with this machine's node against a
  * real HTTP server standing in for the app, and the shell that reads its
@@ -63,6 +64,26 @@ const ANSWER = {
   version: { current: "14.0.100" },
 };
 
+// What the script prints of ANSWER.
+const ANSWER_LINES = [
+  "fix|Valkey|Valkey does not answer, so background jobs and live updates stop.|Check that Valkey is running, and read its log for the reason.",
+  // A bar or a line break in the words cannot break a line apart.
+  "fix|Email|Not set up yet: OneUptime cannot send invitations.|Finish it on the Server setup page.",
+  "warn|Version|This server runs OneUptime 14.0.100. 14.0.108 is out.|",
+  "VERSION|14.0.100",
+];
+
+/*
+ * Keys with characters URI-encoding changes: + / = @ & %, a Latin-1 letter,
+ * which fetch would send as one byte, and letters beyond Latin-1, which it
+ * would not send at all.
+ */
+const KEYS_TO_ENCODE = [
+  ["+ / = @ & %", "Ab+c/d=e@f&g%h"],
+  ["a Latin-1 letter", "clé-du-cluster"],
+  ["letters beyond Latin-1", "clé-du-cluster-ä-ø-漢字-🔑"],
+];
+
 const runNode = (script, env) => {
   return new Promise((resolve) => {
     const child = spawn(process.execPath, ["-e", script], {
@@ -85,6 +106,8 @@ describe("the script the app pod runs", () => {
   let elsewhere;
   let elsewherePort;
   let status = 200;
+  // The ONEUPTIME_SECRET of the app pod, which the app compares the key with.
+  let appKey = SECRET;
   const seen = [];
   const seenElsewhere = [];
 
@@ -121,6 +144,16 @@ describe("the script the app pod runs", () => {
         return;
       }
 
+      // As the app compares a key: with its own, URI-encoded (ClusterKeyAuthorization.getClusterKey).
+      if (
+        status === 200 &&
+        req.headers.clusterkey !== encodeURIComponent(appKey)
+      ) {
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "Invalid cluster key provided" }));
+        return;
+      }
+
       res.writeHead(status, { "content-type": "application/json" });
       res.end(JSON.stringify(status === 200 ? ANSWER : { error: "x" }));
     });
@@ -150,6 +183,7 @@ describe("the script the app pod runs", () => {
 
   beforeEach(() => {
     status = 200;
+    appKey = SECRET;
     seen.length = 0;
     seenElsewhere.length = 0;
   });
@@ -170,14 +204,27 @@ describe("the script the app pod runs", () => {
         transferEncoding: undefined,
       },
     ]);
-    expect(output.trim().split("\n")).toEqual([
-      "fix|Valkey|Valkey does not answer, so background jobs and live updates stop.|Check that Valkey is running, and read its log for the reason.",
-      // A bar or a line break in the words cannot break a line apart.
-      "fix|Email|Not set up yet: OneUptime cannot send invitations.|Finish it on the Server setup page.",
-      "warn|Version|This server runs OneUptime 14.0.100. 14.0.108 is out.|",
-      "VERSION|14.0.100",
-    ]);
+    expect(output.trim().split("\n")).toEqual(ANSWER_LINES);
   });
+
+  test.each(KEYS_TO_ENCODE)(
+    "a key with %s goes URI-encoded, as the app compares it, and the app's findings are printed",
+    async (_characters, key) => {
+      appKey = key;
+
+      const output = await runNode(podScript(), {
+        PORT: String(port),
+        ONEUPTIME_SECRET: key,
+      });
+
+      expect(
+        seen.map((entry) => {
+          return entry.clusterkey;
+        }),
+      ).toEqual([encodeURIComponent(key)]);
+      expect(output.trim().split("\n")).toEqual(ANSWER_LINES);
+    },
+  );
 
   test("an app that refuses says why", async () => {
     status = 400;

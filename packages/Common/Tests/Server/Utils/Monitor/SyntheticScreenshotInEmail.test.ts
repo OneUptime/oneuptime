@@ -837,6 +837,57 @@ describe("a screenshot a description references many times, from the probe to th
   });
 
   /*
+   * The same, with the screenshot defined where marked reads it and the cut
+   * did not look (#7230): in a block quote, in a list item indented four
+   * spaces, right after a setext heading. The cut brings it on a line of its
+   * own, without the quote's marker or the item's indentation.
+   */
+  test.each([
+    ["in a block quote", "> "],
+    ["in a list item, indented four spaces", "- Screenshot\n\n    "],
+    ["right after a setext heading", "Screenshots\n===\n"],
+  ])(
+    "a description cut to fit, its screenshot defined %s: attached and shown, and the error cut with the note (#7230)",
+    async (_name: string, before: string) => {
+      jest.spyOn(logger, "warn").mockImplementation((): void => {});
+      const shot: string = jpegOfSize(30 * KB);
+      const error: string =
+        "Timeout 30000ms exceeded waiting for the login form ".repeat(6000);
+      const description: string = describeIncident(
+        [
+          "Monitor is down",
+          "![Home][home]",
+          "",
+          "{{syntheticResponses.0.scriptError}}",
+          "",
+          `${before}[home]: data:image/jpeg;base64,{{syntheticResponses.0.screenshots.home}}`,
+        ].join("\n"),
+        [run({ scriptError: error, screenshots: { home: shot } })],
+      );
+
+      expect(description.length).toBeGreaterThan(MAX_EMAIL_FIELD_HTML_BYTES);
+
+      const email: EmailHtmlWithInlineImages = await emailFor(description);
+
+      expect(email.inlineImages).toHaveLength(1);
+      expect(email.inlineImages[0]!.base64 === shot).toBe(true);
+      expect(
+        email.html.startsWith(
+          `<p>Monitor is down\n<img src="cid:${email.inlineImages[0]!.contentId}" alt="Home" style="max-width:100%;height:auto;"></p>\n<p>Timeout 30000ms exceeded waiting for the login form `,
+        ),
+      ).toBe(true);
+      expect(email.html.endsWith(EMAIL_TRUNCATED_TEXT_NOTE_HTML)).toBe(true);
+      expect(EmailSize.getHtmlSizeInBytes(email.html)).toBeLessThanOrEqual(
+        MAX_EMAIL_FIELD_HTML_BYTES,
+      );
+      expect(countOf(email.html, '<img src="cid:')).toBe(1);
+      expect(email.html).not.toContain("![Home");
+      expect(email.html).not.toContain("[home]");
+      expect(email.html).not.toContain("base64");
+    },
+  );
+
+  /*
    * A screenshot value whose bytes are no image: one image of it was always
    * its alt text, and so is every reference to it - none says it was too
    * large. Its data is put back for the text's own reference and the first
