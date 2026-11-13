@@ -50948,7 +50948,7 @@
   "A hidden product is not switched off: it moves under More products at the foot of the menu, Search still finds it, its pages keep working and its data keeps arriving.": "Un producto oculto no está desactivado: pasa a «Más productos» al final del menú, la búsqueda lo sigue encontrando, sus páginas siguen funcionando y sus datos siguen llegando.",
   "A site cannot be its own parent.": "Un sitio no puede ser su propio padre.",
   "A site named \"{{name}}\" already exists in this project.": "Ya existe un sitio llamado \"{{name}}\" en este proyecto.",
-  "Add Notification Rule": "Añadir Regla de notificación",
+  "Add Notification Rule": "Añadir regla de notificación",
   "Always shown": "Siempre visible",
   "Ask your server's admin to set it up in the Admin Dashboard.": "Pide al administrador de tu servidor que lo configure en el panel de administración.",
   "Choose products": "Elegir productos",

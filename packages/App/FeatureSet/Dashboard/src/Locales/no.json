@@ -50948,7 +50948,7 @@
   "A hidden product is not switched off: it moves under More products at the foot of the menu, Search still finds it, its pages keep working and its data keeps arriving.": "Et skjult produkt er ikke slått av: det flyttes til «Flere produkter» nederst i menyen, Søk finner det fortsatt, sidene virker fortsatt, og dataene fortsetter å komme.",
   "A site cannot be its own parent.": "En lokasjon kan ikke være sin egen overordnede lokasjon.",
   "A site named \"{{name}}\" already exists in this project.": "Det finnes allerede en lokasjon med navnet \"{{name}}\" i dette prosjektet.",
-  "Add Notification Rule": "Legg til Varsling Regel",
+  "Add Notification Rule": "Legg til varselregel",
   "Always shown": "Vises alltid",
   "Ask your server's admin to set it up in the Admin Dashboard.": "Be administratoren for serveren din om å sette det opp i administrasjonspanelet.",
   "Choose products": "Velg produkter",

@@ -50948,7 +50948,7 @@
   "A hidden product is not switched off: it moves under More products at the foot of the menu, Search still finds it, its pages keep working and its data keeps arriving.": "En dold produkt är inte avstängd: den flyttas till ”Fler produkter” längst ned i menyn, Sök hittar den fortfarande, dess sidor fungerar och dess data fortsätter att komma in.",
   "A site cannot be its own parent.": "En plats kan inte vara sin egen överordnade plats.",
   "A site named \"{{name}}\" already exists in this project.": "Det finns redan en plats som heter \"{{name}}\" i det här projektet.",
-  "Add Notification Rule": "Lägg till Aviseringsregel",
+  "Add Notification Rule": "Lägg till aviseringsregel",
   "Always shown": "Visas alltid",
   "Ask your server's admin to set it up in the Admin Dashboard.": "Be serverns administratör att ställa in det i administratörspanelen.",
   "Choose products": "Välj produkter",
