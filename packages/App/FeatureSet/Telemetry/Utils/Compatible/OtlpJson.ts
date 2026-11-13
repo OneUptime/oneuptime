@@ -95,6 +95,15 @@ const MAX_FLATTEN_DEPTH: number = 8;
 
 const HEX_DIGITS: RegExp = /^[0-9a-fA-F]+$/;
 
+// Seconds as Splunk and Datadog write them: digits, and an optional fraction.
+const DECIMAL_SECONDS: RegExp = /^\d+(\.\d+)?$/;
+// A number JavaScript writes in exponent form (1e-7, 1e+21).
+const EXPONENT: RegExp = /e/i;
+// OTLP's "no ID".
+const ALL_ZEROS: RegExp = /^0+$/;
+// At most an unsigned 64-bit integer's 20 decimal digits.
+const UINT64_DIGITS: RegExp = /^\d{1,20}$/;
+
 export default class OtlpJson {
   /*
    * One attribute, typed as OTLP types it: a string as stringValue, an
@@ -286,7 +295,7 @@ export default class OtlpJson {
 
     const text: string = seconds.trim();
 
-    if (!/^\d+(\.\d+)?$/.test(text)) {
+    if (!DECIMAL_SECONDS.test(text)) {
       return null;
     }
 
@@ -300,7 +309,7 @@ export default class OtlpJson {
   private static plainDecimal(value: number): string {
     const text: string = String(value);
 
-    if (!/e/i.test(text)) {
+    if (!EXPONENT.test(text)) {
       return text;
     }
 
@@ -366,7 +375,7 @@ export default class OtlpJson {
 
     const padded: string = text.toLowerCase().padStart(length, "0");
 
-    return /^0+$/.test(padded) ? "" : padded;
+    return ALL_ZEROS.test(padded) ? "" : padded;
   }
 
   /*
@@ -390,7 +399,7 @@ export default class OtlpJson {
       return "";
     }
 
-    if (!/^\d{1,20}$/.test(text)) {
+    if (!UINT64_DIGITS.test(text)) {
       return "";
     }
 

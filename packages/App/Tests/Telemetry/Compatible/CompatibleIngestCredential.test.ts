@@ -49,9 +49,15 @@ describe("CompatibleIngestCredential.fromRequest", () => {
     ["Bearer", { authorization: `Bearer ${KEY}` }],
     ["bearer in lower case", { authorization: `bearer ${KEY}` }],
     ["Splunk", { authorization: `Splunk ${KEY}` }],
-    ["Basic with the key as the password", { authorization: basic(`12345:${KEY}`) }],
+    [
+      "Basic with the key as the password",
+      { authorization: basic(`12345:${KEY}`) },
+    ],
     ["Basic with any username", { authorization: basic(`oneuptime:${KEY}`) }],
-    ["Basic with the key as the username and no password", { authorization: basic(`${KEY}:`) }],
+    [
+      "Basic with the key as the username and no password",
+      { authorization: basic(`${KEY}:`) },
+    ],
     ["Basic with only a username", { authorization: basic(KEY) }],
     [
       "Basic with the key pasted into the username field",
@@ -73,7 +79,9 @@ describe("CompatibleIngestCredential.fromRequest", () => {
   });
 
   test("reads ?sentry_key, as browser SDKs send it", () => {
-    expect(keyFrom({}, ALL, { sentry_key: KEY, sentry_version: "7" })).toBe(KEY);
+    expect(keyFrom({}, ALL, { sentry_key: KEY, sentry_version: "7" })).toBe(
+      KEY,
+    );
     expect(keyFrom({}, ALL, { sentry_key: [KEY, "other"] })).toBe(KEY);
   });
 
@@ -82,9 +90,7 @@ describe("CompatibleIngestCredential.fromRequest", () => {
     expect(keyFrom({ authorization: `Bearer ${UNDASHED.toUpperCase()}` })).toBe(
       KEY,
     );
-    expect(
-      keyFrom({}, ALL, { sentry_key: UNDASHED }),
-    ).toBe(KEY);
+    expect(keyFrom({}, ALL, { sentry_key: UNDASHED })).toBe(KEY);
   });
 
   test("reads only the schemes the endpoint names", () => {
@@ -106,11 +112,20 @@ describe("CompatibleIngestCredential.fromRequest", () => {
     ["an empty bearer token", { authorization: "Bearer   " }],
     ["a scheme with no token", { authorization: "Bearer" }],
     ["an empty basic credential", { authorization: basic(":") }],
-    ["an X-Sentry-Auth with no key", { "x-sentry-auth": "Sentry sentry_version=7" }],
-    ["a key too long to be one", { authorization: `Bearer ${"a".repeat(300)}` }],
-  ])("finds nothing in %s", (_name: string, headers: Record<string, string>) => {
-    expect(keyFrom(headers)).toBeNull();
-  });
+    [
+      "an X-Sentry-Auth with no key",
+      { "x-sentry-auth": "Sentry sentry_version=7" },
+    ],
+    [
+      "a key too long to be one",
+      { authorization: `Bearer ${"a".repeat(300)}` },
+    ],
+  ])(
+    "finds nothing in %s",
+    (_name: string, headers: Record<string, string>) => {
+      expect(keyFrom(headers)).toBeNull();
+    },
+  );
 
   test("a non-UUID value is passed on as it is, for the guard to refuse", () => {
     expect(keyFrom({ authorization: "Bearer not-a-real-key" })).toBe(
@@ -148,9 +163,9 @@ describe("CompatibleIngestCredential.middleware", () => {
 
   test("passes the key on as x-oneuptime-token", () => {
     expect(
-      run({ authorization: `Splunk ${KEY}` }, [CompatibleCredentialScheme.Splunk])[
-        "x-oneuptime-token"
-      ],
+      run({ authorization: `Splunk ${KEY}` }, [
+        CompatibleCredentialScheme.Splunk,
+      ])["x-oneuptime-token"],
     ).toBe(KEY);
   });
 

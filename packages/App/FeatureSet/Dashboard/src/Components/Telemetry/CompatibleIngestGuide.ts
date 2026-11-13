@@ -41,7 +41,11 @@ export enum CompatibleIngestMethod {
 }
 
 // The Setup Guides a way is listed in.
-export type CompatibleIngestSignal = "logs" | "metrics" | "traces" | "exceptions";
+export type CompatibleIngestSignal =
+  | "logs"
+  | "metrics"
+  | "traces"
+  | "exceptions";
 
 // Where a Sentry SDK runs: a browser app gets a Browser key, as its DSN is public.
 export enum SentryRuntime {
@@ -202,9 +206,7 @@ export const COMPATIBLE_INGEST_GUIDES: Array<CompatibleIngestGuideCopy> = [
     method: CompatibleIngestMethod.Sentry,
     label: "Sentry SDK",
     logo: ProviderLogo.Sentry,
-    description: translationKey(
-      "Keep your Sentry SDK and change its DSN.",
-    ),
+    description: translationKey("Keep your Sentry SDK and change its DSN."),
     signals: ["exceptions", "traces"],
     endpointLabel: translationKey("DSN"),
     configureDescription: translationKey(
@@ -256,23 +258,25 @@ export function getCompatibleIngestGuide(
  * hyphens (the compatible endpoints put them back). A placeholder is left
  * as it is.
  */
+const UUID_KEY: RegExp =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export function getUndashedKey(key: string): string {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-    key,
-  )
-    ? key.replace(/-/g, "").toLowerCase()
-    : key;
+  return UUID_KEY.test(key) ? key.replace(/-/g, "").toLowerCase() : key;
 }
+
+const HOST_WITH_PORT: RegExp = /^(.*):(\d+)$/;
+const BRACKETED_IPV6: RegExp = /^\[.*\]$/;
 
 // The host without its port, and the port: what Fluent Bit and Datadog take.
 export function getHostAndPort(endpoint: CompatibleIngestEndpoint): {
   hostname: string;
   port: string;
 } {
-  const match: RegExpMatchArray | null = endpoint.host.match(/^(.*):(\d+)$/);
+  const match: RegExpMatchArray | null = endpoint.host.match(HOST_WITH_PORT);
 
   // A port after a name or an IPv4 address, or after a bracketed IPv6 one.
-  if (match && (!match[1]!.includes(":") || /^\[.*\]$/.test(match[1]!))) {
+  if (match && (!match[1]!.includes(":") || BRACKETED_IPV6.test(match[1]!))) {
     return { hostname: match[1]!, port: match[2]! };
   }
 

@@ -100,15 +100,21 @@ beforeEach(() => {
     return null;
   });
 
-  for (const [name, signal] of [
-    ["addLogIngestJob", "logs"],
-    ["addMetricIngestJob", "metrics"],
-    ["addTraceIngestJob", "traces"],
-  ] as Array<[string, QueuedJob["signal"]]>) {
-    queue[name]!.mockReset().mockImplementation(async (req: unknown) => {
-      recordJob(jobs, signal, req as TelemetryRequest);
-    });
-  }
+  queue["addLogIngestJob"]!.mockReset().mockImplementation(
+    async (req: unknown) => {
+      recordJob(jobs, "logs", req as TelemetryRequest);
+    },
+  );
+  queue["addMetricIngestJob"]!.mockReset().mockImplementation(
+    async (req: unknown) => {
+      recordJob(jobs, "metrics", req as TelemetryRequest);
+    },
+  );
+  queue["addTraceIngestJob"]!.mockReset().mockImplementation(
+    async (req: unknown) => {
+      recordJob(jobs, "traces", req as TelemetryRequest);
+    },
+  );
 });
 
 const envelopeUrl: (query?: string) => string = (query?: string): string => {
@@ -329,18 +335,23 @@ describe("Sentry - POST /sentry/api/<n>/envelope/", () => {
   test.each<[string, (body: Buffer) => Buffer]>([
     ["gzip", zlib.gzipSync],
     ["br", zlib.brotliCompressSync],
-  ])("an envelope compressed with %s, as SDKs compress them", async (encoding: string, compress: (body: Buffer) => Buffer) => {
-    const response: RouteResponse = await send(envelopeUrl(), {
-      headers: {
-        "x-sentry-auth": `Sentry sentry_key=${INGESTION_KEY}`,
-        "content-encoding": encoding,
-      },
-      body: compress(Buffer.from(envelope([[{ type: "event" }, ERROR_EVENT]]))),
-    });
+  ])(
+    "an envelope compressed with %s, as SDKs compress them",
+    async (encoding: string, compress: (body: Buffer) => Buffer) => {
+      const response: RouteResponse = await send(envelopeUrl(), {
+        headers: {
+          "x-sentry-auth": `Sentry sentry_key=${INGESTION_KEY}`,
+          "content-encoding": encoding,
+        },
+        body: compress(
+          Buffer.from(envelope([[{ type: "event" }, ERROR_EVENT]])),
+        ),
+      });
 
-    expect(response.status).toBe(200);
-    expect(jobs).toHaveLength(1);
-  });
+      expect(response.status).toBe(200);
+      expect(jobs).toHaveLength(1);
+    },
+  );
 
   test("an envelope with nothing OneUptime keeps (a session) is still Sentry's 200", async () => {
     const response: RouteResponse = await send(envelopeUrl(), {

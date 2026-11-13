@@ -107,11 +107,11 @@ afterAll(async () => {
 beforeEach(() => {
   jobs = [];
 
-  (TelemetryIngestionKeyService.getPolicyFromSecretKey as jest.Mock).mockImplementation(
-    async (key: unknown) => {
-      return key === INGESTION_KEY ? serverPolicy() : null;
-    },
-  );
+  (
+    TelemetryIngestionKeyService.getPolicyFromSecretKey as jest.Mock
+  ).mockImplementation(async (key: unknown) => {
+    return key === INGESTION_KEY ? serverPolicy() : null;
+  });
 
   (TelemetryIngestionBudget.admit as jest.Mock).mockResolvedValue({
     charge: PENDING_CHARGE,
@@ -125,9 +125,11 @@ beforeEach(() => {
     .mockImplementation(async (req: unknown) => {
       recordJob(jobs, "metrics", req as TelemetryRequest);
     });
-  queue.addTraceIngestJob.mockReset().mockImplementation(async (req: unknown) => {
-    recordJob(jobs, "traces", req as TelemetryRequest);
-  });
+  queue.addTraceIngestJob
+    .mockReset()
+    .mockImplementation(async (req: unknown) => {
+      recordJob(jobs, "traces", req as TelemetryRequest);
+    });
 });
 
 const writeRequest: () => Buffer = (): Buffer => {
@@ -214,7 +216,9 @@ describe("Prometheus remote write - POST /prometheus/api/v1/write", () => {
     const response: RouteResponse = await send(
       `${server.url}${PROMETHEUS_REMOTE_WRITE_PATH}`,
       {
-        headers: remoteWriteHeaders(`Bearer ${INGESTION_KEY.replace(/-/g, "")}`),
+        headers: remoteWriteHeaders(
+          `Bearer ${INGESTION_KEY.replace(/-/g, "")}`,
+        ),
         body: snappyCompress(writeRequest()),
       },
     );
@@ -264,7 +268,8 @@ describe("Prometheus remote write - POST /prometheus/api/v1/write", () => {
       `${server.url}${PROMETHEUS_REMOTE_WRITE_PATH}`,
       {
         headers: remoteWriteHeaders(`Bearer ${INGESTION_KEY}`, {
-          "content-type": "application/x-protobuf;proto=io.prometheus.write.v2.Request",
+          "content-type":
+            "application/x-protobuf;proto=io.prometheus.write.v2.Request",
           "x-prometheus-remote-write-version": "2.0.0",
         }),
         body: snappyCompress(body),
@@ -316,7 +321,8 @@ describe("Prometheus remote write - POST /prometheus/api/v1/write", () => {
       `${server.url}${PROMETHEUS_REMOTE_WRITE_PATH}`,
       {
         headers: remoteWriteHeaders(`Bearer ${INGESTION_KEY}`, {
-          "content-type": "application/x-protobuf;proto=io.prometheus.write.v3.Request",
+          "content-type":
+            "application/x-protobuf;proto=io.prometheus.write.v3.Request",
         }),
         body: snappyCompress(writeRequest()),
       },
@@ -367,7 +373,9 @@ describe("Prometheus remote write - POST /prometheus/api/v1/write", () => {
   });
 
   test("when the queue cannot take it, a 503 a sender retries", async () => {
-    queue.addMetricIngestJob.mockRejectedValue(new Error("redis down") as never);
+    queue.addMetricIngestJob.mockRejectedValue(
+      new Error("redis down") as never,
+    );
 
     const response: RouteResponse = await send(
       `${server.url}${PROMETHEUS_REMOTE_WRITE_PATH}`,
@@ -429,7 +437,7 @@ const lokiJson: string = JSON.stringify({
   streams: [
     {
       stream: { app: "checkout", env: "prod" },
-      values: [["1700000000000000000", "level=error msg=\"payment failed\""]],
+      values: [["1700000000000000000", 'level=error msg="payment failed"']],
     },
   ],
 });
@@ -514,12 +522,10 @@ describe("Loki - POST /loki/api/v1/push", () => {
     expect(response.status).toBe(204);
 
     const records: Array<JSONObject> = (
-      (
-        (jobs[0]!.body["resourceLogs"] as Array<JSONObject>)[0]![
-          "scopeLogs"
-        ] as Array<JSONObject>
-      )[0]!["logRecords"] as Array<JSONObject>
-    );
+      (jobs[0]!.body["resourceLogs"] as Array<JSONObject>)[0]![
+        "scopeLogs"
+      ] as Array<JSONObject>
+    )[0]!["logRecords"] as Array<JSONObject>;
 
     expect(records).toHaveLength(2);
   });

@@ -30,10 +30,8 @@ jest.mock(
   },
 );
 
-const queue: Record<string, jest.Mock> = TelemetryQueueService as unknown as Record<
-  string,
-  jest.Mock
->;
+const queue: Record<string, jest.Mock> =
+  TelemetryQueueService as unknown as Record<string, jest.Mock>;
 
 let jobs: Array<QueuedJob> = [];
 
@@ -69,19 +67,21 @@ const request: (charge?: unknown) => TelemetryRequest = (
 
 beforeEach(() => {
   jobs = [];
-  queue["addLogIngestJob"]!.mockReset().mockImplementation(async (req: unknown) => {
-    recordJob(jobs, "logs", req as TelemetryRequest);
-  });
-  queue["addMetricIngestJob"]!
-    .mockReset()
-    .mockImplementation(async (req: unknown) => {
+  queue["addLogIngestJob"]!.mockReset().mockImplementation(
+    async (req: unknown) => {
+      recordJob(jobs, "logs", req as TelemetryRequest);
+    },
+  );
+  queue["addMetricIngestJob"]!.mockReset().mockImplementation(
+    async (req: unknown) => {
       recordJob(jobs, "metrics", req as TelemetryRequest);
-    });
-  queue["addTraceIngestJob"]!
-    .mockReset()
-    .mockImplementation(async (req: unknown) => {
+    },
+  );
+  queue["addTraceIngestJob"]!.mockReset().mockImplementation(
+    async (req: unknown) => {
       recordJob(jobs, "traces", req as TelemetryRequest);
-    });
+    },
+  );
 });
 
 describe("CompatibleIngestService.enqueue", () => {
@@ -184,7 +184,9 @@ describe("CompatibleIngestService.enqueue", () => {
   });
 
   test("the queue failing is CompatibleQueueUnavailableError, for a 503", async () => {
-    queue["addMetricIngestJob"]!.mockRejectedValue(new Error("redis down") as never);
+    queue["addMetricIngestJob"]!.mockRejectedValue(
+      new Error("redis down") as never,
+    );
 
     await expect(
       CompatibleIngestService.enqueue({

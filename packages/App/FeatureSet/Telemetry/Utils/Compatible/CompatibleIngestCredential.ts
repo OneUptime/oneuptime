@@ -232,11 +232,11 @@ export default class CompatibleIngestCredential {
     const separator: number = decoded.indexOf(":");
     const username: string =
       separator === -1 ? decoded : decoded.slice(0, separator);
-    const password: string = separator === -1 ? "" : decoded.slice(separator + 1);
+    const password: string =
+      separator === -1 ? "" : decoded.slice(separator + 1);
 
     const isKey: (value: string) => boolean = (value: string): boolean => {
-      const normalized: string =
-        CompatibleIngestCredential.normalizeKey(value);
+      const normalized: string = CompatibleIngestCredential.normalizeKey(value);
       return UUID.test(normalized);
     };
 
@@ -255,9 +255,7 @@ export default class CompatibleIngestCredential {
    * X-Sentry-Auth: "Sentry sentry_version=7, sentry_client=x/1.0,
    * sentry_key=<key>" - comma-separated pairs, after an optional "Sentry".
    */
-  private static fromSentryAuthHeader(
-    source: CredentialSource,
-  ): string | null {
+  private static fromSentryAuthHeader(source: CredentialSource): string | null {
     const header: string | undefined = headerValueToString(
       source.headers["x-sentry-auth"],
     );

@@ -102,7 +102,9 @@ describe("LokiPush - JSON", () => {
     expect(records[0]!.record["observedTimeUnixNano"]).toBe(
       "1700000100000000000",
     );
-    expect(records[0]!.record["body"]).toEqual({ stringValue: "order 42 paid" });
+    expect(records[0]!.record["body"]).toEqual({
+      stringValue: "order 42 paid",
+    });
     expect(records[0]!.attributes).toEqual({
       app: "checkout",
       env: "prod",
@@ -194,7 +196,12 @@ describe("LokiPush - JSON", () => {
       streams: [
         {
           stream: { app: "a" },
-          values: [["1700000000000000000"], [1, 2], "x", ["1700000000000000000", "ok"]],
+          values: [
+            ["1700000000000000000"],
+            [1, 2],
+            "x",
+            ["1700000000000000000", "ok"],
+          ],
         },
         "not a stream",
         { stream: { app: "b" }, values: [] },
@@ -231,15 +238,18 @@ describe("LokiPush - service names", () => {
     [{ container: "redis", job: "docker" }, "redis"],
     [{ job: "systemd-journal" }, "systemd-journal"],
     [{ filename: "/var/log/x.log" }, undefined],
-  ])("labels %o name the service %s", (labels: Record<string, string>, expected: string | undefined) => {
-    const records: Array<FlatRecord> = recordsOf(
-      translateJson({
-        streams: [{ stream: labels, values: [["1700000000000000000", "x"]] }],
-      }),
-    );
+  ])(
+    "labels %o name the service %s",
+    (labels: Record<string, string>, expected: string | undefined) => {
+      const records: Array<FlatRecord> = recordsOf(
+        translateJson({
+          streams: [{ stream: labels, values: [["1700000000000000000", "x"]] }],
+        }),
+      );
 
-    expect(records[0]!.resource["service.name"]).toBe(expected);
-  });
+      expect(records[0]!.resource["service.name"]).toBe(expected);
+    },
+  );
 
   test("an x-oneuptime-service-name header names it instead", () => {
     const records: Array<FlatRecord> = recordsOf(
@@ -260,9 +270,18 @@ describe("LokiPush - service names", () => {
   test("a host label is the resource's host.name, and streams group by service and host", () => {
     const translation: LokiTranslation = translateJson({
       streams: [
-        { stream: { app: "a", host: "web-1" }, values: [["1700000000000000000", "1"]] },
-        { stream: { app: "a", host: "web-1", stream: "stderr" }, values: [["1700000000000000000", "2"]] },
-        { stream: { app: "a", hostname: "web-2" }, values: [["1700000000000000000", "3"]] },
+        {
+          stream: { app: "a", host: "web-1" },
+          values: [["1700000000000000000", "1"]],
+        },
+        {
+          stream: { app: "a", host: "web-1", stream: "stderr" },
+          values: [["1700000000000000000", "2"]],
+        },
+        {
+          stream: { app: "a", hostname: "web-2" },
+          values: [["1700000000000000000", "3"]],
+        },
       ],
     });
 
@@ -296,7 +315,9 @@ describe("LokiPush - levels", () => {
 
     return recordsOf(
       translateJson({
-        streams: [{ stream: labels, values: [value] as unknown as JSONObject[] }],
+        streams: [
+          { stream: labels, values: [value] as unknown as JSONObject[] },
+        ],
       }),
     )[0]!.record["severityNumber"] as number;
   };
@@ -313,14 +334,22 @@ describe("LokiPush - levels", () => {
     ["a JSON line's severity", {}, '{"severity":"INFO","msg":"up"}', 9],
     ["a word that only looks like a key", {}, "mylevel=error happened", 0],
     ["no level anywhere", {}, "just words, error included", 0],
-  ])("from %s", (_name: string, labels: Record<string, string>, line: string, expected: number) => {
-    expect(severityOf(labels, line)).toBe(expected);
-  });
+  ])(
+    "from %s",
+    (
+      _name: string,
+      labels: Record<string, string>,
+      line: string,
+      expected: number,
+    ) => {
+      expect(severityOf(labels, line)).toBe(expected);
+    },
+  );
 
   test("structured metadata's level wins over the stream's", () => {
-    expect(severityOf({ level: "info" }, "x", { detected_level: "error" })).toBe(
-      17,
-    );
+    expect(
+      severityOf({ level: "info" }, "x", { detected_level: "error" }),
+    ).toBe(17);
   });
 
   test("a JSON line too long to parse falls back to logfmt detection", () => {
@@ -346,14 +375,20 @@ describe("LokiPush.parseLabelSet", () => {
     ['{msg="say \\"hi\\"\\n"}', [["msg", 'say "hi"\n']]],
     ['{path="C:\\\\logs"}', [["path", "C:\\logs"]]],
     ['{emoji="\\u00e9\\U0001F600\\x41"}', [["emoji", "é😀A"]]],
-    ["{a='single', b=`raw \\n`}", [
-      ["a", "single"],
-      ["b", "raw \\n"],
-    ]],
-    ['  app = "spaced" , env="x"  ', [
-      ["app", "spaced"],
-      ["env", "x"],
-    ]],
+    [
+      "{a='single', b=`raw \\n`}",
+      [
+        ["a", "single"],
+        ["b", "raw \\n"],
+      ],
+    ],
+    [
+      '  app = "spaced" , env="x"  ',
+      [
+        ["app", "spaced"],
+        ["env", "x"],
+      ],
+    ],
     ['{a="}"}', [["a", "}"]]],
     ['{a="1",}', [["a", "1"]]],
   ])("reads %s", (input: string, expected: Array<[string, string]>) => {
@@ -392,13 +427,17 @@ describe("LokiPush - protobuf", () => {
       encode({
         streams: [
           {
-            labels: '{job="varlogs", host="web-1", filename="/var/log/app.log"}',
+            labels:
+              '{job="varlogs", host="web-1", filename="/var/log/app.log"}',
             entries: [
               {
                 timestamp: { seconds: 1700000000, nanos: 123456789 },
-                line: "level=error msg=\"payment failed\"",
+                line: 'level=error msg="payment failed"',
                 structuredMetadata: [
-                  { name: "trace_id", value: "0af7651916cd43dd8448eb211c80319c" },
+                  {
+                    name: "trace_id",
+                    value: "0af7651916cd43dd8448eb211c80319c",
+                  },
                 ],
               },
               {

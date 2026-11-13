@@ -386,7 +386,10 @@ describe("Datadog intake", () => {
 
   test("the Agent's logs at the root /api/v2/logs, as logs_dd_url sends them", async () => {
     const response: RouteResponse = await send(`${server.url}/api/v2/logs`, {
-      headers: { "dd-api-key": INGESTION_KEY, "content-type": "application/json" },
+      headers: {
+        "dd-api-key": INGESTION_KEY,
+        "content-type": "application/json",
+      },
       body: LOGS,
     });
 
@@ -546,13 +549,10 @@ describe("Datadog intake", () => {
     expect(valid.status).toBe(200);
     expect(valid.json()).toEqual({ valid: true });
 
-    const invalid: RouteResponse = await send(
-      `${server.url}/api/v1/validate`,
-      {
-        method: "GET",
-        headers: { "dd-api-key": "00000000000040008000000000000000" },
-      },
-    );
+    const invalid: RouteResponse = await send(`${server.url}/api/v1/validate`, {
+      method: "GET",
+      headers: { "dd-api-key": "00000000000040008000000000000000" },
+    });
 
     expect(invalid.status).toBe(401);
   });
@@ -588,7 +588,10 @@ describe("Datadog intake", () => {
     queue["addLogIngestJob"]!.mockRejectedValue(new Error("down") as never);
 
     const response: RouteResponse = await send(datadog("/api/v2/logs"), {
-      headers: { "dd-api-key": INGESTION_KEY, "content-type": "application/json" },
+      headers: {
+        "dd-api-key": INGESTION_KEY,
+        "content-type": "application/json",
+      },
       body: LOGS,
     });
 

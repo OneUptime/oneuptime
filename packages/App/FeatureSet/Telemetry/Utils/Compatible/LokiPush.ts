@@ -103,7 +103,20 @@ const SPAN_ID_KEYS: ReadonlyArray<string> = ["span_id", "spanID", "spanId"];
 // A line longer than this is not parsed as JSON to find its level.
 const MAX_LEVEL_DETECTION_JSON_LENGTH: number = 16 * 1024;
 
-const LOGFMT_LEVEL_KEYS: ReadonlyArray<string> = ["level=", "lvl=", "severity="];
+const LOGFMT_LEVEL_KEYS: ReadonlyArray<string> = [
+  "level=",
+  "lvl=",
+  "severity=",
+];
+
+const WHITESPACE: RegExp = /\s/;
+// A label name's characters (Prometheus allows [a-zA-Z_:][a-zA-Z0-9_:]*; Loki's clients send dots too).
+const LABEL_NAME_CHARACTER: RegExp = /[A-Za-z0-9_.:]/;
+const HEX_DIGITS: RegExp = /^[0-9a-fA-F]+$/;
+const LETTER: RegExp = /[A-Za-z]/;
+// Nanoseconds since the epoch fit in 20 digits.
+const NANOSECOND_DIGITS: RegExp = /^\d{1,20}$/;
+const DIGITS: RegExp = /^\d+$/;
 
 const PushRequest: protobuf.Type = protobuf
   .loadSync(
@@ -161,7 +174,10 @@ export default class LokiPush {
       } else if (Array.isArray(stream["entries"])) {
         // The legacy shape: {"ts": "<RFC 3339>", "line": "..."}.
         for (const legacy of stream["entries"] as Array<unknown>) {
-          if (!LokiPush.isObject(legacy) || typeof legacy["line"] !== "string") {
+          if (
+            !LokiPush.isObject(legacy) ||
+            typeof legacy["line"] !== "string"
+          ) {
             continue;
           }
 
@@ -215,8 +231,9 @@ export default class LokiPush {
             timestamp["nanos"],
           ),
           line: typeof entry["line"] === "string" ? entry["line"] : "",
-          structuredMetadata: ((entry["structuredMetadata"] ||
-            []) as Array<JSONObject>)
+          structuredMetadata: (
+            (entry["structuredMetadata"] || []) as Array<JSONObject>
+          )
             .filter((pair: JSONObject): boolean => {
               return typeof pair["name"] === "string" && pair["name"] !== "";
             })
@@ -388,7 +405,7 @@ export default class LokiPush {
     const input: string = text.trim();
 
     const skipSpace: () => void = (): void => {
-      while (position < input.length && /\s/.test(input[position]!)) {
+      while (position < input.length && WHITESPACE.test(input[position]!)) {
         position++;
       }
     };
@@ -424,7 +441,7 @@ export default class LokiPush {
 
       const nameStart: number = position;
 
-      while (position < end && /[A-Za-z0-9_.:]/.test(input[position]!)) {
+      while (position < end && LABEL_NAME_CHARACTER.test(input[position]!)) {
         position++;
       }
 
@@ -539,7 +556,7 @@ export default class LokiPush {
   ): { text: string; length: number } | null {
     const hex: string = input.slice(position + 2, position + 2 + digits);
 
-    if (hex.length !== digits || !/^[0-9a-fA-F]+$/.test(hex)) {
+    if (hex.length !== digits || !HEX_DIGITS.test(hex)) {
       return null;
     }
 
@@ -602,7 +619,7 @@ export default class LokiPush {
       while (
         valueEnd < line.length &&
         valueEnd - valueStart < 16 &&
-        /[A-Za-z]/.test(line[valueEnd]!)
+        LETTER.test(line[valueEnd]!)
       ) {
         valueEnd++;
       }
@@ -644,7 +661,7 @@ export default class LokiPush {
 
   // Nanoseconds as Loki's JSON writes them: a decimal string, or a number.
   private static timeFromNanos(value: unknown): string {
-    if (typeof value === "string" && /^\d{1,20}$/.test(value.trim())) {
+    if (typeof value === "string" && NANOSECOND_DIGITS.test(value.trim())) {
       const text: string = value.trim().replace(/^0+(?=\d)/, "");
       return text === "0" ? "" : text;
     }
@@ -661,7 +678,7 @@ export default class LokiPush {
     nanos: unknown,
   ): string {
     const wholeSeconds: string =
-      typeof seconds === "string" && /^\d+$/.test(seconds)
+      typeof seconds === "string" && DIGITS.test(seconds)
         ? seconds
         : typeof seconds === "number" && Number.isSafeInteger(seconds)
           ? String(seconds)

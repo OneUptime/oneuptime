@@ -49,7 +49,9 @@ describe("SnappyBlock.decompress - hand-built blocks", () => {
   test("a copy with a 4-byte offset", () => {
     // "xyz", then copy 3 bytes from 3 back: tag = 3 | (3 - 1) << 2.
     expect(
-      decompress([0x06, 0x08, 0x78, 0x79, 0x7a, 0x0b, 0x03, 0, 0, 0]).toString(),
+      decompress([
+        0x06, 0x08, 0x78, 0x79, 0x7a, 0x0b, 0x03, 0, 0, 0,
+      ]).toString(),
     ).toBe("xyzxyz");
   });
 
@@ -112,7 +114,10 @@ describe("SnappyBlock.decompress - hand-built blocks", () => {
 
 describe("SnappyBlock.decompress - round trips", () => {
   const bodies: Array<[string, Buffer]> = [
-    ["text", Buffer.from("The quick brown fox jumps over the lazy dog. ".repeat(50))],
+    [
+      "text",
+      Buffer.from("The quick brown fox jumps over the lazy dog. ".repeat(50)),
+    ],
     ["random bytes", crypto.randomBytes(10_000)],
     ["a long run of one byte", Buffer.alloc(100_000, 7)],
     [
@@ -127,17 +132,23 @@ describe("SnappyBlock.decompress - round trips", () => {
     ["a megabyte", crypto.randomBytes(1024 * 1024)],
   ];
 
-  test.each(bodies)("%s, with 1- and 2-byte offsets", (_name: string, body: Buffer) => {
-    expect(decompress(snappyCompress(body)).equals(body)).toBe(true);
-  });
+  test.each(bodies)(
+    "%s, with 1- and 2-byte offsets",
+    (_name: string, body: Buffer) => {
+      expect(decompress(snappyCompress(body)).equals(body)).toBe(true);
+    },
+  );
 
-  test.each(bodies)("%s, with 4-byte offsets", (_name: string, body: Buffer) => {
-    expect(
-      decompress(snappyCompress(body, { forceFourByteOffsets: true })).equals(
-        body,
-      ),
-    ).toBe(true);
-  });
+  test.each(bodies)(
+    "%s, with 4-byte offsets",
+    (_name: string, body: Buffer) => {
+      expect(
+        decompress(snappyCompress(body, { forceFourByteOffsets: true })).equals(
+          body,
+        ),
+      ).toBe(true);
+    },
+  );
 
   test.each(bodies)("%s, as literals only", (_name: string, body: Buffer) => {
     expect(
@@ -164,7 +175,10 @@ describe("SnappyBlock.decompress - blocks that lie", () => {
     ["a copy with offset zero", [0x05, 0x00, 0x61, 0x01, 0x00]],
     ["more bytes than the length declares", [0x01, 0x04, 0x61, 0x62]],
     ["fewer bytes than the length declares", [0x05, 0x00, 0x61]],
-    ["a copy that writes past the declared length", [0x03, 0x00, 0x61, 0x15, 0x01]],
+    [
+      "a copy that writes past the declared length",
+      [0x03, 0x00, 0x61, 0x15, 0x01],
+    ],
   ])("refuses %s", (_name: string, block: Array<number>) => {
     expect(() => {
       decompress(block);

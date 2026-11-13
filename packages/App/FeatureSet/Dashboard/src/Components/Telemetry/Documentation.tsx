@@ -2043,14 +2043,12 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                 renderSnippet(snippets[0]!)
               ) : (
                 <SetupGuideStepVariants
-                  variants={snippets.map(
-                    (snippet: CompatibleIngestSnippet) => {
-                      return {
-                        label: translate(snippet.label),
-                        content: renderSnippet(snippet),
-                      };
-                    },
-                  )}
+                  variants={snippets.map((snippet: CompatibleIngestSnippet) => {
+                    return {
+                      label: translate(snippet.label),
+                      content: renderSnippet(snippet),
+                    };
+                  })}
                 />
               )}
             </div>,

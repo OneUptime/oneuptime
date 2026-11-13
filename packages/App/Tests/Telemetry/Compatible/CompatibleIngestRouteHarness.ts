@@ -131,7 +131,12 @@ export async function send(
     method: init.method || "POST",
     headers: init.headers || {},
     ...(init.body !== undefined
-      ? { body: typeof init.body === "string" ? init.body : new Uint8Array(init.body) }
+      ? {
+          body:
+            typeof init.body === "string"
+              ? init.body
+              : new Uint8Array(init.body),
+        }
       : {}),
   });
 

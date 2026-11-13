@@ -92,6 +92,9 @@ export const DATADOG_ROOT_PATHS: ReadonlyArray<string> = [
 export const SENTRY_BASE_PATH: string = "/sentry";
 export const SENTRY_DSN_PROJECT_NUMBER: string = "1";
 
+// /sentry/api/<n>/envelope or /store, without /telemetry or a trailing slash.
+const SENTRY_INGEST_PATH: RegExp = /^\/sentry\/api\/[^/]+\/(envelope|store)$/;
+
 /*
  * Whether StartServer's body parsers must leave a request's body to the
  * compatible endpoint it is for: matched as the routers match, in any
@@ -130,5 +133,5 @@ export function isCompatibleIngestPath(path: string): boolean {
     return true;
   }
 
-  return /^\/sentry\/api\/[^/]+\/(envelope|store)$/.test(normalized);
+  return SENTRY_INGEST_PATH.test(normalized);
 }

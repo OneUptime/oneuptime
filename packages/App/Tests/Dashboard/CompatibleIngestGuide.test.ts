@@ -146,9 +146,9 @@ describe("the URL each tool is pointed at", () => {
   });
 
   test("every URL a tool posts to is one the App's body parsers leave to its endpoint", () => {
-    expect(
-      isCompatibleIngestPath("/telemetry/prometheus/api/v1/write"),
-    ).toBe(true);
+    expect(isCompatibleIngestPath("/telemetry/prometheus/api/v1/write")).toBe(
+      true,
+    );
     expect(isCompatibleIngestPath("/telemetry/loki/api/v1/push")).toBe(true);
     // A HEC client adds /event (or the Docker driver /event/1.0) to the URL.
     expect(isCompatibleIngestPath("/telemetry/services/collector/event")).toBe(
@@ -200,9 +200,9 @@ describe("Sentry's DSN", () => {
     expect(projectId).toMatch(/^\d+$/);
 
     // ... and posts to <prefix>/api/<project>/envelope/.
-    expect(isCompatibleIngestPath(`/${prefix}/api/${projectId}/envelope/`)).toBe(
-      true,
-    );
+    expect(
+      isCompatibleIngestPath(`/${prefix}/api/${projectId}/envelope/`),
+    ).toBe(true);
   });
 
   test("keeps a host's port", () => {
@@ -352,7 +352,13 @@ describe("helpers", () => {
       { protocol: "https", host: "[::1]:8443", key: KEY },
       { hostname: "[::1]", port: "8443" },
     ],
-  ])("getHostAndPort(%o)", (endpoint: CompatibleIngestEndpoint, expected: { hostname: string; port: string }) => {
-    expect(getHostAndPort(endpoint)).toEqual(expected);
-  });
+  ])(
+    "getHostAndPort(%o)",
+    (
+      endpoint: CompatibleIngestEndpoint,
+      expected: { hostname: string; port: string },
+    ) => {
+      expect(getHostAndPort(endpoint)).toEqual(expected);
+    },
+  );
 });

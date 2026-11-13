@@ -152,7 +152,10 @@ export default class CompatibleIngestBody {
         415,
         `Unsupported Content-Encoding "${String(
           req.headers["content-encoding"],
-        ).slice(0, 100)}". Send the body uncompressed or compressed with one of: ${SUPPORTED_COMPATIBLE_CONTENT_ENCODINGS.join(", ")}.`,
+        ).slice(
+          0,
+          100,
+        )}". Send the body uncompressed or compressed with one of: ${SUPPORTED_COMPATIBLE_CONTENT_ENCODINGS.join(", ")}.`,
       );
     }
 

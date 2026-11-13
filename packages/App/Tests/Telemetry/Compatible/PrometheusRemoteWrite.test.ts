@@ -217,15 +217,18 @@ describe("PrometheusRemoteWrite - remote write 1.0", () => {
     const translation: PrometheusTranslation = translateV1({
       timeseries: [
         {
-          labels: labels({ __name__: "node_memory_MemFree_bytes", job: "node" }),
+          labels: labels({
+            __name__: "node_memory_MemFree_bytes",
+            job: "node",
+          }),
           samples: [{ value: 123456789, timestamp: 1700000000000 }],
         },
       ],
     });
 
-    expect(metricNamed(translation, "node_memory_MemFree_bytes").metric).toHaveProperty(
-      "gauge",
-    );
+    expect(
+      metricNamed(translation, "node_memory_MemFree_bytes").metric,
+    ).toHaveProperty("gauge");
   });
 
   test("a classic histogram stays as its _bucket, _count and _sum series", () => {
@@ -272,12 +275,16 @@ describe("PrometheusRemoteWrite - remote write 1.0", () => {
     ).toEqual(["0.1", "0.5", "+Inf"]);
 
     expect(
-      metricNamed(translation, "http_request_duration_seconds_count").metric["sum"],
+      metricNamed(translation, "http_request_duration_seconds_count").metric[
+        "sum"
+      ],
     ).toMatchObject({ aggregationTemporality: 2, isMonotonic: true });
 
     // A sum of observations can go down when observations are negative.
     expect(
-      metricNamed(translation, "http_request_duration_seconds_sum").metric["sum"],
+      metricNamed(translation, "http_request_duration_seconds_sum").metric[
+        "sum"
+      ],
     ).toMatchObject({ aggregationTemporality: 2, isMonotonic: false });
   });
 
@@ -315,7 +322,10 @@ describe("PrometheusRemoteWrite - remote write 1.0", () => {
           samples: [{ value: 0.25, timestamp: 1700000000000 }],
         },
         {
-          labels: labels({ __name__: "rpc_duration_seconds_count", job: "rpc" }),
+          labels: labels({
+            __name__: "rpc_duration_seconds_count",
+            job: "rpc",
+          }),
           samples: [{ value: 1000, timestamp: 1700000000000 }],
         },
         {
@@ -325,9 +335,9 @@ describe("PrometheusRemoteWrite - remote write 1.0", () => {
       ],
     });
 
-    expect(metricNamed(translation, "rpc_duration_seconds").metric).toHaveProperty(
-      "gauge",
-    );
+    expect(
+      metricNamed(translation, "rpc_duration_seconds").metric,
+    ).toHaveProperty("gauge");
     expect(
       metricNamed(translation, "rpc_duration_seconds_count").metric["sum"],
     ).toMatchObject({ isMonotonic: true });
@@ -353,7 +363,10 @@ describe("PrometheusRemoteWrite - remote write 1.0", () => {
           samples: [{ value: 12.5, timestamp: 1700000000000 }],
         },
         {
-          labels: labels({ __name__: "process_cpu_seconds_created", job: "app" }),
+          labels: labels({
+            __name__: "process_cpu_seconds_created",
+            job: "app",
+          }),
           samples: [{ value: 1699990000, timestamp: 1700000000000 }],
         },
         {
@@ -398,7 +411,9 @@ describe("PrometheusRemoteWrite - remote write 1.0", () => {
       ],
     });
 
-    expect(metricNamed(translation, "latency_count").metric["sum"]).toMatchObject({
+    expect(
+      metricNamed(translation, "latency_count").metric["sum"],
+    ).toMatchObject({
       isMonotonic: true,
     });
   });
@@ -406,7 +421,12 @@ describe("PrometheusRemoteWrite - remote write 1.0", () => {
   test("a metadata-only request (as Prometheus sends them) holds nothing to store", () => {
     const translation: PrometheusTranslation = translateV1({
       metadata: [
-        { type: 1, metricFamilyName: "http_requests", help: "Requests.", unit: "" },
+        {
+          type: 1,
+          metricFamilyName: "http_requests",
+          help: "Requests.",
+          unit: "",
+        },
       ],
     });
 
@@ -513,7 +533,11 @@ describe("PrometheusRemoteWrite - remote write 1.0", () => {
             samples: [{ value: 1, timestamp: 1700000000000 }],
           },
           {
-            labels: labels({ __name__: "up", job: "kube-state", instance: "a:9100" }),
+            labels: labels({
+              __name__: "up",
+              job: "kube-state",
+              instance: "a:9100",
+            }),
             samples: [{ value: 1, timestamp: 1700000000000 }],
           },
         ],
@@ -529,9 +553,9 @@ describe("PrometheusRemoteWrite - remote write 1.0", () => {
       }),
     ).toBe(true);
     // The job is still a label.
-    expect(attributesOf(dataPointsOf(flats[0]!.metric)[0]!["attributes"])["job"]).toBe(
-      "node",
-    );
+    expect(
+      attributesOf(dataPointsOf(flats[0]!.metric)[0]!["attributes"])["job"],
+    ).toBe("node");
   });
 
   test("a series with no job has no service.name", () => {
@@ -544,7 +568,9 @@ describe("PrometheusRemoteWrite - remote write 1.0", () => {
       ],
     });
 
-    expect(metricNamed(translation, "temperature_celsius").resource).toEqual({});
+    expect(metricNamed(translation, "temperature_celsius").resource).toEqual(
+      {},
+    );
   });
 
   test("a body that is not a WriteRequest is a 400", () => {
@@ -587,13 +613,16 @@ describe("PrometheusRemoteWrite - remote write 1.0", () => {
       64 * 1024 * 1024,
     );
     const translation: PrometheusTranslation = PrometheusRemoteWrite.toOtlp(
-      PrometheusRemoteWrite.decode(decompressed, PrometheusRemoteWriteVersion.V1),
+      PrometheusRemoteWrite.decode(
+        decompressed,
+        PrometheusRemoteWriteVersion.V1,
+      ),
     );
 
     expect(translation.samplesWritten).toBe(500);
-    expect(translation.metrics!["resourceMetrics"] as Array<JSONObject>).toHaveLength(
-      5,
-    );
+    expect(
+      translation.metrics!["resourceMetrics"] as Array<JSONObject>,
+    ).toHaveLength(5);
   });
 });
 
@@ -672,17 +701,20 @@ describe("PrometheusRemoteWrite - remote write 2.0", () => {
 });
 
 describe("PrometheusRemoteWrite - native histograms", () => {
-  const nativeHistogramRequest: (histogram: JSONObject) => PrometheusTranslation =
-    (histogram: JSONObject): PrometheusTranslation => {
-      return translateV1({
-        timeseries: [
-          {
-            labels: labels({ __name__: "rpc_latency_seconds", job: "rpc" }),
-            histograms: [{ timestamp: 1700000000000, ...histogram }],
-          },
-        ],
-      });
-    };
+  const nativeHistogramRequest: (
+    histogram: JSONObject,
+  ) => PrometheusTranslation = (
+    histogram: JSONObject,
+  ): PrometheusTranslation => {
+    return translateV1({
+      timeseries: [
+        {
+          labels: labels({ __name__: "rpc_latency_seconds", job: "rpc" }),
+          histograms: [{ timestamp: 1700000000000, ...histogram }],
+        },
+      ],
+    });
+  };
 
   test("an integer histogram becomes an exponential histogram, buckets shifted by one and gaps filled", () => {
     const translation: PrometheusTranslation = nativeHistogramRequest({
@@ -812,7 +844,8 @@ describe("PrometheusRemoteWrite - native histograms", () => {
       },
     ],
   ])("drops a histogram with %s", (_name: string, histogram: JSONObject) => {
-    const translation: PrometheusTranslation = nativeHistogramRequest(histogram);
+    const translation: PrometheusTranslation =
+      nativeHistogramRequest(histogram);
 
     expect(translation.metrics).toBeNull();
     expect(translation.histogramsWritten).toBe(0);

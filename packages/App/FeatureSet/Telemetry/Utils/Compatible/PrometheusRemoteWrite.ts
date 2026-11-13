@@ -357,12 +357,11 @@ export default class PrometheusRemoteWrite {
         continue;
       }
 
-      const resource: ResourceAccumulator =
-        PrometheusRemoteWrite.resourceFor(
-          resources,
-          series.labels,
-          serviceOverride,
-        );
+      const resource: ResourceAccumulator = PrometheusRemoteWrite.resourceFor(
+        resources,
+        series.labels,
+        serviceOverride,
+      );
 
       const attributes: Array<OtlpKeyValue> = [];
 
@@ -513,9 +512,7 @@ export default class PrometheusRemoteWrite {
     const series: Array<PrometheusSeries> = PrometheusRemoteWrite.objects(
       decoded["timeseries"],
     ).map((timeSeries: JSONObject): PrometheusSeries => {
-      const references: Array<unknown> = Array.isArray(
-        timeSeries["labelsRefs"],
-      )
+      const references: Array<unknown> = Array.isArray(timeSeries["labelsRefs"])
         ? (timeSeries["labelsRefs"] as Array<unknown>)
         : [];
 
@@ -815,7 +812,10 @@ export default class PrometheusRemoteWrite {
       Math.max(0, Math.round(histogram.zeroCount)),
     );
 
-    if (Number.isFinite(histogram.zeroThreshold) && histogram.zeroThreshold > 0) {
+    if (
+      Number.isFinite(histogram.zeroThreshold) &&
+      histogram.zeroThreshold > 0
+    ) {
       dataPoint["zeroThreshold"] = histogram.zeroThreshold;
     }
 
@@ -957,7 +957,9 @@ export default class PrometheusRemoteWrite {
       }
 
       resourceMetrics.push({
-        resource: { attributes: resource.attributes as unknown as JSONObject[] },
+        resource: {
+          attributes: resource.attributes as unknown as JSONObject[],
+        },
         scopeMetrics: [
           {
             scope: { name: "prometheus-remote-write" },

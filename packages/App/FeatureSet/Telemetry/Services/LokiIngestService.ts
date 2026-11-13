@@ -20,7 +20,9 @@ import LokiPush, {
   LokiStream,
   LokiTranslation,
 } from "../Utils/Compatible/LokiPush";
-import SnappyBlock, { SnappyTooLargeError } from "../Utils/Compatible/SnappyBlock";
+import SnappyBlock, {
+  SnappyTooLargeError,
+} from "../Utils/Compatible/SnappyBlock";
 import CompatibleIngestService from "./CompatibleIngestService";
 
 /*

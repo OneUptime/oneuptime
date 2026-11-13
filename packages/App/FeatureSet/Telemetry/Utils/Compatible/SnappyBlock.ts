@@ -96,9 +96,7 @@ export default class SnappyBlock {
         }
 
         if (outPos + length > output.length) {
-          throw new SnappyDecodeError(
-            "it holds more than its declared length",
-          );
+          throw new SnappyDecodeError("it holds more than its declared length");
         }
 
         output.set(input.subarray(inPos, inPos + length), outPos);

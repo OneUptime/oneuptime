@@ -71,17 +71,28 @@ describe("CompatibleIngestBody.read", () => {
   test.each<[string, Buffer, Record<string, string>]>([
     ["an uncompressed body", PAYLOAD, {}],
     ["gzip", zlib.gzipSync(PAYLOAD), { "content-encoding": "gzip" }],
-    ["zlib deflate", zlib.deflateSync(PAYLOAD), { "content-encoding": "deflate" }],
-    ["raw deflate", zlib.deflateRawSync(PAYLOAD), { "content-encoding": "deflate" }],
+    [
+      "zlib deflate",
+      zlib.deflateSync(PAYLOAD),
+      { "content-encoding": "deflate" },
+    ],
+    [
+      "raw deflate",
+      zlib.deflateRawSync(PAYLOAD),
+      { "content-encoding": "deflate" },
+    ],
     ["brotli", zlib.brotliCompressSync(PAYLOAD), { "content-encoding": "br" }],
     ["snappy", snappyCompress(PAYLOAD), { "content-encoding": "snappy" }],
-  ])("undoes %s", async (_name: string, body: Buffer, headers: Record<string, string>) => {
-    const read: Buffer = await CompatibleIngestBody.read(
-      streamRequest(body, headers),
-    );
+  ])(
+    "undoes %s",
+    async (_name: string, body: Buffer, headers: Record<string, string>) => {
+      const read: Buffer = await CompatibleIngestBody.read(
+        streamRequest(body, headers),
+      );
 
-    expect(read.equals(PAYLOAD)).toBe(true);
-  });
+      expect(read.equals(PAYLOAD)).toBe(true);
+    },
+  );
 
   test("undoes zstd when this Node has it", async () => {
     const zstd: ((input: Buffer) => Buffer) | undefined = (
