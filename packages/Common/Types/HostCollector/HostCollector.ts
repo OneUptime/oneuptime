@@ -11,20 +11,37 @@
  *     OneUptime sends it over OpAMP (the OpenTelemetry Agent Management
  *     Protocol).
  *
- * The supervisor phones home to OneUptime (POST <OneUptime URL>/opamp/v1,
- * with the project's telemetry ingestion key in the x-oneuptime-token
- * header), and OneUptime answers with the config the host should run: the
- * first Collector Config of the project that applies to it, or OneUptime's
- * default for its operating system. The host reports which config it runs,
- * and whether it applied; a config that fails on a host is rolled back there
- * to the last one that worked.
+ * The supervisor phones home to OneUptime (POST
+ * <OneUptime URL>/telemetry/opamp/v1, with the project's telemetry ingestion
+ * key in the x-oneuptime-token header), and OneUptime answers with the
+ * config the host should run: the first Collector Config of the project
+ * that applies to it, or OneUptime's default for its operating system. The
+ * host reports which config it runs, and whether it applied; a config that
+ * fails on a host is rolled back there to the last one that worked.
  *
  * Plain values on purpose, so the Dashboard, the server and the tests read
  * the same ones.
  */
 
-// Where the supervisor posts its AgentToServer messages (OpAMP over HTTP).
-export const HOST_COLLECTOR_OPAMP_PATH: string = "/opamp/v1";
+/*
+ * Where the supervisor posts its AgentToServer messages (OpAMP over HTTP).
+ *
+ * The route as the Telemetry router declares it. It is mounted under every
+ * telemetry prefix, "/telemetry" and "/", so the App serves both addresses.
+ */
+export const HOST_COLLECTOR_OPAMP_ROUTE: string = "/opamp/v1";
+
+/*
+ * The address the installers point the supervisor at: the route under
+ * /telemetry, which every OneUptime ingress sends to the App, as the session
+ * replay recorder and the Kubernetes cost agent call theirs. The bare route
+ * reaches the App only where the ingress has a location for it; on
+ * oneuptime.com, where everything else at the root is the marketing site,
+ * the installers' first /opamp/v1 answered 404, and the hosts never got a
+ * config. Those hosts still ask at /opamp/v1, which the ingress now sends to
+ * the App too (Nginx/default.conf.template).
+ */
+export const HOST_COLLECTOR_OPAMP_PATH: string = `/telemetry${HOST_COLLECTOR_OPAMP_ROUTE}`;
 
 /*
  * Where every OneUptime serves the installers (the Docs feature set's static

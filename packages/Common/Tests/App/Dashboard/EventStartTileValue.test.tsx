@@ -121,14 +121,39 @@ describe("EventStartTileValue in another language", () => {
   test("Arabic joins the date and the time with its own comma", () => {
     const value: string = valueIn("ar");
 
-    expect(value).toBe(`14${NBSP}سبتمبر، 06:01${NBSP}م UTC`);
+    // A 12-hour time with no leading zero, as Arabic writes one (#7279).
+    expect(value).toBe(`14${NBSP}سبتمبر، 6:01${NBSP}م UTC`);
     expect(value).not.toContain(",");
     // Still a line that breaks after the date's comma, then before the zone.
     expect(value.split(" ")).toEqual([
       `14${NBSP}سبتمبر،`,
-      `06:01${NBSP}م`,
+      `6:01${NBSP}م`,
       "UTC",
     ]);
+  });
+
+  /*
+   * English writes the tile's 12-hour time with its zero ("06:01 PM", the
+   * tile's "hh:mm A"); no other language writes one there (issue #7279).
+   */
+  test.each<[string, string]>([
+    ["ko", `오후${NBSP}6:01`],
+    ["zh-TW", "下午6:01"],
+    ["ja", "午後6:01"],
+    ["hi", `6:01${NBSP}pm`],
+    ["de", `6:01${NBSP}PM`],
+  ])(
+    "%s writes the 12-hour time without a leading zero: %s",
+    (language: string, time: string) => {
+      const value: string = valueIn(language);
+
+      expect(value).toContain(time);
+      expect(value).not.toContain("06:01");
+    },
+  );
+
+  test("English keeps the zero its own pattern writes", () => {
+    expect(valueIn("en")).toContain(`06:01${NBSP}PM`);
   });
 
   test("Persian joins them with the same turned comma", () => {

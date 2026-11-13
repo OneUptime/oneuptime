@@ -503,7 +503,8 @@ describe("where a new project's first buttons lead", () => {
 
     const dialog: HTMLElement = await screen.findByRole("dialog");
     expect(dialog).toHaveTextContent("Create On-Call Schedule");
-    expect(dialog).not.toHaveTextContent("On-Call Schedule");
+    // Never the model's retired name, still its API name (#6817).
+    expect(dialog).not.toHaveTextContent("On-Call Policy Schedule");
   });
 });
 

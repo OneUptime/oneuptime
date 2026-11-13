@@ -252,6 +252,8 @@ OneUptimeReplay.captureSession("installation test");
 | `session-ended-idle` | 頁面上 30 分鐘內沒有發生任何事情，因此工作階段結束 — 結束時間記為最後一次活動的時間，而不是錄製器察覺的時間（ `idleForMs` 說明已過了多久）。在使用者回來之前，不會再上傳任何內容，傳往你自己來源的請求也不會帶有工作階段 ID；沒人看著的開啟中分頁不會每半小時就開始一個新的工作階段。 |
 | `recording-paused-idle` | 5 分鐘內沒有人按鍵、點擊、移動滑鼠、捲動或觸碰頁面，因此錄製已暫停（ `idleForMs` 說明已過了多久）。在下一次輸入恢復同一個工作階段之前，不會擷取或上傳任何內容，傳往你自己來源的請求也不會帶有工作階段 ID — 請參閱 [閒置時間](/docs/telemetry/session-replay#閒置時間) 。對於任何無人操作的分頁，這都是正常的。 |
 | `recording-resumed` | 錄製暫停期間使用者回來了，因此錄製在同一個工作階段中以新的快照恢復（ `pausedForMs` 說明暫停了多久）。播放器會略過中間的那一段。 |
+| `recording-paused-page` | 頁面透過 `OneUptimeReplay.pause()` 暫停了錄製。在頁面呼叫 `OneUptimeReplay.resume()` 之前，不會擷取任何內容；訪客的操作會讓工作階段保持開啟，但不會恢復錄製。如果這個頁面應該被錄製，請找到它呼叫 `OneUptimeReplay.pause()` 的位置。 |
+| `recording-resumed-page` | 頁面透過 `OneUptimeReplay.resume()` 恢復了錄製。錄製在同一工作階段中以新快照繼續；如果該工作階段在暫停期間已結束，則在新的工作階段中繼續。 |
 | `session-rotated` | 開始了一個新的工作階段（使用者在閒置 30 分鐘後回來、工作階段達到 4 小時、 `identify()` 指定了與工作階段所屬使用者不同的使用者 — `rotationReason: "identity-change"` — 或同一位訪客的另一個分頁先開始了新的工作階段 — `rotationReason: "adopted"` ）。錄製以新的 ID 繼續， `onSessionChange` 監聽器會收到通知，此後傳往你自己來源的請求會帶有新的 ID。 |
 | `command-queue-not-an-array` | `window.OneUptimeReplayQueue` 不是陣列，因此佇列中的所有命令都被忽略。它必須是由 `[command, ...arguments]` 項目組成的陣列。 |
 | `command-queue-unknown-command` | 無法辨識佇列中某個命令的名稱 — 請對照 [JavaScript API](/docs/telemetry/session-replay#javascript-api) 檢查拼字。 |
