@@ -417,9 +417,16 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
      * result parsing applies.
      */
     const statement: Statement = new Statement();
-    statement.append(
-      `SELECT ${aggregateExpression} as durationUnixNano, ${AggregateUtil.buildBucketTimestampExpression(aggregationInterval, "toStartOfMinute(startTime)")} as startTime`,
-    );
+    statement
+      .append(`SELECT ${aggregateExpression} as durationUnixNano, `)
+      .append(
+        AggregateUtil.buildBucketTimestampStatement(
+          aggregationInterval,
+          "toStartOfMinute(startTime)",
+          aggregateBy.timezone,
+        ),
+      )
+      .append(` as startTime`);
     statement.append(
       SQL` FROM ${databaseName}.${this.model.tableName} WHERE projectId = ${{
         type: TableColumnType.ObjectID,

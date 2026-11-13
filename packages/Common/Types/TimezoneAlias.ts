@@ -271,6 +271,9 @@ const buildCanonicalIndex: () => CanonicalIndex = (): CanonicalIndex => {
 
 const CANONICAL_BY_LOWERCASE_NAME: CanonicalIndex = buildCanonicalIndex();
 
+// Every name in the enum, spelled exactly as the enum spells it.
+const LISTED_NAMES: Set<string> = new Set<string>(Object.values(Timezone));
+
 const LEGACY_LOWERCASE_NAMES: Set<string> = new Set<string>(
   Object.keys(LEGACY_TIMEZONE_NAMES).map((timezone: string): string => {
     return timezone.toLowerCase();
@@ -307,6 +310,18 @@ const LEGACY_NAMES_BY_CURRENT_NAME: Map<
 > = buildLegacyNamesByCurrentName();
 
 export default class TimezoneAlias {
+  /*
+   * True for a name exactly as the Timezone list spells it - "Asia/Kolkata",
+   * and the legacy "Asia/Calcutta" too, which stays accepted everywhere - and
+   * for nothing else: not another spelling of one ("asia/kolkata"), not a
+   * zone newer than the list, not a value that is not text. Where a request
+   * names a zone that reaches the database (an aggregate's timezone, issue
+   * #7277), this is the whole of what it may be.
+   */
+  public static isListedName(value: unknown): value is Timezone {
+    return typeof value === "string" && LISTED_NAMES.has(value);
+  }
+
   /*
    * True for a name kept only for backward compatibility — one the picker
    * does not offer because it offers the same clock under its current name.

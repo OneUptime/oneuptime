@@ -575,7 +575,7 @@ export default function describeChartSlotsInConfiguredZone(
     });
 
     describe("a week and a month a slot", () => {
-      test("read in New York, weeks from Sunday midnight across both of its changes: each a Sunday there", () => {
+      test("read in New York, weeks from Sunday midnight across both of its changes: each a Sunday there, named by its week's Monday", () => {
         OneUptimeDate.setUserTimezone(Timezone.AmericaNew_York);
 
         const sundays: Array<string> = Array.from(
@@ -595,7 +595,16 @@ export default function describeChartSlotsInConfiguredZone(
             return wallTimeIn(Timezone.AmericaNew_York, day).toISOString();
           }),
         );
-        expect(slots.labels).toEqual(sundays.map(dayLabel));
+        /*
+         * A week is named by its Monday, the day the server starts a week
+         * bucket on (#7277): a Sunday is the last day of the week that
+         * began six days before.
+         */
+        expect(slots.labels).toEqual(
+          sundays.map((day: string): string => {
+            return dayLabel(addDays(day, -6));
+          }),
+        );
       });
 
       test("read in Auckland, a year of months from 31 January: every month once, each on its last day", () => {
@@ -988,6 +997,11 @@ export default function describeChartSlotsInConfiguredZone(
            * From 21:37 the walk steps onto 01:37, which the clocks skip. Its
            * block from 00:00 still has the hour before the gap, and the slot
            * stands there at 00:37, the walk's minutes past the hour kept.
+           *
+           * The window ends at 06:37 BST, in the block from 06:00, which the
+           * walk would have reached at 07:37: an hour of the window went
+           * with the clocks, so it ends earlier in its block than it
+           * starts. That block has its slot at its start (#7278).
            */
           name: "London, two hours from 21:37, the clocks going forward: 01:37 never comes, so its slot is at 00:37, in the same block",
           zone: Timezone.EuropeLondon,
@@ -1000,6 +1014,7 @@ export default function describeChartSlotsInConfiguredZone(
             ["2026-03-29T00:37:00.000Z", "29 Mar, 00:00"],
             ["2026-03-29T02:37:00.000Z", "29 Mar, 02:00"],
             ["2026-03-29T04:37:00.000Z", "29 Mar, 04:00"],
+            ["2026-03-29T05:00:00.000Z", "29 Mar, 06:00"],
           ],
         },
         {

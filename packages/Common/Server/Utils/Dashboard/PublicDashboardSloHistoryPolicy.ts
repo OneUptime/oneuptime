@@ -4,6 +4,8 @@ import OneUptimeDate from "../../../Types/Date";
 import { SloWidgetDisplayType } from "../../../Types/Dashboard/DashboardComponents/DashboardSloComponent";
 import DashboardVariable from "../../../Types/Dashboard/DashboardVariable";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import Timezone from "../../../Types/Timezone";
+import { AggregateUtil } from "../../Types/AnalyticsDatabase/AggregateBy";
 import {
   getSloChartAggregationInterval,
   getSloHistoryMetricName,
@@ -17,7 +19,8 @@ import PublicDashboardSloWidget, {
  * Server-owned policy for the unauthenticated SLO history aggregation.
  *
  * Same contract as PublicDashboardResourceListPolicy: nothing the caller
- * sends becomes part of the query except the time window. WHICH SLO and
+ * sends becomes part of the query except the time window and the reader's
+ * time zone, which only moves where a day starts. WHICH SLO and
  * WHICH of its three series are read come from the stored widget alone, the
  * aggregation columns are fixed, and the bucket size is recomputed from the
  * window with the very same helper the widget uses — so a public viewer's
@@ -37,6 +40,12 @@ export interface PublicDashboardSloHistoryPolicyResult {
   startDate: Date;
   endDate: Date;
   aggregationInterval: AggregationInterval;
+  /*
+   * The zone the viewer reads the chart in, which its day buckets follow
+   * (AggregateBy.timezone, issue #7277): a name in the Timezone list, or
+   * none for UTC's days. Anything else is refused.
+   */
+  timezone?: Timezone | undefined;
   limit: number;
 }
 
@@ -134,6 +143,11 @@ export default class PublicDashboardSloHistoryPolicy {
        * grid it drew its x-axis for — without being able to choose one.
        */
       aggregationInterval: getSloChartAggregationInterval(rangeInMinutes),
+      /*
+       * Copied, but checked: only a listed zone name, which the query
+       * binds as a parameter, and only where a bucket starts.
+       */
+      timezone: AggregateUtil.readTimezone(requestedAggregateBy["timezone"]),
       limit: LIMIT_PER_PROJECT,
     };
   }

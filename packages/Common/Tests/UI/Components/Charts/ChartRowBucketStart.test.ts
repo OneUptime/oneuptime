@@ -304,16 +304,39 @@ describe("XAxisUtil.getBucketStart", () => {
     [XAxisPrecision.EVERY_SIX_HOURS, "2026-09-28T12:00:00.000Z"],
     [XAxisPrecision.EVERY_TWELVE_HOURS, "2026-09-28T12:00:00.000Z"],
     [XAxisPrecision.EVERY_DAY, "2026-09-28T00:00:00.000Z"],
+    // A Monday: its own week starts at its midnight.
+    [XAxisPrecision.EVERY_WEEK, "2026-09-28T00:00:00.000Z"],
   ])("%s floors to %s", (precision: XAxisPrecision, expected: string) => {
     expect(XAxisUtil.getBucketStart(AT, precision).toISOString()).toBe(
       expected,
     );
   });
 
+  test("a week floors to its Monday, the day the server starts a week on (#7277)", () => {
+    // Thursday 1 October and Sunday 4 October are in the week of Monday 28 September.
+    for (const value of [
+      "2026-10-01T09:12:00.000Z",
+      "2026-10-04T23:59:59.999Z",
+      "2026-09-28T00:00:00.000Z",
+    ]) {
+      expect(
+        XAxisUtil.getBucketStart(
+          new Date(value),
+          XAxisPrecision.EVERY_WEEK,
+        ).toISOString(),
+      ).toBe("2026-09-28T00:00:00.000Z");
+    }
+    expect(
+      XAxisUtil.getBucketStart(
+        new Date("2026-10-05T00:00:00.000Z"),
+        XAxisPrecision.EVERY_WEEK,
+      ).toISOString(),
+    ).toBe("2026-10-05T00:00:00.000Z");
+  });
+
   test("the coarser tiers keep the slot start", () => {
     for (const precision of [
       XAxisPrecision.EVERY_TWO_DAYS,
-      XAxisPrecision.EVERY_WEEK,
       XAxisPrecision.EVERY_MONTH,
       XAxisPrecision.EVERY_YEAR,
     ]) {

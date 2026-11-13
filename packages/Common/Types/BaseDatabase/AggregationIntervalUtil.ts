@@ -1,5 +1,29 @@
 import AggregationInterval from "./AggregationInterval";
 import OneUptimeDate from "../Date";
+import Timezone from "../Timezone";
+import TimezoneAlias from "../TimezoneAlias";
+
+/*
+ * The intervals whose buckets are units of a calendar: a day from midnight,
+ * a week from Monday, a month from its 1st, a year from 1 January. Where
+ * those begin depends on the time zone they are read in. An hour and
+ * shorter are counted from the epoch, the same instants in every zone, and
+ * Total is no bucket at all.
+ */
+const CALENDAR_INTERVALS: ReadonlyArray<AggregationInterval> = [
+  AggregationInterval.Day,
+  AggregationInterval.Week,
+  AggregationInterval.Month,
+  AggregationInterval.Year,
+];
+
+// What withReaderTimezone reads of a request, and sets on it.
+export interface AggregateWindow {
+  startTimestamp?: Date | undefined;
+  endTimestamp?: Date | undefined;
+  aggregationInterval?: AggregationInterval | undefined;
+  timezone?: Timezone | undefined;
+}
 
 /*
  * Single source of truth for "which time-bucket size does the
@@ -70,6 +94,86 @@ export class AggregationIntervalUtil {
   }
 
   /*
+   * True for Day, Week, Month and Year: the buckets that start at the
+   * reader's midnight, Monday, 1st or 1 January when an aggregate carries
+   * the reader's zone (AggregateBy.timezone), and in UTC otherwise.
+   */
+  public static isCalendarInterval(interval: AggregationInterval): boolean {
+    return CALENDAR_INTERVALS.includes(interval);
+  }
+
+  /*
+   * The zone an aggregate over this window asks its buckets to follow: the
+   * reader's (OneUptimeDate.getCurrentTimezone(), the zone User Settings
+   * picked, or the browser's), when its buckets are days, weeks, months or
+   * years. A chart draws those on the reader's calendar, so their buckets
+   * must start where the reader's days do (issue #7277).
+   *
+   * Undefined for an hour and shorter and for Total, which no zone moves,
+   * so those requests stay exactly as they were. Undefined too for a zone
+   * the Timezone list does not name - a browser can report a zone newer
+   * than the list, and the server refuses any other - so those buckets
+   * follow UTC, as before, rather than the chart failing.
+   */
+  public static getReaderTimezone(data: {
+    startDate: Date;
+    endDate: Date;
+    aggregationInterval?: AggregationInterval | undefined;
+  }): Timezone | undefined {
+    const interval: AggregationInterval =
+      this.getAggregationIntervalForWindow(data);
+
+    if (!this.isCalendarInterval(interval)) {
+      return undefined;
+    }
+
+    const timezone: Timezone = OneUptimeDate.getCurrentTimezone();
+
+    return TimezoneAlias.isListedName(timezone) ? timezone : undefined;
+  }
+
+  /*
+   * The request with the reader's zone on it (getReaderTimezone), as the
+   * dashboard sends every aggregate: a new object, the one given left as it
+   * is. A request that names its zone keeps it - a cloud's cost is for a
+   * UTC day, and its readers ask for Timezone.UTC - and one with no window
+   * to read an interval from, or no zone to add, comes back unchanged.
+   */
+  public static withReaderTimezone<TRequest extends AggregateWindow>(
+    aggregateBy: TRequest,
+  ): TRequest {
+    if (
+      !aggregateBy ||
+      (aggregateBy.timezone !== undefined && aggregateBy.timezone !== null)
+    ) {
+      return aggregateBy;
+    }
+
+    let timezone: Timezone | undefined = undefined;
+
+    try {
+      timezone = this.getReaderTimezone({
+        startDate: aggregateBy.startTimestamp as Date,
+        endDate: aggregateBy.endTimestamp as Date,
+        aggregationInterval: aggregateBy.aggregationInterval,
+      });
+    } catch {
+      /*
+       * No window to read an interval from (fromString throws on a missing
+       * date): the request goes as it is, and the server answers it as it
+       * always has.
+       */
+      return aggregateBy;
+    }
+
+    if (!timezone) {
+      return aggregateBy;
+    }
+
+    return { ...aggregateBy, timezone: timezone };
+  }
+
+  /*
    * Nominal bucket width in milliseconds. Month and Year are
    * calendar-variable in ClickHouse (`toStartOfInterval` snaps to
    * calendar boundaries), so their values here are approximations —
@@ -131,10 +235,18 @@ export class AggregationIntervalUtil {
    * server-side, which a fixed-ms grid can't reproduce, so those (and
    * `Total`) are returned UNCHANGED rather than risk shifting the gap for
    * long windows — their pre-existing behavior is preserved.
+   *
+   * `timezone` is the zone the request's buckets follow (its
+   * AggregateBy.timezone, see getReaderTimezone): a Day then floors to that
+   * zone's midnight, where the server starts the day, and not to UTC's - in
+   * New York a UTC midnight is 19:00 the evening before, so the window's
+   * first day would hold five hours of it. Every finer interval is the same
+   * in every zone and ignores it.
    */
   public static floorDateToIntervalGrid(
     date: Date,
     interval: AggregationInterval,
+    timezone?: Timezone | undefined,
   ): Date {
     const ms: number = OneUptimeDate.fromString(date).getTime();
     const alignableIntervals: Array<AggregationInterval> = [
@@ -147,6 +259,9 @@ export class AggregationIntervalUtil {
     ];
     if (!alignableIntervals.includes(interval)) {
       return new Date(ms);
+    }
+    if (interval === AggregationInterval.Day && timezone) {
+      return OneUptimeDate.getStartOfDay(new Date(ms), timezone);
     }
     const bucketMs: number = this.getAggregationIntervalMs(interval);
     if (!Number.isFinite(bucketMs) || bucketMs <= 0) {
@@ -165,10 +280,15 @@ export class AggregationIntervalUtil {
    * is floored DOWN so the first bucket is complete and lands on the axis
    * origin (removing the leading gap); the end is left untouched so the
    * latest, still-in-progress bucket and its live data continue to show.
+   *
+   * `timezone` is the zone the window's request will carry (see
+   * floorDateToIntervalGrid); the caller reads it with getReaderTimezone,
+   * as the request does, so the two always agree.
    */
   public static getIntervalAlignedWindow(data: {
     startDate: Date;
     endDate: Date;
+    timezone?: Timezone | undefined;
   }): {
     startDate: Date;
     endDate: Date;
@@ -179,7 +299,11 @@ export class AggregationIntervalUtil {
       endDate: data.endDate,
     });
     return {
-      startDate: this.floorDateToIntervalGrid(data.startDate, interval),
+      startDate: this.floorDateToIntervalGrid(
+        data.startDate,
+        interval,
+        data.timezone,
+      ),
       endDate: OneUptimeDate.fromString(data.endDate),
       interval,
     };

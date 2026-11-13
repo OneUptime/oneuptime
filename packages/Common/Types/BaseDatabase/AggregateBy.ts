@@ -1,5 +1,6 @@
 import GroupBy from "../../Server/Types/Database/GroupBy";
 import GenericObject from "../GenericObject";
+import Timezone from "../Timezone";
 import AggregationInterval from "./AggregationInterval";
 import AggregationType from "./AggregationType";
 import Query from "./Query";
@@ -19,6 +20,21 @@ export default interface AggregateBy<TBaseModel extends GenericObject> {
    * rejected with a 400 in AnalyticsDatabaseService.aggregateBy.
    */
   aggregationInterval?: AggregationInterval | undefined;
+  /**
+   * The time zone whose calendar the Day, Week, Month and Year buckets
+   * follow: a day bucket runs from midnight to midnight there, a week from
+   * Monday, a month from its 1st and a year from 1 January, and each
+   * bucket's timestamp is that start. The dashboard sends the reader's zone
+   * (the one User Settings picked) whenever the bucket is a day or longer,
+   * so a chart that draws its days on the reader's calendar gets each day's
+   * total under its own day (issue #7277). Omitted, those buckets follow
+   * UTC, as they always have. An hour and shorter, and Total, are the same
+   * in every zone and ignore it. Only a name in the Timezone list is
+   * accepted; anything else is refused with a 400 in
+   * AnalyticsDatabaseService.aggregateBy, and the name reaches the query as
+   * a bound parameter, never as text.
+   */
+  timezone?: Timezone | undefined;
   aggregationTimestampColumnName: keyof TBaseModel;
   startTimestamp: Date;
   endTimestamp: Date;

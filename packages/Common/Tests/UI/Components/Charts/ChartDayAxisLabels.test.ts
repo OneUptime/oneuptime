@@ -320,7 +320,8 @@ describe("the week tiers, which name a day the same way", () => {
       precision: XAxisPrecision.EVERY_WEEK,
     });
 
-    expect(labels[0]).toBe("12 Nov 2024");
+    // A week is named by its Monday (#7277): 12 Nov 2024 is a Tuesday.
+    expect(labels[0]).toBe("11 Nov 2024");
     expectEveryTickOnce(labels);
     for (const label of labels) {
       expect(label).toMatch(A_YEAR);
@@ -333,7 +334,8 @@ describe("the week tiers, which name a day the same way", () => {
       end: day("2026-11-12"),
     });
 
-    expect(labels[0]).toBe("12 Aug");
+    // Wednesday 12 August is in the week of Monday 10 August (#7277).
+    expect(labels[0]).toBe("10 Aug");
     for (const label of labels) {
       expect(label).not.toMatch(A_YEAR);
     }
