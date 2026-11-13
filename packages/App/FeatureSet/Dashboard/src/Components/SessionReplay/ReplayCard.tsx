@@ -54,6 +54,8 @@ import {
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import Permission from "Common/Types/Permission";
 import { getSessionReplayPermissionTitle } from "./SessionReplayPermissionTitle";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
+import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 
 /*
  * "Watch what the user saw" - the embeddable card for the exception and
@@ -84,7 +86,10 @@ export interface ReplayCardFailure {
   kind: ReplayCardFailureKind;
   // The English line; the card draws it in the reader's language.
   message: string;
-  // What the server said went wrong, as it said it, for an "error" failure.
+  /*
+   * What the server said went wrong, as it said it, for an "error" failure:
+   * the card says it in REPLAY_CARD_ERROR_DETAIL_COPY (ErrorSentence).
+   */
   detail?: string | undefined;
 }
 
@@ -190,7 +195,7 @@ export function classifyReplayCardFailure(error: unknown): ReplayCardFailure {
   return friendly
     ? {
         kind: "error",
-        message: REPLAY_CARD_ERROR_DETAIL_COPY.replace("{{error}}", friendly),
+        message: REPLAY_CARD_ERROR_COPY,
         detail: friendly,
       }
     : { kind: "error", message: REPLAY_CARD_ERROR_COPY };
@@ -210,7 +215,7 @@ export function describeReplayCardFailure(
     return translator.translateTemplate(
       REPLAY_CARD_ERROR_DETAIL_COPY,
       {
-        error: failure.detail,
+        error: errorInSentence(failure.detail),
       },
       { setsValuesApart: true },
     );
@@ -563,7 +568,16 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
           className="mt-px h-3.5 w-3.5 shrink-0 text-gray-400"
         />
         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-          <span>{describeReplayCardFailure(failure, translator)}</span>
+          <span>
+            {failure.kind === "error" && failure.detail ? (
+              <ErrorSentence
+                template={REPLAY_CARD_ERROR_DETAIL_COPY}
+                error={failure.detail}
+              />
+            ) : (
+              describeReplayCardFailure(failure, translator)
+            )}
+          </span>
           {failure.kind === "error" && (
             <Button
               title="Retry"

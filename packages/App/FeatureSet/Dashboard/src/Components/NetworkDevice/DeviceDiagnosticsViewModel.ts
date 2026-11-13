@@ -14,6 +14,7 @@ import {
   translateTemplate,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
+import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 
 /*
  * The pure half of the on-demand device diagnostics (issue #3745): the
@@ -251,7 +252,7 @@ export function describeTraceRoute(trace: NetworkPathTrace): TraceRouteSummary {
       : trace.dnsLookup.errorMessage
         ? translateTemplate("Lookup for {{host}} failed — {{error}}", {
             host: trace.dnsLookup.hostName,
-            error: trace.dnsLookup.errorMessage,
+            error: errorInSentence(trace.dnsLookup.errorMessage),
           })
         : translateTemplate("Lookup for {{host}} failed", {
             host: trace.dnsLookup.hostName,

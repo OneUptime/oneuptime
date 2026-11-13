@@ -782,9 +782,12 @@ describe("incident-only layout", () => {
       "setResendNotificationErrorState({ subjectId: modelIdString, value: BaseAPI.getFriendlyMessage(err), });",
     );
     expect(resendBody).not.toContain("setRefreshError");
-    // One translated sentence, filled with the resend's own error.
+    /*
+     * One translated sentence, filled with the resend's own error, said in
+     * the reader's language (ErrorSentence, #7307).
+     */
     expect(INCIDENT_PAGE.view).toContain(
-      'translator.translateTemplate( "Could not resend notifications: {{error}}", { error: resendNotificationError }, )',
+      '<ErrorSentence template="Could not resend notifications: {{error}}" error={resendNotificationError} />',
     );
 
     // A refresh does not retry the resend, so it never clears the error.

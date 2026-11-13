@@ -61,6 +61,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
+import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 
 export interface ComponentProps {
   // One table's checks, with its columns to choose from; or every check of the project.
@@ -274,7 +275,7 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
         setAlertError(
           translator.translateTemplate(
             "The check is saved, but its alert could not be set up: {{reason}}",
-            { reason: API.getFriendlyMessage(err) },
+            { reason: errorInSentence(API.getFriendlyMessage(err)) },
           ),
         );
       }
