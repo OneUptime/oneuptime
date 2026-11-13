@@ -129,10 +129,19 @@ describe("the column it makes", () => {
     expect(metadata.title).toBe(
       "Notify Status Page Subscribers of New Incidents by Default",
     );
-    // It says what it moves, what it leaves alone, and that it starts on.
+    /*
+     * It says what it moves, that incidents declared where nothing asks
+     * about subscribers follow it, what it leaves alone, and that it starts
+     * on.
+     */
     expect(metadata.description).toContain("Notify Status Page Subscribers");
     expect(metadata.description).toContain("starts unticked");
-    expect(metadata.description).toContain("monitors, the API, workflows");
+    expect(metadata.description).toContain(
+      "Incidents declared from Slack or Microsoft Teams, or by OneUptime AI, follow it too",
+    );
+    expect(metadata.description).toContain(
+      "Incidents created by monitors, the API and workflows are not affected",
+    );
     expect(metadata.description).toContain("On by default.");
   });
 
