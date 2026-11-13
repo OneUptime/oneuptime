@@ -73,7 +73,7 @@ flowchart TB
 | --- | --- | --- |
 | **ابر OpenStack** | همه | الزامی. هر کوئری را به `resource.openstack.cloud.name` محدود می‌کند. |
 | **منطقه** | متریک سفارشی، پیشرفته | اختیاری. یک منطقه: `openstack.region.name`. روی هر سری وجود دارد. |
-| **Availability Zone** | متریک سفارشی، پیشرفته | اختیاری. یک zone: `availability_zone` روی هایپروایزرها، instanceها، volumeها و agentهای Neutron، و `zone` روی workerهای Nova و Cinder. |
+| **زُن دسترس‌پذیری** | متریک سفارشی، پیشرفته | اختیاری. یک zone: `availability_zone` روی هایپروایزرها، instanceها، volumeها و agentهای Neutron، و `zone` روی workerهای Nova و Cinder. |
 | **هایپروایزر** | متریک سفارشی، پیشرفته | اختیاری. یک میزبان: `hostname` روی workerها، هایپروایزرها و Placement، و `hypervisor_hostname` روی instanceها. workerهای Nova نام کوتاه میزبان را می‌گویند، و هایپروایزرها، Placement و instanceها نام کامل آن را، پس همانی را به کار ببرید که سری می‌گوید. |
 | **سرویس** | متریک سفارشی، پیشرفته | اختیاری. باینری یک worker، مانند `nova-compute`: `service`. |
 | **شناسه پروژه** | متریک سفارشی، پیشرفته | اختیاری. یک پروژه: `tenant_id` روی سری‌های Nova و Cinder و روی شبکه‌ها و subnetها، و `project_id` روی floating IPها، routerها و address availability. |

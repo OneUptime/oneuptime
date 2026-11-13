@@ -5,6 +5,12 @@ import SensitiveUrlToken from "Common/UI/Utils/SensitiveUrlToken";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import {
+  RouteAttributes,
+  pageRoutesIn,
+  routeMapPath,
+  routesAt,
+} from "../Helpers/PageRoutes";
 
 /*
  * How the unsubscribe page is wired into the status page app.
@@ -74,15 +80,19 @@ describe("the status page's unsubscribe route", () => {
   });
 
   test("both the credential and the token-free form reach the page, live and in preview", () => {
-    const app: string = readCode("App.tsx");
+    const routes: Array<RouteAttributes> = pageRoutesIn(
+      path.join(STATUS_PAGE_SRC, "App.tsx"),
+    );
 
     for (const page of ["UNSUBSCRIBE", "PREVIEW_UNSUBSCRIBE"]) {
-      expect(app).toContain(
-        `path={tokenFreeRoute( RouteMap[PageMap.${page}]?.toString() || "", )} element={ <Unsubscribe`,
-      );
-      expect(app).toContain(
-        `path={RouteMap[PageMap.${page}]?.toString() || ""} element={ <Unsubscribe`,
-      );
+      for (const routePath of [
+        `tokenFreeRoute(${routeMapPath(page)})`,
+        routeMapPath(page),
+      ]) {
+        expect(routesAt(routes, routePath)).toEqual([
+          { path: routePath, element: expect.stringMatching(/^<Unsubscribe /) },
+        ]);
+      }
     }
   });
 

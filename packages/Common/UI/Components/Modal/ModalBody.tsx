@@ -7,6 +7,12 @@ import React, { FunctionComponent, ReactElement } from "react";
 export interface ComponentProps {
   children: Array<ReactElement> | ReactElement;
   error?: string | undefined;
+  /*
+   * What the dialog was doing, in the reader's language - "Couldn't delete
+   * the note." - said first when the error is one nobody explained
+   * (ErrorExplanation). Without it, that line says "This did not finish."
+   */
+  whatFailed?: string | undefined;
 }
 
 /*
@@ -26,7 +32,10 @@ const ModalBody: FunctionComponent<ComponentProps> = (
         <Alert
           title={
             isUnexplainedErrorMessage(props.error) ? (
-              <ErrorExplanation message={props.error} />
+              <ErrorExplanation
+                message={props.error}
+                whatFailed={props.whatFailed}
+              />
             ) : (
               props.error
             )
