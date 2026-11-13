@@ -182,7 +182,8 @@ describe("the menu the paths are held to, read from its source", () => {
     ],
     /*
      * External MCP Servers - the servers OneUptime AI uses - beside LLM
-     * Providers; MCP Server, OneUptime's own, stays last.
+     * Providers; MCP Server, OneUptime's own, stays last. AI Results - what
+     * came of OneUptime AI's work (#6800) - before AI Logs, the runs behind it.
      */
     [
       "AI",
@@ -191,6 +192,7 @@ describe("the menu the paths are held to, read from its source", () => {
         "LLM Providers",
         "External MCP Servers",
         "AI Credits",
+        "AI Results",
         "AI Logs",
         "MCP Server",
       ],

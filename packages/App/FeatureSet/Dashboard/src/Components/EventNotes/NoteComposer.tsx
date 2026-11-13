@@ -360,7 +360,7 @@ const NoteComposer: FunctionComponent<ComponentProps> = (
             key={props.editorKey}
             isMultiFilePicker={true}
             initialValue={initialAttachments}
-            placeholder={tx("Upload files")}
+            placeholder="Upload files"
             onChange={(files: Array<FileModel>) => {
               update({
                 attachments: files.map((file: FileModel) => {

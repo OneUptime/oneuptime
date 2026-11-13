@@ -817,9 +817,7 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
             <div className="md:w-96">
               <SiteSearchBox
                 dataTestId="topology-hierarchy-search"
-                placeholder={
-                  translateString(SEARCH_PLACEHOLDER) || SEARCH_PLACEHOLDER
-                }
+                placeholder={SEARCH_PLACEHOLDER}
                 value={searchText}
                 onChange={setSearchText}
                 onSelectSite={changeSite}

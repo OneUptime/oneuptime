@@ -204,7 +204,7 @@ const ProductAnalyticsSegmentBar: FunctionComponent<
           <div className="w-full sm:w-48">
             <Input
               value={value}
-              placeholder={translator.translateText("Value")}
+              placeholder="Value"
               ariaLabel={translator.translateText("Value")}
               maxLength={PRODUCT_ANALYTICS_MAX_SEGMENT_VALUE_LENGTH}
               dataTestId={`${props.dataTestId}-value`}
