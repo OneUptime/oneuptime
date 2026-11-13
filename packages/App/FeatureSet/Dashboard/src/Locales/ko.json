@@ -51716,5 +51716,6 @@
   "Are you sure you want to delete {{project}}? Its made-up monitors, incidents, people and telemetry are deleted for good. You can explore a new sample at any time.": "{{project}}을(를) 삭제하시겠습니까? 가상의 모니터, 인시던트, 사람, 텔레메트리가 영구적으로 삭제됩니다. 새 샘플은 언제든지 둘러볼 수 있습니다.",
   "Create Your Own Project": "내 프로젝트 만들기",
   "Delete Sample Project": "샘플 프로젝트 삭제",
-  "Explore Sample Project": "샘플 프로젝트 둘러보기"
+  "Explore Sample Project": "샘플 프로젝트 둘러보기",
+  "You already have a status page named \"{{name}}\", so no new one was made.": "이미 \"{{name}}\" 상태 페이지가 있으므로 새 페이지를 만들지 않았습니다."
 }

@@ -51716,5 +51716,6 @@
   "Are you sure you want to delete {{project}}? Its made-up monitors, incidents, people and telemetry are deleted for good. You can explore a new sample at any time.": "Удалить {{project}}? Его вымышленные мониторы, инциденты, люди и телеметрия будут удалены навсегда. Вы можете в любой момент открыть новый пример.",
   "Create Your Own Project": "Создать свой проект",
   "Delete Sample Project": "Удалить пример проекта",
-  "Explore Sample Project": "Открыть пример проекта"
+  "Explore Sample Project": "Открыть пример проекта",
+  "You already have a status page named \"{{name}}\", so no new one was made.": "У вас уже есть страница статуса «{{name}}», поэтому новая страница не создана."
 }

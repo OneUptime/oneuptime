@@ -51716,5 +51716,6 @@
   "Are you sure you want to delete {{project}}? Its made-up monitors, incidents, people and telemetry are deleted for good. You can explore a new sample at any time.": "Vill du verkligen ta bort {{project}}? Dess påhittade monitorer, incidenter, personer och telemetri tas bort för gott. Du kan utforska ett nytt exempel när som helst.",
   "Create Your Own Project": "Skapa ditt eget projekt",
   "Delete Sample Project": "Ta bort exempelprojekt",
-  "Explore Sample Project": "Utforska exempelprojekt"
+  "Explore Sample Project": "Utforska exempelprojekt",
+  "You already have a status page named \"{{name}}\", so no new one was made.": "Du har redan en statussida som heter ”{{name}}”, så ingen ny skapades."
 }

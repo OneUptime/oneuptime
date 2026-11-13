@@ -48,12 +48,12 @@ import path from "path";
  * rule the product does not have.
  *
  * Every language must send readers to Numbering - named the way that
- * language's dashboard names it (Persian keeps the English names, as its
- * incident pages do) - at its new address, never to More Settings or to a
- * Number Prefix page, whose old addresses are mentioned only as ones that
- * forward. The next numbers have a section of their own on the settings
- * page, which the declaring page, the alert settings page and the pages on
- * moving from another on-call tool point to, each in the reader's words.
+ * language's dashboard names it, Persian included (#7100) - at its new
+ * address, never to More Settings or to a Number Prefix page, whose old
+ * addresses are mentioned only as ones that forward. The next numbers have a
+ * section of their own on the settings page, which the declaring page, the
+ * alert settings page and the pages on moving from another on-call tool
+ * point to, each in the reader's words.
  */
 
 const REPO_ROOT: string = path.resolve(__dirname, "../../../..");
@@ -84,13 +84,13 @@ const LANGUAGES: ReadonlyArray<string> = [
   "zh-TW",
 ];
 
-// The languages whose incident docs name the UI in English.
-const ENGLISH_UI_NAMES: ReadonlyArray<string> = ["en", "fa"];
+// The languages whose incident docs describe the Number prefixes card in full.
+const FULL_SECTION_LANGUAGES: ReadonlyArray<string> = ["en", "fa"];
 
 // What each language called More Settings, from the locale files before it went.
 const MORE_SETTINGS: Record<string, string> = {
   en: "More Settings",
-  fa: "More Settings",
+  fa: "تنظیمات بیشتر",
   da: "Flere indstillinger",
   de: "Weitere Einstellungen",
   es: "Más Ajustes",
@@ -152,9 +152,12 @@ function locale(language: string): Record<string, string> {
   ) as Record<string, string>;
 }
 
-// The name the reader of an incident page sees for a piece of UI.
+/*
+ * The name the reader of an incident page sees for a piece of UI: its
+ * Dashboard's word, in every language but English (Persian included).
+ */
 function uiName(language: string, english: string): string {
-  if (ENGLISH_UI_NAMES.includes(language)) {
+  if (language === "en") {
     return english;
   }
 
@@ -707,17 +710,23 @@ describe("the pages on moving from another on-call tool", () => {
 });
 
 describe("English and Persian describe the page in full", () => {
-  it.each(ENGLISH_UI_NAMES)(
+  it.each(FULL_SECTION_LANGUAGES)(
     "%s: the Number prefixes section covers the card, the preview, the rules and who can change it",
     (language: string) => {
       const settings: string = readPage(SETTINGS_PAGE, language);
 
       for (const part of [
-        "**Incidents**",
-        "**Incident Episodes**",
-        "**Example:**",
-        "**No prefix**",
-        "**Preview:**",
+        // The card's labels, as this language's Dashboard draws them.
+        ...[
+          "Incidents",
+          "Incident Episodes",
+          "Example:",
+          "No prefix",
+          "Preview:",
+        ].map((label: string): string => {
+          return `**${uiName(language, label)}**`;
+        }),
+        // A permission's name, as a custom role lists it in every language.
         "**Edit Project**",
         "`INC-`",
         "`IE-`",
