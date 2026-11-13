@@ -35,9 +35,9 @@ Archivieren Sie einen Workflow, den Sie nicht mehr brauchen, aber behalten möch
 
 Um einen Workflow zu archivieren, öffnen Sie ihn, gehen Sie zu **Einstellungen** und klicken Sie auf **Archivieren**. Um mehrere zu archivieren, wählen Sie sie in der Liste **Arbeitsabläufe** aus und wählen **Archivieren**.
 
-Um einen Workflow zurückzuholen, öffnen Sie **Arbeitsabläufe → Erweitert → Archiviert**, wählen ihn aus und wählen **Aus Archiv entfernen**, oder Sie öffnen ihn und klicken im Banner oben auf seinen Seiten auf **Aus Archiv entfernen**.
+Um einen Workflow zurückzuholen, öffnen Sie **Arbeitsabläufe → Erweitert → Archiviert**, wählen ihn aus und wählen **Aus dem Archiv holen**, oder Sie öffnen ihn und klicken im Banner oben auf seinen Seiten auf **Aus dem Archiv holen**.
 
-Archivieren und der Schalter **Aktiviert** sind voneinander getrennt. Archivieren berührt den Schalter nicht, daher läuft ein Workflow, der an war, wieder, sobald die Archivierung aufgehoben ist, und einer, der aus war, bleibt aus. Die Seite **Archiviert** zeigt in ihrer Spalte **Bei Aufhebung der Archivierung**, welcher welcher ist.
+Archivieren und der Schalter **Aktiviert** sind voneinander getrennt. Archivieren berührt den Schalter nicht, daher läuft ein Workflow, der an war, wieder, sobald er aus dem Archiv geholt ist, und einer, der aus war, bleibt aus. Die Seite **Archiviert** zeigt in ihrer Spalte **Wenn aus dem Archiv geholt**, welcher welcher ist.
 
 Ein exportierter Workflow trägt nie seinen Archivierungszustand mit, daher ist eine importierte Kopie nie archiviert.
 

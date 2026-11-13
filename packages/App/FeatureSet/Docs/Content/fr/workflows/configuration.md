@@ -37,7 +37,7 @@ Pour archiver un workflow, ouvrez-le, allez dans **Paramètres** et cliquez sur 
 
 Pour faire revenir un workflow, ouvrez **Flux de travail → Avancé → Archivé**, sélectionnez-le et choisissez **Désarchiver**, ou ouvrez-le et cliquez sur **Désarchiver** dans la bannière en haut de ses pages.
 
-L'archivage et l'interrupteur **Activé** sont indépendants. L'archivage ne touche pas à l'interrupteur : un workflow qui était activé s'exécute de nouveau dès qu'il est désarchivé, et un workflow qui était désactivé le reste. La page **Archivé** indique lequel est dans quel cas dans sa colonne **When Unarchived**.
+L'archivage et l'interrupteur **Activé** sont indépendants. L'archivage ne touche pas à l'interrupteur : un workflow qui était activé s'exécute de nouveau dès qu'il est désarchivé, et un workflow qui était désactivé le reste. La page **Archivé** indique lequel est dans quel cas dans sa colonne **Une fois désarchivé**.
 
 Un workflow exporté n'emporte jamais son état archivé : une copie importée n'est donc jamais archivée.
 

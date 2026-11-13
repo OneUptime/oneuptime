@@ -90,7 +90,7 @@ flowchart TB
     R -->|"Löschen"| X
 ```
 
-Um ein Dashboard zu archivieren, öffnen Sie es, gehen Sie zu seiner Seite **Einstellungen** und klicken Sie auf **Archivieren**. Um mehrere zu archivieren, wählen Sie sie in der Liste **Dashboards** aus und wählen **Archivieren**. Um eines zurückzuholen, öffnen Sie **Dashboards → Erweitert → Archiviert**, wählen es aus und wählen **Aus Archiv entfernen**, oder öffnen Sie es und klicken Sie auf **Aus Archiv entfernen** im Banner oben auf seinen Seiten.
+Um ein Dashboard zu archivieren, öffnen Sie es, gehen Sie zu seiner Seite **Einstellungen** und klicken Sie auf **Archivieren**. Um mehrere zu archivieren, wählen Sie sie in der Liste **Dashboards** aus und wählen **Archivieren**. Um eines zurückzuholen, öffnen Sie **Dashboards → Erweitert → Archiviert**, wählen es aus und wählen **Aus dem Archiv holen**, oder öffnen Sie es und klicken Sie auf **Aus dem Archiv holen** im Banner oben auf seinen Seiten.
 
 Archivieren ist die umkehrbare Alternative zum Löschen: Greifen Sie zuerst dazu, wenn Sie unsicher sind.
 

@@ -161,7 +161,7 @@ Traces og brokermetrikker opretter kun selv køer, så længe projektet har fær
 ### Livscyklus og arkivering
 
 - **Sidst set** er det tidspunkt, hvor registreringen sidst så køen, i traces, messaging-klienters metrikker eller brokermetrikker.
-- **Arkivér for at afvise.** At slette en registreret kø fjerner den kun, indtil den ses igen: dens næste observation bringer den tilbage som en ny kø. For at afvise en for altid skal du **arkivere** den. En arkiveret kø beholder sin identitet, så alt, hvad der nævner den, forbliver knyttet til den arkiverede kø i stedet for at oprette en ny.
+- **Arkiver for at afvise.** At slette en registreret kø fjerner den kun, indtil den ses igen: dens næste observation bringer den tilbage som en ny kø. For at afvise en for altid skal du **arkivere** den. En arkiveret kø beholder sin identitet, så alt, hvad der nævner den, forbliver knyttet til den arkiverede kø i stedet for at oprette en ny.
 - **Automatisk arkivering.** En registreret kø, der ikke er set i 7 dage (`MESSAGE_QUEUE_AUTO_ARCHIVE_DAYS`), arkiveres automatisk, medmindre en person har omdøbt den, beskrevet den, givet den labels eller givet den ejere. Labels og ejere, som label- eller ejerregler har tilføjet af sig selv, tæller ikke med.
 - **Gendannelse.** En automatisk arkiveret kø gendannes automatisk, når den ses igen. Køer, du har oprettet manuelt, og køer, som en person har arkiveret, bliver aldrig arkiveret eller gendannet af registreringen. En kø, som en person gendanner, forbliver gendannet i 30 dage (eller arkivvinduet, hvis det er længere), selv hvis intet ser den; fra dens næste observation gælder 7-dagesreglen igen.
 
@@ -1077,11 +1077,11 @@ Når dens spans faktisk nævner den, så opret den manuelt med samme system og d
 - En observation fra Service Bus eller Event Hubs har intet namespace: emulatoren eller et brugerdefineret domæne.
 - RabbitMQ-spans nævner som regel exchangen, og brokerens metrikker køen: to køer i OneUptime, medmindre exchangen og køen har samme navn (se [Begrænsninger](#begrænsninger)).
 
-Arkivér den, du ikke vil have: en arkiveret kø forbliver arkiveret, og det, der nævner den, opretter ikke længere en ny.
+Arkiver den, du ikke vil have: en arkiveret kø forbliver arkiveret, og det, der nævner den, opretter ikke længere en ny.
 
 ### En ny kø for hver anmodning
 
-En destination, der navngives pr. anmodning eller pr. forbruger, og som OneUptime ikke genkender (et numerisk suffiks, en hash), giver en kø pr. navn. UUID'er foldes allerede sammen (se [Hvad der ignoreres](#hvad-der-ignoreres)). Markér sådanne destinationer med `messaging.destination.temporary=true` i din instrumentering, eller giv dem et stabilt navn, og arkivér derefter de køer, der allerede er oprettet.
+En destination, der navngives pr. anmodning eller pr. forbruger, og som OneUptime ikke genkender (et numerisk suffiks, en hash), giver en kø pr. navn. UUID'er foldes allerede sammen (se [Hvad der ignoreres](#hvad-der-ignoreres)). Markér sådanne destinationer med `messaging.destination.temporary=true` i din instrumentering, eller giv dem et stabilt navn, og arkiver derefter de køer, der allerede er oprettet.
 
 ## Næste trin
 

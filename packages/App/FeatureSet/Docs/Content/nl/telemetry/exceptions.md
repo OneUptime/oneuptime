@@ -98,11 +98,11 @@ De knoppen bovenaan de pagina van de uitzondering en het ⋯ ernaast, haar pagin
 | **Oplossen in volgende release** | De oplossing komt in uw volgende release. | Ze verlaat de lijst **Niet opgelost**. Voorvallen uit de release waarin ze het laatst werd gezien, heropenen haar niet, en een voorval uit elke andere release wel. |
 | **Heropenen** | De oplossing werkte niet. | Ze is weer niet opgelost. |
 | **Archiveren** | Het is ruis die u niet wilt verhelpen. | Ze verlaat de lijst. Nieuwe voorvallen worden geteld maar sturen geen meldingen meer. |
-| **Uit archief halen** | U wilt er weer van horen. | Ze staat weer in de lijst waar ze thuishoort. |
+| **Uit het archief halen** | U wilt er weer van horen. | Ze staat weer in de lijst waar ze thuishoort. |
 
 **Oplossen in volgende release** staat in het ⋯ bovenaan de pagina van de uitzondering, in het menu ⋯ van de rij, onder **Bulkacties** en op **Instellingen**, zolang de voorvallen van de uitzondering hun release noemen: het resource-attribuut `service.version`.
 
-**Instellingen** toont wie de uitzondering het laatst heeft opgelost of gearchiveerd, en wanneer. De knoppen daar heten **Markeren als opgelost** of **Markeren als onopgelost**, en **Archiveren** of **Uit archief halen**.
+**Instellingen** toont wie de uitzondering het laatst heeft opgelost of gearchiveerd, en wanneer. De knoppen daar heten **Markeren als opgelost** of **Markeren als onopgelost**, en **Archiveren** of **Uit het archief halen**.
 
 Om er meerdere tegelijk te wijzigen, vinkt u hun rijen in de lijst aan, of het vakje boven de rijen voor alle uitzonderingen op de pagina, en gebruikt u dezelfde acties onder **Bulkacties**. Zijn alle uitzonderingen op de pagina aangevinkt, dan biedt de balk boven de rijen aan om alle uitzonderingen te selecteren die bij de zoekopdracht en filters van de lijst passen, op alle pagina's, tot 10.000 tegelijk; een actie vraagt dan eerst om bevestiging voordat die ze wijzigt. Het resultaat toont welke uitzonderingen zijn gewijzigd, welke zijn gelaten zoals ze waren, en waarom.
 

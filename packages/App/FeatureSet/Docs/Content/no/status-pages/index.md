@@ -241,7 +241,7 @@ Arkiver en statusside for å ta den offline uten å slette den. En arkivert stat
 - **Forsvinner fra listen over statussider.** Du finner den under **Statussider → Avansert → Arkivert**.
 - **Beholder alt.** Ressursene, gruppene, merkevaren, domenene, de private brukerne og abonnentene beholdes, så når du fjerner den fra arkivet, kommer siden tilbake online akkurat slik den var.
 
-For å arkivere en statusside åpner du den og går til **Avansert → Avanserte innstillinger → Arkiver statusside**. For å arkivere flere velger du dem i listen **Statussider** og velger **Arkiver**. For å hente tilbake en åpner du **Statussider → Avansert → Arkivert**, velger den og velger **Fjern fra arkiv**, eller du åpner den og klikker på **Fjern fra arkiv** i banneret øverst på sidene dens.
+For å arkivere en statusside åpner du den og går til **Avansert → Avanserte innstillinger → Arkiver statusside**. For å arkivere flere velger du dem i listen **Statussider** og velger **Arkiver**. For å hente tilbake en åpner du **Statussider → Avansert → Arkivert**, velger den og velger **Fjern fra arkivet**, eller du åpner den og klikker på **Fjern fra arkivet** i banneret øverst på sidene dens.
 
 ## Neste steg
 

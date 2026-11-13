@@ -11,7 +11,7 @@ Når noget går i stykker klokken 2 om natten, er statussiden det første, din s
 - [Opret en statusside](#at-oprette-en-statusside): Et navn for at komme i gang, alt det andet bagefter.
 - [Vælg hvad den viser](#at-vælge-hvad-der-vises-på-siden): Hændelser, episoder, meddelelser, vedligeholdelse og oppetid, på ét kort.
 - [Bestem hvem der må se den](#at-begrænse-hvem-der-må-se-siden): Alle med linket, kun personer, der logger ind, eller alle med adgangskoden.
-- [Arkivér en statusside](#at-arkivere-en-statusside): Tag en side offline uden at slette den.
+- [Arkiver en statusside](#at-arkivere-en-statusside): Tag en side offline uden at slette den.
 :::
 
 ## Sådan fungerer det
@@ -108,7 +108,7 @@ To navneskikke, som er værd at kende, før du begynder at lede:
 - Punktet **Ressourcer** hedder kun **Ressourcer**, når projektet har monitorgrupper slået til. Ellers hedder det **Monitorer**. Det er den samme skærm i begge tilfælde.
 - Der er ingen separat gruppeside. Grupper og ressourcer er lagt sammen, og den gamle rute `/groups` omdirigerer nu til ressourceskærmen.
 
-Uden for en bestemt side viser selve sektionen **Statussider** **Alle statussider**, og en sektion **Mere** indeholder **Meddelelser**. En sammenfoldet sektion **Indstillinger** indeholder **Meddelelsesskabeloner**, **Abonnementsskabeloner**, **Brugerdefinerede felter**, **Ejerregler** og **Etiketregler**, som gælder for hele projektet og deles af alle statussider. En sammenfoldet sektion **Avanceret** indeholder **Arkiveret**: de statussider, du har taget offline (se [Arkivér en statusside](#at-arkivere-en-statusside)).
+Uden for en bestemt side viser selve sektionen **Statussider** **Alle statussider**, og en sektion **Mere** indeholder **Meddelelser**. En sammenfoldet sektion **Indstillinger** indeholder **Meddelelsesskabeloner**, **Abonnementsskabeloner**, **Brugerdefinerede felter**, **Ejerregler** og **Etiketregler**, som gælder for hele projektet og deles af alle statussider. En sammenfoldet sektion **Avanceret** indeholder **Arkiveret**: de statussider, du har taget offline (se [Arkiver en statusside](#at-arkivere-en-statusside)).
 
 **Etiketregler** og **Ejerregler** giver nye statussider etiketter og tildeler dem ejere. En regel har to trin (**Match**, de betingelser en statusside skal opfylde, og derefter **Etiketter** eller **Ejere**, det reglen tilføjer), og dens **Navn** udfyldes ud fra det, du vælger. En ny regel skal tilføje mindst én etiket eller ejer; når du redigerer, bliver der aldrig insisteret på det, og listen markerer en gammel regel, der ikke tilføjer noget, med **Tilføjer intet**. Se [Etiket- og ejerregler](/docs/configuration/label-and-owner-rules).
 
@@ -168,7 +168,7 @@ Hvad besøgende ser, angives på ét kort: **Hvad din statusside viser** under *
 
 Om siden viser et punkt **Abonner** (**Vis abonnentside**, `showSubscriberPageOnStatusPage`, slået til som standard), og hvilke kanaler besøgende kan abonnere på, angives ikke på denne skærm: begge dele står på kortet **Kanaler** under **Abonnenter → Abonnementsindstillinger** (se [Abonnementskanaler](/docs/status-pages/subscribers#abonnementskanaler)).
 
-Under kortet står **Eksportér Statusside som JSON**, der downloader statussidens egne indstillinger til en fil, du kan importere igen, og **Arkivér statusside** (se [Arkivér en statusside](#at-arkivere-en-statusside)). Den samlede oppetidsprocent og nedetidsstatusserne var tidligere to selvstændige kort her, hver bag en knap **Rediger**; nu er de rækker på kortet.
+Under kortet står **Eksportér Statusside som JSON**, der downloader statussidens egne indstillinger til en fil, du kan importere igen, og **Arkiver statusside** (se [Arkiver en statusside](#at-arkivere-en-statusside)). Den samlede oppetidsprocent og nedetidsstatusserne var tidligere to selvstændige kort her, hver bag en knap **Rediger**; nu er de rækker på kortet.
 
 **Hvor farverne er.** Oppetidsbjælkernes farver er ikke her: **Standardbjælkefarve** og farvereglerne for bjælkerne ligger under **Yderligere indstillinger** i **Statussider → din side → Branding → Branding**. Sidens **Tema** (lyst, mørkt eller som hver besøgendes enhed er indstillet) er et kort øverst på samme side. Der findes ingen indstilling for brandfarve; alt ud over disse kontroller klarer du med **Brugerdefineret CSS**.
 
@@ -234,14 +234,14 @@ Hvis du hellere vil hente dataene selv, bygger statussiden på offentlige læse-
 
 ## At arkivere en statusside
 
-Arkivér en statusside for at tage den offline uden at slette den. En arkiveret statusside:
+Arkiver en statusside for at tage den offline uden at slette den. En arkiveret statusside:
 
 - **Er offline.** Dens URL, dens brugerdefinerede domæner, dens indlejrede mærke, dens offentlige API og dens MCP-server svarer, som om siden ikke fandtes ("Status Page not found"), så en besøgende ikke kan skelne en arkiveret side fra en, der aldrig har eksisteret. Dashboardets forhåndsvisningslink holder også op med at virke.
 - **Sender intet til sine abonnenter.** Ingen notifikationer om hændelser, episoder, vedligeholdelse eller meddelelser, ingen rapporter og ingen abonnementsbekræftelser. Ingen kan abonnere på den.
 - **Forsvinder fra listen over statussider.** Du finder den under **Statussider → Avanceret → Arkiveret**.
 - **Beholder alt.** Dens ressourcer, grupper, branding, domæner, private brugere og abonnenter bevares, så når du fjerner den fra arkivet, kommer siden online igen præcis, som den var.
 
-For at arkivere en statusside åbner du den og går til **Avanceret → Avancerede indstillinger → Arkivér statusside**. For at arkivere flere vælger du dem i listen **Statussider** og vælger **Arkiver**. For at få en tilbage åbner du **Statussider → Avanceret → Arkiveret**, vælger den og vælger **Fjern fra arkiv**, eller du åbner den og klikker på **Fjern fra arkiv** i banneret øverst på dens sider.
+For at arkivere en statusside åbner du den og går til **Avanceret → Avancerede indstillinger → Arkiver statusside**. For at arkivere flere vælger du dem i listen **Statussider** og vælger **Arkiver**. For at få en tilbage åbner du **Statussider → Avanceret → Arkiveret**, vælger den og vælger **Fjern fra arkivet**, eller du åbner den og klikker på **Fjern fra arkivet** i banneret øverst på dens sider.
 
 ## Næste trin
 

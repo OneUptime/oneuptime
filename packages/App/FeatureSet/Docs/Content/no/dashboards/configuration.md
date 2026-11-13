@@ -85,12 +85,12 @@ Arkiver et dashbord du ikke bruker lenger, men vil ta vare på. Et arkivert dash
 ```mermaid title="Arkivering beholder alt; sletting fjerner det"
 flowchart TB
     A["I listen Dashbord,<br/>den offentlige<br/>lenken virker"] -->|"Arkiver"| R["Arkivert: borte<br/>fra listen, offentlig<br/>lenke slått av"]
-    R -->|"Fjern fra arkiv"| A
+    R -->|"Fjern fra arkivet"| A
     A -->|"Slett"| X["Borte, sammen med de<br/>egendefinerte domenene"]
     R -->|"Slett"| X
 ```
 
-For å arkivere ett dashbord åpner du det, går til siden **Innstillinger** og klikker på **Arkiver**. For å arkivere flere velger du dem i listen **Dashbord** og velger **Arkiver**. For å hente ett tilbake åpner du **Dashbord → Avansert → Arkivert**, velger det og velger **Fjern fra arkiv**, eller du åpner det og klikker på **Fjern fra arkiv** i banneret øverst på sidene.
+For å arkivere ett dashbord åpner du det, går til siden **Innstillinger** og klikker på **Arkiver**. For å arkivere flere velger du dem i listen **Dashbord** og velger **Arkiver**. For å hente ett tilbake åpner du **Dashbord → Avansert → Arkivert**, velger det og velger **Fjern fra arkivet**, eller du åpner det og klikker på **Fjern fra arkivet** i banneret øverst på sidene.
 
 Arkivering er det reversible alternativet til sletting: bruk det først når du er usikker.
 

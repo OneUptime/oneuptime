@@ -241,7 +241,7 @@ Archiveer een statuspagina om haar offline te halen zonder haar te verwijderen. 
 - **Verdwijnt uit de lijst met statuspagina's.** U vindt haar onder **Statuspagina's → Geavanceerd → Gearchiveerd**.
 - **Bewaart alles.** Haar resources, groepen, huisstijl, domeinen, privégebruikers en abonnees blijven bewaard, dus uit het archief halen zet de pagina precies zoals ze was weer online.
 
-Om een statuspagina te archiveren, opent u haar en gaat u naar **Geavanceerd → Geavanceerde instellingen → Statuspagina archiveren**. Om er meerdere te archiveren, selecteert u ze in de lijst **Statuspagina's** en kiest u **Archiveren**. Om er een terug te halen, opent u **Statuspagina's → Geavanceerd → Gearchiveerd**, selecteert u haar en kiest u **Uit archief halen**, of opent u haar en klikt u op **Uit archief halen** in de banner bovenaan haar pagina's.
+Om een statuspagina te archiveren, opent u haar en gaat u naar **Geavanceerd → Geavanceerde instellingen → Statuspagina archiveren**. Om er meerdere te archiveren, selecteert u ze in de lijst **Statuspagina's** en kiest u **Archiveren**. Om er een terug te halen, opent u **Statuspagina's → Geavanceerd → Gearchiveerd**, selecteert u haar en kiest u **Uit het archief halen**, of opent u haar en klikt u op **Uit het archief halen** in de banner bovenaan haar pagina's.
 
 ## Volgende stappen
 

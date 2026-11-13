@@ -228,7 +228,7 @@ curl -fsSL https://oneuptime.com/docs/static/scripts/host-collector/install.sh |
 ```
 :::
 
-Værten bliver i OneUptime med sin historik: Arkivér eller slet den på listen **Værter**.
+Værten bliver i OneUptime med sin historik: Arkiver eller slet den på listen **Værter**.
 
 ## Fejlfinding
 

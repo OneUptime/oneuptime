@@ -137,7 +137,7 @@ Eine längere Telemetrie-Aufbewahrung hält Aufzeichnungen nicht länger. Zähle
 **Archivieren** blendet eine Anwendung aus **Alle Anwendungen** aus, während sie weiter Telemetrie sammelt. Archivieren Sie eine App, die Sie nicht mehr beobachten, deren Verlauf Sie aber behalten wollen.
 
 - Klicken Sie auf der Seite **Einstellungen** der Anwendung auf **Archivieren**, oder wählen Sie in der Liste mehrere Anwendungen aus und archivieren Sie sie gemeinsam.
-- Archivierte Anwendungen liegen unter **Real User Monitoring → Erweitert → Archiviert**. **Erweitert** ist im Seitenmenü anfangs eingeklappt: Klicken Sie darauf, um **Archiviert** anzuzeigen. Dort holen Sie eine Anwendung mit **Aus Archiv entfernen** zurück, oder mehrere auf einmal.
+- Archivierte Anwendungen liegen unter **Real User Monitoring → Erweitert → Archiviert**. **Erweitert** ist im Seitenmenü anfangs eingeklappt: Klicken Sie darauf, um **Archiviert** anzuzeigen. Dort holen Sie eine Anwendung mit **Aus dem Archiv holen** zurück, oder mehrere auf einmal.
 
 **Anwendung löschen** im Abschnitt **Erweitert** des Seitenmenüs der Anwendung entfernt die Anwendung endgültig. Sendet die App noch Telemetrie, legt ihr nächster Batch die Anwendung neu an, ohne ihre Einstellungen; beenden Sie also zuerst die Instrumentierung.
 

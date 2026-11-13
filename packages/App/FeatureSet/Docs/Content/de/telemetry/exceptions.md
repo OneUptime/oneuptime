@@ -98,11 +98,11 @@ Die Schaltflächen oben auf der Seite der Ausnahme und das Menü ⋯ daneben, ih
 | **Im nächsten Release beheben** | Die Korrektur kommt mit Ihrem nächsten Release. | Sie verlässt die Liste **Nicht behoben**. Vorkommen aus dem Release, in dem sie zuletzt gesehen wurde, öffnen sie nicht wieder, ein Vorkommen aus jedem anderen Release schon. |
 | **Wieder öffnen** | Die Korrektur hat nicht gewirkt. | Sie ist wieder ungelöst. |
 | **Archivieren** | Es ist Rauschen, das Sie nicht beheben wollen. | Sie verlässt die Liste. Neue Vorkommen werden gezählt, lösen aber keine Benachrichtigungen mehr aus. |
-| **Aus Archiv entfernen** | Sie wollen wieder davon hören. | Sie steht wieder in der Liste, in die sie gehört. |
+| **Aus dem Archiv holen** | Sie wollen wieder davon hören. | Sie steht wieder in der Liste, in die sie gehört. |
 
 **Im nächsten Release beheben** steht im Menü ⋯ oben auf der Seite der Ausnahme, im Menü ⋯ der Zeile, unter **Massenaktionen** und auf **Einstellungen**, sofern die Vorkommen der Ausnahme ihr Release nennen: das Ressourcenattribut `service.version`.
 
-**Einstellungen** zeigt, wer die Ausnahme zuletzt als behoben markiert oder archiviert hat, und wann. Ihre Schaltflächen lauten **Als gelöst markieren** oder **Als ungelöst markieren** und **Archivieren** oder **Aus Archiv entfernen**.
+**Einstellungen** zeigt, wer die Ausnahme zuletzt als behoben markiert oder archiviert hat, und wann. Ihre Schaltflächen lauten **Als gelöst markieren** oder **Als ungelöst markieren** und **Archivieren** oder **Aus dem Archiv holen**.
 
 Um mehrere auf einmal zu ändern, haken Sie ihre Zeilen in der Liste an, oder das Kästchen über den Zeilen für alle Ausnahmen auf der Seite, und nutzen Sie dieselben Aktionen unter **Massenaktionen**. Sind alle Ausnahmen der Seite angehakt, bietet die Leiste über den Zeilen an, alle Ausnahmen auszuwählen, die zur Suche und zu den Filtern der Liste passen, auf allen Seiten und bis zu 10.000 auf einmal; eine Aktion fragt dann nach, bevor sie sie ändert. Das Ergebnis zeigt, welche Ausnahmen geändert wurden, welche unverändert blieben und warum.
 

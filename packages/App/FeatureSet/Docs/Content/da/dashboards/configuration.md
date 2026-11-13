@@ -80,17 +80,17 @@ En eksport indeholder dashboardets egne indstillinger, herunder dets widgets og 
 
 ## Arkivering af et dashboard
 
-Arkivér et dashboard, du ikke bruger mere, men vil beholde. Et arkiveret dashboard forsvinder fra listen **Dashboards**, og hvis det er offentligt, holder dets offentlige link op med at virke: dets URL og brugerdefinerede domæner svarer "Dashboard not found". Dets widgets, variabler, branding, domæner og offentlige indstillinger bevares alle, så når du fjerner det fra arkivet, er det præcis, som det var, offentligt link inklusive.
+Arkiver et dashboard, du ikke bruger mere, men vil beholde. Et arkiveret dashboard forsvinder fra listen **Dashboards**, og hvis det er offentligt, holder dets offentlige link op med at virke: dets URL og brugerdefinerede domæner svarer "Dashboard not found". Dets widgets, variabler, branding, domæner og offentlige indstillinger bevares alle, så når du fjerner det fra arkivet, er det præcis, som det var, offentligt link inklusive.
 
 ```mermaid title="Arkivering bevarer alt; sletning fjerner det"
 flowchart TB
     A["I listen Dashboards,<br/>dets offentlige link<br/>virker"] -->|"Arkiver"| R["Arkiveret: skjult<br/>fra listen, offentligt<br/>link slået fra"]
-    R -->|"Fjern fra arkiv"| A
+    R -->|"Fjern fra arkivet"| A
     A -->|"Slet"| X["Væk, sammen med dets<br/>brugerdefinerede domæner"]
     R -->|"Slet"| X
 ```
 
-For at arkivere ét dashboard åbner du det, går til dets side **Indstillinger** og klikker på **Arkiver**. For at arkivere flere vælger du dem i listen **Dashboards** og vælger **Arkiver**. For at hente et tilbage åbner du **Dashboards → Avanceret → Arkiveret**, vælger det og vælger **Fjern fra arkiv**, eller du åbner det og klikker på **Fjern fra arkiv** i banneret øverst på dets sider.
+For at arkivere ét dashboard åbner du det, går til dets side **Indstillinger** og klikker på **Arkiver**. For at arkivere flere vælger du dem i listen **Dashboards** og vælger **Arkiver**. For at hente et tilbage åbner du **Dashboards → Avanceret → Arkiveret**, vælger det og vælger **Fjern fra arkivet**, eller du åbner det og klikker på **Fjern fra arkivet** i banneret øverst på dets sider.
 
 Arkivering er det reversible alternativ til sletning: brug det først, når du er i tvivl.
 

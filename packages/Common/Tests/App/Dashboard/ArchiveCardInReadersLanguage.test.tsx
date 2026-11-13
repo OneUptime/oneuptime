@@ -559,6 +559,46 @@ describe("the German card, as a German reader reads it", () => {
     expect(drawn.title).toBe("SLO aus dem Archiv holen");
     expect(drawn.description).toMatch(/^Dieses SLO ist archiviert: /);
   });
+
+  /*
+   * #7387: the card's button said "Aus dem Archiv holen" under a title that
+   * said "Arbeitsablauf aus Archiv entfernen". Pinned together, as one verb.
+   */
+  test("an archived workflow's card: its title, its button and its dialog say one verb", async () => {
+    await renderCard(OWN_COPY_CASES[0]!, true);
+    const drawn: DrawnCard = readCard();
+
+    expect({
+      title: drawn.title,
+      button: drawn.button,
+      dialogTitle: drawn.dialogTitle,
+      dialogSubmit: drawn.dialogSubmit,
+    }).toEqual({
+      title: "Arbeitsablauf aus dem Archiv holen",
+      button: "Aus dem Archiv holen",
+      dialogTitle: "Arbeitsablauf aus dem Archiv holen",
+      dialogSubmit: "Aus dem Archiv holen",
+    });
+    expect(drawn.description).toContain("aus dem Archiv");
+    expect(drawn.dialogBody).toMatch(
+      /^Diesen Arbeitsablauf aus dem Archiv holen\? /,
+    );
+
+    for (const said of Object.values(drawn)) {
+      expect(said).not.toMatch(/aus Archiv entfernen|Archivierung aufheben/i);
+    }
+  });
+
+  test("an archived service's card: its title and its button say one verb", async () => {
+    await renderCard(SERVICE_CASE, true);
+    const drawn: DrawnCard = readCard();
+
+    expect([drawn.title, drawn.button, drawn.dialogSubmit]).toEqual([
+      "Dienst aus dem Archiv holen",
+      "Aus dem Archiv holen",
+      "Aus dem Archiv holen",
+    ]);
+  });
 });
 
 describe("the Persian card, as a Persian reader reads it", () => {

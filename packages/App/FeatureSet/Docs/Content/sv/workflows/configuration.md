@@ -37,7 +37,7 @@ För att arkivera ett arbetsflöde öppnar du det, går till **Inställningar** 
 
 För att få tillbaka ett arbetsflöde öppnar du **Arbetsflöden → Avancerad → Arkiverad**, markerar det och väljer **Avarkivera**, eller så öppnar du det och klickar på **Avarkivera** i banderollen högst upp på dess sidor.
 
-Arkivering och brytaren **Aktiverad** är två skilda saker. Arkivering rör inte brytaren, så ett arbetsflöde som var påslaget körs igen så snart det avarkiveras, och ett som var avslaget förblir avslaget. Sidan **Arkiverad** visar i sin kolumn **When Unarchived** vilket som är vilket.
+Arkivering och brytaren **Aktiverad** är två skilda saker. Arkivering rör inte brytaren, så ett arbetsflöde som var påslaget körs igen så snart det avarkiveras, och ett som var avslaget förblir avslaget. Sidan **Arkiverad** visar i sin kolumn **När det avarkiveras** vilket som är vilket.
 
 Ett exporterat arbetsflöde tar aldrig med sitt arkiverade läge, så en importerad kopia är aldrig arkiverad.
 

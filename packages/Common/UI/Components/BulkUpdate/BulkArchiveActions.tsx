@@ -163,16 +163,18 @@ function useBulkArchiveActions<T extends BaseModel>(
     config.pluralName || model.pluralName || "resources";
 
   /*
-   * The names as the dialog's title says them ("Archive 3 Services?") and
-   * as its question does ("... the selected services?"), each in the
-   * reader's language: both are keys of the Dashboard's locales.
+   * The names as the dialog's title ("Archive 3 services?") and its
+   * question ("... the selected services?") say them: in the reader's
+   * language - both are keys of the Dashboard's locales - and cased as in
+   * the middle of a sentence, as the Settings card's title says the one
+   * ("Archive service") and the lists with sentences of their own say
+   * theirs ("Archive 3 workflows?"). The title used to say the label as
+   * written ("Archive 3 Services?"), so most languages put it in brackets
+   * after a word of their own, which said the word twice for inventory
+   * items in French ("Archiver 3 éléments (Éléments d'inventaire) ?") and
+   * left the name in the nominative after من in Arabic (#7387).
    */
-  const titleNames: TemplateValues = {
-    itemName: translatableTerm(singularName),
-    itemsName: translatableTerm(pluralName),
-  };
-
-  const sentenceNames: TemplateValues = {
+  const names: TemplateValues = {
     itemName: translatableTerm(singularName, { inSentence: true }),
     itemsName: translatableTerm(pluralName, { inSentence: true }),
   };
@@ -185,7 +187,7 @@ function useBulkArchiveActions<T extends BaseModel>(
     return translator.translatePlural(
       mode === "archive" ? BULK_ARCHIVE_TITLE : BULK_UNARCHIVE_TITLE,
       count,
-      titleNames,
+      names,
     );
   };
 
@@ -204,13 +206,13 @@ function useBulkArchiveActions<T extends BaseModel>(
         isOne
           ? BULK_ARCHIVE_TELEMETRY_SENTENCE_ONE
           : BULK_ARCHIVE_TELEMETRY_SENTENCE,
-        sentenceNames,
+        names,
       );
     }
 
     return translator.translateTemplate(
       isOne ? BULK_UNARCHIVE_SENTENCE_ONE : BULK_UNARCHIVE_SENTENCE,
-      sentenceNames,
+      names,
     );
   };
 

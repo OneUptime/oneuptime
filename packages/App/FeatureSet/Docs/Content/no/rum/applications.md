@@ -137,7 +137,7 @@ En lengre oppbevaring av telemetri beholder ikke opptak lenger. En økts telling
 **Arkiver** skjuler en applikasjon fra **Alle applikasjoner** mens den fortsetter å samle inn telemetri. Arkiver en applikasjon du ikke lenger følger med på, men som du vil beholde historikken til.
 
 - Klikk på **Arkiver** på applikasjonens side **Innstillinger**, eller velg flere applikasjoner i listen og arkiver dem samlet.
-- Arkiverte applikasjoner finnes under **Overvåking av reelle brukere → Avansert → Arkivert**. **Avansert** starter sammenslått i sidemenyen: klikk på den for å vise **Arkivert**. Bruk **Fjern fra arkiv** der på én applikasjon, eller på flere om gangen.
+- Arkiverte applikasjoner finnes under **Overvåking av reelle brukere → Avansert → Arkivert**. **Avansert** starter sammenslått i sidemenyen: klikk på den for å vise **Arkivert**. Bruk **Fjern fra arkivet** der på én applikasjon, eller på flere om gangen.
 
 **Slett applikasjon**, i delen **Avansert** i applikasjonens sidemeny, sletter applikasjonen permanent. Hvis appen fortsatt sender telemetri, gjenoppretter den neste batchen applikasjonen uten noen av innstillingene, så stopp instrumenteringen først.
 

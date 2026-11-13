@@ -24,9 +24,9 @@ Brug kontakten som din «klar til brug»-port:
 
 At slå et workflow fra forhindrer dets trigger i at starte nye kørsler. En kørsel, der allerede er i gang, gør sig færdig, men en kørsel, som dets trigger startede, og som venter ved en **Sleep**-blok, annulleres, når den vågner. Testkørsler fortsætter. For at slå flere til eller fra på én gang markerer du dem i listen **Arbejdsgange** og vælger **Aktivér** eller **Deaktivér** under **Massehandlinger**.
 
-## Arkivér et workflow
+## Arkiver et workflow
 
-Arkivér et workflow, du ikke længere har brug for, men vil beholde. Et arkiveret workflow:
+Arkiver et workflow, du ikke længere har brug for, men vil beholde. Et arkiveret workflow:
 
 - **Kører aldrig**, fra nogen trigger. Manuelle kørsler og **Run just this step**, webhook-kald, tidsplaner, OneUptime-begivenheder, indgående e-mail og andre workflows' **Execute Workflow**-trin afvises alle. Et webhook-kald til et arkiveret workflow får en fejl, der siger, at workflowet er arkiveret.
 - **Stopper kørsler, der venter.** En kørsel, der sover i et **Sleep**-trin, annulleres, når den vågner, og en kørsel, der stod i kø, men endnu ikke var startet, slutter med "Workflow was archived before this run started, so it did not run."
@@ -35,9 +35,9 @@ Arkivér et workflow, du ikke længere har brug for, men vil beholde. Et arkiver
 
 For at arkivere ét workflow åbner du det, går til **Indstillinger** og klikker på **Arkiver**. For at arkivere flere markerer du dem i listen **Arbejdsgange** og vælger **Arkiver**.
 
-For at hente et workflow tilbage åbner du **Arbejdsgange → Avanceret → Arkiveret**, markerer det og vælger **Fjern fra arkiv**, eller du åbner det og klikker på **Fjern fra arkiv** i banneret øverst på dets sider.
+For at hente et workflow tilbage åbner du **Arbejdsgange → Avanceret → Arkiveret**, markerer det og vælger **Fjern fra arkivet**, eller du åbner det og klikker på **Fjern fra arkivet** i banneret øverst på dets sider.
 
-Arkivering og kontakten **Aktiveret** er to forskellige ting. Arkivering rører ikke kontakten, så et workflow, der var slået til, kører igen, så snart det fjernes fra arkivet, og et, der var slået fra, forbliver slået fra. Siden **Arkiveret** viser i sin kolonne **When Unarchived**, hvilket der er hvilket.
+Arkivering og kontakten **Aktiveret** er to forskellige ting. Arkivering rører ikke kontakten, så et workflow, der var slået til, kører igen, så snart det fjernes fra arkivet, og et, der var slået fra, forbliver slået fra. Siden **Arkiveret** viser i sin kolonne **Når det fjernes fra arkivet**, hvilket der er hvilket.
 
 Et eksporteret workflow medbringer aldrig sin arkiverede tilstand, så en importeret kopi er aldrig arkiveret.
 
