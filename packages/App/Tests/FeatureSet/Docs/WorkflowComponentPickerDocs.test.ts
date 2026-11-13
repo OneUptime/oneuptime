@@ -1,5 +1,6 @@
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
 import { drawnDashboardLabel } from "./DocsDashboardLabels";
+import { pathWithArrows } from "./DocsPageShape";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -198,11 +199,15 @@ describe("docs for the Add Component and Add Trigger panels", () => {
 
       /*
        * The panel, its sections and the Incident resource, as the
-       * language's Dashboard draws them.
+       * language's Dashboard draws them, with the arrow the language's pages
+       * draw between them ("←" before a Persian one, #7611).
        */
       expect(line).toContain(drawn(language, "Add Trigger"));
       expect(line).toContain(
-        `${drawn(language, "OneUptime resources")} → ${drawn(language, "Incident")}`,
+        pathWithArrows(
+          [drawn(language, "OneUptime resources"), drawn(language, "Incident")],
+          language,
+        ),
       );
       expect(line).toContain(drawn(language, "Popular"));
       expect(line).not.toContain(drawn(language, "Add Component"));

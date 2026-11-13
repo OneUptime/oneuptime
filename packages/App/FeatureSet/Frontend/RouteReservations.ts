@@ -57,6 +57,27 @@ export const IngestRoutePrefixesToSkip: Array<string> = [
    */
   "/gcp-pubsub",
   /*
+   * The host collector's OpAMP route (/opamp/v1), where every host installed
+   * before the installers moved to /telemetry/opamp/v1 asks for its config.
+   * POST-only: without this, a person checking that address with curl got
+   * the Dashboard's page at HTTP 200, which reads as "the route is there".
+   */
+  "/opamp",
+  /*
+   * The rest of the routes the Telemetry routers serve at the root as well
+   * as under "/telemetry" (TelemetryRouteReservation.test.ts reads them
+   * from the routers, so a new one fails there until it is listed here).
+   * All POST-only today; reserved for the same reason as /fluentd.
+   */
+  "/kubernetes-cost",
+  "/security-events",
+  "/change-events",
+  "/openlineage",
+  "/dbt",
+  "/fivetran",
+  "/airbyte",
+  "/pyroscope",
+  /*
    * Queue-depth and shed-rate endpoints polled by the KEDA metrics-api
    * scaler (HelmChart/.../keda-scaledobjects.yaml). The worker and api tiers
    * only kept working because App/Index.ts mounts AppMetricsAPI on "/"

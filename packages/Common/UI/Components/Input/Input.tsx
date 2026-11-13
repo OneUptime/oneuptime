@@ -101,6 +101,11 @@ export interface ComponentProps {
    */
   readsLeftToRight?: boolean | undefined;
   /*
+   * The placeholder is an identifier (an OIDC claim's name), drawn as
+   * given and never looked up (a form Field's isPlaceholderIdentifier).
+   */
+  isPlaceholderIdentifier?: boolean | undefined;
+  /*
    * A datetime-local field shows and keeps hours and minutes: a time people
    * schedule or record something at is picked to the minute, and a value
    * with seconds made the browser's picker show a seconds column too
@@ -524,7 +529,11 @@ const Input: FunctionComponent<ComponentProps> = (
               ? "1"
               : undefined
           }
-          placeholder={translateString(props.placeholder)}
+          placeholder={
+            props.isPlaceholderIdentifier
+              ? props.placeholder
+              : translateString(props.placeholder)
+          }
           className={className}
           onBlur={() => {
             if (props.onBlur) {

@@ -122,6 +122,7 @@ import ResourceShowcaseCard, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceShowcase/ResourceShowcaseCard";
 import { ResourceShowcase } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceShowcase/ResourceShowcase";
 import {
+  OnboardedProductKey,
   PRODUCT_EXAMPLE_DESCRIPTION,
   ProductKey,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ProductOnboarding/ProductOnboarding";
@@ -660,7 +661,7 @@ describe("About, beside a product page's title", () => {
    * Monitors', On-Call's and Status Pages' jobs have a guide in the docs
    * (#6821): their About links it first, as their empty lists do.
    */
-  test.each([
+  const GUIDED_PRODUCTS: Array<[OnboardedProductKey, string, string]> = [
     [
       ProductKey.Monitors,
       "/docs/guides/website-down",
@@ -672,9 +673,15 @@ describe("About, beside a product page's title", () => {
       "/docs/guides/status-page",
       "/docs/status-pages/index",
     ],
-  ])(
+  ];
+
+  test.each(GUIDED_PRODUCTS)(
     "%s's About links its step-by-step guide, then its documentation",
-    async (product: ProductKey, guidePath: string, docsPath: string) => {
+    async (
+      product: OnboardedProductKey,
+      guidePath: string,
+      docsPath: string,
+    ) => {
       await renderInRouter(<ProductAboutButton product={product} />);
 
       await act(async () => {

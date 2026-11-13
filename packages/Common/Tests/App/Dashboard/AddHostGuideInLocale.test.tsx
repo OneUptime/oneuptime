@@ -220,7 +220,11 @@ describe("Add Host in every language", () => {
     const container: HTMLElement = await renderIn("de");
 
     expect(container.textContent).toContain("6 Themen");
-    expect(container.textContent).toContain("3 Themen");
+    // Troubleshooting: the key refused, OneUptime not found, the host not appearing, a failed config.
+    expect(container.textContent).toContain("4 Themen");
+    expect(container.textContent).toContain(
+      "Der Befehl meldet, dass OneUptime nicht gefunden wurde",
+    );
   });
 
   test("while no key is picked, the note under the command says where the key goes, in the reader's language", async () => {
