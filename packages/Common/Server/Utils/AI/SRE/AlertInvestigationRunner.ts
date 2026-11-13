@@ -760,6 +760,8 @@ export default class AIAlertInvestigationRunner {
         persistAnalysisTldr: true,
         // Who and what it hurts, in numbers, for the folded step.
         recordImpactNumbers: true,
+        // What it saw, kept for a replay after a prompt or model change.
+        recordForReplay: true,
         // Says when the logs stood in the way, with a way forward.
         logStallSubject: {
           subjectType: "alert",
