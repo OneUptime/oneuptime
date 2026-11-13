@@ -133,7 +133,7 @@ describe("GlobalConfig's credential columns", () => {
     }
   });
 
-  test("no request reads, writes or filters any of them: only the server itself", () => {
+  test("no permission reads, writes or filters any of them: only the server and a master admin", () => {
     for (const column of ENCRYPTED) {
       expect([column, model.getColumnAccessControlFor(column)]).toEqual([
         column,
