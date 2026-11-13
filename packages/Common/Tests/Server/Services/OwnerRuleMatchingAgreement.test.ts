@@ -10,9 +10,14 @@ jest.mock("isolated-vm", () => {
 
 import Alert from "../../../Models/DatabaseModels/Alert";
 import AlertOwnerRule from "../../../Models/DatabaseModels/AlertOwnerRule";
+import AlertOwnerTeam from "../../../Models/DatabaseModels/AlertOwnerTeam";
+import AlertOwnerUser from "../../../Models/DatabaseModels/AlertOwnerUser";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import Incident from "../../../Models/DatabaseModels/Incident";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IncidentOwnerRule from "../../../Models/DatabaseModels/IncidentOwnerRule";
+import IncidentOwnerTeam from "../../../Models/DatabaseModels/IncidentOwnerTeam";
+import IncidentOwnerUser from "../../../Models/DatabaseModels/IncidentOwnerUser";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
@@ -20,6 +25,7 @@ import MonitorOwnerUser from "../../../Models/DatabaseModels/MonitorOwnerUser";
 import Project from "../../../Models/DatabaseModels/Project";
 import ServiceOwnerUser from "../../../Models/DatabaseModels/ServiceOwnerUser";
 import Team from "../../../Models/DatabaseModels/Team";
+import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import User from "../../../Models/DatabaseModels/User";
 import AlertFeedService from "../../../Server/Services/AlertFeedService";
 import AlertOnCallRuleEngineService from "../../../Server/Services/AlertOnCallRuleEngineService";
@@ -49,6 +55,7 @@ import ProjectCallSMSConfigService from "../../../Server/Services/ProjectCallSMS
 import ProjectService from "../../../Server/Services/ProjectService";
 import ServiceOwnerTeamService from "../../../Server/Services/ServiceOwnerTeamService";
 import ServiceOwnerUserService from "../../../Server/Services/ServiceOwnerUserService";
+import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import TeamService from "../../../Server/Services/TeamService";
 import UserService from "../../../Server/Services/UserService";
 import WhoIsToldService from "../../../Server/Services/WhoIsToldService";
@@ -105,6 +112,17 @@ import type { SpyInstance } from "jest-mock";
  * gets, and both are what a plain reading of the rules says. Only what a
  * title can say before a check is drawn ({{monitorName}}, {{monitorType}}):
  * what a check reports is not known before one.
+ *
+ * And only the owners the "created" email reaches (#7211): the owners are
+ * drawn from people who left the project or never accepted its invitation
+ * too, and from a team with nobody in it and one with only an invitation
+ * nobody accepted. The real record gets its owner rows through the real
+ * OwnerRuleAssignment (which refuses a person who is not a member), and
+ * whom its email reaches is read by its real findOwners (a team through its
+ * members, everyone who is not a member left out) - or, nobody, the
+ * project's owners, as the email job does. The card names exactly the
+ * people and teams of those, and the people they reach are the people the
+ * email reaches, one by one.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -137,6 +155,51 @@ const TEAMS: Array<string> = [
   "70760000-0000-4000-8000-0000000000f1",
   "70760000-0000-4000-8000-0000000000f2",
 ];
+
+/*
+ * WHO IS IN THE PROJECT, AND IN ITS TEAMS (#7211). Every person of USERS
+ * is a member: an accepted invitation to its Members team. DEPARTED left
+ * the project, and has no row any more; PENDING was invited and never
+ * accepted. EMPTY_TEAM has nobody in it, and PENDING_TEAM only PENDING's
+ * invitation: an email reaches nobody through either. TEAMS[1] also holds
+ * an invitation of USERS[0] not accepted yet - a member through the Members
+ * team, whom the email counts all the same (getUsersInTeams reads pending
+ * invitations too).
+ */
+const DEPARTED: string = "70760000-0000-4000-8000-0000000000e9";
+const PENDING: string = "70760000-0000-4000-8000-0000000000ea";
+const MEMBERS_TEAM: string = "70760000-0000-4000-8000-0000000000f0";
+const EMPTY_TEAM: string = "70760000-0000-4000-8000-0000000000f9";
+const PENDING_TEAM: string = "70760000-0000-4000-8000-0000000000fa";
+
+interface TeamRow {
+  teamId: string;
+  userId: string;
+  isAccepted: boolean;
+}
+
+const TEAM_ROWS: Array<TeamRow> = [
+  ...USERS.map((userId: string): TeamRow => {
+    return { teamId: MEMBERS_TEAM, userId: userId, isAccepted: true };
+  }),
+  { teamId: TEAMS[0]!, userId: USERS[2]!, isAccepted: true },
+  { teamId: TEAMS[1]!, userId: USERS[3]!, isAccepted: true },
+  { teamId: TEAMS[1]!, userId: USERS[0]!, isAccepted: false },
+  { teamId: PENDING_TEAM, userId: PENDING, isAccepted: false },
+];
+
+// The owners drawn: the project's, and those its email does not reach.
+const OWNER_USERS: Array<string> = [...USERS, DEPARTED, PENDING];
+const OWNER_TEAMS: Array<string> = [...TEAMS, EMPTY_TEAM, PENDING_TEAM];
+
+// A plain reading of the same: the project's members, and who is in each team.
+const PROJECT_MEMBERS: Array<string> = [...USERS];
+const TEAM_PEOPLE: Record<string, Array<string>> = {
+  [TEAMS[0]!]: [USERS[2]!],
+  [TEAMS[1]!]: [USERS[3]!, USERS[0]!],
+  [EMPTY_TEAM]: [],
+  [PENDING_TEAM]: [PENDING],
+};
 
 const MONITOR_NAMES: Array<string> = ["Checkout API", "Search API"];
 const TITLE_TEMPLATES: Array<string> = [
@@ -192,6 +255,9 @@ interface CaseFacts {
 // Who is emailed: owners by id, sorted, or the project's owners.
 type Emailed = { users: Array<string>; teams: Array<string> } | string;
 
+// Whom that email reaches, one by one: people by id, sorted, or the project's owners.
+type Reached = Array<string> | string;
+
 function pick<T>(items: Array<T>, random: SeededRandom): T {
   return items[random(items.length)]!;
 }
@@ -232,8 +298,8 @@ function generateRule(random: SeededRandom): RuleFacts {
     monitorLabels: rarelySomeOf(MONITOR_LABELS, 4, random),
     titlePattern: random(3) === 0 ? pick(TITLE_PATTERNS, random) : null,
     namePattern: random(4) === 0 ? pick(NAME_PATTERNS, random) : null,
-    users: someOf(USERS, random),
-    teams: rarelySomeOf(TEAMS, 3, random),
+    users: someOf(OWNER_USERS, random),
+    teams: rarelySomeOf(OWNER_TEAMS, 3, random),
     notifyOwners: random(2) === 0,
     inheritsFromMonitors: random(4) === 0,
     inheritsFromServices: random(4) === 0,
@@ -254,12 +320,12 @@ function generateCase(random: SeededRandom): CaseFacts {
     titleTemplate: pick(TITLE_TEMPLATES, random),
     severity: pick(SEVERITIES, random),
     labels: someOf(RECORD_LABELS, random),
-    criteriaUsers: rarelySomeOf(USERS, 3, random),
-    criteriaTeams: rarelySomeOf(TEAMS, 4, random),
-    deviceUsers: rarelySomeOf(USERS, 5, random),
-    monitorOwners: someOf(USERS, random),
+    criteriaUsers: rarelySomeOf(OWNER_USERS, 3, random),
+    criteriaTeams: rarelySomeOf(OWNER_TEAMS, 4, random),
+    deviceUsers: rarelySomeOf(OWNER_USERS, 5, random),
+    monitorOwners: someOf(OWNER_USERS, random),
     isLinkedToService: random(2) === 0,
-    serviceOwners: someOf(USERS, random),
+    serviceOwners: someOf(OWNER_USERS, random),
     rules: rules,
   };
 }
@@ -341,7 +407,21 @@ function sortedUnique(ids: Array<string>): Array<string> {
   return Array.from(new Set<string>(ids)).sort();
 }
 
-function oracleEmailed(facts: CaseFacts): Emailed {
+// A member of the project: an email reaches them.
+function isMember(userId: string): boolean {
+  return PROJECT_MEMBERS.includes(userId);
+}
+
+// A team an email reaches somebody through: one of its people is a member.
+function teamReaches(teamId: string): boolean {
+  return (TEAM_PEOPLE[teamId] || []).some(isMember);
+}
+
+// Everyone the criteria, the device and the matching rules name.
+function oracleOwners(facts: CaseFacts): {
+  users: Array<string>;
+  teams: Array<string>;
+} {
   const users: Array<string> = [...facts.criteriaUsers, ...facts.deviceUsers];
   const teams: Array<string> = [...facts.criteriaTeams];
 
@@ -354,6 +434,16 @@ function oracleEmailed(facts: CaseFacts): Emailed {
     }
   }
 
+  return { users: users, teams: teams };
+}
+
+// Of those, the owners the "created" email reaches - or, none, the project's owners.
+function oracleEmailed(facts: CaseFacts): Emailed {
+  const owners: { users: Array<string>; teams: Array<string> } =
+    oracleOwners(facts);
+  const users: Array<string> = owners.users.filter(isMember);
+  const teams: Array<string> = owners.teams.filter(teamReaches);
+
   if (users.length === 0 && teams.length === 0) {
     return PROJECT_OWNERS;
   }
@@ -361,7 +451,39 @@ function oracleEmailed(facts: CaseFacts): Emailed {
   return { users: sortedUnique(users), teams: sortedUnique(teams) };
 }
 
-// The rules the card says add owners: those that match and bring somebody.
+// Whom an email to these owners reaches: each person, and each member of each team.
+function reachedBy(emailed: Emailed): Reached {
+  if (typeof emailed === "string") {
+    return emailed;
+  }
+
+  return sortedUnique([
+    ...emailed.users.filter(isMember),
+    ...emailed.teams.flatMap((teamId: string): Array<string> => {
+      return (TEAM_PEOPLE[teamId] || []).filter(isMember);
+    }),
+  ]);
+}
+
+/*
+ * The owner rows the real record gets: every member named - nobody who is
+ * not one is ever made an owner - and every team named, even one the email
+ * reaches nobody through.
+ */
+function oracleOwnerRows(facts: CaseFacts): {
+  users: Array<string>;
+  teams: Array<string>;
+} {
+  const owners: { users: Array<string>; teams: Array<string> } =
+    oracleOwners(facts);
+
+  return {
+    users: sortedUnique(owners.users.filter(isMember)),
+    teams: sortedUnique(owners.teams),
+  };
+}
+
+// The rules the card says add owners: those that match and bring somebody the email reaches.
 function oracleOwnerRules(facts: CaseFacts): Array<string> {
   return facts.rules
     .map((rule: RuleFacts, index: number): string | null => {
@@ -369,7 +491,7 @@ function oracleOwnerRules(facts: CaseFacts): Array<string> {
         oracleRuleOwners(rule, facts);
 
       return oracleMatches(rule, facts) &&
-        (owners.users.length > 0 || owners.teams.length > 0)
+        (owners.users.some(isMember) || owners.teams.some(teamReaches))
         ? ruleId(index)
         : null;
     })
@@ -578,46 +700,205 @@ function cardEmailed(event: WhoIsToldEvent): Emailed {
   };
 }
 
-interface Added {
-  users: Array<string>;
-  teams: Array<string>;
+// An owner row of a real record, as its owner tables hold it.
+interface OwnerRow {
+  recordId: string;
+  userId?: string;
+  teamId?: string;
 }
 
-function recordOwners(
-  added: Added,
-): (...args: Array<unknown>) => Promise<void> {
-  return async (...args: Array<unknown>): Promise<void> => {
-    added.users.push(
-      ...(args[2] as Array<ObjectID>).map((id: ObjectID): string => {
-        return id.toString().toLowerCase();
-      }),
-    );
-    added.teams.push(
-      ...(args[3] as Array<ObjectID>).map((id: ObjectID): string => {
-        return id.toString().toLowerCase();
-      }),
-    );
+// Every owner row written, of every record a case makes.
+let ownerRows: Array<OwnerRow> = [];
+
+function idOf(value: unknown): string {
+  return value ? String(value).toLowerCase() : "";
+}
+
+// A person, by id, as a read of them with their user loads them.
+function personOf(userId: string): User {
+  return withId(new User(), userId);
+}
+
+/*
+ * One of the real record's owner tables, held in memory: what
+ * OwnerRuleAssignment writes (createOwner), and what it and findOwners read
+ * back - the record's rows, or those of the owners asked about.
+ */
+function stubOwnerTable(data: {
+  service: unknown;
+  makeRow: () => BaseModel;
+  recordColumn: "incidentId" | "alertId";
+  ownerColumn: "userId" | "teamId";
+}): void {
+  const table: Record<string, (...args: Array<unknown>) => Promise<unknown>> =
+    data.service as Record<
+      string,
+      (...args: Array<unknown>) => Promise<unknown>
+    >;
+
+  jest.spyOn(table, "findBy").mockImplementation((async (args: {
+    query: Record<string, unknown>;
+  }): Promise<Array<BaseModel>> => {
+    const recordId: string = idOf(args.query[data.recordColumn]);
+    const asked: Array<string> | null = args.query[data.ownerColumn]
+      ? idsAt(args.query, data.ownerColumn)
+      : null;
+
+    return ownerRows
+      .filter((row: OwnerRow): boolean => {
+        const ownerId: string = row[data.ownerColumn] || "";
+
+        return (
+          row.recordId === recordId &&
+          Boolean(ownerId) &&
+          (!asked || asked.includes(ownerId))
+        );
+      })
+      .map((row: OwnerRow): BaseModel => {
+        const ownerId: string = row[data.ownerColumn]!;
+        const item: BaseModel = data.makeRow();
+        item.setColumnValue(data.recordColumn, new ObjectID(row.recordId));
+        item.setColumnValue("projectId", PROJECT_ID);
+        item.setColumnValue(data.ownerColumn, new ObjectID(ownerId));
+
+        if (data.ownerColumn === "userId") {
+          item.setColumnValue("user", personOf(ownerId));
+        }
+
+        return item;
+      });
+  }) as never);
+
+  jest.spyOn(table, "create").mockImplementation((async (createBy: {
+    data: BaseModel;
+  }): Promise<BaseModel> => {
+    ownerRows.push({
+      recordId: idOf(createBy.data.getColumnValue(data.recordColumn)),
+      [data.ownerColumn]: idOf(createBy.data.getColumnValue(data.ownerColumn)),
+    });
+
+    return createBy.data;
+  }) as never);
+}
+
+/*
+ * The project's team member rows (TEAM_ROWS), as TeamMemberService reads
+ * them - every read of who is in a team, and of who is a member of the
+ * project, the card's and the real record's alike.
+ */
+function stubTeamMembers(): void {
+  const matching: (query: Record<string, unknown>) => Array<TeamRow> = (
+    query: Record<string, unknown>,
+  ): Array<TeamRow> => {
+    if (query["projectId"] && idOf(query["projectId"]) !== idOf(PROJECT_ID)) {
+      return [];
+    }
+
+    const teamIds: Array<string> | null = query["teamId"]
+      ? idsAt(query, "teamId")
+      : null;
+    const userIds: Array<string> | null = query["userId"]
+      ? query["userId"] instanceof ObjectID
+        ? [idOf(query["userId"])]
+        : idsAt(query, "userId")
+      : null;
+
+    return TEAM_ROWS.filter((row: TeamRow): boolean => {
+      return (
+        (!teamIds || teamIds.includes(row.teamId)) &&
+        (!userIds || userIds.includes(row.userId)) &&
+        (query["hasAcceptedInvitation"] !== true || row.isAccepted)
+      );
+    });
+  };
+
+  jest.spyOn(TeamMemberService, "findBy").mockImplementation((async (args: {
+    query: Record<string, unknown>;
+  }): Promise<Array<TeamMember>> => {
+    return matching(args.query).map((row: TeamRow): TeamMember => {
+      const member: TeamMember = new TeamMember();
+      member.projectId = PROJECT_ID;
+      member.teamId = new ObjectID(row.teamId);
+      member.userId = new ObjectID(row.userId);
+      member.hasAcceptedInvitation = row.isAccepted;
+      member.user = personOf(row.userId);
+      return member;
+    });
+  }) as never);
+
+  jest.spyOn(TeamMemberService, "countBy").mockImplementation((async (args: {
+    query: Record<string, unknown>;
+  }): Promise<PositiveNumber> => {
+    return new PositiveNumber(matching(args.query).length);
+  }) as never);
+}
+
+// The real record's owner rows, by id, sorted.
+function realOwnerRows(recordId: string): {
+  users: Array<string>;
+  teams: Array<string>;
+} {
+  const rows: Array<OwnerRow> = ownerRows.filter((row: OwnerRow): boolean => {
+    return row.recordId === recordId;
+  });
+
+  return {
+    users: sortedUnique(
+      rows
+        .map((row: OwnerRow): string => {
+          return row.userId || "";
+        })
+        .filter(Boolean),
+    ),
+    teams: sortedUnique(
+      rows
+        .map((row: OwnerRow): string => {
+          return row.teamId || "";
+        })
+        .filter(Boolean),
+    ),
   };
 }
 
-// Who the real record's "created" email reaches.
-function realEmailed(added: Added): Emailed {
-  if (added.users.length === 0 && added.teams.length === 0) {
+/*
+ * Whom the real record's "created" email reaches, as its job reads them
+ * (IncidentOwner:SendCreatedResourceEmail, AlertOwner:...): its owners by
+ * findOwners - or, when that is nobody, the project's owners.
+ */
+async function realReached(
+  kind: "incident" | "alert",
+  recordId: string,
+): Promise<Reached> {
+  const owners: Array<User> =
+    kind === "incident"
+      ? await IncidentService.findOwners(new ObjectID(recordId))
+      : await AlertService.findOwners(new ObjectID(recordId));
+
+  if (owners.length === 0) {
     return PROJECT_OWNERS;
   }
 
-  return { users: sortedUnique(added.users), teams: sortedUnique(added.teams) };
+  return sortedUnique(
+    owners.map((owner: User): string => {
+      return idOf(owner.id);
+    }),
+  );
+}
+
+// Whom the people and teams the card names reach, one by one.
+function cardReached(event: WhoIsToldEvent): Reached {
+  return reachedBy(cardEmailed(event));
 }
 
 interface EngineCase {
   kind: "incident" | "alert";
   label: string;
   stubRules: (rules: Array<RuleFacts>) => void;
-  // Make the real record from the criteria, and apply the owner rules to it.
+  // Make the real record from the criteria, and apply the owner rules to it: its ids.
   makeReal: (data: {
     monitor: Monitor;
     criteria: MonitorCriteriaInstance;
-  }) => Promise<number>;
+  }) => Promise<Array<string>>;
 }
 
 const DATA_TO_PROCESS: ProbeMonitorResponse = {
@@ -642,7 +923,7 @@ const ENGINES: Array<EngineCase> = [
     makeReal: async (data: {
       monitor: Monitor;
       criteria: MonitorCriteriaInstance;
-    }): Promise<number> => {
+    }): Promise<Array<string>> => {
       createdIncidents = [];
 
       await MonitorIncident.criteriaMetCreateIncidentsAndUpdateMonitorStatus({
@@ -660,7 +941,9 @@ const ENGINES: Array<EngineCase> = [
         await IncidentOwnerRuleEngineService.applyRulesToIncident(incident);
       }
 
-      return createdIncidents.length;
+      return createdIncidents.map((incident: Incident): string => {
+        return idOf(incident.id);
+      });
     },
   },
   {
@@ -674,7 +957,7 @@ const ENGINES: Array<EngineCase> = [
     makeReal: async (data: {
       monitor: Monitor;
       criteria: MonitorCriteriaInstance;
-    }): Promise<number> => {
+    }): Promise<Array<string>> => {
       createdAlerts = [];
 
       await MonitorAlert.criteriaMetCreateAlertsAndUpdateMonitorStatus({
@@ -692,14 +975,15 @@ const ENGINES: Array<EngineCase> = [
         await AlertOwnerRuleEngineService.applyRulesToAlert(alert);
       }
 
-      return createdAlerts.length;
+      return createdAlerts.map((alert: Alert): string => {
+        return idOf(alert.id);
+      });
     },
   },
 ];
 
 describe.each(ENGINES)("$label", (engine: EngineCase) => {
   let facts: CaseFacts;
-  let added: Added;
   let errors: SpyInstance<typeof logger.error>;
 
   // Everything both the card and the real record read, as the case says.
@@ -873,21 +1157,44 @@ describe.each(ENGINES)("$label", (engine: EngineCase) => {
       createdAlerts.push(alert);
       return alert;
     }) as never);
-    jest
-      .spyOn(IncidentService, "addOwners")
-      .mockImplementation(recordOwners(added) as never);
-    jest
-      .spyOn(AlertService, "addOwners")
-      .mockImplementation(recordOwners(added) as never);
-    // A new record has no owners yet when its rules run.
-    jest
-      .spyOn(IncidentOwnerUserService, "findBy")
-      .mockResolvedValue([] as never);
-    jest
-      .spyOn(IncidentOwnerTeamService, "findBy")
-      .mockResolvedValue([] as never);
-    jest.spyOn(AlertOwnerUserService, "findBy").mockResolvedValue([] as never);
-    jest.spyOn(AlertOwnerTeamService, "findBy").mockResolvedValue([] as never);
+    /*
+     * Its owners are added by the real IncidentService.addOwners
+     * (AlertService's): rows in its owner tables, held here, for the
+     * members of the project and for teams.
+     */
+    stubOwnerTable({
+      service: IncidentOwnerUserService,
+      makeRow: (): BaseModel => {
+        return new IncidentOwnerUser();
+      },
+      recordColumn: "incidentId",
+      ownerColumn: "userId",
+    });
+    stubOwnerTable({
+      service: IncidentOwnerTeamService,
+      makeRow: (): BaseModel => {
+        return new IncidentOwnerTeam();
+      },
+      recordColumn: "incidentId",
+      ownerColumn: "teamId",
+    });
+    stubOwnerTable({
+      service: AlertOwnerUserService,
+      makeRow: (): BaseModel => {
+        return new AlertOwnerUser();
+      },
+      recordColumn: "alertId",
+      ownerColumn: "userId",
+    });
+    stubOwnerTable({
+      service: AlertOwnerTeamService,
+      makeRow: (): BaseModel => {
+        return new AlertOwnerTeam();
+      },
+      recordColumn: "alertId",
+      ownerColumn: "teamId",
+    });
+    stubTeamMembers();
     jest
       .spyOn(IncidentFeedService, "createIncidentFeedItem")
       .mockResolvedValue(undefined as never);
@@ -903,7 +1210,7 @@ describe.each(ENGINES)("$label", (engine: EngineCase) => {
   }
 
   beforeEach(() => {
-    added = { users: [], teams: [] };
+    ownerRows = [];
     WhoIsToldService.clearCache();
     stubBase();
   });
@@ -932,15 +1239,15 @@ describe.each(ENGINES)("$label", (engine: EngineCase) => {
     let byRules: number = 0;
     let byProject: number = 0;
     let named: number = 0;
+    let leftOut: number = 0;
 
     for (let index: number = 0; index < CASES; index++) {
       facts = generateCase(random);
-      added.users.length = 0;
-      added.teams.length = 0;
+      ownerRows = [];
       stubCase();
 
       const event: WhoIsToldEvent = await cardEvent();
-      const created: number = await engine.makeReal({
+      const created: Array<string> = await engine.makeReal({
         monitor: monitorOf(facts, criteriaOf(facts, engine.kind)),
         criteria: criteriaOf(facts, engine.kind),
       });
@@ -948,7 +1255,10 @@ describe.each(ENGINES)("$label", (engine: EngineCase) => {
       const expected: Emailed = oracleEmailed(facts);
       const context: string = JSON.stringify({ case: index, facts });
 
-      expect({ context, created }).toEqual({ context, created: 1 });
+      expect({ context, created: created.length }).toEqual({
+        context,
+        created: 1,
+      });
       expect({ context, title: event.title }).toEqual({
         context,
         title: renderedTitle(facts),
@@ -957,9 +1267,22 @@ describe.each(ENGINES)("$label", (engine: EngineCase) => {
         context,
         shown: expected,
       });
-      expect({ context, real: realEmailed(added) }).toEqual({
+      // The real record's owners: every member named, and every team, even one with nobody in it.
+      expect({ context, rows: realOwnerRows(created[0]!) }).toEqual({
         context,
-        real: expected,
+        rows: oracleOwnerRows(facts),
+      });
+      // Whom its email reaches is whom the people and teams the card names reach (#7211).
+      expect({ context, reached: cardReached(event) }).toEqual({
+        context,
+        reached: reachedBy(expected),
+      });
+      expect({
+        context,
+        real: await realReached(engine.kind, created[0]!),
+      }).toEqual({
+        context,
+        real: reachedBy(expected),
       });
       expect({
         context,
@@ -980,12 +1303,21 @@ describe.each(ENGINES)("$label", (engine: EngineCase) => {
       } else {
         byProject++;
       }
+
+      const owners: { users: Array<string>; teams: Array<string> } =
+        oracleOwners(facts);
+
+      if (!owners.users.every(isMember) || !owners.teams.every(teamReaches)) {
+        leftOut++;
+      }
     }
 
     // The generator draws every kind of case, so the agreement means something.
     expect(byRules).toBeGreaterThan(CASES / 10);
     expect(byProject).toBeGreaterThan(CASES / 10);
     expect(named).toBeGreaterThan(CASES / 10);
+    // Somebody who left, or a team the email reaches nobody through, among the owners.
+    expect(leftOut).toBeGreaterThan(CASES / 10);
   });
 
   test("a rule that matches only the template as written adds nobody to the real record, and the card names nobody for it", async () => {
@@ -1020,14 +1352,118 @@ describe.each(ENGINES)("$label", (engine: EngineCase) => {
     stubCase();
 
     const event: WhoIsToldEvent = await cardEvent();
-    await engine.makeReal({
+    const created: Array<string> = await engine.makeReal({
       monitor: monitorOf(facts, criteriaOf(facts, engine.kind)),
       criteria: criteriaOf(facts, engine.kind),
     });
 
     expect(event.title).toBe("Checkout API is offline");
     expect(cardEmailed(event)).toBe(PROJECT_OWNERS);
-    expect(realEmailed(added)).toBe(PROJECT_OWNERS);
+    expect(realOwnerRows(created[0]!)).toEqual({ users: [], teams: [] });
+    expect(await realReached(engine.kind, created[0]!)).toBe(PROJECT_OWNERS);
+  });
+
+  /*
+   * #7211, by hand: owners named everywhere a record gets them from, some
+   * of whom the email does not reach - somebody who left, somebody who
+   * never accepted, a team with nobody in it, a team with only an
+   * invitation nobody accepted.
+   */
+  function departedAndEmpty(rules: Array<RuleFacts>): CaseFacts {
+    return {
+      monitorName: "Checkout API",
+      monitorLabels: [],
+      titleTemplate: "Checkout is down",
+      severity: SEVERITIES[0]!,
+      labels: [],
+      criteriaUsers: [DEPARTED, USERS[1]!],
+      criteriaTeams: [EMPTY_TEAM],
+      deviceUsers: [PENDING],
+      monitorOwners: [DEPARTED],
+      isLinkedToService: false,
+      serviceOwners: [],
+      rules: rules,
+    };
+  }
+
+  function ruleAdding(data: {
+    users: Array<string>;
+    teams: Array<string>;
+    inheritsFromMonitors?: boolean;
+  }): RuleFacts {
+    return {
+      severities: [],
+      monitors: [],
+      labels: [],
+      monitorLabels: [],
+      titlePattern: null,
+      namePattern: null,
+      users: data.users,
+      teams: data.teams,
+      notifyOwners: true,
+      inheritsFromMonitors: data.inheritsFromMonitors || false,
+      inheritsFromServices: false,
+    };
+  }
+
+  test("an owner who left, one who never joined, and a team the email reaches nobody through are named by neither; the email reaches the rest", async () => {
+    facts = departedAndEmpty([
+      ruleAdding({ users: [DEPARTED], teams: [PENDING_TEAM] }),
+      ruleAdding({ users: [], teams: [TEAMS[1]!] }),
+    ]);
+    stubCase();
+
+    const event: WhoIsToldEvent = await cardEvent();
+    const created: Array<string> = await engine.makeReal({
+      monitor: monitorOf(facts, criteriaOf(facts, engine.kind)),
+      criteria: criteriaOf(facts, engine.kind),
+    });
+
+    expect(event.owners).toEqual({
+      source: WhoIsToldOwnersSource.Named,
+      userNames: [USERS[1]!],
+      teamNames: [TEAMS[1]!],
+    });
+    // Only the rule that adds a team somebody is in is why anyone is emailed.
+    expect(
+      event.ownerRules.map((rule: WhoIsToldRule): string => {
+        return rule.id;
+      }),
+    ).toEqual([ruleId(1)]);
+    // The real record owns the empty teams, but nobody who is not a member.
+    expect(realOwnerRows(created[0]!)).toEqual({
+      users: [USERS[1]!],
+      teams: sortedUnique([EMPTY_TEAM, PENDING_TEAM, TEAMS[1]!]),
+    });
+    // Its email reaches the person, and the team's members - one with an invitation still pending among them.
+    const reached: Reached = sortedUnique([USERS[1]!, USERS[3]!, USERS[0]!]);
+    expect(cardReached(event)).toEqual(reached);
+    expect(await realReached(engine.kind, created[0]!)).toEqual(reached);
+    expect(errors).not.toHaveBeenCalled();
+  });
+
+  test("when every owner is somebody who left or a team with nobody in it, the card and the email both go to the project's owners", async () => {
+    facts = departedAndEmpty([
+      ruleAdding({ users: [PENDING], teams: [EMPTY_TEAM] }),
+      ruleAdding({ users: [], teams: [], inheritsFromMonitors: true }),
+    ]);
+    facts.criteriaUsers = [DEPARTED];
+    stubCase();
+
+    const event: WhoIsToldEvent = await cardEvent();
+    const created: Array<string> = await engine.makeReal({
+      monitor: monitorOf(facts, criteriaOf(facts, engine.kind)),
+      criteria: criteriaOf(facts, engine.kind),
+    });
+
+    expect(event.owners.source).toBe(WhoIsToldOwnersSource.ProjectOwners);
+    expect(event.ownerRules).toEqual([]);
+    expect(realOwnerRows(created[0]!)).toEqual({
+      users: [],
+      teams: [EMPTY_TEAM],
+    });
+    expect(await realReached(engine.kind, created[0]!)).toBe(PROJECT_OWNERS);
+    expect(errors).not.toHaveBeenCalled();
   });
 
   test("the card adds nobody, attaches nothing and writes no feed: only the real record does", async () => {
@@ -1067,7 +1503,7 @@ describe.each(ENGINES)("$label", (engine: EngineCase) => {
       users: sortedUnique(USERS),
       teams: [TEAMS[0]!],
     });
-    expect(added).toEqual({ users: [], teams: [] });
+    expect(ownerRows).toEqual([]);
     expect(IncidentFeedService.createIncidentFeedItem).not.toHaveBeenCalled();
     expect(AlertFeedService.createAlertFeedItem).not.toHaveBeenCalled();
     expect(IncidentService.create).not.toHaveBeenCalled();
