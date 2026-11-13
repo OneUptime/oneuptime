@@ -15,6 +15,10 @@ import CallAndSmsGatewayTest, {
 } from "../Utils/CallAndSmsGatewayTest";
 import ServerSendingStatus from "../Utils/ServerSending/ServerSendingStatus";
 import { SERVER_CHANNEL_SETUP_SELECT } from "../Utils/ServerSending/ServerChannelSetup";
+import { getServerTwilioEnvironment } from "../Utils/ServerTwilioConfig";
+import ServerTwilioEnvironment, {
+  ServerTwilioEnvironmentAnswer,
+} from "../../Types/CallAndSMS/ServerTwilioEnvironment";
 import { ServerSendingStatusAnswer } from "../../Types/ServerSending/ServerSendingStatus";
 import ServerSetupChecklist from "../Utils/ServerSetup/ServerSetupChecklist";
 import ServerSetupChecklistUtil, {
@@ -378,6 +382,35 @@ export default class GlobalConfigAPI extends BaseAPI<
             responseStatusCode: result.statusCode || null,
             statusMessage: result.message,
           });
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * GET /global-config/twilio-environment - whether the GLOBAL_TWILIO_
+     * environment variables set the server's Twilio account (#7515), the
+     * account they set, and what is wrong with them
+     * (Types/CallAndSMS/ServerTwilioEnvironment). Admin Dashboard >
+     * Settings > Call and SMS shows it in place of the saved account, with
+     * no Edit button. Never the auth token: only whether there is one.
+     *
+     * Master admins only, as the saved account is theirs to read.
+     */
+    this.router.get(
+      `${new this.entityType().getCrudApiPath()?.toString()}/twilio-environment`,
+      MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const answer: ServerTwilioEnvironmentAnswer =
+            ServerTwilioEnvironment.toAnswer(getServerTwilioEnvironment());
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            answer as unknown as JSONObject,
+          );
         } catch (err) {
           return next(err);
         }

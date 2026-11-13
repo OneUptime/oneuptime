@@ -258,10 +258,6 @@ const SITES: Readonly<Record<string, NounSite>> = {
     inSentence:
       "The agent's name in the connection guide's sentences (\"Set up the {{agentName}}\").",
   },
-  [`${DASHBOARD}/Components/Topology/ServiceMapViewModel.ts`]: {
-    inEnglish:
-      'A count\'s noun after its number ("3 Docker hosts"), English words that are not looked up.',
-  },
   [`${DASHBOARD}/Pages/Ceph/View/Owners.tsx`]: OWNERS_CARD,
   [`${DASHBOARD}/Pages/Ceph/View/Settings.tsx`]: MORE_SETTINGS,
   [`${DASHBOARD}/Pages/Docker/View/Owners.tsx`]: OWNERS_CARD,
