@@ -3,7 +3,7 @@ import { AddProductFeedback1809123000000 } from "../../../../Server/Infrastructu
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import ProductFeedback from "../../../../Models/DatabaseModels/ProductFeedback";
 import { getTableColumns } from "../../../../Types/Database/TableColumn";
-import { MigrationInterface, QueryRunner } from "typeorm";
+import { QueryRunner } from "typeorm";
 import { describe, expect, test } from "@jest/globals";
 
 /*
