@@ -1315,17 +1315,19 @@ class IncidentGroupingEngineServiceClass {
     let connectedIncidentsWaiting: Array<Incident> = incidentsWaiting;
 
     if (data.connectedServiceIds && incidentsWaiting.length > 0) {
-      const servicesByIncident: Map<string, Set<string>> =
-        await ConnectedServices.readServicesOfIncidents({
-          projectId: projectId,
-          incidentIds: incidentsWaiting
-            .map((waiting: Incident): ObjectID | undefined => {
-              return waiting.id || undefined;
-            })
-            .filter((id: ObjectID | undefined): id is ObjectID => {
-              return Boolean(id);
-            }),
-        });
+      const servicesByIncident: Map<
+        string,
+        Set<string>
+      > = await ConnectedServices.readServicesOfIncidents({
+        projectId: projectId,
+        incidentIds: incidentsWaiting
+          .map((waiting: Incident): ObjectID | undefined => {
+            return waiting.id || undefined;
+          })
+          .filter((id: ObjectID | undefined): id is ObjectID => {
+            return Boolean(id);
+          }),
+      });
 
       connectedIncidentsWaiting = incidentsWaiting.filter(
         (waiting: Incident): boolean => {

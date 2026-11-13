@@ -327,10 +327,10 @@ export default class ServiceKnowledge {
       }),
     ]);
 
-    const casesByService: Map<
+    const casesByService: Map<string, Array<LearnedCase>> = new Map<
       string,
       Array<LearnedCase>
-    > = new Map<string, Array<LearnedCase>>();
+    >();
 
     const learn: (
       records: Array<RecordFacts>,
@@ -362,8 +362,7 @@ export default class ServiceKnowledge {
         };
 
         for (const serviceId of record.serviceIds) {
-          const cases: Array<LearnedCase> =
-            casesByService.get(serviceId) || [];
+          const cases: Array<LearnedCase> = casesByService.get(serviceId) || [];
           cases.push(learned);
           casesByService.set(serviceId, cases);
         }
@@ -556,21 +555,24 @@ export default class ServiceKnowledge {
       monitors: { _id: true },
     };
 
-    const read: (relation: Record<string, unknown>) => Promise<Array<Incident>> =
-      async (relation: Record<string, unknown>): Promise<Array<Incident>> => {
-        return await IncidentService.findBy({
-          query: {
-            projectId: data.projectId,
-            currentIncidentStateId: QueryHelper.any(resolvedStateIds),
-            ...relation,
-          } as never,
-          select: select as never,
-          sort: { createdAt: SortOrder.Descending },
-          limit: MAX_RECORDS_READ,
-          skip: 0,
-          props: { isRoot: true },
-        });
-      };
+    const read: (
+      relation: Record<string, unknown>,
+    ) => Promise<Array<Incident>> = async (
+      relation: Record<string, unknown>,
+    ): Promise<Array<Incident>> => {
+      return await IncidentService.findBy({
+        query: {
+          projectId: data.projectId,
+          currentIncidentStateId: QueryHelper.any(resolvedStateIds),
+          ...relation,
+        } as never,
+        select: select as never,
+        sort: { createdAt: SortOrder.Descending },
+        limit: MAX_RECORDS_READ,
+        skip: 0,
+        props: { isRoot: true },
+      });
+    };
 
     const [linked, byMonitor]: [Array<Incident>, Array<Incident>] =
       await Promise.all([
@@ -650,29 +652,33 @@ export default class ServiceKnowledge {
       services: { _id: true },
     };
 
-    const read: (relation: Record<string, unknown>) => Promise<Array<Alert>> =
-      async (relation: Record<string, unknown>): Promise<Array<Alert>> => {
-        return await AlertService.findBy({
-          query: {
-            projectId: data.projectId,
-            currentAlertStateId: QueryHelper.any(resolvedStateIds),
-            ...relation,
-          } as never,
-          select: select as never,
-          sort: { createdAt: SortOrder.Descending },
-          limit: MAX_RECORDS_READ,
-          skip: 0,
-          props: { isRoot: true },
-        });
-      };
+    const read: (
+      relation: Record<string, unknown>,
+    ) => Promise<Array<Alert>> = async (
+      relation: Record<string, unknown>,
+    ): Promise<Array<Alert>> => {
+      return await AlertService.findBy({
+        query: {
+          projectId: data.projectId,
+          currentAlertStateId: QueryHelper.any(resolvedStateIds),
+          ...relation,
+        } as never,
+        select: select as never,
+        sort: { createdAt: SortOrder.Descending },
+        limit: MAX_RECORDS_READ,
+        skip: 0,
+        props: { isRoot: true },
+      });
+    };
 
-    const [linked, byMonitor]: [Array<Alert>, Array<Alert>] =
-      await Promise.all([
+    const [linked, byMonitor]: [Array<Alert>, Array<Alert>] = await Promise.all(
+      [
         read({ services: QueryHelper.inRelationArray(data.serviceIds) }),
         data.monitorIds.length > 0
           ? read({ monitorId: QueryHelper.any(data.monitorIds) })
           : Promise.resolve([]),
-      ]);
+      ],
+    );
 
     const facts: Map<string, RecordFacts> = new Map<string, RecordFacts>();
 
@@ -745,10 +751,7 @@ export default class ServiceKnowledge {
     first: Array<Service>,
     second: Array<Service>,
   ): Array<NamedService> {
-    const services: Map<string, NamedService> = new Map<
-      string,
-      NamedService
-    >();
+    const services: Map<string, NamedService> = new Map<string, NamedService>();
 
     for (const service of [...first, ...second]) {
       const id: string = ServiceKnowledge.key(service.id);

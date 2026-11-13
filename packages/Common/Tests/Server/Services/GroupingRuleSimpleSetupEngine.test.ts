@@ -452,7 +452,11 @@ describe("the Connected Services card's promise", () => {
     });
 
     expect(
-      await incidentEngine.buildGroupingKey(incidentNamed("A"), rule, onService),
+      await incidentEngine.buildGroupingKey(
+        incidentNamed("A"),
+        rule,
+        onService,
+      ),
     ).toBe(CONNECTED_SERVICES_KEY_PART);
     expect(
       await incidentEngine.buildGroupingKey(
@@ -517,8 +521,9 @@ describe("the Connected Services card's promise", () => {
   });
 
   test("a rule that does not group by connected services never reads services", async () => {
-    const readForIncident: SpyInstance<typeof ConnectedServices.readForIncident> =
-      jest.spyOn(ConnectedServices, "readForIncident");
+    const readForIncident: SpyInstance<
+      typeof ConnectedServices.readForIncident
+    > = jest.spyOn(ConnectedServices, "readForIncident");
 
     expect(
       await incidentEngine.buildGroupingKey(

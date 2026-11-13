@@ -111,11 +111,13 @@ export default class ConnectedServices {
     projectId: ObjectID;
     alertId: ObjectID;
   }): Promise<RecordServices> {
-    const servicesByAlert: Map<string, Set<string>> =
-      await ConnectedServices.readServicesOfAlerts({
-        projectId: data.projectId,
-        alertIds: [data.alertId],
-      });
+    const servicesByAlert: Map<
+      string,
+      Set<string>
+    > = await ConnectedServices.readServicesOfAlerts({
+      projectId: data.projectId,
+      alertIds: [data.alertId],
+    });
 
     return await ConnectedServices.withConnected({
       projectId: data.projectId,
@@ -131,11 +133,13 @@ export default class ConnectedServices {
     projectId: ObjectID;
     incidentId: ObjectID;
   }): Promise<RecordServices> {
-    const servicesByIncident: Map<string, Set<string>> =
-      await ConnectedServices.readServicesOfIncidents({
-        projectId: data.projectId,
-        incidentIds: [data.incidentId],
-      });
+    const servicesByIncident: Map<
+      string,
+      Set<string>
+    > = await ConnectedServices.readServicesOfIncidents({
+      projectId: data.projectId,
+      incidentIds: [data.incidentId],
+    });
 
     return await ConnectedServices.withConnected({
       projectId: data.projectId,
@@ -203,17 +207,19 @@ export default class ConnectedServices {
       props: { isRoot: true },
     });
 
-    const servicesByMonitor: Map<string, Set<string>> =
-      await ConnectedServices.readServicesOfMonitors({
-        projectId: data.projectId,
-        monitorIds: alerts
-          .map((alert: Alert): ObjectID | undefined => {
-            return alert.monitorId || undefined;
-          })
-          .filter((id: ObjectID | undefined): id is ObjectID => {
-            return Boolean(id);
-          }),
-      });
+    const servicesByMonitor: Map<
+      string,
+      Set<string>
+    > = await ConnectedServices.readServicesOfMonitors({
+      projectId: data.projectId,
+      monitorIds: alerts
+        .map((alert: Alert): ObjectID | undefined => {
+          return alert.monitorId || undefined;
+        })
+        .filter((id: ObjectID | undefined): id is ObjectID => {
+          return Boolean(id);
+        }),
+    });
 
     for (const alert of alerts) {
       const alertId: string = ConnectedServices.key(alert.id);
@@ -274,19 +280,21 @@ export default class ConnectedServices {
       props: { isRoot: true },
     });
 
-    const servicesByMonitor: Map<string, Set<string>> =
-      await ConnectedServices.readServicesOfMonitors({
-        projectId: data.projectId,
-        monitorIds: incidents.flatMap((incident: Incident): Array<ObjectID> => {
-          return (incident.monitors || [])
-            .map((monitor: Monitor): ObjectID | undefined => {
-              return monitor.id || undefined;
-            })
-            .filter((id: ObjectID | undefined): id is ObjectID => {
-              return Boolean(id);
-            });
-        }),
-      });
+    const servicesByMonitor: Map<
+      string,
+      Set<string>
+    > = await ConnectedServices.readServicesOfMonitors({
+      projectId: data.projectId,
+      monitorIds: incidents.flatMap((incident: Incident): Array<ObjectID> => {
+        return (incident.monitors || [])
+          .map((monitor: Monitor): ObjectID | undefined => {
+            return monitor.id || undefined;
+          })
+          .filter((id: ObjectID | undefined): id is ObjectID => {
+            return Boolean(id);
+          });
+      }),
+    });
 
     for (const incident of incidents) {
       const incidentId: string = ConnectedServices.key(incident.id);
@@ -460,21 +468,25 @@ export default class ConnectedServices {
         props: { isRoot: true },
       });
 
-    const servicesByAlert: Map<string, Set<string>> =
-      await ConnectedServices.readServicesOfAlerts({
-        projectId: data.projectId,
-        alertIds: members
-          .map((member: AlertEpisodeMember): ObjectID | undefined => {
-            return member.alertId || undefined;
-          })
-          .filter((id: ObjectID | undefined): id is ObjectID => {
-            return Boolean(id);
-          }),
-      });
+    const servicesByAlert: Map<
+      string,
+      Set<string>
+    > = await ConnectedServices.readServicesOfAlerts({
+      projectId: data.projectId,
+      alertIds: members
+        .map((member: AlertEpisodeMember): ObjectID | undefined => {
+          return member.alertId || undefined;
+        })
+        .filter((id: ObjectID | undefined): id is ObjectID => {
+          return Boolean(id);
+        }),
+    });
 
     return ConnectedServices.byEpisode(
       members.map(
-        (member: AlertEpisodeMember): { episodeId: string; recordId: string } => {
+        (
+          member: AlertEpisodeMember,
+        ): { episodeId: string; recordId: string } => {
           return {
             episodeId: ConnectedServices.key(member.alertEpisodeId),
             recordId: ConnectedServices.key(member.alertId),
@@ -508,17 +520,19 @@ export default class ConnectedServices {
         props: { isRoot: true },
       });
 
-    const servicesByIncident: Map<string, Set<string>> =
-      await ConnectedServices.readServicesOfIncidents({
-        projectId: data.projectId,
-        incidentIds: members
-          .map((member: IncidentEpisodeMember): ObjectID | undefined => {
-            return member.incidentId || undefined;
-          })
-          .filter((id: ObjectID | undefined): id is ObjectID => {
-            return Boolean(id);
-          }),
-      });
+    const servicesByIncident: Map<
+      string,
+      Set<string>
+    > = await ConnectedServices.readServicesOfIncidents({
+      projectId: data.projectId,
+      incidentIds: members
+        .map((member: IncidentEpisodeMember): ObjectID | undefined => {
+          return member.incidentId || undefined;
+        })
+        .filter((id: ObjectID | undefined): id is ObjectID => {
+          return Boolean(id);
+        }),
+    });
 
     return ConnectedServices.byEpisode(
       members.map(

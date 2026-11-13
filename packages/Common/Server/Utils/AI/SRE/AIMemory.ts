@@ -453,22 +453,20 @@ export default class AIMemory {
     );
 
     // A cause no one recorded may be OneUptime AI's analysis, confirmed.
-    const analyses: Map<string, string> = await AIMemory.readConfirmedAnalyses(
-      {
-        projectId: data.projectId,
-        kind: "incident",
-        ids: eligible
-          .filter((incident: Incident): boolean => {
-            return !incident.rootCause?.trim();
-          })
-          .map((incident: Incident): ObjectID | undefined => {
-            return incident.id || undefined;
-          })
-          .filter((id: ObjectID | undefined): id is ObjectID => {
-            return Boolean(id);
-          }),
-      },
-    );
+    const analyses: Map<string, string> = await AIMemory.readConfirmedAnalyses({
+      projectId: data.projectId,
+      kind: "incident",
+      ids: eligible
+        .filter((incident: Incident): boolean => {
+          return !incident.rootCause?.trim();
+        })
+        .map((incident: Incident): ObjectID | undefined => {
+          return incident.id || undefined;
+        })
+        .filter((id: ObjectID | undefined): id is ObjectID => {
+          return Boolean(id);
+        }),
+    });
 
     const known: Array<{
       incident: Incident;
@@ -517,7 +515,11 @@ export default class AIMemory {
       score: number;
     }> = known.map(
       (
-        item: { incident: Incident; cause: string; isConfirmedAnalysis: boolean },
+        item: {
+          incident: Incident;
+          cause: string;
+          isConfirmedAnalysis: boolean;
+        },
         index: number,
       ) => {
         const reasons: Array<string> = [];
@@ -576,11 +578,9 @@ export default class AIMemory {
       .filter((item: { match: MatchReasons }): boolean => {
         return AIMemory.isRelevant(item.match);
       })
-      .sort(
-        (a: { score: number }, b: { score: number }): number => {
-          return b.score - a.score;
-        },
-      );
+      .sort((a: { score: number }, b: { score: number }): number => {
+        return b.score - a.score;
+      });
 
     const isFallback: boolean = relevant.length === 0;
     const chosen: typeof scored = (isFallback ? scored : relevant).slice(
@@ -747,22 +747,20 @@ export default class AIMemory {
     const alerts: Array<Alert> = Array.from(byId.values());
 
     // A cause no one recorded may be OneUptime AI's analysis, confirmed.
-    const analyses: Map<string, string> = await AIMemory.readConfirmedAnalyses(
-      {
-        projectId: data.projectId,
-        kind: "alert",
-        ids: alerts
-          .filter((alert: Alert): boolean => {
-            return !alert.rootCause?.trim();
-          })
-          .map((alert: Alert): ObjectID | undefined => {
-            return alert.id || undefined;
-          })
-          .filter((id: ObjectID | undefined): id is ObjectID => {
-            return Boolean(id);
-          }),
-      },
-    );
+    const analyses: Map<string, string> = await AIMemory.readConfirmedAnalyses({
+      projectId: data.projectId,
+      kind: "alert",
+      ids: alerts
+        .filter((alert: Alert): boolean => {
+          return !alert.rootCause?.trim();
+        })
+        .map((alert: Alert): ObjectID | undefined => {
+          return alert.id || undefined;
+        })
+        .filter((id: ObjectID | undefined): id is ObjectID => {
+          return Boolean(id);
+        }),
+    });
 
     const causeOf: (alert: Alert) => string = (alert: Alert): string => {
       return (

@@ -56,6 +56,14 @@ const CONCEPT_WEIGHT: number = 2;
 // What a concept term starts with, so it can never collide with a word.
 const CONCEPT_PREFIX: string = "#";
 
+// The shapes of a word the stemmer and the word filter tell apart.
+const LATIN_WORD: RegExp = /^[a-z]+$/;
+const LATIN_LETTERS_AND_DIGITS: RegExp = /^[a-z0-9]+$/;
+const ONLY_DIGITS: RegExp = /^\p{N}+$/u;
+const ANY_DIGIT: RegExp = /\p{N}/gu;
+// The consonants a suffix doubles: "stopped" -> "stop", "running" -> "run".
+const DOUBLED_CONSONANT: RegExp = /[bcdfgkmnprt]/;
+
 export interface MeaningConcept {
   id: string;
   // How a reader names it, in a "why this matched" line.
@@ -100,13 +108,14 @@ export const MEANING_CONCEPTS: ReadonlyArray<MeaningConcept> = [
   {
     id: "connection-reset",
     label: "connection reset",
-    pattern: /\b(econnreset|connection reset|reset by peer|broken pipe|epipe)\b/,
+    pattern:
+      /\b(econnreset|connection reset|reset by peer|broken pipe|epipe)\b/,
   },
   {
     id: "timeout",
     label: "timeout",
     pattern:
-      /\b(timeout|timeouts|time out|timed out|deadline exceeded|etimedout|504)\b/,
+      /\b(timeout|timeouts|time out|timed out|deadline exceeded|etimedout|504s?)\b/,
   },
   {
     id: "slow",
@@ -118,18 +127,18 @@ export const MEANING_CONCEPTS: ReadonlyArray<MeaningConcept> = [
     id: "server-errors",
     label: "server errors (5xx)",
     pattern:
-      /\b(5\d\d|5xx|internal server error|server error|server errors|bad gateway|service unavailable)\b/,
+      /\b(5\d\ds?|5xxs?|internal server error|server error|server errors|bad gateway|service unavailable)\b/,
   },
   {
     id: "not-found",
     label: "not found (404)",
-    pattern: /\b(404|not found)\b/,
+    pattern: /\b(404s?|not found)\b/,
   },
   {
     id: "rate-limited",
     label: "rate limiting",
     pattern:
-      /\b(429|rate[ -]?limit|rate[ -]?limited|rate[ -]?limiting|too many requests|quota exceeded|quota exhausted)\b/,
+      /\b(429s?|rate[ -]?limit|rate[ -]?limited|rate[ -]?limiting|too many requests|quota exceeded|quota exhausted)\b/,
   },
   {
     id: "crash-loop",
@@ -152,8 +161,7 @@ export const MEANING_CONCEPTS: ReadonlyArray<MeaningConcept> = [
   {
     id: "certificate",
     label: "TLS certificate",
-    pattern:
-      /\b(certificate|certificates|cert|certs|tls|ssl|x509|handshake)\b/,
+    pattern: /\b(certificate|certificates|cert|certs|tls|ssl|x509|handshake)\b/,
   },
   {
     id: "dns",
@@ -515,7 +523,8 @@ export default class MeaningMatch {
   public static isMatch(score: MeaningScore): boolean {
     return (
       score.similarity >= MIN_MEANING_SIMILARITY &&
-      (score.sharedConceptCount > 0 || score.sharedWordCount >= MIN_SHARED_WORDS)
+      (score.sharedConceptCount > 0 ||
+        score.sharedWordCount >= MIN_SHARED_WORDS)
     );
   }
 
@@ -542,7 +551,7 @@ export default class MeaningMatch {
     }
 
     // Only Latin words have the suffixes below.
-    if (!/^[a-z]+$/.test(word) || word.length <= 3) {
+    if (!LATIN_WORD.test(word) || word.length <= 3) {
       return word;
     }
 
@@ -603,18 +612,18 @@ export default class MeaningMatch {
     }
 
     // A number, or what only a machine reads: "7d9f8b6c4", "x2k9p".
-    if (/^\p{N}+$/u.test(word)) {
+    if (ONLY_DIGITS.test(word)) {
       return false;
     }
 
-    const digits: number = (word.match(/\p{N}/gu) || []).length;
+    const digits: number = (word.match(ANY_DIGIT) || []).length;
 
     if (digits > 0 && (digits >= 2 || word.length > 5)) {
       return false;
     }
 
     // A Latin word of one or two letters says little; a CJK one may say a lot.
-    if (/^[a-z0-9]+$/.test(word)) {
+    if (LATIN_LETTERS_AND_DIGITS.test(word)) {
       return word.length >= 3;
     }
 
@@ -628,7 +637,7 @@ export default class MeaningMatch {
     if (
       stem.length >= 4 &&
       last === stem.charAt(stem.length - 2) &&
-      /[bcdfgkmnprt]/.test(last)
+      DOUBLED_CONSONANT.test(last)
     ) {
       return stem.slice(0, -1);
     }

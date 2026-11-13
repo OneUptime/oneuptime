@@ -929,12 +929,10 @@ class AlertGroupingEngineServiceClass {
     const connectedEpisodeId: ObjectID | null =
       ConnectedServices.pickConnectedEpisodeId({
         episodeIds: episodeIds,
-        servicesByEpisode: await ConnectedServices.readServicesOfAlertEpisodes(
-          {
-            projectId: projectId,
-            episodeIds: episodeIds,
-          },
-        ),
+        servicesByEpisode: await ConnectedServices.readServicesOfAlertEpisodes({
+          projectId: projectId,
+          episodeIds: episodeIds,
+        }),
         connectedServiceIds: connectedServiceIds,
       });
 
@@ -1210,17 +1208,19 @@ class AlertGroupingEngineServiceClass {
     let connectedAlertsWaiting: Array<Alert> = alertsWaiting;
 
     if (data.connectedServiceIds && alertsWaiting.length > 0) {
-      const servicesByAlert: Map<string, Set<string>> =
-        await ConnectedServices.readServicesOfAlerts({
-          projectId: projectId,
-          alertIds: alertsWaiting
-            .map((waiting: Alert): ObjectID | undefined => {
-              return waiting.id || undefined;
-            })
-            .filter((id: ObjectID | undefined): id is ObjectID => {
-              return Boolean(id);
-            }),
-        });
+      const servicesByAlert: Map<
+        string,
+        Set<string>
+      > = await ConnectedServices.readServicesOfAlerts({
+        projectId: projectId,
+        alertIds: alertsWaiting
+          .map((waiting: Alert): ObjectID | undefined => {
+            return waiting.id || undefined;
+          })
+          .filter((id: ObjectID | undefined): id is ObjectID => {
+            return Boolean(id);
+          }),
+      });
 
       connectedAlertsWaiting = alertsWaiting.filter(
         (waiting: Alert): boolean => {
