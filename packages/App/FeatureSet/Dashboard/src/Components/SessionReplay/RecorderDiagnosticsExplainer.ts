@@ -364,6 +364,25 @@ export const RECORDER_DEBUG_CODE_COPY: Record<string, RecorderDebugCodeCopy> = {
       "The user came back after recording paused for inactivity, and recording resumed in the same session on a fresh snapshot.",
     ),
   },
+  /*
+   * The page's own OneUptimeReplay.pause() and resume() (the Dashboard
+   * pauses on every page but its first-run ones, #6834). Neither is an
+   * outcome: a pause the page meant is no fault, and as the headline it
+   * would outlast a resume after it.
+   */
+  "recording-paused-page": {
+    explanation: translationKey(
+      "The page paused recording with OneUptimeReplay.pause(). Nothing is captured until the page calls OneUptimeReplay.resume(); the visitor's input keeps the session open but does not resume recording.",
+    ),
+    action: translationKey(
+      "If this page should be recorded, find where it calls OneUptimeReplay.pause().",
+    ),
+  },
+  "recording-resumed-page": {
+    explanation: translationKey(
+      "The page resumed recording with OneUptimeReplay.resume(). Recording goes on in the same session from a fresh snapshot, or in a new session if that one ended while recording was paused.",
+    ),
+  },
   "recorder-stopped": {
     explanation: translationKey("Recording stopped on this page."),
   },

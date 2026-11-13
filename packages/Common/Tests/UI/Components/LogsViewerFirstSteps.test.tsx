@@ -77,6 +77,8 @@ import {
   LOGS_TABLE_EMPTY_HINT,
   LOGS_TABLE_EMPTY_TITLE,
   LOGS_TABLE_TEST_ID,
+  LogsEmptyMessage,
+  writeLogsEmptyMessage,
 } from "../../../UI/Components/LogsViewer/components/LogsTable";
 import { LOGS_VIEWER_TOOLBAR_TEST_ID } from "../../../UI/Components/LogsViewer/components/LogsViewerToolbar";
 import { ActiveFilter } from "../../../UI/Components/TelemetryViewer/types";
@@ -375,13 +377,23 @@ describe("getLogsEmptyMessage", () => {
   });
 
   test("a page that hands over no line, nothing narrowing: its window", () => {
-    expect(
-      getLogsEmptyMessage({
-        noLogsMessage: undefined,
-        isNarrowedByReader: false,
-        timeRange: HOUR,
-      }),
-    ).toBe(getEmptyMessageWithTimeRange(HOUR));
+    const message: LogsEmptyMessage = getLogsEmptyMessage({
+      noLogsMessage: undefined,
+      isNarrowedByReader: false,
+      timeRange: HOUR,
+    });
+
+    expect(message).toEqual(getEmptyMessageWithTimeRange(HOUR));
+    // A sentence with the window as its value, written where it is drawn.
+    expect(writeLogsEmptyMessage(message)).toBe(
+      "Time range: past 1 hour. Try adjusting filters or expanding the time range.",
+    );
+  });
+
+  test("a sentence with values is never taken for the title said again", () => {
+    const message: LogsEmptyMessage = getEmptyMessageWithTimeRange(HOUR);
+
+    expect(getLogsTableEmptyHint(message)).toBe(message);
   });
 });
 

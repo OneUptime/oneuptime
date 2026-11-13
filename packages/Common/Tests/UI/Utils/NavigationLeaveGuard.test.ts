@@ -1,3 +1,4 @@
+// UX rule: Docs/ux/README.md#dialogs-and-confirmations
 import Route from "../../../Types/API/Route";
 import LeaveGuard, { LeavePageFunction } from "../../../UI/Utils/LeaveGuard";
 import Navigation from "../../../UI/Utils/Navigation";

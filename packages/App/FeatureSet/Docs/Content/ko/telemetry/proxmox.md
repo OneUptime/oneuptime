@@ -410,6 +410,10 @@ bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-p
 API 토큰이 잘못되었거나 권한이 부족합니다. 토큰 ID 형식(`user@realm!tokenname`), 시크릿, 그리고 토큰과 그 사용자에 대해 경로 `/`에 **PVEAuditor** 역할이 있는지 확인하세요. 익스포터 자체의 로그에 API의 응답이 나옵니다: `docker logs oneuptime-pve-exporter`.
 :::
 
+:::details 클러스터에 "API를 읽을 수 없음"이 표시됨
+에이전트는 실행 중이지만 15분 이상 Proxmox VE API에서 클러스터를 읽지 못해, 클러스터에 **연결됨** 대신 **API를 읽을 수 없음**이 표시됩니다. 원인은 읽어 오는 노드가 다운되고 `PVE_NODES`의 다른 노드도 응답하지 않거나, API 토큰이 취소되었거나 **PVEAuditor** 역할을 잃었거나, 에이전트의 머신이 어떤 노드의 포트 `8006`에도 연결할 수 없는 경우입니다. 각 페이지에는 마지막으로 읽은 내용이 남아 있습니다. 위의 진단 스크립트가 이 원인을 각각 확인하며, `docker logs oneuptime-pve-api-failover`는 에이전트가 어느 노드에서 읽는지와 다른 노드를 건너뛴 이유를 알려 줍니다.
+:::
+
 :::details 노드 메트릭만 있고 게스트 메트릭이 없음
 게스트 시계열(`qemu/*`와 `lxc/*` ID)은 익스포터의 클러스터 수집기에서 오며, 제공되는 구성은 스크레이프 매개변수 `cluster=1`로 이를 켭니다. `otel-collector-config.yaml`을 사용자 지정했다면 `cluster: ["1"]` 매개변수를 다시 넣으세요.
 :::

@@ -165,7 +165,7 @@ const SampleProjectBar: FunctionComponent<ComponentProps> = (
         <ConfirmModal
           title="Delete Sample Project"
           description={translator.translateTemplate(
-            "Are you sure you want to delete {{project}}? Its made-up monitors, incidents, people and telemetry are deleted for good. You can explore a new sample at any time.",
+            "Are you sure you want to delete {{project}}? All its made-up data is deleted for good. You can explore a new sample at any time.",
             { project: projectName },
           )}
           submitButtonText="Delete Sample Project"

@@ -25,6 +25,7 @@ import { readDashboardLocale } from "../../Helpers/DashboardLocales";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 import EventNotes from "../../../../App/FeatureSet/Dashboard/src/Components/EventNotes/EventNotes";
 import IncidentInternalNote from "../../../Models/DatabaseModels/IncidentInternalNote";
+import IncidentPublicNote from "../../../Models/DatabaseModels/IncidentPublicNote";
 import Project from "../../../Models/DatabaseModels/Project";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import {
@@ -419,20 +420,13 @@ const wordsIn: (language: string, english: string) => string = (
 };
 
 /*
- * An incident's private notes page in `language`, whose first read of the
- * notes fails with `failure` - the reads a test queued come after it - and
- * its failure as the feed draws it. A button beside the feed stands for the
- * rest of the page.
+ * An incident's private notes page in `language`, its reads answered as
+ * the test queued them. A button beside the feed stands for the rest of
+ * the page.
  */
-const renderFailedFeed: (
+const renderNotesPage: (language: string) => void = (
   language: string,
-  failure: unknown,
-) => Promise<HTMLElement> = async (
-  language: string,
-  failure: unknown,
-): Promise<HTMLElement> => {
-  notesReads.unshift(failingRead(failure));
-
+): void => {
   const project: Project = new Project();
   project._id = "10000000-0000-4000-8000-000000000001";
 
@@ -451,6 +445,22 @@ const renderFailedFeed: (
       />
     </I18nextProvider>,
   );
+};
+
+/*
+ * The page, whose first read of the notes fails with `failure` - the reads
+ * a test queued come after it - and its failure as the feed draws it.
+ */
+const renderFailedFeed: (
+  language: string,
+  failure: unknown,
+) => Promise<HTMLElement> = async (
+  language: string,
+  failure: unknown,
+): Promise<HTMLElement> => {
+  notesReads.unshift(failingRead(failure));
+
+  renderNotesPage(language);
 
   return screen.findByTestId("notes-error");
 };
@@ -831,5 +841,435 @@ describe("the notes feed's Try again, pressed from the keyboard", () => {
       expect(screen.getAllByTestId("note-card")).toHaveLength(NOTES.length);
     });
     expect(document.activeElement).toBe(elsewhere);
+  });
+});
+
+/*
+ * THE FEED'S BANNER, WHEN A REFRESH, A SEARCH, THE SORT ORDER OR LOAD MORE
+ * FAILS (#7620).
+ *
+ * A read that fails with the notes on screen keeps them, and says so in a
+ * banner over the feed. The banner drew API.getFriendlyMessage's answer and
+ * nothing else: English on every page, on a Persian one with its full stop
+ * at its start, without #6836's why, next step and reference, and silent on
+ * which of the four had failed. It says what failed now, in the reader's
+ * language, then the error as the load failure reads it (ErrorMessageText).
+ */
+
+type FeedAction = "refresh" | "search" | "sort" | "more";
+
+const ACTIONS: Array<FeedAction> = ["refresh", "search", "sort", "more"];
+
+// What failed, as the banner's first line says it.
+const ACTION_FAILED: Record<FeedAction, string> = {
+  refresh: "Couldn't refresh the notes.",
+  search: "Couldn't search the notes.",
+  sort: "Couldn't sort the notes.",
+  more: "Couldn't load more notes.",
+};
+
+// The notes, with more of them to load than came.
+const notesWithMoreAnswer: () => NotesAnswer = (): NotesAnswer => {
+  return { ...notesAnswer(), count: NOTES.length + 3 };
+};
+
+/*
+ * The page with its notes on screen, and Load more under them: the first
+ * read answers, and the next fails with `failure`.
+ */
+const renderLoadedFeed: (
+  language: string,
+  failure: unknown,
+) => Promise<void> = async (
+  language: string,
+  failure: unknown,
+): Promise<void> => {
+  notesReads.push((): Promise<NotesAnswer> => {
+    return Promise.resolve(notesWithMoreAnswer());
+  }, failingRead(failure));
+
+  renderNotesPage(language);
+
+  await waitFor(() => {
+    expect(screen.getAllByTestId("note-card")).toHaveLength(NOTES.length);
+  });
+  expect(screen.getByTestId("notes-load-more")).toBeInTheDocument();
+};
+
+// Does `action` as a reader does, and returns the banner its failure draws.
+const failAction: (action: FeedAction) => Promise<HTMLElement> = async (
+  action: FeedAction,
+): Promise<HTMLElement> => {
+  if (action === "refresh") {
+    fireEvent.click(screen.getByTestId("notes-refresh"));
+  } else if (action === "search") {
+    // Read once typing stops.
+    fireEvent.change(screen.getByTestId("notes-search"), {
+      target: { value: "cert" },
+    });
+  } else if (action === "sort") {
+    fireEvent.click(screen.getByTestId("notes-sort"));
+  } else {
+    fireEvent.click(screen.getByTestId("notes-load-more"));
+  }
+
+  return screen.findByTestId("notes-action-error", {}, { timeout: 3000 });
+};
+
+const bannerText: (banner: HTMLElement) => string = (
+  banner: HTMLElement,
+): string => {
+  return withoutIsolateMarks(banner.textContent || "");
+};
+
+const dismissIn: (language: string, banner: HTMLElement) => HTMLElement = (
+  language: string,
+  banner: HTMLElement,
+): HTMLElement => {
+  return within(banner).getByRole("button", {
+    name: wordsIn(language, "Dismiss"),
+  });
+};
+
+describe("the notes feed's banner, when a refresh, a search, the sort order or Load more fails", () => {
+  const CASES: Array<[FeedAction, string]> = ACTIONS.flatMap(
+    (action: FeedAction): Array<[FeedAction, string]> => {
+      return [
+        [action, "de"],
+        [action, "fa"],
+      ];
+    },
+  );
+
+  test.each(CASES)(
+    "a failed %s, in %s, says what failed, then why and what to do next, with the reference to copy",
+    async (action: FeedAction, language: string) => {
+      await renderLoadedFeed(language, SERVER_FAILURE);
+
+      const banner: HTMLElement = await failAction(action);
+
+      expect(banner).toHaveAttribute("role", "alert");
+      expect(
+        within(banner).getByTestId("notes-action-error-what-failed"),
+      ).toHaveTextContent(wordsIn(language, ACTION_FAILED[action]));
+      // Said once: the explanation under it has no first line of its own.
+      expect(within(banner).queryByTestId("error-what-failed")).toBeNull();
+      expect(bannerText(banner)).not.toContain(
+        wordsIn(language, UnexplainedErrorWords.didNotFinish),
+      );
+      expect(
+        withoutIsolateMarks(
+          within(banner).getByTestId("error-why-and-next").textContent || "",
+        ),
+      ).toBe(
+        joinSentences([
+          wordsIn(language, UnexplainedErrorWords.serverWhy),
+          wordsIn(
+            language,
+            UnexplainedErrorWords.serverNextWithReferenceSelfHosted,
+          ),
+        ]),
+      );
+
+      // The reference as written, left to right, with its copy button.
+      const reference: HTMLElement =
+        within(banner).getByTestId("error-reference");
+      expect(reference.querySelector("code")).toHaveTextContent(REFERENCE);
+      expect(reference.querySelector("code")).toHaveAttribute("dir", "ltr");
+      expect(within(reference).getAllByRole("button")).toHaveLength(1);
+      expect(timesSaid(bannerText(banner), REFERENCE)).toBe(1);
+
+      // Never the sentence as API.getFriendlyMessage wrote it, nor English.
+      expect(bannerText(banner)).not.toContain(
+        getUnexplainedServerErrorMessage(REFERENCE),
+      );
+      expectNoEnglishSentence(language, banner);
+      for (const english of Object.values(ACTION_FAILED)) {
+        expect(bannerText(banner)).not.toContain(english);
+      }
+
+      // The notes stay where they were.
+      expect(screen.getAllByTestId("note-card")).toHaveLength(NOTES.length);
+      expect(screen.queryByTestId("notes-error")).toBeNull();
+    },
+  );
+
+  test.each(LANGUAGES)(
+    'in %s, a server\'s "Server Error" says what failed, why and what to do next, with no reference to give',
+    async (language: string) => {
+      await renderLoadedFeed(language, SERVER_ERROR);
+
+      const banner: HTMLElement = await failAction("refresh");
+
+      expect(
+        within(banner).getByTestId("notes-action-error-what-failed"),
+      ).toHaveTextContent(wordsIn(language, ACTION_FAILED.refresh));
+      expect(within(banner).queryByTestId("error-what-failed")).toBeNull();
+      expect(
+        withoutIsolateMarks(
+          within(banner).getByTestId("error-why-and-next").textContent || "",
+        ),
+      ).toBe(
+        joinSentences([
+          wordsIn(language, UnexplainedErrorWords.serverWhy),
+          wordsIn(language, UnexplainedErrorWords.serverNext),
+        ]),
+      );
+      expect(within(banner).queryByTestId("error-reference")).toBeNull();
+      expect(bannerText(banner)).not.toContain("Server Error");
+      expect(bannerText(banner)).not.toContain(
+        UNEXPLAINED_ERROR_MESSAGES.server,
+      );
+
+      if (language !== "en") {
+        expectNoEnglishSentence(language, banner);
+      }
+    },
+  );
+
+  test.each(["de", "fa"])(
+    "in %s, words of their own are drawn in the reader's language, under what failed",
+    async (language: string) => {
+      await renderLoadedFeed(
+        language,
+        new HTTPErrorResponse(403, { message: OWN_WORDS }, {}),
+      );
+
+      const banner: HTMLElement = await failAction("search");
+
+      expect(
+        within(banner).getByTestId("notes-action-error-what-failed"),
+      ).toHaveTextContent(wordsIn(language, ACTION_FAILED.search));
+      expect(
+        within(banner).getByTestId("notes-action-error-words").textContent,
+      ).toBe(wordsIn(language, OWN_WORDS));
+      expect(bannerText(banner)).not.toContain(OWN_WORDS);
+      expect(within(banner).queryByTestId("error-explanation")).toBeNull();
+      expect(banner.querySelector("bdi")).toBeNull();
+    },
+  );
+
+  test("on a Persian page, English words the language has not worded read left to right, with their full stop at their end", async () => {
+    expect(readDashboardLocale("fa")[ENGLISH_ONLY_WORDS]).toBeUndefined();
+
+    await renderLoadedFeed(
+      "fa",
+      new HTTPErrorResponse(400, { message: ENGLISH_ONLY_WORDS }, {}),
+    );
+
+    const banner: HTMLElement = await failAction("more");
+    const words: HTMLElement = within(banner).getByTestId(
+      "notes-action-error-words",
+    );
+    const isolate: HTMLElement | null = words.querySelector("bdi");
+
+    expect(
+      within(banner).getByTestId("notes-action-error-what-failed"),
+    ).toHaveTextContent(wordsIn("fa", ACTION_FAILED.more));
+    expect(isolate).toHaveAttribute("dir", "ltr");
+    expect(isolate?.textContent).toBe(ENGLISH_ONLY_WORDS);
+    expect(ENGLISH_ONLY_WORDS.endsWith(".")).toBe(true);
+    // Nothing of the sentence is left outside its isolate.
+    expect(words.textContent).toBe(ENGLISH_ONLY_WORDS);
+  });
+
+  /*
+   * The explanation draws block lines and a copy button inside the
+   * banner's paragraph: phrasing content, which a paragraph may hold.
+   */
+  test("the explanation sits in the banner's paragraph as HTML allows", async () => {
+    const consoleError: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      console,
+      "error",
+    );
+
+    await renderLoadedFeed("en", SERVER_FAILURE);
+    const banner: HTMLElement = await failAction("sort");
+
+    expect(
+      within(banner)
+        .getByTestId("notes-action-error-words")
+        .querySelector("[data-testid='error-explanation']"),
+    ).not.toBeNull();
+    expect(
+      consoleError.mock.calls.filter((call: Array<unknown>) => {
+        return MISPLACED_ELEMENT_WARNING.test(call.map(String).join(" "));
+      }),
+    ).toEqual([]);
+  });
+
+  /*
+   * A search and the sort order read the notes the same way: what the read
+   * was for is told by what changed since the notes on screen were read.
+   */
+  test("the sort order changed after a search says the sort order failed, not the search", async () => {
+    notesReads.push(
+      (): Promise<NotesAnswer> => {
+        return Promise.resolve(notesWithMoreAnswer());
+      },
+      (): Promise<NotesAnswer> => {
+        return Promise.resolve(notesWithMoreAnswer());
+      },
+      failingRead(SERVER_FAILURE),
+    );
+
+    renderNotesPage("en");
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId("note-card")).toHaveLength(NOTES.length);
+    });
+
+    // The search answers.
+    fireEvent.change(screen.getByTestId("notes-search"), {
+      target: { value: "cert" },
+    });
+    await waitFor(() => {
+      expect(notesReadCount()).toBe(2);
+      expect(screen.getByTestId("notes-refresh")).not.toBeDisabled();
+    });
+    expect(screen.queryByTestId("notes-action-error")).toBeNull();
+
+    const banner: HTMLElement = await failAction("sort");
+
+    expect(notesReadCount()).toBe(3);
+    expect(
+      within(banner).getByTestId("notes-action-error-what-failed"),
+    ).toHaveTextContent(ACTION_FAILED.sort);
+  });
+});
+
+/*
+ * Dismiss takes the banner away, and the focus on it fell to the page: a
+ * keyboard or screen reader user started over from the top. It goes back
+ * to where the reader was - Load more after Load more failed, the feed's
+ * body, just before the notes, after the others.
+ */
+describe("the notes feed's banner, dismissed from the keyboard", () => {
+  test.each(ACTIONS)(
+    "after a failed %s, Dismiss leaves the focus where the reader was, never on the page",
+    async (action: FeedAction) => {
+      await renderLoadedFeed("en", SERVER_FAILURE);
+
+      const banner: HTMLElement = await failAction(action);
+      const dismiss: HTMLElement = dismissIn("en", banner);
+
+      dismiss.focus();
+      expect(document.activeElement).toBe(dismiss);
+
+      // Enter or Space on a focused button is a click on it.
+      fireEvent.click(dismiss);
+
+      expect(screen.queryByTestId("notes-action-error")).toBeNull();
+      expect(document.activeElement).not.toBe(document.body);
+      expect(document.activeElement).toBe(
+        action === "more"
+          ? screen.getByTestId("notes-load-more")
+          : screen.getByTestId("notes-feed-body"),
+      );
+    },
+  );
+
+  test("a focus that was elsewhere on the page is left where it is", async () => {
+    await renderLoadedFeed("en", SERVER_FAILURE);
+
+    const banner: HTMLElement = await failAction("more");
+    const elsewhere: HTMLElement = screen.getByTestId("elsewhere");
+
+    elsewhere.focus();
+    // A click that left the focus where it was, as a click does in Safari.
+    fireEvent.click(dismissIn("en", banner));
+
+    expect(screen.queryByTestId("notes-action-error")).toBeNull();
+    expect(document.activeElement).toBe(elsewhere);
+  });
+
+  /*
+   * Load more pressed once more, its read on the way: the button is
+   * disabled until it answers, and takes no focus - the feed's body does.
+   */
+  test("with Load more reading the notes once more, Dismiss after it failed leaves the focus on the feed's body", async () => {
+    const pending: Array<PendingRead> = [];
+
+    await renderLoadedFeed("en", SERVER_FAILURE);
+    notesReads.push(pendingRead(pending));
+
+    const banner: HTMLElement = await failAction("more");
+    const loadMore: HTMLElement = screen.getByTestId("notes-load-more");
+
+    fireEvent.click(loadMore);
+    await waitFor(() => {
+      expect(loadMore).toBeDisabled();
+    });
+    expect(pending).toHaveLength(1);
+
+    const dismiss: HTMLElement = dismissIn("en", banner);
+
+    dismiss.focus();
+    fireEvent.click(dismiss);
+
+    expect(screen.queryByTestId("notes-action-error")).toBeNull();
+    expect(document.activeElement).toBe(screen.getByTestId("notes-feed-body"));
+
+    // The read answers: no notes after the ones on screen.
+    await act(async () => {
+      pending[0]!.resolve({ ...notesAnswer(), data: [] });
+    });
+  });
+
+  /*
+   * A private incident's public notes, none written yet: no feed is drawn
+   * under the composer's place, only the header's refresh button - which a
+   * failed refresh came from.
+   */
+  test("with no feed drawn, Dismiss after a failed refresh leaves the focus on the refresh button", async () => {
+    let publicNoteReads: number = 0;
+
+    getListMock.mockImplementation(async (...args: Array<unknown>) => {
+      const request: { modelType?: unknown } = (args[0] || {}) as {
+        modelType?: unknown;
+      };
+
+      if (request.modelType === IncidentPublicNote) {
+        publicNoteReads++;
+
+        if (publicNoteReads === 2) {
+          throw SERVER_FAILURE;
+        }
+      }
+
+      return { data: [], count: 0, skip: 0, limit: 10 };
+    });
+
+    const project: Project = new Project();
+    project._id = "10000000-0000-4000-8000-000000000001";
+
+    render(
+      <I18nextProvider i18n={instances["en"]!}>
+        <EventNotes<IncidentPublicNote>
+          modelType={IncidentPublicNote}
+          visibility="public"
+          eventNoun="incident"
+          parentIdField="incidentId"
+          parentId={INCIDENT_ID}
+          currentProject={project}
+          isPrivateEvent={true}
+        />
+      </I18nextProvider>,
+    );
+
+    await waitFor(() => {
+      expect(publicNoteReads).toBe(1);
+      expect(screen.queryByTestId("notes-loading")).toBeNull();
+    });
+    expect(screen.queryByTestId("notes-feed-body")).toBeNull();
+
+    const banner: HTMLElement = await failAction("refresh");
+    const dismiss: HTMLElement = dismissIn("en", banner);
+
+    dismiss.focus();
+    fireEvent.click(dismiss);
+
+    expect(screen.queryByTestId("notes-action-error")).toBeNull();
+    expect(document.activeElement).toBe(screen.getByTestId("notes-refresh"));
   });
 });

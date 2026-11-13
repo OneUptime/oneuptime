@@ -39,9 +39,16 @@ import useResizableColumns, {
   ResizableColumns,
 } from "../Table/ColumnResize/useResizableColumns";
 import LogsTable, {
+  LOGS_TABLE_EMPTY_HINT,
+  LogsEmptyMessage,
   LogsTableSortField,
   resolveLogIdentifier,
 } from "./components/LogsTable";
+import {
+  getTimeRangeButtonLabel,
+  getTimeRangeLabel,
+  TIME_RANGE_LABEL_SEPARATOR,
+} from "../Date/TimeRangePickerDropdown";
 import LogsPagination from "./components/LogsPagination";
 import LogDetailsPanel from "./components/LogDetailsPanel";
 import LogsHistogram from "./components/LogsHistogram";
@@ -83,7 +90,7 @@ import ProjectUtil from "../../Utils/Project";
 import TelemetryServiceUtil from "../../Utils/TelemetryService";
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
-import { inEnglishDates } from "../../../Types/DateLanguage";
+import { withDateDisplayLanguage } from "../../../Types/DateLanguage";
 import useViewerTimeRangeZoom, {
   ViewerTimeRangeZoom,
 } from "../TelemetryViewer/useViewerTimeRangeZoom";
@@ -104,7 +111,13 @@ import {
   PrimaryEntitySuggestions,
   resolvePrimaryEntitySuggestions,
 } from "./LogsEntityNames";
-import { Translator, translationKey } from "../../Utils/TranslateTemplate";
+import {
+  composedValue,
+  TemplateValue,
+  translatableTerm,
+  Translator,
+  translationKey,
+} from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 
 export interface ComponentProps {
@@ -299,47 +312,123 @@ export function isNarrowedByReader(data: {
 }
 
 /*
- * Exported so the window it reports can be unit-tested directly - rendering the
- * whole viewer to read one sentence is not worth the setup.
+ * The line under "No logs found" that names the window a search covered,
+ * when the page hands over no line of its own: one sentence in every
+ * language, with the window as its value - a preset's name ("Time range:
+ * past 1 hour.") or a custom window's two ends ("Time range: Mar 1, 2:30 PM
+ * – Mar 1, 6:45 PM."). After a colon, the window is a label, so one
+ * wording takes either.
+ */
+export const LOGS_TIME_RANGE_EMPTY_HINT: string = translationKey(
+  "Time range: {{range}}. Try adjusting filters or expanding the time range.",
+);
+
+const NO_BREAK_SPACE: string = String.fromCharCode(0x00a0);
+
+const SPACE_REGEX: RegExp = / /g;
+
+/*
+ * A custom window's two ends as a sentence holds them: each kept on one
+ * line, with the one break between them after the dash ("Mar 1, 2:30 PM –"
+ * over "Mar 1, 6:45 PM"), as the picker's list writes a window
+ * (renderTimeRangeDetail). As loose text a phone's narrow line left a time
+ * or an "AM" alone on the next one.
+ */
+const keepEachEndWhole: (window: string) => string = (
+  window: string,
+): string => {
+  const ends: Array<string> = window.split(TIME_RANGE_LABEL_SEPARATOR);
+
+  if (ends.length !== 2) {
+    return window;
+  }
+
+  const whole: (end: string) => string = (end: string): string => {
+    return end.replace(SPACE_REGEX, NO_BREAK_SPACE);
+  };
+
+  return `${whole(ends[0] || "")}${NO_BREAK_SPACE}${TIME_RANGE_LABEL_SEPARATOR.trim()} ${whole(ends[1] || "")}`;
+};
+
+const FULL_STOP: string = ".";
+
+// The window, then the sentence's own full stop: "Time range: {{range}}."
+const RANGE_THEN_FULL_STOP: string = `{{range}}${FULL_STOP}`;
+
+/*
+ * A window whose last time ends in its abbreviation's full stop - "9:49
+ * a. m." in Spanish, "a.m." in Dutch and Norwegian, "ق.ظ." in Persian, on a
+ * 12-hour clock - ends the sentence with that full stop, as a sentence
+ * that ends in an abbreviation does. With the sentence's own one after it,
+ * the line read "a. m.." and "ق.ظ..". `sentence` is the language the
+ * sentence came out in; its wording says whether a full stop follows.
+ */
+const endingTheSentence: (window: string, sentence: Translator) => string = (
+  window: string,
+  sentence: Translator,
+): string => {
+  const wording: string =
+    sentence.translateText(LOGS_TIME_RANGE_EMPTY_HINT) ||
+    LOGS_TIME_RANGE_EMPTY_HINT;
+
+  return window.endsWith(FULL_STOP) && wording.includes(RANGE_THEN_FULL_STOP)
+    ? window.slice(0, -FULL_STOP.length)
+    : window;
+};
+
+/*
+ * The line under "No logs found" for a list nothing narrowed, when the page
+ * hands over none: the window searched and what to try - a sentence with
+ * the window as its value, worded in the reader's language where it is
+ * drawn (LogsTable's writeLogsEmptyMessage). Built as one English string
+ * with the dates inside it, it had no wording in any language and read
+ * English on every page (issue #7280).
+ *
+ * The window says what the picker button above it says: a preset by its
+ * name ("past 1 hour", "letzte Stunde"), and a custom window by its two
+ * ends on the reader's clock, in their timezone, with both years when it is
+ * not all in this year (getTimeRangeButtonLabel, issue #7124) - written in
+ * the language the sentence came out in, so a German sentence holds German
+ * dates and digits and a sentence still in English holds English ones.
+ *
+ * Exported so the window it reports can be unit-tested directly - rendering
+ * the whole viewer to read one sentence is not worth the setup.
  */
 export function getEmptyMessageWithTimeRange(
   timeRange: RangeStartAndEndDateTime | undefined,
   // The moment "this year" is read from: now, unless a caller says.
   now?: Date | undefined,
-): string {
-  if (!timeRange) {
-    return "Adjust filters or check again later.";
+): LogsEmptyMessage {
+  /*
+   * No window to name: the list's own hint. A custom window with no dates
+   * read "Time range: custom." - a word, not a window - and "Период:
+   * другое." ("other") in Russian.
+   */
+  if (
+    !timeRange ||
+    (timeRange.range === TimeRange.CUSTOM && !timeRange.startAndEndDate)
+  ) {
+    return LOGS_TABLE_EMPTY_HINT;
   }
 
-  if (timeRange.range === TimeRange.CUSTOM && timeRange.startAndEndDate) {
-    const startDate: Date = timeRange.startAndEndDate.startValue;
-    const endDate: Date = timeRange.startAndEndDate.endValue;
-    /*
-     * Same shape, clock and timezone as the label on the picker button that
-     * set this window - pinning en-US here handed a US viewer AM/PM even on a
-     * 24-hour machine, and read the digits in the browser's zone rather than
-     * the one configured in User Settings. And the same years: both ends
-     * carry theirs unless the window is all in this year (issue #7124).
-     */
-    const showYear: boolean = !OneUptimeDate.isWindowInTheCurrentYear({
-      start: startDate,
-      end: endDate,
-      now: now,
-    });
-    const fmt: (d: Date) => string = (d: Date): string => {
-      // In English, as the sentence it goes into is.
-      return inEnglishDates((): string => {
-        return OneUptimeDate.getDateAsLocalShortDateTimeString(d, {
-          showYear,
+  const range: TemplateValue =
+    timeRange.range === TimeRange.CUSTOM && timeRange.startAndEndDate
+      ? composedValue((sentence: Translator): string => {
+          return withDateDisplayLanguage(sentence.language, (): string => {
+            return endingTheSentence(
+              keepEachEndWhole(getTimeRangeButtonLabel(timeRange, now)),
+              sentence,
+            );
+          });
+        })
+      : translatableTerm(getTimeRangeLabel(timeRange.range), {
+          inSentence: true,
         });
-      });
-    };
 
-    return `Time range: ${fmt(startDate)} – ${fmt(endDate)}. Try adjusting filters or expanding the time range.`;
-  }
-
-  const rangeLabel: string = timeRange.range.toLowerCase();
-  return `Time range: ${rangeLabel}. Try adjusting filters or expanding the time range.`;
+  return {
+    template: LOGS_TIME_RANGE_EMPTY_HINT,
+    values: { range },
+  };
 }
 
 /*
@@ -366,7 +455,7 @@ export function getLogsEmptyMessage(data: {
   noLogsMessage: string | undefined;
   isNarrowedByReader: boolean;
   timeRange: RangeStartAndEndDateTime | undefined;
-}): string {
+}): LogsEmptyMessage {
   if (data.isNarrowedByReader) {
     return LOGS_NARROWED_EMPTY_HINT;
   }
