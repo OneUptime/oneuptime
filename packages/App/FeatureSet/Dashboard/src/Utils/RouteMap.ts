@@ -1578,6 +1578,7 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_AI_EXTERNAL_MCP_SERVERS]: "external-mcp-servers",
   [PageMap.SETTINGS_AI_EXTERNAL_MCP_SERVER_VIEW]: `external-mcp-servers/${RouteParams.ModelID}`,
   [PageMap.SETTINGS_AI_CREDITS]: "ai-credits",
+  [PageMap.SETTINGS_AI_RESULTS]: "ai-results",
   [PageMap.SETTINGS_AI_LOGS]: "ai-logs",
   [PageMap.SETTINGS_MCP_SERVER]: "mcp-server",
   [PageMap.SETTINGS_APIKEYS]: `api-keys`,
@@ -9551,6 +9552,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_AI_CREDITS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_AI_CREDITS]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_AI_RESULTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_AI_RESULTS]
     }`,
   ),
 
