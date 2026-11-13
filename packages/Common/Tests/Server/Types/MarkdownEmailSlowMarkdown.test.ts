@@ -173,6 +173,38 @@ describe("Markdown email renderer - references in one paragraph render (#7228)",
     expect(html).toBe(await renderWithMarkedAlone(markdown));
   });
 
+  /*
+   * A template that writes each run's screenshot as a reference of its own,
+   * and the definitions in a block after them. A definition is no inline
+   * Markdown to marked - its block rule takes the line whole, label and all
+   * - so a block of them costs no more than its length.
+   */
+  test("1,000 runs' screenshots, each with a definition of its own: 1,000 images, as marked alone renders them", async () => {
+    const shots: Array<string> = [];
+    const definitions: Array<string> = [];
+
+    for (let index: number = 0; index < 1000; index++) {
+      shots.push(`![Run ${index}][s${index}]`);
+      definitions.push(
+        `[s${index}]: https://ci.example.com/runs/${index}/screenshot.png`,
+      );
+    }
+
+    const markdown: string = `${shots.join("\n")}\n\n${definitions.join("\n")}`;
+    const html: string = await render(markdown);
+
+    expect(countOf(html, '<img src="https://ci.example.com/runs/')).toBe(1000);
+    expect(html.includes('<img src="https://ci.example.com/runs/999/')).toBe(
+      true,
+    );
+    // No definition and no reference shows as text.
+    expect(html.includes("[s")).toBe(false);
+    expect(html.includes("screenshot.png\n")).toBe(false);
+    expect(html).toBe(await renderWithMarkedAlone(markdown));
+    // Counted as before, the block of definitions was held back.
+    expect(heldBack(markdown, LIMITS_BEFORE).length).toBeGreaterThan(0);
+  });
+
   test("280 and 1,000 references were held back before: the email showed their Markdown", () => {
     for (const count of [280, 1000]) {
       const held: Array<string> = heldBack(references(count), LIMITS_BEFORE);

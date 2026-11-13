@@ -464,10 +464,10 @@ export const getWordPunctuationWork: (
  *     (MARKED_MASKED_ITEM_SHARE). A paragraph of 1,000 references, one on
  *     each line, took marked 9 ms; one of 18,724 (256 KB) took 5.5 s.
  *   - What a complete link's parentheses hold - its address and its title -
- *     and what a definition marked takes holds after its label, marked
- *     takes as one piece and never reads as inline Markdown: it is counted
- *     once, not as the punctuation of a word times the word's length. A
- *     link to a megabyte of a query took marked 65 ms.
+ *     and a definition marked takes, label and all, marked takes as one
+ *     piece and never reads as inline Markdown: it is counted once, not as
+ *     the punctuation of a word times the word's length. A link to a
+ *     megabyte of a query took marked 65 ms.
  *   - A "&" and a "]" cost it no more than a letter: a megabyte of "&amp;"
  *     took 140 ms, of "]" 103 ms.
  *   - A run of the characters an email address can hold, right before an
@@ -972,10 +972,11 @@ export const getMarkedDefinitionAddressStart: (
  * HOW MARKED READS A LINE): characters it looks ahead from through the
  * unit, what it masks with a copy of the unit, and the line's work that
  * does not grow with the unit - the punctuation of its words as
- * getWordPunctuationWork counts it, what a complete link's parentheses or a
- * definition hold, once, and the runs before an "@". A definition is one
- * marked takes only as the first line of its unit or after others: after
- * a paragraph's line, marked reads it as the paragraph's text.
+ * getWordPunctuationWork counts it, what a complete link's parentheses
+ * hold, once, and the runs before an "@". A definition marked takes costs
+ * its length, once. A definition is one marked takes only as the first
+ * line of its unit or after others: after a paragraph's line, marked reads
+ * it as the paragraph's text.
  */
 const readMarkedLine: (
   text: string,
@@ -990,14 +991,21 @@ const readMarkedLine: (
   counting: InlineCounting,
   unit: UnitWork,
 ): void => {
-  const definitionAddress: number = unit.mayDefine
-    ? getMarkedDefinitionAddressStart(text, start, end)
-    : -1;
+  unit.mayDefine =
+    unit.mayDefine && getMarkedDefinitionAddressStart(text, start, end) !== -1;
 
-  unit.mayDefine = definitionAddress !== -1;
+  if (unit.mayDefine) {
+    /*
+     * marked's block rule takes the definition whole, its label too: no
+     * part of it is inline Markdown, so it costs its length, once - and a
+     * block of many definitions costs no more than their length.
+     */
+    unit.work += end - start;
+    return;
+  }
 
   // What marked reads once and is not counted otherwise: [skipFrom, skipTo).
-  let skipFrom: number = definitionAddress;
+  let skipFrom: number = -1;
   let skipTo: number = end;
   let wordStart: number = start;
   let wordPunctuation: number = 0;

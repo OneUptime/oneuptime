@@ -110,6 +110,24 @@ function references(count: number, joiner: string = "\n"): string {
   return `${lines.join(joiner)}\n\n[s]: https://example.com/a.png`;
 }
 
+/*
+ * A screenshot of each of `count` runs, one on each line, and each one's
+ * definition, one on each line of a block of its own.
+ */
+function runScreenshots(count: number): string {
+  const shots: Array<string> = [];
+  const definitions: Array<string> = [];
+
+  for (let index: number = 0; index < count; index++) {
+    shots.push(`![Run ${index}][s${index}]`);
+    definitions.push(
+      `[s${index}]: https://ci.example.com/runs/${index}/screenshot.png`,
+    );
+  }
+
+  return `${shots.join("\n")}\n\n${definitions.join("\n")}`;
+}
+
 // A dashboard's address with a query at least `length` characters long.
 function queryAddress(length: number): string {
   let address: string = "https://grafana.example.com/d/abc/checkout?";
@@ -304,18 +322,39 @@ describe("getMarkedLineWork - what marked reads once", () => {
     );
   });
 
-  test("a definition: what follows its label is read once", () => {
+  test("a definition is read once, its label too", () => {
     const address: string = queryAddress(4096);
     const text: string = `[d]: ${address} "Checkout"`;
 
     expect(lineWork(text)).toEqual({
       characters: 0,
-      maskedItems: 1,
-      // "[d]:" is a word of three punctuation characters, then the rest once.
-      work: 3 * 4 + (text.length - 5),
+      // marked's block rule takes the line whole: none of it is inline.
+      maskedItems: 0,
+      work: text.length,
       isDefinition: true,
     });
   });
+
+  test.each([
+    ["emphasis", "[*Run* now]: /a"],
+    ["a tag", "[<b>Run</b>]: /a"],
+    ["an escape", "[Run\\*]: /a"],
+    ["an email address", "[ops@example.com]: mailto:ops@example.com"],
+  ])(
+    "what a definition's label holds is not inline Markdown either: %s",
+    (_name: string, text: string) => {
+      expect(lineWork(text)).toEqual({
+        characters: 0,
+        maskedItems: 0,
+        work: text.length,
+        isDefinition: true,
+      });
+      // marked takes the line as a definition, and reads nothing inline.
+      const tokens: TokensList = marked.lexer(text);
+
+      expect([Object.keys(tokens.links).length, tokens.length]).toEqual([1, 0]);
+    },
+  );
 
   test.each([
     ["an address", "[d]: https://example.com/a", 5],
@@ -539,6 +578,14 @@ describe("holdBackSlowMarkdown - what the emails hold back", () => {
     ],
     ["entities", `${FILLER}${"Tom &amp; Jerry &copy; 2026 ".repeat(400)}`],
     ["bracketed words", `${FILLER}${"[INFO] served a] ".repeat(400)}`],
+    [
+      "1,000 runs' screenshots, each with a definition of its own",
+      runScreenshots(1000),
+    ],
+    [
+      "a block of 20,000 definitions",
+      `See [the run][s1].\n\n${runScreenshots(20000).split("\n\n")[1]}`,
+    ],
   ])(
     "no longer holds back what marked reads in good time: %s",
     (_name: string, text: string) => {

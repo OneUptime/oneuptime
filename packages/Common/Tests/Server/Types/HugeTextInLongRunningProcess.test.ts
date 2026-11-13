@@ -1026,7 +1026,8 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
   /*
    * And what the emails no longer hold back (#7228) - references, links
    * and images, "<...>" pairs and escapes, each of which marked masks with a
-   * copy of its paragraph, and a run before an "@" - at the largest size
+   * copy of its paragraph, screenshots each with a definition of its own,
+   * and a run before an "@" - at the largest size
    * the count lets through, found by halving between a size it lets through
    * and one it holds back: each reaches marked, renders as marked renders
    * it, and in good time, the fastest of three attempts counting
@@ -1083,6 +1084,19 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
           );
         };
 
+        // A screenshot of each run, one on each line, then each one's definition.
+        const runScreenshots = (count) => {
+          const shots = [];
+          const definitions = [];
+
+          for (let index = 0; index < count; index++) {
+            shots.push("![Run " + index + "][s" + index + "]");
+            definitions.push("[s" + index + "]: https://ci.example.com/runs/" + index + "/screenshot.png");
+          }
+
+          return shots.join("\n") + "\n\n" + definitions.join("\n");
+        };
+
         const query = (length) => {
           let address = "https://grafana.example.com/d/abc/checkout?";
 
@@ -1112,6 +1126,12 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
             (n) => references(n, " ", "Shot", "Run"),
             20000,
             showsReferences,
+          ],
+          [
+            "screenshots, each with a definition of its own",
+            runScreenshots,
+            20000,
+            (html, n) => countOf(html, '<img src="https://ci.example.com/runs/') === n,
           ],
           [
             "links with titles",
@@ -1200,6 +1220,7 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
       "references, one on each line",
       "references in another script, one on each line",
       "references on one line",
+      "screenshots, each with a definition of its own",
       "links with titles",
       "images, one on each line",
       "links to an address with a query, one on each line",
