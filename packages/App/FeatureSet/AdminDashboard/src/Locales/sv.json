@@ -535,7 +535,13 @@
         "pillNoAccessKey": "Inte aktiverad. Lägg till åtkomstnyckeln.",
         "pillNoRegion": "Inte aktiverad. Lägg till regionen.",
         "pillNoDomain": "Inte aktiverad. Lägg till domänen.",
-        "pillNoServerToken": "Inte aktiverad. Lägg till server-API-token."
+        "pillNoServerToken": "Inte aktiverad. Lägg till server-API-token.",
+        "environmentCardDescription": "Angivna med miljövariabler: email i Helm-chartets värden eller GLOBAL_EMAIL_-inställningarna i config.env. Ändra dem där och starta om OneUptime för att ändra de här inställningarna.",
+        "environmentProblemsTitle": "Den här servern skickar inga e-postmeddelanden förrän de här miljövariablerna har rättats:",
+        "environmentUnusedTitle": "Vissa e-postmiljövariabler används inte:",
+        "environmentIgnoredTitle": "De här miljövariablerna är angivna, men de valda e-postinställningarna läser dem inte, så de ändrar ingenting:",
+        "environmentValueSet": "Angiven",
+        "environmentValueNotSet": "Inte angiven"
       },
       "callSms": {
         "cardTitle": "Twilio-konfiguration",

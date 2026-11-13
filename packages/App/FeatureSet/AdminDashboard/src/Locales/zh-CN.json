@@ -535,7 +535,13 @@
         "pillNoAccessKey": "未启用。请添加访问密钥。",
         "pillNoRegion": "未启用。请添加区域。",
         "pillNoDomain": "未启用。请添加域名。",
-        "pillNoServerToken": "未启用。请添加服务器 API 令牌。"
+        "pillNoServerToken": "未启用。请添加服务器 API 令牌。",
+        "environmentCardDescription": "由环境变量设置：Helm chart 值中的 email，或 config.env 中的 GLOBAL_EMAIL_ 设置。要更改这些设置，请在那里更改并重启 OneUptime。",
+        "environmentProblemsTitle": "在这些环境变量修正之前，此服务器不会发送任何电子邮件：",
+        "environmentUnusedTitle": "部分电子邮件环境变量未被使用：",
+        "environmentIgnoredTitle": "这些环境变量已设置，但所选的电子邮件设置不会读取它们，因此不会产生任何更改：",
+        "environmentValueSet": "已设置",
+        "environmentValueNotSet": "未设置"
       },
       "callSms": {
         "cardTitle": "Twilio 配置",

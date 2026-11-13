@@ -535,7 +535,13 @@
         "pillNoAccessKey": "Não habilitado. Adicione a chave de acesso.",
         "pillNoRegion": "Não habilitado. Adicione a região.",
         "pillNoDomain": "Não habilitado. Adicione o domínio.",
-        "pillNoServerToken": "Não habilitado. Adicione o token de API do servidor."
+        "pillNoServerToken": "Não habilitado. Adicione o token de API do servidor.",
+        "environmentCardDescription": "Definidas por variáveis de ambiente: email nos valores do chart Helm, ou as configurações GLOBAL_EMAIL_ no config.env. Para alterar estas configurações, altere-as lá e reinicie o OneUptime.",
+        "environmentProblemsTitle": "Este servidor não envia e-mails até que estas variáveis de ambiente sejam corrigidas:",
+        "environmentUnusedTitle": "Algumas variáveis de ambiente de e-mail não são usadas:",
+        "environmentIgnoredTitle": "Estas variáveis de ambiente estão definidas, mas as configurações de e-mail escolhidas não as leem, por isso não alteram nada:",
+        "environmentValueSet": "Definido",
+        "environmentValueNotSet": "Não definido"
       },
       "callSms": {
         "cardTitle": "Configuração do Twilio",

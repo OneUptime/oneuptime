@@ -535,7 +535,13 @@
         "pillNoAccessKey": "सक्षम नहीं। कृपया एक्सेस कुंजी जोड़ें।",
         "pillNoRegion": "सक्षम नहीं। कृपया क्षेत्र जोड़ें।",
         "pillNoDomain": "सक्षम नहीं। कृपया डोमेन जोड़ें।",
-        "pillNoServerToken": "सक्षम नहीं। कृपया सर्वर API टोकन जोड़ें।"
+        "pillNoServerToken": "सक्षम नहीं। कृपया सर्वर API टोकन जोड़ें।",
+        "environmentCardDescription": "एनवायरनमेंट वेरिएबल्स से सेट: Helm चार्ट की values में email, या config.env में GLOBAL_EMAIL_ सेटिंग्स। इन सेटिंग्स को बदलने के लिए उन्हें वहीं बदलें और OneUptime को रीस्टार्ट करें।",
+        "environmentProblemsTitle": "जब तक ये एनवायरनमेंट वेरिएबल्स ठीक नहीं किए जाते, यह सर्वर कोई ईमेल नहीं भेजता:",
+        "environmentUnusedTitle": "कुछ ईमेल एनवायरनमेंट वेरिएबल्स का उपयोग नहीं होता:",
+        "environmentIgnoredTitle": "ये एनवायरनमेंट वेरिएबल्स सेट हैं, लेकिन चुनी गई ईमेल सेटिंग्स उन्हें नहीं पढ़तीं, इसलिए उनसे कुछ नहीं बदलता:",
+        "environmentValueSet": "सेट है",
+        "environmentValueNotSet": "सेट नहीं है"
       },
       "callSms": {
         "cardTitle": "Twilio कॉन्फ़िगरेशन",
