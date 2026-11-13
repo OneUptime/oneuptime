@@ -28,7 +28,13 @@ export default class Port extends DatabaseProperty {
 
   public static override fromJSON(json: JSONObject): Port {
     if (json["_type"] === ObjectType.Port) {
-      return new Port((json["value"] as string) || "");
+      const rawValue: unknown = json["value"];
+      // 0 is a legal port. `|| ""` treats it as missing and then rejects it.
+      if (rawValue === undefined || rawValue === null) {
+        return new Port("");
+      }
+
+      return new Port(rawValue as number | string);
     }
 
     throw new BadDataException("Invalid JSON: " + JSON.stringify(json));
@@ -87,11 +93,14 @@ export default class Port extends DatabaseProperty {
   }
 
   public static override fromDatabase(_value: string | number): Port | null {
-    if (_value) {
-      return new Port(_value);
+    const rawValue: unknown = _value;
+
+    // 0 is a stored port, not a missing one. A falsy check dropped it.
+    if (rawValue === null || rawValue === undefined || rawValue === "") {
+      return null;
     }
 
-    return null;
+    return new Port(rawValue as string | number);
   }
 
   public override toString(): string {
