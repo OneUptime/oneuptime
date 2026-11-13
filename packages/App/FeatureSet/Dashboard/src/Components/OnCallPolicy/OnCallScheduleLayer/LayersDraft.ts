@@ -321,6 +321,95 @@ export const getRemovedLayerUsers: (data: {
   );
 };
 
+/*
+ * The people of a layer whom the page has put in another place in its turn
+ * order, by row id (lower-cased): as few as explain the new order. Of the
+ * people saved in the layer and still in it, the longest run that keeps
+ * its saved order stays unmarked and the rest are moved - so dragging one
+ * person to the top marks that one person, not everyone they passed.
+ * Someone added or taken out moves nobody.
+ */
+export const getMovedLayerUserIds: (data: {
+  saved: Array<OnCallDutyPolicyScheduleLayerUser>;
+  draft: Array<OnCallDutyPolicyScheduleLayerUser>;
+}) => Set<string> = (data: {
+  saved: Array<OnCallDutyPolicyScheduleLayerUser>;
+  draft: Array<OnCallDutyPolicyScheduleLayerUser>;
+}): Set<string> => {
+  const savedPlaceById: Map<string, number> = new Map<string, number>();
+
+  data.saved.forEach(
+    (layerUser: OnCallDutyPolicyScheduleLayerUser, index: number): void => {
+      const id: string = layerUser.id?.toString().toLowerCase() || "";
+
+      if (id && !savedPlaceById.has(id)) {
+        savedPlaceById.set(id, index);
+      }
+    },
+  );
+
+  // The people saved and still in the layer, in the page's order, by their saved place.
+  const kept: Array<{ id: string; savedPlace: number }> = [];
+
+  for (const layerUser of data.draft) {
+    const id: string = layerUser.id?.toString().toLowerCase() || "";
+    const savedPlace: number | undefined = id
+      ? savedPlaceById.get(id)
+      : undefined;
+
+    if (savedPlace !== undefined) {
+      kept.push({ id: id, savedPlace: savedPlace });
+    }
+  }
+
+  /*
+   * The longest run of them in their saved order (patience sorting):
+   * tails[k] is where the shortest-ending run of k + 1 ends, and before[i]
+   * the one before i in the run that ends at i.
+   */
+  const tails: Array<number> = [];
+  const before: Array<number> = new Array<number>(kept.length).fill(-1);
+
+  kept.forEach((entry: { id: string; savedPlace: number }, i: number): void => {
+    let low: number = 0;
+    let high: number = tails.length;
+
+    while (low < high) {
+      const middle: number = Math.floor((low + high) / 2);
+
+      if (kept[tails[middle]!]!.savedPlace < entry.savedPlace) {
+        low = middle + 1;
+      } else {
+        high = middle;
+      }
+    }
+
+    if (low > 0) {
+      before[i] = tails[low - 1]!;
+    }
+
+    tails[low] = i;
+  });
+
+  const inOrder: Set<number> = new Set<number>();
+  let at: number = tails.length > 0 ? tails[tails.length - 1]! : -1;
+
+  while (at >= 0) {
+    inOrder.add(at);
+    at = before[at]!;
+  }
+
+  const moved: Set<string> = new Set<string>();
+
+  kept.forEach((entry: { id: string; savedPlace: number }, i: number): void => {
+    if (!inOrder.has(i)) {
+      moved.add(entry.id);
+    }
+  });
+
+  return moved;
+};
+
 // Whether two rows are the one row: the same object, or saved with the same id.
 export const isSameLayerUserRow: (
   a: OnCallDutyPolicyScheduleLayerUser,

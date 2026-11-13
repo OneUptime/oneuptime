@@ -59,6 +59,12 @@ export interface ComponentProps {
   onChange: (layerUsers: Array<OnCallDutyPolicyScheduleLayerUser>) => void;
   // People saved in the layer whom the page has taken out, until Save.
   removedUsers?: Array<OnCallDutyPolicyScheduleLayerUser> | undefined;
+  /*
+   * The rows of people the page has put in another place in the turn
+   * order, by id, lower-cased (LayersDraft.getMovedLayerUserIds): marked
+   * Moved until Save.
+   */
+  movedUserIds?: Set<string> | undefined;
   // Undo on one of them: they go back where they were.
   onRestore?:
     | ((layerUser: OnCallDutyPolicyScheduleLayerUser) => void)
@@ -338,6 +344,11 @@ const LayerUser: FunctionComponent<ComponentProps> = (
     const name: string = user?.name?.toString() || "";
     const email: string = user?.email?.toString() || "";
     const isAdded: boolean = isAddedLayerUser(layerUser);
+    const isMoved: boolean =
+      !isAdded &&
+      Boolean(
+        props.movedUserIds?.has(layerUser.id?.toString().toLowerCase() || ""),
+      );
     const displayName: string =
       name || email || translator.translateTemplate("Unknown user");
 
@@ -357,7 +368,9 @@ const LayerUser: FunctionComponent<ComponentProps> = (
         className={`flex items-center gap-3 px-3 py-2.5 transition-colors ${
           isAdded
             ? "bg-emerald-50/40 hover:bg-emerald-50/70"
-            : "bg-white hover:bg-gray-50"
+            : isMoved
+              ? "bg-indigo-50/40 hover:bg-indigo-50/70"
+              : "bg-white hover:bg-gray-50"
         }`}
       >
         {canReorder ? (
@@ -399,6 +412,24 @@ const LayerUser: FunctionComponent<ComponentProps> = (
                   className="inline-flex flex-shrink-0 items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium leading-4 text-emerald-700 ring-1 ring-inset ring-emerald-200"
                 >
                   {translator.translateText("New")}
+                </span>
+              </Tooltip>
+            )}
+            {isMoved && (
+              /*
+               * Someone the page has put in another place in the turn
+               * order: their turns change once the page is saved.
+               */
+              <Tooltip
+                text={translator.translateText(
+                  "Not saved yet. They take this place in the rotation when you save.",
+                )}
+              >
+                <span
+                  data-testid="layer-user-moved"
+                  className="inline-flex flex-shrink-0 items-center rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-medium leading-4 text-indigo-700 ring-1 ring-inset ring-indigo-200"
+                >
+                  {translator.translateText("Moved")}
                 </span>
               </Tooltip>
             )}

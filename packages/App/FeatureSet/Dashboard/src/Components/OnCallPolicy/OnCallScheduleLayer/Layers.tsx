@@ -11,6 +11,7 @@ import LayersSaveBar, {
 import {
   buildScheduleLayersSaveRequest,
   getLayerId,
+  getMovedLayerUserIds,
   getRemovedLayerUsers,
   getScheduleLayersState,
   moveLayerInOrder,
@@ -118,9 +119,12 @@ export interface ComponentProps {
  * save made after someone else changed them is refused rather than undo
  * their change unseen (a 409, and the bar asks for a reload).
  *
- * Adding a layer, a layer's own settings (its Save Layer), Skip until...
- * and the schedule's timezone are saved as they are made, as before: none
- * of them moves who is on call by itself.
+ * Left as they were, each saved by a button of its own in a form or a
+ * dialog of its own, so none is saved by accident: a layer's settings (its
+ * form's Save Layer), the schedule's timezone (Save timezone) and Skip
+ * until... (its dialog's Save). And Add layer, saved at once: the new layer
+ * is empty and at the bottom, so it puts nobody on call until people are
+ * added to it - and that waits for Save.
  */
 
 // The layers and their people as one read gives them.
@@ -1488,6 +1492,10 @@ const Layers: FunctionComponent<ComponentProps> = (
               layer={layer}
               users={draftLayerUsers[layerId] || []}
               removedUsers={getRemovedLayerUsers({
+                saved: savedLayerUsers[layerId] || [],
+                draft: draftLayerUsers[layerId] || [],
+              })}
+              movedUserIds={getMovedLayerUserIds({
                 saved: savedLayerUsers[layerId] || [],
                 draft: draftLayerUsers[layerId] || [],
               })}

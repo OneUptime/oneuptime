@@ -75,6 +75,8 @@ export interface ComponentProps {
   onUsersChange: (users: Array<OnCallDutyPolicyScheduleLayerUser>) => void;
   // People saved in the layer whom the page has taken out, until Save.
   removedUsers?: Array<OnCallDutyPolicyScheduleLayerUser> | undefined;
+  // The rows of people the page has moved in the turn order, by id (LayerUser).
+  movedUserIds?: Set<string> | undefined;
   // Undo on one of them.
   onRestoreUser?:
     | ((layerUser: OnCallDutyPolicyScheduleLayerUser) => void)
@@ -673,6 +675,7 @@ const LayerCard: FunctionComponent<ComponentProps> = (
               users={props.users}
               onChange={props.onUsersChange}
               removedUsers={props.removedUsers}
+              movedUserIds={props.movedUserIds}
               onRestore={props.onRestoreUser}
               isDisabled={props.actionsDisabled}
               overrides={props.overrides}
