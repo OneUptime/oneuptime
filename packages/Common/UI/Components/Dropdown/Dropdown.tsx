@@ -58,10 +58,27 @@ export interface DropdownOption {
    */
   aliases?: Array<DropdownValue>;
   /*
-   * The label is something a person named - a variable, a record - drawn as
-   * it is, never looked up as a translation key: a variable named
-   * "Password" stays "Password" in German, never "Passwort". Left out, the
-   * label is English to look up.
+   * HOW AN OPTION'S LABEL READS - ONE RULE, WHEREVER THE OPTION IS DRAWN:
+   * the menu, the value picked, and the chip a filter leaves above its
+   * table (FilterViewer). Each draws it through getDropdownOptionText, so
+   * none of them reads it another way.
+   *
+   *   - Left out, the label is the product's own words, in English - a key
+   *     of the front end's locale files ("Unhealthy", "Production"): it is
+   *     looked up in the reader's language wherever it is drawn, so a
+   *     Spanish filter reads "Con problemas" in its menu and in its chip.
+   *   - Set, the label is drawn as it is, never looked up: something a
+   *     person named - a record, a variable, a value read from data - or a
+   *     product's own name ("AWS", "Google Cloud"). A monitor named
+   *     "Network" stays "Network" in Spanish, never "Red"; a variable
+   *     named "Password" stays "Password" in German, never "Passwort".
+   *     Words the page already put in the reader's language are marked
+   *     too, never looked up a second time - with isInPageDirection, so
+   *     they read the page's way.
+   *
+   * A filter's options keep the rule: FilterOptionLabelsGuard reads every
+   * filter's options in the front ends and fails on a label that is
+   * neither a key nor marked.
    */
   isUserContent?: boolean | undefined;
   /*
@@ -104,6 +121,23 @@ export interface DropdownOption {
 export interface DropdownOptionGroup {
   label: string;
   options: Array<DropdownOption>;
+}
+
+/*
+ * An option's label as its reader reads it, by the rule on isUserContent:
+ * the product's words looked up with `translate` (useTranslateValue's
+ * translateString), a name drawn as written. The menu, the value picked and
+ * a filter's chip all draw an option through this, so they never disagree.
+ */
+export function getDropdownOptionText(
+  option: Pick<DropdownOption, "label" | "isUserContent">,
+  translate: (value: string | undefined) => string | undefined,
+): string {
+  if (option.isUserContent) {
+    return option.label;
+  }
+
+  return translate(option.label) ?? option.label;
 }
 
 export { DROPDOWN_MENU_Z_INDEX };
@@ -327,11 +361,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
   const getOptionLabelText: (option: DropdownOption) => string = (
     option: DropdownOption,
   ): string => {
-    if (option.isUserContent) {
-      return option.label;
-    }
-
-    return tx(option.label) ?? option.label;
+    return getDropdownOptionText(option, tx);
   };
 
   /*
@@ -893,10 +923,10 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         GroupBase<DropdownOption>
       >,
     ): ReactElement => {
-      const optionLabel: string = removeProps.data.isUserContent
-        ? removeProps.data.label
-        : translateStringRef.current(removeProps.data.label) ??
-          removeProps.data.label;
+      const optionLabel: string = getDropdownOptionText(
+        removeProps.data,
+        translateStringRef.current,
+      );
 
       return (
         <ReactSelectComponents.MultiValueRemove
