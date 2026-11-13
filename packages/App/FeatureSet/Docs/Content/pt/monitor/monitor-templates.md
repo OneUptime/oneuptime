@@ -100,7 +100,7 @@ Salve as alterações. O cartão **Critérios de Monitoramento**, e a confirmaç
 Use **Sincronizar Critérios com Monitores Vinculados**, ou **Sincronizar a partir do Modelo** em um monitor vinculado específico.
 :::
 
-Por exemplo, proteja **Monitor destination** e **Request headers** em um modelo de API. Os monitores de produção e de staging mantêm as próprias URLs e cabeçalhos, enquanto ambos recebem os critérios atualizados do modelo e as demais configurações não protegidas.
+Por exemplo, proteja **Monitor destination** e **Cabeçalhos da requisição** em um modelo de API. Os monitores de produção e de staging mantêm as próprias URLs e cabeçalhos, enquanto ambos recebem os critérios atualizados do modelo e as demais configurações não protegidas.
 
 As opções disponíveis dependem do tipo de monitor. Elas incluem destinos e portas, opções de requisição HTTP, conexões de banco de dados, configurações de DNS, seletores de infraestrutura e consultas de telemetria. Credenciais relacionadas, como um certificado de cliente e a sua chave privada, são mantidas juntas.
 

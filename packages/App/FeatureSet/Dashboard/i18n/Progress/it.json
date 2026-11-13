@@ -500,6 +500,7 @@
     "{{count}} manager",
     "{{count}} mon",
     "{{count}} monitor",
+    "{{count}} ms",
     "{{count}} placement group",
     "{{count}} pod",
     "{{count}} pool",

@@ -11,6 +11,7 @@ import {
   ServerSendingState,
 } from "Common/Types/ServerSending/ServerSendingStatus";
 import ServerSetupChecklistUtil, {
+  SERVER_SETUP_ADMIN_PATHS,
   SERVER_SETUP_CHECKED_WORDS,
   SERVER_SETUP_CHECKS,
   SERVER_SETUP_GUIDES,
@@ -466,13 +467,17 @@ export const getServerSetupRow: (data: {
         check.status === ServerSetupStatus.NotSetUp ||
         check.status === ServerSetupStatus.Failing
       ) {
+        /*
+         * Scheduled backups are the Enterprise Edition's page, linked only
+         * when it is loaded: its address is Common's, never this page's own.
+         */
         actions.push(
           check.hasScheduledBackups
             ? {
                 kind: "route",
                 title: SERVER_SETUP_COPY.actions.setUpBackups,
                 route: new Route(
-                  data.definition.adminPath || "/admin/settings/backups",
+                  data.definition.adminPath || SERVER_SETUP_ADMIN_PATHS.backups,
                 ),
               }
             : {

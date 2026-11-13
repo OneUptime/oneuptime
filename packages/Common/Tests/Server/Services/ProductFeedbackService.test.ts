@@ -79,12 +79,12 @@ let user: User | null;
 let openIncidents: number;
 let openAlerts: number;
 
-let updateUser: SpyInstance;
-let incidentCount: SpyInstance;
-let alertCount: SpyInstance;
-let create: SpyInstance;
-let findAnswer: SpyInstance;
-let updateAnswer: SpyInstance;
+let updateUser: SpyInstance<typeof UserService.updateOneById>;
+let incidentCount: SpyInstance<typeof IncidentService.countBy>;
+let alertCount: SpyInstance<typeof AlertService.countBy>;
+let create: SpyInstance<typeof ProductFeedbackService.create>;
+let findAnswer: SpyInstance<typeof ProductFeedbackService.findOneById>;
+let updateAnswer: SpyInstance<typeof ProductFeedbackService.updateOneById>;
 
 const makeUser: (data: {
   disableFeedbackQuestions?: boolean;
@@ -207,11 +207,9 @@ describe("asking a question", () => {
 
     expect(updateUser).toHaveBeenCalledTimes(1);
 
-    const written: JSONObject = (
-      updateUser.mock.calls[0]![0] as {
-        data: { feedbackQuestionsAsked: JSONObject };
-      }
-    ).data.feedbackQuestionsAsked;
+    const update: { data: { feedbackQuestionsAsked: JSONObject } } = updateUser
+      .mock.calls[0]![0] as never;
+    const written: JSONObject = update.data.feedbackQuestionsAsked;
 
     expect(written).toEqual({ "setup_flow:website_down": NOW.toISOString() });
   });
@@ -319,9 +317,7 @@ describe("keeping an answer", () => {
     expect(row.details).toBe("Fine.");
     expect(row.page).toBe("/dashboard/:projectId/monitors/setup");
     expect(row.productVersion).toBe("14.0.108");
-    expect((create.mock.calls[0]![0] as { props: JSONObject }).props).toEqual({
-      isRoot: true,
-    });
+    expect(create.mock.calls[0]![0].props).toEqual({ isRoot: true });
   });
 
   test("words are added to a fresh one-click answer that has none", async () => {

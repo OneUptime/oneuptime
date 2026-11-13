@@ -23,10 +23,12 @@ import OnCallReadinessService, {
   ReadinessMethodType,
   ReadinessStatus,
 } from "../../../../Server/Services/OnCallReadinessService";
+import PayAsYouGoBillingService from "../../../../Server/Services/PayAsYouGoBillingService";
 import ProbeService from "../../../../Server/Services/ProbeService";
 import ProjectService from "../../../../Server/Services/ProjectService";
 import StatusPageResourceService from "../../../../Server/Services/StatusPageResourceService";
 import StatusPageService from "../../../../Server/Services/StatusPageService";
+import ActiveMonitorLimit from "../../../../Server/Utils/Billing/ActiveMonitorLimit";
 import AIConversation from "../../../../Models/DatabaseModels/AIConversation";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import AlertSeverity from "../../../../Models/DatabaseModels/AlertSeverity";
@@ -248,6 +250,17 @@ function installSpies(data?: {
   jest
     .spyOn(MonitorProbeService, "countBy")
     .mockResolvedValue(new PositiveNumber(2) as never);
+
+  /*
+   * Common Test runs with billing on (config.env: BILLING_ENABLED=true),
+   * where a website monitor needs pay as you go and room under the plan's
+   * active monitor limit (SetupTools' readMonitorPlanRefusal): this project
+   * has both. A project without them is SetupTools.test.ts's.
+   */
+  jest
+    .spyOn(PayAsYouGoBillingService, "canUsePayAsYouGo")
+    .mockResolvedValue(true as never);
+  jest.spyOn(ActiveMonitorLimit, "getRefusal").mockResolvedValue(null as never);
 
   // Paging: none yet (or some), and a person with a verified email only.
   jest

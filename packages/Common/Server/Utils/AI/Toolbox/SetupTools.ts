@@ -11,6 +11,7 @@ import StatusPage from "../../../../Models/DatabaseModels/StatusPage";
 import StatusPageResource from "../../../../Models/DatabaseModels/StatusPageResource";
 import Team from "../../../../Models/DatabaseModels/Team";
 import TeamMember from "../../../../Models/DatabaseModels/TeamMember";
+import User from "../../../../Models/DatabaseModels/User";
 import {
   AIChatCitationTargetType,
   AIToolRefusal,
@@ -1111,6 +1112,61 @@ export interface PagingResponders {
 }
 
 /*
+ * The name and email of each member the person's own read found, read as
+ * OneUptime. A member's user is read by fewer people than the membership
+ * (Current User reaches a person's own memberships, not who they belong to),
+ * so the person's read selects only what every reader of a membership may
+ * read, and this adds who each one is - for those memberships alone, in the
+ * person's project.
+ */
+async function addMemberUsers(
+  ctx: ToolContext,
+  members: Array<TeamMember>,
+): Promise<void> {
+  const ids: Array<string> = members
+    .map((member: TeamMember): string => {
+      return member.id?.toString() || "";
+    })
+    .filter((id: string): boolean => {
+      return Boolean(id);
+    });
+
+  if (ids.length === 0) {
+    return;
+  }
+
+  const withUsers: Array<TeamMember> = await TeamMemberService.findBy({
+    query: {
+      _id: QueryHelper.any(ids),
+      projectId: ctx.projectId,
+    } as never,
+    select: {
+      _id: true,
+      user: { _id: true, name: true, email: true },
+    },
+    limit: LIMIT_PER_PROJECT,
+    skip: 0,
+    props: { isRoot: true },
+  });
+
+  const userOf: Map<string, User> = new Map();
+
+  for (const withUser of withUsers) {
+    if (withUser.user) {
+      userOf.set(withUser.id?.toString() || "", withUser.user);
+    }
+  }
+
+  for (const member of members) {
+    const user: User | undefined = userOf.get(member.id?.toString() || "");
+
+    if (user) {
+      member.user = user;
+    }
+  }
+}
+
+/*
  * The people and teams a call names, matched to the project's members (by
  * name or email, without case) and teams (by name), as the person reads
  * them. The person asking is "you", however they are named.
@@ -1130,17 +1186,19 @@ async function readPagingResponders(
   };
 
   if (peopleNames.length > 0) {
+    // Which members the person may read, by their own permissions.
     const members: Array<TeamMember> = await TeamMemberService.findBy({
       query: { projectId: ctx.projectId, hasAcceptedInvitation: true },
       select: {
         _id: true,
         userId: true,
-        user: { _id: true, name: true, email: true },
       },
       limit: LIMIT_PER_PROJECT,
       skip: 0,
       props: ctx.props,
     });
+
+    await addMemberUsers(ctx, members);
 
     for (const asked of peopleNames) {
       const lower: string = asked.toLowerCase();
@@ -1668,10 +1726,16 @@ async function readStatusPageName(
   }
 
   try {
+    /*
+     * Read as OneUptime: the person names a page of their own project, and
+     * a project's name is read by fewer people than the project (its Billing
+     * roles read the project, not its name), so a read with their props
+     * could be refused, and the page named plain "Status".
+     */
     const project: Project | null = await ProjectService.findOneById({
       id: ctx.projectId,
       select: { _id: true, name: true },
-      props: ctx.props,
+      props: { isRoot: true },
     });
     const projectName: string = project?.name?.trim() || "";
 

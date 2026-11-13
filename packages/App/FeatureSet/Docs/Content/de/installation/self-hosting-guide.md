@@ -139,13 +139,7 @@ npm run doctor
 
 Er prüft jeden Container, `config.env`, ob `HOST` diesen Server erreicht, das Zertifikat und den freien Speicherplatz, und fragt OneUptime, was es von sich selbst sieht, etwa E-Mail und Probes. Zu jedem Problem nennt er die Lösung: siehe [Ihre Installation prüfen](/docs/installation/docker-compose#ihre-installation-prüfen).
 @tab Kubernetes
-Laden Sie das Diagnoseskript des Charts herunter und führen Sie es gegen Ihren Cluster aus. Es liest nur und endet mit einer Zusammenfassung dessen, was es gefunden hat, das Schlimmste zuerst:
-
-```bash
-curl -sLO https://raw.githubusercontent.com/OneUptime/oneuptime/main/HelmChart/Public/diagnose.sh
-chmod +x diagnose.sh
-./diagnose.sh
-```
+Führen Sie das Diagnoseskript des Charts gegen Ihren Cluster aus, wie die [Fehlerbehebungsanleitung des Charts](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/troubleshooting.md#run-it) zeigt. Es liest nur und endet mit einer Zusammenfassung dessen, was es gefunden hat, das Schlimmste zuerst.
 :::
 
 **Es hat funktioniert, wenn** der Doctor mit **Everything looks right.** endet und mit `0` beendet. Er beendet sich mit `1`, wenn etwas zu beheben ist, und mit `2`, wenn er seine Prüfungen nicht ausführen konnte. Auf Kubernetes enthält die Zusammenfassung keinen Befund `CRITICAL`.

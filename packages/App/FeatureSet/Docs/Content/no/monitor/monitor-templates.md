@@ -100,7 +100,7 @@ Lagre endringene. Kortet **Overvåkingskriterier**, og bekreftelsen av begge syn
 Bruk **Synkroniser kriterier til koblede overvåkere**, eller **Synkroniser fra mal** på én tilkoblet monitor.
 :::
 
-Beskytt for eksempel **Monitor destination** og **Request headers** på en API-mal. Produksjons- og staging-monitorer beholder sine egne URL-er og hoder, mens begge får malens oppdaterte kriterier og de andre ubeskyttede innstillingene.
+Beskytt for eksempel **Monitor destination** og **Forespørselshoder** på en API-mal. Produksjons- og staging-monitorer beholder sine egne URL-er og hoder, mens begge får malens oppdaterte kriterier og de andre ubeskyttede innstillingene.
 
 Hvilke alternativer som finnes, avhenger av monitortypen. De omfatter mål og porter, alternativer for HTTP-forespørsler, databasetilkoblinger, DNS-innstillinger, infrastrukturvelgere og telemetrispørringer. Relaterte påloggingsdata, som et klientsertifikat og den private nøkkelen, holdes sammen.
 

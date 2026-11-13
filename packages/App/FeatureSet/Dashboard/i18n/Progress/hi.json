@@ -216,6 +216,7 @@
     "{{count}} SLO",
     "{{count}} SMS",
     "{{count}} VM",
+    "{{count}} ms",
     "{{count}} vCPU",
     "{{format}} JSON",
     "{{gigabytes}} GB",
