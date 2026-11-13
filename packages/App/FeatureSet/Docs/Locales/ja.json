@@ -310,6 +310,7 @@
     "Data Retention": "データ保持",
     "Telemetry Usage": "テレメトリ使用量",
     "Ingestion Budgets": "取り込み予算",
+    "Prometheus, Loki, Splunk, Datadog & Sentry": "Prometheus, Loki, Splunk, Datadog & Sentry",
     "Serilog (.NET)": "Serilog (.NET)",
     "Fluent Bit": "Fluent Bit",
     "Fluentd": "Fluentd",

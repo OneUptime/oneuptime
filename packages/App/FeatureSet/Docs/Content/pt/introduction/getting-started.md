@@ -30,6 +30,8 @@ Executa o OneUptime nos seus próprios servidores? Siga primeiro o [Guia de auto
 
 **Configurações do projeto → Avançado → Importar de outra ferramenta** lê sua configuração em outra ferramenta, com uma chave de API ou, no caso do Uptime Kuma, um arquivo. Ela mostra o que encontrou e cria o que você marcar. Nada muda na outra ferramenta, e executar a importação de novo nunca cria nada em dobro.
 
+Já envia telemetria com o Prometheus, um cliente do Loki, um encaminhador do Splunk, o Datadog Agent ou um SDK do Sentry? Mantenha-o e aponte-o para o OneUptime com uma chave de ingestão: [Prometheus, Loki, Splunk, Datadog & Sentry](/docs/telemetry/compatible-endpoints) mostra como.
+
 :::details As onze ferramentas das quais ele importa
 | Vindo de | O que o OneUptime lê |
 | --- | --- |

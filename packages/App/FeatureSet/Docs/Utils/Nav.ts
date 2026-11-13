@@ -768,6 +768,14 @@ const DocsNav: NavGroup[] = [
         title: "Source Maps",
         url: "/docs/telemetry/source-maps",
       },
+      /*
+       * The agents and SDKs a team moving from another tool already runs,
+       * sending unchanged (#6797), before the log shippers OneUptime sets up.
+       */
+      {
+        title: "Prometheus, Loki, Splunk, Datadog & Sentry",
+        url: "/docs/telemetry/compatible-endpoints",
+      },
       {
         title: "Serilog (.NET)",
         url: "/docs/telemetry/serilog",

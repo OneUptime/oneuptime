@@ -137,10 +137,19 @@ describe("TelemetryIngestionKeyGuard.getRefusal", () => {
       },
     );
 
-    test("covers all twenty-two surfaces in the matrix above", () => {
-      expect(ALL_SURFACES).toHaveLength(22);
-      expect(BROWSER_ALLOWED).toHaveLength(4);
-      expect(BROWSER_FORBIDDEN).toHaveLength(18);
+    test("covers all twenty-seven surfaces in the matrix above", () => {
+      expect(ALL_SURFACES).toHaveLength(27);
+      expect(BROWSER_ALLOWED).toHaveLength(5);
+      expect(BROWSER_FORBIDDEN).toHaveLength(22);
+      // A Sentry DSN ships in page JavaScript, as a browser OTLP key does.
+      expect(BROWSER_ALLOWED).toContain(TelemetryIngestSurface.Sentry);
+      // The other compatible endpoints are agents' and servers' pipes.
+      expect(BROWSER_FORBIDDEN).toContain(
+        TelemetryIngestSurface.PrometheusRemoteWrite,
+      );
+      expect(BROWSER_FORBIDDEN).toContain(TelemetryIngestSurface.Loki);
+      expect(BROWSER_FORBIDDEN).toContain(TelemetryIngestSurface.SplunkHec);
+      expect(BROWSER_FORBIDDEN).toContain(TelemetryIngestSurface.Datadog);
       // A scheduler's OpenLineage events: a server's, never a page's.
       expect(BROWSER_FORBIDDEN).toContain(TelemetryIngestSurface.OpenLineage);
       // A sync tool's webhooks: its servers', never a page's.
