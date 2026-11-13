@@ -102,6 +102,8 @@ window.__ONEUPTIME_SESSION_REPLAY__ = {
   respectDoNotTrack: true, // optional
   debug: false, // optional
   offlineStorage: true, // optional; false keeps offline chunks in memory only
+  maskAllText: false, // optional; true masks all text, whatever the policy says
+  blockSelectors: [], // optional; added to the policy's block selectors
 };
 ```
 
@@ -253,7 +255,7 @@ The recorder publishes `window.OneUptimeReplay`. Because it loads asynchronously
 );
 ```
 
-`grantConsent`, `revokeConsent`, `stop`, `identify`, `setTags` and `addTag` are applied before the recorder starts, so a queued consent decision decides whether anything uploads at all and a queued identity rides on the very first chunk. `track`, `metric`, `captureSession` and `onSessionChange` run right after it starts.
+`grantConsent`, `revokeConsent`, `stop`, `pause`, `resume`, `identify`, `setTags` and `addTag` are applied before the recorder starts, so a queued consent decision decides whether anything uploads at all and a queued identity rides on the very first chunk. `track`, `metric`, `captureSession` and `onSessionChange` run right after it starts.
 
 | Method | What it does |
 | --- | --- |
@@ -268,6 +270,8 @@ The recorder publishes `window.OneUptimeReplay`. Because it loads asynchronously
 | `getSessionId()` | The current session id, or `null` when nothing is recording. Prefer `onSessionChange()`, which also follows rotations. |
 | `getVisitorId()` | The [anonymous visitor id](#anonymous-visitors) — 32 hex characters, one per browser profile, the same across session rotations — or `""` before the recorder has started, after `stop()`, and while consent is withdrawn. Random and not an identity; not governed by **Capture end-user identity**. |
 | `stop()` | Upload the last chunk, seal the session, and stop for the rest of the page's life. |
+| `pause()` | Stop capturing what is on screen until `resume()`: the open chunk goes out with a _paused_ marker, and nothing — the page, input, requests, console, clicks — is recorded meanwhile. The session stays open, and the visitor's input does not resume it. For a page that records only some of its parts; queued before the recorder loads, it starts paused. |
+| `resume()` | Go on recording after `pause()`, in the same session, on a fresh snapshot of the page as it is now. The player skips the paused stretch. |
 | `setDebug(enabled)` | Print the recorder's decisions to the console from now on. |
 | `getDiagnostics()` | Everything the recorder decided, whether or not diagnostics were on. See below. |
 
@@ -370,7 +374,12 @@ Masked values are not length-preserving. A masked field is a fixed-width placeho
 
 <!-- Recorded, but input events inside are dropped. -->
 <div class="oneuptime-ignore">...</div>
+
+<!-- Under Mask all text, the text inside is recorded as written. -->
+<div class="oneuptime-unmask">...</div>
 ```
+
+Under _Mask all text_, text inside an element with the `oneuptime-unmask` class is recorded as written: use it for your page's own interface words, such as buttons, headings and menus. An `oneuptime-mask` element or one of your additional mask selectors inside it masks its text again, form fields stay masked, and the class does nothing under the other masking modes. A page can also ask for more masking than its policy gives, on the init global: `maskAllText: true` records under _Mask all text_ whatever the policy says, and `blockSelectors` adds to the policy's block selectors. Neither can make a recording show more.
 
 You can also add **Additional mask selectors** and **Block selectors** on your application's **Replay Policy** page, without changing your markup. Under the default masking mode these are the main tool for protecting content your markup does not declare as sensitive.
 

@@ -111,6 +111,26 @@ describe("FormRefusals", () => {
   });
 });
 
+describe("ModelForm and a server that refuses", () => {
+  test("reports the refusal where it shows the server's message, and nothing on success", () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const fs: typeof import("fs") = require("fs");
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const path: typeof import("path") = require("path");
+    const source: string = fs.readFileSync(
+      path.join(__dirname, "../../../UI/Components/Forms/ModelForm.tsx"),
+      "utf8",
+    );
+    const refusal: RegExpMatchArray | null = source.match(
+      /catch \(err\) \{\n\s*const message: string = API\.getFriendlyMessage\(err\);\n\s*setError\(message\);\n\s*props\.onSubmitError\?\.\(message\);\n\s*FormRefusals\.report\(FormRefusalKind\.Refused\);\n\s*\}/,
+    );
+
+    expect(refusal).not.toBeNull();
+    // Once: a successful save reports nothing.
+    expect(source.split("FormRefusals.report(").length - 1).toBe(1);
+  });
+});
+
 describe("ProductEvents.subscribe", () => {
   test("hears each event by its name and its own reviewed properties - not the common ones", () => {
     const heard: Array<[string, JSONObject]> = [];
