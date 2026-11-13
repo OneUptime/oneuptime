@@ -202,6 +202,17 @@ function stubSeeds(options?: { missing?: boolean }): void {
   ] as never);
 }
 
+/*
+ * The project may pay as you go, so the plan's room is what is asked next.
+ * Said by the test: with billing on, as Common Test runs, the real check
+ * reads the project's billing from a database there is none of.
+ */
+function payAsYouGoIsSetUp(): void {
+  jest
+    .spyOn(PayAsYouGoBillingService, "canUsePayAsYouGo")
+    .mockResolvedValue(true as never);
+}
+
 // The probes a new monitor starts with: two global ones and none of the project's.
 function stubLocations(data?: {
   global?: number;
@@ -593,6 +604,7 @@ describe("set_up_website_monitoring", () => {
 
   test("a project whose plan has no room for the monitors its plan sets up is told the plan's own sentence, before any card", async () => {
     stubSeeds();
+    payAsYouGoIsSetUp();
     const room: Spy = jest
       .spyOn(ActiveMonitorLimit, "getRefusal")
       .mockResolvedValue(
@@ -662,6 +674,7 @@ describe("set_up_website_monitoring", () => {
       ),
     ).toBeNull();
 
+    payAsYouGoIsSetUp();
     const room: Spy = jest
       .spyOn(ActiveMonitorLimit, "getRefusal")
       .mockResolvedValue(null as never);
@@ -679,7 +692,8 @@ describe("set_up_website_monitoring", () => {
 
   test("a plan that cannot be read lets the card show: running it says why", async () => {
     stubSeeds();
-    jest
+    payAsYouGoIsSetUp();
+    const room: Spy = jest
       .spyOn(ActiveMonitorLimit, "getRefusal")
       .mockRejectedValue(new Error("down") as never);
 
@@ -689,6 +703,7 @@ describe("set_up_website_monitoring", () => {
         ctx,
       ),
     ).toBeNull();
+    expect(room).toHaveBeenCalled();
   });
 
   test("a check that cannot read the project lets the card show", async () => {
