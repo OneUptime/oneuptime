@@ -31,7 +31,7 @@ export const DATA_RETENTION: string = "telemetry/data-retention";
  *
  *   - Ingestion Keys right after OpenTelemetry, whose quickstart creates a
  *     key, and before the Service Catalog the key's data is filed in;
- *   - Topology after the explorers (Exception Tracking), as one more way of
+ *   - Topology after the explorers (Exceptions), as one more way of
  *     looking at the same telemetry, before the reference pages they share
  *     (Search Syntax);
  *   - Drop Filters & Scrub Rules after Log Pipelines, the other rules that
@@ -51,7 +51,7 @@ export const TELEMETRY_ADMIN_PAGES: ReadonlyArray<TelemetryAdminDocsPageEntry> =
       page: TOPOLOGY,
       navTitle: "Topology",
       navGroup: "Telemetry",
-      after: "Exception Tracking",
+      after: "Exceptions",
       before: "Search Syntax",
     },
     {

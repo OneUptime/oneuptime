@@ -86,5 +86,5 @@ Det har ikke kommet noen melding du kan bekrefte fra, noe som på en selvdriftet
 :::cards
 - [Bli varslet via telefon, SMS eller push](/docs/guides/paging): Bli tilkalt på telefonen din, og tilkall den neste personen hvis ingen svarer.
 - [Publiser en statusside](/docs/guides/status-page): Vis monitoren til kundene dine, på ditt eget domene.
-- [Monitorkriterier og statuser](/docs/monitor/criteria-and-statuses): Bestem nøyaktig når en monitor regnes som nede.
+- [Kriterier og statuser](/docs/monitor/criteria-and-statuses): Bestem nøyaktig når en monitor regnes som nede.
 :::

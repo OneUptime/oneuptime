@@ -100,7 +100,7 @@ const SEARCH_CASES: Array<[string, string, string]> = [
   ["siem", "Security Events", PageMap.SECURITY_EVENTS_OVERVIEW],
   ["soar", "Security Events", PageMap.SECURITY_EVENTS_OVERVIEW],
   ["snmp", "Network", PageMap.NETWORK_OVERVIEW],
-  ["flamegraph", "Performance Profiles", PageMap.PROFILES],
+  ["flamegraph", "Profiles", PageMap.PROFILES],
   ["lambda", "Serverless", PageMap.SERVERLESS_FUNCTIONS],
   /*
    * Cloud opens on its Overview of every account connected to it, and what

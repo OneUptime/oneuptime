@@ -1,6 +1,6 @@
 /**
  * Classifies a service name into one of four buckets, used by the
- * Performance Profiles dashboard to group the (often very long) service
+ * Profiles pages to group the (often very long) service
  * list into something a developer can scan: application code first, then
  * system daemons, then host-fallback synthetic services, with kernel
  * threads pushed to a collapsible group at the bottom.

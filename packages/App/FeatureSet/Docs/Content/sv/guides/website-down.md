@@ -86,5 +86,5 @@ Inget meddelande har kommit fram som larmet kan bekräftas från, vilket på en 
 :::cards
 - [Bli larmad via samtal, SMS eller push](/docs/guides/paging): Bli larmad på telefonen, och larma nästa person om ingen svarar.
 - [Publicera en statussida](/docs/guides/status-page): Visa monitorn för dina kunder, på din egen domän.
-- [Monitorkriterier och statusar](/docs/monitor/criteria-and-statuses): Bestäm exakt när en monitor räknas som nere.
+- [Kriterier och statusar](/docs/monitor/criteria-and-statuses): Bestäm exakt när en monitor räknas som nere.
 :::

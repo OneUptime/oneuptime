@@ -86,5 +86,5 @@ Nothing arrived to acknowledge it from, which on a self-hosted server usually me
 :::cards
 - [Get Paged by Phone, SMS or Push](/docs/guides/paging): Be paged on your phone, and page the next person if nobody answers.
 - [Publish a Status Page](/docs/guides/status-page): Show the monitor to your customers, on your own domain.
-- [Monitor Criteria & Statuses](/docs/monitor/criteria-and-statuses): Decide exactly when a monitor counts as down.
+- [Criteria & Statuses](/docs/monitor/criteria-and-statuses): Decide exactly when a monitor counts as down.
 :::

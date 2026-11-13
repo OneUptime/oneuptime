@@ -54,7 +54,7 @@ Fate clic su **Testa il monitor**, scegliete una sonda in **Seleziona sonda** e 
 
 ### Rivedere i criteri
 
-**Criteri del monitor** parte dai [criteri predefiniti](#criteri-predefiniti): offline quando il certificato non è valido, un avviso quando scade entro 14 giorni. Modificateli se serve, poi fate clic su **Avanti**.
+**Criteri** parte dai [criteri predefiniti](#criteri-predefiniti): offline quando il certificato non è valido, un avviso quando scade entro 14 giorni. Modificateli se serve, poi fate clic su **Avanti**.
 
 ### Scegliere le sonde e creare
 
@@ -106,7 +106,7 @@ Per essere avvisati prima, cambiate il valore del filtro **Giorni alla scadenza*
 :::details Aggiungere l'avviso a un monitor creato prima che esistesse
 I monitor creati prima che OneUptime aggiungesse questo avviso non hanno un criterio «scade presto». Per aggiungerlo:
 
-1. Sul monitor, aprite **Configurazione → Criteri** e fate clic su **Modifica criteri di monitoraggio**.
+1. Sul monitor, aprite **Configurazione → Criteri** e fate clic su **Modifica criteri**.
 2. Fate clic su **Aggiungi criteri**. Impostate il suo filtro su **Certificato valido** / **Vero**, fate clic su **Aggiungi filtro** e impostate il secondo su **Giorni alla scadenza** / **Minore o uguale a** / `14`. Lasciate **Condizione di corrispondenza** su **Tutti** (compare sotto i filtri quando ce ne sono due).
 3. In **Azioni**, attivate **Quando i filtri corrispondono, crea un avviso.** e lasciate disattivato **Quando i filtri corrispondono, modifica lo stato del monitor.**, così crea un avviso e non cambia lo stato del monitor.
 4. Trascinate il nuovo criterio sopra il criterio che segna il monitor come online, poi salvate.

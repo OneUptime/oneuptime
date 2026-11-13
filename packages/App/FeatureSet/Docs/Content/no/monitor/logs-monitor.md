@@ -240,7 +240,7 @@ Verdien til hvert Group By-attributt er en [malvariabel](/docs/monitor/incident-
 ## Feilsøking
 
 :::details Monitoren er frakoblet, men tjenesten min logger
-Antallet var 0, så filtrene samsvarer ikke med noen av loggene tjenesten sender. Åpne monitorens side **Kriterier** (under **Konfigurasjon**), og klikk på **Rediger overvåkingskriterier**: **Samsvarende logger** viser hva filtrene velger ut akkurat nå, og diagrammet i **Når det skal varsles** teller dem i hvert vindu. De vanligste årsakene er en alvorlighetsgrad valgt etter teksten loggeren skriver ut i stedet for alvorlighetsnummeret (se [Loggalvorlighetsgrad](#loggalvorlighetsgrad)), et tjeneste- eller attributtfilter som ikke samsvarer, og et tidsvindu som er kortere enn pausen mellom tjenestens logger.
+Antallet var 0, så filtrene samsvarer ikke med noen av loggene tjenesten sender. Åpne monitorens side **Kriterier** (under **Konfigurasjon**), og klikk på **Rediger kriterier**: **Samsvarende logger** viser hva filtrene velger ut akkurat nå, og diagrammet i **Når det skal varsles** teller dem i hvert vindu. De vanligste årsakene er en alvorlighetsgrad valgt etter teksten loggeren skriver ut i stedet for alvorlighetsnummeret (se [Loggalvorlighetsgrad](#loggalvorlighetsgrad)), et tjeneste- eller attributtfilter som ikke samsvarer, og et tidsvindu som er kortere enn pausen mellom tjenestens logger.
 :::
 
 :::details Det var en økning, men ingenting varslet

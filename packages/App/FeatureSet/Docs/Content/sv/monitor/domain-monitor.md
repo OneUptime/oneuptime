@@ -64,7 +64,7 @@ Klicka på **Testa monitor**, välj en sond under **Välj sond** och klicka på 
 
 ### Gå igenom kriterierna
 
-**Monitorkriterier** börjar med [standardkriterierna](#standardkriterier): offline när registreringen har gått ut eller inte kan läsas, ett larm när den går ut om 30 dagar eller mindre. Ändra dem vid behov och klicka sedan på **Nästa**.
+**Kriterier** börjar med [standardkriterierna](#standardkriterier): offline när registreringen har gått ut eller inte kan läsas, ett larm när den går ut om 30 dagar eller mindre. Ändra dem vid behov och klicka sedan på **Nästa**.
 
 ### Välj sonder och skapa
 
@@ -135,7 +135,7 @@ För att bli varnad tidigare ändrar du värdet för filtret **Dagar tills domä
 :::details Lägg till varningen på en monitor som skapades innan den fanns
 Monitorer som skapades innan OneUptime lade till den här varningen har inget kriterium "går snart ut". Så här lägger du till det:
 
-1. Öppna **Konfiguration → Kriterier** på monitorn och klicka på **Redigera övervakningskriterier**.
+1. Öppna **Konfiguration → Kriterier** på monitorn och klicka på **Redigera kriterier**.
 2. Klicka på **Lägg till kriterier**. Sätt dess filter till **Domänen har löpt ut** / **Falskt**, klicka på **Lägg till filter** och sätt det andra till **Dagar tills domänen löper ut** / **Mindre än eller lika med** / `30`. Låt **Matchningsvillkor** stå på **Alla** (det visas under filtren så snart det finns två).
 3. Slå på **När filter matchar, skapa ett larm.** under **Åtgärder** och låt **När filter matchar, ändra övervakarstatus.** vara avstängt, så att det skapar ett larm och inte ändrar monitorns status.
 4. Dra det nya kriteriet ovanför kriteriet som markerar monitorn som online och spara sedan.

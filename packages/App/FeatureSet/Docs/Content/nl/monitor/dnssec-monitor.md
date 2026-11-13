@@ -66,7 +66,7 @@ Klik op **Monitor testen**, kies een sonde onder **Selecteer sonde** en klik op 
 
 ### De criteria nakijken
 
-**Monitorcriteria** begint met de [standaardcriteria](#standaardcriteria): offline wanneer de keten gebroken is, online wanneer ze geldig is. Om gewaarschuwd te worden voordat handtekeningen verlopen, voegt u een criterium toe (zie [Aanbevolen werkwijzen](#aanbevolen-werkwijzen)) en klikt u op **Volgende**.
+**Criteria** begint met de [standaardcriteria](#standaardcriteria): offline wanneer de keten gebroken is, online wanneer ze geldig is. Om gewaarschuwd te worden voordat handtekeningen verlopen, voegt u een criterium toe (zie [Aanbevolen werkwijzen](#aanbevolen-werkwijzen)) en klikt u op **Volgende**.
 
 ### Sondes kiezen en maken
 

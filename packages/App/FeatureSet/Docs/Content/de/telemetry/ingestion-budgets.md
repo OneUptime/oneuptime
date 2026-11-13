@@ -34,7 +34,7 @@ flowchart TB
 ## Bevor Sie beginnen
 
 - **Für die Budgets der Instanz und eines Projekts das Admin Dashboard.** Auf einer selbst gehosteten Installation legt nur der Instanzadministrator sie fest. Die Inhaber und Administratoren eines Projekts sehen seine Budgets, können sie aber nicht ändern.
-- **Für das eigene Budget eines Schlüssels eine Rolle, die Ingestion-Schlüssel bearbeiten darf.** Project Owner oder Project Admin, oder eine eigene Rolle mit der Berechtigung Edit Telemetry Ingestion Key.
+- **Für das eigene Budget eines Schlüssels eine Rolle, die Ingestion-Schlüssel bearbeiten darf.** Project Owner oder Project Admin, oder eine eigene Rolle mit der Berechtigung Edit Ingestion Key.
 - **Um die Budgets zu sehen, eine Rolle, die die Nutzung des Projekts sieht.** Die Rollen, die die Seite [Telemetrie-Nutzung](/docs/telemetry/usage) sehen, sehen dort auch die Budgets des Projekts.
 
 ## Die Standardbudgets aller Projekte festlegen

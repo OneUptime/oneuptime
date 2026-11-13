@@ -64,7 +64,7 @@ Click **Test Monitor**, pick a probe under **Select Probe** and click **Run Test
 
 ### Review the criteria
 
-**Monitor Criteria** starts with the [default criteria](#default-criteria): offline when the registration has expired or cannot be read, an alert when it expires in 30 days or less. Change them if you need to, then click **Next**.
+The **Criteria** card starts with the [default criteria](#default-criteria): offline when the registration has expired or cannot be read, an alert when it expires in 30 days or less. Change them if you need to, then click **Next**.
 
 ### Pick probes and create
 
@@ -98,7 +98,7 @@ Registration data can be read over two protocols, and which one works depends on
 
 **WHOIS** has no equivalent discovery mechanism — clients ship a static map of TLD to WHOIS host, and those maps go stale. Every Identity Digital TLD (`.digital`, `.email`, `.life`, `.today`, `.zone` and around 290 others) is still mapped to a retired host that now answers every query with the literal text `TLD is not supported.` instead of a record. WHOIS remains the only option for the many ccTLDs that publish no RDAP service at all, such as `.io`, `.co`, `.de`, `.ch` and `.jp`.
 
-## Monitoring Criteria
+## Criteria
 
 Criteria decide when the domain counts as fine or broken, and whether that declares an incident or creates an alert. Each criteria checks one or more filters:
 
@@ -135,7 +135,7 @@ To be warned earlier, change the value of the **Domain Expires In Days** filter 
 :::details Add the warning to a monitor created before it existed
 Monitors created before OneUptime added this warning have no "expires soon" criteria. To add it:
 
-1. On the monitor, open **Configuration → Criteria** and click **Edit Monitoring Criteria**.
+1. On the monitor, open **Configuration → Criteria** and click **Edit Criteria**.
 2. Click **Add Criteria**. Set its filter to **Domain Is Expired** / **False**, click **Add Filter**, and set the second one to **Domain Expires In Days** / **Less Than Or Equal To** / `30`. Leave **Match Condition** on **All** (it appears under the filters once there are two).
 3. Under **Actions**, turn on **When filters match, create an alert.** and leave **When filters match, change monitor status.** off, so it creates an alert and does not change the monitor status.
 4. Drag the new criteria above the criteria that marks the monitor as online, then save.

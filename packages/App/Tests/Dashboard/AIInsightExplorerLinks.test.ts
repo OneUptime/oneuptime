@@ -813,7 +813,7 @@ describe("buildInsightInvestigationLink — ProfileHotspot", () => {
 
     expect(link).not.toBeNull();
     expect(link!.target).toBe("profiles");
-    expect(link!.label).toBe("Open in Profiler");
+    expect(link!.label).toBe("Open in Profiles");
     expect(link!.dropped).toEqual([]);
     expect(link!.route.toString().split("?")[0]).toBe(
       "/dashboard/:projectId/profiles",
@@ -1586,7 +1586,7 @@ describe("buildInsightInvestigationLink — URL-hostile character sweep", () => 
              * names a service it cannot carry opens the Profiler's
              * overview, and says the service was dropped.
              */
-            expect(link!.label).toBe("Open in Profiler");
+            expect(link!.label).toBe("Open in Profiles");
             expect(link!.target).toBe("profiles");
             expect(query.get("serviceId")).toBeNull();
             expect(link!.dropped).toEqual(["serviceIds"]);

@@ -168,7 +168,7 @@ export const APPLICATION_SIDE_MENU: ReadonlyArray<{
 
 /*
  * A table's create button, drawn as translateNamedAction draws it
- * (drawnCreateButton): the Telemetry Ingestion Keys table's.
+ * (drawnCreateButton): the Ingestion Keys table's.
  */
 export const CREATE_BUTTONS: Readonly<Record<string, ReadonlyArray<string>>> = {
   [RUM_INDEX]: ["Create Ingestion Key"],
@@ -195,17 +195,18 @@ export const SESSION_REPLAY_BUDGET_RECOMMENDATION_NAMES: ReadonlyArray<string> =
  * Bold names every language's Dashboard draws in English, so every page
  * keeps them as written:
  *
- *   - a permission's name, as the team and API key permission pickers list
- *     it (Permission.ts's title, which no locale translates);
  *   - the Core Web Vitals card's rating chips and its INP by route title,
  *     which the card writes with no translation lookup;
  *   - the metric explorer's P75 aggregation, an enum value;
  *   - the web vital recommendations' names, which a recommendation card
  *     draws as the template writes them.
+ *
+ * A permission's name is written without bold: "Create Ingestion Key" is
+ * the permission and the Ingestion Keys table's create button (#6817), and
+ * only the button is a label each language draws.
  */
 export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
   {
-    [BROWSER_SETUP]: ["Create Telemetry Ingestion Key"],
     [WEB_VITALS]: [
       ...WEB_VITAL_RATING_LABELS,
       "P75",

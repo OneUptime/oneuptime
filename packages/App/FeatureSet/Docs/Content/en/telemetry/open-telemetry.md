@@ -36,7 +36,7 @@ flowchart TB
 
 ## Before you begin
 
-- A OneUptime project in which you can create ingestion keys: project owners and admins can, and so can anyone with the **Create Telemetry Ingestion Key** permission.
+- A OneUptime project in which you can create ingestion keys: project owners and admins can, and so can anyone with the Create Ingestion Key permission.
 - An application you can add an OpenTelemetry SDK to, or an OpenTelemetry Collector.
 - Outbound HTTPS (port 443) from your application or collector to `oneuptime.com`, or to your own OneUptime host.
 
@@ -52,7 +52,7 @@ flowchart TB
 2. In the side menu, open **Telemetry & APM** and select **Ingestion Keys**.
 3. Click **Create Ingestion Key**. The dialog fills in a name and picks the **Server** key type, which is what an application or a collector sends with. Rename it if you like, then click **Create Ingestion Key**.
 
-![The Telemetry Ingestion Keys page in Project Settings](/docs/static/images/TelemetryIngestionKeys.png)
+![The Ingestion Keys page in Project Settings](/docs/static/images/TelemetryIngestionKeys.png)
 
 The new key opens on its own page. Copy its **Secret Key** — this is the token you send as `x-oneuptime-token`.
 
@@ -365,7 +365,7 @@ Over HTTP, each signal has its own path under the endpoint. SDKs and the collect
 | Logs | `https://oneuptime.com/otlp/v1/logs` |
 | Profiles | `https://oneuptime.com/otlp/v1/profiles` |
 
-For continuous profiling, most profilers send to the Pyroscope-compatible endpoint instead — see [Continuous Profiling](/docs/telemetry/profiles). A collector that exports OTLP profiles must set the exporter's `profiles_endpoint` to `https://oneuptime.com/otlp/v1/profiles`, because by default it posts profiles to a development path that OneUptime does not serve.
+For continuous profiling, most profilers send to the Pyroscope-compatible endpoint instead — see [Profiles](/docs/telemetry/profiles). A collector that exports OTLP profiles must set the exporter's `profiles_endpoint` to `https://oneuptime.com/otlp/v1/profiles`, because by default it posts profiles to a development path that OneUptime does not serve.
 
 ### OTLP over gRPC
 

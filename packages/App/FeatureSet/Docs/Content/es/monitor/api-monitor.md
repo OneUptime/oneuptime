@@ -59,7 +59,7 @@ Haga clic en **Probar monitor**, elija una sonda en **Seleccionar sonda** y haga
 
 ### Revisar los criterios
 
-**Criterios del monitor** empieza con los [criterios predeterminados](#criterios-predeterminados): sin conexión cuando la API no responde o responde con un error, en línea con cualquier estado `2xx` o `3xx`. Para comprobar también lo que devuelve la API, añada un filtro y haga clic en **Siguiente**.
+**Criterios** empieza con los [criterios predeterminados](#criterios-predeterminados): sin conexión cuando la API no responde o responde con un error, en línea con cualquier estado `2xx` o `3xx`. Para comprobar también lo que devuelve la API, añada un filtro y haga clic en **Siguiente**.
 
 ### Elegir sondas y crear
 

@@ -42,13 +42,13 @@ OneUptime 使用的每个词，都用一两句话解释，并附上它的其他�
 
 监视器的规则：每个检查结果意味着什么。它们按顺序检查，第一个匹配的规则可以改变监视器的状态、声明事件、创建警报，或三者都做。
 
-也称为：**监控条件**、**监视器条件**、**Monitor Steps**。参见 [监视器条件与状态](/docs/monitor/criteria-and-statuses)。
+也称为：**监控条件**、**监视器条件**、**Monitor Steps**。参见 [条件与状态](/docs/monitor/criteria-and-statuses)。
 
 ### 监视器状态
 
 监视器此刻的状况。每个新项目都有三种监视器状态：**运行正常**、**性能下降** 和 **离线**，你也可以添加自己的状态。
 
-参见 [监视器条件与状态](/docs/monitor/criteria-and-statuses)。
+参见 [条件与状态](/docs/monitor/criteria-and-statuses)。
 
 ### 探测器
 
@@ -262,7 +262,7 @@ SLO 的目标所允许的停机时间：目标为 30 天内 99.9% 时，就是 4
 
 你的代码抛出的错误。OneUptime 把同一错误的每次出现归为一个异常，并附上它的堆栈跟踪、趋势以及发生它的请求。
 
-也称为：**异常跟踪**、`/telemetry-exception`。参见 [异常跟踪](/docs/telemetry/exceptions)。
+也称为：**异常跟踪**、`/telemetry-exception`。参见 [异常](/docs/telemetry/exceptions)。
 
 ### AI 洞察
 
@@ -302,11 +302,11 @@ OneUptime 的 SIEM：来自你的日志、安全工具以及你发送的其他�
 
 参见 [跟踪浏览器](/docs/telemetry/traces-explorer)。
 
-### 配置文件
+### 性能剖析
 
 你的应用如何逐个函数地消耗 CPU 时间和内存，由向 OneUptime 的 Pyroscope 兼容 API 推送数据的性能分析器发送。
 
-也称为：**性能配置文件**、**持续性能分析**。参见 [持续性能分析](/docs/telemetry/profiles)。
+也称为：**性能配置文件**、**持续性能分析**。参见 [性能剖析](/docs/telemetry/profiles)。
 
 ### AI / LLM
 

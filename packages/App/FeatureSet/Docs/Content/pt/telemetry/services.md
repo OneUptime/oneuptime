@@ -62,7 +62,7 @@ O menu lateral de um serviço tem cinco seções:
 | Seção | Páginas |
 | --- | --- |
 | **Básico** | **Visão geral**: requisições, taxa de erros e latência p95 dos spans dele, gráficos e detalhes. **Recomendações**: monitores prontos para o serviço, escolhidos de acordo com a linguagem dele. **Proprietários**: as pessoas e as equipes responsáveis por ele. **Feed**: tudo o que aconteceu com ele, desde como foi criado até cada mudança desde então. |
-| **Telemetria** | Os **Registros**, **Traços**, **Métricas**, **Perfis de desempenho**, **Exceções** e **Source maps** dele, já filtrados para este serviço. |
+| **Telemetria** | Os **Registros**, **Traços**, **Métricas**, **Perfis**, **Exceções** e **Source maps** dele, já filtrados para este serviço. |
 | **Atividade** | Os **Incidentes**, os **Alertas** e os eventos de **Manutenção programada** que o afetam. |
 | **Desenvolvedores** | **Terraform**, **API**, **CLI** e **Assistentes de IA**: o serviço gerenciado por código. Começa recolhida. |
 | **Avançado** | **Configurações**, **Registros de auditoria** e **Excluir serviço**. **Avançado** começa recolhido: expanda-o primeiro. |
@@ -123,6 +123,6 @@ Nada chegou dele nos últimos 30 minutos. Isso é esperado para um serviço que 
 :::cards
 - [Explorador de registros](/docs/telemetry/logs-explorer): Pesquisar os registros de um serviço.
 - [Explorador de traços](/docs/telemetry/traces-explorer): Acompanhar as requisições dele.
-- [Rastreamento de exceções](/docs/telemetry/exceptions): Fazer a triagem dos erros que ele lança.
+- [Exceções](/docs/telemetry/exceptions): Fazer a triagem dos erros que ele lança.
 - [Regras de rótulos e proprietários](/docs/configuration/label-and-owner-rules): Dar rótulos e proprietários aos serviços novos.
 :::

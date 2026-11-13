@@ -57,7 +57,7 @@ Ein neuer Monitor startet mit **Cloud Stopped Reporting** unter **Worüber benac
 
 ### Kriterien prüfen
 
-Öffnen Sie jedes Kriterium unter **Monitor-Kriterien** und prüfen Sie **Metrik**, **Aggregation**, **Bedingung** und **Schwellenwert**. Eine Vorlage füllt diese aus. Bei **Custom Metric** oder **Erweitert** startet der Monitor mit den Standardkriterien, die nur bemerken, dass die Metrik keine Daten sendet. Legen Sie daher Ihren eigenen Schwellenwert fest.
+Öffnen Sie jedes Kriterium unter **Kriterien** und prüfen Sie **Metrik**, **Aggregation**, **Bedingung** und **Schwellenwert**. Eine Vorlage füllt diese aus. Bei **Custom Metric** oder **Erweitert** startet der Monitor mit den Standardkriterien, die nur bemerken, dass die Metrik keine Daten sendet. Legen Sie daher Ihren eigenen Schwellenwert fest.
 
 ### Monitor erstellen
 

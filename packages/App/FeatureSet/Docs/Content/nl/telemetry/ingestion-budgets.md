@@ -34,7 +34,7 @@ flowchart TB
 ## Voordat u begint
 
 - **Voor de budgetten van de instantie en van een project: het Admin Dashboard.** Op een zelfgehoste installatie stelt alleen de instantiebeheerder ze in. De eigenaren en beheerders van een project zien de budgetten ervan, maar kunnen ze niet wijzigen.
-- **Voor het eigen budget van een sleutel: een rol die ingestiesleutels bewerkt.** Project Owner of Project Admin, of een aangepaste rol met de machtiging Edit Telemetry Ingestion Key.
+- **Voor het eigen budget van een sleutel: een rol die ingestiesleutels bewerkt.** Project Owner of Project Admin, of een aangepaste rol met de machtiging Edit Ingestion Key.
 - **Om de budgetten te zien: een rol die het gebruik van het project ziet.** De rollen die de pagina [Telemetriegebruik](/docs/telemetry/usage) zien, zien daar ook de budgetten.
 
 ## De standaardbudgetten van elk project instellen

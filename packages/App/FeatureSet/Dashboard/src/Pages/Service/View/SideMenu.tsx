@@ -195,7 +195,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 
         <SideMenuItem
           link={{
-            title: "Performance Profiles",
+            title: "Profiles",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SERVICE_VIEW_PROFILES] as Route,
               { modelId: props.modelId },

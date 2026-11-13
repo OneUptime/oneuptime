@@ -1,6 +1,6 @@
 # Monitorstappen
 
-`monitor_steps` is het attribuut van `oneuptime_monitor` dat zegt wat een monitor controleert en hoe elk resultaat wordt beoordeeld: het adres om te controleren, het verzoek om te sturen en de criteria die van een resultaat een monitorstatus, een incident of een waarschuwing maken. Deze pagina legt elk onderdeel ervan uit.
+`monitor_steps` is het attribuut van `oneuptime_monitor` dat zegt wat een monitor controleert en hoe elk resultaat wordt beoordeeld: het adres om te controleren, het verzoek om te sturen en de criteria die van een resultaat een monitorstatus, een incident of een waarschuwing maken. Deze pagina legt elk onderdeel ervan uit. Het dashboard toont de criteria van een stap op de pagina **Criteria** van de monitor, zoals [Criteria en statussen](/docs/monitor/criteria-and-statuses) beschrijft.
 
 :::cards
 - [Hoe een controle wordt beoordeeld](#hoe-een-controle-wordt-beoordeeld): Criteria op volgorde, en het eerste dat overeenkomt.

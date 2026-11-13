@@ -183,6 +183,6 @@ OneUptime AI が自動で開くプルリクエストは 1 日 (UTC) 最大 5 件
 :::cards
 - [検索構文](/docs/telemetry/search-syntax): 検索ボックスが理解するすべてのフィルター。
 - [トレース モニター](/docs/monitor/traces-monitor): 失敗したリクエストや遅いリクエストのアラートを受け取ります。
-- [例外トラッキング](/docs/telemetry/exceptions): スパンが記録したエラーをトリアージします。
+- [例外](/docs/telemetry/exceptions): スパンが記録したエラーをトリアージします。
 - [ログエクスプローラー](/docs/telemetry/logs-explorer): リクエストが書いたログの行を読みます。
 :::

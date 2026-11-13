@@ -29,7 +29,7 @@ Weil Platzhalter als Text ersetzt werden, wird `{{responseBody.item}}` zum rohen
 :::steps
 ### Die Kriterien öffnen
 
-Öffnen Sie beim Monitor **Konfiguration → Kriterien** und klicken Sie auf **Überwachungskriterien bearbeiten**, oder verwenden Sie den Schritt **Kriterien** von **Monitor erstellen**. Arbeiten Sie in dem Kriterium, das Sie ändern möchten, oder klicken Sie für ein neues auf **Kriterien hinzufügen**.
+Öffnen Sie beim Monitor **Konfiguration → Kriterien** und klicken Sie auf **Kriterien bearbeiten**, oder verwenden Sie den Schritt **Kriterien** von **Monitor erstellen**. Arbeiten Sie in dem Kriterium, das Sie ändern möchten, oder klicken Sie für ein neues auf **Kriterien hinzufügen**.
 
 ### Einen Filter hinzufügen
 

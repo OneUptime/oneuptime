@@ -66,7 +66,7 @@ Clique em **Testar monitor**, escolha uma sonda em **Selecionar Sonda** e clique
 
 ### Revisar os critérios
 
-**Critérios do monitor** começa com os [critérios padrão](#critérios-padrão): offline quando a cadeia está quebrada, no ar quando é válida. Para ser avisado antes de as assinaturas vencerem, adicione um critério (veja [Boas práticas](#boas-práticas)) e clique em **Próximo**.
+**Critérios** começa com os [critérios padrão](#critérios-padrão): offline quando a cadeia está quebrada, no ar quando é válida. Para ser avisado antes de as assinaturas vencerem, adicione um critério (veja [Boas práticas](#boas-práticas)) e clique em **Próximo**.
 
 ### Escolher as sondas e criar
 

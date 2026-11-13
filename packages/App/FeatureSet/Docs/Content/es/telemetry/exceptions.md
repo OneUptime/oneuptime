@@ -1,4 +1,4 @@
-# Seguimiento de excepciones
+# Excepciones
 
 El seguimiento de excepciones recoge los errores que lanza su código y agrupa cada ocurrencia del mismo error en una sola excepción, con su stack trace, su tendencia y las solicitudes en las que ocurrió. Revíselas como una lista de tareas: corrija, resuelva o archive el ruido, y deje que la IA abra un pull request para las que sabe corregir.
 

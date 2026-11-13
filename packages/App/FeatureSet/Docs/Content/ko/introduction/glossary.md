@@ -42,13 +42,13 @@ OneUptime에서 쓰는 모든 단어를 한두 문장으로 설명하고, 그 �
 
 모니터의 규칙으로, 각 확인 결과가 무엇을 뜻하는지 정합니다. 기준은 순서대로 확인되며, 처음 일치한 기준이 모니터의 상태를 바꾸거나, 인시던트를 선언하거나, 경고를 생성하거나, 셋 모두를 할 수 있습니다.
 
-다른 이름: **모니터링 기준**, **모니터 기준**, **Monitor Steps**. [모니터 기준 및 상태](/docs/monitor/criteria-and-statuses)를 참고하세요.
+다른 이름: **모니터링 기준**, **모니터 기준**, **Monitor Steps**. [기준 및 상태](/docs/monitor/criteria-and-statuses)를 참고하세요.
 
 ### 모니터 상태
 
 모니터의 지금 상태입니다. 모든 새 프로젝트에는 **정상 작동**, **저하됨**, **오프라인**의 세 가지 모니터 상태가 있으며, 직접 상태를 추가할 수도 있습니다.
 
-[모니터 기준 및 상태](/docs/monitor/criteria-and-statuses)를 참고하세요.
+[기준 및 상태](/docs/monitor/criteria-and-statuses)를 참고하세요.
 
 ### 프로브
 
@@ -262,7 +262,7 @@ Production이나 Checkout 같은 태그로, 모니터, 인시던트, 상태 페�
 
 코드가 던지는 오류입니다. OneUptime은 같은 오류의 모든 발생을 하나의 예외로 묶어, 스택 트레이스, 추세, 오류가 발생한 요청과 함께 보여 줍니다.
 
-다른 이름: **예외 추적**, `/telemetry-exception`. [예외 추적](/docs/telemetry/exceptions)을 참고하세요.
+다른 이름: **예외 추적**, `/telemetry-exception`. [예외](/docs/telemetry/exceptions)을 참고하세요.
 
 ### AI 인사이트
 
@@ -302,11 +302,11 @@ OneUptime의 SIEM입니다. 로그, 보안 도구, 그 밖에 여러분이 보�
 
 [트레이스 탐색기](/docs/telemetry/traces-explorer)를 참고하세요.
 
-### 프로필
+### 프로파일
 
 애플리케이션이 CPU 시간과 메모리를 함수별로 어떻게 쓰는지 보여 주며, OneUptime의 Pyroscope 호환 API로 보내는 프로파일러가 전송합니다.
 
-다른 이름: **성능 프로파일**, **연속 프로파일링**. [연속 프로파일링](/docs/telemetry/profiles)을 참고하세요.
+다른 이름: **성능 프로파일**, **연속 프로파일링**. [프로파일](/docs/telemetry/profiles)을 참고하세요.
 
 ### AI / LLM
 

@@ -50,7 +50,7 @@ On **Monitor Defaults**, pick the **Monitor Type**, with the same picker as Crea
 On **Criteria**, fill in what to check and the criteria, as on [Create Monitor](/docs/monitor/create-monitor#criteria). The **Template sync settings** card at the top lets you protect fields from syncs (see [Keep values specific to each monitor](#keep-values-specific-to-each-monitor)). For a monitor type that probes check, the last step, **Interval**, asks for the **Monitoring Interval**. Click **Create Monitor Template** on the last step.
 :::
 
-The template is added to the list. Open it to see its page, with a card for each part: **Template Info**, **Monitor Defaults**, **Monitoring Criteria**, **Monitoring Interval** (with **Minimum Probe Agreement**), **Labels**, **Custom Field Defaults** (when the project has monitor custom fields) and **Linked Monitors**. You change each part on its own card, for example with **Edit Criteria** or **Edit Interval**.
+The template is added to the list. Open it to see its page, with a card for each part: **Template Info**, **Monitor Defaults**, **Criteria**, **Monitoring Interval** (with **Minimum Probe Agreement**), **Labels**, **Custom Field Defaults** (when the project has monitor custom fields) and **Linked Monitors**. You change each part on its own card, for example with **Edit Criteria** or **Edit Interval**.
 
 ## Create monitors from a template
 
@@ -85,7 +85,7 @@ Go to **Monitors → Settings → Templates** and open the template.
 
 ### Edit its criteria
 
-On the **Monitoring Criteria** card, click **Edit Criteria**.
+On the **Criteria** card, click **Edit Criteria**.
 
 ### Protect the fields
 
@@ -93,7 +93,7 @@ In **Template sync settings**, check **Do not sync this field** beside each fiel
 
 ### Save
 
-Save your changes. The **Monitoring Criteria** card, and the confirmation of both syncs below, list the protected fields.
+Save your changes. The **Criteria** card, and the confirmation of both syncs below, list the protected fields.
 
 ### Sync
 

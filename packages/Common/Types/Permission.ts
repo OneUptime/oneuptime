@@ -3223,9 +3223,9 @@ export class PermissionHelper {
 
       {
         permission: Permission.CreateTelemetryIngestionKey,
-        title: "Create Telemetry Ingestion Key",
+        title: "Create Ingestion Key",
         description:
-          "This permission can create Telemetry Ingestion Keys of this project",
+          "This permission can create ingestion keys of this project",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -3233,9 +3233,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.DeleteTelemetryIngestionKey,
-        title: "Delete Telemetry Ingestion Key",
+        title: "Delete Ingestion Key",
         description:
-          "This permission can delete Telemetry Ingestion Keys of this project.",
+          "This permission can delete ingestion keys of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -3243,9 +3243,8 @@ export class PermissionHelper {
       },
       {
         permission: Permission.EditTelemetryIngestionKey,
-        title: "Edit Telemetry Ingestion Key",
-        description:
-          "This permission can edit Telemetry Ingestion Keys of this project.",
+        title: "Edit Ingestion Key",
+        description: "This permission can edit ingestion keys of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -3253,9 +3252,8 @@ export class PermissionHelper {
       },
       {
         permission: Permission.ReadTelemetryIngestionKey,
-        title: "Read Telemetry Ingestion Key",
-        description:
-          "This permission can read Telemetry Ingestion Keys of this project.",
+        title: "Read Ingestion Key",
+        description: "This permission can read ingestion keys of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

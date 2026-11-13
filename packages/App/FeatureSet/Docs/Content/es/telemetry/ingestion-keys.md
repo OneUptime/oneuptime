@@ -45,7 +45,7 @@ En cualquier otro lugar, OneUptime rechaza una clave de navegador, por ejemplo p
 
 ## Antes de empezar
 
-- **Un rol que gestione claves de ingesta.** Project Owner o Project Admin, o un rol personalizado con el permiso Create Telemetry Ingestion Key. Los roles de Telemetry no incluyen las claves de ingesta.
+- **Un rol que gestione claves de ingesta.** Project Owner o Project Admin, o un rol personalizado con el permiso Create Ingestion Key. Los roles de Telemetry no incluyen las claves de ingesta.
 - **En OneUptime Cloud, un método de pago.** La telemetría se factura según el uso, así que un proyecto en el plan Free necesita un método de pago antes de poder crear una clave. El cuadro de creación termina entonces con un paso **Facturación** que muestra los precios.
 
 ## Crear una clave de ingesta
@@ -85,7 +85,7 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 
 ## Proteger una clave de navegador
 
-Una clave de navegador está en su página, donde cualquiera puede copiarla. Estos ajustes limitan lo que puede hacer una copia. Cámbielos en la página de la clave con **Editar Clave de ingesta de telemetría**.
+Una clave de navegador está en su página, donde cualquiera puede copiarla. Estos ajustes limitan lo que puede hacer una copia. Cámbielos en la página de la clave con **Editar Clave de ingesta**.
 
 | Ajuste | Qué hace |
 | --- | --- |
@@ -112,9 +112,9 @@ La página de una clave muestra su **Estado**, su **Clave secreta** tras **Haz c
 
 | Para | Haga esto | Lo que ven los emisores |
 | --- | --- | --- |
-| Detener una clave al momento, y poder deshacerlo | Haga clic en **Editar Clave de ingesta de telemetría**, abra **Acceso y límites** y desactive **Habilitado**. El estado indica **Deshabilitado: se rechaza la telemetría**. | `422` hasta que vuelva a activarla |
+| Detener una clave al momento, y poder deshacerlo | Haga clic en **Editar Clave de ingesta**, abra **Acceso y límites** y desactive **Habilitado**. El estado indica **Deshabilitado: se rechaza la telemetría**. | `422` hasta que vuelva a activarla |
 | Sustituir un secreto filtrado | Haga clic en **Restablecer clave secreta** y confirme. La clave conserva sus ajustes y recibe un secreto nuevo. | `401` hasta que envíen el secreto nuevo |
-| Detener una clave para siempre | Haga clic en **Eliminar Clave de ingesta de telemetría** al final de su página. | `401` |
+| Detener una clave para siempre | Haga clic en **Eliminar Clave de ingesta** al final de su página. | `401` |
 
 Para cambiar un secreto sin perder datos, cree una segunda clave, pase sus emisores a ella y elimine la clave antigua cuando su **Usado por última vez el** deje de moverse. **Usado por última vez el** se actualiza cada pocos minutos, no en cada solicitud.
 

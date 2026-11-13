@@ -34,7 +34,7 @@ flowchart TB
 ## Innan du börjar
 
 - **För instansens och ett projekts budgetar, Admin Dashboard.** På en installation i egen drift är det bara instansadministratören som anger dem. Ett projekts ägare och administratörer ser dess budgetar, men kan inte ändra dem.
-- **För en nyckels egen budget, en roll som redigerar intagningsnycklar.** Project Owner eller Project Admin, eller en anpassad roll med behörigheten Edit Telemetry Ingestion Key.
+- **För en nyckels egen budget, en roll som redigerar intagningsnycklar.** Project Owner eller Project Admin, eller en anpassad roll med behörigheten Edit Ingestion Key.
 - **För att se budgetarna, en roll som ser projektets användning.** De roller som ser sidan [Telemetrianvändning](/docs/telemetry/usage) ser projektets budgetar på den.
 
 ## Ange standardbudgetar för alla projekt

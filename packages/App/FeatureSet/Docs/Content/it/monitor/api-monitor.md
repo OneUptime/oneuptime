@@ -59,7 +59,7 @@ Fate clic su **Testa il monitor**, scegliete una sonda in **Seleziona sonda** e 
 
 ### Rivedere i criteri
 
-**Criteri del monitor** parte dai [criteri predefiniti](#criteri-predefiniti): offline quando l'API non risponde o risponde con un errore, online con qualsiasi stato `2xx` o `3xx`. Per controllare anche cosa restituisce l'API, aggiungete un filtro, poi fate clic su **Avanti**.
+**Criteri** parte dai [criteri predefiniti](#criteri-predefiniti): offline quando l'API non risponde o risponde con un errore, online con qualsiasi stato `2xx` o `3xx`. Per controllare anche cosa restituisce l'API, aggiungete un filtro, poi fate clic su **Avanti**.
 
 ### Scegliere le sonde e creare
 

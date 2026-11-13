@@ -26,7 +26,7 @@ flowchart TB
 
 - En webbapp vars kod du kan ändra och distribuera om, med beroenden installerade via npm.
 - De ursprung som dina sidor serveras från, till exempel `https://app.example.com`. En Browser-nyckel tar bara emot förfrågningar från de ursprung du anger på den.
-- En roll som får skapa intagningsnycklar: Projektägare och -administratörer får det, och det får även alla med behörigheten **Create Telemetry Ingestion Key**.
+- En roll som får skapa intagningsnycklar: Projektägare och -administratörer får det, och det får även alla med behörigheten Create Ingestion Key.
 
 ## Konfigurera
 

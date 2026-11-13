@@ -233,7 +233,7 @@ const PodmanHostSideMenu: FunctionComponent<ComponentProps> = (
         />
         <SideMenuItem
           link={{
-            title: "Performance Profiles",
+            title: "Profiles",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.PODMAN_HOST_VIEW_PROFILES] as Route,
               { modelId: props.modelId },

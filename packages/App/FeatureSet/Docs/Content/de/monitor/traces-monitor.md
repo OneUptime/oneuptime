@@ -154,7 +154,7 @@ Bei 30 fehlgeschlagenen Anfragen trifft die Regel zu, und der Vorfall wird eröf
 ## Fehlerbehebung
 
 :::details Der Monitor zählt keine Spans für meinen Endpunkt
-**Span-Name enthält** wird mit dem Namen des Spans abgeglichen, und Instrumentierungen benennen Server-Spans oft nach der Route (`POST /api/checkout`) oder nur nach der Methode (`GET`). Suchen Sie den genauen Namen im Trace-Explorer. Öffnen Sie dann die Seite **Kriterien** des Monitors (unter **Konfiguration**) und klicken Sie auf **Überwachungskriterien bearbeiten**: **Passende Spans** zeigt, worauf die Filter gerade passen.
+**Span-Name enthält** wird mit dem Namen des Spans abgeglichen, und Instrumentierungen benennen Server-Spans oft nach der Route (`POST /api/checkout`) oder nur nach der Methode (`GET`). Suchen Sie den genauen Namen im Trace-Explorer. Öffnen Sie dann die Seite **Kriterien** des Monitors (unter **Konfiguration**) und klicken Sie auf **Kriterien bearbeiten**: **Passende Spans** zeigt, worauf die Filter gerade passen.
 :::
 
 :::details Erfolgreiche Anfragen werden beim Filtern auf OK nicht gezählt

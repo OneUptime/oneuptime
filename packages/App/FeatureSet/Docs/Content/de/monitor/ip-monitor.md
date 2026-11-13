@@ -63,7 +63,7 @@ Klicken Sie auf **Monitor testen**, wählen Sie unter **Sonde auswählen** eine 
 
 ### Die Kriterien prüfen
 
-**Monitor-Kriterien** beginnt mit den [Standardkriterien](#standardkriterien): offline, wenn die Adresse nicht antwortet, online, wenn sie antwortet. Ändern Sie sie bei Bedarf und klicken Sie dann auf **Weiter**.
+**Kriterien** beginnt mit den [Standardkriterien](#standardkriterien): offline, wenn die Adresse nicht antwortet, online, wenn sie antwortet. Ändern Sie sie bei Bedarf und klicken Sie dann auf **Weiter**.
 
 ### Sonden wählen und erstellen
 

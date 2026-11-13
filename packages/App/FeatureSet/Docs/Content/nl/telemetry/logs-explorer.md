@@ -141,7 +141,7 @@ OneUptime legt drie soorten bevindingen vast:
 
 | Bevinding | Wanneer OneUptime die vastlegt | De pull request |
 | --- | --- | --- |
-| **Foutlog** | Een service logde in het uur één bericht 20 keer of vaker op Error of Fatal, een bericht met eigen woorden en zonder uitzondering. Een bericht dat met een uitzondering, of met een stacktrace erin, wordt gelogd, wordt in plaats daarvan gevolgd in [Uitzonderingen volgen](/docs/telemetry/exceptions). | Lost op waarom de fout wordt gelogd, of logt hem op het niveau dat hij verdient. |
+| **Foutlog** | Een service logde in het uur één bericht 20 keer of vaker op Error of Fatal, een bericht met eigen woorden en zonder uitzondering. Een bericht dat met een uitzondering, of met een stacktrace erin, wordt gelogd, wordt in plaats daarvan gevolgd in [Uitzonderingen](/docs/telemetry/exceptions). | Lost op waarom de fout wordt gelogd, of logt hem op het niveau dat hij verdient. |
 | **Ontbrekende logging** | Minstens 20 spans van een bewerking zijn in het uur mislukt, 5% of meer ervan, terwijl minstens 100 logs van de service een trace-ID dragen, en geen van de 20 meest recente mislukte verzoeken van de bewerking heeft een logregel geschreven. Of een service stuurde in het uur 500 of meer logs en 100 of meer spans, en minder dan 1% van haar logs draagt een trace-ID. | Logt de storing waar die gebeurt, of laat de logs van de service de trace-ID dragen. |
 | **Luidruchtige log** | Eén bericht dat onder Error wordt gelogd, is in het uur 25% of meer van de regels van een service, zo'n 10.000 regels of meer. | Logt de regel minder: op Debug, eenmaal per batch, of helemaal niet. |
 

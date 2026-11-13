@@ -183,6 +183,6 @@ Varje rad är ett span, inte en förfrågan: med **Entry spans**, som är standa
 :::cards
 - [Söksyntax](/docs/telemetry/search-syntax): Varje filter som sökrutan förstår.
 - [Spårningsövervakning](/docs/monitor/traces-monitor): Få larm om misslyckade eller långsamma förfrågningar.
-- [Undantagsspårning](/docs/telemetry/exceptions): Gå igenom felen som dina spans registrerar.
+- [Undantag](/docs/telemetry/exceptions): Gå igenom felen som dina spans registrerar.
 - [Loggutforskare](/docs/telemetry/logs-explorer): Läs loggraderna som en förfrågan skrev.
 :::

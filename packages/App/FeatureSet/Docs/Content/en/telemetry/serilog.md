@@ -33,7 +33,7 @@ The sink batches log events and sends them in the background. Each named propert
 
 Go to **Products → Project Settings**, open **Telemetry & APM** in the side menu and select **Ingestion Keys**.
 
-![The Telemetry Ingestion Keys page in Project Settings](/docs/static/images/TelemetryIngestionKeys.png)
+![The Ingestion Keys page in Project Settings](/docs/static/images/TelemetryIngestionKeys.png)
 
 ### Create a key
 

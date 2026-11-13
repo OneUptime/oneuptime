@@ -29,7 +29,7 @@ Omdat plaatshouders als tekst worden vervangen, wordt `{{responseBody.item}}` de
 :::steps
 ### De criteria openen
 
-Open bij de monitor **Configuratie → Criteria** en klik op **Bewakingscriteria bewerken**, of gebruik de stap **Criteria** van **Monitor maken**. Werk in het criterium dat u wilt wijzigen, of klik op **Criteria toevoegen** voor een nieuw criterium.
+Open bij de monitor **Configuratie → Criteria** en klik op **Criteria bewerken**, of gebruik de stap **Criteria** van **Monitor maken**. Werk in het criterium dat u wilt wijzigen, of klik op **Criteria toevoegen** voor een nieuw criterium.
 
 ### Een filter toevoegen
 

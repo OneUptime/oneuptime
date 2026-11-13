@@ -154,7 +154,7 @@ Avec 30 requêtes en échec, la règle correspond et l'incident est déclaré. U
 ## Dépannage
 
 :::details Le moniteur ne compte aucun span pour mon endpoint
-**Le nom du span contient** est comparé au nom du span, et l'instrumentation nomme souvent les spans serveur d'après la route (`POST /api/checkout`) ou seulement la méthode (`GET`). Trouvez le nom exact dans l'explorateur de traces. Ouvrez ensuite la page **Critères** du moniteur (sous **Configuration**) et cliquez sur **Modifier les critères de surveillance** : **Spans correspondants** montre ce que les filtres sélectionnent en ce moment.
+**Le nom du span contient** est comparé au nom du span, et l'instrumentation nomme souvent les spans serveur d'après la route (`POST /api/checkout`) ou seulement la méthode (`GET`). Trouvez le nom exact dans l'explorateur de traces. Ouvrez ensuite la page **Critères** du moniteur (sous **Configuration**) et cliquez sur **Modifier les critères** : **Spans correspondants** montre ce que les filtres sélectionnent en ce moment.
 :::
 
 :::details Les requêtes réussies ne sont pas comptées quand je filtre sur Ok
