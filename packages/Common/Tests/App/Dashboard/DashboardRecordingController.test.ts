@@ -289,6 +289,7 @@ describe("moving between pages", () => {
       "setTags",
       {
         page: CREATE,
+        sample_project: "false",
         guided_setup: "website_down",
         guided_setup_step: "address",
       },
@@ -297,7 +298,9 @@ describe("moving between pages", () => {
     h.calls.length = 0;
     h.controller.noteGuidedSetupPlace(null);
 
-    expect(h.calls).toEqual([["setTags", { page: CREATE }]]);
+    expect(h.calls).toEqual([
+      ["setTags", { page: CREATE, sample_project: "false" }],
+    ]);
   });
 
   test("does not tag while paused", async () => {
@@ -383,5 +386,33 @@ describe("marking", () => {
     }
 
     expect(h.calls).toEqual([]);
+  });
+});
+
+describe("a sample project (#6808)", () => {
+  test("is tagged, so exploring the sample is told apart from setting up for real", async () => {
+    const h: Harness = harness();
+
+    h.controller.update({
+      ...at(HOME, DashboardRecordingDecision.Record),
+      isSampleProject: true,
+    });
+    await h.arrive();
+
+    expect(h.calls).toContainEqual([
+      "setTags",
+      { page: HOME, sample_project: "true" },
+    ]);
+
+    h.calls.length = 0;
+    h.controller.update({
+      ...at(CREATE, DashboardRecordingDecision.Record),
+      isSampleProject: false,
+    });
+
+    expect(h.calls).toContainEqual([
+      "setTags",
+      { page: CREATE, sample_project: "false" },
+    ]);
   });
 });
