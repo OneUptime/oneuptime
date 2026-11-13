@@ -33,6 +33,11 @@ const COMMON_ROOT: string = path.resolve(__dirname, "..", "..");
  * deleting records: they join them with SentenceSeparator, and the table is
  * not built from these modules at all.
  *
+ * The product's logo brought the mark the Dashboard's header draws on a
+ * phone, as a data: URL: that header hands the logo getProductMarkSource,
+ * which the logo does not call on its own, and the mark is not built from
+ * these modules either.
+ *
  * Built here as the frontends build (the shared esbuild config, for
  * production), with these modules as the entry, and read from esbuild's
  * metafile: the first load is the entry's file and every file it imports
@@ -52,6 +57,8 @@ const SHARED_MODULES: ReadonlyArray<string> = [
   "UI/Components/EditionLabel/EditionLabel",
   "UI/Utils/Analytics",
   "UI/Utils/Telemetry/Telemetry",
+  // The logo at the top of every sign-in page.
+  "UI/Components/ProductLogo/ProductLogo",
 ];
 
 interface NamedExports {
@@ -234,6 +241,11 @@ const LEFT_OUT: ReadonlyArray<LeftOut> = [
   {
     name: "the table of sentences about deleting records, which an error's words no longer join their sentences through",
     path: "UI/Components/DeleteConfirmation/DeleteConsequences.ts",
+    isLoadedWhenNeeded: false,
+  },
+  {
+    name: "OneUptime's mark, which only the Dashboard's header draws",
+    path: "UI/Images/logos/OneUptimeSVG/mark-transparent.svg",
     isLoadedWhenNeeded: false,
   },
   {
