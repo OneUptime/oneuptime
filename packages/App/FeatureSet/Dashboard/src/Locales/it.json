@@ -21398,8 +21398,8 @@
   "{{count}} mounts_one": "{{count}} mount",
   "{{count}} new in the last 24 hours · Click to triage": "{{count}} new in the last 24 hours · Click to triage",
   "{{count}} new in the last 24 hours · Click to triage_one": "{{count}} new in the last 24 hours · Click to triage",
-  "{{count}} no longer in inventory": "{{count}} no longer in inventory",
-  "{{count}} no longer in inventory_one": "{{count}} no longer in inventory",
+  "{{count}} no longer in inventory": "{{count}} non più in inventario",
+  "{{count}} no longer in inventory_one": "{{count}} non più in inventario",
   "{{count}} notes": "{{count}} note",
   "{{count}} notes_one": "{{count}} nota",
   "{{count}} occurrences": "{{count}} occorrenze",
@@ -51828,5 +51828,11 @@
   "{{from}} is hosted on {{to}}": "{{from}} è ospitato su {{to}}",
   "{{from}} is part of {{to}}": "{{from}} fa parte di {{to}}",
   "{{from}} is related to {{to}}": "{{from}} è correlato a {{to}}",
-  "{{from}} runs on {{to}}": "{{from}} viene eseguito su {{to}}"
+  "{{from}} runs on {{to}}": "{{from}} viene eseguito su {{to}}",
+  "Saved as \"{{value}}\", the name OneUptime reads from this value in your telemetry.": "Salvato come \"{{value}}\", il nome che OneUptime legge da questo valore nella tua telemetria.",
+  "Saved as \"{{value}}\", {{name}}.": "Salvato come \"{{value}}\", {{name}}.",
+  "Saved as \"{{value}}\".": "Salvato come \"{{value}}\".",
+  "The Azure namespace: the first part of <namespace>.servicebus.windows.net. Leave empty only for the emulator or a custom domain.": "Il namespace di Azure: la prima parte di <namespace>.servicebus.windows.net. Lascialo vuoto solo per l'emulatore o un dominio personalizzato.",
+  "The queue, topic or subscription name your applications and broker use. A URL, ARN or resource path is reduced to its name.": "Il nome della coda, del topic o della sottoscrizione che usano le tue applicazioni e il broker. Un URL, un ARN o un percorso di risorsa viene ridotto al suo nome.",
+  "This email was sent without a subject.": "Questa email è stata inviata senza oggetto."
 }

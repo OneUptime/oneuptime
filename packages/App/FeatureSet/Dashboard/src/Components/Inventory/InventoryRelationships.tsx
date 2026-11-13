@@ -17,6 +17,7 @@ import {
   getRelationshipPhrase,
 } from "./InventoryRelationshipLabels";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import {
   AppendedConnectionsPage,
   EntityConnection,
@@ -402,6 +403,15 @@ const InventoryRelationships: FunctionComponent<ComponentProps> = (
   ): ReactElement => {
     const id: string = connectionId(section, row);
     const label: string = row.otherName || row.otherKey.substring(0, 16);
+    /*
+     * The other item's name keeps the way it is written inside the
+     * sentence (a host name in a Persian sentence keeps its hyphens where
+     * they are), and a long one breaks after its own dots and hyphens
+     * ("ip-10-0-12-34.eu-west-1." / "compute.internal"), not mid-word.
+     */
+    const otherName: ReactElement = (
+      <IsolatedText text={label} breaksLikeAName={true} />
+    );
     const otherItem: ReactElement = row.otherId ? (
       <AppLink
         to={RouteUtil.populateRouteParams(
@@ -410,10 +420,10 @@ const InventoryRelationships: FunctionComponent<ComponentProps> = (
         )}
         className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
       >
-        {label}
+        {otherName}
       </AppLink>
     ) : (
-      <span className="font-mono text-sm text-gray-700">{label}</span>
+      <span className="font-mono text-sm text-gray-700">{otherName}</span>
     );
 
     return (
@@ -421,40 +431,56 @@ const InventoryRelationships: FunctionComponent<ComponentProps> = (
         key={id}
         ref={registerFocusable(id)}
         tabIndex={-1}
-        className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        className="flex items-start gap-x-2 rounded-md py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
       >
-        <Icon
-          icon={
-            row.direction === "out" ? IconProp.ArrowRight : IconProp.ArrowLeft
-          }
-          size={SizeProp.Smaller}
-          className="h-4 w-4 shrink-0 text-gray-400"
-        />
         {/*
-         * One sentence about this item with the other item in it ("runs
-         * checkout-pod"), so each language words the edge as a verb and
-         * puts the other item where its grammar wants it.
+         * The arrow stays at the start of the sentence's first line: in a
+         * row that wrapped as a whole, a long sentence left it alone on a
+         * line of its own above the words.
          */}
-        <span
-          className="min-w-0 text-sm text-gray-500 [overflow-wrap:anywhere]"
-          data-testid="inventory-connection-sentence"
-        >
-          <TranslatedSentence
-            template={getRelationshipPhrase(
-              row.relationshipType,
-              directionOf(row),
-            )}
-            slots={{ [RELATIONSHIP_ITEM_SLOT]: otherItem }}
+        <div className="mt-0.5 shrink-0">
+          <Icon
+            icon={
+              row.direction === "out" ? IconProp.ArrowRight : IconProp.ArrowLeft
+            }
+            size={SizeProp.Smaller}
+            className="h-4 w-4 text-gray-400"
           />
-        </span>
-        {row.otherType ? (
-          <InventoryTypeBadge entityType={row.otherType} />
-        ) : null}
-        <span className="ml-auto text-xs text-gray-400">
-          {row.lastSeenAt
-            ? OneUptimeDate.getDateAsLocalFormattedString(row.lastSeenAt)
-            : ""}
-        </span>
+        </div>
+        <div
+          className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1"
+          data-testid="inventory-connection-content"
+        >
+          {/*
+           * One sentence about this item with the other item in it ("runs
+           * checkout-pod"), so each language words the edge as a verb and
+           * puts the other item where its grammar wants it. It reads the
+           * way its own words do (dir auto skips the item's name): a type
+           * this Dashboard does not know is worded in English, and on a
+           * Persian page that sentence kept its English order.
+           */}
+          <span
+            className="min-w-0 text-sm text-gray-500 [overflow-wrap:anywhere]"
+            data-testid="inventory-connection-sentence"
+            dir="auto"
+          >
+            <TranslatedSentence
+              template={getRelationshipPhrase(
+                row.relationshipType,
+                directionOf(row),
+              )}
+              slots={{ [RELATIONSHIP_ITEM_SLOT]: otherItem }}
+            />
+          </span>
+          {row.otherType ? (
+            <InventoryTypeBadge entityType={row.otherType} />
+          ) : null}
+          <span className="ml-auto text-xs text-gray-400">
+            {row.lastSeenAt
+              ? OneUptimeDate.getDateAsLocalFormattedString(row.lastSeenAt)
+              : ""}
+          </span>
+        </div>
       </li>
     );
   };

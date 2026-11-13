@@ -82,6 +82,7 @@ jest.mock("../../../UI/Components/SideOver/SideOver", () => {
 });
 
 import EntityDetailPanel from "../../../../App/FeatureSet/Dashboard/src/Components/Topology/EntityDetailPanel";
+import { EntityDetailTarget } from "../../../../App/FeatureSet/Dashboard/src/Components/Topology/TopologyData";
 import {
   RELATED_TO_RELATIONSHIP_SENTENCE,
   RELATIONSHIP_SENTENCES,
@@ -213,7 +214,10 @@ function sentencesIn(testId: string): Array<string> {
     });
 }
 
-async function renderDrawer(): Promise<void> {
+// With onSelectEntity, each row of a known resource is a button that opens it.
+async function renderDrawer(
+  onSelectEntity?: ((target: EntityDetailTarget) => void) | undefined,
+): Promise<void> {
   render(
     <EntityDetailPanel
       entity={{
@@ -226,6 +230,7 @@ async function renderDrawer(): Promise<void> {
       onClose={() => {
         return undefined;
       }}
+      onSelectEntity={onSelectEntity}
     />,
   );
   await waitFor(() => {
@@ -344,6 +349,67 @@ describe.each(LANGUAGES)("in %s", (language: string) => {
       "Checkout API talks to ledger",
     );
   });
+});
+
+/*
+ * HOW A ROW'S SENTENCE IS DRAWN.
+ *
+ * Each name is an isolate of its own inside the sentence, so a pod's
+ * hyphens and a host's dots stay where they are written in an Arabic
+ * sentence; the sentence reads the way its own words do (dir auto skips
+ * the names), so a type this Dashboard does not know, worded in English,
+ * keeps its English order on a Persian page; and the arrow that opens the
+ * other end points on, the way the line reads.
+ */
+describe("how a row's sentence is drawn", () => {
+  test.each(["fa", "ar", "de", "en"])(
+    "in %s, each name is an isolate of its own, in a sentence that reads by its own words",
+    async (language: string) => {
+      await inLanguage(language);
+      await renderDrawer();
+
+      const sentences: Array<HTMLElement> = within(
+        screen.getByTestId("entity-detail-related"),
+      ).getAllByTestId("entity-connection-sentence");
+
+      expect(sentences).toHaveLength(RELATED_EDGES.length);
+      sentences.forEach((sentence: HTMLElement, index: number) => {
+        const names: Array<string> = Array.from(
+          sentence.querySelectorAll("bdi"),
+        ).map((name: HTMLElement): string => {
+          return name.textContent || "";
+        });
+
+        expect(sentence).toHaveAttribute("dir", "auto");
+        expect(names.sort()).toEqual([NAME, RELATED_EDGES[index]!.name].sort());
+      });
+    },
+  );
+
+  test.each(["fa", "ar"])(
+    "in %s, the arrow that opens the other end is mirrored to point on",
+    async (language: string) => {
+      const selectEntity: MockFunction = getJestMockFunction();
+
+      await inLanguage(language);
+      await renderDrawer(selectEntity as (target: EntityDetailTarget) => void);
+
+      const buttons: Array<HTMLElement> = within(
+        screen.getByTestId("entity-detail-related"),
+      ).getAllByRole("button");
+
+      expect(buttons.length).toBe(RELATED_EDGES.length);
+      for (const button of buttons) {
+        const arrow: HTMLElement = within(button).getByText("→");
+
+        expect(arrow).toHaveAttribute("aria-hidden", "true");
+        expect(arrow).toHaveClass("inline-block", "rtl:-scale-x-100");
+        expect(
+          within(button).getByTestId("entity-connection-sentence"),
+        ).toHaveAttribute("dir", "auto");
+      }
+    },
+  );
 });
 
 describe("the sentences the issue was about", () => {

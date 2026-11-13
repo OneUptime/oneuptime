@@ -93,16 +93,17 @@ const renderDictionary: RenderDictionaryFunction = (
 };
 
 /*
- * Rows are the only `items-start` flex containers the form renders, so they are
- * the one stable handle on "this row's inputs" — indexing a flat list of inputs
- * breaks as soon as a row changes shape (a Number row has one autocomplete, a
- * Text row two).
+ * Each row carries the test id dictionary-row, the one stable handle on "this
+ * row's inputs" — indexing a flat list of inputs breaks as soon as a row
+ * changes shape (a Number row has one autocomplete, a Text row two), and a
+ * row with operators is a grid that lays itself out by the room it has, not
+ * a flex line.
  */
 type RowsFunction = () => Array<HTMLElement>;
 
 const rows: RowsFunction = (): Array<HTMLElement> => {
   return Array.from(
-    document.querySelectorAll<HTMLElement>("div.flex.items-start"),
+    document.querySelectorAll<HTMLElement>('[data-testid="dictionary-row"]'),
   );
 };
 

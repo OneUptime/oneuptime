@@ -51828,5 +51828,11 @@
   "{{from}} is hosted on {{to}}": "{{from}} مستضاف على {{to}}",
   "{{from}} is part of {{to}}": "{{from}} جزء من {{to}}",
   "{{from}} is related to {{to}}": "{{from}} مرتبط بـ {{to}}",
-  "{{from}} runs on {{to}}": "{{from}} يعمل على {{to}}"
+  "{{from}} runs on {{to}}": "{{from}} يعمل على {{to}}",
+  "Saved as \"{{value}}\", the name OneUptime reads from this value in your telemetry.": "يُحفظ باسم «{{value}}»، وهو الاسم الذي يقرؤه OneUptime من هذه القيمة في بيانات القياس عن بُعد لديك.",
+  "Saved as \"{{value}}\", {{name}}.": "يُحفظ باسم «{{value}}» في {{name}}.",
+  "Saved as \"{{value}}\".": "يُحفظ باسم «{{value}}».",
+  "The Azure namespace: the first part of <namespace>.servicebus.windows.net. Leave empty only for the emulator or a custom domain.": "الجزء الأول من <namespace>.servicebus.windows.net، أي مساحة الاسم في Azure. اتركه فارغًا فقط للمحاكي أو لنطاق مخصص.",
+  "The queue, topic or subscription name your applications and broker use. A URL, ARN or resource path is reduced to its name.": "اسم قائمة الانتظار أو الموضوع أو الاشتراك الذي تستخدمه تطبيقاتك والوسيط. يُختصر عنوان URL أو ARN أو مسار المورد إلى اسمه.",
+  "This email was sent without a subject.": "أُرسل هذا البريد الإلكتروني بدون موضوع."
 }

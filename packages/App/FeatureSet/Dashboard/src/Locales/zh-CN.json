@@ -21398,8 +21398,8 @@
   "{{count}} mounts_one": "{{count}} mount",
   "{{count}} new in the last 24 hours · Click to triage": "{{count}} new in the last 24 hours · Click to triage",
   "{{count}} new in the last 24 hours · Click to triage_one": "{{count}} new in the last 24 hours · Click to triage",
-  "{{count}} no longer in inventory": "{{count}} no longer in inventory",
-  "{{count}} no longer in inventory_one": "{{count}} no longer in inventory",
+  "{{count}} no longer in inventory": "{{count}} 个已不在清单中",
+  "{{count}} no longer in inventory_one": "{{count}} 个已不在清单中",
   "{{count}} notes": "{{count}} 条备注",
   "{{count}} notes_one": "{{count}} note",
   "{{count}} occurrences": "{{count}} 次出现",
@@ -51828,5 +51828,11 @@
   "{{from}} is hosted on {{to}}": "{{from}} 托管于 {{to}}",
   "{{from}} is part of {{to}}": "{{from}} 是 {{to}} 的一部分",
   "{{from}} is related to {{to}}": "{{from}} 与 {{to}} 相关",
-  "{{from}} runs on {{to}}": "{{from}} 运行于 {{to}}"
+  "{{from}} runs on {{to}}": "{{from}} 运行于 {{to}}",
+  "Saved as \"{{value}}\", the name OneUptime reads from this value in your telemetry.": "保存为“{{value}}”，即 OneUptime 从您遥测中的此值读取的名称。",
+  "Saved as \"{{value}}\", {{name}}.": "保存为“{{value}}”（{{name}}）。",
+  "Saved as \"{{value}}\".": "保存为“{{value}}”。",
+  "The Azure namespace: the first part of <namespace>.servicebus.windows.net. Leave empty only for the emulator or a custom domain.": "Azure 命名空间：<namespace>.servicebus.windows.net 的第一部分。仅在使用模拟器或自定义域时留空。",
+  "The queue, topic or subscription name your applications and broker use. A URL, ARN or resource path is reduced to its name.": "您的应用和 Broker 使用的队列、主题或订阅名称。URL、ARN 或资源路径会缩减为该名称。",
+  "This email was sent without a subject.": "此邮件发送时没有主题。"
 }

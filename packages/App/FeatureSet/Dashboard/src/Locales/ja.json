@@ -21399,7 +21399,7 @@
   "{{count}} new in the last 24 hours · Click to triage": "過去 24 時間に {{count}} 件の新規 · クリックしてトリアージ",
   "{{count}} new in the last 24 hours · Click to triage_one": "{{count}} new in the last 24 hours · Click to triage",
   "{{count}} no longer in inventory": "{{count}} 件はインベントリにありません",
-  "{{count}} no longer in inventory_one": "{{count}} no longer in inventory",
+  "{{count}} no longer in inventory_one": "{{count}} 件はインベントリにありません",
   "{{count}} notes": "メモ {{count}} 件",
   "{{count}} notes_one": "{{count}} note",
   "{{count}} occurrences": "{{count}} 回発生",
@@ -51828,5 +51828,11 @@
   "{{from}} is hosted on {{to}}": "{{from}} は {{to}} でホストされている",
   "{{from}} is part of {{to}}": "{{from}} は {{to}} の一部",
   "{{from}} is related to {{to}}": "{{from}} は {{to}} に関連",
-  "{{from}} runs on {{to}}": "{{from}} は {{to}} 上で実行"
+  "{{from}} runs on {{to}}": "{{from}} は {{to}} 上で実行",
+  "Saved as \"{{value}}\", the name OneUptime reads from this value in your telemetry.": "「{{value}}」として保存されます。OneUptime がテレメトリ内のこの値から読み取る名前です。",
+  "Saved as \"{{value}}\", {{name}}.": "「{{value}}」（{{name}}）として保存されます。",
+  "Saved as \"{{value}}\".": "「{{value}}」として保存されます。",
+  "The Azure namespace: the first part of <namespace>.servicebus.windows.net. Leave empty only for the emulator or a custom domain.": "Azure の Namespace で、<namespace>.servicebus.windows.net の最初の部分です。空欄にするのは、エミュレーターまたはカスタムドメインを使う場合だけです。",
+  "The queue, topic or subscription name your applications and broker use. A URL, ARN or resource path is reduced to its name.": "アプリとブローカーが使うキュー、トピック、またはサブスクリプションの名前。URL、ARN、リソースパスはその名前に短縮されます。",
+  "This email was sent without a subject.": "このメールは件名なしで送信されました。"
 }

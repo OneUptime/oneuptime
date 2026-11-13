@@ -21398,8 +21398,8 @@
   "{{count}} mounts_one": "{{count}} mount",
   "{{count}} new in the last 24 hours · Click to triage": "{{count}} new in the last 24 hours · Click to triage",
   "{{count}} new in the last 24 hours · Click to triage_one": "{{count}} new in the last 24 hours · Click to triage",
-  "{{count}} no longer in inventory": "{{count}} no longer in inventory",
-  "{{count}} no longer in inventory_one": "{{count}} no longer in inventory",
+  "{{count}} no longer in inventory": "{{count}} hors de l'inventaire",
+  "{{count}} no longer in inventory_one": "{{count}} hors de l'inventaire",
   "{{count}} notes": "{{count}} notes",
   "{{count}} notes_one": "{{count}} note",
   "{{count}} occurrences": "{{count}} occurrences",
@@ -51828,5 +51828,11 @@
   "{{from}} is hosted on {{to}}": "{{from}} est hébergé sur {{to}}",
   "{{from}} is part of {{to}}": "{{from}} fait partie de {{to}}",
   "{{from}} is related to {{to}}": "{{from}} est lié à {{to}}",
-  "{{from}} runs on {{to}}": "{{from}} s'exécute sur {{to}}"
+  "{{from}} runs on {{to}}": "{{from}} s'exécute sur {{to}}",
+  "Saved as \"{{value}}\", the name OneUptime reads from this value in your telemetry.": "Enregistré sous « {{value}} », le nom que OneUptime lit à partir de cette valeur dans votre télémétrie.",
+  "Saved as \"{{value}}\", {{name}}.": "Enregistré sous « {{value}} », {{name}}.",
+  "Saved as \"{{value}}\".": "Enregistré sous « {{value}} ».",
+  "The Azure namespace: the first part of <namespace>.servicebus.windows.net. Leave empty only for the emulator or a custom domain.": "L'espace de noms Azure : la première partie de <namespace>.servicebus.windows.net. Ne laissez ce champ vide que pour l'émulateur ou un domaine personnalisé.",
+  "The queue, topic or subscription name your applications and broker use. A URL, ARN or resource path is reduced to its name.": "Le nom de la file, du sujet ou de l'abonnement qu'utilisent vos applications et votre broker. Une URL, un ARN ou un chemin de ressource est réduit à ce nom.",
+  "This email was sent without a subject.": "Cet e-mail a été envoyé sans objet."
 }

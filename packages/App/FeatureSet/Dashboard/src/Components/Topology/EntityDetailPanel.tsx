@@ -1,4 +1,6 @@
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -877,11 +879,28 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
       row.otherName ||
       (row.otherKnown ? t("Unnamed resource") : t("Undiscovered resource"));
     // The stored edge's own sentence, with this resource at its end of it.
-    const sentence: string = translator.translateTemplate(
-      sentenceForRelationship(row.relationshipType),
+    const ends: { from: string; to: string } =
       row.direction === "out"
         ? { from: displayName, to: otherLabel }
-        : { from: otherLabel, to: displayName },
+        : { from: otherLabel, to: displayName };
+    /*
+     * Each name keeps the way it is written inside the sentence (a pod's
+     * hyphens stay where they are in an Arabic one) and a long one breaks
+     * after its own dots and hyphens, not at whatever letter fills the line.
+     * The sentence reads the way its own words do (dir auto skips the
+     * names): a type this Dashboard does not know is worded in English,
+     * and on a Persian page it kept its names in English order.
+     */
+    const sentence: ReactElement = (
+      <span dir="auto" data-testid="entity-connection-sentence">
+        <TranslatedSentence
+          template={sentenceForRelationship(row.relationshipType)}
+          slots={{
+            from: <IsolatedText text={ends.from} breaksLikeAName={true} />,
+            to: <IsolatedText text={ends.to} breaksLikeAName={true} />,
+          }}
+        />
+      </span>
     );
     const hasMetrics: boolean = Boolean(
       config.showMetrics && row.callCount && row.callCount > 0,
@@ -930,7 +949,15 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
             )}
             onClick={open}
           >
-            {sentence} <span aria-hidden={true}>→</span>
+            {sentence}{" "}
+            {/*
+             * Opens the other end: the arrow points on, the way the line
+             * reads. A browser draws "→" as written in a line read right to
+             * left, where it pointed back at the start.
+             */}
+            <span aria-hidden={true} className="inline-block rtl:-scale-x-100">
+              →
+            </span>
           </button>
         ) : (
           <p className="text-sm text-gray-900">{sentence}</p>

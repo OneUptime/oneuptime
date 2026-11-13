@@ -21398,8 +21398,8 @@
   "{{count}} mounts_one": "{{count}} mount",
   "{{count}} new in the last 24 hours · Click to triage": "{{count}} new in the last 24 hours · Click to triage",
   "{{count}} new in the last 24 hours · Click to triage_one": "{{count}} new in the last 24 hours · Click to triage",
-  "{{count}} no longer in inventory": "{{count}} no longer in inventory",
-  "{{count}} no longer in inventory_one": "{{count}} no longer in inventory",
+  "{{count}} no longer in inventory": "{{count}} niet meer in inventaris",
+  "{{count}} no longer in inventory_one": "{{count}} niet meer in inventaris",
   "{{count}} notes": "{{count}} notities",
   "{{count}} notes_one": "{{count}} notitie",
   "{{count}} occurrences": "{{count}} keer opgetreden",
@@ -51828,5 +51828,11 @@
   "{{from}} is hosted on {{to}}": "{{from}} wordt gehost op {{to}}",
   "{{from}} is part of {{to}}": "{{from}} maakt deel uit van {{to}}",
   "{{from}} is related to {{to}}": "{{from}} is gerelateerd aan {{to}}",
-  "{{from}} runs on {{to}}": "{{from}} draait op {{to}}"
+  "{{from}} runs on {{to}}": "{{from}} draait op {{to}}",
+  "Saved as \"{{value}}\", the name OneUptime reads from this value in your telemetry.": "Opgeslagen als '{{value}}', de naam die OneUptime uit deze waarde in je telemetrie leest.",
+  "Saved as \"{{value}}\", {{name}}.": "Opgeslagen als '{{value}}', {{name}}.",
+  "Saved as \"{{value}}\".": "Opgeslagen als '{{value}}'.",
+  "The Azure namespace: the first part of <namespace>.servicebus.windows.net. Leave empty only for the emulator or a custom domain.": "De Azure-naamruimte: het eerste deel van <namespace>.servicebus.windows.net. Laat dit alleen leeg voor de emulator of een eigen domein.",
+  "The queue, topic or subscription name your applications and broker use. A URL, ARN or resource path is reduced to its name.": "De naam van de wachtrij, het topic of het abonnement die je applicaties en broker gebruiken. Een URL, ARN of resourcepad wordt ingekort tot die naam.",
+  "This email was sent without a subject.": "Deze e-mail is zonder onderwerp verzonden."
 }

@@ -164,7 +164,28 @@ describe("every sentence, in every language", () => {
 describe("the drawer draws the sentence whole", () => {
   test("filled with the edge's source and target, whichever end it is about", () => {
     expect(PANEL).toContain(
-      'translator.translateTemplate( sentenceForRelationship(row.relationshipType), row.direction === "out" ? { from: displayName, to: otherLabel } : { from: otherLabel, to: displayName }, )',
+      'const ends: { from: string; to: string } = row.direction === "out" ? { from: displayName, to: otherLabel } : { from: otherLabel, to: displayName };',
+    );
+    expect(PANEL).toContain(
+      "<TranslatedSentence template={sentenceForRelationship(row.relationshipType)} slots={{ from: <IsolatedText text={ends.from} breaksLikeAName={true} />, to: <IsolatedText text={ends.to} breaksLikeAName={true} />, }} />",
+    );
+  });
+
+  /*
+   * Each name is drawn in an isolate inside the sentence, so a pod's
+   * hyphens stay where they are in an Arabic one, and the sentence reads
+   * the way its own words do: a type this Dashboard does not know is
+   * worded in English, and on a Persian page it kept its English order.
+   */
+  test("the sentence takes its direction from its own words, never a name's", () => {
+    expect(PANEL).toContain(
+      '<span dir="auto" data-testid="entity-connection-sentence"> <TranslatedSentence',
+    );
+  });
+
+  test("the arrow that opens the other end points on in a line read right to left", () => {
+    expect(PANEL).toContain(
+      '<span aria-hidden={true} className="inline-block rtl:-scale-x-100"> → </span>',
     );
   });
 

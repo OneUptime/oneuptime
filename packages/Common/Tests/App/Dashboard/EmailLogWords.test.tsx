@@ -71,7 +71,9 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
   };
 });
 
-import EmailLogsTable from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationLogs/EmailLogsTable";
+import EmailLogsTable, {
+  EMAIL_WITHOUT_SUBJECT_TEXT,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationLogs/EmailLogsTable";
 import EmailLog from "../../../Models/DatabaseModels/EmailLog";
 import SmsLog from "../../../Models/DatabaseModels/SmsLog";
 import ObjectID from "../../../Types/ObjectID";
@@ -216,22 +218,62 @@ describe("the email logs table", () => {
     expect(screen.queryByText(JSON.stringify(subject))).not.toBeInTheDocument();
   });
 
-  test("View Subject of a row with no subject shows nothing, not the word undefined", async () => {
-    const viewSubject: CapturedActionButton =
-      capturedTableProps!.actionButtons.find(
-        (button: CapturedActionButton): boolean => {
-          return button.title === "View Subject";
-        },
-      )!;
+  /*
+   * An email sent without a subject opened a dialog with nothing under its
+   * title: a sentence says so, in the reader's language.
+   */
+  test.each([
+    ["no subject", {}],
+    ["an empty subject", { subject: "" }],
+  ])(
+    "View Subject of a row with %s says the email had none, never the word undefined",
+    async (_case: string, item: Record<string, unknown>) => {
+      const viewSubject: CapturedActionButton =
+        capturedTableProps!.actionButtons.find(
+          (button: CapturedActionButton): boolean => {
+            return button.title === "View Subject";
+          },
+        )!;
 
-    await act(async () => {
-      await viewSubject.onClick({}, () => {
-        return undefined;
+      await act(async () => {
+        await viewSubject.onClick(item, () => {
+          return undefined;
+        });
       });
-    });
 
-    expect(screen.getByText("Subject of Email Message")).toBeInTheDocument();
-    expect(screen.queryByText("undefined")).not.toBeInTheDocument();
-    expect(screen.queryByText('""')).not.toBeInTheDocument();
+      expect(screen.getByText("Subject of Email Message")).toBeInTheDocument();
+      expect(
+        screen.getByText("This email was sent without a subject."),
+      ).toBeInTheDocument();
+      expect(screen.queryByText("undefined")).not.toBeInTheDocument();
+      expect(screen.queryByText('""')).not.toBeInTheDocument();
+    },
+  );
+});
+
+describe("an email without a subject, in every language", () => {
+  test("the sentence is a key of the Dashboard's English file", () => {
+    expect(EMAIL_WITHOUT_SUBJECT_TEXT).toBe(
+      "This email was sent without a subject.",
+    );
+    expect(readDashboardLocale("en")[EMAIL_WITHOUT_SUBJECT_TEXT]).toBe(
+      EMAIL_WITHOUT_SUBJECT_TEXT,
+    );
+  });
+
+  test.each(DASHBOARD_LANGUAGES)("%s words it", (language: string) => {
+    expect(
+      isWordedInDashboardLocale(EMAIL_WITHOUT_SUBJECT_TEXT, language),
+    ).toBe(true);
+  });
+
+  test.each([
+    ["de", "Diese E-Mail wurde ohne Betreff gesendet."],
+    ["fa", "این ایمیل بدون موضوع ارسال شده است."],
+    ["ar", "أُرسل هذا البريد الإلكتروني بدون موضوع."],
+  ])("%s reads %s", (language: string, sentence: string) => {
+    expect(readDashboardLocale(language)[EMAIL_WITHOUT_SUBJECT_TEXT]).toBe(
+      sentence,
+    );
   });
 });

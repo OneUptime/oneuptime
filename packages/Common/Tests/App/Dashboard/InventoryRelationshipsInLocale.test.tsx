@@ -100,7 +100,11 @@ import {
   TopologyEntityAllTimeResponseJSON,
 } from "../../../Types/Topology/TopologyApi";
 import ProjectUtil from "../../../UI/Utils/Project";
-import { readDashboardLocale } from "../../Helpers/DashboardLocales";
+import {
+  DASHBOARD_LANGUAGES,
+  isWordedInDashboardLocale,
+  readDashboardLocale,
+} from "../../Helpers/DashboardLocales";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -148,6 +152,12 @@ const RELATED_EDGES: Array<Edge> = [
   { relationshipType: "depends-on", direction: "out", name: "etcd" },
   { relationshipType: "talks-to", direction: "out", name: "ledger" },
   { relationshipType: "", direction: "in", name: "orphan" },
+  // A name longer than a phone's line: it breaks after its own dots.
+  {
+    relationshipType: "hosted-on",
+    direction: "out",
+    name: "ip-10-0-12-34.eu-west-1.compute.internal",
+  },
   {
     relationshipType: "runs-on",
     direction: "in",
@@ -385,6 +395,148 @@ describe.each(LANGUAGES)("in %s", (language: string) => {
       "talks to ledger",
     );
   });
+});
+
+/*
+ * HOW A ROW IS LAID OUT.
+ *
+ * The arrow stays at the start of the sentence's first line: in a row
+ * that wrapped as a whole, a long sentence on a phone left the arrow alone
+ * on a line of its own above the words. The other item's name is an
+ * isolate of its own inside the sentence, so a host name keeps its dots
+ * and hyphens where they are in a Persian sentence, and a long one breaks
+ * after its own dots. The sentence reads the way its own words do (dir
+ * auto skips the name): a type this Dashboard does not know is worded in
+ * English, and on a Persian page it kept its English order.
+ */
+describe("how a row is laid out", () => {
+  test.each(["fa", "ar", "de", "en"])(
+    "in %s, the arrow sits beside the sentence, never on a line of its own",
+    async (language: string) => {
+      await inLanguage(language);
+      await renderNode();
+
+      for (const row of [...rowsOf("runsOn"), ...rowsOf("related")]) {
+        const [arrow, content] = Array.from(row.children) as Array<HTMLElement>;
+
+        expect(row.children).toHaveLength(2);
+        expect(row).toHaveClass("flex", "items-start");
+        expect(row).not.toHaveClass("flex-wrap");
+        expect(arrow).toHaveClass("shrink-0");
+        expect(content).toHaveAttribute(
+          "data-testid",
+          "inventory-connection-content",
+        );
+        expect(content).toHaveClass("min-w-0", "flex-1", "flex-wrap");
+        expect(content).toContainElement(sentenceOf(row));
+      }
+    },
+  );
+
+  test.each(["fa", "ar", "de", "en"])(
+    "in %s, the other item's name is an isolate in a sentence that reads by its own words",
+    async (language: string) => {
+      await inLanguage(language);
+      await renderNode();
+
+      const edges: Array<Edge> = [...RUNS_ON_EDGES, ...RELATED_EDGES];
+      const rows: Array<HTMLElement> = [
+        ...rowsOf("runsOn"),
+        ...rowsOf("related"),
+      ];
+
+      rows.forEach((row: HTMLElement, index: number) => {
+        const edge: Edge = edges[index]!;
+        const names: Array<string> = Array.from(
+          sentenceOf(row).querySelectorAll("bdi"),
+        ).map((name: HTMLElement): string => {
+          return name.textContent || "";
+        });
+
+        expect(sentenceOf(row)).toHaveAttribute("dir", "auto");
+        expect(names).toEqual([
+          edge.gone ? edge.name.substring(0, 16) : edge.name,
+        ]);
+      });
+    },
+  );
+
+  /*
+   * A <wbr> adds no character: the link says the name as written (Chromium
+   * names it "ip-10-0-12-34.eu-west-1.compute.internal"; jsdom's name
+   * computation puts a space at each <wbr>, so the text is read here).
+   */
+  test("a long host name breaks after its own dots, and its link holds the name whole", async () => {
+    await inLanguage("fa");
+    await renderNode();
+
+    const host: HTMLElement = rowsOf("related").find(
+      (row: HTMLElement): boolean => {
+        return (sentenceOf(row).textContent || "").includes(
+          "ip-10-0-12-34.eu-west-1.compute.internal",
+        );
+      },
+    )!;
+    const link: HTMLElement = within(sentenceOf(host)).getByRole("link");
+
+    expect(link.textContent).toBe("ip-10-0-12-34.eu-west-1.compute.internal");
+    expect(link.querySelectorAll("wbr").length).toBeGreaterThanOrEqual(3);
+    expect(link.querySelector("bdi")).toHaveAttribute("dir", "ltr");
+  });
+
+  test("on a Persian page, a type this Dashboard does not know keeps its English sentence", async () => {
+    await inLanguage("fa");
+    await renderNode();
+
+    const unknown: HTMLElement = rowsOf("related")[10]!;
+
+    expect(withoutIsolateMarks(sentenceOf(unknown).textContent || "")).toBe(
+      "talks to ledger",
+    );
+    expect(sentenceOf(unknown)).toHaveAttribute("dir", "auto");
+  });
+});
+
+/*
+ * The line under a section's name that counts the ends no longer in
+ * inventory read "1 no longer in inventory" in fifteen languages.
+ */
+describe("the count of ends no longer in inventory", () => {
+  const COUNT_KEYS: Array<string> = [
+    "{{count}} no longer in inventory",
+    "{{count}} no longer in inventory_one",
+  ];
+
+  test.each(DASHBOARD_LANGUAGES)("%s words both forms", (language: string) => {
+    expect(
+      COUNT_KEYS.filter((key: string): boolean => {
+        return !isWordedInDashboardLocale(key, language);
+      }),
+    ).toEqual([]);
+  });
+
+  test.each(LANGUAGES)(
+    "in %s, the related section says it in the language",
+    async (language: string) => {
+      await inLanguage(language);
+      await renderNode();
+
+      const section: string =
+        screen.getByTestId("inventory-connections-related").textContent || "";
+      const said: Array<string> = COUNT_KEYS.map((key: string): string => {
+        return withoutIsolateMarks(
+          (WORDS[language]![key] || "").replace("{{count}}", ""),
+        ).trim();
+      });
+
+      expect(section).not.toContain("no longer in inventory");
+      expect(
+        said.some((words: string): boolean => {
+          return words.length > 0 && section.includes(words);
+        }),
+      ).toBe(true);
+    },
+  );
 });
 
 describe("where each language puts the other end", () => {
