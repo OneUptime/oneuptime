@@ -3495,7 +3495,11 @@ export class Service extends ProjectReferencesService<Model> {
       const counts: NetworkDeviceInterfaceCounts | null =
         data.verdict.interfaceCounts;
 
-      params.push(counts?.total ?? null, counts?.up ?? null, counts?.down ?? null);
+      params.push(
+        counts?.total ?? null,
+        counts?.up ?? null,
+        counts?.down ?? null,
+      );
 
       setClauses.push(
         `"interfacesTotal" = $${params.length - 2}::integer`,

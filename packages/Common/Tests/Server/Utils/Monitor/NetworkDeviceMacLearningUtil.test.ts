@@ -964,9 +964,9 @@ describe("NetworkDeviceMacLearningUtil.learnFromArpBindings - when the table was
       mergeSpy.mock.calls[0]![0] as JSONObject
     )["patches"] as Array<JSONObject>;
     expect(patches).toHaveLength(1);
-    return (
-      (patches[0]!["set"] as JSONObject)["macAddress"] as JSONObject
-    )["readAt"] as string;
+    return ((patches[0]!["set"] as JSONObject)["macAddress"] as JSONObject)[
+      "readAt"
+    ] as string;
   }
 
   test("its readings are stamped with when the table was read, not when it was processed", async () => {

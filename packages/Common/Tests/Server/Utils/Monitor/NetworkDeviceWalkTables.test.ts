@@ -751,7 +751,9 @@ describe("NetworkInventoryUtil.updateFromWalk stores the table snapshot", () => 
       .spyOn(NetworkDeviceService, "updateOneById")
       .mockResolvedValue(1);
     // The poll's verdict, first: a device with no newer one (issue #7389).
-    jest.spyOn(NetworkDeviceService, "writePollVerdict").mockResolvedValue(true);
+    jest
+      .spyOn(NetworkDeviceService, "writePollVerdict")
+      .mockResolvedValue(true);
   });
 
   afterEach(() => {

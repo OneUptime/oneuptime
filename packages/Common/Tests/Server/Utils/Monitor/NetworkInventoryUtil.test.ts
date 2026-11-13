@@ -165,7 +165,9 @@ function verdictColumns(): DeviceUpdatePayload {
 
   expect(pollVerdictSpy).toHaveBeenCalledTimes(1);
 
-  return pollVerdictColumns(pollVerdictSpy.mock.calls[0][0] as PollVerdictWrite);
+  return pollVerdictColumns(
+    pollVerdictSpy.mock.calls[0][0] as PollVerdictWrite,
+  );
 }
 
 /*
@@ -2256,7 +2258,11 @@ describe("NetworkInventoryUtil.updateFromWalk — a poll received before it was 
   });
 
   test.each([
-    ["waits out the lock timeout", "55P03", "canceling statement due to lock timeout"],
+    [
+      "waits out the lock timeout",
+      "55P03",
+      "canceling statement due to lock timeout",
+    ],
     ["deadlocks", "40P01", "deadlock detected"],
   ])(
     "a verdict that %s is left for the next poll, and the rest of the poll is written",

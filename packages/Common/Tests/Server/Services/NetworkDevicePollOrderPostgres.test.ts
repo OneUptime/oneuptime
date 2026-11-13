@@ -373,8 +373,7 @@ describePostgres(
           process.env["NETWORK_DEVICE_POLL_ORDER_TEST_DATABASE_HOST"] ||
           "localhost",
         port: Number(
-          process.env["NETWORK_DEVICE_POLL_ORDER_TEST_DATABASE_PORT"] ||
-            "5400",
+          process.env["NETWORK_DEVICE_POLL_ORDER_TEST_DATABASE_PORT"] || "5400",
         ),
         username: process.env["DATABASE_USERNAME"] || "postgres",
         password: process.env["DATABASE_PASSWORD"] || "password",
@@ -686,49 +685,45 @@ describePostgres(
       test.each([
         ["the newer one commits first: the older is refused", "newer"],
         ["the older one commits first: the newer is written over it", "older"],
-      ])(
-        "%s",
-        async (_label: string, first: string) => {
-          const deviceId: ObjectID = await insertDevice();
-          const newer: Poll = {
-            receivedAt: NEWER_RECEIVED_AT,
-            processedAt: PROCESSED_AT,
-            verdict: DOWN,
-          };
-          const older: Poll = {
-            receivedAt: OLDER_RECEIVED_AT,
-            processedAt: PROCESSED_AT,
-            verdict: UP_AND_WALKED,
-          };
-          const [holding, waiting] =
-            first === "newer" ? [newer, older] : [older, newer];
+      ])("%s", async (_label: string, first: string) => {
+        const deviceId: ObjectID = await insertDevice();
+        const newer: Poll = {
+          receivedAt: NEWER_RECEIVED_AT,
+          processedAt: PROCESSED_AT,
+          verdict: DOWN,
+        };
+        const older: Poll = {
+          receivedAt: OLDER_RECEIVED_AT,
+          processedAt: PROCESSED_AT,
+          verdict: UP_AND_WALKED,
+        };
+        const [holding, waiting] =
+          first === "newer" ? [newer, older] : [older, newer];
 
-          const held: { commit: () => Promise<void> } = await writeHeldOpen(
-            deviceId,
-            holding,
-          );
+        const held: { commit: () => Promise<void> } = await writeHeldOpen(
+          deviceId,
+          holding,
+        );
 
-          let settled: boolean = false;
-          const waitingWrite: Promise<boolean> = write(
-            deviceId,
-            waiting,
-          ).finally(() => {
+        let settled: boolean = false;
+        const waitingWrite: Promise<boolean> = write(deviceId, waiting).finally(
+          () => {
             settled = true;
-          });
+          },
+        );
 
-          try {
-            await waitUntilAWriteWaits();
-            expect(settled).toBe(false);
-          } finally {
-            await held.commit();
-          }
+        try {
+          await waitUntilAWriteWaits();
+          expect(settled).toBe(false);
+        } finally {
+          await held.commit();
+        }
 
-          // Written only when it is the newer of the two.
-          expect(await waitingWrite).toBe(waiting === newer);
+        // Written only when it is the newer of the two.
+        expect(await waitingWrite).toBe(waiting === newer);
 
-          expectVerdictOf(await readDevice(deviceId), newer);
-        },
-      );
+        expectVerdictOf(await readDevice(deviceId), newer);
+      });
 
       /*
        * Held past lock_timeout, the write fails rather than waiting on: the
@@ -847,8 +842,7 @@ describePostgres(
 
           const rows: Array<InterfaceRow> = await readInterfaces(deviceId);
           expect(rows).toHaveLength(1);
-          const newerAt: Date =
-            missing === "older" ? storedAt : missedAt;
+          const newerAt: Date = missing === "older" ? storedAt : missedAt;
           expect(iso(rows[0]!.lastSeenAt)).toBe(iso(newerAt));
           expect(rows[0]!.isOperationallyUp).toBe(missing === "older");
         },

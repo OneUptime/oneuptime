@@ -3,7 +3,14 @@ import {
   Service as NetworkDeviceServiceType,
 } from "../../../Server/Services/NetworkDeviceService";
 import ObjectID from "../../../Types/ObjectID";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import type { Mock } from "jest-mock";
 
 /*
@@ -54,6 +61,9 @@ const VERDICT_COLUMNS: Array<string> = [
   "updatedAt",
 ];
 
+// The column one SET assignment writes: `"isReachable" = $5::boolean`.
+const ASSIGNED_COLUMN: RegExp = /^"([A-Za-z]+)"\s*=/;
+
 type QueryFunction = (
   sql: string,
   parameters: Array<unknown>,
@@ -78,9 +88,7 @@ describe("NetworkDeviceService.writePollVerdict (issue #7389)", () => {
     jest.restoreAllMocks();
   });
 
-  const write: (
-    verdict: NetworkDevicePollVerdict,
-  ) => Promise<boolean> = (
+  const write: (verdict: NetworkDevicePollVerdict) => Promise<boolean> = (
     verdict: NetworkDevicePollVerdict,
   ): Promise<boolean> => {
     return service.writePollVerdict({
@@ -124,7 +132,7 @@ describe("NetworkDeviceService.writePollVerdict (issue #7389)", () => {
           return assignment.length > 0;
         })
         .map((assignment: string): [string, string] => {
-          const column: string = /^"([A-Za-z]+)"\s*=/.exec(assignment)![1]!;
+          const column: string = ASSIGNED_COLUMN.exec(assignment)![1]!;
           return [column, assignment];
         }),
     );
@@ -201,10 +209,17 @@ describe("NetworkDeviceService.writePollVerdict (issue #7389)", () => {
             },
           ),
         );
-        expect(Array.from(used).sort((a: number, b: number) => a - b)).toEqual(
-          Array.from({ length: sentParameters().length }, (_v, i: number) => {
-            return i + 1;
+        expect(
+          Array.from(used).sort((a: number, b: number) => {
+            return a - b;
           }),
+        ).toEqual(
+          Array.from(
+            { length: sentParameters().length },
+            (_value: unknown, index: number) => {
+              return index + 1;
+            },
+          ),
         );
       }
     });
@@ -400,8 +415,9 @@ describe("NetworkDeviceService.writePollVerdict (issue #7389)", () => {
 
     // The caller leaves the poll to the next one and writes the rest.
     test("a lock timeout is thrown to the caller", async () => {
-      const lockTimeout: Error & { driverError?: { code: string } } =
-        new Error("canceling statement due to lock timeout");
+      const lockTimeout: Error & { driverError?: { code: string } } = new Error(
+        "canceling statement due to lock timeout",
+      );
       lockTimeout.driverError = { code: "55P03" };
       query.mockRejectedValue(lockTimeout);
 
