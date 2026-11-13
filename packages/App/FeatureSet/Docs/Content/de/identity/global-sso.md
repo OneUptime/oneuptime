@@ -34,10 +34,10 @@ Melden Sie sich als Master-Admin an und öffnen Sie das Admin Dashboard über **
 :::tabs
 @tab SAML
 - Klicken Sie auf **SAML-Anbieter hinzufügen**.
-- Geben Sie einen **Name**, die **Sign On URL** und den **Issuer** Ihres Identitätsanbieters ein und fügen Sie das **Public Certificate** ein. Alles Weitere ist unter **Weitere Felder** ausgefüllt: die **Signature Method** (`RSA-SHA256`), die **Digest Method** (`SHA256`) und eine Beschreibung (`Sign in with` und der Name). Ändern Sie sie nur, wenn Ihr IdP es verlangt. Beim Speichern öffnet sich die Seite des Anbieters.
+- Geben Sie einen **Name**, die **Anmelde-URL** und den **Aussteller** Ihres Identitätsanbieters ein und fügen Sie das Zertifikat unter **Öffentliches Zertifikat** ein. Alles Weitere ist unter **Weitere Felder** ausgefüllt: die **Signaturmethode** (`RSA-SHA256`), die **Digest-Methode** (`SHA256`) und eine Beschreibung (`Sign in with` und der Name). Ändern Sie sie nur, wenn Ihr IdP es verlangt. Beim Speichern öffnet sich die Seite des Anbieters.
 @tab OpenID Connect
 - Klicken Sie auf **OIDC-Anbieter hinzufügen**.
-- Geben Sie einen **Name**, die **Issuer URL** sowie die **Client ID** und das **Client Secret** der App ein, die Sie in Ihrem IdP registriert haben. Die Discovery-URL des IdP in **Issuer URL** einzufügen funktioniert auch. Alles Weitere ist unter **Weitere Felder** ausgefüllt: die **Discovery URL** (der Issuer, gefolgt von `/.well-known/openid-configuration`), die **Scopes** (`openid email profile`), die Claim-Namen `email` und `name` sowie eine Beschreibung (`Sign in with` und der Name). Ändern Sie sie nur, wenn Ihr IdP es verlangt. Beim Speichern öffnet sich die Seite des Anbieters.
+- Geben Sie einen **Name**, die **Aussteller-URL** sowie die **Client-ID** und das **Client-Secret** der App ein, die Sie in Ihrem IdP registriert haben. Die Discovery-URL des IdP in **Aussteller-URL** einzufügen funktioniert auch. Alles Weitere ist unter **Weitere Felder** ausgefüllt: die **Discovery-URL** (der Aussteller, gefolgt von `/.well-known/openid-configuration`), die **Geltungsbereiche** (`openid email profile`), die Claim-Namen `email` und `name` sowie eine Beschreibung (`Sign in with` und der Name). Ändern Sie sie nur, wenn Ihr IdP es verlangt. Beim Speichern öffnet sich die Seite des Anbieters.
 :::
 
 ### Die URLs von OneUptime in Ihren Identitätsanbieter kopieren
@@ -150,7 +150,7 @@ Die Person hat ein Konto, gehört aber zu keinem Projekt, und der Anbieter hat n
 :::
 
 :::details "Issuer URL does not match"
-Bei einem SAML-Anbieter ist der Issuer in der Antwort Ihres Identitätsanbieters nicht der **Issuer**, der am Anbieter gespeichert ist. Kopieren Sie ihn erneut aus Ihrem Identitätsanbieter; beide müssen genau übereinstimmen.
+Bei einem SAML-Anbieter ist der Aussteller in der Antwort Ihres Identitätsanbieters nicht der **Aussteller**, der am Anbieter gespeichert ist. Kopieren Sie ihn erneut aus Ihrem Identitätsanbieter; beide müssen genau übereinstimmen.
 :::
 
 :::details "SAML Audience does not match"

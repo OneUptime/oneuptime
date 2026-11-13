@@ -84,7 +84,7 @@ Pon el ID del servicio en `telemetryServiceIds`, o deja la lista vacía para lee
 | `attributes` | Perfiles cuyos atributos tienen estos valores. | Vacío: sin condición |
 | `lastXSecondsOfProfiles` | Perfiles que empezaron dentro de este número de segundos antes de la evaluación. | Ninguno: defínelo siempre, o se cuentan todos los perfiles almacenados y el recuento nunca baja a 0 |
 
-Todos los filtros que definas deben coincidir para que se lea un perfil. En el formulario, **Función** define `functionName`, **Qué analizar** define `profileTypes` (**Todos los tipos de perfil** lo deja vacío), **Supervisar perfiles durante (tiempo)** define `lastXSecondsOfProfiles`, y **Filtrar por servicio de telemetría** y **Filtrar por entidad de infraestructura** definen `telemetryServiceIds` y `entityKeys`.
+Todos los filtros que definas deben coincidir para que se lea un perfil. En el formulario, **Función** define `functionName`, **Qué analizar** define `profileTypes` (**Todos los tipos de perfil** lo deja vacío), **Supervisar perfiles durante (tiempo)** define `lastXSecondsOfProfiles`, y **Filtrar por servicio** y **Filtrar por entidad de infraestructura** definen `telemetryServiceIds` y `entityKeys`.
 
 ## Cómo se evalúa
 

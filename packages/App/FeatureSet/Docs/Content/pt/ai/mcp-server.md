@@ -483,7 +483,7 @@ O servidor MCP não guarda estado: ele nem emite nem rastreia ids de sessão, en
 | Incidentes | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert, Postmortem Status |
 | Alertas | Alert, Alert State, Alert Severity, Alert State Timeline, Alert Internal Note |
 | Páginas de status | Status Page, Status Page Announcement |
-| Manutenção programada | Scheduled Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |
+| Manutenção programada | Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |
 | Equipes e plantão | Team, On-Call Policy |
 | Rótulos | Label |
 | Segurança | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |

@@ -37,7 +37,7 @@ flowchart TB
 ## Перед началом
 
 - **Поступающие трассировки.** Инструментируйте свои сервисы с помощью [OpenTelemetry](/docs/telemetry/open-telemetry). Вкладка **Руководство по настройке** показывает код для вашего языка.
-- **Роль, которая читает телеметрию.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member или Telemetry Viewer либо пользовательская роль с разрешением Read Telemetry Service Traces. Её область определяет, чьи спаны вы видите: см. [Телеметрия](/docs/permissions/index#телеметрия).
+- **Роль, которая читает телеметрию.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member или Telemetry Viewer либо пользовательская роль с разрешением Read Traces. Её область определяет, чьи спаны вы видите: см. [Телеметрия](/docs/permissions/index#телеметрия).
 
 ## Найти запрос
 

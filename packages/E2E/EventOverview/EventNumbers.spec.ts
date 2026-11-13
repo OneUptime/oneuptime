@@ -102,8 +102,8 @@ const ALERT: EventKind = {
 const SCHEDULED_MAINTENANCE: EventKind = {
   name: "scheduled-maintenance",
   path: `${DASHBOARD}/scheduled-maintenance-events/${uuid("40000000", 58)}`,
-  trail: ["Project", "Scheduled Maintenance Events"],
-  kindTitle: "Scheduled Event",
+  trail: ["Project", "Scheduled Maintenance"],
+  kindTitle: "Maintenance Event",
   title: "Primary database failover drill",
   sentenceTitle:
     "Primary database failover drill for the orders database in eu-west-1, moving every checkout connection to its standby and back",

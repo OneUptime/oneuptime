@@ -360,6 +360,21 @@ copy of the bidi algorithm, and fails on an arrow between two steps that
 points back. An arrow at either end of a text leads a link on or back, and
 is left alone.
 
+### Persian glossary (fa)
+
+Persian words the English alone does not settle. Use them, so a new key
+reads like the rest: `packages/App/Tests/Dashboard/DashboardWordsInPersian.test.ts`
+fails on a key worded otherwise, and the Persian docs name a label in bold
+as `fa.json` draws it.
+
+- **Timeout** is `مهلت`, a time limit: `مهلت درخواست` for Request Timeout.
+  A timeout that happens is `پایان مهلت` ("including timeouts":
+  `از جمله پایان مهلت`), and "before timing out" is
+  `پیش از آنکه مهلت به پایان برسد`. Never `وقفه`, which is a pause.
+- **Cooldown**, a wait before something may run again, is `وقفه`:
+  `وقفه پیش از بررسی دوباره (دقیقه)` for Re-investigation Cooldown
+  (Minutes). It is the only `وقفه` in `fa.json`.
+
 ## What "untranslated" means
 
 A locale must have every `en.json` key and no others. A key is

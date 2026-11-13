@@ -153,8 +153,26 @@ export interface ProxmoxResourceBufferEntry {
   storageContent: string | null;
   isShared: boolean | null;
   subscriptionLevel: string | null;
+  /*
+   * Whether the batch reported anything about this resource beyond the
+   * node collectors' configuration. pve_onboot_status - a guest's
+   * start-on-boot flag - is all a node's own scrape says about a guest, and
+   * it keeps arriving from the nodes still up while the cluster itself
+   * cannot be read (the node the agent reads is down, or its token was
+   * revoked). An entry with nothing else is CONFIG-ONLY: the flush writes
+   * its flag (ProxmoxResourceService.bulkUpdateStartOnBoot) but never its
+   * lastSeenAt or latest-metric mirror, so a guest whose status nobody has
+   * read does not look freshly reported (issue #7439).
+   */
+  reportsStatus: boolean;
   observedAt: Date;
 }
+
+/*
+ * The one series the exporter's node collectors share with the snapshot
+ * scan: a guest's start-on-boot flag (see reportsStatus above).
+ */
+export const PVE_NODE_CONFIG_METRIC_NAME: string = "pve_onboot_status";
 
 /*
  * Per-cluster Proxmox snapshot state. The saw* flags implement the
@@ -544,6 +562,7 @@ export function bufferProxmoxSnapshotMetric(data: {
     storageContent: null,
     isShared: null,
     subscriptionLevel: null,
+    reportsStatus: data.metricName !== PVE_NODE_CONFIG_METRIC_NAME,
     observedAt,
   };
 
@@ -630,7 +649,7 @@ export function bufferProxmoxSnapshotMetric(data: {
       patch.haState = getStringAttribute(dpAttributes, "state");
       break;
     }
-    case "pve_onboot_status": {
+    case PVE_NODE_CONFIG_METRIC_NAME: {
       patch.onboot = rawValue >= 1;
       break;
     }
@@ -782,6 +801,10 @@ export function foldProxmoxResourceSnapshot(data: {
       existing.lockState = patch.lockState;
       existing.lockObservedAt = patch.lockObservedAt;
     }
+  }
+  // Once anything but the configuration reported it, the entry is not config-only.
+  if (patch.reportsStatus) {
+    existing.reportsStatus = true;
   }
   if (patch.observedAt > existing.observedAt) {
     existing.observedAt = patch.observedAt;

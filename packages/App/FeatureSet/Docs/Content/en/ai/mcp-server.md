@@ -483,7 +483,7 @@ The MCP server is stateless: it neither issues nor tracks session ids, so every 
 | Incidents | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert, Postmortem Status |
 | Alerts | Alert, Alert State, Alert Severity, Alert State Timeline, Alert Internal Note |
 | Status pages | Status Page, Status Page Announcement |
-| Scheduled maintenance | Scheduled Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |
+| Scheduled maintenance | Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |
 | Teams and on-call | Team, On-Call Policy |
 | Labels | Label |
 | Security | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |

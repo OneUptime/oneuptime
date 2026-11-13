@@ -1,6 +1,6 @@
-# Catalogo servizi
+# Servizi
 
-Il catalogo servizi elenca le applicazioni e i microservizi che gestite. OneUptime aggiunge un servizio la prima volta che ne arriva la telemetria, poi riunisce su un'unica pagina i suoi log, le tracce, le metriche, le eccezioni, gli incidenti e i proprietari, così chiunque può scoprire che cosa fa un servizio, a chi appartiene e come sta andando. Per scegliere tra un servizio, un gruppo di monitor e un'etichetta, consultate [Quale usare?](/docs/introduction/which-one#gruppo-di-monitor-servizio-o-etichetta).
+Servizi elenca le applicazioni e i microservizi che gestite. OneUptime aggiunge un servizio la prima volta che ne arriva la telemetria, poi riunisce su un'unica pagina i suoi log, le tracce, le metriche, le eccezioni, gli incidenti e i proprietari, così chiunque può scoprire che cosa fa un servizio, a chi appartiene e come sta andando. Per scegliere tra un servizio, un gruppo di monitor e un'etichetta, consultate [Quale usare?](/docs/introduction/which-one#gruppo-di-monitor-servizio-o-etichetta).
 
 :::cards
 - [Come un servizio entra nel catalogo](#come-un-servizio-entra-nel-catalogo): Il suo `service.name`, alla prima telemetria.

@@ -160,7 +160,10 @@ const FUNCTION_WITH_BRACKETS: RegExp = /[A-Za-z_][\w.]*\(\)/g;
  * The small apps' texts Arabic writes as English does, on purpose: product
  * and vendor names, example values a person types over, and templates that
  * are only their values. The Test LLM Provider dialog's HTTP {{status}} is a
- * protocol name with a status code, kept in Latin letters as HTTPS is.
+ * protocol name with a status code, kept in Latin letters as HTTPS is. The
+ * shared time picker's HH and mm, and a time's {{time}} (UTC), are the
+ * Admin Dashboard's copies of the Dashboard's words, which its own Arabic
+ * list keeps as written (i18n/Progress/ar.json, #7567).
  */
 const SAME_AS_ENGLISH: Record<string, Array<string>> = {
   Accounts: ["OneUptime"],
@@ -200,6 +203,7 @@ const SAME_AS_ENGLISH: Record<string, Array<string>> = {
     "EAAG...",
     "EU (Frankfurt)",
     "Google Cloud Storage",
+    "HH",
     "HTTP {{status}}",
     "HTTPS",
     "HackerBay, Inc.",
@@ -219,11 +223,13 @@ const SAME_AS_ENGLISH: Record<string, Array<string>> = {
     "Wasabi",
     "WhatsApp",
     "gpt-4o, claude-3-opus, llama-3.3-70b-versatile",
+    "mm",
     "test@example.com",
     "vCenter",
     "{{size}} GB",
     "{{size}} KB",
     "{{size}} MB",
+    "{{time}} (UTC)",
   ],
 };
 

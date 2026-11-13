@@ -1,6 +1,6 @@
 # Runbook-Regeln
 
-Runbook-Regeln starten Runbooks automatisch, wenn ein **Vorfall**, eine **Warnung** oder ein **geplantes Wartungsereignis** entsteht, damit mitten in einem Ausfall niemand daran denken muss, sie zu starten. Jedes Produkt hat seine eigene Regelseite, in seinem Menü **Regeln**:
+Runbook-Regeln starten Runbooks automatisch, wenn ein **Vorfall**, eine **Warnung** oder ein **Wartungsereignis** entsteht, damit mitten in einem Ausfall niemand daran denken muss, sie zu starten. Jedes Produkt hat seine eigene Regelseite, in seinem Menü **Regeln**:
 
 - Vorfälle → Regeln → **Runbook-Regeln**
 - Warnungen → Regeln → **Runbook-Regeln**

@@ -39,7 +39,7 @@ flowchart TB
 ## Before you begin
 
 - **Spans or logs arriving.** Instrument your services with [OpenTelemetry](/docs/telemetry/open-telemetry). The **Setup Guide** tab shows the code for your language.
-- **A role that reads telemetry.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member or Telemetry Viewer, or a custom role with the Read Telemetry Service Exception permission. Resolving and archiving takes Project Owner or Project Admin, or the Edit Telemetry Service Exception permission.
+- **A role that reads telemetry.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member or Telemetry Viewer, or a custom role with the Read Exceptions permission. Resolving and archiving takes Project Owner or Project Admin, or the Edit Exceptions permission.
 
 ## Triage the list
 

@@ -79,7 +79,7 @@ A field left blank falls back to the next setting in the order above, so a sever
 
 Open the service's or resource's **Settings** page, then **More settings**. Its **Telemetry Data Retention** card holds **Retain Telemetry Data For (Days)**, one number for everything it sends, and its **Retention by Telemetry Type** card has the same fields as the project's. Leave a field blank to use the project's settings.
 
-Services, hosts, Kubernetes clusters, Docker and Podman hosts, Docker Swarm, Proxmox and Ceph clusters, storage arrays, vCenters, databases, serverless functions, cloud environments, RUM applications and IoT fleets all have these cards. See the [Service Catalog](/docs/telemetry/services#change-a-service) for a service's **Settings** page.
+Services, hosts, Kubernetes clusters, Docker and Podman hosts, Docker Swarm, Proxmox and Ceph clusters, storage arrays, vCenters, databases, serverless functions, cloud environments, RUM applications and IoT fleets all have these cards. See [Services](/docs/telemetry/services#change-a-service) for a service's **Settings** page.
 
 ### When the plan or license no longer includes overrides
 
@@ -121,6 +121,6 @@ Expired records stop showing in searches, charts and lists as soon as they expir
 :::cards
 - [Ingestion Keys](/docs/telemetry/ingestion-keys): Send telemetry into your project.
 - [Drop Filters & Scrub Rules](/docs/telemetry/drop-filters-and-scrub-rules): Keep only the telemetry you need.
-- [Service Catalog](/docs/telemetry/services): Set a service's own retention.
+- [Services](/docs/telemetry/services): Set a service's own retention.
 - [Enterprise Edition](/docs/self-hosted/enterprise): What retention overrides come with.
 :::

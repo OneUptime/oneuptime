@@ -2,6 +2,7 @@ import {
   KUBERNETES_AGENT_HELM_NAMESPACE,
   KUBERNETES_AGENT_HELM_RELEASE,
 } from "../../Pages/Kubernetes/Utils/DocumentationMarkdown";
+import { PROXMOX_FAILOVER_CONTAINER } from "../../Pages/Proxmox/Utils/DocumentationMarkdown";
 import { getServerlessPlatformForCloudPlatform } from "../Serverless/ServerlessSetupGuide";
 import {
   HostCollectorOsType,
@@ -86,6 +87,24 @@ export interface ResourceConnectionGuide {
   setupSteps: Array<ResourceConnectionGuideStep>;
   // Shown once data has arrived before and then stopped.
   troubleshootingSteps: Array<ResourceConnectionGuideStep>;
+  /*
+   * For an agent that reads its resource from an API - a Proxmox cluster,
+   * read from the Proxmox VE API (issue #7439). While the agent is running
+   * (agentLastSeenAt is recent) but the resource is not read, the agent is
+   * not the problem, so the card says so instead of "stopped sending data":
+   * `stopped` once the resource was read before ({{lastRead}} is when it
+   * last was), `notYet` while it never has been; both with `steps`, the
+   * checks of the API. Whole sentences, English translation keys;
+   * {{agentName}} is agentName. A guide without it reads such a resource as
+   * Disconnected or never connected, as before.
+   */
+  unreadableCopy?:
+    | {
+        stopped: ResourceConnectionCopy;
+        notYet: ResourceConnectionCopy;
+        steps: Array<ResourceConnectionGuideStep>;
+      }
+    | undefined;
   /*
    * For a resource OneUptime installed the agent of (a host added with the
    * one command): there is nothing to set up before its first data, so the
@@ -720,6 +739,54 @@ export const getDockerSwarmClusterConnectionGuide: (
   );
 };
 
+/*
+ * What the Proxmox cluster's card says while its agent runs but cannot read
+ * the Proxmox VE API (ResourceConnectionGuide.unreadableCopy): the node it
+ * reads went down on agent files from before 0.161.2, no node answers, or
+ * the token was revoked. The agent's own scrape metrics keep arriving, so
+ * "stopped sending data" would send people to a container that is fine.
+ */
+const PROXMOX_UNREADABLE_STOPPED_COPY: ResourceConnectionCopy = {
+  title: translationKey("The agent can't read the Proxmox VE API"),
+  description: translationKey(
+    "The {{agentName}} is running, but it last read the cluster from the Proxmox VE API {{lastRead}}. The nodes, guests and storage here are as it read them then.",
+  ),
+};
+
+const PROXMOX_UNREADABLE_NOT_YET_COPY: ResourceConnectionCopy = {
+  title: translationKey("The agent has not read the cluster yet"),
+  description: translationKey(
+    "The {{agentName}} is running and reads the cluster from the Proxmox VE API every 30 seconds, but no read has arrived yet. If this does not change within a few minutes, check the API with the steps below.",
+  ),
+};
+
+const getProxmoxUnreadableSteps: (
+  oneuptimeUrl: string,
+) => Array<ResourceConnectionGuideStep> = (
+  oneuptimeUrl: string,
+): Array<ResourceConnectionGuideStep> => {
+  return [
+    {
+      title: "Run the diagnostic script",
+      description:
+        "It checks the API token and every node in PVE_HOST and PVE_NODES from the agent's machine, and says what is wrong.",
+      code: `curl -fsSL ${shellQuote(troubleshootScript(oneuptimeUrl, InstallScriptName.ProxmoxAgent))} -o troubleshoot.sh && bash troubleshoot.sh`,
+    },
+    {
+      title: "Check the API token",
+      description:
+        "PVE_API_TOKEN_ID and PVE_API_TOKEN_SECRET in the agent's .env must name a token that still exists, with the PVEAuditor role on / for the token and its user.",
+    },
+    {
+      title: "Check that a node answers",
+      description:
+        "The agent reads the cluster from PVE_HOST, or from the next node in PVE_NODES whose API answers on port 8006. Its logs say which node it reads, and why it passed over the others:",
+      // The container that says which node the agent reads the cluster from.
+      code: `docker logs ${PROXMOX_FAILOVER_CONTAINER} --tail 20`,
+    },
+  ];
+};
+
 export const getProxmoxClusterConnectionGuide: (
   clusterName: string,
   oneuptimeUrl: string,
@@ -727,22 +794,29 @@ export const getProxmoxClusterConnectionGuide: (
   clusterName: string,
   oneuptimeUrl: string,
 ): ResourceConnectionGuide => {
-  return getComposeAgentConnectionGuide(
-    {
-      sentences: COMPOSE_CLUSTER_SENTENCES,
-      agentName: "OneUptime Proxmox Agent",
-      containerName: "oneuptime-proxmox-agent",
-      nameVariable: "PROXMOX_CLUSTER_NAME",
-      installDescription: translationKey(
-        'Run the install script from the setup guide on a machine that can reach the Proxmox API. When it asks for the cluster name, enter "{{name}}" — or, with Docker Compose, put this in the .env file:',
-      ),
-      troubleshootScriptUrl: troubleshootScript(
-        oneuptimeUrl,
-        InstallScriptName.ProxmoxAgent,
-      ),
+  return {
+    ...getComposeAgentConnectionGuide(
+      {
+        sentences: COMPOSE_CLUSTER_SENTENCES,
+        agentName: "OneUptime Proxmox Agent",
+        containerName: "oneuptime-proxmox-agent",
+        nameVariable: "PROXMOX_CLUSTER_NAME",
+        installDescription: translationKey(
+          'Run the install script from the setup guide on a machine that can reach the Proxmox API. When it asks for the cluster name, enter "{{name}}" — or, with Docker Compose, put this in the .env file:',
+        ),
+        troubleshootScriptUrl: troubleshootScript(
+          oneuptimeUrl,
+          InstallScriptName.ProxmoxAgent,
+        ),
+      },
+      clusterName,
+    ),
+    unreadableCopy: {
+      stopped: PROXMOX_UNREADABLE_STOPPED_COPY,
+      notYet: PROXMOX_UNREADABLE_NOT_YET_COPY,
+      steps: getProxmoxUnreadableSteps(oneuptimeUrl),
     },
-    clusterName,
-  );
+  };
 };
 
 export const getOpenStackCloudConnectionGuide: (

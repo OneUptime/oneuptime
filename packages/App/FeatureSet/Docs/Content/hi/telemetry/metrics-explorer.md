@@ -36,7 +36,7 @@ flowchart TB
 ## शुरू करने से पहले
 
 - **आते हुए मेट्रिक्स।** उन्हें [OpenTelemetry](/docs/telemetry/open-telemetry) से भेजें, या किसी एजेंट से, जैसे [होस्ट OpenTelemetry Collector](/docs/telemetry/host-otel-collector) या [Kubernetes एजेंट](/docs/telemetry/kubernetes-agent)।
-- **टेलीमेट्री पढ़ सकने वाली भूमिका।** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member या Telemetry Viewer, या Read Telemetry Service Metrics अनुमति वाली कस्टम भूमिका। वह कौन-से मेट्रिक्स पढ़ती है, इसके लिए देखें [टेलीमेट्री](/docs/permissions/index#टेलीमेट्री)।
+- **टेलीमेट्री पढ़ सकने वाली भूमिका।** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member या Telemetry Viewer, या Read Metrics अनुमति वाली कस्टम भूमिका। वह कौन-से मेट्रिक्स पढ़ती है, इसके लिए देखें [टेलीमेट्री](/docs/permissions/index#टेलीमेट्री)।
 
 ## मेट्रिक ढूँढना
 

@@ -16,6 +16,17 @@ export interface ComponentProps {
    * loaded." - said first when the error is one nobody explained.
    */
   whatFailed?: string | undefined;
+  /*
+   * Leave that first line out where the page's own heading already says
+   * what failed - the notes feed's "Notes could not be loaded", a table's
+   * title over a load that failed - so the reader is not told it twice.
+   */
+  hideWhatFailed?: boolean | undefined;
+  /*
+   * The lines around these words are centred: the reference's row of an
+   * error nobody explained is centred under them too (ErrorExplanation).
+   */
+  isCentered?: boolean | undefined;
 }
 
 /*
@@ -32,9 +43,11 @@ export interface ComponentProps {
  * drawn as they always were.
  *
  * ErrorMessage draws these words in the middle of a list that did not load,
- * with Refresh? or Try again under them. A menu that lays out its own
- * failure - the note composer's Templates menu - draws them where its lines
- * are, beside its own Try again.
+ * with Refresh? or Try again under them. A piece that lays out its own
+ * failure draws them where its lines are, beside its own Try again: the
+ * note composer's Templates menu; the notes feed, under its heading; a
+ * table's empty state (TableEmptyState), under its title. The last two
+ * leave out what failed (hideWhatFailed): their heading says it.
  */
 const ErrorMessageText: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -48,6 +61,8 @@ const ErrorMessageText: FunctionComponent<ComponentProps> = (
       <ErrorExplanation
         message={props.message as string}
         whatFailed={props.whatFailed}
+        hideWhatFailed={props.hideWhatFailed}
+        isCentered={props.isCentered}
       />
     );
   }

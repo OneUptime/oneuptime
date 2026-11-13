@@ -37,7 +37,7 @@ flowchart TB
 Het model `ScheduledMaintenanceState` heeft `name`, `description`, `color` en `order`, plus vier vlaggen: `isScheduledState`, `isOngoingState`, `isEndedState` en `isResolvedState`. OneUptime leest de vlaggen en de volgorde, nooit de naam, dus je kunt **Voltooid** hernoemen naar 'Goedgekeurd' zonder dat er iets stukgaat.
 
 > [!TIP]
-> De lijst staat onder **Geplande onderhoud → Instellingen → Status gebeurtenis**. **Instellingen** is in het zijmenu eerst ingeklapt: klap het eerst uit.
+> De lijst staat onder **Geplande onderhoud → Instellingen → Onderhoudsstatus**. **Instellingen** is in het zijmenu eerst ingeklapt: klap het eerst uit.
 
 ## De standaardstatussen
 
@@ -74,7 +74,7 @@ Een gebeurtenis start wanneer ze van een status waarin ze wacht naar **Lopend** 
 
 - **Haar monitoren worden niet meer gecontroleerd** en gaan naar haar **Monitorstatus wijzigen naar**, als ze die heeft. Een monitor die je tijdens het werk aan de gebeurtenis toevoegt, verandert ook.
 - **Haar statuspagina's tonen haar als lopend**, en haar abonnees krijgen bericht: op tijd als **Wanneer de gebeurtenis begint** aanstaat, en met de hand zoals **Statuspagina-abonnees op de hoogte stellen** in het dialoogvenster zegt.
-- **Haar eigenaren krijgen bericht**, als ze de melding over statuswijzigingen hebben aangezet, en de gebeurtenis verschijnt onder **Lopende gebeurtenissen**.
+- **Haar eigenaren krijgen bericht**, als ze de melding over statuswijzigingen hebben aangezet, en de gebeurtenis verschijnt onder **Lopende onderhoudsgebeurtenissen**.
 
 Een gebeurtenis eindigt wanneer ze van een status waarin ze loopt naar **Beëindigd**, **Voltooid** of een eigen status na **Beëindigd** gaat. Dan worden haar monitoren weer gecontroleerd en gaan ze terug naar 'operationeel', tenzij een andere lopende gebeurtenis ze nog vasthoudt, en haar abonnees krijgen op dezelfde manier bericht: op tijd als **Wanneer de gebeurtenis eindigt** aanstaat, en met de hand zoals het dialoogvenster zegt.
 
@@ -106,7 +106,7 @@ Een status die je toevoegt, is een stap die je team doorloopt en die de vier sta
 :::steps
 ### De statuslijst openen
 
-Ga naar **Geplande onderhoud → Instellingen → Status gebeurtenis**. De kaart **Statussen van gepland onderhoud** toont je statussen in hun volgorde. Elke rij toont haar kleur en naam, wat een gebeurtenis erin telt als (kolom **Telt als**) en haar beschrijving.
+Ga naar **Geplande onderhoud → Instellingen → Onderhoudsstatus**. De kaart **Statussen van gepland onderhoud** toont je statussen in hun volgorde. Elke rij toont haar kleur en naam, wat een gebeurtenis erin telt als (kolom **Telt als**) en haar beschrijving.
 
 ### De status aanmaken
 

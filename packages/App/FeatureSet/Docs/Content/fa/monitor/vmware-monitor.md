@@ -124,7 +124,7 @@ OneUptime برای مشکلات رایج VMware در مجموع ۲۵ قالب د
 | VM Memory Saturation | ماشین مجازی | هشدار | `vcenter.vm.memory.utilization`، Avg به ازای هر ماشین مجازی | بیش از ۹۰٪ حافظه‌اش: مهمان در آستانه صفحه‌بندی است | ۸۱٪ یا کمتر |
 | VM Memory Ballooning | ماشین مجازی | هشدار | `vcenter.vm.memory.ballooned`، Max به ازای هر ماشین مجازی | بیش از ۰: میزبان کمبود حافظه دارد و از این مهمان حافظه پس می‌گیرد | برابر ۰ |
 | VM Memory Swapping | ماشین مجازی | بحرانی | `vcenter.vm.memory.swapped`، Max به ازای هر ماشین مجازی | بیش از ۰: میزبان حافظه ماشین مجازی را سواپ می‌کند، آخرین چاره پس از بالونینگ و فشرده‌سازی | برابر ۰ |
-| VM Disk Latency High | ماشین مجازی | هشدار | `vcenter.vm.disk.latency.max`، Max به ازای هر ماشین مجازی | بیش از ۵۰ ms: برنامه‌های درون مهمان در I/O دچار وقفه زمانی می‌شوند | ۴۵ ms یا کمتر |
+| VM Disk Latency High | ماشین مجازی | هشدار | `vcenter.vm.disk.latency.max`، Max به ازای هر ماشین مجازی | بیش از ۵۰ ms: مهلت I/O برنامه‌های درون مهمان به پایان می‌رسد | ۴۵ ms یا کمتر |
 | VM Disk Usage High | ماشین مجازی | هشدار | `vcenter.vm.disk.utilization`، Avg به ازای هر ماشین مجازی | بیش از ۹۰٪ ذخیره‌سازی تأمین‌شده‌اش به کار گرفته شده: یک ماشین مجازی thin-provisioned در آستانه گرفتن اندازه کاملش است | ۸۱٪ یا کمتر |
 | Datastore Capacity Warning | Datastore | هشدار | `vcenter.datastore.disk.utilization`، Avg به ازای هر `resource.vcenter.datastore.name` | بیش از ۸۰٪: یک هشدار زودهنگام، چون دیسک‌های thin و snapshotها باقی‌مانده را به‌سرعت مصرف می‌کنند | ۷۲٪ یا کمتر |
 | Datastore Capacity Critical | Datastore | بحرانی | `vcenter.datastore.disk.utilization`، Avg به ازای هر دیتااستور | بیش از ۹۰٪: دیتااستور پر هر ماشین مجازی‌ای را که دیسکی روی آن دارد متوقف می‌کند | ۸۱٪ یا کمتر |

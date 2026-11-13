@@ -41,12 +41,12 @@ Os comunicados são tratados em [Assinantes e comunicados](/docs/status-pages/su
 
 ## De onde vêm os eventos
 
-- **O formulário.** Clique em **Criar Evento de Manutenção Programada** na lista de eventos, ou na aba **Manutenção programada** de um host, um cluster, um serviço, um site de rede ou outro recurso, que seleciona esse recurso para você. Veja [Criar eventos de manutenção](/docs/scheduled-maintenance/creating-events).
+- **O formulário.** Clique em **Criar evento de manutenção** na lista de eventos, ou na aba **Manutenção programada** de um host, um cluster, um serviço, um site de rede ou outro recurso, que seleciona esse recurso para você. Veja [Criar eventos de manutenção](/docs/scheduled-maintenance/creating-events).
 - **Um modelo.** **Criar a partir de modelo** preenche o formulário a partir de um modelo que você salvou para trabalhos frequentes. Veja [Modelos e eventos recorrentes](/docs/scheduled-maintenance/templates).
 - **Um agendamento.** Um modelo recorrente cria um evento novo seguindo um agendamento, por exemplo toda semana ou todo mês, sem que ninguém abra o formulário.
 - **Um formulário.** Um formulário cujos envios criam eventos de manutenção transforma um pedido de mudança em um evento. Veja [O que um envio cria](/docs/forms/on-submit#como-um-envio-se-torna-um-evento-de-manutenção-programada).
 - **O chat.** `/oneuptime maintenance` no Slack, ou `maintenance` escrito para o bot do OneUptime no Microsoft Teams, abre o formulário na sua ferramenta de chat. Veja [Slack](/docs/workspace-connections/slack#criar-incidentes-e-manutenções-pelo-slack).
-- **O código.** A API em `/api/scheduled-maintenance`, o recurso do Terraform `oneuptime_scheduled_maintenance_event` e a etapa **Create One Scheduled Maintenance Event** de um workflow.
+- **O código.** A API em `/api/scheduled-maintenance`, o recurso do Terraform `oneuptime_scheduled_maintenance_event` e a etapa **Create One Maintenance Event** de um workflow.
 
 ## Onde fica a manutenção no painel
 
@@ -54,11 +54,11 @@ Abra **Manutenção programada** no menu **Produtos** da barra superior. A lista
 
 | Seção         | O que você faz ali                                                                                                         |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| **Visão geral** | **Todos os eventos** e **Eventos em andamento**, cujo selo conta os eventos em andamento neste momento.                  |
+| **Visão geral** | **Todos os eventos de manutenção** e **Eventos de manutenção em andamento**, cujo selo conta os eventos em andamento neste momento.                  |
 | **Calendário** | **Calendário de manutenção**: cada evento em um mês, uma semana ou um dia, ao lado dos calendários de fora do projeto que você adicionar. |
 | **Espaço de trabalho** | **Slack**, **Microsoft Teams** e **Mattermost**, conforme o que o projeto conectou, ou **Conectar um espaço de trabalho** quando não tem nenhum. |
 | **Regras**    | **Regras de proprietário**, **Regras de runbook**, **Regras de Rótulos**, **Regras de lembrete**.                               |
-| **Configurações** | **Estado do evento**, **Modelos de eventos**, **Modelos de notas**, **Aprovação de notas públicas**, **Campos personalizados**, **Medições**, **Configurações do calendário**, **Numeração**. |
+| **Configurações** | **Estado da manutenção**, **Modelos de manutenção**, **Modelos de notas**, **Aprovação de notas públicas**, **Campos personalizados**, **Medições**, **Configurações do calendário**, **Numeração**. |
 
 **Visão geral** e **Calendário** ficam abertas; **Espaço de trabalho**, **Regras**, **Configurações** e **Desenvolvedores** começam recolhidas, e uma seção se abre sozinha quando você está em uma de suas páginas. **Desenvolvedores** reúne **Terraform**, **API**, **CLI** e **Assistentes de IA**, para gerenciar a manutenção pelo código. Tudo sobre manutenção fica aqui, não nas **Configurações do projeto**.
 
@@ -88,7 +88,7 @@ Abra um evento na lista para ver suas páginas. Seu menu lateral reúne:
 | **Notificações**     | **Logs de notificação** e **Registros de IA**: cada mensagem enviada sobre o evento, e o que a IA fez por ele |
 | **Notas**         | **Notas privadas** e **Notas públicas**                                                        |
 | **Desenvolvedores** | **Terraform**, **API**, **CLI** e **Assistentes de IA**: o evento gerenciado pelo código     |
-| **Avançado**      | **Campos personalizados**, **Configurações**, **Registros de auditoria**, **Excluir evento**    |
+| **Avançado**      | **Campos personalizados**, **Configurações**, **Registros de auditoria**, **Excluir evento de manutenção**    |
 
 **Visão geral**, **Equipe** e **Notas** ficam abertas; as outras seções começam recolhidas até você clicar nelas.
 

@@ -31,6 +31,9 @@ import path from "path";
  *     so an old text's translations are deleted with it;
  *   - the permission picker's titles and descriptions;
  *   - the emails' templates, and what the server says in English;
+ *   - the English locale of every other front end: the public status page,
+ *     the sign-in pages, the Admin Dashboard, public dashboards, the API
+ *     reference and the docs' own words;
  *   - every string the server, the emails and each front end write
  *     (ProductTextScan), where the extractor does not look: chat messages,
  *     workflow templates, error messages, props drawn as words;
@@ -63,6 +66,19 @@ const SERVER_ENGLISH: string = path.join(
   PACKAGES,
   "Common/Server/Locales/en.json",
 );
+/*
+ * Every front end's English locale but the Dashboard's, which the
+ * extractor's tests read: the public status page says "Scheduled
+ * Maintenance" for what it called "Scheduled Events" (#6817 part 3).
+ */
+const OTHER_FRONT_END_LOCALES: ReadonlyArray<string> = [
+  "App/FeatureSet/APIReference/Locales/en.json",
+  "App/FeatureSet/Accounts/src/Locales/en.json",
+  "App/FeatureSet/AdminDashboard/src/Locales/en.json",
+  "App/FeatureSet/Docs/Locales/en.json",
+  "App/FeatureSet/PublicDashboard/src/Locales/en.json",
+  "App/FeatureSet/StatusPage/src/Locales/en.json",
+];
 const WEBSITE_VIEWS: string = path.join(PACKAGES, "Home/Views");
 const SAMPLE_PROJECT: string = path.join(
   PACKAGES,
@@ -76,11 +92,46 @@ interface Sighting {
   nowCalled: string;
 }
 
-function sightings(where: string, text: string): Array<Sighting> {
+/*
+ * Names another app keeps, as an API keeps its names: the Slack app's
+ * shortcuts, which a workspace shows as its app was set up from
+ * app-manifest.json ("Create Scheduled Event"). Renaming one there would
+ * leave every installed app showing the old name while the docs and the
+ * prompts said the new one, so the docs and the prompts say what Slack
+ * shows.
+ */
+const SLACK_MANIFEST: string = path.join(
+  PACKAGES,
+  "Common/Server/Utils/Workspace/Slack/app-manifest.json",
+);
+
+function keptExternalNames(): Array<string> {
+  const manifest: {
+    features?: { shortcuts?: Array<{ name: string }> };
+  } = JSON.parse(fs.readFileSync(SLACK_MANIFEST, "utf8"));
+
+  return (manifest.features?.shortcuts || []).map(
+    (shortcut: { name: string }): string => {
+      return shortcut.name;
+    },
+  );
+}
+
+const KEPT_EXTERNAL_NAMES: Array<string> = keptExternalNames();
+
+function sightings(where: string, rawText: string): Array<Sighting> {
+  // A name another app keeps is not a retired name's sighting.
+  const text: string = KEPT_EXTERNAL_NAMES.reduce(
+    (stripped: string, name: string): string => {
+      return stripped.split(name).join("");
+    },
+    rawText,
+  );
+
   return findRetiredNames(text).map((retired: RetiredName): Sighting => {
     return {
       where,
-      text: text.length > 160 ? `${text.slice(0, 157)}...` : text,
+      text: rawText.length > 160 ? `${rawText.slice(0, 157)}...` : rawText,
       retired: retired.name,
       nowCalled: retired.nowCalled,
     };
@@ -125,6 +176,18 @@ function nestedValues(
   }
 
   return values;
+}
+
+// Every string of a locale, at the top level too, by its key's path.
+function allValues(tree: Record<string, unknown>): Array<[string, string]> {
+  return [
+    ...Object.entries(tree).filter(
+      (entry: [string, unknown]): entry is [string, string] => {
+        return typeof entry[1] === "string";
+      },
+    ),
+    ...nestedValues(tree),
+  ];
 }
 
 /*
@@ -194,6 +257,8 @@ const STORED_VALUES: Record<string, string> = {
     "a condition a rule checks, shown by CHECK_ON_LABELS",
   "Common/Types/Workspace/NotificationRules/EventType.ts":
     "the event a rule is for, shown by NotificationRuleCopy",
+  "Common/Types/StatusPage/StatusPageEventType.ts":
+    "the event types a subscriber picks, kept on StatusPageSubscriber, shown by StatusPageUtil's labels",
 };
 
 function sourceLinesOf(file: string): Array<string> {
@@ -438,6 +503,53 @@ describe("what the server sends never uses a retired name", () => {
     expect(found).toEqual([]);
   });
 
+  test.each(OTHER_FRONT_END_LOCALES)("no word of %s does", (locale: string) => {
+    const english: Record<string, unknown> = JSON.parse(
+      fs.readFileSync(path.join(PACKAGES, locale), "utf8"),
+    ) as Record<string, unknown>;
+    const found: Array<Sighting> = allValues(english).flatMap(
+      ([key, value]: [string, string]): Array<Sighting> => {
+        return sightings(`${locale} ${key}`, value);
+      },
+    );
+
+    expect(found).toEqual([]);
+  });
+
+  test("reads every front end's English locale, so a new one is read too", () => {
+    const featureSets: string = path.join(PACKAGES, "App/FeatureSet");
+    const locales: Array<string> = fs
+      .readdirSync(featureSets)
+      .flatMap((name: string): Array<string> => {
+        return [`${name}/Locales/en.json`, `${name}/src/Locales/en.json`];
+      })
+      .filter((locale: string): boolean => {
+        return fs.existsSync(path.join(featureSets, locale));
+      })
+      .map((locale: string): string => {
+        return `App/FeatureSet/${locale}`;
+      })
+      .filter((locale: string): boolean => {
+        return locale !== "App/FeatureSet/Dashboard/src/Locales/en.json";
+      })
+      .sort();
+
+    expect(locales).toEqual([...OTHER_FRONT_END_LOCALES].sort());
+
+    // The status page's own words are read: its nav, overview and lists.
+    const statusPage: Record<string, unknown> = JSON.parse(
+      fs.readFileSync(
+        path.join(PACKAGES, "App/FeatureSet/StatusPage/src/Locales/en.json"),
+        "utf8",
+      ),
+    ) as Record<string, unknown>;
+
+    expect(allValues(statusPage)).toContainEqual([
+      "nav.scheduledEvents",
+      "Scheduled Maintenance",
+    ]);
+  });
+
   /*
    * Every string literal of the server, the emails and the front ends, as
    * the menu path guards read them. Three kinds keep an old name, each
@@ -484,6 +596,29 @@ describe("what the server sends never uses a retired name", () => {
           '"On Call Duty Policy Name"',
         ),
         text: "On Call Duty Policy Name",
+      }),
+    ).toBe(true);
+    // The Slack app's shortcut, as every installed app shows it.
+    expect(KEPT_EXTERNAL_NAMES).toContain("Create Scheduled Event");
+    expect(
+      sightings("docs", "The **Create Scheduled Event** shortcut opens it."),
+    ).toEqual([]);
+    expect(
+      sightings("docs", "Open the Scheduled Event.").map(
+        (sighting: Sighting): string => {
+          return sighting.retired;
+        },
+      ),
+    ).toEqual(["Scheduled Event"]);
+    // A subscriber's stored event type, which the pages label Maintenance Event.
+    expect(
+      isStoredValue({
+        file: "Common/Types/StatusPage/StatusPageEventType.ts",
+        line: sourceLineOf(
+          "Common/Types/StatusPage/StatusPageEventType.ts",
+          '"Scheduled Event"',
+        ),
+        text: "Scheduled Event",
       }),
     ).toBe(true);
     expect(

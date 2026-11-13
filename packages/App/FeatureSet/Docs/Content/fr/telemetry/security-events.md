@@ -591,7 +591,7 @@ level: high
 
 Un moniteur d'événements de sécurité compte les événements qui correspondent à ses filtres sur une fenêtre glissante et applique au comptage les critères habituels des moniteurs : il change le statut du moniteur, ouvre des alertes ou des incidents, et alerte l'astreinte. Créez-en un sous **Moniteurs → Créer un moniteur**, avec **Événements de sécurité** comme type ; il y est listé avec vos autres moniteurs.
 
-Son formulaire affiche **Surveiller les événements contenant ce texte**, **Surveiller les événements de sécurité pendant (durée)**, **Gravité de l'événement** et **Classe d'événements**. **Filtrer par service de télémétrie**, **Filtrer par attributs** et **Filtrer par listes de surveillance** attendent sous **Plus de champs**, dont l'en-tête montre ceux qu'un moniteur utilise. **Filtrer par listes de surveillance** garde les événements dont le champ est, ou n'est pas, sur l'une de vos [listes de surveillance](#listes-de-surveillance). Ses critères vérifient **Nombre d'événements de sécurité**.
+Son formulaire affiche **Surveiller les événements contenant ce texte**, **Surveiller les événements de sécurité pendant (durée)**, **Gravité de l'événement** et **Classe d'événements**. **Filtrer par service**, **Filtrer par attributs** et **Filtrer par listes de surveillance** attendent sous **Plus de champs**, dont l'en-tête montre ceux qu'un moniteur utilise. **Filtrer par listes de surveillance** garde les événements dont le champ est, ou n'est pas, sur l'une de vos [listes de surveillance](#listes-de-surveillance). Ses critères vérifient **Nombre d'événements de sécurité**.
 
 | | Règle de détection | Moniteur d'événements de sécurité |
 | --- | --- | --- |

@@ -73,7 +73,7 @@ Click **Create Monitor**. The monitor opens on its **Overview** page, and its fi
 | **Span Status** | Spans with any of the chosen statuses: **Unset**, **Ok** or **Error**. | Empty: every status |
 | **Span name contains** | Spans whose name contains this text, ignoring case. | Empty: every span |
 | **Time window** (in **When to alert**) | Spans that started in the last 5 seconds up to the last 24 hours. | **Last 5 minutes** |
-| **Filter by Telemetry Service** (under **More fields**) | Spans from any of the chosen services. | Empty: every service |
+| **Filter by Service** (under **More fields**) | Spans from any of the chosen services. | Empty: every service |
 | **Filter by Infrastructure Entity** (under **More fields**) | Spans from any of the chosen hosts, pods, containers and other entities. | Empty: every entity |
 | **Filter by Attributes** (under **More fields**) | Spans whose attributes meet every condition. Each condition has its own operator, such as equals or contains. | Empty: no condition |
 

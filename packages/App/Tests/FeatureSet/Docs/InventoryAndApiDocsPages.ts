@@ -63,14 +63,14 @@ export const WHOLE_LABELS: Readonly<Record<string, ReadonlyArray<string>>> = {
 /*
  * A permission's name, as the team and API key permission pickers list it
  * (Permission.ts's title, which no locale translates), so every page keeps
- * it as written although "Edit Telemetry Service" reads like a button.
+ * it as written although "Edit Inventory Item" reads like a button.
  */
 export const PERMISSION_NAMES: Readonly<Record<string, ReadonlyArray<string>>> =
   {
     [CMDB_SYNC]: [
-      "Read Telemetry Service",
-      "Edit Telemetry Service",
-      "Create Telemetry Service",
+      "Read Inventory Item",
+      "Edit Inventory Item",
+      "Create Inventory Item",
       // Refresh: POST /api/network-device/{id}/refresh.
       "Edit Network Device",
     ],

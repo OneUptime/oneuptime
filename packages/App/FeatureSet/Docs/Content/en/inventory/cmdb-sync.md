@@ -59,7 +59,7 @@ Open **Project Settings → Advanced → API Keys** and click **Create API Key**
 
 ### Give it only what it needs
 
-A read-only export needs one permission, **Read Telemetry Service**: Inventory shares the telemetry permissions rather than having its own. On the key's page, click **Add Permission** and pick it. To write values back, add **Edit Telemetry Service** too.
+A read-only export needs one permission, **Read Inventory Item**. On the key's page, click **Add Permission** and pick it. To write values back, add **Edit Inventory Item** too.
 
 ### Copy the key
 
@@ -232,9 +232,9 @@ An item that disappears between runs has either aged out (a discovered item that
 
 ## Write back
 
-The same endpoints take writes, so a sync can push values into `customFields`: the asset tag your CMDB already owns, stamped onto the matching OneUptime item, for example. The key needs **Edit Telemetry Service** for that.
+The same endpoints take writes, so a sync can push values into `customFields`: the asset tag your CMDB already owns, stamped onto the matching OneUptime item, for example. The key needs **Edit Inventory Item** for that.
 
-You can also add items for things OneUptime cannot see, with `POST /api/inventory-item`, an `entityType` of `external.service`, `external.database` or `appliance`, and a `displayName`. OneUptime works out the identity key for you, and those items never expire. The key needs **Create Telemetry Service** for that.
+You can also add items for things OneUptime cannot see, with `POST /api/inventory-item`, an `entityType` of `external.service`, `external.database` or `appliance`, and a `displayName`. OneUptime works out the identity key for you, and those items never expire. The key needs **Create Inventory Item** for that.
 
 ## Troubleshooting
 
@@ -243,7 +243,7 @@ On OneUptime Cloud, API keys work only while the project is on the **Growth** pl
 :::
 
 :::details Every request answers 422 You do not have permissions
-The key has no permission that reads the inventory. A key made with **Choose permissions later** can do nothing until it gets one: add **Read Telemetry Service** on its page, as in [Before you begin](#before-you-begin).
+The key has no permission that reads the inventory. A key made with **Choose permissions later** can do nothing until it gets one: add **Read Inventory Item** on its page, as in [Before you begin](#before-you-begin).
 :::
 
 :::details The list comes back without the columns I need

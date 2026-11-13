@@ -36,7 +36,7 @@ De verkenner heeft vijf tabbladen:
 ## Voordat u begint
 
 - **Binnenkomende metrieken.** Stuur ze met [OpenTelemetry](/docs/telemetry/open-telemetry), of vanuit een agent zoals de [OpenTelemetry-collector voor hosts](/docs/telemetry/host-otel-collector) of de [Kubernetes-agent](/docs/telemetry/kubernetes-agent).
-- **Een rol die telemetrie mag lezen.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member of Telemetry Viewer, of een aangepaste rol met de machtiging Read Telemetry Service Metrics. Zie [Telemetrie](/docs/permissions/index#telemetrie) voor welke metrieken die rol leest.
+- **Een rol die telemetrie mag lezen.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member of Telemetry Viewer, of een aangepaste rol met de machtiging Read Metrics. Zie [Telemetrie](/docs/permissions/index#telemetrie) voor welke metrieken die rol leest.
 
 ## Een metriek vinden
 

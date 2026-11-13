@@ -29,7 +29,7 @@ import { searchThroughGetList } from "./AffectedResourceSearchFake";
  * (Components/ScheduledMaintenance/ScheduledMaintenanceAffectedResourcesFormFields),
  * as a person holding one role in the project - not a master admin.
  *
- * Split as Create Scheduled Maintenance Event is: the monitors in a picker
+ * Split as Create Maintenance Event is: the monitors in a picker
  * of their own, Change Monitor Status to right under them once one is
  * picked, everything else below. Saving stores what the one picker stored
  * for the same picks - each resource in its own relation.

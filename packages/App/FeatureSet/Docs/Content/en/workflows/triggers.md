@@ -202,7 +202,7 @@ To test an event trigger without waiting for the event, click **Run Workflow** o
 | **Incident**                    | React when an incident is declared, updated (acknowledged, resolved) or deleted. |
 | **Alert**                       | The same three events, for alerts.                                           |
 | **Monitor**                     | React when a monitor is added, edited or removed.                            |
-| **Scheduled Maintenance Event** | Announce a maintenance window automatically when it's scheduled.             |
+| **Maintenance Event** | Announce a maintenance window automatically when it's scheduled.             |
 | **Status Page Subscriber**      | Welcome someone who subscribes to a status page.                             |
 | **On-Call Policy**              | Sync policy changes to another roster system.                                |
 
