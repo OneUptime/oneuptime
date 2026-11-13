@@ -139,7 +139,10 @@ const DISCOVER_CASES: Array<DiscoverCase> = [
       service: ProxmoxClusterService,
       method: "findOrCreateByName",
     },
-    heartbeat: { service: ProxmoxClusterService, method: "updateLastSeen" },
+    heartbeat: {
+      service: ProxmoxClusterService,
+      method: "updateAgentLastSeen",
+    },
   },
   {
     name: "vCenter",
