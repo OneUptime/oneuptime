@@ -55,6 +55,10 @@ export function describeResponseAge(
  * Where a record stands for the reader. "pagedAgain": it is acknowledged and
  * still not resolved, and its policy is paging the reader again about it
  * (the acknowledgement timeout) - the reader has a page to answer.
+ * "pagedToHelp": it is acknowledged and still not resolved, and somebody
+ * asked for the reader by hand - a page sent from a chat, a policy started
+ * by hand - so the reader has a page to answer about a record somebody else
+ * is on: paged, not paged again.
  * "observer": the reader is paged about it only as an observer
  * (oncall/observerPage.ts) and has not said they have seen it yet - they
  * are kept informed while others respond, whatever state it is in.
@@ -63,6 +67,7 @@ export type ResponseStage =
   | "open"
   | "acknowledged"
   | "pagedAgain"
+  | "pagedToHelp"
   | "observer"
   | "resolved";
 
@@ -71,12 +76,13 @@ export function getResponseStage(
   isAcknowledged: boolean,
   isPagedAgain: boolean = false,
   isObserver: boolean = false,
+  isPagedToHelp: boolean = false,
 ): ResponseStage {
   if (isResolved) {
     return "resolved";
   }
   if (isAcknowledged && isPagedAgain) {
-    return "pagedAgain";
+    return isPagedToHelp ? "pagedToHelp" : "pagedAgain";
   }
   if (isObserver) {
     return "observer";
@@ -107,6 +113,11 @@ const stageAppearance: Record<
     tone: "warning",
     icon: "alarm-outline",
     title: "You're being paged again",
+  },
+  pagedToHelp: {
+    tone: "warning",
+    icon: "alarm-outline",
+    title: "You're being paged",
   },
   // The server's own words for an observer's page (oncall/observerPage.ts).
   observer: {
