@@ -46,13 +46,13 @@ Klikk på **Kjør spørring**, eller trykk Ctrl+Enter (⌘+Enter på en Mac). **
 Noen spørringer å starte med:
 
 ```text title="PromQL"
-# Forespørsler per sekund, per tjeneste
+# Requests per second, by service
 sum by (job) (rate(http_requests_total[5m]))
 
-# 95. persentil av et latenshistogram
+# The 95th percentile of a latency histogram
 histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_bucket[5m])))
 
-# De fem vertene som bruker mest minne
+# The five hosts using the most memory
 topk(5, system_memory_usage)
 ```
 
@@ -102,7 +102,7 @@ Klikk på **Save & test**. Grafana kjører en spørring og sier at datakilden fu
 
 Alle andre Prometheus-klienter fungerer på samme måte. Med curl:
 
-```bash title="Spør OneUptimes Prometheus-API"
+```bash title="Query OneUptime's Prometheus API"
 curl -H "Authorization: Bearer $ONEUPTIME_API_KEY" \
   "https://oneuptime.com/api/prometheus/api/v1/query?query=up"
 ```

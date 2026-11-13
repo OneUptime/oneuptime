@@ -46,13 +46,13 @@ flowchart TB
 可以从以下几个查询开始：
 
 ```text title="PromQL"
-# 按服务统计的每秒请求数
+# Requests per second, by service
 sum by (job) (rate(http_requests_total[5m]))
 
-# 延迟直方图的第 95 百分位数
+# The 95th percentile of a latency histogram
 histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_bucket[5m])))
 
-# 内存用量最高的五台主机
+# The five hosts using the most memory
 topk(5, system_memory_usage)
 ```
 

@@ -46,13 +46,13 @@ Klik op **Query uitvoeren**, of druk op Ctrl+Enter (⌘+Enter op een Mac). **Gra
 Een paar query's om mee te beginnen:
 
 ```text title="PromQL"
-# Verzoeken per seconde, per service
+# Requests per second, by service
 sum by (job) (rate(http_requests_total[5m]))
 
-# Het 95e percentiel van een latentiehistogram
+# The 95th percentile of a latency histogram
 histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_bucket[5m])))
 
-# De vijf hosts die het meeste geheugen gebruiken
+# The five hosts using the most memory
 topk(5, system_memory_usage)
 ```
 
@@ -102,7 +102,7 @@ Klik op **Save & test**. Grafana voert een query uit en meldt dat de gegevensbro
 
 Elke andere Prometheus-client werkt op dezelfde manier. Met curl:
 
-```bash title="De Prometheus-API van OneUptime bevragen"
+```bash title="Query OneUptime's Prometheus API"
 curl -H "Authorization: Bearer $ONEUPTIME_API_KEY" \
   "https://oneuptime.com/api/prometheus/api/v1/query?query=up"
 ```

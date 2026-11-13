@@ -46,13 +46,13 @@ Clique em **Executar consulta**, ou pressione Ctrl+Enter (⌘+Enter no Mac). **G
 Algumas consultas para começar:
 
 ```text title="PromQL"
-# Requisições por segundo, por serviço
+# Requests per second, by service
 sum by (job) (rate(http_requests_total[5m]))
 
-# O percentil 95 de um histograma de latência
+# The 95th percentile of a latency histogram
 histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_bucket[5m])))
 
-# Os cinco hosts que usam mais memória
+# The five hosts using the most memory
 topk(5, system_memory_usage)
 ```
 
@@ -102,7 +102,7 @@ Clique em **Save & test**. O Grafana executa uma consulta e diz que a fonte de d
 
 Qualquer outro cliente do Prometheus funciona do mesmo jeito. Com o curl:
 
-```bash title="Consultar a API Prometheus do OneUptime"
+```bash title="Query OneUptime's Prometheus API"
 curl -H "Authorization: Bearer $ONEUPTIME_API_KEY" \
   "https://oneuptime.com/api/prometheus/api/v1/query?query=up"
 ```

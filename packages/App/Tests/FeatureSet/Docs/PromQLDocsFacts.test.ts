@@ -1,4 +1,8 @@
-import { readPage, TRANSLATED_LANGUAGES } from "./DocsContentSupport";
+import {
+  readPage,
+  scanMarkdown,
+  TRANSLATED_LANGUAGES,
+} from "./DocsContentSupport";
 import {
   DOCS_CORPUS,
   DocsReader,
@@ -7,6 +11,7 @@ import {
   ruleById,
 } from "./DocsContentRules";
 import { drawnDashboardLabel } from "./DocsDashboardLabels";
+import { comparableFence } from "./DocsTranslationChecks";
 import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
 import {
   PROMQL_DEFAULT_LOOKBACK_DELTA_MS,
@@ -215,6 +220,22 @@ describe("PromQL docs: the words on the PromQL tab", () => {
       for (const label of ["PromQL", "Run Query", "Graph", "Table"]) {
         expect(page).toContain(`**${drawnDashboardLabel(lang, label)}**`);
       }
+    },
+  );
+});
+
+describe("PromQL docs: code reads the same in every language", () => {
+  /*
+   * A query, a curl line and their comments are copied as written, so every
+   * language shows the English page's code blocks. Only the diagram is
+   * translated, and it keeps the English diagram's shape.
+   */
+  test.each(TRANSLATED_LANGUAGES)(
+    "%s keeps the English code blocks, and the diagram's shape",
+    (lang: string) => {
+      expect(
+        scanMarkdown(readPage(lang, PAGE)).fences.map(comparableFence),
+      ).toEqual(scanMarkdown(ENGLISH).fences.map(comparableFence));
     },
   );
 });

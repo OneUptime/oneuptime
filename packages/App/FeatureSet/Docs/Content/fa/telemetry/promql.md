@@ -46,13 +46,13 @@ flowchart TB
 چند کوئری برای شروع:
 
 ```text title="PromQL"
-# درخواست‌ها در ثانیه، به تفکیک سرویس
+# Requests per second, by service
 sum by (job) (rate(http_requests_total[5m]))
 
-# صدک ۹۵ یک هیستوگرام تأخیر
+# The 95th percentile of a latency histogram
 histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_bucket[5m])))
 
-# پنج میزبانی که بیشترین حافظه را مصرف می‌کنند
+# The five hosts using the most memory
 topk(5, system_memory_usage)
 ```
 

@@ -46,13 +46,13 @@ Klicka på **Kör fråga**, eller tryck på Ctrl+Enter (⌘+Enter på en Mac). *
 Några frågor att börja med:
 
 ```text title="PromQL"
-# Förfrågningar per sekund, per tjänst
+# Requests per second, by service
 sum by (job) (rate(http_requests_total[5m]))
 
-# 95:e percentilen av ett latenshistogram
+# The 95th percentile of a latency histogram
 histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_bucket[5m])))
 
-# De fem värdar som använder mest minne
+# The five hosts using the most memory
 topk(5, system_memory_usage)
 ```
 

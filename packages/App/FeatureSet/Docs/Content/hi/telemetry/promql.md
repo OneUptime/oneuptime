@@ -46,13 +46,13 @@ flowchart TB
 शुरुआत के लिए कुछ क्वेरी:
 
 ```text title="PromQL"
-# प्रति सेकंड अनुरोध, सेवा के अनुसार
+# Requests per second, by service
 sum by (job) (rate(http_requests_total[5m]))
 
-# किसी लेटेंसी हिस्टोग्राम का 95वाँ पर्सेंटाइल
+# The 95th percentile of a latency histogram
 histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_bucket[5m])))
 
-# सबसे ज़्यादा मेमोरी इस्तेमाल करने वाले पाँच होस्ट
+# The five hosts using the most memory
 topk(5, system_memory_usage)
 ```
 

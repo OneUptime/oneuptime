@@ -46,13 +46,13 @@ flowchart TB
 手始めに使えるクエリをいくつか紹介します。
 
 ```text title="PromQL"
-# サービスごとの 1 秒あたりのリクエスト数
+# Requests per second, by service
 sum by (job) (rate(http_requests_total[5m]))
 
-# レイテンシのヒストグラムの 95 パーセンタイル
+# The 95th percentile of a latency histogram
 histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_bucket[5m])))
 
-# メモリ使用量が最も多い 5 台のホスト
+# The five hosts using the most memory
 topk(5, system_memory_usage)
 ```
 

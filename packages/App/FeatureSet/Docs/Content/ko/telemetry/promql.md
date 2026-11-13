@@ -46,13 +46,13 @@ flowchart TB
 시작하기 좋은 쿼리 몇 가지입니다.
 
 ```text title="PromQL"
-# 서비스별 초당 요청 수
+# Requests per second, by service
 sum by (job) (rate(http_requests_total[5m]))
 
-# 지연 시간 히스토그램의 95번째 백분위수
+# The 95th percentile of a latency histogram
 histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_bucket[5m])))
 
-# 메모리를 가장 많이 쓰는 호스트 5개
+# The five hosts using the most memory
 topk(5, system_memory_usage)
 ```
 
