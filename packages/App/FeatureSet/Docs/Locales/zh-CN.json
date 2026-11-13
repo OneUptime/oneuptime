@@ -406,6 +406,7 @@
     "Label and Owner Rules": "标签与所有者规则",
     "Search Syntax": "搜索语法",
     "Zooming Into a Time Range": "放大时间范围",
+    "PromQL": "PromQL",
     "Deploys and Changes": "部署与变更",
     "Log Pipelines": "日志管道",
     "Profiles": "性能剖析",
