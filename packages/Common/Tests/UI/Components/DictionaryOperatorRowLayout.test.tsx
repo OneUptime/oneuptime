@@ -45,8 +45,8 @@ const mockDrawnDropdowns: Array<Record<string, unknown>> = [];
 jest.mock("../../../UI/Components/Dropdown/Dropdown", () => {
   const actual: Record<string, unknown> = jest.requireActual(
     "../../../UI/Components/Dropdown/Dropdown",
-  );
-  const ReactModule: typeof React = jest.requireActual("react");
+  ) as Record<string, unknown>;
+  const ReactModule: typeof React = jest.requireActual("react") as typeof React;
   const ActualDropdown: React.FunctionComponent<Record<string, unknown>> =
     actual["default"] as React.FunctionComponent<Record<string, unknown>>;
 
@@ -78,7 +78,7 @@ function renderFilters(options: {
   render(
     <DictionaryForm
       enableOperators={options.enableOperators}
-      valueTypes={options.valueTypes}
+      {...(options.valueTypes ? { valueTypes: options.valueTypes } : {})}
       keyPlaceholder="Key"
       valuePlaceholder="Value"
       addButtonSuffix="Attribute Filter"

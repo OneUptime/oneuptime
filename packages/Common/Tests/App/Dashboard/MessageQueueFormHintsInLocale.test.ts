@@ -83,13 +83,16 @@ describe("the help and the hints are keys of the Dashboard's locale files", () =
     }
   });
 
-  test.each(DASHBOARD_LANGUAGES)("%s words each of them", (language: string) => {
-    expect(
-      [...HELP, ...HINTS].filter((key: string): boolean => {
-        return !isWordedInDashboardLocale(key, language);
-      }),
-    ).toEqual([]);
-  });
+  test.each(DASHBOARD_LANGUAGES)(
+    "%s words each of them",
+    (language: string) => {
+      expect(
+        [...HELP, ...HINTS].filter((key: string): boolean => {
+          return !isWordedInDashboardLocale(key, language);
+        }),
+      ).toEqual([]);
+    },
+  );
 
   test.each(DASHBOARD_LANGUAGES)(
     "%s keeps each hint's value and name, and the namespace host as written",

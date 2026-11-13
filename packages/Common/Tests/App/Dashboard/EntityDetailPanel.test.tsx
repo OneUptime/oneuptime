@@ -11,13 +11,13 @@ import {
   act,
   cleanup,
   fireEvent,
+  MatcherFunction,
   render,
   RenderResult,
   screen,
   waitFor,
   within,
 } from "@testing-library/react";
-import type { MatcherFunction } from "@testing-library/react";
 import * as React from "react";
 import type { SpyInstance } from "jest-mock";
 import getJestMockFunction, { MockFunction } from "../../MockType";

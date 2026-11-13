@@ -331,3 +331,53 @@ describe("the picker, rendered in the reader's language", () => {
     },
   );
 });
+
+/*
+ * THE ADMIN DASHBOARD DRAWS THE SAME PICKER.
+ *
+ * Its locale files keep their own copy of each operator, and its copy of
+ * "matches" was the count's noun in every language ("Treffer",
+ * "résultats", "مورد منطبق"), with half the list still in English in
+ * twelve of them. Each copy is worded as the Dashboard words it.
+ */
+describe("the Admin Dashboard words each operator as the Dashboard does", () => {
+  function readAdminLocale(language: string): Record<string, string> {
+    return JSON.parse(
+      fs.readFileSync(
+        path.join(
+          __dirname,
+          `../../../../App/FeatureSet/AdminDashboard/src/Locales/${language}.json`,
+        ),
+        "utf8",
+      ),
+    ) as Record<string, string>;
+  }
+
+  test.each(DASHBOARD_LANGUAGES)("%s", (language: string) => {
+    const admin: Record<string, string> = readAdminLocale(language);
+    const dashboard: Record<string, string> = readDashboardLocale(language);
+    const differ: Array<string> = LABELS.filter((label: string): boolean => {
+      return label in admin && admin[label] !== dashboard[label];
+    });
+
+    expect({ language, differ }).toEqual({ language, differ: [] });
+  });
+
+  test("the Admin Dashboard's files hold the operators the picker draws (control)", () => {
+    const english: Record<string, string> = readAdminLocale("en");
+
+    for (const label of ["matches", "does not match", "is any of"]) {
+      expect(english[label]).toBe(label);
+    }
+  });
+
+  test.each(["de", "fr", "fa", "ar"])(
+    "in %s, the Admin Dashboard's matches is the verb, never the count's noun",
+    (language: string) => {
+      const word: string = readAdminLocale(language)["matches"] || "";
+
+      expect(word.length).toBeGreaterThan(0);
+      expect(isTheCountNoun(word, language)).toBe(false);
+    },
+  );
+});
