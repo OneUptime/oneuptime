@@ -51925,5 +51925,6 @@
   "Alerts on connected services share one episode": "接続されたサービスのアラートで 1 つのエピソードを共有",
   "Group By Connected Services": "接続されたサービスでグループ化",
   "Alerts on services that call each other on the Service Map go into the same episode.": "サービスマップ上で互いに呼び出し合うサービスのアラートは同じエピソードになります。",
-  "Incidents on services that call each other on the Service Map go into the same episode.": "サービスマップ上で互いに呼び出し合うサービスのインシデントは同じエピソードになります。"
+  "Incidents on services that call each other on the Service Map go into the same episode.": "サービスマップ上で互いに呼び出し合うサービスのインシデントは同じエピソードになります。",
+  "Optional: every node's own address, comma-separated in square brackets, such as [192.168.1.10,192.168.1.11]. When PVE_HOST's API cannot be reached, the agent calls the next node in the list whose API answers, and keeps using it.": "任意: 各ノード自身のアドレスを、角かっこ内にカンマ区切りで指定します（例: [192.168.1.10,192.168.1.11]）。PVE_HOST の API に到達できない場合、エージェントはリスト内で API が応答する次のノードを呼び出し、以後そのノードを使い続けます。"
 }

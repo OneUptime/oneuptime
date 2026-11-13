@@ -51925,5 +51925,6 @@
   "Alerts on connected services share one episode": "تشترك تنبيهات الخدمات المتصلة في حلقة واحدة",
   "Group By Connected Services": "التجميع حسب الخدمات المتصلة",
   "Alerts on services that call each other on the Service Map go into the same episode.": "تذهب التنبيهات في الخدمات التي يستدعي بعضها بعضًا على خريطة الخدمات إلى الحلقة نفسها.",
-  "Incidents on services that call each other on the Service Map go into the same episode.": "تذهب الحوادث في الخدمات التي يستدعي بعضها بعضًا على خريطة الخدمات إلى الحلقة نفسها."
+  "Incidents on services that call each other on the Service Map go into the same episode.": "تذهب الحوادث في الخدمات التي يستدعي بعضها بعضًا على خريطة الخدمات إلى الحلقة نفسها.",
+  "Optional: every node's own address, comma-separated in square brackets, such as [192.168.1.10,192.168.1.11]. When PVE_HOST's API cannot be reached, the agent calls the next node in the list whose API answers, and keeps using it.": "اختياري: العنوان الخاص بكل عقدة، في قائمة مفصولة بفواصل بين قوسين معقوفين، مثل [192.168.1.10,192.168.1.11]. وعندما يتعذّر الوصول إلى API الخاصة بـ PVE_HOST، يستدعي الوكيل العقدة التالية في القائمة التي تجيب API الخاصة بها، ويواصل استخدامها."
 }

@@ -51925,5 +51925,6 @@
   "Alerts on connected services share one episode": "연결된 서비스의 경고가 에피소드 하나를 공유",
   "Group By Connected Services": "연결된 서비스별 그룹화",
   "Alerts on services that call each other on the Service Map go into the same episode.": "서비스 맵에서 서로 호출하는 서비스의 경고는 같은 에피소드로 묶입니다.",
-  "Incidents on services that call each other on the Service Map go into the same episode.": "서비스 맵에서 서로 호출하는 서비스의 인시던트는 같은 에피소드로 묶입니다."
+  "Incidents on services that call each other on the Service Map go into the same episode.": "서비스 맵에서 서로 호출하는 서비스의 인시던트는 같은 에피소드로 묶입니다.",
+  "Optional: every node's own address, comma-separated in square brackets, such as [192.168.1.10,192.168.1.11]. When PVE_HOST's API cannot be reached, the agent calls the next node in the list whose API answers, and keeps using it.": "선택 사항: 각 노드 자체의 주소를 쉼표로 구분해 대괄호 안에 넣습니다(예: [192.168.1.10,192.168.1.11]). PVE_HOST의 API에 연결할 수 없으면 에이전트는 목록에서 API가 응답하는 다음 노드를 호출하고, 이후 그 노드를 계속 사용합니다."
 }

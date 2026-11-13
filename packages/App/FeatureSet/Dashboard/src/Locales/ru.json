@@ -51925,5 +51925,6 @@
   "Alerts on connected services share one episode": "Оповещения связанных сервисов попадают в один эпизод",
   "Group By Connected Services": "Группировать по связанным сервисам",
   "Alerts on services that call each other on the Service Map go into the same episode.": "Оповещения в сервисах, которые вызывают друг друга на карте сервисов, попадают в один эпизод.",
-  "Incidents on services that call each other on the Service Map go into the same episode.": "Инциденты в сервисах, которые вызывают друг друга на карте сервисов, попадают в один эпизод."
+  "Incidents on services that call each other on the Service Map go into the same episode.": "Инциденты в сервисах, которые вызывают друг друга на карте сервисов, попадают в один эпизод.",
+  "Optional: every node's own address, comma-separated in square brackets, such as [192.168.1.10,192.168.1.11]. When PVE_HOST's API cannot be reached, the agent calls the next node in the list whose API answers, and keeps using it.": "Необязательно: собственный адрес каждого узла, через запятую в квадратных скобках, например [192.168.1.10,192.168.1.11]. Если API на PVE_HOST недоступен, агент обращается к следующему узлу из списка, чей API отвечает, и дальше работает с ним."
 }

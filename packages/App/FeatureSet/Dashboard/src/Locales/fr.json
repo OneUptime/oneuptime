@@ -51925,5 +51925,6 @@
   "Alerts on connected services share one episode": "Les alertes des services connectés partagent un même épisode",
   "Group By Connected Services": "Regrouper par services connectés",
   "Alerts on services that call each other on the Service Map go into the same episode.": "Les alertes des services qui s'appellent entre eux sur la carte des services vont dans le même épisode.",
-  "Incidents on services that call each other on the Service Map go into the same episode.": "Les incidents des services qui s'appellent entre eux sur la carte des services vont dans le même épisode."
+  "Incidents on services that call each other on the Service Map go into the same episode.": "Les incidents des services qui s'appellent entre eux sur la carte des services vont dans le même épisode.",
+  "Optional: every node's own address, comma-separated in square brackets, such as [192.168.1.10,192.168.1.11]. When PVE_HOST's API cannot be reached, the agent calls the next node in the list whose API answers, and keeps using it.": "Facultatif : l'adresse propre à chaque nœud, séparée par des virgules et entre crochets, comme [192.168.1.10,192.168.1.11]. Quand l'API de PVE_HOST est injoignable, l'agent appelle le nœud suivant de la liste dont l'API répond, et continue de l'utiliser."
 }

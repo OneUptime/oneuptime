@@ -51925,5 +51925,6 @@
   "Alerts on connected services share one episode": "هشدارهای سرویس‌های متصل یک اپیزود مشترک دارند",
   "Group By Connected Services": "گروه‌بندی بر اساس سرویس‌های متصل",
   "Alerts on services that call each other on the Service Map go into the same episode.": "هشدارهای سرویس‌هایی که در نقشهٔ سرویس‌ها یکدیگر را فراخوانی می‌کنند در یک اپیزود قرار می‌گیرند.",
-  "Incidents on services that call each other on the Service Map go into the same episode.": "حادثه‌های سرویس‌هایی که در نقشهٔ سرویس‌ها یکدیگر را فراخوانی می‌کنند در یک اپیزود قرار می‌گیرند."
+  "Incidents on services that call each other on the Service Map go into the same episode.": "حادثه‌های سرویس‌هایی که در نقشهٔ سرویس‌ها یکدیگر را فراخوانی می‌کنند در یک اپیزود قرار می‌گیرند.",
+  "Optional: every node's own address, comma-separated in square brackets, such as [192.168.1.10,192.168.1.11]. When PVE_HOST's API cannot be reached, the agent calls the next node in the list whose API answers, and keeps using it.": "اختیاری: نشانی خود هر گره، جداشده با ویرگول درون کروشه، مانند [192.168.1.10,192.168.1.11]. وقتی API در PVE_HOST دسترس‌ناپذیر است، عامل گره بعدی فهرست را که API آن پاسخ می‌دهد فراخوانی می‌کند و از آن پس همان را به کار می‌برد."
 }

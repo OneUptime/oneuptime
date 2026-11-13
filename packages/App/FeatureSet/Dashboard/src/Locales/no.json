@@ -51925,5 +51925,6 @@
   "Alerts on connected services share one episode": "Varsler på tilkoblede tjenester deler én episode",
   "Group By Connected Services": "Grupper etter tilkoblede tjenester",
   "Alerts on services that call each other on the Service Map go into the same episode.": "Varsler på tjenester som kaller hverandre på tjenestekartet, havner i samme episode.",
-  "Incidents on services that call each other on the Service Map go into the same episode.": "Hendelser på tjenester som kaller hverandre på tjenestekartet, havner i samme episode."
+  "Incidents on services that call each other on the Service Map go into the same episode.": "Hendelser på tjenester som kaller hverandre på tjenestekartet, havner i samme episode.",
+  "Optional: every node's own address, comma-separated in square brackets, such as [192.168.1.10,192.168.1.11]. When PVE_HOST's API cannot be reached, the agent calls the next node in the list whose API answers, and keeps using it.": "Valgfritt: hver nodes egen adresse, kommaseparert i hakeparenteser, for eksempel [192.168.1.10,192.168.1.11]. Når API-et på PVE_HOST ikke kan nås, kaller agenten den neste noden i listen som har et API som svarer, og fortsetter å bruke den."
 }

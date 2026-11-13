@@ -51925,5 +51925,6 @@
   "Alerts on connected services share one episode": "Waarschuwingen van verbonden services delen één episode",
   "Group By Connected Services": "Groeperen op verbonden services",
   "Alerts on services that call each other on the Service Map go into the same episode.": "Waarschuwingen bij services die elkaar aanroepen op de servicekaart komen in dezelfde episode.",
-  "Incidents on services that call each other on the Service Map go into the same episode.": "Incidenten bij services die elkaar aanroepen op de servicekaart komen in dezelfde episode."
+  "Incidents on services that call each other on the Service Map go into the same episode.": "Incidenten bij services die elkaar aanroepen op de servicekaart komen in dezelfde episode.",
+  "Optional: every node's own address, comma-separated in square brackets, such as [192.168.1.10,192.168.1.11]. When PVE_HOST's API cannot be reached, the agent calls the next node in the list whose API answers, and keeps using it.": "Optioneel: het eigen adres van elke node, kommagescheiden tussen vierkante haken, zoals [192.168.1.10,192.168.1.11]. Als de API van PVE_HOST niet bereikbaar is, roept de agent de volgende node in de lijst aan waarvan de API antwoordt, en blijft die gebruiken."
 }

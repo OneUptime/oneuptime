@@ -51925,5 +51925,6 @@
   "Alerts on connected services share one episode": "जुड़ी हुई सेवाओं के अलर्ट एक एपिसोड साझा करते हैं",
   "Group By Connected Services": "जुड़ी हुई सेवाओं के अनुसार समूहित करें",
   "Alerts on services that call each other on the Service Map go into the same episode.": "सेवा मानचित्र पर एक-दूसरे को कॉल करने वाली सेवाओं के अलर्ट एक ही एपिसोड में जाते हैं।",
-  "Incidents on services that call each other on the Service Map go into the same episode.": "सेवा मानचित्र पर एक-दूसरे को कॉल करने वाली सेवाओं की घटनाएँ एक ही एपिसोड में जाती हैं।"
+  "Incidents on services that call each other on the Service Map go into the same episode.": "सेवा मानचित्र पर एक-दूसरे को कॉल करने वाली सेवाओं की घटनाएँ एक ही एपिसोड में जाती हैं।",
+  "Optional: every node's own address, comma-separated in square brackets, such as [192.168.1.10,192.168.1.11]. When PVE_HOST's API cannot be reached, the agent calls the next node in the list whose API answers, and keeps using it.": "वैकल्पिक: हर नोड का अपना पता, अल्पविराम से अलग और वर्गाकार कोष्ठकों में, जैसे [192.168.1.10,192.168.1.11]। जब PVE_HOST का API पहुँच से बाहर हो, तो एजेंट सूची के अगले ऐसे नोड को कॉल करता है जिसका API जवाब देता है, और आगे उसी का इस्तेमाल करता है।"
 }

@@ -51925,5 +51925,6 @@
   "Alerts on connected services share one episode": "相连服务的警报共用一个片段",
   "Group By Connected Services": "按相连的服务分组",
   "Alerts on services that call each other on the Service Map go into the same episode.": "服务地图上相互调用的服务的警报会归入同一个片段。",
-  "Incidents on services that call each other on the Service Map go into the same episode.": "服务地图上相互调用的服务的事件会归入同一个片段。"
+  "Incidents on services that call each other on the Service Map go into the same episode.": "服务地图上相互调用的服务的事件会归入同一个片段。",
+  "Optional: every node's own address, comma-separated in square brackets, such as [192.168.1.10,192.168.1.11]. When PVE_HOST's API cannot be reached, the agent calls the next node in the list whose API answers, and keeps using it.": "可选：每个节点自己的地址，用逗号分隔并放在方括号中，例如 [192.168.1.10,192.168.1.11]。PVE_HOST 的 API 无法访问时，代理会调用列表中下一个 API 有响应的节点，并继续使用它。"
 }

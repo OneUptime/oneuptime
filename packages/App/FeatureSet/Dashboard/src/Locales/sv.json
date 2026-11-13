@@ -51925,5 +51925,6 @@
   "Alerts on connected services share one episode": "Larm i anslutna tjänster delar en episod",
   "Group By Connected Services": "Gruppera efter anslutna tjänster",
   "Alerts on services that call each other on the Service Map go into the same episode.": "Larm i tjänster som anropar varandra på tjänstekartan hamnar i samma episod.",
-  "Incidents on services that call each other on the Service Map go into the same episode.": "Incidenter i tjänster som anropar varandra på tjänstekartan hamnar i samma episod."
+  "Incidents on services that call each other on the Service Map go into the same episode.": "Incidenter i tjänster som anropar varandra på tjänstekartan hamnar i samma episod.",
+  "Optional: every node's own address, comma-separated in square brackets, such as [192.168.1.10,192.168.1.11]. When PVE_HOST's API cannot be reached, the agent calls the next node in the list whose API answers, and keeps using it.": "Valfritt: varje nods egen adress, kommaseparerad inom hakparenteser, till exempel [192.168.1.10,192.168.1.11]. När API:t på PVE_HOST inte kan nås anropar agenten nästa nod i listan vars API svarar, och fortsätter att använda den."
 }
