@@ -2056,6 +2056,130 @@ test.describe("Create Monitor's plainer fields", () => {
 });
 
 /*
+ * PROBES' DEFINITION OPENS FROM THE WORD, AND ONLY FROM THE WORD (#7543).
+ *
+ * "Probes" is a defined term: the field's title is a button that opens what
+ * the word means. A dropdown's title has no control to point at (no `for`),
+ * and a <label> with no `for` takes the first button inside it, the word's,
+ * for the control it labels: the browser handed that button a click on
+ * any of the label's own words or space. The title's row spans the
+ * field's width, so most of it was empty space that opened the definition.
+ * Such a title is no longer a <label> (Forms/Fields/FieldLabel); the names
+ * b762ca7f750 gave the dropdown and the word hold.
+ */
+test.describe("Create Monitor's Probes definition", () => {
+  /*
+   * The product reads the glossary from its own host (DOCS_URL); the
+   * fixture is served from another, and its page allows reads from itself
+   * alone (connect-src 'self'): the browser sets that aside here, and the
+   * route below answers the read.
+   */
+  test.use({ bypassCSP: true });
+
+  const PROBE_DEFINITION: string =
+    "A machine that runs monitors' checks on a schedule: it requests a page, calls an API or pings a host.";
+
+  // Waits for what a click started: Tippy draws a definition in a frame.
+  async function nextFrames(page: Page): Promise<void> {
+    await page.evaluate(async (): Promise<void> => {
+      for (let frame: number = 0; frame < 2; frame++) {
+        await new Promise<void>((resolve: () => void) => {
+          requestAnimationFrame(() => {
+            resolve();
+          });
+        });
+      }
+    });
+  }
+
+  test("a click on the empty end of its title's row leaves the definition closed; a press on the word opens it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.route(
+      /\/docs\/glossary\/en\.json$/,
+      async (route: PlaywrightRoute) => {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          headers: { "Access-Control-Allow-Origin": "*" },
+          body: JSON.stringify({
+            lang: "en",
+            entries: [
+              { id: "probe", term: "Probe", definition: PROBE_DEFINITION },
+            ],
+          }),
+        });
+      },
+    );
+
+    const form: Locator = await openCreate(page, "?monitorType=Website");
+    await nameInput(form).fill("Storefront");
+    await form.getByRole("button", { name: "Next", exact: true }).click();
+    const url: Locator = form.getByPlaceholder("https://example.com", {
+      exact: true,
+    });
+    await expect(url).toBeVisible({ timeout: 60000 });
+    await url.fill("https://storefront.acme-commerce.example");
+    await form.getByRole("button", { name: "Next", exact: true }).click();
+
+    const probes: Locator = page.getByRole("combobox", { name: /^Probes/ });
+    await expect(probes).toBeVisible({ timeout: 30000 });
+
+    // The title's row, which names the dropdown, and the word in it.
+    const rowId: string | null = await probes.getAttribute("aria-labelledby");
+    expect(rowId).toBeTruthy();
+    const row: Locator = page.locator(`[id="${rowId}"]`);
+    const word: Locator = row.getByTestId("defined-term");
+
+    // The names b762ca7f750 holds: the dropdown's, and the word's own.
+    await expect(probes).toHaveAccessibleName("Probes");
+    await expect(word).toHaveAccessibleName("Probes");
+
+    const definition: Locator = page.getByRole("dialog", { name: "Probes" });
+
+    // The empty end of the row, well past the word: the row itself is there.
+    const rowBox: { x: number; y: number; width: number; height: number } =
+      await boxOf(row);
+    const wordBox: { x: number; width: number } = await boxOf(word);
+    const end: { x: number; y: number } = {
+      x: rowBox.x + rowBox.width - 8,
+      y: rowBox.y + rowBox.height / 2,
+    };
+    expect(end.x).toBeGreaterThan(wordBox.x + wordBox.width + 100);
+    expect(
+      await page.evaluate((point: { x: number; y: number }): string | null => {
+        return document.elementFromPoint(point.x, point.y)?.id || null;
+      }, end),
+    ).toBe(rowId);
+    // Under an arrow, as every title's row is: a label's.
+    expect(
+      await row.evaluate((element: Element): string => {
+        return getComputedStyle(element).cursor;
+      }),
+    ).toBe("default");
+
+    await page.mouse.click(end.x, end.y);
+    await nextFrames(page);
+
+    await expect(definition).toBeHidden();
+    await expect(word).toHaveAttribute("aria-expanded", "false");
+
+    // A press on the word opens it, and keeps it once the pointer moves away.
+    await word.click();
+    await expect(definition).toBeVisible();
+    await expect(definition.getByTestId("defined-term-definition")).toHaveText(
+      PROBE_DEFINITION,
+    );
+    await page.mouse.move(0, 0);
+    await nextFrames(page);
+    await expect(definition).toBeVisible();
+    await expect(word).toHaveAttribute("aria-expanded", "true");
+  });
+});
+
+/*
  * THE PLAN'S LIMIT ON ACTIVE MONITORS, ON CREATE MONITOR.
  *
  * The support report: a project bought from a reseller with a plan of 500
