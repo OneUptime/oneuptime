@@ -710,11 +710,11 @@ const ModelColumnEditor: FunctionComponent<ComponentProps> = (
               template={
                 isViewOnly
                   ? isQuery
-                    ? "Couldn't load this model's columns ({{error}}). The query is shown as JSON."
-                    : "Couldn't load this model's columns ({{error}}). These fields are shown as JSON."
+                    ? "Couldn't load this model's columns. {{error}} The query is shown as JSON."
+                    : "Couldn't load this model's columns. {{error}} These fields are shown as JSON."
                   : isQuery
-                    ? "Couldn't load this model's columns ({{error}}). You can still write the query as JSON."
-                    : "Couldn't load this model's columns ({{error}}). You can still write these fields as JSON."
+                    ? "Couldn't load this model's columns. {{error}} You can still write the query as JSON."
+                    : "Couldn't load this model's columns. {{error}} You can still write these fields as JSON."
               }
               error={schema.error}
             />
