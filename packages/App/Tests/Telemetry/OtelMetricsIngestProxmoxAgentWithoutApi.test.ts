@@ -24,6 +24,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 /*
  * GitHub issue #7439: a Proxmox cluster whose agent could no longer read the
@@ -244,17 +245,15 @@ function request(blocks: Array<JSONObject>): TelemetryRequest {
 
 interface Spies {
   rows: Array<JSONObject>;
-  bulkUpsert: jest.SpiedFunction<typeof ProxmoxResourceService.bulkUpsert>;
-  bulkUpdateLatestMetrics: jest.SpiedFunction<
+  bulkUpsert: SpyInstance<typeof ProxmoxResourceService.bulkUpsert>;
+  bulkUpdateLatestMetrics: SpyInstance<
     typeof ProxmoxResourceService.bulkUpdateLatestMetrics
   >;
-  bulkUpdateStartOnBoot: jest.SpiedFunction<
+  bulkUpdateStartOnBoot: SpyInstance<
     typeof ProxmoxResourceService.bulkUpdateStartOnBoot
   >;
-  updateLastSeen: jest.SpiedFunction<
-    typeof ProxmoxClusterService.updateLastSeen
-  >;
-  updateAgentLastSeen: jest.SpiedFunction<
+  updateLastSeen: SpyInstance<typeof ProxmoxClusterService.updateLastSeen>;
+  updateAgentLastSeen: SpyInstance<
     typeof ProxmoxClusterService.updateAgentLastSeen
   >;
 }
@@ -519,7 +518,7 @@ describe("an agent that cannot read the Proxmox VE API does not keep its cluster
   test("a failed start-on-boot write is logged and never costs the read its Connected", async () => {
     const spies: Spies = setupIngestMocks();
     spies.bulkUpdateStartOnBoot.mockRejectedValue(new Error("deadlock"));
-    const warn: jest.SpiedFunction<typeof logger.warn> = jest
+    const warn: SpyInstance<typeof logger.warn> = jest
       .spyOn(logger, "warn")
       .mockImplementation((): void => {
         return undefined;
