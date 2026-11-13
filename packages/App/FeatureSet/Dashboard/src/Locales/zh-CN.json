@@ -52101,6 +52101,7 @@
   "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "规则适用于哪些事件以及发布到哪里。所有者条件和“值班策略”按 ID 指定此项目的人员、团队和策略。",
   "Matches the people and teams added as owners. Team membership does not count.": "匹配被添加为所有者的人员和团队。仅是团队成员不算。",
   "To keep matching a policy after it is renamed, use On-Call Policy.": "若要在策略重命名后仍能匹配，请使用“值班策略”。",
+  "The first data arrived with the key {{name}}. It shows up within a minute or two.": "第一批数据已通过密钥 {{name}} 送达。它会在一两分钟内显示。",
   "- 📌 **Pin** (📌, 📍) - React with a pin to save the message as a **private note** (only people who can see the alert can read it).": "- 📌 **图钉** (📌, 📍) - 用图钉做出反应，将消息保存为**私密备注**（只有能查看该警报的人才能阅读）。",
   "- 📌 **Pin** (📌, 📍) - React with a pin to save the message as a **private note** (only people who can see the episode can read it).": "- 📌 **图钉** (📌, 📍) - 用图钉做出反应，将消息保存为**私密备注**（只有能查看该片段的人才能阅读）。",
   "- 📌 **Pin** (📌, 📍) - React with a pin to save the message as a **private note** (only people who can see the incident can read it).": "- 📌 **图钉** (📌, 📍) - 用图钉做出反应，将消息保存为**私密备注**（只有能查看该事件的人才能阅读）。",

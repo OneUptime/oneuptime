@@ -52101,6 +52101,7 @@
   "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "規則適用於哪些事件以及發布到哪裡。擁有者條件和「待命策略」依 ID 指定此專案的人員、團隊和策略。",
   "Matches the people and teams added as owners. Team membership does not count.": "比對被新增為擁有者的人員和團隊。僅是團隊成員不算。",
   "To keep matching a policy after it is renamed, use On-Call Policy.": "若要在策略重新命名後仍能比對，請使用「待命策略」。",
+  "The first data arrived with the key {{name}}. It shows up within a minute or two.": "第一批資料已透過金鑰 {{name}} 送達。它會在一兩分鐘內顯示。",
   "- 📌 **Pin** (📌, 📍) - React with a pin to save the message as a **private note** (only people who can see the alert can read it).": "- 📌 **圖釘** (📌, 📍) - 用圖釘回應，將訊息儲存為**私人備註**（只有能查看該警示的人才能閱讀）。",
   "- 📌 **Pin** (📌, 📍) - React with a pin to save the message as a **private note** (only people who can see the episode can read it).": "- 📌 **圖釘** (📌, 📍) - 用圖釘回應，將訊息儲存為**私人備註**（只有能查看該片段的人才能閱讀）。",
   "- 📌 **Pin** (📌, 📍) - React with a pin to save the message as a **private note** (only people who can see the incident can read it).": "- 📌 **圖釘** (📌, 📍) - 用圖釘回應，將訊息儲存為**私人備註**（只有能查看該事件的人才能閱讀）。",
