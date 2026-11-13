@@ -48,6 +48,12 @@ export interface ComponentProps {
    * ("Page Did Not Load").
    */
   hideWhatFailed?: boolean | undefined;
+  /*
+   * Drawn among centred lines - a failure in the middle of a feed, under a
+   * centred heading and over a centred Try again: the reference's row is
+   * centred under them too, not left at their start.
+   */
+  isCentered?: boolean | undefined;
 }
 
 // Whether the message is one this draws, rather than words of their own.
@@ -120,7 +126,9 @@ const ErrorExplanation: FunctionComponent<ComponentProps> = (
       </span>
       {error.reference && (
         <span
-          className="mt-2 flex flex-wrap items-center gap-2"
+          className={`mt-2 flex flex-wrap items-center gap-2${
+            props.isCentered ? " justify-center" : ""
+          }`}
           data-testid="error-reference"
         >
           <code
