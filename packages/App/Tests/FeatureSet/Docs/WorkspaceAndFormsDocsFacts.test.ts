@@ -1,5 +1,5 @@
 import { DOCS_LANGUAGES, readPage } from "./DocsContentSupport";
-import { dashboardLabel, drawnDashboardLabel } from "./DocsDashboardLabels";
+import { drawnDashboardLabel } from "./DocsDashboardLabels";
 import { boldSpans, inlineCode } from "./DocsTranslationChecks";
 import FormsCopy from "../../../FeatureSet/Dashboard/src/Components/FormBuilder/FormsCopy";
 import { PublicAddressCopy } from "../../../FeatureSet/Dashboard/src/Components/CustomDomain/PublicAddressCopy";
@@ -529,10 +529,7 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
     const missing: Array<string> = DOCS_LANGUAGES.flatMap(
       (language: string): Array<string> => {
         return CONNECT_ENTRY_PAGES.filter((page: string): boolean => {
-          // Persian's incident pages keep the Dashboard's English names.
-          const drawn: string = page.startsWith("incidents/")
-            ? dashboardLabel(language, entry)
-            : drawnDashboardLabel(language, entry);
+          const drawn: string = drawnDashboardLabel(language, entry);
 
           return !readPage(language, page).includes(`**${drawn}**`);
         }).map((page: string): string => {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { drawnDashboardLabel } from "./DocsDashboardLabels";
 
 /*
  * "We have a markdown editor and forms, but the form is not wide, so the
@@ -48,12 +49,20 @@ function readPage(language: string): string {
   );
 }
 
+// A Dashboard label in bold, as this language's Dashboard draws it.
+function bold(language: string, english: string): string {
+  return `**${drawnDashboardLabel(language, english)}**`;
+}
+
 // The paragraph that describes writing in the editor.
 function editorParagraph(language: string): string {
   const paragraph: string | undefined = readPage(language)
     .split("\n")
     .find((line: string): boolean => {
-      return line.includes("**Indent**") && line.includes("**Outdent**");
+      return (
+        line.includes(bold(language, "Indent")) &&
+        line.includes(bold(language, "Outdent"))
+      );
     });
 
   if (!paragraph) {
@@ -93,8 +102,10 @@ describe("the docs on the Markdown editor's toolbar", () => {
         language: language,
         oneLine: paragraph.includes(ONE_LINE[language] as string),
         wideDialog: paragraph.includes(WIDE_DIALOG[language] as string),
-        moreFormatting: paragraph.includes("**More formatting** (**⋯**)"),
-        markdownSwitch: paragraph.includes("**Markdown**"),
+        moreFormatting: paragraph.includes(
+          `${bold(language, "More formatting")} (**⋯**)`,
+        ),
+        markdownSwitch: paragraph.includes(bold(language, "Markdown")),
       }).toEqual({
         language: language,
         oneLine: true,
