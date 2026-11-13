@@ -4,6 +4,7 @@ import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import DomainMonitorResponse from "Common/Types/Monitor/DomainMonitor/DomainMonitorResponse";
 import React, { FunctionComponent, ReactElement } from "react";
 import ProbeAttemptsView from "./ProbeAttemptsView";
+import ProbeMessageLine from "./ProbeMessageLine";
 import {
   SUMMARY_TABLE_FRAME_CLASS_NAME,
   SUMMARY_TABLE_VALUE_CLASS_NAME,
@@ -114,7 +115,11 @@ const DomainMonitorView: FunctionComponent<ComponentProps> = (
           }
         />
         {failureCause ? (
-          <SummaryFact isWide={true} title="Error" value={failureCause} />
+          <SummaryFact
+            isWide={true}
+            title="Error"
+            value={<ProbeMessageLine message={failureCause} />}
+          />
         ) : (
           <></>
         )}

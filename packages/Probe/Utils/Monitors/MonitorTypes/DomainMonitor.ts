@@ -16,6 +16,7 @@ import { DomainLookupResult, DomainRecord } from "../../Domain/DomainRecord";
 import RdapLookup, { RdapLookupResult } from "../../Domain/RdapLookup";
 import WhoisLookup from "../../Domain/WhoisLookup";
 import MonitorRetry from "../MonitorRetry";
+import { writeProbeTimeoutFailureCause } from "Common/Utils/Monitor/ProbeFailureReading";
 
 /*
  * Retries when neither the caller nor the step config sets one: three
@@ -191,7 +192,7 @@ export default class DomainMonitorUtil {
         isTimeout: isTimeout,
         responseTimeInMs: responseTimeInMs,
         failureCause: isTimeout
-          ? `Request was tried ${options.currentRetryCount} times and it timed out.`
+          ? writeProbeTimeoutFailureCause(options.currentRetryCount)
           : failureCause,
         domainName: domainName,
         lookupMethod: lookupMethod,

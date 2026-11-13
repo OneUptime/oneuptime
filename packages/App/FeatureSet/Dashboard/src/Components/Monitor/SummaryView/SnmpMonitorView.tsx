@@ -11,6 +11,7 @@ import useResizableColumns, {
 import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
 import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import ProbeAttemptsView from "./ProbeAttemptsView";
+import ProbeMessageLine from "./ProbeMessageLine";
 import SnmpInterfacesView from "./SnmpInterfacesView";
 import {
   SUMMARY_TABLE_FRAME_CLASS_NAME,
@@ -124,7 +125,11 @@ const SnmpMonitorView: FunctionComponent<ComponentProps> = (
           <SummaryFact
             isWide={true}
             title="Error"
-            value={props.probeMonitorResponse.failureCause.toString()}
+            value={
+              <ProbeMessageLine
+                message={props.probeMonitorResponse.failureCause.toString()}
+              />
+            }
           />
         ) : (
           <></>

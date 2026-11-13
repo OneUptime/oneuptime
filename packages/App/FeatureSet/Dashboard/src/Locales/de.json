@@ -2535,7 +2535,6 @@
   "External caller dials your dedicated incoming call number": "Externer Anrufer wählt Ihre dedizierte Nummer für eingehende Anrufe",
   "Face ID unlock and encrypted delivery.": "Face ID-Entsperrung und verschlüsselte Zustellung.",
   "Failed": "Fehlgeschlagen",
-  "Failed At": "Fehlgeschlagen am",
   "Failed Jobs History Limit": "Verlaufsgrenze für fehlgeschlagene Jobs",
   "Failed Proposals": "Fehlgeschlagene Vorschläge",
   "Failed to create processor. Please try again.": "Prozessor konnte nicht erstellt werden. Bitte versuchen Sie es erneut.",
@@ -51831,5 +51830,14 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Zeitraum: {{range}}. Passen Sie die Filter an oder erweitern Sie den Zeitraum.",
   "On-Call Policy Created": "Bereitschaftsrichtlinie erstellt",
   "On-Call Schedule Added": "Bereitschaftsplan hinzugefügt",
-  "On-Call Schedule Removed": "Bereitschaftsplan entfernt"
+  "On-Call Schedule Removed": "Bereitschaftsplan entfernt",
+  "Certificate Error": "Zertifikatsfehler",
+  "DNS Resolution": "DNS-Auflösung",
+  "Network Error": "Netzwerkfehler",
+  "Request Aborted": "Anfrage abgebrochen",
+  "Request was tried {{count}} times and it timed out.": "Die Anfrage wurde {{count}}-mal versucht und hat das Zeitlimit überschritten.",
+  "Request was tried {{count}} times and it timed out._one": "Die Anfrage wurde einmal versucht und hat das Zeitlimit überschritten.",
+  "Server Response": "Serverantwort",
+  "TCP Connection": "TCP-Verbindung",
+  "Target Resolution": "Zielauflösung"
 }

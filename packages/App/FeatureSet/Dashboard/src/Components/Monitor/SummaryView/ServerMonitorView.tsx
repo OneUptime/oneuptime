@@ -12,6 +12,7 @@ import NumberUtil from "Common/Utils/Number";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { SummaryFact, SummaryFacts, SummaryView } from "./SummaryFacts";
+import ProbeMessageLine from "./ProbeMessageLine";
 
 export interface ComponentProps {
   serverMonitorResponse: ServerMonitorResponse;
@@ -194,7 +195,11 @@ const ServerMonitorSummaryView: FunctionComponent<ComponentProps> = (
           <SummaryFact
             isWide={true}
             title="Error"
-            value={props.serverMonitorResponse.failureCause.toString()}
+            value={
+              <ProbeMessageLine
+                message={props.serverMonitorResponse.failureCause.toString()}
+              />
+            }
           />
         ) : (
           <></>

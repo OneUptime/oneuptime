@@ -4,6 +4,7 @@ import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import SqlMonitorResponse from "Common/Types/Monitor/SqlMonitor/SqlMonitorResponse";
 import React, { FunctionComponent, ReactElement } from "react";
 import ProbeAttemptsView from "./ProbeAttemptsView";
+import ProbeMessageLine from "./ProbeMessageLine";
 import {
   SUMMARY_TABLE_FRAME_CLASS_NAME,
   SummaryFact,
@@ -95,9 +96,13 @@ const SqlMonitorView: FunctionComponent<ComponentProps> = (
             isWide={true}
             title="Error"
             value={
-              sqlResponse?.queryError ||
-              props.probeMonitorResponse.failureCause?.toString() ||
-              "-"
+              <ProbeMessageLine
+                message={
+                  sqlResponse?.queryError ||
+                  props.probeMonitorResponse.failureCause?.toString() ||
+                  ""
+                }
+              />
             }
           />
         ) : (

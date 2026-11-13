@@ -8,6 +8,7 @@ import ExternalStatusPageProviderType from "Common/Types/Monitor/ExternalStatusP
 import ExternalStatusPageReading, {
   ExternalStatusPageOneUptimeNote,
 } from "Common/Utils/Monitor/ExternalStatusPageReading";
+import { getProbeFailureCauseText } from "Common/Utils/Monitor/ProbeFailureReading";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
@@ -190,9 +191,14 @@ export const getComponentDescription: (data: {
  * Such a check names its provider (OneUptime); one stored before the probe
  * named it names none, and is read the same way, since no other provider's
  * failure carries those sentences. A check another provider made - an
- * Atlassian Statuspage, incident.io, a feed - keeps every cause as
- * written, even one that reads like OneUptime's; so does any other cause
- * (the network's, a timeout's).
+ * Atlassian Statuspage, incident.io, a feed - keeps those causes as
+ * written, even one that reads like OneUptime's.
+ *
+ * The probe's timeout sentence ("Request was tried 3 times and it timed
+ * out.") is the probe's own whichever provider it read, and reads in the
+ * reader's language for every provider, its count in the reader's digits
+ * (ProbeFailureReading). Any other cause - the network's, a page's status
+ * - stays as written.
  */
 export const getFailureCause: (data: {
   translator: Translator;
@@ -211,7 +217,10 @@ export const getFailureCause: (data: {
     : null;
 
   if (!sentence) {
-    return data.failureCause.trim();
+    return getProbeFailureCauseText({
+      translator: data.translator,
+      failureCause: data.failureCause,
+    });
   }
 
   return data.translator.translateText(sentence) || sentence;

@@ -2535,7 +2535,6 @@
   "External caller dials your dedicated incoming call number": "Un interlocutor externo marca tu número dedicado de llamadas entrantes",
   "Face ID unlock and encrypted delivery.": "Desbloqueo con Face ID y entrega cifrada.",
   "Failed": "Fallido",
-  "Failed At": "Falló el",
   "Failed Jobs History Limit": "Límite del historial de trabajos fallidos",
   "Failed Proposals": "Propuestas fallidas",
   "Failed to create processor. Please try again.": "No se pudo crear el procesador. Inténtalo de nuevo.",
@@ -51831,5 +51830,14 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Intervalo de tiempo: {{range}}. Prueba a ajustar los filtros o a ampliar el intervalo de tiempo.",
   "On-Call Policy Created": "Política de guardia creada",
   "On-Call Schedule Added": "Programación de guardia añadida",
-  "On-Call Schedule Removed": "Programación de guardia quitada"
+  "On-Call Schedule Removed": "Programación de guardia quitada",
+  "Certificate Error": "Error de certificado",
+  "DNS Resolution": "Resolución DNS",
+  "Network Error": "Error de red",
+  "Request Aborted": "Solicitud abortada",
+  "Request was tried {{count}} times and it timed out.": "La solicitud se intentó {{count}} veces y se agotó el tiempo de espera.",
+  "Request was tried {{count}} times and it timed out._one": "La solicitud se intentó una vez y se agotó el tiempo de espera.",
+  "Server Response": "Respuesta del servidor",
+  "TCP Connection": "Conexión TCP",
+  "Target Resolution": "Resolución del destino"
 }

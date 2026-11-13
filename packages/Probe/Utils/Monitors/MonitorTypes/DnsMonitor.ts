@@ -12,6 +12,7 @@ import dns from "dns";
 import { execFile } from "child_process";
 import MonitorRetry from "../MonitorRetry";
 import { digOutputHasAuthenticatedData } from "../DigOutput";
+import { writeProbeTimeoutFailureCause } from "Common/Utils/Monitor/ProbeFailureReading";
 
 /*
  * Retries when neither the caller nor the step config sets one: three
@@ -190,9 +191,7 @@ export default class DnsMonitorUtil {
           isTimeout: true,
           responseTimeInMs: responseTimeInMs,
           failureCause:
-            "Request was tried " +
-            options.currentRetryCount +
-            " times and it timed out.",
+            writeProbeTimeoutFailureCause(options.currentRetryCount),
           records: [],
           probeAttempts: options.attempts,
           totalAttempts: options.attempts.length,

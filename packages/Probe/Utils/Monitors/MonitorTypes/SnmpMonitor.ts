@@ -106,6 +106,7 @@ import {
   toMacAddressString,
 } from "../../Snmp/EndpointTableParsers";
 import snmp from "net-snmp";
+import { writeProbeTimeoutFailureCause } from "Common/Utils/Monitor/ProbeFailureReading";
 
 /*
  * Retries when neither the caller nor the SNMP config sets any: three
@@ -553,9 +554,7 @@ export default class SnmpMonitor {
           isTimeout: true,
           responseTimeInMs: responseTimeInMs,
           failureCause:
-            "Request was tried " +
-            options.currentRetryCount +
-            " times and it timed out.",
+            writeProbeTimeoutFailureCause(options.currentRetryCount),
           oidResponses: [],
           probeAttempts: options.attempts,
           totalAttempts: options.attempts.length,

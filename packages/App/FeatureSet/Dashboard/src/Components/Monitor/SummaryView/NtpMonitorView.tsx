@@ -14,6 +14,7 @@ import { formatMilliseconds } from "../../../Utils/Milliseconds";
 import React, { FunctionComponent, ReactElement } from "react";
 import NetworkPathView from "./NetworkPathView";
 import ProbeAttemptsView from "./ProbeAttemptsView";
+import ProbeMessageLine from "./ProbeMessageLine";
 import { SummaryFact, SummaryFacts, SummaryView } from "./SummaryFacts";
 
 export interface ComponentProps {
@@ -107,12 +108,12 @@ const NtpMonitorView: FunctionComponent<ComponentProps> = (
 
     if (stratum <= NTP_MAX_SYNCHRONIZED_STRATUM) {
       return translator.translateTemplate("{{stratum}} (secondary server)", {
-        stratum: String(stratum),
+        stratum: translator.formatNumber(stratum),
       });
     }
 
     return translator.translateTemplate("{{stratum}} (not synchronized)", {
-      stratum: String(stratum),
+      stratum: translator.formatNumber(stratum),
     });
   };
 
@@ -185,7 +186,9 @@ const NtpMonitorView: FunctionComponent<ComponentProps> = (
           <SummaryFact
             isWide={true}
             title={isAnswered ? "Not Synchronized" : "Error"}
-            value={response.failureCause.toString()}
+            value={
+              <ProbeMessageLine message={response.failureCause.toString()} />
+            }
           />
         ) : (
           <></>

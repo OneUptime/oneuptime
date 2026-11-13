@@ -26,6 +26,7 @@ import HttpMonitorRequest, {
 } from "../HttpMonitorRequest";
 import CertificateRevocationChecker from "../CertificateRevocation/CertificateRevocationChecker";
 import { TlsPeerCertificateRecorder } from "../CertificateRevocation/TlsPeerCertificates";
+import { writeProbeTimeoutFailureCause } from "Common/Utils/Monitor/ProbeFailureReading";
 
 // Five attempts, the same as before retries were counted after the first attempt.
 const DEFAULT_RETRIES_WHEN_UNSET: number = 4;
@@ -498,9 +499,7 @@ export default class ApiMonitor {
         );
 
         apiResponse.failureCause =
-          "Request was tried " +
-          options.currentRetryCount +
-          " times and it timed out.";
+          writeProbeTimeoutFailureCause(options.currentRetryCount);
         apiResponse.isOnline = false;
         apiResponse.isTimeout = true;
       }

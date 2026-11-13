@@ -2535,7 +2535,6 @@
   "External caller dials your dedicated incoming call number": "External caller dials your dedicated incoming call number",
   "Face ID unlock and encrypted delivery.": "Face ID unlock and encrypted delivery.",
   "Failed": "Failed",
-  "Failed At": "Failed At",
   "Failed Jobs History Limit": "Failed Jobs History Limit",
   "Failed Proposals": "Failed Proposals",
   "Failed to create processor. Please try again.": "Failed to create processor. Please try again.",
@@ -51831,5 +51830,14 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Time range: {{range}}. Try adjusting filters or expanding the time range.",
   "On-Call Policy Created": "On-Call Policy Created",
   "On-Call Schedule Added": "On-Call Schedule Added",
-  "On-Call Schedule Removed": "On-Call Schedule Removed"
+  "On-Call Schedule Removed": "On-Call Schedule Removed",
+  "Certificate Error": "Certificate Error",
+  "DNS Resolution": "DNS Resolution",
+  "Network Error": "Network Error",
+  "Request Aborted": "Request Aborted",
+  "Request was tried {{count}} times and it timed out.": "Request was tried {{count}} times and it timed out.",
+  "Request was tried {{count}} times and it timed out._one": "Request was tried once and it timed out.",
+  "Server Response": "Server Response",
+  "TCP Connection": "TCP Connection",
+  "Target Resolution": "Target Resolution"
 }
