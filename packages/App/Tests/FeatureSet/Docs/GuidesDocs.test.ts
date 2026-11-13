@@ -191,8 +191,14 @@ const WORD_CHARACTER: RegExp = /\w/;
 const THOUSANDS_SEPARATOR: RegExp = /(\d)[.,\s](?=\d{3}(?!\d))/g;
 const NUMBER: RegExp = /\d+(?:\.\d+)?/g;
 
+/*
+ * A screenshot's alt text (#6823) stands in for the picture a reader looks
+ * at, not for words they read through: it is left out of the guide's length.
+ */
+const SCREENSHOT: RegExp = /!\[(?:\\.|[^\]\\])*\]\(screen:[^)]*\)/g;
+
 function wordsOf(markdown: string): number {
-  return prose(markdown)
+  return prose(markdown.replace(SCREENSHOT, ""))
     .split(/\s+/)
     .filter((word: string): boolean => {
       return WORD_CHARACTER.test(word);
@@ -407,7 +413,11 @@ describe.each(DOCS_GUIDES)("$navTitle, in English", (guide: DocsGuide) => {
 
   it("links only to pages in the nav, and to headings they have", () => {
     for (const link of scanMarkdown(markdown).links) {
-      if (link.target.startsWith("#")) {
+      /*
+       * A screenshot (#6823) is a picture, not a link: the content rules
+       * hold it to a shot that exists (DocsContentRules' images).
+       */
+      if (link.target.startsWith("#") || link.isImage) {
         continue;
       }
 

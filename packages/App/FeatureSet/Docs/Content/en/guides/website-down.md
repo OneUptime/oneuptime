@@ -26,13 +26,19 @@ The address is checked from your server's own probe, so it must be reachable fro
 :::steps
 ### Open the guided setup
 
+![Home asks "What do you want to do first?", with "Know when my website or API is down" ticked](screen:home-goal-website)
+
 A new project's **Home** first asks **What do you want to do first?**: tick **Know when my website or API is down** and click **Continue**. Then click **Create your first monitor** in the **Welcome to OneUptime 👋** checklist. If the checklist does not show it, press `Ctrl+K` (`Cmd+K` on a Mac), type `website down` and choose **Know when my website or API is down**.
 
 ### Enter the address
 
+![The step "What should we check?", with "Start checking" ringed](screen:website-down-address)
+
 Under **What should we check?**, type the address in **Website or API address**. For an API endpoint, tick **This is an API endpoint**. Click **Start checking**: the probes check it at once, and a sentence says what they found. Click **Continue**.
 
 ### Choose who is told
+
+![The step "Who should be told?", with "Save and continue" ringed](screen:website-down-who)
 
 Under **Who should be told?**, what you see depends on the project:
 
@@ -42,6 +48,8 @@ Under **Who should be told?**, what you see depends on the project:
 
 ### Send yourself a test
 
+![The step "Send a test", with "Send me a test page" ringed](screen:website-down-test)
+
 Under **Send a test**, click **Send me a test page**. Pick a **Severity** and click **Send test page**. The test reaches you the way a real page would, and every message says TEST. No incident is created.
 
 ### Acknowledge the test page
@@ -50,6 +58,8 @@ Open the link in the email and acknowledge the page there. A verified phone numb
 :::
 
 ## Check that it worked
+
+![The summary, read from the records: "Checked", "When it goes down", "Who is told" and "Tested"](screen:website-down-summary)
 
 - The setup ends on its summary, read from the records: **Checked**, **When it goes down**, **Who is told** and **Tested**.
 - Click **Open the monitor**, then **Show the chain** on its **When this goes down** card: it shows the chain from the monitor to the people it reaches, and says **Nothing stops the chain.** when nothing would stop it.

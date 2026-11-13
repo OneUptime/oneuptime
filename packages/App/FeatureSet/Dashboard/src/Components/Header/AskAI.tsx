@@ -7,6 +7,8 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { ReactElement } from "react";
 import { useIsAskAiOpen } from "../AIChat/AskAiEvents";
 import EventName from "../../Utils/EventName";
+import { useIsProductOffOnServer } from "../../Utils/ProjectProducts/UseProjectProducts";
+import ProductKey from "Common/Types/Product/ProductKey";
 
 /*
  * The button's words are the reader's, as Search's beside it are: written
@@ -21,6 +23,13 @@ const AskAI: () => JSX.Element = (): ReactElement => {
   const translator: Translator = useTranslator();
   const label: string =
     translator.translateText(ASK_AI_BUTTON_LABEL) || ASK_AI_BUTTON_LABEL;
+
+  // Switched off on the server (#6815): no button, as there is no panel.
+  const isOffOnServer: boolean = useIsProductOffOnServer(ProductKey.AIChat);
+
+  if (isOffOnServer) {
+    return <></>;
+  }
 
   return (
     <HeaderIconDropdownButton

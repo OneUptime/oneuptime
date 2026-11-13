@@ -607,6 +607,12 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
              */
             isBlocked: true,
             /*
+             * A sample project (issue #6808) says so on every page: the
+             * Dashboard draws its bar from the project it already has, from
+             * the first paint, and sends no product events from inside it.
+             */
+            isSampleProject: true,
+            /*
              * Who created the project, so the Dashboard's analytics events
              * can say whether the person created it (is_project_creator,
              * Docs/analytics/activation.md) - an id, compared in the

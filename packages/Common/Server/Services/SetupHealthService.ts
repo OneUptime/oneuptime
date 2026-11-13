@@ -330,6 +330,20 @@ export default class SetupHealthService {
   }
 
   private static async compute(projectId: ObjectID): Promise<ProjectFindings> {
+    /*
+     * A sample project (issue #6808) has no findings. It reaches nobody by
+     * design - nothing is ever sent from it, and its people are made up -
+     * so every finding about reaching someone would be true and could not
+     * be fixed, and teach the wrong lesson.
+     */
+    if (await ProjectService.isSampleProject(projectId)) {
+      return {
+        findings: [],
+        monitorCount: 0,
+        checkedAt: OneUptimeDate.getCurrentDate().toISOString(),
+      };
+    }
+
     const facts: SetupHealthFacts = await this.readFacts(projectId);
 
     return {

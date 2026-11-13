@@ -1362,6 +1362,44 @@ describe("NetworkInventoryUtil.updateFromWalk — device MAC learning", () => {
     expect(error).toHaveBeenCalled();
   });
 
+  /*
+   * The other way round (OneUptime issue #7388): the endpoint inventory has
+   * its own catch too, so a write of it that fails no longer takes the ARP
+   * table's MAC learning with it.
+   */
+  test("a failing endpoint write is logged on its own, and the ARP table's MAC learning still runs", async () => {
+    mockServices([], { siteId: SITE_ID });
+    deviceLookupSpy.mockResolvedValue([
+      registeredDevice(REGISTER_ID, { siteId: SITE_ID }),
+    ]);
+    endpointUpsertSpy.mockRejectedValue(new Error("connection reset"));
+    const error: jest.SpyInstance = spyError();
+
+    await expect(runWalk(arpWalk())).resolves.toBeDefined();
+
+    expect(endpointUpsertSpy).toHaveBeenCalledTimes(1);
+    expect(macWriteSpy).toHaveBeenCalledTimes(1);
+
+    const messages: Array<string> = error.mock.calls.map(
+      (call: Array<unknown>) => {
+        return String(call[0]);
+      },
+    );
+
+    expect(
+      messages.some((message: string) => {
+        return (
+          message.includes("endpoint inventory") && message.includes(DEVICE_ID)
+        );
+      }),
+    ).toBe(true);
+    expect(
+      messages.some((message: string) => {
+        return message.includes("Failed to update network inventory");
+      }),
+    ).toBe(false);
+  });
+
   test("the observing device's site scopes the match: a device in another site is not stamped", async () => {
     mockServices([], { siteId: SITE_ID });
     deviceLookupSpy.mockResolvedValue([

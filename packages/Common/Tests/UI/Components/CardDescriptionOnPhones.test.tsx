@@ -42,6 +42,7 @@ import ApiKey from "../../../Models/DatabaseModels/ApiKey";
 import Workflow from "../../../Models/DatabaseModels/Workflow";
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
+import { PRODUCT_TEXT_CLASS_NAME } from "../../../UI/Utils/ProductText";
 import { getJestSpyOn } from "../../Spy";
 import { resolveFlex } from "../../ResponsiveFlexLayout";
 import { resolveSpacing } from "../../ResponsiveSpacing";
@@ -78,6 +79,20 @@ afterEach(() => {
 
 const description: () => HTMLElement = (): HTMLElement => {
   return screen.getByTestId("card-description");
+};
+
+/*
+ * A description in words also carries the product-text marker a recording
+ * of the setup pages reads (Utils/ProductText, #6834): the layout is the
+ * rest of its classes.
+ */
+const classWithoutProductText: (element: Element) => string = (
+  element: Element,
+): string => {
+  return (element.getAttribute("class") || "").replace(
+    ` ${PRODUCT_TEXT_CLASS_NAME}`,
+    "",
+  );
 };
 
 const classOf: (element: Element) => string = (element: Element): string => {
@@ -133,7 +148,7 @@ describe("a card with no body keeps its description on a phone", () => {
     expect(screen.getByTestId("card").textContent).toBe(
       "Delete WorkflowPermanently delete Notify on-call.Delete Workflow",
     );
-    expect(description().getAttribute("class")).toBe(
+    expect(classWithoutProductText(description())).toBe(
       CARD_DESCRIPTION_KEPT_ON_PHONES_CLASS_NAME,
     );
   });
@@ -174,7 +189,7 @@ describe("a card with no body keeps its description on a phone", () => {
       />,
     );
 
-    expect(description().getAttribute("class")).toBe(
+    expect(classWithoutProductText(description())).toBe(
       CARD_DESCRIPTION_UNDER_ACTIONS_KEPT_ON_PHONES_CLASS_NAME,
     );
     expectShownAtEveryWidth(description());
@@ -190,7 +205,7 @@ describe("a card with no body keeps its description on a phone", () => {
     expect(screen.getByTestId("card-header-title-block")).toContainElement(
       description(),
     );
-    expect(description().getAttribute("class")).toBe(
+    expect(classWithoutProductText(description())).toBe(
       CARD_DESCRIPTION_KEPT_ON_PHONES_CLASS_NAME,
     );
     expectShownAtEveryWidth(description());
@@ -256,7 +271,7 @@ describe("a card with a body hides its description on a phone, as before", () =>
       expect([
         CARD_DESCRIPTION_CLASS_NAME,
         CARD_DESCRIPTION_UNDER_ACTIONS_CLASS_NAME,
-      ]).toContain(description().getAttribute("class"));
+      ]).toContain(classWithoutProductText(description()));
     },
   );
 
