@@ -730,6 +730,11 @@ const DocsNav: NavGroup[] = [
         title: "Zooming Into a Time Range",
         url: "/docs/telemetry/charts-and-time-ranges",
       },
+      // Querying metrics with PromQL, and reading them from Grafana (#6796).
+      {
+        title: "PromQL",
+        url: "/docs/telemetry/promql",
+      },
       {
         title: "Deploys and Changes",
         url: "/docs/telemetry/change-events",

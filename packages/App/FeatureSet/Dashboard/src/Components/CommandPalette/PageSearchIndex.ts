@@ -2007,6 +2007,18 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             keywords: ["metric explorer", "search metrics"],
           },
           {
+            page: PageMap.METRICS_PROMQL,
+            title: "PromQL",
+            icon: IconProp.Code,
+            keywords: [
+              "prometheus",
+              "query metrics",
+              "metrics query language",
+              "grafana",
+              "prometheus data source",
+            ],
+          },
+          {
             page: PageMap.METRICS_INSIGHTS,
             title: "Insights",
             icon: IconProp.ChartBar,
