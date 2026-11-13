@@ -6,8 +6,14 @@ import {
   findPlainTableReads,
   PlainTableRead,
 } from "../../Helpers/TextLookupTableScan";
-import lookupTable, { readOwnValue } from "../../../Utils/LookupTable";
-import { INHERITED_PROPERTY_NAME_SPELLINGS } from "../../Helpers/InheritedNames";
+import lookupTable, {
+  readOwnValue,
+  writeOwnValue,
+} from "../../../Utils/LookupTable";
+import {
+  INHERITED_PROPERTY_NAMES,
+  INHERITED_PROPERTY_NAME_SPELLINGS,
+} from "../../Helpers/InheritedNames";
 
 /*
  * TABLES READ BY TEXT FROM OUTSIDE ONEUPTIME ANSWER ONLY FOR THEIR OWN KEYS.
@@ -276,5 +282,51 @@ describe("Common/Utils/LookupTable", () => {
     expect(map.get("toString")).toBe("listed");
     expect(map.get("__proto__")).toBe("also listed");
     expect(map.get("valueOf")).toBeUndefined();
+  });
+
+  test("writeOwnValue sets every name an object inherits as the record's own key, __proto__ included", () => {
+    const record: Record<string, string> = {};
+
+    for (const name of INHERITED_PROPERTY_NAMES) {
+      writeOwnValue(record, name, `the value of ${name}`);
+    }
+
+    expect(Object.keys(record)).toEqual([...INHERITED_PROPERTY_NAMES]);
+
+    for (const name of INHERITED_PROPERTY_NAMES) {
+      expect({ name, value: readOwnValue(record, name) }).toEqual({
+        name,
+        value: `the value of ${name}`,
+      });
+    }
+
+    // Still a plain object, which serialises __proto__ as any other key.
+    expect(Object.getPrototypeOf(record)).toBe(Object.prototype);
+    expect(JSON.stringify(record)).toContain(
+      '"__proto__":"the value of __proto__"',
+    );
+  });
+
+  test("writeOwnValue never takes an object written under __proto__ as the record's prototype", () => {
+    const record: Record<string, unknown> = {};
+
+    writeOwnValue(record, "__proto__", ["a", "b"]);
+    writeOwnValue(record, "word", "x");
+
+    expect(Object.getPrototypeOf(record)).toBe(Object.prototype);
+    expect(readOwnValue(record, "__proto__")).toEqual(["a", "b"]);
+    expect(Object.keys(record)).toEqual(["__proto__", "word"]);
+  });
+
+  test("writeOwnValue replaces a key's earlier value, as an assignment does", () => {
+    const record: Record<string, string> = { word: "old" };
+
+    writeOwnValue(record, "word", "new");
+    writeOwnValue(record, "__proto__", "first");
+    writeOwnValue(record, "__proto__", "second");
+
+    expect(Object.keys(record)).toEqual(["word", "__proto__"]);
+    expect(readOwnValue(record, "word")).toBe("new");
+    expect(readOwnValue(record, "__proto__")).toBe("second");
   });
 });

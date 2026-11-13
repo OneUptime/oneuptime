@@ -293,6 +293,22 @@ describe("KeyValueParser - attributes the log already has", () => {
     expect(attributes["toString"]).toBe("y");
   });
 
+  it("writes a key that the target prefix makes __proto__ as an attribute", () => {
+    const out: JSONObject = LogPipelineService.processLog(
+      syslogRow("proto__=x"),
+      keyValuePipeline({ source: "body", targetPrefix: "__" }),
+    );
+
+    expect(JSON.stringify(out["attributes"])).toBe(
+      '{"syslog.hostname":"SFW","networkDevice.name":"hq-firewall","__proto__":"x"}',
+    );
+    expect(out["attributeKeys"]).toEqual([
+      "syslog.hostname",
+      "networkDevice.name",
+      "__proto__",
+    ]);
+  });
+
   it("keeps the first value of a key the line repeats", () => {
     const out: JSONObject = LogPipelineService.processLog(
       syslogRow('con_name="first" con_name="second"'),

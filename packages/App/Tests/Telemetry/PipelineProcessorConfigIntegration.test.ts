@@ -410,5 +410,161 @@ describe.each(adapters)(
       expect(parse).toHaveBeenCalledTimes(2);
       expect(mockFindBy).toHaveBeenCalledTimes(4);
     });
+
+    /*
+     * A key named like an Object member (constructor, toString, __proto__)
+     * is one the record may or may not carry, like any other key.
+     */
+    test("the attribute remapper reads and writes only the record's own keys", () => {
+      const remap: (configuration: JSONObject) => Array<PipelineSpec> = (
+        configuration: JSONObject,
+      ): Array<PipelineSpec> => {
+        return pipelinesWith([
+          {
+            name: "remap",
+            processorType: adapter.remapperType,
+            configuration,
+          },
+        ]);
+      };
+
+      // No attribute named constructor: nothing to copy.
+      expect(
+        adapter.process(
+          row(),
+          remap({
+            sourceKey: "constructor",
+            targetKey: "copied",
+            preserveSource: true,
+          }),
+        ),
+      ).toEqual(row());
+
+      // No attribute named toString yet: the target is free to write.
+      expect(
+        JSON.stringify(
+          adapter.process(
+            row(),
+            remap({
+              sourceKey: "level",
+              targetKey: "toString",
+              preserveSource: true,
+              overrideOnConflict: false,
+            }),
+          )["attributes"],
+        ),
+      ).toBe('{"level":"error","service":"api","toString":"error"}');
+
+      const moved: JSONObject = adapter.process(
+        row(),
+        remap({
+          sourceKey: "level",
+          targetKey: "__proto__",
+          preserveSource: false,
+        }),
+      );
+
+      expect(JSON.stringify(moved["attributes"])).toBe(
+        '{"service":"api","__proto__":"error"}',
+      );
+      expect(moved["attributeKeys"]).toEqual(["service", "__proto__"]);
+    });
+
+    test("the category processor writes a target key named __proto__ as an attribute", () => {
+      const output: JSONObject = adapter.process(
+        row(),
+        pipelinesWith([
+          categoryProcessor(adapter, {
+            ...categoryConfiguration(),
+            targetKey: "__proto__",
+          }),
+        ]),
+      );
+
+      expect(JSON.stringify(output["attributes"])).toBe(
+        '{"level":"error","service":"api","__proto__":"errors"}',
+      );
+      expect(output["attributeKeys"]).toEqual([
+        "level",
+        "service",
+        "__proto__",
+      ]);
+    });
   },
 );
+
+/*
+ * The span remappers that read an attribute and compare its text with each
+ * mapping: a span without the attribute is left as it is, whatever text a
+ * mapping names, here the text a bare object's constructor reads as.
+ */
+describe("trace remappers read only the span's own attributes", () => {
+  const INHERITED_TEXT: string = String(Object);
+
+  const traces: (
+    processorType: TracePipelineProcessorType,
+    configuration: JSONObject,
+  ) => Array<LoadedTracePipeline> = (
+    processorType: TracePipelineProcessorType,
+    configuration: JSONObject,
+  ): Array<LoadedTracePipeline> => {
+    return pipelinesWith([
+      { name: "remap", processorType, configuration },
+    ]) as unknown as Array<LoadedTracePipeline>;
+  };
+
+  const span: (attributes: JSONObject) => JSONObject = (
+    attributes: JSONObject,
+  ): JSONObject => {
+    return {
+      name: "GET /",
+      kind: "SPAN_KIND_SERVER",
+      statusCode: 0,
+      attributes,
+      attributeKeys: Object.keys(attributes),
+    };
+  };
+
+  test.each([
+    [
+      TracePipelineProcessorType.SpanNameRemapper,
+      { newName: "renamed" },
+      { name: "renamed" },
+    ],
+    [
+      TracePipelineProcessorType.StatusRemapper,
+      { statusCode: 1, statusMessage: "ok" },
+      { statusCode: 1, statusMessage: "ok" },
+    ],
+    [
+      TracePipelineProcessorType.SpanKindRemapper,
+      { kind: "SPAN_KIND_CLIENT" },
+      { kind: "SPAN_KIND_CLIENT" },
+    ],
+  ])(
+    "%s maps a constructor attribute only on a span that has one",
+    (
+      processorType: TracePipelineProcessorType,
+      mapping: JSONObject,
+      changed: JSONObject,
+    ) => {
+      const pipelines: Array<LoadedTracePipeline> = traces(processorType, {
+        sourceKey: "constructor",
+        mappings: [
+          { matchValue: "web", ...mapping },
+          { matchValue: INHERITED_TEXT, ...mapping },
+        ],
+      });
+      const without: JSONObject = span({ service: "api" });
+      const withIt: JSONObject = span({ constructor: "web" });
+
+      expect(TracePipelineService.processSpan(without, pipelines)).toEqual(
+        without,
+      );
+      expect(TracePipelineService.processSpan(withIt, pipelines)).toEqual({
+        ...withIt,
+        ...changed,
+      });
+    },
+  );
+});

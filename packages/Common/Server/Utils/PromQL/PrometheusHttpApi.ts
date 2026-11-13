@@ -20,6 +20,7 @@ import PromQLError, {
 import {
   PromQLLabels,
   formatPromQLValue,
+  promQLLabelValue,
   promQLLabelsKey,
 } from "../../../Utils/PromQL/PromQLLabels";
 import { parsePromQL } from "../../../Utils/PromQL/PromQLParser";
@@ -338,7 +339,7 @@ export const labelValuesOf: (
   const values: Set<string> = new Set<string>();
 
   for (const labels of series) {
-    const value: string | undefined = labels[label];
+    const value: string = promQLLabelValue(labels, label);
 
     if (value) {
       values.add(value);

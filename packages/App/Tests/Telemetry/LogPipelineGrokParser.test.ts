@@ -225,6 +225,30 @@ describe("GrokParser - source field resolution", () => {
 
     expect(out["attributes"]).toEqual({ "service.name": "api" });
   });
+
+  it("reads a source named like an Object member from the row's own fields only", () => {
+    // The row has no field or attribute named constructor: nothing to parse.
+    expect(
+      LogPipelineService.processLog(
+        logRowWithBody(""),
+        grokPipeline({ source: "constructor", pattern: "%{GREEDYDATA:all}" }),
+      )["attributes"],
+    ).toEqual({ "service.name": "api" });
+
+    const row: JSONObject = {
+      body: "",
+      attributes: { constructor: "user=jane" },
+      attributeKeys: ["constructor"],
+    };
+    const out: JSONObject = LogPipelineService.processLog(
+      row,
+      grokPipeline({ source: "constructor", pattern: "user=%{USERNAME:user}" }),
+    );
+
+    expect(JSON.stringify(out["attributes"])).toBe(
+      '{"constructor":"user=jane","user":"jane"}',
+    );
+  });
 });
 
 describe("GrokParser - target prefix", () => {
@@ -274,6 +298,25 @@ describe("GrokParser - target prefix", () => {
     );
 
     expect((out["attributes"] as JSONObject)["method"]).toBe("GET");
+  });
+
+  it("writes fields named constructor and __proto__ as attributes", () => {
+    const out: JSONObject = LogPipelineService.processLog(
+      logRowWithBody("alpha beta"),
+      grokPipeline({
+        source: "body",
+        pattern: "%{WORD:constructor} %{WORD:__proto__}",
+      }),
+    );
+
+    expect(JSON.stringify(out["attributes"])).toBe(
+      '{"service.name":"api","constructor":"alpha","__proto__":"beta"}',
+    );
+    expect(out["attributeKeys"]).toEqual([
+      "service.name",
+      "constructor",
+      "__proto__",
+    ]);
   });
 });
 

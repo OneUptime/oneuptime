@@ -486,4 +486,40 @@ describe("attributeKeys stays correct with the deferred single re-sort", () => {
     expect((result!["attributes"] as JSONObject)["region"]).toBe("[REDACTED]");
     expect(result!["attributeKeys"]).toBe(originalKeys);
   });
+
+  test("AddAttribute and RenameAttribute write a key named __proto__ as an attribute", () => {
+    const added: JSONObject | null = MetricPipelineRuleService.applyRules(
+      metricRow("m", { region: "eu" }),
+      undefined,
+      projectRules(
+        attributeRule({
+          ruleType: MetricPipelineRuleType.AddAttribute,
+          addAttributeKey: "__proto__",
+          addAttributeValue: "v",
+        }),
+      ),
+    );
+
+    expect(JSON.stringify(added!["attributes"])).toBe(
+      '{"region":"eu","__proto__":"v"}',
+    );
+    expect(added!["attributeKeys"]).toEqual(["__proto__", "region"]);
+
+    const renamed: JSONObject | null = MetricPipelineRuleService.applyRules(
+      metricRow("m", { region: "eu", zone: "a" }),
+      undefined,
+      projectRules(
+        attributeRule({
+          ruleType: MetricPipelineRuleType.RenameAttribute,
+          renameFromKey: "zone",
+          renameToKey: "__proto__",
+        }),
+      ),
+    );
+
+    expect(JSON.stringify(renamed!["attributes"])).toBe(
+      '{"region":"eu","__proto__":"a"}',
+    );
+    expect(renamed!["attributeKeys"]).toEqual(["__proto__", "region"]);
+  });
 });

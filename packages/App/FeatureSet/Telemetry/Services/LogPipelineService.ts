@@ -35,6 +35,7 @@ import {
 } from "Common/Utils/Log/KeyValueParser";
 import logger from "Common/Server/Utils/Logger";
 import { PatternWorkLimitError } from "Common/Utils/LinearRegExp/PatternProblem";
+import { readOwnValue, writeOwnValue } from "Common/Utils/LookupTable";
 import PatternWorkScope from "Common/Server/Utils/PatternWorkScope";
 import PipelineCache from "../Utils/PipelineCache";
 import getPipelineProcessorConfig from "../Utils/PipelineProcessorConfig";
@@ -317,7 +318,8 @@ export class LogPipelineService {
     };
 
     for (const fieldName of fieldNames) {
-      attrs[`${prefix}${fieldName}`] = extracted[fieldName];
+      // As the log's own key, even one named __proto__.
+      writeOwnValue(attrs, `${prefix}${fieldName}`, extracted[fieldName]);
     }
 
     const attributeKeys: Array<string> = Object.keys(attrs);
@@ -407,7 +409,7 @@ export class LogPipelineService {
         continue;
       }
 
-      attrs[attributeKey] = extracted[key];
+      writeOwnValue(attrs, attributeKey, extracted[key]);
       changed = true;
     }
 
@@ -507,17 +509,24 @@ export class LogPipelineService {
       ...((logRow["attributes"] as Record<string, unknown>) || {}),
     };
 
-    const sourceVal: unknown = attrs[config.sourceKey];
+    /*
+     * The log's own keys only: a key named constructor is one the log may
+     * or may not carry, never what every object inherits.
+     */
+    const sourceVal: unknown = readOwnValue(attrs, config.sourceKey);
     if (sourceVal === undefined) {
       return logRow;
     }
 
     const overrideOnConflict: boolean = config.overrideOnConflict !== false;
-    if (!overrideOnConflict && attrs[config.targetKey] !== undefined) {
+    if (
+      !overrideOnConflict &&
+      readOwnValue(attrs, config.targetKey) !== undefined
+    ) {
       return logRow;
     }
 
-    attrs[config.targetKey] = sourceVal;
+    writeOwnValue(attrs, config.targetKey, sourceVal);
 
     if (!config.preserveSource) {
       delete attrs[config.sourceKey];
@@ -535,7 +544,7 @@ export class LogPipelineService {
   ): JSONObject {
     const attrs: Record<string, unknown> =
       (logRow["attributes"] as Record<string, unknown>) || {};
-    const sourceVal: unknown = attrs[config.sourceKey];
+    const sourceVal: unknown = readOwnValue(attrs, config.sourceKey);
     if (sourceVal === undefined || sourceVal === null) {
       return logRow;
     }
@@ -615,7 +624,7 @@ export class LogPipelineService {
         const attrs: Record<string, unknown> = {
           ...((logRow["attributes"] as Record<string, unknown>) || {}),
         };
-        attrs[config.targetKey] = category.name;
+        writeOwnValue(attrs, config.targetKey, category.name);
         const attributeKeys: Array<string> = Object.keys(attrs);
         return { ...logRow, attributes: attrs as JSONObject, attributeKeys };
       }

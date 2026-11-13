@@ -103,6 +103,22 @@ describe("PromQL labels of a series' attributes", () => {
       }),
     ).toEqual({ scope_name: "io.opentelemetry.http" });
   });
+
+  test("an attribute named like an Object member is a label like any other", () => {
+    expect(
+      Object.entries(
+        attributesToPromQLLabels({
+          constructor: "c",
+          toString: "t",
+          valueOf: "v",
+        }),
+      ),
+    ).toEqual([
+      ["constructor", "c"],
+      ["toString", "t"],
+      ["valueOf", "v"],
+    ]);
+  });
 });
 
 describe("resolving a queried metric name to stored metrics", () => {

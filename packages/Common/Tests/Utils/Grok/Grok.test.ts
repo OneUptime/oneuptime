@@ -12,6 +12,7 @@ import {
 import GrokPatterns, {
   getGrokPatternNames,
 } from "../../../Utils/Grok/GrokPatterns";
+import { readOwnValue } from "../../../Utils/LookupTable";
 import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
@@ -169,6 +170,56 @@ describe("Grok - capture semantics", () => {
 
     expect(Object.keys(parsed as Record<string, GrokValue>)).toEqual(["verb"]);
   });
+
+  it("extracts fields named constructor, __proto__ and toString as fields", () => {
+    const parsed: Record<string, GrokValue> | null = parseWithGrokPattern(
+      "%{WORD:constructor} %{WORD:__proto__} %{INT:toString:int}",
+      "alpha beta 42",
+    );
+
+    expect(parsed).not.toBeNull();
+
+    const fields: Record<string, GrokValue> = parsed as Record<
+      string,
+      GrokValue
+    >;
+
+    expect(Object.keys(fields)).toEqual([
+      "constructor",
+      "__proto__",
+      "toString",
+    ]);
+    expect(readOwnValue(fields, "constructor")).toBe("alpha");
+    expect(readOwnValue(fields, "__proto__")).toBe("beta");
+    expect(readOwnValue(fields, "toString")).toBe(42);
+    expect(Object.getPrototypeOf(fields)).toBe(Object.prototype);
+
+    // It serialises as any other record.
+    expect(JSON.stringify(fields)).toBe(
+      '{"constructor":"alpha","__proto__":"beta","toString":42}',
+    );
+  });
+
+  it("keeps the first branch that matched for a field named like an Object member", () => {
+    expect(
+      parseWithGrokPattern(
+        "(?:%{IPV4:constructor}|%{HOSTNAME:constructor})",
+        "web-01 online",
+      ),
+    ).toEqual({ constructor: "web-01" });
+
+    const repeated: Record<string, GrokValue> | null = parseWithGrokPattern(
+      "%{WORD:__proto__} %{WORD:__proto__}",
+      "first second",
+    );
+
+    expect(Object.keys(repeated as Record<string, GrokValue>)).toEqual([
+      "__proto__",
+    ]);
+    expect(
+      readOwnValue(repeated as Record<string, GrokValue>, "__proto__"),
+    ).toBe("first");
+  });
 });
 
 describe("Grok - pattern library", () => {
@@ -293,6 +344,27 @@ describe("Grok - compile errors are actionable", () => {
     expect(() => {
       return compileGrokPattern("%{NOSUCHPATTERN:foo}");
     }).toThrow('Unknown grok pattern "%{NOSUCHPATTERN}"');
+  });
+
+  it.each(["constructor", "toString", "__proto__", "hasOwnProperty"])(
+    "names only patterns the library has: %%{%s} is unknown",
+    (name: string) => {
+      expect(() => {
+        return compileGrokPattern(`%{${name}:field}`);
+      }).toThrow(`Unknown grok pattern "%{${name}}"`);
+      expect(() => {
+        return compileGrokPattern(`%{${name}}`, { MINE: "%{WORD}" });
+      }).toThrow(BadDataException);
+    },
+  );
+
+  it("names a pattern of the caller's own called constructor", () => {
+    expect(
+      matchGrokPattern(
+        compileGrokPattern("%{constructor:who}", { constructor: "%{WORD}" }),
+        "alpha beta",
+      ),
+    ).toEqual({ who: "alpha" });
   });
 
   it("rejects an invalid field name", () => {
