@@ -81,7 +81,9 @@ describe("ProductText", () => {
         <Page
           title="Project Settings"
           description="What this project is called."
-        />
+        >
+          <div>Body</div>
+        </Page>
       </MemoryRouter>,
     );
 

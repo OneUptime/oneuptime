@@ -114,6 +114,10 @@ import {
   summarizeProxmoxGuests,
 } from "../Utils/ProxmoxPartFacts";
 import {
+  ProxmoxClusterConnection,
+  getProxmoxClusterConnection,
+} from "../Utils/ProxmoxClusterConnection";
+import {
   ResourceAttentionItem,
   ResourceHealth,
 } from "../../../Components/ResourcePart/ResourceAttention";
@@ -127,7 +131,7 @@ import useResizableColumns, {
 } from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
 import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
 import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { toLabelTerm, Translator } from "Common/UI/Utils/TranslateTemplate";
 
 interface GoldenStats {
   cpuPercent: number | null;
@@ -1140,6 +1144,7 @@ const ProxmoxClusterOverview: FunctionComponent<
           description: true,
           otelCollectorStatus: true,
           lastSeenAt: true,
+          agentLastSeenAt: true,
           pveVersion: true,
           agentVersion: true,
           nodeCount: true,
@@ -1364,7 +1369,17 @@ const ProxmoxClusterOverview: FunctionComponent<
   };
 
   const renderHero: () => ReactElement = (): ReactElement => {
-    const status: string = (cluster.otelCollectorStatus as string) || "";
+    /*
+     * Connected while the cluster is read; "Can't read API" while its agent
+     * runs but cannot read the Proxmox VE API; "Waiting for data" before its
+     * first read; Disconnected once nothing arrives (issue #7439). "Last
+     * seen" is the cluster's last read, which the card under the hero dates
+     * the same way.
+     */
+    const connection: ProxmoxClusterConnection = getProxmoxClusterConnection({
+      cluster: cluster,
+      translator: translator,
+    });
     const lastSeenAt: Date | undefined = cluster.lastSeenAt;
     /*
      * One whole sentence either way: an English "never" in a translated
@@ -1376,22 +1391,18 @@ const ProxmoxClusterOverview: FunctionComponent<
         })
       : translator.translateText("Never seen") || "Never seen";
 
-    const isConnected: boolean =
-      status.toLowerCase() === "connected" || status.toLowerCase() === "active";
+    const isConnected: boolean = connection.isConnected;
 
     const displayName: string =
       (cluster.name as string | undefined) || "Untitled Proxmox cluster";
 
-    const connectionBadgeClass: string = isConnected
-      ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
-      : "bg-amber-50 text-amber-700 ring-amber-200";
-    const connectionDotClass: string = isConnected
-      ? "bg-emerald-500"
-      : "bg-amber-500";
+    const connectionBadgeClass: string = connection.badgeClassName;
+    const connectionDotClass: string = connection.dotClassName;
     const connectionLabel: string = getResourceConnectionLabel({
       translator: translator,
       isConnected: isConnected,
-      status: status,
+      status: cluster.otelCollectorStatus as string | undefined,
+      connectionState: connection.state,
     });
 
     /*
@@ -2285,8 +2296,17 @@ const ProxmoxClusterOverview: FunctionComponent<
             </div>
             <div className="min-w-0">
               <div className="truncate text-sm font-medium text-gray-900 group-hover:text-indigo-700">
+                {/*
+                 * A cluster with no name is named by what it is, as a
+                 * label: "Ceph cluster" is a noun of sentences too, and
+                 * five languages word it for the middle of one ("clúster
+                 * de Ceph"); here it starts with a capital.
+                 */}
                 {linkedCephCluster.name ||
-                  translator.translateText("Ceph cluster")}
+                  toLabelTerm(
+                    translator.translateText("Ceph cluster") || "Ceph cluster",
+                    translator.language,
+                  )}
               </div>
               <div className="text-xs text-gray-500">
                 {translator.translateText("View Ceph cluster overview →")}
@@ -2507,6 +2527,7 @@ const ProxmoxClusterOverview: FunctionComponent<
       <ResourceConnectionGuideCard
         status={cluster.otelCollectorStatus as string | undefined}
         lastSeenAt={cluster.lastSeenAt}
+        agentLastSeenAt={cluster.agentLastSeenAt}
         guide={getProxmoxClusterConnectionGuide(
           (cluster.name as string | undefined) || "",
           getConfiguredOneUptimeUrl(),

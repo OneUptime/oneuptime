@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import ts from "typescript";
 
 /*
  * The Data Observability product is a lazy-loaded route group: a product
@@ -29,6 +30,63 @@ function readSource(...segments: Array<string>): string {
 
 function squash(source: string): string {
   return source.replace(/\s+/g, " ");
+}
+
+/*
+ * Every <PageRoute> in a Dashboard file, as the code it is written with:
+ * each attribute's name and the code inside its braces, whitespace
+ * squashed. Read through the TypeScript parser rather than as the file's
+ * text, so where Prettier breaks a line changes nothing - it wraps a path
+ * that stops fitting on one line once the routes sit a level deeper, as
+ * DATA_OBSERVABILITY_ROOT's did in 5c707fe48a7.
+ */
+function pageRoutesIn(
+  ...segments: Array<string>
+): Array<Record<string, string>> {
+  const file: string = path.join(DASHBOARD_SRC, ...segments);
+  const sourceFile: ts.SourceFile = ts.createSourceFile(
+    file,
+    fs.readFileSync(file, "utf8"),
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TSX,
+  );
+  const routes: Array<Record<string, string>> = [];
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (
+      (ts.isJsxSelfClosingElement(node) || ts.isJsxOpeningElement(node)) &&
+      node.tagName.getText(sourceFile) === "PageRoute"
+    ) {
+      const attributes: Record<string, string> = {};
+
+      for (const attribute of node.attributes.properties) {
+        if (!ts.isJsxAttribute(attribute)) {
+          // A spread, kept whole: a route that spreads props is not this one.
+          attributes[attribute.getText(sourceFile)] = "";
+          continue;
+        }
+
+        const value: ts.JsxAttributeValue | undefined = attribute.initializer;
+        const code: string =
+          value && ts.isJsxExpression(value) && value.expression
+            ? value.expression.getText(sourceFile)
+            : value
+              ? value.getText(sourceFile)
+              : "true";
+
+        attributes[attribute.name.getText(sourceFile)] = squash(code);
+      }
+
+      routes.push(attributes);
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(sourceFile);
+
+  return routes;
 }
 
 const PAGE_KEYS: ReadonlyArray<string> = [
@@ -81,9 +139,23 @@ describe("Data Observability product wiring", () => {
     const app: string = squash(readSource("App.tsx"));
 
     expect(app).toContain('return import("./Routes/DataObservabilityRoutes");');
-    expect(app).toContain(
-      'path={RouteMap[PageMap.DATA_OBSERVABILITY_ROOT]?.toString() || ""} element={<DataObservabilityRoutes {...commonPageProps} />}',
-    );
+
+    // One route mounts the product's root, and it draws the product's routes.
+    const rootPath: string =
+      'RouteMap[PageMap.DATA_OBSERVABILITY_ROOT]?.toString() || ""';
+
+    expect(
+      pageRoutesIn("App.tsx").filter(
+        (route: Record<string, string>): boolean => {
+          return route["path"] === rootPath;
+        },
+      ),
+    ).toEqual([
+      {
+        path: rootPath,
+        element: "<DataObservabilityRoutes {...commonPageProps} />",
+      },
+    ]);
     expect(readSource("Routes", "AllRoutes.tsx")).toContain(
       'export { default as DataObservabilityRoutes } from "./DataObservabilityRoutes";',
     );

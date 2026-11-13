@@ -1,12 +1,20 @@
 // UX rule: Docs/ux/README.md#in-every-language
-import { describe, expect, test } from "@jest/globals";
+import { beforeAll, describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import { setCodeApartInSentence } from "../../Types/CodeInSentence";
 import { replaceHtmlMarkup } from "../../Types/HtmlMarkup";
 import { isRightToLeftLanguage } from "../../Types/ReadingDirection";
+import {
+  DocsPageArrow,
+  DocsPageArrows,
+  MarkdownArrow,
+  getDocsPageArrows,
+  markdownArrows,
+} from "../Helpers/DocsPageArrows";
 import { isolated } from "../Helpers/IsolateMarks";
 import {
+  LEFTWARDS_ARROW,
   PathArrow,
   getPathArrows,
   withArrowsDecoded,
@@ -255,6 +263,294 @@ describe("a path's arrows in a language read from the right", () => {
         return found.pointsBack;
       }).map(describeArrow),
     ).toEqual([]);
+  });
+});
+
+/*
+ * THE DOCS PAGES' PATHS, TOO (#7611).
+ *
+ * The docs pages of a language read from the right
+ * (App/FeatureSet/Docs/Content/fa) write their menu paths in Markdown:
+ * "در پروژه به **تنظیمات کاربر → ترجیحات ایمیل** بروید" pointed Email
+ * Preferences back at User Settings, on 78 pages. Each page is drawn as
+ * the docs draw it (Helpers/DocsPageArrows: the docs renderer's HTML, each
+ * block a paragraph of its own, inline code set apart from the left, code
+ * blocks left out), and each arrow between two steps is checked as a
+ * locale text's is, and named by the line its Markdown writes it on.
+ */
+const DOCS_CONTENT: string = path.join(PACKAGES, "App/FeatureSet/Docs/Content");
+
+interface DocsPage {
+  // The page's file, from the docs' content folder: "fa/guides/paging.md".
+  page: string;
+  markdown: string;
+}
+
+const markdownFilesIn: (folder: string) => Array<string> = (
+  folder: string,
+): Array<string> => {
+  return fs
+    .readdirSync(folder, { withFileTypes: true })
+    .flatMap((entry: fs.Dirent): Array<string> => {
+      const at: string = path.join(folder, entry.name);
+
+      if (entry.isDirectory()) {
+        return markdownFilesIn(at);
+      }
+
+      return entry.name.endsWith(".md") ? [at] : [];
+    })
+    .sort();
+};
+
+// Every docs page of every language read from the right.
+const RIGHT_TO_LEFT_DOCS_PAGES: Array<DocsPage> = fs
+  .readdirSync(DOCS_CONTENT, { withFileTypes: true })
+  .filter((entry: fs.Dirent): boolean => {
+    return entry.isDirectory() && isRightToLeftLanguage(entry.name);
+  })
+  .flatMap((entry: fs.Dirent): Array<DocsPage> => {
+    return markdownFilesIn(path.join(DOCS_CONTENT, entry.name)).map(
+      (file: string): DocsPage => {
+        return {
+          page: path.relative(DOCS_CONTENT, file),
+          markdown: fs.readFileSync(file, "utf8"),
+        };
+      },
+    );
+  });
+
+// A page's arrow that points back, by its page and line.
+const describeDocsArrow: (page: DocsPage, found: DocsPageArrow) => string = (
+  page: DocsPage,
+  found: DocsPageArrow,
+): string => {
+  const line: string = (page.markdown.split("\n")[found.line - 1] || "")
+    .trim()
+    .slice(0, 160);
+
+  return `${page.page}:${found.line}: ${found.arrow} points back | ${line}`;
+};
+
+describe("a docs page's paths in a language read from the right", () => {
+  const read: Array<{ page: DocsPage; arrows: DocsPageArrows }> = [];
+
+  beforeAll(async () => {
+    for (const page of RIGHT_TO_LEFT_DOCS_PAGES) {
+      read.push({
+        page,
+        arrows: await getDocsPageArrows(page.markdown, "rtl"),
+      });
+    }
+  });
+
+  test("every Persian page is read, and each arrow it draws is found where its Markdown writes it", () => {
+    // 359 Persian pages; no other language read from the right has docs.
+    expect(RIGHT_TO_LEFT_DOCS_PAGES.length).toBeGreaterThan(300);
+    expect(
+      RIGHT_TO_LEFT_DOCS_PAGES.every((page: DocsPage): boolean => {
+        return page.page.startsWith(`fa${path.sep}`);
+      }),
+    ).toBe(true);
+    expect(
+      read
+        .filter((page: { arrows: DocsPageArrows }): boolean => {
+          return !page.arrows.isLinedUp;
+        })
+        .map((page: { page: DocsPage; arrows: DocsPageArrows }): string => {
+          return `${page.page.page}: draws ${page.arrows.drawn} arrows, its Markdown writes ${page.arrows.written} where a reader sees them`;
+        }),
+    ).toEqual([]);
+
+    const paths: number = read
+      .flatMap((page: { arrows: DocsPageArrows }): Array<DocsPageArrow> => {
+        return page.arrows.arrows;
+      })
+      .filter((found: DocsPageArrow): boolean => {
+        return found.path !== null;
+      }).length;
+
+    // Over seven hundred: the menu paths of the guides.
+    expect(paths).toBeGreaterThan(700);
+  });
+
+  test("every arrow between two steps points the way its line is drawn", () => {
+    expect(
+      read.flatMap(
+        (page: { page: DocsPage; arrows: DocsPageArrows }): Array<string> => {
+          return page.arrows.arrows
+            .filter((found: DocsPageArrow): boolean => {
+              return Boolean(found.path?.pointsBack);
+            })
+            .map((found: DocsPageArrow): string => {
+              return describeDocsArrow(page.page, found);
+            });
+        },
+      ),
+    ).toEqual([]);
+  });
+});
+
+/*
+ * And in a language read from the left, "←" between two steps points back,
+ * wherever it is. The docs translation suites read a path's steps
+ * whichever way its arrows point (App/Tests/FeatureSet/Docs/DocsPageShape:
+ * PATH_ARROW), so the way they point is this guard's to hold on every page:
+ * a page read from the left writes "←" only as the left arrow key's name,
+ * in bold on its own ("**K**, **J** or **←**").
+ */
+const LEFT_ARROW_KEY: string = `**${LEFTWARDS_ARROW}**`;
+
+// The "←" a page read from the left writes outside code, but the key's name.
+const leftArrowsOutsideCode: (markdown: string) => Array<MarkdownArrow> = (
+  markdown: string,
+): Array<MarkdownArrow> => {
+  const lines: Array<string> = markdown.split("\n");
+
+  return markdownArrows(markdown).filter((found: MarkdownArrow): boolean => {
+    const line: string = lines[found.line - 1] as string;
+
+    return (
+      found.arrow === LEFTWARDS_ARROW &&
+      !found.inCode &&
+      line.slice(found.column - 2, found.column + 3) !== LEFT_ARROW_KEY
+    );
+  });
+};
+
+describe("a docs page's paths in a language read from the left", () => {
+  test("write no ← outside code, but the left arrow key's name", () => {
+    const files: Array<string> = fs
+      .readdirSync(DOCS_CONTENT, { withFileTypes: true })
+      .filter((entry: fs.Dirent): boolean => {
+        return entry.isDirectory() && !isRightToLeftLanguage(entry.name);
+      })
+      .flatMap((entry: fs.Dirent): Array<string> => {
+        return markdownFilesIn(path.join(DOCS_CONTENT, entry.name));
+      });
+
+    // 16 languages of some 360 pages each, English among them.
+    expect(files.length).toBeGreaterThan(5000);
+    expect(
+      files.flatMap((file: string): Array<string> => {
+        const markdown: string = fs.readFileSync(file, "utf8");
+
+        return leftArrowsOutsideCode(markdown).map(
+          (found: MarkdownArrow): string => {
+            const line: string = markdown.split("\n")[found.line - 1] as string;
+
+            return `${path.relative(DOCS_CONTENT, file)}:${found.line}: ← points back | ${line.trim().slice(0, 160)}`;
+          },
+        );
+      }),
+    ).toEqual([]);
+  });
+});
+
+describe("the docs page check", () => {
+  // The arrows between two steps of a Persian page's Markdown, by line.
+  const pathsOf: (
+    markdown: string,
+  ) => Promise<
+    Array<{ line: number; arrow: string; pointsBack: boolean }>
+  > = async (
+    markdown: string,
+  ): Promise<Array<{ line: number; arrow: string; pointsBack: boolean }>> => {
+    const read: DocsPageArrows = await getDocsPageArrows(markdown, "rtl");
+
+    expect(read.isLinedUp).toBe(true);
+
+    return read.arrows
+      .filter((found: DocsPageArrow): boolean => {
+        return found.path !== null;
+      })
+      .map(
+        (
+          found: DocsPageArrow,
+        ): { line: number; arrow: string; pointsBack: boolean } => {
+          return {
+            line: found.line,
+            arrow: found.arrow,
+            pointsBack: Boolean(found.path?.pointsBack),
+          };
+        },
+      );
+  };
+
+  test("catches the notification rollup page's path as it was, and passes it with ←", async () => {
+    expect(
+      await pathsOf(
+        "# ایمیل‌ها\n\nدر پروژه به **تنظیمات کاربر → ترجیحات ایمیل** بروید.",
+      ),
+    ).toEqual([{ line: 3, arrow: "→", pointsBack: true }]);
+    expect(
+      await pathsOf(
+        "# ایمیل‌ها\n\nدر پروژه به **تنظیمات کاربر ← ترجیحات ایمیل** بروید.",
+      ),
+    ).toEqual([{ line: 3, arrow: "←", pointsBack: false }]);
+  });
+
+  test("keeps → between two Latin steps, and reads a link's words, a list item and a table cell", async () => {
+    expect(
+      await pathsOf(
+        [
+          "زیر **AWS Console → App Runner → Services ← سرویس شما** بروید.",
+          "",
+          "- [تنظیمات → کلیدها](/docs/telemetry/ingestion-keys)",
+          "",
+          "| کلید | جای آن |",
+          "| --- | --- |",
+          "| API | **تنظیمات پروژه ← پیشرفته** |",
+        ].join("\n"),
+      ),
+    ).toEqual([
+      { line: 1, arrow: "→", pointsBack: false },
+      { line: 1, arrow: "→", pointsBack: false },
+      { line: 1, arrow: "←", pointsBack: false },
+      { line: 3, arrow: "→", pointsBack: true },
+      { line: 7, arrow: "←", pointsBack: false },
+    ]);
+  });
+
+  test("sets inline code apart from the left, and reads no code block, link address or image text", async () => {
+    expect(
+      await pathsOf(
+        [
+          "مقدار `5 → 10` تغییر کرد، و `RunbookAgent` → `Runner` نامش را عوض کرد.",
+          "",
+          "```text",
+          "تنظیمات → کلیدها",
+          "```",
+          "",
+          "![تنظیمات → کلیدها](/docs/static/images/Keys.png) [کلیدها](/docs/a→b)",
+        ].join("\n"),
+      ),
+    ).toEqual([
+      // Inside the code, drawn from the left: "→" points on.
+      { line: 1, arrow: "→", pointsBack: false },
+      // Between two pieces of code, the sentence's own: drawn from the right.
+      { line: 1, arrow: "→", pointsBack: true },
+    ]);
+  });
+
+  test("leaves an arrow at either end of a line to the link it leads on", async () => {
+    expect(
+      await pathsOf("[صفحهٔ بعد →](/docs/introduction/which-one)"),
+    ).toEqual([]);
+  });
+
+  test("catches ← in a page read from the left, but the left arrow key's name and code", () => {
+    expect(
+      leftArrowsOutsideCode(
+        [
+          "Open **Monitors → Settings**, then **Probes ← Settings**.",
+          "",
+          "| **K**, **J** or **←** | Go back a message. |",
+          "",
+          "Run `a ← b`, or see [Keys](/docs/a←b).",
+        ].join("\n"),
+      ),
+    ).toEqual([{ line: 1, column: 44, arrow: "←", inCode: false }]);
   });
 });
 

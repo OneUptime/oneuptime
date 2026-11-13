@@ -1042,11 +1042,12 @@ describe("AI has no limits by default", () => {
 
         /*
          * The rules' own page, as each language names the path to it: its
-         * AI section, then the page ("KI → Auto-Behebungsregeln").
+         * AI section, then the page ("KI → Auto-Behebungsregeln"; a Persian
+         * page points "←" from a step in Persian words, #7611).
          */
         const labels: MenuLabels = MENU_LABELS[language] as MenuLabels;
         const localRulesPage: RegExp = new RegExp(
-          `${escapeRegExp(labels.ai)}\\**\\s*(?:>|→)\\s*\\**${escapeRegExp(labels.formerAutoRemediationRules)}`,
+          `${escapeRegExp(labels.ai)}\\**\\s*(?:>|→|←)\\s*\\**${escapeRegExp(labels.formerAutoRemediationRules)}`,
         );
 
         for (const page of pages) {

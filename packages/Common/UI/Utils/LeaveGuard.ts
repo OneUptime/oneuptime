@@ -101,6 +101,20 @@ const isSamePath: (first: string, second: string) => boolean = (
   return withoutTrailingSlashes(first) === withoutTrailingSlashes(second);
 };
 
+/*
+ * Whether there is a window to listen on: a browser's, or the DOM a test
+ * builds. Code that loads this module without one - a server render, or a
+ * test that stands a bare `{ location, history }` in for the window before
+ * it loads what Navigation pulls in - has nothing to hear Back or Forward
+ * on, and must still be able to load it.
+ */
+const canListenOnWindow: () => boolean = (): boolean => {
+  return (
+    typeof window !== "undefined" &&
+    typeof window.addEventListener === "function"
+  );
+};
+
 export default class LeaveGuard {
   // The pages holding the guard, the latest last: it is the one that asks.
   private static holds: Array<LeaveGuardHold> = [];
@@ -126,7 +140,7 @@ export default class LeaveGuard {
    * nothing.
    */
   public static listenForBackAndForward(): void {
-    if (LeaveGuard.isListeningForSteps || typeof window === "undefined") {
+    if (LeaveGuard.isListeningForSteps || !canListenOnWindow()) {
       return;
     }
 

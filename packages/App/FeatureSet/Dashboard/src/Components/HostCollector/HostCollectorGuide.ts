@@ -8,6 +8,7 @@ import {
 } from "../SetupGuide/SetupGuide";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
+  HOST_COLLECTOR_OPAMP_PATH,
   HOST_COLLECTOR_PINNED_VERSION,
   HostCollectorOsType,
 } from "Common/Types/HostCollector/HostCollector";
@@ -17,6 +18,7 @@ import {
   getHostCollectorInstallCommandLanguage,
   getHostCollectorServiceCommands,
   getHostCollectorUninstallCommand,
+  trimHostCollectorUrl,
 } from "Common/Utils/HostCollector/HostCollectorInstallCommand";
 
 /*
@@ -271,6 +273,12 @@ function getTroubleshootingTopics(
       title: "The command says OneUptime refused the key",
       markdown:
         "HTTP 401: the key is wrong, has expired or was deleted. HTTP 422: it is disabled, a browser key, or pinned to one service. Pick an enabled server key in step 1 and run the command again: it replaces the key on the host.",
+    },
+    {
+      title: "The command says OneUptime was not found",
+      markdown: `HTTP 404: the address the collector asks for its config, \`${trimHostCollectorUrl(
+        options.oneuptimeUrl,
+      )}${HOST_COLLECTOR_OPAMP_PATH}\`, does not reach OneUptime. Check that the command's URL is the address you open OneUptime at, with nothing after it. If a proxy or load balancer of yours sits in front of OneUptime, have it send \`${HOST_COLLECTOR_OPAMP_PATH}\` to OneUptime, as it sends \`/otlp\`. The collector keeps asking every 30 seconds, so the host connects as soon as the address works.`,
     },
     {
       title: "The host does not appear",

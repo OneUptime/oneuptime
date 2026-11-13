@@ -14,6 +14,7 @@ jest.mock("../../../Server/Utils/Logger", () => {
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
 import AIService from "../../../Server/Services/AIService";
+import type AnalyticsDatabaseService from "../../../Server/Services/AnalyticsDatabaseService";
 import DashboardService from "../../../Server/Services/DashboardService";
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import OnCallTestPageService from "../../../Server/Services/OnCallTestPageService";
@@ -42,6 +43,7 @@ import SampleProjectStatusPages from "../../../Server/Utils/StatusPage/SamplePro
 import ProjectMembership from "../../../Server/Utils/TeamMember/ProjectMembership";
 import TelemetryUsageMeter from "../../../Server/Utils/TelemetryUsage/TelemetryUsageMeter";
 import { ExpressRequest } from "../../../Server/Utils/Express";
+import type AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import Dashboard from "../../../Models/DatabaseModels/Dashboard";
 import Project from "../../../Models/DatabaseModels/Project";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
@@ -564,7 +566,7 @@ describe("a deleted sample leaves nothing in the analytics database", () => {
   test("every table is asked to delete the project's rows, as root", async () => {
     const deleteBys: Array<jest.SpyInstance> =
       SAMPLE_PROJECT_ANALYTICS_SERVICES.map(
-        (service: { deleteBy: (data: unknown) => Promise<void> }) => {
+        (service: AnalyticsDatabaseService<AnalyticsBaseModel>) => {
           return jest
             .spyOn(service, "deleteBy")
             .mockResolvedValue(undefined as never);

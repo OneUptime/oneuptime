@@ -31,6 +31,8 @@ export interface ComponentProps {
   closeButtonText?: undefined | string;
   isLoading?: boolean;
   error?: string | undefined;
+  // What the dialog was doing, said first for an error nobody explained (Modal).
+  errorWhatFailed?: string | undefined;
   disableSubmitButton?: boolean | undefined;
   // Rendered under the description - for confirmations that also ask something.
   children?: ReactElement | undefined;
@@ -102,6 +104,7 @@ const ConfirmModal: FunctionComponent<ComponentProps> = (
       }
       submitButtonStyleType={submitButtonType}
       error={props.error}
+      errorWhatFailed={props.errorWhatFailed}
       secondaryButton={props.secondaryButton}
       isInitialFocusOnDialog={props.isInitialFocusOnDialog}
     >

@@ -1,5 +1,5 @@
-import { AddNetworkDeviceLastPollReceivedAt1809123800000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809123800000-AddNetworkDeviceLastPollReceivedAt";
-import { AddGroupByConnectedServicesToGroupingRules1809123900000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809123900000-AddGroupByConnectedServicesToGroupingRules";
+import { AddProxmoxClusterAgentLastSeenAt1809123900000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809123900000-AddProxmoxClusterAgentLastSeenAt";
+import { AddGroupByConnectedServicesToGroupingRules1809124000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809124000000-AddGroupByConnectedServicesToGroupingRules";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import AlertGroupingRule from "../../../../Models/DatabaseModels/AlertGroupingRule";
 import IncidentGroupingRule from "../../../../Models/DatabaseModels/IncidentGroupingRule";
@@ -24,7 +24,7 @@ import { describe, expect, test } from "@jest/globals";
  */
 
 const MIGRATION_NAME: string =
-  "AddGroupByConnectedServicesToGroupingRules1809123900000";
+  "AddGroupByConnectedServicesToGroupingRules1809124000000";
 const TRAILING_TIMESTAMP: RegExp = /(\d{13})$/;
 
 type MigrationClass = new () => MigrationInterface;
@@ -72,7 +72,7 @@ function columnOf(
 describe("the grouping rules' connected services migration", () => {
   test("names itself after its timestamp", () => {
     expect(
-      new AddGroupByConnectedServicesToGroupingRules1809123900000().name,
+      new AddGroupByConnectedServicesToGroupingRules1809124000000().name,
     ).toBe(MIGRATION_NAME);
   });
 
@@ -80,23 +80,23 @@ describe("the grouping rules' connected services migration", () => {
     const registered: Array<MigrationClass> =
       SchemaMigrations as Array<MigrationClass>;
     const at: number = registered.indexOf(
-      AddGroupByConnectedServicesToGroupingRules1809123900000,
+      AddGroupByConnectedServicesToGroupingRules1809124000000,
     );
 
     expect(
       registered.filter((candidate: MigrationClass): boolean => {
         return (
-          candidate === AddGroupByConnectedServicesToGroupingRules1809123900000
+          candidate === AddGroupByConnectedServicesToGroupingRules1809124000000
         );
       }),
     ).toHaveLength(1);
     expect(at).toBeGreaterThan(
-      registered.indexOf(AddNetworkDeviceLastPollReceivedAt1809123800000),
+      registered.indexOf(AddProxmoxClusterAgentLastSeenAt1809123900000),
     );
 
     for (let before: number = 0; before < at; before++) {
       expect(timestampOf(registered[before]!)).toBeLessThan(
-        timestampOf(AddGroupByConnectedServicesToGroupingRules1809123900000),
+        timestampOf(AddGroupByConnectedServicesToGroupingRules1809124000000),
       );
     }
   });
@@ -112,7 +112,7 @@ describe("the grouping rules' connected services migration", () => {
     expect(
       files.filter((file: string): boolean => {
         return file.startsWith(
-          `${timestampOf(AddGroupByConnectedServicesToGroupingRules1809123900000)}-`,
+          `${timestampOf(AddGroupByConnectedServicesToGroupingRules1809124000000)}-`,
         );
       }),
     ).toHaveLength(1);
@@ -120,7 +120,7 @@ describe("the grouping rules' connected services migration", () => {
 
   test("adds the switch off on both rule tables - nothing backfilled, no index, no key", async () => {
     const steps: Array<string> = await record(
-      new AddGroupByConnectedServicesToGroupingRules1809123900000(),
+      new AddGroupByConnectedServicesToGroupingRules1809124000000(),
       "up",
     );
 
@@ -137,7 +137,7 @@ describe("the grouping rules' connected services migration", () => {
   test("down drops the columns, in the reverse order", async () => {
     expect(
       await record(
-        new AddGroupByConnectedServicesToGroupingRules1809123900000(),
+        new AddGroupByConnectedServicesToGroupingRules1809124000000(),
         "down",
       ),
     ).toEqual([
