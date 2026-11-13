@@ -510,6 +510,12 @@ work out, starts from a default for everything else, and folds what most people 
 - **A date is written by `OneUptimeDate` in the reader's language,** never put into an English
   template literal. Enforced by
   [DatesInEnglishTextGuard](../../packages/App/Tests/Dashboard/DatesInEnglishTextGuard.test.ts).
+- **A date and time people fill in shows and keeps hours and minutes, never seconds.** Add User
+  Override's Starts read "13/11/2026 11:15:52", and nobody schedules a shift to the second (#7593).
+  Draw the field with the shared Input. Only a field read against telemetry's own timestamps, like a
+  time range's From and To, opts in to seconds (`showSecondsForDateTime`), with its reason listed.
+  Enforced by
+  [MinutePickersGuard](../../packages/Common/Tests/UI/MinutePickersGuard.test.ts).
 - **A duration in milliseconds is written in the reader's language,** with the Dashboard's
   `formatMilliseconds` ("{{value}} ms", each language's own unit and order, the figure in the
   reader's digits), never a figure joined to " ms": every monitor's Response Time read "ms 411" on
@@ -588,6 +594,12 @@ then `npm run i18n:validate` from the root.
   [CloudResourceTypeNamesGuard](../../packages/Common/Tests/App/Dashboard/CloudResourceTypeNamesGuard.test.ts)
   and
   [CloudResourceTypeNamesInSpanish](../../packages/Common/Tests/App/Dashboard/CloudResourceTypeNamesInSpanish.test.tsx).
+- **French sets its colon and semicolon apart,** as it does its question and exclamation marks:
+  "Étape {{number}} : {{fields}}", with a space before the mark, as the Dashboard's French writes it
+  thousands of times. One text did not ("... depuis une analyse IA: {{label}}", #7679). Only a mark
+  that belongs to the English, as written, stays next to its word: a field a search is typed with
+  ("user:"), or a setting in a vendor's console. Enforced by
+  [DashboardFrenchPunctuation](../../packages/App/Tests/Dashboard/DashboardFrenchPunctuation.test.ts).
 - **Pick words that translate as you mean them.** "About" read "Regarding" in 13 languages, so the
   button says "How it works"; "Uptime" read "runtime", so a share of time up says "Availability". Not
   enforced: use judgement.
