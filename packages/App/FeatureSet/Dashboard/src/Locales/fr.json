@@ -32047,6 +32047,7 @@
   "The OpenTelemetry Collector config OneUptime sends to the hosts it manages, by system and label.": "La configuration d'OpenTelemetry Collector que OneUptime envoie aux hôtes qu'il gère, par système et par étiquette.",
   "The OpenTelemetry Collector config its hosts run. A saved change is checked, becomes a new version and reaches them within a minute.": "La configuration d'OpenTelemetry Collector que ses hôtes exécutent. Une modification enregistrée est vérifiée, devient une nouvelle version et leur parvient dans la minute.",
   "The command says OneUptime refused the key": "La commande indique que OneUptime a refusé la clé",
+  "The command says OneUptime was not found": "La commande indique que OneUptime est introuvable",
   "The config OneUptime sends to the hosts it manages. A host runs the first one that applies to it; drag to change the order.": "La configuration que OneUptime envoie aux hôtes qu'il gère. Un hôte exécute la première qui s'applique à lui ; faites glisser les lignes pour changer l'ordre.",
   "The first Collector Config that applies": "La première configuration du collecteur qui s'applique",
   "The host does not appear": "L'hôte n'apparaît pas",

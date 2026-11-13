@@ -236,6 +236,10 @@ L'hôte reste dans OneUptime avec son historique : archivez-le ou supprimez-le d
 HTTP `401` : la clé est erronée, a expiré ou a été supprimée. HTTP `422` : elle est désactivée, c'est une clé de navigateur, ou elle est rattachée à un seul service. Choisissez une clé serveur active dans **Ajouter un hôte** et relancez la commande : elle remplace la clé sur l'hôte.
 :::
 
+:::details La commande indique que OneUptime est introuvable
+HTTP `404` : l'adresse à laquelle le collecteur demande sa configuration, votre URL OneUptime suivie de `/telemetry/opamp/v1`, n'atteint pas OneUptime. Vérifiez que `--url` (`-Url` sous Windows) est l'adresse à laquelle vous ouvrez OneUptime, sans rien après. Si votre propre proxy ou répartiteur de charge se trouve devant OneUptime, faites-lui envoyer `/telemetry/opamp/v1` à OneUptime, comme il envoie `/otlp`. Le collecteur continue de demander toutes les 30 secondes : l'hôte se connecte dès que l'adresse fonctionne.
+:::
+
 :::details L'hôte n'apparaît pas
 Vérifiez que l'hôte peut joindre votre URL OneUptime en HTTPS, puis lisez le log du collecteur avec la commande de son système dans [Vérifier le collecteur d'un hôte](#vérifier-le-collecteur-dun-hôte).
 :::

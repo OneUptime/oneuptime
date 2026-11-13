@@ -32047,6 +32047,7 @@
   "The OpenTelemetry Collector config OneUptime sends to the hosts it manages, by system and label.": "OneUptime이 관리하는 호스트에 시스템 및 레이블별로 보내는 OpenTelemetry Collector 구성입니다.",
   "The OpenTelemetry Collector config its hosts run. A saved change is checked, becomes a new version and reaches them within a minute.": "호스트가 실행하는 OpenTelemetry Collector 구성입니다. 저장된 변경 사항은 확인을 거쳐 새 버전이 되며 1분 안에 호스트에 도달합니다.",
   "The command says OneUptime refused the key": "명령에서 OneUptime이 키를 거부했다고 표시됨",
+  "The command says OneUptime was not found": "명령에서 OneUptime을 찾을 수 없다고 표시됨",
   "The config OneUptime sends to the hosts it manages. A host runs the first one that applies to it; drag to change the order.": "OneUptime이 관리하는 호스트에 보내는 구성입니다. 호스트는 적용되는 첫 번째 구성을 실행합니다. 행을 끌어 순서를 바꾸세요.",
   "The first Collector Config that applies": "적용되는 첫 번째 컬렉터 구성",
   "The host does not appear": "호스트가 표시되지 않음",

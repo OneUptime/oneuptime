@@ -32047,6 +32047,7 @@
   "The OpenTelemetry Collector config OneUptime sends to the hosts it manages, by system and label.": "OneUptime 按系统和标签发送给其管理的主机的 OpenTelemetry Collector 配置。",
   "The OpenTelemetry Collector config its hosts run. A saved change is checked, becomes a new version and reaches them within a minute.": "其主机运行的 OpenTelemetry Collector 配置。保存的更改会经过检查，成为新版本，并在一分钟内送达主机。",
   "The command says OneUptime refused the key": "命令提示 OneUptime 拒绝了该密钥",
+  "The command says OneUptime was not found": "命令提示找不到 OneUptime",
   "The config OneUptime sends to the hosts it manages. A host runs the first one that applies to it; drag to change the order.": "OneUptime 发送给其管理的主机的配置。主机运行第一个适用于它的配置；拖动行即可更改顺序。",
   "The first Collector Config that applies": "第一个适用的收集器配置",
   "The host does not appear": "主机没有出现",
