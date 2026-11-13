@@ -34,6 +34,9 @@ import { BILLING_ENABLED } from "../../../UI/Config";
 import API from "../../../UI/Utils/API/API";
 import GlobalEvents from "../../../UI/Utils/GlobalEvents";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import PermissionGate, {
+  PermissionGateResult,
+} from "../../../UI/Utils/PermissionGate";
 import ProjectUtil from "../../../UI/Utils/Project";
 import UserUtil from "../../../UI/Utils/User";
 
@@ -74,6 +77,25 @@ const list: <T>(data: Array<T>) => {
 };
 
 type LooseSpy = SpyInstance<(...args: Array<never>) => Promise<unknown>>;
+
+/*
+ * Whether the signed-in person may add to the SMS and call balance, as
+ * PermissionGate answers for its Auto Recharge columns: yes, no (refused,
+ * with the permission that is missing), or null while the permissions have
+ * not arrived (ProjectBalanceAccess).
+ */
+const mayAddBalance: (mayAdd: boolean | null) => void = (
+  mayAdd: boolean | null,
+): void => {
+  const gate: PermissionGateResult =
+    mayAdd === true
+      ? { isAllowed: true }
+      : mayAdd === false
+        ? { isAllowed: false, disabledReason: "You need Manage Billing." }
+        : { isAllowed: false };
+
+  jest.spyOn(PermissionGate, "checkColumnUpdate").mockReturnValue(gate);
+};
 
 let getListSpy: LooseSpy;
 let getItemSpy: LooseSpy;
@@ -542,6 +564,7 @@ describe("the phone", () => {
   });
 
   test("the balance is added through Notification Settings' recharge, for this project", async () => {
+    mayAddBalance(true);
     const postSpy: LooseSpy = jest.spyOn(API, "post") as unknown as LooseSpy;
     postSpy.mockResolvedValue({
       data: {},
@@ -560,6 +583,7 @@ describe("the phone", () => {
   });
 
   test("a refused recharge is an error, never a silent success", async () => {
+    mayAddBalance(true);
     const postSpy: LooseSpy = jest.spyOn(API, "post") as unknown as LooseSpy;
     postSpy.mockResolvedValue({
       data: { message: "No payment method on file." },
@@ -570,6 +594,27 @@ describe("the phone", () => {
 
     await expect(OnCallSetupApi.rechargeBalance(20)).rejects.toThrow();
   });
+
+  /*
+   * Asked first, as every recharge in the Dashboard is: someone the server
+   * would refuse, or whose permissions have not arrived yet, is told who
+   * can add balance, and nothing is charged.
+   */
+  test.each([
+    ["someone who may not add balance", false],
+    ["someone whose permissions are still on their way", null],
+  ])(
+    "%s is told who can, and nothing is charged",
+    async (_who: string, mayAdd: boolean | null) => {
+      mayAddBalance(mayAdd);
+      const postSpy: LooseSpy = jest.spyOn(API, "post") as unknown as LooseSpy;
+
+      await expect(OnCallSetupApi.rechargeBalance(20)).rejects.toThrow(
+        "A project owner or someone with Manage Billing can add balance in Project Settings → Notifications → Notification Settings.",
+      );
+      expect(postSpy).not.toHaveBeenCalled();
+    },
+  );
 
   test("the number is added for SMS as the person's own", async () => {
     createSpy.mockResolvedValue({

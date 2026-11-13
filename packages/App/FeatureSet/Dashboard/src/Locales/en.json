@@ -50818,7 +50818,7 @@
   "Who should be told?": "Who should be told?",
   "You are emailed as the monitor's owner.": "You are emailed as the monitor's owner.",
   "You own this monitor, but this server cannot send email yet, so nobody is emailed.": "You own this monitor, but this server cannot send email yet, so nobody is emailed.",
-  "You own this monitor, so you are emailed when it goes down. Paging a team needs a project admin: ask one to set up an on-call policy.": "You own this monitor, so you are emailed when it goes down. Paging a team needs a project admin: ask one to set up an on-call policy.",
+  "You own this monitor, so you are emailed when it goes down. Paging a team needs an on-call policy: ask a project owner or admin to set one up.": "You own this monitor, so you are emailed when it goes down. Paging a team needs an on-call policy: ask a project owner or admin to set one up.",
   "You own this monitor, so you are emailed when its status changes.": "You own this monitor, so you are emailed when its status changes.",
   "{{done}} of {{total}} steps done": "{{done}} of {{total}} steps done",
   "{{host}} answered {{code}} from {{count}} locations. That counts as down, so an incident opens.": "{{host}} answered {{code}} from {{count}} locations. That counts as down, so an incident opens.",

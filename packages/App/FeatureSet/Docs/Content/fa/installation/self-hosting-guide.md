@@ -139,13 +139,7 @@ npm run doctor
 
 هر کانتینر، `config.env`، رسیدن `HOST` به این سرور، گواهی و فضای خالی دیسک را بررسی می‌کند، و از OneUptime می‌پرسد از خودش چه می‌بیند، مانند ایمیل و پروب‌ها. هر مشکل با راه‌حلش می‌آید: [نصب خود را بررسی کنید](/docs/installation/docker-compose#نصب-خود-را-بررسی-کنید) را ببینید.
 @tab Kubernetes
-اسکریپت عیب‌یابی چارت را دانلود کنید و آن را روی خوشهٔ خود اجرا کنید. فقط می‌خواند، و با خلاصه‌ای از آنچه پیدا کرد تمام می‌شود، بدترین اول:
-
-```bash
-curl -sLO https://raw.githubusercontent.com/OneUptime/oneuptime/main/HelmChart/Public/diagnose.sh
-chmod +x diagnose.sh
-./diagnose.sh
-```
+اسکریپت عیب‌یابی چارت را، همان‌طور که [راهنمای عیب‌یابی چارت](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/troubleshooting.md#run-it) نشان می‌دهد، روی خوشهٔ خود اجرا کنید. فقط می‌خواند، و با خلاصه‌ای از آنچه پیدا کرد تمام می‌شود، بدترین اول.
 :::
 
 **درست کار کرده وقتی** doctor با **Everything looks right.** تمام شود و با `0` خارج شود. وقتی چیزی باید درست شود با `1`، و وقتی نتواند بررسی‌هایش را اجرا کند با `2` خارج می‌شود. روی Kubernetes، خلاصه هیچ یافتهٔ `CRITICAL` ندارد.

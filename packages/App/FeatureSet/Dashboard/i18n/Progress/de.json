@@ -811,6 +811,7 @@
     "{{count}} VM",
     "{{count}} VMs",
     "{{count}} live",
+    "{{count}} ms",
     "{{count}} s",
     "{{count}} vCPU",
     "{{count}} vCPUs",

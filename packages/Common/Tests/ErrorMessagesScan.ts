@@ -57,8 +57,18 @@ export interface ThrownMessage {
   message: string;
 }
 
+/*
+ * The scan's patterns are named, so a call reads NAME.test(text): a
+ * literal called on directly needs parens for wrap-regex, which Prettier
+ * takes away again.
+ */
+const TEST_FILE_NAME: RegExp = /\.(test|spec)\.tsx?$/;
+
+// One character of white space.
+const WHITE_SPACE: RegExp = /\s/;
+
 const isTestFile: (name: string) => boolean = (name: string): boolean => {
-  return /\.(test|spec)\.tsx?$/.test(name) || name.endsWith(".d.ts");
+  return TEST_FILE_NAME.test(name) || name.endsWith(".d.ts");
 };
 
 export const listScanFiles: () => Array<string> = (): Array<string> => {
@@ -275,7 +285,10 @@ export const findThrownMessages: (
     let index: number = match.index + match[0].length;
 
     if (!isInComment(source, match.index)) {
-      while (index < source.length && /\s/.test(source[index] as string)) {
+      while (
+        index < source.length &&
+        WHITE_SPACE.test(source[index] as string)
+      ) {
         index++;
       }
 
@@ -289,14 +302,20 @@ export const findThrownMessages: (
       if (literal && CODE.test(literal.text)) {
         let next: number = literal.end;
 
-        while (next < source.length && /\s/.test(source[next] as string)) {
+        while (
+          next < source.length &&
+          WHITE_SPACE.test(source[next] as string)
+        ) {
           next++;
         }
 
         if (source[next] === ",") {
           next++;
 
-          while (next < source.length && /\s/.test(source[next] as string)) {
+          while (
+            next < source.length &&
+            WHITE_SPACE.test(source[next] as string)
+          ) {
             next++;
           }
 
@@ -313,7 +332,10 @@ export const findThrownMessages: (
       if (literal) {
         let after: number = literal.end;
 
-        while (after < source.length && /\s/.test(source[after] as string)) {
+        while (
+          after < source.length &&
+          WHITE_SPACE.test(source[after] as string)
+        ) {
           after++;
         }
 

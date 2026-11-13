@@ -7,6 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 import "@testing-library/jest-dom";
 import {
   cleanup,
@@ -230,7 +231,7 @@ describe("the hidden products' row", () => {
   });
 
   test("opening the row shows the hidden products and the caller's note", () => {
-    const close: jest.Mock = jest.fn();
+    const close: Mock = jest.fn();
     let closeHanded: (() => void) | undefined = undefined;
 
     renderMenu({
@@ -343,8 +344,8 @@ describe("pinning from the products menu", () => {
   });
 
   test("a press pins the product, and neither opens it nor closes the menu", () => {
-    const toggle: jest.Mock = jest.fn();
-    const close: jest.Mock = jest.fn();
+    const toggle: Mock = jest.fn();
+    const close: Mock = jest.fn();
 
     renderMenu({
       onTogglePin: toggle as unknown as (item: MoreMenuItem) => void,

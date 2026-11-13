@@ -427,7 +427,15 @@ describe("Bar Color Preview, without rules", () => {
 
     await renderPreview({ rules: [] });
 
-    expect(preview()).toHaveTextContent("Server Error. Please try again");
+    /*
+     * "Server Error. Please try again" says only that the read failed: since
+     * #6836 it is said as a problem the server could not explain.
+     */
+    expect(preview()).toHaveTextContent("This did not finish.");
+    expect(preview()).toHaveTextContent(
+      "The server ran into a problem it could not explain. Try again in a moment.",
+    );
+    expect(preview()).not.toHaveTextContent("Server Error");
 
     await act(async () => {
       fireEvent.click(within(preview()).getByRole("button"));

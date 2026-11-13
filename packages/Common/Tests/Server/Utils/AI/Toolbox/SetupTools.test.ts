@@ -140,6 +140,8 @@ const MONITOR_ID: string = "55555555-5555-4555-8555-555555555555";
 const API_MONITOR_ID: string = "66666666-6666-4666-8666-666666666666";
 const POLICY_ID: string = "77777777-7777-4777-8777-777777777777";
 const STATUS_PAGE_ID: string = "88888888-8888-4888-8888-888888888888";
+const ANA_MEMBERSHIP_ID: string = "99999999-9999-4999-8999-999999999999";
+const MY_MEMBERSHIP_ID: string = "abcdabcd-abcd-4bcd-8bcd-abcdabcdabcd";
 
 const ctx: ToolContext = {
   projectId: PROJECT_ID,
@@ -198,6 +200,17 @@ function stubSeeds(options?: { missing?: boolean }): void {
       isArchived: false,
     }),
   ] as never);
+}
+
+/*
+ * The project may pay as you go, so the plan's room is what is asked next.
+ * Said by the test: with billing on, as Common Test runs, the real check
+ * reads the project's billing from a database there is none of.
+ */
+function payAsYouGoIsSetUp(): void {
+  jest
+    .spyOn(PayAsYouGoBillingService, "canUsePayAsYouGo")
+    .mockResolvedValue(true as never);
 }
 
 // The probes a new monitor starts with: two global ones and none of the project's.
@@ -273,27 +286,47 @@ function readiness(data: {
   };
 }
 
+/*
+ * The project's members, Ana and the person asking. Each read gets what it
+ * selects, as from the database: a member's user only when it asks for it.
+ */
 function stubMembers(): Spy {
-  const ana: TeamMember = model(TeamMember, {
-    userId: new ObjectID(ANA_ID),
-    user: model(User, {
-      _id: ANA_ID,
-      name: new Name("Ana Lopez"),
-      email: new Email("ana@acme.example"),
-    }),
-  });
-  const me: TeamMember = model(TeamMember, {
-    userId: USER_ID,
-    user: model(User, {
-      _id: USER_ID.toString(),
-      name: new Name("Me Myself"),
-      email: new Email("me@acme.example"),
-    }),
-  });
+  const memberships: Array<{ id: string; userId: ObjectID; user: User }> = [
+    {
+      id: ANA_MEMBERSHIP_ID,
+      userId: new ObjectID(ANA_ID),
+      user: model(User, {
+        _id: ANA_ID,
+        name: new Name("Ana Lopez"),
+        email: new Email("ana@acme.example"),
+      }),
+    },
+    {
+      id: MY_MEMBERSHIP_ID,
+      userId: USER_ID,
+      user: model(User, {
+        _id: USER_ID.toString(),
+        name: new Name("Me Myself"),
+        email: new Email("me@acme.example"),
+      }),
+    },
+  ];
 
   return jest
     .spyOn(TeamMemberService, "findBy")
-    .mockResolvedValue([ana, me] as never);
+    .mockImplementation((async (args: {
+      select: JSONObject;
+    }): Promise<Array<TeamMember>> => {
+      return memberships.map(
+        (membership: { id: string; userId: ObjectID; user: User }) => {
+          return model(TeamMember, {
+            _id: membership.id,
+            userId: membership.userId,
+            ...(args.select["user"] ? { user: membership.user } : {}),
+          });
+        },
+      );
+    }) as never);
 }
 
 function stubTeams(): Spy {
@@ -571,6 +604,7 @@ describe("set_up_website_monitoring", () => {
 
   test("a project whose plan has no room for the monitors its plan sets up is told the plan's own sentence, before any card", async () => {
     stubSeeds();
+    payAsYouGoIsSetUp();
     const room: Spy = jest
       .spyOn(ActiveMonitorLimit, "getRefusal")
       .mockResolvedValue(
@@ -640,6 +674,7 @@ describe("set_up_website_monitoring", () => {
       ),
     ).toBeNull();
 
+    payAsYouGoIsSetUp();
     const room: Spy = jest
       .spyOn(ActiveMonitorLimit, "getRefusal")
       .mockResolvedValue(null as never);
@@ -657,7 +692,8 @@ describe("set_up_website_monitoring", () => {
 
   test("a plan that cannot be read lets the card show: running it says why", async () => {
     stubSeeds();
-    jest
+    payAsYouGoIsSetUp();
+    const room: Spy = jest
       .spyOn(ActiveMonitorLimit, "getRefusal")
       .mockRejectedValue(new Error("down") as never);
 
@@ -667,6 +703,7 @@ describe("set_up_website_monitoring", () => {
         ctx,
       ),
     ).toBeNull();
+    expect(room).toHaveBeenCalled();
   });
 
   test("a check that cannot read the project lets the card show", async () => {
@@ -839,6 +876,27 @@ describe("set_up_paging", () => {
     expect((teams.mock.calls[0]![0] as { props: unknown }).props).toBe(
       ctx.props,
     );
+    /*
+     * The person's read selects only what every reader of a membership may
+     * read; who each member is comes after, as OneUptime, for the members
+     * that read found, in this project (CallerReadsReadableColumns).
+     */
+    expect((members.mock.calls[0]![0] as { select: unknown }).select).toEqual({
+      _id: true,
+      userId: true,
+    });
+    const whoTheyAre: {
+      query: { _id: unknown; projectId: unknown };
+      props: unknown;
+    } = members.mock.calls[1]![0] as never;
+    const theirIds: { _objectLiteralParameters: JSONObject } = whoTheyAre.query
+      ._id as never;
+    expect(whoTheyAre.props).toEqual({ isRoot: true });
+    expect(whoTheyAre.query.projectId).toBe(PROJECT_ID);
+    expect(Object.values(theirIds._objectLiteralParameters)).toEqual([
+      [ANA_MEMBERSHIP_ID, MY_MEMBERSHIP_ID],
+    ]);
+    expect(members).toHaveBeenCalledTimes(2);
   });
 
   test("naming yourself is you, once; paging others only leaves you out", async () => {
@@ -1081,6 +1139,18 @@ describe("publish_status_page", () => {
     );
     expect((find.mock.calls[0]![0] as { props: unknown }).props).toBe(
       ctx.props,
+    );
+    /*
+     * The name it defaults to is the project's, read as OneUptime: fewer
+     * people may read a project's name than the project
+     * (CallerReadsReadableColumns).
+     */
+    expect(ProjectService.findOneById).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: PROJECT_ID,
+        select: { _id: true, name: true },
+        props: { isRoot: true },
+      }),
     );
   });
 

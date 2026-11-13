@@ -139,13 +139,7 @@ npm run doctor
 
 すべてのコンテナー、`config.env`、`HOST` がこのサーバーに届くか、証明書、空きディスクを確認し、メールやプローブなど、OneUptime 自身から見える状態を尋ねます。問題ごとに直し方が示されます。[インストールを確認する](/docs/installation/docker-compose#インストールを確認する)を参照してください。
 @tab Kubernetes
-チャートの診断スクリプトをダウンロードし、クラスターに対して実行します。読み取りだけを行い、見つかったことを深刻な順にまとめて終わります:
-
-```bash
-curl -sLO https://raw.githubusercontent.com/OneUptime/oneuptime/main/HelmChart/Public/diagnose.sh
-chmod +x diagnose.sh
-./diagnose.sh
-```
+[チャートのトラブルシューティングガイド](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/troubleshooting.md#run-it)の手順に従って、チャートの診断スクリプトをクラスターに対して実行します。読み取りだけを行い、見つかったことを深刻な順にまとめて終わります。
 :::
 
 **うまくいったかどうか:** doctor が **Everything looks right.** で終わり、`0` で終了すれば完了です。直すべきものがあれば `1`、確認を実行できなかった場合は `2` で終了します。Kubernetes では、まとめに `CRITICAL` の指摘がなければ完了です。
