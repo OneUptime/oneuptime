@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { escapeRegExp } from "../../../Utils/RegExpEscape";
 
 /*
  * Guard (issue #7277): every Dashboard page that draws availability from
@@ -71,7 +72,7 @@ function builderCallBody(source: string): string {
 // The expression a property of the builder call is set to, such as "startDate".
 function argument(callBody: string, name: string): string {
   const match: RegExpMatchArray | null = callBody.match(
-    new RegExp(`\\n\\s*${name}: ([A-Za-z_.]+),\\n`),
+    new RegExp(`\\n\\s*${escapeRegExp(name)}: ([A-Za-z_.]+),\\n`),
   );
   return match ? match[1]! : "";
 }
@@ -107,7 +108,7 @@ describe("Heartbeat availability charts walk the reader's days", () => {
       expect(windowEnd).not.toBe("");
       expect(callBody.replace(/\s+/g, " ")).toMatch(
         new RegExp(
-          `timezone: AggregationIntervalUtil\\.getReaderTimezone\\(\\{ ?startDate: ${windowStart}, endDate: ${windowEnd},? ?\\}\\)`,
+          `timezone: AggregationIntervalUtil\\.getReaderTimezone\\(\\{ ?startDate: ${escapeRegExp(windowStart)}, endDate: ${escapeRegExp(windowEnd)},? ?\\}\\)`,
         ),
       );
     },

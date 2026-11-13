@@ -262,7 +262,7 @@
       "countRequestTitle": "计数请求",
       "aggregateHeading": "聚合",
       "aggregateIntro": "此端点对您的 {{title}} 执行服务器端聚合（求和、平均值、计数和百分位数），并将结果按时间分桶分组。它为图表和仪表板提供数据。",
-      "aggregateByDescription": "要执行的聚合。指定 aggregationType（Count、Sum、Avg、Min、Max、P50、P90、P95、P99）、aggregateColumnName、aggregationTimestampColumnName、startTimestamp、endTimestamp，以及可选的 query 和 groupBy。",
+      "aggregateByDescription": "要执行的聚合。指定 aggregationType（Count、Sum、Avg、Min、Max、P50、P90、P95、P99）、aggregateColumnName、aggregationTimestampColumnName、startTimestamp、endTimestamp，以及可选的 query 和 groupBy。默认情况下，时间分桶的大小由时间窗口决定；设置可选的 aggregationInterval 可固定分桶大小（Minute、Hour、Day、Week、Month、Year），例如在一周的窗口内按 Day 分桶；设置为 Total 则不按时间分桶，在整个窗口内为每个分组返回一个聚合值。Day、Week、Month 和 Year 分桶从 UTC 午夜开始，每周从星期一开始；将可选的 timezone 设置为时区名称（例如 America/New_York），即可改为从该时区的午夜开始。不是已知时区的名称会被拒绝。",
       "aggregateRequestTitle": "聚合请求",
       "createHeading": "创建 {{title}}",
       "createIntro": "此端点允许您创建一个新对象。",

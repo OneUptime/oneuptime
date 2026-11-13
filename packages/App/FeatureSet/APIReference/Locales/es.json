@@ -262,7 +262,7 @@
       "countRequestTitle": "Solicitud Count",
       "aggregateHeading": "Agregación",
       "aggregateIntro": "Este endpoint ejecuta agregaciones del lado del servidor (suma, promedio, recuento y percentiles) sobre tus {{title}} y agrupa los resultados en intervalos de tiempo. Alimenta gráficos y paneles.",
-      "aggregateByDescription": "La agregación que se ejecutará. Especifica aggregationType (Count, Sum, Avg, Min, Max, P50, P90, P95, P99), aggregateColumnName, aggregationTimestampColumnName, startTimestamp, endTimestamp y, opcionalmente, query y groupBy.",
+      "aggregateByDescription": "La agregación que se ejecutará. Especifica aggregationType (Count, Sum, Avg, Min, Max, P50, P90, P95, P99), aggregateColumnName, aggregationTimestampColumnName, startTimestamp, endTimestamp y, opcionalmente, query y groupBy. De forma predeterminada, el tamaño de los intervalos de tiempo se deduce de la ventana; establece el aggregationInterval opcional para fijarlo (Minute, Hour, Day, Week, Month, Year), por ejemplo, intervalos Day en una ventana de una semana, o en Total para obtener un único agregado por grupo en toda la ventana, sin intervalos de tiempo. Los intervalos Day, Week, Month y Year empiezan a medianoche UTC, y las semanas, en lunes; establece el timezone opcional con el nombre de una zona horaria, como America/New_York, para que empiecen a medianoche en esa zona. Un nombre que no sea una zona horaria conocida se rechaza.",
       "aggregateRequestTitle": "Solicitud de agregación",
       "createHeading": "Crear {{title}}",
       "createIntro": "Este endpoint te permite crear un nuevo objeto.",

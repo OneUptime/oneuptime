@@ -262,7 +262,7 @@
       "countRequestTitle": "Countリクエスト",
       "aggregateHeading": "集計",
       "aggregateIntro": "このエンドポイントは、{{title}} に対してサーバー側で集計（合計、平均、件数、パーセンタイル）を実行し、結果を時間バケットにグループ化します。グラフやダッシュボードに使用されます。",
-      "aggregateByDescription": "実行する集計です。aggregationType（Count、Sum、Avg、Min、Max、P50、P90、P95、P99）、aggregateColumnName、aggregationTimestampColumnName、startTimestamp、endTimestamp、および任意の query と groupBy を指定します。",
+      "aggregateByDescription": "実行する集計です。aggregationType（Count、Sum、Avg、Min、Max、P50、P90、P95、P99）、aggregateColumnName、aggregationTimestampColumnName、startTimestamp、endTimestamp、および任意の query と groupBy を指定します。既定では、時間バケットのサイズは期間から決まります。任意の aggregationInterval を設定するとサイズを固定できます（Minute、Hour、Day、Week、Month、Year）。たとえば1週間の期間で Day のバケットを使えます。Total に設定すると、時間バケットに分けずに、期間全体でグループごとに1つの集計値を返します。Day、Week、Month、Year のバケットは UTC の午前0時に始まり、週は月曜日に始まります。任意の timezone に America/New_York などのタイムゾーン名を設定すると、代わりにそのタイムゾーンの午前0時に始まります。既知のタイムゾーンではない名前は拒否されます。",
       "aggregateRequestTitle": "集計リクエスト",
       "createHeading": "{{title}}を作成",
       "createIntro": "このエンドポイントを使用すると、新しいオブジェクトを作成できます。",

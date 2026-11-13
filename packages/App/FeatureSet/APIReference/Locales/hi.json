@@ -262,7 +262,7 @@
       "countRequestTitle": "गणना अनुरोध",
       "aggregateHeading": "एग्रीगेट",
       "aggregateIntro": "यह एंडपॉइंट आपके {{title}} पर सर्वर-साइड एग्रीगेशन (योग, औसत, गिनती और पर्सेंटाइल) चलाता है और परिणामों को समय बकेट में समूहित करता है। यह चार्ट और डैशबोर्ड को सशक्त बनाता है।",
-      "aggregateByDescription": "चलाई जाने वाली एग्रीगेशन। aggregationType (Count, Sum, Avg, Min, Max, P50, P90, P95, P99), aggregateColumnName, aggregationTimestampColumnName, startTimestamp, endTimestamp, और वैकल्पिक query तथा groupBy निर्दिष्ट करें।",
+      "aggregateByDescription": "चलाई जाने वाली एग्रीगेशन। aggregationType (Count, Sum, Avg, Min, Max, P50, P90, P95, P99), aggregateColumnName, aggregationTimestampColumnName, startTimestamp, endTimestamp, और वैकल्पिक query तथा groupBy निर्दिष्ट करें। डिफ़ॉल्ट रूप से समय बकेट का आकार समय-सीमा से तय होता है; इसे स्थिर करने के लिए वैकल्पिक aggregationInterval सेट करें (Minute, Hour, Day, Week, Month, Year) — उदाहरण के लिए एक सप्ताह की समय-सीमा पर Day बकेट — या पूरी समय-सीमा पर हर समूह के लिए बिना समय बकेट के एक ही एग्रीगेट मान पाने के लिए इसे Total पर सेट करें। Day, Week, Month और Year बकेट UTC की आधी रात से शुरू होते हैं, और सप्ताह सोमवार से; इन्हें इसके बजाय किसी समय क्षेत्र की आधी रात से शुरू करने के लिए वैकल्पिक timezone को America/New_York जैसे समय क्षेत्र के नाम पर सेट करें। जो नाम कोई ज्ञात समय क्षेत्र नहीं है, उसे अस्वीकार कर दिया जाता है।",
       "aggregateRequestTitle": "एग्रीगेट अनुरोध",
       "createHeading": "{{title}} बनाएँ",
       "createIntro": "यह एंडपॉइंट आपको एक नया ऑब्जेक्ट बनाने की अनुमति देता है।",

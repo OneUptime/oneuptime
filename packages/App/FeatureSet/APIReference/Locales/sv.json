@@ -262,7 +262,7 @@
       "countRequestTitle": "Antalsförfrågan",
       "aggregateHeading": "Aggregera",
       "aggregateIntro": "Den här slutpunkten kör aggregeringar på serversidan (summa, medelvärde, antal och percentiler) över dina {{title}} och grupperar resultaten i tidsintervall. Den driver diagram och instrumentpaneler.",
-      "aggregateByDescription": "Aggregeringen som ska köras. Ange aggregationType (Count, Sum, Avg, Min, Max, P50, P90, P95, P99), aggregateColumnName, aggregationTimestampColumnName, startTimestamp, endTimestamp och valfritt query och groupBy.",
+      "aggregateByDescription": "Aggregeringen som ska köras. Ange aggregationType (Count, Sum, Avg, Min, Max, P50, P90, P95, P99), aggregateColumnName, aggregationTimestampColumnName, startTimestamp, endTimestamp och valfritt query och groupBy. Som standard härleds storleken på tidsintervallen från fönstret; ange det valfria aggregationInterval för att låsa den (Minute, Hour, Day, Week, Month, Year), till exempel Day-intervall över ett fönster på en vecka, eller sätt det till Total för att få ett enda aggregat per grupp över hela fönstret, utan tidsintervall. Day-, Week-, Month- och Year-intervall börjar vid midnatt UTC, och veckor börjar på måndag; ange den valfria timezone som namnet på en tidszon, till exempel America/New_York, för att i stället låta dem börja vid midnatt i den tidszonen. Ett namn som inte är en känd tidszon avvisas.",
       "aggregateRequestTitle": "Aggregeringsbegäran",
       "createHeading": "Skapa {{title}}",
       "createIntro": "Den här slutpunkten gör att du kan skapa ett nytt objekt.",
