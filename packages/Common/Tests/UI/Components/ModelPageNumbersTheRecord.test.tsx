@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom";
+import { PRODUCT_TEXT_CLASS_NAME } from "../../../UI/Utils/ProductText";
 import {
   afterEach,
   beforeEach,
@@ -632,7 +633,10 @@ describe("how the number and the title sit together", () => {
       name: "Breadcrumb",
     });
     for (const listItem of within(nav).getAllByRole("listitem")) {
-      expect(listItem.className).toBe(BREADCRUMB_ITEM_CLASS_NAME);
+      // A crumb in the product's words also carries the recording's marker (#6834).
+      expect(
+        listItem.className.replace(` ${PRODUCT_TEXT_CLASS_NAME}`, ""),
+      ).toBe(BREADCRUMB_ITEM_CLASS_NAME);
     }
   });
 

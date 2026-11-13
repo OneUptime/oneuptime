@@ -54,7 +54,7 @@
     "test-external-mcp-servers-ui": 0.9,
     "test-first-on-call-policy-ui": 0.7,
     "test-global-runners-ui": 2.2,
-    "test-home-overview-ui": 3.9,
+    "test-home-overview-ui": 4.2,
     "test-host-collectors-ui": 1.2,
     "test-host-pages-ui": 1.6,
     "test-incoming-call-policies-ui": 0.3,

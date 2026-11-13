@@ -1095,6 +1095,33 @@ class User extends UserModel {
   public disableFeedbackQuestions?: boolean = undefined;
 
   /*
+   * "Record how I use the setup pages" (issue #6834), on while this is
+   * false: on OneUptime Cloud, and only once the person pressed "Accept
+   * all", OneUptime may record their use of the Dashboard's first-run
+   * pages, with everything typed or stored masked. Their own to switch off,
+   * on User Profile beside the feedback questions. A self-hosted server
+   * never records anybody, whatever this says.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [Permission.CurrentUser],
+    update: [Permission.CurrentUser],
+  })
+  @TableColumn({
+    title: "Disable Dashboard Recording",
+    description:
+      "When true, OneUptime never records how this person uses the dashboard. Recording happens only on OneUptime Cloud, only for people who accepted analytics, and only on the setup pages, with what they type or store masked.",
+    type: TableColumnType.Boolean,
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: true,
+    default: false,
+  })
+  public disableDashboardRecording?: boolean = undefined;
+
+  /*
    * The questions OneUptime asked this person, and when: question key
    * (`setup_flow:website_down`, `check_in:<project id>`) to an ISO date
    * (Types/ProductFeedback/ProductFeedback, readAskedQuestions). Each is
