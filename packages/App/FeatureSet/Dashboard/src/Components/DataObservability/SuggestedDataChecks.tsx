@@ -61,6 +61,9 @@ export const SUGGESTED_CHECK_NAME_TEST_ID: string = "suggested-check-name";
 export const SUGGESTED_CHECK_FACTS_TEST_ID: string = "suggested-check-facts";
 export const SUGGESTED_CHECK_REASON_TEST_ID: string = "suggested-check-reason";
 
+// Why the suggestions could not be read, added or dismissed.
+export const SUGGESTED_CHECKS_ERROR_TEST_ID: string = "suggested-checks-error";
+
 /*
  * Each suggestion's row: its words, and its Add and Dismiss beside them
  * once the card is wide enough for both (a container query, 36rem), under
@@ -81,9 +84,16 @@ export const SUGGESTED_CHECK_ROW_CLASS_NAME: string =
  * button keeps a dialog footer's margin from md up (Button's md:ml-3), and
  * Add stood 12px in from the words above it. The * covers a button a
  * tooltip wraps.
+ *
+ * Each button's words stay on one line (whitespace-nowrap). Below md, Add
+ * is as wide as the row (a NORMAL button's w-full) and Dismiss is as wide
+ * as its words, so the two shrank together and Dismiss gave up most of
+ * its width: on a phone, Japanese broke it mid-word ("非表 / 示"), and
+ * Persian's two words stacked in a button half as wide as they are. Add
+ * gives the room now, down to its own words.
  */
 export const SUGGESTED_CHECK_BUTTONS_CLASS_NAME: string =
-  "flex shrink-0 gap-2 [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0";
+  "flex shrink-0 gap-2 whitespace-nowrap [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0";
 
 // The most other tables of the store read to find what a reference points at.
 const MAX_OTHER_TABLES: number = 1000;
@@ -369,7 +379,23 @@ const SuggestedDataChecks: FunctionComponent<ComponentProps> = (
       ]}
     >
       <div>
-        {error ? <p className="mb-3 text-sm text-red-600">{error}</p> : <></>}
+        {error ? (
+          /*
+           * Why the suggestions could not be read, added or dismissed, in
+           * the words the server wrote it in - English, whatever the
+           * page's language: a line of its own, read the way its words
+           * are, so on an Arabic or Persian page it keeps its full stop at
+           * its end, as each suggestion's name and reason do.
+           */
+          <IsolatedLine
+            as="p"
+            text={error}
+            className="mb-3 break-words text-sm text-red-600"
+            dataTestId={SUGGESTED_CHECKS_ERROR_TEST_ID}
+          />
+        ) : (
+          <></>
+        )}
         <ul className={SUGGESTED_CHECKS_LIST_CLASS_NAME}>
           {suggestions.map((suggestion: DataCheckSuggestion): ReactElement => {
             return (

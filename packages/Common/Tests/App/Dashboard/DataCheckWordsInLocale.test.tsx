@@ -102,6 +102,7 @@ import SuggestedDataChecks, {
   SUGGESTED_CHECK_NAME_TEST_ID,
   SUGGESTED_CHECK_REASON_TEST_ID,
   SUGGESTED_CHECK_ROW_CLASS_NAME,
+  SUGGESTED_CHECKS_ERROR_TEST_ID,
   SUGGESTED_CHECKS_LIST_CLASS_NAME,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/SuggestedDataChecks";
 import DataObservabilityReconciliationsPage, {
@@ -171,6 +172,9 @@ const CHECK: string = "10000000-0000-4000-8000-000000000301";
 
 // The languages the tab is read in below, from the locale files themselves.
 const LANGUAGES: Array<string> = ["de", "ar"];
+
+// Languages whose Dismiss can break inside a button: Japanese anywhere, Persian at its space.
+const BREAKABLE_DISMISS_LANGUAGES: Array<string> = ["ja", "fa"];
 
 // The marks that set a name apart in a drawn sentence (FSI, PDI and kin).
 const ISOLATE_MARKS: RegExp = /[⁦-⁩]/;
@@ -542,7 +546,7 @@ beforeAll(async () => {
     lng: "en",
     fallbackLng: "en",
     resources: Object.fromEntries(
-      LANGUAGES.map((language: string) => {
+      [...LANGUAGES, ...BREAKABLE_DISMISS_LANGUAGES].map((language: string) => {
         return [language, { translation: readDashboardLocale(language) }];
       }),
     ),
@@ -855,6 +859,37 @@ describe("Suggested Checks (#7221)", () => {
     );
   });
 
+  /*
+   * On a phone, Add is as wide as the row (a NORMAL button's w-full) and
+   * Dismiss as wide as its words: the two shrank together, and Dismiss
+   * gave up most of its width - Japanese broke it mid-word ("非表 / 示") and
+   * Persian's two words stacked. Each button's words stay on one line.
+   */
+  test.each(BREAKABLE_DISMISS_LANGUAGES)(
+    "in %s, Dismiss keeps its words on one line beside Add",
+    async (language: string) => {
+      const items: Array<HTMLElement> = await drawSuggestions(language);
+      const words: Record<string, string> = readDashboardLocale(language);
+
+      // Words that can break: Japanese between any two of its characters, Persian at its space.
+      expect(words["Dismiss"]).toMatch(language === "fa" ? / / : /^.{2,}$/u);
+
+      for (const item of items) {
+        const dismiss: HTMLElement = within(item).getByRole("button", {
+          name: words["Dismiss"]!,
+        });
+
+        expect(dismiss.parentElement?.className).toBe(
+          SUGGESTED_CHECK_BUTTONS_CLASS_NAME,
+        );
+      }
+
+      expect(SUGGESTED_CHECK_BUTTONS_CLASS_NAME.split(" ")).toContain(
+        "whitespace-nowrap",
+      );
+    },
+  );
+
   test("in English, Add saves the name and reason exactly as before", async () => {
     const items: Array<HTMLElement> = await drawSuggestions("en");
 
@@ -868,6 +903,52 @@ describe("Suggested Checks (#7221)", () => {
     expect(saved()[0]!.name).toBe(ENGLISH_AS_BEFORE[1]!.name);
     expect(saved()[0]!.description).toBe(ENGLISH_AS_BEFORE[1]!.reason);
   });
+
+  /*
+   * Why a suggestion was not added is the server's message - English,
+   * whatever the page's language. Drawn as a paragraph of the page's, an
+   * Arabic page put its full stop at its start; it is a line of its own
+   * now (IsolatedLine), as each suggestion's name and reason are (#7221's
+   * review).
+   */
+  const NOT_ADDED: string = "You do not have permission to create a check.";
+
+  test.each(["en", "ar"])(
+    "in %s, a suggestion Add could not save says why in the server's words, read the way they are written",
+    async (language: string) => {
+      createMock.mockRejectedValue(new Error(NOT_ADDED));
+
+      const items: Array<HTMLElement> = await drawSuggestions(language);
+
+      await act(async () => {
+        fireEvent.click(within(items[0]!).getAllByRole("button")[0]!);
+      });
+
+      const error: HTMLElement = await screen.findByTestId(
+        SUGGESTED_CHECKS_ERROR_TEST_ID,
+      );
+
+      expect(error.tagName).toBe("P");
+      expect(withoutIsolateMarks(error.textContent || "")).toBe(NOT_ADDED);
+      expect(error).toHaveClass("mb-3", "text-sm", "text-red-600");
+
+      if (language === "en") {
+        // On an English page, a paragraph as before.
+        expect(error).not.toHaveAttribute("dir");
+        expect(error).not.toHaveClass("w-fit");
+      } else {
+        // Left to right, as wide as its words at the page's start.
+        expect(error).toHaveAttribute("dir", "ltr");
+        expect(error).toHaveClass("break-words", "w-fit", "max-w-full");
+        expect(error).not.toHaveClass("text-end");
+      }
+
+      // The suggestion stays, to add again.
+      expect(screen.getAllByTestId(SUGGESTED_CHECK_NAME_TEST_ID)).toHaveLength(
+        ENGLISH_AS_BEFORE.length,
+      );
+    },
+  );
 });
 
 describe("what a check measures, under its name (#7223)", () => {

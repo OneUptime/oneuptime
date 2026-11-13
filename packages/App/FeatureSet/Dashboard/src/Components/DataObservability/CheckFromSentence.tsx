@@ -41,6 +41,10 @@ export const CHECK_FROM_SENTENCE_BUTTONS_CLASS_NAME: string =
 export const CHECK_FROM_SENTENCE_ALERT_TEST_ID: string =
   "check-from-sentence-alert";
 
+// Why the check could not be written or added: the server's words.
+export const CHECK_FROM_SENTENCE_ERROR_TEST_ID: string =
+  "check-from-sentence-error";
+
 /*
  * "Orders never have a negative total": a rule the team knows, as a check,
  * without writing SQL. OneUptime AI writes one read-only query that counts
@@ -170,7 +174,23 @@ const CheckFromSentence: FunctionComponent<ComponentProps> = (
             }}
           />
         </div>
-        {error ? <p className="text-sm text-red-600">{error}</p> : <></>}
+        {error ? (
+          /*
+           * Why the check could not be written or added, in the words the
+           * server wrote it in - English, whatever the page's language: a
+           * line of its own, read the way its words are, so on an Arabic
+           * or Persian page it keeps its full stop at its end, as the
+           * suggestion's name and explanation do.
+           */
+          <IsolatedLine
+            as="p"
+            text={error}
+            className="break-words text-sm text-red-600"
+            dataTestId={CHECK_FROM_SENTENCE_ERROR_TEST_ID}
+          />
+        ) : (
+          <></>
+        )}
         {suggestion ? (
           <div className="space-y-2 rounded-md border border-gray-200 p-4">
             {/*
