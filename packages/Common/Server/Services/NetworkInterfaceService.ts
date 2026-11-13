@@ -85,6 +85,14 @@ export class Service extends DatabaseService<Model> {
    * statement instead of a hundred. Suppressing that would mean letting
    * `lastSeenAt` go stale on a port that is answering, which is a worse thing
    * to be wrong about than the WAL it would save.
+   *
+   * `now` is when OneUptime received the poll (OneUptime issue #7389), and a
+   * row is written only where it was last seen before then: an older walk
+   * processed after a newer one - a retried job, or one that waited longer
+   * in the queue - leaves the newer walk's rows as they are, and still adds
+   * the interfaces the newer walk did not report. Both statements ask it in
+   * their own WHERE, so a walk written at the same moment is judged by the
+   * row as that walk left it.
    */
   public async upsertWalkedInterfaces(data: {
     projectId: ObjectID;
@@ -166,7 +174,9 @@ export class Service extends DatabaseService<Model> {
    * above and this INSERT — a concurrent walk of the same device, or a device
    * with more than LIMIT_MAX interfaces whose stored rows did not all fit in
    * the read. It then applies the update path's semantics so the observation
-   * is not silently dropped. Two columns are deliberately absent from it:
+   * is not silently dropped, including its rule that a row last seen at or
+   * after this walk is left alone. Two columns are deliberately absent from
+   * it:
    *
    *  - "isMonitored", so the race can never resurrect a muted port; and
    *  - the four rate columns, which this statement does not carry at all
@@ -247,6 +257,8 @@ export class Service extends DatabaseService<Model> {
           "lastSeenAt" = EXCLUDED."lastSeenAt",
           "version" = "NetworkInterface"."version" + 1,
           "updatedAt" = now()
+        WHERE "NetworkInterface"."lastSeenAt" IS NULL
+          OR "NetworkInterface"."lastSeenAt" < EXCLUDED."lastSeenAt"
       `;
 
       await this.runChunkWithRowFallback({
@@ -404,6 +416,7 @@ export class Service extends DatabaseService<Model> {
           i."networkDeviceId" = $1
           AND i."interfaceIndex" = v."interfaceIndex"
           AND i."deletedAt" IS NULL
+          AND (i."lastSeenAt" IS NULL OR i."lastSeenAt" < v."lastSeenAt")
       `;
 
       await this.runChunkWithRowFallback({

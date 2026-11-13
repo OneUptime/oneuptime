@@ -26,6 +26,10 @@ import {
   TransceiverHealth,
 } from "../../../../Types/Monitor/SnmpMonitor/SnmpTransceiver";
 import { FindOperator } from "typeorm";
+import {
+  PollVerdictWrite,
+  pollVerdictColumns,
+} from "../../TestingUtils/NetworkDevicePollVerdict";
 
 /*
  * NetworkInventoryUtil.updateFromWalk is the single writer that keeps the
@@ -50,6 +54,7 @@ type DeviceUpdatePayload = Record<string, unknown>;
 
 let deviceFindSpy: jest.SpyInstance;
 let deviceUpdateSpy: jest.SpyInstance;
+let pollVerdictSpy: jest.SpyInstance;
 let interfaceFindSpy: jest.SpyInstance;
 let interfaceUpsertSpy: jest.SpyInstance;
 let endpointUpsertSpy: jest.SpyInstance;
@@ -77,6 +82,13 @@ function mockServices(
   deviceUpdateSpy = jest
     .spyOn(NetworkDeviceService, "updateOneById")
     .mockResolvedValue(1);
+  /*
+   * The poll's verdict goes first, through its own guarded statement
+   * (issue #7389). true: the device held no verdict from a later poll.
+   */
+  pollVerdictSpy = jest
+    .spyOn(NetworkDeviceService, "writePollVerdict")
+    .mockResolvedValue(true);
   /*
    * The inventory read now happens INSIDE the batched service call, so this
    * stub only exists to keep a stray direct read from reaching a database.
@@ -144,9 +156,30 @@ function mockServices(
     .mockResolvedValue(true);
 }
 
+// The poll's verdict, as the device row ends up with it.
+function verdictColumns(): DeviceUpdatePayload {
+  if (pollVerdictSpy.mock.calls.length === 0) {
+    return {};
+  }
+
+  expect(pollVerdictSpy).toHaveBeenCalledTimes(1);
+
+  return pollVerdictColumns(pollVerdictSpy.mock.calls[0][0] as PollVerdictWrite);
+}
+
+/*
+ * Everything the poll wrote to the device row: its verdict, and what the
+ * walk read about the device through the hooked write, when there was any.
+ */
 function deviceUpdatePayload(): DeviceUpdatePayload {
-  expect(deviceUpdateSpy).toHaveBeenCalledTimes(1);
-  return deviceUpdateSpy.mock.calls[0][0].data as DeviceUpdatePayload;
+  expect(deviceUpdateSpy.mock.calls.length).toBeLessThanOrEqual(1);
+
+  const enrichment: DeviceUpdatePayload =
+    deviceUpdateSpy.mock.calls.length > 0
+      ? (deviceUpdateSpy.mock.calls[0][0].data as DeviceUpdatePayload)
+      : {};
+
+  return { ...verdictColumns(), ...enrichment };
 }
 
 function buildSnmpResponse(
@@ -451,6 +484,7 @@ describe("NetworkInventoryUtil.updateFromWalk — reachability recording", () =>
     const good: DeviceUpdatePayload = deviceUpdatePayload();
 
     deviceUpdateSpy.mockClear();
+    pollVerdictSpy.mockClear();
     await runWalk({ isOnline: false }, { isOnline: false });
     const bad: DeviceUpdatePayload = deviceUpdatePayload();
 
@@ -834,8 +868,8 @@ describe("NetworkInventoryUtil.updateFromWalk — interface upsert", () => {
       interfaces: [walkedInterface({ interfaceIndex: 1 })],
     });
 
-    // The device row was still enriched, and nothing threw out of the util.
-    expect(deviceUpdateSpy).toHaveBeenCalledTimes(1);
+    // The poll's verdict was still written, and nothing threw out of the util.
+    expect(pollVerdictSpy).toHaveBeenCalledTimes(1);
     expect(snmpResponse.interfaces).toHaveLength(1);
   });
 });
@@ -877,6 +911,7 @@ describe("NetworkInventoryUtil.updateFromWalk — walks without interfaces", () 
      * they are across any failed walk.)
      */
     expect(deviceUpdatePayload()).toEqual({
+      lastPollReceivedAt: NOW,
       lastPolledAt: NOW,
       isReachable: true,
       lastSeenAt: NOW,
@@ -900,6 +935,7 @@ describe("NetworkInventoryUtil.updateFromWalk — ping-first column matrix", () 
     await runPingOnlyPoll({ isOnline: true });
 
     expect(deviceUpdatePayload()).toEqual({
+      lastPollReceivedAt: NOW,
       lastPolledAt: NOW,
       isReachable: true,
       lastSeenAt: NOW,
@@ -918,6 +954,7 @@ describe("NetworkInventoryUtil.updateFromWalk — ping-first column matrix", () 
     await runPingOnlyPoll({ isOnline: false });
 
     expect(deviceUpdatePayload()).toEqual({
+      lastPollReceivedAt: NOW,
       lastPolledAt: NOW,
       isReachable: false,
       isSnmpReachable: null,
@@ -1018,6 +1055,7 @@ describe("NetworkInventoryUtil.updateFromWalk — ping-first column matrix", () 
     expect(failed["isSnmpReachable"]).toBe(false);
 
     deviceUpdateSpy.mockClear();
+    pollVerdictSpy.mockClear();
     await runWalk();
     const good: DeviceUpdatePayload = deviceUpdatePayload();
 
@@ -1245,8 +1283,8 @@ describe("NetworkInventoryUtil.updateFromWalk — device MAC learning", () => {
       macAddress: null,
       deletedAt: null,
     });
-    // The walked router's own row is untouched by learning.
-    expect(deviceUpdateSpy).toHaveBeenCalledTimes(1);
+    // The walked router's own row is untouched by learning: only its verdict.
+    expect(pollVerdictSpy).toHaveBeenCalledTimes(1);
     expect(deviceUpdatePayload()).not.toHaveProperty("macAddress");
   });
 
@@ -1321,7 +1359,7 @@ describe("NetworkInventoryUtil.updateFromWalk — device MAC learning", () => {
 
     // Nothing escaped, and everything before the learning step landed.
     expect(snmpResponse).toBeDefined();
-    expect(deviceUpdateSpy).toHaveBeenCalledTimes(1);
+    expect(pollVerdictSpy).toHaveBeenCalledTimes(1);
     expect(endpointUpsertSpy).toHaveBeenCalledTimes(1);
     expect(macWriteSpy).not.toHaveBeenCalled();
 
