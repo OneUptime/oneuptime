@@ -482,7 +482,7 @@ const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
                 };
               },
             ),
-            title: "Filter by Telemetry Service",
+            title: "Filter by Service",
             description:
               "Only exceptions from these services. Empty: every service.",
             hideOptionalLabel: true,

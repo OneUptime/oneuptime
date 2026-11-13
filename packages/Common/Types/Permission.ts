@@ -22,7 +22,7 @@ export enum PermissionGroup {
   AutoRemediation = "AI Rules",
   Team = "Team",
   Billing = "Billing",
-  ServiceCatalog = "Service Catalog",
+  ServiceCatalog = "Services",
   Settings = "Settings",
   AIAgent = "AI Agent",
   Probe = "Probe",
@@ -7702,9 +7702,9 @@ export class PermissionHelper {
 
       {
         permission: Permission.CreateTelemetryService,
-        title: "Create Telemetry Service",
+        title: "Create Inventory Item",
         description:
-          "This permission can create Telemetry Service this project.",
+          "This permission can create the inventory's items in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -7712,9 +7712,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.DeleteTelemetryService,
-        title: "Delete Telemetry Service",
+        title: "Delete Inventory Item",
         description:
-          "This permission can delete Telemetry Service of this project.",
+          "This permission can delete the inventory's items in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
         isRolePermission: false,
@@ -7722,9 +7722,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.EditTelemetryService,
-        title: "Edit Telemetry Service",
+        title: "Edit Inventory Item",
         description:
-          "This permission can edit Telemetry Service of this project.",
+          "This permission can edit the inventory's items in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
         isRolePermission: false,
@@ -7732,8 +7732,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.ReadTelemetryService,
-        title: "Read Telemetry Service",
-        description: "This permission can read Service of this project.",
+        title: "Read Inventory Item",
+        description:
+          "This permission can read the inventory's items in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
         isRolePermission: false,
@@ -8310,9 +8311,8 @@ export class PermissionHelper {
 
       {
         permission: Permission.CreateTelemetryServiceLog,
-        title: "Create Telemetry Service Log",
-        description:
-          "This permission can create Telemetry Service Log this project.",
+        title: "Create Logs",
+        description: "This permission can create the logs of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -8320,9 +8320,8 @@ export class PermissionHelper {
       },
       {
         permission: Permission.DeleteTelemetryServiceLog,
-        title: "Delete Telemetry Service Log",
-        description:
-          "This permission can delete Telemetry Service Log of this project.",
+        title: "Delete Logs",
+        description: "This permission can delete the logs of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -8330,9 +8329,8 @@ export class PermissionHelper {
       },
       {
         permission: Permission.EditTelemetryServiceLog,
-        title: "Edit Telemetry Service Log",
-        description:
-          "This permission can edit Telemetry Service Log of this project.",
+        title: "Edit Logs",
+        description: "This permission can edit the logs of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -8340,9 +8338,8 @@ export class PermissionHelper {
       },
       {
         permission: Permission.ReadTelemetryServiceLog,
-        title: "Read Telemetry Service Log",
-        description:
-          "This permission can read Telemetry Service Log of this project.",
+        title: "Read Logs",
+        description: "This permission can read the logs of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -10222,9 +10219,9 @@ export class PermissionHelper {
 
       {
         permission: Permission.CreateTelemetryException,
-        title: "Create Telemetry Service Exception",
+        title: "Create Exceptions",
         description:
-          "This permission can create Telemetry Service Exception this project.",
+          "This permission can create the exceptions of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -10232,9 +10229,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.DeleteTelemetryException,
-        title: "Delete Telemetry Service Exception",
+        title: "Delete Exceptions",
         description:
-          "This permission can delete Telemetry Service Exception of this project.",
+          "This permission can delete the exceptions of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -10242,9 +10239,8 @@ export class PermissionHelper {
       },
       {
         permission: Permission.EditTelemetryException,
-        title: "Edit Telemetry Service Exception",
-        description:
-          "This permission can edit Telemetry Service Exception of this project.",
+        title: "Edit Exceptions",
+        description: "This permission can edit the exceptions of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -10252,9 +10248,8 @@ export class PermissionHelper {
       },
       {
         permission: Permission.ReadTelemetryException,
-        title: "Read Telemetry Service Exception",
-        description:
-          "This permission can read Telemetry Service Exception of this project.",
+        title: "Read Exceptions",
+        description: "This permission can read the exceptions of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -13553,9 +13548,9 @@ export class PermissionHelper {
 
       {
         permission: Permission.CreateServiceTelemetryService,
-        title: "Create Service Telemetry Service",
+        title: "Create Service Telemetry Link",
         description:
-          "This permission can create Service Telemetry Service in this project.",
+          "This permission can create the links between services and their telemetry in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -13563,9 +13558,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.DeleteServiceTelemetryService,
-        title: "Delete Service Telemetry Service",
+        title: "Delete Service Telemetry Link",
         description:
-          "This permission can delete Service Telemetry Service of this project.",
+          "This permission can delete the links between services and their telemetry in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -13573,9 +13568,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.EditServiceTelemetryService,
-        title: "Edit Service Telemetry Service",
+        title: "Edit Service Telemetry Link",
         description:
-          "This permission can edit Service Telemetry Service of this project.",
+          "This permission can edit the links between services and their telemetry in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -13583,9 +13578,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.ReadServiceTelemetryService,
-        title: "Read Service Telemetry Service",
+        title: "Read Service Telemetry Link",
         description:
-          "This permission can read Service Telemetry Service of this project.",
+          "This permission can read the links between services and their telemetry in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -13636,9 +13631,8 @@ export class PermissionHelper {
 
       {
         permission: Permission.CreateTelemetryServiceTraces,
-        title: "Create Telemetry Service Traces",
-        description:
-          "This permission can create Telemetry Service Traces this project.",
+        title: "Create Traces",
+        description: "This permission can create the traces of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -13646,9 +13640,8 @@ export class PermissionHelper {
       },
       {
         permission: Permission.DeleteTelemetryServiceTraces,
-        title: "Delete Telemetry Service Traces",
-        description:
-          "This permission can delete Telemetry Service Traces of this project.",
+        title: "Delete Traces",
+        description: "This permission can delete the traces of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -13656,9 +13649,8 @@ export class PermissionHelper {
       },
       {
         permission: Permission.EditTelemetryServiceTraces,
-        title: "Edit Telemetry Service Traces",
-        description:
-          "This permission can edit Telemetry Service Traces of this project.",
+        title: "Edit Traces",
+        description: "This permission can edit the traces of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -13666,9 +13658,8 @@ export class PermissionHelper {
       },
       {
         permission: Permission.ReadTelemetryServiceTraces,
-        title: "Read Telemetry Service Traces",
-        description:
-          "This permission can read Telemetry Service Traces of this project.",
+        title: "Read Traces",
+        description: "This permission can read the traces of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -13677,9 +13668,8 @@ export class PermissionHelper {
 
       {
         permission: Permission.CreateTelemetryServiceMetrics,
-        title: "Create Telemetry Service Metrics",
-        description:
-          "This permission can create Telemetry Service Metrics this project.",
+        title: "Create Metrics",
+        description: "This permission can create the metrics of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -13687,9 +13677,8 @@ export class PermissionHelper {
       },
       {
         permission: Permission.DeleteTelemetryServiceMetrics,
-        title: "Delete Telemetry Service Metrics",
-        description:
-          "This permission can delete Telemetry Service Metrics of this project.",
+        title: "Delete Metrics",
+        description: "This permission can delete the metrics of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -13697,9 +13686,8 @@ export class PermissionHelper {
       },
       {
         permission: Permission.EditTelemetryServiceMetrics,
-        title: "Edit Telemetry Service Metrics",
-        description:
-          "This permission can edit Telemetry Service Metrics of this project.",
+        title: "Edit Metrics",
+        description: "This permission can edit the metrics of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -13707,9 +13695,8 @@ export class PermissionHelper {
       },
       {
         permission: Permission.ReadTelemetryServiceMetrics,
-        title: "Read Telemetry Service Metrics",
-        description:
-          "This permission can read Telemetry Service Metrics of this project.",
+        title: "Read Metrics",
+        description: "This permission can read the metrics of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -13718,9 +13705,8 @@ export class PermissionHelper {
 
       {
         permission: Permission.CreateTelemetryServiceProfiles,
-        title: "Create Telemetry Service Profiles",
-        description:
-          "This permission can create Telemetry Service Profiles this project.",
+        title: "Create Profiles",
+        description: "This permission can create the profiles of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -13728,9 +13714,8 @@ export class PermissionHelper {
       },
       {
         permission: Permission.DeleteTelemetryServiceProfiles,
-        title: "Delete Telemetry Service Profiles",
-        description:
-          "This permission can delete Telemetry Service Profiles of this project.",
+        title: "Delete Profiles",
+        description: "This permission can delete the profiles of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -13738,9 +13723,8 @@ export class PermissionHelper {
       },
       {
         permission: Permission.EditTelemetryServiceProfiles,
-        title: "Edit Telemetry Service Profiles",
-        description:
-          "This permission can edit Telemetry Service Profiles of this project.",
+        title: "Edit Profiles",
+        description: "This permission can edit the profiles of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -13748,9 +13732,8 @@ export class PermissionHelper {
       },
       {
         permission: Permission.ReadTelemetryServiceProfiles,
-        title: "Read Telemetry Service Profiles",
-        description:
-          "This permission can read Telemetry Service Profiles of this project.",
+        title: "Read Profiles",
+        description: "This permission can read the profiles of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

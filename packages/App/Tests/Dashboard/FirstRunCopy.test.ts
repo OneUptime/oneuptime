@@ -428,7 +428,7 @@ describe("list descriptions say what the list holds", () => {
     for (const file of ["Pages/ScheduledMaintenanceEvents/Ongoing.tsx"]) {
       const code: string = readCode(file);
 
-      expect(code).toContain('title="Ongoing Scheduled Maintenance"');
+      expect(code).toContain('title="Ongoing Maintenance Events"');
 
       // In a string a user reads; the component's identifier is not one.
       const literals: Array<string> = Array.from(
@@ -437,7 +437,7 @@ describe("list descriptions say what the list holds", () => {
         return unescapeLiteral(match[1]!);
       });
 
-      expect(literals).toContain("Ongoing Scheduled Maintenance");
+      expect(literals).toContain("Ongoing Maintenance Events");
       expect(
         literals.filter((literal: string): boolean => {
           return literal.includes("Maintenances");
@@ -599,9 +599,9 @@ describe("the core lists leave the empty state to the table", () => {
       "No monitors yet.",
       "No incidents yet.",
       "No alerts yet.",
-      "No scheduled maintenance events yet.",
+      "No maintenance events yet.",
       "No status pages yet.",
-      "No on-call duty policies yet.",
+      "No on-call policies yet.",
       "No on-call schedules yet.",
       "No workflows yet.",
       "No dashboards yet.",

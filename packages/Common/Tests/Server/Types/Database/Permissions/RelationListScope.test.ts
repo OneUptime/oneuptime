@@ -388,7 +388,7 @@ describe("a create that lists records", () => {
     );
 
     expect((refusal as Error).message).toBe(
-      `This scheduled maintenance event references records that are not in this project: Monitors "${MONITOR_B}", Status Pages "${PAGE_B}". Please pick values from this project and try again.`,
+      `This maintenance event references records that are not in this project: Monitors "${MONITOR_B}", Status Pages "${PAGE_B}". Please pick values from this project and try again.`,
     );
   });
 

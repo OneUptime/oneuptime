@@ -60,7 +60,7 @@ Een vastgelopen agent laat een herkenbaar spoor na: dezelfde tool-span, steeds w
 
 :::steps
 1. Open **Monitoren**, klik op **Monitor maken** en kies **Traces** onder **Meer monitortypen**. Kies onder **Waarover moet deze monitor je informeren?** voor **Iets anders**, en maak **Span-status** leeg.
-2. Zet onder **Meer velden** de optie **Filteren op telemetrieservice** op de service van de agent, en **Filteren op attributen** op `gen_ai.tool.name` gelijk aan de tool waarop je een lus verwacht, zoals `search_web`. Als je instrumentatie de span van elke tool een naam geeft, zet die naam dan in **Spannaam bevat**.
+2. Zet onder **Meer velden** de optie **Filteren op service** op de service van de agent, en **Filteren op attributen** op `gen_ai.tool.name` gelijk aan de tool waarop je een lus verwacht, zoals `search_web`. Als je instrumentatie de span van elke tool een naam geeft, zet die naam dan in **Spannaam bevat**.
 3. Zet het **Tijdvenster** op **Laatste 5 minuten**.
 4. Zet in **Wanneer waarschuwen** **Meer dan** op een getal dat geen gezonde run in vijf minuten haalt, zoals `50`, en geef de waarschuwing een titel als `Agent loop: support-bot`.
 :::

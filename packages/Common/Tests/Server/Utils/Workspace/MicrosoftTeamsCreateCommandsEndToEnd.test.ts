@@ -2646,7 +2646,7 @@ describe("who is checked before the form (#4111 review): the sender of a persona
     expect(view.httpStatuses).toEqual([200]);
     // The same refusal a submit would get (see the maintenance submit tests).
     expect(answersOf(view.bubbles)).toEqual([
-      "You do not have permission to create a scheduled maintenance event. You do not have permissions to create Scheduled Maintenance Event. You need one of these permissions: Project Owner, Project Admin, Project Member, Scheduled Maintenance Admin, Scheduled Maintenance Member, Create Scheduled Maintenance",
+      "You do not have permission to create a scheduled maintenance event. You do not have permissions to create Maintenance Event. You need one of these permissions: Project Owner, Project Admin, Project Member, Scheduled Maintenance Admin, Scheduled Maintenance Member, Create Scheduled Maintenance",
     ]);
     expect(WorkspaceActionAuthorization.assertCanCreate).toHaveBeenCalledTimes(
       1,
@@ -4495,7 +4495,7 @@ describe("submitting the maintenance form: start and end are read in the zone th
 
     expect(view.httpStatuses).toEqual([200]);
     expect(labelsOf(view.bubbles)).toEqual([
-      "You do not have permission to create a scheduled maintenance event. You do not have permissions to create Scheduled Maintenance Event. You need one of these permissions: Project Owner, Project Admin, Project Member, Scheduled Maintenance Admin, Scheduled Maintenance Member, Create Scheduled Maintenance",
+      "You do not have permission to create a scheduled maintenance event. You do not have permissions to create Maintenance Event. You need one of these permissions: Project Owner, Project Admin, Project Member, Scheduled Maintenance Admin, Scheduled Maintenance Member, Create Scheduled Maintenance",
     ]);
     expect(WorkspaceActionAuthorization.assertCanCreate).toHaveBeenCalledTimes(
       1,

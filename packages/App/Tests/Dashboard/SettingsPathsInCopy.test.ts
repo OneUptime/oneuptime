@@ -336,7 +336,7 @@ describe("the path checks", () => {
 
   test.each([
     "Create them in Incidents → Settings → Postmortem Templates.",
-    "Create them in Scheduled Maintenance → Settings → Event Templates.",
+    "Create them in Scheduled Maintenance → Settings → Maintenance Templates.",
     "Create them in Status Pages → Settings → Announcement Templates.",
     "Add one under Monitors → Settings → Monitor Status, then try again.",
     "Add one under Alerts → Settings → Alert Severity.",
@@ -470,7 +470,7 @@ describe("the no-templates dialogs", () => {
     {
       file: "Components/ScheduledMaintenance/ScheduledMaintenanceTable.tsx",
       product: "Scheduled Maintenance",
-      page: "Event Templates",
+      page: "Maintenance Templates",
     },
     {
       file: "Components/Announcement/AnnouncementsTable.tsx",

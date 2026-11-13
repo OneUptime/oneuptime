@@ -60,7 +60,7 @@ Un agente bloccato lascia una traccia riconoscibile: lo stesso span di strumento
 
 :::steps
 1. Apri **Monitor**, fai clic su **Crea monitor** e scegli **Tracce** in **Altri tipi di monitor**. In **Di cosa deve informarti questo monitor?**, scegli **Qualcos'altro** e svuota **Stato dello span**.
-2. In **Altri campi**, imposta **Filtra per servizio di telemetria** sul servizio dell'agente e **Filtra per attributi** su `gen_ai.tool.name` uguale allo strumento su cui ti aspetti il ciclo, come `search_web`. Se la tua strumentazione dà un nome allo span di ogni strumento, metti invece quel nome in **Il nome dello span contiene**.
+2. In **Altri campi**, imposta **Filtra per servizio** sul servizio dell'agente e **Filtra per attributi** su `gen_ai.tool.name` uguale allo strumento su cui ti aspetti il ciclo, come `search_web`. Se la tua strumentazione dà un nome allo span di ogni strumento, metti invece quel nome in **Il nome dello span contiene**.
 3. Imposta la **Finestra temporale** su **Ultimi 5 minuti**.
 4. In **Quando avvisare**, imposta **Più di** un numero che nessuna esecuzione sana raggiunge in cinque minuti, come `50`, e intitola l'avviso ad esempio `Agent loop: support-bot`.
 :::

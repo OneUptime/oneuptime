@@ -1,6 +1,6 @@
 # Vue d'ensemble des formulaires
 
-Un formulaire est une page que toute personne disposant de son lien peut remplir, sans compte OneUptime. Chaque soumission crée quelque chose dans votre projet : un **incident**, pour les signalements de problèmes, ou un **événement de maintenance planifiée**, pour les demandes de changement et de maintenance. Vous construisez les questions du formulaire dans un éditeur par glisser-déposer, décidez comment les réponses deviennent l'enregistrement et partagez le lien avec les personnes qui doivent l'utiliser.
+Un formulaire est une page que toute personne disposant de son lien peut remplir, sans compte OneUptime. Chaque soumission crée quelque chose dans votre projet : un **incident**, pour les signalements de problèmes, ou un **événement de maintenance**, pour les demandes de changement et de maintenance. Vous construisez les questions du formulaire dans un éditeur par glisser-déposer, décidez comment les réponses deviennent l'enregistrement et partagez le lien avec les personnes qui doivent l'utiliser.
 
 Utilisez un formulaire quand les personnes qui remarquent un problème, ou qui ont besoin d'un changement, ne sont pas celles qui gèrent vos incidents et vos maintenances : agents du support, collègues d'un autre service, responsable de magasin, équipe d'exploitation d'un client. Elles ouvrent le lien, répondent à vos questions et cliquent sur **Soumettre**. Votre équipe reçoit un incident ou un événement ordinaire, avec les réponses dans ses champs et une note privée qui indique qui l'a envoyé.
 
@@ -257,7 +257,7 @@ La réponse à une question de fichiers, ce sont les fichiers tels qu'ils ont é
 
 ### Workflows
 
-Les formulaires ont les composants de workflow générés : **On Create Form**, **On Update Form**, etc. Pour agir sur ce qu'un formulaire a créé, utilisez **On Create Incident** ou **On Create Scheduled Maintenance Event**.
+Les formulaires ont les composants de workflow générés : **On Create Form**, **On Update Form**, etc. Pour agir sur ce qu'un formulaire a créé, utilisez **On Create Incident** ou **On Create Maintenance Event**.
 
 ### Les points de terminaison propres à la page publique
 

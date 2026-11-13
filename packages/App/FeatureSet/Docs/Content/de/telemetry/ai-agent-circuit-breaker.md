@@ -60,7 +60,7 @@ Ein festgefahrener Agent hinterlässt eine Spur, die Sie erkennen: denselben Too
 
 :::steps
 1. Öffnen Sie **Monitore**, klicken Sie auf **Monitor erstellen** und wählen Sie **Traces** unter **Weitere Monitortypen**. Wählen Sie unter **Worüber soll dieser Monitor Sie informieren?** **Etwas anderes** und leeren Sie **Span-Status**.
-2. Setzen Sie unter **Weitere Felder** den Filter **Nach Telemetrie-Dienst filtern** auf den Dienst des Agenten und **Nach Attributen filtern** auf `gen_ai.tool.name` gleich dem Tool, bei dem Sie eine Schleife erwarten, etwa `search_web`. Wenn Ihre Instrumentierung den Span jedes Tools benennt, tragen Sie diesen Namen stattdessen in **Span-Name enthält** ein.
+2. Setzen Sie unter **Weitere Felder** den Filter **Nach Dienst filtern** auf den Dienst des Agenten und **Nach Attributen filtern** auf `gen_ai.tool.name` gleich dem Tool, bei dem Sie eine Schleife erwarten, etwa `search_web`. Wenn Ihre Instrumentierung den Span jedes Tools benennt, tragen Sie diesen Namen stattdessen in **Span-Name enthält** ein.
 3. Setzen Sie das **Zeitfenster** auf **Letzte 5 Minuten**.
 4. Setzen Sie in **Wann alarmieren** **Mehr als** eine Zahl, die kein gesunder Lauf in fünf Minuten erreicht, etwa `50`, und geben Sie der Warnung einen Titel wie `Agent loop: support-bot`.
 :::

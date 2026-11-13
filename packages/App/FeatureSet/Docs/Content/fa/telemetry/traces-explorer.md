@@ -37,7 +37,7 @@ flowchart TB
 ## پیش از شروع
 
 - **ترِیس‌های در حال رسیدن.** سرویس‌هایتان را با [OpenTelemetry](/docs/telemetry/open-telemetry) ابزارگذاری کنید. زبانهٔ **راهنمای راه‌اندازی** کد زبان شما را نشان می‌دهد.
-- **نقشی که تله‌متری را بخواند.** Project Owner، Project Admin، Project Member، Viewer، Telemetry Admin، Telemetry Member یا Telemetry Viewer، یا یک نقش سفارشی با مجوز Read Telemetry Service Traces. دامنهٔ آن تعیین می‌کند اسپن‌های چه کسانی را می‌بینید: [تله‌متری](/docs/permissions/index#تلهمتری) را ببینید.
+- **نقشی که تله‌متری را بخواند.** Project Owner، Project Admin، Project Member، Viewer، Telemetry Admin، Telemetry Member یا Telemetry Viewer، یا یک نقش سفارشی با مجوز Read Traces. دامنهٔ آن تعیین می‌کند اسپن‌های چه کسانی را می‌بینید: [تله‌متری](/docs/permissions/index#تلهمتری) را ببینید.
 
 ## یافتن یک درخواست
 

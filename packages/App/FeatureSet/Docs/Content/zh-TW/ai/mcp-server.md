@@ -483,7 +483,7 @@ MCP 伺服器是無狀態的：它既不核發也不追蹤工作階段 ID，因�
 | 事件 | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert, Postmortem Status |
 | 警示 | Alert, Alert State, Alert Severity, Alert State Timeline, Alert Internal Note |
 | 狀態頁 | Status Page, Status Page Announcement |
-| 排定維護 | Scheduled Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |
+| 排定維護 | Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |
 | 團隊和待命 | Team, On-Call Policy |
 | 標籤 | Label |
 | 安全性 | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |

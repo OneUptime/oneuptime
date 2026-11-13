@@ -1,6 +1,6 @@
-# Dienstkatalog
+# Dienste
 
-Der Dienstkatalog listet die Anwendungen und Microservices, die Sie betreiben. OneUptime legt einen Dienst an, sobald seine Telemetrie zum ersten Mal eintrifft, und führt dann seine Protokolle, Traces, Metriken, Ausnahmen, Vorfälle und Eigentümer auf einer Seite zusammen, sodass jeder sieht, was ein Dienst tut, wem er gehört und wie es ihm geht. Um zwischen einem Dienst, einer Monitor-Gruppe und einer Beschriftung zu wählen, lesen Sie [Was nehme ich wann?](/docs/introduction/which-one#monitor-gruppe-dienst-oder-beschriftung).
+Unter Dienste finden Sie die Anwendungen und Microservices, die Sie betreiben. OneUptime legt einen Dienst an, sobald seine Telemetrie zum ersten Mal eintrifft, und führt dann seine Protokolle, Traces, Metriken, Ausnahmen, Vorfälle und Eigentümer auf einer Seite zusammen, sodass jeder sieht, was ein Dienst tut, wem er gehört und wie es ihm geht. Um zwischen einem Dienst, einer Monitor-Gruppe und einer Beschriftung zu wählen, lesen Sie [Was nehme ich wann?](/docs/introduction/which-one#monitor-gruppe-dienst-oder-beschriftung).
 
 :::cards
 - [Wie ein Dienst in den Katalog kommt](#wie-ein-dienst-in-den-katalog-kommt): Sein `service.name`, bei seiner ersten Telemetrie.

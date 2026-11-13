@@ -84,7 +84,7 @@ Setzen Sie die ID des Dienstes in `telemetryServiceIds`, oder lassen Sie die Lis
 | `attributes` | Profile, deren Attribute diese Werte haben. | Leer: keine Bedingung |
 | `lastXSecondsOfProfiles` | Profile, die innerhalb dieser Anzahl Sekunden vor der Auswertung begonnen haben. | Keiner: immer setzen, sonst wird jedes gespeicherte Profil gezählt und die Anzahl fällt nie auf 0 |
 
-Alle Filter, die Sie setzen, müssen passen, damit ein Profil gelesen wird. Im Formular setzt **Funktion** den Wert `functionName`, **Was analysiert werden soll** setzt `profileTypes` (**Jede Profilart** lässt es leer), **Profile überwachen für (Zeit)** setzt `lastXSecondsOfProfiles`, und **Nach Telemetrie-Dienst filtern** und **Nach Infrastruktur-Entität filtern** setzen `telemetryServiceIds` und `entityKeys`.
+Alle Filter, die Sie setzen, müssen passen, damit ein Profil gelesen wird. Im Formular setzt **Funktion** den Wert `functionName`, **Was analysiert werden soll** setzt `profileTypes` (**Jede Profilart** lässt es leer), **Profile überwachen für (Zeit)** setzt `lastXSecondsOfProfiles`, und **Nach Dienst filtern** und **Nach Infrastruktur-Entität filtern** setzen `telemetryServiceIds` und `entityKeys`.
 
 ## Wie er ausgewertet wird
 

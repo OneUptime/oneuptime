@@ -41,12 +41,12 @@ Ankündigungen werden unter [Abonnenten & Ankündigungen](/docs/status-pages/sub
 
 ## Woher Ereignisse kommen
 
-- **Das Formular.** Klicken Sie in der Liste der Ereignisse auf **Geplantes Wartungsereignis erstellen** oder auf dem Tab **Geplante Wartung** eines Hosts, eines Clusters, eines Dienstes, eines Netzwerkstandorts oder einer anderen Ressource, der diese Ressource für Sie auswählt. Siehe [Wartungsereignisse erstellen](/docs/scheduled-maintenance/creating-events).
+- **Das Formular.** Klicken Sie in der Liste der Ereignisse auf **Wartungsereignis erstellen** oder auf dem Tab **Geplante Wartung** eines Hosts, eines Clusters, eines Dienstes, eines Netzwerkstandorts oder einer anderen Ressource, der diese Ressource für Sie auswählt. Siehe [Wartungsereignisse erstellen](/docs/scheduled-maintenance/creating-events).
 - **Eine Vorlage.** **Aus Vorlage erstellen** füllt das Formular aus einer Vorlage aus, die Sie für wiederkehrende Arbeiten gespeichert haben. Siehe [Vorlagen & wiederkehrende Ereignisse](/docs/scheduled-maintenance/templates).
 - **Ein Zeitplan.** Eine wiederkehrende Vorlage erstellt nach einem Zeitplan, etwa jede Woche oder jeden Monat, ein neues Ereignis, ohne dass jemand das Formular öffnet.
 - **Ein Formular.** Ein Formular, dessen Einreichungen Wartungsereignisse erstellen, macht aus einer Änderungsanfrage ein Ereignis. Siehe [Was eine Einreichung erstellt](/docs/forms/on-submit#wie-aus-einer-einreichung-ein-geplantes-wartungsereignis-wird).
 - **Chat.** `/oneuptime maintenance` in Slack oder `maintenance`, an den OneUptime-Bot in Microsoft Teams geschrieben, öffnet das Formular in Ihrem Chat-Tool. Siehe [Slack](/docs/workspace-connections/slack#vorfälle-und-wartungen-aus-slack-erstellen).
-- **Code.** Die API unter `/api/scheduled-maintenance`, die Terraform-Ressource `oneuptime_scheduled_maintenance_event` und der Schritt **Create One Scheduled Maintenance Event** eines Workflows.
+- **Code.** Die API unter `/api/scheduled-maintenance`, die Terraform-Ressource `oneuptime_scheduled_maintenance_event` und der Schritt **Create One Maintenance Event** eines Workflows.
 
 ## Wo die Wartung im Dashboard liegt
 
@@ -54,11 +54,11 @@ Ankündigungen werden unter [Abonnenten & Ankündigungen](/docs/status-pages/sub
 
 | Abschnitt     | Was Sie dort tun                                                                                                           |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| **Übersicht** | **Alle Ereignisse** und **Laufende Ereignisse**, dessen Abzeichen die gerade laufenden Ereignisse zählt.                     |
+| **Übersicht** | **Alle Wartungsereignisse** und **Laufende Wartungsereignisse**, dessen Abzeichen die gerade laufenden Ereignisse zählt.                     |
 | **Kalender** | **Wartungskalender**: jedes Ereignis in einem Monat, einer Woche oder einem Tag, neben den Kalendern von außerhalb des Projekts, die Sie hinzufügen. |
 | **Arbeitsbereich** | **Slack**, **Microsoft Teams** und **Mattermost**, je nachdem, was das Projekt verbunden hat, oder **Arbeitsbereich verbinden**, wenn es keines hat. |
 | **Regeln**    | **Eigentümerregeln**, **Runbook-Regeln**, **Beschriftungsregeln**, **Erinnerungsregeln**.                                   |
-| **Einstellungen** | **Ereignisstatus**, **Ereignis-Vorlagen**, **Notiz-Vorlagen**, **Genehmigung öffentlicher Notizen**, **Benutzerdefinierte Felder**, **Messungen**, **Kalendereinstellungen**, **Nummerierung**. |
+| **Einstellungen** | **Wartungsstatus**, **Wartungsvorlagen**, **Notiz-Vorlagen**, **Genehmigung öffentlicher Notizen**, **Benutzerdefinierte Felder**, **Messungen**, **Kalendereinstellungen**, **Nummerierung**. |
 
 **Übersicht** und **Kalender** sind geöffnet; **Arbeitsbereich**, **Regeln**, **Einstellungen** und **Entwickler** sind zunächst eingeklappt, und ein Abschnitt öffnet sich von selbst, wenn Sie auf einer seiner Seiten sind. **Entwickler** enthält **Terraform**, **API**, **CLI** und **KI-Assistenten**, um die Wartung per Code zu verwalten. Alles zur Wartung liegt hier, nicht in den **Projekteinstellungen**.
 
@@ -88,7 +88,7 @@ Solange ein Ereignis läuft, behandelt OneUptime den geplanten Ausfall als erwar
 | **Benachrichtigungen**    | **Benachrichtigungsprotokolle** und **KI-Protokolle**: jede Nachricht über das Ereignis und alles, was die KI dafür getan hat |
 | **Notizen**       | **Private Notizen** und **Öffentliche Notizen**                                                |
 | **Entwickler**    | **Terraform**, **API**, **CLI** und **KI-Assistenten**: das Ereignis per Code verwaltet         |
-| **Erweitert**     | **Benutzerdefinierte Felder**, **Einstellungen**, **Audit-Protokolle**, **Ereignis löschen**    |
+| **Erweitert**     | **Benutzerdefinierte Felder**, **Einstellungen**, **Audit-Protokolle**, **Wartungsereignis löschen**    |
 
 **Übersicht**, **Team** und **Notizen** sind geöffnet; die anderen Abschnitte bleiben eingeklappt, bis Sie sie anklicken.
 

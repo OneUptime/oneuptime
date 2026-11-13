@@ -61,7 +61,7 @@ import { anchorInLanguage } from "./NetworkDocsLabels";
 import { describe, expect, it } from "@jest/globals";
 
 /*
- * Docs overhaul task 37: the Service Catalog and the Logs, Traces, Metrics
+ * Docs overhaul task 37: the Services page and the Logs, Traces, Metrics
  * and Exceptions explorers in every docs language.
  * TelemetryExplorersDocsFacts holds the English pages to the product; this
  * suite holds each translation to its English page:
@@ -738,6 +738,17 @@ describe("the English pages", () => {
   });
 });
 
+/*
+ * Titles a language spells as English does: French "Exceptions" and
+ * "Services", Dutch "Services". The pages are named after their products
+ * (#6817), and each of these is that language's own word for the product,
+ * as its products menu draws it - not an English word left untranslated.
+ */
+const SPELLED_AS_IN_ENGLISH: Readonly<Record<string, ReadonlyArray<string>>> = {
+  fr: ["Exceptions", "Services"],
+  nl: ["Services"],
+};
+
 describe.each(LANGUAGES)("%s", (language: string) => {
   describe.each(TELEMETRY_EXPLORERS_PAGES)(
     "$page",
@@ -752,7 +763,13 @@ describe.each(LANGUAGES)("%s", (language: string) => {
 
         expect(translated).not.toEqual(english);
         expect(typeof title).toBe("string");
-        expect(title).not.toBe(entry.navTitle);
+
+        if ((SPELLED_AS_IN_ENGLISH[language] || []).includes(entry.navTitle)) {
+          expect(drawnPathSegment(language, [entry.navTitle], 0)).toBe(title);
+        } else {
+          expect(title).not.toBe(entry.navTitle);
+        }
+
         expect(translated.split("\n")[0]).toBe(`# ${title}`);
       });
 

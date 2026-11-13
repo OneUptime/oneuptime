@@ -79,7 +79,7 @@ flowchart TB
 
 サービスまたはリソースの **設定** ページを開き、 **その他の設定** を開きます。その **テレメトリデータの保持期間** カードには、送られるすべてのものに対する日数の **テレメトリデータの保持期間（日）** があり、**テレメトリタイプ別の保持期間** カードにはプロジェクトと同じフィールドがあります。プロジェクトの設定を使うには、フィールドを空欄のままにします。
 
-サービス、ホスト、Kubernetes クラスター、Docker と Podman のホスト、Docker Swarm、Proxmox、Ceph のクラスター、ストレージアレイ、vCenter、データベース、サーバーレス関数、クラウド環境、RUM アプリケーション、IoT フリートのすべてにこれらのカードがあります。サービスの **設定** ページについては、[サービスカタログ](/docs/telemetry/services#サービスを変更する) を参照してください。
+サービス、ホスト、Kubernetes クラスター、Docker と Podman のホスト、Docker Swarm、Proxmox、Ceph のクラスター、ストレージアレイ、vCenter、データベース、サーバーレス関数、クラウド環境、RUM アプリケーション、IoT フリートのすべてにこれらのカードがあります。サービスの **設定** ページについては、[サービス](/docs/telemetry/services#サービスを変更する) を参照してください。
 
 ### プランやライセンスに上書きが含まれなくなったとき
 
@@ -121,6 +121,6 @@ flowchart TB
 :::cards
 - [取り込みキー](/docs/telemetry/ingestion-keys): プロジェクトにテレメトリを送ります。
 - [破棄フィルターとスクラブルール](/docs/telemetry/drop-filters-and-scrub-rules): 必要なテレメトリだけを残します。
-- [サービスカタログ](/docs/telemetry/services): サービス独自の保持期間を設定します。
+- [サービス](/docs/telemetry/services): サービス独自の保持期間を設定します。
 - [エンタープライズ版](/docs/self-hosted/enterprise): 保持期間の上書きが含まれるエディション。
 :::

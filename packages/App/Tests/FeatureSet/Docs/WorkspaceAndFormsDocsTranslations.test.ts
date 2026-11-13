@@ -542,7 +542,7 @@ const PROSE: Record<string, Array<string>> = {
   [ON_SUBMIT]: [
     // What a submission creates, said in the lead's own sentence.
     "incident",
-    "scheduled maintenance event",
+    "maintenance event",
   ],
 };
 

@@ -79,7 +79,7 @@ Ein leeres Feld fällt auf die nächste Einstellung der obigen Reihenfolge zurü
 
 Öffnen Sie die Seite **Einstellungen** des Dienstes oder der Ressource, dann **Weitere Einstellungen**. Ihre Karte **Aufbewahrung von Telemetriedaten** enthält **Telemetriedaten aufbewahren für (Tage)**, eine Zahl für alles, was sie sendet, und ihre Karte **Aufbewahrung nach Telemetrietyp** hat dieselben Felder wie die des Projekts. Lassen Sie ein Feld leer, um die Einstellungen des Projekts zu nutzen.
 
-Dienste, Hosts, Kubernetes-Cluster, Docker- und Podman-Hosts, Docker Swarm-, Proxmox- und Ceph-Cluster, Speicher-Arrays, vCenter, Datenbanken, Serverless-Funktionen, Cloud-Umgebungen, RUM-Anwendungen und IoT-Flotten haben alle diese Karten. Siehe den [Dienstkatalog](/docs/telemetry/services#einen-dienst-ändern) für die Seite **Einstellungen** eines Dienstes.
+Dienste, Hosts, Kubernetes-Cluster, Docker- und Podman-Hosts, Docker Swarm-, Proxmox- und Ceph-Cluster, Speicher-Arrays, vCenter, Datenbanken, Serverless-Funktionen, Cloud-Umgebungen, RUM-Anwendungen und IoT-Flotten haben alle diese Karten. Siehe [Dienste](/docs/telemetry/services#einen-dienst-ändern) für die Seite **Einstellungen** eines Dienstes.
 
 ### Wenn Plan oder Lizenz keine Überschreibungen mehr umfassen
 
@@ -121,6 +121,6 @@ Abgelaufene Datensätze erscheinen nicht mehr in Suchen, Diagrammen und Listen, 
 :::cards
 - [Ingestion-Schlüssel](/docs/telemetry/ingestion-keys): Telemetrie in Ihr Projekt senden.
 - [Drop-Filter & Scrub-Regeln](/docs/telemetry/drop-filters-and-scrub-rules): Nur die Telemetrie behalten, die Sie brauchen.
-- [Dienstkatalog](/docs/telemetry/services): Die eigene Aufbewahrung eines Dienstes festlegen.
+- [Dienste](/docs/telemetry/services): Die eigene Aufbewahrung eines Dienstes festlegen.
 - [Enterprise Edition](/docs/self-hosted/enterprise): Womit Aufbewahrungs-Überschreibungen kommen.
 :::

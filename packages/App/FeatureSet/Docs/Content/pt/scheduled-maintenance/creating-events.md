@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Abrir o formulário
 
-Vá em **Manutenção programada → Todos os eventos** e clique em **Criar Evento de Manutenção Programada**. O formulário abre no primeiro passo, **Evento**.
+Vá em **Manutenção programada → Todos os eventos de manutenção** e clique em **Criar evento de manutenção**. O formulário abre no primeiro passo, **Detalhes da manutenção**.
 
 ### Dizer o que acontece e quando
 
@@ -47,7 +47,7 @@ Escolha as páginas de status em **Mostrar evento nestas páginas de status**. *
 
 ### Criá-lo
 
-Clique em **Próximo** para ver a revisão, confira-a e depois clique em **Criar Evento de Manutenção Programada**. A página do evento se abre.
+Clique em **Próximo** para ver a revisão, confira-a e depois clique em **Criar evento de manutenção**. A página do evento se abre.
 :::
 
 Nada é enviado até você escolher uma página de status: um evento que não aparece em nenhuma página de status não avisa nenhum assinante.
@@ -56,12 +56,12 @@ Nada é enviado até você escolher uma página de status: um evento que não ap
 
 | Campo                                | Passo              | Começa como                     | O que faz                                                                        |
 | ------------------------------------ | ------------------ | ------------------------------- | -------------------------------------------------------------------------------- |
-| **Título**                           | **Evento**         | Vazio, e obrigatório            | Dá nome ao evento em todo lugar, também nas suas páginas de status.              |
-| **Descrição**                        | **Evento**         | Vazia                           | Explica o trabalho aos seus clientes, em Markdown.                               |
-| **Começa em**                        | **Evento**         | A próxima hora cheia            | Quando o evento começa, sozinho.                                                 |
-| **Termina em**                       | **Evento**         | Uma hora depois de **Começa em** | Quando o evento termina, sozinho. Precisa vir depois de **Começa em**.          |
-| **Proprietários**                    | **Evento**         | Ninguém                         | Pessoas e equipes donas do evento, que são avisadas sobre ele.                   |
-| **Rótulos**                          | **Evento**         | Nenhum                          | Rótulos que regras e filtros podem usar.                                         |
+| **Título**                           | **Detalhes da manutenção**         | Vazio, e obrigatório            | Dá nome ao evento em todo lugar, também nas suas páginas de status.              |
+| **Descrição**                        | **Detalhes da manutenção**         | Vazia                           | Explica o trabalho aos seus clientes, em Markdown.                               |
+| **Começa em**                        | **Detalhes da manutenção**         | A próxima hora cheia            | Quando o evento começa, sozinho.                                                 |
+| **Termina em**                       | **Detalhes da manutenção**         | Uma hora depois de **Começa em** | Quando o evento termina, sozinho. Precisa vir depois de **Começa em**.          |
+| **Proprietários**                    | **Detalhes da manutenção**         | Ninguém                         | Pessoas e equipes donas do evento, que são avisadas sobre ele.                   |
+| **Rótulos**                          | **Detalhes da manutenção**         | Nenhum                          | Rótulos que regras e filtros podem usar.                                         |
 | **Monitores**                        | **Recursos afetados** | Nenhum                       | Os monitores que não são verificados enquanto o evento está em andamento.        |
 | **Alterar status do monitor para**   | **Recursos afetados** | Sem alteração                | O status que esses monitores mostram durante o evento. Perguntado assim que um monitor é escolhido. |
 | **Outros recursos afetados**         | **Recursos afetados** | Nenhum                       | Hosts, clusters, bancos de dados, sites de rede, serviços e mais.                |
@@ -75,13 +75,13 @@ Duas coisas preenchem o formulário para você no caminho:
 
 ## Começar por um recurso ou um modelo
 
-Na aba **Manutenção programada** de um host, um cluster Kubernetes, Proxmox, Ceph ou Docker Swarm, um host Docker ou Podman, um vCenter, uma nuvem OpenStack, um storage array, uma frota de IoT, um banco de dados, um recurso de nuvem, um serviço ou um site de rede, **Criar Evento de Manutenção Programada** abre o mesmo formulário com esse recurso já escolhido em **Outros recursos afetados**, e a aba lista os eventos que o afetam. A aba de um item de inventário escolhe o host, o serviço ou o cluster Kubernetes para o qual o item aponta.
+Na aba **Manutenção programada** de um host, um cluster Kubernetes, Proxmox, Ceph ou Docker Swarm, um host Docker ou Podman, um vCenter, uma nuvem OpenStack, um storage array, uma frota de IoT, um banco de dados, um recurso de nuvem, um serviço ou um site de rede, **Criar evento de manutenção** abre o mesmo formulário com esse recurso já escolhido em **Outros recursos afetados**, e a aba lista os eventos que o afetam. A aba de um item de inventário escolhe o host, o serviço ou o cluster Kubernetes para o qual o item aponta.
 
 **Criar a partir de modelo**, ao lado do botão de criar, pede que você use **Selecionar Modelo de Manutenção Programada** e depois abre o formulário preenchido a partir do modelo. Veja [Modelos e eventos recorrentes](/docs/scheduled-maintenance/templates).
 
 ## O que acontece ao criar
 
-No momento em que você clica em **Criar Evento de Manutenção Programada**, o OneUptime percorre estes passos, nesta ordem:
+No momento em que você clica em **Criar evento de manutenção**, o OneUptime percorre estes passos, nesta ordem:
 
 1. **Ele recebe um número e um estado.** O número vem de um contador por projeto e aparece com o seu prefixo (`SM-42`). O evento começa no seu estado agendado, qualquer que seja o estado indicado por uma requisição.
 2. **Suas ferramentas de chat ficam sabendo.** As regras do Slack e do Microsoft Teams em **Espaço de trabalho** o publicam nos canais delas, e uma regra pode criar um canal para o evento. O feed dele registra que foi criado.
@@ -90,7 +90,7 @@ No momento em que você clica em **Criar Evento de Manutenção Programada**, o 
 5. **As regras de runbook iniciam** os runbooks que correspondem ao evento.
 6. **Os lembretes são agendados**, quando uma regra de lembrete corresponde, para os proprietários dele.
 
-Em até um minuto após a publicação, que é imediata a menos que você tenha escolhido um **Publicar em**, os assinantes das páginas de status dele são avisados de que foi agendado, a menos que você tenha desativado **Quando o evento é agendado**. O gatilho de workflow **On Create Scheduled Maintenance Event** inicia qualquer workflow construído sobre ele, e os proprietários ficam sabendo se ativaram essa notificação: veja [Configurações de notificação](/docs/notifications/notification-settings).
+Em até um minuto após a publicação, que é imediata a menos que você tenha escolhido um **Publicar em**, os assinantes das páginas de status dele são avisados de que foi agendado, a menos que você tenha desativado **Quando o evento é agendado**. O gatilho de workflow **On Create Maintenance Event** inicia qualquer workflow construído sobre ele, e os proprietários ficam sabendo se ativaram essa notificação: veja [Configurações de notificação](/docs/notifications/notification-settings).
 
 ## Publicar mais tarde
 
@@ -113,7 +113,7 @@ Tudo o que está no formulário pode ser alterado nas páginas do evento, exceto
 
 | Para alterar                                | Vá em                                                                          |
 | ------------------------------------------- | ------------------------------------------------------------------------------ |
-| O título, a janela ou os rótulos            | **Editar** no cartão **Detalhes da manutenção** da sua **Visão geral**, passo **Evento** |
+| O título, a janela ou os rótulos            | **Editar** no cartão **Detalhes da manutenção** da sua **Visão geral**, passo **Detalhes da manutenção** |
 | As páginas de status, quando ele é publicado, ou os lembretes | O mesmo **Editar**, passo **Páginas de status**                 |
 | Os monitores, o status deles ou outros recursos | **Editar** no cartão **Recursos afetados**                                  |
 | A descrição                                 | **Descrição** no menu lateral dele                                             |
@@ -155,7 +155,7 @@ curl -X POST https://oneuptime.com/api/scheduled-maintenance \
 | `shouldStatusPageSubscribersBeNotifiedOnEventCreated` | A chave **Quando o evento é agendado**. Os outros dois momentos têm campos próprios.      |
 | `publishOnStatusPageAt`                               | Quando o evento é publicado nas páginas de status dele e os assinantes dele são avisados de que está agendado. Omitido, imediatamente. |
 
-O mesmo evento como código é o recurso do Terraform `oneuptime_scheduled_maintenance_event`: veja [Exemplos](/docs/terraform/examples#manutenção-programada). Um workflow cria um com a etapa **Create One Scheduled Maintenance Event**, e `/oneuptime maintenance` abre o formulário no Slack: veja [Slack](/docs/workspace-connections/slack#criar-incidentes-e-manutenções-pelo-slack).
+O mesmo evento como código é o recurso do Terraform `oneuptime_scheduled_maintenance_event`: veja [Exemplos](/docs/terraform/examples#manutenção-programada). Um workflow cria um com a etapa **Create One Maintenance Event**, e `/oneuptime maintenance` abre o formulário no Slack: veja [Slack](/docs/workspace-connections/slack#criar-incidentes-e-manutenções-pelo-slack).
 
 ## Solução de problemas
 

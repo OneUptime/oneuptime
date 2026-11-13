@@ -15,9 +15,10 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   composedValue,
   getGlobalTranslator,
+  toLabelTerm,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
-import { joinList } from "Common/UI/Utils/ListSeparator";
+import { joinClauses, joinList } from "Common/UI/Utils/ListSeparator";
 
 export interface ComponentProps {
   monitorType: MonitorType;
@@ -30,6 +31,24 @@ export interface SummaryProps {
   monitorType: MonitorType;
   monitorSteps: MonitorSteps | undefined;
 }
+
+/*
+ * A field's name, as a row of the card and the summary line draw it: a
+ * label, so it starts with a capital wherever the language writes one. The
+ * name of what an infrastructure monitor watches ("Kubernetes cluster") is a
+ * key the sentences that say it share, and five languages word it for the
+ * middle of a sentence: "clúster de Kubernetes" reads "Clúster de
+ * Kubernetes" here (toLabelTerm).
+ */
+const getFieldName: (label: string, translator: Translator) => string = (
+  label: string,
+  translator: Translator,
+): string => {
+  return toLabelTerm(
+    translator.translateText(label) || label,
+    translator.language,
+  );
+};
 
 export const getMonitorTemplateSyncFieldSummary: (
   props: SummaryProps,
@@ -74,28 +93,33 @@ export const getMonitorTemplateSyncFieldSummary: (
   /*
    * The fields are named in the sentence's own language: the reader's when
    * it words the sentence, English while it words only the names, so the
-   * line never puts translated names in an English sentence.
+   * line never puts translated names in an English sentence. Each step's
+   * names are a list, and the steps clauses of one line: both take the
+   * punctuation of the script they are written in ("、" and "；" in
+   * Chinese, "، " and "؛ " in Persian).
    */
   return translator.translateTemplate(
     "These fields keep each monitor's current values during sync: {{fields}}. All other step settings are copied from the template.",
     {
       fields: composedValue((sentence: Translator): string => {
-        return protectedSteps
-          .map((protectedStep: { number: number; labels: Array<string> }) => {
-            const names: string = joinList(
-              protectedStep.labels.map((label: string): string => {
-                return sentence.translateText(label) as string;
-              }),
-            );
+        return joinClauses(
+          protectedSteps.map(
+            (protectedStep: { number: number; labels: Array<string> }) => {
+              const names: string = joinList(
+                protectedStep.labels.map((label: string): string => {
+                  return getFieldName(label, sentence);
+                }),
+              );
 
-            return steps.length > 1
-              ? sentence.translateTemplate("Step {{number}}: {{fields}}", {
-                  number: protectedStep.number,
-                  fields: names,
-                })
-              : names;
-          })
-          .join("; ");
+              return steps.length > 1
+                ? sentence.translateTemplate("Step {{number}}: {{fields}}", {
+                    number: protectedStep.number,
+                    fields: names,
+                  })
+                : names;
+            },
+          ),
+        );
       }),
     },
   );
@@ -192,7 +216,7 @@ const MonitorTemplateSyncFields: FunctionComponent<ComponentProps> = (
                     id={`${fieldId}-name`}
                     className="text-sm font-medium text-gray-900"
                   >
-                    {translator.translateText(field.label)}
+                    {getFieldName(field.label, translator)}
                   </p>
                   {field.description && (
                     <p

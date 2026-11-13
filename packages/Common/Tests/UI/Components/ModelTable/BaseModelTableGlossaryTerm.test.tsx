@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom";
 import {
   cleanup,
+  fireEvent,
   render,
   screen,
   waitFor,
@@ -92,7 +93,11 @@ import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import ListResult from "../../../../Types/BaseDatabase/ListResult";
 import { JSONObject } from "../../../../Types/JSON";
 import GlossaryTerm from "../../../../Types/Docs/GlossaryTerm";
-import { DEFINED_TERM_TEST_ID } from "../../../../UI/Components/Glossary/DefinedTerm";
+import {
+  DEFINED_TERM_DEFINITION_TEST_ID,
+  DEFINED_TERM_TEST_ID,
+} from "../../../../UI/Components/Glossary/DefinedTerm";
+import { clearGlossaryReads } from "../../../../UI/Utils/Glossary";
 
 const makeProps: (
   cardProps: BaseModelTableProps<Monitor>["cardProps"],
@@ -211,5 +216,91 @@ describe("a table's card title", () => {
 
     expect(await heading()).toHaveTextContent("Monitor Groups");
     expect(screen.queryByTestId(DEFINED_TERM_TEST_ID)).toBeNull();
+  });
+});
+
+/*
+ * With its word's definition open, a table's heading holds its title alone
+ * (#7594). The definition - a dialog named by its word - was drawn inside
+ * the heading, beside the word, and named the heading a second time while
+ * it showed ("Monitor Groups Monitor Groups"). It is drawn right after the
+ * heading now (Glossary/DefinitionsDrawnAfter, through Card).
+ */
+describe("a table's card title, with its definition open", () => {
+  const originalFetch: unknown = (globalThis as Record<string, unknown>)[
+    "fetch"
+  ];
+
+  afterEach(() => {
+    (globalThis as Record<string, unknown>)["fetch"] = originalFetch;
+    clearGlossaryReads();
+  });
+
+  test("its heading holds its title alone, and the definition is drawn right after it", async () => {
+    // The glossary answers its read; nothing else here reads the network.
+    (globalThis as Record<string, unknown>)["fetch"] = (
+      url: unknown,
+    ): Promise<unknown> => {
+      if (!String(url).includes("/glossary/")) {
+        return Promise.reject(new Error(`Not read here: ${String(url)}`));
+      }
+
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: (): Promise<unknown> => {
+          return Promise.resolve({
+            lang: "en",
+            entries: [
+              {
+                id: "monitor-group",
+                term: "Monitor group",
+                definition: "Monitors that together make up one service.",
+              },
+            ],
+          });
+        },
+      });
+    };
+
+    render(
+      <BaseModelTable<Monitor>
+        {...makeProps({
+          title: "Monitor Groups",
+          titleGlossaryTerm: GlossaryTerm.MonitorGroup,
+        })}
+      />,
+    );
+
+    const title: HTMLElement = await heading();
+    // Once DefinedTerm has arrived (LazyDefinedTerm), the word opens it.
+    const word: HTMLElement = await waitFor((): HTMLElement => {
+      const found: HTMLElement =
+        within(title).getByTestId(DEFINED_TERM_TEST_ID);
+
+      expect(found).toHaveAttribute("aria-expanded", "false");
+
+      return found;
+    });
+
+    fireEvent.click(word);
+
+    const open: HTMLElement = await waitFor((): HTMLElement => {
+      const dialog: HTMLElement = screen.getByRole("dialog", {
+        name: "Monitor Groups",
+      });
+
+      expect(
+        within(dialog).getByTestId(DEFINED_TERM_DEFINITION_TEST_ID),
+      ).toBeInTheDocument();
+
+      return dialog;
+    });
+
+    expect((title.textContent || "").replace(/\s+/g, " ").trim()).toBe(
+      "Monitor Groups",
+    );
+    expect(title).not.toContainElement(open);
+    expect(title.nextElementSibling).toContainElement(open);
   });
 });

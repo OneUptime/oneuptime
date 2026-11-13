@@ -79,7 +79,7 @@ Et felt som står tomt, faller tilbake på neste innstilling i rekkefølgen over
 
 Åpne siden **Innstillinger** for tjenesten eller ressursen, og deretter **Flere innstillinger**. Kortet **Oppbevaring av telemetridata** der inneholder **Behold telemetridata i (dager)**, ett tall for alt den sender, og kortet **Oppbevaring etter telemetritype** har de samme feltene som prosjektets. La et felt stå tomt for å bruke prosjektets innstillinger.
 
-Tjenester, verter, Kubernetes-klynger, Docker- og Podman-verter, Docker Swarm-, Proxmox- og Ceph-klynger, lagringssystemer, vCentere, databaser, serverløse funksjoner, skymiljøer, RUM-applikasjoner og IoT-flåter har alle disse kortene. Se [Tjenestekatalogen](/docs/telemetry/services#endre-en-tjeneste) for siden **Innstillinger** for en tjeneste.
+Tjenester, verter, Kubernetes-klynger, Docker- og Podman-verter, Docker Swarm-, Proxmox- og Ceph-klynger, lagringssystemer, vCentere, databaser, serverløse funksjoner, skymiljøer, RUM-applikasjoner og IoT-flåter har alle disse kortene. Se [Tjenester](/docs/telemetry/services#endre-en-tjeneste) for siden **Innstillinger** for en tjeneste.
 
 ### Når abonnementet eller lisensen ikke lenger omfatter overstyringer
 
@@ -121,6 +121,6 @@ Utløpte poster slutter å vises i søk, grafer og lister så snart de utløper.
 :::cards
 - [Inntaksnøkler](/docs/telemetry/ingestion-keys): Send telemetri til prosjektet ditt.
 - [Drop-filtre og scrub-regler](/docs/telemetry/drop-filters-and-scrub-rules): Behold bare telemetrien du trenger.
-- [Tjenestekatalog](/docs/telemetry/services): Sett en tjenestes egen oppbevaring.
+- [Tjenester](/docs/telemetry/services): Sett en tjenestes egen oppbevaring.
 - [Enterprise Edition](/docs/self-hosted/enterprise): Hva overstyringer av oppbevaringen følger med.
 :::

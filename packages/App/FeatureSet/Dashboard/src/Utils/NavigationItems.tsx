@@ -183,6 +183,9 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "maintenance window",
         "planned downtime",
         "scheduled downtime",
+        // What one of its records was called before it became a maintenance event (#6817).
+        "scheduled maintenance events",
+        "scheduled events",
       ],
       description: t("navbar.items.scheduledMaintenanceDescription"),
       route: RouteUtil.populateRouteParams(
@@ -536,6 +539,9 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "microservices",
         "otel",
         "opentelemetry",
+        // Its names before it became Services (#6817).
+        "service catalog",
+        "telemetry services",
       ],
       description: t("navbar.items.servicesDescription"),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.SERVICES] as Route),

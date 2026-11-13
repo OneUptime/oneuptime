@@ -299,7 +299,7 @@
     "Incoming Request Ingress": "Inngangsport for innkommende forespørsler",
     "Packet Capture": "Pakkeopptak",
     "OpenTelemetry": "OpenTelemetry",
-    "Service Catalog": "Tjenestekatalog",
+    "Services": "Tjenester",
     "Logs Explorer": "Loggutforsker",
     "Traces Explorer": "Sporutforsker",
     "Metrics Explorer": "Metrikkutforsker",

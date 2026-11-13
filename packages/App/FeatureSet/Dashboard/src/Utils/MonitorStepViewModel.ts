@@ -1246,7 +1246,7 @@ export default class MonitorStepViewModel {
       }),
       optional({
         key: "logTelemetryServices",
-        title: "Telemetry Services",
+        title: "Services",
         description: "Telemetry services to monitor.",
         valueType: MonitorStepViewValueType.TelemetryServices,
         value: (logMonitor?.telemetryServiceIds || []).map(
@@ -1332,7 +1332,7 @@ export default class MonitorStepViewModel {
       }),
       optional({
         key: "securityEventTelemetryServices",
-        title: "Telemetry Services",
+        title: "Services",
         description: "Telemetry services to monitor.",
         valueType: MonitorStepViewValueType.TelemetryServices,
         value: (securityEventsMonitor?.telemetryServiceIds || []).map(
@@ -1459,7 +1459,7 @@ export default class MonitorStepViewModel {
       }),
       optional({
         key: "traceTelemetryServices",
-        title: "Telemetry Services",
+        title: "Services",
         description: "Telemetry services to monitor.",
         valueType: MonitorStepViewValueType.TelemetryServices,
         value: (traceMonitor?.telemetryServiceIds || []).map(
@@ -1541,7 +1541,7 @@ export default class MonitorStepViewModel {
       }),
       optional({
         key: "exceptionTelemetryServices",
-        title: "Telemetry Services",
+        title: "Services",
         description: "Telemetry services to monitor.",
         valueType: MonitorStepViewValueType.TelemetryServices,
         value: (exceptionMonitor?.telemetryServiceIds || []).map(
@@ -1644,7 +1644,7 @@ export default class MonitorStepViewModel {
       },
       optional({
         key: "metricTelemetryServices",
-        title: "Telemetry Services",
+        title: "Services",
         description: "Telemetry services this monitor is scoped to.",
         valueType: MonitorStepViewValueType.TelemetryServices,
         value: (data.metricMonitor?.telemetryServiceIds || []).map(
