@@ -2,7 +2,10 @@ import {
   SyncResultSummary,
   buildSyncResultSummary,
 } from "../../../FeatureSet/Dashboard/src/Pages/Monitor/Settings/MonitorTemplateSyncResultUtil";
-import { SYNC_TO_LINKED_MONITORS_TITLES } from "../../../FeatureSet/Dashboard/src/Pages/Monitor/Settings/MonitorTemplateLinkedMonitorsWords";
+import {
+  SYNC_TO_LINKED_MONITORS_TITLES,
+  UNLINK_MONITOR_CONFIRMATION,
+} from "../../../FeatureSet/Dashboard/src/Pages/Monitor/Settings/MonitorTemplateLinkedMonitorsWords";
 import { readPage } from "./DocsContentSupport";
 import { dashboardTranslator } from "./DocsDashboardLabels";
 import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
@@ -569,8 +572,9 @@ describe("the template's page", () => {
       expect(page).toContain(`**${title}**`);
     }
 
-    // Unlinking leaves the monitor's settings as they are.
-    expect(view).toContain(
+    // Unlinking leaves the monitor's settings as they are: the unlink dialog says so.
+    expect(view).toContain("template={UNLINK_MONITOR_CONFIRMATION}");
+    expect(UNLINK_MONITOR_CONFIRMATION).toContain(
       "keeps its settings but no longer gets updates from this template",
     );
     expect(page).toContain(
@@ -743,11 +747,13 @@ describe("what each sync copies", () => {
       subject: "criteria",
       syncedMonitors: 2,
       totalLinkedMonitors: 3,
+      translator: dashboardTranslator("en"),
     });
     const whole: SyncResultSummary = buildSyncResultSummary({
       subject: "criteria",
       syncedMonitors: 3,
       totalLinkedMonitors: 3,
+      translator: dashboardTranslator("en"),
     });
 
     expect(partial.title).toBe("Partially synced");

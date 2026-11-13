@@ -20,6 +20,8 @@ export interface ComponentProps {
   value?: string | Date | undefined; // ISO string or Date
   onChange?: undefined | ((value: string) => void); // emits ISO string
   placeholder?: string | undefined;
+  // In the reader's words already: drawn as given (Field's, #7682).
+  isPlaceholderTranslated?: boolean | undefined;
   className?: string | undefined;
   readOnly?: boolean | undefined;
   disabled?: boolean | undefined;
@@ -212,9 +214,13 @@ const TimePicker: FunctionComponent<ComponentProps> = (
             autoFocus={props.autoFocus}
             tabIndex={props.tabIndex}
             spellCheck={false}
-            placeholder={translator.translateText(
-              props.placeholder || (userPrefers12h ? "hh" : "HH"),
-            )}
+            placeholder={
+              props.placeholder && props.isPlaceholderTranslated
+                ? props.placeholder
+                : translator.translateText(
+                    props.placeholder || (userPrefers12h ? "hh" : "HH"),
+                  )
+            }
             className={
               inputClass +
               " rounded-l-md pl-1 focus:ring-0 focus-visible:outline-none"

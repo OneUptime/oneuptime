@@ -1699,7 +1699,7 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
               isSearchOrFilter={true}
               dataTestId="service-map-search"
               ariaLabel={t("Search services")}
-              placeholder={t("Search services and dependencies")}
+              placeholder="Search services and dependencies"
               value={searchText}
               onChange={(value: string) => {
                 setSearchText(value);

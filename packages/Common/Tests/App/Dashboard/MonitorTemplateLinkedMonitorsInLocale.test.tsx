@@ -42,10 +42,18 @@ import {
   LINKED_MONITORS_TITLE,
   SYNC_TO_LINKED_MONITORS_TITLES,
   SYNCED_MONITOR_RESULT,
+  UNLINK_MONITOR_CONFIRMATION,
   UNLINKED_MONITOR_RESULT,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Monitor/Settings/MonitorTemplateLinkedMonitorsWords";
 import {
+  buildSyncResultSummary,
+  STILL_ON_PREVIOUS_CONFIGURATION,
+  SyncResultSummary,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Monitor/Settings/MonitorTemplateSyncResultUtil";
+import { PluralTemplate, Translator } from "../../../Types/Translator";
+import {
   DASHBOARD_LANGUAGES,
+  dashboardTranslator,
   readDashboardLocale,
 } from "../../Helpers/DashboardLocales";
 
@@ -61,6 +69,14 @@ import {
  * locales now: the count in the reader's digits, the form its number takes
  * ("1 verknüpften Monitor", "4 verknüpften Monitoren"), and a monitor's
  * name as it was written, set apart in the sentence (bdi).
+ *
+ * And (#7710): a sync button says the same kind of thing before the count
+ * is read as after - in German "Intervall mit verknüpften Monitoren
+ * synchronisieren", never the noun "Synchronisierungsintervall" until the
+ * count turns it into a command - as its dialog's button does; a sync's
+ * summary writes its counts in the reader's digits and runs its two
+ * sentences together as the reader's script does; and Unlink from
+ * Template asks first with the monitor's name set apart.
  */
 
 interface CardButton {
@@ -364,8 +380,8 @@ async function closeResult(): Promise<void> {
   });
 }
 
-// Runs a row action of the Linked Monitors table on Checkout API, and confirms it.
-async function runRowAction(title: string): Promise<void> {
+// Starts a row action of the Linked Monitors table on Checkout API: its confirmation opens.
+async function openRowAction(title: string): Promise<void> {
   const monitor: Monitor = new Monitor(new ObjectID(CHECKOUT_ID));
   monitor.name = "Checkout API";
 
@@ -381,9 +397,41 @@ async function runRowAction(title: string): Promise<void> {
       () => {},
     );
   });
+}
 
+// The open dialog's own button, pressed.
+async function confirm(): Promise<void> {
   await act(async () => {
     fireEvent.click(await screen.findByTestId("modal-footer-submit-button"));
+  });
+}
+
+// Runs a row action of the Linked Monitors table on Checkout API, and confirms it.
+async function runRowAction(title: string): Promise<void> {
+  await openRowAction(title);
+  await confirm();
+}
+
+// Presses a card's sync button: its dialog opens.
+async function pressSyncButton(
+  card: "Monitoring Criteria" | "Monitoring Interval",
+): Promise<void> {
+  await act(async () => {
+    lastDetail(card).cardProps!.buttons![0]!.onClick!();
+  });
+}
+
+/*
+ * A card button's title as the button draws it in `language`: Button looks
+ * its title up as it is written (useTranslateValue's translateString), so
+ * a title with no count, which the page hands over in English, is drawn in
+ * the reader's words.
+ */
+function asDrawn(language: string, title: string): string {
+  return instances[language]!.t(title, {
+    defaultValue: title,
+    keySeparator: false,
+    nsSeparator: false,
   });
 }
 
@@ -394,6 +442,65 @@ function forThree(
 ): string {
   return (words[template.other] || template.other).replace("{{count}}", "3");
 }
+
+/*
+ * How each language the Dashboard speaks says "sync ..." as a command, the
+ * verb where its grammar puts it: first ("Sync", "Synkroniser",
+ * "Синхронизировать"), last ("... synchronisieren", "... सिंक करें",
+ * "... 동기화", "...同期"), or after its object in Dutch ("Interval
+ * synchroniseren naar ..."). A noun - "Synchronisierungsintervall", "सिंक
+ * अंतराल", "동기화 간격", "the synchronization interval" - matches none
+ * (#7710). Persian and Arabic name the action with its noun on every
+ * button, so theirs only say it is one.
+ */
+const SYNC_COMMAND: Record<string, RegExp> = {
+  en: /^Sync /,
+  ar: /^مزامنة /,
+  da: /^Synkronis[eé]r /,
+  de: / synchronisieren$/,
+  es: /^Sincronizar /,
+  fa: /^همگام/,
+  fr: /^Synchroniser /,
+  hi: / सिंक करें$/,
+  it: /^Sincronizza /,
+  ja: /同期$/,
+  ko: / 동기화$/,
+  nl: / synchroniseren( |$)/,
+  no: /^Synkroniser /,
+  pt: /^Sincronizar /,
+  ru: /^Синхронизировать /,
+  sv: /^Synkronisera /,
+  "zh-CN": /^(将.+)?同步/,
+  "zh-TW": /^(將.+)?同步/,
+};
+
+// The four sync buttons: each one's title before the count is read, and its dialog's button.
+const SYNC_BUTTONS: Array<{
+  counted: PluralTemplate;
+  countless: string;
+  dialogButton: string;
+}> = [
+  {
+    counted: SYNC_TO_LINKED_MONITORS_TITLES.criteria,
+    countless: "Sync Criteria to Linked Monitors",
+    dialogButton: "Sync Criteria",
+  },
+  {
+    counted: SYNC_TO_LINKED_MONITORS_TITLES.interval,
+    countless: "Sync Interval to Linked Monitors",
+    dialogButton: "Sync Interval",
+  },
+  {
+    counted: SYNC_TO_LINKED_MONITORS_TITLES.labels,
+    countless: "Sync Labels to Linked Monitors",
+    dialogButton: "Sync Labels",
+  },
+  {
+    counted: SYNC_TO_LINKED_MONITORS_TITLES.customFields,
+    countless: "Sync Custom Fields to Linked Monitors",
+    dialogButton: "Sync Custom Fields",
+  },
+];
 
 describe("Link Existing Monitors and the sync buttons, in German", () => {
   test("after linking 1 monitor and then 3: the line and the titles are German, each in its number's form", async () => {
@@ -491,6 +598,82 @@ describe("Link Existing Monitors and the sync buttons, in German", () => {
       "Dieser Monitor ist nicht mit dieser Vorlage verknüpft.",
     );
   });
+
+  test("each sync button says to sync before the count is read, as after it, and so does its dialog (#7710)", async () => {
+    // The linked monitors' count is on its way: the buttons have no count to say yet.
+    let answerCount: (count: number) => void = (): void => {};
+
+    jest.spyOn(ModelAPI, "count").mockImplementation((() => {
+      return new Promise<number>((resolve: (count: number) => void) => {
+        answerCount = resolve;
+      });
+    }) as never);
+
+    await openPage("de");
+
+    const before: ReturnType<typeof titles> = titles();
+
+    // The page hands each button the title the guard below reads in every language.
+    expect([
+      before.criteria,
+      before.interval,
+      before.labels,
+      before.customFields,
+    ]).toEqual(
+      SYNC_BUTTONS.map((button: { countless: string }): string => {
+        return button.countless;
+      }),
+    );
+
+    expect({
+      criteria: asDrawn("de", before.criteria),
+      interval: asDrawn("de", before.interval),
+      labels: asDrawn("de", before.labels),
+      customFields: asDrawn("de", before.customFields),
+    }).toEqual({
+      criteria: "Kriterien mit verknüpften Monitoren synchronisieren",
+      interval: "Intervall mit verknüpften Monitoren synchronisieren",
+      labels: "Beschriftungen mit verknüpften Monitoren synchronisieren",
+      customFields:
+        "Benutzerdefinierte Felder mit verknüpften Monitoren synchronisieren",
+    });
+
+    // The Interval button's dialog: its title is the button's, and its own button says to sync.
+    await pressSyncButton("Monitoring Interval");
+
+    expect((await screen.findByTestId("modal-title")).textContent).toBe(
+      "Intervall mit verknüpften Monitoren synchronisieren",
+    );
+    expect(screen.getByTestId("modal-footer-submit-button").textContent).toBe(
+      "Intervall synchronisieren",
+    );
+
+    await act(async () => {
+      answerCount(3);
+    });
+
+    await waitFor(() => {
+      expect(titles().interval).toBe(
+        "Intervall mit 3 verknüpften Monitoren synchronisieren",
+      );
+    });
+
+    // Before the count and after it, every one is a command: "... synchronisieren".
+    const after: ReturnType<typeof titles> = titles();
+
+    for (const title of [
+      asDrawn("de", before.criteria),
+      asDrawn("de", before.interval),
+      asDrawn("de", before.labels),
+      asDrawn("de", before.customFields),
+      after.criteria,
+      after.interval,
+      after.labels,
+      after.customFields,
+    ]) {
+      expect(title).toMatch(SYNC_COMMAND["de"]!);
+    }
+  });
 });
 
 describe("Link Existing Monitors and the sync buttons, in Persian", () => {
@@ -555,6 +738,90 @@ describe("Link Existing Monitors and the sync buttons, in Persian", () => {
     expect(name?.textContent).toBe("Checkout API");
     expect(name?.getAttribute("dir")).toBe("ltr");
   });
+
+  test("Unlink from Template asks first in Persian, a Latin name kept as written, set apart (#7710)", async () => {
+    await openPage("fa");
+    await openRowAction("Unlink from Template");
+
+    const question: HTMLElement = await resultLine();
+
+    expect(question.textContent).toBe(
+      PERSIAN[UNLINK_MONITOR_CONFIRMATION]!.replace(
+        "{{monitorName}}",
+        `${FIRST_STRONG_ISOLATE}Checkout API${POP_DIRECTIONAL_ISOLATE}`,
+      ),
+    );
+
+    const name: HTMLElement | null = question.querySelector("bdi");
+
+    expect(name?.textContent).toBe("Checkout API");
+    expect(name?.getAttribute("dir")).toBe("ltr");
+  });
+
+  test("a sync that reached 3 of 5 linked monitors says so in Persian, with Persian digits (#7710)", async () => {
+    linkedMonitors = 5;
+    jest
+      .spyOn(API, "post")
+      .mockResolvedValue(
+        new HTTPResponse<JSONObject>(
+          200,
+          { syncedMonitors: 3, totalLinkedMonitors: 5 },
+          {},
+        ) as never as HTTPErrorResponse,
+      );
+
+    await openPage("fa");
+    await pressSyncButton("Monitoring Criteria");
+    await confirm();
+
+    expect((await screen.findByTestId("modal-title")).textContent).toBe(
+      PERSIAN["Partially synced"],
+    );
+    expect((await resultLine()).textContent).toBe(
+      `معیارها روی ۳ مانیتور همگام شد (۵ مانیتور به این قالب پیوند دارند). ${PERSIAN[
+        STILL_ON_PREVIOUS_CONFIGURATION.other
+      ]!.replace("{{count}}", "۲")}`,
+    );
+    expect((await resultLine()).textContent).not.toMatch(/[0-9]/);
+  });
+});
+
+describe("a sync's summary, in the reader's language (#7710)", () => {
+  test("in Persian, every count is written in Persian digits", () => {
+    const summary: SyncResultSummary = buildSyncResultSummary({
+      subject: "criteria",
+      syncedMonitors: 10000,
+      totalLinkedMonitors: 50000,
+      translator: dashboardTranslator("fa"),
+    });
+
+    expect(summary.message).toContain("۱۰٬۰۰۰");
+    expect(summary.message).toContain("۵۰٬۰۰۰");
+    expect(summary.message).toContain("۴۰٬۰۰۰");
+    expect(summary.message).not.toMatch(/[0-9]/);
+  });
+
+  test("in Japanese and both Chinese, the two sentences follow one another with no space; in English, with one", () => {
+    const summaries: Record<string, string> = {};
+
+    for (const language of ["en", "ja", "zh-CN", "zh-TW"]) {
+      summaries[language] = buildSyncResultSummary({
+        subject: "criteria",
+        syncedMonitors: 3,
+        totalLinkedMonitors: 5,
+        translator: dashboardTranslator(language),
+      }).message;
+    }
+
+    expect(summaries).toEqual({
+      en: "Synced criteria onto 3 monitors (5 linked to this template). 2 linked monitors still use the previous configuration — usually because your permissions do not cover them. Run the sync again as a user who can update every linked monitor.",
+      ja: "条件 を 3 個のモニターに同期しました（このテンプレートにリンクされているのは 5 個）。リンクされた 2 個のモニターは、まだ以前の設定を使っています — 通常は、あなたの権限がそれらに及ばないことが原因です。リンクされたすべてのモニターを更新できるユーザーとして、もう一度同期を実行してください。",
+      "zh-CN":
+        "已将条件同步到 3 个监视器（共 5 个关联到此模板）。2 个已关联的监视器仍在使用之前的配置，通常是因为你的权限不覆盖它们。请以能够更新每个已关联监视器的用户身份重新运行同步。",
+      "zh-TW":
+        "已將條件同步到 3 個監測器（共 5 個連結到此範本）。2 個已連結的監測器仍在使用先前的設定，通常是因為你的權限未涵蓋它們。請以能夠更新每個已連結監測器的使用者身分重新執行同步。",
+    });
+  });
 });
 
 describe("the page's words about its linked monitors", () => {
@@ -571,6 +838,7 @@ describe("the page's words about its linked monitors", () => {
       LINKED_MONITORS_TITLE,
       UNLINKED_MONITOR_RESULT,
       SYNCED_MONITOR_RESULT,
+      UNLINK_MONITOR_CONFIRMATION,
     ];
 
     for (const template of counted) {
@@ -604,6 +872,93 @@ describe("the page's words about its linked monitors", () => {
           return !words[sentence] || words[sentence] === sentence;
         }),
       }).toEqual({ language, counted: [], sentences: [] });
+    }
+  });
+
+  test("every sync button is a command in every language, before the count is read as after it, and so is its dialog's button (#7710)", () => {
+    expect(Object.keys(SYNC_COMMAND).sort()).toEqual(
+      ["en", ...DASHBOARD_LANGUAGES].sort(),
+    );
+
+    const english: Record<string, string> = readDashboardLocale("en");
+
+    for (const button of SYNC_BUTTONS) {
+      expect(english[button.countless]).toBe(button.countless);
+      expect(english[button.dialogButton]).toBe(button.dialogButton);
+    }
+
+    for (const language of ["en", ...DASHBOARD_LANGUAGES]) {
+      const reader: Translator = dashboardTranslator(language);
+      const command: RegExp = SYNC_COMMAND[language]!;
+      const notCommands: Array<string> = [];
+
+      for (const button of SYNC_BUTTONS) {
+        for (const title of [
+          reader.translateText(button.countless)!,
+          reader.translatePlural(button.counted, 1),
+          reader.translatePlural(button.counted, 3),
+          reader.translateText(button.dialogButton)!,
+        ]) {
+          if (!command.test(title)) {
+            notCommands.push(title);
+          }
+        }
+      }
+
+      expect({ language, notCommands }).toEqual({ language, notCommands: [] });
+    }
+  });
+
+  test("the Interval button says the same command before the count is read as after it, in the languages that once named it (#7710)", () => {
+    // Each said "the synchronization interval" until the count was read, and its dialog's button always did.
+    const interval: Record<
+      string,
+      { countless: string; counted: string; dialogButton: string }
+    > = {
+      de: {
+        countless: "Intervall mit verknüpften Monitoren synchronisieren",
+        counted: "Intervall mit 3 verknüpften Monitoren synchronisieren",
+        dialogButton: "Intervall synchronisieren",
+      },
+      pt: {
+        countless: "Sincronizar Intervalo com Monitores Vinculados",
+        counted: "Sincronizar Intervalo com 3 Monitores Vinculados",
+        dialogButton: "Sincronizar Intervalo",
+      },
+      nl: {
+        countless: "Interval synchroniseren naar gekoppelde monitoren",
+        counted: "Interval synchroniseren naar 3 gekoppelde monitoren",
+        dialogButton: "Interval synchroniseren",
+      },
+      no: {
+        countless: "Synkroniser intervall til koblede overvåkere",
+        counted: "Synkroniser intervall til 3 koblede overvåkere",
+        dialogButton: "Synkroniser intervall",
+      },
+      hi: {
+        countless: "लिंक किए गए मॉनिटर के साथ अंतराल सिंक करें",
+        counted: "लिंक किए गए 3 मॉनिटर के साथ अंतराल सिंक करें",
+        dialogButton: "अंतराल सिंक करें",
+      },
+      ko: {
+        countless: "연결된 모니터에 간격 동기화",
+        counted: "연결된 모니터 3개에 간격 동기화",
+        dialogButton: "간격 동기화",
+      },
+    };
+
+    for (const [language, expected] of Object.entries(interval)) {
+      const reader: Translator = dashboardTranslator(language);
+
+      expect({
+        language,
+        countless: reader.translateText("Sync Interval to Linked Monitors"),
+        counted: reader.translatePlural(
+          SYNC_TO_LINKED_MONITORS_TITLES.interval,
+          3,
+        ),
+        dialogButton: reader.translateText("Sync Interval"),
+      }).toEqual({ language, ...expected });
     }
   });
 });

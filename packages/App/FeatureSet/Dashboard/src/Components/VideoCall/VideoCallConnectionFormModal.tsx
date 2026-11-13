@@ -407,6 +407,8 @@ const VideoCallConnectionFormModal: FunctionComponent<ComponentProps> = (
     placeholder: translator.translateTemplate("{{provider}} for incidents", {
       provider: definition.title,
     }),
+    // Around the provider's name, so worded here (#7682).
+    isPlaceholderTranslated: true,
     validation: { minLength: 2 },
   });
 
