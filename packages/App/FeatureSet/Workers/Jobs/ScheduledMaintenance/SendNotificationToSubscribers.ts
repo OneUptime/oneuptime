@@ -123,7 +123,7 @@ RunCron(
       });
 
     logger.debug(
-      `Found ${scheduledEvents.length} scheduled maintenance event(s) to notify subscribers for.`,
+      `Found ${scheduledEvents.length} maintenance event(s) to notify subscribers for.`,
     );
 
     // Events of a blocked project, which are not sent (see below).
@@ -298,13 +298,13 @@ RunCron(
 
     if (successfulEvents.length > 0) {
       logger.debug(
-        `Notifying subscribers for ${successfulEvents.length} scheduled maintenance event(s) via service call.`,
+        `Notifying subscribers for ${successfulEvents.length} maintenance event(s) via service call.`,
       );
       await ScheduledMaintenanceService.notififySubscribersOnEventScheduled(
         successfulEvents,
       );
       logger.debug(
-        "Service call to notify subscribers for scheduled maintenance events completed.",
+        "Service call to notify subscribers for maintenance events completed.",
       );
     }
   },

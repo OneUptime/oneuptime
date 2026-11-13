@@ -425,7 +425,7 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
 
       if (!statuspage.showScheduledMaintenanceEventsOnStatusPage) {
         logger.debug(
-          `Status page ${statuspage.id} hides scheduled maintenance events; skipping.`,
+          `Status page ${statuspage.id} hides maintenance events; skipping.`,
         );
         continue; // Do not send notification to subscribers if scheduledMaintenances are not visible on status page.
       }
@@ -973,7 +973,7 @@ ${FeedMarkdown.asMarkdown(publicNote.note)}`.toString(),
       });
     } else {
       logger.debug(
-        `No subscribers were notified for public note on scheduled maintenance: ${event.id}. All status pages either hide scheduled maintenance events or had no matching subscribers.`,
+        `No subscribers were notified for public note on scheduled maintenance: ${event.id}. All status pages either hide maintenance events or had no matching subscribers.`,
       );
 
       await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
@@ -985,7 +985,7 @@ ${FeedMarkdown.asMarkdown(publicNote.note)}`.toString(),
         feedInfoInMarkdown:
           mdText`📧 **No notification sent to subscribers** for ${copy.feedNotSentSubject} on [Scheduled Maintenance ${event.scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(event.projectId!, event.id!)).toString()}).`.toString(),
         moreInformationInMarkdown:
-          "Subscriber notifications were skipped because all associated status pages either do not send notifications to their subscribers, hide scheduled maintenance events, or had no matching subscribers.",
+          "Subscriber notifications were skipped because all associated status pages either do not send notifications to their subscribers, hide maintenance events, or had no matching subscribers.",
         workspaceNotification: {
           sendWorkspaceNotification: false,
         },

@@ -47,14 +47,14 @@ function joinNames(items: Array<{ name?: string }> | undefined): string {
 export const QueryScheduledMaintenanceTool: ObservabilityTool = {
   name: "query_scheduled_maintenance",
   description:
-    "Query scheduled maintenance events (planned maintenance windows) in this project — past, ongoing and upcoming. Returns events whose window overlaps the requested range, with their state, window and affected monitors. Pass scheduledMaintenanceId to get full details of one event. Use the event's window to judge whether telemetry changes were expected maintenance rather than a real problem.",
+    "Query maintenance events (planned maintenance windows) in this project — past, ongoing and upcoming. Returns events whose window overlaps the requested range, with their state, window and affected monitors. Pass scheduledMaintenanceId to get full details of one event. Use the event's window to judge whether telemetry changes were expected maintenance rather than a real problem.",
   inputSchema: {
     type: "object",
     properties: {
       scheduledMaintenanceId: {
         type: "string",
         description:
-          "Get one scheduled maintenance event by its ID (includes description and affected monitors).",
+          "Get one maintenance event by its ID (includes description and affected monitors).",
       },
       pastDays: {
         type: "number",

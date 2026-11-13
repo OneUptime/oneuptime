@@ -305,7 +305,7 @@ describe("the move into an event's ongoing state", () => {
     expect(statusId.toString()).toBe(STATUS_PICKED_WHEN_SCHEDULED);
     expect(notifyOwners).toBe(true);
     expect(rootCause).toBe(
-      `Changed because of scheduled maintenance event: ${EVENT_ID.toString()}`,
+      `Changed because of maintenance event: ${EVENT_ID.toString()}`,
     );
     expect(props).toEqual({ isRoot: true });
   });

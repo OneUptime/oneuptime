@@ -1032,7 +1032,7 @@ API.get = async (options) => {
         {
           ...toWire(store.feed),
           refusedReason:
-            "You can see only some of this project's scheduled maintenance events, so its calendar link, which shows every event, is not yours to use. Ask a project admin for access to every event.",
+            "You can see only some of this project's maintenance events, so its calendar link, which shows every event, is not yours to use. Ask a project admin for access to every event.",
         },
         {},
       );
