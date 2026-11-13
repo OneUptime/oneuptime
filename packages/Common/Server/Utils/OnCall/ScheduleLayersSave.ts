@@ -129,16 +129,19 @@ const readNumber: (row: RawRow, column: string) => number = (
 };
 
 // Every column of a model, as a delete's audit snapshot reads it.
-const getEveryColumn: <TModel extends BaseModel>(model: TModel) => Select<TModel> =
-  <TModel extends BaseModel>(model: TModel): Select<TModel> => {
-    const select: Record<string, boolean> = {};
+const getEveryColumn: <TModel extends BaseModel>(
+  model: TModel,
+) => Select<TModel> = <TModel extends BaseModel>(
+  model: TModel,
+): Select<TModel> => {
+  const select: Record<string, boolean> = {};
 
-    for (const column of model.getTableColumns().columns) {
-      select[column] = true;
-    }
+  for (const column of model.getTableColumns().columns) {
+    select[column] = true;
+  }
 
-    return select as Select<TModel>;
-  };
+  return select as Select<TModel>;
+};
 
 export default class ScheduleLayersSave {
   public static readonly CONFLICT_MESSAGE: string =
@@ -269,7 +272,8 @@ export default class ScheduleLayersSave {
         ): ScheduleLayersStateLayerUser => {
           return {
             id: layerUser.id!.toString(),
-            layerId: layerUser.onCallDutyPolicyScheduleLayerId?.toString() || "",
+            layerId:
+              layerUser.onCallDutyPolicyScheduleLayerId?.toString() || "",
             userId: layerUser.userId?.toString() || "",
             order: layerUser.order || 0,
           };
@@ -699,21 +703,25 @@ export default class ScheduleLayersSave {
           order: readNumber(row, "order"),
         };
       }),
-      layerUsers: layerUsers.map((row: RawRow): ScheduleLayersStateLayerUser => {
-        return {
-          id: readText(row, "_id"),
-          layerId: readText(row, "onCallDutyPolicyScheduleLayerId"),
-          userId: readText(row, "userId"),
-          order: readNumber(row, "order"),
-        };
-      }),
+      layerUsers: layerUsers.map(
+        (row: RawRow): ScheduleLayersStateLayerUser => {
+          return {
+            id: readText(row, "_id"),
+            layerId: readText(row, "onCallDutyPolicyScheduleLayerId"),
+            userId: readText(row, "userId"),
+            order: readNumber(row, "order"),
+          };
+        },
+      ),
     };
   }
 
   // New orders for rows of one table, in one statement.
   private static async writeOrders(data: {
     manager: EntityManager;
-    tableName: "OnCallDutyPolicyScheduleLayer" | "OnCallDutyPolicyScheduleLayerUser";
+    tableName:
+      | "OnCallDutyPolicyScheduleLayer"
+      | "OnCallDutyPolicyScheduleLayerUser";
     writes: Array<{ id: string; order: number }>;
     scheduleId: string;
     projectId: string;
@@ -777,7 +785,9 @@ export default class ScheduleLayersSave {
 
     return inserted.map((row: RawRow): OnCallDutyPolicyScheduleLayerUser => {
       const layerUser: OnCallDutyPolicyScheduleLayerUser =
-        new OnCallDutyPolicyScheduleLayerUser(new ObjectID(readText(row, "_id")));
+        new OnCallDutyPolicyScheduleLayerUser(
+          new ObjectID(readText(row, "_id")),
+        );
       layerUser.projectId = data.projectId;
       layerUser.onCallDutyPolicyScheduleId = data.scheduleId;
       layerUser.onCallDutyPolicyScheduleLayerId = new ObjectID(
@@ -819,7 +829,9 @@ export default class ScheduleLayersSave {
    * layer it deletes - whose own calendar feeds and reminders are looked at
    * again even when they are in the schedule no more.
    */
-  private static getUserIdsNamed(plan: ScheduleLayersSavePlan): Array<ObjectID> {
+  private static getUserIdsNamed(
+    plan: ScheduleLayersSavePlan,
+  ): Array<ObjectID> {
     const userIds: Set<string> = new Set<string>();
 
     for (const layerUser of [

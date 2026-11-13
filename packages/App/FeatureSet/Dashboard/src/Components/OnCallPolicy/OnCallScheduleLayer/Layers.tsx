@@ -581,8 +581,15 @@ const Layers: FunctionComponent<ComponentProps> = (
    * done but could not be read back: those are saved.
    */
   const hasUnsavedChanges: boolean =
-    (changes ? changes.hasChanges : true) &&
-    saveStatus.kind !== "reloadFailed";
+    (changes ? changes.hasChanges : true) && saveStatus.kind !== "reloadFailed";
+
+  /*
+   * Whether the page marks what it has changed: a person New, Moved or
+   * Removed when you save, a layer to be deleted, a card's "Unsaved
+   * changes". Not once a save is done but could not be read back: those
+   * changes are saved, and the page waits for Reload layers.
+   */
+  const marksUnsavedChanges: boolean = saveStatus.kind !== "reloadFailed";
 
   /*
    * A page with unsaved changes holds them: nothing reloads it under them,
@@ -1002,10 +1009,15 @@ const Layers: FunctionComponent<ComponentProps> = (
   /*
    * While the page saves, adds a layer or reads the layers again, its other
    * changes wait: Add layer, and moving, deleting or changing the people of
-   * a layer.
+   * a layer. So they do after a save the page could not read back, until
+   * Reload layers: a change made to the layers as the page last read them
+   * would be refused, since the save moved them on.
    */
   const isMutating: boolean =
-    isAddButtonLoading || saveStatus.kind === "saving" || isReloading;
+    isAddButtonLoading ||
+    saveStatus.kind === "saving" ||
+    saveStatus.kind === "reloadFailed" ||
+    isReloading;
 
   const addLayerButton: GetReactElementFunction = (): ReactElement => {
     return (
@@ -1472,6 +1484,11 @@ const Layers: FunctionComponent<ComponentProps> = (
           }
 
           if (deletedLayerIds.has(layerId)) {
+            // Saved once the page could not read the save back: deleted.
+            if (!marksUnsavedChanges) {
+              return null;
+            }
+
             return (
               <DeletedLayerCard
                 key={layerId}
@@ -1499,7 +1516,11 @@ const Layers: FunctionComponent<ComponentProps> = (
                 saved: savedLayerUsers[layerId] || [],
                 draft: draftLayerUsers[layerId] || [],
               })}
-              hasUnsavedChanges={changedLayerIds.has(layerId.toLowerCase())}
+              hasUnsavedChanges={
+                marksUnsavedChanges &&
+                changedLayerIds.has(layerId.toLowerCase())
+              }
+              marksUnsavedChanges={marksUnsavedChanges}
               timezone={scheduleTimezone}
               overrides={overrideResolution.records}
               overridePolicyContextId={overrideResolution.policyContextId}

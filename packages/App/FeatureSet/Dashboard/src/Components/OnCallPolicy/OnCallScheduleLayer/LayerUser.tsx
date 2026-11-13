@@ -65,6 +65,12 @@ export interface ComponentProps {
    * Moved until Save.
    */
   movedUserIds?: Set<string> | undefined;
+  /*
+   * Whether the rows say what the page changed: New, Moved, and the people
+   * Removed when you save. Left out, they do. Not once a save is done but
+   * the page could not read it back (Layers): those changes are saved.
+   */
+  marksUnsavedChanges?: boolean | undefined;
   // Undo on one of them: they go back where they were.
   onRestore?:
     | ((layerUser: OnCallDutyPolicyScheduleLayerUser) => void)
@@ -211,8 +217,10 @@ const LayerUser: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const users: Array<OnCallDutyPolicyScheduleLayerUser> = props.users;
-  const removedUsers: Array<OnCallDutyPolicyScheduleLayerUser> =
-    props.removedUsers || [];
+  const marksChanges: boolean = props.marksUnsavedChanges !== false;
+  const removedUsers: Array<OnCallDutyPolicyScheduleLayerUser> = marksChanges
+    ? props.removedUsers || []
+    : [];
   const [showAddUserModal, setShowAddUserModal] = useState<boolean>(false);
 
   // Every row's locked "Skip until..." is described by the one reason.
@@ -343,9 +351,12 @@ const LayerUser: FunctionComponent<ComponentProps> = (
     const userId: string = user?.id?.toString() || `unknown-${index}`;
     const name: string = user?.name?.toString() || "";
     const email: string = user?.email?.toString() || "";
+    // Someone added on the page: no row of theirs is saved yet.
     const isAdded: boolean = isAddedLayerUser(layerUser);
+    const isMarkedNew: boolean = isAdded && marksChanges;
     const isMoved: boolean =
       !isAdded &&
+      marksChanges &&
       Boolean(
         props.movedUserIds?.has(layerUser.id?.toString().toLowerCase() || ""),
       );
@@ -364,9 +375,9 @@ const LayerUser: FunctionComponent<ComponentProps> = (
       <div
         ref={dragProvided.innerRef}
         {...dragProvided.draggableProps}
-        data-testid={isAdded ? "layer-user-added-row" : "layer-user-row"}
+        data-testid={isMarkedNew ? "layer-user-added-row" : "layer-user-row"}
         className={`flex items-center gap-3 px-3 py-2.5 transition-colors ${
-          isAdded
+          isMarkedNew
             ? "bg-emerald-50/40 hover:bg-emerald-50/70"
             : isMoved
               ? "bg-indigo-50/40 hover:bg-indigo-50/70"
@@ -397,7 +408,7 @@ const LayerUser: FunctionComponent<ComponentProps> = (
             <span className="min-w-0 truncate text-sm font-medium text-gray-900">
               {displayName}
             </span>
-            {isAdded && (
+            {isMarkedNew && (
               /*
                * Someone added on the page: in the previews already, in the
                * rotation once the page is saved.
@@ -565,75 +576,76 @@ const LayerUser: FunctionComponent<ComponentProps> = (
    * The people saved in the layer that the page has taken out: still in the
    * rotation until Save, and put back with Undo, where they were.
    */
-  const getRemovedUsers: () => ReactElement | null = (): ReactElement | null => {
-    if (removedUsers.length === 0) {
-      return null;
-    }
+  const getRemovedUsers: () => ReactElement | null =
+    (): ReactElement | null => {
+      if (removedUsers.length === 0) {
+        return null;
+      }
 
-    return (
-      <div
-        data-testid="layer-users-removed"
-        className="mt-2 rounded-lg border border-dashed border-gray-200 bg-gray-50/60 px-3 py-2"
-      >
-        <p className="text-xs font-medium text-gray-500">
-          {translator.translateText("Removed when you save")}
-        </p>
-        <ul className="mt-1 divide-y divide-gray-100">
-          {removedUsers.map(
-            (layerUser: OnCallDutyPolicyScheduleLayerUser, i: number) => {
-              const user: User | undefined = layerUser.user;
-              const userId: string = user?.id?.toString() || `unknown-${i}`;
-              const name: string = user?.name?.toString() || "";
-              const email: string = user?.email?.toString() || "";
-              const displayName: string =
-                name || email || translator.translateTemplate("Unknown user");
+      return (
+        <div
+          data-testid="layer-users-removed"
+          className="mt-2 rounded-lg border border-dashed border-gray-200 bg-gray-50/60 px-3 py-2"
+        >
+          <p className="text-xs font-medium text-gray-500">
+            {translator.translateText("Removed when you save")}
+          </p>
+          <ul className="mt-1 divide-y divide-gray-100">
+            {removedUsers.map(
+              (layerUser: OnCallDutyPolicyScheduleLayerUser, i: number) => {
+                const user: User | undefined = layerUser.user;
+                const userId: string = user?.id?.toString() || `unknown-${i}`;
+                const name: string = user?.name?.toString() || "";
+                const email: string = user?.email?.toString() || "";
+                const displayName: string =
+                  name || email || translator.translateTemplate("Unknown user");
 
-              return (
-                <li
-                  key={getLayerUserRowKey(layerUser, i)}
-                  data-testid="layer-user-removed-row"
-                  className="flex items-center gap-2.5 py-1.5"
-                >
-                  <span
-                    aria-hidden="true"
-                    className="inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-semibold opacity-60"
-                    style={getUserAvatarStyle(userId)}
+                return (
+                  <li
+                    key={getLayerUserRowKey(layerUser, i)}
+                    data-testid="layer-user-removed-row"
+                    className="flex items-center gap-2.5 py-1.5"
                   >
-                    {getUserInitials(name, email)}
-                  </span>
-                  <span className="min-w-0 flex-1 truncate text-sm text-gray-500 line-through decoration-gray-400">
-                    {displayName}
-                  </span>
-                  {props.onRestore && (
-                    <button
-                      type="button"
-                      aria-label={translator.translateTemplate(
-                        "Undo removing {{name}}",
-                        { name: displayName },
-                      )}
-                      disabled={isBusy}
-                      onClick={() => {
-                        props.onRestore?.(layerUser);
-                      }}
-                      className={`flex-shrink-0 rounded-md px-2 py-1 text-xs font-medium text-indigo-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnButtonStateClassName(
-                        {
-                          isLocked: isBusy,
-                          hoverClassName:
-                            "hover:bg-indigo-50 hover:text-indigo-700",
-                        },
-                      )}`}
+                    <span
+                      aria-hidden="true"
+                      className="inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-semibold opacity-60"
+                      style={getUserAvatarStyle(userId)}
                     >
-                      {translator.translateText("Undo")}
-                    </button>
-                  )}
-                </li>
-              );
-            },
-          )}
-        </ul>
-      </div>
-    );
-  };
+                      {getUserInitials(name, email)}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-sm text-gray-500 line-through decoration-gray-400">
+                      {displayName}
+                    </span>
+                    {props.onRestore && (
+                      <button
+                        type="button"
+                        aria-label={translator.translateTemplate(
+                          "Undo removing {{name}}",
+                          { name: displayName },
+                        )}
+                        disabled={isBusy}
+                        onClick={() => {
+                          props.onRestore?.(layerUser);
+                        }}
+                        className={`flex-shrink-0 rounded-md px-2 py-1 text-xs font-medium text-indigo-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnButtonStateClassName(
+                          {
+                            isLocked: isBusy,
+                            hoverClassName:
+                              "hover:bg-indigo-50 hover:text-indigo-700",
+                          },
+                        )}`}
+                      >
+                        {translator.translateText("Undo")}
+                      </button>
+                    )}
+                  </li>
+                );
+              },
+            )}
+          </ul>
+        </div>
+      );
+    };
 
   return (
     <div>

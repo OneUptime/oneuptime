@@ -772,8 +772,9 @@ export default class ScheduleLayersSaveUtil {
             return;
           }
 
-          const stored: ScheduleLayersStateLayerUser =
-            storedLayerUserById.get(normalizeId(user.layerUserId))!;
+          const stored: ScheduleLayersStateLayerUser = storedLayerUserById.get(
+            normalizeId(user.layerUserId),
+          )!;
 
           if (stored.order === order) {
             return;

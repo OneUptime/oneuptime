@@ -15,6 +15,7 @@ import LayersSaveBar, {
   LayersSaveStatus,
   getLayersChangeLines,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/LayersSaveBar";
+import { getUnexplainedServerErrorMessage } from "../../../Types/Exception/UnexplainedError";
 import { ScheduleLayersChanges } from "../../../Types/OnCallDutyPolicy/ScheduleLayersSave";
 import { Translator } from "../../../Types/Translator";
 import {
@@ -251,6 +252,23 @@ const ENGLISH_SENTENCES: ReadonlyArray<string> = [
   "Changes saved",
 ];
 
+/*
+ * A save, or the read after it, that failed in a way the server could not
+ * explain: its answer is one English sentence with a reference in it.
+ */
+const REFERENCE: string = "a1b2c3d4";
+
+// What to do with it, in English: Cloud's words and a self-hosted server's.
+const GIVE_THE_REFERENCE: RegExp = /give (them )?this reference/;
+
+const FAILURES_NOBODY_EXPLAINED: ReadonlyArray<LayersSaveStatus> = [
+  { kind: "error", message: getUnexplainedServerErrorMessage(REFERENCE) },
+  {
+    kind: "reloadFailed",
+    message: getUnexplainedServerErrorMessage(REFERENCE),
+  },
+];
+
 function word(language: string, key: string): string {
   const text: string | undefined = readDashboardLocale(language)[key];
 
@@ -337,6 +355,24 @@ describe("the bar in English, as the control", () => {
       "Save changes",
       "Discard",
     ]);
+  });
+
+  test("a failure nobody explained reads as one anywhere: why, what to do, and the reference to give", () => {
+    for (const status of FAILURES_NOBODY_EXPLAINED) {
+      const text: string = drawBar("en", status);
+
+      expect(screen.getByTestId("error-explanation")).toBeInTheDocument();
+      expect(text).toContain(
+        "The server ran into a problem it could not explain.",
+      );
+      expect(text).toMatch(GIVE_THE_REFERENCE);
+      expect(screen.getByTestId("error-reference")).toHaveTextContent(
+        REFERENCE,
+      );
+      // Not the server's one sentence, as it came.
+      expect(text).not.toContain(getUnexplainedServerErrorMessage(REFERENCE));
+      cleanup();
+    }
   });
 });
 
@@ -431,6 +467,25 @@ describe.each([...DRAWN_LANGUAGES])(
 
       expect(saved).toContain(word(language, "Changes saved"));
       expect(englishShownIn(saved)).toEqual([]);
+    });
+
+    test("a failure nobody explained: why, what to do and the reference to give, in the language", async () => {
+      await act(async () => {
+        await i18next.changeLanguage(language);
+      });
+
+      for (const status of FAILURES_NOBODY_EXPLAINED) {
+        const text: string = drawBar(language, status);
+
+        expect(screen.getByTestId("error-explanation")).toBeInTheDocument();
+        expect(screen.getByTestId("error-reference")).toHaveTextContent(
+          REFERENCE,
+        );
+        expect(text).not.toContain("The server ran into a problem");
+        expect(text).not.toMatch(GIVE_THE_REFERENCE);
+        expect(englishShownIn(text)).toEqual([]);
+        cleanup();
+      }
     });
   },
 );

@@ -416,9 +416,7 @@ async function renderAddUserDialog(): Promise<void> {
     });
   });
 
-  render(
-    <AddLayerUserModal onClose={noop} onAdd={noop} />,
-  );
+  render(<AddLayerUserModal onClose={noop} onAdd={noop} />);
 
   await screen.findByText(DANA.name);
 }

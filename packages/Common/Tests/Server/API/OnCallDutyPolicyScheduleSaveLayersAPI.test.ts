@@ -279,16 +279,17 @@ describe("POST /on-call-duty-policy-schedule/:id/save-layers", () => {
     },
   ];
 
-  for (const sent of notASave) {
-    it(`a body with ${sent.name} is refused, in plain words, before anything is read`, async () => {
+  it.each(notASave)(
+    "a body with $name is refused, in plain words, before anything is read",
+    async (sent: { name: string; body: unknown; says: RegExp }) => {
       await post(sent.body);
 
       expect(save).not.toHaveBeenCalled();
       const error: Error = refusal();
       expect(error).toBeInstanceOf(BadDataException);
       expect(error.message).toMatch(sent.says);
-    });
-  }
+    },
+  );
 
   it("a save made to layers changed since is answered as a conflict, for the page to reload", async () => {
     save.mockRejectedValue(

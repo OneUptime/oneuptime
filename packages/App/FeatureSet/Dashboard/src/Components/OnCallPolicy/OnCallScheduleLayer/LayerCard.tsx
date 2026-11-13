@@ -87,6 +87,11 @@ export interface ComponentProps {
    */
   hasUnsavedChanges?: boolean | undefined;
   /*
+   * Whether the people list marks the page's changes - New, Moved, Removed
+   * when you save (LayerUser). Left out, it does.
+   */
+  marksUnsavedChanges?: boolean | undefined;
+  /*
    * "Skip until..." on a person in this layer (SkipLayerUserModal, opened by
    * the page). Left out, the people list does not offer it.
    */
@@ -676,6 +681,7 @@ const LayerCard: FunctionComponent<ComponentProps> = (
               onChange={props.onUsersChange}
               removedUsers={props.removedUsers}
               movedUserIds={props.movedUserIds}
+              marksUnsavedChanges={props.marksUnsavedChanges}
               onRestore={props.onRestoreUser}
               isDisabled={props.actionsDisabled}
               overrides={props.overrides}

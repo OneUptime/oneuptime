@@ -1159,6 +1159,114 @@ describe("Save changes", () => {
     expect(LeaveGuard.isHeld()).toBe(false);
     expect(saveCalls.length).toBe(1);
   });
+
+  test("saved, but the layers could not be read back: nothing is marked unsaved, and changes wait for Reload layers", async () => {
+    await renderLayers();
+
+    // Carol to the top, Bob out, Erin added, Backup deleted.
+    await drag(CAROL, -2);
+    await removeFromLayer(BOB);
+    await addToOpenLayer(ERIN);
+    await act(async () => {
+      fireEvent.click(
+        screen.getAllByRole("button", { name: "Delete layer" })[1]!,
+      );
+    });
+
+    // The save goes through; reading the layers again after it does not.
+    const readList: (params: any) => Promise<any> =
+      getListMock.getMockImplementation()!;
+    let layerReadsFail: boolean = false;
+    getListMock.mockImplementation(async (params: any): Promise<any> => {
+      if (
+        layerReadsFail &&
+        params.modelType === OnCallDutyPolicyScheduleLayer
+      ) {
+        throw new Error("The layers could not be loaded.");
+      }
+
+      return await readList(params);
+    });
+    answerSave = async (
+      body: JSONObject,
+    ): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        applySave(body);
+      layerReadsFail = true;
+      return response;
+    };
+
+    await clickSave();
+
+    const saved: HTMLElement = await screen.findByTestId(
+      "layers-save-bar-reload-failed",
+      undefined,
+      { timeout: 5000 },
+    );
+    expect(saved).toHaveTextContent("Your changes were saved");
+    expect(saved).toHaveTextContent(
+      "The page could not load the layers again. Reload to keep editing them.",
+    );
+    expect(saveCalls.length).toBe(1);
+    expect(
+      stored.rows.map((row: StoredRow) => {
+        return `${PEOPLE[row.userId]!.name}:${row.order}`;
+      }),
+    ).toEqual(["Alice Andersson:2", "Carol Chen:1", "Erin Ek:3"]);
+    expect(
+      stored.layers.map((layer: StoredLayer) => {
+        return layer.name;
+      }),
+    ).toEqual(["Primary"]);
+
+    // The page shows the layers as saved, and marks nothing as still to save.
+    expect(shownPeople()).toEqual(["Carol Chen", "Alice Andersson", "Erin Ek"]);
+    expect(screen.queryAllByTestId("layer-user-added-row")).toEqual([]);
+    expect(screen.queryByTestId("layer-user-new")).toBeNull();
+    expect(screen.queryByTestId("layer-user-moved")).toBeNull();
+    expect(screen.queryByTestId("layer-users-removed")).toBeNull();
+    expect(screen.queryByTestId("layer-deleted")).toBeNull();
+    expect(screen.queryByTestId("layer-card-unsaved")).toBeNull();
+    expect(screen.queryByTestId("final-schedule-unsaved")).toBeNull();
+    expect(screen.queryByText("Backup")).toBeNull();
+    expect(LeaveGuard.isHeld()).toBe(false);
+
+    /*
+     * A change made to the layers as last read would be refused - the save
+     * moved them on - so changes wait for Reload layers.
+     */
+    for (const button of screen.getAllByRole("button", {
+      name: "Delete layer",
+    })) {
+      expect(button).toBeDisabled();
+    }
+    for (const button of screen.getAllByRole("button", {
+      name: "Remove user from layer",
+    })) {
+      expect(button).toBeDisabled();
+    }
+    expect(
+      document.querySelectorAll("[data-rbd-drag-handle-draggable-id]").length,
+    ).toBe(0);
+
+    layerReadsFail = false;
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("layers-save-bar-reload"));
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("layers-save-bar-reload-failed")).toBeNull();
+    });
+    expect(shownPeople()).toEqual(["Carol Chen", "Alice Andersson", "Erin Ek"]);
+    expect(screen.queryByTestId("layers-save-bar")).toBeNull();
+    expect(LeaveGuard.isHeld()).toBe(false);
+    for (const button of screen.getAllByRole("button", {
+      name: "Remove user from layer",
+    })) {
+      expect(button).not.toBeDisabled();
+    }
+    expect(saveCalls.length).toBe(1);
+  });
 });
 
 /*

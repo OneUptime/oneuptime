@@ -112,7 +112,8 @@ export const createAddedLayerUser: (data: {
   }
 
   if (data.layer.onCallDutyPolicyScheduleId) {
-    layerUser.onCallDutyPolicyScheduleId = data.layer.onCallDutyPolicyScheduleId;
+    layerUser.onCallDutyPolicyScheduleId =
+      data.layer.onCallDutyPolicyScheduleId;
   }
 
   if (data.layer.projectId) {
@@ -199,7 +200,8 @@ export const getScheduleLayersState: (data: {
 
       state.layerUsers.push({
         id: layerUser.id.toString(),
-        layerId: layerUser.onCallDutyPolicyScheduleLayerId?.toString() || layerId,
+        layerId:
+          layerUser.onCallDutyPolicyScheduleLayerId?.toString() || layerId,
         userId: getLayerUserUserId(layerUser),
         order: layerUser.order || 0,
       });
@@ -477,21 +479,24 @@ export const restoreRemovedLayerUser: (data: {
 };
 
 // A list with the item at `from` moved to `to`, as a drop leaves it.
-export const moveInList: <T>(list: Array<T>, from: number, to: number) => Array<T> =
-  <T>(list: Array<T>, from: number, to: number): Array<T> => {
-    if (
-      from === to ||
-      from < 0 ||
-      to < 0 ||
-      from >= list.length ||
-      to >= list.length
-    ) {
-      return list;
-    }
+export const moveInList: <T>(
+  list: Array<T>,
+  from: number,
+  to: number,
+) => Array<T> = <T>(list: Array<T>, from: number, to: number): Array<T> => {
+  if (
+    from === to ||
+    from < 0 ||
+    to < 0 ||
+    from >= list.length ||
+    to >= list.length
+  ) {
+    return list;
+  }
 
-    const moved: Array<T> = [...list];
-    const [item] = moved.splice(from, 1);
-    moved.splice(to, 0, item as T);
+  const moved: Array<T> = [...list];
+  const [item] = moved.splice(from, 1);
+  moved.splice(to, 0, item as T);
 
-    return moved;
-  };
+  return moved;
+};

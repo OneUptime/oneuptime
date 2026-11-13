@@ -1,6 +1,7 @@
 import IconProp from "Common/Types/Icon/IconProp";
 import { ScheduleLayersChanges } from "Common/Types/OnCallDutyPolicy/ScheduleLayersSave";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import ErrorMessageText from "Common/UI/Components/ErrorMessage/ErrorMessageText";
 import Icon from "Common/UI/Components/Icon/Icon";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -66,7 +67,9 @@ export const getLayersChangeLines: (data: {
   }
 
   if (data.changes.isLayerOrderChanged) {
-    lines.push(translator.translateText("Layers in a new priority order") || "");
+    lines.push(
+      translator.translateText("Layers in a new priority order") || "",
+    );
   }
 
   for (const layer of data.changes.layers) {
@@ -130,8 +133,12 @@ const LayersSaveBar: FunctionComponent<ComponentProps> = (
 
   /*
    * In view at the foot of the window while the page scrolls under it, and
-   * in the page's flow at its end. Buttons keep a dialog footer's left
-   * margin (md:ml-3), cleared here so the two sit as a pair.
+   * in the page's flow at its end. It lays itself out by its own width, not
+   * the window's: beside a record page's side menu it is some 460px wide in
+   * a 768px window. Narrower than 40rem, its buttons stack as wide as the
+   * bar, as a dialog's do; from 40rem they sit beside the words. A button
+   * keeps a dialog footer's left margin (md:ml-3) and, below md, a phone's
+   * full width: both are cleared here so the two sit as a pair.
    */
   const frame: (children: ReactElement, testId: string) => ReactElement = (
     children: ReactElement,
@@ -142,7 +149,7 @@ const LayersSaveBar: FunctionComponent<ComponentProps> = (
         data-testid={testId}
         role="region"
         aria-label={translator.translateText("Unsaved changes to the layers")}
-        className="sticky bottom-4 z-30 mt-6"
+        className="sticky bottom-4 z-30 mt-6 [container-type:inline-size]"
       >
         {children}
       </div>
@@ -150,20 +157,21 @@ const LayersSaveBar: FunctionComponent<ComponentProps> = (
   };
 
   const actionsClassName: string =
-    "flex flex-shrink-0 flex-wrap items-center justify-end gap-2 [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0";
+    "grid flex-shrink-0 grid-cols-1 gap-2 [@container(min-width:40rem)]:flex [@container(min-width:40rem)]:flex-wrap [@container(min-width:40rem)]:items-center [@container(min-width:40rem)]:justify-end [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0";
+
+  // A primary button is as wide as a phone: in a wide bar, as wide as its words.
+  const primaryButtonClassName: string = "[@container(min-width:40rem)]:w-auto";
 
   if (status.kind === "conflict") {
     return frame(
-      <div className="flex flex-col gap-3 rounded-xl bg-white px-4 py-3 shadow-lg ring-1 ring-amber-300 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4">
+      <div className="flex flex-col gap-3 rounded-xl bg-white px-4 py-3 shadow-lg ring-1 ring-amber-300 [@container(min-width:40rem)]:flex-row [@container(min-width:40rem)]:items-center [@container(min-width:40rem)]:justify-between sm:px-5 sm:py-4">
         <div className="flex min-w-0 items-start gap-3" role="alert">
           <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-amber-50 text-amber-600 ring-1 ring-inset ring-amber-200">
             <Icon icon={IconProp.Alert} className="h-4 w-4" />
           </span>
           <div className="min-w-0">
             <p className="text-sm font-semibold text-gray-900">
-              {translator.translateText(
-                "Someone else changed these layers",
-              )}
+              {translator.translateText("Someone else changed these layers")}
             </p>
             <p className="mt-0.5 text-sm text-gray-600">
               {translator.translateText(
@@ -177,6 +185,7 @@ const LayersSaveBar: FunctionComponent<ComponentProps> = (
             title="Reload layers"
             icon={IconProp.Refresh}
             buttonStyle={ButtonStyleType.PRIMARY}
+            className={primaryButtonClassName}
             isLoading={Boolean(props.isReloading)}
             disabled={Boolean(props.isReloading)}
             dataTestId="layers-save-bar-reload"
@@ -190,7 +199,7 @@ const LayersSaveBar: FunctionComponent<ComponentProps> = (
 
   if (status.kind === "reloadFailed") {
     return frame(
-      <div className="flex flex-col gap-3 rounded-xl bg-white px-4 py-3 shadow-lg ring-1 ring-gray-900/10 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4">
+      <div className="flex flex-col gap-3 rounded-xl bg-white px-4 py-3 shadow-lg ring-1 ring-gray-900/10 [@container(min-width:40rem)]:flex-row [@container(min-width:40rem)]:items-center [@container(min-width:40rem)]:justify-between sm:px-5 sm:py-4">
         <div className="flex min-w-0 items-start gap-3" role="alert">
           <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 ring-1 ring-inset ring-emerald-200">
             <Icon icon={IconProp.Check} className="h-4 w-4" />
@@ -204,8 +213,16 @@ const LayersSaveBar: FunctionComponent<ComponentProps> = (
                 "The page could not load the layers again. Reload to keep editing them.",
               )}
             </p>
+            {/*
+             * Why the read failed, as a failure reads anywhere
+             * (ErrorMessageText): in the reader's language, and one nobody
+             * explained with what to do and the reference to give.
+             */}
             <p className="mt-0.5 break-words text-xs text-gray-500">
-              {status.message}
+              <ErrorMessageText
+                message={status.message}
+                hideWhatFailed={true}
+              />
             </p>
           </div>
         </div>
@@ -214,6 +231,7 @@ const LayersSaveBar: FunctionComponent<ComponentProps> = (
             title="Reload layers"
             icon={IconProp.Refresh}
             buttonStyle={ButtonStyleType.PRIMARY}
+            className={primaryButtonClassName}
             isLoading={Boolean(props.isReloading)}
             disabled={Boolean(props.isReloading)}
             dataTestId="layers-save-bar-reload"
@@ -237,7 +255,10 @@ const LayersSaveBar: FunctionComponent<ComponentProps> = (
           role="status"
           className="inline-flex items-center gap-2 rounded-full bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow-lg"
         >
-          <Icon icon={IconProp.CheckCircle} className="h-4 w-4 text-emerald-400" />
+          <Icon
+            icon={IconProp.CheckCircle}
+            className="h-4 w-4 text-emerald-400"
+          />
           {translator.translateText("Changes saved")}
         </p>
       </div>
@@ -252,7 +273,7 @@ const LayersSaveBar: FunctionComponent<ComponentProps> = (
   const moreCount: number = props.changeLines.length - shownLines.length;
 
   return frame(
-    <div className="flex flex-col gap-3 rounded-xl bg-white px-4 py-3 shadow-lg ring-1 ring-gray-900/10 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4">
+    <div className="flex flex-col gap-3 rounded-xl bg-white px-4 py-3 shadow-lg ring-1 ring-gray-900/10 [@container(min-width:40rem)]:flex-row [@container(min-width:40rem)]:items-center [@container(min-width:40rem)]:justify-between sm:px-5 sm:py-4">
       <div className="flex min-w-0 items-start gap-3">
         <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-amber-50 text-amber-600 ring-1 ring-inset ring-amber-200">
           <Icon icon={IconProp.PencilSquare} className="h-4 w-4" />
@@ -301,7 +322,10 @@ const LayersSaveBar: FunctionComponent<ComponentProps> = (
               role="alert"
               className="mt-1.5 break-words text-sm font-medium text-red-600"
             >
-              {status.message}
+              <ErrorMessageText
+                message={status.message}
+                hideWhatFailed={true}
+              />
             </p>
           )}
         </div>
@@ -310,6 +334,7 @@ const LayersSaveBar: FunctionComponent<ComponentProps> = (
         <Button
           title="Discard"
           buttonStyle={ButtonStyleType.OUTLINE}
+          className="w-full [@container(min-width:40rem)]:w-auto"
           disabled={isSaving}
           dataTestId="layers-save-bar-discard"
           onClick={props.onDiscard}
@@ -317,6 +342,7 @@ const LayersSaveBar: FunctionComponent<ComponentProps> = (
         <Button
           title={isSaving ? "Saving…" : "Save changes"}
           buttonStyle={ButtonStyleType.PRIMARY}
+          className={primaryButtonClassName}
           isLoading={isSaving}
           disabled={isSaving}
           dataTestId="layers-save-bar-save"

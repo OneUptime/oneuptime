@@ -359,16 +359,26 @@ describePostgres(
         .mockResolvedValue(undefined as never);
 
       // The audit log is ClickHouse's: counted here.
+      const countAudit: (
+        method: string,
+      ) => (data: {
+        model: { tableName?: string | undefined };
+      }) => Promise<void> = (method: string) => {
+        return async (data: {
+          model: { tableName?: string | undefined };
+        }): Promise<void> => {
+          audited.push(`${method} ${data.model.tableName || ""}`);
+        };
+      };
+
       for (const method of [
         "recordCreate",
         "recordUpdate",
         "recordDelete",
       ] as const) {
-        jest.spyOn(AuditLogService, method).mockImplementation((async (data: {
-          model: { tableName?: string | undefined };
-        }) => {
-          audited.push(`${method} ${data.model.tableName || ""}`);
-        }) as never);
+        jest
+          .spyOn(AuditLogService, method)
+          .mockImplementation(countAudit(method) as never);
       }
       const refresh: (scheduleId: ObjectID) => Promise<unknown> =
         OnCallDutyPolicyScheduleService.refreshCurrentUserIdAndHandoffTimeInSchedule.bind(
