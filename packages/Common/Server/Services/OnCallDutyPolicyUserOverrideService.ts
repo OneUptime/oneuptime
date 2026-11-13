@@ -696,7 +696,9 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
         };
 
         if (!OneUptimeDate.isBefore(candidate.startsAt, candidate.endsAt)) {
-          throw new BadDataException("Start time must be before end time");
+          throw new BadDataException(
+            "An override has to end after it starts. Pick an end time later than its start time.",
+          );
         }
 
         await this.refuseOverlap({
@@ -967,7 +969,9 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
     // A time can be moved, never taken away: an override has both.
     for (const key of ["startsAt", "endsAt"]) {
       if (key in data && data[key] !== undefined && !data[key]) {
-        throw new BadDataException("Start time and end time are required");
+        throw new BadDataException(
+          "An override always has a start time and an end time, so neither can be removed. Pick another time instead.",
+        );
       }
     }
 
@@ -1008,7 +1012,9 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
           change.endsAt || saved.endsAt,
         )
       ) {
-        throw new BadDataException("Start time must be before end time");
+        throw new BadDataException(
+          "An override has to end after it starts. Pick an end time later than its start time.",
+        );
       }
 
       const overrideUserId: ObjectID | undefined | null =
@@ -1021,7 +1027,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
           overrideUserId.toString().toLowerCase()
       ) {
         throw new BadDataException(
-          "Override user and route alerts to user cannot be the same",
+          "The person who is away cannot cover for themselves. Pick someone else to cover, or nobody, to skip them in the rotation.",
         );
       }
     }

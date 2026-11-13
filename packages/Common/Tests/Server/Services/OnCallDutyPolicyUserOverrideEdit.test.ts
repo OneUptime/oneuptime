@@ -373,7 +373,7 @@ describe("who covers", () => {
 
     expect(refusal).toBeInstanceOf(BadDataException);
     expect(refusal.message).toBe(
-      "Override user and route alerts to user cannot be the same",
+      "The person who is away cannot cover for themselves. Pick someone else to cover, or nobody, to skip them in the rotation.",
     );
     expect(String(stored(UPCOMING, "routeAlertsToUserId")).toLowerCase()).toBe(
       BOB,
@@ -458,7 +458,9 @@ describe("when it starts", () => {
       edit(UPCOMING, { startsAt: new Date("2026-11-14T18:00:00.000Z") }),
     );
 
-    expect(refusal.message).toBe("Start time must be before end time");
+    expect(refusal.message).toBe(
+      "An override has to end after it starts. Pick an end time later than its start time.",
+    );
     expect(storedTime(UPCOMING, "startsAt")).toBe(
       UPCOMING_STARTS.toISOString(),
     );
@@ -468,6 +470,9 @@ describe("when it starts", () => {
     const refusal: Error = await refusalOf(edit(UPCOMING, { startsAt: null }));
 
     expect(refusal).toBeInstanceOf(BadDataException);
+    expect(refusal.message).toBe(
+      "An override always has a start time and an end time, so neither can be removed. Pick another time instead.",
+    );
     expect(storedTime(UPCOMING, "startsAt")).toBe(
       UPCOMING_STARTS.toISOString(),
     );
@@ -505,7 +510,9 @@ describe("when it ends", () => {
       edit(UPCOMING, { endsAt: new Date("2026-11-14T08:00:00.000Z") }),
     );
 
-    expect(refusal.message).toBe("Start time must be before end time");
+    expect(refusal.message).toBe(
+      "An override has to end after it starts. Pick an end time later than its start time.",
+    );
     expect(storedTime(UPCOMING, "endsAt")).toBe(UPCOMING_ENDS.toISOString());
   });
 
