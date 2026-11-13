@@ -10,7 +10,8 @@ import {
  * WHY A PROBE'S CHECK FAILED, READ IN THE READER'S LANGUAGE.
  *
  * A failed check stores why in the probe's English: its failure cause (the
- * summary's Error) and, for a request, the phase it broke in (Failed At).
+ * summary's Error) and, for a request, the phase it broke in (Failed
+ * Phase).
  * Monitor criteria, incident root causes and logs compare that English, so
  * it is stored as it always was. The monitor summaries read it back here
  * and draw OneUptime's own words in the reader's language; anything else -
@@ -140,7 +141,7 @@ export const getProbeFailureCauseText: (data: {
  * WHERE A REQUEST BROKE.
  *
  * Each phase a request can fail in (RequestFailedDetails' failedPhase, the
- * summary's Failed At) by its English words, a translation key. The probe
+ * summary's Failed Phase) by its English words, a translation key. The probe
  * stores the enum's value, which is these words; criteria may compare it,
  * so it never changes.
  */
@@ -166,7 +167,7 @@ const isRequestFailedPhase: (value: string) => value is RequestFailedPhase = (
 };
 
 /*
- * The phase a request failed in, as the summary's Failed At draws it: the
+ * The phase a request failed in, as the summary's Failed Phase draws it: the
  * reader's word for a phase the probe names; a value no probe writes today
  * (a newer probe's) as written, trimmed; "" for none.
  */
