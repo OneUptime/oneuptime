@@ -209,11 +209,21 @@ const answerError: (
   });
 };
 
+/*
+ * A route's handler, as a promise that settles once it has answered, so a
+ * route that wraps one can hand that promise on.
+ */
+type PrometheusRouteHandler = (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+) => Promise<void>;
+
 const handle: (
   work: (context: PrometheusRequestContext) => Promise<JSONObject>,
-) => RequestHandler = (
+) => PrometheusRouteHandler = (
   work: (context: PrometheusRequestContext) => Promise<JSONObject>,
-): RequestHandler => {
+): PrometheusRouteHandler => {
   return async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -454,7 +464,7 @@ router.get(
     next: NextFunction,
   ): Promise<void> => {
     const labelName: string = String(req.params["labelName"] || "");
-    return handle(labelValues(labelName))(req, res, next) as Promise<void>;
+    return handle(labelValues(labelName))(req, res, next);
   },
 );
 
