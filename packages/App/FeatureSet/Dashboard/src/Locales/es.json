@@ -51970,5 +51970,6 @@
   "Promtail": "Promtail",
   "Sentry SDK": "Sentry SDK",
   "Splunk HEC": "Splunk HEC",
-  "curl": "curl"
+  "curl": "curl",
+  "A project's own Twilio account. The project's default accounts send the SMS and make the calls to its team members instead of OneUptime's own. A status page can name one for the SMS to its subscribers, and an incoming call policy one for its calls.": "La cuenta de Twilio propia de un proyecto. Los SMS y las llamadas a los miembros de su equipo pasan por las cuentas predeterminadas del proyecto en lugar de por la cuenta de Twilio de OneUptime. Una página de estado puede indicar una para los SMS a sus suscriptores, y una política de llamadas entrantes, una para sus llamadas."
 }
