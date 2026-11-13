@@ -1347,6 +1347,46 @@ pushNotification:
   # expo.accessToken alone sends this server's own pushes and relays nothing.
   relayServerEnabled:
 
+# The Twilio account this server sends SMS and makes calls with, for projects
+# that have no Twilio account of their own - what Admin Dashboard > Settings >
+# Call and SMS otherwise sets up. Set accountSid, and the account is the one
+# these values describe: the one saved in the Admin Dashboard is not used, and
+# the Admin Dashboard shows this one, read-only. Leave accountSid empty to keep
+# setting the account up in the Admin Dashboard. Something wrong with these
+# values (a number that is not a phone number, a missing auth token) keeps the
+# account from sending until it is fixed: the app's log and the Admin
+# Dashboard say what. See https://oneuptime.com/docs/self-hosted/twilio-integration
+twilio:
+  # The Account SID from the Twilio Console (it starts with AC).
+  accountSid:
+  # The account's auth token. Or leave it empty and name a Secret below.
+  authToken:
+  # What the account is used for: calls-and-sms (what empty means), sms-only
+  # or calls-only.
+  usedFor:
+  # The number calls go out from, with its country code: "+14155550100".
+  # Quote it - YAML reads +14155550100 as a number, which the chart refuses -
+  # and pass it with --set-string, not --set. Not needed for sms-only.
+  primaryPhoneNumber:
+  # More numbers, comma-separated ("+441234567890,+461234567890"): one is
+  # used instead of the primary number when it matches the recipient's
+  # country code.
+  secondaryPhoneNumbers:
+  # The numbers every SMS goes out from, comma-separated, for phone numbers
+  # that can only make calls. Required for sms-only; left empty, SMS go out
+  # from the same numbers as calls.
+  smsPhoneNumbers:
+  # Read the auth token from a Secret you manage instead of authToken, to keep
+  # it out of these values (Helm stores them with every revision). Create it in
+  # the release's namespace:
+  #   kubectl create secret generic oneuptime-twilio -n <namespace> \
+  #     --from-literal=authToken=<auth token>
+  # Leave authToken empty then: the chart refuses the two together.
+  existingSecret:
+    name:
+    # The key of that Secret that holds the auth token.
+    authTokenKey: authToken
+
 incidents:
   disableAutomaticCreation: false
 
