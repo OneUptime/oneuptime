@@ -124,7 +124,7 @@ OneUptime اعتبارنامه‌های سرور را همان‌جایی می�
 | `GLOBAL_EMAIL_SMTP_PORT` | `email.smtp.port` | درگاه آن، مانند `587` |
 | `GLOBAL_EMAIL_SMTP_REQUIRE_TLS` | `email.smtp.requireTls` | `true` برای فرستادن فقط از راه اتصال رمزگذاری‌شده با گواهی معتبر، یا `false` (وقتی خالی است هم همین) |
 | `GLOBAL_EMAIL_SMTP_AUTH_TYPE` | `email.smtp.authType` | `username-and-password` (وقتی خالی است هم همین)، `oauth` یا `none` |
-| `GLOBAL_EMAIL_SMTP_USERNAME` | `email.smtp.username` | صندوق پستی‌ای که با آن وارد می‌شود، برای `jwt-bearer` هم. آن را همراه با گذرواژه خالی بگذارید تا بدون ورود فرستاده شود |
+| `GLOBAL_EMAIL_SMTP_USERNAME` | `email.smtp.username` | صندوق پستی‌ای که با آن وارد می‌شود، برای `oauth` هم. آن را همراه با گذرواژه خالی بگذارید تا بدون ورود فرستاده شود |
 | `GLOBAL_EMAIL_SMTP_PASSWORD` | `email.smtp.password`، یا یک Secret که در `email.existingSecret.name` نام برده شده | گذرواژهٔ آن |
 | `GLOBAL_EMAIL_SMTP_OAUTH_PROVIDER_TYPE` | `email.smtp.oauth.providerType` | `client-credentials` (وقتی خالی است هم همین) یا `jwt-bearer` |
 | `GLOBAL_EMAIL_SMTP_OAUTH_CLIENT_ID` | `email.smtp.oauth.clientId` | شناسهٔ کلاینت برنامهٔ OAuth |

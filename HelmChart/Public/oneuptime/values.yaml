@@ -1418,8 +1418,9 @@ email:
     requireTls:
     # username-and-password (what empty means), oauth or none.
     authType:
-    # The mailbox to sign in as. With username-and-password, leave both the
-    # username and the password empty to send without signing in.
+    # The mailbox to sign in as, which oauth needs too. With
+    # username-and-password, leave both the username and the password empty
+    # to send without signing in.
     username:
     # The password, or an API key your provider gives you. Or leave it empty
     # and name a Secret below.

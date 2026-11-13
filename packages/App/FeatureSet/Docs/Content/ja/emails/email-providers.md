@@ -124,7 +124,7 @@ Resend の **Domains** でドメインを追加して検証し、**API Keys** �
 | `GLOBAL_EMAIL_SMTP_PORT` | `email.smtp.port` | そのポート。例: `587` |
 | `GLOBAL_EMAIL_SMTP_REQUIRE_TLS` | `email.smtp.requireTls` | 有効な証明書のある暗号化された接続だけで送信する `true`、または `false`（空のときも同じ） |
 | `GLOBAL_EMAIL_SMTP_AUTH_TYPE` | `email.smtp.authType` | `username-and-password`（空のときも同じ）、`oauth`、`none` のいずれか |
-| `GLOBAL_EMAIL_SMTP_USERNAME` | `email.smtp.username` | サインインするメールボックス。`jwt-bearer` でも使います。パスワードとともに空にすると、サインインせずに送信します |
+| `GLOBAL_EMAIL_SMTP_USERNAME` | `email.smtp.username` | サインインするメールボックス。`oauth` でも使います。パスワードとともに空にすると、サインインせずに送信します |
 | `GLOBAL_EMAIL_SMTP_PASSWORD` | `email.smtp.password`、または `email.existingSecret.name` で指定した Secret | そのパスワード |
 | `GLOBAL_EMAIL_SMTP_OAUTH_PROVIDER_TYPE` | `email.smtp.oauth.providerType` | `client-credentials`（空のときも同じ）または `jwt-bearer` |
 | `GLOBAL_EMAIL_SMTP_OAUTH_CLIENT_ID` | `email.smtp.oauth.clientId` | OAuth アプリのクライアント ID |

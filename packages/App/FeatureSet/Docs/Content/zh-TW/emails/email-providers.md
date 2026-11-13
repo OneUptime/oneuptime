@@ -124,7 +124,7 @@ OneUptime 依照 AWS SDK 的方式，依序在下列位置尋找伺服器的憑�
 | `GLOBAL_EMAIL_SMTP_PORT` | `email.smtp.port` | 它的連接埠，例如 `587` |
 | `GLOBAL_EMAIL_SMTP_REQUIRE_TLS` | `email.smtp.requireTls` | `true` 表示只透過具備有效憑證的加密連線傳送，或 `false`（為空時也是如此） |
 | `GLOBAL_EMAIL_SMTP_AUTH_TYPE` | `email.smtp.authType` | `username-and-password`（為空時也是如此）、`oauth` 或 `none` |
-| `GLOBAL_EMAIL_SMTP_USERNAME` | `email.smtp.username` | 登入所用的信箱，`jwt-bearer` 也需要。將它和密碼都留空，即不登入直接傳送 |
+| `GLOBAL_EMAIL_SMTP_USERNAME` | `email.smtp.username` | 登入所用的信箱，`oauth` 也需要。將它和密碼都留空，即不登入直接傳送 |
 | `GLOBAL_EMAIL_SMTP_PASSWORD` | `email.smtp.password`，或在 `email.existingSecret.name` 中指定的 Secret | 它的密碼 |
 | `GLOBAL_EMAIL_SMTP_OAUTH_PROVIDER_TYPE` | `email.smtp.oauth.providerType` | `client-credentials`（為空時也是如此）或 `jwt-bearer` |
 | `GLOBAL_EMAIL_SMTP_OAUTH_CLIENT_ID` | `email.smtp.oauth.clientId` | OAuth 應用程式的用戶端 ID |

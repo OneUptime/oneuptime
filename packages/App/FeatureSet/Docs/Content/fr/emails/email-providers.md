@@ -124,7 +124,7 @@ Un serveur auto-hébergé déployé depuis du code peut démarrer en envoyant d�
 | `GLOBAL_EMAIL_SMTP_PORT` | `email.smtp.port` | Son port, par exemple `587` |
 | `GLOBAL_EMAIL_SMTP_REQUIRE_TLS` | `email.smtp.requireTls` | `true` pour n'envoyer que par une connexion chiffrée avec un certificat valide, ou `false` (aussi quand elle est vide) |
 | `GLOBAL_EMAIL_SMTP_AUTH_TYPE` | `email.smtp.authType` | `username-and-password` (aussi quand elle est vide), `oauth` ou `none` |
-| `GLOBAL_EMAIL_SMTP_USERNAME` | `email.smtp.username` | La boîte aux lettres sous laquelle se connecter, aussi pour `jwt-bearer`. Laissez-la vide avec le mot de passe pour envoyer sans se connecter |
+| `GLOBAL_EMAIL_SMTP_USERNAME` | `email.smtp.username` | La boîte aux lettres sous laquelle se connecter, aussi pour `oauth`. Laissez-la vide avec le mot de passe pour envoyer sans se connecter |
 | `GLOBAL_EMAIL_SMTP_PASSWORD` | `email.smtp.password`, ou un Secret nommé dans `email.existingSecret.name` | Son mot de passe |
 | `GLOBAL_EMAIL_SMTP_OAUTH_PROVIDER_TYPE` | `email.smtp.oauth.providerType` | `client-credentials` (aussi quand elle est vide) ou `jwt-bearer` |
 | `GLOBAL_EMAIL_SMTP_OAUTH_CLIENT_ID` | `email.smtp.oauth.clientId` | L'ID client de l'application OAuth |

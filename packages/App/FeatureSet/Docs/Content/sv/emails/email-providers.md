@@ -124,7 +124,7 @@ En egenvärdad server som distribueras från kod kan starta och skicka e-post di
 | `GLOBAL_EMAIL_SMTP_PORT` | `email.smtp.port` | Dess port, till exempel `587` |
 | `GLOBAL_EMAIL_SMTP_REQUIRE_TLS` | `email.smtp.requireTls` | `true` för att bara skicka över en krypterad anslutning med ett giltigt certifikat, eller `false` (även när den är tom) |
 | `GLOBAL_EMAIL_SMTP_AUTH_TYPE` | `email.smtp.authType` | `username-and-password` (även när den är tom), `oauth` eller `none` |
-| `GLOBAL_EMAIL_SMTP_USERNAME` | `email.smtp.username` | Postlådan som det loggas in som, även för `jwt-bearer`. Lämna den och lösenordet tomma för att skicka utan att logga in |
+| `GLOBAL_EMAIL_SMTP_USERNAME` | `email.smtp.username` | Postlådan som det loggas in som, även för `oauth`. Lämna den och lösenordet tomma för att skicka utan att logga in |
 | `GLOBAL_EMAIL_SMTP_PASSWORD` | `email.smtp.password`, eller en Secret som anges i `email.existingSecret.name` | Dess lösenord |
 | `GLOBAL_EMAIL_SMTP_OAUTH_PROVIDER_TYPE` | `email.smtp.oauth.providerType` | `client-credentials` (även när den är tom) eller `jwt-bearer` |
 | `GLOBAL_EMAIL_SMTP_OAUTH_CLIENT_ID` | `email.smtp.oauth.clientId` | OAuth-appens klient-ID |

@@ -124,7 +124,7 @@ Un servidor autoalojado que se despliega desde código puede arrancar enviando c
 | `GLOBAL_EMAIL_SMTP_PORT` | `email.smtp.port` | Su puerto, como `587` |
 | `GLOBAL_EMAIL_SMTP_REQUIRE_TLS` | `email.smtp.requireTls` | `true` para enviar solo por una conexión cifrada con un certificado válido, o `false` (también si está vacía) |
 | `GLOBAL_EMAIL_SMTP_AUTH_TYPE` | `email.smtp.authType` | `username-and-password` (también si está vacía), `oauth` o `none` |
-| `GLOBAL_EMAIL_SMTP_USERNAME` | `email.smtp.username` | El buzón con el que se inicia sesión, también para `jwt-bearer`. Déjalo vacío junto con la contraseña para enviar sin iniciar sesión |
+| `GLOBAL_EMAIL_SMTP_USERNAME` | `email.smtp.username` | El buzón con el que se inicia sesión, también para `oauth`. Déjalo vacío junto con la contraseña para enviar sin iniciar sesión |
 | `GLOBAL_EMAIL_SMTP_PASSWORD` | `email.smtp.password`, o un Secret indicado en `email.existingSecret.name` | Su contraseña |
 | `GLOBAL_EMAIL_SMTP_OAUTH_PROVIDER_TYPE` | `email.smtp.oauth.providerType` | `client-credentials` (también si está vacía) o `jwt-bearer` |
 | `GLOBAL_EMAIL_SMTP_OAUTH_CLIENT_ID` | `email.smtp.oauth.clientId` | El ID de cliente de la aplicación OAuth |

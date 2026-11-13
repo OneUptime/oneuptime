@@ -124,7 +124,7 @@ Resend의 **Domains** 에서 도메인을 추가하고 인증한 다음, **API K
 | `GLOBAL_EMAIL_SMTP_PORT` | `email.smtp.port` | 그 포트. 예: `587` |
 | `GLOBAL_EMAIL_SMTP_REQUIRE_TLS` | `email.smtp.requireTls` | 유효한 인증서가 있는 암호화된 연결로만 보내는 `true`, 또는 `false`(비어 있을 때도 동일) |
 | `GLOBAL_EMAIL_SMTP_AUTH_TYPE` | `email.smtp.authType` | `username-and-password`(비어 있을 때도 동일), `oauth` 또는 `none` |
-| `GLOBAL_EMAIL_SMTP_USERNAME` | `email.smtp.username` | 로그인할 메일함. `jwt-bearer`에도 쓰입니다. 비밀번호와 함께 비워 두면 로그인하지 않고 보냅니다 |
+| `GLOBAL_EMAIL_SMTP_USERNAME` | `email.smtp.username` | 로그인할 메일함. `oauth`에도 쓰입니다. 비밀번호와 함께 비워 두면 로그인하지 않고 보냅니다 |
 | `GLOBAL_EMAIL_SMTP_PASSWORD` | `email.smtp.password` 또는 `email.existingSecret.name`에 지정한 Secret | 그 비밀번호 |
 | `GLOBAL_EMAIL_SMTP_OAUTH_PROVIDER_TYPE` | `email.smtp.oauth.providerType` | `client-credentials`(비어 있을 때도 동일) 또는 `jwt-bearer` |
 | `GLOBAL_EMAIL_SMTP_OAUTH_CLIENT_ID` | `email.smtp.oauth.clientId` | OAuth 앱의 클라이언트 ID |

@@ -788,17 +788,19 @@ export default class ServerEmailEnvironment {
             usesJwtBearer = providerType === OAuthProviderType.JWTBearer;
 
             /*
-             * The mailbox OAuth signs in as: what JWT Bearer impersonates,
-             * so it cannot sign in without one (SMTPOAuthService).
+             * The mailbox OAuth signs in as, with either grant: the user
+             * the mail server's XOAUTH2 sign-in names, and what JWT Bearer
+             * impersonates. MailService refuses every email without one,
+             * so the settings are not usable without it.
              */
             const username: string = take(
               ServerEmailEnvironmentVariable.SmtpUsername,
             );
 
-            if (usesJwtBearer && !username) {
+            if (!username) {
               notSet(
                 ServerEmailEnvironmentVariable.SmtpUsername,
-                `with ${ServerEmailEnvironmentVariable.SmtpOAuthProviderType} ${SERVER_EMAIL_SMTP_OAUTH_PROVIDER_TYPE_VALUES[OAuthProviderType.JWTBearer]}, the mail server is signed in to as that mailbox, such as alerts@example.com.`,
+                `with ${ServerEmailEnvironmentVariable.SmtpAuthType} ${SERVER_EMAIL_SMTP_AUTH_TYPE_VALUES[SMTPAuthenticationType.OAuth]}, the mail server is signed in to as that mailbox, such as alerts@example.com.`,
               );
             }
 

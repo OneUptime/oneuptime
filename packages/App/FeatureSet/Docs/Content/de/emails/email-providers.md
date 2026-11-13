@@ -124,7 +124,7 @@ Ein selbst gehosteter Server, der aus Code bereitgestellt wird, kann gleich beim
 | `GLOBAL_EMAIL_SMTP_PORT` | `email.smtp.port` | Sein Port, etwa `587` |
 | `GLOBAL_EMAIL_SMTP_REQUIRE_TLS` | `email.smtp.requireTls` | `true`, um nur über eine verschlüsselte Verbindung mit gültigem Zertifikat zu senden, oder `false` (auch wenn leer) |
 | `GLOBAL_EMAIL_SMTP_AUTH_TYPE` | `email.smtp.authType` | `username-and-password` (auch wenn leer), `oauth` oder `none` |
-| `GLOBAL_EMAIL_SMTP_USERNAME` | `email.smtp.username` | Das Postfach, als das angemeldet wird, auch für `jwt-bearer`. Lassen Sie es und das Passwort leer, um ohne Anmeldung zu senden |
+| `GLOBAL_EMAIL_SMTP_USERNAME` | `email.smtp.username` | Das Postfach, als das angemeldet wird, auch für `oauth`. Lassen Sie es und das Passwort leer, um ohne Anmeldung zu senden |
 | `GLOBAL_EMAIL_SMTP_PASSWORD` | `email.smtp.password` oder ein Secret, das in `email.existingSecret.name` genannt ist | Sein Passwort |
 | `GLOBAL_EMAIL_SMTP_OAUTH_PROVIDER_TYPE` | `email.smtp.oauth.providerType` | `client-credentials` (auch wenn leer) oder `jwt-bearer` |
 | `GLOBAL_EMAIL_SMTP_OAUTH_CLIENT_ID` | `email.smtp.oauth.clientId` | Die Client-ID der OAuth-App |

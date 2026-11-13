@@ -124,7 +124,7 @@ En selvdriftet server som rulles ut fra kode, kan starte med å sende e-post, ut
 | `GLOBAL_EMAIL_SMTP_PORT` | `email.smtp.port` | Porten dens, for eksempel `587` |
 | `GLOBAL_EMAIL_SMTP_REQUIRE_TLS` | `email.smtp.requireTls` | `true` for bare å sende over en kryptert tilkobling med et gyldig sertifikat, eller `false` (også når den er tom) |
 | `GLOBAL_EMAIL_SMTP_AUTH_TYPE` | `email.smtp.authType` | `username-and-password` (også når den er tom), `oauth` eller `none` |
-| `GLOBAL_EMAIL_SMTP_USERNAME` | `email.smtp.username` | Postboksen det logges inn som, også for `jwt-bearer`. La den og passordet stå tomme for å sende uten å logge inn |
+| `GLOBAL_EMAIL_SMTP_USERNAME` | `email.smtp.username` | Postboksen det logges inn som, også for `oauth`. La den og passordet stå tomme for å sende uten å logge inn |
 | `GLOBAL_EMAIL_SMTP_PASSWORD` | `email.smtp.password`, eller en Secret som er navngitt i `email.existingSecret.name` | Passordet dens |
 | `GLOBAL_EMAIL_SMTP_OAUTH_PROVIDER_TYPE` | `email.smtp.oauth.providerType` | `client-credentials` (også når den er tom) eller `jwt-bearer` |
 | `GLOBAL_EMAIL_SMTP_OAUTH_CLIENT_ID` | `email.smtp.oauth.clientId` | Klient-ID-en til OAuth-appen |

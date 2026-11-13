@@ -124,7 +124,7 @@ A self-hosted server deployed from code can come up sending email, with nothing 
 | `GLOBAL_EMAIL_SMTP_PORT` | `email.smtp.port` | Its port, such as `587` |
 | `GLOBAL_EMAIL_SMTP_REQUIRE_TLS` | `email.smtp.requireTls` | `true` to send only over an encrypted connection with a valid certificate, or `false` (also when empty) |
 | `GLOBAL_EMAIL_SMTP_AUTH_TYPE` | `email.smtp.authType` | `username-and-password` (also when empty), `oauth` or `none` |
-| `GLOBAL_EMAIL_SMTP_USERNAME` | `email.smtp.username` | The mailbox to sign in as, also for `jwt-bearer`. Leave it and the password empty to send without signing in |
+| `GLOBAL_EMAIL_SMTP_USERNAME` | `email.smtp.username` | The mailbox to sign in as, also for `oauth`. Leave it and the password empty to send without signing in |
 | `GLOBAL_EMAIL_SMTP_PASSWORD` | `email.smtp.password`, or a Secret named in `email.existingSecret.name` | Its password |
 | `GLOBAL_EMAIL_SMTP_OAUTH_PROVIDER_TYPE` | `email.smtp.oauth.providerType` | `client-credentials` (also when empty) or `jwt-bearer` |
 | `GLOBAL_EMAIL_SMTP_OAUTH_CLIENT_ID` | `email.smtp.oauth.clientId` | The OAuth app's client ID |

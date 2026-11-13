@@ -124,7 +124,7 @@ OneUptime ищет учётные данные сервера там же, гд�
 | `GLOBAL_EMAIL_SMTP_PORT` | `email.smtp.port` | Его порт, например `587` |
 | `GLOBAL_EMAIL_SMTP_REQUIRE_TLS` | `email.smtp.requireTls` | `true`, чтобы отправлять только по зашифрованному соединению с действительным сертификатом, или `false` (и когда она пуста) |
 | `GLOBAL_EMAIL_SMTP_AUTH_TYPE` | `email.smtp.authType` | `username-and-password` (и когда она пуста), `oauth` или `none` |
-| `GLOBAL_EMAIL_SMTP_USERNAME` | `email.smtp.username` | Почтовый ящик, под которым выполняется вход, в том числе для `jwt-bearer`. Оставьте его и пароль пустыми, чтобы отправлять без входа |
+| `GLOBAL_EMAIL_SMTP_USERNAME` | `email.smtp.username` | Почтовый ящик, под которым выполняется вход, в том числе для `oauth`. Оставьте его и пароль пустыми, чтобы отправлять без входа |
 | `GLOBAL_EMAIL_SMTP_PASSWORD` | `email.smtp.password` или Secret, указанный в `email.existingSecret.name` | Его пароль |
 | `GLOBAL_EMAIL_SMTP_OAUTH_PROVIDER_TYPE` | `email.smtp.oauth.providerType` | `client-credentials` (и когда она пуста) или `jwt-bearer` |
 | `GLOBAL_EMAIL_SMTP_OAUTH_CLIENT_ID` | `email.smtp.oauth.clientId` | Идентификатор клиента приложения OAuth |

@@ -124,7 +124,7 @@ Een zelf gehoste server die vanuit code wordt uitgerold, kan meteen e-mail verst
 | `GLOBAL_EMAIL_SMTP_PORT` | `email.smtp.port` | De poort ervan, zoals `587` |
 | `GLOBAL_EMAIL_SMTP_REQUIRE_TLS` | `email.smtp.requireTls` | `true` om alleen te versturen via een versleutelde verbinding met een geldig certificaat, of `false` (ook als die leeg is) |
 | `GLOBAL_EMAIL_SMTP_AUTH_TYPE` | `email.smtp.authType` | `username-and-password` (ook als die leeg is), `oauth` of `none` |
-| `GLOBAL_EMAIL_SMTP_USERNAME` | `email.smtp.username` | De mailbox waarmee wordt aangemeld, ook voor `jwt-bearer`. Laat deze en het wachtwoord leeg om zonder aanmelden te versturen |
+| `GLOBAL_EMAIL_SMTP_USERNAME` | `email.smtp.username` | De mailbox waarmee wordt aangemeld, ook voor `oauth`. Laat deze en het wachtwoord leeg om zonder aanmelden te versturen |
 | `GLOBAL_EMAIL_SMTP_PASSWORD` | `email.smtp.password`, of een Secret die in `email.existingSecret.name` is genoemd | Het wachtwoord ervan |
 | `GLOBAL_EMAIL_SMTP_OAUTH_PROVIDER_TYPE` | `email.smtp.oauth.providerType` | `client-credentials` (ook als die leeg is) of `jwt-bearer` |
 | `GLOBAL_EMAIL_SMTP_OAUTH_CLIENT_ID` | `email.smtp.oauth.clientId` | De client-ID van de OAuth-app |

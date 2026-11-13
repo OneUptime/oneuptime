@@ -110,6 +110,8 @@ function smtpOAuth(values: Values = {}): Values {
     [V.SmtpHost]: "smtp.office365.com",
     [V.SmtpPort]: "587",
     [V.SmtpAuthType]: "oauth",
+    // The mailbox OAuth signs in as: the mail server's XOAUTH2 user.
+    [V.SmtpUsername]: "alerts@example.com",
     [V.SmtpOAuthClientId]: "smtp-client-id",
     [V.SmtpOAuthClientSecret]: CLIENT_SECRET,
     [V.SmtpOAuthTokenUrl]:
@@ -515,6 +517,7 @@ describe("complete settings, for every type", () => {
       smtpPort: "587",
       isSMTPSecure: false,
       smtpAuthType: SMTPAuthenticationType.OAuth,
+      smtpUsername: "alerts@example.com",
       smtpClientId: "smtp-client-id",
       smtpClientSecret: CLIENT_SECRET,
       smtpTokenUrl:
@@ -785,9 +788,30 @@ describe("what is wrong, by the variable's name", () => {
       smtpOAuth({
         [V.SmtpOAuthProviderType]: "jwt-bearer",
         [V.SmtpOAuthClientSecret]: PEM_KEY,
+        [V.SmtpUsername]: undefined,
       }),
       [
-        "GLOBAL_EMAIL_SMTP_USERNAME is not set: with GLOBAL_EMAIL_SMTP_OAUTH_PROVIDER_TYPE jwt-bearer, the mail server is signed in to as that mailbox, such as alerts@example.com.",
+        "GLOBAL_EMAIL_SMTP_USERNAME is not set: with GLOBAL_EMAIL_SMTP_AUTH_TYPE oauth, the mail server is signed in to as that mailbox, such as alerts@example.com.",
+      ],
+    ],
+    /*
+     * Client Credentials signs in as a mailbox too: the mail server's
+     * XOAUTH2 sign-in names its user, and MailService refuses every email
+     * without one - so the settings are not usable, rather than said to be
+     * and then refuse each email.
+     */
+    [
+      "Client Credentials without the mailbox it signs in as",
+      smtpOAuth({ [V.SmtpUsername]: undefined }),
+      [
+        "GLOBAL_EMAIL_SMTP_USERNAME is not set: with GLOBAL_EMAIL_SMTP_AUTH_TYPE oauth, the mail server is signed in to as that mailbox, such as alerts@example.com.",
+      ],
+    ],
+    [
+      "OAuth, no provider type named, with a username of white space alone",
+      smtpOAuth({ [V.SmtpUsername]: "   " }),
+      [
+        "GLOBAL_EMAIL_SMTP_USERNAME is not set: with GLOBAL_EMAIL_SMTP_AUTH_TYPE oauth, the mail server is signed in to as that mailbox, such as alerts@example.com.",
       ],
     ],
     [

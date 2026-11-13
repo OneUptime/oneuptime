@@ -124,7 +124,7 @@ Un server self-hosted distribuito da codice può partire inviando già e-mail, s
 | `GLOBAL_EMAIL_SMTP_PORT` | `email.smtp.port` | La sua porta, ad esempio `587` |
 | `GLOBAL_EMAIL_SMTP_REQUIRE_TLS` | `email.smtp.requireTls` | `true` per inviare solo su una connessione cifrata con un certificato valido, oppure `false` (anche quando è vuota) |
 | `GLOBAL_EMAIL_SMTP_AUTH_TYPE` | `email.smtp.authType` | `username-and-password` (anche quando è vuota), `oauth` o `none` |
-| `GLOBAL_EMAIL_SMTP_USERNAME` | `email.smtp.username` | La casella con cui accedere, anche per `jwt-bearer`. Lasciala vuota insieme alla password per inviare senza accedere |
+| `GLOBAL_EMAIL_SMTP_USERNAME` | `email.smtp.username` | La casella con cui accedere, anche per `oauth`. Lasciala vuota insieme alla password per inviare senza accedere |
 | `GLOBAL_EMAIL_SMTP_PASSWORD` | `email.smtp.password`, oppure un Secret indicato in `email.existingSecret.name` | La sua password |
 | `GLOBAL_EMAIL_SMTP_OAUTH_PROVIDER_TYPE` | `email.smtp.oauth.providerType` | `client-credentials` (anche quando è vuota) o `jwt-bearer` |
 | `GLOBAL_EMAIL_SMTP_OAUTH_CLIENT_ID` | `email.smtp.oauth.clientId` | Il client ID dell'app OAuth |

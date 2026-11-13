@@ -124,7 +124,7 @@ Um servidor auto-hospedado implantado a partir de código pode subir já enviand
 | `GLOBAL_EMAIL_SMTP_PORT` | `email.smtp.port` | A porta dele, como `587` |
 | `GLOBAL_EMAIL_SMTP_REQUIRE_TLS` | `email.smtp.requireTls` | `true` para enviar só por uma conexão criptografada com um certificado válido, ou `false` (também quando vazia) |
 | `GLOBAL_EMAIL_SMTP_AUTH_TYPE` | `email.smtp.authType` | `username-and-password` (também quando vazia), `oauth` ou `none` |
-| `GLOBAL_EMAIL_SMTP_USERNAME` | `email.smtp.username` | A caixa de correio com que entrar, também para `jwt-bearer`. Deixe-a vazia junto com a senha para enviar sem entrar |
+| `GLOBAL_EMAIL_SMTP_USERNAME` | `email.smtp.username` | A caixa de correio com que entrar, também para `oauth`. Deixe-a vazia junto com a senha para enviar sem entrar |
 | `GLOBAL_EMAIL_SMTP_PASSWORD` | `email.smtp.password`, ou um Secret indicado em `email.existingSecret.name` | A senha dela |
 | `GLOBAL_EMAIL_SMTP_OAUTH_PROVIDER_TYPE` | `email.smtp.oauth.providerType` | `client-credentials` (também quando vazia) ou `jwt-bearer` |
 | `GLOBAL_EMAIL_SMTP_OAUTH_CLIENT_ID` | `email.smtp.oauth.clientId` | O ID do cliente do aplicativo OAuth |

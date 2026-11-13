@@ -124,7 +124,7 @@ Resend में **Domains** के तहत अपना डोमेन ज�
 | `GLOBAL_EMAIL_SMTP_PORT` | `email.smtp.port` | उसका पोर्ट, जैसे `587` |
 | `GLOBAL_EMAIL_SMTP_REQUIRE_TLS` | `email.smtp.requireTls` | केवल मान्य सर्टिफ़िकेट वाले एन्क्रिप्टेड कनेक्शन से भेजने के लिए `true`, या `false` (खाली होने पर भी) |
 | `GLOBAL_EMAIL_SMTP_AUTH_TYPE` | `email.smtp.authType` | `username-and-password` (खाली होने पर भी), `oauth` या `none` |
-| `GLOBAL_EMAIL_SMTP_USERNAME` | `email.smtp.username` | वह मेलबॉक्स जिससे साइन इन होता है, `jwt-bearer` के लिए भी। बिना साइन इन किए भेजने के लिए इसे और पासवर्ड को खाली छोड़ें |
+| `GLOBAL_EMAIL_SMTP_USERNAME` | `email.smtp.username` | वह मेलबॉक्स जिससे साइन इन होता है, `oauth` के लिए भी। बिना साइन इन किए भेजने के लिए इसे और पासवर्ड को खाली छोड़ें |
 | `GLOBAL_EMAIL_SMTP_PASSWORD` | `email.smtp.password`, या `email.existingSecret.name` में नामित Secret | उसका पासवर्ड |
 | `GLOBAL_EMAIL_SMTP_OAUTH_PROVIDER_TYPE` | `email.smtp.oauth.providerType` | `client-credentials` (खाली होने पर भी) या `jwt-bearer` |
 | `GLOBAL_EMAIL_SMTP_OAUTH_CLIENT_ID` | `email.smtp.oauth.clientId` | OAuth ऐप का क्लाइंट ID |
