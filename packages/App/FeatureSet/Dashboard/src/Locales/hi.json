@@ -51826,5 +51826,6 @@
   "Couldn't refresh the notes.": "नोट रीफ़्रेश नहीं हो सके।",
   "Couldn't search the notes.": "नोट में खोज नहीं हो सकी।",
   "Couldn't sort the notes.": "नोट क्रमबद्ध नहीं हो सके।",
-  "Couldn't load more notes.": "और नोट लोड नहीं हो सके।"
+  "Couldn't load more notes.": "और नोट लोड नहीं हो सके।",
+  "Time range: {{range}}. Try adjusting filters or expanding the time range.": "समय सीमा: {{range}}। फ़िल्टर बदलकर या समय सीमा बढ़ाकर देखें।"
 }

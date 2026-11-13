@@ -51826,5 +51826,6 @@
   "Couldn't refresh the notes.": "Noterne kunne ikke opdateres.",
   "Couldn't search the notes.": "Der kunne ikke søges i noterne.",
   "Couldn't sort the notes.": "Noterne kunne ikke sorteres.",
-  "Couldn't load more notes.": "Flere noter kunne ikke indlæses."
+  "Couldn't load more notes.": "Flere noter kunne ikke indlæses.",
+  "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Tidsrum: {{range}}. Prøv at justere filtrene eller udvide tidsrummet."
 }

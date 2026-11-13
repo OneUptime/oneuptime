@@ -51826,5 +51826,6 @@
   "Couldn't refresh the notes.": "یادداشت‌ها تازه‌سازی نشدند.",
   "Couldn't search the notes.": "جست‌وجو در یادداشت‌ها انجام نشد.",
   "Couldn't sort the notes.": "یادداشت‌ها مرتب نشدند.",
-  "Couldn't load more notes.": "یادداشت‌های بیشتر بارگذاری نشدند."
+  "Couldn't load more notes.": "یادداشت‌های بیشتر بارگذاری نشدند.",
+  "Time range: {{range}}. Try adjusting filters or expanding the time range.": "بازهٔ زمانی: {{range}}. فیلترها را تغییر دهید یا بازهٔ زمانی را بزرگ‌تر کنید."
 }

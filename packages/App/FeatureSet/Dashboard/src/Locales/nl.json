@@ -51826,5 +51826,6 @@
   "Couldn't refresh the notes.": "Kan de notities niet vernieuwen.",
   "Couldn't search the notes.": "Kan de notities niet doorzoeken.",
   "Couldn't sort the notes.": "Kan de notities niet sorteren.",
-  "Couldn't load more notes.": "Kan geen extra notities laden."
+  "Couldn't load more notes.": "Kan geen extra notities laden.",
+  "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Periode: {{range}}. Pas de filters aan of kies een ruimere periode."
 }

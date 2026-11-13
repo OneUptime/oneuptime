@@ -51826,5 +51826,6 @@
   "Couldn't refresh the notes.": "Die Notizen konnten nicht aktualisiert werden.",
   "Couldn't search the notes.": "Die Notizen konnten nicht durchsucht werden.",
   "Couldn't sort the notes.": "Die Notizen konnten nicht sortiert werden.",
-  "Couldn't load more notes.": "Weitere Notizen konnten nicht geladen werden."
+  "Couldn't load more notes.": "Weitere Notizen konnten nicht geladen werden.",
+  "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Zeitraum: {{range}}. Passen Sie die Filter an oder erweitern Sie den Zeitraum."
 }

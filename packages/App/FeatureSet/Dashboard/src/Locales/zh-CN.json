@@ -51826,5 +51826,6 @@
   "Couldn't refresh the notes.": "无法刷新备注。",
   "Couldn't search the notes.": "无法搜索备注。",
   "Couldn't sort the notes.": "无法对备注排序。",
-  "Couldn't load more notes.": "无法加载更多备注。"
+  "Couldn't load more notes.": "无法加载更多备注。",
+  "Time range: {{range}}. Try adjusting filters or expanding the time range.": "时间范围：{{range}}。请尝试调整筛选条件或扩大时间范围。"
 }

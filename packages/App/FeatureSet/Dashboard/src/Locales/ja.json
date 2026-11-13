@@ -51826,5 +51826,6 @@
   "Couldn't refresh the notes.": "メモを更新できませんでした。",
   "Couldn't search the notes.": "メモを検索できませんでした。",
   "Couldn't sort the notes.": "メモを並べ替えられませんでした。",
-  "Couldn't load more notes.": "メモをさらに読み込めませんでした。"
+  "Couldn't load more notes.": "メモをさらに読み込めませんでした。",
+  "Time range: {{range}}. Try adjusting filters or expanding the time range.": "時間範囲: {{range}}。フィルターを調整するか、時間範囲を広げてみてください。"
 }

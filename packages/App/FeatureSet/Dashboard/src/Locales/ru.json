@@ -51826,5 +51826,6 @@
   "Couldn't refresh the notes.": "Не удалось обновить заметки.",
   "Couldn't search the notes.": "Не удалось выполнить поиск по заметкам.",
   "Couldn't sort the notes.": "Не удалось отсортировать заметки.",
-  "Couldn't load more notes.": "Не удалось загрузить ещё заметки."
+  "Couldn't load more notes.": "Не удалось загрузить ещё заметки.",
+  "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Период: {{range}}. Попробуйте изменить фильтры или расширить период."
 }

@@ -51826,5 +51826,6 @@
   "Couldn't refresh the notes.": "無法重新整理備註。",
   "Couldn't search the notes.": "無法搜尋備註。",
   "Couldn't sort the notes.": "無法對備註排序。",
-  "Couldn't load more notes.": "無法載入更多備註。"
+  "Couldn't load more notes.": "無法載入更多備註。",
+  "Time range: {{range}}. Try adjusting filters or expanding the time range.": "時間範圍：{{range}}。請嘗試調整篩選條件或擴大時間範圍。"
 }

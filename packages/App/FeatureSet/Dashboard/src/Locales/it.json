@@ -51826,5 +51826,6 @@
   "Couldn't refresh the notes.": "Impossibile aggiornare le note.",
   "Couldn't search the notes.": "Impossibile cercare nelle note.",
   "Couldn't sort the notes.": "Impossibile ordinare le note.",
-  "Couldn't load more notes.": "Impossibile caricare altre note."
+  "Couldn't load more notes.": "Impossibile caricare altre note.",
+  "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Intervallo di tempo: {{range}}. Prova a modificare i filtri o ad ampliare l'intervallo di tempo."
 }

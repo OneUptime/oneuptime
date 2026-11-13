@@ -51826,5 +51826,6 @@
   "Couldn't refresh the notes.": "تعذّر تحديث الملاحظات.",
   "Couldn't search the notes.": "تعذّر البحث في الملاحظات.",
   "Couldn't sort the notes.": "تعذّر ترتيب الملاحظات.",
-  "Couldn't load more notes.": "تعذّر تحميل المزيد من الملاحظات."
+  "Couldn't load more notes.": "تعذّر تحميل المزيد من الملاحظات.",
+  "Time range: {{range}}. Try adjusting filters or expanding the time range.": "النطاق الزمني: {{range}}. جرّب تعديل عوامل التصفية أو توسيع النطاق الزمني."
 }
