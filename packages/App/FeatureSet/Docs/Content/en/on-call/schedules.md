@@ -69,7 +69,18 @@ flowchart TB
 | **First hand-off time** | The first hand-off to the next person, at or after the start. Later hand-offs follow every rotation interval. |
 | **Restrictions** | The hours the layer is on call: **No Restrictions**, **Specific Times of the Day** or **Specific Times of the Week**, in the schedule's time zone. Outside them, lower layers take over. |
 
-To change which layer comes first, use **Move layer up (higher priority)** or **Move layer down (lower priority)** in a layer's menu.
+To change which layer comes first, use the arrows on a layer's card: **Move layer up (higher priority)** or **Move layer down (lower priority)**.
+
+Changes to who takes turns wait until you save them, so you can make several and check them before anyone's turn moves. Drag people into a new order, add or remove people, move a layer up or down, or delete one, and the page shows each change before it is saved:
+
+- Someone you added is marked **New**, and someone you dragged to a new place **Moved**. The people you removed are listed under **Removed when you save**, each with **Undo**.
+- A layer you delete says it will be deleted when you save, with **Undo**.
+- Each layer, and the final schedule, show the rotation as it will be. The final schedule is marked **Includes unsaved changes**.
+- A bar at the foot of the page names the changes, with **Save changes** and **Discard**.
+
+**Save changes** saves every change at once. Who is on call is then worked out once, for the layers as saved: someone who goes on or off call, or is next, hears it once, not once for each change. **Discard** puts the layers back as they were last saved. Leaving the page before you save asks first: **Keep Editing** stays on it, **Discard Changes** leaves without saving.
+
+If someone else changed the layers after you opened the page, your changes are not saved over theirs. The bar says so, and **Reload layers** shows the layers as they are now, for you to make your changes again. **Add Layer** adds its layer at once, and a layer's settings are saved with its own **Save Layer** button.
 
 Each person keeps one colour everywhere, so you can follow them at a glance: on every layer, in the final schedule and its overrides, and on the **Schedule Timeline**.
 

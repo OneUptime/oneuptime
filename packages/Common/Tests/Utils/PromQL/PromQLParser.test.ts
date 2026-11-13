@@ -9,6 +9,7 @@ import {
   PromQLMatrixSelector,
   PromQLNodeKind,
   PromQLNumberLiteral,
+  PromQLPosition,
   PromQLSubquery,
   PromQLUnary,
   PromQLValueType,
@@ -19,7 +20,9 @@ import {
   formatPromQLDuration,
   parsePromQLDuration,
 } from "../../../Utils/PromQL/PromQLDuration";
-import PromQLError from "../../../Utils/PromQL/PromQLError";
+import PromQLError, {
+  PromQLErrorType,
+} from "../../../Utils/PromQL/PromQLError";
 import {
   PromQLToken,
   PromQLTokenType,
@@ -31,6 +34,17 @@ import {
   parsePromQL,
 } from "../../../Utils/PromQL/PromQLParser";
 import { compilePromQLRegex } from "../../../Utils/PromQL/PromQLRegex";
+import LinearRegExp, {
+  LinearRegExpMatch,
+} from "../../../Utils/LinearRegExp/LinearRegExp";
+import {
+  clearLinearRegExpCache,
+  getCachedPatternCount,
+} from "../../../Utils/LinearRegExp/PatternCache";
+import {
+  PatternProblemError,
+  PatternProblemReason,
+} from "../../../Utils/LinearRegExp/PatternProblem";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -228,29 +242,120 @@ describe("PromQL lexer", () => {
 });
 
 describe("PromQL regular expressions", () => {
+  // What a refused pattern threw, or null.
+  const refusalOf: (pattern: string) => unknown = (
+    pattern: string,
+  ): unknown => {
+    try {
+      compilePromQLRegex(pattern);
+    } catch (error: unknown) {
+      return error;
+    }
+
+    return null;
+  };
+
+  test("run on the linear-time matcher, as every pattern a project's people write does", () => {
+    expect(compilePromQLRegex("api").regex).toBeInstanceOf(LinearRegExp);
+    expect(
+      compilePromQLRegex("api", { captures: true }).regex.capturesGroups,
+    ).toBe(true);
+  });
+
   test("are anchored at both ends, as in Prometheus", () => {
-    const regex: RegExp = compilePromQLRegex("api").regex;
+    const regex: LinearRegExp = compilePromQLRegex("api").regex;
 
     expect(regex.test("api")).toBe(true);
     expect(regex.test("api-2")).toBe(false);
     expect(regex.test("my-api")).toBe(false);
+    // Around the whole pattern, not only its first and last alternative.
+    expect(compilePromQLRegex("a|b").regex.test("ab")).toBe(false);
+    expect(compilePromQLRegex("a|b").regex.test("b")).toBe(true);
   });
 
   test("read RE2's (?i) flag group", () => {
-    expect(compilePromQLRegex("(?i)error").regex.test("ERROR")).toBe(true);
+    const regex: LinearRegExp = compilePromQLRegex("(?i)error").regex;
+
+    expect(regex.flags).toBe("i");
+    expect(regex.test("ERROR")).toBe(true);
+    expect(regex.test("errors")).toBe(false);
   });
 
   test("read RE2's named groups", () => {
-    const match: RegExpExecArray | null = compilePromQLRegex(
+    const match: LinearRegExpMatch | null = compilePromQLRegex(
       "(?P<host>[a-z]+):\\d+",
+      { captures: true },
     ).regex.exec("web:80");
 
-    expect(match?.groups?.["host"]).toBe("web");
+    expect(match?.groups["host"]).toBe("web");
+    expect(match?.captures).toEqual(["web"]);
   });
 
   test("read POSIX classes", () => {
     expect(compilePromQLRegex("[[:digit:]]+").regex.test("123")).toBe(true);
     expect(compilePromQLRegex("[[:digit:]]+").regex.test("12a")).toBe(false);
+  });
+
+  test.each([
+    // [pattern, value, whether it matches]
+    ["(?i)error", "Error", true],
+    ["(?s)a.b", "a\nb", true],
+    ["(?m)a$\\n^b", "a\nb", true],
+    ["(?is)A.B", "a\nb", true],
+    ["(?U)a+", "aaa", true],
+    ["(?P<host>[a-z]+):(?P<port>\\d+)", "web:80", true],
+    ["(?i:GET)|post", "get", true],
+    ["(?i:GET)|post", "POST", false],
+    ["[[:alpha:]_][[:word:]]*", "http_requests_total", true],
+    ["[[:xdigit:]]{4}", "beEF", true],
+    ["[^[:digit:]]+", "abc", true],
+    ["[^[:digit:]]+", "a1", false],
+    ["[[:upper:][:digit:]]+", "AB12", true],
+    ["/api/v[0-9]+/.*", "/api/v2/users", true],
+    ["\\d+\\.\\d+", "1.5", true],
+    ["café|naïve", "naïve", true],
+  ])(
+    "%s matching %j is %s, as JavaScript's RegExp answered for it",
+    (pattern: string, value: string, matches: boolean) => {
+      const regex: LinearRegExp = compilePromQLRegex(pattern).regex;
+
+      expect(regex.test(value)).toBe(matches);
+      expect(new RegExp(regex.source, regex.flags).test(value)).toBe(matches);
+    },
+  );
+
+  test("a pattern that is not a regular expression throws a SyntaxError", () => {
+    expect(refusalOf("(")).toBeInstanceOf(SyntaxError);
+    expect(refusalOf("[[:digit:]")).toBeInstanceOf(SyntaxError);
+    expect(refusalOf("a{2,1}")).toBeInstanceOf(SyntaxError);
+  });
+
+  test.each([
+    ["(a)\\1", PatternProblemReason.BackReference],
+    ["(?P<x>a)\\k<x>", PatternProblemReason.BackReference],
+    [".{0,50000}", PatternProblemReason.TooLarge],
+  ])(
+    "%s is refused by the linear-time matcher",
+    (pattern: string, reason: PatternProblemReason) => {
+      const refusal: unknown = refusalOf(pattern);
+
+      expect(refusal).toBeInstanceOf(PatternProblemError);
+      expect((refusal as PatternProblemError).reason).toBe(reason);
+    },
+  );
+
+  test("are compiled once and kept, by the pattern", () => {
+    clearLinearRegExpCache();
+
+    const regex: LinearRegExp = compilePromQLRegex("api|web").regex;
+
+    expect(compilePromQLRegex("api|web").regex).toBe(regex);
+    expect(getCachedPatternCount()).toBe(1);
+    // label_replace() reads what the groups capture: compiled apart.
+    expect(compilePromQLRegex("api|web", { captures: true }).regex).not.toBe(
+      regex,
+    );
+    expect(getCachedPatternCount()).toBe(2);
   });
 
   test("keep the pattern for engines that speak RE2", () => {
@@ -341,6 +446,38 @@ describe("PromQL selectors", () => {
   ])("refuses %s", (query: string, message: string) => {
     expect(parseError(query).message).toContain(message);
   });
+
+  test("a pattern that is not a regular expression is refused where it is written", () => {
+    const error: PromQLError = parseError('up{job=~"("}');
+
+    expect(error.message).toBe(
+      '"(" is not a regular expression the label "job" can be matched with.',
+    );
+    expect(error.errorType).toBe(PromQLErrorType.BadData);
+    expect(error.position).toEqual({ start: 8, end: 11 });
+  });
+
+  test.each([
+    [
+      'up{job=~"(a)\\\\1"}',
+      'The pattern "(a)\\1" for the label "job" refers back to what an earlier group matched (\\1 or \\k<name>). Patterns are run in time that grows only in line with the text they read, which a back-reference cannot do. Write the pattern without it.',
+      { start: 8, end: 16 },
+    ],
+    [
+      'up{path!~".{0,50000}"}',
+      'The pattern ".{0,50000}" for the label "path" is too large to run. Shorten it, or repeat its parts fewer times.',
+      { start: 9, end: 21 },
+    ],
+  ])(
+    "a pattern the linear-time matcher cannot run is refused with a sentence: %s",
+    (query: string, message: string, position: PromQLPosition) => {
+      const error: PromQLError = parseError(query);
+
+      expect(error.message).toBe(message);
+      expect(error.errorType).toBe(PromQLErrorType.BadData);
+      expect(error.position).toEqual(position);
+    },
+  );
 
   test("a selector that matches a non-empty value selects something", () => {
     expect(() => {

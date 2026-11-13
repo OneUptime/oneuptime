@@ -15,7 +15,7 @@ import React from "react";
  *
  *   Rule Name        Acknowledged incidents
  *   Rule Description (only when the rule has one)
- *   Which incidents  Incident State  Contains Any  (Acknowledged)
+ *   Which incidents  Incident State  is any of  (Acknowledged)
  *   Then             - Creates a channel like #ack-inc-42 for each incident.
  *                    - Invites on-call responders as they are paged, ...
  *   Updates          (only when the rule leaves some updates out)
@@ -372,7 +372,7 @@ describe("a rule's card, row by row", () => {
       within(card!).queryByTestId("notification-rule-conditions-sentence"),
     ).not.toBeInTheDocument();
     expect(within(card!).getByText("Incident State")).toBeVisible();
-    expect(within(card!).getByText("Contains Any")).toBeVisible();
+    expect(within(card!).getByText("is any of")).toBeVisible();
     expect(within(card!).getByText("Acknowledged")).toBeVisible();
     expect(thenSentences(card!)).toEqual([
       "Creates a channel like #ack-inc-42 for each incident.",

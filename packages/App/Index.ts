@@ -36,6 +36,10 @@ import { getServerTwilioEnvironment } from "Common/Server/Utils/ServerTwilioConf
 import ServerTwilioEnvironment, {
   ServerTwilioEnvironmentReading,
 } from "Common/Types/CallAndSMS/ServerTwilioEnvironment";
+import { getServerEmailEnvironment } from "Common/Server/Utils/ServerEmailSettings";
+import ServerEmailEnvironment, {
+  ServerEmailEnvironmentReading,
+} from "Common/Types/Email/ServerEmailEnvironment";
 import Realtime from "Common/Server/Utils/Realtime";
 import App from "Common/Server/Utils/StartServer";
 import Telemetry from "Common/Server/Utils/Telemetry";
@@ -187,6 +191,28 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
     if (twilioEnvironmentWarning) {
       logger.warn(twilioEnvironmentWarning);
+    }
+
+    /*
+     * The server's email settings set by the GLOBAL_EMAIL_ environment
+     * variables (#7738), said once: that they set them, so nobody looks for
+     * them in the Admin Dashboard, and what is wrong with them - or which
+     * are set without GLOBAL_EMAIL_SERVER_TYPE, or not read by the settings
+     * they describe, and so change nothing.
+     */
+    const emailEnvironment: ServerEmailEnvironmentReading =
+      getServerEmailEnvironment();
+    const emailEnvironmentNotice: string | null =
+      ServerEmailEnvironment.getStartupNotice(emailEnvironment);
+    const emailEnvironmentWarning: string | null =
+      ServerEmailEnvironment.getStartupWarning(emailEnvironment);
+
+    if (emailEnvironmentNotice) {
+      logger.info(emailEnvironmentNotice);
+    }
+
+    if (emailEnvironmentWarning) {
+      logger.warn(emailEnvironmentWarning);
     }
 
     // Connect to Redis

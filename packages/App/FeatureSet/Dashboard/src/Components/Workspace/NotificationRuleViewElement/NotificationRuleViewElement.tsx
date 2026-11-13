@@ -20,6 +20,7 @@ import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePrior
 import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import VideoCallConnection from "Common/Models/DatabaseModels/VideoCallConnection";
 import {
   MattermostConnectionTeam,
@@ -55,7 +56,7 @@ import IconProp from "Common/Types/Icon/IconProp";
  * A WORKSPACE NOTIFICATION RULE'S CARD: WHICH RECORDS, THEN WHAT.
  *
  *   Rule Name        Acknowledged incidents
- *   Which incidents  Incident State  Contains Any  (Acknowledged)
+ *   Which incidents  Incident State  is any of  (Acknowledged)
  *   Then             - Creates a channel like #ack-inc-42 for each incident.
  *                    - Invites on-call responders as they are paged, the
  *                      Incident Commander and other incident roles as they
@@ -100,6 +101,11 @@ export interface NotificationRuleWhenProps {
   securityCaseStatuses?: Array<SecurityCaseStatus> | undefined;
   // An SLO rule's: the project's SLOs, to name the ones it picks.
   serviceLevelObjectives?: Array<ServiceLevelObjective> | undefined;
+  // An on-call rule's: the project's policies, to name the ones it picks.
+  onCallDutyPolicies?: Array<OnCallDutyPolicy> | undefined;
+  // The project's people and teams, to name the owners a condition picks.
+  users?: Array<User> | undefined;
+  teams?: Array<Team> | undefined;
   monitorStatus: Array<MonitorStatus>;
 }
 
@@ -131,6 +137,9 @@ export const NotificationRuleWhen: FunctionComponent<
       securityCasePriorities={props.securityCasePriorities}
       securityCaseStatuses={props.securityCaseStatuses}
       serviceLevelObjectives={props.serviceLevelObjectives}
+      onCallDutyPolicies={props.onCallDutyPolicies}
+      users={props.users}
+      teams={props.teams}
       monitorStatus={props.monitorStatus}
       filterCondition={props.rule.filterCondition}
       criteriaFilters={props.rule.filters}
@@ -261,7 +270,7 @@ export const NotificationRuleThen: FunctionComponent<
 
 // Everything a rule's card refers to by id, loaded once for the whole list.
 export interface NotificationRuleCardData
-  extends Omit<NotificationRuleWhenProps, "rule">,
+  extends Omit<NotificationRuleWhenProps, "rule" | "users" | "teams">,
     Omit<NotificationRuleThenProps, "rule" | "eventType"> {
   // Incident and alert rules can start a video call; the others cannot.
   canStartVideoCall: boolean;
@@ -334,6 +343,9 @@ export function getNotificationRuleCardColumns(
             securityCasePriorities={data.securityCasePriorities}
             securityCaseStatuses={data.securityCaseStatuses}
             serviceLevelObjectives={data.serviceLevelObjectives}
+            onCallDutyPolicies={data.onCallDutyPolicies}
+            users={data.users}
+            teams={data.teams}
             monitorStatus={data.monitorStatus}
           />
         );

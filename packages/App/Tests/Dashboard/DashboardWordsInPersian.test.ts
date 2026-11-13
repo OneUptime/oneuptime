@@ -16,6 +16,14 @@ import {
   isWordedInDashboardLocale,
 } from "Common/Tests/Helpers/DashboardLocales";
 import { Translator } from "Common/Types/Translator";
+import {
+  CLOUD_RESOURCE_TYPES,
+  CloudResourceTypeDescriptor,
+} from "Common/Types/Cloud/CloudResourceCatalog";
+import { getAllCephAlertTemplates } from "Common/Types/Monitor/CephAlertTemplates";
+import { getAllOpenStackAlertTemplates } from "Common/Types/Monitor/OpenStackAlertTemplates";
+import { getAllVMwareAlertTemplates } from "Common/Types/Monitor/VMwareAlertTemplates";
+import { isEnglishCopy } from "../../FeatureSet/Docs/Utils/Translations";
 
 /*
  * THE DASHBOARD, IN PERSIAN (#7089).
@@ -830,6 +838,78 @@ describe("a timeout is مهلت, never وقفه", () => {
 });
 
 /*
+ * THE PERSIAN DOCS, AS THE CHECKS BELOW READ THEM.
+ *
+ * Every page under Docs/Content/fa, a line at a time, outside its fenced
+ * code. A check reads a line's prose: what is left once the names the line
+ * quotes as drawn in English, its code, its link targets, its addresses and
+ * its identifiers are out - what a reader copies, and the names a page
+ * draws in English.
+ */
+const DOCS_CONTENT: string = path.resolve(
+  __dirname,
+  "../../FeatureSet/Docs/Content",
+);
+const DOCS: string = path.join(DOCS_CONTENT, "fa");
+const FENCE: RegExp = /^\s*```/;
+const LINK_TARGET: RegExp = /\]\([^)]*\)/g;
+const ADDRESS: RegExp = /https?:\/\/\S+/g;
+// A label, a field, a path or a host: availability_zone, zone_id, Microsoft.Network/dnszones.
+const DOCS_IDENTIFIER: RegExp = /[A-Za-z0-9]+(?:[_./-][A-Za-z0-9]+)+/g;
+
+function markdownFilesIn(folder: string): Array<string> {
+  return fs
+    .readdirSync(folder, { withFileTypes: true })
+    .flatMap((entry: fs.Dirent): Array<string> => {
+      const at: string = path.join(folder, entry.name);
+
+      if (entry.isDirectory()) {
+        return markdownFilesIn(at);
+      }
+
+      return at.endsWith(".md") ? [at] : [];
+    });
+}
+
+// Each line of a page outside its fenced code, with its number.
+function proseLinesOf(markdown: string): Array<[number, string]> {
+  const lines: Array<[number, string]> = [];
+  let isFenced: boolean = false;
+
+  markdown.split("\n").forEach((line: string, index: number): void => {
+    if (FENCE.test(line)) {
+      isFenced = !isFenced;
+    } else if (!isFenced) {
+      lines.push([index + 1, line]);
+    }
+  });
+
+  return lines;
+}
+
+// A docs line without the names it quotes as drawn in English, its code, its link targets, its addresses and its identifiers.
+function docsProseOf(line: string, names: ReadonlyArray<string>): string {
+  let prose: string = line;
+
+  for (const name of names) {
+    prose = prose.split(name).join(" ");
+  }
+
+  return prose
+    .replace(CODE_SPAN, " ")
+    .replace(LINK_TARGET, " ")
+    .replace(ADDRESS, " ")
+    .replace(DOCS_IDENTIFIER, " ");
+}
+
+// Every Persian page, by its path under Content/fa, with its markdown.
+const DOCS_PAGES: Array<[string, string]> = markdownFilesIn(DOCS).map(
+  (file: string): [string, string] => {
+    return [path.relative(DOCS, file), fs.readFileSync(file, "utf8")];
+  },
+);
+
+/*
  * A CLOUD'S ZONES AND RECORDSETS, IN PERSIAN WORDS (#7629, #7679).
  *
  * Persian kept OpenStack's zones and recordsets in Latin letters - "DNS
@@ -1049,17 +1129,9 @@ describe("a cloud's zones and recordsets, in Persian words", () => {
 
   /*
    * The Persian docs say a zone and a recordset in the same words, outside
-   * code: what a reader copies, and the names a page draws in English.
+   * code (docsProseOf): what a reader copies, and the names a page draws in
+   * English.
    */
-  const DOCS: string = path.resolve(
-    __dirname,
-    "../../FeatureSet/Docs/Content/fa",
-  );
-  const FENCE: RegExp = /^\s*```/;
-  const LINK_TARGET: RegExp = /\]\([^)]*\)/g;
-  const ADDRESS: RegExp = /https?:\/\/\S+/g;
-  // A label, a field, a path or a host: availability_zone, zone_id, Microsoft.Network/dnszones.
-  const IDENTIFIER: RegExp = /[A-Za-z0-9]+(?:[_./-][A-Za-z0-9]+)+/g;
   const TIME_ZONE: RegExp = /time ?zones?/gi;
 
   // Names the docs quote as their page draws them, in English.
@@ -1090,64 +1162,22 @@ describe("a cloud's zones and recordsets, in Persian words", () => {
     },
   ];
 
-  function markdownFilesIn(folder: string): Array<string> {
-    return fs
-      .readdirSync(folder, { withFileTypes: true })
-      .flatMap((entry: fs.Dirent): Array<string> => {
-        const at: string = path.join(folder, entry.name);
-
-        if (entry.isDirectory()) {
-          return markdownFilesIn(at);
-        }
-
-        return at.endsWith(".md") ? [at] : [];
-      });
-  }
-
-  // Each line of a page outside its fenced code, with its number.
-  function proseLinesOf(markdown: string): Array<[number, string]> {
-    const lines: Array<[number, string]> = [];
-    let isFenced: boolean = false;
-
-    markdown.split("\n").forEach((line: string, index: number): void => {
-      if (FENCE.test(line)) {
-        isFenced = !isFenced;
-      } else if (!isFenced) {
-        lines.push([index + 1, line]);
-      }
-    });
-
-    return lines;
-  }
-
   // What a docs line says in Latin letters about a zone or a recordset, once code, links, names and time zones are out.
   function latinZonesIn(line: string): Array<string> {
-    let prose: string = line;
-
-    for (const drawn of DRAWN_IN_ENGLISH) {
-      prose = prose.split(drawn.name).join(" ");
-    }
-
-    prose = prose
-      .replace(CODE_SPAN, " ")
-      .replace(LINK_TARGET, " ")
-      .replace(ADDRESS, " ")
-      .replace(IDENTIFIER, " ")
-      .replace(TIME_ZONE, " ");
+    const prose: string = docsProseOf(
+      line,
+      DRAWN_IN_ENGLISH.map((drawn: { name: string; why: string }): string => {
+        return drawn.name;
+      }),
+    ).replace(TIME_ZONE, " ");
 
     return prose.match(/\S*(?:zone|recordset)\S*/gi) || [];
   }
 
-  const PAGES: Array<[string, string]> = markdownFilesIn(DOCS).map(
-    (file: string): [string, string] => {
-      return [path.relative(DOCS, file), fs.readFileSync(file, "utf8")];
-    },
-  );
-
   test("the Persian docs say a zone and a recordset in Persian words, outside code", () => {
     const found: Array<string> = [];
 
-    for (const [page, markdown] of PAGES) {
+    for (const [page, markdown] of DOCS_PAGES) {
       for (const [line, text] of proseLinesOf(markdown)) {
         const latin: Array<string> = latinZonesIn(text);
 
@@ -1158,7 +1188,7 @@ describe("a cloud's zones and recordsets, in Persian words", () => {
     }
 
     // Every Persian page: a scan that reads none would pass.
-    expect(PAGES.length).toBeGreaterThan(300);
+    expect(DOCS_PAGES.length).toBeGreaterThan(300);
     expect(found).toEqual([]);
 
     // The pages #7679 named say them in Persian words, many times.
@@ -1167,7 +1197,7 @@ describe("a cloud's zones and recordsets, in Persian words", () => {
       "monitor/openstack-monitor.md",
     ]) {
       const markdown: string = (
-        PAGES.find(([name]: [string, string]): boolean => {
+        DOCS_PAGES.find(([name]: [string, string]): boolean => {
           return name === page;
         }) as [string, string]
       )[1];
@@ -1180,7 +1210,7 @@ describe("a cloud's zones and recordsets, in Persian words", () => {
     for (const drawn of DRAWN_IN_ENGLISH) {
       expect({
         why: drawn.why,
-        quoted: PAGES.some(([, markdown]: [string, string]): boolean => {
+        quoted: DOCS_PAGES.some(([, markdown]: [string, string]): boolean => {
           return markdown.includes(drawn.name);
         }),
       }).toEqual({ why: drawn.why, quoted: true });
@@ -1404,6 +1434,190 @@ describe("OpenStack's load balancers, floating IPs, pools and shares, in Persian
       "A pool that fails => poolی که شکست می‌خورد",
       "Floating IP => floating IP",
     ]);
+  });
+
+  /*
+   * The Persian docs say the four as the Dashboard does (#7727), read as
+   * they are read for zones (docsProseOf): outside code, link targets,
+   * addresses and identifiers ("pool_id", `openstack share list`).
+   *
+   * A page the docs serve in English is not read: a copy left to be
+   * translated, whose prose is the English page's ("Terminate TLS at your
+   * load balancer"), and which isEnglishCopy tells apart. A name a page
+   * quotes as it is drawn in English stays as written:
+   *   - an alert template's name, as the template picker draws it ("Storage
+   *     Pool Warning", "Load Balancer in Error");
+   *   - a cloud resource type's name, in a row that names the type: the
+   *     catalog's label is the cloud's product name, drawn as written in
+   *     every language (CloudResourceTypeNamesGuard);
+   *   - a label's name, as a Persian page names a label: "label مربوط به
+   *     pool" is the English page's "the pool label", the name the series
+   *     carries, which a metric row writes bare as the catalog does;
+   *   - the names of other products and apps below.
+   */
+  const ALERT_TEMPLATE_NAMES: ReadonlyArray<string> = [
+    ...getAllOpenStackAlertTemplates(),
+    ...getAllCephAlertTemplates(),
+    ...getAllVMwareAlertTemplates(),
+  ].map((template: { name: string }): string => {
+    return template.name;
+  });
+
+  const LABEL_NAME: RegExp = /label مربوط به [A-Za-z0-9_]+/g;
+
+  const QUOTED_IN_ENGLISH: ReadonlyArray<{ name: string; why: string }> = [
+    {
+      name: "Application Load Balancer",
+      why: "AWS's name for its application load balancer (ALB), a product's name",
+    },
+    {
+      name: "Share link",
+      why: "the mobile app's button, which the app draws in English",
+    },
+    {
+      name: "Cast, save, and share",
+      why: "Chrome's menu item, named as Chrome draws it",
+    },
+  ];
+
+  // The names a docs line quotes as drawn in English, the longest first, so a name inside another goes with it.
+  const namesQuotedIn: (line: string) => Array<string> = (
+    line: string,
+  ): Array<string> => {
+    const cloudTypeNames: Array<string> = CLOUD_RESOURCE_TYPES.filter(
+      (descriptor: CloudResourceTypeDescriptor): boolean => {
+        return line.includes(`\`${descriptor.type}\``);
+      },
+    ).map((descriptor: CloudResourceTypeDescriptor): string => {
+      return descriptor.label;
+    });
+
+    return [
+      ...ALERT_TEMPLATE_NAMES,
+      ...cloudTypeNames,
+      ...QUOTED_IN_ENGLISH.map(
+        (quoted: { name: string; why: string }): string => {
+          return quoted.name;
+        },
+      ),
+    ].sort((first: string, second: string): number => {
+      return second.length - first.length;
+    });
+  };
+
+  // The four a docs page keeps in Latin letters, each with its line's number.
+  const latinNounsOnPage: (markdown: string) => Array<string> = (
+    markdown: string,
+  ): Array<string> => {
+    return proseLinesOf(markdown).flatMap(
+      ([line, text]: [number, string]): Array<string> => {
+        if (!text.match(LATIN_NOUN)) {
+          return [];
+        }
+
+        return (
+          docsProseOf(text.replace(LABEL_NAME, " "), namesQuotedIn(text)).match(
+            LATIN_NOUN,
+          ) || []
+        ).map((noun: string): string => {
+          return `${line}: ${noun}`;
+        });
+      },
+    );
+  };
+
+  const englishPageOf: (page: string) => string = (page: string): string => {
+    return fs.readFileSync(path.join(DOCS_CONTENT, "en", page), "utf8");
+  };
+
+  // The pages the docs serve in Persian: every one but a copy still in English.
+  const PERSIAN_PAGES: Array<[string, string]> = DOCS_PAGES.filter(
+    ([page, markdown]: [string, string]): boolean => {
+      return !isEnglishCopy(englishPageOf(page), markdown);
+    },
+  );
+
+  const persianPage: (page: string) => string = (page: string): string => {
+    return (
+      DOCS_PAGES.find(([name]: [string, string]): boolean => {
+        return name === page;
+      }) as [string, string]
+    )[1];
+  };
+
+  test("the Persian docs say a load balancer, a floating IP, a pool and a share in Persian words, outside code", () => {
+    const found: Array<string> = PERSIAN_PAGES.flatMap(
+      ([page, markdown]: [string, string]): Array<string> => {
+        return latinNounsOnPage(markdown).map((at: string): string => {
+          return `${page}:${at}`;
+        });
+      },
+    );
+
+    // Every Persian page but the few still in English: a scan that reads none would pass.
+    expect(PERSIAN_PAGES.length).toBeGreaterThan(300);
+    expect(found).toEqual([]);
+
+    // The pages #7727 named say them in Persian words.
+    const agentless: string = persianPage("telemetry/openstack-agentless.md");
+
+    expect(agentless).toContain(LOAD_BALANCERS);
+    expect(agentless).toContain(`${POOL}ها`);
+    expect(persianPage("telemetry/openstack-very-large-clouds.md")).toContain(
+      "IPهای شناور",
+    );
+    expect(persianPage("telemetry/databases.md")).toContain(`${POOL} بافر`);
+
+    // Each name kept is still one a page quotes.
+    for (const quoted of QUOTED_IN_ENGLISH) {
+      expect({
+        why: quoted.why,
+        quoted: PERSIAN_PAGES.some(
+          ([, markdown]: [string, string]): boolean => {
+            return markdown.includes(quoted.name);
+          },
+        ),
+      }).toEqual({ why: quoted.why, quoted: true });
+    }
+  });
+
+  test("the docs check finds one kept in Latin letters, and leaves code, a template's name, a cloud's product name, a label's name and a page served in English alone (control)", () => {
+    expect(
+      latinNounsOnPage(
+        [
+          `# ${LOAD_BALANCERS}`,
+          "",
+          "ابری با ۳ load balancer و ۱ pool، که floating IPها و shareهایش را می‌خواند.",
+          "",
+          "```bash",
+          "openstack loadbalancer pool list  # each pool",
+          "```",
+          "",
+          "`openstack share list`، pool_id، [استخر](/docs/telemetry/openstack#pool) و **Storage Pool Warning**",
+          "| `Microsoft.Network/loadBalancers` | Load Balancer | IaaS |",
+          "| Load Balancer | IaaS |",
+          "label مربوط به pool می‌گوید کدام pool آن را نگه می‌دارد.",
+        ].join("\n"),
+      ),
+    ).toEqual([
+      "3: load balancer",
+      "3: pool",
+      "3: floating IP",
+      "3: share",
+      "11: Load Balancer",
+      "12: pool",
+    ]);
+
+    // A copy the docs serve in English says one, and is not read.
+    const copy: string = "self-hosted/hardening.md";
+
+    expect(isEnglishCopy(englishPageOf(copy), persianPage(copy))).toBe(true);
+    expect(latinNounsOnPage(persianPage(copy)).length).toBeGreaterThan(0);
+    expect(
+      PERSIAN_PAGES.map(([page]: [string, string]): string => {
+        return page;
+      }),
+    ).not.toContain(copy);
   });
 });
 

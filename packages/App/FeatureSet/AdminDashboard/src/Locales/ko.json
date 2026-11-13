@@ -535,7 +535,13 @@
         "pillNoAccessKey": "활성화되지 않음. 액세스 키를 추가하세요.",
         "pillNoRegion": "활성화되지 않음. 리전을 추가하세요.",
         "pillNoDomain": "활성화되지 않음. 도메인을 추가하세요.",
-        "pillNoServerToken": "활성화되지 않음. 서버 API 토큰을 추가하세요."
+        "pillNoServerToken": "활성화되지 않음. 서버 API 토큰을 추가하세요.",
+        "environmentCardDescription": "환경 변수로 설정됨: Helm 차트 값의 email 또는 config.env의 GLOBAL_EMAIL_ 설정입니다. 이 설정을 변경하려면 그곳에서 변경한 뒤 OneUptime을 다시 시작하세요.",
+        "environmentProblemsTitle": "이 환경 변수가 수정될 때까지 이 서버는 이메일을 보내지 않습니다:",
+        "environmentUnusedTitle": "사용되지 않는 이메일 환경 변수가 있습니다:",
+        "environmentIgnoredTitle": "이 환경 변수는 설정되어 있지만 선택한 이메일 설정에서 읽지 않으므로 아무것도 바꾸지 않습니다:",
+        "environmentValueSet": "설정됨",
+        "environmentValueNotSet": "설정되지 않음"
       },
       "callSms": {
         "cardTitle": "Twilio 구성",

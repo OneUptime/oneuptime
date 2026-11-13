@@ -517,3 +517,33 @@ describe("the field values", () => {
     expect(fieldValue(card, "Twilio Auth Token")).not.toContain(TOKEN);
   });
 });
+
+/*
+ * The variables are server settings, not a record: there is no ID or
+ * creation time to put on a line under the fields, so Detail draws none, and
+ * the card needs no switch to turn it off (#7775: showRecordLine={false} is
+ * the custom fields card's alone, by RecordIdLineGuard).
+ */
+describe("not a record", () => {
+  test("its fields, with no ID or Created line under them", async () => {
+    environmentAnswer = answerFor(
+      environmentAccount({
+        [ServerTwilioEnvironmentVariable.SmsPhoneNumbers]: "+6581234567",
+        [ServerTwilioEnvironmentVariable.SecondaryPhoneNumbers]: "+14155550101",
+      }),
+    );
+
+    await renderPage();
+
+    const card: HTMLElement = await environmentCard();
+
+    // The fields are drawn, down to the last one...
+    expect(
+      within(card).getByText("GLOBAL_TWILIO_SECONDARY_PHONE_NUMBERS"),
+    ).toBeVisible();
+    // ...and nothing under them.
+    expect(within(card).queryByTestId("detail-record-line")).toBeNull();
+    expect(within(card).queryByTestId("detail-id-line")).toBeNull();
+    expect(within(card).queryByTestId("detail-created-at")).toBeNull();
+  });
+});

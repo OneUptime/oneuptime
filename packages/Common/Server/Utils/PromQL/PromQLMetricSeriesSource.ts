@@ -30,7 +30,10 @@ import {
 import PromQLError, {
   PromQLErrorType,
 } from "../../../Utils/PromQL/PromQLError";
-import { matchesPromQLMatchers } from "../../../Utils/PromQL/PromQLLabels";
+import {
+  PromQLLabelsTest,
+  compilePromQLMatchers,
+} from "../../../Utils/PromQL/PromQLLabels";
 import {
   PROMQL_LABEL_NAME_SQL_PATTERN,
   PromQLMetricRequest,
@@ -153,6 +156,8 @@ export const resolvePromQLSelection: (
   }
 
   const requests: Array<PromQLMetricRequest> = [];
+  // The name matchers' patterns, compiled once for every stored name below.
+  const acceptsName: PromQLLabelsTest = compilePromQLMatchers(nameMatchers);
   const kinds: Array<{ suffix: string; kind: PromQLSeriesKind }> = [
     { suffix: "", kind: PromQLSeriesKind.Value },
     { suffix: "_bucket", kind: PromQLSeriesKind.Bucket },
@@ -166,12 +171,7 @@ export const resolvePromQLSelection: (
     for (const { suffix, kind } of kinds) {
       const seriesName: string = `${base}${suffix}`;
 
-      if (
-        matchesPromQLMatchers(
-          { [PROMQL_METRIC_NAME_LABEL]: seriesName },
-          nameMatchers,
-        )
-      ) {
+      if (acceptsName({ [PROMQL_METRIC_NAME_LABEL]: seriesName })) {
         requests.push({ storedName, kind, seriesName });
       }
     }
