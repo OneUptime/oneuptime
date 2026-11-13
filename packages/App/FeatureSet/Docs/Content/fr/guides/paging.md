@@ -103,6 +103,6 @@ Vérifiez d'abord l'indicatif pays du numéro. Après un appel de test, fermez l
 :::cards
 - [Plannings d'astreinte](/docs/on-call/schedules): Se relayer, pour que chaque alerte aille à la personne d'astreinte. Sur Cloud, à partir du forfait Growth.
 - [Règles d'escalade](/docs/on-call/escalation-rules): Ajouter des niveaux, des équipes et des plannings à la politique.
-- [Règles d'astreinte personnelles](/docs/notifications/on-call-rules): Choisir quel moyen vous joint en premier, et quand.
+- [Comment me joindre](/docs/notifications/on-call-rules): Choisir quel moyen vous joint en premier, et quand.
 - [Publier une page de statut](/docs/guides/status-page): Dire à vos clients ce qui se passe, sur votre propre domaine.
 :::

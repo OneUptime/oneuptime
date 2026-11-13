@@ -33,7 +33,7 @@ Endet die Überschreibung, gehören die Alarme wieder der Person. Die **Zeitachs
 :::steps
 ### Die Überschreibungen öffnen
 
-Gehen Sie zu **Bereitschaftsdienst → Erweitert → Benutzerüberschreibungen**, um jemanden in jeder Bereitschaftsrichtlinie zu vertreten, oder zur Seite **Benutzerüberschreibungen** einer Richtlinie, unter **Erweitert**, um nur in dieser Richtlinie zu vertreten. Klicken Sie auf **Benutzervertretung hinzufügen**.
+Gehen Sie zu **Bereitschaft → Erweitert → Benutzerüberschreibungen**, um jemanden in jeder Bereitschaftsrichtlinie zu vertreten, oder zur Seite **Benutzerüberschreibungen** einer Richtlinie, unter **Erweitert**, um nur in dieser Richtlinie zu vertreten. Klicken Sie auf **Benutzervertretung hinzufügen**.
 
 ### Sagen, wer abwesend ist
 
@@ -54,7 +54,7 @@ Jede Überschreibung ist eine Zeile: **Abwesend**, **Vertreten durch**, **Beginn
 
 | Hinzugefügt unter | Karte | Gilt für |
 | --- | --- | --- |
-| **Bereitschaftsdienst → Erweitert → Benutzerüberschreibungen** | **Globale Benutzervertretungen** | Jede Bereitschaftsrichtlinie im Projekt |
+| **Bereitschaft → Erweitert → Benutzerüberschreibungen** | **Globale Benutzervertretungen** | Jede Bereitschaftsrichtlinie im Projekt |
 | **Benutzerüberschreibungen** einer Richtlinie | **Benutzervertretungen der Bereitschaftsrichtlinie** | Nur diese Richtlinie |
 
 Überschneiden sich zwei Überschreibungen für dieselbe Person, gewinnt die eigene der Richtlinie gegen eine globale, und eine, die eine Vertretung nennt, gewinnt gegen ein Überspringen. Ein Alarm ohne Richtlinie, aus einem Workflow oder aus dem Chat, folgt nur den globalen Überschreibungen.
@@ -68,9 +68,9 @@ Verlässt jemand das Projekt, wird jede Überschreibung gelöscht, die ihn nennt
 
 ## Wer Überschreibungen hinzufügen darf
 
-**Projektinhaber**, **Projektadministrator**, **Projektmitglied**, **Bereitschafts-Administrator** und **Bereitschafts-Mitglied** dürfen Überschreibungen hinzufügen und löschen; **Betrachter** und **Bereitschafts-Betrachter** dürfen sie sehen. In einer eigenen Rolle heißen die Berechtigungen **Create On-Call Duty Policy User Override**, **Delete On-Call Duty Policy User Override** und **Read On-Call Duty Policy User Override**. Auf der **Zeitachse der Bereitschaftspläne** sehen nur Personen, die Überschreibungen lesen dürfen, wessen Schicht vertreten wird.
+**Projektinhaber**, **Projektadministrator**, **Projektmitglied**, **Bereitschafts-Administrator** und **Bereitschafts-Mitglied** dürfen Überschreibungen hinzufügen und löschen; **Betrachter** und **Bereitschafts-Betrachter** dürfen sie sehen. In einer eigenen Rolle heißen die Berechtigungen **Create On-Call Policy User Override**, **Delete On-Call Policy User Override** und **Read On-Call Policy User Override**. Auf der **Zeitachse der Bereitschaftspläne** sehen nur Personen, die Überschreibungen lesen dürfen, wessen Schicht vertreten wird.
 
-Eine Überschreibung in einer Richtlinie folgt dem Geltungsbereich der Richtlinie. Geben Sie einem Team **Bereitschafts-Mitglied**, beschränkt auf die Richtlinien, die ihm gehören, oder auf sein Label, dann fügen seine Mitglieder Überschreibungen nur in diesen Richtlinien hinzu und löschen sie nur dort. Eine globale Überschreibung gilt für jede Richtlinie, auch für die eines anderen Teams; sie hinzuzufügen oder zu löschen braucht deshalb die Berechtigung für Überschreibungen über das ganze Projekt. Mit einer engeren sind **Benutzervertretung hinzufügen** und **Löschen** unter **Bereitschaftsdienst → Erweitert → Benutzerüberschreibungen** gesperrt und sagen, warum. **Überspringen bis…** in den Ebenen eines Plans und **Vertretung finden** an Ihren bevorstehenden Schichten, die globale Überschreibungen hinzufügen, bieten stattdessen die Richtlinien an, für die Sie Überschreibungen hinzufügen dürfen, mit einer Überschreibung je Richtlinie, und ebenso die Vertretung in der Mobil-App; wo Sie für keine davon eine hinzufügen dürfen, sind sie gesperrt und sagen, warum. Das Team fügt seine Überschreibungen auf der eigenen Seite **Benutzerüberschreibungen** jeder Richtlinie hinzu. Dasselbe gilt für die API: Eine Überschreibung ohne `onCallDutyPolicyId` wird für eine Berechtigung abgelehnt, die auf Labels oder auf eigene Richtlinien beschränkt ist.
+Eine Überschreibung in einer Richtlinie folgt dem Geltungsbereich der Richtlinie. Geben Sie einem Team **Bereitschafts-Mitglied**, beschränkt auf die Richtlinien, die ihm gehören, oder auf sein Label, dann fügen seine Mitglieder Überschreibungen nur in diesen Richtlinien hinzu und löschen sie nur dort. Eine globale Überschreibung gilt für jede Richtlinie, auch für die eines anderen Teams; sie hinzuzufügen oder zu löschen braucht deshalb die Berechtigung für Überschreibungen über das ganze Projekt. Mit einer engeren sind **Benutzervertretung hinzufügen** und **Löschen** unter **Bereitschaft → Erweitert → Benutzerüberschreibungen** gesperrt und sagen, warum. **Überspringen bis…** in den Ebenen eines Plans und **Vertretung finden** an Ihren bevorstehenden Schichten, die globale Überschreibungen hinzufügen, bieten stattdessen die Richtlinien an, für die Sie Überschreibungen hinzufügen dürfen, mit einer Überschreibung je Richtlinie, und ebenso die Vertretung in der Mobil-App; wo Sie für keine davon eine hinzufügen dürfen, sind sie gesperrt und sagen, warum. Das Team fügt seine Überschreibungen auf der eigenen Seite **Benutzerüberschreibungen** jeder Richtlinie hinzu. Dasselbe gilt für die API: Eine Überschreibung ohne `onCallDutyPolicyId` wird für eine Berechtigung abgelehnt, die auf Labels oder auf eigene Richtlinien beschränkt ist.
 
 In OneUptime Cloud brauchen Benutzerüberschreibungen den Plan **Growth**.
 
@@ -105,11 +105,11 @@ Eine Überschreibung, deren abwesende Person und Vertretung dieselbe ist, wird a
 ## Fehlerbehebung
 
 :::details Die Person im Urlaub wurde trotzdem alarmiert
-Prüfen Sie, wo die Überschreibung hinzugefügt wurde. Eine auf der Seite **Benutzerüberschreibungen** einer Richtlinie gilt nur für diese Richtlinie, und andere Richtlinien alarmieren die Person weiter: Fügen Sie sie unter **Bereitschaftsdienst → Erweitert → Benutzerüberschreibungen** hinzu, um jede Richtlinie abzudecken. Prüfen Sie auch **Beginnt** und **Endet**: Zeiten werden in Ihrer Zeitzone angezeigt.
+Prüfen Sie, wo die Überschreibung hinzugefügt wurde. Eine auf der Seite **Benutzerüberschreibungen** einer Richtlinie gilt nur für diese Richtlinie, und andere Richtlinien alarmieren die Person weiter: Fügen Sie sie unter **Bereitschaft → Erweitert → Benutzerüberschreibungen** hinzu, um jede Richtlinie abzudecken. Prüfen Sie auch **Beginnt** und **Endet**: Zeiten werden in Ihrer Zeitzone angezeigt.
 :::
 
 :::details Die Vertretung wurde auch nicht alarmiert
-Sie wird über ihre eigenen persönlichen Bereitschaftsregeln und verifizierten Methoden erreicht. Suchen Sie sie unter **Bereitschaftsdienst → Einsatzbereitschaft** und prüfen Sie den Lauf in den **Ausführungsprotokolle** der Richtlinie.
+Sie wird über ihre eigenen persönlichen Bereitschaftsregeln und verifizierten Methoden erreicht. Suchen Sie sie unter **Bereitschaft → Einsatzbereitschaft** und prüfen Sie den Lauf in den **Ausführungsprotokolle** der Richtlinie.
 :::
 
 :::details Ich kann keine Überschreibung hinzufügen

@@ -84,7 +84,7 @@ import path from "path";
 /*
  * Docs overhaul task 34: the On Call group's new pages - the overview, on-call
  * policies, user overrides, and readiness & reports - name a lot of the
- * product: the On-Call Duty menu and a policy's own menu, the create form, the
+ * product: the On-Call menu and a policy's own menu, the create form, the
  * list and its bulk actions, what runs a policy, the repeat settings, the
  * statuses a run moves through and where its logs are, archiving, roles and
  * plans, the API; the override form, its cards and which override wins; the
@@ -253,7 +253,7 @@ function listed(names: Array<string>): string {
 // ---- The menus --------------------------------------------------------------
 
 /*
- * The On-Call Duty menu's sections, from where the menu lists them: the
+ * The On-Call menu's sections, from where the menu lists them: the
  * "Timeline" link above them is the sub-item Execution Logs shows while a log
  * is open, not a section.
  */
@@ -274,7 +274,7 @@ const POLICY_MENU_SOURCE: string = POLICY_MENU_FILE.slice(
 
 const CONNECT_ENTRY_TITLE: string = "Connect a workspace";
 
-// The On-Call Duty menu, with the sections it adds from elsewhere.
+// The On-Call menu, with the sections it adds from elsewhere.
 function onCallDutyMenu(): Array<MenuSection> {
   return menuSections(ON_CALL_DUTY_MENU_SOURCE, {
     "...(workspaceSection ?": workspaceSection(),
@@ -350,7 +350,7 @@ describe("the On Call group in the docs", () => {
     }
   });
 
-  it("titles the policies and overrides pages as the On-Call Duty menu names the pages they document", () => {
+  it("titles the policies and overrides pages as the On-Call menu names the pages they document", () => {
     const entries: Array<string> = onCallDutyMenu().flatMap(
       (menuSection: MenuSection): Array<string> => {
         return menuSection.items;
@@ -365,7 +365,7 @@ describe("the On Call group in the docs", () => {
 
 // ---- The overview: where on-call lives -------------------------------------------
 
-describe("the On-Call Duty menu, as the overview draws it", () => {
+describe("the On-Call menu, as the overview draws it", () => {
   it("has a row per section of the menu, with its pages, in the menu's order", () => {
     const table: string = section(
       english(ON_CALL_OVERVIEW),
@@ -439,7 +439,7 @@ describe("the On-Call Duty menu, as the overview draws it", () => {
     );
   });
 
-  it("writes every path through On-Call Duty as its menu has it", () => {
+  it("writes every path through On-Call as its menu has it", () => {
     const menu: Array<MenuSection> = onCallDutyMenu();
     const entries: Array<string> = menu.flatMap(
       (menuSection: MenuSection): Array<string> => {
@@ -450,7 +450,7 @@ describe("the On-Call Duty menu, as the overview draws it", () => {
 
     for (const entry of NEW_ON_CALL_PAGES) {
       for (const segments of boldPaths(english(entry.page))) {
-        if (segments[0] !== "On-Call Duty") {
+        if (segments[0] !== "On-Call") {
           continue;
         }
 
@@ -467,7 +467,7 @@ describe("the On-Call Duty menu, as the overview draws it", () => {
           continue;
         }
 
-        // On-Call Duty → a section → one of its pages.
+        // On-Call → a section → one of its pages.
         expect({
           path: segments,
           found: sectionByTitle(menu, segments[1]!).items.includes(
@@ -639,7 +639,7 @@ describe("creating a policy", () => {
       return match[1] as string;
     });
 
-    expect(list).toContain('title: "On-Call Duty Policies"');
+    expect(list).toContain('title: "On-Call Policies"');
     expect(columnTitles).toEqual(["Name", "Description", "Labels", "Owners"]);
     expect(list).toContain(
       "...labelBulkActions,\n            ...ownerBulkActions,\n            ...archiveBulkActions,",
@@ -663,7 +663,7 @@ describe("creating a policy", () => {
     }
 
     expect(english(ON_CALL_POLICIES)).toContain(
-      "The **On-Call Duty Policies** list shows each policy's **Name**, **Description**, **Labels** and **Owners**. Select policies to **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner**, **Archive**, **Export JSON** or delete them. **Import JSON** creates policies from an export",
+      "The **On-Call Policies** list shows each policy's **Name**, **Description**, **Labels** and **Owners**. Select policies to **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner**, **Archive**, **Export JSON** or delete them. **Import JSON** creates policies from an export",
     );
   });
 
@@ -1473,7 +1473,7 @@ describe("execution logs", () => {
       readCommonSource("UI/Components/OnCallDirectPage/DirectPageLabel.tsx"),
     ).toContain('DIRECT_PAGE_LABEL: string = translationKey("Direct page")');
     expect(statusTable()).toContain(
-      "- **On-Call Duty → Advanced → Execution Logs**, for every policy, with direct pages from workflows and chat listed as **Direct page**;",
+      "- **On-Call → Advanced → Execution Logs**, for every policy, with direct pages from workflows and chat listed as **Direct page**;",
     );
     expect(statusTable()).toContain(
       "- the **On-Call Executions** page of an incident or an alert.",
@@ -1583,7 +1583,7 @@ describe("archiving and deleting a policy", () => {
       readCommonSource("UI/Components/BulkUpdate/BulkArchiveActions.tsx"),
     ).toContain('title: "Unarchive"');
     expect(english(ON_CALL_POLICIES)).toContain(
-      "- It leaves the **On-Call Policies** list for **On-Call Duty → Advanced → Archived Policies**, where **Unarchive** puts it back in service.",
+      "- It leaves the **On-Call Policies** list for **On-Call → Advanced → Archived Policies**, where **Unarchive** puts it back in service.",
     );
   });
 
@@ -1753,7 +1753,7 @@ describe("user overrides", () => {
       "**On-Call Policy User Overrides**",
     ]);
     expect(placement).toEqual([
-      "**On-Call Duty → Advanced → User Overrides**",
+      "**On-Call → Advanced → User Overrides**",
       "A policy's **User Overrides**",
     ]);
     expect(english(USER_OVERRIDES)).toContain(
@@ -1932,7 +1932,7 @@ describe("user overrides", () => {
       "A global override applies to every policy, another team's included, so adding or deleting one takes the override permission over the whole project.",
     );
     expect(page).toContain(
-      "**Add User Override** and **Delete** on **On-Call Duty → Advanced → User Overrides** are locked and say why",
+      "**Add User Override** and **Delete** on **On-Call → Advanced → User Overrides** are locked and say why",
     );
     expect(page).toContain(
       "an override with no `onCallDutyPolicyId` is refused for a permission limited to labels or to owned policies.",
@@ -2240,10 +2240,10 @@ describe("readiness", () => {
       "Project Owner",
       "Project Admin",
       "On-Call Admin",
-      "Edit On-Call Duty Policy",
+      "Edit On-Call Policy",
     ]);
     expect(english(READINESS_AND_REPORTS)).toContain(
-      "Nobody is reminded more than once in 24 hours, and one go reminds at most 250 people. Sending reminders takes **Project Owner**, **Project Admin** or **On-Call Admin**, or **Edit On-Call Duty Policy** in a custom role.",
+      "Nobody is reminded more than once in 24 hours, and one go reminds at most 250 people. Sending reminders takes **Project Owner**, **Project Admin** or **On-Call Admin**, or **Edit On-Call Policy** in a custom role.",
     );
   });
 
@@ -2324,14 +2324,14 @@ describe("the weekly readiness email", () => {
 
 // ---- User On Call Time ---------------------------------------------------------------
 
-describe("User On Call Time", () => {
+describe("User On-Call Time", () => {
   const report: string = readDashboardSource(
     "Components/OnCallPolicy/TimeLog/OnCallDutyTimeLogTable.tsx",
   );
 
   it("is under Reports, with the columns and the starting range the page has", () => {
     expect(sectionByTitle(onCallDutyMenu(), "Reports").items).toEqual([
-      "User On Call Time",
+      "User On-Call Time",
     ]);
     expect(report).toContain('title: "User",');
     expect(report).toContain('title: "Time user was on call",');
@@ -2339,11 +2339,11 @@ describe("User On Call Time", () => {
     expect(TimeRange.PAST_ONE_MONTH).toBe("Past 1 Month");
     expect(
       firstColumn(
-        section(english(READINESS_AND_REPORTS), "## User On Call Time"),
+        section(english(READINESS_AND_REPORTS), "## User On-Call Time"),
       ),
     ).toEqual(["**User**", "**Time user was on call**"]);
     expect(english(READINESS_AND_REPORTS)).toContain(
-      "**On-Call Duty → Reports → User On Call Time** shows how long each person was on call, over a range you pick: **Past 1 Month** to start with.",
+      "**On-Call → Reports → User On-Call Time** shows how long each person was on call, over a range you pick: **Past 1 Month** to start with.",
     );
   });
 

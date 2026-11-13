@@ -86,7 +86,7 @@ const ITEM_ID: string = "11111111-7777-4777-8777-777777777777";
 const DESTINATION: string = "+6590665484";
 
 const NO_TWILIO: string =
-  "No Twilio account is set up to send SMS. The OneUptime server's administrator can add one in Admin Dashboard > Settings > Call and SMS, or a project owner, a project admin or someone with Create Call and SMS can add this project's own in Project Settings > Notifications > Notification Settings.";
+  "No Twilio account is set up to send SMS. The OneUptime server's administrator can add one in Admin Dashboard > Settings > Call and SMS, or a project owner, a project admin or someone with Create Call and SMS can add this project's own in Project Settings > Notifications > Notification Channels.";
 
 interface StatusInput {
   codeState?: "active" | "expired" | "none";

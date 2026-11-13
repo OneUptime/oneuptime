@@ -652,7 +652,7 @@ const IncomingCallPolicyView: FunctionComponent<
           >
             <Alert
               type={AlertType.WARNING}
-              title="Add a Twilio configuration first, under Project Settings > Notifications > Notification Settings."
+              title="Add a Twilio configuration first, under Project Settings > Notifications > Notification Channels."
             />
           </Modal>
         )}

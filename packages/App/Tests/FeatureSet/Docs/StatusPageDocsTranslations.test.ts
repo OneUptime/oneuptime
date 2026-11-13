@@ -448,7 +448,7 @@ const KEPT_IN_ENGLISH: Array<string> = [
 
 // Bold names the pages hold elsewhere: by NotificationChannelsWhoCanDocs.
 const HELD_ELSEWHERE: Array<string> = [
-  "Project Settings > Notifications > Notification Settings",
+  "Project Settings > Notifications > Notification Channels",
 ];
 
 /*

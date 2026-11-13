@@ -550,7 +550,7 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
         teams: "scheduledMaintenanceTeamsPage",
       },
       Monitors: { slack: "monitorsSlackPage", teams: "monitorsTeamsPage" },
-      "On-Call Duty": { slack: "onCallSlackPage", teams: "onCallTeamsPage" },
+      "On-Call": { slack: "onCallSlackPage", teams: "onCallTeamsPage" },
       // The rules that post SLOs' error budget policy changes.
       SLOs: { slack: "sloSlackPage", teams: "sloTeamsPage" },
     };
@@ -1137,10 +1137,10 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
     );
     expect(steps).toContain("Click **Send Test Message** on its row.");
     expect(steps).toContain(
-      "Disconnecting your Mattermost account removes this method and the on-call rules that use it.",
+      "Disconnecting your Mattermost account removes this method and the steps of How to Reach Me that use it.",
     );
     expect(page).toContain(
-      "Disconnecting disconnects every member's own Mattermost account too, and removes their Mattermost notification methods and the on-call rules that use them.",
+      "Disconnecting disconnects every member's own Mattermost account too, and removes their Mattermost notification methods and the steps of How to Reach Me that use them.",
     );
   });
 

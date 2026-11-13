@@ -13,17 +13,17 @@ import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding
 
 const PageTitleMap: Dictionary<string> = {
   [RouteUtil.getLastPathForKey(PageMap.ON_CALL_DUTY_POLICIES)]:
-    "On-Call Duty Policies",
+    "On-Call Policies",
   [RouteUtil.getLastPathForKey(PageMap.ON_CALL_DUTY_READINESS)]:
     "On-Call Readiness",
   [RouteUtil.getLastPathForKey(PageMap.ON_CALL_DUTY_SCHEDULES)]:
-    "On-Call Duty Schedules",
+    "On-Call Schedules",
   [RouteUtil.getLastPathForKey(PageMap.ON_CALL_DUTY_EXECUTION_LOGS)]:
-    "On-Call Duty Logs",
+    "On-Call Logs",
   [RouteUtil.getLastPathForKey(PageMap.ON_CALLDUTY_USER_TIME_LOGS)]:
-    "On-Call Duty User Time Logs",
+    "User On-Call Time",
   [RouteUtil.getLastPathForKey(PageMap.ON_CALL_DUTY_POLICY_USER_OVERRIDES)]:
-    "On-Call Duty User Overrides",
+    "User Overrides",
 };
 
 const OnCallDutyLayout: FunctionComponent<

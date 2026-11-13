@@ -83,10 +83,10 @@ En forhåndsvisning lagres i én dag. Bare personen som leste kontoen, kan kryss
 
 :::steps
 ### Sjekk vaktplanene
-Åpne hver vaktplan under **Vakttjeneste** > **Vaktplaner** og sjekk hvem som har vakt nå, og hvem som er neste.
+Åpne hver vaktplan under **Vakt** > **Vaktplaner** og sjekk hvem som har vakt nå, og hvem som er neste.
 
 ### Sørg for at alle kan varsles
-Inviterte personer godtar invitasjonen og legger deretter til et telefonnummer, en e-postadresse eller mobilappen de kan varsles på. **Vakttjeneste** > **Beredskap** viser hvem som ikke kan nås ennå.
+Inviterte personer godtar invitasjonen og legger deretter til et telefonnummer, en e-postadresse eller mobilappen de kan varsles på. **Vakt** > **Beredskap** viser hvem som ikke kan nås ennå.
 
 ### Fortsett hendelsesnumrene dine
 Hvis teamet ditt omtaler hendelser med nummer, la numrene i OneUptime starte etter det siste du hadde i Grafana OnCall: Under **Hendelser** > **Innstillinger** > **Nummerering** setter du **Neste hendelsesnummer** på kortet **Neste nummer** til nummeret etter det. Et nummer betyr da aldri to forskjellige hendelser.

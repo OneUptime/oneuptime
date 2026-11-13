@@ -78,9 +78,9 @@ flowchart TB
 
 نقش `ProjectOwner` بالاترین سطح دسترسی است: صورت‌حساب، حذف پروژه، و هر چیزی که یک مدیر می‌تواند بکند. نقش `ProjectAdmin` همه‌چیز جز صورت‌حساب و حذف پروژه را پوشش می‌دهد.
 
-روشن یا خاموش کردن پیامک، تماس تلفنی، WhatsApp یا Telegram برای پروژه جزو صورت‌حساب به شمار می‌آید، چون هر پیام هزینه دارد. فقط `ProjectOwner`، نقش `BillingAdmin` (**مدیر صورت‌حساب**) و مجوز `ManageProjectBilling` (**Manage Billing**) می‌توانند این کلیدها را در **Project Settings > Notifications > Notification Settings** تغییر دهند — نه `ProjectAdmin`.
+روشن یا خاموش کردن پیامک، تماس تلفنی، WhatsApp یا Telegram برای پروژه جزو صورت‌حساب به شمار می‌آید، چون هر پیام هزینه دارد. فقط `ProjectOwner`، نقش `BillingAdmin` (**مدیر صورت‌حساب**) و مجوز `ManageProjectBilling` (**Manage Billing**) می‌توانند این کلیدها را در **Project Settings > Notifications > Notification Channels** تغییر دهند — نه `ProjectAdmin`.
 
-شارژ کردن موجودی‌های پیش‌پرداخت پروژه هم جزو صورت‌حساب به شمار می‌آید. در OneUptime Cloud هزینه پیامک، تماس تلفنی، WhatsApp و Telegram از موجودی **Project Settings > Notifications > Notification Settings** پرداخت می‌شود، و هزینه هوش مصنوعی از اعتبار هوش مصنوعی در **Project Settings > AI > AI Credits**. فقط مالک پروژه یا کسی که مجوز **Manage Billing** دارد می‌تواند آن‌ها را شارژ کند یا **شارژ خودکار** آن‌ها را تغییر دهد — مدیر پروژه نمی‌تواند. پیامی که درباره موجودیِ رو به پایان است می‌گوید چه کسی می‌تواند آن را شارژ کند، و فقط همین افراد دکمه **شارژ موجودی** فعال یا پیوندی به آن صفحه می‌بینند.
+شارژ کردن موجودی‌های پیش‌پرداخت پروژه هم جزو صورت‌حساب به شمار می‌آید. در OneUptime Cloud هزینه پیامک، تماس تلفنی، WhatsApp و Telegram از موجودی **Project Settings > Notifications > Notification Channels** پرداخت می‌شود، و هزینه هوش مصنوعی از اعتبار هوش مصنوعی در **Project Settings > AI > AI Credits**. فقط مالک پروژه یا کسی که مجوز **Manage Billing** دارد می‌تواند آن‌ها را شارژ کند یا **شارژ خودکار** آن‌ها را تغییر دهد — مدیر پروژه نمی‌تواند. پیامی که درباره موجودیِ رو به پایان است می‌گوید چه کسی می‌تواند آن را شارژ کند، و فقط همین افراد دکمه **شارژ موجودی** فعال یا پیوندی به آن صفحه می‌بینند.
 
 هر تعداد تیم اضافی که می‌خواهید بسازید — «Frontend On-Call»، «Support»، «Read-Only Auditors» — و به هرکدام دسترسی‌هایی را که لازم دارد بدهید. در OneUptime Cloud، ساختن تیم و تغییر دسترسی‌هایش به طرح Scale نیاز دارد.
 

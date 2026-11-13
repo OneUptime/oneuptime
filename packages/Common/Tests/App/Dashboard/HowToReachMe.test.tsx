@@ -407,7 +407,8 @@ describe("which view it opens on", () => {
     expect(within(groups[0]!).getByText("At once")).toBeInTheDocument();
     expect(within(groups[0]!).getByText("SMS")).toBeInTheDocument();
     expect(within(groups[1]!).getByText("After 5 minutes")).toBeInTheDocument();
-    expect(within(groups[1]!).getByText("Call")).toBeInTheDocument();
+    // The method's name as the cards below name it: "Phone call", never the shared "Call" (#7178).
+    expect(within(groups[1]!).getByText("Phone call")).toBeInTheDocument();
 
     // Your own page: the test page at its foot.
     expect(screen.getByTestId("test-page-card-stub")).toBeInTheDocument();
@@ -433,7 +434,7 @@ describe("which view it opens on", () => {
       within(difference).getByText("Critical Incident"),
     ).toBeInTheDocument();
     expect(within(difference).getByText("Also")).toBeInTheDocument();
-    expect(within(difference).getByText("Call")).toBeInTheDocument();
+    expect(within(difference).getByText("Phone call")).toBeInTheDocument();
     expect(within(difference).getByText("At once")).toBeInTheDocument();
 
     // The grid marks the card that differs.
@@ -599,7 +600,7 @@ describe("saving a ladder", () => {
       .map((element: HTMLElement): string => {
         return element.textContent || "";
       });
-    expect(methods).toEqual(["Push: Pixel 8", "SMS: +15550100"]);
+    expect(methods).toEqual(["Push notification: Pixel 8", "SMS: +15550100"]);
 
     fireEvent.click(screen.getByTestId("paging-ladder-save"));
 
@@ -729,6 +730,25 @@ describe("what is not verified yet", () => {
     });
     expect(addOptions).not.toContain(`userSmsId:${UNVERIFIED_SMS}`);
     expect(addOptions).toContain(`userCallId:${CALL}`);
+
+    // Each is named as the cards' own dropdowns name it (#7178).
+    expect(
+      Array.from(
+        (screen.getByTestId("paging-ladder-add-step") as HTMLSelectElement)
+          .options,
+      )
+        .filter((option: HTMLOptionElement): boolean => {
+          return option.value !== "";
+        })
+        .map((option: HTMLOptionElement): string => {
+          return option.textContent || "";
+        }),
+    ).toEqual([
+      "Push notification: Pixel 8",
+      "Email: me@example.com",
+      "SMS: +15550100",
+      "Phone call: +15550100",
+    ]);
 
     fireEvent.click(within(notVerified).getByTestId("paging-ladder-verify"));
     expect(await screen.findByText("Verify +447700900123")).toBeInTheDocument();

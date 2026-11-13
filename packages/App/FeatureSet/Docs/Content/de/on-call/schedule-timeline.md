@@ -20,7 +20,7 @@ flowchart TB
 
 ## Die Zeitachse öffnen
 
-- **Bereitschaftsdienst** > **Zeitachse der Bereitschaftspläne** zeigt jeden Plan, den Sie sehen dürfen, gruppiert nach besitzendem Team. Unter **Bereitschaftspläne** öffnet **Zeitachse der Bereitschaftspläne** im Menü **⋯** dieselbe Seite.
+- **Bereitschaft** > **Zeitachse der Bereitschaftspläne** zeigt jeden Plan, den Sie sehen dürfen, gruppiert nach besitzendem Team. Unter **Bereitschaftspläne** öffnet **Zeitachse der Bereitschaftspläne** im Menü **⋯** dieselbe Seite.
 - **Teams** > ein Team > **Bereitschaftspläne** zeigt nur die Pläne, die diesem Team gehören.
 
 Ein Team besitzt einen Plan, wenn es auf der Seite **Eigentümer** des Plans eingetragen ist. Pläne ohne besitzendes Team werden unter **Kein Eigentümer-Team** zusammengefasst. Schalten Sie **Nach Team gruppieren** aus, um alle Pläne in einer Liste zu sehen, nach Namen sortiert.
@@ -47,7 +47,7 @@ Unter dem Raster listet **In Bereitschaft diese Woche** (**In Bereitschaft diese
 - Die Zeitachse reicht 180 Tage zurück und 365 Tage voraus.
 
 > [!NOTE]
-> Vergangene Schichten werden aus der aktuellen Konfiguration jedes Plans neu berechnet. Sie zeigen also die Rotation, wie sie jetzt eingerichtet ist, und die kann davon abweichen, wer damals tatsächlich alarmiert wurde. Für die Stunden, die Personen tatsächlich in Bereitschaft verbracht haben, nutzen Sie **Bereitschaftsdienst** > **Berichte** > **Bereitschaftszeit des Benutzers**. Siehe [Bereitschaftszeit des Benutzers](/docs/on-call/readiness#bereitschaftszeit-des-benutzers).
+> Vergangene Schichten werden aus der aktuellen Konfiguration jedes Plans neu berechnet. Sie zeigen also die Rotation, wie sie jetzt eingerichtet ist, und die kann davon abweichen, wer damals tatsächlich alarmiert wurde. Für die Stunden, die Personen tatsächlich in Bereitschaft verbracht haben, nutzen Sie **Bereitschaft** > **Berichte** > **Bereitschaftszeit des Benutzers**. Siehe [Bereitschaftszeit des Benutzers](/docs/on-call/readiness#bereitschaftszeit-des-benutzers).
 
 ## Einen Plan oder eine Person finden
 

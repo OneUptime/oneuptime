@@ -24,7 +24,7 @@ Op OneUptime Cloud komen sms'jes en telefoonoproepen voor bereikbaarheidsdienste
 
 Uw oproepen komen van andere nummers dan die hierboven wanneer:
 
-- **Uw project zijn eigen Twilio-account gebruikt.** Wanneer een project een Twilio-configuratie heeft die als projectstandaard is ingesteld (**Projectinstellingen** > **Meldingen** > **Meldingsinstellingen** > **Meer instellingen** > **Twilio-configuratie**), gaan sms'jes en oproepen naar de leden van het project via dat account, vanaf de telefoonnummers ervan. Zet die nummers dan op de whitelist.
+- **Uw project zijn eigen Twilio-account gebruikt.** Wanneer een project een Twilio-configuratie heeft die als projectstandaard is ingesteld (**Projectinstellingen** > **Meldingen** > **Meldingskanalen** > **Meer instellingen** > **Twilio-configuratie**), gaan sms'jes en oproepen naar de leden van het project via dat account, vanaf de telefoonnummers ervan. Zet die nummers dan op de whitelist.
 - **U een zelfgehoste installatie gebruikt.** Sms'jes en oproepen komen van de nummers die uw beheerder heeft ingesteld: de standaard-Twilio-configuratie van het project, die voor de hele installatie onder **Admin Dashboard** > **Instellingen** > **Call and SMS**, of uw eigen sms- en spraakprovider, wanneer de installatie via een eigen gateway verstuurt. Vraag uw beheerder welke nummers u op de whitelist moet zetten.
 
 ## Volgende stappen

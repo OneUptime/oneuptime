@@ -432,7 +432,7 @@ const PRODUCTS: Array<Product> = [
     viewPage: PageMap.ON_CALL_DUTY_POLICY_VIEW,
     viewPath: `${BASE}/on-call-duty/policies/${RESOURCE_ID}`,
     breadcrumbs: getOnCallDutyBreadcrumbs,
-    archivedBreadcrumbs: ["Project", "On-Call Duty", "Policies", "Archived"],
+    archivedBreadcrumbs: ["Project", "On-Call", "Policies", "Archived"],
     rootPage: PageMap.ON_CALL_DUTY_ROOT,
     renderRoutes: () => {
       return <OnCallDutyRoutes {...PAGE_PROPS} />;
@@ -622,7 +622,7 @@ describe("an on-call policy's Settings page", () => {
       titlesOf(getOnCallDutyBreadcrumbs(resolve(POLICY_SETTINGS_PATH))),
     ).toEqual([
       "Project",
-      "On-Call Duty",
+      "On-Call",
       "Policies",
       "View On-Call Policy",
       "Settings",

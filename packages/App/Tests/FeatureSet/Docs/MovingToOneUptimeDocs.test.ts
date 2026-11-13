@@ -321,13 +321,13 @@ describe.each(AllToolImportSources)(
         names.push(
           "Tick them too",
           "Invite new people to",
-          "On-Call Duty",
+          "On-Call",
           "On-Call Schedules",
           "Readiness",
         );
       } else {
         if (!isToolImportStatusPageHost(definition)) {
-          names.push("Monitors", "On-Call Duty", "On-Call Policies");
+          names.push("Monitors", "On-Call", "On-Call Policies");
         }
 
         if (definition.kinds.includes(ToolImportResourceKind.StatusPage)) {

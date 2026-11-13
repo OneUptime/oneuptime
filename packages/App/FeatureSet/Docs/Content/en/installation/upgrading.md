@@ -1237,7 +1237,7 @@ working mail server.
   state panel, they now need permission to change its state (**Create
   Incident State Timeline**, **Create Alert State Timeline**). Paging used to
   need permission to edit incidents and now needs permission to execute
-  on-call policies (**Execute On-Call Duty Policy**), and
+  on-call policies (**Execute On-Call Policies**), and
   running a runbook used to need permission to edit runbooks and now needs
   permission to start runbook executions (**Create Runbook Execution**), so
   look over custom roles that hold the old permission and not the new one.

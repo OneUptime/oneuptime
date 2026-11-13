@@ -70,7 +70,7 @@ Som det er nu, sendes en hændelse uden ejere med e-mail til projektets ejere, o
 :::steps
 ### Opret en vagtpolitik
 
-Klik på **Opsæt en vagtpolitik** i tjeklisten, eller åbn **Vagtordning** fra menuen **Produkter**. Klik på **Opret Vagtpolitik**, og indtast et **Navn**. Under **Hvem tilkaldes først?** klikker du på **Tilføj modtager** og vælger dig selv. Lad **Udløs den ved hver ny hændelse og hver ny advarsel** være slået til, og klik på **Opret Vagtpolitik**.
+Klik på **Opsæt en vagtpolitik** i tjeklisten, eller åbn **Vagt** fra menuen **Produkter**. Klik på **Opret Vagtpolitik**, og indtast et **Navn**. Under **Hvem tilkaldes først?** klikker du på **Tilføj modtager** og vælger dig selv. Lad **Udløs den ved hver ny hændelse og hver ny advarsel** være slået til, og klik på **Opret Vagtpolitik**.
 
 ### Se reglen, der udløser den
 
@@ -82,7 +82,7 @@ Din login-e-mail er allerede en måde at kontakte dig på. For også at få SMS 
 :::
 
 > [!NOTE]
-> SMS og telefonopkald er slået fra i et nyt projekt. En projektejer, en Billing Admin eller en person med Manage Billing slår dem til i kortet **Notifikationskanaler** under **Projektindstillinger → Notifikationer → Notifikationsindstillinger**.
+> SMS og telefonopkald er slået fra i et nyt projekt. En projektejer, en Billing Admin eller en person med Manage Billing slår dem til i kortet **Notifikationskanaler** under **Projektindstillinger → Notifikationer → Notifikationskanaler**.
 
 Se [Eskaleringsregler](/docs/on-call/escalation-rules) og [Vagtplaner](/docs/on-call/schedules) for flere niveauer, rotationer og hvor længe hvert niveau venter.
 

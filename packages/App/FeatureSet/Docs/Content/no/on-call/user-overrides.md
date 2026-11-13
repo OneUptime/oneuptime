@@ -33,7 +33,7 @@ Når overstyringen slutter, er tilkallingene deres igjen. **Tidslinje for vaktpl
 :::steps
 ### Åpne overstyringene
 
-Gå til **Vakttjeneste → Avansert → Brukeroverstyringer** for å dekke for noen i alle vaktretningslinjer, eller til en retningslinjes egen side **Brukeroverstyringer**, under **Avansert**, for å dekke for dem bare i den retningslinjen. Klikk på **Legg til Brukeroverstyring**.
+Gå til **Vakt → Avansert → Brukeroverstyringer** for å dekke for noen i alle vaktretningslinjer, eller til en retningslinjes egen side **Brukeroverstyringer**, under **Avansert**, for å dekke for dem bare i den retningslinjen. Klikk på **Legg til Brukeroverstyring**.
 
 ### Si hvem som er borte
 
@@ -54,7 +54,7 @@ Hver overstyring er en rad: **Borte**, **Dekket av**, **Starter** og **Slutter**
 
 | Lagt til under | Kort | Gjelder for |
 | --- | --- | --- |
-| **Vakttjeneste → Avansert → Brukeroverstyringer** | **Globale brukeroverstyringer** | Alle vaktretningslinjer i prosjektet |
+| **Vakt → Avansert → Brukeroverstyringer** | **Globale brukeroverstyringer** | Alle vaktretningslinjer i prosjektet |
 | **Brukeroverstyringer** for en retningslinje | **Brukeroverstyringer for vaktretningslinjen** | Bare den retningslinjen |
 
 Når to overstyringer for samme person overlapper, vinner retningslinjens egen over en global, og en som nevner hvem som dekker, vinner over en overhopping. En tilkalling uten retningslinje, fra en arbeidsflyt eller fra chat, følger bare de globale overstyringene.
@@ -68,9 +68,9 @@ Når noen forlater prosjektet, slettes hver overstyring som nevner dem og ikke h
 
 ## Hvem som kan legge til overstyringer
 
-**Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Vaktadministrator** og **Vaktmedlem** kan legge til og slette overstyringer; **Leser** og **Vaktleser** kan se dem. I en egendefinert rolle heter tillatelsene **Create On-Call Duty Policy User Override**, **Delete On-Call Duty Policy User Override** og **Read On-Call Duty Policy User Override**. På **Tidslinje for vaktplaner** ser bare folk som kan lese overstyringer, hvem sin vakt som dekkes.
+**Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Vaktadministrator** og **Vaktmedlem** kan legge til og slette overstyringer; **Leser** og **Vaktleser** kan se dem. I en egendefinert rolle heter tillatelsene **Create On-Call Policy User Override**, **Delete On-Call Policy User Override** og **Read On-Call Policy User Override**. På **Tidslinje for vaktplaner** ser bare folk som kan lese overstyringer, hvem sin vakt som dekkes.
 
-En overstyring på en retningslinje følger retningslinjens omfang. Gi et team **Vaktmedlem** begrenset til retningslinjene det eier, eller til etiketten sin, så legger medlemmene til og sletter overstyringer bare på de retningslinjene. En global overstyring gjelder for alle retningslinjer, også et annet teams, så å legge til eller slette en krever tillatelsen for overstyringer over hele prosjektet. Med en smalere tillatelse er **Legg til Brukeroverstyring** og **Slett** under **Vakttjeneste → Avansert → Brukeroverstyringer** låst og sier hvorfor. **Hopp over til…** i lagene til en vaktplan og **Finn avløser** på de kommende vaktene dine, som legger til globale overstyringer, tilbyr i stedet retningslinjene du kan legge til overstyringer på, med én overstyring per retningslinje, og det samme gjør avløsningen i mobilappen; der du ikke kan på noen av dem, er de låst og sier hvorfor. Teamet legger til overstyringene sine på hver retningslinjes egen side **Brukeroverstyringer**. Det samme gjelder for API-et: en overstyring uten `onCallDutyPolicyId` avvises for en tillatelse begrenset til etiketter eller til eide retningslinjer.
+En overstyring på en retningslinje følger retningslinjens omfang. Gi et team **Vaktmedlem** begrenset til retningslinjene det eier, eller til etiketten sin, så legger medlemmene til og sletter overstyringer bare på de retningslinjene. En global overstyring gjelder for alle retningslinjer, også et annet teams, så å legge til eller slette en krever tillatelsen for overstyringer over hele prosjektet. Med en smalere tillatelse er **Legg til Brukeroverstyring** og **Slett** under **Vakt → Avansert → Brukeroverstyringer** låst og sier hvorfor. **Hopp over til…** i lagene til en vaktplan og **Finn avløser** på de kommende vaktene dine, som legger til globale overstyringer, tilbyr i stedet retningslinjene du kan legge til overstyringer på, med én overstyring per retningslinje, og det samme gjør avløsningen i mobilappen; der du ikke kan på noen av dem, er de låst og sier hvorfor. Teamet legger til overstyringene sine på hver retningslinjes egen side **Brukeroverstyringer**. Det samme gjelder for API-et: en overstyring uten `onCallDutyPolicyId` avvises for en tillatelse begrenset til etiketter eller til eide retningslinjer.
 
 I OneUptime Cloud krever brukeroverstyringer abonnementet **Growth**.
 
@@ -105,11 +105,11 @@ En overstyring der personen som er borte og personen som dekker er den samme, av
 ## Feilsøking
 
 :::details Personen på ferie ble likevel tilkalt
-Sjekk hvor overstyringen ble lagt til. En på en retningslinjes side **Brukeroverstyringer** dekker bare den retningslinjen, og andre retningslinjer tilkaller dem fortsatt: legg den til under **Vakttjeneste → Avansert → Brukeroverstyringer** for å dekke alle retningslinjer. Sjekk også **Starter** og **Slutter**: tidene vises i din tidssone.
+Sjekk hvor overstyringen ble lagt til. En på en retningslinjes side **Brukeroverstyringer** dekker bare den retningslinjen, og andre retningslinjer tilkaller dem fortsatt: legg den til under **Vakt → Avansert → Brukeroverstyringer** for å dekke alle retningslinjer. Sjekk også **Starter** og **Slutter**: tidene vises i din tidssone.
 :::
 
 :::details Personen som dekker, ble heller ikke tilkalt
-De nås gjennom sine egne personlige vaktregler og verifiserte metoder. Slå dem opp under **Vakttjeneste → Beredskap**, og sjekk kjøringen i **Utførelseslogger** for retningslinjen.
+De nås gjennom sine egne personlige vaktregler og verifiserte metoder. Slå dem opp under **Vakt → Beredskap**, og sjekk kjøringen i **Utførelseslogger** for retningslinjen.
 :::
 
 :::details Jeg kan ikke legge til en overstyring

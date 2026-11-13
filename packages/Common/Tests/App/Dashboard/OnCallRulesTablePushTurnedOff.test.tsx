@@ -100,18 +100,25 @@ import GlobalConfigUtil, {
   GlobalConfigVars,
 } from "../../../UI/Utils/GlobalConfig";
 import ProjectUtil from "../../../UI/Utils/Project";
+import NotificationMethodUtil from "../../../UI/Utils/NotificationMethodUtil";
 
 const PROJECT_ID: ObjectID = new ObjectID(PROJECT_ID_STRING);
 const currentUserId: ObjectID = new ObjectID(CURRENT_USER_ID_STRING);
 const OTHER_USER_ID: ObjectID = new ObjectID(OTHER_USER_ID_STRING);
 
+/*
+ * A push device by its method's own name (#7178), each option drawn as
+ * written and the page's way, as the method column draws its line.
+ */
 const PUSH_OPTION: { label: string; value: string } = {
-  label: "Push: Pixel 8",
+  label: "Push notification: Pixel 8",
   value: PUSH_DEVICE_ID,
+  ...NotificationMethodUtil.TRANSLATED_LABEL_OPTION,
 };
 const EMAIL_OPTION: { label: string; value: string } = {
   label: "Email: jane@example.com",
   value: EMAIL_ID,
+  ...NotificationMethodUtil.TRANSLATED_LABEL_OPTION,
 };
 
 // What readiness hands an admin's view of a member: masked, by channel.
@@ -344,10 +351,22 @@ describe("a person's own on-call rules", () => {
 });
 
 describe("an admin's view of a member's on-call rules", () => {
+  // A member's method as offered: masked, drawn as the own rules' options are.
+  function memberOption(
+    label: string,
+    value: string,
+  ): { label: string; value: string } {
+    return {
+      label: label,
+      value: value,
+      ...NotificationMethodUtil.TRANSLATED_LABEL_OPTION,
+    };
+  }
+
   test("push on: the member's push device is offered, as readiness handed it over", async () => {
     await renderAndSettle(membersRules(), [
-      { label: "Push: Pixel 8", value: PUSH_DEVICE_ID },
-      { label: "Email: j•••@example.com", value: EMAIL_ID },
+      memberOption("Push notification: Pixel 8", PUSH_DEVICE_ID),
+      memberOption("Email: j•••@example.com", EMAIL_ID),
     ]);
   });
 
@@ -355,7 +374,7 @@ describe("an admin's view of a member's on-call rules", () => {
     fetchVars.mockResolvedValue(vars(true));
 
     await renderAndSettle(membersRules(), [
-      { label: "Email: j•••@example.com", value: EMAIL_ID },
+      memberOption("Email: j•••@example.com", EMAIL_ID),
     ]);
   });
 
@@ -363,7 +382,7 @@ describe("an admin's view of a member's on-call rules", () => {
     fetchVars.mockResolvedValue(vars(true));
 
     await renderAndSettle(membersRules(), [
-      { label: "Email: j•••@example.com", value: EMAIL_ID },
+      memberOption("Email: j•••@example.com", EMAIL_ID),
     ]);
 
     expect(

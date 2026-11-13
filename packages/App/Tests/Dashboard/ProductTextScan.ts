@@ -19,8 +19,9 @@ import ts from "typescript";
  *
  * The menu path guards read their texts here: SettingsMenuPathsInProductText
  * and ProjectSettingsMenuPathsInProductText (User Settings and Project
- * Settings) and OnCallDutyMenuPathsInProductText (On-Call Duty). A plain
- * module, not a .test.ts file: importing it runs no tests.
+ * Settings) and OnCallDutyMenuPathsInProductText (On-Call); so does
+ * RetiredNamesGuard (#6817). A plain module, not a .test.ts file: importing
+ * it runs no tests.
  */
 
 export const PACKAGES_ROOT: string = path.resolve(__dirname, "../../..");
@@ -33,6 +34,15 @@ const SKIPPED_DIRECTORIES: ReadonlyArray<string> = [
   "Tests",
   "__tests__",
   ".claude",
+];
+
+/*
+ * Files whose strings are about OneUptime's words, never shown to anyone:
+ * the names it retired (#6817), each with the path or name it no longer
+ * writes, which the guards here would otherwise read as written.
+ */
+const NOT_PRODUCT_TEXT: ReadonlyArray<string> = [
+  path.join("Common", "Types", "Docs", "RetiredNames.ts"),
 ];
 
 export const CODE_FILE: RegExp = /\.(ts|tsx)$/;
@@ -81,7 +91,8 @@ export function filesUnder(root: string): Array<string> {
     const isCode: boolean =
       CODE_FILE.test(entry.name) &&
       !TEST_FILE.test(entry.name) &&
-      !entry.name.endsWith(".d.ts");
+      !entry.name.endsWith(".d.ts") &&
+      !NOT_PRODUCT_TEXT.includes(relative(full));
 
     if (isCode || TEMPLATE_FILE.test(entry.name)) {
       files.push(full);

@@ -80,6 +80,14 @@ jest.mock("../../../UI/Utils/ProductEvents", () => {
 // The test page's own button, which opens #6811's dialog: its props are what is read.
 const testPageButtons: MockFunction = getJestMockFunction();
 
+// What the dialog says became of the test page the button sent.
+const ACKNOWLEDGED_TEST_PAGE: Record<string, string> = {
+  status: "Acknowledged",
+  acknowledgedByName: "Me Myself",
+  statusMessage: "",
+};
+let nextTestPageResult: Record<string, string> = ACKNOWLEDGED_TEST_PAGE;
+
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/OnCallTestPage/SendTestPageButton",
   () => {
@@ -98,11 +106,7 @@ jest.mock(
             data-testid={props.dataTestId}
             onClick={() => {
               props.onSent?.("execution-log-1");
-              props.onResult?.({
-                status: "Acknowledged",
-                acknowledgedByName: "Me Myself",
-                statusMessage: "",
-              });
+              props.onResult?.(nextTestPageResult);
             }}
           >
             send
@@ -114,6 +118,7 @@ jest.mock(
 );
 
 const DE: Record<string, string> = readDashboardLocale("de");
+const AR: Record<string, string> = readDashboardLocale("ar");
 const POLICY_ID: string = "77777777-7777-4777-8777-777777777777";
 
 function setupAction(
@@ -175,7 +180,7 @@ beforeAll(async () => {
   await i18next.use(initReactI18next).init({
     lng: "en",
     fallbackLng: "en",
-    resources: { de: { translation: DE } },
+    resources: { de: { translation: DE }, ar: { translation: AR } },
     interpolation: { escapeValue: false },
     keySeparator: false,
     nsSeparator: false,
@@ -192,6 +197,7 @@ afterEach(() => {
   cleanup();
   sentEvents.mockReset();
   testPageButtons.mockReset();
+  nextTestPageResult = ACKNOWLEDGED_TEST_PAGE;
 });
 
 describe("a setup plan's approval card", () => {
@@ -394,6 +400,55 @@ describe("the test page an answer that set something up offers", () => {
     expect(screen.getByTestId("ask-ai-test-page-result")).toHaveTextContent(
       "Me Myself acknowledged it.",
     );
+  });
+
+  /*
+   * A run that failed says why in the words of the error that stopped it:
+   * the server's own line, with no code. On a page read right to left it
+   * is set apart, as the test page's own result sets it (#7182), so its
+   * number keeps its "+" in front and its full stop at its end - after
+   * the headline in the reader's words.
+   */
+  test("on an Arabic page, a failed run's own error reads left to right after the headline", async () => {
+    const error: string =
+      "Twilio error 20003: authentication failed while calling +15550100.";
+
+    nextTestPageResult = { status: "Failed", statusMessage: error };
+
+    await act(async (): Promise<void> => {
+      await i18next.changeLanguage("ar");
+    });
+
+    try {
+      render(
+        <AskAiTestPageOffer
+          widgets={[
+            card({
+              testPage: {
+                kind: "policy",
+                policyId: POLICY_ID,
+                policyName: "Default on-call policy",
+              },
+            }),
+          ]}
+        />,
+      );
+
+      fireEvent.click(screen.getByTestId("ask-ai-send-test-page"));
+
+      const line: HTMLElement = screen.getByTestId("ask-ai-test-page-result");
+      const isolates: Array<Element> = Array.from(line.querySelectorAll("bdi"));
+
+      expect(AR["The test could not run"]).toBeTruthy();
+      expect(line).toHaveTextContent(AR["The test could not run"]!);
+      expect(isolates).toHaveLength(1);
+      expect(isolates[0]).toHaveAttribute("dir", "ltr");
+      expect(isolates[0]!.textContent).toBe(error);
+    } finally {
+      await act(async (): Promise<void> => {
+        await i18next.changeLanguage("en");
+      });
+    }
   });
 
   test("draws nothing when no card offers one", () => {

@@ -20,7 +20,7 @@ flowchart TB
 
 ## Åpne tidslinjen
 
-- **Vakttjeneste** > **Tidslinje for vaktplaner** viser alle vaktplanene du kan se, gruppert etter teamet som eier dem. På **Vaktplaner** åpner **Tidslinje for vaktplaner** i menyen **⋯** den samme siden.
+- **Vakt** > **Tidslinje for vaktplaner** viser alle vaktplanene du kan se, gruppert etter teamet som eier dem. På **Vaktplaner** åpner **Tidslinje for vaktplaner** i menyen **⋯** den samme siden.
 - **Team** > et team > **Vaktplaner** viser bare vaktplanene teamet eier.
 
 Et team eier en vaktplan når det står på vaktplanens side **Eiere**. Vaktplaner uten et eierteam grupperes under **Ingen eierteam**. Slå av **Grupper etter team** for å se alle vaktplanene i én liste, sortert etter navn.
@@ -47,7 +47,7 @@ Under rutenettet viser **På vakt denne uken** (**På vakt denne måneden** i m�
 - Tidslinjen dekker 180 dager bakover og 365 dager fremover.
 
 > [!NOTE]
-> Tidligere vakter beregnes på nytt ut fra hver vaktplans nåværende oppsett, så de viser rotasjonen slik den er satt opp nå, noe som kan avvike fra hvem som faktisk ble varslet den gangen. For timene folk faktisk hadde vakt, bruker du **Vakttjeneste** > **Rapporter** > **Brukerens vakttid**. Se [Brukerens vakttid](/docs/on-call/readiness#brukerens-vakttid).
+> Tidligere vakter beregnes på nytt ut fra hver vaktplans nåværende oppsett, så de viser rotasjonen slik den er satt opp nå, noe som kan avvike fra hvem som faktisk ble varslet den gangen. For timene folk faktisk hadde vakt, bruker du **Vakt** > **Rapporter** > **Brukerens vakttid**. Se [Brukerens vakttid](/docs/on-call/readiness#brukerens-vakttid).
 
 ## Finn en vaktplan eller en person
 

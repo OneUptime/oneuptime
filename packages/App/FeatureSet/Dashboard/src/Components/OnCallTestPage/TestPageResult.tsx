@@ -9,6 +9,7 @@ import {
   RESULT_STATUS_WORDS,
   STEP_STATUS_WORDS,
   getFixLink,
+  getResultLineSentence,
 } from "./OnCallTestPageWords";
 import Route from "Common/Types/API/Route";
 import Color from "Common/Types/Color";
@@ -16,18 +17,22 @@ import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
   OnCallTestPageDelivery,
+  OnCallTestPageLine,
   OnCallTestPageResult,
   OnCallTestPageStatus,
   OnCallTestPageStep,
   isOnCallTestPageResultFinal,
 } from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
 import Icon from "Common/UI/Components/Icon/Icon";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
+import readAsWritten from "Common/UI/Components/IsolatedText/ReadAsWritten";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import { formatInline, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
+  ReactNode,
   useEffect,
   useRef,
   useState,
@@ -80,7 +85,58 @@ export function describeAnswerTime(
   );
 }
 
-// The sentence under the result's headline.
+/*
+ * A line of the result as its reader reads it: in their own words, from
+ * the code the server sent with it (#7260), or else as the server wrote it.
+ * Words the server wrote - a line it sent no code for, a provider's own
+ * error - read the way they are written on a page read the other way
+ * (#7182): an English line on an Arabic or Persian page keeps its phone
+ * number and its full stop where they were written, and, run onto more
+ * lines, each of its lines starts at its own start, at the page's side
+ * (IsolatedLine) - not ragged where an English reader starts reading.
+ */
+interface ResultLineProps {
+  line: {
+    statusMessage: string;
+    statusMessageCode?: OnCallTestPageLine | undefined;
+  };
+  className: string;
+}
+
+const ResultLine: FunctionComponent<ResultLineProps> = (
+  props: ResultLineProps,
+): ReactElement => {
+  const translator: Translator = useTranslator();
+  const words: string | null = getResultLineSentence(
+    translator,
+    props.line.statusMessageCode,
+  );
+
+  if (words !== null) {
+    return <p className={props.className}>{words}</p>;
+  }
+
+  return (
+    <IsolatedLine
+      as="p"
+      text={props.line.statusMessage}
+      className={props.className}
+    />
+  );
+};
+
+// Whether the sentence under the headline is the run's own line.
+function isRunLineShown(result: OnCallTestPageResult): boolean {
+  return (
+    result.status === OnCallTestPageStatus.Ended ||
+    result.status === OnCallTestPageStatus.Failed
+  );
+}
+
+/*
+ * The sentence under the result's headline. A test that ended or failed
+ * says why, in the reader's words when the server sent the line's code.
+ */
 export function getResultSentence(
   translator: Translator,
   result: OnCallTestPageResult,
@@ -118,7 +174,33 @@ export function getResultSentence(
     );
   }
 
-  return result.statusMessage;
+  return (
+    getResultLineSentence(translator, result.statusMessageCode) ??
+    result.statusMessage
+  );
+}
+
+/*
+ * getResultSentence as a line of words draws it inline - Ask AI's test page
+ * card, after the result's headline. A line the server wrote with no code
+ * (a failed run's own error, an older server's line) is set apart on a page
+ * read the other way (#7182): its number keeps its "+" in front and its
+ * full stop at its end. Every other sentence is the reader's own words.
+ */
+export function getResultSentenceWords(
+  translator: Translator,
+  result: OnCallTestPageResult,
+): ReactNode {
+  const sentence: string = getResultSentence(translator, result);
+
+  if (
+    isRunLineShown(result) &&
+    getResultLineSentence(translator, result.statusMessageCode) === null
+  ) {
+    return readAsWritten(sentence, translator.language);
+  }
+
+  return sentence;
 }
 
 const DeliveryLine: FunctionComponent<{
@@ -167,9 +249,10 @@ const DeliveryLine: FunctionComponent<{
         />
       </div>
       {isFailed && delivery.statusMessage ? (
-        <p className="text-sm text-gray-600 break-words">
-          {delivery.statusMessage}
-        </p>
+        <ResultLine
+          line={delivery}
+          className="text-sm text-gray-600 break-words"
+        />
       ) : (
         <></>
       )}
@@ -269,9 +352,10 @@ const StepBlock: FunctionComponent<{
         />
       </div>
       {step.deliveries.length === 0 && step.statusMessage ? (
-        <p className="mt-2 text-sm text-gray-600 break-words">
-          {step.statusMessage}
-        </p>
+        <ResultLine
+          line={step}
+          className="mt-2 text-sm text-gray-600 break-words"
+        />
       ) : (
         <></>
       )}
@@ -313,9 +397,16 @@ export const TestPageResultView: FunctionComponent<{
             isPulsing={result.status === OnCallTestPageStatus.Paging}
           />
         </div>
-        <p className="text-sm text-gray-700 break-words">
-          {getResultSentence(translator, result)}
-        </p>
+        {isRunLineShown(result) ? (
+          <ResultLine
+            line={result}
+            className="text-sm text-gray-700 break-words"
+          />
+        ) : (
+          <p className="text-sm text-gray-700 break-words">
+            {getResultSentence(translator, result)}
+          </p>
+        )}
       </div>
       {result.steps.length > 0 ? (
         <div className="flex flex-col gap-2">

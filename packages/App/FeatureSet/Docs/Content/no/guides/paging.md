@@ -103,6 +103,6 @@ Sjekk landskoden til nummeret først. Etter et testoppkall lukker du dialogen me
 :::cards
 - [Vaktplaner](/docs/on-call/schedules): Del vaktene, så hver tilkalling går til den som har vakt. På Cloud fra Growth-planen.
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Legg til nivåer, team og vaktplaner i policyen.
-- [Personlige vaktregler](/docs/notifications/on-call-rules): Velg hvilken metode som når deg først, og når.
+- [Slik når man meg](/docs/notifications/on-call-rules): Velg hvilken metode som når deg først, og når.
 - [Publiser en statusside](/docs/guides/status-page): Fortell kundene dine hva som skjer, på ditt eget domene.
 :::

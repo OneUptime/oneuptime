@@ -232,6 +232,7 @@ const PROPER_NOUNS: Array<string> = [
   "Jira",
   "Kubernetes",
   "Linux",
+  "Mattermost",
   "Microsoft",
   "Okta",
   "OpenTelemetry",
@@ -251,7 +252,10 @@ const PROPER_NOUNS: Array<string> = [
  * Proper nouns of two words: the second keeps its capital after the first
  * ("Google Cloud project", but "cloud resources").
  */
-const PROPER_NOUN_PAIRS: Array<[string, string]> = [["Google", "Cloud"]];
+const PROPER_NOUN_PAIRS: Array<[string, string]> = [
+  ["Google", "Cloud"],
+  ["Microsoft", "Teams"],
+];
 
 // "API", "SLOs": two capitals in a row.
 const ACRONYM_PATTERN: RegExp = /\p{Lu}{2,}/u;

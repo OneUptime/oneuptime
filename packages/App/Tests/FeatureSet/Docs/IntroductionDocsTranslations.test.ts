@@ -311,7 +311,7 @@ const ESSENTIALS: ReadonlyArray<{ key: string; english: string }> = [
   { key: "monitorsTitle", english: "Monitors" },
   { key: "incidentsTitle", english: "Incidents" },
   { key: "alertsTitle", english: "Alerts" },
-  { key: "onCallDutyTitle", english: "On-Call Duty" },
+  { key: "onCallDutyTitle", english: "On-Call" },
   { key: "statusPagesTitle", english: "Status Pages" },
   { key: "scheduledMaintenanceTitle", english: "Scheduled Maintenance" },
   { key: "slosTitle", english: "SLOs" },
@@ -339,7 +339,7 @@ const SEARCH_ACTIONS: ReadonlyArray<string> = [
  */
 const SEARCH_SETTINGS: ReadonlyArray<[string, string]> = [
   ["Require SSO for Login", "SSO"],
-  ["Notification Channels", "Notification Settings"],
+  ["Custom SMTP Configs", "Notification Channels"],
 ];
 
 /*

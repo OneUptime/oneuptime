@@ -32,16 +32,19 @@ import path from "path";
  * on screen until Advanced is opened. A policy's own User Overrides page is in
  * the policy menu's folded Advanced section too. And a policy's readiness
  * note and the notification deletion preview said "On-Call > Readiness",
- * naming a menu the bar does not have: the product is On-Call Duty.
+ * naming a menu the bar did not have: the product was On-Call Duty.
+ *
+ * Since #6817 the product is On-Call, its one name, and On-Call Duty is the
+ * name the bar no longer has.
  *
  * Nothing compiles a sentence, so these hold every such text to the menu it
- * walks (SettingsMenuPaths reads On-Call Duty's side menu from its source):
+ * walks (SettingsMenuPaths reads On-Call's side menu from its source):
  *
- *   - every path OneUptime writes from On-Call Duty - in the server's
+ *   - every path OneUptime writes from On-Call - in the server's
  *     messages, the Slack and Microsoft Teams messages, the emails, the
  *     Dashboard - names a real section or page of its side menu, and a page
  *     in a folded section with its section;
- *   - no text starts a path at "On-Call", which is not on the bar;
+ *   - no text starts a path at "On-Call Duty", which is not on the bar;
  *   - every translation of such a text names each step as that language's
  *     Dashboard draws it;
  *   - the global card names a policy's User Overrides page with the Advanced
@@ -58,15 +61,15 @@ const LOCALES_DIR: string = path.join(
   "App/FeatureSet/Dashboard/src/Locales",
 );
 
-// The word a path must not start at: the bar's entry is On-Call Duty.
-const NOT_A_MENU: string = "On-Call";
+// The word a path must not start at: the bar's entry was On-Call Duty until #6817.
+const NOT_A_MENU: string = "On-Call Duty";
 
 const MENU: SettingsMenu = onCallDutyMenu();
 
-// Every text of a file that names On-Call Duty, or On-Call, at all.
+// Every text of a file that names On-Call (or On-Call Duty) at all.
 const FOUND_TEXTS: Array<FoundText> = productTexts(
   (source: string): boolean => {
-    return source.includes(NOT_A_MENU);
+    return source.includes(ON_CALL_DUTY);
   },
 );
 
@@ -125,16 +128,16 @@ const LANGUAGES: ReadonlyArray<string> = fs
 
 // The texts this task rewrote, as the Dashboard's English locale keys them.
 const POLICY_CARD: string =
-  "While someone is away, their pages from this policy go to whoever covers for them, or to the next person in the rotation. For every policy at once, use On-Call Duty > Advanced > User Overrides.";
+  "While someone is away, their pages from this policy go to whoever covers for them, or to the next person in the rotation. For every policy at once, use On-Call > Advanced > User Overrides.";
 const SKIP_DIALOG: string =
-  "This applies to every on-call policy. To end it early, delete it under On-Call Duty > Advanced > User Overrides.";
+  "This applies to every on-call policy. To end it early, delete it under On-Call > Advanced > User Overrides.";
 const GLOBAL_CARD: string =
   "While someone is away, their pages from every on-call policy go to whoever covers for them, or to the next person in the rotation. For one policy only, use that policy's User Overrides page, under Advanced.";
 const READINESS_NOTE: string =
-  "The readiness answer for this policy does not cover {{names}}, so they are unknown rather than ready. Open On-Call Duty > Readiness for the full list.";
+  "The readiness answer for this policy does not cover {{names}}, so they are unknown rather than ready. Open On-Call > Readiness for the full list.";
 
 describe("the menu the paths are held to, read from its source", () => {
-  test("On-Call Duty: the policies, schedules and incoming calls are open; the rest starts folded", () => {
+  test("On-Call: the policies, schedules and incoming calls are open; the rest starts folded", () => {
     expect(
       MENU.sections.map((menuSection: SettingsMenuSection): string => {
         return `${menuSection.title}${menuSection.folded ? " (folded)" : ""}`;
@@ -171,7 +174,7 @@ describe("the menu the paths are held to, read from its source", () => {
     ]);
   });
 
-  test("the On-Call Duty menu is the bar's entry the paths start from", () => {
+  test("the On-Call menu is the bar's entry the paths start from", () => {
     const navigation: string = readDashboardSource("Utils/NavigationItems.tsx");
     const english: { navbar: { items: Record<string, unknown> } } = readLocale(
       "en",
@@ -183,7 +186,7 @@ describe("the menu the paths are held to, read from its source", () => {
   });
 });
 
-describe("a written On-Call Duty path, as a reader follows it", () => {
+describe("a written On-Call path, as a reader follows it", () => {
   function problemsOf(text: string): Array<string> {
     return pathsThrough(text, MENU).flatMap(
       (written: WrittenPath): Array<string> => {
@@ -195,47 +198,47 @@ describe("a written On-Call Duty path, as a reader follows it", () => {
   test.each([
     [
       "the policy card's old pointer",
-      "To cover someone on every policy at once, add the override under On-Call Duty > User Overrides.",
-      'names "User Overrides" without "Advanced", the folded section it is in: write On-Call Duty > Advanced > User Overrides',
+      "To cover someone on every policy at once, add the override under On-Call > User Overrides.",
+      'names "User Overrides" without "Advanced", the folded section it is in: write On-Call > Advanced > User Overrides',
     ],
     [
       "the Skip dialog's old pointer",
-      "To end it early, delete it under On-Call Duty > User Overrides.",
+      "To end it early, delete it under On-Call > User Overrides.",
       'names "User Overrides" without "Advanced"',
     ],
     [
       "the execution logs without their section",
-      "Every run is listed under On-Call Duty → Execution Logs.",
+      "Every run is listed under On-Call → Execution Logs.",
       'names "Execution Logs" without "Advanced"',
     ],
     [
       "the archived policies without their section, as a docs page writes it",
-      "Unarchive it under **On-Call Duty** > **Archived Policies**.",
+      "Unarchive it under **On-Call** > **Archived Policies**.",
       'names "Archived Policies" without "Advanced"',
     ],
     [
       "the on-call time report without Reports",
-      "See On-Call Duty > User On Call Time for the hours.",
-      'names "User On Call Time" without "Reports"',
+      "See On-Call > User On-Call Time for the hours.",
+      'names "User On-Call Time" without "Reports"',
     ],
     [
       "a settings page without Settings",
-      "Add the field under On-Call Duty > Custom Fields.",
+      "Add the field under On-Call > Custom Fields.",
       'names "Custom Fields" without "Settings"',
     ],
     [
       "a chat workspace without Workspace",
-      "Connect it under On-Call Duty > Slack.",
+      "Connect it under On-Call > Slack.",
       'names "Slack" without "Workspace"',
     ],
     [
       "a page the menu has no entry for",
-      "Add the override under On-Call Duty > Overrides.",
-      'names no section or page of On-Call Duty: "Overrides.',
+      "Add the override under On-Call > Overrides.",
+      'names no section or page of On-Call: "Overrides.',
     ],
     [
       "a page in another section",
-      "Open On-Call Duty > Advanced > Readiness.",
+      "Open On-Call > Advanced > Readiness.",
       "names no page of its Advanced section",
     ],
   ])("flags %s", (_case: string, text: string, problem: string): void => {
@@ -247,32 +250,29 @@ describe("a written On-Call Duty path, as a reader follows it", () => {
 
   test.each([
     [
-      "add the override under On-Call Duty > Advanced > User Overrides.",
-      ["On-Call Duty > Advanced > User Overrides"],
+      "add the override under On-Call > Advanced > User Overrides.",
+      ["On-Call > Advanced > User Overrides"],
     ],
     [
-      "Add one in the OneUptime Dashboard under On-Call Duty > Policies, or ask a project admin for access to one.",
-      ["On-Call Duty > Policies"],
+      "Add one in the OneUptime Dashboard under On-Call > Policies, or ask a project admin for access to one.",
+      ["On-Call > Policies"],
     ],
     [
-      "Add one in OneUptime under On-Call Duty → Schedules.",
-      ["On-Call Duty > Schedules"],
+      "Add one in OneUptime under On-Call → Schedules.",
+      ["On-Call > Schedules"],
+    ],
+    ["Open On-Call > Readiness for the full list.", ["On-Call > Readiness"]],
+    [
+      "use **On-Call** > **Reports** > **User On-Call Time**.",
+      ["On-Call > Reports > User On-Call Time"],
     ],
     [
-      "Open On-Call Duty > Readiness for the full list.",
-      ["On-Call Duty > Readiness"],
+      "for **On-Call → Advanced → Archived Policies**, where **Unarchive** puts it back",
+      ["On-Call > Advanced > Archived Policies"],
     ],
     [
-      "use **On-Call Duty** > **Reports** > **User On Call Time**.",
-      ["On-Call Duty > Reports > User On Call Time"],
-    ],
-    [
-      "for **On-Call Duty → Advanced → Archived Policies**, where **Unarchive** puts it back",
-      ["On-Call Duty > Advanced > Archived Policies"],
-    ],
-    [
-      "Open each schedule under **On-Call Duty** > **On-Call Schedules** and check who is on call now.",
-      ["On-Call Duty > On-Call Schedules"],
+      "Open each schedule under **On-Call** > **On-Call Schedules** and check who is on call now.",
+      ["On-Call > On-Call Schedules"],
     ],
   ])("follows %s", (text: string, steps: Array<string>): void => {
     expect(problemsOf(text)).toEqual([]);
@@ -282,41 +282,45 @@ describe("a written On-Call Duty path, as a reader follows it", () => {
   test("a mention that is not a path is not one", () => {
     expect(
       pathsThrough(
-        "Products → Essentials → **On-Call Duty** (`/dashboard/{id}/on-call-duty`). On-Call Duty policies page people.",
+        "Products → Essentials → **On-Call** (`/dashboard/{id}/on-call-duty`). On-Call policies page people.",
         MENU,
       ),
     ).toEqual([]);
   });
 
-  test("a path started at On-Call, which is not on the bar, is flagged; one at On-Call Duty, or inside a longer path, is not", () => {
+  test("a path started at On-Call Duty, which is not on the bar, is flagged; one at On-Call, or inside a longer path, is not", () => {
+    // The path from the name on, as a failure previews it: 40 characters.
     expect(
       pathsStartingAt(
-        "Open On-Call > Readiness for the full list.",
+        "Open On-Call Duty > Readiness for the full list.",
         NOT_A_MENU,
       ),
-    ).toEqual(["On-Call > Readiness for the full list."]);
+    ).toEqual(["On-Call Duty > Readiness for the full li"]);
     expect(
       pathsStartingAt(
-        "check On-Call → Readiness to confirm this user can be paged",
+        "check **On-Call Duty** → **Readiness** to confirm this user can be paged",
         NOT_A_MENU,
       ),
     ).toHaveLength(1);
+    expect(pathsStartingAt("Open On-Call > Readiness.", NOT_A_MENU)).toEqual(
+      [],
+    );
     expect(
-      pathsStartingAt("Open On-Call Duty > Readiness.", NOT_A_MENU),
-    ).toEqual([]);
-    expect(
-      pathsStartingAt("Users > Alex Kim > On-Call > Readiness", NOT_A_MENU),
+      pathsStartingAt(
+        "Users > Alex Kim > On-Call Duty > Readiness",
+        NOT_A_MENU,
+      ),
     ).toEqual([]);
     expect(
       pathsStartingAt(
-        "Critical On-Call Alerts ring through. Non-On-Call > x",
+        "On-Call Duty rotates through these users. Non-On-Call Duty > x",
         NOT_A_MENU,
       ),
     ).toEqual([]);
   });
 });
 
-describe("every On-Call Duty path OneUptime writes is one a reader can follow", () => {
+describe("every On-Call path OneUptime writes is one a reader can follow", () => {
   test("the scan reads the Dashboard, the server's messages and the chat messages", () => {
     expect(FOUND_PATHS.length).toBeGreaterThanOrEqual(10);
 
@@ -344,46 +348,46 @@ describe("every On-Call Duty path OneUptime writes is one a reader can follow", 
   test.each([
     [
       "App/FeatureSet/Dashboard/src/Components/OnCallPolicy/UserOverrides/UserOverrideTable.tsx",
-      ["On-Call Duty > Advanced > User Overrides"],
+      ["On-Call > Advanced > User Overrides"],
     ],
     [
       "App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/SkipLayerUserModal.tsx",
-      ["On-Call Duty > Advanced > User Overrides"],
+      ["On-Call > Advanced > User Overrides"],
     ],
     [
       "App/FeatureSet/Dashboard/src/Components/OnCallPolicy/EscalationRule/EscalationRuleReadiness.tsx",
-      ["On-Call Duty > Readiness"],
+      ["On-Call > Readiness"],
     ],
     [
       "Common/Server/Services/UserNotificationRuleService.ts",
-      ["On-Call Duty > Readiness"],
+      ["On-Call > Readiness"],
     ],
     [
       "Common/Server/Utils/Workspace/Slack/Actions/Answer.ts",
-      ["On-Call Duty > Policies"],
+      ["On-Call > On-Call Policies"],
     ],
     [
       "Common/Server/Utils/Workspace/MicrosoftTeams/Actions/Incident.ts",
-      ["On-Call Duty > Policies"],
+      ["On-Call > On-Call Policies"],
     ],
     [
       "Common/Server/Utils/Workspace/MicrosoftTeams/Actions/Alert.ts",
-      ["On-Call Duty > Policies"],
+      ["On-Call > On-Call Policies"],
     ],
     [
       "Common/Server/Utils/Workspace/MicrosoftTeams/Actions/IncidentEpisode.ts",
-      ["On-Call Duty > Policies"],
+      ["On-Call > On-Call Policies"],
     ],
     [
       "Common/Server/Utils/Workspace/MicrosoftTeams/Actions/AlertEpisode.ts",
-      ["On-Call Duty > Policies"],
+      ["On-Call > On-Call Policies"],
     ],
     [
       "Common/Server/Utils/Workspace/WorkspaceOnCallNow.ts",
       [
-        "On-Call Duty > Schedules",
-        "On-Call Duty > Schedules",
-        "On-Call Duty > Schedules",
+        "On-Call > On-Call Schedules",
+        "On-Call > On-Call Schedules",
+        "On-Call > On-Call Schedules",
       ],
     ],
   ])(
@@ -415,7 +419,7 @@ describe("every On-Call Duty path OneUptime writes is one a reader can follow", 
     expect(problems).toEqual([]);
   });
 
-  test("none starts a path at On-Call: the bar's entry is On-Call Duty", () => {
+  test("none starts a path at On-Call Duty: the bar's entry is On-Call", () => {
     const offenders: Array<string> = FOUND_TEXTS.flatMap(
       (found: FoundText): Array<string> => {
         return pathsStartingAt(found.text, NOT_A_MENU).map(
@@ -429,7 +433,7 @@ describe("every On-Call Duty path OneUptime writes is one a reader can follow", 
     expect(offenders).toEqual([]);
   });
 
-  test("none still names User Overrides right after On-Call Duty", () => {
+  test("none still names User Overrides right after On-Call", () => {
     const offenders: Array<string> = FOUND_TEXTS.filter(
       (found: FoundText): boolean => {
         return readableText(found.text).includes(
@@ -477,7 +481,7 @@ describe("every translation names the path as its language's Dashboard draws it"
     }
   });
 
-  test("no Dashboard text starts a path at On-Call", () => {
+  test("no Dashboard text starts a path at On-Call Duty", () => {
     expect(
       Object.keys(english).filter((key: string): boolean => {
         return pathsStartingAt(key, NOT_A_MENU).length > 0;
@@ -485,7 +489,7 @@ describe("every translation names the path as its language's Dashboard draws it"
     ).toEqual([]);
   });
 
-  test("the bar's word for On-Call Duty is the label the texts are checked against", () => {
+  test("the bar's word for On-Call is the label the texts are checked against", () => {
     for (const language of LANGUAGES) {
       const locale: Record<string, unknown> = readLocale(language);
       const items: Record<string, unknown> = (

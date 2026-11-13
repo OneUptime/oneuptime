@@ -70,7 +70,7 @@ Zoals het nu is, wordt een incident zonder eigenaren per e-mail naar de eigenare
 :::steps
 ### Een bereikbaarheidsbeleid aanmaken
 
-Klik in de checklist op **Stel een bereikbaarheidsbeleid in**, of open **Bereikbaarheidsdienst** vanuit het menu **Producten**. Klik op **Bereikbaarheidsbeleid aanmaken** en voer een **Naam** in. Klik onder **Wie wordt als eerste opgeroepen?** op **Ontvanger toevoegen** en kies uzelf. Laat **Activeren bij elk nieuw incident en elke nieuwe waarschuwing** aan staan en klik op **Bereikbaarheidsbeleid aanmaken**.
+Klik in de checklist op **Stel een bereikbaarheidsbeleid in**, of open **Bereikbaarheid** vanuit het menu **Producten**. Klik op **Bereikbaarheidsbeleid aanmaken** en voer een **Naam** in. Klik onder **Wie wordt als eerste opgeroepen?** op **Ontvanger toevoegen** en kies uzelf. Laat **Activeren bij elk nieuw incident en elke nieuwe waarschuwing** aan staan en klik op **Bereikbaarheidsbeleid aanmaken**.
 
 ### De regel bekijken die het activeert
 
@@ -82,7 +82,7 @@ Uw inlog-e-mail is al een manier om u te bereiken. Om ook sms'jes of oproepen te
 :::
 
 > [!NOTE]
-> Sms en telefoonoproepen staan uit in een nieuw project. Een projecteigenaar, een Billing Admin of iemand met Manage Billing zet ze aan in de kaart **Meldingskanalen**, onder **Projectinstellingen → Meldingen → Meldingsinstellingen**.
+> Sms en telefoonoproepen staan uit in een nieuw project. Een projecteigenaar, een Billing Admin of iemand met Manage Billing zet ze aan in de kaart **Meldingskanalen**, onder **Projectinstellingen → Meldingen → Meldingskanalen**.
 
 Voor meer niveaus, roosters en hoe lang elk niveau wacht, zie [Escalatieregels](/docs/on-call/escalation-rules) en [Bereikbaarheidsschema's](/docs/on-call/schedules).
 

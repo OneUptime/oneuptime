@@ -223,6 +223,13 @@ export default class DatabaseBaseModel extends BaseEntity {
   public displayNameColumn!: string | null;
   // Set by @TableMetadata's formerSingularName: what the model was called before.
   public formerSingularName!: string | null;
+  /*
+   * Set by @TableMetadata's apiSingularName and apiPluralName: the names a
+   * model renamed on screen keeps in the API, Terraform, the CLI, the MCP
+   * server and the audit log. Read them through Common/Utils/ModelApiName.
+   */
+  public apiSingularName!: string | null;
+  public apiPluralName!: string | null;
 
   // realtime events.
   public enableRealtimeEventsOn!: EnableRealtimeEventsOn | null;

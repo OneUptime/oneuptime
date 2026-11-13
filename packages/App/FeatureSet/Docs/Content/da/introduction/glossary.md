@@ -90,7 +90,7 @@ Se [Eskaleringsregler](/docs/on-call/escalation-rules).
 
 Hvem der har vagt på et givet tidspunkt: personerne skiftes, og hver enkelt overdrager til den næste. En eskaleringsregel, der tilkalder en vagtplan, tilkalder den, der har vagt i den.
 
-Også kaldet: **Rotation**. Se [Vagtplaner](/docs/on-call/schedules).
+Også kaldet: **Rotation**, **Vagtplan for vagtpolitik**. Se [Vagtplaner](/docs/on-call/schedules).
 
 ### Lag
 
@@ -103,6 +103,12 @@ Se [Vagtplaner](/docs/on-call/schedules#lag).
 En adresse, OneUptime kan kontakte dig på i et projekt: en e-mailadresse, et telefonnummer til SMS eller opkald, din Slack- eller Microsoft Teams-konto eller OneUptime-appen på din telefon. Hver person tilføjer sine egne under **Brugerindstillinger**.
 
 Se [Notifikationsmetoder](/docs/notifications/notification-methods).
+
+### Sådan når man mig
+
+Dine egne regler for at blive tilkaldt: hvilke af dine notifikationsmetoder et tilkald prøver, og efter hvor lang tid. Én stige dækker hver hændelse, advarsel og episode, og en alvorsgrad kan have sine egne regler. Hver person indstiller sine egne under **Brugerindstillinger**.
+
+Også kaldet: **Personlige vagtregler**. Se [Sådan når man mig](/docs/notifications/on-call-rules).
 
 ### Statusside
 
@@ -472,13 +478,13 @@ Se [Hvilken skal jeg bruge?](/docs/introduction/which-one#sonde-agent-collector-
 
 ### Vagtregler
 
-To forskellige ting. Under **Hændelser** og **Advarsler** vælger vagtregler de vagtpolitikker, en ny hændelse eller advarsel kører. Under **Brugerindstillinger** afgør dine egne vagtregler, hvilke af dine notifikationsmetoder et tilkald prøver, og efter hvor lang tid.
+Under **Hændelser** og **Advarsler** vælger vagtregler de vagtpolitikker, en ny hændelse eller advarsel kører. En persons egne regler for, hvordan et tilkald når frem, hed også vagtregler: De hedder nu **Sådan når man mig**, under **Brugerindstillinger**.
 
-Se [Hændelsesindstillinger og automatisering](/docs/incidents/settings#vagtregler-for-hændelser) og [Personlige vagtregler](/docs/notifications/on-call-rules).
+Se [Hændelsesindstillinger og automatisering](/docs/incidents/settings#vagtregler-for-hændelser) og [Sådan når man mig](/docs/notifications/on-call-rules).
 
 ### Notifikationsindstillinger
 
-To forskellige sider. Under **Brugerindstillinger**: hvilke opdateringer du får om det, du ejer, og på hvilke kanaler. Under **Projektindstillinger**: projektets kontakter for SMS og opkald, dets beskedsaldo og dets egen SMTP og Twilio.
+Under **Brugerindstillinger**: hvilke opdateringer du får om det, du ejer, og på hvilke kanaler. Projektets kontakter for SMS og opkald, dets beskedsaldo og dets egen SMTP og Twilio hed også notifikationsindstillinger: De hedder nu **Notifikationskanaler**, under **Projektindstillinger**.
 
 Se [Notifikationsindstillinger](/docs/notifications/notification-settings).
 

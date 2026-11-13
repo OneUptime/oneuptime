@@ -304,11 +304,11 @@ export const CAPPED_COUNT: string = translationKey("{{count}}+");
  * declare to an entry here.
  */
 
-// One line of a list - the Delete dialog's - "On-call rules of 11 people".
+// One line of a list - the Delete dialog's - "11 people's How to Reach Me".
 export const PERSONAL_USAGE_ITEMS: Record<string, PluralTemplate> = {
   UserNotificationRule: {
-    one: "On-call rules of {{count}} person",
-    other: "On-call rules of {{count}} people",
+    one: "{{count}} person's How to Reach Me",
+    other: "{{count}} people's How to Reach Me",
   },
   UserNotificationSetting: {
     one: "Notification settings of {{count}} person",
@@ -339,19 +339,19 @@ export interface PersonalUsageNote {
 export const PERSONAL_USAGE_NOTES: Record<string, PersonalUsageNote> = {
   [`${ArchivableValueType.IncidentSeverity}:UserNotificationRule`]: {
     sentence: {
-      one: "{{count}} person has their own on-call rules for this severity. Those rules stay as they are, so incidents with it still page them.",
+      one: "{{count}} person has rules for this severity in How to Reach Me. Those rules stay as they are, so incidents with it still page them.",
       other:
-        "{{count}} people have their own on-call rules for this severity. Those rules stay as they are, so incidents with it still page them.",
+        "{{count}} people have rules for this severity in How to Reach Me. Those rules stay as they are, so incidents with it still page them.",
     },
-    linkText: translationKey("See your on-call rules"),
+    linkText: translationKey("Open How to Reach Me"),
   },
   [`${ArchivableValueType.AlertSeverity}:UserNotificationRule`]: {
     sentence: {
-      one: "{{count}} person has their own on-call rules for this severity. Those rules stay as they are, so alerts with it still page them.",
+      one: "{{count}} person has rules for this severity in How to Reach Me. Those rules stay as they are, so alerts with it still page them.",
       other:
-        "{{count}} people have their own on-call rules for this severity. Those rules stay as they are, so alerts with it still page them.",
+        "{{count}} people have rules for this severity in How to Reach Me. Those rules stay as they are, so alerts with it still page them.",
     },
-    linkText: translationKey("See your on-call rules"),
+    linkText: translationKey("Open How to Reach Me"),
   },
   [`${ArchivableValueType.SecurityCasePriority}:UserNotificationSetting`]: {
     sentence: {

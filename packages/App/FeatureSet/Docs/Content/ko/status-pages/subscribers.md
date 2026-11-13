@@ -34,7 +34,7 @@ flowchart TB
 
 - **구독자 페이지 표시**(`showSubscriberPageOnStatusPage`): 기본값은 켜짐입니다. 상태 페이지 내비게이션 바에 **구독** 항목을 넣으며, 방문자는 거기서 아래 채널로 가입합니다.
 - **이메일**(`enableEmailSubscribers`): 기본값은 켜짐입니다. 나머지는 모두 켜기 전까지 꺼져 있습니다.
-- **SMS**(`enableSmsSubscribers`): 기본값은 꺼짐입니다. OneUptime Cloud에서는 페이지에 자체 **Twilio 구성**이 없으면([아래](#이메일-바닥글-사용자-지정-smtp-twilio) 참고) 문자 메시지마다 프로젝트의 SMS 및 통화 잔액에서 비용이 지불됩니다. 켜려면 **프로젝트 설정 > 알림 > 알림 설정**의 **알림 채널** 카드에서 프로젝트의 **SMS**도 켜져 있어야 하며, 이는 프로젝트 소유자, **결제 관리자** 또는 **Manage Billing** 권한이 있는 사람이 할 수 있습니다.
+- **SMS**(`enableSmsSubscribers`): 기본값은 꺼짐입니다. OneUptime Cloud에서는 페이지에 자체 **Twilio 구성**이 없으면([아래](#이메일-바닥글-사용자-지정-smtp-twilio) 참고) 문자 메시지마다 프로젝트의 SMS 및 통화 잔액에서 비용이 지불됩니다. 켜려면 **프로젝트 설정 > 알림 > 알림 채널**의 **알림 채널** 카드에서 프로젝트의 **SMS**도 켜져 있어야 하며, 이는 프로젝트 소유자, **결제 관리자** 또는 **Manage Billing** 권한이 있는 사람이 할 수 있습니다.
 - **Slack**(`enableSlackSubscribers`): 기본값은 꺼짐입니다.
 - **Microsoft Teams**(`enableMicrosoftTeamsSubscribers`): 기본값은 꺼짐입니다.
 - **웹훅**(`enableWebhookSubscribers`): 기본값은 꺼짐입니다.

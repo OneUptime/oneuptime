@@ -204,10 +204,12 @@ const isSelectableMethod: IsSelectableMethod = (
 /* The supplied methods as dropdown entries, in the order they were given. */
 type GetSuppliedDropdownOptions = (
   methods: Array<NotificationMethodChoice>,
+  translator: Translator,
 ) => Array<DropdownOption>;
 
 const getSuppliedDropdownOptions: GetSuppliedDropdownOptions = (
   methods: Array<NotificationMethodChoice>,
+  translator: Translator,
 ): Array<DropdownOption> => {
   const options: Array<DropdownOption> = [];
 
@@ -219,13 +221,18 @@ const getSuppliedDropdownOptions: GetSuppliedDropdownOptions = (
     /*
      * The same `Channel: identifier` shape NotificationMethodUtil.getLabel
      * produces, so the two paths read identically - the only difference a
-     * viewer can see is that this one is masked.
+     * viewer can see is that this one is masked. In the reader's words:
+     * "Phone call", never the shared "Call" (#7178), drawn as the other
+     * path's are (TRANSLATED_LABEL_OPTION).
      */
     options.push({
-      label: method.maskedIdentifier
-        ? `${method.methodType}: ${method.maskedIdentifier}`
-        : method.methodType,
+      label: NotificationMethodUtil.getMethodLabel(
+        translator,
+        method.methodType,
+        method.maskedIdentifier,
+      ),
       value: method.methodId,
+      ...NotificationMethodUtil.TRANSLATED_LABEL_OPTION,
     });
   }
 
@@ -298,11 +305,13 @@ const UNRESOLVED_METHOD_LABEL: string = translationKey(
 type GetSuppliedMethodLabel = (
   methods: Array<NotificationMethodChoice>,
   rule: UserNotificationRule,
+  translator: Translator,
 ) => string;
 
 const getSuppliedMethodLabel: GetSuppliedMethodLabel = (
   methods: Array<NotificationMethodChoice>,
   rule: UserNotificationRule,
+  translator: Translator,
 ): string => {
   for (const channel of METHOD_CHANNELS) {
     const rawValue: unknown = (rule as unknown as Record<string, unknown>)[
@@ -332,7 +341,11 @@ const getSuppliedMethodLabel: GetSuppliedMethodLabel = (
     );
 
     if (method && method.maskedIdentifier) {
-      return `${method.methodType}: ${method.maskedIdentifier}`;
+      return NotificationMethodUtil.getMethodLabel(
+        translator,
+        method.methodType,
+        method.maskedIdentifier,
+      );
     }
 
     /*
@@ -342,7 +355,10 @@ const getSuppliedMethodLabel: GetSuppliedMethodLabel = (
      * device is meant to ring without saying which account it is.
      */
     if (method) {
-      return channel.methodType;
+      return NotificationMethodUtil.getMethodName(
+        translator,
+        channel.methodType,
+      );
     }
 
     return UNRESOLVED_METHOD_LABEL;
@@ -675,25 +691,29 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
 
   const notificationMethodsDropdownOptions: Array<DropdownOption> =
     isViewerTheOwner
-      ? NotificationMethodUtil.getDropdownOptions({
-          userCalls: userCalls,
-          userEmails: userEmails,
-          userSMSs: userSMSs,
-          userPush: offeredUserPush,
-          userWhatsApps: userWhatsApps,
-          userTelegrams: userTelegrams,
-          userSlacks: userSlacks,
-          userMicrosoftTeamsAccounts: userMicrosoftTeamsAccounts,
-          userMattermostAccounts: userMattermostAccounts,
-          userWebhooks: userWebhooks,
-          customNotificationChannels: customNotificationChannels,
-        })
+      ? NotificationMethodUtil.getDropdownOptions(
+          {
+            userCalls: userCalls,
+            userEmails: userEmails,
+            userSMSs: userSMSs,
+            userPush: offeredUserPush,
+            userWhatsApps: userWhatsApps,
+            userTelegrams: userTelegrams,
+            userSlacks: userSlacks,
+            userMicrosoftTeamsAccounts: userMicrosoftTeamsAccounts,
+            userMattermostAccounts: userMattermostAccounts,
+            userWebhooks: userWebhooks,
+            customNotificationChannels: customNotificationChannels,
+          },
+          translator,
+        )
       : getSuppliedDropdownOptions(
           (props.notificationMethods || []).filter(
             (method: NotificationMethodChoice): boolean => {
               return !isPushTurnedOff || method.methodType !== "Push";
             },
           ),
+          translator,
         );
 
   /*
@@ -1169,6 +1189,7 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
     const suppliedLabel: string = getSuppliedMethodLabel(
       props.notificationMethods || [],
       item,
+      translator,
     );
 
     /*

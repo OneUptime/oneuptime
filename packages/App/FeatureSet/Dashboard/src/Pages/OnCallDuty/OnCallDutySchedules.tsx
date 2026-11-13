@@ -162,7 +162,7 @@ const OnCallDutyPage: FunctionComponent<
           buttons: [...labelBulkActions, ...ownerBulkActions],
         }}
         cardProps={{
-          title: "On-Call Duty Schedules",
+          title: "On-Call Schedules",
           description:
             "Rotations that decide who is on call at any moment. Add a schedule to an on-call policy's escalation rules to page whoever is on call.",
           titleGlossaryTerm: GlossaryTerm.OnCallSchedule,
@@ -271,7 +271,7 @@ const OnCallDutyPage: FunctionComponent<
                 profilePictureId: true,
               },
             },
-            title: "On Call Now",
+            title: "On-Call Now",
             type: FieldType.Element,
             /*
              * Deliberately NOT `noValueMessage: "-"`. A dash is exactly the

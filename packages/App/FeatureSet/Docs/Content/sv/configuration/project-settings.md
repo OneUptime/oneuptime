@@ -34,7 +34,7 @@ flowchart LR
 | **Grundläggande** | **Projekt**, **Produkter**, **Etiketter** | [Projektets detaljer](#projektets-detaljer), [Produkter](#produkter), [Etiketter](#etiketter) |
 | **Arbetsyta** | **Slack**, **Microsoft Teams**, **Mattermost**, **Videosamtal** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [Videosamtal](/docs/workspace-connections/video-calls) |
 | **Telemetri och APM** | **Intagningsnycklar**, **Datalagring**, **Användning** | [Intagningsnycklar](/docs/telemetry/ingestion-keys), [Datalagring](/docs/telemetry/data-retention), [Telemetrianvändning](/docs/telemetry/usage) |
-| **Aviseringar** | **Aviseringsinställningar**, **Aviseringsloggar**, **Mobilappar** | [Aviseringar](#aviseringar) |
+| **Aviseringar** | **Aviseringskanaler**, **Aviseringsloggar**, **Mobilappar** | [Aviseringar](#aviseringar) |
 | **AI** | **AI-funktioner**, **LLM-leverantörer**, **Externa MCP-servrar**, **AI-krediter**, **AI-loggar**, **MCP-server** | [LLM-leverantörer](/docs/ai/llm-provider), [Externa MCP-servrar](/docs/ai/external-mcp-servers), [MCP-server](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#kostnadskontroll) |
 | **Avancerad** | **Domäner**, **API-nycklar**, **Funktionsflaggor**, **Importera från ett annat verktyg** | [Egna domäner](/docs/status-pages/branding-and-domains#anpassade-domäner), [API-nycklar](/docs/permissions/index#api-nycklar), [Funktionsflaggor](#funktionsflaggor), [Byt från Opsgenie](/docs/moving-to-oneuptime/opsgenie) och de andra flyttguiderna |
 | **Säkerhet** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
@@ -96,7 +96,7 @@ För att fasa ut en etikett arkiverar du den från radens meny **⋯** i ställe
 
 **Projektinställningar → Aviseringar** innehåller hur projektet skickar aviseringar:
 
-- **Aviseringsinställningar**: kortet **Aviseringskanaler** slår på eller av SMS, telefonsamtal, WhatsApp och Telegram för projektet. Alla fyra är avstängda från början. En Project Owner, en **Faktureringsadministratör** eller någon med **Manage Billing** slår på dem. Sidan innehåller också, hopfällda under **Fler inställningar**, projektets egna e-postservrar i **Anpassade SMTP-konfigurationer** (se [SMTP](/docs/emails/smtp)) och dess eget Twilio-konto (se [Twilio-integration](/docs/self-hosted/twilio-integration)). I OneUptime Cloud innehåller den saldot som de här meddelandena betalas från: se [Förbetalda saldon](/docs/configuration/billing#förbetalda-saldon).
+- **Aviseringskanaler**: kortet **Aviseringskanaler** slår på eller av SMS, telefonsamtal, WhatsApp och Telegram för projektet. Alla fyra är avstängda från början. En Project Owner, en **Faktureringsadministratör** eller någon med **Manage Billing** slår på dem. Sidan innehåller också, hopfällda under **Fler inställningar**, projektets egna e-postservrar i **Anpassade SMTP-konfigurationer** (se [SMTP](/docs/emails/smtp)) och dess eget Twilio-konto (se [Twilio-integration](/docs/self-hosted/twilio-integration)). I OneUptime Cloud innehåller den saldot som de här meddelandena betalas från: se [Förbetalda saldon](/docs/configuration/billing#förbetalda-saldon).
 - **Aviseringsloggar**: varje avisering som projektet har skickat, med en flik per kanal: **E-post**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Anrop**, **Push** och **Arbetsyta**.
 - **Mobilappar**: var du hämtar apparna för iOS och Android. Se [Appar – Översikt](/docs/mobile-desktop-apps/index).
 

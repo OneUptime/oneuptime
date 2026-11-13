@@ -26,6 +26,7 @@ import EnableAuditLogOn from "../../../Types/BaseDatabase/EnableAuditLogOn";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
 import { getColumnAccessControlForAllColumns } from "../../../Types/Database/AccessControl/ColumnAccessControl";
+import { getApiSingularName } from "../../../Utils/ModelApiName";
 
 /*
  * EVERY MODEL PEOPLE CHANGE IS AUDITED, unless it is listed as exempt and
@@ -384,7 +385,10 @@ describe("what the defaults leave out, redact and roll up", () => {
 
       const root: BaseModel | undefined = MODELS.find(
         (candidate: BaseModel): boolean => {
-          return candidate.singularName === config.rootResource!.resourceType;
+          // Stored by the root's kept API name (#6817).
+          return (
+            getApiSingularName(candidate) === config.rootResource!.resourceType
+          );
         },
       );
 
@@ -416,7 +420,7 @@ describe("what the defaults leave out, redact and roll up", () => {
       ]);
       // A root is its own root.
       expect(root!.enableAuditLogOn?.rootResource).toBeUndefined();
-      names.push(root!.singularName as string);
+      names.push(getApiSingularName(root!));
     }
 
     expect(new Set<string>(names).size).toBe(names.length);

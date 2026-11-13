@@ -63,7 +63,7 @@ Når du bliver medlem af et projekt med en bekræftet login-e-mail, sætter OneU
 2. For hver alvorlighed, på hver af de fire faner i **Sådan når man mig**, sender en regel dig en e-mail, så snart du bliver tilkaldt.
 3. En række nyheder om det, du ejer, og om dine vagter, er slået til via e-mail. Se [Notifikationsindstillinger](/docs/notifications/notification-settings#hvad-der-er-slået-til-for-et-nyt-medlem).
 
-Hver metode, du bekræfter senere, får de samme regler: en regel for hver alvorlighed, sendt så snart du bliver tilkaldt. At bekræfte et telefonnummer til sms betyder altså, at hvert tilkald også sender dig en sms. Vil du kun have sms ved kritiske tilkald, så slet sms-reglerne for de andre alvorligheder. Se [Personlige vagtregler](/docs/notifications/on-call-rules#de-regler-du-starter-med).
+Hver metode, du bekræfter senere, får de samme regler: en regel for hver alvorlighed, sendt så snart du bliver tilkaldt. At bekræfte et telefonnummer til sms betyder altså, at hvert tilkald også sender dig en sms. Vil du kun have sms ved kritiske tilkald, så slet sms-reglerne for de andre alvorligheder. Se [Sådan når man mig](/docs/notifications/on-call-rules#de-regler-du-starter-med).
 
 ## Opsætningstjeklisten
 
@@ -95,7 +95,7 @@ Et tilkald kan nå dig for en slags og en alvorlighed, du ikke har en regel for:
 2. Har du ingen af dem, én betalt metode, i denne rækkefølge: sms, et telefonopkald, WhatsApp, Telegram. Det er den første, du har bekræftet, på en kanal, projektet har slået til.
 3. Har du heller ingen af dem, en webhook.
 
-Du får en e-mail om det, og det gør vagtpolitikkens ejere også, eller projektets ejere, hvis politikken ingen har. Er intet bekræftet, kan tilkaldet ikke leveres, og e-mailen siger det i stedet. Disse e-mails holdes tilbage, mens tilkaldene bliver ved med at komme, så en storm af tilkald ikke bliver en storm af e-mails. Hvordan du tilføjer den manglende regel, står under [Personlige vagtregler](/docs/notifications/on-call-rules#når-en-alvorlighed-ingen-regel-har).
+Du får en e-mail om det, og det gør vagtpolitikkens ejere også, eller projektets ejere, hvis politikken ingen har. Er intet bekræftet, kan tilkaldet ikke leveres, og e-mailen siger det i stedet. Disse e-mails holdes tilbage, mens tilkaldene bliver ved med at komme, så en storm af tilkald ikke bliver en storm af e-mails. Hvordan du tilføjer den manglende regel, står under [Sådan når man mig](/docs/notifications/on-call-rules#når-en-alvorlighed-ingen-regel-har).
 
 ## Sproget i dine tilkald
 
@@ -131,7 +131,7 @@ Et nummer kommer med i dine regler, når det er bekræftet. Klik på **Bekræft*
 
 :::cards
 - [Notifikationsmetoder](/docs/notifications/notification-methods): Tilføj og bekræft de adresser, OneUptime må nå dig på.
-- [Personlige vagtregler](/docs/notifications/on-call-rules): Bestem, hvilken metode hvert tilkald prøver, og hvornår.
+- [Sådan når man mig](/docs/notifications/on-call-rules): Bestem, hvilken metode hvert tilkald prøver, og hvornår.
 - [Notifikationsindstillinger](/docs/notifications/notification-settings): Vælg de nyheder, du hører om, og via hvilke kanaler.
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Hvordan en vagtpolitik afgør, hvem der tilkaldes, niveau for niveau.
 :::

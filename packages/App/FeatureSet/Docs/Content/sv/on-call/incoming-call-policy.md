@@ -38,7 +38,7 @@ flowchart TB
 :::steps
 ### Lägg till ditt Twilio-konto
 
-Gå till **Projektinställningar** > **Aviseringar** > **Aviseringsinställningar** och öppna **Fler inställningar**. Klicka på **Skapa Twilio-konfiguration** i kortet **Twilio-konfiguration** och fyll i formuläret:
+Gå till **Projektinställningar** > **Aviseringar** > **Aviseringskanaler** och öppna **Fler inställningar**. Klicka på **Skapa Twilio-konfiguration** i kortet **Twilio-konfiguration** och fyll i formuläret:
 
 - **Namn** och **Beskrivning**: vad kontot används till, till exempel "Supportlinje".
 - **Twilio-konto-SID**: från Twilio Console. Det börjar med `AC`.
@@ -48,7 +48,7 @@ Gå till **Projektinställningar** > **Aviseringar** > **Aviseringsinställninga
 
 ### Skapa policyn
 
-Gå till **Jourtjänst** > **Inkommande samtalspolicyer** och klicka på **Skapa Inkommande samtalspolicy**. Ge den ett **Namn**, till exempel "Supportlinje"; **Beskrivning** och **Etiketter** är valfria, under **Fler fält**. Den nya policyn öppnas på sin **Översikt**.
+Gå till **Jour** > **Inkommande samtalspolicyer** och klicka på **Skapa Inkommande samtalspolicy**. Ge den ett **Namn**, till exempel "Supportlinje"; **Beskrivning** och **Etiketter** är valfria, under **Fler fält**. Den nya policyn öppnas på sin **Översikt**.
 
 ### Välj Twilio-kontot
 
@@ -143,7 +143,7 @@ Ett nummer som redan skickar sina samtal någon annanstans säger "Currently has
 
 OneUptime ställer in numrets röst-webhook på `https://<your host>/notification/incoming-call/voice`, byggd från `HOST` och `HTTP_PROTOCOL` i en egen installation. För att flytta en policy till ett annat Twilio-konto frigör du först dess nummer: kontot kan bara ändras medan policyn inte har några.
 
-För att frigöra ett nummer klickar du på **Frigör** bredvid det och bekräftar med **Frigör nummer**.
+För att frigöra ett nummer klickar du på **Frigör nummer** bredvid det och bekräftar med **Frigör nummer**.
 
 > [!CAUTION]
 > Att frigöra ett nummer ger tillbaka det till Twilio, även ett nummer som du tog med via **Använd befintligt telefonnummer**, och du kanske inte får det igen. Att ta bort en policy, eller den Twilio-konfiguration som den använder, frigör också dess nummer.
@@ -160,7 +160,7 @@ En regel ringer en person på det nummer som personen har verifierat för inkomm
 
 Varje person kan ha ett verifierat nummer per projekt. För att byta det tar du först bort det gamla numret. De här numren är skilda från telefonnumren under **Aviseringsmetoder**, som jourlarm använder. Se [Aviseringsmetoder](/docs/notifications/notification-methods).
 
-Nummer för inkommande samtal verifieras via SMS, så **SMS** måste först vara påslaget för projektet. En projektägare, en **Faktureringsadministratör** eller någon med **Manage Billing** slår på det i kortet **Aviseringskanaler** på **Projektinställningar > Aviseringar > Aviseringsinställningar**.
+Nummer för inkommande samtal verifieras via SMS, så **SMS** måste först vara påslaget för projektet. En projektägare, en **Faktureringsadministratör** eller någon med **Manage Billing** slår på det i kortet **Aviseringskanaler** på **Projektinställningar > Aviseringar > Aviseringskanaler**.
 
 ## Röstmeddelanden och policyinställningar
 
@@ -228,7 +228,7 @@ En policys telefonnummer följer samma roller som själva policyn:
 - **Slå upp nummer** - söka i Twilio efter ett nummer att reservera, eller visa de nummer som ditt Twilio-konto redan har - kräver behörighet att läsa policyer för inkommande samtal och att läsa konfigurationer för samtal och SMS, eftersom det läser ditt Twilio-konto via en sådan. **Projektägare**, **Projektadministratör**, **Projektmedlem**, **Tittare**, **Inställningsadministratör**, **Inställningsmedlem** och **Inställningstittare** har båda. I en anpassad roll är det **Read Incoming Call Policy** och **Read Call and SMS**.
 - **Reservera ett nummer, använda ett befintligt och frigöra ett** kräver behörighet att redigera policyer för inkommande samtal: **Projektägare**, **Projektadministratör**, **Projektmedlem**, **Inställningsadministratör** och **Inställningsmedlem**, eller **Edit Incoming Call Policy** i en anpassad roll. De ändrar numren för en policy som du får redigera: med en roll som är begränsad till vissa etiketter, de policyer som har de etiketterna.
 
-Ett teams spärr utan etiketter på en av de här behörigheterna tar bort den. För alla andra finns **Lägg till telefonnummer** och **Frigör** kvar på sidan, låsta, och deras knappbeskrivning säger vad som krävs. API:et avvisar deras förfrågan med en mening som säger vad som krävs: "Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." eller "Adding or releasing a phone number needs permission to edit incoming call policies." Att reservera ett nummer debiteras ditt eget Twilio-konto, inte ditt OneUptime-saldo, så det kräver ingen faktureringsbehörighet.
+Ett teams spärr utan etiketter på en av de här behörigheterna tar bort den. För alla andra finns **Lägg till telefonnummer** och **Frigör nummer** kvar på sidan, låsta, och deras knappbeskrivning säger vad som krävs. API:et avvisar deras förfrågan med en mening som säger vad som krävs: "Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." eller "Adding or releasing a phone number needs permission to edit incoming call policies." Att reservera ett nummer debiteras ditt eget Twilio-konto, inte ditt OneUptime-saldo, så det kräver ingen faktureringsbehörighet.
 
 ## Skapa policyer med API:et eller Terraform
 

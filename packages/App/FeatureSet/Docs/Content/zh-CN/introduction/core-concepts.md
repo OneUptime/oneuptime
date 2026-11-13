@@ -198,7 +198,7 @@ OneUptime 中有许多东西都叫作规则。每一种都会在新内容到来�
 
 :::cards
 - [事件设置与自动化](/docs/incidents/settings#事件创建时运行的规则): 创建事件时运行的规则，按顺序排列。
-- [个人值班规则](/docs/notifications/on-call-rules): 呼叫如何送达你。
+- [如何联系我](/docs/notifications/on-call-rules): 呼叫如何送达你。
 :::
 
 ## 后续步骤

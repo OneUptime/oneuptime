@@ -12,7 +12,7 @@ Een bereikbaarheidsbeleid bepaalt wie wordt opgeroepen voor een incident of waar
 ## Een beleid maken
 
 :::steps
-1. Ga naar **Bereikbaarheidsdienst → Bereikbaarheidsbeleid** en klik op **Bereikbaarheidsbeleid aanmaken**.
+1. Ga naar **Bereikbaarheid → Bereikbaarheidsbeleid** en klik op **Bereikbaarheidsbeleid aanmaken**.
 2. Vul een **Naam** in, bijvoorbeeld "Betalingen primair".
 3. Klik onder **Wie wordt als eerste opgeroepen?** op **Ontvanger toevoegen** en kies de bereikbaarheidsschema's, teams en personen die als eerste worden opgeroepen.
 4. Klik op **Bereikbaarheidsbeleid aanmaken**. Het beleid opent op de pagina **Escalatieregels**, met **Level 1** al op zijn plek.
@@ -109,7 +109,7 @@ flowchart TB
 Uitvoeringslogboeken vind je op drie plekken:
 
 - in de eigen **Uitvoeringslogboeken** van het beleid, onder **Logboeken**;
-- onder **Bereikbaarheidsdienst → Geavanceerd → Uitvoeringslogboeken**, voor elk beleid, waar directe oproepen vanuit workflows en chat staan als **Directe oproep**;
+- onder **Bereikbaarheid → Geavanceerd → Uitvoeringslogboeken**, voor elk beleid, waar directe oproepen vanuit workflows en chat staan als **Directe oproep**;
 - op de pagina **Bereikbaarheidsuitvoeringen** van een incident of een waarschuwing.
 
 Elke rij toont wat de uitvoering startte, wanneer, de **Status** ervan en wie haar bevestigde. **Tijdlijn bekijken** opent de **Tijdlijn van de uitvoering**: elke escalatieregel, wie die opriep, via welk schema en hoe elke oproep afliep. **Gemeld via** toont hoe elke oproep de persoon bereikte: telefoonoproep, sms, e-mail, pushmelding enzovoort. Een schema waarin niemand dienst heeft, toont **Niemand was bereikbaar** in plaats van een persoon. Een niveau dat niemand opriep, zegt waarom, met **Direct doorgegaan** eronder: het beleid heeft er niet op gewacht. In OneUptime Cloud hebben uitvoeringslogboeken het abonnement **Growth** nodig.
@@ -119,13 +119,13 @@ Elke rij toont wat de uitvoering startte, wanneer, de **Status** ervan en wie ha
 Archiveren neemt een beleid uit dienst en bewaart alles: open de **Instellingen** van het beleid en klik op **Archiveren** op de archiefkaart ervan, of selecteer beleid in de lijst en kies **Archiveren**.
 
 - Een gearchiveerd beleid roept niemand op. Incidenten en waarschuwingen die het gebruiken slaan het over, en een uitvoering die nog escaleert, stopt bij haar volgende stap.
-- Het verdwijnt uit de lijst **Bereikbaarheidsbeleid** naar **Bereikbaarheidsdienst → Geavanceerd → Gearchiveerde beleidsregels**, waar **Uit archief halen** het weer in dienst neemt.
+- Het verdwijnt uit de lijst **Bereikbaarheidsbeleid** naar **Bereikbaarheid → Geavanceerd → Gearchiveerde beleidsregels**, waar **Uit archief halen** het weer in dienst neemt.
 
 **Beleid verwijderen**, onder **Geavanceerd**, verwijdert het beleid samen met de escalatieregels en gebruikersoverschrijvingen ervan. Verwijderen vanuit de lijst vraagt eerst om bevestiging en stelt voor om in plaats daarvan te archiveren.
 
 ## Wie een beleid mag wijzigen
 
-**Projecteigenaar**, **Projectbeheerder**, **Projectlid**, **Bereikbaarheidsbeheerder** en **Bereikbaarheidslid** mogen beleid maken, wijzigen en verwijderen; **Kijker** en **Bereikbaarheidskijker** mogen het lezen. In een aangepaste rol heten de rechten **Create On-Call Duty Policy**, **Edit On-Call Duty Policy**, **Delete On-Call Duty Policy** en **Read On-Call Duty Policy**, en een rol die tot bepaalde labels is beperkt, bereikt alleen het beleid met die labels. Eigenaren en aangepaste velden toevoegen heeft in OneUptime Cloud het abonnement **Growth** nodig.
+**Projecteigenaar**, **Projectbeheerder**, **Projectlid**, **Bereikbaarheidsbeheerder** en **Bereikbaarheidslid** mogen beleid maken, wijzigen en verwijderen; **Kijker** en **Bereikbaarheidskijker** mogen het lezen. In een aangepaste rol heten de rechten **Create On-Call Policy**, **Edit On-Call Policy**, **Delete On-Call Policy** en **Read On-Call Policy**, en een rol die tot bepaalde labels is beperkt, bereikt alleen het beleid met die labels. Eigenaren en aangepaste velden toevoegen heeft in OneUptime Cloud het abonnement **Growth** nodig.
 
 ## API en Terraform
 
@@ -149,7 +149,7 @@ Hoe je een beleid met zijn eerste niveau in één verzoek maakt, lees je bij [Re
 ## Probleemoplossing
 
 :::details Een beleid liep, maar niemand werd opgeroepen
-De uitvoering ervan toont **Execution Completed - No One Notified**. Open **Tijdlijn bekijken**: een rij met **Niemand was bereikbaar** wijst op een schema met een gat, en het statusbericht van een rij **Overgeslagen** zegt waarom, bijvoorbeeld iemand die afwezig was zonder vervanger. **Bereikbaarheidsdienst → Gereedheid** toont wie niet bereikt kon worden.
+De uitvoering ervan toont **Execution Completed - No One Notified**. Open **Tijdlijn bekijken**: een rij met **Niemand was bereikbaar** wijst op een schema met een gat, en het statusbericht van een rij **Overgeslagen** zegt waarom, bijvoorbeeld iemand die afwezig was zonder vervanger. **Bereikbaarheid → Gereedheid** toont wie niet bereikt kon worden.
 :::
 
 :::details Het volgende niveau werd een minuut na zijn wachttijd opgeroepen
@@ -161,7 +161,7 @@ Het niveau ervoor had niemand om op te roepen: geen ontvangers, niemand met dien
 :::
 
 :::details Een incident noemt een beleid dat niemand opriep
-Het beleid is gearchiveerd: een gearchiveerd beleid blijft staan bij de incidenten en waarschuwingen die het gebruiken, roept niemand op, en het uitvoeringslogboek ervan zegt dat het niet is uitgevoerd. Haal het uit het archief onder **Bereikbaarheidsdienst → Geavanceerd → Gearchiveerde beleidsregels**.
+Het beleid is gearchiveerd: een gearchiveerd beleid blijft staan bij de incidenten en waarschuwingen die het gebruiken, roept niemand op, en het uitvoeringslogboek ervan zegt dat het niet is uitgevoerd. Haal het uit het archief onder **Bereikbaarheid → Geavanceerd → Gearchiveerde beleidsregels**.
 :::
 
 ## Volgende stappen

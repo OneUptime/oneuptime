@@ -78,9 +78,9 @@ flowchart TB
 
 `ProjectOwner` 是最高存取層級：帳務、刪除專案，以及管理員能做的一切。`ProjectAdmin` 涵蓋除帳務與刪除專案以外的全部內容。
 
-為專案開啟或關閉簡訊、語音電話、WhatsApp 或 Telegram 屬於帳務事項，因為每則訊息都要花錢。只有 `ProjectOwner`、`BillingAdmin` 角色（**帳單管理員**）和 `ManageProjectBilling` 權限（**Manage Billing**）可以在 **專案設定 > 通知 > 通知設定** 中變更這些開關，`ProjectAdmin` 不行。
+為專案開啟或關閉簡訊、語音電話、WhatsApp 或 Telegram 屬於帳務事項，因為每則訊息都要花錢。只有 `ProjectOwner`、`BillingAdmin` 角色（**帳單管理員**）和 `ManageProjectBilling` 權限（**Manage Billing**）可以在 **專案設定 > 通知 > 通知管道** 中變更這些開關，`ProjectAdmin` 不行。
 
-為專案的預付餘額儲值同樣屬於帳務事項。在 OneUptime Cloud 上，簡訊、語音電話、WhatsApp 和 Telegram 從 **專案設定 > 通知 > 通知設定** 中的餘額支付，AI 從 **專案設定 > 人工智慧 > AI 點數** 中的 AI 點數支付。只有專案擁有者或擁有 **Manage Billing** 權限的使用者才能為它們儲值或變更它們的 **自動儲值**，專案管理員不行。關於餘額不足的訊息會說明誰可以儲值，只有這些人才會看到可用的 **儲值餘額** 按鈕或頁面連結。
+為專案的預付餘額儲值同樣屬於帳務事項。在 OneUptime Cloud 上，簡訊、語音電話、WhatsApp 和 Telegram 從 **專案設定 > 通知 > 通知管道** 中的餘額支付，AI 從 **專案設定 > 人工智慧 > AI 點數** 中的 AI 點數支付。只有專案擁有者或擁有 **Manage Billing** 權限的使用者才能為它們儲值或變更它們的 **自動儲值**，專案管理員不行。關於餘額不足的訊息會說明誰可以儲值，只有這些人才會看到可用的 **儲值餘額** 按鈕或頁面連結。
 
 你可以建立任意多個額外團隊——「前端待命」、「支援」、「唯讀稽核」——並給每個團隊它需要的權限。在 OneUptime Cloud 上，建立團隊和變更其權限需要 Scale 方案。
 

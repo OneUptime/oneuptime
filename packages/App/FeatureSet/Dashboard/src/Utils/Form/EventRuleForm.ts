@@ -770,7 +770,7 @@ export const getOnCallRuleActionFields: <TEntity>(
       field: {
         onCallDutyPolicies: true,
       } as unknown as SelectFormFields<TEntity>,
-      title: "On-Call Duty Policies",
+      title: "On-Call Policies",
       description: ON_CALL_RULE_POLICIES_DESCRIPTION,
       stepId: "on-call",
       fieldType: FormFieldSchemaType.MultiSelectDropdown,

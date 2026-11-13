@@ -811,7 +811,7 @@ describe("Users, Teams & Permissions, against the dashboard and the server", () 
       new Set([
         "Basic > Labels",
         "Advanced > API Keys",
-        "Notifications > Notification Settings",
+        "Notifications > Notification Channels",
         "AI > AI Credits",
       ]),
     );

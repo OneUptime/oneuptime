@@ -34,7 +34,7 @@ Feste Zuweisungen — ein Benutzer oder ein Team, das direkt in einer Regel eine
 | --- | --- | --- | --- |
 | **Persönlicher Feed** | Jeder Benutzer, einer pro Projekt | Ihre Schichten in allen Plänen des Projekts, plus die Schichten, in denen Sie jemanden vertreten (optional) | **Benutzereinstellungen** > **Kalender** > **Kalender-Feed** |
 | **Plan-Feed** | Jeder, der den Plan bearbeiten darf; jeder mit Leserecht darf den Link kopieren | Die Schichten aller in einem Plan, optional mit Terminen für Abdeckungslücken | Die Seite des Plans, Karte **Diesen Dienstplan abonnieren** |
-| **Projekt-Feed** | Jeder, der Bereitschaftspläne bearbeiten darf; jeder mit Leserecht darf den Link kopieren | Die Schichten aller in allen Plänen des Projekts, optional mit Terminen für Abdeckungslücken | **Bereitschaftsdienst** > **Kalender-Feeds** |
+| **Projekt-Feed** | Jeder, der Bereitschaftspläne bearbeiten darf; jeder mit Leserecht darf den Link kopieren | Die Schichten aller in allen Plänen des Projekts, optional mit Terminen für Abdeckungslücken | **Bereitschaft** > **Kalender-Feeds** |
 
 Die Links sehen so aus:
 
@@ -206,7 +206,7 @@ Auf der Seite eines Plans hat die Karte **Diesen Dienstplan abonnieren** zwei H�
 
 ### Projekt-Feed
 
-**Bereitschaftsdienst** > **Kalender-Feeds** enthält die Karte **Alle Schichten in diesem Projekt (geteilter Link)** — einen geteilten Link über alle Pläne des Projekts — mit denselben Aktionen zum Veröffentlichen, Neuerzeugen und Deaktivieren, und einen Link zu Ihrer persönlichen Feed-Seite.
+**Bereitschaft** > **Kalender-Feeds** enthält die Karte **Alle Schichten in diesem Projekt (geteilter Link)** — einen geteilten Link über alle Pläne des Projekts — mit denselben Aktionen zum Veröffentlichen, Neuerzeugen und Deaktivieren, und einen Link zu Ihrer persönlichen Feed-Seite.
 
 ### Einstellungen geteilter Links
 
@@ -233,7 +233,7 @@ Wenn eine Person ihr letztes Team in einem Projekt verlässt, entfernt OneUptime
 
 ## Planung, nicht Prüfung
 
-Der Feed zeigt die Rotation, **wie sie jetzt eingerichtet ist**, auch für vergangene Tage: Eine nachträglich eingetragene Vertretung schreibt die Vergangenheit im Kalender um. Für tatsächlich geleistete Bereitschaftsstunden, Fairness-Prüfungen und Vergütung verwenden Sie **Bereitschaftsdienst** > **Berichte** > **Bereitschaftszeit des Benutzers**, das aus dem entsteht, was der Pager tatsächlich getan hat. Siehe [Bereitschaftszeit des Benutzers](/docs/on-call/readiness#bereitschaftszeit-des-benutzers).
+Der Feed zeigt die Rotation, **wie sie jetzt eingerichtet ist**, auch für vergangene Tage: Eine nachträglich eingetragene Vertretung schreibt die Vergangenheit im Kalender um. Für tatsächlich geleistete Bereitschaftsstunden, Fairness-Prüfungen und Vergütung verwenden Sie **Bereitschaft** > **Berichte** > **Bereitschaftszeit des Benutzers**, das aus dem entsteht, was der Pager tatsächlich getan hat. Siehe [Bereitschaftszeit des Benutzers](/docs/on-call/readiness#bereitschaftszeit-des-benutzers).
 
 ## Sicherheit
 

@@ -83,10 +83,10 @@ A preview is kept for a day. Only the person who read the account can tick and s
 
 :::steps
 ### Check the on-call schedules
-Open each schedule under **On-Call Duty** > **On-Call Schedules** and check who is on call now and who is next.
+Open each schedule under **On-Call** > **On-Call Schedules** and check who is on call now and who is next.
 
 ### Make sure everyone can be paged
-People you invited accept their invitation, then add a phone number, an email address or the mobile app to be paged on. **On-Call Duty** > **Readiness** shows who cannot be reached yet.
+People you invited accept their invitation, then add a phone number, an email address or the mobile app to be paged on. **On-Call** > **Readiness** shows who cannot be reached yet.
 
 ### Carry on your incident numbers
 If your team refers to incidents by number, start OneUptime's after your last one in PagerDuty: under **Incidents** > **Settings** > **Numbering**, set **Next Incident Number** on the **Next Number** card to one past it. A number then never means two different incidents.

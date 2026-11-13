@@ -1,4 +1,4 @@
-# Persoonlijke bereikbaarheidsregels
+# Hoe ik bereikbaar ben
 
 Je bereikbaarheidsregels bepalen hoe een oproep je bereikt: welke van je meldingsmethoden OneUptime probeert, en hoe lang na het begin van de oproep. Elk soort oproep heeft eigen regels, één set per ernst, zodat een kritiek incident je meteen kan bellen terwijl een lichte waarschuwing op een e-mail wacht. Je stelt ze in onder **Gebruikersinstellingen → Hoe ik bereikbaar ben**.
 

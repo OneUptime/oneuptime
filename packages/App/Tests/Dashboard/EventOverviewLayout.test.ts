@@ -197,7 +197,7 @@ const INCIDENT_PAGE: EventPage = {
    * the card no longer says them a second time.
    */
   expectedDetailTitles: [
-    "On-Call Duty Policies",
+    "On-Call Policies",
     "Subscriber Notification Status",
     // The status pages the incident is limited to, beside who was notified.
     "IncidentStatusPageScopeCopy.overviewFieldTitle",
@@ -245,7 +245,7 @@ const ALERT_PAGE: EventPage = {
     "Created At",
     "Monitor",
     "Episode",
-    "On-Call Duty Policies",
+    "On-Call Policies",
     "Labels",
     "Alert Number",
     "Alert ID",

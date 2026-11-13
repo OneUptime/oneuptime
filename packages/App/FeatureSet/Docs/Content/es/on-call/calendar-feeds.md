@@ -186,7 +186,7 @@ Las aplicaciones de calendario no entregan las alarmas de los feeds suscritos �
 :::steps
 1. Abre **Ajustes de usuario** > **Calendario** > **Feed de calendario**.
 2. En la tarjeta **Recordarme antes de los turnos**, elige antelaciones: **1 semana**, **1 día**, **1 hora**, **15 min** o, con **Personalizado**, un valor propio de entre 15 minutos y 14 días. Puedes elegir varias a la vez.
-3. Elige cómo te llegan los recordatorios en **Antes de que empiece mi turno de guardia**, en **Ajustes de usuario** > **Ajustes de notificaciones** (pestaña De guardia). El correo y el push están activados por defecto.
+3. Elige cómo te llegan los recordatorios en **Antes de que empiece mi turno de guardia**, en **Ajustes de usuario** > **Ajustes de notificaciones** (pestaña Guardia). El correo y el push están activados por defecto.
 :::
 
 Cada recordatorio se envía una vez por turno. El mensaje nombra la programación, las políticas a través de las que avisa y la hora de inicio en tu zona horaria.

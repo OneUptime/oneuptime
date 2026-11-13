@@ -79,6 +79,7 @@ import {
   OnCallTestPagePreviewLevel,
   OnCallTestPagePreviewMethod,
   OnCallTestPagePreviewPerson,
+  OnCallTestPageLine,
   OnCallTestPageReachedThrough,
   OnCallTestPageReachedThroughCode,
   OnCallTestPageRecordKind,
@@ -102,6 +103,11 @@ import {
   isOnCallTestPageWalkLevelReached,
   sortRulesAsAPageReachesThem,
 } from "../../Types/OnCallDutyPolicy/OnCallTestPage";
+import {
+  readOnCallTestPageDeliveryLine,
+  readOnCallTestPageRunLine,
+  readOnCallTestPageStepLine,
+} from "../../Types/OnCallDutyPolicy/OnCallTestPageLine";
 import Permission from "../../Types/Permission";
 import SmsStatus from "../../Types/SmsStatus";
 import UserNotificationStatus from "../../Types/UserNotification/UserNotificationStatus";
@@ -1580,6 +1586,15 @@ export class OnCallTestPageService extends BaseService {
       steps: steps,
     };
 
+    // What the run's line says, as a code the Dashboard words (#7260).
+    const runLine: OnCallTestPageLine | null = readOnCallTestPageRunLine(
+      run.statusMessage,
+    );
+
+    if (runLine) {
+      result.statusMessageCode = runLine;
+    }
+
     if (run.acknowledgedAt) {
       result.acknowledgedByName =
         run.acknowledgedByUser?.name?.toString() ||
@@ -1823,6 +1838,18 @@ export class OnCallTestPageService extends BaseService {
         undefined;
     }
 
+    // What the line says, as a code with the name it is about (#7260).
+    const stepLine: OnCallTestPageLine | null = readOnCallTestPageStepLine({
+      statusMessage: step.statusMessage,
+      userName: step.userName,
+      teamName: step.teamName,
+      scheduleName: step.scheduleName,
+    });
+
+    if (stepLine) {
+      step.statusMessageCode = stepLine;
+    }
+
     return step;
   }
 }
@@ -1899,6 +1926,16 @@ export function toDelivery(data: {
 
   if (address) {
     result.address = address;
+  }
+
+  // What its log says, as a code the Dashboard words (#7260).
+  const line: OnCallTestPageLine | null = readOnCallTestPageDeliveryLine({
+    statusMessage: delivery.statusMessage,
+    channel: channel,
+  });
+
+  if (line) {
+    result.statusMessageCode = line;
   }
 
   if (

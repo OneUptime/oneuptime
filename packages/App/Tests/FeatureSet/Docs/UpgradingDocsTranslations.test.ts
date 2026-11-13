@@ -98,7 +98,7 @@ const ROLES_AND_PERMISSIONS: Array<string> = [
   "Edit Incident",
   "Edit Alert",
   "Create Alert State Timeline",
-  "Execute On-Call Duty Policy",
+  "Execute On-Call Policies",
   "Create Runbook Execution",
   // The AI rules' permissions, which were the auto remediation rules'.
   "Create AI Rule",

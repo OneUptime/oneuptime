@@ -80,7 +80,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   pluralName: "Alert States",
   icon: IconProp.ArrowCircleRight,
   tableDescription:
-    "Manage alert states for your project (Created, Acknowledged for example). Add / edit or remove states.",
+    "Where an alert is in your response. A new project starts with Identified, Acknowledged and Resolved: rename them or add your own between them.",
 })
 @Entity({
   name: "AlertState",

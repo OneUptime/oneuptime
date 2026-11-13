@@ -34,7 +34,7 @@ flowchart LR
 | **Grunnleggende** | **Prosjekt**, **Produkter**, **Etiketter** | [Prosjektets detaljer](#prosjektets-detaljer), [Produkter](#produkter), [Etiketter](#etiketter) |
 | **Arbeidsområde** | **Slack**, **Microsoft Teams**, **Mattermost**, **Videosamtaler** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [Videosamtaler](/docs/workspace-connections/video-calls) |
 | **Telemetri og APM** | **Inntaksnøkler**, **Dataoppbevaring**, **Forbruk** | [Inntaksnøkler](/docs/telemetry/ingestion-keys), [Dataoppbevaring](/docs/telemetry/data-retention), [Telemetriforbruk](/docs/telemetry/usage) |
-| **Varsler** | **Varselinnstillinger**, **Varsellogger**, **Mobilapper** | [Varsler](#varsler) |
+| **Varsler** | **Varslingskanaler**, **Varsellogger**, **Mobilapper** | [Varsler](#varsler) |
 | **KI** | **AI-funksjoner**, **LLM-leverandører**, **Eksterne MCP-servere**, **AI-kreditter**, **AI-logger**, **MCP-server** | [LLM-leverandører](/docs/ai/llm-provider), [Eksterne MCP-servere](/docs/ai/external-mcp-servers), [MCP-server](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#kostnadskontroll) |
 | **Avansert** | **Domener**, **API-nøkler**, **Funksjonsflagg**, **Importer fra et annet verktøy** | [Egne domener](/docs/status-pages/branding-and-domains#egendefinerte-domener), [API-nøkler](/docs/permissions/index#api-nøkler), [Funksjonsflagg](#funksjonsflagg), [Bytt fra Opsgenie](/docs/moving-to-oneuptime/opsgenie) og de andre flytteveiledningene |
 | **Sikkerhet** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
@@ -96,7 +96,7 @@ For å fase ut en etikett arkiverer du den fra radens meny **⋯** i stedet for 
 
 **Prosjektinnstillinger → Varsler** inneholder hvordan prosjektet sender varsler:
 
-- **Varselinnstillinger**: kortet **Varslingskanaler** slår SMS, telefonsamtaler, WhatsApp og Telegram på eller av for prosjektet. Alle fire er av fra start. En Project Owner, en **Faktureringsadministrator** eller noen med **Manage Billing** slår dem på. Siden har også, sammenfoldet under **Flere innstillinger**, prosjektets egne e-postservere i **Egendefinerte SMTP-konfigurasjoner** (se [SMTP](/docs/emails/smtp)) og dets egen Twilio-konto (se [Twilio-integrasjon](/docs/self-hosted/twilio-integration)). I OneUptime Cloud har den saldoen som disse meldingene betales fra: se [Forhåndsbetalte saldoer](/docs/configuration/billing#forhåndsbetalte-saldoer).
+- **Varslingskanaler**: kortet **Varslingskanaler** slår SMS, telefonsamtaler, WhatsApp og Telegram på eller av for prosjektet. Alle fire er av fra start. En Project Owner, en **Faktureringsadministrator** eller noen med **Manage Billing** slår dem på. Siden har også, sammenfoldet under **Flere innstillinger**, prosjektets egne e-postservere i **Egendefinerte SMTP-konfigurasjoner** (se [SMTP](/docs/emails/smtp)) og dets egen Twilio-konto (se [Twilio-integrasjon](/docs/self-hosted/twilio-integration)). I OneUptime Cloud har den saldoen som disse meldingene betales fra: se [Forhåndsbetalte saldoer](/docs/configuration/billing#forhåndsbetalte-saldoer).
 - **Varsellogger**: hvert varsel prosjektet har sendt, med én fane per kanal: **E-post**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Anrop**, **Push** og **Arbeidsområde**.
 - **Mobilapper**: hvor du får appene for iOS og Android. Se [Apper – Oversikt](/docs/mobile-desktop-apps/index).
 

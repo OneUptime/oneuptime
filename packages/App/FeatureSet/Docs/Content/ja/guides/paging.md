@@ -103,6 +103,6 @@ SMS がオフになっているか送信できない状態で、その理由が�
 :::cards
 - [オンコールスケジュール](/docs/on-call/schedules): 交代で担当し、呼び出しがその時のオンコール担当者に届くようにします。Cloud では Growth プランから。
 - [エスカレーションルール](/docs/on-call/escalation-rules): ポリシーにレベル、チーム、スケジュールを追加します。
-- [個人のオンコールルール](/docs/notifications/on-call-rules): 最初にどの方法で、いつ連絡を受けるかを選びます。
+- [私への連絡方法](/docs/notifications/on-call-rules): 最初にどの方法で、いつ連絡を受けるかを選びます。
 - [ステータスページを公開する](/docs/guides/status-page): 何が起きているかを、自分のドメインで顧客に伝えます。
 :::

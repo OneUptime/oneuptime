@@ -26,7 +26,7 @@ const ESSENTIALS: Array<string> = [
   "Monitors",
   "Incidents",
   "Alerts",
-  "On-Call Duty",
+  "On-Call",
   "Status Pages",
   "Scheduled Maintenance",
   "SLOs",
