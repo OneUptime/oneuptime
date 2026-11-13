@@ -10,6 +10,8 @@ import {
   renderCustomFieldValue,
 } from "../../../../UI/Components/ModelTable/CustomFieldColumns";
 import FieldType from "../../../../UI/Components/Types/FieldType";
+import { TABLE_EMPTY_VALUE_TEST_ID } from "../../../../UI/Components/Table/TableEmptyValue";
+import { EMPTY_VALUE_MARK } from "../../../../UI/Components/Detail/EmptyValue";
 import { getPillColors } from "../../../../UI/Components/Pill/PillColors";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import MonitorCustomField from "../../../../Models/DatabaseModels/MonitorCustomField";
@@ -106,11 +108,20 @@ const getBadgeLabels: GetBadgeLabelsFunction = (
 
 type GetPlaceholderFunction = (container: HTMLElement) => Element | null;
 
+/*
+ * An empty value is the quiet dash every empty cell is (TableEmptyValue,
+ * #7264): a hyphen of its own was darker, with nothing for a screen reader.
+ */
 const getPlaceholder: GetPlaceholderFunction = (
   container: HTMLElement,
 ): Element | null => {
-  return container.querySelector("span.text-gray-400");
+  return container.querySelector(
+    `[data-testid="${TABLE_EMPTY_VALUE_TEST_ID}"]`,
+  );
 };
+
+// What the quiet dash reads as: its mark, and "Not set" for a screen reader.
+const EMPTY_CELL_TEXT: string = `${EMPTY_VALUE_MARK}Not set`;
 
 const requireElement: (
   element: HTMLElement | null | undefined,
@@ -1128,7 +1139,7 @@ describe("CustomFieldColumns.renderCustomFieldValue", () => {
 
     expect(getBadgeLabels(container)).toEqual([]);
     expect(getPlaceholder(container)).not.toBeNull();
-    expect(container.textContent).toEqual("-");
+    expect(container.textContent).toEqual(EMPTY_CELL_TEXT);
   });
 
   test("renders the placeholder when every multi-select entry is empty", () => {
@@ -1147,7 +1158,7 @@ describe("CustomFieldColumns.renderCustomFieldValue", () => {
         definition: textDefinition,
       });
 
-      expect(container.textContent).toEqual("-");
+      expect(container.textContent).toEqual(EMPTY_CELL_TEXT);
       expect(getPlaceholder(container)).not.toBeNull();
     }
   });
@@ -1553,7 +1564,7 @@ describe("CustomFieldColumns date custom fields", () => {
             definition: definition,
           });
 
-          expect(container.textContent).toEqual("-");
+          expect(container.textContent).toEqual(EMPTY_CELL_TEXT);
           expect(getPlaceholder(container)).not.toBeNull();
         }
       }

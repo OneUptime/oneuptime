@@ -42,14 +42,12 @@ const EmailLogsTable: FunctionComponent<EmailLogsTableProps> = (
       field: { toEmail: true },
       title: "To",
       type: FieldType.Email,
-      noValueMessage: "-",
     },
     {
       field: { fromEmail: true },
       title: "From",
       type: FieldType.Email,
       hideOnMobile: true,
-      noValueMessage: "-",
     },
     {
       field: {
@@ -62,7 +60,6 @@ const EmailLogsTable: FunctionComponent<EmailLogsTableProps> = (
       title: "User",
       type: FieldType.Text,
       hideOnMobile: true,
-      noValueMessage: "-",
       getElement: (item: EmailLog): ReactElement => {
         if (!item["user"]) {
           return <p>-</p>;

@@ -59,14 +59,12 @@ const SmsLogsTable: FunctionComponent<SmsLogsTableProps> = (
       field: { toNumber: true },
       title: "To",
       type: FieldType.Phone,
-      noValueMessage: "-",
     },
     {
       field: { fromNumber: true },
       title: "From",
       type: FieldType.Phone,
       hideOnMobile: true,
-      noValueMessage: "-",
     },
     {
       field: {
@@ -79,7 +77,6 @@ const SmsLogsTable: FunctionComponent<SmsLogsTableProps> = (
       title: "User",
       type: FieldType.Text,
       hideOnMobile: true,
-      noValueMessage: "-",
       getElement: (item: SmsLog): ReactElement => {
         if (!item["user"]) {
           return <p>-</p>;
@@ -111,7 +108,6 @@ const SmsLogsTable: FunctionComponent<SmsLogsTableProps> = (
       title: "Error Code",
       type: FieldType.Text,
       hideOnMobile: true,
-      noValueMessage: "-",
     },
   ];
 

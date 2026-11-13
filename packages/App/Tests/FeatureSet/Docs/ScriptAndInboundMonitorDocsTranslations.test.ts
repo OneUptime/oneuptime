@@ -172,8 +172,17 @@ const PROSE: Record<string, Array<string>> = {
    * reads badly in a sentence.
    */
   [CUSTOM_CODE_MONITOR]: ["probe"],
-  // The probe's operating system, a row of the Windows Integrated Authentication table.
-  [SQL_MONITOR]: ["probe", "Windows"],
+  [SQL_MONITOR]: [
+    "probe",
+    // The probe's operating system, a row of the Windows Integrated Authentication table.
+    "Windows",
+    /*
+     * A control's lead in the Security model table. The Template sync
+     * settings card names its field Statement timeout too (#7546); the
+     * form's label the page names is Statement Timeout (ms).
+     */
+    "Statement timeout",
+  ],
   [SYNTHETIC_MONITOR]: ["probe"],
   /*
    * "taken from the **first** matching element" and "Put the dead-man's
@@ -201,7 +210,6 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Least-privilege database user",
     "Read-only execution",
     "Single-statement, allow-listed queries",
-    "Statement timeout",
     "Bounded rows",
     "Credential redaction",
     "read-only database user",

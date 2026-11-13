@@ -1,4 +1,5 @@
 import {
+  DATA_TYPE_PAGE,
   PAGE_FIXTURES,
   PageFixture,
   renderPage,
@@ -360,38 +361,6 @@ const navNamesFor: (
         },
       );
     });
-};
-
-// A data type page: not one of the shared fixtures, since nothing else needs it.
-const DATA_TYPE_PAGE: PageFixture = {
-  page: "data-type",
-  slug: "monitor-steps",
-  pageData: {
-    title: "MonitorSteps",
-    description: "The checks a monitor runs (one step per target).",
-    isEnum: false,
-    properties: [
-      {
-        name: "monitorStepsInstanceArray",
-        required: true,
-        type: "Array<MonitorStep>",
-        typeLinks: [
-          { label: "Array<", path: "" },
-          { label: "MonitorStep", path: "monitor-step" },
-          { label: ">", path: "" },
-        ],
-        description: "An ordered array of steps (usually one).",
-      },
-    ],
-    values: [],
-    jsonExample: '{ "_type": "MonitorSteps", "value": {} }',
-    relatedTypes: [],
-    typeHierarchy: [],
-    propertyCount: 1,
-    valueCount: 0,
-    jsonWrapperType: "MonitorSteps",
-    jsonWrapperKeys: ["value"],
-  },
 };
 
 const ALL_PAGES: Array<[string, PageFixture]> = [

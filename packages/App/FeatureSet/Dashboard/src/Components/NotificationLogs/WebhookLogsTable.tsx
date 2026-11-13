@@ -53,7 +53,6 @@ const WebhookLogsTable: FunctionComponent<WebhookLogsTableProps> = (
       field: { webhookUrl: true },
       title: "Webhook URL",
       type: FieldType.Text,
-      noValueMessage: "-",
     },
     {
       field: {
@@ -66,7 +65,6 @@ const WebhookLogsTable: FunctionComponent<WebhookLogsTableProps> = (
       title: "User",
       type: FieldType.Text,
       hideOnMobile: true,
-      noValueMessage: "-",
       getElement: (item: WebhookLog): ReactElement => {
         if (!item["user"]) {
           return <p>-</p>;
@@ -78,7 +76,6 @@ const WebhookLogsTable: FunctionComponent<WebhookLogsTableProps> = (
       field: { responseStatusCode: true },
       title: "HTTP Status",
       type: FieldType.Number,
-      noValueMessage: "-",
     },
     { field: { createdAt: true }, title: "Sent at", type: FieldType.DateTime },
     {

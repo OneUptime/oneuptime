@@ -60,10 +60,11 @@ import ts from "typescript";
  *     it is with its own id and key;
  *   - outside the product's code, only the installation's own tools present
  *     it - `npm run doctor` and diagnose.sh, with the ONEUPTIME_SECRET of the
- *     installation's own configuration - to the doctor's POST alone, at an
- *     address of the server itself, never to HOST
- *     (CLUSTER_KEY_ROUTE_TOOL_CALLERS); nothing else there names the key's
- *     header but tests, documentation and a KEDA parameter nothing uses;
+ *     installation's own configuration, URI-encoded as the app presents and
+ *     compares its own - to the doctor's POST alone, at an address of the
+ *     server itself, never to HOST (CLUSTER_KEY_ROUTE_TOOL_CALLERS); nothing
+ *     else there names the key's header but tests, documentation and a KEDA
+ *     parameter nothing uses;
  *   - the check counts the different wrong keys a client sends
  *     (WrongClusterKeyLimit) in one place, after the key is compared and
  *     before the request is answered as right or wrong, and nothing else
@@ -868,9 +869,15 @@ describe("the routes that take the cluster key, and who calls them", () => {
  * strictly as the app's own callers: the key goes in the clusterkey header
  * of one POST, to the doctor's path at an address of the server itself, in a
  * request that follows no redirect - never to HOST or any other address,
- * never in a URL or a body - and to no other route. Nothing else outside the
- * product's TypeScript names the key's header, so a new script that
- * presents it fails here until it is listed and held to the same.
+ * never in a URL or a body - and to no other route. It goes URI-encoded, as
+ * ClusterKeyAuthorization.getClusterKey() presents the app's own key and
+ * isAcceptedClusterKey compares what it is sent: the key as written is
+ * refused whenever encoding changes it (+ / = @ & %, a space, a letter
+ * beyond ASCII), and Node's http will not send a letter beyond Latin-1 in a
+ * header at all. App's Tests/ClusterKey/ClusterKeyToolsOverHttp runs both
+ * tools against that comparison. Nothing else outside the product's
+ * TypeScript names the key's header, so a new script that presents it fails
+ * here until it is listed and held to the same.
  */
 
 // What a file's name says holds no text: images, fonts, sounds, video, archives.
@@ -910,6 +917,9 @@ const NODE_HTTP_REQUEST: Record<string, string> = {
 
 const DOCTOR_ROUTE_KEY: string =
   'POST packages/App/API/AdminHealth.ts "/doctor"';
+
+// How the key travels: URI-encoded with JavaScript's own function, as getClusterKey() encodes it.
+const URI_ENCODING: string = "encodeURIComponent";
 
 // Where App/Index.ts mounts AdminHealth's router.
 const ADMIN_HEALTH_MOUNT: string = "/api/admin/health";
@@ -1496,13 +1506,56 @@ function problemsOfTool(entry: ClusterKeyRouteToolCaller): Array<string> {
     }
   }
 
-  // The key: read once, from the installation's own configuration, for the header alone.
+  /*
+   * The key as it travels: URI-encoded, as ClusterKeyAuthorization's
+   * getClusterKey() presents the app's own and isAcceptedClusterKey compares
+   * what it is sent. The header's value is a call of the global
+   * encodeURIComponent on the key alone, whatever the tool is listed with,
+   * and nothing else in the code names encodeURIComponent, so nothing
+   * declares, shadows or replaces it.
+   */
   const value: ts.Expression = header.initializer;
-  let keyExpression: ts.Expression = value;
+  const encoded: ts.Expression | null =
+    ts.isCallExpression(value) &&
+    value.questionDotToken === undefined &&
+    ts.isIdentifier(value.expression) &&
+    value.expression.text === URI_ENCODING &&
+    value.arguments.length === 1 &&
+    !ts.isSpreadElement(value.arguments[0]!)
+      ? value.arguments[0]!
+      : null;
+  const encodings: number = (
+    code.match(new RegExp(`\\b${URI_ENCODING}\\b`, "g")) || []
+  ).length;
+
+  if (!encoded) {
+    problems.push(
+      `it presents the key as ${value.getText(sourceFile)}, not URI-encoded as ${URI_ENCODING}(the key), as ClusterKeyAuthorization.getClusterKey() presents it`,
+    );
+  }
+
+  if (encodings !== 1) {
+    problems.push(
+      `its code names ${URI_ENCODING} ${encodings} times, not once, where it encodes the key`,
+    );
+  }
+
+  if (value.getText(sourceFile) !== entry.presents) {
+    problems.push(
+      `its header's value is ${value.getText(sourceFile)}, not ${entry.presents}`,
+    );
+  }
+
+  // The key: read once, from the installation's own configuration, for the header alone.
+  const presented: ts.Expression = encoded || value;
+  let keyExpression: ts.Expression = presented;
   let keyDeclaration: ts.VariableDeclaration | null = null;
 
-  if (ts.isIdentifier(value)) {
-    const declaration: ts.Node | null = declarationOf(value.text, value);
+  if (ts.isIdentifier(presented)) {
+    const declaration: ts.Node | null = declarationOf(
+      presented.text,
+      presented,
+    );
 
     if (
       declaration &&
@@ -1550,7 +1603,7 @@ function problemsOfTool(entry: ClusterKeyRouteToolCaller): Array<string> {
       if (
         ts.isIdentifier(node) &&
         node.text === name &&
-        node !== value &&
+        node !== presented &&
         usesAName(node) &&
         declarationOf(name, node) === declaration
       ) {
@@ -1648,7 +1701,7 @@ describe("the installation's own tools present the key to the doctor alone, on t
     ).toEqual([]);
   });
 
-  test("each tool presents the key only in the clusterkey header of one POST to the doctor's path, at an address of the server itself, following no redirect, read from the installation's own configuration", () => {
+  test("each tool presents the key only in the clusterkey header of one POST to the doctor's path, at an address of the server itself, following no redirect, read from the installation's own configuration and URI-encoded as the app presents and compares its own", () => {
     const problems: Record<string, Array<string>> = {};
     const expected: Record<string, Array<string>> = {};
 
@@ -1659,6 +1712,18 @@ describe("the installation's own tools present the key to the doctor alone, on t
 
     expect(tools.length).toBeGreaterThan(0);
     expect(problems).toEqual(expected);
+
+    // The encoding the tools are held to is the app's own: getClusterKey(), which isAcceptedClusterKey compares with.
+    const presentsItsOwn: string =
+      (
+        codeOf(CLUSTER_KEY_AUTHORIZATION).split(
+          "public static getClusterKey(): string {",
+        )[1] || ""
+      ).split("}")[0] || "";
+
+    expect(oneLine(presentsItsOwn)).toBe(
+      `return ${URI_ENCODING}(ClusterKeyAuthorization.getInstallationClusterKey());`,
+    );
   });
 
   test("the tools call the doctor's POST and no other route that takes the key", () => {

@@ -135,7 +135,6 @@ const PublicNoteApprovalSettings: FunctionComponent<ComponentProps> = (
             },
             title: "Name",
             type: FieldType.Text,
-            noValueMessage: "-",
           },
           {
             field: {

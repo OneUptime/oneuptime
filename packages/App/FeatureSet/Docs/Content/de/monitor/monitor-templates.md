@@ -100,7 +100,7 @@ Speichern Sie Ihre Änderungen. Die Karte **Kriterien** und die Bestätigung bei
 Verwenden Sie **Kriterien mit verknüpften Monitoren synchronisieren** oder **Aus Vorlage synchronisieren** an einem einzelnen verknüpften Monitor.
 :::
 
-Schützen Sie zum Beispiel auf einer API-Vorlage **Monitor destination** und **Anfrage-Header**. Produktions- und Staging-Monitore behalten ihre eigenen URLs und Header, während beide die aktualisierten Kriterien der Vorlage und die übrigen ungeschützten Einstellungen erhalten.
+Schützen Sie zum Beispiel auf einer API-Vorlage **Monitor-Ziel** und **Anfrage-Header**. Produktions- und Staging-Monitore behalten ihre eigenen URLs und Header, während beide die aktualisierten Kriterien der Vorlage und die übrigen ungeschützten Einstellungen erhalten.
 
 Welche Optionen es gibt, hängt vom Monitortyp ab. Dazu gehören Ziele und Ports, HTTP-Anfrageoptionen, Datenbankverbindungen, DNS-Einstellungen, Infrastruktur-Selektoren und Telemetrie-Abfragen. Zusammengehörige Anmeldedaten, etwa ein Client-Zertifikat und sein privater Schlüssel, werden zusammen behalten.
 

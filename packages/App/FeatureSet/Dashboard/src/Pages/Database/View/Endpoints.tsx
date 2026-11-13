@@ -174,7 +174,6 @@ const DatabaseServerEndpoints: FunctionComponent<
             title: "Last Matched",
             type: FieldType.DateTime,
             hideOnMobile: true,
-            noValueMessage: "—",
           },
           {
             field: {

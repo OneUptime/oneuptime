@@ -2095,7 +2095,7 @@ test.describe("Create Monitor's Probes definition", () => {
     });
   }
 
-  test("a click on the empty end of its title's row leaves the definition closed; a press on the word opens it", async ({
+  test("a click on the empty end of its title's row leaves the definition closed; a press on the word opens it, and the dropdown is still named Probes alone", async ({
     page,
   }: {
     page: Page;
@@ -2179,6 +2179,45 @@ test.describe("Create Monitor's Probes definition", () => {
     await nextFrames(page);
     await expect(definition).toBeVisible();
     await expect(word).toHaveAttribute("aria-expanded", "true");
+
+    /*
+     * While it shows, the dropdown is still named Probes alone (#7561). The
+     * row names the dropdown with every word inside it, and the definition
+     * was drawn in it: "Probes Probe A machine that runs ... Read more". It
+     * is drawn right after the row now.
+     */
+    await expect(
+      page.getByRole("combobox", { name: "Probes", exact: true }),
+    ).toBeVisible();
+    await expect(probes).toHaveAccessibleName("Probes");
+
+    // It still shows by the word: just above or below it, and over it.
+    const definitionBox: {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    } = await boxOf(definition);
+    const wordNow: { x: number; y: number; width: number; height: number } =
+      await boxOf(word);
+    expect(
+      Math.min(
+        Math.abs(wordNow.y - (definitionBox.y + definitionBox.height)),
+        Math.abs(definitionBox.y - (wordNow.y + wordNow.height)),
+      ),
+    ).toBeLessThan(24);
+    expect(definitionBox.x).toBeLessThan(wordNow.x + wordNow.width);
+    expect(definitionBox.x + definitionBox.width).toBeGreaterThan(wordNow.x);
+
+    // The keyboard still goes from the word to Read more, and back.
+    await word.focus();
+    await page.keyboard.press("Tab");
+    await expect(
+      definition.getByTestId("defined-term-read-more"),
+    ).toBeFocused();
+    await page.keyboard.press("Shift+Tab");
+    await expect(word).toBeFocused();
+    await expect(definition).toBeVisible();
   });
 });
 
