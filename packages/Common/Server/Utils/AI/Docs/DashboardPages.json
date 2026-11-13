@@ -3430,6 +3430,21 @@
     "kind": "page"
   },
   {
+    "title": "PromQL",
+    "where": [
+      "Metrics"
+    ],
+    "keywords": [
+      "prometheus",
+      "query metrics",
+      "metrics query language",
+      "grafana",
+      "prometheus data source"
+    ],
+    "path": "/dashboard/:projectId/metrics/promql",
+    "kind": "page"
+  },
+  {
     "title": "Insights",
     "where": [
       "Metrics"

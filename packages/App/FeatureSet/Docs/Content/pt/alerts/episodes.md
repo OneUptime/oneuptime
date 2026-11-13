@@ -26,7 +26,7 @@ flowchart TB
 ```
 
 - **As condições da regra** decidem a quais alertas ela se aplica. Uma regra sem condições se aplica a todo alerta novo.
-- **A chave de agrupamento** decide quais alertas compartilham um episódio: os que têm o mesmo monitor, a mesma gravidade, o mesmo título ou a combinação pela qual a regra agrupa. Uma regra que não agrupa por nada coloca em um único episódio todo alerta que corresponde a ela.
+- **A chave de agrupamento** decide quais alertas compartilham um episódio: os que têm o mesmo monitor, a mesma gravidade, o mesmo título, os de serviços que chamam uns aos outros no mapa de serviços, ou a combinação pela qual a regra agrupa. Uma regra que não agrupa por nada coloca em um único episódio todo alerta que corresponde a ela.
 - **A janela de tempo** decide por quanto tempo um episódio continua aceitando alertas. Ativada, um alerta só entra se chegar dentro da janela após o último alerta do episódio. Desativada, os alertas correspondentes continuam entrando até o episódio ser resolvido.
 - **Aguardar mais alertas** decide quando um novo episódio é aberto. Desativado, que é como uma regra nova começa, o primeiro alerta correspondente abre um. Ativado, um alerta aguarda sozinho até que estejam em andamento tantos alertas correspondentes do seu grupo quanto você definiu, e então um único episódio é aberto com todos eles. Veja [Abrir um episódio apenas para vários alertas](#abrir-um-episódio-apenas-para-vários-alertas).
 
@@ -41,12 +41,13 @@ Vá para **Alertas → Regras → Regras de agrupamento**. A seção **Regras** 
 
 ### Começar por um modelo
 
-Um projeto sem regras de agrupamento vê quatro regras prontas em vez de uma lista vazia; depois que você tem regras, **Criar a partir de modelo** no cartão as abre. **Adicionar regra** salva uma com um único clique, habilitada, no fim da lista e aplicada a todo alerta novo. Edite-a depois como qualquer outra regra.
+Um projeto sem regras de agrupamento vê cinco regras prontas em vez de uma lista vazia; depois que você tem regras, **Criar a partir de modelo** no cartão as abre. **Adicionar regra** salva uma com um único clique, habilitada, no fim da lista e aplicada a todo alerta novo. Edite-a depois como qualquer outra regra.
 
 | Modelo                                        | Agrupa                                                                    | Janela de tempo |
 | --------------------------------------------- | ------------------------------------------------------------------------- | --------------- |
 | **Agrupar alertas do mesmo monitor**          | Um episódio por monitor                                                   | 30 minutos      |
 | **Agrupar alertas que acontecem juntos**      | Um episódio compartilhado, seja qual for o monitor                        | 10 minutos      |
+| **Agrupar alertas de serviços conectados** | Um episódio para serviços que chamam uns aos outros no mapa de serviços | 30 minutos      |
 | **Agrupar alertas por gravidade**             | Um episódio por gravidade                                                 | 30 minutos      |
 | **Agrupar repetições do mesmo alerta**        | Um episódio por título de alerta, ignorando números e maiúsculas          | 1 hora          |
 
@@ -55,7 +56,7 @@ Um projeto sem regras de agrupamento vê quatro regras prontas em vez de uma lis
 :::steps
 #### Responder como agrupar
 
-Clique em **Criar regra personalizada** abaixo dos modelos, ou em **Criar regra de agrupamento de alertas** no cartão quando já tiver regras. Na etapa **Agrupamento**, **Agrupar alertas por** faz uma única pergunta: **Monitor**, **Tudo junto**, **Gravidade**, **Título** ou **Personalizado**. O **Nome** acompanha sua resposta até você digitar um seu.
+Clique em **Criar regra personalizada** abaixo dos modelos, ou em **Criar regra de agrupamento de alertas** no cartão quando já tiver regras. Na etapa **Agrupamento**, **Agrupar alertas por** faz uma única pergunta: **Monitor**, **Tudo junto**, **Serviços conectados**, **Gravidade**, **Título** ou **Personalizado**. O **Nome** acompanha sua resposta até você digitar um seu.
 
 #### Definir a janela de tempo
 
@@ -63,7 +64,7 @@ Clique em **Criar regra personalizada** abaixo dos modelos, ou em **Criar regra 
 
 #### Combinar campos, para Personalizado
 
-**Personalizado** adiciona uma etapa **Agrupar Por** com cinco interruptores: **Agrupar Por Monitor**, **Agrupar Por Severidade de Alerta**, **Agrupar Por Título de Alerta**, **Agrupar Por Rótulos de Alerta** e **Agrupar Por Rótulos de Monitor**. Os rótulos agrupam pelo seu conjunto exato.
+**Personalizado** adiciona uma etapa **Agrupar Por** com seis interruptores: **Agrupar Por Monitor**, **Agrupar Por Severidade de Alerta**, **Agrupar Por Título de Alerta**, **Agrupar Por Rótulos de Alerta**, **Agrupar Por Rótulos de Monitor** e **Agrupar Por Serviços Conectados**. Os rótulos agrupam pelo seu conjunto exato.
 
 #### Restringir
 
@@ -90,6 +91,17 @@ As regras são verificadas de cima para baixo na lista, e a primeira correspond�
 - **A contagem é por grupo.** Com **Tudo junto**, quaisquer alertas correspondentes contam, então um episódio só é aberto para uma queda que dispara vários monitores ao mesmo tempo. Com **Monitor**, o episódio de um monitor é aberto quando esse monitor tem vários alertas em andamento.
 
 A coluna **Agrupamento** da lista diz "Abre um episódio quando 3 alertas correspondentes estão em andamento". Pela API e pelo Terraform, são `enableMinimumAlertCount` e `minimumAlertCount`.
+
+### Agrupar alertas de serviços conectados
+
+Quando um serviço falha, os serviços que o chamam começam a falhar também, e cada um gera um alerta no próprio monitor. **Serviços conectados** coloca esses alertas em um único episódio, usando o [mapa de serviços](/docs/telemetry/topology) que o OneUptime desenha a partir dos seus traces.
+
+- Os serviços de um alerta são os vinculados a ele em **Recursos afetados** e os vinculados ao seu monitor.
+- Um alerta entra em um episódio aberto da regra quando um dos seus serviços é, chama ou é chamado por um serviço de um alerta que já está nele, então uma falha que se espalha mantém um único episódio.
+- Conectado quer dizer a uma chamada de distância: dois serviços que só chamam o mesmo banco de dados ou a mesma API externa não estão conectados; do contrário, uma dependência chamada por metade dos seus serviços colocaria todo alerta em um único episódio.
+- Um alerta sem serviço é agrupado pelo seu monitor, como **Monitor** agrupa.
+
+Uma chamada não vista há 30 dias sai do mapa de serviços, e com ela a conexão. A coluna **Agrupamento** da lista diz "Alertas de serviços conectados compartilham um episódio". Pela API e pelo Terraform, é `groupByConnectedServices`.
 
 ## Títulos dos episódios
 

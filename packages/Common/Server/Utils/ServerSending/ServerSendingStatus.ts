@@ -8,6 +8,7 @@ import ServerChannelSetup, {
 import ServerSendingOutcomes, {
   ServerSendingOutcome,
 } from "./ServerSendingOutcomes";
+import ServerSendingSettings from "./ServerSendingSettings";
 import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
 import { ProbeConnectionStatus } from "../../../Models/DatabaseModels/Probe";
 import ObjectID from "../../../Types/ObjectID";
@@ -19,6 +20,7 @@ import ServerSendingStatusUtil, {
   ServerSendingChannel,
   ServerSendingHealth,
   ServerSendingHealthEntry,
+  ServerSendingSettingsFingerprints,
   ServerSendingStatusAnswer,
 } from "../../../Types/ServerSending/ServerSendingStatus";
 
@@ -49,6 +51,11 @@ import ServerSendingStatusUtil, {
  *     service points at recordOutcome when it starts;
  *   - GlobalConfigService, which starts a channel again at untested when its
  *     settings are saved (forgetChannels).
+ *
+ * SMS and calls can also change without a save, when the GLOBAL_TWILIO_
+ * environment variables set the Twilio account (#7515): their entries are
+ * marked with the route they were learned with, and one learned with
+ * another is read as untested (ServerSendingSettings, #7736).
  */
 
 /*
@@ -58,8 +65,15 @@ import ServerSendingStatusUtil, {
  */
 export const SERVER_SENDING_HEALTH_CACHE_TTL_MS: number = 60 * 1000;
 
+// Per channel, the fingerprints of the settings it sends with (ServerSendingSettings).
+type ChannelFingerprints = Partial<
+  Record<ServerSendingChannel, ServerSendingSettingsFingerprints | null>
+>;
+
 interface CachedHealth {
   health: ServerSendingHealth;
+  // The routes it was read with: an SMS or call entry is news for those.
+  fingerprints: ChannelFingerprints;
   readAt: number;
 }
 
@@ -86,21 +100,30 @@ export default class ServerSendingStatus {
     });
   }
 
+  /*
+   * What the server remembers of a channel's sends with the settings it
+   * sends with now: an SMS or call entry learned through another route is
+   * read as nothing remembered.
+   */
+  public static getCurrentEntry(
+    health: ServerSendingHealth,
+    channel: ServerSendingChannel,
+    config: GlobalConfig | null,
+  ): ServerSendingHealthEntry {
+    return ServerSendingStatusUtil.getCurrentEntry(
+      health,
+      channel,
+      ServerSendingSettings.getFingerprints(channel, config),
+    );
+  }
+
   // Every channel's status, from a row read with readConfig.
   public static getStatusesFrom(
     config: GlobalConfig | null,
   ): Array<ServerChannelStatus> {
-    const health: ServerSendingHealth = ServerSendingStatusUtil.readHealth(
-      config?.serverSendingHealth,
-    );
-
     return SERVER_SENDING_CHANNELS.map(
       (channel: ServerSendingChannel): ServerChannelStatus => {
-        return ServerSendingStatusUtil.getStatus({
-          channel: channel,
-          setUpProblem: ServerChannelSetup.getSetUpProblem(channel, config),
-          entry: ServerSendingStatusUtil.getEntry(health, channel),
-        });
+        return ServerSendingStatus.getStatusFrom(config, channel);
       },
     );
   }
@@ -116,7 +139,7 @@ export default class ServerSendingStatus {
     return ServerSendingStatusUtil.getStatus({
       channel: channel,
       setUpProblem: ServerChannelSetup.getSetUpProblem(channel, config),
-      entry: ServerSendingStatusUtil.getEntry(health, channel),
+      entry: ServerSendingStatus.getCurrentEntry(health, channel, config),
     });
   }
 
@@ -242,48 +265,56 @@ export default class ServerSendingStatus {
     };
   }
 
-  // What the server remembers, read fresh.
-  private static async readHealthFromDatabase(): Promise<ServerSendingHealth> {
-    const config: GlobalConfig | null = await GlobalConfigService.findOneById({
-      id: ObjectID.getZeroObjectID(),
-      select: {
-        serverSendingHealth: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+  /*
+   * What the server remembers, read fresh, with the fingerprints of the
+   * routes the settings give - never the settings themselves, which hold
+   * credentials and are not kept past the read.
+   */
+  private static async readHealthFromDatabase(): Promise<CachedHealth> {
+    const config: GlobalConfig | null = await ServerSendingStatus.readConfig();
 
-    const health: ServerSendingHealth = ServerSendingStatusUtil.readHealth(
-      config?.serverSendingHealth,
-    );
+    const fingerprints: ChannelFingerprints = {};
 
-    ServerSendingStatus.cachedHealth = {
-      health: health,
+    for (const channel of SERVER_SENDING_CHANNELS) {
+      fingerprints[channel] = ServerSendingSettings.getFingerprints(
+        channel,
+        config,
+      );
+    }
+
+    const read: CachedHealth = {
+      health: ServerSendingStatusUtil.readHealth(config?.serverSendingHealth),
+      fingerprints: fingerprints,
       readAt: Date.now(),
     };
 
-    return health;
+    ServerSendingStatus.cachedHealth = read;
+
+    return read;
   }
 
-  private static async readHealth(): Promise<ServerSendingHealth> {
+  private static async readHealth(): Promise<CachedHealth> {
     const cached: CachedHealth | null = ServerSendingStatus.cachedHealth;
 
     if (
       cached &&
       Date.now() - cached.readAt < SERVER_SENDING_HEALTH_CACHE_TTL_MS
     ) {
-      return cached.health;
+      return cached;
     }
 
     return await ServerSendingStatus.readHealthFromDatabase();
   }
 
-  private static async writeHealth(health: ServerSendingHealth): Promise<void> {
+  private static async writeHealth(
+    health: ServerSendingHealth,
+    fingerprints: ChannelFingerprints,
+  ): Promise<void> {
     await GlobalConfigService.writeServerSendingHealth(health);
 
     ServerSendingStatus.cachedHealth = {
       health: health,
+      fingerprints: fingerprints,
       readAt: Date.now(),
     };
   }
@@ -295,6 +326,11 @@ export default class ServerSendingStatus {
    * (SERVER_SENDING_HEALTH_REWRITE_INTERVAL_MS). What is written is decided
    * again on a fresh read, so two servers sending at once lose nothing but
    * the order of their news.
+   *
+   * An SMS or call entry learned through another route than the one the
+   * settings give now is read as nothing remembered, so the first send
+   * through the new route is news, and the entry written is marked with
+   * the route it was learned with.
    */
   @CaptureSpan()
   public static async recordOutcome(
@@ -311,28 +347,45 @@ export default class ServerSendingStatus {
         : ServerSendingStatusUtil.shouldWriteFailed(entry, reason, now);
     };
 
-    const known: ServerSendingHealth = await ServerSendingStatus.readHealth();
+    const known: CachedHealth = await ServerSendingStatus.readHealth();
 
-    if (!isNews(ServerSendingStatusUtil.getEntry(known, outcome.channel))) {
+    if (
+      !isNews(
+        ServerSendingStatusUtil.getCurrentEntry(
+          known.health,
+          outcome.channel,
+          known.fingerprints[outcome.channel] || null,
+        ),
+      )
+    ) {
       return;
     }
 
-    const health: ServerSendingHealth =
+    const fresh: CachedHealth =
       await ServerSendingStatus.readHealthFromDatabase();
-    const entry: ServerSendingHealthEntry = ServerSendingStatusUtil.getEntry(
-      health,
-      outcome.channel,
-    );
+    const fingerprints: ServerSendingSettingsFingerprints | null =
+      fresh.fingerprints[outcome.channel] || null;
+    const entry: ServerSendingHealthEntry =
+      ServerSendingStatusUtil.getCurrentEntry(
+        fresh.health,
+        outcome.channel,
+        fingerprints,
+      );
 
     if (!isNews(entry)) {
       return;
     }
 
-    health[outcome.channel] = outcome.succeeded
-      ? ServerSendingStatusUtil.withSucceeded(entry, now)
-      : ServerSendingStatusUtil.withFailed(entry, reason, now);
+    const health: ServerSendingHealth = { ...fresh.health };
 
-    await ServerSendingStatus.writeHealth(health);
+    health[outcome.channel] = ServerSendingStatusUtil.withSettingsFingerprint(
+      outcome.succeeded
+        ? ServerSendingStatusUtil.withSucceeded(entry, now)
+        : ServerSendingStatusUtil.withFailed(entry, reason, now),
+      fingerprints,
+    );
+
+    await ServerSendingStatus.writeHealth(health, fresh.fingerprints);
   }
 
   /*

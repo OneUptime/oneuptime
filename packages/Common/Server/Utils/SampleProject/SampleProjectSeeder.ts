@@ -30,6 +30,10 @@ import OpenTelemetryIngestService, {
 } from "../../Services/OpenTelemetryIngestService";
 import ScheduledMaintenanceService from "../../Services/ScheduledMaintenanceService";
 import ScheduledMaintenanceStateService from "../../Services/ScheduledMaintenanceStateService";
+import AcknowledgedStateUtil from "../../../Utils/AcknowledgedState";
+import ResolvedStateUtil from "../../../Utils/ResolvedState";
+import ScheduledMaintenanceStartUtil from "../../../Utils/ScheduledMaintenanceStart";
+import { StateListType } from "../../../Utils/StateOrder";
 import ScheduledMaintenanceStateTimelineService from "../../Services/ScheduledMaintenanceStateTimelineService";
 import ServiceLevelObjectiveService from "../../Services/ServiceLevelObjectiveService";
 import ServiceService from "../../Services/ServiceService";
@@ -405,6 +409,7 @@ export default class SampleProjectSeeder {
           isCreatedState: true,
           isAcknowledgedState: true,
           isResolvedState: true,
+          order: true,
         },
         skip: 0,
         limit: 50,
@@ -425,6 +430,7 @@ export default class SampleProjectSeeder {
           isCreatedState: true,
           isAcknowledgedState: true,
           isResolvedState: true,
+          order: true,
         },
         skip: 0,
         limit: 50,
@@ -439,7 +445,7 @@ export default class SampleProjectSeeder {
       }),
       ScheduledMaintenanceStateService.findBy({
         query: { projectId: projectId },
-        select: { _id: true, isScheduledState: true },
+        select: { _id: true, isScheduledState: true, order: true },
         skip: 0,
         limit: 50,
         props: ROOT,
@@ -498,15 +504,26 @@ export default class SampleProjectSeeder {
     const identified: IncidentState = incidentState((state: IncidentState) => {
       return Boolean(state.isCreatedState);
     }, "incident state Identified");
-    const acknowledged: IncidentState = incidentState(
-      (state: IncidentState) => {
-        return Boolean(state.isAcknowledgedState);
-      },
+    /*
+     * THE acknowledged and THE resolved state: the first from the top so
+     * flagged, the ones Acknowledge and Resolve move a record into
+     * (Common/Utils/AcknowledgedState, ResolvedState). Never a flag read
+     * here: OneAcknowledgedRuleGuard and OneResolvedRuleGuard.
+     */
+    const acknowledged: IncidentState = required(
+      AcknowledgedStateUtil.getAcknowledgedState({
+        list: StateListType.IncidentState,
+        states: incidentStates,
+      }),
       "incident state Acknowledged",
     );
-    const resolved: IncidentState = incidentState((state: IncidentState) => {
-      return Boolean(state.isResolvedState);
-    }, "incident state Resolved");
+    const resolved: IncidentState = required(
+      ResolvedStateUtil.getResolvedState({
+        list: StateListType.IncidentState,
+        states: incidentStates,
+      }),
+      "incident state Resolved",
+    );
 
     const alertState: (
       predicate: (state: AlertState) => boolean,
@@ -575,12 +592,20 @@ export default class SampleProjectSeeder {
         [SampleAlertState.Identified]: alertState((state: AlertState) => {
           return Boolean(state.isCreatedState);
         }, "alert state Identified"),
-        [SampleAlertState.Acknowledged]: alertState((state: AlertState) => {
-          return Boolean(state.isAcknowledgedState);
-        }, "alert state Acknowledged"),
-        [SampleAlertState.Resolved]: alertState((state: AlertState) => {
-          return Boolean(state.isResolvedState);
-        }, "alert state Resolved"),
+        [SampleAlertState.Acknowledged]: required(
+          AcknowledgedStateUtil.getAcknowledgedState({
+            list: StateListType.AlertState,
+            states: alertStates,
+          })?.id,
+          "alert state Acknowledged",
+        ),
+        [SampleAlertState.Resolved]: required(
+          ResolvedStateUtil.getResolvedState({
+            list: StateListType.AlertState,
+            states: alertStates,
+          })?.id,
+          "alert state Resolved",
+        ),
       },
       alertSeverityIds: {
         [SampleAlertSeverity.High]: byName(
@@ -594,9 +619,10 @@ export default class SampleProjectSeeder {
           "alert severity",
         ),
       },
+      // THE scheduled state, the one a new event is created in.
       scheduledMaintenanceStateId: required(
-        maintenanceStates.find((state: ScheduledMaintenanceState): boolean => {
-          return Boolean(state.isScheduledState);
+        ScheduledMaintenanceStartUtil.getScheduledState({
+          states: maintenanceStates,
         })?.id,
         "maintenance state Scheduled",
       ),
