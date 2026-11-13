@@ -696,6 +696,8 @@ export default class NetworkInventoryUtil {
               observingDeviceName: ownedDevice.name,
               observingSiteId: ownedDevice.siteId,
               ipBindings: endpointResult.ipBindings,
+              // The table was read when the poll was received.
+              now: receivedAt,
             });
           } catch (err) {
             logger.error(

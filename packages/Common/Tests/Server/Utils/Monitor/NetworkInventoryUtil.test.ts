@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import NetworkInventoryUtil from "../../../../Server/Utils/Monitor/NetworkInventoryUtil";
+import NetworkDeviceMacLearningUtil from "../../../../Server/Utils/Monitor/NetworkDeviceMacLearningUtil";
 import NetworkDeviceService from "../../../../Server/Services/NetworkDeviceService";
 import NetworkEndpointService from "../../../../Server/Services/NetworkEndpointService";
 import NetworkInterfaceService, {
@@ -1676,6 +1677,7 @@ describe("NetworkInventoryUtil.updateFromWalk — monitor-backed device guard", 
     // Inventory still lands...
     expect(update["sysName"]).toBe("ap-01");
     // ...but nothing that decides the device's health does.
+    expect(pollVerdictSpy).not.toHaveBeenCalled();
     for (const column of POLL_AND_INTERFACE_COLUMNS) {
       expect(update).not.toHaveProperty(column);
     }
@@ -1725,6 +1727,7 @@ describe("NetworkInventoryUtil.updateFromWalk — monitor-backed device guard", 
     await runPingOnlyPoll({ isOnline: true });
 
     expect(deviceUpdateSpy).not.toHaveBeenCalled();
+    expect(pollVerdictSpy).not.toHaveBeenCalled();
     expect(warn).toHaveBeenCalledTimes(1);
   });
 
@@ -2025,5 +2028,306 @@ describe("NetworkInventoryUtil.updateFromWalk — Wi-Fi vendors", () => {
 
     expect(update).not.toHaveProperty("snmpTables");
     expect(update).not.toHaveProperty("snmpOids");
+  });
+});
+
+/*
+ * OneUptime issue #7389. A poll is timed by when OneUptime's ingest API
+ * received it, not by when a worker got round to it: during a queue backlog
+ * the two are many minutes apart, and two polls of one device are not always
+ * processed in the order they were received (a retried job goes back behind
+ * the backlog; one job can wait longer than the poll after it).
+ *
+ *   - Everything the poll SAW is stamped with its receipt time: the device's
+ *     and its interfaces' and endpoints' last-seen times, the readings of its
+ *     own MAC and address and of its ARP table, its last reboot.
+ *   - Only lastPolledAt keeps the time it was processed: the stale-poll check
+ *     reads it as "polls are still arriving", and a backlog does not stop
+ *     them arriving.
+ *   - The verdict is written by its own guarded statement first. A poll older
+ *     than the device's verdict writes neither it nor the device's details;
+ *     its interfaces and endpoints are other tables, written where newer.
+ */
+describe("NetworkInventoryUtil.updateFromWalk — a poll received before it was processed (issue #7389)", () => {
+  // Ten minutes in the queue: NOW is when the worker processes it.
+  const RECEIVED_AT: Date = new Date(NOW.getTime() - 10 * 60 * 1000);
+  const UPTIME_SECONDS: number = 3600;
+
+  let learnSpy: jest.SpyInstance;
+  let resolvedAddressSpy: jest.SpyInstance;
+  let ownMacSpy: jest.SpyInstance;
+
+  // A walk that reaches every write a poll makes.
+  function fullWalk(): SnmpMonitorResponse {
+    return buildSnmpResponse({
+      systemInfo: { sysName: "core-sw-01", sysUpTimeSeconds: UPTIME_SECONDS },
+      interfaces: [walkedInterface({ interfaceIndex: 5, name: "Gi0/5" })],
+      fdbEntries: [
+        {
+          macAddress: "AA-BB-CC-00-11-22",
+          bridgePort: 5,
+          interfaceIndex: 5,
+          status: "learned",
+        },
+      ],
+      arpEntries: [
+        {
+          ipAddress: "10.0.0.5",
+          macAddress: "aa:bb:cc:00:11:33",
+          interfaceIndex: 3,
+          entryType: "dynamic",
+        },
+      ],
+    });
+  }
+
+  function mockPoll(): void {
+    mockServices();
+    learnSpy = jest
+      .spyOn(NetworkDeviceMacLearningUtil, "learnFromArpBindings")
+      .mockResolvedValue({
+        candidateDeviceCount: 0,
+        plannedCount: 0,
+        learnedCount: 0,
+        observationCount: 0,
+      });
+    resolvedAddressSpy = jest
+      .spyOn(NetworkInventoryUtil, "recordResolvedAddress")
+      .mockResolvedValue(false);
+    ownMacSpy = jest
+      .spyOn(NetworkInventoryUtil, "recordOwnMacAddress")
+      .mockResolvedValue(false);
+  }
+
+  async function poll(receivedAt: Date | undefined): Promise<void> {
+    await NetworkInventoryUtil.updateFromWalk({
+      projectId: new ObjectID(PROJECT_ID),
+      deviceId: new ObjectID(DEVICE_ID),
+      snmpResponse: fullWalk(),
+      isOnline: true,
+      pollMode: "snmp",
+      receivedAt: receivedAt,
+    });
+  }
+
+  function verdictWrite(): PollVerdictWrite {
+    expect(pollVerdictSpy).toHaveBeenCalledTimes(1);
+    return pollVerdictSpy.mock.calls[0][0] as PollVerdictWrite;
+  }
+
+  // The `now` each of the poll's other writes was handed.
+  function stampsOfTheRest(): Record<string, unknown> {
+    return {
+      interfaces: interfaceUpsertSpy.mock.calls[0]?.[0]?.now,
+      endpoints: endpointUpsertSpy.mock.calls[0]?.[0]?.now,
+      arpTable: learnSpy.mock.calls[0]?.[0]?.now,
+      resolvedAddress: resolvedAddressSpy.mock.calls[0]?.[0]?.now,
+      ownMac: ownMacSpy.mock.calls[0]?.[0]?.now,
+    };
+  }
+
+  function stamped(at: Date): Record<string, unknown> {
+    return {
+      interfaces: at,
+      endpoints: at,
+      arpTable: at,
+      resolvedAddress: at,
+      ownMac: at,
+    };
+  }
+
+  function silence(level: "warn" | "error" | "debug"): jest.SpyInstance {
+    return jest.spyOn(logger, level).mockImplementation((() => {
+      return undefined;
+    }) as never);
+  }
+
+  function lockError(code: string, message: string): Error {
+    return Object.assign(new Error(message), { driverError: { code } });
+  }
+
+  test("everything the poll saw is stamped with when it was received", async () => {
+    mockPoll();
+
+    await poll(RECEIVED_AT);
+
+    expect(verdictWrite().receivedAt).toEqual(RECEIVED_AT);
+    expect(stampsOfTheRest()).toEqual(stamped(RECEIVED_AT));
+
+    const device: DeviceUpdatePayload = deviceUpdatePayload();
+    expect(device["lastSeenAt"]).toEqual(RECEIVED_AT);
+    expect(device["lastSnmpSeenAt"]).toEqual(RECEIVED_AT);
+    expect(device["lastPollReceivedAt"]).toEqual(RECEIVED_AT);
+    // The uptime was read when the poll was.
+    expect(device["lastRebootedAt"]).toEqual(
+      new Date(RECEIVED_AT.getTime() - UPTIME_SECONDS * 1000),
+    );
+  });
+
+  test("only lastPolledAt keeps the time it was processed", async () => {
+    mockPoll();
+
+    await poll(RECEIVED_AT);
+
+    expect(verdictWrite().processedAt).toEqual(NOW);
+    expect(deviceUpdatePayload()["lastPolledAt"]).toEqual(NOW);
+  });
+
+  test.each([
+    ["no receipt time (queued before the stamp existed)", undefined],
+    ["an unreadable receipt time", new Date("not a date")],
+  ])(
+    "a poll with %s is timed when it is processed",
+    async (_label: string, receivedAt: Date | undefined) => {
+      mockPoll();
+
+      await poll(receivedAt);
+
+      expect(verdictWrite().receivedAt).toEqual(NOW);
+      expect(verdictWrite().processedAt).toEqual(NOW);
+      expect(stampsOfTheRest()).toEqual(stamped(NOW));
+      expect(deviceUpdatePayload()["lastRebootedAt"]).toEqual(
+        new Date(NOW.getTime() - UPTIME_SECONDS * 1000),
+      );
+    },
+  );
+
+  test("the verdict is written before anything else the poll writes", async () => {
+    mockPoll();
+
+    await poll(RECEIVED_AT);
+
+    const verdictOrder: number = pollVerdictSpy.mock.invocationCallOrder[0]!;
+    for (const later of [
+      deviceUpdateSpy,
+      interfaceUpsertSpy,
+      endpointUpsertSpy,
+      learnSpy,
+      resolvedAddressSpy,
+      ownMacSpy,
+    ]) {
+      expect(later.mock.invocationCallOrder[0]).toBeGreaterThan(verdictOrder);
+    }
+  });
+
+  /*
+   * The device holds the verdict of a poll received after this one. This
+   * poll's reachability and its read of the device - system group,
+   * neighbours, vendor - are older than what is stored.
+   */
+  test("an older poll than the device's verdict writes neither the verdict nor the device's details", async () => {
+    mockPoll();
+    pollVerdictSpy.mockResolvedValue(false);
+    const debug: jest.SpyInstance = silence("debug");
+
+    await poll(RECEIVED_AT);
+
+    expect(pollVerdictSpy).toHaveBeenCalledTimes(1);
+    expect(deviceUpdateSpy).not.toHaveBeenCalled();
+    expect(
+      debug.mock.calls.some((call: Array<unknown>) => {
+        return String(call[0]).includes(
+          "did not write the device's reachability or details",
+        );
+      }),
+    ).toBe(true);
+  });
+
+  /*
+   * Interfaces and endpoints are other tables: their own statements write
+   * only rows this poll is newer for, so they are handed the poll as usual.
+   */
+  test("an older poll still hands its interfaces, endpoints and readings on, with its receipt time", async () => {
+    mockPoll();
+    pollVerdictSpy.mockResolvedValue(false);
+
+    await poll(RECEIVED_AT);
+
+    expect(stampsOfTheRest()).toEqual(stamped(RECEIVED_AT));
+    for (const write of [
+      interfaceUpsertSpy,
+      endpointUpsertSpy,
+      learnSpy,
+      resolvedAddressSpy,
+      ownMacSpy,
+    ]) {
+      expect(write).toHaveBeenCalledTimes(1);
+    }
+  });
+
+  test.each([
+    ["waits out the lock timeout", "55P03", "canceling statement due to lock timeout"],
+    ["deadlocks", "40P01", "deadlock detected"],
+  ])(
+    "a verdict that %s is left for the next poll, and the rest of the poll is written",
+    async (_label: string, code: string, message: string) => {
+      mockPoll();
+      pollVerdictSpy.mockRejectedValue(lockError(code, message));
+      const warn: jest.SpyInstance = silence("warn");
+      const error: jest.SpyInstance = silence("error");
+
+      await poll(RECEIVED_AT);
+
+      const leftForNextPoll: Array<string> = warn.mock.calls
+        .map((call: Array<unknown>) => {
+          return String(call[0]);
+        })
+        .filter((text: string) => {
+          return text.includes("was left for its next poll");
+        });
+      expect(leftForNextPoll).toHaveLength(1);
+      expect(leftForNextPoll[0]).toContain(DEVICE_ID);
+      expect(leftForNextPoll[0]).toContain(message);
+
+      // Whether this poll is the newest is unknown: its details wait too.
+      expect(deviceUpdateSpy).not.toHaveBeenCalled();
+      expect(stampsOfTheRest()).toEqual(stamped(RECEIVED_AT));
+      expect(error).not.toHaveBeenCalled();
+    },
+  );
+
+  test("any other failure of the verdict is the inventory's own: logged, never thrown", async () => {
+    mockPoll();
+    pollVerdictSpy.mockRejectedValue(
+      new Error("Connection terminated unexpectedly"),
+    );
+    const warn: jest.SpyInstance = silence("warn");
+    const error: jest.SpyInstance = silence("error");
+
+    await expect(poll(RECEIVED_AT)).resolves.toBeUndefined();
+
+    expect(
+      warn.mock.calls.some((call: Array<unknown>) => {
+        return String(call[0]).includes("was left for its next poll");
+      }),
+    ).toBe(false);
+    expect(String(error.mock.calls[0]![0])).toContain(
+      "Failed to update network inventory",
+    );
+    expect(deviceUpdateSpy).not.toHaveBeenCalled();
+  });
+
+  // Its bound monitor owns its health: no verdict, but its inventory lands.
+  test("a monitor-backed device gets no verdict, and its details are still written", async () => {
+    mockServices([], {
+      monitoringMethod: NetworkDeviceMonitoringMethod.Monitor,
+    });
+    silence("warn");
+
+    await NetworkInventoryUtil.updateFromWalk({
+      projectId: new ObjectID(PROJECT_ID),
+      deviceId: new ObjectID(DEVICE_ID),
+      snmpResponse: buildSnmpResponse({
+        systemInfo: { sysName: "ap-01" },
+        interfaces: [walkedInterface()],
+      }),
+      isOnline: true,
+      receivedAt: RECEIVED_AT,
+    });
+
+    expect(pollVerdictSpy).not.toHaveBeenCalled();
+    expect(deviceUpdateSpy).toHaveBeenCalledTimes(1);
+    expect(deviceUpdateSpy.mock.calls[0][0].data["sysName"]).toBe("ap-01");
+    expect(interfaceUpsertSpy.mock.calls[0][0].now).toEqual(RECEIVED_AT);
   });
 });
