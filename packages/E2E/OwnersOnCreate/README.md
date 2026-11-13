@@ -47,7 +47,8 @@ Declare Incident's Initial State, under More fields, has a defined term for its
 title (issue #7543): a click on its "(Optional)", or on the empty end of its
 title's row, leaves the word's definition closed, and a press on the word
 opens it. The dropdown is still named "Initial State (Optional)", and the word
-"Initial State".
+"Initial State". While the definition shows, the dropdown keeps that name
+(issue #7561), and Tab goes from the word to Read more and back.
 
 And the other half, the owner rules pages (`?form=incident-rules`,
 `?form=alert-rules`, at `/dashboard/<project>/<incidents|alerts>/settings/owner-rules`),
