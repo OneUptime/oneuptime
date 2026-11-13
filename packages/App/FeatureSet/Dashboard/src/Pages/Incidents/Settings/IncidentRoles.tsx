@@ -215,7 +215,6 @@ const IncidentRoles: FunctionComponent<
             field: {
               description: true,
             },
-            noValueMessage: "-",
             title: IncidentRoleSettingsCopy.descriptionFieldTitle,
             type: FieldType.LongText,
           },

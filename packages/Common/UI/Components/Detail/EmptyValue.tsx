@@ -11,11 +11,32 @@ import React, { FunctionComponent, ReactElement } from "react";
  * a table or a form summary leaves in an empty cell - read out as "Not set"
  * to a screen reader. It used to be nothing at all, so the name of an empty
  * field hung over a blank line and read as if the card had not finished
- * loading.
+ * loading. A placeholder that is itself a dash ("-") is no words: the same
+ * dash (isDashText).
  */
 
 // The mark an empty value is drawn as, everywhere a detail card draws one.
 export const EMPTY_VALUE_MARK: string = "\u2014";
+
+/*
+ * The marks pages write for "nothing here": a hyphen, an en dash, an em
+ * dash. Written as a field's placeholder or a table column's
+ * noValueMessage, one is not words of its own: it was drawn as a hyphen
+ * darker than the dash every other empty value is, with nothing for a
+ * screen reader to hear (#7264), so it is drawn as that dash instead.
+ */
+export const DASH_PLACEHOLDERS: ReadonlyArray<string> = [
+  "-",
+  "\u2013",
+  "\u2014",
+];
+
+// Whether a page's words for an empty value are only a dash (DASH_PLACEHOLDERS).
+export const isDashText: (text: string | undefined) => boolean = (
+  text: string | undefined,
+): boolean => {
+  return typeof text === "string" && DASH_PLACEHOLDERS.includes(text.trim());
+};
 
 /*
  * On the value's own 24px line (leading-6): text-sm alone sets a 20px one,
@@ -35,7 +56,11 @@ const EmptyValue: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
 
-  if (props.placeholder) {
+  /*
+   * The field's own words - but a placeholder that is only a dash is the
+   * dash below, with "Not set" for a screen reader, not a hyphen of its own.
+   */
+  if (props.placeholder?.trim() && !isDashText(props.placeholder)) {
     return <PlaceholderText text={props.placeholder} />;
   }
 

@@ -176,7 +176,6 @@ const Mattermost: () => JSX.Element = (): ReactElement => {
             },
             title: "Mattermost Username",
             type: FieldType.Text,
-            noValueMessage: "-",
           },
           {
             field: {

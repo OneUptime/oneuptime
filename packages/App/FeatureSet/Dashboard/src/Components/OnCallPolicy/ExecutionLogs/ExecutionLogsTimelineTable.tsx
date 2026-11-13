@@ -526,7 +526,6 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
             title: "Acknowledged At",
             type: FieldType.DateTime,
 
-            noValueMessage: "-",
           },
           {
             field: {

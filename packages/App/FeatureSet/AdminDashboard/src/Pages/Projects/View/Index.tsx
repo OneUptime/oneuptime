@@ -79,7 +79,6 @@ const Projects: FunctionComponent = (): ReactElement => {
                 },
                 title: "Project ID",
                 fieldType: FieldType.ObjectID,
-                placeholder: "-",
               },
               {
                 field: {

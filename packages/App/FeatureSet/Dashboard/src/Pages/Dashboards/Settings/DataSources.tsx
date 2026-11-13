@@ -454,7 +454,6 @@ const DataSourcesPage: FunctionComponent<
               },
               title: "Description",
               type: FieldType.Text,
-              noValueMessage: "-",
             },
           ]}
         />

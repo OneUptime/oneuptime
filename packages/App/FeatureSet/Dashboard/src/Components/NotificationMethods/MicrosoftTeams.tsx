@@ -180,7 +180,6 @@ const MicrosoftTeams: () => JSX.Element = (): ReactElement => {
             },
             title: "Microsoft Teams Account",
             type: FieldType.Text,
-            noValueMessage: "-",
           },
           {
             field: {

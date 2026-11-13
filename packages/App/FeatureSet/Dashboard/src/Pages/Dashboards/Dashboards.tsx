@@ -195,7 +195,6 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
             field: {
               description: true,
             },
-            noValueMessage: "-",
             title: "Description",
             type: FieldType.LongText,
             hideOnMobile: true,
