@@ -132,6 +132,15 @@ export default class PublicDashboardSloHistoryPolicy {
       endDate,
     );
 
+    /*
+     * Copied, but checked: only a listed zone name, which the query binds
+     * as a parameter, and only where a bucket starts. A request without one
+     * gets the result it always did.
+     */
+    const timezone: Timezone | undefined = AggregateUtil.readTimezone(
+      requestedAggregateBy["timezone"],
+    );
+
     return {
       target: config.target,
       metricName: getSloHistoryMetricName(config.sloMetric),
@@ -143,11 +152,7 @@ export default class PublicDashboardSloHistoryPolicy {
        * grid it drew its x-axis for — without being able to choose one.
        */
       aggregationInterval: getSloChartAggregationInterval(rangeInMinutes),
-      /*
-       * Copied, but checked: only a listed zone name, which the query
-       * binds as a parameter, and only where a bucket starts.
-       */
-      timezone: AggregateUtil.readTimezone(requestedAggregateBy["timezone"]),
+      ...(timezone ? { timezone: timezone } : {}),
       limit: LIMIT_PER_PROJECT,
     };
   }

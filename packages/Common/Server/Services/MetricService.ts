@@ -202,6 +202,13 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
   public override async aggregateBy(
     aggregateBy: AggregateBy<Metric>,
   ): Promise<AggregatedResult> {
+    /*
+     * The reader's zone (#7277) is refused with a 400 here, before the
+     * point-type and service-key lookups below read anything: the base
+     * class checks it too, but only after them.
+     */
+    AggregateUtil.readTimezone(aggregateBy.timezone);
+
     if (
       aggregateBy.includeSampleAttributes === true &&
       this.getSanitizedGroupByAttributeKeys(aggregateBy).length > 0

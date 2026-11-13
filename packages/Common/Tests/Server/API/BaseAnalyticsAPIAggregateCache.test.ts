@@ -30,6 +30,7 @@ import Permission, {
   UserPermission,
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
+import Timezone from "../../../Types/Timezone";
 import UserType from "../../../Types/UserType";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
@@ -119,6 +120,8 @@ function buildAggregateBody(data: {
   aggregateColumnName: string;
   query?: JSONObject | undefined;
   groupBy?: JSONObject | undefined;
+  // The reader's zone the dashboard sends with a day or longer (#7277).
+  timezone?: Timezone | undefined;
 }): JSONObject {
   return {
     aggregateBy: JSONFunctions.serialize({
@@ -129,6 +132,7 @@ function buildAggregateBody(data: {
       endTimestamp: new Date("2026-09-18T00:00:00.000Z"),
       query: data.query || {},
       ...(data.groupBy ? { groupBy: data.groupBy } : {}),
+      ...(data.timezone ? { timezone: data.timezone } : {}),
       limit: 10,
       skip: 0,
     } as JSONObject),
@@ -794,6 +798,91 @@ describe("BaseAnalyticsAPI aggregate cache authorization", () => {
     expect(cacheRead.mock.calls[1]![1]).not.toBe(firstKey);
     expect(result.sentBody).toEqual(LIVE_BODY);
     expect(monitorLogService.aggregateBy).toHaveBeenCalledTimes(2);
+  });
+
+  /*
+   * The reader's zone moves where every day bucket starts (#7277): readers
+   * in two zones get two different answers to the same request, so they
+   * never share a slot, and the zone reaches the read with the request.
+   */
+  test("readers in two zones never share a slot, and each zone reaches the read", async () => {
+    const tenantPermissions: Dictionary<UserTenantAccessPermission> = {
+      [PROJECT_ID.toString()]: buildTenantPermissions(PROJECT_ID, [
+        grant(Permission.ProjectMember),
+      ]),
+    };
+
+    cacheRead.mockResolvedValue(null);
+
+    await callAggregateRoute({
+      uri: "/monitor-log/aggregate",
+      req: buildMemberRequest({
+        body: buildAggregateBody({
+          aggregateColumnName: "time",
+          query: { projectId: PROJECT_ID },
+          timezone: Timezone.AmericaNew_York,
+        }),
+        tenantPermissions,
+      }),
+    });
+
+    expect(cacheWrite).toHaveBeenCalledTimes(1);
+    const newYorkKey: string = cacheWrite.mock.calls[0]![1];
+
+    cacheRead.mockImplementation(
+      async (_namespace: string, key: string): Promise<JSONObject | null> => {
+        return key === newYorkKey ? CACHED_BODY : null;
+      },
+    );
+
+    for (const otherZone of [Timezone.AsiaTokyo, undefined]) {
+      const result: CallResult = await callAggregateRoute({
+        uri: "/monitor-log/aggregate",
+        req: buildMemberRequest({
+          body: buildAggregateBody({
+            aggregateColumnName: "time",
+            query: { projectId: PROJECT_ID },
+            timezone: otherZone,
+          }),
+          tenantPermissions,
+        }),
+      });
+
+      expect(result.sentBody).toEqual(LIVE_BODY);
+    }
+
+    const keysRead: Array<string> = cacheRead.mock.calls.map(
+      (call: Array<unknown>): string => {
+        return call[1] as string;
+      },
+    );
+    expect(new Set(keysRead).size).toBe(3);
+
+    const zonesRead: Array<unknown> = (
+      monitorLogService.aggregateBy as unknown as jest.Mock
+    ).mock.calls.map((call: Array<unknown>): unknown => {
+      return (call[0] as JSONObject)["timezone"];
+    });
+    expect(zonesRead).toEqual([
+      Timezone.AmericaNew_York,
+      Timezone.AsiaTokyo,
+      undefined,
+    ]);
+
+    // The same zone again is the same slot.
+    const again: CallResult = await callAggregateRoute({
+      uri: "/monitor-log/aggregate",
+      req: buildMemberRequest({
+        body: buildAggregateBody({
+          aggregateColumnName: "time",
+          query: { projectId: PROJECT_ID },
+          timezone: Timezone.AmericaNew_York,
+        }),
+        tenantPermissions,
+      }),
+    });
+
+    expect(again.sentBody).toEqual(CACHED_BODY);
   });
 
   /*

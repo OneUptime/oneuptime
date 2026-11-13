@@ -26,6 +26,8 @@ import NotFoundException from "../../../Types/Exception/NotFoundException";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import JSONFunctions from "../../../Types/JSONFunctions";
 import ObjectID from "../../../Types/ObjectID";
+import Timezone from "../../../Types/Timezone";
+import { INVALID_TIMEZONE_MESSAGE } from "../../../Server/Types/AnalyticsDatabase/AggregateBy";
 import StoredDashboardViewConfig from "../../../Utils/Dashboard/StoredDashboardViewConfig";
 import {
   SeededRandom,
@@ -1695,6 +1697,66 @@ describe("DashboardAPI public metrics-aggregate", () => {
 
       expect(getThrownError()).toBeInstanceOf(BadDataException);
       expectNothingAggregated();
+    });
+  });
+
+  /*
+   * The viewer's zone (issue #7277): a chart over a month reads days, and
+   * each starts at the viewer's midnight, so the zone the page sends reaches
+   * the read. MetricService.aggregateBy refuses one the Timezone list does
+   * not name before it reads anything, the point type included.
+   */
+  describe("the viewer's zone", () => {
+    it("reads a month of days in the zone the viewer sends", async () => {
+      await callWithAggregate({
+        startTimestamp: "2026-01-01T00:00:00.000Z",
+        endTimestamp: "2026-02-01T00:00:00.000Z",
+        timezone: "America/New_York",
+      });
+
+      expect(nextFunction).not.toHaveBeenCalled();
+      expect(getAggregateArgs()["timezone"]).toBe(Timezone.AmericaNew_York);
+    });
+
+    it("reads UTC's days, as before, when the viewer sends no zone", async () => {
+      await callWithAggregate();
+
+      expect(nextFunction).not.toHaveBeenCalled();
+      expect(getAggregateArgs()["timezone"]).toBeUndefined();
+    });
+
+    it("refuses a zone that is not one, before anything is read", async () => {
+      jest.spyOn(MetricService, "aggregateBy").mockRestore();
+
+      const executeQuery: jest.SpyInstance = jest
+        .spyOn(
+          MetricService as unknown as {
+            executeQuery: () => Promise<unknown>;
+          },
+          "executeQuery",
+        )
+        .mockResolvedValue({ data: [] });
+
+      for (const notAZone of [
+        "america/new_york",
+        "UTC'), 'UTC') AS time FROM system.one --",
+        330,
+      ]) {
+        jest.clearAllMocks();
+
+        await callWithAggregate({
+          startTimestamp: "2026-01-01T00:00:00.000Z",
+          endTimestamp: "2026-02-01T00:00:00.000Z",
+          timezone: notAZone,
+        });
+
+        const thrown: unknown = getThrownError();
+        expect(thrown).toBeInstanceOf(BadDataException);
+        expect((thrown as BadDataException).message).toBe(
+          INVALID_TIMEZONE_MESSAGE,
+        );
+        expect(executeQuery).not.toHaveBeenCalled();
+      }
     });
   });
 
