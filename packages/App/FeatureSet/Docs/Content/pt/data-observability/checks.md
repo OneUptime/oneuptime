@@ -8,14 +8,14 @@ Adicione uma verificação na aba **Verificações** de uma tabela:
 
 | Verificação | O que ela lê |
 | --- | --- |
-| **Null Percent** | Porcentagem de linhas cuja coluna está vazia |
-| **Duplicate Percent** | Porcentagem de valores que repetem o de outra linha |
-| **Distinct Count** | Quantos valores diferentes a coluna contém |
+| **Porcentagem de nulos** | Porcentagem de linhas cuja coluna está vazia |
+| **Porcentagem de duplicados** | Porcentagem de valores que repetem o de outra linha |
+| **Contagem de valores distintos** | Quantos valores diferentes a coluna contém |
 | **Mínimo**, **Máximo**, **Média**, **Soma** | De uma coluna numérica (uma Soma sem linhas é 0) |
-| **Invalid Percent** | Porcentagem de valores fora de uma lista que você informa |
-| **Format Mismatch Percent** | Porcentagem de valores que não estão em um formato que você escolhe, como Email, UUID ou Country Code, ou que não correspondem a uma expressão regular sua (todos os mecanismos, exceto o SQL Server e o Dataverse) |
-| **Orphan Count** | Linhas cujo valor não tem correspondência na coluna de outra tabela |
-| **Row Count** | Linhas na tabela, mais útil com **Segmentar por** |
+| **Porcentagem de valores inválidos** | Porcentagem de valores fora de uma lista que você informa |
+| **Porcentagem de formato incorreto** | Porcentagem de valores que não estão em um formato que você escolhe, como Email, UUID ou Country Code, ou que não correspondem a uma expressão regular sua (todos os mecanismos, exceto o SQL Server e o Dataverse) |
+| **Contagem de linhas órfãs** | Linhas cujo valor não tem correspondência na coluna de outra tabela |
+| **Número de linhas** | Linhas na tabela, mais útil com **Segmentar por** |
 | **SQL personalizado** | O número que um SELECT somente leitura seu retorna, chamado `value` (no MongoDB, o de um pipeline de agregação) |
 | **Linhas com falha** | Quantas linhas um SELECT somente leitura seu retorna: as linhas que não deveriam existir. 0 é saudável (no MongoDB, os documentos em que um pipeline termina) |
 
@@ -31,7 +31,7 @@ Cada verificação roda a cada 15 minutos, hora, 6 horas ou dia, como uma única
 
 ## Segmentos
 
-**Segmentar por** roda uma verificação uma vez por valor de uma coluna, como um tenant ou uma região: uma série e um alerta para cada um, para os 100 maiores segmentos. Uma Row Count segmentada alerta quando um tenant para de enviar dados enquanto os outros continuam.
+**Segmentar por** roda uma verificação uma vez por valor de uma coluna, como um tenant ou uma região: uma série e um alerta para cada um, para os 100 maiores segmentos. Um número de linhas segmentado alerta quando um tenant para de enviar dados enquanto os outros continuam.
 
 ## Alertas sobre uma verificação
 
@@ -48,13 +48,13 @@ O **Status** de uma verificação, em **Verificações** e na aba **Verificaçõ
 
 Uma verificação compete com a sua aplicação pelo banco de dados e, em um warehouse que cobra pelo que uma consulta lê, custa dinheiro. Três coisas mantêm isso sob controle:
 
-- **Porcentagem da amostra** lê uma parte das linhas em vez de todas, para uma verificação que lê uma taxa: Null Percent, Média, Invalid Percent e Format Mismatch Percent. A maioria dos mecanismos pula páginas inteiras da tabela; o MySQL, o Redshift, o ClickHouse e o MongoDB ainda leem todas as linhas, e poupam o trabalho nas demais. O Dataverse não tira amostras: uma verificação ali lê todas as linhas. Uma view pode recusá-la, e a verificação avisa.
+- **Porcentagem da amostra** lê uma parte das linhas em vez de todas, para uma verificação que lê uma taxa: Porcentagem de nulos, Média, Porcentagem de valores inválidos e Porcentagem de formato incorreto. A maioria dos mecanismos pula páginas inteiras da tabela; o MySQL, o Redshift, o ClickHouse e o MongoDB ainda leem todas as linhas, e poupam o trabalho nas demais. O Dataverse não tira amostras: uma verificação ali lê todas as linhas. Uma view pode recusá-la, e a verificação avisa.
 - **Máximo que uma verificação pode ler (GB)**, em **Configurações**, interrompe uma verificação no BigQuery ou no Athena antes que ela leia mais do que esse número de gigabytes. É 10 até você mudar.
 - **Esperar quando um banco de dados está ocupado**, em **Configurações**, deixa as verificações pendentes para a próxima coleta quando um banco de dados PostgreSQL, MySQL ou SQL Server parece ocupado. Fica ativado até você desativar, e o banco de dados diz quando as verificações esperaram.
 
 ## Linhas com falha
 
-Um número diz que algo está errado; algumas linhas dizem o quê. **Guardar Failing Rows**, em **Configurações**, guarda até 20 das linhas que uma verificação Failing Rows, Invalid Percent, Format Mismatch Percent ou Orphan Count encontrou, e **Linhas com falha** na verificação as mostra. Fica desativado até você ativá-lo. As colunas sensíveis são mascaradas onde a linha é lida, pelo que a Segurança de dados encontrou nelas ou pelos nomes delas, então o que sai do banco de dados, ou de uma sonda, já está mascarado. Uma coluna sensível que nenhuma varredura encontrou e cujo nome não a denuncia é guardada como está.
+Um número diz que algo está errado; algumas linhas dizem o quê. **Guardar Failing Rows**, em **Configurações**, guarda até 20 das linhas que uma verificação Linhas com falha, Porcentagem de valores inválidos, Porcentagem de formato incorreto ou Contagem de linhas órfãs encontrou, e **Linhas com falha** na verificação as mostra. Fica desativado até você ativá-lo. As colunas sensíveis são mascaradas onde a linha é lida, pelo que a Segurança de dados encontrou nelas ou pelos nomes delas, então o que sai do banco de dados, ou de uma sonda, já está mascarado. Uma coluna sensível que nenhuma varredura encontrou e cujo nome não a denuncia é guardada como está.
 
 As linhas ficam armazenadas no OneUptime: nos servidores do OneUptime no OneUptime Cloud, e nos seus em uma instalação auto-hospedada. Quem pode ler as verificações do projeto pode vê-las. Uma verificação guarda apenas as linhas da última execução, e desativar **Guardar Failing Rows** exclui o que cada verificação guardou.
 
@@ -104,9 +104,9 @@ As chaves são `name`, `table`, `database`, `type`, `column`, `segment`, `accept
 
 Cópias divergem: o data warehouse tem menos pedidos do que o banco de dados da aplicação, ou uma migração perdeu linhas. Uma reconciliação compara uma medida de duas tabelas, em um banco de dados ou em dois, em **Reconciliações**:
 
-- **Row Count**
+- **Número de linhas**
 - **Soma** de uma coluna
-- **Distinct Count** de uma coluna
+- **Contagem de valores distintos** de uma coluna
 - **SQL personalizado**: uma consulta somente leitura que retorna um número, chamado `value`
 
 Ela tem uma tolerância: **Absoluta**, uma quantidade fixa, ou **Percentual**, uma porcentagem do valor da origem. Cada lado é lido por uma verificação própria, que a reconciliação cria e mantém, junto com a coleta do banco de dados dele, então uma reconciliação pode comparar uma tabela PostgreSQL na sua rede com a cópia dela no Snowflake. Os dois valores são comparados assim que ambos tiverem sido lidos com até 15 minutos de diferença um do outro. Uma reconciliação grava:
