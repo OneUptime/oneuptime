@@ -106,9 +106,9 @@ test report.
 
 ## Sentences the Dashboard words
 
-A sentence the Dashboard writes too, for a record a person makes - a new
-monitor's default criteria (`Common/Types/Monitor/MonitorCriteriaInstance.ts`)
-- must read the same whichever way the record was made, so it is never
+A sentence the Dashboard writes too, for a record a person makes (a new
+monitor's default criteria, `Common/Types/Monitor/MonitorCriteriaInstance.ts`),
+must read the same whichever way the record was made, so it is never
 worded here by hand. The files `DASHBOARD_SHARED_TEXT_SOURCES` lists
 (`Common/Scripts/I18n/ServerLocales.ts`) are worded in the Dashboard's locale
 files (`App/FeatureSet/Dashboard/src/Locales`), and `npm run i18n:server-sync`

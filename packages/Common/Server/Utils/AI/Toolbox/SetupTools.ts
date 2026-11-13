@@ -1044,9 +1044,7 @@ export const SetUpWebsiteMonitoringTool: ObservabilityTool = {
       isApi: isApi,
       seeds: seeds,
       monitoringInterval: getMonitoringIntervalForMinutes(minutes),
-      translator: getRecordWordsTranslator(
-        await readSetupRecordsLanguage(ctx),
-      ),
+      translator: getRecordWordsTranslator(await readSetupRecordsLanguage(ctx)),
     });
     monitor.projectId = ctx.projectId;
 

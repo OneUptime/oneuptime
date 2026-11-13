@@ -278,9 +278,7 @@ async function askAiMonitor(data: {
 }): Promise<Monitor> {
   const serverCreate: SpyInstance<(...args: Array<never>) => unknown> = jest
     .spyOn(MonitorService, "create")
-    .mockImplementation((async (args: {
-      data: Monitor;
-    }): Promise<Monitor> => {
+    .mockImplementation((async (args: { data: Monitor }): Promise<Monitor> => {
       const created: Monitor = args.data;
       created._id = MONITOR_ID;
       return created;
@@ -292,7 +290,9 @@ async function askAiMonitor(data: {
   );
 
   const fromAskAi: Monitor = (
-    serverCreate.mock.calls[serverCreate.mock.calls.length - 1]![0] as unknown as {
+    serverCreate.mock.calls[
+      serverCreate.mock.calls.length - 1
+    ]![0] as unknown as {
       data: Monitor;
     }
   ).data;

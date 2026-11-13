@@ -102,9 +102,8 @@ const english: LocaleDictionary = readLocale(ENGLISH);
  * The sentences the Dashboard words (DASHBOARD_SHARED_TEXT_SOURCES): held to
  * the Dashboard's wording instead (ServerLocalesDashboardWords.test.ts).
  */
-const sharedWithDashboard: Set<string> = getDashboardSharedKeys(
-  findServerTextKeys(),
-);
+const sharedWithDashboard: Set<string> =
+  getDashboardSharedKeys(findServerTextKeys());
 
 const sameAsEnglish: Record<string, Array<string>> = JSON.parse(
   fs.readFileSync(SAME_AS_ENGLISH_FILE, "utf8"),
@@ -368,7 +367,7 @@ describe("findKeysInSource", () => {
         "translator.translateText('Back\\\\slash');",
         "translator.translateText('Escaped \\\"double\\\"');",
         "translator.translatePlural({ one: '{{count}} \"row\"', other: '{{count}} \"rows\"' }, 2);",
-        "translator.translatePlural({ one: \"{{count}} item\", other: '{{count}} \"items\"' }, 2);",
+        'translator.translatePlural({ one: "{{count}} item", other: \'{{count}} "items"\' }, 2);',
         "translator.translateText('Not closed",
         "');",
       ].join("\n"),

@@ -838,8 +838,8 @@ describe("set_up_website_monitoring, in the person's language", () => {
   ): Array<string> => {
     const words: Array<string> = [];
 
-    for (const step of monitor.monitorSteps?.data
-      ?.monitorStepsInstanceArray || []) {
+    for (const step of monitor.monitorSteps?.data?.monitorStepsInstanceArray ||
+      []) {
       for (const criteria of step.data?.monitorCriteria.data
         ?.monitorCriteriaInstanceArray || []) {
         words.push(criteria.data!.name, criteria.data!.description);
@@ -998,9 +998,7 @@ describe("set_up_website_monitoring, in the person's language", () => {
   test.each(["ar", "fa"])(
     "approved by a person reading it in %s, the criteria are in it, the address whole and no invisible marks in the record",
     async (language: string) => {
-      jest
-        .spyOn(UserLanguage, "getLanguage")
-        .mockResolvedValue("en" as never);
+      jest.spyOn(UserLanguage, "getLanguage").mockResolvedValue("en" as never);
 
       const words: Array<string> = criteriaWords(
         await setUp({ ...ctx, language: language }),

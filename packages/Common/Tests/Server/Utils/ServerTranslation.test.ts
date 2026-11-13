@@ -212,7 +212,9 @@ describe("getRecordWordsTranslator", () => {
     const german: Translator = getRecordWordsTranslator("de")!;
 
     expect(german.language).toBe("de");
-    expect(german.translateTemplate(ONLINE, { monitorName: "acme.example" })).toBe(
+    expect(
+      german.translateTemplate(ONLINE, { monitorName: "acme.example" }),
+    ).toBe(
       dashboardTranslator("de").translateTemplate(ONLINE, {
         monitorName: "acme.example",
       }),
