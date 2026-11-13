@@ -171,7 +171,7 @@ export const COMPATIBLE_INGEST_GUIDES: Array<CompatibleIngestGuideCopy> = [
         "Every log keeps its host, source, sourcetype and index, and its fields become attributes.",
       ),
       translationKey(
-        "Metric events are stored as metrics. Set service in an event's fields to name its service.",
+        "Metric events are stored as metrics. Set service.name in an event's fields to name its service.",
       ),
     ],
     dataTestId: "compatible-ingest-splunk-hec",
@@ -271,7 +271,8 @@ export function getHostAndPort(endpoint: CompatibleIngestEndpoint): {
 } {
   const match: RegExpMatchArray | null = endpoint.host.match(/^(.*):(\d+)$/);
 
-  if (match && !match[1]!.includes(":")) {
+  // A port after a name or an IPv4 address, or after a bracketed IPv6 one.
+  if (match && (!match[1]!.includes(":") || /^\[.*\]$/.test(match[1]!))) {
     return { hostname: match[1]!, port: match[2]! };
   }
 
