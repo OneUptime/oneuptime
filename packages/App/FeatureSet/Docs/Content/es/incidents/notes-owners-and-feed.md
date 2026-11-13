@@ -138,7 +138,7 @@ Leer una nota mediante la API, Terraform o un flujo de trabajo solo lista los ad
 
 ## Generar una nota con IA
 
-El editor tiene un botón **Redactar con IA**, en ambas páginas de notas y en los diálogos **Añadir nota pública** y **Añadir nota privada** del feed. Envía el incidente al proveedor de IA de tu proyecto y deja el Markdown generado en la nota, donde lo editas antes de publicar: nada se publica automáticamente.
+El editor tiene un botón **Redactar con IA**, en ambas páginas de notas y en los diálogos **Añadir nota pública** y **Añadir nota privada** del feed. Envía el incidente al [proveedor de LLM](/docs/ai/llm-provider) de tu proyecto y deja el Markdown generado en la nota, donde lo editas antes de publicar: nada se publica automáticamente.
 
 | Diálogo                                | Qué escribe                                                          | Plantillas                                                        |
 | -------------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------- |

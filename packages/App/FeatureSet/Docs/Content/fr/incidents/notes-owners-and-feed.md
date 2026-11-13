@@ -138,7 +138,7 @@ Lire une note par l'API, Terraform ou un workflow ne liste que les pièces joint
 
 ## Générer une note avec l'IA
 
-L'éditeur a un bouton **Rédiger avec l'IA**, sur les deux pages de notes et dans les boîtes de dialogue **Ajouter une note publique** et **Ajouter une note privée** du fil d'activité. Il envoie l'incident au fournisseur d'IA de votre projet et dépose le Markdown généré dans la note, où vous le modifiez avant de publier — rien n'est publié automatiquement.
+L'éditeur a un bouton **Rédiger avec l'IA**, sur les deux pages de notes et dans les boîtes de dialogue **Ajouter une note publique** et **Ajouter une note privée** du fil d'activité. Il envoie l'incident au [fournisseur LLM](/docs/ai/llm-provider) de votre projet et dépose le Markdown généré dans la note, où vous le modifiez avant de publier — rien n'est publié automatiquement.
 
 | Boîte de dialogue                               | Ce qu'elle rédige                                                    | Modèles                                                           |
 | ----------------------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------- |

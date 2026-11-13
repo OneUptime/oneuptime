@@ -138,7 +138,7 @@ Reading a note through the API, Terraform or a workflow lists only the attachmen
 
 ## Generating a note with AI
 
-The composer has a **Draft with AI** button, on both note pages and in the feed's **Add Public Note** and **Add Private Note** dialogs. It sends the incident to your project's AI provider and drops the generated Markdown into the note, where you edit it before posting — nothing is published automatically.
+The composer has a **Draft with AI** button, on both note pages and in the feed's **Add Public Note** and **Add Private Note** dialogs. It sends the incident to your project's [LLM provider](/docs/ai/llm-provider) and drops the generated Markdown into the note, where you edit it before posting — nothing is published automatically.
 
 | Dialog                             | What it writes                                                       | Templates                                                         |
 | ---------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------- |

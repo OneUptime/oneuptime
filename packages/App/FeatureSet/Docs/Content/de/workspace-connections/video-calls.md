@@ -309,7 +309,7 @@ OneUptime konnte das Meeting nicht in den Kalender seines Organisators eintragen
 :::
 
 :::details OneUptime AI konnte ein Transkript nicht lesen
-Die Karte sagt, warum: KI ist für das Projekt ausgeschaltet, das Projekt hat ein KI-Tageslimit erreicht, oder der KI-Anbieter hat abgelehnt. Sobald das behoben ist, liest **Erneut versuchen** auf der Karte es erneut.
+Die Karte sagt, warum: KI ist für das Projekt ausgeschaltet, das Projekt hat ein KI-Tageslimit erreicht, oder der [LLM-Anbieter](/docs/ai/llm-provider) des Projekts hat abgelehnt. Sobald das behoben ist, liest **Erneut versuchen** auf der Karte es erneut.
 :::
 
 ## Nächste Schritte

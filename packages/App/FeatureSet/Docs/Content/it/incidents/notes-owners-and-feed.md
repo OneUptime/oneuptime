@@ -138,7 +138,7 @@ Leggere una nota tramite l'API, Terraform o un workflow elenca solo gli allegati
 
 ## Generare una nota con l'IA
 
-L'editor ha un pulsante **Bozza con IA**, su entrambe le pagine delle note e nelle finestre **Aggiungi nota pubblica** e **Aggiungi nota privata** del feed. Invia l'incidente al fornitore di IA del vostro progetto e mette il Markdown generato nella nota, dove lo modificate prima di pubblicarlo — nulla viene pubblicato automaticamente.
+L'editor ha un pulsante **Bozza con IA**, su entrambe le pagine delle note e nelle finestre **Aggiungi nota pubblica** e **Aggiungi nota privata** del feed. Invia l'incidente al [provider LLM](/docs/ai/llm-provider) del vostro progetto e mette il Markdown generato nella nota, dove lo modificate prima di pubblicarlo — nulla viene pubblicato automaticamente.
 
 | Finestra                               | Che cosa scrive                                                      | Modelli                                                           |
 | -------------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------- |
