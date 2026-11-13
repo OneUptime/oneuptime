@@ -22,6 +22,7 @@ import {
   strayMarkers,
 } from "./DocsTranslationChecks";
 import { GETTING_STARTED_PLACES, cardTargetsAt } from "./GettingStartedPage";
+import { pathWithArrows } from "./DocsPageShape";
 import {
   menuSections,
   readCommonSource,
@@ -984,11 +985,12 @@ describe.each(LANGUAGES)("the Glossary in %s", (language: string) => {
           return segments.every((segment: string): boolean => {
             return isActionLabel(segment.trim());
           })
-            ? segments
-                .map((segment: string): string => {
+            ? pathWithArrows(
+                segments.map((segment: string): string => {
                   return drawnActionLabel(language, segment.trim());
-                })
-                .join(PATH_SEPARATOR)
+                }),
+                language,
+              )
             : null;
         }
 
