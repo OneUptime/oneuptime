@@ -1757,6 +1757,91 @@ test.describe("in the reader's language", () => {
       fullPage: false,
     });
   });
+
+  /*
+   * A recent note's time beside its author (#7648) read "20 minutes ago" on
+   * every language's page, and a Persian page laid that English out from
+   * the right: "minutes ago 20". It is in the reader's language now, its
+   * count in the language's digits, and read from the right in the order it
+   * is written.
+   */
+  test("a recent note's time reads in Persian, from the right in the order it is written", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // CASE-142's notes: Diego's, 20 minutes old, and Maya's, 35.
+    await open(page, CASE_NOTES_PATH);
+    const times: Locator = page.getByTestId("note-time");
+    for (const written of ["20 minutes ago", "35 minutes ago"]) {
+      await expect(times.filter({ hasText: written })).toHaveCount(1, {
+        timeout: 30000,
+      });
+    }
+
+    await open(page, CASE_NOTES_PATH, { lang: "fa" });
+    for (const written of ["۲۰ دقیقه پیش", "۳۵ دقیقه پیش"]) {
+      await expect(times.filter({ hasText: written })).toHaveCount(1, {
+        timeout: 30000,
+      });
+    }
+    await expect(times).toHaveCount(2);
+    await expect(times.filter({ hasText: /ago|[0-9]/ })).toHaveCount(0);
+
+    // Where each word and each digit of "۲۰ دقیقه پیش" is drawn.
+    const drawn: Array<{ text: string; left: number; right: number }> =
+      await times
+        .filter({ hasText: "۲۰ دقیقه پیش" })
+        .evaluate(
+          (
+            element: Element,
+          ): Array<{ text: string; left: number; right: number }> => {
+            const label: Node = element.firstChild!;
+            const content: string = label.textContent || "";
+            const boxOf: (
+              from: number,
+              to: number,
+            ) => { text: string; left: number; right: number } = (
+              from: number,
+              to: number,
+            ): { text: string; left: number; right: number } => {
+              const range: Range = document.createRange();
+              range.setStart(label, from);
+              range.setEnd(label, to);
+              const box: DOMRect = range.getBoundingClientRect();
+              return {
+                text: content.slice(from, to),
+                left: box.left,
+                right: box.right,
+              };
+            };
+            const pieces: Array<{ text: string; left: number; right: number }> =
+              [];
+            let start: number = 0;
+            for (const word of content.split(" ")) {
+              pieces.push(boxOf(start, start + word.length));
+              start += word.length + 1;
+            }
+            // The count's two digits, each on its own.
+            pieces.push(boxOf(0, 1), boxOf(1, 2));
+            return pieces;
+          },
+        );
+    const [count, minutes, ago, firstDigit, secondDigit] = drawn;
+
+    expect(
+      [count!.text, minutes!.text, ago!.text, firstDigit!.text],
+      "the words as written",
+    ).toEqual(["۲۰", "دقیقه", "پیش", "۲"]);
+    // From the right: the count, then the unit to its left, then "ago".
+    expect(minutes!.right).toBeLessThanOrEqual(count!.left + 0.5);
+    expect(ago!.right).toBeLessThanOrEqual(minutes!.left + 0.5);
+    // The count is drawn as written: "۲۰", never "۰۲".
+    expect(firstDigit!.right).toBeLessThanOrEqual(secondDigit!.left + 0.5);
+
+    await times.filter({ hasText: "۲۰ دقیقه پیش" }).scrollIntoViewIfNeeded();
+    await screenshot(page, "case-notes-time-fa-1280", { fullPage: false });
+  });
 });
 
 /*
