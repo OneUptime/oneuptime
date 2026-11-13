@@ -18,7 +18,7 @@ flowchart TB
     fn["Ваша функция и её<br/>OpenTelemetry SDK"] -->|"OTLP по HTTPS"| oneuptime["OneUptime"]
     oneuptime --> check{"faas.name или<br/>FaaS cloud.platform<br/>и service.name?"}
     check -->|"да"| serverless["Бессерверная функция<br/>со своими страницами"]
-    check -->|"нет"| services["Только службы"]
+    check -->|"нет"| services["Только сервисы"]
 ```
 
 ## Перед началом

@@ -2,6 +2,7 @@ import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import { dashboardLocale, drawnDashboardLabel } from "./DocsDashboardLabels";
+import { boldSpans } from "./DocsTranslationChecks";
 
 /*
  * THE DOCS SAY THE DASHBOARD'S ONE VERB FOR UNARCHIVING (#7387).
@@ -61,14 +62,6 @@ function linesIn(language: string): Array<DocsLine> {
  * Dashboard's button.
  */
 const ANOTHER_PRODUCTS_CHANNEL: RegExp = /Slack|Mattermost|Microsoft Teams/;
-
-function boldQuotes(text: string): Array<string> {
-  return Array.from(text.matchAll(/\*\*([^*\n]+)\*\*/g)).map(
-    (match: RegExpMatchArray): string => {
-      return match[1]!.trim();
-    },
-  );
-}
 
 interface OwnVerb {
   language: string;
@@ -160,7 +153,7 @@ describe("the five languages whose Unarchive button said another verb", () => {
       const pages: Set<string> = new Set(
         linesIn(ownVerb.language)
           .filter((docsLine: DocsLine): boolean => {
-            return boldQuotes(docsLine.line).includes(button);
+            return boldSpans(docsLine.line).includes(button);
           })
           .map((docsLine: DocsLine): string => {
             return docsLine.page;
@@ -183,7 +176,7 @@ describe("the five languages whose Unarchive button said another verb", () => {
           return !ANOTHER_PRODUCTS_CHANNEL.test(docsLine.line);
         })
         .flatMap((docsLine: DocsLine): Array<string> => {
-          return boldQuotes(docsLine.line);
+          return boldSpans(docsLine.line);
         })
         .filter((quote: string): boolean => {
           // A label, not a bold sentence that starts a paragraph.
@@ -223,7 +216,7 @@ describe("the Danish Archive verb, spelled one way", () => {
     const pages: Set<string> = new Set(
       linesIn("da")
         .filter((docsLine: DocsLine): boolean => {
-          return boldQuotes(docsLine.line).includes("Arkiver");
+          return boldSpans(docsLine.line).includes("Arkiver");
         })
         .map((docsLine: DocsLine): string => {
           return docsLine.page;
@@ -261,15 +254,21 @@ describe("the Archived workflows page's When Unarchived column", () => {
       );
       const column: string = drawnDashboardLabel(language, "When Unarchived");
 
-      expect(boldQuotes(page)).toContain(column);
+      expect(boldSpans(page)).toContain(column);
 
       if (language !== "en") {
         expect(column).not.toBe("When Unarchived");
-        expect(boldQuotes(page)).not.toContain("When Unarchived");
+        expect(boldSpans(page)).not.toContain("When Unarchived");
       }
     },
   );
 });
+
+/*
+ * A bold quote that names the Services menu, or a label that starts with
+ * its noun ("Службы, которые сбоят снова и снова"), as службы.
+ */
+const QUOTED_AS_SLUZHBY: RegExp = /(^|: |→ )Служб[ыа]([\s,]|$)/;
 
 describe("a service's noun in Russian", () => {
   it("the Dashboard says сервис, and no Russian page quotes the menu as службы", () => {
@@ -277,22 +276,33 @@ describe("a service's noun in Russian", () => {
 
     const quoted: Array<string> = linesIn("ru")
       .flatMap((docsLine: DocsLine): Array<string> => {
-        return boldQuotes(docsLine.line).map((quote: string): string => {
+        return boldSpans(docsLine.line).map((quote: string): string => {
           return `${docsLine.page}: ${quote}`;
         });
       })
       .filter((quote: string): boolean => {
-        return /(^|: |→ )Служб[ыа](\s|$)/.test(quote);
+        return QUOTED_AS_SLUZHBY.test(quote);
       });
 
     expect(quoted).toEqual([]);
+  });
+
+  it("the AI insights page's card is quoted as the Russian Dashboard draws it", () => {
+    const card: string = drawnDashboardLabel("ru", "Services that keep failing");
+    const page: string = fs.readFileSync(
+      path.join(CONTENT_DIR, "ru/ai/ai-sre.md"),
+      "utf8",
+    );
+
+    expect(card).toBe("Сервисы, которые сбоят снова и снова");
+    expect(boldSpans(page)).toContain(card);
   });
 
   it("the Russian pages that name the Services menu quote it as drawn", () => {
     const pages: Set<string> = new Set(
       linesIn("ru")
         .filter((docsLine: DocsLine): boolean => {
-          return boldQuotes(docsLine.line).some((quote: string): boolean => {
+          return boldSpans(docsLine.line).some((quote: string): boolean => {
             return /(^|→ )Сервисы(\s|$)/.test(quote);
           });
         })

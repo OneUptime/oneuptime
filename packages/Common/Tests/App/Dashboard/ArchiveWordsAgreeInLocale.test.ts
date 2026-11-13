@@ -501,6 +501,74 @@ describe("a service's noun", () => {
     expect(words["Services"]).toBe("Сервисы");
   });
 
+  /*
+   * The sentences about the Services list's records - its page, a service's
+   * own pages, the lists and forms that pick services, the permissions, the
+   * imports - say the list's noun too, not служба, which stays for a
+   * system's own services (systemd, Windows, OpenStack, a cloud's services).
+   */
+  const RU_SERVICE_SENTENCES: ReadonlyArray<string> = [
+    "The applications and microservices you run. Each service brings together its logs, traces, metrics, exceptions, incidents and owners in one place.",
+    "Link services from your service catalog to this code repository. Specify the path where each service's code lives.",
+    "No telemetry services entered",
+    "Only services that match conditions",
+    "Only exceptions from these services. Empty: every service.",
+    "Only logs from these services. Empty: every service.",
+    "Only spans from these services. Empty: every service.",
+    "List of services affected by this alert.",
+    "List of services affected by this event.",
+    "List of services affected by this incident.",
+    "List of services to pre-populate on incidents created from this template.",
+    "List of services to pre-populate on scheduled maintenance events created from this template.",
+    "Search and attach hosts, Kubernetes clusters, Docker hosts, databases, or services affected by this incident.",
+    "Search and attach hosts, Kubernetes clusters, Docker hosts, or services that incidents created from this template should pre-populate.",
+    "{{count}} services affected",
+    "{{count}} services affected_one",
+    "No monitor watches this service yet",
+    "The monitors watching this service, and the SLOs that measure them.",
+    "This team owns {{count}} services.",
+    "This team owns {{count}} services._one",
+    "{{count}} SLOs measure monitors of this service.",
+    "{{count}} SLOs measure monitors of this service._one",
+    "{{count}} monitors watch this service.",
+    "{{count}} monitors watch this service._one",
+    "{{count}} services carry this label.",
+    "{{count}} services carry this label._one",
+    "Services that keep failing",
+    "No service came up more than once.",
+    "Create, change and delete services, infrastructure and integrations.",
+    "Services, infrastructure and integrations, video calls and the audit log.",
+    "Created in the service catalog, owned by their team when the tool names one.",
+    "Open any trace of the service under **Services → Traces** and check that its resource attributes carry `cloud.platform={{platform}}` — without it, the telemetry is not filed as a cloud environment.",
+  ];
+
+  test("is сервис in the Russian sentences about the Services list's records", () => {
+    const words: Record<string, string> = readDashboardLocale("ru");
+    const other: Array<{ key: string; worded: string }> =
+      RU_SERVICE_SENTENCES.filter((key: string): boolean => {
+        return !/сервис/i.test(words[key] || "") || /служб/i.test(words[key]!);
+      }).map((key: string): { key: string; worded: string } => {
+        return { key: key, worded: words[key] || "" };
+      });
+
+    expect(other).toEqual([]);
+  });
+
+  test("the Admin Dashboard's Russian pair of options says one noun", () => {
+    const admin: Record<string, unknown> = JSON.parse(
+      fs.readFileSync(
+        path.resolve(
+          __dirname,
+          "../../../../App/FeatureSet/AdminDashboard/src/Locales/ru.json",
+        ),
+        "utf8",
+      ),
+    ) as Record<string, unknown>;
+
+    expect([admin["All services"], admin["Only services that match conditions"]])
+      .toEqual(["Все сервисы", "Только сервисы, соответствующие условиям"]);
+  });
+
   test("is service in Dutch, one and many", () => {
     const words: Record<string, string> = readDashboardLocale("nl");
 
