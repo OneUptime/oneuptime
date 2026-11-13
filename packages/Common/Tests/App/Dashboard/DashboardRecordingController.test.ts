@@ -177,7 +177,9 @@ describe("loading", () => {
     const h: Harness = harness();
 
     h.controller.update(at(HOME, DashboardRecordingDecision.Record));
-    h.controller.update(at(INCIDENT, DashboardRecordingDecision.PageNotRecorded));
+    h.controller.update(
+      at(INCIDENT, DashboardRecordingDecision.PageNotRecorded),
+    );
     await h.arrive();
 
     expect(h.calls).toEqual([["start", CONFIG.host, true]]);
@@ -228,7 +230,9 @@ describe("moving between pages", () => {
   test("pauses on a page that is not recorded, and resumes on the way back", async () => {
     const h: Harness = await recording();
 
-    h.controller.update(at(INCIDENT, DashboardRecordingDecision.PageNotRecorded));
+    h.controller.update(
+      at(INCIDENT, DashboardRecordingDecision.PageNotRecorded),
+    );
 
     expect(commands(h.calls)).toEqual(["pause"]);
     expect(h.controller.getStatus()).toBe(DashboardRecorderStatus.Paused);
@@ -243,9 +247,14 @@ describe("moving between pages", () => {
   test("pauses once, however many pages that are not recorded follow", async () => {
     const h: Harness = await recording();
 
-    h.controller.update(at(INCIDENT, DashboardRecordingDecision.PageNotRecorded));
     h.controller.update(
-      at("/dashboard/:projectId/logs", DashboardRecordingDecision.PageNotRecorded),
+      at(INCIDENT, DashboardRecordingDecision.PageNotRecorded),
+    );
+    h.controller.update(
+      at(
+        "/dashboard/:projectId/logs",
+        DashboardRecordingDecision.PageNotRecorded,
+      ),
     );
 
     expect(commands(h.calls)).toEqual(["pause"]);
@@ -273,7 +282,9 @@ describe("moving between pages", () => {
   test("stops from a pause too", async () => {
     const h: Harness = await recording();
 
-    h.controller.update(at(INCIDENT, DashboardRecordingDecision.PageNotRecorded));
+    h.controller.update(
+      at(INCIDENT, DashboardRecordingDecision.PageNotRecorded),
+    );
     h.controller.update(at(INCIDENT, DashboardRecordingDecision.ProjectOff));
 
     expect(commands(h.calls)).toEqual(["pause", "stop"]);
@@ -282,7 +293,10 @@ describe("moving between pages", () => {
   test("tags the recording with the page, and the guided setup's step", async () => {
     const h: Harness = await recording();
 
-    h.controller.noteGuidedSetupPlace({ setup: "website_down", step: "address" });
+    h.controller.noteGuidedSetupPlace({
+      setup: "website_down",
+      step: "address",
+    });
     h.controller.update(at(CREATE, DashboardRecordingDecision.Record));
 
     expect(h.calls).toContainEqual([
@@ -306,9 +320,14 @@ describe("moving between pages", () => {
   test("does not tag while paused", async () => {
     const h: Harness = await recording();
 
-    h.controller.update(at(INCIDENT, DashboardRecordingDecision.PageNotRecorded));
+    h.controller.update(
+      at(INCIDENT, DashboardRecordingDecision.PageNotRecorded),
+    );
     h.calls.length = 0;
-    h.controller.noteGuidedSetupPlace({ setup: "website_down", step: "address" });
+    h.controller.noteGuidedSetupPlace({
+      setup: "website_down",
+      step: "address",
+    });
 
     expect(h.calls).toEqual([]);
   });
@@ -345,7 +364,9 @@ describe("marking", () => {
     h.controller.noteInput();
     h.calls.length = 0;
     h.clock.now = 2000;
-    h.controller.update(at(INCIDENT, DashboardRecordingDecision.PageNotRecorded));
+    h.controller.update(
+      at(INCIDENT, DashboardRecordingDecision.PageNotRecorded),
+    );
 
     expect(h.calls).toEqual([
       ["track", DashboardSignalName.PageLeftQuickly],
@@ -356,7 +377,9 @@ describe("marking", () => {
   test("marks nothing while paused", async () => {
     const h: Harness = await recording();
 
-    h.controller.update(at(INCIDENT, DashboardRecordingDecision.PageNotRecorded));
+    h.controller.update(
+      at(INCIDENT, DashboardRecordingDecision.PageNotRecorded),
+    );
     h.calls.length = 0;
 
     for (let i: number = 0; i < FORM_REFUSALS_FOR_SIGNAL; i++) {

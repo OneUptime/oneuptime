@@ -407,48 +407,49 @@ describe("page masking options (#6834)", (): void => {
       jest.restoreAllMocks();
     });
 
-    const record: (page: PageMaskingOptions | null) => Promise<string> =
-      async (page: PageMaskingOptions | null): Promise<string> => {
-        if (page) {
-          setInitGlobal({ ...INIT_OPTIONS, ...page });
-        }
+    const record: (page: PageMaskingOptions | null) => Promise<string> = async (
+      page: PageMaskingOptions | null,
+    ): Promise<string> => {
+      if (page) {
+        setInitGlobal({ ...INIT_OPTIONS, ...page });
+      }
 
-        const instance: Recorder = new Recorder({
-          initOptions: INIT_OPTIONS,
-          // A policy somebody left on its least masked mode.
-          config: policy(),
-        });
+      const instance: Recorder = new Recorder({
+        initOptions: INIT_OPTIONS,
+        // A policy somebody left on its least masked mode.
+        config: policy(),
+      });
 
-        instance.start();
-        recorder = instance;
+      instance.start();
+      recorder = instance;
 
-        // Typing after the snapshot, and a mutation adding customer text.
-        const input: HTMLInputElement = document.getElementById(
-          "name",
-        ) as HTMLInputElement;
+      // Typing after the snapshot, and a mutation adding customer text.
+      const input: HTMLInputElement = document.getElementById(
+        "name",
+      ) as HTMLInputElement;
 
-        input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new Event("input", { bubbles: true }));
 
-        const added: HTMLParagraphElement = document.createElement("p");
-        added.textContent = CUSTOMER_DATA["card"] as string;
-        document.body.appendChild(added);
+      const added: HTMLParagraphElement = document.createElement("p");
+      added.textContent = CUSTOMER_DATA["card"] as string;
+      document.body.appendChild(added);
 
-        instance.trigger(SessionReplayTriggerReason.Manual);
+      instance.trigger(SessionReplayTriggerReason.Manual);
 
-        await new Promise<void>((resolve: () => void): void => {
-          setTimeout(resolve, 0);
-        });
+      await new Promise<void>((resolve: () => void): void => {
+        setTimeout(resolve, 0);
+      });
 
-        const hide: Event = new Event("pagehide");
-        Object.defineProperty(hide, "persisted", { value: false });
-        window.dispatchEvent(hide);
+      const hide: Event = new Event("pagehide");
+      Object.defineProperty(hide, "persisted", { value: false });
+      window.dispatchEvent(hide);
 
-        await new Promise<void>((resolve: () => void): void => {
-          setTimeout(resolve, 0);
-        });
+      await new Promise<void>((resolve: () => void): void => {
+        setTimeout(resolve, 0);
+      });
 
-        return allPostedBytes();
-      };
+      return allPostedBytes();
+    };
 
     it("records the product's words and no customer data with the Dashboard's page options", async (): Promise<void> => {
       const posted: string = await record({

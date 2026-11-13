@@ -433,7 +433,10 @@ describe("Recorder page pause (#6834)", (): void => {
 
       // Back on a page it records: the earlier page's words are gone.
       (document.getElementById("secret") as HTMLElement).remove();
-      document.body.insertAdjacentHTML("beforeend", "<h2>Project Settings</h2>");
+      document.body.insertAdjacentHTML(
+        "beforeend",
+        "<h2>Project Settings</h2>",
+      );
 
       instance.resume();
       await flushTick();
@@ -548,16 +551,17 @@ describe("Recorder page pause (#6834)", (): void => {
   });
 
   describe("through window.OneUptimeReplay and its queue", (): void => {
-    const importIndex: () => Promise<typeof import("../src/Index")> =
-      async (): Promise<typeof import("../src/Index")> => {
-        let index: typeof import("../src/Index") | null = null;
+    const importIndex: () => Promise<
+      typeof import("../src/Index")
+    > = async (): Promise<typeof import("../src/Index")> => {
+      let index: typeof import("../src/Index") | null = null;
 
-        await jest.isolateModulesAsync(async (): Promise<void> => {
-          index = await import("../src/Index");
-        });
+      await jest.isolateModulesAsync(async (): Promise<void> => {
+        index = await import("../src/Index");
+      });
 
-        return index as unknown as typeof import("../src/Index");
-      };
+      return index as unknown as typeof import("../src/Index");
+    };
 
     afterEach((): void => {
       delete globalRecord["__ONEUPTIME_SESSION_REPLAY_STARTED__"];
@@ -579,9 +583,7 @@ describe("Recorder page pause (#6834)", (): void => {
 
       // The live queue resumes it, on the page as it is then.
       (document.getElementById("secret") as HTMLElement).remove();
-      (globalRecord["OneUptimeReplayQueue"] as Array<unknown>).push([
-        "resume",
-      ]);
+      (globalRecord["OneUptimeReplayQueue"] as Array<unknown>).push(["resume"]);
       await flushTick();
 
       expect(index.getDiagnostics().state).toBe("uploading");

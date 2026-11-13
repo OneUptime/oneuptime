@@ -88,11 +88,13 @@ jest.mock("../../../UI/Utils/User", () => {
       isLoggedIn: (): boolean => {
         return true;
       },
-      getUserId: () => {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const ObjectIDClass: typeof import("../../../Types/ObjectID").default =
-          require("../../../Types/ObjectID").default;
-        return new ObjectIDClass("5a1c5e0f2b3d4c5e6f708192");
+      // What the component reads of an id: its string.
+      getUserId: (): { toString: () => string } => {
+        return {
+          toString: (): string => {
+            return "5a1c5e0f2b3d4c5e6f708192";
+          },
+        };
       },
     },
   };
@@ -222,9 +224,12 @@ describe("DashboardRecording", () => {
       (document.querySelector(SCRIPT_SELECTOR) as HTMLScriptElement).src,
     ).toBe("https://oneuptime.com/telemetry/session-replay/v1/recorder.js");
     expect(
-      (windowRecord()["__ONEUPTIME_SESSION_REPLAY__"] as Record<string, unknown>)[
-        "maskAllText"
-      ],
+      (
+        windowRecord()["__ONEUPTIME_SESSION_REPLAY__"] as Record<
+          string,
+          unknown
+        >
+      )["maskAllText"],
     ).toBe(true);
   });
 

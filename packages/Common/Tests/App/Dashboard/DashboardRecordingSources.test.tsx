@@ -1,7 +1,15 @@
 import "@testing-library/jest-dom";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import React from "react";
+import fs from "fs";
+import path from "path";
 
 /*
  * What a recording of the setup pages hears about (#6834), from the places
@@ -113,10 +121,6 @@ describe("FormRefusals", () => {
 
 describe("ModelForm and a server that refuses", () => {
   test("reports the refusal where it shows the server's message, and nothing on success", () => {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const fs: typeof import("fs") = require("fs");
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const path: typeof import("path") = require("path");
     const source: string = fs.readFileSync(
       path.join(__dirname, "../../../UI/Components/Forms/ModelForm.tsx"),
       "utf8",
@@ -244,9 +248,9 @@ describe("GuidedSetupFrame and a recording", () => {
     expect(
       screen.getByText("What to watch").closest(`.${PRODUCT_TEXT_CLASS_NAME}`),
     ).not.toBeNull();
-    expect(
-      screen.getByTestId("guided-setup-progress").className,
-    ).toContain(PRODUCT_TEXT_CLASS_NAME);
+    expect(screen.getByTestId("guided-setup-progress").className).toContain(
+      PRODUCT_TEXT_CLASS_NAME,
+    );
     expect(
       screen
         .getByText("Watching payments.example.com")

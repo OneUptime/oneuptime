@@ -191,7 +191,9 @@ describe("a card in CardFormSections", () => {
     const title: HTMLElement = cardTitled("Monitor Criteria").title!;
 
     // Its words are the product's own, readable in a recording of the setup pages (#6834).
-      expect(title.className).toBe(withProductText(CARD_SECTION_TITLE_CLASS_NAME));
+    expect(title.className).toBe(
+      withProductText(CARD_SECTION_TITLE_CLASS_NAME),
+    );
     expect(title).toHaveClass("text-base", "leading-6");
     // No larger title from sm up: it was a card's there.
     expect(

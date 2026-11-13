@@ -53,7 +53,10 @@ function isUsableSelector(selector: string): boolean {
 export function readPageMaskingOptions(
   windowRef: Window | null | undefined,
 ): PageMaskingOptions {
-  const options: PageMaskingOptions = { maskAllText: false, blockSelectors: [] };
+  const options: PageMaskingOptions = {
+    maskAllText: false,
+    blockSelectors: [],
+  };
 
   let raw: unknown = null;
 
@@ -100,9 +103,7 @@ export function readPageMaskingOptions(
  * asks for it, and the page's block selectors after the policy's. A new
  * object; the policy itself is left as it came.
  */
-export function applyPageMasking<
-  TConfig extends SessionReplayConfigResponse,
->(
+export function applyPageMasking<TConfig extends SessionReplayConfigResponse>(
   config: TConfig,
   page: PageMaskingOptions,
 ): TConfig {

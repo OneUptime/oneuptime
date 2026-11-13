@@ -371,9 +371,7 @@ export default class Masking {
     }
 
     try {
-      const revealed: Element | null = element.closest(
-        `.${UNMASK_CLASS_NAME}`,
-      );
+      const revealed: Element | null = element.closest(`.${UNMASK_CLASS_NAME}`);
 
       if (!revealed || element.closest(FORM_CONTROL_SELECTOR)) {
         return false;

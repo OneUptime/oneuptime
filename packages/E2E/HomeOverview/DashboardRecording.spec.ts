@@ -26,6 +26,8 @@ const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
 const NOW: Date = new Date("2026-10-13T12:00:00.000Z");
 const HOME: string = `/dashboard/${PROJECT_ID}/home/`;
 const SETUP_HEALTH: string = `/dashboard/${PROJECT_ID}/home/setup-health`;
+// The recorder's code: a file of its own, split out of the bundle by import().
+const RECORDER_CHUNK: RegExp = /\/dist\/DashboardRecorder-[^/]*\.js$/;
 
 const requests: Map<Page, Array<string>> = new Map();
 const aborted: Map<Page, Array<string>> = new Map();
@@ -62,9 +64,7 @@ test.beforeEach(async ({ page }: { page: Page }) => {
 
 test.afterEach(async ({ page }: { page: Page }) => {
   expect(pageErrors.get(page) || [], "uncaught page errors").toEqual([]);
-  expect(aborted.get(page) || [], "requests that left the fixture").toEqual(
-    [],
-  );
+  expect(aborted.get(page) || [], "requests that left the fixture").toEqual([]);
 });
 
 const open: (page: Page, query?: string) => Promise<void> = async (
@@ -197,7 +197,7 @@ test("on Cloud, with consent and both switches on, Home loads the recorder from 
   // The recorder's code came as a file of its own, then the docs' loader.
   expect(
     fetched.some((url: string): boolean => {
-      return /\/dist\/DashboardRecorder-[^/]*\.js$/.test(url);
+      return RECORDER_CHUNK.test(url);
     }),
   ).toBe(true);
   expect(fetched).toContain(
@@ -222,7 +222,5 @@ test("on Cloud, with consent and both switches on, Home loads the recorder from 
   expect((state.queue as Array<Array<unknown>>)[0]).toEqual(["grantConsent"]);
 
   // The product's own words are marked for the recording; a record's are not.
-  await expect(
-    page.locator(".oneuptime-unmask").first(),
-  ).toBeAttached();
+  await expect(page.locator(".oneuptime-unmask").first()).toBeAttached();
 });

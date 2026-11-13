@@ -56,10 +56,7 @@ describe("ProductText", () => {
 
   test("a card's title and description in words", () => {
     render(
-      <Card
-        title="Project Details"
-        description="The name your team sees."
-      />,
+      <Card title="Project Details" description="The name your team sees." />,
     );
 
     expect(isMarked(screen.getByText("Project Details"))).toBe(true);
@@ -81,7 +78,10 @@ describe("ProductText", () => {
   test("a page's title and description", () => {
     render(
       <MemoryRouter>
-        <Page title="Project Settings" description="What this project is called." />
+        <Page
+          title="Project Settings"
+          description="What this project is called."
+        />
       </MemoryRouter>,
     );
 
@@ -127,7 +127,10 @@ describe("ProductText", () => {
   test("a top menu entry", () => {
     render(
       <MemoryRouter>
-        <NavBarItem title="Monitors" route={new Route("/dashboard/p/monitors")} />
+        <NavBarItem
+          title="Monitors"
+          route={new Route("/dashboard/p/monitors")}
+        />
       </MemoryRouter>,
     );
 

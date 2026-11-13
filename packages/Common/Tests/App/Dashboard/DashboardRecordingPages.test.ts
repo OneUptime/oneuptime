@@ -73,9 +73,11 @@ describe("the recorded pages", () => {
     expect(source).not.toMatch(/["'`]\/dashboard/);
   });
 
-  test.each(RECORDED_PAGES.map((page: PageMap): [PageMap] => {
-    return [page];
-  }))("records %s at its address", (page: PageMap) => {
+  test.each(
+    RECORDED_PAGES.map((page: PageMap): [PageMap] => {
+      return [page];
+    }),
+  )("records %s at its address", (page: PageMap) => {
     expect(isRecordedPath(pathOf(page))).toBe(true);
   });
 

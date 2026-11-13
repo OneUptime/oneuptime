@@ -89,8 +89,10 @@ const description: () => HTMLElement = (): HTMLElement => {
 const classWithoutProductText: (element: Element) => string = (
   element: Element,
 ): string => {
-  return (element.getAttribute("class") || "")
-    .replace(` ${PRODUCT_TEXT_CLASS_NAME}`, "");
+  return (element.getAttribute("class") || "").replace(
+    ` ${PRODUCT_TEXT_CLASS_NAME}`,
+    "",
+  );
 };
 
 const classOf: (element: Element) => string = (element: Element): string => {

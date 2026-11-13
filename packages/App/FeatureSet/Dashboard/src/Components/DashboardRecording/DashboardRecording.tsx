@@ -209,7 +209,8 @@ const DashboardRecording: FunctionComponent<ComponentProps> = (
       decision: decision,
       config: config,
       page: getFeedbackPageFor(location.pathname),
-      isSampleProject: ProjectUtil.getCurrentProject()?.isSampleProject === true,
+      isSampleProject:
+        ProjectUtil.getCurrentProject()?.isSampleProject === true,
     });
   }, [decision, location.pathname]);
 

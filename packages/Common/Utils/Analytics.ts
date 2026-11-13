@@ -227,8 +227,7 @@ export default class Analytics {
     }
 
     return (
-      !Analytics.hasGlobalPrivacyControl(page) &&
-      !Analytics.hasDoNotTrack(page)
+      !Analytics.hasGlobalPrivacyControl(page) && !Analytics.hasDoNotTrack(page)
     );
   }
 

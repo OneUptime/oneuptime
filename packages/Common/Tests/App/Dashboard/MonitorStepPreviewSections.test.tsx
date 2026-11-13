@@ -176,7 +176,9 @@ describe.each(CASES)(
 
       expect(title).toHaveTextContent(previewCase.title);
       // Its words are the product's own, readable in a recording of the setup pages (#6834).
-      expect(title.className).toBe(withProductText(CARD_SECTION_TITLE_CLASS_NAME));
+      expect(title.className).toBe(
+        withProductText(CARD_SECTION_TITLE_CLASS_NAME),
+      );
     });
 
     test("draws no rule or heading of its own: no larger, lighter heading over a 32px rule", async () => {

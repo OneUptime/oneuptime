@@ -104,23 +104,17 @@ describe("Analytics.isSessionRecordingAllowed", () => {
     ["navigator.doNotTrack (old Firefox)", "yes"],
     ["navigator.msDoNotTrack", "1"],
     ["window.doNotTrack", "1"],
-  ])(
-    "honours Do Not Track sent as %s",
-    (where: string, value: string) => {
-      accept();
+  ])("honours Do Not Track sent as %s", (where: string, value: string) => {
+    accept();
 
-      if (where.startsWith("window")) {
-        measurementWindow()["doNotTrack"] = value;
-      } else {
-        setNavigator(
-          where.includes("ms") ? "msDoNotTrack" : "doNotTrack",
-          value,
-        );
-      }
+    if (where.startsWith("window")) {
+      measurementWindow()["doNotTrack"] = value;
+    } else {
+      setNavigator(where.includes("ms") ? "msDoNotTrack" : "doNotTrack", value);
+    }
 
-      expect(Analytics.isSessionRecordingAllowed()).toBe(false);
-    },
-  );
+    expect(Analytics.isSessionRecordingAllowed()).toBe(false);
+  });
 
   it('records when Do Not Track says "0" or nothing', () => {
     accept();

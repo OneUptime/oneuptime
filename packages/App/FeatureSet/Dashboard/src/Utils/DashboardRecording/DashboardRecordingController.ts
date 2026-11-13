@@ -130,8 +130,7 @@ export default class DashboardRecordingController {
     }
 
     if (isRecordedHere) {
-      const wasPaused: boolean =
-        this.status === DashboardRecorderStatus.Paused;
+      const wasPaused: boolean = this.status === DashboardRecorderStatus.Paused;
 
       if (wasPaused) {
         this.recorder?.resume();
