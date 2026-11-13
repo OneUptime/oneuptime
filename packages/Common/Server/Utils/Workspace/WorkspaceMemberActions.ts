@@ -50,6 +50,7 @@ import ScheduledMaintenanceStateTimelineService from "../../Services/ScheduledMa
 import Query from "../../Types/Database/Query";
 import Select from "../../Types/Database/Select";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import type { OnCallPersonPageRecordKind } from "../OnCall/OnCallPersonPageAnswer";
 import WorkspaceActionAuthorization, {
   WorkspaceActionResource,
 } from "./WorkspaceActionAuthorization";
@@ -227,6 +228,28 @@ function readerOf(props: DatabaseCommonInteractionProps): string | null {
 export default class WorkspaceMemberActions {
   public static getNoun(type: WorkspaceEventType): string {
     return EVENT_TYPES[type].noun;
+  }
+
+  /*
+   * The record as the pages about it name it (OnCallPersonPageAnswer): an
+   * incident, an alert or an episode. Null for a scheduled maintenance
+   * event, which nobody is paged about.
+   */
+  public static getPageRecordKind(
+    type: WorkspaceEventType,
+  ): OnCallPersonPageRecordKind | null {
+    switch (type) {
+      case WorkspaceEventType.Incident:
+        return "incident";
+      case WorkspaceEventType.Alert:
+        return "alert";
+      case WorkspaceEventType.IncidentEpisode:
+        return "incident episode";
+      case WorkspaceEventType.AlertEpisode:
+        return "alert episode";
+      default:
+        return null;
+    }
   }
 
   /*

@@ -1075,9 +1075,11 @@ describe("a page a person asked for, about an incident somebody is on already (#
     /*
      * The incident's own Acknowledge is gone - somebody acknowledged it -
      * so the header offers Acknowledge again for the page, as for a page
-     * again (issue #7596).
+     * again (issue #7596) - and the app says Ana is paged, not paged
+     * again: somebody asked for her.
      */
     expect(pages[0]!.isPageAgain).toBe(true);
+    expect(pages[0]!.isAskedFor).toBe(true);
   });
 
   test("about an incident nobody acknowledged, the incident's own Acknowledge answers it: no Acknowledge again", async () => {
@@ -1095,6 +1097,7 @@ describe("a page a person asked for, about an incident somebody is on already (#
 
     expect(pages).toHaveLength(1);
     expect("isPageAgain" in pages[0]!).toBe(false);
+    expect("isAskedFor" in pages[0]!).toBe(false);
   });
 
   test("once one of its people answered it, it is taken - and says who", async () => {

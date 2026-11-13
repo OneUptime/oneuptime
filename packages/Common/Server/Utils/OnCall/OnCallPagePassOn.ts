@@ -421,20 +421,26 @@ export default class OnCallPagePassOn {
         continue;
       }
 
+      /*
+       * A page again (OnCallAcknowledgementTimeout): its record was
+       * acknowledged all along, so the page itself is what the person
+       * acknowledges. So is a person's page, or a policy started by hand,
+       * about a record acknowledged already (isAnsweredAsAPage) - asked for
+       * by hand, not a page again, which the app words apart (isAskedFor).
+       */
+      const isAnsweredAsAPage: boolean = await this.isAnsweredAsAPage(
+        read.state.run,
+      );
+
       pages.push({
         executionLogId: executionLogId.toString(),
         preview: await this.predict({
           userId: data.userId,
           run: read.state.run,
         }),
-        /*
-         * A page again (OnCallAcknowledgementTimeout): its record was
-         * acknowledged all along, so the page itself is what the person
-         * acknowledges. So is a person's page, or a policy started by hand,
-         * about a record acknowledged already (isAnsweredAsAPage).
-         */
-        ...((await this.isAnsweredAsAPage(read.state.run))
-          ? { isPageAgain: true as const }
+        ...(isAnsweredAsAPage ? { isPageAgain: true as const } : {}),
+        ...(isAnsweredAsAPage && !isOnCallPageAgainRun(read.state.run)
+          ? { isAskedFor: true as const }
           : {}),
         /*
          * An observer's page (OnCallObserverPage): the person is kept

@@ -324,6 +324,8 @@ describe("3. a policy started by hand on an incident somebody acknowledged alrea
     expect(pages).toHaveLength(1);
     expect(pages[0]!.executionLogId).toBe(run.toString());
     expect(pages[0]!.isPageAgain).toBe(true);
+    // Paged to help, not paged again: the app does not say "again".
+    expect(pages[0]!.isAskedFor).toBe(true);
 
     world.advance(3);
 
@@ -395,6 +397,7 @@ describe("3. a policy started by hand on an incident nobody acknowledged yet", (
 
     expect(pages).toHaveLength(1);
     expect("isPageAgain" in pages[0]!).toBe(false);
+    expect("isAskedFor" in pages[0]!).toBe(false);
   });
 });
 

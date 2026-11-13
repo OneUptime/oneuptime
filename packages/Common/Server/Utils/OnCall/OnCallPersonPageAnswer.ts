@@ -21,25 +21,25 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
  * else acknowledging the incident does not stop it, since it was them the
  * page was for. So does an on-call policy a person started by hand for an
  * incident, an alert or an episode (OnCallPolicyStartedByHand), and what
- * follows answers its pages the same way. Answering it is what its link, a call's 1 or a text do
- * (UserOnCallLogTimelineService.acknowledgePage) - and, just as naturally,
- * acknowledging the incident itself: its button in the channel, the
- * Dashboard, the app. Without this, the person paged who acknowledged the
- * incident from its channel was called ten minutes later, for a page they
- * had not answered.
+ * follows answers its pages the same way. Answering it is what its link, a
+ * call's 1 or a text do (UserOnCallLogTimelineService.acknowledgePage) -
+ * and, just as naturally, acknowledging the incident itself: its button in
+ * the channel, the Dashboard, the app. Without this, the person paged who
+ * acknowledged the incident from its channel was called ten minutes later,
+ * for a page they had not answered.
  *
  * So when somebody moves an incident, an alert or an episode into a state
  * that counts as acknowledged and is not resolved (a resolve ends every page
  * of it), each of THEIR pages still going out about it from a person's page
  * or a policy started by hand nobody answered yet is acknowledged, as
- * theirs: their notifications still due
- * stop, the page is answered and ends for everybody it paged, and its
- * message in the channel says they acknowledged. A change somebody else
- * makes answers nothing of theirs, and one OneUptime makes on its own (no
- * person) answers nothing at all. Pressing Acknowledge in Slack or
- * Microsoft Teams on a record somebody else acknowledged already answers
- * the presser's pages too (onAcknowledgePressed): it is the same "I'm on
- * it", though the record's state does not move.
+ * theirs: their notifications still due stop, the page is answered and ends
+ * for everybody it paged, and its message in the channel says they
+ * acknowledged. A change somebody else makes answers nothing of theirs, and
+ * one OneUptime makes on its own (no person) answers nothing at all.
+ * Pressing Acknowledge in Slack, Microsoft Teams or Mattermost on a record
+ * somebody else acknowledged already - an incident, an alert or an episode
+ * - answers the presser's pages too (onAcknowledgePressed): it is the same
+ * "I'm on it", though the record's state does not move.
  *
  * Every state timeline of an incident, an alert or an episode tells the one
  * hook every state change reaches (OnCallAcknowledgementTimeout.onRecordStateChanged),
@@ -81,15 +81,16 @@ const OPEN_PAGE_STATUSES: Array<UserNotificationExecutionStatus> = [
 
 export default class OnCallPersonPageAnswer {
   /*
-   * Acknowledge pressed on an incident or an alert that is acknowledged
-   * already - in Slack or Microsoft Teams, where the press is answered with
-   * who got there first. It is the press a person paged into an incident
-   * somebody else is on makes in its channel, and the incident's state does
-   * not move, so onRecordStateChanged hears nothing: the press answers the
-   * presser's own person's pages about it all the same, as acknowledging it
-   * would have. Without this, they were called again ten minutes after
-   * pressing Acknowledge. A resolved record answers nothing: resolving it
-   * ended its pages. Returns how many were answered; never throws.
+   * Acknowledge pressed on an incident, an alert or an episode that is
+   * acknowledged already - in Slack, Microsoft Teams or Mattermost, where
+   * the press is answered with who got there first. It is the press a
+   * person paged into an incident somebody else is on makes in its channel,
+   * and the incident's state does not move, so onRecordStateChanged hears
+   * nothing: the press answers the presser's own person's pages about it all
+   * the same, as acknowledging it would have. Without this, they were called
+   * again ten minutes after pressing Acknowledge. A resolved record answers
+   * nothing: resolving it ended its pages. Returns how many were answered;
+   * never throws.
    */
   @CaptureSpan()
   public static async onAcknowledgePressed(data: {

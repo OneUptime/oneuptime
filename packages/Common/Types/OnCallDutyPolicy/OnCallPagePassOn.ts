@@ -407,6 +407,17 @@ export interface OnCallOpenPage {
    */
   isPageAgain?: true | undefined;
   /*
+   * Present (true) beside isPageAgain when the page is not a page again but
+   * one somebody asked for by hand - a page a person sent (OnCallPersonPage)
+   * or a policy a person started (OnCallPolicyStartedByHand) - about a
+   * record somebody acknowledged already: the person is paged to help with
+   * it, not paged again about one they took, so the mobile app does not say
+   * "again" or "if you're still on it". An app that does not know it says
+   * what it says of a page again, and answers it the same way. Absent
+   * otherwise.
+   */
+  isAskedFor?: true | undefined;
+  /*
    * Present (true) when the page is an observer's (OnCallObserverPage): the
    * person is kept informed while others respond, and answers it by saying
    * they have seen it (ON_CALL_OBSERVER_PAGE_SEEN_ROUTE), so the mobile app
