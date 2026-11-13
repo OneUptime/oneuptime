@@ -94,6 +94,9 @@ import TeamMemberService from "../../../Services/TeamMemberService";
 import TeamService from "../../../Services/TeamService";
 import ActiveMonitorLimit from "../../Billing/ActiveMonitorLimit";
 import logger from "../../Logger";
+import UserLanguage from "../../Notification/UserLanguage";
+import { getRecordWordsTranslator } from "../../ServerTranslation";
+import { readRequestedReaderLanguage } from "../../../../Types/ReaderLanguage";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import {
   ObservabilityTool,
@@ -118,7 +121,10 @@ import WidgetBuilder from "./WidgetBuilder";
  *     website guided setup (#6804) - Create Monitor's defaults, the type's
  *     criteria, the probes a new monitor starts with - checked every five
  *     minutes unless asked otherwise. The person owns it, so they are
- *     emailed when its status changes.
+ *     emailed when its status changes. Its criteria, and the incident and
+ *     alert they open, are named in the language the person reads the
+ *     Dashboard in, as the guided setup names them (#7247,
+ *     readSetupRecordsLanguage).
  *   - set_up_paging: who is told, as #6804 decides it - the project's first
  *     on-call policy, "Default on-call policy", paging the people and teams
  *     picked ("you" by default), with the two catch-all rules that run it
@@ -470,6 +476,32 @@ async function readWebsiteMonitorSeeds(
     incidentSeverities: incidentSeverities,
     alertSeverities: alertSeverities,
   });
+}
+
+/*
+ * THE LANGUAGE A SETUP'S RECORDS ARE WORDED IN (#7247).
+ *
+ * The monitor names its criteria, and the incident and alert they open, in
+ * the language of the person it is made for - as the website guided setup
+ * names them for the same person, and Create Monitor does: the language
+ * they read the Dashboard in, as the request that approved it said
+ * (ToolContext.language), else the one saved on their account
+ * (User.language: their on-call pages are written in it, and the Dashboard
+ * starts in it), else English. A read that fails is English: a monitor is
+ * never held back for the language of its words.
+ */
+export async function readSetupRecordsLanguage(
+  ctx: ToolContext,
+): Promise<string> {
+  const requested: string | undefined = readRequestedReaderLanguage(
+    ctx.language,
+  );
+
+  if (requested) {
+    return requested;
+  }
+
+  return await UserLanguage.getLanguage(ctx.props.userId);
 }
 
 // The name of the incident severity a new monitor's criteria open, or null.
@@ -1002,12 +1034,19 @@ export const SetUpWebsiteMonitoringTool: ObservabilityTool = {
       throw new BadDataException(WEBSITE_MONITOR_SEEDS_MISSING);
     }
 
-    // The guided setup's monitor, for the same answers (Common/Utils/GuidedSetup).
+    /*
+     * The guided setup's monitor, for the same answers (Common/Utils/
+     * GuidedSetup), its criteria worded in the person's language as the
+     * guided setup words them (#7247): undefined is the builders' English.
+     */
     const monitor: Monitor = buildWebsiteMonitor({
       address: address,
       isApi: isApi,
       seeds: seeds,
       monitoringInterval: getMonitoringIntervalForMinutes(minutes),
+      translator: getRecordWordsTranslator(
+        await readSetupRecordsLanguage(ctx),
+      ),
     });
     monitor.projectId = ctx.projectId;
 

@@ -18,7 +18,14 @@ import {
   readNames,
   readPreparedResponders,
   readReachMethods,
+  readSetupRecordsLanguage,
 } from "../../../../../Server/Utils/AI/Toolbox/SetupTools";
+import UserLanguage from "../../../../../Server/Utils/Notification/UserLanguage";
+import {
+  FIRST_STRONG_ISOLATE,
+  POP_DIRECTIONAL_ISOLATE,
+} from "../../../../../Server/Utils/ServerTranslation";
+import UserService from "../../../../../Server/Services/UserService";
 import {
   ObservabilityTool,
   PreparedMutation,
@@ -89,11 +96,17 @@ import { PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY } from "../../../../../Types/
 import PositiveNumber from "../../../../../Types/PositiveNumber";
 import { GUIDED_SETUP_POLICY_NAME } from "../../../../../Utils/GuidedSetup/OnCallPolicyRecords";
 import { GUIDED_SETUP_RESOURCE_OPTIONS } from "../../../../../Utils/GuidedSetup/StatusPageRecords";
-import { GUIDED_SETUP_MONITORING_INTERVAL } from "../../../../../Utils/GuidedSetup/WebsiteMonitorRecords";
+import {
+  GUIDED_SETUP_MONITORING_INTERVAL,
+  buildWebsiteMonitor,
+  parseWebsiteAddress,
+} from "../../../../../Utils/GuidedSetup/WebsiteMonitorRecords";
+import { Translator } from "../../../../../Types/Translator";
 import {
   actionLineText,
   actionTitleText,
 } from "../../../../Helpers/AIActionText";
+import { dashboardTranslator } from "../../../../Helpers/DashboardLocales";
 import { afterEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -809,6 +822,255 @@ describe("set_up_website_monitoring", () => {
       SetUpWebsiteMonitoringTool.execute({ address: "example.com" }, ctx),
     ).rejects.toThrow("missing its monitor statuses or severities");
     expect(create).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * #7247: the monitor's criteria, and the incident and alert they open, are
+ * named in the language the person reads the Dashboard in - the one the
+ * request that approved it said, else the one saved on their account, else
+ * English - worded as the Dashboard words them for the guided setup.
+ */
+describe("set_up_website_monitoring, in the person's language", () => {
+  // Each criteria's name and description, and what it opens, as written.
+  const criteriaWords: (monitor: Monitor) => Array<string> = (
+    monitor: Monitor,
+  ): Array<string> => {
+    const words: Array<string> = [];
+
+    for (const step of monitor.monitorSteps?.data
+      ?.monitorStepsInstanceArray || []) {
+      for (const criteria of step.data?.monitorCriteria.data
+        ?.monitorCriteriaInstanceArray || []) {
+        words.push(criteria.data!.name, criteria.data!.description);
+
+        for (const opened of [
+          ...(criteria.data!.incidents || []),
+          ...(criteria.data!.alerts || []),
+        ]) {
+          words.push(opened.title, opened.description);
+        }
+      }
+    }
+
+    return words;
+  };
+
+  // The words Create Monitor's builders write for example.com with no reader.
+  const englishWords: () => Array<string> = (): Array<string> => {
+    return criteriaWords(
+      buildWebsiteMonitor({
+        address: parseWebsiteAddress("example.com")!,
+        isApi: false,
+        seeds: {
+          operationalStatusId: OPERATIONAL_ID,
+          offlineStatusId: OFFLINE_ID,
+          incidentSeverityId: INCIDENT_SEVERITY_ID,
+          alertSeverityId: ALERT_SEVERITY_ID,
+        },
+        monitoringInterval: GUIDED_SETUP_MONITORING_INTERVAL,
+      }),
+    );
+  };
+
+  const setUp: (context: ToolContext) => Promise<Monitor> = async (
+    context: ToolContext,
+  ): Promise<Monitor> => {
+    stubSeeds();
+    stubLocations();
+    const create: Spy = stubMonitorCreate();
+    jest
+      .spyOn(MonitorProbeService, "countBy")
+      .mockResolvedValue(new PositiveNumber(2) as never);
+
+    await SetUpWebsiteMonitoringTool.execute(
+      { address: "example.com", isApi: false },
+      context,
+    );
+
+    return (create.mock.calls[0]![0] as { data: Monitor }).data;
+  };
+
+  test("reads the language the Dashboard sent before the one saved on the account, and only a code OneUptime writes in", async () => {
+    const saved: Spy = jest
+      .spyOn(UserLanguage, "getLanguage")
+      .mockResolvedValue("fr" as never);
+
+    expect(await readSetupRecordsLanguage({ ...ctx, language: "de" })).toBe(
+      "de",
+    );
+    expect(await readSetupRecordsLanguage({ ...ctx, language: "zh-TW" })).toBe(
+      "zh-TW",
+    );
+    expect(await readSetupRecordsLanguage({ ...ctx, language: "fa" })).toBe(
+      "fa",
+    );
+    expect(saved).not.toHaveBeenCalled();
+
+    // Anything else is no language at all: the saved one is read.
+    for (const sent of [
+      undefined,
+      "",
+      "de-AT",
+      "DE",
+      " de",
+      "xx",
+      "<script>de</script>",
+      "de; drop table",
+      42,
+      ["de"],
+      { language: "de" },
+    ]) {
+      expect([
+        sent,
+        await readSetupRecordsLanguage({ ...ctx, language: sent as never }),
+      ]).toEqual([sent, "fr"]);
+    }
+
+    expect(saved).toHaveBeenCalledWith(USER_ID);
+  });
+
+  test("with no language sent and none saved, or a saved one that cannot be read, it is English", async () => {
+    const find: Spy = jest
+      .spyOn(UserService, "findOneById")
+      .mockResolvedValue(model(User, { language: null }) as never);
+
+    expect(await readSetupRecordsLanguage(ctx)).toBe("en");
+    // The person's own language, read as OneUptime: nothing else of theirs.
+    expect(find).toHaveBeenCalledWith({
+      id: USER_ID,
+      select: { language: true },
+      props: { isRoot: true },
+    });
+
+    find.mockResolvedValue(model(User, { language: "ja" }) as never);
+    expect(await readSetupRecordsLanguage(ctx)).toBe("ja");
+
+    find.mockResolvedValue(model(User, { language: "tlh" }) as never);
+    expect(await readSetupRecordsLanguage(ctx)).toBe("en");
+
+    find.mockRejectedValue(new Error("The database is slow") as never);
+    expect(await readSetupRecordsLanguage(ctx)).toBe("en");
+
+    // No person at all: English, nothing read.
+    find.mockClear();
+    expect(
+      await readSetupRecordsLanguage({ projectId: PROJECT_ID, props: {} }),
+    ).toBe("en");
+    expect(find).not.toHaveBeenCalled();
+  });
+
+  test("approved by a person reading the Dashboard in German, the criteria and the incident and alert they open are German, as the Dashboard words them", async () => {
+    jest.spyOn(UserLanguage, "getLanguage").mockResolvedValue("en" as never);
+
+    const monitor: Monitor = await setUp({ ...ctx, language: "de" });
+    const words: Array<string> = criteriaWords(monitor);
+    const english: Array<string> = englishWords();
+    const german: Translator = dashboardTranslator("de");
+
+    expect(words).toHaveLength(english.length);
+    expect(words[0]).toBe(
+      german.translateTemplate("Check if {{monitorName}} is offline", {
+        monitorName: "example.com",
+      }),
+    );
+    expect(words).toContain(
+      german.translateTemplate("{{monitorName}} is offline", {
+        monitorName: "example.com",
+      }),
+    );
+    expect(words).toContain(
+      german.translateTemplate("Check if {{monitorName}} is online", {
+        monitorName: "example.com",
+      }),
+    );
+
+    words.forEach((word: string, index: number) => {
+      expect([index, word]).not.toEqual([index, english[index]]);
+      expect(word).toContain("example.com");
+    });
+
+    // The rest of the monitor is the one English makes.
+    expect(monitor.name).toBe("example.com");
+    expect(monitor.monitorType).toBe(MonitorType.Website);
+  });
+
+  test.each(["ar", "fa"])(
+    "approved by a person reading it in %s, the criteria are in it, the address whole and no invisible marks in the record",
+    async (language: string) => {
+      jest
+        .spyOn(UserLanguage, "getLanguage")
+        .mockResolvedValue("en" as never);
+
+      const words: Array<string> = criteriaWords(
+        await setUp({ ...ctx, language: language }),
+      );
+
+      expect(words[0]).toBe(
+        dashboardTranslator(language).translateTemplate(
+          "Check if {{monitorName}} is offline",
+          { monitorName: "example.com" },
+        ),
+      );
+
+      for (const word of words) {
+        expect(word).toContain("example.com");
+        expect(word).not.toContain(FIRST_STRONG_ISOLATE);
+        expect(word).not.toContain(POP_DIRECTIONAL_ISOLATE);
+      }
+    },
+  );
+
+  test("approved with a language OneUptime does not write in, and none saved, the monitor reads exactly as before: English, word for word", async () => {
+    jest.spyOn(UserLanguage, "getLanguage").mockResolvedValue("en" as never);
+
+    expect(criteriaWords(await setUp({ ...ctx, language: "xx" }))).toEqual(
+      englishWords(),
+    );
+
+    jest.restoreAllMocks();
+
+    expect(criteriaWords(await setUp({ ...ctx, language: "en" }))).toEqual(
+      englishWords(),
+    );
+  });
+
+  test("approved with no language sent, the person's saved one words it", async () => {
+    jest.spyOn(UserLanguage, "getLanguage").mockResolvedValue("ja" as never);
+
+    const words: Array<string> = criteriaWords(await setUp(ctx));
+
+    expect(words[0]).toBe(
+      dashboardTranslator("ja").translateTemplate(
+        "Check if {{monitorName}} is offline",
+        { monitorName: "example.com" },
+      ),
+    );
+  });
+
+  test("the card and what the model is told are as before: the card is worded by the Dashboard, the model reads English", async () => {
+    jest.spyOn(UserLanguage, "getLanguage").mockResolvedValue("en" as never);
+    stubSeeds();
+    stubLocations();
+    stubMonitorCreate();
+    jest
+      .spyOn(MonitorProbeService, "countBy")
+      .mockResolvedValue(new PositiveNumber(2) as never);
+
+    const result: ToolExecutionResult =
+      await SetUpWebsiteMonitoringTool.execute(
+        { address: "example.com", isApi: false },
+        { ...ctx, language: "de" },
+      );
+
+    expect(result.dataForLlm).toContain(
+      'Created the Website monitor "example.com"',
+    );
+    expect(describeAIActionCardWords(result.widget!.data.words!)).toEqual({
+      kind: AI_ACTION_CARD_KINDS.monitor,
+      line: "Checked every 5 minutes",
+      facts: [{ label: "Address", value: "https://example.com" }],
+    });
   });
 });
 

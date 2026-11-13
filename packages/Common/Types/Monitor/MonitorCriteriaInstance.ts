@@ -210,6 +210,15 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
    * Dashboard/scripts/i18n/ExtractStrings.ts reads this file as a "keys"
    * root: every template passed to translateTemplate, or marked with
    * translationKey, is a key of the Dashboard's locale files.
+   *
+   * The server writes them in a person's language too, when it makes a
+   * monitor for them (Ask AI's set_up_website_monitoring, #7247): this file
+   * is one of the server locale set's DASHBOARD_SHARED_TEXT_SOURCES
+   * (Common/Scripts/I18n/ServerLocales), so after changing a sentence here
+   * and translating it in the Dashboard's files, run
+   * `npm run i18n:server-sync` from the repository's root: it copies the
+   * Dashboard's wording into Common/Server/Locales, and
+   * Tests/Server/Locales/ServerLocales fails until it is run.
    */
   private static getWordsTranslator(
     translator: Translator | undefined,

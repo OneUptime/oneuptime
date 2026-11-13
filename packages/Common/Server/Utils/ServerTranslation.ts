@@ -239,6 +239,50 @@ export const getServerTranslator: (
 };
 
 /*
+ * WORDS ONEUPTIME SUGGESTS FOR A RECORD, IN THE LANGUAGE OF WHO MAKES IT.
+ *
+ * Some of OneUptime's words become a record's own text once saved: a new
+ * monitor's default criteria - each criteria's name and description, and
+ * the title and description of the incident and alert it opens
+ * (Types/Monitor/MonitorCriteriaInstance) - which the project's people then
+ * edit like anything they typed. The Dashboard writes them in the language
+ * of the person making the monitor; the server writes them the same way
+ * when it makes the monitor for a person (Ask AI's setup actions,
+ * Utils/AI/Toolbox/SetupTools), so the same answers make the same record:
+ *
+ *   - the same sentences, worded as the Dashboard words them: the server's
+ *     copies of them are the Dashboard's (Scripts/I18n/ServerLocales'
+ *     DASHBOARD_SHARED_TEXT_SOURCES, written by npm run i18n:server-sync);
+ *   - put together as the Dashboard puts them (Types/Translator), with
+ *     their values as they are - never set apart with isolate marks, as a
+ *     message to a reader of a language read from the right is (above): a
+ *     record keeps no invisible characters for its people to edit around.
+ *
+ * Undefined for English, and for any language OneUptime does not write in:
+ * the builders' own English words, byte for byte as every record made
+ * without a reader has always read.
+ */
+export const getRecordWordsTranslator: (
+  language?: string | null | undefined,
+) => Translator | undefined = (
+  language?: string | null | undefined,
+): Translator | undefined => {
+  const code: string = toReaderLanguage(language);
+  const dictionary: Readonly<Record<string, string>> | undefined =
+    SERVER_LOCALES[code];
+
+  if (code === DEFAULT_READER_LANGUAGE || !dictionary) {
+    return undefined;
+  }
+
+  return createTranslator((text: string): string | undefined => {
+    return Object.prototype.hasOwnProperty.call(dictionary, text)
+      ? dictionary[text]
+      : undefined;
+  }, code);
+};
+
+/*
  * Every wording of `text`: the English, then each language's that words it
  * differently, each once - for a reader of OneUptime's words that does not
  * know which language they were written in (a Microsoft Teams card reads a

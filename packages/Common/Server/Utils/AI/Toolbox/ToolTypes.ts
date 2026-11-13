@@ -65,6 +65,18 @@ export interface ToolContext {
    * only, never to a run: by then the monitor exists, or was skipped.
    */
   plannedCalls?: ReadonlyArray<PlannedToolCall> | undefined;
+  /*
+   * The language the person reads the Dashboard in, as the request that
+   * started or approved the turn said it (ChatTurnRequest.language): one of
+   * the codes OneUptime writes in (Types/ReaderLanguage), never anything
+   * else. Read by a tool that writes OneUptime's words into a record it
+   * makes - a new monitor's criteria names, the incident and alert they
+   * open (SetupTools) - so the record is the one the Dashboard would make
+   * for this person (#7247). Left out - Slack, Microsoft Teams, an older
+   * Dashboard - such a tool falls back to the person's saved language,
+   * else English. Never a permission, and never the model's language.
+   */
+  language?: string | undefined;
 }
 
 // A tool call of the answer being prepared (ToolContext.plannedCalls).

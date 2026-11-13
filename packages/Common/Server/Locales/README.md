@@ -20,6 +20,13 @@ a language of their own:
   Mattermost messages - a first page, a page again, a page a person sent
   and an observer's page (`Common/Types/OnCallDutyPolicy/OnCallPageWords.ts`
   and the files beside it). Calls and WhatsApp stay English.
+- the words of a record the server makes for a person, which become the
+  project's own text once saved: a new monitor's default criteria - each
+  criteria's name and description, and the incident and alert it opens -
+  when Ask AI sets up a website monitor (`set_up_website_monitoring`), in
+  the language the person reads the Dashboard in, as the website guided
+  setup names them (`ServerTranslation.getRecordWordsTranslator`). These
+  sentences are the Dashboard's: see "Sentences the Dashboard words" below.
 
 Everything else the server writes - the other emails, texts, calls and
 pushes to a project's own team, every API answer, feed items - is still
@@ -96,6 +103,20 @@ test report.
    page uses (German `Sie`, Spanish `usted`). A word that really reads the same
    in a language (`Status` in German) goes in `SameAsEnglish.json` under that
    language.
+
+## Sentences the Dashboard words
+
+A sentence the Dashboard writes too, for a record a person makes - a new
+monitor's default criteria (`Common/Types/Monitor/MonitorCriteriaInstance.ts`)
+- must read the same whichever way the record was made, so it is never
+worded here by hand. The files `DASHBOARD_SHARED_TEXT_SOURCES` lists
+(`Common/Scripts/I18n/ServerLocales.ts`) are worded in the Dashboard's locale
+files (`App/FeatureSet/Dashboard/src/Locales`), and `npm run i18n:server-sync`
+copies each language's wording of their sentences from there - the English
+while the Dashboard has none yet. After changing or translating such a
+sentence in the Dashboard, run `npm run i18n:server-sync` too. They are put
+together as the Dashboard puts them: their values are never set apart with
+isolate marks, which a record would keep.
 
 `packages/Common/Tests/Server/Locales/ServerLocales.test.ts` holds the files to
 all of this. `npm run i18n:validate` checks them with every frontend's.
