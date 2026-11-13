@@ -19,7 +19,7 @@ import * as React from "react";
  *
  * It gets a Calendar section of its own, open, right after Overview: the
  * Maintenance Calendar is a page of its own (it was a List | Calendar switch
- * on All Events), and its Calendar Settings - the calendars from outside the
+ * on All Maintenance Events), and its Calendar Settings - the calendars from outside the
  * project drawn on it - sit in the folded Settings, right before Numbering.
  *
  * Rendered against the real RouteMap rather than asserted on the source, so a
@@ -182,11 +182,11 @@ describe("Scheduled maintenance side menu", () => {
 
       expect(linksIn("Overview")).toEqual([
         {
-          title: "All Events",
+          title: "All Maintenance Events",
           href: routeFor(PageMap.SCHEDULED_MAINTENANCE_EVENTS),
         },
         {
-          title: "Ongoing Events",
+          title: "Ongoing Maintenance Events",
           href: routeFor(PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS),
         },
       ]);
@@ -224,7 +224,7 @@ describe("Scheduled maintenance side menu", () => {
       expect(iconCountIn("Calendar")).toBe(1);
     });
 
-    test("marks the Maintenance Calendar on its page, and All Events no longer", async () => {
+    test("marks the Maintenance Calendar on its page, and All Maintenance Events no longer", async () => {
       goTo(`${ROOT}/calendar`);
       await renderScheduledMaintenanceMenu();
 
@@ -232,10 +232,10 @@ describe("Scheduled maintenance side menu", () => {
       expect(activeLinkTitles()).toEqual(["Maintenance Calendar"]);
     });
 
-    test("on All Events, the list is marked and the calendar is not", async () => {
+    test("on All Maintenance Events, the list is marked and the calendar is not", async () => {
       await renderScheduledMaintenanceMenu();
 
-      expect(activeLinkTitles()).toEqual(["All Events"]);
+      expect(activeLinkTitles()).toEqual(["All Maintenance Events"]);
     });
   });
 
@@ -309,11 +309,11 @@ describe("Scheduled maintenance side menu", () => {
 
       expect(linksIn("Settings")).toEqual([
         {
-          title: "Event State",
+          title: "Maintenance State",
           href: routeFor(PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_STATE),
         },
         {
-          title: "Event Templates",
+          title: "Maintenance Templates",
           href: routeFor(
             PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_TEMPLATES,
           ),
@@ -503,7 +503,7 @@ describe("Scheduled maintenance side menu", () => {
       goTo(`${ROOT}/settings/state`);
       await renderScheduledMaintenanceMenu();
 
-      expect(mobileSummaryText()).toContain("Settings / Event State");
+      expect(mobileSummaryText()).toContain("Settings / Maintenance State");
     });
   });
 });

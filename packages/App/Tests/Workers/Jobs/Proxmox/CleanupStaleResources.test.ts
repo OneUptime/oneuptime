@@ -1435,6 +1435,16 @@ function installWorld(world: World): void {
       // getSilentNodeRetentionCutoff: `now` (the wall clock) minus the window.
       const retentionCutoffMs: number =
         (args.now ? args.now.getTime() : world.clockMs) - RETENTION_MS;
+      /*
+       * AND EXISTS (a row of the cluster with "lastSeenAt" >= $2): never
+       * the whole inventory at once (issue #7439).
+       */
+      const anyRowFresh: boolean = world.rows.some((row: WorldRow): boolean => {
+        return row.lastSeenAt.getTime() >= cutoffMs;
+      });
+      if (!anyRowFresh) {
+        return Promise.resolve(0);
+      }
       const kept: Array<WorldRow> = [];
       let deleted: number = 0;
       for (const row of world.rows) {

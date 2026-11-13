@@ -104,7 +104,7 @@ Ett ursprung är ett schema, en värd och en valfri port: `https://app.example.c
 ]
 ```
 
-[Tjänstekatalogen](/docs/telemetry/services#så-hamnar-en-tjänst-i-katalogen) visar hur ett fastlåst namn bestämmer tjänsten. Kubernetes-agentens Runner och AI-agent, och infrastrukturens AI-agenter, registrerar sig inte med en fastlåst nyckel: ge dem en servernyckel utan fastlåst namn.
+[Tjänster](/docs/telemetry/services#så-hamnar-en-tjänst-i-katalogen) visar hur ett fastlåst namn bestämmer tjänsten. Kubernetes-agentens Runner och AI-agent, och infrastrukturens AI-agenter, registrerar sig inte med en fastlåst nyckel: ge dem en servernyckel utan fastlåst namn.
 
 ## Byt ut, stäng av eller ta bort en nyckel
 
@@ -155,7 +155,7 @@ Inget har skickat data med den här nyckeln sedan OneUptime började registrera 
 
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Skicka spår, mätvärden och loggar med din nyckel.
-- [Tjänstekatalog](/docs/telemetry/services): Se tjänsterna som din telemetri läggs under.
+- [Tjänster](/docs/telemetry/services): Se tjänsterna som din telemetri läggs under.
 - [Datalagring](/docs/telemetry/data-retention): Bestäm hur länge data sparas.
 - [Drop-filter och scrub-regler](/docs/telemetry/drop-filters-and-scrub-rules): Kassera eller maskera data innan den lagras.
 - [Intagningsbudgetar](/docs/telemetry/ingestion-budgets): Begränsa hur mycket varje nyckel får skicka under en dag.

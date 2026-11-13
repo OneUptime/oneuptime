@@ -2813,7 +2813,7 @@ export default class StatusPageAPI extends BaseAPI<
 
     if (!statusPage.showScheduledMaintenanceEventsOnStatusPage) {
       throw new BadDataException(
-        "Scheduled Maintenance Events are not enabled on this status page",
+        "Maintenance events are not enabled on this status page",
       );
     }
 

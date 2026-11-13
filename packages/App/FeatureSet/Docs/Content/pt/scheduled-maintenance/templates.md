@@ -15,7 +15,7 @@ Um modelo é um ponto de partida. Um evento criado a partir dele é uma cópia c
 
 ```mermaid title="Duas formas de um modelo virar um evento"
 flowchart TB
-    template["Um modelo<br/>em Modelos de eventos"] --> byhand["Criar a partir de modelo<br/>preenche o formulário"]
+    template["Um modelo<br/>em Modelos de manutenção"] --> byhand["Criar a partir de modelo<br/>preenche o formulário"]
     template --> schedule["Recorrente ativado<br/>verificado a cada minuto"]
     byhand --> event["Um evento novo<br/>em Agendado"]
     schedule --> event
@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Abrir os modelos
 
-Vá em **Manutenção programada → Configurações → Modelos de eventos**. **Configurações** começa recolhida no menu lateral: expanda-a primeiro. Clique em **Criar: Modelo de manutenção programada**.
+Vá em **Manutenção programada → Configurações → Modelos de manutenção**. **Configurações** começa recolhida no menu lateral: expanda-a primeiro. Clique em **Criar: Modelo de manutenção programada**.
 
 ### Dar nome ao modelo
 
@@ -39,7 +39,7 @@ Em **Informações do modelo**, dê a ele um **Nome do modelo** e uma **Descriç
 
 ### Descrever o evento
 
-Em **Evento**, preencha o **Título** e a **Descrição** com que começa cada evento criado a partir dele. **Proprietários** e **Rótulos** ficam em **Mais campos**.
+Em **Detalhes da manutenção**, preencha o **Título** e a **Descrição** com que começa cada evento criado a partir dele. **Proprietários** e **Rótulos** ficam em **Mais campos**.
 
 ### Escolher o que ele afeta
 
@@ -68,7 +68,7 @@ Um modelo pergunta **Alterar status do monitor para** mesmo quando não nomeia n
 :::steps
 ### Escolher o modelo
 
-Em **Manutenção programada → Todos os eventos**, clique em **Criar a partir de modelo** e escolha um modelo em **Selecionar Modelo de Manutenção Programada**.
+Em **Manutenção programada → Todos os eventos de manutenção**, clique em **Criar a partir de modelo** e escolha um modelo em **Selecionar Modelo de Manutenção Programada**.
 
 ### Conferir o formulário
 
@@ -76,10 +76,10 @@ Clique em **Criar a partir de modelo**. O formulário de criação abre com as r
 
 ### Criar o evento
 
-Percorra os passos com **Próximo** e depois clique em **Criar Evento de Manutenção Programada** na revisão.
+Percorra os passos com **Próximo** e depois clique em **Criar evento de manutenção** na revisão.
 :::
 
-Quando o projeto ainda não tem nenhum modelo, **Criar a partir de modelo** avisa isso e leva para **Modelos de eventos**.
+Quando o projeto ainda não tem nenhum modelo, **Criar a partir de modelo** avisa isso e leva para **Modelos de manutenção**.
 
 ## Eventos recorrentes
 
@@ -108,7 +108,7 @@ Uma tarefa verifica os modelos recorrentes a cada minuto. Quando chega o próxim
 
 Abra um modelo na lista para ver a página dele:
 
-- **Detalhes do modelo de manutenção programada** mostra com o que os eventos novos começam. O **Editar** dele percorre **Informações do modelo**, **Evento**, **Páginas de status** e **Recorrente**.
+- **Detalhes do modelo de manutenção programada** mostra com o que os eventos novos começam. O **Editar** dele percorre **Informações do modelo**, **Detalhes da manutenção**, **Páginas de status** e **Recorrente**.
 - **Recursos afetados** reúne os **Monitores** dele, o **Alterar status do monitor para** desses monitores e os **Outros recursos afetados**, com um **Editar** próprio.
 - **Proprietários** lista as pessoas e equipes donas de cada evento agendado a partir dele.
 

@@ -554,7 +554,7 @@ describe("the telemetry monitors in Create Monitor", () => {
       "Function",
       "What to analyze",
       "Monitor profiles for (time)",
-      "Filter by Telemetry Service (folded)",
+      "Filter by Service (folded)",
       "Filter by Infrastructure Entity (folded)",
     ]);
     expect(copy).toContain('"What this monitor reads now"');

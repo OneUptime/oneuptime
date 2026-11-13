@@ -104,7 +104,7 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 ]
 ```
 
-[サービスカタログ](/docs/telemetry/services#サービスがカタログに入る仕組み) では、固定された名前がどのようにサービスを決めるかを説明しています。Kubernetes エージェントの Runner と AI エージェント、およびインフラストラクチャの AI エージェントは、固定されたキーでは登録されません。名前を固定していないサーバーキーを渡してください。
+[サービス](/docs/telemetry/services#サービスがカタログに入る仕組み) では、固定された名前がどのようにサービスを決めるかを説明しています。Kubernetes エージェントの Runner と AI エージェント、およびインフラストラクチャの AI エージェントは、固定されたキーでは登録されません。名前を固定していないサーバーキーを渡してください。
 
 ## キーを入れ替える、無効にする、削除する
 
@@ -155,7 +155,7 @@ OneUptime がこのキーの使用を記録し始めてから、このキーで�
 
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): キーを使ってトレース、メトリクス、ログを送ります。
-- [サービスカタログ](/docs/telemetry/services): テレメトリが振り分けられるサービスを確認します。
+- [サービス](/docs/telemetry/services): テレメトリが振り分けられるサービスを確認します。
 - [データ保持](/docs/telemetry/data-retention): データを保持する期間を決めます。
 - [破棄フィルターとスクラブルール](/docs/telemetry/drop-filters-and-scrub-rules): 保存する前にデータを破棄またはマスクします。
 - [取り込み予算](/docs/telemetry/ingestion-budgets): 各キーが 1 日に送信できる量に上限を設けます。

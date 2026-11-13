@@ -75,10 +75,15 @@ jobs:
       # FormColumnDescriptionsInLocales joined them on 2026-11-01: the only
       # Admin Dashboard forms that draw a column's help are the Enterprise
       # Licenses pages, so only this run finds them and holds their help to
-      # the Admin Dashboard's locales.
+      # the Admin Dashboard's locales. AdminImportedCommonStringsLocales
+      # joined them on 2026-11-13: it follows the Admin Dashboard's bundle
+      # into Common, and the bundle reaches its Enterprise screens
+      # (ee/AdminDashboard) through the Enterprise plugin only where ee/ is
+      # checked out, so only this run holds the shared files those screens
+      # draw to the Admin Dashboard's locales.
       - name: Run App's UI source guards with ee/ present
         working-directory: packages/App
-        run: node node_modules/.bin/jest Tests/MoreMenuItemIconsGuard.test.ts Tests/RecordIdLineGuard.test.ts Tests/ShowIdDialogGuard.test.ts Tests/Dashboard/ListDeletePolicy.test.ts Tests/Dashboard/BulkActionsAudit.test.ts Tests/Dashboard/RowActionsAudit.test.ts Tests/Dashboard/ShortDescriptionsGuard.test.ts Tests/Dashboard/FormColumnDescriptionsInLocales.test.ts --forceExit
+        run: node node_modules/.bin/jest Tests/MoreMenuItemIconsGuard.test.ts Tests/RecordIdLineGuard.test.ts Tests/ShowIdDialogGuard.test.ts Tests/Dashboard/ListDeletePolicy.test.ts Tests/Dashboard/BulkActionsAudit.test.ts Tests/Dashboard/RowActionsAudit.test.ts Tests/Dashboard/ShortDescriptionsGuard.test.ts Tests/Dashboard/FormColumnDescriptionsInLocales.test.ts Tests/AdminDashboard/AdminImportedCommonStringsLocales.test.ts --forceExit
       # App's guards that every menu path a text writes ("User Settings >
       # Notification Settings", "Project Settings > Billing and Invoices >
       # Billing", "On-Call Duty > Advanced > User Overrides") is one a reader

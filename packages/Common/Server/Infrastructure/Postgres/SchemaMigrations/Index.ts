@@ -977,6 +977,7 @@ import { AddSampleProjectUserIndex1809123500001 } from "./1809123500001-AddSampl
 import { AddServerProducts1809123600000 } from "./1809123600000-AddServerProducts";
 import { AddDashboardRecordingSwitches1809123700000 } from "./1809123700000-AddDashboardRecordingSwitches";
 import { AddNetworkDeviceLastPollReceivedAt1809123800000 } from "./1809123800000-AddNetworkDeviceLastPollReceivedAt";
+import { AddProxmoxClusterAgentLastSeenAt1809123900000 } from "./1809123900000-AddProxmoxClusterAgentLastSeenAt";
 import { AddNotifySubscribersOfNewIncidentsByDefault1809150300000 } from "./1809150300000-AddNotifySubscribersOfNewIncidentsByDefault";
 
 export default [
@@ -1959,5 +1960,6 @@ export default [
   AddServerProducts1809123600000,
   AddDashboardRecordingSwitches1809123700000,
   AddNetworkDeviceLastPollReceivedAt1809123800000,
+  AddProxmoxClusterAgentLastSeenAt1809123900000,
   AddNotifySubscribersOfNewIncidentsByDefault1809150300000,
 ];

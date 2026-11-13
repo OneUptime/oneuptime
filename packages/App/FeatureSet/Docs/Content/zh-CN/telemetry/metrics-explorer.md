@@ -36,7 +36,7 @@ flowchart TB
 ## 开始之前
 
 - **正在到达的指标。** 通过 [OpenTelemetry](/docs/telemetry/open-telemetry) 发送，或者从代理发送，例如 [主机 OpenTelemetry Collector](/docs/telemetry/host-otel-collector) 或 [Kubernetes 代理](/docs/telemetry/kubernetes-agent)。
-- **可以读取遥测的角色。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member 或 Telemetry Viewer，或者拥有 Read Telemetry Service Metrics 权限的自定义角色。它能读取哪些指标，参见 [遥测](/docs/permissions/index#遥测)。
+- **可以读取遥测的角色。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member 或 Telemetry Viewer，或者拥有 Read Metrics 权限的自定义角色。它能读取哪些指标，参见 [遥测](/docs/permissions/index#遥测)。
 
 ## 查找指标
 

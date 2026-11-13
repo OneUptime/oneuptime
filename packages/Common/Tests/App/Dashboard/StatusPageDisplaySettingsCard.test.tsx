@@ -616,8 +616,8 @@ describe("reading the status page", () => {
       "Show Episodes",
       "Show Episode Labels",
       "Show Announcements",
-      "Show Scheduled Maintenance Events",
-      "Show Event Labels",
+      "Show Maintenance Events",
+      "Show Maintenance Event Labels",
       "Show Overall Uptime Percent",
     ]);
 

@@ -72,7 +72,7 @@ flowchart TB
 
 :::cards
 - [Monitor Groups](/docs/monitor/monitor-groups): Roll several monitors into one status.
-- [Service Catalog](/docs/telemetry/services): Every application you run, on one page each.
+- [Services](/docs/telemetry/services): Every application you run, on one page each.
 - [Inventory Overview](/docs/inventory/overview): Everything OneUptime knows about your estate.
 :::
 

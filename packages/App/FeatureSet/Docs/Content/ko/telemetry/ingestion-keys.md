@@ -104,7 +104,7 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 ]
 ```
 
-[서비스 카탈로그](/docs/telemetry/services#서비스가-카탈로그에-들어오는-방식)에서 고정된 이름이 서비스를 정하는 방식을 볼 수 있습니다. Kubernetes 에이전트의 Runner와 AI 에이전트, 그리고 인프라 AI 에이전트는 고정된 키로 등록되지 않습니다. 이름이 고정되지 않은 서버 키를 주세요.
+[서비스](/docs/telemetry/services#서비스가-카탈로그에-들어오는-방식)에서 고정된 이름이 서비스를 정하는 방식을 볼 수 있습니다. Kubernetes 에이전트의 Runner와 AI 에이전트, 그리고 인프라 AI 에이전트는 고정된 키로 등록되지 않습니다. 이름이 고정되지 않은 서버 키를 주세요.
 
 ## 키 교체, 끄기, 삭제
 
@@ -155,7 +155,7 @@ OneUptime이 이 키의 사용을 기록하기 시작한 뒤로 이 키로 데�
 
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): 키로 트레이스, 메트릭, 로그를 보냅니다.
-- [서비스 카탈로그](/docs/telemetry/services): 텔레메트리가 기록되는 서비스를 확인합니다.
+- [서비스](/docs/telemetry/services): 텔레메트리가 기록되는 서비스를 확인합니다.
 - [데이터 보존](/docs/telemetry/data-retention): 데이터를 얼마나 오래 보관할지 정합니다.
 - [드롭 필터 및 스크럽 규칙](/docs/telemetry/drop-filters-and-scrub-rules): 저장되기 전에 데이터를 버리거나 가립니다.
 - [수집 예산](/docs/telemetry/ingestion-budgets): 각 키가 하루에 보낼 수 있는 양에 상한을 둡니다.

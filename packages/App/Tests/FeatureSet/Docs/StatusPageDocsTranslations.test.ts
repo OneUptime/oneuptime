@@ -265,15 +265,15 @@ const STATUS_PAGE_APP: Record<string, Array<StatusPageAppLabel>> = {
     { english: "Overview", key: "nav.overview" },
     { english: "Incidents", key: "nav.incidents" },
     { english: "Announcements", key: "nav.announcements" },
-    { english: "Scheduled Events", key: "nav.scheduledEvents" },
+    { english: "Scheduled Maintenance", key: "nav.scheduledEvents" },
     { english: "Subscribe", key: "nav.subscribe" },
     { english: "Log Out", key: "nav.logout" },
     { english: "Active Incidents", key: "overview.activeIncidents" },
     {
-      english: "Scheduled Maintenance Events",
+      english: "Scheduled Maintenance",
       key: "overview.scheduledMaintenanceEvents",
     },
-    // The maintenance calendar's buttons, on Scheduled Events and an event's page.
+    // The maintenance calendar's buttons, on Scheduled Maintenance and an event's page.
     {
       english: "Subscribe to calendar",
       key: "scheduledEvents.calendar.subscribe",
@@ -356,8 +356,8 @@ const STATUS_PAGE_APP: Record<string, Array<StatusPageAppLabel>> = {
     { english: "Active Announcements", key: "announcements.active" },
     { english: "Past Announcements", key: "announcements.past" },
     { english: "Announced at", key: "announcements.announcedAt" },
-    // A calendar instead of a subscription, from the Scheduled Events page.
-    { english: "Scheduled Events", key: "nav.scheduledEvents" },
+    // A calendar instead of a subscription, from the Scheduled Maintenance page.
+    { english: "Scheduled Maintenance", key: "nav.scheduledEvents" },
     {
       english: "Subscribe to calendar",
       key: "scheduledEvents.calendar.subscribe",

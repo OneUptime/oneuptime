@@ -36,7 +36,7 @@ The explorer has five tabs:
 ## Before you begin
 
 - **Metrics arriving.** Send them with [OpenTelemetry](/docs/telemetry/open-telemetry), or from an agent such as the [Host OpenTelemetry Collector](/docs/telemetry/host-otel-collector) or the [Kubernetes Agent](/docs/telemetry/kubernetes-agent).
-- **A role that reads telemetry.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member or Telemetry Viewer, or a custom role with the Read Telemetry Service Metrics permission. See [Telemetry](/docs/permissions/index#telemetry) for which metrics it reads.
+- **A role that reads telemetry.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member or Telemetry Viewer, or a custom role with the Read Metrics permission. See [Telemetry](/docs/permissions/index#telemetry) for which metrics it reads.
 
 ## Find a metric
 

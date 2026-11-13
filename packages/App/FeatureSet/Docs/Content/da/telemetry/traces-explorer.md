@@ -37,7 +37,7 @@ Udforskeren har fem faner:
 ## Før du begynder
 
 - **Spor, der ankommer.** Instrumentér dine tjenester med [OpenTelemetry](/docs/telemetry/open-telemetry). Fanen **Opsætningsvejledning** viser koden til dit sprog.
-- **En rolle, der må læse telemetri.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member eller Telemetry Viewer, eller en brugerdefineret rolle med tilladelsen Read Telemetry Service Traces. Dens omfang afgør, hvis spans du ser: se [Telemetri](/docs/permissions/index#telemetri).
+- **En rolle, der må læse telemetri.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member eller Telemetry Viewer, eller en brugerdefineret rolle med tilladelsen Read Traces. Dens omfang afgør, hvis spans du ser: se [Telemetri](/docs/permissions/index#telemetri).
 
 ## Find en forespørgsel
 

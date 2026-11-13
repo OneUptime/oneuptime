@@ -67,6 +67,10 @@ const SCREEN_SINGULAR_NAMES: Readonly<Record<string, string>> = {
   // #6817 part 2: Ingestion Keys.
   "Telemetry Ingestion Key": "Ingestion Key",
   "Telemetry Ingestion Key Refusal": "Ingestion Key Refusal",
+  // #6817 part 3: maintenance events.
+  "Scheduled Maintenance Event": "Maintenance Event",
+  "Scheduled Event Internal Note": "Maintenance Event Internal Note",
+  "Scheduled Event Public Note": "Maintenance Event Public Note",
 };
 
 // The kept singular names this table knows, for its test.

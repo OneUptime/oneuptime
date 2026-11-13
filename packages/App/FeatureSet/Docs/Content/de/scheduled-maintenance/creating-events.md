@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Das Formular öffnen
 
-Gehen Sie zu **Geplante Wartung → Alle Ereignisse** und klicken Sie auf **Geplantes Wartungsereignis erstellen**. Das Formular öffnet sich mit seinem ersten Schritt, **Ereignis**.
+Gehen Sie zu **Geplante Wartung → Alle Wartungsereignisse** und klicken Sie auf **Wartungsereignis erstellen**. Das Formular öffnet sich mit seinem ersten Schritt, **Wartungsdetails**.
 
 ### Sagen, was passiert und wann
 
@@ -47,7 +47,7 @@ Wählen Sie die Statusseiten unter **Ereignis auf diesen Status-Seiten anzeigen*
 
 ### Es erstellen
 
-Klicken Sie auf **Weiter**, um die Überprüfung zu sehen, prüfen Sie sie und klicken Sie dann auf **Geplantes Wartungsereignis erstellen**. Die Seite des Ereignisses öffnet sich.
+Klicken Sie auf **Weiter**, um die Überprüfung zu sehen, prüfen Sie sie und klicken Sie dann auf **Wartungsereignis erstellen**. Die Seite des Ereignisses öffnet sich.
 :::
 
 Nichts wird gesendet, bis Sie eine Statusseite wählen: Ein Ereignis, das auf keiner Statusseite erscheint, informiert keinen Abonnenten.
@@ -56,12 +56,12 @@ Nichts wird gesendet, bis Sie eine Statusseite wählen: Ein Ereignis, das auf ke
 
 | Feld                                 | Schritt            | Beginnt als                     | Was es tut                                                                       |
 | ------------------------------------ | ------------------ | ------------------------------- | -------------------------------------------------------------------------------- |
-| **Titel**                            | **Ereignis**       | Leer und erforderlich           | Benennt das Ereignis überall, auch auf Ihren Statusseiten.                       |
-| **Beschreibung**                     | **Ereignis**       | Leer                            | Erklärt Ihren Kunden die Arbeit, in Markdown.                                    |
-| **Beginnt am**                       | **Ereignis**       | Die nächste volle Stunde        | Wann das Ereignis von selbst beginnt.                                            |
-| **Endet am**                         | **Ereignis**       | Eine Stunde nach **Beginnt am** | Wann das Ereignis von selbst endet. Es muss nach **Beginnt am** liegen.          |
-| **Eigentümer**                       | **Ereignis**       | Niemand                         | Personen und Teams, denen das Ereignis gehört und die darüber informiert werden. |
-| **Beschriftungen**                   | **Ereignis**       | Keine                           | Beschriftungen, nach denen Regeln und Filter suchen können.                      |
+| **Titel**                            | **Wartungsdetails**       | Leer und erforderlich           | Benennt das Ereignis überall, auch auf Ihren Statusseiten.                       |
+| **Beschreibung**                     | **Wartungsdetails**       | Leer                            | Erklärt Ihren Kunden die Arbeit, in Markdown.                                    |
+| **Beginnt am**                       | **Wartungsdetails**       | Die nächste volle Stunde        | Wann das Ereignis von selbst beginnt.                                            |
+| **Endet am**                         | **Wartungsdetails**       | Eine Stunde nach **Beginnt am** | Wann das Ereignis von selbst endet. Es muss nach **Beginnt am** liegen.          |
+| **Eigentümer**                       | **Wartungsdetails**       | Niemand                         | Personen und Teams, denen das Ereignis gehört und die darüber informiert werden. |
+| **Beschriftungen**                   | **Wartungsdetails**       | Keine                           | Beschriftungen, nach denen Regeln und Filter suchen können.                      |
 | **Monitore**                         | **Betroffene Ressourcen** | Keine                    | Die Monitore, die nicht geprüft werden, solange das Ereignis läuft.              |
 | **Monitor-Status ändern in**         | **Betroffene Ressourcen** | Keine Änderung           | Der Status, den diese Monitore während des Ereignisses zeigen. Wird abgefragt, sobald ein Monitor gewählt ist. |
 | **Andere betroffene Ressourcen**     | **Betroffene Ressourcen** | Keine                    | Hosts, Cluster, Datenbanken, Netzwerkstandorte, Dienste und mehr.                |
@@ -75,13 +75,13 @@ Zwei Dinge füllen das Formular unterwegs für Sie aus:
 
 ## Von einer Ressource oder einer Vorlage aus beginnen
 
-Auf dem Tab **Geplante Wartung** eines Hosts, eines Kubernetes-, Proxmox-, Ceph- oder Docker-Swarm-Clusters, eines Docker- oder Podman-Hosts, eines vCenters, einer OpenStack-Cloud, eines Speicherarrays, einer IoT-Flotte, einer Datenbank, einer Cloud-Ressource, eines Dienstes oder eines Netzwerkstandorts öffnet **Geplantes Wartungsereignis erstellen** dasselbe Formular, mit dieser Ressource bereits unter **Andere betroffene Ressourcen** ausgewählt, und der Tab listet die Ereignisse auf, die sie betreffen. Der Tab eines Inventarelements wählt den Host, den Dienst oder den Kubernetes-Cluster, auf den das Element verweist.
+Auf dem Tab **Geplante Wartung** eines Hosts, eines Kubernetes-, Proxmox-, Ceph- oder Docker-Swarm-Clusters, eines Docker- oder Podman-Hosts, eines vCenters, einer OpenStack-Cloud, eines Speicherarrays, einer IoT-Flotte, einer Datenbank, einer Cloud-Ressource, eines Dienstes oder eines Netzwerkstandorts öffnet **Wartungsereignis erstellen** dasselbe Formular, mit dieser Ressource bereits unter **Andere betroffene Ressourcen** ausgewählt, und der Tab listet die Ereignisse auf, die sie betreffen. Der Tab eines Inventarelements wählt den Host, den Dienst oder den Kubernetes-Cluster, auf den das Element verweist.
 
 **Aus Vorlage erstellen**, neben der Schaltfläche zum Erstellen, fragt nach **Vorlage für geplante Wartung auswählen** und öffnet dann das Formular, aus der Vorlage ausgefüllt. Siehe [Vorlagen & wiederkehrende Ereignisse](/docs/scheduled-maintenance/templates).
 
 ## Was beim Erstellen passiert
 
-In dem Moment, in dem Sie auf **Geplantes Wartungsereignis erstellen** klicken, arbeitet OneUptime diese Schritte in dieser Reihenfolge ab:
+In dem Moment, in dem Sie auf **Wartungsereignis erstellen** klicken, arbeitet OneUptime diese Schritte in dieser Reihenfolge ab:
 
 1. **Es erhält eine Nummer und einen Status.** Die Nummer stammt aus einem Zähler pro Projekt und wird mit Ihrem Präfix angezeigt (`SM-42`). Das Ereignis beginnt in Ihrem geplanten Status, egal welchen Status eine Anfrage nennt.
 2. **Ihre Chat-Tools erfahren davon.** Die Slack- und Microsoft-Teams-Regeln unter **Arbeitsbereich** posten es in ihre Kanäle, und eine Regel kann einen Kanal für das Ereignis erstellen. Sein Feed hält fest, dass es erstellt wurde.
@@ -90,7 +90,7 @@ In dem Moment, in dem Sie auf **Geplantes Wartungsereignis erstellen** klicken, 
 5. **Runbook-Regeln starten** die Runbooks, die zum Ereignis passen.
 6. **Erinnerungen werden geplant**, wenn eine Erinnerungsregel passt, für seine Eigentümer.
 
-Innerhalb einer Minute nach seiner Veröffentlichung – sofort, wenn Sie kein **Veröffentlichen am** gewählt haben – erfahren die Abonnenten seiner Statusseiten, dass es geplant ist, außer Sie haben **Wenn das Ereignis geplant wird** ausgeschaltet. Der Workflow-Trigger **On Create Scheduled Maintenance Event** startet jeden darauf aufgebauten Workflow, und seine Eigentümer erfahren davon, wenn sie diese Benachrichtigung eingeschaltet haben: siehe [Benachrichtigungseinstellungen](/docs/notifications/notification-settings).
+Innerhalb einer Minute nach seiner Veröffentlichung – sofort, wenn Sie kein **Veröffentlichen am** gewählt haben – erfahren die Abonnenten seiner Statusseiten, dass es geplant ist, außer Sie haben **Wenn das Ereignis geplant wird** ausgeschaltet. Der Workflow-Trigger **On Create Maintenance Event** startet jeden darauf aufgebauten Workflow, und seine Eigentümer erfahren davon, wenn sie diese Benachrichtigung eingeschaltet haben: siehe [Benachrichtigungseinstellungen](/docs/notifications/notification-settings).
 
 ## Später veröffentlichen
 
@@ -113,7 +113,7 @@ Alles aus dem Formular lässt sich auf den Seiten des Ereignisses ändern, auße
 
 | Zu ändern                                   | Wohin                                                                          |
 | ------------------------------------------- | ------------------------------------------------------------------------------ |
-| Titel, Zeitfenster oder Beschriftungen      | **Bearbeiten** auf der Karte **Wartungsdetails** seiner **Übersicht**, Schritt **Ereignis** |
+| Titel, Zeitfenster oder Beschriftungen      | **Bearbeiten** auf der Karte **Wartungsdetails** seiner **Übersicht**, Schritt **Wartungsdetails** |
 | Die Statusseiten, wann es veröffentlicht wird, oder die Erinnerungen | Dasselbe **Bearbeiten**, Schritt **Statusseiten**              |
 | Die Monitore, ihr Status oder andere Ressourcen | **Bearbeiten** auf der Karte **Betroffene Ressourcen**                      |
 | Die Beschreibung                            | **Beschreibung** in seinem Seitenmenü                                          |
@@ -155,7 +155,7 @@ curl -X POST https://oneuptime.com/api/scheduled-maintenance \
 | `shouldStatusPageSubscribersBeNotifiedOnEventCreated` | Der Schalter **Wenn das Ereignis geplant wird**. Die anderen beiden Momente haben eigene Felder. |
 | `publishOnStatusPageAt`                               | Wann das Ereignis auf seinen Statusseiten veröffentlicht wird und seine Abonnenten erfahren, dass es geplant ist. Weggelassen: sofort. |
 
-Dasselbe Ereignis als Code ist die Terraform-Ressource `oneuptime_scheduled_maintenance_event`: siehe [Beispiele](/docs/terraform/examples#geplante-wartung). Ein Workflow erstellt eines mit seinem Schritt **Create One Scheduled Maintenance Event**, und `/oneuptime maintenance` öffnet das Formular in Slack: siehe [Slack](/docs/workspace-connections/slack#vorfälle-und-wartungen-aus-slack-erstellen).
+Dasselbe Ereignis als Code ist die Terraform-Ressource `oneuptime_scheduled_maintenance_event`: siehe [Beispiele](/docs/terraform/examples#geplante-wartung). Ein Workflow erstellt eines mit seinem Schritt **Create One Maintenance Event**, und `/oneuptime maintenance` öffnet das Formular in Slack: siehe [Slack](/docs/workspace-connections/slack#vorfälle-und-wartungen-aus-slack-erstellen).
 
 ## Fehlerbehebung
 

@@ -32,6 +32,7 @@ import {
   DEFINED_TERM_TEST_ID,
 } from "../../../../UI/Components/Glossary/DefinedTerm";
 import { clearGlossaryReads } from "../../../../UI/Utils/Glossary";
+import { PRODUCT_TEXT_CLASS_NAME } from "../../../../UI/Utils/ProductText";
 
 /*
  * A FIELD'S TITLE THAT IS A DEFINED TERM KEEPS ITS NAME, AND SO DOES THE WORD.
@@ -562,5 +563,37 @@ describe("with its definition open, Tab goes from the word to Read more", () => 
     );
     expect(second).toBe(screen.getByTestId(FIELD_LABEL_TOOLTIP_TEST_ID));
     expect(third).toBe(screen.getByRole("combobox"));
+  });
+});
+
+/*
+ * A recording of the first-run pages records the product's own words as
+ * written (Utils/ProductText), Create Monitor's among them. A field's title
+ * is marked, and its definition was recorded with it while drawn inside the
+ * title. Drawn after the title (#7561), outside its marked words, it still
+ * is: the popover carries the mark itself (DefinedTerm.test.tsx).
+ */
+describe("in a recording of the page", () => {
+  test("the definition, drawn after the title, is recorded as written, as the title is", async () => {
+    answerGlossaryReads();
+    renderForm({
+      title: "Probes",
+      term: GlossaryTerm.Probe,
+      fieldType: FormFieldSchemaType.Dropdown,
+      required: true,
+    });
+
+    const open: HTMLElement = await openDefinition("Probes");
+    const marked: string = `.${PRODUCT_TEXT_CLASS_NAME}`;
+
+    expect(
+      screen.getByRole("button", { name: "Probes" }).closest(marked),
+    ).not.toBeNull();
+    expect(
+      within(open).getByTestId(DEFINED_TERM_DEFINITION_TEST_ID).closest(marked),
+    ).not.toBeNull();
+    expect(
+      within(open).getByTestId(DEFINED_TERM_READ_MORE_TEST_ID).closest(marked),
+    ).not.toBeNull();
   });
 });

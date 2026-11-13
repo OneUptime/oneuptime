@@ -79,7 +79,7 @@ Un campo lasciato vuoto ricade sull'impostazione successiva nell'ordine sopra, q
 
 Aprite la pagina **Impostazioni** del servizio o della risorsa, poi **Altre impostazioni**. La sua scheda **Conservazione dei dati di telemetria** contiene **Conserva i dati di telemetria per (giorni)**, un solo numero per tutto ciò che invia, e la sua scheda **Conservazione per tipo di telemetria** ha gli stessi campi di quella del progetto. Lasciate un campo vuoto per usare le impostazioni del progetto.
 
-Servizi, host, cluster Kubernetes, host Docker e Podman, cluster Docker Swarm, Proxmox e Ceph, storage array, vCenter, database, funzioni serverless, ambienti cloud, applicazioni RUM e flotte IoT hanno tutti queste schede. Vedete il [Catalogo servizi](/docs/telemetry/services#modificare-un-servizio) per la pagina **Impostazioni** di un servizio.
+Servizi, host, cluster Kubernetes, host Docker e Podman, cluster Docker Swarm, Proxmox e Ceph, storage array, vCenter, database, funzioni serverless, ambienti cloud, applicazioni RUM e flotte IoT hanno tutti queste schede. Vedete [Servizi](/docs/telemetry/services#modificare-un-servizio) per la pagina **Impostazioni** di un servizio.
 
 ### Quando il piano o la licenza non include più le sostituzioni
 
@@ -121,6 +121,6 @@ I record scaduti smettono di comparire in ricerche, grafici ed elenchi appena sc
 :::cards
 - [Chiavi di acquisizione](/docs/telemetry/ingestion-keys): Inviate telemetria al vostro progetto.
 - [Filtri di scarto e regole di mascheramento](/docs/telemetry/drop-filters-and-scrub-rules): Conservate solo la telemetria che vi serve.
-- [Catalogo servizi](/docs/telemetry/services): Impostate la conservazione propria di un servizio.
+- [Servizi](/docs/telemetry/services): Impostate la conservazione propria di un servizio.
 - [Edizione Enterprise](/docs/self-hosted/enterprise): Che cosa portano le sostituzioni della conservazione.
 :::

@@ -70,7 +70,9 @@ import {
  * oneuptime.agent.version their collectors now stamp. This walks the ingest
  * boundary with the attributes those collectors really send - read from the
  * agents' own configs, not typed here - and checks the version reaches each
- * resource's updateLastSeen (the write ResourceHeartbeat gates;
+ * resource's heartbeat (the write ResourceHeartbeat gates: updateLastSeen,
+ * or for a Proxmox cluster updateAgentLastSeen, since hearing its agent is
+ * not reading the cluster - issue #7439;
  * VMwareVCenterService.test and CollectorAgentVersionHeartbeat.test cover
  * that it lands on the row). The Docker Swarm agent, which stamped its
  * version first, is the reference the others follow.
@@ -118,9 +120,11 @@ type DiscoverCase = {
   method: string;
   // The identity attributes the agent's config stamps (or the host sends).
   identity: JSONArray;
-  // The service whose updateLastSeen carries the version.
+  // The service whose heartbeat carries the version.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   service: any;
+  // That heartbeat, when it is not updateLastSeen.
+  heartbeat?: string | undefined;
   // The version the agent's files stamp.
   version: () => string;
 };
@@ -133,6 +137,11 @@ const CASES: Array<DiscoverCase> = [
       stringAttribute("proxmox.cluster.name", "pve-prod"),
     ] as JSONArray,
     service: ProxmoxClusterService,
+    /*
+     * The agent was heard, which is not the cluster read: the version rides
+     * the agent's own heartbeat, never lastSeenAt (issue #7439).
+     */
+    heartbeat: "updateAgentLastSeen",
     version: (): string => {
       return stampOf("ProxmoxAgent");
     },
@@ -209,8 +218,8 @@ const CASES: Array<DiscoverCase> = [
 ];
 
 describe.each(CASES)(
-  "$name: the version the collector stamps reaches updateLastSeen",
-  ({ method, identity, service, version }: DiscoverCase) => {
+  "$name: the version the collector stamps reaches its heartbeat",
+  ({ method, identity, service, heartbeat, version }: DiscoverCase) => {
     let calls: Array<Record<string, unknown>>;
 
     beforeEach(() => {
@@ -228,7 +237,7 @@ describe.each(CASES)(
         .spyOn(LabelService, "findOrCreateLabelsByNames")
         .mockResolvedValue([]);
       jest
-        .spyOn(service, "updateLastSeen")
+        .spyOn(service, heartbeat || "updateLastSeen")
         .mockImplementation(async (_id: unknown, extra?: unknown) => {
           calls.push((extra ?? {}) as Record<string, unknown>);
         });

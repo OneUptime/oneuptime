@@ -189,8 +189,7 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     type: TableColumnType.Entity,
     modelType: ScheduledMaintenance,
     title: "Scheduled Maintenance",
-    description:
-      "Relation to Scheduled Maintenance Event this resource belongs to",
+    description: "Relation to Maintenance Event this resource belongs to",
     example: "c9d0e1f2-a3b4-5678-90ab-cdef01234567",
   })
   @ManyToOne(

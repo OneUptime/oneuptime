@@ -1759,12 +1759,24 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       {
         title: "Overview",
         pages: [
-          allListPage(PageMap.SCHEDULED_MAINTENANCE_EVENTS, "All Events"),
+          {
+            ...allListPage(
+              PageMap.SCHEDULED_MAINTENANCE_EVENTS,
+              "All Maintenance Events",
+            ),
+            // Its names before a record became a maintenance event (#6817).
+            keywords: [
+              "all events",
+              "scheduled maintenance events",
+              "scheduled events",
+            ],
+          },
           {
             page: PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS,
-            title: "Ongoing Events",
+            title: "Ongoing Maintenance Events",
             icon: IconProp.Clock,
-            keywords: ["maintenance in progress"],
+            // "ongoing events" was its name (#6817).
+            keywords: ["maintenance in progress", "ongoing events"],
           },
         ],
       },
@@ -1814,15 +1826,17 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         pages: [
           {
             page: PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_STATE,
-            title: "Event State",
+            title: "Maintenance State",
             icon: IconProp.ArrowCircleRight,
-            keywords: ["maintenance states"],
+            // "event state" was its name (#6817).
+            keywords: ["maintenance states", "event state"],
           },
           {
             page: PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_TEMPLATES,
-            title: "Event Templates",
+            title: "Maintenance Templates",
             icon: IconProp.Template,
-            keywords: ["maintenance templates"],
+            // "event templates" was its name (#6817).
+            keywords: ["event templates"],
           },
           {
             page: PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NOTE_TEMPLATES,
@@ -3147,7 +3161,11 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       {
         title: "Services",
         pages: [
-          allListPage(PageMap.SERVICES, "All Services"),
+          {
+            ...allListPage(PageMap.SERVICES, "All Services"),
+            // Its names before it became Services (#6817).
+            keywords: ["service catalog", "telemetry services"],
+          },
           /*
            * The guided setup (#6806): the OpenTelemetry guide, the first
            * data, and recommended alerts on it, on one page.

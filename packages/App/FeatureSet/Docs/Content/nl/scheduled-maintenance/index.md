@@ -41,12 +41,12 @@ Aankondigingen worden behandeld in [Abonnees en aankondigingen](/docs/status-pag
 
 ## Waar gebeurtenissen vandaan komen
 
-- **Het formulier.** Klik op **Geplande onderhoudsgebeurtenis aanmaken** in de lijst met gebeurtenissen, of op het tabblad **Geplande onderhoud** van een host, een cluster, een service, een netwerklocatie of een andere resource, die deze resource voor je selecteert. Zie [Onderhoudsgebeurtenissen maken](/docs/scheduled-maintenance/creating-events).
+- **Het formulier.** Klik op **Onderhoudsgebeurtenis aanmaken** in de lijst met gebeurtenissen, of op het tabblad **Geplande onderhoud** van een host, een cluster, een service, een netwerklocatie of een andere resource, die deze resource voor je selecteert. Zie [Onderhoudsgebeurtenissen maken](/docs/scheduled-maintenance/creating-events).
 - **Een sjabloon.** **Maken op basis van sjabloon** vult het formulier in vanuit een sjabloon dat je hebt opgeslagen voor terugkerend werk. Zie [Sjablonen en terugkerende gebeurtenissen](/docs/scheduled-maintenance/templates).
 - **Een planning.** Een terugkerend sjabloon maakt volgens een planning een nieuwe gebeurtenis aan, bijvoorbeeld elke week of elke maand, zonder dat iemand het formulier opent.
 - **Een formulier.** Een formulier waarvan de inzendingen onderhoudsgebeurtenissen aanmaken, maakt van een wijzigingsverzoek een gebeurtenis. Zie [Wat een inzending aanmaakt](/docs/forms/on-submit#hoe-een-inzending-een-geplande-onderhoudsgebeurtenis-wordt).
 - **Chat.** `/oneuptime maintenance` in Slack, of `maintenance` getypt naar de OneUptime-bot in Microsoft Teams, opent het formulier in je chattool. Zie [Slack](/docs/workspace-connections/slack#incidenten-en-onderhoud-aanmaken-vanuit-slack).
-- **Code.** De API op `/api/scheduled-maintenance`, de Terraform-resource `oneuptime_scheduled_maintenance_event` en de stap **Create One Scheduled Maintenance Event** van een workflow.
+- **Code.** De API op `/api/scheduled-maintenance`, de Terraform-resource `oneuptime_scheduled_maintenance_event` en de stap **Create One Maintenance Event** van een workflow.
 
 ## Waar het onderhoud in het dashboard staat
 
@@ -54,11 +54,11 @@ Open **Geplande onderhoud** via het menu **Producten** in de bovenste balk. De l
 
 | Sectie        | Wat je daar doet                                                                                                           |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| **Overzicht** | **Alle gebeurtenissen** en **Lopende gebeurtenissen**, waarvan de badge de gebeurtenissen telt die nu lopen.                |
+| **Overzicht** | **Alle onderhoudsgebeurtenissen** en **Lopende onderhoudsgebeurtenissen**, waarvan de badge de gebeurtenissen telt die nu lopen.                |
 | **Agenda** | **Onderhoudsagenda**: elke gebeurtenis op een maand, een week of een dag, naast de agenda's van buiten het project die je toevoegt. |
 | **Werkruimte** | **Slack**, **Microsoft Teams** en **Mattermost**, afhankelijk van wat het project heeft gekoppeld, of **Werkruimte koppelen** als het er geen heeft. |
 | **Regels**    | **Eigenaarsregels**, **Runbook-regels**, **Labelregels**, **Herinneringsregels**.                                               |
-| **Instellingen** | **Status gebeurtenis**, **Gebeurtenis-sjablonen**, **Notitie-sjablonen**, **Goedkeuring van openbare notities**, **Aangepaste velden**, **Metingen**, **Agenda-instellingen**, **Nummering**. |
+| **Instellingen** | **Onderhoudsstatus**, **Onderhoudssjablonen**, **Notitie-sjablonen**, **Goedkeuring van openbare notities**, **Aangepaste velden**, **Metingen**, **Agenda-instellingen**, **Nummering**. |
 
 **Overzicht** en **Agenda** zijn open; **Werkruimte**, **Regels**, **Instellingen** en **Ontwikkelaars** zijn eerst ingeklapt, en een sectie gaat vanzelf open wanneer je op een van haar pagina's bent. **Ontwikkelaars** bevat **Terraform**, **API**, **CLI** en **AI-assistenten**, om onderhoud vanuit code te beheren. Alles over onderhoud staat hier, niet in de **Projectinstellingen**.
 
@@ -88,7 +88,7 @@ Open een gebeurtenis uit de lijst om haar pagina's te zien. Haar zijmenu bevat:
 | **Meldingen**     | **Meldingslogboeken** en **AI-logboeken**: elk bericht dat over de gebeurtenis is verstuurd, en wat AI ervoor deed |
 | **Notities**      | **Privénotities** en **Openbare notities**                                                     |
 | **Ontwikkelaars** | **Terraform**, **API**, **CLI** en **AI-assistenten**: de gebeurtenis beheerd vanuit code     |
-| **Geavanceerd**   | **Aangepaste velden**, **Instellingen**, **Auditlogboeken**, **Gebeurtenis verwijderen**       |
+| **Geavanceerd**   | **Aangepaste velden**, **Instellingen**, **Auditlogboeken**, **Onderhoudsgebeurtenis verwijderen**       |
 
 **Overzicht**, **Team** en **Notities** zijn open; de andere secties blijven ingeklapt tot je erop klikt.
 

@@ -666,7 +666,7 @@ describe("the Glossary, in English", () => {
     expect(
       term(GlossaryTerm.ScheduledMaintenance).definition.join(" "),
     ).toContain(
-      `moves through **${seeded("createdScheduledMaintenanceState")}**, **${seeded("ongoingScheduledMaintenanceState")}**, **${seeded("endedScheduledMaintenanceState")}** and **${seeded("completedScheduledMaintenanceState")}**`,
+      `moves through the maintenance states **${seeded("createdScheduledMaintenanceState")}**, **${seeded("ongoingScheduledMaintenanceState")}**, **${seeded("endedScheduledMaintenanceState")}** and **${seeded("completedScheduledMaintenanceState")}**`,
     );
   });
 

@@ -247,7 +247,7 @@ const SITES: Array<Site> = [
   // ------------------------------------------------- scheduled maintenance
   {
     service: ScheduledMaintenanceService,
-    subject: "scheduled maintenance event",
+    subject: "maintenance event",
     write: "update",
     relation: "currentScheduledMaintenanceState",
     idColumn: "currentScheduledMaintenanceStateId",
@@ -258,7 +258,7 @@ const SITES: Array<Site> = [
   },
   {
     service: ScheduledMaintenanceService,
-    subject: "scheduled maintenance event",
+    subject: "maintenance event",
     write: "update",
     relation: "changeMonitorStatusTo",
     idColumn: "changeMonitorStatusToId",
@@ -268,7 +268,7 @@ const SITES: Array<Site> = [
   },
   {
     service: ScheduledMaintenanceService,
-    subject: "scheduled maintenance event",
+    subject: "maintenance event",
     write: "create",
     relation: "changeMonitorStatusTo",
     idColumn: "changeMonitorStatusToId",

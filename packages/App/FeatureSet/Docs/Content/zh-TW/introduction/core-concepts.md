@@ -72,7 +72,7 @@ flowchart TB
 
 :::cards
 - [監測器群組](/docs/monitor/monitor-groups): 把多個監測器彙總為一個狀態。
-- [服務目錄](/docs/telemetry/services): 你執行的每個應用程式，各有一個頁面。
+- [服務](/docs/telemetry/services): 你執行的每個應用程式，各有一個頁面。
 - [資產清單概觀](/docs/inventory/overview): OneUptime 對你的環境所知道的一切。
 :::
 

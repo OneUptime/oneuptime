@@ -410,6 +410,10 @@ Det slutter med en konklusion, der navngiver den mest sandsynlige årsag.
 API-tokenet er forkert eller mangler tilladelser. Kontrollér token-id'ets format (`user@realm!tokenname`), secretet, og at rollen **PVEAuditor** er på stien `/` for tokenet og for dets bruger. Exporterens egne logs viser API'ets svar: `docker logs oneuptime-pve-exporter`.
 :::
 
+:::details Klyngen viser "Kan ikke læse API"
+Agenten kører, men har ikke læst klyngen fra Proxmox VE API'et i 15 minutter eller mere, så klyngen viser **Kan ikke læse API** i stedet for **Forbundet**: noden, den læser fra, er nede, og ingen anden node i `PVE_NODES` svarer, API-tokenet er blevet tilbagekaldt eller har mistet rollen **PVEAuditor**, eller agentens maskine kan ikke nå port `8006` på nogen node. Dens sider beholder det, den sidst læste. Diagnosticeringsscriptet ovenfor tjekker hver af disse årsager, og `docker logs oneuptime-pve-api-failover` fortæller, hvilken node agenten læser fra, og hvorfor den sprang de andre over.
+:::
+
 :::details Kun nodemetrikker, ingen gæstemetrikker
 Gæsteserier (`qemu/*`- og `lxc/*`-id'er) kommer fra exporterens klynge-collector, som den medfølgende konfiguration slår til med scrape-parameteren `cluster=1`. Hvis du har tilpasset `otel-collector-config.yaml`, så sæt parameteren `cluster: ["1"]` tilbage.
 :::

@@ -37,7 +37,7 @@ flowchart TB
 ## शुरू करने से पहले
 
 - **आते हुए ट्रेस।** अपनी सेवाओं को [OpenTelemetry](/docs/telemetry/open-telemetry) से इंस्ट्रूमेंट करें। **सेटअप गाइड** टैब आपकी भाषा का कोड दिखाता है।
-- **टेलीमेट्री पढ़ सकने वाली भूमिका।** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member या Telemetry Viewer, या Read Telemetry Service Traces अनुमति वाली कस्टम भूमिका। उसका दायरा तय करता है कि आप किसके स्पैन देखते हैं: देखें [टेलीमेट्री](/docs/permissions/index#टेलीमेट्री)।
+- **टेलीमेट्री पढ़ सकने वाली भूमिका।** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member या Telemetry Viewer, या Read Traces अनुमति वाली कस्टम भूमिका। उसका दायरा तय करता है कि आप किसके स्पैन देखते हैं: देखें [टेलीमेट्री](/docs/permissions/index#टेलीमेट्री)।
 
 ## अनुरोध ढूँढना
 

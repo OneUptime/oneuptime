@@ -21,15 +21,15 @@ flowchart TB
 
 ## A página do calendário
 
-Abra **Manutenção programada → Calendário de manutenção**, na seção **Calendário** do menu lateral. **Todos os eventos** mostra os mesmos eventos como uma lista.
+Abra **Manutenção programada → Calendário de manutenção**, na seção **Calendário** do menu lateral. **Todos os eventos de manutenção** mostra os mesmos eventos como uma lista.
 
 - O calendário abre no mês atual, com o dia de hoje marcado. **Mês**, **Semana** e **Dia** mudam o quanto ele mostra; navegue com as setas e volte com **Hoje**. Os horários ficam no seu próprio fuso horário.
 - Cada evento é um bloco na cor do seu estado, e as cores dos estados são indicadas abaixo do calendário. Clique em um evento para abri-lo.
 - Os filtros acima do calendário funcionam como na lista: escolha um estado, um rótulo ou um responsável para ver só esses eventos.
-- Um dia que ainda está por vir mostra um **+** quando você aponta para a semana dele. Ele abre **Criar Evento de Manutenção Programada** com **Começa em** nesse dia, na hora que o formulário escolheria hoje. Você só o vê se puder criar eventos.
+- Um dia que ainda está por vir mostra um **+** quando você aponta para a semana dele. Ele abre **Criar evento de manutenção** com **Começa em** nesse dia, na hora que o formulário escolheria hoje. Você só o vê se puder criar eventos.
 - Uma visualização mostra até 500 eventos. Um mês mais cheio avisa: restrinja-o com os filtros ou olhe uma semana.
 
-**Todos os eventos** alternava antes entre uma lista e um calendário. Se o seu navegador o deixou por último no calendário, **Todos os eventos** abre uma vez o **Calendário de manutenção** e, a partir daí, é a lista.
+**Todos os eventos de manutenção** alternava antes entre uma lista e um calendário. Se o seu navegador o deixou por último no calendário, **Todos os eventos de manutenção** abre uma vez o **Calendário de manutenção** e, a partir daí, é a lista.
 
 ## Calendários externos
 
