@@ -84,7 +84,7 @@ Put the service's ID in `telemetryServiceIds`, or leave the list empty to read p
 | `attributes` | Profiles whose attributes have these values. | Empty: no condition |
 | `lastXSecondsOfProfiles` | Profiles that started within this many seconds before the evaluation. | None: always set it, or every stored profile is counted and the count never falls to 0 |
 
-All the filters you set must match for a profile to be read. In the form, **Function** sets `functionName`, **What to analyze** sets `profileTypes` (**Every kind of profile** leaves it empty), **Monitor profiles for (time)** sets `lastXSecondsOfProfiles`, and **Filter by Telemetry Service** and **Filter by Infrastructure Entity** set `telemetryServiceIds` and `entityKeys`.
+All the filters you set must match for a profile to be read. In the form, **Function** sets `functionName`, **What to analyze** sets `profileTypes` (**Every kind of profile** leaves it empty), **Monitor profiles for (time)** sets `lastXSecondsOfProfiles`, and **Filter by Service** and **Filter by Infrastructure Entity** set `telemetryServiceIds` and `entityKeys`.
 
 ## How it is evaluated
 

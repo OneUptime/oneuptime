@@ -410,6 +410,10 @@ Il se termine par un verdict qui nomme la cause la plus probable.
 Le jeton d'API est erroné ou n'a pas les permissions nécessaires. Vérifiez le format de l'ID du jeton (`user@realm!tokenname`), le secret, et que le rôle **PVEAuditor** est sur le chemin `/` pour le jeton et pour son utilisateur. Les journaux de l'exporteur lui-même montrent la réponse de l'API : `docker logs oneuptime-pve-exporter`.
 :::
 
+:::details Le cluster affiche « Lecture de l'API impossible »
+L'agent fonctionne, mais il n'a pas lu le cluster depuis l'API de Proxmox VE depuis au moins 15 minutes, donc le cluster affiche **Lecture de l'API impossible** au lieu de **Connecté** : le nœud qu'il lit est en panne et aucun autre nœud de `PVE_NODES` ne répond, le jeton d'API a été révoqué ou a perdu le rôle **PVEAuditor**, ou la machine de l'agent ne joint le port `8006` d'aucun nœud. Ses pages gardent ce qu'il a lu en dernier. Le script de diagnostic ci-dessus vérifie chacun de ces points, et `docker logs oneuptime-pve-api-failover` indique quel nœud l'agent lit et pourquoi il a écarté les autres.
+:::
+
 :::details Uniquement des métriques de nœud, aucune métrique d'invité
 Les séries d'invités (ID `qemu/*` et `lxc/*`) proviennent du collector de cluster de l'exporteur, que la configuration fournie active avec le paramètre de collecte `cluster=1`. Si vous avez personnalisé `otel-collector-config.yaml`, remettez le paramètre `cluster: ["1"]`.
 :::

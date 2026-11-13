@@ -37,7 +37,7 @@ flowchart TB
 ## 开始之前
 
 - **正在到达的追踪。** 使用 [OpenTelemetry](/docs/telemetry/open-telemetry) 为你的服务埋点。**设置指南** 标签页会显示适合你的语言的代码。
-- **可以读取遥测的角色。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member 或 Telemetry Viewer，或者拥有 Read Telemetry Service Traces 权限的自定义角色。角色的范围决定你能看到谁的 span：参见 [遥测](/docs/permissions/index#遥测)。
+- **可以读取遥测的角色。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member 或 Telemetry Viewer，或者拥有 Read Traces 权限的自定义角色。角色的范围决定你能看到谁的 span：参见 [遥测](/docs/permissions/index#遥测)。
 
 ## 查找请求
 

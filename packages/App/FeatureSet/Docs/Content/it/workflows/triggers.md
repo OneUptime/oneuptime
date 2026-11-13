@@ -202,7 +202,7 @@ Per provare un trigger di evento senza aspettare l'evento, fai clic su **Esegui 
 | **Incidente**                             | Reagire quando un incidente viene dichiarato, aggiornato (preso in carico, risolto) o eliminato. |
 | **Avviso**                                | Gli stessi tre eventi, per gli avvisi.                                                    |
 | **Monitor**                               | Reagire quando un monitor viene aggiunto, modificato o rimosso.                           |
-| **Evento di manutenzione programmata**       | Annunciare automaticamente una finestra di manutenzione quando viene pianificata.         |
+| **Evento di manutenzione**       | Annunciare automaticamente una finestra di manutenzione quando viene pianificata.         |
 | **Iscritto alla pagina di stato**              | Dare il benvenuto a chi si iscrive a una pagina di stato.                                 |
 | **Policy di reperibilità**                | Sincronizzare le modifiche della policy con un altro sistema di turni.                    |
 

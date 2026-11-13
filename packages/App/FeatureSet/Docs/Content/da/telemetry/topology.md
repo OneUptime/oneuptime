@@ -28,7 +28,7 @@ flowchart LR
 ## Før du begynder
 
 - **Telemetri, der ankommer.** Tjenestekortet kræver spor: se [OpenTelemetry](/docs/telemetry/open-telemetry). Infrastrukturvisningen kræver en vært eller en klynge, der sender data: se [Kubernetes-agenten](/docs/telemetry/kubernetes-agent). Netværksvisningen kræver netværksenheder: se [Netværksenheds-monitor](/docs/monitor/network-device-monitor).
-- **En rolle, der læser telemetri.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member eller Telemetry Viewer, eller en brugerdefineret rolle med tilladelsen Read Telemetry Service.
+- **En rolle, der læser telemetri.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member eller Telemetry Viewer, eller en brugerdefineret rolle med tilladelsen Read Inventory Item.
 
 ## Åbn Topologi
 
@@ -114,7 +114,7 @@ Et meget stort projekt når kortets grænser, og en meddelelse fortæller, hvor 
 ## Næste skridt
 
 :::cards
-- [Tjenestekatalog](/docs/telemetry/services): Alt om én tjeneste.
+- [Tjenester](/docs/telemetry/services): Alt om én tjeneste.
 - [Sporudforsker](/docs/telemetry/traces-explorer): Anmodningerne bag hver pil.
 - [Inventar – Oversigt](/docs/inventory/overview): Hver ressource, kortet tegner.
 - [Netværksenheds-monitor](/docs/monitor/network-device-monitor): Sæt dit netværk på kortet.

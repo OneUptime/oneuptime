@@ -89,6 +89,7 @@ export const RESOURCE_META: { [key: string]: ResourceMeta } = {
     viewRoute: PageMap.STATUS_PAGE_VIEW,
   },
   "Scheduled Maintenance Event": {
+    label: "Maintenance Event",
     icon: IconProp.Clock,
     color: "text-yellow-700",
     bgColor: "bg-yellow-50 border-yellow-100",

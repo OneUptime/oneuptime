@@ -72,7 +72,7 @@ Click **Create Monitor**. The monitor opens on its **Overview** page, and its fi
 | **Time window** (in **When to alert**) | Logs from the last 5 seconds up to the last 24 hours. | **Last 5 minutes** |
 | **Group by Attributes** | Not a filter: counts each combination of these attributes' values separately. | Empty: one count |
 | **Resolved by Attributes** | Not a filter: the log that resolves a group. Shows once **Group by Attributes** has an attribute; see [Resolved by a log](#resolved-by-a-log). | Empty: a group resolves when its logs stop |
-| **Filter by Telemetry Service** (under **More fields**) | Logs from any of the chosen services. | Empty: every service |
+| **Filter by Service** (under **More fields**) | Logs from any of the chosen services. | Empty: every service |
 | **Filter by Infrastructure Entity** (under **More fields**) | Logs from any of the chosen hosts, pods, containers and other entities. | Empty: every entity |
 | **Filter by Attributes** (under **More fields**) | Logs whose attributes meet every condition. Each condition has its own operator, such as equals or contains. | Empty: no condition |
 
@@ -140,7 +140,7 @@ You want an incident when the checkout service logs more than 50 errors in five 
 
 - **Log Severity**: **Error**
 - **Time window**: **Last 5 minutes**
-- **Filter by Telemetry Service**: `checkout`
+- **Filter by Service**: `checkout`
 - **When to alert**: **More than** `50`
 - **What happens**: **Declare an incident**
 

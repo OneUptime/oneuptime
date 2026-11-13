@@ -5,7 +5,7 @@
  *     side menu - All Events, the Maintenance Calendar with its filter
  *     chips, external calendars and Subscribe to calendar dialog, and
  *     Calendar Settings (any path but the two below);
- *   - StatusPageFixture.js: a status page's Scheduled Events list and an
+ *   - StatusPageFixture.js: a status page's Scheduled Maintenance list and an
  *     event's page, with Subscribe to calendar and Add to calendar
  *     (/status-page/<id>/scheduled-events... and /scheduled-events...).
  *

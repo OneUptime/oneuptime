@@ -37,7 +37,7 @@ flowchart TB
 ## 始める前に
 
 - **届いているトレース。** [OpenTelemetry](/docs/telemetry/open-telemetry) でサービスを計装します。**セットアップガイド** タブに、使っている言語向けのコードが表示されます。
-- **テレメトリを読み取れるロール。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member、Telemetry Viewer のいずれか、または Read Telemetry Service Traces 権限を持つカスタムロール。ロールのスコープによって、誰のスパンが見えるかが決まります。[テレメトリー](/docs/permissions/index#テレメトリー) を参照してください。
+- **テレメトリを読み取れるロール。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member、Telemetry Viewer のいずれか、または Read Traces 権限を持つカスタムロール。ロールのスコープによって、誰のスパンが見えるかが決まります。[テレメトリー](/docs/permissions/index#テレメトリー) を参照してください。
 
 ## リクエストを探す
 

@@ -292,12 +292,17 @@ describe("oneuptime_describe_resource", () => {
     expect(describeResource(name).resource).toBe("Incident");
   });
 
+  /*
+   * By the name people read (#6817), by the API name its tools keep, by its
+   * model's name and by a tool's name.
+   */
   test.each([
+    ["Maintenance Event"],
     ["Scheduled Maintenance Event"],
     ["ScheduledMaintenance"],
     ["list_scheduled_maintenance_events"],
   ])("finds a resource of several words by %s", (name: string) => {
-    expect(describeResource(name).resource).toBe("Scheduled Maintenance Event");
+    expect(describeResource(name).resource).toBe("Maintenance Event");
   });
 
   test("finds telemetry by its name and not only its table", () => {

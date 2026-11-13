@@ -104,7 +104,7 @@ Uma origem é um esquema, um host e uma porta opcional: `https://app.example.com
 ]
 ```
 
-O [Catálogo de serviços](/docs/telemetry/services#como-um-serviço-entra-no-catálogo) mostra como um nome fixado decide o serviço. O Runner e o agente de IA do agente Kubernetes, e os agentes de IA de infraestrutura, não se registram com uma chave fixada: dê a eles uma chave de servidor sem nome fixado.
+[Serviços](/docs/telemetry/services#como-um-serviço-entra-no-catálogo) mostra como um nome fixado decide o serviço. O Runner e o agente de IA do agente Kubernetes, e os agentes de IA de infraestrutura, não se registram com uma chave fixada: dê a eles uma chave de servidor sem nome fixado.
 
 ## Trocar, desativar ou excluir uma chave
 
@@ -155,7 +155,7 @@ Nada enviou dados com esta chave desde que o OneUptime começou a registrar o us
 
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Envie traços, métricas e registros com a sua chave.
-- [Catálogo de serviços](/docs/telemetry/services): Veja os serviços sob os quais a sua telemetria é arquivada.
+- [Serviços](/docs/telemetry/services): Veja os serviços sob os quais a sua telemetria é arquivada.
 - [Retenção de dados](/docs/telemetry/data-retention): Decida por quanto tempo os dados são mantidos.
 - [Filtros de descarte e regras de mascaramento](/docs/telemetry/drop-filters-and-scrub-rules): Descarte ou mascare dados antes de serem armazenados.
 - [Orçamentos de ingestão](/docs/telemetry/ingestion-budgets): Limite quanto cada chave pode enviar em um dia.

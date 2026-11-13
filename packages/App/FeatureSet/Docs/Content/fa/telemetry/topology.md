@@ -28,7 +28,7 @@ flowchart LR
 ## پیش از شروع
 
 - **تله‌متری در حال رسیدن.** نقشهٔ سرویس‌ها به ترِیس نیاز دارد: [OpenTelemetry](/docs/telemetry/open-telemetry) را ببینید. نمای زیرساخت به میزبان یا خوشه‌ای نیاز دارد که داده بفرستد: [عامل Kubernetes](/docs/telemetry/kubernetes-agent) را ببینید. نمای شبکه به دستگاه‌های شبکه نیاز دارد: [مانیتور دستگاه شبکه](/docs/monitor/network-device-monitor) را ببینید.
-- **نقشی که تله‌متری را بخواند.** Project Owner، Project Admin، Project Member، Viewer، Telemetry Admin، Telemetry Member یا Telemetry Viewer، یا یک نقش سفارشی با مجوز Read Telemetry Service.
+- **نقشی که تله‌متری را بخواند.** Project Owner، Project Admin، Project Member، Viewer، Telemetry Admin، Telemetry Member یا Telemetry Viewer، یا یک نقش سفارشی با مجوز Read Inventory Item.
 
 ## باز کردن توپولوژی
 
@@ -114,7 +114,7 @@ OneUptime هر ۱۰ دقیقه در ترِیس‌هایتان دنبال فرا�
 ## گام‌های بعدی
 
 :::cards
-- [کاتالوگ سرویس](/docs/telemetry/services): همه‌چیز دربارهٔ یک سرویس.
+- [سرویس‌ها](/docs/telemetry/services): همه‌چیز دربارهٔ یک سرویس.
 - [کاوشگر ترِیس](/docs/telemetry/traces-explorer): درخواست‌های پشت هر پیکان.
 - [نمای کلی موجودی](/docs/inventory/overview): هر منبعی که نقشه می‌کشد.
 - [مانیتور دستگاه شبکه](/docs/monitor/network-device-monitor): شبکه‌تان را روی نقشه بیاورید.

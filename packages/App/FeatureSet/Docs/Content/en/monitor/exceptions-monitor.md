@@ -72,7 +72,7 @@ Click **Create Monitor**. The monitor opens on its **Overview** page, and its fi
 | **Exception Types** | Exceptions of any of these types, separated by commas, such as `TypeError, NullReferenceException`. The type name must match exactly. | Empty: every type |
 | **Environments** | Exceptions from any of these environments, separated by commas — see [Environments](#environments). | Empty: every environment |
 | **Time window** (in **When to alert**) | Exceptions from the last 5 seconds up to the last 24 hours. | **Last 5 minutes** |
-| **Filter by Telemetry Service** (under **More fields**) | Exceptions from any of the chosen services. | Empty: every service |
+| **Filter by Service** (under **More fields**) | Exceptions from any of the chosen services. | Empty: every service |
 | **Filter by Infrastructure Entity** (under **More fields**) | Exceptions from any of the chosen hosts, pods, containers and other entities. | Empty: every entity |
 | **Include Resolved Exceptions** (under **More fields**) | Also count exceptions marked as resolved. | Off |
 | **Include Archived Exceptions** (under **More fields**) | Also count exceptions that are archived. | Off |

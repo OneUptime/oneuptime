@@ -37,7 +37,7 @@ flowchart TB
 ## 開始之前
 
 - **正在到達的追蹤。** 使用 [OpenTelemetry](/docs/telemetry/open-telemetry) 檢測你的服務。**設定指南** 分頁會顯示適合你的語言的程式碼。
-- **可以讀取遙測的角色。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member 或 Telemetry Viewer，或者擁有 Read Telemetry Service Traces 權限的自訂角色。角色的範圍決定你能看到誰的 span：請參閱 [遙測](/docs/permissions/index#遙測)。
+- **可以讀取遙測的角色。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member 或 Telemetry Viewer，或者擁有 Read Traces 權限的自訂角色。角色的範圍決定你能看到誰的 span：請參閱 [遙測](/docs/permissions/index#遙測)。
 
 ## 尋找請求
 

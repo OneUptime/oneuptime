@@ -1,6 +1,6 @@
 # Ce que crée une soumission
 
-Chaque soumission via un formulaire crée un enregistrement dans votre projet : un **incident** ou un **événement de maintenance planifiée**. La page **À la soumission** d'un formulaire montre lequel, et comment chaque champ du nouvel enregistrement est rempli — à partir d'une réponse, d'une valeur par défaut, d'un paramètre qui s'applique toujours, ou du modèle d'incident. **Modifier les paramètres** modifie les valeurs par défaut et ce qui s'applique toujours.
+Chaque soumission via un formulaire crée un enregistrement dans votre projet : un **incident** ou un **événement de maintenance**. La page **À la soumission** d'un formulaire montre lequel, et comment chaque champ du nouvel enregistrement est rempli — à partir d'une réponse, d'une valeur par défaut, d'un paramètre qui s'applique toujours, ou du modèle d'incident. **Modifier les paramètres** modifie les valeurs par défaut et ce qui s'applique toujours.
 
 :::cards
 - [Comment une soumission devient un incident](#comment-une-soumission-devient-un-incident): Chaque champ du nouvel incident, et d'où vient sa valeur.

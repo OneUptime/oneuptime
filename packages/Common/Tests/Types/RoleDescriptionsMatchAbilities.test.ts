@@ -201,11 +201,11 @@ const DESCRIPTIONS: Record<string, string> = {
   [Permission.StatusPageViewer]:
     "Read-only access to status pages and status page resources.",
   [Permission.OnCallAdmin]:
-    "Creates, changes and deletes on-call duty policies with their escalation rules, on-call schedules with their layers, and user overrides. On-call rules and custom fields take Project Admin. Incoming call policies are not part of it.",
+    "Creates, changes and deletes on-call policies with their escalation rules, on-call schedules with their layers, and user overrides. On-call rules and custom fields take Project Admin. Incoming call policies are not part of it.",
   [Permission.OnCallMember]:
-    "Same as On-Call Admin: creates, changes and deletes on-call duty policies with their escalation rules, on-call schedules with their layers, and user overrides.",
+    "Same as On-Call Admin: creates, changes and deletes on-call policies with their escalation rules, on-call schedules with their layers, and user overrides.",
   [Permission.OnCallViewer]:
-    "Read-only access to on-call duty policies and schedules.",
+    "Read-only access to on-call policies and schedules.",
   [Permission.ScheduledMaintenanceAdmin]:
     "Does everything Scheduled Maintenance Member does, and also creates, changes and deletes maintenance states. Scheduled maintenance rules, custom fields and measurements take Project Admin.",
   [Permission.ScheduledMaintenanceMember]:

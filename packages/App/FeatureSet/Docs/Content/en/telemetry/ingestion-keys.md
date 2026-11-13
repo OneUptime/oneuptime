@@ -104,7 +104,7 @@ An origin is a scheme, a host and an optional port: `https://app.example.com` do
 ]
 ```
 
-The [Service Catalog](/docs/telemetry/services#how-a-service-gets-into-the-catalog) shows how a pinned name decides the service. The Kubernetes agent's Runner and AI agent, and the infrastructure AI agents, do not register with a pinned key: give them an unpinned Server key.
+[Services](/docs/telemetry/services#how-a-service-gets-into-the-catalog) shows how a pinned name decides the service. The Kubernetes agent's Runner and AI agent, and the infrastructure AI agents, do not register with a pinned key: give them an unpinned Server key.
 
 ## Rotate, turn off or delete a key
 
@@ -155,7 +155,7 @@ Nothing has sent data with this key since OneUptime began recording its use. Che
 
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Send traces, metrics and logs with your key.
-- [Service Catalog](/docs/telemetry/services): See the services your telemetry is filed under.
+- [Services](/docs/telemetry/services): See the services your telemetry is filed under.
 - [Data Retention](/docs/telemetry/data-retention): Decide how long the data is kept.
 - [Drop Filters & Scrub Rules](/docs/telemetry/drop-filters-and-scrub-rules): Drop or mask data before it is stored.
 - [Ingestion Budgets](/docs/telemetry/ingestion-budgets): Cap how much each key may send in a day.
