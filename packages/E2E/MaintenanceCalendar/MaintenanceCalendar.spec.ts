@@ -392,7 +392,9 @@ test.describe("the calendar's own page", () => {
     await calendarSettled(page);
     expect(addressOf(page)).toMatch(CALENDAR_ADDRESS_PATTERN);
 
-    await sideMenu(page).getByRole("link", { name: "All Maintenance Events" }).click();
+    await sideMenu(page)
+      .getByRole("link", { name: "All Maintenance Events" })
+      .click();
     await expect(calendar(page)).toHaveCount(0);
     expect(addressOf(page)).toMatch(LIST_ADDRESS_PATTERN);
   });
@@ -413,7 +415,9 @@ test.describe("the calendar's own page", () => {
     ).toBeNull();
 
     // Once: All Maintenance Events is the list from then on.
-    await sideMenu(page).getByRole("link", { name: "All Maintenance Events" }).click();
+    await sideMenu(page)
+      .getByRole("link", { name: "All Maintenance Events" })
+      .click();
     await expect(page.getByText("Database upgrade").first()).toBeVisible();
     await expect(calendar(page)).toHaveCount(0);
     expect(addressOf(page)).toMatch(LIST_ADDRESS_PATTERN);

@@ -352,7 +352,7 @@ export default class SlackScheduledMaintenanceActions {
         _type: "WorkspacePayloadMarkdown",
         text: (eventName
           ? mdText`**Maintenance Event ${eventName}** created successfully. [View Event](${eventLink})`
-          : mdText`Scheduled event created successfully. [View Event](${eventLink})`
+          : mdText`Maintenance event created successfully. [View Event](${eventLink})`
         ).toString(),
       };
 
@@ -384,7 +384,7 @@ export default class SlackScheduledMaintenanceActions {
             messageBlocks: [confirmation],
             text: eventName
               ? `Maintenance Event ${eventName} created successfully.`
-              : "Scheduled event created successfully.",
+              : "Maintenance event created successfully.",
           });
         }
       }

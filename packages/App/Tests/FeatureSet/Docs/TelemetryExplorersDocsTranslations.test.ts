@@ -744,11 +744,10 @@ describe("the English pages", () => {
  * (#6817), and each of these is that language's own word for the product,
  * as its products menu draws it - not an English word left untranslated.
  */
-const SPELLED_AS_IN_ENGLISH: Readonly<Record<string, ReadonlyArray<string>>> =
-  {
-    fr: ["Exceptions", "Services"],
-    nl: ["Services"],
-  };
+const SPELLED_AS_IN_ENGLISH: Readonly<Record<string, ReadonlyArray<string>>> = {
+  fr: ["Exceptions", "Services"],
+  nl: ["Services"],
+};
 
 describe.each(LANGUAGES)("%s", (language: string) => {
   describe.each(TELEMETRY_EXPLORERS_PAGES)(

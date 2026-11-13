@@ -71,50 +71,50 @@ export function generateHelperTools(): McpToolInfo[] {
  */
 export const RESOURCE_DESCRIPTIONS: Readonly<Record<string, string>> = {
   Incident:
-      "Represents service disruptions or issues affecting your systems. Track incident lifecycle from creation to resolution.",
-    Monitor:
-      "Defines what to monitor (websites, APIs, servers) and how to check their health and availability.",
-    Alert:
-      "Notifications triggered when monitors detect issues. Configures who gets notified and how.",
-    "Status Page":
-      "Public-facing page showing the status of your services to your customers.",
-    "Maintenance Event":
-      "Planned downtime events that inform users about expected service interruptions.",
-    Team: "Groups of users with shared access to project resources.",
-    "On-Call Policy":
-      "Defines escalation rules and schedules for incident response.",
-    "Incident State":
-      "Represents the lifecycle states of incidents (e.g., Created, Acknowledged, Resolved).",
-    "Monitor Status":
-      "Represents the health states of monitors (e.g., Operational, Degraded, Offline).",
-    "Incident Severity":
-      "Severity levels for incidents (e.g., Critical, Major, Minor). List these to find the incidentSeverityId required by create_incident.",
-    "Alert State":
-      "Lifecycle states of alerts (e.g., Created, Acknowledged, Resolved).",
-    "Alert Severity":
-      "Severity levels for alerts. List these to find the alertSeverityId required by create_alert.",
-    "Incident State Timeline":
-      "History of state changes for incidents. Creating an entry changes the incident's state (this is how acknowledge/resolve work).",
-    "Alert State Timeline":
-      "History of state changes for alerts. Creating an entry changes the alert's state.",
-    "Incident Public Note":
-      "Status-page-visible notes on incidents, seen by customers and subscribers.",
-    "Incident Internal Note": "Internal team-only notes on incidents.",
-    "Incident Alert":
-      "Links an alert to an incident (many-to-many). Create one to link an alert to an incident, delete it to unlink. List these by incidentId to see an incident's linked alerts, or by alertId to see the incidents an alert is linked to.",
-    "Alert Internal Note": "Internal team-only notes on alerts.",
-    "Status Page Announcement": "Announcements posted to your status pages.",
-    "Scheduled Maintenance State":
-      "Lifecycle states for maintenance events (e.g., Scheduled, Ongoing, Completed).",
-    Label: "Labels for organizing and filtering project resources.",
-    "Monitor Status Event":
-      "History of monitor status changes — useful for investigating when a monitor went down or recovered.",
-    Log: "OpenTelemetry log records from your services. Filter by time range and service.",
-    Metric: "OpenTelemetry metrics from your services.",
-    Span: "OpenTelemetry trace spans from your services.",
-    "Exception Instance": "Application exceptions captured via telemetry.",
-    "Monitor Log":
-      "Raw probe results for monitors — explains why a monitor check passed or failed.",
+    "Represents service disruptions or issues affecting your systems. Track incident lifecycle from creation to resolution.",
+  Monitor:
+    "Defines what to monitor (websites, APIs, servers) and how to check their health and availability.",
+  Alert:
+    "Notifications triggered when monitors detect issues. Configures who gets notified and how.",
+  "Status Page":
+    "Public-facing page showing the status of your services to your customers.",
+  "Maintenance Event":
+    "Planned downtime events that inform users about expected service interruptions.",
+  Team: "Groups of users with shared access to project resources.",
+  "On-Call Policy":
+    "Defines escalation rules and schedules for incident response.",
+  "Incident State":
+    "Represents the lifecycle states of incidents (e.g., Created, Acknowledged, Resolved).",
+  "Monitor Status":
+    "Represents the health states of monitors (e.g., Operational, Degraded, Offline).",
+  "Incident Severity":
+    "Severity levels for incidents (e.g., Critical, Major, Minor). List these to find the incidentSeverityId required by create_incident.",
+  "Alert State":
+    "Lifecycle states of alerts (e.g., Created, Acknowledged, Resolved).",
+  "Alert Severity":
+    "Severity levels for alerts. List these to find the alertSeverityId required by create_alert.",
+  "Incident State Timeline":
+    "History of state changes for incidents. Creating an entry changes the incident's state (this is how acknowledge/resolve work).",
+  "Alert State Timeline":
+    "History of state changes for alerts. Creating an entry changes the alert's state.",
+  "Incident Public Note":
+    "Status-page-visible notes on incidents, seen by customers and subscribers.",
+  "Incident Internal Note": "Internal team-only notes on incidents.",
+  "Incident Alert":
+    "Links an alert to an incident (many-to-many). Create one to link an alert to an incident, delete it to unlink. List these by incidentId to see an incident's linked alerts, or by alertId to see the incidents an alert is linked to.",
+  "Alert Internal Note": "Internal team-only notes on alerts.",
+  "Status Page Announcement": "Announcements posted to your status pages.",
+  "Scheduled Maintenance State":
+    "Lifecycle states for maintenance events (e.g., Scheduled, Ongoing, Completed).",
+  Label: "Labels for organizing and filtering project resources.",
+  "Monitor Status Event":
+    "History of monitor status changes — useful for investigating when a monitor went down or recovered.",
+  Log: "OpenTelemetry log records from your services. Filter by time range and service.",
+  Metric: "OpenTelemetry metrics from your services.",
+  Span: "OpenTelemetry trace spans from your services.",
+  "Exception Instance": "Application exceptions captured via telemetry.",
+  "Monitor Log":
+    "Raw probe results for monitors — explains why a monitor check passed or failed.",
 };
 
 function getResourceDescription(singularName: string): string {

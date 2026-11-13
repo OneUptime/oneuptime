@@ -904,9 +904,7 @@ describe("where events come from", () => {
   );
 
   it("opens the form from the list and from a resource's Scheduled Maintenance tab, and from a template", () => {
-    expect(LIST_TABLE).toContain(
-      'title: "Create Maintenance Event",',
-    );
+    expect(LIST_TABLE).toContain('title: "Create Maintenance Event",');
     expect(LIST_TABLE).toContain('title: "Create from Template",');
     expect(sources).toContain(
       "Click **Create Maintenance Event** on the list of events, or on the **Scheduled Maintenance** tab of a host, a cluster, a service, a network site or another resource, which picks that resource for you.",
@@ -2045,7 +2043,10 @@ describe("the create form", () => {
       CREATE_PAGE.indexOf("]}", CREATE_PAGE.indexOf("steps={[")),
     );
 
-    expect(quotedTitles(steps)).toEqual(["Maintenance Details", "Resources Affected"]);
+    expect(quotedTitles(steps)).toEqual([
+      "Maintenance Details",
+      "Resources Affected",
+    ]);
     expect(CREATE_PAGE).toContain(
       'submitButtonText={"Create Maintenance Event"}',
     );
@@ -2658,7 +2659,10 @@ describe("changing an event later", () => {
       details.indexOf("]}", details.indexOf("formSteps={[")),
     );
 
-    expect(quotedTitles(steps)).toEqual(["Maintenance Details", "Status Pages"]);
+    expect(quotedTitles(steps)).toEqual([
+      "Maintenance Details",
+      "Status Pages",
+    ]);
     expect(details).toContain('editButtonText="Edit"');
     expect(later).toContain(
       "| The title, the window or the labels         | **Edit** on the **Maintenance Details** card of its **Overview**, step **Maintenance Details** |",

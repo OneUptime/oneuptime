@@ -2337,8 +2337,7 @@ export default class Monitor extends BaseModel {
     required: true,
     isDefaultValueColumn: true,
     title: "Disable Monitoring because of Ongoing Maintenance Event",
-    description:
-      "Disable Monitoring because of Ongoing Maintenance Event",
+    description: "Disable Monitoring because of Ongoing Maintenance Event",
     defaultValue: false,
   })
   @Column({

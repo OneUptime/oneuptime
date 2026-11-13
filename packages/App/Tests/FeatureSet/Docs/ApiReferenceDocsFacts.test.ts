@@ -918,9 +918,7 @@ describe("Exporting to a CMDB: the requests", () => {
       "A read-only export needs one permission, **Read Inventory Item**",
     );
     expect(page).toContain("The key needs **Edit Inventory Item** for that.");
-    expect(page).toContain(
-      "The key needs **Create Inventory Item** for that.",
-    );
+    expect(page).toContain("The key needs **Create Inventory Item** for that.");
   });
 
   it("adds only the types a person may add, and works out their identity key", () => {

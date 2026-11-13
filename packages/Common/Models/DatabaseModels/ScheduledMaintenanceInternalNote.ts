@@ -195,8 +195,7 @@ export default class ScheduledMaintenanceInternalNote extends BaseModel {
     type: TableColumnType.Entity,
     modelType: ScheduledMaintenance,
     title: "Scheduled Maintenance",
-    description:
-      "Relation to Maintenance Event this resource belongs to",
+    description: "Relation to Maintenance Event this resource belongs to",
   })
   @ManyToOne(
     () => {

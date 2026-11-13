@@ -23,7 +23,7 @@ import {
  * Resources Affected - the shape of Declare Incident. The four forms of a
  * scheduled maintenance event put each field they hold on the same step:
  *
- *   - Create Scheduled Maintenance Event (Pages/ScheduledMaintenanceEvents/
+ *   - Create Maintenance Event (Pages/ScheduledMaintenanceEvents/
  *     Create.tsx), and the review step after them;
  *   - the event's details card Edit (View/Index.tsx) - its resources,
  *     description and owners are edited elsewhere on the page, so its

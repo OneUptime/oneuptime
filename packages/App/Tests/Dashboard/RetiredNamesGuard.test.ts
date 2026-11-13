@@ -503,21 +503,18 @@ describe("what the server sends never uses a retired name", () => {
     expect(found).toEqual([]);
   });
 
-  test.each(OTHER_FRONT_END_LOCALES)(
-    "no word of %s does",
-    (locale: string) => {
-      const english: Record<string, unknown> = JSON.parse(
-        fs.readFileSync(path.join(PACKAGES, locale), "utf8"),
-      ) as Record<string, unknown>;
-      const found: Array<Sighting> = allValues(english).flatMap(
-        ([key, value]: [string, string]): Array<Sighting> => {
-          return sightings(`${locale} ${key}`, value);
-        },
-      );
+  test.each(OTHER_FRONT_END_LOCALES)("no word of %s does", (locale: string) => {
+    const english: Record<string, unknown> = JSON.parse(
+      fs.readFileSync(path.join(PACKAGES, locale), "utf8"),
+    ) as Record<string, unknown>;
+    const found: Array<Sighting> = allValues(english).flatMap(
+      ([key, value]: [string, string]): Array<Sighting> => {
+        return sightings(`${locale} ${key}`, value);
+      },
+    );
 
-      expect(found).toEqual([]);
-    },
-  );
+    expect(found).toEqual([]);
+  });
 
   test("reads every front end's English locale, so a new one is read too", () => {
     const featureSets: string = path.join(PACKAGES, "App/FeatureSet");

@@ -90,9 +90,7 @@ describe("Users, Teams & Permissions: what reading a record reads", () => {
     );
     expect(paragraph).toContain("server agent key");
     expect(paragraph).toContain("a workflow's webhook and incoming email keys");
-    expect(paragraph).toContain(
-      "**Read Metrics** reads metrics",
-    );
+    expect(paragraph).toContain("**Read Metrics** reads metrics");
   });
 
   /*

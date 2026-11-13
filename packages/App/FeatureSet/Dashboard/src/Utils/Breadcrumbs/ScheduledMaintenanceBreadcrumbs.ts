@@ -13,11 +13,7 @@ export function getScheduleMaintenanceBreadcrumbs(
     ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS,
-      [
-        "Project",
-        "Scheduled Maintenance",
-        "Ongoing Maintenance Events",
-      ],
+      ["Project", "Scheduled Maintenance", "Ongoing Maintenance Events"],
     ),
     // The page by the name its side menu entry and its card give it.
     ...BuildBreadcrumbLinksByTitles(
@@ -30,11 +26,7 @@ export function getScheduleMaintenanceBreadcrumbs(
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE,
-      [
-        "Project",
-        "Scheduled Maintenance",
-        "New Maintenance Event",
-      ],
+      ["Project", "Scheduled Maintenance", "New Maintenance Event"],
     ),
     ...BuildBreadcrumbLinksByTitles(PageMap.SCHEDULED_MAINTENANCE_VIEW, [
       "Project",
@@ -132,12 +124,7 @@ export function getScheduleMaintenanceBreadcrumbs(
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.SCHEDULED_MAINTENANCE_VIEW_AI_LOGS,
-      [
-        "Project",
-        "Scheduled Maintenance",
-        "View Maintenance Event",
-        "AI Logs",
-      ],
+      ["Project", "Scheduled Maintenance", "View Maintenance Event", "AI Logs"],
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.SCHEDULED_MAINTENANCE_VIEW_RUNBOOKS,

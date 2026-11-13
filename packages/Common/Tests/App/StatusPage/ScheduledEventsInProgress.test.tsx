@@ -33,7 +33,7 @@ import StatusPageUtil from "../../../../App/FeatureSet/StatusPage/src/Utils/Stat
  * before Ongoing, "Verifying" between Ongoing and Ended, "Reviewing" after
  * Ended. An event in "Verifying" is in progress
  * (Common/Utils/ScheduledMaintenanceStart), so the scheduled events page
- * lists it under Ongoing Events and its timeline shows the in-progress icon,
+ * lists it under Ongoing Maintenance and its timeline shows the in-progress icon,
  * as Ongoing's does; one in "Reviewing" is over and sits under Completed
  * Events; one in "Confirmed" has not started and sits under Scheduled
  * Events. The server answers every list with the project's states, which
@@ -209,14 +209,14 @@ describe("the scheduled events page lists each event under its state's phase", (
     });
 
     await waitFor(() => {
-      expect(screen.getByText("Ongoing Events")).toBeInTheDocument();
+      expect(screen.getByText("Ongoing Maintenance")).toBeInTheDocument();
     });
   }
 
   test("an event in a state of the project's own between Ongoing and Ended is ongoing, beside one in Ongoing", async () => {
     await renderList();
 
-    const ongoing: string = textOfSection("Ongoing Events");
+    const ongoing: string = textOfSection("Ongoing Maintenance");
 
     expect(ongoing).toContain("Database failover drill");
     expect(ongoing).toContain("Kernel patching");
@@ -227,7 +227,7 @@ describe("the scheduled events page lists each event under its state's phase", (
   test("an event in a state of the project's own after Ended is completed", async () => {
     await renderList();
 
-    const completed: string = textOfSection("Completed Events");
+    const completed: string = textOfSection("Completed Maintenance");
 
     expect(completed).toContain("Cache cluster resize");
     expect(completed).not.toContain("Database failover drill");
@@ -236,7 +236,7 @@ describe("the scheduled events page lists each event under its state's phase", (
   test("an event in a state of the project's own before Ongoing is still scheduled", async () => {
     await renderList();
 
-    const upcoming: string = textOfSection("Scheduled Events");
+    const upcoming: string = textOfSection("Upcoming Maintenance");
 
     expect(upcoming).toContain("Network switch swap");
     expect(upcoming).not.toContain("Database failover drill");

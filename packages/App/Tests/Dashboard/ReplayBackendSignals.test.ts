@@ -2163,9 +2163,7 @@ describe("ReplayBackendSignalsStore: the trace-id read", () => {
     await logs;
 
     expect(store.getSlot("log").status).toBe("locked");
-    expect(store.getSlot("log").lockedPermission).toBe(
-      "Read Logs",
-    );
+    expect(store.getSlot("log").lockedPermission).toBe("Read Logs");
 
     fetcher.resolveTraceIds(0, [traceIdOf(9)]);
     await settle();

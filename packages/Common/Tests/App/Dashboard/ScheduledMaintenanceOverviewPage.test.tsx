@@ -1953,7 +1953,7 @@ describe("Scheduled maintenance overview page", () => {
     ];
 
     /*
-     * Split as Create Scheduled Maintenance Event is: the monitors in a
+     * Split as Create Maintenance Event is: the monitors in a
      * picker of their own, the status they change to right under them,
      * every other resource the model supports in a second picker - together
      * each relation once.
