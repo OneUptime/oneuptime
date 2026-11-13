@@ -76,9 +76,12 @@ import {
 } from "../../../../Types/SampleProject/SampleProject";
 import {
   MINUTES_IN_A_DAY,
+  SAMPLE_ALERTS,
   SAMPLE_INCIDENTS,
   SAMPLE_MONITOR_HISTORY_DAYS,
   SAMPLE_MONITORS,
+  SampleAlertState,
+  SampleIncidentState,
   SampleMonitor,
 } from "../../../../Types/SampleProject/SampleProjectContent";
 import StatusPageSubscriberNotificationStatus from "../../../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
@@ -608,6 +611,57 @@ describe("what it makes", () => {
     expect(rowsOf("StatusPageResourceService").length).toBeGreaterThanOrEqual(
       3,
     );
+  });
+
+  /*
+   * Each record ends in the project's own state for it: THE acknowledged
+   * and THE resolved state, picked as Acknowledge and Resolve pick them,
+   * and THE scheduled state a new maintenance event is created in.
+   */
+  test("each incident, alert and maintenance event ends in the project's own state for it", () => {
+    const incidentStateIdOf: Record<SampleIncidentState, string> = {
+      [SampleIncidentState.Identified]: id("is1").toString(),
+      [SampleIncidentState.Acknowledged]: id("is2").toString(),
+      [SampleIncidentState.Resolved]: id("is3").toString(),
+    };
+    const alertStateIdOf: Record<SampleAlertState, string> = {
+      [SampleAlertState.Identified]: id("as1").toString(),
+      [SampleAlertState.Acknowledged]: id("as2").toString(),
+      [SampleAlertState.Resolved]: id("as3").toString(),
+    };
+
+    expect(
+      rowsOf("IncidentService").map((row: Record<string, unknown>) => {
+        return String(row["currentIncidentStateId"]);
+      }),
+    ).toEqual(
+      SAMPLE_INCIDENTS.map((sample: (typeof SAMPLE_INCIDENTS)[number]) => {
+        return incidentStateIdOf[
+          sample.states[sample.states.length - 1]!.state
+        ];
+      }),
+    );
+    expect(
+      rowsOf("AlertService").map((row: Record<string, unknown>) => {
+        return String(row["currentAlertStateId"]);
+      }),
+    ).toEqual(
+      SAMPLE_ALERTS.map((sample: (typeof SAMPLE_ALERTS)[number]) => {
+        return alertStateIdOf[sample.states[sample.states.length - 1]!.state];
+      }),
+    );
+
+    const maintenance: Array<Record<string, unknown>> = rowsOf(
+      "ScheduledMaintenanceService",
+    );
+
+    expect(maintenance.length).toBeGreaterThan(0);
+
+    for (const row of maintenance) {
+      expect(String(row["currentScheduledMaintenanceStateId"])).toBe(
+        id("sm1").toString(),
+      );
+    }
   });
 
   test("a maintenance window to come", () => {

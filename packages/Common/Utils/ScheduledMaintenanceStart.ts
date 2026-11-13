@@ -74,8 +74,8 @@ import {
  * by the scheduled, ended or completed flag on its own, nor by comparing
  * places outside this file (OneMaintenancePhaseRuleGuard). The flags still
  * mark THE scheduled, ended and completed states - the ones an event is
- * created in, the end at its time moves it into (getEndedState) and Mark as
- * Complete moves it into (getCompletedState).
+ * created in (getScheduledState), the end at its time moves it into
+ * (getEndedState) and Mark as Complete moves it into (getCompletedState).
  *
  * No database and no React in it, so both sides read the same rule.
  */
@@ -480,6 +480,16 @@ export default class ScheduledMaintenanceStartUtil {
       getStateListReachedBuiltIn(DEFINITION, placed.rows, placed.row) ===
       COMPLETED_FLAG
     );
+  }
+
+  /*
+   * The project's scheduled state: the first state from the top flagged
+   * scheduled - the one a new event is created in, and the sample project's
+   * events start in. Null when the list has none (a project always keeps
+   * one; StateOrderGuard refuses deleting it).
+   */
+  public static getScheduledState<T>(data: { states: Array<T> }): T | null {
+    return this.getBuiltInState(data.states, SCHEDULED_FLAG);
   }
 
   /*
