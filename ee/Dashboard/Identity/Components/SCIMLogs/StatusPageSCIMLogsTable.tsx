@@ -49,14 +49,12 @@ const StatusPageSCIMLogsTable: FunctionComponent<
       field: { operationType: true },
       title: "Operation",
       type: FieldType.Text,
-      noValueMessage: "-",
     },
     {
       field: { affectedUserEmail: true },
       title: "User Email",
       type: FieldType.Email,
       hideOnMobile: true,
-      noValueMessage: "-",
     },
     {
       field: { createdAt: true },

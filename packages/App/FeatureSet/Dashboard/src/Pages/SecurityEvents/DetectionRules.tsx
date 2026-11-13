@@ -943,7 +943,6 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
             },
             title: "Last Error",
             type: FieldType.LongText,
-            noValueMessage: "-",
             wrapContent: true,
             isHiddenByDefault: true,
           },

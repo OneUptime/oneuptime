@@ -166,7 +166,6 @@ const Labels: FunctionComponent<PageComponentProps> = (): ReactElement => {
             field: {
               description: true,
             },
-            noValueMessage: "-",
             title: "Description",
             type: FieldType.LongText,
           },

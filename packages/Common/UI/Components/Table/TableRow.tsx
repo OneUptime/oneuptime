@@ -39,7 +39,10 @@ import {
   getTableCellPaddingClassName,
 } from "./TableLayout";
 import { TABLE_STICKY_END_ATTRIBUTE } from "./TableStickyEndFocus";
-import TableEmptyValue, { isDashPlaceholder } from "./TableEmptyValue";
+import TableEmptyValue, {
+  getTableNoValue,
+  isDashPlaceholder,
+} from "./TableEmptyValue";
 import { showFullValueWhenCutShort } from "./FullValueTitle";
 import Columns from "./Types/Columns";
 import Color from "../../../Types/Color";
@@ -334,18 +337,12 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
 
     /*
      * A missing value: the column's own words in the grey an absent value
-     * is drawn in, or a dash.
+     * is drawn in, or the quiet dash - also for a column whose words are
+     * only a dash ("-"), which drew a darker hyphen of its own beside the
+     * dash of every other empty cell (getTableNoValue, #7264).
      */
     const getNoValue: () => ReactElement = (): ReactElement => {
-      if (column.noValueMessage) {
-        return (
-          <span className="text-gray-500">
-            {translateString(column.noValueMessage) ?? column.noValueMessage}
-          </span>
-        );
-      }
-
-      return <TableEmptyValue />;
+      return getTableNoValue(column.noValueMessage);
     };
 
     switch (column.type) {
@@ -363,12 +360,22 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
         ) : (
           getNoValue()
         );
+      /*
+       * No amount, no share: "0 USD", "0%" - or the column's own words for
+       * that, drawn as every other empty value is.
+       */
       case FieldType.USDCents:
         return value
           ? ((value as number) || 0) / 100 + " USD"
-          : column.noValueMessage || "0 USD";
+          : column.noValueMessage
+            ? getNoValue()
+            : "0 USD";
       case FieldType.Percent:
-        return value ? value + "%" : column.noValueMessage || "0%";
+        return value
+          ? value + "%"
+          : column.noValueMessage
+            ? getNoValue()
+            : "0%";
       case FieldType.Color:
         return value ? <ColorInput value={value as Color} /> : getNoValue();
       case FieldType.LongText:

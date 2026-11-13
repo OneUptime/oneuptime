@@ -182,7 +182,6 @@ const Slack: () => JSX.Element = (): ReactElement => {
             },
             title: "Slack Username",
             type: FieldType.Text,
-            noValueMessage: "-",
           },
           {
             field: {
