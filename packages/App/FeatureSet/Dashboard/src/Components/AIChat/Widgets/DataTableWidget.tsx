@@ -14,7 +14,10 @@ import {
   getChatTableCellText,
   getChatTableWordParts,
 } from "Common/UI/Utils/AIChatExport/ChatWidgetData";
+import { AIActionTableWords } from "Common/Types/AI/AIActionWords";
 import React, { FunctionComponent, ReactElement } from "react";
+import { DrawnActionSentence } from "../ToolActionWords";
+import { getDrawnTableCell, getKnownTableWords } from "../TableWords";
 
 export interface ComponentProps {
   widget: AIChatWidget;
@@ -35,6 +38,13 @@ const DataTableWidget: FunctionComponent<ComponentProps> = (
   const columns: Array<AIChatWidgetColumn> = props.widget.data.columns || [];
   const allRows: Array<JSONObject> = props.widget.data.rows || [];
   const rows: Array<JSONObject> = allRows.slice(0, MAX_ROWS);
+  /*
+   * A read's table says its cells that are OneUptime's words - a
+   * monitor's type, Disabled - in the reader's language, as the card
+   * above it does (issue #7394, TableWords); every other cell is data,
+   * drawn as stored.
+   */
+  const words: AIActionTableWords | null = getKnownTableWords(props.widget);
 
   /*
    * Its columns as wide as a person makes them (Common's
@@ -110,8 +120,15 @@ const DataTableWidget: FunctionComponent<ComponentProps> = (
                 className="border-b border-gray-100 last:border-0"
               >
                 {columns.map((column: AIChatWidgetColumn) => {
+                  const worded: DrawnActionSentence | null = getDrawnTableCell({
+                    words,
+                    rowIndex,
+                    columnKey: column.key,
+                    stored: row[column.key],
+                    translator,
+                  });
                   const cell: ChatTableCellText = getChatTableCellText(
-                    row[column.key],
+                    worded ? worded.text : row[column.key],
                     column,
                   );
 

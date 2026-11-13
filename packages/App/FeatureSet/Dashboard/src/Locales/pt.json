@@ -51831,5 +51831,11 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Período: {{range}}. Tente ajustar os filtros ou ampliar o período.",
   "On-Call Policy Created": "Política de plantão criada",
   "On-Call Schedule Added": "Agendamento de plantão adicionado",
-  "On-Call Schedule Removed": "Agendamento de plantão removido"
+  "On-Call Schedule Removed": "Agendamento de plantão removido",
+  "Monitors ({{count}})": "Monitores ({{count}})",
+  "Monitors in status \"{{status}}\" ({{count}})": "Monitores no status \"{{status}}\" ({{count}})",
+  "Monitors with problems ({{count}})": "Monitores com problemas ({{count}})",
+  "Non-operational first, Disabled last": "Não operacionais primeiro, Desabilitado por último",
+  "Non-operational monitors first": "Monitores não operacionais primeiro",
+  "Non-operational monitors only": "Apenas monitores não operacionais"
 }

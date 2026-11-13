@@ -11,6 +11,8 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import { navigateToCitationTarget } from "../CitationTargetNav";
 import { formatEvidenceLabel } from "../../../Utils/InvestigationEvidenceFormat";
+import { DrawnWidgetHeading, getDrawnWidgetHeading } from "../TableWords";
+import ToolActionSentence from "../ToolActionSentence";
 import ChartWidget from "./ChartWidget";
 import DataTableWidget from "./DataTableWidget";
 import EntityListWidget from "./EntityListWidget";
@@ -69,9 +71,19 @@ const WidgetCard: FunctionComponent<{ widget: AIChatWidget }> = ({
   }
 
   const link: AIChatCitationTarget | undefined = widget.data.link;
+  /*
+   * A table a read left says its title and the line under it in the
+   * reader's language (issue #7394): "Monitore (4)", as the cards above
+   * it say their words (TableWords). Any other widget, and a table saved
+   * before it had words, reads as its tool wrote it.
+   */
+  const heading: DrawnWidgetHeading = getDrawnWidgetHeading(widget, translator);
 
   return (
-    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+    <div
+      data-testid="ai-chat-widget"
+      className="overflow-hidden rounded-xl border border-gray-200 bg-white"
+    >
       <div className="flex items-center justify-between gap-2 border-b border-gray-100 bg-gray-50/60 px-3.5 py-2.5">
         <div className="flex min-w-0 items-center gap-2">
           <Icon
@@ -79,8 +91,15 @@ const WidgetCard: FunctionComponent<{ widget: AIChatWidget }> = ({
             className="h-3.5 w-3.5 flex-shrink-0 text-gray-500"
           />
           <div className="min-w-0">
-            <div className="truncate text-xs font-semibold text-gray-900">
-              {widget.title}
+            <div
+              data-testid="ai-chat-widget-title"
+              className="truncate text-xs font-semibold text-gray-900"
+            >
+              {heading.title ? (
+                <ToolActionSentence sentence={heading.title} />
+              ) : (
+                widget.title
+              )}
             </div>
             {/*
               A tool dates its widget with the window it read, as ISO
@@ -88,13 +107,24 @@ const WidgetCard: FunctionComponent<{ widget: AIChatWidget }> = ({
               as the evidence list draws them, in the reader's own time
               ("Sep 14, 5:49 PM – 6:04 PM"). The whole text is the title.
             */}
-            {widget.description && (
+            {heading.description ? (
               <div
+                data-testid="ai-chat-widget-description"
                 className="truncate text-[10px] text-gray-400"
-                title={widget.description}
+                title={heading.description.text}
               >
-                {formatEvidenceLabel(widget.description)}
+                <ToolActionSentence sentence={heading.description} />
               </div>
+            ) : (
+              widget.description && (
+                <div
+                  data-testid="ai-chat-widget-description"
+                  className="truncate text-[10px] text-gray-400"
+                  title={widget.description}
+                >
+                  {formatEvidenceLabel(widget.description)}
+                </div>
+              )
             )}
           </div>
         </div>

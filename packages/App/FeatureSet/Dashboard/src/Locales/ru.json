@@ -51831,5 +51831,11 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Период: {{range}}. Попробуйте изменить фильтры или расширить период.",
   "On-Call Policy Created": "Политика дежурства создана",
   "On-Call Schedule Added": "Расписание дежурства добавлено",
-  "On-Call Schedule Removed": "Расписание дежурства удалено"
+  "On-Call Schedule Removed": "Расписание дежурства удалено",
+  "Monitors ({{count}})": "Мониторы ({{count}})",
+  "Monitors in status \"{{status}}\" ({{count}})": "Мониторы в статусе «{{status}}» ({{count}})",
+  "Monitors with problems ({{count}})": "Мониторы с проблемами ({{count}})",
+  "Non-operational first, Disabled last": "Сначала неработающие, «Отключено» в конце",
+  "Non-operational monitors first": "Сначала неработающие мониторы",
+  "Non-operational monitors only": "Только неработающие мониторы"
 }

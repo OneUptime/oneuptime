@@ -2,6 +2,7 @@ import {
   ARCHIVED_MONITOR_NOTE,
   MONITOR_TABLE_ORDER_TEXT,
   MONITOR_TABLE_ORDER_WITH_MONITORING_OFF_TEXT,
+  MONITOR_TABLE_PROBLEMS_ONLY_TEXT,
   MONITORING_OFF_LAST_STATUS_LABEL,
   MONITORING_OFF_LIST_NOTE,
   MONITORING_OFF_MONITOR_NOTE,
@@ -10,8 +11,19 @@ import {
 } from "../../../../Server/Utils/AI/Toolbox/MonitorTools";
 import { getFactsNotInHeading } from "../../../../Types/AI/ResourceCardFacts";
 import {
+  AI_READ_CARD_VALUES,
+  AI_READ_TABLE_LINES,
+  AI_READ_TABLE_TITLES,
   AIActionCardWords,
+  AIActionTableCell,
+  AIActionTableWords,
+  aiActionFigure,
+  aiActionSentence,
+  aiActionTerm,
   describeAIActionCardWords,
+  describeAIActionTableCell,
+  describeAIActionTableWords,
+  isKnownAIActionTableWords,
 } from "../../../../Types/AI/AIActionWords";
 import { dashboardTranslator } from "../../../Helpers/DashboardLocales";
 import { expectReadCardWorded } from "../../../Helpers/ReadCardWords";
@@ -360,9 +372,12 @@ describe("query_monitors lists a monitor whose monitoring is off as such", () =>
       { problemsOnly: true },
     );
 
-    expect(result.widget?.description).toBe(
-      "Only monitors whose current status is not operational",
+    expect(result.widget?.description).toBe(MONITOR_TABLE_PROBLEMS_ONLY_TEXT);
+    // Short enough to be read whole beside Open on a phone, as the others.
+    expect(MONITOR_TABLE_PROBLEMS_ONLY_TEXT).toBe(
+      "Non-operational monitors only",
     );
+    expect(MONITOR_TABLE_PROBLEMS_ONLY_TEXT.length).toBeLessThanOrEqual(40);
   });
 
   test("paging still says how far it got, before the note and the rows", async () => {
@@ -895,6 +910,197 @@ describe("query_monitors read by id leaves its card in the reader's language (#7
       // The status the project named is data, in every language.
       expect(drawn).toContain("Offline");
     }
+  });
+});
+
+/*
+ * The table under the cards, in the reader's language (issue #7394): the
+ * cards above it said "Deaktiviert" and "Eingehende Anfrage" on a German
+ * page while the row for the same monitor said "Disabled" and "Incoming
+ * Request", under the English "Monitors (4)". query_monitors' table
+ * carries words now - its title, its line, each type and Disabled - and
+ * stores them in English; the model's rows stay as they were read.
+ */
+describe("query_monitors' table carries its words (#7394)", () => {
+  function wordsOf(result: ToolExecutionResult): AIActionTableWords {
+    const words: unknown = result.widget?.data.tableWords;
+
+    expect(isKnownAIActionTableWords(words)).toBe(true);
+
+    return words as AIActionTableWords;
+  }
+
+  function cellsOf(
+    result: ToolExecutionResult,
+    key: string,
+  ): Array<AIActionTableCell | undefined> {
+    return (wordsOf(result).cells || []).map(
+      (
+        cells: Record<string, AIActionTableCell>,
+      ): AIActionTableCell | undefined => {
+        return cells[key];
+      },
+    );
+  }
+
+  test("its title and line are sentences, its count a figure, and its English is those words", async () => {
+    const { result } = await list(mixedPage());
+    const words: AIActionTableWords = wordsOf(result);
+
+    expect(words.title).toEqual(
+      aiActionSentence(AI_READ_TABLE_TITLES.monitors, {
+        count: aiActionFigure(5),
+      }),
+    );
+    expect(words.description).toEqual(
+      aiActionSentence(AI_READ_TABLE_LINES.notOperationalFirstDisabledLast),
+    );
+    expect(result.widget?.title).toBe("Monitors (5)");
+    expect(describeAIActionTableWords(words)).toEqual({
+      title: result.widget?.title,
+      description: result.widget?.description,
+    });
+  });
+
+  test("each type is a word of ours, and Disabled the card's word for a monitor whose monitoring is off", async () => {
+    const { result } = await list(mixedPage());
+
+    // Zulu, Mid, Alpha are checked; Archive Bot and Backup Job are not.
+    expect(cellsOf(result, "type")).toEqual([
+      aiActionTerm("Website"),
+      aiActionTerm("Website"),
+      aiActionTerm("Website"),
+      aiActionTerm("Website"),
+      aiActionTerm("Website"),
+    ]);
+    expect(cellsOf(result, "currentStatus")).toEqual([
+      undefined,
+      undefined,
+      undefined,
+      aiActionTerm(AI_READ_CARD_VALUES.disabled),
+      aiActionTerm(AI_READ_CARD_VALUES.disabled),
+    ]);
+
+    // What the table stores at each worded cell is that word in English.
+    tableRows(result).forEach((row: JSONObject, index: number): void => {
+      for (const [key, cell] of Object.entries(
+        wordsOf(result).cells![index]!,
+      )) {
+        expect(row[key]).toBe(describeAIActionTableCell(cell));
+      }
+    });
+  });
+
+  test("the statuses the project named are data: never words, in the table as named", async () => {
+    const { result } = await list(mixedPage());
+
+    expect(
+      tableRows(result).map((row: JSONObject): unknown => {
+        return row["currentStatus"];
+      }),
+    ).toEqual(["Offline", "Degraded", "Operational", "Disabled", "Disabled"]);
+
+    for (const cells of wordsOf(result).cells || []) {
+      expect(Object.keys(cells)).not.toContain("name");
+    }
+  });
+
+  test("the model reads its rows as they were read: the type as stored and the status the monitor was frozen at", async () => {
+    const { result } = await list(mixedPage());
+
+    expect(rowLine(result, "Archive Bot")).toContain("currentStatus=Offline");
+    expect(rowLine(result, "Archive Bot")).toContain(
+      `type=${MonitorType.Website}`,
+    );
+    expect(result.dataForLlm).not.toContain("Disabled");
+  });
+
+  test("in German and Persian it says no English of ours: the title, the line, the types and Disabled", async () => {
+    const { result } = await list(mixedPage());
+    const words: AIActionTableWords = wordsOf(result);
+
+    const de: { title: string; description?: string | undefined } =
+      describeAIActionTableWords(words, dashboardTranslator("de"));
+    expect(de.title).toBe("Monitore (5)");
+    expect(de.description).toBe(
+      "Nicht betriebsbereit zuerst, Deaktiviert zuletzt",
+    );
+    expect(
+      describeAIActionTableCell(
+        words.cells![3]!["currentStatus"]!,
+        dashboardTranslator("de"),
+      ),
+    ).toBe("Deaktiviert");
+
+    const fa: { title: string; description?: string | undefined } =
+      describeAIActionTableWords(words, dashboardTranslator("fa"));
+    expect(fa.title).toBe("مانیتورها (۵)");
+    for (const english of ["Monitors", "Non-operational", "Disabled"]) {
+      expect(`${fa.title} ${fa.description}`).not.toContain(english);
+    }
+    expect(
+      describeAIActionTableCell(
+        words.cells![0]!["type"]!,
+        dashboardTranslator("fa"),
+      ),
+    ).toBe("وب‌سایت");
+  });
+
+  test("problemsOnly: Monitors with problems, and only non-operational ones", async () => {
+    const { result } = await list(
+      [monitor({ name: "Zulu", status: OFFLINE })],
+      { problemsOnly: true },
+    );
+
+    expect(result.widget?.title).toBe("Monitors with problems (1)");
+    expect(wordsOf(result).description).toEqual(
+      aiActionSentence(AI_READ_TABLE_LINES.notOperationalOnly),
+    );
+  });
+
+  test("a status asked for is named as the project named it, not as the model typed it", async () => {
+    spy(MonitorStatusService, "findBy", [OPERATIONAL, DEGRADED, OFFLINE]);
+
+    const { result } = await list(
+      [monitor({ name: "Zulu", status: OFFLINE })],
+      { monitorStatusName: "offline" },
+    );
+
+    expect(result.widget?.title).toBe('Monitors in status "Offline" (1)');
+    expect(wordsOf(result).title).toEqual(
+      aiActionSentence(AI_READ_TABLE_TITLES.monitorsInStatus, {
+        status: "Offline",
+        count: aiActionFigure(1),
+      }),
+    );
+    expect(
+      describeAIActionTableWords(wordsOf(result), dashboardTranslator("de"))
+        .title,
+    ).toBe("Monitore mit Status „Offline“ (1)");
+    // The citation keeps what was asked, as before.
+    expect(result.citationLabel).toBe('Monitors in status "offline" (1 found)');
+  });
+
+  test("a status asked for that matches several is named as asked", async () => {
+    const offlineEu: MonitorStatus = status({
+      name: "Offline EU",
+      priority: 4,
+      operational: false,
+    });
+    spy(MonitorStatusService, "findBy", [OPERATIONAL, OFFLINE, offlineEu]);
+
+    const { result } = await list(
+      [monitor({ name: "Zulu", status: OFFLINE })],
+      { monitorStatusName: "offl" },
+    );
+
+    expect(result.widget?.title).toBe('Monitors in status "offl" (1)');
+  });
+
+  test("no monitors, no table: nothing to word", async () => {
+    const { result } = await list([]);
+
+    expect(result.widget).toBeUndefined();
   });
 });
 

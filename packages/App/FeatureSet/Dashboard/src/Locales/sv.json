@@ -51831,5 +51831,11 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Tidsintervall: {{range}}. Försök att justera filtren eller utöka tidsintervallet.",
   "On-Call Policy Created": "Jourpolicy skapad",
   "On-Call Schedule Added": "Jourschema tillagt",
-  "On-Call Schedule Removed": "Jourschema borttaget"
+  "On-Call Schedule Removed": "Jourschema borttaget",
+  "Monitors ({{count}})": "Monitorer ({{count}})",
+  "Monitors in status \"{{status}}\" ({{count}})": "Monitorer med status \"{{status}}\" ({{count}})",
+  "Monitors with problems ({{count}})": "Monitorer med problem ({{count}})",
+  "Non-operational first, Disabled last": "Ej operativa först, Inaktiverad sist",
+  "Non-operational monitors first": "Ej operativa monitorer först",
+  "Non-operational monitors only": "Endast ej operativa monitorer"
 }

@@ -51831,5 +51831,11 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "समय सीमा: {{range}}। फ़िल्टर बदलकर या समय सीमा बढ़ाकर देखें।",
   "On-Call Policy Created": "ऑन-कॉल नीति बनाई गई",
   "On-Call Schedule Added": "ऑन-कॉल अनुसूची जोड़ी गई",
-  "On-Call Schedule Removed": "ऑन-कॉल अनुसूची हटाई गई"
+  "On-Call Schedule Removed": "ऑन-कॉल अनुसूची हटाई गई",
+  "Monitors ({{count}})": "मॉनिटर ({{count}})",
+  "Monitors in status \"{{status}}\" ({{count}})": "\"{{status}}\" स्थिति वाले मॉनिटर ({{count}})",
+  "Monitors with problems ({{count}})": "समस्याओं वाले मॉनिटर ({{count}})",
+  "Non-operational first, Disabled last": "गैर-संचालन पहले, अक्षम अंत में",
+  "Non-operational monitors first": "गैर-संचालन मॉनिटर पहले",
+  "Non-operational monitors only": "केवल गैर-संचालन मॉनिटर"
 }

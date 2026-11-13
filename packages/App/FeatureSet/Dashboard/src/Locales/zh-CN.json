@@ -51831,5 +51831,11 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "时间范围：{{range}}。请尝试调整筛选条件或扩大时间范围。",
   "On-Call Policy Created": "值班策略已创建",
   "On-Call Schedule Added": "值班排班已添加",
-  "On-Call Schedule Removed": "值班排班已移除"
+  "On-Call Schedule Removed": "值班排班已移除",
+  "Monitors ({{count}})": "监视器（{{count}}）",
+  "Monitors in status \"{{status}}\" ({{count}})": "状态为“{{status}}”的监视器（{{count}}）",
+  "Monitors with problems ({{count}})": "有问题的监视器（{{count}}）",
+  "Non-operational first, Disabled last": "无法运行的在前，已禁用的在后",
+  "Non-operational monitors first": "无法运行的监视器在前",
+  "Non-operational monitors only": "仅无法运行的监视器"
 }

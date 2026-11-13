@@ -1,7 +1,11 @@
 import { JSONObject } from "../JSON";
 import { WORKFLOW_DRAFT_PROPOSED_ON_KEY } from "../Workflow/WorkflowDraftProposedOnKey";
 import { CODE_CHANGE_PROPOSED_ON_KEY } from "../CodeRepository/CodeChangeProposedOnKey";
-import { AIActionCardWords, AIActionWords } from "./AIActionWords";
+import {
+  AIActionCardWords,
+  AIActionTableWords,
+  AIActionWords,
+} from "./AIActionWords";
 import { AIChatRecordSeen } from "./AIChatRecordSeen";
 import { AiContextActivity } from "./AiContext";
 import { LlmProviderActivity } from "./LlmProviderChoice";
@@ -227,7 +231,7 @@ export function isAIChatReadResourceCard(data: AIChatWidgetData): boolean {
 /*
  * Type-specific widget payload. Only the fields relevant to `type` are set:
  * - TimeSeriesChart / BarChart: `series` (+ `stacked`, `unit`, `xIsTime`)
- * - Table: `columns` + `rows`
+ * - Table: `columns` + `rows` (+ `tableWords`)
  * - TraceWaterfall: `spans` + `totalDurationMs`
  * - IncidentList / AlertList / ExceptionList: `items`
  * - StatCards: `stats`
@@ -257,6 +261,15 @@ export interface AIChatWidgetData {
    * what a card saved before it had words reads as.
    */
   words?: AIActionCardWords | undefined;
+  /*
+   * A Table a read left (issue #7394): its title, the line under it and
+   * the cells that are OneUptime's words, as sentences and terms
+   * (Types/AI/AIActionWords), which the chat says in the reader's
+   * language. The title, description and rows store the same words in
+   * English - what the exports print and the model reads, and what a
+   * table saved before it had words reads as.
+   */
+  tableWords?: AIActionTableWords | undefined;
   /*
    * A ResourceCard: whether a read or a write left it (issue #6968). Left
    * out on a card saved before, which is drawn as a write's.

@@ -51831,5 +51831,11 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "기간: {{range}}. 필터를 조정하거나 기간을 넓혀 보세요.",
   "On-Call Policy Created": "온콜 정책 생성됨",
   "On-Call Schedule Added": "온콜 일정 추가됨",
-  "On-Call Schedule Removed": "온콜 일정 제거됨"
+  "On-Call Schedule Removed": "온콜 일정 제거됨",
+  "Monitors ({{count}})": "모니터({{count}})",
+  "Monitors in status \"{{status}}\" ({{count}})": "상태가 \"{{status}}\"인 모니터({{count}})",
+  "Monitors with problems ({{count}})": "문제가 있는 모니터({{count}})",
+  "Non-operational first, Disabled last": "작동하지 않음 먼저, 비활성화 마지막",
+  "Non-operational monitors first": "작동하지 않는 모니터 먼저",
+  "Non-operational monitors only": "작동하지 않는 모니터만"
 }

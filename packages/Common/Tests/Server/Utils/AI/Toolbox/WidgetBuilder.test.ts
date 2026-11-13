@@ -20,8 +20,13 @@ import {
   AI_READ_CARD_FACTS,
   AI_READ_CARD_KINDS,
   AI_READ_CARD_LINES,
+  AI_READ_CARD_VALUES,
+  AI_READ_TABLE_LINES,
+  AI_READ_TABLE_TITLES,
   AIActionCardWords,
+  AIActionTableWords,
   aiActionCardFact,
+  aiActionFigure,
   aiActionSentence,
   aiActionTerm,
 } from "../../../../../Types/AI/AIActionWords";
@@ -259,6 +264,112 @@ describe("WidgetBuilder", () => {
     for (const widget of widgets) {
       expect(widget.id).toBe("");
     }
+  });
+});
+
+/*
+ * A TABLE THAT CARRIES ITS WORDS (issue #7394).
+ *
+ * A table built with words stores its title, its line and each worded
+ * cell as those words in English - what the exports print and a Dashboard
+ * that cannot read the words draws - and keeps the words beside them for
+ * the chat to say in the reader's language. A table built with English
+ * stays as it was: no words saved.
+ */
+describe("table() with words (#7394)", () => {
+  function words(): AIActionTableWords {
+    return {
+      title: aiActionSentence(AI_READ_TABLE_TITLES.monitors, {
+        count: aiActionFigure(3),
+      }),
+      description: aiActionSentence(
+        AI_READ_TABLE_LINES.notOperationalFirstDisabledLast,
+      ),
+      cells: [
+        { type: aiActionTerm("Website") },
+        {},
+        {
+          type: aiActionTerm("Incoming Request"),
+          currentStatus: aiActionTerm(AI_READ_CARD_VALUES.disabled),
+        },
+      ],
+    };
+  }
+
+  function rows(): Array<JSONObject> {
+    return [
+      { name: "Checkout", type: "Website", currentStatus: "Offline" },
+      { name: "Docs", type: "Website", currentStatus: "Operational" },
+      { name: "Backup Job", type: "IncomingRequest", currentStatus: "Offline" },
+    ];
+  }
+
+  test("its title and line are its words in English, and the words are kept beside them", () => {
+    const tableWords: AIActionTableWords = words();
+    const widget: AIChatWidget = WidgetBuilder.table({
+      words: tableWords,
+      columns: [],
+      rows: rows(),
+      link,
+    });
+
+    expect(widget.type).toBe(AIChatWidgetType.Table);
+    expect(widget.id).toBe("");
+    expect(widget.title).toBe("Monitors (3)");
+    expect(widget.description).toBe("Non-operational first, Disabled last");
+    expect(widget.data.tableWords).toBe(tableWords);
+    expect(widget.data.link).toBe(link);
+  });
+
+  test("a worded cell stores its word in English; every other cell is data, as given", () => {
+    const widget: AIChatWidget = WidgetBuilder.table({
+      words: words(),
+      columns: [],
+      rows: rows(),
+    });
+
+    expect(widget.data.rows).toEqual([
+      { name: "Checkout", type: "Website", currentStatus: "Offline" },
+      { name: "Docs", type: "Website", currentStatus: "Operational" },
+      {
+        name: "Backup Job",
+        type: "Incoming Request",
+        currentStatus: "Disabled",
+      },
+    ]);
+  });
+
+  test("the rows it is handed are left as they were", () => {
+    const given: Array<JSONObject> = rows();
+
+    WidgetBuilder.table({ words: words(), columns: [], rows: given });
+
+    expect(given).toEqual(rows());
+  });
+
+  test("more rows than words: the rows past them are data, as given", () => {
+    const tableWords: AIActionTableWords = {
+      title: words().title,
+      cells: [{ type: aiActionTerm("Website") }],
+    };
+    const widget: AIChatWidget = WidgetBuilder.table({
+      words: tableWords,
+      columns: [],
+      rows: rows(),
+    });
+
+    expect(widget.description).toBeUndefined();
+    expect(widget.data.rows?.[2]).toEqual(rows()[2]);
+  });
+
+  test("a table built with English saves no words", () => {
+    const widget: AIChatWidget = WidgetBuilder.table({
+      title: "Services",
+      columns: [],
+      rows: [],
+    });
+
+    expect(Object.keys(widget.data)).not.toContain("tableWords");
   });
 });
 

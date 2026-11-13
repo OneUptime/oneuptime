@@ -20,12 +20,18 @@ import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import WidgetBuilder from "./WidgetBuilder";
 import { getMonitorCardWords } from "./ReadCardWords";
 import {
+  getMonitorsTable,
+  MONITOR_TABLE_ORDER_TEXT,
+  MONITOR_TABLE_ORDER_WITH_MONITORING_OFF_TEXT,
+  MONITOR_TABLE_PROBLEMS_ONLY_TEXT,
+  MONITORING_OFF_STATUS_TEXT,
+} from "./MonitorsTableWords";
+import {
   ObservabilityTool,
   ToolArgs,
   ToolContext,
   ToolExecutionResult,
 } from "./ToolTypes";
-import { translationKey } from "../../../../Types/Translator";
 import NotOperationalMonitorQuery from "../../../../Utils/Monitor/NotOperationalMonitorQuery";
 import MonitoringOff, {
   MONITORING_OFF_SELECT,
@@ -65,22 +71,17 @@ export const MONITORING_OFF_LIST_NOTE: string =
 
 /*
  * What the chat says for such a monitor - its table's Status, its card's
- * line under the name (AI_READ_CARD_LINES.disabled, in the reader's
- * language): the Monitors table's word. The card names the status the
+ * line under the name, in the reader's language - and the lines under the
+ * table's title (MonitorsTableWords). The card names the status the
  * monitor was frozen at as its last one (AI_READ_CARD_FACTS.lastStatus).
  */
-export const MONITORING_OFF_STATUS_TEXT: string = "Disabled";
+export {
+  MONITOR_TABLE_ORDER_TEXT,
+  MONITOR_TABLE_ORDER_WITH_MONITORING_OFF_TEXT,
+  MONITOR_TABLE_PROBLEMS_ONLY_TEXT,
+  MONITORING_OFF_STATUS_TEXT,
+};
 export const MONITORING_OFF_LAST_STATUS_LABEL: string = "Last status";
-
-/*
- * What the chat's table of monitors says of its order, on one line under its
- * title (which says they are monitors), cut where it is too long: about 40
- * characters fit beside Open on a 360px phone.
- */
-export const MONITOR_TABLE_ORDER_TEXT: string =
-  "Non-operational monitors first";
-export const MONITOR_TABLE_ORDER_WITH_MONITORING_OFF_TEXT: string =
-  "Non-operational first, Disabled last";
 
 const resolveReadPermissions: () => Array<Permission> =
   (): Array<Permission> => {
@@ -369,6 +370,9 @@ export const QueryMonitorsTool: ObservabilityTool = {
       Object.assign(query, NotOperationalMonitorQuery.getQuery());
     }
 
+    // The status a monitorStatusName matched, when it matched one, as named.
+    let matchedStatusName: string | undefined = undefined;
+
     if (monitorStatusName) {
       /*
        * Status names are matched case-insensitively against this project's
@@ -430,6 +434,9 @@ export const QueryMonitorsTool: ObservabilityTool = {
           isTruncated: false,
         };
       }
+
+      matchedStatusName =
+        matched.length === 1 ? matched[0]!.name || undefined : undefined;
 
       const matchedIds: Array<ObjectID> = [];
       for (const status of matched) {
@@ -545,18 +552,6 @@ export const QueryMonitorsTool: ObservabilityTool = {
     lines.push(serialized.text);
     const dataForLlm: string = lines.join("\n");
 
-    /*
-     * The chat's table says Disabled for a monitor whose monitoring is off,
-     * as the Monitors table does, rather than the status it was frozen at.
-     */
-    const widgetRows: Array<JSONObject> = rows.map(
-      (row: JSONObject): JSONObject => {
-        return row["monitoringOff"] === true
-          ? { ...row, currentStatus: MONITORING_OFF_STATUS_TEXT }
-          : row;
-      },
-    );
-
     let scopeLabel: string;
     if (monitorStatusName) {
       scopeLabel = `Monitors in status "${monitorStatusName}"`;
@@ -580,27 +575,21 @@ export const QueryMonitorsTool: ObservabilityTool = {
       },
       redactionCount: serialized.redactionCount,
       isTruncated: serialized.isTruncated,
+      /*
+       * The chat's table, in the reader's language (issue #7394): its
+       * title and order line, each monitor's type, and Disabled - as the
+       * Monitors table and the card say it - for a monitor whose
+       * monitoring is off, rather than the status it was frozen at. A
+       * status filter's status is named as the project named it.
+       */
       widget:
         rows.length > 0
-          ? WidgetBuilder.table({
-              title: `${scopeLabel} (${rows.length})`,
-              // Disabled ones are said to come last only when one is there.
-              description: problemsOnly
-                ? "Only monitors whose current status is not operational"
-                : hasMonitoringOffRow
-                  ? MONITOR_TABLE_ORDER_WITH_MONITORING_OFF_TEXT
-                  : MONITOR_TABLE_ORDER_TEXT,
-              columns: [
-                { key: "name", title: translationKey("Monitor"), type: "text" },
-                { key: "type", title: translationKey("Type"), type: "text" },
-                {
-                  key: "currentStatus",
-                  title: translationKey("Status"),
-                  type: "text",
-                },
-              ],
-              rows: widgetRows,
-              link: { type: AIChatCitationTargetType.Monitors },
+          ? getMonitorsTable({
+              problemsOnly,
+              statusName: monitorStatusName
+                ? matchedStatusName || monitorStatusName
+                : undefined,
+              rows,
             })
           : undefined,
     };

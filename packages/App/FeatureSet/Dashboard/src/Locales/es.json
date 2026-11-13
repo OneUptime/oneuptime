@@ -51831,5 +51831,11 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Intervalo de tiempo: {{range}}. Prueba a ajustar los filtros o a ampliar el intervalo de tiempo.",
   "On-Call Policy Created": "Política de guardia creada",
   "On-Call Schedule Added": "Programación de guardia añadida",
-  "On-Call Schedule Removed": "Programación de guardia quitada"
+  "On-Call Schedule Removed": "Programación de guardia quitada",
+  "Monitors ({{count}})": "Monitores ({{count}})",
+  "Monitors in status \"{{status}}\" ({{count}})": "Monitores con el estado \"{{status}}\" ({{count}})",
+  "Monitors with problems ({{count}})": "Monitores con problemas ({{count}})",
+  "Non-operational first, Disabled last": "No operativos primero, Deshabilitado al final",
+  "Non-operational monitors first": "Monitores no operativos primero",
+  "Non-operational monitors only": "Solo monitores no operativos"
 }

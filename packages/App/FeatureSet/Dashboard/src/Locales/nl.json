@@ -51831,5 +51831,11 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Periode: {{range}}. Pas de filters aan of kies een ruimere periode.",
   "On-Call Policy Created": "Bereikbaarheidsbeleid aangemaakt",
   "On-Call Schedule Added": "Bereikbaarheidsschema toegevoegd",
-  "On-Call Schedule Removed": "Bereikbaarheidsschema verwijderd"
+  "On-Call Schedule Removed": "Bereikbaarheidsschema verwijderd",
+  "Monitors ({{count}})": "Monitoren ({{count}})",
+  "Monitors in status \"{{status}}\" ({{count}})": "Monitoren met status \"{{status}}\" ({{count}})",
+  "Monitors with problems ({{count}})": "Monitoren met problemen ({{count}})",
+  "Non-operational first, Disabled last": "Niet operationeel eerst, Uitgeschakeld laatst",
+  "Non-operational monitors first": "Niet-operationele monitoren eerst",
+  "Non-operational monitors only": "Alleen niet-operationele monitoren"
 }

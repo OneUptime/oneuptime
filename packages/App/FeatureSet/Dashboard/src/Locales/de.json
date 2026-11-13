@@ -51831,5 +51831,11 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Zeitraum: {{range}}. Passen Sie die Filter an oder erweitern Sie den Zeitraum.",
   "On-Call Policy Created": "Bereitschaftsrichtlinie erstellt",
   "On-Call Schedule Added": "Bereitschaftsplan hinzugefügt",
-  "On-Call Schedule Removed": "Bereitschaftsplan entfernt"
+  "On-Call Schedule Removed": "Bereitschaftsplan entfernt",
+  "Monitors ({{count}})": "Monitore ({{count}})",
+  "Monitors in status \"{{status}}\" ({{count}})": "Monitore mit Status „{{status}}“ ({{count}})",
+  "Monitors with problems ({{count}})": "Monitore mit Problemen ({{count}})",
+  "Non-operational first, Disabled last": "Nicht betriebsbereit zuerst, Deaktiviert zuletzt",
+  "Non-operational monitors first": "Nicht betriebsbereite Monitore zuerst",
+  "Non-operational monitors only": "Nur nicht betriebsbereite Monitore"
 }

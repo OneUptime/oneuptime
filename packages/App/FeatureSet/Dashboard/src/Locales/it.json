@@ -51831,5 +51831,11 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Intervallo di tempo: {{range}}. Prova a modificare i filtri o ad ampliare l'intervallo di tempo.",
   "On-Call Policy Created": "Policy di reperibilità creata",
   "On-Call Schedule Added": "Pianificazione di reperibilità aggiunta",
-  "On-Call Schedule Removed": "Pianificazione di reperibilità rimossa"
+  "On-Call Schedule Removed": "Pianificazione di reperibilità rimossa",
+  "Monitors ({{count}})": "Monitor ({{count}})",
+  "Monitors in status \"{{status}}\" ({{count}})": "Monitor nello stato \"{{status}}\" ({{count}})",
+  "Monitors with problems ({{count}})": "Monitor con problemi ({{count}})",
+  "Non-operational first, Disabled last": "Non operativi prima, Disabilitato per ultimo",
+  "Non-operational monitors first": "Prima i monitor non operativi",
+  "Non-operational monitors only": "Solo monitor non operativi"
 }

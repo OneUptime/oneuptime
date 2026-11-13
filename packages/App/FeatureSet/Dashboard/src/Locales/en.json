@@ -51831,5 +51831,11 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Time range: {{range}}. Try adjusting filters or expanding the time range.",
   "On-Call Policy Created": "On-Call Policy Created",
   "On-Call Schedule Added": "On-Call Schedule Added",
-  "On-Call Schedule Removed": "On-Call Schedule Removed"
+  "On-Call Schedule Removed": "On-Call Schedule Removed",
+  "Monitors ({{count}})": "Monitors ({{count}})",
+  "Monitors in status \"{{status}}\" ({{count}})": "Monitors in status \"{{status}}\" ({{count}})",
+  "Monitors with problems ({{count}})": "Monitors with problems ({{count}})",
+  "Non-operational first, Disabled last": "Non-operational first, Disabled last",
+  "Non-operational monitors first": "Non-operational monitors first",
+  "Non-operational monitors only": "Non-operational monitors only"
 }
