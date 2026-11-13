@@ -94,6 +94,7 @@ import PermissionUtil from "Common/UI/Utils/Permission";
 import DE from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import JA from "../../../App/FeatureSet/Dashboard/src/Locales/ja.json";
 import FA from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
+import { getUsedByRelations } from "Common/Types/UsedBy/UsedBy";
 
 const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
 const USER_ID = "80000000-0000-4000-8000-000000000001";
@@ -485,8 +486,36 @@ ModelAPI.updateById = async (options) => {
   return { data: options.data || {} };
 };
 
+/*
+ * What refers to the record a page is about ("Used by", #6813): GET
+ * /used-by/:recordKind/:recordId, answered as UsedByService answers for a
+ * record nothing refers to - every relation of the kind, each empty - so
+ * the page's Used by card says what to do next.
+ */
+function usedByNothing(url) {
+  const parts = String(url).split("/used-by/")[1].split("?")[0].split("/");
+
+  return {
+    recordKind: parts[0],
+    recordId: parts[1],
+    groups: getUsedByRelations(parts[0]).map((description) => {
+      return {
+        relation: description.relation,
+        rowKind: description.rowKind,
+        count: 0,
+        hiddenCount: 0,
+        rows: [],
+      };
+    }),
+  };
+}
+
 API.get = async (options) => {
-  window.__fixture.unmodelled.push(`API.get ${String(options && options.url)}`);
+  const url = String(options && options.url);
+  if (url.includes("/used-by/")) {
+    return { data: usedByNothing(url) };
+  }
+  window.__fixture.unmodelled.push(`API.get ${url}`);
   return { data: { data: [], count: 0 } };
 };
 API.post = async (options) => {

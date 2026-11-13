@@ -2,6 +2,9 @@
 
 Un moniteur d'API appelle un point de terminaison HTTP selon une planification, avec la méthode, les en-têtes et le corps que vous choisissez, et vérifie ce qui revient : le code de statut, le temps de réponse, les en-têtes et le corps. Utilisez-le pour les points de terminaison REST, JSON et GraphQL, les vérifications de santé, et tout appel dont vos utilisateurs dépendent.
 
+> [!TIP]
+> Vous débutez ? Suivez d'abord le guide : [Savoir quand votre site web ou votre API tombe](/docs/guides/website-down).
+
 :::cards
 - [Créer le moniteur](#créer-un-moniteur-dapi): Six étapes dans le tableau de bord.
 - [Options de configuration](#options-de-configuration): Méthode, en-têtes, corps, redirections, certificats, délais d'expiration et nouvelles tentatives.

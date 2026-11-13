@@ -306,7 +306,7 @@ const SetupCheckInCard: FunctionComponent<ComponentProps> = (
                 to={getSetupHealthRouteFromHome()}
                 className="font-medium text-indigo-600 hover:text-indigo-800"
               >
-                {translator.translateText("Open Setup Health")}
+                {translator.translateText("Open Setup Health") || ""}
               </AppLink>
             </p>
           ) : (
@@ -328,7 +328,7 @@ const SetupCheckInCard: FunctionComponent<ComponentProps> = (
                       )}
                       className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
                     >
-                      {translator.translateText(setup.title)}
+                      {translator.translateText(setup.title) || setup.title}
                     </AppLink>
                   </li>
                 );

@@ -63,6 +63,13 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
    * to re-read it, or the page contradicts itself until a reload.
    */
   onArchiveChange?: ((isArchived: boolean) => void) | undefined;
+  /*
+   * Under the archive confirmation's message, while it asks to archive
+   * (never to unarchive): what still uses the record (UsedBy's
+   * UsedByImpactForRecord, #6813). Drawn only while the dialog is open, so
+   * what it reads is read only then.
+   */
+  archiveConfirmationContent?: ReactElement | undefined;
 }
 
 /**
@@ -247,7 +254,11 @@ const ArchiveResourceCard: <TBaseModel extends BaseModel>(
               setError(API.getFriendlyMessage(err));
             });
           }}
-        />
+        >
+          {!isArchived && props.archiveConfirmationContent
+            ? props.archiveConfirmationContent
+            : undefined}
+        </ConfirmModal>
       )}
     </Fragment>
   );

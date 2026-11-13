@@ -21,6 +21,7 @@ import {
   isHideableProduct,
 } from "Common/Types/Product/ProjectProducts";
 import { ProjectProductsAnswer } from "Common/Types/Product/ProjectProductsAnswer";
+import { ServerProductOffCopy } from "../ServerProducts/ServerProductsCopy";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -45,6 +46,10 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
  * data keeps arriving. Each product says what it is to this project - in
  * use, not set up yet, or the plan it needs - so the choice is made knowing
  * what is in it. Users, Teams and Project Settings are always shown.
+ *
+ * A product switched off on the whole server (#6815) is listed as off,
+ * with why and who can switch it on, instead of with a switch: the project
+ * cannot show it.
  *
  * Everyone in the project can read the page; someone who may edit the
  * project changes it (the server checks it too). Each switch saves the
@@ -210,6 +215,7 @@ const ProductsSettings: FunctionComponent = (): ReactElement => {
         isInUse={answer.usage[product] === ProductUsage.InUse}
         isNotSetUp={answer.usage[product] === ProductUsage.NotSetUp}
         neededPlan={answer.neededPlans[product]}
+        offOnServerReason={answer.offOnServer[product]}
         dataTestId={getProductSwitchTestId(product)}
         onChange={(shown: boolean) => {
           change(product, shown).catch(() => {
@@ -268,9 +274,19 @@ const ProductsSettings: FunctionComponent = (): ReactElement => {
         const hideable: Array<MoreMenuItem> = category.items.filter(
           (item: MoreMenuItem): boolean => {
             const product: ProductKey | null = getItemProduct(item);
-            return Boolean(product && isHideableProduct(product));
+            return Boolean(
+              product &&
+                isHideableProduct(product) &&
+                !answer.offOnServer[product],
+            );
           },
         );
+        const isEveryProductOff: boolean =
+          category.items.length > 0 &&
+          category.items.every((item: MoreMenuItem): boolean => {
+            const product: ProductKey | null = getItemProduct(item);
+            return Boolean(product && answer.offOnServer[product]);
+          });
         const shownCount: number = hideable.filter(
           (item: MoreMenuItem): boolean => {
             const product: ProductKey | null = getItemProduct(item);
@@ -283,13 +299,15 @@ const ProductsSettings: FunctionComponent = (): ReactElement => {
             key={category.title}
             title={category.title}
             description={
-              hideable.length > 0
-                ? translator.translatePlural(
-                    ProductsSettingsCopy.shownCount,
-                    hideable.length,
-                    { shown: translator.formatNumber(shownCount) },
-                  )
-                : translator.translateText(ProductsSettingsCopy.alwaysShown)
+              isEveryProductOff
+                ? translator.translateText(ServerProductOffCopy.rowSwitchedOff)
+                : hideable.length > 0
+                  ? translator.translatePlural(
+                      ProductsSettingsCopy.shownCount,
+                      hideable.length,
+                      { shown: translator.formatNumber(shownCount) },
+                    )
+                  : translator.translateText(ProductsSettingsCopy.alwaysShown)
             }
           >
             <div className="divide-y divide-gray-100">

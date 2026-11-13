@@ -655,7 +655,7 @@ describe("User Settings, where everything on these pages is", () => {
     expect(captures(entries, QUOTED_TITLE)).toEqual([
       "Readiness",
       "Notification Methods",
-      "On-Call Rules",
+      "How to Reach Me",
     ]);
     expect(memberMenu).toContain('title: "On-Call",');
 
@@ -673,7 +673,7 @@ describe("User Settings, where everything on these pages is", () => {
       readDashboardSource("Pages/Users/View/OnCall/NotificationMethods.tsx"),
     ).toContain("AN ADMINISTRATOR CAN ADD A METHOD BUT CANNOT MAKE IT");
     expect(english(REACHING_YOU)).toContain(
-      "they open your row and its **On-Call** section, with **Readiness**, **Notification Methods** and **On-Call Rules**. They can add a method for you there, but the code goes to the method itself, so only you can verify it.",
+      "they open your row and its **On-Call** section, with **Readiness**, **Notification Methods** and **How to Reach Me**. They can add a method for you there, but the code goes to the method itself, so only you can verify it.",
     );
   });
 });
@@ -737,7 +737,7 @@ describe("what a new member starts with", () => {
     ).toContain("rule.notifyAfterMinutes = 0;");
 
     expect(english(REACHING_YOU)).toContain(
-      "1. Your sign-in email is added as a verified email method.\n2. For every severity, on each of the four tabs of **On-Call Rules**, a rule emails you as soon as you are paged.",
+      "1. Your sign-in email is added as a verified email method.\n2. For every severity, on each of the four tabs of **How to Reach Me**, a rule emails you as soon as you are paged.",
     );
   });
 
@@ -948,7 +948,7 @@ describe("when a page finds no rule", () => {
     );
 
     expect(NO_NOTIFICATION_RULES_STATUS_MESSAGE).toContain(
-      "User should add the rules in User Settings > On-Call Rules.",
+      "User should add the rules in User Settings > How to Reach Me.",
     );
     expect(logService).toContain(
       "statusMessage: NO_NOTIFICATION_RULES_STATUS_MESSAGE,",

@@ -7,12 +7,20 @@ import {
   getStepState,
 } from "./GuidedSetupProgress";
 import SetupFeedback from "../Feedback/SetupFeedback";
+import GuidedSetupContext from "../../Utils/DashboardRecording/GuidedSetupContext";
+import { PRODUCT_TEXT_CLASS_NAME } from "Common/UI/Utils/ProductText";
 import {
   GuidedSetupEvents,
   useGuidedSetupEvents,
 } from "Common/UI/Utils/GuidedSetupEvents";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import Icon from "Common/UI/Components/Icon/Icon";
+import {
+  LEARN_MORE_LINK_CLASS_NAME,
+  getLearnMoreUrl,
+} from "Common/UI/Components/Link/LearnMoreLink";
+import IconProp from "Common/Types/Icon/IconProp";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 /*
@@ -66,10 +74,24 @@ export interface ComponentProps {
    * guided_setup/finished once; leaving before it sends guided_setup/left.
    */
   isFinished: boolean;
+  /*
+   * The docs' start-to-finish guide to the same job ("/docs/guides/paging",
+   * #6821), linked beside the progress line for what a page cannot say: a
+   * self-hosted server's settings, what can go wrong. In a new tab, in the
+   * reader's language.
+   */
+  guideDocsPath?: string | undefined;
 }
 
 // The step key the events name while the summary is shown.
 export const SUMMARY_STEP_KEY: string = "summary";
+
+export const GUIDED_SETUP_GUIDE_LINK_TEST_ID: string =
+  "guided-setup-guide-link";
+
+// The same words as a product's showcase link to its guide.
+export const GUIDED_SETUP_GUIDE_TEXT: string =
+  translationKey("Step-by-step guide");
 
 const StepMarker: FunctionComponent<{
   state: GuidedSetupStepState;
@@ -116,7 +138,22 @@ const GuidedSetupFrame: FunctionComponent<ComponentProps> = (
 
   useEffect(() => {
     events.reachStep(props.openStepKey || SUMMARY_STEP_KEY);
+
+    /*
+     * Where the person is, by the same keys, for a recording of OneUptime
+     * Cloud's setup pages to tie what it sees to the step (#6834).
+     */
+    GuidedSetupContext.set({
+      setup: props.setup,
+      step: props.openStepKey || SUMMARY_STEP_KEY,
+    });
   }, [props.openStepKey]);
+
+  useEffect(() => {
+    return () => {
+      GuidedSetupContext.clear(props.setup);
+    };
+  }, []);
 
   useEffect(() => {
     if (props.isFinished) {
@@ -128,16 +165,35 @@ const GuidedSetupFrame: FunctionComponent<ComponentProps> = (
 
   return (
     <div className="w-full max-w-3xl" data-testid="guided-setup">
-      <p
-        className="text-sm text-gray-500"
-        data-testid="guided-setup-progress"
-        aria-live="polite"
-      >
-        {translator.translateTemplate("{{done}} of {{total}} steps done", {
-          done: translator.formatNumber(doneCount),
-          total: translator.formatNumber(props.steps.length),
-        })}
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+        <p
+          className={`text-sm text-gray-500 ${PRODUCT_TEXT_CLASS_NAME}`}
+          data-testid="guided-setup-progress"
+          aria-live="polite"
+        >
+          {translator.translateTemplate("{{done}} of {{total}} steps done", {
+            done: translator.formatNumber(doneCount),
+            total: translator.formatNumber(props.steps.length),
+          })}
+        </p>
+        {props.guideDocsPath ? (
+          <a
+            href={getLearnMoreUrl(props.guideDocsPath, translator.language)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={LEARN_MORE_LINK_CLASS_NAME}
+            data-testid={GUIDED_SETUP_GUIDE_LINK_TEST_ID}
+          >
+            {translator.translateText(GUIDED_SETUP_GUIDE_TEXT)}
+            <Icon
+              icon={IconProp.ExternalLink}
+              className="h-3.5 w-3.5 flex-shrink-0"
+            />
+          </a>
+        ) : (
+          <></>
+        )}
+      </div>
       <ol className="mt-3 space-y-3">
         {props.steps.map((step: GuidedSetupFrameStep, index: number) => {
           const state: GuidedSetupStepState = getStepState({
@@ -156,12 +212,16 @@ const GuidedSetupFrame: FunctionComponent<ComponentProps> = (
                 number={getStepNumber(props.steps, step.key) || index + 1}
               />
               <span className="min-w-0 pt-0.5">
+                {/*
+                 * The step's title is the setup's own words; its done line
+                 * may name what the person made, and stays masked (#6834).
+                 */}
                 <span
                   className={`block text-base font-semibold ${
                     state === GuidedSetupStepState.Upcoming
                       ? "text-gray-500"
                       : "text-gray-900"
-                  }`}
+                  } ${PRODUCT_TEXT_CLASS_NAME}`}
                 >
                   {title}
                 </span>

@@ -545,6 +545,39 @@ describe("httpsTransport against a local TLS server", () => {
   );
 });
 
+describe("httpsTransport: the connect timeout ends with the handshake", () => {
+  test(
+    "a slow answer after the handshake still has the whole budget",
+    { skip: NEEDS_CERTIFICATE },
+    async () => {
+      const server: TestServer = await startServer(
+        (_seen: SeenRequest, res: http.ServerResponse): void => {
+          setTimeout((): void => {
+            json(res, 200, { data: { version: "9.0.3" } });
+          }, 400);
+        },
+      );
+
+      try {
+        const response: ProxmoxHttpResponse = await httpsTransport(
+          transportRequest(server.port, {
+            timeoutInMs: 5_000,
+            connectTimeoutInMs: 150,
+          }),
+        );
+
+        assert.strictEqual(response.statusCode, 200);
+        assert.strictEqual(
+          response.body,
+          JSON.stringify({ data: { version: "9.0.3" } }),
+        );
+      } finally {
+        await server.close();
+      }
+    },
+  );
+});
+
 describe("httpsTransport without a TLS server", () => {
   test("a closed port: connect (never sent)", async () => {
     const port: number = await closedPort();
@@ -596,12 +629,64 @@ describe("httpsTransport without a TLS server", () => {
       await closer(server, sockets)();
     }
   });
+
+  test("connectTimeoutInMs: a listener that never completes the handshake fails within it, long before the budget", async () => {
+    const sockets: Set<net.Socket> = new Set<net.Socket>();
+    const server: net.Server = net.createServer((socket: net.Socket): void => {
+      sockets.add(socket);
+    });
+    const port: number = await listen(server);
+    const startedAt: number = Date.now();
+
+    try {
+      const error: ProxmoxTransportError = await failureOf(
+        httpsTransport(
+          transportRequest(port, {
+            timeoutInMs: 20_000,
+            connectTimeoutInMs: 200,
+          }),
+        ),
+      );
+
+      assert.strictEqual(error.kind, "connect-timeout");
+      assert.strictEqual(error.message, "no connection within 200ms");
+      assert.strictEqual(error.mayHaveBeenSent, false);
+      assert.ok(Date.now() - startedAt < 5_000, "waited for the whole budget");
+    } finally {
+      await closer(server, sockets)();
+    }
+  });
+
+  test("connectTimeoutInMs no shorter than the budget changes nothing", async () => {
+    const sockets: Set<net.Socket> = new Set<net.Socket>();
+    const server: net.Server = net.createServer((socket: net.Socket): void => {
+      sockets.add(socket);
+    });
+    const port: number = await listen(server);
+
+    try {
+      const error: ProxmoxTransportError = await failureOf(
+        httpsTransport(
+          transportRequest(port, {
+            timeoutInMs: 300,
+            connectTimeoutInMs: 300,
+          }),
+        ),
+      );
+
+      assert.strictEqual(error.kind, "connect-timeout");
+      assert.strictEqual(error.message, "no answer within 300ms");
+    } finally {
+      await closer(server, sockets)();
+    }
+  });
 });
 
 describe("ProxmoxExecutor end to end over HTTPS", () => {
   function executorFor(
     port: number,
     env: Record<string, string> = {},
+    connectAttemptTimeoutMs: number | undefined = undefined,
   ): ProxmoxExecutor {
     return new ProxmoxExecutor(
       {
@@ -621,7 +706,7 @@ describe("ProxmoxExecutor end to end over HTTPS", () => {
         tmpDir: certDir,
         logger: recordingLogger(),
       },
-      { pollIntervalMs: 20 },
+      { pollIntervalMs: 20, connectAttemptTimeoutMs },
     );
   }
 
@@ -746,6 +831,112 @@ describe("ProxmoxExecutor end to end over HTTPS", () => {
       }
     },
   );
+
+  test(
+    "PVE_HOST's port is closed: the read goes to the next node of PVE_NODES, which answers it",
+    { skip: NEEDS_CERTIFICATE },
+    async () => {
+      const closed: number = await closedPort();
+      const server: TestServer = await startServer(
+        (_seen: SeenRequest, res: http.ServerResponse): void => {
+          json(res, 200, { data: { version: "9.0.3", release: "9.0" } });
+        },
+      );
+
+      try {
+        const result: ExecResult = await run(
+          executorFor(closed, {
+            PVE_NODES: `[127.0.0.1:${closed},127.0.0.1:${server.port}]`,
+          }),
+          ["pvesh", "get", "/version"],
+          "AiInvestigation",
+          "Read",
+        );
+
+        assert.strictEqual(result.success, true, String(result.errorMessage));
+        assert.match(result.output, /"version": "9\.0\.3"/);
+        assert.deepStrictEqual(
+          server.seen.map((seen: SeenRequest): string => {
+            return `${seen.method} ${seen.url}`;
+          }),
+          ["GET /api2/json/version"],
+        );
+      } finally {
+        await server.close();
+      }
+    },
+  );
+
+  test(
+    "PVE_HOST accepts but never completes the handshake: one connect timeout, then the next node",
+    { skip: NEEDS_CERTIFICATE },
+    async () => {
+      const sockets: Set<net.Socket> = new Set<net.Socket>();
+      const hanging: net.Server = net.createServer(
+        (socket: net.Socket): void => {
+          sockets.add(socket);
+        },
+      );
+      const hangingPort: number = await listen(hanging);
+      const server: TestServer = await startServer(
+        (_seen: SeenRequest, res: http.ServerResponse): void => {
+          json(res, 200, { data: { version: "9.0.3", release: "9.0" } });
+        },
+      );
+      const startedAt: number = Date.now();
+
+      try {
+        const executor: ProxmoxExecutor = executorFor(
+          hangingPort,
+          { PVE_NODES: `[127.0.0.1:${server.port}]` },
+          250,
+        );
+        const result: ExecResult = await run(
+          executor,
+          ["pvesh", "get", "/version"],
+          "AiInvestigation",
+          "Read",
+        );
+
+        assert.strictEqual(result.success, true, String(result.errorMessage));
+        assert.ok(
+          Date.now() - startedAt < 5_000,
+          "the first node took the whole budget",
+        );
+
+        // The node that answered is asked first from then on.
+        const probe: ResourcePostureProbe = await executor.probePosture();
+
+        assert.strictEqual(probe.reachable, true, String(probe.reachError));
+        assert.strictEqual(
+          probe.details?.["apiEndpoint"],
+          `https://127.0.0.1:${server.port}`,
+        );
+        assert.strictEqual(
+          probe.details?.["configuredApiEndpoint"],
+          `https://127.0.0.1:${hangingPort}`,
+        );
+        assert.strictEqual(server.seen.length, 3);
+      } finally {
+        await closer(hanging, sockets)();
+        await server.close();
+      }
+    },
+  );
+
+  test("no node answers: the posture names each closed port", async () => {
+    const first: number = await closedPort();
+    const second: number = await closedPort();
+    const probe: ResourcePostureProbe = await executorFor(first, {
+      PVE_NODES: `[127.0.0.1:${second}]`,
+    }).probePosture();
+
+    assert.strictEqual(probe.reachable, false);
+    assert.strictEqual(
+      probe.reachError,
+      `Could not connect to the Proxmox VE API of any node. https://127.0.0.1:${first}: nothing is listening there (connection refused); https://127.0.0.1:${second}: nothing is listening there (connection refused). Check PVE_HOST and PVE_NODES (every node's own address) and PVE_PORT (8006 by default), and that the agent's network reaches them. PVE_HOST is "127.0.0.1", which inside the agent's container is the container itself: set it to a node's address.`,
+    );
+  });
 
   test("a closed port: the posture says the API is unreachable, and why", async () => {
     const port: number = await closedPort();

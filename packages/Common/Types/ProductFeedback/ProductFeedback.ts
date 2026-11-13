@@ -467,6 +467,11 @@ export enum FeedbackQuestionDecision {
   IncidentOpen = "incident_open",
   // Another question was asked in the last FEEDBACK_QUESTION_GAP_DAYS days.
   AskedRecently = "asked_recently",
+  /*
+   * The project is a sample (issue #6808): made up for looking around, so
+   * nothing done in it says how OneUptime is to use. Never asked there.
+   */
+  SampleProject = "sample_project",
 }
 
 // Whether to ask a question now, and if not, why not.
@@ -477,6 +482,8 @@ export const decideFeedbackQuestion: (data: {
   asked: Record<string, string>;
   isIncidentOpen: boolean;
   now: Date;
+  // The project asked from is a sample (issue #6808): never asked there.
+  isSampleProject?: boolean | undefined;
 }) => FeedbackQuestionDecision = (data: {
   key: string;
   isServerOn: boolean;
@@ -484,6 +491,7 @@ export const decideFeedbackQuestion: (data: {
   asked: Record<string, string>;
   isIncidentOpen: boolean;
   now: Date;
+  isSampleProject?: boolean | undefined;
 }): FeedbackQuestionDecision => {
   if (!data.isServerOn) {
     return FeedbackQuestionDecision.ServerOff;
@@ -491,6 +499,10 @@ export const decideFeedbackQuestion: (data: {
 
   if (!data.isPersonOn) {
     return FeedbackQuestionDecision.PersonOff;
+  }
+
+  if (data.isSampleProject) {
+    return FeedbackQuestionDecision.SampleProject;
   }
 
   if (data.asked[data.key]) {

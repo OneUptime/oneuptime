@@ -1,6 +1,10 @@
 import { formatCustomFieldFileSize } from "../../../Types/CustomField/CustomFieldFile";
+import {
+  getDateDisplayLanguage,
+  setDateDisplayLanguage,
+} from "../../../Types/DateLanguage";
 import { formatFileSize } from "../../../Types/File/FileSize";
-import { describe, expect, test } from "@jest/globals";
+import { afterEach, describe, expect, test } from "@jest/globals";
 
 /*
  * A file's size as every list of files says it - the Custom Fields card,
@@ -47,5 +51,145 @@ describe("formatFileSize", () => {
     for (const bytes of [0, 66, 1024, 48213, 2516582, 10 * 1024 * 1024, -1]) {
       expect(formatCustomFieldFileSize(bytes)).toBe(formatFileSize(bytes));
     }
+  });
+});
+
+/*
+ * IN THE READER'S DIGITS (issue #7233).
+ *
+ * A Persian page wrote every count in Persian digits but a file's size in
+ * Latin ones ("47 KB" beside "۲ فایل"), and German read "1.5 MB" where it
+ * writes "1,5 MB". The number is now the reader's; the unit, the rounding
+ * and English are as they were.
+ */
+
+// Any of the ten Latin digits.
+const LATIN_DIGIT: RegExp = /[0-9]/;
+
+// Any of the ten Persian (Extended Arabic-Indic) digits.
+const PERSIAN_DIGIT: RegExp = /[\u06F0-\u06F9]/;
+
+// The sizes the cases below write: bytes, kilobytes and megabytes, whole and not.
+const SIZES: Array<number> = [
+  0,
+  100,
+  1023,
+  1024,
+  48213,
+  245760,
+  1024 * 1024,
+  1.5 * 1024 * 1024,
+  2516582,
+  10 * 1024 * 1024,
+];
+
+describe("formatFileSize in the reader's language", () => {
+  const pageLanguage: string = getDateDisplayLanguage();
+
+  afterEach(() => {
+    setDateDisplayLanguage(pageLanguage);
+  });
+
+  test("English is written exactly as before, its unit after its number", () => {
+    expect(
+      SIZES.map((bytes: number): string => {
+        return formatFileSize(bytes, { language: "en" });
+      }),
+    ).toEqual([
+      "0 B",
+      "100 B",
+      "1023 B",
+      "1 KB",
+      "47 KB",
+      "240 KB",
+      "1 MB",
+      "1.5 MB",
+      "2.4 MB",
+      "10 MB",
+    ]);
+  });
+
+  test("Persian in Persian digits, with the same rounding and the same unit", () => {
+    expect(
+      SIZES.map((bytes: number): string => {
+        return formatFileSize(bytes, { language: "fa" });
+      }),
+    ).toEqual([
+      "۰ B",
+      "۱۰۰ B",
+      "۱٬۰۲۳ B",
+      "۱ KB",
+      "۴۷ KB",
+      "۲۴۰ KB",
+      "۱ MB",
+      "۱٫۵ MB",
+      "۲٫۴ MB",
+      "۱۰ MB",
+    ]);
+
+    for (const bytes of SIZES) {
+      const size: string = formatFileSize(bytes, { language: "fa" });
+
+      expect(size).not.toMatch(LATIN_DIGIT);
+      expect(size).toMatch(PERSIAN_DIGIT);
+    }
+  });
+
+  test("German with its own decimal comma and grouping", () => {
+    expect(formatFileSize(1.5 * 1024 * 1024, { language: "de" })).toBe(
+      "1,5 MB",
+    );
+    expect(formatFileSize(2516582, { language: "de" })).toBe("2,4 MB");
+    expect(formatFileSize(1023, { language: "de" })).toBe("1.023 B");
+    expect(formatFileSize(48213, { language: "de" })).toBe("47 KB");
+    expect(formatFileSize(10 * 1024 * 1024, { language: "de" })).toBe("10 MB");
+  });
+
+  test("Arabic keeps the Latin digits it writes by choice", () => {
+    expect(formatFileSize(48213, { language: "ar" })).toBe("47 KB");
+    expect(formatFileSize(1.5 * 1024 * 1024, { language: "ar" })).toBe(
+      "1.5 MB",
+    );
+
+    for (const bytes of SIZES) {
+      expect(formatFileSize(bytes, { language: "ar" })).not.toMatch(
+        PERSIAN_DIGIT,
+      );
+    }
+  });
+
+  test("without a language, the page's: what every list of files on a Persian page says", () => {
+    setDateDisplayLanguage("fa");
+
+    expect(formatFileSize(48213)).toBe("۴۷ KB");
+    expect(formatCustomFieldFileSize(48213)).toBe("۴۷ KB");
+
+    setDateDisplayLanguage("en");
+
+    expect(formatFileSize(48213)).toBe("47 KB");
+  });
+
+  test("still no size for what is not one, in any language", () => {
+    for (const language of ["en", "fa", "de", "ar"]) {
+      expect(formatFileSize(-1, { language })).toBe("");
+      expect(formatFileSize(Number.NaN, { language })).toBe("");
+    }
+  });
+
+  /*
+   * Negative control: the size as it was written before - toFixed and a
+   * template - is what the Persian check above refuses.
+   */
+  test("negative control: the old way of writing a size fails the Persian check", () => {
+    const writtenTheOldWay: (bytes: number) => string = (
+      bytes: number,
+    ): string => {
+      return `${Math.round(bytes / 1024)} KB`;
+    };
+
+    expect(writtenTheOldWay(48213)).toMatch(LATIN_DIGIT);
+    expect(writtenTheOldWay(48213)).not.toBe(
+      formatFileSize(48213, { language: "fa" }),
+    );
   });
 });

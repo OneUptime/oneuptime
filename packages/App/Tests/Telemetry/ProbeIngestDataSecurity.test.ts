@@ -3,10 +3,7 @@ import DataSecurityCustomDataTypeService from "Common/Server/Services/DataSecuri
 import DataSecuritySettingService from "Common/Server/Services/DataSecuritySettingService";
 import DataStoreService from "Common/Server/Services/DataStoreService";
 import DataSecurityFindingWriter from "Common/Server/Utils/DataSecurity/DataSecurityFindingWriter";
-import {
-  CLAIM_DUE_DATA_STORES_STATEMENT,
-  HOLD_CLAIMED_DATA_STORES_STATEMENT,
-} from "Common/Server/Utils/DataSecurity/DataSecurityProbeClaim";
+import { CLAIM_DUE_DATA_STORES_STATEMENT } from "Common/Server/Utils/DataSecurity/DataSecurityProbeClaim";
 import { DATA_SECURITY_PROBE_CLAIM_IN_MINUTES } from "Common/Server/Utils/DataSecurity/DataSecurityProbeScan";
 import { getFingerprintKey } from "Common/Server/Utils/DataSecurity/DataSecurityRunner";
 import Response from "Common/Server/Utils/Response";
@@ -66,6 +63,7 @@ jest.mock("Common/Server/Services/DataStoreService", () => {
     __esModule: true,
     default: {
       executeTransaction: jest.fn(),
+      getRepository: jest.fn(),
       findBy: jest.fn(),
       findOneBy: jest.fn(),
       updateColumnsByIdWithoutHooks: jest.fn(),
@@ -130,11 +128,13 @@ import DataSecurityRouter, {
 
 const storeService: {
   executeTransaction: Mock;
+  getRepository: Mock;
   findBy: Mock;
   findOneBy: Mock;
   updateColumnsByIdWithoutHooks: Mock;
 } = DataStoreService as unknown as {
   executeTransaction: Mock;
+  getRepository: Mock;
   findBy: Mock;
   findOneBy: Mock;
   updateColumnsByIdWithoutHooks: Mock;
@@ -187,9 +187,9 @@ function storeId(index: number): string {
 }
 
 /*
- * A transaction over the stores above that does what the claim's two
- * statements say: the due stores of the probe, at most the limit, then
- * their next scan moved to the claim's end.
+ * The stores above, answering the claim's one statement as Postgres would:
+ * the due stores of the probe, at most the limit, each with its next scan
+ * moved to the claim's end.
  */
 function fakeManager(): { query: Mock } {
   return {
@@ -211,19 +211,17 @@ function fakeManager(): { query: Mock } {
             })
             .slice(0, values[5] as number);
 
+          lastClaim = due.map((store: FakeStore) => {
+            return store.id;
+          });
+
+          for (const store of due) {
+            store.nextContentScanAt = values[6] as Date;
+          }
+
           return due.map((store: FakeStore) => {
             return { _id: store.id, projectId: PROJECT_ID.toString() };
           });
-        }
-
-        if (sql === HOLD_CLAIMED_DATA_STORES_STATEMENT) {
-          lastClaim = values[1] as Array<string>;
-
-          for (const store of stores) {
-            if (lastClaim.includes(store.id)) {
-              store.nextContentScanAt = values[0] as Date;
-            }
-          }
         }
 
         return [];
@@ -323,11 +321,16 @@ beforeEach(() => {
     };
   });
 
-  storeService.executeTransaction.mockImplementation((async (
-    work: (manager: unknown) => Promise<unknown>,
-  ): Promise<unknown> => {
-    return await work(fakeManager());
-  }) as never);
+  storeService.getRepository.mockReturnValue({ manager: fakeManager() });
+  /*
+   * The claim is one self-committing statement (OneUptime issue #7194): a
+   * transaction would hold each claimed store's lock across round trips.
+   */
+  storeService.executeTransaction.mockImplementation(
+    (async (): Promise<never> => {
+      throw new Error("A claim must not open a transaction.");
+    }) as never,
+  );
   storeService.findBy.mockImplementation((async (): Promise<unknown> => {
     return stores
       .filter((store: FakeStore) => {
@@ -422,20 +425,19 @@ describe("POST /probe/data-security/work", () => {
     );
 
     expect(sentBody()).toEqual({ stores: [] });
+    expect(storeService.getRepository).not.toHaveBeenCalled();
     expect(storeService.executeTransaction).not.toHaveBeenCalled();
   });
 
-  test("claims the authenticated probe's due stores in one locking transaction", async () => {
+  test("claims the authenticated probe's due stores in one self-committing statement", async () => {
     await call(WORK_URI, makeRequest({ body: CAPABLE }));
 
     expect(
       statements.map((statement: { sql: string }) => {
         return statement.sql;
       }),
-    ).toEqual([
-      CLAIM_DUE_DATA_STORES_STATEMENT,
-      HOLD_CLAIMED_DATA_STORES_STATEMENT,
-    ]);
+    ).toEqual([CLAIM_DUE_DATA_STORES_STATEMENT]);
+    expect(storeService.executeTransaction).not.toHaveBeenCalled();
 
     const select: { sql: string; parameters: Array<unknown> } = statements[0]!;
 
@@ -444,7 +446,9 @@ describe("POST /probe/data-security/work", () => {
     expect(select.parameters[1]).toBe("self-managed");
     expect(select.parameters[2]).toEqual(["PostgreSQL", "MySQL", "SQL Server"]);
     expect(select.parameters[5]).toBe(2);
-    expect(select.sql).toContain("FOR UPDATE OF ds SKIP LOCKED");
+    // The lock the UPDATE takes anyway: a foreign-key check never waits for it.
+    expect(select.sql).toContain("FOR NO KEY UPDATE OF ds SKIP LOCKED");
+    expect(select.sql).not.toMatch(/FOR UPDATE/);
     expect(select.sql).toContain('ds."isContentScanEnabled" = true');
     expect(select.sql).toContain('ds."isArchived" = false');
     expect(select.sql).toContain('ds."deletedAt" IS NULL');
@@ -454,10 +458,12 @@ describe("POST /probe/data-security/work", () => {
       'COALESCE(s."isContentScanEnabled", true) = true',
     );
 
-    const hold: { sql: string; parameters: Array<unknown> } = statements[1]!;
-    const heldUntil: number = (hold.parameters[0] as Date).getTime();
+    // The same statement moves each claimed store's next scan to the claim's end.
+    expect(select.sql).toContain('UPDATE "DataStore" AS ds');
+    expect(select.sql).toContain('SET "nextContentScanAt" = $7::timestamptz');
+    const heldUntil: number = (select.parameters[6] as Date).getTime();
 
-    expect(hold.parameters[1]).toEqual([storeId(1), storeId(2)]);
+    expect(lastClaim).toEqual([storeId(1), storeId(2)]);
     expect(
       Math.abs(
         heldUntil -

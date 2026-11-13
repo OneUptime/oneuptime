@@ -171,6 +171,19 @@ function dialog(page: Page): Locator {
   return page.getByRole("dialog");
 }
 
+/*
+ * The counter style the browser numbers the dialog's list of methods with
+ * ("1.", "۱."): Theme.css's html:lang(fa) rule on a Persian page (#7258).
+ */
+async function methodsListStyle(page: Page): Promise<string> {
+  return dialog(page)
+    .getByTestId("test-page-preview-method")
+    .first()
+    .evaluate((element: Element): string => {
+      return getComputedStyle(element.parentElement as Element).listStyleType;
+    });
+}
+
 async function screenshot(page: Page, name: string): Promise<void> {
   fs.mkdirSync(SCREENSHOTS, { recursive: true });
   await page.screenshot({
@@ -604,6 +617,8 @@ test("in Arabic, the policy's levels read from the right", async ({
   await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
   await page.getByTestId("send-test-page").click();
   await expect(dialog(page).getByTestId("test-page-preview")).toBeVisible();
+  // Arabic writes Latin digits by choice: its numbered lists stay "1. 2.".
+  expect(await methodsListStyle(page)).toBe("decimal");
   await dialog(page).getByText(ARABIC["Walk every escalation level"]!).click();
 
   const levels: Locator = dialog(page).getByTestId("test-page-walk-level");
@@ -676,6 +691,12 @@ test("in Persian, the dialog and its result read from the right", async ({
   await expect(
     dialog(page).getByRole("button", { name: sendLabel }),
   ).toBeVisible();
+
+  /*
+   * Its numbered list of methods counts in Persian digits, "۱. ۲. ۳.", as
+   * the page writes every other number - not "1. 2. 3." (#7258).
+   */
+  expect(await methodsListStyle(page)).toBe("persian");
 
   /*
    * The preview's phone number keeps its own direction beside Persian words

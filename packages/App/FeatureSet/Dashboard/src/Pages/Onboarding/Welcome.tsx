@@ -1,11 +1,13 @@
 import PageComponentProps from "../PageComponentProps";
 import ServerSetupCard from "../../Components/ServerSetup/ServerSetupCard";
+import ExploreSampleProject from "../../Components/SampleProject/ExploreSampleProject";
 import PageMap from "../../Utils/PageMap";
 import RouteMap from "../../Utils/RouteMap";
 import RouteParams from "../../Utils/RouteParams";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
+import { SampleProjectEntryPoint } from "Common/Types/SampleProject/SampleProject";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import Page from "Common/UI/Components/Page/Page";
@@ -173,15 +175,26 @@ const Welcome: FunctionComponent<ComponentProps> = (
             </>
           }
           footer={
-            <Button
-              icon={IconProp.Add}
-              title={"Create New Project"}
-              buttonStyle={ButtonStyleType.PRIMARY}
-              onClick={() => {
-                props.onClickShowProjectModal();
-              }}
-              dataTestId="create-new-project-button"
-            />
+            <div className="flex flex-col items-center gap-6">
+              <Button
+                icon={IconProp.Add}
+                title={"Create New Project"}
+                buttonStyle={ButtonStyleType.PRIMARY}
+                onClick={() => {
+                  props.onClickShowProjectModal();
+                }}
+                dataTestId="create-new-project-button"
+              />
+              {/*
+               * Or look around first (issue #6808): a sample project to
+               * click through, with the line that says what it is.
+               */}
+              <ExploreSampleProject
+                className="max-w-md text-center"
+                from={SampleProjectEntryPoint.Welcome}
+                isOffered={canCreateProject}
+              />
+            </div>
           }
         />
       );

@@ -20,7 +20,26 @@
  * characterisation test pins it character for character.
  */
 export const NO_NOTIFICATION_RULES_STATUS_MESSAGE: string =
-  "No notification rules found for this user. User should add the rules in User Settings > On-Call Rules.";
+  "No notification rules found for this user. User should add the rules in User Settings > How to Reach Me.";
+
+/*
+ * The line's first sentence, what it is about. A log written before the
+ * page was called How to Reach Me (#6820) names the page by its old name
+ * after it, and is the same line.
+ */
+const NO_NOTIFICATION_RULES_FIRST_SENTENCE: string =
+  "No notification rules found for this user.";
+
+export function isOnCallNoNotificationRulesStatusMessage(
+  statusMessage: string | null | undefined,
+): boolean {
+  const message: string = (statusMessage || "").trim();
+
+  return (
+    message === NO_NOTIFICATION_RULES_FIRST_SENTENCE ||
+    message.startsWith(NO_NOTIFICATION_RULES_FIRST_SENTENCE + " ")
+  );
+}
 
 /*
  * Why an on-call notification log sent nothing at all: the person it pages
@@ -132,11 +151,19 @@ export function isOnCallNoVerifiedMethodStatusMessage(
  * A person with no rule for the severity, whose fallback failed: "Jane Doe
  * has no notification rule for Sev1 and the fallback delivery attempt
  * failed, so this page was not delivered. Check the worker logs, then add a
- * rule in User Settings > On-Call Rules."
+ * rule in User Settings > How to Reach Me."
  */
 const FALLBACK_FAILED_MIDDLE: string = " has no notification rule for ";
 const FALLBACK_FAILED_SUFFIX: string =
-  " and the fallback delivery attempt failed, so this page was not delivered. Check the worker logs, then add a rule in User Settings > On-Call Rules.";
+  " and the fallback delivery attempt failed, so this page was not delivered. Check the worker logs, then add a rule in User Settings > How to Reach Me.";
+
+/*
+ * What the line says happened, before the page it sends the reader to: a
+ * log written before the page was called How to Reach Me (#6820) names the
+ * page by its old name after it, and is the same line.
+ */
+const FALLBACK_FAILED_REASON: string =
+  " and the fallback delivery attempt failed, so this page was not delivered.";
 
 export function getOnCallFallbackFailedStatusMessage(data: {
   responderLabel: string;
@@ -152,7 +179,7 @@ export function isOnCallFallbackFailedStatusMessage(
 
   return (
     message.includes(FALLBACK_FAILED_MIDDLE) &&
-    message.endsWith(FALLBACK_FAILED_SUFFIX)
+    message.includes(FALLBACK_FAILED_REASON)
   );
 }
 

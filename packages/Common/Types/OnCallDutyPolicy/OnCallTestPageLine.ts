@@ -13,9 +13,9 @@ import {
 import {
   isOnCallFallbackFailedStatusMessage,
   isOnCallFallbackNotifiedStatusMessage,
+  isOnCallNoNotificationRulesStatusMessage,
   isOnCallNoVerifiedMethodStatusMessage,
   isOnCallOptedOutStatusMessage,
-  NO_NOTIFICATION_RULES_STATUS_MESSAGE,
   NOBODY_ON_CALL_IN_SCHEDULE_TIMELINE_MESSAGE,
   NOT_A_PROJECT_MEMBER_STATUS_MESSAGE,
   NOT_A_PROJECT_MEMBER_TIMELINE_MESSAGE,
@@ -272,9 +272,12 @@ export function readOnCallTestPageStepLine(data: {
     return null;
   }
 
+  // The line a page with no rule writes, whichever name of the page it gives.
+  if (isOnCallNoNotificationRulesStatusMessage(message)) {
+    return { code: OnCallTestPageLineCode.NoRuleNoFallback };
+  }
+
   switch (message) {
-    case NO_NOTIFICATION_RULES_STATUS_MESSAGE:
-      return { code: OnCallTestPageLineCode.NoRuleNoFallback };
     case NOT_A_PROJECT_MEMBER_STATUS_MESSAGE:
     case NOT_A_PROJECT_MEMBER_TIMELINE_MESSAGE:
       return withName(OnCallTestPageLineCode.NotProjectMember, data.userName);

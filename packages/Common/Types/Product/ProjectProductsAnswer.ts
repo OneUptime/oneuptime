@@ -4,6 +4,11 @@ import ProductKey, { PRODUCT_KEYS, parseProductKeys } from "./ProductKey";
 import { parsePinnedProducts } from "./ProductPins";
 import { ProductUsage, isProductUsage } from "./ProductUsage";
 import { ProjectProductsChosenBy, isHideableProduct } from "./ProjectProducts";
+import {
+  ServerProductsOff,
+  isServerProductOffReason,
+  isSwitchableProduct,
+} from "./ServerProducts";
 
 /*
  * THE ONE ANSWER THE DASHBOARD READS ABOUT A PROJECT'S PRODUCTS (#6814):
@@ -20,7 +25,11 @@ import { ProjectProductsChosenBy, isHideableProduct } from "./ProjectProducts";
  *     (OneUptime Cloud: "Growth Plan" beside Workflows on the Free plan);
  *   - whether this person may choose the project's products, and if so the
  *     hidden products that have data (Home's "Logs is hidden in this
- *     project and has data").
+ *     project and has data");
+ *   - the products switched off on the whole server, and why (#6815,
+ *     Types/Product/ServerProducts): stronger than anything the project or
+ *     the person chose, so every place that lists products leaves them out,
+ *     and their pages say they are off.
  *
  * The routes below change it, and each answers with the new answer:
  *
@@ -67,6 +76,11 @@ export interface ProjectProductsAnswer {
    * Empty for anyone who may not choose the project's products.
    */
   hiddenWithData: Array<ProductKey>;
+  /*
+   * The products switched off on this server, and why (#6815): product ->
+   * reason, absent when on. The same for every project and every person.
+   */
+  offOnServer: ServerProductsOff;
 }
 
 // What the Dashboard draws before (or without) an answer: every product shown.
@@ -80,6 +94,7 @@ export const getEmptyProjectProductsAnswer: () => ProjectProductsAnswer =
       neededPlans: {},
       canChooseProducts: false,
       hiddenWithData: [],
+      offOnServer: {},
     };
   };
 
@@ -116,6 +131,30 @@ const parseUsage: (
 };
 
 const PLAN_TYPES: ReadonlyArray<string> = Object.values(PlanType);
+
+/*
+ * What is off on the server, as sent: known products a server can switch
+ * off, each with a known reason; anything else is left out (on).
+ */
+export const parseServerProductsOff: (value: unknown) => ServerProductsOff = (
+  value: unknown,
+): ServerProductsOff => {
+  const off: ServerProductsOff = {};
+
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return off;
+  }
+
+  for (const product of PRODUCT_KEYS) {
+    const reason: unknown = (value as JSONObject)[product];
+
+    if (isSwitchableProduct(product) && isServerProductOffReason(reason)) {
+      off[product] = reason;
+    }
+  }
+
+  return off;
+};
 
 const parseNeededPlans: (
   value: unknown,
@@ -172,6 +211,7 @@ export const parseProjectProductsAnswer: (
         return hidden.includes(product);
       },
     ),
+    offOnServer: parseServerProductsOff(json["offOnServer"]),
   };
 };
 
@@ -198,6 +238,16 @@ export const toProjectProductsAnswerJSON: (
     }
   }
 
+  const offOnServer: JSONObject = {};
+
+  for (const product of PRODUCT_KEYS) {
+    const reason: string | undefined = answer.offOnServer[product];
+
+    if (reason) {
+      offOnServer[product] = reason;
+    }
+  }
+
   return {
     hidden: [...answer.hidden],
     chosenBy: answer.chosenBy,
@@ -206,5 +256,6 @@ export const toProjectProductsAnswerJSON: (
     neededPlans: neededPlans,
     canChooseProducts: answer.canChooseProducts,
     hiddenWithData: [...answer.hiddenWithData],
+    offOnServer: offOnServer,
   };
 };

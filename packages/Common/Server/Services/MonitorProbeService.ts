@@ -277,6 +277,7 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
           AND m."deletedAt" IS NULL
           AND p."deletedAt" IS NULL
           AND p."isBlocked" = false
+          AND p."isSampleProject" = false
           AND (p."paymentProviderSubscriptionStatus" IS NULL
                OR p."paymentProviderSubscriptionStatus" = ANY($4::text[]))
           AND (p."paymentProviderMeteredSubscriptionStatus" IS NULL

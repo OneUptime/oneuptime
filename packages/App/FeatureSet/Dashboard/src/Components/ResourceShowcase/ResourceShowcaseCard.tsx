@@ -55,6 +55,11 @@ export interface ComponentProps {
   // The product's documentation, linked beside the button ("/docs/slo/introduction").
   docsRoute?: Route | URL | undefined;
   /*
+   * The start-to-finish guide to the product's job ("/docs/guides/paging",
+   * #6821), linked before the documentation: a newcomer starts there.
+   */
+  guideRoute?: Route | URL | undefined;
+  /*
    * Leaves out the showcase's steps where the page above it already walks
    * through them (a product's own get-started steps).
    */
@@ -84,6 +89,8 @@ export const RESOURCE_SHOWCASE_DESCRIPTION_TEST_ID: string =
   "resource-showcase-description";
 export const RESOURCE_SHOWCASE_DOCS_LINK_TEST_ID: string =
   "resource-showcase-docs-link";
+export const RESOURCE_SHOWCASE_GUIDE_LINK_TEST_ID: string =
+  "resource-showcase-guide-link";
 export const RESOURCE_SHOWCASE_STAT_VALUE_TEST_ID: string =
   "resource-showcase-stat-value";
 export const RESOURCE_SHOWCASE_ROW_STATE_TEST_ID: string =
@@ -105,6 +112,10 @@ export const RESOURCE_SHOWCASE_EXAMPLE_DESCRIPTION: string = translationKey(
 // The link to the product's documentation.
 export const RESOURCE_SHOWCASE_DOCS_TEXT: string =
   translationKey("Documentation");
+
+// The link to the guide that does the product's job from start to finish.
+export const RESOURCE_SHOWCASE_GUIDE_TEXT: string =
+  translationKey("Step-by-step guide");
 
 // The example's state, and the span of its chart when it names none.
 const CONNECTED_TEXT: string = translationKey("Connected");
@@ -552,7 +563,7 @@ const ResourceShowcaseCard: FunctionComponent<ComponentProps> = (
               </ol>
             )}
 
-            {(props.addButton || props.docsRoute) && (
+            {(props.addButton || props.docsRoute || props.guideRoute) && (
               /*
                * Button keeps a dialog footer's margin (md:ml-3): here the
                * button starts the row, level with the steps above it.
@@ -569,6 +580,20 @@ const ResourceShowcaseCard: FunctionComponent<ComponentProps> = (
                     onClick={props.addButton.onClick}
                     dataTestId={RESOURCE_SHOWCASE_ADD_BUTTON_TEST_ID}
                   />
+                )}
+                {props.guideRoute && (
+                  <Link
+                    to={props.guideRoute}
+                    openInNewTab={true}
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-700 hover:text-indigo-900 hover:underline"
+                    dataTestId={RESOURCE_SHOWCASE_GUIDE_LINK_TEST_ID}
+                  >
+                    <Icon
+                      icon={IconProp.Flag}
+                      className="h-4 w-4 flex-shrink-0"
+                    />
+                    {translate(RESOURCE_SHOWCASE_GUIDE_TEXT)}
+                  </Link>
                 )}
                 {props.docsRoute && (
                   <Link

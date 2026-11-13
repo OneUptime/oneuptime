@@ -114,6 +114,7 @@ import {
   getProjectNotificationChannelOffMessage,
 } from "../../Utils/Project/NotificationChannels";
 import { TwilioMessageKind } from "../../Utils/Project/TwilioAccount";
+import { SAMPLE_PROJECT_REFUSALS } from "../../Types/SampleProject/SampleProject";
 import crypto from "crypto";
 
 /*
@@ -405,6 +406,17 @@ export class OnCallTestPageService extends BaseService {
    * caller may send one to (the API checks which). Limited to one a person
    * every two minutes and twenty a project an hour. Returns the run.
    */
+  /*
+   * A sample project (issue #6808) sends nothing, a test page included:
+   * refused before anything is claimed or written, with where to send one
+   * from instead. What a test would send can still be read (getPreview).
+   */
+  public async assertNotSampleProject(projectId: ObjectID): Promise<void> {
+    if (await ProjectService.isSampleProject(projectId)) {
+      throw new BadDataException(SAMPLE_PROJECT_REFUSALS.testPage);
+    }
+  }
+
   @CaptureSpan()
   public async sendToPerson(data: {
     projectId: ObjectID;
@@ -413,6 +425,8 @@ export class OnCallTestPageService extends BaseService {
     recordKind: OnCallTestPageRecordKind;
     severityId: ObjectID;
   }): Promise<OnCallDirectPageRun> {
+    await this.assertNotSampleProject(data.projectId);
+
     await this.assertIsProjectMember({
       projectId: data.projectId,
       userId: data.targetUserId,
@@ -474,6 +488,8 @@ export class OnCallTestPageService extends BaseService {
     severityId: ObjectID;
     walksEscalation: boolean;
   }): Promise<ObjectID> {
+    await this.assertNotSampleProject(data.projectId);
+
     await this.readPolicy({
       projectId: data.projectId,
       policyId: data.policyId,

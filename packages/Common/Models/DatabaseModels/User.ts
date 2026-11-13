@@ -1,4 +1,5 @@
 import File from "./File";
+import Project from "./Project";
 import UserModel from "../../Models/DatabaseModels/DatabaseBaseModel/UserModel";
 import Route from "../../Types/API/Route";
 import CompanySize from "../../Types/Company/CompanySize";
@@ -1094,6 +1095,33 @@ class User extends UserModel {
   public disableFeedbackQuestions?: boolean = undefined;
 
   /*
+   * "Record how I use the setup pages" (issue #6834), on while this is
+   * false: on OneUptime Cloud, and only once the person pressed "Accept
+   * all", OneUptime may record their use of the Dashboard's first-run
+   * pages, with everything typed or stored masked. Their own to switch off,
+   * on User Profile beside the feedback questions. A self-hosted server
+   * never records anybody, whatever this says.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [Permission.CurrentUser],
+    update: [Permission.CurrentUser],
+  })
+  @TableColumn({
+    title: "Disable Dashboard Recording",
+    description:
+      "When true, OneUptime never records how this person uses the dashboard. Recording happens only on OneUptime Cloud, only for people who accepted analytics, and only on the setup pages, with what they type or store masked.",
+    type: TableColumnType.Boolean,
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: true,
+    default: false,
+  })
+  public disableDashboardRecording?: boolean = undefined;
+
+  /*
    * The questions OneUptime asked this person, and when: question key
    * (`setup_flow:website_down`, `check_in:<project id>`) to an ISO date
    * (Types/ProductFeedback/ProductFeedback, readAskedQuestions). Each is
@@ -1116,6 +1144,78 @@ class User extends UserModel {
     nullable: true,
   })
   public feedbackQuestionsAsked?: JSONObject = undefined;
+
+  /*
+   * The sample project this person was made up for (issue #6808): one of
+   * the "sample people" who staff its on-call policy and own its
+   * incidents. Not a real person, and never one:
+   *
+   *   - they can never sign in: blocked, with no password and an address
+   *     on the reserved .invalid domain (SamplePeople), which every
+   *     sign-in path and MailService refuse;
+   *   - they are members of their sample project only, written without
+   *     hooks, so no invitation, notification method or rule is made for
+   *     them, and TeamMemberService refuses them in any other project;
+   *   - they are left out of every count of people on the server: the
+   *     license's seats, its user-count report and the self-hosted
+   *     marketplace's user-hours;
+   *   - the database deletes them with the project (ON DELETE CASCADE),
+   *     whatever deletes it.
+   *
+   * Null for everyone real. Written by OneUptime only, as root, when the
+   * sample is made (SampleProjectService), and never read through the API.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "sampleProjectId",
+    type: TableColumnType.Entity,
+    // Lazy: Project imports User back (see modelTypeThunk).
+    modelTypeThunk: () => {
+      return Project;
+    },
+    title: "Sample Project",
+    description:
+      "The sample project this made-up person belongs to. Set only for the sample people of a sample project.",
+    hideColumnInDocumentation: true,
+  })
+  @ManyToOne(
+    () => {
+      return Project;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "delete",
+    },
+  )
+  @JoinColumn({ name: "sampleProjectId" })
+  public sampleProject?: Project = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Sample Project ID",
+    description:
+      "ID of the sample project this made-up person belongs to. Set only for the sample people of a sample project.",
+    hideColumnInDocumentation: true,
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public sampleProjectId?: ObjectID = undefined;
 }
 
 export default User;

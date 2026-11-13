@@ -20,6 +20,7 @@ import {
   getOnCallOptedOutStatusMessage,
   isOnCallFallbackFailedStatusMessage,
   isOnCallFallbackNotifiedStatusMessage,
+  isOnCallNoNotificationRulesStatusMessage,
   isOnCallNoVerifiedMethodStatusMessage,
   isOnCallOptedOutStatusMessage,
   NO_NOTIFICATION_RULES_STATUS_MESSAGE,
@@ -158,11 +159,57 @@ describe("the English lines, word for word as they were written before", () => {
         severityName: "Sev1",
       }),
     ).toBe(
-      "Jane Doe has no notification rule for Sev1 and the fallback delivery attempt failed, so this page was not delivered. Check the worker logs, then add a rule in User Settings > On-Call Rules.",
+      "Jane Doe has no notification rule for Sev1 and the fallback delivery attempt failed, so this page was not delivered. Check the worker logs, then add a rule in User Settings > How to Reach Me.",
     );
     expect(NO_NOTIFICATION_RULES_STATUS_MESSAGE).toBe(
-      "No notification rules found for this user. User should add the rules in User Settings > On-Call Rules.",
+      "No notification rules found for this user. User should add the rules in User Settings > How to Reach Me.",
     );
+  });
+
+  /*
+   * A row written before the On-Call Rules page was called How to Reach Me
+   * (#6820) still names the old page: it reads into the same code as the
+   * row written today, so its line is still worded in the reader's language.
+   */
+  test("a row written before the page was called How to Reach Me reads as the same line", () => {
+    expect(
+      readOnCallTestPageStepLine({
+        statusMessage:
+          "No notification rules found for this user. User should add the rules in User Settings > On-Call Rules.",
+      }),
+    ).toEqual({ code: OnCallTestPageLineCode.NoRuleNoFallback });
+    expect(
+      readOnCallTestPageStepLine({
+        statusMessage:
+          "Jane Doe has no notification rule for Sev1 and the fallback delivery attempt failed, so this page was not delivered. Check the worker logs, then add a rule in User Settings > On-Call Rules.",
+      }),
+    ).toEqual({ code: OnCallTestPageLineCode.FallbackFailed });
+    expect(
+      isOnCallFallbackFailedStatusMessage(
+        "Jane Doe has no notification rule for Sev1 and the fallback delivery attempt failed, so this page was not delivered. Check the worker logs, then add a rule in User Settings > On-Call Rules.",
+      ),
+    ).toBe(true);
+    expect(
+      isOnCallNoNotificationRulesStatusMessage(
+        "No notification rules found for this user. User should add the rules in User Settings > On-Call Rules.",
+      ),
+    ).toBe(true);
+    // A line that only starts the same way is another line.
+    expect(
+      readOnCallTestPageStepLine({
+        statusMessage: "No notification rules found for this user's team.",
+      }),
+    ).toBeNull();
+    expect(
+      isOnCallNoNotificationRulesStatusMessage(
+        "No notification rules found for this user's team.",
+      ),
+    ).toBe(false);
+    expect(
+      isOnCallFallbackFailedStatusMessage(
+        "Jane Doe has no notification rule for Sev1, so this page was not delivered.",
+      ),
+    ).toBe(false);
   });
 
   test("the timeline's lines for a person, a schedule and a policy", () => {
@@ -222,6 +269,28 @@ describe("the English lines, word for word as they were written before", () => {
         }),
       ),
     ).toBe(true);
+
+    // The no-rule line's reader knows its line, and says no to the others.
+    expect(
+      isOnCallNoNotificationRulesStatusMessage(
+        NO_NOTIFICATION_RULES_STATUS_MESSAGE,
+      ),
+    ).toBe(true);
+
+    for (const other of [
+      getOnCallFallbackFailedStatusMessage({
+        responderLabel: PERSON,
+        severityName: "Critical",
+      }),
+      getOnCallNoVerifiedMethodStatusMessage(PERSON),
+      SENDING_NOTIFICATION_TO_USER_TIMELINE_MESSAGE,
+      "",
+    ]) {
+      expect([other, isOnCallNoNotificationRulesStatusMessage(other)]).toEqual([
+        other,
+        false,
+      ]);
+    }
 
     // Each reader says no to the others' lines, and to nothing at all.
     const others: Array<string> = [

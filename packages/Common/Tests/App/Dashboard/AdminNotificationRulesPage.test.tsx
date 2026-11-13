@@ -201,6 +201,33 @@ const trackRequest: TrackRequestFunction = (result: unknown): unknown => {
  * requires, so the consts above are still in their temporal dead zone when the
  * factory body runs. Dereferencing them lazily, at call time, is what works.
  */
+/*
+ * How to Reach Me's own reads - the ladder above the tabs (#6820) - are not
+ * the tables': stood in for, so what is counted here is what the tables read.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/NotificationRule/PagingLadder/PagingLadderApi",
+  () => {
+    return {
+      __esModule: true,
+      loadPagingLadderData: () => {
+        return Promise.resolve({ cells: [], rules: [], severityColors: {} });
+      },
+      loadOwnPagingMethods: () => {
+        return Promise.resolve([]);
+      },
+      savePagingLadder: () => {
+        return Promise.resolve({
+          createdCount: 0,
+          updatedCount: 0,
+          deletedCount: 0,
+          unchangedCount: 0,
+        });
+      },
+    };
+  },
+);
+
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
     __esModule: true,
@@ -896,10 +923,11 @@ const renderSection: RenderSectionFunction = (
 
   /*
    * The rules page reads its open tab from the browser's address, and an
-   * earlier test may have left a tab there: start from none, so the page
-   * opens on Incidents.
+   * earlier test may have left a tab there: start from the first tab's, so
+   * the page opens on Incidents. A bare address opens How to Reach Me's
+   * ladder, with these tabs a click behind it (#6820).
    */
-  window.history.replaceState({}, "", address);
+  window.history.replaceState({}, "", `${address}?type=incidents`);
 
   const { container } = render(
     <MemoryRouter initialEntries={[address]}>

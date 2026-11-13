@@ -15,6 +15,8 @@ import { getPoweredByFoldedItem } from "../../../Components/StatusPage/StatusPag
 import AdvancedPageSection from "Common/UI/Components/AdvancedPageSection/AdvancedPageSection";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
 import { STATUS_PAGE_ARCHIVE_COPY } from "../../../Components/Archive/ResourceArchiveCopy";
+import { UsedByImpactForRecord } from "../../../Components/UsedBy/UsedByImpact";
+import { UsedByRecordKind } from "Common/Types/UsedBy/UsedBy";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -96,6 +98,12 @@ const StatusPageSettings: FunctionComponent<
         archiveConfirmMessage={STATUS_PAGE_ARCHIVE_COPY.archiveConfirmMessage}
         unarchiveConfirmMessage={
           STATUS_PAGE_ARCHIVE_COPY.unarchiveConfirmMessage
+        }
+        archiveConfirmationContent={
+          <UsedByImpactForRecord
+            recordKind={UsedByRecordKind.StatusPage}
+            recordId={modelId}
+          />
         }
       />
     </Fragment>

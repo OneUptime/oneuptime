@@ -106,6 +106,11 @@ These are sent from the Dashboard with `ProductEvents.send(ProductEventName.X, {
 | `setup_health/fix_opened` | The fix of a finding is opened: which findings people act on, for the one-click fixes the issue leaves for later | `check`, `level` | `SetupHealthView` |
 | `setup_health/finding_dismissed` | A finding is dismissed for everyone in the project. The reason is never sent | `check`, `has_reason` | `SetupHealthView` |
 | `setup_health/finding_restored` | A dismissed finding is restored | `check` | `SetupHealthView` |
+| `paging_ladder/saved` | A paging ladder is saved on How to Reach Me (#6820), by the person (`is_own`) or for a member. Whether people save one, and whether they replace differences, says whether the ladder is the view most people need | `is_own`, `step_count`, `replaced_card_count` (the cards that differed and now use the ladder) | `HowToReachMe` |
+| `paging_ladder/grid_opened` | Somebody opens the per-severity grid behind the ladder with "Different for Some Severities" | `is_own`, `differing_card_count` | `HowToReachMe` |
+| `used_by/list_opened` | The full list of what refers to a record is opened (#6813): a relation's "See all" on a record's Used by card, or a label's Used by on Settings > Labels. Whether people open it says whether the card's three rows are enough | `record_kind` (`monitor`, `on-call-schedule`, `service`, `status-page`, `team`, `label`), `relation` (the relation, or `all` for a label's whole list) | `UsedByDialog` |
+| `sample_project/started` | **Explore Sample Project** is pressed (#6808): a sample project is made, or the person's existing one opened again. A sample counts as no activation: it reaches no milestone, sends no `server/project_created`, and nothing done inside it sends an event but these two | `from` (`welcome`, `goals`, `home`), `is_new` | `ExploreSampleProject` |
+| `sample_project/deleted` | A sample project is deleted from its bar | `days_kept` (whole days since it was made) | `SampleProjectBar` |
 
 ### The Welcome checklist and its goals
 

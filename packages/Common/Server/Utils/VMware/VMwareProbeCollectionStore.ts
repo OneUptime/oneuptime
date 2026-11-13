@@ -24,17 +24,17 @@ import VMwareCollectionSettings, {
   MAX_VMWARE_COLLECTION_INTERVAL_IN_MINUTES,
   MIN_VMWARE_COLLECTION_INTERVAL_IN_MINUTES,
 } from "../../../Utils/VMware/VMwareCollectionSettings";
-import { EntityManager } from "typeorm";
 
 /*
  * The database half of probe collection: which vCenters a probe collects
  * now, and what it found.
  *
- * Claiming is atomic (FOR UPDATE SKIP LOCKED) and moves each claimed
- * vCenter's nextCollectionAt an interval on, so two work requests - the same
- * probe's overlapping ticks, or two server replicas - never hand one vCenter
- * out twice. The vCenters a probe says it is still collecting are left out,
- * so a collection slower than its interval is skipped, not stacked.
+ * Claiming is one statement (FOR NO KEY UPDATE SKIP LOCKED) that moves each
+ * claimed vCenter's nextCollectionAt an interval on, so two work requests -
+ * the same probe's overlapping ticks, or two server replicas - never hand
+ * one vCenter out twice, and no claim holds a vCenter longer than that
+ * statement runs. The vCenters a probe says it is still collecting are left
+ * out, so a collection slower than its interval is skipped, not stacked.
  *
  * Only a probe that may collect a vCenter is ever handed one: the vCenter
  * names it, and it is the project's own probe - or, on a self-hosted
@@ -83,10 +83,30 @@ export default class VMwareProbeCollectionStore {
       },
     );
 
-    const claimedIds: Array<string> = await service.executeTransaction(
-      async (transactionalEntityManager: EntityManager) => {
-        const selectQuery: string = `
-        SELECT vc."_id", vc."collectionIntervalInMinutes"
+    /*
+     * One self-committing statement (OneUptime issue #7194). The due
+     * vCenters are locked FOR NO KEY UPDATE SKIP LOCKED, and the same
+     * statement moves their next collection an interval on, so the locks
+     * last only as long as it runs. FOR NO KEY UPDATE is the lock the
+     * UPDATE takes anyway, and the foreign-key check of a row that names a
+     * vCenter - a feed entry, an incident, an alert, a monitor, a
+     * connection test - does not wait for it.
+     *
+     * It used to be a transaction: a SELECT ... FOR UPDATE, the next times
+     * worked out here, an UPDATE, then COMMIT. Every claimed vCenter stayed
+     * locked FOR UPDATE across those round trips - and for as long as a
+     * busy pod took to come back to its connection - and every write about
+     * those vCenters waited for it: on a busy database, past lock_timeout.
+     *
+     * The interval is held to getSafeInterval's bounds in SQL (the last
+     * three parameters). The column is a NOT NULL integer, so it is the
+     * same rule. The ids come back in claim order, the longest overdue
+     * first.
+     */
+    const claimedRows: unknown = await service.getRepository().manager.query(
+      `
+      WITH "due" AS (
+        SELECT vc."_id", vc."nextCollectionAt" AS "dueAt"
         FROM "VMwareVCenter" vc
         INNER JOIN "Project" p ON vc."projectId" = p."_id"
         INNER JOIN "Probe" pr ON vc."collectionProbeId" = pr."_id"
@@ -108,78 +128,55 @@ export default class VMwareProbeCollectionStore {
           AND p."deletedAt" IS NULL
           -- A project a master admin blocked is not collected until it is unblocked.
           AND p."isBlocked" = false
+          AND p."isSampleProject" = false
           AND (p."paymentProviderSubscriptionStatus" IS NULL
                OR p."paymentProviderSubscriptionStatus" = ANY($4::text[]))
           AND (p."paymentProviderMeteredSubscriptionStatus" IS NULL
                OR p."paymentProviderMeteredSubscriptionStatus" = ANY($4::text[]))
         ORDER BY vc."nextCollectionAt" ASC NULLS FIRST
         LIMIT $3
-        FOR UPDATE OF vc SKIP LOCKED
-      `;
-
-        const selectedRows: Array<{
-          _id: string;
-          collectionIntervalInMinutes: number | null;
-        }> = await transactionalEntityManager.query(selectQuery, [
-          data.probeId.toString(),
-          currentDate,
-          data.limit,
-          SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
-          VMwareCollectionMethod.Probe,
-          runningIds,
-          IsBillingEnabled,
-        ]);
-
-        if (selectedRows.length === 0) {
-          return [];
-        }
-
-        const caseFragments: Array<string> = [];
-        const parameters: Array<string | Date> = [];
-        let parameterIndex: number = 1;
-
-        for (const row of selectedRows) {
-          const nextCollectionAt: Date = OneUptimeDate.addRemoveMinutes(
-            currentDate,
-            VMwareProbeCollectionStore.getSafeInterval(
-              row.collectionIntervalInMinutes,
-            ),
-          );
-
-          /*
-           * ::timestamptz - see NetworkDeviceService.claimDevicesForPolling
-           * for why a ::timestamp cast skews the schedule.
-           */
-          caseFragments.push(
-            `WHEN $${parameterIndex} THEN $${parameterIndex + 1}::timestamptz`,
-          );
-          parameters.push(row._id, nextCollectionAt);
-          parameterIndex += 2;
-        }
-
-        const ids: Array<string> = selectedRows.map(
-          (row: { _id: string }): string => {
-            return row._id;
-          },
-        );
-
-        const idPlaceholders: Array<string> = ids.map(
-          (_id: string, index: number): string => {
-            return `$${parameterIndex + index}`;
-          },
-        );
-        parameters.push(...ids);
-
-        await transactionalEntityManager.query(
-          `UPDATE "VMwareVCenter" SET "nextCollectionAt" = CASE "_id" ${caseFragments.join(
-            " ",
-          )} END WHERE "_id" IN (${idPlaceholders.join(", ")})`,
-          parameters,
-        );
-
-        return ids;
-      },
+        FOR NO KEY UPDATE OF vc SKIP LOCKED
+      ),
+      "claimed" AS (
+        -- ::timestamptz - see NetworkDeviceService.claimDevicesForPolling
+        -- for why a ::timestamp cast skews the schedule.
+        UPDATE "VMwareVCenter" AS vc
+        SET "nextCollectionAt" = $2::timestamptz + (
+            CASE
+              WHEN vc."collectionIntervalInMinutes" IS NULL
+                OR vc."collectionIntervalInMinutes" <= 0
+                THEN $8::int
+              ELSE LEAST(GREATEST(vc."collectionIntervalInMinutes", $9::int), $10::int)
+            END
+          ) * INTERVAL '1 minute'
+        FROM "due"
+        WHERE vc."_id" = "due"."_id"
+        RETURNING vc."_id"
+      )
+      SELECT "due"."_id"
+      FROM "due"
+      INNER JOIN "claimed" ON "claimed"."_id" = "due"."_id"
+      ORDER BY "due"."dueAt" ASC NULLS FIRST
+    `,
+      [
+        data.probeId.toString(),
+        currentDate,
+        data.limit,
+        SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
+        VMwareCollectionMethod.Probe,
+        runningIds,
+        IsBillingEnabled,
+        DEFAULT_VMWARE_COLLECTION_INTERVAL_IN_MINUTES,
+        MIN_VMWARE_COLLECTION_INTERVAL_IN_MINUTES,
+        MAX_VMWARE_COLLECTION_INTERVAL_IN_MINUTES,
+      ],
     );
+
+    const claimedIds: Array<string> = Array.isArray(claimedRows)
+      ? claimedRows.map((row: { _id: string }): string => {
+          return row._id;
+        })
+      : [];
 
     if (claimedIds.length === 0) {
       return [];
