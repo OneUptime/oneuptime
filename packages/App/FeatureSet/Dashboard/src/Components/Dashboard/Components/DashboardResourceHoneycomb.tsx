@@ -39,6 +39,13 @@ export interface HoneycombLegendItem {
   color: string;
 }
 
+/*
+ * How a tile's tooltip was opened, which its last line answers: a tile
+ * reached with the keyboard is opened with Enter (or Space), and one under
+ * the pointer with a click.
+ */
+export type HoneycombTooltipOpener = "keyboard" | "pointer";
+
 export interface DashboardResourceHoneycombProps {
   tiles: Array<HoneycombTile>;
   legend?: Array<HoneycombLegendItem> | undefined;
@@ -94,6 +101,7 @@ interface HexProps {
   onHoverStart: (
     tile: HoneycombTile,
     rect: { left: number; top: number; width: number; height: number },
+    openedBy: HoneycombTooltipOpener,
   ) => void;
   onHoverEnd: () => void;
 }
@@ -172,17 +180,27 @@ const Hex: FunctionComponent<HexProps> = (props: HexProps): ReactElement => {
   const textColor: string =
     tile.textColor || getReadableTextColor(tile.color || "#9ca3af");
 
-  const openTooltip: () => void = () => {
+  const openTooltip: (openedBy: HoneycombTooltipOpener) => void = (
+    openedBy: HoneycombTooltipOpener,
+  ) => {
     if (!ref.current) {
       return;
     }
     const rect: DOMRect = ref.current.getBoundingClientRect();
-    onHoverStart(tile, {
-      left: rect.left,
-      top: rect.top,
-      width: rect.width,
-      height: rect.height,
-    });
+    onHoverStart(
+      tile,
+      {
+        left: rect.left,
+        top: rect.top,
+        width: rect.width,
+        height: rect.height,
+      },
+      openedBy,
+    );
+  };
+
+  const onMouseEnter: () => void = () => {
+    openTooltip("pointer");
   };
 
   /*
@@ -190,10 +208,19 @@ const Hex: FunctionComponent<HexProps> = (props: HexProps): ReactElement => {
    * its tooltip opens on focus and closes on blur. It used to open on the
    * pointer only, so a keyboard reader moved through a row of colors that
    * never said which monitor was which, nor that gray is Disabled.
+   *
+   * Its last line says how to open the tile the way it was reached:
+   * Press Enter to open, for the keyboard's focus (#7347). A click focuses
+   * the tile too - that tooltip is the pointer's, and still says Click to
+   * open.
    */
   const onFocus: () => void = () => {
-    openTooltip();
-    setHasKeyboardFocus(Boolean(ref.current && isFocusVisible(ref.current)));
+    const isKeyboardFocus: boolean = Boolean(
+      ref.current && isFocusVisible(ref.current),
+    );
+
+    openTooltip(isKeyboardFocus ? "keyboard" : "pointer");
+    setHasKeyboardFocus(isKeyboardFocus);
   };
 
   const onBlur: () => void = () => {
@@ -222,7 +249,7 @@ const Hex: FunctionComponent<HexProps> = (props: HexProps): ReactElement => {
     >
       <div
         ref={ref}
-        onMouseEnter={openTooltip}
+        onMouseEnter={onMouseEnter}
         onMouseLeave={onHoverEnd}
         onFocus={onFocus}
         onBlur={onBlur}
@@ -266,12 +293,19 @@ const Hex: FunctionComponent<HexProps> = (props: HexProps): ReactElement => {
           overflow: "hidden",
         }}
       >
-        <span
-          className="truncate"
+        {/*
+         * The tile's label, in the middle of its tile, read the way its
+         * words are written (#7092): an English name too long for its tile
+         * on an Arabic or Persian board is cut at its own end, so tiles
+         * whose names share an end still differ. Words that read the
+         * board's way are drawn as they were.
+         */}
+        <DashboardWidgetLine
+          as="span"
+          text={tile.label || ""}
+          className="truncate text-center"
           style={{ maxWidth: `${width * 0.8}px`, pointerEvents: "none" }}
-        >
-          {tile.label || ""}
-        </span>
+        />
       </div>
       {hasKeyboardFocus && (
         <svg
@@ -301,6 +335,7 @@ const Hex: FunctionComponent<HexProps> = (props: HexProps): ReactElement => {
 interface TooltipState {
   tile: HoneycombTile;
   rect: { left: number; top: number; width: number; height: number };
+  openedBy: HoneycombTooltipOpener;
 }
 
 const TOOLTIP_WIDTH: number = 240;
@@ -426,9 +461,15 @@ const HoneycombTooltip: FunctionComponent<{
             </div>
           );
         })}
+        {/*
+         * How to open the tile, the way it was reached (#7347) - the
+         * tile's description to a screen reader too (aria-describedby).
+         */}
         {state.tile.route && (
           <div className="text-[10px] text-gray-400 pt-1.5 border-t border-gray-100 mt-1.5">
-            {translator.translateText("Click to open")}
+            {state.openedBy === "keyboard"
+              ? translator.translateText("Press Enter to open")
+              : translator.translateText("Click to open")}
           </div>
         )}
       </div>
@@ -540,11 +581,13 @@ const DashboardResourceHoneycomb: FunctionComponent<
   const onHoverStart: (
     tile: HoneycombTile,
     rect: { left: number; top: number; width: number; height: number },
+    openedBy: HoneycombTooltipOpener,
   ) => void = (
     tile: HoneycombTile,
     rect: { left: number; top: number; width: number; height: number },
+    openedBy: HoneycombTooltipOpener,
   ) => {
-    setTooltipState({ tile, rect });
+    setTooltipState({ tile, rect, openedBy });
   };
 
   const onHoverEnd: () => void = () => {

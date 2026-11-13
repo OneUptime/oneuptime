@@ -9,7 +9,7 @@ import {
   LABEL_RULE_ADDS_NOTHING_MESSAGE,
   OWNER_RULE_ADDS_NOTHING_MESSAGE,
 } from "Common/Utils/Rules/RuleAction";
-import { dashboardLabel, drawnDashboardLabel } from "./DocsDashboardLabels";
+import { drawnDashboardLabel } from "./DocsDashboardLabels";
 import { escapeRegExp } from "./DocsTranslationChecks";
 
 /*
@@ -23,10 +23,9 @@ import { escapeRegExp } from "./DocsTranslationChecks";
  *
  * The pages that describe those forms say so, in English and in Persian,
  * the two languages that describe them: nobody is sent looking for a Basic
- * Info step or an Inherit step, or told a rule's labels are optional. The
- * Persian SLO page, status page overview and RUM applications page name the
- * form as the Persian Dashboard draws it; the Persian incident pages keep
- * the Dashboard's English names.
+ * Info step or an Inherit step, or told a rule's labels are optional. Every
+ * Persian page names the form as the Persian Dashboard draws it, the
+ * incident pages included (#7100).
  */
 
 const CONTENT_DIR: string = path.join(
@@ -60,18 +59,9 @@ const EVENT_PAGES: Array<string> = [
 
 const LANGUAGES: Array<string> = ["en", "fa"];
 
-// The pages here that name the Dashboard as their language's Dashboard draws it.
-const NAMED_AS_DRAWN: ReadonlyArray<string> = [
-  "slo/label-and-owner-rules",
-  "status-pages/index",
-  "rum/applications",
-];
-
 // What a page in this language calls the Dashboard label written in English.
-function uiName(language: string, page: string, english: string): string {
-  return NAMED_AS_DRAWN.includes(page)
-    ? drawnDashboardLabel(language, english)
-    : dashboardLabel(language, english);
+function uiName(language: string, english: string): string {
+  return drawnDashboardLabel(language, english);
 }
 
 // The incident settings page's section on label and owner rules.
@@ -100,13 +90,11 @@ describe.each(LANGUAGES)(
         const content: string = read(language, page);
 
         for (const english of ["Match", "Labels", "Name", "More fields"]) {
-          expect(content).toContain(`**${uiName(language, page, english)}**`);
+          expect(content).toContain(`**${uiName(language, english)}**`);
         }
 
         expect(content).not.toContain("Basic Info");
-        expect(content).not.toContain(
-          `**${uiName(language, page, "Basic Info")}**`,
-        );
+        expect(content).not.toContain(`**${uiName(language, "Basic Info")}**`);
       },
     );
 
@@ -119,7 +107,7 @@ describe.each(LANGUAGES)(
         slot: string,
         picks: string,
       ): string => {
-        return uiName(language, page, template).replace(slot, picks);
+        return uiName(language, template).replace(slot, picks);
       };
 
       expect(content).toContain(
@@ -130,7 +118,7 @@ describe.each(LANGUAGES)(
       );
       expect(content).toMatch(
         new RegExp(
-          `\\*\\*${escapeRegExp(uiName(language, page, "Notify Owners"))}\\*\\* \\([^)]*\\*\\*${escapeRegExp(uiName(language, page, "More fields"))}\\*\\*`,
+          `\\*\\*${escapeRegExp(uiName(language, "Notify Owners"))}\\*\\* \\([^)]*\\*\\*${escapeRegExp(uiName(language, "More fields"))}\\*\\*`,
         ),
       );
     });
@@ -139,7 +127,7 @@ describe.each(LANGUAGES)(
       "%s says the list marks a rule that adds nothing",
       (page: string) => {
         expect(read(language, page)).toContain(
-          `**${uiName(language, page, "Adds nothing")}**`,
+          `**${uiName(language, "Adds nothing")}**`,
         );
       },
     );
@@ -161,7 +149,7 @@ describe.each(LANGUAGES)(
             : read(language, page);
 
         const bold: (english: string) => string = (english: string): string => {
-          return `**${uiName(language, page, english)}**`;
+          return `**${uiName(language, english)}**`;
         };
 
         expect(content).toContain(bold("Match"));
@@ -179,13 +167,16 @@ describe.each(LANGUAGES)(
 
     test("the incident pages fold the inherit switches under the picker", () => {
       expect(read(language, "incidents/settings")).toContain(
-        "**Inherit Labels**",
+        `**${uiName(language, "Inherit Labels")}**`,
       );
       expect(read(language, "incidents/settings")).toContain(
-        "**Inherit Owners**",
+        `**${uiName(language, "Inherit Owners")}**`,
       );
       expect(read(language, "incidents/notes-owners-and-feed")).toMatch(
-        /^- \*\*Inherit Owners\*\*[^—\n]*\*\*Owners\*\*/m,
+        new RegExp(
+          `^- \\*\\*${escapeRegExp(uiName(language, "Inherit Owners"))}\\*\\*[^—\\n]*\\*\\*${escapeRegExp(uiName(language, "Owners"))}\\*\\*`,
+          "m",
+        ),
       );
     });
   },

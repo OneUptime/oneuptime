@@ -2,6 +2,7 @@ import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import { getMeasurementKeyFromName } from "Common/Types/Measurement/MeasurementKey";
+import { drawnDashboardLabel } from "./DocsDashboardLabels";
 
 /*
  * A measurement's key used to be something everybody typed: "Each
@@ -49,7 +50,7 @@ describe.each(["en", "fa"])("the %s measurements docs", (language: string) => {
   });
 
   it("send someone who wants their own key to Edit, before the measurement is created", () => {
-    expect(section).toContain("**Edit**");
+    expect(section).toContain(`**${drawnDashboardLabel(language, "Edit")}**`);
   });
 
   it("say a create over the API can leave the key out, and how a clash is numbered", () => {

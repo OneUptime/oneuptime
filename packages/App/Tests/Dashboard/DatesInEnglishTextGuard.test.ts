@@ -51,6 +51,8 @@ const DISPLAY_HELPERS: ReadonlySet<string> = new Set<string>([
   "getDateAsLocalDayMonthHourString",
   "getDateAsLocalDayMonthTimeString",
   "getDateAsLocalMonthYearString",
+  // A year alone, on a yearly chart axis: "2026", "۲۰۲۶", "2026年" (#7204).
+  "getDateAsLocalYearString",
   "getDateAsFormattedStringInTimezone",
   "getDateAsCustomFormattedStringInTimezone",
   "getDateAsFormattedArrayInMultipleTimezones",

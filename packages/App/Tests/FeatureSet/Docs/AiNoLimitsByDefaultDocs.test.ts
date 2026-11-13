@@ -70,8 +70,9 @@ interface MenuLabels {
 }
 
 /*
- * The dashboard's own translations of the side menu titles. The Persian pages
- * keep every on-screen name in English, so their names are the English ones.
+ * The dashboard's own translations of the side menu titles: every language's
+ * pages name the side menu as that language's Dashboard draws it, Persian
+ * included.
  */
 const MENU_LABELS: Record<string, MenuLabels> = {
   en: {
@@ -115,13 +116,14 @@ const MENU_LABELS: Record<string, MenuLabels> = {
     formerAutoRemediationRules: "Reglas de autorremediación",
   },
   fa: {
-    ai: "AI",
-    insights: "Insights",
-    logs: "Logs",
-    settings: "Settings",
-    rules: "Rules",
-    runbookRules: "Runbook Rules",
-    aiRules: "AI rules",
+    ai: "هوش مصنوعی",
+    insights: "بینش‌ها",
+    logs: "لاگ‌ها",
+    settings: "تنظیمات",
+    rules: "قواعد",
+    runbookRules: "قواعد رانبوک",
+    aiRules: "قواعد هوش مصنوعی",
+    // The Persian pages named the Dashboard in English when the page went.
     formerAutoRemediationRules: "Auto Remediation Rules",
   },
   fr: {
@@ -245,10 +247,6 @@ const MENU_LABELS: Record<string, MenuLabels> = {
     formerAutoRemediationRules: "自動補救規則",
   },
 };
-
-// The languages whose pages write on-screen names in English.
-const PERSIAN: string = "fa";
-const ENGLISH_UI_NAME_LANGUAGES: ReadonlyArray<string> = ["en", PERSIAN];
 
 /*
  * Where the AI pages are no longer, however a page spells the path: the AI
@@ -718,17 +716,6 @@ describe("AI has no limits by default", () => {
     );
 
     for (const language of Object.keys(MENU_LABELS)) {
-      if (ENGLISH_UI_NAME_LANGUAGES.includes(language)) {
-        expect({ language: language, labels: MENU_LABELS[language] }).toEqual({
-          language: language,
-          labels: MENU_LABELS["en"],
-        });
-      }
-
-      if (language === PERSIAN) {
-        continue;
-      }
-
       const locale: Record<string, string> = JSON.parse(
         fs.readFileSync(
           path.join(DASHBOARD_SRC, "Locales", `${language}.json`),

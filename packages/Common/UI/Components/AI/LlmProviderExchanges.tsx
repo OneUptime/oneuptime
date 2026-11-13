@@ -26,9 +26,9 @@ export interface ComponentProps {
 export type ExchangeTone = "success" | "warning" | "danger" | "neutral";
 
 // How a status reads at a glance: 2xx fine, 4xx the request, 5xx theirs.
-export const getExchangeTone: (exchange: LLMProviderExchange) => ExchangeTone = (
+export const getExchangeTone: (
   exchange: LLMProviderExchange,
-): ExchangeTone => {
+) => ExchangeTone = (exchange: LLMProviderExchange): ExchangeTone => {
   const status: number | undefined = exchange.statusCode;
 
   if (status === undefined) {
@@ -143,11 +143,7 @@ const CodeBlock: FunctionComponent<{
   label: string;
   text: string;
   testId: string;
-}> = (props: {
-  label: string;
-  text: string;
-  testId: string;
-}): ReactElement => {
+}> = (props: { label: string; text: string; testId: string }): ReactElement => {
   const translator: Translator = useTranslator();
 
   return (

@@ -100,7 +100,7 @@ Salvate le modifiche. La scheda **Criteri di monitoraggio**, e la conferma di en
 Usate **Sincronizza criteri con i monitor collegati**, oppure **Sincronizza dal modello** su un singolo monitor collegato.
 :::
 
-Per esempio, proteggete **Monitor destination** e **Request headers** su un modello API. I monitor di produzione e di staging mantengono i propri URL e intestazioni, mentre entrambi ricevono i criteri aggiornati del modello e le altre impostazioni non protette.
+Per esempio, proteggete **Monitor destination** e **Intestazioni della richiesta** su un modello API. I monitor di produzione e di staging mantengono i propri URL e intestazioni, mentre entrambi ricevono i criteri aggiornati del modello e le altre impostazioni non protette.
 
 Le opzioni disponibili dipendono dal tipo di monitor. Comprendono destinazioni e porte, opzioni delle richieste HTTP, connessioni ai database, impostazioni DNS, selettori dell'infrastruttura e query di telemetria. Le credenziali correlate, come un certificato client e la sua chiave privata, vengono mantenute insieme.
 

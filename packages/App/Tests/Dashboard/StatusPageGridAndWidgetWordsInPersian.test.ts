@@ -68,9 +68,13 @@ const OFF_GRID_ONE: string = `${OFF_GRID}_one`;
 
 /*
  * Latin words a Persian string on these surfaces keeps: SLO is the
- * product's name for an objective (the Persian SLO pages say "SLO" too).
+ * product's name for an objective (the Persian SLO pages say "SLO" too);
+ * Enter is the name on the key a honeycomb tile's keyboard tooltip says to
+ * press (#7347), as the Persian Dashboard writes it everywhere else: the
+ * session replay search's "Press Enter to open this session." and the key
+ * name itself.
  */
-const KEPT_LATIN_WORDS: ReadonlyArray<string> = ["SLO"];
+const KEPT_LATIN_WORDS: ReadonlyArray<string> = ["SLO", "Enter"];
 
 const PLACEHOLDER: RegExp = /\{\{\s*[\w.]+\s*\}\}/g;
 const LATIN_LETTER: RegExp = /[A-Za-z]/;

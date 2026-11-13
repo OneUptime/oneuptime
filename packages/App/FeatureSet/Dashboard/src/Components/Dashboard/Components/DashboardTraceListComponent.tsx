@@ -268,7 +268,10 @@ const DashboardTraceListComponentElement: FunctionComponent<ComponentProps> = (
   return (
     <DashboardResourceListBase
       title={props.component.arguments.title}
-      pluralLabel="traces"
+      countLabel={{
+        one: "{{count}} trace",
+        other: "{{count}} traces",
+      }}
       columns={COLUMNS}
       count={spans.length}
       isLoading={isLoading}
