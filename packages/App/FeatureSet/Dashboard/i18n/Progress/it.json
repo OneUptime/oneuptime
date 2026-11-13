@@ -496,6 +496,7 @@
     "{{count}} log",
     "{{count}} manager",
     "{{count}} mon",
+    "{{count}} ms",
     "{{count}} placement group",
     "{{count}} pod",
     "{{count}} pool",

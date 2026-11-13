@@ -724,6 +724,7 @@
     "{{count}} minutes",
     "{{count}} mon",
     "{{count}} mons",
+    "{{count}} ms",
     "{{count}} note",
     "{{count}} notes",
     "{{count}} option",

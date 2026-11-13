@@ -211,6 +211,7 @@
     "{{count}} B",
     "{{count}} KB",
     "{{count}} MB",
+    "{{count}} ms",
     "{{gigabytes}} GB",
     "{{in}} in",
     "{{itemName}} ID",
