@@ -51817,5 +51817,17 @@
   "Status page provider": "狀態頁面提供者",
   "Status page retries": "狀態頁面重試次數",
   "Status page timeout": "狀態頁面逾時",
-  "Trace query configuration": "追蹤查詢設定"
+  "Trace query configuration": "追蹤查詢設定",
+  "Agent Last Seen At": "代理程式最近發現時間",
+  "Can't read API": "無法讀取 API",
+  "Check that a node answers": "檢查是否有節點回應",
+  "Check the API token": "檢查 API 權杖",
+  "It checks the API token and every node in PVE_HOST and PVE_NODES from the agent's machine, and says what is wrong.": "它會從代理程式所在的機器檢查 API 權杖，以及 PVE_HOST 和 PVE_NODES 中的每個節點，並說明問題所在。",
+  "PVE_API_TOKEN_ID and PVE_API_TOKEN_SECRET in the agent's .env must name a token that still exists, with the PVEAuditor role on / for the token and its user.": "代理程式 .env 中的 PVE_API_TOKEN_ID 和 PVE_API_TOKEN_SECRET 必須指向仍然存在的權杖，且該權杖及其使用者在 / 上具有 PVEAuditor 角色。",
+  "The agent can't read the Proxmox VE API": "代理程式無法讀取 Proxmox VE API",
+  "The agent has not read the cluster yet": "代理程式尚未讀取叢集",
+  "The agent reads the cluster from PVE_HOST, or from the next node in PVE_NODES whose API answers on port 8006. Its logs say which node it reads, and why it passed over the others:": "代理程式會從 PVE_HOST 讀取叢集，或從 PVE_NODES 中下一個 API 在連接埠 8006 上回應的節點讀取。它的記錄會說明它從哪個節點讀取，以及為什麼略過其他節點：",
+  "The {{agentName}} is running and reads the cluster from the Proxmox VE API every 30 seconds, but no read has arrived yet. If this does not change within a few minutes, check the API with the steps below.": "{{agentName}} 正在執行，每 30 秒從 Proxmox VE API 讀取一次叢集，但尚未收到任何讀取結果。如果幾分鐘內沒有變化，請依照下方步驟檢查 API。",
+  "The {{agentName}} is running, but it last read the cluster from the Proxmox VE API {{lastRead}}. The nodes, guests and storage here are as it read them then.": "{{agentName}} 正在執行，但它上次從 Proxmox VE API 讀取叢集是在{{lastRead}}。這裡的節點、客體和儲存空間都是它當時讀取到的狀態。",
+  "Whether the OneUptime Proxmox agent is reading this cluster from the Proxmox VE API. It switches to Disconnected 15 to 20 minutes after data stops arriving, and to Can't read API when the agent is still running but has not read the cluster for that long. Either way, the numbers on this page are as it last read them.": "OneUptime Proxmox 代理程式是否正在從 Proxmox VE API 讀取此叢集。資料停止傳入 15 到 20 分鐘後，狀態會變為「已中斷」；若代理程式仍在執行，但這段時間內未讀取叢集，則變為「無法讀取 API」。無論哪種情況，此頁面上的數字都是它最後一次讀取時的值。"
 }

@@ -51817,5 +51817,17 @@
   "Status page provider": "Statussidens udbyder",
   "Status page retries": "Genforsøg for statusside",
   "Status page timeout": "Timeout for statusside",
-  "Trace query configuration": "Konfiguration af sporforespørgsel"
+  "Trace query configuration": "Konfiguration af sporforespørgsel",
+  "Agent Last Seen At": "Agent senest set den",
+  "Can't read API": "Kan ikke læse API",
+  "Check that a node answers": "Tjek, at en node svarer",
+  "Check the API token": "Tjek API-tokenet",
+  "It checks the API token and every node in PVE_HOST and PVE_NODES from the agent's machine, and says what is wrong.": "Det tjekker API-tokenet og hver node i PVE_HOST og PVE_NODES fra agentens maskine og fortæller, hvad der er galt.",
+  "PVE_API_TOKEN_ID and PVE_API_TOKEN_SECRET in the agent's .env must name a token that still exists, with the PVEAuditor role on / for the token and its user.": "PVE_API_TOKEN_ID og PVE_API_TOKEN_SECRET i agentens .env skal angive et token, der stadig findes, med rollen PVEAuditor på / for tokenet og dets bruger.",
+  "The agent can't read the Proxmox VE API": "Agenten kan ikke læse Proxmox VE API'et",
+  "The agent has not read the cluster yet": "Agenten har ikke læst klyngen endnu",
+  "The agent reads the cluster from PVE_HOST, or from the next node in PVE_NODES whose API answers on port 8006. Its logs say which node it reads, and why it passed over the others:": "Agenten læser klyngen fra PVE_HOST eller fra den næste node i PVE_NODES, hvis API svarer på port 8006. Dens logs fortæller, hvilken node den læser fra, og hvorfor den sprang de andre over:",
+  "The {{agentName}} is running and reads the cluster from the Proxmox VE API every 30 seconds, but no read has arrived yet. If this does not change within a few minutes, check the API with the steps below.": "{{agentName}} kører og læser klyngen fra Proxmox VE API'et hvert 30. sekund, men der er endnu ikke kommet nogen læsning. Hvis det ikke ændrer sig inden for få minutter, så tjek API'et med trinnene nedenfor.",
+  "The {{agentName}} is running, but it last read the cluster from the Proxmox VE API {{lastRead}}. The nodes, guests and storage here are as it read them then.": "{{agentName}} kører, men læste sidst klyngen fra Proxmox VE API'et {{lastRead}}. Noderne, gæsterne og lagerpladsen her er, som den læste dem dengang.",
+  "Whether the OneUptime Proxmox agent is reading this cluster from the Proxmox VE API. It switches to Disconnected 15 to 20 minutes after data stops arriving, and to Can't read API when the agent is still running but has not read the cluster for that long. Either way, the numbers on this page are as it last read them.": "Om OneUptime Proxmox-agenten læser denne klynge fra Proxmox VE API'et. Den skifter til Afbrudt 15 til 20 minutter efter, at data holder op med at komme, og til Kan ikke læse API, når agenten stadig kører, men ikke har læst klyngen så længe. I begge tilfælde er tallene på denne side, som den sidst læste dem."
 }
