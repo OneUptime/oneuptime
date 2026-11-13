@@ -172,7 +172,8 @@ export const ASK_AI_HOW_DO_I_QUESTIONS: ReadonlyArray<AskAiHowDoIQuestion> = [
   {
     question: "Where do I get a telemetry ingestion key?",
     docsPage: "telemetry/ingestion-keys",
-    dashboardPage: "Telemetry Ingestion Keys",
+    dashboardPage: "Ingestion Keys",
+    dashboardPath: "/dashboard/:projectId/settings/telemetry-ingestion-keys",
   },
   {
     question: "How do I get warned before my SSL certificate expires?",

@@ -51835,5 +51835,8 @@
   "Couldn't search the notes.": "Die Notizen konnten nicht durchsucht werden.",
   "Couldn't sort the notes.": "Die Notizen konnten nicht sortiert werden.",
   "Couldn't load more notes.": "Weitere Notizen konnten nicht geladen werden.",
-  "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Zeitraum: {{range}}. Passen Sie die Filter an oder erweitern Sie den Zeitraum."
+  "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Zeitraum: {{range}}. Passen Sie die Filter an oder erweitern Sie den Zeitraum.",
+  "On-Call Policy Created": "Bereitschaftsrichtlinie erstellt",
+  "On-Call Schedule Added": "Bereitschaftsplan hinzugefügt",
+  "On-Call Schedule Removed": "Bereitschaftsplan entfernt"
 }

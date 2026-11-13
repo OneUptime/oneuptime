@@ -51835,5 +51835,8 @@
   "Couldn't search the notes.": "Kunne ikke søke i notatene.",
   "Couldn't sort the notes.": "Kunne ikke sortere notatene.",
   "Couldn't load more notes.": "Kunne ikke laste inn flere notater.",
-  "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Tidsrom: {{range}}. Prøv å justere filtrene eller utvide tidsrommet."
+  "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Tidsrom: {{range}}. Prøv å justere filtrene eller utvide tidsrommet.",
+  "On-Call Policy Created": "Vaktpolicy opprettet",
+  "On-Call Schedule Added": "Vaktplan lagt til",
+  "On-Call Schedule Removed": "Vaktplan fjernet"
 }
