@@ -51843,5 +51843,6 @@
   "Couldn't withdraw the edit.": "No se pudo retirar la edición.",
   "Couldn't load the public notes.": "No se pudieron cargar las notas públicas.",
   "{{count}} of {{total}} monitors could not be linked: {{errors}}": "No se pudieron vincular {{count}} de {{total}} monitores: {{errors}}",
-  "{{count}} of {{total}} monitors could not be linked: {{errors}}_one": "No se pudo vincular {{count}} de {{total}} monitores: {{errors}}"
+  "{{count}} of {{total}} monitors could not be linked: {{errors}}_one": "No se pudo vincular {{count}} de {{total}} monitores: {{errors}}",
+  "{{start}} → {{end}}": "{{start}} → {{end}}"
 }

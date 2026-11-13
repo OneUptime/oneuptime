@@ -51843,5 +51843,6 @@
   "Couldn't withdraw the edit.": "Couldn't withdraw the edit.",
   "Couldn't load the public notes.": "Couldn't load the public notes.",
   "{{count}} of {{total}} monitors could not be linked: {{errors}}": "{{count}} of {{total}} monitors could not be linked: {{errors}}",
-  "{{count}} of {{total}} monitors could not be linked: {{errors}}_one": "{{count}} of {{total}} monitors could not be linked: {{errors}}"
+  "{{count}} of {{total}} monitors could not be linked: {{errors}}_one": "{{count}} of {{total}} monitors could not be linked: {{errors}}",
+  "{{start}} → {{end}}": "{{start}} → {{end}}"
 }

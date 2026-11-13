@@ -51843,5 +51843,6 @@
   "Couldn't withdraw the edit.": "Не удалось отозвать правку.",
   "Couldn't load the public notes.": "Не удалось загрузить публичные заметки.",
   "{{count}} of {{total}} monitors could not be linked: {{errors}}": "Не удалось связать мониторы ({{count}} из {{total}}): {{errors}}",
-  "{{count}} of {{total}} monitors could not be linked: {{errors}}_one": "Не удалось связать {{count}} монитор из {{total}}: {{errors}}"
+  "{{count}} of {{total}} monitors could not be linked: {{errors}}_one": "Не удалось связать {{count}} монитор из {{total}}: {{errors}}",
+  "{{start}} → {{end}}": "{{start}} → {{end}}"
 }

@@ -51843,5 +51843,6 @@
   "Couldn't withdraw the edit.": "Impossible de retirer la modification.",
   "Couldn't load the public notes.": "Impossible de charger les notes publiques.",
   "{{count}} of {{total}} monitors could not be linked: {{errors}}": "{{count}} moniteurs sur {{total}} n'ont pas pu être liés : {{errors}}",
-  "{{count}} of {{total}} monitors could not be linked: {{errors}}_one": "{{count}} moniteur sur {{total}} n'a pas pu être lié : {{errors}}"
+  "{{count}} of {{total}} monitors could not be linked: {{errors}}_one": "{{count}} moniteur sur {{total}} n'a pas pu être lié : {{errors}}",
+  "{{start}} → {{end}}": "{{start}} → {{end}}"
 }

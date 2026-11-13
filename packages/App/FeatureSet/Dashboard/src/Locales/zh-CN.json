@@ -51843,5 +51843,6 @@
   "Couldn't withdraw the edit.": "无法撤回编辑。",
   "Couldn't load the public notes.": "无法加载公开备注。",
   "{{count}} of {{total}} monitors could not be linked: {{errors}}": "{{total}} 个监视器中有 {{count}} 个无法关联：{{errors}}",
-  "{{count}} of {{total}} monitors could not be linked: {{errors}}_one": "{{total}} 个监视器中有 {{count}} 个无法关联：{{errors}}"
+  "{{count}} of {{total}} monitors could not be linked: {{errors}}_one": "{{total}} 个监视器中有 {{count}} 个无法关联：{{errors}}",
+  "{{start}} → {{end}}": "{{start}} → {{end}}"
 }

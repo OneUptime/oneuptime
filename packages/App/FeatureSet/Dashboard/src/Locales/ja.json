@@ -51843,5 +51843,6 @@
   "Couldn't withdraw the edit.": "編集を取り下げられませんでした。",
   "Couldn't load the public notes.": "公開メモを読み込めませんでした。",
   "{{count}} of {{total}} monitors could not be linked: {{errors}}": "{{total}} 件中 {{count}} 件のモニターをリンクできませんでした: {{errors}}",
-  "{{count}} of {{total}} monitors could not be linked: {{errors}}_one": "{{total}} 件中 {{count}} 件のモニターをリンクできませんでした: {{errors}}"
+  "{{count}} of {{total}} monitors could not be linked: {{errors}}_one": "{{total}} 件中 {{count}} 件のモニターをリンクできませんでした: {{errors}}",
+  "{{start}} → {{end}}": "{{start}} → {{end}}"
 }

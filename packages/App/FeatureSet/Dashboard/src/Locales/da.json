@@ -51843,5 +51843,6 @@
   "Couldn't withdraw the edit.": "Redigeringen kunne ikke trækkes tilbage.",
   "Couldn't load the public notes.": "De offentlige noter kunne ikke indlæses.",
   "{{count}} of {{total}} monitors could not be linked: {{errors}}": "{{count}} af {{total}} overvågninger kunne ikke tilknyttes: {{errors}}",
-  "{{count}} of {{total}} monitors could not be linked: {{errors}}_one": "{{count}} af {{total}} overvågninger kunne ikke tilknyttes: {{errors}}"
+  "{{count}} of {{total}} monitors could not be linked: {{errors}}_one": "{{count}} af {{total}} overvågninger kunne ikke tilknyttes: {{errors}}",
+  "{{start}} → {{end}}": "{{start}} → {{end}}"
 }

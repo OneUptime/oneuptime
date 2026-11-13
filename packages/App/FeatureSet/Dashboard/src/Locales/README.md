@@ -353,12 +353,24 @@ Persian path points back at the step before it. So between two steps:
 - `→` between two steps left in Latin letters, which the page draws from the
   left as English does: `**AWS Console → App Runner → Services ← سرویس شما**`.
 
+An arrow at either end of a text leads a link on or back, as its English
+says: a link that leads on ends with `←` (`All metrics →` is
+`همهٔ متریک‌ها ←`), and one that leads back starts with `→` (`← Back` is
+`→ بازگشت`). A text whose English has no such arrow is not held to one.
+
 `PathArrowsInRightToLeftSentences.test.ts` in `packages/Common/Tests/App`
 lays out every Arabic and Persian text of every app's locale files (the
 frontends', the server's, the API Reference's and the docs') with the same
 copy of the bidi algorithm, and fails on an arrow between two steps that
-points back. An arrow at either end of a text leads a link on or back, and
-is left alone.
+points back, and on a link's arrow that does not lead the way its English
+does.
+
+An arrow between two values (`{{start}} → {{end}}`) turns with what fills
+them, so the page sets each value apart (`translateTemplate`'s
+`setsValuesApart`) and the arrow is the sentence's own: `←` in Arabic and
+Persian. `OnCallOverrideArrowsInRightToLeft.test.ts` in
+`packages/Common/Tests/App/Dashboard` holds the on-call calendar's hover
+text to that, whatever names and dates fill it.
 
 ### Persian glossary (fa)
 

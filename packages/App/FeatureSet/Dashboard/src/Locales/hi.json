@@ -51843,5 +51843,6 @@
   "Couldn't withdraw the edit.": "संपादन वापस नहीं लिया जा सका।",
   "Couldn't load the public notes.": "सार्वजनिक नोट लोड नहीं हो सके।",
   "{{count}} of {{total}} monitors could not be linked: {{errors}}": "{{total}} में से {{count}} मॉनिटर लिंक नहीं किए जा सके: {{errors}}",
-  "{{count}} of {{total}} monitors could not be linked: {{errors}}_one": "{{total}} में से {{count}} मॉनिटर लिंक नहीं किया जा सका: {{errors}}"
+  "{{count}} of {{total}} monitors could not be linked: {{errors}}_one": "{{total}} में से {{count}} मॉनिटर लिंक नहीं किया जा सका: {{errors}}",
+  "{{start}} → {{end}}": "{{start}} → {{end}}"
 }
