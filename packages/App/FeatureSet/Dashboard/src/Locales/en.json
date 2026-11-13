@@ -51753,5 +51753,8 @@
   "Create Your Own Project": "Create Your Own Project",
   "Delete Sample Project": "Delete Sample Project",
   "Explore Sample Project": "Explore Sample Project",
-  "You already have a status page named \"{{name}}\", so no new one was made.": "You already have a status page named \"{{name}}\", so no new one was made."
+  "You already have a status page named \"{{name}}\", so no new one was made.": "You already have a status page named \"{{name}}\", so no new one was made.",
+  "No on-call rule covers this severity, and no verified method can be used instead: the test sends nothing.": "No on-call rule covers this severity, and no verified method can be used instead: the test sends nothing.",
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above.": "No on-call rule covers this severity: like a real page, the test falls back to the methods above.",
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above._one": "No on-call rule covers this severity: like a real page, the test falls back to the method above."
 }

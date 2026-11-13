@@ -51753,5 +51753,8 @@
   "Create Your Own Project": "自分のプロジェクトを作成",
   "Delete Sample Project": "サンプルプロジェクトを削除",
   "Explore Sample Project": "サンプルプロジェクトを試す",
-  "You already have a status page named \"{{name}}\", so no new one was made.": "すでに「{{name}}」という名前のステータスページがあるため、新しいページは作成されませんでした。"
+  "You already have a status page named \"{{name}}\", so no new one was made.": "すでに「{{name}}」という名前のステータスページがあるため、新しいページは作成されませんでした。",
+  "No on-call rule covers this severity, and no verified method can be used instead: the test sends nothing.": "この重大度に該当するオンコールルールがなく、代わりに使える確認済みの方法もありません。テストでは何も送信されません。",
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above.": "この重大度に該当するオンコールルールがありません。実際の呼び出しと同様に、テストは上記の方法にフォールバックします。",
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above._one": "この重大度に該当するオンコールルールがありません。実際の呼び出しと同様に、テストは上記の方法にフォールバックします。"
 }

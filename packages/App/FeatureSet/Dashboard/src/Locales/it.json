@@ -51753,5 +51753,8 @@
   "Create Your Own Project": "Crea il tuo progetto",
   "Delete Sample Project": "Elimina progetto di esempio",
   "Explore Sample Project": "Esplora progetto di esempio",
-  "You already have a status page named \"{{name}}\", so no new one was made.": "Hai già una pagina di stato chiamata «{{name}}», quindi non ne è stata creata una nuova."
+  "You already have a status page named \"{{name}}\", so no new one was made.": "Hai già una pagina di stato chiamata «{{name}}», quindi non ne è stata creata una nuova.",
+  "No on-call rule covers this severity, and no verified method can be used instead: the test sends nothing.": "Nessuna regola di reperibilità copre questa gravità e nessun metodo verificato può essere usato al suo posto: il test non invia nulla.",
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above.": "Nessuna regola di reperibilità copre questa gravità: come una chiamata reale, il test ripiega sui metodi qui sopra.",
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above._one": "Nessuna regola di reperibilità copre questa gravità: come una chiamata reale, il test ripiega sul metodo qui sopra."
 }

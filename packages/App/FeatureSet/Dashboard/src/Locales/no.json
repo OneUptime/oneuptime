@@ -51753,5 +51753,8 @@
   "Create Your Own Project": "Opprett ditt eget prosjekt",
   "Delete Sample Project": "Slett eksempelprosjekt",
   "Explore Sample Project": "Utforsk eksempelprosjekt",
-  "You already have a status page named \"{{name}}\", so no new one was made.": "Du har allerede en statusside med navnet «{{name}}», så ingen ny ble opprettet."
+  "You already have a status page named \"{{name}}\", so no new one was made.": "Du har allerede en statusside med navnet «{{name}}», så ingen ny ble opprettet.",
+  "No on-call rule covers this severity, and no verified method can be used instead: the test sends nothing.": "Ingen vaktregel dekker denne alvorlighetsgraden, og ingen verifisert metode kan brukes i stedet: testen sender ingenting.",
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above.": "Ingen vaktregel dekker denne alvorlighetsgraden: som ved et ekte oppkall faller testen tilbake på metodene ovenfor.",
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above._one": "Ingen vaktregel dekker denne alvorlighetsgraden: som ved et ekte oppkall faller testen tilbake på metoden ovenfor."
 }

@@ -51753,5 +51753,8 @@
   "Create Your Own Project": "Создать свой проект",
   "Delete Sample Project": "Удалить пример проекта",
   "Explore Sample Project": "Открыть пример проекта",
-  "You already have a status page named \"{{name}}\", so no new one was made.": "У вас уже есть страница статуса «{{name}}», поэтому новая страница не создана."
+  "You already have a status page named \"{{name}}\", so no new one was made.": "У вас уже есть страница статуса «{{name}}», поэтому новая страница не создана.",
+  "No on-call rule covers this severity, and no verified method can be used instead: the test sends nothing.": "Ни одно правило дежурства не охватывает эту серьёзность, и вместо него нельзя использовать ни один подтверждённый метод: проверка ничего не отправит.",
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above.": "Ни одно правило дежурства не охватывает эту серьёзность: как и настоящий вызов, проверка перейдёт на методы выше.",
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above._one": "Ни одно правило дежурства не охватывает эту серьёзность: как и настоящий вызов, проверка перейдёт на метод выше."
 }

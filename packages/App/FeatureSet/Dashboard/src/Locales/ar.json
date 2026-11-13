@@ -51753,5 +51753,8 @@
   "Create Your Own Project": "أنشئ مشروعك الخاص",
   "Delete Sample Project": "حذف المشروع التجريبي",
   "Explore Sample Project": "استكشاف المشروع التجريبي",
-  "You already have a status page named \"{{name}}\", so no new one was made.": "لديك بالفعل صفحة حالة باسم «{{name}}»، لذا لم تُنشأ صفحة جديدة."
+  "You already have a status page named \"{{name}}\", so no new one was made.": "لديك بالفعل صفحة حالة باسم «{{name}}»، لذا لم تُنشأ صفحة جديدة.",
+  "No on-call rule covers this severity, and no verified method can be used instead: the test sends nothing.": "لا تغطي أي قاعدة مناوبة هذه الخطورة، ولا يمكن استخدام أي طريقة متحقق منها بدلًا منها: لا يرسل الاختبار شيئًا.",
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above.": "لا تغطي أي قاعدة مناوبة هذه الخطورة: كما في الاستدعاء الحقيقي، يرجع الاختبار إلى الطرق المذكورة أعلاه.",
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above._one": "لا تغطي أي قاعدة مناوبة هذه الخطورة: كما في الاستدعاء الحقيقي، يرجع الاختبار إلى الطريقة المذكورة أعلاه."
 }

@@ -51753,5 +51753,8 @@
   "Create Your Own Project": "Eigenes Projekt erstellen",
   "Delete Sample Project": "Beispielprojekt löschen",
   "Explore Sample Project": "Beispielprojekt erkunden",
-  "You already have a status page named \"{{name}}\", so no new one was made.": "Sie haben bereits eine Statusseite namens „{{name}}“, daher wurde keine neue erstellt."
+  "You already have a status page named \"{{name}}\", so no new one was made.": "Sie haben bereits eine Statusseite namens „{{name}}“, daher wurde keine neue erstellt.",
+  "No on-call rule covers this severity, and no verified method can be used instead: the test sends nothing.": "Keine Bereitschaftsregel deckt diesen Schweregrad ab, und keine verifizierte Methode kann stattdessen verwendet werden: Der Test sendet nichts.",
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above.": "Keine Bereitschaftsregel deckt diesen Schweregrad ab: Wie bei einer echten Alarmierung greift der Test auf die oben genannten Methoden zurück.",
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above._one": "Keine Bereitschaftsregel deckt diesen Schweregrad ab: Wie bei einer echten Alarmierung greift der Test auf die oben genannte Methode zurück."
 }

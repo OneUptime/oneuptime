@@ -51753,5 +51753,8 @@
   "Create Your Own Project": "Skapa ditt eget projekt",
   "Delete Sample Project": "Ta bort exempelprojekt",
   "Explore Sample Project": "Utforska exempelprojekt",
-  "You already have a status page named \"{{name}}\", so no new one was made.": "Du har redan en statussida som heter ”{{name}}”, så ingen ny skapades."
+  "You already have a status page named \"{{name}}\", so no new one was made.": "Du har redan en statussida som heter ”{{name}}”, så ingen ny skapades.",
+  "No on-call rule covers this severity, and no verified method can be used instead: the test sends nothing.": "Ingen jourregel täcker den här allvarlighetsgraden, och ingen verifierad metod kan användas i stället: testet skickar ingenting.",
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above.": "Ingen jourregel täcker den här allvarlighetsgraden: som vid ett riktigt larm faller testet tillbaka på metoderna ovan.",
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above._one": "Ingen jourregel täcker den här allvarlighetsgraden: som vid ett riktigt larm faller testet tillbaka på metoden ovan."
 }

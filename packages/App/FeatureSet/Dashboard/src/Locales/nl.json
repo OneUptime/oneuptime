@@ -51753,5 +51753,8 @@
   "Create Your Own Project": "Uw eigen project maken",
   "Delete Sample Project": "Voorbeeldproject verwijderen",
   "Explore Sample Project": "Voorbeeldproject verkennen",
-  "You already have a status page named \"{{name}}\", so no new one was made.": "Je hebt al een statuspagina met de naam \"{{name}}\", dus er is geen nieuwe aangemaakt."
+  "You already have a status page named \"{{name}}\", so no new one was made.": "Je hebt al een statuspagina met de naam \"{{name}}\", dus er is geen nieuwe aangemaakt.",
+  "No on-call rule covers this severity, and no verified method can be used instead: the test sends nothing.": "Geen bereikbaarheidsregel dekt deze ernst, en geen geverifieerde methode kan in plaats daarvan worden gebruikt: de test verstuurt niets.",
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above.": "Geen bereikbaarheidsregel dekt deze ernst: net als bij een echte oproep valt de test terug op de methoden hierboven.",
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above._one": "Geen bereikbaarheidsregel dekt deze ernst: net als bij een echte oproep valt de test terug op de methode hierboven."
 }
