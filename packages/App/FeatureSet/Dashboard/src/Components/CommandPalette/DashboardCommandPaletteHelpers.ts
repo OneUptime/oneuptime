@@ -162,6 +162,11 @@ export interface PageSearchAvailability {
   isBillingEnabled: boolean;
   // The project has monitor groups turned on.
   isMonitorGroupsEnabled: boolean;
+  /*
+   * OneUptime Cloud records its setup pages (#6834), so the switches that
+   * turn it off are on the page. Absent is off.
+   */
+  isDashboardRecordingOn?: boolean | undefined;
   // May delete the project (Project Owner, or Delete Project).
   canDeleteProject: boolean;
 }
@@ -239,6 +244,10 @@ const isGateOpen: (
 
   if (gate === PageSearchGate.MonitorGroups) {
     return availability.isMonitorGroupsEnabled;
+  }
+
+  if (gate === PageSearchGate.DashboardRecording) {
+    return availability.isDashboardRecordingOn === true;
   }
 
   return true;

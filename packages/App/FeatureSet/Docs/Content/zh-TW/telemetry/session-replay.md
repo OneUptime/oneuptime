@@ -102,6 +102,8 @@ window.__ONEUPTIME_SESSION_REPLAY__ = {
   respectDoNotTrack: true, // optional
   debug: false, // optional
   offlineStorage: true, // optional; false keeps offline chunks in memory only
+  maskAllText: false, // optional; true masks all text, whatever the policy says
+  blockSelectors: [], // optional; added to the policy's block selectors
 };
 ```
 
@@ -253,7 +255,7 @@ OneUptimeReplay.identify("user-123", { plan: "pro", tenant: "acme" });
 );
 ```
 
-`grantConsent` 、 `revokeConsent` 、 `stop` 、 `identify` 、 `setTags` 與 `addTag` 會在錄製器啟動之前套用，因此佇列中的同意決定會決定是否有任何內容被上傳，而佇列中的身分會隨第一個區塊一起傳送。 `track` 、 `metric` 、 `captureSession` 與 `onSessionChange` 會在啟動後立即執行。
+`grantConsent` 、 `revokeConsent` 、 `stop` 、 `pause` 、 `resume` 、 `identify` 、 `setTags` 與 `addTag` 會在錄製器啟動之前套用，因此佇列中的同意決定會決定是否有任何內容被上傳，而佇列中的身分會隨第一個區塊一起傳送。 `track` 、 `metric` 、 `captureSession` 與 `onSessionChange` 會在啟動後立即執行。
 
 | 方法 | 作用 |
 | --- | --- |
@@ -268,6 +270,8 @@ OneUptimeReplay.identify("user-123", { plan: "pro", tenant: "acme" });
 | `getSessionId()` | 目前的工作階段 ID，在沒有錄製時為 `null` 。建議優先使用 `onSessionChange()` ，它還能追蹤工作階段輪替。 |
 | `getVisitorId()` | [匿名訪客 ID](#匿名訪客) — 32 個十六進位字元，每個瀏覽器設定檔一個，在工作階段輪替時保持不變 — 在錄製器啟動之前、 `stop()` 之後以及同意被撤銷期間為 `""` 。它是隨機的，不是身分；不受 **擷取終端使用者身分** 管轄。 |
 | `stop()` | 上傳最後一個區塊，封口工作階段，並在頁面的剩餘生命週期內停止。 |
+| `pause()` | 在 `resume()` 之前停止記錄螢幕上的內容：已開啟的區塊會帶著 _paused_ 標記送出，在此期間頁面、輸入、請求、主控台和點擊都不會被記錄。工作階段保持開啟，訪客的操作不會讓它恢復。適用於只記錄部分內容的頁面；如果在記錄器載入前放入佇列，記錄器會以暫停狀態啟動。 |
+| `resume()` | 在 `pause()` 之後於同一工作階段中繼續記錄，從頁面目前狀態的新快照開始。播放器會跳過暫停的這一段。 |
 | `setDebug(enabled)` | 從現在開始把錄製器的決定輸出到主控台。 |
 | `getDiagnostics()` | 錄製器做出的所有決定，無論診斷當時是否開啟。見下文。 |
 
@@ -370,7 +374,12 @@ copy(JSON.stringify(OneUptimeReplay.getDiagnostics(), null, 2));
 
 <!-- Recorded, but input events inside are dropped. -->
 <div class="oneuptime-ignore">...</div>
+
+<!-- Under Mask all text, the text inside is recorded as written. -->
+<div class="oneuptime-unmask">...</div>
 ```
+
+在 _Mask all text_ 下，帶有 `oneuptime-unmask` 類別的元素內的文字會按原樣記錄：請把它用於頁面本身的介面文字，例如按鈕、標題和選單。其中的 `oneuptime-mask` 元素或符合你的額外遮蔽選擇器的元素會再次遮蔽文字，表單欄位始終被遮蔽，在其他遮蔽模式下這個類別不起作用。頁面也可以在初始化全域物件上要求比政策更多的遮蔽：`maskAllText: true` 無論政策如何都以 _Mask all text_ 記錄，`blockSelectors` 會加入政策的封鎖選擇器。兩者都不能讓記錄顯示更多內容。
 
 你也可以在應用程式的 **重播政策** 頁面上加入 **額外的遮蔽選取器** 與 **封鎖選取器** ，而不需要修改你的標記。在預設遮罩模式下，它們是保護你的標記沒有宣告為敏感之內容的主要工具。
 

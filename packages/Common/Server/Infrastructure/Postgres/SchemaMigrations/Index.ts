@@ -975,6 +975,7 @@ import { AddAmazonSesAuthenticationType1809123100000 } from "./1809123100000-Add
 import { AddSampleProject1809123500000 } from "./1809123500000-AddSampleProject";
 import { AddSampleProjectUserIndex1809123500001 } from "./1809123500001-AddSampleProjectUserIndex";
 import { AddServerProducts1809123600000 } from "./1809123600000-AddServerProducts";
+import { AddDashboardRecordingSwitches1809123700000 } from "./1809123700000-AddDashboardRecordingSwitches";
 
 export default [
   InitialMigration,
@@ -1954,4 +1955,5 @@ export default [
   AddSampleProject1809123500000,
   AddSampleProjectUserIndex1809123500001,
   AddServerProducts1809123600000,
+  AddDashboardRecordingSwitches1809123700000,
 ];

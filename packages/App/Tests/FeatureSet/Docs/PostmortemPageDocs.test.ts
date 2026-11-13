@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { drawnActionLabel } from "./DocsDashboardLabels";
 
 /*
  * The docs against the incident Postmortem page they describe.
@@ -89,7 +90,7 @@ describe("the Postmortem page's docs", () => {
    */
   const APPLY_TEMPLATE_LABELS: Record<string, string> = {
     en: "**Apply Template**",
-    fa: "**Apply Template**",
+    fa: "**اعمال قالب**",
     de: "**Vorlage anwenden**",
     da: "**Anvend skabelon**",
     es: "**Aplicar plantilla**",
@@ -168,21 +169,23 @@ describe("the Postmortem page's docs", () => {
     );
   });
 
-  test("the Persian incident page says the same", () => {
+  test("the Persian incident page says the same, as the Persian Dashboard draws it", () => {
     const index: string = readDoc("fa", "incidents/index.md");
     const bullet: string = index.split("\n").find((line: string): boolean => {
-      return line.startsWith("- **Postmortem** —");
+      return line.startsWith(`- **${drawnActionLabel("fa", "Postmortem")}** —`);
     })!;
 
+    expect(bullet).toBeDefined();
+
     for (const label of [
-      "**Edit Postmortem Note**",
-      "**Publish on Status Page**",
-      "**Notify Subscribers**",
-      "**Postmortem Published At**",
-      "**Generate with AI**",
-      "**Apply Template**",
+      "Edit Postmortem Note",
+      "Publish on Status Page",
+      "Notify Subscribers",
+      "Postmortem Published At",
+      "Generate with AI",
+      "Apply Template",
     ]) {
-      expect(bullet).toContain(label);
+      expect(bullet).toContain(`**${drawnActionLabel("fa", label)}**`);
     }
   });
 

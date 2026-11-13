@@ -666,6 +666,123 @@ describe("the rules, on pages written here", () => {
         "a/one:6 -> /docs/static/images/missing.png (no such file in Static/)",
       ]);
     });
+
+    /*
+     * A screenshot (#6823) names a shot, which every language shows from
+     * its English picture when it has none of its own.
+     */
+    it("holds a screenshot to a shot with its English picture, shown as an image", async () => {
+      expect(
+        await failuresOf(
+          "images",
+          {
+            pages: {
+              de: {
+                "a/one": md(
+                  "# One",
+                  "![Der Schritt](screen:website-down-who)",
+                  "![Kein Bild](screen:no-such-shot)",
+                  "![Kein Name](screen:Not_A_Name)",
+                  "[Ein Link](screen:website-down-who)",
+                  "`![Code](screen:in-code)`",
+                ),
+              },
+            },
+            staticFiles: ["images/screens/en/website-down-who.webp"],
+          },
+          "de",
+        ),
+      ).toEqual([
+        "a/one:3 -> screen:no-such-shot (no such screenshot: list it in Docs/Screens/DocsScreenList.ts and run npm run docs-screens in packages/E2E)",
+        "a/one:4 -> screen:Not_A_Name (no such screenshot: list it in Docs/Screens/DocsScreenList.ts and run npm run docs-screens in packages/E2E)",
+        "a/one:5 -> screen:website-down-who (a screenshot is shown as an image: ![alt text](screen:website-down-who))",
+      ]);
+    });
+
+    it("reads a German picture alone as no screenshot: English is what every language falls back to", async () => {
+      expect(
+        await failuresOf("images", {
+          pages: {
+            en: { "a/one": md("# One", "![The step](screen:only-german)") },
+          },
+          staticFiles: ["images/screens/de/only-german.webp"],
+        }),
+      ).toEqual([
+        "a/one:2 -> screen:only-german (no such screenshot: list it in Docs/Screens/DocsScreenList.ts and run npm run docs-screens in packages/E2E)",
+      ]);
+    });
+  });
+
+  describe("screenAlt", () => {
+    const fake: FakeDocs = {
+      pages: {
+        en: {
+          "a/one": md(
+            "# One",
+            '![The step "Who should be told?"](screen:website-down-who)',
+            "",
+            '![The step "Send a test"](screen:website-down-test)',
+            "",
+            "![](screen:website-down-address)",
+          ),
+        },
+        de: {
+          "a/one": md(
+            "# Eins",
+            "![Der Schritt „Wer soll informiert werden?“](screen:website-down-who)",
+            "",
+            '![The step "Send a test"](screen:website-down-test)',
+            "",
+            "![   ](screen:website-down-address)",
+          ),
+        },
+        ja: {
+          "a/one": md(
+            "# 一",
+            "![ステップ「誰に知らせますか？」](screen:website-down-who)",
+            "",
+            "![ステップ「テストを送信する」](screen:website-down-test)",
+            "",
+            "![ステップ「何を確認しますか？」](screen:website-down-address)",
+          ),
+        },
+      },
+    };
+
+    it("reports a screenshot with no words for what it shows", async () => {
+      expect(await failuresOf("screenAlt", fake)).toEqual([
+        "a/one:6 -> screen:website-down-address (no alt text: say in words what the screenshot shows)",
+      ]);
+    });
+
+    it("reports a translation that keeps the English page's alt text, or none", async () => {
+      expect(await failuresOf("screenAlt", fake, "de")).toEqual([
+        "a/one:4 -> screen:website-down-test (the alt text is the English page's: translate it)",
+        "a/one:6 -> screen:website-down-address (no alt text: say in words what the screenshot shows)",
+      ]);
+      // English with no alt text at all is not copied by a translation that has some.
+      expect(await failuresOf("screenAlt", fake, "ja")).toEqual([]);
+    });
+
+    it("reads alt text as Markdown writes it, and leaves images that are not screenshots and code alone", async () => {
+      expect(
+        await failuresOf("screenAlt", {
+          pages: {
+            en: {
+              "a/one": md(
+                "# One",
+                "![A \\[bracketed\\] word](screen:website-down-who)",
+                "![](/docs/static/images/monitors.png)",
+                "`![](screen:in-code)`",
+                "```markdown",
+                "![](screen:in-a-fence)",
+                "```",
+              ),
+            },
+          },
+        }),
+      ).toEqual([]);
+    });
   });
 
   describe("noRelativeLinks", () => {

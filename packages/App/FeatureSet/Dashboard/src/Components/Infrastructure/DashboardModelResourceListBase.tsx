@@ -39,6 +39,7 @@ import useDashboardListWidgetSort, {
   DashboardListWidgetSort,
   DashboardListWidgetSortProps,
 } from "../Dashboard/Utils/UseDashboardListWidgetSort";
+import { PluralTemplate } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Generic, model-class-driven engine behind the custom-dashboard
@@ -78,7 +79,8 @@ export interface DashboardModelResourceListBaseProps<
    */
   widgetProps: DashboardListWidgetSortProps;
   title?: string | undefined;
-  pluralLabel: string;
+  // The count beside the title, both its forms (DashboardResourceListBase).
+  countLabel: PluralTemplate;
   emptyMessage: string;
   emptyIcon: IconProp;
   columns: Array<ResourceListColumn>;
@@ -271,7 +273,7 @@ const DashboardModelResourceListBase: <TBaseModel extends BaseModel>(
   return (
     <DashboardResourceListBase
       title={props.title}
-      pluralLabel={props.pluralLabel}
+      countLabel={props.countLabel}
       columns={props.columns}
       count={resources.length}
       isLoading={isLoading}

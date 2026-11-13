@@ -22,6 +22,7 @@ import {
   buildReadinessTile,
   READINESS_LEGEND,
 } from "./DashboardKubernetesTileHelpers";
+import { getUnnamedText } from "./DashboardWidgetFallbackWords";
 
 const ATTRIBUTE_TO_COLUMN: AttributeToColumnMap = {
   "k8s.deployment.name": "name",
@@ -42,7 +43,7 @@ const COLUMNS: Array<ResourceListColumn> = [
 
 function renderRow(r: KubernetesResource): ReactElement {
   const id: string = (r._id as string) || "";
-  const name: string = (r.name as string) || "Unnamed";
+  const name: string = (r.name as string) || getUnnamedText();
   const namespace: string = (r.namespaceKey as string) || "—";
   const clusterName: string = (r.kubernetesCluster?.name as string) || "—";
   const clusterId: string = (r.kubernetesClusterId?.toString() as string) || "";
@@ -114,7 +115,10 @@ const DashboardKubernetesDeploymentListComponentElement: FunctionComponent<
       componentType={DashboardComponentType.KubernetesDeploymentList}
       widgetProps={props}
       title={args.title}
-      pluralLabel="deployments"
+      countLabel={{
+        one: "{{count}} deployment",
+        other: "{{count}} deployments",
+      }}
       emptyMessage="No deployments found"
       emptyIcon={IconProp.ServerStack}
       columns={COLUMNS}

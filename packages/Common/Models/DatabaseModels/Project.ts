@@ -5213,6 +5213,47 @@ export default class Project extends TenantModel {
     undefined;
 
   /*
+   * Whether OneUptime may record how this project's members use the
+   * Dashboard's setup pages (issue #6834), on while this is false. On
+   * OneUptime Cloud only, and only for members who pressed "Accept all"
+   * and did not switch it off themselves (User.disableDashboardRecording),
+   * with everything typed or stored masked. An organisation that wants
+   * none of it switches it off here, in Project Settings: then nobody is
+   * recorded while working in the project. Every member reads it, because
+   * each member's browser decides before it records; Project Owner or
+   * Project Admin changes it.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Disable Dashboard Recording",
+    description:
+      "When true, OneUptime never records how members use the dashboard while working in this project. Recording happens only on OneUptime Cloud, only for members who accepted analytics, and only on the setup pages, with what they type or store masked.",
+    defaultValue: false,
+    example: false,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public disableDashboardRecording?: boolean = undefined;
+
+  /*
    * Telemetry ingestion budgets for this project, per signal
    * (TelemetryIngestionBudget): set by the master admin only (Admin
    * Dashboard > Projects > the project > Ingestion Budgets), so `create` and

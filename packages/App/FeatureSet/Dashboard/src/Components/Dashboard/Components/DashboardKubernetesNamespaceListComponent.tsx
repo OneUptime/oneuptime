@@ -21,6 +21,7 @@ import {
   HoneycombLegendItem,
   HoneycombTile,
 } from "./DashboardResourceHoneycomb";
+import { getUnnamedText } from "./DashboardWidgetFallbackWords";
 
 const ATTRIBUTE_TO_COLUMN: AttributeToColumnMap = {
   "k8s.namespace.name": "name",
@@ -38,7 +39,7 @@ const COLUMNS: Array<ResourceListColumn> = [
 
 function renderNamespaceRow(r: KubernetesResource): ReactElement {
   const id: string = (r._id as string) || "";
-  const name: string = (r.name as string) || "Unnamed";
+  const name: string = (r.name as string) || getUnnamedText();
   const clusterName: string = (r.kubernetesCluster?.name as string) || "—";
   const clusterId: string = (r.kubernetesClusterId?.toString() as string) || "";
 
@@ -94,7 +95,7 @@ const NAMESPACE_LEGEND: Array<HoneycombLegendItem> = [
 
 function buildNamespaceTile(r: KubernetesResource): HoneycombTile {
   const id: string = (r._id as string) || "";
-  const name: string = (r.name as string) || "Unnamed";
+  const name: string = (r.name as string) || getUnnamedText();
   const clusterName: string = (r.kubernetesCluster?.name as string) || "—";
   const clusterId: string = (r.kubernetesClusterId?.toString() as string) || "";
   const phase: string = (r.phase as string) || "Unknown";
@@ -136,7 +137,10 @@ const DashboardKubernetesNamespaceListComponentElement: FunctionComponent<
       componentType={DashboardComponentType.KubernetesNamespaceList}
       widgetProps={props}
       title={args.title}
-      pluralLabel="namespaces"
+      countLabel={{
+        one: "{{count}} namespace",
+        other: "{{count}} namespaces",
+      }}
       emptyMessage="No namespaces found"
       emptyIcon={IconProp.Folder}
       columns={COLUMNS}

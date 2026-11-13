@@ -1,6 +1,7 @@
 import GlossaryTerm from "../../../../Types/Docs/GlossaryTerm";
 import DefinedTerm from "../../Glossary/DefinedTerm";
 import readAsWritten from "../../IsolatedText/ReadAsWritten";
+import { PRODUCT_TEXT_CLASS_NAME } from "../../../Utils/ProductText";
 import useTranslator from "../../../Utils/UseTranslator";
 import { Translator } from "../../../Utils/TranslateTemplate";
 import Link from "../../Link/Link";
@@ -94,7 +95,7 @@ const FieldLabelElement: FunctionComponent<ComponentProps> = (
         }  font-medium text-gray-700 flex justify-between`
       }
     >
-      <span>
+      <span className={PRODUCT_TEXT_CLASS_NAME}>
         {props.glossaryTerm ? (
           <DefinedTerm term={props.glossaryTerm}>{drawnTitle}</DefinedTerm>
         ) : (

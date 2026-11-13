@@ -20,6 +20,7 @@ import DashboardWidgetZoomHint from "./DashboardWidgetZoomHint";
 import DashboardWidgetLine, {
   getWidgetPageLanguage,
 } from "./DashboardWidgetLine";
+import { getNumberSpacingClassName } from "./DashboardWidgetDigits";
 import SloWidgetData from "../Utils/SloWidgetData";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
@@ -109,6 +110,8 @@ export const SLO_WIDGET_LEGEND_ROW_IN_PX: number = 24;
 
 export const SLO_WIDGET_TITLE_TEST_ID: string = "slo-widget-title";
 export const SLO_WIDGET_TITLE_NAME_TEST_ID: string = "slo-widget-title-name";
+// A tile's big figure, once the SLO is evaluated.
+export const SLO_WIDGET_TILE_VALUE_TEST_ID: string = "slo-widget-tile-value";
 
 /*
  * How a title looks where it is drawn, as one line and as a row of pieces
@@ -930,7 +933,8 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
 
       {tile.isEvaluated ? (
         <div
-          className="text-center font-bold text-gray-900 tabular-nums truncate max-w-full"
+          data-testid={SLO_WIDGET_TILE_VALUE_TEST_ID}
+          className={`text-center font-bold text-gray-900 ${getNumberSpacingClassName(tile.value)} truncate max-w-full`}
           style={{
             fontSize: `${valueFontPx}px`,
             lineHeight: 1.15,

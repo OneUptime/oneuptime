@@ -206,6 +206,10 @@ describe("what someone wrote", () => {
 });
 
 describe("a read that fails", () => {
+  /*
+   * A failure that says nothing ("Server Error") reads as one the server did
+   * not explain: what happened, and what to do next (#6836).
+   */
   test("says why, and Try again reads the fields and the record again", async () => {
     getListMock
       .mockRejectedValueOnce(new Error("Server Error") as never)
@@ -219,7 +223,15 @@ describe("a read that fails", () => {
 
     render(card());
 
-    expect(await screen.findByText("Server Error")).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        "The server ran into a problem it could not explain. Try again in a moment.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("error-what-failed")).toHaveTextContent(
+      "This did not finish.",
+    );
+    expect(screen.queryByText("Server Error")).toBeNull();
 
     const retry: HTMLElement = screen.getByTestId("refresh-button");
 
@@ -230,7 +242,7 @@ describe("a read that fails", () => {
     fireEvent.click(retry);
 
     expect(await screen.findByText("IT")).toBeInTheDocument();
-    expect(screen.queryByText("Server Error")).toBeNull();
+    expect(screen.queryByTestId("error-explanation")).toBeNull();
     expect(getListMock).toHaveBeenCalledTimes(2);
   });
 });

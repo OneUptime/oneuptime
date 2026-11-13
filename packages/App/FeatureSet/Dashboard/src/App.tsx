@@ -7,6 +7,7 @@ import DashboardKeyboardShortcuts from "./Components/KeyboardShortcuts/Dashboard
 import HowOneUptimeWorksDialog from "./Components/Home/HowOneUptimeWorksDialog";
 import GiveFeedbackDialog from "./Components/Feedback/GiveFeedbackDialog";
 import ProductFeedbackInit from "./Components/Feedback/ProductFeedbackInit";
+import DashboardRecording from "./Components/DashboardRecording/DashboardRecording";
 import MasterPage from "./Components/MasterPage/MasterPage";
 import UseTimezoneInitElement from "./Components/UserTimezone/UserTimezoneInit";
 import UserLanguageInit from "./Components/UserLanguage/UserLanguageInit";
@@ -659,6 +660,14 @@ const App: () => JSX.Element = () => {
       <UseTimezoneInitElement />
       <UserLanguageInit />
       <ProductFeedbackInit />
+      {/*
+       * On OneUptime Cloud only, and only with the person's consent: a
+       * recording of the first-run pages, to see where people get stuck
+       * (#6834). A self-hosted server loads and sends nothing.
+       */}
+      <DashboardRecording
+        projectId={selectedProject?._id?.toString() || null}
+      />
       {isAskAiOffOnServer ? <></> : <AskAiPanel />}
       <DashboardCommandPalette
         projects={projects}

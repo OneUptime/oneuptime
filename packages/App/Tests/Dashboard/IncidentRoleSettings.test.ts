@@ -12,6 +12,7 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
+import { drawnDashboardLabel } from "../FeatureSet/Docs/DocsDashboardLabels";
 
 /*
  * Incidents → Settings → Incident Roles.
@@ -465,10 +466,18 @@ describe("the docs", () => {
       "## نقش‌های حادثه",
     );
 
-    expect(section).toContain("**Incident Commander**");
-    expect(section).toContain("**Allow Multiple Users**");
-    expect(section).toContain("**More fields**");
-    expect(section).toContain("**Create Incident Role**");
+    // Each label as the Persian Dashboard draws it (#7100).
+    for (const label of [
+      "Incident Commander",
+      "Allow Multiple Users",
+      "More fields",
+      "Create Incident Role",
+    ]) {
+      const drawn: string = drawnDashboardLabel("fa", label);
+
+      expect(drawn).not.toBe(label);
+      expect(section).toContain(`**${drawn}**`);
+    }
     expect(section).not.toContain(
       "توضیحات کارت فرمانده حادثه و پاسخ‌دهنده را به‌عنوان نمونه می‌آورد",
     );
@@ -491,6 +500,8 @@ describe("the docs", () => {
     );
 
     expect(persian).not.toContain("فرمانده حادثه، پاسخ‌دهنده، و هر چیز دیگری");
-    expect(persian).toContain("پروژه تازه یک نقش دارد، Incident Commander");
+    expect(persian).toContain(
+      `پروژه تازه یک نقش دارد، ${drawnDashboardLabel("fa", "Incident Commander")}`,
+    );
   });
 });

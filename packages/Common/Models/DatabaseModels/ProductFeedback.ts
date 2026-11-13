@@ -7,10 +7,7 @@ import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import IconProp from "../../Types/Icon/IconProp";
-import {
-  PRODUCT_FEEDBACK_KINDS,
-  ProductFeedbackKind,
-} from "../../Types/ProductFeedback/ProductFeedback";
+import { ProductFeedbackKind } from "../../Types/ProductFeedback/ProductFeedback";
 import { Column, Entity, Index } from "typeorm";
 
 /*
@@ -55,7 +52,7 @@ export default class ProductFeedback extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
-    allowedValues: [...PRODUCT_FEEDBACK_KINDS],
+    allowedValues: Object.values(ProductFeedbackKind),
     title: "Kind",
     description:
       "How the answer was given: setup_flow (the end of a guided setup), general (Give feedback), explanation (Was this clear?) or check_in (the first-week check-in).",

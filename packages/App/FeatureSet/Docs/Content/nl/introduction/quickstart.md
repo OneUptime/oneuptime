@@ -34,6 +34,8 @@ Voer een **Projectnaam** in, bijvoorbeeld de naam van uw bedrijf. Bij OneUptime 
 
 ### Het project aanmaken
 
+![Start vraagt "Wat wil je eerst doen?", met de drie doelen van deze gids aangevinkt](screen:home-goals-three)
+
 Klik op **Project maken**. De startpagina van uw project opent, met bovenaan de checklist **Welkom bij OneUptime 👋**. Eerst vraagt het **Wat wil je eerst doen?**: vink **Weten wanneer mijn website of API plat ligt**, **De juiste persoon oproepen als er iets kapotgaat** en **Mijn klanten informeren met een statuspagina** aan, en klik op **Doorgaan**.
 :::
 
@@ -121,9 +123,13 @@ Open **Incidenten** en klik op **Incident melden**. Voer een **Titel** in, bijvo
 
 ### Zien wat er gebeurt
 
+!["Incidentfeed" van een opgelost incident: wie werd opgeroepen en elke statuswijziging, nieuwste eerst](screen:incident-feed)
+
 Binnen een minuut of twee roept uw bereikbaarheidsbeleid u op, en verschijnt het incident op uw statuspagina.
 
 ### Het oplossen
+
+![Een incident in "Bevestigd", met "Oplossen" omcirkeld](screen:incident-resolve)
 
 Klik op de pagina van het incident op **Oplossen**. De oproepen stoppen, en het incident verdwijnt van uw statuspagina.
 :::

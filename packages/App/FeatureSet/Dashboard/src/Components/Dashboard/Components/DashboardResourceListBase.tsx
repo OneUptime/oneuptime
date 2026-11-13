@@ -17,7 +17,7 @@ import useDashboardWidgetColumns, {
 } from "./DashboardWidgetColumns";
 import DashboardWidgetLine from "./DashboardWidgetLine";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { PluralTemplate, Translator } from "Common/UI/Utils/TranslateTemplate";
 import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 
 export interface ResourceListColumn {
@@ -148,7 +148,14 @@ export type ResourceListViewMode = "list" | "honeycomb";
 
 export interface DashboardResourceListBaseProps {
   title?: string | undefined;
-  pluralLabel: string;
+  /*
+   * The count beside the title, in English, both its forms: { one: "{{count}}
+   * host", other: "{{count}} hosts" }. Drawn in the reader's language, the
+   * count written the way it writes numbers (#6992): the list used to put
+   * an English noun after the count - "1 hosts", "12 hosts" on a German or
+   * Persian board.
+   */
+  countLabel: PluralTemplate;
   columns: Array<ResourceListColumn>;
   count: number;
   isLoading: boolean;
@@ -282,10 +289,10 @@ const DashboardResourceListBase: FunctionComponent<
            * by a long title in a narrow widget, "3 sites" broke in two.
            */}
           <span
-            className="shrink-0 whitespace-nowrap text-xs text-gray-300 tabular-nums"
+            className="shrink-0 whitespace-nowrap text-xs text-gray-400 tabular-nums"
             data-testid={RESOURCE_LIST_COUNT_TEST_ID}
           >
-            {props.count} {props.pluralLabel}
+            {translator.translatePlural(props.countLabel, props.count)}
           </span>
         </div>
       )}

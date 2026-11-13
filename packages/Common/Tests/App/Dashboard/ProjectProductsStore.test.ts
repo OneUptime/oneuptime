@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock, SpyInstance } from "jest-mock";
 import ProjectProducts, {
   ProjectProductsFetcher,
   REMEMBERED_PROJECT_PRODUCTS_KEY_PREFIX,
@@ -39,7 +40,7 @@ const ANSWER: ProjectProductsAnswer = {
   canChooseProducts: true,
 };
 
-let fetcher: jest.Mock<ProjectProductsFetcher>;
+let fetcher: Mock<ProjectProductsFetcher>;
 
 beforeEach(() => {
   ProjectProducts.reset();
@@ -131,7 +132,7 @@ describe("asking the server", () => {
   });
 
   test("everyone listening hears an answer arrive", async () => {
-    const listener: jest.Mock = jest.fn();
+    const listener: Mock = jest.fn();
     const unsubscribe: () => void = ProjectProducts.subscribe(
       listener as unknown as () => void,
     );
@@ -222,10 +223,9 @@ describe("the first paint", () => {
 describe("changing the products", () => {
   test("showing or hiding records the server's answer", async () => {
     const after: ProjectProductsAnswer = { ...ANSWER, hidden: [] };
-    const post: jest.SpiedFunction<typeof ProjectProductsApi.postProductShown> =
-      jest
-        .spyOn(ProjectProductsApi, "postProductShown")
-        .mockResolvedValue(after);
+    const post: SpyInstance<typeof ProjectProductsApi.postProductShown> = jest
+      .spyOn(ProjectProductsApi, "postProductShown")
+      .mockResolvedValue(after);
 
     await ProjectProducts.setProductShown(PROJECT_A, {
       product: ProductKey.Kubernetes,
@@ -324,9 +324,8 @@ describe("pins", () => {
 
   test("a pin that changes nothing sends nothing", async () => {
     await ProjectProducts.load(PROJECT_A);
-    const post: jest.SpiedFunction<
-      typeof ProjectProductsApi.postPinnedProducts
-    > = jest.spyOn(ProjectProductsApi, "postPinnedProducts");
+    const post: SpyInstance<typeof ProjectProductsApi.postPinnedProducts> =
+      jest.spyOn(ProjectProductsApi, "postPinnedProducts");
 
     expect(
       await ProjectProducts.setProductPinned(PROJECT_A, {
@@ -339,9 +338,7 @@ describe("pins", () => {
 
   test("unpinning sends the pins left, in order", async () => {
     await ProjectProducts.load(PROJECT_A);
-    const post: jest.SpiedFunction<
-      typeof ProjectProductsApi.postPinnedProducts
-    > = jest
+    const post: SpyInstance<typeof ProjectProductsApi.postPinnedProducts> = jest
       .spyOn(ProjectProductsApi, "postPinnedProducts")
       .mockResolvedValue({ ...ANSWER, pinned: [] });
 

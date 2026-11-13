@@ -34,6 +34,8 @@ Indtast et **Projektnavn**, for eksempel din virksomheds navn. På OneUptime Clo
 
 ### Opret det
 
+![Hjem spørger »Hvad vil du gøre først?«, med denne vejlednings tre mål markeret](screen:home-goals-three)
+
 Klik på **Opret projekt**. Dit projekts startside åbner, med tjeklisten **Velkommen til OneUptime 👋** øverst. Først spørger den **Hvad vil du gøre først?**: sæt flueben ved **Vide, når mit website eller API er nede**, **Tilkalde den rette person, når noget går ned** og **Fortælle mine kunder det via en statusside**, og klik på **Fortsæt**.
 :::
 
@@ -121,9 +123,13 @@ Erklær en testhændelse for at se hele kæden virke.
 
 ### Se, hvad der sker
 
+![»Hændelsesfeed« for en løst hændelse: hvem der blev kaldt, og hver statusændring, nyeste først](screen:incident-feed)
+
 Inden for et minut eller to tilkalder din vagtpolitik dig, og hændelsen vises på din statusside.
 
 ### Løs den
+
+![En hændelse i »Bekræftet«, med »Løs« fremhævet](screen:incident-resolve)
 
 Klik på **Løs** på hændelsens side. Tilkaldene stopper, og hændelsen forsvinder fra din statusside.
 :::

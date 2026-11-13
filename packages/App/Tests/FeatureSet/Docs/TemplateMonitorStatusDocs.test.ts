@@ -5,6 +5,7 @@ import Permission from "Common/Types/Permission";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { drawnDashboardLabel } from "./DocsDashboardLabels";
 
 /*
  * What the template pages say about a template's Change Monitor Status to
@@ -89,8 +90,8 @@ describe("the template pages, on a template's Change Monitor Status to", () => {
       expect([
         `${language}/${page}`,
         linesWith(readPage(language, page), [
-          "**Affected Resources**",
-          `**${NO_STATUS_TEXT}**`,
+          `**${drawnDashboardLabel(language, "Affected Resources")}**`,
+          `**${drawnDashboardLabel(language, NO_STATUS_TEXT)}**`,
         ]).length,
       ]).toEqual([`${language}/${page}`, 1]);
     }
@@ -117,8 +118,9 @@ describe("the template pages, on a template's Change Monitor Status to", () => {
       const rule: Array<string> = linesWith(
         readPage(language, "incidents/settings"),
         [
-          "**Initial Incident State**",
-          "**Change Monitor Status to**",
+          `**${drawnDashboardLabel(language, "Initial Incident State")}**`,
+          `**${drawnDashboardLabel(language, "Change Monitor Status to")}**`,
+          // The permission, by the name a custom role lists it under.
           "**Edit Incident Template**",
         ],
       );

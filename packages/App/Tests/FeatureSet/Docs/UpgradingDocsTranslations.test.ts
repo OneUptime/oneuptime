@@ -313,8 +313,12 @@ const SIGN_IN_LINK_LABELS: Array<string> = [
   "Let people sign in with an emailed link",
 ];
 
-// Bold words that are Dashboard labels by coincidence: words of the page.
-const PROSE: Array<string> = ["teams"];
+/*
+ * Bold words that are Dashboard labels by coincidence: words of the page.
+ * "team" became one with Ask AI's read cards (#7175), which say what an
+ * escalation rule pages: team "SRE".
+ */
+const PROSE: Array<string> = ["teams", "team"];
 
 /*
  * The bold leads of the page's own lists, steps and sentences. They are
@@ -476,7 +480,6 @@ const PROSE_LEADS: Array<string> = [
   "You installed Runbook Agents on your hosts:",
   "one security-relevant step",
   "API keys that were granted agent permissions directly:",
-  "team",
   "Runbook Agent containers you have not redeployed yet keep heartbeating and executing Bash and JavaScript steps",
   "SSH and Kubernetes steps (new in v12) fail on old agents.",
   "before",

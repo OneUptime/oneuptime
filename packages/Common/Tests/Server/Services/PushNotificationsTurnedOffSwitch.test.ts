@@ -142,6 +142,24 @@ async function isTurnedOff(
   return await on.getPushNotificationsTurnedOff();
 }
 
+/*
+ * The reads of the switch itself. A write of the switch also starts push's
+ * sending health again (#6877), which reads the row's serverSendingHealth:
+ * that read is not this server's copy being read again.
+ */
+function readsOfTheSwitch(spy: jest.SpyInstance = reads): number {
+  return spy.mock.calls.filter((call: Array<unknown>): boolean => {
+    const select: Record<string, unknown> | undefined = (
+      call[0] as { select?: Record<string, unknown> } | undefined
+    )?.select;
+
+    return (
+      select !== undefined &&
+      Object.keys(select).includes("disablePushNotifications")
+    );
+  }).length;
+}
+
 beforeEach(() => {
   now = START;
   stored = settingsRow(false);
@@ -371,7 +389,7 @@ describe("a write of the server's settings (onUpdateSuccess)", () => {
       );
 
       await expect(isTurnedOff()).resolves.toBe(written === true);
-      expect(reads).toHaveBeenCalledTimes(2);
+      expect(readsOfTheSwitch()).toBe(2);
     },
   );
 
@@ -405,7 +423,7 @@ describe("a write of the server's settings (onUpdateSuccess)", () => {
     );
 
     await expect(isTurnedOff()).resolves.toBe(true);
-    expect(reads).toHaveBeenCalledTimes(2);
+    expect(readsOfTheSwitch()).toBe(2);
   });
 
   test("a write that failed keeps the copy: the switch is as it was", async () => {

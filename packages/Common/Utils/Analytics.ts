@@ -29,7 +29,14 @@ interface MeasurementWindow {
   dataLayer?: Array<JSONObject> | undefined;
   gtag?: ((...args: Array<unknown>) => void) | undefined;
   localStorage?: Storage | undefined;
-  navigator?: { globalPrivacyControl?: boolean | undefined } | undefined;
+  navigator?:
+    | {
+        globalPrivacyControl?: boolean | undefined;
+        doNotTrack?: string | null | undefined;
+        msDoNotTrack?: string | null | undefined;
+      }
+    | undefined;
+  doNotTrack?: string | null | undefined;
 }
 
 const measurementWindow: () => MeasurementWindow | null =
@@ -195,6 +202,54 @@ export default class Analytics {
     }
 
     return !Analytics.hasGlobalPrivacyControl(page);
+  }
+
+  /**
+   * Whether this person may have their use of the Dashboard recorded
+   * (session replay of OneUptime's own Dashboard on Cloud, issue #6834).
+   *
+   * Stricter than product analytics, because a recording shows far more
+   * than an event: only a person who pressed "Accept all" (an answer, not
+   * the absence of one), on a page that measures for OneUptime, in a
+   * browser sending neither Global Privacy Control nor Do Not Track. Here
+   * "Accept all" does not override either signal: a standing "no" from the
+   * browser is honoured even after a yes on the banner.
+   */
+  public static isSessionRecordingAllowed(): boolean {
+    const page: MeasurementWindow | null = measurementWindow();
+
+    if (!page || page.oneUptimeProductAnalyticsDisabled === true) {
+      return false;
+    }
+
+    if (Analytics.getConsentState(page) !== "granted") {
+      return false;
+    }
+
+    return (
+      !Analytics.hasGlobalPrivacyControl(page) && !Analytics.hasDoNotTrack(page)
+    );
+  }
+
+  /*
+   * Do Not Track, in each of the places browsers have put it: "1" (or
+   * "yes", from old Firefox) on navigator, msDoNotTrack, or window.
+   */
+  private static hasDoNotTrack(page: MeasurementWindow): boolean {
+    try {
+      const values: Array<unknown> = [
+        page.navigator?.doNotTrack,
+        page.navigator?.msDoNotTrack,
+        page.doNotTrack,
+      ];
+
+      return values.some((value: unknown): boolean => {
+        return value === "1" || value === "yes" || value === 1;
+      });
+    } catch {
+      // Unreadable is not "no": recording is allowed only on a clear yes anyway.
+      return true;
+    }
   }
 
   private static hasGlobalPrivacyControl(page: MeasurementWindow): boolean {

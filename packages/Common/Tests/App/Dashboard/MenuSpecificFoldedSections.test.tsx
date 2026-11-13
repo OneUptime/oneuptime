@@ -261,17 +261,23 @@ describe("project Settings: only Basic starts open", () => {
    * "This should be in the advanced section in the side menu." (the
    * maintainer). A project brings its team over from another tool once,
    * when it starts, so the import waits last in Advanced, folded with the
-   * settings few people open; Basic keeps the project itself and its labels.
+   * settings few people open; Basic keeps the project itself, the products
+   * it shows and its labels.
    */
   describe("Import from another tool waits in Advanced", () => {
-    test("Basic holds the project and its labels, each with its icon, and nothing else", async () => {
+    /*
+     * Products (#6814) is a choice about the whole project, so it sits with
+     * the project itself, between Project and Labels.
+     */
+    test("Basic holds the project, its products and its labels, each with its icon, and nothing else", async () => {
       await renderSettingsMenuAt(PageMap.SETTINGS);
 
       expect(linksIn("Basic")).toEqual([
         { title: "Project", href: routeFor(PageMap.SETTINGS) },
+        { title: "Products", href: routeFor(PageMap.SETTINGS_PRODUCTS) },
         { title: "Labels", href: routeFor(PageMap.SETTINGS_LABELS) },
       ]);
-      expect(iconCountIn("Basic")).toBe(2);
+      expect(iconCountIn("Basic")).toBe(3);
     });
 
     test("on the Project page it is folded away in Advanced, and a click on Advanced shows it last", async () => {

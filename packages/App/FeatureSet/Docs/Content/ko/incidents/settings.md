@@ -736,7 +736,7 @@ flowchart TB
 
 ## 워크플로우로 인시던트 움직이기
 
-인시던트용 워크플로우 트리거는 손으로 쓰지 않습니다. OneUptime이 데이터 모델에서 생성하므로, 인시던트 계열의 모든 모델이 모델의 단수형 이름을 딴 **On Create X**, **On Update X**, **On Create or Update X**, **On Delete X** 구성 요소를 받습니다. 핵심은 **On Create Incident**, **On Update Incident**, **On Create or Update Incident**, **On Delete Incident**입니다. `/dashboard/{projectId}/workflows`의 **Add Trigger** 패널에서 **OneUptime 리소스** → **Incident** 아래에 있으며, 처음 두 개는 **인기** 아래에도 있습니다.
+인시던트용 워크플로우 트리거는 손으로 쓰지 않습니다. OneUptime이 데이터 모델에서 생성하므로, 인시던트 계열의 모든 모델이 모델의 단수형 이름을 딴 **On Create X**, **On Update X**, **On Create or Update X**, **On Delete X** 구성 요소를 받습니다. 핵심은 **On Create Incident**, **On Update Incident**, **On Create or Update Incident**, **On Delete Incident**입니다. `/dashboard/{projectId}/workflows`의 **트리거 추가** 패널에서 **OneUptime 리소스** → **인시던트** 아래에 있으며, 처음 두 개는 **인기** 아래에도 있습니다.
 
 같은 생성 방식이 설정 자체의 트리거도 줍니다. **On Create Incident State**, **On Update Incident Severity**, **On Create Incident Template**, **On Create Incident Note Template**, **On Create Incident State Timeline**, **On Create Incident Public Note**, **On Create Incident Internal Note**, **On Create Incident On-Call Rule**, **On Create Incident Role**, **On Create Incident Member** 등입니다. 각 모델은 대응하는 작업 구성 요소(**Find One Incident**, **Create One Incident**, **Update One Incident**, **Delete One Incident**와 그 여러 행 버전)도 받으므로, 이름이 비슷한 트리거와 작업이 같은 범주에 나란히 놓입니다. **On Create Incident**는 워크플로우를 시작하고, **Create One Incident**는 인시던트를 엽니다.
 

@@ -200,8 +200,14 @@ export const WEBSITE_DOWN_COPY: {
   policyMadeElsewhere: translationKey(
     "An on-call policy was added to this project while this page was open, so no new policy was made.",
   ),
+  /*
+   * Creating an on-call policy, its escalation rule and its two rules is not
+   * an admin's alone: project members and on-call members may too. Who
+   * cannot is pointed at the ones who always can, as the on-call setup's
+   * whoCannotCreate does.
+   */
   whoOwnerOnlyHelp: translationKey(
-    "You own this monitor, so you are emailed when it goes down. Paging a team needs a project admin: ask one to set up an on-call policy.",
+    "You own this monitor, so you are emailed when it goes down. Paging a team needs an on-call policy: ask a project owner or admin to set one up.",
   ),
   whoOnCallRulesLink: translationKey("See the on-call rules"),
   noEmail: translationKey(
