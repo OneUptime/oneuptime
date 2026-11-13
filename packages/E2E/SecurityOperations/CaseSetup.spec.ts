@@ -1030,13 +1030,19 @@ test.describe("in the reader's language", () => {
     await expect(menu).not.toContainText("Insert a template");
     /*
      * A template's English name and first line read the way they are
-     * written, each in an isolate of its own: "Contained:", never
-     * ":Contained", in the Persian menu.
+     * written: "Contained:", never ":Contained", in the Persian menu. Each
+     * is a line of its own that reads left to right (IsolatedLine, #6979),
+     * so one too long for the menu is cut short at its own end.
      */
-    for (const written of ["Containment checklist", "Contained:"]) {
-      await expect(
-        menu.locator("bdi[dir='ltr']").filter({ hasText: written }),
-      ).toHaveCount(1);
+    for (const [line, written] of [
+      ["note-template-name", "Containment checklist"],
+      ["note-template-preview", "Contained:"],
+    ] as Array<[string, string]>) {
+      const drawn: Locator = menu
+        .getByTestId(line)
+        .filter({ hasText: written });
+      await expect(drawn).toHaveCount(1);
+      await expect(drawn).toHaveAttribute("dir", "ltr");
     }
     await screenshot(page, "case-note-templates-menu-fa-1280", {
       fullPage: false,
