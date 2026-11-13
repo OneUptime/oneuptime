@@ -132,7 +132,7 @@ function savedBeforeWords(): AIChatWidget {
         { name: "Checkout API", type: "Website", currentStatus: "Offline" },
         {
           name: "Backup Job",
-          type: "IncomingRequest",
+          type: "Incoming Request",
           currentStatus: "Disabled",
         },
       ],
@@ -341,7 +341,7 @@ describe("a table whose words do not say what it stores reads as stored", () => 
     expect(descriptionText()).toBe("Non-operational first, Disabled last");
     expect(tableRows()).toEqual([
       ["Checkout API", "Website", "Offline"],
-      ["Backup Job", "IncomingRequest", "Disabled"],
+      ["Backup Job", "Incoming Request", "Disabled"],
     ]);
   });
 
