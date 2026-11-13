@@ -6,7 +6,11 @@ import {
   FormMappingRow,
   getFormMappingRows,
 } from "./FormMappingRows";
-import { FormReferenceData, loadFormReferenceData } from "./FormOnSubmitData";
+import {
+  FormReferenceData,
+  loadFormReferenceData,
+  NamedRecord,
+} from "./FormOnSubmitData";
 import {
   getFormSettingsFields,
   getFormSettingsInitialValues,
@@ -205,13 +209,26 @@ const FormMappingCard: FunctionComponent<ComponentProps> = (
      * own, and a line of records separated the reader's way ("، " in Arabic
      * and Persian, "、" in Japanese and Chinese). Drawn as part of an Arabic
      * or Persian line, "Checkout down." read ".Checkout down", and one
-     * name's full stop landed beside the next name.
+     * name's full stop landed beside the next name. A record deleted since
+     * is the reader's word for it, in its place: the page's own words, never
+     * a name (#7857). A record called "Deleted" is still drawn as written.
      */
     const renderValue: (className?: string) => ReactElement = (
       className?: string,
     ): ReactElement => {
       return line.names && line.names.length > 0 ? (
-        <IsolatedTextList texts={line.names} className={className} />
+        <IsolatedTextList
+          texts={line.names.map(
+            (record: NamedRecord): string | ReactElement => {
+              return record.isDeleted ? (
+                <span>{tx(FormsCopy.deletedRecord)}</span>
+              ) : (
+                record.name
+              );
+            },
+          )}
+          className={className}
+        />
       ) : (
         <IsolatedText text={text} className={className} />
       );
