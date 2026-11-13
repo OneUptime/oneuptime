@@ -541,7 +541,12 @@
         "cardTitle": "Configuração do Twilio",
         "cardDescription": "A conta do Twilio pela qual o OneUptime envia SMS e faz chamadas, a menos que um projeto use uma configuração do Twilio própria.",
         "editButton": "Editar config Twilio",
-        "smsSameAsCalls": "Os mesmos números das chamadas"
+        "smsSameAsCalls": "Os mesmos números das chamadas",
+        "environmentCardDescription": "Definida por variáveis de ambiente: twilio nos valores do chart Helm, ou as configurações GLOBAL_TWILIO_ no config.env. Para alterar esta conta, altere-as lá e reinicie o OneUptime.",
+        "environmentProblemsTitle": "Esta conta não envia SMS nem faz chamadas até que estas variáveis de ambiente sejam corrigidas:",
+        "environmentUnusedTitle": "Algumas variáveis de ambiente do Twilio não são usadas:",
+        "authTokenSet": "Definido",
+        "authTokenNotSet": "Não definido"
       },
       "whatsapp": {
         "metaCardTitle": "Configurações Meta WhatsApp",
@@ -2588,8 +2593,8 @@
   "{{count}} events at {{time}}": "{{count}} events at {{time}}",
   "{{count}} events at {{time}}_one": "{{count}} event at {{time}}",
   "{{label}} at {{time}}": "{{label}} at {{time}}",
-  "+{{count}} more series — highest values shown": "+{{count}} more series — highest values shown",
-  "+{{count}} more series — highest values shown_one": "+{{count}} more series — highest values shown",
+  "+{{count}} more series — highest values shown": "+{{count}} outras séries — os valores mais altos são mostrados",
+  "+{{count}} more series — highest values shown_one": "+{{count}} outra série — os valores mais altos são mostrados",
   "Tab inserts indentation. To move focus out of the editor, press Escape, then Tab.": "Tab inserts indentation. To move focus out of the editor, press Escape, then Tab.",
   "Valid {{language}} · {{count}} lines": "Valid {{language}} · {{count}} lines",
   "Valid {{language}} · {{count}} lines_one": "Valid {{language}} · {{count}} line",

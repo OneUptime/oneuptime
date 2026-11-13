@@ -25,8 +25,12 @@ import { readDashboardLocale } from "../../Helpers/DashboardLocales";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 import EventNotes from "../../../../App/FeatureSet/Dashboard/src/Components/EventNotes/EventNotes";
 import IncidentInternalNote from "../../../Models/DatabaseModels/IncidentInternalNote";
+import IncidentPublicNote from "../../../Models/DatabaseModels/IncidentPublicNote";
 import Project from "../../../Models/DatabaseModels/Project";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import Search from "../../../Types/BaseDatabase/Search";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import StatusPageSubscriberNotificationStatus from "../../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import {
   getUnexplainedServerErrorMessage,
   UNEXPLAINED_ERROR_MESSAGES,
@@ -55,6 +59,22 @@ import { joinSentences } from "../../../UI/Components/DeleteConfirmation/DeleteC
  * by a self-hosted server's member: the reference goes to whoever runs the
  * server, and nothing is said about its logs.
  */
+
+/*
+ * The background re-read while a public note's notification is on its way,
+ * every 80 ms rather than every 10 seconds; no other test here has a
+ * notification on its way.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/EventNotes/EventNotesUtil",
+  () => {
+    const actual: Record<string, unknown> = jest.requireActual(
+      "../../../../App/FeatureSet/Dashboard/src/Components/EventNotes/EventNotesUtil",
+    ) as Record<string, unknown>;
+
+    return { ...actual, NOTIFICATION_POLL_INTERVAL_MS: 80 };
+  },
+);
 
 jest.mock("../../../UI/Config", () => {
   const actualConfig: Record<string, unknown> = jest.requireActual(
@@ -419,20 +439,13 @@ const wordsIn: (language: string, english: string) => string = (
 };
 
 /*
- * An incident's private notes page in `language`, whose first read of the
- * notes fails with `failure` - the reads a test queued come after it - and
- * its failure as the feed draws it. A button beside the feed stands for the
- * rest of the page.
+ * An incident's private notes page in `language`, its reads answered as
+ * the test queued them. A button beside the feed stands for the rest of
+ * the page.
  */
-const renderFailedFeed: (
+const renderNotesPage: (language: string) => void = (
   language: string,
-  failure: unknown,
-) => Promise<HTMLElement> = async (
-  language: string,
-  failure: unknown,
-): Promise<HTMLElement> => {
-  notesReads.unshift(failingRead(failure));
-
+): void => {
   const project: Project = new Project();
   project._id = "10000000-0000-4000-8000-000000000001";
 
@@ -451,6 +464,22 @@ const renderFailedFeed: (
       />
     </I18nextProvider>,
   );
+};
+
+/*
+ * The page, whose first read of the notes fails with `failure` - the reads
+ * a test queued come after it - and its failure as the feed draws it.
+ */
+const renderFailedFeed: (
+  language: string,
+  failure: unknown,
+) => Promise<HTMLElement> = async (
+  language: string,
+  failure: unknown,
+): Promise<HTMLElement> => {
+  notesReads.unshift(failingRead(failure));
+
+  renderNotesPage(language);
 
   return screen.findByTestId("notes-error");
 };
@@ -832,4 +861,974 @@ describe("the notes feed's Try again, pressed from the keyboard", () => {
     });
     expect(document.activeElement).toBe(elsewhere);
   });
+});
+
+/*
+ * THE FEED'S BANNER, WHEN A REFRESH, A SEARCH, THE SORT ORDER OR LOAD MORE
+ * FAILS (#7620).
+ *
+ * A read that fails with the notes on screen keeps them, and says so in a
+ * banner over the feed. The banner drew API.getFriendlyMessage's answer and
+ * nothing else: English on every page, on a Persian one with its full stop
+ * at its start, without #6836's why, next step and reference, and silent on
+ * which of the four had failed. It says what failed now, in the reader's
+ * language, then the error as the load failure reads it (ErrorMessageText).
+ */
+
+type FeedAction = "refresh" | "search" | "sort" | "more";
+
+const ACTIONS: Array<FeedAction> = ["refresh", "search", "sort", "more"];
+
+// What failed, as the banner's first line says it.
+const ACTION_FAILED: Record<FeedAction, string> = {
+  refresh: "Couldn't refresh the notes.",
+  search: "Couldn't search the notes.",
+  sort: "Couldn't sort the notes.",
+  more: "Couldn't load more notes.",
+};
+
+// The notes, with more of them to load than came.
+const notesWithMoreAnswer: () => NotesAnswer = (): NotesAnswer => {
+  return { ...notesAnswer(), count: NOTES.length + 3 };
+};
+
+/*
+ * The page with its notes on screen, and Load more under them: the first
+ * read answers, and the next fails with `failure`.
+ */
+const renderLoadedFeed: (
+  language: string,
+  failure: unknown,
+) => Promise<void> = async (
+  language: string,
+  failure: unknown,
+): Promise<void> => {
+  notesReads.push((): Promise<NotesAnswer> => {
+    return Promise.resolve(notesWithMoreAnswer());
+  }, failingRead(failure));
+
+  renderNotesPage(language);
+
+  await waitFor(() => {
+    expect(screen.getAllByTestId("note-card")).toHaveLength(NOTES.length);
+  });
+  expect(screen.getByTestId("notes-load-more")).toBeInTheDocument();
+};
+
+// Does `action` as a reader does, and returns the banner its failure draws.
+const failAction: (action: FeedAction) => Promise<HTMLElement> = async (
+  action: FeedAction,
+): Promise<HTMLElement> => {
+  if (action === "refresh") {
+    fireEvent.click(screen.getByTestId("notes-refresh"));
+  } else if (action === "search") {
+    // Read once typing stops.
+    fireEvent.change(screen.getByTestId("notes-search"), {
+      target: { value: "cert" },
+    });
+  } else if (action === "sort") {
+    fireEvent.click(screen.getByTestId("notes-sort"));
+  } else {
+    fireEvent.click(screen.getByTestId("notes-load-more"));
+  }
+
+  return screen.findByTestId("notes-action-error", {}, { timeout: 3000 });
+};
+
+const bannerText: (banner: HTMLElement) => string = (
+  banner: HTMLElement,
+): string => {
+  return withoutIsolateMarks(banner.textContent || "");
+};
+
+const dismissIn: (language: string, banner: HTMLElement) => HTMLElement = (
+  language: string,
+  banner: HTMLElement,
+): HTMLElement => {
+  return within(banner).getByRole("button", {
+    name: wordsIn(language, "Dismiss"),
+  });
+};
+
+describe("the notes feed's banner, when a refresh, a search, the sort order or Load more fails", () => {
+  const CASES: Array<[FeedAction, string]> = ACTIONS.flatMap(
+    (action: FeedAction): Array<[FeedAction, string]> => {
+      return [
+        [action, "de"],
+        [action, "fa"],
+      ];
+    },
+  );
+
+  test.each(CASES)(
+    "a failed %s, in %s, says what failed, then why and what to do next, with the reference to copy",
+    async (action: FeedAction, language: string) => {
+      await renderLoadedFeed(language, SERVER_FAILURE);
+
+      const banner: HTMLElement = await failAction(action);
+
+      expect(banner).toHaveAttribute("role", "alert");
+      expect(
+        within(banner).getByTestId("notes-action-error-what-failed"),
+      ).toHaveTextContent(wordsIn(language, ACTION_FAILED[action]));
+      // Said once: the explanation under it has no first line of its own.
+      expect(within(banner).queryByTestId("error-what-failed")).toBeNull();
+      expect(bannerText(banner)).not.toContain(
+        wordsIn(language, UnexplainedErrorWords.didNotFinish),
+      );
+      expect(
+        withoutIsolateMarks(
+          within(banner).getByTestId("error-why-and-next").textContent || "",
+        ),
+      ).toBe(
+        joinSentences([
+          wordsIn(language, UnexplainedErrorWords.serverWhy),
+          wordsIn(
+            language,
+            UnexplainedErrorWords.serverNextWithReferenceSelfHosted,
+          ),
+        ]),
+      );
+
+      // The reference as written, left to right, with its copy button.
+      const reference: HTMLElement =
+        within(banner).getByTestId("error-reference");
+      expect(reference.querySelector("code")).toHaveTextContent(REFERENCE);
+      expect(reference.querySelector("code")).toHaveAttribute("dir", "ltr");
+      expect(within(reference).getAllByRole("button")).toHaveLength(1);
+      expect(timesSaid(bannerText(banner), REFERENCE)).toBe(1);
+
+      // Never the sentence as API.getFriendlyMessage wrote it, nor English.
+      expect(bannerText(banner)).not.toContain(
+        getUnexplainedServerErrorMessage(REFERENCE),
+      );
+      expectNoEnglishSentence(language, banner);
+      for (const english of Object.values(ACTION_FAILED)) {
+        expect(bannerText(banner)).not.toContain(english);
+      }
+
+      // The notes stay where they were.
+      expect(screen.getAllByTestId("note-card")).toHaveLength(NOTES.length);
+      expect(screen.queryByTestId("notes-error")).toBeNull();
+    },
+  );
+
+  test.each(LANGUAGES)(
+    'in %s, a server\'s "Server Error" says what failed, why and what to do next, with no reference to give',
+    async (language: string) => {
+      await renderLoadedFeed(language, SERVER_ERROR);
+
+      const banner: HTMLElement = await failAction("refresh");
+
+      expect(
+        within(banner).getByTestId("notes-action-error-what-failed"),
+      ).toHaveTextContent(wordsIn(language, ACTION_FAILED.refresh));
+      expect(within(banner).queryByTestId("error-what-failed")).toBeNull();
+      expect(
+        withoutIsolateMarks(
+          within(banner).getByTestId("error-why-and-next").textContent || "",
+        ),
+      ).toBe(
+        joinSentences([
+          wordsIn(language, UnexplainedErrorWords.serverWhy),
+          wordsIn(language, UnexplainedErrorWords.serverNext),
+        ]),
+      );
+      expect(within(banner).queryByTestId("error-reference")).toBeNull();
+      expect(bannerText(banner)).not.toContain("Server Error");
+      expect(bannerText(banner)).not.toContain(
+        UNEXPLAINED_ERROR_MESSAGES.server,
+      );
+
+      if (language !== "en") {
+        expectNoEnglishSentence(language, banner);
+      }
+    },
+  );
+
+  test.each(["de", "fa"])(
+    "in %s, words of their own are drawn in the reader's language, under what failed",
+    async (language: string) => {
+      await renderLoadedFeed(
+        language,
+        new HTTPErrorResponse(403, { message: OWN_WORDS }, {}),
+      );
+
+      const banner: HTMLElement = await failAction("search");
+
+      expect(
+        within(banner).getByTestId("notes-action-error-what-failed"),
+      ).toHaveTextContent(wordsIn(language, ACTION_FAILED.search));
+      expect(
+        within(banner).getByTestId("notes-action-error-words").textContent,
+      ).toBe(wordsIn(language, OWN_WORDS));
+      expect(bannerText(banner)).not.toContain(OWN_WORDS);
+      expect(within(banner).queryByTestId("error-explanation")).toBeNull();
+      expect(banner.querySelector("bdi")).toBeNull();
+    },
+  );
+
+  test("on a Persian page, English words the language has not worded read left to right, with their full stop at their end", async () => {
+    expect(readDashboardLocale("fa")[ENGLISH_ONLY_WORDS]).toBeUndefined();
+
+    await renderLoadedFeed(
+      "fa",
+      new HTTPErrorResponse(400, { message: ENGLISH_ONLY_WORDS }, {}),
+    );
+
+    const banner: HTMLElement = await failAction("more");
+    const words: HTMLElement = within(banner).getByTestId(
+      "notes-action-error-words",
+    );
+    const isolate: HTMLElement | null = words.querySelector("bdi");
+
+    expect(
+      within(banner).getByTestId("notes-action-error-what-failed"),
+    ).toHaveTextContent(wordsIn("fa", ACTION_FAILED.more));
+    expect(isolate).toHaveAttribute("dir", "ltr");
+    expect(isolate?.textContent).toBe(ENGLISH_ONLY_WORDS);
+    expect(ENGLISH_ONLY_WORDS.endsWith(".")).toBe(true);
+    // Nothing of the sentence is left outside its isolate.
+    expect(words.textContent).toBe(ENGLISH_ONLY_WORDS);
+  });
+
+  /*
+   * The explanation draws block lines and a copy button inside the
+   * banner's paragraph: phrasing content, which a paragraph may hold.
+   */
+  test("the explanation sits in the banner's paragraph as HTML allows", async () => {
+    const consoleError: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      console,
+      "error",
+    );
+
+    await renderLoadedFeed("en", SERVER_FAILURE);
+    const banner: HTMLElement = await failAction("sort");
+
+    expect(
+      within(banner)
+        .getByTestId("notes-action-error-words")
+        .querySelector("[data-testid='error-explanation']"),
+    ).not.toBeNull();
+    expect(
+      consoleError.mock.calls.filter((call: Array<unknown>) => {
+        return MISPLACED_ELEMENT_WARNING.test(call.map(String).join(" "));
+      }),
+    ).toEqual([]);
+  });
+
+  /*
+   * A search and the sort order read the notes the same way: what the read
+   * was for is told by what changed since the notes on screen were read.
+   */
+  test("the sort order changed after a search says the sort order failed, not the search", async () => {
+    notesReads.push(
+      (): Promise<NotesAnswer> => {
+        return Promise.resolve(notesWithMoreAnswer());
+      },
+      (): Promise<NotesAnswer> => {
+        return Promise.resolve(notesWithMoreAnswer());
+      },
+      failingRead(SERVER_FAILURE),
+    );
+
+    renderNotesPage("en");
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId("note-card")).toHaveLength(NOTES.length);
+    });
+
+    // The search answers.
+    fireEvent.change(screen.getByTestId("notes-search"), {
+      target: { value: "cert" },
+    });
+    await waitFor(() => {
+      expect(notesReadCount()).toBe(2);
+      expect(screen.getByTestId("notes-refresh")).not.toBeDisabled();
+    });
+    expect(screen.queryByTestId("notes-action-error")).toBeNull();
+
+    const banner: HTMLElement = await failAction("sort");
+
+    expect(notesReadCount()).toBe(3);
+    expect(
+      within(banner).getByTestId("notes-action-error-what-failed"),
+    ).toHaveTextContent(ACTION_FAILED.sort);
+  });
+});
+
+/*
+ * Dismiss takes the banner away, and the focus on it fell to the page: a
+ * keyboard or screen reader user started over from the top. It goes back
+ * to where the reader was - Load more after Load more failed, the feed's
+ * body, just before the notes, after the others.
+ */
+describe("the notes feed's banner, dismissed from the keyboard", () => {
+  test.each(ACTIONS)(
+    "after a failed %s, Dismiss leaves the focus where the reader was, never on the page",
+    async (action: FeedAction) => {
+      await renderLoadedFeed("en", SERVER_FAILURE);
+
+      const banner: HTMLElement = await failAction(action);
+      const dismiss: HTMLElement = dismissIn("en", banner);
+
+      dismiss.focus();
+      expect(document.activeElement).toBe(dismiss);
+
+      // Enter or Space on a focused button is a click on it.
+      fireEvent.click(dismiss);
+
+      expect(screen.queryByTestId("notes-action-error")).toBeNull();
+      expect(document.activeElement).not.toBe(document.body);
+      expect(document.activeElement).toBe(
+        action === "more"
+          ? screen.getByTestId("notes-load-more")
+          : screen.getByTestId("notes-feed-body"),
+      );
+    },
+  );
+
+  test("a focus that was elsewhere on the page is left where it is", async () => {
+    await renderLoadedFeed("en", SERVER_FAILURE);
+
+    const banner: HTMLElement = await failAction("more");
+    const elsewhere: HTMLElement = screen.getByTestId("elsewhere");
+
+    elsewhere.focus();
+    // A click that left the focus where it was, as a click does in Safari.
+    fireEvent.click(dismissIn("en", banner));
+
+    expect(screen.queryByTestId("notes-action-error")).toBeNull();
+    expect(document.activeElement).toBe(elsewhere);
+  });
+
+  /*
+   * Load more pressed once more, its read on the way: the button is
+   * disabled until it answers, and takes no focus - the feed's body does.
+   */
+  test("with Load more reading the notes once more, Dismiss after it failed leaves the focus on the feed's body", async () => {
+    const pending: Array<PendingRead> = [];
+
+    await renderLoadedFeed("en", SERVER_FAILURE);
+    notesReads.push(pendingRead(pending));
+
+    const banner: HTMLElement = await failAction("more");
+    const loadMore: HTMLElement = screen.getByTestId("notes-load-more");
+
+    fireEvent.click(loadMore);
+    await waitFor(() => {
+      expect(loadMore).toBeDisabled();
+    });
+    expect(pending).toHaveLength(1);
+
+    const dismiss: HTMLElement = dismissIn("en", banner);
+
+    dismiss.focus();
+    fireEvent.click(dismiss);
+
+    expect(screen.queryByTestId("notes-action-error")).toBeNull();
+    expect(document.activeElement).toBe(screen.getByTestId("notes-feed-body"));
+
+    // The read answers: no notes after the ones on screen.
+    await act(async () => {
+      pending[0]!.resolve({ ...notesAnswer(), data: [] });
+    });
+  });
+
+  /*
+   * A private incident's public notes, none written yet: no feed is drawn
+   * under the composer's place, only the header's refresh button - which a
+   * failed refresh came from.
+   */
+  test("with no feed drawn, Dismiss after a failed refresh leaves the focus on the refresh button", async () => {
+    let publicNoteReads: number = 0;
+
+    getListMock.mockImplementation(async (...args: Array<unknown>) => {
+      const request: { modelType?: unknown } = (args[0] || {}) as {
+        modelType?: unknown;
+      };
+
+      if (request.modelType === IncidentPublicNote) {
+        publicNoteReads++;
+
+        if (publicNoteReads === 2) {
+          throw SERVER_FAILURE;
+        }
+      }
+
+      return { data: [], count: 0, skip: 0, limit: 10 };
+    });
+
+    const project: Project = new Project();
+    project._id = "10000000-0000-4000-8000-000000000001";
+
+    render(
+      <I18nextProvider i18n={instances["en"]!}>
+        <EventNotes<IncidentPublicNote>
+          modelType={IncidentPublicNote}
+          visibility="public"
+          eventNoun="incident"
+          parentIdField="incidentId"
+          parentId={INCIDENT_ID}
+          currentProject={project}
+          isPrivateEvent={true}
+        />
+      </I18nextProvider>,
+    );
+
+    await waitFor(() => {
+      expect(publicNoteReads).toBe(1);
+      expect(screen.queryByTestId("notes-loading")).toBeNull();
+    });
+    expect(screen.queryByTestId("notes-feed-body")).toBeNull();
+
+    const banner: HTMLElement = await failAction("refresh");
+    const dismiss: HTMLElement = dismissIn("en", banner);
+
+    dismiss.focus();
+    fireEvent.click(dismiss);
+
+    expect(screen.queryByTestId("notes-action-error")).toBeNull();
+    expect(document.activeElement).toBe(screen.getByTestId("notes-refresh"));
+  });
+});
+
+/*
+ * THE FEED ONCE A LATER READ ANSWERS, AND ITS TOOLBAR AFTER A FAILED SORT OR
+ * SEARCH (#7646).
+ *
+ * The banner of a failed read stayed up until it was dismissed: Load more
+ * pressed again brought the notes under "Couldn't load more notes.", and a
+ * refresh that answered left "Couldn't refresh the notes." over them. A
+ * read the reader starts that answers takes it away now - Load more a Load
+ * more's alone - and a focus on it goes where Dismiss puts it.
+ *
+ * A sort or a search set what the toolbar draws before its read, so a read
+ * that failed left the toolbar describing notes that were not on screen:
+ * the sort button named the order it had failed to read in, and pressing it
+ * again read the order on screen instead of trying again; a search that
+ * never ran counted its matches. The toolbar describes the notes on screen
+ * now, and takes a sort or a search up when its notes arrive.
+ *
+ * And the count by the feed's heading is in the reader's digits.
+ */
+
+// Three notes older than the incident's two: the page after them.
+const OLDER_NOTES: Array<Record<string, unknown>> = [
+  {
+    _id: "70000000-0000-4000-8000-000000000013",
+    incidentId: INCIDENT_ID,
+    note: "Opened a ticket with the certificate authority.",
+    createdAt: new Date("2026-09-10T09:00:00.000Z"),
+    postedAt: new Date("2026-09-10T09:00:00.000Z"),
+  },
+  {
+    _id: "70000000-0000-4000-8000-000000000014",
+    incidentId: INCIDENT_ID,
+    note: "Saw the first handshake failures.",
+    createdAt: new Date("2026-09-09T09:00:00.000Z"),
+    postedAt: new Date("2026-09-09T09:00:00.000Z"),
+  },
+  {
+    _id: "70000000-0000-4000-8000-000000000015",
+    incidentId: INCIDENT_ID,
+    note: "The alert fired on lb-eu-west-1b.",
+    createdAt: new Date("2026-09-08T09:00:00.000Z"),
+    postedAt: new Date("2026-09-08T09:00:00.000Z"),
+  },
+];
+
+// Every note, the incident's two and the three before them.
+const ALL_NOTES_COUNT: number = NOTES.length + OLDER_NOTES.length;
+
+// An answer of `rows`, of `count` notes in all.
+const answerOf: (
+  rows: Array<Record<string, unknown>>,
+  count: number,
+) => NotesAnswer = (
+  rows: Array<Record<string, unknown>>,
+  count: number,
+): NotesAnswer => {
+  return {
+    data: rows.map((row: Record<string, unknown>) => {
+      return Object.assign(new IncidentInternalNote(), row);
+    }),
+    count,
+    skip: 0,
+    limit: 25,
+  };
+};
+
+// A read that answers with `answer`.
+const answeredRead: (answer: NotesAnswer) => NotesRead = (
+  answer: NotesAnswer,
+): NotesRead => {
+  return (): Promise<NotesAnswer> => {
+    return Promise.resolve(answer);
+  };
+};
+
+// What the feed asked for in a read of the notes.
+interface NotesRequest {
+  modelType: unknown;
+  query: Record<string, unknown>;
+  sort: Record<string, SortOrder>;
+  skip: number;
+  limit: number;
+}
+
+// The reads of `modelType`'s notes, in the order the feed made them.
+const notesRequests: (modelType?: unknown) => Array<NotesRequest> = (
+  modelType: unknown = IncidentInternalNote,
+): Array<NotesRequest> => {
+  return getListMock.mock.calls
+    .map((call: Array<unknown>) => {
+      return call[0] as NotesRequest;
+    })
+    .filter((request: NotesRequest) => {
+      return request.modelType === modelType;
+    });
+};
+
+// The words a read searched the notes for, or null when it read every note.
+const searchOf: (request: NotesRequest) => string | null = (
+  request: NotesRequest,
+): string | null => {
+  const condition: unknown = request.query["note"];
+
+  return condition instanceof Search ? String(condition.value) : null;
+};
+
+const NEWEST_FIRST: Record<string, SortOrder> = {
+  postedAt: SortOrder.Descending,
+};
+const OLDEST_FIRST: Record<string, SortOrder> = {
+  postedAt: SortOrder.Ascending,
+};
+
+const noteCards: () => Array<HTMLElement> = (): Array<HTMLElement> => {
+  return screen.queryAllByTestId("note-card");
+};
+
+const whatFailed: () => string = (): string => {
+  return (
+    within(screen.getByTestId("notes-action-error")).getByTestId(
+      "notes-action-error-what-failed",
+    ).textContent || ""
+  );
+};
+
+describe("the notes feed's banner, once a later read answers", () => {
+  test("after a failed Load more, Load more pressed again brings the notes, and the banner goes", async () => {
+    await renderLoadedFeed("en", SERVER_FAILURE);
+    notesReads.push(answeredRead(answerOf(OLDER_NOTES, ALL_NOTES_COUNT)));
+
+    await failAction("more");
+    fireEvent.click(screen.getByTestId("notes-load-more"));
+
+    await waitFor(() => {
+      expect(noteCards()).toHaveLength(ALL_NOTES_COUNT);
+    });
+    expect(screen.queryByTestId("notes-action-error")).toBeNull();
+    // Every note is on screen: nothing more to load.
+    expect(screen.queryByTestId("notes-load-more")).toBeNull();
+  });
+
+  test("after a failed refresh, the refresh pressed again reads the notes, and the banner goes", async () => {
+    await renderLoadedFeed("en", SERVER_FAILURE);
+    notesReads.push(answeredRead(notesWithMoreAnswer()));
+
+    await failAction("refresh");
+    const refresh: HTMLElement = screen.getByTestId("notes-refresh");
+
+    fireEvent.click(refresh);
+    expect(refresh).toBeDisabled();
+
+    await waitFor(() => {
+      expect(notesReadCount()).toBe(3);
+      expect(refresh).not.toBeDisabled();
+    });
+    expect(screen.queryByTestId("notes-action-error")).toBeNull();
+    expect(noteCards()).toHaveLength(NOTES.length);
+  });
+
+  /*
+   * Load more reads the next page of the notes on screen, for their own
+   * search: the one that failed has still not run after it.
+   */
+  test("after a failed search, Load more brings the next page of the notes on screen - not of the search that failed - and the search's banner stays", async () => {
+    await renderLoadedFeed("en", SERVER_FAILURE);
+    notesReads.push(answeredRead(answerOf(OLDER_NOTES, ALL_NOTES_COUNT)));
+
+    await failAction("search");
+    fireEvent.click(screen.getByTestId("notes-load-more"));
+
+    await waitFor(() => {
+      expect(noteCards()).toHaveLength(ALL_NOTES_COUNT);
+    });
+
+    const loadMore: NotesRequest = notesRequests()[2]!;
+    expect(loadMore.skip).toBe(NOTES.length);
+    expect(searchOf(loadMore)).toBeNull();
+    expect(loadMore.sort).toEqual(NEWEST_FIRST);
+
+    expect(whatFailed()).toBe(ACTION_FAILED.search);
+    expect(screen.getByTestId("notes-summary")).toHaveTextContent(
+      `${ALL_NOTES_COUNT} notes`,
+    );
+  });
+
+  /*
+   * A public note whose notification is on its way: the feed reads its
+   * notes again in the background every so often, for the notes on screen,
+   * and none of those reads is the reader's.
+   */
+  test("a background re-read goes on with the notes on screen, and leaves the banner up", async () => {
+    let publicNoteReads: number = 0;
+
+    getListMock.mockImplementation(async (...args: Array<unknown>) => {
+      const request: NotesRequest = args[0] as NotesRequest;
+
+      if (request.modelType !== IncidentPublicNote) {
+        return { data: [], count: 0, skip: 0, limit: 10 };
+      }
+
+      publicNoteReads++;
+
+      // The search fails; every other read answers.
+      if (searchOf(request) !== null) {
+        throw SERVER_FAILURE;
+      }
+
+      return {
+        data: NOTES.map((row: Record<string, unknown>) => {
+          return Object.assign(new IncidentPublicNote(), row, {
+            subscriberNotificationStatusOnNoteCreated:
+              StatusPageSubscriberNotificationStatus.Pending,
+          });
+        }),
+        count: NOTES.length,
+        skip: 0,
+        limit: 25,
+      };
+    });
+
+    const project: Project = new Project();
+    project._id = "10000000-0000-4000-8000-000000000001";
+
+    render(
+      <I18nextProvider i18n={instances["en"]!}>
+        <EventNotes<IncidentPublicNote>
+          modelType={IncidentPublicNote}
+          visibility="public"
+          eventNoun="incident"
+          parentIdField="incidentId"
+          parentId={INCIDENT_ID}
+          currentProject={project}
+        />
+      </I18nextProvider>,
+    );
+
+    await waitFor(() => {
+      expect(noteCards()).toHaveLength(NOTES.length);
+    });
+
+    await failAction("search");
+    const readsByTheBanner: number = publicNoteReads;
+
+    // Two reads in the background since: the first has answered.
+    await waitFor(
+      () => {
+        expect(publicNoteReads).toBeGreaterThanOrEqual(readsByTheBanner + 2);
+      },
+      { timeout: 3000 },
+    );
+
+    const since: Array<NotesRequest> =
+      notesRequests(IncidentPublicNote).slice(readsByTheBanner);
+    expect(
+      since.map((request: NotesRequest) => {
+        return searchOf(request);
+      }),
+    ).toEqual(
+      since.map(() => {
+        return null;
+      }),
+    );
+    expect(whatFailed()).toBe(ACTION_FAILED.search);
+    expect(screen.getByTestId("notes-summary")).toHaveTextContent(
+      `${NOTES.length} notes`,
+    );
+  });
+});
+
+/*
+ * The banner goes away as Dismiss takes it away: a focus left on it fell to
+ * the page, and goes where Dismiss puts it instead.
+ */
+describe("the notes feed's banner, taken away by a read while the focus is on it", () => {
+  test("Load more's notes arrive: the focus goes to the feed's body, where Dismiss puts it while Load more reads - never to the page", async () => {
+    const pending: Array<PendingRead> = [];
+
+    await renderLoadedFeed("en", SERVER_FAILURE);
+    notesReads.push(pendingRead(pending));
+
+    const banner: HTMLElement = await failAction("more");
+    const dismiss: HTMLElement = dismissIn("en", banner);
+
+    dismiss.focus();
+    // A click that leaves the focus where it was, as a click does in Safari.
+    fireEvent.click(screen.getByTestId("notes-load-more"));
+    expect(pending).toHaveLength(1);
+    expect(document.activeElement).toBe(dismiss);
+
+    await act(async () => {
+      pending[0]!.resolve(answerOf(OLDER_NOTES, ALL_NOTES_COUNT));
+    });
+
+    expect(noteCards()).toHaveLength(ALL_NOTES_COUNT);
+    expect(screen.queryByTestId("notes-action-error")).toBeNull();
+    expect(document.activeElement).not.toBe(document.body);
+    expect(document.activeElement).toBe(screen.getByTestId("notes-feed-body"));
+  });
+
+  test("a refresh answers with the focus on a Load more's banner: it goes to Load more, one key from trying again", async () => {
+    await renderLoadedFeed("en", SERVER_FAILURE);
+    notesReads.push(answeredRead(notesWithMoreAnswer()));
+
+    const banner: HTMLElement = await failAction("more");
+    const copy: HTMLElement = within(
+      within(banner).getByTestId("error-reference"),
+    ).getByRole("button");
+
+    copy.focus();
+    fireEvent.click(screen.getByTestId("notes-refresh"));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("notes-action-error")).toBeNull();
+    });
+    expect(document.activeElement).toBe(screen.getByTestId("notes-load-more"));
+  });
+});
+
+describe("the notes feed's toolbar, after a failed sort or search", () => {
+  test("after a failed sort, the sort button names the order of the notes on screen, and pressing it again tries the order asked for once more", async () => {
+    await renderLoadedFeed("en", SERVER_FAILURE);
+    const oldestFirst: NotesAnswer = notesWithMoreAnswer();
+    oldestFirst.data.reverse();
+    notesReads.push(answeredRead(oldestFirst));
+
+    await failAction("sort");
+    expect(notesRequests()[1]!.sort).toEqual(OLDEST_FIRST);
+
+    // Newest first, as the notes on screen are, and as Load more goes on.
+    const sort: HTMLElement = screen.getByTestId("notes-sort");
+    expect(sort).toHaveTextContent("Newest first");
+    expect(noteCards()[0]).toHaveTextContent(NOTES[0]!["note"] as string);
+    expect(screen.getByTestId("notes-load-more")).toHaveTextContent(
+      "Show older notes",
+    );
+
+    fireEvent.click(sort);
+
+    await waitFor(() => {
+      expect(sort).toHaveTextContent("Oldest first");
+    });
+    expect(notesRequests()[2]!.sort).toEqual(OLDEST_FIRST);
+    expect(noteCards()[0]).toHaveTextContent(NOTES[1]!["note"] as string);
+    expect(screen.getByTestId("notes-load-more")).toHaveTextContent(
+      "Show newer notes",
+    );
+    expect(screen.queryByTestId("notes-action-error")).toBeNull();
+  });
+
+  // The button names the order of the notes on screen: nothing else is taken up.
+  test("after a failed sort, the refresh reads the order on screen", async () => {
+    await renderLoadedFeed("en", SERVER_FAILURE);
+    notesReads.push(answeredRead(notesWithMoreAnswer()));
+
+    await failAction("sort");
+    fireEvent.click(screen.getByTestId("notes-refresh"));
+
+    await waitFor(() => {
+      expect(notesReadCount()).toBe(3);
+      expect(screen.getByTestId("notes-refresh")).not.toBeDisabled();
+    });
+    expect(notesRequests()[2]!.sort).toEqual(NEWEST_FIRST);
+    expect(screen.getByTestId("notes-sort")).toHaveTextContent("Newest first");
+    expect(screen.queryByTestId("notes-action-error")).toBeNull();
+  });
+
+  /*
+   * A read from the top started before a sort's notes arrive - a search
+   * here - reads in the order asked for, so the sort is not lost to it.
+   */
+  test("a search typed while a sort's notes are on their way is read in the order asked for", async () => {
+    const pending: Array<PendingRead> = [];
+    notesReads.push(answeredRead(notesWithMoreAnswer()), pendingRead(pending));
+
+    renderNotesPage("en");
+    await waitFor(() => {
+      expect(noteCards()).toHaveLength(NOTES.length);
+    });
+
+    const sort: HTMLElement = screen.getByTestId("notes-sort");
+    fireEvent.click(sort);
+    expect(pending).toHaveLength(1);
+    // On their way: the button names the order on screen still.
+    expect(sort).toHaveTextContent("Newest first");
+
+    fireEvent.change(screen.getByTestId("notes-search"), {
+      target: { value: "cert" },
+    });
+    await waitFor(
+      () => {
+        expect(notesReadCount()).toBe(3);
+      },
+      { timeout: 3000 },
+    );
+
+    const search: NotesRequest = notesRequests()[2]!;
+    expect(searchOf(search)).toBe("cert");
+    expect(search.sort).toEqual(OLDEST_FIRST);
+
+    await waitFor(() => {
+      expect(sort).toHaveTextContent("Oldest first");
+    });
+
+    // The sort's own answer, come late, is dropped.
+    await act(async () => {
+      pending[0]!.resolve(notesWithMoreAnswer());
+    });
+    expect(sort).toHaveTextContent("Oldest first");
+    expect(screen.getByTestId("notes-summary")).toHaveTextContent(
+      `${NOTES.length} matches`,
+    );
+  });
+
+  // Load more goes on with the notes on screen, in their order.
+  test("Load more pressed while a sort's notes are on their way reads on in the order on screen", async () => {
+    const pending: Array<PendingRead> = [];
+    notesReads.push(
+      answeredRead(notesWithMoreAnswer()),
+      pendingRead(pending),
+      answeredRead(answerOf(OLDER_NOTES, ALL_NOTES_COUNT)),
+    );
+
+    renderNotesPage("en");
+    await waitFor(() => {
+      expect(noteCards()).toHaveLength(NOTES.length);
+    });
+
+    fireEvent.click(screen.getByTestId("notes-sort"));
+    expect(pending).toHaveLength(1);
+    fireEvent.click(screen.getByTestId("notes-load-more"));
+
+    await waitFor(() => {
+      expect(noteCards()).toHaveLength(ALL_NOTES_COUNT);
+    });
+
+    const loadMore: NotesRequest = notesRequests()[2]!;
+    expect(loadMore.skip).toBe(NOTES.length);
+    expect(loadMore.sort).toEqual(NEWEST_FIRST);
+    expect(screen.getByTestId("notes-sort")).toHaveTextContent("Newest first");
+  });
+
+  test("after a failed search, the toolbar counts the notes on screen - never matches of a search that did not run - and the refresh tries the search again", async () => {
+    await renderLoadedFeed("en", SERVER_FAILURE);
+    const total: number = notesWithMoreAnswer().count;
+
+    await failAction("search");
+
+    const summary: HTMLElement = screen.getByTestId("notes-summary");
+    expect(summary).toHaveTextContent(`${total} notes`);
+    expect(summary).not.toHaveTextContent("match");
+    // Counted by the heading too, as every note is.
+    expect(screen.getByTestId("notes-count")).toHaveTextContent(String(total));
+    // The box keeps the reader's words.
+    expect(screen.getByTestId("notes-search")).toHaveValue("cert");
+
+    notesReads.push(answeredRead(answerOf([NOTES[0]!], 1)));
+    fireEvent.click(screen.getByTestId("notes-refresh"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("notes-summary")).toHaveTextContent("1 match");
+    });
+    expect(searchOf(notesRequests()[2]!)).toBe("cert");
+    expect(noteCards()).toHaveLength(1);
+    expect(screen.queryByTestId("notes-count")).toBeNull();
+    expect(screen.queryByTestId("notes-action-error")).toBeNull();
+  });
+
+  /*
+   * A search with no matches, cleared, and the read of every note fails:
+   * the feed still shows the search's (no) matches, and its Clear search
+   * has nothing left in the box to change.
+   */
+  test("Clear search, once clearing the search failed, reads every note again", async () => {
+    notesReads.push(
+      answeredRead(notesAnswer()),
+      answeredRead(answerOf([], 0)),
+      failingRead(SERVER_FAILURE),
+    );
+
+    renderNotesPage("en");
+    await waitFor(() => {
+      expect(noteCards()).toHaveLength(NOTES.length);
+    });
+
+    fireEvent.change(screen.getByTestId("notes-search"), {
+      target: { value: "nothing like this" },
+    });
+    const empty: HTMLElement = await screen.findByTestId(
+      "notes-search-empty",
+      {},
+      { timeout: 3000 },
+    );
+
+    fireEvent.click(
+      within(empty).getByRole("button", { name: "Clear search" }),
+    );
+    await screen.findByTestId("notes-action-error");
+    expect(whatFailed()).toBe(ACTION_FAILED.search);
+    expect(screen.getByTestId("notes-summary")).toHaveTextContent("0 matches");
+    expect(screen.getByTestId("notes-search")).toHaveValue("");
+
+    fireEvent.click(
+      within(screen.getByTestId("notes-search-empty")).getByRole("button", {
+        name: "Clear search",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(noteCards()).toHaveLength(NOTES.length);
+    });
+    expect(notesReadCount()).toBe(4);
+    expect(searchOf(notesRequests()[3]!)).toBeNull();
+    expect(screen.queryByTestId("notes-action-error")).toBeNull();
+  });
+});
+
+/*
+ * The count by the feed's heading was drawn as it came: a Latin "2" on a
+ * Persian page, whose count over the notes read "۲ یادداشت".
+ */
+describe("the count by the notes feed's heading", () => {
+  test.each([
+    ["en", "2"],
+    ["de", "2"],
+    ["fa", "۲"],
+  ])(
+    "in %s, it is written in the reader's digits: %s",
+    async (language: string, two: string) => {
+      renderNotesPage(language);
+      await waitFor(() => {
+        expect(noteCards()).toHaveLength(NOTES.length);
+      });
+
+      expect(screen.getByTestId("notes-count").textContent).toBe(two);
+      // As the count over the notes writes it.
+      expect(screen.getByTestId("notes-summary")).toHaveTextContent(two);
+    },
+  );
 });

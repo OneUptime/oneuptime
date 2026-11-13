@@ -1,9 +1,9 @@
 # Twilio 統合
 
-セルフホストの OneUptime は、あなた自身の Twilio アカウントを通じて SMS と音声のアラートを送信し、料金は Twilio に直接支払います。Twilio の認証情報は環境変数ではなく OneUptime のダッシュボードに保存します。通知の配信は保存された設定を読み取り、Helm チャートには Twilio の認証情報の値がありません。
+セルフホストの OneUptime は、あなた自身の Twilio アカウントを通じて SMS と音声のアラートを送信し、料金は Twilio に直接支払います。Twilio の認証情報は、1 つのプロジェクト用またはインストール全体用に OneUptime のダッシュボードに保存します。コードからデプロイするインストールでは、代わりに環境変数でインストール全体のアカウントを設定でき、Helm チャートと Docker Compose がそれを渡します。詳しくは [環境変数でインストール全体のアカウントを設定する](#環境変数でインストール全体のアカウントを設定する) を参照してください。
 
 > [!NOTE]
-> 過去のマイグレーションで `TWILIO_ACCOUNT_SID`、`TWILIO_AUTH_TOKEN`、`TWILIO_PHONE_NUMBER` が取り込まれました。これらの変数を変更しても、既存のインストールの認証情報は更新されません。
+> 過去のマイグレーションで `TWILIO_ACCOUNT_SID`、`TWILIO_AUTH_TOKEN`、`TWILIO_PHONE_NUMBER` が一度だけ取り込まれました。これらの変数を変更しても、既存のインストールの認証情報は更新されません。更新されるのは下記の `GLOBAL_TWILIO_` 変数です。
 
 :::cards
 - [Twilio アカウントを準備する](#1-twilio-アカウントを準備する): 認証情報、電話番号、アカウントの制限。
@@ -53,6 +53,41 @@
 :::
 
 インストール全体のデフォルトにする場合は、代わりに管理者が **Admin Dashboard > 設定 > 通話とSMS** を開き、アカウントが送るものを選び、Twilio の認証情報と電話番号を編集して保存します。メンバーへの通知は、プロジェクトにデフォルトの設定がないときにこのグローバル設定を使います。Auth Token は秘密にしてください。
+
+### 環境変数でインストール全体のアカウントを設定する
+
+新しいインストールを、手作業の設定なしで SMS と通話が使える状態で起動できます。Terraform など OneUptime をデプロイするツールから、環境変数でインストール全体のアカウントを設定してください。`GLOBAL_TWILIO_ACCOUNT_SID` が設定されると、アカウントは変数が表すものになります。**Admin Dashboard > 設定 > 通話とSMS** に保存されたアカウントは使われず、そのページにはこのアカウントが読み取り専用で、各フィールドを設定する変数とともに表示されます。代わりに Admin Dashboard でアカウントを設定するには、`GLOBAL_TWILIO_ACCOUNT_SID` を空のままにします。プロジェクトの設定には影響しません。
+
+| 変数 | Helm の値 | 内容 |
+| --- | --- | --- |
+| `GLOBAL_TWILIO_ACCOUNT_SID` | `twilio.accountSid` | Account SID。これを設定すると、OneUptime がほかの変数を読み取ります |
+| `GLOBAL_TWILIO_AUTH_TOKEN` | `twilio.authToken`、または `twilio.existingSecret.name` で指定した Secret | Auth Token |
+| `GLOBAL_TWILIO_USED_FOR` | `twilio.usedFor` | `calls-and-sms`（空のときも同じ）、`sms-only`、`calls-only` のいずれか |
+| `GLOBAL_TWILIO_PRIMARY_PHONE_NUMBER` | `twilio.primaryPhoneNumber` | 通話の発信元となる、国番号付きの番号。`sms-only` では不要です |
+| `GLOBAL_TWILIO_SECONDARY_PHONE_NUMBERS` | `twilio.secondaryPhoneNumbers` | 任意のカンマ区切りの番号。その国の受信者には、プライマリ番号の代わりにこれらが使われます |
+| `GLOBAL_TWILIO_SMS_PHONE_NUMBERS` | `twilio.smsPhoneNumbers` | すべての SMS の送信元となる、カンマ区切りの番号。`sms-only` では必須です |
+
+Helm では、values の `twilio` の下で設定します。Helm がリリースごとに保存する values に auth token を残さないよう、自分で管理する Secret に入れ、その Secret を `twilio.existingSecret.name` で指定します。
+
+```bash
+kubectl create secret generic oneuptime-twilio --namespace oneuptime \
+  --from-literal=authToken=YOUR_TWILIO_AUTH_TOKEN
+```
+
+```yaml
+twilio:
+  accountSid: ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+  usedFor: calls-and-sms
+  primaryPhoneNumber: "+14155550100"
+  existingSecret:
+    name: oneuptime-twilio
+```
+
+values ファイルでは電話番号を引用符で囲み、`--set` ではなく `--set-string` で渡してください。引用符がないと `+14155550100` は数値になり、チャートはそれを拒否します。チャートはほかにも、`twilio.accountSid` のない `twilio` の値、auth token のない Account SID、`twilio.authToken` と Secret の両方で指定された auth token を拒否します。Terraform では、同じ値を `helm_release` に設定し、auth token は機密の値として渡します。
+
+Docker Compose では、`config.env` で `GLOBAL_TWILIO_` の設定を行い、`npm run start` を実行してコンテナーを作り直します。
+
+OneUptime は起動時に変数を読み取ります。OneUptime が読み取れない電話番号や auth token の欠落など、いずれかが誤っていると、修正されるまでこのアカウントは SMS を送信せず、電話もかけません。どの変数かは、サーバーのログ、**Admin Dashboard > 設定 > 通話とSMS**、`/admin/setup` のチェックリストに表示されます。auth token が表示されることはありません。アカウントを変更するには、変数を変更して OneUptime を再起動してください。Admin Dashboard では変更できません。
 
 ### 通話と SMS で番号を分ける
 

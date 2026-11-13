@@ -3,7 +3,11 @@ import {
   NetworkTrafficAddressName,
   NetworkTrafficAddressNames,
 } from "Common/Types/NetFlow/NetworkAddressName";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  toLabelTerm,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * HOW A TRAFFIC PAGE WRITES AN ADDRESS (issue #5340): by its name first -
@@ -77,6 +81,23 @@ export const TRAFFIC_ADDRESS_SOURCE_LABELS: Record<
   [NetworkAddressNameSource.KubernetesPod]: translationKey("Kubernetes pod"),
   [NetworkAddressNameSource.Dns]: translationKey("DNS name"),
 };
+
+/*
+ * Where an address's name comes from, as the address card says it: a
+ * label, so it starts with a capital wherever the language writes one.
+ * "Cloud resource" is a noun of the AI activity's sentences too, and every
+ * language that writes such a noun lower-case words it for the middle of
+ * one ("recurso en la nube", "облачный ресурс"); here it reads "Recurso en
+ * la nube", as "Host" and "DNS name" beside it do.
+ */
+export function getTrafficAddressSourceText(
+  source: NetworkAddressNameSource,
+  translator: Translator,
+): string {
+  const key: string = TRAFFIC_ADDRESS_SOURCE_LABELS[source];
+
+  return toLabelTerm(translator.translateText(key) || key, translator.language);
+}
 
 // Whether a label's name is the project's own record, with a page to open.
 export function hasRecordPage(label: TrafficAddressLabel): boolean {

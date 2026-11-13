@@ -541,7 +541,12 @@
         "cardTitle": "Twilio-Konfiguration",
         "cardDescription": "Das Twilio-Konto, über das OneUptime SMS und Anrufe sendet, sofern ein Projekt keine eigene Twilio-Konfiguration verwendet.",
         "editButton": "Twilio-Konfiguration bearbeiten",
-        "smsSameAsCalls": "Dieselben Nummern wie für Anrufe"
+        "smsSameAsCalls": "Dieselben Nummern wie für Anrufe",
+        "environmentCardDescription": "Durch Umgebungsvariablen festgelegt: twilio in den Werten des Helm-Charts oder die GLOBAL_TWILIO_-Einstellungen in config.env. Um dieses Konto zu ändern, ändern Sie sie dort und starten Sie OneUptime neu.",
+        "environmentProblemsTitle": "Dieses Konto sendet keine SMS und tätigt keine Anrufe, bis diese Umgebungsvariablen korrigiert sind:",
+        "environmentUnusedTitle": "Einige Twilio-Umgebungsvariablen werden nicht verwendet:",
+        "authTokenSet": "Festgelegt",
+        "authTokenNotSet": "Nicht festgelegt"
       },
       "whatsapp": {
         "metaCardTitle": "Meta WhatsApp-Einstellungen",
@@ -2588,8 +2593,8 @@
   "{{count}} events at {{time}}": "{{count}} events at {{time}}",
   "{{count}} events at {{time}}_one": "{{count}} event at {{time}}",
   "{{label}} at {{time}}": "{{label}} at {{time}}",
-  "+{{count}} more series — highest values shown": "+{{count}} more series — highest values shown",
-  "+{{count}} more series — highest values shown_one": "+{{count}} more series — highest values shown",
+  "+{{count}} more series — highest values shown": "+{{count}} weitere Reihen — die höchsten Werte werden angezeigt",
+  "+{{count}} more series — highest values shown_one": "+{{count}} weitere Reihe — die höchsten Werte werden angezeigt",
   "Tab inserts indentation. To move focus out of the editor, press Escape, then Tab.": "Tab inserts indentation. To move focus out of the editor, press Escape, then Tab.",
   "Valid {{language}} · {{count}} lines": "Valid {{language}} · {{count}} lines",
   "Valid {{language}} · {{count}} lines_one": "Valid {{language}} · {{count}} line",

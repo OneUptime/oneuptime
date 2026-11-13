@@ -541,7 +541,12 @@
         "cardTitle": "Twilio 配置",
         "cardDescription": "OneUptime 用来发送短信和拨打电话的 Twilio 账户，除非项目使用自己的 Twilio 配置。",
         "editButton": "编辑 Twilio 配置",
-        "smsSameAsCalls": "与通话相同的号码"
+        "smsSameAsCalls": "与通话相同的号码",
+        "environmentCardDescription": "由环境变量设置：Helm chart 值中的 twilio，或 config.env 中的 GLOBAL_TWILIO_ 设置。要更改此账户，请在那里更改并重启 OneUptime。",
+        "environmentProblemsTitle": "在这些环境变量修正之前，此账户不会发送短信，也不会拨打电话：",
+        "environmentUnusedTitle": "部分 Twilio 环境变量未被使用：",
+        "authTokenSet": "已设置",
+        "authTokenNotSet": "未设置"
       },
       "whatsapp": {
         "metaCardTitle": "Meta WhatsApp 设置",
@@ -2009,7 +2014,7 @@
   "Metrics": "指标",
   "Traces": "追踪",
   "Exceptions": "异常",
-  "Profiles": "配置文件",
+  "Profiles": "性能剖析",
   "Session Replays": "会话回放",
   "Security Events": "安全事件",
   "Spans. Days counted before exceptions were shown apart include their exceptions too.": "跨度。在异常单独显示之前统计的日期，也包含其异常。",
@@ -2588,8 +2593,8 @@
   "{{count}} events at {{time}}": "{{count}} events at {{time}}",
   "{{count}} events at {{time}}_one": "{{count}} event at {{time}}",
   "{{label}} at {{time}}": "{{label}} at {{time}}",
-  "+{{count}} more series — highest values shown": "+{{count}} more series — highest values shown",
-  "+{{count}} more series — highest values shown_one": "+{{count}} more series — highest values shown",
+  "+{{count}} more series — highest values shown": "另外 +{{count}} 个序列——仅显示数值最高的序列",
+  "+{{count}} more series — highest values shown_one": "另外 +{{count}} 个序列——仅显示数值最高的序列",
   "Tab inserts indentation. To move focus out of the editor, press Escape, then Tab.": "Tab inserts indentation. To move focus out of the editor, press Escape, then Tab.",
   "Valid {{language}} · {{count}} lines": "Valid {{language}} · {{count}} lines",
   "Valid {{language}} · {{count}} lines_one": "Valid {{language}} · {{count}} line",

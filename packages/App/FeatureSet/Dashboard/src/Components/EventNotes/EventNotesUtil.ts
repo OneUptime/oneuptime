@@ -32,6 +32,10 @@ import {
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import {
+  formatRelativeTimeParts,
+  RelativeTimeParts,
+} from "../Home/HomeRelativeTime";
 
 /*
  * Everything the notes feed decides without React: which date a note is
@@ -672,6 +676,22 @@ export function getNotesCopy(
 }
 
 /*
+ * What failed, said first when posting, editing or deleting a note fails
+ * with an error nobody explained (ErrorExplanation): the composer's error
+ * line and the delete dialog have no heading that says it. English keys,
+ * looked up where they are shown.
+ */
+export const NoteActionFailedCopy: {
+  post: string;
+  edit: string;
+  delete: string;
+} = {
+  post: translationKey("Couldn't post the note."),
+  edit: translationKey("Couldn't save your changes."),
+  delete: translationKey("Couldn't delete the note."),
+};
+
+/*
  * Whether the viewer holds one of a column's permissions for an operation,
  * by the server's column rule (HeldPermissionsUtil.holdsColumnPermission):
  * one of the permissions held - Public by everyone - no team block on any of
@@ -846,7 +866,7 @@ export function canWriteNoteColumn(data: {
  * backdates an update to the second.
  */
 export function toDateTimeInputValue(date: Date): string {
-  return OneUptimeDate.toDateTimeLocalString(date).substring(0, 16);
+  return OneUptimeDate.toDateTimeLocalMinuteString(date);
 }
 
 export function fromDateTimeInputValue(value: string): Date | null {
@@ -865,16 +885,25 @@ export function fromDateTimeInputValue(value: string): Date | null {
 // Notes younger than this read as "5 minutes ago"; older ones by clock time.
 export const RELATIVE_TIME_WINDOW_MS: number = 6 * 60 * 60 * 1000;
 
+// A note under a minute old, as the Dashboard words a time that is now.
+const NOTE_JUST_NOW: string = translationKey("just now");
+
 /*
  * The short time beside a note's author. The day heading above it already
  * names the date, so a note from this morning reads "3 hours ago" and one
- * from last week reads "14:03". The full date is in the tooltip.
+ * from last week reads "14:03". The full date is in the tooltip. Both are
+ * in the reader's language and digits: the age in the translator's, the
+ * clock time in the language the page writes dates in (DateLanguage).
  */
-export function getNoteTimeLabel(date: Date, now: Date): string {
+export function getNoteTimeLabel(
+  date: Date,
+  now: Date,
+  translator: Translator = getGlobalTranslator(),
+): string {
   const ageMs: number = now.getTime() - date.getTime();
 
   if (ageMs >= 0 && ageMs < RELATIVE_TIME_WINDOW_MS) {
-    return getRelativeTimeLabel(ageMs);
+    return getRelativeTimeLabel(ageMs, translator);
   }
 
   return OneUptimeDate.getLocalTimeString(date, {
@@ -884,22 +913,31 @@ export function getNoteTimeLabel(date: Date, now: Date): string {
 
 /*
  * Measured against the `now` the feed rendered with, not the wall clock, so
- * every note on screen - and every test - agrees on what "now" is.
+ * every note on screen - and every test - agrees on what "now" is. Whole
+ * minutes, then whole hours, worded by Intl (HomeRelativeTime) with each
+ * language's own plural forms and digits: a Persian page reads
+ * "۲۰ دقیقه پیش" from the right, where the English "20 minutes ago" it
+ * drew before read "minutes ago 20".
  */
-export function getRelativeTimeLabel(ageMs: number): string {
+export function getRelativeTimeLabel(
+  ageMs: number,
+  translator: Translator = getGlobalTranslator(),
+): string {
   const minutes: number = Math.floor(Math.max(ageMs, 0) / (60 * 1000));
 
   if (minutes < 1) {
-    return "just now";
+    return translator.translateText(NOTE_JUST_NOW) || NOTE_JUST_NOW;
   }
 
-  if (minutes < 60) {
-    return minutes === 1 ? "1 minute ago" : `${minutes} minutes ago`;
-  }
+  const parts: RelativeTimeParts =
+    minutes < 60
+      ? { value: -minutes, unit: "minute" }
+      : { value: -Math.floor(minutes / 60), unit: "hour" };
 
-  const hours: number = Math.floor(minutes / 60);
-
-  return hours === 1 ? "1 hour ago" : `${hours} hours ago`;
+  return formatRelativeTimeParts({
+    parts: parts,
+    language: translator.language,
+  });
 }
 
 export function getNoteFullTimeLabel(date: Date): string {

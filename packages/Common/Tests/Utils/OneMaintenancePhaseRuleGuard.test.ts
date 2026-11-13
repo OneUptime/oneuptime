@@ -130,7 +130,7 @@ describe("one rule decides where a scheduled maintenance event is in its life", 
     /*
      * Ask Common/Utils/ScheduledMaintenanceStart (isWaitingToStart,
      * hasStarted, isInProgress, hasEnded, isComplete, getPhase,
-     * getEndedState) or ScheduledMaintenanceStateService
+     * getScheduledState, getEndedState) or ScheduledMaintenanceStateService
      * (getWaitingToStartScheduledMaintenanceStateIds,
      * getWaitingToStartEventQueriesOfEveryProject,
      * getIncompleteScheduledMaintenanceStateIds,

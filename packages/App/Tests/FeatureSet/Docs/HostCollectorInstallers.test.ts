@@ -4,6 +4,7 @@ import {
   HOST_COLLECTOR_MACOS_LOG_FILE,
   HOST_COLLECTOR_MACOS_SERVICE_LABEL,
   HOST_COLLECTOR_OPAMP_PATH,
+  HOST_COLLECTOR_OPAMP_ROUTE,
   HOST_COLLECTOR_PINNED_VERSION,
   HOST_COLLECTOR_SERVICE_NAME,
   HOST_COLLECTOR_URL_ENV,
@@ -14,6 +15,7 @@ import {
   isHostCollectorLabelValue,
 } from "Common/Utils/HostCollector/HostCollectorInstallCommand";
 import {
+  HOST_COLLECTOR_OPAMP_SETTINGS_FILE,
   HOST_FEATURE_JOURNALD_ATTRIBUTE,
   HOST_FEATURE_SYSTEMD_ATTRIBUTE,
 } from "Common/Server/Utils/HostCollector/OpAmp/OpAmpExchange";
@@ -182,14 +184,41 @@ describe("what they set up", () => {
   });
 
   test("the supervisor asks this OneUptime for its config, with the key", () => {
-    expect(SH).toContain(
-      `endpoint: $(yaml_quote "$ONEUPTIME_URL${HOST_COLLECTOR_OPAMP_PATH}")`,
-    );
-    expect(PS1).toContain(
-      `endpoint: $(ConvertTo-YamlString "$Url${HOST_COLLECTOR_OPAMP_PATH}")`,
-    );
+    expect(SH).toContain(`OPAMP_PATH="${HOST_COLLECTOR_OPAMP_PATH}"`);
+    expect(SH).toContain('endpoint: $(yaml_quote "$ONEUPTIME_URL$OPAMP_PATH")');
+    expect(PS1).toContain(`$OpAmpPath = "${HOST_COLLECTOR_OPAMP_PATH}"`);
+    expect(PS1).toContain('endpoint: $(ConvertTo-YamlString "$Url$OpAmpPath")');
     expect(SH).toContain('x-oneuptime-token: $(yaml_quote "$INGESTION_KEY")');
     expect(PS1).toContain("x-oneuptime-token: $(ConvertTo-YamlString $Key)");
+  });
+
+  test("they ask at the OpAMP route under /telemetry, which every OneUptime ingress sends to the App", () => {
+    /*
+     * The bare route (/opamp/v1) reached the marketing site on
+     * oneuptime.com, so every host installed against it got a 404 and no
+     * config. Nginx's TelemetryIngestRouting tests hold the ingress to both.
+     */
+    expect(HOST_COLLECTOR_OPAMP_PATH).toBe(
+      `/telemetry${HOST_COLLECTOR_OPAMP_ROUTE}`,
+    );
+
+    for (const script of [SH, PS1]) {
+      // One address, in one place: nothing else names the route.
+      expect(script.split(HOST_COLLECTOR_OPAMP_ROUTE).length - 1).toBe(1);
+    }
+  });
+
+  test("the config install.sh writes points the supervisor at the URL it was given, under /telemetry", () => {
+    const written: string = runHelpers(
+      [
+        `ONEUPTIME_URL="$(trim_url 'https://oneuptime.example.com/')"`,
+        `printf 'endpoint: %s\\n' "$(yaml_quote "$ONEUPTIME_URL$OPAMP_PATH")"`,
+      ].join("\n"),
+    );
+
+    expect(written).toBe(
+      `endpoint: "https://oneuptime.example.com${HOST_COLLECTOR_OPAMP_PATH}"\n`,
+    );
   });
 
   test("the collector gets the URL and key every config refers to", () => {
@@ -218,6 +247,20 @@ describe("what they set up", () => {
     expect(SH).toContain(
       `${HOST_FEATURE_SYSTEMD_ATTRIBUTE}: "$HAS_SYSTEMD_BUS"`,
     );
+  });
+
+  test("the supervisor reports only its own merge of the config, never the collector's with its values filled in", () => {
+    /*
+     * The collector's report of the config it runs fills in every
+     * ${env:...}: the file OneUptime sends with each config turns it off
+     * (OpAmpExchange). The supervisor's own report stays on - with it off,
+     * the supervisor logs an error for each report the collector makes.
+     */
+    for (const script of [SH, PS1]) {
+      expect(script).toContain("reports_effective_config: true");
+      expect(script).toContain(`(${HOST_COLLECTOR_OPAMP_SETTINGS_FILE})`);
+      expect(script).not.toContain("so it holds no key");
+    }
   });
 
   test("a config is checked before the collector switches to it, and one that does not start is rolled back", () => {
@@ -571,5 +614,245 @@ describe("install.sh's checks agree with the Dashboard's", () => {
     expect(
       runHelpers(`trim_url 'https://oneuptime.example.com///'; echo`),
     ).toBe("https://oneuptime.example.com\n");
+  });
+});
+
+/*
+ * After it starts the service, install.sh waits up to a minute for the
+ * supervisor's first config, reading the supervisor's log for an answer
+ * that will not change on its own: a refused key (401, 403, 422), or 404 -
+ * nothing at the address it asks answers as OneUptime. Each gets its own
+ * explanation instead of "OneUptime has not answered yet", which sent
+ * people to check a network that was fine. opamp-go logs every such
+ * answer as "invalid response from server: <status>" and asks again on its
+ * next poll, so the collector stays installed and connects once it is
+ * fixed.
+ */
+describe("what install.sh tells people when OneUptime turns the supervisor away", () => {
+  // install.sh's helpers, with refused_status reading `log` as this run's log.
+  function readRefusal(log: string): string {
+    const logDir: string = fs.mkdtempSync(
+      path.join(os.tmpdir(), "host-collector-log-"),
+    );
+
+    try {
+      fs.writeFileSync(path.join(logDir, "collector.log"), log);
+
+      return runHelpers(
+        [`OS=darwin`, `LOG_DIR=${shellQuote(logDir)}`, `refused_status`].join(
+          "\n",
+        ),
+      );
+    } finally {
+      fs.rmSync(logDir, { recursive: true, force: true });
+    }
+  }
+
+  const SUPERVISOR: string =
+    '2026-11-13T09:00:00.000Z\terror\topamp-client\t{"error": "invalid response from server: %s"}';
+
+  test.each([["401"], ["403"], ["422"], ["404"]])(
+    "reads HTTP %s from the supervisor's log",
+    (status: string) => {
+      expect(readRefusal(`${SUPERVISOR.replace("%s", status)}\n`)).toBe(status);
+    },
+  );
+
+  test.each([
+    ["an empty log", ""],
+    [
+      "a busy OneUptime, which it retries",
+      "error\topamp-client\tFailed to do HTTP request (server response code=503), will retry\n",
+    ],
+    [
+      "a name that does not resolve",
+      'error\tFailed to connect to the OpAMP server\t{"error": "Post \\"https://oneuptime.example.com/telemetry/opamp/v1\\": dial tcp: lookup oneuptime.example.com: no such host"}\n',
+    ],
+    ["a server error", `${SUPERVISOR.replace("%s", "500")}\n`],
+  ])("reads no refusal from %s", (_label: string, log: string) => {
+    expect(readRefusal(log)).toBe("");
+  });
+
+  test("on Linux it reads this run of the service only", () => {
+    const bin: string = fs.mkdtempSync(path.join(os.tmpdir(), "journalctl-"));
+
+    try {
+      // Answers 404 for this run's invocation, 401 for any other read.
+      fs.writeFileSync(
+        path.join(bin, "journalctl"),
+        [
+          "#!/bin/sh",
+          'if [ "$1" = "_SYSTEMD_INVOCATION_ID=run-2" ]; then',
+          `  echo '${SUPERVISOR.replace("%s", "404")}'`,
+          "else",
+          `  echo '${SUPERVISOR.replace("%s", "401")}'`,
+          "fi",
+        ].join("\n"),
+        { mode: 0o755 },
+      );
+
+      expect(
+        runHelpers(
+          [
+            `PATH=${shellQuote(bin)}:"$PATH"`,
+            "OS=linux",
+            "SERVICE_NAME=oneuptime-collector",
+            "INVOCATION_ID=run-2",
+            "refused_status",
+          ].join("\n"),
+        ),
+      ).toBe("404");
+    } finally {
+      fs.rmSync(bin, { recursive: true, force: true });
+    }
+  });
+
+  /*
+   * The wait itself, as install.sh runs it: its helpers, then the end of
+   * main() from "Waiting for OneUptime", with refused_status answering
+   * `refusal` and sleep not waiting.
+   */
+  function runWait(refusal: string, connected: boolean = false): Run {
+    const helpers: string = SH.substring(0, SH.indexOf("\nmain() {"));
+    const waitStart: number = SH.indexOf(
+      '    say "Waiting for OneUptime to send this host its config..."',
+    );
+    const waitEnd: number = SH.indexOf('\n}\n\nmain "$@"');
+
+    expect(waitStart).toBeGreaterThan(0);
+    expect(waitEnd).toBeGreaterThan(waitStart);
+
+    const stateDir: string = fs.mkdtempSync(
+      path.join(os.tmpdir(), "host-collector-state-"),
+    );
+
+    try {
+      if (connected) {
+        fs.writeFileSync(
+          path.join(stateDir, "last_recv_remote_config.dat"),
+          "",
+        );
+      }
+
+      const result: SpawnSyncReturns<string> = spawnSync(
+        "sh",
+        [
+          "-c",
+          [
+            helpers,
+            `refused_status() { printf '%s' ${shellQuote(refusal)}; }`,
+            "sleep() { :; }",
+            "ONEUPTIME_URL='https://oneuptime.example.com'",
+            'OPAMP_URL="$ONEUPTIME_URL$OPAMP_PATH"',
+            `STATE_DIR=${shellQuote(stateDir)}`,
+            "LOGS_COMMAND='sudo journalctl -u oneuptime-collector -n 50'",
+            SH.substring(waitStart, waitEnd),
+          ].join("\n"),
+        ],
+        { encoding: "utf8", timeout: 20000 },
+      );
+
+      return {
+        status: result.status,
+        stdout: result.stdout,
+        stderr: result.stderr,
+      };
+    } finally {
+      fs.rmSync(stateDir, { recursive: true, force: true });
+    }
+  }
+
+  test("a 404 says OneUptime is not at the address the collector asks, and what to check", () => {
+    const run: Run = runWait("404");
+    const address: string = `https://oneuptime.example.com${HOST_COLLECTOR_OPAMP_PATH}`;
+
+    expect(run.status).toBe(1);
+    expect(run.stderr).toBe("");
+    expect(run.stdout).toContain(
+      `OneUptime was not found at ${address} (HTTP 404).`,
+    );
+    expect(run.stdout).toContain(
+      "That is where the collector asks for its config. Check that --url is the address you open",
+    );
+    expect(run.stdout).toContain(
+      "OneUptime at, such as https://oneuptime.com, with nothing after it.",
+    );
+    expect(run.stdout).toContain(
+      `have it send ${HOST_COLLECTOR_OPAMP_PATH} to OneUptime, as it does /otlp.`,
+    );
+    expect(run.stdout).toContain(
+      "The collector stays installed and asks again every 30 seconds.",
+    );
+    // Not a key refusal, and not a network to go and check.
+    expect(run.stdout).not.toContain("refused the key");
+    expect(run.stdout).not.toContain("has not answered yet");
+  });
+
+  test.each([["401"], ["403"], ["422"]])(
+    "HTTP %s still says OneUptime refused the key",
+    (status: string) => {
+      const run: Run = runWait(status);
+
+      expect(run.status).toBe(1);
+      expect(run.stdout).toContain(
+        `OneUptime refused the key (HTTP ${status}).`,
+      );
+      expect(run.stdout).not.toContain("was not found");
+    },
+  );
+
+  test("no answer yet still says to check the host can reach OneUptime", () => {
+    const run: Run = runWait("");
+
+    expect(run.status).toBe(0);
+    expect(run.stdout).toContain(
+      "The collector is installed and running, but OneUptime has not answered yet.",
+    );
+    expect(run.stdout).toContain(
+      "Check that this host can reach https://oneuptime.example.com",
+    );
+  });
+
+  test("a config from OneUptime says the host is connected", () => {
+    const run: Run = runWait("", true);
+
+    expect(run.status).toBe(0);
+    expect(run.stdout).toContain("is connected to OneUptime");
+  });
+
+  test("install.ps1 tells a 404 apart the same way", () => {
+    expect(PS1).toContain(
+      'foreach ($status in @("401", "403", "422", "404")) {',
+    );
+
+    const wait: string = PS1.substring(
+      PS1.indexOf(
+        'Write-Host "Waiting for OneUptime to send this host its config..."',
+      ),
+    );
+    const notFound: number = wait.indexOf('if ($refusal -eq "404") {');
+    const refused: number = wait.indexOf("if ($refusal) {");
+
+    // Read before the key refusals, which every other status is.
+    expect(notFound).toBeGreaterThan(0);
+    expect(notFound).toBeLessThan(refused);
+
+    const branch: string = wait.substring(notFound, refused);
+
+    expect(branch).toContain(
+      'Write-Host "OneUptime was not found at $Url$OpAmpPath (HTTP 404)."',
+    );
+    expect(branch).toContain(
+      'Write-Host "That is where the collector asks for its config. Check that -Url is the address you open"',
+    );
+    expect(branch).toContain(
+      'Write-Host "of yours sits in front of OneUptime, have it send $OpAmpPath to OneUptime, as it does /otlp."',
+    );
+    expect(branch).toContain(
+      'Write-Host "The collector stays installed and asks again every 30 seconds."',
+    );
+    expect(branch).toContain(
+      'Stop-WithError "OneUptime was not found at $Url$OpAmpPath (HTTP 404)."',
+    );
   });
 });

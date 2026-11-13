@@ -244,9 +244,12 @@ export const getAnnouncementFormFields: (
       required: true,
       placeholder: "Pick Date and Time",
       collapsibleSection: scheduleSection,
-      // A new announcement shows now; an edited one keeps its own start.
+      /*
+       * A new announcement shows now - from the minute the field shows, which
+       * has already begun; an edited one keeps its own start.
+       */
       getDefaultValue: (): Date => {
-        return OneUptimeDate.getCurrentDate();
+        return OneUptimeDate.getStartOfMinute(OneUptimeDate.getCurrentDate());
       },
     },
     {

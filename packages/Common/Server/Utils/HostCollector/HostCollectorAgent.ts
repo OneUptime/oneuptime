@@ -48,6 +48,7 @@ import {
   OpAmpExchangeResult,
   describeHostCollectorAgent,
   exchangeWithHostCollector,
+  getHostCollectorSentConfigHash,
   getOpAmpErrorResponse,
   getOpAmpInstanceUidText,
   getReportFullStateResponse,
@@ -55,8 +56,10 @@ import {
 
 /*
  * The server side of a managed host's collector: every message its OpAMP
- * supervisor posts to <OneUptime URL>/opamp/v1 (authorized by the project's
- * telemetry ingestion key before it gets here) comes through handleMessage.
+ * supervisor posts (to <OneUptime URL>/telemetry/opamp/v1, or /opamp/v1 from
+ * a host installed before the installers moved to /telemetry), authorized by
+ * the project's telemetry ingestion key before it gets here, comes through
+ * handleMessage.
  *
  *   1. Which host: the one the supervisor names (host.name, as the
  *      collector's own telemetry names it - so both land on one host), or
@@ -80,6 +83,9 @@ export const HOST_COLLECTOR_LAST_CONTACT_WRITE_INTERVAL_MS: number =
 
 // The most configs a project's hosts are matched against.
 const MAX_CONFIGS_PER_PROJECT: number = 500;
+
+// The most versions of a config, newest first, a host's hash is matched against.
+const MAX_VERSIONS_MATCHED: number = 500;
 
 type ProjectConfig = HostCollectorProjectConfig;
 
@@ -640,27 +646,43 @@ export default class HostCollectorAgent {
   }
 
   /*
-   * The newest version with this hash of the config the host should run, in
-   * the host's own project: null while the host still runs another config
-   * (or a default, which has no versions). Two projects, or two configs, can
-   * hold the same YAML; a host only ever shows a version of its own config.
+   * The newest version of the config the host should run that the hash it
+   * reports names, in the host's own project: null while the host still
+   * runs another config (or a default, which has no versions). A host
+   * reports the hash OneUptime sent the version with
+   * (getHostCollectorSentConfigHash of the version's own), or the version's
+   * own hash when it was sent before OneUptime added its settings file. Two
+   * projects, or two configs, can hold the same YAML; a host only ever shows
+   * a version of its own config.
    */
   private static async findVersionId(data: {
     projectId: ObjectID;
     configId: string;
     configHash: string;
   }): Promise<string | null> {
-    const version: HostCollectorConfigVersion | null =
-      await HostCollectorConfigVersionService.findOneBy({
+    const versions: Array<HostCollectorConfigVersion> =
+      await HostCollectorConfigVersionService.findBy({
         query: {
           projectId: data.projectId,
           hostCollectorConfigId: new ObjectID(data.configId),
-          configHash: data.configHash,
         },
-        select: { _id: true },
+        select: { _id: true, configHash: true },
         sort: { versionNumber: SortOrder.Descending },
+        limit: MAX_VERSIONS_MATCHED,
+        skip: 0,
         props: { isRoot: true },
       });
+
+    const version: HostCollectorConfigVersion | undefined = versions.find(
+      (item: HostCollectorConfigVersion): boolean => {
+        return (
+          Boolean(item.configHash) &&
+          (item.configHash === data.configHash ||
+            getHostCollectorSentConfigHash(item.configHash!) ===
+              data.configHash)
+        );
+      },
+    );
 
     return version?._id?.toString() || null;
   }

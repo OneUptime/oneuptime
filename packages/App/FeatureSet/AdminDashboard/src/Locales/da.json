@@ -541,7 +541,12 @@
         "cardTitle": "Twilio-konfiguration",
         "cardDescription": "Den Twilio-konto, som OneUptime sender SMS'er og foretager opkald gennem, medmindre et projekt bruger sin egen Twilio-konfiguration.",
         "editButton": "Rediger Twilio-konfig",
-        "smsSameAsCalls": "Samme numre som opkald"
+        "smsSameAsCalls": "Samme numre som opkald",
+        "environmentCardDescription": "Angivet med miljøvariabler: twilio i Helm-chartets værdier eller GLOBAL_TWILIO_-indstillingerne i config.env. Skift dem der, og genstart OneUptime for at ændre denne konto.",
+        "environmentProblemsTitle": "Denne konto sender ingen sms'er og foretager ingen opkald, før disse miljøvariabler er rettet:",
+        "environmentUnusedTitle": "Nogle Twilio-miljøvariabler bruges ikke:",
+        "authTokenSet": "Angivet",
+        "authTokenNotSet": "Ikke angivet"
       },
       "whatsapp": {
         "metaCardTitle": "Meta WhatsApp-indstillinger",
@@ -2588,8 +2593,8 @@
   "{{count}} events at {{time}}": "{{count}} events at {{time}}",
   "{{count}} events at {{time}}_one": "{{count}} event at {{time}}",
   "{{label}} at {{time}}": "{{label}} at {{time}}",
-  "+{{count}} more series — highest values shown": "+{{count}} more series — highest values shown",
-  "+{{count}} more series — highest values shown_one": "+{{count}} more series — highest values shown",
+  "+{{count}} more series — highest values shown": "+{{count}} serier mere — de højeste værdier vises",
+  "+{{count}} more series — highest values shown_one": "+{{count}} serie mere — de højeste værdier vises",
   "Tab inserts indentation. To move focus out of the editor, press Escape, then Tab.": "Tab inserts indentation. To move focus out of the editor, press Escape, then Tab.",
   "Valid {{language}} · {{count}} lines": "Valid {{language}} · {{count}} lines",
   "Valid {{language}} · {{count}} lines_one": "Valid {{language}} · {{count}} line",

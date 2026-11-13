@@ -12,15 +12,18 @@ import ObjectID from "Common/Types/ObjectID";
  * Proxmox:CleanupStaleResources
  *
  * Runs every 5 minutes. Two steps:
- *   1. Mark clusters as disconnected if they have not been seen for
+ *   1. Mark clusters as disconnected if they have not been READ for
  *      15 minutes (ProxmoxClusterService.markDisconnectedClusters —
- *      this cron is its only scheduled caller). The threshold is 3x
- *      the ingest maintenance fence TTL: lastSeenAt is legitimately up
- *      to ~5 minutes stale during continuous telemetry (Redis fence),
- *      so a threshold equal to the fence flaps healthy clusters
- *      between connected and disconnected. Net SLA: the list-page
- *      status pill flips to Disconnected ≤ ~20 minutes after the agent
- *      dies.
+ *      this cron is its only scheduled caller). lastSeenAt is the last
+ *      batch that carried what the Proxmox VE API says about the
+ *      cluster, not the last batch: an agent that runs but cannot read
+ *      the API (the node it reads went down, its token was revoked)
+ *      still sends its own scrape metrics and the per-node collectors of
+ *      the nodes still up, and used to keep its cluster Connected with
+ *      them for as long as it ran (issue #7439). Net SLA: the status
+ *      flips to Disconnected ≤ ~20 minutes after the last read, whether
+ *      the agent died or only lost the API - the Overview tells the two
+ *      apart by agentLastSeenAt.
  *   2. For each CONNECTED cluster, hard-delete ProxmoxResource
  *      inventory rows whose last snapshot is older than the stale
  *      threshold. Threshold and delete both live in
@@ -32,7 +35,14 @@ import ObjectID from "Common/Types/ObjectID";
  *      now: inventory rows ride the slower snapshot clock, so with the
  *      disconnect and prune thresholds both at 15 minutes a wall-clock
  *      cutoff could wipe the last-known inventory of a still-connected
- *      cluster late in an outage. Anchoring freezes the prune clock.
+ *      cluster late in an outage. Anchoring freezes the prune clock -
+ *      and since lastSeenAt is the last read, it freezes the moment the
+ *      agent loses the API too, so the rows that read refreshed are
+ *      never older than the cutoff. Behind that, deleteStaleForCluster
+ *      never deletes a cluster's whole inventory at once: with no row
+ *      fresher than the cutoff, the reads stopped describing the cluster
+ *      (lost API, an ingest backlog, a skewed agent clock), and nothing
+ *      is pruned until one does again.
  *
  * Skipping disconnected clusters is deliberate: during a transient
  * agent outage we want to preserve the last-known inventory rather

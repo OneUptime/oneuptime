@@ -28,9 +28,12 @@ import OnCallDutyPolicyService from "../../Services/OnCallDutyPolicyService";
 import OpenTelemetryIngestService, {
   TelemetryServiceMetadata,
 } from "../../Services/OpenTelemetryIngestService";
-import ProjectService from "../../Services/ProjectService";
 import ScheduledMaintenanceService from "../../Services/ScheduledMaintenanceService";
 import ScheduledMaintenanceStateService from "../../Services/ScheduledMaintenanceStateService";
+import AcknowledgedStateUtil from "../../../Utils/AcknowledgedState";
+import ResolvedStateUtil from "../../../Utils/ResolvedState";
+import ScheduledMaintenanceStartUtil from "../../../Utils/ScheduledMaintenanceStart";
+import { StateListType } from "../../../Utils/StateOrder";
 import ScheduledMaintenanceStateTimelineService from "../../Services/ScheduledMaintenanceStateTimelineService";
 import ServiceLevelObjectiveService from "../../Services/ServiceLevelObjectiveService";
 import ServiceService from "../../Services/ServiceService";
@@ -96,10 +99,7 @@ import Hostname from "../../../Types/API/Hostname";
 import URL from "../../../Types/API/URL";
 import { Blue500, Gray500, Green500, Red500 } from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
-import {
-  DashboardTemplateType,
-  getTemplateConfig,
-} from "../../../Types/Dashboard/DashboardTemplates";
+import { DashboardTemplateType } from "../../../Types/Dashboard/DashboardTemplates";
 import OneUptimeDate from "../../../Types/Date";
 import Email from "../../../Types/Email";
 import EventInterval from "../../../Types/Events/EventInterval";
@@ -163,8 +163,10 @@ import NumberPrefixUtil from "../../../Utils/Project/NumberPrefix";
  * hook would do what a real record does - page the on-call policy, email
  * the owners, post to a workspace, count a milestone, ask the payment
  * provider - and a sample must do none of it. What the hooks would have
- * worked out (numbers, states, the feed) is written here instead, and every
- * "notified" flag says done, so no job picks a sample record up later.
+ * worked out (numbers, states, the feed) is written here instead - a
+ * number taken from its record's own service, the one place each kind
+ * is numbered - and every "notified" flag says done, so no job picks a
+ * sample record up later.
  * (The flag's readers refuse it anyway: this is the first of two.)
  *
  * Every moment is minutes before `now`, the moment the sample is made.
@@ -337,10 +339,10 @@ export default class SampleProjectSeeder {
     dashboard.projectId = projectId;
     dashboard.name = SAMPLE_DASHBOARD.name;
     dashboard.description = SAMPLE_DASHBOARD.description;
-    dashboard.dashboardViewConfig = required(
-      getTemplateConfig(DashboardTemplateType.Metrics),
+    required(
+      DashboardService.applyTemplate(dashboard, DashboardTemplateType.Metrics),
       "dashboard template",
-    ) as never;
+    );
 
     const createdDashboard: Dashboard = await DashboardService.create({
       data: dashboard,
@@ -407,6 +409,7 @@ export default class SampleProjectSeeder {
           isCreatedState: true,
           isAcknowledgedState: true,
           isResolvedState: true,
+          order: true,
         },
         skip: 0,
         limit: 50,
@@ -427,6 +430,7 @@ export default class SampleProjectSeeder {
           isCreatedState: true,
           isAcknowledgedState: true,
           isResolvedState: true,
+          order: true,
         },
         skip: 0,
         limit: 50,
@@ -441,7 +445,7 @@ export default class SampleProjectSeeder {
       }),
       ScheduledMaintenanceStateService.findBy({
         query: { projectId: projectId },
-        select: { _id: true, isScheduledState: true },
+        select: { _id: true, isScheduledState: true, order: true },
         skip: 0,
         limit: 50,
         props: ROOT,
@@ -500,15 +504,26 @@ export default class SampleProjectSeeder {
     const identified: IncidentState = incidentState((state: IncidentState) => {
       return Boolean(state.isCreatedState);
     }, "incident state Identified");
-    const acknowledged: IncidentState = incidentState(
-      (state: IncidentState) => {
-        return Boolean(state.isAcknowledgedState);
-      },
+    /*
+     * THE acknowledged and THE resolved state: the first from the top so
+     * flagged, the ones Acknowledge and Resolve move a record into
+     * (Common/Utils/AcknowledgedState, ResolvedState). Never a flag read
+     * here: OneAcknowledgedRuleGuard and OneResolvedRuleGuard.
+     */
+    const acknowledged: IncidentState = required(
+      AcknowledgedStateUtil.getAcknowledgedState({
+        list: StateListType.IncidentState,
+        states: incidentStates,
+      }),
       "incident state Acknowledged",
     );
-    const resolved: IncidentState = incidentState((state: IncidentState) => {
-      return Boolean(state.isResolvedState);
-    }, "incident state Resolved");
+    const resolved: IncidentState = required(
+      ResolvedStateUtil.getResolvedState({
+        list: StateListType.IncidentState,
+        states: incidentStates,
+      }),
+      "incident state Resolved",
+    );
 
     const alertState: (
       predicate: (state: AlertState) => boolean,
@@ -577,12 +592,20 @@ export default class SampleProjectSeeder {
         [SampleAlertState.Identified]: alertState((state: AlertState) => {
           return Boolean(state.isCreatedState);
         }, "alert state Identified"),
-        [SampleAlertState.Acknowledged]: alertState((state: AlertState) => {
-          return Boolean(state.isAcknowledgedState);
-        }, "alert state Acknowledged"),
-        [SampleAlertState.Resolved]: alertState((state: AlertState) => {
-          return Boolean(state.isResolvedState);
-        }, "alert state Resolved"),
+        [SampleAlertState.Acknowledged]: required(
+          AcknowledgedStateUtil.getAcknowledgedState({
+            list: StateListType.AlertState,
+            states: alertStates,
+          })?.id,
+          "alert state Acknowledged",
+        ),
+        [SampleAlertState.Resolved]: required(
+          ResolvedStateUtil.getResolvedState({
+            list: StateListType.AlertState,
+            states: alertStates,
+          })?.id,
+          "alert state Resolved",
+        ),
       },
       alertSeverityIds: {
         [SampleAlertSeverity.High]: byName(
@@ -596,9 +619,10 @@ export default class SampleProjectSeeder {
           "alert severity",
         ),
       },
+      // THE scheduled state, the one a new event is created in.
       scheduledMaintenanceStateId: required(
-        maintenanceStates.find((state: ScheduledMaintenanceState): boolean => {
-          return Boolean(state.isScheduledState);
+        ScheduledMaintenanceStartUtil.getScheduledState({
+          states: maintenanceStates,
         })?.id,
         "maintenance state Scheduled",
       ),
@@ -1048,7 +1072,7 @@ export default class SampleProjectSeeder {
     const declaredAt: Date = minutesAgo(data.now, sample.declaredMinutesAgo);
 
     const numbering: { counter: number; prefix: string | undefined } =
-      await ProjectService.incrementAndGetIncidentCounter(data.projectId);
+      await IncidentService.takeNextIncidentNumber(data.projectId);
 
     const incident: Incident = new Incident();
     incident.projectId = data.projectId;
@@ -1527,7 +1551,7 @@ export default class SampleProjectSeeder {
     const createdAt: Date = minutesAgo(data.now, first.minutesAgo);
 
     const numbering: { counter: number; prefix: string | undefined } =
-      await ProjectService.incrementAndGetAlertCounter(data.projectId);
+      await AlertService.takeNextAlertNumber(data.projectId);
 
     const alert: Alert = new Alert();
     alert.projectId = data.projectId;
@@ -1702,7 +1726,7 @@ export default class SampleProjectSeeder {
     );
 
     const numbering: { counter: number; prefix: string | undefined } =
-      await ProjectService.incrementAndGetScheduledMaintenanceCounter(
+      await ScheduledMaintenanceService.takeNextScheduledMaintenanceNumber(
         data.projectId,
       );
 

@@ -560,9 +560,7 @@ describe("owners picked on create are asked about before the record is saved", (
     const asked: number = hook.indexOf(
       "OwnerRuleAssignment.checkOwnersPickedOnCreate({",
     );
-    const numbered: number = hook.indexOf(
-      "ProjectService.incrementAndGetIncidentCounter(",
-    );
+    const numbered: number = hook.indexOf("this.takeNextIncidentNumber(");
 
     expect(picked).toBeGreaterThan(-1);
     expect(handedOver).toBeGreaterThan(picked);

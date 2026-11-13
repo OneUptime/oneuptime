@@ -17,6 +17,7 @@ import {
   scanMarkdown,
 } from "./DocsContentSupport";
 import { drawnDashboardLabel, isDashboardLabel } from "./DocsDashboardLabels";
+import { pathWithArrows } from "./DocsPageShape";
 import {
   CARD_LINE,
   anchorProblems,
@@ -116,14 +117,18 @@ function allBoldSpans(markdown: string): Array<string> {
   );
 }
 
-// How a language's Dashboard draws an English label, or a menu path of them.
+/*
+ * How a language's Dashboard draws an English label, or a menu path of them,
+ * with the arrows the language's pages draw between its steps: "←" beside a
+ * Persian step (#7611).
+ */
 function drawnLabel(language: string, english: string): string {
-  return english
-    .split(ARROW)
-    .map((part: string): string => {
+  return pathWithArrows(
+    english.split(ARROW).map((part: string): string => {
       return drawnDashboardLabel(language, part);
-    })
-    .join(ARROW);
+    }),
+    language,
+  );
 }
 
 // The lines of a "## " section, from its heading to the next "## ".

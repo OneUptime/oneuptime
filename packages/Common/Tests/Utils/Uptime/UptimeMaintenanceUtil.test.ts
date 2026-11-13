@@ -632,8 +632,50 @@ describe("how a window reads", () => {
 
     // Korean marks the afternoon in Hangul, not with a Latin "PM".
     expect(text).not.toContain("PM");
-    expect(end).toContain("08:00");
-    expect(end.endsWith(" CEST")).toBe(true);
+    // And writes a 12-hour time without a leading zero (issue #7279).
+    expect(end).toBe("오후 8:00 CEST");
+    expect(end).not.toContain("08:00");
+  });
+
+  test("a 12-hour end of day has no leading zero in any language; a 24-hour one keeps it", () => {
+    // A space, a no-break space or a narrow one: the same to a reader.
+    const anySpace: RegExp = /\s/g;
+
+    for (const [language, twelveHour, twentyFourHour] of [
+      ["ko", "오전 9:30", "09:30"],
+      ["zh-TW", "上午9:30", "09:30"],
+      ["hi", "9:30 am", "09:30"],
+      ["ar", "9:30 ص", "09:30"],
+      ["ja", "午前9:30", "09:30"],
+      ["de", "9:30 AM", "09:30"],
+      ["fa", "۹:۳۰ ق.ظ.", "۰۹:۳۰"],
+    ] as Array<[string, string, string]>) {
+      setDateDisplayLanguage(language);
+
+      // 07:00 to 07:30 UTC is 09:00 to 09:30 CEST, within one day.
+      prefers12Hour = true;
+      const onTwelve: string =
+        UptimeMaintenanceUtil.getWindowText({
+          startsAt: at("2026-10-21T07:00:00.000Z"),
+          endsAt: at("2026-10-21T07:30:00.000Z"),
+        })?.end || "";
+
+      prefers12Hour = false;
+      const onTwentyFour: string =
+        UptimeMaintenanceUtil.getWindowText({
+          startsAt: at("2026-10-21T07:00:00.000Z"),
+          endsAt: at("2026-10-21T07:30:00.000Z"),
+        })?.end || "";
+
+      expect({ language, end: onTwelve.replace(anySpace, " ") }).toEqual({
+        language,
+        end: `${twelveHour} CEST`,
+      });
+      expect({ language, end: onTwentyFour.replace(anySpace, " ") }).toEqual({
+        language,
+        end: `${twentyFourHour} CEST`,
+      });
+    }
   });
 
   test("hands its two ends over whole, the zone with the end, for a page to isolate each", () => {

@@ -541,7 +541,12 @@
         "cardTitle": "Конфигурация Twilio",
         "cardDescription": "Аккаунт Twilio, через который OneUptime отправляет SMS и совершает звонки, если проект не использует собственную конфигурацию Twilio.",
         "editButton": "Изменить конфигурацию Twilio",
-        "smsSameAsCalls": "Те же номера, что и для звонков"
+        "smsSameAsCalls": "Те же номера, что и для звонков",
+        "environmentCardDescription": "Задано переменными окружения: twilio в значениях Helm-чарта или параметры GLOBAL_TWILIO_ в config.env. Чтобы изменить эту учетную запись, измените их там и перезапустите OneUptime.",
+        "environmentProblemsTitle": "Эта учетная запись не отправляет SMS и не совершает звонки, пока эти переменные окружения не будут исправлены:",
+        "environmentUnusedTitle": "Некоторые переменные окружения Twilio не используются:",
+        "authTokenSet": "Задан",
+        "authTokenNotSet": "Не задан"
       },
       "whatsapp": {
         "metaCardTitle": "Настройки Meta WhatsApp",
@@ -2588,8 +2593,8 @@
   "{{count}} events at {{time}}": "{{count}} events at {{time}}",
   "{{count}} events at {{time}}_one": "{{count}} event at {{time}}",
   "{{label}} at {{time}}": "{{label}} at {{time}}",
-  "+{{count}} more series — highest values shown": "+{{count}} more series — highest values shown",
-  "+{{count}} more series — highest values shown_one": "+{{count}} more series — highest values shown",
+  "+{{count}} more series — highest values shown": "Ещё рядов: +{{count}} — показаны наибольшие значения",
+  "+{{count}} more series — highest values shown_one": "Ещё {{count}} ряд — показаны наибольшие значения",
   "Tab inserts indentation. To move focus out of the editor, press Escape, then Tab.": "Tab inserts indentation. To move focus out of the editor, press Escape, then Tab.",
   "Valid {{language}} · {{count}} lines": "Valid {{language}} · {{count}} lines",
   "Valid {{language}} · {{count}} lines_one": "Valid {{language}} · {{count}} line",

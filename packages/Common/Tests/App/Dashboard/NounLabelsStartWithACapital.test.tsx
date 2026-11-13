@@ -1,3 +1,4 @@
+// UX rule: Docs/ux/README.md#in-every-language
 import { afterEach, beforeAll, describe, expect, test } from "@jest/globals";
 import "@testing-library/jest-dom";
 import { cleanup, render, screen, within } from "@testing-library/react";
@@ -6,10 +7,15 @@ import * as React from "react";
 import { I18nextProvider } from "react-i18next";
 import { MemoryRouter } from "react-router-dom";
 import IconProp from "../../../Types/Icon/IconProp";
+import { NetworkAddressNameSource } from "../../../Types/NetFlow/NetworkAddressName";
 import {
   OpenStackPlacement,
   OpenStackReachAcrossProducts,
 } from "../../../Types/OpenStack/OpenStackLinks";
+import AiResourceType from "../../../Types/ResourceAiAgent/AiResourceType";
+import { describeCloudChange } from "../../../Utils/AiRemediation/CloudChangeWords";
+import { describeLinkedInfrastructure } from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/ChatActivityFeed";
+import TrafficAddressCard from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkTraffic/TrafficAddressCard";
 import { OpenStackReachList } from "../../../../App/FeatureSet/Dashboard/src/Components/OpenStack/Part/OpenStackInstanceLinksCard";
 import { OpenStackPlacementLines } from "../../../../App/FeatureSet/Dashboard/src/Components/OpenStack/Part/OpenStackPlacementCard";
 import NeedsAttentionCard from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/NeedsAttentionCard";
@@ -17,26 +23,45 @@ import {
   ResourceAttentionItem,
   ResourceAttentionSeverity,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourceAttention";
-import { readDashboardLocale } from "../../Helpers/DashboardLocales";
+import {
+  dashboardTranslator,
+  readDashboardLocale,
+} from "../../Helpers/DashboardLocales";
 
 /*
- * A NAME THE SENTENCES SHARE, DRAWN AS A LABEL (#7607).
+ * A NAME THE SENTENCES SHARE, DRAWN AS A LABEL (#7607, #7628).
  *
- * "Kubernetes cluster", "OpenStack cloud" and "DNS zone" are nouns of the
- * Dashboard's sentences too ("No open or recent alerts on {{resources}}"),
- * and es, fr, it, pt and ru word them for the middle of one: "clúster de
- * Kubernetes", "nube OpenStack", "zone DNS". Where the same key starts a
- * label - what an OpenStack instance also is, the line naming its cloud, a
- * chip saying what needs attention - it now starts with a capital, as the
+ * "Kubernetes cluster", "OpenStack cloud", "DNS zone" and "Cloud resource"
+ * are nouns of the Dashboard's sentences too ("No open or recent alerts on
+ * {{resources}}"), and es, fr, it, pt and ru word them for the middle of
+ * one: "clúster de Kubernetes", "nube OpenStack", "zone DNS", "recurso en la
+ * nube". Where the same key starts a label - what an OpenStack instance
+ * also is, the line naming its cloud, a chip saying what needs attention,
+ * where an address's name comes from - it now starts with a capital, as the
  * labels around it do; the sentences keep the word lower-case.
+ * NounKeysDrawnAsLabelsGuard keeps every other place that names one of
+ * these keys to the same rule.
+ *
+ * da, nl, no and sv word "Cloud resource" and "Cloud environment" for the
+ * middle of a sentence too, and so does ru, which wrote both with a capital
+ * until #7659: "на Облачный ресурс web-alb".
  */
 
 const LANGUAGES: ReadonlyArray<string> = ["es", "fr", "it", "pt", "ru"];
 
+// The languages that word a cloud resource and a cloud environment lower-case.
+const CLOUD_NOUN_LANGUAGES: ReadonlyArray<string> = [
+  ...LANGUAGES,
+  "da",
+  "nl",
+  "no",
+  "sv",
+];
+
 const instances: Record<string, i18n> = {};
 
 beforeAll(async () => {
-  for (const language of [...LANGUAGES, "de", "zh-CN", "fa"]) {
+  for (const language of [...CLOUD_NOUN_LANGUAGES, "de", "zh-CN", "fa"]) {
     const instance: i18n = createInstance();
 
     await instance.init({
@@ -238,4 +263,160 @@ describe("the chip that says what kind of part needs attention", () => {
 
     expect(screen.getByTestId("attention-kind")).toHaveTextContent(/^pod$/);
   });
+});
+
+describe("where an address's name comes from, on the address card", () => {
+  const CLOUD_RESOURCE_ADDRESS: React.ComponentProps<
+    typeof TrafficAddressCard
+  >["label"] = {
+    address: "10.0.0.5",
+    name: "web-alb",
+    source: NetworkAddressNameSource.CloudResource,
+    resourceId: "10000000-0000-4000-8000-000000000005",
+    subnetName: null,
+    subnet: null,
+  };
+
+  test.each(CLOUD_NOUN_LANGUAGES)(
+    "%s starts Cloud resource with a capital, as Host and DNS name are",
+    (language: string) => {
+      drawIn(
+        language,
+        <TrafficAddressCard
+          label={CLOUD_RESOURCE_ADDRESS}
+          canName={false}
+          canEditNames={false}
+          onNamed={() => {}}
+        />,
+      );
+
+      expect(wordIn(language, "Cloud resource")).toMatch(LOWER_CASE_START);
+      expect(
+        screen.getByTestId("traffic-address-card-source").textContent,
+      ).toBe(capitalized(wordIn(language, "Cloud resource"), language));
+    },
+  );
+});
+
+describe("a kind only ever drawn first, worded with a capital", () => {
+  /*
+   * Every language that words the sentences of a cloud change starts them
+   * with the kind ("{{kind}} {{name}}: reiniciar"), so "Container App" is
+   * worded with a capital in every language (NounKeysDrawnAsLabelsGuard's
+   * LABEL_ONLY_KEYS).
+   */
+  test("es says what a cloud change does to a Container App starting with a capital", () => {
+    expect(
+      describeCloudChange({
+        resourceType: AiResourceType.AzureSubscription,
+        command:
+          "cloud restart-service /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/prod/providers/Microsoft.App/containerApps/api",
+        translator: dashboardTranslator("es"),
+      })?.sentence,
+    ).toBe("Aplicación de contenedor api: reiniciar");
+  });
+});
+
+describe("the sentences keep the nouns lower-case", () => {
+  /*
+   * The keys drawn as labels above are worded for the middle of a sentence,
+   * and stay so: a linked cloud resource and a Ceph cluster, named in the
+   * line an investigation writes about the alerts on them.
+   */
+  test.each([
+    ["es", "en recurso en la nube web-alb y clúster de Ceph ceph-prod"],
+    ["fr", "sur ressource cloud web-alb et cluster Ceph ceph-prod"],
+    ["it", "su risorsa cloud web-alb e cluster Ceph ceph-prod"],
+    ["pt", "em recurso de nuvem web-alb e cluster Ceph ceph-prod"],
+    ["ru", "на облачный ресурс web-alb и кластер Ceph ceph-prod"],
+    ["da", "på cloud-ressource web-alb og Ceph-klynge ceph-prod"],
+    ["nl", "op cloud-resource web-alb en Ceph-cluster ceph-prod"],
+    ["no", "på skyressurs web-alb og Ceph-klynge ceph-prod"],
+    ["sv", "på molnresurs web-alb och Ceph-kluster ceph-prod"],
+  ])("%s: %s", (language: string, named: string) => {
+    expect(
+      describeLinkedInfrastructure(
+        {
+          resources: [
+            { kind: "CloudResource", name: "web-alb" },
+            { kind: "CephCluster", name: "ceph-prod" },
+          ],
+          alertCount: 0,
+          openAlertCount: 0,
+          hasMoreAlerts: false,
+          lookbackMinutes: 30,
+        },
+        dashboardTranslator(language),
+      ),
+    ).toContain(named);
+  });
+
+  // An App Platforms environment the investigation read about.
+  test.each([
+    ["ru", "на облачная среда checkout"],
+    ["da", "på cloud-miljø checkout"],
+    ["nl", "op cloud-omgeving checkout"],
+    ["no", "på skymiljø checkout"],
+    ["sv", "på molnmiljö checkout"],
+    ["es", "en entorno en la nube checkout"],
+  ])("%s: %s", (language: string, named: string) => {
+    expect(
+      describeLinkedInfrastructure(
+        {
+          resources: [{ kind: "CloudEnvironment", name: "checkout" }],
+          alertCount: 0,
+          openAlertCount: 0,
+          hasMoreAlerts: false,
+          lookbackMinutes: 30,
+        },
+        dashboardTranslator(language),
+      ),
+    ).toContain(named);
+  });
+});
+
+describe("the nouns the sentences share, worded for the middle of one", () => {
+  /*
+   * Each starts lower-case in every language that writes a common noun so
+   * in the middle of a sentence, unless it starts with a name. #7659 found
+   * "Cloud resource" and "Cloud environment" with a capital in da, nl, no,
+   * ru and sv, "OpenStack cloud" in fr, it and pt, "OpenStack agent" in es,
+   * fr, it and pt, "SNMP traps" in es and both documentation links in es
+   * and fr - each said in the middle of a sentence ("Consulta la
+   * {{documentation}}").
+   */
+  const SENTENCE_NOUN_KEYS: ReadonlyArray<string> = [
+    "Cloud resource",
+    "Cloud environment",
+    "OpenStack cloud",
+    "OpenStack agent",
+    "SNMP traps",
+    "GitHub Integration documentation",
+    "Network Device Monitor documentation",
+  ];
+
+  // The names one may start with, written as their makers write them.
+  const NAMES: ReadonlyArray<string> = ["OpenStack", "SNMP", "GitHub"];
+
+  test.each(["da", "es", "fr", "it", "nl", "no", "pt", "ru", "sv"])(
+    "%s starts each lower-case, or with a name",
+    (language: string) => {
+      const startingWithACapital: Array<string> = SENTENCE_NOUN_KEYS.filter(
+        (key: string): boolean => {
+          const value: string = wordIn(language, key);
+
+          return (
+            !LOWER_CASE_START.test(value) &&
+            !NAMES.some((name: string): boolean => {
+              return value.startsWith(name);
+            })
+          );
+        },
+      ).map((key: string): string => {
+        return `${key}: ${wordIn(language, key)}`;
+      });
+
+      expect(startingWithACapital).toEqual([]);
+    },
+  );
 });

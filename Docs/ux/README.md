@@ -308,6 +308,13 @@ work out, starts from a default for everything else, and folds what most people 
 - **Another system's failure is said in OneUptime's words first,** and that system's own words
   second: "The verification code was not sent to +15551230100. No Twilio account is set up to send
   SMS." Not enforced: use judgement.
+- **An error inside a sentence is said in the reader's language.** A card that says what failed in
+  a sentence of its own ("Couldn't work out who is told. {{error}}") draws the error with
+  `ErrorSentence`, or fills it with `errorInSentence(message)` where it has to be text
+  (`Common/UI/Utils/ErrorInSentence`). Filled with the message as it came, a German or a Persian
+  card read half in English, and a server failure's reference had no copy button (#7307).
+  Enforced by
+  [ErrorSentenceGuard](../../packages/Common/Tests/App/Dashboard/ErrorSentenceGuard.test.ts).
 
 ## Lists and empty states
 
@@ -330,6 +337,12 @@ work out, starts from a default for everything else, and folds what most people 
   [BulkActionsRunThroughRunnerGuard](../../packages/Common/Tests/UI/BulkActionsRunThroughRunnerGuard.test.ts).
 - **The colours of the shared table hold in both themes.** Enforced by
   [TableSourceGuard](../../packages/Common/Tests/UI/Components/Table/TableSourceGuard.test.ts).
+- **An empty value is the quiet dash, never a hyphen a page writes.** An empty cell or detail field
+  draws the light grey dash a screen reader reads as "Not set" (`TableEmptyValue`,
+  `Detail/EmptyValue`). A column's `noValueMessage: "-"` or a field's `placeholder: "-"` drew a
+  darker hyphen of its own, so one row could show both marks for the same nothing (#7264). A page
+  that wants words writes words ("Never", "No labels attached."). Enforced by
+  [TableEmptyValueDashGuard](../../packages/Common/Tests/UI/Components/Table/TableEmptyValueDashGuard.test.ts).
 
 ### Empty states and suggestions
 
@@ -369,6 +382,17 @@ work out, starts from a default for everything else, and folds what most people 
   [DashboardWidgetPreviewGuard](../../packages/Common/Tests/App/Dashboard/DashboardWidgetPreviewGuard.test.tsx).
 - **Confirm only what cannot be undone.** A switch that can be flipped back saves without asking.
   Not enforced: use judgement.
+- **Leaving unsaved work asks first.** While a page holds work it has not saved (a dashboard being
+  edited), a step to another page waits for its answer, Keep Editing or Discard Changes: a link,
+  the side menu, the breadcrumbs, a button, the project picker, the browser's Back and Forward.
+  Closing or reloading the tab asks with the browser's own dialog (`useLeaveGuard`, #7173). With
+  nothing unsaved, nothing asks. Enforced by
+  [LeaveGuard](../../packages/Common/Tests/UI/Utils/LeaveGuard.test.ts),
+  [UseLeaveGuard](../../packages/Common/Tests/UI/Utils/UseLeaveGuard.test.tsx),
+  [NavigationLeaveGuard](../../packages/Common/Tests/UI/Utils/NavigationLeaveGuard.test.ts),
+  [LinkLeaveGuard](../../packages/Common/Tests/UI/Components/LinkLeaveGuard.test.tsx),
+  [AppLinkLeaveGuard](../../packages/Common/Tests/App/Dashboard/AppLinkLeaveGuard.test.tsx) and
+  [ProjectPickerLeaveGuard](../../packages/Common/Tests/UI/Components/ProjectPickerLeaveGuard.test.tsx).
 
 ## Cards and the look of a page
 
@@ -486,6 +510,11 @@ work out, starts from a default for everything else, and folds what most people 
 - **A date is written by `OneUptimeDate` in the reader's language,** never put into an English
   template literal. Enforced by
   [DatesInEnglishTextGuard](../../packages/App/Tests/Dashboard/DatesInEnglishTextGuard.test.ts).
+- **A duration in milliseconds is written in the reader's language,** with the Dashboard's
+  `formatMilliseconds` ("{{value}} ms", each language's own unit and order, the figure in the
+  reader's digits), never a figure joined to " ms": every monitor's Response Time read "ms 411" on
+  an Arabic or Persian page (#7224). Enforced by
+  [MillisecondsInReadersLanguageGuard](../../packages/Common/Tests/UI/MillisecondsInReadersLanguageGuard.test.ts).
 - **A chart of one point a day labels its axis by the day** (`xAxisPrecision={XAxisPrecision.EVERY_DAY}`),
   never by an hour or a step guessed from the window's length. Enforced by
   [ProductAnalyticsDayAxisGuard](../../packages/Common/Tests/App/Dashboard/ProductAnalyticsDayAxisGuard.test.ts).
@@ -520,14 +549,45 @@ then `npm run i18n:validate` from the root.
   [DashboardListNameCellsGuard](../../packages/Common/Tests/App/Dashboard/DashboardListNameCellsGuard.test.ts)
   and
   [TranslatedSentenceInRowGuard](../../packages/Common/Tests/UI/TranslatedSentenceInRowGuard.test.ts).
-- **A path's arrows point the way it is read.** A browser never turns "→" round, so on a page read
-  from the right it points each step back at the one before: Arabic and Persian write "←" beside a
-  step in their own words (`تنظیمات پروژه ← پیشرفته`), and keep "→" between two steps left in Latin
-  letters, which are drawn from the left. ">" and "›" turn round by themselves. Enforced by
+- **A path's arrows point the way it is read, and a link's the way it leads.** A browser never turns
+  "→" round, so on a page read from the right it points each step back at the one before: Arabic and
+  Persian write "←" beside a step in their own words (`تنظیمات پروژه ← پیشرفته`), and keep "→"
+  between two steps left in Latin letters, which are drawn from the left. ">" and "›" turn round by
+  themselves. A link that leads on ends with "←" there ("All metrics →" is `همهٔ متریک‌ها ←`), and
+  one that leads back starts with "→" ("← Back" is `→ بازگشت`). Enforced by
   [PathArrowsInRightToLeftSentences](../../packages/Common/Tests/App/PathArrowsInRightToLeftSentences.test.ts).
+- **An arrow a component draws points the way its line is read.** Between two values ("Declared →
+  Acknowledged", "12.5% → 15.0%") or after a link's words, never write "→" into a component: draw
+  `DirectionArrow`, or take `getArrowOn` or `joinWithArrowsOn` from `Common/Types/DirectionArrow`.
+  On a page read from the right the arrow is "←", the first value is drawn at the right, and each
+  value is set apart so the arrow stays the line's. A line that reads one way on every page, like
+  the names of the user flow map's bands (drawn from the left everywhere), takes
+  `joinWithArrowsInDirection`. Enforced by
+  [ComponentArrowsInRightToLeftPages](../../packages/Common/Tests/App/ComponentArrowsInRightToLeftPages.test.ts)
+  and
+  [DirectionArrowsInReadersLanguage](../../packages/Common/Tests/App/Dashboard/DirectionArrowsInReadersLanguage.test.tsx).
 - **A bare word has one meaning everywhere,** because a label is translated by its English text.
   "Any" is the Match Condition's word. Enforced by
   [MatchConditionAnyWordGuard](../../packages/Common/Tests/UI/Components/Forms/MatchConditionAnyWordGuard.test.ts).
+- **A noun the sentences share starts a label with a capital.** Many nouns are worded for the middle
+  of a sentence, so Spanish says "clúster de Kubernetes" and French "ressource cloud". Where the same
+  key names a row, a chip or a line of a card, draw it through `toLabelTerm`, which starts it with a
+  capital in the reader's language: "Clúster de Kubernetes". A key that is only ever a label is worded
+  with a capital in every language instead. Enforced by
+  [NounKeysDrawnAsLabelsGuard](../../packages/Common/Tests/App/Dashboard/NounKeysDrawnAsLabelsGuard.test.ts)
+  and
+  [NounLabelsStartWithACapital](../../packages/Common/Tests/App/Dashboard/NounLabelsStartWithACapital.test.tsx).
+- **A cloud's product name is written as the cloud writes it.** A kind of cloud resource is named by
+  the catalog's label, a product's name ("Virtual Machine", "Cloud Run"), in every language and on
+  every page: the rows, the cards, the overview, Topology, a Type filter's menu and its chip. The docs'
+  tables of supported resources write them so too. Never look a label up: some are also Dashboard
+  words, and a Spanish menu said "Máquina virtual" over rows that said "Virtual Machine". A kind the
+  catalog only names in words reads in the reader's words ("Subred"), through
+  `getCloudResourceTypeText`; a Type filter takes its options from `getCloudResourceTypeOptions`.
+  Enforced by
+  [CloudResourceTypeNamesGuard](../../packages/Common/Tests/App/Dashboard/CloudResourceTypeNamesGuard.test.ts)
+  and
+  [CloudResourceTypeNamesInSpanish](../../packages/Common/Tests/App/Dashboard/CloudResourceTypeNamesInSpanish.test.tsx).
 - **Pick words that translate as you mean them.** "About" read "Regarding" in 13 languages, so the
   button says "How it works"; "Uptime" read "runtime", so a share of time up says "Availability". Not
   enforced: use judgement.
