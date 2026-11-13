@@ -51831,5 +51831,18 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Tidsintervall: {{range}}. Försök att justera filtren eller utöka tidsintervallet.",
   "On-Call Policy Created": "Jourpolicy skapad",
   "On-Call Schedule Added": "Jourschema tillagt",
-  "On-Call Schedule Removed": "Jourschema borttaget"
+  "On-Call Schedule Removed": "Jourschema borttaget",
+  "Recording paused by the page: {{label}}": "Inspelning pausad av sidan: {{label}}",
+  "Recording paused: no input for {{duration}}": "Inspelning pausad: ingen indata på {{duration}}",
+  "Recording resumed after {{duration}} idle": "Inspelning återupptagen efter {{duration}} inaktivitet",
+  "Recording resumed by the page after {{duration}}": "Inspelning återupptagen av sidan efter {{duration}}",
+  "Skipped {{duration}}: recording paused by the page": "Hoppade över {{duration}}: sidan hade pausat inspelningen",
+  "The page paused recording here with OneUptimeReplay.pause(). Nothing on the page, not even the visitor's input, is recorded until the page resumes it.": "Sidan pausade inspelningen här med OneUptimeReplay.pause(). Inget på sidan, inte ens besökarens indata, spelas in förrän sidan återupptar den.",
+  "The page paused the recorder, so nothing was recorded until the page resumed it.": "Sidan pausade inspelaren, så inget spelades in förrän sidan återupptog den.",
+  "The page resumed recording here after {{duration}}, on a fresh snapshot of the page. Nothing was recorded while it was paused, so playback skips the pause.": "Sidan återupptog inspelningen här efter {{duration}}, med en ny ögonblicksbild av sidan. Inget spelades in under pausen, så uppspelningen hoppar över den.",
+  "The page resumed recording here, on a fresh snapshot of the page. Nothing was recorded while it was paused, so playback skips the pause.": "Sidan återupptog inspelningen här, med en ny ögonblicksbild av sidan. Inget spelades in under pausen, så uppspelningen hoppar över den.",
+  "Recording paused by the page": "Inspelning pausad av sidan",
+  "Recording paused: nobody touched the page": "Inspelning pausad: ingen rörde sidan",
+  "Recording resumed after an idle pause": "Inspelning återupptagen efter en paus vid inaktivitet",
+  "Recording resumed by the page": "Inspelning återupptagen av sidan"
 }

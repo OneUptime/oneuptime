@@ -12,10 +12,17 @@ import {
   SessionReplayWebVitalRating,
   SessionReplayInteractionType,
   SessionReplayNavigationType,
+  SessionReplayPauseReason,
 } from "Common/Types/Rum/SessionReplayCustomEvents";
 import { SessionReplayCustomSignalTrigger } from "Common/Types/Rum/SessionReplayFrustrationSignals";
+import {
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  translationKey,
+  Translator,
+} from "Common/Types/Translator";
 import { ReplayTimelineEvent } from "../ReplayTimelineTypes";
-import { formatReplayDuration } from "../ReplayTimeFormat";
+import { replayDurationValue } from "../ReplayTimelineMath";
 import {
   alignTelemetryOffsetMs,
   alignmentLabelFor,
@@ -254,6 +261,12 @@ export type ReplayMarkerSignalDetail = {
   idlePauseEdge: "paused" | "resumed" | null;
   idleForMs: number | null;
   pausedForMs: number | null;
+  /*
+   * idle-pause only: "page" when the page paused recording itself
+   * (OneUptimeReplay.pause(), issue #7498), null for a pause because
+   * nobody touched the page - and on every other marker.
+   */
+  pauseReason: SessionReplayPauseReason | null;
 };
 
 export type ReplayLogSignalDetail = {
@@ -1141,6 +1154,103 @@ function positiveSpanMs(
   return toMs - fromMs;
 }
 
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+
+// An idle-pause row's titles that carry no length.
+const PAUSED_BY_PAGE: string = translationKey("Recording paused by the page");
+const RESUMED_BY_PAGE: string = translationKey("Recording resumed by the page");
+const PAUSED_WITH_NOBODY: string = translationKey(
+  "Recording paused: nobody touched the page",
+);
+const RESUMED_AFTER_IDLE: string = translationKey(
+  "Recording resumed after an idle pause",
+);
+
+// What the rail needs to word an idle-pause row.
+export type ReplayIdlePauseRowFacts = Pick<
+  ReplayMarkerSignalDetail,
+  "idlePauseEdge" | "idleForMs" | "pausedForMs" | "pauseReason"
+>;
+
+/*
+ * An idle-pause row's title, in `translator`'s language (English without
+ * one: the row's own title, what the rail's search and the timeline read).
+ *
+ * Whose pause it was decides the words (#7498). The page's own pause
+ * (OneUptimeReplay.pause()) is "paused by the page" and "resumed by the
+ * page": somebody was using it, on a part that is not recorded, so "nobody
+ * touched the page" and "idle" would be untrue. A pause because nobody
+ * touched the page - and every pause an older recorder made, which says no
+ * reason - reads as it always has. The lengths are in the sentence's
+ * language.
+ */
+export function describeIdlePauseRow(
+  facts: ReplayIdlePauseRowFacts,
+  translator: Translator = ENGLISH,
+): string {
+  const isPausedByPage: boolean = facts.pauseReason === "page";
+  const say: (text: string) => string = (text: string): string => {
+    return translator.translateText(text) ?? text;
+  };
+
+  if (facts.idlePauseEdge === "resumed") {
+    if (isPausedByPage) {
+      return facts.pausedForMs !== null
+        ? translator.translateTemplate(
+            "Recording resumed by the page after {{duration}}",
+            { duration: replayDurationValue(facts.pausedForMs) },
+          )
+        : say(RESUMED_BY_PAGE);
+    }
+
+    return facts.pausedForMs !== null
+      ? translator.translateTemplate(
+          "Recording resumed after {{duration}} idle",
+          { duration: replayDurationValue(facts.pausedForMs) },
+        )
+      : say(RESUMED_AFTER_IDLE);
+  }
+
+  if (isPausedByPage) {
+    return say(PAUSED_BY_PAGE);
+  }
+
+  return facts.idleForMs !== null
+    ? translator.translateTemplate(
+        "Recording paused: no input for {{duration}}",
+        { duration: replayDurationValue(facts.idleForMs) },
+      )
+    : say(PAUSED_WITH_NOBODY);
+}
+
+/*
+ * A row's title as the rail draws it, in `translator`'s language: an
+ * idle-pause row is OneUptime's own words and is worded again for the
+ * reader; every other title is what the recording or the telemetry said,
+ * drawn as written.
+ */
+export function describeReplaySignalTitle(
+  signal: ReplaySignal,
+  translator: Translator = ENGLISH,
+): string {
+  if (signal.kind !== "marker" || signal.detail["markerKind"] !== "idle-pause") {
+    return signal.title;
+  }
+
+  const detail: ReplayMarkerSignalDetail =
+    signal.detail as ReplayMarkerSignalDetail;
+
+  return describeIdlePauseRow(
+    {
+      idlePauseEdge: detail.idlePauseEdge,
+      idleForMs: detail.idleForMs ?? null,
+      pausedForMs: detail.pausedForMs ?? null,
+      pauseReason: detail.pauseReason ?? null,
+    },
+    translator,
+  );
+}
+
 function markerSignal(
   event: ReplayTimelineEvent,
   ctx: ReplayRecordingSignalContext,
@@ -1162,6 +1272,8 @@ function markerSignal(
     idlePauseEdge === "resumed"
       ? positiveSpanMs(event.pausedAtUnixMs, event.resumedAtUnixMs)
       : null;
+  const pauseReason: SessionReplayPauseReason | null =
+    isIdlePause && event.pauseReason === "page" ? "page" : null;
 
   switch (event.kind) {
     case "visibility":
@@ -1202,18 +1314,12 @@ function markerSignal(
        * minutes of the session left no trace.
        */
       markerKind = "idle-pause";
-
-      if (idlePauseEdge === "resumed") {
-        title =
-          pausedForMs !== null
-            ? `Recording resumed after ${formatReplayDuration(pausedForMs)} idle`
-            : "Recording resumed after an idle pause";
-      } else {
-        title =
-          idleForMs !== null
-            ? `Recording paused: no input for ${formatReplayDuration(idleForMs)}`
-            : "Recording paused: nobody touched the page";
-      }
+      title = describeIdlePauseRow({
+        idlePauseEdge: idlePauseEdge,
+        idleForMs: idleForMs,
+        pausedForMs: pausedForMs,
+        pauseReason: pauseReason,
+      });
       break;
     default:
       markerKind = "custom-dropped";
@@ -1241,6 +1347,7 @@ function markerSignal(
     idlePauseEdge: idlePauseEdge,
     idleForMs: idleForMs,
     pausedForMs: pausedForMs,
+    pauseReason: pauseReason,
   };
 
   signal.detail = detail;

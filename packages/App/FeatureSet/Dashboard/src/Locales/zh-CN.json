@@ -51831,5 +51831,18 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "时间范围：{{range}}。请尝试调整筛选条件或扩大时间范围。",
   "On-Call Policy Created": "值班策略已创建",
   "On-Call Schedule Added": "值班排班已添加",
-  "On-Call Schedule Removed": "值班排班已移除"
+  "On-Call Schedule Removed": "值班排班已移除",
+  "Recording paused by the page: {{label}}": "页面暂停了录制：{{label}}",
+  "Recording paused: no input for {{duration}}": "录制已暂停：{{duration}} 无输入",
+  "Recording resumed after {{duration}} idle": "空闲 {{duration}} 后录制已恢复",
+  "Recording resumed by the page after {{duration}}": "页面在 {{duration}} 后恢复了录制",
+  "Skipped {{duration}}: recording paused by the page": "已跳过 {{duration}}：页面暂停了录制",
+  "The page paused recording here with OneUptimeReplay.pause(). Nothing on the page, not even the visitor's input, is recorded until the page resumes it.": "页面在此处通过 OneUptimeReplay.pause() 暂停了录制。在页面恢复之前，页面上的任何内容都不会被录制，包括访客的输入。",
+  "The page paused the recorder, so nothing was recorded until the page resumed it.": "页面暂停了录制器，因此在页面恢复之前没有录制任何内容。",
+  "The page resumed recording here after {{duration}}, on a fresh snapshot of the page. Nothing was recorded while it was paused, so playback skips the pause.": "页面在 {{duration}} 后于此处基于页面的新快照恢复了录制。暂停期间没有录制任何内容，因此回放会跳过这段暂停。",
+  "The page resumed recording here, on a fresh snapshot of the page. Nothing was recorded while it was paused, so playback skips the pause.": "页面在此处基于页面的新快照恢复了录制。暂停期间没有录制任何内容，因此回放会跳过这段暂停。",
+  "Recording paused by the page": "页面暂停了录制",
+  "Recording paused: nobody touched the page": "录制已暂停：没有人操作页面",
+  "Recording resumed after an idle pause": "空闲暂停后录制已恢复",
+  "Recording resumed by the page": "页面恢复了录制"
 }

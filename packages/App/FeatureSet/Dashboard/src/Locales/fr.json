@@ -51831,5 +51831,18 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Période : {{range}}. Essayez d'ajuster les filtres ou d'élargir la période.",
   "On-Call Policy Created": "Politique d'astreinte créée",
   "On-Call Schedule Added": "Planning d'astreinte ajouté",
-  "On-Call Schedule Removed": "Planning d'astreinte retiré"
+  "On-Call Schedule Removed": "Planning d'astreinte retiré",
+  "Recording paused by the page: {{label}}": "Enregistrement mis en pause par la page : {{label}}",
+  "Recording paused: no input for {{duration}}": "Enregistrement en pause : aucune saisie pendant {{duration}}",
+  "Recording resumed after {{duration}} idle": "Enregistrement repris après {{duration}} d'inactivité",
+  "Recording resumed by the page after {{duration}}": "Enregistrement repris par la page après {{duration}}",
+  "Skipped {{duration}}: recording paused by the page": "Saut de {{duration}} : l'enregistrement avait été mis en pause par la page",
+  "The page paused recording here with OneUptimeReplay.pause(). Nothing on the page, not even the visitor's input, is recorded until the page resumes it.": "La page a mis l'enregistrement en pause ici avec OneUptimeReplay.pause(). Rien de la page, pas même les saisies du visiteur, n'est enregistré jusqu'à ce que la page le reprenne.",
+  "The page paused the recorder, so nothing was recorded until the page resumed it.": "La page a mis l'enregistreur en pause : rien n'a été enregistré jusqu'à ce que la page le relance.",
+  "The page resumed recording here after {{duration}}, on a fresh snapshot of the page. Nothing was recorded while it was paused, so playback skips the pause.": "La page a repris l'enregistrement ici après {{duration}}, sur un nouvel instantané de la page. Rien n'a été enregistré pendant la pause, la lecture la saute donc.",
+  "The page resumed recording here, on a fresh snapshot of the page. Nothing was recorded while it was paused, so playback skips the pause.": "La page a repris l'enregistrement ici, sur un nouvel instantané de la page. Rien n'a été enregistré pendant la pause, la lecture la saute donc.",
+  "Recording paused by the page": "Enregistrement mis en pause par la page",
+  "Recording paused: nobody touched the page": "Enregistrement en pause : personne n'a touché la page",
+  "Recording resumed after an idle pause": "Enregistrement repris après une pause d'inactivité",
+  "Recording resumed by the page": "Enregistrement repris par la page"
 }

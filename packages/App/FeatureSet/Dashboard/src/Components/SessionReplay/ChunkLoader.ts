@@ -27,6 +27,8 @@ import {
   isSessionReplayTagsPayload,
   isSessionReplayVisibilityPayload,
   isSessionReplayWebVitalPayload,
+  readSessionReplayPauseReason,
+  SessionReplayPauseReason,
 } from "Common/Types/Rum/SessionReplayCustomEvents";
 import {
   ComposedValue,
@@ -480,6 +482,23 @@ export default class ChunkLoader {
   private readonly truncatedKinds: Set<ReplayTimelineEventKind>;
 
   /*
+   * The two edges of a pause, met in whichever order their chunks are
+   * read (issue #7498): the reason each paused row gave, and the resumed
+   * rows still waiting for theirs, both by the pause's pausedAtUnixMs - the
+   * one stamp both markers carry, written once by the recorder. A resumed
+   * row whose own payload gave no reason (a recorder from before it did)
+   * takes its paused row's.
+   */
+  private readonly pauseReasonByPausedAt: Map<
+    number,
+    SessionReplayPauseReason
+  >;
+  private readonly resumedRowsByPausedAt: Map<
+    number,
+    Array<ReplayTimelineEvent>
+  >;
+
+  /*
    * Bumped whenever the timeline map gains a chunk (and on dispose). The
    * merged, sorted row array is rebuilt only when it changes: the player
    * re-adapts every row into rail signals off the merged array, and doing
@@ -555,6 +574,8 @@ export default class ChunkLoader {
     this.timeline = new Map<number, TimelineChunkRecord>();
     this.countsByKind = {};
     this.truncatedKinds = new Set<ReplayTimelineEventKind>();
+    this.pauseReasonByPausedAt = new Map<number, SessionReplayPauseReason>();
+    this.resumedRowsByPausedAt = new Map<number, Array<ReplayTimelineEvent>>();
     this.timelineVersion = 0;
     this.timelineEventsCache = null;
     this.fedThroughChunkIndex = null;
@@ -1449,6 +1470,8 @@ export default class ChunkLoader {
     this.timeline.clear();
     this.countsByKind = {};
     this.truncatedKinds.clear();
+    this.pauseReasonByPausedAt.clear();
+    this.resumedRowsByPausedAt.clear();
     this.timelineVersion += 1;
     this.timelineEventsCache = null;
   }
@@ -2367,6 +2390,18 @@ export default class ChunkLoader {
           row.pausedAtUnixMs = payload.pausedAtUnixMs;
           row.atUnixMs = payload.pausedAtUnixMs;
         }
+
+        /*
+         * Why it paused (#7498): "page" when the page asked. Read on its
+         * own, so a marker whose stamps were malformed still says whose
+         * pause it was.
+         */
+        const reason: SessionReplayPauseReason | undefined =
+          readSessionReplayPauseReason(payload);
+
+        if (reason) {
+          row.pauseReason = reason;
+        }
         break;
       }
       case "navigation": {
@@ -2422,11 +2457,71 @@ export default class ChunkLoader {
       kept.push(row);
     }
 
+    this.pairPauseEdges(kept);
+
     this.timeline.set(chunkIndex, {
       events: kept,
       activityIntervals: extraction.activityIntervals,
     });
     this.timelineVersion += 1;
+  }
+
+  /*
+   * A resumed row written by a recorder from before the resumed marker
+   * gave its pause's reason takes it from the paused row of the same
+   * pause, whichever of the two chunks is read first (#7498). Rows from
+   * chunks already stored are completed in place: the rail re-reads every
+   * row on the version bump that follows, and the inactivity map, which
+   * holds the same rows, re-draws its bands when this chunk is admitted.
+   */
+  private pairPauseEdges(rows: Array<ReplayTimelineEvent>): void {
+    for (const row of rows) {
+      if (
+        row.kind !== "idle-pause" ||
+        row.idlePauseEdge === "resumed" ||
+        row.pausedAtUnixMs === undefined ||
+        !row.pauseReason
+      ) {
+        continue;
+      }
+
+      const pausedAtUnixMs: number = row.pausedAtUnixMs;
+      const reason: SessionReplayPauseReason = row.pauseReason;
+
+      this.pauseReasonByPausedAt.set(pausedAtUnixMs, reason);
+
+      for (const waiting of this.resumedRowsByPausedAt.get(pausedAtUnixMs) ??
+        []) {
+        waiting.pauseReason = reason;
+      }
+
+      this.resumedRowsByPausedAt.delete(pausedAtUnixMs);
+    }
+
+    for (const row of rows) {
+      if (
+        row.kind !== "idle-pause" ||
+        row.idlePauseEdge !== "resumed" ||
+        row.pausedAtUnixMs === undefined ||
+        row.pauseReason
+      ) {
+        continue;
+      }
+
+      const known: SessionReplayPauseReason | undefined =
+        this.pauseReasonByPausedAt.get(row.pausedAtUnixMs);
+
+      if (known) {
+        row.pauseReason = known;
+        continue;
+      }
+
+      const waiting: Array<ReplayTimelineEvent> =
+        this.resumedRowsByPausedAt.get(row.pausedAtUnixMs) ?? [];
+
+      waiting.push(row);
+      this.resumedRowsByPausedAt.set(row.pausedAtUnixMs, waiting);
+    }
   }
 
   private admit(

@@ -51831,5 +51831,18 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Intervalo de tiempo: {{range}}. Prueba a ajustar los filtros o a ampliar el intervalo de tiempo.",
   "On-Call Policy Created": "Política de guardia creada",
   "On-Call Schedule Added": "Programación de guardia añadida",
-  "On-Call Schedule Removed": "Programación de guardia quitada"
+  "On-Call Schedule Removed": "Programación de guardia quitada",
+  "Recording paused by the page: {{label}}": "Grabación pausada por la página: {{label}}",
+  "Recording paused: no input for {{duration}}": "Grabación en pausa: sin interacción durante {{duration}}",
+  "Recording resumed after {{duration}} idle": "Grabación reanudada tras {{duration}} de inactividad",
+  "Recording resumed by the page after {{duration}}": "Grabación reanudada por la página tras {{duration}}",
+  "Skipped {{duration}}: recording paused by the page": "Se omitieron {{duration}}: la página pausó la grabación",
+  "The page paused recording here with OneUptimeReplay.pause(). Nothing on the page, not even the visitor's input, is recorded until the page resumes it.": "La página pausó la grabación aquí con OneUptimeReplay.pause(). No se graba nada de la página, ni siquiera la interacción del visitante, hasta que la página la reanude.",
+  "The page paused the recorder, so nothing was recorded until the page resumed it.": "La página pausó el grabador, así que no se grabó nada hasta que la página lo reanudó.",
+  "The page resumed recording here after {{duration}}, on a fresh snapshot of the page. Nothing was recorded while it was paused, so playback skips the pause.": "La página reanudó la grabación aquí tras {{duration}}, con una nueva instantánea de la página. No se grabó nada mientras estuvo en pausa, así que la reproducción omite la pausa.",
+  "The page resumed recording here, on a fresh snapshot of the page. Nothing was recorded while it was paused, so playback skips the pause.": "La página reanudó la grabación aquí, con una nueva instantánea de la página. No se grabó nada mientras estuvo en pausa, así que la reproducción omite la pausa.",
+  "Recording paused by the page": "Grabación pausada por la página",
+  "Recording paused: nobody touched the page": "Grabación en pausa: nadie tocó la página",
+  "Recording resumed after an idle pause": "Grabación reanudada tras una pausa por inactividad",
+  "Recording resumed by the page": "Grabación reanudada por la página"
 }

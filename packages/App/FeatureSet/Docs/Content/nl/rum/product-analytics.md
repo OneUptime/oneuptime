@@ -76,7 +76,7 @@ OneUptimeReplay.metric("cart.value", 42.5, { currency: "EUR" });
 Voordat de recorder is geladen, zet je dezelfde aanroepen in `window.OneUptimeReplayQueue` als `["track", name, properties]` en `["metric", name, value, attributes]` (zie [JavaScript-API](/docs/telemetry/session-replay#javascript-api)).
 
 - **Elke sessie, opgenomen of niet.** De steekproef en het uploadbeleid van de herhaling bepalen welke sessies worden opgenomen, niet welke worden geteld. Onder Do Not Track of Global Privacy Control wordt niets verzonden, en van een origin die de applicatie niet toestaat, wordt niets bewaard. Als het beleid toestemming vereist, wachten de gebeurtenissen op `grantConsent()`, hooguit 500, en `revokeConsent()` gooit ze weg.
-- **Gemaskeerd zoals de opname.** Onder _Mask all text_ worden de waarden van eigenschappen en attributen gemaskeerd voordat ze de pagina verlaten. Een pagina wordt verzonden als haar pad, zonder query of fragment.
+- **Gemaskeerd zoals de opname.** Onder _Mask all text_ worden de waarden van eigenschappen en attributen gemaskeerd voordat ze de pagina verlaten, dus een uitsplitsing op een ervan toont plaatsaanduidingen in plaats van je waarden; namen van gebeurtenissen, sleutels van eigenschappen en waarden van metrieken worden verzonden zoals ze zijn geschreven. Een waarde die je in die modus moet kunnen lezen, hoort in een sessietag (`setTags()`), die nooit wordt gemaskeerd, dus houd persoonsgegevens erbuiten. Tags staan bij de sessie en in een zoekopdracht `tag:key=value` in de sessielijst, niet in de uitsplitsingen van deze pagina's. Een pagina wordt verzonden als haar pad, zonder query of fragment.
 - **In kleine batches**, elke 5 seconden en wanneer het tabblad wordt verborgen. Een gebeurtenis die OneUptime meer dan 3 dagen nadat ze plaatsvond bereikt, wordt weggegooid, en een project mag 60.000 gebeurtenissen en metriekpunten per minuut verzenden, al zijn applicaties samen; daarboven wacht de recorder en verzendt ze opnieuw.
 
 `metric()` verzendt niets zolang de gebeurtenissen uit staan, en `getDiagnostics().productAnalytics` zegt of ze aan staan (zie [`getDiagnostics()`](/docs/telemetry/session-replay#getdiagnostics)).
@@ -144,7 +144,7 @@ Een opgeslagen trechter of retentietabel kan ook op een dashboard: de widgets **
 
 ## Wie het kan zien
 
-Deze pagina's lezen vraagt wat de sessielijst lezen vraagt: `ReadRumSessionReplay` (_List Session Replays_) of `ReadRumSessionReplayPayload` (_Watch Session Replays_), die projecteigenaren en beheerders hebben. Zien wie een aangemelde gebruiker is, en mensen op naam zoeken, vraagt de identiteitsrechten die [Wie een opname kan bekijken](/docs/telemetry/session-replay#wie-een-opname-kan-bekijken) beschrijft.
+Deze pagina's lezen vraagt wat de sessielijst lezen vraagt: `ReadRumSessionReplay` (_List Session Replays_) of `ReadRumSessionReplayPayload` (_Watch Session Replays_), die projecteigenaren en beheerders hebben. Zien wie een aangemelde gebruiker is, en mensen op naam zoeken, vraagt `ReadRumSessionReplayPayload` (_Watch Session Replays_), zoals [Wie een opname kan bekijken](/docs/telemetry/session-replay#wie-een-opname-kan-bekijken) beschrijft.
 
 Opgeslagen trechters en retentietabellen opslaan, hernoemen en verwijderen vraagt dezelfde rechten als deze pagina's lezen, en een dashboardwidget toont er een alleen aan een lezer die ze heeft.
 

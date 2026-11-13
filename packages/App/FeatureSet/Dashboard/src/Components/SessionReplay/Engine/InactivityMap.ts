@@ -76,6 +76,8 @@ interface VisibilityPoint {
 interface PausedSpan {
   startMs: number;
   endMs: number;
+  /* The page paused it (#7498): every pause merged into it, if merged. */
+  isPausedByPage: boolean;
 }
 
 export default class InactivityMap {
@@ -379,7 +381,11 @@ export default class InactivityMap {
           continue;
         }
 
-        spans.push({ startMs: Math.max(0, startMs), endMs: event.offsetMs });
+        spans.push({
+          startMs: Math.max(0, startMs),
+          endMs: event.offsetMs,
+          isPausedByPage: event.pauseReason === "page",
+        });
       }
     }
 
@@ -394,10 +400,11 @@ export default class InactivityMap {
 
       if (last && span.startMs <= last.endMs) {
         last.endMs = Math.max(last.endMs, span.endMs);
+        last.isPausedByPage = last.isPausedByPage && span.isPausedByPage;
         continue;
       }
 
-      merged.push({ startMs: span.startMs, endMs: span.endMs });
+      merged.push({ ...span });
     }
 
     return merged
@@ -405,12 +412,18 @@ export default class InactivityMap {
         return span.endMs - span.startMs >= thresholdMs;
       })
       .map((span: PausedSpan): ReplayIdleBand => {
-        return {
+        const band: ReplayIdleBand = {
           startMs: span.startMs,
           endMs: span.endMs,
           kind: "paused",
           fidelity: "exact",
         };
+
+        if (span.isPausedByPage) {
+          band.pauseReason = "page";
+        }
+
+        return band;
       });
   }
 

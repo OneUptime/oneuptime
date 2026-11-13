@@ -51831,5 +51831,18 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "समय सीमा: {{range}}। फ़िल्टर बदलकर या समय सीमा बढ़ाकर देखें।",
   "On-Call Policy Created": "ऑन-कॉल नीति बनाई गई",
   "On-Call Schedule Added": "ऑन-कॉल अनुसूची जोड़ी गई",
-  "On-Call Schedule Removed": "ऑन-कॉल अनुसूची हटाई गई"
+  "On-Call Schedule Removed": "ऑन-कॉल अनुसूची हटाई गई",
+  "Recording paused by the page: {{label}}": "पेज ने रिकॉर्डिंग रोकी: {{label}}",
+  "Recording paused: no input for {{duration}}": "रिकॉर्डिंग रुकी: {{duration}} तक कोई इनपुट नहीं",
+  "Recording resumed after {{duration}} idle": "{{duration}} निष्क्रिय रहने के बाद रिकॉर्डिंग फिर शुरू हुई",
+  "Recording resumed by the page after {{duration}}": "पेज ने {{duration}} बाद रिकॉर्डिंग फिर शुरू की",
+  "Skipped {{duration}}: recording paused by the page": "{{duration}} छोड़ा गया: पेज ने रिकॉर्डिंग रोकी थी",
+  "The page paused recording here with OneUptimeReplay.pause(). Nothing on the page, not even the visitor's input, is recorded until the page resumes it.": "पेज ने यहाँ OneUptimeReplay.pause() से रिकॉर्डिंग रोकी। पेज के उसे फिर शुरू करने तक पेज पर कुछ भी रिकॉर्ड नहीं होता, विज़िटर का इनपुट भी नहीं।",
+  "The page paused the recorder, so nothing was recorded until the page resumed it.": "पेज ने रिकॉर्डर को रोका, इसलिए पेज के उसे फिर शुरू करने तक कुछ भी रिकॉर्ड नहीं हुआ।",
+  "The page resumed recording here after {{duration}}, on a fresh snapshot of the page. Nothing was recorded while it was paused, so playback skips the pause.": "पेज ने {{duration}} बाद यहाँ पेज के नए स्नैपशॉट पर रिकॉर्डिंग फिर शुरू की। रुके रहने के दौरान कुछ रिकॉर्ड नहीं हुआ, इसलिए प्लेबैक उस विराम को छोड़ देता है।",
+  "The page resumed recording here, on a fresh snapshot of the page. Nothing was recorded while it was paused, so playback skips the pause.": "पेज ने यहाँ पेज के नए स्नैपशॉट पर रिकॉर्डिंग फिर शुरू की। रुके रहने के दौरान कुछ रिकॉर्ड नहीं हुआ, इसलिए प्लेबैक उस विराम को छोड़ देता है।",
+  "Recording paused by the page": "पेज ने रिकॉर्डिंग रोकी",
+  "Recording paused: nobody touched the page": "रिकॉर्डिंग रुकी: किसी ने पेज को नहीं छुआ",
+  "Recording resumed after an idle pause": "निष्क्रियता के विराम के बाद रिकॉर्डिंग फिर शुरू हुई",
+  "Recording resumed by the page": "पेज ने रिकॉर्डिंग फिर शुरू की"
 }

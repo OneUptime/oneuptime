@@ -399,6 +399,12 @@ export interface SessionReplayTagsPayload {
 /* ---- Payloads introduced with the idle pause. ---- */
 
 /*
+ * Why capture paused, when it was not because nobody touched the page:
+ * "page", the page asked (OneUptimeReplay.pause(), issue #6834).
+ */
+export type SessionReplayPauseReason = "page";
+
+/*
  * The last thing in the stream before an idle pause. Nothing is recorded
  * between this and the next IdleResumed of the same tab - no DOM, no
  * requests, no console, no errors - so the player treats that stretch as
@@ -415,7 +421,7 @@ export interface SessionReplayIdlePausedPayload {
    * a pause because nobody touched the page, which is every pause an older
    * recorder made.
    */
-  reason?: "page";
+  reason?: SessionReplayPauseReason;
 }
 
 /*
@@ -427,6 +433,16 @@ export interface SessionReplayIdlePausedPayload {
 export interface SessionReplayIdleResumedPayload {
   pausedAtUnixMs: number;
   resumedAtUnixMs: number;
+  /*
+   * The reason of the pause this ends, as its IdlePaused marker said it:
+   * "page" when the page had paused recording (and so resumed it - only
+   * OneUptimeReplay.resume() ends a pause the page holds), so the player
+   * can name the stretch without the chunk holding the paused marker
+   * (issue #7498). Absent after an idle pause, and on every resume a
+   * recorder from before the field wrote: the player then takes the reason
+   * from the matching paused marker, when it has read it.
+   */
+  reason?: SessionReplayPauseReason;
 }
 
 /* ---- Type guards. Minimum required fields only; the rest is optional. ---- */
@@ -703,6 +719,17 @@ export function isSessionReplayIdlePausedPayload(
     isFiniteNumber(value["idleSinceUnixMs"]) &&
     isFiniteNumber(value["pausedAtUnixMs"])
   );
+}
+
+/*
+ * The reason an idle-pause marker's payload gives, when it gives one the
+ * player knows: "page", or undefined for an idle pause, a recorder from
+ * before the field, and anything else a newer recorder may one day write.
+ */
+export function readSessionReplayPauseReason(
+  value: unknown,
+): SessionReplayPauseReason | undefined {
+  return isRecord(value) && value["reason"] === "page" ? "page" : undefined;
 }
 
 /*

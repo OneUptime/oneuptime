@@ -385,12 +385,22 @@ export interface SessionReplayCustomSignalPayload {
 export const IDLE_PAUSED_CUSTOM_EVENT_TAG: string = "oneuptime.idle-paused";
 export const IDLE_RESUMED_CUSTOM_EVENT_TAG: string = "oneuptime.idle-resumed";
 
+/*
+ * Why capture paused, when it was not because nobody used the app: "page",
+ * the browser recorder's page asked (OneUptimeReplay.pause()). This
+ * recorder has no such call yet, so it never writes a reason; the field is
+ * here because the payloads are Common's, field for field.
+ */
+export type SessionReplayPauseReason = "page";
+
 /* The last thing in the stream before an idle pause. */
 export interface SessionReplayIdlePausedPayload {
   /* The last input before the pause: where the user actually stopped. */
   idleSinceUnixMs: number;
   /* When capture stopped. */
   pausedAtUnixMs: number;
+  /* Absent: every pause this recorder makes is an idle one. */
+  reason?: SessionReplayPauseReason;
 }
 
 /*
@@ -401,4 +411,6 @@ export interface SessionReplayIdlePausedPayload {
 export interface SessionReplayIdleResumedPayload {
   pausedAtUnixMs: number;
   resumedAtUnixMs: number;
+  /* The reason of the pause this ends; absent after an idle one. */
+  reason?: SessionReplayPauseReason;
 }

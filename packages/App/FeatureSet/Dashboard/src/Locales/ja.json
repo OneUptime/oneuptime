@@ -51831,5 +51831,18 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "時間範囲: {{range}}。フィルターを調整するか、時間範囲を広げてみてください。",
   "On-Call Policy Created": "オンコールポリシー作成済み",
   "On-Call Schedule Added": "オンコールスケジュール追加済み",
-  "On-Call Schedule Removed": "オンコールスケジュール削除済み"
+  "On-Call Schedule Removed": "オンコールスケジュール削除済み",
+  "Recording paused by the page: {{label}}": "ページによる録画の一時停止: {{label}}",
+  "Recording paused: no input for {{duration}}": "録画の一時停止: {{duration}} 入力なし",
+  "Recording resumed after {{duration}} idle": "{{duration}} のアイドル後に録画を再開しました",
+  "Recording resumed by the page after {{duration}}": "{{duration}} 後にページが録画を再開しました",
+  "Skipped {{duration}}: recording paused by the page": "{{duration}} をスキップしました: ページが録画を一時停止していました",
+  "The page paused recording here with OneUptimeReplay.pause(). Nothing on the page, not even the visitor's input, is recorded until the page resumes it.": "ページが OneUptimeReplay.pause() でここで録画を一時停止しました。ページが再開するまで、訪問者の入力も含め、ページ上の何も記録されません。",
+  "The page paused the recorder, so nothing was recorded until the page resumed it.": "ページがレコーダーを一時停止したため、ページが再開するまで何も記録されませんでした。",
+  "The page resumed recording here after {{duration}}, on a fresh snapshot of the page. Nothing was recorded while it was paused, so playback skips the pause.": "{{duration}} 後、ページがここでページの新しいスナップショットから録画を再開しました。一時停止中は何も記録されていないため、再生ではスキップされます。",
+  "The page resumed recording here, on a fresh snapshot of the page. Nothing was recorded while it was paused, so playback skips the pause.": "ページがここでページの新しいスナップショットから録画を再開しました。一時停止中は何も記録されていないため、再生ではスキップされます。",
+  "Recording paused by the page": "ページが録画を一時停止しました",
+  "Recording paused: nobody touched the page": "録画の一時停止: 誰もページを操作しませんでした",
+  "Recording resumed after an idle pause": "アイドルによる一時停止の後に録画を再開しました",
+  "Recording resumed by the page": "ページが録画を再開しました"
 }

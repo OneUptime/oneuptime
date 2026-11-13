@@ -2,6 +2,7 @@ import {
   SessionReplayChunkManifestEntry,
   SessionReplayGap,
 } from "Common/Types/Rum/SessionReplay";
+import { SessionReplayPauseReason } from "Common/Types/Rum/SessionReplayCustomEvents";
 import { ComposedValue } from "Common/Types/Translator";
 import ChunkLoader, { SessionReplayRecordedEvent } from "../ChunkLoader";
 
@@ -123,6 +124,13 @@ export interface ReplayIdleBand {
    * once the chunk is decoded; exact bands come from decoded events.
    */
   fidelity: "coarse" | "exact";
+  /*
+   * Paused bands only: "page" when the page paused recording itself
+   * (OneUptimeReplay.pause()) rather than nobody touching it, so the band,
+   * its skip and its chip say whose pause it was (issue #7498). Absent for
+   * an idle pause and for a stretch whose resume does not say.
+   */
+  pauseReason?: SessionReplayPauseReason | undefined;
 }
 
 export interface ReplayFedRange {

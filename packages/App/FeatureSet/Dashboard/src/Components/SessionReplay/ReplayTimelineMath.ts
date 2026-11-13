@@ -2,6 +2,7 @@ import {
   SESSION_REPLAY_ACTIVE_CHUNK_MIN_EVENTS,
   SessionReplayGap,
 } from "Common/Types/Rum/SessionReplay";
+import { SessionReplayPauseReason } from "Common/Types/Rum/SessionReplayCustomEvents";
 import {
   ComposedValue,
   composedValue,
@@ -20,7 +21,11 @@ import {
   ReplaySignalKind,
   ReplaySignalSeverity,
 } from "./Rail/ReplaySignalTypes";
-import { formatReplayDuration, formatReplayOffset } from "./ReplayTimeFormat";
+import {
+  formatReplayDuration,
+  formatReplayOffsetInLanguage,
+  replayOffsetValue,
+} from "./ReplayTimeFormat";
 
 /*
  * Pure geometry and bookkeeping for the timeline: track bands, activity
@@ -86,7 +91,7 @@ export function formatReplayDurationInLanguage(
 }
 
 /* The same length, as a value of a sentence: in the sentence's language. */
-function durationValue(durationMs: number): ComposedValue {
+export function replayDurationValue(durationMs: number): ComposedValue {
   return composedValue((sentence: Translator): string => {
     return formatReplayDurationInLanguage(durationMs, sentence);
   });
@@ -195,6 +200,11 @@ export interface ReplayTrackBand {
    * exact (from decoded events). Paused bands are always exact.
    */
   fidelity?: "coarse" | "exact" | undefined;
+  /*
+   * Paused bands only: "page" when the page paused recording itself
+   * (ReplayIdleBand.pauseReason, issue #7498), so the band's name says so.
+   */
+  pauseReason?: SessionReplayPauseReason | undefined;
 }
 
 /* The bands drawn full height over the track, each with a label. */
@@ -322,14 +332,20 @@ export function buildTrackBands(
       continue;
     }
 
-    bands.push({
+    const trackBand: ReplayTrackBand = {
       kind: band.kind,
       startMs: startMs,
       endMs: endMs,
       label: describeTrackBandLabel(band.kind, endMs - startMs),
       lengthMs: endMs - startMs,
       fidelity: band.fidelity,
-    });
+    };
+
+    if (band.pauseReason) {
+      trackBand.pauseReason = band.pauseReason;
+    }
+
+    bands.push(trackBand);
   }
 
   return bands;
@@ -347,7 +363,7 @@ export function describeTrackBandLabel(
   lengthMs: number,
   translator: Translator = ENGLISH,
 ): string {
-  const values: TemplateValues = { duration: durationValue(lengthMs) };
+  const values: TemplateValues = { duration: replayDurationValue(lengthMs) };
 
   switch (kind) {
     case "gap":
@@ -535,16 +551,17 @@ function readBoolean(detail: Record<string, unknown>, key: string): boolean {
  * as the rail wrote it. An unanchored row says it is placed by server time.
  */
 function markerTitle(signal: ReplaySignal, translator: Translator): string {
-  const time: string = formatReplayOffset(signal.offsetMs);
-
   if (signal.alignment === "unanchored") {
     return translator.translateTemplate(
       "{{time}} {{title}} (server time; not aligned to the recording clock)",
-      { time: time, title: signal.title },
+      { time: replayOffsetValue(signal.offsetMs), title: signal.title },
     );
   }
 
-  return `${time} ${signal.title}`;
+  // The time in the reader's digits (#7318); the title as recorded.
+  return `${formatReplayOffsetInLanguage(signal.offsetMs, translator.language)} ${
+    signal.title
+  }`;
 }
 
 /*
@@ -717,8 +734,8 @@ function coarseValues(
   midpointMs: number,
 ): TemplateValues {
   return {
-    time: formatReplayOffset(midpointMs),
-    window: durationValue(
+    time: replayOffsetValue(midpointMs),
+    window: replayDurationValue(
       Math.max(0, chunk.chunkEndOffsetMs - chunk.chunkStartOffsetMs),
     ),
   };
@@ -863,6 +880,7 @@ export function buildCoarseMarkers(
 export function buildNoticeMarkers(
   notices: Array<ReplayTimelineNoticeInput>,
   durationMs: number,
+  translator: Translator = ENGLISH,
 ): Array<ReplayTimelineMarker> {
   return notices
     .filter((notice: ReplayTimelineNoticeInput): boolean => {
@@ -877,7 +895,9 @@ export function buildNoticeMarkers(
         offsetMs: offsetMs,
         kind: "notice",
         severity: "warn",
-        title: `${formatReplayOffset(offsetMs)} ${notice.title}`,
+        title: `${formatReplayOffsetInLanguage(offsetMs, translator.language)} ${
+          notice.title
+        }`,
         tone: "gray",
         fidelity: "exact",
         isHollow: false,
@@ -909,7 +929,7 @@ export function buildTimelineMarkers(
       input.durationMs,
       translator,
     ),
-    ...buildNoticeMarkers(input.notices || [], input.durationMs),
+    ...buildNoticeMarkers(input.notices || [], input.durationMs, translator),
   ];
 
   return sortMarkers(markers);

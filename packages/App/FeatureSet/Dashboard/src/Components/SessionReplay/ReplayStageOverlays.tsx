@@ -41,7 +41,12 @@ import {
   ReplayFootageAbsence,
   SessionReplayManifestChunk,
 } from "./ReplayManifest";
-import { formatReplayDuration, formatReplayOffset } from "./ReplayTimeFormat";
+import {
+  replayOffsetValue,
+  writeReplayFigureInLanguage,
+} from "./ReplayTimeFormat";
+import { replayDurationValue } from "./ReplayTimelineMath";
+import { formatReaderFigure } from "Common/Types/DateLanguage";
 import { IDLE_SKIP_MIN_REMAINING_MS } from "./ReplayPlaybackIntent";
 import { SealedReasonCopy } from "./FidelityNoticeCopy";
 import { ReplayButtonGroup, ReplayToolButton } from "./ReplayUi";
@@ -181,13 +186,16 @@ export const REPLAY_IDLE_SKIP_TOAST_MS: number = 1500;
  * The words for a skipped band, by kind, in `translator`'s language. A
  * paused stretch says WHY it was skipped, because unlike an idle skip it
  * happens with Skip idle off: a viewer who never asked for a jump is owed
- * the reason there was nothing to watch.
+ * the reason there was nothing to watch - the page's own pause, or nobody
+ * touching the page (#7498). The length is in the sentence's language.
  */
 export function describeIdleSkip(
   band: ReplayIdleBand,
   translator: Translator = ENGLISH,
 ): string {
-  const duration: string = formatReplayDuration(band.endMs - band.startMs);
+  const duration: ComposedValue = replayDurationValue(
+    band.endMs - band.startMs,
+  );
 
   switch (band.kind) {
     case "background-tab":
@@ -196,10 +204,15 @@ export function describeIdleSkip(
         { duration: duration },
       );
     case "paused":
-      return translator.translateTemplate(
-        "Skipped {{duration}}: recording paused while the page was idle",
-        { duration: duration },
-      );
+      return band.pauseReason === "page"
+        ? translator.translateTemplate(
+            "Skipped {{duration}}: recording paused by the page",
+            { duration: duration },
+          )
+        : translator.translateTemplate(
+            "Skipped {{duration}}: recording paused while the page was idle",
+            { duration: duration },
+          );
     case "idle":
       return translator.translateTemplate("Skipped {{duration}} idle", {
         duration: duration,
@@ -220,7 +233,9 @@ export function describeIdleBandChip(
   band: ReplayIdleBand,
   translator: Translator = ENGLISH,
 ): string {
-  const duration: string = formatReplayDuration(band.endMs - band.startMs);
+  const duration: ComposedValue = replayDurationValue(
+    band.endMs - band.startMs,
+  );
 
   switch (band.kind) {
     case "background-tab":
@@ -254,6 +269,18 @@ export function describeIdleBandChip(
 export const REPLAY_PAUSED_BAND_EXPLANATION: string = translationKey(
   "Nobody touched the page, so the recorder paused and nothing was recorded until the next input.",
 );
+
+// The same, for a stretch the page paused itself (#7498).
+export const REPLAY_PAGE_PAUSED_BAND_EXPLANATION: string = translationKey(
+  "The page paused the recorder, so nothing was recorded until the page resumed it.",
+);
+
+// What a paused band means, by whose pause it was.
+export function getPausedBandExplanation(band: ReplayIdleBand): string {
+  return band.pauseReason === "page"
+    ? REPLAY_PAGE_PAUSED_BAND_EXPLANATION
+    : REPLAY_PAUSED_BAND_EXPLANATION;
+}
 
 /* The session the ended card offers next: the user's next newer session. */
 export interface ReplayNextUserSession {
@@ -814,7 +841,7 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
       >
         <span className="h-2 w-2 animate-pulse rounded-full bg-indigo-400" />
         {translator.translateTemplate("Seeking to {{time}}", {
-          time: formatReplayOffset(snapshot.pendingSeekMs ?? currentTimeMs),
+          time: replayOffsetValue(snapshot.pendingSeekMs ?? currentTimeMs),
         })}
       </div>
     );
@@ -859,7 +886,7 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
         <Icon icon={IconProp.Forward} className="h-3.5 w-3.5" />
         {translator.translateTemplate(
           "Skipped {{duration}} - the recorder never delivered this stretch",
-          { duration: formatReplayDuration(gapToast.value.missingMs) },
+          { duration: replayDurationValue(gapToast.value.missingMs) },
         )}
       </div>
     );
@@ -907,7 +934,7 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
         </div>
         <p className="mt-1 text-xs text-gray-600">
           {translator.translateTemplate("{{duration}} of footage played out.", {
-            duration: formatReplayDuration(snapshot.durationMs),
+            duration: replayDurationValue(snapshot.durationMs),
           })}
         </p>
         <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
@@ -979,10 +1006,21 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
     );
   }
 
+  /*
+   * "1200x760 -> 43%": a size the recorder measured and the scale the
+   * stage draws it at, both in the reader's digits ("۱۲۰۰x۷۶۰ -> ۴۳٪" in
+   * Persian, #7318), the percentage as the reader's language writes one.
+   */
   const viewportLabel: string | null = props.recordedSize
-    ? `${props.recordedSize.width}x${props.recordedSize.height}`
+    ? writeReplayFigureInLanguage(
+        `${props.recordedSize.width}x${props.recordedSize.height}`,
+        translator.language,
+      )
     : null;
-  const scalePercent: number = Math.round(props.scale * 100);
+  const scalePercent: string = formatReaderFigure(
+    Math.round(props.scale * 100),
+    { decimals: 0, isPercent: true, language: translator.language },
+  );
   /* 1:1 is 100% by definition; the percentage only informs a scaled fit. */
   const isScaledFit: boolean = props.fit !== "actual";
 
@@ -1092,6 +1130,11 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
         {viewportLabel && (
           <span
             data-testid="replay-viewport-chip"
+            /*
+             * Left to right in every language: the arrow points from the
+             * recorded size to the scale it is drawn at.
+             */
+            dir="ltr"
             className="ml-1 max-sm:hidden shrink-0 items-center gap-1 rounded-md bg-white px-1.5 py-0.5 text-[11px] tabular-nums text-gray-500 ring-1 ring-inset ring-gray-200 sm:inline-flex"
             title={translator.translateText(
               "Recorded viewport and the scale it is drawn at",
@@ -1099,7 +1142,7 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
           >
             {viewportLabel}
             {isScaledFit && (
-              <span className="text-gray-400">-&gt; {scalePercent}%</span>
+              <span className="text-gray-400">-&gt; {scalePercent}</span>
             )}
           </span>
         )}
@@ -1191,7 +1234,10 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
                 }`}
                 title={joinSentences([
                   idleBand.kind === "paused"
-                    ? translateLine(REPLAY_PAUSED_BAND_EXPLANATION, translator)
+                    ? translateLine(
+                        getPausedBandExplanation(idleBand),
+                        translator,
+                      )
                     : "",
                   canSkipIdle
                     ? translateLine("Skip past this stretch (s)", translator)

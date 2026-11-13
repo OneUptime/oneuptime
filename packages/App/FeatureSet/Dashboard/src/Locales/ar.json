@@ -51831,5 +51831,18 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "النطاق الزمني: {{range}}. جرّب تعديل عوامل التصفية أو توسيع النطاق الزمني.",
   "On-Call Policy Created": "أُنشئت سياسة مناوبة",
   "On-Call Schedule Added": "أُضيف جدول مناوبة",
-  "On-Call Schedule Removed": "أُزيل جدول مناوبة"
+  "On-Call Schedule Removed": "أُزيل جدول مناوبة",
+  "Recording paused by the page: {{label}}": "أوقفت الصفحة التسجيل مؤقتًا: {{label}}",
+  "Recording paused: no input for {{duration}}": "توقف التسجيل مؤقتًا: لا إدخال لمدة {{duration}}",
+  "Recording resumed after {{duration}} idle": "استُؤنف التسجيل بعد {{duration}} من الخمول",
+  "Recording resumed by the page after {{duration}}": "استأنفت الصفحة التسجيل بعد {{duration}}",
+  "Skipped {{duration}}: recording paused by the page": "تم تخطي {{duration}}: أوقفت الصفحة التسجيل مؤقتًا",
+  "The page paused recording here with OneUptimeReplay.pause(). Nothing on the page, not even the visitor's input, is recorded until the page resumes it.": "أوقفت الصفحة التسجيل مؤقتًا هنا باستخدام OneUptimeReplay.pause(). لا يُسجَّل أي شيء على الصفحة، ولا حتى إدخال الزائر، حتى تستأنفه الصفحة.",
+  "The page paused the recorder, so nothing was recorded until the page resumed it.": "أوقفت الصفحة المسجّل مؤقتًا، لذا لم يُسجَّل أي شيء حتى استأنفته الصفحة.",
+  "The page resumed recording here after {{duration}}, on a fresh snapshot of the page. Nothing was recorded while it was paused, so playback skips the pause.": "استأنفت الصفحة التسجيل هنا بعد {{duration}}، على لقطة جديدة للصفحة. لم يُسجَّل شيء أثناء التوقف، لذا يتخطاه التشغيل.",
+  "The page resumed recording here, on a fresh snapshot of the page. Nothing was recorded while it was paused, so playback skips the pause.": "استأنفت الصفحة التسجيل هنا، على لقطة جديدة للصفحة. لم يُسجَّل شيء أثناء التوقف، لذا يتخطاه التشغيل.",
+  "Recording paused by the page": "أوقفت الصفحة التسجيل مؤقتًا",
+  "Recording paused: nobody touched the page": "توقف التسجيل مؤقتًا: لم يلمس أحد الصفحة",
+  "Recording resumed after an idle pause": "استُؤنف التسجيل بعد توقف مؤقت بسبب الخمول",
+  "Recording resumed by the page": "استأنفت الصفحة التسجيل"
 }

@@ -51831,5 +51831,18 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Период: {{range}}. Попробуйте изменить фильтры или расширить период.",
   "On-Call Policy Created": "Политика дежурства создана",
   "On-Call Schedule Added": "Расписание дежурства добавлено",
-  "On-Call Schedule Removed": "Расписание дежурства удалено"
+  "On-Call Schedule Removed": "Расписание дежурства удалено",
+  "Recording paused by the page: {{label}}": "Запись приостановлена страницей: {{label}}",
+  "Recording paused: no input for {{duration}}": "Запись приостановлена: нет ввода в течение {{duration}}",
+  "Recording resumed after {{duration}} idle": "Запись возобновлена после {{duration}} бездействия",
+  "Recording resumed by the page after {{duration}}": "Запись возобновлена страницей через {{duration}}",
+  "Skipped {{duration}}: recording paused by the page": "Пропущено {{duration}}: страница приостановила запись",
+  "The page paused recording here with OneUptimeReplay.pause(). Nothing on the page, not even the visitor's input, is recorded until the page resumes it.": "Страница приостановила запись здесь с помощью OneUptimeReplay.pause(). Ничего на странице, даже ввод посетителя, не записывается, пока страница не возобновит запись.",
+  "The page paused the recorder, so nothing was recorded until the page resumed it.": "Страница приостановила рекордер, поэтому ничего не записывалось, пока страница не возобновила его.",
+  "The page resumed recording here after {{duration}}, on a fresh snapshot of the page. Nothing was recorded while it was paused, so playback skips the pause.": "Страница возобновила запись здесь через {{duration}}, с нового снимка страницы. Во время паузы ничего не записывалось, поэтому воспроизведение её пропускает.",
+  "The page resumed recording here, on a fresh snapshot of the page. Nothing was recorded while it was paused, so playback skips the pause.": "Страница возобновила запись здесь, с нового снимка страницы. Во время паузы ничего не записывалось, поэтому воспроизведение её пропускает.",
+  "Recording paused by the page": "Запись приостановлена страницей",
+  "Recording paused: nobody touched the page": "Запись приостановлена: никто не касался страницы",
+  "Recording resumed after an idle pause": "Запись возобновлена после паузы из-за бездействия",
+  "Recording resumed by the page": "Запись возобновлена страницей"
 }

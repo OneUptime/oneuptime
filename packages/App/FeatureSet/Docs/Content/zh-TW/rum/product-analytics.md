@@ -76,7 +76,7 @@ OneUptimeReplay.metric("cart.value", 42.5, { currency: "EUR" });
 在錄製器載入之前，請把同樣的呼叫以 `["track", name, properties]` 和 `["metric", name, value, attributes]` 的形式推入 `window.OneUptimeReplayQueue` （請參閱 [JavaScript API](/docs/telemetry/session-replay#javascript-api) ）。
 
 - **每個工作階段，無論是否錄製** 。重播的取樣和上傳政策決定哪些工作階段會被錄製，而不是哪些會被計算。在 Do Not Track 或 Global Privacy Control 下不會傳送任何內容，來自應用程式不允許的來源的內容也不會保留。當政策要求同意時，事件會等待 `grantConsent()` ，最多 500 個，而 `revokeConsent()` 會捨棄它們。
-- **像錄製一樣遮罩** 。在 _Mask all text_ 下，事件屬性和指標屬性的值會在離開頁面之前被遮罩。頁面以其路徑傳送，不含查詢字串和片段。
+- **像錄製一樣遮罩** 。在 _Mask all text_ 下，事件屬性和指標屬性的值會在離開頁面之前被遮罩，因此依其中某一項拆分的明細顯示的是預留位置，而不是你的值；事件名稱、屬性鍵和指標值會照原樣傳送。在該模式下需要讀取的值請放進工作階段標籤（ `setTags()` ），標籤從不遮罩，所以不要在其中放入個人資料。標籤顯示在工作階段上以及工作階段清單的 `tag:key=value` 搜尋中，不會出現在這些頁面的明細裡。頁面以其路徑傳送，不含查詢字串和片段。
 - **小批次傳送** ，每 5 秒一次，以及在分頁被隱藏時。在發生 3 天之後才抵達 OneUptime 的事件會被捨棄，一個專案（所有應用程式合計）每分鐘最多可傳送 60,000 個事件和指標資料點；超過之後，錄製器會等待並重新傳送。
 
 `metric()` 在事件關閉時不會傳送任何內容， `getDiagnostics().productAnalytics` 會說明事件是否開啟（請參閱 [`getDiagnostics()`](/docs/telemetry/session-replay#getdiagnostics) ）。
@@ -144,7 +144,7 @@ OneUptimeReplay.metric("cart.value", 42.5, { currency: "EUR" });
 
 ## 誰可以查看
 
-讀取這些頁面所需的權限與讀取工作階段清單相同： `ReadRumSessionReplay` (_List Session Replays_) 或 `ReadRumSessionReplayPayload` (_Watch Session Replays_)，專案擁有者和管理員擁有這些權限。要查看已登入使用者是誰，以及依姓名搜尋人，需要 [誰可以觀看錄製](/docs/telemetry/session-replay#誰可以觀看錄製) 中所述的身分權限。
+讀取這些頁面所需的權限與讀取工作階段清單相同： `ReadRumSessionReplay` (_List Session Replays_) 或 `ReadRumSessionReplayPayload` (_Watch Session Replays_)，專案擁有者和管理員擁有這些權限。要查看已登入使用者是誰，以及依姓名搜尋人，需要 `ReadRumSessionReplayPayload` (_Watch Session Replays_)，如 [誰可以觀看錄製](/docs/telemetry/session-replay#誰可以觀看錄製) 中所述。
 
 儲存、重新命名和刪除已儲存的漏斗和留存表需要與讀取這些頁面相同的權限，儀表板小工具只會向擁有這些權限的讀者顯示它們。
 

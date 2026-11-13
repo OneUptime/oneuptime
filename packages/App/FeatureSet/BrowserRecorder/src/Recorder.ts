@@ -37,6 +37,7 @@ import {
   SessionReplayIdentifyPayload,
   SessionReplayIdlePausedPayload,
   SessionReplayIdleResumedPayload,
+  SessionReplayPauseReason,
   SessionReplaySessionRotatedPayload,
   SessionReplayTagsPayload,
   SessionReplayVisibilityPayload,
@@ -659,6 +660,14 @@ export default class Recorder {
    * chunk holds would draw a stretch the player cannot place.
    */
   private idlePauseMarkerSent: boolean = false;
+
+  /*
+   * Why the pause in progress began, as its paused marker said it: "page"
+   * for the page's pause(), none for an idle one. The resumed marker says
+   * it again, so the player can name the stretch from that marker alone
+   * (issue #7498).
+   */
+  private idlePauseReason: SessionReplayPauseReason | undefined = undefined;
 
   /*
    * The visibility state the stream last reported. Visibility changes
@@ -2134,6 +2143,7 @@ export default class Recorder {
     this.pausedForIdle = true;
     this.idlePausedAtUnixMs = nowUnixMs;
     this.idlePauseMarkerSent = canMark;
+    this.idlePauseReason = isPageAsking ? "page" : undefined;
     this.buffer.clear();
     this.pendingCustomEvents = [];
     this.stopObservingPage();
@@ -2235,6 +2245,10 @@ export default class Recorder {
         pausedAtUnixMs: pausedAtUnixMs,
         resumedAtUnixMs: Math.max(pausedAtUnixMs, nowUnixMs),
       };
+
+      if (this.idlePauseReason) {
+        resumed.reason = this.idlePauseReason;
+      }
 
       this.emitCustomEvent(SessionReplayCustomEventTag.IdleResumed, resumed);
 

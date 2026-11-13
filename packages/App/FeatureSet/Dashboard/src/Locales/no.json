@@ -51831,5 +51831,18 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Tidsrom: {{range}}. Prøv å justere filtrene eller utvide tidsrommet.",
   "On-Call Policy Created": "Vaktpolicy opprettet",
   "On-Call Schedule Added": "Vaktplan lagt til",
-  "On-Call Schedule Removed": "Vaktplan fjernet"
+  "On-Call Schedule Removed": "Vaktplan fjernet",
+  "Recording paused by the page: {{label}}": "Opptak satt på pause av siden: {{label}}",
+  "Recording paused: no input for {{duration}}": "Opptak pauset: ingen inndata på {{duration}}",
+  "Recording resumed after {{duration}} idle": "Opptak gjenopptatt etter {{duration}} inaktivitet",
+  "Recording resumed by the page after {{duration}}": "Opptak gjenopptatt av siden etter {{duration}}",
+  "Skipped {{duration}}: recording paused by the page": "Hoppet over {{duration}}: siden hadde satt opptaket på pause",
+  "The page paused recording here with OneUptimeReplay.pause(). Nothing on the page, not even the visitor's input, is recorded until the page resumes it.": "Siden satte opptaket på pause her med OneUptimeReplay.pause(). Ingenting på siden, heller ikke den besøkendes inndata, tas opp før siden gjenopptar det.",
+  "The page paused the recorder, so nothing was recorded until the page resumed it.": "Siden satte opptakeren på pause, så ingenting ble tatt opp før siden gjenopptok den.",
+  "The page resumed recording here after {{duration}}, on a fresh snapshot of the page. Nothing was recorded while it was paused, so playback skips the pause.": "Siden gjenopptok opptaket her etter {{duration}}, med et nytt øyeblikksbilde av siden. Ingenting ble tatt opp under pausen, så avspillingen hopper over den.",
+  "The page resumed recording here, on a fresh snapshot of the page. Nothing was recorded while it was paused, so playback skips the pause.": "Siden gjenopptok opptaket her, med et nytt øyeblikksbilde av siden. Ingenting ble tatt opp under pausen, så avspillingen hopper over den.",
+  "Recording paused by the page": "Opptak satt på pause av siden",
+  "Recording paused: nobody touched the page": "Opptak pauset: ingen rørte siden",
+  "Recording resumed after an idle pause": "Opptak gjenopptatt etter en pause ved inaktivitet",
+  "Recording resumed by the page": "Opptak gjenopptatt av siden"
 }

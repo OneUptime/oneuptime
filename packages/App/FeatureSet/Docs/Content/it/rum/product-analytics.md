@@ -76,7 +76,7 @@ OneUptimeReplay.metric("cart.value", 42.5, { currency: "EUR" });
 Prima che il registratore sia caricato, aggiungi le stesse chiamate a `window.OneUptimeReplayQueue` come `["track", name, properties]` e `["metric", name, value, attributes]` (vedi [API JavaScript](/docs/telemetry/session-replay#api-javascript)).
 
 - **Ogni sessione, registrata o no.** Il campione e la policy di caricamento della riproduzione decidono quali sessioni vengono registrate, non quali vengono contate. Non viene inviato nulla con Do Not Track o Global Privacy Control, e non viene conservato nulla da un'origine che l'applicazione non consente. Quando la policy richiede il consenso, gli eventi aspettano `grantConsent()`, al massimo 500, e `revokeConsent()` li scarta.
-- **Mascherati come la registrazione.** Con _Mask all text_, i valori delle proprietà e degli attributi vengono mascherati prima di lasciare la pagina. Una pagina viene inviata come il suo percorso, senza query né frammento.
+- **Mascherati come la registrazione.** Con _Mask all text_, i valori delle proprietà e degli attributi vengono mascherati prima di lasciare la pagina, quindi una suddivisione per uno di essi mostra segnaposto, non i tuoi valori; i nomi degli eventi, le chiavi delle proprietà e i valori delle metriche vengono inviati così come sono scritti. Un valore che devi leggere in quella modalità va in un tag di sessione (`setTags()`), che non viene mai mascherato, quindi non metterci dati personali. I tag compaiono sulla sessione e in una ricerca `tag:key=value` nell'elenco delle sessioni, non nelle suddivisioni di queste pagine. Una pagina viene inviata come il suo percorso, senza query né frammento.
 - **In piccoli lotti**, ogni 5 secondi e quando la scheda viene nascosta. Un evento che raggiunge OneUptime più di 3 giorni dopo essere accaduto viene scartato, e un progetto può inviare 60.000 eventi e punti di metrica al minuto, tutte le sue applicazioni insieme; oltre, il registratore aspetta e li invia di nuovo.
 
 `metric()` non invia nulla finché gli eventi sono disattivati, e `getDiagnostics().productAnalytics` dice se sono attivi (vedi [`getDiagnostics()`](/docs/telemetry/session-replay#getdiagnostics)).
@@ -144,7 +144,7 @@ Un funnel o una tabella di fidelizzazione salvati vanno anche su una dashboard: 
 
 ## Chi può vederla
 
-Leggere queste pagine richiede ciò che richiede la lista delle sessioni: `ReadRumSessionReplay` (_List Session Replays_) o `ReadRumSessionReplayPayload` (_Watch Session Replays_), che i proprietari e gli amministratori del progetto hanno. Vedere chi è un utente autenticato, e cercare persone per nome, richiede il permesso di identità descritto in [Chi può guardare una registrazione](/docs/telemetry/session-replay#chi-può-guardare-una-registrazione).
+Leggere queste pagine richiede ciò che richiede la lista delle sessioni: `ReadRumSessionReplay` (_List Session Replays_) o `ReadRumSessionReplayPayload` (_Watch Session Replays_), che i proprietari e gli amministratori del progetto hanno. Vedere chi è un utente autenticato, e cercare persone per nome, richiede `ReadRumSessionReplayPayload` (_Watch Session Replays_), come descrive [Chi può guardare una registrazione](/docs/telemetry/session-replay#chi-può-guardare-una-registrazione).
 
 Salvare, rinominare ed eliminare funnel e tabelle di fidelizzazione salvati richiede gli stessi permessi della lettura di queste pagine, e un widget della dashboard ne mostra uno solo a chi li ha.
 

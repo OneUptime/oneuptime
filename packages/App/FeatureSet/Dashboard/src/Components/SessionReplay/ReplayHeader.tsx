@@ -24,7 +24,10 @@ import {
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
-import { formatReplayOffset, formatReplayWallClock } from "./ReplayTimeFormat";
+import {
+  formatReplayOffsetInLanguage,
+  formatReplayWallClockInLanguage,
+} from "./ReplayTimeFormat";
 import { SealedReasonCopy } from "./FidelityNoticeCopy";
 import {
   ReplayButtonGroup,
@@ -585,14 +588,17 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
 
   /* ---- Clock. ---- */
 
-  const wallClock: string | null = formatReplayWallClock(
+  // Both in the reader's digits: "۱۳:۴۷:۵۳", "۰:۴۱ / ۴:۱۲" (#7318).
+  const wallClock: string | null = formatReplayWallClockInLanguage(
     props.startTimeUnixMs,
     props.currentTimeMs,
+    translator.language,
   );
 
-  const offsetText: string = `${formatReplayOffset(
+  const offsetText: string = `${formatReplayOffsetInLanguage(
     props.currentTimeMs,
-  )} / ${formatReplayOffset(props.durationMs)}`;
+    translator.language,
+  )} / ${formatReplayOffsetInLanguage(props.durationMs, translator.language)}`;
 
   const shortSessionId: string = props.sessionId.slice(0, 8);
 
@@ -906,8 +912,14 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
               {wallClock}
             </span>
           )}
+          {/*
+           * Left to right in every language, as the controls row's clock
+           * reads: on a page read from the right its two halves would swap.
+           */}
           <span
             className="text-gray-500"
+            dir="ltr"
+            data-testid="replay-header-offset"
             title={translator.translateText("Playhead / recording length")}
           >
             {offsetText}

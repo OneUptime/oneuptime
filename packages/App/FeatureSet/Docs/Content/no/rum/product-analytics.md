@@ -76,7 +76,7 @@ OneUptimeReplay.metric("cart.value", 42.5, { currency: "EUR" });
 Før opptakeren er lastet, legger du de samme kallene i `window.OneUptimeReplayQueue` som `["track", name, properties]` og `["metric", name, value, attributes]` (se [JavaScript-API](/docs/telemetry/session-replay#javascript-api)).
 
 - **Hver økt, tatt opp eller ikke.** Avspillingens utvalg og opplastingspolicyen avgjør hvilke økter som tas opp, ikke hvilke som telles. Ingenting sendes under Do Not Track eller Global Privacy Control, og ingenting tas vare på fra en opprinnelse applikasjonen ikke tillater. Når policyen krever samtykke, venter hendelsene på `grantConsent()`, høyst 500 av dem, og `revokeConsent()` forkaster dem.
-- **Maskert som opptaket.** Under _Mask all text_ maskeres verdiene til egenskaper og attributter før de forlater siden. En side sendes som stien sin, uten spørring og fragment.
+- **Maskert som opptaket.** Under _Mask all text_ maskeres verdiene til egenskaper og attributter før de forlater siden, så en oppdeling etter en av dem viser plassholdere, ikke verdiene dine; hendelsesnavn, egenskapsnøkler og verdiene til målinger sendes slik de er skrevet. En verdi du må kunne lese i den modusen, hører hjemme i en økttagg (`setTags()`), som aldri maskeres, så hold personopplysninger utenfor den. Tagger vises på økten og i et søk med `tag:key=value` i øktlisten, ikke i oppdelingene på disse sidene. En side sendes som stien sin, uten spørring og fragment.
 - **I små puljer**, hvert 5. sekund og når fanen skjules. En hendelse som når OneUptime mer enn 3 dager etter at den skjedde, forkastes, og et prosjekt kan sende 60 000 hendelser og målepunkter i minuttet, alle applikasjonene til sammen; utover det venter opptakeren og sender dem på nytt.
 
 `metric()` sender ingenting mens hendelsene er slått av, og `getDiagnostics().productAnalytics` sier om de er slått på (se [`getDiagnostics()`](/docs/telemetry/session-replay#getdiagnostics)).
@@ -144,7 +144,7 @@ En lagret trakt eller lojalitetstabell kan også settes på et dashbord: widgete
 
 ## Hvem kan se det
 
-Å lese disse sidene krever det samme som å lese øktlisten: `ReadRumSessionReplay` (_List Session Replays_) eller `ReadRumSessionReplayPayload` (_Watch Session Replays_), som prosjekteiere og administratorer har. Å se hvem en pålogget bruker er, og å søke etter personer på navn, krever identitetstillatelsen som [Hvem kan se et opptak](/docs/telemetry/session-replay#hvem-kan-se-et-opptak) beskriver.
+Å lese disse sidene krever det samme som å lese øktlisten: `ReadRumSessionReplay` (_List Session Replays_) eller `ReadRumSessionReplayPayload` (_Watch Session Replays_), som prosjekteiere og administratorer har. Å se hvem en pålogget bruker er, og å søke etter personer på navn, krever `ReadRumSessionReplayPayload` (_Watch Session Replays_), som [Hvem kan se et opptak](/docs/telemetry/session-replay#hvem-kan-se-et-opptak) beskriver.
 
 Å lagre, gi nytt navn til og slette lagrede trakter og lojalitetstabeller krever de samme tillatelsene som å lese disse sidene, og en dashbord-widget viser en bare til en leser som har dem.
 

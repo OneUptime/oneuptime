@@ -7093,7 +7093,7 @@
   "10.0.0.1 or switch-01.example.com": "10.0.0.1 یا switch-01.example.com",
   "10.0.1.5 - - [10/Oct/2023:13:55:36 -0700] \"GET /health HTTP/1.1\" 200 1234": "10.0.1.5 - - [10/Oct/2023:13:55:36 -0700] \"GET /health HTTP/1.1\" 200 1234",
   "10.0.1.5 - GET /health 200": "10.0.1.5 - GET /health 200",
-  "10s": "10 ثانیه",
+  "10s": "۱۰ ثانیه",
   "192.168.1.0/24 or 10.16-22.0-255.51-66": "192.168.1.0/24 یا 10.16-22.0-255.51-66",
   "1:1 chat": "گفتگوی یک‌به‌یک",
   "2 weeks": "۲ هفته",
@@ -51831,5 +51831,18 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "بازهٔ زمانی: {{range}}. فیلترها را تغییر دهید یا بازهٔ زمانی را بزرگ‌تر کنید.",
   "On-Call Policy Created": "سیاست آنکال ساخته شد",
   "On-Call Schedule Added": "زمان‌بندی آنکال افزوده شد",
-  "On-Call Schedule Removed": "زمان‌بندی آنکال حذف شد"
+  "On-Call Schedule Removed": "زمان‌بندی آنکال حذف شد",
+  "Recording paused by the page: {{label}}": "مکث ضبط به دست صفحه: {{label}}",
+  "Recording paused: no input for {{duration}}": "مکث ضبط: {{duration}} بدون ورودی",
+  "Recording resumed after {{duration}} idle": "ادامهٔ ضبط پس از {{duration}} بیکاری",
+  "Recording resumed by the page after {{duration}}": "ادامهٔ ضبط به دست صفحه پس از {{duration}}",
+  "Skipped {{duration}}: recording paused by the page": "{{duration}} رد شد: صفحه ضبط را متوقف کرده بود",
+  "The page paused recording here with OneUptimeReplay.pause(). Nothing on the page, not even the visitor's input, is recorded until the page resumes it.": "صفحه در اینجا با OneUptimeReplay.pause() ضبط را متوقف کرد. تا وقتی صفحه آن را ادامه دهد، هیچ چیز از صفحه، حتی ورودی بازدیدکننده، ضبط نمی‌شود.",
+  "The page paused the recorder, so nothing was recorded until the page resumed it.": "صفحه ضبط‌کننده را متوقف کرد، پس تا وقتی صفحه آن را ادامه داد چیزی ضبط نشد.",
+  "The page resumed recording here after {{duration}}, on a fresh snapshot of the page. Nothing was recorded while it was paused, so playback skips the pause.": "صفحه ضبط را پس از {{duration}} از همین‌جا با یک عکس فوری تازه از صفحه ادامه داد. در مدت توقف چیزی ضبط نشد، پس پخش از آن می‌گذرد.",
+  "The page resumed recording here, on a fresh snapshot of the page. Nothing was recorded while it was paused, so playback skips the pause.": "صفحه ضبط را از همین‌جا با یک عکس فوری تازه از صفحه ادامه داد. در مدت توقف چیزی ضبط نشد، پس پخش از آن می‌گذرد.",
+  "Recording paused by the page": "مکث ضبط به دست صفحه",
+  "Recording paused: nobody touched the page": "مکث ضبط: کسی به صفحه دست نزد",
+  "Recording resumed after an idle pause": "ادامهٔ ضبط پس از مکث بیکاری",
+  "Recording resumed by the page": "ادامهٔ ضبط به دست صفحه"
 }

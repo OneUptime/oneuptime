@@ -260,7 +260,7 @@ OneUptimeReplay.identify("user-123", { plan: "pro", tenant: "acme" });
 | 方法 | 作用 |
 | --- | --- |
 | `identify(userRef, traits?)` | 把終端使用者附加到工作階段 — 附加到其中的每個頁面與分頁，從工作階段開始算起（請參閱 [識別你的使用者](#識別你的使用者) ）。 `traits` 是一個值為字串、數字或布林值的物件（≤ 20 個鍵，鍵 ≤ 40 個字元，值 ≤ 200 個字元），在 _Mask all text_ 下會被遮罩，而且只有在 **擷取終端使用者身分** 開啟時才會上傳。為同一位使用者再次呼叫，會在下一個區塊中重新傳送身分（以及新的特徵，如果有）；指定另一位使用者則會結束目前的工作階段，並為該使用者開始一個新的工作階段。 |
-| `track(name, properties?)` | 在時間軸上記錄一個業務事件（ `"checkout_failed"` ）。 `name` ≤ 64 個字元，≤ 20 個屬性鍵，值的上限與特徵相同。每個 15 秒的區塊最多 50 個；超出的部分會讓該區塊帶有一個附上數量的「events dropped」標記。開啟產品分析事件後，它也是應用程式的 [產品分析](/docs/rum/product-analytics#傳送事件和指標) 頁面所計算的事件，來自每個工作階段，無論是否錄製。 |
+| `track(name, properties?)` | 在時間軸上記錄一個業務事件（ `"checkout_failed"` ）。 `name` ≤ 64 個字元，≤ 20 個屬性鍵，值的上限與特徵相同。在 _Mask all text_ 下，屬性值會像特徵一樣被遮罩，而名稱和鍵會照原樣傳送；在該模式下需要讀取的值請放進標籤（ `setTags()` ），標籤從不遮罩，所以不要在其中放入個人資料。每個 15 秒的區塊最多 50 個；超出的部分會讓該區塊帶有一個附上數量的「events dropped」標記。開啟產品分析事件後，它也是應用程式的 [產品分析](/docs/rum/product-analytics#傳送事件和指標) 頁面所計算的事件，來自每個工作階段，無論是否錄製。 |
 | `metric(name, value, attributes?)` | 把你的頁面測量的數值（ `"cart.value"` 、 `42.5` ）作為應用程式某個指標的資料點傳送，可附帶選用屬性，其上限與 `track()` 的屬性相同。需要開啟產品分析事件；請參閱 [產品分析](/docs/rum/product-analytics#傳送事件和指標) 。 |
 | `setTags(tags)` / `addTag(key, value)` | 工作階段層級的標籤（ `{ build: "1.4.2", experiment: "new-checkout" }` ），≤ 20 個標籤，鍵 ≤ 32 個字元，值 ≤ 128 個字元。可以在工作階段清單中以 `tag:key=value` 搜尋，並顯示在工作階段的詳細資料中。 `setTags` 會 **取代** 整個對應，因此第二次呼叫 `setTags({ experiment })` 會拿掉第一次設定的 `build` 標籤； `addTag` 只設定一個鍵，其餘保持不變。請在一次 `setTags` 呼叫中建構對應，或在得知每個值時使用 `addTag` 。 |
 | `captureSession(reason?)` | 在 _On error or frustration_ 下，強制這個工作階段從其滾動緩衝區開始上傳；在 _Always_ 下，它不會改變上傳，但 `reason` （≤ 80 個字元）仍會被標示在時間軸上。請在你自己的「回報問題」按鈕中使用它。 |

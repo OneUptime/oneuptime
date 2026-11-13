@@ -13,7 +13,10 @@ import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import useComponentOutsideClick from "Common/UI/Types/UseComponentOutsideClick";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  composedValue,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import {
   REPLAY_BUFFERING_GRACE_MS,
   REPLAY_BUFFERING_RETRY_HINT_MS,
@@ -22,8 +25,9 @@ import {
 import { REPLAY_KEY_SEEK_JL_MS } from "./ReplayKeyboardMap";
 import {
   ReplayClockParts,
-  formatReplayOffset,
-  splitReplayClock,
+  replayOffsetValue,
+  splitReplayClockInLanguage,
+  writeReplayFigureInLanguage,
 } from "./ReplayTimeFormat";
 import {
   REPLAY_ICON_GHOST_BUTTON_CLASS,
@@ -80,6 +84,17 @@ export const REPLAY_SPEEDS: Array<number> = [0.25, 0.5, 1, 1.5, 2, 3, 4, 8];
 
 export function formatReplaySpeed(speed: number): string {
   return `${speed}x`;
+}
+
+/*
+ * The speed as the button and its menu draw it, in the digits `language`
+ * writes: "۱٫۵x" in Persian (#7318), "1.5x" with no language.
+ */
+export function formatReplaySpeedInLanguage(
+  speed: number,
+  language: string | undefined,
+): string {
+  return writeReplayFigureInLanguage(formatReplaySpeed(speed), language);
 }
 
 /* The nearest listed speed, so a persisted odd value still maps to a step. */
@@ -370,16 +385,18 @@ const ReplayControls: FunctionComponent<ReplayControlsProps> = (
 
   if (phase === "seeking") {
     waitingCopy = translator.translateTemplate("Seeking to {{time}}", {
-      time: formatReplayOffset(props.pendingSeekMs ?? currentTimeMs),
+      time: replayOffsetValue(props.pendingSeekMs ?? currentTimeMs),
     });
   } else if (phase === "loading") {
     waitingCopy = translator.translateText("Loading the first footage");
   }
 
-  const clock: ReplayClockParts = splitReplayClock(
+  // In the reader's digits: "۰:۰۰٫۷ / ۰:۳۰" on a Persian page (#7318).
+  const clock: ReplayClockParts = splitReplayClockInLanguage(
     currentTimeMs,
     durationMs,
     isPaused,
+    translator.language,
   );
 
   return (
@@ -456,13 +473,15 @@ const ReplayControls: FunctionComponent<ReplayControlsProps> = (
           <ReplayToolButton
             ref={speedTriggerRef}
             dataTestId="replay-speed"
-            label={formatReplaySpeed(speed)}
+            label={formatReplaySpeedInLanguage(speed, translator.language)}
             hasPopup={true}
             isExpanded={isSpeedOpen}
             ariaLabel={translator.translateTemplate(
               "Playback speed {{speed}}",
               {
-                speed: formatReplaySpeed(speed),
+                speed: composedValue((sentence: Translator): string => {
+                  return formatReplaySpeedInLanguage(speed, sentence.language);
+                }),
               },
             )}
             title="Playback speed (< slower, > faster)"
@@ -506,7 +525,7 @@ const ReplayControls: FunctionComponent<ReplayControlsProps> = (
                         closeSpeed(true);
                       }}
                     >
-                      {formatReplaySpeed(value)}
+                      {formatReplaySpeedInLanguage(value, translator.language)}
                     </button>
                   );
                 },

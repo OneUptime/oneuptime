@@ -42,9 +42,10 @@ import {
   resolveReplaySliderKey,
 } from "./ReplayKeyboardMap";
 import {
-  formatReplayOffset,
-  formatReplayOffsetPrecise,
-  formatReplayWallClock,
+  formatReplayOffsetInLanguage,
+  formatReplayOffsetPreciseInLanguage,
+  formatReplayWallClockInLanguage,
+  replayOffsetValue,
 } from "./ReplayTimeFormat";
 
 /*
@@ -328,10 +329,15 @@ const TrackBandComponent: FunctionComponent<BandProps> = (
     : isBackground
       ? translator.translateTemplate("Tab in background: {{label}}", labelValue)
       : isPaused
-        ? translator.translateTemplate(
-            "Recording paused while the page was idle: {{label}}",
-            labelValue,
-          )
+        ? band.pauseReason === "page"
+          ? translator.translateTemplate(
+              "Recording paused by the page: {{label}}",
+              labelValue,
+            )
+          : translator.translateTemplate(
+              "Recording paused while the page was idle: {{label}}",
+              labelValue,
+            )
         : band.fidelity === "coarse"
           ? translator.translateTemplate(
               "Idle: {{label}} (estimated until the chunk loads)",
@@ -350,6 +356,7 @@ const TrackBandComponent: FunctionComponent<BandProps> = (
       }
       data-kind={band.kind}
       data-fidelity={band.fidelity || "exact"}
+      data-pause-reason={band.pauseReason}
       role="note"
       tabIndex={0}
       aria-label={accessibleName}
@@ -571,8 +578,8 @@ const MarkerLaneComponent: FunctionComponent<MarkerLaneProps> = (
                     {
                       /* The lane's name as its gutter shows it. */
                       lane: translatableTerm(laneLabel),
-                      from: formatReplayOffset(cluster.offsetMs),
-                      to: formatReplayOffset(cluster.endOffsetMs),
+                      from: replayOffsetValue(cluster.offsetMs),
+                      to: replayOffsetValue(cluster.endOffsetMs),
                     },
                   )}
                   className={`absolute top-1/2 flex h-4 min-w-[1.25rem] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full px-1 text-[10px] font-semibold tabular-nums shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
@@ -583,7 +590,7 @@ const MarkerLaneComponent: FunctionComponent<MarkerLaneProps> = (
                     props.onActivate(first);
                   }}
                 >
-                  {cluster.count}
+                  {translator.formatNumber(cluster.count)}
                 </button>
               </React.Fragment>
             );
@@ -1007,7 +1014,11 @@ const ReplayTimeline: FunctionComponent<ReplayTimelineProps> = (
   const hoverWallClock: string | null =
     hoverMs === null
       ? null
-      : formatReplayWallClock(props.startTimeUnixMs, hoverMs);
+      : formatReplayWallClockInLanguage(
+          props.startTimeUnixMs,
+          hoverMs,
+          translator.language,
+        );
 
   // Left to right in every language, as time runs along every chart.
   return (
@@ -1048,7 +1059,10 @@ const ReplayTimeline: FunctionComponent<ReplayTimelineProps> = (
                         className="flex items-center gap-1.5 truncate"
                       >
                         <span className="font-mono tabular-nums text-gray-500">
-                          {formatReplayOffset(signal.offsetMs)}
+                          {formatReplayOffsetInLanguage(
+                            signal.offsetMs,
+                            translator.language,
+                          )}
                         </span>
                         <span className="truncate">{signal.title}</span>
                       </div>
@@ -1060,7 +1074,10 @@ const ReplayTimeline: FunctionComponent<ReplayTimelineProps> = (
                 data-testid="timeline-hover-time"
                 className="rounded-md bg-gray-900 px-2 py-1 font-mono text-[11px] font-medium tabular-nums text-white shadow-lg"
               >
-                {formatReplayOffsetPrecise(hoverMs)}
+                {formatReplayOffsetPreciseInLanguage(
+                  hoverMs,
+                  translator.language,
+                )}
                 {hoverWallClock && (
                   <span className="ml-1.5 text-gray-300">{hoverWallClock}</span>
                 )}
@@ -1080,8 +1097,8 @@ const ReplayTimeline: FunctionComponent<ReplayTimelineProps> = (
             aria-valuetext={translator.translateTemplate(
               "{{position}} of {{duration}}",
               {
-                position: formatReplayOffset(playheadMs),
-                duration: formatReplayOffset(durationMs),
+                position: replayOffsetValue(playheadMs),
+                duration: replayOffsetValue(durationMs),
               },
             )}
             className="relative h-7 w-full cursor-pointer touch-none rounded-lg bg-gray-100 ring-1 ring-inset ring-gray-200 transition-shadow hover:ring-gray-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"

@@ -10,9 +10,28 @@
  * through these helpers, and every one of them FLOORS: a viewer looking
  * at 0:02.9 is still inside second two, and a link to "?t=2" must land
  * before the event, never after it.
+ *
+ * WHAT IS DRAWN IS IN THE READER'S DIGITS (#7318). Each helper has an
+ * InLanguage twin that writes the same figure in the digits the reader's
+ * language writes, through DateLanguage's writeDigitsInLocale: "۱:۰۲" in
+ * Persian, Latin in every other language (Arabic among them, as OneUptime
+ * writes Arabic). Only the digits change - and, in a language whose zero is
+ * a dot, the decimal point, which beside a Persian zero would read as one
+ * more: "۱:۰۲٫۳". What is copied or put in a URL (the ?t= value, a copied
+ * timestamp) is never written in them: it is read by machines and pasted
+ * into other tools, so it keeps ASCII digits.
  */
 
-import { writeDigitsInLocale } from "Common/Types/DateLanguage";
+import {
+  getNumberLocale,
+  writeDigitsInLocale,
+} from "Common/Types/DateLanguage";
+import {
+  ComposedValue,
+  composedValue,
+  Translator,
+  writesZeroAsADot,
+} from "Common/Types/Translator";
 
 const MS_PER_SECOND: number = 1000;
 const SECONDS_PER_MINUTE: number = 60;
@@ -28,6 +47,61 @@ function toWholeSeconds(offsetMs: number): number {
 
 function pad2(value: number): string {
   return String(value).padStart(2, "0");
+}
+
+const decimalMarkCache: Map<string, string> = new Map<string, string>();
+
+/*
+ * The decimal sign a figure takes beside `language`'s digits: the point
+ * the player has always written, except in a language whose zero is a dot
+ * (Persian's "۰"), where a point between two digits reads as a zero and
+ * the language's own sign stands instead: "۱:۰۲٫۳", "۱٫۵x".
+ */
+function getDecimalMarkOf(language: string): string {
+  const cached: string | undefined = decimalMarkCache.get(language);
+
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  let mark: string = ".";
+
+  if (writesZeroAsADot(language)) {
+    try {
+      mark =
+        new Intl.NumberFormat(getNumberLocale(language))
+          .formatToParts(0.5)
+          .find((part: Intl.NumberFormatPart): boolean => {
+            return part.type === "decimal";
+          })?.value || ".";
+    } catch {
+      mark = ".";
+    }
+  }
+
+  decimalMarkCache.set(language, mark);
+
+  return mark;
+}
+
+/*
+ * A figure the player wrote itself - a clock, a speed, a size - in the
+ * digits `language` writes, with its decimal point as getDecimalMarkOf
+ * says. Unchanged with no language. Never for text someone else wrote (a
+ * page's URL, a browser's version): its digits are theirs.
+ */
+export function writeReplayFigureInLanguage(
+  figure: string,
+  language: string | undefined,
+): string {
+  if (!language) {
+    return figure;
+  }
+
+  const written: string = writeDigitsInLocale(figure, language);
+  const mark: string = getDecimalMarkOf(language);
+
+  return mark === "." ? written : written.split(".").join(mark);
 }
 
 /*
@@ -61,9 +135,19 @@ export function formatReplayOffsetInLanguage(
   offsetMs: number,
   language: string | undefined,
 ): string {
-  const offset: string = formatReplayOffset(offsetMs);
+  return writeReplayFigureInLanguage(formatReplayOffset(offsetMs), language);
+}
 
-  return language ? writeDigitsInLocale(offset, language) : offset;
+/*
+ * An offset as a value of a sentence ("Seeking to {{time}}"), written in
+ * the digits of the language the sentence comes out in: Persian digits in
+ * a Persian sentence, Latin ones in the English a language has no words
+ * for yet.
+ */
+export function replayOffsetValue(offsetMs: number): ComposedValue {
+  return composedValue((sentence: Translator): string => {
+    return formatReplayOffsetInLanguage(offsetMs, sentence.language);
+  });
 }
 
 /*
@@ -77,6 +161,27 @@ export function formatReplayOffsetPrecise(offsetMs: number): string {
   const tenths: number = Math.floor((safeMs % MS_PER_SECOND) / 100);
 
   return `${formatReplayOffset(safeMs)}.${tenths}`;
+}
+
+/*
+ * The paused clock's "1:02.3" in the digits `language` writes: "۱:۰۲٫۳"
+ * in Persian, as formatReplayOffsetPrecise writes it elsewhere.
+ */
+export function formatReplayOffsetPreciseInLanguage(
+  offsetMs: number,
+  language: string | undefined,
+): string {
+  return writeReplayFigureInLanguage(
+    formatReplayOffsetPrecise(offsetMs),
+    language,
+  );
+}
+
+// The same, with its tenth, as a value of a sentence.
+export function replayOffsetPreciseValue(offsetMs: number): ComposedValue {
+  return composedValue((sentence: Translator): string => {
+    return formatReplayOffsetPreciseInLanguage(offsetMs, sentence.language);
+  });
 }
 
 /*
@@ -103,6 +208,26 @@ export interface ReplayClockParts {
 }
 
 /*
+ * The controls row's clock in the digits `language` writes: "۰:۰۰٫۷ /
+ * ۰:۳۰" in Persian, as formatReplayClock writes it with no language.
+ */
+export function formatReplayClockInLanguage(
+  currentTimeMs: number,
+  durationMs: number,
+  isPaused: boolean,
+  language: string | undefined,
+): string {
+  const parts: ReplayClockParts = splitReplayClockInLanguage(
+    currentTimeMs,
+    durationMs,
+    isPaused,
+    language,
+  );
+
+  return `${parts.current} / ${parts.total}`;
+}
+
+/*
  * The same clock the controls row prints, as its two halves, so the
  * readout can weight the elapsed time and mute the total without either
  * component re-deriving the "tenths only while paused" rule.
@@ -118,6 +243,25 @@ export function splitReplayClock(
       ? formatReplayOffsetPrecise(currentTimeMs)
       : formatReplayOffset(currentTimeMs),
     total: formatReplayOffset(durationMs),
+  };
+}
+
+// The two halves, each in the digits `language` writes.
+export function splitReplayClockInLanguage(
+  currentTimeMs: number,
+  durationMs: number,
+  isPaused: boolean,
+  language: string | undefined,
+): ReplayClockParts {
+  const parts: ReplayClockParts = splitReplayClock(
+    currentTimeMs,
+    durationMs,
+    isPaused,
+  );
+
+  return {
+    current: writeReplayFigureInLanguage(parts.current, language),
+    total: writeReplayFigureInLanguage(parts.total, language),
   };
 }
 
@@ -156,21 +300,6 @@ export function formatReplayDuration(durationMs: number): string {
 }
 
 /*
- * A signed delta for the -10s / +10s buttons and their tooltips: "+10s",
- * "-30s", "+1m". Zero reads "0s" so a misconfigured button is visible
- * rather than blank.
- */
-export function formatReplayDelta(deltaMs: number): string {
-  if (!Number.isFinite(deltaMs) || deltaMs === 0) {
-    return "0s";
-  }
-
-  const sign: string = deltaMs < 0 ? "-" : "+";
-
-  return `${sign}${formatReplayDuration(Math.abs(deltaMs))}`;
-}
-
-/*
  * The wall-clock time of an offset, for the header's "at 14:32:07" and
  * the hover bubble on long sessions. Local time, 24-hour, with seconds -
  * the same shape the logs and traces pages print, so a viewer can match
@@ -199,6 +328,26 @@ export function formatReplayWallClock(
   return `${pad2(date.getHours())}:${pad2(date.getMinutes())}:${pad2(
     date.getSeconds(),
   )}`;
+}
+
+/*
+ * The header's wall clock in the digits `language` writes: "۱۳:۴۷:۵۳" in
+ * Persian. Still 24-hour HH:MM:SS, so it matches the logs and traces
+ * pages by eye in every language.
+ */
+export function formatReplayWallClockInLanguage(
+  startTimeUnixMs: number | null | undefined,
+  offsetMs: number,
+  language: string | undefined,
+): string | null {
+  const wallClock: string | null = formatReplayWallClock(
+    startTimeUnixMs,
+    offsetMs,
+  );
+
+  return wallClock === null
+    ? null
+    : writeReplayFigureInLanguage(wallClock, language);
 }
 
 /*

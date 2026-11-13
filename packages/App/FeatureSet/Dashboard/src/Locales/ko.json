@@ -51831,5 +51831,18 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "기간: {{range}}. 필터를 조정하거나 기간을 넓혀 보세요.",
   "On-Call Policy Created": "온콜 정책 생성됨",
   "On-Call Schedule Added": "온콜 일정 추가됨",
-  "On-Call Schedule Removed": "온콜 일정 제거됨"
+  "On-Call Schedule Removed": "온콜 일정 제거됨",
+  "Recording paused by the page: {{label}}": "페이지가 녹화를 일시 중지함: {{label}}",
+  "Recording paused: no input for {{duration}}": "녹화 일시 중지됨: {{duration}} 동안 입력 없음",
+  "Recording resumed after {{duration}} idle": "{{duration}} 유휴 후 녹화 재개됨",
+  "Recording resumed by the page after {{duration}}": "{{duration}} 후 페이지가 녹화를 재개함",
+  "Skipped {{duration}}: recording paused by the page": "{{duration}} 건너뜀: 페이지가 녹화를 일시 중지함",
+  "The page paused recording here with OneUptimeReplay.pause(). Nothing on the page, not even the visitor's input, is recorded until the page resumes it.": "페이지가 여기서 OneUptimeReplay.pause()로 녹화를 일시 중지했습니다. 페이지가 재개할 때까지 방문자의 입력을 포함해 페이지의 어떤 것도 녹화되지 않습니다.",
+  "The page paused the recorder, so nothing was recorded until the page resumed it.": "페이지가 레코더를 일시 중지하여 페이지가 재개할 때까지 아무것도 녹화되지 않았습니다.",
+  "The page resumed recording here after {{duration}}, on a fresh snapshot of the page. Nothing was recorded while it was paused, so playback skips the pause.": "페이지가 {{duration}} 후 여기서 페이지의 새 스냅샷으로 녹화를 재개했습니다. 일시 중지 동안에는 아무것도 기록되지 않았으므로 재생에서 건너뜁니다.",
+  "The page resumed recording here, on a fresh snapshot of the page. Nothing was recorded while it was paused, so playback skips the pause.": "페이지가 여기서 페이지의 새 스냅샷으로 녹화를 재개했습니다. 일시 중지 동안에는 아무것도 기록되지 않았으므로 재생에서 건너뜁니다.",
+  "Recording paused by the page": "페이지가 녹화를 일시 중지함",
+  "Recording paused: nobody touched the page": "녹화 일시 중지됨: 아무도 페이지를 건드리지 않음",
+  "Recording resumed after an idle pause": "유휴 일시 중지 후 녹화 재개됨",
+  "Recording resumed by the page": "페이지가 녹화를 재개함"
 }

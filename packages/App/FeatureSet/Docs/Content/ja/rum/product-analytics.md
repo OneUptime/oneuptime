@@ -76,7 +76,7 @@ OneUptimeReplay.metric("cart.value", 42.5, { currency: "EUR" });
 レコーダーの読み込み前は、同じ呼び出しを `["track", name, properties]` と `["metric", name, value, attributes]` の形で `window.OneUptimeReplayQueue` に追加してください ( [JavaScript API](/docs/telemetry/session-replay#javascript-api) を参照)。
 
 - **録画の有無にかかわらず、すべてのセッション** 。リプレイのサンプルとアップロードポリシーが決めるのは、どのセッションを録画するかであって、どれを数えるかではありません。Do Not Track や Global Privacy Control のもとでは何も送信されず、アプリケーションが許可していないオリジンからのものは何も保持されません。ポリシーが同意を求める場合、イベントは `grantConsent()` を待ち (最大 500 件)、 `revokeConsent()` で破棄されます。
-- **録画と同じようにマスク** 。 _Mask all text_ では、プロパティと属性の値はページを離れる前にマスクされます。ページはクエリとフラグメントを除いたパスとして送信されます。
+- **録画と同じようにマスク** 。 _Mask all text_ では、プロパティと属性の値はページを離れる前にマスクされるため、それらによる内訳にはあなたの値ではなくプレースホルダーが表示されます。イベント名、プロパティのキー、メトリクスの値は書かれたとおりに送信されます。そのモードで読む必要がある値はセッションのタグ ( `setTags()`) に入れてください。タグはマスクされないため、個人データは入れないでください。タグはセッションと、セッション一覧の `tag:key=value` 検索に表示され、これらのページの内訳には表示されません。ページはクエリとフラグメントを除いたパスとして送信されます。
 - **小さなバッチで** 、5 秒ごとと、タブが非表示になったときに送信されます。発生から 3 日を過ぎて OneUptime に届いたイベントは破棄されます。プロジェクトは、すべてのアプリケーションを合わせて毎分 60,000 件までイベントとメトリクスのポイントを送信でき、それを超えるとレコーダーは待ってから送り直します。
 
 `metric()` はイベントがオフの間は何も送信しません。オンかどうかは `getDiagnostics().productAnalytics` でわかります ( [`getDiagnostics()`](/docs/telemetry/session-replay#getdiagnostics) を参照)。
@@ -144,7 +144,7 @@ OneUptimeReplay.metric("cart.value", 42.5, { currency: "EUR" });
 
 ## 閲覧できる人
 
-これらのページを読むには、セッション一覧を読むのと同じものが必要です。 `ReadRumSessionReplay` (_List Session Replays_) または `ReadRumSessionReplayPayload` (_Watch Session Replays_) で、プロジェクトのオーナーと管理者が持っています。サインイン済みユーザーが誰かを見たり、名前で人を検索したりするには、 [録画を視聴できるユーザー](/docs/telemetry/session-replay#録画を視聴できるユーザー) で説明している身元の権限が必要です。
+これらのページを読むには、セッション一覧を読むのと同じものが必要です。 `ReadRumSessionReplay` (_List Session Replays_) または `ReadRumSessionReplayPayload` (_Watch Session Replays_) で、プロジェクトのオーナーと管理者が持っています。サインイン済みユーザーが誰かを見たり、名前で人を検索したりするには、 [録画を視聴できるユーザー](/docs/telemetry/session-replay#録画を視聴できるユーザー) で説明しているとおり `ReadRumSessionReplayPayload` (_Watch Session Replays_) が必要です。
 
 保存済みのファネルとリテンションテーブルの保存、名前の変更、削除には、これらのページを読むのと同じ権限が必要です。ダッシュボードのウィジェットは、その権限を持つ閲覧者にだけそれを表示します。
 

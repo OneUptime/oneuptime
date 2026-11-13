@@ -76,7 +76,7 @@ OneUptimeReplay.metric("cart.value", 42.5, { currency: "EUR" });
 Antes de o gravador ser carregado, coloque as mesmas chamadas em `window.OneUptimeReplayQueue` como `["track", name, properties]` e `["metric", name, value, attributes]` (veja [API JavaScript](/docs/telemetry/session-replay#api-javascript)).
 
 - **Cada sessão, gravada ou não.** A amostra e a política de envio da reprodução decidem quais sessões são gravadas, não quais são contadas. Nada é enviado com Do Not Track ou Global Privacy Control, e nada é guardado de uma origem que a aplicação não permite. Quando a política exige consentimento, os eventos esperam por `grantConsent()`, no máximo 500, e `revokeConsent()` os descarta.
-- **Mascarados como a gravação.** Com _Mask all text_, os valores de propriedades e atributos são mascarados antes de saírem da página. Uma página é enviada como o seu caminho, sem a query nem o fragmento.
+- **Mascarados como a gravação.** Com _Mask all text_, os valores de propriedades e atributos são mascarados antes de saírem da página, então um detalhamento por um deles mostra marcadores, não os seus valores; nomes de eventos, chaves de propriedades e valores de métricas são enviados como foram escritos. Um valor que você precisa ler nesse modo vai em uma tag de sessão (`setTags()`), que nunca é mascarada, então não coloque dados pessoais nela. As tags aparecem na sessão e em uma pesquisa `tag:key=value` na lista de sessões, não nos detalhamentos destas páginas. Uma página é enviada como o seu caminho, sem a query nem o fragmento.
 - **Em pequenos lotes**, a cada 5 segundos e quando a aba fica oculta. Um evento que chega ao OneUptime mais de 3 dias depois de acontecer é descartado, e um projeto pode enviar 60.000 eventos e pontos de métrica por minuto, somando todas as suas aplicações; acima disso, o gravador espera e os envia de novo.
 
 `metric()` não envia nada enquanto os eventos estão desativados, e `getDiagnostics().productAnalytics` diz se estão ativados (veja [`getDiagnostics()`](/docs/telemetry/session-replay#getdiagnostics)).
@@ -144,7 +144,7 @@ Um funil ou uma tabela de retenção salvos também vão para um painel: os widg
 
 ## Quem pode vê-la
 
-Ler estas páginas exige o mesmo que ler a lista de sessões: `ReadRumSessionReplay` (_List Session Replays_) ou `ReadRumSessionReplayPayload` (_Watch Session Replays_), que os proprietários e administradores do projeto têm. Ver quem é um usuário conectado, e pesquisar pessoas por nome, exige a permissão de identidade descrita em [Quem pode assistir a uma gravação](/docs/telemetry/session-replay#quem-pode-assistir-a-uma-gravação).
+Ler estas páginas exige o mesmo que ler a lista de sessões: `ReadRumSessionReplay` (_List Session Replays_) ou `ReadRumSessionReplayPayload` (_Watch Session Replays_), que os proprietários e administradores do projeto têm. Ver quem é um usuário conectado, e pesquisar pessoas por nome, exige `ReadRumSessionReplayPayload` (_Watch Session Replays_), como descreve [Quem pode assistir a uma gravação](/docs/telemetry/session-replay#quem-pode-assistir-a-uma-gravação).
 
 Salvar, renomear e excluir funis e tabelas de retenção salvos exige as mesmas permissões que ler estas páginas, e um widget de painel só mostra um a quem as tem.
 

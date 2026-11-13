@@ -76,7 +76,7 @@ OneUptimeReplay.metric("cart.value", 42.5, { currency: "EUR" });
 Bevor der Recorder geladen ist, legen Sie dieselben Aufrufe als `["track", name, properties]` und `["metric", name, value, attributes]` in `window.OneUptimeReplayQueue` ab (siehe [JavaScript-API](/docs/telemetry/session-replay#javascript-api)).
 
 - **Jede Sitzung, aufgezeichnet oder nicht.** Die Stichprobe und die Upload-Richtlinie der Wiedergabe entscheiden, welche Sitzungen aufgezeichnet werden, nicht, welche gezählt werden. Unter Do Not Track oder Global Privacy Control wird nichts gesendet, und von einem Ursprung, den die Anwendung nicht zulässt, wird nichts aufbewahrt. Verlangt die Richtlinie eine Einwilligung, warten die Ereignisse auf `grantConsent()`, höchstens 500, und `revokeConsent()` verwirft sie.
-- **Maskiert wie die Aufzeichnung.** Unter _Mask all text_ werden die Werte von Eigenschaften und Attributen maskiert, bevor sie die Seite verlassen. Eine Seite wird als ihr Pfad gesendet, ohne Query und Fragment.
+- **Maskiert wie die Aufzeichnung.** Unter _Mask all text_ werden die Werte von Eigenschaften und Attributen maskiert, bevor sie die Seite verlassen, sodass eine Aufschlüsselung nach einem davon Platzhalter statt Ihrer Werte zeigt; Ereignisnamen, Eigenschaftsschlüssel und Metrikwerte werden so gesendet, wie sie geschrieben sind. Ein Wert, den Sie in diesem Modus lesen müssen, gehört in ein Sitzungs-Tag (`setTags()`), das nie maskiert wird, also halten Sie personenbezogene Daten heraus. Tags erscheinen an der Sitzung und in einer Suche mit `tag:key=value` in der Sitzungsliste, nicht in den Aufschlüsselungen dieser Seiten. Eine Seite wird als ihr Pfad gesendet, ohne Query und Fragment.
 - **In kleinen Stapeln**, alle 5 Sekunden und wenn der Tab ausgeblendet wird. Ein Ereignis, das OneUptime mehr als 3 Tage nach seinem Geschehen erreicht, wird verworfen, und ein Projekt darf 60.000 Ereignisse und Metrikpunkte pro Minute senden, alle seine Anwendungen zusammen; darüber wartet der Recorder und sendet sie erneut.
 
 `metric()` sendet nichts, solange die Ereignisse ausgeschaltet sind, und `getDiagnostics().productAnalytics` sagt, ob sie eingeschaltet sind (siehe [`getDiagnostics()`](/docs/telemetry/session-replay#getdiagnostics)).
@@ -144,7 +144,7 @@ Ein gespeicherter Trichter oder eine gespeicherte Bindungstabelle kommt auch auf
 
 ## Wer sie sehen kann
 
-Diese Seiten zu lesen erfordert dasselbe wie das Lesen der Sitzungsliste: `ReadRumSessionReplay` (_List Session Replays_) oder `ReadRumSessionReplayPayload` (_Watch Session Replays_), die Projektinhaber und Administratoren haben. Zu sehen, wer ein angemeldeter Benutzer ist, und Personen nach Namen zu suchen, erfordert die Identitätsberechtigung, die [Wer eine Aufzeichnung ansehen kann](/docs/telemetry/session-replay#wer-eine-aufzeichnung-ansehen-kann) beschreibt.
+Diese Seiten zu lesen erfordert dasselbe wie das Lesen der Sitzungsliste: `ReadRumSessionReplay` (_List Session Replays_) oder `ReadRumSessionReplayPayload` (_Watch Session Replays_), die Projektinhaber und Administratoren haben. Zu sehen, wer ein angemeldeter Benutzer ist, und Personen nach Namen zu suchen, erfordert `ReadRumSessionReplayPayload` (_Watch Session Replays_), wie [Wer eine Aufzeichnung ansehen kann](/docs/telemetry/session-replay#wer-eine-aufzeichnung-ansehen-kann) beschreibt.
 
 Gespeicherte Trichter und Bindungstabellen zu speichern, umzubenennen und zu löschen erfordert dieselben Berechtigungen wie das Lesen dieser Seiten, und ein Dashboard-Widget zeigt sie nur einem Leser, der sie hat.
 

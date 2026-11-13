@@ -178,7 +178,10 @@ import {
   buildTimelineMarkers,
   buildTrackBands,
 } from "./ReplayTimelineMath";
-import { formatReplayOffset } from "./ReplayTimeFormat";
+import {
+  formatReplayOffsetInLanguage,
+  writeReplayFigureInLanguage,
+} from "./ReplayTimeFormat";
 import {
   ReplayAdjacentUserSessions,
   ReplayUserSessionDescription,
@@ -543,6 +546,7 @@ interface ReplayOffsetTextProps {
 const ReplayOffsetTextComponent: FunctionComponent<ReplayOffsetTextProps> = (
   props: ReplayOffsetTextProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const currentTimeMs: number = useReplayClock(
     props.clock,
     REPLAY_OFFSET_TEXT_CLOCK_MS,
@@ -550,7 +554,7 @@ const ReplayOffsetTextComponent: FunctionComponent<ReplayOffsetTextProps> = (
 
   return (
     <span className="sr-only" aria-live="off" data-testid="replay-offset-text">
-      {formatReplayOffset(currentTimeMs)}
+      {formatReplayOffsetInLanguage(currentTimeMs, translator.language)}
     </span>
   );
 };
@@ -1787,14 +1791,27 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     return buildActivityHeat(chunks, snapshot.durationMs);
   }, [chunks, snapshot.durationMs]);
 
+  /*
+   * Titled in the reader's language: their times in the reader's digits,
+   * a chunk's estimate worded whole (#7318).
+   */
   const markers: Array<ReplayTimelineMarker> = useMemo(() => {
-    return buildTimelineMarkers({
-      signals: allSignals,
-      chunks: chunks,
-      loadedChunkIndexes: snapshot.loadedChunkIndexes,
-      durationMs: snapshot.durationMs,
-    });
-  }, [allSignals, chunks, snapshot.loadedChunkIndexes, snapshot.durationMs]);
+    return buildTimelineMarkers(
+      {
+        signals: allSignals,
+        chunks: chunks,
+        loadedChunkIndexes: snapshot.loadedChunkIndexes,
+        durationMs: snapshot.durationMs,
+      },
+      translator,
+    );
+  }, [
+    allSignals,
+    chunks,
+    snapshot.loadedChunkIndexes,
+    snapshot.durationMs,
+    translator.language,
+  ]);
 
   /*
    * The tab strip's model: opened order, each tab's page, its span on the
@@ -1879,15 +1896,19 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
       { label: "Country", value: details.countryCode },
       {
         label: "Viewport",
+        // A size the recorder measured, in the reader's digits (#7318).
         value:
           details.viewportWidth > 0 && details.viewportHeight > 0
-            ? `${details.viewportWidth}x${details.viewportHeight}`
+            ? writeReplayFigureInLanguage(
+                `${details.viewportWidth}x${details.viewportHeight}`,
+                translator.language,
+              )
             : "",
       },
     ].filter((fact: ReplayHeaderFact): boolean => {
       return Boolean(fact.value);
     });
-  }, [manifest]);
+  }, [manifest, translator.language]);
 
   /*
    * The sealed reason is a claim about how the recording ENDED, so it is

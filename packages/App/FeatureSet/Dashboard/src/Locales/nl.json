@@ -51831,5 +51831,18 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Periode: {{range}}. Pas de filters aan of kies een ruimere periode.",
   "On-Call Policy Created": "Bereikbaarheidsbeleid aangemaakt",
   "On-Call Schedule Added": "Bereikbaarheidsschema toegevoegd",
-  "On-Call Schedule Removed": "Bereikbaarheidsschema verwijderd"
+  "On-Call Schedule Removed": "Bereikbaarheidsschema verwijderd",
+  "Recording paused by the page: {{label}}": "Opname gepauzeerd door de pagina: {{label}}",
+  "Recording paused: no input for {{duration}}": "Opname gepauzeerd: {{duration}} geen invoer",
+  "Recording resumed after {{duration}} idle": "Opname hervat na {{duration}} inactiviteit",
+  "Recording resumed by the page after {{duration}}": "Opname na {{duration}} hervat door de pagina",
+  "Skipped {{duration}}: recording paused by the page": "{{duration}} overgeslagen: de opname was gepauzeerd door de pagina",
+  "The page paused recording here with OneUptimeReplay.pause(). Nothing on the page, not even the visitor's input, is recorded until the page resumes it.": "De pagina heeft de opname hier gepauzeerd met OneUptimeReplay.pause(). Niets op de pagina, zelfs de invoer van de bezoeker niet, wordt opgenomen tot de pagina de opname hervat.",
+  "The page paused the recorder, so nothing was recorded until the page resumed it.": "De pagina heeft de recorder gepauzeerd, dus er is niets opgenomen tot de pagina hem hervatte.",
+  "The page resumed recording here after {{duration}}, on a fresh snapshot of the page. Nothing was recorded while it was paused, so playback skips the pause.": "De pagina heeft de opname hier na {{duration}} hervat, met een verse momentopname van de pagina. Tijdens de pauze is niets opgenomen, dus het afspelen slaat die over.",
+  "The page resumed recording here, on a fresh snapshot of the page. Nothing was recorded while it was paused, so playback skips the pause.": "De pagina heeft de opname hier hervat, met een verse momentopname van de pagina. Tijdens de pauze is niets opgenomen, dus het afspelen slaat die over.",
+  "Recording paused by the page": "Opname gepauzeerd door de pagina",
+  "Recording paused: nobody touched the page": "Opname gepauzeerd: niemand heeft de pagina aangeraakt",
+  "Recording resumed after an idle pause": "Opname hervat na een inactiviteitspauze",
+  "Recording resumed by the page": "Opname hervat door de pagina"
 }

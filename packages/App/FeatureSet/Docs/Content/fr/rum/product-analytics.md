@@ -76,7 +76,7 @@ OneUptimeReplay.metric("cart.value", 42.5, { currency: "EUR" });
 Avant que l'enregistreur soit chargé, poussez les mêmes appels dans `window.OneUptimeReplayQueue` sous la forme `["track", name, properties]` et `["metric", name, value, attributes]` (voir [API JavaScript](/docs/telemetry/session-replay#api-javascript)).
 
 - **Chaque session, enregistrée ou non.** L'échantillon et la politique d'envoi de la relecture décident quelles sessions sont enregistrées, pas lesquelles sont comptées. Rien n'est envoyé sous Do Not Track ou Global Privacy Control, et rien n'est conservé d'une origine que l'application n'autorise pas. Quand la politique exige le consentement, les événements attendent `grantConsent()`, 500 au plus, et `revokeConsent()` les abandonne.
-- **Masqués comme l'enregistrement.** Sous _Mask all text_, les valeurs des propriétés et des attributs sont masquées avant de quitter la page. Une page est envoyée sous la forme de son chemin, sans sa requête ni son fragment.
+- **Masqués comme l'enregistrement.** Sous _Mask all text_, les valeurs des propriétés et des attributs sont masquées avant de quitter la page, donc une répartition selon l'une d'elles affiche des valeurs de remplacement, pas les vôtres ; les noms d'événements, les clés de propriétés et les valeurs des métriques sont envoyés tels qu'écrits. Une valeur que vous devez lire dans ce mode va dans un tag de session (`setTags()`), qui n'est jamais masqué, alors n'y mettez pas de données personnelles. Les tags s'affichent sur la session et dans une recherche `tag:key=value` de la liste des sessions, pas dans les répartitions de ces pages. Une page est envoyée sous la forme de son chemin, sans sa requête ni son fragment.
 - **Par petits lots**, toutes les 5 secondes et quand l'onglet est masqué. Un événement qui atteint OneUptime plus de 3 jours après s'être produit est abandonné, et un projet peut envoyer 60 000 événements et points de métrique par minute, toutes ses applications réunies ; au-delà, l'enregistreur attend et les renvoie.
 
 `metric()` n'envoie rien tant que les événements sont désactivés, et `getDiagnostics().productAnalytics` indique s'ils sont activés (voir [`getDiagnostics()`](/docs/telemetry/session-replay#getdiagnostics)).
@@ -144,7 +144,7 @@ Un entonnoir ou un tableau de rétention enregistré va aussi sur un tableau de 
 
 ## Qui peut la voir
 
-Lire ces pages demande ce que demande la liste des sessions : `ReadRumSessionReplay` (_List Session Replays_) ou `ReadRumSessionReplayPayload` (_Watch Session Replays_), que les propriétaires et les administrateurs du projet détiennent. Voir qui est un utilisateur connecté, et rechercher des personnes par leur nom, demande la permission d'identité décrite dans [Qui peut regarder un enregistrement](/docs/telemetry/session-replay#qui-peut-regarder-un-enregistrement).
+Lire ces pages demande ce que demande la liste des sessions : `ReadRumSessionReplay` (_List Session Replays_) ou `ReadRumSessionReplayPayload` (_Watch Session Replays_), que les propriétaires et les administrateurs du projet détiennent. Voir qui est un utilisateur connecté, et rechercher des personnes par leur nom, demande `ReadRumSessionReplayPayload` (_Watch Session Replays_), comme le décrit [Qui peut regarder un enregistrement](/docs/telemetry/session-replay#qui-peut-regarder-un-enregistrement).
 
 Enregistrer, renommer et supprimer des entonnoirs et des tableaux de rétention enregistrés demande les mêmes permissions que lire ces pages, et un widget de tableau de bord n'en montre un qu'à un lecteur qui les détient.
 

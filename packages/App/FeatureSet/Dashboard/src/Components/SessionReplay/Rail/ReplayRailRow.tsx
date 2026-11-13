@@ -3,7 +3,10 @@ import Route from "Common/Types/API/Route";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import AppLink from "../../AppLink/AppLink";
-import { formatReplayOffsetPrecise } from "../ReplayTimeFormat";
+import {
+  formatReplayOffsetPreciseInLanguage,
+  replayOffsetPreciseValue,
+} from "../ReplayTimeFormat";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
@@ -12,6 +15,7 @@ import {
 } from "Common/UI/Utils/LineDirection";
 import { ReadingDirection } from "Common/Types/ReadingDirection";
 import { ReplaySignal } from "./ReplaySignalTypes";
+import { describeReplaySignalTitle } from "./ReplaySignals";
 import {
   ReplayRailGlyph,
   ReplayRailRowModel,
@@ -102,14 +106,16 @@ function rowLabel(
   glyph: ReplayRailGlyph,
   time: string,
   tag: string | null,
+  title: string,
+  translator: Translator,
 ): string {
   const signal: ReplaySignal = props.row.signal;
-  const parts: Array<string> = [
-    `${glyph.description} at ${time}: ${signal.title}`,
-  ];
+  const parts: Array<string> = [`${glyph.description} at ${time}: ${title}`];
 
   if (props.row.repeatCount > 1) {
-    parts.push(`repeated ${props.row.repeatCount} times`);
+    parts.push(
+      `repeated ${translator.formatNumber(props.row.repeatCount)} times`,
+    );
   }
 
   if (tag) {
@@ -137,11 +143,17 @@ const ReplayRailRowComponent: FunctionComponent<ReplayRailRowProps> = (
   const translator: Translator = useTranslator();
   const signal: ReplaySignal = props.row.signal;
   const glyph: ReplayRailGlyph = glyphForSignal(signal);
-  const time: string = formatReplayOffsetPrecise(signal.offsetMs);
+  // The row's moment in the reader's digits: "۰:۰۳٫۰" in Persian (#7318).
+  const time: string = formatReplayOffsetPreciseInLanguage(
+    signal.offsetMs,
+    translator.language,
+  );
   const tag: string | null = sourceTag(signal);
   const detailId: string = `${props.domId}-detail`;
+  // OneUptime's own rows in the reader's words; the recording's as written.
+  const title: string = describeReplaySignalTitle(signal, translator);
   const titleDirection: ReadingDirection | undefined = getLineDirection(
-    signal.title,
+    title,
     translator.language,
   );
 
@@ -183,11 +195,11 @@ const ReplayRailRowComponent: FunctionComponent<ReplayRailRowProps> = (
           aria-current={props.isActive ? "true" : undefined}
           aria-expanded={props.isSelected}
           aria-controls={props.detail ? detailId : undefined}
-          aria-label={rowLabel(props, glyph, time, tag)}
+          aria-label={rowLabel(props, glyph, time, tag, title, translator)}
           className={`flex min-w-0 flex-1 cursor-pointer items-start gap-2 text-start focus:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400 ${textClass}`}
           title={translator.translateTemplate(
             "Seek to {{time}} (1s before) and open the detail",
-            { time: time },
+            { time: replayOffsetPreciseValue(signal.offsetMs) },
           )}
           onClick={(): void => {
             props.onActivate(props.row);
@@ -224,7 +236,7 @@ const ReplayRailRowComponent: FunctionComponent<ReplayRailRowProps> = (
             }`}
             dir={titleDirection}
           >
-            {signal.title}
+            {title}
           </span>
 
           {props.row.repeatCount > 1 && (
@@ -238,7 +250,7 @@ const ReplayRailRowComponent: FunctionComponent<ReplayRailRowProps> = (
                 props.row.repeatCount,
               )}
             >
-              ×{props.row.repeatCount}
+              ×{translator.formatNumber(props.row.repeatCount)}
             </span>
           )}
 
@@ -280,7 +292,7 @@ const ReplayRailRowComponent: FunctionComponent<ReplayRailRowProps> = (
             type="button"
             className="rounded-md p-1 text-gray-400 transition-colors hover:bg-white hover:text-indigo-600"
             aria-label={translator.translateTemplate("Seek to {{time}}", {
-              time: time,
+              time: replayOffsetPreciseValue(signal.offsetMs),
             })}
             title={translator.translateText("Seek here (1s before)")}
             onClick={(event: React.MouseEvent<HTMLButtonElement>): void => {
@@ -323,7 +335,7 @@ const ReplayRailRowComponent: FunctionComponent<ReplayRailRowProps> = (
           data-testid="rail-row-detail"
           role="group"
           aria-label={translator.translateTemplate("Detail for {{title}}", {
-            title: signal.title,
+            title: title,
           })}
           className="border-t border-gray-200 px-2 py-2"
           onClick={(event: React.MouseEvent<HTMLDivElement>): void => {

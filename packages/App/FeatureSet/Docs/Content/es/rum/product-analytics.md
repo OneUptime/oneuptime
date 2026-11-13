@@ -76,7 +76,7 @@ OneUptimeReplay.metric("cart.value", 42.5, { currency: "EUR" });
 Antes de que se cargue el grabador, añade las mismas llamadas a `window.OneUptimeReplayQueue` como `["track", name, properties]` y `["metric", name, value, attributes]` (consulta [API de JavaScript](/docs/telemetry/session-replay#api-de-javascript)).
 
 - **Cada sesión, grabada o no.** La muestra y la política de subida de la reproducción deciden qué sesiones se graban, no cuáles se cuentan. No se envía nada con Do Not Track o Global Privacy Control, y no se guarda nada de un origen que la aplicación no permite. Cuando la política exige consentimiento, los eventos esperan a `grantConsent()`, 500 como máximo, y `revokeConsent()` los descarta.
-- **Enmascarados como la grabación.** Con _Mask all text_, los valores de las propiedades y los atributos se enmascaran antes de salir de la página. Una página se envía como su ruta, sin su consulta ni su fragmento.
+- **Enmascarados como la grabación.** Con _Mask all text_, los valores de las propiedades y los atributos se enmascaran antes de salir de la página, así que un desglose por uno de ellos muestra marcadores de posición, no tus valores; los nombres de los eventos, las claves de las propiedades y los valores de las métricas se envían tal como se escribieron. Un valor que necesites leer en ese modo va en una etiqueta de sesión (`setTags()`), que nunca se enmascara, así que no pongas datos personales en ella. Las etiquetas se muestran en la sesión y en una búsqueda `tag:key=value` de la lista de sesiones, no en los desgloses de estas páginas. Una página se envía como su ruta, sin su consulta ni su fragmento.
 - **En lotes pequeños**, cada 5 segundos y cuando la pestaña se oculta. Un evento que llega a OneUptime más de 3 días después de ocurrir se descarta, y un proyecto puede enviar 60.000 eventos y puntos de métrica por minuto, sumando todas sus aplicaciones; por encima de eso, el grabador espera y los vuelve a enviar.
 
 `metric()` no envía nada mientras los eventos están desactivados, y `getDiagnostics().productAnalytics` dice si están activados (consulta [`getDiagnostics()`](/docs/telemetry/session-replay#getdiagnostics)).
@@ -144,7 +144,7 @@ Un embudo o una tabla de retención guardados también van a un panel: los widge
 
 ## Quién puede verla
 
-Leer estas páginas requiere lo mismo que leer la lista de sesiones: `ReadRumSessionReplay` (_List Session Replays_) o `ReadRumSessionReplayPayload` (_Watch Session Replays_), que tienen los propietarios y administradores del proyecto. Ver quién es un usuario con sesión iniciada, y buscar personas por nombre, requiere el permiso de identidad que se describe en [Quién puede ver una grabación](/docs/telemetry/session-replay#quién-puede-ver-una-grabación).
+Leer estas páginas requiere lo mismo que leer la lista de sesiones: `ReadRumSessionReplay` (_List Session Replays_) o `ReadRumSessionReplayPayload` (_Watch Session Replays_), que tienen los propietarios y administradores del proyecto. Ver quién es un usuario con sesión iniciada, y buscar personas por nombre, requiere `ReadRumSessionReplayPayload` (_Watch Session Replays_), como se describe en [Quién puede ver una grabación](/docs/telemetry/session-replay#quién-puede-ver-una-grabación).
 
 Guardar, renombrar y eliminar embudos y tablas de retención guardados requiere los mismos permisos que leer estas páginas, y un widget de panel solo muestra uno a quien los tenga.
 

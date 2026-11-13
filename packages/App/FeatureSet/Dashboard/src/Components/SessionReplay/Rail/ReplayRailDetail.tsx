@@ -6,11 +6,12 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { SessionReplayCustomSignalTrigger } from "Common/Types/Rum/SessionReplayFrustrationSignals";
 import AppLink from "../../AppLink/AppLink";
 import {
-  formatReplayDuration,
-  formatReplayOffset,
-  formatReplayOffsetPrecise,
-  formatReplayWallClock,
+  formatReplayOffsetInLanguage,
+  formatReplayWallClockInLanguage,
+  replayOffsetPreciseValue,
+  replayOffsetValue,
 } from "../ReplayTimeFormat";
+import { replayDurationValue } from "../ReplayTimelineMath";
 import {
   ReplayBackendSignalKind,
   ReplayBackendSignalsSlot,
@@ -352,7 +353,11 @@ const BackendForRequest: FunctionComponent<{
                         props.onSelectSignal(log.id);
                       }}
                     >
-                      {formatReplayOffset(log.offsetMs)} {log.title}
+                      {formatReplayOffsetInLanguage(
+                        log.offsetMs,
+                        translator.language,
+                      )}{" "}
+                      {log.title}
                     </button>
                   </li>
                 );
@@ -965,7 +970,7 @@ const VitalReportLink: FunctionComponent<{
     >
       {translator.translateTemplate("{{title}} at {{time}}", {
         title: props.report.title,
-        time: formatReplayOffsetPrecise(props.report.offsetMs),
+        time: replayOffsetPreciseValue(props.report.offsetMs),
       })}
     </button>
   );
@@ -1242,7 +1247,7 @@ const ErrorDetail: FunctionComponent<{
                 isClient
                   ? "also reported server-side at {{time}}"
                   : "also seen in the browser at {{time}}",
-                { time: formatReplayOffsetPrecise(counterpart.offsetMs) },
+                { time: replayOffsetPreciseValue(counterpart.offsetMs) },
               )}
             </button>
           </Fact>
@@ -1429,13 +1434,13 @@ const TraceDetail: FunctionComponent<{
                   span.hasError ? "text-rose-700" : "text-gray-700"
                 }`}
                 title={translator.translateTemplate("Seek to {{time}}", {
-                  time: formatReplayOffsetPrecise(span.sessionOffsetMs),
+                  time: replayOffsetPreciseValue(span.sessionOffsetMs),
                 })}
                 aria-label={translator.translateTemplate(
                   "Seek to span {{name}} at {{time}}",
                   {
                     name: span.name,
-                    time: formatReplayOffsetPrecise(span.sessionOffsetMs),
+                    time: replayOffsetPreciseValue(span.sessionOffsetMs),
                   },
                 )}
                 onClick={(): void => {
@@ -1695,12 +1700,37 @@ const MarkerDetail: FunctionComponent<{ signal: ReplaySignal }> = (props: {
         </Note>
       );
     case "idle-pause":
+      /*
+       * Whose pause it was (#7498): the page's own (OneUptimeReplay.pause())
+       * is told as the page's, never as nobody touching it.
+       */
+      if (detail.pauseReason === "page") {
+        return detail.idlePauseEdge === "resumed" ? (
+          <Note>
+            {typeof detail.pausedForMs === "number"
+              ? translator.translateTemplate(
+                  "The page resumed recording here after {{duration}}, on a fresh snapshot of the page. Nothing was recorded while it was paused, so playback skips the pause.",
+                  { duration: replayDurationValue(detail.pausedForMs) },
+                )
+              : translator.translateText(
+                  "The page resumed recording here, on a fresh snapshot of the page. Nothing was recorded while it was paused, so playback skips the pause.",
+                )}
+          </Note>
+        ) : (
+          <Note>
+            {translator.translateText(
+              "The page paused recording here with OneUptimeReplay.pause(). Nothing on the page, not even the visitor's input, is recorded until the page resumes it.",
+            )}
+          </Note>
+        );
+      }
+
       return detail.idlePauseEdge === "resumed" ? (
         <Note>
           {typeof detail.pausedForMs === "number"
             ? translator.translateTemplate(
                 "Input came back after {{duration}} and the recorder started again here, on a fresh snapshot of the page. Nothing was recorded during the pause, so playback skips it.",
-                { duration: formatReplayDuration(detail.pausedForMs) },
+                { duration: replayDurationValue(detail.pausedForMs) },
               )
             : translator.translateText(
                 "Input came back and the recorder started again here, on a fresh snapshot of the page. Nothing was recorded during the pause, so playback skips it.",
@@ -1711,7 +1741,7 @@ const MarkerDetail: FunctionComponent<{ signal: ReplaySignal }> = (props: {
           {typeof detail.idleForMs === "number"
             ? translator.translateTemplate(
                 "Nobody touched the page for {{duration}}, so the recorder stopped capturing here. Nothing the page did on its own is recorded until the next input.",
-                { duration: formatReplayDuration(detail.idleForMs) },
+                { duration: replayDurationValue(detail.idleForMs) },
               )
             : translator.translateText(
                 "Nobody touched the page, so the recorder stopped capturing here. Nothing the page did on its own is recorded until the next input.",
@@ -1739,7 +1769,7 @@ function describeDetailMoment(
   },
 ): string {
   const at: string = translator.translateTemplate("at {{time}}", {
-    time: formatReplayOffsetPrecise(input.signal.offsetMs),
+    time: replayOffsetPreciseValue(input.signal.offsetMs),
   });
   const parts: Array<string> = [
     input.wallClock ? `${at} (${input.wallClock})` : at,
@@ -1765,7 +1795,7 @@ function describeDetailMoment(
           other: "repeated {{count}} times until {{time}}",
         },
         input.repeat.count,
-        { time: formatReplayOffset(input.repeat.lastOffsetMs) },
+        { time: replayOffsetValue(input.repeat.lastOffsetMs) },
       ),
     );
   }
@@ -1778,9 +1808,10 @@ const ReplayRailDetail: FunctionComponent<ReplayRailDetailProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const signal: ReplaySignal = props.signal;
-  const wallClock: string | null = formatReplayWallClock(
+  const wallClock: string | null = formatReplayWallClockInLanguage(
     props.startTimeUnixMs,
     signal.offsetMs,
+    translator.language,
   );
 
   let body: ReactElement;

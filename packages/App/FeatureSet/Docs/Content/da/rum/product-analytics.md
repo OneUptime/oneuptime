@@ -76,7 +76,7 @@ OneUptimeReplay.metric("cart.value", 42.5, { currency: "EUR" });
 Før optageren er indlæst, skal du lægge de samme kald i `window.OneUptimeReplayQueue` som `["track", name, properties]` og `["metric", name, value, attributes]` (se [JavaScript-API](/docs/telemetry/session-replay#javascript-api)).
 
 - **Hver session, optaget eller ej.** Afspilningens stikprøve og uploadpolitik afgør, hvilke sessioner der optages, ikke hvilke der tælles. Intet sendes under Do Not Track eller Global Privacy Control, og intet gemmes fra en oprindelse, applikationen ikke tillader. Når politikken kræver samtykke, venter begivenhederne på `grantConsent()`, højst 500 af dem, og `revokeConsent()` kasserer dem.
-- **Maskeret som optagelsen.** Under _Mask all text_ maskeres værdierne af egenskaber og attributter, før de forlader siden. En side sendes som sin sti, uden forespørgsel og fragment.
+- **Maskeret som optagelsen.** Under _Mask all text_ maskeres værdierne af egenskaber og attributter, før de forlader siden, så en opdeling efter en af dem viser pladsholdere og ikke dine værdier; begivenhedsnavne, egenskabsnøgler og metrikværdier sendes, som de er skrevet. En værdi, du skal kunne læse i den tilstand, hører hjemme i et sessionstag (`setTags()`), som aldrig maskeres, så hold personoplysninger ude af det. Tags vises på sessionen og i en søgning med `tag:key=value` i sessionslisten, ikke i disse siders opdelinger. En side sendes som sin sti, uden forespørgsel og fragment.
 - **I små portioner**, hvert 5. sekund og når fanen skjules. En begivenhed, der når OneUptime mere end 3 dage efter, at den skete, kasseres, og et projekt må sende 60.000 begivenheder og metrikpunkter i minuttet, alle dets applikationer tilsammen; derudover venter optageren og sender dem igen.
 
 `metric()` sender intet, mens begivenhederne er slået fra, og `getDiagnostics().productAnalytics` siger, om de er slået til (se [`getDiagnostics()`](/docs/telemetry/session-replay#getdiagnostics)).
@@ -144,7 +144,7 @@ En gemt tragt eller fastholdelsestabel kan også komme på et dashboard: widgets
 
 ## Hvem kan se det
 
-At læse disse sider kræver det samme som at læse sessionslisten: `ReadRumSessionReplay` (_List Session Replays_) eller `ReadRumSessionReplayPayload` (_Watch Session Replays_), som projektejere og administratorer har. At se, hvem en indlogget bruger er, og søge personer efter navn, kræver den identitetstilladelse, som [Hvem kan se en optagelse](/docs/telemetry/session-replay#hvem-kan-se-en-optagelse) beskriver.
+At læse disse sider kræver det samme som at læse sessionslisten: `ReadRumSessionReplay` (_List Session Replays_) eller `ReadRumSessionReplayPayload` (_Watch Session Replays_), som projektejere og administratorer har. At se, hvem en indlogget bruger er, og søge personer efter navn, kræver `ReadRumSessionReplayPayload` (_Watch Session Replays_), som [Hvem kan se en optagelse](/docs/telemetry/session-replay#hvem-kan-se-en-optagelse) beskriver.
 
 At gemme, omdøbe og slette gemte tragte og fastholdelsestabeller kræver de samme tilladelser som at læse disse sider, og en dashboard-widget viser en kun for en læser, der har dem.
 
