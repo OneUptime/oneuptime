@@ -18,6 +18,8 @@ import {
   getKnownFileSize,
 } from "../../../../UI/Components/FilePicker/KnownFileSizes";
 import Field from "../../../../UI/Components/Forms/Types/Field";
+import { getFilePickerPromptWords } from "../../../../UI/Components/FilePicker/FilePickerLayout";
+import { getGlobalTranslator } from "../../../../UI/Utils/TranslateTemplate";
 import FormFieldSchemaType from "../../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import FileModel from "../../../../Models/DatabaseModels/File";
 import {
@@ -74,6 +76,20 @@ const uploaded: UploadedFunction = (file: CustomFieldFile): FileModel => {
   return model;
 };
 
+// What a field's picker says it takes, as the picker says it.
+const hintOf: (field: Field<JSONObject>) => string | undefined = (
+  field: Field<JSONObject>,
+): string | undefined => {
+  return getFilePickerPromptWords(getGlobalTranslator(), {
+    hint: field.fileHint,
+    maxFiles: field.maxFiles,
+    maxFileSizeInBytes: field.maxFileSizeInBytes,
+    mimeTypes: field.fileTypes,
+    isMultiFilePicker: field.fieldType === FormFieldSchemaType.MultipleFiles,
+    hasFiles: false,
+  }).hint;
+};
+
 describe("setCustomFieldFilePicker", () => {
   test("a File field: the kinds a field takes, one file, said in a sentence", () => {
     const field: Field<JSONObject> = { title: "Contract" };
@@ -96,12 +112,29 @@ describe("setCustomFieldFilePicker", () => {
     expect(field.placeholder).toBeUndefined();
   });
 
+  /*
+   * The hint names the picker's own most files (issue #7421): a question
+   * that takes three says three, never the 10 a Multiple files field holds.
+   */
   test("a question that takes fewer says so", () => {
     const field: Field<JSONObject> = { title: "Photos" };
 
     setCustomFieldFilePicker({ field: field, isMultiple: true, maxFiles: 3 });
 
     expect(field.maxFiles).toBe(3);
+    expect(hintOf(field)).toBe(
+      "Up to 3 files of 10 MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
+    );
+  });
+
+  test("a question that takes one file says one file", () => {
+    const field: Field<JSONObject> = { title: "Photo" };
+
+    setCustomFieldFilePicker({ field: field, isMultiple: true, maxFiles: 1 });
+
+    expect(hintOf(field)).toBe(
+      "One file of up to 10 MB: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
+    );
   });
 
   test("its list of kinds is its own: changing it changes no other picker's", () => {
@@ -116,10 +149,19 @@ describe("setCustomFieldFilePicker", () => {
   });
 
   test("the sentences say what the server holds a file to", () => {
-    expect(CUSTOM_FIELD_FILES_HINT).toContain(
-      `Up to ${CUSTOM_FIELD_MAX_FILES} files`,
-    );
+    const field: Field<JSONObject> = { title: "Photos" };
+
+    setCustomFieldFilePicker({ field: field, isMultiple: true });
+
+    expect(hintOf(field)).toContain(`Up to ${CUSTOM_FIELD_MAX_FILES} files`);
     expect(CUSTOM_FIELD_FILE_TYPES).not.toContain(MimeType.svg);
+  });
+
+  // Its count is the picker's: no number is written into its words.
+  test("the sentence for several names no count of its own", () => {
+    expect(CUSTOM_FIELD_FILES_HINT.other).toContain("Up to {{count}} files");
+    expect(CUSTOM_FIELD_FILES_HINT.other).not.toMatch(/[0-9]/);
+    expect(CUSTOM_FIELD_FILES_HINT.one).not.toMatch(/[0-9]/);
   });
 
   /*
@@ -128,7 +170,8 @@ describe("setCustomFieldFilePicker", () => {
    */
   test("the limit the sentences name is the picker's, which is the server's", () => {
     expect(CUSTOM_FIELD_FILE_HINT).toContain("up to {{size}}.");
-    expect(CUSTOM_FIELD_FILES_HINT).toContain("of {{size}} each");
+    expect(CUSTOM_FIELD_FILES_HINT.other).toContain("of {{size}} each");
+    expect(CUSTOM_FIELD_FILES_HINT.one).toContain("of up to {{size}}:");
 
     for (const isMultiple of [false, true]) {
       const field: Field<JSONObject> = { title: "Evidence" };

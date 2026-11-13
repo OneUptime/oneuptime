@@ -1,4 +1,6 @@
 import Field from "../../../UI/Components/Forms/Types/Field";
+import { getFilePickerPromptWords } from "../../../UI/Components/FilePicker/FilePickerLayout";
+import { getGlobalTranslator } from "../../../UI/Utils/TranslateTemplate";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import {
   CUSTOM_FIELD_FILE_HINT,
@@ -97,6 +99,20 @@ const kept: KeptFunction = (
   return file;
 };
 
+// What a question's picker says it takes, as the picker says it.
+const hintOf: (field: Field<JSONObject>) => string | undefined = (
+  field: Field<JSONObject>,
+): string | undefined => {
+  return getFilePickerPromptWords(getGlobalTranslator(), {
+    hint: field.fileHint,
+    maxFiles: field.maxFiles,
+    maxFileSizeInBytes: field.maxFileSizeInBytes,
+    mimeTypes: field.fileTypes,
+    isMultiFilePicker: field.fieldType === FormFieldSchemaType.MultipleFiles,
+    hasFiles: false,
+  }).hint;
+};
+
 type FieldOfFunction = (id: string) => Field<JSONObject>;
 
 const fieldOf: FieldOfFunction = (id: string): Field<JSONObject> => {
@@ -128,6 +144,65 @@ describe("a file question's input", () => {
     expect(field.keepFilesInBrowser).toBe(true);
     expect(field.maxFiles).toBe(4);
     expect(field.fileHint).toBe(CUSTOM_FIELD_FILES_HINT);
+  });
+
+  /*
+   * Its hint says the question's own most files, never the 10 a Multiple
+   * files field holds (issue #7421): a question that takes four says four.
+   */
+  test("a Multiple files question's hint says how many files the question takes", () => {
+    expect(hintOf(fieldOf("screenshots"))).toBe(
+      "Up to 4 files of 10 MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
+    );
+  });
+
+  test.each([
+    [1, "One file of up to 10 MB: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP."],
+    [3, "Up to 3 files of 10 MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP."],
+    [
+      CUSTOM_FIELD_MAX_FILES,
+      `Up to ${CUSTOM_FIELD_MAX_FILES} files of 10 MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.`,
+    ],
+  ])(
+    "a question that takes %p files says %p",
+    (maxFiles: number, hint: string) => {
+      const [field]: Array<Field<JSONObject>> = buildPublicFormFields({
+        name: "Form",
+        isCaptchaRequired: false,
+        fields: [
+          {
+            id: "logs",
+            label: "Logs",
+            type: PublicFormFieldType.MultipleFiles,
+            isRequired: false,
+            maxFiles: maxFiles,
+          },
+        ],
+      });
+
+      expect(hintOf(field!)).toBe(hint);
+    },
+  );
+
+  test("a question with a size limit of its own says that limit beside its count", () => {
+    const [field]: Array<Field<JSONObject>> = buildPublicFormFields({
+      name: "Form",
+      isCaptchaRequired: false,
+      fields: [
+        {
+          id: "logs",
+          label: "Logs",
+          type: PublicFormFieldType.MultipleFiles,
+          isRequired: false,
+          maxFiles: 2,
+          maxFileSizeInBytes: 5 * 1024 * 1024,
+        },
+      ],
+    });
+
+    expect(hintOf(field!)).toBe(
+      "Up to 2 files of 5 MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
+    );
   });
 
   test("a Multiple files question the page is told no limit for takes what a Multiple files field holds", () => {

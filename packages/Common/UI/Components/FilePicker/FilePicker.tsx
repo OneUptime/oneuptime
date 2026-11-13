@@ -15,6 +15,8 @@ import { getKnownFileSize, rememberFileSize } from "./KnownFileSizes";
 import {
   DEFAULT_MAX_FILE_SIZE_IN_BYTES,
   FILE_PICKER_FILE_NAME_CLASS_NAME,
+  FILE_PICKER_FULL_NOTE,
+  FilePickerHint,
   FilePickerLayout,
   FilePickerPromptWords,
   formatFileSizeLimit,
@@ -83,9 +85,10 @@ export interface ComponentProps {
    * What the picker says it takes, in place of the list of its types: for a
    * picker that takes many kinds of file, whose list would run to a
    * paragraph ("PDF, Office files, pictures, text, ZIP or PCAP, up to
-   * 10 MB.").
+   * 10 MB."). For a picker of several, a plural whose {{count}} is its
+   * maxFiles ("Up to {{count}} files of {{size}} each: ...").
    */
-  hint?: string | undefined;
+  hint?: FilePickerHint | undefined;
   /*
    * Keep the files in the browser rather than uploading them: each one the
    * picker hands back holds its bytes and no id. For a page nobody is signed
@@ -683,6 +686,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
     {
       placeholder: props.placeholder,
       hint: props.hint,
+      maxFiles: maxFiles,
       mimeTypes: props.mimeTypes,
       maxFileSizeInBytes: props.maxFileSizeInBytes,
       keepFilesInBrowser: props.keepFilesInBrowser,
@@ -757,9 +761,9 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                 className="text-sm text-gray-600"
                 data-testid="file-picker-full"
               >
-                {translator.translateTemplate(
-                  "This field holds up to {{count}} files. Remove one to add another.",
-                  { count: maxFiles || 0 },
+                {translator.translatePlural(
+                  FILE_PICKER_FULL_NOTE,
+                  maxFiles || 0,
                 )}
               </p>
               {/* A file dropped on it anyway, of a kind it does not take. */}
