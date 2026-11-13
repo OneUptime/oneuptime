@@ -51819,5 +51819,13 @@
   "The agent reads the cluster from PVE_HOST, or from the next node in PVE_NODES whose API answers on port 8006. Its logs say which node it reads, and why it passed over the others:": "代理从 PVE_HOST 读取集群，或从 PVE_NODES 中下一个 API 在端口 8006 上响应的节点读取。它的日志会说明它从哪个节点读取，以及为什么跳过了其他节点：",
   "The {{agentName}} is running and reads the cluster from the Proxmox VE API every 30 seconds, but no read has arrived yet. If this does not change within a few minutes, check the API with the steps below.": "{{agentName}} 正在运行，每 30 秒从 Proxmox VE API 读取一次集群，但尚未收到任何读取结果。如果几分钟内没有变化，请按照下面的步骤检查 API。",
   "The {{agentName}} is running, but it last read the cluster from the Proxmox VE API {{lastRead}}. The nodes, guests and storage here are as it read them then.": "{{agentName}} 正在运行，但它上次从 Proxmox VE API 读取集群是在{{lastRead}}。这里的节点、客户机和存储都是它当时读取到的状态。",
-  "Whether the OneUptime Proxmox agent is reading this cluster from the Proxmox VE API. It switches to Disconnected 15 to 20 minutes after data stops arriving, and to Can't read API when the agent is still running but has not read the cluster for that long. Either way, the numbers on this page are as it last read them.": "OneUptime Proxmox 代理是否正在从 Proxmox VE API 读取此集群。数据停止到达 15 到 20 分钟后，状态会变为“已断开”；如果代理仍在运行，但在这段时间内未读取集群，则变为“无法读取 API”。无论哪种情况，此页面上的数字都是它最后一次读取时的值。"
+  "Whether the OneUptime Proxmox agent is reading this cluster from the Proxmox VE API. It switches to Disconnected 15 to 20 minutes after data stops arriving, and to Can't read API when the agent is still running but has not read the cluster for that long. Either way, the numbers on this page are as it last read them.": "OneUptime Proxmox 代理是否正在从 Proxmox VE API 读取此集群。数据停止到达 15 到 20 分钟后，状态会变为“已断开”；如果代理仍在运行，但在这段时间内未读取集群，则变为“无法读取 API”。无论哪种情况，此页面上的数字都是它最后一次读取时的值。",
+  "The page paused recording with OneUptimeReplay.pause(). Nothing is captured until the page calls OneUptimeReplay.resume(); the visitor's input keeps the session open but does not resume recording.": "页面通过 OneUptimeReplay.pause() 暂停了录制。在页面调用 OneUptimeReplay.resume() 之前，不会捕获任何内容；访客的操作会让会话保持打开，但不会恢复录制。",
+  "If this page should be recorded, find where it calls OneUptimeReplay.pause().": "如果这个页面应该被录制，请找到它调用 OneUptimeReplay.pause() 的位置。",
+  "The page resumed recording with OneUptimeReplay.resume(). Recording goes on in the same session from a fresh snapshot, or in a new session if that one ended while recording was paused.": "页面通过 OneUptimeReplay.resume() 恢复了录制。录制在同一会话中以新快照继续；如果该会话在暂停期间已结束，则在新会话中继续。",
+  "Couldn't refresh the notes.": "无法刷新备注。",
+  "Couldn't search the notes.": "无法搜索备注。",
+  "Couldn't sort the notes.": "无法对备注排序。",
+  "Couldn't load more notes.": "无法加载更多备注。",
+  "Time range: {{range}}. Try adjusting filters or expanding the time range.": "时间范围：{{range}}。请尝试调整筛选条件或扩大时间范围。"
 }

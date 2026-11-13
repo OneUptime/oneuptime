@@ -85,6 +85,7 @@ interface OpenOptions {
     | "fail-twice"
     | "notes-fail-with-reference"
     | "notes-fail-twice"
+    | "notes-more-fail"
     | undefined;
 }
 
@@ -1483,6 +1484,160 @@ test.describe("a case's notes feed, when the notes do not load", () => {
       }),
       "the focus is in the first note",
     ).toBe(true);
+  });
+});
+
+/*
+ * A case's Load more that fails (#7620). The banner over the feed said
+ * what API.getFriendlyMessage said, and nothing else: English on every
+ * page - on a Persian one with its full stop at its start - without the
+ * reference to give, and silent on what had failed; and its Dismiss dropped
+ * the keyboard's focus to the page. It says what failed now, then why and
+ * what to do next with the reference and its copy button, in the reader's
+ * language; Dismiss leaves the focus on Load more, one key from trying again.
+ */
+test.describe("a case's notes feed, when Load more fails", () => {
+  // CASE-142's notes under ?casesetup=notes-more-fail: a page, then 3 more.
+  const FIRST_PAGE: number = 25;
+  const ALL_NOTES: number = 28;
+
+  for (const lang of ["en", "fa"] as const) {
+    test(`says what failed, why, what to do and its reference over the notes, at 1280 and 390 (${lang === "en" ? "English" : "Persian"})`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      // The Dashboard's Persian words, as the fixture draws them with ?lang=fa.
+      const persian: Record<string, string> = JSON.parse(
+        await fs.readFile(
+          path.resolve(
+            __dirname,
+            "../../App/FeatureSet/Dashboard/src/Locales/fa.json",
+          ),
+          "utf8",
+        ),
+      ) as Record<string, string>;
+      const wordsOf: (english: string) => string = (
+        english: string,
+      ): string => {
+        return lang === "fa" ? persian[english]! : english;
+      };
+
+      for (const width of [1280, 390]) {
+        await open(page, CASE_NOTES_PATH, {
+          width,
+          caseSetup: "notes-more-fail",
+          ...(lang === "fa" ? { lang } : {}),
+        });
+        await expect(page.getByTestId("note-card")).toHaveCount(FIRST_PAGE, {
+          timeout: 30000,
+        });
+        await page.getByTestId("notes-load-more").click();
+
+        const banner: Locator = page.getByTestId("notes-action-error");
+        await expect(banner).toBeVisible();
+        await expect(banner).toHaveAttribute("role", "alert");
+
+        // What failed, once, then why and what to do next.
+        await expect(
+          banner.getByTestId("notes-action-error-what-failed"),
+        ).toHaveText(wordsOf("Couldn't load more notes."));
+        await expect(banner.getByTestId("error-what-failed")).toHaveCount(0);
+        const whyAndNext: Locator = banner.getByTestId("error-why-and-next");
+        await expect(whyAndNext).toContainText(
+          wordsOf("The server ran into a problem it could not explain."),
+        );
+        await expect(whyAndNext).toContainText(
+          wordsOf(
+            "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:",
+          ),
+        );
+        // The reference as written, left to right, with its copy button.
+        const reference: Locator = banner.getByTestId("error-reference");
+        await expect(reference.locator("code")).toHaveText(
+          FAILED_READ_REFERENCE,
+        );
+        await expect(reference.locator("code")).toHaveAttribute("dir", "ltr");
+        await expect(reference.getByRole("button")).toBeVisible();
+        const dismiss: Locator = banner.getByRole("button", {
+          name: wordsOf("Dismiss"),
+        });
+        await expect(dismiss).toBeVisible();
+        // Dismiss on one line, though Persian says it in two words.
+        const dismissLines: number = await dismiss.evaluate(
+          (element: Element): number => {
+            const range: Range = document.createRange();
+            range.selectNodeContents(element);
+            return new Set(
+              Array.from(range.getClientRects()).map(
+                (rect: DOMRect): number => {
+                  return Math.round(rect.top);
+                },
+              ),
+            ).size;
+          },
+        );
+        expect(dismissLines, `Dismiss's lines at ${width}`).toBe(1);
+        // Never the sentence as API.getFriendlyMessage wrote it.
+        await expect(banner).not.toContainText("so this did not finish");
+        if (lang === "fa") {
+          for (const english of [
+            "Couldn't load more notes.",
+            "The server ran into a problem",
+            "Dismiss",
+          ]) {
+            await expect(banner).not.toContainText(english);
+          }
+        }
+        // The notes on screen stay.
+        await expect(page.getByTestId("note-card")).toHaveCount(FIRST_PAGE);
+
+        await expectNoSidewaysScroll(page, {
+          message: `the notes feed's banner at ${width}`,
+        });
+        await banner.scrollIntoViewIfNeeded();
+        await screenshot(page, `case-notes-more-fail-${lang}-${width}`, {
+          fullPage: false,
+        });
+      }
+    });
+  }
+
+  /*
+   * Dismiss takes the banner away, and the focus on it fell to the page:
+   * the next Tab started over at its top. It leaves the focus on Load more
+   * now, and the next Enter reads the notes again.
+   */
+  test("dismissed from the keyboard, the banner leaves the focus on Load more, whose next press reads the notes", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CASE_NOTES_PATH, { caseSetup: "notes-more-fail" });
+    await expect(page.getByTestId("note-card")).toHaveCount(FIRST_PAGE, {
+      timeout: 30000,
+    });
+    const loadMore: Locator = page.getByTestId("notes-load-more");
+    await loadMore.focus();
+    await page.keyboard.press("Enter");
+
+    const banner: Locator = page.getByTestId("notes-action-error");
+    const dismiss: Locator = banner.getByRole("button", { name: "Dismiss" });
+    await expect(banner).toBeVisible();
+
+    // From the reference's copy button, one Tab reaches Dismiss.
+    await banner.getByTestId("error-reference").getByRole("button").focus();
+    await page.keyboard.press("Tab");
+    await expect(dismiss).toBeFocused();
+
+    await page.keyboard.press("Enter");
+    await expect(banner).toHaveCount(0);
+    await expect(loadMore).toBeFocused();
+
+    // Load more's next read answers.
+    await page.keyboard.press("Enter");
+    await expect(page.getByTestId("note-card")).toHaveCount(ALL_NOTES);
+    await expect(page.getByTestId("notes-action-error")).toHaveCount(0);
   });
 });
 

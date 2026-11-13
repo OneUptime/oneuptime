@@ -17,6 +17,7 @@ import {
   getDateDisplayLanguage,
   getDateLocale,
   getDateTimeFormat,
+  getHourOption,
   getNumberLocale,
   isEnglishDateLanguage,
   writeDigitsInLocale,
@@ -30,6 +31,10 @@ export const Moment: typeof moment = moment;
  * are written in the reader's language for, as Intl asks for them. A shape
  * with no words in it ("YYYY", "HH:mm:ss.SSS") reads the same in every
  * language; one that is not listed is written by moment, in English.
+ *
+ * English's "hh" keeps a 12-hour time's zero ("05:01 PM"), as moment writes
+ * it; no other language writes one there ("오후 5:01", "5:01 م"), so the
+ * reader's language takes the hour without it (getHourOption, issue #7279).
  */
 const LOCALIZED_CUSTOM_DATE_FORMATS: Readonly<
   Record<string, Intl.DateTimeFormatOptions>
@@ -43,7 +48,7 @@ const LOCALIZED_CUSTOM_DATE_FORMATS: Readonly<
   "MMMM YYYY": { month: "long", year: "numeric" },
   "MMMM D, YYYY": { month: "long", day: "numeric", year: "numeric" },
   "h:mm A": { hour: "numeric", minute: "2-digit", hour12: true },
-  "hh:mm A": { hour: "2-digit", minute: "2-digit", hour12: true },
+  "hh:mm A": { hour: getHourOption(true), minute: "2-digit", hour12: true },
   // A 24-hour time of day, in the reader's digits: "۲۲:۲۷" on a Persian page.
   "HH:mm": { hour: "2-digit", minute: "2-digit", hourCycle: "h23" },
 };

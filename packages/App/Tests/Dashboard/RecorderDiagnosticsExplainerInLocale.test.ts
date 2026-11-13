@@ -1,4 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
+import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 import {
   createTranslator,
   DEFAULT_LANGUAGE,
@@ -126,6 +129,83 @@ describe("the code table in the reader's language", () => {
       RECORDER_DEBUG_CODE_COPY["privacy-signal"]!.explanation,
     );
   });
+});
+
+/*
+ * Looked up whole is only half of it: a sentence no locale file carries is
+ * English on every Dashboard. Each code's explanation and advice is a key
+ * of en.json, as itself, and worded in every other language the Dashboard
+ * offers, the calls it names (start(), OneUptimeReplay.pause()) kept as
+ * written - the page's own pause and resume codes once had no sentence at
+ * all.
+ */
+
+const LOCALES_DIRECTORY: string = path.join(
+  __dirname,
+  "../../FeatureSet/Dashboard/src/Locales",
+);
+
+type Locale = Record<string, unknown>;
+
+function localeOf(language: string): Locale {
+  return JSON.parse(
+    fs.readFileSync(path.join(LOCALES_DIRECTORY, `${language}.json`), "utf8"),
+  ) as Locale;
+}
+
+// A call a sentence names, which no language translates.
+const CALL: RegExp = /[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*\(\)/g;
+
+const TABLE_SENTENCES: Array<string> = Object.values(
+  RECORDER_DEBUG_CODE_COPY,
+).flatMap((copy: RecorderDebugCodeCopy): Array<string> => {
+  return copy.action === undefined
+    ? [copy.explanation]
+    : [copy.explanation, copy.action];
+});
+
+describe("the code table in every language the Dashboard offers", () => {
+  test("English carries every sentence as itself", () => {
+    const englishLocale: Locale = localeOf("en");
+
+    expect(TABLE_SENTENCES.length).toBeGreaterThan(100);
+    expect(
+      TABLE_SENTENCES.filter((sentence: string): boolean => {
+        return englishLocale[sentence] !== sentence;
+      }),
+    ).toEqual([]);
+  });
+
+  test.each([...DASHBOARD_LANGUAGES])(
+    "%s words every sentence, the calls it names as written",
+    (language: string) => {
+      const locale: Locale = localeOf(language);
+
+      const problems: Array<string> = TABLE_SENTENCES.flatMap(
+        (sentence: string): Array<string> => {
+          const value: unknown = locale[sentence];
+
+          if (typeof value !== "string" || value.trim().length === 0) {
+            return [`missing: ${sentence}`];
+          }
+
+          if (value === sentence) {
+            return [`left in English: ${sentence}`];
+          }
+
+          return (sentence.match(CALL) || [])
+            .filter((call: string): boolean => {
+              return !value.includes(call);
+            })
+            .map((call: string): string => {
+              return `${call} not kept: ${sentence}`;
+            });
+        },
+      );
+
+      expect(problems).toEqual([]);
+    },
+  );
 });
 
 describe("explainRecorderDiagnostics in the reader's language", () => {
