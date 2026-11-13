@@ -32,12 +32,13 @@ import React, {
  * WHAT NEEDS ATTENTION ON THIS SERVER, AT THE TOP OF ONEUPTIME HEALTH (#6826).
  *
  * The same findings `npm run doctor` prints and diagnose.sh prints on
- * Kubernetes (GET /admin/health/doctor, Common/Types/InstallationHealth):
- * PostgreSQL, ClickHouse and Valkey, the migrations, ClickHouse's disk, the
- * queues, the version, and the server setup checklist's open steps, worst
- * first, each with its fix. Every edition: the yes/no answers and their
- * fixes are not an upsell; the live charts and the deep pages below keep
- * their edition rules.
+ * Kubernetes (Common/Types/InstallationHealth): PostgreSQL, ClickHouse and
+ * Valkey, the migrations, ClickHouse's disk, the queues, the version, and the
+ * server setup checklist's open steps, worst first, each with its fix. This
+ * card reads them with a GET of /admin/health/doctor, as a master admin; those
+ * two ask with a POST and the cluster key. Every edition: the yes/no answers
+ * and their fixes are not an upsell; the live charts and the deep pages below
+ * keep their edition rules.
  *
  * The checklist's steps are said in its own words and fixed on its own page
  * (/admin/setup): this card does not become a second checklist.
