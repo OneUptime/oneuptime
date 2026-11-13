@@ -1181,9 +1181,21 @@ describe("UserOnCallLogService.getNotificationRuleType", () => {
       UserNotificationEventType,
     );
 
-    expect(eventTypes).toHaveLength(4);
+    expect(eventTypes).toHaveLength(5);
 
-    for (const eventType of eventTypes) {
+    /*
+     * A test page is the one member left out on purpose: its run says which
+     * kind of record it stands in for (see the test below), so a new event
+     * type still has to be mapped or added here deliberately.
+     */
+    const recordEventTypes: Array<UserNotificationEventType> =
+      eventTypes.filter((eventType: UserNotificationEventType): boolean => {
+        return eventType !== UserNotificationEventType.TestPage;
+      });
+
+    expect(recordEventTypes).toHaveLength(4);
+
+    for (const eventType of recordEventTypes) {
       expect(() => {
         return UserOnCallLogService.getNotificationRuleType(eventType);
       }).not.toThrow();
@@ -1215,15 +1227,33 @@ describe("UserOnCallLogService.getNotificationRuleType", () => {
      */
     const produced: Array<NotificationRuleType> = Object.values(
       UserNotificationEventType,
-    ).map((eventType: UserNotificationEventType): NotificationRuleType => {
-      return UserOnCallLogService.getNotificationRuleType(eventType);
-    });
+    )
+      .filter((eventType: UserNotificationEventType): boolean => {
+        // A test page reads its rule type from its run (see below).
+        return eventType !== UserNotificationEventType.TestPage;
+      })
+      .map((eventType: UserNotificationEventType): NotificationRuleType => {
+        return UserOnCallLogService.getNotificationRuleType(eventType);
+      });
 
     expect(produced).not.toContain(NotificationRuleType.WHEN_USER_GOES_ON_CALL);
     expect(produced).not.toContain(
       NotificationRuleType.WHEN_USER_GOES_OFF_CALL,
     );
     expect(new Set(produced).size).toBe(4);
+  });
+
+  test("a test page has no rule type of its own: its run says which it stands in for", () => {
+    /*
+     * A test page (OnCallTestPage) runs the rules of the kind of record its
+     * run names (testPageRecordKind), so mapping its event type alone would
+     * be a guess - and is refused rather than made.
+     */
+    expect(() => {
+      return UserOnCallLogService.getNotificationRuleType(
+        UserNotificationEventType.TestPage,
+      );
+    }).toThrow("Invalid user notification event type.");
   });
 });
 

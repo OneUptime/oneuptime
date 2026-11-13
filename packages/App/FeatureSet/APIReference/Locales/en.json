@@ -344,6 +344,7 @@
       "logsDesc": "Diagnostic logs reachable from inside the app process: this instance's own recent log lines, plus what Postgres, ClickHouse and Valkey expose. Container stdout is not included — use <code>kubectl logs</code> or <code>docker logs</code> for that.",
       "migrationsDesc": "Postgres schema and data migration status: whether the instance is fully migrated, what is still pending, and recent failures. This is how you confirm an upgrade finished.",
       "supportBundleDesc": "One JSON document with everything diagnostic about the instance — version, runtime, redacted config, component health, migrations, datastore diagnostics, schema, failed jobs and logs. The single most useful thing to attach to a support request.",
+      "doctorDesc": "What needs attention on the instance, worst first, each with its fix: Postgres, ClickHouse or Valkey not answering, pending or failed migrations, ClickHouse disks running low, queues falling behind, a newer release, and unfinished server setup steps. It is the list at the top of the OneUptime Health page.",
       "queueNamesBody": "The <code>{queueName}</code> path parameter has to be one of <code>Workflow</code>, <code>Worker</code>, <code>Telemetry</code> or <code>Runbook</code>. Anything else is rejected with a <code>400</code>.",
       "editions": "Editions",
       "editionsBody": "Most master admin APIs are part of the OneUptime Enterprise Edition, and match the OneUptime Health dashboard they back. On a Community instance they return <code>402 Payment Required</code> instead of data.",

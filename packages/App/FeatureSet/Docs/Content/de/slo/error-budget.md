@@ -19,13 +19,13 @@ total budget = (100% − target) × window length
 
 | Ziel | 7-Tage-Fenster | 28-Tage-Fenster | 30-Tage-Fenster | 90-Tage-Fenster |
 | --- | --- | --- | --- | --- |
-| 99% | 1h 40m 48s | 6h 43m 12s | 7h 12m | 21h 36m |
-| 99.5% | 50m 24s | 3h 21m 36s | 3h 36m | 10h 48m |
-| 99.9% | 10m 5s | 40m 19s | 43m 12s | 2h 9m 36s |
-| 99.95% | 5m 2s | 20m 10s | 21m 36s | 1h 4m 48s |
-| 99.99% | 1m 0s | 4m 2s | 4m 19s | 12m 58s |
+| 99 % | 1 Std., 40 Min. und 48 Sek. | 6 Std., 43 Min. und 12 Sek. | 7 Std., 12 Min. | 21 Std., 36 Min. |
+| 99,5 % | 50 Min., 24 Sek. | 3 Std., 21 Min. und 36 Sek. | 3 Std., 36 Min. | 10 Std., 48 Min. |
+| 99,9 % | 10 Min., 5 Sek. | 40 Min., 19 Sek. | 43 Min., 12 Sek. | 2 Std., 9 Min. und 36 Sek. |
+| 99,95 % | 5 Min., 2 Sek. | 20 Min., 10 Sek. | 21 Min., 36 Sek. | 1 Std., 4 Min. und 48 Sek. |
+| 99,99 % | 1 Min., 0 Sek. | 4 Min., 2 Sek. | 4 Min., 19 Sek. | 12 Min., 58 Sek. |
 
-Die Seite **Einstellungen** des SLO zeigt das Budget, das sein Ziel erlaubt, neben dem Ziel an, zum Beispiel „43m 12s Ausfallzeit pro 30-Tage-Zeitfenster“.
+Die Seite **Einstellungen** des SLO zeigt das Budget, das sein Ziel erlaubt, neben dem Ziel an, zum Beispiel „43 Min., 12 Sek. Ausfallzeit pro Zeitfenster von 30 Tagen“.
 
 ### Das Budget eines SLO mit mehreren Monitoren
 
@@ -35,16 +35,16 @@ Im Modus **Durchschnitt der Monitorsekunden** wird das Budget in Monitorsekunden
 
 ### Das Budget eines Kalendermonats
 
-Ein Kalendermonat-SLO hat vom ersten Tag an das Budget des ganzen Monats: Ein SLO mit 99,9 % in einem Monat mit 31 Tagen hat am 1. seine vollen 44m 38s. Das Budget wird nicht nach dem bereits vergangenen Teil des Monats anteilig berechnet, ein einminütiger Ausfall am Morgen des 1. verbraucht also eine Minute des Monatsbudgets.
+Ein Kalendermonat-SLO hat vom ersten Tag an das Budget des ganzen Monats: Ein SLO mit 99,9 % in einem Monat mit 31 Tagen hat am 1. seine vollen 44 Min., 38 Sek. zur Verfügung. Das Budget wird nicht nach dem bereits vergangenen Teil des Monats anteilig berechnet, ein einminütiger Ausfall am Morgen des 1. verbraucht also eine Minute des Monatsbudgets.
 
 ## Verbleibendes Budget
 
 Während sich Ausfallzeit ansammelt, zeigt die **Übersicht** das verbleibende Budget auf ihrer Kachel **Verbleibendes Fehlerbudget**:
 
 - als Prozentsatz des Gesamtbudgets, der auch den Status des SLO bestimmt und den Balken füllt. Der Balken hat eine Markierung an der Risikoschwelle des SLO;
-- als Dauer, zum Beispiel "31m 4s left of 43m 12s".
+- als Dauer, zum Beispiel "Noch 31 Min., 4 Sek. von 43 Min., 12 Sek.".
 
-Ist das Budget aufgebraucht, zeigt die Kachel **Kein Budget mehr**. Geht die Ausfallzeit darüber hinaus, zeigt die Kachel **Budget überschritten** und die Überziehung als Zeit, zum Beispiel "4d 23m over budget · 5m 47s allowed": Das SLO hat alle 5 Minuten und 47 Sekunden seines Budgets verbraucht und weitere 4 Tage und 23 Minuten dazu. Der Balken bleibt leer und rot.
+Ist das Budget aufgebraucht, zeigt die Kachel **Kein Budget mehr**. Geht die Ausfallzeit darüber hinaus, zeigt die Kachel **Budget überschritten** und die Überziehung als Zeit, zum Beispiel "4 Tg., 23 Min. über dem Budget · 5 Min., 47 Sek. erlaubt": Das SLO hat alle 5 Minuten und 47 Sekunden seines Budgets verbraucht und weitere 4 Tage und 23 Minuten dazu. Der Balken bleibt leer und rot.
 
 Das verbleibende Budget wird für Berechnungen und Verlaufsdiagramme als Zahl mit Vorzeichen gespeichert, ein überzogenes Budget erscheint dort also als negativer Prozentsatz. Ein großer negativer Prozentsatz bedeutet, dass die Überziehung im Vergleich zum Budget groß ist; er ist nicht der Anteil der Zeit, in der der Dienst ausgefallen war.
 
@@ -60,7 +60,7 @@ runway = budget left ÷ (burn rate × (100% − target))
 
 | Die Kachel zeigt | Bedeutung |
 | --- | --- |
-| Eine Dauer, etwa **~2d 5h** | Beim aktuellen Tempo ist das Budget in etwa dieser Zeit aufgebraucht. Gelb, und rot, sobald es einen Tag oder weniger sind. **Unter 1 Min.** bedeutet weniger als eine Minute. |
+| Eine Dauer, etwa **~2 Tg., 5 Std.** | Beim aktuellen Tempo ist das Budget in etwa dieser Zeit aufgebraucht. Gelb, und rot, sobald es einen Tag oder weniger sind. **Unter 1 Min.** bedeutet weniger als eine Minute. |
 | **Kein Verbrauch** | In den letzten 60 Minuten wurde kein Budget verbraucht. |
 | **Tragfähig** | Nur rollierende Zeitfenster: Die Reichweite ist mindestens ein ganzes Zeitfenster, das Budget wird also nicht schneller verbraucht, als alte Ausfallzeit herausfällt. Bei diesem Tempo kann es nicht aufgebraucht werden. |
 | **Reicht bis zum Zurücksetzen** | Nur Kalendermonate: Das Budget wird zu Beginn des nächsten Monats zurückgesetzt, bevor es aufgebraucht wäre. |
@@ -97,7 +97,7 @@ Ein Kalendermonat-SLO wird am Ersten jedes Monats um Mitternacht in seiner Zeitz
 
 ### Junge SLOs
 
-Ein SLO mit rollierendem Zeitfenster, das jünger ist als sein Fenster, wird über die bisher vorhandenen Daten gemessen, und sein Gesamtbudget wächst mit: Ein 30-Tage-SLO, das vor einer Woche erstellt wurde, hat vorerst ein 7-Tage-Budget. Bis das Fenster voll ist, zeigt die **Übersicht**, wie voll es ist, mit einem Chip **Window 23% full** und demselben Hinweis auf der Kachel **Verbleibendes Fehlerbudget**. Rechnen Sie damit, dass sich die Zahlen beruhigen, während sich das Fenster füllt.
+Ein SLO mit rollierendem Zeitfenster, das jünger ist als sein Fenster, wird über die bisher vorhandenen Daten gemessen, und sein Gesamtbudget wächst mit: Ein 30-Tage-SLO, das vor einer Woche erstellt wurde, hat vorerst ein 7-Tage-Budget. Bis das Fenster voll ist, zeigt die **Übersicht**, wie voll es ist, mit einem Chip **Fenster zu 23 % gefüllt** und demselben Hinweis auf der Kachel **Verbleibendes Fehlerbudget**. Rechnen Sie damit, dass sich die Zahlen beruhigen, während sich das Fenster füllt.
 
 ## Statusänderungen und die Risikoschwelle
 

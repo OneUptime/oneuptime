@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 Angiv dem i `config.env`, og kør derefter `npm start`. `DISABLE_TELEMETRY_FOR_APP` er som standard `true`, og så sendes intet.
 :::
 
-OneUptime skal have både endpointet og headerne: uden en header sender det intet. Adskil flere headere med `;`. OneUptime tilføjer selv `/v1/metrics` til endpointet, og de samme indstillinger sender også dets egne traces og logs. Hver metrik dukker op, så snart OneUptime registrerer den første gang: `notification.send.count` med den første sendte besked.
+OneUptime skal have både endpointet og headerne: uden en header sender det intet. Skriv hver header som `name=value`, og adskil flere med `;`. En værdi må gerne indeholde `=`. OneUptime tilføjer selv `/v1/metrics` til endpointet, og de samme indstillinger sender også dets egne traces og logs. Hver metrik dukker op, så snart OneUptime registrerer den første gang: `notification.send.count` med den første sendte besked.
 
 ### Send deltaer til et OneUptime-projekt
 
@@ -109,14 +109,14 @@ Hver attribut har en af nogle få faste værdier, aldrig et projekt, en person, 
 | `notification.provider.config` | `global` for installationens egen konto og indstillinger; `project` for et projekts egen Twilio-konto, SMTP-server, webhook eller workspace-forbindelse, hvis fejl det er projektets opgave at rette |
 | `notification.on_call_page` | `true` for en notifikation fra et vagttilkald, ellers `false` |
 | `outcome` | `success`, `failure` eller `not_sent`, som nedenfor |
-| `notification.destination` | Kun Slack, Microsoft Teams og Mattermost: `direct_message` til én person, `channel` for et opslag i en kanal eller en Teams-gruppechat, `incoming_webhook` for en indgående webhook, såsom en statusside-abonnents |
+| `notification.destination` | Slack, Microsoft Teams og Mattermost: `direct_message` til én person, `channel` for et opslag i en kanal eller en Teams-gruppechat, `incoming_webhook` for en indgående webhook, såsom en statusside-abonnents. Webhooks: `status_page_subscriber` for en statusside-abonnents egen webhook. Udeladt for en persons webhook og for alle andre kanaler |
 | `notification.custom_channel.id`, `notification.custom_channel.name` | Kun brugerdefinerede kanaler: kanalens ID og dens navn, afkortet til 100 tegn |
 
 - `success`: udbyderen tog imod beskeden.
 - `failure`: udbyderen afviste den eller kunne ikke nås, eller afsendelsen mislykkedes. En chatkanal, der ikke kunne findes, er en fejl uden varighed.
 - `not_sent`: bevidst ikke sendt. Projektet har slået kanalen fra, har for lidt saldo eller er blokeret, push er slået fra på denne server, eller en brugerdefineret kanal er slået fra, slettet eller ikke dækket af licensen. En succesrate udelader dem: det er indstillinger, der virker, ikke platformen, der fejler.
 
-Statusside-abonnenters almindelige webhooks tælles ikke endnu.
+En besked til en statusside-abonnents egen webhook tælles én gang, uanset hvor mange gange den blev forsøgt: `success`, når endpointet svarede med en 2xx-status, og `failure`, når det svarede med en anden status, ikke kunne nås, eller dets adresse ikke er tilladt.
 
 ### Hvad der nåede telefonen
 
@@ -155,7 +155,7 @@ Statusser kommer kun, hvor udbyderen kan melde dem:
 | --- | --- |
 | `monitor_data_received` | Da OneUptime modtog de data, der udløste monitoren: en indgående anmodning, en serveragents rapport, en indgående e-mail, en probes kontrol, en SNMP-trap eller en forespørgsel til en netværksenhed. Det omfatter den tid, dataene ventede i køen på at blive vurderet. |
 | `record_created` | Da hændelsen, advarslen eller episoden blev oprettet: af en telemetrimonitor, en regel eller en person, og ved en kontrol for fravær, såsom et heartbeat, der stoppede. |
-| `page_started` | Da et tilkald startede senere: en person, en arbejdsgang eller en regel, der nu passer, startede det, et nyt tilkald, et direkte tilkald eller et tilkald, der ventede en pause ud, som dets vagtregel bad om. |
+| `page_started` | Da et tilkald startede senere: en person, en arbejdsgang eller en regel, der nu passer, startede det, eller det er et direkte tilkald. For et tilkald, som dets vagtregel eller OneUptime AI holdt tilbage, da pausen udløb, eller da det startede, hvis det var før. For et nyt tilkald, da timeouten efter bekræftelse udløb. En worker, der nåede frem til et af dem for sent, viser sig altså i tiden. |
 
 For en indgående anmodning løber tiden fra den seneste anmodning, endpointet modtog, så den kan blive en smule for kort.
 
@@ -170,7 +170,7 @@ For en indgående anmodning løber tiden fra den seneste anmodning, endpointet m
 | `escalation` | Et senere eskaleringsniveau: når niveauet før det har afsluttet sin ventetid, eller med det samme, når en person giver tilkaldet videre. |
 | `policy_repeat` | Politikken, der starter forfra fra sit første niveau: når ventetiden på dens sidste niveau er udløbet. |
 
-Den bærer også `notification.channel`, `notification.trigger.type` og, for brugerdefinerede kanaler, `notification.custom_channel.id` og `notification.custom_channel.name`. En notifikation, der forfalder, når dens tilkald starter, er aldrig med i den: den er i tid til afsendelse.
+Den bærer også `notification.channel`, `notification.trigger.type` og, for brugerdefinerede kanaler, `notification.custom_channel.id` og `notification.custom_channel.name`. En notifikation, der forfalder, når dens tilkald starter, er aldrig med i den, heller ikke når en worker startede tilkaldet for sent, efter en pause eller som et nyt tilkald: den er i tid til afsendelse.
 
 ### Histogrammernes buckets
 
@@ -220,7 +220,7 @@ Formlen `$b / $a * 100` er den andel, der fejlede, og målet holder, så længe 
 | --- | --- | --- | --- |
 | `a` | `notification.time_to_send` | **P95** | `notification.page.start != page_started` |
 
-Målet holder, så længe `a` bliver på eller under 30000. Tilkald, der startes senere, måles fra deres start, ikke fra en udløser, så de er udeladt. Gruppér efter `notification.page.start` for at se monitorernes kø (`monitor_data_received`) adskilt fra resten, eller efter `notification.channel` for at finde en langsom kanal.
+Målet holder, så længe `a` bliver på eller under 30000. Tilkald, der startes senere, måles fra deres start eller fra det tidspunkt, de forfaldt, ikke fra en udløser, så de er udeladt. Gruppér efter `notification.page.start` for at se monitorernes kø (`monitor_data_received`) adskilt fra resten, eller efter `notification.channel` for at finde en langsom kanal.
 
 ### Senere sendte notifikationer går ud inden for 90 sekunder
 
@@ -246,7 +246,7 @@ Formlen `$b / $a * 100` er den andel, der ikke blev leveret. Teleoperatører og 
 ## Fejlfinding
 
 :::details Der kommer ingen notifikationsmetrikker
-Kontrollér, at `OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT` og `OPENTELEMETRY_EXPORTER_OTLP_HEADERS` begge er angivet, og i Docker Compose at `DISABLE_TELEMETRY_FOR_APP` er `false`, og genstart derefter OneUptime. En metrik dukker først op, når noget er registreret, så send først en notifikation.
+Kontrollér, at `OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT` og `OPENTELEMETRY_EXPORTER_OTLP_HEADERS` begge er angivet, og i Docker Compose at `DISABLE_TELEMETRY_FOR_APP` er `false`, og genstart derefter OneUptime. Når OneUptime starter, logger det en advarsel, hvis det ikke kan læse en header, eller hvis det intet sender. En metrik dukker først op, når noget er registreret, så send først en notifikation.
 :::
 
 :::details Et antal vokser kun, eller en percentil rører sig næsten ikke

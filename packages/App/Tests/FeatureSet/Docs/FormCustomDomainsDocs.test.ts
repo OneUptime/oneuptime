@@ -100,20 +100,22 @@ describe("Forms on custom domains (English docs)", () => {
     );
   });
 
-  it("names the table's create button after its model, and the dialog's fields as it draws them", () => {
+  /*
+   * The table's button opens Add Custom Domain (one field, the address),
+   * the same on every kind of custom domain, not "Create Form Domain".
+   */
+  it("names the table's button and the dialog's field and button as they are drawn", () => {
     const adding: string = section(SHARING, "### Adding the domain");
 
-    expect(new FormDomain().singularName).toBe("Form Domain");
+    expect(adding).toContain(`Click **${CustomDomainCopy.addTitle}**.`);
+    expect(adding).not.toContain(`**Create ${new FormDomain().singularName}**`);
     expect(adding).toContain(
-      `Click **Create ${new FormDomain().singularName}**.`,
-    );
-    expect(adding).toContain(
-      `placeholder \`${FORM_CUSTOM_DOMAIN_COPY.subdomainPlaceholder}\``,
+      `placeholder \`${FORM_CUSTOM_DOMAIN_COPY.addressPlaceholder}\``,
     );
     expect(adding).toContain(
       "**Project Settings** > **Advanced** > **Domains**",
     );
-    expect(adding).toContain(`**${CustomDomainCopy.domainFieldSideLink}**`);
+    expect(adding).toContain(`**${CustomDomainCopy.addSubmit}**`);
     expect(adding).toContain("**More fields**");
     expect(adding).toContain("**Upload Custom Certificate**");
   });

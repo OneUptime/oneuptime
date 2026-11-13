@@ -2,6 +2,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import Icon from "Common/UI/Components/Icon/Icon";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 import PeopleAvatar, {
   PeopleAvatarItem,
 } from "Common/UI/Components/PeoplePicker/PeopleAvatar";
@@ -131,12 +132,12 @@ const NOBODY_PICKED: Set<string> = new Set<string>();
  * Where the avatar would be: a dashed circle with a plus. Decoration - the
  * word beside it, or the control's name, says what it does.
  */
-interface EmptyPlaceProps {
+export interface EmptyPlaceProps {
   // Its control's list is open: the circle is lit with it.
   isOpen?: boolean | undefined;
 }
 
-const EmptyPlace: FunctionComponent<EmptyPlaceProps> = (
+export const EmptyPlace: FunctionComponent<EmptyPlaceProps> = (
   props: EmptyPlaceProps,
 ): ReactElement => {
   return (
@@ -167,6 +168,9 @@ interface PersonProps {
   dataTestId: string;
 }
 
+// A person's name beside their avatar: wrapped rather than cut short.
+export const EVENT_PERSON_NAME_CLASS_NAME: string = "min-w-0 break-words";
+
 // An avatar and a name. The avatar is decoration: the name is read out.
 const Person: FunctionComponent<PersonProps> = (
   props: PersonProps,
@@ -183,11 +187,17 @@ const Person: FunctionComponent<PersonProps> = (
       {/*
        * A long name wraps beside its avatar rather than being cut short: in
        * a phone's two columns of facts "Database Reliability" had a few
-       * letters and an ellipsis.
+       * letters and an ellipsis. It reads the way it is written
+       * (IsolatedLine): an English name on an Arabic page wraps from its own
+       * start, as wide as its words beside the avatar, and keeps its
+       * brackets and full stops where they were typed.
        */}
-      <span data-testid="event-person-name" className="min-w-0 break-words">
-        {props.item.name}
-      </span>
+      <IsolatedLine
+        as="span"
+        text={props.item.name}
+        className={EVENT_PERSON_NAME_CLASS_NAME}
+        dataTestId="event-person-name"
+      />
     </span>
   );
 };
@@ -535,6 +545,8 @@ export const getCommanderFact: (
 
   return {
     label: input.holding.role.name || "Incident Commander",
+    // The project's own name for the role, read the way it was typed.
+    isLabelTyped: true,
     icon: input.holding.role.icon || IconProp.ShieldCheck,
     value: (
       <CommanderFactValue

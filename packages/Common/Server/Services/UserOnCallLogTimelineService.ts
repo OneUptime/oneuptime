@@ -1,3 +1,7 @@
+import ProjectMilestoneService from "./ProjectMilestoneService";
+import ActivationMilestone, {
+  isNotificationDeliveredStatus,
+} from "../../Types/Analytics/ActivationMilestone";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
@@ -16,7 +20,6 @@ import OnCallDutyExecutionLogTimelineStatus from "../../Types/OnCallDutyPolicy/O
 import OnCallDutyPolicyStatus from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import UserNotificationExecutionStatus from "../../Types/UserNotification/UserNotificationExecutionStatus";
 import UserNotificationStatus from "../../Types/UserNotification/UserNotificationStatus";
-import ColumnLength from "../../Types/Database/ColumnLength";
 import logger from "../Utils/Logger";
 import User from "../../Models/DatabaseModels/User";
 import Model from "../../Models/DatabaseModels/UserOnCallLogTimeline";
@@ -48,6 +51,14 @@ import NotificationDeliveryMetrics, {
 } from "../Utils/Telemetry/NotificationDeliveryMetrics";
 import CustomNotificationChannelService from "./CustomNotificationChannelService";
 import CustomNotificationChannel from "../../Models/DatabaseModels/CustomNotificationChannel";
+import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
+import { getOnCallTestPageAcknowledgedMessage } from "../../Types/OnCallDutyPolicy/OnCallTestPage";
+import OnCallTestPageEvents from "../Utils/OnCall/OnCallTestPageEvents";
+/*
+ * Read when a send is refused (markNotSent), never as this module loads:
+ * OnCallNotificationStatus writes through this service.
+ */
+import { recordSendResult } from "../Utils/OnCall/OnCallNotificationStatus";
 
 /*
  * What the record's feed is told of a notification that an update gives
@@ -81,7 +92,9 @@ export class Service extends DatabaseService<Model> {
    * timeline, with the reason the message's own log gives, instead of
    * staying at "Sending" for ever. Like the timeline's other skips (an
    * unverified number, say), it is recorded as Error: the page did not go
-   * out.
+   * out. Written as the send's result is, over Sending only
+   * (OnCallNotificationStatus.recordSendResult): the person may have
+   * answered the page meanwhile, from another of its messages.
    *
    * Never throws: the skip is already in the message's log, and a timeline
    * row that could not be written must not turn it into a failed send for
@@ -97,15 +110,10 @@ export class Service extends DatabaseService<Model> {
     }
 
     try {
-      await this.updateOneById({
-        id: data.userOnCallLogTimelineId,
-        data: {
-          status: UserNotificationStatus.Error,
-          statusMessage: data.reason.substring(0, ColumnLength.LongText),
-        },
-        props: {
-          isRoot: true,
-        },
+      await recordSendResult({
+        userOnCallLogTimelineId: data.userOnCallLogTimelineId,
+        isSent: false,
+        statusMessage: data.reason,
       });
     } catch (err) {
       logger.error(
@@ -319,6 +327,8 @@ export class Service extends DatabaseService<Model> {
 
     OnCallPolicyRunMessage.refresh(createdItem.onCallDutyPolicyExecutionLogId);
 
+    this.noteDelivered(createdItem.status, [createdItem]);
+
     await this.refreshStepNotificationChannels([createdItem]);
 
     if (createdItem.status === UserNotificationStatus.Error) {
@@ -334,6 +344,24 @@ export class Service extends DatabaseService<Model> {
     }
 
     return createdItem;
+  }
+
+  /*
+   * The project's first on-call page that reached a person (issue #6830):
+   * its provider accepted it - a status that says it went out to them, not
+   * one still on its way (isNotificationDeliveredStatus). Any channel.
+   */
+  private noteDelivered(status: unknown, deliveries: Array<Model>): void {
+    if (typeof status !== "string" || !isNotificationDeliveredStatus(status)) {
+      return;
+    }
+
+    for (const delivery of deliveries) {
+      ProjectMilestoneService.reachInBackground({
+        projectId: delivery.projectId,
+        milestone: ActivationMilestone.FirstNotificationDelivered,
+      });
+    }
   }
 
   /*
@@ -406,6 +434,8 @@ export class Service extends DatabaseService<Model> {
             triggeredByAlertId: true,
             triggeredByIncidentEpisodeId: true,
             triggeredByAlertEpisodeId: true,
+            // Whose first on-call page reached somebody (noteDelivered).
+            projectId: true,
           },
           skip: 0,
           limit: LIMIT_PER_PROJECT,
@@ -433,6 +463,8 @@ export class Service extends DatabaseService<Model> {
       if (onUpdate.updateBy.data.status === UserNotificationStatus.Sent) {
         await this.recordTimeToSend(deliveries);
       }
+
+      this.noteDelivered(onUpdate.updateBy.data.status, deliveries);
 
       /*
        * A status can take a channel off its step's list - one that could
@@ -482,12 +514,22 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
+    /*
+     * The notifications the update wrote, read by id: an acknowledgement is
+     * written at the status and the version it was read at
+     * (OnCallNotificationStatus.recordAcknowledgement), which the row no
+     * longer has once it is written - read by the update's own query, it
+     * found nothing, and the page was never acknowledged.
+     */
     if (
       onUpdate.updateBy.data.acknowledgedAt &&
-      onUpdate.updateBy.data.isAcknowledged
+      onUpdate.updateBy.data.isAcknowledged &&
+      updatedItemIds.length > 0
     ) {
       const items: Array<Model> = await this.findBy({
-        query: onUpdate.updateBy.query,
+        query: {
+          _id: QueryHelper.any(updatedItemIds),
+        },
         select: {
           _id: true,
           projectId: true,
@@ -499,6 +541,23 @@ export class Service extends DatabaseService<Model> {
           triggeredByAlertEpisodeId: true,
           triggeredByIncidentEpisodeId: true,
           onCallDutyPolicyExecutionLogTimelineId: true,
+          /*
+           * A test page (OnCallTestPage) says which message it was
+           * acknowledged from, and how long after that message went out.
+           */
+          userNotificationEventType: true,
+          createdAt: true,
+          userCallId: true,
+          userSmsId: true,
+          userWhatsAppId: true,
+          userTelegramId: true,
+          userPushId: true,
+          userEmailId: true,
+          userSlackId: true,
+          userMicrosoftTeamsId: true,
+          userMattermostId: true,
+          userWebhookId: true,
+          customNotificationChannelId: true,
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
@@ -523,6 +582,12 @@ export class Service extends DatabaseService<Model> {
           triggeredByAlertEpisodeId: item.triggeredByAlertEpisodeId,
           triggeredByIncidentEpisodeId: item.triggeredByIncidentEpisodeId,
           acknowledgedAt: acknowledgedAt,
+          userNotificationEventType: item.userNotificationEventType,
+          acknowledgedFrom: {
+            channel: getOnCallPageChannelsOf(item)[0],
+            sentAt: item.createdAt,
+          },
+          projectId: item.projectId,
         });
       }
     }
@@ -550,7 +615,23 @@ export class Service extends DatabaseService<Model> {
     triggeredByAlertEpisodeId?: ObjectID | undefined;
     triggeredByIncidentEpisodeId?: ObjectID | undefined;
     acknowledgedAt: Date;
+    // The page's event type: a test page (OnCallTestPage) is acknowledged in its own words.
+    userNotificationEventType?: UserNotificationEventType | undefined;
+    // The message it was acknowledged from, when one was: by what, and when it went out.
+    acknowledgedFrom?:
+      | {
+          channel?: OnCallPageChannel | undefined;
+          sentAt?: Date | undefined;
+        }
+      | undefined;
+    // The page's project, for what a test page's acknowledgement records.
+    projectId?: ObjectID | undefined;
   }): Promise<void> {
+    if (page.userNotificationEventType === UserNotificationEventType.TestPage) {
+      await this.acknowledgeTestPage(page);
+      return;
+    }
+
     const isIncident: boolean = Boolean(page.triggeredByIncidentId);
     const isAlert: boolean = Boolean(page.triggeredByAlertId);
     /*
@@ -751,6 +832,119 @@ export class Service extends DatabaseService<Model> {
       await OnCallAcknowledgementTimeout.onPageAcknowledged({
         executionLogId: page.onCallDutyPolicyExecutionLogId,
         acknowledgedAt: page.acknowledgedAt,
+      });
+    }
+  }
+
+  /*
+   * ACKNOWLEDGES A TEST PAGE (OnCallTestPage): the person's log, the run and
+   * the run's line for them, in a test's words - who, by what, and how long
+   * after their message went out ("Test page acknowledged by Ana Lopez by
+   * SMS after 14 seconds."). There is no record to acknowledge, no clock to
+   * start, and nobody else to page: the run is over. Whoever sent it sees it
+   * in its result, and the first one acknowledged in a project is the
+   * milestone its activation counts (OnCallTestPageEvents).
+   */
+  private async acknowledgeTestPage(page: {
+    userOnCallLogId: ObjectID;
+    userId: ObjectID;
+    onCallDutyPolicyExecutionLogId?: ObjectID | undefined;
+    onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
+    acknowledgedAt: Date;
+    acknowledgedFrom?:
+      | {
+          channel?: OnCallPageChannel | undefined;
+          sentAt?: Date | undefined;
+        }
+      | undefined;
+    projectId?: ObjectID | undefined;
+  }): Promise<void> {
+    const user: User | null = await UserService.findOneById({
+      id: page.userId,
+      select: {
+        _id: true,
+        name: true,
+        email: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!user) {
+      throw new BadDataException("User not found.");
+    }
+
+    const sentAt: Date | undefined = page.acknowledgedFrom?.sentAt
+      ? OneUptimeDate.fromString(page.acknowledgedFrom.sentAt)
+      : undefined;
+
+    const statusMessage: string = getOnCallTestPageAcknowledgedMessage({
+      userName: user.name?.toString(),
+      userEmail: user.email?.toString(),
+      channel: page.acknowledgedFrom?.channel,
+      afterSeconds: sentAt
+        ? Math.max(0, (page.acknowledgedAt.getTime() - sentAt.getTime()) / 1000)
+        : undefined,
+    });
+
+    await UserOnCallLogService.updateOneById({
+      id: page.userOnCallLogId,
+      data: {
+        acknowledgedAt: page.acknowledgedAt,
+        acknowledgedByUserId: page.userId,
+        status: UserNotificationExecutionStatus.Completed,
+        statusMessage: statusMessage,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    /*
+     * The run says who acknowledged it first: a colleague who answers the
+     * same test afterwards has their own line acknowledged, and leaves the
+     * run's answer as it is.
+     */
+    if (page.onCallDutyPolicyExecutionLogId) {
+      await OnCallDutyPolicyExecutionLogService.updateOneBy({
+        query: {
+          _id: page.onCallDutyPolicyExecutionLogId.toString(),
+          acknowledgedAt: QueryHelper.isNull(),
+        },
+        data: {
+          acknowledgedAt: page.acknowledgedAt,
+          acknowledgedByUserId: page.userId,
+          status: OnCallDutyPolicyStatus.Completed,
+          statusMessage: statusMessage,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    if (page.onCallDutyPolicyExecutionLogTimelineId) {
+      await OnCallDutyPolicyExecutionLogTimelineService.updateOneById({
+        id: page.onCallDutyPolicyExecutionLogTimelineId,
+        data: {
+          acknowledgedAt: page.acknowledgedAt,
+          isAcknowledged: true,
+          status: OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged,
+          statusMessage: statusMessage,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    if (page.onCallDutyPolicyExecutionLogId) {
+      OnCallTestPageEvents.onTestPageAcknowledged({
+        projectId: page.projectId,
+        executionLogId: page.onCallDutyPolicyExecutionLogId,
+        acknowledgedByUserId: page.userId,
+        channel: page.acknowledgedFrom?.channel,
       });
     }
   }

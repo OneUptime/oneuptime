@@ -26,6 +26,7 @@ import {
   UserFlowPageStats,
   UserFlowPath,
 } from "Common/Utils/Rum/UserFlow";
+import { getLineDirection } from "Common/UI/Utils/LineDirection";
 import AppLink from "../AppLink/AppLink";
 import { buildReplayLinkRoute } from "../SessionReplay/ReplayLinkRoute";
 import {
@@ -35,6 +36,8 @@ import {
   pluralizeSessions,
 } from "./UserFlowFormat";
 import { RUM_USER_FLOW_METRIC_DESCRIPTIONS } from "../MetricDescriptions/RumMetricDescriptions";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
  * The map's companions, under one tab strip:
@@ -60,6 +63,8 @@ function WatchLink(props: {
   sessionId: string | undefined;
   rumApplicationId: ObjectID;
 }): ReactElement {
+  const translator: Translator = useTranslator();
+
   if (!props.sessionId) {
     return <></>;
   }
@@ -79,17 +84,23 @@ function WatchLink(props: {
       className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-medium text-indigo-700 hover:underline"
     >
       <Icon icon={IconProp.Play} className="h-3 w-3" />
-      <span>Watch</span>
+      <span>{translator.translateText("Watch")}</span>
     </AppLink>
   );
 }
 
 function PageChip(props: { page: string; onClick: () => void }): ReactElement {
+  const translator: Translator = useTranslator();
+
   return (
     <button
       type="button"
       className="max-w-[16rem] truncate rounded-md bg-gray-100 px-1.5 py-0.5 font-mono text-xs text-gray-800 hover:bg-indigo-100 hover:text-indigo-800"
-      title={`Show paths from ${props.page}`}
+      title={translator.translateTemplate("Show paths from {{page}}", {
+        page: props.page,
+      })}
+      /* A path reads from the left on any page: "/home", not "home/". */
+      dir={getLineDirection(props.page, translator.language)}
       onClick={props.onClick}
     >
       {props.page}
@@ -98,6 +109,8 @@ function PageChip(props: { page: string; onClick: () => void }): ReactElement {
 }
 
 function ShareBar(props: { share: number }): ReactElement {
+  const translator: Translator = useTranslator();
+
   return (
     <div className="flex items-center gap-2">
       <div className="h-1.5 w-16 overflow-hidden rounded-full bg-gray-100">
@@ -107,14 +120,14 @@ function ShareBar(props: { share: number }): ReactElement {
         />
       </div>
       <span className="text-xs text-gray-600">
-        {formatUserFlowShare(props.share)}
+        {formatUserFlowShare(props.share, translator)}
       </span>
     </div>
   );
 }
 
 const HEADER_CELL: string =
-  "px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500";
+  "px-3 py-2 text-start text-xs font-semibold uppercase tracking-wide text-gray-500";
 const CELL: string = "px-3 py-2 align-middle text-sm text-gray-700";
 
 /*
@@ -126,11 +139,14 @@ function HeaderWithInfo(props: {
   tooltip: string;
   children?: ReactNode | undefined;
 }): ReactElement {
+  const translator: Translator = useTranslator();
+  const label: string = translator.translateText(props.label) || props.label;
+
   return (
     <span className="inline-flex items-center gap-1">
-      {props.children ?? props.label}
+      {props.children ?? label}
       <InfoTooltip
-        label={props.label}
+        label={label}
         text={props.tooltip}
         className="font-normal normal-case"
       />
@@ -194,6 +210,7 @@ const PAGE_COLUMNS: Array<PageColumn> = [
 const UserFlowTables: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [tab, setTab] = useState<UserFlowTableTab>("paths");
   const [pageSort, setPageSort] = useState<PageSortKey>("sessions");
 
@@ -309,9 +326,9 @@ const UserFlowTables: FunctionComponent<ComponentProps> = (
                   setTab(item.id);
                 }}
               >
-                {item.label}
-                <span className="ml-1.5 rounded-full bg-gray-100 px-1.5 text-xs text-gray-600">
-                  {item.count}
+                {translator.translateText(item.label)}
+                <span className="ms-1.5 rounded-full bg-gray-100 px-1.5 text-xs text-gray-600">
+                  {translator.formatNumber(item.count)}
                 </span>
               </button>
             );
@@ -334,17 +351,17 @@ const UserFlowTables: FunctionComponent<ComponentProps> = (
                   className={HEADER_CELL}
                   resize={pathColumns.getResize(
                     "journey",
-                    "Journey",
+                    translator.translateText("Journey") || "Journey",
                     ColumnWidthKind.Prose,
                   )}
                 >
-                  <span>Journey</span>
+                  <span>{translator.translateText("Journey")}</span>
                 </ResizableHeaderCell>
                 <ResizableHeaderCell
                   className={HEADER_CELL}
                   resize={pathColumns.getResize(
                     "sessions",
-                    "Sessions",
+                    translator.translateText("Sessions") || "Sessions",
                     ColumnWidthKind.Whole,
                   )}
                 >
@@ -357,7 +374,8 @@ const UserFlowTables: FunctionComponent<ComponentProps> = (
                   className={HEADER_CELL}
                   resize={pathColumns.getResize(
                     "avgDuration",
-                    "Avg. duration",
+                    translator.translateText("Avg. duration") ||
+                      "Avg. duration",
                     ColumnWidthKind.Whole,
                   )}
                 >
@@ -370,7 +388,7 @@ const UserFlowTables: FunctionComponent<ComponentProps> = (
                   className={HEADER_CELL}
                   resize={pathColumns.getResize(
                     "withErrors",
-                    "With errors",
+                    translator.translateText("With errors") || "With errors",
                     ColumnWidthKind.Whole,
                   )}
                 >
@@ -392,7 +410,13 @@ const UserFlowTables: FunctionComponent<ComponentProps> = (
                       data-path={path.pages.join(" > ")}
                       data-sessions={path.sessions}
                     >
-                      <td className={`${CELL} text-gray-400`}>{index + 1}</td>
+                      {/* The row's place, in the digits its counts are written in. */}
+                      <td
+                        className={`${CELL} text-gray-400`}
+                        data-testid="user-flow-path-rank"
+                      >
+                        {translator.formatNumber(index + 1)}
+                      </td>
                       <td className={CELL}>
                         <div className="flex flex-wrap items-center gap-1">
                           {path.pages.map(
@@ -424,7 +448,9 @@ const UserFlowTables: FunctionComponent<ComponentProps> = (
                           )}
                           {path.pages.length === 1 ? (
                             <span className="text-xs text-gray-400">
-                              (left without navigating)
+                              {translator.translateText(
+                                "(left without navigating)",
+                              )}
                             </span>
                           ) : (
                             <></>
@@ -434,7 +460,7 @@ const UserFlowTables: FunctionComponent<ComponentProps> = (
                       <td className={CELL}>
                         <div className="flex items-center gap-3">
                           <span className="w-12 font-medium text-gray-900">
-                            {formatUserFlowCount(path.sessions)}
+                            {formatUserFlowCount(path.sessions, translator)}
                           </span>
                           <ShareBar share={path.share} />
                         </div>
@@ -447,6 +473,7 @@ const UserFlowTables: FunctionComponent<ComponentProps> = (
                           <span className="text-rose-700">
                             {formatUserFlowShare(
                               path.errorSessions / path.sessions,
+                              translator,
                             )}
                           </span>
                         ) : (
@@ -484,11 +511,11 @@ const UserFlowTables: FunctionComponent<ComponentProps> = (
                   className={HEADER_CELL}
                   resize={pageColumns.getResize(
                     "page",
-                    "Page",
+                    translator.translateText("Page") || "Page",
                     ColumnWidthKind.Name,
                   )}
                 >
-                  <span>Page</span>
+                  <span>{translator.translateText("Page")}</span>
                 </ResizableHeaderCell>
                 {PAGE_COLUMNS.map((column: PageColumn): ReactElement => {
                   const active: boolean = column.key === pageSort;
@@ -500,7 +527,7 @@ const UserFlowTables: FunctionComponent<ComponentProps> = (
                       aria-sort={active ? "descending" : "none"}
                       resize={pageColumns.getResize(
                         column.key,
-                        column.label,
+                        translator.translateText(column.label) || column.label,
                         ColumnWidthKind.Whole,
                       )}
                     >
@@ -517,7 +544,7 @@ const UserFlowTables: FunctionComponent<ComponentProps> = (
                             setPageSort(column.key);
                           }}
                         >
-                          {column.label}
+                          {translator.translateText(column.label)}
                           {active ? (
                             <Icon
                               icon={IconProp.ChevronDown}
@@ -551,20 +578,24 @@ const UserFlowTables: FunctionComponent<ComponentProps> = (
                       />
                     </td>
                     <td className={`${CELL} font-medium text-gray-900`}>
-                      {formatUserFlowCount(page.sessions)}
+                      {formatUserFlowCount(page.sessions, translator)}
                     </td>
-                    <td className={CELL}>{formatUserFlowCount(page.views)}</td>
                     <td className={CELL}>
-                      {formatUserFlowCount(page.entries)}
+                      {formatUserFlowCount(page.views, translator)}
                     </td>
-                    <td className={CELL}>{formatUserFlowCount(page.exits)}</td>
+                    <td className={CELL}>
+                      {formatUserFlowCount(page.entries, translator)}
+                    </td>
+                    <td className={CELL}>
+                      {formatUserFlowCount(page.exits, translator)}
+                    </td>
                     <td className={CELL}>
                       <ShareBar share={page.exitRate} />
                     </td>
                     <td className={CELL}>
                       {page.errorSessions > 0 ? (
                         <span className="text-rose-700">
-                          {formatUserFlowCount(page.errorSessions)}
+                          {formatUserFlowCount(page.errorSessions, translator)}
                         </span>
                       ) : (
                         <span className="text-gray-400">—</span>
@@ -573,7 +604,10 @@ const UserFlowTables: FunctionComponent<ComponentProps> = (
                     <td className={CELL}>
                       {page.frustrationSessions > 0 ? (
                         <span className="text-amber-700">
-                          {formatUserFlowCount(page.frustrationSessions)}
+                          {formatUserFlowCount(
+                            page.frustrationSessions,
+                            translator,
+                          )}
                         </span>
                       ) : (
                         <span className="text-gray-400">—</span>
@@ -599,7 +633,9 @@ const UserFlowTables: FunctionComponent<ComponentProps> = (
         <div role="tabpanel" data-testid="user-flow-loops">
           {props.loops.length === 0 ? (
             <p className="py-6 text-center text-sm text-gray-500">
-              No session in this range left a page and came straight back to it.
+              {translator.translateText(
+                "No session in this range left a page and came straight back to it.",
+              )}
             </p>
           ) : (
             <>
@@ -611,7 +647,7 @@ const UserFlowTables: FunctionComponent<ComponentProps> = (
                 className="flex items-center justify-between border-b border-gray-100 py-2 text-xs font-semibold uppercase tracking-wide text-gray-500"
                 data-testid="user-flow-loops-header"
               >
-                <span>Pages</span>
+                <span>{translator.translateText("Pages")}</span>
                 <HeaderWithInfo
                   label="Sessions"
                   tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.loopSessions}
@@ -645,7 +681,7 @@ const UserFlowTables: FunctionComponent<ComponentProps> = (
                       </div>
                       <div className="flex items-center gap-4">
                         <span className="text-sm text-gray-700">
-                          {pluralizeSessions(loop.sessions)}
+                          {pluralizeSessions(loop.sessions, translator)}
                         </span>
                         <ShareBar share={loop.share} />
                         <WatchLink

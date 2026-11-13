@@ -186,6 +186,7 @@ describe("CriteriaFilterUtil", () => {
       CheckOn.IsExpiredCertificate,
       CheckOn.IsNotAValidCertificate,
       CheckOn.IsSelfSignedCertificate,
+      CheckOn.IsRevokedCertificate,
     ])(
       "returns false for the rest of the certificate checkOn group %s",
       (checkOn: CheckOn) => {

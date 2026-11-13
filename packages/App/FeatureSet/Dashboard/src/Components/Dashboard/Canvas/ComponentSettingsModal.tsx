@@ -11,6 +11,10 @@ import React, {
   useState,
 } from "react";
 import { withDashboardWidgetSavedSort } from "Common/Utils/Dashboard/DashboardWidgetSorts";
+import DashboardBoardLayoutUtil, {
+  DASHBOARD_STACKED_BELOW_WIDTH_IN_PX,
+  DASHBOARD_STACKED_CHART_MIN_HEIGHT_IN_PX,
+} from "Common/Utils/Dashboard/DashboardBoardLayout";
 import { DashboardWidgetSortColumns } from "Common/Types/Dashboard/DashboardWidgetSort";
 import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -35,6 +39,7 @@ import ResetTimeRangeZoomButton from "Common/UI/Components/Charts/TimeRangeZoom/
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { isDashboardComponentType } from "Common/Types/Dashboard/DashboardComponentType";
+import { getWidgetTypeBadgeText } from "../Toolbar/WidgetCatalog";
 import ContainedErrorBoundary from "Common/UI/Components/ContainedErrorBoundary/ContainedErrorBoundary";
 
 /*
@@ -71,9 +76,28 @@ export const getWidgetDisplayName: (
   return "";
 };
 
+export const WIDGET_SETTINGS_TYPE_BADGE_TEST_ID: string =
+  "widget-settings-type";
+
+export const WIDGET_SETTINGS_SIZE_TEST_ID: string = "widget-settings-size";
+
+// The Live Preview's box, which the widget is drawn in.
+export const WIDGET_SETTINGS_PREVIEW_TEST_ID: string =
+  "widget-settings-preview";
+
+/*
+ * The line under the dialog's title: which kind of widget it is and its
+ * size, wrapping onto a second line before either is cut on a phone.
+ */
+export const WIDGET_SETTINGS_SUMMARY_CLASS_NAME: string =
+  "flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1";
+
+// The kind of widget: cut at its end only when it is wider than the whole line.
+export const WIDGET_SETTINGS_TYPE_BADGE_CLASS_NAME: string =
+  "inline-block min-w-0 max-w-full truncate rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-700";
+
 export interface ComponentProps {
   title: string;
-  description: string;
   onClose: () => void;
   onComponentUpdate: (component: DashboardBaseComponent) => void;
   onComponentDelete: (component: DashboardBaseComponent) => void;
@@ -102,6 +126,14 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
   const [showDeleteConfirmation, setShowDeleteConfirmation] =
     useState<boolean>(false);
 
+  /*
+   * The width the previewed widget is drawn at: the width inside the
+   * preview box's padding. It is read off an element with no padding of
+   * its own, so the first read (clientWidth) and the ResizeObserver's (its
+   * content box) agree. Read off the padded box, the first counted the
+   * padding and the second did not, and the widget came out 32 pixels
+   * narrower than its box, three times the gap after it as before it.
+   */
   const previewContainerRef: React.RefObject<HTMLDivElement> =
     useRef<HTMLDivElement>(null);
   const [previewWidth, setPreviewWidth] = useState<number>(0);
@@ -225,18 +257,75 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
     component.componentType,
   );
 
+  /*
+   * The badge before the size: the widget's name as the catalog gives it
+   * (issue #6720), in the reader's language - "Funnel", "Docker Hosts" -
+   * never its stored type, unless that is a type OneUptime has no widget
+   * of; none when the widget names no type at all.
+   */
+  const typeBadgeText: string = getWidgetTypeBadgeText(
+    component.componentType,
+    translator,
+  );
+
+  // Its size on the board, in the reader's digits.
+  const sizeText: string = translator.translateTemplate(
+    "{{width}} x {{height}} units",
+    {
+      width: translator.formatNumber(component.widthInDashboardUnits),
+      height: translator.formatNumber(component.heightInDashboardUnits),
+    },
+  );
+
   const aspectRatio: number =
     (component.widthInDashboardUnits || 1) /
     (component.heightInDashboardUnits || 1);
+  /*
+   * The widget's shape, from 240 to 420 pixels tall. A chart in a preview
+   * as narrow as a board that stacks its widgets (a phone) is at least as
+   * tall as that board draws a chart: its title, series and legend take
+   * about 200 pixels, and at 240 its plot was a line.
+   */
+  const previewMinHeight: number =
+    previewWidth < DASHBOARD_STACKED_BELOW_WIDTH_IN_PX &&
+    DashboardBoardLayoutUtil.isChart(component.componentType)
+      ? DASHBOARD_STACKED_CHART_MIN_HEIGHT_IN_PX
+      : 240;
   const previewHeight: number = Math.min(
     420,
-    Math.max(240, previewWidth / aspectRatio),
+    Math.max(previewMinHeight, previewWidth / aspectRatio),
   );
 
   return (
     <Modal
       title={props.title}
-      description={props.description}
+      /*
+       * Under the title, which kind of widget this is and how big: a line
+       * of its own. Beside the title they squeezed it into a column a word
+       * wide on a phone, the long words of a language such as German cut
+       * mid-word.
+       */
+      description={
+        <span className={WIDGET_SETTINGS_SUMMARY_CLASS_NAME}>
+          {typeBadgeText ? (
+            <span
+              className={WIDGET_SETTINGS_TYPE_BADGE_CLASS_NAME}
+              title={typeBadgeText}
+              data-testid={WIDGET_SETTINGS_TYPE_BADGE_TEST_ID}
+            >
+              {typeBadgeText}
+            </span>
+          ) : (
+            <></>
+          )}
+          <span
+            className="whitespace-nowrap text-xs text-gray-500"
+            data-testid={WIDGET_SETTINGS_SIZE_TEST_ID}
+          >
+            {sizeText}
+          </span>
+        </span>
+      }
       modalWidth={ModalWidth.Large}
       onClose={() => {
         props.onComponentUpdate(component);
@@ -265,19 +354,6 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
               setShowDeleteConfirmation(true);
             }}
           />
-        </div>
-      }
-      rightElement={
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-indigo-50 text-indigo-700 capitalize">
-            {translator.translateText(component.componentType)}
-          </span>
-          <span className="text-xs text-gray-400">
-            {translator.translateTemplate("{{width}} x {{height}} units", {
-              width: component.widthInDashboardUnits,
-              height: component.heightInDashboardUnits,
-            })}
-          </span>
         </div>
       }
     >
@@ -333,57 +409,65 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
               </div>
             </div>
             <div
-              ref={previewContainerRef}
               className="rounded-xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-4 shadow-inner"
+              data-testid={WIDGET_SETTINGS_PREVIEW_TEST_ID}
             >
-              {previewWidth > 0 && (
-                <div
-                  style={{
-                    /*
-                     * The card fills whatever box it is given, so size the
-                     * box to the preview area directly.
-                     */
-                    width: `${previewWidth - 32}px`,
-                    height: `${previewHeight}px`,
-                  }}
-                >
-                  <DashboardBaseComponentElement
-                    variables={props.variables}
-                    componentId={props.componentId}
-                    isEditMode={false}
-                    isSelected={false}
-                    key={`preview-${props.componentId.toString()}`}
-                    onClick={() => {}}
-                    onComponentUpdate={() => {}}
-                    totalCurrentDashboardWidthInPx={
-                      props.totalCurrentDashboardWidthInPx
-                    }
-                    dashboardCanvasTopInPx={0}
-                    dashboardCanvasLeftInPx={0}
-                    dashboardCanvasWidthInPx={previewWidth - 32}
-                    dashboardCanvasHeightInPx={previewHeight}
-                    dashboardComponentWidthInPx={previewWidth - 32}
-                    dashboardComponentHeightInPx={previewHeight}
-                    dashboardViewConfig={props.dashboardViewConfig}
-                    dashboardStartAndEndDate={previewRange}
-                    metricTypes={props.metrics.metricTypes}
-                    /*
-                     * The preview's own zoom (above), never the board's: the
-                     * widget hands its drag and double-click here exactly as
-                     * it hands them to the dashboard on the board.
-                     */
-                    onDashboardTimeRangeSelect={previewZoom.zoomToTimeRange}
-                    onDashboardTimeRangeReset={previewZoom.resetZoom}
-                    isDashboardTimeRangeZoomed={previewZoom.isZoomed}
-                    onWidgetSortChange={setPreviewWidgetSort}
-                    onWidgetSortColumnsChange={setPreviewSortColumns}
-                    dndActiveMode={null}
-                    isAnyGestureActive={false}
-                    onMovePointerDown={() => {}}
-                    onResizePointerDown={() => {}}
-                  />
-                </div>
-              )}
+              <div ref={previewContainerRef}>
+                {previewWidth > 0 && (
+                  <div
+                    style={{
+                      /*
+                       * The card fills whatever box it is given, so size the
+                       * box to the preview area directly.
+                       */
+                      width: `${previewWidth}px`,
+                      height: `${previewHeight}px`,
+                    }}
+                  >
+                    <DashboardBaseComponentElement
+                      variables={props.variables}
+                      componentId={props.componentId}
+                      /*
+                       * Drawn as a reader sees it (out of edit mode), over a
+                       * board being edited: nothing in it may leave the page
+                       * and take the unsaved widgets with it (issue #6859).
+                       */
+                      isEditMode={false}
+                      isPreview={true}
+                      isSelected={false}
+                      key={`preview-${props.componentId.toString()}`}
+                      onClick={() => {}}
+                      onComponentUpdate={() => {}}
+                      totalCurrentDashboardWidthInPx={
+                        props.totalCurrentDashboardWidthInPx
+                      }
+                      dashboardCanvasTopInPx={0}
+                      dashboardCanvasLeftInPx={0}
+                      dashboardCanvasWidthInPx={previewWidth}
+                      dashboardCanvasHeightInPx={previewHeight}
+                      dashboardComponentWidthInPx={previewWidth}
+                      dashboardComponentHeightInPx={previewHeight}
+                      dashboardViewConfig={props.dashboardViewConfig}
+                      dashboardStartAndEndDate={previewRange}
+                      metricTypes={props.metrics.metricTypes}
+                      /*
+                       * The preview's own zoom (above), never the board's: the
+                       * widget hands its drag and double-click here exactly as
+                       * it hands them to the dashboard on the board.
+                       */
+                      onDashboardTimeRangeSelect={previewZoom.zoomToTimeRange}
+                      onDashboardTimeRangeReset={previewZoom.resetZoom}
+                      isDashboardTimeRangeZoomed={previewZoom.isZoomed}
+                      onWidgetSortChange={setPreviewWidgetSort}
+                      onWidgetSortColumnsChange={setPreviewSortColumns}
+                      dndActiveMode={null}
+                      isAnyGestureActive={false}
+                      onMovePointerDown={() => {}}
+                      onResizePointerDown={() => {}}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           </section>
 

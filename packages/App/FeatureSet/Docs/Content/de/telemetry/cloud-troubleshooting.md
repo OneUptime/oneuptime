@@ -67,10 +67,11 @@ Die Umgebung ist da, aber ihr Tab **Instanzen** listet nichts auf: Die Telemetri
 2. `aws.ecs.task.arn` (gekürzt auf die Task-ID)
 3. `faas.instance`
 4. `azure.container_app.instance.id`
-5. `service.instance.id`
-6. `container.id`
-7. `host.id`
-8. `host.name`
+5. `azure.app_service.instance.id`
+6. `service.instance.id`
+7. `container.id`
+8. `host.id`
+9. `host.name`
 
 Die eigene Identität der Plattform kommt vor `service.instance.id`, damit eine ID, die das SDK für jeden Prozess erfindet (das Node.js SDK tut das standardmäßig), einen Task nicht von CPU und Arbeitsspeicher seines Sidecars trennt. Was die Identität auf jeder Plattform setzt:
 
@@ -80,7 +81,7 @@ Die eigene Identität der Plattform kommt vor `service.instance.id`, damit eine 
 | Cloud Run, App Engine | Der `gcp`-Detektor setzt `faas.instance` |
 | Container Apps | Der `azurecontainerapps`-Detektor des Collectors setzt die Replikat-ID; oder setzen Sie `service.instance.id` aus `CONTAINER_APP_REPLICA_NAME`, oder führen Sie den Host-Detektor aus |
 | App Runner, Container Instances | `host.name` des Host-Detektors |
-| App Service, Elastic Beanstalk | Der Detektor der Plattform setzt `service.instance.id`; auf Beanstalk löschen Sie sie, damit `host.id` jede Instanz benennt |
+| App Service, Elastic Beanstalk | Der Detektor der Plattform setzt `service.instance.id` (auf App Service setzt der des Collectors `azure.app_service.instance.id`); auf Beanstalk löschen Sie `service.instance.id`, damit `host.id` jede Instanz benennt |
 
 Eine Instanz erscheint innerhalb einer Minute nach dem ersten Signal, das das Attribut trägt.
 
@@ -89,7 +90,7 @@ Eine Instanz erscheint innerhalb einer Minute nach dem ersten Signal, das das At
 Die Instanzen sind aufgeführt, aber die Kacheln **CPU** und **Arbeitsspeicher** der Übersicht und die Spalten CPU und Arbeitsspeicher von **Instanzen** sind leer. Diese stammen aus Metriken, nicht aus Traces: Datenpunkte `container.cpu.utilization` und `container.memory.usage` (oder `container.memory.usage.total`), deren Ressource dieselbe Instanzidentität trägt wie die Traces, und `cloud.platform`.
 
 - **Auf ECS** liefert sie der `awsecscontainermetrics`-Receiver in einem Sidecar-Collector als `ecs.task.cpu.utilized` und `ecs.task.memory.utilized`. Behalten Sie ihn in der `metrics`-Pipeline, und behalten Sie auch `resourcedetection` in dieser Pipeline, sonst kommen die Metriken ohne `cloud.platform` an und werden anderswo abgelegt.
-- **Auf Cloud Run, Container Apps und den anderen Plattformen** zeigt die Plattform einem Sidecar die Container-Nutzung nicht. Die Kacheln bleiben leer, es sei denn, Sie senden diese Metriken selbst: Lesen Sie stattdessen die Anfrage-Kacheln.
+- **Auf Cloud Run, Container Apps und den anderen Plattformen** zeigt die Plattform einem Sidecar die Container-Nutzung nicht. Die Kacheln bleiben leer, es sei denn, Sie senden diese Metriken selbst: Lesen Sie stattdessen die Anfrage-Kacheln. Auf App Service verbinden Sie das Abonnement unter **Cloud → Verbinden**: Die Seite der App zeigt dann die CPU-Zeit und den Speicher ihrer Site aus **Azure Monitor**.
 - **Mit SDK direct** sendet nichts Container-Metriken, leere Kacheln sind also zu erwarten.
 
 ## Die Umgebung zeigt Getrennt

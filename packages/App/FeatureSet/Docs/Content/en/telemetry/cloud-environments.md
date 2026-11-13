@@ -52,11 +52,11 @@ flowchart TB
 | Google App Engine         | `gcp_app_engine`            | resource detector      | `faas.instance`                   | [Other Cloud Platforms](/docs/telemetry/cloud-other-platforms)     |
 | Azure Container Apps      | `azure_container_apps`      | resource detector      | `azure.container_app.instance.id` | [Azure Container Apps](/docs/telemetry/cloud-azure-container-apps) |
 | Azure Container Instances | `azure_container_instances` | set by hand            | `host.name`                       | [Other Cloud Platforms](/docs/telemetry/cloud-other-platforms)     |
-| Azure App Service         | `azure_app_service`         | resource detector      | `host.id`                         | [Other Cloud Platforms](/docs/telemetry/cloud-other-platforms)     |
+| Azure App Service         | `azure_app_service`         | resource detector      | `azure.app_service.instance.id`   | [Other Cloud Platforms](/docs/telemetry/cloud-other-platforms)     |
 
 - **Resource detector:** an OpenTelemetry resource detector, in the SDK or in the Collector's `resourcedetection` processor, sets the `cloud.*` attributes for you.
 - **Set by hand:** no detector exists, so you put the attributes in `OTEL_RESOURCE_ATTRIBUTES`. The platform's page shows the exact line.
-- **Azure detectors know less.** The Container Apps detectors know neither the region nor the subscription, and the App Service detectors do not know the subscription: set what is missing yourself.
+- **Azure detectors know less.** The Container Apps detectors know neither the region nor the subscription, and the Node.js and .NET App Service detectors do not know the subscription (the Collector's does): set what is missing yourself.
 - **Dotted Azure spellings work.** The Node.js and .NET Azure detectors write `azure.container_apps` and `azure.app_service`. OneUptime rewrites them to the underscore values above when it receives them.
 
 ## How OneUptime identifies an environment
@@ -88,10 +88,11 @@ Within an environment, each running task, instance or replica gets one row under
 2. `aws.ecs.task.arn` (shortened to the task ID)
 3. `faas.instance`
 4. `azure.container_app.instance.id`
-5. `service.instance.id`
-6. `container.id`
-7. `host.id`
-8. `host.name`
+5. `azure.app_service.instance.id`
+6. `service.instance.id`
+7. `container.id`
+8. `host.id`
+9. `host.name`
 
 The platform's own identity comes first on purpose. A sidecar collector and the application's SDK both see it, and it survives restarts. An SDK usually makes up a new `service.instance.id` for every process (the Node.js SDK does by default), so keying on it first would split one ECS task into two rows. `service.instance.id` is used when the platform sets no identity of its own. The **Instance identity** column in [Supported platforms](#supported-platforms) names the attribute a typical setup on each platform uses.
 
@@ -122,6 +123,8 @@ The first attribute the telemetry carries names the app, so an app on a platform
 - **At most 12 new revisions of an app are recorded in an hour.** A `service.version` that changes with every build would otherwise be a deploy a minute.
 
 An app's page has an **Overview** with its requests, errors, latency, instances and the revisions running now, a **Revisions** tab with each revision's numbers, **Instances**, **Logs** and **Traces** tabs filtered to the app, and a **Recommendations** tab with the monitors OneUptime recommends for it: failed operations, error bursts, traffic that stops and slow requests, read from the app's own spans and its `http.server.request.duration`, each linked to the app's environment. **Set up alerts** opens it; for an app whose name is too long to filter its telemetry by, it opens the recommended monitors of the app's service under **Services** instead.
+
+A number the app never sent is not shown as 0. The requests, error rate and latency tiles of an app that has sent no traces read **No traces received**, and the **Instances** tile of a running app whose telemetry names no instance reads **Not reported**. Until the app sends traces, an instance and a version, its **Overview** opens with a **Setup check**: each kind of telemetry, whether it arrives, and what to add.
 
 An app that sends nothing for 30 days is removed with its revisions, and so is a revision no instance reports for 30 days, unless the app still runs it. On a self-hosted OneUptime, `CLOUD_APP_RETENTION_DAYS` sets the 30.
 

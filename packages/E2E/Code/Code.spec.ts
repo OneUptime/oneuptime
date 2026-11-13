@@ -70,6 +70,16 @@ const INCIDENT_ID: string = "50000000-0000-4000-8000-0000000000e1";
 const INSIGHT_TASK_ID: string = "40000000-0000-4000-8000-0000000000da";
 const INSIGHT_ID: string = "50000000-0000-4000-8000-0000000000e6";
 
+/*
+ * long=1: a task kept open as a working thread for three weeks, 207 turns.
+ * Its page reads its first turn and its newest 199, so turns 2 to 8 are not
+ * shown and turn 9 (its run below) comes right after the first. Turn 5 is
+ * one of those not shown.
+ */
+const LONG_TASK_ID: string = "40000000-0000-4000-8000-0000000000db";
+const LONG_TASK_TURN_5: string = "41000000-0000-4000-8000-000000000004";
+const LONG_TASK_TURN_9: string = "41000000-0000-4000-8000-000000000008";
+
 // The project's own Runners a repository may pick (Code/Fixture).
 const RUNNER: Record<"prod" | "office" | "agent", string> = {
   prod: "60000000-0000-4000-8000-0000000000f1",
@@ -121,6 +131,8 @@ interface Recorded {
     runId: string;
     afterSequence: number;
   }>;
+  // Each task read that asked for a turn (the Log page's address names one).
+  taskTurnReads: Array<{ taskId: string; turn: string }>;
 }
 
 // What a page listens to on the live connection (live=1).
@@ -4320,6 +4332,433 @@ test.describe("a task OneUptime started on its own, from slow code it found", ()
   });
 });
 
+/*
+ * Issue #6529: a task kept open as a working thread passed 200 turns, and
+ * its page stopped at turn 200 - the newest turns, the one AI was working
+ * on among them, were not shown. A long task's page now holds its first
+ * turn and its newest 199 (MAX_TURNS_PER_TASK), and says how many turns
+ * are not shown between them. The fixture reads a task as the server does
+ * (long=1: 207 turns, so 7 are not shown).
+ */
+test.describe("a task of more than 200 turns", () => {
+  test("its page shows the first turn, a line saying how many turns are not shown, then the newest - and the top counts every turn", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openTask(page, LONG_TASK_ID, "long=1");
+
+    const notShown: Locator = page.getByTestId("code-task-turns-not-shown");
+    const requests: Locator = page.getByTestId("code-turn-request-message");
+
+    await expect(notShown).toHaveText("7 earlier turns are not shown");
+    await expect(notShown).toHaveCount(1);
+    // One item of the list each, in order: the first turn, the line, turn 9.
+    expect(
+      await page
+        .getByTestId("code-task-turns")
+        .evaluate((list: Element): Array<string | null> => {
+          return Array.from(list.children)
+            .slice(0, 5)
+            .map((item: Element): string | null => {
+              return item.getAttribute("data-testid");
+            });
+        }),
+    ).toEqual([
+      "code-turn-request",
+      "code-turn-reply",
+      "code-task-turns-not-shown",
+      "code-turn-request",
+      "code-turn-reply",
+    ]);
+    await expect(requests).toHaveCount(200);
+    await expect(turnReplies(page)).toHaveCount(200);
+
+    // What the task is about stays on top.
+    await expect(requests.first()).toContainText(
+      "Move checkout-api's handlers to the new error format",
+    );
+    await expect(turnReplies(page).first()).toContainText(
+      "I opened pull request #402",
+    );
+    await expect(requests.nth(1)).toHaveText("Now the inventory handler.");
+    // The newest turn - past where the page used to stop - is the last one.
+    await expect(requests.last()).toHaveText(
+      "Check the sessions handler against the new lint rule for errors.",
+    );
+    await expect(turnReplies(page).last()).toContainText(
+      "Nothing needed changing.",
+    );
+
+    /*
+     * The top counts every turn: 12 hours 3 minutes of work with the 7
+     * turns not shown (11 hours 37 minutes without them). A reply pushes to
+     * the pull request a later turn opened, #455.
+     */
+    await expect(page.getByTestId("code-task-work-time")).toHaveText(
+      "worked 12 hours, 3 minutes",
+    );
+    await expect(page.getByTestId("code-task-composer-footer")).toHaveText(
+      "Changes you ask for are pushed to pull request #455.",
+    );
+
+    // The line runs either side of its words, on a phone as well.
+    const lines: Locator = notShown.getByTestId(
+      "code-task-turns-not-shown-divider-line",
+    );
+    await expect(lines).toHaveCount(2);
+    for (const line of await lines.all()) {
+      expect((await line.boundingBox())!.width).toBeGreaterThanOrEqual(24);
+    }
+    await expectNoSidewaysScroll(page);
+
+    // Seen where it sits: under the first turn, above turn 9.
+    await notShown.scrollIntoViewIfNeeded();
+    await fs.mkdir(SCREENSHOTS, { recursive: true });
+    await page.screenshot({
+      path: path.join(
+        SCREENSHOTS,
+        `code-task-turns-not-shown-${testInfo.project.name}.png`,
+      ),
+      animations: "disabled",
+    });
+  });
+
+  test("a reply goes at the end, in view, and one more turn is not shown", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    // What it checks does not depend on the screen's width.
+    test.skip(isPhone(testInfo), "width-independent");
+    await openTask(page, LONG_TASK_ID, "long=1");
+    await expect(page.getByTestId("code-task-turns-not-shown")).toHaveText(
+      "7 earlier turns are not shown",
+    );
+    // Read first, as a person does: AI's replies are drawn.
+    await expect(turnReplies(page).last()).toContainText(
+      "Nothing needed changing.",
+    );
+    // At the top of the page, where a task opens, by its first turn.
+    expect((await scrollPosition(page)).scrollY).toBe(0);
+
+    /*
+     * Sent from the reply box held at the bottom of the window, 199 turns
+     * above the end of the page: the page goes to its end, where the
+     * reply is drawn.
+     */
+    await composerInput(page).fill("Now the ledger handler.");
+    await sendButton(page).click();
+
+    const requests: Locator = page.getByTestId("code-turn-request-message");
+    await expect(requests.last()).toHaveText("Now the ledger handler.");
+    // Turn 208: still the first turn and the newest 199, so 8 are not shown.
+    await expect(page.getByTestId("code-task-turns-not-shown")).toHaveText(
+      "8 earlier turns are not shown",
+    );
+    await expect(requests).toHaveCount(200);
+    await expect(requests.nth(1)).toHaveText("Now the receipts handler.");
+    await expect(requests.last()).toBeInViewport();
+    expect((await recorded(page)).replies).toEqual([
+      {
+        taskId: LONG_TASK_ID,
+        message: "Now the ledger handler.",
+        context: [],
+      },
+    ]);
+  });
+
+  /*
+   * The page's Tailwind runs in the browser: it writes the styles of
+   * elements it has not drawn before just after React draws them, before
+   * the next frame. A reply sent as this task opened - its replies'
+   * Markdown coming in with the reply - was drawn some 1,100 pixels under
+   * the window, the page short of its end, so AI's steps were not followed
+   * either. Here the conversation grows 1,100 pixels at its end the same
+   * way, the moment the reply is drawn.
+   */
+  test("a reply ends at the end of the page even when more lays out just after it is drawn", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    // What it checks does not depend on the screen's width.
+    test.skip(isPhone(testInfo), "width-independent");
+    await openTask(page, LONG_TASK_ID, "long=1");
+    await expect(turnReplies(page).last()).toContainText(
+      "Nothing needed changing.",
+    );
+
+    await page.evaluate((): void => {
+      const list: HTMLElement | null = document.querySelector(
+        "[data-testid='code-task-turns']",
+      );
+      const observer: MutationObserver = new MutationObserver((): void => {
+        if (list && list.textContent?.includes("Now the ledger handler.")) {
+          observer.disconnect();
+          list.style.paddingBottom = "1100px";
+        }
+      });
+
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+        characterData: true,
+      });
+    });
+
+    await composerInput(page).fill("Now the ledger handler.");
+    await sendButton(page).click();
+
+    await expect(
+      page.getByTestId("code-turn-request-message").last(),
+    ).toHaveText("Now the ledger handler.");
+    await expect(page.getByTestId("code-task-turns")).toHaveCSS(
+      "padding-bottom",
+      "1100px",
+    );
+    // At its end, 1,100 pixels further down than where the reply was drawn.
+    await expect
+      .poll(async (): Promise<number> => {
+        const position: { scrollY: number; maxScrollY: number } =
+          await scrollPosition(page);
+        return position.maxScrollY - position.scrollY;
+      })
+      .toBeLessThanOrEqual(1);
+    expect((await scrollPosition(page)).maxScrollY).toBeGreaterThan(60000);
+  });
+
+  test("its Log numbers each turn where it stands in the task: Turn 1, then Turn 9", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    // What it checks does not depend on the screen's width.
+    test.skip(isPhone(testInfo), "width-independent");
+    await page.goto(
+      `${taskPath(LONG_TASK_ID)}/log?long=1&turn=${LONG_TASK_ID}`,
+    );
+
+    const picker: Locator = page.getByTestId("code-task-log-turn-picker");
+    await expect(picker).toContainText("Turn 1");
+
+    await picker.getByRole("combobox").click();
+    const options: Locator = page.getByRole("option");
+    // The 200 turns the task's page shows, and the line between them.
+    await expect(options).toHaveCount(201);
+    await expect(options.nth(0)).toContainText("Turn 1");
+    /*
+     * Where the conversation draws its line, the picker says the same, on
+     * a line that is never picked: Turn 1, then Turn 9, is the task's own
+     * numbering, not turns gone missing.
+     */
+    await expect(options.nth(1)).toHaveText("7 earlier turns are not shown");
+    await expect(options.nth(1)).toHaveAttribute("aria-disabled", "true");
+    await expect(options.nth(2)).toContainText("Turn 9");
+    await expect(options.last()).toContainText("Turn 207");
+
+    await options.nth(2).click();
+    await expect(page).toHaveURL(
+      `${taskPath(LONG_TASK_ID)}/log?turn=${LONG_TASK_TURN_9}`,
+    );
+    await expect(picker).toContainText("Turn 9");
+  });
+
+  /*
+   * Issue #7130: a Log link can name a turn the task's page no longer
+   * shows - shared in chat, or bookmarked when the task was shorter. The
+   * page showed the task's first turn as if it were the one linked. It
+   * asks for the turn by name now, shows its record, and lists it at its
+   * place, with a line either side: Turn 1, 3 not shown, Turn 5, 3 not
+   * shown, Turn 9.
+   */
+  test("a link to a turn its page does not show opens that turn, listed at its place", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    // What it checks does not depend on the screen's width.
+    test.skip(isPhone(testInfo), "width-independent");
+    await page.goto(
+      `${taskPath(LONG_TASK_ID)}/log?long=1&turn=${LONG_TASK_TURN_5}`,
+    );
+
+    const picker: Locator = page.getByTestId("code-task-log-turn-picker");
+    const firstStep: Locator = page
+      .getByTestId("code-task-log-entry-message")
+      .first();
+    await expect(picker).toContainText("Turn 5 ·");
+    // Turn 5's own record: it read the orders handler first.
+    await expect(firstStep).toHaveText("src/handlers/orders.ts");
+    await expect(
+      page.getByTestId("code-task-log-turn-not-of-task"),
+    ).toHaveCount(0);
+    // Asked for by name, once.
+    expect((await recorded(page)).taskTurnReads).toEqual([
+      { taskId: LONG_TASK_ID, turn: LONG_TASK_TURN_5 },
+    ]);
+
+    await picker.getByRole("combobox").click();
+    const options: Locator = page.getByRole("option");
+    // The 200 turns the page shows, turn 5, and a line either side of it.
+    await expect(options).toHaveCount(203);
+    await expect(options.nth(0)).toContainText("Turn 1 ·");
+    await expect(options.nth(1)).toHaveText("3 earlier turns are not shown");
+    await expect(options.nth(1)).toHaveAttribute("aria-disabled", "true");
+    await expect(options.nth(2)).toContainText("Turn 5 ·");
+    await expect(options.nth(2)).toContainText("Now the orders handler.");
+    await expect(options.nth(3)).toHaveText("3 earlier turns are not shown");
+    await expect(options.nth(3)).toHaveAttribute("aria-disabled", "true");
+    await expect(options.nth(4)).toContainText("Turn 9 ·");
+    await expect(options.last()).toContainText("Turn 207 ·");
+    await screenshot(page, testInfo, "code-task-log-linked-turn-picker");
+
+    // Turn 9, then back to turn 5: one pick each, with nothing read again.
+    const taskReads: number = (await recorded(page)).reads.task;
+    await options.nth(4).click();
+    await expect(page).toHaveURL(
+      `${taskPath(LONG_TASK_ID)}/log?turn=${LONG_TASK_TURN_9}`,
+    );
+    await expect(picker).toContainText("Turn 9 ·");
+    await expect(firstStep).toHaveText("src/handlers/inventory.ts");
+
+    await picker.getByRole("combobox").click();
+    await expect(options.nth(2)).toContainText("Turn 5 ·");
+    await options.nth(2).click();
+    await expect(page).toHaveURL(
+      `${taskPath(LONG_TASK_ID)}/log?turn=${LONG_TASK_TURN_5}`,
+    );
+    await expect(picker).toContainText("Turn 5 ·");
+    await expect(firstStep).toHaveText("src/handlers/orders.ts");
+    expect((await recorded(page)).reads.task).toBe(taskReads);
+  });
+
+  /*
+   * Issue #7130: a Log link whose turn is a run of another task - its id
+   * pasted into the wrong task's address - showed that run's record under
+   * this task's name. The page shows this task's first turn instead, and
+   * says so until another turn is picked.
+   */
+  test("a link to another task's turn shows this task's first turn, and says so", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    // What it checks does not depend on the screen's width.
+    test.skip(isPhone(testInfo), "width-independent");
+    await page.goto(
+      `${taskPath(LONG_TASK_ID)}/log?long=1&turn=${TASK.retries}`,
+    );
+
+    const notice: Locator = page.getByTestId("code-task-log-turn-not-of-task");
+    const picker: Locator = page.getByTestId("code-task-log-turn-picker");
+    await expect(notice).toContainText("That turn is not part of this task");
+    await expect(notice).toContainText(
+      "The task's first turn is shown instead.",
+    );
+    await expect(picker).toContainText("Turn 1 ·");
+    // This task's first turn: it read src/errors.ts first.
+    await expect(
+      page.getByTestId("code-task-log-entry-message").first(),
+    ).toHaveText("src/errors.ts");
+    // Never the other task's record, which starts at src/payments/client.ts.
+    await expect(page.getByText("src/payments/client.ts")).toHaveCount(0);
+    expect((await recorded(page)).taskTurnReads).toEqual([
+      { taskId: LONG_TASK_ID, turn: TASK.retries },
+    ]);
+    await screenshot(page, testInfo, "code-task-log-turn-not-of-task");
+
+    // A turn picked: the address names one of the task's, so the notice goes.
+    await picker.getByRole("combobox").click();
+    await page.getByRole("option").nth(2).click();
+    await expect(page).toHaveURL(
+      `${taskPath(LONG_TASK_ID)}/log?turn=${LONG_TASK_TURN_9}`,
+    );
+    await expect(picker).toContainText("Turn 9 ·");
+    await expect(notice).toHaveCount(0);
+
+    /*
+     * A link cut short when it was pasted - turn 5's id without its last
+     * part - names no run at all: the first turn, said so as well, with
+     * no turn asked for.
+     */
+    await page.goto(
+      `${taskPath(LONG_TASK_ID)}/log?long=1&turn=${LONG_TASK_TURN_5.slice(0, 23)}`,
+    );
+    await expect(notice).toContainText("That turn is not part of this task");
+    await expect(picker).toContainText("Turn 1 ·");
+    await expect(
+      page.getByTestId("code-task-log-entry-message").first(),
+    ).toHaveText("src/errors.ts");
+    expect((await recorded(page)).taskTurnReads).toEqual([]);
+  });
+
+  /*
+   * What was asked under each turn in the picker is as its person wrote it
+   * - English, on an Arabic page. Laid out right to left with the page,
+   * "Now the orders handler." came out as ".Now the orders handler". It
+   * reads left to right now, its full stop at its end, at the page's start.
+   */
+  test("Arabic: the linked turn's request in the picker reads the way it was written", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    // What it checks does not depend on the screen's width.
+    test.skip(isPhone(testInfo), "width-independent");
+    await page.goto(
+      `${taskPath(LONG_TASK_ID)}/log?long=1&lang=ar&turn=${LONG_TASK_TURN_5}`,
+    );
+    expect(
+      await page.evaluate((): string => {
+        return document.documentElement.dir;
+      }),
+    ).toBe("rtl");
+
+    const picker: Locator = page.getByTestId("code-task-log-turn-picker");
+    await expect(picker).toContainText("الجولة 5 ·");
+    await picker.getByRole("combobox").click();
+
+    const linked: Locator = page.getByRole("option").nth(2);
+    await expect(linked).toContainText("الجولة 5 ·");
+    const asked: Locator = linked.getByTestId("dropdown-option-description");
+    await expect(asked).toHaveText("Now the orders handler.");
+    await expect(asked).toHaveAttribute("dir", "ltr");
+    expect(
+      await asked.evaluate((element: Element): string => {
+        return window.getComputedStyle(element).direction;
+      }),
+    ).toBe("ltr");
+
+    // At the page's start - the right - under the turn's Arabic name.
+    const [askedBox, nameBox] = await boxesInOneFrame([
+      asked,
+      linked.getByTestId("dropdown-option-label"),
+    ]);
+    expect(
+      Math.abs(askedBox!.x + askedBox!.width - (nameBox!.x + nameBox!.width)),
+    ).toBeLessThan(2);
+    await screenshot(page, testInfo, "code-task-log-linked-turn-picker-ar");
+  });
+
+  test("German: the line and the work time in the reader's language", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    // What it checks does not depend on the screen's width.
+    test.skip(isPhone(testInfo), "width-independent");
+    await openTask(page, LONG_TASK_ID, "long=1&lang=de");
+
+    await expect(page.getByTestId("code-task-turns-not-shown")).toHaveText(
+      "7 frühere Durchgänge werden nicht angezeigt",
+    );
+    await expect(page.getByTestId("code-task-work-time")).toHaveText(
+      "12 Stunden, 3 Minuten gearbeitet",
+    );
+  });
+});
+
 test.describe("a task's conversation", () => {
   test("the request and its context, AI's steps, its reply, the diff and the pull request", async ({
     page,
@@ -6260,7 +6699,11 @@ test.describe("dark mode and other languages", () => {
     await expect(page.getByTestId("code-task-steps-toggle").first()).toHaveText(
       "7 Schritte · 2 Dateien gelesen · 2 Dateien bearbeitet · 1 Befehl ausgeführt",
     );
-    // A summary that wraps on a phone reads on from the left, not centred.
+    /*
+     * A summary that wraps on a phone reads on from the left, not centred:
+     * text-left, which the reading-direction script (loaded as production
+     * loads it) makes the line's start - the left, on a German page.
+     */
     expect(
       await page
         .getByTestId("code-task-steps-toggle")
@@ -6268,7 +6711,7 @@ test.describe("dark mode and other languages", () => {
         .evaluate((element: Element): string => {
           return window.getComputedStyle(element).textAlign;
         }),
-    ).toBe("left");
+    ).toBe("start");
     await expect(
       page.getByTestId("code-turn-pull-request").first(),
     ).toContainText("Pull Request #418 geöffnet");

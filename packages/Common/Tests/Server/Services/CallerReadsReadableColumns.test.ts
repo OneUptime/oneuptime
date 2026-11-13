@@ -37,7 +37,8 @@ import { describe, expect, jest, test } from "@jest/globals";
  *  3. A relation's select of a related column that is not readable on a
  *     relation query (canReadOnRelationQuery), nor _id or a timestamp, is
  *     refused to everyone. Ask AI's status page tool asked for
- *     monitor.isArchived along with a page's resources.
+ *     monitor.isArchived along with a page's resources, before issue #6965
+ *     made it readable on a relation query.
  *
  * Server administrators never meet any of them - their reads skip every
  * column check - which is how all three shipped. A value the caller may not
@@ -671,10 +672,26 @@ describe("the guard's three refusals", () => {
         read({
           modelFile: "StatusPageResource",
           column: "monitor",
-          relatedColumn: "isArchived",
+          relatedColumn: "archivedAt",
         }),
       ),
     ).toBe(true);
+    /*
+     * A monitor's two switches are read with the records that name it, as
+     * with its current status (issue #6965): a device or a link must be able
+     * to tell that its monitor's status is frozen.
+     */
+    for (const relatedColumn of ["isArchived", "disableActiveMonitoring"]) {
+      expect(
+        unreadableOnRelation(
+          read({
+            modelFile: "NetworkDevice",
+            column: "monitor",
+            relatedColumn,
+          }),
+        ),
+      ).toBe(false);
+    }
     expect(
       unreadableOnRelation(
         read({

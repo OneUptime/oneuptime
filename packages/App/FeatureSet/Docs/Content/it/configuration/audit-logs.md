@@ -1,11 +1,12 @@
 # Registri di audit
 
-Il registro di audit annota chi ha cambiato che cosa nel tuo progetto: ogni creazione, modifica ed eliminazione delle risorse che copre, con i valori prima e dopo. Usalo per scoprire chi ha disattivato un monitor o cambiato una chiave API, e per conservare una traccia per le verifiche di conformità. Fa parte del piano Enterprise su OneUptime Cloud, e dell'Enterprise Edition quando ospiti OneUptime in proprio.
+Il registro di audit annota chi ha cambiato che cosa nel tuo progetto: ogni creazione, modifica ed eliminazione delle risorse che copre, con i valori prima e dopo, e ogni volta che qualcuno accede o si disconnette. Usalo per scoprire chi ha disattivato un monitor o cambiato una chiave API, chi ha effettuato l'accesso e da dove, e per conservare una traccia per le verifiche di conformità. Fa parte del piano Enterprise su OneUptime Cloud, e dell'Enterprise Edition quando ospiti OneUptime in proprio.
 
 :::cards
 - [Attivare il registro di audit](#attivare-il-registro-di-audit): All'inizio è disattivato in ogni progetto.
 - [Leggere il registro di audit](#leggere-il-registro-di-audit): Chi ha cambiato che cosa, e quando.
 - [Che cosa viene registrato](#che-cosa-viene-registrato): Le risorse e le azioni che copre.
+- [Accessi e sessioni](#accessi-e-sessioni): Chi ha effettuato l'accesso, e come è finita ogni sessione.
 - [Per quanto tempo restano le voci](#per-quanto-tempo-restano-le-voci): Da 7 a 180 giorni.
 :::
 
@@ -64,10 +65,10 @@ Una modifica di queste impostazioni vale entro un minuto.
 | Colonna | Che cosa mostra |
 | --- | --- |
 | **Quando** | Quanto tempo fa, con data e ora. |
-| **Azione** | `Create`, `Update` o `Delete`, oppure `Download` per un file di cattura dei pacchetti che qualcuno ha scaricato. |
+| **Azione** | `Create`, `Update` o `Delete`, `Download` per un file di cattura dei pacchetti che qualcuno ha scaricato, oppure `Sign In`, `Sign Out`, `Session Timeout` o `Session Revoked` per una sessione. |
 | **Risorsa** | Il nome della risorsa, che la apre finché esiste, e il suo tipo. |
 | **Attore** | Chi ha fatto la modifica: una persona, una chiave API, un workflow, oppure `System` per una modifica che OneUptime ha fatto da solo. La modifica di una persona fatta tramite un client MCP indica quale. |
-| **Modifiche** | Quanti campi sono cambiati, o sono stati acquisiti in una creazione o un'eliminazione. Fai clic per vedere ogni campo. |
+| **Modifiche** | Quanti campi sono cambiati, o sono stati acquisiti in una creazione o un'eliminazione. Per una sessione, come è stato fatto l'accesso o perché è finita. Fai clic per vedere ogni campo. |
 
 Filtra per **Tipo di risorsa**, **Nome della risorsa**, **Azione**, **Email utente** o **Ora**. Una modifica elenca solo i campi cambiati, prima e dopo, e un salvataggio che non cambia nulla non aggiunge alcuna voce.
 
@@ -85,8 +86,9 @@ Viene registrato tutto ciò che le persone creano, modificano o eliminano in un 
 | Tracce delle esecuzioni | Ognuna è già la traccia di un'esecuzione di workflow, un'escalation di reperibilità, una scansione, un'importazione o un'esecuzione di IA. |
 | Ciò che riportano agenti e telemetria | Le risorse scoperte, le letture e l'utilizzo cambiano a ogni rapporto, non perché qualcuno li abbia modificati. |
 | Feed di attività | Un feed mostra modifiche che il registro di audit registra già. |
-| Lo stato di lavoro di OneUptime | Sessioni, job in coda e altri stati che OneUptime conserva mentre lavora. |
+| Lo stato di lavoro di OneUptime | Sessioni dei lettori delle pagine di stato, job in coda e altri stati che OneUptime conserva mentre lavora. |
 | La configurazione delle notifiche di una persona | Gli indirizzi, i numeri e le regole di reperibilità personali di ogni persona sono solo suoi. |
+| Le preferenze di una persona | I prodotti che ogni persona fissa nella propria barra in alto sono solo suoi, e solo quella persona li vede. |
 
 Viene registrato anche quando un amministratore aggiunge o rimuove un metodo di notifica o una regola di reperibilità personale sull'account di un'altra persona, senza l'indirizzo o il numero stesso.
 
@@ -104,6 +106,21 @@ Ciò che OneUptime fa perché qualcuno gliel'ha chiesto è registrato anch'esso 
 Ciò che una regola fa da sé è una modifica di OneUptime stesso, registrata con **Memorizza eventi di sistema** attivo: le etichette e i proprietari che una regola aggiunge quando viene creato un record, e un record che rende privato in quel momento; i dispositivi e i monitor che una regola di importazione automatica crea da nuovi risultati di scansione; e ciò che una regola dei monitor di una pagina di stato o di uno SLO cambia quando si salva una regola, un monitor o un'etichetta.
 
 La reimpostazione dell'agente IA di un host, di un cluster o di un account cloud è registrata nella pagina **Registri di audit** della risorsa stessa, come la modifica di `aiAgentResetAt` fatta da chi l'ha reimpostato: chi, e quando. Lo stesso vale per la creazione di una chiave per l'agente IA di un account cloud: le chiavi risultano modificate, mai con una chiave o un hash. Ciò che un agente segnala quando si connette e si fa sentire resta escluso, come prima.
+
+## Accessi e sessioni
+
+Ogni volta che un membro del progetto accede a OneUptime, il registro di audit lo annota, e di nuovo quando quella sessione finisce. Un accesso riguarda OneUptime, non un singolo progetto, quindi lo registra ogni progetto di cui la persona è membro.
+
+| Azione | Quando viene registrata |
+| --- | --- |
+| `Sign In` | Qualcuno accede: con una password o un link di accesso, una passkey, Google, Microsoft, Vercel o il single sign-on. |
+| `Sign Out` | La persona si disconnette. |
+| `Session Timeout` | OneUptime chiude la sessione alla sua scadenza: il tempo di inattività o la durata della sessione impostati da un amministratore del server, oppure 30 giorni senza utilizzo. |
+| `Session Revoked` | OneUptime chiude la sessione perché la password è cambiata, l'account è stato bloccato, oppure un amministratore del server ha reimpostato o reso obbligatoria l'autenticazione a due fattori. |
+
+La **Risorsa** di una voce è la sessione, che prende il nome dal dispositivo da cui è stato fatto l'accesso, ad esempio `Chrome 130 on macOS`. Il suo **Attore** è la persona a cui appartiene la sessione, quindi filtrando per **Email utente** si trovano tutti i suoi accessi e tutte le sue sessioni. I suoi dettagli dicono come la persona ha effettuato l'accesso e con quale secondo fattore, l'indirizzo IP e la località, e, per una sessione finita, quando è stato fatto l'accesso, quando è stata usata l'ultima volta e quando è scaduta. Il provider SSO proprio di un progetto viene nominato solo nel registro di audit di quel progetto.
+
+Accessi e sessioni vengono registrati che il progetto memorizzi o no gli eventi di sistema. Una durata della sessione o 30 giorni senza utilizzo vengono registrati entro pochi minuti dalla scadenza. Un tempo di inattività viene registrato quando la scheda aperta della persona o l'app mobile raggiunge di nuovo OneUptime.
 
 ## Per quanto tempo restano le voci
 

@@ -1,6 +1,7 @@
 import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
 import { readPage } from "./DocsContentSupport";
-import { boldSpans } from "./DocsTranslationChecks";
+import { boldSpans, escapeRegExp } from "./DocsTranslationChecks";
+import { foldedBlocks } from "./GettingStartedPage";
 import PageMap from "../../../FeatureSet/Dashboard/src/Utils/PageMap";
 import {
   DASHBOARD_GO_TO_LEADER_KEY,
@@ -14,6 +15,7 @@ import { DEFAULT_MONITORING_INTERVAL } from "../../../FeatureSet/Dashboard/src/U
 import { getMonitoringIntervalLabel } from "../../../FeatureSet/Dashboard/src/Utils/MonitorIntervalDropdownOptions";
 import { ProjectNotificationChannelsCopy } from "../../../FeatureSet/Dashboard/src/Components/NotificationMethods/ProjectNotificationChannelsCopy";
 import { StatusPageOverviewCopy } from "../../../FeatureSet/Dashboard/src/Components/StatusPage/StatusPageOverviewCopy";
+import { SLO_STATUSES_AT_RISK } from "../../../FeatureSet/Dashboard/src/Components/Slo/SloStatusSummaryTiles";
 import {
   EMPTY_KEYBOARD_SEQUENCE_STATE,
   KEYBOARD_SEQUENCE_TIMEOUT_IN_MS,
@@ -49,6 +51,7 @@ import {
 } from "Common/Types/Monitor/CriteriaFilter";
 import FilterCondition from "Common/Types/Filter/FilterCondition";
 import ObjectID from "Common/Types/ObjectID";
+import SloStatus from "Common/Types/ServiceLevelObjective/SloStatus";
 import IncidentOnCallRule from "Common/Models/DatabaseModels/IncidentOnCallRule";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import NotOperationalMonitorQuery from "Common/Utils/Monitor/NotOperationalMonitorQuery";
@@ -107,7 +110,6 @@ const HEADING_LINE: RegExp = /^(#{1,6}) /;
 const TABLE_SEPARATOR_CELL: RegExp = /^:?-+:?$/;
 const LINK_IN_CELL: RegExp = /^\[([^\]]+)\]\(([^)]+)\)$/;
 const INLINE_CODE_SPAN: RegExp = /`([^`]+)`/g;
-const BOLD_TEXT: RegExp = /\*\*([^*]+)\*\*/g;
 const WHITESPACE_RUN: RegExp = /\s+/g;
 const DOUBLE_QUOTE: RegExp = /"/g;
 
@@ -338,13 +340,22 @@ function seeded(variable: string): string {
 // ---- Getting Started --------------------------------------------------------
 
 describe("Getting Started", () => {
+  // Since #6822 the import is one paragraph, its eleven tools folded under it.
   const moving: string = sectionOf(
     GETTING_STARTED,
-    "### Bring your setup with you",
+    "## Coming from another tool",
   );
 
   it("names every tool the import reads, in the order the import page lists them, each linked to its own guide", () => {
-    const rows: Array<Array<string>> = onlyTableOf(moving);
+    const tools: { title: string; lines: Array<string> } | undefined =
+      foldedBlocks(moving)[0];
+
+    expect(tools?.title).toBe("The eleven tools it imports from");
+    expect(AllToolImportSources).toHaveLength(11);
+
+    const rows: Array<Array<string>> = onlyTableOf(
+      (tools as { lines: Array<string> }).lines.join("\n"),
+    );
     const links: Array<{ title: string; target: string }> = rows.map(
       (row: Array<string>): { title: string; target: string } => {
         const match: RegExpMatchArray | null = (row[0] as string).match(
@@ -803,12 +814,204 @@ describe("Core Concepts", () => {
       "A new project starts with AI on; the **Enable AI** switch under **Project Settings → AI → AI Features** turns all of it off.",
     );
   });
+
+  /*
+   * #6818 took Core Concepts past the core loop: what you watch, reliability
+   * targets, security, what you install and the kinds of rule, so it covers
+   * what a newcomer meets in the menu's first three categories and the
+   * things they install.
+   */
+  it("covers what you watch, reliability targets, security, what you install and the kinds of rule, in reading order", () => {
+    const sections: Array<string> = CORE_CONCEPTS.split("\n").filter(
+      (line: string): boolean => {
+        return line.startsWith("## ");
+      },
+    );
+
+    expect(sections).toEqual([
+      "## How the pieces connect",
+      "## Projects and people",
+      "## Monitors and probes",
+      "## What you watch",
+      "## Reliability targets",
+      "## Incidents and alerts",
+      "## On-call",
+      "## Status pages and maintenance",
+      "## Telemetry",
+      "## Security",
+      "## What you install, and the keys",
+      "## Automation and AI",
+      "## Labels and owners",
+      "## The kinds of rule",
+      "## Next steps",
+    ]);
+  });
+
+  it("sends a reader to the Glossary for one word and to Which One Do I Use? for two that look alike", () => {
+    const opening: string = CORE_CONCEPTS.split("\n")[2] as string;
+
+    expect(opening).toContain("[Glossary](/docs/introduction/glossary)");
+    expect(opening).toContain(
+      "[Which One Do I Use?](/docs/introduction/which-one)",
+    );
+    expect(
+      sectionOf(CORE_CONCEPTS, "## What you install, and the keys"),
+    ).toContain(
+      "(/docs/introduction/which-one#probe-agent-collector-or-runner)",
+    );
+  });
+
+  it("names the products of the menu's first three categories", () => {
+    const essentials: Array<string> = [
+      "monitor",
+      "incident",
+      "alert",
+      "on-call",
+      "status page",
+      "maintenance",
+      "SLO",
+    ];
+
+    for (const word of essentials) {
+      expect({ word: word, named: CORE_CONCEPTS.includes(word) }).toEqual({
+        word: word,
+        named: true,
+      });
+    }
+
+    // Observability, in the menu's own order, as the menu names each one.
+    const navigation: string = dashboard("Utils/NavigationItems.tsx");
+    const items: Record<string, string> = (
+      JSON.parse(dashboard("Locales/en.json")) as {
+        navbar: { items: Record<string, string> };
+      }
+    ).navbar.items;
+    const observability: Array<string> = [
+      "logsTitle",
+      "metricsTitle",
+      "tracesTitle",
+      "performanceProfilesTitle",
+      "exceptionsTitle",
+      "llmObservabilityTitle",
+      "dataObservabilityTitle",
+      "topologyTitle",
+    ];
+    const positions: Array<number> = observability.map(
+      (key: string): number => {
+        return navigation.indexOf(`navbar.items.${key}`);
+      },
+    );
+
+    expect(
+      positions.every((position: number): boolean => {
+        return position >= 0;
+      }),
+    ).toBe(true);
+    expect(
+      [...positions].sort((a: number, b: number): number => {
+        return a - b;
+      }),
+    ).toEqual(positions);
+
+    const telemetry: string = sectionOf(CORE_CONCEPTS, "## Telemetry");
+    const named: Array<string> = boldSpans(
+      telemetry.slice(telemetry.indexOf("In the menu,")),
+    );
+
+    expect(named).toEqual(
+      observability.map((key: string): string => {
+        return items[key] as string;
+      }),
+    );
+
+    // Security, both of its products.
+    expect(boldSpans(sectionOf(CORE_CONCEPTS, "## Security"))).toEqual([
+      items["securityEventsTitle"],
+      items["dataSecurityTitle"],
+    ]);
+  });
+
+  it("names every kind of rule as the side menus that list it do", () => {
+    const table: Array<Array<string>> = onlyTableOf(
+      sectionOf(CORE_CONCEPTS, "## The kinds of rule"),
+    );
+    const rules: Array<string> = table.flatMap(
+      (row: Array<string>): Array<string> => {
+        return boldSpans(row[1] as string);
+      },
+    );
+    const listed: Set<string> = new Set<string>([
+      ...menuSection(dashboard("Pages/Incidents/SideMenu.tsx"), "Rules").items,
+      ...menuSection(dashboard("Pages/Alerts/SideMenu.tsx"), "Rules").items,
+    ]);
+
+    expect(rules.length).toBeGreaterThanOrEqual(10);
+
+    for (const rule of rules) {
+      const where: boolean =
+        listed.has(rule) ||
+        // A policy's own levels.
+        (rule === "Escalation Rules" &&
+          dashboard("Pages/OnCallDuty/OnCallDutyPolicy/SideMenu.tsx").includes(
+            'title: "Escalation Rules"',
+          )) ||
+        // OneUptime AI's rules, under AI → Settings.
+        rule === AUTO_REMEDIATION_RULES;
+
+      expect({ rule: rule, where: where }).toEqual({ rule: rule, where: true });
+    }
+
+    // Every rule Incidents lists has its family.
+    for (const rule of menuSection(
+      dashboard("Pages/Incidents/SideMenu.tsx"),
+      "Rules",
+    ).items) {
+      expect({ rule: rule, named: rules.includes(rule) }).toEqual({
+        rule: rule,
+        named: true,
+      });
+    }
+  });
+
+  it("measures an SLO as often as the SLO pages say, and links the service diagram's pieces to their pages", () => {
+    expect(sectionOf(CORE_CONCEPTS, "## Reliability targets")).toContain(
+      "every 5 minutes",
+    );
+    expect(readPage("en", "slo/introduction")).toContain(
+      "OneUptime measures every SLO against its target every 5 minutes",
+    );
+
+    const watch: string = sectionOf(CORE_CONCEPTS, "## What you watch");
+
+    expect(watch).toContain(
+      'title="One service, what watches it, and where it shows"',
+    );
+
+    for (const page of [
+      "/docs/monitor/monitor-groups",
+      "/docs/telemetry/services",
+      "/docs/inventory/overview",
+    ]) {
+      expect(watch).toContain(`(${page})`);
+    }
+  });
 });
+
+// AI rules' name, as their model names them.
+const AUTO_REMEDIATION_RULES: string = String(
+  readSource(COMMON_DIR, "Models/DatabaseModels/AutoRemediationRule.ts").match(
+    /pluralName: "([^"]+)"/,
+  )?.[1],
+);
 
 // ---- Home Page & Shortcuts --------------------------------------------------
 
 const CHECKLIST_SOURCE: string = dashboard(
   "Components/Home/GettingStarted.tsx",
+);
+// The Welcome checklist's steps, words and pages (issue #6803).
+const CHECKLIST_CATALOG_SOURCE: string = dashboard(
+  "Components/Home/WelcomeChecklist/WelcomeChecklistCatalog.ts",
 );
 const TILES_SOURCE: string = dashboard("Components/Home/OverviewStats.tsx");
 const OVERVIEW_DATA_SOURCE: string = dashboard(
@@ -829,15 +1032,27 @@ const UPCOMING_SOURCE: string = dashboard(
 );
 const EXPLORE_SOURCE: string = dashboard("Components/Home/ExploreProducts.tsx");
 
-const TASK_TITLE: RegExp = /^ {4}title: "([^"]+)",$/gm;
+const TASK_STEP: RegExp =
+  /^ {4}step: WelcomeStep\.(\w+),\n {4}title: translationKey\("([^"]+)"\),$/gm;
 const TASK_PAGE_MAP: RegExp = /^ {4}pageMap: PageMap\.(\w+),$/m;
 const TASK_CREATE_PAGE_MAP: RegExp =
   /createPage: \{\s*pageMap: PageMap\.(\w+),/;
-const TASK_COUNT_THRESHOLD: RegExp = /\)\) > (\d)/;
+const TASK_CREATE_MODEL: RegExp =
+  /createPage: \{\s*pageMap: PageMap\.\w+,\s*modelType: (\w+),/;
+const TASK_GUIDED_SETUP_PAGE: RegExp =
+  /^ {4}guidedSetupPage: PageMap\.(\w+),$/m;
+const TASK_GUIDED_SETUP_MODEL: RegExp = /^ {4}guidedSetupModelType: (\w+),$/m;
+const TASK_LANDING: RegExp = /^ {4}landing: /m;
 const TILE_KEY: RegExp = /^ {4}key: "([^"]+)",$/gm;
 const TILE_FIELD: (field: string) => RegExp = (field: string): RegExp => {
   return new RegExp(`^ {4}${field}: "([^"]+)",$`, "m");
 };
+// A tile's own page, not its not-set-up one (that is indented deeper).
+const TILE_PAGE_MAP: RegExp = /^ {4}pageMap: PageMap\.(\w+),$/m;
+// The filters a tile's list opens with while its count is above zero.
+const TILE_ATTENTION_LINK_QUERY: RegExp = /^ {4}attentionLinkQuery: (\w+),$/m;
+const ATTENTION_GROUP_TITLE: RegExp = /title: translationKey\("([^"]+)"\)/;
+const ATTENTION_GROUP_VIEW_ALL: RegExp = /viewAll: PageMap\.(\w+),/;
 const TILE_NOT_SET_UP_LABEL: RegExp =
   /notSetUp: \(counts: HomeCounts\): NotSetUpState => \{\s*return \{[^}]*label: (\w+),/;
 const STRING_CONSTANT: (name: string) => RegExp = (name: string): RegExp => {
@@ -859,48 +1074,294 @@ const QUICK_ACTION_TITLE: RegExp = /title: translationKey\("([^"]+)"\)/g;
 const RESOURCE_TITLE: RegExp = /title: translationKey\("([^"]+)"\)/g;
 const NUMBERED_ITEM: RegExp = /^\d+\. (.+)$/gm;
 
-// Each checklist task, as the component's array literal declares it.
+// Each checklist step, as the catalog's array literal declares it.
 interface ChecklistTask {
+  step: string;
   title: string;
-  pageMap: string;
+  pageMap: string | null;
   createPageMap: string | null;
-  countMustExceed: number;
+  // The guided setup that takes the step over (#6804-#6806), if any.
+  guidedSetupPage: string | null;
+  /*
+   * The model someone must be allowed to create to be sent past today's
+   * page: the create page's, else the guided setup's own. Null when the step
+   * sends everyone to the same place.
+   */
+  gateModel: string | null;
+  // The two places that model is read from, as declared.
+  createModel: string | null;
+  setupModel: string | null;
+  // Whether the step draws the next-step line where its record lands.
+  hasLanding: boolean;
 }
 
 function checklistTasks(): Array<ChecklistTask> {
   const block: string = blockFrom(
-    CHECKLIST_SOURCE,
-    "const gettingStartedTasks",
+    CHECKLIST_CATALOG_SOURCE,
+    "export const WELCOME_STEPS",
     "\n];",
   );
-  const starts: Array<RegExpMatchArray> = Array.from(
-    block.matchAll(TASK_TITLE),
-  );
+  const starts: Array<RegExpMatchArray> = Array.from(block.matchAll(TASK_STEP));
 
   return starts.map((match: RegExpMatchArray, index: number): ChecklistTask => {
     const chunk: string = block.slice(
       match.index,
       starts[index + 1]?.index ?? block.length,
     );
+    const createModel: string | null =
+      (chunk.match(TASK_CREATE_MODEL)?.[1] as string | undefined) || null;
+    const setupModel: string | null =
+      (chunk.match(TASK_GUIDED_SETUP_MODEL)?.[1] as string | undefined) || null;
 
     return {
-      title: match[1] as string,
-      pageMap: (chunk.match(TASK_PAGE_MAP) as RegExpMatchArray)[1] as string,
+      step: match[1] as string,
+      title: match[2] as string,
+      pageMap: (chunk.match(TASK_PAGE_MAP)?.[1] as string | undefined) || null,
       createPageMap:
         (chunk.match(TASK_CREATE_PAGE_MAP)?.[1] as string | undefined) || null,
-      countMustExceed: Number(
-        (chunk.match(TASK_COUNT_THRESHOLD) as RegExpMatchArray)[1],
-      ),
+      guidedSetupPage:
+        (chunk.match(TASK_GUIDED_SETUP_PAGE)?.[1] as string | undefined) ||
+        null,
+      gateModel: createModel || setupModel,
+      createModel: createModel,
+      setupModel: setupModel,
+      hasLanding: TASK_LANDING.test(chunk),
     };
   });
 }
 
+/*
+ * How many lines of the catalog's step list declare a field, comments left
+ * out: what checklistTasks must have read, field by field.
+ */
+function declaredFieldLines(field: string): number {
+  return blockFrom(
+    CHECKLIST_CATALOG_SOURCE,
+    "export const WELCOME_STEPS",
+    "\n];",
+  )
+    .split("\n")
+    .filter((line: string): boolean => {
+      return line.trim().startsWith(`${field}:`);
+    }).length;
+}
+
+/*
+ * Where a step leads, by the rule getWelcomeStepPage follows (the test
+ * "routes each step by the rule the table states" holds its source to it,
+ * and Common's WelcomeStepPageRule runs it on every step):
+ *
+ *   - someone who may create what the step asks for goes to its guided
+ *     setup, else its create page, else today's page;
+ *   - anyone else goes to today's page, unless the step names no model to
+ *     create - then everyone goes where the first person does.
+ */
+interface StepDestinations {
+  mayCreate: string;
+  // Only when it is another page.
+  mayNotCreate: string | null;
+}
+
+function stepDestinations(task: ChecklistTask): StepDestinations {
+  const forCreators: string = (task.guidedSetupPage ||
+    task.createPageMap ||
+    task.pageMap) as string;
+  const forOthers: string = task.gateModel
+    ? (task.pageMap as string)
+    : forCreators;
+
+  return {
+    mayCreate: forCreators,
+    mayNotCreate: forOthers === forCreators ? null : forOthers,
+  };
+}
+
+const ROUTES_DIR: string = path.join(DASHBOARD_DIR, "Routes");
+const PAGE_TITLE_PROP: RegExp = /title=\{(\w+)\.(\w+)\}/;
+const PAGE_ONLY_CHILD: RegExp = /<(\w+) \/>/;
+const MODEL_PLURAL_NAME: RegExp = /pluralName: "([^"]+)"/;
+
+// The file a default or named import of a source file brings in.
+function importedFile(
+  fromFile: string,
+  name: string,
+  extension: string,
+): string {
+  const source: string = fs.readFileSync(fromFile, "utf8");
+  const named: string = escapeRegExp(name);
+  const match: RegExpMatchArray | null =
+    source.match(new RegExp(`^import ${named} from "([^"]+)";$`, "m")) ||
+    source.match(new RegExp(`^import \\{ ${named} \\} from "([^"]+)";$`, "m"));
+
+  expect({ file: fromFile, name: name, imported: match !== null }).toEqual({
+    file: fromFile,
+    name: name,
+    imported: true,
+  });
+
+  return path.join(
+    path.dirname(fromFile),
+    `${(match as RegExpMatchArray)[1]}${extension}`,
+  );
+}
+
+interface RoutedGuidedSetup {
+  // The title its page draws, as Search and the docs name it.
+  title: string;
+  // The page drawn at the route, and the setup it draws.
+  pageFile: string;
+  setupFile: string;
+}
+
+/*
+ * A guided setup, read through the Dashboard's routing: the route that
+ * draws the page for this PageMap entry (Routes/), the page file it imports,
+ * the title that page gives itself and the setup component it draws.
+ */
+function routedGuidedSetup(pageMap: string): RoutedGuidedSetup {
+  const element: RegExp = new RegExp(
+    `<(\\w+)\\s+\\{\\.\\.\\.props\\}\\s+pageRoute=\\{RouteMap\\[PageMap\\.${escapeRegExp(pageMap)}\\] as Route\\}`,
+  );
+  const routes: Array<{ file: string; component: string }> = fs
+    .readdirSync(ROUTES_DIR)
+    .filter((file: string): boolean => {
+      return file.endsWith(".tsx");
+    })
+    .flatMap((file: string): Array<{ file: string; component: string }> => {
+      const match: RegExpMatchArray | null = readSource(ROUTES_DIR, file).match(
+        element,
+      );
+
+      return match ? [{ file: file, component: match[1] as string }] : [];
+    });
+
+  expect({ page: pageMap, routes: routes.length }).toEqual({
+    page: pageMap,
+    routes: 1,
+  });
+
+  const route: { file: string; component: string } = routes[0] as {
+    file: string;
+    component: string;
+  };
+  const pageFile: string = importedFile(
+    path.join(ROUTES_DIR, route.file),
+    route.component,
+    ".tsx",
+  );
+  const page: string = fs.readFileSync(pageFile, "utf8");
+  const titleProp: RegExpMatchArray | null = page.match(PAGE_TITLE_PROP);
+  const child: RegExpMatchArray | null = page.match(PAGE_ONLY_CHILD);
+
+  expect({
+    page: pageMap,
+    title: Boolean(titleProp),
+    child: Boolean(child),
+  }).toEqual({ page: pageMap, title: true, child: true });
+
+  const copy: string = oneLine(
+    fs.readFileSync(
+      importedFile(
+        pageFile,
+        (titleProp as RegExpMatchArray)[1] as string,
+        ".ts",
+      ),
+      "utf8",
+    ),
+  );
+  const title: RegExpMatchArray | null = copy.match(
+    new RegExp(
+      `\\b${escapeRegExp((titleProp as RegExpMatchArray)[2] as string)}: translationKey\\( ?"([^"]+)",? ?\\)`,
+    ),
+  );
+
+  expect({ page: pageMap, titled: title !== null }).toEqual({
+    page: pageMap,
+    titled: true,
+  });
+
+  return {
+    title: (title as RegExpMatchArray)[1] as string,
+    pageFile: pageFile,
+    setupFile: importedFile(
+      pageFile,
+      (child as RegExpMatchArray)[1] as string,
+      ".tsx",
+    ),
+  };
+}
+
+// A model's plural name, lowercased as a sentence says it: "status pages".
+function pluralNameOf(model: string): string {
+  return String(
+    readSource(COMMON_DIR, `Models/DatabaseModels/${model}.ts`).match(
+      MODEL_PLURAL_NAME,
+    )?.[1],
+  ).toLowerCase();
+}
+
+// Today's pages a step opens, by the name each page gives the place.
+const PLAIN_PAGE_NAMES: Record<string, string> = {
+  SETTINGS_IMPORT_FROM_TOOL: "Import from another tool",
+  MONITORS: "Monitors",
+  MONITOR_CREATE: "Create Monitor",
+  HOSTS: "Hosts",
+  LOGS: "Logs",
+  STATUS_PAGES: "Status Pages",
+  USERS: "Users",
+  ON_CALL_DUTY: "On-Call Duty",
+};
+
+function plainPageName(page: string): string {
+  expect({ page: page, named: page in PLAIN_PAGE_NAMES }).toEqual({
+    page: page,
+    named: true,
+  });
+
+  return PLAIN_PAGE_NAMES[page] as string;
+}
+
+/*
+ * What the English table's Opens cell says for a step, from where the step
+ * leads: its guided setup by the title its page draws, else its create form,
+ * else today's page by name; then, when someone who may not create what the
+ * step asks for lands elsewhere, that list.
+ */
+function opensCell(task: ChecklistTask): string {
+  const where: StepDestinations = stepDestinations(task);
+  let first: string;
+
+  if (where.mayCreate === task.guidedSetupPage) {
+    first = `The guided setup **${routedGuidedSetup(where.mayCreate).title}**`;
+  } else if (where.mayCreate === task.createPageMap) {
+    first = `The **${plainPageName(where.mayCreate)}** form`;
+  } else {
+    first = `**${plainPageName(where.mayCreate)}**`;
+  }
+
+  if (!where.mayNotCreate) {
+    return first;
+  }
+
+  return `${first}, or the **${plainPageName(where.mayNotCreate)}** list for someone who may not create ${pluralNameOf(task.gateModel as string)}.`;
+}
+
+// A guided setup's last part says what to do next (its summaryNext words).
+const GUIDED_SETUP_SUMMARY_NEXT: RegExp = /translateText\(\w+\.summaryNext\)/;
+// The page Home's headline button links to.
+const HEADLINE_BUTTON_PAGE: RegExp =
+  /to=\{RouteUtil\.populateRouteParams\( RouteMap\[PageMap\.(\w+)\] as Route,? \)\}/;
+
 interface HomeTile {
   key: string;
   label: string;
+  // The page the number opens: a product's own list (#6857).
+  pageMap: string;
   attentionLabel: string;
   allClearLabel: string;
   notSetUpLabel: string | null;
+  // What sets that list's filters while the count is above zero, if anything.
+  attentionLinkQuery: string | null;
 }
 
 function homeTiles(): Array<HomeTile> {
@@ -925,6 +1386,7 @@ function homeTiles(): Array<HomeTile> {
       label: (
         chunk.match(TILE_FIELD("label")) as RegExpMatchArray
       )[1] as string,
+      pageMap: (chunk.match(TILE_PAGE_MAP) as RegExpMatchArray)[1] as string,
       attentionLabel: (
         chunk.match(TILE_FIELD("attentionLabel")) as RegExpMatchArray
       )[1] as string,
@@ -936,6 +1398,9 @@ function homeTiles(): Array<HomeTile> {
             TILES_SOURCE.match(STRING_CONSTANT(notSetUp)) as RegExpMatchArray
           )[1] as string)
         : null,
+      attentionLinkQuery:
+        (chunk.match(TILE_ATTENTION_LINK_QUERY)?.[1] as string | undefined) ||
+        null,
     };
   });
 }
@@ -975,7 +1440,10 @@ describe("Home Page & Shortcuts", () => {
         expect(order[index]).toBeGreaterThan(order[index - 1] as number);
       }
     }
-    expect(CHECKLIST_SOURCE).toContain('title="Welcome to OneUptime 👋"');
+    expect(CHECKLIST_CATALOG_SOURCE).toContain(
+      'title: "Welcome to OneUptime 👋",',
+    );
+    expect(CHECKLIST_SOURCE).toContain("title={WELCOME_CHECKLIST_COPY.title}");
 
     const items: Array<string> = Array.from(
       whatHomeShows.matchAll(NUMBERED_ITEM),
@@ -1071,22 +1539,83 @@ describe("Home Page & Shortcuts", () => {
     );
   });
 
-  it("gives the checklist's steps, what finishes each and what each opens, as the component does", () => {
-    const tasks: Array<ChecklistTask> = checklistTasks();
+  it("says where Create your first monitor leads, as the headline links it", () => {
+    const card: string = oneLine(
+      dashboard("Components/Home/ProjectHealthCard.tsx"),
+    );
+    const button: string = blockFrom(
+      card,
+      "health.kind === ProjectHealthKind.NotSetUp && props.canCreateMonitor ? ( <AppLink",
+      "</AppLink>",
+    );
+    const page: string = (
+      button.match(HEADLINE_BUTTON_PAGE) as RegExpMatchArray
+    )[1] as string;
+
+    expect(button).toContain(
+      'translator.translateText("Create your first monitor")',
+    );
+    // The guided setup (#6804), the same page the checklist's step opens.
+    expect(page).toBe("MONITOR_GUIDED_SETUP");
+    expect(sectionOf(HOME, "### The headline")).toContain(
+      `While nothing is monitored yet, the line ends on **Create your first monitor**, which opens the guided setup **${routedGuidedSetup(page).title}**. Only people who are allowed to create monitors see it.`,
+    );
+  });
+
+  it("asks what the project came to do, with the goals the question offers", () => {
+    const section: string = sectionOf(HOME, "### The welcome checklist");
+    const goals: Array<string> = Array.from(
+      blockFrom(
+        CHECKLIST_CATALOG_SOURCE,
+        "export const WELCOME_GOALS",
+        "\n];",
+      ).matchAll(/title: translationKey\("([^"]+)"\)/g),
+    ).map((match: RegExpMatchArray): string => {
+      return match[1] as string;
+    });
+
+    expect(goals).toHaveLength(7);
+    expect(CHECKLIST_CATALOG_SOURCE).toContain(
+      'title: translationKey("What do you want to do first?"),',
+    );
+    expect(section).toContain(
+      "the card asks **What do you want to do first?**",
+    );
+    // The first goal and the last, as the question lists them.
+    expect(goals[0]).toBe("Know when my website or API is down");
+    expect(goals[goals.length - 1]).toBe("Just looking around");
+    expect(section).toContain(`**${goals[0]}**`);
+    expect(section).toContain(`**${goals[goals.length - 1]}**`);
+    for (const button of ["Continue", "Skip", "Change"]) {
+      expect(CHECKLIST_CATALOG_SOURCE).toContain(`translationKey("${button}")`);
+      expect(section).toContain(`**${button}**`);
+    }
+  });
+
+  it("gives the checklist's steps, what finishes each and what each opens, as the catalog routes them", () => {
+    // The project's own steps: the server's email is the server admin's.
+    const tasks: Array<ChecklistTask> = checklistTasks().filter(
+      (task: ChecklistTask): boolean => {
+        return task.step !== "ServerEmail";
+      },
+    );
     const rows: Array<Array<string>> = onlyTableOf(
       sectionOf(HOME, "### The welcome checklist"),
     );
 
-    expect(tasks.length).toBe(4);
-
-    // Where each step goes, by the name the page gives the place.
-    const OPENS: Record<string, string> = {
-      MONITORS: "Monitors",
-      MONITOR_CREATE: "Create Monitor",
-      STATUS_PAGES: "Status Pages",
-      USERS: "Users",
-      ON_CALL_DUTY: "On-Call Duty",
-    };
+    expect(
+      tasks.map((task: ChecklistTask): string => {
+        return task.step;
+      }),
+    ).toEqual([
+      "Import",
+      "Monitor",
+      "Infrastructure",
+      "Telemetry",
+      "OnCall",
+      "StatusPage",
+      "Team",
+    ]);
 
     expect(
       rows.map((row: Array<string>): string => {
@@ -1099,41 +1628,263 @@ describe("Home Page & Shortcuts", () => {
     );
 
     tasks.forEach((task: ChecklistTask, index: number): void => {
-      const opens: Array<string> = boldSpans(
-        (rows[index] as Array<string>)[2] as string,
-      );
-      const expected: Array<string> = task.createPageMap
-        ? [OPENS[task.createPageMap] as string, OPENS[task.pageMap] as string]
-        : [OPENS[task.pageMap] as string];
-
-      expect({ task: task.title, opens: opens }).toEqual({
+      expect({
         task: task.title,
-        opens: expected,
-      });
+        opens: (rows[index] as Array<string>)[2],
+      }).toEqual({ task: task.title, opens: opensCell(task) });
     });
 
-    // Monitors, status pages and policies: one. Team members: you and one more.
-    expect(
-      tasks.map((task: ChecklistTask): number => {
-        return task.countMustExceed;
-      }),
-    ).toEqual([0, 0, 1, 0]);
-    expect((rows[2] as Array<string>)[1]).toBe(
-      "Someone besides you is in the project, or invited to it.",
+    // Done on outcomes, as the rules in Common/Types/WelcomeChecklist say.
+    expect((rows[1] as Array<string>)[1]).toBe("Its first check comes in.");
+    expect((rows[5] as Array<string>)[1]).toBe(
+      "A status page shows a monitor.",
+    );
+    expect((rows[6] as Array<string>)[1]).toBe(
+      "Someone accepts your invitation.",
     );
   });
 
-  it("dismisses the checklist for this project, in this browser", () => {
-    expect(CHECKLIST_SOURCE).toContain('title="Dismiss"');
-    expect(CHECKLIST_SOURCE).toContain(
-      "LocalStorage.setItem(getDismissKey(props.projectId), true);",
+  it("reads every routing declaration the checklist's steps make", () => {
+    const tasks: Array<ChecklistTask> = checklistTasks();
+    const count: (keep: (task: ChecklistTask) => boolean) => number = (
+      keep: (task: ChecklistTask) => boolean,
+    ): number => {
+      return tasks.filter(keep).length;
+    };
+    const spreads: number = blockFrom(
+      CHECKLIST_CATALOG_SOURCE,
+      "export const WELCOME_STEPS",
+      "\n];",
+    )
+      .split("\n")
+      .filter((line: string): boolean => {
+        return line.trim().startsWith("...");
+      }).length;
+
+    /*
+     * The table is held to what checklistTasks reads, so a declaration it
+     * cannot read - written over two lines, in another order, or spread in
+     * from elsewhere - fails here instead of leaving a step's row checked
+     * against the wrong page.
+     */
+    expect({
+      step: declaredFieldLines("step"),
+      createPage: declaredFieldLines("createPage"),
+      modelType: declaredFieldLines("modelType"),
+      guidedSetupPage: declaredFieldLines("guidedSetupPage"),
+      guidedSetupModelType: declaredFieldLines("guidedSetupModelType"),
+      landing: declaredFieldLines("landing"),
+      spreads: spreads,
+    }).toEqual({
+      step: tasks.length,
+      createPage: count((task: ChecklistTask): boolean => {
+        return task.createPageMap !== null;
+      }),
+      modelType: count((task: ChecklistTask): boolean => {
+        return task.createModel !== null;
+      }),
+      guidedSetupPage: count((task: ChecklistTask): boolean => {
+        return task.guidedSetupPage !== null;
+      }),
+      guidedSetupModelType: count((task: ChecklistTask): boolean => {
+        return task.setupModel !== null;
+      }),
+      landing: count((task: ChecklistTask): boolean => {
+        return task.hasLanding;
+      }),
+      spreads: 0,
+    });
+  });
+
+  it("says which steps open a guided setup, for whom, and names each one as its page does", () => {
+    const tasks: Array<ChecklistTask> = checklistTasks();
+    const rows: Array<Array<string>> = onlyTableOf(
+      sectionOf(HOME, "### The welcome checklist"),
     );
-    expect(CHECKLIST_SOURCE).toContain(
-      "const isEveryTaskComplete: boolean = gettingStartedTasks.every(",
+    const guided: Array<ChecklistTask> = tasks.filter(
+      (task: ChecklistTask): boolean => {
+        return task.guidedSetupPage !== null;
+      },
     );
-    expect(whatHomeShows).toContain(
-      "Dismissing is remembered in this browser, for this project",
+
+    // The four guided setups (#6804, #6805, #6806), in the checklist's order.
+    expect(
+      guided.map((task: ChecklistTask): [string, string, string | null] => {
+        return [task.step, task.guidedSetupPage as string, task.gateModel];
+      }),
+    ).toEqual([
+      ["Monitor", "MONITOR_GUIDED_SETUP", "Monitor"],
+      ["Telemetry", "SERVICES_GUIDED_SETUP", null],
+      ["OnCall", "ON_CALL_DUTY_GUIDED_SETUP", null],
+      ["StatusPage", "STATUS_PAGES_GUIDED_SETUP", "StatusPage"],
+    ]);
+
+    // Each by the title its page draws, which is what the setup is called.
+    expect(
+      guided.map((task: ChecklistTask): string => {
+        return routedGuidedSetup(task.guidedSetupPage as string).title;
+      }),
+    ).toEqual([
+      "Know when my website or API is down",
+      "Send logs, metrics and traces, then get alerted",
+      "Page the right person when something breaks",
+      "Publish a status page",
+    ]);
+
+    // A step that names a model opens its setup only for who may create one.
+    expect(
+      guided.map((task: ChecklistTask): string | null => {
+        return stepDestinations(task).mayNotCreate;
+      }),
+    ).toEqual(["MONITORS", null, null, "STATUS_PAGES"]);
+
+    // The steps with no guided setup say none.
+    for (const task of tasks) {
+      if (task.guidedSetupPage || task.step === "ServerEmail") {
+        continue;
+      }
+
+      const row: Array<string> | undefined = rows.find(
+        (candidate: Array<string>): boolean => {
+          return boldSpans(candidate[0] as string)[0] === task.title;
+        },
+      );
+
+      expect({ task: task.title, row: Boolean(row) }).toEqual({
+        task: task.title,
+        row: true,
+      });
+      expect((row as Array<string>)[2]).not.toContain("guided setup");
+    }
+  });
+
+  it("routes each step by the rule the table states", () => {
+    const rule: string = oneLine(
+      blockFrom(
+        CHECKLIST_CATALOG_SOURCE,
+        "export const getWelcomeStepPage",
+        "\n};",
+      ),
     );
+    const lines: Array<string> = [
+      // Who may: the create page's model, else the setup's own.
+      "entry.createPage?.modelType || entry.guidedSetupModelType;",
+      // A step that names no model sends everyone to its setup.
+      "const maySetUp: boolean = setupModelType ? entry.createPage ? mayCreate : PermissionGate.check(new setupModelType(), ModelAction.Create).isAllowed : true;",
+      "if (entry.guidedSetupPage && maySetUp) { return entry.guidedSetupPage; }",
+      "if (entry.createPage && mayCreate) { return entry.createPage.pageMap; }",
+      "return entry.pageMap || null;",
+    ];
+    const at: Array<number> = lines.map((line: string): number => {
+      return rule.indexOf(line);
+    });
+
+    lines.forEach((line: string, index: number): void => {
+      expect({ line: line, found: (at[index] as number) >= 0 }).toEqual({
+        line: line,
+        found: true,
+      });
+    });
+
+    // In that order: the setup first, then the form, then today's page.
+    expect(
+      [...at].sort((a: number, b: number): number => {
+        return a - b;
+      }),
+    ).toEqual(at);
+  });
+
+  it("says a guided setup ends with what to do next, and how to find one again", () => {
+    const section: string = sectionOf(HOME, "### The welcome checklist");
+    const guided: Array<RoutedGuidedSetup> = checklistTasks()
+      .filter((task: ChecklistTask): boolean => {
+        return task.guidedSetupPage !== null;
+      })
+      .map((task: ChecklistTask): RoutedGuidedSetup => {
+        return routedGuidedSetup(task.guidedSetupPage as string);
+      });
+    const search: string = dashboard(
+      "Components/CommandPalette/PageSearchIndex.ts",
+    );
+
+    expect(guided).toHaveLength(4);
+
+    for (const setup of guided) {
+      const source: string = fs.readFileSync(setup.setupFile, "utf8");
+
+      // Drawn in the guided setup frame, ending on what to do next.
+      expect({
+        setup: setup.title,
+        framed: source.includes("<GuidedSetupFrame"),
+        next: GUIDED_SETUP_SUMMARY_NEXT.test(source),
+      }).toEqual({ setup: setup.title, framed: true, next: true });
+      // Search finds it by the same name.
+      expect({
+        setup: setup.title,
+        searched: search.includes(`title: "${setup.title}",`),
+      }).toEqual({ setup: setup.title, searched: true });
+    }
+
+    expect(section).toContain(
+      "A guided setup does the whole job on one page, a step at a time, and ends with what it set up and what to do next. To open one again later, search for its name.",
+    );
+  });
+
+  it("names the next step, the plan's limit and the server's email as the card does", () => {
+    const section: string = sectionOf(HOME, "### The welcome checklist");
+
+    expect(CHECKLIST_CATALOG_SOURCE).toContain(
+      'nextBadge: translationKey("Next step"),',
+    );
+    expect(section).toContain("is marked **Next step**");
+    expect(section).toContain(
+      "**Invite your team** says it needs the Growth plan, and opens **Billing**",
+    );
+    expect(CHECKLIST_CATALOG_SOURCE).toContain(
+      "WELCOME_PLAN_PAGE: PageMap = PageMap.SETTINGS_BILLING;",
+    );
+    expect(section).toContain("**This server cannot send email yet**");
+  });
+
+  it("promises no way back to the checklist that no step draws", () => {
+    const section: string = sectionOf(HOME, "### The welcome checklist");
+
+    /*
+     * The next-step line, with Back to setup, shows only where a step with
+     * a landing put its record (WelcomeNextStep). Every step that made a
+     * record opens a guided setup now, which says what is next itself
+     * (#7109), so no step has one, and the page does not promise the line.
+     */
+    expect(
+      checklistTasks()
+        .filter((task: ChecklistTask): boolean => {
+          return task.hasLanding;
+        })
+        .map((task: ChecklistTask): string => {
+          return task.step;
+        }),
+    ).toEqual([]);
+    expect(CHECKLIST_CATALOG_SOURCE).toContain(
+      'backToSetup: translationKey("Back to setup"),',
+    );
+    expect(section).not.toContain("Back to setup");
+    expect(section).not.toContain("the page you land on says what is next");
+  });
+
+  it("hides the checklist for this person, on every device, and keeps How OneUptime works a click away", () => {
+    const section: string = sectionOf(HOME, "### The welcome checklist");
+
+    expect(CHECKLIST_CATALOG_SOURCE).toContain(
+      'hideButton: translationKey("Hide"),',
+    );
+    expect(CHECKLIST_CATALOG_SOURCE).toContain(
+      'showButton: translationKey("Show it"),',
+    );
+    expect(CHECKLIST_SOURCE).toContain("WELCOME_CHECKLIST_HIDE_ROUTE");
+    expect(section).toContain(
+      "click **Hide**: it is hidden for you alone, on every device, and a line stays with **Show it** and **How OneUptime works**.",
+    );
+    expect(section).not.toContain("this browser");
   });
 
   it("names How OneUptime works and its four products in their order", () => {
@@ -1227,8 +1978,13 @@ describe("Home Page & Shortcuts", () => {
       currentMonitorStatus: { isOperationalState: false },
     });
     expect(counting).toContain("isEnabled: true, isArchived: false");
-    expect(counting).toContain("SloStatus.AtRisk");
-    expect(counting).toContain("SloStatus.BudgetExhausted");
+    expect(counting).toContain(
+      "sloStatus: new Includes([...SLO_STATUSES_AT_RISK]),",
+    );
+    expect(SLO_STATUSES_AT_RISK).toEqual([
+      SloStatus.AtRisk,
+      SloStatus.BudgetExhausted,
+    ]);
 
     const rows: Array<Array<string>> = onlyTableOf(
       sectionOf(HOME, "### The five numbers"),
@@ -1280,6 +2036,68 @@ describe("Home Page & Shortcuts", () => {
     expect(section).toContain(
       "the open incidents, the open alerts, the monitors that are not operational, the SLOs at risk and the maintenance in progress, the most urgent first",
     );
+  });
+
+  /*
+   * Setup health (#6812): the Setup section that ends Needs attention, and
+   * the page it opens, named as Home, the page, its levels, the monitor's
+   * card and Search draw them.
+   */
+  it("names Setup health's line, page, levels and Dismissed as the product draws them", () => {
+    const section: string = sectionOf(HOME, "### Setup health");
+    const homeWords: string = dashboard(
+      "Components/SetupHealth/SetupHealthHomeWords.ts",
+    );
+    const pageWords: string = dashboard(
+      "Components/SetupHealth/SetupHealthWords.ts",
+    );
+    const attention: string = oneLine(ATTENTION_SOURCE);
+    const levelTitles: Array<string> = Array.from(
+      blockFrom(pageWords, "export const LEVEL_WORDS", "\n};").matchAll(
+        /title: translationKey\("([^"]+)"\)/g,
+      ),
+    ).map((match: RegExpMatchArray): string => {
+      return match[1] as string;
+    });
+
+    // The Setup section is the last one Needs attention draws, after the kinds.
+    expect(homeWords).toContain('group: translationKey("Setup"),');
+    expect(
+      attention.indexOf(
+        "{setupCount > 0 ? renderSetupSection(setupCount) : <></>}",
+      ),
+    ).toBeGreaterThan(attention.indexOf("{group.rows.map("));
+    expect(attention.indexOf("{group.rows.map(")).toBeGreaterThan(-1);
+    expect(section).toContain("**Needs attention** ends with **Setup**");
+
+    // The page, by the title it shows and the name Search finds it by.
+    expect(pageWords).toContain('title: translationKey("Setup Health"),');
+    expect(dashboard("Pages/Home/SetupHealth.tsx")).toContain(
+      '<Page title="Setup Health"',
+    );
+    expect(
+      oneLine(dashboard("Components/CommandPalette/PageSearchIndex.ts")),
+    ).toContain('page: PageMap.HOME_SETUP_HEALTH, title: "Setup Health"');
+    expect(section).toContain("It opens **Setup Health**");
+    expect(section).toContain("Search finds the page as **Setup Health**");
+
+    // Its levels, worst first, as the page's cards title them.
+    expect(levelTitles).toEqual([
+      "Pages Will Not Arrive",
+      "Worth Fixing",
+      "Suggestions",
+    ]);
+    expect(section).toContain(
+      `worst first, under **${levelTitles[0]}**, **${levelTitles[1]}** and **${levelTitles[2]}**`,
+    );
+
+    // A monitor's findings are its own card's breaks; dismissed ones fold away.
+    expect(
+      dashboard("Components/Monitor/Overview/MonitorWhoIsToldCard.tsx"),
+    ).toContain('title="When this goes down"');
+    expect(section).toContain("**When this goes down** card");
+    expect(pageWords).toContain('dismissed: translationKey("Dismissed"),');
+    expect(section).toContain("restored from **Dismissed**");
   });
 
   it("names Your project's resources in the card's order, and when Upcoming maintenance shows", () => {
@@ -1336,42 +2154,201 @@ describe("Home Page & Shortcuts", () => {
     );
   });
 
-  it("gives Home's side menu its sections and pages, in order", () => {
-    const sections: Array<MenuSection> = sideMenuSections(
-      dashboard("Pages/Home/SideMenu.tsx"),
-    );
-    const rows: Array<Array<string>> = onlyTableOf(
-      sectionOf(HOME, "### Home's side menu"),
-    );
+  /*
+   * Home is one page with no side menu and no lists of its own (#6857): each
+   * number, and each View all, opens the list in the product it belongs to.
+   */
+  it("says Home is one page with no side menu, as its layout draws it", () => {
+    const layout: string = dashboard("Pages/Home/Layout.tsx");
 
-    expect(sections.length).toBe(5);
-    expect(sections[0]).toEqual({ title: "Home", items: ["Overview"] });
-
-    // Home itself has none: the layout leaves the menu off the overview only.
-    expect(dashboard("Pages/Home/Layout.tsx")).toMatch(
-      /sideMenu=\{\s*isOverview \? undefined : \(\s*<DashboardSideMenu/,
-    );
-    expect(sectionOf(HOME, "### Home's side menu")).toContain(
-      "Home itself has no side menu: it already shows everything the menu would.",
-    );
-
+    expect(layout).not.toContain("sideMenu");
+    expect(layout).not.toContain("SideMenu");
     expect(
-      rows.map((row: Array<string>): MenuSection => {
-        return {
-          title: boldSpans(row[0] as string)[0] as string,
-          items: Array.from((row[1] as string).matchAll(BOLD_TEXT)).map(
-            (match: RegExpMatchArray): string => {
-              return match[1] as string;
-            },
-          ),
-        };
-      }),
-    ).toEqual(sections);
+      fs.existsSync(path.join(DASHBOARD_DIR, "Pages/Home/SideMenu.tsx")),
+    ).toBe(false);
+    expect(whatHomeShows).toContain(
+      "Home is the overview of your project, one page with no side menu.",
+    );
+    expect(HOME).not.toContain("side menu:");
+    expect(HOME).not.toContain("### Home's side menu");
   });
 
-  it("names the Help menu's items, and what a narrow screen leaves out", () => {
+  it("names the list each number opens the way the Products menu and that product's own menu name it", () => {
+    const tiles: Array<HomeTile> = homeTiles();
+    const tileSection: string = sectionOf(HOME, "### The five numbers");
+    const rows: Array<Array<string>> = onlyTableOf(tileSection);
+    const products: Record<string, string> = (
+      JSON.parse(dashboard("Locales/en.json")) as {
+        navbar: { items: Record<string, string> };
+      }
+    ).navbar.items;
+    // Each list a number opens: its product in the Products menu, and that product's own menu.
+    const owners: Record<string, { product: string; menu: string }> = {
+      UNRESOLVED_INCIDENTS: {
+        product: "incidentsTitle",
+        menu: "Pages/Incidents/SideMenu.tsx",
+      },
+      UNRESOLVED_ALERTS: {
+        product: "alertsTitle",
+        menu: "Pages/Alerts/SideMenu.tsx",
+      },
+      MONITORS_INOPERATIONAL: {
+        product: "monitorsTitle",
+        menu: "Pages/Monitor/SideMenu.tsx",
+      },
+      ONGOING_SCHEDULED_MAINTENANCE_EVENTS: {
+        product: "scheduledMaintenanceTitle",
+        menu: "Pages/ScheduledMaintenanceEvents/SideMenu.tsx",
+      },
+      SLOS: { product: "slosTitle", menu: "Pages/Slo/SideMenu.tsx" },
+    };
+
+    expect(tileSection).toContain(
+      "| Number | What it counts | When the count is zero | Opens |",
+    );
+    expect(tileSection).toContain(
+      "Each number counts something, says whether that needs you, and opens the list behind it, in the product it belongs to.",
+    );
+    // Every number opens a product's own list, never a page of Home's.
+    expect(
+      tiles.map((tile: HomeTile): string => {
+        return tile.pageMap;
+      }),
+    ).toEqual(Object.keys(owners));
+
+    const opens: Array<string> = tiles.map((tile: HomeTile): string => {
+      const owner: { product: string; menu: string } | undefined =
+        owners[tile.pageMap];
+
+      expect({ tile: tile.key, owned: Boolean(owner) }).toEqual({
+        tile: tile.key,
+        owned: true,
+      });
+
+      const product: string = products[owner!.product] as string;
+      const item: string | undefined = oneLine(dashboard(owner!.menu)).match(
+        new RegExp(
+          `title: "([^"]+)", to: RouteUtil\\.populateRouteParams\\( ?RouteMap\\[ ?PageMap\\.${tile.pageMap} ?\\] as Route`,
+        ),
+      )?.[1];
+
+      expect({
+        tile: tile.key,
+        product: typeof product,
+        item: typeof item,
+      }).toEqual({
+        tile: tile.key,
+        product: "string",
+        item: "string",
+      });
+
+      // A product's front list goes by the product's name alone.
+      return item === product ? `**${product}**` : `**${product} → ${item}**`;
+    });
+
+    expect(
+      rows.map((row: Array<string>): string => {
+        return row[3] as string;
+      }),
+    ).toEqual(opens);
+    expect(opens).toEqual([
+      "**Incidents → Active Incidents**",
+      "**Alerts → Active Alerts**",
+      "**Monitors → Not Operational**",
+      "**Scheduled Maintenance → Ongoing Events**",
+      "**SLOs**",
+    ]);
+  });
+
+  it("opens the same list from each View all in Needs attention as from its number", () => {
+    const tiles: Array<HomeTile> = homeTiles();
+    const groups: Array<{ title: string; viewAll: string }> = blockFrom(
+      ATTENTION_SOURCE,
+      "const groups: Array<AttentionGroup>",
+      "];",
+    )
+      .split("key: AttentionGroupKey.")
+      .slice(1)
+      .map((chunk: string): { title: string; viewAll: string } => {
+        return {
+          title: (chunk.match(ATTENTION_GROUP_TITLE) as RegExpMatchArray)[1]!,
+          viewAll: (
+            chunk.match(ATTENTION_GROUP_VIEW_ALL) as RegExpMatchArray
+          )[1]!,
+        };
+      });
+
+    expect(groups.length).toBe(5);
+
+    for (const group of groups) {
+      const tile: HomeTile | undefined = tiles.find(
+        (candidate: HomeTile): boolean => {
+          return candidate.label === group.title;
+        },
+      );
+
+      expect({ kind: group.title, viewAll: group.viewAll }).toEqual({
+        kind: group.title,
+        viewAll: tile?.pageMap,
+      });
+    }
+
+    expect(sectionOf(HOME, "### Needs attention")).toContain(
+      "Each kind shows up to five, with **View all** for the rest, which opens the same list as its number.",
+    );
+  });
+
+  /*
+   * The SLOs list holds every SLO, so while any is at risk the number, and
+   * the View all of the SLOs it lists, open that list with its chips set to
+   * the SLOs at risk. At zero, or with no SLOs yet, the whole list opens.
+   */
+  it("opens the SLOs list showing only the SLOs at risk while any is, from the number and from View all", () => {
+    expect(
+      homeTiles()
+        .filter((tile: HomeTile): boolean => {
+          return tile.attentionLinkQuery !== null;
+        })
+        .map((tile: HomeTile): [string, string | null] => {
+          return [tile.key, tile.attentionLinkQuery];
+        }),
+    ).toEqual([["slos-needing-attention", "getSlosAtRiskQueryParams"]]);
+    // Only a count above zero opens the list with those filters.
+    expect(
+      oneLine(blockFrom(TILES_SOURCE, "if (count > 0) {", "\n      }")),
+    ).toContain("linkQuery: definition.attentionLinkQuery?.(),");
+    expect(
+      blockFrom(ATTENTION_SOURCE, "key: AttentionGroupKey.Slos,", "\n    },"),
+    ).toContain("viewAllQuery: getSlosAtRiskQueryParams(),");
+    expect(sectionOf(HOME, "### The five numbers")).toContain(
+      "While any SLO is at risk, **SLOs at risk** opens the **SLOs** list filtered to those SLOs.",
+    );
+  });
+
+  it("names the Help menu's items, and what a tablet and a phone leave out of the header", () => {
     const help: string = dashboard("Components/Header/Help.tsx");
 
+    // The ways to learn first, in the order the docs name them.
+    const learn: Array<number> = [
+      't("help.quickstart", "Quickstart")',
+      't("help.howOneUptimeWorks", "How OneUptime works")',
+      't("help.glossary", "Glossary")',
+      't("help.documentation", "Documentation")',
+      't("keyboardShortcuts.title", "Keyboard shortcuts")',
+    ].map((call: string): number => {
+      return help.indexOf(call);
+    });
+
+    expect(
+      learn.every((index: number): boolean => {
+        return index >= 0;
+      }),
+    ).toBe(true);
+    expect(
+      [...learn].sort((a: number, b: number): number => {
+        return a - b;
+      }),
+    ).toEqual(learn);
     expect(help).toContain('t("help.documentation", "Documentation")');
     expect(help).toContain(
       't("keyboardShortcuts.title", "Keyboard shortcuts")',
@@ -1379,28 +2356,68 @@ describe("Home Page & Shortcuts", () => {
     expect(help).toContain('t("help.supportEmail")');
     expect(help).toContain('t("help.chatSlack")');
 
+    const headerSource: string = dashboard("Components/Header/Header.tsx");
     const header: string = blockFrom(
-      dashboard("Components/Header/Header.tsx"),
+      headerSource,
       "rightComponents={",
       "\n      />",
     );
-    const hiddenOnNarrow: Array<string> = header
-      .split('className="max-lg:hidden')
-      .slice(1)
-      .map((chunk: string): string => {
-        return chunk.slice(0, chunk.indexOf("</div>"));
-      });
 
-    expect(hiddenOnNarrow.join(" ")).toContain("<Search />");
-    expect(hiddenOnNarrow.join(" ")).toContain("<AskAI />");
-    expect(hiddenOnNarrow.join(" ")).toContain("<Help />");
-    expect(hiddenOnNarrow.join(" ")).not.toContain("<NotificationBell");
-    expect(hiddenOnNarrow.join(" ")).not.toContain("<UserProfile");
-    expect(header).toContain("<NotificationBell");
-    expect(header).toContain("<UserProfile");
+    /*
+     * The rail's entries by the wrapper they are drawn in (#7037): from a
+     * tablet's width up (md) or from a laptop's (lg); the bell and the
+     * picture in none.
+     */
+    const drawnFrom: (wrapper: string) => string = (
+      wrapper: string,
+    ): string => {
+      return header
+        .split(`className={${wrapper}}`)
+        .slice(1)
+        .map((chunk: string): string => {
+          return chunk.slice(0, chunk.indexOf("</div>"));
+        })
+        .join(" ");
+    };
+    const fromTablet: string = drawnFrom("FROM_TABLET_WIDTH_CLASS_NAME");
+    const fromLaptop: string = drawnFrom("FROM_LAPTOP_WIDTH_CLASS_NAME");
+
+    expect(headerSource).toContain(
+      'FROM_TABLET_WIDTH_CLASS_NAME: string =\n  "max-md:hidden items-center md:flex"',
+    );
+    expect(headerSource).toContain(
+      'FROM_LAPTOP_WIDTH_CLASS_NAME: string =\n  "max-lg:hidden items-center lg:flex"',
+    );
+    expect(fromTablet).toContain("<Search />");
+    expect(fromTablet).toContain("<Help />");
+    expect(fromTablet).not.toContain("<AskAI />");
+    expect(fromLaptop).toContain("<AskAI />");
+    expect(fromLaptop).not.toContain("<Search />");
+    expect(fromLaptop).not.toContain("<Help />");
+
+    for (const always of ["<NotificationBell", "<UserProfile"]) {
+      expect(header).toContain(always);
+      expect(`${fromTablet} ${fromLaptop}`).not.toContain(always);
+    }
+
+    // Below md, the menu button's list starts with Search and ends with Help.
+    const navBar: string = oneLine(dashboard("Components/NavBar/NavBar.tsx"));
+
+    expect(navBar).toContain(
+      "return <PhoneMenuSearch closeMenu={closeMenu} />;",
+    );
+    expect(navBar).toContain("return <PhoneMenuHelp closeMenu={closeMenu} />;");
+    expect(readSource(COMMON_DIR, "UI/Components/Navbar/NavBar.tsx")).toContain(
+      "export const PHONE_MENU_BELOW_WIDTH_IN_PX: number = 768;",
+    );
+
+    // Ask AI, left out below lg, is one of Search's actions.
+    expect(
+      dashboard("Components/CommandPalette/DashboardCommandPalette.tsx"),
+    ).toContain('title: t("commandPalette.actions.askAi", "Ask AI"),');
 
     expect(HOME).toContain(
-      "**Help** opens these docs (**Documentation**) and the **Keyboard shortcuts** list, and offers support by email and on Slack. On a narrow screen, such as a phone, **Search**, **Ask AI** and **Help** are left out to save room; the bell and your picture stay.",
+      "**Help** starts with what helps you learn: the **Quickstart**, **How OneUptime works**, the **Glossary** and these docs (**Documentation**). Under them are the **Keyboard shortcuts** list and support by email and on Slack. On a tablet or in a narrow window, **Ask AI** is left out to save room: it is among the actions in **Search**. On a phone, **Search** and **Help** move into the menu button's list, at its top and at its bottom; the bell and your picture stay.",
     );
   });
 
@@ -1738,7 +2755,7 @@ describe("Your Account", () => {
 
     expect(userService).toContain("updateBy.data.resetPasswordToken = null!;");
     expect(userService).toContain("updateBy.data.magicLinkToken = null!;");
-    expect(userService).toContain('reason: "Password changed",');
+    expect(userService).toContain("cause: SessionEndCause.PasswordChanged,");
     expect(YOUR_ACCOUNT).toContain(
       "A new password signs every device out of your account, and any password reset link or sign-in link already sent stops working.",
     );

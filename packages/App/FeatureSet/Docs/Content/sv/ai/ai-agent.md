@@ -69,7 +69,7 @@ En uppgifts sida är en konversation: vad som efterfrågades och kontexten som l
 | **Misslyckades** | Turen kunde inte slutföras, och säger varför, och efter hur många försök när AI själv försökte igen med den. **Försök igen** ber om samma sak igen. |
 | **Stoppad** | Någon stoppade den. **Försök igen** ber om samma sak igen. |
 
-För att följa upp skriver du i rutan längst ned, som syns medan konversationen rullar: svara AI, lägg till kontext eller be om ändringar. Varje svar är nästa tur i samma uppgift: den arbetar på samma branch och pushar till samma pull request så länge den är öppen. En uppgift tar en tur i taget, så rutan väntar medan AI arbetar. Varje turs **Logg** är den ordagranna redogörelsen för vad den gjorde. I en uppgift med mer än en tur växlar en väljare överst på sidan **Logg** mellan dess turer.
+För att följa upp skriver du i rutan längst ned, som syns medan konversationen rullar: svara AI, lägg till kontext eller be om ändringar. Varje svar är nästa tur i samma uppgift: den arbetar på samma branch och pushar till samma pull request så länge den är öppen. En uppgift tar en tur i taget, så rutan väntar medan AI arbetar. Varje turs **Logg** är den ordagranna redogörelsen för vad den gjorde. I en uppgift med mer än en tur växlar en väljare överst på sidan **Logg** mellan dess turer. En uppgift med mer än 200 turer visar sin första tur och sina 199 nyaste, med en linje emellan som säger hur många tidigare turer som inte visas. Överst på sidan räknas fortfarande varje tur.
 
 Den som kan läsa ett repositorium läser dess uppgifter. Att be AI om något, svara och stoppa en uppgift kräver behörighet att redigera repositoriet, och det gör även att se en ändrings diff: alla andra ser vilka filer som har ändrats. Uppgifterna som OneUptime startar på egen hand (nedan) finns också i sitt repositorium, som konversationer du kan svara i.
 
@@ -104,18 +104,18 @@ En körning gör så många LLM-anrop och frågor mot produktionstelemetrin som 
 
 | Var | Klick | Pull requesten |
 | --- | --- | --- |
-| Ett undantags sida **AI-hjälp** | **Åtgärda med AI** | Åtgärdar buggen bakom undantaget. |
-| Ett undantags sida **AI-hjälp** | **Generate Regression Test** | Lägger till ett test som återskapar undantaget och fallerar tills buggen är åtgärdad. |
-| Ett undantags sida **AI-hjälp** | **Förbättra felhantering** | För ett förväntat fel, som ogiltig indata: tar bort användardata ur meddelandet, validerar indata tidigare och markerar felet som hanterat, utan att ändra beteendet. |
+| Ett undantags sida **Åtgärda med AI** | **Åtgärda med AI** | Åtgärdar buggen bakom undantaget. För ett förväntat fel, som ogiltig indata, hanterar den i stället felet bättre: tar bort användardata ur meddelandet, validerar indata tidigare och markerar felet som hanterat, utan att ändra beteendet. |
+| **Andra AI-uppgifter** på ett undantags sida **Åtgärda med AI** | **Starta** på **Skriv ett regressionstest** | Lägger till ett test som återskapar undantaget och fallerar tills buggen är åtgärdad. |
+| **Andra AI-uppgifter** på ett undantags sida **Åtgärda med AI** | **Starta** på **Åtgärda koden** eller **Hantera felet bättre** | Den sortens åtgärd som **Åtgärda med AI** inte gör för undantaget. |
 | Steget **Åtgärd** på en incidents eller ett larms kort **OneUptime AI** | **Öppna pull request med rättning** | Åtgärdar grundorsaken som utredningen publicerade (se [Automatiska kodåtgärder från utredningar](#automatiska-kodåtgärder-från-utredningar)). |
 | Ett spår som är värt att åtgärda | **Åtgärda prestandan med AI** | Åtgärdar det långsamma mönster som knappen nämner, som en N+1-fråga eller anrop som kunde köras parallellt. |
 | En tjänsts sida **Loggar** | **Förbättra loggning** | Gör tjänstens loggar strukturerade, med rätt allvarlighetsgrad och kopplade till dess spår, utan att ändra beteendet. |
 | En tjänsts sida **Spår** | **Förbättra spårning** | Lägger till spans och attribut där tjänstens tracing saknas, utan att ändra beteendet. |
 | En funktion i **Prestandaprofiler** | **Åtgärda med AI** | Får funktionen att göra samma arbete med mindre tid eller minne, med dess profil som underlag. |
 
-De här knapparna visas bara där de kan starta en uppgift. Med AI avstängt för projektet visas ingen av dem, och ett undantags sidomeny har ingen **AI-hjälp**. **Förbättra loggning** och **Förbättra spårning** visas så snart ett repository är anslutet och inget hindrar AI från att arbeta i det (som abonnemanget, slut på AI-krediter eller ingen Runner online), och **Åtgärda prestandan med AI** bara på ett spår som är värt att åtgärda (se [Spårutforskare](/docs/telemetry/traces-explorer)). En funktions **Åtgärda med AI** visas bara för programmets egen kod som tar minst 5 % av profilens tid eller minne, eller vars andel har vuxit med 3 enheter eller mer sedan fönstret den jämförs med (se [Kontinuerlig profilering](/docs/telemetry/profiles)).
+De här knapparna visas bara där de kan starta en uppgift. Med AI avstängt för projektet visas ingen av dem, och ett undantags sidomeny har ingen **Åtgärda med AI**. **Förbättra loggning** och **Förbättra spårning** visas så snart ett repository är anslutet och inget hindrar AI från att arbeta i det (som abonnemanget, slut på AI-krediter eller ingen Runner online), och **Åtgärda prestandan med AI** bara på ett spår som är värt att åtgärda (se [Spårutforskare](/docs/telemetry/traces-explorer)). En funktions **Åtgärda med AI** visas bara för programmets egen kod som tar minst 5 % av profilens tid eller minne, eller vars andel har vuxit med 3 enheter eller mer sedan fönstret den jämförs med (se [Kontinuerlig profilering](/docs/telemetry/profiles)).
 
-För att öppna ett undantags sida **AI-hjälp**, öppna undantaget under **Produkter → Observerbarhet → Undantag** och välj **AI-hjälp** i dess sidomeny. Ett löst eller arkiverat undantag måste först markeras som olöst.
+För att öppna ett undantags sida **Åtgärda med AI**, öppna undantaget under **Produkter → Observerbarhet → Undantag** och välj **Åtgärda med AI** i dess sidomeny. Ett löst eller arkiverat undantag måste först markeras som olöst.
 
 OneUptime AI startar också åtgärdsuppgifter på egen hand: från en utredning som hittar en kodändring, från en som slutar utan slutsats eftersom telemetri saknades, och från AI Insights om undantag och långsamma spår. Var och en har sin egen brytare; se [Automatiska kodåtgärder](/docs/ai/ai-sre#automatiska-kodkorrigeringar).
 
@@ -202,7 +202,7 @@ Kommandona är repositoryinställningar som ditt team skriver och som körs på 
 
 ## När en korrigering har slagits samman
 
-Att slå samman en korrigering åtgärdar ingenting förrän den körs. När en pull-förfrågan med en korrigering har slagits samman väntar OneUptime på en registrerad driftsättning som innehåller den (se [Driftsättningar och ändringar](/docs/telemetry/change-events)) och bevakar i den driftsättningen det som korrigeringen var till för. Uppgiftens pull-förfrågan i Code berättar hur det gick, och det gör även undantagets sida **AI-hjälp**, incidentens AI-loggar och AI-insikten som korrigeringen kom från:
+Att slå samman en korrigering åtgärdar ingenting förrän den körs. När en pull-förfrågan med en korrigering har slagits samman väntar OneUptime på en registrerad driftsättning som innehåller den (se [Driftsättningar och ändringar](/docs/telemetry/change-events)) och bevakar i den driftsättningen det som korrigeringen var till för. Uppgiftens pull-förfrågan i Code berättar hur det gick, och det gör även undantagets sida **Åtgärda med AI**, incidentens AI-loggar och AI-insikten som korrigeringen kom från:
 
 | En korrigering av | Det som bevakas | Det fungerade | Det fungerade inte |
 | --- | --- | --- | --- |
@@ -242,7 +242,7 @@ OneUptime Cloud når bara Git-servrar på internet, aldrig en privat, loopback- 
 
 ## Innan du börjar
 
-En uppgift behöver tre saker. Kods begäransruta och undantagets sida **AI-hjälp** kontrollerar alla tre innan de erbjuder att starta, och säger vad som saknas.
+En uppgift behöver tre saker. Kods begäransruta och undantagets sida **Åtgärda med AI** kontrollerar alla tre innan de erbjuder att starta, och säger vad som saknas.
 
 | Vad | OneUptime Cloud | Självhostad |
 | --- | --- | --- |
@@ -263,7 +263,7 @@ GLOBAL_LLM_PROVIDER_MODEL_NAME=llama3.1
 
 Alla leverantörer som stöds fungerar: se [LLM-leverantörer](/docs/ai/llm-provider) för alla och varje miljövariabel.
 
-Du kopplar inte repositories till tjänster. När en uppgift startar hittar OneUptime repositoriet genom att jämföra filsökvägarna i undantagets stack trace med dina anslutna repositories. När inget matchar faller den tillbaka på ett repository som heter som tjänsten, och sedan på projektets enda repository när det bara finns ett. Sidan **AI-hjälp** visar vilket repository den hittade.
+Du kopplar inte repositories till tjänster. När en uppgift startar hittar OneUptime repositoriet genom att jämföra filsökvägarna i undantagets stack trace med dina anslutna repositories. När inget matchar faller den tillbaka på ett repository som heter som tjänsten, och sedan på projektets enda repository när det bara finns ett. Undantagets sida **Åtgärda med AI** visar vilket repository den hittade.
 
 ### Välj repositoryts Runner
 

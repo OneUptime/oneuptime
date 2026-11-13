@@ -25,6 +25,7 @@ import ScheduledMaintenanceStateService from "../Services/ScheduledMaintenanceSt
 import ScheduledMaintenanceStateTimelineService from "../Services/ScheduledMaintenanceStateTimelineService";
 import StatusPageAnnouncementService from "../Services/StatusPageAnnouncementService";
 import StatusPageDomainService from "../Services/StatusPageDomainService";
+import CustomDomainServerReadiness from "../Utils/CustomDomain/CustomDomainServerReadiness";
 import StatusPageFooterLinkService from "../Services/StatusPageFooterLinkService";
 import StatusPageGroupService from "../Services/StatusPageGroupService";
 import StatusPageHeaderLinkService from "../Services/StatusPageHeaderLinkService";
@@ -34,8 +35,15 @@ import StatusPageService, {
   Service as StatusPageServiceType,
 } from "../Services/StatusPageService";
 import { MergedDowntimeTotals } from "../Services/MonitorStatusTimelineService";
-import { UptimeDailyAggregate } from "../../Types/StatusPage/UptimeDailyAggregate";
-import UptimeDailyAggregateUtil from "../../Utils/StatusPage/UptimeDailyAggregateUtil";
+import {
+  MonitorGroupUptimeDailyAggregate,
+  UptimeDailyAggregate,
+} from "../../Types/StatusPage/UptimeDailyAggregate";
+import UptimeDailyAggregateUtil, {
+  DEFAULT_UPTIME_AGGREGATE_TIMEZONE,
+} from "../../Utils/StatusPage/UptimeDailyAggregateUtil";
+import MonitorGroupUptimeDailyAggregateUtil from "../../Utils/StatusPage/MonitorGroupUptimeDailyAggregateUtil";
+import StatusPageUptimeTimezone from "../../Utils/StatusPage/StatusPageUptimeTimezone";
 import MonitorGroupMergedDowntimeUtil from "../../Utils/StatusPage/MonitorGroupMergedDowntimeUtil";
 import StatusPageSsoService from "../Services/StatusPageSsoService";
 import StatusPageOidcService from "../Services/StatusPageOidcService";
@@ -150,13 +158,20 @@ import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
 } from "../Services/StatusPageSubscriberNotificationTemplateService";
 import { canServeStatusPageCustomizations } from "../Utils/StatusPageCustomizationAccess";
-import ArchivedMonitorResources from "../../Utils/StatusPage/ArchivedMonitorResources";
+import FrozenMonitorResources, {
+  NOT_MONITORED_STATUS_COLOR,
+  NOT_MONITORED_STATUS_NAME,
+} from "../../Utils/StatusPage/FrozenMonitorResources";
+import { MONITORING_OFF_SELECT } from "../../Utils/Monitor/MonitoringOff";
 import IncidentStatusPageScope, {
   INCIDENT_SCOPE_SELECT,
 } from "../Utils/StatusPage/IncidentStatusPageScope";
 import StatusPageVisibilityQuery from "../Utils/StatusPage/StatusPageVisibilityQuery";
 import ScheduledMaintenanceStartUtil from "../../Utils/ScheduledMaintenanceStart";
-import StatusPageOverviewCache from "../Utils/StatusPage/StatusPageOverviewCache";
+import StatusPageOverviewCache, {
+  StatusPageOverviewBase,
+  StatusPageUptimeHistoryInputs,
+} from "../Utils/StatusPage/StatusPageOverviewCache";
 import StatusPageSummaryUtil from "../../Types/StatusPage/StatusPageSummary";
 import StatusPageSummaryBuilder from "../../Utils/StatusPage/StatusPageSummaryBuilder";
 import { StatusPageSubscriberUnsubscribeSource } from "../Utils/StatusPage/StatusPageSubscriberUnsubscribeNotice";
@@ -746,11 +761,12 @@ export default class StatusPageAPI extends BaseAPI<
           }
 
           /*
-           * Get status page resources and current statuses. An archived
-           * monitor's frozen status must not color the badge.
+           * Get status page resources and current statuses. A frozen
+           * status - an archived monitor's, or one whose monitoring is off -
+           * must not color the badge (FrozenMonitorResources).
            */
           const statusPageResources: Array<StatusPageResource> =
-            ArchivedMonitorResources.withoutArchivedMonitors(
+            FrozenMonitorResources.withoutArchivedMonitors(
               await StatusPageResourceService.findBy({
                 query: {
                   statusPageId: statusPageId,
@@ -761,6 +777,7 @@ export default class StatusPageAPI extends BaseAPI<
                     _id: true,
                     currentMonitorStatusId: true,
                     isArchived: true,
+                    ...MONITORING_OFF_SELECT,
                   },
                   monitorGroupId: true,
                 },
@@ -795,12 +812,42 @@ export default class StatusPageAPI extends BaseAPI<
               },
             });
 
+          // The members of each monitor group on the page, read once.
+          const monitorGroupResources: Dictionary<Array<MonitorGroupResource>> =
+            await MonitorGroupService.getMonitorGroupResourcesByGroupIds(
+              statusPageResources
+                .map((resource: StatusPageResource) => {
+                  return resource.monitorGroupId!;
+                })
+                .filter((id: ObjectID) => {
+                  return Boolean(id); // remove nulls
+                }),
+            );
+
           // Get monitor group current statuses
           const monitorGroupCurrentStatuses: Dictionary<ObjectID> =
             await StatusPageService.getMonitorGroupCurrentStatuses({
               statusPageResources,
               monitorStatuses,
+              monitorGroupResources,
             });
+
+          /*
+           * The resources the page draws as Not monitored: nothing checks
+           * them, so they color nothing - and a page of nothing else has no
+           * status to show but that.
+           */
+          const notMonitoredResourceIds: Array<string> =
+            FrozenMonitorResources.getNotMonitoredResourceIds({
+              statusPageResources,
+              monitorGroupResources,
+            });
+
+          const isNothingMonitored: boolean =
+            FrozenMonitorResources.isEveryResourceNotMonitored(
+              statusPageResources,
+              notMonitoredResourceIds,
+            );
 
           // Calculate overall status
           const overallStatus: MonitorStatus | null =
@@ -808,14 +855,19 @@ export default class StatusPageAPI extends BaseAPI<
               statusPageResources,
               monitorStatuses,
               monitorGroupCurrentStatuses,
+              notMonitoredResourceIds,
             });
 
           // Generate SVG badge
           const statusName: string = escapeXml(
-            overallStatus?.name || "Unknown",
+            isNothingMonitored
+              ? NOT_MONITORED_STATUS_NAME
+              : overallStatus?.name || "Unknown",
           );
           const statusColor: string = escapeXml(
-            overallStatus?.color?.toString() || "#808080",
+            isNothingMonitored
+              ? NOT_MONITORED_STATUS_COLOR.toString()
+              : overallStatus?.color?.toString() || "#808080",
           );
 
           const svg: string = `<svg xmlns="http://www.w3.org/2000/svg" width="150" height="20">
@@ -1032,6 +1084,33 @@ export default class StatusPageAPI extends BaseAPI<
         }
 
         return Response.sendEmptySuccessResponse(req, res);
+      },
+    );
+
+    /*
+     * The custom domain readiness proof: answers 200 only to a proof signed
+     * with this installation's secret (CustomDomainServerReadiness), so the
+     * readiness check can tell a request that reached this OneUptime from
+     * one a proxy in front of it answered itself. Reads and writes nothing.
+     */
+    this.router.get(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/custom-domain-readiness/:proof`,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        const proof: string = (req.params["proof"] as string) || "";
+
+        if (!CustomDomainServerReadiness.isValidProof(proof)) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException("Invalid proof."),
+          );
+        }
+
+        Response.setNoCacheHeaders(res);
+
+        return Response.sendJsonObjectResponse(req, res, { proof: proof });
       },
     );
 
@@ -1643,10 +1722,12 @@ export default class StatusPageAPI extends BaseAPI<
 
           /*
            * A subscriber cannot pick a resource the page does not show. The
-           * monitor was only read to decide that, so it is not sent.
+           * monitor was only read to decide that, so it is not sent. A
+           * resource whose monitor has its monitoring off is still on the
+           * page (as Not monitored), so it can still be picked.
            */
           const subscribableResources: Array<StatusPageResource> =
-            ArchivedMonitorResources.withoutArchivedMonitors(resources);
+            FrozenMonitorResources.withoutArchivedMonitors(resources);
 
           for (const resource of subscribableResources) {
             delete resource.monitor;
@@ -1725,6 +1806,7 @@ export default class StatusPageAPI extends BaseAPI<
           const {
             monitorStatuses,
             monitorGroupCurrentStatuses,
+            notMonitoredResourceIds,
             statusPageResources,
             statusPage,
             monitorStatusTimelines,
@@ -1736,6 +1818,10 @@ export default class StatusPageAPI extends BaseAPI<
             startDateForMonitorTimeline: startDate,
             endDateForMonitorTimeline: endDate,
           });
+
+          const notMonitoredResourceIdSet: Set<string> = new Set<string>(
+            notMonitoredResourceIds,
+          );
 
           const downtimeMonitorStatuses: Array<MonitorStatus> =
             statusPage.downtimeMonitorStatuses || [];
@@ -1773,6 +1859,13 @@ export default class StatusPageAPI extends BaseAPI<
             uptimePercent: number | null;
             statusPageResourceName: string;
             currentStatus: MonitorStatus | null;
+            /*
+             * False when nothing checks the resource right now - its
+             * monitor's monitoring is off, or every monitor of its monitor
+             * group has it off - so the page draws it as Not monitored and
+             * its currentStatus is null (FrozenMonitorResources).
+             */
+            isMonitored: boolean;
           };
 
           type StatusPageGroupUptime = {
@@ -1782,6 +1875,8 @@ export default class StatusPageAPI extends BaseAPI<
             statusPageResourceUptimes: Array<ResourceUptime>;
             statusPageGroupName: string | null;
             currentStatus: MonitorStatus | null;
+            // False when every resource beneath the group is not monitored.
+            isMonitored: boolean;
           };
 
           type GetUptimeByStatusPageGroup = (data: {
@@ -1803,6 +1898,7 @@ export default class StatusPageAPI extends BaseAPI<
                 statusPageResourceUptimes: [],
                 statusPageGroupName: data.statusPageGroup?.name || null,
                 currentStatus: null,
+                isMonitored: true,
               };
 
               const group: StatusPageGroup | null = data.statusPageGroup;
@@ -1829,6 +1925,10 @@ export default class StatusPageAPI extends BaseAPI<
                     statusPageResourceName:
                       resource.displayName || resource.monitor?.name || "",
                     currentStatus: null,
+                    isMonitored: !FrozenMonitorResources.isNotMonitored(
+                      resource,
+                      notMonitoredResourceIdSet,
+                    ),
                   };
 
                   // if its a monitor
@@ -1857,6 +1957,11 @@ export default class StatusPageAPI extends BaseAPI<
                     }
 
                     if (!resource.showCurrentStatus) {
+                      resourceUptime.currentStatus = null;
+                    }
+
+                    // Nothing checks it: the page draws it as Not monitored.
+                    if (!resourceUptime.isMonitored) {
                       resourceUptime.currentStatus = null;
                     }
 
@@ -1908,6 +2013,11 @@ export default class StatusPageAPI extends BaseAPI<
                     }
 
                     if (!resource.showCurrentStatus) {
+                      resourceUptime.currentStatus = null;
+                    }
+
+                    // Nothing checks it: the page draws it as Not monitored.
+                    if (!resourceUptime.isMonitored) {
                       resourceUptime.currentStatus = null;
                     }
 
@@ -2035,17 +2145,32 @@ export default class StatusPageAPI extends BaseAPI<
                 });
             }
 
+            /*
+             * A group whose resources are all not monitored has no status:
+             * the page draws it as Not monitored. One with any resource that
+             * is checked takes its status from those alone - the others'
+             * currentStatus is null.
+             */
+            groupUptime.isMonitored =
+              resourceUptimesInSubtree.length === 0 ||
+              resourceUptimesInSubtree.some(
+                (resourceUptime: ResourceUptime) => {
+                  return resourceUptime.isMonitored;
+                },
+              );
+
             if (group.showCurrentStatus) {
-              groupUptime.currentStatus =
-                StatusPageResourceUptimeUtil.getWorstMonitorStatus({
-                  monitorStatuses: resourceUptimesInSubtree
-                    .filter((resourceUptime: ResourceUptime) => {
-                      return resourceUptime.currentStatus !== null;
-                    })
-                    .map((resourceUptime: ResourceUptime) => {
-                      return resourceUptime.currentStatus!;
-                    }),
-                });
+              groupUptime.currentStatus = groupUptime.isMonitored
+                ? StatusPageResourceUptimeUtil.getWorstMonitorStatus({
+                    monitorStatuses: resourceUptimesInSubtree
+                      .filter((resourceUptime: ResourceUptime) => {
+                        return resourceUptime.currentStatus !== null;
+                      })
+                      .map((resourceUptime: ResourceUptime) => {
+                        return resourceUptime.currentStatus!;
+                      }),
+                  })
+                : null;
             }
           }
 
@@ -2094,8 +2219,20 @@ export default class StatusPageAPI extends BaseAPI<
           req: req,
         });
 
-        const response: JSONObject =
-          await this.getCachedOverviewResponse(statusPageId);
+        /*
+         * The visitor's zone, so each bar of the uptime history is one of
+         * their days: the status page sends it in the body; a GET can name
+         * it with ?timezone=. Without one, the history is cut in UTC, as it
+         * always was.
+         */
+        const response: JSONObject = await this.getCachedOverviewResponse(
+          statusPageId,
+          {
+            timezone:
+              (req.body as JSONObject | undefined)?.["timezone"] ??
+              req.query?.["timezone"],
+          },
+        );
 
         // These can serve private-page data on a GET; never let shared caches store them.
         Response.setNoCacheHeaders(res);
@@ -2160,8 +2297,10 @@ export default class StatusPageAPI extends BaseAPI<
           req: req,
         });
 
-        const overview: JSONObject =
-          await this.getCachedOverviewResponse(statusPageId);
+        // the overview without its uptime history, which the summary leaves out.
+        const overview: JSONObject = (
+          await this.getCachedOverviewBase(statusPageId)
+        ).response;
 
         Response.setNoCacheHeaders(res);
 
@@ -3134,7 +3273,7 @@ export default class StatusPageAPI extends BaseAPI<
 
     // get monitors on status page, leaving out archived ones.
     const statusPageResources: Array<StatusPageResource> =
-      ArchivedMonitorResources.withoutArchivedMonitors(
+      FrozenMonitorResources.withoutArchivedMonitors(
         await StatusPageResourceService.findBy({
           query: {
             statusPageId: statusPageId,
@@ -3158,6 +3297,7 @@ export default class StatusPageAPI extends BaseAPI<
               _id: true,
               currentMonitorStatusId: true,
               isArchived: true,
+              ...MONITORING_OFF_SELECT,
             },
           },
 
@@ -5429,15 +5569,33 @@ export default class StatusPageAPI extends BaseAPI<
      */
     startDateForMonitorTimeline?: Date | undefined;
     endDateForMonitorTimeline?: Date | undefined;
+    /*
+     * The overview builds its day buckets apart, in each visitor's zone
+     * (buildUptimeHistory), so it asks for none here. Everything else that
+     * reads this - the uptime endpoint - gets UTC buckets, which is all a
+     * whole-window total needs.
+     */
+    includeUptimeDailyAggregate?: boolean | undefined;
   }): Promise<{
     statusPageResources: StatusPageResource[];
     monitorStatuses: MonitorStatus[];
     monitorStatusTimelines: MonitorStatusTimeline[];
     uptimeDailyAggregate: UptimeDailyAggregate;
     monitorGroupCurrentStatuses: Dictionary<ObjectID>;
+    /*
+     * The ids of the resources the page draws as Not monitored
+     * (FrozenMonitorResources.getNotMonitoredResourceIds): a monitor whose
+     * monitoring is off, a monitor group whose monitors all have it off.
+     */
+    notMonitoredResourceIds: Array<string>;
     statusPageGroups: StatusPageGroup[];
     statusPage: StatusPage;
     monitorsOnStatusPage: ObjectID[];
+    /*
+     * The monitors whose history or uptime the page shows: each resource's
+     * own monitor, and every monitor of a group whose resource does.
+     */
+    monitorsOnStatusPageForTimeline: ObjectID[];
     monitorsInGroup: Dictionary<ObjectID[]>;
     startDateForMonitorTimeline: Date;
     endDateForMonitorTimeline: Date;
@@ -5560,10 +5718,11 @@ export default class StatusPageAPI extends BaseAPI<
     /*
      * get monitors on status page. An archived monitor is retired and its
      * status frozen: it is not shown, and its timeline is not read
-     * (ArchivedMonitorResources).
+     * (FrozenMonitorResources). A monitor whose monitoring is off is shown,
+     * as Not monitored: monitor.disableActiveMonitoring is read to tell.
      */
     const statusPageResources: Array<StatusPageResource> =
-      ArchivedMonitorResources.withoutArchivedMonitors(
+      FrozenMonitorResources.withoutArchivedMonitors(
         await StatusPageResourceService.findBy({
           query: {
             statusPageId: objectId,
@@ -5587,6 +5746,7 @@ export default class StatusPageAPI extends BaseAPI<
               _id: true,
               currentMonitorStatusId: true,
               isArchived: true,
+              ...MONITORING_OFF_SELECT,
             },
             monitorGroupId: true,
             showUptimePercent: true,
@@ -5651,10 +5811,25 @@ export default class StatusPageAPI extends BaseAPI<
         monitorGroupIds,
       );
 
+    /*
+     * A group whose monitors all have monitoring off is left out: nothing
+     * checks it, so the status it is left at says nothing. The page draws
+     * it as Not monitored, with each monitor whose monitoring is off.
+     */
     const monitorGroupStatuses: Dictionary<MonitorStatus> =
-      await MonitorGroupService.getCurrentStatusesForMonitorGroups({
-        monitorGroupIds: monitorGroupIds,
-        monitorStatuses: monitorStatuses,
+      FrozenMonitorResources.withoutNotMonitoredMonitorGroups({
+        monitorGroupStatuses:
+          await MonitorGroupService.getCurrentStatusesForMonitorGroups({
+            monitorGroupIds: monitorGroupIds,
+            monitorStatuses: monitorStatuses,
+            monitorGroupResources: monitorGroupResourcesByGroupId,
+          }),
+        monitorGroupResources: monitorGroupResourcesByGroupId,
+      });
+
+    const notMonitoredResourceIds: Array<string> =
+      FrozenMonitorResources.getNotMonitoredResourceIds({
+        statusPageResources: statusPageResources,
         monitorGroupResources: monitorGroupResourcesByGroupId,
       });
 
@@ -5735,11 +5910,18 @@ export default class StatusPageAPI extends BaseAPI<
      * returns a few recent days and silently drops the rest.
      */
     const uptimeDailyAggregate: UptimeDailyAggregate =
-      await StatusPageService.getUptimeDailyAggregateForStatusPage({
-        monitorIds: monitorsOnStatusPageForTimeline,
-        startDate: startDateForMonitorTimeline,
-        endDate: endDateForMonitorTimeline,
-      });
+      data.includeUptimeDailyAggregate === false
+        ? {
+            monitors: [],
+            isComplete: true,
+            completeFrom: null,
+            timezone: DEFAULT_UPTIME_AGGREGATE_TIMEZONE,
+          }
+        : await StatusPageService.getUptimeDailyAggregateForStatusPage({
+            monitorIds: monitorsOnStatusPageForTimeline,
+            startDate: startDateForMonitorTimeline,
+            endDate: endDateForMonitorTimeline,
+          });
 
     // return everything.
 
@@ -5747,11 +5929,13 @@ export default class StatusPageAPI extends BaseAPI<
       statusPageResources,
       monitorStatuses,
       monitorGroupCurrentStatuses,
+      notMonitoredResourceIds,
       statusPageGroups: groups,
       monitorStatusTimelines,
       uptimeDailyAggregate,
       statusPage,
       monitorsOnStatusPage,
+      monitorsOnStatusPageForTimeline,
       monitorsInGroup,
       startDateForMonitorTimeline,
       endDateForMonitorTimeline,
@@ -5835,16 +6019,119 @@ export default class StatusPageAPI extends BaseAPI<
    */
   public async getCachedOverviewResponse(
     statusPageId: ObjectID,
+    options?: {
+      /*
+       * The zone the visitor's uptime history is cut in - whatever they
+       * sent, resolved by StatusPageUptimeTimezone (UTC when it cannot be
+       * used). Every visitor shares the rest of the overview; the history
+       * is kept beside it per clock.
+       */
+      timezone?: unknown;
+    },
   ): Promise<JSONObject> {
-    return await StatusPageOverviewCache.getOrBuild({
+    const base: StatusPageOverviewBase =
+      await this.getCachedOverviewBase(statusPageId);
+
+    const timezone: string = StatusPageUptimeTimezone.resolve(
+      options?.timezone,
+    );
+
+    return await StatusPageOverviewCache.getOrBuildOverviewInZone({
+      overview: base,
+      timezone: timezone,
+      build: async (): Promise<{ json: JSONObject; cutIn: string }> => {
+        return await this.buildUptimeHistory({
+          inputs: base.uptimeHistory,
+          timezone: timezone,
+        });
+      },
+    });
+  }
+
+  /*
+   * The page's overview without its uptime history, which is the same for
+   * every visitor - what the summary reads. Cached as the overview is.
+   */
+  public async getCachedOverviewBase(
+    statusPageId: ObjectID,
+  ): Promise<StatusPageOverviewBase> {
+    return await StatusPageOverviewCache.getOrBuild<StatusPageOverviewBase>({
       statusPageId: statusPageId,
       readProjectId: async (): Promise<ObjectID | null> => {
         return await StatusPageService.getProjectIdOfStatusPage(statusPageId);
       },
-      build: async (): Promise<JSONObject> => {
-        return await this.buildOverviewResponse(statusPageId);
+      build: async (): Promise<StatusPageOverviewBase> => {
+        return await this.buildOverviewBase(statusPageId);
       },
     });
+  }
+
+  /*
+   * The page's uptime history in one zone: every monitor's day buckets
+   * (uptimeDailyAggregate) and every monitor group's
+   * (monitorGroupUptimeDailyAggregate), cut on that zone's days over the
+   * overview's window, so each bar is one of the visitor's calendar days.
+   *
+   * A zone the database cannot cut days in - its tzdata older than the
+   * zone, or without a name moment still knows - would fail the whole
+   * overview, so the history falls back to UTC, the days the page always
+   * drew, and says so in its `timezone`.
+   */
+  @CaptureSpan()
+  public async buildUptimeHistory(data: {
+    inputs: StatusPageUptimeHistoryInputs;
+    timezone: string;
+  }): Promise<{ json: JSONObject; cutIn: string }> {
+    const build: (
+      timezone: string,
+    ) => Promise<{ json: JSONObject; cutIn: string }> = async (
+      timezone: string,
+    ): Promise<{ json: JSONObject; cutIn: string }> => {
+      const [uptimeDailyAggregate, monitorGroupUptimeDailyAggregate]: [
+        UptimeDailyAggregate,
+        MonitorGroupUptimeDailyAggregate,
+      ] = await Promise.all([
+        StatusPageService.getUptimeDailyAggregateForStatusPage({
+          monitorIds: data.inputs.monitorIds,
+          startDate: data.inputs.startDate,
+          endDate: data.inputs.endDate,
+          timezone: timezone,
+        }),
+        StatusPageService.getMonitorGroupUptimeDailyAggregateForStatusPage({
+          monitorGroups: data.inputs.monitorGroups,
+          rankedMonitorStatusIds: data.inputs.rankedMonitorStatusIds,
+          startDate: data.inputs.startDate,
+          endDate: data.inputs.endDate,
+          timezone: timezone,
+        }),
+      ]);
+
+      // the overview's keys this adds to what every visitor shares.
+      const response: JSONObject = {
+        uptimeDailyAggregate:
+          UptimeDailyAggregateUtil.toJSON(uptimeDailyAggregate),
+        monitorGroupUptimeDailyAggregate:
+          MonitorGroupUptimeDailyAggregateUtil.toJSON(
+            monitorGroupUptimeDailyAggregate,
+          ),
+      };
+
+      return { json: response, cutIn: timezone };
+    };
+
+    if (data.timezone === DEFAULT_UPTIME_AGGREGATE_TIMEZONE) {
+      return await build(DEFAULT_UPTIME_AGGREGATE_TIMEZONE);
+    }
+
+    try {
+      return await build(data.timezone);
+    } catch (err) {
+      logger.error(
+        `Could not cut a status page's uptime history in ${data.timezone}; drawing it in UTC: ${String(err)}`,
+      );
+
+      return await build(DEFAULT_UPTIME_AGGREGATE_TIMEZONE);
+    }
   }
 
   /*
@@ -5857,7 +6144,32 @@ export default class StatusPageAPI extends BaseAPI<
   @CaptureSpan()
   public async buildOverviewResponse(
     statusPageId: ObjectID,
+    options?: {
+      // the zone to cut the uptime history in; see getCachedOverviewResponse.
+      timezone?: unknown;
+    },
   ): Promise<JSONObject> {
+    const base: StatusPageOverviewBase =
+      await this.buildOverviewBase(statusPageId);
+
+    const history: { json: JSONObject; cutIn: string } =
+      await this.buildUptimeHistory({
+        inputs: base.uptimeHistory,
+        timezone: StatusPageUptimeTimezone.resolve(options?.timezone),
+      });
+
+    return { ...base.response, ...history.json };
+  }
+
+  /*
+   * Everything in the overview but its uptime history, which is cut in each
+   * visitor's zone (buildUptimeHistory), and what that history is built
+   * from. A pure function of the statusPageId, like the overview.
+   */
+  @CaptureSpan()
+  public async buildOverviewBase(
+    statusPageId: ObjectID,
+  ): Promise<StatusPageOverviewBase> {
     /*
      * The timeline window comes from the status page's configured
      * showUptimeHistoryInDays. getStatusPageResourcesAndTimelines
@@ -5868,17 +6180,19 @@ export default class StatusPageAPI extends BaseAPI<
     const {
       monitorStatuses,
       monitorGroupCurrentStatuses,
+      notMonitoredResourceIds,
       statusPageResources,
       statusPage,
       monitorsOnStatusPage,
+      monitorsOnStatusPageForTimeline,
       monitorStatusTimelines,
-      uptimeDailyAggregate,
       statusPageGroups,
       monitorsInGroup,
       startDateForMonitorTimeline: startDate,
       endDateForMonitorTimeline: endDate,
     } = await this.getStatusPageResourcesAndTimelines({
       statusPageId: statusPageId,
+      includeUptimeDailyAggregate: false,
     });
 
     /*
@@ -6745,6 +7059,7 @@ export default class StatusPageAPI extends BaseAPI<
         statusPageResources,
         monitorStatuses,
         monitorGroupCurrentStatuses,
+        notMonitoredResourceIds,
       });
 
     /*
@@ -6800,8 +7115,6 @@ export default class StatusPageAPI extends BaseAPI<
         monitorStatusTimelines,
         MonitorStatusTimeline,
       ),
-      uptimeDailyAggregate:
-        UptimeDailyAggregateUtil.toJSON(uptimeDailyAggregate),
       monitorGroupMergedDowntime: MonitorGroupMergedDowntimeUtil.toJSON(
         mergedDowntimeByMonitorGroupId,
       ),
@@ -6840,6 +7153,11 @@ export default class StatusPageAPI extends BaseAPI<
       monitorGroupCurrentStatuses: JSONFunctions.serialize(
         monitorGroupCurrentStatuses,
       ),
+      /*
+       * The resources the page draws as Not monitored, in gray, in place of
+       * a status: nothing checks them right now (FrozenMonitorResources).
+       */
+      notMonitoredResourceIds: notMonitoredResourceIds,
       monitorsInGroup: JSONFunctions.serialize(monitorsInGroup),
       timelineIncidents:
         this.serializeIncidentsForStatusPage(timelineIncidents),
@@ -6849,7 +7167,27 @@ export default class StatusPageAPI extends BaseAPI<
       ),
     };
 
-    return response;
+    return {
+      response: response,
+      uptimeHistory: {
+        monitorIds: monitorsOnStatusPageForTimeline,
+        monitorGroups: StatusPageServiceType.getMonitorGroupsForUptimeHistory({
+          statusPageResources: statusPageResources,
+          monitorsInGroup: monitorsInGroup,
+        }),
+        rankedMonitorStatusIds:
+          MonitorGroupUptimeDailyAggregateUtil.getRankedMonitorStatusIds({
+            monitorStatuses: monitorStatuses,
+            downtimeMonitorStatusIds: (statusPage.downtimeMonitorStatuses || [])
+              .map((status: MonitorStatus): string => {
+                return status.id?.toString() || "";
+              })
+              .filter(Boolean),
+          }),
+        startDate: startDate,
+        endDate: endDate,
+      },
+    };
   }
 
   /*

@@ -4,7 +4,11 @@ import StateChangeFollowOn from "../Utils/StateChangeFollowOn";
 import Exception from "../../Types/Exception/Exception";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
-import { OnCreate, OnDelete } from "../Types/Database/Hooks";
+import {
+  DatabaseTriggerType,
+  OnCreate,
+  OnDelete,
+} from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import logger, { LogAttributes } from "../Utils/Logger";
 import ProjectScopedReferenceValidator from "../Utils/Database/ProjectScopedReferenceValidator";
@@ -27,6 +31,8 @@ import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
 import MonitorStatusService from "./MonitorStatusService";
 import ServerException from "../../Types/Exception/ServerException";
 import {
+  MonitorGroupUptimeDaily,
+  MonitorGroupUptimeDailyAggregate,
   MonitorUptimeDailyAggregate,
   UptimeDailyAggregate,
   UptimeDayBucket,
@@ -45,7 +51,15 @@ import {
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import MonitorUptimeSummaryUtil from "../../Utils/Monitor/MonitorUptimeSummaryUtil";
 import UptimeDailyAggregateUtil from "../../Utils/StatusPage/UptimeDailyAggregateUtil";
-import FeedMarkdown, { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "../../Utils/Markdown/FeedMarkdown";
+import MonitoringOff, {
+  MONITORING_OFF_SELECT,
+} from "../../Utils/Monitor/MonitoringOff";
+import Monitor from "../../Models/DatabaseModels/Monitor";
+import { JSONObject } from "../../Types/JSON";
 import StateTimelineRowsKept from "../Utils/Database/StateTimelineRowsKept";
 import MonitorStatusEventDelete, {
   StatusEventDeleteDecision,
@@ -68,6 +82,26 @@ export const MONITOR_STATUS_SAME_AS_PREVIOUS_ERROR_MESSAGE: string =
  */
 export const MONITOR_STATUS_TIMELINE_LOCK_ERROR_MESSAGE: string =
   "Could not acquire the monitor status timeline lock for this monitor.";
+
+/*
+ * THE STATUS EVENTS THAT ONLY MARK MONITORING TURNED OFF OR BACK ON.
+ *
+ * A monitor's monitoring turned off or on starts a status event of its own,
+ * with the status the monitor holds and isMonitoringOff saying which
+ * (recordMonitoringSwitch, issue #6480): uptime, status pages and SLOs then
+ * leave out the time between. No status changed, so such a create posts no
+ * feed item, stamps no network device and starts no workflow. Its create is
+ * kept here from onBeforeCreate (buildOnCreate) on - DatabaseService hands
+ * every hook the same CreateBy - and its row's id while the create runs, for
+ * onTriggerWorkflow, which is told the id alone.
+ */
+const monitoringSwitchCreates: WeakSet<CreateBy<MonitorStatusTimeline>> =
+  new WeakSet<CreateBy<MonitorStatusTimeline>>();
+const monitoringSwitchRowIdByCreate: WeakMap<
+  CreateBy<MonitorStatusTimeline>,
+  string
+> = new WeakMap<CreateBy<MonitorStatusTimeline>, string>();
+const monitoringSwitchRowIds: Set<string> = new Set<string>();
 
 // One window for getRollingUptimeTotals. Every window ends at its endDate.
 export interface RollingUptimeWindowRequest {
@@ -101,6 +135,28 @@ export interface MergedDowntimeRow {
   coveredSeconds: string | number | null;
   downtimeSeconds: string | number | null;
 }
+
+/*
+ * A row of getMonitorGroupDailyUptimeAggregate's SQL: one group's day
+ * bucket, with the day's union of the group's periods ranked at or above
+ * each level, from level 1 (every status: the coverage) up - or NULL for a
+ * day nothing of the group overlapped. Typed loosely because the pg driver
+ * hands some numeric types back as strings.
+ */
+export interface MonitorGroupDailyUptimeRow {
+  groupKey: string | number;
+  bucketStart: Date | string;
+  bucketEnd: Date | string;
+  daySeconds: string | number;
+  unions: Array<string | number | null> | null;
+}
+
+/*
+ * A group's time at one status is a difference of two sums of doubles, so a
+ * status it spent no time in can come out a few ulps above zero. Anything
+ * under a microsecond is no time at all.
+ */
+export const MINIMUM_GROUP_STATUS_SECONDS: number = 0.000001;
 
 /*
  * What onBeforeDelete hands onDeleteSuccess for one status event deleted by
@@ -190,6 +246,16 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
    *    short. Coverage is compared with a tolerance by the client rather than
    *    for exact equality.
    *
+   * 4. Time with the monitor's monitoring turned off (`isMonitoringOff`,
+   *    issue #6480) is no status: nothing checked the monitor, so its row
+   *    holds only what the last check saw. Such a row is dropped AFTER the
+   *    LEAD, never before it - filtered first, the open row before the switch
+   *    would run on across the time monitoring was off. It leaves that time
+   *    uncovered, so a day it fills reads as no data, and a day it fills in
+   *    part is measured over the rest. getMonitorGroupDailyUptimeAggregate,
+   *    getMergedDowntimeSeconds and getRollingUptimeTotals drop it the same
+   *    way.
+   *
    * A trap that is worth recording even though this SQL no longer contains it:
    * PostgreSQL's LEAST/GREATEST IGNORE NULLs, returning the smallest or
    * largest NON-NULL argument. An earlier draft joined rows to buckets, and on
@@ -241,6 +307,7 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
       src AS (
         SELECT t."monitorId" AS monitor_id,
                t."monitorStatusId" AS status_id,
+               t."isMonitoringOff" IS TRUE AS is_off,
                GREATEST(t."startsAt", p.win_start) AS s,
                LEAST(
                  COALESCE(
@@ -275,6 +342,7 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
           interval '1 day'
         ) AS gs
         WHERE src.e > src.s
+          AND NOT src.is_off
       ),
       agg AS (
         SELECT monitor_id,
@@ -426,6 +494,403 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
   }
 
   /**
+   * Per-day status durations for MONITOR GROUPS, for the status page's
+   * uptime bars: how long each group spent in each status, each day.
+   *
+   * WHY THIS EXISTS
+   *
+   * A monitor group's bars used to be painted in the browser from the
+   * timeline rows the overview ships. Those rows arrive under one LIMIT_MAX
+   * (10,000) across every monitor on the page, newest first, so on a page
+   * with a flapping monitor they hold only the last few days of the window.
+   * And the browser merged them by comparing each row with the last one it
+   * kept, so a finished day of a group added up to sixteen hours on one day
+   * and to nine days on another (issue #6697). getDailyUptimeAggregate has
+   * no cap, but it sums each monitor on its own, and a group is not the sum
+   * of its monitors: two monitors Offline over the same hour are one hour of
+   * the group's, not two.
+   *
+   * WHAT IT COUNTS
+   *
+   * At every instant a group is in the worst status among its monitors
+   * recorded then - the docs' "one monitor going Offline makes the whole
+   * group Offline". Worst is the order `rankedMonitorStatusIds` gives, the
+   * worst last: the page's downtime statuses above every other, each part in
+   * the project's priority order (MonitorGroupUptimeDailyAggregateUtil.
+   * getRankedMonitorStatusIds). So the time a day spends in a downtime status
+   * is exactly the time at least one monitor was down - what
+   * getMergedDowntimeSeconds counts over the window, which the group's
+   * uptime percentage is read from - and a day's durations add up to the time
+   * at least one monitor was recorded, never more than the day. A status not
+   * in the list is left out.
+   *
+   * The rows, and where each one ends, are exactly getDailyUptimeAggregate's
+   * src CTE, and the day grid is its buckets CTE, so a group's bars line up
+   * with every monitor's.
+   *
+   * THE MERGE
+   *
+   * The worst status covers an instant at level k or above exactly when a
+   * period of rank k or above covers it. So for each level k the day's union
+   * of the periods ranked k or above, U(k), is the time spent at k or worse,
+   * and the time spent at exactly k is U(k) - U(k + 1). U(1) is the day's
+   * coverage. Each union is getMergedDowntimeSeconds' running MAX(end): every
+   * period adds only what reaches past the latest end before it, in start
+   * order. One window pass over each group's day computes every level's
+   * union (getMonitorGroupDailyUptimeAggregateSql).
+   *
+   * Groups are numbered by their place in `monitorGroups`, and the window is
+   * partitioned by that integer rather than by the group id's text, which
+   * would sort on a collated key.
+   *
+   * Checked against a reference written apart from it - the rows merged by
+   * WorstStatusTimeline and cut into the strip's days - on drawn timelines
+   * in seven zones, and against getMergedDowntimeSeconds over the window
+   * (MonitorGroupDailyUptimePostgres.test.ts).
+   *
+   * Seconds are double precision and never rounded, as in the aggregate.
+   */
+  @CaptureSpan()
+  public async getMonitorGroupDailyUptimeAggregate(data: {
+    monitorGroups: Array<{
+      monitorGroupId: ObjectID;
+      monitorIds: Array<ObjectID>;
+    }>;
+    rankedMonitorStatusIds: Array<ObjectID | string>;
+    startDate: Date;
+    endDate: Date;
+    timezone?: string | undefined;
+  }): Promise<MonitorGroupUptimeDailyAggregate> {
+    const timezone: string = data.timezone || "UTC";
+
+    if (data.monitorGroups.length === 0) {
+      return { monitorGroups: [], timezone: timezone };
+    }
+
+    const groupKeys: Array<number> = [];
+    const memberMonitorIds: Array<string> = [];
+
+    data.monitorGroups.forEach(
+      (
+        monitorGroup: { monitorGroupId: ObjectID; monitorIds: Array<ObjectID> },
+        index: number,
+      ) => {
+        for (const monitorId of monitorGroup.monitorIds) {
+          groupKeys.push(index + 1);
+          memberMonitorIds.push(monitorId.toString());
+        }
+      },
+    );
+
+    const rankedMonitorStatusIds: Array<string> =
+      data.rankedMonitorStatusIds.map((id: ObjectID | string): string => {
+        return id.toString();
+      });
+
+    const sql: string = Service.getMonitorGroupDailyUptimeAggregateSql({
+      levelCount: rankedMonitorStatusIds.length,
+    });
+
+    const rows: Array<MonitorGroupDailyUptimeRow> =
+      await this.getRepository().manager.query(sql, [
+        groupKeys,
+        memberMonitorIds,
+        data.startDate,
+        data.endDate,
+        timezone,
+        rankedMonitorStatusIds,
+        data.monitorGroups.length,
+      ]);
+
+    return Service.toMonitorGroupUptimeDailyAggregate({
+      rows: rows,
+      monitorGroupIds: data.monitorGroups.map(
+        (monitorGroup: { monitorGroupId: ObjectID }): ObjectID => {
+          return monitorGroup.monitorGroupId;
+        },
+      ),
+      rankedMonitorStatusIds: rankedMonitorStatusIds,
+      timezone: timezone,
+    });
+  }
+
+  /*
+   * The statement getMonitorGroupDailyUptimeAggregate runs, for a project
+   * with `levelCount` ranked statuses. Public so its shape can be pinned
+   * without a database.
+   *
+   * Parameters: $1 int[] and $2 uuid[], each group's number (its place in
+   * the request, from 1) beside one of its monitors; $3 and $4 the window;
+   * $5 the zone; $6 uuid[] the ranked statuses, the worst last; $7 how many
+   * groups there are.
+   *
+   * Only integers go into its text - one column per level - never an id or
+   * a name: those are all parameters.
+   *
+   * THE DAY GRID. The local midnights of the window's days are worked out
+   * once, as the aggregate's buckets CTE works them out, into one array, and
+   * each period finds its first and last day in it with width_bucket, a
+   * binary search. A period inside one day - nearly every row of a flapping
+   * monitor - is one segment, with no per-row zone conversion and no
+   * generate_series; only a period that crosses midnight is fanned out, one
+   * segment per day. Converting every row's start and end to the zone and
+   * calling generate_series for it, as the aggregate does, was most of the
+   * statement's time: 1.1M rows of three monitors flapping every 20 seconds
+   * took 4.0 s that way and take 1.9 s this way.
+   *
+   * THE MERGE. One window pass over each group's day, in start order, keeps
+   * a running MAX(end) per level - over the periods ranked at or above it,
+   * by a FILTER - and each period adds to a level's union what reaches past
+   * that level's running end. Counting each period once per level, in a
+   * window per level, sorted twice as many rows and took a third longer.
+   */
+  public static getMonitorGroupDailyUptimeAggregateSql(data: {
+    levelCount: number;
+  }): string {
+    const levelCount: number = Math.max(1, Math.floor(data.levelCount) || 0);
+
+    const reachedColumns: Array<string> = [];
+    const unionColumns: Array<string> = [];
+
+    for (let level: number = 1; level <= levelCount; level++) {
+      const filter: string =
+        level === 1 ? "" : ` FILTER (WHERE status_rank >= ${level})`;
+
+      reachedColumns.push(
+        `MAX(seg_end)${filter} OVER earlier AS reached_${level}`,
+      );
+      unionColumns.push(
+        `COALESCE(SUM(GREATEST(EXTRACT(EPOCH FROM (seg_end - GREATEST(seg_start, COALESCE(reached_${level}, seg_start)))), 0))${filter}, 0)`,
+      );
+    }
+
+    return `
+      WITH params AS (
+        SELECT $3::timestamptz AS win_start,
+               LEAST($4::timestamptz, now()) AS eff_end,
+               $5::text AS tz
+      ),
+      grid AS (
+        SELECT array_agg((d AT TIME ZONE p.tz) ORDER BY d) AS starts
+        FROM params p,
+             generate_series(
+               date_trunc('day', p.win_start AT TIME ZONE p.tz),
+               date_trunc('day', p.eff_end AT TIME ZONE p.tz) + interval '1 day',
+               interval '1 day'
+             ) AS d
+      ),
+      members AS (
+        SELECT DISTINCT m.group_key, m.monitor_id
+        FROM UNNEST($1::int[], $2::uuid[]) AS m(group_key, monitor_id)
+      ),
+      ranks AS (
+        SELECT r.status_id, r.status_rank::int AS status_rank
+        FROM UNNEST($6::uuid[]) WITH ORDINALITY AS r(status_id, status_rank)
+      ),
+      src AS (
+        SELECT t."monitorId" AS monitor_id,
+               t."monitorStatusId" AS status_id,
+               t."isMonitoringOff" IS TRUE AS is_off,
+               GREATEST(t."startsAt", p.win_start) AS s,
+               LEAST(
+                 COALESCE(
+                   t."endsAt",
+                   LEAD(t."startsAt") OVER (
+                     PARTITION BY t."monitorId"
+                     ORDER BY t."startsAt", t."endsAt" NULLS LAST
+                   ),
+                   p.eff_end
+                 ),
+                 p.eff_end
+               ) AS e
+        FROM "MonitorStatusTimeline" t
+        CROSS JOIN params p
+        WHERE t."monitorId" = ANY($2::uuid[])
+          AND t."deletedAt" IS NULL
+          AND t."startsAt" <= p.eff_end
+          AND (t."endsAt" >= p.win_start OR t."endsAt" IS NULL)
+      ),
+      periods AS (
+        SELECT mb.group_key,
+               rk.status_rank,
+               src.s,
+               src.e,
+               width_bucket(src.s, g.starts) AS first_day,
+               width_bucket(src.e - interval '1 microsecond', g.starts) AS last_day
+        FROM src
+        JOIN members mb ON mb.monitor_id = src.monitor_id
+        JOIN ranks rk ON rk.status_id = src.status_id
+        CROSS JOIN grid g
+        WHERE src.e > src.s
+          AND NOT src.is_off
+      ),
+      split AS (
+        SELECT group_key,
+               status_rank,
+               first_day AS day_index,
+               s AS seg_start,
+               e AS seg_end
+        FROM periods
+        WHERE first_day = last_day
+        UNION ALL
+        SELECT pr.group_key,
+               pr.status_rank,
+               di AS day_index,
+               GREATEST(pr.s, g.starts[di]) AS seg_start,
+               LEAST(pr.e, g.starts[di + 1]) AS seg_end
+        FROM periods pr
+        CROSS JOIN grid g,
+        LATERAL generate_series(pr.first_day, pr.last_day) AS di
+        WHERE pr.first_day <> pr.last_day
+      ),
+      reach AS (
+        SELECT group_key,
+               day_index,
+               status_rank,
+               seg_start,
+               seg_end,
+               ${reachedColumns.join(",\n               ")}
+        FROM split
+        WHERE seg_end > seg_start
+        WINDOW earlier AS (
+          PARTITION BY group_key, day_index
+          ORDER BY seg_start, seg_end
+          ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING
+        )
+      ),
+      day_unions AS (
+        SELECT group_key,
+               day_index,
+               ARRAY[
+                 ${unionColumns.join(",\n                 ")}
+               ]::double precision[] AS unions
+        FROM reach
+        GROUP BY group_key, day_index
+      ),
+      days AS (
+        SELECT di AS day_index,
+               GREATEST(g.starts[di], p.win_start) AS bucket_start,
+               LEAST(g.starts[di + 1], p.eff_end) AS bucket_end
+        FROM grid g
+        CROSS JOIN params p,
+        LATERAL generate_series(1, array_length(g.starts, 1) - 1) AS di
+      )
+      SELECT gk.group_key AS "groupKey",
+             d.bucket_start AS "bucketStart",
+             d.bucket_end AS "bucketEnd",
+             EXTRACT(EPOCH FROM (d.bucket_end - d.bucket_start))::bigint
+               AS "daySeconds",
+             u.unions AS "unions"
+      FROM generate_series(1, $7::int) AS gk(group_key)
+      CROSS JOIN days d
+      LEFT JOIN day_unions u ON u.group_key = gk.group_key
+                            AND u.day_index = d.day_index
+      WHERE d.bucket_end > d.bucket_start
+      ORDER BY gk.group_key, d.bucket_start
+    `;
+  }
+
+  /*
+   * Shape-only step, public so the arithmetic can be tested without a
+   * database. One row per (group, day): the day's unions U(1), U(2), ... -
+   * U(level) the union of the group's periods ranked `level` or above - or
+   * NULL for a day nothing of the group overlapped.
+   *
+   * The time at exactly level k is U(k) - U(k + 1), and the coverage is
+   * U(1). The unions are separate sums of doubles, so two levels covering
+   * the same time can differ in their last bits: a difference below a
+   * microsecond is no time at all, and one below zero is clamped away. Every
+   * group asked for comes back, in the order asked, with a bucket for every
+   * day.
+   */
+  public static toMonitorGroupUptimeDailyAggregate(data: {
+    rows: Array<MonitorGroupDailyUptimeRow>;
+    monitorGroupIds: Array<ObjectID>;
+    rankedMonitorStatusIds: Array<string>;
+    timezone: string;
+  }): MonitorGroupUptimeDailyAggregate {
+    const bucketsByGroup: Array<Map<number, UptimeDayBucket>> =
+      data.monitorGroupIds.map((): Map<number, UptimeDayBucket> => {
+        return new Map<number, UptimeDayBucket>();
+      });
+
+    for (const row of data.rows) {
+      const buckets: Map<number, UptimeDayBucket> | undefined =
+        bucketsByGroup[Number(row.groupKey) - 1];
+
+      if (!buckets) {
+        continue;
+      }
+
+      const bucketStart: Date = new Date(row.bucketStart);
+      const bucketEnd: Date = new Date(row.bucketEnd);
+
+      if (
+        Number.isNaN(bucketStart.getTime()) ||
+        Number.isNaN(bucketEnd.getTime())
+      ) {
+        continue;
+      }
+
+      const unions: Array<number> = Array.isArray(row.unions)
+        ? row.unions.map((value: string | number | null): number => {
+            const seconds: number = Number(value);
+            return Number.isFinite(seconds) && seconds > 0 ? seconds : 0;
+          })
+        : [];
+
+      const unionAt: (level: number) => number = (level: number): number => {
+        return unions[level - 1] || 0;
+      };
+
+      const bucket: UptimeDayBucket = {
+        bucketStart: bucketStart,
+        bucketEnd: bucketEnd,
+        daySeconds: Number(row.daySeconds) || 0,
+        coveredSeconds: unionAt(1),
+        statusDurations: [],
+      };
+
+      for (
+        let level: number = 1;
+        level <= data.rankedMonitorStatusIds.length;
+        level++
+      ) {
+        const seconds: number = unionAt(level) - unionAt(level + 1);
+
+        if (!(seconds >= MINIMUM_GROUP_STATUS_SECONDS)) {
+          continue;
+        }
+
+        bucket.statusDurations.push({
+          monitorStatusId: new ObjectID(
+            data.rankedMonitorStatusIds[level - 1]!,
+          ),
+          seconds: seconds,
+        });
+      }
+
+      buckets.set(bucketStart.getTime(), bucket);
+    }
+
+    return {
+      monitorGroups: data.monitorGroupIds.map(
+        (monitorGroupId: ObjectID, index: number): MonitorGroupUptimeDaily => {
+          return {
+            monitorGroupId: monitorGroupId,
+            buckets: Array.from(bucketsByGroup[index]!.values()).sort(
+              (a: UptimeDayBucket, b: UptimeDayBucket): number => {
+                return a.bucketStart.getTime() - b.bucketStart.getTime();
+              },
+            ),
+          };
+        },
+      ),
+      timezone: data.timezone,
+    };
+  }
+
+  /**
    * How long a SET of monitors was down over [startDate, endDate]: the time
    * at least one of them was in a downtime status, and the time at least one
    * of them was recorded at all, so the caller can take a percentage.
@@ -456,7 +921,10 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
    *
    * Downtime statuses are picked out AFTER that LEAD, never before it.
    * Filtered first, an open Offline row would run on to the next Offline
-   * row's start, across the Operational rows in between.
+   * row's start, across the Operational rows in between. So are the rows
+   * that mark a monitor's monitoring off, which cover nothing (see
+   * getDailyUptimeAggregate): the group is recorded at an instant when one
+   * of its monitors was checked then.
    *
    * THE MERGE
    *
@@ -508,6 +976,7 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
       ),
       src AS (
         SELECT t."monitorStatusId" AS status_id,
+               t."isMonitoringOff" IS TRUE AS is_off,
                GREATEST(t."startsAt", p.win_start) AS s,
                LEAST(
                  COALESCE(
@@ -533,6 +1002,7 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
                status_id = ANY($4::uuid[]) AS is_downtime
         FROM src
         WHERE e > s
+          AND NOT is_off
       ),
       reach AS (
         SELECT s,
@@ -627,7 +1097,9 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
    * would in that window's own aggregate call. Seconds are summed as double
    * precision and never rounded. There is no day split: splitting a period
    * into days and adding the days back up gives the same total, and a
-   * rolling window has no day boundaries to report.
+   * rolling window has no day boundaries to report. A row that marks the
+   * monitor's monitoring off is dropped after the LEAD, as the aggregate
+   * drops it, so a window with monitoring off is measured over the rest.
    *
    * On an exact startsAt tie a closed row sorts before an open one. The
    * aggregate leaves ties in whatever order the plan produces; putting the
@@ -705,6 +1177,7 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
       ),
       src_rows AS (
         SELECT t."monitorStatusId" AS status_id,
+               t."isMonitoringOff" IS TRUE AS is_off,
                t."startsAt" AS starts_at,
                t."endsAt" AS ends_at
         FROM "MonitorStatusTimeline" t
@@ -717,6 +1190,7 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
           AND (t."endsAt" >= wd.win_start OR t."endsAt" IS NULL)
         UNION ALL
         SELECT t."monitorStatusId" AS status_id,
+               t."isMonitoringOff" IS TRUE AS is_off,
                t."startsAt" AS starts_at,
                t."endsAt" AS ends_at
         FROM "MonitorStatusTimeline" t
@@ -730,6 +1204,7 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
       src AS (
         SELECT w.window_no,
                r.status_id,
+               r.is_off,
                GREATEST(r.starts_at, w.win_start) AS s,
                LEAST(
                  COALESCE(
@@ -753,6 +1228,7 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
                SUM(EXTRACT(EPOCH FROM (e - s)))::double precision AS seconds
         FROM src
         WHERE e > s
+          AND NOT is_off
         GROUP BY window_no, status_id
       )
       SELECT w.window_key AS "windowKey",
@@ -1009,9 +1485,26 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
   public override async create(
     createBy: CreateBy<MonitorStatusTimeline>,
   ): Promise<MonitorStatusTimeline> {
-    const createdItem: MonitorStatusTimeline = await super.create(createBy);
+    let createdItem: MonitorStatusTimeline;
+
+    try {
+      createdItem = await super.create(createBy);
+    } catch (error) {
+      Service.forgetMonitoringSwitchRow(createBy);
+      throw error;
+    }
+
+    Service.forgetMonitoringSwitchRow(createBy);
 
     if (createBy.props.ignoreHooks) {
+      return createdItem;
+    }
+
+    /*
+     * Only the monitoring switch changed, not the status: no device to
+     * stamp, no status change for the feed (monitoringSwitchCreates).
+     */
+    if (monitoringSwitchCreates.has(createBy)) {
       return createdItem;
     }
 
@@ -1039,6 +1532,161 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
     await this.createStatusChangeFeedItem(createdItem, createBy);
 
     return createdItem;
+  }
+
+  /*
+   * Marks on the monitor's status timeline that its monitoring was turned
+   * off, or back on (issue #6480): a status event starts now with the status
+   * the monitor holds, and isMonitoringOff saying which. Uptime, status page
+   * bars, SLOs and monitor group graphs leave out the time from a status
+   * event that marks it off to the next one that does not. Nothing checks
+   * the monitor in between, so its status is only what the last check saw.
+   *
+   * MonitorService calls this once an update has turned the switch, before
+   * anything the switch leads to - the incidents turning it off resolves -
+   * writes a status change of its own. Nothing is written when the latest
+   * status event already says what the switch says, nor for a monitor with
+   * no status yet: its first status event takes the switch as it is
+   * (buildOnCreate). Returns the status event written, or null.
+   */
+  @CaptureSpan()
+  public async recordMonitoringSwitch(data: {
+    monitorId: ObjectID;
+    isMonitoringOff: boolean;
+    // Who turned the switch, when a person did: named in the root cause.
+    switchedByUserId?: ObjectID | null | undefined;
+  }): Promise<MonitorStatusTimeline | null> {
+    const latest: MonitorStatusTimeline | null = await this.findOneBy({
+      query: {
+        monitorId: data.monitorId,
+      },
+      sort: {
+        startsAt: SortOrder.Descending,
+      },
+      select: {
+        _id: true,
+        projectId: true,
+        monitorStatusId: true,
+        isMonitoringOff: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!latest || !latest.projectId || !latest.monitorStatusId) {
+      return null;
+    }
+
+    if ((latest.isMonitoringOff === true) === data.isMonitoringOff) {
+      return null;
+    }
+
+    const switchedBy: MarkdownText = data.switchedByUserId
+      ? await UserService.getUserMarkdownString({
+          userId: data.switchedByUserId,
+          projectId: latest.projectId,
+        })
+      : FeedMarkdown.empty();
+
+    const statusEvent: MonitorStatusTimeline = new MonitorStatusTimeline();
+    statusEvent.projectId = latest.projectId;
+    statusEvent.monitorId = data.monitorId;
+    statusEvent.monitorStatusId = latest.monitorStatusId;
+    statusEvent.startsAt = OneUptimeDate.getCurrentDate();
+    // The status did not change: nobody is told it did.
+    statusEvent.isOwnerNotified = true;
+    statusEvent.rootCause = Service.getMonitoringSwitchRootCause({
+      isMonitoringOff: data.isMonitoringOff,
+      switchedBy: switchedBy,
+    });
+
+    if (data.switchedByUserId) {
+      statusEvent.createdByUserId = data.switchedByUserId;
+    }
+
+    try {
+      return await this.create({
+        data: statusEvent,
+        props: {
+          isRoot: true,
+        },
+      });
+    } catch (error) {
+      /*
+       * Another write marked the switch first, under the monitor's lock:
+       * the latest status event says what this one would.
+       */
+      if (
+        error instanceof BadDataException &&
+        error.message === MONITOR_STATUS_SAME_AS_PREVIOUS_ERROR_MESSAGE
+      ) {
+        return null;
+      }
+
+      throw error;
+    }
+  }
+
+  /*
+   * Once a create is over, however it ended, its workflow trigger has run
+   * or will not: the id of the row that marks the switch is forgotten, so a
+   * later On Create for it is not held back (monitoringSwitchCreates).
+   */
+  private static forgetMonitoringSwitchRow(
+    createBy: CreateBy<MonitorStatusTimeline>,
+  ): void {
+    const switchRowId: string | undefined =
+      monitoringSwitchRowIdByCreate.get(createBy);
+
+    if (switchRowId) {
+      monitoringSwitchRowIds.delete(switchRowId);
+    }
+  }
+
+  /*
+   * Why the status event that marks the switch starts, on the monitor's
+   * Status Timeline: Markdown, with the person's name placed as text.
+   */
+  public static getMonitoringSwitchRootCause(data: {
+    isMonitoringOff: boolean;
+    switchedBy: MarkdownText;
+  }): string {
+    if (data.isMonitoringOff) {
+      const turnedOff: MarkdownText = data.switchedBy.isEmpty()
+        ? mdText`Monitoring is off.`
+        : mdText`${data.switchedBy} turned off monitoring.`;
+
+      return mdText`${turnedOff} Nothing checks the monitor until it is turned back on, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.`.toString();
+    }
+
+    const turnedOn: MarkdownText = data.switchedBy.isEmpty()
+      ? mdText`Monitoring was turned back on.`
+      : mdText`${data.switchedBy} turned monitoring back on.`;
+
+    return mdText`${turnedOn} Uptime, status pages and SLOs count the monitor's time again from here.`.toString();
+  }
+
+  /*
+   * A status event that only marks monitoring turned off or on starts no
+   * workflow: no status changed (monitoringSwitchCreates). Every other
+   * status event's On Create, and every update and delete, as before.
+   */
+  @CaptureSpan()
+  public override async onTriggerWorkflow(
+    id: ObjectID,
+    projectId: ObjectID,
+    triggerType: DatabaseTriggerType,
+    miscData?: JSONObject | undefined,
+  ): Promise<void> {
+    if (
+      triggerType === "on-create" &&
+      monitoringSwitchRowIds.has(id.toString())
+    ) {
+      return;
+    }
+
+    return await super.onTriggerWorkflow(id, projectId, triggerType, miscData);
   }
 
   @CaptureSpan()
@@ -1232,6 +1880,7 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
         monitorStatusId: true,
         startsAt: true,
         endsAt: true,
+        isMonitoringOff: true,
       },
     });
 
@@ -1242,33 +1891,6 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
     if (!stateBeforeThis) {
       // since this is the first status, do not notify the owner.
       createBy.data.isOwnerNotified = true;
-    }
-
-    /*
-     * check if this new state and the previous state are same.
-     * if yes, then throw bad data exception.
-     */
-
-    if (stateBeforeThis && stateBeforeThis.monitorStatusId && monitorStatusId) {
-      if (
-        stateBeforeThis.monitorStatusId.toString() ===
-        monitorStatusId.toString()
-      ) {
-        /*
-         * Logged above debug on purpose. This is the exact point at which an
-         * orphaned (endsAt = NULL) row would have been created had the mutex
-         * fallen through unlocked, so it is the signal to alert on: a sustained
-         * rate here means two writers are racing for the same monitor.
-         */
-        logger.warn(
-          `MonitorStatusTimeline: rejecting duplicate status ${monitorStatusId.toString()} for monitor ${monitorId.toString()}. The preceding status starting at ${stateBeforeThis.startsAt?.toString()} is already this status.`,
-          logAttributes,
-        );
-
-        throw new BadDataException(
-          MONITOR_STATUS_SAME_AS_PREVIOUS_ERROR_MESSAGE,
-        );
-      }
     }
 
     const stateAfterThis: MonitorStatusTimeline | null = await this.findOneBy({
@@ -1286,8 +1908,60 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
         monitorStatusId: true,
         startsAt: true,
         endsAt: true,
+        isMonitoringOff: true,
       },
     });
+
+    // Whether the monitor's monitoring is off for the time this row covers.
+    const isMonitoringOff: boolean = await this.isMonitoringOffForNewRow({
+      monitorId: monitorId,
+      stateBeforeThis: stateBeforeThis,
+      stateAfterThis: stateAfterThis,
+    });
+
+    createBy.data.isMonitoringOff = isMonitoringOff;
+
+    /*
+     * check if this new state and the previous state are same.
+     * if yes, then throw bad data exception.
+     *
+     * The same status is a change of its own when the monitoring switch
+     * differs: the row then marks monitoring turned off or back on
+     * (recordMonitoringSwitch). Nobody is told of it as a status change
+     * (monitoringSwitchCreates).
+     */
+
+    if (stateBeforeThis && stateBeforeThis.monitorStatusId && monitorStatusId) {
+      const isSameStatus: boolean =
+        stateBeforeThis.monitorStatusId.toString() ===
+        monitorStatusId.toString();
+
+      if (
+        isSameStatus &&
+        (stateBeforeThis.isMonitoringOff === true) === isMonitoringOff
+      ) {
+        /*
+         * Logged above debug on purpose. This is the exact point at which an
+         * orphaned (endsAt = NULL) row would have been created had the mutex
+         * fallen through unlocked, so it is the signal to alert on: a sustained
+         * rate here means two writers are racing for the same monitor.
+         */
+        logger.warn(
+          `MonitorStatusTimeline: rejecting duplicate status ${monitorStatusId.toString()} for monitor ${monitorId.toString()}. The preceding status starting at ${stateBeforeThis.startsAt?.toString()} is already this status.`,
+          logAttributes,
+        );
+
+        throw new BadDataException(
+          MONITOR_STATUS_SAME_AS_PREVIOUS_ERROR_MESSAGE,
+        );
+      }
+
+      // The same status, the switch turned: the row marks only that.
+      if (isSameStatus) {
+        monitoringSwitchCreates.add(createBy);
+        createBy.data.isOwnerNotified = true;
+      }
+    }
 
     // compute ends at. It's the start of the next status.
     if (stateAfterThis && stateAfterThis.startsAt) {
@@ -1301,7 +1975,9 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
 
     if (stateAfterThis && stateAfterThis.monitorStatusId && monitorStatusId) {
       if (
-        stateAfterThis.monitorStatusId.toString() === monitorStatusId.toString()
+        stateAfterThis.monitorStatusId.toString() ===
+          monitorStatusId.toString() &&
+        (stateAfterThis.isMonitoringOff === true) === isMonitoringOff
       ) {
         throw new BadDataException(
           "Monitor Status cannot be same as next status.",
@@ -1319,6 +1995,42 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
         statusTimelineAfterThisStatus: stateAfterThis || null,
       },
     };
+  }
+
+  /*
+   * Whether the monitor's monitoring is off for the time a new row covers
+   * (MonitorStatusTimeline.isMonitoringOff), decided by OneUptime whoever
+   * writes the row:
+   *
+   *   - A row with a row after it is written into the timeline's past, over
+   *     time the row before it covered: it takes that row's switch, since
+   *     turning the switch starts a row of its own (recordMonitoringSwitch).
+   *     Before the monitor's first row, the first row's.
+   *   - A row with none after it starts the monitor's current status: it
+   *     takes the monitor's switch as it is now. A status change while
+   *     monitoring is off - an incident resolved by hand, a manual monitor's
+   *     status set - is not checked either.
+   */
+  private async isMonitoringOffForNewRow(data: {
+    monitorId: ObjectID;
+    stateBeforeThis: MonitorStatusTimeline | null;
+    stateAfterThis: MonitorStatusTimeline | null;
+  }): Promise<boolean> {
+    if (data.stateAfterThis) {
+      return (
+        (data.stateBeforeThis || data.stateAfterThis).isMonitoringOff === true
+      );
+    }
+
+    const monitor: Monitor | null = await MonitorService.findOneById({
+      id: data.monitorId,
+      select: MONITORING_OFF_SELECT,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return MonitoringOff.isOff(monitor);
   }
 
   /*
@@ -1497,6 +2209,19 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
        * and the bridge can be slow. create() runs it via bridgeIfCurrent
        * right after the mutex is released.
        */
+    }
+
+    /*
+     * A row that only marks the monitoring switch: its On Create workflows
+     * are not started (onTriggerWorkflow), which DatabaseService asks for
+     * once this hook returns.
+     */
+    if (monitoringSwitchCreates.has(onCreate.createBy) && createdItem.id) {
+      monitoringSwitchRowIdByCreate.set(
+        onCreate.createBy,
+        createdItem.id.toString(),
+      );
+      monitoringSwitchRowIds.add(createdItem.id.toString());
     }
 
     // The predecessor is closed and the monitor's status written.

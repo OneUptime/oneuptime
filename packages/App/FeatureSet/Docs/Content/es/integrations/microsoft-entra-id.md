@@ -127,7 +127,7 @@ Cambiar el **Intervalo de sondeo (minutos)** no cambia nada de esto: decide cada
 Haz clic en **Diagnósticos** en una conexión para ver sus ejecuciones recientes y trabajar con ella a mano. Quien puede cambiar la conexión puede iniciar estas acciones; quien puede verla puede leer el historial.
 
 - **Ejecutar ahora** inicia un sondeo de inmediato, con el cursor habitual, incluso cuando la conexión no está **Habilitado**.
-- **Preview records** lee un intervalo de tiempo de hasta 7 días y no importa nada.
+- **Vista previa de registros** lee un intervalo de tiempo de hasta 7 días y no importa nada.
 - **Importar este intervalo de tiempo** importa un intervalo de hasta 7 días, después de que lo confirmes, sin mover el cursor. Los registros ya importados se omiten. Microsoft Entra ID conserva 30 días de inicios de sesión y cambios de directorio con P1 o P2, y 7 días sin ellos.
 - **Copiar diagnósticos** en una ejecución copia su informe para soporte. Nunca incluye credenciales.
 

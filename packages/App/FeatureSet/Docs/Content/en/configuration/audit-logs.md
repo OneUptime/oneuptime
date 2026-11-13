@@ -1,11 +1,12 @@
 # Audit Logs
 
-The audit log records who changed what in your project: each create, update and delete of the resources it covers, with the values before and after. Use it to find out who turned a monitor off or changed an API key, and to keep a record for compliance reviews. It is part of the Enterprise plan on OneUptime Cloud, and of the Enterprise Edition when you self-host.
+The audit log records who changed what in your project: each create, update and delete of the resources it covers, with the values before and after, and every time someone signs in or out. Use it to find out who turned a monitor off or changed an API key, who signed in and from where, and to keep a record for compliance reviews. It is part of the Enterprise plan on OneUptime Cloud, and of the Enterprise Edition when you self-host.
 
 :::cards
 - [Turn on audit logging](#turn-on-audit-logging): It starts off in every project.
 - [Read the audit log](#read-the-audit-log): Who changed what, and when.
 - [What is recorded](#what-is-recorded): The resources and actions it covers.
+- [Sign-ins and sessions](#sign-ins-and-sessions): Who signed in, and how each session ended.
 - [How long entries are kept](#how-long-entries-are-kept): From 7 to 180 days.
 :::
 
@@ -64,10 +65,10 @@ A change to these settings applies within a minute.
 | Column | What it shows |
 | --- | --- |
 | **When** | How long ago, with the date and time. |
-| **Action** | `Create`, `Update` or `Delete`, or `Download` for a packet capture file someone downloaded. |
+| **Action** | `Create`, `Update` or `Delete`, `Download` for a packet capture file someone downloaded, or `Sign In`, `Sign Out`, `Session Timeout` or `Session Revoked` for a session. |
 | **Resource** | The resource's name, which opens it while it still exists, and its type. |
 | **Actor** | Who made the change: a person, an API key, a workflow, or `System` for a change OneUptime made by itself. A person's change made through an MCP client says which one. |
-| **Changes** | How many fields changed, or were captured for a create or a delete. Click it to see each field. |
+| **Changes** | How many fields changed, or were captured for a create or a delete. For a session, how it signed in or why it ended. Click it to see each field. |
 
 Filter by **Resource Type**, **Resource Name**, **Action**, **User Email** or **Time**. An update lists only the fields that changed, before and after, and a save that changes nothing adds no entry.
 
@@ -85,8 +86,9 @@ Everything people create, change or delete in a project is recorded: monitors, i
 | Records of runs | Each is already the record of a workflow run, an on-call escalation, a scan, an import or an AI run. |
 | What agents and telemetry report | Discovered resources, readings and usage change with every report, not because anybody changed them. |
 | Activity feeds | A feed lists changes the audit log already records. |
-| OneUptime's working state | Sessions, queued jobs and other state OneUptime keeps while it works. |
+| OneUptime's working state | Status page readers' sessions, queued jobs and other state OneUptime keeps while it works. |
 | A person's own notification setup | Each person's addresses, numbers and personal on-call rules are theirs alone. |
+| A person's own preferences | The products each person pins to their own top bar are theirs alone, and only they see them. |
 
 An administrator adding or removing a notification method or a personal on-call rule on someone else's account is recorded too, without the address or number itself.
 
@@ -104,6 +106,21 @@ What OneUptime does because someone asked it to is recorded as their change too,
 What a rule does by itself is OneUptime's own change, recorded with **Store System Events** on: the labels and owners a rule adds as a record is created, and a record it makes private then; the devices and monitors an auto import rule creates from new scan results; and what a status page or SLO monitor rule changes when a rule, a monitor or a label is saved.
 
 Resetting the AI agent of a host, a cluster or a cloud account is recorded on that resource's own **Audit Logs** page, as the change of `aiAgentResetAt` by whoever reset it: who, and when. So is making a key for a cloud account's AI agent: the keys show as changed, never with a key or a hash. What an agent reports as it connects and checks in is left out, as before.
+
+## Sign-ins and sessions
+
+Each time a member of the project signs in to OneUptime, the audit log records it, and again when that session ends. A sign-in is to OneUptime, not to one project, so every project the person is a member of records it.
+
+| Action | When it is recorded |
+| --- | --- |
+| `Sign In` | Someone signs in: with a password or a sign-in link, a passkey, Google, Microsoft, Vercel or single sign-on. |
+| `Sign Out` | They sign out. |
+| `Session Timeout` | OneUptime ends the session on time: the idle timeout or session length a server admin set, or 30 days without use. |
+| `Session Revoked` | OneUptime ends the session because the password changed, the account was blocked, or a server admin reset or required two-factor authentication. |
+
+An entry's **Resource** is the session, named by the device it signed in from, such as `Chrome 130 on macOS`. Its **Actor** is the person whose session it is, so filtering by **User Email** finds every sign-in and session of theirs. Its details say how they signed in and with which second factor, the IP address and the place, and for a session that ended, when it signed in, when it was last used and when it timed out. A project's own SSO provider is named only in that project's audit log.
+
+Sign-ins and sessions are recorded whether or not the project stores system events. A session length or 30 days without use is recorded within minutes of running out. An idle timeout is recorded when the person's open tab or the mobile app next reaches OneUptime.
 
 ## How long entries are kept
 

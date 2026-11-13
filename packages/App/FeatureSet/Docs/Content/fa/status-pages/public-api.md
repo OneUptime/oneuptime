@@ -74,6 +74,8 @@ flowchart TB
 
 نمای کلی یک درخواست برای کل صفحه است. همان داده‌ای است که صفحهٔ وضعیت ترسیم می‌کند، و حداکثر ۱۵ ثانیه قدمت دارد.
 
+روزهای نوارهای زمان کارکرد روزهای UTC هستند، مگر اینکه منطقهٔ زمانی‌ای نام ببرید: `?timezone=Asia/Shanghai` را به یک `GET` اضافه کنید، یا `{"timezone": "Asia/Shanghai"}` را به‌عنوان بدنهٔ یک `POST` بفرستید، تا `uptimeDailyAggregate` و `monitorGroupUptimeDailyAggregate` به روزهای آن منطقه بریده شوند، همان‌طور که صفحهٔ وضعیت برای هر بازدیدکننده درخواست می‌کند. منطقه‌ای که سرور نمی‌شناسد UTC است، و هر دو در `timezone` خود می‌گویند در کدام منطقه بریده شده‌اند.
+
 :::tabs
 @tab curl
 ```bash
@@ -111,7 +113,7 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 ```
 :::
 
-وضعیت کلی، بدترین وضعیت فعلی میان مانیتورها و گروه‌های مانیتور صفحه است، یعنی همانی که بالاترین اولویت را دارد. یک وضعیت مانیتور این شکلی است:
+وضعیت کلی، بدترین وضعیت فعلی میان مانیتورها و گروه‌های مانیتور صفحه است، یعنی همانی که بالاترین اولویت را دارد. منابعی که صفحه آن‌ها را **پایش نشده** نشان می‌دهد و در `notMonitoredResourceIds` فهرست شده‌اند، کنار گذاشته می‌شوند. یک وضعیت مانیتور این شکلی است:
 
 ```json
 {
@@ -127,13 +129,14 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 
 | کلید | آنچه در خود دارد |
 | --- | ------------- |
-| `overallStatus` | وضعیت کلی صفحه، یک وضعیت مانیتور مانند بالا. صفحه‌ای که چیزی ندارد، وضعیتی از پروژه را می‌گیرد که کمترین اولویت را دارد. |
+| `overallStatus` | وضعیت کلی صفحه، یک وضعیت مانیتور مانند بالا. صفحه‌ای که چیزی ندارد، وضعیتی از پروژه را می‌گیرد که کمترین اولویت را دارد، و صفحه‌ای که همهٔ منابعش **پایش نشده** هستند، `null` می‌گیرد. |
 | `statusPage` | تنظیمات عمومی صفحه: عنوان، توضیح، برندینگ و آنچه نشان می‌دهد. |
 | `statusPageResources` | هر منبع: نام نمایشی، توضیح، گروه، مانیتور یا گروه مانیتور، و گزینه‌های نمایش آن. |
 | `resourceGroups` | گروه‌ها، با `parentStatusPageGroupId` برای گروه‌های تودرتو. |
 | `monitorStatuses` | همهٔ وضعیت‌های مانیتور پروژه، از کمترین اولویت تا بیشترین. |
 | `monitorGroupCurrentStatuses`، `monitorsInGroup` | وضعیت فعلی هر گروه مانیتور در صفحه، و مانیتورهای درون آن. |
-| `monitorStatusTimelines`، `uptimeDailyAggregate`، `monitorGroupMergedDowntime`، `statusPageHistoryChartBarColorRules` | داده‌هایی که نوارهای زمان کارکرد از آن‌ها ترسیم می‌شوند، و قواعد رنگ نوارهای صفحه. |
+| `notMonitoredResourceIds` | شناسه‌های منابعی که صفحه آن‌ها را **پایش نشده** نشان می‌دهد: مانیتوری که پایشش خاموش است، یا گروه مانیتوری که پایش همهٔ مانیتورهایش خاموش است. این منابع هیچ وضعیتی را تعیین نمی‌کنند، و چنین گروهی در `monitorGroupCurrentStatuses` هیچ مدخلی ندارد. |
+| `monitorStatusTimelines`، `uptimeDailyAggregate`، `monitorGroupUptimeDailyAggregate`، `monitorGroupMergedDowntime`، `statusPageHistoryChartBarColorRules` | داده‌هایی که نوارهای زمان کارکرد از آن‌ها ترسیم می‌شوند، و قواعد رنگ نوارهای صفحه. |
 | `activeIncidents`، `incidentPublicNotes`، `incidentStateTimelines`، `incidentStates` | حادثه‌های حل‌نشده‌ای که صفحه نشان می‌دهد، یادداشت‌های عمومی و تغییرات وضعیتشان، و وضعیت‌های حادثهٔ پروژه. |
 | `timelineIncidents` | حادثه‌های درون بازهٔ نوارهای زمان کارکرد، از جمله حل‌شده‌ها، برای راهنمای نوارها. |
 | `activeEpisodes`، `episodePublicNotes`، `episodeStateTimelines` | همین‌ها برای اپیزودهای حادثه. |
@@ -168,6 +171,7 @@ curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
         "color": "#2ab57d",
         "isOperational": true
       },
+      "isMonitored": true,
       "isUnderMaintenance": true
     }
   ],
@@ -188,12 +192,12 @@ curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
 
 | کلید | آنچه در خلاصه است |
 | --- | -------------- |
-| `overallStatus` | وضعیت کلی صفحه، همان‌طور که بنرش نشان می‌دهد: `name`، `color` و `isOperational`. |
-| `resources` | هر منبعی که صفحه نشان می‌دهد، به ترتیب صفحه: `name` آن در صفحه، `groupName` آن همراه با گروه‌های بالاتر، `currentStatus` آن، و `isUnderMaintenance`. |
+| `overallStatus` | وضعیت کلی صفحه، همان‌طور که بنرش نشان می‌دهد: `name`، `color` و `isOperational`. وقتی همهٔ منابع صفحه **پایش نشده** باشند، `null` است. |
+| `resources` | هر منبعی که صفحه نشان می‌دهد، به ترتیب صفحه: `name` آن در صفحه، `groupName` آن همراه با گروه‌های بالاتر، `currentStatus` آن، `isMonitored`، و `isUnderMaintenance`. |
 | `activeIncidents` | حادثه‌های حل‌نشده‌ای که صفحه نشان می‌دهد، هر کدام با `affectedResourceIds` منبع‌هایی که بر آن‌ها اثر می‌گذارد. |
 | `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | رویدادهای نگهداری زمان‌بندی‌شدهٔ در جریان و پیش رو، هر کدام با `affectedResourceIds` خودش. |
 
-وقتی صفحه وضعیت یک منبع را نشان نمی‌دهد، `currentStatus` آن `null` است. ‏`isUnderMaintenance` تا وقتی `true` است که رویدادی در جریان یکی از مانیتورهای منبع، یا مانیتوری در گروه مانیتورش را نام ببرد، آن مانیتورها در هر وضعیتی که باشند.
+وقتی صفحه وضعیت یک منبع را نشان نمی‌دهد، `currentStatus` آن `null` است، و همچنین وقتی `isMonitored` برابر `false` باشد: هیچ چیز منبع را بررسی نمی‌کند، چون پایش مانیتورش خاموش است یا پایش همهٔ مانیتورهای گروه مانیتورش خاموش است، پس صفحه آن را **پایش نشده** نشان می‌دهد. ‏`isUnderMaintenance` تا وقتی `true` است که رویدادی در جریان یکی از مانیتورهای منبع، یا مانیتوری در گروه مانیتورش را نام ببرد، آن مانیتورها در هر وضعیتی که باشند.
 
 ## زمان کارکرد برای یک بازهٔ تاریخ
 
@@ -276,7 +280,8 @@ for group in uptime["groupUptimes"]:
         "color": { "_type": "Color", "value": "#2ab57d" },
         "isOperationalState": true,
         "priority": 1
-      }
+      },
+      "isMonitored": true
     }
   ],
   "groupUptimes": [
@@ -301,7 +306,8 @@ for group in uptime["groupUptimes"]:
             "color": { "_type": "Color", "value": "#2ab57d" },
             "isOperationalState": true,
             "priority": 1
-          }
+          },
+          "isMonitored": true
         }
       ],
       "statusPageGroupName": "Web",
@@ -311,7 +317,8 @@ for group in uptime["groupUptimes"]:
         "color": { "_type": "Color", "value": "#2ab57d" },
         "isOperationalState": true,
         "priority": 1
-      }
+      },
+      "isMonitored": true
     }
   ],
   "startDate": "2026-09-01T00:00:00.000Z",
@@ -325,6 +332,7 @@ for group in uptime["groupUptimes"]:
 | `groupUptimes` | یک ورودی برای هر گروه. `uptimePercent` و `currentStatus` یک گروه همهٔ منابع زیر آن را، از جمله گروه‌های تودرتو، پوشش می‌دهند؛ `statusPageResourceUptimes` آن فقط منابعی را فهرست می‌کند که مستقیم در آن گروه‌اند. درخت را با `parentStatusPageGroupId` از نو بسازید. |
 | `uptimePercent` | با دقت خود منبع یا گروه گرد شده است. `null` وقتی منبع یا گروه درصد زمان کارکرد را نشان نمی‌دهد. |
 | `currentStatus` | `null` وقتی منبع یا گروه وضعیت فعلی‌اش را نشان نمی‌دهد. |
+| `isMonitored` | `false` وقتی صفحه منبع را **پایش نشده** نشان می‌دهد، و برای یک گروه وقتی همهٔ منابع زیر آن چنین باشند. آنگاه `currentStatus` آن `null` است. |
 
 زمانی قطعی به شمار می‌آید که وضعیت مانیتورش یکی از وضعیت‌های **قطعی به حساب می‌آید** صفحه باشد.
 

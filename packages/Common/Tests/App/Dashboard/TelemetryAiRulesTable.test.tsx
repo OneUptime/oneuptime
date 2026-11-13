@@ -7,7 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen, within } from "@testing-library/react";
 import * as React from "react";
 
 /*
@@ -61,6 +61,7 @@ import {
   AI_RULE_FIX_FIELD_COPY,
   AI_RULE_FIX_FIELD_KEY,
   AI_RULE_FIX_TEXT,
+  AI_RULE_TEST_IDS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/AiRuleCopy";
 import {
   INVESTIGATION_RULE_TIMING_FIELD_KEY,
@@ -86,6 +87,12 @@ import { CardSelectOption } from "../../../UI/Components/CardSelect/CardSelect";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "../../../UI/Components/Forms/Types/FormValues";
 import { Translator } from "../../../UI/Utils/TranslateTemplate";
+import Pill, {
+  WHOLE_WORDS_PILL_TEXT_CLASS_NAME,
+  WRAPPING_PILL_TEXT_CLASS_NAME,
+} from "../../../UI/Components/Pill/Pill";
+import { TABLE_SHRINKABLE_ATTRIBUTE } from "../../../UI/Components/Table/TableLayout";
+import { Blue } from "../../../Types/BrandColors";
 
 type Values = FormValues<AutoRemediationRule>;
 
@@ -466,6 +473,69 @@ describe("the profile AI rules table", () => {
         translator,
       ),
     ).toBe(`Right away · ${AI_RULE_FIX_TEXT[AiRuleFix.DoNotFix]}`);
+  });
+
+  /*
+   * The Does column's fix pill wraps between its words, never inside one
+   * (#7111): with isWrapping alone it took the shared
+   * [overflow-wrap:anywhere], and a column held narrow broke a longer
+   * language's word in the middle. Kept whole, the pill is never narrower
+   * than its longest word, and the table finds nothing in it to cut short.
+   */
+  test.each([
+    [
+      AiRuleFix.AskFirst,
+      {
+        investigates: true,
+        fixes: true,
+        executionMode: AutoRemediationExecutionMode.Suggest,
+      },
+    ],
+    [
+      AiRuleFix.WithoutAsking,
+      {
+        investigates: true,
+        fixes: true,
+        executionMode: AutoRemediationExecutionMode.FullAuto,
+      },
+    ],
+    [AiRuleFix.DoNotFix, { investigates: true, fixes: false }],
+  ] as Array<[AiRuleFix, Partial<AutoRemediationRule>]>)(
+    "the %s pill wraps between its words, never inside one (#7111)",
+    (fix: AiRuleFix, fields: Partial<AutoRemediationRule>) => {
+      render(<TelemetryAiRuleDoesCell rule={rule(fields)} />);
+
+      const cell: HTMLElement = screen.getByTestId(AI_RULE_TEST_IDS.fixColumn);
+      const pill: HTMLElement = within(cell).getByTestId("pill");
+      const words: HTMLElement = within(pill).getByTestId("pill-text");
+
+      expect(words).toHaveTextContent(AI_RULE_FIX_TEXT[fix]);
+      expect(words.className).toBe(WHOLE_WORDS_PILL_TEXT_CLASS_NAME);
+      expect(words).toHaveClass(
+        "whitespace-normal",
+        "[overflow-wrap:break-word]",
+      );
+      expect(words).not.toHaveClass("[overflow-wrap:anywhere]");
+      expect(words).not.toHaveClass("truncate");
+      expect(pill).not.toHaveAttribute(TABLE_SHRINKABLE_ATTRIBUTE);
+      expect(pill).toHaveClass("items-start");
+    },
+  );
+
+  test("negative control: a pill that only wraps may break a word, which is what the check above tells apart", () => {
+    render(
+      <Pill
+        text={AI_RULE_FIX_TEXT[AiRuleFix.WithoutAsking]}
+        color={Blue}
+        isWrapping={true}
+      />,
+    );
+
+    const words: HTMLElement = screen.getByTestId("pill-text");
+
+    expect(words.className).toBe(WRAPPING_PILL_TEXT_CLASS_NAME);
+    expect(words).toHaveClass("[overflow-wrap:anywhere]");
+    expect(words).not.toHaveClass("[overflow-wrap:break-word]");
   });
 
   test("tells the page how many enabled rules there are after every read", async () => {

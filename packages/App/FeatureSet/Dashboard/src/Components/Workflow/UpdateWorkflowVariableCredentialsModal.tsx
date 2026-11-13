@@ -10,6 +10,8 @@
  */
 
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import { JSONObject } from "Common/Types/JSON";
 import { OAuth2GrantType } from "Common/Types/Workflow/WorkflowVariableOAuth";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
@@ -29,6 +31,7 @@ export interface ComponentProps {
 const UpdateWorkflowVariableCredentialsModal: FunctionComponent<
   ComponentProps
 > = (props: ComponentProps): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
 
@@ -67,9 +70,16 @@ const UpdateWorkflowVariableCredentialsModal: FunctionComponent<
       name="Workflow > Update OAuth Variable Credentials"
       isLoading={isLoading}
       error={error || undefined}
-      description={`Replace the credentials "${
-        props.variable.name || "this variable"
-      }" uses to get access tokens. Leave a field empty to keep what is saved.`}
+      description={
+        props.variable.name
+          ? translator.translateTemplate(
+              'Replace the credentials "{{name}}" uses to get access tokens. Leave a field empty to keep what is saved.',
+              { name: props.variable.name },
+            )
+          : translator.translateText(
+              "Replace the credentials this variable uses to get access tokens. Leave a field empty to keep what is saved.",
+            )
+      }
       submitButtonText="Save and Refresh Token"
       onClose={() => {
         setIsLoading(false);

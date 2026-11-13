@@ -2,6 +2,9 @@
 
 Uma política de plantão aciona as pessoas por níveis. Cada regra de escalonamento é um nível: quem é acionado e quanto tempo esperar que alguém confirme antes de acionar o próximo nível. As regras de uma política aparecem, em ordem, na página **Regras de escalonamento** dela.
 
+> [!TIP]
+> Novo por aqui? Siga primeiro o guia: [Ser acionado por telefone, SMS ou push](/docs/guides/paging).
+
 ```mermaid title="Uma política de plantão aciona nível a nível até alguém confirmar"
 flowchart TB
     trigger["Incidente ou alerta"] --> level1["Level 1 aciona"]
@@ -163,6 +166,8 @@ Um acionamento não enviado diz o motivo nos **Registros de plantão** da pessoa
 - o canal está desligado no projeto, e quem pode ligá-lo.
 
 Os proprietários do projeto recebem um e-mail sobre isso uma vez, até o saldo ser recarregado ou o canal ser ligado de novo.
+
+Um acionamento que não conseguiu chegar ao serviço de notificações do OneUptime diz `Could not reach the Notification service to send this (ECONNREFUSED).`, com o código do erro de rede entre os parênteses. Um acionamento cujo envio nunca terminou, por exemplo porque um servidor reiniciou durante o envio, diz `Sending did not finish within 15 minutes, so this notification may not have been sent.` Se o envio terminar afinal, o resultado substitui essa mensagem.
 
 No OneUptime Cloud, cada SMS, chamada, mensagem de WhatsApp e de Telegram é pago com o saldo do projeto em **Configurações do projeto > Notificações > Configurações de notificação**: o custo exato sai do saldo quando o provedor aceita a mensagem, não importa quantas mensagens saiam ao mesmo tempo.
 

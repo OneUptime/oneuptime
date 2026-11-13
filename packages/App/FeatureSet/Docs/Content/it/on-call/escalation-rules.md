@@ -2,6 +2,9 @@
 
 Una policy di reperibilità avvisa le persone per livelli. Ogni regola di escalation è un livello: chi viene avvisato e quanto attendere che qualcuno confermi prima di avvisare il livello successivo. Le regole di una policy sono elencate, in ordine, nella sua pagina **Regole di escalation**.
 
+> [!TIP]
+> Prima volta qui? Inizia dalla guida: [Essere avvisati per chiamata, SMS o push](/docs/guides/paging).
+
 ```mermaid title="Una policy di reperibilità avvisa livello per livello finché qualcuno conferma"
 flowchart TB
     trigger["Incidente o avviso"] --> level1["Level 1 avvisa"]
@@ -163,6 +166,8 @@ Un avviso non inviato indica il motivo nei **Registri di reperibilità** della p
 - il canale è disattivato nel progetto, e chi può attivarlo.
 
 I proprietari del progetto ricevono un'email una volta, finché il saldo non viene ricaricato o il canale non viene riattivato.
+
+Un avviso che non ha potuto raggiungere il servizio di notifica di OneUptime dice `Could not reach the Notification service to send this (ECONNREFUSED).`, con il codice dell'errore di rete tra le parentesi. Un avviso il cui invio non è mai terminato, per esempio perché un server si è riavviato durante l'invio, dice `Sending did not finish within 15 minutes, so this notification may not have been sent.` Se l'invio termina comunque, il suo risultato sostituisce quel messaggio.
 
 Su OneUptime Cloud ogni SMS, chiamata, messaggio WhatsApp e Telegram viene pagato con il saldo del progetto in **Impostazioni del progetto > Notifiche > Impostazioni notifiche**: il suo costo esatto viene scalato dal saldo quando il fornitore lo accetta, indipendentemente da quanti messaggi partono insieme.
 

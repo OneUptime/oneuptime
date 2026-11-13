@@ -222,8 +222,14 @@ export const KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS: Record<
   podRestarts: translationKey(
     "Total restarts across this pod's containers, not counting init containers. A number that keeps rising usually means a container is crashing or failing its liveness check.",
   ),
+  /*
+   * OpenShift's DeploymentConfig page: the states its badge draws
+   * (getDeploymentConfigState, Common/Types/Kubernetes/OpenShiftObjectParser)
+   * and the "{{ready}}/{{total}} ready" beside it. A new state names itself
+   * here, or KubernetesResourceMetricTooltips fails.
+   */
   deploymentRolloutStatus: translationKey(
-    "Complete when the number of ready pods matches the desired count and none are unavailable; In Progress otherwise, such as during a rollout or scale-up or while pods fail health checks. The bar shows ready pods out of desired.",
+    "Available when every pod it is set to run is available; Progressing while only some are, as during a rollout or scale-up; Unavailable when none are; Scaled to zero when it is set to run none; Paused while its rollouts are paused. Beside it, how many of those pods are ready.",
   ),
   deploymentDesiredReplicas: translationKey(
     "How many copies of the pod (replicas) this deployment is set to run. An autoscaler, if one targets it, changes this number over time.",

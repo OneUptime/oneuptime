@@ -2,6 +2,9 @@
 
 Une ressource est une ligne de votre page de statut : un moniteur ou un groupe de moniteurs, avec un nom que vos clients comprennent, son statut actuel et, si vous le souhaitez, sa disponibilité et son historique. Les groupes sont des sections qui contiennent des ressources, si bien qu'une page de quarante moniteurs se lit comme « API », « Application web » et « Pipeline de données » plutôt que comme une liste sans fin. Vous construisez les deux sur un seul écran : ouvrez une page de statut et choisissez **Ressources** dans son menu latéral.
 
+> [!TIP]
+> Vous débutez ? Suivez d'abord le guide : [Publier une page de statut](/docs/guides/status-page).
+
 :::cards
 - [Ajouter un moniteur](#ajouter-un-moniteur): Mettre un moniteur sur la page, avec le nom que lisent les visiteurs.
 - [Groupes](#groupes): Diviser la page en sections, et les imbriquer.
@@ -30,6 +33,7 @@ flowchart TB
 Une ressource décide de plus que la couleur de sa ligne :
 
 - **Les moniteurs archivés ne sont pas affichés.** Un moniteur archivé n'est plus vérifié, son dernier statut est donc figé ; la page omet sa ligne (et l'écarte du statut d'un groupe de moniteurs) plutôt que d'afficher ce statut figé comme s'il était actuel. La ligne est conservée : désarchiver le moniteur la fait revenir immédiatement.
+- **Un moniteur dont la surveillance est désactivée affiche Non surveillé.** Rien ne le vérifie, le dernier statut qu'il avait ne dit donc plus rien : sa ligne affiche **Non surveillé** en gris et ne compte ni pour le groupe au-dessus d'elle ni pour la bannière du statut global. Ses barres d'historique gardent son historique jusqu'à la désactivation de sa surveillance et écartent le temps qui suit. Un groupe de moniteurs ne compte que ses moniteurs dont la surveillance est activée, et affiche **Non surveillé** quand elle est désactivée pour tous ; ses barres et sa disponibilité écartent, pour chaque moniteur, le temps où sa surveillance est désactivée. Quand rien sur la page n'est surveillé, la bannière le dit.
 - **Les ressources décident des incidents que la page affiche.** Un incident apparaît ici, et les abonnés de la page en sont informés, quand l'un des moniteurs de l'incident est une ressource de la page, directement ou via un groupe de moniteurs. Mettez le même moniteur sur plusieurs pages et ses incidents les atteignent toutes, sauf si un incident est limité à certaines de ces pages. Voir [Une page de statut par public](/docs/status-pages/one-status-page-per-audience).
 - **La ligne d'un groupe de moniteurs représente chaque moniteur qu'il contient, y compris pour les abonnés.** Sur une page qui laisse les abonnés choisir des ressources, quelqu'un qui s'abonne à un groupe de moniteurs est informé des incidents, des maintenances planifiées et des annonces de n'importe quel moniteur du groupe, comme s'il avait choisi ce moniteur. Voir [Abonnés et annonces](/docs/status-pages/subscribers#laisser-les-abonnés-choisir-ressources-et-types-dévénements).
 
@@ -118,6 +122,8 @@ Les groupes ont leurs propres copies de ces commutateurs (voir plus bas) : un gr
 Les couleurs des barres du graphique d'historique se règlent sous **Plus de paramètres** sur la page **Image de marque**, et les statuts de moniteur qui comptent comme « en panne » dans **Compte comme indisponibilité**, dans la carte **Ce que montre votre page de statut** des **Paramètres avancés** – les deux sont décrits dans [Personnalisation et domaines de la page de statut](/docs/status-pages/branding-and-domains).
 
 Chaque barre correspond à un jour. Survolez une barre ou cliquez dessus (touchez-la sur un téléphone, ou appuyez sur Entrée au clavier) pour lire la journée : sa disponibilité, la durée de chaque statut, les incidents déclarés ce jour-là et la maintenance planifiée qui s'y est déroulée, chacun avec un lien vers sa propre page. Un jour de maintenance planifiée porte une bande bleue en haut de sa barre, et tant qu'un événement est en cours, chaque ressource de ses moniteurs affiche « En maintenance » à côté de son nom. La maintenance ne change ni la couleur d'une barre ni la disponibilité, qui viennent des statuts du moniteur : pour que les travaux planifiés ne comptent pas dans la disponibilité, choisissez pour l'événement, dans **Changer le statut du moniteur en**, un statut qui ne fait pas partie de ceux de **Compte comme indisponibilité** sur la page. Voir [Ce qu'un événement affecte](/docs/scheduled-maintenance/index#ce-quun-événement-affecte).
+
+Chaque barre est une journée dans le fuseau horaire du lecteur, celui dans lequel la page affiche toutes les autres heures, si bien que la dernière barre est son aujourd'hui. La barre d'un groupe de moniteurs montre combien de temps le groupe lui-même est resté dans chaque statut ce jour-là : à chaque instant, le groupe a le pire statut parmi ses moniteurs, si bien que les statuts d'une journée totalisent le temps pendant lequel au moins un de ses moniteurs était vérifié, et jamais plus que la journée.
 
 ## Groupes
 

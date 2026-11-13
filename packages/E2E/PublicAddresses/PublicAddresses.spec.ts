@@ -61,6 +61,8 @@ const SCREENSHOTS: string = path.resolve(
 interface FixtureRecord {
   listRequests: Array<{ tableName: string; query: Array<string> }>;
   apiGets: Array<string>;
+  // What Add Custom Domain added.
+  created: Array<{ tableName: string }>;
   unmodelled: Array<string>;
 }
 
@@ -1178,6 +1180,243 @@ test.describe("a form's Share page: the Share Link card", () => {
       }
 
       await screenshot(page, `form-share-${language.code}-390`);
+    }
+  });
+});
+
+/*
+ * A status page's Custom Domains page: from the page to a verified domain
+ * without leaving it (#6835). Add Custom Domain asks for the address people
+ * will open; on a domain the project has not verified, it becomes DNS Setup
+ * with both records - the domain's TXT and the address's CNAME - each with
+ * its own status, and Check now says what it looked up and what came back.
+ * A self-hosted server says first what it still needs.
+ */
+test.describe("a status page's Custom Domains page: Add Custom Domain and DNS Setup", () => {
+  const DOMAINS_PAGE: string = `/dashboard/${PROJECT}/status-pages/${STATUS_PAGE_ID}/domains`;
+
+  async function openDomains(
+    page: Page,
+    query: string,
+    width: number = 1280,
+  ): Promise<void> {
+    await page.setViewportSize({ width: width, height: 900 });
+    await page.goto(`${DOMAINS_PAGE}?${query}`);
+    await page.evaluate(async (): Promise<void> => {
+      await document.fonts.ready;
+    });
+    await expect(
+      page.getByRole("button", { name: "Add Custom Domain" }).first(),
+    ).toBeVisible();
+  }
+
+  async function addAddress(page: Page, address: string): Promise<Locator> {
+    await page
+      .getByRole("button", { name: "Add Custom Domain" })
+      .first()
+      .click();
+
+    const dialog: Locator = page.getByTestId("modal");
+
+    await expect(dialog).toContainText("Add Custom Domain");
+    await dialog.getByPlaceholder("status.example.com").fill(address);
+    await dialog.getByRole("button", { name: "Continue" }).click();
+
+    return dialog;
+  }
+
+  test("on a domain the project does not have: it is added, and DNS Setup shows both records; Check now says what it found", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openDomains(page, "txt=missing");
+
+    const dialog: Locator = await addAddress(page, "status.acme.com");
+
+    await expect(dialog.getByTestId("dns-setup-txt-record")).toBeVisible();
+    await expect(dialog.getByTestId("dns-setup-txt-record-name")).toHaveText(
+      "acme.com",
+    );
+    await expect(dialog.getByTestId("dns-setup-txt-record-value")).toHaveText(
+      "oneuptime-verification-3kd8f2hq9x",
+    );
+    await expect(dialog.getByTestId("dns-setup-record-name")).toHaveText(
+      "status.acme.com",
+    );
+    await expect(dialog.getByTestId("dns-setup-record-value")).toHaveText(
+      "statuspage.oneuptime.com",
+    );
+
+    // The project's domain was added for the person, and nothing else yet.
+    expect(
+      (await fixture(page)).created.map((entry: { tableName: string }) => {
+        return entry.tableName;
+      }),
+    ).toEqual(["Domain"]);
+
+    await page.waitForTimeout(200);
+    await screenshot(page, "custom-domain-two-records-1280");
+
+    await dialog.getByRole("button", { name: "Check now" }).click();
+
+    await expect(dialog.getByTestId("dns-setup-txt-status")).toHaveText(
+      "Wrong value",
+    );
+    await expect(dialog.getByTestId("dns-setup-txt-looked-up")).toContainText(
+      'We looked up the TXT records of acme.com and got "v=spf1 include:_spf.google.com ~all", but none of them is oneuptime-verification-3kd8f2hq9x.',
+    );
+    await expect(dialog.getByTestId("dns-setup-cname-status")).toHaveText(
+      "Not checked yet",
+    );
+
+    await page.waitForTimeout(200);
+    await screenshot(page, "custom-domain-txt-not-found-1280");
+  });
+
+  test("the TXT found: the custom domain is added and its CNAME checked - a proxied name says so", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openDomains(page, "projectdomain=unverified&txt=found&dns=proxied");
+
+    const dialog: Locator = await addAddress(page, "status.acme.com");
+
+    await expect(dialog.getByTestId("dns-setup-txt-record")).toBeVisible();
+    await dialog.getByRole("button", { name: "Check now" }).click();
+
+    await expect(dialog.getByTestId("dns-setup-txt-status")).toHaveText(
+      "Found",
+    );
+    await expect(dialog.getByTestId("dns-setup-cname-status")).toHaveText(
+      "Not found yet",
+    );
+    await expect(dialog.getByTestId("dns-setup-cname-looked-up")).toContainText(
+      "We looked up the CNAME record of status.acme.com and got nothing, but the name answers with the address 104.21.32.1, 172.67.150.2.",
+    );
+    await expect(dialog.getByTestId("dns-setup-cname-looked-up")).toContainText(
+      "Cloudflare's orange cloud",
+    );
+
+    // The custom domain was added once the TXT was found: the table lists it.
+    expect(
+      (await fixture(page)).created.map((entry: { tableName: string }) => {
+        return entry.tableName;
+      }),
+    ).toEqual(["StatusPageDomain"]);
+
+    await page.waitForTimeout(200);
+    await screenshot(page, "custom-domain-cname-proxied-1280");
+
+    await dialog.getByTestId("modal-footer-close-button").click();
+    await expect(page.getByText("status.acme.com").first()).toBeVisible();
+    await expect(
+      page.getByText("Waiting for DNS: add the CNAME record.").first(),
+    ).toBeVisible();
+  });
+
+  test("on a verified domain the custom domain is added at once, and DNS Setup shows the CNAME alone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openDomains(page, "projectdomain=verified&dns=found");
+
+    const dialog: Locator = await addAddress(page, "status.acme.com");
+
+    await expect(dialog.getByTestId("dns-setup-record-name")).toHaveText(
+      "status.acme.com",
+    );
+    await expect(dialog.getByTestId("dns-setup-txt-record")).toHaveCount(0);
+
+    await dialog.getByRole("button", { name: "Check now" }).click();
+    await expect(dialog.getByTestId("dns-setup-verified")).toBeVisible();
+  });
+
+  test("a self-hosted server that is not ready says what is missing, before anything is added; at a phone's width, in the dark and in German", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openDomains(page, "readiness=notready");
+
+    await page
+      .getByRole("button", { name: "Add Custom Domain" })
+      .first()
+      .click();
+
+    const notice: Locator = page.getByTestId("custom-domain-server-readiness");
+
+    await expect(notice).toContainText(
+      "This server is not ready for custom domains yet",
+    );
+    await expect(notice).toContainText(
+      "oneuptime.acme.com answers on port 80, but not as this OneUptime server (HTTP 404).",
+    );
+    await expect(notice).toContainText(
+      "oneuptime.acme.com does not accept connections on port 443.",
+    );
+    await expect(
+      notice.getByTestId("custom-domain-server-readiness-check"),
+    ).toHaveCount(3);
+
+    await page.waitForTimeout(200);
+    await screenshot(page, "custom-domain-server-not-ready-1280");
+
+    for (const variant of [
+      { query: "readiness=notready&txt=missing", name: "390", lang: "en" },
+      {
+        query: "readiness=notready&txt=missing&theme=dark",
+        name: "dark-390",
+        lang: "en",
+      },
+      {
+        query: "readiness=notready&txt=missing&lang=de",
+        name: "de-390",
+        lang: "de",
+      },
+      // Persian reads right to left: the records and their values still fit.
+      {
+        query: "readiness=notready&txt=missing&lang=fa",
+        name: "fa-390",
+        lang: "fa",
+      },
+    ]) {
+      await page.setViewportSize({ width: 390, height: 900 });
+      await page.goto(`${DOMAINS_PAGE}?${variant.query}`);
+      await page.evaluate(async (): Promise<void> => {
+        await document.fonts.ready;
+      });
+
+      await page.getByTestId("card-button").first().click();
+
+      const dialog: Locator = page.getByTestId("modal");
+
+      await expect(
+        dialog.getByTestId("custom-domain-server-readiness"),
+      ).toBeVisible();
+      await dialog
+        .getByPlaceholder("status.example.com")
+        .fill("status.acme.com");
+      await dialog.getByTestId("modal-footer-submit-button").click();
+
+      await expect(dialog.getByTestId("dns-setup-txt-record")).toBeVisible();
+      expect(
+        await page.evaluate((): string => {
+          return document.documentElement.dir;
+        }),
+      ).toBe(variant.lang === "fa" ? "rtl" : "ltr");
+      // A record's value is DNS: it reads left to right in every language.
+      await expect(dialog.getByTestId("dns-setup-txt-record-value")).toHaveText(
+        "oneuptime-verification-3kd8f2hq9x",
+      );
+      await expectNothingRunsOff(
+        page,
+        `DNS Setup with two records (${variant.name})`,
+      );
+      await page.waitForTimeout(200);
+      await screenshot(page, `custom-domain-two-records-${variant.name}`);
     }
   });
 });

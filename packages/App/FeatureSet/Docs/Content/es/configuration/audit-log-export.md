@@ -140,7 +140,7 @@ Cada entrada es un objeto JSON, con sus claves siempre en este orden:
 | `id` | El id de la entrada. La misma entrada enviada dos veces tiene el mismo id. |
 | `createdAt` | Cuándo se registró el cambio, en UTC. |
 | `projectId` | El proyecto en el que se hizo el cambio. |
-| `action` | `Create`, `Update`, `Delete` o `Download`. |
+| `action` | `Create`, `Update`, `Delete` o `Download`, o para una sesión `SignIn`, `SignOut`, `SessionTimeout` o `SessionRevoked`. |
 | `resourceType`, `resourceId`, `resourceName` | Qué se cambió. |
 | `rootResourceType`, `rootResourceId` | El recurso al que pertenece, como un SLO para su regla. |
 | `userId`, `userName`, `userEmail`, `userType` | Quién hizo el cambio. |
@@ -177,7 +177,7 @@ Un lote se intenta tres veces, con pocos segundos de diferencia, y luego la expo
 
 Nada se omite: las entradas esperan en el registro de auditoría, y la siguiente entrega que funcione se pone al día desde la más antigua. Aun así, cada entrada se elimina en cuanto es más antigua que la retención con la que se registró, se haya enviado o no, así que corrija una exportación que falla dentro de ese plazo. Una retención más larga solo conserva más tiempo las entradas registradas después de cambiarla.
 
-Una exportación que falla envía un correo a quienes pueden corregirla: a los propietarios del proyecto en la exportación de un proyecto, y a todos los administradores maestros en la de la instancia. El primer correo llega tras 30 minutos de fallos, con lo que respondió el destino. Un segundo llega un día antes de que se elimine la entrada más antigua que la exportación no ha enviado, con el momento en que empiezan a perderse entradas. Cada uno se envía una vez mientras duran los fallos, y una entrega que funciona reinicia ambos.
+Una exportación que falla envía un correo a quienes pueden corregirla: a los propietarios del proyecto en la exportación de un proyecto, y a todos los administradores maestros en la de la instancia. El primer correo llega tras 30 minutos de fallos, con lo que respondió el destino. Un segundo llega un día antes de que se elimine la primera de las entradas que la exportación no ha enviado, con el momento en que empiezan a perderse entradas. Si ese momento ya pasó, como cuando **Exportar desde** se remonta más atrás que la retención, el segundo correo llega en lugar del primero, a los 30 minutos, y dice que ya se están perdiendo entradas. Cada uno se envía una vez mientras duran los fallos, y una entrega que funciona reinicia ambos.
 
 Para pausar una exportación, elija **Desactivar** en el menú de su fila: conserva su posición, y **Activar** envía lo que se registró mientras tanto. En OneUptime Cloud, un proyecto que deja el plan Enterprise deja de exportar, y sus exportaciones esperan bajo la tarjeta de mejora, donde se pueden desactivar o eliminar. Si lo aloja usted mismo, la exportación se detiene mientras la licencia no incluya los registros de auditoría, y continúa desde donde se detuvo en cuanto una los incluya.
 

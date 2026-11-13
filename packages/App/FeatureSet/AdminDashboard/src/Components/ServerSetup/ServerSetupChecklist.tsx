@@ -1,145 +1,113 @@
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import ServerTestSendButton from "./ServerTestSendButton";
 import Protocol from "Common/Types/API/Protocol";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
+import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
-import MailTransportType from "Common/Types/Email/MailTransportType";
-import ObjectID from "Common/Types/ObjectID";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import {
+  ServerSendingChannel,
+  ServerSendingState,
+} from "Common/Types/ServerSending/ServerSendingStatus";
+import ServerSetupChecklistUtil, {
+  SERVER_SETUP_ADMIN_PATHS,
+  SERVER_SETUP_CHECKED_WORDS,
+  SERVER_SETUP_CHECKS,
+  SERVER_SETUP_GUIDES,
+  ServerSetupCheckDefinition,
+  ServerSetupCheckId,
+  ServerSetupCheckResult,
+  ServerSetupCheckTier,
+  ServerSetupChecklistAnswer,
+  ServerSetupChoiceKind,
+  ServerSetupStatus,
+} from "Common/Types/ServerSetup/ServerSetupChecklist";
+import { ServerTestSendAnswer } from "Common/Types/ServerSetup/ServerTestSend";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
-import { BILLING_ENABLED, HOST, HTTP_PROTOCOL } from "Common/UI/Config";
-import LocalStorage from "Common/UI/Utils/LocalStorage";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { HOST, HTTP_PROTOCOL } from "Common/UI/Config";
+import API from "Common/UI/Utils/API/API";
+import ServerSetupChecklistLoader from "Common/UI/Utils/ServerSetupChecklist";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import GlobalConfig, {
-  EmailServerType,
-} from "Common/Models/DatabaseModels/GlobalConfig";
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useState,
-} from "react";
+import React, { FunctionComponent, ReactElement, useState } from "react";
 
 /*
- * WHAT A SELF-HOSTED SERVER NEEDS BEFORE PEOPLE RELY ON IT.
+ * FINISH SETTING UP THIS SERVER: EVERY CHECK, WHERE IT STANDS, AND THE ONE
+ * THING TO DO NEXT FOR EACH.
  *
- * A new install's admin landed on the Users list and had to find out for
- * themselves, from the Docker Compose guide's production checklist, that
- * the server could not send a single email, that everything crossed the
- * network unencrypted, and that anyone who could open it could sign up
- * (#5229's follow-ups). This card, at the top of the Admin Dashboard's first
- * page, says where each of the three stands and opens the place that
- * changes it:
+ * The Admin Dashboard's Server setup page (/admin/setup) draws the server's
+ * answer (Types/ServerSetup/ServerSetupChecklist, read from the server's
+ * real state): required first - email, HTTPS, who can sign up - then what
+ * most servers want - SMS and calls, a probe that reports, backups, update
+ * checks - and, folded away, the optional ones.
  *
- *   - Email: a mail server (Custom SMTP) or an email provider (Amazon SES,
- *     SendGrid, Mailgun, Postmark, Resend) is set up, so OneUptime can send
- *     invitations, password resets and alerts by email;
- *   - HTTPS: people reach the server over HTTPS and HTTP_PROTOCOL=https;
- *   - Sign-ups: whether anyone who can open the server can sign up, the
- *     guide's advice being to turn that off once the team has its accounts.
+ * Each row says what it is for and where it stands in one line, then what
+ * that was checked against in a smaller one ("smtp.example.com accepted an
+ * email on 11 Nov", "Chosen by Ada Lovelace on 11 Nov"), and offers one
+ * action: the page that sets it up, a test send, a guide - and, where the
+ * server cannot decide, the admin's own choice ("Use email and push only",
+ * "This server is backed up"), which can be undone.
  *
- * It is drawn only on a self-hosted server (OneUptime Cloud's master admins
- * run neither its mail nor its HTTPS this way), only while one of the three
- * is still open, and not once its admin hides it in this browser. A read
- * that fails draws nothing: the card only ever helps.
+ * HTTPS is the one check the browser knows more about: the server reads
+ * HTTP_PROTOCOL, and this page knows whether it came over HTTPS - a proxy in
+ * front that OneUptime was not told about, or an http:// bookmark to a
+ * server set to HTTPS, each said as what it is.
  */
-
-export enum ServerSetupItemName {
-  Email = "email",
-  Https = "https",
-  Signups = "signups",
-}
-
-export interface ServerSetupState {
-  emailIsSetUp: boolean;
-  isServedOverHttps: boolean;
-  /*
-   * The page came over HTTPS while OneUptime is still set to HTTP: a proxy
-   * in front encrypts the connection, and only HTTP_PROTOCOL is left.
-   */
-  isHttpsOnlyBeforeOneUptime?: boolean | undefined;
-  /*
-   * The reverse: OneUptime is set to HTTPS (HTTP_PROTOCOL=https), but this
-   * page came over plain HTTP - an http:// bookmark, the server's IP
-   * address, or a visit before the certificate arrived. Only this visit is
-   * left to move: httpsAddress is this page at the HTTPS address
-   * OneUptime's own links point to.
-   */
-  isOpenedOverHttpWhileSetToHttps?: boolean | undefined;
-  httpsAddress?: string | undefined;
-  signupsAreClosed: boolean;
-}
-
-export interface ServerSetupItem {
-  name: ServerSetupItemName;
-  isDone: boolean;
-  title: string;
-  description: string;
-  actionTitle: string;
-  /*
-   * Where the action goes: a page of the Admin Dashboard, a guide opened in
-   * a new tab, or a full address opened where the card is.
-   */
-  route?: Route | undefined;
-  guideUrl?: string | undefined;
-  address?: string | undefined;
-}
-
-// Where the browser remembers that this server's admin hid the card.
-export const SERVER_SETUP_HIDDEN_STORAGE_KEY: string =
-  "admin-dashboard-server-setup-hidden";
-
-// The guide's section on HTTPS, for Docker Compose and the Helm chart alike.
-export const SERVER_SETUP_HTTPS_GUIDE: string =
-  "/docs/installation/docker-compose#set-up-https";
 
 export const SERVER_SETUP_COPY: {
   title: string;
   description: string;
-  hide: string;
-  email: {
-    title: string;
-    done: string;
-    open: string;
-    action: string;
-  };
+  allDone: string;
+  required: string;
+  recommended: string;
+  optional: string;
+  progress: string;
+  doneLabel: string;
+  openLabel: string;
+  failingLabel: string;
+  opensInNewTab: string;
   https: {
-    title: string;
-    done: string;
-    open: string;
     onlyBeforeOneUptime: string;
     openedOverHttp: string;
     action: string;
     openOverHttps: string;
   };
-  signups: {
-    title: string;
-    done: string;
-    open: string;
-    action: string;
+  actions: {
+    setUpEmail: string;
+    openSettings: string;
+    chooseWhoCanSignUp: string;
+    keepSignupsOpen: string;
+    setUpSmsAndCalls: string;
+    useEmailAndPushOnly: string;
+    seeGlobalProbes: string;
+    notNeeded: string;
+    howToBackUp: string;
+    setUpBackups: string;
+    isBackedUp: string;
+    readTheGuide: string;
+    addAiProvider: string;
+    setUpSingleSignOn: string;
+    undo: string;
   };
-  doneLabel: string;
-  openLabel: string;
-  opensInNewTab: string;
 } = {
   title: "Finish setting up this server",
-  description: "Most servers need these three before people rely on them.",
-  hide: "Hide",
-  email: {
-    title: "Email",
-    done: "Set up: OneUptime sends invitations, password resets and alerts by email.",
-    open: "Not set up yet: OneUptime cannot send invitations, password resets or alerts by email.",
-    action: "Set up email",
-  },
+  description:
+    "What a new server needs before people rely on it, most important first.",
+  allDone: "Everything this server needs is set up.",
+  required: "Required",
+  recommended: "Recommended",
+  optional: "Optional",
+  progress: "{{done}} of {{total}} done",
+  doneLabel: "Done",
+  openLabel: "Still to do",
+  failingLabel: "Failing",
+  opensInNewTab: "Opens in a new tab",
   https: {
-    title: "HTTPS",
-    done: "People reach this server over HTTPS.",
-    open: "Not set up yet: passwords and sessions cross the network unencrypted, and passkeys need HTTPS.",
     onlyBeforeOneUptime:
       "Almost: this page came over HTTPS, but OneUptime is still set to HTTP, so the links it sends start with http://. Set HTTP_PROTOCOL=https.",
     openedOverHttp:
@@ -147,77 +115,23 @@ export const SERVER_SETUP_COPY: {
     action: "How to set up HTTPS",
     openOverHttps: "Open over HTTPS",
   },
-  signups: {
-    title: "Sign-ups",
-    done: "Only people you invite can create an account.",
-    open: "Anyone who can open this server can create an account. Turn this off once your team has its accounts.",
-    action: "Choose who can sign up",
+  actions: {
+    setUpEmail: "Set up email",
+    openSettings: "Open settings",
+    chooseWhoCanSignUp: "Choose who can sign up",
+    keepSignupsOpen: "Keep sign-ups open",
+    setUpSmsAndCalls: "Set up SMS and calls",
+    useEmailAndPushOnly: "Use email and push only",
+    seeGlobalProbes: "See global probes",
+    notNeeded: "Not needed",
+    howToBackUp: "How to back up",
+    setUpBackups: "Set up backups",
+    isBackedUp: "This server is backed up",
+    readTheGuide: "Read the guide",
+    addAiProvider: "Add an AI provider",
+    setUpSingleSignOn: "Set up single sign-on",
+    undo: "Undo",
   },
-  doneLabel: "Done",
-  openLabel: "Still to do",
-  opensInNewTab: "Opens in a new tab",
-};
-
-/*
- * What the Email answer reads of the server's settings: what it sends
- * through, and for each way what says it is set up - never a password or
- * a key.
- */
-export interface EmailSetUpSettings {
-  emailServerType?: EmailServerType | undefined;
-  smtpTransportType?: unknown;
-  smtpHost?: unknown;
-  smtpFromEmail?: unknown;
-  smtpClientId?: unknown;
-  sendgridFromEmail?: unknown;
-  amazonSesAccessKeyId?: unknown;
-  amazonSesRegion?: unknown;
-  amazonSesFromEmail?: unknown;
-  mailgunDomain?: unknown;
-  mailgunFromEmail?: unknown;
-  postmarkFromEmail?: unknown;
-  resendFromEmail?: unknown;
-}
-
-/*
- * Whether the server can send email: what it is set to send through has
- * what it sends with and its sender - a mail server's host, Microsoft
- * Graph's OAuth app, Amazon SES's access key and Region, Mailgun's domain -
- * and the address mail comes from. An instance that never picked one sends
- * through Custom SMTP, as the Email settings page reads it.
- */
-export const isEmailSetUp: (config: EmailSetUpSettings) => boolean = (
-  config: EmailSetUpSettings,
-): boolean => {
-  const isSet: (value: unknown) => boolean = (value: unknown): boolean => {
-    return Boolean(value && String(value).trim());
-  };
-
-  switch (config.emailServerType) {
-    case EmailServerType.Sendgrid:
-      return isSet(config.sendgridFromEmail);
-    case EmailServerType.AmazonSES:
-      return (
-        isSet(config.amazonSesAccessKeyId) &&
-        isSet(config.amazonSesRegion) &&
-        isSet(config.amazonSesFromEmail)
-      );
-    case EmailServerType.Mailgun:
-      return isSet(config.mailgunDomain) && isSet(config.mailgunFromEmail);
-    case EmailServerType.Postmark:
-      return isSet(config.postmarkFromEmail);
-    case EmailServerType.Resend:
-      return isSet(config.resendFromEmail);
-    default:
-      break;
-  }
-
-  // Microsoft Graph sends with no host: its OAuth app and its mailbox.
-  if (config.smtpTransportType === MailTransportType.MicrosoftGraph) {
-    return isSet(config.smtpClientId) && isSet(config.smtpFromEmail);
-  }
-
-  return isSet(config.smtpHost) && isSet(config.smtpFromEmail);
 };
 
 /*
@@ -236,7 +150,7 @@ export const isServedOverHttps: (
 /*
  * A proxy in front of OneUptime answers over HTTPS, and nobody told
  * OneUptime: the connection is encrypted, but the links OneUptime sends and
- * its sign-in cookies still say HTTP. The card says exactly that - not that
+ * its sign-in cookies still say HTTP. The row says exactly that - not that
  * passwords cross the network unencrypted, which here they do not.
  */
 export const isHttpsOnlyBeforeOneUptime: (
@@ -248,12 +162,11 @@ export const isHttpsOnlyBeforeOneUptime: (
 
 /*
  * The reverse: OneUptime is told it is reached over HTTPS, and this page
- * came over plain HTTP all the same. The server answers on both until a
- * browser has once been told to keep to HTTPS, so an http:// bookmark, the
- * server's IP address or a visit while the certificate was still on its
- * way all land here. The links OneUptime sends are right; this visit is
- * not encrypted, and the card says that - not "Not set up yet", which
- * would send the admin to a guide whose steps are done.
+ * came over plain HTTP all the same - an http:// bookmark, the server's IP
+ * address, a visit while the certificate was on its way. The links
+ * OneUptime sends are right; this visit is not encrypted, and the row says
+ * that - not "Not set up yet", which would send the admin to a guide whose
+ * steps are done.
  */
 export const isOpenedOverHttpWhileSetToHttps: (
   httpProtocol: Protocol,
@@ -279,81 +192,410 @@ export const getHttpsAddress: (data: {
   return `https://${host}${data.location.pathname}${data.location.search}`;
 };
 
-export const getServerSetupItems: (
-  state: ServerSetupState,
-) => Array<ServerSetupItem> = (
-  state: ServerSetupState,
-): Array<ServerSetupItem> => {
-  // Only this visit is left: the action opens the page over HTTPS.
-  const isOnlyThisVisitLeft: boolean = Boolean(
-    !state.isServedOverHttps &&
-      state.isOpenedOverHttpWhileSetToHttps &&
-      state.httpsAddress,
+// One action a row offers.
+export interface ServerSetupAction {
+  kind: "route" | "guide" | "address" | "test" | "choose" | "undo";
+  title: string;
+  route?: Route | undefined;
+  url?: string | undefined;
+  channel?: ServerSendingChannel | undefined;
+  choice?: ServerSetupChoiceKind | undefined;
+  // The quieter of two actions: drawn as a link.
+  isSecondary?: boolean | undefined;
+}
+
+// A row as drawn: its words and its actions.
+export interface ServerSetupRow {
+  id: ServerSetupCheckId;
+  tier: ServerSetupCheckTier;
+  title: string;
+  isFinished: boolean;
+  isFailing: boolean;
+  // The status line: an English template and what fills it.
+  status: { template: string; values: Record<string, string> };
+  // What it was checked against, each an English template and its values.
+  checked: Array<{ template: string; values: Record<string, string> }>;
+  actions: Array<ServerSetupAction>;
+}
+
+// The browser's own view of HTTPS, for the HTTPS row.
+export interface ServerSetupPageFacts {
+  httpProtocol: Protocol;
+  pageProtocol: string;
+  httpsAddress: string;
+  hasScheduledBackups?: boolean | undefined;
+}
+
+const route: (page: PageMap) => Route = (page: PageMap): Route => {
+  return RouteUtil.populateRouteParams(RouteMap[page] as Route);
+};
+
+type FormatTime = (iso: string | null) => string;
+
+/*
+ * Every row, in the catalogue's order, from the server's answer and what
+ * this page knows: what each says, and what it offers.
+ */
+export const getServerSetupRows: (data: {
+  answer: ServerSetupChecklistAnswer;
+  page: ServerSetupPageFacts;
+  formatTime: FormatTime;
+}) => Array<ServerSetupRow> = (data: {
+  answer: ServerSetupChecklistAnswer;
+  page: ServerSetupPageFacts;
+  formatTime: FormatTime;
+}): Array<ServerSetupRow> => {
+  const rows: Array<ServerSetupRow> = [];
+
+  for (const definition of SERVER_SETUP_CHECKS) {
+    const check: ServerSetupCheckResult | null =
+      ServerSetupChecklistUtil.getCheck(data.answer, definition.id);
+
+    if (!check) {
+      continue;
+    }
+
+    rows.push(getServerSetupRow({ ...data, check, definition }));
+  }
+
+  return rows;
+};
+
+const getChoiceTitle: (id: ServerSetupCheckId) => string = (
+  id: ServerSetupCheckId,
+): string => {
+  switch (id) {
+    case ServerSetupCheckId.Signups:
+      return SERVER_SETUP_COPY.actions.keepSignupsOpen;
+    case ServerSetupCheckId.SmsAndCalls:
+      return SERVER_SETUP_COPY.actions.useEmailAndPushOnly;
+    case ServerSetupCheckId.Backups:
+      return SERVER_SETUP_COPY.actions.isBackedUp;
+    default:
+      return SERVER_SETUP_COPY.actions.notNeeded;
+  }
+};
+
+export const getServerSetupRow: (data: {
+  check: ServerSetupCheckResult;
+  definition: ServerSetupCheckDefinition;
+  page: ServerSetupPageFacts;
+  formatTime: FormatTime;
+}) => ServerSetupRow = (data: {
+  check: ServerSetupCheckResult;
+  definition: ServerSetupCheckDefinition;
+  page: ServerSetupPageFacts;
+  formatTime: FormatTime;
+}): ServerSetupRow => {
+  const check: ServerSetupCheckResult = data.check;
+  const time: string = data.formatTime(check.time);
+  const actions: Array<ServerSetupAction> = [];
+  const checked: ServerSetupRow["checked"] = [];
+
+  let status: ServerSetupRow["status"] = {
+    template: ServerSetupChecklistUtil.getStatusWords(check),
+    values: { time: time },
+  };
+  let isFinished: boolean = check.isFinished;
+
+  const providerSaid: (
+    sentThrough: string | null,
+    reason: string | null,
+  ) => void = (sentThrough: string | null, reason: string | null): void => {
+    if (reason) {
+      checked.push({
+        template: SERVER_SETUP_CHECKED_WORDS.providerSaid,
+        values: {
+          sentThrough: sentThrough || "The provider",
+          reason: reason,
+        },
+      });
+    }
+  };
+
+  switch (check.id) {
+    case ServerSetupCheckId.Email:
+      if (check.status === ServerSetupStatus.Done && check.time) {
+        checked.push({
+          template: SERVER_SETUP_CHECKED_WORDS.emailAccepted,
+          values: {
+            sentThrough: check.sentThrough || "The mail server",
+            time: time,
+          },
+        });
+      } else if (check.status === ServerSetupStatus.Failing) {
+        providerSaid(check.sentThrough, check.reason);
+      } else if (check.status === ServerSetupStatus.NotSetUp && check.reason) {
+        checked.push({ template: check.reason, values: {} });
+      }
+
+      if (check.status === ServerSetupStatus.NotSetUp) {
+        actions.push({
+          kind: "route",
+          title: SERVER_SETUP_COPY.actions.setUpEmail,
+          route: route(PageMap.SETTINGS_SMTP),
+        });
+      } else if (!check.isFinished) {
+        actions.push({
+          kind: "test",
+          title: "",
+          channel: ServerSendingChannel.Email,
+        });
+        actions.push({
+          kind: "route",
+          title: SERVER_SETUP_COPY.actions.openSettings,
+          route: route(PageMap.SETTINGS_SMTP),
+          isSecondary: true,
+        });
+      }
+      break;
+
+    case ServerSetupCheckId.Https: {
+      const isOnlyBeforeOneUptime: boolean = isHttpsOnlyBeforeOneUptime(
+        data.page.httpProtocol,
+        data.page.pageProtocol,
+      );
+      const isThisVisitLeft: boolean =
+        check.status === ServerSetupStatus.Done &&
+        isOpenedOverHttpWhileSetToHttps(
+          data.page.httpProtocol,
+          data.page.pageProtocol,
+        );
+
+      if (isThisVisitLeft) {
+        isFinished = false;
+        status = {
+          template: SERVER_SETUP_COPY.https.openedOverHttp,
+          values: {},
+        };
+        actions.push({
+          kind: "address",
+          title: SERVER_SETUP_COPY.https.openOverHttps,
+          url: data.page.httpsAddress,
+        });
+      } else if (!check.isFinished) {
+        if (isOnlyBeforeOneUptime) {
+          status = {
+            template: SERVER_SETUP_COPY.https.onlyBeforeOneUptime,
+            values: {},
+          };
+        }
+
+        actions.push({
+          kind: "guide",
+          title: SERVER_SETUP_COPY.https.action,
+          url: SERVER_SETUP_GUIDES.https,
+        });
+      }
+      break;
+    }
+
+    case ServerSetupCheckId.Signups:
+      if (check.status === ServerSetupStatus.NotSetUp) {
+        actions.push({
+          kind: "route",
+          title: SERVER_SETUP_COPY.actions.chooseWhoCanSignUp,
+          route: route(PageMap.SETTINGS_AUTHENTICATION),
+        });
+      }
+      break;
+
+    case ServerSetupCheckId.SmsAndCalls:
+      for (const channel of check.channels) {
+        if (
+          channel.state === ServerSendingState.Working &&
+          channel.lastWorkedAt
+        ) {
+          checked.push({
+            template:
+              channel.channel === ServerSendingChannel.Call
+                ? SERVER_SETUP_CHECKED_WORDS.callAccepted
+                : SERVER_SETUP_CHECKED_WORDS.smsAccepted,
+            values: {
+              sentThrough: channel.sentThrough || "Twilio",
+              time: data.formatTime(channel.lastWorkedAt),
+            },
+          });
+        }
+      }
+
+      if (check.status === ServerSetupStatus.Failing) {
+        providerSaid(check.sentThrough, check.reason);
+      }
+
+      if (check.status === ServerSetupStatus.NotSetUp) {
+        actions.push({
+          kind: "route",
+          title: SERVER_SETUP_COPY.actions.setUpSmsAndCalls,
+          route: route(PageMap.SETTINGS_CALL_AND_SMS),
+        });
+      } else if (!check.isFinished) {
+        for (const channel of check.tests) {
+          actions.push({ kind: "test", title: "", channel: channel });
+        }
+
+        actions.push({
+          kind: "route",
+          title: SERVER_SETUP_COPY.actions.openSettings,
+          route: route(PageMap.SETTINGS_CALL_AND_SMS),
+          isSecondary: true,
+        });
+      }
+      break;
+
+    case ServerSetupCheckId.Probes:
+      if (!check.isFinished) {
+        actions.push({
+          kind: "route",
+          title: SERVER_SETUP_COPY.actions.seeGlobalProbes,
+          route: route(PageMap.SETTINGS_PROBES),
+        });
+      }
+      break;
+
+    case ServerSetupCheckId.Backups:
+      if (check.status === ServerSetupStatus.Done && check.time) {
+        checked.push({
+          template: SERVER_SETUP_CHECKED_WORDS.lastBackup,
+          values: { time: time },
+        });
+      } else if (check.status === ServerSetupStatus.Failing && check.reason) {
+        checked.push({ template: check.reason, values: {} });
+      }
+
+      if (
+        check.status === ServerSetupStatus.NotSetUp ||
+        check.status === ServerSetupStatus.Failing
+      ) {
+        /*
+         * Scheduled backups are the Enterprise Edition's page, linked only
+         * when it is loaded: its address is Common's, never this page's own.
+         */
+        actions.push(
+          check.hasScheduledBackups
+            ? {
+                kind: "route",
+                title: SERVER_SETUP_COPY.actions.setUpBackups,
+                route: new Route(
+                  data.definition.adminPath || SERVER_SETUP_ADMIN_PATHS.backups,
+                ),
+              }
+            : {
+                kind: "guide",
+                title: SERVER_SETUP_COPY.actions.howToBackUp,
+                url: SERVER_SETUP_GUIDES.backups,
+              },
+        );
+      }
+      break;
+
+    case ServerSetupCheckId.UpdateChecks:
+      if (check.status === ServerSetupStatus.Done && check.time) {
+        checked.push({
+          template: SERVER_SETUP_CHECKED_WORDS.lastUpdateCheck,
+          values: { time: time },
+        });
+      }
+
+      if (!check.isFinished) {
+        actions.push({
+          kind: "guide",
+          title: SERVER_SETUP_COPY.actions.readTheGuide,
+          url: SERVER_SETUP_GUIDES.updateChecks,
+        });
+      }
+      break;
+
+    case ServerSetupCheckId.BrowserPush:
+      if (!check.isFinished) {
+        actions.push({
+          kind: "guide",
+          title: SERVER_SETUP_COPY.actions.readTheGuide,
+          url: SERVER_SETUP_GUIDES.browserPush,
+        });
+      }
+      break;
+
+    case ServerSetupCheckId.AiProvider:
+      if (!check.isFinished) {
+        actions.push({
+          kind: "route",
+          title: SERVER_SETUP_COPY.actions.addAiProvider,
+          route: route(PageMap.SETTINGS_LLM_PROVIDERS),
+        });
+      }
+      break;
+
+    case ServerSetupCheckId.SingleSignOn:
+      if (!check.isFinished) {
+        actions.push({
+          kind: "route",
+          title: SERVER_SETUP_COPY.actions.setUpSingleSignOn,
+          route: route(PageMap.SETTINGS_SSO),
+        });
+      }
+      break;
+  }
+
+  // Who chose, and when; and the choice itself, or its undo.
+  if (check.choice) {
+    checked.push(
+      check.choice.byName
+        ? {
+            template: SERVER_SETUP_CHECKED_WORDS.chosenBy,
+            values: {
+              name: check.choice.byName,
+              time: data.formatTime(check.choice.at),
+            },
+          }
+        : {
+            template: SERVER_SETUP_CHECKED_WORDS.chosenOn,
+            values: { time: data.formatTime(check.choice.at) },
+          },
+    );
+    actions.push({
+      kind: "undo",
+      title: SERVER_SETUP_COPY.actions.undo,
+      isSecondary: true,
+    });
+  } else if (check.canChoose && !check.isFinished) {
+    actions.push({
+      kind: "choose",
+      title: getChoiceTitle(check.id),
+      choice: check.canChoose,
+      isSecondary: true,
+    });
+  }
+
+  return {
+    id: check.id,
+    tier: check.tier,
+    title: data.definition.title,
+    isFinished: isFinished,
+    isFailing: check.status === ServerSetupStatus.Failing,
+    status: status,
+    checked: checked,
+    actions: actions,
+  };
+};
+
+// A date as this page writes it, in the reader's language.
+export const formatServerSetupTime: FormatTime = (
+  iso: string | null,
+): string => {
+  if (!iso) {
+    return "";
+  }
+
+  return OneUptimeDate.getDateAsLocalFormattedString(
+    OneUptimeDate.fromString(iso),
   );
-
-  return [
-    {
-      name: ServerSetupItemName.Email,
-      isDone: state.emailIsSetUp,
-      title: SERVER_SETUP_COPY.email.title,
-      description: state.emailIsSetUp
-        ? SERVER_SETUP_COPY.email.done
-        : SERVER_SETUP_COPY.email.open,
-      actionTitle: SERVER_SETUP_COPY.email.action,
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.SETTINGS_SMTP] as Route,
-      ),
-    },
-    {
-      name: ServerSetupItemName.Https,
-      isDone: state.isServedOverHttps,
-      title: SERVER_SETUP_COPY.https.title,
-      description: state.isServedOverHttps
-        ? SERVER_SETUP_COPY.https.done
-        : state.isHttpsOnlyBeforeOneUptime
-          ? SERVER_SETUP_COPY.https.onlyBeforeOneUptime
-          : isOnlyThisVisitLeft
-            ? SERVER_SETUP_COPY.https.openedOverHttp
-            : SERVER_SETUP_COPY.https.open,
-      actionTitle: isOnlyThisVisitLeft
-        ? SERVER_SETUP_COPY.https.openOverHttps
-        : SERVER_SETUP_COPY.https.action,
-      guideUrl: isOnlyThisVisitLeft ? undefined : SERVER_SETUP_HTTPS_GUIDE,
-      address: isOnlyThisVisitLeft ? state.httpsAddress : undefined,
-    },
-    {
-      name: ServerSetupItemName.Signups,
-      isDone: state.signupsAreClosed,
-      title: SERVER_SETUP_COPY.signups.title,
-      description: state.signupsAreClosed
-        ? SERVER_SETUP_COPY.signups.done
-        : SERVER_SETUP_COPY.signups.open,
-      actionTitle: SERVER_SETUP_COPY.signups.action,
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.SETTINGS_AUTHENTICATION] as Route,
-      ),
-    },
-  ];
-};
-
-const readHidden: () => boolean = (): boolean => {
-  try {
-    return LocalStorage.getItem(SERVER_SETUP_HIDDEN_STORAGE_KEY) === true;
-  } catch {
-    // Storage the browser does not allow: the card shows.
-    return false;
-  }
-};
-
-const rememberHidden: () => void = (): void => {
-  try {
-    LocalStorage.setItem(SERVER_SETUP_HIDDEN_STORAGE_KEY, true);
-  } catch {
-    // Hidden for this visit only.
-  }
 };
 
 export interface ComponentProps {
+  answer: ServerSetupChecklistAnswer;
+  // A new answer from the server: after a choice, an undo or a test send.
+  onAnswer: (answer: ServerSetupChecklistAnswer | null) => void;
   // For tests: the protocol this page came over (window.location.protocol).
   pageProtocol?: string | undefined;
 }
@@ -362,195 +604,366 @@ const ServerSetupChecklist: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const [state, setState] = useState<ServerSetupState | null>(null);
-  const [isHidden, setIsHidden] = useState<boolean>(readHidden);
+  const [isShowingOptional, setIsShowingOptional] = useState<boolean>(false);
+  const [busyCheck, setBusyCheck] = useState<ServerSetupCheckId | null>(null);
+  const [error, setError] = useState<string>("");
 
-  useEffect(() => {
-    if (BILLING_ENABLED || isHidden) {
-      return;
+  const rows: Array<ServerSetupRow> = getServerSetupRows({
+    answer: props.answer,
+    page: {
+      httpProtocol: HTTP_PROTOCOL,
+      pageProtocol: props.pageProtocol || window.location.protocol,
+      httpsAddress: getHttpsAddress({ host: HOST, location: window.location }),
+    },
+    formatTime: formatServerSetupTime,
+  });
+
+  const words: (sentence: {
+    template: string;
+    values: Record<string, string>;
+  }) => string = (sentence: {
+    template: string;
+    values: Record<string, string>;
+  }): string => {
+    return translator.translateTemplate(sentence.template, sentence.values);
+  };
+
+  const choose: (
+    id: ServerSetupCheckId,
+    kind: ServerSetupChoiceKind | null,
+  ) => Promise<void> = async (
+    id: ServerSetupCheckId,
+    kind: ServerSetupChoiceKind | null,
+  ): Promise<void> => {
+    setBusyCheck(id);
+    setError("");
+
+    try {
+      props.onAnswer(await ServerSetupChecklistLoader.choose(id, kind));
+    } catch (err) {
+      setError(API.getFriendlyMessage(err));
+    } finally {
+      setBusyCheck(null);
+    }
+  };
+
+  const onTested: (answer: ServerTestSendAnswer) => void = (): void => {
+    // How the test went changes the row: read the checklist again.
+    ServerSetupChecklistLoader.clear();
+    ServerSetupChecklistLoader.load()
+      .then((answer: ServerSetupChecklistAnswer | null): void => {
+        if (answer) {
+          props.onAnswer(answer);
+        }
+      })
+      .catch((): void => {
+        // load() never rejects.
+      });
+  };
+
+  const drawAction: (
+    row: ServerSetupRow,
+    action: ServerSetupAction,
+    index: number,
+  ) => ReactElement = (
+    row: ServerSetupRow,
+    action: ServerSetupAction,
+    index: number,
+  ): ReactElement => {
+    const key: string = `${row.id}-${action.kind}-${index}`;
+    const testId: string = `server-setup-${row.id}-${action.kind}`;
+    const buttonClassName: string =
+      "inline-flex flex-none items-center rounded-md bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50";
+    const linkClassName: string =
+      "inline-flex flex-none items-center text-sm font-medium text-gray-600 underline decoration-gray-300 underline-offset-2 hover:text-gray-900";
+
+    switch (action.kind) {
+      case "test":
+        return (
+          <ServerTestSendButton
+            key={key}
+            channel={action.channel!}
+            onAnswer={onTested}
+            dataTestId={`server-setup-${row.id}-test-${action.channel}`}
+          />
+        );
+      case "choose":
+      case "undo":
+        return (
+          <Button
+            key={key}
+            title={action.title}
+            buttonStyle={ButtonStyleType.LINK}
+            isLoading={busyCheck === row.id}
+            disabled={busyCheck !== null}
+            onClick={() => {
+              void choose(
+                row.id,
+                action.kind === "undo" ? null : action.choice || null,
+              );
+            }}
+            dataTestId={testId}
+          />
+        );
+      default: {
+        const isGuide: boolean = action.kind === "guide";
+
+        return (
+          <Link
+            key={key}
+            to={
+              action.route ||
+              (action.kind === "address"
+                ? URL.fromString(action.url!)
+                : URL.fromString(`${window.location.origin}${action.url!}`))
+            }
+            openInNewTab={isGuide}
+            dataTestId={testId}
+            className={action.isSecondary ? linkClassName : buttonClassName}
+          >
+            {translator.translateText(action.title)}
+            {/* A guide opens in a tab of its own, and says so. */}
+            {isGuide ? (
+              <>
+                <Icon
+                  icon={IconProp.ExternalLink}
+                  className="ms-1.5 h-3.5 w-3.5 text-gray-400"
+                  data-testid={`${testId}-new-tab`}
+                />
+                <span className="sr-only">
+                  {` (${translator.translateText(
+                    SERVER_SETUP_COPY.opensInNewTab,
+                  )})`}
+                </span>
+              </>
+            ) : (
+              <></>
+            )}
+          </Link>
+        );
+      }
+    }
+  };
+
+  const drawRow: (row: ServerSetupRow) => ReactElement = (
+    row: ServerSetupRow,
+  ): ReactElement => {
+    const isOptionalOpen: boolean =
+      row.tier === ServerSetupCheckTier.Optional && !row.isFinished;
+
+    return (
+      <li
+        key={row.id}
+        data-testid={`server-setup-${row.id}`}
+        data-done={row.isFinished ? "true" : "false"}
+        className="flex flex-col gap-3 py-4 sm:flex-row sm:items-start"
+      >
+        <div className="flex min-w-0 flex-1 items-start gap-3">
+          <span
+            className={`mt-0.5 flex h-6 w-6 flex-none items-center justify-center rounded-full ${
+              row.isFinished
+                ? "bg-green-50 text-green-600"
+                : row.isFailing
+                  ? "bg-red-50 text-red-600"
+                  : isOptionalOpen
+                    ? "bg-gray-50 text-gray-400"
+                    : "bg-amber-50 text-amber-600"
+            }`}
+          >
+            <Icon
+              icon={
+                row.isFinished
+                  ? IconProp.CheckCircle
+                  : row.isFailing
+                    ? IconProp.XCircle
+                    : isOptionalOpen
+                      ? IconProp.MinusCircle
+                      : IconProp.ExclaimationCircle
+              }
+              className="h-4 w-4"
+            />
+            <span className="sr-only">
+              {translator.translateText(
+                row.isFinished
+                  ? SERVER_SETUP_COPY.doneLabel
+                  : row.isFailing
+                    ? SERVER_SETUP_COPY.failingLabel
+                    : SERVER_SETUP_COPY.openLabel,
+              )}
+            </span>
+          </span>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-gray-900">
+              {translator.translateText(row.title)}
+            </p>
+            <p
+              className="mt-0.5 text-sm text-gray-500 text-pretty"
+              data-testid={`server-setup-${row.id}-status`}
+            >
+              {words(row.status)}
+            </p>
+            {row.checked.map(
+              (
+                sentence: { template: string; values: Record<string, string> },
+                index: number,
+              ): ReactElement => {
+                return (
+                  <p
+                    key={index}
+                    className="mt-1 break-words text-xs text-gray-400"
+                    data-testid={`server-setup-${row.id}-checked`}
+                  >
+                    {words(sentence)}
+                  </p>
+                );
+              },
+            )}
+          </div>
+        </div>
+        {row.actions.length > 0 ? (
+          <div className="ms-9 flex flex-wrap items-center gap-x-3 gap-y-2 sm:ms-0 sm:justify-end">
+            {row.actions.map(
+              (action: ServerSetupAction, index: number): ReactElement => {
+                return drawAction(row, action, index);
+              },
+            )}
+          </div>
+        ) : (
+          <></>
+        )}
+      </li>
+    );
+  };
+
+  const drawSection: (
+    tier: ServerSetupCheckTier,
+    title: string,
+  ) => ReactElement = (
+    tier: ServerSetupCheckTier,
+    title: string,
+  ): ReactElement => {
+    const sectionRows: Array<ServerSetupRow> = rows.filter(
+      (row: ServerSetupRow): boolean => {
+        return row.tier === tier;
+      },
+    );
+
+    if (sectionRows.length === 0) {
+      return <></>;
     }
 
-    let isCurrent: boolean = true;
+    const done: number = sectionRows.filter((row: ServerSetupRow): boolean => {
+      return row.isFinished;
+    }).length;
+    const isFolded: boolean =
+      tier === ServerSetupCheckTier.Optional && !isShowingOptional;
 
-    const load: () => Promise<void> = async (): Promise<void> => {
-      try {
-        // Only what the three answers need: never a password or a key.
-        const config: GlobalConfig | null =
-          await ModelAPI.getItem<GlobalConfig>({
-            modelType: GlobalConfig,
-            id: ObjectID.getZeroObjectID(),
-            select: {
-              _id: true,
-              emailServerType: true,
-              smtpTransportType: true,
-              smtpHost: true,
-              smtpFromEmail: true,
-              smtpClientId: true,
-              sendgridFromEmail: true,
-              amazonSesAccessKeyId: true,
-              amazonSesRegion: true,
-              amazonSesFromEmail: true,
-              mailgunDomain: true,
-              mailgunFromEmail: true,
-              postmarkFromEmail: true,
-              resendFromEmail: true,
-              disableSignup: true,
-            },
-          });
+    const heading: ReactElement = (
+      <>
+        <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+          {translator.translateText(title)}
+        </span>
+        <span
+          className="text-xs text-gray-400"
+          data-testid={`server-setup-${tier}-progress`}
+        >
+          {translator.translateTemplate(SERVER_SETUP_COPY.progress, {
+            done: done,
+            total: sectionRows.length,
+          })}
+        </span>
+      </>
+    );
 
-        if (!isCurrent || !config) {
-          return;
-        }
+    return (
+      <section
+        key={tier}
+        data-testid={`server-setup-${tier}`}
+        className="border-t border-gray-100 pt-4 first:border-t-0 first:pt-0"
+      >
+        {tier === ServerSetupCheckTier.Optional ? (
+          <button
+            type="button"
+            className="flex w-full items-center justify-between gap-3 text-start"
+            aria-expanded={!isFolded}
+            onClick={() => {
+              setIsShowingOptional(!isShowingOptional);
+            }}
+            data-testid="server-setup-optional-toggle"
+          >
+            <span className="flex items-center gap-2">
+              <Icon
+                icon={isFolded ? IconProp.ChevronRight : IconProp.ChevronDown}
+                className="h-3.5 w-3.5 text-gray-400"
+              />
+              {heading}
+            </span>
+          </button>
+        ) : (
+          <div className="flex items-center justify-between gap-3">
+            {heading}
+          </div>
+        )}
+        {isFolded ? (
+          <></>
+        ) : (
+          <ul className="divide-y divide-gray-100">
+            {sectionRows.map(drawRow)}
+          </ul>
+        )}
+      </section>
+    );
+  };
 
-        const pageProtocol: string =
-          props.pageProtocol || window.location.protocol;
-
-        setState({
-          emailIsSetUp: isEmailSetUp(config),
-          isServedOverHttps: isServedOverHttps(HTTP_PROTOCOL, pageProtocol),
-          isHttpsOnlyBeforeOneUptime: isHttpsOnlyBeforeOneUptime(
-            HTTP_PROTOCOL,
-            pageProtocol,
-          ),
-          isOpenedOverHttpWhileSetToHttps: isOpenedOverHttpWhileSetToHttps(
-            HTTP_PROTOCOL,
-            pageProtocol,
-          ),
-          httpsAddress: getHttpsAddress({
-            host: HOST,
-            location: window.location,
-          }),
-          signupsAreClosed: config.disableSignup === true,
-        });
-      } catch {
-        // Nothing to say: the card only ever helps.
-      }
-    };
-
-    load().catch(() => {
-      // handled above
-    });
-
-    return () => {
-      isCurrent = false;
-    };
-  }, [isHidden]);
-
-  if (BILLING_ENABLED || isHidden || !state) {
-    return <></>;
-  }
-
-  const items: Array<ServerSetupItem> = getServerSetupItems(state);
-
-  if (
-    items.every((item: ServerSetupItem): boolean => {
-      return item.isDone;
+  const isAllDone: boolean = rows
+    .filter((row: ServerSetupRow): boolean => {
+      return row.tier !== ServerSetupCheckTier.Optional;
     })
-  ) {
-    return <></>;
-  }
+    .every((row: ServerSetupRow): boolean => {
+      return row.isFinished;
+    });
 
   return (
     <div data-testid="server-setup-checklist">
       <Card
         title={SERVER_SETUP_COPY.title}
         description={SERVER_SETUP_COPY.description}
-        buttons={[
-          {
-            title: SERVER_SETUP_COPY.hide,
-            buttonStyle: ButtonStyleType.NORMAL,
-            icon: IconProp.EyeSlash,
-            onClick: () => {
-              rememberHidden();
-              setIsHidden(true);
-            },
-          },
-        ]}
       >
-        <ul className="divide-y divide-gray-100 border-t border-gray-100">
-          {items.map((item: ServerSetupItem): ReactElement => {
-            return (
-              <li
-                key={item.name}
-                data-testid={`server-setup-${item.name}`}
-                data-done={item.isDone ? "true" : "false"}
-                className="flex flex-col gap-3 py-4 last:pb-0 sm:flex-row sm:items-start"
-              >
-                <div className="flex min-w-0 flex-1 items-start gap-3">
-                  <span
-                    className={`mt-0.5 flex h-6 w-6 flex-none items-center justify-center rounded-full ${
-                      item.isDone
-                        ? "bg-green-50 text-green-600"
-                        : "bg-amber-50 text-amber-600"
-                    }`}
-                  >
-                    <Icon
-                      icon={
-                        item.isDone
-                          ? IconProp.CheckCircle
-                          : IconProp.ExclaimationCircle
-                      }
-                      className="h-4 w-4"
-                    />
-                    <span className="sr-only">
-                      {translator.translateText(
-                        item.isDone
-                          ? SERVER_SETUP_COPY.doneLabel
-                          : SERVER_SETUP_COPY.openLabel,
-                      )}
-                    </span>
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-900">
-                      {translator.translateText(item.title)}
-                    </p>
-                    <p className="mt-0.5 text-sm text-gray-500 text-pretty">
-                      {translator.translateText(item.description)}
-                    </p>
-                  </div>
-                </div>
-                {item.isDone ? (
-                  <></>
-                ) : (
-                  <Link
-                    to={
-                      item.route ||
-                      (item.address
-                        ? URL.fromString(item.address)
-                        : item.guideUrl
-                          ? URL.fromString(
-                              `${window.location.origin}${item.guideUrl}`,
-                            )
-                          : undefined)
-                    }
-                    openInNewTab={Boolean(item.guideUrl)}
-                    dataTestId={`server-setup-${item.name}-action`}
-                    className="ml-9 inline-flex flex-none items-center self-start rounded-md bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:ml-0"
-                  >
-                    {translator.translateText(item.actionTitle)}
-                    {/* A guide opens in a tab of its own, and says so. */}
-                    {item.guideUrl ? (
-                      <>
-                        <Icon
-                          icon={IconProp.ExternalLink}
-                          className="ms-1.5 h-3.5 w-3.5 text-gray-400"
-                          data-testid={`server-setup-${item.name}-new-tab`}
-                        />
-                        <span className="sr-only">
-                          {` (${translator.translateText(
-                            SERVER_SETUP_COPY.opensInNewTab,
-                          )})`}
-                        </span>
-                      </>
-                    ) : (
-                      <></>
-                    )}
-                  </Link>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+        <div className="space-y-4">
+          {isAllDone ? (
+            <Alert
+              type={AlertType.SUCCESS}
+              title={
+                translator.translateText(SERVER_SETUP_COPY.allDone) ||
+                SERVER_SETUP_COPY.allDone
+              }
+              dataTestId="server-setup-all-done"
+            />
+          ) : (
+            <></>
+          )}
+          {error ? (
+            <Alert
+              type={AlertType.DANGER}
+              title={error}
+              dataTestId="server-setup-error"
+            />
+          ) : (
+            <></>
+          )}
+          {drawSection(
+            ServerSetupCheckTier.Required,
+            SERVER_SETUP_COPY.required,
+          )}
+          {drawSection(
+            ServerSetupCheckTier.Recommended,
+            SERVER_SETUP_COPY.recommended,
+          )}
+          {drawSection(
+            ServerSetupCheckTier.Optional,
+            SERVER_SETUP_COPY.optional,
+          )}
+        </div>
       </Card>
     </div>
   );

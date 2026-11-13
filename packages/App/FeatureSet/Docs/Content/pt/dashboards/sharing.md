@@ -86,29 +86,28 @@ O cartão se chama **Domínios personalizados** e diz o que fazer: aponte o regi
 
 Colocar o painel no seu próprio domínio leva três passos, e só os dois primeiros são com você:
 
-1. **Adicione o domínio**: um subdomínio e um dos seus domínios verificados.
-2. **Adicione o registro CNAME dele** no seu provedor de DNS. A caixa de diálogo **Configuração de DNS** abre com o registro assim que você adiciona o domínio.
+1. **Adicione o domínio**: digite o endereço que as pessoas vão abrir, como `dashboard.acme.com`.
+2. **Adicione os registros DNS dele** no seu provedor de DNS. A caixa de diálogo **Configuração de DNS** mostra esses registros: um registro CNAME para o endereço e, na primeira vez que o projeto usa um domínio, um registro TXT que mostra que o domínio é do projeto.
 3. **O certificado SSL gratuito é emitido automaticamente** assim que o registro é encontrado. Não há nenhum botão para apertar.
 
 Depois de verificado, o painel fica acessível tanto no seu domínio personalizado quanto na URL original.
 
 ### Adicionar o domínio
 
-Clique em **Criar: Domínio do painel**. A caixa de diálogo tem uma única página:
+Clique em **Adicionar domínio personalizado**. A caixa de diálogo pede uma só coisa:
 
-- **Subdomínio**: só o rótulo, com o exemplo `dashboard (leave blank for root)`. Digite só `dashboard`, não o nome de host inteiro. Deixe-o vazio ou digite `@` para usar o domínio raiz (apex).
-- **Domínio**: os domínios verificados em **Configurações do projeto → Avançado → Domínios**, onde você prova com um registro TXT que um domínio é seu. Um domínio que você não verificou não aparece na lista, porque seria recusado. O link **Adicionar um domínio** ao lado do campo abre essa página numa nova aba.
+- **Domínio**: o endereço completo que as pessoas vão abrir, com o exemplo `dashboard.example.com`. Um link colado também funciona: só o nome de host dele é mantido. Para usar a raiz de um domínio, digite o próprio domínio.
 - **Mais campos**: recolhido. Enquanto está recolhido, o cabeçalho dele diz qual certificado o domínio vai usar: "Emitimos um certificado SSL gratuito para este domínio e o renovamos automaticamente." Abra-o só para usar um certificado seu (veja abaixo).
 
-Clique em **Criar: Domínio do painel**. A caixa de diálogo se fecha e a **Configuração de DNS** do novo domínio se abre. O nome completo de um domínio fica fixo quando você o adiciona, então **Editar** muda só o certificado dele. Para usar outro subdomínio, adicione esse domínio e exclua o antigo.
+Clique em **Continuar**. Se o projeto verificou o domínio em que o endereço está, em **Configurações do projeto → Avançado → Domínios**, o domínio é adicionado e a **Configuração de DNS** dele se abre. Se não, o OneUptime adiciona esse domínio ao projeto e a **Configuração de DNS** se abre também com o registro TXT dele, para você verificá-lo ali mesmo. O nome completo de um domínio fica fixo quando você o adiciona, então **Editar** muda só o certificado dele. Para usar outro endereço, adicione esse e exclua o antigo.
 
 ### Configuração de DNS e Verificar agora
 
-A caixa de diálogo **Configuração de DNS** mostra o registro a adicionar no seu provedor de DNS, um campo por linha, cada um com um botão de copiar: **Tipo** `CNAME`, **Nome** o domínio completo que você adicionou, e **Valor** o registro CNAME de painéis da sua instalação. Para um domínio raiz, sem subdomínio, a caixa de diálogo acrescenta uma nota: muitos provedores de DNS não permitem um registro CNAME ali, então use o registro ALIAS, ANAME ou de achatamento de CNAME do seu provedor, com o mesmo valor.
+A caixa de diálogo **Configuração de DNS** mostra cada registro a adicionar no seu provedor de DNS, um campo por linha, cada um com um botão de copiar: **Tipo** `CNAME`, **Nome** o domínio completo que você adicionou, e **Valor** o registro CNAME de painéis da sua instalação, depois do registro TXT do domínio enquanto o projeto não o tiver verificado. Para um domínio raiz, sem subdomínio, a caixa de diálogo acrescenta uma nota: muitos provedores de DNS não permitem um registro CNAME ali, então use o registro ALIAS, ANAME ou de achatamento de CNAME do seu provedor, com o mesmo valor.
 
 O OneUptime verifica cada domínio não verificado a cada 15 minutos, e quando a verificação encontra o registro, solicita o certificado gratuito do Let's Encrypt para o domínio nessa mesma verificação, quer você volte ou não. Para verificar na hora, clique em **Verificar agora**:
 
-- **O registro ainda não foi encontrado.** A caixa de diálogo continua aberta e diz qual registro procurou. Um registro DNS novo pode demorar um pouco para aparecer. Clique em **Verificar agora** de novo mais tarde, ou deixe para a verificação a cada 15 minutos.
+- **O registro ainda não foi encontrado.** A caixa de diálogo continua aberta e, embaixo de cada registro, diz o que o OneUptime consultou e o que voltou: nada, outro valor, ou um endereço onde se esperava um registro CNAME. Um registro DNS novo pode demorar um pouco para aparecer. Clique em **Verificar agora** de novo mais tarde, ou deixe para a verificação a cada 15 minutos.
 - **O registro foi encontrado.** A caixa de diálogo diz "Seu registro CNAME está verificado." e o que acontece em seguida com o certificado. O certificado gratuito é solicitado nesse momento, e geralmente fica ativo em até 15 minutos.
 
 Até um domínio estar verificado e com o certificado no lugar, a linha dele tem uma ação **Configuração de DNS** que abre a mesma caixa de diálogo. Num domínio verificado cuja solicitação de certificado continua falhando, ou cujo certificado expirou, **Verificar agora** ali solicita de novo e mostra por que a última solicitação falhou. Ele solicita no máximo uma vez por domínio a cada 15 minutos; nesse meio-tempo, o OneUptime continua tentando sozinho, esperando um pouco mais depois de cada falha seguida. A renovação é automática, bem antes de o certificado expirar, e uma verificação de DNS que falha nunca remove um certificado que ainda é válido.

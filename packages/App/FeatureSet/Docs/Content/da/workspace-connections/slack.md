@@ -43,7 +43,7 @@ To forbindelser får det til at virke:
 :::steps
 ### Installér OneUptime i dit Slack-workspace
 
-Gå til **Projektindstillinger** > **Arbejdsområde** > **Slack**, og klik på **Connect with Slack**. Vælg workspacet, og giv OneUptime lov. Slack sender dig tilbage til samme side, som nu nævner det workspace, projektet er forbundet med. Indtil et workspace er forbundet, indeholder sektionen **Arbejdsområde** i menuerne Hændelser, Advarsler, Planlagt vedligeholdelse, Monitorer og Vagtordning **Forbind et arbejdsområde**, som også fører hertil.
+Gå til **Projektindstillinger** > **Arbejdsområde** > **Slack**, og klik på **Forbind med Slack**. Vælg workspacet, og giv OneUptime lov. Slack sender dig tilbage til samme side, som nu nævner det workspace, projektet er forbundet med. Indtil et workspace er forbundet, indeholder sektionen **Arbejdsområde** i menuerne Hændelser, Advarsler, Planlagt vedligeholdelse, Monitorer og Vagtordning **Forbind et arbejdsområde**, som også fører hertil.
 
 ### Forbind din egen Slack-konto
 
@@ -55,18 +55,19 @@ Gå til **Hændelser** > **Arbejdsområde** > **Slack**. Sektionen **Arbejdsomr�
 
 ### Test reglen
 
-Klik på **Testregel** i reglens række. En testbesked ankommer i de kanaler, reglen nævner. Se [Test en regel](#test-en-regel).
+Klik på **Test regel** i reglens række. En testbesked ankommer i de kanaler, reglen nævner. Se [Test en regel](#test-en-regel).
 :::
 
 ## Slack Enterprise-organisationer
 
 Med Slack Enterprise Grid kan ét projekt arbejde i flere workspaces i din organisation. Installér OneUptime for hele organisationen i stedet for ét workspace:
 
-1. En administrator eller ejer af organisationen klikker på **Connect with Slack** under **Projektindstillinger** > **Arbejdsområde** > **Slack**, vælger organisationen i stedet for et af dens workspaces på Slacks installationsside og giver OneUptime adgang.
+1. En administrator eller ejer af organisationen klikker på **Forbind med Slack** under **Projektindstillinger** > **Arbejdsområde** > **Slack**, vælger organisationen i stedet for et af dens workspaces på Slacks installationsside og giver OneUptime adgang.
 2. I Slacks organisationsindstillinger føjer en administrator OneUptime til hvert workspace, der skal bruge det.
 3. Kortet **Slack-arbejdsområder** viser disse workspaces. Klik på **Opdater**, når OneUptime er føjet til et nyt workspace.
 
-- **Hvilket workspace en regel bruger.** Notifikationsregler vælger det **Slack-arbejdsområde**, deres kanaler ligger i. Står feltet tomt, bruger reglen standard-workspacet og leder først dér efter de kanaler, den nævner. **Gør til standard** på kortet ændrer standarden.
+- **Hvilket workspace en regel bruger.** Notifikationsregler vælger det **Slack-arbejdsområde**, deres kanaler ligger i. Står feltet tomt, bruger reglen standard-workspacet og leder først dér efter de kanaler, den nævner. **Gør til standard** på kortet ændrer standarden. Fjernes OneUptime fra standard-workspacet, bliver det første af de tilbageværende workspaces i alfabetisk rækkefølge standard. Det forbliver standard, når OneUptime føjes til det gamle workspace igen.
+- **Et workspace, OneUptime er fjernet fra.** En regel, der vælger det, poster ikke i et andet workspace i stedet: reglens kort, **Test regel** og notifikationslogs siger, at OneUptime ikke længere er føjet til det. Kortet **Slack-kanal** siger det også, når kanalen ligger i det workspace. Føj OneUptime til det workspace igen i Slacks organisationsindstillinger, eller vælg et andet workspace i reglen.
 - **Hvor OneUptime virker.** Knapper, kommandoer, fanen Home og OneUptime AI virker i hvert af disse workspaces, og medlemmer forbinder deres egen Slack-konto fra et hvilket som helst af dem.
 - **Et projekt, der er forbundet med ét workspace.** Hører det workspace til organisationen, beholder projektet sine regler, kanaler og forbundne konti, når det installeres for hele organisationen med **Installer for organisationen** på samme side. Det workspace bliver standard.
 - **På en selvhostet server** tillader en Slack-app, der er oprettet ud fra OneUptimes manifest, det allerede: manifestet sætter `org_deploy_enabled`.
@@ -137,9 +138,9 @@ OneUptime-appen tilføjer dem, ligesom den tilføjer personerne i en regels kana
 
 ## Test en regel
 
-**Testregel** i en regels række slår en testbesked for den regel op i de kanaler, den nævner, så du kan se den ankomme. Hvis reglen opretter en kanal for hver begivenhed, opretter testen også en og inviterer reglens folk ind i den.
+**Test regel** i en regels række slår en testbesked for den regel op i de kanaler, den nævner, så du kan se den ankomme. Hvis reglen opretter en kanal for hver begivenhed, opretter testen også en og inviterer reglens folk ind i den.
 
-Ligesom **Send test** ved siden af en kanal i **Projektindstillinger** > **Arbejdsområde** > **Slack** kræver den rettighed til at oprette notifikationsregler: **Projektejer**, **Projektadministrator**, **Projektmedlem**, **Indstillingsadministrator**, **Indstillingsmedlem** eller **Create Workspace Notification Rule** og **Read Workspace Notification Rule** i en brugerdefineret rolle. For en, der kun må se reglerne, som en **Seer**, er **Testregel** låst, og dens værktøjstip siger, hvad der kræves; API'en afviser vedkommendes test med "You do not have permission to send test notifications in this project." På OneUptime Cloud kræver det **Growth**-planen at teste en regel, ligesom at tilføje en.
+Ligesom **Send test** ved siden af en kanal i **Projektindstillinger** > **Arbejdsområde** > **Slack** kræver den rettighed til at oprette notifikationsregler: **Projektejer**, **Projektadministrator**, **Projektmedlem**, **Indstillingsadministrator**, **Indstillingsmedlem** eller **Create Workspace Notification Rule** og **Read Workspace Notification Rule** i en brugerdefineret rolle. For en, der kun må se reglerne, som en **Seer**, er **Test regel** låst, og dens værktøjstip siger, hvad der kræves; API'en afviser vedkommendes test med "You do not have permission to send test notifications in this project." På OneUptime Cloud kræver det **Growth**-planen at teste en regel, ligesom at tilføje en.
 
 På OneUptime Cloud kræver **Send test** ved siden af en kanal også **Growth**-planen, da det at slå op i en kanal er det, regler og opsummeringer gør. **Send test nu** på en opsummering kræver rettighed til at oprette opsummeringer (**Create Workspace Notification Summary** og **Read Workspace Notification Summary** i en brugerdefineret rolle) og, på OneUptime Cloud, **Growth**-planen; for alle andre er den låst, og dens værktøjstip siger, hvad der kræves. En MCP-klient, der er forbundet med skrivebeskyttet adgang, kan ikke sende nogen test.
 
@@ -268,6 +269,7 @@ Til en gruppe med både den primære og den sekundære vagt forbinder du den sam
 - **Tilkald gruppen.** `/oneuptime page @payments-oncall The checkout API is down` tilkalder dem, der har vagt i de vagtplaner, gruppen følger. Se [Tilkald nogen fra Slack](#tilkald-nogen-fra-slack).
 - **Hvad Slack kræver.** Brugergrupper hører til Slacks betalte abonnementer, og et arbejdsområde kan nøjes med at lade sine ejere og administratorer ændre dem: kortet siger hvilket, og hvad du skal gøre. Hvis Slack blev forbundet, før OneUptime kunne holde brugergrupper opdateret, så forbind det igen én gang under **Projektindstillinger** > **Arbejdsområde** > **Slack**.
 - **Hvem der må forbinde en.** De roller, der må redigere vagtplaner: **Projektejer**, **Projektadministrator**, **Projektmedlem**, **Vagtadministrator** og **Vagtmedlem**, eller **Edit On-Call Duty Policy Schedule** i en brugerdefineret rolle. På OneUptime Cloud kræver det abonnementet **Growth** at forbinde en.
+- **I en Slack Enterprise-organisation.** Når OneUptime er føjet til to eller flere af dens workspaces, spørger **Forbind brugergruppe** først, hvilket **Slack-arbejdsområde** gruppen er i, og viser derefter det workspaces brugergrupper. Kortet nævner hver gruppes workspace, og OneUptime holder gruppen opdateret dér.
 - **Afbryd forbindelsen.** OneUptime holder op med at ændre gruppen. Gruppen og dens medlemmer bliver i Slack, som de er.
 
 ## Håndter en hændelse fra Slack
@@ -311,7 +313,7 @@ Når projektets offentlige noter kræver godkendelse, og du slår Slack til for 
 ## Afbryd forbindelsen
 
 - **Afbryd forbindelse** fjerner kun tilknytningen af din egen Slack-konto og fjerner samtidig din Slack-notifikationsmetode.
-- **Uninstall OneUptime from Slack**, på **Projektindstillinger** > **Arbejdsområde** > **Slack**, afbryder projektets forbindelse. OneUptime holder op med at slå op i Slack, og menuerne **Arbejdsområde** holder op med at vise det. Notifikationsreglerne og opsummeringerne bevares, til du forbinder igen.
+- **Afinstaller OneUptime fra Slack**, på **Projektindstillinger** > **Arbejdsområde** > **Slack**, afbryder projektets forbindelse. OneUptime holder op med at slå op i Slack, og menuerne **Arbejdsområde** holder op med at vise det. Notifikationsreglerne og opsummeringerne bevares, til du forbinder igen.
 
 > [!WARNING]
 > At afinstallere fjerner også tilknytningen af hvert medlems egen Slack-konto i projektet og fjerner Slack-notifikationsmetoderne og de vagtregler, der brugte dem. De, der blev tilkaldt i Slack, tilkaldes via deres andre notifikationsmetoder, indtil de tilføjer Slack igen.
@@ -331,7 +333,7 @@ Det, OneUptime gemmer af det — arbejdsområdets navn, dets kanaler, de Slack-k
 ## Fejlfinding
 
 :::details En regel slår intet op
-Tjek reglens betingelser med **Testregel**: hvis testen ankommer, passede reglens betingelser ikke på begivenheden. Hvis den ikke gør, siger Slack-siden hvorfor. For en privat kanal skal du først invitere OneUptime-appen ind i den i Slack. Hver besked, OneUptime slår op, og hver besked, Slack afviste, vises i **Projektindstillinger** > **Notifikationer** > **Notifikationslogs**, på fanen **Arbejdsområde**.
+Tjek reglens betingelser med **Test regel**: hvis testen ankommer, passede reglens betingelser ikke på begivenheden. Hvis den ikke gør, siger Slack-siden hvorfor. For en privat kanal skal du først invitere OneUptime-appen ind i den i Slack. Hver besked, OneUptime slår op, og hver besked, Slack afviste, vises i **Projektindstillinger** > **Notifikationer** > **Notifikationslogs**, på fanen **Arbejdsområde**.
 :::
 
 :::details Nogen mangler i en regels kanal

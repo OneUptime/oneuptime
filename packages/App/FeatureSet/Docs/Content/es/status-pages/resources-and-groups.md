@@ -2,6 +2,9 @@
 
 Un recurso es una fila de tu página de estado: un monitor o un grupo de monitores, con un nombre que tus clientes entienden, su estado actual y, si quieres, su tiempo de actividad y su historial. Los grupos son secciones que contienen recursos, de modo que una página con cuarenta monitores se lee como «API», «Aplicación web» y «Canalización de datos» en lugar de como una lista interminable. Construyes ambos en una sola pantalla: abre una página de estado y elige **Recursos** en su menú lateral.
 
+> [!TIP]
+> ¿Eres nuevo? Sigue primero la guía: [Publicar una página de estado](/docs/guides/status-page).
+
 :::cards
 - [Añadir un monitor](#añadir-un-monitor): Pon un monitor en la página, con el nombre que leen los visitantes.
 - [Grupos](#grupos): Divide la página en secciones y anídalas.
@@ -30,6 +33,7 @@ flowchart TB
 Un recurso decide más que el color de su fila:
 
 - **Los monitores archivados no se muestran.** Un monitor archivado ya no se comprueba, así que su último estado queda congelado; la página omite su fila (y lo deja fuera del estado de un grupo de monitores) en lugar de mostrar ese estado congelado como si fuera actual. La fila se conserva, así que desarchivar el monitor la recupera al instante.
+- **Un monitor con el monitoreo desactivado muestra No monitoreado.** Nada lo comprueba, así que el último estado que tuvo no dice nada ahora: su fila muestra **No monitoreado** en gris y no cuenta ni para el grupo que la contiene ni para el banner del estado general. Sus barras de historial conservan su historial hasta que se desactivó su monitoreo y dejan fuera el tiempo posterior. Un grupo de monitores cuenta solo sus monitores con el monitoreo activado, y muestra **No monitoreado** cuando está desactivado para todos ellos; sus barras y su tiempo de actividad dejan fuera, de cada monitor, el tiempo con el monitoreo desactivado. Cuando no se monitorea nada de la página, el banner lo dice.
 - **Los recursos deciden qué incidentes muestra la página.** Un incidente aparece aquí, y los suscriptores de la página se enteran, cuando uno de los monitores del incidente es un recurso de la página, directamente o a través de un grupo de monitores. Pon el mismo monitor en varias páginas y sus incidentes llegan a todas, salvo que un incidente se limite a algunas de ellas. Consulta [Una página de estado por audiencia](/docs/status-pages/one-status-page-per-audience).
 - **La fila de un grupo de monitores representa a cada monitor que contiene, también para los suscriptores.** En una página que permite a los suscriptores elegir recursos, quien se suscribe a un grupo de monitores se entera de los incidentes, los mantenimientos programados y los anuncios de cualquier monitor del grupo, como si hubiera elegido ese monitor. Consulta [Suscriptores y anuncios](/docs/status-pages/subscribers#dejar-que-los-suscriptores-elijan-recursos-y-tipos-de-eventos).
 
@@ -118,6 +122,8 @@ Los grupos tienen sus propias copias de estos interruptores (ver más abajo), as
 Los colores de las barras del gráfico de historial se definen en **Más ajustes** de la página **Marca**, y qué estados de monitor cuentan como «caído», en **Cuenta como tiempo de inactividad**, en la tarjeta **Lo que muestra tu página de estado** de **Ajustes avanzados**; ambos se explican en [Marca y dominios de la página de estado](/docs/status-pages/branding-and-domains).
 
 Cada barra es un día. Pasa el puntero sobre una barra o haz clic en ella (tócala en un teléfono, o pulsa Intro con el teclado) para leer el día: su tiempo de actividad, cuánto duró cada estado, los incidentes declarados ese día y el mantenimiento programado que hubo en él, cada uno con un enlace a su propia página. Un día con mantenimiento programado lleva una franja azul en la parte superior de su barra y, mientras un evento está en curso, cada recurso de sus monitores muestra «En mantenimiento» junto a su nombre. El mantenimiento no cambia ni el color de una barra ni el tiempo de actividad, que salen de los estados del monitor: para que el trabajo planificado no cuente en el tiempo de actividad, elige para el evento en **Cambiar el estado del monitor a** un estado que no sea uno de los de **Cuenta como tiempo de inactividad** de la página. Consulta [Qué afecta un evento](/docs/scheduled-maintenance/index#qué-afecta-un-evento).
+
+Cada barra es un día en la zona horaria del propio lector, la misma en la que la página muestra todas las demás horas, así que la última barra es su hoy. La barra de un grupo de monitores muestra cuánto tiempo pasó el propio grupo en cada estado ese día: en cada momento el grupo tiene el peor estado de sus monitores, así que los estados de un día suman el tiempo en que se comprobó al menos uno de sus monitores, y nunca más que el día.
 
 ## Grupos
 

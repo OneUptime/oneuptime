@@ -4,6 +4,7 @@ import {
   LINEAGE_CARD_HEIGHT,
   LINEAGE_CARD_WIDTH,
   LINEAGE_DIMMED_OPACITY,
+  LINEAGE_EDGE_LABEL_CLEARANCE,
   LINEAGE_EDGE_LABEL_MAX_WIDTH,
   LINEAGE_FIT_PADDING,
   LINEAGE_HIGHLIGHT_COLOR,
@@ -14,22 +15,30 @@ import {
   LINEAGE_VIEW_DEFINITION_DASH,
   LineageArrowLook,
   LineageCardRole,
+  LineageColumnTrail,
   LineageHighlightSets,
   LineageLayout,
   LineagePlace,
   LineageTone,
   LineageViewport,
+  canExpandLineageCard,
   getLineageArrowLook,
   getLineageCardRole,
   getLineageCardsInView,
+  getLineageCauseLabelBoxes,
+  getLineageColumnHighlightSets,
   getLineageHighlightSets,
   getLineageViewport,
+  getLineageViewportAfterExpanding,
   getLineageNodeTone,
   getLineageToneColor,
+  isLineageArrowLevel,
   isLineageCardDimmed,
+  joinLineageHighlightSets,
   layoutLineage,
 } from "./LineageGraphModel";
 import { getRunStatePill } from "../../Pages/DataObservability/Pipelines";
+import FlowKeyboardFocus from "../Topology/FlowKeyboardFocus";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -39,12 +48,15 @@ import { DataAssetFreshness } from "Common/Types/DataObservability/DataAssetFres
 import DataAssetKind from "Common/Types/DataObservability/DataAssetKind";
 import {
   DataLineageNodeKind,
+  DataLineageSide,
   DataTableLineage,
   DataTableLineageEdge,
   DataTableLineageNode,
+  MAX_DATA_LINEAGE_NEIGHBORS,
 } from "Common/Types/DataObservability/DataTableLineage";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import Link from "Common/UI/Components/Link/Link";
@@ -52,6 +64,7 @@ import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import {
   PluralTemplate,
   Translator,
+  formatInline,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -104,19 +117,37 @@ import "reactflow/dist/style.css";
  * A table opens its own Lineage tab, so the diagram can be walked a table
  * at a time; a pipeline opens its page, a dashboard its tool. A small count
  * on a card's outer side says how many more tables lie that way than are
- * drawn. The page scrolls over the drawing - the wheel never zooms it - and
- * nothing on it is dragged; the controls zoom and fit it. A drawing too
- * wide to read whole opens on the table itself, at a zoom its names can be
- * read at (getLineageViewport); the rest is a drag away. Until the reader
- * pans or zooms, the view follows the canvas's size.
+ * drawn; pressed, it draws the next of them here (onExpand), and the view
+ * keeps the card pressed where it was on the screen while the drawing is
+ * laid out again around them (getLineageViewportAfterExpanding), the cards
+ * drawn tinted a moment so the eye finds them (data-lineage-drawn). The page
+ * scrolls over the drawing - the wheel never zooms it - and nothing on it
+ * is dragged; the controls zoom and fit it. A drawing too wide to read
+ * whole opens on the table itself, at a zoom its names can be read at
+ * (getLineageViewport); the rest is a drag away. Until the reader pans or
+ * zooms, the view follows the canvas's size. Tab reaches the cards and
+ * counts off the view too, and the view pans to show each one the
+ * keyboard's focus goes to (FlowKeyboardFocus, as the Service Map does) -
+ * the browser would otherwise scroll React Flow's box to it, sliding the
+ * drawing and its controls off the canvas - and is the reader's from then
+ * on. A card a pointer presses is left where it is.
+ *
+ * One column followed (columnTrail) is picked out the way an alert's ways
+ * are, in indigo with the rest faint, and each card on its way names the
+ * column there in place of the line under its name. On an alert's drawing
+ * it is picked out beside the alert's ways, which keep their Cause and
+ * Consequence.
  *
  * The same drawing sits on a pipeline's page, the pipeline in the middle,
  * and on a data alert's page, around the alert's table or pipeline - which
  * opens its own page there - with the way to the alert's cause and to the
  * alerts it caused picked out: its cards and arrows in indigo, the cause
- * and each consequence named on its card, and the rest drawn faint. Too
- * wide to read whole, an alert's drawing opens on its cause - or on its
- * own card when nothing caused it - and as much of its ways as fits
+ * and each consequence named on its card, and the rest drawn faint. A
+ * cause on a pipeline drawn on the arrows it moves data along says Cause
+ * under its name on the arrows the way up ends on. Too wide to read whole,
+ * an alert's drawing opens on its cause - its card, or the label saying
+ * Cause on an arrow (getLineageCauseLabelBoxes) - or on its own card when
+ * nothing caused it, and as much of its ways as fits
  * (getLineageCardsInView), not just centred on the alert's own card.
  */
 
@@ -179,6 +210,40 @@ const MORE_WRITTEN_BY_PIPELINE: PluralTemplate = {
   other: "{{count}} more tables this pipeline writes are not drawn.",
 };
 
+// What pressing a count draws: all of them, or the next of them when there are more than a card draws at once.
+const DRAW_UPSTREAM: PluralTemplate = {
+  one: "Draw one more table upstream",
+  other: "Draw {{count}} more tables upstream",
+};
+const DRAW_SOME_UPSTREAM: PluralTemplate = {
+  one: "Draw {{batch}} of the {{count}} more tables upstream",
+  other: "Draw {{batch}} of the {{count}} more tables upstream",
+};
+const DRAW_DOWNSTREAM: PluralTemplate = {
+  one: "Draw one more table downstream",
+  other: "Draw {{count}} more tables downstream",
+};
+const DRAW_SOME_DOWNSTREAM: PluralTemplate = {
+  one: "Draw {{batch}} of the {{count}} more tables downstream",
+  other: "Draw {{batch}} of the {{count}} more tables downstream",
+};
+const DRAW_READ_BY_PIPELINE: PluralTemplate = {
+  one: "Draw one more table this pipeline reads",
+  other: "Draw {{count}} more tables this pipeline reads",
+};
+const DRAW_SOME_READ_BY_PIPELINE: PluralTemplate = {
+  one: "Draw {{batch}} of the {{count}} more tables this pipeline reads",
+  other: "Draw {{batch}} of the {{count}} more tables this pipeline reads",
+};
+const DRAW_WRITTEN_BY_PIPELINE: PluralTemplate = {
+  one: "Draw one more table this pipeline writes",
+  other: "Draw {{count}} more tables this pipeline writes",
+};
+const DRAW_SOME_WRITTEN_BY_PIPELINE: PluralTemplate = {
+  one: "Draw {{batch}} of the {{count}} more tables this pipeline writes",
+  other: "Draw {{batch}} of the {{count}} more tables this pipeline writes",
+};
+
 const ASSET_KIND_ICONS: Readonly<Record<string, IconProp>> = {
   [DataAssetKind.View]: IconProp.Eye,
   [DataAssetKind.MaterializedView]: IconProp.Eye,
@@ -194,6 +259,41 @@ const FIT_VIEW_OPTIONS: FitViewOptions = {
 };
 
 const HANDLE_STYLE: CSSProperties = { opacity: 0, pointerEvents: "none" };
+
+/*
+ * Every card over every arrow, and a highlighted arrow over the faint ones
+ * around it: an arrowhead never covers a card's count, nor a highlighted
+ * arrow a card it passes behind. React Flow draws arrows of one height in
+ * a layer of their own, and a card over the arrows only when its height
+ * is greater. An arrow's label is over every arrow - React Flow draws the
+ * labels after the arrows, so at a highlighted arrow's height they are
+ * still on top - and under the cards: a highlighted arrow never runs
+ * through a pipeline's name, nor between it and Cause under it.
+ */
+const HIGHLIGHTED_ARROW_Z_INDEX: number = 1;
+export const LINEAGE_EDGE_LABEL_Z_INDEX: number = HIGHLIGHTED_ARROW_Z_INDEX;
+export const LINEAGE_CARD_Z_INDEX: number = 2;
+
+/*
+ * A card drawn here by the last count pressed: tinted a moment, the tint
+ * fading to the card's own colour (Theme.css), so the eye finds the cards
+ * drawn among the cards they were drawn beside.
+ */
+export const LINEAGE_DRAWN_ATTRIBUTE: string = "data-lineage-drawn";
+
+/*
+ * How far a count reaches into its card: its inner edge stays there, and
+ * a longer count ("+128") grows outward, never over the card's words,
+ * which start 13px in (a 1px border and 12px of padding).
+ */
+const HIDDEN_COUNT_REACH_PX: number = 8;
+
+// The focus went nowhere: a focused control was turned off or taken away.
+export function isLineageFocusLost(): boolean {
+  const active: Element | null = document.activeElement;
+
+  return !active || active === document.body;
+}
 
 // The canvas's height bounds; between them it keeps the drawing's shape.
 const CANVAS_MIN_HEIGHT: number = 360;
@@ -292,6 +392,17 @@ function getCardSubtitle(
     .join(" · ");
 }
 
+// A count of tables not drawn that draws them here when pressed.
+interface HiddenCountAction {
+  // What pressing it draws, said under the pointer and to a screen reader.
+  label: string;
+  // Its tables are being drawn now.
+  isBusy: boolean;
+  // Another card's tables are being drawn: one at a time.
+  isLocked: boolean;
+  onPress: () => void;
+}
+
 interface LineageCardData {
   node: DataTableLineageNode;
   isFocus: boolean;
@@ -300,6 +411,15 @@ interface LineageCardData {
   role: LineageCardRole | null;
   // Off every way an alert's drawing picks out.
   isDimmed: boolean;
+  // On a column's way: the column there, in place of the line under its name.
+  columns?: Array<string> | undefined;
+  // Pressing a count draws its tables here.
+  drawUpstream?: HiddenCountAction | undefined;
+  drawDownstream?: HiddenCountAction | undefined;
+  // Drawn here by the last count pressed: tinted a moment.
+  isDrawn?: boolean | undefined;
+  // On an alert's drawing, the alert's own card while the alert is open.
+  isAlertOpen?: boolean | undefined;
 }
 
 /*
@@ -332,12 +452,119 @@ function getHiddenTooltip(data: {
   });
 }
 
+/*
+ * What pressing a count draws, as its label: a pipeline's what it reads or
+ * writes, a table's the tables that way - all of them, or the next of
+ * them when there are more than a card draws at once.
+ */
+export function getLineageDrawLabel(data: {
+  translator: Translator;
+  node: DataTableLineageNode;
+  isUpstream: boolean;
+  count: number;
+}): string {
+  const isSome: boolean = data.count > MAX_DATA_LINEAGE_NEIGHBORS;
+  let template: PluralTemplate;
+
+  if (data.node.kind === DataLineageNodeKind.Pipeline) {
+    template = data.isUpstream
+      ? isSome
+        ? DRAW_SOME_READ_BY_PIPELINE
+        : DRAW_READ_BY_PIPELINE
+      : isSome
+        ? DRAW_SOME_WRITTEN_BY_PIPELINE
+        : DRAW_WRITTEN_BY_PIPELINE;
+  } else {
+    template = data.isUpstream
+      ? isSome
+        ? DRAW_SOME_UPSTREAM
+        : DRAW_UPSTREAM
+      : isSome
+        ? DRAW_SOME_DOWNSTREAM
+        : DRAW_DOWNSTREAM;
+  }
+
+  return data.translator.translatePlural(template, data.count, {
+    count: data.translator.formatNumber(data.count),
+    batch: data.translator.formatNumber(MAX_DATA_LINEAGE_NEIGHBORS),
+  });
+}
+
+/*
+ * How many open alerts a card's chip counts. On an alert's own card, the
+ * alert itself is one of its table's open alerts while it is open, and This
+ * alert already says that: a card whose one open alert is the alert itself
+ * counts none, so the chip after This alert says how fresh the table is.
+ * Whether the alert is open is not known on every page (a drawing read
+ * before the answer said), and then the count is shown as it is.
+ */
+export function getLineageCardOpenAlerts(data: {
+  node: DataTableLineageNode;
+  isFocus: boolean;
+  place: LineagePlace;
+  isAlertOpen?: boolean | undefined;
+}): number {
+  const count: number = Math.max(0, data.node.openAlertCount || 0);
+  const isOnlyThisAlert: boolean =
+    count === 1 &&
+    data.isFocus &&
+    data.place === LineagePlace.Alert &&
+    data.isAlertOpen === true;
+
+  return isOnlyThisAlert ? 0 : count;
+}
+
+/*
+ * The two chips under a card's name, side by side in a row as wide as the
+ * card leaves them (#6851), never cut off at the card's edge in the middle
+ * of a word: "Deze waarschuwing" and "1 open waarschuwing" are wider than a
+ * card together.
+ *
+ * The first chip keeps its whole width (never more than the row's). The
+ * second takes what is left, down to a few letters: from LINEAGE_CHIP_LEAST
+ * of room it shows its words up to there, ending in "..." - whole under the
+ * pointer (Pill) and in the card's name read aloud. With less left than
+ * that it says nothing a reader can use ("С..." for "Свежая", after "Открытых
+ * оповещений: 1"), so it moves to the row's second line, which the row does
+ * not show: its words stay in the card's name, and the row says both chips'
+ * under the pointer (CardChips).
+ *
+ * The row is a small pill's size (PillSize.Small), one pill high, and wraps:
+ * the second chip asks for LINEAGE_CHIP_LEAST (its flex basis, or its whole
+ * width when that is less), so it stays on the first line only while that
+ * much is left, and then grows to its whole width or the end of the row.
+ */
+export const LINEAGE_CHIP_ROW_CLASS_NAME: string =
+  "mt-1.5 flex h-[1.75em] flex-wrap items-center gap-1 overflow-hidden";
+export const LINEAGE_CHIP_LEAST: string = "4.8em";
+export const LINEAGE_FIRST_CHIP_CLASS_NAME: string = "flex max-w-full shrink-0";
+export const LINEAGE_SECOND_CHIP_CLASS_NAME: string = `flex min-w-0 max-w-max grow basis-[${LINEAGE_CHIP_LEAST}]`;
+
+/*
+ * Whether a chip went to the row's second line, out of view: below the
+ * row's foot. A page that cannot say (a test's DOM, with no layout) has
+ * every chip in view.
+ */
+export function isLineageChipOutOfView(chip: Element, row: Element): boolean {
+  const chipBox: DOMRect = chip.getBoundingClientRect();
+  const rowBox: DOMRect = row.getBoundingClientRect();
+
+  return chipBox.bottom > rowBox.bottom + 0.5;
+}
+
 // What a card's chips are read from: the card's own data, but whether it fades.
 interface CardChipsProps {
   node: DataTableLineageNode;
   isFocus: boolean;
   place: LineagePlace;
   role: LineageCardRole | null;
+  // On an alert's own card: the alert is open, so one of the open alerts counted.
+  isAlertOpen?: boolean | undefined;
+}
+
+interface CardChip {
+  key: string;
+  pill: ReactElement;
 }
 
 // What most needs saying about a card, at most two chips.
@@ -346,83 +573,86 @@ const CardChips: FunctionComponent<CardChipsProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const node: DataTableLineageNode = props.node;
-  const chips: Array<ReactElement> = [];
+  const chips: Array<CardChip> = [];
 
   if (props.isFocus) {
-    chips.push(
-      <Pill
-        key="focus"
-        text={FOCUS_LABELS[props.place]}
-        color={Gray500}
-        size={PillSize.Small}
-      />,
-    );
+    chips.push({
+      key: "focus",
+      pill: (
+        <Pill
+          text={FOCUS_LABELS[props.place]}
+          color={Gray500}
+          size={PillSize.Small}
+        />
+      ),
+    });
   }
 
   if (props.role) {
-    chips.push(
-      <Pill
-        key="role"
-        text={ROLE_LABELS[props.role]}
-        color={Indigo500}
-        size={PillSize.Small}
-      />,
-    );
+    chips.push({
+      key: "role",
+      pill: (
+        <Pill
+          text={ROLE_LABELS[props.role]}
+          color={Indigo500}
+          size={PillSize.Small}
+        />
+      ),
+    });
   }
 
   if (node.kind === DataLineageNodeKind.Table) {
     if (node.isDropped) {
-      chips.push(
-        <Pill
-          key="dropped"
-          text={DROPPED}
-          color={Gray500}
-          size={PillSize.Small}
-        />,
-      );
+      chips.push({
+        key: "dropped",
+        pill: <Pill text={DROPPED} color={Gray500} size={PillSize.Small} />,
+      });
     } else {
-      if ((node.openAlertCount || 0) > 0) {
-        chips.push(
-          <Pill
-            key="alerts"
-            text={translator.translatePlural(
-              OPEN_ALERTS,
-              node.openAlertCount || 0,
-            )}
-            color={Red500}
-            size={PillSize.Small}
-          />,
-        );
+      const openAlerts: number = getLineageCardOpenAlerts({
+        node,
+        isFocus: props.isFocus,
+        place: props.place,
+        isAlertOpen: props.isAlertOpen,
+      });
+
+      if (openAlerts > 0) {
+        chips.push({
+          key: "alerts",
+          pill: (
+            <Pill
+              text={translator.translatePlural(OPEN_ALERTS, openAlerts)}
+              color={Red500}
+              size={PillSize.Small}
+            />
+          ),
+        });
       }
 
       if (node.freshness === DataAssetFreshness.Late) {
-        chips.push(
-          <Pill
-            key="late"
-            text={formatOverdue(translator, node.lateBySeconds || 0)}
-            color={Red500}
-            size={PillSize.Small}
-          />,
-        );
+        chips.push({
+          key: "late",
+          pill: (
+            <Pill
+              text={formatOverdue(translator, node.lateBySeconds || 0)}
+              color={Red500}
+              size={PillSize.Small}
+            />
+          ),
+        });
       } else if (node.freshness === DataAssetFreshness.Fresh) {
-        chips.push(
-          <Pill
-            key="fresh"
-            text={FRESH}
-            color={Green500}
-            size={PillSize.Small}
-          />,
-        );
+        chips.push({
+          key: "fresh",
+          pill: <Pill text={FRESH} color={Green500} size={PillSize.Small} />,
+        });
       }
     }
   }
 
   if (node.kind === DataLineageNodeKind.Pipeline) {
-    chips.push(
-      <span key="run" className="inline-flex">
-        {getRunStatePill(node.lastRunState || undefined, PillSize.Small)}
-      </span>,
-    );
+    chips.push({
+      key: "run",
+      pill: getRunStatePill(node.lastRunState || undefined, PillSize.Small),
+    });
   }
 
   if (chips.length === 0) {
@@ -430,35 +660,169 @@ const CardChips: FunctionComponent<CardChipsProps> = (
   }
 
   return (
-    <span className="mt-1.5 flex flex-nowrap items-center gap-1 overflow-hidden">
-      {chips.slice(0, 2)}
+    <span
+      className={LINEAGE_CHIP_ROW_CLASS_NAME}
+      style={{ fontSize: PillSize.Small }}
+      data-testid="lineage-card-chips"
+      onMouseEnter={(event: React.MouseEvent<HTMLSpanElement>): void => {
+        /*
+         * A chip moved out of view is said under the pointer with the one
+         * in view, as the reader's language lists facts on one line - and
+         * only then: a row whose chips all show needs no tooltip.
+         */
+        const row: HTMLSpanElement = event.currentTarget;
+        const wrappers: Array<Element> = Array.from(row.children);
+
+        if (
+          wrappers.some((wrapper: Element): boolean => {
+            return isLineageChipOutOfView(wrapper, row);
+          })
+        ) {
+          row.title = formatInline(
+            wrappers.map((wrapper: Element): string => {
+              return wrapper.textContent || "";
+            }),
+            translator,
+          );
+        } else {
+          row.removeAttribute("title");
+        }
+      }}
+    >
+      {chips.slice(0, 2).map((chip: CardChip, index: number): ReactElement => {
+        return (
+          <span
+            key={chip.key}
+            className={
+              index === 0
+                ? LINEAGE_FIRST_CHIP_CLASS_NAME
+                : LINEAGE_SECOND_CHIP_CLASS_NAME
+            }
+            data-lineage-chip={chip.key}
+          >
+            {chip.pill}
+          </span>
+        );
+      })}
     </span>
   );
 };
 
-// "+12" on a card's outer side: the tables that way that are not drawn.
-const HiddenCount: FunctionComponent<{
+const HIDDEN_COUNT_CLASS_NAME: string =
+  "absolute top-1/2 -translate-y-1/2 whitespace-nowrap rounded-full border border-gray-300 bg-white px-1.5 py-0.5 text-[10px] font-medium text-gray-600 shadow-sm";
+
+/*
+ * A count's tap area: the pill (21px high, 27px wide for "+3") with an
+ * invisible margin 6px up and down and 4px either side, so a finger meets
+ * a target of 24px or more even at the least zoom a drawing opens at
+ * (LINEAGE_READABLE_ZOOM, three quarters), and presses the count rather
+ * than the card under it, which would open that table and leave the
+ * drawing. Over the card it reaches 4px further in than the pill, 12px in
+ * all: short of the card's words, which start 13px in.
+ */
+export const LINEAGE_HIDDEN_COUNT_TAP_AREA_CLASS_NAME: string =
+  "before:absolute before:-inset-x-1 before:-inset-y-1.5 before:content-['']";
+
+/*
+ * Where a count sits on its card's outer side: across the card's edge,
+ * its inner edge HIDDEN_COUNT_REACH_PX in, so a count of any length
+ * leaves the card's words clear.
+ */
+export function getLineageHiddenCountStyle(
+  side: "left" | "right",
+): CSSProperties {
+  const inner: string = `calc(100% - ${HIDDEN_COUNT_REACH_PX}px)`;
+
+  return side === "left" ? { right: inner } : { left: inner };
+}
+
+interface HiddenCountProps {
   count: number;
   side: "left" | "right";
   tooltip: string;
-}> = (props: {
-  count: number;
-  side: "left" | "right";
-  tooltip: string;
-}): ReactElement => {
+  action?: HiddenCountAction | undefined;
+  // The count's button, while it is one.
+  buttonRef?: RefObject<HTMLButtonElement> | undefined;
+  // Pressed where the keyboard's focus is: the card keeps that place while its tables are drawn.
+  onPressedFromFocus?: (() => void) | undefined;
+}
+
+/*
+ * "+12" on a card's outer side: the tables that way that are not drawn.
+ * With an action it is a button that draws the next of them here - its
+ * label says how many - turning while they are read, and not pressable
+ * while another card's are. Without one it says, under the pointer, where
+ * to see them.
+ */
+const HiddenCount: FunctionComponent<HiddenCountProps> = (
+  props: HiddenCountProps,
+): ReactElement => {
   const translator: Translator = useTranslator();
+  const text: string = translator.translateTemplate("+{{count}}", {
+    count: translator.formatNumber(props.count),
+  });
+  const style: CSSProperties = getLineageHiddenCountStyle(props.side);
+  const action: HiddenCountAction | undefined = props.action;
+
+  if (!action) {
+    return (
+      <span
+        className={HIDDEN_COUNT_CLASS_NAME}
+        style={style}
+        title={props.tooltip}
+        data-testid={`lineage-hidden-${props.side}`}
+      >
+        {text}
+      </span>
+    );
+  }
 
   return (
-    <span
-      className="absolute top-1/2 -translate-y-1/2 rounded-full border border-gray-300 bg-white px-1.5 py-0.5 text-[10px] font-medium text-gray-600 shadow-sm"
-      style={props.side === "left" ? { left: -14 } : { right: -14 }}
-      title={props.tooltip}
+    <button
+      ref={props.buttonRef}
+      type="button"
+      className={`nodrag nopan inline-flex items-center ${HIDDEN_COUNT_CLASS_NAME} ${LINEAGE_HIDDEN_COUNT_TAP_AREA_CLASS_NAME} focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnButtonStateClassName(
+        {
+          isLocked: action.isLocked,
+          isBusy: action.isBusy,
+          hoverClassName:
+            "cursor-pointer hover:border-indigo-400 hover:text-indigo-700",
+        },
+      )}`}
+      style={style}
+      title={action.label}
+      aria-label={action.label}
+      {...(action.isBusy ? { "aria-busy": true } : {})}
+      disabled={action.isLocked || action.isBusy}
+      onClick={(event: React.MouseEvent<HTMLButtonElement>): void => {
+        // The card under it opens its table: the count draws, and only that.
+        event.stopPropagation();
+        event.preventDefault();
+
+        if (document.activeElement === event.currentTarget) {
+          props.onPressedFromFocus?.();
+        }
+
+        action.onPress();
+      }}
       data-testid={`lineage-hidden-${props.side}`}
     >
-      {translator.translateTemplate("+{{count}}", {
-        count: translator.formatNumber(props.count),
-      })}
-    </span>
+      {/*
+       * While they are read the spinner turns over the number, which stays
+       * (unseen) so the count keeps its size and does not grow over the card.
+       */}
+      <span className={action.isBusy ? "invisible" : ""}>{text}</span>
+      {action.isBusy ? (
+        <span
+          className="absolute inset-0 flex items-center justify-center"
+          data-testid={`lineage-hidden-${props.side}-spinner`}
+        >
+          <Icon icon={IconProp.Spinner} className="h-2.5 w-2.5 animate-spin" />
+        </span>
+      ) : (
+        <></>
+      )}
+    </button>
   );
 };
 
@@ -478,6 +842,59 @@ const LineageCard: FunctionComponent<NodeProps<LineageCardData>> = (
   const dashboardUrl: URL | null = getLineageDashboardUrl(node);
   const subtitle: string = getCardSubtitle(node, translator);
   const isDropped: boolean = tone === LineageTone.Dropped;
+  // The column followed, as this table names it: in place of the line under its name.
+  const columns: string = (props.data.columns || []).join(", ");
+  const drawnMark: Record<string, string> = props.data.isDrawn
+    ? { [LINEAGE_DRAWN_ATTRIBUTE]: "true" }
+    : {};
+
+  const rootRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
+  const upstreamCountRef: RefObject<HTMLButtonElement> =
+    useRef<HTMLButtonElement>(null);
+  const downstreamCountRef: RefObject<HTMLButtonElement> =
+    useRef<HTMLButtonElement>(null);
+  // The count pressed where the keyboard's focus was, until its tables are drawn.
+  const pressedFromFocusRef: MutableRefObject<"left" | "right" | null> = useRef<
+    "left" | "right" | null
+  >(null);
+  const isDrawing: boolean = Boolean(
+    props.data.drawUpstream?.isBusy || props.data.drawDownstream?.isBusy,
+  );
+
+  /*
+   * A count pressed from the keyboard keeps the keyboard's place. While its
+   * tables are drawn it cannot be pressed, and the browser moves the focus
+   * off it to the page itself; once they are drawn - or could not be - the
+   * focus comes back: to the count, while some are still not drawn; to its
+   * card, when it has drawn them all and is gone; to the drawing, when the
+   * card opens nothing. Only while the focus is still lost: a reader who
+   * moved on meanwhile keeps their place.
+   */
+  useEffect(() => {
+    const side: "left" | "right" | null = pressedFromFocusRef.current;
+
+    if (isDrawing || !side) {
+      return;
+    }
+
+    pressedFromFocusRef.current = null;
+
+    if (!isLineageFocusLost()) {
+      return;
+    }
+
+    const count: HTMLButtonElement | null =
+      side === "left" ? upstreamCountRef.current : downstreamCountRef.current;
+    const root: HTMLDivElement | null = rootRef.current;
+    const place: HTMLElement | null =
+      count && !count.disabled
+        ? count
+        : root?.querySelector<HTMLElement>("a[href]") ||
+          root?.closest<HTMLElement>('[role="figure"]') ||
+          null;
+
+    place?.focus({ preventScroll: true });
+  }, [isDrawing]);
 
   const cardStyle: CSSProperties = {
     display: "flex",
@@ -523,7 +940,16 @@ const LineageCard: FunctionComponent<NodeProps<LineageCardData>> = (
           <IsolatedText text={node.name} />
         </span>
       </span>
-      {subtitle ? (
+      {columns ? (
+        <span
+          className="mt-0.5 flex min-w-0 items-center gap-1 text-[11px] font-medium text-indigo-600"
+          title={columns}
+          data-testid="lineage-card-columns"
+        >
+          <Icon icon={IconProp.ViewColumns} className="h-3 w-3 shrink-0" />
+          <IsolatedText text={columns} className="min-w-0 truncate font-mono" />
+        </span>
+      ) : subtitle ? (
         <span
           className="mt-0.5 block truncate text-[11px] text-gray-500"
           title={subtitle}
@@ -538,12 +964,13 @@ const LineageCard: FunctionComponent<NodeProps<LineageCardData>> = (
         isFocus={isFocus}
         place={place}
         role={props.data.role}
+        isAlertOpen={props.data.isAlertOpen}
       />
     </>
   );
 
   let card: ReactElement = (
-    <span style={cardStyle} data-testid="lineage-card">
+    <span style={cardStyle} data-testid="lineage-card" {...drawnMark}>
       {body}
     </span>
   );
@@ -555,7 +982,9 @@ const LineageCard: FunctionComponent<NodeProps<LineageCardData>> = (
         className="nodrag nopan block rounded-[10px] hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         dataTestId="lineage-card"
       >
-        <span style={{ ...cardStyle, cursor: "pointer" }}>{body}</span>
+        <span style={{ ...cardStyle, cursor: "pointer" }} {...drawnMark}>
+          {body}
+        </span>
       </AppLink>
     );
   } else if (dashboardUrl) {
@@ -566,7 +995,9 @@ const LineageCard: FunctionComponent<NodeProps<LineageCardData>> = (
         className="nodrag nopan block rounded-[10px] hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         dataTestId="lineage-card"
       >
-        <span style={{ ...cardStyle, cursor: "pointer" }}>{body}</span>
+        <span style={{ ...cardStyle, cursor: "pointer" }} {...drawnMark}>
+          {body}
+        </span>
       </Link>
     );
   }
@@ -576,6 +1007,7 @@ const LineageCard: FunctionComponent<NodeProps<LineageCardData>> = (
 
   return (
     <div
+      ref={rootRef}
       style={{
         width: LINEAGE_CARD_WIDTH,
         position: "relative",
@@ -610,6 +1042,11 @@ const LineageCard: FunctionComponent<NodeProps<LineageCardData>> = (
             isUpstream: true,
             count: hiddenUpstream,
           })}
+          action={props.data.drawUpstream}
+          buttonRef={upstreamCountRef}
+          onPressedFromFocus={(): void => {
+            pressedFromFocusRef.current = "left";
+          }}
         />
       ) : (
         <></>
@@ -626,6 +1063,11 @@ const LineageCard: FunctionComponent<NodeProps<LineageCardData>> = (
             isUpstream: false,
             count: hiddenDownstream,
           })}
+          action={props.data.drawDownstream}
+          buttonRef={downstreamCountRef}
+          onPressedFromFocus={(): void => {
+            pressedFromFocusRef.current = "right";
+          }}
         />
       ) : (
         <></>
@@ -644,6 +1086,8 @@ interface LineageArrowData {
   title?: string | undefined;
   // The label names a pipeline on an alert's way, not a failed one: indigo, not red.
   isLabelHighlighted?: boolean | undefined;
+  // The pipeline named is the alert's cause: Cause under its name, as a cause's card says.
+  isCause?: boolean | undefined;
   // On an alert's way: drawn over a halo.
   isHighlighted?: boolean | undefined;
 }
@@ -651,8 +1095,15 @@ interface LineageArrowData {
 /*
  * An arrow, and on one whose pipeline failed that pipeline's name: an
  * HTML label, so it is cut to the room between two columns, ends in "..."
- * when it is longer, and says the whole sentence under the pointer. An
- * arrow on an alert's way is drawn over a wide, faint indigo halo.
+ * when it is longer, and says the whole sentence under the pointer. The
+ * name reads the way it is written - a Latin name on a Persian page still
+ * ends in "..." at its own end. When the pipeline is the alert's cause,
+ * the card's own small Cause chip sits under the name, inside the same
+ * room. An arrow on an alert's way is drawn over a wide, faint indigo
+ * halo. The label sits on a curved arrow's middle and just over a level
+ * one (isLineageArrowLevel), so a level arrow and its head still show; its
+ * words are a shade darker than the arrow, and lighter on a dark page, so
+ * they read on either.
  */
 const LineageArrow: FunctionComponent<EdgeProps<LineageArrowData>> = (
   props: EdgeProps<LineageArrowData>,
@@ -665,6 +1116,7 @@ const LineageArrow: FunctionComponent<EdgeProps<LineageArrowData>> = (
     targetY: props.targetY,
     targetPosition: props.targetPosition,
   });
+  const isLevel: boolean = isLineageArrowLevel(props.sourceY, props.targetY);
 
   return (
     <>
@@ -690,20 +1142,41 @@ const LineageArrow: FunctionComponent<EdgeProps<LineageArrowData>> = (
       {props.data?.label ? (
         <EdgeLabelRenderer>
           <div
-            className="nodrag nopan absolute truncate rounded px-1 text-[10px] font-medium"
+            className={`nodrag nopan absolute flex flex-col items-center truncate rounded px-1 text-[10px] font-medium ${
+              props.data.isLabelHighlighted ? "text-indigo-600" : "text-red-600"
+            }`}
             style={{
-              transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
+              transform: isLevel
+                ? `translate(-50%, -100%) translate(${labelX}px, ${labelY - LINEAGE_EDGE_LABEL_CLEARANCE}px)`
+                : `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
               maxWidth: LINEAGE_EDGE_LABEL_MAX_WIDTH,
-              color: props.data.isLabelHighlighted
-                ? LINEAGE_HIGHLIGHT_COLOR
-                : LINEAGE_PROBLEM_COLOR,
               background: "var(--ou-surface-primary, #ffffff)",
               pointerEvents: "all",
+              zIndex: LINEAGE_EDGE_LABEL_Z_INDEX,
             }}
             title={props.data.title}
             data-testid="lineage-edge-label"
+            data-lineage-label-place={isLevel ? "over" : "on"}
           >
-            {props.data.label}
+            <IsolatedText
+              text={props.data.label}
+              className="block max-w-full truncate"
+              dataTestId="lineage-edge-name"
+            />
+            {props.data.isCause ? (
+              <span
+                className="mt-0.5 flex max-w-full"
+                data-testid="lineage-edge-cause"
+              >
+                <Pill
+                  text={ROLE_LABELS[LineageCardRole.Cause]}
+                  color={Indigo500}
+                  size={PillSize.Small}
+                />
+              </span>
+            ) : (
+              <></>
+            )}
           </div>
         </EdgeLabelRenderer>
       ) : (
@@ -717,10 +1190,49 @@ const EDGE_TYPES: EdgeTypes = {
   lineageArrow: LineageArrow,
 };
 
+// A card's tables drawn here, for the view to follow.
+export interface LineageGrowth {
+  // One per drawing more: the view follows each once.
+  key: number;
+  // The card pressed.
+  nodeId: string;
+  // The cards drawn.
+  newNodeIds: Array<string>;
+}
+
+// A card's count that is being drawn now.
+export interface LineageExpanding {
+  nodeId: string;
+  side: DataLineageSide;
+}
+
 export interface ComponentProps {
   lineage: DataTableLineage;
   // The page it is on: a table's Lineage tab unless said otherwise.
   place?: LineagePlace | undefined;
+  /*
+   * The drawing the view belongs to: a drawing grown here keeps its key, so
+   * the view stays where the reader has it. By default each drawing is new.
+   */
+  drawingKey?: string | undefined;
+  // Pressing a card's count draws its tables here; without it a count only says where to see them.
+  onExpand?: ((nodeId: string, side: DataLineageSide) => void) | undefined;
+  // The count being drawn now: it turns, and no other can be pressed meanwhile.
+  expanding?: LineageExpanding | null | undefined;
+  // The tables drawn here last: the view keeps the card pressed in place and brings them into view.
+  growth?: LineageGrowth | null | undefined;
+  // One column followed up and down, picked out with its name on each card on its way.
+  columnTrail?: LineageColumnTrail | null | undefined;
+  /*
+   * The drawing itself, which can take the keyboard's focus: where it goes
+   * when the control that had it is gone (Reset diagram, once pressed).
+   */
+  figureRef?: RefObject<HTMLDivElement> | undefined;
+  /*
+   * On an alert's drawing, whether the alert was open when it was read:
+   * then it is one of its own card's open alerts, which This alert says.
+   */
+  isAlertOpen?: boolean | undefined;
 }
 
 const LineageGraph: FunctionComponent<ComponentProps> = (
@@ -731,27 +1243,106 @@ const LineageGraph: FunctionComponent<ComponentProps> = (
   const layout: LineageLayout = useMemo((): LineageLayout => {
     return layoutLineage(props.lineage);
   }, [props.lineage]);
-  const highlight: LineageHighlightSets | null =
+  // An alert's ways: what its drawing opens on.
+  const alertHighlight: LineageHighlightSets | null =
     useMemo((): LineageHighlightSets | null => {
       return getLineageHighlightSets(props.lineage);
     }, [props.lineage]);
+  // What is picked out: an alert's ways, and a column followed beside them.
+  const highlight: LineageHighlightSets | null =
+    useMemo((): LineageHighlightSets | null => {
+      return props.columnTrail
+        ? joinLineageHighlightSets(
+            alertHighlight,
+            getLineageColumnHighlightSets(props.columnTrail),
+          )
+        : alertHighlight;
+    }, [props.columnTrail, alertHighlight]);
+  const onExpand:
+    | ((nodeId: string, side: DataLineageSide) => void)
+    | undefined = props.onExpand;
+  const expanding: LineageExpanding | null = props.expanding || null;
 
   const nodes: Array<Node<LineageCardData>> = useMemo((): Array<
     Node<LineageCardData>
   > => {
+    // Pressing a count draws its tables, one card's at a time.
+    const actionFor: (
+      node: DataTableLineageNode,
+      side: DataLineageSide,
+    ) => HiddenCountAction | undefined = (
+      node: DataTableLineageNode,
+      side: DataLineageSide,
+    ): HiddenCountAction | undefined => {
+      if (!onExpand || !canExpandLineageCard(props.lineage, node, side)) {
+        return undefined;
+      }
+
+      const isUpstream: boolean = side === DataLineageSide.Upstream;
+      const isBusy: boolean = Boolean(
+        expanding && expanding.nodeId === node.id && expanding.side === side,
+      );
+
+      return {
+        label: getLineageDrawLabel({
+          translator,
+          node,
+          isUpstream,
+          count:
+            (isUpstream
+              ? node.hiddenUpstreamCount
+              : node.hiddenDownstreamCount) || 0,
+        }),
+        isBusy,
+        isLocked: Boolean(expanding) && !isBusy,
+        onPress: (): void => {
+          onExpand(node.id, side);
+        },
+      };
+    };
+
+    const drawnIds: Set<string> = new Set(props.growth?.newNodeIds || []);
+
     return props.lineage.nodes.map(
       (node: DataTableLineageNode): Node<LineageCardData> => {
+        const columns: Array<string> | undefined =
+          props.columnTrail?.columns.get(node.id);
+        const drawUpstream: HiddenCountAction | undefined = actionFor(
+          node,
+          DataLineageSide.Upstream,
+        );
+        const drawDownstream: HiddenCountAction | undefined = actionFor(
+          node,
+          DataLineageSide.Downstream,
+        );
+        const isFocus: boolean = node.id === props.lineage.focusNodeId;
+
         return {
           id: node.id,
           type: "lineageCard",
           position: layout.positions.get(node.id) || { x: 0, y: 0 },
           data: {
             node,
-            isFocus: node.id === props.lineage.focusNodeId,
+            isFocus,
             place,
+            ...(isFocus && props.isAlertOpen ? { isAlertOpen: true } : {}),
             role: getLineageCardRole(highlight, node.id),
             isDimmed: isLineageCardDimmed(highlight, node.id),
+            ...(columns && columns.length > 0 ? { columns } : {}),
+            ...(drawUpstream ? { drawUpstream } : {}),
+            ...(drawDownstream ? { drawDownstream } : {}),
+            ...(drawnIds.has(node.id) ? { isDrawn: true } : {}),
           },
+          zIndex: LINEAGE_CARD_Z_INDEX,
+          /*
+           * Its size, which React Flow forgets whenever the drawing
+           * changes - a count pressed, a column followed - hiding every
+           * card until it has measured them again: a count or a card that
+           * had the keyboard's focus lost it, and could not be given it
+           * back while hidden.
+           */
+          width: LINEAGE_CARD_WIDTH,
+          height: LINEAGE_CARD_HEIGHT,
           selectable: false,
           draggable: false,
           /*
@@ -763,7 +1354,18 @@ const LineageGraph: FunctionComponent<ComponentProps> = (
         };
       },
     );
-  }, [layout, props.lineage, place, highlight]);
+  }, [
+    layout,
+    props.lineage,
+    place,
+    highlight,
+    props.columnTrail,
+    onExpand,
+    expanding,
+    props.growth,
+    props.isAlertOpen,
+    translator.language,
+  ]);
 
   const edges: Array<Edge> = useMemo((): Array<Edge> => {
     return props.lineage.edges.map((edge: DataTableLineageEdge): Edge => {
@@ -782,6 +1384,7 @@ const LineageGraph: FunctionComponent<ComponentProps> = (
                   })
                 : look.label.pipeline.name,
               ...(look.label.isFailed ? {} : { isLabelHighlighted: true }),
+              ...(look.label.isCause ? { isCause: true } : {}),
             }
           : {}),
         ...(look.isHighlighted ? { isHighlighted: true } : {}),
@@ -793,8 +1396,8 @@ const LineageGraph: FunctionComponent<ComponentProps> = (
         target: edge.target,
         type: "lineageArrow",
         data,
-        // Over the faint arrows around it.
-        ...(look.isHighlighted ? { zIndex: 1 } : {}),
+        // Over the faint arrows around it, under the cards.
+        ...(look.isHighlighted ? { zIndex: HIGHLIGHTED_ARROW_Z_INDEX } : {}),
         markerEnd: {
           type: MarkerType.ArrowClosed,
           color: look.color,
@@ -815,11 +1418,15 @@ const LineageGraph: FunctionComponent<ComponentProps> = (
   /*
    * A new drawing - another table, or more steps - is drawn afresh and
    * fitted again; React Flow fits a drawing only when it first shows it.
+   * A drawing grown here keeps the key it was given, so its view stays.
    */
-  const drawingKey: string = `${props.lineage.focusNodeId}:${props.lineage.depth}:${props.lineage.nodes.length}`;
+  const drawingKey: string =
+    props.drawingKey ||
+    `${props.lineage.focusNodeId}:${props.lineage.depth}:${props.lineage.nodes.length}`;
 
   // The canvas's size, read before the drawing is first shown: where it is looked at from depends on it.
-  const canvasRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
+  const ownCanvasRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
+  const canvasRef: RefObject<HTMLDivElement> = props.figureRef || ownCanvasRef;
   const flowRef: MutableRefObject<ReactFlowInstance | null> =
     useRef<ReactFlowInstance | null>(null);
   // Once the reader pans or zooms, the view is theirs.
@@ -828,6 +1435,16 @@ const LineageGraph: FunctionComponent<ComponentProps> = (
     key: string;
     viewport: LineageViewport | null;
   } | null>(null);
+
+  // Where the drawing is looked at from now: the last view set, or the reader's own.
+  const viewportRef: MutableRefObject<LineageViewport | null> =
+    useRef<LineageViewport | null>(null);
+  // The layout on the screen, to keep a card pressed where it was once the drawing grows.
+  const shownLayoutRef: MutableRefObject<LineageLayout | null> =
+    useRef<LineageLayout | null>(null);
+  const followedGrowthRef: MutableRefObject<number | null> = useRef<
+    number | null
+  >(null);
 
   const readViewport: () => LineageViewport | null =
     useCallback((): LineageViewport | null => {
@@ -840,14 +1457,88 @@ const LineageGraph: FunctionComponent<ComponentProps> = (
         width: box?.width || 0,
         height: box?.height || 0,
         // On an alert's drawing, its cause first: what the person paged came to see.
-        inView: getLineageCardsInView(props.lineage, layout, highlight),
+        inView: getLineageCardsInView(props.lineage, layout, alertHighlight),
+        // A cause said on an arrow - a pipeline's name with Cause under it - before any card.
+        labelsInView: getLineageCauseLabelBoxes(
+          props.lineage,
+          layout,
+          alertHighlight,
+        ),
       });
-    }, [layout, props.lineage, highlight]);
+    }, [layout, props.lineage, alertHighlight]);
+  const readViewportRef: MutableRefObject<() => LineageViewport | null> =
+    useRef<() => LineageViewport | null>(readViewport);
 
+  readViewportRef.current = readViewport;
+
+  // A new drawing: looked at afresh. A drawing grown here keeps its view.
   useLayoutEffect(() => {
+    const viewport: LineageViewport | null = readViewportRef.current();
+
     hasReaderMovedRef.current = false;
-    setMeasured({ key: drawingKey, viewport: readViewport() });
-  }, [drawingKey, readViewport]);
+    viewportRef.current = viewport;
+    shownLayoutRef.current = null;
+    setMeasured({ key: drawingKey, viewport });
+  }, [drawingKey]);
+
+  /*
+   * Tables drawn here: the card pressed stays where it was on the screen
+   * and the view slides to bring them in - or, while the reader has not
+   * moved it and the drawing still reads whole, all of it is fitted again.
+   */
+  useEffect(() => {
+    const shown: LineageLayout | null = shownLayoutRef.current;
+    const growth: LineageGrowth | null = props.growth || null;
+
+    shownLayoutRef.current = layout;
+
+    if (
+      !growth ||
+      !shown ||
+      shown === layout ||
+      followedGrowthRef.current === growth.key
+    ) {
+      return;
+    }
+
+    followedGrowthRef.current = growth.key;
+
+    const flow: ReactFlowInstance | null = flowRef.current;
+    const box: DOMRect | undefined = canvasRef.current?.getBoundingClientRect();
+    const current: LineageViewport | null =
+      (flow && typeof flow.getViewport === "function"
+        ? flow.getViewport()
+        : null) || viewportRef.current;
+
+    if (!flow || !current) {
+      return;
+    }
+
+    const next: { viewport: LineageViewport; isFitted: boolean } | null =
+      getLineageViewportAfterExpanding({
+        before: shown,
+        after: layout,
+        viewport: current,
+        nodeId: growth.nodeId,
+        newNodeIds: growth.newNodeIds,
+        focusNodeId: props.lineage.focusNodeId,
+        width: box?.width || 0,
+        height: box?.height || 0,
+        hasReaderMoved: hasReaderMovedRef.current,
+      });
+
+    if (!next) {
+      return;
+    }
+
+    flow.setViewport(next.viewport);
+    viewportRef.current = next.viewport;
+
+    // A view that is not the whole drawing fitted is the reader's: the canvas resizing no longer moves it.
+    if (!next.isFitted) {
+      hasReaderMovedRef.current = true;
+    }
+  }, [layout, props.growth]);
 
   // The canvas settling into its width, or the window resized: looked at afresh, until the reader moves it.
   useEffect(() => {
@@ -862,6 +1553,7 @@ const LineageGraph: FunctionComponent<ComponentProps> = (
 
       if (viewport && flowRef.current && !hasReaderMovedRef.current) {
         flowRef.current.setViewport(viewport);
+        viewportRef.current = viewport;
       }
     });
 
@@ -871,6 +1563,24 @@ const LineageGraph: FunctionComponent<ComponentProps> = (
       observer.disconnect();
     };
   }, [readViewport]);
+
+  /*
+   * The keyboard's focus went to a card or a count off the view, and the
+   * view moved to show it: the view is the reader's from now on, as after
+   * a drag - the canvas resizing, or tables drawn here, no longer fit the
+   * drawing again and carry the focused card back out of view. React Flow
+   * tells onMoveEnd of the reader's own gestures only, so where the view
+   * is now is read here.
+   */
+  const onFocusMovedView: () => void = useCallback((): void => {
+    const flow: ReactFlowInstance | null = flowRef.current;
+
+    hasReaderMovedRef.current = true;
+
+    if (flow && typeof flow.getViewport === "function") {
+      viewportRef.current = flow.getViewport();
+    }
+  }, []);
 
   const isMeasured: boolean = measured?.key === drawingKey;
   const viewport: LineageViewport | null = isMeasured
@@ -884,7 +1594,13 @@ const LineageGraph: FunctionComponent<ComponentProps> = (
       aria-label={
         translator.translateText(MAP_LABELS[place]) || MAP_LABELS[place]
       }
-      className="rounded-md border border-gray-200 bg-gray-50"
+      /*
+       * Focused by a script only - a count that drew all its tables on a
+       * card that opens nothing, Reset diagram once pressed - so the
+       * keyboard's place is kept, and Tab goes on to the cards in it.
+       */
+      tabIndex={-1}
+      className="rounded-md border border-gray-200 bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
       style={getLineageCanvasStyle(layout)}
       data-testid="lineage-graph"
     >
@@ -908,6 +1624,12 @@ const LineageGraph: FunctionComponent<ComponentProps> = (
               hasReaderMovedRef.current = true;
             }
           }}
+          onMoveEnd={(
+            _event: MouseEvent | TouchEvent | null,
+            moved: LineageViewport,
+          ): void => {
+            viewportRef.current = moved;
+          }}
           minZoom={0.15}
           maxZoom={1.5}
           proOptions={{ hideAttribution: true }}
@@ -921,6 +1643,7 @@ const LineageGraph: FunctionComponent<ComponentProps> = (
           panOnScroll={false}
           preventScrolling={false}
         >
+          <FlowKeyboardFocus onViewMoved={onFocusMovedView} />
           <Controls
             position="bottom-right"
             showInteractive={false}

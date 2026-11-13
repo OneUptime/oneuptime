@@ -80,9 +80,13 @@ class IncidentOnCallRuleEngineServiceClass {
     }
 
     try {
-      const rules: Array<IncidentOnCallRule> = await this.findEnabledRules(
-        incident.projectId,
-      );
+      /*
+       * The rules that match it and page a policy - the one matching "When
+       * this goes down" (WhoIsToldService) reads too, so what it shows a
+       * monitor's incidents would page is what they page.
+       */
+      const rules: Array<IncidentOnCallRule> =
+        await this.getMatchingRules(incident);
 
       if (rules.length === 0) {
         return noHolds;
@@ -101,14 +105,6 @@ class IncidentOnCallRuleEngineServiceClass {
       let aiHold: AiHoldDecision | undefined = undefined;
 
       for (const rule of rules) {
-        const matches: boolean = await this.doesIncidentMatchRule(
-          incident,
-          rule,
-        );
-        if (!matches) {
-          continue;
-        }
-
         if (rule.onCallDutyPolicies && rule.onCallDutyPolicies.length > 0) {
           /*
            * OneUptime AI responds first to new incidents only: a rule set to
@@ -349,6 +345,72 @@ class IncidentOnCallRuleEngineServiceClass {
     return toPage;
   }
 
+  /*
+   * The project's enabled rules that match the incident and page a policy, in
+   * the order they are read. Reads only: nothing is attached, paged or
+   * written. The engine pages what they name (applyRulesToIncident), and
+   * "When this goes down" (WhoIsToldService) shows them for an incident a
+   * monitor's criteria would open, held in memory - so the two answer from
+   * one matching and never disagree.
+   *
+   * `preloaded` is for a reader that asks about many incidents of one
+   * project at once (Setup health, #6812, through
+   * WhoIsToldService.resolveProject): the project's enabled rules, read
+   * once with readEnabledRules, and the monitors those incidents come from
+   * (MonitorRuleCriteriaCache.seed), so the matching reads nothing per
+   * incident. It is the same matching either way.
+   */
+  @CaptureSpan()
+  @RuleEvaluation()
+  public async getMatchingRules(
+    incident: Incident,
+    preloaded?:
+      | {
+          rules: Array<IncidentOnCallRule>;
+          monitorCache: MonitorRuleCriteriaCache;
+        }
+      | undefined,
+  ): Promise<Array<IncidentOnCallRule>> {
+    if (!incident.projectId) {
+      return [];
+    }
+
+    const matching: Array<IncidentOnCallRule> = [];
+
+    const rules: Array<IncidentOnCallRule> = preloaded
+      ? preloaded.rules
+      : await this.findEnabledRules(incident.projectId);
+
+    for (const rule of rules) {
+      if (!rule.onCallDutyPolicies || rule.onCallDutyPolicies.length === 0) {
+        continue;
+      }
+
+      if (
+        await this.doesIncidentMatchRule(
+          incident,
+          rule,
+          preloaded?.monitorCache,
+        )
+      ) {
+        matching.push(rule);
+      }
+    }
+
+    return matching;
+  }
+
+  /*
+   * The project's enabled rules, read as getMatchingRules reads them: for a
+   * reader that matches many incidents against them (getMatchingRules'
+   * `preloaded`).
+   */
+  public async readEnabledRules(
+    projectId: ObjectID,
+  ): Promise<Array<IncidentOnCallRule>> {
+    return await this.findEnabledRules(projectId);
+  }
+
   // The project's enabled rules of this kind, with what matching them needs.
   private async findEnabledRules(
     projectId: ObjectID,
@@ -500,9 +562,11 @@ class IncidentOnCallRuleEngineServiceClass {
   private async doesIncidentMatchRule(
     incident: Incident,
     rule: IncidentOnCallRule,
+    // A cache shared by many matchings (getMatchingRules' `preloaded`).
+    sharedMonitorCache?: MonitorRuleCriteriaCache | undefined,
   ): Promise<boolean> {
     const monitorCache: MonitorRuleCriteriaCache =
-      new MonitorRuleCriteriaCache();
+      sharedMonitorCache || new MonitorRuleCriteriaCache();
 
     return await RuleCriteriaMatcher.matchesWithLegacy({
       rule,

@@ -2,6 +2,9 @@
 
 Une politique d'astreinte alerte les personnes par niveaux. Chaque règle d'escalade est un niveau : qui est alerté, et combien de temps attendre qu'une personne accuse réception avant d'alerter le niveau suivant. Les règles d'une politique sont listées, dans l'ordre, sur sa page **Règles d'escalade**.
 
+> [!TIP]
+> Vous débutez ? Suivez d'abord le guide : [Être alerté par appel, SMS ou push](/docs/guides/paging).
+
 ```mermaid title="Une politique d'astreinte alerte niveau par niveau jusqu'à un accusé de réception"
 flowchart TB
     trigger["Incident ou alerte"] --> level1["Level 1 alerte"]
@@ -163,6 +166,8 @@ Une alerte non envoyée indique pourquoi dans les **Journaux d'astreinte** de la
 - le canal est désactivé dans le projet, et qui peut l'activer.
 
 Les propriétaires du projet en sont informés une fois par e-mail, jusqu'à ce que le solde soit rechargé ou que le canal soit réactivé.
+
+Une alerte qui n'a pas pu atteindre le service de notification de OneUptime indique `Could not reach the Notification service to send this (ECONNREFUSED).`, avec le code de l'erreur réseau entre les parenthèses. Une alerte dont l'envoi ne s'est jamais terminé, par exemple parce qu'un serveur a redémarré pendant l'envoi, indique `Sending did not finish within 15 minutes, so this notification may not have been sent.` Si l'envoi se termine finalement, son résultat remplace ce message.
 
 Sur OneUptime Cloud, chaque SMS, appel, message WhatsApp et Telegram est payé sur le solde du projet dans **Paramètres du projet > Notifications > Paramètres de notification** : son coût exact est débité du solde lorsque le fournisseur l'accepte, quel que soit le nombre de messages envoyés en même temps.
 

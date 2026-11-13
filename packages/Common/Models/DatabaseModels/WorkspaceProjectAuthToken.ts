@@ -153,6 +153,12 @@ export interface SlackMiscData extends MiscData {
    * in, and looked for first, when a rule names none.
    */
   defaultWorkspaceId?: string | undefined;
+  /*
+   * A whole organization's installation: the workspaces Slack listed once
+   * and lists no more - OneUptime was removed from them - by the names they
+   * had, the latest first, so a rule that still picks one can say which.
+   */
+  removedWorkspaces?: Array<SlackOrganizationWorkspace> | undefined;
 }
 
 /*
@@ -174,12 +180,27 @@ export interface MicrosoftTeamsMiscData extends MiscData {
   installedTeams?: Record<string, MicrosoftTeamsInstalledTeam>; // keyed by MicrosoftTeamsInstalledTeam.id — see that type, the key is not always a Graph team id.
 }
 
+// A team of a Mattermost server, as the server lists it.
+export interface MattermostConnectionTeam {
+  id: string;
+  // Its name in URLs: chat.example.com/<name>.
+  name: string;
+  displayName: string;
+}
+
 /*
- * A project's Mattermost connection: the server it is on, the one team of
- * that server OneUptime posts in, and the bot account it posts as. The
- * bot's access token is NOT part of this - it is the row's server-only
+ * A project's Mattermost connection: the server it is on, the bot account it
+ * posts as, and the teams of that server OneUptime posts in. The bot's
+ * access token is NOT part of this - it is the row's server-only
  * `authToken`. miscData is readable by every project Viewer, so it holds
  * nothing that would let anyone act as the bot.
+ *
+ * teamId, teamName and teamDisplayName are the default team: the team the
+ * project was connected to, until a member makes another one the default. A
+ * notification rule that names no team posts there. `teams` are every team
+ * the bot is a member of, as the server last listed them, and a rule may
+ * name any of them (MattermostTeams). A connection made before teams were
+ * listed has none: its one team is the default.
  */
 export interface MattermostMiscData extends MiscData {
   // The server's address, as OneUptime calls it: https://chat.example.com, with no trailing slash.
@@ -190,6 +211,15 @@ export interface MattermostMiscData extends MiscData {
   teamDisplayName: string;
   botUserId: string;
   botUsername: string;
+  teams?: Array<MattermostConnectionTeam> | undefined;
+  // When the server last listed `teams`.
+  teamsReadAt?: string | undefined;
+  /*
+   * The teams the server listed the bot in once and lists no more - the bot
+   * was taken out of them - by the names they had, the latest first, so a
+   * rule that still names one can say which (MattermostTeams).
+   */
+  removedTeams?: Array<MattermostConnectionTeam> | undefined;
 }
 
 export type WorkspaceMiscData =

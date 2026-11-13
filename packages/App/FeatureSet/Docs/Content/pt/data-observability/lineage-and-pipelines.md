@@ -17,7 +17,11 @@ A aba **Linhagem** de uma tabela mostra as tabelas a partir das quais ela é con
 
 No topo da aba, um diagrama desenha essa linhagem alguns passos em cada direção (três, ou escolha 1, 2 ou 5): à esquerda, aquilo a partir do qual a tabela é construída; à direita, as tabelas e os painéis construídos a partir dela; e os pipelines que carregam dados de fora, onde eles entram. Cada cartão diz como está agora - atrasada, um alerta aberto, uma execução com falha - e uma seta fica vermelha quando a última execução do seu pipeline falhou, para que uma tabela atrasada possa ser seguida até a execução que a travou. Abra qualquer tabela para centralizar o diagrama nela.
 
+Um cartão desenha no máximo dez tabelas em cada direção e conta o restante, como **+14**. Selecione o número para desenhar até mais dez delas onde estão, primeiro as com problemas, com cada seta entre elas e o que já está desenhado. **Redefinir diagrama** volta ao diagrama como foi desenhado no início. Quando um lado tem tantas tabelas quanto um diagrama comporta, abra uma tabela para centralizar o diagrama nela.
+
 Quando a origem nomeia colunas, a aba **Colunas** de uma tabela diz de onde vem cada coluna e o que ela alimenta: o histórico de acessos do Snowflake (edição Enterprise, que exige `IMPORTED PRIVILEGES` no banco de dados `SNOWFLAKE`) e a faceta `columnLineage` do OpenLineage.
+
+Na aba **Linhagem**, escolha uma coluna da tabela em **Seguir uma coluna** para destacar de onde ela vem e para onde vai: subindo o diagrama até as colunas a partir das quais é construída, descendo até as colunas construídas a partir dela, cada uma nomeada na sua tabela, mesmo onde foi renomeada no caminho. Uma seta cujas origens não nomeiam colunas pode levá-la além do que está destacado, e o diagrama avisa.
 
 ## OpenLineage
 
@@ -117,7 +121,7 @@ Cada job, projeto dbt e sincronização aparece em **Pipelines**, com as suas ex
 - **Pipeline Run Unusually Long**: uma execução levou o dobro do tempo típico ou mais, verificado a cada cinco minutos enquanto ela roda, para que uma execução travada seja notada antes de terminar.
 - **Pipeline Is Late**: nenhuma execução começa há mais tempo do que o agendamento dele permite.
 
-A página de um pipeline desenha a **Linhagem** dele, o primeiro lugar para olhar quando uma execução falha ou atrasa: à esquerda, as tabelas que ele lê; à direita, as tabelas que ele escreve; no meio, o pipeline; e cada cartão diz como está agora. Escolha mais passos para ver a partir do que essas tabelas são construídas e o que é construído a partir delas, e abra qualquer tabela para ver a própria aba **Linhagem** dela.
+A página de um pipeline desenha a **Linhagem** dele, o primeiro lugar para olhar quando uma execução falha ou atrasa: à esquerda, as tabelas que ele lê; à direita, as tabelas que ele escreve; no meio, o pipeline; e cada cartão diz como está agora. Escolha mais passos para ver a partir do que essas tabelas são construídas e o que é construído a partir delas, e abra qualquer tabela para ver a própria aba **Linhagem** dela. Um número de tabelas não desenhadas, no cartão do pipeline ou no de uma tabela, desenha mais delas no lugar aqui também.
 
 ## Um alerta por causa
 
@@ -128,7 +132,7 @@ Quando uma tabela fica desatualizada, todas as tabelas construídas a partir del
 
 O cartão **Dados** da causa lista o **Impacto a jusante** dela: cada alerta que ela causou. O cartão de um alerta de tabela também mostra os serviços que escrevem na tabela, com as escritas que falharam, e as implantações e outras mudanças deles no dia anterior ao alerta.
 
-Abaixo do cartão **Dados**, a página de um alerta desenha a **Linhagem** dele: em torno da tabela dele, como a aba **Linhagem** da tabela a desenha, ou em torno do pipeline dele. O caminho para cima até o alerta que o causou e para baixo até cada alerta que ele causou fica destacado - a tabela ou o pipeline da causa marcado como **Causa**, os de cada alerta causado como **Consequência** - e o resto esmaece, para que quem o abre veja em que ponto da cadeia o problema começou. Quando a causa é sobre um banco de dados inteiro, ou está mais acima do que o diagrama alcança, o cartão diz isso em palavras. **Explorar linhagem** abre a aba **Linhagem** da tabela, ou a página do pipeline.
+Abaixo do cartão **Dados**, a página de um alerta desenha a **Linhagem** dele: em torno da tabela dele, como a aba **Linhagem** da tabela a desenha, ou em torno do pipeline dele. O caminho para cima até o alerta que o causou e para baixo até cada alerta que ele causou fica destacado - a tabela ou o pipeline da causa marcado como **Causa**, os de cada alerta causado como **Consequência** - e o resto esmaece, para que quem o abre veja em que ponto da cadeia o problema começou. Quando a causa está em um pipeline desenhado sobre uma seta, a seta mostra **Causa** abaixo do nome do pipeline. Quando a causa é sobre um banco de dados inteiro, ou está mais acima do que o diagrama alcança, o cartão diz isso em palavras. Um alerta de uma verificação sobre uma única coluna, como uma verificação Null Percent em `customer_id`, abre com essa coluna seguida ao lado desses caminhos, como na aba **Linhagem** da tabela: de onde ela vem e para onde vai, nomeada em cada tabela. Escolha ali outra coluna da tabela, ou limpe a seleção para ver só os caminhos. **Explorar linhagem** abre a aba **Linhagem** da tabela, ou a página do pipeline.
 
 Quem não pode ver o alerta que o causou não recebe nem o cartão **Dados** nem a linhagem, e um alerta causado que essa pessoa não pode ver não é destacado nem contado.
 

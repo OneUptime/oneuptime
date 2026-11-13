@@ -74,6 +74,8 @@ Los endpoints siguen los propios ajustes de la página, en la tarjeta **Lo que m
 
 La vista general es una sola solicitud para toda la página. Son los mismos datos que dibuja la página de estado, y tienen como mucho 15 segundos de antigüedad.
 
+Los días de las barras de disponibilidad son días UTC salvo que indique una zona horaria: añada `?timezone=Asia/Shanghai` a un `GET`, o envíe `{"timezone": "Asia/Shanghai"}` como cuerpo de un `POST`, y `uptimeDailyAggregate` y `monitorGroupUptimeDailyAggregate` se dividen en los días de esa zona, como pide la página de estado para cada visitante. Una zona que el servidor no conoce es UTC, y ambos dicen en su `timezone` en qué zona se dividieron.
+
 :::tabs
 @tab curl
 ```bash
@@ -111,7 +113,7 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 ```
 :::
 
-El estado global es el peor estado actual de los monitores y grupos de monitores de la página, el que tiene la prioridad más alta. Un estado de monitor tiene este aspecto:
+El estado global es el peor estado actual de los monitores y grupos de monitores de la página, el que tiene la prioridad más alta. Los recursos que la página muestra como **No monitoreado**, listados en `notMonitoredResourceIds`, quedan fuera. Un estado de monitor tiene este aspecto:
 
 ```json
 {
@@ -127,13 +129,14 @@ El estado global es el peor estado actual de los monitores y grupos de monitores
 
 | Clave | Qué contiene |
 | --- | ------------- |
-| `overallStatus` | El estado global de la página, un estado de monitor como el de arriba. Una página sin nada recibe el estado del proyecto con la prioridad más baja. |
+| `overallStatus` | El estado global de la página, un estado de monitor como el de arriba. Una página sin nada recibe el estado del proyecto con la prioridad más baja, y una página que muestra todos sus recursos como **No monitoreado** recibe `null`. |
 | `statusPage` | Los ajustes públicos de la página: su título, descripción, marca y lo que muestra. |
 | `statusPageResources` | Cada recurso: su nombre visible, descripción, grupo, monitor o grupo de monitores, y opciones de visualización. |
 | `resourceGroups` | Los grupos, con `parentStatusPageGroupId` para los grupos anidados. |
 | `monitorStatuses` | Cada estado de monitor del proyecto, de la prioridad más baja a la más alta. |
 | `monitorGroupCurrentStatuses`, `monitorsInGroup` | El estado actual de cada grupo de monitores de la página y los monitores que contiene. |
-| `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | A partir de qué se dibujan las barras de disponibilidad, y las reglas de color de las barras de la página. |
+| `notMonitoredResourceIds` | Los ID de los recursos que la página muestra como **No monitoreado**: un monitor con el monitoreo desactivado, o un grupo de monitores cuyos monitores lo tienen todos desactivado. No deciden ningún estado, y un grupo así no tiene entrada en `monitorGroupCurrentStatuses`. |
+| `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupUptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | A partir de qué se dibujan las barras de disponibilidad, y las reglas de color de las barras de la página. |
 | `activeIncidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates` | Los incidentes sin resolver que muestra la página, sus notas públicas y cambios de estado, y los estados de incidente del proyecto. |
 | `timelineIncidents` | Los incidentes dentro de la ventana de las barras de disponibilidad, incluidos los resueltos, para las descripciones emergentes de las barras. |
 | `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | Lo mismo para los episodios de incidentes. |
@@ -168,6 +171,7 @@ La respuesta:
         "color": "#2ab57d",
         "isOperational": true
       },
+      "isMonitored": true,
       "isUnderMaintenance": true
     }
   ],
@@ -188,12 +192,12 @@ La respuesta:
 
 | Clave | En el resumen |
 | --- | -------------- |
-| `overallStatus` | El estado general de la página, como lo muestra su banner: `name`, `color` e `isOperational`. |
-| `resources` | Cada recurso que muestra la página, en su orden: su `name` en la página, su `groupName` con los grupos que tiene encima, su `currentStatus`, e `isUnderMaintenance`. |
+| `overallStatus` | El estado general de la página, como lo muestra su banner: `name`, `color` e `isOperational`. `null` cuando la página muestra todos sus recursos como **No monitoreado**. |
+| `resources` | Cada recurso que muestra la página, en su orden: su `name` en la página, su `groupName` con los grupos que tiene encima, su `currentStatus`, `isMonitored` e `isUnderMaintenance`. |
 | `activeIncidents` | Los incidentes sin resolver que muestra la página, cada uno con los `affectedResourceIds` de los recursos a los que afecta. |
 | `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | Los eventos de mantenimiento programado en curso y por venir, cada uno con sus `affectedResourceIds`. |
 
-El `currentStatus` de un recurso es `null` cuando la página no lo muestra. `isUnderMaintenance` es `true` mientras un evento en curso nombra uno de los monitores del recurso, o un monitor de su grupo de monitores, sea cual sea el estado de esos monitores.
+El `currentStatus` de un recurso es `null` cuando la página no lo muestra, y cuando `isMonitored` es `false`: nada comprueba el recurso, porque el monitoreo de su monitor está desactivado o todos los monitores de su grupo de monitores lo tienen desactivado, así que la página lo muestra como **No monitoreado**. `isUnderMaintenance` es `true` mientras un evento en curso nombra uno de los monitores del recurso, o un monitor de su grupo de monitores, sea cual sea el estado de esos monitores.
 
 ## Disponibilidad en un intervalo de fechas
 
@@ -276,7 +280,8 @@ La respuesta:
         "color": { "_type": "Color", "value": "#2ab57d" },
         "isOperationalState": true,
         "priority": 1
-      }
+      },
+      "isMonitored": true
     }
   ],
   "groupUptimes": [
@@ -301,7 +306,8 @@ La respuesta:
             "color": { "_type": "Color", "value": "#2ab57d" },
             "isOperationalState": true,
             "priority": 1
-          }
+          },
+          "isMonitored": true
         }
       ],
       "statusPageGroupName": "Web",
@@ -311,7 +317,8 @@ La respuesta:
         "color": { "_type": "Color", "value": "#2ab57d" },
         "isOperationalState": true,
         "priority": 1
-      }
+      },
+      "isMonitored": true
     }
   ],
   "startDate": "2026-09-01T00:00:00.000Z",
@@ -325,6 +332,7 @@ La respuesta:
 | `groupUptimes` | Una entrada por grupo. `uptimePercent` y `currentStatus` de un grupo cubren cada recurso por debajo de él, incluidos los grupos anidados; su `statusPageResourceUptimes` solo lista los recursos que están directamente en él. Reconstruye el árbol con `parentStatusPageGroupId`. |
 | `uptimePercent` | Redondeado a la precisión propia del recurso o del grupo. `null` cuando el recurso o el grupo no muestra un porcentaje de disponibilidad. |
 | `currentStatus` | `null` cuando el recurso o el grupo no muestra su estado actual. |
+| `isMonitored` | `false` cuando la página muestra el recurso como **No monitoreado**, y para un grupo cuando ocurre con todos los recursos que tiene debajo. Su `currentStatus` es entonces `null`. |
 
 El tiempo cuenta como inactividad cuando su estado de monitor es uno de los estados de **Cuenta como tiempo de inactividad** de la página.
 

@@ -74,6 +74,8 @@ De endpoints volgen de eigen instellingen van de pagina, in de kaart **Wat uw st
 
 Het overzicht is één request voor de hele pagina. Het zijn dezelfde gegevens die de statuspagina tekent, en ze zijn hooguit 15 seconden oud.
 
+De dagen van de beschikbaarheidsbalken zijn UTC-dagen, tenzij u een tijdzone noemt: voeg `?timezone=Asia/Shanghai` toe aan een `GET`, of stuur `{"timezone": "Asia/Shanghai"}` als body van een `POST`, en `uptimeDailyAggregate` en `monitorGroupUptimeDailyAggregate` worden in de dagen van die zone verdeeld, zoals de statuspagina het voor elke bezoeker vraagt. Een zone die de server niet kent, is UTC, en beide zeggen in hun `timezone` in welke zone ze zijn verdeeld.
+
 :::tabs
 @tab curl
 ```bash
@@ -111,7 +113,7 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 ```
 :::
 
-De algemene status is de slechtste huidige status van de monitors en monitorgroepen op de pagina, die met de hoogste prioriteit. Een monitorstatus ziet er zo uit:
+De algemene status is de slechtste huidige status van de monitors en monitorgroepen op de pagina, die met de hoogste prioriteit. Resources die de pagina als **Niet bewaakt** toont, vermeld in `notMonitoredResourceIds`, tellen niet mee. Een monitorstatus ziet er zo uit:
 
 ```json
 {
@@ -127,13 +129,14 @@ De algemene status is de slechtste huidige status van de monitors en monitorgroe
 
 | Sleutel | Wat erin staat |
 | --- | ------------- |
-| `overallStatus` | De algemene status van de pagina, een monitorstatus zoals hierboven. Een pagina waar niets op staat, krijgt de status van het project met de laagste prioriteit. |
+| `overallStatus` | De algemene status van de pagina, een monitorstatus zoals hierboven. Een pagina waar niets op staat, krijgt de status van het project met de laagste prioriteit, en een pagina die al haar resources als **Niet bewaakt** toont, krijgt `null`. |
 | `statusPage` | De publieke instellingen van de pagina: titel, beschrijving, branding en wat ze toont. |
 | `statusPageResources` | Elke resource: weergavenaam, beschrijving, groep, monitor of monitorgroep, en weergaveopties. |
 | `resourceGroups` | De groepen, met `parentStatusPageGroupId` voor geneste groepen. |
 | `monitorStatuses` | Elke monitorstatus van het project, van de laagste prioriteit naar de hoogste. |
 | `monitorGroupCurrentStatuses`, `monitorsInGroup` | De huidige status van elke monitorgroep op de pagina, en de monitors erin. |
-| `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | Waaruit de beschikbaarheidsbalken worden getekend, en de kleurregels voor de balken van de pagina. |
+| `notMonitoredResourceIds` | De ID's van de resources die de pagina als **Niet bewaakt** toont: een monitor waarvan de bewaking uit staat, of een monitorgroep waarvan alle monitors die uit hebben staan. Ze bepalen geen status, en zo'n groep heeft geen vermelding in `monitorGroupCurrentStatuses`. |
+| `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupUptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | Waaruit de beschikbaarheidsbalken worden getekend, en de kleurregels voor de balken van de pagina. |
 | `activeIncidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates` | De onopgeloste incidenten die de pagina toont, hun publieke notities en statuswijzigingen, en de incidentstatussen van het project. |
 | `timelineIncidents` | De incidenten in het venster van de beschikbaarheidsbalken, opgeloste incidenten inbegrepen, voor de tooltips van de balken. |
 | `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | Hetzelfde voor incidentepisodes. |
@@ -168,6 +171,7 @@ Het antwoord:
         "color": "#2ab57d",
         "isOperational": true
       },
+      "isMonitored": true,
       "isUnderMaintenance": true
     }
   ],
@@ -188,12 +192,12 @@ Het antwoord:
 
 | Sleutel | In de samenvatting |
 | --- | -------------- |
-| `overallStatus` | De algemene status van de pagina, zoals haar banner die toont: `name`, `color` en `isOperational`. |
-| `resources` | Elke resource die de pagina toont, in haar volgorde: de `name` op de pagina, de `groupName` met de groepen erboven, de `currentStatus`, en `isUnderMaintenance`. |
+| `overallStatus` | De algemene status van de pagina, zoals haar banner die toont: `name`, `color` en `isOperational`. `null` als de pagina al haar resources als **Niet bewaakt** toont. |
+| `resources` | Elke resource die de pagina toont, in haar volgorde: de `name` op de pagina, de `groupName` met de groepen erboven, de `currentStatus`, `isMonitored`, en `isUnderMaintenance`. |
 | `activeIncidents` | De onopgeloste incidenten die de pagina toont, elk met de `affectedResourceIds` van de resources die het raakt. |
 | `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | De geplande onderhoudsgebeurtenissen die lopen of nog komen, elk met haar `affectedResourceIds`. |
 
-De `currentStatus` van een resource is `null` als de pagina die niet toont. `isUnderMaintenance` is `true` zolang een lopende gebeurtenis een van de monitors van de resource noemt, of een monitor in de monitorgroep ervan, in welke status die monitors ook staan.
+De `currentStatus` van een resource is `null` als de pagina die niet toont, en als `isMonitored` `false` is: niets controleert de resource, omdat de bewaking van haar monitor uit staat of elke monitor van haar monitorgroep die uit heeft staan, dus toont de pagina haar als **Niet bewaakt**. `isUnderMaintenance` is `true` zolang een lopende gebeurtenis een van de monitors van de resource noemt, of een monitor in de monitorgroep ervan, in welke status die monitors ook staan.
 
 ## Beschikbaarheid over een periode
 
@@ -276,7 +280,8 @@ Het antwoord:
         "color": { "_type": "Color", "value": "#2ab57d" },
         "isOperationalState": true,
         "priority": 1
-      }
+      },
+      "isMonitored": true
     }
   ],
   "groupUptimes": [
@@ -301,7 +306,8 @@ Het antwoord:
             "color": { "_type": "Color", "value": "#2ab57d" },
             "isOperationalState": true,
             "priority": 1
-          }
+          },
+          "isMonitored": true
         }
       ],
       "statusPageGroupName": "Web",
@@ -311,7 +317,8 @@ Het antwoord:
         "color": { "_type": "Color", "value": "#2ab57d" },
         "isOperationalState": true,
         "priority": 1
-      }
+      },
+      "isMonitored": true
     }
   ],
   "startDate": "2026-09-01T00:00:00.000Z",
@@ -325,6 +332,7 @@ Het antwoord:
 | `groupUptimes` | Eén item per groep. `uptimePercent` en `currentStatus` van een groep dekken elke resource eronder, geneste groepen inbegrepen; haar `statusPageResourceUptimes` noemt alleen de resources die er direct in zitten. Bouw de boom opnieuw op met `parentStatusPageGroupId`. |
 | `uptimePercent` | Afgerond op de eigen precisie van de resource of groep. `null` als de resource of groep geen beschikbaarheidspercentage toont. |
 | `currentStatus` | `null` als de resource of groep haar huidige status niet toont. |
+| `isMonitored` | `false` als de pagina de resource als **Niet bewaakt** toont, en voor een groep als dat geldt voor elke resource eronder. Haar `currentStatus` is dan `null`. |
 
 Tijd telt als downtime wanneer de monitorstatus een van de statussen onder **Telt als downtime** van de pagina is.
 

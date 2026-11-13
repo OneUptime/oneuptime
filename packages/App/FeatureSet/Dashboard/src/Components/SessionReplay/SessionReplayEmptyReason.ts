@@ -22,6 +22,8 @@ import {
   hasAnyAdvancedFilter,
   SessionReplayAdvancedFilters,
 } from "./SessionReplayListFilters";
+import Permission from "Common/Types/Permission";
+import { getSessionReplayPermissionTitle } from "./SessionReplayPermissionTitle";
 
 /*
  * The "why is this list empty" decision, without React.
@@ -549,9 +551,13 @@ export function describeSessionReplayListError(
       ),
       detail:
         text ||
-        translateLine(
-          "Your role lacks the session replay read permission. Ask a project admin.",
-          translator,
+        translator.translateTemplate(
+          'Your role lacks the "{{permission}}" permission. Ask a project admin for it.',
+          {
+            permission: getSessionReplayPermissionTitle(
+              Permission.ReadRumSessionReplay,
+            ),
+          },
         ),
     };
   }

@@ -10,8 +10,16 @@ import {
   getDeveloperDocsPageKey,
 } from "../DeveloperDocs/DeveloperDocsPages";
 import { buildInventoryScopeQueryString } from "../Inventory/InventoryScope";
+import {
+  getToolImportQueryString,
+  ToolImportEntryPoint,
+} from "../ToolImport/ToolImportLinks";
 import IconProp from "Common/Types/Icon/IconProp";
 import EntitySource from "Common/Types/Telemetry/EntitySource";
+import { getToolImportSourceDefinition } from "Common/Types/ToolImport/ToolImportCatalog";
+import ToolImportSource, {
+  AllToolImportSources,
+} from "Common/Types/ToolImport/ToolImportSource";
 
 /*
  * Every page Search (Cmd/Ctrl+K) can open, as the menus show them.
@@ -86,6 +94,25 @@ export interface PageSearchAction {
    * never lands on a page with what it was for hidden.
    */
   anchor?: string | undefined;
+  /*
+   * A query string the page reads to open on the action, with its "?", in
+   * place of the page's own: "Import from PagerDuty" opens the importer on
+   * PagerDuty's connect step.
+   */
+  queryString?: string | undefined;
+  /*
+   * Names put into the title's {{placeholders}} once it is translated -
+   * brands, never translated themselves: "Import from {{tool}}" with
+   * { tool: "PagerDuty" }.
+   */
+  titleValues?: Record<string, string> | undefined;
+  /*
+   * Named for another product (a tool OneUptime imports from): it gives way
+   * in Search to OneUptime's own pages that hold the word typed, so "pager"
+   * opens On-Call Policies before "Import from PagerDuty"
+   * (PALETTE_SEARCH_PENALTY).
+   */
+  isNamedForAnotherProduct?: boolean | undefined;
 }
 
 /*
@@ -184,6 +211,49 @@ const customFields: (page: PageMap, cardTitle?: string) => PageSearchPage = (
     ...(cardTitle ? { settings: [cardTitle] } : {}),
   };
 };
+
+/*
+ * "Import from PagerDuty": one action per tool on the importer's page, so
+ * typing the name of the tool a team is leaving finds the way to bring it
+ * over, and opens the importer on that tool's connect step (#6809). A
+ * tool's other names find it too. A tool whose name starts like another
+ * product's pages ("incident.io", Incidents) is left out: its action would
+ * come before those pages for "incident settings" (ToolImportWiring holds
+ * each one left out to that).
+ */
+export const TOOL_IMPORT_SEARCH_LEAVES_OUT: ReadonlyArray<ToolImportSource> = [
+  ToolImportSource.IncidentIo,
+];
+
+const TOOL_IMPORT_SEARCH_KEYWORDS: Partial<
+  Record<ToolImportSource, Array<string>>
+> = {
+  [ToolImportSource.SplunkOnCall]: ["victorops"],
+  [ToolImportSource.GrafanaOnCall]: ["grafana irm"],
+  [ToolImportSource.UptimeRobot]: ["uptime robot"],
+  [ToolImportSource.BetterStack]: ["betterstack", "better uptime"],
+  [ToolImportSource.AtlassianStatuspage]: ["statuspage.io"],
+};
+
+export const getToolImportSearchActions: () => Array<PageSearchAction> =
+  (): Array<PageSearchAction> => {
+    return AllToolImportSources.filter((source: ToolImportSource): boolean => {
+      return !TOOL_IMPORT_SEARCH_LEAVES_OUT.includes(source);
+    }).map((source: ToolImportSource): PageSearchAction => {
+      return {
+        id: `import-from-${source.toLowerCase()}`,
+        title: "Import from {{tool}}",
+        titleValues: { tool: getToolImportSourceDefinition(source).title },
+        icon: IconProp.InboxArrowDown,
+        keywords: TOOL_IMPORT_SEARCH_KEYWORDS[source] || [],
+        isNamedForAnotherProduct: true,
+        queryString: getToolImportQueryString({
+          from: ToolImportEntryPoint.Search,
+          tool: source,
+        }),
+      };
+    });
+  };
 
 const archived: PageFunction = (page: PageMap): PageSearchPage => {
   return { page, title: "Archived", icon: IconProp.Archive };
@@ -437,6 +507,26 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
                 name: "Customer Support Access",
                 gate: PageSearchGate.Billing,
               },
+            ],
+          },
+          /*
+           * The products this project shows (#6814): found by what people
+           * call what it does - hiding what they do not use, choosing what
+           * the menu lists.
+           */
+          {
+            page: PageMap.SETTINGS_PRODUCTS,
+            title: "Products",
+            icon: IconProp.Squares,
+            keywords: [
+              "hide products",
+              "show products",
+              "hidden products",
+              "choose products",
+              "products menu",
+              "more products",
+              "customize menu",
+              "show every product",
             ],
           },
           {
@@ -753,28 +843,20 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.SETTINGS_IMPORT_FROM_TOOL,
             title: "Import from another tool",
             icon: IconProp.InboxArrowDown,
+            /*
+             * The tools' names are their "Import from <tool>" actions' own
+             * (getToolImportSearchActions), which open the page on that
+             * tool: a name typed finds that, not the page beside it.
+             */
             keywords: [
               "import",
               "migrate",
               "migration",
               "move to oneuptime",
               "switch to oneuptime",
-              "opsgenie",
-              "pagerduty",
-              "splunk on-call",
-              "victorops",
-              "grafana oncall",
-              "grafana irm",
-              "uptimerobot",
-              "uptime robot",
-              "atlassian statuspage",
-              "better stack",
-              "betterstack",
-              "pingdom",
-              "statuscake",
-              "uptime kuma",
             ],
             settings: ["Start a new import", "Earlier imports"],
+            actions: getToolImportSearchActions(),
           },
         ],
       },
@@ -906,6 +988,38 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
     ],
   },
   {
+    /*
+     * The pages under Home: Setup health, what is misconfigured in the
+     * project (#6812), which no menu links to - Home's "Needs attention"
+     * does - so Search finds it by name and by what people ask.
+     */
+    id: "home",
+    title: "Home",
+    productPage: PageMap.HOME,
+    icon: IconProp.Home,
+    iconColor: "slate",
+    sections: [
+      {
+        pages: [
+          {
+            page: PageMap.HOME_SETUP_HEALTH,
+            title: "Setup Health",
+            icon: IconProp.Wrench,
+            keywords: [
+              "misconfigured",
+              "is my setup ok",
+              "setup check",
+              "health check",
+              "nobody is paged",
+              "what is broken",
+              "configuration problems",
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
     id: "monitors",
     title: "Monitors",
     productPage: PageMap.MONITORS,
@@ -916,6 +1030,23 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         title: "Monitors",
         pages: [
           allListPage(PageMap.MONITORS, "All Monitors"),
+          /*
+           * The guided setup (#6804): an address, who is told and a test
+           * page on one page. Found by what people come to do.
+           */
+          {
+            page: PageMap.MONITOR_GUIDED_SETUP,
+            title: "Know when my website or API is down",
+            icon: IconProp.AltGlobe,
+            keywords: [
+              "guided setup",
+              "get started",
+              "website down",
+              "api down",
+              "uptime",
+              "monitor my website",
+            ],
+          },
           {
             page: PageMap.MONITOR_GROUPS,
             title: "Monitor Groups",
@@ -1179,6 +1310,19 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "starting number",
             ],
           },
+          {
+            page: PageMap.INCIDENTS_SETTINGS_RETENTION,
+            title: "Data Retention",
+            icon: IconProp.Archive,
+            keywords: [
+              "incident retention",
+              "delete old incidents",
+              "delete resolved incidents",
+              "how long incidents are kept",
+              "database size",
+            ],
+            settings: ["Resolved Incidents"],
+          },
         ],
       },
       incidentAlertAiSection({
@@ -1323,6 +1467,19 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "starting number",
             ],
           },
+          {
+            page: PageMap.ALERTS_SETTINGS_RETENTION,
+            title: "Data Retention",
+            icon: IconProp.Archive,
+            keywords: [
+              "alert retention",
+              "delete old alerts",
+              "delete resolved alerts",
+              "how long alerts are kept",
+              "database size",
+            ],
+            settings: ["Resolved Alerts"],
+          },
         ],
       },
       incidentAlertAiSection({
@@ -1353,6 +1510,25 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "paging policy",
               "pager",
               "create on-call policy",
+            ],
+          },
+          /*
+           * The guided setup (#6805): how you are reached, who else is on
+           * call, what if nobody answers and a test page, on one page.
+           * Found by what people come to do.
+           */
+          {
+            page: PageMap.ON_CALL_DUTY_GUIDED_SETUP,
+            title: "Page the right person when something breaks",
+            icon: IconProp.Call,
+            keywords: [
+              "guided setup",
+              "get paged",
+              "page me by phone",
+              "sms",
+              "phone call",
+              "escalate",
+              "set up on-call",
             ],
           },
           {
@@ -1473,6 +1649,22 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             title: "All Status Pages",
             icon: IconProp.CheckCircle,
             keywords: ["create status page", "public status page"],
+          },
+          /*
+           * The guided setup (#6806): a name, the monitors it shows and what
+           * customers see, on one page. Found by what people come to do.
+           */
+          {
+            page: PageMap.STATUS_PAGES_GUIDED_SETUP,
+            title: "Publish a status page",
+            icon: IconProp.CheckCircle,
+            keywords: [
+              "guided setup",
+              "get started",
+              "status page setup",
+              "show uptime to customers",
+              "public status",
+            ],
           },
         ],
       },
@@ -2897,7 +3089,28 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
     sections: [
       {
         title: "Services",
-        pages: [allListPage(PageMap.SERVICES, "All Services")],
+        pages: [
+          allListPage(PageMap.SERVICES, "All Services"),
+          /*
+           * The guided setup (#6806): the OpenTelemetry guide, the first
+           * data, and recommended alerts on it, on one page.
+           */
+          {
+            page: PageMap.SERVICES_GUIDED_SETUP,
+            title: "Send logs, metrics and traces, then get alerted",
+            icon: IconProp.Logs,
+            keywords: [
+              "guided setup",
+              "get started",
+              "opentelemetry",
+              "send telemetry",
+              "send logs",
+              "send traces",
+              "send metrics",
+              "telemetry alert",
+            ],
+          },
+        ],
       },
       ...resourceSettingsSections({
         ownerRules: PageMap.SERVICE_SETTINGS_OWNER_RULES,
@@ -3965,6 +4178,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "contact methods",
             ],
             settings: [
+              "Test your pages",
               "Emails for Notifications",
               "Phone Numbers for SMS Notifications",
               "Phone Numbers for Call Notifications",
@@ -3972,6 +4186,21 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "Telegram Accounts for Notifications",
               "Push Notifications",
               "Webhooks",
+            ],
+            // A test page through the person's own rules (OnCallTestPage).
+            actions: [
+              {
+                id: "send-me-a-test-page",
+                title: "Send me a test page",
+                icon: IconProp.Beaker,
+                keywords: [
+                  "test page",
+                  "test notification",
+                  "test my phone",
+                  "fire drill",
+                  "will it wake me",
+                ],
+              },
             ],
           },
           {
@@ -4077,8 +4306,22 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.USER_PROFILE_OVERVIEW,
             title: "Overview",
             icon: IconProp.Info,
-            keywords: ["my profile", "profile", "my name", "my email"],
-            settings: ["Basic Info", "Full Name", "Timezone"],
+            keywords: [
+              "my profile",
+              "profile",
+              "my name",
+              "my email",
+              "feedback",
+              "survey",
+              "stop asking",
+            ],
+            settings: [
+              "Basic Info",
+              "Full Name",
+              "Timezone",
+              "Feedback Questions",
+              "Ask me how things went",
+            ],
           },
           {
             page: PageMap.USER_PROFILE_PICTURE,

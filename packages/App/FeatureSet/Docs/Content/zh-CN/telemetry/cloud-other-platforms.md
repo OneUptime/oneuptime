@@ -26,7 +26,7 @@ flowchart TB
 | AWS Elastic Beanstalk | `aws_elastic_beanstalk` | Collector 的 `elastic_beanstalk` 和 `ec2` 检测器；Node.js 的 `aws` | `host.id`（删除部署的 `service.instance.id`） |
 | AWS App Runner | `aws_app_runner` | 你自己（没有检测器） | `host.name` |
 | Google App Engine | `gcp_app_engine` | `gcp` 检测器（Collector 和所有 SDK 中的） | `faas.instance` |
-| Azure App Service | `azure_app_service` | Collector 的 `azureappservice`，Node.js 和 .NET 的 `azure` 检测器；`cloud.account.id` 由你设置 | `service.instance.id`，其次是 `host.id` |
+| Azure App Service | `azure_app_service` | Collector 的 `azureappservice`，Node.js 和 .NET 的 `azure` 检测器；使用 SDK 时 `cloud.account.id` 由你设置 | `azure.app_service.instance.id`，否则 `service.instance.id`，其次是 `host.id` |
 | Azure Container Instances | `azure_container_instances` | 你自己（没有检测器） | `host.name` |
 
 下面每一节都需要一个来自 **项目设置 → 遥测与 APM → 摄取密钥** 的 **服务器** 摄取密钥，以及一个用 OpenTelemetry SDK 插桩的应用。如果你自托管 OneUptime，请把 `https://oneuptime.com/otlp` 替换为 `https://YOUR-ONEUPTIME-HOST/otlp`。
@@ -158,7 +158,7 @@ env_variables:
 
 ## Azure App Service
 
-`cloud.platform`：`azure_app_service`。Node.js 和 .NET 的 Azure 检测器，以及 Collector 的 `azureappservice` 检测器，会读取 App Service 设置的 `WEBSITE_*` 变量。它们会填写 `cloud.platform`、`cloud.region`、`service.instance.id`（来自 `WEBSITE_INSTANCE_ID`）、`deployment.environment`（部署槽）和 `host.id`。它们都不会设置 `cloud.account.id`：请自己添加订阅 ID，否则环境密钥中的账户段会是空的。
+`cloud.platform`：`azure_app_service`。Node.js 和 .NET 的 Azure 检测器会读取 App Service 设置的 `WEBSITE_*` 变量，填写 `cloud.platform`、`cloud.region`、`service.instance.id`（来自 `WEBSITE_INSTANCE_ID`）、`deployment.environment`（部署槽）和 `host.id`，但不会设置 `cloud.account.id`：请自己添加订阅 ID，否则环境密钥中的账户段会是空的。Collector 的 `azureappservice` 检测器读取相同的变量，也会设置 `cloud.account.id`，并把实例写入 `azure.app_service.instance.id`。
 
 ```bash
 OTEL_SERVICE_NAME=checkout-api
@@ -181,6 +181,8 @@ SDK 检测器把平台写作带点号的 `azure.app_service`；OneUptime 收到�
 :::
 
 **网络：** 除非开启了 **VNet integration** 并启用 **Route All**，否则 App Service 可以直接访问互联网。开启后，VNet 需要 NAT 网关，或一条通往允许 TCP 443 访问 OneUptime 主机的防火墙的路由。
+
+**应用页面显示的内容：** 请求、错误率和延迟来自应用的追踪，因此只发送日志或指标的应用会在那里显示 **未收到追踪**，它的 **设置检查** 会说明需要添加什么。App Service 不会给应用分配自己的 CPU 或内存，应用的 CPU 和内存磁贴会说明这一点。在 **云 → 连接** 中连接订阅后，应用的 **概览** 会增加一个 **Azure Monitor** 部分：无论应用发送什么，都会显示 Azure 测得的站点请求、服务器错误、响应时间、CPU 时间和内存。
 
 ## Azure Container Instances
 
@@ -238,7 +240,11 @@ Key Vault 引用没有解析成功，因此 App Service 把字面文本 `@Micros
 :::
 
 :::details App Service 环境的账户段为空
-App Service 的检测器都不会设置 `cloud.account.id`。请在每个应用的 `OTEL_RESOURCE_ATTRIBUTES` 中添加订阅 ID：带有和不带这个值的遥测数据会进入两个环境。
+Node.js 和 .NET 的 App Service 检测器不会设置 `cloud.account.id`。请在每个应用的 `OTEL_RESOURCE_ATTRIBUTES` 中添加订阅 ID：带有和不带这个值的遥测数据会进入两个环境。
+:::
+
+:::details App Service 应用没有显示请求或实例
+请求、错误率和延迟来自追踪，因此只发送日志或指标的应用没有这些数据：它的 **设置检查** 会说明需要添加什么。实例来自 Azure 检测器设置的 `azure.app_service.instance.id` 或 `service.instance.id`：两者都没有时，**实例** 磁贴显示 **未报告**。要查看站点的请求（无论应用发送什么），请连接订阅：应用页面会增加一个 **Azure Monitor** 部分。
 :::
 
 :::details 修改 Container Instances 变量后没有效果

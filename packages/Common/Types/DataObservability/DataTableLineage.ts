@@ -1,6 +1,7 @@
 import { DataAssetFreshness } from "./DataAssetFreshness";
 import DataAssetKind from "./DataAssetKind";
 import DataAssetLineageSource from "./DataAssetLineageSource";
+import { DataColumnMapping } from "./DataColumnLineage";
 
 /*
  * A TABLE'S LINEAGE AS ONE DRAWING: WHERE ITS DATA COMES FROM AND WHERE IT
@@ -26,8 +27,13 @@ import DataAssetLineageSource from "./DataAssetLineageSource";
  *
  * A drawing past a few dozen cards is read by nobody, so each table shows
  * its nearest neighbours each way, problems first, and says how many more
- * there are (hiddenUpstreamCount, hiddenDownstreamCount): opening that table
- * centers the drawing on it.
+ * there are (hiddenUpstreamCount, hiddenDownstreamCount): pressing that
+ * count draws the next of them where they are (DataLineageExpansion), and
+ * opening that table centers the drawing on it.
+ *
+ * Asked for with its columns (withColumns), each arrow between two tables
+ * also says which columns of one feed which of the other, where its sources
+ * name them, so the diagram can follow one column up and down.
  */
 
 export enum DataLineageNodeKind {
@@ -78,6 +84,14 @@ export const MAX_DATA_LINEAGE_DASHBOARDS: number = 25;
 
 // The longest pipeline error a card carries: the pipeline's page has all of it.
 export const MAX_DATA_LINEAGE_ERROR_LENGTH: number = 500;
+
+/*
+ * The most column pairs one answer carries, the arrows nearest the drawing's
+ * own card first; an arrow past them carries none, as one whose sources name
+ * no columns. Each arrow carries at most MAX_COLUMN_MAPPINGS_PER_EDGE, as
+ * kept.
+ */
+export const MAX_DATA_LINEAGE_COLUMN_MAPPINGS: number = 10000;
 
 export interface DataTableLineagePipeline {
   dataPipelineId: string;
@@ -140,6 +154,14 @@ export interface DataTableLineageEdge {
   pipelines: Array<DataTableLineagePipeline>;
   // ISO time it was last seen; null for a dashboard's read.
   lastSeenAt: string | null;
+  /*
+   * Which columns of the upstream table feed which columns of the
+   * downstream one, every source's together: only on an arrow between two
+   * tables of a drawing asked for with its columns (withColumns), and only
+   * when a source named them (Snowflake's access history, OpenLineage's
+   * column lineage). An arrow without them says nothing of its columns.
+   */
+  columnMappings?: Array<DataColumnMapping> | undefined;
 }
 
 /*
@@ -159,6 +181,12 @@ export interface DataLineageHighlight {
   consequenceNodeIds: Array<string>;
   // A cause or consequence that is a pipeline drawn only on arrows: named on its arrows along the way.
   dataPipelineIds: Array<string>;
+  /*
+   * Of those, the cause's: the way up ends on the arrows it moves data
+   * along, and each of them says Cause by its name, as a cause drawn as a
+   * card does on the card.
+   */
+  causeDataPipelineIds: Array<string>;
 }
 
 export interface DataTableLineage {
@@ -187,6 +215,8 @@ export interface DataTableLineage {
 export interface DataTableLineageRequest {
   dataAssetId: string;
   depth?: number | undefined;
+  // Each arrow between two tables with the columns it carries (columnMappings): off unless asked for, so the answer stays small.
+  withColumns?: boolean | undefined;
 }
 
 export interface DataPipelineLineageRequest {
@@ -211,6 +241,20 @@ export interface DataAlertLineageAnswer {
   // The alerts it caused, and how many of them the drawing reaches.
   consequenceCount: number;
   drawnConsequenceCount: number;
+  /*
+   * The column its check reads, when it comes from a check on one column
+   * of the table drawn: the drawing is then read with the columns each
+   * arrow carries (as a table's withColumns), so the diagram opens with
+   * that column followed. Null for any other alert.
+   */
+  column: string | null;
+  /*
+   * Whether the alert itself was open - in a state that is not resolved -
+   * when its drawing was read: then it is one of the open alerts its own
+   * table's card counts. Said only when that card counts any; left out
+   * when not known.
+   */
+  isAlertOpen?: boolean | undefined;
 }
 
 export function getLineageTableNodeId(dataAssetId: string): string {

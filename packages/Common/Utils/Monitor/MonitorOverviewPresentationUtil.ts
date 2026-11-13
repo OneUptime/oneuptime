@@ -327,6 +327,11 @@ export interface MonitorOverviewPresentation {
    * evaluation, since the monitor was created.
    */
   isNeverReported?: boolean | undefined;
+  /*
+   * Someone turned the monitor's monitoring off: its uptime windows leave
+   * that time out (MonitorStatusTimeline.isMonitoringOff, issue #6480).
+   */
+  isMonitoringOff?: boolean | undefined;
   facts: Array<MonitorOverviewFact>;
   target: MonitorOverviewTarget | null;
   sections: MonitorOverviewSections;
@@ -596,6 +601,7 @@ export default class MonitorOverviewPresentationUtil {
       pulse: MonitorOverviewPresentationUtil.getPulse(input, context),
       freshness: context.freshness.freshness,
       isNeverReported: MonitorOverviewPresentationUtil.isNeverReported(context),
+      isMonitoringOff: input.pause.isDisabled === true,
       facts: MonitorOverviewPresentationUtil.getFacts(input, context),
       target: MonitorOverviewTargetUtil.getTarget({
         monitorType: input.monitorType,
@@ -639,13 +645,23 @@ export default class MonitorOverviewPresentationUtil {
    * monitoring is paused, while nothing checks, and before the first check
    * completes. A manual monitor has no checks to pause, so it never gets
    * one.
+   *
+   * Monitoring turned off is the exception (issue #6480): that time is not
+   * counted but left out, from the moment it was turned off, whatever the
+   * monitor's kind, so the windows say that instead - measured over less
+   * than their length. Archived, or paused by an incident or a scheduled
+   * maintenance event, the last status still counts: "paused".
    */
   public static getUptimeCaveat(
     presentation: Pick<
       MonitorOverviewPresentation,
-      "family" | "runState" | "isNeverReported"
+      "family" | "runState" | "isNeverReported" | "isMonitoringOff"
     >,
   ): MonitorUptimeCaveat | null {
+    if (presentation.isMonitoringOff) {
+      return "monitoring-off";
+    }
+
     if (presentation.family === MonitorOverviewFamily.Manual) {
       return null;
     }

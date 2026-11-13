@@ -139,6 +139,7 @@ import OpenStackEventRecorder, {
   OpenStackEventBufferEntry,
 } from "Common/Server/Utils/OpenStack/OpenStackEventRecorder";
 import OpenStackLogDefaults from "Common/Server/Utils/OpenStack/OpenStackLogDefaults";
+import { CloudAppTelemetrySignal } from "Common/Types/Cloud/CloudAppTelemetrySignal";
 
 /*
  * What stamping a Kubernetes event changed beside its attributes: the
@@ -660,6 +661,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
             await this.autoDiscoverCloudResource({
               projectId,
               attributes: resourceAttributes_raw,
+              signal: CloudAppTelemetrySignal.Logs,
             });
 
           const rumApplicationId: ObjectID | null = await this.autoDiscoverRum({

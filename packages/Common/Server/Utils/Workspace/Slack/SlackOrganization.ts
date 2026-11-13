@@ -5,15 +5,18 @@ import WorkspaceProjectAuthToken, {
 import HTTPErrorResponse from "../../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../../Types/API/HTTPResponse";
 import URL from "../../../../Types/API/URL";
+import LIMIT_MAX from "../../../../Types/Database/LimitMax";
 import OneUptimeDate from "../../../../Types/Date";
 import BadRequestException from "../../../../Types/Exception/BadRequestException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
+import { SLACK_ID_PATTERN } from "../../../../Types/Workspace/ConnectCallback";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import API from "../../../../Utils/API";
 import WorkspaceProjectAuthTokenService from "../../../Services/WorkspaceProjectAuthTokenService";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import { SLACK_WORKSPACE_NOT_ADDED_ERROR } from "./SlackChannelMembers";
 
 /*
  * ONEUPTIME INSTALLED FOR A WHOLE SLACK ENTERPRISE ORGANIZATION.
@@ -35,18 +38,28 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  *
  * - the workspaces OneUptime has been added to, as Slack lists them
  *   (auth.teams.list), read again when they are needed and older than
- *   WORKSPACES_FRESH_FOR_SECONDS - an admin adds it to workspaces in Slack,
- *   which tells OneUptime nothing;
+ *   WORKSPACES_FRESH_FOR_SECONDS, and at once when Slack says an admin
+ *   added OneUptime to a workspace or removed it (team_access_granted and
+ *   team_access_revoked, refreshOrganization) - an app whose manifest
+ *   subscribes to neither hears of it only through the reads;
  * - a default workspace: where a rule that names none creates its channel,
  *   and looked in first for a channel named without a workspace. A project
  *   that moved from one workspace to the organization keeps that workspace
- *   as its default.
+ *   as its default. A default OneUptime is removed from moves to the first
+ *   workspace left by name.
  *
  * A project connected to one workspace of an organization moves to the
  * organization's installation when the organization's is installed for it
  * (isSameOrganization): its notification rules, linked accounts and
  * channels stay - the organization's channel and user ids are the
  * workspace's. Any other change of workspace is refused, as before.
+ *
+ * Slack's press of the organization's installation names no workspace for
+ * the channel it was made in (team is null), only the person's own
+ * (user.team_id). So once somebody who pressed has connected their Slack
+ * account, "Back to Slack" opens the channel in the workspace OneUptime
+ * knows it is in, or else the one Slack names for it
+ * (getWorkspaceIdToOpenChannelIn).
  */
 
 // What a finished install says it was for (readInstallation).
@@ -72,6 +85,28 @@ export interface SlackOrganizationConnection {
   defaultWorkspaceId: string | undefined;
   // When Slack last listed the workspaces; undefined for never.
   workspacesReadAt: Date | undefined;
+  /*
+   * The workspaces Slack listed once and lists no more - OneUptime was
+   * removed from them - by the names they had: what a rule that still
+   * picks one is told by (getNotAddedMessage). The latest removed first.
+   */
+  removedWorkspaces: Array<SlackOrganizationWorkspace>;
+}
+
+/*
+ * A workspace a rule picks - or a call is made in - that OneUptime's
+ * installation for the organization is no longer added to. Its message says
+ * so in plain words (SlackOrganization.getNotAddedMessage), for Notification
+ * Logs, a rule's test, and whoever reads the error.
+ */
+export class SlackWorkspaceNotAddedException extends BadRequestException {
+  // The workspace (T...).
+  public readonly teamId: string;
+
+  public constructor(data: { message: string; teamId: string }) {
+    super(data.message);
+    this.teamId = data.teamId;
+  }
 }
 
 export default class SlackOrganization {
@@ -84,6 +119,21 @@ export default class SlackOrganization {
   // auth.teams.list pages read at most: 200 workspaces a page.
   private static readonly MAX_WORKSPACE_PAGES: number = 50;
   private static readonly WORKSPACES_PAGE_SIZE: number = 200;
+
+  // The workspaces OneUptime was removed from that are kept, the latest first.
+  public static readonly MAX_REMOVED_WORKSPACES: number = 50;
+
+  // What Slack answers a call made in a workspace OneUptime is not added to.
+  public static readonly NOT_ADDED_ERROR: string =
+    SLACK_WORKSPACE_NOT_ADDED_ERROR;
+
+  /*
+   * How long "Back to Slack" waits for Slack to say which workspace a
+   * channel is in (getWorkspaceIdToOpenChannelIn). The person's browser
+   * waits on the answer as it comes back from connecting their Slack
+   * account; past this, the link opens the workspace the press kept.
+   */
+  public static readonly CHANNEL_WORKSPACE_TIMEOUT_IN_MS: number = 2000;
 
   // Whether a connection's miscData is a whole organization's installation.
   public static isOrganization(miscData: unknown): boolean {
@@ -180,6 +230,18 @@ export default class SlackOrganization {
       ? OneUptimeDate.fromString(miscData.workspacesReadAt)
       : undefined;
 
+    // One OneUptime was added to again is listed, not removed.
+    const removedWorkspaces: Array<SlackOrganizationWorkspace> =
+      SlackOrganization.readWorkspaces(miscData.removedWorkspaces).filter(
+        (removed: SlackOrganizationWorkspace): boolean => {
+          return !workspaces.some(
+            (workspace: SlackOrganizationWorkspace): boolean => {
+              return workspace.id === removed.id;
+            },
+          );
+        },
+      );
+
     return {
       enterpriseId:
         SlackOrganization.textOf(miscData.enterpriseId) ||
@@ -194,6 +256,7 @@ export default class SlackOrganization {
       }),
       defaultWorkspaceId: defaultWorkspaceId,
       workspacesReadAt: readAt && !isNaN(readAt.getTime()) ? readAt : undefined,
+      removedWorkspaces: removedWorkspaces,
     };
   }
 
@@ -267,20 +330,13 @@ export default class SlackOrganization {
 
     const readAt: Date = OneUptimeDate.getCurrentDate();
 
-    try {
-      await WorkspaceProjectAuthTokenService.updateSlackOrganization({
-        projectId: data.projectId,
-        workspaceProjectId: data.projectAuth.workspaceProjectId || "",
-        workspaces: workspaces,
-        workspacesReadAt: readAt,
+    // Those listed before and not now keep their names, for rules that pick them.
+    const removedWorkspaces: Array<SlackOrganizationWorkspace> =
+      SlackOrganization.getRemovedWorkspaces({
+        listedBefore: organization.workspaces,
+        removedBefore: organization.removedWorkspaces,
+        listedNow: workspaces,
       });
-    } catch (err) {
-      logger.debug(
-        "Could not keep the workspaces of an organization's Slack installation.",
-        { projectId: data.projectId.toString() },
-      );
-      logger.debug(err);
-    }
 
     const miscData: SlackMiscData = data.projectAuth.miscData as SlackMiscData;
 
@@ -290,6 +346,43 @@ export default class SlackOrganization {
         defaultWorkspaceId: miscData.defaultWorkspaceId,
       });
 
+    /*
+     * The default is stored, so it stays where it is: the one chosen, the
+     * workspace the project was connected to before, or - none stored yet,
+     * as for an installation made before installs stored one - the first
+     * workspace by name, which OneUptime added to a workspace that comes
+     * first by name would otherwise take over. One Slack lists no more -
+     * OneUptime was removed from it - moves to the first workspace left by
+     * name, and is stored there, so adding OneUptime to the old one again
+     * does not move it back. Storing another default drops the channels
+     * cached as other workspaces', so a rule that names no workspace looks
+     * for its channel in the new default first (updateSlackOrganization),
+     * never in a cached channel of the workspace OneUptime left.
+     */
+    const storedDefaultId: string = SlackOrganization.textOf(
+      miscData.defaultWorkspaceId,
+    );
+
+    const isDefaultToStore: boolean =
+      Boolean(defaultWorkspaceId) && defaultWorkspaceId !== storedDefaultId;
+
+    try {
+      await WorkspaceProjectAuthTokenService.updateSlackOrganization({
+        projectId: data.projectId,
+        workspaceProjectId: data.projectAuth.workspaceProjectId || "",
+        workspaces: workspaces,
+        workspacesReadAt: readAt,
+        removedWorkspaces: removedWorkspaces,
+        ...(isDefaultToStore ? { defaultWorkspaceId: defaultWorkspaceId } : {}),
+      });
+    } catch (err) {
+      logger.debug(
+        "Could not keep the workspaces of an organization's Slack installation.",
+        { projectId: data.projectId.toString() },
+      );
+      logger.debug(err);
+    }
+
     return {
       ...organization,
       workspaces: SlackOrganization.orderWorkspaces({
@@ -298,7 +391,164 @@ export default class SlackOrganization {
       }),
       defaultWorkspaceId: defaultWorkspaceId,
       workspacesReadAt: readAt,
+      removedWorkspaces: removedWorkspaces,
     };
+  }
+
+  /*
+   * Slack telling OneUptime's installation for a whole organization that an
+   * admin added it to some of the organization's workspaces
+   * (team_access_granted) or removed it from them (team_access_revoked):
+   * each project connected to the organization - stored under its id -
+   * reads its workspaces again at once (getOfConnection, refresh), rather
+   * than when they are next needed. A default OneUptime was removed from
+   * moves to the first workspace left by name. A project connected to one
+   * workspace of the organization lists no workspaces, and is left alone,
+   * as is every other organization's. Never throws. The projects read again.
+   */
+  @CaptureSpan()
+  public static async refreshOrganization(data: {
+    enterpriseId: string | undefined;
+  }): Promise<Array<ObjectID>> {
+    const enterpriseId: string = SlackOrganization.textOf(data.enterpriseId);
+
+    if (!enterpriseId) {
+      return [];
+    }
+
+    let connections: Array<WorkspaceProjectAuthToken> = [];
+
+    try {
+      connections = await WorkspaceProjectAuthTokenService.findBy({
+        query: {
+          workspaceType: WorkspaceType.Slack,
+          workspaceProjectId: enterpriseId,
+        },
+        select: {
+          projectId: true,
+          authToken: true,
+          workspaceProjectId: true,
+          miscData: true,
+        },
+        skip: 0,
+        limit: LIMIT_MAX,
+        props: {
+          isRoot: true,
+        },
+      });
+    } catch (err) {
+      logger.error(
+        "Could not read the projects connected to a Slack Enterprise organization.",
+      );
+      logger.error(err);
+      return [];
+    }
+
+    const refreshed: Array<ObjectID> = [];
+
+    for (const connection of connections) {
+      if (
+        !connection.projectId ||
+        !SlackOrganization.isOrganization(connection.miscData)
+      ) {
+        continue;
+      }
+
+      await SlackOrganization.getOfConnection({
+        projectId: connection.projectId,
+        projectAuth: connection,
+        refresh: true,
+      });
+
+      refreshed.push(connection.projectId);
+    }
+
+    return refreshed;
+  }
+
+  /*
+   * The workspaces OneUptime is no longer added to, once Slack lists
+   * `listedNow`: those it listed before and not now, the latest first, then
+   * those removed before - each once, by the name it had, none listed now,
+   * at most MAX_REMOVED_WORKSPACES of them.
+   */
+  public static getRemovedWorkspaces(data: {
+    listedBefore: Array<SlackOrganizationWorkspace>;
+    removedBefore: Array<SlackOrganizationWorkspace>;
+    listedNow: Array<SlackOrganizationWorkspace>;
+  }): Array<SlackOrganizationWorkspace> {
+    const removed: Array<SlackOrganizationWorkspace> = [];
+
+    for (const workspace of [...data.listedBefore, ...data.removedBefore]) {
+      const isListedNow: boolean = data.listedNow.some(
+        (listed: SlackOrganizationWorkspace): boolean => {
+          return listed.id === workspace.id;
+        },
+      );
+
+      const isKept: boolean = removed.some(
+        (kept: SlackOrganizationWorkspace): boolean => {
+          return kept.id === workspace.id;
+        },
+      );
+
+      if (!workspace.id || isListedNow || isKept) {
+        continue;
+      }
+
+      removed.push({ id: workspace.id, name: workspace.name || workspace.id });
+    }
+
+    return removed.slice(0, SlackOrganization.MAX_REMOVED_WORKSPACES);
+  }
+
+  /*
+   * Whether OneUptime is added to a workspace of the organization, as Slack
+   * listed them last: a workspace it does not list is one OneUptime was
+   * removed from, or never added to. Before Slack has listed any, it cannot
+   * be told: taken as added, and Slack says otherwise when asked.
+   */
+  public static isWorkspaceAdded(data: {
+    organization: SlackOrganizationConnection;
+    teamId: string;
+  }): boolean {
+    if (!data.organization.workspacesReadAt) {
+      return true;
+    }
+
+    return data.organization.workspaces.some(
+      (workspace: SlackOrganizationWorkspace): boolean => {
+        return workspace.id === data.teamId;
+      },
+    );
+  }
+
+  /*
+   * What a rule picking a workspace OneUptime is no longer added to is
+   * told, in Notification Logs, on its card and when it is tested. It does
+   * not fall back to another workspace: the workspace decides who reads
+   * the rule's messages.
+   */
+  public static getNotAddedMessage(data: {
+    organization: SlackOrganizationConnection;
+    teamId: string;
+  }): string {
+    const workspaceName: string = SlackOrganization.getWorkspaceName(data);
+    const organizationName: string =
+      data.organization.enterpriseName || "your Slack Enterprise organization";
+
+    return `OneUptime is no longer added to the ${workspaceName} workspace of ${organizationName}. Add it again in Slack's organization settings, or pick another workspace on the rule.`;
+  }
+
+  // getNotAddedMessage, to throw.
+  public static getNotAddedException(data: {
+    organization: SlackOrganizationConnection;
+    teamId: string;
+  }): SlackWorkspaceNotAddedException {
+    return new SlackWorkspaceNotAddedException({
+      message: SlackOrganization.getNotAddedMessage(data),
+      teamId: data.teamId,
+    });
   }
 
   /*
@@ -659,17 +909,276 @@ export default class SlackOrganization {
     );
   }
 
-  // A workspace's name, by its id; the id when it is not listed.
+  /*
+   * The workspace a channel is in, by its id, as a project's connection to
+   * a whole organization knows it: its channel cache keeps each channel's
+   * workspace (Slack.updateChannelsInCache) - the channels OneUptime created
+   * or looked up for its rules. Undefined for a channel it does not know,
+   * and for a project connected to one workspace.
+   */
+  public static getWorkspaceIdOfKnownChannel(data: {
+    projectAuth: Pick<WorkspaceProjectAuthToken, "miscData"> | null | undefined;
+    channelId: string | undefined;
+  }): string | undefined {
+    const miscData: SlackMiscData | undefined = data.projectAuth?.miscData as
+      | SlackMiscData
+      | undefined;
+
+    const channelId: string = SlackOrganization.textOf(data.channelId);
+
+    if (!channelId || !SlackOrganization.isOrganization(miscData)) {
+      return undefined;
+    }
+
+    for (const entry of Object.values(miscData?.channelCache || {})) {
+      const fields: JSONObject | undefined = SlackOrganization.objectOf(entry);
+      const teamId: string = SlackOrganization.textOf(fields?.["teamId"]);
+
+      if (teamId && SlackOrganization.textOf(fields?.["id"]) === channelId) {
+        return teamId;
+      }
+    }
+
+    return undefined;
+  }
+
+  /*
+   * The workspace "Back to Slack" opens a channel in, once the person who
+   * pressed a button there has connected their Slack account
+   * (SlackAPI.finishConnectRequest). `keptTeamId` is the workspace the press
+   * kept: the channel's when OneUptime knew it then, else the person's own
+   * (user.team_id), which need not be the channel's.
+   *
+   * - A project connected to one workspace: `keptTeamId`, which is the
+   *   channel's. Nothing is asked of Slack.
+   * - A direct message: `keptTeamId`, the person's own workspace.
+   * - A channel the project's channel cache knows: its workspace there
+   *   (getWorkspaceIdOfKnownChannel).
+   * - Any other channel: the workspace Slack names for it, asked once with
+   *   the organization's token and waited for at most `timeoutInMs`
+   *   (askWorkspaceIdsOfChannel, pickWorkspaceOfChannel). Slack refusing,
+   *   answering late, or naming no workspace OneUptime is added to leaves
+   *   `keptTeamId` - as does a connection Slack has listed no workspaces
+   *   of yet, without asking.
+   *
+   * Never throws.
+   */
+  @CaptureSpan()
+  public static async getWorkspaceIdToOpenChannelIn(data: {
+    projectAuth:
+      | Pick<
+          WorkspaceProjectAuthToken,
+          "miscData" | "workspaceProjectId" | "authToken"
+        >
+      | null
+      | undefined;
+    channelId: string | undefined;
+    keptTeamId: string | undefined;
+    timeoutInMs?: number | undefined;
+  }): Promise<string | undefined> {
+    const keptTeamId: string | undefined =
+      SlackOrganization.textOf(data.keptTeamId) || undefined;
+    const channelId: string = SlackOrganization.textOf(data.channelId);
+
+    // The caller waits on this after finishing the press: nothing here may reject.
+    try {
+      const organization: SlackOrganizationConnection | null =
+        SlackOrganization.readConnection(data.projectAuth);
+
+      // Only a channel's id is asked about: a direct message's (D...) is the person's own.
+      if (
+        !organization ||
+        !SLACK_ID_PATTERN.test(channelId) ||
+        channelId.startsWith("D")
+      ) {
+        return keptTeamId;
+      }
+
+      const knownTeamId: string | undefined =
+        SlackOrganization.getWorkspaceIdOfKnownChannel({
+          projectAuth: data.projectAuth,
+          channelId: channelId,
+        });
+
+      if (knownTeamId) {
+        return knownTeamId;
+      }
+
+      const authToken: string = SlackOrganization.textOf(
+        data.projectAuth?.authToken,
+      );
+
+      // Before Slack has listed any workspace, nothing it names could be taken.
+      if (!authToken || organization.workspaces.length === 0) {
+        return keptTeamId;
+      }
+
+      const channelWorkspaceIds: Array<string> =
+        await SlackOrganization.askWorkspaceIdsOfChannel({
+          authToken: authToken,
+          channelId: channelId,
+          timeoutInMs:
+            data.timeoutInMs ??
+            SlackOrganization.CHANNEL_WORKSPACE_TIMEOUT_IN_MS,
+        });
+
+      return (
+        SlackOrganization.pickWorkspaceOfChannel({
+          channelWorkspaceIds: channelWorkspaceIds,
+          addedWorkspaceIds: organization.workspaces.map(
+            (workspace: SlackOrganizationWorkspace): string => {
+              return workspace.id;
+            },
+          ),
+          keptTeamId: keptTeamId,
+        }) || keptTeamId
+      );
+    } catch (err) {
+      logger.debug(
+        `Slack did not say which workspace channel ${channelId} is in (${err instanceof Error ? err.message : "no_answer"}); Back to Slack opens the workspace the press kept.`,
+      );
+      return keptTeamId;
+    }
+  }
+
+  /*
+   * conversations.info, asked with a whole organization's token, which
+   * Slack takes without a team_id: the workspaces the channel is in
+   * (readWorkspaceIdsOfChannel). One try, waited for at most `timeoutInMs`.
+   * Throws an error naming Slack's refusal - channel_not_found for a
+   * private channel OneUptime is not in, team_access_not_granted for a
+   * workspace it is not added to - or no_answer. The error never carries
+   * the token, nor what the request was sent with.
+   */
+  @CaptureSpan()
+  public static async askWorkspaceIdsOfChannel(data: {
+    authToken: string;
+    channelId: string;
+    timeoutInMs: number;
+  }): Promise<Array<string>> {
+    let response: HTTPErrorResponse | HTTPResponse<JSONObject>;
+
+    try {
+      response = await SlackOrganization.answeredWithin({
+        promise: API.post<JSONObject>({
+          url: URL.fromString("https://slack.com/api/conversations.info"),
+          data: { channel: data.channelId },
+          headers: {
+            Authorization: `Bearer ${data.authToken}`,
+            ["Content-Type"]: "application/x-www-form-urlencoded",
+          },
+          options: {
+            timeout: data.timeoutInMs,
+          },
+        }),
+        timeoutInMs: data.timeoutInMs,
+      });
+    } catch {
+      throw new BadRequestException("Error from Slack no_answer");
+    }
+
+    if (response instanceof HTTPErrorResponse) {
+      throw new BadRequestException(
+        `Error from Slack http_${response.statusCode}`,
+      );
+    }
+
+    const json: JSONObject = (response.jsonData || {}) as JSONObject;
+
+    if (json["ok"] !== true) {
+      throw new BadRequestException(
+        "Error from Slack " +
+          (SlackOrganization.textOf(json["error"]) || "unknown_error"),
+      );
+    }
+
+    return SlackOrganization.readWorkspaceIdsOfChannel(json["channel"]);
+  }
+
+  /*
+   * The workspaces a channel object of conversations.info names, each once,
+   * in this order:
+   *
+   * - context_team_id: "the ID of the workspace the conversation is
+   *   within";
+   * - conversation_host_id: the host of a shared channel, a workspace or the
+   *   organization itself (E...);
+   * - internal_team_ids: the organization's workspaces a shared channel is
+   *   in;
+   * - shared_team_ids: the workspaces it is shared with - for a channel of
+   *   one workspace, that one.
+   *
+   * Only values shaped like Slack's ids. None for a direct message, which
+   * names no workspace.
+   */
+  public static readWorkspaceIdsOfChannel(channel: unknown): Array<string> {
+    const fields: JSONObject | undefined = SlackOrganization.objectOf(channel);
+
+    if (!fields) {
+      return [];
+    }
+
+    const listOf: (value: unknown) => Array<unknown> = (
+      value: unknown,
+    ): Array<unknown> => {
+      return Array.isArray(value) ? (value as Array<unknown>) : [];
+    };
+
+    const ids: Array<string> = [];
+
+    for (const value of [
+      fields["context_team_id"],
+      fields["conversation_host_id"],
+      ...listOf(fields["internal_team_ids"]),
+      ...listOf(fields["shared_team_ids"]),
+    ]) {
+      const id: string = SlackOrganization.textOf(value);
+
+      if (SLACK_ID_PATTERN.test(id) && !ids.includes(id)) {
+        ids.push(id);
+      }
+    }
+
+    return ids;
+  }
+
+  /*
+   * Of the workspaces Slack names for a channel, the one "Back to Slack"
+   * opens it in: the workspace the press kept when the channel is in it too
+   * - the person's own, for a channel shared between the organization's
+   * workspaces - else the first that OneUptime is added to. Undefined when
+   * Slack names none OneUptime is added to: Slack's answer moves the link to
+   * those only.
+   */
+  public static pickWorkspaceOfChannel(data: {
+    channelWorkspaceIds: Array<string>;
+    addedWorkspaceIds: Array<string>;
+    keptTeamId: string | undefined;
+  }): string | undefined {
+    if (data.keptTeamId && data.channelWorkspaceIds.includes(data.keptTeamId)) {
+      return data.keptTeamId;
+    }
+
+    return data.channelWorkspaceIds.find((id: string): boolean => {
+      return data.addedWorkspaceIds.includes(id);
+    });
+  }
+
+  /*
+   * A workspace's name, by its id: as listed, else as it was named when
+   * OneUptime was removed from it - the id when it is neither.
+   */
   public static getWorkspaceName(data: {
     organization: SlackOrganizationConnection;
     teamId: string;
   }): string {
     return (
-      data.organization.workspaces.find(
-        (workspace: SlackOrganizationWorkspace): boolean => {
-          return workspace.id === data.teamId;
-        },
-      )?.name || data.teamId
+      [
+        ...data.organization.workspaces,
+        ...(data.organization.removedWorkspaces || []),
+      ].find((workspace: SlackOrganizationWorkspace): boolean => {
+        return workspace.id === data.teamId;
+      })?.name || data.teamId
     );
   }
 
@@ -766,6 +1275,36 @@ export default class SlackOrganization {
     }
 
     return workspaces;
+  }
+
+  /*
+   * What `promise` settles with, or a rejection once `timeoutInMs` has
+   * passed without it - whatever the request under it still waits for.
+   */
+  private static answeredWithin<T>(data: {
+    promise: Promise<T>;
+    timeoutInMs: number;
+  }): Promise<T> {
+    return new Promise<T>(
+      (resolve: (value: T) => void, reject: (reason: Error) => void) => {
+        const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
+          reject(new Error("no_answer"));
+        }, data.timeoutInMs);
+
+        timer.unref?.();
+
+        data.promise.then(
+          (value: T) => {
+            clearTimeout(timer);
+            resolve(value);
+          },
+          (err: unknown) => {
+            clearTimeout(timer);
+            reject(err instanceof Error ? err : new Error("no_answer"));
+          },
+        );
+      },
+    );
   }
 
   private static objectOf(value: unknown): JSONObject | undefined {

@@ -16,8 +16,9 @@ import {
 } from "Common/Utils/Rum/UserFlow";
 import Icon from "Common/UI/Components/Icon/Icon";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { formatInline, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { getLineDirection } from "Common/UI/Utils/LineDirection";
 import AppLink from "../AppLink/AppLink";
 import { RUM_USER_FLOW_METRIC_DESCRIPTIONS } from "../MetricDescriptions/RumMetricDescriptions";
 import { buildReplayLinkRoute } from "../SessionReplay/ReplayLinkRoute";
@@ -117,7 +118,13 @@ function Step(props: {
         ) : (
           <></>
         )}
-        <span className="truncate">{step.page}</span>
+        {/* A path reads from the left on any page: "/home", not "home/". */}
+        <span
+          className="truncate"
+          dir={getLineDirection(step.page, translator.language)}
+        >
+          {step.page}
+        </span>
         {step.hadError ? (
           <span
             className="h-1.5 w-1.5 flex-none rounded-full bg-rose-500"
@@ -188,7 +195,7 @@ function Journey(props: {
             className="text-xs text-gray-500"
             data-testid="user-flow-journey-facts"
           >
-            {facts.join(" · ")}
+            {formatInline(facts, translator)}
           </span>
           {journey.errorCount > 0 ? (
             <span
@@ -256,28 +263,42 @@ function Journey(props: {
         })}
       </ol>
 
+      {/*
+       * Set apart as the reader's language does (formatInline): a middle dot
+       * beside a Persian count read as its zero, so "۷ صفحه · ۱ بازگشت" said
+       * ten returns.
+       */}
       <p
         className="mt-1.5 text-xs text-gray-500"
         data-testid="user-flow-journey-summary"
       >
-        {steps.length === 1 && !journey.isTruncated
-          ? translator.translateText("Left without navigating")
-          : translator.translatePlural(
-              { one: "{{count}} page", other: "{{count}} pages" },
-              steps.length,
-            )}
-        {revisits > 0
-          ? ` · ${translator.translatePlural(
-              {
-                one: "{{count}} return to an earlier page",
-                other: "{{count}} returns to an earlier page",
-              },
-              revisits,
-            )}`
-          : ""}
-        {journey.isTruncated
-          ? ` · ${translator.translateText("the session went on past these pages")}`
-          : ""}
+        {formatInline(
+          [
+            steps.length === 1 && !journey.isTruncated
+              ? translator.translateText("Left without navigating") || ""
+              : translator.translatePlural(
+                  { one: "{{count}} page", other: "{{count}} pages" },
+                  steps.length,
+                ),
+            revisits > 0
+              ? translator.translatePlural(
+                  {
+                    one: "{{count}} return to an earlier page",
+                    other: "{{count}} returns to an earlier page",
+                  },
+                  revisits,
+                )
+              : "",
+            journey.isTruncated
+              ? translator.translateText(
+                  "the session went on past these pages",
+                ) || ""
+              : "",
+          ].filter((part: string): boolean => {
+            return Boolean(part);
+          }),
+          translator,
+        )}
       </p>
     </li>
   );

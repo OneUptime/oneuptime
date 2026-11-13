@@ -10,7 +10,9 @@ import {
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../../../Types/Date";
 import ObjectID from "../../../../Types/ObjectID";
+import { getRecordAiTokenLimitMessage } from "../../../../Types/AI/RecordAiTokenLimit";
 import AIRunService from "../../../Services/AIRunService";
+import { AutonomousBudgetStatus } from "../../../Services/AIService";
 import AlertService from "../../../Services/AlertService";
 import AlertStateService from "../../../Services/AlertStateService";
 import IncidentService from "../../../Services/IncidentService";
@@ -149,13 +151,15 @@ const START_NOW_MESSAGES: Partial<Record<StartNowProblem, string>> = {
   ai_disabled:
     "AI is turned off for this project (Project Settings → AI → AI Features).",
   provider_missing:
-    "This project has no AI provider OneUptime AI can use (Project Settings → AI → LLM Providers).",
+    "This project has no LLM provider OneUptime AI can use (Project Settings → AI → LLM Providers).",
   insufficient_ai_balance:
     "This project is out of AI credits (Project Settings → AI → AI Credits).",
   project_daily_limit_reached:
     "This project has reached its own daily AI limit. It resets at midnight UTC.",
-  daily_budget_exhausted:
-    "The daily AI token limit for this kind of record is reached. It resets at midnight UTC.",
+  /*
+   * daily_budget_exhausted is the record's own limit, worded by its kind
+   * and whether a limit of 0 pauses it (getRecordAiTokenLimitMessage).
+   */
 };
 
 const START_NOW_FALLBACK_MESSAGE: string =
@@ -499,6 +503,7 @@ export default class InvestigationRuleWait {
       }
 
       let notEnqueuedCode: InvestigationNotStartedCode | null = null;
+      let notEnqueuedBudget: AutonomousBudgetStatus | undefined = undefined;
 
       const runId: ObjectID | null = await AIInvestigationQueue.enqueue({
         projectId: subject.projectId,
@@ -512,8 +517,10 @@ export default class InvestigationRuleWait {
         // Told to the person, not recorded: nothing was decided for them.
         onNotEnqueued: async (
           code: InvestigationNotStartedCode,
+          budget?: AutonomousBudgetStatus,
         ): Promise<void> => {
           notEnqueuedCode = code;
+          notEnqueuedBudget = budget;
         },
         admitInsideSubjectLock: async (): Promise<boolean> => {
           return !(await InvestigationRuleWait.hasInvestigationRun(subject));
@@ -521,7 +528,10 @@ export default class InvestigationRuleWait {
       });
 
       if (!runId) {
-        return startNowProblem(notEnqueuedCode || "already_investigated");
+        return startNowProblem(notEnqueuedCode || "already_investigated", {
+          lane: subject.lane,
+          budget: notEnqueuedBudget,
+        });
       }
 
       // No longer waiting; the job finds nothing left to do if it got here first.
@@ -827,11 +837,28 @@ export default class InvestigationRuleWait {
   }
 }
 
-function startNowProblem(problem: StartNowProblem): StartNowResult {
+/*
+ * The record's own daily AI token limit says which limit, and whether it
+ * pauses the work (a limit of 0) or lifts at midnight UTC (#7157): the
+ * lane and the budget the queue read tell which.
+ */
+function startNowProblem(
+  problem: StartNowProblem,
+  tokenLimit?: {
+    lane: RuleWaitLane;
+    budget?: AutonomousBudgetStatus | undefined;
+  },
+): StartNowResult {
   return {
     isStarted: false,
     problem,
-    message: START_NOW_MESSAGES[problem] || START_NOW_FALLBACK_MESSAGE,
+    message:
+      problem === "daily_budget_exhausted" && tokenLimit
+        ? getRecordAiTokenLimitMessage(
+            tokenLimit.lane === "Alert" ? "alert" : "incident",
+            tokenLimit.budget,
+          )
+        : START_NOW_MESSAGES[problem] || START_NOW_FALLBACK_MESSAGE,
   };
 }
 

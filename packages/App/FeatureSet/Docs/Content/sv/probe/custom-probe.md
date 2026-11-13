@@ -1,6 +1,6 @@
 # Anpassade probes
 
-En anpassad sond är en liten agent som du kör i ditt eget nätverk. Den kontrollerar de övervakare du lägger till den i, till exempel interna webbplatser, API:er och servrar bakom din brandvägg, och skickar resultaten till OneUptime. Den öppnar bara utgående anslutningar över HTTPS, så ingenting i ditt nätverk behöver ta emot anslutningar från internet.
+En anpassad sond är en liten agent som du kör i ditt eget nätverk. Den kontrollerar de övervakare du lägger till den i, till exempel interna webbplatser, API:er och servrar bakom din brandvägg, och skickar resultaten till OneUptime. Den öppnar bara utgående anslutningar över HTTPS, så ingenting i ditt nätverk behöver ta emot anslutningar från internet. För att välja mellan en sond, en agent, en collector och en Runner, se [Vilken ska jag använda?](/docs/introduction/which-one#sond-agent-collector-eller-runner).
 
 :::cards
 - [Så fungerar det](#så-fungerar-det): Vad sonden gör och hur OneUptime vet att den körs.
@@ -288,6 +288,7 @@ Sonden läser sina inställningar från sin miljö när den startar: ändra en o
 | `PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED` | `false` | Sätt till `true` för att köra Chromium i syntetiska övervakare inuti sin egen sandlåda. Slå bara på den när sondens container körs med en seccomp-profil som tillåter sandlådan, till exempel Playwrights: utan en kan Chromium inte starta. Så länge den är avslagen loggar sonden en varning vid start. |
 | `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | Tidsgräns för Custom Code-övervakares skript, i millisekunder. |
 | `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` | `false` | Sätt till `true` för att Website-, API-, External Status Page- och Custom Code-övervakare på den här sonden ska få nå privata adresser. Se [Åtkomst till privat nätverk](/docs/self-hosted/private-network-access). |
+| `PROBE_CERTIFICATE_REVOCATION_CHECK_ENABLED` | `true` | SSL Certificate-, Website- och API-övervakare på den här sonden frågar ett certifikats utfärdare om den har återkallat certifikatet, som webbläsare gör. Sätt till `false` för att sluta fråga, till exempel på en sond utan internetåtkomst. En utfärdare som sonden inte når räknas aldrig som en återkallelse: sonden väntar några sekunder på varje responder den inte når, ungefär en gång var 5:e minut. Se [Övervakning av SSL-certifikat](/docs/monitor/ssl-certificate-monitor). |
 | `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` | `25` | Hur många nätverksenheter sonden pollar samtidigt. Höj den för en sond som pollar många enheter. |
 
 Gränserna som en syntetisk övervakare körs inom (hur många samtidigt, deras minne och deras disk) finns på sidan [Syntetisk övervakning](/docs/monitor/synthetic-monitor).

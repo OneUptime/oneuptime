@@ -1,6 +1,6 @@
 # Visión general de los incidentes
 
-Un incidente es el registro con el que trabaja tu equipo cuando algo falla: qué está afectado, qué tan grave es, en qué punto está la respuesta, de quién es y todo lo que se anota por el camino. Declarar uno avisa a la rotación de guardia adecuada, informa a sus propietarios y —si así lo quieres— publica la interrupción en tu página de estado, para que los clientes sepan que ya estás en ello.
+Un incidente es el registro con el que trabaja tu equipo cuando algo falla: qué está afectado, qué tan grave es, en qué punto está la respuesta, de quién es y todo lo que se anota por el camino. Declarar uno avisa a la rotación de guardia adecuada, informa a sus propietarios y —si así lo quieres— publica la interrupción en tu página de estado, para que los clientes sepan que ya estás en ello. ¿No sabes si un problema es un incidente o una alerta? [¿Cuál uso?](/docs/introduction/which-one#incidente-alerta-u-otro-tipo-de-problema) los compara lado a lado.
 
 :::cards
 - [Declarar un incidente](/docs/incidents/declaring-incidents): A mano, desde una plantilla, desde un monitor, por la API o mediante un formulario.
@@ -86,7 +86,7 @@ Después puedes escribir un [post mortem](/docs/incidents/postmortems) y, si qui
 
 ## Términos clave
 
-Un puñado de palabras aparece en todas las demás páginas de esta sección. Aclara estas primero.
+Un puñado de palabras aparece en todas las demás páginas de esta sección. Aclara estas primero. Las palabras que se usan en todo OneUptime están en el [Glosario](/docs/introduction/glossary).
 
 | Término                     | Qué significa                                                                                                                                       |
 | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -162,7 +162,7 @@ Abre **Incidentes** desde el menú **Productos** de la barra superior. Su menú 
 | **IA**                   | **Análisis**, **Registros**, **Ajustes**: lo que OneUptime AI aprendió de tus incidentes y todo lo que hizo por ellos, y lo que puede hacer por su cuenta, con las reglas de qué incidentes investiga y corrige. Consulta [AI SRE](/docs/ai/ai-sre). |
 | **Espacio de trabajo**   | Los espacios de chat que este proyecto ha conectado: **Slack**, **Microsoft Teams** y **Mattermost**, cada uno con sus reglas de notificación para incidentes. Si no hay ninguno conectado, contiene **Conectar un espacio de trabajo**, una página que muestra los tres y cómo conectarlos. |
 | **Reglas**               | Los motores de reglas: **Reglas de agrupación**, **Reglas de guardia**, **Reglas del propietario**, **Reglas de runbook**, **Reglas de privacidad**, **Reglas de etiquetas**, **Reglas de SLA**, **Reglas de recordatorio**. |
-| **Ajustes**              | **Estado del incidente**, **Gravedad del incidente**, **Plantillas de incidente**, **Plantillas de notas**, **Aprobación de notas públicas**, **Plantillas de post mortem**, **Estados de post mortem**, **Campos personalizados**, **Roles de incidente**, **Mediciones**, **Alertas vinculadas**, **Pertenencia a episodios**, **Numeración**. |
+| **Ajustes**              | **Estado del incidente**, **Gravedad del incidente**, **Plantillas de incidente**, **Plantillas de notas**, **Aprobación de notas públicas**, **Plantillas de post mortem**, **Estados de post mortem**, **Campos personalizados**, **Roles de incidente**, **Mediciones**, **Alertas vinculadas**, **Pertenencia a episodios**, **Numeración**, **Retención de datos**. |
 
 **Vista general** y **Episodios** están abiertas; **IA**, **Espacio de trabajo**, **Reglas**, **Ajustes** y **Desarrolladores** están plegadas por defecto, para que el menú se abra con las listas que usas cada día. Haz clic en el título de una sección para desplegarla y encontrar las páginas a las que se refiere el resto de esta documentación; una sección también se abre sola siempre que estás en una de sus páginas. La configuración de incidentes no está en los ajustes del proyecto; vive toda aquí.
 

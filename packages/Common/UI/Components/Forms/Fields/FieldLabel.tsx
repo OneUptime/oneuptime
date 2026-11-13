@@ -1,3 +1,5 @@
+import GlossaryTerm from "../../../../Types/Docs/GlossaryTerm";
+import DefinedTerm from "../../Glossary/LazyDefinedTerm";
 import readAsWritten from "../../IsolatedText/ReadAsWritten";
 import useTranslator from "../../../Utils/UseTranslator";
 import { Translator } from "../../../Utils/TranslateTemplate";
@@ -33,6 +35,13 @@ export interface ComponentProps {
    * name the field is read out by.
    */
   tooltip?: string | undefined;
+  /*
+   * The Glossary term the title names: the title is drawn as a defined
+   * term (Glossary/DefinedTerm), and hovering, focusing or tapping it shows
+   * what the word means. For the field where a page first uses a word
+   * people trip on ("Criteria", "Probes"), not every field that uses it.
+   */
+  glossaryTerm?: GlossaryTerm | undefined;
   isHeading?: boolean | undefined;
   hideOptionalLabel?: boolean | undefined;
   className?: string | undefined;
@@ -86,7 +95,11 @@ const FieldLabelElement: FunctionComponent<ComponentProps> = (
       }
     >
       <span>
-        {drawnTitle}{" "}
+        {props.glossaryTerm ? (
+          <DefinedTerm term={props.glossaryTerm}>{drawnTitle}</DefinedTerm>
+        ) : (
+          drawnTitle
+        )}{" "}
         <span className="text-gray-400 text-xs">
           {showsOptionalMark
             ? translateString("(Optional)") ?? "(Optional)"

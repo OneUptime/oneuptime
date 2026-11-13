@@ -1,6 +1,6 @@
 # Incidents Overview
 
-An incident is the record your team works from when something breaks: what is affected, how bad it is, where the response stands, who owns it, and everything written down along the way. Declaring one pages the right on-call rotation, tells its owners and — if you want it to — puts the outage on your status page, so customers know you are on it.
+An incident is the record your team works from when something breaks: what is affected, how bad it is, where the response stands, who owns it, and everything written down along the way. Declaring one pages the right on-call rotation, tells its owners and — if you want it to — puts the outage on your status page, so customers know you are on it. Not sure whether a problem is an incident or an alert? [Which One Do I Use?](/docs/introduction/which-one#incident-alert-or-another-kind-of-problem) puts them side by side.
 
 :::cards
 - [Declaring an Incident](/docs/incidents/declaring-incidents): By hand, from a template, from a monitor, over the API or through a form.
@@ -86,7 +86,7 @@ After that you can write a [postmortem](/docs/incidents/postmortems) and, option
 
 ## Key terms
 
-A handful of words show up on every other page in this section. Get these straight first.
+A handful of words show up on every other page in this section. Get these straight first. The words used across OneUptime are in the [Glossary](/docs/introduction/glossary).
 
 | Term                   | What it means                                                                                                                                       |
 | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -162,7 +162,7 @@ Open **Incidents** from the **Products** menu in the top bar. Its side menu is o
 | **AI**        | **Insights**, **Logs**, **Settings**: what OneUptime AI learned from your incidents and everything it did for them, and what it may do on its own — with the rules for which incidents it investigates and fixes. See [AI SRE](/docs/ai/ai-sre). |
 | **Workspace** | The chat workspaces this project has connected: **Slack**, **Microsoft Teams** and **Mattermost**, each with its notification rules for incidents. With none connected, it holds **Connect a workspace**, a page showing all three and how to connect them. |
 | **Rules**     | The rule engines: **Grouping Rules**, **On-Call Rules**, **Owner Rules**, **Runbook Rules**, **Privacy Rules**, **Label Rules**, **SLA Rules**, **Reminder Rules**. |
-| **Settings**  | **Incident State**, **Incident Severity**, **Incident Templates**, **Note Templates**, **Public Note Approval**, **Postmortem Templates**, **Postmortem Statuses**, **Custom Fields**, **Incident Roles**, **Measurements**, **Linked Alerts**, **Episode Membership**, **Numbering**. |
+| **Settings**  | **Incident State**, **Incident Severity**, **Incident Templates**, **Note Templates**, **Public Note Approval**, **Postmortem Templates**, **Postmortem Statuses**, **Custom Fields**, **Incident Roles**, **Measurements**, **Linked Alerts**, **Episode Membership**, **Numbering**, **Data Retention**. |
 
 **Overview** and **Episodes** are open; **AI**, **Workspace**, **Rules**, **Settings** and **Developer** are collapsed by default, so the menu opens on the lists you use every day. Click a section's title to expand it and find the pages the rest of these docs refer to; a section also opens by itself whenever you are on one of its pages. Incident configuration is not under Project Settings; it all lives here.
 

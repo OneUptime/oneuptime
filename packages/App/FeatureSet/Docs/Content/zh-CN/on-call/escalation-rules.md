@@ -2,6 +2,9 @@
 
 值班策略按级别呼叫人员。每条升级规则就是一个级别：呼叫谁，以及在呼叫下一级之前等待有人确认多长时间。策略的规则按顺序列在其 **升级规则** 页面上。
 
+> [!TIP]
+> 初次使用？请先按照指南操作：[通过电话、短信或推送接收呼叫](/docs/guides/paging)。
+
 ```mermaid title="值班策略逐级呼叫，直到有人确认"
 flowchart TB
     trigger["事件或告警"] --> level1["Level 1 呼叫"]
@@ -163,6 +166,8 @@ OneUptime 发给你的其他短信，例如你作为所有者的事件发生变�
 - 项目中该渠道已关闭，以及谁可以开启它。
 
 项目所有者会就此收到一封电子邮件，直到余额充值或渠道重新开启。
+
+未能到达 OneUptime 通知服务的呼叫会显示 `Could not reach the Notification service to send this (ECONNREFUSED).` ，括号里是网络错误的代码。发送始终没有完成的呼叫（例如发送过程中服务器重启）会显示 `Sending did not finish within 15 minutes, so this notification may not have been sent.` 。如果发送最终完成，其结果会替换这条消息。
 
 在 OneUptime Cloud 上，每条短信、每次通话、每条 WhatsApp 和 Telegram 消息都从 **项目设置 > 通知 > 通知设置** 上的项目余额中支付：服务商接收消息时，确切费用从余额中扣除，无论同时发出多少条消息。
 

@@ -1,6 +1,6 @@
 # Panoramica degli SLO
 
-Un obiettivo del livello di servizio (SLO) è un obiettivo di affidabilità per ciò che monitori, come «disponibile il 99,9% del tempo su 30 giorni mobili». OneUptime misura ogni SLO rispetto al suo obiettivo ogni 5 minuti: invece di «funziona in questo momento?» puoi rispondere a «siamo stati abbastanza affidabili, su una finestra che conta per i nostri utenti, e quanto margine di errore ci resta?».
+Un obiettivo del livello di servizio (SLO) è un obiettivo di affidabilità per ciò che monitori, come «disponibile il 99,9% del tempo su 30 giorni mobili». OneUptime misura ogni SLO rispetto al suo obiettivo ogni 5 minuti: invece di «funziona in questo momento?» puoi rispondere a «siamo stati abbastanza affidabili, su una finestra che conta per i nostri utenti, e quanto margine di errore ci resta?». Il [Glossario](/docs/introduction/glossary#slo) mette gli SLO accanto alle altre parole che OneUptime usa.
 
 :::cards
 - [Creare uno SLO](#creare-uno-slo): Un nome e un obiettivo. Tutto il resto parte da un valore predefinito.
@@ -11,7 +11,7 @@ Un obiettivo del livello di servizio (SLO) è un obiettivo di affidabilità per 
 
 ## Come funziona
 
-Uno SLO legge le cronologie di stato dei monitor collegati: gli stessi dati che mostrano le tue pagine di stato. Da queste OneUptime calcola quanta parte della finestra di conformità è stata tempo buono, quanto resta del budget di errore e con che velocità si consuma.
+Uno SLO legge le cronologie di stato dei monitor collegati: gli stessi dati che mostrano le tue pagine di stato. Da queste OneUptime calcola quanta parte della finestra di conformità è stata tempo buono, quanto resta del budget di errore e con che velocità si consuma. Il tempo con il monitoraggio di un monitor disattivato è escluso: niente controlla il monitor in quel periodo, quindi quel tempo non consuma il budget di errore né conta come tempo buono.
 
 ```mermaid title="Dai controlli dei monitor allo stato di uno SLO"
 flowchart TB
@@ -25,6 +25,8 @@ flowchart TB
 ```
 
 ## Concetti chiave
+
+Le parole usate in tutto OneUptime sono nel [Glossario](/docs/introduction/glossary).
 
 | Termine | Significato |
 | --- | --- |
@@ -176,7 +178,7 @@ La **Panoramica** risponde a «siamo dentro il budget?», dall'alto in basso:
 - **Il riepilogo**: lo stato, una frase su cosa significa e la descrizione. Accanto ci sono **Aggiorna** e quando lo SLO è stato valutato l'ultima volta. Sotto ci sono l'obiettivo, la **Finestra di conformità** (con un indicatore di riempimento mentre una giovane finestra mobile si riempie: vedi [SLO giovani e l'indicatore di riempimento della finestra](#slo-giovani-e-lindicatore-di-riempimento-della-finestra)), il numero di monitor e i proprietari, con **Aggiungi proprietari** per aggiungerne uno direttamente lì.
 - **I numeri principali**:
   - **SLI**: la quota di tempo buono nella finestra, e quanto è sopra o sotto l'obiettivo.
-  - **Budget di errore rimasto**: una percentuale, una durata come "12m 30s left of 43m 12s" e una barra con un segno alla soglia a rischio. Quando il budget è superato mostra **Budget superato** e di quanto.
+  - **Budget di errore rimasto**: una percentuale, una durata come "12 min 30 s rimasti su 43 min 12 s" e una barra con un segno alla soglia a rischio. Quando il budget è superato mostra **Budget superato** e di quanto.
   - **Tasso di consumo**: con che velocità si spende il budget negli ultimi 60 minuti, il periodo usato dalla regola di consumo rapido predefinita. Diventa ambra sopra 1× e rossa, con **Soglia della regola raggiunta**, alla soglia più bassa delle regole del tasso di consumo abilitate dello SLO il cui periodo è di 6 ore o meno. Un'ora dice poco di una regola il cui periodo si misura in giorni, come **Slow leak**, quindi il confronto con una regola del genere non si fa.
   - **Autonomia del budget**: quanto dura il budget a questo ritmo. Vedi [Budget di errore](/docs/slo/error-budget#autonomia-del-budget).
 - **Burn-down del budget di errore**: il budget rimanente lungo la finestra attuale. Vedi [Budget di errore](/docs/slo/error-budget#consumo-del-budget-di-errore).
@@ -193,7 +195,7 @@ La pagina **Impostazioni** raccoglie come misura uno SLO, una scheda per ciascun
 
 | Scheda | Cosa cambi | Da sapere |
 | --- | --- | --- |
-| **Obiettivo** | **Obiettivo (%)** e **Soglia a rischio (%)**, con **Modifica l'obiettivo**. | Mostra l'inattività che l'obiettivo consente, per esempio «43m 12s di inattività per finestra di 30 giorni». |
+| **Obiettivo** | **Obiettivo (%)** e **Soglia a rischio (%)**, con **Modifica l'obiettivo**. | Mostra l'inattività che l'obiettivo consente, per esempio «43 min 12 s di downtime per finestra di 30 giorni». |
 | **Periodo di conformità** | **Tipo di finestra**, **Finestra (giorni)** e **Fuso orario**, con **Modifica il periodo**. | Le regole del tasso di consumo mantengono le loro soglie quando cambia la finestra, quindi rivedile dopo. |
 | **Calcolo del downtime** | **Modalità multi-monitor** e **Stati del monitor per i tempi di inattività**, con **Modifica il calcolo del downtime**. | Senza stati si contano tutti gli stati non operativi, compresi quelli aggiunti dopo. |
 | **Valutazione** | L'interruttore **Valuta questo SLO**, che salva appena lo sposti. | Disattivarlo chiede conferma, perché risolve anche gli avvisi e gli incidenti di tasso di consumo aperti dello SLO. |
@@ -238,7 +240,7 @@ Anche il menu laterale di un monitor ha una pagina **SLOs**: gli SLO che misuran
 
 Uno SLO con finestra mobile più giovane della sua finestra si misura sui dati che esistono finora: uno SLO di 30 giorni creato ieri ha un giorno di dati. Il suo budget di errore parte piccolo e cresce man mano che la finestra si riempie, quindi i suoi primi numeri si muovono più di quanto faranno dopo.
 
-Finché è così, la **Panoramica** lo dice: il riepilogo mostra un indicatore **Window 23% full** (**Finestra piena per meno dell'1%** il primo giorno), e il riquadro **Budget di errore rimasto** lo ripete sotto il suo numero. Entrambi spariscono quando la finestra è piena. Gli SLO a mese di calendario non li mostrano mai, perché il loro budget copre tutto il mese fin dal primo giorno, e nemmeno gli SLO in modalità **Media dei secondi dei monitor**, il cui budget si conta su tutti i monitor.
+Finché è così, la **Panoramica** lo dice: il riepilogo mostra un indicatore **Finestra piena al 23%** (**Finestra piena per meno dell'1%** il primo giorno), e il riquadro **Budget di errore rimasto** lo ripete sotto il suo numero. Entrambi spariscono quando la finestra è piena. Gli SLO a mese di calendario non li mostrano mai, perché il loro budget copre tutto il mese fin dal primo giorno, e nemmeno gli SLO in modalità **Media dei secondi dei monitor**, il cui budget si conta su tutti i monitor.
 
 ## Risoluzione dei problemi
 

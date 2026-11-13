@@ -2,6 +2,8 @@
 
 本指南带你在大约十五分钟内，从一个新账户走到一套可用的配置：一个每五分钟检查一次网站的监视器，一个在网站宕机时呼叫你的值班策略，以及一个告知客户的状态页面。它按照项目首页上的 **欢迎使用 OneUptime 👋** 清单进行。
 
+从其他工具迁移过来？请先 [导入现有配置](/docs/introduction/getting-started#从其他工具迁移)：你的监视器、值班计划和状态页面都会随你一起迁移。
+
 ```mermaid title="本指南中你要设置的内容"
 flowchart TB
     monitor["网站监视器"] -->|"网站宕机"| incident["事件"]
@@ -32,7 +34,7 @@ OneUptime 中的一切都位于项目中：你的监视器、事件、值班策�
 
 ### 创建它
 
-点击 **创建项目**。项目首页随即打开，顶部是 **欢迎使用 OneUptime 👋** 清单。
+点击 **创建项目**。项目首页随即打开，顶部是 **欢迎使用 OneUptime 👋** 清单。 它会先问 **您想先做什么？**：勾选 **在我的网站或 API 宕机时知道**、**出现故障时呼叫合适的人** 和 **用状态页面告知我的客户**，然后点击 **继续**。
 :::
 
 ## 监控你的网站
@@ -80,6 +82,8 @@ OneUptime 中的一切都位于项目中：你的监视器、事件、值班策�
 
 关于更多级别、轮换以及每个级别等待多久，请参阅 [升级规则](/docs/on-call/escalation-rules) 和 [值班计划](/docs/on-call/schedules)。
 
+要通过短信、电话和推送接收呼叫，在无人响应时呼叫下一个人，并用一次测试呼叫加以验证，请按照 [通过电话、短信或推送接收呼叫](/docs/guides/paging) 操作。
+
 ## 发布状态页面
 
 :::steps
@@ -97,6 +101,8 @@ OneUptime 中的一切都位于项目中：你的监视器、事件、值班策�
 :::
 
 新的状态页面是公开的：任何拥有其地址的人都可以打开它。要使用你自己的域名、徽标和颜色，请参阅 [状态页品牌与域名](/docs/status-pages/branding-and-domains)。
+
+要通过 HTTPS 把状态页面放到你自己的域名上，请按照 [发布状态页面](/docs/guides/status-page) 操作。
 
 ## 邀请你的团队
 
@@ -141,6 +147,7 @@ OneUptime 中的一切都位于项目中：你的监视器、事件、值班策�
 
 :::cards
 - [核心概念](/docs/introduction/core-concepts): 你刚刚设置的内容背后的概念。
+- [术语表](/docs/introduction/glossary): 你一路上遇到的每个词，用一两句话解释。
 - [值班计划](/docs/on-call/schedules): 与团队分担值班。
 - [状态页品牌与域名](/docs/status-pages/branding-and-domains): 让状态页面体现你的品牌。
 - [OpenTelemetry](/docs/telemetry/open-telemetry): 从你的应用发送日志、指标和追踪。

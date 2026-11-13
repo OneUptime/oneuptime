@@ -52,6 +52,8 @@ Vul het adres in bij **E-mail**. Gebruikt nog geen OneUptime-account dit adres, 
 ### De uitnodiging versturen
 
 Klik op **Uitnodigen**. OneUptime e-mailt de uitnodiging en opent de pagina van die persoon. Tot de acceptatie staat die persoon als **Uitnodiging verzonden**.
+
+Op een zelfgehoste server die nog geen e-mail kan versturen, gaat er geen e-mail uit en staat die persoon als **Uitgenodigd**. Een hoofdbeheerder ziet eerst **Stuur ze hun uitnodigingslink**: kopieer de link, stuur die zelf naar die persoon en klik dan op **Klaar**. Ieder ander vraagt de beheerder van de server om [e-mail in te stellen](/docs/emails/smtp#het-formulier-openen).
 :::
 
 > [!TIP]
@@ -76,7 +78,7 @@ Na het accepteren zit de persoon meteen in het project, met de machtigingen van 
 | --- | --- |
 | **Gebruiker** | Naam en e-mailadres. |
 | **Teams** | Elk team van het project waarin die persoon zit of waarvoor die is uitgenodigd. |
-| **Status** | **Lid** zodra die persoon is toegetreden, met het aantal nog niet geaccepteerde uitnodigingen voor andere teams. **Uitnodiging verzonden** tot dan. |
+| **Status** | **Lid** zodra die persoon is toegetreden, met het aantal nog niet geaccepteerde uitnodigingen voor andere teams. **Uitnodiging verzonden** tot dan. Op een zelfgehoste server die nog geen e-mail kan versturen, in plaats daarvan **Uitgenodigd**: de uitnodiging wordt aangemaakt, maar er gaat geen e-mail uit. |
 
 Filter de lijst op **Gebruiker**, **Status** of **Team**. Klik op een rij om de pagina van die persoon te openen:
 
@@ -134,6 +136,8 @@ Naar één adres kunnen 10 uitnodigingen per uur worden gestuurd, voor projecten
 
 :::details De uitnodigingsmail is niet aangekomen, of de link is verlopen
 De uitnodiging hangt niet af van de e-mail. Vraag de persoon zich te registreren met het uitgenodigde adres: OneUptime stuurt dat adres een nieuwe link om het account af te maken. Wie al een account heeft, logt in en vindt de uitnodiging klaarstaan.
+
+Op een zelfgehoste server die nog geen e-mail kan versturen, kan registreren ook geen nieuwe link e-mailen: in plaats daarvan krijgt die persoon de melding om de uitnodigingslink te vragen. Zodra de beheerder van de server [e-mail heeft ingesteld](/docs/emails/smtp#het-formulier-openen), werkt registreren zoals hierboven. Tot dan kan een hoofdbeheerder die persoon uit het project verwijderen, opnieuw uitnodigen en de nieuwe uitnodigingslink sturen, die één keer werkt, alleen voor dat adres, 7 dagen lang.
 :::
 
 :::details Gebruiker uitnodigen meldt dat gebruikers via SCIM Push Groups worden beheerd

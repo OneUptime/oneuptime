@@ -66,10 +66,13 @@ const RUM_APPLICATION_SHOWCASE: ResourceShowcase = {
     name: "storefront-web",
     subtitle: translationKey("Browser · OpenTelemetry Web SDK"),
     stats: [
-      { label: translationKey("Page loads"), value: "1.2M" },
-      { label: translationKey("p95 load time"), value: "2.4 s" },
-      { label: translationKey("Error rate"), value: "0.6%" },
-      { label: translationKey("Exceptions"), value: "312" },
+      {
+        label: translationKey("Page loads"),
+        value: { abbreviated: 1_200_000 },
+      },
+      { label: translationKey("p95 load time"), value: { seconds: 2.4 } },
+      { label: translationKey("Error rate"), value: { percent: 0.6 } },
+      { label: translationKey("Exceptions"), value: 312 },
     ],
     chart: {
       label: translationKey("Page load time (p95)"),

@@ -2,6 +2,9 @@
 
 Una política de guardia avisa a las personas por niveles. Cada regla de escalado es un nivel: a quién se avisa y cuánto tiempo esperar a que alguien reconozca el aviso antes de avisar al siguiente nivel. Las reglas de una política aparecen, en orden, en su página **Reglas de escalado**.
 
+> [!TIP]
+> ¿Eres nuevo? Sigue primero la guía: [Recibir avisos por llamada, SMS o push](/docs/guides/paging).
+
 ```mermaid title="Una política de guardia avisa nivel a nivel hasta que alguien reconoce"
 flowchart TB
     trigger["Incidente o alerta"] --> level1["Level 1 avisa"]
@@ -163,6 +166,8 @@ Un aviso que no se envía indica el motivo en los **Registros de guardia** de la
 - el canal está apagado en el proyecto, y quién puede encenderlo.
 
 Los propietarios del proyecto reciben un correo sobre ello una vez, hasta que se recargue el saldo o el canal vuelva a estar encendido.
+
+Un aviso que no pudo llegar al servicio de notificaciones de OneUptime dice `Could not reach the Notification service to send this (ECONNREFUSED).`, con el código del error de red entre los paréntesis. Un aviso cuyo envío nunca terminó, por ejemplo porque un servidor se reinició mientras lo enviaba, dice `Sending did not finish within 15 minutes, so this notification may not have been sent.` Si el envío termina después de todo, su resultado sustituye ese mensaje.
 
 En OneUptime Cloud, cada SMS, llamada, mensaje de WhatsApp y de Telegram se paga con el saldo del proyecto en **Ajustes del proyecto > Notificaciones > Ajustes de notificaciones**: su coste exacto se descuenta del saldo cuando el proveedor lo acepta, sin importar cuántos mensajes salgan a la vez.
 

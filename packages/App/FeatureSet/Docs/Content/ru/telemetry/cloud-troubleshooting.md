@@ -67,10 +67,11 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 2. `aws.ecs.task.arn` (сокращается до ID задачи)
 3. `faas.instance`
 4. `azure.container_app.instance.id`
-5. `service.instance.id`
-6. `container.id`
-7. `host.id`
-8. `host.name`
+5. `azure.app_service.instance.id`
+6. `service.instance.id`
+7. `container.id`
+8. `host.id`
+9. `host.name`
 
 Собственный идентификатор платформы идёт раньше `service.instance.id`, поэтому ID, который SDK придумывает для каждого процесса (Node.js SDK делает так по умолчанию), не может отделить задачу от CPU и памяти её sidecar. Что задаёт идентификатор на каждой платформе:
 
@@ -80,7 +81,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 | Cloud Run, App Engine | Детектор `gcp` задаёт `faas.instance` |
 | Container Apps | Детектор `azurecontainerapps` в Collector задаёт ID реплики; или задайте `service.instance.id` из `CONTAINER_APP_REPLICA_NAME`, или запустите детектор хоста |
 | App Runner, Container Instances | `host.name` детектора хоста |
-| App Service, Elastic Beanstalk | Детектор платформы задаёт `service.instance.id`; в Beanstalk удалите его, чтобы каждый экземпляр назывался по `host.id` |
+| App Service, Elastic Beanstalk | Детектор платформы задаёт `service.instance.id` (в App Service детектор Collector задаёт `azure.app_service.instance.id`); в Beanstalk удалите `service.instance.id`, чтобы каждый экземпляр назывался по `host.id` |
 
 Экземпляр появляется в течение минуты после первого сигнала с этим атрибутом.
 
@@ -89,7 +90,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 Экземпляры перечислены, но плитки **CPU** и **Память** в обзоре и столбцы CPU и памяти в разделе **Экземпляры** пусты. Эти данные берутся из метрик, а не из трассировок: точек данных `container.cpu.utilization` и `container.memory.usage` (или `container.memory.usage.total`), ресурс которых несёт тот же идентификатор экземпляра, что и трассировки, и `cloud.platform`.
 
 - **В ECS** их предоставляет приёмник `awsecscontainermetrics` в коллекторе-sidecar в виде `ecs.task.cpu.utilized` и `ecs.task.memory.utilized`. Оставьте его в конвейере `metrics` и оставьте в этом конвейере `resourcedetection`, иначе метрики придут без `cloud.platform` и будут учтены в другом месте.
-- **В Cloud Run, Container Apps и на других платформах** платформа не показывает sidecar потребление ресурсов контейнеров. Плитки остаются пустыми, если вы сами не отправляете эти метрики: смотрите вместо них плитки запросов.
+- **В Cloud Run, Container Apps и на других платформах** платформа не показывает sidecar потребление ресурсов контейнеров. Плитки остаются пустыми, если вы сами не отправляете эти метрики: смотрите вместо них плитки запросов. В App Service подключите подписку в разделе **Облако → Подключить**: тогда страница приложения покажет время CPU и память его сайта из **Azure Monitor**.
 - **При SDK direct** метрики контейнеров никто не отправляет, поэтому пустые плитки ожидаемы.
 
 ## Среда показывает Отключено

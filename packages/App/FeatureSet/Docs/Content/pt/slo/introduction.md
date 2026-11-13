@@ -1,6 +1,6 @@
 # Visão geral dos SLOs
 
-Um objetivo de nível de serviço (SLO) é uma meta de confiabilidade para o que você monitora, como "disponível 99,9% do tempo em 30 dias móveis". O OneUptime mede cada SLO em relação à sua meta a cada 5 minutos, então, em vez de "está funcionando agora?", você consegue responder "fomos confiáveis o suficiente, em uma janela que importa para nossos usuários, e quanta margem de falha ainda temos?".
+Um objetivo de nível de serviço (SLO) é uma meta de confiabilidade para o que você monitora, como "disponível 99,9% do tempo em 30 dias móveis". O OneUptime mede cada SLO em relação à sua meta a cada 5 minutos, então, em vez de "está funcionando agora?", você consegue responder "fomos confiáveis o suficiente, em uma janela que importa para nossos usuários, e quanta margem de falha ainda temos?". O [Glossário](/docs/introduction/glossary#slo) coloca os SLOs ao lado das outras palavras que o OneUptime usa.
 
 :::cards
 - [Criar um SLO](#criar-um-slo): Um nome e uma meta. Todo o resto começa com um valor padrão.
@@ -11,7 +11,7 @@ Um objetivo de nível de serviço (SLO) é uma meta de confiabilidade para o que
 
 ## Como funciona
 
-Um SLO lê as linhas do tempo de status dos monitores associados a ele: os mesmos dados que suas páginas de status mostram. A partir delas, o OneUptime calcula quanto da janela de conformidade foi tempo bom, quanto resta do orçamento de erros e com que velocidade ele está sendo consumido.
+Um SLO lê as linhas do tempo de status dos monitores associados a ele: os mesmos dados que suas páginas de status mostram. A partir delas, o OneUptime calcula quanto da janela de conformidade foi tempo bom, quanto resta do orçamento de erros e com que velocidade ele está sendo consumido. O tempo com o monitoramento de um monitor desligado fica de fora: nada verifica o monitor nesse período, então esse tempo não consome o orçamento de erros nem conta como tempo bom.
 
 ```mermaid title="Das verificações dos monitores ao status de um SLO"
 flowchart TB
@@ -25,6 +25,8 @@ flowchart TB
 ```
 
 ## Conceitos principais
+
+As palavras usadas em todo o OneUptime estão no [Glossário](/docs/introduction/glossary).
 
 | Termo | Significado |
 | --- | --- |
@@ -176,7 +178,7 @@ A **Visão geral** responde a "estamos dentro do orçamento?", de cima para baix
 - **O resumo**: o status, uma frase sobre o que ele significa e a descrição. Ao lado ficam **Atualizar** e quando o SLO foi avaliado pela última vez. Abaixo ficam a meta, a **Janela de conformidade** (com um indicador de preenchimento enquanto uma janela móvel nova se enche: veja [SLOs novos e o indicador de preenchimento da janela](#slos-novos-e-o-indicador-de-preenchimento-da-janela)), o número de monitores e os proprietários, com **Adicionar proprietários** para adicionar um ali mesmo.
 - **Os números principais**:
   - **SLI**: a parcela de tempo bom na janela, e quanto ela está acima ou abaixo da meta.
-  - **Orçamento de erros restante**: uma porcentagem, uma duração como "12m 30s left of 43m 12s" e uma barra com uma marca no limite de risco. Quando o orçamento é ultrapassado, mostra **Orçamento excedido** e por quanto.
+  - **Orçamento de erros restante**: uma porcentagem, uma duração como "Restam 12 min 30 s de 43 min 12 s" e uma barra com uma marca no limite de risco. Quando o orçamento é ultrapassado, mostra **Orçamento excedido** e por quanto.
   - **Taxa de consumo**: a velocidade com que o orçamento é gasto nos últimos 60 minutos, o período que a regra de consumo rápido padrão usa. Fica âmbar acima de 1× e vermelho, com **Limite da regra atingido**, no limite mais baixo das regras de taxa de consumo habilitadas do SLO cujo período é de 6 horas ou menos. Uma hora diz pouco sobre uma regra cujo período é de dias, como **Slow leak**, por isso a taxa não é comparada com regras assim.
   - **Autonomia do orçamento**: quanto o orçamento dura nesse ritmo. Veja [Orçamentos de erros](/docs/slo/error-budget#autonomia-do-orçamento).
 - **Burn-down do orçamento de erros**: o orçamento restante ao longo da janela atual. Veja [Orçamentos de erros](/docs/slo/error-budget#consumo-do-orçamento-de-erros).
@@ -193,7 +195,7 @@ A página **Configurações** reúne como um SLO mede, um cartão para cada cois
 
 | Cartão | O que você muda | Bom saber |
 | --- | --- | --- |
-| **Objetivo** | **Meta (%)** e **Limite de risco (%)**, com **Editar objetivo**. | Mostra a indisponibilidade que a meta permite, por exemplo "43m 12s de indisponibilidade por janela de 30 dias". |
+| **Objetivo** | **Meta (%)** e **Limite de risco (%)**, com **Editar objetivo**. | Mostra a indisponibilidade que a meta permite, por exemplo "43 min 12 s de inatividade por janela de 30 dias". |
 | **Período de conformidade** | **Tipo de janela**, **Janela (dias)** e **Fuso horário**, com **Editar período**. | As regras de taxa de consumo mantêm seus limites quando a janela muda, então revise-as depois. |
 | **Cálculo de inatividade** | **Modo de vários monitores** e **Status de monitor de indisponibilidade**, com **Editar cálculo de inatividade**. | Sem nenhum status, contam todos os status não operacionais, inclusive os adicionados depois. |
 | **Avaliação** | O interruptor **Avaliar este SLO**, que salva assim que você o muda. | Desligá-lo pede confirmação, porque também resolve os alertas e incidentes de taxa de consumo abertos do SLO. |
@@ -238,7 +240,7 @@ O menu lateral de um monitor também tem uma página **SLOs**: os SLOs que medem
 
 Um SLO de janela móvel mais novo que a própria janela é medido com os dados que existem até agora: um SLO de 30 dias criado ontem tem um dia de dados. Seu orçamento de erros começa pequeno e cresce à medida que a janela se enche, então os primeiros números oscilam mais do que vão oscilar depois.
 
-Enquanto for assim, a **Visão geral** avisa: o resumo mostra um indicador **Window 23% full** (**Janela com menos de 1% preenchido** no primeiro dia), e o bloco **Orçamento de erros restante** repete isso abaixo do número. Os dois somem quando a janela está cheia. SLOs de mês do calendário nunca os mostram, porque o orçamento deles cobre o mês inteiro desde o primeiro dia, e os SLOs no modo **Média de segundos dos monitores** também não, porque o orçamento deles é contado entre os monitores.
+Enquanto for assim, a **Visão geral** avisa: o resumo mostra um indicador **Janela 23% preenchida** (**Janela com menos de 1% preenchido** no primeiro dia), e o bloco **Orçamento de erros restante** repete isso abaixo do número. Os dois somem quando a janela está cheia. SLOs de mês do calendário nunca os mostram, porque o orçamento deles cobre o mês inteiro desde o primeiro dia, e os SLOs no modo **Média de segundos dos monitores** também não, porque o orçamento deles é contado entre os monitores.
 
 ## Solução de problemas
 

@@ -156,8 +156,8 @@ describe("a decision taken when a wait ended says so", () => {
     ],
     [
       "provider_missing",
-      "No AI provider was available when the wait ended",
-      "Automatic investigation was enabled when this incident's 10-minute wait ended, but no configured AI provider was available to run it.",
+      "No LLM provider was available when the wait ended",
+      "Automatic investigation was enabled when this incident's 10-minute wait ended, but the project had no LLM provider OneUptime AI could use to run it.",
     ],
     [
       "insufficient_ai_balance",
@@ -195,10 +195,10 @@ describe("a decision taken when a wait ended says so", () => {
       );
 
     expect(reason.title).toBe(
-      "Severity was below the investigation threshold when the wait ended",
+      "Severity was below the minimum for AI investigation when the wait ended",
     );
     expect(reason.description).toBe(
-      "When this alert's 15-minute wait ended, its Low severity did not meet the minimum High investigation severity.",
+      "When this alert's 15-minute wait ended, its Low severity did not meet the minimum severity for AI investigation (High).",
     );
   });
 
@@ -290,14 +290,14 @@ describe("decisions taken at creation read exactly as before", () => {
       "automatic_investigation_disabled",
       "Automatic incident investigation was off at creation",
     ],
-    ["provider_missing", "No AI provider was available at creation"],
+    ["provider_missing", "No LLM provider was available at creation"],
     [
       "no_investigation_rule_matched",
       "This incident was outside the AI rules that investigate at creation",
     ],
     [
       "severity_below_threshold",
-      "Severity was below the investigation threshold at creation",
+      "Severity was below the minimum for AI investigation at creation",
     ],
   ])("%s", (code: string, title: string) => {
     const reason: InvestigationNotStartedReason =

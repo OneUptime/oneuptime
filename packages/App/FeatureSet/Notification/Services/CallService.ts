@@ -25,7 +25,6 @@ import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
-import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
 import {
   Host,
   HttpProtocol,
@@ -35,6 +34,7 @@ import CallLogService from "Common/Server/Services/CallLogService";
 import NotificationService from "Common/Server/Services/NotificationService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
+import { recordSendResult } from "Common/Server/Utils/OnCall/OnCallNotificationStatus";
 import JSONWebToken from "Common/Server/Utils/JsonWebToken";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import ProjectNotificationChannelOwnerNotice from "Common/Server/Utils/ProjectNotificationChannelOwnerNotice";
@@ -68,6 +68,8 @@ import Twilio from "twilio";
 import { CallInstance } from "twilio/lib/rest/api/v2010/account/call";
 import Phone from "Common/Types/Phone";
 import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
+import ServerSendingOutcomes from "Common/Server/Utils/ServerSending/ServerSendingOutcomes";
+import { ServerSendingChannel } from "Common/Types/ServerSending/ServerSendingStatus";
 import {
   fitTextsToBudget,
   MAX_CALL_TWIML_LENGTH,
@@ -252,6 +254,14 @@ export default class CallService {
      */
     let callError: Error | null = null;
     const callLog: CallLog = new CallLog();
+    /*
+     * Whether it goes out through the server's own gateway or Twilio
+     * account, and whether it was handed to one: how that went is the
+     * server's to know (ServerSendingStatus). A project's own account, and
+     * a call the project's balance or switch held back, are not.
+     */
+    let isServersOwnCall: boolean = false;
+    let hasReachedProvider: boolean = false;
 
     try {
       logger.debug("Call Request received.");
@@ -270,6 +280,8 @@ export default class CallService {
         )
           ? options.customTwilioConfig
           : undefined;
+
+      isServersOwnCall = !customTwilioConfig;
 
       // is no custom twilio config is provided, use default twilio config and charge for call.
       const shouldChargeForCall: boolean =
@@ -584,27 +596,33 @@ export default class CallService {
          * page - given the links that act on it (CustomChannelActionToken),
          * which it can offer as key presses of its own.
          */
+        const payload: ReturnType<typeof buildCallAndSmsGatewayMessagePayload> =
+          buildCallAndSmsGatewayMessagePayload({
+            event: CallAndSmsGatewayEvent.Call,
+            id: ObjectID.generate().toString(),
+            sentAt: OneUptimeDate.getCurrentDate(),
+            to: callRequest.to.toString(),
+            message: getCallGatewayMessage(callRequest),
+            isSensitive: Boolean(options.isSensitive),
+            project:
+              project && project.id
+                ? { id: project.id.toString(), name: project.name || "" }
+                : undefined,
+            actions: options.userOnCallLogTimelineId
+              ? await CustomChannelActionToken.getActionLinks(
+                  options.userOnCallLogTimelineId,
+                )
+              : undefined,
+          });
+
+        // Handed to the gateway from here on.
+        hasReachedProvider = true;
+
         const result: CallAndSmsGatewayResult =
           await CallAndSmsGatewayService.send({
             gateway: gateway,
             event: CallAndSmsGatewayEvent.Call,
-            payload: buildCallAndSmsGatewayMessagePayload({
-              event: CallAndSmsGatewayEvent.Call,
-              id: ObjectID.generate().toString(),
-              sentAt: OneUptimeDate.getCurrentDate(),
-              to: callRequest.to.toString(),
-              message: getCallGatewayMessage(callRequest),
-              isSensitive: Boolean(options.isSensitive),
-              project:
-                project && project.id
-                  ? { id: project.id.toString(), name: project.name || "" }
-                  : undefined,
-              actions: options.userOnCallLogTimelineId
-                ? await CustomChannelActionToken.getActionLinks(
-                    options.userOnCallLogTimelineId,
-                  )
-                : undefined,
-            }),
+            payload: payload,
           });
 
         if (!result.ok) {
@@ -613,6 +631,9 @@ export default class CallService {
         }
 
         dispatch.markSucceeded();
+
+        // The server's own call went out (ServerSendingStatus).
+        await ServerSendingOutcomes.recordSucceeded(ServerSendingChannel.Call);
 
         callLog.status = CallStatus.Success;
         callLog.statusMessage = result.message;
@@ -642,8 +663,13 @@ export default class CallService {
             )
           : null;
 
+        const twiml: string = this.generateTwimlForCall(callRequest);
+
+        // Handed to Twilio from here on.
+        hasReachedProvider = true;
+
         twillioCall = await client.calls.create({
-          twiml: this.generateTwimlForCall(callRequest),
+          twiml: twiml,
           to: callRequest.to.toString(),
           from: fromNumber.toString(), // From a valid Twilio number
           ...(statusCallbackUrl
@@ -656,6 +682,13 @@ export default class CallService {
         });
 
         dispatch.markSucceeded();
+
+        // The server's own Twilio account took it (ServerSendingStatus).
+        if (isServersOwnCall) {
+          await ServerSendingOutcomes.recordSucceeded(
+            ServerSendingChannel.Call,
+          );
+        }
 
         callLog.status = CallStatus.Success;
         callLog.statusMessage = "Call ID: " + twillioCall.sid;
@@ -699,6 +732,14 @@ export default class CallService {
       logger.error("Call Request failed.");
       logger.error(callLog.statusMessage);
 
+      // The server's own gateway or Twilio account refused it, or was not reached.
+      if (hasReachedProvider && isServersOwnCall) {
+        await ServerSendingOutcomes.recordFailed(
+          ServerSendingChannel.Call,
+          callLog.statusMessage,
+        );
+      }
+
       // Twilio's refusal keeps its words on the way out (TwilioSendError).
       callError = TwilioSendError.toSendError(e, TwilioSendKind.Call) as Error;
     }
@@ -719,18 +760,17 @@ export default class CallService {
     }
 
     if (options.userOnCallLogTimelineId) {
-      await UserOnCallLogTimelineService.updateOneById({
-        data: {
-          status:
-            callLog.status === CallStatus.Success
-              ? UserNotificationStatus.Sent
-              : UserNotificationStatus.Error,
-          statusMessage: callLog.statusMessage!,
-        },
-        id: options.userOnCallLogTimelineId,
-        props: {
-          isRoot: true,
-        },
+      /*
+       * Placed is "Sent": how the call ended comes later, by its status
+       * callback. Written only while the page's timeline entry still says
+       * Sending (OnCallNotificationStatus): a call not answered or failed
+       * that the callback - which can land first - wrote there, or the
+       * person's acknowledgement, stays.
+       */
+      await recordSendResult({
+        userOnCallLogTimelineId: options.userOnCallLogTimelineId,
+        isSent: callLog.status === CallStatus.Success,
+        statusMessage: callLog.statusMessage!,
       });
     }
 

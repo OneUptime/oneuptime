@@ -1,6 +1,6 @@
 # Visão geral dos incidentes
 
-Um incidente é o registro a partir do qual sua equipe trabalha quando algo quebra: o que está afetado, quão grave é, em que ponto está a resposta, de quem ele é e tudo o que é anotado pelo caminho. Declarar um aciona a escala de plantão certa, avisa os proprietários e — se você quiser — coloca a interrupção na sua página de status, para que os clientes saibam que você já está cuidando disso.
+Um incidente é o registro a partir do qual sua equipe trabalha quando algo quebra: o que está afetado, quão grave é, em que ponto está a resposta, de quem ele é e tudo o que é anotado pelo caminho. Declarar um aciona a escala de plantão certa, avisa os proprietários e — se você quiser — coloca a interrupção na sua página de status, para que os clientes saibam que você já está cuidando disso. Não sabe se um problema é um incidente ou um alerta? [Qual devo usar?](/docs/introduction/which-one#incidente-alerta-ou-outro-tipo-de-problema) coloca os dois lado a lado.
 
 :::cards
 - [Declarar um incidente](/docs/incidents/declaring-incidents): Manualmente, a partir de um modelo, de um monitor, pela API ou por um formulário.
@@ -86,7 +86,7 @@ Depois disso, você pode escrever um [post-mortem](/docs/incidents/postmortems) 
 
 ## Termos-chave
 
-Um punhado de palavras aparece em todas as outras páginas desta seção. Esclareça-as primeiro.
+Um punhado de palavras aparece em todas as outras páginas desta seção. Esclareça-as primeiro. As palavras usadas em todo o OneUptime estão no [Glossário](/docs/introduction/glossary).
 
 | Termo                        | O que significa                                                                                                                                     |
 | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -162,7 +162,7 @@ Abra **Incidentes** no menu **Produtos** da barra superior. Seu menu lateral é 
 | **IA**                    | **Insights**, **Registros**, **Configurações**: o que o OneUptime AI aprendeu com seus incidentes e tudo o que fez por eles, e o que pode fazer por conta própria — com as regras sobre quais incidentes investiga e corrige. Veja [AI SRE](/docs/ai/ai-sre). |
 | **Espaço de trabalho**    | Os espaços de chat que este projeto conectou: **Slack**, **Microsoft Teams** e **Mattermost**, cada um com suas regras de notificação para incidentes. Se nenhum estiver conectado, contém **Conectar um espaço de trabalho**, uma página que mostra os três e como conectá-los. |
 | **Regras**                | Os mecanismos de regras: **Regras de agrupamento**, **Regras de Plantão**, **Regras de proprietário**, **Regras de runbook**, **Regras de privacidade**, **Regras de Rótulos**, **Regras de SLA**, **Regras de lembrete**. |
-| **Configurações**         | **Estado do incidente**, **Severidade do incidente**, **Modelos de incidentes**, **Modelos de notas**, **Aprovação de notas públicas**, **Modelos de post-mortem**, **Status de post-mortem**, **Campos personalizados**, **Funções de incidente**, **Medições**, **Alertas vinculados**, **Participação em episódios**, **Numeração**. |
+| **Configurações**         | **Estado do incidente**, **Severidade do incidente**, **Modelos de incidentes**, **Modelos de notas**, **Aprovação de notas públicas**, **Modelos de post-mortem**, **Status de post-mortem**, **Campos personalizados**, **Funções de incidente**, **Medições**, **Alertas vinculados**, **Participação em episódios**, **Numeração**, **Retenção de dados**. |
 
 **Visão geral** e **Episódios** ficam abertas; **IA**, **Espaço de trabalho**, **Regras**, **Configurações** e **Desenvolvedores** ficam recolhidas por padrão, para que o menu abra nas listas que você usa todos os dias. Clique no título de uma seção para expandi-la e encontrar as páginas a que o resto desta documentação se refere; uma seção também se abre sozinha sempre que você está em uma de suas páginas. A configuração de incidentes não fica nas configurações do projeto; ela vive toda aqui.
 

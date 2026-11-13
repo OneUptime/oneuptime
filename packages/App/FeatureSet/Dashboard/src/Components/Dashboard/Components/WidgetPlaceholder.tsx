@@ -9,6 +9,8 @@ export interface ComponentProps {
   icon: IconProp;
   // The sentence in its place: why there is nothing to draw.
   message: string;
+  // The sentence's test id, where a reader of the page looks for it.
+  messageTestId?: string | undefined;
 }
 
 export const WIDGET_PLACEHOLDER_TEST_ID: string =
@@ -40,7 +42,10 @@ const WidgetPlaceholder: FunctionComponent<ComponentProps> = (
           <Icon icon={props.icon} />
         </div>
       </div>
-      <p className="max-w-56 text-center text-xs text-gray-500">
+      <p
+        className="max-w-56 text-center text-xs text-gray-500"
+        data-testid={props.messageTestId}
+      >
         {translator.translateText(props.message)}
       </p>
     </div>

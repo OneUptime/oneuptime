@@ -1,6 +1,6 @@
 # Grupos de monitores
 
-Un grupo de monitores reúne varios monitores en un solo estado. Agrupe los monitores que juntos forman un servicio, como Checkout: su API, su servicio de pagos y su aplicación web. El grupo muestra el peor estado entre ellos, tiene su propia disponibilidad, y una página de estado puede mostrar todo el grupo como una sola fila.
+Un grupo de monitores reúne varios monitores en un solo estado. Agrupe los monitores que juntos forman un servicio, como Checkout: su API, su servicio de pagos y su aplicación web. El grupo muestra el peor estado entre ellos, tiene su propia disponibilidad, y una página de estado puede mostrar todo el grupo como una sola fila. Para elegir entre un grupo de monitores, un servicio y una etiqueta, consulte [¿Cuál uso?](/docs/introduction/which-one#grupo-de-monitores-servicio-o-etiqueta).
 
 :::cards
 - [Cómo se calcula el estado de un grupo](#cómo-se-calcula-el-estado-de-un-grupo): El peor estado entre sus monitores.
@@ -27,8 +27,9 @@ flowchart TB
 ```
 
 - **Los monitores archivados no cuentan.** Un monitor archivado no se comprueba, así que su estado está congelado; el grupo lo deja fuera.
+- **Los monitores con el monitoreo desactivado no cuentan.** Nada comprueba un monitor cuyo monitoreo está desactivado, así que su estado es solo lo que vio su última comprobación. El grupo lo deja fuera de su estado: un monitor que quedó **Sin conexión** al desactivar su monitoreo no deja el grupo **Sin conexión**. El tiempo de actividad y el **Gráfico de tiempo de actividad** del grupo conservan el historial del monitor hasta que se desactivó su monitoreo y dejan fuera el tiempo posterior, en el panel y en las páginas de estado por igual. Al volver a activarse, el monitor cuenta de nuevo desde ese momento.
 - **Un grupo vacío está operativo.** Un grupo sin monitores, o solo con monitores archivados, muestra su estado operativo. Hasta que añada un monitor, el panel muestra **Aún no hay monitores** en lugar de su estado.
-- **Con el monitoreo desactivado se muestra Deshabilitado.** Cuando el monitoreo está desactivado para todos los monitores de un grupo, nada los comprueba, así que el panel muestra **Deshabilitado** en lugar del estado del grupo.
+- **Con el monitoreo desactivado se muestra Deshabilitado.** Cuando el monitoreo está desactivado para todos los monitores de un grupo, nada los comprueba, así que el panel muestra **Deshabilitado** en lugar del estado del grupo, y su **Gráfico de tiempo de actividad** y su tiempo de actividad terminan donde se desactivó el monitoreo del último de ellos. Una página de estado muestra el grupo como **No monitoreado**.
 - **El orden lo decide usted.** Cuál es el peor estado sigue el orden de **Monitores → Ajustes → Estado del monitor**. Consulte [Estados del monitor](/docs/monitor/criteria-and-statuses#estados-del-monitor).
 
 Un grupo de monitores no es un grupo de una página de estado. Un grupo de una página de estado es un encabezado en una página de estado que contiene filas. Un grupo de monitores es una fila que representa varios monitores, y cualquier página de estado puede mostrarlo.
@@ -91,6 +92,8 @@ Abra un grupo para ver sus páginas en el menú lateral:
 
 La disponibilidad de la **Vista general** cuenta como tiempo de inactividad cualquier estado salvo el operativo. Una página de estado solo cuenta los estados de su propia lista **Cuenta como tiempo de inactividad**: consulte [Elegir qué se muestra en la página](/docs/status-pages/index#elegir-qué-se-muestra-en-la-página).
 
+Cada barra del gráfico de tiempo de actividad, aquí y en una página de estado, es cuánto tiempo pasó el propio grupo en cada estado ese día: en cada momento tiene el peor estado de sus monitores, así que una hora en la que dos de ellos están sin conexión a la vez es una hora del grupo, y un día nunca suma más que un día. Los días son los suyos: el panel los dibuja en la zona horaria de su configuración de usuario, y una página de estado en la de cada visitante.
+
 La lista **Grupos de monitores** puede filtrar grupos por propietario y etiqueta, fijar etiquetas y propietarios en muchos grupos a la vez, y exportar o importar grupos como JSON.
 
 ## Desactivar el monitoreo de todo un grupo
@@ -122,7 +125,7 @@ Elija el grupo. **Nombre para mostrar**, el nombre que leen los visitantes, toma
 
 En la página de estado, la fila representa a cada monitor del grupo:
 
-- **Su estado.** Es el del grupo: el peor de sus monitores.
+- **Su estado.** Es el del grupo: el peor de sus monitores con el monitoreo activado. Cuando el monitoreo está desactivado para todos ellos, la fila muestra **No monitoreado** y no cuenta ni para el encabezado que la contiene ni para el estado general de la página.
 - **Sus incidentes.** Un incidente en cualquier monitor del grupo aparece en la página, con el grupo entre los recursos afectados.
 - **Sus suscriptores.** Un suscriptor que elige el grupo recibe avisos de cada monitor que contiene. Consulte [Dejar que los suscriptores elijan recursos y tipos de evento](/docs/status-pages/subscribers#dejar-que-los-suscriptores-elijan-recursos-y-tipos-de-eventos).
 

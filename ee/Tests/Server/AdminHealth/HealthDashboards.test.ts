@@ -217,6 +217,7 @@ const ENTERPRISE_ROUTES: Array<string> = [
 // Served by core on every edition, behind this module's router.
 const COMMUNITY_ROUTES: Array<string> = [
   "/clickhouse-capacity",
+  "/doctor",
   "/instance-health-logs",
   "/migrations",
   "/support-bundle",

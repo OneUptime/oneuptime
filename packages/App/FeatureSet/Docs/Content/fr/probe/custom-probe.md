@@ -1,6 +1,6 @@
 # Sondes personnalisées
 
-Une sonde personnalisée est un petit agent que vous exécutez dans votre propre réseau. Elle vérifie les moniteurs auxquels vous l'ajoutez, comme des sites web internes, des API et des serveurs derrière votre pare-feu, et envoie les résultats à OneUptime. Elle n'ouvre que des connexions sortantes, en HTTPS : rien dans votre réseau n'a besoin d'accepter des connexions depuis Internet.
+Une sonde personnalisée est un petit agent que vous exécutez dans votre propre réseau. Elle vérifie les moniteurs auxquels vous l'ajoutez, comme des sites web internes, des API et des serveurs derrière votre pare-feu, et envoie les résultats à OneUptime. Elle n'ouvre que des connexions sortantes, en HTTPS : rien dans votre réseau n'a besoin d'accepter des connexions depuis Internet. Pour choisir entre une sonde, un agent, un collecteur et un agent Runbook, consultez [Lequel choisir ?](/docs/introduction/which-one#sonde-agent-collecteur-ou-agent-runbook).
 
 :::cards
 - [Fonctionnement](#fonctionnement): Ce que fait la sonde, et comment OneUptime sait qu'elle tourne.
@@ -288,6 +288,7 @@ La sonde lit ses réglages dans son environnement au démarrage : modifiez-en un
 | `PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED` | `false` | Réglez sur `true` pour exécuter Chromium, dans les moniteurs synthétiques, dans son propre bac à sable. Ne l'activez que si le conteneur de la sonde tourne avec un profil seccomp qui autorise le bac à sable, comme celui de Playwright : sans lui, Chromium ne peut pas démarrer. Tant qu'elle est désactivée, la sonde écrit un avertissement dans son journal au démarrage. |
 | `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | Délai des scripts des moniteurs Custom Code, en millisecondes. |
 | `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` | `false` | Réglez sur `true` pour permettre aux moniteurs Website, API, External Status Page et Custom Code de cette sonde de joindre des adresses privées. Voir [Accès au réseau privé](/docs/self-hosted/private-network-access). |
+| `PROBE_CERTIFICATE_REVOCATION_CHECK_ENABLED` | `true` | Les moniteurs SSL Certificate, Website et API de cette sonde demandent à l'émetteur d'un certificat s'il a révoqué le certificat, comme le font les navigateurs. Réglez sur `false` pour ne plus demander, par exemple sur une sonde sans accès à Internet. Un émetteur que la sonde ne peut pas joindre n'est jamais pris pour une révocation : la sonde attend quelques secondes chaque répondeur qu'elle ne peut pas joindre, environ une fois toutes les 5 minutes. Voir [Surveillance de certificat SSL](/docs/monitor/ssl-certificate-monitor). |
 | `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` | `25` | Nombre d'appareils réseau que la sonde interroge à la fois. Augmentez-le pour une sonde qui interroge de nombreux appareils. |
 
 Les limites dans lesquelles tourne un moniteur synthétique (combien tournent à la fois, leur mémoire et leur disque) figurent sur la page [Surveillance synthétique](/docs/monitor/synthetic-monitor).

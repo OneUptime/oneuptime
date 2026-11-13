@@ -75,14 +75,16 @@ export interface CalendarMonthWindow {
  *
  * Design notes (see SLO design doc paragraph 3.1 / 5):
  *
- * - Multi-monitor downtime must NOT be computed by feeding several monitors into
- *   UptimeUtil.getNonOverlappingMonitorEvents: its priority flatten lets a
- *   better-status event that merely ends later truncate a concurrent worse-status
- *   event (Monitor A Offline 10:00-11:00 + Monitor B Operational 10:30-12:00
- *   silently loses 30 minutes of downtime). That flatten was built for rendering
- *   one status-page bar, not cross-monitor budget math. This util therefore works
- *   per monitor (getMonitorEventsForId is per-monitor and correct) and combines
- *   monitors with explicit semantics (SloMultiMonitorMode).
+ * - Multi-monitor downtime is combined here with explicit semantics
+ *   (SloMultiMonitorMode), working per monitor (getMonitorEventsForId) rather
+ *   than by feeding several monitors into UptimeUtil.getNonOverlappingMonitorEvents.
+ *   That merge used to be a priority flatten that let a better-status event that
+ *   merely ended later truncate a concurrent worse-status event (Monitor A
+ *   Offline 10:00-11:00 + Monitor B Operational 10:30-12:00 lost 30 minutes of
+ *   downtime). It now takes the worst status at every instant (WorstStatusTimeline,
+ *   issue #6697), which is the AnyDown union - but the other modes (an average
+ *   per monitor, all monitors down) are not a merged timeline at all, so the
+ *   per-monitor approach stays.
  *
  * - Every comparison against a threshold uses UNROUNDED values. Round only at
  *   render time (roundForDisplay floors - fine for display, wrong for
@@ -219,7 +221,7 @@ export default class SloUtil {
    * The correctness case this exists for: Monitor A Offline 10:00-11:00 while
    * Monitor B is Operational 10:30-12:00 must yield 3600 seconds of downtime,
    * NOT 1800 - which is what the cross-monitor priority flatten in
-   * UptimeUtil.getNonOverlappingMonitorEvents produces.
+   * UptimeUtil.getNonOverlappingMonitorEvents used to produce.
    */
   public static getUnionDowntimeSeconds(
     perMonitor: Array<MonitorTimelineSet>,
@@ -267,6 +269,12 @@ export default class SloUtil {
    * - MonitorSecondsAverage: the clamp happens PER MONITOR (each monitor's own
    *   first event), mirroring UptimeUtil.getTotalDowntimeInSeconds - otherwise
    *   adding a young monitor dilutes the SLI.
+   * - Time with monitoring off (MonitorStatusTimeline.isMonitoringOff, issue
+   *   #6480) is in neither the numerator nor the denominator: nothing checked
+   *   the monitor, so it neither spends the error budget nor counts as good.
+   *   AnyDown leaves out the time NONE of the monitors was monitored;
+   *   MonitorSecondsAverage each monitor's own (UptimeUtil.getNotMonitoredSeconds).
+   *   A calendar window's budget is still the full month's.
    *
    * No data at all (no timeline rows for any monitor) => totalSeconds 0,
    * sliPercentage 100 - callers decide what "no data" means (the evaluator marks
@@ -347,10 +355,21 @@ export default class SloUtil {
       ? OneUptimeDate.getGreaterDate(window.startDate, earliestEventStart)
       : window.startDate;
 
-    const totalSeconds: number = OneUptimeDate.getSecondsBetweenDates(
-      windowStartDate,
-      windowEndDate,
-    );
+    /*
+     * Time with monitoring off is left out (issue #6480): when none of the
+     * monitors was monitored - each had its monitoring turned off, or no row
+     * yet - nothing measured the service, so that time neither spends the
+     * error budget nor counts as good. Their rows hold no downtime for it
+     * (getMonitorEventsForId skips them), so without this it would count as
+     * good.
+     */
+    const totalSeconds: number =
+      OneUptimeDate.getSecondsBetweenDates(windowStartDate, windowEndDate) -
+      UptimeUtil.getNotMonitoredSeconds({
+        items: this.getOwnTimelines(perMonitorTimelines),
+        startDate: windowStartDate,
+        endDate: windowEndDate,
+      });
 
     if (totalSeconds <= 0) {
       return {
@@ -371,6 +390,26 @@ export default class SloUtil {
       totalSeconds,
       sliPercentage: ((totalSeconds - badSeconds) / totalSeconds) * 100,
     };
+  }
+
+  /*
+   * Every monitor's own rows, in one list: a row of another monitor that
+   * came in a monitor's set is left out, as getMonitorEventsForId leaves it.
+   */
+  private static getOwnTimelines(
+    perMonitorTimelines: Array<MonitorTimelineSet>,
+  ): Array<MonitorStatusTimeline> {
+    const timelines: Array<MonitorStatusTimeline> = [];
+
+    for (const monitor of perMonitorTimelines) {
+      for (const timeline of monitor.timelines) {
+        if (timeline.monitorId?.toString() === monitor.monitorId.toString()) {
+          timelines.push(timeline);
+        }
+      }
+    }
+
+    return timelines;
   }
 
   private static computeMonitorSecondsAverageSli(data: {

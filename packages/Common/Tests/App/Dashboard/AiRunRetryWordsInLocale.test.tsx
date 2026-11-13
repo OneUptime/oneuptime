@@ -62,10 +62,10 @@ import {
 // Every word the retries, the attempts and Try again added to the Dashboard.
 const WORDS: Array<string> = [
   "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.",
-  "Add an AI provider in Project Settings > AI > LLM Providers, then try again.",
+  "Add an LLM provider in Project Settings > AI > LLM Providers, then try again.",
   "Attempt {{number}}",
   "Attempt {{number}} of {{count}}",
-  "Check that the AI provider is up and that OneUptime can reach it, then try again.",
+  "Check that the LLM provider is up and that OneUptime can reach it, then try again.",
   "Check the provider's API key and model in Project Settings > AI > LLM Providers, and use Test there. Then try again.",
   "Did not finish: {{cause}} Trying again at {{time}}.",
   "Did not finish: {{cause}} Trying again.",
@@ -82,16 +82,16 @@ const WORDS: Array<string> = [
   "Starting again…",
   "Stopped answering: the server running it may have restarted. It starts again from the beginning.",
   "Stopped: {{cause}}",
-  "The AI provider could not be reached, or was too busy to answer.",
-  "The AI provider did not answer in time.",
-  "The AI provider did not answer within {{count}} seconds.",
-  "The AI provider did not answer within {{count}} seconds._one",
-  "The AI provider refused the request: its API key or model may be wrong, or its account may lack access or credit.",
+  "The LLM provider could not be reached, or was too busy to answer.",
+  "The LLM provider did not answer in time.",
+  "The LLM provider did not answer within {{count}} seconds.",
+  "The LLM provider did not answer within {{count}} seconds._one",
+  "The LLM provider refused the request: its API key or model may be wrong, or its account may lack access or credit.",
   "The last attempt did not finish. OneUptime tries again at {{time}}; its steps so far are below.",
   "The request grew larger than the model's context window.",
   "The run could not start again. Try again in a moment.",
   "The server running it stopped, for example while OneUptime restarted.",
-  "There is no AI provider to use.",
+  "There is no LLM provider to use.",
   "Try again. If it fails again, the details below say what went wrong.",
   "Trying again at {{time}}",
   "Trying again soon",
@@ -310,7 +310,7 @@ describe("the failure notice, in German", () => {
     expect(screen.getByText(word(DE, "Triage did not finish"))).toBeVisible();
     expect(screen.getByTestId("ai-run-failure-cause")).toHaveTextContent(
       fill(
-        word(DE, "The AI provider did not answer within {{count}} seconds."),
+        word(DE, "The LLM provider did not answer within {{count}} seconds."),
         { count: "120" },
       ),
     );
@@ -449,7 +449,7 @@ describe("the failure's words, by language", () => {
     expect(describeAttemptEnd(TIMED_OUT, dashboardTranslator("de"))).toBe(
       fill(word(DE, "Did not finish: {{cause}} Trying again at {{time}}."), {
         cause: fill(
-          word(DE, "The AI provider did not answer within {{count}} seconds."),
+          word(DE, "The LLM provider did not answer within {{count}} seconds."),
           { count: "120" },
         ),
         time: "14:05",
@@ -469,7 +469,7 @@ describe("the failure's words, by language", () => {
     );
 
     expect(describeAttemptEnd(TIMED_OUT, partly)).toBe(
-      "Did not finish: The AI provider did not answer within 120 seconds. Trying again at 14:05.",
+      "Did not finish: The LLM provider did not answer within 120 seconds. Trying again at 14:05.",
     );
   });
 });
@@ -536,7 +536,7 @@ describe("the failure's words, in Arabic", () => {
         },
         arabic,
       ).whatHappened,
-    ).toBe("لم يُجب موفّر الذكاء الاصطناعي خلال 120 ث.");
+    ).toBe("لم يُجب موفّر LLM خلال 120 ث.");
   });
 
   test("the notice's heading, its buttons and its links to the settings are Arabic too", () => {
@@ -559,7 +559,7 @@ describe("the failure's words, in Arabic", () => {
     expect(describeAttemptEnd(TIMED_OUT, arabic)).toBe(
       fill(word(AR, "Did not finish: {{cause}} Trying again at {{time}}."), {
         cause: fill(
-          word(AR, "The AI provider did not answer within {{count}} seconds."),
+          word(AR, "The LLM provider did not answer within {{count}} seconds."),
           { count: "120" },
         ),
         time: "14:05",
@@ -613,7 +613,7 @@ describe("a run's attempts and summary, in German", () => {
           cause: fill(
             word(
               DE,
-              "The AI provider did not answer within {{count}} seconds.",
+              "The LLM provider did not answer within {{count}} seconds.",
             ),
             { count: "120" },
           ),

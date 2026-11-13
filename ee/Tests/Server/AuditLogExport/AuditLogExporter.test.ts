@@ -32,6 +32,11 @@ import AuditLogExporter, {
   AuditLogExporterSummary,
   getAuditLogExportBackoffInMinutes,
 } from "../../../Server/AuditLogExport/AuditLogExporter";
+import {
+  AuditLogExportFailureNotice,
+  AuditLogExportFailureNotification,
+  AuditLogExportNotifier,
+} from "../../../Server/AuditLogExport/AuditLogExportNotifications";
 import AuditLogExportDestinationRegistry from "../../../Server/AuditLogExport/Destinations/DestinationRegistry";
 import { AuditLogExportDeliveryError } from "../../../Server/AuditLogExport/Destinations/Types";
 import EnterpriseFeature from "Common/Server/Enterprise/EnterpriseFeature";
@@ -79,9 +84,10 @@ import RecordingDestination from "./Fakes/RecordingDestination";
  * compare-and-set's: what is read (Export From, the settle time, the
  * cursor, the project), how it is batched (entries, bytes, the file wait),
  * what a delivery that fails leaves behind (no cursor move, the error, the
- * backoff), and when nothing runs at all (the license, the plan, a lock
- * another worker holds). AuditLogExporterPostgres runs the same exporter
- * on the real AuditLogExport table.
+ * backoff), when the entries a failing export has not sent are deleted
+ * (the stamps on them, #6563), and when nothing runs at all (the license,
+ * the plan, a lock another worker holds). AuditLogExporterPostgres runs the
+ * same exporter on the real AuditLogExport table.
  */
 
 const NOW: Date = new Date("2026-10-24T12:00:00.000Z");
@@ -630,6 +636,317 @@ describe("the audit log exporter", () => {
       await exporter().exportAll();
 
       expect(s3.batches).toHaveLength(1);
+    });
+  });
+
+  /*
+   * #6563: each entry is deleted on the retentionDate the recorder stamped
+   * on it, from the retention its project had then. A failing export reads
+   * the soonest of those stamps among the entries it has not sent, and
+   * hands it to its notifier with the email that is due, whatever the
+   * project's retention is now. The emails' words and moments are
+   * AuditLogExportNotifications.test.ts's; this is what the exporter reads
+   * for them, and when.
+   */
+  describe("when the entries a failing export has not sent are deleted", () => {
+    const MINUTE: number = 60 * 1000;
+    const HOUR: number = 60 * MINUTE;
+    const DAY: number = 24 * HOUR;
+
+    let told: Array<AuditLogExportFailureNotification & { at: Date }>;
+    // The project's retention as it is now.
+    let retentionNow: number;
+
+    const telling: AuditLogExportNotifier = {
+      getRetentionInDays: async (): Promise<number> => {
+        return retentionNow;
+      },
+      notifyFailure: async (
+        data: AuditLogExportFailureNotification,
+      ): Promise<void> => {
+        told.push({ ...data, at: clock });
+      },
+    };
+
+    const failingExporter: () => AuditLogExporter = (): AuditLogExporter => {
+      return new AuditLogExporter({
+        reader: auditLog.reader,
+        lock: freeLock(),
+        now: (): Date => {
+          return clock;
+        },
+        sleep: async (delayInMs: number): Promise<void> => {
+          sleeps.push(delayInMs);
+        },
+        notifier: telling,
+      });
+    };
+
+    const notices: () => Array<AuditLogExportFailureNotice> =
+      (): Array<AuditLogExportFailureNotice> => {
+        return told.map(
+          (
+            data: AuditLogExportFailureNotification,
+          ): AuditLogExportFailureNotice => {
+            return data.notice;
+          },
+        );
+      };
+
+    // Every try the export asks for, up to `until`.
+    const tryUntil: (
+      exports: InMemoryExports,
+      row: StoredExport,
+      until: Date,
+    ) => Promise<void> = async (
+      exports: InMemoryExports,
+      row: StoredExport,
+      until: Date,
+    ): Promise<void> => {
+      for (;;) {
+        await failingExporter().exportAll();
+
+        const next: Date | null = exports.get(row._id).nextAttemptAt;
+
+        if (!next || next.getTime() > until.getTime()) {
+          return;
+        }
+
+        clock = next;
+      }
+    };
+
+    const recorded: (data: {
+      secondsAgo: number;
+      retentionInDays?: number | undefined;
+      retentionDate?: Date | undefined;
+      projectId?: string | undefined;
+    }) => string = (data: {
+      secondsAgo: number;
+      retentionInDays?: number | undefined;
+      retentionDate?: Date | undefined;
+      projectId?: string | undefined;
+    }): string => {
+      return String(
+        auditLog.add({
+          createdAt: secondsBefore(data.secondsAgo),
+          retentionInDays: data.retentionInDays,
+          retentionDate: data.retentionDate,
+          projectId: data.projectId,
+        })["_id"],
+      );
+    };
+
+    beforeEach(() => {
+      told = [];
+      retentionNow = 7;
+      webhook.failNext(
+        100_000,
+        new AuditLogExportDeliveryError("refused the key (HTTP 401)", {
+          retryable: false,
+          status: 401,
+        }),
+      );
+      s3.failNext(
+        100_000,
+        new AuditLogExportDeliveryError("AccessDenied (HTTP 403)", {
+          retryable: false,
+          status: 403,
+        }),
+      );
+    });
+
+    test("only once an email can be due, it reads the soonest stamp of the entries after the export's cursor, its project's only, up to the try", async () => {
+      // Sent before the failures began, and stamped to go sooner than anything waiting.
+      const sent: string = recorded({
+        secondsAgo: 900,
+        retentionDate: new Date(NOW.getTime() + DAY),
+      });
+      const waiting: string = recorded({ secondsAgo: 600, retentionInDays: 7 });
+      recorded({ secondsAgo: 300, retentionInDays: 30 });
+      // Another project's, after the cursor and stamped sooner: not this export's.
+      recorded({
+        secondsAgo: 400,
+        projectId: PROJECT_B,
+        retentionDate: new Date(NOW.getTime() + 2 * DAY),
+      });
+      const row: StoredExport = webhookExport({
+        startsAt: new Date(NOW.getTime() - HOUR),
+        cursorCreatedAt: new Date(secondsBefore(900)),
+        cursorEntryId: sent,
+      });
+      const exports: InMemoryExports = useInMemoryExports([row]);
+
+      await tryUntil(exports, row, new Date(NOW.getTime() + 29 * MINUTE));
+
+      // No email can be due in the first 30 minutes: nothing read for one.
+      expect(auditLog.soonestReads).toEqual([]);
+
+      await tryUntil(exports, row, new Date(NOW.getTime() + 2 * HOUR));
+
+      expect(notices()).toEqual([AuditLogExportFailureNotice.Failing]);
+      expect(told[0]!.entriesLostAt!.toISOString()).toBe(
+        auditLog.stampOf(waiting).toISOString(),
+      );
+      expect(auditLog.soonestReads.length).toBeGreaterThan(0);
+
+      for (const read of auditLog.soonestReads) {
+        expect(read.until.getTime()).toBeGreaterThanOrEqual(
+          NOW.getTime() + 30 * MINUTE,
+        );
+        expect({ ...read, until: null }).toEqual({
+          projectId: PROJECT_A,
+          startsAt: new Date(NOW.getTime() - HOUR),
+          until: null,
+          after: { createdAt: new Date(secondsBefore(900)), id: sent },
+        });
+      }
+    });
+
+    test("lengthened from 7 days to 30 while entries wait: the notifier is handed their own 7-day stamp, and 'losing entries' comes 24 hours before it", async () => {
+      retentionNow = 30;
+      const first: string = recorded({ secondsAgo: 300, retentionInDays: 7 });
+      recorded({ secondsAgo: 240, retentionInDays: 7 });
+      const row: StoredExport = webhookExport({
+        startsAt: new Date(NOW.getTime() - HOUR),
+      });
+      const exports: InMemoryExports = useInMemoryExports([row]);
+      const stamped: Date = auditLog.stampOf(first);
+      const losingAt: number = stamped.getTime() - 24 * HOUR;
+
+      await tryUntil(exports, row, new Date(losingAt - 1));
+
+      expect(notices()).toEqual([AuditLogExportFailureNotice.Failing]);
+
+      await tryUntil(exports, row, new Date(losingAt + HOUR));
+
+      expect(notices()).toEqual([
+        AuditLogExportFailureNotice.Failing,
+        AuditLogExportFailureNotice.LosingEntries,
+      ]);
+      expect(told[1]!.at.getTime()).toBeGreaterThanOrEqual(losingAt);
+      expect(told[1]!.at.getTime() - losingAt).toBeLessThanOrEqual(HOUR);
+      expect(told[1]!.entriesLostAt!.toISOString()).toBe(stamped.toISOString());
+      // The retention as it is now travels with it, for the email's other words.
+      expect(told[1]!.retentionInDays).toBe(30);
+    });
+
+    test("shortened from 30 days to 7 while entries wait: no 'losing entries' when a week would have ended, and one 24 hours before their 30-day stamp", async () => {
+      retentionNow = 7;
+      const first: string = recorded({ secondsAgo: 300, retentionInDays: 30 });
+      const row: StoredExport = webhookExport({
+        startsAt: new Date(NOW.getTime() - HOUR),
+      });
+      const exports: InMemoryExports = useInMemoryExports([row]);
+      const stamped: Date = auditLog.stampOf(first);
+      const losingAt: number = stamped.getTime() - 24 * HOUR;
+
+      // Past where the 7 days the project keeps now would have put it.
+      await tryUntil(exports, row, new Date(NOW.getTime() + 8 * DAY));
+
+      expect(notices()).toEqual([AuditLogExportFailureNotice.Failing]);
+
+      await tryUntil(exports, row, new Date(losingAt + HOUR));
+
+      expect(notices()).toEqual([
+        AuditLogExportFailureNotice.Failing,
+        AuditLogExportFailureNotice.LosingEntries,
+      ]);
+      expect(told[1]!.at.getTime()).toBeGreaterThanOrEqual(losingAt);
+      expect(told[1]!.at.getTime() - losingAt).toBeLessThanOrEqual(HOUR);
+      expect(told[1]!.entriesLostAt!.toISOString()).toBe(stamped.toISOString());
+    });
+
+    test("the instance's export: the soonest stamp among every project's entries waiting, a newer one from a project that keeps them a week", async () => {
+      recorded({ secondsAgo: 600, retentionInDays: 30, projectId: PROJECT_A });
+      const soonest: string = recorded({
+        secondsAgo: 300,
+        retentionInDays: 7,
+        projectId: PROJECT_B,
+      });
+      const row: StoredExport = s3Export({
+        projectId: null,
+        startsAt: new Date(NOW.getTime() - HOUR),
+      });
+      const exports: InMemoryExports = useInMemoryExports([row]);
+
+      await tryUntil(exports, row, new Date(NOW.getTime() + 2 * HOUR));
+
+      expect(notices()).toEqual([AuditLogExportFailureNotice.Failing]);
+      // The oldest entry is A's; the first to go is B's.
+      expect(told[0]!.oldestUnsentAt!.toISOString()).toBe(secondsBefore(600));
+      expect(told[0]!.entriesLostAt!.toISOString()).toBe(
+        auditLog.stampOf(soonest).toISOString(),
+      );
+      expect(
+        auditLog.soonestReads.every((read: { projectId: string | null }) => {
+          return read.projectId === null;
+        }),
+      ).toBe(true);
+    });
+
+    /*
+     * #7185: the first entry waiting can be past its stamp already - the
+     * audit log drops a whole part only once every entry in it has passed
+     * its own - and the email must then say entries are being lost rather
+     * than "fix the destination before" a date in the past. It can tell
+     * only from the time of the try, which the exporter hands on with the
+     * moment: the clock the try ran on, never the one the email is sent on.
+     */
+    test("an entry past its own stamp: the notifier is handed that stamp with the try's own time, which it has passed", async () => {
+      retentionNow = 30;
+      // Recorded nine days ago with a week's retention: past its stamp, not dropped yet.
+      const expired: string = recorded({
+        secondsAgo: 9 * 24 * 60 * 60,
+        retentionInDays: 7,
+      });
+      recorded({ secondsAgo: 300, retentionInDays: 30 });
+      const row: StoredExport = webhookExport({
+        startsAt: new Date(NOW.getTime() - 30 * DAY),
+      });
+      const exports: InMemoryExports = useInMemoryExports([row]);
+
+      await tryUntil(exports, row, new Date(NOW.getTime() + 2 * HOUR));
+
+      expect(notices()).toEqual([AuditLogExportFailureNotice.LosingEntries]);
+      expect(told[0]!.entriesLostAt!.toISOString()).toBe(
+        auditLog.stampOf(expired).toISOString(),
+      );
+      // The try it was due on, the first 30 minutes in: its own clock, not today's.
+      expect(told[0]!.now.toISOString()).toBe(told[0]!.at.toISOString());
+      expect(told[0]!.now.getTime()).toBeGreaterThanOrEqual(
+        NOW.getTime() + 30 * MINUTE,
+      );
+      expect(told[0]!.now.getTime()).toBeLessThan(NOW.getTime() + HOUR);
+      expect(told[0]!.entriesLostAt!.getTime()).toBeLessThan(
+        told[0]!.now.getTime(),
+      );
+    });
+
+    test("every notification carries the time of the try it was due on, a date still ahead of it included", async () => {
+      const first: string = recorded({ secondsAgo: 300, retentionInDays: 7 });
+      const row: StoredExport = webhookExport({
+        startsAt: new Date(NOW.getTime() - HOUR),
+      });
+      const exports: InMemoryExports = useInMemoryExports([row]);
+      const losingAt: number = auditLog.stampOf(first).getTime() - 24 * HOUR;
+
+      await tryUntil(exports, row, new Date(losingAt + HOUR));
+
+      expect(notices()).toEqual([
+        AuditLogExportFailureNotice.Failing,
+        AuditLogExportFailureNotice.LosingEntries,
+      ]);
+
+      for (const notification of told) {
+        expect(notification.now.toISOString()).toBe(
+          notification.at.toISOString(),
+        );
+        // A day ahead, or more: the email keeps "will start losing entries".
+        expect(
+          notification.entriesLostAt!.getTime() - notification.now.getTime(),
+        ).toBeGreaterThanOrEqual(23 * HOUR);
+      }
     });
   });
 

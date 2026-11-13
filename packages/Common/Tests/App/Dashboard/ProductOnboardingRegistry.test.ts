@@ -1,7 +1,9 @@
+// UX rule: Docs/ux/README.md#a-products-first-page
 import { describe, expect, test } from "@jest/globals";
 import * as fs from "fs";
 import * as path from "path";
 import {
+  OnboardedProductKey,
   PRODUCTS_WITHOUT_ONBOARDING,
   PRODUCT_ABOUT_TEXT,
   PRODUCT_EXAMPLE_DESCRIPTION,
@@ -15,6 +17,9 @@ import {
   ShowcaseFeature,
   ShowcaseRow,
   ShowcaseStat,
+  ShowcaseStatus,
+  ShowcaseValue,
+  isShowcaseFigure,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceShowcase/ResourceShowcase";
 import {
   TELEMETRY_FIRST_RUNS,
@@ -69,9 +74,10 @@ function read(relativePath: string): string {
   return fs.readFileSync(path.join(DASHBOARD_SRC, relativePath), "utf8");
 }
 
-const ONBOARDINGS: Array<[ProductKey, ProductOnboarding]> = Object.entries(
-  PRODUCT_ONBOARDINGS,
-) as Array<[ProductKey, ProductOnboarding]>;
+const ONBOARDINGS: Array<[OnboardedProductKey, ProductOnboarding]> =
+  Object.entries(PRODUCT_ONBOARDINGS) as Array<
+    [OnboardedProductKey, ProductOnboarding]
+  >;
 
 // The products of the products menu, by the page each one opens.
 const MENU_ROUTE_PATTERN: RegExp =
@@ -116,7 +122,7 @@ const isResource: (product: ProductKey) => boolean = (
 };
 
 // Each product's layout: the one file that draws its page title.
-const LAYOUTS: Record<ProductKey, string> = {
+const LAYOUTS: Record<OnboardedProductKey, string> = {
   [ProductKey.Monitors]: "Pages/Monitor/Layout.tsx",
   [ProductKey.Incidents]: "Pages/Incidents/Layout.tsx",
   [ProductKey.Alerts]: "Pages/Alerts/Layout.tsx",
@@ -168,7 +174,10 @@ const LAYOUTS: Record<ProductKey, string> = {
  * product's own showcase (a list's, a telemetry explorer's, an overview's),
  * or the resource's showcase it already drew.
  */
-const FIRST_PAGES: Record<ProductKey, { file: string; draws: string }> = {
+const FIRST_PAGES: Record<
+  OnboardedProductKey,
+  { file: string; draws: string }
+> = {
   [ProductKey.Monitors]: {
     file: "Pages/Monitor/Monitors.tsx",
     draws: "product: ProductKey.Monitors,",
@@ -346,7 +355,7 @@ const FIRST_PAGES: Record<ProductKey, { file: string; draws: string }> = {
 };
 
 // The lists: each draws its explanation under its own empty table.
-const LISTS_UNDER_A_TABLE: Array<ProductKey> = [
+const LISTS_UNDER_A_TABLE: Array<OnboardedProductKey> = [
   ProductKey.Monitors,
   ProductKey.Incidents,
   ProductKey.Alerts,
@@ -359,6 +368,12 @@ const LISTS_UNDER_A_TABLE: Array<ProductKey> = [
   ProductKey.Workflows,
   ProductKey.Runbooks,
   ProductKey.Forms,
+];
+
+// The pages whose own words say what their product is for: the lists, and Code.
+const UNDER_THEIR_PAGES_OWN_WORDS: Array<OnboardedProductKey> = [
+  ...LISTS_UNDER_A_TABLE,
+  ProductKey.Code,
 ];
 
 // What draws the showcase of a list whose first step is a page of its own.
@@ -401,10 +416,21 @@ function getShowcaseWords(showcase: ResourceShowcase): Array<string> {
 }
 
 /*
- * A row's state is a word ("Degraded") or a value drawn as written
- * ("120 ms", "31%", "214"), as a stat's value is.
+ * A row's state is a word ("Degraded"), or a figure ({ milliseconds: 120 })
+ * written the reader's way when it is drawn, as a stat's value is: the
+ * words are the ones a translator finds.
  */
-const DRAWN_AS_WRITTEN_PATTERN: RegExp = /^[\d.,]+\s?(%|ms|s)?$/;
+function getRowStateWords(showcase: ResourceShowcase): Array<string> {
+  const words: Array<string> = [];
+
+  for (const row of showcase.preview.rows) {
+    if (!isShowcaseFigure(row.statusText)) {
+      words.push(row.statusText);
+    }
+  }
+
+  return words;
+}
 
 const EN: Record<string, string> = JSON.parse(
   read("Locales/en.json"),
@@ -449,10 +475,8 @@ function getProductWords(): Array<string> {
     for (const word of getShowcaseWords(onboarding.showcase)) {
       words.add(word);
     }
-    for (const row of onboarding.showcase.preview.rows) {
-      if (!DRAWN_AS_WRITTEN_PATTERN.test(row.statusText)) {
-        words.add(row.statusText);
-      }
+    for (const word of getRowStateWords(onboarding.showcase)) {
+      words.add(word);
     }
   }
 
@@ -501,7 +525,7 @@ describe("every product of the products menu explains itself", () => {
 
   test("a resource's explanation is the showcase its empty list already draws", () => {
     for (const [product, showcase] of Object.entries(RESOURCE_SHOWCASES)) {
-      expect(PRODUCT_ONBOARDINGS[product as ProductKey].showcase).toBe(
+      expect(PRODUCT_ONBOARDINGS[product as OnboardedProductKey].showcase).toBe(
         showcase,
       );
     }
@@ -511,7 +535,7 @@ describe("every product of the products menu explains itself", () => {
 describe("each explanation is complete", () => {
   test.each(ONBOARDINGS)(
     "%s: a pitch, how to start, an example, and a documentation page that exists",
-    (product: ProductKey, onboarding: ProductOnboarding) => {
+    (product: OnboardedProductKey, onboarding: ProductOnboarding) => {
       const showcase: ResourceShowcase = onboarding.showcase;
 
       expect(onboarding.name.trim()).not.toBe("");
@@ -571,12 +595,9 @@ describe("each explanation is complete", () => {
       }
 
       if (!isResource(product)) {
-        for (const row of onboarding.showcase.preview.rows) {
-          if (
-            EN[row.statusText] === undefined &&
-            !DRAWN_AS_WRITTEN_PATTERN.test(row.statusText)
-          ) {
-            missing.push(`${product}: ${row.statusText}`);
+        for (const word of getRowStateWords(onboarding.showcase)) {
+          if (EN[word] === undefined) {
+            missing.push(`${product}: ${word}`);
           }
         }
       }
@@ -644,7 +665,9 @@ describe("each explanation is complete", () => {
       }
       for (const stat of onboarding.showcase.preview.stats) {
         if (stat.label === "Uptime") {
-          uptimes.push(`${product}: ${stat.label} ${stat.value}`);
+          uptimes.push(
+            `${product}: ${stat.label} ${JSON.stringify(stat.value)}`,
+          );
         }
       }
       if (onboarding.showcase.preview.chart.label === "Uptime") {
@@ -656,10 +679,149 @@ describe("each explanation is complete", () => {
   });
 });
 
+/*
+ * AN EXAMPLE'S NUMBERS ARE FIGURES (#6535).
+ *
+ * A number written as text in an example ("1,284", "99.98%", "184 ms") is
+ * drawn as written in every language, and "1,284" reads as one point two
+ * eight four to a German, Spanish or French reader. A figure is written the
+ * reader's way when it is drawn (formatShowcaseFigure). Text is left to what
+ * is not a number to be written: a code ("SEV 1", "P2", an HTTP status
+ * "200"), a term the software shows ("CrashLoopBackOff"). A clock is a
+ * figure too ({ clock: "00:21:07" }): a Persian page writes it "۰۰:۲۱:۰۷".
+ */
+
+const DIGIT_PATTERN: RegExp = /\d/;
+
+// The issue's patterns: "1,284" and "99.98".
+const THOUSANDS_COMMA_PATTERN: RegExp = /\d,\d{3}/;
+const DECIMAL_POINT_PATTERN: RegExp = /\d\.\d/;
+
+// The stats whose value is a code, written as the software writes it.
+const CODE_STAT_LABELS: Array<string> = ["Status Code", "Severity"];
+
+// The stat values and row states of `showcase` that are numbers written as text.
+function getNumbersWrittenAsText(showcase: ResourceShowcase): Array<string> {
+  const found: Array<string> = [];
+  const check: (
+    where: string,
+    value: ShowcaseValue,
+    isCode: boolean,
+  ) => void = (where: string, value: ShowcaseValue, isCode: boolean): void => {
+    if (isShowcaseFigure(value) || !DIGIT_PATTERN.test(value)) {
+      return;
+    }
+    if (isCode) {
+      return;
+    }
+    found.push(`${where}: ${value}`);
+  };
+
+  for (const stat of showcase.preview.stats) {
+    check(stat.label, stat.value, CODE_STAT_LABELS.includes(stat.label));
+  }
+  for (const row of showcase.preview.rows) {
+    check(row.name, row.statusText, false);
+  }
+
+  return found;
+}
+
+describe("an example's numbers are written in the reader's language", () => {
+  test.each(ONBOARDINGS)(
+    "%s: its example's numbers are figures, not English text",
+    (_product: OnboardedProductKey, onboarding: ProductOnboarding) => {
+      expect(getNumbersWrittenAsText(onboarding.showcase)).toEqual([]);
+    },
+  );
+
+  test("the guard finds a number or a clock written as text, and leaves codes and words", () => {
+    const showcase: ResourceShowcase = {
+      ...PRODUCT_ONBOARDINGS[ProductKey.StatusPages].showcase,
+      preview: {
+        ...PRODUCT_ONBOARDINGS[ProductKey.StatusPages].showcase.preview,
+        stats: [
+          { label: "Subscribers", value: "1,284" },
+          { label: "Availability", value: "99.98%" },
+          { label: "Severity", value: "SEV 1" },
+          { label: "Duration", value: "00:21:07" },
+          { label: "Queries", value: "482k" },
+          { label: "Burn rate", value: "0.4x" },
+          { label: "Spend", value: "$4,120" },
+          { label: "OSDs up", value: "11/12" },
+          { label: "Pods", value: 248 },
+          { label: "CPU", value: { percent: 63 } },
+          { label: "Window", value: { clock: "02:00:00" } },
+        ],
+        rows: [
+          {
+            name: "checkout-api",
+            detail: "Server",
+            status: ShowcaseStatus.Healthy,
+            statusText: "120 ms",
+          },
+          {
+            name: "payments",
+            detail: "Server",
+            status: ShowcaseStatus.Critical,
+            statusText: "CrashLoopBackOff",
+          },
+          {
+            name: "orders",
+            detail: "Server",
+            status: ShowcaseStatus.Healthy,
+            statusText: { milliseconds: 120 },
+          },
+        ],
+      },
+    };
+
+    expect(getNumbersWrittenAsText(showcase)).toEqual([
+      "Subscribers: 1,284",
+      "Availability: 99.98%",
+      "Duration: 00:21:07",
+      "Queries: 482k",
+      "Burn rate: 0.4x",
+      "Spend: $4,120",
+      "OSDs up: 11/12",
+      "checkout-api: 120 ms",
+    ]);
+  });
+
+  test("the issue's own patterns find nothing either: no thousands comma, no decimal point", () => {
+    const written: Array<string> = [];
+
+    for (const [product, onboarding] of ONBOARDINGS) {
+      for (const value of [
+        ...onboarding.showcase.preview.stats.map(
+          (stat: ShowcaseStat): ShowcaseValue => {
+            return stat.value;
+          },
+        ),
+        ...onboarding.showcase.preview.rows.map(
+          (row: ShowcaseRow): ShowcaseValue => {
+            return row.statusText;
+          },
+        ),
+      ]) {
+        if (
+          typeof value === "string" &&
+          (THOUSANDS_COMMA_PATTERN.test(value) ||
+            DECIMAL_POINT_PATTERN.test(value))
+        ) {
+          written.push(`${product}: ${value}`);
+        }
+      }
+    }
+
+    expect(written).toEqual([]);
+  });
+});
+
 describe("the explanation is where each product is", () => {
   test.each(ONBOARDINGS)(
     "%s: How it works sits beside its page's title",
-    (product: ProductKey) => {
+    (product: OnboardedProductKey) => {
       const layout: string = read(LAYOUTS[product]);
       const about: RegExp = new RegExp(
         `titleRight=\\{\\s*<ProductAboutButton\\s+product=\\{[^}]*ProductKey\\.${
@@ -673,7 +835,7 @@ describe("the explanation is where each product is", () => {
 
   test.each(ONBOARDINGS)(
     "%s: its first page draws it while there is nothing yet",
-    (product: ProductKey) => {
+    (product: OnboardedProductKey) => {
       const firstPage: { file: string; draws: string } = FIRST_PAGES[product];
 
       expect(read(firstPage.file)).toContain(firstPage.draws);
@@ -687,9 +849,9 @@ describe("the explanation is where each product is", () => {
    * Its title, steps, example and documentation follow; About, with no
    * table above it, says it all.
    */
-  test.each([...LISTS_UNDER_A_TABLE, ProductKey.Code])(
+  test.each(UNDER_THEIR_PAGES_OWN_WORDS)(
     "%s: under the page's own words, its showcase leaves its description to them",
-    (product: ProductKey) => {
+    (product: OnboardedProductKey) => {
       const firstPage: { file: string; draws: string } = FIRST_PAGES[product];
       const source: string = read(firstPage.file);
 
@@ -716,7 +878,7 @@ describe("the explanation is where each product is", () => {
 
   test("a showcase drawn alone says what its product is for", () => {
     for (const [product] of ONBOARDINGS) {
-      if ([...LISTS_UNDER_A_TABLE, ProductKey.Code].includes(product)) {
+      if (UNDER_THEIR_PAGES_OWN_WORDS.includes(product)) {
         continue;
       }
 
@@ -732,7 +894,8 @@ describe("the explanation is where each product is", () => {
   test("a telemetry product's button is its first step, and its setup guide waits for that telemetry", () => {
     for (const [product, firstRun] of Object.entries(TELEMETRY_FIRST_RUNS)) {
       const steps: Array<string> =
-        PRODUCT_ONBOARDINGS[product as ProductKey].showcase.steps || [];
+        PRODUCT_ONBOARDINGS[product as OnboardedProductKey].showcase.steps ||
+        [];
 
       expect(steps[0]).toBe(firstRun.startText);
       expect(firstRun.viewPage.startsWith("SERVICE_VIEW")).toBe(true);

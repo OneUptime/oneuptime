@@ -86,29 +86,28 @@ Die Karte heißt **Benutzerdefinierte Domains** und sagt, was zu tun ist: Lassen
 
 Ihr Dashboard unter Ihrer eigenen Domain bereitzustellen, braucht drei Schritte, und nur die ersten beiden sind Ihre:
 
-1. **Die Domain hinzufügen**: eine Subdomain und eine Ihrer verifizierten Domains.
-2. **Ihren CNAME-Eintrag hinzufügen**, bei Ihrem DNS-Anbieter. Der Dialog **DNS-Einrichtung** öffnet sich mit dem Eintrag, sobald Sie die Domain hinzufügen.
+1. **Die Domain hinzufügen**: Geben Sie die Adresse ein, die Leute öffnen werden, etwa `dashboard.acme.com`.
+2. **Ihre DNS-Einträge hinzufügen**, bei Ihrem DNS-Anbieter. Der Dialog **DNS-Einrichtung** zeigt sie: einen CNAME-Eintrag für die Adresse und, wenn das Projekt eine Domain zum ersten Mal verwendet, einen TXT-Eintrag, der zeigt, dass die Domain dem Projekt gehört.
 3. **Das kostenlose SSL-Zertifikat wird automatisch ausgestellt**, sobald der Eintrag gefunden wird. Es gibt keine Schaltfläche zu drücken.
 
 Nach der Verifizierung ist das Dashboard sowohl unter Ihrer eigenen Domain als auch unter der ursprünglichen URL erreichbar.
 
 ### Die Domain hinzufügen
 
-Klicken Sie auf **Dashboard-Domain erstellen**. Der Dialog ist eine einzige Seite:
+Klicken Sie auf **Benutzerdefinierte Domain hinzufügen**. Der Dialog fragt nach einer einzigen Sache:
 
-- **Subdomain**: nur die Bezeichnung, Platzhalter `dashboard (leave blank for root)`. Geben Sie nur `dashboard` ein, nicht den ganzen Hostnamen. Lassen Sie sie leer oder geben Sie `@` ein, um die Stammdomain (Apex) zu verwenden.
-- **Domäne**: die unter **Projekteinstellungen → Erweitert → Domänen** verifizierten Domains, wo Sie mit einem TXT-Eintrag beweisen, dass Ihnen eine Domain gehört. Eine Domain, die Sie nicht verifiziert haben, wird nicht aufgeführt, weil sie abgelehnt würde. Der Link **Domain hinzufügen** neben dem Feld öffnet diese Seite in einem neuen Tab.
+- **Domäne**: die ganze Adresse, die Leute öffnen werden, Platzhalter `dashboard.example.com`. Ein eingefügter Link funktioniert auch: Nur sein Hostname wird übernommen. Um die Stammdomain zu verwenden, geben Sie die Domain selbst ein.
 - **Weitere Felder**: eingeklappt. Solange es eingeklappt ist, sagt sein Kopf, welches Zertifikat die Domain verwenden wird: „Wir stellen ein kostenloses SSL-Zertifikat für diese Domain aus und erneuern es automatisch.“ Öffnen Sie es nur, um ein eigenes Zertifikat zu verwenden (siehe unten).
 
-Klicken Sie auf **Dashboard-Domain erstellen**. Der Dialog schließt sich, und die **DNS-Einrichtung** der neuen Domain öffnet sich. Der vollständige Name einer Domain wird beim Hinzufügen festgelegt; **Bearbeiten** ändert daher nur ihr Zertifikat. Um eine andere Subdomain zu verwenden, fügen Sie diese Domain hinzu und löschen die alte.
+Klicken Sie auf **Weiter**. Hat das Projekt die Domain, auf der die Adresse liegt, unter **Projekteinstellungen → Erweitert → Domänen** verifiziert, wird die Domain hinzugefügt und ihre **DNS-Einrichtung** öffnet sich. Wenn nicht, fügt OneUptime diese Domain zum Projekt hinzu, und die **DNS-Einrichtung** öffnet sich auch mit ihrem TXT-Eintrag, sodass Sie sie direkt dort verifizieren. Der vollständige Name einer Domain wird beim Hinzufügen festgelegt; **Bearbeiten** ändert daher nur ihr Zertifikat. Um eine andere Adresse zu verwenden, fügen Sie diese hinzu und löschen die alte.
 
 ### DNS-Einrichtung und Jetzt prüfen
 
-Der Dialog **DNS-Einrichtung** zeigt den Eintrag, den Sie bei Ihrem DNS-Anbieter hinzufügen, ein Feld pro Zeile, jedes mit einer Schaltfläche zum Kopieren: **Typ** `CNAME`, **Name** die vollständige Domain, die Sie hinzugefügt haben, und **Wert** der Dashboard-CNAME-Eintrag Ihrer Installation. Für eine Stammdomain, eine ohne Subdomain, fügt der Dialog einen Hinweis hinzu: Viele DNS-Anbieter erlauben dort keinen CNAME-Eintrag, verwenden Sie daher stattdessen den ALIAS-, ANAME- oder CNAME-Flattening-Eintrag Ihres Anbieters mit demselben Wert.
+Der Dialog **DNS-Einrichtung** zeigt jeden Eintrag, den Sie bei Ihrem DNS-Anbieter hinzufügen, ein Feld pro Zeile, jedes mit einer Schaltfläche zum Kopieren: **Typ** `CNAME`, **Name** die vollständige Domain, die Sie hinzugefügt haben, und **Wert** der Dashboard-CNAME-Eintrag Ihrer Installation, nach dem TXT-Eintrag der Domain, solange das Projekt sie nicht verifiziert hat. Für eine Stammdomain, eine ohne Subdomain, fügt der Dialog einen Hinweis hinzu: Viele DNS-Anbieter erlauben dort keinen CNAME-Eintrag, verwenden Sie daher stattdessen den ALIAS-, ANAME- oder CNAME-Flattening-Eintrag Ihres Anbieters mit demselben Wert.
 
 OneUptime prüft jede nicht verifizierte Domain alle 15 Minuten, und wenn die Prüfung den Eintrag findet, bestellt sie das kostenlose Let's-Encrypt-Zertifikat der Domain in derselben Prüfung, ob Sie zurückkommen oder nicht. Um sofort zu prüfen, klicken Sie auf **Jetzt prüfen**:
 
-- **Der Eintrag ist noch nicht gefunden.** Der Dialog bleibt offen und sagt, nach welchem Eintrag er gesucht hat. Ein neuer DNS-Eintrag kann eine Weile brauchen, bis er erscheint. Klicken Sie später erneut auf **Jetzt prüfen**, oder überlassen Sie es der Prüfung alle 15 Minuten.
+- **Der Eintrag ist noch nicht gefunden.** Der Dialog bleibt offen und sagt unter jedem Eintrag, was OneUptime nachgeschlagen hat und was zurückkam: nichts, ein anderer Wert oder eine Adresse, wo ein CNAME-Eintrag erwartet wurde. Ein neuer DNS-Eintrag kann eine Weile brauchen, bis er erscheint. Klicken Sie später erneut auf **Jetzt prüfen**, oder überlassen Sie es der Prüfung alle 15 Minuten.
 - **Der Eintrag ist gefunden.** Der Dialog sagt „Ihr CNAME-Eintrag ist verifiziert.“ und was als Nächstes mit dem Zertifikat geschieht. Das kostenlose Zertifikat wird in diesem Moment bestellt und ist meist innerhalb von 15 Minuten aktiv.
 
 Bis eine Domain verifiziert ist und ihr Zertifikat bereitsteht, hat ihre Zeile eine Aktion **DNS-Einrichtung**, die denselben Dialog öffnet. Bei einer verifizierten Domain, deren Zertifikatsbestellung immer wieder fehlschlägt oder deren Zertifikat abgelaufen ist, bestellt **Jetzt prüfen** dort erneut und zeigt, warum die letzte Bestellung fehlgeschlagen ist. Es bestellt höchstens einmal pro Domain alle 15 Minuten; dazwischen versucht OneUptime es von selbst weiter und wartet nach jedem Fehlschlag in Folge etwas länger. Die Erneuerung erfolgt automatisch, lange bevor das Zertifikat abläuft, und eine fehlgeschlagene DNS-Prüfung entfernt nie ein Zertifikat, das noch gültig ist.

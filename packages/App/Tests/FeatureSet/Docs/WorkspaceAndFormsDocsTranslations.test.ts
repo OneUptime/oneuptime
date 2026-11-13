@@ -518,11 +518,12 @@ const COMPOSED_LABELS: Record<string, Record<string, Array<string | null>>> = {
 
 const COMPOSED_SEPARATOR: string = " · ";
 
-// A table's create button: the Dashboard draws it from the row's name.
-const TABLE_CREATE_BUTTONS: Record<string, Array<string>> = {
-  // The form's Custom Domains table, after its model (FormDomain).
-  [SHARING]: ["Create Form Domain"],
-};
+/*
+ * A table's create button: the Dashboard draws it from the row's name. The
+ * form's Custom Domains table had one, after its model ("Create Form
+ * Domain"); it opens Add Custom Domain now, a label like any other.
+ */
+const TABLE_CREATE_BUTTONS: Record<string, Array<string>> = {};
 
 // The public form page's labels, by the Accounts locale key it draws them with.
 const ACCOUNTS_LABELS: Record<string, Record<string, string>> = {
@@ -559,6 +560,7 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "On a self-hosted server,",
     // Slack Enterprise organizations: one project in several workspaces.
     "Which workspace a rule uses.",
+    "A workspace OneUptime was removed from.",
     "Where OneUptime works.",
     "A project connected to a single workspace.",
     // Asking everyone to connect.
@@ -597,6 +599,7 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Paging it.",
     "What Slack needs.",
     "Who may connect one.",
+    "In a Slack Enterprise organization.",
     "Disconnecting.",
     // The app's Home.
     "Your on-call.",
@@ -697,7 +700,7 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Files, per form",
     // Putting a form on a domain of your own: its three steps.
     "Add the domain",
-    "Add its CNAME record",
+    "Add its DNS records",
     "The free SSL certificate is issued automatically",
   ],
 };

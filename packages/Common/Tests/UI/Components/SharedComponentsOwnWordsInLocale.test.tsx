@@ -80,9 +80,10 @@ const GERMAN: Record<string, string> = {
   "{{count}} addresses_one": "{{count}} Adresse",
   Public: "Öffentlich",
   "Reachable from the internet.": "Aus dem Internet erreichbar.",
-  "{{count}} {{itemsName}}": "{{count}} {{itemsName}}",
-  "{{count}} {{itemsName}}_one": "{{count}} {{itemName}}",
-  "{{count}}+ {{itemsName}}": "{{count}}+ {{itemsName}}",
+  // A list's total, in the words of its kind of row (#6474).
+  "{{count}} spans": "{{count}} Spans",
+  "{{count}} spans_one": "{{count}} Span",
+  "{{count}}+ spans": "{{count}}+ Spans",
   spans: "Spans",
   span: "Span",
   "Too many to count in time. Narrow the time range for an exact total.":
@@ -118,10 +119,8 @@ const GERMAN: Record<string, string> = {
 const RUSSIAN: Record<string, string> = {
   "{{count}} Days": "Дней: {{count}}",
   "{{count}} Days_one": "{{count}} день",
-  "{{count}} {{itemsName}}": "{{itemsName}}: {{count}}",
-  "{{count}} {{itemsName}}_one": "Всего {{count}} {{itemName}}",
-  spans: "спанов",
-  span: "спан",
+  "{{count}} spans": "Спанов: {{count}}",
+  "{{count}} spans_one": "{{count}} спан",
   "{{key}}: {{value}}, locked filter matching any of {{count}} values":
     "{{key}}: {{value}}, закреплённый фильтр, значений: {{count}}",
   "{{key}}: {{value}}, locked filter matching any of {{count}} values_one":
@@ -345,7 +344,7 @@ describe("a count picks the plural form", () => {
 
     expect(
       screen.getByTestId(TELEMETRY_RESULT_TOTAL_TEST_ID),
-    ).toHaveTextContent(/^Всего 21 спан$/);
+    ).toHaveTextContent(/^21 спан$/);
 
     rerender(
       <TelemetryResultTotal
@@ -357,7 +356,7 @@ describe("a count picks the plural form", () => {
 
     expect(
       screen.getByTestId(TELEMETRY_RESULT_TOTAL_TEST_ID),
-    ).toHaveTextContent(/^спанов: 5$/);
+    ).toHaveTextContent(/^Спанов: 5$/);
   });
 
   test("the code editor's status bar", () => {

@@ -205,7 +205,16 @@ describe('"Inoperational" is gone', () => {
     expect(routeMap).toContain(
       '[PageMap.MONITORS_INOPERATIONAL]: "inoperational"',
     );
-    expect(routeMap).toContain("/home/monitors-inoperational");
+    /*
+     * Home's own copy of the list is gone (#6857): its address forwards to
+     * the Monitors product's list.
+     */
+    expect(readCode(path.join("Routes", "MovedPagePaths.ts"))).toContain(
+      'notOperationalMonitors: "monitors-inoperational",',
+    );
+    expect(readCode(path.join("Routes", "MovedHomeRoutes.tsx"))).toMatch(
+      /path=\{MOVED_HOME_LIST_PATHS\.notOperationalMonitors\}\s*element=\{<MovedPageRedirect pageMap=\{PageMap\.MONITORS_INOPERATIONAL\} \/>\}/,
+    );
   });
 
   test.each(Object.keys(locales))(
@@ -231,31 +240,18 @@ describe('"Inoperational" is gone', () => {
     },
   );
 
-  test("the Monitors and Home menus, the page titles and the breadcrumb say Not Operational", () => {
+  test("the Monitors menu, the page title and the breadcrumb say Not Operational", () => {
     const monitorMenu: string = readCode(
       path.join("Pages", "Monitor", "SideMenu.tsx"),
     );
-    const homeMenu: string = readCode(
-      path.join("Pages", "Home", "SideMenu.tsx"),
+
+    expect(monitorMenu).toMatch(
+      /title: "Not Operational",\s*to: RouteUtil\.populateRouteParams\(\s*RouteMap\[\s*PageMap\.MONITORS_INOPERATIONAL\s*\] as Route,?\s*\)/,
     );
 
-    for (const menu of [monitorMenu, homeMenu]) {
-      expect(menu).toMatch(
-        /title: "Not Operational",\s*to: RouteUtil\.populateRouteParams\(\s*RouteMap\[\s*PageMap\.(?:MONITORS_INOPERATIONAL|HOME_NOT_OPERATIONAL_MONITORS)\s*\] as Route,?\s*\)/,
-      );
-    }
-
-    for (const page of [
-      path.join("Pages", "Home", "NotOperationalMonitors.tsx"),
-      path.join("Pages", "Monitor", "NotOperationalMonitors.tsx"),
-    ]) {
-      expect(readCode(page)).toContain('title="Not Operational Monitors"');
-    }
-
-    const homeLayout: string = readCode(
-      path.join("Pages", "Home", "Layout.tsx"),
-    );
-    expect(homeLayout.match(/"Not Operational Monitors"/g)).toHaveLength(2);
+    expect(
+      readCode(path.join("Pages", "Monitor", "NotOperationalMonitors.tsx")),
+    ).toContain('title="Not Operational Monitors"');
 
     expect(
       readCode(path.join("Utils", "Breadcrumbs", "MonitorBreadcrumbs.ts")),
@@ -283,27 +279,19 @@ interface DescribedPage {
 }
 
 const DESCRIBED_PAGES: Array<[string, Array<DescribedPage>]> = [
+  /*
+   * Home kept copies of the active, not operational and ongoing lists with
+   * the same sentences; it is one page now, and opens the products' own
+   * (#6857).
+   */
   [
     "active incidents",
-    [
-      // Home's own Active Incidents page: Home itself is the overview now.
-      { file: "Pages/Home/ActiveIncidents.tsx", shape: "jsx" },
-      { file: "Pages/Incidents/Unresolved.tsx", shape: "jsx" },
-    ],
+    [{ file: "Pages/Incidents/Unresolved.tsx", shape: "jsx" }],
   ],
-  [
-    "active alerts",
-    [
-      { file: "Pages/Home/ActiveAlerts.tsx", shape: "jsx" },
-      { file: "Pages/Alerts/Unresolved.tsx", shape: "jsx" },
-    ],
-  ],
+  ["active alerts", [{ file: "Pages/Alerts/Unresolved.tsx", shape: "jsx" }]],
   [
     "not operational monitors",
-    [
-      { file: "Pages/Home/NotOperationalMonitors.tsx", shape: "jsx" },
-      { file: "Pages/Monitor/NotOperationalMonitors.tsx", shape: "jsx" },
-    ],
+    [{ file: "Pages/Monitor/NotOperationalMonitors.tsx", shape: "jsx" }],
   ],
   [
     "disabled monitors",
@@ -319,24 +307,15 @@ const DESCRIBED_PAGES: Array<[string, Array<DescribedPage>]> = [
   ],
   [
     "ongoing scheduled maintenance",
-    [
-      { file: "Pages/ScheduledMaintenanceEvents/Ongoing.tsx", shape: "jsx" },
-      { file: "Pages/Home/OngoingScheduledMaintenance.tsx", shape: "jsx" },
-    ],
+    [{ file: "Pages/ScheduledMaintenanceEvents/Ongoing.tsx", shape: "jsx" }],
   ],
   [
     "active incident episodes",
-    [
-      { file: "Pages/Home/ActiveIncidentEpisodes.tsx", shape: "jsx" },
-      { file: "Pages/Incidents/UnresolvedEpisodes.tsx", shape: "jsx" },
-    ],
+    [{ file: "Pages/Incidents/UnresolvedEpisodes.tsx", shape: "jsx" }],
   ],
   [
     "active alert episodes",
-    [
-      { file: "Pages/Home/ActiveEpisodes.tsx", shape: "jsx" },
-      { file: "Pages/Alerts/UnresolvedEpisodes.tsx", shape: "jsx" },
-    ],
+    [{ file: "Pages/Alerts/UnresolvedEpisodes.tsx", shape: "jsx" }],
   ],
   ["workflows", [{ file: "Pages/Workflow/Workflows.tsx", shape: "cardProps" }]],
   [
@@ -433,10 +412,7 @@ describe("list descriptions say what the list holds", () => {
      * "All monitors in operational state." was said to projects with no
      * monitors at all. The replacement is true either way.
      */
-    for (const file of [
-      "Pages/Home/NotOperationalMonitors.tsx",
-      "Pages/Monitor/NotOperationalMonitors.tsx",
-    ]) {
+    for (const file of ["Pages/Monitor/NotOperationalMonitors.tsx"]) {
       const code: string = readCode(file);
 
       expect(code).not.toContain("All monitors in operational state.");
@@ -449,10 +425,7 @@ describe("list descriptions say what the list holds", () => {
   });
 
   test("ongoing maintenance is not pluralised as 'Maintenances'", () => {
-    for (const file of [
-      "Pages/ScheduledMaintenanceEvents/Ongoing.tsx",
-      "Pages/Home/OngoingScheduledMaintenance.tsx",
-    ]) {
+    for (const file of ["Pages/ScheduledMaintenanceEvents/Ongoing.tsx"]) {
       const code: string = readCode(file);
 
       expect(code).toContain('title="Ongoing Scheduled Maintenance"');
@@ -776,22 +749,24 @@ describe("Home's overview tiles", () => {
 });
 
 describe("Getting Started", () => {
-  const code: string = readCode("Components/Home/GettingStarted.tsx");
+  // The steps' words and pages, since #6803 in the Welcome checklist's catalog.
+  const code: string = readCode(
+    "Components/Home/WelcomeChecklist/WelcomeChecklistCatalog.ts",
+  );
 
   const taskBlock: (key: string) => string = (key: string): string => {
-    const start: number = code.indexOf(`key: "${key}"`);
+    const start: number = code.indexOf(`step: WelcomeStep.${key},`);
 
     expect(start).toBeGreaterThanOrEqual(0);
 
-    const end: number = code.indexOf("isComplete:", start);
-
-    expect(end).toBeGreaterThan(start);
+    const next: number = code.indexOf("step: WelcomeStep.", start + 1);
+    const end: number = next > start ? next : code.length;
 
     return code.slice(start, end);
   };
 
   test("Invite your team opens Users, where Invite User is", () => {
-    const block: string = taskBlock("invite-team");
+    const block: string = taskBlock("Team");
 
     expect(block).toContain("pageMap: PageMap.USERS");
     expect(block).not.toContain("PageMap.TEAMS");
@@ -806,16 +781,16 @@ describe("Getting Started", () => {
   });
 
   test("Create your first monitor opens the form, gated on the create permission", () => {
-    const block: string = taskBlock("create-monitor");
+    const block: string = taskBlock("Monitor");
 
     expect(block).toContain("pageMap: PageMap.MONITORS");
     expect(block).toMatch(
       /createPage: \{\s*pageMap: PageMap\.MONITOR_CREATE,\s*modelType: Monitor,?\s*\}/,
     );
     expect(code).toMatch(
-      /PermissionGate\.check\(\s*new task\.createPage\.modelType\(\),\s*ModelAction\.Create,?\s*\)\s*\.isAllowed/,
+      /PermissionGate\.check\(\s*new entry\.createPage\.modelType\(\),\s*ModelAction\.Create,?\s*\)\s*\.isAllowed/,
     );
-    expect(code).toContain("RouteMap[getTaskPageMap(task)]");
+    expect(code).toContain("RouteMap[page]");
   });
 });
 

@@ -1,3 +1,4 @@
+// UX rule: Docs/ux/README.md#in-every-language
 import { describe, expect, test } from "@jest/globals";
 import {
   getDefaultContext,
@@ -20,47 +21,142 @@ import { HardcodedString } from "../../FeatureSet/Dashboard/scripts/i18n/Extract
  * reader no longer meets "Find historical detections", "Enabled, every 5
  * minutes" or "Showing 50 of 120 matching attributes" in English.
  *
- * `npm run i18n:hardcoded -- --dir Components/<name>` lists what is still
- * written as it is; this keeps the routed directories at nothing, except the
- * one string below, and the Dashboard's other directories from S to W from
- * growing while they are routed in turn.
+ * The third part routes the rest of the directories from S to W: Session
+ * Replay's events rail and its detail, the telemetry setup guides and the
+ * investigation drawer, trace pipelines and trace recording rules, the web
+ * vitals cards, user flows, Slack's channel cache, teams, users, the
+ * timezone prompt and workflow variables. A reader no longer meets "No
+ * requests match this filter", "Next refresh in 5 seconds", "3 pages after
+ * /checkout" or "Profiles are flowing! 2 sources reporting." in English.
+ *
+ * `npm run i18n:hardcoded` lists what is still written as it is; this keeps
+ * every directory from S to W at nothing but the reviewed strings below, and
+ * the whole list from growing: each file of it may only shrink.
  *
  * Counted per file rather than quoted, so reformatting a file never fails
- * this; a new hard-coded string in any of these directories does.
+ * this; a new hard-coded string anywhere does.
  */
 
 const DASHBOARD_SOURCE: string = "packages/App/FeatureSet/Dashboard/src/";
 
-// The directories this change routed: nothing hard-coded is left in them.
-const ROUTED: RegExp =
-  /^Components\/(SecurityCase|SecurityEvents|Slo|StatusPage|Topology|TwoFactorAuth|Workspace)\//;
-
-// The directories the three parts of #6658 share out: S to W.
-const S_TO_W: RegExp = /^Components\/[S-W]/;
+// The directories the three parts of #6658 routed: S to W.
+const ROUTED: RegExp = /^Components\/[S-W]/;
 
 const ALLOWED_IN_ROUTED: Record<string, { count: number; why: string }> = {
   "Components/Topology/Export/NetworkTopologyExportDocument.ts": {
     count: 1,
     why: "the exported PDF's document title (`Network topology - ${title}`): the PDF itself is written in English, so its title in the file's metadata is too",
   },
+  "Components/SessionReplay/Rail/ReplayRailDetail.tsx": {
+    count: 1,
+    why: 'the "x" between a viewport\'s width and height (1440x900): a size, written the same in every language',
+  },
 };
 
 /*
- * The directories from S to W the next parts of #6658 route: each may only
- * shrink. A part that empties one moves it into ROUTED above.
+ * Everything `npm run i18n:hardcoded` still lists, file by file, and why it
+ * reads the same in every language or is not drawn as a sentence of the
+ * page. Each count may only go down.
  */
-const STILL_BEING_ROUTED: Record<string, number> = {
-  "Components/SessionReplay": 108,
-  "Components/Slack": 11,
-  "Components/Team": 1,
-  "Components/Telemetry": 35,
-  "Components/TelemetryResource": 20,
-  "Components/TracePipeline": 42,
-  "Components/Traces": 21,
-  "Components/User": 3,
-  "Components/UserFlow": 34,
-  "Components/UserTimezone": 1,
-  "Components/Workflow": 5,
+const ALLOWED_ANYWHERE: Record<string, { count: number; why: string }> = {
+  ...ALLOWED_IN_ROUTED,
+  "Components/AIChat/Widgets/TraceWaterfallWidget.tsx": {
+    count: 2,
+    why: '"{n} ms" span durations (unit)',
+  },
+  "Components/Cloud/Connect/CloudStreamDialog.tsx": {
+    count: 1,
+    why: "an AWS Region code placeholder (us-east-1, eu-west-1)",
+  },
+  "Components/Cloud/Connect/CloudStreamGcpDialog.tsx": {
+    count: 1,
+    why: "a Cloud Logging query placeholder, in Google's query language",
+  },
+  "Components/Code/CodeContextModal.tsx": {
+    count: 2,
+    why: "placeholders that are code: a repository path and a trace id",
+  },
+  "Components/Mcp/McpConnectSetup.ts": {
+    count: 7,
+    why: "MCP client commands and JSON configs a reader copies as they are",
+  },
+  "Components/MicrosoftTeams/MicrosoftTeamsIntegration.tsx": {
+    count: 1,
+    why: "the Teams install guide's markdown body, read from source by its own tests",
+  },
+  "Components/ProjectBalance/AutoRechargeCard.tsx": {
+    count: 1,
+    why: '"{n} USD" (currency)',
+  },
+  "Components/Runbook/Steps/RunbookVariableChips.tsx": {
+    count: 1,
+    why: "`local.{name}`: a variable reference typed into a runbook step",
+  },
+  "Pages/Code/Task/Log.tsx": { count: 2, why: '"{n} ms" durations (unit)' },
+  "Pages/Database/Utils/DocumentationMarkdown.ts": {
+    count: 8,
+    why: "setup-guide markdown bodies built around SQL/JS/HTTP code blocks",
+  },
+  "Pages/Host/View/ProcessView.tsx": {
+    count: 1,
+    why: '"pid {n}" (process id label)',
+  },
+  "Pages/IoT/View/Devices.tsx": { count: 1, why: '"{n} °C" (unit)' },
+  "Pages/MessageQueue/Utils/DocumentationMarkdown.ts": {
+    count: 2,
+    why: "a line of setup-guide markdown and an attribute name/value",
+  },
+  "Pages/OnCallDuty/IncomingCallPolicy/LogView.tsx": {
+    count: 2,
+    why: '"{m}m {s}s" call duration (units)',
+  },
+  "Pages/OnCallDuty/IncomingCallPolicy/Logs.tsx": {
+    count: 2,
+    why: '"{m}m {s}s" call duration (units)',
+  },
+  "Pages/Settings/Domains.tsx": { count: 1, why: '"TXT" (DNS record type)' },
+  "Pages/Settings/LlmProviders.tsx": { count: 1, why: '"USD" (currency)' },
+  "Pages/Settings/UsageHistory.tsx": {
+    count: 2,
+    why: '"{n} GB" and "{n} USD" (units, currency)',
+  },
+  "packages/Common/UI/Components/Detail/Detail.tsx": {
+    count: 1,
+    why: '"USD" (currency)',
+  },
+  "packages/Common/UI/Components/Forms/Fields/ColorPicker.tsx": {
+    count: 1,
+    why: "the English fallback after a lookup that found no words",
+  },
+  "packages/Common/UI/Components/Markdown.tsx/LazyMarkdownEditor.tsx": {
+    count: 1,
+    why: "the English fallback after a lookup that found no words",
+  },
+  "packages/Common/UI/Components/Table/EmptyTableMessage.ts": {
+    count: 3,
+    why: "the English sentences a table falls back to when a caller gives no translator",
+  },
+  "packages/Common/UI/Components/Table/TableRow.tsx": {
+    count: 1,
+    why: "the English fallback after a lookup that found no words",
+  },
+  "packages/Common/UI/Components/TableColumnList/TableColumnListComponent.tsx":
+    {
+      count: 1,
+      why: "the English fallback after a lookup that found no words",
+    },
+  "packages/Common/UI/Components/Workflow/ColumnEditor/ColumnValueInput.tsx": {
+    count: 1,
+    why: '"abc", the glyph of a text value',
+  },
+  "packages/Common/UI/Components/Workflow/ValuePicker/ValueSingleField.tsx": {
+    count: 1,
+    why: '"abc", the glyph of a text value',
+  },
+  "packages/Common/Types/CloudConnection/CloudAiAgentCost.ts": {
+    count: 4,
+    why: "a cloud bill's line items, quoted as the cloud's own price sheet names them",
+  },
 };
 
 type RelativeFileFunction = (entry: HardcodedString) => string;
@@ -73,32 +169,45 @@ const relativeFile: RelativeFileFunction = (entry: HardcodedString): string => {
 
 let hardcoded: Array<HardcodedString> | null = null;
 
-const getComponentsHardcoded: () => Array<HardcodedString> =
+const getAllHardcoded: () => Array<HardcodedString> =
   (): Array<HardcodedString> => {
     if (!hardcoded) {
-      hardcoded = getHardcodedStrings(getDefaultContext(), {
-        directory: "Components",
-      });
+      hardcoded = getHardcodedStrings(getDefaultContext(), {});
     }
 
     return hardcoded;
   };
 
-describe("the two-factor, topology, status page, SLO, workspace and security event components route their strings through translation", () => {
-  test("only the reviewed PDF title is left in the routed directories", () => {
-    const counts: Record<string, number> = {};
-    const found: Array<string> = [];
+type CountByFileFunction = (filter: (file: string) => boolean) => {
+  counts: Record<string, number>;
+  found: Array<string>;
+};
 
-    for (const entry of getComponentsHardcoded()) {
-      const file: string = relativeFile(entry);
+const countByFile: CountByFileFunction = (
+  filter: (file: string) => boolean,
+): { counts: Record<string, number>; found: Array<string> } => {
+  const counts: Record<string, number> = {};
+  const found: Array<string> = [];
 
-      if (!ROUTED.test(file)) {
-        continue;
-      }
+  for (const entry of getAllHardcoded()) {
+    const file: string = relativeFile(entry);
 
-      counts[file] = (counts[file] || 0) + 1;
-      found.push(`${file}:${entry.line} ${entry.reason} ${entry.text}`);
+    if (!filter(file)) {
+      continue;
     }
+
+    counts[file] = (counts[file] || 0) + 1;
+    found.push(`${file}:${entry.line} ${entry.reason} ${entry.text}`);
+  }
+
+  return { counts, found };
+};
+
+describe("the Dashboard's components from S to W route their strings through translation", () => {
+  test("only the reviewed PDF title and viewport size are left in S to W", () => {
+    const { counts, found } = countByFile((file: string): boolean => {
+      return ROUTED.test(file);
+    });
 
     const unexpected: Array<string> = Object.keys(counts)
       .filter((file: string): boolean => {
@@ -116,47 +225,68 @@ describe("the two-factor, topology, status page, SLO, workspace and security eve
 
     // Every exception is explained, and still needed.
     for (const file of Object.keys(ALLOWED_IN_ROUTED)) {
+      expect(ROUTED.test(file)).toBe(true);
       expect(ALLOWED_IN_ROUTED[file]!.why.length).toBeGreaterThan(0);
       expect(counts[file] || 0).toBe(ALLOWED_IN_ROUTED[file]!.count);
     }
   }, 300000);
 
   test("the PDF title is the only string the topology export keeps in English", () => {
-    const exportStrings: Array<HardcodedString> =
-      getComponentsHardcoded().filter((entry: HardcodedString): boolean => {
-        return relativeFile(entry).startsWith("Components/Topology/");
-      });
+    const { found } = countByFile((file: string): boolean => {
+      return file.startsWith("Components/Topology/");
+    });
 
     expect(
-      exportStrings.map((entry: HardcodedString): string => {
-        return entry.text;
+      found.map((line: string): string => {
+        return line.slice(line.indexOf(" composed ") + " composed ".length);
       }),
     ).toEqual(["`Network topology - ${title}`"]);
   }, 300000);
 
-  test("the directories from S to W still being routed do not grow", () => {
-    const counts: Record<string, number> = {};
+  test("the viewport size is the only string the events rail keeps as written", () => {
+    const { found } = countByFile((file: string): boolean => {
+      return file.startsWith("Components/SessionReplay/");
+    });
 
-    for (const entry of getComponentsHardcoded()) {
-      const file: string = relativeFile(entry);
-      const directory: string = file.split("/").slice(0, 2).join("/");
+    expect(found).toHaveLength(1);
+    expect(found[0]).toMatch(
+      /^Components\/SessionReplay\/Rail\/ReplayRailDetail\.tsx:\d+ composed x$/,
+    );
+  }, 300000);
 
-      // The routed directories answer to the first test.
-      if (ROUTED.test(file) || !S_TO_W.test(directory)) {
-        continue;
-      }
-
-      counts[directory] = (counts[directory] || 0) + 1;
-    }
+  test("nothing the scan lists grows: every file keeps at most its reviewed strings", () => {
+    const { counts, found } = countByFile((): boolean => {
+      return true;
+    });
 
     const grown: Array<string> = Object.keys(counts)
-      .filter((directory: string): boolean => {
-        return counts[directory]! > (STILL_BEING_ROUTED[directory] || 0);
+      .filter((file: string): boolean => {
+        return counts[file]! > (ALLOWED_ANYWHERE[file]?.count || 0);
       })
-      .map((directory: string): string => {
-        return `${directory}: ${counts[directory]} (at most ${STILL_BEING_ROUTED[directory] || 0})`;
+      .map((file: string): string => {
+        return `${file}: ${counts[file]} (at most ${ALLOWED_ANYWHERE[file]?.count || 0}) - ${found
+          .filter((line: string): boolean => {
+            return line.startsWith(`${file}:`);
+          })
+          .join(" | ")}`;
       });
 
     expect(grown).toEqual([]);
+
+    for (const file of Object.keys(ALLOWED_ANYWHERE)) {
+      expect(ALLOWED_ANYWHERE[file]!.why.length).toBeGreaterThan(0);
+    }
   }, 300000);
+
+  test("the routed scope reaches every directory from S to W and nothing else", () => {
+    expect(ROUTED.test("Components/SessionReplay/Rail/ReplayRail.tsx")).toBe(
+      true,
+    );
+    expect(ROUTED.test("Components/Workflow/WorkflowVariableView.tsx")).toBe(
+      true,
+    );
+    expect(ROUTED.test("Components/UserFlow/UserFlowMap.tsx")).toBe(true);
+    expect(ROUTED.test("Components/Runner/RunnerElement.tsx")).toBe(false);
+    expect(ROUTED.test("Pages/Slo/Index.tsx")).toBe(false);
+  });
 });

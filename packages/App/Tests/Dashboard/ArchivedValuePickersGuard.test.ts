@@ -1,3 +1,4 @@
+// UX rule: Docs/ux/README.md#settings-and-danger
 import {
   ARCHIVABLE_VALUE_DEFINITIONS,
   ArchivableValueDefinition,

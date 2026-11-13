@@ -4,7 +4,16 @@ import {
   OKTA,
   SPLUNK,
 } from "./IntegrationsDocsPages";
-import { scanMarkdown } from "./DocsContentSupport";
+import {
+  TRANSLATED_LANGUAGES,
+  readPage,
+  scanMarkdown,
+} from "./DocsContentSupport";
+import {
+  DashboardTemplateLabel,
+  drawnDashboardLabel,
+  drawnTemplateLabel,
+} from "./DocsDashboardLabels";
 import {
   bold,
   codeIn,
@@ -27,6 +36,8 @@ import {
   quotedBlock,
   quotedMessages,
   quotes,
+  templateLabelQuoteProblems,
+  templateLabelsOf,
   text,
   unreachable,
   withoutTimes,
@@ -66,6 +77,7 @@ import {
 } from "Common/Server/Utils/SecurityEvent/Connectors/Types";
 import { JSONObject } from "Common/Types/JSON";
 import { SecurityConnectorCheck } from "Common/Types/SecurityEvent/Connectors/ConnectorDiagnostics";
+import { ConnectorField } from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
 import SecurityEventConnectorProvider from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
 import NormalizedSecurityEvent from "Common/Types/SecurityEvent/NormalizedSecurityEvent";
 import AwsSecurityHubNormalizer from "Common/Utils/SecurityEvent/Connectors/AwsSecurityHubNormalizer";
@@ -221,6 +233,83 @@ function splunkRow(index: number): string {
   });
 }
 
+/*
+ * The connection form's switch to remove a stored secret is one sentence
+ * around the setting's title, "Remove the stored {{field}}" (#6703). Each
+ * language's page names the switches as its form draws them, for exactly
+ * the optional secrets the catalog lists, and a page that kept the English
+ * switch fails.
+ */
+const REMOVE_STORED: string = "Remove the stored {{field}}";
+
+function expectRemoveSwitchesInEveryLanguage(
+  page: string,
+  provider: SecurityEventConnectorProvider,
+): void {
+  const optional: Array<string> = definitionOf(provider)
+    .secretFields.filter((field: { required: boolean }): boolean => {
+      return !field.required;
+    })
+    .map((field: { title: string }): string => {
+      return field.title;
+    });
+  const switches: Array<DashboardTemplateLabel> = templateLabelsOf(
+    page,
+    REMOVE_STORED,
+  );
+
+  expect(
+    switches.map((label: DashboardTemplateLabel): unknown => {
+      return [label.label, label.values["field"]];
+    }),
+  ).toEqual(
+    optional.map((title: string): unknown => {
+      return [
+        `Remove the stored ${title}`,
+        { translatableTerm: title, inSentence: false },
+      ];
+    }),
+  );
+
+  for (const language of TRANSLATED_LANGUAGES) {
+    expect(
+      templateLabelQuoteProblems(language, page, { template: REMOVE_STORED }),
+    ).toEqual([]);
+
+    // The page as it read before #6703, with each switch in English, fails.
+    const markdown: string = readPage(language, page);
+
+    for (const label of switches) {
+      const drawn: string = drawnTemplateLabel(language, label);
+
+      expect(drawn).not.toBe(label.label);
+      expect(
+        templateLabelQuoteProblems(language, page, {
+          template: REMOVE_STORED,
+          markdown: markdown.split(bold(drawn)).join(bold(label.label)),
+        }),
+      ).toEqual([
+        `${language} ${page}: quotes no **${drawn}**`,
+        `${language} ${page}: quotes the English **${label.label}**`,
+      ]);
+    }
+  }
+}
+
+// The setting that holds the SPL the connection runs, as its form titles it.
+function splunkSearchSetting(): ConnectorField {
+  return definitionOf(
+    SecurityEventConnectorProvider.SplunkEnterpriseSecurity,
+  ).configFields.find((field: ConnectorField): boolean => {
+    return field.key === "searchString";
+  }) as ConnectorField;
+}
+
+// How many times a page quotes the setting, drawn as its language draws it.
+function searchSettingQuotes(markdown: string, drawn: string): number {
+  return markdown.split(bold(drawn)).length - 1;
+}
+
 describe("Splunk Enterprise Security", () => {
   it("runs the export search the page shows: your Search, every field, oldest first, one row past the 10,000 a poll reads", async () => {
     const peer: FakePeer = fakePeer((): DataSourceHttpResponse => {
@@ -327,7 +416,7 @@ describe("Splunk Enterprise Security", () => {
       englishSection(SPLUNK, "## Set up the connection"),
       "Setting",
     ).find((candidate: Array<string>): boolean => {
-      return candidate[0] === bold("Search");
+      return candidate[0] === bold(splunkSearchSetting().title);
     }) as Array<string>;
 
     expect(row[1]).toContain("`index=notable` unless you change it");
@@ -361,6 +450,69 @@ describe("Splunk Enterprise Security", () => {
     expect(optional).toEqual(["Authentication token", "Password"]);
     expect(englishPage(SPLUNK)).toContain(
       `turn on ${bold("Remove the stored Authentication token")}, or ${bold("Remove the stored Password")}.`,
+    );
+  });
+
+  /*
+   * The setting that holds the SPL is a noun, "Search query" (#6888): it was
+   * titled with the Search key, the button's verb in most languages, so a
+   * German form labelled the query "Suchen" ("to search") and the German page
+   * wrote "Die Suche in **Suchen**". Every page quotes the setting as its
+   * language's form draws it, as often as the English page does, and never
+   * the verb.
+   */
+  it("names the Search query setting as a noun, as each language's form draws it, never the Search button's verb", () => {
+    const title: string = splunkSearchSetting().title;
+    const english: number = searchSettingQuotes(englishPage(SPLUNK), title);
+
+    expect(title).toBe("Search query");
+    expect(english).toBe(9);
+    expect(englishPage(SPLUNK)).not.toContain(bold("Search"));
+
+    for (const language of TRANSLATED_LANGUAGES) {
+      const drawn: string = drawnDashboardLabel(language, title);
+      const verb: string = drawnDashboardLabel(language, "Search");
+      const markdown: string = readPage(language, SPLUNK);
+
+      expect({ language, worded: drawn !== title }).toEqual({
+        language,
+        worded: true,
+      });
+      expect({ language, distinct: drawn !== verb }).toEqual({
+        language,
+        distinct: true,
+      });
+      expect({
+        language,
+        quotes: searchSettingQuotes(markdown, drawn),
+      }).toEqual({ language, quotes: english });
+      expect({ language, verb: markdown.includes(bold(verb)) }).toEqual({
+        language,
+        verb: false,
+      });
+    }
+
+    // The German page as it read before, quoting the verb: the check fails.
+    const german: string = readPage("de", SPLUNK);
+    const before: string = german
+      .split(bold(drawnDashboardLabel("de", title)))
+      .join(bold(drawnDashboardLabel("de", "Search")));
+
+    expect(drawnDashboardLabel("de", "Search")).toBe("Suchen");
+    expect(searchSettingQuotes(before, "Suchabfrage")).toBe(0);
+    expect(before).toContain(bold("Suchen"));
+    expect(german).toContain(
+      `Führen Sie Ihre ${bold("Suchabfrage")} in Splunk Web aus`,
+    );
+  });
+
+  it("names the remove switches in every language as its form draws them, the German page included", () => {
+    expectRemoveSwitchesInEveryLanguage(
+      SPLUNK,
+      SecurityEventConnectorProvider.SplunkEnterpriseSecurity,
+    );
+    expect(readPage("de", SPLUNK)).toContain(
+      bold("Gespeichertes Feld „Authentifizierungstoken“ entfernen"),
     );
   });
 
@@ -1326,6 +1478,13 @@ describe("AWS Security Hub", () => {
     );
     expect(page).toContain(
       `enter the new key in ${bold("Update credentials")} and turn on ${bold("Remove the stored Session token")}.`,
+    );
+  });
+
+  it("names the Session token's remove switch in every language as its form draws it", () => {
+    expectRemoveSwitchesInEveryLanguage(
+      AWS_SECURITY_HUB,
+      SecurityEventConnectorProvider.AwsSecurityHub,
     );
   });
 

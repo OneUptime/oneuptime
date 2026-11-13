@@ -24,12 +24,59 @@ import { getCreateProjectFormFields } from "Common/UI/Components/Project/CreateP
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { BILLING_ENABLED, getAllEnvVars } from "Common/UI/Config";
 import Project from "Common/Models/DatabaseModels/Project";
-import React, { FunctionComponent, ReactElement, useMemo } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import ProjectSetupStatus from "../../Components/ProjectMilestones/ProjectSetupStatus";
+import { fetchReachedMilestonesByProject } from "../../Components/ProjectMilestones/ProjectMilestones";
+import ActivationMilestone from "Common/Types/Analytics/ActivationMilestone";
+import Dictionary from "Common/Types/Dictionary";
+import ObjectID from "Common/Types/ObjectID";
 import { useTranslation } from "react-i18next";
 import Navigation from "Common/UI/Utils/Navigation";
 
 const Projects: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
+
+  /*
+   * Where each project on the page is in its first hour (issue #6830): its
+   * milestones, read in one request for the page once the page is read.
+   * Only this server's own rows; nothing is sent anywhere.
+   */
+  const [reachedByProject, setReachedByProject] = useState<
+    Dictionary<Array<ActivationMilestone>>
+  >({});
+  const milestonesReadRef: React.MutableRefObject<number> = useRef<number>(0);
+
+  const readMilestones: (projects: Array<Project>) => void = (
+    projects: Array<Project>,
+  ): void => {
+    const read: number = ++milestonesReadRef.current;
+    const projectIds: Array<ObjectID> = projects
+      .map((project: Project): ObjectID | null => {
+        return project.id || null;
+      })
+      .filter((projectId: ObjectID | null): projectId is ObjectID => {
+        return Boolean(projectId);
+      });
+
+    fetchReachedMilestonesByProject(projectIds)
+      .then((reached: Dictionary<Array<ActivationMilestone>>): void => {
+        if (read === milestonesReadRef.current) {
+          setReachedByProject(reached);
+        }
+      })
+      .catch((): void => {
+        // The column shows a dash: the list itself is unaffected.
+        if (read === milestonesReadRef.current) {
+          setReachedByProject({});
+        }
+      });
+  };
 
   /*
    * The same one-page form the Dashboard's Create New Project dialog shows
@@ -187,6 +234,9 @@ const Projects: FunctionComponent = (): ReactElement => {
           ],
         }}
         formFields={fields}
+        onFetchSuccess={(projects: Array<Project>): void => {
+          readMilestones(projects);
+        }}
         showRefreshButton={true}
         viewPageRoute={Navigation.getCurrentRoute()}
         filters={[
@@ -227,6 +277,25 @@ const Projects: FunctionComponent = (): ReactElement => {
             title: "Created At",
             type: FieldType.DateTime,
             hideOnMobile: true,
+          },
+          {
+            /*
+             * The first setup step the project has not reached - "No monitor
+             * yet", "Nobody reachable yet" - or "Set up" (issue #6830).
+             */
+            field: {
+              _id: true,
+            },
+            title: "Setup",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: Project): ReactElement => {
+              return (
+                <ProjectSetupStatus
+                  reached={reachedByProject[item.id?.toString() || ""] || null}
+                />
+              );
+            },
           },
         ]}
         userPreferencesKey="admin-projects-table"

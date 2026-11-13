@@ -1,3 +1,4 @@
+// UX rule: Docs/ux/README.md#one-control-for-one-job
 import AllModelTypes from "Common/Models/DatabaseModels/Index";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { ListOrderSettings } from "Common/Types/Database/ListOrderColumn";

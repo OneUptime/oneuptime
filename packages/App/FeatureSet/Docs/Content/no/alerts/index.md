@@ -1,6 +1,6 @@
 # Varsler – Oversikt
 
-Et varsel gjør teamet ditt oppmerksom på et problem som bør undersøkes før brukerne dine merker det: en disk som holder på å bli full, et sertifikat som snart utløper, en feilrate som sniker seg oppover. Varselet kan tilkalle den som har vakt og gi eierne beskjed, men det vises aldri på en statusside og gir aldri abonnentene dine beskjed. Denne siden forklarer hvor varsler kommer fra, hvor de finnes i dashbordet, og hvordan teamet ditt jobber med dem.
+Et varsel gjør teamet ditt oppmerksom på et problem som bør undersøkes før brukerne dine merker det: en disk som holder på å bli full, et sertifikat som snart utløper, en feilrate som sniker seg oppover. Varselet kan tilkalle den som har vakt og gi eierne beskjed, men det vises aldri på en statusside og gir aldri abonnentene dine beskjed. Denne siden forklarer hvor varsler kommer fra, hvor de finnes i dashbordet, og hvordan teamet ditt jobber med dem. Usikker på om et problem er et varsel eller en hendelse? [Hvilken skal jeg bruke?](/docs/introduction/which-one#hendelse-varsel-eller-en-annen-type-problem) stiller dem opp side om side.
 
 :::cards
 - [Varsler og hendelser](#varsler-og-hendelser): Hva et problem bør være, og hvordan de to henger sammen.
@@ -61,7 +61,7 @@ Utløs et varsel når teamet ditt bør se på noe før noen utenfor merker det, 
 | **KI**            | **Innsikt**, **Logger** og **Innstillinger**: hva OneUptime AI har lært av varslene dine, alt den har gjort, og hva den har lov til. |
 | **Arbeidsområde** | **Slack**, **Microsoft Teams** og **Mattermost**, avhengig av hva prosjektet har koblet til, eller **Koble til et arbeidsområde** når det ikke har noen av dem. |
 | **Regler**        | **Grupperingsregler**, **Vaktregler**, **Hendelsesregler**, **Eierregler**, **Runbook-regler**, **Personvernregler**, **Etikettregler**, **Påminnelsesregler**. |
-| **Innstillinger** | **Varselsstatus**, **Varselsalvor**, **Notatmaler**, **Egendefinerte felt**, **Målinger**, **Medlemskap i episoder**, **Nummerering**.               |
+| **Innstillinger** | **Varselsstatus**, **Varselsalvor**, **Notatmaler**, **Egendefinerte felt**, **Målinger**, **Medlemskap i episoder**, **Nummerering**, **Dataoppbevaring**.               |
 
 **Varsler** og **Episoder** er åpne; **KI**, **Arbeidsområde**, **Regler**, **Innstillinger** og **Utvikler** starter sammenfoldet, og en seksjon åpner seg selv når du er på en av sidene i den. Konfigurasjonen av varsler ligger her, ikke i **Prosjektinnstillinger**.
 

@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 이것들을 `config.env`에 설정한 다음 `npm start`를 실행하세요. `DISABLE_TELEMETRY_FOR_APP`는 기본값이 `true`이며, 그러면 아무것도 보내지 않습니다.
 :::
 
-OneUptime에는 엔드포인트와 헤더가 모두 필요합니다. 헤더가 없으면 아무것도 보내지 않습니다. 여러 헤더는 `;`로 구분하세요. OneUptime은 엔드포인트에 `/v1/metrics`를 직접 덧붙이며, 같은 설정으로 자체 트레이스와 로그도 보냅니다. 각 메트릭은 OneUptime이 처음 기록하는 순간 나타납니다. `notification.send.count`는 첫 메시지를 보낼 때입니다.
+OneUptime에는 엔드포인트와 헤더가 모두 필요합니다. 헤더가 없으면 아무것도 보내지 않습니다. 각 헤더는 `name=value` 형식으로 쓰고, 여러 헤더는 `;`로 구분하세요. 값에 `=`가 들어가도 됩니다. OneUptime은 엔드포인트에 `/v1/metrics`를 직접 덧붙이며, 같은 설정으로 자체 트레이스와 로그도 보냅니다. 각 메트릭은 OneUptime이 처음 기록하는 순간 나타납니다. `notification.send.count`는 첫 메시지를 보낼 때입니다.
 
 ### OneUptime 프로젝트로 델타 보내기
 
@@ -109,14 +109,14 @@ services:
 | `notification.provider.config` | 설치 자체의 계정과 설정이면 `global`, 프로젝트 자체의 Twilio 계정, SMTP 서버, 웹훅, 워크스페이스 연결이면 `project`이며, 그 실패는 프로젝트가 고칠 일입니다 |
 | `notification.on_call_page` | 온콜 호출의 알림이면 `true`, 아니면 `false` |
 | `outcome` | 아래와 같이 `success`, `failure`, `not_sent` |
-| `notification.destination` | Slack, Microsoft Teams, Mattermost만: 한 사람에게 보내는 `direct_message`, 채널이나 Teams 그룹 채팅에 올리는 글은 `channel`, 상태 페이지 구독자의 것 같은 수신 웹훅은 `incoming_webhook` |
+| `notification.destination` | Slack, Microsoft Teams, Mattermost: 한 사람에게 보내는 `direct_message`, 채널이나 Teams 그룹 채팅에 올리는 글은 `channel`, 상태 페이지 구독자의 것 같은 수신 웹훅은 `incoming_webhook`. 웹훅: 상태 페이지 구독자 자신의 웹훅은 `status_page_subscriber`. 사람의 웹훅과 다른 모든 채널에는 붙지 않습니다 |
 | `notification.custom_channel.id`, `notification.custom_channel.name` | 사용자 지정 채널만: 채널의 ID와, 100자로 자른 이름 |
 
 - `success`: 공급자가 메시지를 수락했습니다.
 - `failure`: 공급자가 거부했거나 연결할 수 없었거나, 보내기가 실패했습니다. 찾을 수 없는 채팅 채널은 소요 시간이 없는 실패입니다.
 - `not_sent`: 의도적으로 보내지 않았습니다. 프로젝트가 채널을 껐거나, 잔액이 부족하거나 차단되었거나, 이 서버에서 푸시가 꺼져 있거나, 사용자 지정 채널이 꺼졌거나 삭제되었거나 라이선스에 포함되지 않습니다. 성공률은 이것들을 제외합니다. 플랫폼의 실패가 아니라 설정이 작동한 것이기 때문입니다.
 
-상태 페이지 구독자의 일반 웹훅은 아직 집계되지 않습니다.
+상태 페이지 구독자 자신의 웹훅으로 보낸 메시지는 몇 번 시도했든 한 번으로 셉니다. 엔드포인트가 2xx 상태로 응답하면 `success`, 다른 상태로 응답했거나 닿을 수 없었거나 주소가 허용되지 않으면 `failure`입니다.
 
 ### 전화에 도달한 것
 
@@ -155,7 +155,7 @@ services:
 | --- | --- |
 | `monitor_data_received` | 모니터를 작동시킨 데이터를 OneUptime이 받은 때: 수신 요청, 서버 에이전트의 보고, 수신 이메일, 프로브의 검사, SNMP 트랩 또는 네트워크 장치 폴링. 데이터가 평가를 위해 큐에서 기다린 시간이 포함됩니다. |
 | `record_created` | 인시던트, 경고 또는 에피소드가 만들어진 때: 텔레메트리 모니터, 규칙 또는 사람이 만든 경우와, 멈춘 하트비트처럼 부재를 검사하는 경우. |
-| `page_started` | 호출이 나중에 시작된 때: 사람, 워크플로 또는 이제 일치하는 규칙이 시작한 경우, 다시 호출, 직접 호출, 또는 온콜 규칙이 요구한 보류를 기다린 호출. |
+| `page_started` | 호출이 나중에 시작된 때: 사람, 워크플로 또는 이제 일치하는 규칙이 시작한 경우, 또는 직접 호출. 온콜 규칙이나 OneUptime AI가 보류한 호출은 보류가 끝난 때, 그보다 먼저 시작했다면 시작된 때. 다시 호출은 인지 후 타임아웃이 끝난 때. 그래서 어느 쪽이든 늦게 처리한 워커가 이 시간에 드러납니다. |
 
 수신 요청의 경우 시간은 엔드포인트가 받은 마지막 요청부터 흐르므로, 조금 짧게 나올 수 있습니다.
 
@@ -170,7 +170,7 @@ services:
 | `escalation` | 나중의 에스컬레이션 단계: 앞 단계가 대기를 마친 때, 또는 사람이 호출을 넘기면 곧바로. |
 | `policy_repeat` | 첫 단계부터 다시 시작하는 정책: 마지막 단계의 대기가 끝난 때. |
 
-이것도 `notification.channel`, `notification.trigger.type`, 그리고 사용자 지정 채널이면 `notification.custom_channel.id`와 `notification.custom_channel.name`을 담습니다. 호출이 시작될 때 보낼 알림은 여기에 들어가지 않습니다. 그것은 전송까지의 시간에 들어갑니다.
+이것도 `notification.channel`, `notification.trigger.type`, 그리고 사용자 지정 채널이면 `notification.custom_channel.id`와 `notification.custom_channel.name`을 담습니다. 호출이 시작될 때 보낼 알림은 여기에 들어가지 않습니다. 워커가 보류 뒤에 또는 다시 호출로 호출을 늦게 시작했을 때도 마찬가지입니다. 그것은 전송까지의 시간에 들어갑니다.
 
 ### 히스토그램 버킷
 
@@ -220,7 +220,7 @@ services:
 | --- | --- | --- | --- |
 | `a` | `notification.time_to_send` | **P95** | `notification.page.start != page_started` |
 
-`a`가 30000 이하로 유지되는 동안 목표가 지켜집니다. 나중에 시작된 호출은 트리거가 아니라 시작된 때부터 재므로 제외합니다. `notification.page.start`로 그룹화하면 모니터의 큐(`monitor_data_received`)를 나머지와 따로 볼 수 있고, `notification.channel`로 그룹화하면 느린 채널을 찾을 수 있습니다.
+`a`가 30000 이하로 유지되는 동안 목표가 지켜집니다. 나중에 시작된 호출은 트리거가 아니라 시작되거나 예정된 때부터 재므로 제외합니다. `notification.page.start`로 그룹화하면 모니터의 큐(`monitor_data_received`)를 나머지와 따로 볼 수 있고, `notification.channel`로 그룹화하면 느린 채널을 찾을 수 있습니다.
 
 ### 나중에 보내는 알림이 90초 안에 나감
 
@@ -246,7 +246,7 @@ services:
 ## 문제 해결
 
 :::details 알림 메트릭이 도착하지 않음
-`OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT`와 `OPENTELEMETRY_EXPORTER_OTLP_HEADERS`가 모두 설정되었는지, Docker Compose에서는 `DISABLE_TELEMETRY_FOR_APP`가 `false`인지 확인한 다음 OneUptime을 다시 시작하세요. 메트릭은 무언가가 기록된 후에야 나타나므로, 먼저 알림을 보내세요.
+`OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT`와 `OPENTELEMETRY_EXPORTER_OTLP_HEADERS`가 모두 설정되었는지, Docker Compose에서는 `DISABLE_TELEMETRY_FOR_APP`가 `false`인지 확인한 다음 OneUptime을 다시 시작하세요. OneUptime은 시작할 때 읽을 수 없는 헤더가 있거나 아무것도 보내지 않으면 경고를 로그에 남깁니다. 메트릭은 무언가가 기록된 후에야 나타나므로, 먼저 알림을 보내세요.
 :::
 
 :::details 건수가 계속 늘기만 하거나 백분위수가 거의 움직이지 않음

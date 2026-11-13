@@ -15,7 +15,9 @@ The pages:
 - `/dashboard/<project>/status-pages/<id>` - a status page's Overview;
 - `/dashboard/<project>/dashboards/<id>/authentication-settings` - a
   dashboard's Sharing page;
-- `/dashboard/<project>/forms/<id>/share` - a form's Share page.
+- `/dashboard/<project>/forms/<id>/share` - a form's Share page;
+- `/dashboard/<project>/status-pages/<id>/domains` - a status page's Custom
+  Domains page, with Add Custom Domain.
 
 The suite (`PublicAddresses.spec.ts`) checks in Chromium what jsdom cannot:
 
@@ -43,6 +45,13 @@ The suite (`PublicAddresses.spec.ts`) checks in Chromium what jsdom cannot:
 - a form's own domains first on its Share Link card, then its link, with
   Reset Link; the offer to add a domain linking to the form's Custom Domains
   page; the turned-off notice under the addresses; dark, German and Persian.
+- Add Custom Domain on a status page's Custom Domains page: on a domain the
+  project does not have, the domain added and DNS Setup with both records
+  (its TXT, the address's CNAME); Check now's status for each record and
+  what it looked up and what came back (a TXT not found, a CNAME hidden by
+  a proxy); on a verified domain, the CNAME alone; a self-hosted server that
+  is not ready saying what is missing first; at a phone's width, in the dark
+  theme and in German.
 
 `Fixture/Fixture.js` records every list read on
 `window.__fixture.listRequests`, every API read on `window.__fixture.apiGets`,
@@ -74,4 +83,6 @@ Then open
 (states: live, dns, issuing, unordered, failed, expired, uploaded, renewal),
 `?access=signin|password`, `?share=private|link|password`, `?enabled=0`,
 `?role=viewer|noread`, `?fail=domains|certs`, `?delay=<ms>`, `?cname=0`,
-`?lang=de|ja|fa` or `?theme=dark`.
+`?lang=de|ja|fa` or `?theme=dark`; on the Custom Domains page,
+`?projectdomain=verified|unverified`, `?txt=found`,
+`?dns=found|wrong|proxied|missing` and `?readiness=ready|notready|nocert`.

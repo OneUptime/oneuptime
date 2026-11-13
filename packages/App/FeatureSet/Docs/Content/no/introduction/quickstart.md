@@ -2,6 +2,8 @@
 
 Denne guiden tar deg fra en ny konto til et oppsett som virker, på omtrent femten minutter: en monitor som sjekker nettstedet ditt hvert femte minutt, en vaktpolicy som varsler deg når nettstedet går ned, og en statusside som informerer kundene dine. Den følger sjekklisten **Velkommen til OneUptime 👋** på prosjektets startside.
 
+Kommer du fra et annet verktøy? [Importer oppsettet ditt](/docs/introduction/getting-started#hvis-du-kommer-fra-et-annet-verktøy) først: monitorene, vaktplanene og statussidene dine blir med.
+
 ```mermaid title="Det du setter opp i denne guiden"
 flowchart TB
     monitor["Nettstedsmonitor"] -->|"nettstedet er nede"| incident["Hendelse"]
@@ -32,7 +34,7 @@ Skriv inn et **Prosjektnavn**, for eksempel navnet på bedriften din. På OneUpt
 
 ### Opprett det
 
-Klikk på **Opprett prosjekt**. Prosjektets startside åpnes, med sjekklisten **Velkommen til OneUptime 👋** øverst.
+Klikk på **Opprett prosjekt**. Prosjektets startside åpnes, med sjekklisten **Velkommen til OneUptime 👋** øverst. Først spør den **Hva vil du gjøre først?**: kryss av for **Vite når nettstedet eller API-et mitt er nede**, **Varsle rett person når noe går ned** og **Fortelle kundene mine det med en statusside**, og klikk på **Fortsett**.
 :::
 
 ## Overvåk nettstedet ditt
@@ -80,6 +82,8 @@ E-posten du logger inn med, er allerede en måte å nå deg på. For også å f�
 
 Se [Eskaleringsregler](/docs/on-call/escalation-rules) og [Vaktplaner](/docs/on-call/schedules) for flere nivåer, rotasjoner og hvor lenge hvert nivå venter.
 
+For å bli varslet med SMS, anrop og push, der den neste personen varsles når ingen svarer, og med et testoppkall som beviser det, følger du [Bli varslet via telefon, SMS eller push](/docs/guides/paging).
+
 ## Publiser en statusside
 
 :::steps
@@ -97,6 +101,8 @@ Velg **Oversikt** i sidemenyen. Kortet **Lenke til statussiden** lenker til stat
 :::
 
 En ny statusside er offentlig: alle med adressen kan åpne den. Se [Statusside – merkevare og domener](/docs/status-pages/branding-and-domains) for å gi den ditt eget domene, logo og farger.
+
+For å legge statussiden på ditt eget domene, over HTTPS, følger du [Publiser en statusside](/docs/guides/status-page).
 
 ## Inviter teamet ditt
 
@@ -141,6 +147,7 @@ En statusside viser en hendelse når en av hendelsens monitorer er på siden. Sj
 
 :::cards
 - [Grunnbegreper](/docs/introduction/core-concepts): Ideene bak det du nettopp satte opp.
+- [Ordliste](/docs/introduction/glossary): Hvert ord du møtte underveis, forklart med en setning eller to.
 - [Vaktplaner](/docs/on-call/schedules): Del vaktene med teamet ditt.
 - [Statusside – merkevare og domener](/docs/status-pages/branding-and-domains): Gjør statussiden til din egen.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Send logger, metrikker og spor fra appene dine.

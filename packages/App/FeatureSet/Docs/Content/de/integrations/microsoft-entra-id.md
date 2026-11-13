@@ -127,7 +127,7 @@ Ein anderes **Abfrageintervall (Minuten)** ändert nichts davon: Es entscheidet,
 Klicken Sie an einer Verbindung auf **Diagnose**, um ihre letzten Läufe zu sehen und von Hand mit ihr zu arbeiten. Wer die Verbindung ändern darf, kann diese starten; wer sie sehen darf, kann den Verlauf lesen.
 
 - **Jetzt ausführen** startet sofort eine Abfrage, mit dem üblichen Cursor, auch wenn die Verbindung nicht **Aktiviert** ist.
-- **Preview records** liest einen Zeitraum von bis zu 7 Tagen und importiert nichts.
+- **Vorschau der Datensätze** liest einen Zeitraum von bis zu 7 Tagen und importiert nichts.
 - **Diesen Zeitraum importieren** importiert nach Ihrer Bestätigung einen Zeitraum von bis zu 7 Tagen, ohne den Cursor zu verschieben. Bereits importierte Datensätze werden übersprungen. Microsoft Entra ID bewahrt Anmeldungen und Verzeichnisänderungen mit P1 oder P2 30 Tage lang auf, ohne 7 Tage.
 - **Diagnosen kopieren** an einem Lauf kopiert seinen Bericht für den Support. Er enthält nie Anmeldedaten.
 

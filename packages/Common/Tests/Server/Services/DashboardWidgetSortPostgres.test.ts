@@ -22,6 +22,10 @@ import {
   readDashboardWidgetListInSteps,
   withDashboardWidgetListSortSelect,
 } from "../../../Utils/Dashboard/DashboardWidgetSorts";
+import {
+  getMonitorListQuery,
+  MONITOR_LIST_WIDGET_SELECT,
+} from "../../../Utils/Dashboard/MonitorListWidgetFormat";
 import { DataSource } from "typeorm";
 
 jest.mock("../../../Server/Infrastructure/Postgres/DataSourceOptions", () => {
@@ -221,24 +225,34 @@ describePostgres("dashboard list widget sorts against Postgres", () => {
         slug: name.toLowerCase(),
         color: "#000000",
         priority,
+        // Zen is the one the project counts as operational.
+        isOperationalState: name === "Zen",
       });
     }
 
-    for (const [name, status] of [
-      ["api", "Zen"],
-      ["billing", "Alarm"],
-      ["cdn", "Busy"],
-      ["dns", "Zen"],
-      ["edge", "Maintenance"],
-      ["fax", "Alarm"],
-      ["gateway", "Zen"],
-    ] as Array<[string, string]>) {
+    for (const [name, status, disableActiveMonitoring] of [
+      ["api", "Zen", false],
+      ["billing", "Alarm", false],
+      ["cdn", "Busy", false],
+      ["dns", "Zen", false],
+      ["edge", "Maintenance", false],
+      ["fax", "Alarm", false],
+      ["gateway", "Zen", false],
+      /*
+       * Monitoring turned off (issue #6476): nothing checks these, so each
+       * status is only what its last check saw - the worst one and the best
+       * one. Neither ranks among the monitors that are checked.
+       */
+      ["hub", "Alarm", true],
+      ["ivr", "Zen", true],
+    ] as Array<[string, string, boolean]>) {
       await insert("Monitor", {
         projectId: projectId.toString(),
         name,
         slug: name,
         monitorType: "Manual",
         currentMonitorStatusId: statuses[status],
+        disableActiveMonitoring,
       });
     }
 
@@ -465,7 +479,112 @@ describePostgres("dashboard list widget sorts against Postgres", () => {
           limit: 25,
         }),
       ),
-    ).toEqual(["api", "dns", "gateway", "edge", "cdn", "billing", "fax"]);
+    ).toEqual([
+      "api",
+      "dns",
+      "gateway",
+      "edge",
+      "cdn",
+      "billing",
+      "fax",
+      // Monitoring off: after every checked monitor this way too.
+      "ivr",
+      "hub",
+    ]);
+  });
+
+  /*
+   * Issue #6476: a monitor whose monitoring is off, frozen at the worst
+   * status, headed a worst-first list and pushed a live problem off a capped
+   * one. It comes after every monitor that is checked, both ways, and among
+   * the ones that are off the status still orders them.
+   */
+  test("monitors whose monitoring is off come after every checked monitor, worst first or best first", async () => {
+    const read: (
+      direction: DashboardWidgetSortDirection,
+    ) => Promise<Array<Monitor>> = (
+      direction: DashboardWidgetSortDirection,
+    ): Promise<Array<Monitor>> => {
+      return readList({
+        modelType: Monitor,
+        componentType: DashboardComponentType.MonitorList,
+        choice: { column: "status", direction },
+        query: { projectId },
+        // What the widget and the public page read: the flag too.
+        select: MONITOR_LIST_WIDGET_SELECT as unknown as JSONObject,
+        limit: 25,
+      });
+    };
+
+    const worstFirst: Array<Monitor> = await read(DESC);
+
+    expect(names(worstFirst)).toEqual([
+      "billing",
+      "fax",
+      "cdn",
+      "edge",
+      "api",
+      "dns",
+      "gateway",
+      "hub",
+      "ivr",
+    ]);
+    expect(
+      worstFirst.map((row: Monitor) => {
+        return row.disableActiveMonitoring;
+      }),
+    ).toEqual([false, false, false, false, false, false, false, true, true]);
+
+    // The widget's capped list: the worst checked monitors, none that is off.
+    expect(
+      names(
+        await readList({
+          modelType: Monitor,
+          componentType: DashboardComponentType.MonitorList,
+          choice: { column: "status", direction: DESC },
+          query: { projectId },
+          select: MONITOR_LIST_WIDGET_SELECT as unknown as JSONObject,
+          limit: 2,
+        }),
+      ),
+    ).toEqual(["billing", "fax"]);
+
+    expect(names(await read(ASC)).slice(-2)).toEqual(["ivr", "hub"]);
+  });
+
+  /*
+   * The status filters, as the widget and the public policy build them
+   * (getMonitorListQuery), run on Postgres: neither lists a monitor whose
+   * monitoring is off, whatever status it was frozen at.
+   */
+  test("the status filters list no monitor whose monitoring is off", async () => {
+    const filtered: (statusFilter: string) => Promise<Array<string>> = async (
+      statusFilter: string,
+    ): Promise<Array<string>> => {
+      return names(
+        await readList({
+          modelType: Monitor,
+          componentType: DashboardComponentType.MonitorList,
+          choice: { column: "status", direction: DESC },
+          query: {
+            projectId,
+            ...getMonitorListQuery({ statusFilter }),
+          } as JSONObject,
+          select: MONITOR_LIST_WIDGET_SELECT as unknown as JSONObject,
+          limit: 25,
+        }),
+      );
+    };
+
+    // Not hub, frozen at Alarm.
+    expect(await filtered("non-operational")).toEqual([
+      "billing",
+      "fax",
+      "cdn",
+      "edge",
+    ]);
+    // Not ivr, frozen at Zen.
+    expect(await filtered("operational")).toEqual(["api", "dns", "gateway"]);
   });
 
   test("monitors saved without a sort list by name, as they always did", async () => {
@@ -480,7 +599,17 @@ describePostgres("dashboard list widget sorts against Postgres", () => {
           limit: 25,
         }),
       ),
-    ).toEqual(["api", "billing", "cdn", "dns", "edge", "fax", "gateway"]);
+    ).toEqual([
+      "api",
+      "billing",
+      "cdn",
+      "dns",
+      "edge",
+      "fax",
+      "gateway",
+      "hub",
+      "ivr",
+    ]);
   });
 
   const INCIDENT_SELECT: JSONObject = {

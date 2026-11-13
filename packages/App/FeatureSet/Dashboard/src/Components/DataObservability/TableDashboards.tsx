@@ -1,6 +1,7 @@
 import AppLink from "../AppLink/AppLink";
 import {
   getRefreshStatusPill,
+  RefreshError,
   TimeAgo,
   VIEWERS_IN_28_DAYS,
   VIEWS,
@@ -116,16 +117,13 @@ const TableDashboards: FunctionComponent<ComponentProps> = (
       description="The dashboards of your BI tools whose charts read this table, or a table built from it: who sees bad data first."
     >
       {dashboards.length === 0 ? (
-        <p className="px-6 pb-6 text-sm text-gray-500">
+        <p className="text-sm text-gray-500">
           {translator.translateText(
             "No dashboard of a connected BI tool reads this table, or a table built from it. Add your BI tools under BI Dashboards.",
           )}
         </p>
       ) : (
-        <ul
-          className="divide-y divide-gray-100 px-6 pb-6"
-          data-testid="table-dashboards"
-        >
+        <ul className="divide-y divide-gray-100" data-testid="table-dashboards">
           {dashboards.map((dashboard: DataObservabilityTableDashboard) => {
             const url: URL | null = readUrl(dashboard.url);
             const isOpen: boolean = openIds.has(dashboard.dataDashboardId);
@@ -192,11 +190,7 @@ const TableDashboards: FunctionComponent<ComponentProps> = (
                   <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
                     {typeof dashboard.viewCount === "number" ? (
                       <span>
-                        {translator.translatePlural(
-                          VIEWS,
-                          dashboard.viewCount,
-                          { count: dashboard.viewCount },
-                        )}
+                        {translator.translatePlural(VIEWS, dashboard.viewCount)}
                       </span>
                     ) : (
                       <></>
@@ -229,12 +223,10 @@ const TableDashboards: FunctionComponent<ComponentProps> = (
                       <></>
                     )}
                     {dashboard.lastRefreshError ? (
-                      <span
+                      <RefreshError
+                        error={dashboard.lastRefreshError}
                         className="max-w-md truncate text-red-600"
-                        title={dashboard.lastRefreshError}
-                      >
-                        {dashboard.lastRefreshError}
-                      </span>
+                      />
                     ) : (
                       <></>
                     )}
@@ -279,7 +271,6 @@ const TableDashboards: FunctionComponent<ComponentProps> = (
                           {translator.translatePlural(
                             VIEWERS_IN_28_DAYS,
                             dashboard.viewerCount,
-                            { count: dashboard.viewerCount },
                           )}
                         </dd>
                       </>

@@ -26,7 +26,7 @@ flowchart TB
 | AWS Elastic Beanstalk | `aws_elastic_beanstalk` | Collector 的 `elastic_beanstalk` 與 `ec2` 偵測器；Node.js 的 `aws` | `host.id`（刪除部署的 `service.instance.id`） |
 | AWS App Runner | `aws_app_runner` | 你自己（沒有偵測器） | `host.name` |
 | Google App Engine | `gcp_app_engine` | `gcp` 偵測器（Collector 與每個 SDK 中的） | `faas.instance` |
-| Azure App Service | `azure_app_service` | Collector 的 `azureappservice`，Node.js 與 .NET 的 `azure` 偵測器；`cloud.account.id` 由你設定 | `service.instance.id`，其次是 `host.id` |
+| Azure App Service | `azure_app_service` | Collector 的 `azureappservice`，Node.js 與 .NET 的 `azure` 偵測器；使用 SDK 時 `cloud.account.id` 由你設定 | `azure.app_service.instance.id`，否則 `service.instance.id`，其次是 `host.id` |
 | Azure Container Instances | `azure_container_instances` | 你自己（沒有偵測器） | `host.name` |
 
 下面每一節都需要一個來自 **專案設定 → 遙測與 APM → 擷取金鑰** 的 **伺服器** 擷取金鑰，以及一個以 OpenTelemetry SDK 檢測的應用程式。如果你自行託管 OneUptime，請把 `https://oneuptime.com/otlp` 換成 `https://YOUR-ONEUPTIME-HOST/otlp`。
@@ -158,7 +158,7 @@ env_variables:
 
 ## Azure App Service
 
-`cloud.platform`：`azure_app_service`。Node.js 與 .NET 的 Azure 偵測器，以及 Collector 的 `azureappservice` 偵測器，會讀取 App Service 設定的 `WEBSITE_*` 變數。它們會填入 `cloud.platform`、`cloud.region`、`service.instance.id`（來自 `WEBSITE_INSTANCE_ID`）、`deployment.environment`（部署位置）與 `host.id`。它們都不會設定 `cloud.account.id`：請自己加入訂用帳戶 ID，否則環境金鑰中的帳戶區段會是空的。
+`cloud.platform`：`azure_app_service`。Node.js 與 .NET 的 Azure 偵測器會讀取 App Service 設定的 `WEBSITE_*` 變數，填入 `cloud.platform`、`cloud.region`、`service.instance.id`（來自 `WEBSITE_INSTANCE_ID`）、`deployment.environment`（部署位置）與 `host.id`，但不會設定 `cloud.account.id`：請自己加入訂用帳戶 ID，否則環境金鑰中的帳戶區段會是空的。Collector 的 `azureappservice` 偵測器讀取相同的變數，也會設定 `cloud.account.id`，並把執行個體寫入 `azure.app_service.instance.id`。
 
 ```bash
 OTEL_SERVICE_NAME=checkout-api
@@ -181,6 +181,8 @@ SDK 偵測器把平台寫成帶點號的 `azure.app_service`；OneUptime 收到�
 :::
 
 **網路：** 除非開啟了 **VNet integration** 並啟用 **Route All**，否則 App Service 可以直接連上網際網路。開啟後，VNet 需要 NAT 閘道，或一條通往允許 TCP 443 連到 OneUptime 主機的防火牆的路由。
+
+**應用程式頁面顯示的內容：** 請求、錯誤率與延遲來自應用程式的追蹤，因此只傳送日誌或指標的應用程式會在那裡顯示 **未收到追蹤**，它的 **設定檢查** 會說明需要加入什麼。App Service 不會給應用程式自己的 CPU 或記憶體，應用程式的 CPU 與記憶體圖格會說明這一點。在 **雲端 → 連線** 中連線訂用帳戶後，應用程式的 **概覽** 會多出一個 **Azure Monitor** 區段：無論應用程式傳送什麼，都會顯示 Azure 測得的網站請求、伺服器錯誤、回應時間、CPU 時間與記憶體。
 
 ## Azure Container Instances
 
@@ -238,7 +240,11 @@ Key Vault 參照沒有解析成功，因此 App Service 把字面上的文字 `@
 :::
 
 :::details App Service 環境的帳戶區段是空的
-App Service 的偵測器都不會設定 `cloud.account.id`。請在每個應用程式的 `OTEL_RESOURCE_ATTRIBUTES` 中加入訂用帳戶 ID：帶有和沒有這個值的遙測資料會進入兩個環境。
+Node.js 與 .NET 的 App Service 偵測器不會設定 `cloud.account.id`。請在每個應用程式的 `OTEL_RESOURCE_ATTRIBUTES` 中加入訂用帳戶 ID：帶有和沒有這個值的遙測資料會進入兩個環境。
+:::
+
+:::details App Service 應用程式沒有顯示請求或執行個體
+請求、錯誤率與延遲來自追蹤，因此只傳送日誌或指標的應用程式沒有這些資料：它的 **設定檢查** 會說明需要加入什麼。執行個體來自 Azure 偵測器設定的 `azure.app_service.instance.id` 或 `service.instance.id`：兩者都沒有時，**執行個體** 圖格顯示 **未回報**。若要查看網站的請求（無論應用程式傳送什麼），請連線訂用帳戶：應用程式頁面會多出一個 **Azure Monitor** 區段。
 :::
 
 :::details 修改 Container Instances 變數後沒有效果

@@ -30,6 +30,7 @@ import {
 } from "Common/Utils/MessageFit";
 import API from "Common/Utils/API";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import OnCallTimelineRows from "Common/Tests/Server/TestingUtils/OnCallTimelineRows";
 import crypto from "crypto";
 import Twilio from "twilio";
 
@@ -236,7 +237,6 @@ beforeEach(() => {
 
   smsLogs = [];
   smsLogUpdates = [];
-  timelineUpdates = [];
 
   jest.spyOn(SmsLogService, "create").mockImplementation(((data: {
     data: SmsLog;
@@ -253,12 +253,21 @@ beforeEach(() => {
       smsLogUpdates.push(data);
       return Promise.resolve();
     }) as never);
+  // The send's result: written while the log still says Sending, as it does here.
   jest
-    .spyOn(UserOnCallLogTimelineService, "updateOneById")
+    .spyOn(SmsLogService, "compareAndSetColumnsByIdWithoutHooks")
     .mockImplementation(((data: Record<string, unknown>) => {
-      timelineUpdates.push(data);
-      return Promise.resolve();
+      smsLogUpdates.push(data);
+      return Promise.resolve(true);
     }) as never);
+
+  // The page's notification, written Sending as its page went out.
+  const timeline: OnCallTimelineRows = new OnCallTimelineRows();
+  timeline.add(TIMELINE_ID, UserNotificationStatus.Sending);
+  timeline.standIn(UserOnCallLogTimelineService);
+  timelineUpdates = timeline.writes as unknown as Array<
+    Record<string, unknown>
+  >;
   jest
     .spyOn(UserOnCallLogTimelineService, "markNotSent")
     .mockResolvedValue(undefined as never);
@@ -351,6 +360,7 @@ describe("an SMS through the server's own gateway", () => {
         statusMessage: SENT,
         smsCostInUSDCents: 0,
       },
+      expectedData: { status: SmsStatus.Sending },
     });
   });
 
@@ -417,8 +427,7 @@ describe("an on-call page through the gateway", () => {
     expect(timelineUpdates).toEqual([
       {
         data: { status: UserNotificationStatus.Sent, statusMessage: SENT },
-        id: TIMELINE_ID,
-        props: { isRoot: true },
+        id: TIMELINE_ID.toString(),
       },
     ]);
     expect(smsLogs[0]!.userOnCallLogTimelineId?.toString()).toBe(

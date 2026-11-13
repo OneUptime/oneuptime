@@ -48,7 +48,7 @@ Die Verbindung meldet sich mit dem Schlüssel eines Dienstkontos und der [domain
 
 ### Die Verbindung in OneUptime hinzufügen
 
-Öffnen Sie **Produkte → Sicherheitsereignisse → Verbindungen** (`/dashboard/{projectId}/security-events/connections`), klicken Sie auf **Verbindung hinzufügen**, wählen Sie **Google Workspace** unter **Identität** und klicken Sie auf **Weiter**. Geben Sie die **Administrator email** ein, klicken Sie auf **Weiter** und fügen Sie den Inhalt der Schlüsseldatei in **JSON des Dienstkontos** ein. Schalten Sie im Schritt **Abfrage** **Drive-Aktivität** ein, um auch Drive zu lesen.
+Öffnen Sie **Produkte → Sicherheitsereignisse → Verbindungen** (`/dashboard/{projectId}/security-events/connections`), klicken Sie auf **Verbindung hinzufügen**, wählen Sie **Google Workspace** unter **Identität** und klicken Sie auf **Weiter**. Geben Sie die **Administrator-E-Mail** ein, klicken Sie auf **Weiter** und fügen Sie den Inhalt der Schlüsseldatei in **JSON des Dienstkontos** ein. Schalten Sie im Schritt **Abfrage** **Drive-Aktivität** ein, um auch Drive zu lesen.
 
 ### Vor dem Speichern testen
 
@@ -57,7 +57,7 @@ Klicken Sie unter **Vor dem Speichern testen** auf **Diese Einstellungen testen*
 
 | Einstellung | Was Sie eintragen |
 | --- | --- |
-| **Administrator email** | Die Adresse des Administrators, als der das Dienstkonto handelt, etwa `admin@example.com`. Er muss die Berechtigung Reports haben. |
+| **Administrator-E-Mail** | Die Adresse des Administrators, als der das Dienstkonto handelt, etwa `admin@example.com`. Er muss die Berechtigung Reports haben. |
 | **Drive-Aktivität** | Optional, standardmäßig aus. Eingeschaltet liest jede Abfrage auch das Teilen und Herunterladen in Drive. |
 | **JSON des Dienstkontos** | Die ganze Schlüsseldatei, die `client_email` und `private_key` enthält. Sie wird verschlüsselt, nie von der API zurückgegeben und nie wieder angezeigt. Ersetzen Sie sie mit **Anmeldedaten aktualisieren** an der Verbindung. |
 
@@ -103,7 +103,7 @@ Ein anderes **Abfrageintervall (Minuten)** ändert nichts davon: Es entscheidet,
 Klicken Sie an einer Verbindung auf **Diagnose**, um ihre letzten Läufe zu sehen und von Hand mit ihr zu arbeiten. Wer die Verbindung ändern darf, kann diese starten; wer sie sehen darf, kann den Verlauf lesen.
 
 - **Jetzt ausführen** startet sofort eine Abfrage, mit dem üblichen Cursor, auch wenn die Verbindung nicht **Aktiviert** ist.
-- **Preview audit events** liest einen Zeitraum von bis zu 7 Tagen und importiert nichts.
+- **Vorschau der Audit-Ereignisse** liest einen Zeitraum von bis zu 7 Tagen und importiert nichts.
 - **Diesen Zeitraum importieren** importiert nach Ihrer Bestätigung einen Zeitraum von bis zu 7 Tagen, ohne den Cursor zu verschieben. Bereits importierte Aktivitäten werden übersprungen. Google bewahrt Audit-Protokolle 6 Monate lang auf.
 - **Diagnosen kopieren** an einem Lauf kopiert seinen Bericht für den Support. Er enthält nie Anmeldedaten.
 
@@ -129,7 +129,7 @@ Der **Letzter Fehler** der Verbindung bewahrt die vollständige Fehlermeldung, m
 
 :::details Letzter Fehler sagt `token request failed`
 - `unauthorized_client`: Das Dienstkonto hat keine domainweite Delegierung für den Bereich. Fügen Sie seine **Unique ID** mit `https://www.googleapis.com/auth/admin.reports.audit.readonly` unter **Manage domain-wide delegation** hinzu.
-- `invalid_grant` mit `Invalid email or User ID`: Die **Administrator email** ist kein Benutzer dieses Google Workspace.
+- `invalid_grant` mit `Invalid email or User ID`: Die **Administrator-E-Mail** ist kein Benutzer dieses Google Workspace.
 - `invalid_grant` mit `Invalid JWT Signature`: Der Schlüssel wurde gelöscht oder deaktiviert. Legen Sie einen neuen Schlüssel an und speichern Sie ihn mit **Anmeldedaten aktualisieren**.
 :::
 

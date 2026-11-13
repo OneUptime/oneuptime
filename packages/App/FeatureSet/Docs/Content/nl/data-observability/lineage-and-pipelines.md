@@ -17,7 +17,11 @@ Het tabblad **Herkomst** van een tabel toont de tabellen waaruit ze is opgebouwd
 
 Bovenaan het tabblad tekent een diagram die herkomst een paar stappen in elke richting (drie, of kies 1, 2 of 5): links waaruit de tabel is opgebouwd, rechts de tabellen en dashboards die eruit zijn opgebouwd, en de pipelines die gegevens van buitenaf laden, op de plek waar die binnenkomen. Elke kaart zegt hoe het er nu voor staat - te laat, een open waarschuwing, een mislukte uitvoering - en een pijl wordt rood als de laatste uitvoering van zijn pipeline is mislukt, zodat je een te late tabel kunt volgen tot de uitvoering die haar ophield. Open een willekeurige tabel om het diagram erop te centreren.
 
+Een kaart tekent in elke richting hoogstens tien tabellen en telt de rest, zoals **+14**. Selecteer het getal om er ter plekke nog tot tien bij te tekenen, problemen eerst, met elke pijl tussen hen en wat al getekend is. **Diagram opnieuw instellen** gaat terug naar het diagram zoals het eerst werd getekend. Bevat een kant zoveel tabellen als één diagram kan bevatten, open dan een tabel om het diagram erop te centreren.
+
 Waar de bron kolommen noemt, zegt het tabblad **Kolommen** van een tabel waar elke kolom vandaan komt en wat ze voedt: de toegangsgeschiedenis van Snowflake (Enterprise edition, die `IMPORTED PRIVILEGES` op de database `SNOWFLAKE` nodig heeft), en de facet `columnLineage` van OpenLineage.
+
+Kies op het tabblad **Herkomst** een kolom van de tabel in **Een kolom volgen** om te markeren waar ze vandaan komt en waar ze naartoe gaat: omhoog in het diagram naar de kolommen waaruit ze is opgebouwd, omlaag naar de kolommen die uit haar zijn opgebouwd, elk genoemd op haar tabel, ook waar de kolom onderweg een andere naam kreeg. Een pijl waarvan de bronnen geen kolommen noemen, kan haar verder dragen dan gemarkeerd is, en het diagram zegt dat.
 
 ## OpenLineage
 
@@ -117,7 +121,7 @@ Elke job, elk dbt-project en elke synchronisatie verschijnt onder **Pipelines**,
 - **Pipeline Run Unusually Long**: een uitvoering heeft twee keer haar gebruikelijke tijd of langer geduurd, elke vijf minuten gecontroleerd zolang ze loopt, zodat een uitvoering die vastloopt al wordt opgemerkt voordat ze eindigt.
 - **Pipeline Is Late**: er is langer geen uitvoering gestart dan de planning toestaat.
 
-De pagina van een pipeline tekent zijn **Herkomst**, de eerste plek om te kijken als een uitvoering mislukt of te laat is: links de tabellen die hij leest, rechts de tabellen die hij schrijft, de pipeline ertussen, en elke kaart zegt hoe het er nu voor staat. Kies meer stappen om te zien waaruit die tabellen zijn opgebouwd en wat eruit is opgebouwd, en open een willekeurige tabel om haar eigen tabblad **Herkomst** te zien.
+De pagina van een pipeline tekent zijn **Herkomst**, de eerste plek om te kijken als een uitvoering mislukt of te laat is: links de tabellen die hij leest, rechts de tabellen die hij schrijft, de pipeline ertussen, en elke kaart zegt hoe het er nu voor staat. Kies meer stappen om te zien waaruit die tabellen zijn opgebouwd en wat eruit is opgebouwd, en open een willekeurige tabel om haar eigen tabblad **Herkomst** te zien. Een aantal niet-getekende tabellen, op de kaart van de pipeline of van een tabel, tekent er ook hier ter plekke meer bij.
 
 ## Eén waarschuwing per oorzaak
 
@@ -128,7 +132,7 @@ Wanneer een tabel verouderd raakt, raakt elke tabel die eruit is opgebouwd ook v
 
 De kaart **Gegevens** van de oorzaak toont haar **Impact stroomafwaarts**: elke waarschuwing die ze veroorzaakte. De kaart van een tabelwaarschuwing toont ook de services die naar de tabel schrijven, met hun mislukte schrijfacties, en hun deploys en andere wijzigingen in de dag vóór de waarschuwing.
 
-Onder de kaart **Gegevens** tekent de pagina van een waarschuwing haar **Herkomst**: rond haar tabel, zoals het tabblad **Herkomst** van de tabel die tekent, of rond haar pipeline. De weg omhoog naar de waarschuwing die haar veroorzaakte en omlaag naar elke waarschuwing die ze veroorzaakte, is gemarkeerd - de tabel of pipeline van de oorzaak met **Oorzaak**, die van elke veroorzaakte waarschuwing met **Gevolg** - en de rest vervaagt, zodat wie haar opent ziet waar in de keten het probleem begon. Gaat de oorzaak over een hele database, of ligt ze verder omhoog dan het diagram reikt, dan zegt de kaart dat in woorden. **Herkomst verkennen** opent het tabblad **Herkomst** van de tabel, of de pagina van de pipeline.
+Onder de kaart **Gegevens** tekent de pagina van een waarschuwing haar **Herkomst**: rond haar tabel, zoals het tabblad **Herkomst** van de tabel die tekent, of rond haar pipeline. De weg omhoog naar de waarschuwing die haar veroorzaakte en omlaag naar elke waarschuwing die ze veroorzaakte, is gemarkeerd - de tabel of pipeline van de oorzaak met **Oorzaak**, die van elke veroorzaakte waarschuwing met **Gevolg** - en de rest vervaagt, zodat wie haar opent ziet waar in de keten het probleem begon. Ligt de oorzaak bij een pipeline die op een pijl is getekend, dan staat op die pijl **Oorzaak** onder de naam van de pipeline. Gaat de oorzaak over een hele database, of ligt ze verder omhoog dan het diagram reikt, dan zegt de kaart dat in woorden. Een waarschuwing uit een controle op één kolom, zoals een Null Percent-controle op `customer_id`, opent met die kolom gevolgd naast deze wegen, zoals op het tabblad **Herkomst** van de tabel: waar ze vandaan komt en waar ze naartoe gaat, genoemd op elke tabel. Kies daar een andere kolom van de tabel, of wis haar om alleen de wegen te zien. **Herkomst verkennen** opent het tabblad **Herkomst** van de tabel, of de pagina van de pipeline.
 
 Wie de waarschuwing die haar veroorzaakte niet mag zien, krijgt geen kaart **Gegevens** en geen herkomst, en een veroorzaakte waarschuwing die diegene niet mag zien, wordt niet gemarkeerd en niet meegeteld.
 

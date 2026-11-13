@@ -1,6 +1,6 @@
 # Monitor-Gruppen
 
-Eine Monitor-Gruppe fasst mehrere Monitore zu einem Status zusammen. Gruppieren Sie die Monitore, die zusammen einen Dienst bilden, etwa Checkout: seine API, seinen Zahlungsdienst und seine Web-App. Die Gruppe zeigt den schlimmsten Status unter ihnen, hat eine eigene Verfügbarkeit, und eine Statusseite kann die ganze Gruppe als eine Zeile anzeigen.
+Eine Monitor-Gruppe fasst mehrere Monitore zu einem Status zusammen. Gruppieren Sie die Monitore, die zusammen einen Dienst bilden, etwa Checkout: seine API, seinen Zahlungsdienst und seine Web-App. Die Gruppe zeigt den schlimmsten Status unter ihnen, hat eine eigene Verfügbarkeit, und eine Statusseite kann die ganze Gruppe als eine Zeile anzeigen. Um zwischen einer Monitor-Gruppe, einem Dienst und einer Beschriftung zu wählen, lesen Sie [Was nehme ich wann?](/docs/introduction/which-one#monitor-gruppe-dienst-oder-beschriftung).
 
 :::cards
 - [Wie der Status einer Gruppe ermittelt wird](#wie-der-status-einer-gruppe-ermittelt-wird): Der schlimmste Status unter ihren Monitoren.
@@ -27,8 +27,9 @@ flowchart TB
 ```
 
 - **Archivierte Monitore zählen nicht.** Ein archivierter Monitor wird nicht geprüft, sein Status ist also eingefroren; die Gruppe lässt ihn aus.
+- **Monitore mit ausgeschalteter Überwachung zählen nicht.** Einen Monitor, dessen Überwachung ausgeschaltet ist, prüft nichts, sein Status ist also nur, was seine letzte Prüfung sah. Die Gruppe lässt ihn aus ihrem Status aus: Ein Monitor, der beim Ausschalten seiner Überwachung **Offline** war, macht die Gruppe nicht **Offline**. Verfügbarkeit und **Verfügbarkeits-Diagramm** der Gruppe behalten den Verlauf des Monitors bis zum Ausschalten seiner Überwachung und lassen die Zeit danach aus, im Dashboard wie auf Statusseiten. Wieder eingeschaltet, zählt der Monitor ab diesem Moment wieder.
 - **Eine leere Gruppe ist betriebsbereit.** Eine Gruppe ohne Monitore, oder nur mit archivierten, zeigt Ihren betriebsbereiten Status. Bis Sie einen Monitor hinzufügen, zeigt das Dashboard an Stelle ihres Status **Noch keine Monitore**.
-- **Ausgeschaltete Überwachung zeigt Deaktiviert.** Ist die Überwachung für jeden Monitor einer Gruppe ausgeschaltet, prüft nichts diese Monitore, und das Dashboard zeigt an Stelle des Gruppenstatus **Deaktiviert**.
+- **Ausgeschaltete Überwachung zeigt Deaktiviert.** Ist die Überwachung für jeden Monitor einer Gruppe ausgeschaltet, prüft nichts diese Monitore, und das Dashboard zeigt an Stelle des Gruppenstatus **Deaktiviert**; ihr **Verfügbarkeits-Diagramm** und ihre Verfügbarkeit enden dort, wo die Überwachung für den letzten von ihnen ausgeschaltet wurde. Eine Statusseite zeigt die Gruppe als **Nicht überwacht**.
 - **Die Reihenfolge bestimmen Sie.** Welcher Status der schlimmste ist, folgt der Reihenfolge unter **Monitore → Einstellungen → Monitor-Status**. Siehe [Monitorstatus](/docs/monitor/criteria-and-statuses#monitorstatus).
 
 Eine Monitor-Gruppe ist keine Statusseitengruppe. Eine Statusseitengruppe ist eine Überschrift auf einer Statusseite, die Zeilen enthält. Eine Monitor-Gruppe ist eine Zeile, die für mehrere Monitore steht, und jede Statusseite kann sie anzeigen.
@@ -91,6 +92,8 @@ Um einen Monitor aus der Gruppe zu nehmen, klicken Sie in **Monitore in der Grup
 
 Die Verfügbarkeit in der **Übersicht** zählt jeden Status außer dem betriebsbereiten als Ausfallzeit. Eine Statusseite zählt nur die Status in ihrer eigenen Liste **Zählt als Ausfallzeit**: siehe [Auswählen, was auf der Seite angezeigt wird](/docs/status-pages/index#auswählen-was-auf-der-seite-erscheint).
 
+Jeder Balken des Verfügbarkeits-Diagramms, hier und auf einer Statusseite, zeigt, wie lange die Gruppe selbst an diesem Tag in jedem Status war: In jedem Moment hat sie den schlechtesten Status ihrer Monitore, sodass eine Stunde, in der zwei von ihnen gleichzeitig offline sind, eine Stunde der Gruppe ist und ein Tag nie mehr als einen Tag ergibt. Die Tage sind Ihre eigenen: Das Dashboard zeichnet sie in der Zeitzone Ihrer Benutzereinstellungen, eine Statusseite in der jedes Besuchers.
+
 Die Liste **Monitor-Gruppen** kann Gruppen nach Eigentümer und Label filtern, Labels und Eigentümer für viele Gruppen auf einmal setzen und Gruppen als JSON exportieren oder importieren.
 
 ## Überwachung für eine ganze Gruppe ausschalten
@@ -122,7 +125,7 @@ Wählen Sie die Gruppe. **Anzeigename**, der Name, den Besucher lesen, übernimm
 
 Auf der Statusseite steht die Zeile für jeden Monitor der Gruppe:
 
-- **Ihr Status.** Es ist der Status der Gruppe: der schlimmste ihrer Monitore.
+- **Ihr Status.** Es ist der Status der Gruppe: der schlimmste ihrer Monitore mit eingeschalteter Überwachung. Ist die Überwachung für alle ausgeschaltet, zeigt die Zeile **Nicht überwacht** und zählt weder für die Überschrift darüber noch für den Gesamtstatus der Seite.
 - **Ihre Vorfälle.** Ein Vorfall auf einem beliebigen Monitor der Gruppe erscheint auf der Seite, und die Gruppe wird unter den betroffenen Ressourcen genannt.
 - **Ihre Abonnenten.** Ein Abonnent, der die Gruppe wählt, erfährt von jedem Monitor darin. Siehe [Abonnenten Ressourcen und Ereignistypen wählen lassen](/docs/status-pages/subscribers#abonnenten-ressourcen-und-ereignistypen-wählen-lassen).
 

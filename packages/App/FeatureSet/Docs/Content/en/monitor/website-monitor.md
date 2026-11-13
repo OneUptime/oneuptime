@@ -27,6 +27,8 @@ flowchart TB
 
 When none of the monitor's criteria reads the response body (a **Response Body** or **JavaScript Expression** filter), the probe sends a `HEAD` request instead of a `GET`, and repeats it as a `GET` if the server rejects `HEAD`. Your server's access logs can show either.
 
+The probe checks the site's certificate as a browser does, including whether its issuer has revoked it. A revoked certificate fails the check like an expired one: the monitor goes offline, and the failure cause says the certificate was revoked. **Allow self-signed certificates** turns these checks off for the monitor's own host name.
+
 A probe that has lost its own network connection reports no result, so it cannot mark your site offline.
 
 ## Before you begin

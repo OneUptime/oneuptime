@@ -24,7 +24,10 @@ import {
   RECENT_COMMANDS_LIMIT,
   writeRecentCommandId,
 } from "./RecentCommands";
-import useProviderSearch, { ProviderSearchSection } from "./UseProviderSearch";
+import useProviderSearch, {
+  PROVIDER_SEARCH_MIN_QUERY_LENGTH,
+  ProviderSearchSection,
+} from "./UseProviderSearch";
 import PaletteRow from "./PaletteRow";
 import React, {
   FunctionComponent,
@@ -43,6 +46,22 @@ export interface ComponentProps {
   onClose: () => void;
   /** When set, selected command ids are persisted here and surface as "Recent". */
   recentStorageKey?: string | undefined;
+  /*
+   * A search that found nothing (issue #6830): called with the words once
+   * the list has stayed empty, with nothing still searching, for
+   * SEARCH_FOUND_NOTHING_SETTLE_MS - or when the palette closes on it. Once
+   * per search: the words typed on the way to it are not searches.
+   */
+  onSearchFoundNothing?: ((query: string) => void) | undefined;
+  /*
+   * What to offer when a search found nothing: called with the words once
+   * nothing matches and nothing is still searching, and its commands are
+   * listed in place of "No results found." - the Dashboard's "Ask AI: ..."
+   * for a question (#6816). The search still counts as one that found
+   * nothing (onSearchFoundNothing), and these are never remembered as
+   * recent: they are made of the words typed.
+   */
+  getFallbackCommands?: ((query: string) => Array<PaletteCommand>) | undefined;
 }
 
 /** One selectable row in the flattened keyboard order. */
@@ -123,7 +142,12 @@ interface PanelProps {
   searchProviders: Array<PaletteSearchProvider>;
   onClose: () => void;
   recentStorageKey?: string | undefined;
+  onSearchFoundNothing?: ((query: string) => void) | undefined;
+  getFallbackCommands?: ((query: string) => Array<PaletteCommand>) | undefined;
 }
+
+// How long an empty list stays empty before its search counts as one that found nothing.
+export const SEARCH_FOUND_NOTHING_SETTLE_MS: number = 1000;
 
 const CommandPalettePanel: FunctionComponent<PanelProps> = (
   props: PanelProps,
@@ -258,7 +282,7 @@ const CommandPalettePanel: FunctionComponent<PanelProps> = (
    */
   const trimmedQuery: string = query.trim();
 
-  const sections: Array<PaletteSectionView> = useMemo(() => {
+  const matchedSections: Array<PaletteSectionView> = useMemo(() => {
     const built: Array<PaletteSectionView> = [];
 
     type PushSectionFunction = (
@@ -428,6 +452,61 @@ const CommandPalettePanel: FunctionComponent<PanelProps> = (
     return built;
   }, [trimmedQuery, query, props.commands, recentCommandIds, providerSections]);
 
+  /*
+   * A search that found nothing (props.onSearchFoundNothing): reported once
+   * the list has settled empty, or when the palette closes on it. What
+   * getFallbackCommands offers in its place is not a match.
+   */
+  const isShowingNothing: boolean =
+    trimmedQuery.length >= PROVIDER_SEARCH_MIN_QUERY_LENGTH &&
+    !matchedSections.some((section: PaletteSectionView): boolean => {
+      return section.entries.length > 0;
+    }) &&
+    !hasPendingSection(matchedSections);
+
+  const getFallbackCommands:
+    | ((query: string) => Array<PaletteCommand>)
+    | undefined = props.getFallbackCommands;
+
+  // What is offered in place of "No results found.", after nothing matched.
+  const sections: Array<PaletteSectionView> = useMemo(() => {
+    if (!isShowingNothing || !getFallbackCommands) {
+      return matchedSections;
+    }
+
+    let fallbackCommands: Array<PaletteCommand> = [];
+
+    try {
+      fallbackCommands = getFallbackCommands(trimmedQuery);
+    } catch {
+      // An offer is never worth breaking the palette.
+      fallbackCommands = [];
+    }
+
+    if (fallbackCommands.length === 0) {
+      return matchedSections;
+    }
+
+    return [
+      ...matchedSections,
+      {
+        id: "fallback",
+        title: fallbackCommands[0]!.category,
+        isPending: false,
+        // Nothing matched, so these are the whole keyboard order.
+        entries: fallbackCommands.map(
+          (command: PaletteCommand, index: number): FlatEntry => {
+            return {
+              ...commandToEntry(command, "fallback-"),
+              recentCommandId: null,
+              flatIndex: index,
+            };
+          },
+        ),
+      },
+    ];
+  }, [matchedSections, isShowingNothing, trimmedQuery, getFallbackCommands]);
+
   // Flattened list in render order — the keyboard walks this.
   const flatEntries: Array<FlatEntry> = useMemo(() => {
     return sections.reduce(
@@ -445,6 +524,65 @@ const CommandPalettePanel: FunctionComponent<PanelProps> = (
   useEffect(() => {
     setActiveIndex(0);
   }, [query]);
+
+  const onSearchFoundNothingRef: React.MutableRefObject<
+    ((query: string) => void) | undefined
+  > = useRef<((query: string) => void) | undefined>(props.onSearchFoundNothing);
+
+  useEffect(() => {
+    onSearchFoundNothingRef.current = props.onSearchFoundNothing;
+  }, [props.onSearchFoundNothing]);
+
+  const reportedQueryRef: React.MutableRefObject<string | null> = useRef<
+    string | null
+  >(null);
+  const unreportedQueryRef: React.MutableRefObject<string | null> = useRef<
+    string | null
+  >(null);
+
+  const reportFoundNothing: (searchedQuery: string) => void = (
+    searchedQuery: string,
+  ): void => {
+    unreportedQueryRef.current = null;
+
+    if (reportedQueryRef.current === searchedQuery) {
+      return;
+    }
+
+    reportedQueryRef.current = searchedQuery;
+
+    try {
+      onSearchFoundNothingRef.current?.(searchedQuery);
+    } catch {
+      // A report is never worth breaking the palette.
+    }
+  };
+
+  useEffect(() => {
+    if (!isShowingNothing || !onSearchFoundNothingRef.current) {
+      unreportedQueryRef.current = null;
+      return undefined;
+    }
+
+    unreportedQueryRef.current = trimmedQuery;
+
+    const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
+      reportFoundNothing(trimmedQuery);
+    }, SEARCH_FOUND_NOTHING_SETTLE_MS);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [isShowingNothing, trimmedQuery]);
+
+  // Closed while it showed nothing: that search found nothing too.
+  useEffect(() => {
+    return () => {
+      if (unreportedQueryRef.current) {
+        reportFoundNothing(unreportedQueryRef.current);
+      }
+    };
+  }, []);
 
   /*
    * Clamp the selection when async results shrink the list under it. The
@@ -793,6 +931,8 @@ const CommandPalette: FunctionComponent<ComponentProps> = (
       searchProviders={props.searchProviders || EMPTY_PROVIDERS}
       onClose={props.onClose}
       recentStorageKey={props.recentStorageKey}
+      onSearchFoundNothing={props.onSearchFoundNothing}
+      getFallbackCommands={props.getFallbackCommands}
     />,
     document.body,
   );

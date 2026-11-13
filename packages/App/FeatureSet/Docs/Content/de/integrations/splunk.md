@@ -44,7 +44,7 @@ Um sich stattdessen mit einem Passwort anzumelden, überspringen Sie diesen Schr
 
 ### Die Verbindung in OneUptime hinzufügen
 
-Öffnen Sie **Produkte → Sicherheitsereignisse → Verbindungen** (`/dashboard/{projectId}/security-events/connections`), klicken Sie auf **Verbindung hinzufügen**, wählen Sie **Splunk Enterprise Security** und klicken Sie auf **Weiter**. Füllen Sie die Einstellungen aus der Tabelle unten aus, klicken Sie auf **Weiter** und fügen Sie das Token in **Authentication token** ein, oder das Passwort in **Passwort**.
+Öffnen Sie **Produkte → Sicherheitsereignisse → Verbindungen** (`/dashboard/{projectId}/security-events/connections`), klicken Sie auf **Verbindung hinzufügen**, wählen Sie **Splunk Enterprise Security** und klicken Sie auf **Weiter**. Füllen Sie die Einstellungen aus der Tabelle unten aus, klicken Sie auf **Weiter** und fügen Sie das Token in **Authentifizierungstoken** ein, oder das Passwort in **Passwort**.
 
 ### Vor dem Speichern testen
 
@@ -53,13 +53,13 @@ Klicken Sie unter **Vor dem Speichern testen** auf **Diese Einstellungen testen*
 
 | Einstellung | Was Sie eintragen |
 | --- | --- |
-| **Splunk management URL** | Die REST-API des Search Heads, etwa `https://splunk.example.com:8089`. Sie muss `https` verwenden, ohne Abfragezeichenfolge. Ein Pfad bleibt erhalten, für einen Reverse Proxy, der die API unter einem Pfad bereitstellt. |
-| **Suchen** | Die Suche, die auswählt, was importiert wird, `index=notable`, solange Sie sie nicht ändern. Schränken Sie sie ein, etwa mit `index=notable urgency IN (high, critical)`. OneUptime fügt den Zeitraum selbst hinzu, die Suche kann also weder `earliest` noch `latest` setzen und nicht mit einer Pipe beginnen. Ein führendes `search` wird entfernt. |
+| **Splunk-Verwaltungs-URL** | Die REST-API des Search Heads, etwa `https://splunk.example.com:8089`. Sie muss `https` verwenden, ohne Abfragezeichenfolge. Ein Pfad bleibt erhalten, für einen Reverse Proxy, der die API unter einem Pfad bereitstellt. |
+| **Suchabfrage** | Die Suche, die auswählt, was importiert wird, `index=notable`, solange Sie sie nicht ändern. Schränken Sie sie ein, etwa mit `index=notable urgency IN (high, critical)`. OneUptime fügt den Zeitraum selbst hinzu, die Suche kann also weder `earliest` noch `latest` setzen und nicht mit einer Pipe beginnen. Ein führendes `search` wird entfernt. |
 | **Benutzername** | Der Name des Splunk-Benutzers, nur wenn er sich mit einem Passwort anmeldet. |
-| **Authentication token** | Das Token aus dem ersten Schritt. Ist ein Token gespeichert, wird es verwendet, und Benutzername und Passwort nicht. |
+| **Authentifizierungstoken** | Das Token aus dem ersten Schritt. Ist ein Token gespeichert, wird es verwendet, und Benutzername und Passwort nicht. |
 | **Passwort** | Das Passwort des Splunk-Benutzers, nur wenn kein Token verwendet wird. |
 
-**Authentication token** und **Passwort** werden verschlüsselt, nie von der API zurückgegeben und nie wieder angezeigt. Ersetzen Sie eines davon mit **Anmeldedaten aktualisieren** an der Verbindung. Um von einer Anmeldung zur anderen zu wechseln, tragen Sie dort die neue ein und schalten Sie **Remove the stored Authentication token** oder **Remove the stored Password** ein.
+**Authentifizierungstoken** und **Passwort** werden verschlüsselt, nie von der API zurückgegeben und nie wieder angezeigt. Ersetzen Sie eines davon mit **Anmeldedaten aktualisieren** an der Verbindung. Um von einer Anmeldung zur anderen zu wechseln, tragen Sie dort die neue ein und schalten Sie **Gespeichertes Feld „Authentifizierungstoken“ entfernen** oder **Gespeichertes Feld „Passwort“ entfernen** ein.
 
 Der Schritt **Abfrage** hat außerdem eine optionale **Beschreibung**, das **Abfrageintervall (Minuten)**, eine ganze Zahl von `1` bis `1440`, die mit `5` beginnt, und **Aktiviert**, das eingeschaltet beginnt.
 
@@ -114,7 +114,7 @@ Eine Abfrage liest höchstens 10.000 Zeilen. Enthält ein Zeitfenster mehr, ist 
 Stopped after collecting 10000 records; the window holds more. Records are read oldest first, and the last one read was created at 2026-09-14T08:12:44.000Z, where the next poll can resume.
 ```
 
-Die Suche sortiert das Zeitfenster nach `_time`, die ältesten zuerst, deshalb setzt OneUptime den Cursor auf die Erstellungszeit der letzten gelesenen Zeile, und die nächste Abfrage beginnt dort, mit derselben Fensterlänge. Ein ausgelasteter Search Head holt 10.000 Zeilen pro Abfrage auf, statt dieselben noch einmal zu lesen. Die Zeilen, die im selben Augenblick erstellt wurden, werden zweimal gelesen, und die Duplikatprüfung verwirft die zweite Kopie. Splunk sortiert das ganze Zeitfenster, bevor es eine Zeile zurückgibt, deshalb macht eine Suche in **Suchen**, die weit mehr trifft als nötig, jede Abfrage langsamer: Halten Sie sie gezielt.
+Die Suche sortiert das Zeitfenster nach `_time`, die ältesten zuerst, deshalb setzt OneUptime den Cursor auf die Erstellungszeit der letzten gelesenen Zeile, und die nächste Abfrage beginnt dort, mit derselben Fensterlänge. Ein ausgelasteter Search Head holt 10.000 Zeilen pro Abfrage auf, statt dieselben noch einmal zu lesen. Die Zeilen, die im selben Augenblick erstellt wurden, werden zweimal gelesen, und die Duplikatprüfung verwirft die zweite Kopie. Splunk sortiert das ganze Zeitfenster, bevor es eine Zeile zurückgibt, deshalb macht eine **Suchabfrage**, die weit mehr trifft als nötig, jede Abfrage langsamer: Halten Sie sie gezielt.
 
 Kommt ein Lauf gar nicht über den gespeicherten Cursor hinaus, verkürzt OneUptime stattdessen das Zeitfenster:
 
@@ -129,7 +129,7 @@ Ein Lauf, der ganz fehlschlägt, mit einem Fehler von Splunk, behält den Cursor
 Klicken Sie an einer Verbindung auf **Diagnose**, um ihre letzten Läufe zu sehen und von Hand mit ihr zu arbeiten. Wer die Verbindung ändern darf, kann diese starten; wer sie sehen darf, kann den Verlauf lesen.
 
 - **Jetzt ausführen** startet sofort eine Abfrage, mit dem üblichen Cursor, auch wenn die Verbindung nicht **Aktiviert** ist.
-- **Preview notable events** liest einen Zeitraum von bis zu 7 Tagen und importiert nichts.
+- **Vorschau der Notable Events** liest einen Zeitraum von bis zu 7 Tagen und importiert nichts.
 - **Diesen Zeitraum importieren** importiert nach Ihrer Bestätigung einen Zeitraum von bis zu 7 Tagen, ohne den Cursor zu verschieben. Bereits importierte Zeilen werden übersprungen.
 - **Diagnosen kopieren** an einem Lauf kopiert seinen Bericht für den Support. Er enthält nie Anmeldedaten.
 
@@ -141,8 +141,8 @@ Klicken Sie an einer Verbindung auf **Diagnose**, um ihre letzten Läufe zu sehe
 | --- | --- |
 | **Konfiguration** | Jede Einstellung ist vorhanden und gültig. Schlägt das fehl, wird nichts kontaktiert. |
 | **Authenticate with Splunk** | Splunk nimmt das Token oder den Benutzernamen und das Passwort an und nennt den Benutzer und seine Rollen, damit Sie sie mit der Rolle vergleichen, die Sie vergeben wollten. |
-| **Run the search on Splunk** | Die Suche in **Suchen** läuft über die letzten 24 Stunden, für eine Zeile, und sagt, welcher Export-Endpunkt geantwortet hat. |
-| **Notable events available to import** | Wie viele Zeilen die Suche in **Suchen** in den letzten 24 Stunden und den letzten 7 Tagen trifft. Keine in 7 Tagen ist eine Warnung, kein Fehler. |
+| **Run the search on Splunk** | Ihre **Suchabfrage** läuft über die letzten 24 Stunden, für eine Zeile, und sagt, welcher Export-Endpunkt geantwortet hat. |
+| **Notable events available to import** | Wie viele Zeilen Ihre **Suchabfrage** in den letzten 24 Stunden und den letzten 7 Tagen trifft. Keine in 7 Tagen ist eine Warnung, kein Fehler. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | Die Seite von OneUptime selbst: Ein Prozess nimmt die Aufträge der Worker-Warteschlange an, der Abfrageauftrag läuft jede Minute, und der Speicher der Sicherheitsereignisse antwortet. |
 | **Geplante Abfrage** | Für eine gespeicherte Verbindung: Das Abfragen ist eingeschaltet, kein Lauf wartet festgefahren auf einen Worker, und die Abfragen laufen pünktlich. |
 
@@ -177,13 +177,13 @@ Der **Letzter Fehler** der Verbindung bewahrt die vollständige Fehlermeldung, m
 :::details Letzter Fehler beginnt mit `Splunk Enterprise Security authentication request`
 - `Splunk Enterprise Security authentication request failed (HTTP ...)`: Splunk hat sich geweigert zu sagen, wer der Aufrufer ist.
   - `HTTP 401`: Splunk hat die Anmeldedaten nicht angenommen. Das Token ist falsch, abgelaufen oder gelöscht, die Token-Authentifizierung ist auf dem Search Head deaktiviert, oder der Benutzername oder das Passwort ist falsch. Erstellen Sie ein neues Token und speichern Sie es mit **Anmeldedaten aktualisieren**.
-  - `HTTP 404`: Die **Splunk management URL** ist nicht die REST-API. Sie zeigt auf Splunk Web auf Port `8000`, oder sie hat einen Pfad, den der Search Head nicht bereitstellt.
+  - `HTTP 404`: Die **Splunk-Verwaltungs-URL** ist nicht die REST-API. Sie zeigt auf Splunk Web auf Port `8000`, oder sie hat einen Pfad, den der Search Head nicht bereitstellt.
 - `Splunk Enterprise Security authentication request returned ...`: Etwas anderes als die REST-API des Search Heads hat geantwortet, etwa das HTML von Splunk Web auf Port `8000` oder die Seite eines Proxys. Richten Sie die URL auf den Management-Port.
 :::
 
 :::details Letzter Fehler beginnt mit `Splunk Enterprise Security search export` oder `Splunk Enterprise Security count search`
 - `Splunk Enterprise Security search export failed (HTTP ...)`: Splunk hat sich geweigert, die Suche auszuführen.
-  - `HTTP 400`: Splunk kann die Suche nicht parsen. Führen Sie die Suche aus **Suchen** in Splunk Web aus, um ihren Fehler zu lesen.
+  - `HTTP 400`: Splunk kann die Suche nicht parsen. Führen Sie Ihre **Suchabfrage** in Splunk Web aus, um ihren Fehler zu lesen.
   - `HTTP 403`: Der Rolle des Benutzers fehlt die Fähigkeit `search`, oder sie kann den Index nicht lesen. Fügen Sie `notable` oder Ihren Index zu den Indizes hinzu, die die Rolle durchsuchen darf.
   - `HTTP 404`: Unter dieser URL gibt es keinen der beiden Export-Endpunkte, es ist also nicht der Management-Port eines Search Heads.
   - `HTTP 429` oder `HTTP 5xx`: Splunk drosselt den Benutzer, ist ausgelastet, oder die Suche hat eine seiner Grenzen erreicht. Die nächste Abfrage versucht es erneut.
@@ -193,7 +193,7 @@ Der **Letzter Fehler** der Verbindung bewahrt die vollständige Fehlermeldung, m
 :::
 
 :::details Letzter Fehler endet mit `did not complete`
-`Splunk Enterprise Security search export did not complete`, und dasselbe für die anderen Schritte, heißt, dass die Anfrage keine Antwort bekam: eine Zeitüberschreitung, ein Name, der sich nicht auflösen lässt, ein Zertifikat, dem OneUptime nicht vertraut, oder eine abgelehnte private Adresse. Prüfen Sie, ob die OneUptime-App und die Worker eine HTTPS-Verbindung zum Management-Port öffnen können. Ein Search Head, der andere Anfragen beantwortet, bei der Suche aber in eine Zeitüberschreitung läuft, sortiert zu viel: Die nächste Abfrage liest ein halb so langes Zeitfenster, und eine engere Suche in **Suchen** behebt es dauerhaft.
+`Splunk Enterprise Security search export did not complete`, und dasselbe für die anderen Schritte, heißt, dass die Anfrage keine Antwort bekam: eine Zeitüberschreitung, ein Name, der sich nicht auflösen lässt, ein Zertifikat, dem OneUptime nicht vertraut, oder eine abgelehnte private Adresse. Prüfen Sie, ob die OneUptime-App und die Worker eine HTTPS-Verbindung zum Management-Port öffnen können. Ein Search Head, der andere Anfragen beantwortet, bei der Suche aber in eine Zeitüberschreitung läuft, sortiert zu viel: Die nächste Abfrage liest ein halb so langes Zeitfenster, und eine engere **Suchabfrage** behebt es dauerhaft.
 :::
 
 :::details Zuletzt abgefragt ist Never und Letzter Fehler ist leer
@@ -201,12 +201,12 @@ Für diese Verbindung ist noch keine Abfrage fertig geworden. Führen Sie **Verb
 :::
 
 :::details Ein Lauf ist Teilweise
-- `Stopped after collecting 10000 records; the window holds more`: Das Zeitfenster enthielt mehr als die 10.000 Zeilen, die ein Lauf liest. Nichts geht verloren: Die nächste Abfrage beginnt nach der letzten gelesenen Zeile. Eine Verbindung, die Abfrage um Abfrage **Teilweise** bleibt, holt einen Rückstand auf, und ihre Werte **Zuletzt abgefragt** und **Letztes importiertes Ereignis** bewegen sich weiter. Holt sie nie auf, trifft die Suche in **Suchen** mehr als 10.000 Zeilen pro Abfrageintervall: Schränken Sie sie ein oder verkürzen Sie das **Abfrageintervall (Minuten)**.
+- `Stopped after collecting 10000 records; the window holds more`: Das Zeitfenster enthielt mehr als die 10.000 Zeilen, die ein Lauf liest. Nichts geht verloren: Die nächste Abfrage beginnt nach der letzten gelesenen Zeile. Eine Verbindung, die Abfrage um Abfrage **Teilweise** bleibt, holt einen Rückstand auf, und ihre Werte **Zuletzt abgefragt** und **Letztes importiertes Ereignis** bewegen sich weiter. Holt sie nie auf, trifft Ihre **Suchabfrage** mehr als 10.000 Zeilen pro Abfrageintervall: Schränken Sie sie ein oder verkürzen Sie das **Abfrageintervall (Minuten)**.
 - `More records were created in the one minute from ... than one poll can read`: Das Abfragen ist über diese Minute hinweggegangen. Importieren Sie sie mit **Diesen Zeitraum importieren** in der **Diagnose**. Ein Import liest so viel wie eine Abfrage.
 :::
 
 :::details Der Test besteht, aber nichts wird importiert
-Lesen Sie **Notable events available to import** im Bericht des Tests. `0` in den letzten 7 Tagen heißt, dass die Suche in **Suchen** in Splunk nichts getroffen hat: Prüfen Sie in Incident Review, dass die Korrelationssuchen aktiviert sind und Notable Events erstellen, und dass die Suche in **Suchen** nicht enger ist, als Sie wollten.
+Lesen Sie **Notable events available to import** im Bericht des Tests. `0` in den letzten 7 Tagen heißt, dass Ihre **Suchabfrage** in Splunk nichts getroffen hat: Prüfen Sie in Incident Review, dass die Korrelationssuchen aktiviert sind und Notable Events erstellen, und dass die **Suchabfrage** nicht enger ist, als Sie wollten.
 :::
 
 ## Was Sie davon haben

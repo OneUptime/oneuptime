@@ -14,6 +14,7 @@ import CloudApp from "../../../Models/DatabaseModels/CloudApp";
 import type { FindOperator } from "../../../Server/Types/Database/QueryHelper";
 import { CloudAppIdentity } from "../../../Server/Utils/Telemetry/CloudAppIdentity";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
+import { CloudAppTelemetrySignal } from "../../../Types/Cloud/CloudAppTelemetrySignal";
 import ObjectID from "../../../Types/ObjectID";
 
 /*
@@ -50,6 +51,7 @@ const IDENTITY: CloudAppIdentity = {
   revisionAttribute: "aws.ecs.task.revision",
   serviceVersion: "1.4.2",
   image: "registry/checkout:1.4.2",
+  providerResourceId: null,
 };
 
 interface FindOneArgs {
@@ -212,6 +214,152 @@ describe("CloudAppService.recordApp", () => {
       cloudPlatform: "aws_ecs",
       telemetryAttributes: IDENTITY.telemetryAttributes,
     });
+  });
+
+  /*
+   * Issue #6770: the kind of telemetry the ingest read marks its column, so
+   * the app's page can say "Needs traces" for an app that sends only
+   * metrics, rather than "0 requests".
+   */
+  test.each([
+    [CloudAppTelemetrySignal.Traces, "tracesLastReceivedAt"],
+    [CloudAppTelemetrySignal.Logs, "logsLastReceivedAt"],
+    [CloudAppTelemetrySignal.Metrics, "metricsLastReceivedAt"],
+  ])(
+    "marks an app seen sending %s on its %s, beside lastSeenAt",
+    async (signal: CloudAppTelemetrySignal, column: string) => {
+      jest
+        .spyOn(CloudAppService, "findOneBy")
+        .mockResolvedValue(appRow(APP_ID) as never);
+      const update: SpyInstance<typeof CloudAppService.updateOneById> = jest
+        .spyOn(CloudAppService, "updateOneById")
+        .mockResolvedValue(undefined as never);
+
+      await CloudAppService.recordApp({
+        projectId: PROJECT_ID,
+        cloudResourceId: ENVIRONMENT_ID,
+        cloudPlatform: "aws_ecs",
+        identity: IDENTITY,
+        signal,
+        now: NOW,
+      });
+
+      const data: Record<string, unknown> = (
+        update.mock.calls[0]![0] as UpdateArgs
+      ).data;
+      expect(data["lastSeenAt"]).toEqual(NOW);
+      expect(data[column]).toEqual(NOW);
+      // Only its own kind: the others keep when they were last received.
+      for (const other of [
+        "tracesLastReceivedAt",
+        "logsLastReceivedAt",
+        "metricsLastReceivedAt",
+      ]) {
+        if (other !== column) {
+          expect(data).not.toHaveProperty(other);
+        }
+      }
+    },
+  );
+
+  test("creates an app marked with the kind of telemetry it was first met in", async () => {
+    jest.spyOn(CloudAppService, "findOneBy").mockResolvedValue(null);
+    const create: SpyInstance<typeof CloudAppService.create> = jest
+      .spyOn(CloudAppService, "create")
+      .mockImplementation((async (args: CreateArgs) => {
+        const created: CloudApp = args.data;
+        created._id = APP_ID;
+        return created;
+      }) as never);
+
+    await CloudAppService.recordApp({
+      projectId: PROJECT_ID,
+      cloudResourceId: ENVIRONMENT_ID,
+      cloudPlatform: "azure_app_service",
+      identity: IDENTITY,
+      signal: CloudAppTelemetrySignal.Metrics,
+      now: NOW,
+    });
+
+    const created: CloudApp = (create.mock.calls[0]![0] as CreateArgs).data;
+    expect(created.metricsLastReceivedAt).toEqual(NOW);
+    // Never sent traces or logs: their columns stay empty.
+    expect(created.tracesLastReceivedAt).toBeUndefined();
+    expect(created.logsLastReceivedAt).toBeUndefined();
+  });
+
+  test("profiles, and a call that names no kind, mark no kind's column", async () => {
+    jest
+      .spyOn(CloudAppService, "findOneBy")
+      .mockResolvedValue(appRow(APP_ID) as never);
+    const update: SpyInstance<typeof CloudAppService.updateOneById> = jest
+      .spyOn(CloudAppService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+
+    for (const signal of [CloudAppTelemetrySignal.Profiles, undefined]) {
+      await CloudAppService.recordApp({
+        projectId: PROJECT_ID,
+        cloudResourceId: ENVIRONMENT_ID,
+        cloudPlatform: "aws_ecs",
+        identity: IDENTITY,
+        signal,
+        now: NOW,
+      });
+    }
+
+    for (const call of update.mock.calls) {
+      const data: Record<string, unknown> = (call[0] as UpdateArgs).data;
+      expect(data["lastSeenAt"]).toEqual(NOW);
+      expect(data).not.toHaveProperty("tracesLastReceivedAt");
+      expect(data).not.toHaveProperty("logsLastReceivedAt");
+      expect(data).not.toHaveProperty("metricsLastReceivedAt");
+    }
+  });
+
+  test("keeps the provider's id the identity reports, and never blanks one it left out", async () => {
+    const SITE_ID: string =
+      "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-web/providers/Microsoft.Web/sites/storefront";
+    jest.spyOn(CloudAppService, "findOneBy").mockResolvedValue(null);
+    const create: SpyInstance<typeof CloudAppService.create> = jest
+      .spyOn(CloudAppService, "create")
+      .mockImplementation((async (args: CreateArgs) => {
+        const created: CloudApp = args.data;
+        created._id = APP_ID;
+        return created;
+      }) as never);
+
+    await CloudAppService.recordApp({
+      projectId: PROJECT_ID,
+      cloudResourceId: ENVIRONMENT_ID,
+      cloudPlatform: "azure_app_service",
+      identity: { ...IDENTITY, providerResourceId: SITE_ID },
+      now: NOW,
+    });
+
+    expect(
+      (create.mock.calls[0]![0] as CreateArgs).data.providerResourceId,
+    ).toBe(SITE_ID);
+
+    jest.restoreAllMocks();
+    jest
+      .spyOn(CloudAppService, "findOneBy")
+      .mockResolvedValue(appRow(APP_ID) as never);
+    const update: SpyInstance<typeof CloudAppService.updateOneById> = jest
+      .spyOn(CloudAppService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+
+    // A sidecar's metrics name no cloud.resource_id: the app keeps its own.
+    await CloudAppService.recordApp({
+      projectId: PROJECT_ID,
+      cloudResourceId: ENVIRONMENT_ID,
+      cloudPlatform: "azure_app_service",
+      identity: IDENTITY,
+      now: NOW,
+    });
+
+    expect((update.mock.calls[0]![0] as UpdateArgs).data).not.toHaveProperty(
+      "providerResourceId",
+    );
   });
 
   test("a create the unique index refused takes the row the other worker created", async () => {

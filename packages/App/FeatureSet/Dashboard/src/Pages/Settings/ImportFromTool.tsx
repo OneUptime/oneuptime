@@ -1,3 +1,5 @@
+import ProductEvents from "Common/UI/Utils/ProductEvents";
+import { ProductEventName } from "Common/Types/Analytics/ProductEvent";
 import PageComponentProps from "../PageComponentProps";
 import {
   cancelToolImport,
@@ -19,12 +21,21 @@ import ToolImportPicker from "../../Components/ToolImport/ToolImportPicker";
 import ToolImportProgressPanel from "../../Components/ToolImport/ToolImportProgressPanel";
 import ToolImportReport from "../../Components/ToolImport/ToolImportReport";
 import ToolImportReview from "../../Components/ToolImport/ToolImportReview";
+import {
+  IMPORTER_KIND_QUERY_PARAM,
+  IMPORTER_OPENED_FROM_QUERY_PARAM,
+  IMPORTER_OPENED_FROM_SETTINGS,
+  IMPORTER_TOOL_QUERY_PARAM,
+  readToolImportKindParam,
+  readToolImportToolParam,
+} from "../../Components/ToolImport/ToolImportLinks";
 import IconProp from "Common/Types/Icon/IconProp";
 import { getToolImportSourceDefinition } from "Common/Types/ToolImport/ToolImportCatalog";
 import {
   ToolImportRunView,
   ToolImportSelection,
 } from "Common/Types/ToolImport/ToolImportPlan";
+import ToolImportResourceKind from "Common/Types/ToolImport/ToolImportResourceKind";
 import ToolImportRunStatus from "Common/Types/ToolImport/ToolImportRunStatus";
 import ToolImportSource from "Common/Types/ToolImport/ToolImportSource";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -71,6 +82,13 @@ const TOOL_IMPORT_POLL_RETRY_MS: number = 5000;
 
 const RUN_QUERY_PARAM: string = "run";
 
+/*
+ * A link from elsewhere (ToolImportLinks) says where it was opened from
+ * (?from=, sent with importer/opened; "settings" when it says nothing), and
+ * may open the page on the tools that fill the list it came from (?kind=)
+ * or on one tool's connect step (?tool=).
+ */
+
 const ImportFromTool: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -83,7 +101,22 @@ const ImportFromTool: FunctionComponent<
   const [detailsError, setDetailsError] = useState<string>("");
   const [reloadToken, setReloadToken] = useState<number>(0);
   const [pickedSource, setPickedSource] = useState<ToolImportSource | null>(
-    null,
+    (): ToolImportSource | null => {
+      return readToolImportToolParam(
+        Navigation.getQueryStringByName(IMPORTER_TOOL_QUERY_PARAM),
+      );
+    },
+  );
+  /*
+   * The kind of record the list the person came from holds: the picker
+   * offers the tools that bring it, until they ask for every tool.
+   */
+  const [pickerKind, setPickerKind] = useState<ToolImportResourceKind | null>(
+    (): ToolImportResourceKind | null => {
+      return readToolImportKindParam(
+        Navigation.getQueryStringByName(IMPORTER_KIND_QUERY_PARAM),
+      );
+    },
   );
   const [pickedRegion, setPickedRegion] = useState<string | undefined>(
     undefined,
@@ -141,6 +174,17 @@ const ImportFromTool: FunctionComponent<
 
   useEffect(() => {
     void loadRuns({ isFirstLoad: true });
+
+    /*
+     * Where the importer was opened from (issue #6830): ?from= on its
+     * address - a word the link that brought the person here chose (#6809's
+     * entry points) - or "settings", Project Settings' own menu.
+     */
+    ProductEvents.send(ProductEventName.ImporterOpened, {
+      from:
+        Navigation.getQueryStringByName(IMPORTER_OPENED_FROM_QUERY_PARAM) ||
+        IMPORTER_OPENED_FROM_SETTINGS,
+    });
   }, []);
 
   /*
@@ -295,6 +339,8 @@ const ImportFromTool: FunctionComponent<
           blockedReason={blockedReason}
           onBack={() => {
             setPickedSource(null);
+            // Back means the picker, after a reload too.
+            Navigation.setQueryString({ [IMPORTER_TOOL_QUERY_PARAM]: null });
           }}
           onStarted={onReadStarted}
         />
@@ -303,6 +349,11 @@ const ImportFromTool: FunctionComponent<
 
     return (
       <ToolImportPicker
+        fills={pickerKind || undefined}
+        onShowEveryTool={() => {
+          setPickerKind(null);
+          Navigation.setQueryString({ [IMPORTER_KIND_QUERY_PARAM]: null });
+        }}
         onPick={(source: ToolImportSource) => {
           setPickedRegion(undefined);
           setPickedSource(source);

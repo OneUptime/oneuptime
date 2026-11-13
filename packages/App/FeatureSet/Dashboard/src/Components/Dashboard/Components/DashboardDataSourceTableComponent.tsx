@@ -23,6 +23,7 @@ import {
   sortDataSourceTableRows,
 } from "../Utils/DataSourceWidget";
 import DataSourceWidgetPlaceholder from "./DataSourceWidgetPlaceholder";
+import DashboardWidgetLine from "./DashboardWidgetLine";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
 import API from "Common/UI/Utils/API/API";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -49,6 +50,14 @@ import useDashboardWidgetColumns, {
 } from "./DashboardWidgetColumns";
 import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import { getReaderNumberLocale } from "Common/Types/DateLanguage";
+import { useDashboardWidgetPlace } from "./DashboardWidgetPreview";
+import {
+  DASHBOARD_WIDGET_SETUP_LINE_CLASS_NAME,
+  DASHBOARD_WIDGET_SETUP_LINE_TEST_ID,
+  DASHBOARD_WIDGET_SETUP_NAME_CLASS_NAME,
+  DashboardWidgetSetupNeed,
+  getDashboardWidgetSetupLine,
+} from "./DashboardWidgetSetupCopy";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardDataSourceTableComponentType;
@@ -134,6 +143,16 @@ const DashboardDataSourceTableComponent: FunctionComponent<ComponentProps> = (
     props.component.arguments.query;
 
   const isConfigured: boolean = isDataSourceQueryConfigured(rawQueryConfig);
+
+  /*
+   * What the table says until its query is set up, for where it is drawn:
+   * a click opens its settings only on the board being edited (issue
+   * #7160).
+   */
+  const setupMessage: string = getDashboardWidgetSetupLine(
+    DashboardWidgetSetupNeed.Query,
+    useDashboardWidgetPlace(props.isEditMode),
+  );
 
   const queryConfig: DataSourceQueryConfig | undefined = isConfigured
     ? rawQueryConfig
@@ -305,11 +324,14 @@ const DashboardDataSourceTableComponent: FunctionComponent<ComponentProps> = (
             <Icon icon={IconProp.TableCells} />
           </div>
         </div>
-        <p className="text-xs font-medium text-gray-500">
+        <p className={DASHBOARD_WIDGET_SETUP_NAME_CLASS_NAME}>
           {title || translator.translateText("Data Source Table")}
         </p>
-        <p className="text-xs text-gray-400 text-center">
-          {translator.translateText("Click to configure a query")}
+        <p
+          className={DASHBOARD_WIDGET_SETUP_LINE_CLASS_NAME}
+          data-testid={DASHBOARD_WIDGET_SETUP_LINE_TEST_ID}
+        >
+          {translator.translateText(setupMessage)}
         </p>
       </div>
     );
@@ -359,9 +381,11 @@ const DashboardDataSourceTableComponent: FunctionComponent<ComponentProps> = (
       <div className="flex items-start justify-between gap-3 px-2 pt-2 pb-2 flex-shrink-0">
         <div className="min-w-0 flex-1">
           {title && (
-            <h3 className="text-sm font-semibold text-gray-700 tracking-tight truncate">
-              {title}
-            </h3>
+            <DashboardWidgetLine
+              as="h3"
+              text={title}
+              className="text-sm font-semibold text-gray-700 tracking-tight truncate"
+            />
           )}
           {description && (
             <p className="mt-0.5 text-xs text-gray-400">{description}</p>

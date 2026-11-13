@@ -1,6 +1,6 @@
 # Custom Probes
 
-A custom probe is a small agent you run inside your own network. It checks the monitors you add it to, such as internal websites, APIs and servers behind your firewall, and sends the results to OneUptime. It only connects out, over HTTPS, so nothing in your network has to accept connections from the internet.
+A custom probe is a small agent you run inside your own network. It checks the monitors you add it to, such as internal websites, APIs and servers behind your firewall, and sends the results to OneUptime. It only connects out, over HTTPS, so nothing in your network has to accept connections from the internet. To choose between a probe, an agent, a collector and a Runner, see [Which One Do I Use?](/docs/introduction/which-one#probe-agent-collector-or-runner).
 
 :::cards
 - [How it works](#how-it-works): What the probe does, and how OneUptime knows it is running.
@@ -288,6 +288,7 @@ The probe reads its settings from its environment when it starts: change one, th
 | `PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED` | `false` | Set to `true` to run Chromium, in synthetic monitors, inside its own sandbox. Turn it on only when the probe's container runs with a seccomp profile that allows the sandbox, such as Playwright's: without one, Chromium cannot start. While it is off, the probe logs a warning at startup. |
 | `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | Timeout for custom code monitor scripts, in milliseconds. |
 | `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` | `false` | Set to `true` to let Website, API, External Status Page and Custom Code monitors on this probe reach private addresses. See [Private Network Access](/docs/self-hosted/private-network-access). |
+| `PROBE_CERTIFICATE_REVOCATION_CHECK_ENABLED` | `true` | SSL Certificate, Website and API monitors on this probe ask a certificate's issuer whether it has revoked the certificate, as browsers do. Set to `false` to stop asking, for example on a probe with no internet access. An issuer the probe cannot reach is never taken as a revocation: the probe waits a few seconds for each responder it cannot reach, about once every 5 minutes. See [SSL Certificate Monitor](/docs/monitor/ssl-certificate-monitor). |
 | `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` | `25` | How many network devices the probe polls at once. Raise it for a probe that polls many devices. |
 
 The limits a synthetic monitor runs within (how many run at once, their memory and their disk) are on the [Synthetic Monitor](/docs/monitor/synthetic-monitor) page.

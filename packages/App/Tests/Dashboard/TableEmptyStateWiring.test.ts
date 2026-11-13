@@ -176,7 +176,21 @@ describe("tables under a facet bar tell their empty state about the chips", () =
            * A product list's first run (getProductFirstRunEmptyState): the
            * same, the Create button left to the explanation's.
            */
-          code.includes("emptyState={firstRun.getEmptyState(facetEmptyState)}"),
+          code.includes(
+            "emptyState={firstRun.getEmptyState(facetEmptyState)}",
+          ) ||
+          /*
+           * A list that offers the importer under its empty table (#6964,
+           * withToolImportOffer): either of those, with the importer's link
+           * after the list's own actions and the rest kept as it was
+           * (Common/Tests/App/Dashboard/ToolImportOffer.test.ts).
+           */
+          code.includes(
+            "emptyState={withToolImportOffer({ emptyState: facetEmptyState,",
+          ) ||
+          code.includes(
+            "emptyState={withToolImportOffer({ emptyState: firstRun.getEmptyState(facetEmptyState),",
+          ),
       ).toBe(true);
     },
   );
@@ -249,14 +263,13 @@ interface AllClearPage {
 /*
  * The lists that are slices of a bigger one, where empty is the good news.
  * Creating one is the wrong answer there - you do not declare an incident
- * because none is active - so they get the green check and no button.
+ * because none is active - so they get the green check and no button. (Home
+ * kept copies of six of them; it opens these now, #6857.)
  */
 const ALL_CLEAR_PAGES: Array<AllClearPage> = [
   { file: "Pages/Incidents/Unresolved.tsx", says: "No active incidents" },
-  { file: "Pages/Home/ActiveIncidents.tsx", says: "No active incidents" },
   { file: "Pages/Global/ActiveIncidents.tsx", says: "No active incidents" },
   { file: "Pages/Alerts/Unresolved.tsx", says: "No active alerts" },
-  { file: "Pages/Home/ActiveAlerts.tsx", says: "No active alerts" },
   { file: "Pages/Global/ActiveAlerts.tsx", says: "No active alerts" },
   {
     file: "Pages/Incidents/UnresolvedEpisodes.tsx",
@@ -264,14 +277,6 @@ const ALL_CLEAR_PAGES: Array<AllClearPage> = [
   },
   {
     file: "Pages/Alerts/UnresolvedEpisodes.tsx",
-    says: "No active episodes. All episodes are resolved.",
-  },
-  {
-    file: "Pages/Home/ActiveIncidentEpisodes.tsx",
-    says: "No active episodes. All episodes are resolved.",
-  },
-  {
-    file: "Pages/Home/ActiveEpisodes.tsx",
     says: "No active episodes. All episodes are resolved.",
   },
   {
@@ -287,15 +292,7 @@ const ALL_CLEAR_PAGES: Array<AllClearPage> = [
     says: "No ongoing events so far.",
   },
   {
-    file: "Pages/Home/OngoingScheduledMaintenance.tsx",
-    says: "No ongoing events so far.",
-  },
-  {
     file: "Pages/Monitor/NotOperationalMonitors.tsx",
-    says: "No monitors are reporting a problem.",
-  },
-  {
-    file: "Pages/Home/NotOperationalMonitors.tsx",
     says: "No monitors are reporting a problem.",
   },
   {
@@ -333,7 +330,6 @@ describe("lists where empty is good news say so", () => {
   test("active incidents and alerts lead with the fact, then the good news", () => {
     for (const file of [
       "Pages/Incidents/Unresolved.tsx",
-      "Pages/Home/ActiveIncidents.tsx",
       "Pages/Global/ActiveIncidents.tsx",
     ]) {
       expect([file, readDashboardCode(file)]).toEqual([
@@ -348,7 +344,6 @@ describe("lists where empty is good news say so", () => {
 
     for (const file of [
       "Pages/Alerts/Unresolved.tsx",
-      "Pages/Home/ActiveAlerts.tsx",
       "Pages/Global/ActiveAlerts.tsx",
     ]) {
       expect([file, readDashboardCode(file)]).toEqual([

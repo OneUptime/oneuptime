@@ -2,6 +2,9 @@
 
 En resurs är en rad på din statussida: en monitor eller en monitorgrupp, med ett namn som dina kunder förstår, dess aktuella status och, om du vill, dess upptid och historik. Grupper är sektioner som innehåller resurser, så att en sida med fyrtio monitorer läses som "API", "Webbapp" och "Datapipeline" i stället för som en ändlös lista. Du bygger båda på en och samma skärm: öppna en statussida och välj **Resurser** i dess sidomeny.
 
+> [!TIP]
+> Ny här? Följ guiden först: [Publicera en statussida](/docs/guides/status-page).
+
 :::cards
 - [Lägg till en monitor](#lägg-till-en-monitor): Lägg en monitor på sidan, med namnet som besökarna läser.
 - [Grupper](#grupper): Dela upp sidan i sektioner och nästla dem.
@@ -30,6 +33,7 @@ flowchart TB
 En resurs avgör mer än färgen på sin rad:
 
 - **Arkiverade monitorer visas inte.** En arkiverad monitor kontrolleras inte längre, så dess senaste status är fryst; sidan utelämnar dess rad (och utelämnar den från en monitorgrupps status) i stället för att visa den frysta statusen som om den vore aktuell. Raden behålls, så när monitorn tas ur arkivet kommer den direkt tillbaka.
+- **En monitor med avstängd övervakning visas som Inte övervakad.** Ingenting kontrollerar den, så den status den senast hade säger ingenting nu: dess rad visar **Inte övervakad** i grått och räknas varken in i gruppen ovanför den eller i bannern med den samlade statusen. Dess historikstaplar behåller dess historik fram till att övervakningen stängdes av och utelämnar tiden därefter. En monitorgrupp räknar bara sina monitorer med påslagen övervakning, och visar **Inte övervakad** när den är avstängd för alla; dess staplar och drifttid utelämnar för varje monitor tiden med avstängd övervakning. När ingenting på sidan övervakas säger bannern det.
 - **Resurser avgör vilka incidenter sidan visar.** En incident visas här, och sidans prenumeranter får höra om den, när en av incidentens monitorer är en resurs på sidan, direkt eller via en monitorgrupp. Lägg samma monitor på flera sidor så når dess incidenter alla, om inte en incident är begränsad till några av de sidorna. Se [En statussida per målgrupp](/docs/status-pages/one-status-page-per-audience).
 - **En monitorgrupps rad står för varje monitor i den, även för prenumeranter.** På en sida som låter prenumeranter välja resurser får den som prenumererar på en monitorgrupp höra om incidenter, planerat underhåll och meddelanden för alla monitorer i gruppen, som om personen hade valt den monitorn. Se [Prenumeranter och meddelanden](/docs/status-pages/subscribers#låta-prenumeranter-välja-resurser-och-händelsetyper).
 
@@ -118,6 +122,8 @@ Grupper har sina egna varianter av de här reglagen (se nedan), så en grupp kan
 Färgerna på historikdiagrammets staplar anges under **Fler inställningar** på sidan **Varumärke**, och vilka monitorstatusar som räknas som "nere" under **Räknas som driftstopp**, på kortet **Vad din statussida visar** under **Avancerade inställningar**; båda beskrivs i [Statussidans varumärke och domäner](/docs/status-pages/branding-and-domains).
 
 Varje stapel är en dag. Peka på en stapel eller klicka på den (tryck på den på en telefon, eller tryck Enter med tangentbordet) för att läsa dagen: dess upptid, hur länge varje status varade, incidenterna som deklarerades den dagen och det planerade underhållet som pågick under den, var och en med en länk till sin egen sida. En dag med planerat underhåll har ett blått band överst på sin stapel, och medan en händelse pågår står det "Under underhåll" bredvid namnet på varje resurs för dess monitorer. Underhåll ändrar varken en stapels färg eller upptiden, som kommer från monitorns statusar: för att hålla planerat arbete utanför upptiden väljer du för händelsen under **Ändra övervakningsstatus till** en status som inte är en av sidans statusar under **Räknas som driftstopp**. Se [Vad en händelse påverkar](/docs/scheduled-maintenance/index#vad-en-händelse-påverkar).
+
+Varje stapel är en dag i läsarens egen tidszon, samma som sidan visar alla andra tider i, så den sista stapeln är läsarens i dag. En monitorgrupps stapel visar hur länge gruppen själv var i varje status den dagen: i varje ögonblick har gruppen den sämsta statusen bland sina monitorer, så en dags statusar summeras till den tid då minst en av dess monitorer kontrollerades, och aldrig till mer än dagen.
 
 ## Grupper
 

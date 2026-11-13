@@ -184,6 +184,8 @@ fi
 
 if [ -n "$OPEN_HOST" ]; then
     echo "Open ${OPEN_PROTOCOL}://${OPEN_HOST} in your browser. On a new install, sign up at ${OPEN_PROTOCOL}://${OPEN_HOST}/accounts/register: the first account becomes the admin of this OneUptime."
+    # The server's setup checklist: email, HTTPS, sign-ups and the rest (#6824).
+    echo "Then finish setting up this server: ${OPEN_PROTOCOL}://${OPEN_HOST}/admin/setup"
 
     case "$OPEN_HOST" in
         localhost | localhost:* | 127.0.0.1 | 127.0.0.1:*)

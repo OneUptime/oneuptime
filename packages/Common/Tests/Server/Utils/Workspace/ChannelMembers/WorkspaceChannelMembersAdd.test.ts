@@ -525,6 +525,58 @@ describe("a channel that can take nobody", () => {
     );
   });
 
+  /*
+   * #6749: Slack installed for a whole Enterprise organization, removed from
+   * the workspace the channel is in. Slack answers team_access_not_granted
+   * there, while the organization's other workspaces still work: the
+   * channel's workspace is said, not the project's connection.
+   */
+  test("the channel's workspace no longer has OneUptime (an Enterprise organization's): said so - not that Slack is not connected - and nobody is invited", async () => {
+    world.slackRefuses["conversations.info"] = "team_access_not_granted";
+
+    expect(await add({ userIds: [ALICE] })).toEqual({
+      channelState: WorkspaceChannelState.WorkspaceNotAdded,
+      results: [],
+    });
+    expect(world.invites()).toEqual([]);
+  });
+
+  test("removed from the channel's workspace between reading it and inviting: the people added before are kept, and the workspace is said", async () => {
+    world.inviteRefusals["U0CAROL"] = "team_access_not_granted";
+
+    const answer: WorkspaceChannelAddAnswer = await add({
+      userIds: [BOB, CAROL, ERIN],
+    });
+
+    expect(answer.channelState).toBe(WorkspaceChannelState.WorkspaceNotAdded);
+    expect(answer.results).toEqual([
+      {
+        userId: BOB.toString(),
+        name: "Bob Jones",
+        outcome: WorkspaceChannelAddOutcome.Added,
+      },
+    ]);
+    // Erin is not tried once the workspace refused.
+    expect(world.invites().length).toBe(2);
+  });
+
+  test("Slack answering a lookup by email so: the same, and nobody is invited", async () => {
+    world.slackRefuses["users.lookupByEmail"] = "team_access_not_granted";
+
+    expect((await add({ userIds: [CAROL] })).channelState).toBe(
+      WorkspaceChannelState.WorkspaceNotAdded,
+    );
+    expect(world.invites()).toEqual([]);
+  });
+
+  test("a revoked token at a lookup by email: not connected, as before", async () => {
+    world.slackRefuses["users.lookupByEmail"] = "invalid_auth";
+
+    expect((await add({ userIds: [CAROL] })).channelState).toBe(
+      WorkspaceChannelState.NotConnected,
+    );
+  });
+
   test("Slack down", async () => {
     world.slackHttpStatus["conversations.members"] = 500;
 

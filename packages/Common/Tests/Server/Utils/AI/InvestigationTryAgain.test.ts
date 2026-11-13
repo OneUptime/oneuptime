@@ -1,4 +1,6 @@
-import InvestigationTryAgain from "../../../../Server/Utils/AI/SRE/InvestigationTryAgain";
+import InvestigationTryAgain, {
+  INVESTIGATION_NOT_ENQUEUED_MESSAGE,
+} from "../../../../Server/Utils/AI/SRE/InvestigationTryAgain";
 import AIInvestigationEngine from "../../../../Server/Utils/AI/SRE/AIInvestigationEngine";
 import AIInvestigationQueue from "../../../../Server/Utils/AI/SRE/InvestigationQueue";
 import InvestigationRules from "../../../../Server/Utils/AI/SRE/InvestigationRules";
@@ -201,7 +203,7 @@ describe("InvestigationTryAgain.tryAgain", () => {
     ],
     [
       "provider_missing",
-      "This project has no AI provider to investigate with. Add one in Project Settings > AI > LLM Providers, then try again.",
+      "This project has no LLM provider to investigate with. Add one in Project Settings > AI > LLM Providers, then try again.",
     ],
     // The shared words: who can add AI credits, and where.
     ["insufficient_ai_balance", PROJECT_AI_CREDITS_USED_UP_MESSAGE],
@@ -298,5 +300,122 @@ describe("InvestigationTryAgain.tryAgain", () => {
     ).rejects.toThrow(
       "The investigation could not start: the project may have reached its daily AI limit, which resets at midnight UTC. Try again later.",
     );
+  });
+
+  /*
+   * #7157: the record's own daily AI token limit stopped it. Try again
+   * names that limit, of the record it was pressed on, and a limit of 0
+   * (or below) says it pauses the work until someone raises it: waiting
+   * for midnight never lifts it.
+   */
+  test.each([
+    {
+      subjectType: "incident" as const,
+      limitInTokens: 0,
+      message:
+        "The Daily Incident AI Token Limit is set to 0, which pauses automatic AI work for incidents. Raise it above 0 under Incidents → AI → Settings → More settings, or clear it, then try again.",
+    },
+    {
+      subjectType: "incident" as const,
+      limitInTokens: -7,
+      message:
+        "The Daily Incident AI Token Limit is set to 0, which pauses automatic AI work for incidents. Raise it above 0 under Incidents → AI → Settings → More settings, or clear it, then try again.",
+    },
+    {
+      subjectType: "incident" as const,
+      limitInTokens: 400,
+      message:
+        "Automatic AI work for incidents used up today's Daily Incident AI Token Limit. Raise or clear it under Incidents → AI → Settings → More settings, or wait until midnight UTC, when it resets. Then try again.",
+    },
+    {
+      subjectType: "alert" as const,
+      limitInTokens: 0,
+      message:
+        "The Daily Alert AI Token Limit is set to 0, which pauses automatic AI work for alerts. Raise it above 0 under Alerts → AI → Settings → More settings, or clear it, then try again.",
+    },
+    {
+      subjectType: "alert" as const,
+      limitInTokens: -1,
+      message:
+        "The Daily Alert AI Token Limit is set to 0, which pauses automatic AI work for alerts. Raise it above 0 under Alerts → AI → Settings → More settings, or clear it, then try again.",
+    },
+    {
+      subjectType: "alert" as const,
+      limitInTokens: 400,
+      message:
+        "Automatic AI work for alerts used up today's Daily Alert AI Token Limit. Raise or clear it under Alerts → AI → Settings → More settings, or wait until midnight UTC, when it resets. Then try again.",
+    },
+  ])(
+    "$subjectType, its daily AI token limit $limitInTokens: Try again names it",
+    (data: {
+      subjectType: "incident" | "alert";
+      limitInTokens: number;
+      message: string;
+    }) => {
+      const message: string = InvestigationTryAgain.getNotEnqueuedMessage({
+        subjectType: data.subjectType,
+        notEnqueued: {
+          code: "daily_budget_exhausted",
+          budget: {
+            exhausted: true,
+            limitInTokens: data.limitInTokens,
+            usedTokensToday: data.limitInTokens > 0 ? data.limitInTokens : 0,
+          },
+        },
+      });
+
+      expect(message).toBe(data.message);
+      expect(message.includes("midnight")).toBe(data.limitInTokens > 0);
+      expect(message).not.toMatch(/project/i);
+    },
+  );
+
+  test("what the queue said reaches the person who pressed Try again", async () => {
+    lastRunIs(AIRunStatus.Error);
+    enqueue.mockImplementation(
+      async (
+        data: Parameters<typeof AIInvestigationQueue.enqueue>[0],
+      ): Promise<ObjectID | null> => {
+        await data.onNotEnqueued?.("daily_budget_exhausted", {
+          exhausted: true,
+          limitInTokens: 0,
+          usedTokensToday: 0,
+        });
+        return null;
+      },
+    );
+
+    await expect(
+      InvestigationTryAgain.tryAgain({
+        projectId,
+        subjectType: "alert",
+        subjectId: alertId,
+      }),
+    ).rejects.toThrow(
+      "The Daily Alert AI Token Limit is set to 0, which pauses automatic AI work for alerts. Raise it above 0 under Alerts → AI → Settings → More settings, or clear it, then try again.",
+    );
+  });
+
+  test("a queue that names no record's limit says what the checks before it say, else the old words", () => {
+    expect(
+      InvestigationTryAgain.getNotEnqueuedMessage({
+        subjectType: "incident",
+        notEnqueued: { code: "project_daily_limit_reached" },
+      }),
+    ).toBe(
+      `The project reached its daily AI limit. OneUptime AI starts again at midnight UTC. ${ProjectAiDailyLimits.getWhoCanChangeSentence()}`,
+    );
+    expect(
+      InvestigationTryAgain.getNotEnqueuedMessage({
+        subjectType: "incident",
+        notEnqueued: { code: "enqueue_failed" },
+      }),
+    ).toBe(INVESTIGATION_NOT_ENQUEUED_MESSAGE);
+    expect(
+      InvestigationTryAgain.getNotEnqueuedMessage({
+        subjectType: "alert",
+        notEnqueued: null,
+      }),
+    ).toBe(INVESTIGATION_NOT_ENQUEUED_MESSAGE);
   });
 });

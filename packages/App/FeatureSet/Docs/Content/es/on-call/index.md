@@ -1,6 +1,9 @@
 # Visión general de las guardias
 
-La guardia es la forma en que OneUptime pone a una persona ante un problema, a cualquier hora. Cuando un incidente, una alerta o un episodio necesita a alguien, sus políticas de guardia avisan a personas nivel a nivel hasta que alguien lo reconoce, y cada persona recibe el aviso como eligió: una notificación push, un SMS, una llamada, un correo o un mensaje de chat. Esta página muestra cómo encajan las piezas y dónde está cada una.
+La guardia es la forma en que OneUptime pone a una persona ante un problema, a cualquier hora. Cuando un incidente, una alerta o un episodio necesita a alguien, sus políticas de guardia avisan a personas nivel a nivel hasta que alguien lo reconoce, y cada persona recibe el aviso como eligió: una notificación push, un SMS, una llamada, un correo o un mensaje de chat. Esta página muestra cómo encajan las piezas y dónde está cada una. El [Glosario](/docs/introduction/glossary#política-de-guardia) explica en una o dos frases cada palabra que se usa en las guardias.
+
+> [!TIP]
+> ¿Eres nuevo? Sigue primero la guía: [Recibir avisos por llamada, SMS o push](/docs/guides/paging).
 
 :::cards
 - [Cómo llega un aviso a alguien](#cómo-llega-un-aviso-a-alguien): De un incidente nuevo a la persona que responde.
@@ -36,6 +39,8 @@ La primera vez que un aviso llega a alguien, OneUptime lo registra en el inciden
 > Un incidente, una alerta o un episodio que se crea ya reconocido o resuelto no ejecuta ninguna de sus políticas, y su feed lo indica. Consulta [Creada ya reconocida o resuelta](/docs/alerts/index#creada-ya-reconocida-o-resuelta).
 
 ## Las piezas
+
+Las palabras que se usan en todo OneUptime están en el [Glosario](/docs/introduction/glossary).
 
 | Pieza | Qué decide | Más información |
 | --- | --- | --- |

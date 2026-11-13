@@ -52,11 +52,11 @@ flowchart TB
 | Google App Engine | `gcp_app_engine` | 资源检测器 | `faas.instance` | [其他云平台](/docs/telemetry/cloud-other-platforms) |
 | Azure Container Apps | `azure_container_apps` | 资源检测器 | `azure.container_app.instance.id` | [Azure Container Apps](/docs/telemetry/cloud-azure-container-apps) |
 | Azure Container Instances | `azure_container_instances` | 手动设置 | `host.name` | [其他云平台](/docs/telemetry/cloud-other-platforms) |
-| Azure App Service | `azure_app_service` | 资源检测器 | `host.id` | [其他云平台](/docs/telemetry/cloud-other-platforms) |
+| Azure App Service | `azure_app_service` | 资源检测器 | `azure.app_service.instance.id` | [其他云平台](/docs/telemetry/cloud-other-platforms) |
 
 - **资源检测器：** SDK 或 Collector 的 `resourcedetection` 处理器中的 OpenTelemetry 资源检测器会替你设置 `cloud.*` 属性。
 - **手动设置：** 没有检测器，所以你要把属性写进 `OTEL_RESOURCE_ATTRIBUTES`。平台页面会给出确切的那一行。
-- **Azure 检测器知道得更少。** Container Apps 检测器既不知道区域也不知道订阅，App Service 检测器不知道订阅：缺少的部分需要你自己设置。
+- **Azure 检测器知道得更少。** Container Apps 检测器既不知道区域也不知道订阅，Node.js 和 .NET 的 App Service 检测器不知道订阅（Collector 的检测器知道）：缺少的部分需要你自己设置。
 - **带点号的 Azure 写法也能用。** Node.js 和 .NET 的 Azure 检测器写入的是 `azure.container_apps` 和 `azure.app_service`。OneUptime 收到后会把它们改写为上面带下划线的值。
 
 ## OneUptime 如何识别环境
@@ -88,10 +88,11 @@ azure_container_apps|00000000-0000-0000-0000-000000000000|eastus
 2. `aws.ecs.task.arn`（缩短为任务 ID）
 3. `faas.instance`
 4. `azure.container_app.instance.id`
-5. `service.instance.id`
-6. `container.id`
-7. `host.id`
-8. `host.name`
+5. `azure.app_service.instance.id`
+6. `service.instance.id`
+7. `container.id`
+8. `host.id`
+9. `host.name`
 
 平台自身的标识有意排在最前面。sidecar Collector 和应用的 SDK 都能看到它，而且它在重启后保持不变。SDK 通常会为每个进程生成一个新的 `service.instance.id`（Node.js SDK 默认如此），因此如果先用它作为键，一个 ECS 任务就会被拆成两行。只有当平台没有设置自己的标识时，才会使用 `service.instance.id`。[支持的平台](#支持的平台) 中的 **实例标识** 列给出了每个平台上典型配置所使用的属性。
 
@@ -122,6 +123,8 @@ azure_container_apps|00000000-0000-0000-0000-000000000000|eastus
 - **每个应用每小时最多记录 12 个新修订版本。** 否则，随每次构建变化的 `service.version` 会变成每分钟一次部署。
 
 应用的页面有显示其请求、错误、延迟、实例和当前运行的修订版本的 **概览**，显示每个修订版本数据的 **修订版本** 选项卡，筛选到该应用的 **实例**、**日志** 和 **追踪** 选项卡，以及列出 OneUptime 为其推荐的监控器的 **建议** 选项卡：操作失败、错误激增、流量中断和请求缓慢，从应用自身的 span 及其 `http.server.request.duration` 读取，每个都关联到应用的环境。**设置警报** 会打开该选项卡；对于名称太长、无法用来筛选其遥测数据的应用，它会改为打开 **服务** 中该应用所属服务的推荐监控器。
+
+应用从未发送过的数字不会显示为 0。没有发送过追踪的应用，其请求、错误率和延迟磁贴显示 **未收到追踪**；正在运行、但遥测数据没有指明任何实例的应用，其 **实例** 磁贴显示 **未报告**。在应用发送追踪、实例和版本之前，它的 **概览** 顶部会显示 **设置检查**：列出每种遥测数据是否到达，以及需要添加什么。
 
 30 天内没有发送任何数据的应用会连同其修订版本一起被删除；30 天内没有任何实例上报的修订版本也会被删除，除非应用仍在运行它。在自托管的 OneUptime 上，可以用 `CLOUD_APP_RETENTION_DAYS` 设置这个 30。
 

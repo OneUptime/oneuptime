@@ -51,8 +51,11 @@ import React, {
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { formatSloBurnRate } from "Common/Utils/Slo/SloWidgetFormat";
 import {
   BURN_RATE_RULE_NOTHING_PICKED,
+  BurnRateRuleWindowsText,
+  formatBurnRateRuleWindows,
   getNamesOrNothingPicked,
 } from "../Utils/BurnRateRuleLines";
 
@@ -427,15 +430,16 @@ const SloBurnRateRules: FunctionComponent<
             getElement: (
               item: ServiceLevelObjectiveBurnRateRule,
             ): ReactElement => {
-              const threshold: number | undefined | null =
-                item.burnRateThreshold;
+              // "14,4×" in German, as the rule's card on the Overview writes it.
+              const threshold: string | null = formatSloBurnRate(
+                item.burnRateThreshold,
+                translator,
+              );
 
-              if (threshold === undefined || threshold === null) {
+              if (threshold === null) {
                 return <span className="text-sm text-gray-400">—</span>;
               }
-              return (
-                <span className="text-sm text-gray-900">{threshold}×</span>
-              );
+              return <span className="text-sm text-gray-900">{threshold}</span>;
             },
           },
           {
@@ -447,27 +451,15 @@ const SloBurnRateRules: FunctionComponent<
             getElement: (
               item: ServiceLevelObjectiveBurnRateRule,
             ): ReactElement => {
-              /*
-               * The worker falls back to the long window when no explicit
-               * suppression is set, so show the effective value rather
-               * than a blank that reads as "no suppression".
-               */
-              const suppressionMinutes: number =
-                item.refireSuppressionMinutes ?? item.longWindowInMinutes ?? 0;
+              // "۶۰ دقیقه / ۵ دقیقه" in Persian, beside its "۱۴٫۴×".
+              const windows: BurnRateRuleWindowsText =
+                formatBurnRateRuleWindows(item, translator);
 
               return (
                 <div>
-                  <div className="text-sm text-gray-900">
-                    {translator.translateTemplate("{{long}}m / {{short}}m", {
-                      long: item.longWindowInMinutes || 0,
-                      short: item.shortWindowInMinutes || 0,
-                    })}
-                  </div>
+                  <div className="text-sm text-gray-900">{windows.windows}</div>
                   <div className="text-xs text-gray-500">
-                    {translator.translateTemplate(
-                      "Suppress {{minutes}}m after resolve",
-                      { minutes: suppressionMinutes },
-                    )}
+                    {windows.suppression}
                   </div>
                 </div>
               );

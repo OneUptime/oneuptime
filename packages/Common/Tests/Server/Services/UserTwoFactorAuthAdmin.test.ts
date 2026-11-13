@@ -25,6 +25,10 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import {
+  getSessionEndCauseRevokedReason,
+  SessionEndCause,
+} from "../../../Types/UserSession/SessionEndCause";
 
 /*
  * ---------------------------------------------------------------------------
@@ -423,7 +427,10 @@ describe("UserService -- admin-controlled two factor auth", () => {
 
       expect(revokedUserId.toString()).toBe(foundUserId.toString());
 
-      const reason: string = options.reason as string;
+      // Revoked for its cause, kept as the cause's words (SessionEndCause).
+      expect(options.cause).toBe(SessionEndCause.TwoFactorRequired);
+
+      const reason: string = getSessionEndCauseRevokedReason(options.cause);
 
       expect(typeof reason).toBe("string");
       expect(reason.length).toBeGreaterThan(0);
@@ -766,8 +773,11 @@ describe("UserService -- admin-controlled two factor auth", () => {
       expect(revokeSessionsSpy).toHaveBeenCalledTimes(1);
 
       const revokedUserId: any = revokeSessionsSpy.mock.calls[0][0];
-      const reason: string = revokeSessionsSpy.mock.calls[0][1]
-        .reason as string;
+      const cause: any = revokeSessionsSpy.mock.calls[0][1].cause;
+
+      expect(cause).toBe(SessionEndCause.TwoFactorReset);
+
+      const reason: string = getSessionEndCauseRevokedReason(cause);
 
       expect(revokedUserId.toString()).toBe(foundUserId.toString());
       expect(typeof reason).toBe("string");
@@ -934,7 +944,9 @@ describe("UserService -- admin-controlled two factor auth", () => {
                   isRoot: caller === "root",
                 },
               }),
-            ).rejects.toThrow("enableTwoFactorAuth must be a boolean.");
+            ).rejects.toThrow(
+              "Two-factor authentication is turned on or off with true or false (enableTwoFactorAuth).",
+            );
           },
         );
       },
@@ -951,7 +963,9 @@ describe("UserService -- admin-controlled two factor auth", () => {
           },
           props: { userId: userId },
         }),
-      ).rejects.toThrow("enableTwoFactorAuth must be a boolean.");
+      ).rejects.toThrow(
+        "Two-factor authentication is turned on or off with true or false (enableTwoFactorAuth).",
+      );
       expect(findBySpy).not.toHaveBeenCalled();
       expect(updateBySpy).not.toHaveBeenCalled();
       expect(revokeSessionsSpy).not.toHaveBeenCalled();

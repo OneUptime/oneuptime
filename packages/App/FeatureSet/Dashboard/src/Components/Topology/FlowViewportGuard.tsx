@@ -6,7 +6,6 @@ import React, {
   useMemo,
   useRef,
 } from "react";
-import { flushSync } from "react-dom";
 import {
   FitViewOptions,
   Node,
@@ -16,6 +15,7 @@ import {
   useStore,
   useStoreApi,
 } from "reactflow";
+import { useFlowKeyboardFocus } from "./FlowKeyboardFocus";
 import {
   FlowExtent,
   FlowRect,
@@ -23,31 +23,7 @@ import {
   anyRectInView,
   drawingExtent,
   extentsMatch,
-  panDeltaToReveal,
 } from "./FlowViewport";
-
-/* How far inside the canvas edge a focused card is brought, in pixels. */
-export const FOCUS_REVEAL_PADDING_PX: number = 24;
-/*
- * How soon after the window regains focus a focusin counts as the browser
- * handing focus back to the element that had it, rather than the user.
- */
-export const WINDOW_REFOCUS_MS: number = 100;
-
-/*
- * Focus the browser would show a focus ring for: Tab, or a script focusing
- * after a key press. A card a pointer presses is focused too, but that is
- * not followed: moving the map under the pointer between press and release
- * loses the click. A browser (or test DOM) that cannot answer counts every
- * focus.
- */
-export function isKeyboardFocus(element: Element): boolean {
-  try {
-    return element.matches(":focus-visible");
-  } catch {
-    return true;
-  }
-}
 
 /*
  * Keeps a React Flow map on its canvas. Rendered as a child of <ReactFlow>,
@@ -66,15 +42,13 @@ export function isKeyboardFocus(element: Element): boolean {
  *   resize keeps it, within the pan extent: d3-zoom would otherwise apply the
  *   extent only on the next drag, which then jumps.
  * - Keyboard focus. React Flow 11 makes every card and connection
- *   focusable but never brings a focused one into view. Left alone, the
- *   browser scrolls React Flow's overflow:hidden box to show one below or
- *   right of the view — sliding everything React Flow draws, its controls
- *   included, off the canvas while its viewport, as far as React Flow knows,
- *   never moved — and cannot reach one above or left of it at all. Keyboard
- *   focus is followed with a pan of the viewport instead, in any direction
- *   and within the pan extent, and a scroll the browser makes anyway is
- *   turned into the same pan. Focus a pointer gives a card is left alone:
- *   the card is under the pointer already.
+ *   focusable but never brings a focused one into view. Keyboard focus is
+ *   followed with a pan of the viewport, in any direction and within the
+ *   pan extent, and a scroll the browser makes of React Flow's box anyway
+ *   is turned into the same pan (useFlowKeyboardFocus, which the lineage
+ *   drawings use too). Focus a pointer gives a card is left alone: the card
+ *   is under the pointer already. A pan that moved the view ends the
+ *   automatic framing.
  * - The pan extent. The measured drawing plus a margin, reported for the
  *   map's translateExtent, so the drawing's bounding box cannot be dragged or
  *   zoomed off the canvas. Measured rather than estimated, so it is centred
@@ -183,12 +157,6 @@ const selectPaneHeight: (state: ReactFlowState) => number = (
   return state.height;
 };
 
-const selectDomNode: (state: ReactFlowState) => HTMLDivElement | null = (
-  state: ReactFlowState,
-): HTMLDivElement | null => {
-  return state.domNode;
-};
-
 /*
  * A boolean, so the guard re-renders when the answer changes rather than on
  * every frame of a pan or zoom. Nodes still waiting to be measured are not
@@ -215,7 +183,6 @@ const FlowViewportGuard: FunctionComponent<ComponentProps> = (
     useStore(selectNodeInternals);
   const paneWidth: number = useStore(selectPaneWidth);
   const paneHeight: number = useStore(selectPaneHeight);
-  const domNode: HTMLDivElement | null = useStore(selectDomNode);
   const drawingInView: boolean = useStore(selectDrawingInView);
 
   /* The latest callbacks, for effects that must not re-run when they change. */
@@ -369,124 +336,13 @@ const FlowViewportGuard: FunctionComponent<ComponentProps> = (
     drawing,
   ]);
 
-  useEffect(() => {
-    if (!domNode) {
-      return undefined;
-    }
-    /*
-     * Pan by a screen-pixel delta through React Flow's own panBy, which
-     * keeps the view inside the pan extent (setViewport would not, and the
-     * next drag would jump back into it). Synchronously: whatever measures
-     * the page next — the reveal below, or the browser's own scroll into
-     * view — has to see the pan, not the layout before it.
-     */
-    const panBy: (x: number, y: number) => void = (
-      x: number,
-      y: number,
-    ): void => {
-      let moved: boolean = false;
-      flushSync(() => {
-        moved = store.getState().panBy({ x, y });
-      });
-      if (moved) {
-        props.autoFrame.current = false;
-      }
-    };
-    const reveal: (target: Element) => void = (target: Element): void => {
-      const pane: HTMLElement | null = domNode.querySelector<HTMLElement>(
-        ".react-flow__renderer",
-      );
-      // The controls sit outside the pane and are always on the canvas.
-      if (!pane || !pane.contains(target)) {
-        return;
-      }
-      const view: DOMRect = pane.getBoundingClientRect();
-      const box: DOMRect = target.getBoundingClientRect();
-      const x: number = panDeltaToReveal(
-        box.left,
-        box.right,
-        view.left,
-        view.right,
-        FOCUS_REVEAL_PADDING_PX,
-      );
-      const y: number = panDeltaToReveal(
-        box.top,
-        box.bottom,
-        view.top,
-        view.bottom,
-        FOCUS_REVEAL_PADDING_PX,
-      );
-      if (x || y) {
-        panBy(x, y);
-      }
-    };
-    let windowFocusedAt: number = Number.NEGATIVE_INFINITY;
-    const noteWindowFocus: (event: FocusEvent) => void = (
-      event: FocusEvent,
-    ): void => {
-      windowFocusedAt = event.timeStamp;
-    };
-    const followFocus: (event: FocusEvent) => void = (
-      event: FocusEvent,
-    ): void => {
-      const target: EventTarget | null = event.target;
-      if (
-        !(target instanceof Element) ||
-        !isKeyboardFocus(target) ||
-        /*
-         * Coming back to the tab sends focus to the element that had it
-         * again. That is not the user moving focus, and the view may have
-         * moved on since.
-         */
-        event.timeStamp - windowFocusedAt < WINDOW_REFOCUS_MS
-      ) {
-        return;
-      }
-      /*
-       * Chromium scrolls React Flow's box to the element before focusin
-       * fires. That scroll is the browser's way of showing the element, and
-       * the pan below does it instead, so drop it here: left in place, the
-       * scroll listener would turn it into a second pan, carrying the
-       * element far off the canvas.
-       */
-      domNode.scrollLeft = 0;
-      domNode.scrollTop = 0;
-      reveal(target);
-      /*
-       * The browser may have scrolled the page, too, towards where the
-       * element was before the pan. Show it where it is now.
-       */
-      if (typeof target.scrollIntoView === "function") {
-        target.scrollIntoView({ block: "nearest", inline: "nearest" });
-      }
-    };
-    const undoScroll: () => void = (): void => {
-      const left: number = domNode.scrollLeft;
-      const top: number = domNode.scrollTop;
-      if (!left && !top) {
-        return;
-      }
-      domNode.scrollLeft = 0;
-      domNode.scrollTop = 0;
-      panBy(-left, -top);
-      /*
-       * The browser scrolled to show something. The extent may have kept
-       * the pan short of that, so make sure the focused element shows.
-       */
-      const focused: Element | null = document.activeElement;
-      if (focused && domNode.contains(focused) && isKeyboardFocus(focused)) {
-        reveal(focused);
-      }
-    };
-    window.addEventListener("focus", noteWindowFocus);
-    domNode.addEventListener("focusin", followFocus);
-    domNode.addEventListener("scroll", undoScroll);
-    return () => {
-      window.removeEventListener("focus", noteWindowFocus);
-      domNode.removeEventListener("focusin", followFocus);
-      domNode.removeEventListener("scroll", undoScroll);
-    };
-  }, [domNode, store]);
+  /*
+   * A pan that follows keyboard focus moves the view away from the
+   * automatic framing: a resize keeps the view from then on.
+   */
+  useFlowKeyboardFocus((): void => {
+    props.autoFrame.current = false;
+  });
 
   useEffect(() => {
     if (!holdsDrawing) {

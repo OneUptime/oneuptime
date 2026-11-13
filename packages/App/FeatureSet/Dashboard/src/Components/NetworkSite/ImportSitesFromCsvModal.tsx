@@ -14,6 +14,7 @@ import {
   SiteImportSummary,
   runSiteImport,
 } from "../../Utils/NetworkSiteImportRunner";
+import { getCreatedImportResultLabel } from "../../Utils/ImportResultWords";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
@@ -23,6 +24,8 @@ import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import SiteCoordinates from "./SiteCoordinates";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ProgressBar, {
   ProgressBarSize,
@@ -31,7 +34,7 @@ import TextArea from "Common/UI/Components/TextArea/TextArea";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { formatList, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -353,11 +356,17 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
   const rows: Array<ParsedSiteRow> = parseResult?.rows || [];
   const parseErrors: Array<SiteCsvError> = parseResult?.errors || [];
 
-  const siteTypeNames: string = siteTypes
-    .map((siteType: NetworkSiteTypeOption) => {
+  /*
+   * The project's site types, listed the way the reader's language lists
+   * names - the way a problem's "Valid values" list beside it says them
+   * (Arabic and Persian set them apart with "،").
+   */
+  const siteTypeNames: string = formatList(
+    siteTypes.map((siteType: NetworkSiteTypeOption): string => {
       return siteType.name;
-    })
-    .join(", ");
+    }),
+    translator,
+  );
 
   const canImport: boolean = Boolean(
     parseResult && rows.length > 0 && parseErrors.length === 0,
@@ -486,7 +495,12 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
             <p className="mb-1 text-sm font-medium text-red-800">
               {translator.translateText("Fix these problems before importing:")}
             </p>
-            <ul className="list-disc space-y-0.5 pl-5">
+            {/*
+             * Each problem in the reader's language (the parser words it),
+             * after its line in the reader's digits, as the group import
+             * says it.
+             */}
+            <ul className="list-disc space-y-0.5 ps-5">
               {parseErrors.map(
                 (error: SiteCsvError, index: number): ReactElement => {
                   return (
@@ -494,7 +508,10 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
                       {error.line > 0
                         ? translator.translateTemplate(
                             "Line {{line}}: {{message}}",
-                            { line: error.line, message: error.message },
+                            {
+                              line: translator.formatNumber(error.line),
+                              message: error.message,
+                            },
                           )
                         : error.message}
                     </li>
@@ -521,23 +538,23 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
               </p>
               <table className="min-w-full divide-y divide-gray-200 text-sm">
                 <thead>
-                  <tr className="text-left text-xs font-medium uppercase tracking-wide text-gray-500">
-                    <th className="px-3 py-2">
-                      {translator.translateText("Line")}
+                  <tr className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                    <th className="px-3 py-2 text-start">
+                      {translator.translateText("CSV line")}
                     </th>
-                    <th className="px-3 py-2">
+                    <th className="px-3 py-2 text-start">
                       {translator.translateText("Name")}
                     </th>
-                    <th className="px-3 py-2">
+                    <th className="px-3 py-2 text-start">
                       {translator.translateText("Site Type")}
                     </th>
-                    <th className="px-3 py-2">
+                    <th className="px-3 py-2 text-start">
                       {translator.translateText("Parent")}
                     </th>
-                    <th className="px-3 py-2">
+                    <th className="px-3 py-2 text-start">
                       {translator.translateText("Address")}
                     </th>
-                    <th className="px-3 py-2">
+                    <th className="px-3 py-2 text-start">
                       {translator.translateText("Coordinates")}
                     </th>
                   </tr>
@@ -546,24 +563,47 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
                   {rows.map((row: ParsedSiteRow): ReactElement => {
                     return (
                       <tr key={row.line}>
-                        <td className="px-3 py-2 text-gray-500">{row.line}</td>
+                        {/*
+                         * The file's line in the reader's digits; what the
+                         * file says read the way it is written, so "1 Main
+                         * Street" keeps its number in front on an Arabic
+                         * page, and a point reads "42.36, -71.06" with its
+                         * minus sign where it was typed.
+                         */}
+                        <td className="px-3 py-2 text-gray-500">
+                          {translator.formatNumber(row.line)}
+                        </td>
                         <td className="px-3 py-2 font-medium text-gray-900">
-                          {row.name}
+                          <IsolatedText text={row.name} />
                         </td>
                         <td className="px-3 py-2 text-gray-600">
-                          {row.siteType}
+                          <IsolatedText text={row.siteType} />
                         </td>
                         <td className="px-3 py-2 text-gray-600">
-                          {row.parentName || "—"}
+                          {row.parentName ? (
+                            <IsolatedText text={row.parentName} />
+                          ) : (
+                            "—"
+                          )}
                         </td>
                         <td className="px-3 py-2 text-gray-600">
-                          {row.address || "—"}
+                          {row.address ? (
+                            <IsolatedText text={row.address} />
+                          ) : (
+                            "—"
+                          )}
                         </td>
                         <td className="px-3 py-2 text-gray-600">
                           {row.latitude !== undefined &&
-                          row.longitude !== undefined
-                            ? `${row.latitude}, ${row.longitude}`
-                            : "—"}
+                          row.longitude !== undefined ? (
+                            <SiteCoordinates
+                              latitude={row.latitude}
+                              longitude={row.longitude}
+                              dataTestId="site-csv-coordinates"
+                            />
+                          ) : (
+                            "—"
+                          )}
                         </td>
                       </tr>
                     );
@@ -580,17 +620,17 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
             </p>
             <table className="min-w-full divide-y divide-gray-200 text-sm">
               <thead>
-                <tr className="text-left text-xs font-medium uppercase tracking-wide text-gray-500">
-                  <th className="px-3 py-2">
-                    {translator.translateText("Line")}
+                <tr className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                  <th className="px-3 py-2 text-start">
+                    {translator.translateText("CSV line")}
                   </th>
-                  <th className="px-3 py-2">
+                  <th className="px-3 py-2 text-start">
                     {translator.translateText("Name")}
                   </th>
-                  <th className="px-3 py-2">
+                  <th className="px-3 py-2 text-start">
                     {translator.translateText("Result")}
                   </th>
-                  <th className="px-3 py-2">
+                  <th className="px-3 py-2 text-start">
                     {translator.translateText("Details")}
                   </th>
                 </tr>
@@ -604,15 +644,15 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
                     return (
                       <tr key={index}>
                         <td className="px-3 py-2 text-gray-500">
-                          {result.line}
+                          {translator.formatNumber(result.line)}
                         </td>
                         <td className="px-3 py-2 font-medium text-gray-900">
-                          {result.name}
+                          <IsolatedText text={result.name} />
                         </td>
                         <td className="px-3 py-2">
                           {result.status === "created" && (
                             <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                              {translator.translateText("Created")}
+                              {getCreatedImportResultLabel(translator)}
                             </span>
                           )}
                           {result.status === "failed" && (
@@ -627,7 +667,16 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
                           )}
                         </td>
                         <td className="px-3 py-2 text-gray-600">
-                          {result.message || "—"}
+                          {/*
+                           * What went wrong, as the server said it: read the
+                           * way it is written, its full stop at its end on a
+                           * Persian page.
+                           */}
+                          {result.message ? (
+                            <IsolatedText text={result.message} />
+                          ) : (
+                            "—"
+                          )}
                         </td>
                       </tr>
                     );

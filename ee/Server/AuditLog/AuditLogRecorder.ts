@@ -11,6 +11,7 @@ import AnalyticsDatabaseService from "Common/Server/Services/AnalyticsDatabaseSe
 import CoreAuditLogService from "Common/Server/Services/AuditLogService";
 import DatabaseService from "Common/Server/Services/DatabaseService";
 import ProjectService from "Common/Server/Services/ProjectService";
+import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import UserService from "Common/Server/Services/UserService";
 import Query from "Common/Server/Types/Database/Query";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
@@ -27,8 +28,16 @@ import logger from "Common/Server/Utils/Logger";
 import AuditLog from "Common/Models/AnalyticsModels/AuditLog";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Project from "Common/Models/DatabaseModels/Project";
+import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
 import AuditLogAction from "Common/Types/AuditLog/AuditLogAction";
+import {
+  AUDIT_LOG_SESSION_RESOURCE_TYPE,
+  AUDIT_LOG_SESSION_ROOT_RESOURCE_TYPE,
+  isSessionAuditLogAction,
+  SessionAuditEvent,
+} from "Common/Types/AuditLog/AuditLogSessionEvent";
+import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import {
   AUDIT_LOG_SECRET_COLUMNS,
   looksLikeSecretColumn,
@@ -65,6 +74,10 @@ import {
   getAuditLogHeldValue,
   readAuditLogValue,
 } from "Common/Utils/AuditLog/AuditLogTypedValues";
+import {
+  getSessionEntryChanges,
+  getSessionEntryResourceName,
+} from "./AuditLogSessionEntries";
 
 /*
  * The recording half of the audit log (OneUptime Enterprise).
@@ -113,6 +126,12 @@ import {
  *   - long text keeps the part around the first difference
  *     (Common/Utils/AuditLog/AuditLogValues).
  *
+ * PEOPLE'S SESSIONS (recordSessionEvents, issue #6762): a sign-in, a
+ * sign-out, a session timed out or revoked - filed in every project the
+ * person is a member of that records audit logs, as theirs, whether or not
+ * the project stores system events (AuditLogSessionEntries says what each
+ * entry holds).
+ *
  * WHAT A WRITE ROUND THE HOOKS RECORDS (recordUpdate's includeColumns): a
  * write OneUptime makes for a person outside DatabaseService - a merge of
  * exceptions, a webhook URL reset - records the change itself, and names
@@ -122,8 +141,12 @@ import {
  * with its value. The row's id and timestamps are never recorded.
  */
 
-// Where an entry is written: core's AuditLog analytics service by default.
-export type AuditLogStore = Pick<AnalyticsDatabaseService<AuditLog>, "create">;
+/*
+ * Where an entry is written: core's AuditLog analytics service by default.
+ * Session events write in batches through createMany when the store has it.
+ */
+export type AuditLogStore = Pick<AnalyticsDatabaseService<AuditLog>, "create"> &
+  Partial<Pick<AnalyticsDatabaseService<AuditLog>, "createMany">>;
 
 export interface AuditLogRecorderOptions {
   // Defaults to core's AuditLogService instance, read when an entry is written.
@@ -138,6 +161,16 @@ const USER_CACHE_TTL_MS: number = 5 * 60 * 1000;
  * that references more is still recorded in full; the rest keep their ids.
  */
 const MAX_RELATION_NAME_LOOKUPS: number = 100;
+
+/*
+ * How many people's project memberships one query reads, and how many pages
+ * of them at most: a sweep ends sessions of up to 500 people at a time.
+ */
+const MEMBERSHIP_LOOKUP_USERS_PER_QUERY: number = 50;
+const MAX_MEMBERSHIP_LOOKUP_PAGES: number = 20;
+
+// How many session entries one insert writes.
+const MAX_ENTRIES_PER_INSERT: number = 1000;
 
 const SKIPPED_FIELDS: ReadonlySet<string> = new Set<string>([
   "_id",
@@ -439,6 +472,271 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
     }
   }
 
+  /*
+   * PEOPLE'S SESSIONS (issue #6762): who signed in, how and from where, and
+   * how each session ended (Common/Types/AuditLog/AuditLogSessionEvent).
+   *
+   * A sign-in is to OneUptime, so each event is filed in every project its
+   * person is a member of - they accepted an invitation to one of its teams
+   * - and that records audit logs: eligible as any entry is (the plan or the
+   * license, and the project's switch), and recorded whether or not the
+   * project stores system events. A session is its person's, whoever or
+   * whatever ended it, so its entries are theirs: the actor is the person,
+   * and filtering by their email finds every one.
+   *
+   * The entry is about the session: a User Session, by its id - which its
+   * sign-in and its end share - named by the device it signed in from, and
+   * rolling up to its person (User, by their id). What else it says is
+   * AuditLogSessionEntries'.
+   *
+   * Events come several at once from a revocation or a sweep that ends many
+   * sessions: their people's projects are read together, each project's
+   * settings once (the same cache every entry reads), and the entries
+   * written in batches.
+   */
+  public async recordSessionEvents(
+    events: Array<SessionAuditEvent>,
+  ): Promise<void> {
+    try {
+      const recordable: Array<SessionAuditEvent> = (events || []).filter(
+        (event: SessionAuditEvent): boolean => {
+          return Boolean(
+            event &&
+              event.userId &&
+              event.sessionId &&
+              isSessionAuditLogAction(event.action),
+          );
+        },
+      );
+
+      if (recordable.length === 0) {
+        return;
+      }
+
+      const projectIdsByUser: Map<
+        string,
+        Array<ObjectID>
+      > = await this.getMemberProjectIds(
+        recordable.map((event: SessionAuditEvent): ObjectID => {
+          return event.userId;
+        }),
+      );
+
+      const entries: Array<AuditLog> = [];
+
+      for (const event of recordable) {
+        const projectIds: Array<ObjectID> =
+          projectIdsByUser.get(event.userId.toString().toLowerCase()) || [];
+
+        if (projectIds.length === 0) {
+          continue;
+        }
+
+        let person: { name: string | null; email: string | null } | null = null;
+
+        for (const projectId of projectIds) {
+          const settings: CachedProjectSettings | null =
+            await this.getProjectSettings(projectId);
+
+          if (!this.isSessionEventEligible(settings)) {
+            continue;
+          }
+
+          if (!person) {
+            person = await this.getUserInfo(event.userId);
+          }
+
+          entries.push(
+            this.buildSessionEntry({
+              event,
+              projectId,
+              person,
+              retentionInDays: settings!.retentionInDays,
+            }),
+          );
+        }
+      }
+
+      await this.insertMany(entries);
+    } catch (err) {
+      logger.warn("AuditLog: failed to record session events");
+      logger.warn(err);
+    }
+  }
+
+  /*
+   * Whether a project records session events: eligible as for any entry
+   * (the plan or the license, and its switch), with no question of system
+   * events - a session is always its person's.
+   */
+  private isSessionEventEligible(
+    settings: CachedProjectSettings | null,
+  ): boolean {
+    if (!settings) {
+      return false;
+    }
+
+    if (!this.isEditionEligible(settings)) {
+      return false;
+    }
+
+    return settings.enableAuditLogs;
+  }
+
+  /*
+   * The projects each person is a member of - an accepted invitation to one
+   * of its teams - by user id, lowercased. Read in groups of people, a page
+   * at a time, so a sweep that ends sessions of hundreds of people reads
+   * them in a few queries.
+   */
+  private async getMemberProjectIds(
+    userIds: Array<ObjectID>,
+  ): Promise<Map<string, Array<ObjectID>>> {
+    const projectIdsByUser: Map<string, Map<string, ObjectID>> = new Map();
+
+    const uniqueUserIds: Array<ObjectID> = [];
+    const seen: Set<string> = new Set();
+
+    for (const userId of userIds) {
+      const key: string = userId.toString().toLowerCase();
+
+      if (!seen.has(key)) {
+        seen.add(key);
+        uniqueUserIds.push(userId);
+      }
+    }
+
+    for (
+      let start: number = 0;
+      start < uniqueUserIds.length;
+      start += MEMBERSHIP_LOOKUP_USERS_PER_QUERY
+    ) {
+      const chunk: Array<ObjectID> = uniqueUserIds.slice(
+        start,
+        start + MEMBERSHIP_LOOKUP_USERS_PER_QUERY,
+      );
+
+      for (let page: number = 0; page < MAX_MEMBERSHIP_LOOKUP_PAGES; page++) {
+        const members: Array<TeamMember> = await TeamMemberService.findBy({
+          query: {
+            userId: QueryHelper.any(chunk),
+            hasAcceptedInvitation: true,
+          } as Query<TeamMember>,
+          select: {
+            _id: true,
+            userId: true,
+            projectId: true,
+          },
+          limit: LIMIT_MAX,
+          skip: page * LIMIT_MAX,
+          props: { isRoot: true },
+        });
+
+        for (const member of members) {
+          if (!member.userId || !member.projectId) {
+            continue;
+          }
+
+          const userKey: string = member.userId.toString().toLowerCase();
+          let projects: Map<string, ObjectID> | undefined =
+            projectIdsByUser.get(userKey);
+
+          if (!projects) {
+            projects = new Map<string, ObjectID>();
+            projectIdsByUser.set(userKey, projects);
+          }
+
+          projects.set(
+            member.projectId.toString().toLowerCase(),
+            member.projectId,
+          );
+        }
+
+        if (members.length < LIMIT_MAX) {
+          break;
+        }
+      }
+    }
+
+    const result: Map<string, Array<ObjectID>> = new Map();
+
+    for (const [userKey, projects] of projectIdsByUser) {
+      result.set(userKey, Array.from(projects.values()));
+    }
+
+    return result;
+  }
+
+  // One project's entry about a session event.
+  private buildSessionEntry(data: {
+    event: SessionAuditEvent;
+    projectId: ObjectID;
+    person: { name: string | null; email: string | null } | null;
+    retentionInDays: number;
+  }): AuditLog {
+    const auditLog: AuditLog = new AuditLog();
+
+    auditLog.projectId = data.projectId;
+    auditLog.resourceType = AUDIT_LOG_SESSION_RESOURCE_TYPE;
+    auditLog.resourceId = data.event.sessionId;
+    auditLog.resourceName = getSessionEntryResourceName(data.event);
+    auditLog.rootResourceType = AUDIT_LOG_SESSION_ROOT_RESOURCE_TYPE;
+    auditLog.rootResourceId = data.event.userId;
+    auditLog.action = data.event.action;
+
+    // The person whose session it is.
+    auditLog.userId = data.event.userId;
+    auditLog.userType = UserType.User;
+
+    if (data.person?.name) {
+      auditLog.userName = data.person.name;
+    }
+
+    if (data.person?.email) {
+      auditLog.userEmail = data.person.email;
+    }
+
+    auditLog.changes = getSessionEntryChanges({
+      event: data.event,
+      projectId: data.projectId,
+    });
+    auditLog.retentionDate = this.computeRetentionDate(data.retentionInDays);
+
+    return auditLog;
+  }
+
+  /*
+   * Writes entries, as root, in batches: through the store's createMany when
+   * it has one (core's AuditLogService does), one by one otherwise.
+   */
+  private async insertMany(entries: Array<AuditLog>): Promise<void> {
+    if (entries.length === 0) {
+      return;
+    }
+
+    const store: AuditLogStore = this.getStore();
+
+    for (
+      let start: number = 0;
+      start < entries.length;
+      start += MAX_ENTRIES_PER_INSERT
+    ) {
+      const batch: Array<AuditLog> = entries.slice(
+        start,
+        start + MAX_ENTRIES_PER_INSERT,
+      );
+
+      if (store.createMany) {
+        await store.createMany({ items: batch, props: { isRoot: true } });
+        continue;
+      }
+
+      for (const entry of batch) {
+        await store.create({ data: entry, props: { isRoot: true } });
+      }
+    }
+  }
+
   private async insert<TModel extends BaseModel>(params: {
     projectId: ObjectID;
     model: TModel;
@@ -550,9 +848,13 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
 
   /*
    * When the entry recorded now is deleted: the project's retention in
-   * calendar days, read by the one rule a failing export reckons with too
-   * (Common/Types/AuditLog/AuditLogRetention), so its "will start losing
-   * entries" email goes a day before this moment, whatever the stored value.
+   * calendar days, read by the one rule
+   * (Common/Types/AuditLog/AuditLogRetention). A failing export reads this
+   * stamp back - the soonest among the entries it has not sent - so its
+   * "will start losing entries" email goes a day before this moment,
+   * whatever the stored value and whatever the retention is changed to
+   * later (#6563); only when it cannot read the stamps does it reckon the
+   * moment by the same rule.
    */
   private computeRetentionDate(retentionInDays: number): Date {
     return getAuditLogRetentionDate({

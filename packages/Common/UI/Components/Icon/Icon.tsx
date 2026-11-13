@@ -1068,6 +1068,24 @@ const Icon: FunctionComponent<ComponentProps> = ({
         d="M5.636 5.636a9 9 0 1012.728 0M12 3v9"
       />,
     );
+  } else if (icon === IconProp.SignIn) {
+    // Heroicons' arrow-right-end-on-rectangle.
+    return getSvgWrapper(
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M8.25 9V5.25A2.25 2.25 0 0 1 10.5 3h6a2.25 2.25 0 0 1 2.25 2.25v13.5A2.25 2.25 0 0 1 16.5 21h-6a2.25 2.25 0 0 1-2.25-2.25V15M12 9l3 3m0 0-3 3m3-3H2.25"
+      />,
+    );
+  } else if (icon === IconProp.SignOut) {
+    // Heroicons' arrow-left-start-on-rectangle.
+    return getSvgWrapper(
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l-3 3m0 0 3 3m-3-3h12.75"
+      />,
+    );
   } else if (icon === IconProp.Report) {
     return getSvgWrapper(
       <path
@@ -2113,6 +2131,15 @@ const Icon: FunctionComponent<ComponentProps> = ({
         strokeLinecap="round"
         strokeLinejoin="round"
         d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z"
+      />,
+    );
+  } else if (icon === IconProp.Pin) {
+    // A drawing pin, its point down: the head, the body and the needle.
+    return getSvgWrapper(
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M12 17v5M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"
       />,
     );
   } else if (icon === IconProp.Megaphone) {

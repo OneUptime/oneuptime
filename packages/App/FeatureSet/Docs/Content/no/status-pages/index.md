@@ -1,6 +1,9 @@
 # Statussider – Oversikt
 
-En statusside er det offentlige ansiktet til alt du overvåker: én URL som kundene dine kan åpne i stedet for å skrive til deg og spørre om problemet bare er hos dem. Den viser gjeldende status for tjenestene du velger å vise, hendelsene du jobber med, vedlikeholdet du har planlagt og enhver kunngjøring du vil feste øverst.
+En statusside er det offentlige ansiktet til alt du overvåker: én URL som kundene dine kan åpne i stedet for å skrive til deg og spørre om problemet bare er hos dem. Den viser gjeldende status for tjenestene du velger å vise, hendelsene du jobber med, vedlikeholdet du har planlagt og enhver kunngjøring du vil feste øverst. Se [Hvilken skal jeg bruke?](/docs/introduction/which-one#dashbord-offentlig-dashbord-eller-statusside) for å velge mellom en statusside og et dashbord.
+
+> [!TIP]
+> Ny her? Følg guiden først: [Publiser en statusside](/docs/guides/status-page).
 
 Når noe går i stykker klokken 2 om natten, er statussiden det første supportkøen din henviser til. Det er også derfra abonnentene dine blir varslet, så det lønner seg å sette den opp før du trenger den, ikke midt i nedetiden.
 
@@ -41,6 +44,8 @@ Siden viser monitorene du setter på den, som ressurser, og hendelser når siden
 - **Abonnenter blir varslet automatisk.** Abonnenter via e-post, SMS, Slack, Microsoft Teams og webhook kan følge en side, hver kanal bak sin egen bryter.
 
 ## Sentrale begreper
+
+Se [Ordliste](/docs/introduction/glossary) for ordene som brukes på tvers av OneUptime.
 
 | Begrep | Hva det betyr |
 | --- | --- |

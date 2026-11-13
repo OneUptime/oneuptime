@@ -67,10 +67,11 @@ Node.js と .NET の Azure 検出器は `azure.container_apps`、`azure.app_serv
 2. `aws.ecs.task.arn` (タスク ID に短縮)
 3. `faas.instance`
 4. `azure.container_app.instance.id`
-5. `service.instance.id`
-6. `container.id`
-7. `host.id`
-8. `host.name`
+5. `azure.app_service.instance.id`
+6. `service.instance.id`
+7. `container.id`
+8. `host.id`
+9. `host.name`
 
 プラットフォーム自身の識別子は `service.instance.id` より優先されます。そのため、SDK がプロセスごとに作る ID (Node.js SDK は既定でそうします) によって、タスクとそのサイドカーの CPU、メモリが分かれることはありません。各プラットフォームで識別子を設定するものは次のとおりです:
 
@@ -80,7 +81,7 @@ Node.js と .NET の Azure 検出器は `azure.container_apps`、`azure.app_serv
 | Cloud Run, App Engine | `gcp` 検出器が `faas.instance` を設定します |
 | Container Apps | Collector の `azurecontainerapps` 検出器がレプリカ ID を設定します。または `CONTAINER_APP_REPLICA_NAME` から `service.instance.id` を設定するか、ホスト検出器を実行します |
 | App Runner, Container Instances | ホスト検出器の `host.name` |
-| App Service, Elastic Beanstalk | プラットフォームの検出器が `service.instance.id` を設定します。Beanstalk では、`host.id` で各インスタンスの名前が付くよう、これを削除します |
+| App Service, Elastic Beanstalk | プラットフォームの検出器が `service.instance.id` を設定します (App Service では Collector の検出器が `azure.app_service.instance.id` を設定します)。Beanstalk では `service.instance.id` を削除して、`host.id` で各インスタンスの名前が付くようにします |
 
 インスタンスは、その属性を持つ最初のシグナルから 1 分以内に表示されます。
 
@@ -89,7 +90,7 @@ Node.js と .NET の Azure 検出器は `azure.container_apps`、`azure.app_serv
 インスタンスは表示されているのに、概要の **CPU** と **メモリ** のタイル、および **インスタンス** の CPU とメモリの列が空です。これらはトレースではなくメトリクスから算出されます。トレースと同じインスタンスの識別子と `cloud.platform` をリソースに持つ、`container.cpu.utilization` と `container.memory.usage` (または `container.memory.usage.total`) のデータポイントです。
 
 - **ECS では**、サイドカー Collector の `awsecscontainermetrics` レシーバーが、これらを `ecs.task.cpu.utilized` と `ecs.task.memory.utilized` として提供します。このレシーバーを `metrics` パイプラインに入れ、同じパイプラインに `resourcedetection` も残してください。そうしないと、メトリクスが `cloud.platform` なしで届き、別の場所に記録されます。
-- **Cloud Run、Container Apps、その他のプラットフォームでは**、プラットフォームがコンテナの使用量をサイドカーに公開しません。それらのメトリクスを自分で送らない限りタイルは空のままなので、代わりにリクエストのタイルを見てください。
+- **Cloud Run、Container Apps、その他のプラットフォームでは**、プラットフォームがコンテナの使用量をサイドカーに公開しません。それらのメトリクスを自分で送らない限りタイルは空のままなので、代わりにリクエストのタイルを見てください。App Service では、**クラウド → 接続** でサブスクリプションを接続すると、アプリのページに **Azure Monitor** からサイトの CPU 時間とメモリが表示されます。
 - **SDK direct では**、コンテナメトリクスを送るものがないため、タイルが空なのは想定どおりです。
 
 ## 環境が切断済みと表示される

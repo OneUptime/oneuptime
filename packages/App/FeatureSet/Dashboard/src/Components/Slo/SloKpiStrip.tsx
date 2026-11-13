@@ -92,13 +92,22 @@ const SloKpiStrip: FunctionComponent<ComponentProps> = (
 
   // ---- SLI -----------------------------------------------------------------
 
-  const sliText: string | null = formatSloPercent(slo.currentSliPercentage);
+  // Every figure on the strip is written the reader's way: "99,874 %" in German.
+  const sliText: string | null = formatSloPercent(
+    slo.currentSliPercentage,
+    undefined,
+    translator,
+  );
   const isBelowTarget: boolean = isSliBelowTarget({
     currentSliPercentage: slo.currentSliPercentage,
     targetPercentage: slo.targetPercentage,
   });
 
-  const targetText: string | null = formatSloPercent(slo.targetPercentage);
+  const targetText: string | null = formatSloPercent(
+    slo.targetPercentage,
+    undefined,
+    translator,
+  );
 
   const sliDescription: string =
     sliText === null
@@ -123,7 +132,7 @@ const SloKpiStrip: FunctionComponent<ComponentProps> = (
   // ---- Error budget ----------------------------------------------------------
 
   const budgetText: string | null = getSloBudgetRemainingTextInLanguage(
-    getSloBudgetRemainingText(slo.errorBudgetRemainingPercentage),
+    getSloBudgetRemainingText(slo.errorBudgetRemainingPercentage, translator),
     translator,
   );
 
@@ -188,7 +197,10 @@ const SloKpiStrip: FunctionComponent<ComponentProps> = (
 
   // ---- Burn rate -------------------------------------------------------------
 
-  const burnRateText: string | null = formatSloBurnRate(slo.currentBurnRate);
+  const burnRateText: string | null = formatSloBurnRate(
+    slo.currentBurnRate,
+    translator,
+  );
 
   const isAtOrAboveRuleThreshold: boolean = isBurnRateAtOrAboveThreshold({
     burnRate: slo.currentBurnRate,
@@ -218,12 +230,21 @@ const SloKpiStrip: FunctionComponent<ComponentProps> = (
     translator.language,
   );
 
+  /*
+   * The "1×" is a burn rate like the one above it, so it is written by the
+   * same formatter: "1×" in English, Persian's "۱" with its "×" on the same
+   * side as every other burn rate on the page. Written in the words, a
+   * Persian "۱×" in a sentence read right to left was drawn "×۱" (#6924).
+   */
+  const sustainableBurnRateText: string =
+    formatSloBurnRate(1, translator) || "1×";
+
   const burnRateDescription: string =
     burnRateText === null
       ? translator.translateTemplate(SLO_NOT_EVALUATED_TEXT)
       : translator.translateTemplate(
-          "Over the last {{window}} · 1× spends the budget exactly over the window",
-          { window: burnRateWindowText },
+          "Over the last {{window}} · {{rate}} spends the budget exactly over the window",
+          { window: burnRateWindowText, rate: sustainableBurnRateText },
           NOTE_OPTIONS,
         );
 
@@ -319,6 +340,7 @@ const SloKpiStrip: FunctionComponent<ComponentProps> = (
                         threshold:
                           formatSloBurnRate(
                             props.lowestEnabledBurnRateThreshold,
+                            translator,
                           ) || "",
                         longWindow: comparableLongWindowText,
                       },

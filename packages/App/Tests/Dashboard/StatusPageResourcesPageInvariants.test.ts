@@ -413,13 +413,32 @@ describe("permissions", () => {
     expect(pane).toContain("canDeleteGroup={canDeleteGroup}");
   });
 
+  /*
+   * The header's buttons start with View Documentation (#6822), which anyone
+   * who can open the page may read; "New Group" is added after it, and only
+   * for someone who can create.
+   */
   test("the create-group button is not drawn for someone who cannot create", () => {
     expect(
       between(
-        "const buttons: Array<CardButtonSchema | ReactElement> = [];",
+        "const buttons: Array<CardButtonSchema | ReactElement> = [",
         "return buttons;",
       ),
-    ).toContain("if (canCreateGroup) {");
+    ).toContain('if (canCreateGroup) { buttons.push({ title: "New Group",');
+  });
+
+  test("the page's documentation opens from its header, for everyone, before New Group", () => {
+    const firstButtons: string = between(
+      "const buttons: Array<CardButtonSchema | ReactElement> = [",
+      "];",
+    );
+
+    expect(firstButtons).toContain('title: "View Documentation",');
+    expect(firstButtons).toContain(
+      'Route.fromString("/docs/status-pages/resources-and-groups"),',
+    );
+    expect(firstButtons).toContain("{ openInNewTab: true }");
+    expect(firstButtons).not.toContain("canCreateGroup");
   });
 });
 

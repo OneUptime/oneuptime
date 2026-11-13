@@ -1,11 +1,12 @@
 # Auditlogboeken
 
-Het auditlogboek legt vast wie wat in uw project heeft gewijzigd: elke aanmaak, wijziging en verwijdering van de resources die het dekt, met de waarden ervoor en erna. Gebruik het om te achterhalen wie een monitor heeft uitgezet of een API-sleutel heeft gewijzigd, en om een verslag bij te houden voor compliancecontroles. Het hoort in OneUptime Cloud bij het Enterprise-abonnement, en bij de Enterprise Edition als u zelf host.
+Het auditlogboek legt vast wie wat in uw project heeft gewijzigd: elke aanmaak, wijziging en verwijdering van de resources die het dekt, met de waarden ervoor en erna, en elke keer dat iemand zich aan- of afmeldt. Gebruik het om te achterhalen wie een monitor heeft uitgezet of een API-sleutel heeft gewijzigd, wie zich heeft aangemeld en waarvandaan, en om een verslag bij te houden voor compliancecontroles. Het hoort in OneUptime Cloud bij het Enterprise-abonnement, en bij de Enterprise Edition als u zelf host.
 
 :::cards
 - [Auditlogging aanzetten](#auditlogging-aanzetten): Het staat in elk project bij het begin uit.
 - [Het auditlogboek lezen](#het-auditlogboek-lezen): Wie wat heeft gewijzigd, en wanneer.
 - [Wat wordt vastgelegd](#wat-wordt-vastgelegd): De resources en acties die het dekt.
+- [Aanmeldingen en sessies](#aanmeldingen-en-sessies): Wie zich heeft aangemeld, en hoe elke sessie eindigde.
 - [Hoe lang vermeldingen blijven](#hoe-lang-vermeldingen-blijven): Van 7 tot 180 dagen.
 :::
 
@@ -64,10 +65,10 @@ Een wijziging van deze instellingen geldt binnen een minuut.
 | Kolom | Wat die toont |
 | --- | --- |
 | **Wanneer** | Hoe lang geleden, met datum en tijd. |
-| **Actie** | `Create`, `Update` of `Delete`, of `Download` voor een pakketopnamebestand dat iemand heeft gedownload. |
+| **Actie** | `Create`, `Update` of `Delete`, `Download` voor een pakketopnamebestand dat iemand heeft gedownload, of `Sign In`, `Sign Out`, `Session Timeout` of `Session Revoked` voor een sessie. |
 | **Resource** | De naam van de resource, die deze opent zolang die bestaat, en het type. |
 | **Actor** | Wie de wijziging deed: een persoon, een API-sleutel, een workflow of `System` voor een wijziging die OneUptime zelf deed. Bij de wijziging van een persoon via een MCP-client staat welke. |
-| **Wijzigingen** | Hoeveel velden zijn gewijzigd, of bij een aanmaak of verwijdering zijn vastgelegd. Klik erop om elk veld te zien. |
+| **Wijzigingen** | Hoeveel velden zijn gewijzigd, of bij een aanmaak of verwijdering zijn vastgelegd. Bij een sessie: hoe die is aangemeld of waarom die eindigde. Klik erop om elk veld te zien. |
 
 Filter op **Resourcetype**, **Resourcenaam**, **Actie**, **E-mailadres gebruiker** of **Tijd**. Een wijziging toont alleen de velden die zijn veranderd, ervoor en erna, en een opslag die niets verandert, voegt geen vermelding toe.
 
@@ -85,8 +86,9 @@ Alles wat mensen in een project maken, wijzigen of verwijderen, wordt vastgelegd
 | Vastleggingen van uitvoeringen | Elk is al de vastlegging van een workflowuitvoering, een piketescalatie, een scan, een import of een AI-uitvoering. |
 | Wat agents en telemetrie rapporteren | Gevonden resources, metingen en gebruik veranderen bij elk rapport, niet omdat iemand ze heeft gewijzigd. |
 | Activiteitenfeeds | Een feed toont wijzigingen die het auditlogboek al vastlegt. |
-| De werkstatus van OneUptime | Sessies, taken in de wachtrij en andere status die OneUptime bijhoudt terwijl het werkt. |
+| De werkstatus van OneUptime | Sessies van lezers van statuspagina's, taken in de wachtrij en andere status die OneUptime bijhoudt terwijl het werkt. |
 | De eigen meldingsinstellingen van een persoon | De adressen, nummers en persoonlijke piketregels van ieder persoon zijn alleen van hem of haar. |
+| De eigen voorkeuren van een persoon | De producten die ieder persoon in de eigen bovenbalk vastzet, zijn alleen van hem of haar, en alleen die persoon ziet ze. |
 
 Ook wordt vastgelegd wanneer een beheerder een meldingsmethode of een persoonlijke piketregel aan het account van iemand anders toevoegt of ervan verwijdert, zonder het adres of nummer zelf.
 
@@ -104,6 +106,21 @@ Wat OneUptime doet omdat iemand erom vroeg, wordt ook als diens wijziging vastge
 Wat een regel uit zichzelf doet, is een wijziging van OneUptime zelf, vastgelegd wanneer **Systeemgebeurtenissen opslaan** aan staat: labels en eigenaren die een regel toevoegt wanneer een record wordt aangemaakt, en een record dat hij dan privé maakt; de apparaten en monitoren die een regel voor automatisch importeren aanmaakt uit nieuwe scanresultaten; en wat een monitorregel van een statuspagina of een SLO verandert wanneer een regel, een monitor of een label wordt opgeslagen.
 
 Het opnieuw instellen van de AI-agent van een host, een cluster of een cloudaccount wordt vastgelegd op de eigen pagina **Auditlogboeken** van die resource, als de wijziging van `aiAgentResetAt` door wie hem opnieuw instelde: wie, en wanneer. Hetzelfde geldt voor het maken van een sleutel voor de AI-agent van een cloudaccount: de sleutels staan er als gewijzigd, nooit met een sleutel of een hash. Wat een agent meldt wanneer hij verbinding maakt en zich meldt, blijft buiten beschouwing, zoals voorheen.
+
+## Aanmeldingen en sessies
+
+Elke keer dat een lid van het project zich bij OneUptime aanmeldt, legt het auditlogboek dat vast, en opnieuw wanneer die sessie eindigt. Een aanmelding geldt voor OneUptime, niet voor één project, dus elk project waarvan de persoon lid is, legt die vast.
+
+| Actie | Wanneer het wordt vastgelegd |
+| --- | --- |
+| `Sign In` | Iemand meldt zich aan: met een wachtwoord of een inloglink, een passkey, Google, Microsoft, Vercel of single sign-on. |
+| `Sign Out` | Diegene meldt zich af. |
+| `Session Timeout` | OneUptime beëindigt de sessie omdat de tijd om is: de inactiviteitsduur of sessieduur die een serverbeheerder heeft ingesteld, of 30 dagen zonder gebruik. |
+| `Session Revoked` | OneUptime beëindigt de sessie omdat het wachtwoord is gewijzigd, het account is geblokkeerd, of een serverbeheerder tweestapsverificatie heeft gereset of verplicht heeft gesteld. |
+
+De **Resource** van een vermelding is de sessie, genoemd naar het apparaat waarop de aanmelding plaatsvond, zoals `Chrome 130 on macOS`. De **Actor** is de persoon van wie de sessie is, dus filteren op **E-mailadres gebruiker** vindt al diens aanmeldingen en sessies. De details vermelden hoe diegene zich aanmeldde en met welke tweede factor, het IP-adres en de plaats, en bij een geëindigde sessie wanneer die werd aangemeld, wanneer die het laatst werd gebruikt en wanneer die verliep. De eigen SSO-provider van een project wordt alleen in het auditlogboek van dat project genoemd.
+
+Aanmeldingen en sessies worden vastgelegd, of het project systeemgebeurtenissen opslaat of niet. Een verstreken sessieduur of 30 dagen zonder gebruik wordt binnen enkele minuten vastgelegd. Een verstreken inactiviteitsduur wordt vastgelegd wanneer het open tabblad van de persoon of de mobiele app de volgende keer contact maakt met OneUptime.
 
 ## Hoe lang vermeldingen blijven
 

@@ -130,7 +130,9 @@ import RecordApproversAskedAboutWaitingPublicNotes from "./RecordApproversAskedA
 import RestoreNamespaceMetricMonitorTotals from "./RestoreNamespaceMetricMonitorTotals";
 import RedactLatestIncomingRequests from "./RedactLatestIncomingRequests";
 import ClearMonitorGroupOnMonitorStatusPageResources from "./ClearMonitorGroupOnMonitorStatusPageResources";
+import RestampDevicesOfMonitorsNotChecked from "./RestampDevicesOfMonitorsNotChecked";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
+import BackfillProjectMilestones from "./BackfillProjectMilestones";
 import AddNetworkTrafficUsageUplinkHealthColumns from "./AddNetworkTrafficUsageUplinkHealthColumns";
 import FillSyntheticMonitorBrowsersAndScreenSizes from "./FillSyntheticMonitorBrowsersAndScreenSizes";
 import BackfillLabelNameSortKeys from "./BackfillLabelNameSortKeys";
@@ -168,6 +170,8 @@ import AddTagsColumnToCloudCost from "./AddTagsColumnToCloudCost";
 import AddRequestColumnsToSecurityEvent from "./AddRequestColumnsToSecurityEvent";
 import AddDefaultPostmortemStatusesToExistingProjects from "./AddDefaultPostmortemStatusesToExistingProjects";
 import AddIsEntrySpanToSpanTable from "./AddIsEntrySpanToSpanTable";
+import RecordMonitoringOffOnStatusTimelines from "./RecordMonitoringOffOnStatusTimelines";
+import SettleOnCallNotificationsStuckBeforeUpgrade from "./SettleOnCallNotificationsStuckBeforeUpgrade";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -1014,6 +1018,55 @@ const DataMigrations: Array<DataMigrationBase> = [
    * AddAuditLogMcpClientColumns asserts for itself.
    */
   new ClearMonitorGroupOnMonitorStatusPageResources(),
+  /*
+   * Activation milestones (ProjectMilestone, issue #6830): every project
+   * that existed before they were kept gets the ones its data shows - its
+   * first monitor, check result, on-call page delivered, second member and
+   * the rest - marked wasBackfilled, with no analytics event. After the
+   * schema migration AddProjectMilestones; idempotent; no other ordering
+   * requirement, so it sits above the runbook migrations that keep their
+   * places before the last slot AddAuditLogMcpClientColumns asserts for
+   * itself.
+   */
+  new BackfillProjectMilestones(),
+  /*
+   * Turning a monitor's monitoring off or back on starts a status event that
+   * says so (MonitorStatusTimeline.isMonitoringOff, issue #6480), and uptime,
+   * status pages and SLOs leave out the time it is off. Every monitor whose
+   * monitoring was off before that gets one now, with the status it holds,
+   * so its frozen status stops counting from here; the time before stays as
+   * it was counted. After the schema migration
+   * AddMonitorStatusTimelineIsMonitoringOff; idempotent; no other ordering
+   * requirement, so it sits above the runbook migrations that keep their
+   * places before the last slot AddAuditLogMcpClientColumns asserts for
+   * itself.
+   */
+  new RecordMonitoringOffOnStatusTimelines(),
+  /*
+   * On-call notifications left at Sending from before the check for
+   * notifications that never got a result existed (issue #7085), longer ago
+   * than the day that check reads: settled once as not sent, with the
+   * check's own words, without hooks - their pages are long over - and over
+   * Sending only. After the schema migration
+   * AddUserOnCallLogTimelineSendingIndex, whose partial index serves its
+   * read; idempotent; no other ordering requirement, so it sits above the
+   * runbook migrations that keep their places before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new SettleOnCallNotificationsStuckBeforeUpgrade(),
+  /*
+   * A network device takes no status from a monitor that is not checked -
+   * its monitoring turned off, or archived (issue #6965). The devices of
+   * monitors turned off or archived before that kept the status their
+   * monitor was left at; this stamps them again, which takes it off their
+   * sites' roll-ups and resolves those sites' alerts. After
+   * BackfillMonitorBackedDeviceReachability, whose stamps it corrects;
+   * idempotent; it reads network devices and their monitors' switches and
+   * writes only the devices and their sites, no runbook, so it sits above
+   * the runbook migrations that keep their places before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new RestampDevicesOfMonitorsNotChecked(),
   /*
    * A runbook step's approval moved to the step it guards ("Require approval
    * before running this step"): every stored runbook's approval after step

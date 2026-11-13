@@ -1,4 +1,5 @@
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import ArchivedValuePicker from "Common/UI/Utils/ArchivedValuePicker";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -167,6 +168,12 @@ import {
   withDefaultMonitoringInterval,
 } from "../../Utils/Form/Monitor/MonitoringIntervalDefault";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  SERVER_EMAIL_COPY,
+  ServerEmail,
+  cannotSendEmail,
+  useServerEmail,
+} from "../../Utils/ServerEmail";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import SnmpTableListUtil from "Common/Types/Monitor/SnmpMonitor/SnmpTableListUtil";
 
@@ -368,6 +375,8 @@ const MonitorCreate: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
+  // Whether the server can email the project's owners, as the card says.
+  const serverEmail: ServerEmail = useServerEmail();
   const monitorTemplateId: string | null =
     Navigation.getQueryStringByName("monitorTemplateId");
 
@@ -1795,10 +1804,15 @@ const MonitorCreate: FunctionComponent<
          * Who is told is the first thing someone new asks of a monitor.
          * Its default criteria open an incident when it goes down (an alert
          * for a few types), and an incident or alert nobody owns is emailed
-         * to the project's owners.
+         * to the project's owners - unless the server cannot send email yet,
+         * which is said instead, with who can set it up (Utils/ServerEmail).
          */
         description={
-          "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert and emails the project's owners."
+          cannotSendEmail(serverEmail)
+            ? serverEmail.isMasterAdmin
+              ? SERVER_EMAIL_COPY.createMonitorDescriptionForAdmin
+              : SERVER_EMAIL_COPY.createMonitorDescription
+            : "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert and emails the project's owners."
         }
         className="mb-10"
       >
@@ -1946,6 +1960,7 @@ const MonitorCreate: FunctionComponent<
                    */
                   description:
                     "Probes are the machines that run this monitor's checks. Your project's default probes start selected. A monitor with no probes is never checked.",
+                  glossaryTerm: GlossaryTerm.Probe,
                   fieldType: FormFieldSchemaType.MultiSelectDropdown,
                   /*
                    * So the form will not create a monitor that is never

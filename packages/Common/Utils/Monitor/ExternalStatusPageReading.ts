@@ -5,6 +5,7 @@ import {
 } from "../../Types/StatusPage/StatusPageSummary";
 import ExternalStatusPageComponentStatusUtil from "./ExternalStatusPageComponentStatusUtil";
 import { withoutTrailingSlashes } from "../TrailingRuns";
+import { fillTemplate, translationKey } from "../../Types/Translator";
 
 /*
  * WHAT A STATUS PAGE SAYS, READ FROM ITS ANSWERS.
@@ -37,9 +38,64 @@ export const EXTERNAL_STATUS_PAGE_MAX_INCIDENTS: number = 1000;
 // The name an incident goes by when the page gives it none.
 export const EXTERNAL_STATUS_PAGE_UNNAMED_INCIDENT: string = "Unknown incident";
 
+/*
+ * ONEUPTIME'S OWN NOTES ON A ONEUPTIME PAGE'S COMPONENT.
+ *
+ * A OneUptime page's resource is described by its status's name, which is
+ * the page's own word - unless the page gives it no status, when the probe
+ * writes a note of its own as the component's description. Each is a
+ * translation key (the Dashboard's npm run i18n:extract reads this
+ * directory), so the monitor's summary draws it in the reader's language
+ * (readOneUptimeNote) while the probe stores the English, as every check's
+ * description is stored.
+ */
+
 // A OneUptime page's component's description when the page does not show its status.
 export const EXTERNAL_STATUS_PAGE_ONEUPTIME_STATUS_NOT_SHOWN: string =
-  "The status page does not show this resource's status.";
+  translationKey("The status page does not show this resource's status.");
+
+/*
+ * A OneUptime page's component's description when nothing checks it: its
+ * monitoring is off, so the page shows it as not monitored and gives it no
+ * status (StatusPageSummaryResource.isMonitored).
+ */
+export const EXTERNAL_STATUS_PAGE_ONEUPTIME_NOT_MONITORED: string =
+  translationKey("The status page shows this resource as not monitored.");
+
+/*
+ * A OneUptime page's component's description while a scheduled maintenance
+ * event in progress affects it: the events' titles - the page's own words -
+ * after the note, or the note alone when they have none. The note alone
+ * only repeats the component's status (Under Maintenance), which the
+ * summary says once, so it is no translation key.
+ */
+export const EXTERNAL_STATUS_PAGE_ONEUPTIME_UNDER_MAINTENANCE: string =
+  "Under maintenance";
+
+export const EXTERNAL_STATUS_PAGE_ONEUPTIME_UNDER_MAINTENANCE_OF: string =
+  translationKey("Under maintenance: {{events}}");
+
+// What comes before the events' titles in a note of maintenance.
+const UNDER_MAINTENANCE_OF_PREFIX: string =
+  EXTERNAL_STATUS_PAGE_ONEUPTIME_UNDER_MAINTENANCE_OF.slice(
+    0,
+    EXTERNAL_STATUS_PAGE_ONEUPTIME_UNDER_MAINTENANCE_OF.indexOf("{{events}}"),
+  );
+
+// The notes that are whole sentences, with nothing of the page's in them.
+const ONEUPTIME_SENTENCE_NOTES: ReadonlyArray<string> = [
+  EXTERNAL_STATUS_PAGE_ONEUPTIME_STATUS_NOT_SHOWN,
+  EXTERNAL_STATUS_PAGE_ONEUPTIME_NOT_MONITORED,
+];
+
+/*
+ * One of OneUptime's notes, read back from a component's description: the
+ * note's English (a translation key) and the page's words that fill it.
+ */
+export interface ExternalStatusPageOneUptimeNote {
+  template: string;
+  values: Record<string, string>;
+}
 
 // A page's component, before the monitor's scope is applied.
 export interface ExternalStatusPageComponent {
@@ -52,6 +108,13 @@ export interface ExternalStatusPageComponent {
    * it. Two components of one name in two groups are told apart by it.
    */
   key?: string | undefined;
+  /*
+   * False when the page says nothing checks the component - a OneUptime
+   * page's resource whose monitoring is off. Its status is unknown, and it
+   * decides no overall status (ExternalStatusPageScope.deriveOverallStatus),
+   * as it decides nothing on the page's own banner. Unset otherwise.
+   */
+  isMonitored?: boolean | undefined;
 }
 
 // A page's active incident, before the monitor's scope is applied.
@@ -463,8 +526,8 @@ export default class ExternalStatusPageReading {
    * status is the value the page's status stands for
    * (ExternalStatusPageComponentStatusUtil) - under maintenance while a
    * scheduled maintenance event in progress affects it, whatever its
-   * monitors' status. Each active incident affects the resources it names,
-   * by their ids.
+   * monitors' status, and unknown while the page shows it as not monitored.
+   * Each active incident affects the resources it names, by their ids.
    */
   public static readOneUptimeSummary(
     summary: StatusPageSummary,
@@ -495,24 +558,36 @@ export default class ExternalStatusPageReading {
           if (resource.isUnderMaintenance) {
             description =
               titles.length > 0
-                ? `Under maintenance: ${titles.join(", ")}`
-                : "Under maintenance";
+                ? fillTemplate(
+                    EXTERNAL_STATUS_PAGE_ONEUPTIME_UNDER_MAINTENANCE_OF,
+                    { events: titles.join(", ") },
+                  )
+                : EXTERNAL_STATUS_PAGE_ONEUPTIME_UNDER_MAINTENANCE;
+          } else if (!resource.isMonitored) {
+            description = EXTERNAL_STATUS_PAGE_ONEUPTIME_NOT_MONITORED;
           } else if (!resource.currentStatus) {
             description = EXTERNAL_STATUS_PAGE_ONEUPTIME_STATUS_NOT_SHOWN;
           } else {
             description = resource.currentStatus.name;
           }
 
-          return {
+          const component: ExternalStatusPageComponent = {
             key: resource.id,
             name: resource.name,
             groupName: resource.groupName || undefined,
             status: ExternalStatusPageComponentStatusUtil.fromStatusPageStatus({
-              status: resource.currentStatus,
+              // A status nothing checks says nothing now, whatever was sent.
+              status: resource.isMonitored ? resource.currentStatus : null,
               isUnderMaintenance: resource.isUnderMaintenance,
             }),
             description: description,
           };
+
+          if (!resource.isMonitored) {
+            component.isMonitored = false;
+          }
+
+          return component;
         },
       );
 
@@ -541,5 +616,39 @@ export default class ExternalStatusPageReading {
       );
 
     return { components: components, incidents: incidents };
+  }
+
+  /*
+   * One of OneUptime's own notes on a OneUptime page's component, read
+   * back from the description readOneUptimeSummary wrote, so it can be
+   * drawn in the reader's language: the note's English, and the page's
+   * words in it - the maintenance events' titles, as written. Null for any
+   * other description, which is the page's own words and stays as written.
+   *
+   * Only a OneUptime page's description is read this way (the caller asks
+   * for that provider): an Atlassian Statuspage's component can be
+   * described "Under maintenance: ..." by the people who run it.
+   */
+  public static readOneUptimeNote(
+    description: string | undefined,
+  ): ExternalStatusPageOneUptimeNote | null {
+    const text: string = (description || "").trim();
+
+    if (ONEUPTIME_SENTENCE_NOTES.includes(text)) {
+      return { template: text, values: {} };
+    }
+
+    if (text.startsWith(UNDER_MAINTENANCE_OF_PREFIX)) {
+      const events: string = text.slice(UNDER_MAINTENANCE_OF_PREFIX.length);
+
+      if (events.trim()) {
+        return {
+          template: EXTERNAL_STATUS_PAGE_ONEUPTIME_UNDER_MAINTENANCE_OF,
+          values: { events: events },
+        };
+      }
+    }
+
+    return null;
   }
 }

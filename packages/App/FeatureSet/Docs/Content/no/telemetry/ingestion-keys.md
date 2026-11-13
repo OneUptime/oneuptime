@@ -1,6 +1,6 @@
 # Inntaksnøkler
 
-En inntaksnøkkel kobler telemetrien din til prosjektet ditt. Applikasjoner, OpenTelemetry Collectors og agenter sender den med hver forespørsel, og OneUptime legger loggene, sporene og målingene deres i prosjektet nøkkelen tilhører. Denne siden viser hvordan du oppretter en nøkkel, hvilken type du skal velge, og hvordan du holder nøkler trygge.
+En inntaksnøkkel kobler telemetrien din til prosjektet ditt. Applikasjoner, OpenTelemetry Collectors og agenter sender den med hver forespørsel, og OneUptime legger loggene, sporene og målingene deres i prosjektet nøkkelen tilhører. Denne siden viser hvordan du oppretter en nøkkel, hvilken type du skal velge, og hvordan du holder nøkler trygge. Se [Hvilken skal jeg bruke?](/docs/introduction/which-one#inntaksnøkkel-eller-api-nøkkel) for å skille en inntaksnøkkel fra en API-nøkkel.
 
 :::cards
 - [Opprett en inntaksnøkkel](#opprett-en-inntaksnøkkel): Et navn, en type og en hemmelighet å kopiere.

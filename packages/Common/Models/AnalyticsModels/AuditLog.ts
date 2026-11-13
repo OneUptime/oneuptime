@@ -161,7 +161,7 @@ export default class AuditLog extends AnalyticsBaseModel {
       key: "action",
       title: "Action",
       description:
-        "The action performed: Create, Update, Delete, or Download (a packet capture file was downloaded).",
+        "The action performed: Create, Update, Delete, or Download (a packet capture file was downloaded); for a person's session, SignIn, SignOut, SessionTimeout or SessionRevoked.",
       required: true,
       type: TableColumnType.Text,
       accessControl: {

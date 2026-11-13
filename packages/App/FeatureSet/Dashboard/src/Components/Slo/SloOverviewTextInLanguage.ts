@@ -32,7 +32,9 @@ import {
   SloRollingWindowFill,
 } from "Common/Utils/Slo/SloProjection";
 import {
+  formatSloNumber,
   formatSloPercent,
+  SLI_DECIMALS,
   SLO_NOT_EVALUATED_TEXT,
 } from "Common/Utils/Slo/SloWidgetFormat";
 
@@ -234,7 +236,7 @@ export const getSloAtRiskTextInLanguage: (
 
   return translator.translateTemplate(
     "When {{percent}} or less of the error budget is left",
-    { percent: formatSloPercent(threshold) || "" },
+    { percent: formatSloPercent(threshold, undefined, translator) || "" },
   );
 };
 
@@ -296,7 +298,10 @@ const sloBudgetDurationValue: (seconds: number) => TemplateValue = (
   });
 };
 
-/** "0.026 pp below the 99.9% target": getSliDeltaText, looked up. */
+/*
+ * "0.026 pp below the 99.9% target": getSliDeltaText, looked up, with the
+ * gap and the target written the reader's way ("0,026", "99,9 %").
+ */
 export const getSliDeltaTextInLanguage: (
   data: SliVersusTargetData,
   translator?: Translator,
@@ -313,8 +318,12 @@ export const getSliDeltaTextInLanguage: (
   }
 
   const values: { target: string; delta: string } = {
-    target: delta.targetText,
-    delta: String(delta.percentagePoints),
+    target:
+      formatSloPercent(data.targetPercentage, SLI_DECIMALS, translator) ||
+      delta.targetText,
+    delta:
+      formatSloNumber(delta.percentagePoints, SLI_DECIMALS, translator) ||
+      String(delta.percentagePoints),
   };
 
   switch (delta.side) {
@@ -440,7 +449,8 @@ export const getSloBudgetRemainingTextInLanguage: (
 
 /*
  * "Window 25% full" (a badge of its own) / "window 25% full" (after other
- * words on a line): how much of a young rolling window holds data yet.
+ * words on a line): how much of a young rolling window holds data yet, the
+ * count written in the reader's digits ("۲۵٪" in Persian).
  */
 export const getRollingWindowFillTextInLanguage: (
   fill: SloRollingWindowFill,
@@ -451,7 +461,10 @@ export const getRollingWindowFillTextInLanguage: (
   translator: Translator = ENGLISH,
   placement?: { afterOtherWords?: boolean | undefined },
 ): string => {
-  const values: { percent: string } = { percent: String(fill.percent) };
+  const values: { percent: string } = {
+    percent:
+      formatSloNumber(fill.percent, 0, translator) || String(fill.percent),
+  };
 
   if (placement?.afterOtherWords) {
     return fill.percent < 1

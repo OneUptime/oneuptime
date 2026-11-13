@@ -1,6 +1,6 @@
 # Grupos de monitores
 
-Um grupo de monitores reúne vários monitores em um único status. Agrupe os monitores que juntos formam um serviço, como Checkout: a API, o serviço de pagamentos e o app web dele. O grupo mostra o pior status entre eles, tem a sua própria disponibilidade, e uma página de status pode mostrar o grupo inteiro como uma única linha.
+Um grupo de monitores reúne vários monitores em um único status. Agrupe os monitores que juntos formam um serviço, como Checkout: a API, o serviço de pagamentos e o app web dele. O grupo mostra o pior status entre eles, tem a sua própria disponibilidade, e uma página de status pode mostrar o grupo inteiro como uma única linha. Para escolher entre um grupo de monitores, um serviço e um rótulo, veja [Qual devo usar?](/docs/introduction/which-one#grupo-de-monitores-serviço-ou-rótulo).
 
 :::cards
 - [Como o status de um grupo é calculado](#como-o-status-de-um-grupo-é-calculado): O pior status entre os seus monitores.
@@ -27,8 +27,9 @@ flowchart TB
 ```
 
 - **Monitores arquivados não contam.** Um monitor arquivado não é verificado, então o status dele fica congelado; o grupo o deixa de fora.
+- **Monitores com o monitoramento desligado não contam.** Nada verifica um monitor cujo monitoramento está desligado, então o status dele é só o que sua última verificação viu. O grupo o deixa de fora do seu status: um monitor que ficou **Offline** quando seu monitoramento foi desligado não deixa o grupo **Offline**. O tempo de atividade e o **Gráfico de tempo de atividade** do grupo mantêm o histórico do monitor até o monitoramento dele ser desligado e deixam de fora o tempo depois disso, no painel e nas páginas de status. Ao ser religado, o monitor volta a contar a partir desse momento.
 - **Um grupo vazio está operacional.** Um grupo sem monitores, ou só com monitores arquivados, mostra o seu status operacional. Até você adicionar um monitor, o painel mostra **Nenhum monitor ainda** no lugar do status dele.
-- **Monitoramento desligado mostra Desabilitado.** Quando o monitoramento está desligado para todos os monitores de um grupo, nada os verifica, então o painel mostra **Desabilitado** no lugar do status do grupo.
+- **Monitoramento desligado mostra Desabilitado.** Quando o monitoramento está desligado para todos os monitores de um grupo, nada os verifica, então o painel mostra **Desabilitado** no lugar do status do grupo, e o seu **Gráfico de tempo de atividade** e o seu tempo de atividade terminam onde o monitoramento foi desligado para o último deles. Uma página de status mostra o grupo como **Não monitorado**.
 - **A ordem é sua.** Qual status é o pior segue a ordem de **Monitores → Configurações → Status do monitor**. Veja [Status de monitor](/docs/monitor/criteria-and-statuses#status-de-monitor).
 
 Um grupo de monitores não é um grupo de página de status. Um grupo de página de status é um título em uma página de status que reúne linhas. Um grupo de monitores é uma linha que representa vários monitores, e qualquer página de status pode mostrá-lo.
@@ -91,6 +92,8 @@ Abra um grupo para ver as páginas dele no menu lateral:
 
 A disponibilidade em **Visão geral** conta como indisponibilidade todo status exceto o operacional. Uma página de status conta só os status da sua própria lista **Conta como indisponibilidade**: veja [Escolher o que aparece na página](/docs/status-pages/index#escolher-o-que-aparece-na-página).
 
+Cada barra do gráfico de tempo de atividade, aqui e em uma página de status, mostra quanto tempo o próprio grupo passou em cada status naquele dia: a cada momento ele tem o pior status entre seus monitores, então uma hora em que dois deles ficam offline ao mesmo tempo é uma hora do grupo, e um dia nunca soma mais do que um dia. Os dias são os seus: o painel os desenha no fuso horário das suas configurações de usuário, e uma página de status no de cada visitante.
+
 A lista **Grupos de monitores** pode filtrar grupos por proprietário e rótulo, definir rótulos e proprietários em muitos grupos de uma vez, e exportar ou importar grupos como JSON.
 
 ## Desligar o monitoramento de um grupo inteiro
@@ -122,7 +125,7 @@ Escolha o grupo. **Nome de exibição**, o nome que os visitantes leem, assume o
 
 Na página de status, a linha representa cada monitor do grupo:
 
-- **O status dela.** É o do grupo: o pior dos seus monitores.
+- **O status dela.** É o do grupo: o pior dos seus monitores com o monitoramento ligado. Quando o monitoramento está desligado para todos eles, a linha mostra **Não monitorado** e não conta nem para o cabeçalho acima dela nem para o status geral da página.
 - **Os incidentes dela.** Um incidente em qualquer monitor do grupo aparece na página, com o grupo entre os recursos afetados.
 - **Os assinantes dela.** Um assinante que escolhe o grupo recebe avisos sobre cada monitor que ele contém. Veja [Deixar os assinantes escolherem recursos e tipos de evento](/docs/status-pages/subscribers#deixar-o-assinante-escolher-recursos-e-tipos-de-evento).
 

@@ -435,14 +435,21 @@ describe("a cloud change on the Remediation step", () => {
     ).not.toBeInTheDocument();
   });
 
-  test("the fix's source is set apart, so an English name keeps its quotes on a right-to-left page", async () => {
+  test("the fix is named for the account it changes, and its source is set apart, so it keeps its quotes on a right-to-left page", async () => {
     await renderCommandRow(fix([cloudCommand()]), CLOUD_COMMAND);
+
+    // The round's name is the fix's own, in the reader's words (issue #6860).
+    expect(screen.getByTestId("remediation-fix-title")).toHaveTextContent(
+      'Fix on AWS account "prod"',
+    );
 
     const source: HTMLElement = screen.getByTestId("remediation-fix-source");
     const isolated: Element | null = source.firstElementChild;
 
     expect(isolated?.tagName).toBe("BDI");
-    expect(isolated).toHaveTextContent('AI remediation for AWS account "prod"');
+    // No decision names a rule that asked for the round: OneUptime AI's own.
+    expect(isolated).toHaveTextContent("From OneUptime AI");
+    expect(source).not.toHaveTextContent("AI remediation");
   });
 
   test("a record that cannot be read is no line", async () => {

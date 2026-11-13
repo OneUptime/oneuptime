@@ -1,3 +1,4 @@
+// UX rule: Docs/ux/README.md#help-text
 import { describe, expect, test } from "@jest/globals";
 import path from "path";
 import {
@@ -156,7 +157,11 @@ describe("descriptions across the product are short", () => {
       card: 800,
       dialog: 200,
       empty: 300,
-      page: 2,
+      /*
+       * A <Page> with a description of its own: Inventory's, since the
+       * exceptions overhaul (#6923) took the exception pages' out.
+       */
+      page: 1,
     };
 
     for (const kind of DESCRIPTION_KINDS) {
@@ -206,6 +211,10 @@ describe("descriptions across the product are short", () => {
     );
     expect(textsOfKind(found, "card")).toContain(
       "Group and one-on-one chats your notification rules can post to. Add the OneUptime app to a chat in Microsoft Teams to list it here. Use Send Test to confirm OneUptime can post to a chat.",
+    );
+    // A <Page>'s own description, under its title.
+    expect(textsOfKind(found, "page")).toContain(
+      "Understand how your services, infrastructure, and network connect.",
     );
   });
 

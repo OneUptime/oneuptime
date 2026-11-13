@@ -735,8 +735,10 @@ test.describe("probe checks", () => {
       "Monitor Summary",
       "Recent activity",
     ]);
+    // When this goes down (#6810) follows the open work on every monitor.
     expect(await cardTitles(sideColumn(page))).toEqual([
       "Open incidents & alerts",
+      "When this goes down",
       "Recent status changes",
       "Probes",
       "Details",
@@ -1125,6 +1127,38 @@ test.describe("probe checks", () => {
     ).toHaveText(["Up · 182 ms", "Up · 243 ms", "Up · 311 ms"]);
     await expect(page.getByText("Late", { exact: true })).toHaveCount(0);
     expect(await factValue(page, "Probes")).toBe("3 enabledChecks paused");
+  });
+
+  /*
+   * Turning monitoring off starts a status event with the status the
+   * monitor holds (issue #6480): six hours ago here. Recent status changes
+   * marks it, so the two Operational rows read as one status with
+   * monitoring turned off, not as the same status twice.
+   */
+  test("a disabled monitor's recent status changes mark the time with monitoring off", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, { query: "state=disabled" });
+
+    const statusChanges: Locator = page.getByTestId(
+      "monitor-status-change-row",
+    );
+    const newest: Locator = statusChanges.first();
+
+    await expect(newest).toContainText("Operational");
+    await expect(newest.getByTestId("monitoring-off-indicator")).toHaveText(
+      "Monitoring Off",
+    );
+    await expect(
+      newest.getByTestId("currently-active-indicator"),
+    ).toBeVisible();
+    await expect(newest).toContainText("for 6 hours · started 6 hours ago");
+    await expect(statusChanges.nth(1)).toContainText("Operational");
+    await expect(
+      statusChanges.getByTestId("monitoring-off-indicator"),
+    ).toHaveCount(1);
   });
 
   test("stale", async ({ page }: { page: Page }) => {
@@ -1547,8 +1581,10 @@ test.describe("other monitor families", () => {
     );
     await expect(card(page, "Probes")).toHaveCount(0);
     await expect(card(page, "Response time")).toHaveCount(0);
+    // When this goes down (#6810) follows the open work on every monitor.
     expect(await cardTitles(sideColumn(page))).toEqual([
       "Open incidents & alerts",
+      "When this goes down",
       "Recent status changes",
       "Details",
       "Linked Resources",
@@ -2193,7 +2229,14 @@ test.describe("refresh and polling", () => {
     const summaryUrl: URL = new URL(
       (await apiRequestsTo(page, "/monitor/uptime-summary/"))[0]!.url,
     );
-    expect(summaryUrl.searchParams.get("timezone")).toBe("UTC");
+    /*
+     * The zone every other time on the Dashboard is shown in (f46caf43d95):
+     * User Settings', else the browser's as moment-timezone guesses it. It
+     * reads the browser's own name only when that is longer than three
+     * letters, so this browser's UTC is guessed from its clock as
+     * Africa/Abidjan, which keeps UTC all year: the bars cut the same days.
+     */
+    expect(summaryUrl.searchParams.get("timezone")).toBe("Africa/Abidjan");
 
     // The monitor's own probe rows, not every probe in the project.
     const probeRead: RecordedModelRequest | undefined = (

@@ -144,6 +144,8 @@ Vervang vóór de eerste start zelf de tijdelijke geheimen, zoals [Genereer will
 Open `http://` gevolgd door uw `HOST` (bijvoorbeeld `http://localhost`) en registreer u. Het eerste account van een nieuwe instantie wordt de hoofdbeheerder ervan, die het Admin Dashboard op `/admin` kan openen.
 
 Iedereen die de pagina kan bereiken, kan zich na u registreren. Om dat te voorkomen, opent u het Admin Dashboard, gaat u naar **Instellingen > Authenticatie** en schakelt u **Registratie toestaan** uit. Mensen die u voor een project uitnodigt, kunnen nog steeds hun account aanmaken.
+
+Maak daarna de server af op `/admin/setup`, waar e-mail, sms en oproepen worden ingesteld en getest: zie [De server afmaken](/docs/installation/self-hosting-guide#de-server-afmaken).
 :::
 
 ### Genereer willekeurige geheimen
@@ -477,7 +479,27 @@ Verwijder daarna de map `oneuptime`.
 > [!CAUTION]
 > `--volumes` verwijdert elke monitor, elk incident, elke gebruiker en alle telemetrie definitief. Maak eerst een back-up als u er nog iets van nodig zou kunnen hebben.
 
+## Uw installatie controleren
+
+Als iets niet werkt, voer dan de doctor uit in de map `oneuptime`:
+
+```bash
+npm run doctor
+```
+
+Hij somt op wat er mis is, het ernstigste eerst, elke regel met de precieze oplossing, en eindigt met **Everything looks right.** of met het aantal dingen dat u moet oplossen. Hij controleert elke container en toont de laatste regels van het log van elke container die niet draait, `config.env`, of `HOST` deze server bereikt, het certificaat als `PROVISION_SSL` aan staat, en de vrije schijfruimte. Hij vraagt ook aan OneUptime wat het van zichzelf ziet: PostgreSQL, ClickHouse en Valkey, de migraties, de wachtrijen, de versie en de installatiestappen van de server, zoals e-mail en probes. `npm start` eindigt met dezelfde controles en noemt alleen wat aandacht nodig heeft.
+
+Om ook de recente fouten van elke dienst te zien, elk met de naam van de dienst:
+
+```bash
+npm run doctor -- --logs
+```
+
+Hij eindigt met code `1` als iets met ✗ moet worden opgelost, zodat een script hem kan uitvoeren. Het Admin Dashboard toont bovenaan **OneUptime-gezondheid** wat OneUptime van zichzelf ziet, en op Kubernetes drukt `HelmChart/Public/diagnose.sh` het af.
+
 ## Probleemoplossing
+
+Begin met `npm run doctor`: het noemt de meeste van de problemen hieronder, met hun oplossing.
 
 :::details npm start stopt voordat het OneUptime start
 `npm start` controleert eerst de server en stopt bij alles wat OneUptime zou verhinderen te werken: Docker of de Compose-plugin ontbreekt, Docker draait niet of is voor uw gebruiker niet bereikbaar, een ander programma houdt een poort bezet, of `HOST` is een adres dat geen browser kan openen. Elke regel met ✗ zegt wat u moet wijzigen. Wijzig het en voer daarna `npm start` opnieuw uit. Vergist een controle zich in uw server, start dan zonder de controles:
@@ -546,8 +568,8 @@ Het Admin Dashboard toont de probe onder **Instellingen > Bewaking > Globale pro
 ## Volgende stappen
 
 :::cards
+- [De server afmaken](/docs/installation/self-hosting-guide#de-server-afmaken): E-mail, dan sms en oproepen, elk met een test.
+- [Snelstart](/docs/introduction/quickstart): Uw eerste monitor, uw eerste dienstbeleid en uw eerste statuspagina.
 - [OneUptime upgraden](/docs/installation/upgrading): Wat elke hoofdversie van u vraagt.
-- [Sizing en capaciteitsplanning](/docs/installation/sizing): Plan geheugen en schijf voor uw telemetrie.
 - [Zelf gehoste architectuur](/docs/self-hosted/architecture): Hoe de onderdelen samenwerken.
-- [Enterprise Edition](/docs/self-hosted/enterprise): Wat de Enterprise-image toevoegt, en de licentie ervan.
 :::

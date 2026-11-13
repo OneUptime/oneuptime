@@ -1,6 +1,6 @@
 # Monitorgrupper
 
-En monitorgruppe samler flere monitorer i én status. Grupper monitorene som til sammen utgjør én tjeneste, som Checkout: API-et, betalingstjenesten og nettappen. Gruppen viser den verste statusen blant dem, har sin egen oppetid, og en statusside kan vise hele gruppen som én rad.
+En monitorgruppe samler flere monitorer i én status. Grupper monitorene som til sammen utgjør én tjeneste, som Checkout: API-et, betalingstjenesten og nettappen. Gruppen viser den verste statusen blant dem, har sin egen oppetid, og en statusside kan vise hele gruppen som én rad. Se [Hvilken skal jeg bruke?](/docs/introduction/which-one#monitorgruppe-tjeneste-eller-etikett) for å velge mellom en monitorgruppe, en tjeneste og en etikett.
 
 :::cards
 - [Slik beregnes en gruppes status](#slik-beregnes-en-gruppes-status): Den verste statusen blant monitorene.
@@ -27,8 +27,9 @@ flowchart TB
 ```
 
 - **Arkiverte monitorer teller ikke.** En arkivert monitor kontrolleres ikke, så statusen er frosset; gruppen utelater den.
+- **Monitorer med overvåking slått av teller ikke.** Ingenting sjekker en monitor med overvåking slått av, så statusen er bare det den siste kontrollen så. Gruppen utelater den fra statusen sin: en monitor som sto på **Frakoblet** da overvåkingen ble slått av, gjør ikke gruppen **Frakoblet**. Gruppens oppetid og **Oppetidsgraf** beholder monitorens historikk frem til overvåkingen ble slått av, og utelater tiden etterpå, både på dashbordet og på statussider. Slås den på igjen, teller monitoren med fra det øyeblikket.
 - **En tom gruppe er i drift.** En gruppe uten monitorer, eller bare med arkiverte, viser den driftsklare statusen din. Til du legger til en monitor, viser dashbordet **Ingen monitorer ennå** i stedet for statusen.
-- **Overvåking slått av viser Deaktivert.** Når overvåking er slått av for alle monitorer i en gruppe, sjekker ingenting dem, så dashbordet viser **Deaktivert** i stedet for gruppens status.
+- **Overvåking slått av viser Deaktivert.** Når overvåking er slått av for alle monitorer i en gruppe, sjekker ingenting dem, så dashbordet viser **Deaktivert** i stedet for gruppens status, og **Oppetidsgraf** og oppetiden slutter der overvåkingen ble slått av for den siste av dem. En statusside viser gruppen som **Ikke overvåket**.
 - **Rekkefølgen er din.** Hvilken status som er verst, følger rekkefølgen under **Overvåkere → Innstillinger → Monitorstatus**. Se [Monitorstatuser](/docs/monitor/criteria-and-statuses#monitorstatuser).
 
 En monitorgruppe er ikke en statussidegruppe. En statussidegruppe er en overskrift på én statusside som rommer rader. En monitorgruppe er én rad som står for flere monitorer, og enhver statusside kan vise den.
@@ -91,6 +92,8 @@ For å ta en monitor ut av gruppen klikker du på **Fjern** i raden i **Overvåk
 
 Oppetiden på **Oversikt** teller alle statuser unntatt den driftsklare som nedetid. En statusside teller bare statusene i sin egen liste **Teller som nedetid**: se [Velg hva siden viser](/docs/status-pages/index#å-velge-hva-som-vises-på-siden).
 
+Hver stolpe i oppetidsgrafen, her og på en statusside, viser hvor lenge gruppen selv var i hver status den dagen: i hvert øyeblikk har den den verste statusen blant monitorene sine, så en time da to av dem er offline samtidig, er én time for gruppen, og en dag blir aldri mer enn en dag. Dagene er dine egne: dashbordet tegner dem i tidssonen fra brukerinnstillingene dine, og en statusside i hver besøkendes.
+
 Listen **Monitorgrupper** kan filtrere grupper etter eier og etikett, sette etiketter og eiere på mange grupper samtidig, og eksportere eller importere grupper som JSON.
 
 ## Slå av overvåking for en hel gruppe
@@ -122,7 +125,7 @@ Velg gruppen. **Visningsnavn**, navnet besøkende leser, tar gruppens navn til d
 
 På statussiden står raden for hver monitor i gruppen:
 
-- **Statusen.** Den er gruppens: den verste blant monitorene.
+- **Statusen.** Den er gruppens: den verste blant monitorene med overvåking slått på. Når overvåking er slått av for alle, viser raden **Ikke overvåket** og teller verken for overskriften over den eller for sidens samlede status.
 - **Hendelsene.** En hendelse på en hvilken som helst monitor i gruppen vises på siden, med gruppen nevnt blant de berørte ressursene.
 - **Abonnentene.** En abonnent som velger gruppen, får høre om hver monitor i den. Se [La abonnenter velge ressurser og hendelsestyper](/docs/status-pages/subscribers#la-abonnentene-velge-ressurser-og-hendelsestyper).
 

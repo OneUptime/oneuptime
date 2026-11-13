@@ -22,6 +22,7 @@ import OnCallRulePolicyScope from "../Utils/Rules/OnCallRulePolicyScope";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
+import MonitorRuleCriteriaCache from "../Utils/Rules/MonitorRuleCriteriaCache";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 import { RuleEvaluation } from "../Utils/PatternWorkScope";
 import OnCallRulePagingHoldUtil, {
@@ -63,9 +64,12 @@ class AlertOnCallRuleEngineServiceClass {
     }
 
     try {
-      const rules: Array<AlertOnCallRule> = await this.findEnabledRules(
-        alert.projectId,
-      );
+      /*
+       * The rules that match it and page a policy - the one matching "When
+       * this goes down" (WhoIsToldService) reads too, so what it shows a
+       * monitor's alerts would page is what they page.
+       */
+      const rules: Array<AlertOnCallRule> = await this.getMatchingRules(alert);
 
       if (rules.length === 0) {
         return noHolds;
@@ -84,11 +88,6 @@ class AlertOnCallRuleEngineServiceClass {
       let aiHold: AiHoldDecision | undefined = undefined;
 
       for (const rule of rules) {
-        const matches: boolean = await this.doesAlertMatchRule(alert, rule);
-        if (!matches) {
-          continue;
-        }
-
         if (rule.onCallDutyPolicies && rule.onCallDutyPolicies.length > 0) {
           if (
             rule.whenToPage === OnCallRuleWhenToPage.AfterOneUptimeAI &&
@@ -293,6 +292,65 @@ class AlertOnCallRuleEngineServiceClass {
     return pagingNow;
   }
 
+  /*
+   * The project's enabled rules that match the alert and page a policy, in
+   * the order they are read. Reads only: nothing is attached, paged or
+   * written. The engine pages what they name (applyRulesToAlert), and
+   * "When this goes down" (WhoIsToldService) shows them for an alert a
+   * monitor's criteria would open, held in memory - so the two answer from
+   * one matching and never disagree.
+   *
+   * `preloaded` is for a reader that asks about many alerts of one project
+   * at once (Setup health, #6812, through WhoIsToldService.resolveProject):
+   * the project's enabled rules, read once with readEnabledRules, and the
+   * monitors those alerts come from (MonitorRuleCriteriaCache.seed), so the
+   * matching reads nothing per alert. It is the same matching either way.
+   */
+  @CaptureSpan()
+  @RuleEvaluation()
+  public async getMatchingRules(
+    alert: Alert,
+    preloaded?:
+      | {
+          rules: Array<AlertOnCallRule>;
+          monitorCache: MonitorRuleCriteriaCache;
+        }
+      | undefined,
+  ): Promise<Array<AlertOnCallRule>> {
+    if (!alert.projectId) {
+      return [];
+    }
+
+    const matching: Array<AlertOnCallRule> = [];
+
+    const rules: Array<AlertOnCallRule> = preloaded
+      ? preloaded.rules
+      : await this.findEnabledRules(alert.projectId);
+
+    for (const rule of rules) {
+      if (!rule.onCallDutyPolicies || rule.onCallDutyPolicies.length === 0) {
+        continue;
+      }
+
+      if (await this.doesAlertMatchRule(alert, rule, preloaded?.monitorCache)) {
+        matching.push(rule);
+      }
+    }
+
+    return matching;
+  }
+
+  /*
+   * The project's enabled rules, read as getMatchingRules reads them: for a
+   * reader that matches many alerts against them (getMatchingRules'
+   * `preloaded`).
+   */
+  public async readEnabledRules(
+    projectId: ObjectID,
+  ): Promise<Array<AlertOnCallRule>> {
+    return await this.findEnabledRules(projectId);
+  }
+
   // The project's enabled alert on-call rules, with what matching them needs.
   private async findEnabledRules(
     projectId: ObjectID,
@@ -435,6 +493,8 @@ class AlertOnCallRuleEngineServiceClass {
   private async doesAlertMatchRule(
     alert: Alert,
     rule: AlertOnCallRule,
+    // A cache shared by many matchings (getMatchingRules' `preloaded`).
+    sharedMonitorCache?: MonitorRuleCriteriaCache | undefined,
   ): Promise<boolean> {
     return await RuleCriteriaMatcher.matchesWithLegacy({
       rule,
@@ -452,7 +512,11 @@ class AlertOnCallRuleEngineServiceClass {
       matchesLegacyRule: async (
         legacyRule: AlertOnCallRule,
       ): Promise<boolean> => {
-        return await this.doesAlertMatchLegacyRule(alert, legacyRule);
+        return await this.doesAlertMatchLegacyRule(
+          alert,
+          legacyRule,
+          sharedMonitorCache,
+        );
       },
     });
   }
@@ -460,6 +524,7 @@ class AlertOnCallRuleEngineServiceClass {
   private async doesAlertMatchLegacyRule(
     alert: Alert,
     rule: AlertOnCallRule,
+    sharedMonitorCache?: MonitorRuleCriteriaCache | undefined,
   ): Promise<boolean> {
     // Monitors: alert must come from one of the rule's monitors
     if (rule.monitors && rule.monitors.length > 0) {
@@ -520,15 +585,17 @@ class AlertOnCallRuleEngineServiceClass {
         return false;
       }
 
-      const monitor: Monitor | null = await MonitorService.findOneById({
-        id: alert.monitorId,
-        select: {
-          name: true,
-          description: true,
-          labels: { _id: true },
-        },
-        props: { isRoot: true },
-      });
+      const monitor: Monitor | null = sharedMonitorCache
+        ? await sharedMonitorCache.getMonitor(alert.monitorId)
+        : await MonitorService.findOneById({
+            id: alert.monitorId,
+            select: {
+              name: true,
+              description: true,
+              labels: { _id: true },
+            },
+            props: { isRoot: true },
+          });
 
       if (!monitor) {
         return false;

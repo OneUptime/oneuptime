@@ -144,6 +144,8 @@ sh Scripts/Install/WithConfig.sh docker compose up --remove-orphans -d
 `http://` 뒤에 `HOST`를 붙인 주소(예: `http://localhost`)를 열고 가입합니다. 새 인스턴스의 첫 계정은 마스터 관리자가 되며, `/admin`에서 Admin Dashboard를 열 수 있습니다.
 
 페이지에 접근할 수 있는 사람은 누구나 여러분 다음에 가입할 수 있습니다. 이를 막으려면 Admin Dashboard를 열고 **설정 > 인증**으로 가서 **가입 허용**을 끄세요. 프로젝트에 초대한 사람은 여전히 계정을 만들 수 있습니다.
+
+그다음 `/admin/setup`에서 서버 설정을 마칩니다. 여기서 이메일, SMS, 전화를 설정하고 테스트합니다: [서버 설정 마치기](/docs/installation/self-hosting-guide#서버-설정-마치기)를 참고하세요.
 :::
 
 ### 임의의 비밀 값 생성
@@ -477,7 +479,27 @@ sh Scripts/Install/WithConfig.sh docker compose down --volumes --remove-orphans
 > [!CAUTION]
 > `--volumes`는 모든 모니터, 인시던트, 사용자, 텔레메트리를 영구히 삭제합니다. 그중 무엇이든 필요할 수 있다면 먼저 백업하세요.
 
+## 설치 확인하기
+
+무언가 동작하지 않으면 `oneuptime` 폴더에서 doctor를 실행하세요.
+
+```bash
+npm run doctor
+```
+
+잘못된 점을 심각한 것부터 나열하고 각 줄에 정확한 해결 방법을 보여 주며, 마지막에 **Everything looks right.** 또는 고칠 항목의 수를 표시합니다. 모든 컨테이너를 확인하고 실행 중이 아닌 컨테이너의 마지막 로그 줄을 보여 주며, `config.env`, `HOST`가 이 서버에 닿는지, `PROVISION_SSL`이 켜져 있을 때의 인증서, 남은 디스크 공간도 확인합니다. 또한 OneUptime이 스스로 보는 상태도 묻습니다. PostgreSQL, ClickHouse, Valkey, 마이그레이션, 대기열, 버전, 그리고 이메일과 프로브 같은 서버 설정 단계입니다. `npm start`도 같은 확인으로 끝나며 확인이 필요한 것만 알려 줍니다.
+
+각 서비스의 최근 오류도 서비스 이름과 함께 보려면 다음을 실행하세요.
+
+```bash
+npm run doctor -- --logs
+```
+
+✗ 표시된 항목을 고쳐야 하면 종료 코드 `1`로 끝나므로 스크립트에서도 실행할 수 있습니다. Admin Dashboard는 OneUptime이 스스로 보는 상태를 **OneUptime 상태** 맨 위에 보여 주고, Kubernetes에서는 `HelmChart/Public/diagnose.sh`가 출력합니다.
+
 ## 문제 해결
+
+먼저 `npm run doctor`를 실행하세요. 아래 문제 대부분을 해결 방법과 함께 알려 줍니다.
 
 :::details npm start가 OneUptime을 시작하기 전에 멈춤
 `npm start`는 먼저 서버를 확인하고, OneUptime이 동작하지 못하게 할 문제가 있으면 멈춥니다. Docker나 Compose 플러그인이 없거나, Docker가 실행 중이 아니거나 사용자가 쓸 수 없거나, 다른 프로그램이 포트를 쓰고 있거나, `HOST`가 어떤 브라우저도 열 수 없는 주소인 경우입니다. ✗로 표시된 줄마다 무엇을 바꿔야 하는지 나와 있습니다. 고친 다음 `npm start`를 다시 실행하세요. 검사가 서버를 잘못 판단한다면 검사 없이 시작하세요.
@@ -546,8 +568,8 @@ Admin Dashboard는 **설정 > 모니터링 > 글로벌 프로브**에서 프로�
 ## 다음 단계
 
 :::cards
+- [서버 설정 마치기](/docs/installation/self-hosting-guide#서버-설정-마치기): 이메일, 그다음 SMS와 전화, 각각 테스트와 함께.
+- [빠른 시작](/docs/introduction/quickstart): 첫 모니터, 첫 온콜 정책, 첫 상태 페이지.
 - [OneUptime 업그레이드](/docs/installation/upgrading): 메이저 버전마다 필요한 작업입니다.
-- [사이징 및 용량 계획](/docs/installation/sizing): 텔레메트리에 필요한 메모리와 디스크를 계획합니다.
 - [자체 호스팅 아키텍처](/docs/self-hosted/architecture): 구성 요소가 어떻게 맞물리는지 설명합니다.
-- [엔터프라이즈 에디션](/docs/self-hosted/enterprise): Enterprise 이미지가 더하는 것과 그 라이선스입니다.
 :::

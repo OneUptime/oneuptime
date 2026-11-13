@@ -144,6 +144,8 @@ Ersetzen Sie die Platzhalter-Geheimnisse vor dem ersten Start selbst, wie [Zufä
 Öffnen Sie `http://` gefolgt von Ihrem `HOST` (zum Beispiel `http://localhost`) und registrieren Sie sich. Das erste Konto einer neuen Instanz wird ihr Master-Admin, der das Admin Dashboard unter `/admin` öffnen kann.
 
 Jeder, der die Seite erreicht, kann sich nach Ihnen registrieren. Um das zu verhindern, öffnen Sie das Admin Dashboard, gehen zu **Einstellungen > Authentifizierung** und schalten **Registrierung erlauben** aus. Personen, die Sie in ein Projekt einladen, können ihr Konto weiterhin anlegen.
+
+Richten Sie den Server dann unter `/admin/setup` fertig ein, wo E-Mail, SMS und Anrufe eingerichtet und getestet werden: siehe [Den Server fertig einrichten](/docs/installation/self-hosting-guide#den-server-fertig-einrichten).
 :::
 
 ### Zufällige Geheimnisse erzeugen
@@ -477,7 +479,27 @@ Löschen Sie anschließend den Ordner `oneuptime`.
 > [!CAUTION]
 > `--volumes` löscht jeden Monitor, jeden Vorfall, jeden Benutzer und die gesamte Telemetrie endgültig. Sichern Sie zuerst, falls Sie etwas davon noch brauchen könnten.
 
+## Ihre Installation prüfen
+
+Wenn etwas nicht funktioniert, führen Sie im Ordner `oneuptime` den Doctor aus:
+
+```bash
+npm run doctor
+```
+
+Er listet auf, was nicht stimmt, das Wichtigste zuerst, jede Zeile mit der genauen Lösung, und endet mit **Everything looks right.** oder der Zahl der Dinge, die zu beheben sind. Er prüft jeden Container und zeigt für jeden, der nicht läuft, die letzten Zeilen seines Logs, außerdem `config.env`, ob `HOST` diesen Server erreicht, das Zertifikat, wenn `PROVISION_SSL` an ist, und den freien Speicherplatz. Er fragt auch OneUptime, was es über sich selbst sieht: PostgreSQL, ClickHouse und Valkey, die Migrationen, die Warteschlangen, die Version und die Einrichtungsschritte des Servers, etwa E-Mail und Probes. `npm start` endet mit denselben Prüfungen und nennt nur, was Aufmerksamkeit braucht.
+
+Um zusätzlich die letzten Fehler jedes Dienstes zu sehen, jeweils mit dem Namen des Dienstes:
+
+```bash
+npm run doctor -- --logs
+```
+
+Er endet mit dem Exit-Code `1`, wenn etwas mit ✗ Markiertes behoben werden muss, sodass ein Skript ihn ausführen kann. Das Admin Dashboard zeigt oben auf der Seite **OneUptime-Zustand**, was OneUptime über sich selbst sieht, und auf Kubernetes gibt `HelmChart/Public/diagnose.sh` es aus.
+
 ## Fehlerbehebung
+
+Beginnen Sie mit `npm run doctor`: Es nennt die meisten der folgenden Probleme mit ihrer Lösung.
 
 :::details npm start hält an, bevor es OneUptime startet
 `npm start` prüft zuerst den Server und hält bei allem an, was OneUptime am Funktionieren hindern würde: Docker oder sein Compose-Plugin fehlt, Docker läuft nicht oder ist für Ihren Benutzer nicht erreichbar, ein anderes Programm belegt einen Port, oder `HOST` ist eine Adresse, die kein Browser öffnen kann. Jede mit ✗ markierte Zeile sagt, was zu ändern ist. Ändern Sie es und führen Sie dann `npm start` erneut aus. Liegt eine Prüfung bei Ihrem Server falsch, starten Sie ohne die Prüfungen:
@@ -546,8 +568,8 @@ Das Admin Dashboard listet die Probe unter **Einstellungen > Überwachung > Glob
 ## Nächste Schritte
 
 :::cards
+- [Den Server fertig einrichten](/docs/installation/self-hosting-guide#den-server-fertig-einrichten): E-Mail, dann SMS und Anrufe, jeweils mit einem Test.
+- [Schnellstart](/docs/introduction/quickstart): Ihr erster Monitor, Ihre erste Bereitschaftsrichtlinie und Ihre erste Statusseite.
 - [OneUptime upgraden](/docs/installation/upgrading): Was jede Hauptversion von Ihnen braucht.
-- [Dimensionierung & Kapazitätsplanung](/docs/installation/sizing): Arbeitsspeicher und Festplatte für Ihre Telemetrie planen.
 - [Self-Hosted-Architektur](/docs/self-hosted/architecture): Wie die Komponenten zusammenspielen.
-- [Enterprise Edition](/docs/self-hosted/enterprise): Was das Enterprise-Image hinzufügt, und seine Lizenz.
 :::

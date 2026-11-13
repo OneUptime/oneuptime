@@ -1,7 +1,12 @@
+import SendTestPageButton from "../../OnCallTestPage/SendTestPageButton";
+import { getTestPolicyGate } from "../../OnCallTestPage/OnCallTestPageAccess";
 import {
   ON_CALL_SECTION_LABEL_ON_WHITE_CLASS_NAME,
   ON_CALL_TAG_TEXT_CLASS_NAME,
 } from "../OnCallLabelClasses";
+import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
+import DefinedTerm from "Common/UI/Components/Glossary/DefinedTerm";
+import LearnMoreLink from "Common/UI/Components/Link/LearnMoreLink";
 import EscalationSummary, {
   EscalationLevelSummary,
   EscalationResponder,
@@ -2059,13 +2064,22 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
         <div className="flex flex-col gap-4 border-b border-gray-100 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">
-              {translator.translateText("Escalation Rules")}
+              <DefinedTerm term={GlossaryTerm.EscalationRule}>
+                {translator.translateText("Escalation Rules")}
+              </DefinedTerm>
             </h2>
-            <p className="mt-1.5 text-sm leading-relaxed text-gray-500">
+            {/*
+             * A div, not a p: the link's icon is drawn in a block of its own.
+             */}
+            <div className="mt-1.5 text-sm leading-relaxed text-gray-500">
               {translator.translateText(
                 "Who gets notified when an incident is triggered, and how it climbs the ladder if no one responds.",
-              )}
-            </p>
+              )}{" "}
+              <LearnMoreLink
+                docsPath="/docs/on-call/escalation-rules"
+                dataTestId="escalation-rules-learn-more"
+              />
+            </div>
           </div>
           {/*
             Under the description on a phone, at the right edge, as a card
@@ -2081,6 +2095,25 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
                 loadData().catch(() => {});
               }}
             />
+            {/*
+              Test this policy (OnCallTestPage): pages its first level - or
+              walks every level - with a test page through each person's own
+              rules. Offered once there is a level to page, to whoever may
+              edit the policy, as the server asks.
+            */}
+            {rules.length > 0 && getTestPolicyGate().isAllowed ? (
+              <SendTestPageButton
+                target={{
+                  kind: "policy",
+                  policyId: props.onCallDutyPolicyId.toString(),
+                }}
+                buttonStyle={ButtonStyleType.OUTLINE}
+                buttonSize={ButtonSize.Small}
+                dataTestId="test-on-call-policy"
+              />
+            ) : (
+              <></>
+            )}
             <Button
               title="Add Escalation Rule"
               icon={IconProp.Add}

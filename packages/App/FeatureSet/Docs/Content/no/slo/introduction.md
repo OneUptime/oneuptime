@@ -1,6 +1,6 @@
 # SLO-er – Oversikt
 
-Et service level objective (SLO) er et pålitelighetsmål for det du overvåker, som «tilgjengelig 99,9 % av tiden over rullerende 30 dager». OneUptime måler hvert SLO mot målet hvert 5. minutt, så i stedet for «virker det akkurat nå?» kan du svare på «har vi vært pålitelige nok, over et vindu som betyr noe for brukerne våre, og hvor mye rom for feil har vi igjen?».
+Et service level objective (SLO) er et pålitelighetsmål for det du overvåker, som «tilgjengelig 99,9 % av tiden over rullerende 30 dager». OneUptime måler hvert SLO mot målet hvert 5. minutt, så i stedet for «virker det akkurat nå?» kan du svare på «har vi vært pålitelige nok, over et vindu som betyr noe for brukerne våre, og hvor mye rom for feil har vi igjen?». I [Ordliste](/docs/introduction/glossary#slo) står SLO-er side om side med de andre ordene OneUptime bruker.
 
 :::cards
 - [Opprett et SLO](#opprett-et-slo): Et navn og et mål. Alt annet starter med en standardverdi.
@@ -11,7 +11,7 @@ Et service level objective (SLO) er et pålitelighetsmål for det du overvåker,
 
 ## Slik fungerer det
 
-Et SLO leser statustidslinjene til monitorene som er knyttet til det: de samme dataene som statussidene dine viser. Ut fra dem beregner OneUptime hvor stor del av samsvarsvinduet som var god tid, hvor mye av feilbudsjettet som er igjen, og hvor fort det brukes opp.
+Et SLO leser statustidslinjene til monitorene som er knyttet til det: de samme dataene som statussidene dine viser. Ut fra dem beregner OneUptime hvor stor del av samsvarsvinduet som var god tid, hvor mye av feilbudsjettet som er igjen, og hvor fort det brukes opp. Tid der overvåkingen av en monitor er slått av, utelates: ingenting sjekker monitoren da, så den tiden verken bruker av feilbudsjettet eller teller som god tid.
 
 ```mermaid title="Fra monitorsjekker til statusen til et SLO"
 flowchart TB
@@ -25,6 +25,8 @@ flowchart TB
 ```
 
 ## Nøkkelbegreper
+
+Se [Ordliste](/docs/introduction/glossary) for ordene som brukes på tvers av OneUptime.
 
 | Begrep | Betydning |
 | --- | --- |
@@ -176,7 +178,7 @@ Når noe hindrer et SLO i å måle, forteller et banner øverst på hver av side
 - **Sammendraget**: statusen, en setning om hva den betyr, og beskrivelsen. Ved siden av står **Oppdater** og når SLO-et sist ble evaluert. Under står målet, **Samsvarsvindu** (med en fyllingsindikator mens et ungt rullerende vindu fylles opp: se [Unge SLO-er og fyllingsindikatoren for vinduet](#unge-slo-er-og-fyllingsindikatoren-for-vinduet)), antallet monitorer og eierne, med **Legg til eiere** for å legge til en der og da.
 - **Nøkkeltallene**:
   - **SLI**: andelen god tid i vinduet, og hvor mye den ligger over eller under målet.
-  - **Feilbudsjett igjen**: en prosentandel, en varighet som "12m 30s left of 43m 12s" og en stolpe med et merke ved risikoterskelen. Når budsjettet er overskredet, viser den **Budsjettet er overskredet** og hvor mye.
+  - **Feilbudsjett igjen**: en prosentandel, en varighet som "12 min, 30 sek igjen av 43 min, 12 sek" og en stolpe med et merke ved risikoterskelen. Når budsjettet er overskredet, viser den **Budsjettet er overskredet** og hvor mye.
   - **Forbruksrate**: hvor fort budsjettet brukes de siste 60 minuttene, perioden standardregelen for raskt forbruk bruker. Blir gul over 1× og rød, med **Regelterskel nådd**, ved den laveste terskelen blant de aktiverte forbruksratereglene til SLO-et som ser 6 timer eller mindre tilbake. En time sier lite om en regel som ser flere dager tilbake, som **Slow leak**, så den sammenlignes ikke med en slik regel.
   - **Budsjettets rekkevidde**: hvor lenge budsjettet varer i det tempoet. Se [Feilbudsjetter](/docs/slo/error-budget#rekkevidden-til-budsjettet).
 - **Nedbrenning av feilbudsjett**: gjenværende budsjett over det gjeldende vinduet. Se [Feilbudsjetter](/docs/slo/error-budget#forbruket-av-feilbudsjettet).
@@ -193,7 +195,7 @@ Siden **Innstillinger** samler hvordan et SLO måler, med ett kort for hver ting
 
 | Kort | Det du endrer | Greit å vite |
 | --- | --- | --- |
-| **Mål** | **Mål (%)** og **Risikoterskel (%)**, med **Rediger mål**. | Viser nedetiden målet tillater, for eksempel «43m 12s nedetid per vindu på 30 dager». |
+| **Mål** | **Mål (%)** og **Risikoterskel (%)**, med **Rediger mål**. | Viser nedetiden målet tillater, for eksempel «43 min, 12 sek nedetid per vindu på 30 dager». |
 | **Samsvarsperiode** | **Vindustype**, **Vindu (dager)** og **Tidssone**, med **Rediger periode**. | Forbruksrateregler beholder tersklene sine når vinduet endres, så gå gjennom dem etterpå. |
 | **Beregning av nedetid** | **Modus for flere monitorer** og **Overvåkerstatuser for nedetid**, med **Rediger beregning av nedetid**. | Uten statuser teller alle ikke-operative statuser, også dem som legges til senere. |
 | **Evaluering** | Bryteren **Evaluer dette SLO-et**, som lagrer så snart du slår den om. | Å slå den av ber om bekreftelse, fordi det også løser de åpne forbruksratevarslene og -hendelsene til SLO-et. |
@@ -238,7 +240,7 @@ Sidemenyen til en monitor har også en side **SLOs**: SLO-ene som måler den mon
 
 Et SLO med rullerende vindu som er yngre enn vinduet sitt, måles over dataene som finnes så langt: et SLO på 30 dager som ble opprettet i går, har én dag med data. Feilbudsjettet starter lite og vokser etter hvert som vinduet fylles, så de første tallene svinger mer enn de vil gjøre senere.
 
-Så lenge det er slik, sier **Oversikt** fra: sammendraget viser en indikator **Window 23% full** (**Vinduet er under 1 % fylt** den første dagen), og flisen **Feilbudsjett igjen** gjentar det under tallet sitt. Begge forsvinner når vinduet er fullt. SLO-er med kalendermåned viser dem aldri, fordi budsjettet deres dekker hele måneden fra første dag, og det gjør heller ikke SLO-er i modusen **Gjennomsnitt av monitorsekunder**, der budsjettet telles på tvers av monitorene.
+Så lenge det er slik, sier **Oversikt** fra: sammendraget viser en indikator **Vinduet er 23 % fylt** (**Vinduet er under 1 % fylt** den første dagen), og flisen **Feilbudsjett igjen** gjentar det under tallet sitt. Begge forsvinner når vinduet er fullt. SLO-er med kalendermåned viser dem aldri, fordi budsjettet deres dekker hele måneden fra første dag, og det gjør heller ikke SLO-er i modusen **Gjennomsnitt av monitorsekunder**, der budsjettet telles på tvers av monitorene.
 
 ## Feilsøking
 

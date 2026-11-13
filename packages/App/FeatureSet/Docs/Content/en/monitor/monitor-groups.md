@@ -1,6 +1,6 @@
 # Monitor Groups
 
-A monitor group rolls several monitors up into one status. Group the monitors that together make up one service, such as Checkout: its API, its payment service and its web app. The group shows the worst status among them, keeps its own uptime, and a status page can show the whole group as one row.
+A monitor group rolls several monitors up into one status. Group the monitors that together make up one service, such as Checkout: its API, its payment service and its web app. The group shows the worst status among them, keeps its own uptime, and a status page can show the whole group as one row. To choose between a monitor group, a service and a label, see [Which One Do I Use?](/docs/introduction/which-one#monitor-group-service-or-label).
 
 :::cards
 - [How a group's status is worked out](#how-a-groups-status-is-worked-out): The worst status among its monitors.
@@ -27,8 +27,9 @@ flowchart TB
 ```
 
 - **Archived monitors do not count.** An archived monitor is not checked, so its status is frozen; the group leaves it out.
+- **Monitors with monitoring off do not count.** Nothing checks a monitor whose monitoring is turned off, so its status is only what its last check saw. The group leaves it out of its status: a monitor left **Offline** when its monitoring was turned off does not make the group **Offline**. The group's uptime and **Uptime Graph** keep the monitor's history up to when its monitoring was turned off, and leave out the time after, on the Dashboard and on status pages alike. Turned back on, the monitor counts again from that moment.
 - **An empty group is operational.** A group with no monitors, or with only archived ones, shows your operational status. Until you add a monitor, the Dashboard shows **No monitors yet** in place of its status.
-- **Monitoring off shows Disabled.** When monitoring is turned off for every monitor in a group, nothing checks them, so the Dashboard shows **Disabled** in place of the group's status.
+- **Monitoring off shows Disabled.** When monitoring is turned off for every monitor in a group, nothing checks them, so the Dashboard shows **Disabled** in place of the group's status, and its **Uptime Graph** and uptime end where monitoring was turned off for the last of them. A status page shows the group as **Not monitored**.
 - **The order is yours.** Which status is worst is the order of **Monitors → Settings → Monitor Status**. See [Monitor statuses](/docs/monitor/criteria-and-statuses#monitor-statuses).
 
 A monitor group is not a status page group. A status page group is a heading on one status page that holds rows. A monitor group is one row that stands for several monitors, and any status page can show it.
@@ -91,6 +92,8 @@ Open a group to see its pages in the side menu:
 
 The uptime on **Overview** counts every status but the operational one as downtime. A status page counts only the statuses in its own **Counts as downtime** list: see [Choosing what shows on the page](/docs/status-pages/index#choosing-what-shows-on-the-page).
 
+Each bar of the uptime graph, here and on a status page, is how long the group itself spent in each status that day: at each moment it has the worst status among its monitors, so an hour two of them spend offline together is one hour of the group's, and a day never adds up to more than a day. The days are your own: the Dashboard draws them in the time zone of your user settings, and a status page in each visitor's.
+
 The **Monitor Groups** list can filter groups by owner and label, set labels and owners on many groups at once, and export or import groups as JSON.
 
 ## Turn monitoring off for a whole group
@@ -122,7 +125,7 @@ Pick the group. **Display Name**, the name visitors read, fills in with the grou
 
 On the status page, the row stands for every monitor in the group:
 
-- **Its status.** It is the group's: the worst among its monitors.
+- **Its status.** It is the group's: the worst among its monitors whose monitoring is on. When monitoring is off for every one of them, the row shows **Not monitored** and counts toward neither the heading above it nor the page's overall status.
 - **Its incidents.** An incident on any monitor in the group appears on the page, with the group named among the affected resources.
 - **Its subscribers.** A subscriber who picks the group hears about every monitor in it. See [Letting subscribers choose resources and event types](/docs/status-pages/subscribers#letting-subscribers-choose-resources-and-event-types).
 

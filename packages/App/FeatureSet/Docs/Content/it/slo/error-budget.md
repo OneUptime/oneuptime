@@ -19,13 +19,13 @@ total budget = (100% − target) × window length
 
 | Obiettivo | Finestra di 7 giorni | Finestra di 28 giorni | Finestra di 30 giorni | Finestra di 90 giorni |
 | --- | --- | --- | --- | --- |
-| 99% | 1h 40m 48s | 6h 43m 12s | 7h 12m | 21h 36m |
-| 99.5% | 50m 24s | 3h 21m 36s | 3h 36m | 10h 48m |
-| 99.9% | 10m 5s | 40m 19s | 43m 12s | 2h 9m 36s |
-| 99.95% | 5m 2s | 20m 10s | 21m 36s | 1h 4m 48s |
-| 99.99% | 1m 0s | 4m 2s | 4m 19s | 12m 58s |
+| 99% | 1 h 40 min 48 s | 6 h 43 min 12 s | 7 h 12 min | 21 h 36 min |
+| 99,5% | 50 min 24 s | 3 h 21 min 36 s | 3 h 36 min | 10 h 48 min |
+| 99,9% | 10 min 5 s | 40 min 19 s | 43 min 12 s | 2 h 9 min 36 s |
+| 99,95% | 5 min 2 s | 20 min 10 s | 21 min 36 s | 1 h 4 min 48 s |
+| 99,99% | 1 min 0 s | 4 min 2 s | 4 min 19 s | 12 min 58 s |
 
-La pagina **Impostazioni** dello SLO mostra il budget che il suo obiettivo consente accanto all'obiettivo, per esempio «43m 12s di inattività per finestra di 30 giorni».
+La pagina **Impostazioni** dello SLO mostra il budget che il suo obiettivo consente accanto all'obiettivo, per esempio «43 min 12 s di downtime per finestra di 30 giorni».
 
 ### Il budget di uno SLO con più monitor
 
@@ -35,16 +35,16 @@ In modalità **Media dei secondi dei monitor** il budget si conta in secondi-mon
 
 ### Il budget di un mese di calendario
 
-Uno SLO a mese di calendario ha il budget di tutto il mese fin dal primo giorno: uno SLO al 99,9% in un mese di 31 giorni ha tutti i suoi 44m 38s il giorno 1. Il budget non è calcolato in proporzione alla parte di mese trascorsa, quindi un'interruzione di un minuto la mattina del giorno 1 spende un minuto del budget del mese.
+Uno SLO a mese di calendario ha il budget di tutto il mese fin dal primo giorno: uno SLO al 99,9% in un mese di 31 giorni ha tutti i suoi 44 min 38 s il giorno 1. Il budget non è calcolato in proporzione alla parte di mese trascorsa, quindi un'interruzione di un minuto la mattina del giorno 1 spende un minuto del budget del mese.
 
 ## Budget rimanente
 
 Man mano che l'inattività si accumula, la **Panoramica** mostra il budget rimanente nel suo riquadro **Budget di errore rimasto**:
 
 - come percentuale del totale, che decide anche lo stato dello SLO e riempie la barra. La barra ha un segno alla soglia a rischio dello SLO;
-- come durata, per esempio "31m 4s left of 43m 12s".
+- come durata, per esempio "31 min 4 s rimasti su 43 min 12 s".
 
-Quando il budget è finito, il riquadro mostra **Nessun budget rimasto**. Quando l'inattività lo supera, il riquadro mostra **Budget superato** e lo sforamento come tempo, per esempio "4d 23m over budget · 5m 47s allowed": lo SLO ha usato tutti i 5 minuti e 47 secondi del suo budget, e altri 4 giorni e 23 minuti. La barra resta vuota e rossa.
+Quando il budget è finito, il riquadro mostra **Nessun budget rimasto**. Quando l'inattività lo supera, il riquadro mostra **Budget superato** e lo sforamento come tempo, per esempio "4 giorni 23 min oltre il budget · 5 min 47 s consentiti": lo SLO ha usato tutti i 5 minuti e 47 secondi del suo budget, e altri 4 giorni e 23 minuti. La barra resta vuota e rossa.
 
 Il budget rimanente viene conservato come numero con segno per i calcoli e i grafici della cronologia, quindi lì un budget superato appare come percentuale negativa. Una percentuale molto negativa significa che lo sforamento è grande rispetto al budget; non è la quota di tempo in cui il servizio era fuori servizio.
 
@@ -60,7 +60,7 @@ runway = budget left ÷ (burn rate × (100% − target))
 
 | Il riquadro mostra | Cosa significa |
 | --- | --- |
-| Una durata, come **~2d 5h** | Al ritmo attuale il budget finisce in circa questo tempo. In ambra, e in rosso quando manca un giorno o meno. **Meno di 1 min** significa meno di un minuto. |
+| Una durata, come **~2 giorni 5 h** | Al ritmo attuale il budget finisce in circa questo tempo. In ambra, e in rosso quando manca un giorno o meno. **Meno di 1 min** significa meno di un minuto. |
 | **Nessun consumo** | Negli ultimi 60 minuti non è stato speso budget. |
 | **Sostenibile** | Solo finestre mobili: l'autonomia è di almeno una finestra intera, quindi il budget non si spende più in fretta di quanto la vecchia inattività esca dalla finestra. A questo ritmo non può finire. |
 | **Dura fino al ripristino** | Solo mesi di calendario: il budget si azzera all'inizio del mese successivo prima di finire. |
@@ -97,7 +97,7 @@ Uno SLO a mese di calendario si azzera a mezzanotte del primo giorno di ogni mes
 
 ### SLO giovani
 
-Uno SLO con finestra mobile più giovane della sua finestra si misura sui dati che esistono finora, e il suo budget totale cresce con essi: uno SLO di 30 giorni creato una settimana fa ha per ora un budget di 7 giorni. Finché la finestra non è piena, la **Panoramica** mostra quanto lo è, con un indicatore **Window 23% full** e la stessa nota nel riquadro **Budget di errore rimasto**. Aspettati che i numeri si stabilizzino man mano che la finestra si riempie.
+Uno SLO con finestra mobile più giovane della sua finestra si misura sui dati che esistono finora, e il suo budget totale cresce con essi: uno SLO di 30 giorni creato una settimana fa ha per ora un budget di 7 giorni. Finché la finestra non è piena, la **Panoramica** mostra quanto lo è, con un indicatore **Finestra piena al 23%** e la stessa nota nel riquadro **Budget di errore rimasto**. Aspettati che i numeri si stabilizzino man mano che la finestra si riempie.
 
 ## Cambi di stato e soglia a rischio
 

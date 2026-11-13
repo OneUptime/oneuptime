@@ -1,8 +1,13 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserElement from "../../Components/User/User";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+import {
+  ON_CALL_SCHEDULES_IMPORT_OFFER,
+  withToolImportOffer,
+} from "../../Components/ToolImport/ToolImportOffer";
 import PageComponentProps from "../PageComponentProps";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
@@ -129,7 +134,15 @@ const OnCallDutyPage: FunctionComponent<
         singularName="On-Call Schedule"
         pluralName="On-Call Schedules"
         topContent={filterBar}
-        emptyState={facetEmptyState}
+        /*
+         * Beside the empty list's Create, a link to bring the schedules over
+         * from PagerDuty, Opsgenie and the rest (ToolImportOffer).
+         */
+        emptyState={withToolImportOffer({
+          emptyState: facetEmptyState,
+          offer: ON_CALL_SCHEDULES_IMPORT_OFFER,
+          translator: translator,
+        })}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery(undefined)}
@@ -152,6 +165,7 @@ const OnCallDutyPage: FunctionComponent<
           title: "On-Call Duty Schedules",
           description:
             "Rotations that decide who is on call at any moment. Add a schedule to an on-call policy's escalation rules to page whoever is on call.",
+          titleGlossaryTerm: GlossaryTerm.OnCallSchedule,
           buttons: [
             /*
              * Named as the page it opens, which the On-Call Duty menu,

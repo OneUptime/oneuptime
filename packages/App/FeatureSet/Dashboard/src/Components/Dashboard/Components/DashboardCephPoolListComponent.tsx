@@ -3,6 +3,7 @@ import DashboardCephPoolListComponent from "Common/Types/Dashboard/DashboardComp
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import {
   ResourceListColumn,
+  ResourceListNameCell,
   ResourceListViewMode,
 } from "./DashboardResourceListBase";
 import DashboardModelResourceListBase from "../../Infrastructure/DashboardModelResourceListBase";
@@ -201,7 +202,12 @@ function renderPoolRow(r: CephResource): ReactElement {
       key={id}
       className="hover:bg-gray-50/50 transition-colors duration-100 group"
     >
-      <td className="px-3 py-2 text-xs text-gray-700 truncate">{detailLink}</td>
+      <ResourceListNameCell
+        name={name}
+        className="px-3 py-2 text-xs text-gray-700 truncate"
+      >
+        {detailLink}
+      </ResourceListNameCell>
       <td className="px-3 py-2 text-xs text-gray-500">
         {formatBytes(r.storedBytes as number | undefined)}
       </td>
@@ -209,9 +215,10 @@ function renderPoolRow(r: CephResource): ReactElement {
       <td className="px-3 py-2 text-xs text-gray-500">
         {formatObjects(r.objects as number | undefined)}
       </td>
-      <td className="px-3 py-2 text-xs text-gray-500 truncate">
-        {clusterName}
-      </td>
+      <ResourceListNameCell
+        name={clusterName}
+        className="px-3 py-2 text-xs text-gray-500 truncate"
+      />
     </tr>
   );
 }

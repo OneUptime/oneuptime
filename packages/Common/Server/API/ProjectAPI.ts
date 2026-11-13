@@ -590,6 +590,13 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
              * read of its own (ModelTable/ProjectDefaultColumns).
              */
             defaultTableColumns: true,
+            /*
+             * The products the project hides (issue #6814,
+             * Project.productSettings): read with the project, so the
+             * products menu, Home and Search draw the project's products on
+             * their first paint, before the products answer arrives.
+             */
+            productSettings: true,
             paymentProviderMeteredSubscriptionStatus: true,
             paymentProviderSubscriptionStatus: true,
             /*
@@ -599,6 +606,13 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
              * members are told only that their project is blocked.
              */
             isBlocked: true,
+            /*
+             * Who created the project, so the Dashboard's analytics events
+             * can say whether the person created it (is_project_creator,
+             * Docs/analytics/activation.md) - an id, compared in the
+             * browser and never sent.
+             */
+            createdByUserId: true,
           };
 
           const teamMembers: Array<TeamMember> = await TeamMemberService.findBy(

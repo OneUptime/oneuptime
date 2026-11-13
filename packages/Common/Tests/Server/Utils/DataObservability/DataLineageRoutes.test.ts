@@ -12,6 +12,11 @@ import DataObservabilityAPI from "../../../../Server/API/DataObservabilityAPI";
 import DataAlertLineageReader from "../../../../Server/Utils/DataObservability/DataAlertLineage";
 import DataTableLineageReader from "../../../../Server/Utils/DataObservability/DataTableLineage";
 import {
+  DataLineageExpandRequest,
+  DataLineageExpansion,
+  MAX_DATA_LINEAGE_DRAWN_TABLES,
+} from "../../../../Types/DataObservability/DataLineageExpansion";
+import {
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
@@ -135,6 +140,7 @@ const ALERT_ANSWER: DataAlertLineageAnswer = {
   isCauseDrawn: false,
   consequenceCount: 2,
   drawnConsequenceCount: 1,
+  column: null,
 };
 
 interface Asked {
@@ -202,6 +208,63 @@ async function askAlert(
   );
 }
 
+const TABLE_ID: string = "33333333-3333-4333-8333-000000000001";
+const UPSTREAM_TABLE_ID: string = "33333333-3333-4333-8333-000000000002";
+const DASHBOARD_ID: string = "66666666-6666-4666-8666-000000000001";
+
+const EXPANSION: DataLineageExpansion = {
+  nodeId: `table:${UPSTREAM_TABLE_ID}`,
+  side: DataLineageSide.Upstream,
+  hiddenCount: 3,
+  nodes: [
+    {
+      id: "table:33333333-3333-4333-8333-000000000003",
+      kind: DataLineageNodeKind.Table,
+      side: DataLineageSide.Upstream,
+      depth: -2,
+      name: "raw.orders",
+      dataAssetId: "33333333-3333-4333-8333-000000000003",
+    },
+  ],
+  edges: [],
+  hiddenDashboardCount: null,
+  isTruncated: false,
+};
+
+// What a table's drawing sends when its upstream card's count is pressed.
+function expandBody(fields: JSONObject = {}): JSONObject {
+  return {
+    focusNodeId: `table:${TABLE_ID}`,
+    nodeId: `table:${UPSTREAM_TABLE_ID}`,
+    side: DataLineageSide.Upstream,
+    tables: [
+      { dataAssetId: TABLE_ID, side: DataLineageSide.Focus, depth: 0 },
+      {
+        dataAssetId: UPSTREAM_TABLE_ID,
+        side: DataLineageSide.Upstream,
+        depth: -1,
+      },
+    ],
+    dataDashboardIds: [DASHBOARD_ID],
+    ...fields,
+  };
+}
+
+async function askExpand(
+  props: DatabaseCommonInteractionProps,
+  body: JSONObject,
+  answer: DataLineageExpansion | null = EXPANSION,
+): Promise<Asked> {
+  return await send(
+    handlerOf(DATA_OBSERVABILITY_API_ROUTES.lineageExpand),
+    props,
+    { body },
+    jest
+      .spyOn(DataTableLineageReader, "expand")
+      .mockResolvedValue(answer as never),
+  );
+}
+
 function errorOf(asked: Asked): Error {
   expect(asked.sent).not.toHaveBeenCalled();
   expect(asked.next).toHaveBeenCalledTimes(1);
@@ -232,6 +295,9 @@ describe("the routes", () => {
     );
     expect(DATA_OBSERVABILITY_API_ROUTES.alertLineage(ALERT_ID)).toBe(
       `/data-observability/alerts/${ALERT_ID}/lineage`,
+    );
+    expect(DATA_OBSERVABILITY_API_ROUTES.lineageExpand).toBe(
+      "/data-observability/lineage/expand",
     );
   });
 });
@@ -385,6 +451,7 @@ describe("POST /data-observability/alerts/:id/lineage", () => {
       isCauseDrawn: false,
       consequenceCount: 4,
       drawnConsequenceCount: 0,
+      column: null,
     };
     const asked: Asked = await askAlert(
       withPermission(Permission.ProjectMember),
@@ -456,5 +523,258 @@ describe("POST /data-observability/alerts/:id/lineage", () => {
     expect(error).toBeInstanceOf(BadDataException);
     // The same words whatever the reason: whether a private alert exists is not told.
     expect(error.message).toBe("Alert not found.");
+  });
+});
+
+describe("POST /data-observability/lineage/expand", () => {
+  test("answers with the card's next tables, read for the person who asked", async () => {
+    const props: DatabaseCommonInteractionProps = withPermission(
+      Permission.ProjectMember,
+    );
+    const asked: Asked = await askExpand(props, expandBody());
+
+    expect(asked.next).not.toHaveBeenCalled();
+    expect(asked.sent).toHaveBeenCalledTimes(1);
+    expect(asked.sent.mock.calls[0]![2]).toEqual(EXPANSION);
+
+    const call: {
+      projectId: ObjectID;
+      request: DataLineageExpandRequest;
+      now: Date;
+      reader: DatabaseCommonInteractionProps | null;
+    } = asked.read.mock.calls[0]![0] as never;
+
+    expect(call.projectId.toString()).toBe(PROJECT_ID.toString());
+    // The request as read: what is drawn, the columns only when asked.
+    expect(call.request).toEqual({
+      focusNodeId: `table:${TABLE_ID}`,
+      nodeId: `table:${UPSTREAM_TABLE_ID}`,
+      side: DataLineageSide.Upstream,
+      tables: [
+        { dataAssetId: TABLE_ID, side: DataLineageSide.Focus, depth: 0 },
+        {
+          dataAssetId: UPSTREAM_TABLE_ID,
+          side: DataLineageSide.Upstream,
+          depth: -1,
+        },
+      ],
+      dataDashboardIds: [DASHBOARD_ID],
+      withColumns: false,
+    });
+    expect(call.now).toBeInstanceOf(Date);
+    // The tables drawn now have their alerts counted as this person may see them.
+    expect(call.reader).toBe(props);
+  });
+
+  test("the columns each new arrow carries are read only when asked with true", async () => {
+    const withThem: Asked = await askExpand(
+      withPermission(Permission.ProjectMember),
+      expandBody({ withColumns: true }),
+    );
+
+    expect(
+      (withThem.read.mock.calls[0]![0] as { request: DataLineageExpandRequest })
+        .request.withColumns,
+    ).toBe(true);
+
+    jest.restoreAllMocks();
+
+    const asWords: Asked = await askExpand(
+      withPermission(Permission.ProjectMember),
+      expandBody({ withColumns: "true" }),
+    );
+
+    expect(
+      (asWords.read.mock.calls[0]![0] as { request: DataLineageExpandRequest })
+        .request.withColumns,
+    ).toBe(false);
+  });
+
+  test("a pipeline's drawing asks for its own card's tables", async () => {
+    const asked: Asked = await askExpand(
+      withPermission(Permission.ProjectMember),
+      {
+        focusNodeId: `pipeline:${PIPELINE_ID}`,
+        nodeId: `pipeline:${PIPELINE_ID}`,
+        side: DataLineageSide.Downstream,
+        tables: [
+          { dataAssetId: TABLE_ID, side: DataLineageSide.Downstream, depth: 1 },
+        ],
+      },
+    );
+
+    expect(asked.next).not.toHaveBeenCalled();
+    expect(
+      (asked.read.mock.calls[0]![0] as { request: DataLineageExpandRequest })
+        .request,
+    ).toEqual({
+      focusNodeId: `pipeline:${PIPELINE_ID}`,
+      nodeId: `pipeline:${PIPELINE_ID}`,
+      side: DataLineageSide.Downstream,
+      tables: [
+        { dataAssetId: TABLE_ID, side: DataLineageSide.Downstream, depth: 1 },
+      ],
+      dataDashboardIds: [],
+      withColumns: false,
+    });
+  });
+
+  test.each(LET_IN)(
+    "lets in someone with %s",
+    async (_name: string, permission: Permission) => {
+      const asked: Asked = await askExpand(
+        withPermission(permission),
+        expandBody(),
+      );
+
+      expect(asked.next).not.toHaveBeenCalled();
+      expect(asked.sent).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  test.each([
+    ["Create Data Asset", Permission.CreateDataAsset],
+    ["Edit Data Asset", Permission.EditDataAsset],
+    ["Read Monitor", Permission.ReadProjectMonitor],
+  ])(
+    "refuses someone with only %s, before anything is read",
+    async (_name: string, permission: Permission) => {
+      const asked: Asked = await askExpand(
+        withPermission(permission),
+        expandBody(),
+      );
+
+      expect(errorOf(asked).message).toBe(
+        "You do not have permission to do this in Data Observability.",
+      );
+      expect(asked.read).not.toHaveBeenCalled();
+    },
+  );
+
+  test("lets in a project API key: it only reads", async () => {
+    const asked: Asked = await askExpand(
+      withPermission(Permission.ProjectMember, {
+        userId: undefined,
+        userType: UserType.API,
+      }),
+      expandBody(),
+    );
+
+    expect(asked.next).not.toHaveBeenCalled();
+    expect(asked.sent).toHaveBeenCalledTimes(1);
+  });
+
+  test.each([
+    [
+      "no drawing named",
+      expandBody({ focusNodeId: undefined as never }),
+      "Name the card the drawing is about: focusNodeId, as table:<table ID> or pipeline:<pipeline ID>.",
+    ],
+    [
+      "a card named by its name",
+      expandBody({ nodeId: "table:raw.orders" }),
+      "Name the card to draw more of: nodeId, as table:<table ID> or pipeline:<pipeline ID>.",
+    ],
+    [
+      "another pipeline's card",
+      expandBody({ nodeId: `pipeline:${PIPELINE_ID}` }),
+      "A pipeline's card counts the tables it does not draw only on its own drawing: name a table's card, or that pipeline's.",
+    ],
+    [
+      "no way",
+      expandBody({ side: DataLineageSide.Focus }),
+      "Say which way to draw more: side, Upstream or Downstream.",
+    ],
+    [
+      "no tables",
+      expandBody({ tables: "all" }),
+      "Name the tables drawn: tables, each with its dataAssetId, side and depth.",
+    ],
+    [
+      "more tables than a drawing holds",
+      expandBody({
+        tables: Array.from(
+          { length: MAX_DATA_LINEAGE_DRAWN_TABLES + 1 },
+          (): JSONObject => {
+            return {
+              dataAssetId: TABLE_ID,
+              side: DataLineageSide.Focus,
+              depth: 0,
+            };
+          },
+        ),
+      }),
+      `Name at most ${MAX_DATA_LINEAGE_DRAWN_TABLES} drawn tables: no drawing holds more.`,
+    ],
+    [
+      "a card that is not drawn",
+      expandBody({ nodeId: `table:${DASHBOARD_ID}` }),
+      "The card to draw more of is not on the drawing: name it among the tables drawn.",
+    ],
+    [
+      "a table upstream asked for its way down",
+      expandBody({ side: DataLineageSide.Downstream }),
+      "A table upstream has more drawn upstream, and a table downstream downstream.",
+    ],
+    [
+      "dashboards not named by their ids",
+      expandBody({ dataDashboardIds: ["Revenue"] }),
+      "Name the dashboards drawn by their IDs: dataDashboardIds.",
+    ],
+  ])(
+    "refuses %s, and reads nothing",
+    async (_name: string, body: JSONObject, refusal: string) => {
+      const asked: Asked = await askExpand(
+        withPermission(Permission.ProjectMember),
+        body,
+      );
+      const error: Error = errorOf(asked);
+
+      expect(error).toBeInstanceOf(BadDataException);
+      expect(error.message).toBe(refusal);
+      expect(asked.read).not.toHaveBeenCalled();
+    },
+  );
+
+  test("a table that is not the project's is not found", async () => {
+    const asked: Asked = await askExpand(
+      withPermission(Permission.ProjectMember),
+      expandBody(),
+      null,
+    );
+    const error: Error = errorOf(asked);
+
+    expect(error).toBeInstanceOf(BadDataException);
+    expect(error.message).toBe("Table not found.");
+  });
+
+  test("a drawing about a table not the project's is not found, whichever card was pressed", async () => {
+    const asked: Asked = await askExpand(
+      withPermission(Permission.ProjectMember),
+      expandBody({
+        nodeId: `table:${TABLE_ID}`,
+        side: DataLineageSide.Downstream,
+      }),
+      null,
+    );
+
+    expect(errorOf(asked).message).toBe("Table not found.");
+  });
+
+  test("a pipeline that is not the project's is not found", async () => {
+    const asked: Asked = await askExpand(
+      withPermission(Permission.ProjectMember),
+      {
+        focusNodeId: `pipeline:${PIPELINE_ID}`,
+        nodeId: `pipeline:${PIPELINE_ID}`,
+        side: DataLineageSide.Upstream,
+        tables: [],
+      },
+      null,
+    );
+    const error: Error = errorOf(asked);
+
+    expect(error).toBeInstanceOf(BadDataException);
+    expect(error.message).toBe("Pipeline not found.");
   });
 });

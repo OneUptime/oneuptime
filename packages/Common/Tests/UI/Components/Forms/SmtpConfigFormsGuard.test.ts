@@ -1,3 +1,4 @@
+// UX rule: Docs/ux/README.md#ask-only-what-you-cannot-work-out
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -267,6 +268,7 @@ const INSTANCE_SMTP_COLUMNS: Array<string> = [
 
 // The instance's provider columns, each provider's card on Settings > Email.
 const INSTANCE_PROVIDER_COLUMNS: Array<string> = [
+  "amazonSesAuthenticationType",
   "amazonSesAccessKeyId",
   "amazonSesSecretAccessKey",
   "amazonSesRegion",

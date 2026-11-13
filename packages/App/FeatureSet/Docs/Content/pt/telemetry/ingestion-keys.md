@@ -1,6 +1,6 @@
 # Chaves de ingestão
 
-Uma chave de ingestão liga a sua telemetria ao seu projeto. Aplicações, OpenTelemetry Collectors e agentes a enviam em cada requisição, e o OneUptime arquiva os registros, traços e métricas deles no projeto ao qual a chave pertence. Esta página mostra como criar uma chave, qual tipo escolher e como manter as chaves seguras.
+Uma chave de ingestão liga a sua telemetria ao seu projeto. Aplicações, OpenTelemetry Collectors e agentes a enviam em cada requisição, e o OneUptime arquiva os registros, traços e métricas deles no projeto ao qual a chave pertence. Esta página mostra como criar uma chave, qual tipo escolher e como manter as chaves seguras. Para distinguir uma chave de ingestão de uma chave de API, veja [Qual devo usar?](/docs/introduction/which-one#chave-de-ingestão-ou-chave-de-api).
 
 :::cards
 - [Criar uma chave de ingestão](#criar-uma-chave-de-ingestão): Um nome, um tipo e um segredo para copiar.

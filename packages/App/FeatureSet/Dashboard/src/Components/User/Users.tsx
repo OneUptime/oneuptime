@@ -1,6 +1,8 @@
 import UserElement from "./User";
 import User from "Common/Models/DatabaseModels/User";
 import React, { FunctionComponent, ReactElement } from "react";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   users?: Array<User>;
@@ -16,8 +18,10 @@ export interface ComponentProps {
 const UsersElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   if (!props.users || props.users.length === 0) {
-    return <p>No users.</p>;
+    return <p>{translator.translateText("No users.")}</p>;
   }
 
   return (

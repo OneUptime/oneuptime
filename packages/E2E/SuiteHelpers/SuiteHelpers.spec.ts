@@ -1,4 +1,5 @@
 import { expect, Locator, Page, Route, test } from "@playwright/test";
+import { cardBodyMisfits } from "./CardBodyFit";
 import {
   DrawnBox,
   DrawnBoxes,
@@ -506,5 +507,402 @@ test.describe("recordDrawnBoxes", () => {
     );
 
     expect(failure).toContain("nothing is recording");
+  });
+});
+
+/*
+ * A card as Common's Card draws it: its frame, its padding (24px, the card's
+ * own), its header with the title, and its body under the header, holding
+ * `body`, with `bodyStyle` on the body when the card gives it one (a body
+ * bled to the card's edges). `direction` is the page's reading direction.
+ */
+interface CardOnPage {
+  title: string | null;
+  body: string;
+  bodyStyle?: string | undefined;
+}
+
+function cardPage(
+  cards: Array<CardOnPage>,
+  direction: "ltr" | "rtl" = "ltr",
+): string {
+  return `<!doctype html>
+<html dir="${direction}"><head><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;font:14px/20px sans-serif">
+${cards
+  .map((card: CardOnPage): string => {
+    return `<div data-testid="card" style="margin:16px">
+  <div style="border:1px solid #e5e7eb;border-radius:12px;background:#fff">
+    <div style="padding:24px">
+      ${
+        card.title === null
+          ? ""
+          : `<div data-testid="card-header"><div><h2 style="margin:0;font-size:16px">${card.title}</h2><p style="margin:0">What the card is for.</p></div></div>`
+      }
+      <div style="${card.bodyStyle || "margin-top:16px"}">${card.body}</div>
+    </div>
+  </div>
+</div>`;
+  })
+  .join("\n")}
+</body></html>`;
+}
+
+test.describe("cardBodyMisfits", () => {
+  test("a card whose body is flush with its padding, under its title, has none", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setContent(
+      cardPage([
+        {
+          title: "Data",
+          body: `<dl style="margin:0">About</dl><p style="margin:8px 0 0">And 3 more.</p>`,
+        },
+        {
+          title: "Lineage",
+          body: `<div data-testid="alert-lineage-diagram"><div style="height:200px;background:#f9fafb">drawing</div></div>`,
+        },
+      ]),
+    );
+
+    expect(await cardBodyMisfits(page.getByTestId("card"))).toEqual([]);
+  });
+
+  test("a body that pads the card again is named, with each side's padding, and how far from the title it starts", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setContent(
+      cardPage([
+        {
+          title: "Lineage",
+          body: `<div data-testid="alert-lineage-diagram" style="padding:0 24px 24px">drawing</div>`,
+        },
+        {
+          title: "Needs Attention",
+          body: `<ul style="margin:0;padding:0 16px 8px;list-style:none">One row</ul>`,
+        },
+      ]),
+    );
+
+    expect(await cardBodyMisfits(page.getByTestId("card"))).toEqual([
+      'Lineage: <div data-testid="alert-lineage-diagram"> pads the card again (left 24px, right 24px, bottom 24px)',
+      "Lineage: what it holds starts 24px from its title",
+      "Needs Attention: <ul> pads the card again (left 16px, right 16px, bottom 8px)",
+      "Needs Attention: what it holds starts 16px from its title",
+    ]);
+  });
+
+  test("padding on one side only is named too, and the room under the header is not padding", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setContent(
+      cardPage([
+        { title: "Right", body: `<div style="padding-right:12px">x</div>` },
+        { title: "Bottom", body: `<div style="padding-bottom:6px">x</div>` },
+        { title: "Top", body: `<div style="padding-top:16px">x</div>` },
+      ]),
+    );
+
+    expect(await cardBodyMisfits(page.getByTestId("card"))).toEqual([
+      "Right: <div> pads the card again (left 0px, right 12px, bottom 0px)",
+      "Bottom: <div> pads the card again (left 0px, right 0px, bottom 6px)",
+    ]);
+  });
+
+  test("an element that draws a box of its own pads its own content: its box is what lines up", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setContent(
+      cardPage([
+        {
+          title: "Notice",
+          body: `<p style="margin:0;padding:12px;background:#fefce8">The warehouse could not be read.</p>`,
+        },
+        {
+          title: "Framed",
+          body: `<div style="padding:16px;border:1px solid #e5e7eb">A box</div>`,
+        },
+        {
+          title: "Ringed",
+          body: `<div style="padding:16px;box-shadow:0 0 0 1px #e5e7eb">A ring</div>`,
+        },
+      ]),
+    );
+
+    expect(await cardBodyMisfits(page.getByTestId("card"))).toEqual([]);
+  });
+
+  test("a box set in from the title is named, though its padding is its own", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setContent(
+      cardPage([
+        {
+          title: "Notice",
+          body: `<p style="margin:0 0 0 24px;padding:12px;background:#fefce8">Set in</p>`,
+        },
+      ]),
+    );
+
+    expect(await cardBodyMisfits(page.getByTestId("card"))).toEqual([
+      "Notice: what it holds starts 24px from its title",
+    ]);
+  });
+
+  test("right to left, what a card holds starts at its title's right edge", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setContent(
+      cardPage(
+        [
+          { title: "داده", body: `<dl style="margin:0">درباره</dl>` },
+          {
+            title: "تبار",
+            body: `<div style="padding-inline-start:24px">نقشه</div>`,
+          },
+        ],
+        "rtl",
+      ),
+    );
+
+    expect(await cardBodyMisfits(page.getByTestId("card"))).toEqual([
+      "تبار: <div> pads the card again (left 0px, right 24px, bottom 0px)",
+      "تبار: what it holds starts 24px from its title",
+    ]);
+  });
+
+  test("an element that bleeds over the card's padding and pads it back has none; one that pads back more than it bleeds is named", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setContent(
+      cardPage([
+        {
+          title: "Columns",
+          body: `<div style="margin:0 -24px -24px;padding:0 24px 24px">A table that scrolls</div>`,
+        },
+        {
+          title: "Tabs",
+          body: `<div style="margin:-4px;padding:4px;overflow-x:auto">Tabs with room for a focus ring</div>`,
+        },
+        {
+          title: "Rows",
+          body: `<div style="margin:0 -24px;padding:0 24px 24px">Bled at the sides only</div>`,
+        },
+      ]),
+    );
+
+    expect(await cardBodyMisfits(page.getByTestId("card"))).toEqual([
+      "Rows: <div> pads the card again (left 0px, right 0px, bottom 24px)",
+    ]);
+  });
+
+  test("a list ruled from edge to edge starts where its rows do, and a rule on one side is no box", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const ruled: (row: string) => string = (row: string): string => {
+      return `<ul style="list-style:none;margin:0 -24px -24px;padding:0;border-top:1px solid #e5e7eb"><li style="padding:${row}">One</li><li style="padding:${row}">Two</li></ul>`;
+    };
+
+    await page.setContent(
+      cardPage([
+        { title: "Owned", body: ruled("12px 24px") },
+        { title: "Unpadded rows", body: ruled("12px 0") },
+        {
+          title: "Ruled",
+          body: `<div style="border-top:1px solid #e5e7eb;padding:16px 16px 0">A rule above, padded</div>`,
+        },
+      ]),
+    );
+
+    expect(await cardBodyMisfits(page.getByTestId("card"))).toEqual([
+      "Unpadded rows: what it holds starts 24px from its title",
+      "Ruled: <div> pads the card again (left 16px, right 16px, bottom 0px)",
+      "Ruled: what it holds starts 16px from its title",
+    ]);
+  });
+
+  test("a table ruled from edge to edge, its header a band of grey, starts where its cells do", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // A device table as VMware's host page draws it: bled to the card's edges, its first and last cells padded back.
+    const ruledTable: (cell: string) => string = (cell: string): string => {
+      return `<div style="margin:0 -24px -24px;border-top:1px solid #e5e7eb"><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse"><thead style="background:#f9fafb"><tr><th style="padding:${cell};text-align:start">Name</th><th style="padding:${cell}">Read</th></tr></thead><tbody style="background:#fff"><tr><td style="padding:${cell}">vmnic0</td><td style="padding:${cell}">12 MB/s</td></tr></tbody></table></div></div>`;
+    };
+
+    await page.setContent(
+      cardPage([
+        { title: "Network adapters", body: ruledTable("12px 24px") },
+        { title: "Cells padded less", body: ruledTable("12px 16px") },
+        {
+          title: "A band set in",
+          body: `<div style="background:#f9fafb;margin:0 -8px;padding:8px 16px">A band bled 8px, its text 8px past the title</div>`,
+        },
+      ]),
+    );
+
+    expect(await cardBodyMisfits(page.getByTestId("card"))).toEqual([
+      "Cells padded less: what it holds starts 8px from its title",
+      "A band set in: what it holds starts 8px from its title",
+    ]);
+  });
+
+  test("a body the card bleeds to its edges lets what it holds pad that back, and no more", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setContent(
+      cardPage([
+        {
+          title: "Needs attention",
+          bodyStyle: "margin:12px -24px -24px",
+          body: `<div style="padding:8px 24px">Loading</div><div style="padding:12px 24px 24px">A row</div>`,
+        },
+        {
+          title: "Unpadded",
+          bodyStyle: "margin:12px -24px -24px",
+          body: `<div>Flush with the card's edge</div>`,
+        },
+        {
+          title: "Too far",
+          bodyStyle: "margin:12px -24px -24px",
+          body: `<div style="padding:0 40px">Further in than the title</div>`,
+        },
+      ]),
+    );
+
+    expect(await cardBodyMisfits(page.getByTestId("card"))).toEqual([
+      "Unpadded: what it holds starts 24px from its title",
+      "Too far: <div> pads the card again (left 16px, right 16px, bottom 0px)",
+      "Too far: what it holds starts 16px from its title",
+    ]);
+  });
+
+  test("a state set in the middle of the card, padded only above and below, has room of its own", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setContent(
+      cardPage([
+        {
+          title: "Centred text",
+          body: `<p style="margin:0;padding:48px 0;text-align:center">Nothing yet.</p>`,
+        },
+        {
+          title: "Centred column",
+          body: `<div style="display:flex;flex-direction:column;align-items:center;padding:80px 0">Loading</div>`,
+        },
+        {
+          title: "Centred row",
+          body: `<div style="display:flex;justify-content:center;padding:24px 0">Loading</div>`,
+        },
+        {
+          title: "Not centred",
+          body: `<div style="padding:8px 0">No resource labels.</div>`,
+        },
+        {
+          title: "Centred on its line only",
+          body: `<div style="display:flex;align-items:center;padding:24px 0">A row</div>`,
+        },
+        {
+          title: "Centred and padded",
+          body: `<p style="margin:0;padding:24px 16px;text-align:center">Nothing yet.</p>`,
+        },
+      ]),
+    );
+
+    expect(await cardBodyMisfits(page.getByTestId("card"))).toEqual([
+      "Not centred: <div> pads the card again (left 0px, right 0px, bottom 8px)",
+      "Centred on its line only: <div> pads the card again (left 0px, right 0px, bottom 24px)",
+      "Centred and padded: <p> pads the card again (left 16px, right 16px, bottom 24px)",
+      "Centred and padded: what it holds starts 16px from its title",
+    ]);
+  });
+
+  test("a bulleted list's bullets sit in its start padding, in either reading direction", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setContent(
+      cardPage([
+        {
+          title: "Bulleted",
+          body: `<ul style="margin:0;padding:0 0 0 20px"><li>One</li></ul>`,
+        },
+        {
+          title: "Bulleted at both sides",
+          body: `<ul style="margin:0;padding:0 20px"><li>One</li></ul>`,
+        },
+        {
+          title: "No bullets",
+          body: `<ul style="margin:0;padding:0 0 0 20px;list-style:none"><li>One</li></ul>`,
+        },
+        {
+          title: "Bullets inside",
+          body: `<ul style="margin:0;padding:0 0 0 20px;list-style-position:inside"><li>One</li></ul>`,
+        },
+      ]),
+    );
+
+    expect(await cardBodyMisfits(page.getByTestId("card"))).toEqual([
+      "Bulleted at both sides: <ul> pads the card again (left 0px, right 20px, bottom 0px)",
+      "No bullets: <ul> pads the card again (left 20px, right 0px, bottom 0px)",
+      "No bullets: what it holds starts 20px from its title",
+      "Bullets inside: <ul> pads the card again (left 20px, right 0px, bottom 0px)",
+      "Bullets inside: what it holds starts 20px from its title",
+    ]);
+
+    await page.setContent(
+      cardPage(
+        [
+          {
+            title: "فهرست",
+            body: `<ul style="margin:0;padding-inline-start:20px"><li>یک</li></ul>`,
+          },
+        ],
+        "rtl",
+      ),
+    );
+
+    expect(await cardBodyMisfits(page.getByTestId("card"))).toEqual([]);
+  });
+
+  test("a card without a header, an empty body and a hidden element are not read", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setContent(
+      cardPage([
+        { title: null, body: `<div style="padding:24px">No title</div>` },
+        { title: "Empty", body: `` },
+        {
+          title: "Hidden",
+          body: `<div style="display:none;padding:24px">Hidden</div><div>Shown</div>`,
+        },
+      ]),
+    );
+
+    expect(await cardBodyMisfits(page.getByTestId("card"))).toEqual([]);
   });
 });

@@ -1,6 +1,6 @@
 # Alerts Overview
 
-An alert tells your team about a problem to look into before your users notice it: a disk filling up, a certificate about to expire, an error rate creeping up. It can page whoever is on call and notify its owners, but it never shows on a status page and never tells your subscribers. This page explains where alerts come from, where they live in the dashboard and how your team works them.
+An alert tells your team about a problem to look into before your users notice it: a disk filling up, a certificate about to expire, an error rate creeping up. It can page whoever is on call and notify its owners, but it never shows on a status page and never tells your subscribers. This page explains where alerts come from, where they live in the dashboard and how your team works them. Not sure whether a problem is an alert or an incident? [Which One Do I Use?](/docs/introduction/which-one#incident-alert-or-another-kind-of-problem) puts them side by side.
 
 :::cards
 - [Alerts and incidents](#alerts-and-incidents): Which one a problem should be, and how the two connect.
@@ -61,7 +61,7 @@ Open **Alerts** from the **Products** menu in the top bar. The alerts list is at
 | **AI**        | **Insights**, **Logs** and **Settings**: what OneUptime AI learned from your alerts, everything it did, and what it may do. |
 | **Workspace** | **Slack**, **Microsoft Teams** and **Mattermost**, whichever the project has connected, or **Connect a workspace** when it has none. |
 | **Rules**     | **Grouping Rules**, **On-Call Rules**, **Incident Rules**, **Owner Rules**, **Runbook Rules**, **Privacy Rules**, **Label Rules**, **Reminder Rules**. |
-| **Settings**  | **Alert State**, **Alert Severity**, **Note Templates**, **Custom Fields**, **Measurements**, **Episode Membership**, **Numbering**.                |
+| **Settings**  | **Alert State**, **Alert Severity**, **Note Templates**, **Custom Fields**, **Measurements**, **Episode Membership**, **Numbering**, **Data Retention**.                |
 
 **Alerts** and **Episodes** are open; **AI**, **Workspace**, **Rules**, **Settings** and **Developer** start folded, and a section opens by itself when you are on one of its pages. Alert configuration lives here, not in **Project Settings**.
 

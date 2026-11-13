@@ -144,6 +144,8 @@ sh Scripts/Install/WithConfig.sh docker compose up --remove-orphans -d
 打开 `http://` 加上你的 `HOST`（例如 `http://localhost`）并注册。新实例上的第一个账号会成为它的主管理员，可以在 `/admin` 打开 Admin Dashboard。
 
 在你之后，任何能访问该页面的人都可以注册。要阻止这一点，请打开 Admin Dashboard，前往 **设置 > 认证**，然后关闭 **允许注册**。你邀请加入项目的人仍然可以创建账号。
+
+然后在 `/admin/setup` 完成服务器设置，在那里设置并测试邮件、短信和电话：参见[完成服务器设置](/docs/installation/self-hosting-guide#完成服务器设置)。
 :::
 
 ### 生成随机密钥
@@ -477,7 +479,27 @@ sh Scripts/Install/WithConfig.sh docker compose down --volumes --remove-orphans
 > [!CAUTION]
 > `--volumes` 会永久删除所有监控器、事件、用户和全部遥测数据。如果你可能还需要其中任何内容，请先备份。
 
+## 检查你的安装
+
+遇到问题时，在 `oneuptime` 文件夹中运行 doctor：
+
+```bash
+npm run doctor
+```
+
+它会列出出错的地方，最严重的排在最前，每行都附有确切的修复方法，最后显示 **Everything looks right.** 或需要修复的问题数量。它会检查每个容器，并显示未运行容器日志的最后几行，还会检查 `config.env`、`HOST` 能否到达这台服务器、`PROVISION_SSL` 开启时的证书以及可用磁盘空间。它还会询问 OneUptime 对自身的了解：PostgreSQL、ClickHouse 和 Valkey、迁移、队列、版本，以及服务器的设置步骤，例如电子邮件和探针。`npm start` 结束时也会做同样的检查，只列出需要处理的问题。
+
+如需同时查看每个服务最近的错误（每条都标明服务名称）：
+
+```bash
+npm run doctor -- --logs
+```
+
+当有标记为 ✗ 的问题需要修复时，它以退出码 `1` 结束，因此可以在脚本中运行。Admin Dashboard 会在 **OneUptime 健康状况** 页面顶部显示 OneUptime 对自身的了解，在 Kubernetes 上则由 `HelmChart/Public/diagnose.sh` 输出。
+
 ## 故障排除
+
+先运行 `npm run doctor`：它会指出下面大多数问题，并给出修复方法。
 
 :::details npm start 在启动 OneUptime 之前停止
 `npm start` 会先检查服务器，遇到任何会让 OneUptime 无法工作的问题都会停下来：缺少 Docker 或其 Compose 插件、Docker 未运行或你的用户无权使用、某个端口被其他程序占用，或者 `HOST` 是任何浏览器都打不开的地址。每一行标有 ✗ 的内容都说明了要改什么。改好后再次运行 `npm start`。如果某项检查对你的服务器判断有误，可以跳过检查启动：
@@ -546,8 +568,8 @@ Admin Dashboard 在 **设置 > 监控 > 全局探针** 下列出该探针。它�
 ## 后续步骤
 
 :::cards
+- [完成服务器设置](/docs/installation/self-hosting-guide#完成服务器设置): 先是邮件，然后是短信和电话，每一项都带测试。
+- [快速开始](/docs/introduction/quickstart): 你的第一个监控器、第一个值班策略和第一个状态页。
 - [升级 OneUptime](/docs/installation/upgrading): 每个主版本需要你做的事。
-- [规模与容量规划](/docs/installation/sizing): 为你的遥测数据规划内存和磁盘。
 - [自托管架构](/docs/self-hosted/architecture): 各组件如何协同工作。
-- [企业版](/docs/self-hosted/enterprise): Enterprise 镜像增加了什么，以及它的许可证。
 :::

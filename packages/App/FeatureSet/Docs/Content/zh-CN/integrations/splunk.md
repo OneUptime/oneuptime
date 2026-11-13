@@ -44,7 +44,7 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 
 ### 在 OneUptime 中添加连接
 
-打开 **产品 → 安全事件 → 连接**（`/dashboard/{projectId}/security-events/connections`），点击 **添加连接**，选择 **Splunk Enterprise Security**，然后点击 **下一步**。填写下表中的设置，点击 **下一步**，然后把令牌粘贴到 **Authentication token** 中，或者把密码粘贴到 **密码** 中。
+打开 **产品 → 安全事件 → 连接**（`/dashboard/{projectId}/security-events/connections`），点击 **添加连接**，选择 **Splunk Enterprise Security**，然后点击 **下一步**。填写下表中的设置，点击 **下一步**，然后把令牌粘贴到 **身份验证令牌** 中，或者把密码粘贴到 **密码** 中。
 
 ### 保存之前先测试
 
@@ -53,13 +53,13 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 
 | 设置 | 填写什么 |
 | --- | --- |
-| **Splunk management URL** | 搜索头的 REST API，例如 `https://splunk.example.com:8089`。它必须使用 `https`，且不带查询字符串。路径会被保留，以便用于在某个路径下提供 API 的反向代理。 |
-| **搜索** | 选择要导入什么内容的搜索，在你更改之前为 `index=notable`。可以缩小它的范围，例如 `index=notable urgency IN (high, critical)`。OneUptime 会自己添加时间范围，所以搜索不能设置 `earliest` 或 `latest`，也不能以管道符开头。开头的 `search` 会被去掉。 |
+| **Splunk 管理 URL** | 搜索头的 REST API，例如 `https://splunk.example.com:8089`。它必须使用 `https`，且不带查询字符串。路径会被保留，以便用于在某个路径下提供 API 的反向代理。 |
+| **搜索查询** | 选择要导入什么内容的搜索，在你更改之前为 `index=notable`。可以缩小它的范围，例如 `index=notable urgency IN (high, critical)`。OneUptime 会自己添加时间范围，所以搜索不能设置 `earliest` 或 `latest`，也不能以管道符开头。开头的 `search` 会被去掉。 |
 | **用户名** | Splunk 用户的名称，仅当它使用密码进行身份验证时才需要。 |
-| **Authentication token** | 第一步中的令牌。保存了令牌时，使用的是令牌，而不是用户名和密码。 |
+| **身份验证令牌** | 第一步中的令牌。保存了令牌时，使用的是令牌，而不是用户名和密码。 |
 | **密码** | Splunk 用户的密码，仅当不使用令牌时才需要。 |
 
-**Authentication token** 和 **密码** 会被加密，API 从不返回它们，也不会再次显示。要替换其中一个，请在连接上使用 **更新凭据**。要从一种身份验证方式切换到另一种，请在那里输入新的方式，并打开 **Remove the stored Authentication token** 或 **Remove the stored Password**。
+**身份验证令牌** 和 **密码** 会被加密，API 从不返回它们，也不会再次显示。要替换其中一个，请在连接上使用 **更新凭据**。要从一种身份验证方式切换到另一种，请在那里输入新的方式，并打开 **删除已存储的 身份验证令牌** 或 **删除已存储的 密码**。
 
 **轮询** 步骤还有可选的 **描述**、**轮询间隔（分钟）**（`1` 到 `1440` 之间的整数，初始为 `5`），以及初始为开启的 **已启用**。
 
@@ -114,13 +114,13 @@ POST {Splunk management URL}/services/search/v2/jobs/export
 Stopped after collecting 10000 records; the window holds more. Records are read oldest first, and the last one read was created at 2026-09-14T08:12:44.000Z, where the next poll can resume.
 ```
 
-搜索按 `_time` 从早到晚对窗口排序，所以 OneUptime 会把游标移到它读取的最后一行的创建时间，下一次轮询就从那里开始，窗口长度不变。繁忙的搜索头每次轮询追赶 10,000 行，而不是重复读取同样的行。在同一时刻创建的行会被读取两次，去重检查会丢弃第二份副本。Splunk 在返回任何一行之前会先对整个窗口排序，所以 **搜索** 中找到远超所需内容的搜索会拖慢每一次轮询。请让它保持精确。
+搜索按 `_time` 从早到晚对窗口排序，所以 OneUptime 会把游标移到它读取的最后一行的创建时间，下一次轮询就从那里开始，窗口长度不变。繁忙的搜索头每次轮询追赶 10,000 行，而不是重复读取同样的行。在同一时刻创建的行会被读取两次，去重检查会丢弃第二份副本。Splunk 在返回任何一行之前会先对整个窗口排序，所以找到远超所需内容的 **搜索查询** 会拖慢每一次轮询。请让它保持精确。
 
 当一次运行完全无法越过保存的游标时，OneUptime 会改为缩短窗口：
 
 1. **缩小。** 下一次轮询从同一个起点读取长度减半的窗口，并不断减半，直到某个窗口能被完整读取，最短为一分钟。运行的警告会说明这一点：`This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **恢复。** 一个窗口被完整读取后，下一个窗口的长度会再次加倍，最长为 24 小时。
-3. **越过单独的一分钟。** 如果连一分钟内的内容都超过一次轮询能读取的量，轮询会越过这一分钟，让更新的 notable event 继续到达。这次运行仍为 **部分**，**最近错误** 显示 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 用 **Import this time range** 导入这一分钟，就能找回一次运行能读取的内容。
+3. **越过单独的一分钟。** 如果连一分钟内的内容都超过一次轮询能读取的量，轮询会越过这一分钟，让更新的 notable event 继续到达。这次运行仍为 **部分**，**最近错误** 显示 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 用 **导入此时间范围** 导入这一分钟，就能找回一次运行能读取的内容。
 
 因 Splunk 的错误而彻底失败的运行，会保留游标和窗口长度，下一次轮询会再次读取同一个窗口。唯一的例外是请求超时：游标保持不变，但下一个窗口的长度减半，因为重到无法及时得到响应的窗口每次尝试都会超时。更改 **轮询间隔（分钟）** 不会改变这些：它决定的是轮询多久开始一次，而不是窗口从哪里开始。
 
@@ -129,9 +129,9 @@ Stopped after collecting 10000 records; the window holds more. Records are read 
 在连接上点击 **诊断**，可以查看它最近的运行，并手动操作它。能更改该连接的人都可以启动这些操作；能查看它的人都可以阅读历史记录。
 
 - **立即运行** 会立即开始一次轮询，使用通常的游标，即使连接未处于 **已启用** 状态也可以。
-- **Preview notable events** 读取最长 7 天的时间范围，不导入任何内容。
-- **Import this time range** 在你确认后导入最长 7 天的范围，不会移动游标。已导入的行会被跳过。
-- 运行上的 **Copy diagnostics** 会复制它的报告以便提供给支持人员。报告从不包含凭据。
+- **预览重要事件** 读取最长 7 天的时间范围，不导入任何内容。
+- **导入此时间范围** 在你确认后导入最长 7 天的范围，不会移动游标。已导入的行会被跳过。
+- 运行上的 **复制诊断信息** 会复制它的报告以便提供给支持人员。报告从不包含凭据。
 
 ## 测试连接
 
@@ -141,10 +141,10 @@ Stopped after collecting 10000 records; the window holds more. Records are read 
 | --- | --- |
 | **配置** | 每项设置都存在且格式正确。此项失败时不会连接任何地方。 |
 | **Authenticate with Splunk** | Splunk 接受令牌，或者用户名和密码，并说明用户及其角色，方便你与原本想授予的角色进行比较。 |
-| **Run the search on Splunk** | **搜索** 中的搜索在过去 24 小时上运行，只取一行，并说明是哪个导出端点作出了响应。 |
-| **Notable events available to import** | **搜索** 中的搜索在过去 24 小时和过去 7 天内找到的行数。7 天内一行都没有是警告，而不是失败。 |
+| **Run the search on Splunk** | **搜索查询** 在过去 24 小时上运行，只取一行，并说明是哪个导出端点作出了响应。 |
+| **Notable events available to import** | **搜索查询** 在过去 24 小时和过去 7 天内找到的行数。7 天内一行都没有是警告，而不是失败。 |
 | **Background workers**、**Poll scheduler**、**Security event storage** | OneUptime 自身的一侧：有进程在处理 Worker 队列的作业，轮询作业每分钟运行一次，安全事件存储能够响应。 |
-| **Scheduled polling** | 针对已保存的连接：轮询已开启，没有运行卡在等待工作进程的状态，并且轮询按时运行。 |
+| **计划轮询** | 针对已保存的连接：轮询已开启，没有运行卡在等待工作进程的状态，并且轮询按时运行。 |
 
 测试中的每个请求都有 20 秒的期限。测试从不导入任何内容，也不移动游标，每个失败的检查都会说明需要更改什么。
 
@@ -177,13 +177,13 @@ OneUptime 也可以通过 Splunk 的 HTTP Event Collector（HEC）把它发现�
 :::details Last Error 以 `Splunk Enterprise Security authentication request` 开头
 - `Splunk Enterprise Security authentication request failed (HTTP ...)`：Splunk 拒绝说明调用者是谁。
   - `HTTP 401`：Splunk 没有接受凭据。令牌错误、已过期或已删除，搜索头上关闭了令牌身份验证，或者用户名或密码错误。请创建一个新令牌，并用 **更新凭据** 保存。
-  - `HTTP 404`：**Splunk management URL** 不是 REST API。它指向了端口 `8000` 上的 Splunk Web，或者带有搜索头不提供的路径。
+  - `HTTP 404`：**Splunk 管理 URL** 不是 REST API。它指向了端口 `8000` 上的 Splunk Web，或者带有搜索头不提供的路径。
 - `Splunk Enterprise Security authentication request returned ...`：响应的不是搜索头的 REST API，而是其他东西，例如端口 `8000` 上 Splunk Web 的 HTML 或某个代理的页面。请让 URL 指向管理端口。
 :::
 
 :::details Last Error 以 `Splunk Enterprise Security search export` 或 `Splunk Enterprise Security count search` 开头
 - `Splunk Enterprise Security search export failed (HTTP ...)`：Splunk 拒绝运行该搜索。
-  - `HTTP 400`：Splunk 无法解析该搜索。在 Splunk Web 中运行 **搜索** 中的搜索，即可看到它的错误。
+  - `HTTP 400`：Splunk 无法解析该搜索。在 Splunk Web 中运行 **搜索查询**，即可看到它的错误。
   - `HTTP 403`：用户的角色缺少 `search` 能力，或者无法读取该索引。请把 `notable` 或你的索引添加到该角色可以搜索的索引中。
   - `HTTP 404`：该 URL 上两个导出端点都不存在，所以它不是搜索头的管理端口。
   - `HTTP 429` 或 `HTTP 5xx`：Splunk 正在限制该用户、负载过高，或者搜索达到了它的某个限制。下一次轮询会重试。
@@ -193,7 +193,7 @@ OneUptime 也可以通过 Splunk 的 HTTP Event Collector（HEC）把它发现�
 :::
 
 :::details Last Error 以 `did not complete` 结尾
-`Splunk Enterprise Security search export did not complete`（其他步骤也一样）表示请求没有得到响应：超时、无法解析的名称、OneUptime 不信任的证书，或者被拒绝的私有地址。请检查 OneUptime 应用和工作进程能否打开到管理端口的 HTTPS 连接。如果搜索头能响应其他请求，但搜索超时，说明它排序的内容太多：下一次轮询会读取长度减半的窗口，而把 **搜索** 中的搜索范围缩小，就能彻底解决问题。
+`Splunk Enterprise Security search export did not complete`（其他步骤也一样）表示请求没有得到响应：超时、无法解析的名称、OneUptime 不信任的证书，或者被拒绝的私有地址。请检查 OneUptime 应用和工作进程能否打开到管理端口的 HTTPS 连接。如果搜索头能响应其他请求，但搜索超时，说明它排序的内容太多：下一次轮询会读取长度减半的窗口，而把 **搜索查询** 的范围缩小，就能彻底解决问题。
 :::
 
 :::details Last Polled 为 Never 且 Last Error 为空
@@ -201,12 +201,12 @@ OneUptime 也可以通过 Splunk 的 HTTP Event Collector（HEC）把它发现�
 :::
 
 :::details 运行为 Partial
-- `Stopped after collecting 10000 records; the window holds more`：窗口中的行超过了一次运行能读取的 10,000 行。不会丢失任何内容：下一次轮询会从读取的最后一行之后开始。一次又一次轮询都保持 **部分** 的连接正在追赶积压的内容，它的 **最近轮询** 和 **最近导入的事件** 会不断前进。如果它始终追不上，说明 **搜索** 中的搜索在每个轮询间隔内找到的行超过 10,000 行：请缩小它的范围，或者缩短 **轮询间隔（分钟）**。
-- `More records were created in the one minute from ... than one poll can read`：轮询越过了这一分钟。请在 **诊断** 中用 **Import this time range** 导入它。一次导入读取的量与一次轮询相同。
+- `Stopped after collecting 10000 records; the window holds more`：窗口中的行超过了一次运行能读取的 10,000 行。不会丢失任何内容：下一次轮询会从读取的最后一行之后开始。一次又一次轮询都保持 **部分** 的连接正在追赶积压的内容，它的 **最近轮询** 和 **最近导入的事件** 会不断前进。如果它始终追不上，说明 **搜索查询** 在每个轮询间隔内找到的行超过 10,000 行：请缩小它的范围，或者缩短 **轮询间隔（分钟）**。
+- `More records were created in the one minute from ... than one poll can read`：轮询越过了这一分钟。请在 **诊断** 中用 **导入此时间范围** 导入它。一次导入读取的量与一次轮询相同。
 :::
 
 :::details 测试通过，但没有导入任何内容
-阅读测试报告中的 **Notable events available to import**。过去 7 天为 `0` 表示 **搜索** 中的搜索在 Splunk 中什么都没找到：请在 Incident Review 中检查关联搜索是否已启用并在创建 notable event，以及 **搜索** 中的搜索是否比预期更窄。
+阅读测试报告中的 **Notable events available to import**。过去 7 天为 `0` 表示 **搜索查询** 在 Splunk 中什么都没找到：请在 Incident Review 中检查关联搜索是否已启用并在创建 notable event，以及 **搜索查询** 是否比预期更窄。
 :::
 
 ## 你会得到什么

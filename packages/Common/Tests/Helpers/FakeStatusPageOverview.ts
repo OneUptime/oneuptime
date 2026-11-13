@@ -30,7 +30,10 @@ import StatusPageSummaryBuilder from "../../Utils/StatusPage/StatusPageSummaryBu
  * states (ScheduledMaintenanceStartUtil), and nothing over; no incident when
  * the page does not show incidents; no maintenance when it does not show
  * maintenance; the overall status as StatusPageService.getOverallMonitorStatus
- * works it out. fakeSummaryJSON is the summary the server would send for it.
+ * works it out; the resources nothing checks - a monitor whose monitoring is
+ * off, a monitor group whose monitors all have it off - in
+ * notMonitoredResourceIds, as FrozenMonitorResources.getNotMonitoredResourceIds
+ * finds them. fakeSummaryJSON is the summary the server would send for it.
  *
  * The project's maintenance states, top first, with states of its own on
  * every side of the built-in ones:
@@ -175,6 +178,8 @@ export interface FakePageResource {
   monitorGroupId?: string | undefined;
   // On unless set to false.
   showCurrentStatus?: boolean | undefined;
+  // The monitor's monitoring is turned off: nothing checks it.
+  isMonitoringOff?: boolean | undefined;
 }
 
 export interface FakeMonitorGroup {
@@ -182,6 +187,12 @@ export interface FakeMonitorGroup {
   monitorIds: Array<string>;
   // The group's current status: the worst of its monitors' (none: unset).
   statusId?: string | undefined;
+  /*
+   * The group's monitors whose monitoring is turned off. When that is every
+   * monitor of the group, nothing checks it: the server leaves its status
+   * out, and the page draws it as Not monitored.
+   */
+  offMonitorIds?: Array<string> | undefined;
 }
 
 export interface FakeMaintenance {
@@ -309,6 +320,7 @@ export function buildFakeOverview(page: FakeStatusPage): JSONObject {
           monitor.currentMonitorStatusId = new ObjectID(spec.statusId);
         }
         monitor.isArchived = false;
+        monitor.disableActiveMonitoring = spec.isMonitoringOff === true;
         resource.monitor = monitor;
       }
 
@@ -322,16 +334,45 @@ export function buildFakeOverview(page: FakeStatusPage): JSONObject {
 
   const monitorGroupCurrentStatuses: Dictionary<ObjectID> = {};
   const monitorsInGroup: Dictionary<Array<ObjectID>> = {};
+  const notMonitoredGroupIds: Set<string> = new Set<string>();
 
   for (const group of page.monitorGroups || []) {
     monitorsInGroup[group.id] = group.monitorIds.map((id: string): ObjectID => {
       return new ObjectID(id);
     });
 
+    // Every monitor of the group has its monitoring off: an empty group does not.
+    const offMonitorIds: Array<string> = group.offMonitorIds || [];
+
+    if (
+      group.monitorIds.length > 0 &&
+      group.monitorIds.every((monitorId: string): boolean => {
+        return offMonitorIds.includes(monitorId);
+      })
+    ) {
+      notMonitoredGroupIds.add(group.id);
+      continue;
+    }
+
     if (group.statusId) {
       monitorGroupCurrentStatuses[group.id] = new ObjectID(group.statusId);
     }
   }
+
+  // The resources nothing checks, as the server lists them.
+  const notMonitoredResourceIds: Array<string> = page.resources
+    .filter((spec: FakePageResource): boolean => {
+      if (spec.monitorId) {
+        return spec.isMonitoringOff === true;
+      }
+
+      return Boolean(
+        spec.monitorGroupId && notMonitoredGroupIds.has(spec.monitorGroupId),
+      );
+    })
+    .map((spec: FakePageResource): string => {
+      return spec.id;
+    });
 
   const stateModels: Array<ScheduledMaintenanceState> =
     FAKE_MAINTENANCE_STATES.map(
@@ -394,13 +435,18 @@ export function buildFakeOverview(page: FakeStatusPage): JSONObject {
 
   /*
    * The overall status, as StatusPageService.getOverallMonitorStatus works
-   * it out: the highest-priority status any resource is in, or the
-   * lowest-priority status of the project when none is.
+   * it out: the highest-priority status any resource that is monitored is
+   * in, or the lowest-priority status of the project when none is - and
+   * none at all when no resource on the page is monitored.
    */
   const inUse: Set<string> = new Set<string>();
 
   for (const spec of page.resources) {
-    if (spec.monitorId && spec.statusId) {
+    if (
+      spec.monitorId &&
+      spec.statusId &&
+      !notMonitoredResourceIds.includes(spec.id)
+    ) {
       inUse.add(spec.statusId);
     }
   }
@@ -409,9 +455,17 @@ export function buildFakeOverview(page: FakeStatusPage): JSONObject {
     inUse.add(statusId.toString());
   }
 
-  let overall: FakeMonitorStatus | null = statuses[0] || null;
+  const isNothingMonitored: boolean =
+    page.resources.length > 0 &&
+    page.resources.every((spec: FakePageResource): boolean => {
+      return notMonitoredResourceIds.includes(spec.id);
+    });
 
-  for (const status of statuses) {
+  let overall: FakeMonitorStatus | null = isNothingMonitored
+    ? null
+    : statuses[0] || null;
+
+  for (const status of isNothingMonitored ? [] : statuses) {
     if (inUse.has(status.id)) {
       overall = status;
     }
@@ -430,6 +484,7 @@ export function buildFakeOverview(page: FakeStatusPage): JSONObject {
     monitorGroupCurrentStatuses: JSONFunctions.serialize(
       monitorGroupCurrentStatuses,
     ),
+    notMonitoredResourceIds: notMonitoredResourceIds,
     monitorsInGroup: JSONFunctions.serialize(monitorsInGroup),
     activeIncidents: BaseModel.toJSONArray(incidents, Incident),
     scheduledMaintenanceEvents: BaseModel.toJSONArray(

@@ -22,10 +22,11 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * Operational, and counted in its badges, beside the monitors that really
  * are down, and its "Disabled" bubble said why only once the list was open.
  * It is listed under Disabled instead now: every list and count that says
- * "not operational" reads NotOperationalMonitorQuery - the Monitors and
- * Home menus' badges, both Not Operational pages and Home's attention strip.
+ * "not operational" reads NotOperationalMonitorQuery - the Monitors menu's
+ * badge, the Not Operational page and Home's number and attention strip,
+ * which open that page (Home keeps no copy of the list: #6857).
  *
- * The real menus, pages and Home read are run; ModelAPI and the table are
+ * The real menu, page and Home read are run; ModelAPI and the table are
  * stubbed to record what they are asked for.
  */
 
@@ -76,8 +77,6 @@ jest.mock(
 );
 
 import { fetchNotOperationalMonitors } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/HomeOverviewData";
-import HomeNotOperationalMonitors from "../../../../App/FeatureSet/Dashboard/src/Pages/Home/NotOperationalMonitors";
-import HomeSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Home/SideMenu";
 import MonitorNotOperationalMonitors from "../../../../App/FeatureSet/Dashboard/src/Pages/Monitor/NotOperationalMonitors";
 import MonitorsSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Monitor/SideMenu";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
@@ -199,24 +198,12 @@ describe("the menus' Not Operational badges count what the list shows", () => {
       },
     ]);
   });
-
-  test("the Home menu's badge leaves them out too", async () => {
-    goTo(`/dashboard/${PROJECT_ID}/home`);
-    await renderMenu(<HomeSideMenu project={project()} />);
-
-    expect(notOperationalBadgeQueries()).toEqual([
-      { projectId: PROJECT_ID, ...NOT_OPERATIONAL },
-    ]);
-  });
 });
 
-describe("the Not Operational pages list them nowhere", () => {
+describe("the Not Operational page lists them nowhere", () => {
   const pageProps: PageComponentProps = {} as PageComponentProps;
 
-  test.each([
-    ["Monitors > Not Operational", MonitorNotOperationalMonitors],
-    ["Home > Not Operational", HomeNotOperationalMonitors],
-  ])(
+  test.each([["Monitors > Not Operational", MonitorNotOperationalMonitors]])(
     "%s asks the table for monitors with monitoring on only, and says so",
     (_name: string, Page: React.FunctionComponent<PageComponentProps>) => {
       render(<Page {...pageProps} />);
@@ -272,11 +259,11 @@ describe("one rule for every Not Operational list and count", () => {
 
   test.each([
     "App/FeatureSet/Dashboard/src/Pages/Monitor/NotOperationalMonitors.tsx",
-    "App/FeatureSet/Dashboard/src/Pages/Home/NotOperationalMonitors.tsx",
     "App/FeatureSet/Dashboard/src/Pages/Monitor/SideMenu.tsx",
-    "App/FeatureSet/Dashboard/src/Pages/Home/SideMenu.tsx",
     "App/FeatureSet/Dashboard/src/Components/Home/HomeOverviewData.ts",
     "Common/Server/Utils/AI/Toolbox/MonitorTools.ts",
+    // The Monitor List widget's "non-operational", on a board and a public page (#6476).
+    "Common/Utils/Dashboard/MonitorListWidgetFormat.ts",
   ])("%s reads NotOperationalMonitorQuery", (relativePath: string) => {
     const source: string = fs.readFileSync(
       path.join(PACKAGES, relativePath),

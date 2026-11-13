@@ -74,6 +74,8 @@ flowchart TB
 
 Обзор — это один запрос на всю страницу. Это те же данные, которые рисует страница статуса, и им не больше 15 секунд.
 
+Дни полос времени работы — это дни по UTC, если вы не укажете часовой пояс: добавьте `?timezone=Asia/Shanghai` к `GET` или отправьте `{"timezone": "Asia/Shanghai"}` в теле `POST`, и `uptimeDailyAggregate` и `monitorGroupUptimeDailyAggregate` будут разбиты на дни этого пояса, как страница статуса запрашивает для каждого посетителя. Неизвестный серверу пояс считается UTC, и оба в своём `timezone` сообщают, в каком поясе они разбиты.
+
 :::tabs
 @tab curl
 ```bash
@@ -111,7 +113,7 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 ```
 :::
 
-Общий статус — это худший текущий статус среди мониторов и групп мониторов на странице, то есть статус с наивысшим приоритетом. Статус монитора выглядит так:
+Общий статус — это худший текущий статус среди мониторов и групп мониторов на странице, то есть статус с наивысшим приоритетом. Ресурсы, которые страница показывает как **Не отслеживается** (они перечислены в `notMonitoredResourceIds`), не учитываются. Статус монитора выглядит так:
 
 ```json
 {
@@ -127,13 +129,14 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 
 | Ключ | Что содержит |
 | --- | ------------- |
-| `overallStatus` | Общий статус страницы — статус монитора, как выше. Страница, на которой ничего нет, получает статус проекта с низшим приоритетом. |
+| `overallStatus` | Общий статус страницы — статус монитора, как выше. Страница, на которой ничего нет, получает статус проекта с низшим приоритетом, а страница, все ресурсы которой показаны как **Не отслеживается**, получает `null`. |
 | `statusPage` | Публичные настройки страницы: заголовок, описание, оформление и то, что она показывает. |
 | `statusPageResources` | Каждый ресурс: отображаемое имя, описание, группа, монитор или группа мониторов и параметры отображения. |
 | `resourceGroups` | Группы, с `parentStatusPageGroupId` для вложенных групп. |
 | `monitorStatuses` | Все статусы мониторов проекта, от низшего приоритета к высшему. |
 | `monitorGroupCurrentStatuses`, `monitorsInGroup` | Текущий статус каждой группы мониторов на странице и мониторы в ней. |
-| `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | Данные, по которым рисуются полосы времени работы, и правила цвета полос на странице. |
+| `notMonitoredResourceIds` | ID ресурсов, которые страница показывает как **Не отслеживается**: монитор с выключенным мониторингом или группа мониторов, у всех мониторов которой он выключен. Они не определяют никакой статус, а у такой группы нет записи в `monitorGroupCurrentStatuses`. |
+| `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupUptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | Данные, по которым рисуются полосы времени работы, и правила цвета полос на странице. |
 | `activeIncidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates` | Нерешённые инциденты, которые показывает страница, их публичные заметки и смены состояний, а также состояния инцидентов проекта. |
 | `timelineIncidents` | Инциденты в окне полос времени работы, включая решённые, — для всплывающих подсказок полос. |
 | `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | То же для эпизодов инцидентов. |
@@ -168,6 +171,7 @@ curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
         "color": "#2ab57d",
         "isOperational": true
       },
+      "isMonitored": true,
       "isUnderMaintenance": true
     }
   ],
@@ -188,12 +192,12 @@ curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
 
 | Ключ | Что в сводке |
 | --- | -------------- |
-| `overallStatus` | Общий статус страницы, как его показывает её баннер: `name`, `color` и `isOperational`. |
-| `resources` | Каждый ресурс, который показывает страница, в её порядке: его `name` на странице, его `groupName` с группами над ним, его `currentStatus` и `isUnderMaintenance`. |
+| `overallStatus` | Общий статус страницы, как его показывает её баннер: `name`, `color` и `isOperational`. `null`, когда все ресурсы страницы показаны как **Не отслеживается**. |
+| `resources` | Каждый ресурс, который показывает страница, в её порядке: его `name` на странице, его `groupName` с группами над ним, его `currentStatus`, `isMonitored` и `isUnderMaintenance`. |
 | `activeIncidents` | Нерешённые инциденты, которые показывает страница, каждый с `affectedResourceIds` затронутых ресурсов. |
 | `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | Идущие и ещё предстоящие события плановых работ, каждое со своими `affectedResourceIds`. |
 
-`currentStatus` ресурса равен `null`, когда страница его не показывает. `isUnderMaintenance` равен `true`, пока идущее событие называет один из мониторов ресурса или монитор в его группе мониторов, каким бы ни был статус этих мониторов.
+`currentStatus` ресурса равен `null`, когда страница его не показывает, а также когда `isMonitored` равен `false`: ресурс никто не проверяет, потому что мониторинг его монитора выключен или выключен у всех мониторов его группы мониторов, и страница показывает его как **Не отслеживается**. `isUnderMaintenance` равен `true`, пока идущее событие называет один из мониторов ресурса или монитор в его группе мониторов, каким бы ни был статус этих мониторов.
 
 ## Время работы за период
 
@@ -276,7 +280,8 @@ for group in uptime["groupUptimes"]:
         "color": { "_type": "Color", "value": "#2ab57d" },
         "isOperationalState": true,
         "priority": 1
-      }
+      },
+      "isMonitored": true
     }
   ],
   "groupUptimes": [
@@ -301,7 +306,8 @@ for group in uptime["groupUptimes"]:
             "color": { "_type": "Color", "value": "#2ab57d" },
             "isOperationalState": true,
             "priority": 1
-          }
+          },
+          "isMonitored": true
         }
       ],
       "statusPageGroupName": "Web",
@@ -311,7 +317,8 @@ for group in uptime["groupUptimes"]:
         "color": { "_type": "Color", "value": "#2ab57d" },
         "isOperationalState": true,
         "priority": 1
-      }
+      },
+      "isMonitored": true
     }
   ],
   "startDate": "2026-09-01T00:00:00.000Z",
@@ -325,6 +332,7 @@ for group in uptime["groupUptimes"]:
 | `groupUptimes` | По одной записи на группу. `uptimePercent` и `currentStatus` группы охватывают все ресурсы под ней, включая вложенные группы; её `statusPageResourceUptimes` перечисляет только ресурсы, лежащие прямо в ней. Восстановите дерево по `parentStatusPageGroupId`. |
 | `uptimePercent` | Округлён до точности, заданной у ресурса или группы. `null`, если ресурс или группа не показывает процент времени работы. |
 | `currentStatus` | `null`, если ресурс или группа не показывает текущий статус. |
+| `isMonitored` | `false`, когда страница показывает ресурс как **Не отслеживается**, а у группы — когда так показан каждый ресурс под ней. Тогда его `currentStatus` равен `null`. |
 
 Время считается простоем, когда статус монитора входит в статусы страницы из настройки **Считается простоем**.
 

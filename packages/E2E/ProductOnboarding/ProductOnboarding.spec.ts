@@ -9,6 +9,7 @@ import fs from "fs";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
+import { cardBodyMisfits } from "../SuiteHelpers/CardBodyFit";
 import { sideMenuAtRest } from "../SuiteHelpers/SideMenuAtRest";
 
 /*
@@ -1323,7 +1324,7 @@ test("a database just connected, not read yet: one step of five done, and the Ov
   await screenshot(page, "data-observability-connected-1440");
 });
 
-test("an Overview that cannot be read says why, and Refresh reads it again; it never offers to connect a first database", async ({
+test("an Overview that cannot be read says why, and Try again reads it again; it never offers to connect a first database", async ({
   page,
 }: {
   page: Page;
@@ -1332,9 +1333,21 @@ test("an Overview that cannot be read says why, and Refresh reads it again; it n
 
   const refresh: Locator = page.getByTestId("refresh-button");
   await expect(refresh).toBeVisible();
+  /*
+   * The server's answer says nothing ("Something went wrong. Please try
+   * again."): the page says it could not be explained, and what to do next,
+   * and offers Try again (#6836).
+   */
+  await expect(page.getByTestId("error-what-failed")).toHaveText(
+    "This did not finish.",
+  );
+  await expect(page.getByTestId("error-why-and-next")).toHaveText(
+    "The server ran into a problem it could not explain. Try again in a moment.",
+  );
   await expect(
     page.getByText("Something went wrong. Please try again."),
-  ).toBeVisible();
+  ).toHaveCount(0);
+  await expect(refresh).toHaveText("Try again");
   await expect(showcase(page)).toHaveCount(0);
   await expect(needsAttention(page)).toHaveCount(0);
   await expect(setupSteps(page)).toHaveCount(0);
@@ -1366,6 +1379,17 @@ for (const width of [1280, 1024, 768, 390]) {
 
     expect(await attentionKinds(page)).toEqual(BUSY_ATTENTION_KINDS);
     expect(await overflowingOnTheOverview(page)).toEqual([]);
+    /*
+     * What each card holds starts under its title's first letter, with
+     * the card's own padding alone around it, as on every product's cards
+     * (#6555): Needs Attention, Recent Schema Changes, Databases.
+     */
+    await expect(needsAttention(page).getByTestId("card")).toHaveCount(1);
+    await expect
+      .poll(async (): Promise<Array<string>> => {
+        return cardBodyMisfits(page.getByTestId("card"));
+      }, `the Overview's cards at ${width}px`)
+      .toEqual([]);
     // Dismiss keeps to the end of the title's line, on a phone too.
     expect(
       await isOnOneLine(
@@ -1566,6 +1590,12 @@ test("in Persian, dark: right to left, what needs someone in Persian with its fa
   expect(Math.min(...channels)).toBeGreaterThan(180);
 
   expect(await overflowingOnTheOverview(page)).toEqual([]);
+  // Right to left, what each card holds starts under its title's first letter, at its right (#6555).
+  await expect
+    .poll(async (): Promise<Array<string>> => {
+      return cardBodyMisfits(page.getByTestId("card"));
+    }, "the Overview's cards in Persian")
+    .toEqual([]);
   await expectNoSidewaysScroll(page, {
     message: "a busy Data Observability Overview in Persian",
   });
@@ -1574,6 +1604,11 @@ test("in Persian, dark: right to left, what needs someone in Persian with its fa
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(needsAttention(page)).toBeVisible();
   expect(await overflowingOnTheOverview(page)).toEqual([]);
+  await expect
+    .poll(async (): Promise<Array<string>> => {
+      return cardBodyMisfits(page.getByTestId("card"));
+    }, "the Overview's cards in Persian at 390px")
+    .toEqual([]);
   await expectNoSidewaysScroll(page, {
     message: "a busy Data Observability Overview in Persian at 390px",
   });
@@ -1877,6 +1912,58 @@ async function overflowingBoxes(page: Page): Promise<Array<string>> {
   });
 }
 
+/*
+ * The example's figures, written the reader's way (#6535): "1,284" in
+ * English, "1.284" in German, "۱٬۲۸۴" in Persian, and a unit in the
+ * language's own words ("۱۸۴ میلی‌ثانیه"). A figure is never cut short, and
+ * one that takes a second line - a unit a language writes long, under its
+ * number - is listed: English and German keep every figure on one line.
+ * Each product's figures, by its explanation.
+ */
+interface DrawnStatValues {
+  values: Record<string, Array<string>>;
+  cut: Array<string>;
+  wrapped: Array<string>;
+}
+
+async function drawnStatValues(page: Page): Promise<DrawnStatValues> {
+  return page.evaluate((): DrawnStatValues => {
+    const values: Record<string, Array<string>> = {};
+    const cut: Array<string> = [];
+    const wrapped: Array<string> = [];
+
+    for (const section of Array.from(
+      document.querySelectorAll('[data-testid="product-explanation"]'),
+    )) {
+      const product: string = section.getAttribute("data-product") || "";
+
+      for (const value of Array.from(
+        section.querySelectorAll(
+          '[data-testid="resource-showcase-stat-value"]',
+        ),
+      )) {
+        const text: string = (value.textContent || "").trim();
+
+        (values[product] = values[product] || []).push(text);
+        if (value.scrollWidth > value.clientWidth + 1) {
+          cut.push(
+            `${product}: "${text}" is cut, ${value.scrollWidth}px in ${value.clientWidth}px`,
+          );
+        }
+
+        const lineHeight: number = parseFloat(
+          window.getComputedStyle(value).lineHeight,
+        );
+        if (value.getBoundingClientRect().height > lineHeight * 1.5) {
+          wrapped.push(`${product}: "${text}"`);
+        }
+      }
+    }
+
+    return { values, cut, wrapped };
+  });
+}
+
 async function shootEveryExplanation(page: Page, name: string): Promise<void> {
   if (!SHOOTS_EVERY_EXPLANATION) {
     return;
@@ -1954,11 +2041,48 @@ test("every product explains itself the same way: its name, its pitch, its first
   }
 
   expect(await overflowingBoxes(page)).toEqual([]);
+  // Four figures to an example, each whole: Status Pages' subscribers "1,284".
+  const figures: DrawnStatValues = await drawnStatValues(page);
+  expect(figures.values["status-pages"]).toContain("1,284");
+  expect(figures.cut).toEqual([]);
+  expect(figures.wrapped).toEqual([]);
   await expectNoSidewaysScroll(page, {
     message: "every product's explanation at 1280px",
   });
   await shootEveryExplanation(page, "1280");
 });
+
+/*
+ * A figure is longer in some languages than in English: "1,82 Mio." for
+ * "1.82M", "۱۸۴ میلی‌ثانیه" for "184 ms". At a laptop's width an example's
+ * four tiles stand in one row, the narrowest they are drawn. A unit is
+ * drawn smaller than its number, as a value widget draws it, so every
+ * figure keeps to one line, and is never cut.
+ */
+for (const reader of [
+  { language: "German", lang: "de", subscribers: "1.284" },
+  { language: "Persian", lang: "fa", subscribers: "۱٬۲۸۴" },
+]) {
+  test(`every product's example in ${reader.language} at a laptop's width: its figures written the ${reader.language} way, none cut short`, async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await openExplanations(page, `lang=${reader.lang}`);
+
+    const figures: DrawnStatValues = await drawnStatValues(page);
+
+    expect(figures.values["status-pages"]).toContain(reader.subscribers);
+    expect(
+      Object.values(figures.values).flat().length,
+      "every example draws its figures",
+    ).toBeGreaterThan(100);
+    expect(figures.cut).toEqual([]);
+    expect(figures.wrapped).toEqual([]);
+    await shootEveryExplanation(page, `1280-${reader.lang}`);
+  });
+}
 
 for (const reader of [
   { language: "German", lang: "de", words: GERMAN, theme: "light" },
@@ -2024,6 +2148,11 @@ for (const reader of [
     }
 
     expect(await overflowingBoxes(page)).toEqual([]);
+    const figures: DrawnStatValues = await drawnStatValues(page);
+    expect(figures.cut).toEqual([]);
+    if (reader.lang === "de") {
+      expect(figures.wrapped).toEqual([]);
+    }
     await expectNoSidewaysScroll(page, {
       message: `every product's explanation in ${reader.language} at 390px`,
     });

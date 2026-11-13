@@ -4,6 +4,13 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import AppLink from "../../AppLink/AppLink";
 import { formatReplayOffsetPrecise } from "../ReplayTimeFormat";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  getLineDirection,
+  LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+} from "Common/UI/Utils/LineDirection";
+import { ReadingDirection } from "Common/Types/ReadingDirection";
 import { ReplaySignal } from "./ReplaySignalTypes";
 import {
   ReplayRailGlyph,
@@ -127,11 +134,16 @@ function rowLabel(
 const ReplayRailRowComponent: FunctionComponent<ReplayRailRowProps> = (
   props: ReplayRailRowProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const signal: ReplaySignal = props.row.signal;
   const glyph: ReplayRailGlyph = glyphForSignal(signal);
   const time: string = formatReplayOffsetPrecise(signal.offsetMs);
   const tag: string | null = sourceTag(signal);
   const detailId: string = `${props.domId}-detail`;
+  const titleDirection: ReadingDirection | undefined = getLineDirection(
+    signal.title,
+    translator.language,
+  );
 
   const textClass: string = props.isActive
     ? "text-gray-900"
@@ -172,8 +184,11 @@ const ReplayRailRowComponent: FunctionComponent<ReplayRailRowProps> = (
           aria-expanded={props.isSelected}
           aria-controls={props.detail ? detailId : undefined}
           aria-label={rowLabel(props, glyph, time, tag)}
-          className={`flex min-w-0 flex-1 cursor-pointer items-start gap-2 text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400 ${textClass}`}
-          title={`Seek to ${time} (1s before) and open the detail`}
+          className={`flex min-w-0 flex-1 cursor-pointer items-start gap-2 text-start focus:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400 ${textClass}`}
+          title={translator.translateTemplate(
+            "Seek to {{time}} (1s before) and open the detail",
+            { time: time },
+          )}
           onClick={(): void => {
             props.onActivate(props.row);
           }}
@@ -187,7 +202,7 @@ const ReplayRailRowComponent: FunctionComponent<ReplayRailRowProps> = (
 
           {props.isActive && (
             <span data-testid="rail-row-active" className="sr-only">
-              now
+              {translator.translateText("now")}
             </span>
           )}
 
@@ -195,14 +210,33 @@ const ReplayRailRowComponent: FunctionComponent<ReplayRailRowProps> = (
             {time}
           </span>
 
-          <span className="min-w-0 flex-1 truncate text-xs">
+          {/*
+           * A title is mostly what the page recorded: a path, a request, an
+           * error's message. Read the other way from the page ("/cart ->
+           * /checkout" on an Arabic page), its box reads the way the title
+           * does, so its slashes stay where they were written and a long
+           * title is cut at its own end; aligned to the box's end, it still
+           * starts where the page's lines do.
+           */}
+          <span
+            className={`min-w-0 flex-1 truncate text-xs ${
+              titleDirection ? LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME : ""
+            }`}
+            dir={titleDirection}
+          >
             {signal.title}
           </span>
 
           {props.row.repeatCount > 1 && (
             <span
               className="shrink-0 rounded bg-gray-200 px-1 font-mono text-[10px] font-semibold tabular-nums text-gray-700"
-              title={`Repeated ${props.row.repeatCount} times in a row`}
+              title={translator.translatePlural(
+                {
+                  one: "Repeated {{count}} time in a row",
+                  other: "Repeated {{count}} times in a row",
+                },
+                props.row.repeatCount,
+              )}
             >
               ×{props.row.repeatCount}
             </span>
@@ -210,7 +244,7 @@ const ReplayRailRowComponent: FunctionComponent<ReplayRailRowProps> = (
 
           {tag && (
             <span className="shrink-0 rounded bg-gray-100 px-1 text-[10px] font-medium uppercase tracking-wide text-gray-500">
-              {tag}
+              {translator.translateText(tag) || tag}
             </span>
           )}
 
@@ -219,7 +253,7 @@ const ReplayRailRowComponent: FunctionComponent<ReplayRailRowProps> = (
               className="shrink-0 text-[10px] text-indigo-600"
               title={props.counterpartNote}
             >
-              linked
+              {translator.translateText("linked")}
             </span>
           )}
 
@@ -232,7 +266,9 @@ const ReplayRailRowComponent: FunctionComponent<ReplayRailRowProps> = (
           {props.uncertaintyLabel && (
             <span
               className="shrink-0 font-mono text-[10px] text-gray-400"
-              title="Server-stamped time; not anchored to the recording's clock"
+              title={translator.translateText(
+                "Server-stamped time; not anchored to the recording's clock",
+              )}
             >
               {props.uncertaintyLabel}
             </span>
@@ -243,8 +279,10 @@ const ReplayRailRowComponent: FunctionComponent<ReplayRailRowProps> = (
           <button
             type="button"
             className="rounded-md p-1 text-gray-400 transition-colors hover:bg-white hover:text-indigo-600"
-            aria-label={`Seek to ${time}`}
-            title="Seek here (1s before)"
+            aria-label={translator.translateTemplate("Seek to {{time}}", {
+              time: time,
+            })}
+            title={translator.translateText("Seek here (1s before)")}
             onClick={(event: React.MouseEvent<HTMLButtonElement>): void => {
               event.stopPropagation();
               props.onSeek(props.row);
@@ -257,8 +295,8 @@ const ReplayRailRowComponent: FunctionComponent<ReplayRailRowProps> = (
             <button
               type="button"
               className="rounded-md p-1 text-gray-400 transition-colors hover:bg-white hover:text-indigo-600"
-              aria-label="Copy link to this moment"
-              title="Copy link to this moment"
+              aria-label={translator.translateText("Copy link to this moment")}
+              title={translator.translateText("Copy link to this moment")}
               onClick={(event: React.MouseEvent<HTMLButtonElement>): void => {
                 event.stopPropagation();
                 props.onCopyLink?.(props.row);
@@ -273,7 +311,7 @@ const ReplayRailRowComponent: FunctionComponent<ReplayRailRowProps> = (
               to={props.link.route}
               className="rounded px-1 text-[10px] font-medium text-indigo-600 hover:underline"
             >
-              {props.link.label}
+              {translator.translateText(props.link.label) || props.link.label}
             </AppLink>
           )}
         </div>
@@ -284,7 +322,9 @@ const ReplayRailRowComponent: FunctionComponent<ReplayRailRowProps> = (
           id={detailId}
           data-testid="rail-row-detail"
           role="group"
-          aria-label={`Detail for ${signal.title}`}
+          aria-label={translator.translateTemplate("Detail for {{title}}", {
+            title: signal.title,
+          })}
           className="border-t border-gray-200 px-2 py-2"
           onClick={(event: React.MouseEvent<HTMLDivElement>): void => {
             /* Clicks inside the detail never re-seek the row. */

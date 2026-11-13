@@ -2,7 +2,8 @@ import LabelsElement from "Common/UI/Components/Label/Labels";
 import PageComponentProps from "../../PageComponentProps";
 import URL from "Common/Types/API/URL";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { Green } from "Common/Types/BrandColors";
+import { Gray500, Green } from "Common/Types/BrandColors";
+import Color from "Common/Types/Color";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
@@ -42,6 +43,7 @@ import MonitorGroupDisabledStatus from "../../../Components/MonitorGroup/Monitor
 import MonitorGroupMonitoringCard from "../../../Components/MonitorGroup/MonitorGroupMonitoringCard";
 import { fetchMonitorGroupMonitoringSummary } from "../../../Components/MonitorGroup/MonitorGroupMonitoringAPI";
 import MonitorGroupMonitoring, {
+  MonitorGroupMonitoringState,
   MonitorGroupMonitoringSummary,
 } from "Common/Utils/Monitor/MonitorGroupMonitoring";
 import React, {
@@ -99,22 +101,44 @@ const MonitorGroupView: FunctionComponent<
      * measure over that window. Otherwise an open (endsAt = null) row that started before the
      * window contributes its whole duration and the denominator becomes "first event -> now"
      * instead of the 90 days shown.
+     *
+     * Only the time a monitor was monitored counts (issues #6480 and #6987): the group's
+     * timeline keeps each monitor's rows up to when its monitoring was turned off, and the rows
+     * from then on mark it (isMonitoringOff), so uptime leaves that time out. A group none of
+     * whose monitors was monitored in the 90 days has no percentage, rather than the 100% that
+     * no time at all reads as.
      */
-    const uptimePercent: number = UptimeUtil.calculateUptimePercentage(
-      statusTimelines,
-      UptimePrecision.THREE_DECIMAL,
-      downTimeMonitorStatues,
-      {
-        startDate: OneUptimeDate.getSomeDaysAgo(90),
-        endDate: OneUptimeDate.getCurrentDate(),
-      },
-    );
+    const uptimePercent: number | null =
+      UptimeUtil.calculateUptimePercentageOfMonitoredTime(
+        statusTimelines,
+        UptimePrecision.THREE_DECIMAL,
+        downTimeMonitorStatues,
+        {
+          startDate: OneUptimeDate.getSomeDaysAgo(90),
+          endDate: OneUptimeDate.getCurrentDate(),
+        },
+      );
+
+    if (uptimePercent === null) {
+      return <></>;
+    }
+
+    /*
+     * Every monitor with monitoring off: the group reads Disabled, in grey,
+     * and so does its uptime, which ends when monitoring was turned off - not
+     * in the colour of the worst status their last checks saw.
+     */
+    const percentColor: Color =
+      MonitorGroupMonitoring.isMonitoringOffForEveryMonitor(monitoringSummary)
+        ? Gray500
+        : currentGroupStatus?.color || Green;
 
     return (
       <div
         className="font-medium mt-5"
+        data-testid="monitor-group-uptime-percent"
         style={{
-          color: currentGroupStatus?.color?.toString() || Green.toString(),
+          color: percentColor.toString(),
         }}
       >
         {translator.translateTemplate("{{percent}}% uptime", {
@@ -172,9 +196,35 @@ const MonitorGroupView: FunctionComponent<
     };
 
   /*
+   * The group's status timeline: every monitor's rows, those that mark its
+   * monitoring off included.
+   */
+  const getStatusTimelines: () => Promise<
+    ListResult<MonitorStatusTimeline>
+  > = async (): Promise<ListResult<MonitorStatusTimeline>> => {
+    return await ModelAPI.getList({
+      modelType: MonitorStatusTimeline,
+      query: {},
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      select: {},
+      sort: {},
+      requestOptions: {
+        overrideRequestUrl: URL.fromString(APP_API_URL.toString())
+          .addRoute(new MonitorGroup().getCrudApiPath()!)
+          .addRoute("/timeline/")
+          .addRoute(`/${modelId.toString()}`),
+      },
+    });
+  };
+
+  /*
    * Monitoring was turned off or on from the Monitoring card: its counts,
    * and the group's status - turning monitoring off resolves incidents,
-   * which gives monitors back their operational status.
+   * which gives monitors back their operational status. And its timeline:
+   * the switch starts a status event on each monitor's timeline, from which
+   * its time no longer counts, or counts again (issue #6480), so the graph
+   * and the percentage follow it.
    */
   const onMonitoringChanged: (
     summary: MonitorGroupMonitoringSummary,
@@ -188,6 +238,14 @@ const MonitorGroupView: FunctionComponent<
       .catch(() => {
         // The status read before stays: the page reports its own errors on load.
       });
+
+    getStatusTimelines()
+      .then((timelines: ListResult<MonitorStatusTimeline>) => {
+        setStatusTimelines(timelines.data);
+      })
+      .catch(() => {
+        // The timeline read before stays, as the status does.
+      });
   };
 
   const fetchItem: PromiseVoidFunction = async (): Promise<void> => {
@@ -196,20 +254,7 @@ const MonitorGroupView: FunctionComponent<
 
     try {
       const statusTimelines: ListResult<MonitorStatusTimeline> =
-        await ModelAPI.getList({
-          modelType: MonitorStatusTimeline,
-          query: {},
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: {},
-          sort: {},
-          requestOptions: {
-            overrideRequestUrl: URL.fromString(APP_API_URL.toString())
-              .addRoute(new MonitorGroup().getCrudApiPath()!)
-              .addRoute("/timeline/")
-              .addRoute(`/${modelId.toString()}`),
-          },
-        });
+        await getStatusTimelines();
 
       const monitorStatuses: ListResult<MonitorStatus> = await ModelAPI.getList(
         {
@@ -276,6 +321,20 @@ const MonitorGroupView: FunctionComponent<
     new MonitorGroupResource(),
     ModelAction.Create,
   ).isAllowed;
+
+  /*
+   * A monitor counts in the group's timeline only while its monitoring is
+   * on: its history stays up to when it was turned off, and the time after
+   * is left out (issues #6480 and #6987), as its status is (issue #6478). So
+   * the Uptime Graph's description says so while some monitors are off, and
+   * that the graph ends when monitoring was turned off once every one of
+   * them is. Null when the group's monitoring could not be read: the
+   * description is then as before.
+   */
+  const uptimeGraphMonitoringState: MonitorGroupMonitoringState | null =
+    monitoringSummary
+      ? MonitorGroupMonitoring.getState(monitoringSummary)
+      : null;
 
   return (
     <Fragment>
@@ -428,14 +487,31 @@ const MonitorGroupView: FunctionComponent<
       ) : (
         <Card
           title="Uptime Graph"
-          description="This group's status over the last 90 days, one bar per day."
+          description={
+            uptimeGraphMonitoringState === MonitorGroupMonitoringState.Off
+              ? "This group's status over the last 90 days, one bar per day, up to when monitoring was turned off for all of its monitors."
+              : uptimeGraphMonitoringState === MonitorGroupMonitoringState.Mixed
+                ? "This group's status over the last 90 days, one bar per day. Each monitor counts only while its monitoring is on."
+                : "This group's status over the last 90 days, one bar per day."
+          }
           rightElement={getUptimePercent()}
         >
+          {/*
+           * The group's rows of every monitor, merged into one timeline in
+           * the worst status at each instant (WorstStatusTimeline), so a day
+           * adds up to at most the day. A monitor's time with monitoring off
+           * is no part of it (UptimeUtil.getMonitorEventsForId): a day none
+           * of them was monitored reads as no data. Drawn on the days of the
+           * zone every other time on the Dashboard is shown in - the user's -
+           * so a bar's label and the incidents its tooltip lists are the
+           * bar's day.
+           */}
           <MonitorUptimeGraph
             error={error}
             items={statusTimelines}
             startDate={OneUptimeDate.getSomeDaysAgo(90)}
             endDate={OneUptimeDate.getCurrentDate()}
+            uptimeTimezone={OneUptimeDate.getCurrentTimezone()}
             isLoading={isLoading}
             defaultBarColor={Green}
             downtimeMonitorStatuses={downTimeMonitorStatues}

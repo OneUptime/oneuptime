@@ -3,6 +3,12 @@ import TelegramLog from "Common/Models/DatabaseModels/TelegramLog";
 import NotificationService from "Common/Server/Services/NotificationService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import TelegramLogService from "Common/Server/Services/TelegramLogService";
+import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
+import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
+import OnCallTimelineRows, {
+  StoredOnCallNotification,
+} from "Common/Tests/Server/TestingUtils/OnCallTimelineRows";
+import { STUCK_NOTIFICATION_STATUS_MESSAGE } from "Common/Server/Utils/OnCall/OnCallNotificationStatus";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import API from "Common/Utils/API";
 import ObjectID from "Common/Types/ObjectID";
@@ -106,7 +112,11 @@ jest.mock("Common/Server/Services/TelegramLogService", () => {
 jest.mock("Common/Server/Services/UserOnCallLogTimelineService", () => {
   return {
     __esModule: true,
-    default: { updateOneById: jest.fn(), markNotSent: jest.fn() },
+    default: {
+      findOneById: jest.fn(),
+      updateOneBy: jest.fn(),
+      markNotSent: jest.fn(),
+    },
   };
 });
 
@@ -155,6 +165,9 @@ function onlySend(): Record<string, string> {
   return sendCounterCalls[0]!.attributes;
 }
 
+// The page's on-call log row (OnCallTimelineRows).
+let timeline: OnCallTimelineRows;
+
 describe("a Telegram message", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -173,6 +186,11 @@ describe("a Telegram message", () => {
     jest.spyOn(API, "post").mockResolvedValue({
       jsonData: { ok: true, result: { message_id: 42 } },
     } as never);
+
+    // The page's on-call log row, written over Sending only.
+    timeline = new OnCallTimelineRows();
+    timeline.add(TIMELINE_ID, UserNotificationStatus.Sending);
+    timeline.standIn(UserOnCallLogTimelineService);
   });
 
   test("accepted by the Bot API: a success through telegram_bot_api", async () => {
@@ -270,5 +288,163 @@ describe("a Telegram message", () => {
     ).rejects.toThrow();
 
     expect(onlySend()["outcome"]).toBe("failure");
+  });
+  /*
+   * THE PAGE'S ON-CALL TIMELINE ENTRY (issue #7082). The send's result is
+   * written over Sending only - or over the stuck check's verdict, the
+   * result come late - at the version it read (recordSendResult): the person
+   * may have acknowledged or escalated the page meanwhile, from another of
+   * its messages, and their answer stays.
+   */
+  describe("its on-call timeline entry", () => {
+    // What the person answered the page with, from another of its messages.
+    const ANSWERS: Array<{ status: UserNotificationStatus; message: string }> =
+      [
+        {
+          status: UserNotificationStatus.Acknowledged,
+          message: "Notification Acknowledged",
+        },
+        {
+          status: UserNotificationStatus.PassedOn,
+          message: "Escalated from this notification.",
+        },
+      ];
+
+    interface TelegramOutcome {
+      name: string;
+      // The Bot API answers so, and the message is sent.
+      send: () => Promise<void>;
+      status: UserNotificationStatus;
+      statusMessage: string;
+    }
+
+    const OUTCOMES: Array<TelegramOutcome> = [
+      {
+        name: "accepted by the Bot API",
+        send: async (): Promise<void> => {
+          await TelegramService.sendTelegram(message(), {
+            projectId: PROJECT_ID,
+            userOnCallLogTimelineId: TIMELINE_ID,
+          });
+        },
+        status: UserNotificationStatus.Sent,
+        statusMessage: "Message ID: 42",
+      },
+      {
+        name: "refused by the Bot API",
+        send: async (): Promise<void> => {
+          jest
+            .spyOn(API, "post")
+            .mockResolvedValue(
+              new HTTPErrorResponse(
+                403,
+                { description: "Forbidden: bot was blocked by the user" },
+                {},
+              ) as never,
+            );
+
+          await expect(
+            TelegramService.sendTelegram(message(), {
+              projectId: PROJECT_ID,
+              userOnCallLogTimelineId: TIMELINE_ID,
+            }),
+          ).rejects.toThrow("bot was blocked");
+        },
+        status: UserNotificationStatus.Error,
+        statusMessage: "Forbidden: bot was blocked by the user",
+      },
+    ];
+
+    test.each(OUTCOMES)(
+      "a Telegram message $name, while its entry still says Sending: the entry says so",
+      async (outcome: TelegramOutcome) => {
+        await outcome.send();
+
+        expect(timeline.get(TIMELINE_ID)).toMatchObject({
+          status: outcome.status,
+          statusMessage: outcome.statusMessage,
+          version: 2,
+        });
+        expect(timeline.writes).toEqual([
+          {
+            id: TIMELINE_ID.toString(),
+            data: {
+              status: outcome.status,
+              statusMessage: outcome.statusMessage,
+            },
+          },
+        ]);
+      },
+    );
+
+    test.each(
+      ANSWERS.flatMap(
+        (answer: { status: UserNotificationStatus; message: string }) => {
+          return OUTCOMES.map((outcome: TelegramOutcome) => {
+            return {
+              answer: answer.status,
+              answerMessage: answer.message,
+              outcomeName: outcome.name,
+              outcome: outcome,
+            };
+          });
+        },
+      ),
+    )(
+      "a page already $answer, then a Telegram message $outcomeName: the answer stays",
+      async (row: {
+        answer: UserNotificationStatus;
+        answerMessage: string;
+        outcome: TelegramOutcome;
+      }) => {
+        timeline.add(TIMELINE_ID, row.answer, {
+          statusMessage: row.answerMessage,
+        });
+
+        await row.outcome.send();
+
+        expect(timeline.get(TIMELINE_ID)).toMatchObject({
+          status: row.answer,
+          statusMessage: row.answerMessage,
+          version: 1,
+        });
+        expect(timeline.writes).toEqual([]);
+      },
+    );
+
+    test.each(OUTCOMES)(
+      "a Telegram message $name after the stuck check settled its entry: its own result, come late, replaces the verdict",
+      async (outcome: TelegramOutcome) => {
+        timeline.add(TIMELINE_ID, UserNotificationStatus.Error, {
+          statusMessage: STUCK_NOTIFICATION_STATUS_MESSAGE,
+        });
+
+        await outcome.send();
+
+        expect(timeline.get(TIMELINE_ID)).toMatchObject({
+          status: outcome.status,
+          statusMessage: outcome.statusMessage,
+          version: 2,
+        });
+      },
+    );
+
+    test.each(OUTCOMES)(
+      "a Telegram message $name, acknowledged between the send's read of its entry and its write: the acknowledgement stays",
+      async (outcome: TelegramOutcome) => {
+        timeline.whenRead((row: StoredOnCallNotification) => {
+          row.status = UserNotificationStatus.Acknowledged;
+          row.statusMessage = "Notification Acknowledged";
+        });
+
+        await outcome.send();
+
+        expect(timeline.get(TIMELINE_ID)).toMatchObject({
+          status: UserNotificationStatus.Acknowledged,
+          statusMessage: "Notification Acknowledged",
+        });
+        expect(timeline.writes).toEqual([]);
+      },
+    );
   });
 });

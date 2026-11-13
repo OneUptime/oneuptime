@@ -42,7 +42,7 @@ Chaque jeton peut utiliser une part de la limite de débit d'API de l'organisati
 
 ### Ajouter la connexion dans OneUptime
 
-Ouvrez **Produits → Événements de sécurité → Connexions** (`/dashboard/{projectId}/security-events/connections`), cliquez sur **Ajouter une connexion**, choisissez **Okta System Log**, puis cliquez sur **Suivant**. Remplissez les paramètres du tableau ci-dessous, cliquez sur **Suivant**, et collez le jeton dans **API token**.
+Ouvrez **Produits → Événements de sécurité → Connexions** (`/dashboard/{projectId}/security-events/connections`), cliquez sur **Ajouter une connexion**, choisissez **Okta System Log**, puis cliquez sur **Suivant**. Remplissez les paramètres du tableau ci-dessous, cliquez sur **Suivant**, et collez le jeton dans **Jeton d'API**.
 
 ### La tester avant d'enregistrer
 
@@ -51,15 +51,15 @@ Cliquez sur **Tester ces paramètres** sous **Tester avant d'enregistrer**. Le t
 
 | Réglage | Ce qu'il faut saisir |
 | --- | --- |
-| **Okta organization URL** | L'adresse à laquelle vos utilisateurs se connectent, par exemple `https://acme.okta.com`, `https://acme.oktapreview.com` ou `https://login.example.com`. Elle doit utiliser `https`, sans chemin. Pas l'adresse `-admin` de l'Admin Console, qui ne sert pas l'API. |
-| **Event filter** | Facultatif. Un [filtre du System Log](https://developer.okta.com/docs/reference/core-okta-api/#filter) qui choisit les événements à importer, par exemple `eventType sw "user.session" or eventType sw "security"`. Vide, il importe les familles ci-dessous. 2 000 caractères au plus, sur une seule ligne, et pas sur `published` : OneUptime fixe lui-même la plage de temps. |
-| **API token** | La valeur du jeton, seule : OneUptime ajoute lui-même le schéma `SSWS`. Elle est chiffrée, jamais renvoyée par l'API et jamais réaffichée. Remplacez-la avec **Mettre à jour les identifiants** sur la connexion. |
+| **URL de l'organisation Okta** | L'adresse à laquelle vos utilisateurs se connectent, par exemple `https://acme.okta.com`, `https://acme.oktapreview.com` ou `https://login.example.com`. Elle doit utiliser `https`, sans chemin. Pas l'adresse `-admin` de l'Admin Console, qui ne sert pas l'API. |
+| **Filtre d'événements** | Facultatif. Un [filtre du System Log](https://developer.okta.com/docs/reference/core-okta-api/#filter) qui choisit les événements à importer, par exemple `eventType sw "user.session" or eventType sw "security"`. Vide, il importe les familles ci-dessous. 2 000 caractères au plus, sur une seule ligne, et pas sur `published` : OneUptime fixe lui-même la plage de temps. |
+| **Jeton d'API** | La valeur du jeton, seule : OneUptime ajoute lui-même le schéma `SSWS`. Elle est chiffrée, jamais renvoyée par l'API et jamais réaffichée. Remplacez-la avec **Mettre à jour les identifiants** sur la connexion. |
 
 L'étape **Interrogation** contient aussi une **Description** facultative, le **Intervalle d'interrogation (minutes)**, un nombre entier de `1` à `1440` qui vaut `5` au départ, et **Activé**, qui est activé au départ.
 
 ## Ce qui est importé
 
-Sans **Event filter**, OneUptime importe les familles d'événements que surveille une équipe de sécurité, par préfixe de `eventType`. Un filtre à vous remplace cette liste au lieu de la compléter :
+Sans **Filtre d'événements**, OneUptime importe les familles d'événements que surveille une équipe de sécurité, par préfixe de `eventType`. Un filtre à vous remplace cette liste au lieu de la compléter :
 
 | Préfixe | Événements |
 | --- | --- |
@@ -119,7 +119,7 @@ GET {Okta organization URL}/api/v1/logs?since={window start}&until={window end}&
 - **Une interrogation lit au plus 24 heures au-delà du curseur.** Une connexion dont le curseur a pris du retard le rattrape en une suite de fenêtres de 24 heures, et sa **Santé** indique **Rattrapage en cours**.
 - **Les doublons sont écartés par `uuid`** au sein du projet, si bien que le chevauchement, une fenêtre relue et un import ne stockent jamais un événement deux fois.
 
-Un lien `next` qui pointe ailleurs que vers votre **Okta organization URL** n'est jamais suivi, puisque le jeton accompagne chaque requête.
+Un lien `next` qui pointe ailleurs que vers votre **URL de l'organisation Okta** n'est jamais suivi, puisque le jeton accompagne chaque requête.
 
 ### Quand une fenêtre contient plus qu'une interrogation ne peut lire
 
@@ -135,7 +135,7 @@ Quand une exécution ne parvient pas du tout à dépasser le curseur enregistré
 
 1. **Réduire.** L'interrogation suivante lit une fenêtre deux fois plus courte, depuis le même point de départ, et continue de la diviser par deux jusqu'à ce qu'une fenêtre soit lue entièrement, jusqu'à une minute. L'avertissement de l'exécution le dit : `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Revenir à la taille normale.** Une fois une fenêtre lue entièrement, la suivante est de nouveau deux fois plus longue, jusqu'à 24 heures.
-3. **Passer au-delà d'une seule minute.** Si même une minute contient plus qu'une interrogation ne peut lire, l'interrogation passe au-delà, pour que les événements plus récents continuent d'arriver, et le chevauchement des interrogations suivantes ne remonte plus jusqu'à elle. L'exécution reste **Partiel**, et **Dernière erreur** indique `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importez cette minute avec **Importer cette plage de temps** pour récupérer ce qu'une exécution peut lire, ou restreignez l'**Event filter**.
+3. **Passer au-delà d'une seule minute.** Si même une minute contient plus qu'une interrogation ne peut lire, l'interrogation passe au-delà, pour que les événements plus récents continuent d'arriver, et le chevauchement des interrogations suivantes ne remonte plus jusqu'à elle. L'exécution reste **Partiel**, et **Dernière erreur** indique `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importez cette minute avec **Importer cette plage de temps** pour récupérer ce qu'une exécution peut lire, ou restreignez l'**Filtre d'événements**.
 
 Une exécution qui échoue complètement, avec une erreur d'Okta, garde le curseur et la longueur de fenêtre, et l'interrogation suivante relit la même fenêtre. La seule exception est une requête qui a expiré : le curseur reste, mais la fenêtre suivante est deux fois plus courte, car une fenêtre trop lourde pour recevoir une réponse à temps expirerait à chaque essai. Changer le **Intervalle d'interrogation (minutes)** n'y change rien : il décide à quelle fréquence une interrogation commence, pas où commence sa fenêtre.
 
@@ -144,7 +144,7 @@ Une exécution qui échoue complètement, avec une erreur d'Okta, garde le curse
 Cliquez sur **Diagnostics** sur une connexion pour voir ses exécutions récentes et travailler avec elle à la main. Quiconque peut modifier la connexion peut les lancer ; quiconque peut la voir peut lire l'historique.
 
 - **Exécuter maintenant** lance tout de suite une interrogation, avec le curseur habituel, même quand la connexion n'est pas **Activé**.
-- **Preview log events** lit une plage de temps de 7 jours au plus et n'importe rien.
+- **Aperçu des événements de journal** lit une plage de temps de 7 jours au plus et n'importe rien.
 - **Importer cette plage de temps** importe une plage de 7 jours au plus, après votre confirmation, sans déplacer le curseur. Les événements déjà importés sont sautés. Okta conserve 90 jours de System Log.
 - **Copier les diagnostics** sur une exécution copie son rapport pour le support. Il ne contient jamais d'identifiants.
 
@@ -156,7 +156,7 @@ Cliquez sur **Diagnostics** sur une connexion pour voir ses exécutions récente
 | --- | --- |
 | **Configuration** | Chaque réglage est présent et bien formé. Rien n'est contacté quand cela échoue. |
 | **Authenticate with Okta** | Okta accepte le jeton pour le System Log, avec un événement lu et sans filtre. |
-| **Read System Log events** | Un événement des 24 dernières heures peut être lu à travers le filtre qu'utilise l'interrogation, le vôtre ou celui par défaut : un **Event filter** invalide échoue donc ici plutôt qu'à la première interrogation. |
+| **Read System Log events** | Un événement des 24 dernières heures peut être lu à travers le filtre qu'utilise l'interrogation, le vôtre ou celui par défaut : un **Filtre d'événements** invalide échoue donc ici plutôt qu'à la première interrogation. |
 | **Events available to import** | Combien d'événements ont été publiés dans les 24 dernières heures et les 7 derniers jours, une page de 1 000 pour chacun, si bien que `1000+` signifie davantage. Aucun en 7 jours est un avertissement, pas un échec. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | Le côté de OneUptime lui-même : un processus prend les tâches de la file Worker, la tâche d'interrogation s'exécute chaque minute, et le stockage des événements de sécurité répond. |
 | **Interrogation planifiée** | Pour une connexion enregistrée : l'interrogation est activée, aucune exécution n'est bloquée en attente d'un worker, et les interrogations s'exécutent à l'heure. |
@@ -168,7 +168,7 @@ Chaque requête d'un test a un délai de 20 secondes. Un test n'importe jamais r
 La **Dernière erreur** de la connexion conserve le message d'erreur complet, identifiants masqués, derrière un préfixe qui nomme l'étape en échec. Quand une connexion a une erreur, sélectionnez **Voir l'erreur** dans sa colonne **Actions** pour la lire, et **Copier l'erreur** dans la boîte de dialogue pour la copier. Chaque message commence par `Okta System Log events request`, et cite le propre code d'erreur d'Okta après le statut ; lisez ce qui suit.
 
 :::details Dernière erreur indique `failed (HTTP 400)`
-Okta a refusé les paramètres de la requête, `E0000053`. Quand le jeton a fonctionné, c'est presque toujours l'**Event filter** : vérifiez ses opérateurs, `eq`, `ne`, `co`, `sw`, `ew`, `pr`, `gt`, `ge`, `lt` et `le`, ses `and` et `or`, et les guillemets doubles autour de ses valeurs, ou videz-le pour utiliser les familles par défaut. Lors d'un import, cela peut aussi signifier que la plage commence il y a plus de 180 jours.
+Okta a refusé les paramètres de la requête, `E0000053`. Quand le jeton a fonctionné, c'est presque toujours l'**Filtre d'événements** : vérifiez ses opérateurs, `eq`, `ne`, `co`, `sw`, `ew`, `pr`, `gt`, `ge`, `lt` et `le`, ses `and` et `or`, et les guillemets doubles autour de ses valeurs, ou videz-le pour utiliser les familles par défaut. Lors d'un import, cela peut aussi signifier que la plage commence il y a plus de 180 jours.
 :::
 
 :::details Dernière erreur indique `failed (HTTP 401)` ou `failed (HTTP 403)`
@@ -194,12 +194,12 @@ Aucune interrogation ne s'est terminée pour cette connexion. Lancez **Tester la
 :::
 
 :::details Une exécution est Partial
-- `Stopped after collecting 10000 events` : la fenêtre contenait plus que les 10 000 événements qu'une exécution lit. Rien n'est perdu : l'interrogation suivante commence après le dernier événement lu. Une connexion qui reste **Partiel** d'interrogation en interrogation rattrape un retard, et ses valeurs **Dernière interrogation** et **Dernier événement importé** continuent d'avancer. Si elle ne rattrape jamais, l'organisation publie plus d'événements correspondants qu'un intervalle d'interrogation ne peut en contenir : restreignez l'**Event filter**, ou raccourcissez le **Intervalle d'interrogation (minutes)**.
+- `Stopped after collecting 10000 events` : la fenêtre contenait plus que les 10 000 événements qu'une exécution lit. Rien n'est perdu : l'interrogation suivante commence après le dernier événement lu. Une connexion qui reste **Partiel** d'interrogation en interrogation rattrape un retard, et ses valeurs **Dernière interrogation** et **Dernier événement importé** continuent d'avancer. Si elle ne rattrape jamais, l'organisation publie plus d'événements correspondants qu'un intervalle d'interrogation ne peut en contenir : restreignez l'**Filtre d'événements**, ou raccourcissez le **Intervalle d'interrogation (minutes)**.
 - `More records were created in the one minute from ... than one poll can read` : l'interrogation est passée au-delà de cette minute. Importez-la avec **Importer cette plage de temps** dans **Diagnostics**. Une importation lit autant qu'une interrogation.
 :::
 
 :::details Le test réussit, mais rien n'est importé
-Lisez **Events available to import** dans le rapport du test. Avec le filtre par défaut, une organisation qui a des utilisateurs publie des connexions en permanence : `0` sur les 7 derniers jours signifie donc que l'URL est un bac à sable ou une organisation inutilisée. Avec votre propre **Event filter**, cela signifie que le filtre n'a rien trouvé : comparez-le avec les types d'événements du System Log de l'Admin Console.
+Lisez **Events available to import** dans le rapport du test. Avec le filtre par défaut, une organisation qui a des utilisateurs publie des connexions en permanence : `0` sur les 7 derniers jours signifie donc que l'URL est un bac à sable ou une organisation inutilisée. Avec votre propre **Filtre d'événements**, cela signifie que le filtre n'a rien trouvé : comparez-le avec les types d'événements du System Log de l'Admin Console.
 :::
 
 ## Ce que vous obtenez

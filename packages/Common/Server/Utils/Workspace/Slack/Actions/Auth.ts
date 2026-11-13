@@ -41,6 +41,7 @@ import SlackProjectChoice, {
   SlackProjectChoiceKind,
 } from "../SlackProjectChoice";
 import WorkspacePublicNoteApproval from "../../WorkspacePublicNoteApproval";
+import SlackOrganization from "../SlackOrganization";
 import SlackRequestWorkspaceUtil, {
   SlackRequestWorkspace,
 } from "../SlackRequestWorkspace";
@@ -123,6 +124,17 @@ export interface SlackRequest {
    * the form was opened from (SlackModalMetadata).
    */
   slackChannelId?: string | undefined;
+  /*
+   * The workspace that channel is in, when the project's connection to a
+   * whole Slack Enterprise organization knows the channel
+   * (SlackOrganization.getWorkspaceIdOfKnownChannel). A press made for that
+   * installation names the person's own workspace (user.team_id), which
+   * need not be the channel's: "Back to Slack" opens the channel in this one.
+   * For a channel OneUptime does not know, Slack is asked for its workspace
+   * once the person has connected their account, never while the press
+   * waits for its answer (SlackOrganization.getWorkspaceIdToOpenChannelIn).
+   */
+  slackChannelTeamId?: string | undefined;
   // The thread the press was made in, when it was in one.
   slackThreadTs?: string | undefined;
   slackMessageId?: string | undefined;
@@ -677,6 +689,12 @@ export default class SlackAuthAction {
       projectAuth.miscData as SlackMiscData
     )?.botUserId;
 
+    const slackChannelTeamId: string | undefined =
+      SlackOrganization.getWorkspaceIdOfKnownChannel({
+        projectAuth: projectAuth,
+        channelId: slackChannelId,
+      });
+
     let userId: ObjectID | undefined = userAuth?.userId;
 
     /*
@@ -719,6 +737,7 @@ export default class SlackAuthAction {
       slackTeamId: slackTeamId,
       slackWorkspace: slackWorkspace,
       slackChannelId: slackChannelId,
+      ...(slackChannelTeamId ? { slackChannelTeamId: slackChannelTeamId } : {}),
       slackThreadTs: slackThreadTs,
       slackUsername: slackUsername,
       slackMessageId: slackMessageId,
@@ -864,6 +883,7 @@ export default class SlackAuthAction {
         projectId: refusal.projectId,
         place: place,
         slackTeamId: slackRequest.slackTeamId,
+        slackChannelTeamId: slackRequest.slackChannelTeamId,
         slackWorkspace: slackRequest.slackWorkspace,
         description: SlackConnectPrompt.describe({
           actionType: refusal.action.actionType,

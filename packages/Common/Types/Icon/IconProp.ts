@@ -248,6 +248,8 @@ enum IconProp {
   MagnifyingGlassPlus = "MagnifyingGlassPlus",
   Map = "Map",
   MapPin = "MapPin",
+  // A drawing pin: something kept in reach, such as a product pinned to the nav bar.
+  Pin = "Pin",
   Megaphone = "Megaphone",
   Microphone = "Microphone",
   Moon = "Moon",
@@ -347,6 +349,10 @@ enum IconProp {
   Ceph = "Ceph",
   StorageArray = "StorageArray",
   Gauge = "Gauge",
+  // An arrow going in through a door: signing in (the audit log's Sign In).
+  SignIn = "SignIn",
+  // An arrow coming out through a door: signing out.
+  SignOut = "SignOut",
 }
 
 export default IconProp;

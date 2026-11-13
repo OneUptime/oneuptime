@@ -302,7 +302,7 @@ criteria = [
 | 웹사이트 / API | `Is Online`, `Response Time (in ms)`, `Response Status Code`, `Response Body`, `Response Header`, `Response Header Value`, `JavaScript Expression`, `Is Request Timeout` |
 | Ping / IP | `Is Online`, `Response Time (in ms)`, `Packet Loss (in %)`, `Jitter (in ms)`, `Is Request Timeout` |
 | 포트 | `Is Online`, `Response Time (in ms)`(대시보드의 총 연결 시간), `Port DNS Lookup Time (in ms)`, `Port TCP Connect Time (in ms)`, `Is Request Timeout` |
-| SSL 인증서 | `Is Valid Certificate`, `Is Not A Valid Certificate`, `Is Self Signed Certificate`, `Is Expired Certificate`, `Expires In Days`, `Expires In Hours` |
+| SSL 인증서 | `Is Valid Certificate`, `Is Not A Valid Certificate`, `Is Self Signed Certificate`, `Is Expired Certificate`, `Is Revoked Certificate`, `Expires In Days`, `Expires In Hours` |
 | 수신 요청 | `Incoming Request`, `Request Body`, `Request Header`, `Request Header Value`, `JavaScript Expression` |
 | 수신 이메일 | `Email Received`, `Email Subject`, `Email From Address`, `Email To Address`, `Email Body` |
 | 서버 | `Is Online`, `CPU Usage (in %)`, `Memory Usage (in %)`, `Disk Usage (in %)`(`disk_path`와 함께), `Server Process Name` |

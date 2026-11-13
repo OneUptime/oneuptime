@@ -496,3 +496,70 @@ describe("buildCloudAppKey", () => {
     ).not.toBe(base);
   });
 });
+
+/*
+ * Issue #6770: an App Service app's own telemetry names the site it runs as
+ * (the Azure App Service detectors set cloud.resource_id to its resource
+ * id), which is what links the app to the Cloud Resource Azure Monitor
+ * reports its requests, errors, response time, CPU and memory under.
+ */
+describe("the provider's id for the app (cloud.resource_id)", () => {
+  const SITE_ID: string =
+    "/subscriptions/3f1c9a52-7d4e-4b8a-9e21-6c5d0b7a2f13/resourceGroups/rg-web/providers/Microsoft.Web/sites/storefront";
+
+  test("an App Service app keeps the site's resource id its detector reports", () => {
+    const identity: CloudAppIdentity = resolve(
+      ManagedCloudPlatform.AzureAppService,
+      {
+        "service.name": "storefront",
+        "deployment.environment": "Production",
+        "cloud.resource_id": `  ${SITE_ID}  `,
+      },
+    )!;
+
+    expect(identity.name).toBe("storefront");
+    // Trimmed, and not part of the app's key or of what filters its telemetry.
+    expect(identity.providerResourceId).toBe(SITE_ID);
+    expect(identity.telemetryAttributes).toEqual({
+      "service.name": "storefront",
+      "deployment.environment": "Production",
+    });
+    expect(identity.appKey).toBe(
+      resolve(ManagedCloudPlatform.AzureAppService, {
+        "service.name": "storefront",
+        "deployment.environment": "Production",
+      })!.appKey,
+    );
+  });
+
+  test("none reported, a blank one, or one too long to be an id, is none", () => {
+    for (const value of [
+      undefined,
+      "",
+      "   ",
+      `/subscriptions/x/${"a".repeat(1100)}`,
+    ]) {
+      const attributes: Record<string, string> = {
+        "service.name": "storefront",
+      };
+      if (value !== undefined) {
+        attributes["cloud.resource_id"] = value;
+      }
+      expect(
+        resolve(ManagedCloudPlatform.AzureAppService, attributes)!
+          .providerResourceId,
+      ).toBeNull();
+    }
+  });
+
+  test("any managed platform's app keeps the id its telemetry reports", () => {
+    const arn: string =
+      "arn:aws:apprunner:us-east-1:123456789012:service/storefront/8a7b6c5d4e3f";
+    expect(
+      resolve(ManagedCloudPlatform.AwsAppRunner, {
+        "service.name": "storefront",
+        "cloud.resource_id": arn,
+      })!.providerResourceId,
+    ).toBe(arn);
+  });
+});

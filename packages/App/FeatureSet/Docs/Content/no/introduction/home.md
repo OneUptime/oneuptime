@@ -11,7 +11,7 @@ Hjem er den første siden du ser i et prosjekt. Den viser med et blikk om noe tr
 
 ## Hva Hjem viser
 
-Åpne **Hjem** i linjen øverst, eller trykk `g` og deretter `h` hvor som helst. Hjem er oversikten over prosjektet ditt. Fra topp til bunn viser den:
+Åpne **Hjem** i linjen øverst, eller trykk `g` og deretter `h` hvor som helst. Hjem er oversikten over prosjektet ditt, én side uten sidemeny. Fra topp til bunn viser den:
 
 1. Et søkefelt, med **Erklær hendelse** og **Opprett** ved siden av.
 2. Én linje som sier om noe er galt, over fem tall som teller det som trenger oppmerksomhet.
@@ -38,49 +38,64 @@ Linjen øverst nevner det mest presserende som er åpent, i en farge som passer:
 
 Ved siden av sier Hjem når den sist leste prosjektet, og **Oppdater** leser det på nytt. Når du kommer tilbake til en fane med Hjem etter ett minutt eller mer, oppdaterer den seg selv.
 
-Så lenge ingenting overvåkes ennå, slutter linjen med knappen **Opprett din første overvåker**, som åpner skjemaet som oppretter en monitor. Bare de som har lov til å opprette monitorer, ser den.
+Så lenge ingenting overvåkes ennå, slutter linjen med knappen **Opprett din første overvåker**, som åpner det veiledede oppsettet **Vite når nettstedet eller API-et mitt er nede**. Bare de som har lov til å opprette monitorer, ser den.
 
 ### De fem tallene
 
-Hvert tall teller noe, sier om det trenger deg, og åpner listen bak det.
+Hvert tall teller noe, sier om det trenger deg, og åpner listen bak det i produktet den hører til.
 
-| Tall | Hva det teller | Når tallet er null |
-| --- | --- | --- |
-| **Aktive hendelser** | Hendelser som ikke er løst | **Alt er i orden** |
-| **Aktive varsler** | Varsler som ikke er løst | **Alt er i orden** |
-| **Ikke-operative monitorer** | Monitorer med en status som ikke er en driftsstatus. Arkiverte monitorer, og monitorer med overvåking slått av, telles ikke. | **Alle i drift** |
-| **Pågående vedlikehold** | Planlagte vedlikehold som pågår | **Ingen pågår** |
-| **SLO-er i faresonen** | Påslåtte SLO-er som er i faresonen eller har brukt opp feilbudsjettet | **Budsjettene er sunne** |
+| Tall | Hva det teller | Når tallet er null | Åpner |
+| --- | --- | --- | --- |
+| **Aktive hendelser** | Hendelser som ikke er løst | **Alt er i orden** | **Hendelser → Aktive hendelser** |
+| **Aktive varsler** | Varsler som ikke er løst | **Alt er i orden** | **Varsler → Aktive varsler** |
+| **Ikke-operative monitorer** | Monitorer med en status som ikke er en driftsstatus. Arkiverte monitorer, og monitorer med overvåking slått av, telles ikke. | **Alle i drift** | **Monitorer → Ikke operativ** |
+| **Pågående vedlikehold** | Planlagte vedlikehold som pågår | **Ingen pågår** | **Planlagt vedlikehold → Pågående hendelser** |
+| **SLO-er i faresonen** | Påslåtte SLO-er som er i faresonen eller har brukt opp feilbudsjettet | **Budsjettene er sunne** | **SLOs** |
 
-Et tall over null viser **Krever oppmerksomhet**, eller **Pågår** og **Budsjettet brukes opp** for vedlikehold og SLO-er. Et prosjekt uten monitorer ser **Ingen monitorer ennå**, og ett uten SLO-er ser **Ingen SLO-er ennå**: et tomt prosjekt er ikke det samme som et sunt. De to åpner da listene **Monitorer** og **SLOs**, der du oppretter en.
+Et tall over null viser **Krever oppmerksomhet**, eller **Pågår** og **Budsjettet brukes opp** for vedlikehold og SLO-er. Så lenge en SLO er i faresonen, åpner **SLO-er i faresonen** listen **SLOs** filtrert til akkurat dem. Et prosjekt uten monitorer ser **Ingen monitorer ennå**, og ett uten SLO-er ser **Ingen SLO-er ennå**: et tomt prosjekt er ikke det samme som et sunt. De to åpner da listene **Monitorer** og **SLOs**, der du oppretter en.
 
 ### Velkomstsjekklisten
 
-Sjekklisten leder deg gjennom de fire tingene et prosjekt trenger før det er nyttig. Hvert steg åpner siden der du gjør det, og krysser seg selv av når prosjektet har det steget ber om.
+Første gang en prosjekteier eller prosjektadministrator åpner Hjem i et nytt prosjekt, spør kortet **Hva vil du gjøre først?** Kryss av for ett eller flere mål, for eksempel **Vite når nettstedet eller API-et mitt er nede** eller **Jeg ser meg bare rundt**, og klikk på **Fortsett**: sjekklisten inneholder da stegene disse målene trenger. **Hopp over** gir de fire stegene alle prosjekter får. For å svare på nytt senere klikker du på **Endre** i sjekklisten. Et prosjekt som allerede bruker overvåkere, telemetri eller vakt, blir ikke spurt.
+
+Hvert steg krysser seg selv av når tingen virker, ikke når en post finnes, og alle som setter opp prosjektet ser den samme listen, på alle enheter:
 
 | Steg | Fullført når | Åpner |
 | --- | --- | --- |
-| **Opprett din første overvåker** | Prosjektet har en monitor. | Skjemaet **Opprett monitor**, eller listen **Monitorer** for den som ikke kan opprette monitorer. |
-| **Publiser en statusside** | Prosjektet har en statusside. | **Statussider** |
-| **Inviter teamet ditt** | Noen andre enn deg er i prosjektet, eller invitert til det. | **Brukere** |
-| **Sett opp en vaktpolicy** | Prosjektet har en vaktpolicy. | **Vakttjeneste** |
+| **Importer fra verktøyet du bruker nå** | En import fra et annet verktøy er fullført. | **Importer fra et annet verktøy** |
+| **Opprett din første overvåker** | Den første sjekken kommer inn. | Det veiledede oppsettet **Vite når nettstedet eller API-et mitt er nede**, eller listen **Monitorer** for den som ikke kan opprette overvåkere. |
+| **Koble til en server eller en klynge** | De første målingene kommer inn. | **Verter** |
+| **Send de første loggene, målingene eller sporene dine** | Prosjektets første logger, målinger, spor, unntak eller profiler kommer inn. | Det veiledede oppsettet **Send logger, målinger og spor, og få deretter varsler** |
+| **Sett opp en vaktpolicy** | Et testvarsel blir kvittert, et varsel når noen, eller en vaktregel kjører en policy som kan nå noen. | Det veiledede oppsettet **Varsle rett person når noe går ned** |
+| **Publiser en statusside** | En statusside viser en overvåker. | Det veiledede oppsettet **Publiser en statusside**, eller listen **Statussider** for den som ikke kan opprette statussider. |
+| **Inviter teamet ditt** | Noen godtar invitasjonen din. | **Brukere** |
 
-Under stegene viser **Slik fungerer OneUptime** de fire kjerneproduktene i rekkefølgen et problem går gjennom dem: **Monitorer**, **Hendelser og varsler**, **Vakttjeneste** og **Statussider**. Klikk på ett for å åpne det.
+Steget du skal ta først, er merket med **Neste steg**. På Free-abonnementet i OneUptime Cloud, som har én person, sier **Inviter teamet ditt** at det trenger Growth-abonnementet, og åpner **Fakturering**. På en selvhostet server som ennå ikke kan sende e-post, ser serverens administratorer først **Denne serveren kan ikke sende e-post ennå**; det åpner administrasjonsdashbordet.
 
-```mermaid title="Når velkomstsjekklisten forsvinner"
+Et veiledet oppsett gjør hele jobben på én side, ett steg om gangen, og avslutter med hva det har satt opp og hva du kan gjøre etterpå. Søk etter navnet for å åpne det igjen senere.
+
+Under stegene viser **Slik fungerer OneUptime** de fire kjerneproduktene i rekkefølgen et problem går gjennom dem: **Monitorer**, **Hendelser og varsler**, **Vakttjeneste** og **Statussider**. Klikk på ett for å åpne det. Under dem står det hva som mater kretsløpet, telemetri og infrastruktur, med lenker til [Grunnbegreper](/docs/introduction/core-concepts) og [Ordliste](/docs/introduction/glossary).
+
+```mermaid title="Når velkomstsjekklisten vises"
 flowchart TB
-    open["Hjem åpnes"] --> dismissed{"Lukket i denne<br/>nettleseren?"}
-    dismissed -->|"Nei"| done{"Alle fire steg<br/>fullført?"}
-    dismissed -->|"Ja"| hidden["Ingen sjekkliste"]
-    done -->|"Ja"| hidden
+    open["Hjem åpnes"] --> answered{"Mål valgt<br/>eller hoppet over?"}
+    answered -->|"Nei"| question["Hva vil du<br/>gjøre først?"]
+    answered -->|"Ja"| hidden{"Skjult<br/>av deg?"}
+    hidden -->|"Ja"| line["En linje for å<br/>vise den igjen"]
+    hidden -->|"Nei"| done{"Alle steg<br/>ferdige?"}
+    done -->|"Ja"| gone["Ingen sjekkliste"]
     done -->|"Nei"| shown["Sjekklisten med<br/>stegene som gjenstår"]
 ```
 
-Sjekklisten forsvinner når alle fire steg er fullført. Klikk på **Skjul** for å skjule den før. Det huskes i denne nettleseren, for dette prosjektet; alt stegene åpner, ligger fortsatt i menyen **Produkter**.
+Sjekklisten forsvinner for alle når hvert steg er ferdig. For å skjule den tidligere klikker du på **Skjul**: den er da bare skjult for deg, på alle enheter, og en linje blir stående med **Vis den** og **Slik fungerer OneUptime**. De som er invitert til prosjektet som medlemmer, ser ikke sjekklisten. **Slik fungerer OneUptime** er fortsatt ett klikk unna, i alle prosjekter: åpne det fra **Hjelp** eller med knappen ved siden av **Utforsk OneUptime**.
 
 ### Krever oppmerksomhet
 
-**Krever oppmerksomhet** viser ved navn det tallene teller: de åpne hendelsene, de åpne varslene, monitorene som ikke er i drift, SLO-ene i faresonen og vedlikeholdet som pågår, det mest presserende først. Hver rad viser alvorlighetsgrad eller status, sier når en hendelse eller et varsel startet og når vedlikeholdet slutter, og åpner oppføringen. Hver type viser opptil fem, med **Vis alle** for resten. Når ingenting er åpent, står det **Ingenting krever oppmerksomheten din**.
+**Krever oppmerksomhet** viser ved navn det tallene teller: de åpne hendelsene, de åpne varslene, monitorene som ikke er i drift, SLO-ene i faresonen og vedlikeholdet som pågår, det mest presserende først. Hver rad viser alvorlighetsgrad eller status, sier når en hendelse eller et varsel startet og når vedlikeholdet slutter, og åpner oppføringen. Hver type viser opptil fem, med **Vis alle** for resten, som åpner den samme listen som tallet. Når ingenting er åpent, står det **Ingenting krever oppmerksomheten din**.
+
+### Oppsettets helse
+
+Når noe i prosjektets oppsett ville hindre at folk blir varslet, slutter **Krever oppmerksomhet** med **Oppsett**: hvor mange ting som bør ses på. Den åpner **Oppsettets helse**, som viser hva som er satt opp feil, det verste først, under **Varsler kommer ikke frem**, **Verdt å rette** og **Forslag**: en monitor som ikke varsler noen, en vaktpolicy som ingenting kjører, en person som ikke kan varsles, SMS slått av, en vakttidsplan uten noen på vakt, en statusside som ikke viser noen monitor. Hvert funn sier i én setning hva som er galt, med knappen som åpner rettingen, og funnene for en monitor er bruddene som kortet **Når den går ned** nevner. Et funn som teamet ditt lar være med vilje, kan skjules med en begrunnelse, for alle, og gjenopprettes fra **Avvist**. Søk finner siden som **Oppsettets helse**, og Spør AI svarer på «er oppsettet mitt i orden?» ut fra den.
 
 ### Prosjektet ditt
 
@@ -90,21 +105,7 @@ Sjekklisten forsvinner når alle fire steg er fullført. Klikk på **Skjul** for
 
 ### Utforsk OneUptime
 
-**Utforsk OneUptime** viser produktene i menyen **Produkter** én kategori om gangen, og begynner med det grunnleggende. Hvert produkt sier hva det er til, og åpnes når du klikker på det.
-
-### Sidemenyen til Hjem
-
-Hjem har ikke selv en sidemeny: siden viser allerede alt menyen ville vist. Listene den åpner, deler én sidemeny, som viser hver liste med antallet sitt og fører tilbake til Hjem fra **Oversikt**:
-
-| Del | Sider |
-| --- | --- |
-| **Hjem** | **Oversikt** |
-| **Hendelser** | **Aktive hendelser** og **Aktive episoder** |
-| **Varsler** | **Aktive varsler** og **Aktive episoder** |
-| **Monitorer** | **Ikke operativ** |
-| **Planlagte hendelser** | **Pågående** |
-
-En episode samler relaterte hendelser eller varsler, så du jobber med dem som én. Se [Grunnbegreper](/docs/introduction/core-concepts#hendelser-og-varsler).
+**Utforsk OneUptime** viser produktene i menyen **Produkter** én kategori om gangen, og begynner med det grunnleggende. Hvert produkt sier hva det er til, og åpnes når du klikker på det. Produktene prosjektet ditt skjuler, er ikke med.
 
 ## Finn frem
 
@@ -114,6 +115,9 @@ Alt i OneUptime ligger under **Produkter** i topplinjen. Menyen viser gruppene s
 - **Du starter der du er.** Gruppen til siden du er på, utvides av seg selv, og produktene du nylig har åpnet, står øverst.
 - **Valgene dine blir værende.** Menyen husker i nettleseren din hvilke av de andre gruppene du har utvidet eller slått sammen. Det grunnleggende er utvidet igjen hver gang du åpner menyen, selv om du slo det sammen.
 - **På en telefon** viser menyknappen produktene på samme måte: det grunnleggende utvidet øverst, og hver annen gruppe som én rad som åpnes med et trykk.
+- **Produkter prosjektet ikke bruker.** En prosjekteier eller -administrator kan skjule dem under **Prosjektinnstillinger → Grunnleggende → Produkter**. Et skjult produkt flyttes til **Flere produkter**, menyens siste rad: Søk finner det fortsatt, sidene virker fortsatt, og dataene fortsetter å komme. Når ett av dem begynner å motta data, sier Hjem fra til dem som kan vise det igjen.
+- **Fest.** Behold et produkt i den øverste linjen, ved siden av **Hjem** og **Produkter**: trykk på nålen på kortet i menyen, eller på **Fest** ved siden av sidetittelen. Du kan feste fem, og de følger deg til alle nettlesere. På en telefon kommer de festede produktene dine først i menyen.
+- **Hva som er i bruk.** I hver gruppe unntatt det grunnleggende og innstillingene kommer produktene prosjektet ditt bruker, først, og et du ikke har satt opp ennå, sier **Ikke satt opp**. I OneUptime Cloud nevner et produkt som abonnementet ditt ikke omfatter, abonnementet som omfatter det.
 
 ### Linjene øverst
 
@@ -125,7 +129,9 @@ To linjer går over toppen av hver side.
 | Øverst til høyre | **Søk** og **Spør AI**, varselklokken med det som trenger deg nå (aktive hendelser og varsler, vaktpolicyene du har vakt i, ventende invitasjoner), **Hjelp**, og bildet ditt, som åpner menyen for [kontoen](/docs/introduction/your-account) din. |
 | Under dem | **Hjem** og **Produkter** til venstre, **Brukerinnstillinger** til høyre: hvordan OneUptime når deg i dette prosjektet. |
 
-**Hjelp** åpner denne dokumentasjonen (**Dokumentasjon**) og listen **Keyboard shortcuts**, og tilbyr støtte på e-post og på Slack. På en smal skjerm, som en telefon, er **Søk**, **Spør AI** og **Hjelp** utelatt for å spare plass; klokken og bildet ditt blir værende.
+**Hjelp** starter med det som hjelper deg å lære: **Hurtigstart**, **Slik fungerer OneUptime**, **Ordliste** og denne dokumentasjonen (**Dokumentasjon**). Under dem ligger listen **Keyboard shortcuts** og støtte på e-post og på Slack. På et nettbrett eller i et smalt vindu er **Spør AI** utelatt for å spare plass: den finnes blant handlingene i **Søk**. På en telefon flytter **Søk** og **Hjelp** inn i listen til menyknappen, øverst og nederst; klokken og bildet ditt blir værende.
+
+Et ord med en prikket linje under, som **Sonder** i skjemaet for en ny monitor, forteller hva det betyr når du peker på det, tabber til det eller trykker på det. **Les mer** åpner ordet i [Ordliste](/docs/introduction/glossary).
 
 ### Sider og lister
 
@@ -146,6 +152,7 @@ Trykk **Cmd+K** (Mac) eller **Ctrl+K** (Windows og Linux), eller klikk på søke
 - **Innstillingene på en side**, under navnet kortet eller bryteren deres viser: *Krev SSO for innlogging* finner SSO, og *Varslingskanaler* finner Varselinnstillinger. Skriv navnet på engelsk eller på ditt eget språk.
 - **Handlinger**, etter hva du vil gjøre: Erklær hendelse, Opprett monitor eller Delete Project, som åpner Faresone. En handling som endrer noe, tilbys bare dem som har lov til å utføre den.
 - **Monitorene, hendelsene, varslene, statussidene og vaktpolicyene dine**, etter navn, og hendelser og varsler også etter nummer, for eksempel `INC-42`. Hvert resultat for en hendelse eller et varsel begynner med nummeret, så to med samme tittel kan skilles fra hverandre.
+- **Dokumentasjonen**, i en gruppe *Dokumentasjon* under alt annet: sidene og avsnittene der ordene passer til det du skriver, på ditt språk, også med en skrivefeil. Hver åpnes i en ny fane, så du beholder plassen din.
 
 Søket leser det du skriver slik du mener det:
 

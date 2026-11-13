@@ -391,6 +391,19 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           },
           icon: IconProp.Hashtag,
         },
+        /*
+         * How long a resolved incident is kept before it is deleted (issue
+         * #6903). Named as the telemetry page is, under Project Settings.
+         */
+        {
+          link: {
+            title: "Data Retention",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_SETTINGS_RETENTION] as Route,
+            ),
+          },
+          icon: IconProp.Archive,
+        },
       ],
     },
   ];

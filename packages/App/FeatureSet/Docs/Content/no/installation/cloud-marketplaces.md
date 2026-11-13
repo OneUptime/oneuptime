@@ -127,8 +127,8 @@ Abonnementet ditt på markedsplassen er lisensen din. Hver rapport markedsplasse
 | Hva som skjer | Hva utgavemerket viser |
 | --- | --- |
 | Markedsplassen godtar timesrapportene | Enterprise Edition, lisensiert gjennom markedsplassen din. |
-| Ingen rapport er godtatt på 72 timer | **Enterprise Edition (Marketplace Reports Failing)**: alle enterprise-funksjoner fortsetter å virke i en frist på 30 dager. |
-| Markedsplassen sier at installasjonen ikke har noe abonnement, eller fristen slutter | **Enterprise Edition (Marketplace Subscription Ended)**: enterprise-funksjonene stopper, slik de gjør når en [lisens utløper](/docs/self-hosted/enterprise#når-en-lisens-utløper-eller-mangler). |
+| Ingen rapport er godtatt på 72 timer | **Enterprise Edition (rapporter til markedsplassen mislykkes)**: alle enterprise-funksjoner fortsetter å virke i en frist på 30 dager. |
+| Markedsplassen sier at installasjonen ikke har noe abonnement, eller fristen slutter | **Enterprise Edition (abonnementet på markedsplassen er avsluttet)**: enterprise-funksjonene stopper, slik de gjør når en [lisens utløper](/docs/self-hosted/enterprise#når-en-lisens-utløper-eller-mangler). |
 
 Det markedsplassen avviser, er et oppsagt eller suspendert abonnement, eller en installasjon som ikke er den du kjøpte. Overvåking, varsler, hendelser, vakt og statussider fortsetter å virke i alle tilfeller, og ingenting slettes. Abonner på nytt, så lisensierer den neste godtatte rapporten Enterprise Edition igjen, uten omstart.
 
@@ -162,7 +162,7 @@ Faktureringen avhenger ikke av hvor mange replikaer som kjører: bare én kjøri
 
 ## Feilsøking
 
-:::details Utgavemerket viser Enterprise Edition (Marketplace Reports Failing)
+:::details Utgavemerket viser Enterprise Edition (rapporter til markedsplassen mislykkes)
 OneUptime kan ikke rapportere til markedsplassen. Hver linje den logger om dette, begynner med `OneUptime Enterprise marketplace billing`; en linje som sier at bruken "cannot be reported", oppgir hva som mangler. De vanligste årsakene:
 
 - **AWS:** tjenestekontoen `oneuptime` har ingen IAM-rolle, eller rollen mangler policyen `AWSMarketplaceMeteringFullAccess` (`AWSMarketplaceMeteringRegisterUsage` er ikke nok). Koble policyen til rollen, eller opprett rollen med `eksctl`-kommandoen under [AWS Marketplace](#aws-marketplace), og start deretter OneUptimes pods på nytt med `kubectl rollout restart deployment --namespace oneuptime`.
@@ -173,7 +173,7 @@ OneUptime kan ikke rapportere til markedsplassen. Hver linje den logger om dette
 Bruksdataene tas vare på mens du retter feilen, og faktureres når OneUptime kan rapportere igjen. Bruk som er eldre enn 30 dager, faktureres ikke.
 :::
 
-:::details Utgavemerket viser Enterprise Edition (Marketplace Subscription Ended)
+:::details Utgavemerket viser Enterprise Edition (abonnementet på markedsplassen er avsluttet)
 Markedsplassen avviste installasjonen: abonnementet ble sagt opp eller suspendert, eller installasjonen er ikke den som ble kjøpt på markedsplassen. Sjekk abonnementet på markedsplassen og abonner på nytt; den neste godtatte rapporten lisensierer Enterprise Edition igjen. Det samme merket vises når rapportene har feilet gjennom hele fristen.
 :::
 

@@ -17,7 +17,11 @@ En tabels fane **Afstamning** viser de tabeller, den er bygget af, de pipelines,
 
 Øverst på fanen tegner et diagram den afstamning nogle trin i hver retning (tre, eller vælg 1, 2 eller 5): til venstre det, tabellen er bygget af, til højre de tabeller og dashboards, der er bygget af den, og de pipelines, der indlæser data udefra, der hvor de kommer ind. Hvert kort viser, hvordan det står til nu - forsinket, en åben advarsel, en mislykket kørsel - og en pil bliver rød, når den seneste kørsel af dens pipeline mislykkedes, så en forsinket tabel kan følges op til den kørsel, der stoppede den. Åbn en hvilken som helst tabel for at centrere diagrammet på den.
 
+Et kort tegner højst ti tabeller i hver retning og tæller resten, for eksempel **+14**. Vælg tallet for at tegne op til ti flere af dem, hvor de er, problemer først, med hver pil mellem dem og det, der allerede er tegnet. **Nulstil diagram** går tilbage til diagrammet, som det først blev tegnet. Når en side rummer så mange tabeller, som et diagram kan, så åbn en tabel for at centrere diagrammet på den.
+
 Hvor kilden nævner kolonner, viser en tabels fane **Kolonner**, hvor hver kolonne kommer fra, og hvad den føder: Snowflakes adgangshistorik (Enterprise-udgaven, som kræver `IMPORTED PRIVILEGES` på databasen `SNOWFLAKE`) og OpenLineages facet `columnLineage`.
+
+Vælg på fanen **Afstamning** en af tabellens kolonner i **Følg en kolonne** for at fremhæve, hvor den kommer fra, og hvor den går hen: op gennem diagrammet til de kolonner, den er bygget af, ned til de kolonner, der er bygget af den, hver navngivet på sin tabel, også hvor kolonnen blev omdøbt undervejs. En pil, hvis kilder ikke nævner kolonner, kan føre den længere end det fremhævede, og diagrammet siger det.
 
 ## OpenLineage
 
@@ -117,7 +121,7 @@ Hvert job, dbt-projekt og hver synkronisering vises under **Pipelines**, med sin
 - **Pipeline Run Unusually Long**: en kørsel har taget dobbelt så lang tid som normalt eller mere, tjekket hvert femte minut, mens den kører, så en kørsel, der hænger, opdages, før den slutter.
 - **Pipeline Is Late**: ingen kørsel er startet i længere tid, end tidsplanen tillader.
 
-En pipelines side tegner dens **Afstamning**, det første sted at kigge, når en kørsel mislykkes eller er forsinket: til venstre de tabeller, den læser, til højre de tabeller, den skriver, pipelinen imellem, og hvert kort viser, hvordan det står til nu. Vælg flere trin for at se, hvad tabellerne er bygget af, og hvad der er bygget af dem, og åbn en hvilken som helst tabel for at se dens egen fane **Afstamning**.
+En pipelines side tegner dens **Afstamning**, det første sted at kigge, når en kørsel mislykkes eller er forsinket: til venstre de tabeller, den læser, til højre de tabeller, den skriver, pipelinen imellem, og hvert kort viser, hvordan det står til nu. Vælg flere trin for at se, hvad tabellerne er bygget af, og hvad der er bygget af dem, og åbn en hvilken som helst tabel for at se dens egen fane **Afstamning**. Et tal for tabeller, der ikke er tegnet, på pipelinens kort eller på en tabels, tegner også her flere af dem på stedet.
 
 ## Én advarsel pr. årsag
 
@@ -128,7 +132,7 @@ Når en tabel bliver forældet, bliver hver tabel, der er bygget af den, også f
 
 Årsagens **Data**-kort viser dens **Nedstrøms påvirkning**: hver advarsel, den forårsagede. En tabeladvarsels kort viser også de tjenester, der skriver til tabellen, med deres mislykkede skrivninger og deres udrulninger og andre ændringer i døgnet før advarslen.
 
-Under **Data**-kortet tegner en advarsels side dens **Afstamning**: omkring dens tabel, som tabellens fane **Afstamning** tegner den, eller omkring dens pipeline. Vejen op til den advarsel, der forårsagede den, og ned til hver advarsel, den forårsagede, er fremhævet - årsagens tabel eller pipeline markeret med **Årsag**, hver forårsaget advarsels med **Følge** - og resten tones ned, så den, der åbner den, kan se, hvor i kæden problemet begyndte. Handler årsagen om en hel database, eller ligger den længere oppe, end diagrammet når, siger kortet det med ord. **Udforsk afstamning** åbner tabellens fane **Afstamning** eller pipelinens side.
+Under **Data**-kortet tegner en advarsels side dens **Afstamning**: omkring dens tabel, som tabellens fane **Afstamning** tegner den, eller omkring dens pipeline. Vejen op til den advarsel, der forårsagede den, og ned til hver advarsel, den forårsagede, er fremhævet - årsagens tabel eller pipeline markeret med **Årsag**, hver forårsaget advarsels med **Følge** - og resten tones ned, så den, der åbner den, kan se, hvor i kæden problemet begyndte. Ligger årsagen på en pipeline, der er tegnet på en pil, står der **Årsag** under pipelinens navn på pilen. Handler årsagen om en hel database, eller ligger den længere oppe, end diagrammet når, siger kortet det med ord. En advarsel fra en kontrol af én kolonne, som en Null Percent-kontrol af `customer_id`, åbner med den kolonne fulgt ved siden af disse veje, som på tabellens fane **Afstamning**: hvor den kommer fra, og hvor den går hen, navngivet på hver tabel. Vælg en anden af tabellens kolonner dér, eller ryd den for kun at se vejene. **Udforsk afstamning** åbner tabellens fane **Afstamning** eller pipelinens side.
 
 Den, der ikke må se den advarsel, der forårsagede den, får hverken **Data**-kortet eller afstamningen, og en forårsaget advarsel, som vedkommende ikke må se, bliver hverken fremhævet eller talt med.
 

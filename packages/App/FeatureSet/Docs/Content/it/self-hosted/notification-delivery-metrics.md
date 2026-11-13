@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 Impostale in `config.env`, poi esegui `npm start`. `DISABLE_TELEMETRY_FOR_APP` è `true` per impostazione predefinita, e in quel caso non viene inviato nulla.
 :::
 
-OneUptime ha bisogno sia dell'endpoint sia delle intestazioni: senza un'intestazione non invia nulla. Separa più intestazioni con `;`. OneUptime aggiunge da sé `/v1/metrics` all'endpoint, e le stesse impostazioni inviano anche le sue tracce e i suoi log. Ogni metrica compare non appena OneUptime la registra per la prima volta: `notification.send.count` con il primo messaggio inviato.
+OneUptime ha bisogno sia dell'endpoint sia delle intestazioni: senza un'intestazione non invia nulla. Scrivi ogni intestazione come `name=value` e separane più d'una con `;`. Un valore può contenere `=`. OneUptime aggiunge da sé `/v1/metrics` all'endpoint, e le stesse impostazioni inviano anche le sue tracce e i suoi log. Ogni metrica compare non appena OneUptime la registra per la prima volta: `notification.send.count` con il primo messaggio inviato.
 
 ### Inviare delta a un progetto OneUptime
 
@@ -109,14 +109,14 @@ Ogni attributo assume uno di pochi valori fissi, mai un progetto, una persona, u
 | `notification.provider.config` | `global` per l'account e le impostazioni dell'installazione; `project` per l'account Twilio, il server SMTP, il webhook o la connessione all'area di lavoro propri di un progetto, i cui errori spetta al progetto risolvere |
 | `notification.on_call_page` | `true` per una notifica di un avviso di reperibilità, altrimenti `false` |
 | `outcome` | `success`, `failure` o `not_sent`, come sotto |
-| `notification.destination` | Solo Slack, Microsoft Teams e Mattermost: `direct_message` a una persona, `channel` per un post in un canale o in una chat di gruppo di Teams, `incoming_webhook` per un webhook in ingresso, come quello di un iscritto a una pagina di stato |
+| `notification.destination` | Slack, Microsoft Teams e Mattermost: `direct_message` a una persona, `channel` per un post in un canale o in una chat di gruppo di Teams, `incoming_webhook` per un webhook in ingresso, come quello di un iscritto a una pagina di stato. Webhook: `status_page_subscriber` per il webhook proprio di un iscritto a una pagina di stato. Assente per il webhook di una persona e per tutti gli altri canali |
 | `notification.custom_channel.id`, `notification.custom_channel.name` | Solo canali personalizzati: l'ID del canale, e il suo nome troncato a 100 caratteri |
 
 - `success`: il provider ha accettato il messaggio.
 - `failure`: il provider l'ha rifiutato o non era raggiungibile, oppure l'invio è fallito. Un canale di chat che non è stato trovato è un errore senza durata.
 - `not_sent`: non inviato di proposito. Il progetto ha disattivato il canale, ha un saldo insufficiente o è bloccato, il push è disattivato su questo server, oppure un canale personalizzato è disattivato, eliminato o non coperto dalla licenza. Un tasso di successo li esclude: sono impostazioni all'opera, non la piattaforma che fallisce.
 
-I webhook semplici degli iscritti alle pagine di stato non vengono ancora conteggiati.
+Un messaggio al webhook proprio di un iscritto a una pagina di stato conta una volta, per quante volte sia stato tentato: `success` quando l'endpoint ha risposto con uno stato 2xx, e `failure` quando ha risposto con un altro stato, non è stato raggiungibile o il suo indirizzo non è consentito.
 
 ### Che cosa ha raggiunto il telefono
 
@@ -155,7 +155,7 @@ Gli stati arrivano solo dove il provider può riportarli:
 | --- | --- |
 | `monitor_data_received` | Quando OneUptime ha ricevuto i dati che hanno attivato il monitor: una richiesta in ingresso, il report di un agente server, un'email in ingresso, il controllo di una sonda, un trap SNMP o l'interrogazione di un dispositivo di rete. Include il tempo che i dati hanno atteso in coda per essere valutati. |
 | `record_created` | Quando è stato creato l'incidente, l'avviso o l'episodio: da un monitor di telemetria, una regola o una persona, e per un controllo di assenza, come un heartbeat che si è fermato. |
-| `page_started` | Quando un avviso è iniziato più tardi: l'ha avviato una persona, un flusso di lavoro o una regola che ora corrisponde, un nuovo avviso, un avviso diretto, o un avviso che ha atteso la fine di una sospensione richiesta dalla sua regola di reperibilità. |
+| `page_started` | Quando un avviso è iniziato più tardi: l'ha avviato una persona, un flusso di lavoro o una regola che ora corrisponde, oppure è un avviso diretto. Per un avviso trattenuto dalla sua regola di reperibilità o da OneUptime AI, quando è finita la sospensione, o quando è iniziato se è stato prima. Per un nuovo avviso, quando è scaduto il timeout dopo il riconoscimento. Così un worker arrivato in ritardo a uno dei due si vede nel tempo. |
 
 Per una richiesta in ingresso, il tempo parte dall'ultima richiesta ricevuta dall'endpoint, quindi può risultare un po' corto.
 
@@ -170,7 +170,7 @@ Per una richiesta in ingresso, il tempo parte dall'ultima richiesta ricevuta dal
 | `escalation` | Un livello di escalation successivo: quando il livello precedente ha finito la sua attesa, o subito quando una persona passa l'avviso. |
 | `policy_repeat` | La policy che ricomincia dal suo primo livello: quando è scaduta l'attesa del suo ultimo livello. |
 
-Porta anche `notification.channel`, `notification.trigger.type` e, per i canali personalizzati, `notification.custom_channel.id` e `notification.custom_channel.name`. Una notifica dovuta all'inizio del suo avviso non vi compare mai: è nel tempo di invio.
+Porta anche `notification.channel`, `notification.trigger.type` e, per i canali personalizzati, `notification.custom_channel.id` e `notification.custom_channel.name`. Una notifica dovuta all'inizio del suo avviso non vi compare mai, nemmeno quando un worker ha avviato l'avviso in ritardo, dopo una sospensione o come nuovo avviso: è nel tempo di invio.
 
 ### Bucket degli istogrammi
 
@@ -220,7 +220,7 @@ Il 95% degli avvisi di reperibilità raggiunge il suo provider entro 30 secondi 
 | --- | --- | --- | --- |
 | `a` | `notification.time_to_send` | **P95** | `notification.page.start != page_started` |
 
-L'obiettivo regge finché `a` resta pari o inferiore a 30000. Gli avvisi avviati più tardi sono cronometrati dal loro avvio, non da un'attivazione, quindi sono esclusi. Raggruppa per `notification.page.start` per vedere la coda dei monitor (`monitor_data_received`) separata dal resto, o per `notification.channel` per trovare un canale lento.
+L'obiettivo regge finché `a` resta pari o inferiore a 30000. Gli avvisi avviati più tardi sono cronometrati dal loro avvio o dalla loro scadenza, non da un'attivazione, quindi sono esclusi. Raggruppa per `notification.page.start` per vedere la coda dei monitor (`monitor_data_received`) separata dal resto, o per `notification.channel` per trovare un canale lento.
 
 ### Le notifiche inviate più tardi partono entro 90 secondi
 
@@ -246,7 +246,7 @@ La formula `$b / $a * 100` è la quota non consegnata. Gli operatori e i telefon
 ## Risoluzione dei problemi
 
 :::details Non arriva alcuna metrica delle notifiche
-Controlla che `OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT` e `OPENTELEMETRY_EXPORTER_OTLP_HEADERS` siano entrambe impostate, e in Docker Compose che `DISABLE_TELEMETRY_FOR_APP` sia `false`, poi riavvia OneUptime. Una metrica compare solo dopo che qualcosa è stato registrato, quindi invia prima una notifica.
+Controlla che `OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT` e `OPENTELEMETRY_EXPORTER_OTLP_HEADERS` siano entrambe impostate, e in Docker Compose che `DISABLE_TELEMETRY_FOR_APP` sia `false`, poi riavvia OneUptime. All'avvio, OneUptime registra un avviso quando non riesce a leggere un'intestazione o quando non invia nulla. Una metrica compare solo dopo che qualcosa è stato registrato, quindi invia prima una notifica.
 :::
 
 :::details Un conteggio cresce soltanto, o un percentile si muove appena

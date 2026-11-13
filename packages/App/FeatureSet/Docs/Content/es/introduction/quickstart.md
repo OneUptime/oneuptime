@@ -2,6 +2,8 @@
 
 Esta guía te lleva de una cuenta nueva a una configuración que funciona en unos quince minutos: un monitor que comprueba tu sitio web cada cinco minutos, una política de guardia que te avisa cuando el sitio cae y una página de estado que informa a tus clientes. Sigue la lista **Te damos la bienvenida a OneUptime 👋** de la página de inicio de tu proyecto.
 
+¿Vienes de otra herramienta? Primero [importa tu configuración](/docs/introduction/getting-started#si-vienes-de-otra-herramienta): tus monitores, tus programaciones de guardia y tus páginas de estado vienen contigo.
+
 ```mermaid title="Lo que configuras en esta guía"
 flowchart TB
     monitor["Monitor de sitio web"] -->|"el sitio cae"| incident["Incidente"]
@@ -32,7 +34,7 @@ Escribe un **Nombre del proyecto**, por ejemplo el nombre de tu empresa. En OneU
 
 ### Crearlo
 
-Haz clic en **Crear proyecto**. Se abre la página de inicio de tu proyecto, con la lista **Te damos la bienvenida a OneUptime 👋** arriba.
+Haz clic en **Crear proyecto**. Se abre la página de inicio de tu proyecto, con la lista **Te damos la bienvenida a OneUptime 👋** arriba. Primero pregunta **¿Qué quieres hacer primero?**: marca **Saber cuándo cae mi sitio web o mi API**, **Avisar a la persona adecuada cuando algo falle** y **Informar a mis clientes con una página de estado**, y haz clic en **Continuar**.
 :::
 
 ## Monitorizar tu sitio web
@@ -80,6 +82,8 @@ Tu correo de inicio de sesión ya es una forma de localizarte. Para recibir tamb
 
 Para más niveles, rotaciones y cuánto espera cada nivel, consulta [Reglas de escalado](/docs/on-call/escalation-rules) y [Programaciones de guardia](/docs/on-call/schedules).
 
+Para recibir avisos por SMS, llamada y push, que pasen a la siguiente persona si nadie responde, y comprobarlo con un aviso de prueba, sigue [Recibir avisos por llamada, SMS o push](/docs/guides/paging).
+
 ## Publicar una página de estado
 
 :::steps
@@ -97,6 +101,8 @@ Elige **Vista general** en el menú lateral. La tarjeta **Enlace de la página d
 :::
 
 Una página de estado nueva es pública: cualquiera que tenga su dirección puede abrirla. Para darle tu propio dominio, tu logotipo y tus colores, consulta [Marca y dominios de la página de estado](/docs/status-pages/branding-and-domains).
+
+Para poner la página de estado en tu propio dominio, por HTTPS, sigue [Publicar una página de estado](/docs/guides/status-page).
 
 ## Invitar a tu equipo
 
@@ -141,6 +147,7 @@ Abre el monitor y revisa lo que recibieron las sondas. Consulta la sección de s
 
 :::cards
 - [Conceptos básicos](/docs/introduction/core-concepts): Las ideas detrás de lo que acabas de configurar.
+- [Glosario](/docs/introduction/glossary): Cada palabra que has encontrado por el camino, en una o dos frases.
 - [Programaciones de guardia](/docs/on-call/schedules): Repartir la guardia con tu equipo.
 - [Marca y dominios de la página de estado](/docs/status-pages/branding-and-domains): Hacer tuya la página de estado.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Enviar registros, métricas y trazas desde tus aplicaciones.

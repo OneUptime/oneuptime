@@ -1,6 +1,6 @@
 # Incidenter – Översikt
 
-En incident är posten ditt team arbetar utifrån när något går sönder: vad som är påverkat, hur allvarligt det är, hur långt insatsen har kommit, vem som äger den och allt som skrivs ner under tiden. Att deklarera en larmar rätt jourrotation, meddelar ägarna och — om du vill — lägger ut avbrottet på din statussida, så att kunderna vet att du arbetar med saken.
+En incident är posten ditt team arbetar utifrån när något går sönder: vad som är påverkat, hur allvarligt det är, hur långt insatsen har kommit, vem som äger den och allt som skrivs ner under tiden. Att deklarera en larmar rätt jourrotation, meddelar ägarna och — om du vill — lägger ut avbrottet på din statussida, så att kunderna vet att du arbetar med saken. Osäker på om ett problem är en incident eller ett larm? [Vilken ska jag använda?](/docs/introduction/which-one#incident-larm-eller-ett-annat-slags-problem) ställer dem sida vid sida.
 
 :::cards
 - [Deklarera en incident](/docs/incidents/declaring-incidents): För hand, från en mall, från en monitor, via API:t eller via ett formulär.
@@ -86,7 +86,7 @@ Därefter kan du skriva en [efteranalys](/docs/incidents/postmortems) och, om du
 
 ## Nyckelbegrepp
 
-En handfull ord återkommer på varannan sida i det här avsnittet. Reda ut dem först.
+En handfull ord återkommer på varannan sida i det här avsnittet. Reda ut dem först. Orden som används i hela OneUptime finns samlade på sidan [Ordlista](/docs/introduction/glossary).
 
 | Begrepp                | Vad det betyder                                                                                                                                     |
 | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -162,7 +162,7 @@ Redigera eller lägg till allvarlighetsgrader under **Incidenter → Inställnin
 | **AI**        | **Insikter**, **Loggar**, **Inställningar**: vad OneUptime AI har lärt sig av dina incidenter och allt den har gjort för dem, och vad den får göra på egen hand — med reglerna för vilka incidenter den utreder och åtgärdar. Se [AI SRE](/docs/ai/ai-sre). |
 | **Arbetsyta** | Chattarbetsytorna som projektet har anslutit: **Slack**, **Microsoft Teams** och **Mattermost**, var och en med sina aviseringsregler för incidenter. Är ingen av dem ansluten innehåller den **Anslut en arbetsyta**, en sida som visar alla tre och hur de ansluts. |
 | **Regler**    | Regelmotorerna: **Grupperingsregler**, **Jourregler**, **Ägarregler**, **Runbook-regler**, **Sekretessregler**, **Etikettregler**, **SLA-regler**, **Påminnelseregler**. |
-| **Inställningar** | **Incidentstatus**, **Incidentallvar**, **Incidentmallar**, **Anteckningsmallar**, **Godkännande av offentliga anteckningar**, **Postmortem-mallar**, **Efteranalysstatusar**, **Anpassade fält**, **Incidentroller**, **Mätningar**, **Länkade larm**, **Medlemskap i episoder**, **Numrering**. |
+| **Inställningar** | **Incidentstatus**, **Incidentallvar**, **Incidentmallar**, **Anteckningsmallar**, **Godkännande av offentliga anteckningar**, **Postmortem-mallar**, **Efteranalysstatusar**, **Anpassade fält**, **Incidentroller**, **Mätningar**, **Länkade larm**, **Medlemskap i episoder**, **Numrering**, **Datalagring**. |
 
 **Översikt** och **Episoder** är öppna; **AI**, **Arbetsyta**, **Regler**, **Inställningar** och **Utvecklare** är hopfällda som standard, så att menyn öppnas på listorna du använder varje dag. Klicka på ett avsnitts titel för att fälla ut det och hitta sidorna som resten av den här dokumentationen hänvisar till; ett avsnitt öppnas också av sig självt när du är på någon av dess sidor. Konfigurationen av incidenter finns inte under projektinställningarna; den finns helt här.
 

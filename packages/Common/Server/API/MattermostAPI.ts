@@ -13,6 +13,7 @@ import ObjectID from "../../Types/ObjectID";
 import WorkspaceUserAuthTokenService from "../Services/WorkspaceUserAuthTokenService";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import WorkspaceProjectAuthToken, {
+  MattermostConnectionTeam,
   MattermostMiscData,
 } from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import UserMiddleware from "../Middleware/UserAuthorization";
@@ -43,6 +44,10 @@ import MattermostUtil, {
   MattermostUser,
 } from "../Utils/Workspace/Mattermost/Mattermost";
 import MattermostConnection from "../Utils/Workspace/Mattermost/MattermostConnection";
+import MattermostTeams, {
+  MattermostTeamsOfConnection,
+} from "../Utils/Workspace/Mattermost/MattermostTeams";
+import OneUptimeDate from "../../Types/Date";
 import MattermostActions, {
   MattermostDialogAnswer,
   MattermostPressAnswer,
@@ -60,6 +65,10 @@ import { WorkspacePayloadMarkdown } from "../../Types/Workspace/WorkspaceMessage
 const CONNECT_PERMISSION_MESSAGE: string =
   "You do not have permission to connect this project to Mattermost. Ask a project admin to connect it.";
 
+// What a member not allowed to choose the project's default team is refused with.
+const DEFAULT_TEAM_PERMISSION_MESSAGE: string =
+  "You do not have permission to change this project's Mattermost settings. Ask a project admin to change the default team.";
+
 // What every route that needs the project's connection says without one.
 const NOT_CONNECTED_MESSAGE: string =
   "Mattermost is not connected to this project. A project admin connects it under Project Settings → Workspace → Mattermost.";
@@ -74,10 +83,13 @@ const SIGN_IN_LINK_LIMIT_NAMESPACE: string = "mattermost-sign-in-link";
  *
  * A project connects to the Mattermost server of its own with a bot account
  * a Mattermost admin made for OneUptime: its access token, and the team of
- * the server OneUptime posts in (POST /mattermost/connect). OneUptime checks
- * the token with the server - whose bot it is, and which teams it is in -
- * before it keeps anything, so a connection names a team only the holder of
- * a working token for it can name.
+ * the server OneUptime posts in by default (POST /mattermost/connect).
+ * OneUptime checks the token with the server - whose bot it is, and which
+ * teams it is in - before it keeps anything, so a connection names a team
+ * only the holder of a working token for it can name. It works in every
+ * team the bot is a member of (MattermostTeams): Project Settings lists them
+ * (GET /mattermost/connected-teams) and a member allowed to manage the
+ * connection makes another one the default (PUT /mattermost/default-team).
  *
  * Each member connects their own Mattermost account (POST
  * /mattermost/sign-in-link): Mattermost has no sign-in OneUptime can send
@@ -145,11 +157,13 @@ export default class MattermostAPI {
     );
 
     /*
-     * Connects the project to a team of a Mattermost server, as a bot
-     * account: checked with the server first (whose token, which teams), and
-     * kept in the server-only authToken (MattermostConnection). A project
-     * connected to a team keeps it: connecting another team is refused
-     * until the first is disconnected (refreshAuthToken).
+     * Connects the project to a Mattermost server, as a bot account, with
+     * one of the bot's teams as the default: checked with the server first
+     * (whose token, which teams), and kept in the server-only authToken
+     * (MattermostConnection). The bot's other teams are kept beside it, for
+     * rules to name (MattermostTeams). A project connected to a team keeps
+     * it: connecting another team is refused until the first is
+     * disconnected (refreshAuthToken).
      */
     router.post(
       "/mattermost/connect",
@@ -190,6 +204,12 @@ export default class MattermostAPI {
             teamDisplayName: team.displayName || team.name,
             botUserId: bot.id,
             botUsername: bot.username,
+            teams: teams.map(
+              (each: MattermostTeam): MattermostConnectionTeam => {
+                return MattermostTeams.toConnectionTeam(each);
+              },
+            ),
+            teamsReadAt: OneUptimeDate.toString(OneUptimeDate.getCurrentDate()),
           };
 
           await WorkspaceProjectAuthTokenService.refreshAuthToken({
@@ -215,7 +235,139 @@ export default class MattermostAPI {
       },
     );
 
-    // The channels of the project's team the bot can post in, by name.
+    /*
+     * The teams of the project's Mattermost server OneUptime works in, as
+     * Project Settings and the rule form show them: every team its bot is a
+     * member of - listed again from the server when those listed last are
+     * older than a few minutes, or with ?refresh=true, which says why when
+     * the server does not answer - the default one first (MattermostTeams).
+     */
+    router.get(
+      "/mattermost/connected-teams",
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+
+          const projectAuth: WorkspaceProjectAuthToken =
+            await MattermostAPI.getProjectConnection(projectId);
+
+          const connection: MattermostTeamsOfConnection | null =
+            req.query["refresh"]?.toString() === "true"
+              ? await MattermostAPI.listTeamsNow({
+                  projectId: projectId,
+                  projectAuth: projectAuth,
+                })
+              : await MattermostTeams.getOfConnection({
+                  projectId: projectId,
+                  projectAuth: projectAuth,
+                });
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            MattermostAPI.describeTeams({
+              connection: connection,
+              projectAuth: projectAuth,
+            }),
+          );
+        } catch (err) {
+          return Response.sendErrorResponse(req, res, err as Exception);
+        }
+      },
+    );
+
+    /*
+     * The project's default Mattermost team: where a rule that names no team
+     * posts and creates its channels, and what every call that names no
+     * team is made in. Body: `{ teamId }`, a team the server lists the bot
+     * in now. For a member allowed to manage the project's workspace
+     * connections. The connection stays stored under the team it was made
+     * for.
+     */
+    router.put(
+      "/mattermost/default-team",
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+
+          CommonAPI.assertPermittedInProject({
+            databaseProps: props,
+            allowedPermissions:
+              WorkspaceOAuthState.MANAGE_CONNECTION_PERMISSIONS,
+            errorMessage: DEFAULT_TEAM_PERMISSION_MESSAGE,
+          });
+
+          const teamId: unknown = (req.body as JSONObject | undefined)?.[
+            "teamId"
+          ];
+
+          if (!MattermostConnection.isMattermostId(teamId)) {
+            throw new BadDataException("Choose a Mattermost team.");
+          }
+
+          const projectAuth: WorkspaceProjectAuthToken =
+            await MattermostAPI.getProjectConnection(projectId);
+
+          // The bot's teams as the server lists them now: a default team is one the bot is in.
+          const connection: MattermostTeamsOfConnection | null =
+            await MattermostAPI.listTeamsNow({
+              projectId: projectId,
+              projectAuth: projectAuth,
+            });
+
+          if (!connection) {
+            throw new BadDataException(NOT_CONNECTED_MESSAGE);
+          }
+
+          if (teamId !== connection.defaultTeam.id) {
+            const team: MattermostConnectionTeam | undefined =
+              connection.teams.find(
+                (candidate: MattermostConnectionTeam): boolean => {
+                  return candidate.id === teamId;
+                },
+              );
+
+            if (!team) {
+              throw new BadDataException(
+                "OneUptime's bot is not a member of this Mattermost team. Add the bot to the team in Mattermost, then click Refresh.",
+              );
+            }
+
+            await WorkspaceProjectAuthTokenService.updateMattermostTeams({
+              projectId: projectId,
+              workspaceProjectId: projectAuth.workspaceProjectId || "",
+              defaultTeam: team,
+            });
+          }
+
+          const updated: WorkspaceProjectAuthToken =
+            await MattermostAPI.getProjectConnection(projectId);
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            MattermostAPI.describeTeams({
+              connection: MattermostTeams.readConnection(updated),
+              projectAuth: updated,
+            }),
+          );
+        } catch (err) {
+          return Response.sendErrorResponse(req, res, err as Exception);
+        }
+      },
+    );
+
+    // The channels of the project's default team the bot can post in, by name.
     router.get(
       "/mattermost/channels",
       UserMiddleware.getUserMiddleware,
@@ -609,8 +761,79 @@ export default class MattermostAPI {
   }
 
   /*
-   * The team a connection posts in: the one picked, which must be one of
-   * the bot's - or the bot's only team when none was picked.
+   * The teams of a project's connection, as GET /mattermost/connected-teams
+   * answers: the default first, then by name, the default marked, with
+   * whether the bot is still in it and the bot's username - what Project
+   * Settings says to add to a team. With the teams the bot was taken out
+   * of, by the names they had, and whether the server has listed the teams
+   * at all: before it has, no rule's team is known to be one the bot left.
+   */
+  public static describeTeams(data: {
+    connection: MattermostTeamsOfConnection | null;
+    projectAuth: WorkspaceProjectAuthToken;
+  }): JSONObject {
+    if (!data.connection) {
+      throw new BadDataException(NOT_CONNECTED_MESSAGE);
+    }
+
+    const connection: MattermostTeamsOfConnection = data.connection;
+    const miscData: MattermostMiscData | undefined = data.projectAuth
+      .miscData as MattermostMiscData | undefined;
+
+    return {
+      teams: connection.teams.map(
+        (team: MattermostConnectionTeam): JSONObject => {
+          return {
+            id: team.id,
+            name: team.name,
+            displayName: team.displayName || team.name,
+            isDefault: team.id === connection.defaultTeam.id,
+          };
+        },
+      ),
+      defaultTeamId: connection.defaultTeam.id,
+      isBotInDefaultTeam: connection.isBotInDefaultTeam,
+      botUsername: miscData?.botUsername || "",
+      removedTeams: connection.removedTeams.map(
+        (team: MattermostConnectionTeam): JSONObject => {
+          return {
+            id: team.id,
+            name: team.name,
+            displayName: team.displayName || team.name,
+          };
+        },
+      ),
+      areTeamsListed: Boolean(connection.teamsReadAt),
+    };
+  }
+
+  /*
+   * The bot's teams as the server lists them now, kept for the next time -
+   * or why the server would not list them: a token it no longer takes, or
+   * a server OneUptime cannot reach.
+   */
+  private static async listTeamsNow(data: {
+    projectId: ObjectID;
+    projectAuth: WorkspaceProjectAuthToken;
+  }): Promise<MattermostTeamsOfConnection | null> {
+    try {
+      return await MattermostTeams.listNow(data);
+    } catch (err) {
+      if (MattermostUtil.isUnauthorizedError(err)) {
+        throw new BadDataException(
+          "Mattermost no longer accepts the bot's access token. Disconnect Mattermost and connect it again with a new token.",
+        );
+      }
+
+      throw new BadDataException(
+        `OneUptime could not ask the Mattermost server for its bot's teams: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
+  /*
+   * The team a connection posts in by default: the one picked, which must
+   * be one of the bot's - or the bot's only team when none was picked.
    */
   public static chooseTeam(data: {
     teams: Array<MattermostTeam>;
@@ -633,7 +856,7 @@ export default class MattermostAPI {
       }
 
       throw new BadDataException(
-        "The bot account is a member of more than one team. Choose the team OneUptime should post in.",
+        "The bot account is a member of more than one team. Choose the team OneUptime should post in by default.",
       );
     }
 

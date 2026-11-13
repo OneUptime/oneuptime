@@ -436,12 +436,26 @@ function useEventStateActions<T extends BaseModel>(
     return BULK_ITEM_CHANGED;
   };
 
-  const afterMoves: (context?: RowActionContext | undefined) => void = (
-    context?: RowActionContext | undefined,
-  ): void => {
-    context?.refresh();
-    // The side menu's counts (Unresolved, Active) follow.
-    GlobalEvents.dispatchEvent(REFRESH_SIDEBAR_COUNT_EVENT);
+  /*
+   * The list reads its rows again, and the side menu's counts (Active
+   * Alerts, Unresolved) follow. A list asks them itself - ModelTable's
+   * refresh does, and so does the end of every bulk run
+   * (useBulkActionProgress) - so they are asked once, not twice. Only a row
+   * moved where no list handed its refresh over asks them here.
+   */
+  const afterMoves: (data: {
+    scope: StateDialog<T>["scope"];
+    context?: RowActionContext | undefined;
+  }) => void = (data: {
+    scope: StateDialog<T>["scope"];
+    context?: RowActionContext | undefined;
+  }): void => {
+    if (data.context) {
+      data.context.refresh();
+    } else if (data.scope === "row") {
+      GlobalEvents.dispatchEvent(REFRESH_SIDEBAR_COUNT_EVENT);
+    }
+
     config.onChanged?.();
   };
 
@@ -503,7 +517,7 @@ function useEventStateActions<T extends BaseModel>(
 
       const context: RowActionContext | undefined = dialog.context;
       close();
-      afterMoves(context);
+      afterMoves({ scope: "row", context: context });
       return;
     }
 
@@ -546,7 +560,7 @@ function useEventStateActions<T extends BaseModel>(
       },
     });
 
-    afterMoves();
+    afterMoves({ scope: "bulk" });
   };
 
   const rowActions: Array<ActionButtonSchema<T>> = [];

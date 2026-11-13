@@ -172,6 +172,13 @@ export interface SetupChecklist {
   headline: string;
   /** Second-person consequence sentence, or "" when there is nothing to warn about. */
   headlineConsequence: string;
+  /*
+   * The kinds of the reader's verified methods ("Email", "SMS", "Push"...),
+   * each once: Home's first steps for an invited member (#6807) say when
+   * only email can reach somebody who is on call, and whether the mobile
+   * app is set up.
+   */
+  verifiedMethodTypes: Array<string>;
 }
 
 /*
@@ -978,6 +985,15 @@ export const buildSetupChecklist: BuildChecklistFunction = (
     isOnCallResponder: isOnCallResponder,
     headlineStatus: headlineStatus,
     headline: getHeadline(headlineStatus),
+    verifiedMethodTypes: Array.from(
+      new Set(
+        getVerifiedMethods(input.readiness).map(
+          (method: ReadinessMethodWire): string => {
+            return method.methodType;
+          },
+        ),
+      ),
+    ),
     /*
      * The consequence sentence is the server's own second-person copy, reused
      * rather than rewritten so that this page and the reminder email a project

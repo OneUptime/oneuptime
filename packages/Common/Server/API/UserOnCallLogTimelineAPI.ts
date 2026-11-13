@@ -16,11 +16,9 @@ import { DashboardRoute } from "../../ServiceRoute";
 import Hostname from "../../Types/API/Hostname";
 import Protocol from "../../Types/API/Protocol";
 import URL from "../../Types/API/URL";
-import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
-import UserNotificationStatus from "../../Types/UserNotification/UserNotificationStatus";
 import UserOnCallLogTimeline from "../../Models/DatabaseModels/UserOnCallLogTimeline";
 import Route from "../../Types/API/Route";
 import {
@@ -32,6 +30,14 @@ import {
 } from "../Utils/OnCallNotificationContext";
 import OnCallPagePassOn from "../Utils/OnCall/OnCallPagePassOn";
 import OnCallAcknowledgePageAnswerReader from "../Utils/OnCall/OnCallAcknowledgePageAnswer";
+import {
+  ON_CALL_CALL_NOT_ACKNOWLEDGED_SAY_MESSAGE,
+  ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE,
+  ON_CALL_NOTIFICATION_NOT_ACKNOWLEDGED_MESSAGE,
+  ON_CALL_OBSERVER_NOTIFICATION_SEEN_MESSAGE,
+  isNotificationAcknowledged,
+  recordAcknowledgement,
+} from "../Utils/OnCall/OnCallNotificationStatus";
 import OnCallDutyPolicyExecutionLog from "../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import {
   OnCallAcknowledgePageAnswer,
@@ -44,6 +50,16 @@ import {
   isOnCallObserverPage,
 } from "../../Types/OnCallDutyPolicy/OnCallObserverPage";
 import OnCallPageLinks from "../Utils/OnCall/OnCallPageLinks";
+import UserOnCallLogService from "../Services/UserOnCallLogService";
+import UserOnCallLog from "../../Models/DatabaseModels/UserOnCallLog";
+import {
+  ON_CALL_TEST_PAGE_ACKNOWLEDGE_MESSAGE,
+  ON_CALL_TEST_PAGE_ACKNOWLEDGE_TITLE,
+  ON_CALL_TEST_PAGE_ANSWERED_MESSAGE,
+  ON_CALL_TEST_PAGE_ANSWERED_TITLE,
+  ON_CALL_TEST_PAGE_NOTIFICATION_ACKNOWLEDGED_MESSAGE,
+  isOnCallTestPage,
+} from "../../Types/OnCallDutyPolicy/OnCallTestPage";
 import OnCallPageLinkToken, {
   ON_CALL_PAGE_LINK_TOKEN_PARAM,
 } from "../Utils/OnCall/OnCallPageLinkToken";
@@ -83,6 +99,9 @@ const NOTIFICATION_PAGE_SELECT: Select<UserOnCallLogTimeline> = {
   projectId: true,
   userId: true,
   onCallDutyPolicyExecutionLogId: true,
+  // A test page (OnCallTestPage) opens a page of its own, about no record.
+  userNotificationEventType: true,
+  userNotificationLogId: true,
   isAcknowledged: true,
   // When it was answered from its own link: "You already acknowledged ... at 5:28 AM UTC."
   acknowledgedAt: true,
@@ -287,22 +306,35 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
             );
           }
 
-          // check digits.
-
+          /*
+           * The first key acknowledges the page: written once, over what
+           * the call's send or its provider wrote
+           * (OnCallNotificationStatus.recordAcknowledgement), and the
+           * notification's update hook acknowledges the page and its record.
+           */
           if (req.body["Digits"] === "1") {
-            // then ack incident
-            await this.service.updateOneById({
-              id: itemId,
-              data: {
-                acknowledgedAt: OneUptimeDate.getCurrentDate(),
-                isAcknowledged: true,
-                status: UserNotificationStatus.Acknowledged,
-                statusMessage: "Notification Acknowledged",
-              },
-              props: {
-                isRoot: true,
-              },
+            const isAcknowledged: boolean = await recordAcknowledgement({
+              userOnCallLogTimelineId: itemId,
+              statusMessage: ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE,
             });
+
+            /*
+             * Not written, and not acknowledged meanwhile either - from
+             * another of the page's messages: the notification kept changing
+             * under every try. The call never says a page is acknowledged
+             * that goes on paging the person.
+             */
+            if (
+              !isAcknowledged &&
+              !(await isNotificationAcknowledged(itemId))
+            ) {
+              return NotificationMiddleware.sendResponse(
+                req,
+                res,
+                token as any,
+                ON_CALL_CALL_NOT_ACKNOWLEDGED_SAY_MESSAGE,
+              );
+            }
           }
 
           return NotificationMiddleware.sendResponse(req, res, token as any);
@@ -350,6 +382,16 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
               res,
               new BadDataException("Invalid item Id"),
             );
+          }
+
+          // A test page (OnCallTestPage) is about no record: a page of its own.
+          if (isOnCallTestPage(timelineItem)) {
+            return await this.renderTestPageAcknowledgePage({
+              req: req,
+              res: res,
+              itemId: itemId,
+              timelineItem: timelineItem,
+            });
           }
 
           /*
@@ -475,6 +517,19 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
             );
           }
 
+          /*
+           * A test page (OnCallTestPage): acknowledged here, and the page says
+           * it works - there is no record to send the person to.
+           */
+          if (isOnCallTestPage(timelineItem)) {
+            return await this.acknowledgeTestPage({
+              req: req,
+              res: res,
+              itemId: itemId,
+              timelineItem: timelineItem,
+            });
+          }
+
           const host: Hostname = await DatabaseConfig.getHost();
           const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
@@ -518,20 +573,55 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
             });
           }
 
-          await this.service.updateOneById({
-            id: itemId,
-            data: {
-              acknowledgedAt: OneUptimeDate.getCurrentDate(),
-              isAcknowledged: true,
-              status: UserNotificationStatus.Acknowledged,
-              statusMessage: isObserverPage
-                ? "Marked as seen, paged as an observer"
-                : "Notification Acknowledged",
-            },
-            props: {
-              isRoot: true,
-            },
+          /*
+           * Written once (OnCallNotificationStatus.recordAcknowledgement): a
+           * second press landing meanwhile - the button pressed twice, the
+           * link opened on two devices - acknowledges nothing again, and is
+           * told what the page says now.
+           */
+          const isAcknowledged: boolean = await recordAcknowledgement({
+            userOnCallLogTimelineId: itemId,
+            statusMessage: isObserverPage
+              ? ON_CALL_OBSERVER_NOTIFICATION_SEEN_MESSAGE
+              : ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE,
           });
+
+          if (!isAcknowledged) {
+            // Read again, as they are now: whose answer it was, and when.
+            const answeredItem: UserOnCallLogTimeline =
+              (await this.readNotification(itemId)) || timelineItem;
+
+            const runNow: OnCallDutyPolicyExecutionLog | null =
+              (await OnCallAcknowledgePageAnswerReader.readRun(
+                answeredItem.onCallDutyPolicyExecutionLogId,
+              )) || run;
+
+            const answerNow: OnCallAcknowledgePageAnswer =
+              await OnCallAcknowledgePageAnswerReader.read({
+                timelineItem: answeredItem,
+                reference: reference,
+                run: runNow,
+              });
+
+            // Not acknowledged, and not answered either: nothing to claim.
+            if (isOnCallAcknowledgePageOpen(answerNow)) {
+              return Response.sendErrorResponse(
+                req,
+                res,
+                new BadDataException(
+                  ON_CALL_NOTIFICATION_NOT_ACKNOWLEDGED_MESSAGE,
+                ),
+              );
+            }
+
+            return this.renderAcknowledgePageAnswered({
+              req: req,
+              res: res,
+              record: await this.readNotificationRecord(answeredItem),
+              answer: answerNow,
+              isObserverPage: isObserverPage,
+            });
+          }
 
           // redirect to dashboard to the resource page.
           if (reference) {
@@ -727,6 +817,96 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
         } catch (error) {
           return next(error);
         }
+      },
+    );
+  }
+
+  /*
+   * Whether the person already acknowledged a test page (OnCallTestPage):
+   * from this message, or from another of theirs - a test is theirs to
+   * acknowledge once, whoever else it reached.
+   */
+  private async isTestPageAnswered(
+    timelineItem: UserOnCallLogTimeline,
+  ): Promise<boolean> {
+    if (timelineItem.isAcknowledged) {
+      return true;
+    }
+
+    if (!timelineItem.userNotificationLogId) {
+      return false;
+    }
+
+    const log: UserOnCallLog | null = await UserOnCallLogService.findOneById({
+      id: timelineItem.userNotificationLogId,
+      select: {
+        _id: true,
+        acknowledgedAt: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return Boolean(log?.acknowledgedAt);
+  }
+
+  // A test page's link: Acknowledge, or that it works once it is acknowledged.
+  private async renderTestPageAcknowledgePage(data: {
+    req: ExpressRequest;
+    res: ExpressResponse;
+    itemId: ObjectID;
+    timelineItem: UserOnCallLogTimeline;
+  }): Promise<void> {
+    if (await this.isTestPageAnswered(data.timelineItem)) {
+      return this.renderTestPageAnswered(data.req, data.res);
+    }
+
+    return Response.render(
+      data.req,
+      data.res,
+      "/usr/src/Common/Server/Views/AcknowledgeUserOnCallNotification.ejs",
+      {
+        title: ON_CALL_TEST_PAGE_ACKNOWLEDGE_TITLE,
+        message: ON_CALL_TEST_PAGE_ACKNOWLEDGE_MESSAGE,
+        acknowledgeText: ON_CALL_TEST_PAGE_ACKNOWLEDGE_TITLE,
+        acknowledgeUrl: (
+          await OnCallPageLinks.getAcknowledgeUrl(data.itemId)
+        ).toString(),
+      },
+    );
+  }
+
+  // The test page's Acknowledge: the message is acknowledged, and it works.
+  private async acknowledgeTestPage(data: {
+    req: ExpressRequest;
+    res: ExpressResponse;
+    itemId: ObjectID;
+    timelineItem: UserOnCallLogTimeline;
+  }): Promise<void> {
+    // Written once, as any acknowledgement is (recordAcknowledgement).
+    if (!(await this.isTestPageAnswered(data.timelineItem))) {
+      await recordAcknowledgement({
+        userOnCallLogTimelineId: data.itemId,
+        statusMessage: ON_CALL_TEST_PAGE_NOTIFICATION_ACKNOWLEDGED_MESSAGE,
+      });
+    }
+
+    return this.renderTestPageAnswered(data.req, data.res);
+  }
+
+  private renderTestPageAnswered(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): void {
+    return Response.render(
+      req,
+      res,
+      "/usr/src/Common/Server/Views/ViewMessage.ejs",
+      {
+        title: ON_CALL_TEST_PAGE_ANSWERED_TITLE,
+        message: ON_CALL_TEST_PAGE_ANSWERED_MESSAGE,
+        statusIcon: "check",
       },
     );
   }

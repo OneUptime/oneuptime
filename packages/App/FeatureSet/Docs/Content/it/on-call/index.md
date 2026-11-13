@@ -1,6 +1,9 @@
 # Panoramica della reperibilità
 
-La reperibilità è il modo in cui OneUptime porta una persona su un problema, a qualsiasi ora. Quando un incidente, un avviso o un episodio ha bisogno di qualcuno, le sue policy di reperibilità avvisano le persone livello per livello finché qualcuno non riconosce, e ogni persona viene raggiunta come ha scelto: una notifica push, un SMS, una chiamata, un'e-mail o un messaggio in chat. Questa pagina mostra come si incastrano i pezzi e dove si trova ciascuno.
+La reperibilità è il modo in cui OneUptime porta una persona su un problema, a qualsiasi ora. Quando un incidente, un avviso o un episodio ha bisogno di qualcuno, le sue policy di reperibilità avvisano le persone livello per livello finché qualcuno non riconosce, e ogni persona viene raggiunta come ha scelto: una notifica push, un SMS, una chiamata, un'e-mail o un messaggio in chat. Questa pagina mostra come si incastrano i pezzi e dove si trova ciascuno. Il [Glossario](/docs/introduction/glossary#policy-di-reperibilità) spiega in una o due frasi ogni parola usata dalla reperibilità.
+
+> [!TIP]
+> Prima volta qui? Inizia dalla guida: [Essere avvisati per chiamata, SMS o push](/docs/guides/paging).
 
 :::cards
 - [Come un avviso raggiunge qualcuno](#come-un-avviso-raggiunge-qualcuno): Da un nuovo incidente alla persona che risponde.
@@ -36,6 +39,8 @@ La prima volta che una chiamata raggiunge qualcuno, OneUptime la registra sull'i
 > Un incidente, un avviso o un episodio creato già riconosciuto o risolto non esegue nessuna delle sue policy, e il suo feed lo dice. Vedi [Creato già riconosciuto o risolto](/docs/alerts/index#creato-già-riconosciuto-o-risolto).
 
 ## Gli elementi di base
+
+Le parole usate in tutto OneUptime sono nel [Glossario](/docs/introduction/glossary).
 
 | Elemento | Che cosa decide | Per saperne di più |
 | --- | --- | --- |

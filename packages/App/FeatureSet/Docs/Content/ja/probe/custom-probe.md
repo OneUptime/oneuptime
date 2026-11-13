@@ -1,6 +1,6 @@
 # カスタム プローブ
 
-カスタムプローブは、自分のネットワーク内で実行する小さなエージェントです。追加したモニター (社内の Web サイト、API、ファイアウォールの内側のサーバーなど) をチェックし、結果を OneUptime に送ります。HTTPS で外向きの接続だけを開くため、ネットワーク内のどこにもインターネットからの接続を受け入れる必要はありません。
+カスタムプローブは、自分のネットワーク内で実行する小さなエージェントです。追加したモニター (社内の Web サイト、API、ファイアウォールの内側のサーバーなど) をチェックし、結果を OneUptime に送ります。HTTPS で外向きの接続だけを開くため、ネットワーク内のどこにもインターネットからの接続を受け入れる必要はありません。プローブ、エージェント、コレクター、Runner のどれを使うかは、 [どれを使うべきか](/docs/introduction/which-one#プローブエージェントコレクターrunner-のどれか) を参照してください。
 
 :::cards
 - [仕組み](#仕組み): プローブが行うことと、OneUptime がプローブの稼働を知る方法。
@@ -288,6 +288,7 @@ Docker Engine 27 以降は、ネットワーク用の IPv6 サブネットを選
 | `PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED` | `false` | `true` にすると、合成モニターの Chromium を専用のサンドボックス内で実行します。プローブのコンテナーが、Playwright のものなど、サンドボックスを許可する seccomp プロファイルで動いている場合にだけオンにしてください。そのようなプロファイルがないと Chromium は起動できません。オフの間は、プローブが起動時に警告をログに出します。 |
 | `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | Custom Code モニターのスクリプトのタイムアウト (ミリ秒)。 |
 | `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` | `false` | `true` にすると、このプローブの Website、API、External Status Page、Custom Code のモニターがプライベートアドレスに届けるようになります。 [プライベートネットワークへのアクセス](/docs/self-hosted/private-network-access) を参照してください。 |
+| `PROBE_CERTIFICATE_REVOCATION_CHECK_ENABLED` | `true` | このプローブの SSL Certificate、Website、API のモニターは、ブラウザーと同じように、証明書の発行者にその証明書を失効させたかどうかを問い合わせます。`false` にすると問い合わせをやめます。インターネットにアクセスできないプローブなどで使います。プローブが到達できない発行者が失効と見なされることはありません。プローブは到達できないレスポンダーごとに数秒待ちますが、それはおよそ 5 分に 1 回です。[SSL 証明書モニター](/docs/monitor/ssl-certificate-monitor) を参照してください。 |
 | `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` | `25` | プローブが同時にポーリングするネットワークデバイスの数。多くのデバイスをポーリングするプローブでは値を上げてください。 |
 
 合成モニターが動作する上限 (同時に動く数、メモリ、ディスク) は [合成モニター](/docs/monitor/synthetic-monitor) のページにあります。

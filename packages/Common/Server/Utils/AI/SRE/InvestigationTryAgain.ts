@@ -6,9 +6,11 @@ import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import Query from "../../../../Types/BaseDatabase/Query";
 import { InvestigationNotStartedCode } from "../../../../Types/AI/InvestigationNotStartedReason";
 import ProjectAiDailyLimits from "../../../../Types/AI/ProjectAiDailyLimits";
+import { getRecordAiTokenLimitMessage } from "../../../../Types/AI/RecordAiTokenLimit";
 import { PROJECT_AI_CREDITS_USED_UP_MESSAGE } from "../../../../Utils/Project/ProjectBalance";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import AIRunService from "../../../Services/AIRunService";
+import { AutonomousBudgetStatus } from "../../../Services/AIService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import AIInvestigationEngine from "./AIInvestigationEngine";
 import AIInvestigationQueue from "./InvestigationQueue";
@@ -47,12 +49,44 @@ export const INVESTIGATION_NOT_STARTED_MESSAGES: Partial<
   ai_disabled:
     "OneUptime AI is switched off for this project. A project owner or someone with Manage Billing can turn it on in Project Settings > AI > AI Features.",
   provider_missing:
-    "This project has no AI provider to investigate with. Add one in Project Settings > AI > LLM Providers, then try again.",
+    "This project has no LLM provider to investigate with. Add one in Project Settings > AI > LLM Providers, then try again.",
   insufficient_ai_balance: PROJECT_AI_CREDITS_USED_UP_MESSAGE,
   project_daily_limit_reached: `The project reached its daily AI limit. OneUptime AI starts again at midnight UTC. ${ProjectAiDailyLimits.getWhoCanChangeSentence()}`,
 };
 
+// What Try again says when the queue gave no reason it could name.
+export const INVESTIGATION_NOT_ENQUEUED_MESSAGE: string =
+  "The investigation could not start: the project may have reached its daily AI limit, which resets at midnight UTC. Try again later.";
+
 export default class InvestigationTryAgain {
+  /*
+   * Why the queue did not take the run, said to whoever pressed Try again.
+   * The incident's (alert's) own daily AI token limit names that setting,
+   * and a limit of 0 says it pauses the work until it is raised: waiting
+   * for midnight does not lift it (#7157). Anything else the queue named
+   * is said as the checks before it say it; the rest as before.
+   */
+  public static getNotEnqueuedMessage(data: {
+    subjectType: InvestigationTryAgainSubjectType;
+    notEnqueued: {
+      code: InvestigationNotStartedCode;
+      budget?: AutonomousBudgetStatus | undefined;
+    } | null;
+  }): string {
+    if (data.notEnqueued?.code === "daily_budget_exhausted") {
+      return getRecordAiTokenLimitMessage(
+        data.subjectType,
+        data.notEnqueued.budget,
+      );
+    }
+
+    return (
+      (data.notEnqueued &&
+        INVESTIGATION_NOT_STARTED_MESSAGES[data.notEnqueued.code]) ||
+      INVESTIGATION_NOT_ENQUEUED_MESSAGE
+    );
+  }
+
   // The latest investigation run of the subject, as the AI card reads it.
   public static buildLatestRunQuery(data: {
     projectId: ObjectID;
@@ -145,6 +179,11 @@ export default class InvestigationTryAgain {
      * created: two people pressing Try again at once start it once.
      */
     let isStartedAlready: boolean = false;
+    // What the queue said when it did not take the run, and the limit then.
+    let notEnqueued: {
+      code: InvestigationNotStartedCode;
+      budget?: AutonomousBudgetStatus | undefined;
+    } | null = null;
 
     const runId: ObjectID | null = await AIInvestigationQueue.enqueue({
       projectId: data.projectId,
@@ -152,6 +191,12 @@ export default class InvestigationTryAgain {
         ? { subjectIncidentId: data.subjectId }
         : { subjectAlertId: data.subjectId }),
       llmProviderId,
+      onNotEnqueued: async (
+        code: InvestigationNotStartedCode,
+        budget?: AutonomousBudgetStatus,
+      ): Promise<void> => {
+        notEnqueued = { code, budget };
+      },
       admitInsideSubjectLock: async (): Promise<boolean> => {
         const liveRunCount: number = (
           await AIRunService.countBy({
@@ -177,7 +222,10 @@ export default class InvestigationTryAgain {
 
     if (!runId) {
       throw new BadDataException(
-        "The investigation could not start: the project may have reached its daily AI limit, which resets at midnight UTC. Try again later.",
+        InvestigationTryAgain.getNotEnqueuedMessage({
+          subjectType: data.subjectType,
+          notEnqueued,
+        }),
       );
     }
 

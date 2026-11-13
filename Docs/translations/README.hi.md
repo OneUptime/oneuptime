@@ -57,9 +57,13 @@ OneUptime एक ओपन-सोर्स ऑब्ज़र्वेबिल�
 
 ### Docker Compose से ख़ुद होस्ट करें
 
-आपको कम से कम 8 GB मेमोरी वाला एक Linux सर्वर चाहिए, और उस पर Docker, Docker Compose, Git और Node.js।
+आपको कम से कम 8 GB मेमोरी वाला एक Linux सर्वर चाहिए। नए Ubuntu, Debian या RHEL-आधारित सर्वर पर एक कमांड Docker, Git और Node.js को, जहाँ वे न हों, इंस्टॉल करती है, लोगों द्वारा इस्तेमाल होने वाला पता पूछती है और OneUptime शुरू करती है:
 
-चरण 3 से पहले `config.env` में `HOST` को उस डोमेन नाम या IP पते पर सेट करें जिससे लोग OneUptime तक पहुँचेंगे, `http://` के बिना। `localhost` सिर्फ़ तब रखें जब आप OneUptime को अपने कंप्यूटर पर आज़मा रहे हों।
+```bash
+curl -fsSL https://oneuptime.com/install.sh | bash
+```
+
+या इसे चरण दर चरण करें, Docker, Docker Compose, Git और Node.js इंस्टॉल करके। चरण 3 में `<your-address>` की जगह वह डोमेन नाम या IP पता लिखें जिससे लोग OneUptime तक पहुँचेंगे, `http://` के बिना: यही `config.env` में `HOST` है। `localhost` सिर्फ़ तब रखें जब आप OneUptime को अपने कंप्यूटर पर आज़मा रहे हों।
 
 ```bash
 # 1. Clone the release branch
@@ -69,13 +73,16 @@ cd oneuptime
 # 2. Create your config
 cp config.example.env config.env
 
-# 3. Start everything
+# 3. Set HOST to the address people will use
+sed -i.bak "s/^HOST=.*/HOST=<your-address>/" config.env && rm config.env.bak
+
+# 4. Start everything
 npm start
 ```
 
 `npm start` सर्वर की जाँच करता है, `config.env` के हर सीक्रेट को उसका अपना रैंडम मान देता है और OneUptime शुरू करता है। जब `npm start` **OneUptime is up!** दिखाए, तो `http://localhost` या अपने सर्वर का पता खोलें और साइन अप करें। पहला खाता इंस्टेंस का एडमिन बनता है।
 
-[Docker Compose गाइड](https://oneuptime.com/docs/hi/installation/docker-compose) में सर्वर का आकार, HTTPS, बैकअप और अपडेट शामिल हैं।
+फिर HTTPS, ईमेल और SMS से होते हुए, जब तक OneUptime आपको अलर्ट न भेज सके, [स्व-होस्टिंग गाइड](https://oneuptime.com/docs/hi/installation/self-hosting-guide) का पालन करें। [Docker Compose गाइड](https://oneuptime.com/docs/hi/installation/docker-compose) में सर्वर का आकार, बैकअप और अपडेट शामिल हैं।
 
 ### Helm के साथ Kubernetes
 

@@ -1,6 +1,6 @@
 # Panoramica degli avvisi
 
-Un avviso segnala al vostro team un problema da esaminare prima che gli utenti se ne accorgano: un disco che si sta riempiendo, un certificato in scadenza, un tasso di errori che cresce piano piano. Può chiamare chi è reperibile e notificare i suoi proprietari, ma non compare mai su una pagina di stato e non avvisa mai i vostri iscritti. Questa pagina spiega da dove arrivano gli avvisi, dove si trovano nella dashboard e come il vostro team li gestisce.
+Un avviso segnala al vostro team un problema da esaminare prima che gli utenti se ne accorgano: un disco che si sta riempiendo, un certificato in scadenza, un tasso di errori che cresce piano piano. Può chiamare chi è reperibile e notificare i suoi proprietari, ma non compare mai su una pagina di stato e non avvisa mai i vostri iscritti. Questa pagina spiega da dove arrivano gli avvisi, dove si trovano nella dashboard e come il vostro team li gestisce. Non siete sicuri se un problema sia un avviso o un incidente? [Quale usare?](/docs/introduction/which-one#incidente-avviso-o-un-altro-tipo-di-problema) li mette a confronto.
 
 :::cards
 - [Avvisi e incidenti](#avvisi-e-incidenti): Che cosa dovrebbe essere un problema, e come i due si collegano.
@@ -61,7 +61,7 @@ Aprite **Avvisi** dal menu **Prodotti** nella barra superiore. L'elenco degli av
 | **IA**             | **Informazioni**, **Registri** e **Impostazioni**: che cosa OneUptime AI ha imparato dai vostri avvisi, tutto ciò che ha fatto e che cosa può fare. |
 | **Area di lavoro** | **Slack**, **Microsoft Teams** e **Mattermost**, a seconda di ciò che il progetto ha collegato, o **Collega un'area di lavoro** quando non ne ha nessuno. |
 | **Regole**         | **Regole di raggruppamento**, **Regole di reperibilità**, **Regole degli incidenti**, **Regole del proprietario**, **Regole di runbook**, **Regole di privacy**, **Regole etichette**, **Regole dei promemoria**. |
-| **Impostazioni**   | **Stato avviso**, **Gravità avviso**, **Modelli di note**, **Campi personalizzati**, **Misurazioni**, **Appartenenza agli episodi**, **Numerazione**. |
+| **Impostazioni**   | **Stato avviso**, **Gravità avviso**, **Modelli di note**, **Campi personalizzati**, **Misurazioni**, **Appartenenza agli episodi**, **Numerazione**, **Conservazione dei dati**. |
 
 **Avvisi** ed **Episodi** sono aperte; **IA**, **Area di lavoro**, **Regole**, **Impostazioni** e **Sviluppatori** partono compresse, e una sezione si apre da sola quando siete su una delle sue pagine. La configurazione degli avvisi sta qui, non nelle **Impostazioni del progetto**.
 

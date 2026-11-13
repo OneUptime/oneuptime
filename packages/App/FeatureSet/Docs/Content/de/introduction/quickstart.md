@@ -2,6 +2,8 @@
 
 Diese Anleitung bringt Sie in etwa fünfzehn Minuten von einem neuen Konto zu einer funktionierenden Einrichtung: einem Monitor, der Ihre Website alle fünf Minuten prüft, einer Bereitschaftsrichtlinie, die Sie alarmiert, wenn die Website ausfällt, und einer Statusseite, die Ihre Kunden informiert. Sie folgt der Checkliste **Willkommen bei OneUptime 👋** auf der Startseite Ihres Projekts.
 
+Sie kommen von einem anderen Werkzeug? [Importieren Sie zuerst Ihre Einrichtung](/docs/introduction/getting-started#von-einem-anderen-werkzeug-kommend): Ihre Monitore, Bereitschaftspläne und Statusseiten kommen mit.
+
 ```mermaid title="Was Sie in dieser Anleitung einrichten"
 flowchart TB
     monitor["Website-Monitor"] -->|"Website ausgefallen"| incident["Vorfall"]
@@ -32,7 +34,7 @@ Geben Sie einen **Projektname** ein, etwa den Namen Ihres Unternehmens. Bei OneU
 
 ### Das Projekt anlegen
 
-Klicken Sie auf **Projekt erstellen**. Die Startseite Ihres Projekts öffnet sich, oben mit der Checkliste **Willkommen bei OneUptime 👋**.
+Klicken Sie auf **Projekt erstellen**. Die Startseite Ihres Projekts öffnet sich, oben mit der Checkliste **Willkommen bei OneUptime 👋**. Zuerst fragt sie **Was möchten Sie zuerst tun?**: Haken Sie **Wissen, wenn meine Website oder API ausfällt**, **Die richtige Person alarmieren, wenn etwas ausfällt** und **Meine Kunden über eine Statusseite informieren** an, und klicken Sie auf **Weiter**.
 :::
 
 ## Ihre Website überwachen
@@ -80,6 +82,8 @@ Ihre Anmelde-E-Mail ist bereits ein Weg, Sie zu erreichen. Damit Sie auch per SM
 
 Für weitere Stufen, Rotationen und wie lange jede Stufe wartet, siehe [Eskalationsregeln](/docs/on-call/escalation-rules) und [Bereitschaftspläne](/docs/on-call/schedules).
 
+Damit Sie per SMS, Anruf und Push alarmiert werden, die nächste Person alarmiert wird, wenn niemand antwortet, und eine Test-Alarmierung beweist, dass es funktioniert, folgen Sie der Anleitung [Per Anruf, SMS oder Push alarmiert werden](/docs/guides/paging).
+
 ## Eine Statusseite veröffentlichen
 
 :::steps
@@ -97,6 +101,8 @@ Wählen Sie **Übersicht** im Seitenmenü. Die Karte **Link zur Statusseite** ve
 :::
 
 Eine neue Statusseite ist öffentlich: Jeder mit ihrer Adresse kann sie öffnen. Wie Sie ihr Ihre eigene Domain, Ihr Logo und Ihre Farben geben, steht unter [Statusseiten – Branding & Domains](/docs/status-pages/branding-and-domains).
+
+Um die Statusseite über HTTPS auf Ihre eigene Domain zu bringen, folgen Sie der Anleitung [Eine Statusseite veröffentlichen](/docs/guides/status-page).
 
 ## Ihr Team einladen
 
@@ -141,6 +147,7 @@ Eine Statusseite zeigt einen Vorfall, wenn einer der Monitore des Vorfalls auf d
 
 :::cards
 - [Grundkonzepte](/docs/introduction/core-concepts): Die Ideen hinter dem, was Sie gerade eingerichtet haben.
+- [Glossar](/docs/introduction/glossary): Jedes Wort, das Ihnen unterwegs begegnet ist, in ein oder zwei Sätzen.
 - [Bereitschaftspläne](/docs/on-call/schedules): Die Bereitschaft mit Ihrem Team teilen.
 - [Statusseiten – Branding & Domains](/docs/status-pages/branding-and-domains): Die Statusseite zu Ihrer eigenen machen.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Logs, Metriken und Traces aus Ihren Anwendungen senden.

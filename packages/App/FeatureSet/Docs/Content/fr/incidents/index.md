@@ -1,6 +1,6 @@
 # Vue d'ensemble des incidents
 
-Un incident est l'enregistrement à partir duquel votre équipe travaille quand quelque chose casse : ce qui est touché, la gravité, où en est l'intervention, à qui il appartient, et tout ce qui est consigné en chemin. En déclarer un alerte la bonne rotation d'astreinte, prévient ses propriétaires et — si vous le souhaitez — affiche la panne sur votre page de statut, pour que vos clients sachent que vous êtes dessus.
+Un incident est l'enregistrement à partir duquel votre équipe travaille quand quelque chose casse : ce qui est touché, la gravité, où en est l'intervention, à qui il appartient, et tout ce qui est consigné en chemin. En déclarer un alerte la bonne rotation d'astreinte, prévient ses propriétaires et — si vous le souhaitez — affiche la panne sur votre page de statut, pour que vos clients sachent que vous êtes dessus. Vous ne savez pas si un problème est un incident ou une alerte ? [Lequel choisir ?](/docs/introduction/which-one#incident-alerte-ou-autre-type-de-problème) les compare côte à côte.
 
 :::cards
 - [Déclarer un incident](/docs/incidents/declaring-incidents): À la main, à partir d'un modèle, depuis un moniteur, par l'API ou via un formulaire.
@@ -86,7 +86,7 @@ Ensuite, vous pouvez rédiger un [post-mortem](/docs/incidents/postmortems) et, 
 
 ## Termes clés
 
-Une poignée de mots revient sur toutes les autres pages de cette section. Clarifiez-les d'abord.
+Une poignée de mots revient sur toutes les autres pages de cette section. Clarifiez-les d'abord. Les mots utilisés dans tout OneUptime se trouvent dans le [Glossaire](/docs/introduction/glossary).
 
 | Terme                      | Ce que cela veut dire                                                                                                                                    |
 | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -162,7 +162,7 @@ Ouvrez **Incidents** depuis le menu **Produits** de la barre supérieure. Son me
 | **IA**             | **Analyses**, **Journaux**, **Paramètres** : ce que OneUptime AI a appris de vos incidents et tout ce qu'elle a fait pour eux, et ce qu'elle peut faire d'elle-même — avec les règles qui décident des incidents qu'elle examine et corrige. Voir [AI SRE](/docs/ai/ai-sre). |
 | **Espace de travail** | Les espaces de discussion que ce projet a connectés : **Slack**, **Microsoft Teams** et **Mattermost**, chacun avec ses règles de notification pour les incidents. Si aucun n'est connecté, la section contient **Connecter un espace de travail**, une page qui présente les trois et explique comment les connecter. |
 | **Règles**         | Les moteurs de règles : **Règles de regroupement**, **Règles d'astreinte**, **Règles de propriétaire**, **Règles de runbook**, **Règles de confidentialité**, **Règles d'étiquettes**, **Règles SLA**, **Règles de rappel**. |
-| **Paramètres**     | **État de l'incident**, **Gravité de l'incident**, **Modèles d'incident**, **Modèles de notes**, **Approbation des notes publiques**, **Modèles de post-mortem**, **Statuts de post-mortem**, **Champs personnalisés**, **Rôles d'incident**, **Mesures**, **Alertes liées**, **Appartenance aux épisodes**, **Numérotation**. |
+| **Paramètres**     | **État de l'incident**, **Gravité de l'incident**, **Modèles d'incident**, **Modèles de notes**, **Approbation des notes publiques**, **Modèles de post-mortem**, **Statuts de post-mortem**, **Champs personnalisés**, **Rôles d'incident**, **Mesures**, **Alertes liées**, **Appartenance aux épisodes**, **Numérotation**, **Rétention des données**. |
 
 **Vue d'ensemble** et **Épisodes** sont ouvertes ; **IA**, **Espace de travail**, **Règles**, **Paramètres** et **Développeurs** sont repliées par défaut, pour que le menu s'ouvre sur les listes dont vous vous servez chaque jour. Cliquez sur le titre d'une section pour la déplier et trouver les pages dont parle le reste de cette documentation ; une section s'ouvre aussi d'elle-même dès que vous êtes sur l'une de ses pages. La configuration des incidents ne se trouve pas dans les paramètres du projet ; elle vit entièrement ici.
 

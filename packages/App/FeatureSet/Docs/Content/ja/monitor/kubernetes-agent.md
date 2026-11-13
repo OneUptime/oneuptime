@@ -2,6 +2,9 @@
 
 OneUptime Kubernetes エージェントは Helm チャートで、クラスターのメトリクス、イベント、Pod ログ、eBPF で取得したアプリケーショントレース、ノードごとの OS メトリクスを収集し、OneUptime に送信します。`helm install` を 1 回実行するだけで配置でき、アプリのコードを変更する必要はありません。[Kubernetes モニター](/docs/monitor/kubernetes-monitor) は、エージェントが送信するデータでアラートを出します。
 
+> [!NOTE]
+> このページでは、プラットフォーム用のプリセットを使い、Helm でエージェントを順を追ってインストールします。すべてのオプション、Amazon EKS アドオン、OpenShift、Kubernetes AI エージェントについては、完全なリファレンスである [Kubernetes エージェント](/docs/telemetry/kubernetes-agent) を参照してください。
+
 :::cards
 - [エージェントをインストールする](#エージェントをインストールする): Helm を使った四つのステップ。
 - [プリセットを選ぶ](#プリセットを選ぶ): 標準のクラスター、GKE Autopilot、EKS Fargate、OpenShift。

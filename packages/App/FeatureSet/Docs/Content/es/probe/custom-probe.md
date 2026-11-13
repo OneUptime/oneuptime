@@ -1,6 +1,6 @@
 # Sondas personalizadas
 
-Una sonda personalizada es un pequeño agente que usted ejecuta dentro de su propia red. Comprueba los monitores a los que la añade, como sitios web internos, API y servidores detrás de su cortafuegos, y envía los resultados a OneUptime. Solo abre conexiones salientes, por HTTPS, así que nada en su red tiene que aceptar conexiones desde Internet.
+Una sonda personalizada es un pequeño agente que usted ejecuta dentro de su propia red. Comprueba los monitores a los que la añade, como sitios web internos, API y servidores detrás de su cortafuegos, y envía los resultados a OneUptime. Solo abre conexiones salientes, por HTTPS, así que nada en su red tiene que aceptar conexiones desde Internet. Para elegir entre una sonda, un agente, un colector y un Runner, consulte [¿Cuál uso?](/docs/introduction/which-one#sonda-agente-colector-o-runner).
 
 :::cards
 - [Cómo funciona](#cómo-funciona): Qué hace la sonda y cómo sabe OneUptime que está en marcha.
@@ -288,6 +288,7 @@ La sonda lee sus ajustes de su entorno al arrancar: cambie uno y reinicie la son
 | `PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED` | `false` | Establézcala en `true` para ejecutar Chromium, en los monitores sintéticos, dentro de su propio sandbox. Actívela solo cuando el contenedor de la sonda se ejecute con un perfil seccomp que permita el sandbox, como el de Playwright: sin uno, Chromium no puede arrancar. Mientras esté desactivada, la sonda registra una advertencia al arrancar. |
 | `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | Tiempo límite de los scripts de los monitores Custom Code, en milisegundos. |
 | `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` | `false` | Establézcala en `true` para que los monitores Website, API, External Status Page y Custom Code de esta sonda puedan llegar a direcciones privadas. Vea [Acceso a red privada](/docs/self-hosted/private-network-access). |
+| `PROBE_CERTIFICATE_REVOCATION_CHECK_ENABLED` | `true` | Los monitores SSL Certificate, Website y API de esta sonda preguntan al emisor de un certificado si lo ha revocado, como hacen los navegadores. Establézcala en `false` para dejar de preguntar, por ejemplo en una sonda sin acceso a internet. Un emisor al que la sonda no llega nunca se toma como una revocación: la sonda espera unos segundos a cada respondedor al que no llega, más o menos una vez cada 5 minutos. Vea [Monitor de certificado SSL](/docs/monitor/ssl-certificate-monitor). |
 | `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` | `25` | Cuántos dispositivos de red consulta la sonda a la vez. Auméntela para una sonda que consulta muchos dispositivos. |
 
 Los límites dentro de los que se ejecuta un monitor sintético (cuántos a la vez, su memoria y su disco) están en la página [Monitor sintético](/docs/monitor/synthetic-monitor).

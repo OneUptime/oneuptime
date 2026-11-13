@@ -65,7 +65,7 @@ httpProtocol: https
 
 ### 複製應用程式資訊清單
 
-開啟 **專案設定 > 工作區 > Slack**。在伺服器上設定好 Slack 之前，該頁面會顯示 **Integrating Slack with your OneUptime Project**，以及為你的主機名稱產生的資訊清單。資訊清單也可以從 `https://oneuptime.example.com/api/slack/app-manifest` 取得。
+開啟 **專案設定 > 工作區 > Slack**。在伺服器上設定好 Slack 之前，該頁面會顯示 **將 Slack 與你的 OneUptime 專案整合**，以及為你的主機名稱產生的資訊清單。資訊清單也可以從 `https://oneuptime.example.com/api/slack/app-manifest` 取得。
 
 確認資訊清單中的每個 URL 都以你的公開主機名稱開頭。如果不是，請先修正 `HOST` 和 `HTTP_PROTOCOL` 並套用變更。
 
@@ -112,7 +112,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 ```
 :::
 
-OneUptime 恢復執行後，**專案設定 > 工作區 > Slack** 會顯示 **Connect with Slack** 按鈕，而不是資訊清單。
+OneUptime 恢復執行後，**專案設定 > 工作區 > Slack** 會顯示 **透過 Slack 連線** 按鈕，而不是資訊清單。
 
 ### 驗證事件請求 URL
 
@@ -120,7 +120,7 @@ OneUptime 恢復執行後，**專案設定 > 工作區 > Slack** 會顯示 **Con
 
 ### 連接專案
 
-在 **專案設定 > 工作區 > Slack** 中選擇 **Connect with Slack**，並在 Slack 中允許該應用程式。Slack 會把你送回同一頁面，頁面上現在會顯示你的工作區。
+在 **專案設定 > 工作區 > Slack** 中選擇 **透過 Slack 連線**，並在 Slack 中允許該應用程式。Slack 會把你送回同一頁面，頁面上現在會顯示你的工作區。
 
 ### 連接你自己的 Slack 帳號
 
@@ -131,7 +131,7 @@ OneUptime 恢復執行後，**專案設定 > 工作區 > Slack** 會顯示 **Con
 
 | Docker Compose (`config.env`) | Helm (`values.yaml`) | 必要 | 值 |
 | --- | --- | --- | --- |
-| `SLACK_APP_CLIENT_ID` | `slackApp.clientId` | 是 | 應用程式的 **Client ID**。沒有它時，Slack 頁面會顯示設定指南，而不是 **Connect with Slack**。 |
+| `SLACK_APP_CLIENT_ID` | `slackApp.clientId` | 是 | 應用程式的 **Client ID**。沒有它時，Slack 頁面會顯示設定指南，而不是 **透過 Slack 連線**。 |
 | `SLACK_APP_CLIENT_SECRET` | `slackApp.clientSecret` | 是 | 應用程式的 **Client Secret**，用來把 Slack 傳回的代碼換成權杖。 |
 | `SLACK_APP_SIGNING_SECRET` | `slackApp.signingSecret` | 是 | 應用程式的 **Signing Secret**。來自 Slack 的每個請求都用它檢查。 |
 | `HOST` | `host` | 是 | 你的公開主機名稱，不含協定。 |
@@ -154,21 +154,23 @@ OneUptime 恢復執行後，**專案設定 > 工作區 > Slack** 會顯示 **Con
 
 事件和警示的描述可以包含螢幕截圖，例如合成監控的截圖（請參閱 [顯示螢幕截圖](/docs/monitor/incident-alert-templating#顯示螢幕截圖)）。OneUptime 會把每張截圖當作私人檔案上傳到你的工作區，藉此在 Slack 訊息中顯示，這需要機器人權限範圍 `files:write`。產生的資訊清單已包含它。
 
-如果你的 Slack 應用程式是用較舊的資訊清單建立的，請在 **OAuth & Permissions > Bot Token Scopes** 下新增 `files:write`（或用目前的資訊清單更新應用程式）。然後在 **專案設定 > 工作區 > Slack** 中再次選擇 **Connect with Slack**，以授予新的權限範圍。在那之前，每張截圖都會以其替代文字顯示。
+如果你的 Slack 應用程式是用較舊的資訊清單建立的，請在 **OAuth & Permissions > Bot Token Scopes** 下新增 `files:write`（或用目前的資訊清單更新應用程式）。然後在 **專案設定 > 工作區 > Slack** 中再次選擇 **透過 Slack 連線**，以授予新的權限範圍。在那之前，每張截圖都會以其替代文字顯示。
 
 ### 待命使用者群組
 
 要讓待命排程的 Slack 使用者群組與正在待命的人保持一致（請參閱 [待命使用者群組](/docs/workspace-connections/slack#待命使用者群組)），需要機器人權限範圍 `usergroups:read` 和 `usergroups:write`。產生的資訊清單已包含它們。
 
-如果你的 Slack 應用程式是用較舊的資訊清單建立的，請在 **OAuth & Permissions > Bot Token Scopes** 下新增 `usergroups:read` 和 `usergroups:write`（或用目前的資訊清單更新應用程式）。然後在 **專案設定 > 工作區 > Slack** 中再次選擇 **Connect with Slack**，以授予新的權限範圍。在那之前，待命排程的卡片會顯示 OneUptime 的 Slack 應用程式尚無權變更使用者群組。
+如果你的 Slack 應用程式是用較舊的資訊清單建立的，請在 **OAuth & Permissions > Bot Token Scopes** 下新增 `usergroups:read` 和 `usergroups:write`（或用目前的資訊清單更新應用程式）。然後在 **專案設定 > 工作區 > Slack** 中再次選擇 **透過 Slack 連線**，以授予新的權限範圍。在那之前，待命排程的卡片會顯示 OneUptime 的 Slack 應用程式尚無權變更使用者群組。
 
 ### 用較舊資訊清單建立的應用程式
 
 用較早的 OneUptime 資訊清單建立的 Slack 應用程式會把 `/incident` 和 `/maintenance` 註冊為獨立的指令，它們可能與其他應用程式的同名指令衝突。它們仍然可以使用，並開啟與 `/oneuptime incident` 和 `/oneuptime maintenance` 相同的表單。若要用 `/oneuptime` 取代它們，請用你的伺服器產生的資訊清單更新應用程式：在 [api.slack.com/apps](https://api.slack.com/apps) 中開啟應用程式的 **App Manifest**，貼上資訊清單並儲存。
 
-在 `/oneuptime page` 推出之前建立的應用程式也需要同樣的更新：在更新之前，`/oneuptime page` 無法識別你 @提及的人，會開啟一個表單讓你選擇他們，而不是立即呼叫他們。然後在 **專案設定 > 工作區 > Slack** 中再次選擇 **Connect with Slack**，以授予資訊清單新增的 `users:read.email` 權限範圍：有了它，Slack 帳戶未連接到 OneUptime 的人也能透過其電子郵件地址找到。
+在 `/oneuptime page` 推出之前建立的應用程式也需要同樣的更新：在更新之前，`/oneuptime page` 無法識別你 @提及的人，會開啟一個表單讓你選擇他們，而不是立即呼叫他們。然後在 **專案設定 > 工作區 > Slack** 中再次選擇 **透過 Slack 連線**，以授予資訊清單新增的 `users:read.email` 權限範圍：有了它，Slack 帳戶未連接到 OneUptime 的人也能透過其電子郵件地址找到。
 
 在 **Home** 分頁之前建立的應用程式也需要同樣的更新：在更新之前，Slack 不會為該應用程式顯示 **Home** 分頁，應用程式也不會在它被新增到的頻道中發佈問候。更新會開啟該分頁，並讓應用程式訂閱 `app_home_opened` 和 `member_joined_channel` 事件。它不會新增任何 scope，因此無需重新連接。
+
+在 Slack Enterprise Grid 上為整個組織安裝的應用程式，也需要同樣的更新，才能得知管理員何時將 OneUptime 新增至組織的某個工作區或從中移除。更新會讓應用程式訂閱 `team_access_granted` 和 `team_access_revoked` 事件，之後 OneUptime 會立即重新讀取工作區。在此之前，它會在需要工作區且上次讀取已超過 10 分鐘時重新讀取，也會在有人點選 **Slack 工作區清單** 卡片上的 **重新整理** 時重新讀取。它不會新增任何 scope，因此無需重新連接。
 
 ## 自行託管部署的網路存取
 

@@ -210,6 +210,9 @@ let numberPrefixesAnswer: JSONObject | "refuse" = {
   "Scheduled Maintenance": "SM-",
 };
 
+// What GET /mattermost/connected-teams answers; unanswered when undefined.
+let mattermostTeamsAnswer: JSONObject | undefined = undefined;
+
 const apiGets: Array<string> = [];
 
 beforeEach(() => {
@@ -243,6 +246,13 @@ beforeEach(() => {
 
     if (route.endsWith("/microsoft-teams/chats")) {
       return new HTTPResponse<JSONObject>(200, { chats: [] }, {});
+    }
+
+    if (
+      route.endsWith("/mattermost/connected-teams") &&
+      mattermostTeamsAnswer
+    ) {
+      return new HTTPResponse<JSONObject>(200, mattermostTeamsAnswer, {});
     }
 
     return new HTTPErrorResponse(500, { message: "Not answered" }, {});
@@ -1567,6 +1577,90 @@ describe("Name the channel a rule creates", () => {
  * to create, nobody to invite and no name to preview, and a new rule starts
  * posting to the channels it is to name.
  */
+/*
+ * #6775: a Mattermost project's rules page asks which teams its bot is in,
+ * and which it was taken out of (GET /mattermost/connected-teams), and
+ * hands them to each rule's card: a rule naming a team the bot left says so.
+ */
+describe("a Mattermost project's rules", () => {
+  const ENGINEERING_ID: string = "e".repeat(26);
+  const SUPPORT_ID: string = "s".repeat(26);
+
+  afterEach(() => {
+    mattermostTeamsAnswer = undefined;
+    cleanup();
+  });
+
+  test("a rule naming a team the bot was taken out of says so on its card, by the team's name", async () => {
+    mattermostTeamsAnswer = {
+      teams: [
+        {
+          id: ENGINEERING_ID,
+          name: "engineering",
+          displayName: "Engineering",
+          isDefault: true,
+        },
+      ],
+      defaultTeamId: ENGINEERING_ID,
+      isBotInDefaultTeam: true,
+      botUsername: "oneuptime",
+      removedTeams: [
+        { id: SUPPORT_ID, name: "support", displayName: "Support" },
+      ],
+      areTeamsListed: true,
+    };
+
+    await renderForm(
+      NotificationRuleEventType.Incident,
+      WorkspaceType.Mattermost,
+    );
+
+    expect(
+      apiGets.filter((route: string): boolean => {
+        return route.endsWith("/mattermost/connected-teams");
+      }),
+    ).toHaveLength(1);
+
+    const then: { getElement?: unknown } | undefined = (
+      tableProps.last?.columns || []
+    ).find((column: { title: string }): boolean => {
+      return column.title === "Then";
+    }) as { getElement?: unknown } | undefined;
+
+    const rule: WorkspaceNotificationRule = new WorkspaceNotificationRule();
+    rule.notificationRule = {
+      _type: "IncidentNotificationRule",
+      filterCondition: FilterCondition.All,
+      filters: [],
+      shouldCreateNewChannel: true,
+      teamToCreateChannelIn: SUPPORT_ID,
+      shouldPostToExistingChannel: false,
+      existingChannelNames: "",
+      inviteTeamsToNewChannel: [],
+      inviteUsersToNewChannel: [],
+      shouldInviteOwnersToNewChannel: false,
+      archiveChannelAutomatically: false,
+      shouldAutomaticallyInviteOnCallUsersToNewChannel: false,
+    } as never;
+
+    const card: { container: HTMLElement } = render(
+      <div>
+        {(
+          then!.getElement as (item: WorkspaceNotificationRule) => ReactElement
+        )(rule)}
+      </div>,
+    );
+
+    expect(
+      within(card.container).getByTestId(
+        "notification-rule-mattermost-team-not-joined",
+      ).textContent,
+    ).toBe(
+      "OneUptime's bot is no longer a member of the Support team. Add the bot back to the team in Mattermost, or pick another team on the rule.",
+    );
+  });
+});
+
 describe("Create a notification rule for security cases", () => {
   const SECURITY_CASE_FIELDS: Array<string> = [
     "Security Case Priority",

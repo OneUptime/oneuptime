@@ -2,6 +2,9 @@
 
 En vaktretningslinje varsler folk i nivåer. Hver eskaleringsregel er ett nivå: hvem som varsles, og hvor lenge det ventes på at noen bekrefter før neste nivå varsles. Reglene i en retningslinje står i rekkefølge på siden **Eskaleringsregler**.
 
+> [!TIP]
+> Ny her? Følg guiden først: [Bli varslet via telefon, SMS eller push](/docs/guides/paging).
+
 ```mermaid title="En vaktretningslinje varsler nivå for nivå til noen bekrefter"
 flowchart TB
     trigger["Hendelse eller varsel"] --> level1["Level 1 varsler"]
@@ -163,6 +166,8 @@ Et varsel som ikke sendes, sier hvorfor i personens **Vaktlogger** (Brukerinnsti
 - kanalen er slått av i prosjektet, og hvem som kan slå den på.
 
 Eierne av prosjektet får én e-post om det, til saldoen er fylt på eller kanalen er slått på igjen.
+
+Et varsel som ikke nådde OneUptimes varslingstjeneste, sier `Could not reach the Notification service to send this (ECONNREFUSED).`, med koden for nettverksfeilen i parentesen. Et varsel der sendingen aldri ble ferdig, for eksempel fordi en server startet på nytt under sendingen, sier `Sending did not finish within 15 minutes, so this notification may not have been sent.` Blir sendingen likevel ferdig, erstatter resultatet den meldingen.
 
 På OneUptime Cloud betales hver SMS, hvert anrop og hver WhatsApp- og Telegram-melding fra prosjektets saldo på **Prosjektinnstillinger > Varsler > Varselinnstillinger**: den nøyaktige kostnaden trekkes fra saldoen når leverandøren tar imot meldingen, uansett hvor mange meldinger som går ut samtidig.
 

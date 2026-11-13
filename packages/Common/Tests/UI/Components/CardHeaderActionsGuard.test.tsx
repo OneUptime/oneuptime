@@ -1,3 +1,4 @@
+// UX rule: Docs/ux/README.md#cards-and-the-look-of-a-page
 import { ButtonStyleType } from "../../../UI/Components/Button/Button";
 import Card, {
   CARD_HEADER_ACTIONS_CLASS_NAME,
@@ -608,8 +609,9 @@ describe("hand-built card headers", () => {
       'className="flex flex-shrink-0 items-center gap-2 self-end sm:self-auto"',
     "packages/App/FeatureSet/Dashboard/src/Components/Topology/InfrastructureExplorer.tsx":
       'className="flex flex-shrink-0 flex-wrap items-center justify-end gap-2 self-end sm:self-auto"',
+    // Since #6923 its buttons also drop the left margin they get in a row.
     "packages/App/FeatureSet/Dashboard/src/Components/Exceptions/ExceptionAIAssistance.tsx":
-      'className="flex flex-shrink-0 flex-wrap items-center justify-end gap-2"',
+      'className="flex flex-shrink-0 flex-wrap items-center justify-end gap-2 [&>*>button]:ml-0 [&>*>button]:md:ml-0 [&>button]:ml-0 [&>button]:md:ml-0"',
   };
 
   test.each(Object.entries(FIXED_HAND_BUILT_HEADERS))(

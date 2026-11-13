@@ -1,6 +1,6 @@
 # SLOs – Übersicht
 
-Ein Service Level Objective (SLO) ist ein Zuverlässigkeitsziel für das, was Sie überwachen, etwa „99,9 % der Zeit verfügbar über rollierende 30 Tage“. OneUptime misst jedes SLO alle 5 Minuten an seinem Ziel. Statt „Läuft es gerade?“ beantworten Sie damit „Waren wir zuverlässig genug, über ein Zeitfenster, das unseren Nutzern wichtig ist, und wie viel Spielraum für Ausfälle bleibt?“
+Ein Service Level Objective (SLO) ist ein Zuverlässigkeitsziel für das, was Sie überwachen, etwa „99,9 % der Zeit verfügbar über rollierende 30 Tage“. OneUptime misst jedes SLO alle 5 Minuten an seinem Ziel. Statt „Läuft es gerade?“ beantworten Sie damit „Waren wir zuverlässig genug, über ein Zeitfenster, das unseren Nutzern wichtig ist, und wie viel Spielraum für Ausfälle bleibt?“ Das [Glossar](/docs/introduction/glossary#slo) stellt SLOs neben die anderen Wörter, die OneUptime verwendet.
 
 :::cards
 - [Ein SLO erstellen](#ein-slo-erstellen): Ein Name und ein Ziel. Alles andere startet mit einem Standardwert.
@@ -11,7 +11,7 @@ Ein Service Level Objective (SLO) ist ein Zuverlässigkeitsziel für das, was Si
 
 ## So funktioniert es
 
-Ein SLO liest die Status-Zeitleisten der Monitore, die ihm zugeordnet sind: dieselben Daten, die Ihre Statusseiten zeigen. Daraus berechnet OneUptime, welcher Anteil des Compliance-Zeitfensters gute Zeit war, wie viel Fehlerbudget übrig ist und wie schnell es verbraucht wird.
+Ein SLO liest die Status-Zeitleisten der Monitore, die ihm zugeordnet sind: dieselben Daten, die Ihre Statusseiten zeigen. Daraus berechnet OneUptime, welcher Anteil des Compliance-Zeitfensters gute Zeit war, wie viel Fehlerbudget übrig ist und wie schnell es verbraucht wird. Zeit, in der die Überwachung eines Monitors ausgeschaltet ist, bleibt außen vor: Nichts prüft den Monitor dann, also verbraucht diese Zeit weder Fehlerbudget, noch zählt sie als gute Zeit.
 
 ```mermaid title="Von Monitorprüfungen zum Status eines SLO"
 flowchart TB
@@ -25,6 +25,8 @@ flowchart TB
 ```
 
 ## Grundbegriffe
+
+Die Wörter, die in ganz OneUptime verwendet werden, stehen im [Glossar](/docs/introduction/glossary).
 
 | Begriff | Bedeutung |
 | --- | --- |
@@ -176,7 +178,7 @@ Die **Übersicht** beantwortet „Sind wir im Budget?“, von oben nach unten:
 - **Die Zusammenfassung**: der Status, ein Satz dazu, was er bedeutet, und die Beschreibung. Daneben stehen **Aktualisieren** und wann das SLO zuletzt ausgewertet wurde. Darunter stehen das Ziel, das **Compliance-Zeitfenster** (mit einem Füllstand-Chip, solange sich ein junges rollierendes Fenster füllt: siehe [Junge SLOs und die Füllstandsanzeige des Zeitfensters](#junge-slos-und-die-füllstandsanzeige-des-zeitfensters)), die Zahl der Monitore und die Eigentümer, mit **Eigentümer hinzufügen**, um direkt dort einen hinzuzufügen.
 - **Die wichtigsten Kennzahlen**:
   - **SLI**: der Anteil guter Zeit im Zeitfenster und wie weit er über oder unter dem Ziel liegt.
-  - **Verbleibendes Fehlerbudget**: ein Prozentsatz, eine Dauer wie "12m 30s left of 43m 12s" und ein Balken mit einer Markierung an der Risikoschwelle. Ist das Budget überzogen, zeigt die Kachel **Budget überschritten** und um wie viel.
+  - **Verbleibendes Fehlerbudget**: ein Prozentsatz, eine Dauer wie "Noch 12 Min., 30 Sek. von 43 Min., 12 Sek." und ein Balken mit einer Markierung an der Risikoschwelle. Ist das Budget überzogen, zeigt die Kachel **Budget überschritten** und um wie viel.
   - **Burn-Rate**: wie schnell das Budget in den letzten 60 Minuten verbraucht wird, dem Rückblick, den die standardmäßige Fast-Burn-Regel verwendet. Sie wird über 1× gelb und rot, mit **Regelschwellenwert erreicht**, beim niedrigsten Schwellenwert der aktivierten Burn-Rate-Regeln des SLO, die 6 Stunden oder weniger zurückblicken. Eine Stunde sagt wenig über eine Regel aus, die Tage zurückblickt, etwa **Slow leak**, deshalb wird sie nicht mit einer solchen Regel verglichen.
   - **Budget-Reichweite**: wie lange das Budget bei diesem Tempo reicht. Siehe [Fehlerbudgets](/docs/slo/error-budget#budget-reichweite).
 - **Fehlerbudget-Burn-down**: das verbleibende Budget über das aktuelle Zeitfenster. Siehe [Fehlerbudgets](/docs/slo/error-budget#fehlerbudget-burn-down).
@@ -193,7 +195,7 @@ Die Seite **Einstellungen** enthält, wie ein SLO misst, je eine Karte:
 
 | Karte | Was Sie ändern | Gut zu wissen |
 | --- | --- | --- |
-| **Ziel** | **Ziel (%)** und **Risikoschwellenwert (%)**, mit **Ziel bearbeiten**. | Zeigt die Ausfallzeit, die das Ziel erlaubt, zum Beispiel „43m 12s Ausfallzeit pro 30-Tage-Zeitfenster“. |
+| **Ziel** | **Ziel (%)** und **Risikoschwellenwert (%)**, mit **Ziel bearbeiten**. | Zeigt die Ausfallzeit, die das Ziel erlaubt, zum Beispiel „43 Min., 12 Sek. Ausfallzeit pro Zeitfenster von 30 Tagen“. |
 | **Compliance-Zeitraum** | **Typ des Zeitfensters**, **Zeitfenster (Tage)** und **Zeitzone**, mit **Zeitraum bearbeiten**. | Burn-Rate-Regeln behalten ihre Schwellenwerte, wenn sich das Zeitfenster ändert, prüfen Sie sie also danach. |
 | **Berechnung der Ausfallzeit** | **Multi-Monitor-Modus** und **Ausfallzeit-Monitorstatus**, mit **Berechnung der Ausfallzeit bearbeiten**. | Leere Status zählen jeden nicht betriebsbereiten Status, auch später hinzugefügte. |
 | **Auswertung** | Der Schalter **Dieses SLO auswerten**, der sofort speichert, wenn Sie ihn umlegen. | Beim Ausschalten fragt er zuerst, denn das löst auch die offenen Burn-Rate-Warnungen und -Vorfälle des SLO auf. |
@@ -238,7 +240,7 @@ Auch das Seitenmenü eines Monitors hat eine Seite **SLOs**: die SLOs, die diese
 
 Ein SLO mit rollierendem Zeitfenster, das jünger ist als sein Fenster, wird über die bisher vorhandenen Daten gemessen: Ein 30-Tage-SLO, das gestern erstellt wurde, hat einen Tag Daten. Sein Fehlerbudget beginnt klein und wächst, während sich das Fenster füllt, daher schwanken seine ersten Zahlen stärker als später.
 
-Solange das so ist, sagt die **Übersicht** es: Die Zusammenfassung zeigt einen Chip **Window 23% full** (**Fenster zu unter 1 % gefüllt** am ersten Tag), und die Kachel **Verbleibendes Fehlerbudget** wiederholt ihn unter ihrer Zahl. Beide verschwinden, sobald das Fenster voll ist. Kalendermonat-SLOs zeigen sie nie, weil ihr Budget vom ersten Tag an den ganzen Monat abdeckt, und SLOs im Modus **Durchschnitt der Monitorsekunden** ebenfalls nicht, weil ihr Budget über Monitore hinweg gezählt wird.
+Solange das so ist, sagt die **Übersicht** es: Die Zusammenfassung zeigt einen Chip **Fenster zu 23 % gefüllt** (**Fenster zu unter 1 % gefüllt** am ersten Tag), und die Kachel **Verbleibendes Fehlerbudget** wiederholt ihn unter ihrer Zahl. Beide verschwinden, sobald das Fenster voll ist. Kalendermonat-SLOs zeigen sie nie, weil ihr Budget vom ersten Tag an den ganzen Monat abdeckt, und SLOs im Modus **Durchschnitt der Monitorsekunden** ebenfalls nicht, weil ihr Budget über Monitore hinweg gezählt wird.
 
 ## Fehlerbehebung
 

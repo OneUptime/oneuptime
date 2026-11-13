@@ -2,6 +2,8 @@
 
 Ce guide vous mène d'un nouveau compte à une configuration qui fonctionne en une quinzaine de minutes : un moniteur qui vérifie votre site web toutes les cinq minutes, une politique d'astreinte qui vous alerte quand le site tombe, et une page de statut qui informe vos clients. Il suit la liste de vérification **Bienvenue sur OneUptime 👋** de la page d'accueil de votre projet.
 
+Vous venez d'un autre outil ? [Importez votre configuration](/docs/introduction/getting-started#venir-dun-autre-outil) d'abord : vos moniteurs, vos plannings d'astreinte et vos pages de statut vous suivent.
+
 ```mermaid title="Ce que vous configurez dans ce guide"
 flowchart TB
     monitor["Moniteur de site web"] -->|"site en panne"| incident["Incident"]
@@ -32,7 +34,7 @@ Saisissez un **Nom du projet**, par exemple le nom de votre entreprise. Sur OneU
 
 ### Le créer
 
-Cliquez sur **Créer un projet**. La page d'accueil de votre projet s'ouvre, avec la liste de vérification **Bienvenue sur OneUptime 👋** en haut.
+Cliquez sur **Créer un projet**. La page d'accueil de votre projet s'ouvre, avec la liste de vérification **Bienvenue sur OneUptime 👋** en haut. Il demande d'abord **Que voulez-vous faire en premier ?** : cochez **Savoir quand mon site web ou mon API est en panne**, **Alerter la bonne personne quand quelque chose tombe en panne** et **Informer mes clients avec une page de statut**, puis cliquez sur **Continuer**.
 :::
 
 ## Surveiller votre site web
@@ -80,6 +82,8 @@ Votre e-mail de connexion est déjà un moyen de vous joindre. Pour recevoir aus
 
 Pour plus de niveaux, des rotations et le délai d'attente de chaque niveau, consultez [Règles d'escalade](/docs/on-call/escalation-rules) et [Plannings d'astreinte](/docs/on-call/schedules).
 
+Pour être alerté par SMS, appel téléphonique et push, avec la personne suivante alertée quand personne ne répond et un appel de test qui le prouve, suivez [Être alerté par appel, SMS ou push](/docs/guides/paging).
+
 ## Publier une page de statut
 
 :::steps
@@ -97,6 +101,8 @@ Choisissez **Vue d'ensemble** dans le menu latéral. La carte **Lien de la page 
 :::
 
 Une nouvelle page de statut est publique : toute personne disposant de son adresse peut l'ouvrir. Pour lui donner votre propre domaine, votre logo et vos couleurs, consultez [Personnalisation et domaines de la page de statut](/docs/status-pages/branding-and-domains).
+
+Pour placer la page de statut sur votre propre domaine, en HTTPS, suivez [Publier une page de statut](/docs/guides/status-page).
 
 ## Inviter votre équipe
 
@@ -141,6 +147,7 @@ Ouvrez le moniteur et regardez ce que les sondes ont reçu. Consultez la section
 
 :::cards
 - [Concepts clés](/docs/introduction/core-concepts): Les idées derrière ce que vous venez de configurer.
+- [Glossaire](/docs/introduction/glossary): Chaque mot rencontré en chemin, en une phrase ou deux.
 - [Plannings d'astreinte](/docs/on-call/schedules): Partager l'astreinte avec votre équipe.
 - [Personnalisation et domaines de la page de statut](/docs/status-pages/branding-and-domains): Faire de la page de statut la vôtre.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Envoyer les journaux, les métriques et les traces de vos applications.

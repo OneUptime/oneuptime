@@ -17,7 +17,11 @@ En tabells flik **Härkomst** visar de tabeller den byggs av, de pipelines som s
 
 Överst på fliken ritar ett diagram den härkomsten några steg åt varje håll (tre, eller välj 1, 2 eller 5): till vänster det som tabellen byggs av, till höger de tabeller och instrumentpaneler som byggs av den, och de pipelines som läser in data utifrån, där den kommer in. Varje kort visar hur det står till nu - försenad, ett öppet larm, en misslyckad körning - och en pil blir röd när den senaste körningen av dess pipeline misslyckades, så att en försenad tabell kan följas upp till körningen som stoppade den. Öppna valfri tabell för att centrera diagrammet på den.
 
+Ett kort ritar högst tio tabeller åt varje håll och räknar resten, till exempel **+14**. Välj talet för att rita upp till tio till av dem där de är, problem först, med varje pil mellan dem och det som redan är ritat. **Återställ diagram** går tillbaka till diagrammet som det först ritades. När en sida har så många tabeller som ett diagram rymmer öppnar du en tabell för att centrera diagrammet på den.
+
 Där källan anger kolumner visar en tabells flik **Kolumner** varifrån varje kolumn kommer och vad den matar: Snowflakes åtkomsthistorik (Enterprise-utgåvan, som kräver `IMPORTED PRIVILEGES` på databasen `SNOWFLAKE`), och OpenLineages facet `columnLineage`.
+
+Välj på fliken **Härkomst** en av tabellens kolumner i **Följ en kolumn** för att markera varifrån den kommer och vart den går: uppåt i diagrammet till kolumnerna den byggs av, nedåt till kolumnerna som byggs av den, var och en namngiven på sin tabell, även där kolumnen bytte namn på vägen. En pil vars källor inte anger några kolumner kan föra den längre än det som är markerat, och diagrammet säger det.
 
 ## OpenLineage
 
@@ -117,7 +121,7 @@ Varje jobb, dbt-projekt och synkronisering visas under **Pipelines**, med sina k
 - **Pipeline Run Unusually Long**: en körning har tagit dubbelt så lång tid som vanligt eller mer, kontrollerat var femte minut medan den körs, så att en körning som hänger sig upptäcks innan den slutar.
 - **Pipeline Is Late**: ingen körning har startat på längre tid än schemat tillåter.
 
-En pipelines sida har kortet **Härkomst**, det första stället att titta på när en körning misslyckas eller är försenad: till vänster de tabeller den läser, till höger de tabeller den skriver, pipelinen däremellan, och varje kort visar hur det står till nu. Välj fler steg för att se vad tabellerna byggs av och vad som byggs av dem, och öppna valfri tabell för att se dess egen flik **Härkomst**.
+En pipelines sida har kortet **Härkomst**, det första stället att titta på när en körning misslyckas eller är försenad: till vänster de tabeller den läser, till höger de tabeller den skriver, pipelinen däremellan, och varje kort visar hur det står till nu. Välj fler steg för att se vad tabellerna byggs av och vad som byggs av dem, och öppna valfri tabell för att se dess egen flik **Härkomst**. Ett tal för tabeller som inte är ritade, på pipelinens kort eller en tabells, ritar fler av dem på plats här också.
 
 ## Ett larm per orsak
 
@@ -128,7 +132,7 @@ När en tabell blir inaktuell blir varje tabell som byggs av den också inaktuel
 
 Orsakens kort **Data** listar dess **Påverkan nedströms**: varje larm den orsakade. Ett tabellarms kort visar också de tjänster som skriver till tabellen, med deras misslyckade skrivningar, och deras driftsättningar och andra ändringar under dygnet före larmet.
 
-Under kortet **Data** har ett larms sida kortet **Härkomst**: härkomsten runt dess tabell, som tabellens flik **Härkomst** ritar den, eller runt dess pipeline. Vägen upp till larmet som orsakade det och ner till varje larm det orsakade är framhävd - orsakens tabell eller pipeline märkt **Orsak**, varje orsakat larms märkt **Följd** - och resten tonas ned, så att den som öppnar det ser var i kedjan problemet började. Gäller orsaken en hel databas, eller ligger den längre upp än diagrammet når, säger kortet det i ord. **Utforska härkomst** öppnar tabellens flik **Härkomst**, eller pipelinens sida.
+Under kortet **Data** har ett larms sida kortet **Härkomst**: härkomsten runt dess tabell, som tabellens flik **Härkomst** ritar den, eller runt dess pipeline. Vägen upp till larmet som orsakade det och ner till varje larm det orsakade är framhävd - orsakens tabell eller pipeline märkt **Orsak**, varje orsakat larms märkt **Följd** - och resten tonas ned, så att den som öppnar det ser var i kedjan problemet började. Ligger orsaken hos en pipeline som är ritad på en pil, står det **Orsak** under pipelinens namn på pilen. Gäller orsaken en hel databas, eller ligger den längre upp än diagrammet når, säger kortet det i ord. Ett larm från en kontroll av en enda kolumn, som en Null Percent-kontroll av `customer_id`, öppnas med den kolumnen följd bredvid dessa vägar, som på tabellens flik **Härkomst**: varifrån den kommer och vart den går, namngiven på varje tabell. Välj en annan av tabellens kolumner där, eller rensa den för att bara se vägarna. **Utforska härkomst** öppnar tabellens flik **Härkomst**, eller pipelinens sida.
 
 Den som inte får se larmet som orsakade det får varken kortet **Data** eller härkomsten, och ett orsakat larm som personen inte får se framhävs inte och räknas inte.
 

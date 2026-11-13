@@ -1,6 +1,6 @@
 # SLO:er – Översikt
 
-Ett service level objective (SLO) är ett tillförlitlighetsmål för det du övervakar, som ”tillgängligt 99,9 % av tiden under rullande 30 dagar”. OneUptime mäter varje SLO mot sitt mål var 5:e minut, så i stället för ”fungerar det just nu?” kan du svara på ”har vi varit tillräckligt tillförlitliga, under ett fönster som betyder något för våra användare, och hur mycket utrymme för fel har vi kvar?”.
+Ett service level objective (SLO) är ett tillförlitlighetsmål för det du övervakar, som ”tillgängligt 99,9 % av tiden under rullande 30 dagar”. OneUptime mäter varje SLO mot sitt mål var 5:e minut, så i stället för ”fungerar det just nu?” kan du svara på ”har vi varit tillräckligt tillförlitliga, under ett fönster som betyder något för våra användare, och hur mycket utrymme för fel har vi kvar?”. Sidan [Ordlista](/docs/introduction/glossary#slo) ställer SLO:er bredvid de andra orden som OneUptime använder.
 
 :::cards
 - [Skapa ett SLO](#skapa-ett-slo): Ett namn och ett mål. Allt annat börjar med ett standardvärde.
@@ -11,7 +11,7 @@ Ett service level objective (SLO) är ett tillförlitlighetsmål för det du öv
 
 ## Så fungerar det
 
-Ett SLO läser statustidslinjerna för de monitorer som är kopplade till det: samma data som dina statussidor visar. Utifrån dem beräknar OneUptime hur stor del av efterlevnadsfönstret som var bra tid, hur mycket av felbudgeten som finns kvar och hur snabbt den förbrukas.
+Ett SLO läser statustidslinjerna för de monitorer som är kopplade till det: samma data som dina statussidor visar. Utifrån dem beräknar OneUptime hur stor del av efterlevnadsfönstret som var bra tid, hur mycket av felbudgeten som finns kvar och hur snabbt den förbrukas. Tid då en monitors övervakning är avstängd utelämnas: ingenting kontrollerar monitorn då, så den tiden varken förbrukar felbudgeten eller räknas som bra tid.
 
 ```mermaid title="Från monitorkontroller till ett SLO:s status"
 flowchart TB
@@ -25,6 +25,8 @@ flowchart TB
 ```
 
 ## Nyckelbegrepp
+
+Orden som används i hela OneUptime finns samlade på sidan [Ordlista](/docs/introduction/glossary).
 
 | Begrepp | Betydelse |
 | --- | --- |
@@ -176,7 +178,7 @@ När något hindrar ett SLO från att mäta talar en banner högst upp på var o
 - **Sammanfattningen**: statusen, en mening om vad den betyder och beskrivningen. Bredvid finns **Uppdatera** och när SLO:et senast utvärderades. Under finns målet, **Efterlevnadsfönster** (med en fyllnadsindikator medan ett ungt rullande fönster fylls: se [Unga SLO:er och fönstrets fyllnadsindikator](#unga-sloer-och-fönstrets-fyllnadsindikator)), antalet monitorer och ägarna, med **Lägg till ägare** för att lägga till en direkt där.
 - **Nyckeltalen**:
   - **SLI**: andelen bra tid i fönstret, och hur mycket den ligger över eller under målet.
-  - **Felbudget kvar**: en procentandel, en varaktighet som "12m 30s left of 43m 12s" och en stapel med en markering vid tröskeln för riskzon. När budgeten är överskriden visar den **Budgeten överskriden** och med hur mycket.
+  - **Felbudget kvar**: en procentandel, en varaktighet som "12 min 30 s kvar av 43 min 12 s" och en stapel med en markering vid tröskeln för riskzon. När budgeten är överskriden visar den **Budgeten överskriden** och med hur mycket.
   - **Förbrukningstakt**: hur snabbt budgeten används under de senaste 60 minuterna, den period som standardregeln för snabb förbrukning använder. Blir gul över 1× och röd, med **Regeltröskel nådd**, vid den lägsta tröskeln bland SLO:ets aktiverade regler för förbrukningstakt som ser högst 6 timmar bakåt. En timme säger lite om en regel som ser flera dagar bakåt, som **Slow leak**, så den jämförs inte med en sådan regel.
   - **Budgetens räckvidd**: hur länge budgeten räcker i den takten. Se [Felbudgetar](/docs/slo/error-budget#budgetens-räckvidd).
 - **Nedbränning av felbudget**: den återstående budgeten över det aktuella fönstret. Se [Felbudgetar](/docs/slo/error-budget#felbudgetens-förbrukning).
@@ -193,7 +195,7 @@ Sidan **Inställningar** samlar hur ett SLO mäter, med ett kort för varje sak:
 
 | Kort | Det du ändrar | Bra att veta |
 | --- | --- | --- |
-| **Mål** | **Mål (%)** och **Tröskel för riskzon (%)**, med **Redigera mål**. | Visar det driftstopp som målet tillåter, till exempel ”43m 12s driftstopp per fönster på 30 dagar”. |
+| **Mål** | **Mål (%)** och **Tröskel för riskzon (%)**, med **Redigera mål**. | Visar det driftstopp som målet tillåter, till exempel ”43 min 12 s driftstopp per fönster på 30 dagar”. |
 | **Efterlevnadsperiod** | **Fönstertyp**, **Fönster (dagar)** och **Tidszon**, med **Redigera period**. | Regler för förbrukningstakt behåller sina trösklar när fönstret ändras, så gå igenom dem efteråt. |
 | **Beräkning av driftstopp** | **Läge för flera monitorer** och **Statusar för driftstoppsövervakare**, med **Redigera beräkning av driftstopp**. | Utan statusar räknas alla icke-operativa statusar, även de som läggs till senare. |
 | **Utvärdering** | Reglaget **Utvärdera det här SLO:et**, som sparar så snart du slår om det. | Att stänga av det kräver bekräftelse, eftersom det också löser SLO:ets öppna larm och incidenter för förbrukningstakt. |
@@ -238,7 +240,7 @@ En monitors sidomeny har också en sida **SLOs**: de SLO:er som mäter den monit
 
 Ett SLO med rullande fönster som är yngre än sitt fönster mäts över de data som finns hittills: ett SLO på 30 dagar som skapades i går har en dags data. Dess felbudget börjar liten och växer när fönstret fylls, så dess första siffror svänger mer än de kommer att göra senare.
 
-Så länge det är så säger **Översikt** det: sammanfattningen visar en indikator **Window 23% full** (**Fönstret är under 1 % fyllt** den första dagen), och rutan **Felbudget kvar** upprepar det under sin siffra. Båda försvinner när fönstret är fullt. SLO:er med kalendermånad visar dem aldrig, eftersom deras budget täcker hela månaden från första dagen, och det gör inte heller SLO:er i läget **Genomsnitt av monitorsekunder**, vars budget räknas över alla monitorer.
+Så länge det är så säger **Översikt** det: sammanfattningen visar en indikator **Fönstret är 23 % fyllt** (**Fönstret är under 1 % fyllt** den första dagen), och rutan **Felbudget kvar** upprepar det under sin siffra. Båda försvinner när fönstret är fullt. SLO:er med kalendermånad visar dem aldrig, eftersom deras budget täcker hela månaden från första dagen, och det gör inte heller SLO:er i läget **Genomsnitt av monitorsekunder**, vars budget räknas över alla monitorer.
 
 ## Felsökning
 

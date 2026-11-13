@@ -36,6 +36,7 @@ interface FixtureList {
   sort: Record<string, unknown>;
   phase: string | null;
   limit: number;
+  select?: Record<string, unknown> | undefined;
 }
 
 interface FixtureRecord {
@@ -76,12 +77,18 @@ const SCREENSHOTS: string = "../../output/playwright/dashboard-widget-sort-ui";
 const APP_PATH: string = `/dashboard/${PROJECT_ID}/dashboards/${DASHBOARD_ID}`;
 const PUBLIC_PATH: string = `/public-dashboard/${DASHBOARD_ID}`;
 
-// The fixture's rows, in the orders the database answers them.
+/*
+ * The fixture's rows, in the orders the database answers them. legacy-api's
+ * monitoring is off (its status frozen at Offline): it is listed, after every
+ * monitor that is checked whichever way Status sorts. archived-cdn is
+ * archived and never listed (Fixture/Boards.js monitors).
+ */
 const MONITORS_BY_NAME: Array<string> = [
   "api-gateway",
   "auth",
   "billing",
   "checkout",
+  "legacy-api",
   "search",
 ];
 const MONITORS_WORST_FIRST: Array<string> = [
@@ -90,6 +97,7 @@ const MONITORS_WORST_FIRST: Array<string> = [
   "checkout",
   "api-gateway",
   "search",
+  "legacy-api",
 ];
 const MONITORS_BEST_FIRST: Array<string> = [
   "api-gateway",
@@ -97,7 +105,41 @@ const MONITORS_BEST_FIRST: Array<string> = [
   "checkout",
   "auth",
   "billing",
+  "legacy-api",
 ];
+
+/*
+ * What each row's Status says, in the orders above: the project's own status
+ * names as stored, and Disabled - the Monitors table's word, in the reader's
+ * language - for the monitor whose monitoring is off.
+ */
+const STATUSES_BY_NAME: Array<string> = [
+  "Operational",
+  "Offline",
+  "Offline",
+  "Degraded",
+  "Disabled",
+  "Operational",
+];
+const STATUSES_WORST_FIRST: Array<string> = [
+  "Offline",
+  "Offline",
+  "Degraded",
+  "Operational",
+  "Operational",
+  "Disabled",
+];
+const STATUSES_BEST_FIRST: Array<string> = [
+  "Operational",
+  "Operational",
+  "Degraded",
+  "Offline",
+  "Offline",
+  "Disabled",
+];
+
+// The monitor list's Status column.
+const STATUS_COLUMN: number = 1;
 
 const PODS_BY_NAMESPACE: Array<string> = [
   "batch-7",
@@ -434,8 +476,12 @@ test.describe("a list on the dashboard inside OneUptime", () => {
     await press(header(table, "status"));
     await expectRows(table, MONITORS_WORST_FIRST);
 
-    // The database ordered the whole list: by priority, highest first.
+    /*
+     * The database ordered the whole list: the monitors that are checked
+     * first, then by priority, highest first.
+     */
     expect((await lastListOf(page, "Monitor", from)).sort).toEqual({
+      disableActiveMonitoring: "ASC",
       currentMonitorStatus: { priority: { direction: "DESC", nulls: "LAST" } },
       name: "ASC",
     });
@@ -454,7 +500,9 @@ test.describe("a list on the dashboard inside OneUptime", () => {
     from = await listCount(page);
     await press(header(table, "status"));
     await expectRows(table, MONITORS_BEST_FIRST);
+    // Best first, and the monitor nobody checks still last.
     expect((await lastListOf(page, "Monitor", from)).sort).toEqual({
+      disableActiveMonitoring: "ASC",
       currentMonitorStatus: { priority: "ASC" },
       name: "ASC",
     });
@@ -467,6 +515,68 @@ test.describe("a list on the dashboard inside OneUptime", () => {
       "aria-sort",
       "ascending",
     );
+  });
+
+  /*
+   * A monitor whose monitoring is off is not checked: its status is only what
+   * its last check saw (#6476, #6477). The list keeps it - it is still one of
+   * the project's monitors - but its row says Disabled, in gray, and it never
+   * sorts ahead of a monitor that is checked. An archived monitor is in no
+   * monitor list.
+   */
+  test("a monitor whose monitoring is off says Disabled and comes after every checked one; an archived one is never listed", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openApp(page);
+
+    const table: Locator = monitorsTable(page);
+    const rowOf: (name: string) => Locator = (name: string): Locator => {
+      return table.locator("tbody tr").filter({
+        has: page.getByRole("link", { name, exact: true }),
+      });
+    };
+    const dotOf: (name: string) => Locator = (name: string): Locator => {
+      return rowOf(name)
+        .getByTestId("monitor-list-status")
+        .locator("span")
+        .first();
+    };
+
+    // By name, with the others - its row saying Disabled, not Offline.
+    await expectRows(table, MONITORS_BY_NAME);
+    await expectRows(table, STATUSES_BY_NAME, STATUS_COLUMN);
+    await expect(dotOf("legacy-api")).toHaveCSS(
+      "background-color",
+      "rgb(107, 114, 128)",
+    );
+    await expect(dotOf("auth")).toHaveCSS(
+      "background-color",
+      "rgb(239, 68, 68)",
+    );
+
+    /*
+     * The read asked for the column that says so, and for no archived
+     * monitor: archived-cdn, second by name, is in no row.
+     */
+    const read: FixtureList = await lastListOf(page, "Monitor", 0);
+    expect(read.select).toEqual(
+      expect.objectContaining({ disableActiveMonitoring: true }),
+    );
+    expect(await columnOf(table, 0)).not.toContain("archived-cdn");
+
+    // Worst first, it is last: nobody checks it, so it is no live problem.
+    await press(header(table, "status"));
+    await expectRows(table, MONITORS_WORST_FIRST);
+    await expectRows(table, STATUSES_WORST_FIRST, STATUS_COLUMN);
+
+    await shoot(page, testInfo, "monitoring-off-last", table);
+
+    // Best first, it is last as well: no status of its own to rank.
+    await press(header(table, "status"));
+    await expectRows(table, MONITORS_BEST_FIRST);
+    await expectRows(table, STATUSES_BEST_FIRST, STATUS_COLUMN);
   });
 
   test("a reload keeps the viewer's sort, and only for that widget", async ({
@@ -740,11 +850,427 @@ test.describe("a list on the dashboard inside OneUptime", () => {
       "title",
       "Sortiert: Schlechteste zuerst",
     );
+    // Disabled in German; the project's own statuses as the project named them.
+    await expectRows(
+      monitorsTable(page),
+      [...STATUSES_WORST_FIRST.slice(0, -1), "Deaktiviert"],
+      STATUS_COLUMN,
+    );
     await expect(header(monitorsTable(page), "name")).toHaveAttribute(
       "title",
       "Sortieren: A bis Z",
     );
     await shoot(page, testInfo, "german", monitorsTable(page));
+  });
+});
+
+/*
+ * A monitor list drawn as a honeycomb (?view=honeycomb, #6966): a tile per
+ * monitor, which says what it is only in the tooltip under the pointer.
+ * legacy-api, whose monitoring is off, is the gray tile, and the honeycomb
+ * has no legend: the tooltip is the one place that says gray is Disabled.
+ *
+ * The tooltip is position:fixed, at the tile's place in the window. A
+ * widget's card is overflow-hidden and transformed, which makes a fixed
+ * layer inside it fixed to the card - so the tooltip is drawn outside the
+ * card: on the body, or on the board while the board is in full screen
+ * (the browser draws nothing else then).
+ */
+test.describe("a honeycomb tile's tooltip", () => {
+  // Gray500, the color of a monitor whose monitoring is off.
+  const GRAY: string = "rgb(107, 114, 128)";
+
+  interface Box {
+    left: number;
+    top: number;
+    right: number;
+    bottom: number;
+  }
+
+  // Where the tooltip is drawn, and what of it can be seen.
+  interface TooltipPlace {
+    parent: "body" | "full-screen element" | "elsewhere";
+    box: Box;
+    window: { width: number; height: number };
+    // The tooltip's center and four corners, each drawn on top of the page.
+    pointsOnTop: number;
+    background: string;
+  }
+
+  const tiles: (page: Page) => Locator = (page: Page): Locator => {
+    return page.getByTestId("dashboard-honeycomb-tile");
+  };
+
+  const tooltip: (page: Page) => Locator = (page: Page): Locator => {
+    return page.getByTestId("dashboard-honeycomb-tooltip");
+  };
+
+  const openHoneycomb: (page: Page, search?: string) => Promise<void> = async (
+    page: Page,
+    search?: string,
+  ): Promise<void> => {
+    await page.goto(`${APP_PATH}?view=honeycomb${search || ""}`);
+    // A tile for every monitor listed; archived-cdn is not.
+    await expect(tiles(page)).toHaveCount(MONITORS_BY_NAME.length, {
+      timeout: 60000,
+    });
+  };
+
+  // The one gray tile: legacy-api's.
+  const grayTile: (page: Page) => Promise<Locator> = async (
+    page: Page,
+  ): Promise<Locator> => {
+    const colors: Array<string> = await tiles(page).evaluateAll(
+      (elements: Array<Element>): Array<string> => {
+        return elements.map((element: Element): string => {
+          return window.getComputedStyle(element).backgroundColor;
+        });
+      },
+    );
+
+    expect(
+      colors.filter((color: string): boolean => {
+        return color === GRAY;
+      }),
+    ).toHaveLength(1);
+
+    return tiles(page).nth(colors.indexOf(GRAY));
+  };
+
+  const boxOf: (locator: Locator) => Promise<Box> = async (
+    locator: Locator,
+  ): Promise<Box> => {
+    return locator.evaluate((element: Element): Box => {
+      const rect: DOMRect = element.getBoundingClientRect();
+      return {
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+      };
+    });
+  };
+
+  /*
+   * The tooltip lets the pointer through (pointer-events: none), so the
+   * check of what is drawn on top of it lets it take the pointer for the
+   * moment of the check.
+   */
+  const placeOf: (page: Page) => Promise<TooltipPlace> = async (
+    page: Page,
+  ): Promise<TooltipPlace> => {
+    return tooltip(page).evaluate((element: HTMLElement): TooltipPlace => {
+      const rect: DOMRect = element.getBoundingClientRect();
+      const inset: number = 4;
+      const points: Array<[number, number]> = [
+        [(rect.left + rect.right) / 2, (rect.top + rect.bottom) / 2],
+        [rect.left + inset, rect.top + inset],
+        [rect.right - inset, rect.top + inset],
+        [rect.left + inset, rect.bottom - inset],
+        [rect.right - inset, rect.bottom - inset],
+      ];
+
+      element.style.pointerEvents = "auto";
+      const pointsOnTop: number = points.filter(
+        ([x, y]: [number, number]): boolean => {
+          const hit: Element | null = document.elementFromPoint(x, y);
+          return Boolean(hit && element.contains(hit));
+        },
+      ).length;
+      element.style.pointerEvents = "";
+
+      const parent: HTMLElement | null = element.parentElement;
+
+      return {
+        parent:
+          parent === document.body
+            ? "body"
+            : parent && parent === document.fullscreenElement
+              ? "full-screen element"
+              : "elsewhere",
+        box: {
+          left: rect.left,
+          top: rect.top,
+          right: rect.right,
+          bottom: rect.bottom,
+        },
+        window: { width: window.innerWidth, height: window.innerHeight },
+        pointsOnTop,
+        background: window.getComputedStyle(element).backgroundColor,
+      };
+    });
+  };
+
+  /*
+   * The pointer on a tile. On a phone the board shows one widget under
+   * another, so the tile is scrolled to first.
+   */
+  const pointAt: (tile: Locator) => Promise<void> = async (
+    tile: Locator,
+  ): Promise<void> => {
+    await tile.scrollIntoViewIfNeeded();
+    await tile.hover();
+  };
+
+  /*
+   * All of the tooltip in the window, on top of everything, beside its tile
+   * (above it, or below when there is no room above) and over it from side
+   * to side, as far as the window's 8px margins let it be.
+   */
+  const expectBesideItsTile: (place: TooltipPlace, tile: Box) => void = (
+    place: TooltipPlace,
+    tile: Box,
+  ): void => {
+    expect(place.box.left).toBeGreaterThanOrEqual(0);
+    expect(place.box.top).toBeGreaterThanOrEqual(0);
+    expect(place.box.right).toBeLessThanOrEqual(place.window.width);
+    expect(place.box.bottom).toBeLessThanOrEqual(place.window.height);
+    expect(place.pointsOnTop).toBe(5);
+
+    const isAbove: boolean = place.box.bottom <= tile.top + 1;
+    const gap: number = isAbove
+      ? tile.top - place.box.bottom
+      : place.box.top - tile.bottom;
+
+    /*
+     * 8px from the tile, as it is placed. It measures its own height once,
+     * when it opens, so a line that settles after that can move its far
+     * edge by a pixel or two - never by the card's distance from the window.
+     */
+    expect(gap).toBeGreaterThanOrEqual(-1);
+    expect(gap).toBeLessThanOrEqual(16);
+    expect(place.box.left).toBeLessThan(tile.right);
+    expect(place.box.right).toBeGreaterThan(tile.left);
+  };
+
+  test("a gray tile says it is Disabled, in a tooltip on the page beside it that nothing covers, gone when the pointer leaves", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openHoneycomb(page);
+
+    const tile: Locator = await grayTile(page);
+    await pointAt(tile);
+
+    await expect(tooltip(page)).toHaveCount(1);
+    await expect(tooltip(page)).toBeVisible();
+    await expect(tooltip(page)).toContainText("legacy-api");
+    await expect(tooltip(page)).toContainText("Disabled");
+    await expect(tooltip(page)).toContainText("Click to open");
+
+    const place: TooltipPlace = await placeOf(page);
+    expect(place.parent).toBe("body");
+    expectBesideItsTile(place, await boxOf(tile));
+
+    await shoot(page, testInfo, "honeycomb-tooltip", undefined);
+
+    // Off the board, and the tooltip goes with the pointer.
+    await page.mouse.move(1, 1);
+    await expect(tooltip(page)).toHaveCount(0);
+  });
+
+  test("a checked tile's tooltip says its status, the one tooltip on the page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    atDesktopOnly();
+    await openHoneycomb(page);
+
+    const gray: Locator = await grayTile(page);
+    await pointAt(gray);
+    await expect(tooltip(page)).toContainText("Disabled");
+
+    // auth is Offline: red, and checked.
+    const colors: Array<string> = await tiles(page).evaluateAll(
+      (elements: Array<Element>): Array<string> => {
+        return elements.map((element: Element): string => {
+          return window.getComputedStyle(element).backgroundColor;
+        });
+      },
+    );
+    const red: Locator = tiles(page).nth(colors.indexOf("rgb(239, 68, 68)"));
+
+    await pointAt(red);
+    await expect(tooltip(page)).toHaveCount(1);
+    await expect(tooltip(page)).toContainText("Offline");
+    await expect(tooltip(page)).not.toContainText("Disabled");
+    expectBesideItsTile(await placeOf(page), await boxOf(red));
+  });
+
+  // At 1280 and in a phone's window, as the light theme's test above.
+  test("in the dark theme the tooltip is drawn dark, on the page beside its tile", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openHoneycomb(page, "&theme=dark");
+    const tile: Locator = await grayTile(page);
+    await pointAt(tile);
+
+    await expect(tooltip(page)).toHaveCount(1);
+    await expect(tooltip(page)).toContainText("Disabled");
+    const dark: TooltipPlace = await placeOf(page);
+    expect(dark.parent).toBe("body");
+    expect(dark.background).not.toBe("rgb(255, 255, 255)");
+    expectBesideItsTile(dark, await boxOf(tile));
+    await shoot(page, testInfo, "honeycomb-tooltip-dark", undefined);
+  });
+
+  test("in German the tooltip says Deaktiviert", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    atDesktopOnly();
+
+    await openHoneycomb(page, "&lang=de");
+    const tile: Locator = await grayTile(page);
+    await pointAt(tile);
+
+    await expect(tooltip(page)).toContainText("Deaktiviert");
+    await expect(tooltip(page)).toContainText("Zum Öffnen klicken");
+    await expect(tooltip(page)).not.toContainText("Disabled");
+    expectBesideItsTile(await placeOf(page), await boxOf(tile));
+    await shoot(page, testInfo, "honeycomb-tooltip-german", undefined);
+  });
+
+  /*
+   * A tile reached from the keyboard says what it is, as one under the
+   * pointer does, and shows where the focus is: a ring round the hexagon
+   * the tile is clipped to (the clip cuts away any outline drawn on the
+   * tile itself), in the theme's focus color. Escape puts the tooltip away
+   * and leaves the focus, and the ring, where they are.
+   */
+  test("a tile reached with Tab is ringed and says it is Disabled, and Escape puts its tooltip away", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    atDesktopOnly();
+    await openHoneycomb(page);
+
+    const gray: Locator = await grayTile(page);
+    const colors: Array<string> = await tiles(page).evaluateAll(
+      (elements: Array<Element>): Array<string> => {
+        return elements.map((element: Element): string => {
+          return window.getComputedStyle(element).backgroundColor;
+        });
+      },
+    );
+    const grayIndex: number = colors.indexOf(GRAY);
+
+    /*
+     * From the tile beside it, with the key a keyboard reader presses:
+     * Tab from the one before, or Shift+Tab from the one after.
+     */
+    const from: number = grayIndex > 0 ? grayIndex - 1 : grayIndex + 1;
+    await tiles(page).nth(from).focus();
+    await page.keyboard.press(grayIndex > 0 ? "Tab" : "Shift+Tab");
+
+    await expect(gray).toBeFocused();
+    await expect(tooltip(page)).toHaveCount(1);
+    await expect(tooltip(page)).toContainText("legacy-api");
+    await expect(tooltip(page)).toContainText("Disabled");
+    expectBesideItsTile(await placeOf(page), await boxOf(gray));
+
+    // A button named for its monitor, which its open tooltip describes.
+    await expect(gray).toHaveAttribute("role", "button");
+    await expect(gray).toHaveAttribute("aria-label", "legacy-api");
+    const tooltipId: string | null = await tooltip(page).getAttribute("id");
+    expect(tooltipId).toBeTruthy();
+    await expect(gray).toHaveAttribute("aria-describedby", tooltipId!);
+
+    // The ring: round the tile on every side, in the light theme's focus color.
+    const ring: Locator = page.getByTestId("dashboard-honeycomb-focus-ring");
+    await expect(ring).toHaveCount(1);
+    await expect(ring).toBeVisible();
+    const tileBox: Box = await boxOf(gray);
+    const ringPlace: { box: Box; stroke: string; strokeWidth: string } =
+      await ring.evaluate(
+        (
+          element: Element,
+        ): { box: Box; stroke: string; strokeWidth: string } => {
+          const polygon: Element = element.querySelector("polygon")!;
+          const rect: DOMRect = polygon.getBoundingClientRect();
+          const style: CSSStyleDeclaration = window.getComputedStyle(polygon);
+          return {
+            box: {
+              left: rect.left,
+              top: rect.top,
+              right: rect.right,
+              bottom: rect.bottom,
+            },
+            stroke: style.stroke,
+            strokeWidth: style.strokeWidth,
+          };
+        },
+      );
+    expect(ringPlace.box.left).toBeLessThan(tileBox.left - 1);
+    expect(ringPlace.box.right).toBeGreaterThan(tileBox.right + 1);
+    expect(ringPlace.box.top).toBeLessThan(tileBox.top - 1);
+    expect(ringPlace.box.bottom).toBeGreaterThan(tileBox.bottom + 1);
+    expect(ringPlace.stroke).toBe("rgb(79, 70, 229)");
+    expect(ringPlace.strokeWidth).toBe("2px");
+
+    await shoot(page, testInfo, "honeycomb-keyboard", undefined);
+
+    await page.keyboard.press("Escape");
+    await expect(tooltip(page)).toHaveCount(0);
+    await expect(gray).toBeFocused();
+    await expect(ring).toBeVisible();
+
+    // Moving on: the next tile's tooltip, and the ring goes with the focus.
+    await page.keyboard.press(grayIndex > 0 ? "Shift+Tab" : "Tab");
+    await expect(tiles(page).nth(from)).toBeFocused();
+    await expect(tooltip(page)).toHaveCount(1);
+    await expect(tooltip(page)).not.toContainText("legacy-api");
+    await expect(ring).toHaveCount(1);
+  });
+
+  test("in full screen the tooltip is drawn on the board, and leaving full screen takes it away", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    atDesktopOnly();
+    await openHoneycomb(page);
+
+    await press(page.getByRole("button", { name: "More dashboard options" }));
+    await press(page.getByRole("menuitem", { name: "Full Screen" }));
+    await expect
+      .poll(async (): Promise<boolean> => {
+        return page.evaluate((): boolean => {
+          return document.fullscreenElement !== null;
+        });
+      })
+      .toBe(true);
+
+    const tile: Locator = await grayTile(page);
+    await pointAt(tile);
+
+    await expect(tooltip(page)).toBeVisible();
+    await expect(tooltip(page)).toContainText("Disabled");
+    const place: TooltipPlace = await placeOf(page);
+    expect(place.parent).toBe("full-screen element");
+    expectBesideItsTile(place, await boxOf(tile));
+    await shoot(page, testInfo, "honeycomb-tooltip-full-screen", undefined);
+
+    /*
+     * Out of full screen the board moves back into the page, and the
+     * tooltip it opened in full screen is gone.
+     */
+    await page.evaluate(async (): Promise<void> => {
+      await document.exitFullscreen();
+    });
+    await expect(tooltip(page)).toHaveCount(0);
+
+    // The next tooltip is on the page's body again.
+    await page.mouse.move(1, 1);
+    await pointAt(tile);
+    await expect(tooltip(page)).toBeVisible();
+    expect((await placeOf(page)).parent).toBe("body");
   });
 });
 
@@ -1029,10 +1555,16 @@ test.describe("a list on a public dashboard", () => {
 
     const table: Locator = monitorsTable(page);
 
+    /*
+     * The public page lists what the board lists: no archived monitor, and
+     * the one whose monitoring is off saying Disabled, last when sorted.
+     */
     await expectRows(table, MONITORS_BY_NAME);
+    await expectRows(table, STATUSES_BY_NAME, STATUS_COLUMN);
 
     await press(header(table, "status"));
     await expectRows(table, MONITORS_WORST_FIRST);
+    await expectRows(table, STATUSES_WORST_FIRST, STATUS_COLUMN);
 
     const lists: Array<{
       resource: string;

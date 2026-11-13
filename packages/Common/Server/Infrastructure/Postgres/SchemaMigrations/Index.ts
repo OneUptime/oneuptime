@@ -959,6 +959,19 @@ import { AddOnCallTimelineToWhatsAppLog1809100612200 } from "./1809100612200-Add
 import { AddOnCallTimelineToWhatsAppLogIndexAndKey1809100612210 } from "./1809100612210-AddOnCallTimelineToWhatsAppLogIndexAndKey";
 import { AddRumProductAnalyticsSavedViews1809110100000 } from "./1809110100000-AddRumProductAnalyticsSavedViews";
 import { AddDataBiConnectionRefreshAlerts1809110200000 } from "./1809110200000-AddDataBiConnectionRefreshAlerts";
+import { AddCloudAppSignalArrivals1809110300000 } from "./1809110300000-AddCloudAppSignalArrivals";
+import { AddServerSendingHealth1809110400000 } from "./1809110400000-AddServerSendingHealth";
+import { AddProjectMilestones1809110500000 } from "./1809110500000-AddProjectMilestones";
+import { AddResolvedRecordRetention1809110600000 } from "./1809110600000-AddResolvedRecordRetention";
+import { AddIndexesForIncidentAndAlertDeletes1809110700000 } from "./1809110700000-AddIndexesForIncidentAndAlertDeletes";
+import { AddOnCallTestPages1809110800000 } from "./1809110800000-AddOnCallTestPages";
+import { AddProjectGoalsAndWelcomeChecklist1809110900000 } from "./1809110900000-AddProjectGoalsAndWelcomeChecklist";
+import { AddServerSetupChoices1809110968240 } from "./1809110968240-AddServerSetupChoices";
+import { AddUserOnCallLogTimelineSendingIndex1809120200000 } from "./1809120200000-AddUserOnCallLogTimelineSendingIndex";
+import { AddMonitorStatusTimelineIsMonitoringOff1809122600000 } from "./1809122600000-AddMonitorStatusTimelineIsMonitoringOff";
+import { AddProjectProductsAndPins1809122700000 } from "./1809122700000-AddProjectProductsAndPins";
+import { AddProductFeedback1809123000000 } from "./1809123000000-AddProductFeedback";
+import { AddAmazonSesAuthenticationType1809123100000 } from "./1809123100000-AddAmazonSesAuthenticationType";
 
 export default [
   InitialMigration,
@@ -1922,4 +1935,17 @@ export default [
   AddOnCallTimelineToWhatsAppLogIndexAndKey1809100612210,
   AddRumProductAnalyticsSavedViews1809110100000,
   AddDataBiConnectionRefreshAlerts1809110200000,
+  AddCloudAppSignalArrivals1809110300000,
+  AddServerSendingHealth1809110400000,
+  AddProjectMilestones1809110500000,
+  AddResolvedRecordRetention1809110600000,
+  AddIndexesForIncidentAndAlertDeletes1809110700000,
+  AddOnCallTestPages1809110800000,
+  AddProjectGoalsAndWelcomeChecklist1809110900000,
+  AddServerSetupChoices1809110968240,
+  AddUserOnCallLogTimelineSendingIndex1809120200000,
+  AddMonitorStatusTimelineIsMonitoringOff1809122600000,
+  AddProjectProductsAndPins1809122700000,
+  AddProductFeedback1809123000000,
+  AddAmazonSesAuthenticationType1809123100000,
 ];

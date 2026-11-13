@@ -25,6 +25,8 @@ sequenceDiagram
     O->>O: Comprobar los criterios,<br/>de arriba abajo
 ```
 
+La sonda comprueba el certificado de la API como lo hace un navegador, incluido si su emisor lo ha revocado. Un certificado revocado hace fallar la comprobación igual que uno caducado: el monitor pasa a sin conexión y la causa del fallo indica que el certificado fue revocado. **Permitir certificados autofirmados** desactiva estas comprobaciones para el nombre de host del propio monitor.
+
 Una sonda que ha perdido su propia conexión de red no informa de ningún resultado, así que no puede marcar su API como sin conexión.
 
 ## Antes de empezar

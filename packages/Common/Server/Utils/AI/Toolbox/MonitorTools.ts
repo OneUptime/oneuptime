@@ -9,6 +9,7 @@ import Permission from "../../../../Types/Permission";
 import Query from "../../../../Types/BaseDatabase/Query";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
+import { Gray500 } from "../../../../Types/BrandColors";
 import MonitorService from "../../../Services/MonitorService";
 import MonitorOwnerTeamService from "../../../Services/MonitorOwnerTeamService";
 import MonitorOwnerUserService from "../../../Services/MonitorOwnerUserService";
@@ -17,6 +18,7 @@ import MonitorStatusTimelineService from "../../../Services/MonitorStatusTimelin
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import WidgetBuilder from "./WidgetBuilder";
+import { getMonitorCardWords } from "./ReadCardWords";
 import {
   ObservabilityTool,
   ToolArgs,
@@ -25,6 +27,9 @@ import {
 } from "./ToolTypes";
 import { translationKey } from "../../../../Types/Translator";
 import NotOperationalMonitorQuery from "../../../../Utils/Monitor/NotOperationalMonitorQuery";
+import MonitoringOff, {
+  MONITORING_OFF_SELECT,
+} from "../../../../Utils/Monitor/MonitoringOff";
 
 /*
  * Derived from the model ACL so the tool gate can never drift from RBAC.
@@ -43,6 +48,40 @@ let cachedReadPermissions: Array<Permission> | null = null;
  */
 export const ARCHIVED_MONITOR_NOTE: string =
   "This monitor is archived: it is not being monitored, so its status is the one it had when it was archived. Unarchive it to monitor it again.";
+
+/*
+ * A monitor whose monitoring is turned off is not checked either
+ * (Utils/Monitor/MonitoringOff): the status it holds is only what its last
+ * check saw. The list keeps it - it is still one of the project's monitors -
+ * but after every monitor that is checked, its row saying monitoringOff=true,
+ * and no status filter matches it; read by id, this is said alongside. So
+ * the model never reports a monitor nobody checks as down, or as up.
+ */
+export const MONITORING_OFF_MONITOR_NOTE: string =
+  "This monitor's monitoring is turned off: nothing checks it, so its status is only what its last check saw before monitoring was turned off, not a live one. Turn its monitoring on to check it again.";
+
+export const MONITORING_OFF_LIST_NOTE: string =
+  "Rows with monitoringOff=true are monitors whose monitoring is turned off: nothing checks them, so their currentStatus is only what their last check saw before monitoring was turned off. Do not report them as down or as up now; say their monitoring is off. They are listed after the monitors that are checked.";
+
+/*
+ * What the chat says for such a monitor - its table's Status, its card's
+ * line under the name (AI_READ_CARD_LINES.disabled, in the reader's
+ * language): the Monitors table's word. The card names the status the
+ * monitor was frozen at as its last one (AI_READ_CARD_FACTS.lastStatus).
+ */
+export const MONITORING_OFF_STATUS_TEXT: string = "Disabled";
+export const MONITORING_OFF_LAST_STATUS_LABEL: string = "Last status";
+
+/*
+ * What the chat's table of monitors says of its order, on one line under its
+ * title (which says they are monitors), cut where it is too long: about 40
+ * characters fit beside Open on a 360px phone.
+ */
+export const MONITOR_TABLE_ORDER_TEXT: string =
+  "Non-operational monitors first";
+export const MONITOR_TABLE_ORDER_WITH_MONITORING_OFF_TEXT: string =
+  "Non-operational first, Disabled last";
+
 const resolveReadPermissions: () => Array<Permission> =
   (): Array<Permission> => {
     if (!cachedReadPermissions) {
@@ -54,7 +93,7 @@ const resolveReadPermissions: () => Array<Permission> =
 export const QueryMonitorsTool: ObservabilityTool = {
   name: "query_monitors",
   description:
-    "List monitors in this project with their current status (name and color). Archived monitors are left out of the list - they are not monitored; pass monitorId to read one. To answer 'which monitors are down / not operational right now?' pass problemsOnly=true — it returns only monitors whose current status is not an operational state, leaving out monitors whose monitoring is turned off (nothing checks them, so their status is stale). To list monitors in one specific status (e.g. 'Degraded' or 'Offline'), pass monitorStatusName (case-insensitive). Returned monitors are ordered problems-first (worst status first, then name); the result reports the total match count — pass skip to page through more. Pass monitorId to get one monitor's details, its owners (teams and users) and its recent status timeline (when it went up or down).",
+    "List monitors in this project with their current status (name and color). Archived monitors are left out of the list - they are not monitored; pass monitorId to read one. A monitor whose monitoring is turned off is listed with monitoringOff=true: nothing checks it, so its status is stale (only what its last check saw before monitoring was turned off) - never report it as down or as up now. To answer 'which monitors are down / not operational right now?' pass problemsOnly=true — it returns only monitors whose current status is not an operational state, leaving out monitors whose monitoring is turned off. To list monitors in one specific status (e.g. 'Degraded' or 'Offline'), pass monitorStatusName (case-insensitive); it matches only monitors whose monitoring is on, too. Returned monitors are ordered problems-first (worst status first, then name), with monitors whose monitoring is turned off last; the result reports the total match count — pass skip to page through more. Pass monitorId to get one monitor's details, whether its monitoring is off, its owners (teams and users) and its recent status timeline (when it went up or down).",
   inputSchema: {
     type: "object",
     properties: {
@@ -70,7 +109,7 @@ export const QueryMonitorsTool: ObservabilityTool = {
       monitorStatusName: {
         type: "string",
         description:
-          "Only monitors currently in this status, matched by MonitorStatus name (case-insensitive, e.g. 'Operational', 'Degraded', 'Offline'). If nothing matches, the result lists the status names that exist in this project.",
+          "Only monitors currently in this status, matched by MonitorStatus name (case-insensitive, e.g. 'Operational', 'Degraded', 'Offline'), among those whose monitoring is on. If nothing matches, the result lists the status names that exist in this project.",
       },
       problemsOnly: {
         type: "boolean",
@@ -108,6 +147,7 @@ export const QueryMonitorsTool: ObservabilityTool = {
           name: true,
           monitorType: true,
           isArchived: true,
+          ...MONITORING_OFF_SELECT,
           currentMonitorStatus: {
             name: true,
             color: true,
@@ -204,6 +244,7 @@ export const QueryMonitorsTool: ObservabilityTool = {
       }
 
       const rows: Array<JSONObject> = [];
+      const isMonitoringOff: boolean = MonitoringOff.isOff(monitor);
 
       if (monitor) {
         rows.push({
@@ -216,6 +257,7 @@ export const QueryMonitorsTool: ObservabilityTool = {
           ownerTeams: ownerTeamNames || undefined,
           ownerUsers: ownerUserNames || undefined,
           archived: monitor.isArchived === true ? true : undefined,
+          monitoringOff: isMonitoringOff ? true : undefined,
         });
       }
 
@@ -230,31 +272,17 @@ export const QueryMonitorsTool: ObservabilityTool = {
       const serialized: SerializedResult =
         ToolResultSerializer.serializeRows(rows);
 
-      const cardFields: Array<{ label: string; value: string }> = [];
-      if (monitor?.monitorType) {
-        cardFields.push({ label: "Type", value: String(monitor.monitorType) });
-      }
-      if (monitor?.currentMonitorStatus?.name) {
-        cardFields.push({
-          label: "Status",
-          value: monitor.currentMonitorStatus.name,
-        });
-      }
+      // What the status it shows is worth, said before it.
+      const notes: Array<string> = [];
       if (monitor?.isArchived === true) {
-        cardFields.push({ label: "Archived", value: "Yes - not monitored" });
+        notes.push(ARCHIVED_MONITOR_NOTE);
       }
-      if (ownerTeamNames) {
-        cardFields.push({ label: "Owner teams", value: ownerTeamNames });
-      }
-      if (ownerUserNames) {
-        cardFields.push({ label: "Owner users", value: ownerUserNames });
+      if (isMonitoringOff) {
+        notes.push(MONITORING_OFF_MONITOR_NOTE);
       }
 
       return {
-        dataForLlm:
-          monitor?.isArchived === true
-            ? `${ARCHIVED_MONITOR_NOTE}\n${serialized.text}`
-            : serialized.text,
+        dataForLlm: [...notes, serialized.text].join("\n"),
         rowCount: serialized.rowCount,
         citationLabel: `Monitor ${monitor?.name || monitorId.toString()} + status timeline`,
         citationTarget: {
@@ -266,10 +294,33 @@ export const QueryMonitorsTool: ObservabilityTool = {
         widget: monitor
           ? WidgetBuilder.resourceCard({
               title: `Monitor ${monitor.name || ""}`.trim(),
-              resourceType: "Monitor",
               heading: monitor.name || "Monitor",
-              subheading: monitor.currentMonitorStatus?.name,
-              fields: cardFields,
+              /*
+               * In the reader's language (issue #7175): its type by the
+               * type picker's name for it, and under its name what the
+               * Monitors table says of it - Disabled when its monitoring
+               * is off, not the status it was frozen at, which the card
+               * names as its last one.
+               */
+              words: getMonitorCardWords({
+                monitorType: monitor.monitorType
+                  ? String(monitor.monitorType)
+                  : undefined,
+                statusName: monitor.currentMonitorStatus?.name || undefined,
+                isMonitoringOff,
+                isArchived: monitor.isArchived === true,
+                ownerTeamNames: ownerTeamNames || undefined,
+                ownerUserNames: ownerUserNames || undefined,
+              }),
+              /*
+               * And in its colour, as that table draws it (issue #6968):
+               * gray when the status is not live - monitoring off, or
+               * archived - never the green of the status it was frozen at.
+               */
+              statusColor:
+                isMonitoringOff || monitor.isArchived === true
+                  ? Gray500.toString()
+                  : monitor.currentMonitorStatus?.color?.toString(),
               link: {
                 type: AIChatCitationTargetType.MonitorView,
                 params: { monitorId: monitorId.toString() },
@@ -324,6 +375,10 @@ export const QueryMonitorsTool: ObservabilityTool = {
        * MonitorStatus rows first, then the monitors are filtered by the
        * matched status ids — a name typo therefore fails loudly with the list
        * of real status names instead of silently returning zero monitors.
+       *
+       * Only among the monitors that are checked, as for problemsOnly: one
+       * whose monitoring is off holds the status its last check saw, so
+       * "which monitors are Offline?" must not name it (MonitoringOff).
        */
       const statuses: Array<MonitorStatus> = await MonitorStatusService.findBy({
         query: {},
@@ -383,6 +438,7 @@ export const QueryMonitorsTool: ObservabilityTool = {
         }
       }
 
+      Object.assign(query, MonitoringOff.getMonitoredQuery());
       query.currentMonitorStatusId = QueryHelper.any(matchedIds);
     }
 
@@ -392,6 +448,7 @@ export const QueryMonitorsTool: ObservabilityTool = {
         _id: true,
         name: true,
         monitorType: true,
+        ...MONITORING_OFF_SELECT,
         currentMonitorStatus: {
           name: true,
           color: true,
@@ -399,7 +456,13 @@ export const QueryMonitorsTool: ObservabilityTool = {
           isOperationalState: true,
         },
       },
+      /*
+       * The monitors that are checked before the ones whose monitoring is
+       * off (false sorts before true; the column is NOT NULL), each by name:
+       * a page never trades a checked monitor for one nobody checks.
+       */
       sort: {
+        disableActiveMonitoring: SortOrder.Ascending,
         name: SortOrder.Ascending,
       },
       limit: limit,
@@ -415,14 +478,24 @@ export const QueryMonitorsTool: ObservabilityTool = {
     ).toNumber();
 
     /*
-     * Page boundaries are defined by the stable name-ascending DB sort; the
-     * fetched page is then reordered problems-first (higher status priority =
-     * worse, shown first) so a mixed page leads with what is broken. To scan
-     * ALL problem monitors across a large project, problemsOnly=true is the
+     * Page boundaries are defined by the stable DB sort above; the fetched
+     * page is then reordered problems-first (higher status priority = worse,
+     * shown first) so a mixed page leads with what is broken. A monitor
+     * whose monitoring is off is no problem whatever status it was frozen
+     * at: it comes after every monitor that is checked, by name. To scan ALL
+     * problem monitors across a large project, problemsOnly=true is the
      * reliable filter — this reorder is presentation only.
      */
     const sortedMonitors: Array<Monitor> = [...monitors].sort(
       (a: Monitor, b: Monitor): number => {
+        const aOff: boolean = MonitoringOff.isOff(a);
+        const bOff: boolean = MonitoringOff.isOff(b);
+        if (aOff !== bOff) {
+          return aOff ? 1 : -1;
+        }
+        if (aOff && bOff) {
+          return (a.name || "").localeCompare(b.name || "");
+        }
         const aProblem: boolean =
           a.currentMonitorStatus?.isOperationalState === false;
         const bProblem: boolean =
@@ -447,16 +520,42 @@ export const QueryMonitorsTool: ObservabilityTool = {
         currentStatus: monitor.currentMonitorStatus?.name,
         statusColor: monitor.currentMonitorStatus?.color?.toString(),
         isOperational: monitor.currentMonitorStatus?.isOperationalState,
+        monitoringOff: MonitoringOff.isOff(monitor) ? true : undefined,
       };
     });
 
     const serialized: SerializedResult =
       ToolResultSerializer.serializeRows(rows);
 
-    let dataForLlm: string = serialized.text;
+    const hasMonitoringOffRow: boolean = sortedMonitors.some(
+      (monitor: Monitor): boolean => {
+        return MonitoringOff.isOff(monitor);
+      },
+    );
+
+    const lines: Array<string> = [];
     if (rows.length > 0 && totalCount > rows.length) {
-      dataForLlm = `Showing rows ${skip + 1}–${skip + rows.length} of ${totalCount} total. Pass skip to page further.\n${serialized.text}`;
+      lines.push(
+        `Showing rows ${skip + 1}–${skip + rows.length} of ${totalCount} total. Pass skip to page further.`,
+      );
     }
+    if (hasMonitoringOffRow) {
+      lines.push(MONITORING_OFF_LIST_NOTE);
+    }
+    lines.push(serialized.text);
+    const dataForLlm: string = lines.join("\n");
+
+    /*
+     * The chat's table says Disabled for a monitor whose monitoring is off,
+     * as the Monitors table does, rather than the status it was frozen at.
+     */
+    const widgetRows: Array<JSONObject> = rows.map(
+      (row: JSONObject): JSONObject => {
+        return row["monitoringOff"] === true
+          ? { ...row, currentStatus: MONITORING_OFF_STATUS_TEXT }
+          : row;
+      },
+    );
 
     let scopeLabel: string;
     if (monitorStatusName) {
@@ -485,9 +584,12 @@ export const QueryMonitorsTool: ObservabilityTool = {
         rows.length > 0
           ? WidgetBuilder.table({
               title: `${scopeLabel} (${rows.length})`,
+              // Disabled ones are said to come last only when one is there.
               description: problemsOnly
                 ? "Only monitors whose current status is not operational"
-                : "Non-operational monitors first",
+                : hasMonitoringOffRow
+                  ? MONITOR_TABLE_ORDER_WITH_MONITORING_OFF_TEXT
+                  : MONITOR_TABLE_ORDER_TEXT,
               columns: [
                 { key: "name", title: translationKey("Monitor"), type: "text" },
                 { key: "type", title: translationKey("Type"), type: "text" },
@@ -497,7 +599,7 @@ export const QueryMonitorsTool: ObservabilityTool = {
                   type: "text",
                 },
               ],
-              rows: rows,
+              rows: widgetRows,
               link: { type: AIChatCitationTargetType.Monitors },
             })
           : undefined,

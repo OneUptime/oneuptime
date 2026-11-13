@@ -12,9 +12,14 @@ import {
 import { isOnCallPageAgainRun } from "Common/Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
 import { isOnCallPersonPage } from "Common/Types/OnCallDutyPolicy/OnCallPersonPage";
 import { isOnCallObserverPage } from "Common/Types/OnCallDutyPolicy/OnCallObserverPage";
+import { isOnCallTestPage } from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
+import OnCallTestPageRuns from "Common/Server/Utils/OnCall/OnCallTestPageRuns";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
-import { getOnCallPolicyRunEndedWhileWaitingMessage } from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyRunWait";
+import {
+  getOnCallPolicyRunEndedWhileWaitingMessage,
+  isOnCallPolicyRunWaitOver,
+} from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyRunWait";
 import {
   getOnCallEscalationDueAt,
   getOnCallEscalationWaitInMinutes,
@@ -83,6 +88,8 @@ RunCron(
           isObserverPage: true,
           // A run OneUptime AI holds says how its hold ended.
           aiHoldOutcome: true,
+          // A test page (OnCallTestPage) walks every level, or waits.
+          testPageWalksEscalation: true,
           onCallDutyPolicy: {
             repeatPolicyIfNoOneAcknowledges: true,
             repeatPolicyIfNoOneAcknowledgesNoOfTimes: true,
@@ -150,6 +157,20 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
         props: {
           isRoot: true,
         },
+      });
+
+      return;
+    }
+
+    /*
+     * A test page (OnCallTestPage) has no record to read: it ends once its
+     * answer window is over, and a test that walks a policy's every level
+     * moves on after a test's short wait (OnCallTestPageRuns).
+     */
+    if (isOnCallTestPage(executionLog)) {
+      await OnCallTestPageRuns.tick({
+        run: executionLog,
+        now: OneUptimeDate.getCurrentDate(),
       });
 
       return;
@@ -409,7 +430,9 @@ const getResolvedRecordKind: GetResolvedRecordKindFunction = async (
  * - its record was acknowledged or resolved: nobody needs paging, so it
  *   ends, having paged nobody;
  * - its moment came: it pages its first escalation rule, and from then on
- *   is a run like any other (executeOnCallPolicy).
+ *   is a run like any other (executeOnCallPolicy). Its page is timed from
+ *   that moment, not from the tick that got to it, so a tick that came late
+ *   shows in its time to send (OnCallPageTiming, issue #6708).
  *
  * A run OneUptime AI held (OnCallPolicyAiHold) says how its hold ended, in
  * the same claim: how its record came to be handled (classifyEndedHold), or
@@ -467,13 +490,16 @@ const startOrEndWaitingRun: StartOrEndWaitingRunFunction = async (
 
     const now: Date = OneUptimeDate.getCurrentDate();
 
-    // Not yet: it goes on waiting.
+    /*
+     * Not yet: it goes on waiting. Read as its page's start reads it
+     * (getOnCallPolicyRunPagingDueAt, in startWaitingRun): a run started
+     * late is timed from its moment, not from this tick.
+     */
     if (
-      executionLog.pagingStartsAt &&
-      OneUptimeDate.isAfter(
-        OneUptimeDate.fromString(executionLog.pagingStartsAt),
-        now,
-      )
+      !isOnCallPolicyRunWaitOver({
+        pagingStartsAt: executionLog.pagingStartsAt,
+        now: now,
+      })
     ) {
       return;
     }

@@ -11,6 +11,9 @@ import AuditLogRecorder from "./AuditLogRecorder";
  * One recorder per process, created on first use: its project-settings and
  * user caches must be shared by every caller, and ProjectService's
  * invalidation has to reach the same cache the writes read.
+ *
+ * Its one worker job ends the sessions that have run out, so their timeouts
+ * reach the audit log within minutes (Jobs/EndSessionsThatRanOut).
  */
 let recorder: AuditLogRecorder | null = null;
 
@@ -25,6 +28,9 @@ export const getAuditLogRecorder: () => AuditLogRecorderContract | null =
 
 const AuditLogArea: EnterpriseArea = {
   name: "AuditLog",
+  registerWorkerJobs: async (): Promise<void> => {
+    await import("./Jobs/EndSessionsThatRanOut");
+  },
 };
 
 export default AuditLogArea;

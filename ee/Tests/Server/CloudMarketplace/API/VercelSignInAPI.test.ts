@@ -21,6 +21,7 @@ import ObjectID from "Common/Types/ObjectID";
 import AuthenticationEmail from "App/FeatureSet/Identity/Utils/AuthenticationEmail";
 import VercelSignInRouter from "../../../../Server/CloudMarketplace/API/VercelSignIn";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import { SignInMethod } from "Common/Types/UserSession/SessionSignIn";
 
 /*
  * Sign-in from Vercel (/identity/vercel/sso): the code Vercel sends the
@@ -244,7 +245,8 @@ describe("GET /identity/vercel/sso", () => {
     expect(UserSessionService.createSession).toHaveBeenCalledWith(
       expect.objectContaining({
         isGlobalLogin: true,
-        additionalInfo: { signInMethod: "Vercel" },
+        // The audit log names how they signed in (SessionSignIn).
+        signIn: { method: SignInMethod.Vercel },
       }),
     );
     expect(CookieUtil.setUserCookie).toHaveBeenCalled();

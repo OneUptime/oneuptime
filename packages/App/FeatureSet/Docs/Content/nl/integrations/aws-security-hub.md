@@ -72,9 +72,9 @@ Klik op **Deze instellingen testen** onder **Testen voor het opslaan**. De test 
 | **Regio** | De code van de regio, zoals `us-east-1`, `eu-central-1` of `us-gov-west-1`: voor de bevindingen van andere accounts de thuisregio van het beheerdersaccount. |
 | **Toegangssleutel-ID** | De ID van de sleutel: 16 tot 128 letters of cijfers, meestal 20 die beginnen met `AKIA`, of `ASIA` voor tijdelijke referenties. |
 | **Geheime toegangssleutel** | Het geheim van de sleutel. Het wordt versleuteld, nooit door de API teruggegeven en nooit opnieuw getoond. Vervang het met **Inloggegevens bijwerken** bij de verbinding. |
-| **Session token** | Alleen voor tijdelijke referenties, die het nodig hebben: een sleutel `ASIA` wordt zonder geweigerd, en een sleutel `AKIA` wordt met een token geweigerd. |
+| **Sessietoken** | Alleen voor tijdelijke referenties, die het nodig hebben: een sleutel `ASIA` wordt zonder geweigerd, en een sleutel `AKIA` wordt met een token geweigerd. |
 
-Tijdelijke referenties van `aws sts assume-role` of `aws sts get-session-token` verlopen, voor een aangenomen rol na hooguit 12 uur, en het pollen stopt tot je nieuwe plakt met **Inloggegevens bijwerken**. Een langlevende sleutel met dit smalle beleid, geroteerd volgens je eigen schema, blijft zonder toezicht pollen. Om van tijdelijke referenties over te stappen op een langlevende sleutel, vul je de nieuwe sleutel in bij **Inloggegevens bijwerken** en zet je **Remove the stored Session token** aan.
+Tijdelijke referenties van `aws sts assume-role` of `aws sts get-session-token` verlopen, voor een aangenomen rol na hooguit 12 uur, en het pollen stopt tot je nieuwe plakt met **Inloggegevens bijwerken**. Een langlevende sleutel met dit smalle beleid, geroteerd volgens je eigen schema, blijft zonder toezicht pollen. Om van tijdelijke referenties over te stappen op een langlevende sleutel, vul je de nieuwe sleutel in bij **Inloggegevens bijwerken** en zet je **Opgeslagen veld Sessietoken verwijderen** aan.
 
 De stap **Opvragen** heeft ook een optionele **Beschrijving**, het **Opvraaginterval (minuten)**, een geheel getal van `1` tot `1440` dat begint op `5`, en **Ingeschakeld**, dat aan begint.
 
@@ -131,7 +131,7 @@ Wanneer een run helemaal niet voorbij de opgeslagen cursor komt, bijvoorbeeld om
 
 1. **Verkleinen.** De volgende poll leest een venster dat half zo lang is, vanaf hetzelfde beginpunt, en blijft halveren tot een venster volledig wordt gelezen, tot één minuut. De waarschuwing van de run zegt het: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Weer groeien.** Nadat een venster volledig is gelezen, is het volgende weer twee keer zo lang, tot 24 uur.
-3. **Voorbij één minuut gaan.** Als zelfs één minuut meer bevat dan een poll kan lezen, gaat het pollen eraan voorbij, zodat nieuwere bevindingen blijven binnenkomen, en de overlap van latere polls reikt er niet meer in terug. De run blijft **Gedeeltelijk**, en **Laatste fout** luidt `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importeer die minuut met **Import this time range** om terug te halen wat één run kan lezen.
+3. **Voorbij één minuut gaan.** Als zelfs één minuut meer bevat dan een poll kan lezen, gaat het pollen eraan voorbij, zodat nieuwere bevindingen blijven binnenkomen, en de overlap van latere polls reikt er niet meer in terug. De run blijft **Gedeeltelijk**, en **Laatste fout** luidt `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importeer die minuut met **Dit tijdsbereik importeren** om terug te halen wat één run kan lezen.
 
 Een run die volledig mislukt, met een fout van AWS, behoudt de cursor en de vensterlengte, en de volgende poll leest hetzelfde venster opnieuw. De enige uitzondering is een verzoek dat een time-out kreeg: de cursor blijft staan, maar het volgende venster is half zo lang, omdat een venster dat te zwaar is om op tijd te beantwoorden bij elke poging een time-out zou krijgen. Het **Opvraaginterval (minuten)** wijzigen verandert hier niets aan: het bepaalt hoe vaak een poll begint, niet waar zijn venster begint.
 
@@ -140,9 +140,9 @@ Een run die volledig mislukt, met een fout van AWS, behoudt de cursor en de vens
 Klik op **Diagnose** bij een verbinding om haar recente runs te zien en er met de hand mee te werken. Iedereen die de verbinding kan wijzigen, kan deze acties starten; iedereen die haar kan zien, kan de historie lezen.
 
 - **Nu uitvoeren** start meteen een poll, met de gewone cursor, ook als de verbinding niet **Ingeschakeld** is.
-- **Preview findings** leest een tijdsbereik van maximaal 7 dagen en importeert niets.
-- **Import this time range** importeert een bereik van maximaal 7 dagen, nadat je bevestigt, zonder de cursor te verplaatsen. Al geïmporteerde bevindingen worden overgeslagen.
-- **Copy diagnostics** bij een run kopieert het rapport ervan voor support. Het bevat nooit referenties.
+- **Voorbeeld van bevindingen** leest een tijdsbereik van maximaal 7 dagen en importeert niets.
+- **Dit tijdsbereik importeren** importeert een bereik van maximaal 7 dagen, nadat je bevestigt, zonder de cursor te verplaatsen. Al geïmporteerde bevindingen worden overgeslagen.
+- **Diagnose kopiëren** bij een run kopieert het rapport ervan voor support. Het bevat nooit referenties.
 
 ## Verbinding testen
 
@@ -155,7 +155,7 @@ Klik op **Diagnose** bij een verbinding om haar recente runs te zien en er met d
 | **Read findings** | Security Hub beantwoordt dat verzoek: de identiteit mag `securityhub:GetFindings` aanroepen, en Security Hub is ingeschakeld in de regio. |
 | **Findings available to import** | Hoeveel bevindingen er in de laatste 24 uur en de laatste 7 dagen zijn gemaakt, elk één pagina van 100, dus `100+` betekent meer. Geen in 7 dagen is een waarschuwing, geen fout. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | De kant van OneUptime zelf: een proces neemt de jobs van de Worker-wachtrij af, de poll-job draait elke minuut en de opslag van beveiligingsgebeurtenissen antwoordt. |
-| **Scheduled polling** | Voor een opgeslagen verbinding: pollen staat aan, geen run zit vast in afwachting van een worker en polls draaien op tijd. |
+| **Geplande opvraging** | Voor een opgeslagen verbinding: pollen staat aan, geen run zit vast in afwachting van een worker en polls draaien op tijd. |
 
 Elk verzoek in een test heeft een deadline van 20 seconden. Een test importeert nooit iets en verplaatst nooit de cursor, en elke mislukte controle zegt wat je moet wijzigen.
 
@@ -169,7 +169,7 @@ AWS weigerde het verzoek. De melding citeert de foutcode van AWS, of de eigen wo
 - `AccessDeniedException`, of `is not authorized to perform`: de sleutel klopt, maar zijn identiteit mag `securityhub:GetFindings` niet aanroepen. Koppel het beleid uit [De verbinding instellen](#de-verbinding-instellen). Een permissions boundary of een service control policy kan het ook weigeren.
 - `InvalidAccessException`, of `is not subscribed to AWS Security Hub`: Security Hub is voor dit account niet ingeschakeld in deze **Regio**, of het account is daar niet de beheerder ervan.
 - `InvalidSignatureException` of `SignatureDoesNotMatch`, of `The request signature we calculated does not match`: de **Geheime toegangssleutel** hoort niet bij de **Toegangssleutel-ID**. Maak een nieuwe toegangssleutel en sla hem op met **Inloggegevens bijwerken**.
-- `UnrecognizedClientException` of `InvalidClientTokenId`, of `The security token included in the request is invalid`: AWS kent de **Toegangssleutel-ID** niet. Hij is verkeerd getypt, verwijderd, gedeactiveerd of uit een andere partitie, of het is een tijdelijke sleutel zonder zijn **Session token**.
+- `UnrecognizedClientException` of `InvalidClientTokenId`, of `The security token included in the request is invalid`: AWS kent de **Toegangssleutel-ID** niet. Hij is verkeerd getypt, verwijderd, gedeactiveerd of uit een andere partitie, of het is een tijdelijke sleutel zonder zijn **Sessietoken**.
 - `ExpiredTokenException`, of `The security token included in the request is expired`: de tijdelijke referenties zijn verlopen. Geef nieuwe uit, of stap over op een langlevende sleutel.
 - `RequestTimeTooSkewed` of `RequestExpired`, of `Signature expired`: de klok van de OneUptime-hosts loopt meer dan 5 minuten af. Herstel NTP op de app- en workerhosts.
 - Helemaal geen code: AWS zei niet of de sleutel of het beleid het weigerde. Controleer eerst de sleutel, dan het beleid.
@@ -193,7 +193,7 @@ Er is voor deze verbinding nog geen poll voltooid. Voer **Verbinding testen** ui
 
 :::details Een run is Partial
 - `Stopped after 20 findings requests`: het venster bevatte meer dan de 2.000 bevindingen die één run leest. Er gaat niets verloren: de volgende poll begint na de laatst gelezen bevinding. Een verbinding die poll na poll **Gedeeltelijk** blijft, haalt een achterstand in, en haar **Laatst opgevraagd** en **Laatst geïmporteerde gebeurtenis** blijven vooruitgaan. Haalt ze die nooit in, dan maakt het account meer dan 2.000 bevindingen per pollinterval: maak het **Opvraaginterval (minuten)** korter.
-- `More records were created in the one minute from ... than one poll can read`: het pollen ging voorbij die minuut. Importeer haar met **Import this time range** in **Diagnose**. Een import leest net zoveel als een poll.
+- `More records were created in the one minute from ... than one poll can read`: het pollen ging voorbij die minuut. Importeer haar met **Dit tijdsbereik importeren** in **Diagnose**. Een import leest net zoveel als een poll.
 :::
 
 :::details De test slaagt, maar er wordt niets geïmporteerd
@@ -201,7 +201,7 @@ Lees **Findings available to import** in het testrapport. `0` in de laatste 7 da
 :::
 
 :::details Een bevinding uit de Security Hub-console is nooit aangekomen
-Vergelijk haar `CreatedAt` met haar `ProcessedAt`, het moment waarop Security Hub haar ontving. Een bevinding die meer dan 30 minuten na haar `CreatedAt` aankwam, kan achter de cursor vallen: importeer haar `CreatedAt` met **Import this time range**.
+Vergelijk haar `CreatedAt` met haar `ProcessedAt`, het moment waarop Security Hub haar ontving. Een bevinding die meer dan 30 minuten na haar `CreatedAt` aankwam, kan achter de cursor vallen: importeer haar `CreatedAt` met **Dit tijdsbereik importeren**.
 :::
 
 ## Wat je krijgt

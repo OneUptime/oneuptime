@@ -160,6 +160,7 @@ import { FormTargetOptionsSource } from "../../../Types/Form/FormTargetCatalog";
 import FormTargetType from "../../../Types/Form/FormTargetType";
 import Field from "../../../UI/Components/Forms/Types/Field";
 import ObjectID from "../../../Types/ObjectID";
+import { subscribeToModelHeaderChanged } from "../../../UI/Components/Page/ModelHeaderEvents";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
@@ -829,15 +830,35 @@ describe("Preview and the name and description", () => {
     // Saved: the header reads the new name, and the draft is still there.
     (stored as StoredForm).name = "Report an Outage";
 
-    await act(async () => {
-      (dialog["onSuccess"] as () => void)();
+    /*
+     * And the page's heading - "Form - Report an Outage", the layout's
+     * ModelPage - is told to read it again, once, for this form (issue
+     * #6766: it kept the old name until a reload).
+     */
+    const headingsTold: Array<string> = [];
+    const stopListening: () => void = subscribeToModelHeaderChanged({
+      modelType: Form,
+      modelId: new ObjectID(FORM_ID),
+      onChanged: (): void => {
+        headingsTold.push(FORM_ID);
+      },
     });
 
-    await waitFor(() => {
-      expect(screen.getByTestId("form-builder-name")).toHaveTextContent(
-        "Report an Outage",
-      );
-    });
+    try {
+      await act(async () => {
+        (dialog["onSuccess"] as () => void)();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("form-builder-name")).toHaveTextContent(
+          "Report an Outage",
+        );
+      });
+      expect(headingsTold).toEqual([FORM_ID]);
+    } finally {
+      stopListening();
+    }
+
     expect(questionIds()).toHaveLength(defaultFields().length + 1);
     expect(status()).toHaveTextContent(FormsCopy.unsavedChanges);
   });

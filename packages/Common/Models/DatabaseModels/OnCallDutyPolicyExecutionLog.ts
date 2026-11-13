@@ -24,6 +24,7 @@ import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import OnCallDutyPolicyStatus from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import { OnCallPolicyAiHoldOutcome } from "../../Types/OnCallDutyPolicy/OnCallPolicyAiHold";
+import { OnCallTestPageRecordKind } from "../../Types/OnCallDutyPolicy/OnCallTestPage";
 import Permission from "../../Types/Permission";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
@@ -338,6 +339,12 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     ],
     update: [],
   })
+  /*
+   * Indexed: deleting the record it points at finds these rows by it
+   * (the foreign key's ON DELETE), as the purge of resolved incidents
+   * and alerts does in batches (#6903), without reading the whole table.
+   */
+  @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
     title: "Triggered By Incident ID",
@@ -417,6 +424,12 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     ],
     update: [],
   })
+  /*
+   * Indexed: deleting the record it points at finds these rows by it
+   * (the foreign key's ON DELETE), as the purge of resolved incidents
+   * and alerts does in batches (#6903), without reading the whole table.
+   */
+  @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
     title: "Triggered By Alert ID",
@@ -1722,4 +1735,116 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     default: false,
   })
   public isObserverPage?: boolean = undefined;
+
+  /*
+   * A TEST PAGE (Types/OnCallDutyPolicy/OnCallTestPage): a run whose event
+   * type is Test Page has no incident or alert behind it, and stands in for
+   * one - these say which. The kind of record (Incident or Alert) and one of
+   * its severities choose each person's On-Call Rules, as a real page of
+   * that kind and severity chooses them. Empty for every other run.
+   *
+   * The severity is kept by its id alone, as the test pages it: a severity
+   * deleted afterwards leaves the run's history as it was.
+   *
+   * No caller may write them: OneUptime starts a test page
+   * (OnCallTestPageService), once it has checked who may send it and how
+   * often.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
+      Permission.ReadProjectOnCallDutyPolicyExecutionLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(OnCallTestPageRecordKind),
+    required: false,
+    title: "Test Page Record Kind",
+    description:
+      "For a test page: the kind of record it stands in for - Incident or Alert - whose On-Call Rules it runs. Empty for every other run.",
+    canReadOnRelationQuery: true,
+    example: OnCallTestPageRecordKind.Incident,
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public testPageRecordKind?: OnCallTestPageRecordKind = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
+      Permission.ReadProjectOnCallDutyPolicyExecutionLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    title: "Test Page Severity ID",
+    description:
+      "For a test page: the incident or alert severity whose On-Call Rules it runs. Empty for every other run.",
+    canReadOnRelationQuery: true,
+    example: "1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public testPageSeverityId?: ObjectID = undefined;
+
+  /*
+   * A policy's test that walks every escalation level, each after a short
+   * wait (ON_CALL_TEST_PAGE_ESCALATION_WAIT_IN_MINUTES), rather than paging
+   * its first level only. False for every other run.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
+      Permission.ReadProjectOnCallDutyPolicyExecutionLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    required: false,
+    isDefaultValueColumn: true,
+    defaultValue: false,
+    canReadOnRelationQuery: true,
+    title: "Test Page Walks Escalation",
+    description:
+      "For a test of an on-call policy: whether it walks every escalation level, each after a short wait, rather than paging the first level only.",
+    example: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public testPageWalksEscalation?: boolean = undefined;
 }

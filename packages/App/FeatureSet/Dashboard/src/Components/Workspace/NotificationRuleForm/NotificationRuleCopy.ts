@@ -5,6 +5,10 @@ import NotificationRuleInvites, {
 import IncidentNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/IncidentNotificationRule";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import {
+  MattermostConnectionTeam,
+  SlackOrganizationWorkspace,
+} from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
+import {
   composedValue,
   Translator,
   translationKey,
@@ -671,6 +675,289 @@ export const POSTS_IN_SLACK_WORKSPACE_SENTENCE: string = translationKey(
   "Those channels are in the {{workspace}} workspace.",
 );
 
+/*
+ * Mattermost, whose bot is a member of two or more teams of the server:
+ * which team a rule's channels are in. Left empty, OneUptime uses the
+ * project's default team (MattermostTeams).
+ */
+export const MATTERMOST_TEAM_TITLE: string = translationKey("Mattermost team");
+
+export const MATTERMOST_TEAM_PLACEHOLDER: string =
+  translationKey("Default team");
+
+export const EXISTING_CHANNELS_MATTERMOST_TEAM_DESCRIPTION: string =
+  translationKey(
+    "The team these channels are in. Leave it empty to look in the default team first, then in the others.",
+  );
+
+export const NEW_CHANNEL_MATTERMOST_TEAM_DESCRIPTION: string = translationKey(
+  "The team the channel is created in. Leave it empty to use the default team.",
+);
+
+export const CREATED_IN_MATTERMOST_TEAM_SENTENCE: string = translationKey(
+  "The channel is created in the {{team}} team.",
+);
+
+export const POSTS_IN_MATTERMOST_TEAM_SENTENCE: string = translationKey(
+  "Those channels are in the {{team}} team.",
+);
+
+/*
+ * A rule that picks a Slack workspace OneUptime is no longer added to: on
+ * its card, as its Notification Logs and its test say it
+ * (SlackOrganization.getNotAddedMessage). It posts nowhere else instead.
+ */
+export const SLACK_WORKSPACE_NOT_ADDED_NOTE: string = translationKey(
+  "OneUptime is no longer added to the {{workspace}} workspace of {{organization}}. Add it again in Slack's organization settings, or pick another workspace on the rule.",
+);
+
+// Such a workspace, as the rule form's Slack workspace picker still shows it.
+export const SLACK_WORKSPACE_NOT_ADDED_OPTION: string = translationKey(
+  "{{workspace}} (OneUptime no longer added)",
+);
+
+/*
+ * Slack installed for a whole Enterprise organization (GET
+ * /slack/workspaces): the workspaces OneUptime is added to, those it was
+ * removed from - by the names they had - and the organization's name.
+ */
+export interface SlackRuleWorkspaces {
+  workspaces: Array<SlackOrganizationWorkspace>;
+  removedWorkspaces: Array<SlackOrganizationWorkspace>;
+  organizationName: string;
+}
+
+/*
+ * The Slack workspaces a rule picks that OneUptime is no longer added to -
+ * for the channels it posts in, and for the channel it creates - each once,
+ * by name (the id when its name was never known). None before Slack has
+ * listed the organization's workspaces: what it is added to is not known.
+ */
+export function getRuleWorkspacesNotAdded(data: {
+  rule: IncidentNotificationRule | undefined;
+  workspaceType: WorkspaceType;
+  organization: SlackRuleWorkspaces | undefined;
+}): Array<SlackOrganizationWorkspace> {
+  const organization: SlackRuleWorkspaces | undefined = data.organization;
+
+  if (
+    data.workspaceType !== WorkspaceType.Slack ||
+    !data.rule ||
+    !organization ||
+    (organization.workspaces.length === 0 &&
+      organization.removedWorkspaces.length === 0)
+  ) {
+    return [];
+  }
+
+  const picked: Array<string | undefined> = [
+    data.rule.shouldPostToExistingChannel ? data.rule.existingTeam : undefined,
+    data.rule.shouldCreateNewChannel
+      ? data.rule.teamToCreateChannelIn
+      : undefined,
+  ];
+
+  const notAdded: Array<SlackOrganizationWorkspace> = [];
+
+  for (const id of picked) {
+    if (
+      !id ||
+      organization.workspaces.some(
+        (workspace: SlackOrganizationWorkspace): boolean => {
+          return workspace.id === id;
+        },
+      ) ||
+      notAdded.some((workspace: SlackOrganizationWorkspace): boolean => {
+        return workspace.id === id;
+      })
+    ) {
+      continue;
+    }
+
+    notAdded.push(
+      organization.removedWorkspaces.find(
+        (workspace: SlackOrganizationWorkspace): boolean => {
+          return workspace.id === id;
+        },
+      ) || { id: id, name: id },
+    );
+  }
+
+  return notAdded;
+}
+
+/*
+ * A rule that names a Mattermost team the project's bot is no longer a
+ * member of: on its card. Its channel is not created there, nor are its
+ * channels found - as its Notification Logs and Test Rule say
+ * (MattermostUtil) - and it posts in no other team instead.
+ */
+export const MATTERMOST_TEAM_NOT_JOINED_NOTE: string = translationKey(
+  "OneUptime's bot is no longer a member of the {{team}} team. Add the bot back to the team in Mattermost, or pick another team on the rule.",
+);
+
+// Such a team, as the rule form's Mattermost team picker still shows it.
+export const MATTERMOST_TEAM_NOT_JOINED_OPTION: string = translationKey(
+  "{{team}} (bot no longer a member)",
+);
+
+/*
+ * A project's Mattermost connection (GET /mattermost/connected-teams): the
+ * teams its bot is a member of, the default first - listed even when the
+ * bot was taken out of it (isBotInDefaultTeam) - the teams it was taken out
+ * of, by the names they had, and whether the server has listed the bot's
+ * teams at all (MattermostTeams).
+ */
+export interface MattermostRuleTeams {
+  teams: Array<MattermostConnectionTeam>;
+  removedTeams: Array<MattermostConnectionTeam>;
+  defaultTeamId: string;
+  isBotInDefaultTeam: boolean;
+  areTeamsListed: boolean;
+}
+
+// An id Mattermost made: what OneUptime places in a call (MattermostConnection).
+const MATTERMOST_ID_PATTERN: RegExp = /^[a-z0-9]{26}$/;
+
+/*
+ * Whether the project's bot is no longer a member of a team, as the server
+ * listed its teams last: a team it does not list, or the default team it
+ * was taken out of. Not known before the server has listed them; what is
+ * not a Mattermost id names no team - the default is used.
+ */
+export function isMattermostTeamNotJoined(data: {
+  connection: MattermostRuleTeams | undefined;
+  teamId: string | undefined;
+}): boolean {
+  const connection: MattermostRuleTeams | undefined = data.connection;
+  const teamId: string = data.teamId || "";
+
+  if (
+    !connection ||
+    !connection.areTeamsListed ||
+    !MATTERMOST_ID_PATTERN.test(teamId)
+  ) {
+    return false;
+  }
+
+  if (teamId === connection.defaultTeamId) {
+    return !connection.isBotInDefaultTeam;
+  }
+
+  return !connection.teams.some((team: MattermostConnectionTeam): boolean => {
+    return team.id === teamId;
+  });
+}
+
+/*
+ * The Mattermost teams of `teamIds` the project's bot is no longer a member
+ * of - the picks of a rule, or of a summary - each once, by name (the id
+ * when its name was never known).
+ */
+export function getMattermostTeamsNotJoined(data: {
+  connection: MattermostRuleTeams | undefined;
+  teamIds: Array<string | undefined>;
+}): Array<MattermostConnectionTeam> {
+  const connection: MattermostRuleTeams | undefined = data.connection;
+
+  if (!connection) {
+    return [];
+  }
+
+  const notJoined: Array<MattermostConnectionTeam> = [];
+
+  for (const id of data.teamIds) {
+    if (
+      !id ||
+      !isMattermostTeamNotJoined({ connection: connection, teamId: id }) ||
+      notJoined.some((team: MattermostConnectionTeam): boolean => {
+        return team.id === id;
+      })
+    ) {
+      continue;
+    }
+
+    const isTeam: (team: MattermostConnectionTeam) => boolean = (
+      team: MattermostConnectionTeam,
+    ): boolean => {
+      return team.id === id;
+    };
+
+    notJoined.push(
+      connection.teams.find(isTeam) ||
+        connection.removedTeams.find(isTeam) || {
+          id: id,
+          name: id,
+          displayName: id,
+        },
+    );
+  }
+
+  return notJoined;
+}
+
+/*
+ * The Mattermost teams a rule names that the project's bot is no longer a
+ * member of - for the channels it posts in, and for the channel it creates
+ * - each once, by name (the id when its name was never known).
+ */
+export function getRuleTeamsNotJoined(data: {
+  rule: IncidentNotificationRule | undefined;
+  workspaceType: WorkspaceType;
+  connection: MattermostRuleTeams | undefined;
+}): Array<MattermostConnectionTeam> {
+  if (data.workspaceType !== WorkspaceType.Mattermost || !data.rule) {
+    return [];
+  }
+
+  return getMattermostTeamsNotJoined({
+    connection: data.connection,
+    teamIds: [
+      data.rule.shouldPostToExistingChannel
+        ? data.rule.existingTeam
+        : undefined,
+      data.rule.shouldCreateNewChannel
+        ? data.rule.teamToCreateChannelIn
+        : undefined,
+    ],
+  });
+}
+
+/*
+ * A Mattermost team picker's options - a rule's, a summary's: the teams the
+ * project's bot is a member of, then the picks `notJoined` of teams it was
+ * taken out of, each such team said to be so, the default one included.
+ */
+export function getMattermostTeamOptions(data: {
+  connection: MattermostRuleTeams | undefined;
+  teams: Array<MattermostConnectionTeam>;
+  notJoined: Array<MattermostConnectionTeam>;
+  translator: Translator;
+}): Array<{ label: string; value: string }> {
+  return [
+    ...data.teams,
+    ...data.notJoined.filter((team: MattermostConnectionTeam): boolean => {
+      return !data.teams.some((listed: MattermostConnectionTeam): boolean => {
+        return listed.id === team.id;
+      });
+    }),
+  ].map((team: MattermostConnectionTeam): { label: string; value: string } => {
+    const name: string = team.displayName || team.name || team.id;
+
+    return {
+      label: isMattermostTeamNotJoined({
+        connection: data.connection,
+        teamId: team.id,
+      })
+        ? data.translator.translateTemplate(MATTERMOST_TEAM_NOT_JOINED_OPTION, {
+            team: name,
+          })
+        : name,
+      value: team.id,
+    };
+  });
+}
+
 export const POST_TO_CHATS_TITLE: string = translationKey("Post to chats");
 
 export const POST_TO_CHATS_DESCRIPTION: string = translationKey(
@@ -947,6 +1234,13 @@ export interface NotificationRuleSummaryInput {
    */
   channelWorkspaceName?: string | undefined;
   existingChannelsWorkspaceName?: string | undefined;
+  /*
+   * Mattermost, whose bot is in several teams: the team the channel is
+   * created in, and the one the channels it posts in are in, by name -
+   * when the rule names them.
+   */
+  channelMattermostTeamName?: string | undefined;
+  existingChannelsMattermostTeamName?: string | undefined;
   chatNames: Array<string>;
 }
 
@@ -1021,10 +1315,24 @@ export function getNotificationRuleSummary(
         );
       }
     } else {
-      if (input.channelWorkspaceName) {
+      if (
+        input.workspaceType === WorkspaceType.Slack &&
+        input.channelWorkspaceName
+      ) {
         sentences.push(
           translator.translateTemplate(CREATED_IN_SLACK_WORKSPACE_SENTENCE, {
             workspace: input.channelWorkspaceName,
+          }),
+        );
+      }
+
+      if (
+        input.workspaceType === WorkspaceType.Mattermost &&
+        input.channelMattermostTeamName
+      ) {
+        sentences.push(
+          translator.translateTemplate(CREATED_IN_MATTERMOST_TEAM_SENTENCE, {
+            team: input.channelMattermostTeamName,
           }),
         );
       }
@@ -1061,6 +1369,17 @@ export function getNotificationRuleSummary(
         sentences.push(
           translator.translateTemplate(POSTS_IN_SLACK_WORKSPACE_SENTENCE, {
             workspace: input.existingChannelsWorkspaceName,
+          }),
+        );
+      }
+
+      if (
+        input.workspaceType === WorkspaceType.Mattermost &&
+        input.existingChannelsMattermostTeamName
+      ) {
+        sentences.push(
+          translator.translateTemplate(POSTS_IN_MATTERMOST_TEAM_SENTENCE, {
+            team: input.existingChannelsMattermostTeamName,
           }),
         );
       }

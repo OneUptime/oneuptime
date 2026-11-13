@@ -2,6 +2,9 @@
 
 Een bereikbaarheidsbeleid roept mensen op in niveaus. Elke escalatieregel is één niveau: wie wordt opgeroepen en hoe lang er wordt gewacht tot iemand bevestigt voordat het volgende niveau wordt opgeroepen. De regels van een beleid staan op volgorde op de pagina **Escalatieregels** ervan.
 
+> [!TIP]
+> Nieuw hier? Volg eerst de handleiding: [Opgeroepen worden via telefoon, sms of push](/docs/guides/paging).
+
 ```mermaid title="Een bereikbaarheidsbeleid roept niveau na niveau op tot iemand bevestigt"
 flowchart TB
     trigger["Incident of waarschuwing"] --> level1["Level 1 roept op"]
@@ -163,6 +166,8 @@ Een oproep die niet wordt verstuurd, zegt waarom in de **Bereikbaarheidslogboeke
 - het kanaal staat uit in het project, en wie het kan aanzetten.
 
 De eigenaren van het project krijgen daar één keer een e-mail over, totdat het saldo is aangevuld of het kanaal weer aan staat.
+
+Een oproep die de meldingsdienst van OneUptime niet kon bereiken, zegt `Could not reach the Notification service to send this (ECONNREFUSED).`, met de code van de netwerkfout tussen de haakjes. Een oproep waarvan het verzenden nooit klaar was, bijvoorbeeld omdat een server tijdens het verzenden opnieuw opstartte, zegt `Sending did not finish within 15 minutes, so this notification may not have been sent.` Als het verzenden toch nog klaar is, vervangt het resultaat dat bericht.
 
 Op OneUptime Cloud wordt elke SMS, oproep, WhatsApp- en Telegram-bericht betaald uit het saldo van het project op **Projectinstellingen > Meldingen > Meldingsinstellingen**: de exacte kosten gaan van het saldo af wanneer de provider het bericht aanneemt, hoeveel berichten er ook tegelijk uitgaan.
 

@@ -2,6 +2,9 @@
 
 Een resource is één rij op uw statuspagina: een monitor of een monitorgroep, met een naam die uw klanten begrijpen, de huidige status en, als u wilt, de uptime en de geschiedenis. Groepen zijn secties die resources bevatten, zodat een pagina met veertig monitoren leest als "API", "Webapp" en "Datapipeline" in plaats van als één eindeloze lijst. U bouwt beide op één scherm: open een statuspagina en kies **Middelen** in het zijmenu.
 
+> [!TIP]
+> Nieuw hier? Volg eerst de handleiding: [Een statuspagina publiceren](/docs/guides/status-page).
+
 :::cards
 - [Een monitor toevoegen](#een-monitor-toevoegen): Zet een monitor op de pagina, met de naam die bezoekers lezen.
 - [Groepen](#groepen): Verdeel de pagina in secties en nest ze.
@@ -30,6 +33,7 @@ flowchart TB
 Een resource bepaalt meer dan de kleur van haar rij:
 
 - **Gearchiveerde monitoren worden niet getoond.** Een gearchiveerde monitor wordt niet meer gecontroleerd, dus zijn laatste status is bevroren; de pagina laat zijn rij weg (en laat hem buiten de status van een monitorgroep) in plaats van die bevroren status te tonen alsof hij actueel is. De rij blijft bewaard, dus de monitor uit het archief halen zet hem meteen terug.
+- **Een monitor met bewaking uit toont Niet bewaakt.** Niets controleert hem, dus de status die hij het laatst had, zegt nu niets: zijn rij toont **Niet bewaakt** in grijs en telt niet mee voor de groep erboven of voor de banner met de algemene status. Zijn geschiedenisbalken houden zijn geschiedenis tot het moment waarop zijn bewaking werd uitgezet en laten de tijd daarna weg. Een monitorgroep telt alleen haar monitoren met bewaking aan, en toont **Niet bewaakt** als die voor allemaal uit staat; haar balken en uptime laten van elke monitor de tijd met bewaking uit weg. Wordt niets op de pagina bewaakt, dan zegt de banner dat.
 - **Resources bepalen welke incidenten de pagina toont.** Een incident verschijnt hier, en de abonnees van de pagina horen ervan, wanneer een van de monitoren van het incident een resource op de pagina is, rechtstreeks of via een monitorgroep. Zet dezelfde monitor op meerdere pagina's en zijn incidenten bereiken ze allemaal, tenzij een incident tot enkele van die pagina's is beperkt. Zie [Eén statuspagina per doelgroep](/docs/status-pages/one-status-page-per-audience).
 - **Een rij van een monitorgroep staat voor elke monitor erin, ook voor abonnees.** Op een pagina die abonnees resources laat kiezen, hoort iemand die zich op een monitorgroep abonneert over incidenten, gepland onderhoud en aankondigingen van elke monitor in de groep, alsof die persoon die monitor had gekozen. Zie [Abonnees en aankondigingen](/docs/status-pages/subscribers#abonnees-zelf-resources-en-gebeurtenistypen-laten-kiezen).
 
@@ -118,6 +122,8 @@ Groepen hebben hun eigen exemplaren van deze schakelaars (zie hieronder), dus ee
 De kleuren van de balken in de geschiedenisgrafiek stelt u in onder **Meer instellingen** op de pagina **Huisstijl**, en welke monitorstatussen als "down" tellen bij **Telt als downtime**, op de kaart **Wat uw statuspagina toont** van **Geavanceerde instellingen**; beide worden behandeld in [Statuspagina – branding en domeinen](/docs/status-pages/branding-and-domains).
 
 Elke balk is één dag. Wijs een balk aan of klik erop (tik erop op een telefoon, of druk op Enter met het toetsenbord) om de dag te lezen: de beschikbaarheid, hoe lang elke status duurde, de incidenten die die dag zijn gemeld en het geplande onderhoud dat erop liep, elk met een link naar de eigen pagina. Een dag met gepland onderhoud heeft boven aan de balk een blauwe band, en zolang een gebeurtenis loopt, staat bij elke resource van haar monitors "In onderhoud" naast de naam. Onderhoud verandert niets aan de kleur van een balk of aan de beschikbaarheid, die uit de statussen van de monitor komen: om gepland werk buiten de beschikbaarheid te houden, kiest u voor de gebeurtenis bij **Monitorstatus wijzigen naar** een status die niet bij de statussen van **Telt als downtime** van de pagina hoort. Zie [Wat een gebeurtenis beïnvloedt](/docs/scheduled-maintenance/index#wat-een-gebeurtenis-beïnvloedt).
+
+Elke balk is een dag in de eigen tijdzone van de lezer, dezelfde waarin de pagina alle andere tijden toont, zodat de laatste balk zijn vandaag is. De balk van een monitorgroep laat zien hoe lang de groep zelf die dag in elke status was: op elk moment heeft de groep de slechtste status van haar monitoren, zodat de statussen van een dag optellen tot de tijd waarin minstens één van haar monitoren werd gecontroleerd, en nooit tot meer dan de dag.
 
 ## Groepen
 

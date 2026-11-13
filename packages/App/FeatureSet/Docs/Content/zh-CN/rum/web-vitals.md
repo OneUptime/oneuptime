@@ -306,7 +306,7 @@ histogram.record(metric.value, {
 
 ## 故障排除
 
-:::details 卡片显示“No web vitals reported yet”
+:::details 卡片显示“尚未上报 Web Vitals”
 卡片只由你的应用发送的指标填充。请按顺序检查：
 
 1. 你到底有没有指标管道：仅有追踪永远填不满这张卡片。

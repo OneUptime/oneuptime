@@ -9,8 +9,16 @@ import React, {
   useState,
 } from "react";
 import Icon from "Common/UI/Components/Icon/Icon";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import IconProp from "Common/Types/Icon/IconProp";
 import useComponentOutsideClick from "Common/UI/Types/UseComponentOutsideClick";
+import {
+  DropdownPlacement,
+  getDropdownAlignmentClassName,
+  getDropdownShiftStyle,
+  useDropdownPlacement,
+} from "Common/UI/Utils/DropdownAlignment";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   composedValue,
@@ -36,6 +44,7 @@ import {
   ReplayTabSummary,
   computeReplayTabSpan,
   describeReplayTabCounts,
+  describeReplayTabGroupHeading,
   describeReplayTabName,
   describeReplayTabOpened,
   describeReplayTabPage,
@@ -102,19 +111,34 @@ const STATUS_DOT_CLASS: Record<ReplayTabStatus, string> = {
 };
 
 /*
- * The word a tooltip uses for a status. "unknown" and "empty" have none
- * on purpose: the server did not say, and a tooltip that guessed would be
- * the one claim an evidence tool must not make. English keys, looked up
- * where the tooltip is written.
+ * A tab's name with what the server says of it, for the tooltip: "Tab 2
+ * (still open)", "Tab 2 (closed)". Each is a sentence with the tab in it,
+ * so a language words the state for a tab, in a tab's gender, and never
+ * with the bare "Open" that every Open button reads (a verb: German
+ * "Öffnen"). "unknown" and "empty" have none on purpose: the server did
+ * not say, and a tooltip that guessed would be the one claim an evidence
+ * tool must not make. English keys, looked up where the tooltip is written.
  */
-const STATUS_TITLE_WORD: Record<ReplayTabStatus, string | null> = {
-  open: translationKey("Open"),
-  closed: translationKey("Closed"),
+const NAME_WITH_STATUS: Record<ReplayTabStatus, string | null> = {
+  open: translationKey("{{tab}} (still open)"),
+  closed: translationKey("{{tab}} (closed)"),
   unknown: null,
   empty: null,
 };
 
 const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+
+/*
+ * The picker is 28rem wide, room for a tab's name, page, opening and
+ * length on one row, and never wider than the screen between the 8px
+ * gutters every dropdown keeps (DEFAULT_DROPDOWN_VIEWPORT_MARGIN_IN_PX):
+ * 374px on a 390px phone, which useDropdownPlacement slides onto the
+ * screen wherever its button sits.
+ */
+export const REPLAY_TAB_PICKER_WIDTH_IN_PX: number = 448;
+
+export const REPLAY_TAB_PICKER_WIDTH_CLASS_NAME: string =
+  "w-[28rem] max-w-[calc(100vw-1rem)]";
 
 /*
  * The page a tab is showing: its LAST url, falling back to its first.
@@ -145,8 +169,8 @@ export function describeReplayTabDuration(
 }
 
 /*
- * "Tab 2 · Open · /checkout · opened 2:14 · 30s — switch to this tab; the
- * playhead stays where it is". The pill itself only has room for a couple
+ * "Tab 2 (still open) · /checkout · opened 2:14 · 30s — switch to this tab;
+ * the playhead stays where it is". The pill itself only has room for a couple
  * of those parts at a narrow width, so the tooltip carries all of them.
  * One sentence in the translator's language, its facts worded in the
  * sentence's language too.
@@ -165,13 +189,13 @@ export function buildReplayTabPillTitle(
   const facts: (sentence: Translator) => string = (
     sentence: Translator,
   ): string => {
-    const parts: Array<string> = [describeReplayTabName(tab, sentence)];
-    const statusWord: string | null =
-      STATUS_TITLE_WORD[getReplayTabStatus(tab)];
-
-    if (statusWord !== null) {
-      parts.push(sentence.translateText(statusWord) || statusWord);
-    }
+    const nameWithStatus: string | null =
+      NAME_WITH_STATUS[getReplayTabStatus(tab)];
+    const parts: Array<string> = [
+      nameWithStatus === null
+        ? describeReplayTabName(tab, sentence)
+        : sentence.translateTemplate(nameWithStatus, tabNameValue(tab)),
+    ];
 
     const page: string = describeReplayTabPage(readReplayTabUrl(tab));
 
@@ -231,6 +255,20 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
 
   const pickerButtonRef: React.RefObject<HTMLButtonElement> =
     useRef<HTMLButtonElement>(null);
+  const pickerPanelRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
+  /*
+   * The picker hangs from the edge of its button with room for it, and
+   * slides along the line when neither edge has (a button in the middle of
+   * a phone): on a page that reads right to left as well, where its start is
+   * the button's right edge (#7098).
+   */
+  const pickerPlacement: DropdownPlacement = useDropdownPlacement({
+    isOpen: isPickerOpen,
+    anchorRef: pickerButtonRef,
+    dropdownRef: pickerPanelRef,
+    dropdownWidthInPx: REPLAY_TAB_PICKER_WIDTH_IN_PX,
+  });
   const searchRef: React.RefObject<HTMLInputElement> =
     useRef<HTMLInputElement>(null);
   const optionRefs: React.MutableRefObject<Array<HTMLButtonElement | null>> =
@@ -604,9 +642,12 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
     const status: ReplayTabStatus = getReplayTabStatus(tab);
 
     /*
-     * One word where the open run ends. Without it the strip reads as one
+     * A word where the open run ends. Without it the strip reads as one
      * undifferentiated row and the dots alone have to carry "these three
-     * are still going, those two are done".
+     * are still going, those two are done". "Closed tabs", never the bare
+     * "Closed" that cases and pull requests use: a language words it for
+     * tabs, in their gender, as the summary beside it does (Spanish
+     * "Pestañas cerradas" next to "5 cerradas", not "Cerrado").
      */
     if (status === "closed" && hasDrawnOpenPill && !hasDrawnClosedDivider) {
       hasDrawnClosedDivider = true;
@@ -617,7 +658,7 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
           data-testid="replay-tab-strip-divider"
           className="shrink-0 px-1 text-[11px] font-medium uppercase tracking-wide text-gray-400"
         >
-          {translator.translateText("Closed")}
+          {translator.translateText("Closed tabs")}
         </span>,
       );
     }
@@ -668,8 +709,19 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
         <span className="shrink-0">
           {describeReplayTabName(tab, translator)}
         </span>
+        {/*
+         * The page is the end user's address, read left to right on every
+         * page: on an Arabic or Persian one, drawn the page's way, "/cart"
+         * came out as "cart/" (IsolatedText keeps it as written).
+         */}
         {page !== REPLAY_TAB_UNKNOWN_PAGE && (
-          <span className="max-sm:hidden max-w-[12rem] truncate sm:inline">{`${separator}${page}`}</span>
+          <span
+            data-testid="replay-tab-pill-page"
+            className="max-sm:hidden max-w-[12rem] truncate sm:inline"
+          >
+            {separator}
+            <IsolatedText text={page} />
+          </span>
         )}
         <span className="shrink-0 whitespace-nowrap">{`${separator}${describeReplayTabDuration(
           tab,
@@ -738,18 +790,34 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
           <span className="shrink-0 text-xs font-medium text-gray-900">
             {describeReplayTabName(tab, translator)}
           </span>
-          <span
+          {/*
+           * The page in its own direction: "/cart" on an Arabic or Persian
+           * page too, beside the tab's name, cut short at its own end
+           * (IsolatedLine). "Unknown page" is the page's own words.
+           */}
+          <IsolatedLine
+            as="span"
+            dataTestId="replay-tab-option-page"
+            text={
+              page === REPLAY_TAB_UNKNOWN_PAGE
+                ? translator.translateText(REPLAY_TAB_UNKNOWN_PAGE) || page
+                : page
+            }
             className="min-w-0 flex-1 truncate text-xs text-gray-600"
             title={url.length > 0 ? url : undefined}
-          >
-            {page === REPLAY_TAB_UNKNOWN_PAGE
-              ? translator.translateText(REPLAY_TAB_UNKNOWN_PAGE)
-              : page}
-          </span>
+          />
           {opened !== null && (
             <span className="shrink-0 text-[11px] text-gray-500">{opened}</span>
           )}
-          <span className="shrink-0 font-mono text-[11px] tabular-nums text-gray-600">
+          {/*
+           * Words, not a clock ("1m 30s", "۳۰ ثانیه"): in the row's own
+           * font, as the strip draws them. A monospace font laid Persian
+           * and Arabic letters out one per cell, unjoined.
+           */}
+          <span
+            data-testid="replay-tab-option-duration"
+            className="shrink-0 text-[11px] tabular-nums text-gray-600"
+          >
             {describeReplayTabDuration(tab, translator)}
           </span>
           {errorCount > 0 && (
@@ -764,7 +832,7 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
               )}
               className="shrink-0 rounded-full bg-rose-50 px-1.5 text-[11px] font-medium text-rose-700"
             >
-              {errorCount}
+              {translator.formatNumber(errorCount)}
             </span>
           )}
           {frustrationCount > 0 && (
@@ -779,7 +847,7 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
               )}
               className="shrink-0 rounded-full bg-amber-50 px-1.5 text-[11px] font-medium text-amber-800"
             >
-              {frustrationCount}
+              {translator.formatNumber(frustrationCount)}
             </span>
           )}
           {tab.isActive && (
@@ -865,8 +933,13 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
 
               {isPickerOpen && (
                 <div
+                  ref={pickerPanelRef}
                   data-testid="replay-tab-picker"
-                  className="absolute left-0 z-30 mt-1 w-[28rem] max-w-[90vw] rounded-xl border border-gray-200 bg-white p-1 shadow-lg"
+                  data-align={pickerPlacement.alignment}
+                  className={`absolute ${getDropdownAlignmentClassName(
+                    pickerPlacement.alignment,
+                  )} z-30 mt-1 ${REPLAY_TAB_PICKER_WIDTH_CLASS_NAME} rounded-xl border border-gray-200 bg-white p-1 shadow-lg`}
+                  style={getDropdownShiftStyle(pickerPlacement)}
                 >
                   <div className="p-1">
                     <input
@@ -914,13 +987,9 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
                           );
                         }
 
-                        /* "Open · 3": the group's title, then its count. */
-                        const heading: string = formatInline(
-                          [
-                            translator.translateText(group.title) ||
-                              group.title,
-                            translator.formatNumber(group.tabs.length),
-                          ],
+                        /* "3 still open": the group's count of tabs. */
+                        const heading: string = describeReplayTabGroupHeading(
+                          group,
                           translator,
                         );
 

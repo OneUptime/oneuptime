@@ -1,5 +1,6 @@
 import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
 import IconProp from "Common/Types/Icon/IconProp";
+import { Translator, translationKey } from "Common/Types/Translator";
 
 /*
  * The widget picker groups every dashboard widget twice: into a narrow
@@ -20,9 +21,31 @@ export const WIDGET_CATEGORY_GROUP_ORDER: ReadonlyArray<WidgetCategoryGroup> = [
   WidgetCategoryGroup.Infrastructure,
 ];
 
+/*
+ * Each group's heading in the picker's rail, as a key the extractor sees
+ * (it reads no enum's values): looked up where the rail draws it.
+ */
+export const WIDGET_CATEGORY_GROUP_LABELS: Readonly<
+  Record<WidgetCategoryGroup, string>
+> = {
+  [WidgetCategoryGroup.General]: translationKey("General"),
+  [WidgetCategoryGroup.Observability]: translationKey("Observability"),
+  [WidgetCategoryGroup.Infrastructure]: translationKey("Infrastructure"),
+};
+
 export interface WidgetCatalogItem {
   type: DashboardComponentType;
+  // Its name in its category of the picker: "Hosts" under Docker.
   label: string;
+  /*
+   * Its name away from its category - in its settings' badge and on the
+   * board while it is edited (getWidgetTypeName) - where the label alone is
+   * another widget's too or says too little there: Docker's "Hosts" is
+   * "Docker Hosts", External Data Sources' "Chart" is "Data Source Chart",
+   * as the product names them elsewhere (the inventory, the side menus).
+   * Left out where the label says it alone ("Log Stream", "Funnel").
+   */
+  name?: string;
   icon: IconProp;
   description: string;
   /*
@@ -43,7 +66,8 @@ export interface WidgetCatalogCategory {
 
 export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
   {
-    name: "Essentials",
+    // A key the extractor sees: the picker looks each category's name up.
+    name: translationKey("Essentials"),
     group: WidgetCategoryGroup.General,
     icon: IconProp.Sparkles,
     description:
@@ -126,7 +150,7 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
     ],
   },
   {
-    name: "External Data Sources",
+    name: translationKey("External Data Sources"),
     group: WidgetCategoryGroup.General,
     icon: IconProp.Database,
     description:
@@ -135,6 +159,7 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
       {
         type: DashboardComponentType.DataSourceChart,
         label: "Chart",
+        name: translationKey("Data Source Chart"),
         icon: IconProp.ChartBar,
         description:
           "Time-series chart from one or more external queries, overlaid on the same axes.",
@@ -156,6 +181,7 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
       {
         type: DashboardComponentType.DataSourceValue,
         label: "Value",
+        name: translationKey("Data Source Value"),
         icon: IconProp.Hashtag,
         description:
           "Single big-number stat reduced from an external query's result.",
@@ -177,6 +203,7 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
       {
         type: DashboardComponentType.DataSourceGauge,
         label: "Gauge",
+        name: translationKey("Data Source Gauge"),
         icon: IconProp.Gauge,
         description:
           "Radial gauge for a percent or threshold, reduced from an external query.",
@@ -198,6 +225,7 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
       {
         type: DashboardComponentType.DataSourceTable,
         label: "Table",
+        name: translationKey("Data Source Table"),
         icon: IconProp.TableCells,
         description:
           "Rows straight from an external query — columns come from the result, so any read-only query works.",
@@ -468,6 +496,7 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
       {
         type: DashboardComponentType.KubernetesPodList,
         label: "Pods",
+        name: translationKey("Kubernetes Pods"),
         icon: IconProp.Cube,
         description: "Pods with phase, namespace, and cluster.",
         keywords: ["k8s", "kubernetes", "pod", "workload", "container"],
@@ -475,6 +504,7 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
       {
         type: DashboardComponentType.KubernetesNodeList,
         label: "Nodes",
+        name: translationKey("Kubernetes Nodes"),
         icon: IconProp.Server,
         description: "Nodes with readiness and pressure conditions.",
         keywords: ["k8s", "kubernetes", "node", "kubelet", "capacity"],
@@ -482,6 +512,7 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
       {
         type: DashboardComponentType.KubernetesNamespaceList,
         label: "Namespaces",
+        name: translationKey("Kubernetes Namespaces"),
         icon: IconProp.Folder,
         description: "All namespaces across selected clusters.",
         keywords: ["k8s", "kubernetes", "namespace", "tenant"],
@@ -489,6 +520,7 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
       {
         type: DashboardComponentType.KubernetesDeploymentList,
         label: "Deployments",
+        name: translationKey("Kubernetes Deployments"),
         icon: IconProp.ServerStack,
         description: "Deployments in selected clusters or namespaces.",
         keywords: ["k8s", "kubernetes", "deployment", "replicaset", "rollout"],
@@ -496,6 +528,7 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
       {
         type: DashboardComponentType.KubernetesStatefulSetList,
         label: "StatefulSets",
+        name: translationKey("Kubernetes StatefulSets"),
         icon: IconProp.ServerStack,
         description: "StatefulSets in selected clusters or namespaces.",
         keywords: ["k8s", "kubernetes", "statefulset", "stateful", "database"],
@@ -503,6 +536,7 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
       {
         type: DashboardComponentType.KubernetesDaemonSetList,
         label: "DaemonSets",
+        name: translationKey("Kubernetes DaemonSets"),
         icon: IconProp.ServerStack,
         description: "DaemonSets in selected clusters or namespaces.",
         keywords: ["k8s", "kubernetes", "daemonset", "agent", "node"],
@@ -510,6 +544,7 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
       {
         type: DashboardComponentType.KubernetesJobList,
         label: "Jobs",
+        name: translationKey("Kubernetes Jobs"),
         icon: IconProp.Clock,
         description: "Jobs in selected clusters or namespaces.",
         keywords: ["k8s", "kubernetes", "job", "batch", "task"],
@@ -517,6 +552,7 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
       {
         type: DashboardComponentType.KubernetesCronJobList,
         label: "CronJobs",
+        name: translationKey("Kubernetes CronJobs"),
         icon: IconProp.Clock,
         description: "CronJobs in selected clusters or namespaces.",
         keywords: ["k8s", "kubernetes", "cronjob", "schedule", "batch"],
@@ -533,6 +569,7 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
       {
         type: DashboardComponentType.DockerHostList,
         label: "Hosts",
+        name: translationKey("Docker Hosts"),
         icon: IconProp.Server,
         description:
           "Docker hosts with connection status and container counts.",
@@ -541,6 +578,7 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
       {
         type: DashboardComponentType.DockerContainerList,
         label: "Containers",
+        name: translationKey("Docker Containers"),
         icon: IconProp.Cube,
         description: "Containers with state, image, and CPU/memory.",
         keywords: ["docker", "container", "running", "exited", "cpu"],
@@ -548,6 +586,7 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
       {
         type: DashboardComponentType.DockerImageList,
         label: "Images",
+        name: translationKey("Docker Images"),
         icon: IconProp.Cube,
         description: "Images present on selected hosts.",
         keywords: ["docker", "image", "tag", "registry", "layer"],
@@ -555,6 +594,7 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
       {
         type: DashboardComponentType.DockerNetworkList,
         label: "Networks",
+        name: translationKey("Docker Networks"),
         icon: IconProp.Globe,
         description: "Networks defined on selected hosts.",
         keywords: ["docker", "network", "bridge", "overlay"],
@@ -562,6 +602,7 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
       {
         type: DashboardComponentType.DockerVolumeList,
         label: "Volumes",
+        name: translationKey("Docker Volumes"),
         icon: IconProp.Database,
         description: "Volumes defined on selected hosts.",
         keywords: ["docker", "volume", "storage", "mount"],
@@ -578,6 +619,7 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
       {
         type: DashboardComponentType.DockerSwarmNodeList,
         label: "Nodes",
+        name: translationKey("Swarm Nodes"),
         icon: IconProp.ServerStack,
         description:
           "Swarm nodes with manager/worker role, ready state, and CPU/memory.",
@@ -586,6 +628,7 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
       {
         type: DashboardComponentType.DockerSwarmServiceList,
         label: "Services",
+        name: translationKey("Swarm Services"),
         icon: IconProp.Cube,
         description:
           "Replicated and global services with replicas, image, and converge state.",
@@ -603,6 +646,7 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
       {
         type: DashboardComponentType.PodmanHostList,
         label: "Hosts",
+        name: translationKey("Podman Hosts"),
         icon: IconProp.Server,
         description:
           "Podman hosts with connection status and container counts.",
@@ -611,6 +655,7 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
       {
         type: DashboardComponentType.PodmanContainerList,
         label: "Containers",
+        name: translationKey("Podman Containers"),
         icon: IconProp.Cube,
         description: "Containers with state, image, and CPU/memory.",
         keywords: ["podman", "container", "running", "exited", "cpu"],
@@ -618,6 +663,7 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
       {
         type: DashboardComponentType.PodmanImageList,
         label: "Images",
+        name: translationKey("Podman Images"),
         icon: IconProp.Cube,
         description: "Images present on selected hosts.",
         keywords: ["podman", "image", "tag", "registry", "layer"],
@@ -625,6 +671,7 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
       {
         type: DashboardComponentType.PodmanNetworkList,
         label: "Networks",
+        name: translationKey("Podman Networks"),
         icon: IconProp.Globe,
         description: "Networks defined on selected hosts.",
         keywords: ["podman", "network", "bridge", "cni"],
@@ -632,6 +679,7 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
       {
         type: DashboardComponentType.PodmanVolumeList,
         label: "Volumes",
+        name: translationKey("Podman Volumes"),
         icon: IconProp.Database,
         description: "Volumes defined on selected hosts.",
         keywords: ["podman", "volume", "storage", "mount"],
@@ -648,6 +696,7 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
       {
         type: DashboardComponentType.ProxmoxNodeList,
         label: "Nodes",
+        name: translationKey("Proxmox Nodes"),
         icon: IconProp.ServerStack,
         description: "PVE nodes with online status and CPU/memory.",
         keywords: ["proxmox", "pve", "node", "hypervisor", "cluster"],
@@ -655,6 +704,7 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
       {
         type: DashboardComponentType.ProxmoxGuestList,
         label: "Guests",
+        name: translationKey("Proxmox Guests"),
         icon: IconProp.Cube,
         description:
           "QEMU VMs and LXC containers with run state, HA state, and node.",
@@ -672,6 +722,7 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
       {
         type: DashboardComponentType.VMwareHostList,
         label: "Hosts",
+        name: translationKey("ESXi Hosts"),
         icon: IconProp.ServerStack,
         description:
           "ESXi hosts with CPU/memory utilization, cluster, and vCenter.",
@@ -688,6 +739,7 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
       {
         type: DashboardComponentType.VMwareVirtualMachineList,
         label: "Virtual Machines",
+        name: translationKey("VMware Virtual Machines"),
         icon: IconProp.Cube,
         description:
           "Virtual machines and templates with power state, CPU/memory, and ESXi host.",
@@ -713,6 +765,7 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
       {
         type: DashboardComponentType.CephOsdList,
         label: "OSDs",
+        name: translationKey("Ceph OSDs"),
         icon: IconProp.SquareStack,
         description:
           "The OSD wall — a honeycomb of OSDs colored by up/in state.",
@@ -721,6 +774,7 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
       {
         type: DashboardComponentType.CephPoolList,
         label: "Pools",
+        name: translationKey("Ceph Pools"),
         icon: IconProp.Database,
         description:
           "Pools with stored bytes, capacity-used bars, and object counts.",
@@ -738,6 +792,7 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
       {
         type: DashboardComponentType.StorageArrayVolumeList,
         label: "Volumes",
+        name: translationKey("Storage Array Volumes"),
         icon: IconProp.Database,
         description:
           "Volumes with used and provisioned capacity, read/write latency, and IOPS.",
@@ -755,6 +810,7 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
       {
         type: DashboardComponentType.StorageArrayHardwareList,
         label: "Hardware",
+        name: translationKey("Storage Array Hardware"),
         icon: IconProp.CPUChip,
         description:
           "The hardware wall — components, drives, and controllers colored by status.",
@@ -799,6 +855,60 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
     ],
   },
 ];
+
+// Every widget's catalog entry, by its type.
+const CATALOG_ITEM_BY_TYPE: ReadonlyMap<string, WidgetCatalogItem> = new Map<
+  string,
+  WidgetCatalogItem
+>(
+  WIDGET_CATALOG.flatMap(
+    (category: WidgetCatalogCategory): Array<[string, WidgetCatalogItem]> => {
+      return category.items.map(
+        (item: WidgetCatalogItem): [string, WidgetCatalogItem] => {
+          return [item.type, item];
+        },
+      );
+    },
+  ),
+);
+
+/*
+ * What a widget of this type is called on its own (issue #6720), in
+ * English: its catalog name, or its label where that says it alone - never
+ * its stored type, an identifier ("ProductAnalyticsFunnel", "LogStream").
+ * Every type has one, and no two types share one. Null for a type the
+ * catalog does not know: a removed widget, a newer version's, a misspelt
+ * one, or none at all.
+ */
+export function getWidgetTypeName(componentType: unknown): string | null {
+  if (typeof componentType !== "string") {
+    return null;
+  }
+
+  const item: WidgetCatalogItem | undefined =
+    CATALOG_ITEM_BY_TYPE.get(componentType);
+
+  return item ? item.name || item.label : null;
+}
+
+/*
+ * The type a widget's settings badge and its edit-mode badge show, in the
+ * reader's language: its name (getWidgetTypeName), translated - or, for a
+ * type the catalog does not know, the type as stored, which is what its
+ * settings then say OneUptime has no widget of; "" when it names none.
+ */
+export function getWidgetTypeBadgeText(
+  componentType: unknown,
+  translator: Translator,
+): string {
+  const name: string | null = getWidgetTypeName(componentType);
+
+  if (name) {
+    return translator.translateText(name) || name;
+  }
+
+  return typeof componentType === "string" ? componentType.trim() : "";
+}
 
 export interface WidgetCategoryGroupSection {
   group: WidgetCategoryGroup;

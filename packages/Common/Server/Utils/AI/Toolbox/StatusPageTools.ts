@@ -17,9 +17,16 @@ import StatusPageSubscriberService from "../../../Services/StatusPageSubscriberS
 import Query from "../../../Types/Database/Query";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import OneUptimeDate from "../../../../Types/Date";
-import ArchivedMonitorResources from "../../../../Utils/StatusPage/ArchivedMonitorResources";
+import FrozenMonitorResources from "../../../../Utils/StatusPage/FrozenMonitorResources";
+import MonitorGroupService from "../../../Services/MonitorGroupService";
+import MonitorGroupResource from "../../../../Models/DatabaseModels/MonitorGroupResource";
+import Dictionary from "../../../../Types/Dictionary";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import WidgetBuilder from "./WidgetBuilder";
+import {
+  getStatusPageCardWords,
+  StatusPageResourceCardData,
+} from "./ReadCardWords";
 import {
   ObservabilityTool,
   ToolArgs,
@@ -94,12 +101,15 @@ function joinNames(items: Array<{ name?: string }> | undefined): string {
 
 /*
  * The resources a page shows: an archived monitor's are left off the public
- * page (ArchivedMonitorResources). Whether a resource's monitor is archived
- * is read here as OneUptime, for the monitors of the resources the caller
- * read and only those, in their project. A relation read never reads it
- * (Monitor.isArchived is not readable on a relation query): asking for it
- * along with the resources refused every member's read of a page by id -
- * "Column isArchived on Monitor does not support read on relation query."
+ * page (FrozenMonitorResources). Whether a resource's monitor is archived,
+ * and whether its monitoring is off, is read here as OneUptime, for the
+ * monitors of the resources the caller read and only those, in their
+ * project. It was read apart because a relation read could not read it
+ * then: asking for it along with the resources refused every member's read
+ * of a page by id - "Column isArchived on Monitor does not support read on
+ * relation query." Both flags are readable on a relation query now (issue
+ * #6965); the read stays here, as OneUptime, so a member's own column
+ * permissions never decide which resources a page's answer leaves out.
  */
 async function withoutArchivedMonitors(
   ctx: ToolContext,
@@ -121,14 +131,15 @@ async function withoutArchivedMonitors(
     return resources;
   }
 
-  const archivedMonitors: Array<Monitor> = await MonitorService.findBy({
+  const monitors: Array<Monitor> = await MonitorService.findBy({
     query: {
       _id: QueryHelper.any(monitorIds),
       projectId: ctx.projectId,
-      isArchived: true,
     },
     select: {
       _id: true,
+      isArchived: true,
+      disableActiveMonitoring: true,
     },
     limit: LIMIT_MAX,
     skip: 0,
@@ -137,11 +148,11 @@ async function withoutArchivedMonitors(
     },
   });
 
-  const archivedIds: Set<string> = new Set(
-    archivedMonitors.map((monitor: Monitor): string => {
-      return monitor.id?.toString() || "";
-    }),
-  );
+  const monitorsById: Map<string, Monitor> = new Map();
+
+  for (const monitor of monitors) {
+    monitorsById.set(monitor.id?.toString() || "", monitor);
+  }
 
   for (const resource of resources) {
     const monitorId: string | undefined = resource.monitorId?.toString();
@@ -150,12 +161,43 @@ async function withoutArchivedMonitors(
       continue;
     }
 
+    const read: Monitor | undefined = monitorsById.get(monitorId);
     const monitor: Monitor = resource.monitor || new Monitor();
-    monitor.isArchived = archivedIds.has(monitorId);
+    monitor.isArchived = read?.isArchived === true;
+    monitor.disableActiveMonitoring = read?.disableActiveMonitoring === true;
     resource.monitor = monitor;
   }
 
-  return ArchivedMonitorResources.withoutArchivedMonitors(resources);
+  return FrozenMonitorResources.withoutArchivedMonitors(resources);
+}
+
+/*
+ * The ids of the resources the public page draws as Not monitored: a
+ * monitor whose monitoring is off, a monitor group whose monitors all have
+ * it off (FrozenMonitorResources). Pass the resources withoutArchivedMonitors
+ * returned, which carry their monitor's switch; a group's members are read
+ * as OneUptime, as the public page reads them.
+ */
+async function getNotMonitoredResourceIds(
+  resources: Array<StatusPageResource>,
+): Promise<Set<string>> {
+  const monitorGroupResources: Dictionary<Array<MonitorGroupResource>> =
+    await MonitorGroupService.getMonitorGroupResourcesByGroupIds(
+      resources
+        .map((resource: StatusPageResource): ObjectID | undefined => {
+          return resource.monitorGroupId;
+        })
+        .filter((id: ObjectID | undefined): id is ObjectID => {
+          return Boolean(id);
+        }),
+    );
+
+  return new Set<string>(
+    FrozenMonitorResources.getNotMonitoredResourceIds({
+      statusPageResources: resources,
+      monitorGroupResources: monitorGroupResources,
+    }),
+  );
 }
 
 /*
@@ -164,22 +206,54 @@ async function withoutArchivedMonitors(
  * the internal monitor it maps to.
  */
 function describeResource(resource: StatusPageResource): string {
+  const named: StatusPageResourceCardData | null = nameResource(
+    resource,
+    false,
+  );
+
+  if (!named) {
+    return "";
+  }
+
+  if (named.source) {
+    const sourceKind: string = named.source.isMonitorGroup
+      ? "monitor group"
+      : "monitor";
+    return `${named.name} (${sourceKind}: ${named.source.name})`;
+  }
+
+  return named.name;
+}
+
+/*
+ * The same, as the card says it in the reader's language (issue #7175):
+ * the names are data, the words around them the reader's. Null for a
+ * resource with no name to show.
+ */
+function nameResource(
+  resource: StatusPageResource,
+  isNotMonitored: boolean,
+): StatusPageResourceCardData | null {
   const monitorName: string =
     resource.monitor?.name || resource.monitorGroup?.name || "";
   const displayName: string = resource.displayName || monitorName;
 
   if (!displayName) {
-    return "";
+    return null;
   }
 
-  if (monitorName && monitorName !== displayName) {
-    const sourceKind: string = resource.monitor?.name
-      ? "monitor"
-      : "monitor group";
-    return `${displayName} (${sourceKind}: ${monitorName})`;
-  }
-
-  return displayName;
+  return {
+    name: displayName,
+    ...(monitorName && monitorName !== displayName
+      ? {
+          source: {
+            name: monitorName,
+            isMonitorGroup: !resource.monitor?.name,
+          },
+        }
+      : {}),
+    isNotMonitored,
+  };
 }
 
 /*
@@ -200,7 +274,7 @@ function buildPagingPrefix(data: {
 export const QueryStatusPagesTool: ObservabilityTool = {
   name: "query_status_pages",
   description:
-    "List the status pages in this project and what each one shows to the outside world. Use this BEFORE post_incident_status_update so you know which status pages exist, what an incident affects publicly, and how many subscribers a post will reach. List mode returns every page's id, name, description, visibility and public URL; archived status pages are left out, as they are offline. Pass statusPageId (an id from the list) for detail mode: the monitors/resources displayed on that page and the count of active (confirmed, not unsubscribed) email/SMS/webhook subscribers a public post notifies. Use query_status_page_announcements to see what has already been announced.",
+    "List the status pages in this project and what each one shows to the outside world. Use this BEFORE post_incident_status_update so you know which status pages exist, what an incident affects publicly, and how many subscribers a post will reach. List mode returns every page's id, name, description, visibility and public URL; archived status pages are left out, as they are offline. Pass statusPageId (an id from the list) for detail mode: the monitors/resources displayed on that page and the count of active (confirmed, not unsubscribed) email/SMS/webhook subscribers a public post notifies. A resource marked 'not monitored' has its monitoring turned off: the page shows it as Not monitored, with no status, and it counts toward no status on the page. Use query_status_page_announcements to see what has already been announced.",
   inputSchema: {
     type: "object",
     properties: {
@@ -287,6 +361,7 @@ export const QueryStatusPagesTool: ObservabilityTool = {
             _id: true,
             displayName: true,
             monitorId: true,
+            monitorGroupId: true,
             monitor: {
               name: true,
             },
@@ -320,9 +395,25 @@ export const QueryStatusPagesTool: ObservabilityTool = {
       const shownResources: Array<StatusPageResource> =
         await withoutArchivedMonitors(ctx, resources);
 
+      /*
+       * A resource whose monitoring is off stays on the page, drawn as Not
+       * monitored, and counts toward no status: say so, so a reply never
+       * reads its frozen status as live.
+       */
+      const notMonitoredResourceIds: Set<string> =
+        await getNotMonitoredResourceIds(shownResources);
+
       const resourceSummaries: string = shownResources
         .map((resource: StatusPageResource) => {
-          return describeResource(resource);
+          const description: string = describeResource(resource);
+
+          return description &&
+            FrozenMonitorResources.isNotMonitored(
+              resource,
+              notMonitoredResourceIds,
+            )
+            ? `${description} - not monitored`
+            : description;
         })
         .filter((value: string) => {
           return value.length > 0;
@@ -351,28 +442,26 @@ export const QueryStatusPagesTool: ObservabilityTool = {
       const serialized: SerializedResult =
         ToolResultSerializer.serializeRows(rows);
 
-      const cardFields: Array<{ label: string; value: string }> = [
-        { label: "Visibility", value: visibility },
-      ];
-      if (statusPage.isArchived === true) {
-        cardFields.push({
-          label: "Archived",
-          value: "Yes - offline, sends nothing",
-        });
-      }
-      if (publicUrl) {
-        cardFields.push({ label: "Public URL", value: publicUrl });
-      }
-      cardFields.push({
-        label: "Resources shown",
-        value: resourceSummaries
-          ? `${shownResources.length}: ${resourceSummaries}`
-          : "0",
-      });
-      cardFields.push({
-        label: "Active subscribers",
-        value: activeSubscribers.toNumber().toString(),
-      });
+      // The resources the card names, as the reply's summary names them.
+      const cardResources: Array<StatusPageResourceCardData> = shownResources
+        .map(
+          (resource: StatusPageResource): StatusPageResourceCardData | null => {
+            return nameResource(
+              resource,
+              FrozenMonitorResources.isNotMonitored(
+                resource,
+                notMonitoredResourceIds,
+              ),
+            );
+          },
+        )
+        .filter(
+          (
+            resource: StatusPageResourceCardData | null,
+          ): resource is StatusPageResourceCardData => {
+            return resource !== null;
+          },
+        );
 
       return {
         dataForLlm:
@@ -389,10 +478,17 @@ export const QueryStatusPagesTool: ObservabilityTool = {
         isTruncated: serialized.isTruncated,
         widget: WidgetBuilder.resourceCard({
           title: `Status page: ${statusPage.name || statusPageId.toString()}`,
-          resourceType: "Status Page",
           heading: statusPage.name || statusPageId.toString(),
-          subheading: statusPage.description,
-          fields: cardFields,
+          // In the reader's language (issue #7175).
+          words: getStatusPageCardWords({
+            description: statusPage.description || undefined,
+            isPublic: statusPage.isPublicStatusPage !== false,
+            isArchived: statusPage.isArchived === true,
+            publicUrl: publicUrl || undefined,
+            resourceCount: shownResources.length,
+            resources: cardResources,
+            activeSubscribers: activeSubscribers.toNumber(),
+          }),
           link: {
             type: AIChatCitationTargetType.StatusPageView,
             params: { statusPageId: statusPageId.toString() },

@@ -3,6 +3,7 @@ import DashboardClockComponentType, {
   ClockWidgetFace,
 } from "Common/Types/Dashboard/DashboardComponents/DashboardClockComponent";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
+import DashboardWidgetLine from "./DashboardWidgetLine";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import {
   ClockHandAngles,
@@ -268,10 +269,17 @@ const DashboardClockComponentElement: FunctionComponent<ComponentProps> = (
     resolveClockFace(props.component.arguments.clockFace) ===
     ClockWidgetFace.Analog;
 
+  /*
+   * The caption is the place someone named or the zone's city: English on
+   * an Arabic board as often as not, so it is read its way and cut at its
+   * own end - the board's way cut off the start that names the place.
+   */
   const captionRow: ReactElement = (
     <div className="flex items-center justify-center gap-1 max-w-full">
       <DayNightGlyph isDaytime={isDaytime} />
-      <span
+      <DashboardWidgetLine
+        as="span"
+        text={display.label}
         className="text-[11px] font-medium text-gray-400 uppercase tracking-wider truncate"
         title={`${display.label} — ${display.timezone} (${getClockGmtOffsetText(
           {
@@ -279,9 +287,7 @@ const DashboardClockComponentElement: FunctionComponent<ComponentProps> = (
             timezone: display.timezone,
           },
         )})`}
-      >
-        {display.label}
-      </span>
+      />
     </div>
   );
 

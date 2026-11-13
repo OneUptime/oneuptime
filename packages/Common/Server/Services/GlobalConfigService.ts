@@ -18,6 +18,9 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import BadDataException from "../../Types/Exception/BadDataException";
+import AmazonSesAuthenticationType, {
+  isAmazonSesAuthenticationType,
+} from "../../Types/Email/AmazonSesAuthenticationType";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import TelegramVerificationToken from "../Utils/TelegramVerificationToken";
@@ -44,6 +47,13 @@ import TelemetryIngestionBudgetSettings from "../Utils/Telemetry/TelemetryIngest
 import TelemetryIngestionBudgetValidation, {
   isTelemetryIngestionBudgetInstanceSettingTouched,
 } from "../Utils/Telemetry/TelemetryIngestionBudgetValidation";
+import ServerChannelSetup from "../Utils/ServerSending/ServerChannelSetup";
+import ServerSendingStatusUtil, {
+  ServerSendingChannel,
+  ServerSendingHealth,
+} from "../../Types/ServerSending/ServerSendingStatus";
+import { JSONObject } from "../../Types/JSON";
+import PartialEntity from "../../Types/Database/PartialEntity";
 import crypto from "crypto";
 
 /*
@@ -166,6 +176,29 @@ export const ROOT_ONLY_UPDATE_CHECK_COLUMNS: ReadonlyArray<keyof Model> = [
   "securityAdvisoriesEmailed",
   "updateCheckLastAttemptAt",
   "updateCheckLastFailure",
+];
+
+/*
+ * What the server remembers of its own last sends (Types/ServerSending/
+ * ServerSendingStatus): written by the senders and by this service when a
+ * channel's settings are saved, all as OneUptime itself (isRoot). Master
+ * admins bypass the (empty) column ACLs, so without this a PUT through the
+ * CRUD API could say email works on a server that has never sent one - and
+ * take the banner away that says it does not.
+ */
+export const ROOT_ONLY_SENDING_HEALTH_COLUMNS: ReadonlyArray<keyof Model> = [
+  "serverSendingHealth",
+];
+
+/*
+ * What admins chose on the server's setup checklist (Types/ServerSetup/
+ * ServerSetupChecklist), written only through the checklist's own routes,
+ * which record who chose and when. Through the CRUD API a master admin
+ * could write a choice in someone else's name, or a check the catalogue
+ * does not let anyone skip.
+ */
+export const ROOT_ONLY_SERVER_SETUP_COLUMNS: ReadonlyArray<keyof Model> = [
+  "serverSetupChoices",
 ];
 
 const TELEGRAM_WEBHOOK_SECRET_CACHE_NAMESPACE: string =
@@ -341,6 +374,40 @@ export class Service extends DatabaseService<Model> {
       allowZero: false,
     });
     TelemetryIngestionBudgetValidation.applyInstanceSettingRules(data);
+  }
+
+  /*
+   * How the server signs in to Amazon SES (#7000): an access key, the
+   * server's own IAM role, or nothing written (an access key, as before).
+   * Anything else is refused with what it may be. Signing in with the IAM
+   * role stores no key, so the access key it signed in with before is
+   * cleared in the same write: a key nothing uses any more is only one more
+   * to leak.
+   */
+  public static applyAmazonSesAuthenticationRules(
+    data: Record<string, unknown>,
+  ): void {
+    const value: unknown = data["amazonSesAuthenticationType"];
+
+    if (value === undefined || value === null) {
+      return;
+    }
+
+    if (value === "") {
+      data["amazonSesAuthenticationType"] = null;
+      return;
+    }
+
+    if (!isAmazonSesAuthenticationType(value)) {
+      throw new BadDataException(
+        `Amazon SES's Authentication Type must be "${AmazonSesAuthenticationType.AccessKey}" or "${AmazonSesAuthenticationType.ServerIamRole}".`,
+      );
+    }
+
+    if (value === AmazonSesAuthenticationType.ServerIamRole) {
+      data["amazonSesAccessKeyId"] = null;
+      data["amazonSesSecretAccessKey"] = null;
+    }
   }
 
   /*
@@ -716,6 +783,146 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * Refuses any write to ROOT_ONLY_SENDING_HEALTH_COLUMNS that does not come
+   * from OneUptime itself. An explicit null counts as a write.
+   */
+  public assertSendingHealthWrittenByRootOnly(
+    data: unknown,
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    if (props.isRoot) {
+      return;
+    }
+
+    const isWritten: boolean = ROOT_ONLY_SENDING_HEALTH_COLUMNS.some(
+      (column: keyof Model): boolean => {
+        return (
+          (data as Record<string, unknown> | undefined)?.[column as string] !==
+          undefined
+        );
+      },
+    );
+
+    if (!isWritten) {
+      return;
+    }
+
+    throw new NotAuthorizedException(
+      "serverSendingHealth is written by OneUptime as it sends, and cannot be changed.",
+    );
+  }
+
+  /*
+   * Refuses a write of the setup checklist's choices by anyone but
+   * OneUptime itself (ROOT_ONLY_SERVER_SETUP_COLUMNS): they are made through
+   * the checklist's routes, which say who chose.
+   */
+  public assertServerSetupChoicesWrittenByRootOnly(
+    data: unknown,
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    if (props.isRoot) {
+      return;
+    }
+
+    const isWritten: boolean = ROOT_ONLY_SERVER_SETUP_COLUMNS.some(
+      (column: keyof Model): boolean => {
+        return (
+          (data as Record<string, unknown> | undefined)?.[column as string] !==
+          undefined
+        );
+      },
+    );
+
+    if (!isWritten) {
+      return;
+    }
+
+    throw new NotAuthorizedException(
+      "serverSetupChoices is changed on the server's setup checklist, and cannot be written here.",
+    );
+  }
+
+  /*
+   * Writes what admins chose on the setup checklist: one statement, no
+   * hooks, updatedAt kept - a choice on a checklist, not a change of the
+   * server's settings.
+   */
+  public async writeServerSetupChoices(choices: JSONObject): Promise<void> {
+    const data: PartialEntity<Model> = {};
+
+    (data as Record<string, unknown>)["serverSetupChoices"] = choices;
+
+    await this.updateColumnsByIdWithoutHooks({
+      id: ObjectID.getZeroObjectID(),
+      data: data,
+      skipUpdateDateColumn: true,
+    });
+  }
+
+  /*
+   * Starts channels again at untested (ServerSendingStatus): their settings
+   * were saved, and what the server remembers of their sends was learned
+   * with the settings before. Never fails the save it follows.
+   */
+  public async forgetServerSendingHealthOf(
+    channels: Array<ServerSendingChannel>,
+  ): Promise<void> {
+    if (channels.length === 0) {
+      return;
+    }
+
+    const config: Model | null = await this.findOneById({
+      id: ObjectID.getZeroObjectID(),
+      select: {
+        serverSendingHealth: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const health: ServerSendingHealth = ServerSendingStatusUtil.readHealth(
+      config?.serverSendingHealth,
+    );
+
+    let isChanged: boolean = false;
+
+    for (const channel of channels) {
+      if (health[channel]) {
+        delete health[channel];
+        isChanged = true;
+      }
+    }
+
+    if (!isChanged) {
+      return;
+    }
+
+    await this.writeServerSendingHealth(health);
+  }
+
+  /*
+   * Writes what the server remembers of its own last sends: one statement,
+   * no hooks - bookkeeping, not a change of the server's settings, so its
+   * updatedAt stays as it was.
+   */
+  public async writeServerSendingHealth(
+    health: ServerSendingHealth,
+  ): Promise<void> {
+    const data: PartialEntity<Model> = {};
+
+    (data as Record<string, unknown>)["serverSendingHealth"] =
+      health as unknown as JSONObject;
+
+    await this.updateColumnsByIdWithoutHooks({
+      id: ObjectID.getZeroObjectID(),
+      data: data,
+      skipUpdateDateColumn: true,
+    });
+  }
+
+  /*
    * The branding columns, removed from what a caller other than OneUptime
    * itself selects or filters on: read back through the generic API, they
    * would show values the enterprise module has decided not to apply.
@@ -1013,11 +1220,19 @@ export class Service extends DatabaseService<Model> {
       createBy.data,
       createBy.props,
     );
+    this.assertSendingHealthWrittenByRootOnly(createBy.data, createBy.props);
+    this.assertServerSetupChoicesWrittenByRootOnly(
+      createBy.data,
+      createBy.props,
+    );
     this.assertTwilioSmsNumbersAreValid(createBy.data);
     this.assertTwilioUseIsValid(createBy.data);
     this.assertCallAndSmsProviderIsValid(createBy.data);
     Service.assertSessionLengthsAreValid(createBy.data);
     Service.applyTelemetryIngestionBudgetRules(
+      createBy.data as unknown as Record<string, unknown>,
+    );
+    Service.applyAmazonSesAuthenticationRules(
       createBy.data as unknown as Record<string, unknown>,
     );
     await this.prepareCallAndSmsGatewayForCreate(createBy);
@@ -1038,12 +1253,20 @@ export class Service extends DatabaseService<Model> {
       updateBy.data,
       updateBy.props,
     );
+    this.assertSendingHealthWrittenByRootOnly(updateBy.data, updateBy.props);
+    this.assertServerSetupChoicesWrittenByRootOnly(
+      updateBy.data,
+      updateBy.props,
+    );
     this.assertTwilioSmsNumbersAreValid(updateBy.data);
     this.assertTwilioUseIsValid(updateBy.data);
     await this.assertTwilioNumbersKeptForUse(updateBy);
     this.assertCallAndSmsProviderIsValid(updateBy.data);
     Service.assertSessionLengthsAreValid(updateBy.data);
     Service.applyTelemetryIngestionBudgetRules(
+      updateBy.data as unknown as Record<string, unknown>,
+    );
+    Service.applyAmazonSesAuthenticationRules(
       updateBy.data as unknown as Record<string, unknown>,
     );
     await this.prepareCallAndSmsGateway(updateBy);
@@ -1327,6 +1550,25 @@ export class Service extends DatabaseService<Model> {
 
     if (Service.writesSessionLengths(onUpdate.updateBy.data)) {
       await this.applySessionLengthsChange();
+    }
+
+    /*
+     * A channel's settings saved - email, SMS and calls, push: it starts
+     * again at untested, so a banner about the old settings goes, and the
+     * next send says how the new ones do.
+     */
+    const savedChannels: Array<ServerSendingChannel> =
+      ServerChannelSetup.getChannelsWrittenBy(onUpdate.updateBy.data);
+
+    if (savedChannels.length > 0) {
+      try {
+        await this.forgetServerSendingHealthOf(savedChannels);
+      } catch (err) {
+        logger.warn(
+          "Could not start the saved channels again at untested after their settings were saved.",
+        );
+        logger.warn(err);
+      }
     }
 
     return onUpdate;

@@ -9,8 +9,11 @@ import React, {
 import DashboardNetworkMapComponent from "Common/Types/Dashboard/DashboardComponents/DashboardNetworkMapComponent";
 import { DEFAULT_MAX_SITES } from "Common/Utils/Dashboard/Components/DashboardNetworkMapComponent";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
+import DashboardWidgetLine from "./DashboardWidgetLine";
+import { useIsDashboardWidgetPreview } from "./DashboardWidgetPreview";
 import DashboardResourceListBase, {
   ResourceListColumn,
+  ResourceListNameCell,
 } from "./DashboardResourceListBase";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import DashboardResourceList from "../Utils/DashboardResourceList";
@@ -131,6 +134,14 @@ const DashboardNetworkMapComponentElement: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const args: DashboardNetworkMapComponent["arguments"] =
     props.component.arguments;
+
+  /*
+   * In the widget's live preview a site's marker opens nothing (issue
+   * #6859): the preview sits over a board being edited, and the site's
+   * page would take the unsaved widgets with it. The list's names are
+   * their words there too (AppLink).
+   */
+  const isPreview: boolean = useIsDashboardWidgetPreview();
 
   /*
    * COERCED, not type-tested. The settings form renders Max Sites as an
@@ -366,7 +377,10 @@ const DashboardNetworkMapComponentElement: FunctionComponent<ComponentProps> = (
           key={site.id}
           className="hover:bg-gray-50/50 transition-colors duration-100 group"
         >
-          <td className="px-3 py-2 text-xs text-gray-700 truncate">
+          <ResourceListNameCell
+            name={site.name}
+            className="px-3 py-2 text-xs text-gray-700 truncate"
+          >
             {route ? (
               <AppLink
                 to={route}
@@ -377,10 +391,11 @@ const DashboardNetworkMapComponentElement: FunctionComponent<ComponentProps> = (
             ) : (
               <span>{site.name}</span>
             )}
-          </td>
-          <td className="px-3 py-2 text-xs text-gray-500 truncate">
-            {site.siteType || "—"}
-          </td>
+          </ResourceListNameCell>
+          <ResourceListNameCell
+            name={site.siteType || "—"}
+            className="px-3 py-2 text-xs text-gray-500 truncate"
+          />
           <td className="px-3 py-2">
             <span
               className="inline-flex items-center gap-1.5 text-xs font-medium"
@@ -458,9 +473,13 @@ const DashboardNetworkMapComponentElement: FunctionComponent<ComponentProps> = (
       }}
     >
       <div className="flex items-center justify-between mb-2 px-1">
-        <span className="text-xs font-medium text-gray-400 uppercase tracking-wider truncate">
-          {args.title || translator.translateText("Network Map")}
-        </span>
+        <DashboardWidgetLine
+          as="span"
+          text={
+            args.title || (translator.translateText("Network Map") as string)
+          }
+          className="text-xs font-medium text-gray-400 uppercase tracking-wider truncate"
+        />
         <span
           className="text-xs text-gray-300 tabular-nums flex-shrink-0"
           data-testid="network-map-widget-summary"
@@ -531,7 +550,9 @@ const DashboardNetworkMapComponentElement: FunctionComponent<ComponentProps> = (
             <g>
               {markers.map((marker: NetworkMapMarker): ReactElement => {
                 const radius: number = marker.screenRadius / zoom;
-                const route: Route | undefined = getMarkerRoute(marker);
+                const route: Route | undefined = isPreview
+                  ? undefined
+                  : getMarkerRoute(marker);
 
                 const onActivate: () => void = () => {
                   if (route) {

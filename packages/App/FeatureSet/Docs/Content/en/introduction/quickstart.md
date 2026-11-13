@@ -2,6 +2,8 @@
 
 This guide takes you from a new account to a working setup in about fifteen minutes: a monitor that checks your website every five minutes, an on-call policy that pages you when the site goes down, and a status page that tells your customers. It follows the **Welcome to OneUptime 👋** checklist on your project's Home page.
 
+Coming from another tool? [Import it](/docs/introduction/getting-started#coming-from-another-tool) first: your monitors, on-call schedules and status pages come with you.
+
 ```mermaid title="What you set up in this guide"
 flowchart TB
     monitor["Website monitor"] -->|"site is down"| incident["Incident"]
@@ -32,7 +34,7 @@ Enter a **Project Name**, such as your company's name. On OneUptime Cloud, pick 
 
 ### Create it
 
-Click **Create Project**. Your project's Home page opens, with the **Welcome to OneUptime 👋** checklist at the top.
+Click **Create Project**. Your project's Home page opens, with the **Welcome to OneUptime 👋** checklist at the top. It first asks **What do you want to do first?**: tick **Know when my website or API is down**, **Page the right person when something breaks** and **Tell my customers with a status page**, and click **Continue**.
 :::
 
 ## Monitor your website
@@ -80,6 +82,8 @@ Your sign-in email is already a way to reach you. To be texted or called too, op
 
 For more levels, rotations and how long each level waits, see [Escalation Rules](/docs/on-call/escalation-rules) and [On-Call Schedules](/docs/on-call/schedules).
 
+To be paged by SMS, phone call and push, with the next person paged when nobody answers and a test page that proves it, follow [Get Paged by Phone, SMS or Push](/docs/guides/paging).
+
 ## Publish a status page
 
 :::steps
@@ -97,6 +101,8 @@ Choose **Overview** in the side menu. The **Status Page Link** card links to you
 :::
 
 A new status page is public: anyone with its address can open it. To give it your own domain, logo and colors, see [Status Page Branding & Domains](/docs/status-pages/branding-and-domains).
+
+To put the status page on your own domain, over HTTPS, follow [Publish a Status Page](/docs/guides/status-page).
 
 ## Invite your team
 
@@ -141,6 +147,7 @@ Open the monitor and check what the probes received. See the troubleshooting sec
 
 :::cards
 - [Core Concepts](/docs/introduction/core-concepts): The ideas behind what you just set up.
+- [Glossary](/docs/introduction/glossary): Every word you met on the way, in a sentence or two.
 - [On-Call Schedules](/docs/on-call/schedules): Share being on call with your team.
 - [Status Page Branding & Domains](/docs/status-pages/branding-and-domains): Make the status page your own.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Send logs, metrics and traces from your apps.

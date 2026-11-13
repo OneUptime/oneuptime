@@ -1,4 +1,6 @@
 import Includes from "../../../Types/BaseDatabase/Includes";
+import GlossaryTerm from "../../../Types/Docs/GlossaryTerm";
+import DefinedTerm from "../Glossary/LazyDefinedTerm";
 import { BILLING_ENABLED, getAllEnvVars } from "../../Config";
 import { GetReactElementFunction } from "../../Types/FunctionTypes";
 import API from "../../Utils/API/API";
@@ -227,6 +229,7 @@ import ListResult from "../../../Types/BaseDatabase/ListResult";
 import ArchivedValuePicker from "../../Utils/ArchivedValuePicker";
 import InlineLoadingLine from "../Loader/InlineLoadingLine";
 import InlineSeparator from "../InlineSeparator/InlineSeparator";
+import { refreshSideMenuCounts } from "../SideMenu/SideMenuCountRefresh";
 
 /*
  * A row's Delete whose dialog first asks the server what the delete would
@@ -1404,7 +1407,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   /*
    * A row action that changed its row asks for the rows again
    * (RowActionContext.refresh): counted here, and read by the fetch below,
-   * so the read goes out with the page, sort and filters of the moment.
+   * so the read goes out with the page, sort and filters of the moment. The
+   * page's side-menu counts follow - an alert resolved from its row leaves
+   * "Active Alerts" (SideMenuCountRefresh).
    */
   const [rowActionRefreshCount, setRowActionRefreshCount] = useState<number>(0);
 
@@ -1414,6 +1419,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         setRowActionRefreshCount((count: number): number => {
           return count + 1;
         });
+        refreshSideMenuCounts();
       },
     };
   }, []);
@@ -2128,6 +2134,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
     try {
       await props.callbacks.deleteItem(item);
+
+      // The record is gone from every count beside the list too.
+      refreshSideMenuCounts();
 
       props.onItemDeleted?.(item);
 
@@ -3017,6 +3026,17 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     }
   };
 
+  /*
+   * Refresh, pressed: the rows are read again, and so is every count beside
+   * the list - a count that disagreed with the list just refreshed under it
+   * would say one of them is wrong.
+   */
+  const refreshFromRefreshButton: () => Promise<void> =
+    async (): Promise<void> => {
+      refreshSideMenuCounts();
+      await fetchItems();
+    };
+
   useEffect(() => {
     if (showFilterModal) {
       getFilterDropdownItems().catch((err: Error) => {
@@ -3347,9 +3367,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         ...getRefreshButton(),
         buttonSize: ButtonSize.Small,
         className: "",
-        onClick: async () => {
-          await fetchItems();
-        },
+        onClick: refreshFromRefreshButton,
         disabled: isFilterFetchLoading,
       });
     }
@@ -4921,9 +4939,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             : undefined
         }
         emptyStateProps={emptyState.emptyStateProps}
-        onRefreshClick={async () => {
-          await fetchItems();
-        }}
+        onRefreshClick={refreshFromRefreshButton}
         actionButtons={actionButtonSchema}
         getRowProps={getRowProps}
         /*
@@ -5000,9 +5016,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             : undefined
         }
         emptyStateProps={emptyState.emptyStateProps}
-        onRefreshClick={async () => {
-          await fetchItems();
-        }}
+        onRefreshClick={refreshFromRefreshButton}
         actionButtons={actionButtonSchema}
       />,
     );
@@ -5048,9 +5062,21 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       planName = new props.modelType().getCreateBillingPlan()!;
     }
 
+    /*
+     * The card's Glossary term (cardProps.titleGlossaryTerm) marks the
+     * title's words here, beside its plan's badge: Card marks only a title
+     * that is words alone.
+     */
+    const glossaryTerm: GlossaryTerm | undefined =
+      props.cardProps?.titleGlossaryTerm;
+
     return (
       <span>
-        {renderedTitle}
+        {glossaryTerm && typeof renderedTitle === "string" ? (
+          <DefinedTerm term={glossaryTerm}>{renderedTitle}</DefinedTerm>
+        ) : (
+          renderedTitle
+        )}
         {showPlan && (
           <span
             style={{
@@ -6147,6 +6173,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           onSuccess: async (item: TBaseModel): Promise<void> => {
             setShowModal(false);
             setCurrentPageNumber(1);
+            // Created or changed: the counts beside the list follow.
+            refreshSideMenuCounts();
             await fetchItems();
             if (props.onCreateSuccess) {
               await props.onCreateSuccess(item, modalType);

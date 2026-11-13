@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 在 `config.env` 中设置它们，然后运行 `npm start`。`DISABLE_TELEMETRY_FOR_APP` 默认为 `true`，此时不会发送任何内容。
 :::
 
-OneUptime 需要同时设置端点和请求头：没有请求头时它什么都不发送。多个请求头之间用 `;` 分隔。OneUptime 会自行在端点后加上 `/v1/metrics`，同样的设置也会发送它自己的追踪和日志。每个指标在 OneUptime 首次记录它时出现：`notification.send.count` 在发送第一条消息时出现。
+OneUptime 需要同时设置端点和请求头：没有请求头时它什么都不发送。每个请求头写成 `name=value`，多个请求头之间用 `;` 分隔。值中可以包含 `=`。OneUptime 会自行在端点后加上 `/v1/metrics`，同样的设置也会发送它自己的追踪和日志。每个指标在 OneUptime 首次记录它时出现：`notification.send.count` 在发送第一条消息时出现。
 
 ### 向 OneUptime 项目发送增量
 
@@ -109,14 +109,14 @@ services:
 | `notification.provider.config` | 安装自己的账户和设置为 `global`；项目自己的 Twilio 账户、SMTP 服务器、Webhook 或工作区连接为 `project`，其故障由项目自行修复 |
 | `notification.on_call_page` | 值班呼叫的通知为 `true`，否则为 `false` |
 | `outcome` | `success`、`failure` 或 `not_sent`，见下文 |
-| `notification.destination` | 仅限 Slack、Microsoft Teams 和 Mattermost：发给某个人的为 `direct_message`，发到频道或 Teams 群聊的为 `channel`，发到传入 Webhook（例如状态页订阅者的）的为 `incoming_webhook` |
+| `notification.destination` | Slack、Microsoft Teams 和 Mattermost：发给某个人的为 `direct_message`，发到频道或 Teams 群聊的为 `channel`，发到传入 Webhook（例如状态页订阅者的）的为 `incoming_webhook`。Webhook：发到状态页订阅者自己的 Webhook 的为 `status_page_subscriber`。个人的 Webhook 和其他所有渠道都不带此属性 |
 | `notification.custom_channel.id`、`notification.custom_channel.name` | 仅限自定义渠道：渠道的 ID，以及截断到 100 个字符的名称 |
 
 - `success`：提供商接受了该消息。
 - `failure`：提供商拒绝了它或无法访问，或者发送失败。找不到的聊天频道算作没有耗时的失败。
 - `not_sent`：有意不发送。项目关闭了该渠道、余额不足或已被封禁，此服务器上关闭了推送，或者自定义渠道已关闭、已删除或不在许可证范围内。成功率不包含这些：它们是设置在起作用，而不是平台出了故障。
 
-状态页订阅者的普通 Webhook 目前尚未计入。
+发给状态页订阅者自己的 Webhook 的消息只计一次，无论尝试了多少次：端点以 2xx 状态应答时为 `success`；以其他状态应答、无法连接或其地址不被允许时为 `failure`。
 
 ### 到达手机的内容
 
@@ -155,7 +155,7 @@ services:
 | --- | --- |
 | `monitor_data_received` | OneUptime 收到触发监视器的数据之时：一个传入请求、一份服务器代理报告、一封传入邮件、一次探针检查、一个 SNMP Trap 或一次网络设备轮询。其中包括数据在队列中等待评估的时间。 |
 | `record_created` | 事件、警报或片段创建之时：由遥测监视器、规则或人员创建，以及针对缺失的检查，例如停止的心跳。 |
-| `page_started` | 呼叫稍后开始之时：由人员、工作流或现在匹配的规则启动，再次呼叫、直接呼叫，或者等待了其值班规则要求的暂缓之后才开始的呼叫。 |
+| `page_started` | 呼叫稍后开始之时：由人员、工作流或现在匹配的规则启动，或者是直接呼叫。对于被其值班规则或 OneUptime AI 暂缓的呼叫，是暂缓结束之时，如果它更早开始，则是开始之时。对于再次呼叫，是确认后超时到期之时。因此，迟迟才处理其中任何一种的工作进程会体现在这段时间中。 |
 
 对于传入请求，时间从端点收到的最新请求开始计算，因此读数可能略短。
 
@@ -170,7 +170,7 @@ services:
 | `escalation` | 后面的升级级别：前一个级别结束等待之时，或者有人把呼叫转交出去时立即到期。 |
 | `policy_repeat` | 策略从第一个级别重新开始：其最后一个级别的等待结束之时。 |
 
-它还带有 `notification.channel`、`notification.trigger.type`，对于自定义渠道还有 `notification.custom_channel.id` 和 `notification.custom_channel.name`。在呼叫开始时就到期的通知绝不会出现在其中：它在发送耗时中。
+它还带有 `notification.channel`、`notification.trigger.type`，对于自定义渠道还有 `notification.custom_channel.id` 和 `notification.custom_channel.name`。在呼叫开始时就到期的通知绝不会出现在其中，即使工作进程在暂缓之后或作为再次呼叫而迟迟才开始该呼叫也是如此：它在发送耗时中。
 
 ### 直方图分桶
 
@@ -220,7 +220,7 @@ services:
 | --- | --- | --- | --- |
 | `a` | `notification.time_to_send` | **P95** | `notification.page.start != page_started` |
 
-只要 `a` 保持在 30000 或以下，目标就算达成。稍后开始的呼叫从开始之时而不是从触发计时，因此不计入。按 `notification.page.start` 分组可以把监视器的队列（`monitor_data_received`）与其余部分分开查看，按 `notification.channel` 分组可以找出较慢的渠道。
+只要 `a` 保持在 30000 或以下，目标就算达成。稍后开始的呼叫从开始或到期之时而不是从触发计时，因此不计入。按 `notification.page.start` 分组可以把监视器的队列（`monitor_data_received`）与其余部分分开查看，按 `notification.channel` 分组可以找出较慢的渠道。
 
 ### 稍后发送的通知在 90 秒内发出
 
@@ -246,7 +246,7 @@ Twilio 为安装自己的账户接受的值班短信中，最多 5% 未能投递
 ## 故障排除
 
 :::details 没有收到通知指标
-检查 `OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT` 和 `OPENTELEMETRY_EXPORTER_OTLP_HEADERS` 是否都已设置，在 Docker Compose 中还要检查 `DISABLE_TELEMETRY_FOR_APP` 是否为 `false`，然后重启 OneUptime。指标只有在记录了内容之后才会出现，因此请先发送一条通知。
+检查 `OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT` 和 `OPENTELEMETRY_EXPORTER_OTLP_HEADERS` 是否都已设置，在 Docker Compose 中还要检查 `DISABLE_TELEMETRY_FOR_APP` 是否为 `false`，然后重启 OneUptime。OneUptime 启动时，如果有无法读取的请求头，或者它什么都不发送，会在日志中记录一条警告。指标只有在记录了内容之后才会出现，因此请先发送一条通知。
 :::
 
 :::details 计数只增不减，或百分位数几乎不动

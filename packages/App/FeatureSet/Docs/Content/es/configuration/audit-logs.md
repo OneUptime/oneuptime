@@ -1,11 +1,12 @@
 # Registros de auditoría
 
-El registro de auditoría guarda quién cambió qué en su proyecto: cada creación, modificación y eliminación de los recursos que cubre, con los valores de antes y después. Úselo para saber quién desactivó un monitor o cambió una clave de API, y para conservar constancia ante revisiones de cumplimiento. Forma parte del plan Enterprise en OneUptime Cloud, y de la Enterprise Edition cuando lo aloja usted mismo.
+El registro de auditoría guarda quién cambió qué en su proyecto: cada creación, modificación y eliminación de los recursos que cubre, con los valores de antes y después, y cada vez que alguien inicia o cierra sesión. Úselo para saber quién desactivó un monitor o cambió una clave de API, quién inició sesión y desde dónde, y para conservar constancia ante revisiones de cumplimiento. Forma parte del plan Enterprise en OneUptime Cloud, y de la Enterprise Edition cuando lo aloja usted mismo.
 
 :::cards
 - [Activar el registro de auditoría](#activar-el-registro-de-auditoría): Empieza desactivado en cada proyecto.
 - [Leer el registro de auditoría](#leer-el-registro-de-auditoría): Quién cambió qué, y cuándo.
 - [Qué se registra](#qué-se-registra): Los recursos y las acciones que cubre.
+- [Inicios de sesión y sesiones](#inicios-de-sesión-y-sesiones): Quién inició sesión, y cómo terminó cada sesión.
 - [Cuánto tiempo se conservan las entradas](#cuánto-tiempo-se-conservan-las-entradas): De 7 a 180 días.
 :::
 
@@ -64,10 +65,10 @@ Un cambio en estos ajustes se aplica en menos de un minuto.
 | Columna | Qué muestra |
 | --- | --- |
 | **Cuándo** | Hace cuánto, con la fecha y la hora. |
-| **Acción** | `Create`, `Update` o `Delete`, o `Download` para un archivo de captura de paquetes que alguien descargó. |
+| **Acción** | `Create`, `Update` o `Delete`, `Download` para un archivo de captura de paquetes que alguien descargó, o `Sign In`, `Sign Out`, `Session Timeout` o `Session Revoked` para una sesión. |
 | **Recurso** | El nombre del recurso, que lo abre mientras existe, y su tipo. |
 | **Actor** | Quién hizo el cambio: una persona, una clave de API, un workflow o `System` para un cambio que OneUptime hizo por sí mismo. El cambio de una persona hecho a través de un cliente MCP indica cuál. |
-| **Cambios** | Cuántos campos cambiaron, o se capturaron en una creación o una eliminación. Haga clic para ver cada campo. |
+| **Cambios** | Cuántos campos cambiaron, o se capturaron en una creación o una eliminación. En una sesión, cómo se inició o por qué terminó. Haga clic para ver cada campo. |
 
 Filtre por **Tipo de recurso**, **Nombre del recurso**, **Acción**, **Correo electrónico del usuario** u **Hora**. Una modificación solo enumera los campos que cambiaron, antes y después, y un guardado que no cambia nada no añade ninguna entrada.
 
@@ -85,8 +86,9 @@ Se registra todo lo que las personas crean, cambian o eliminan en un proyecto: m
 | Registros de ejecuciones | Cada uno ya es la constancia de una ejecución de un flujo de trabajo, una escalada de guardia, un análisis, una importación o una ejecución de IA. |
 | Lo que informan los agentes y la telemetría | Los recursos descubiertos, las lecturas y el uso cambian con cada informe, no porque alguien los haya cambiado. |
 | Fuentes de actividad | Una fuente muestra cambios que el registro de auditoría ya registra. |
-| El estado de trabajo de OneUptime | Sesiones, trabajos en cola y otro estado que OneUptime guarda mientras trabaja. |
+| El estado de trabajo de OneUptime | Sesiones de los lectores de páginas de estado, trabajos en cola y otro estado que OneUptime guarda mientras trabaja. |
 | La configuración de notificaciones propia de una persona | Las direcciones, los números y las reglas de guardia personales de cada persona son solo suyos. |
+| Las preferencias propias de una persona | Los productos que cada persona fija en su propia barra superior son solo suyos, y solo esa persona los ve. |
 
 También se registra que un administrador añada o quite un método de notificación o una regla de guardia personal en la cuenta de otra persona, sin la dirección ni el número en sí.
 
@@ -104,6 +106,21 @@ Lo que OneUptime hace porque alguien se lo pidió también se registra como un c
 Lo que una regla hace por sí sola es un cambio del propio OneUptime y se registra con **Almacenar eventos del sistema** activado: las etiquetas y los propietarios que una regla añade al crearse un registro, y un registro que hace privado entonces; los dispositivos y monitores que una regla de importación automática crea a partir de nuevos resultados de escaneo; y lo que una regla de monitores de una página de estado o de un SLO cambia cuando se guarda una regla, un monitor o una etiqueta.
 
 Restablecer el agente de IA de un host, un clúster o una cuenta en la nube se registra en la propia página **Registros de auditoría** de ese recurso, como el cambio de `aiAgentResetAt` hecho por quien lo restableció: quién, y cuándo. Lo mismo ocurre al crear una clave para el agente de IA de una cuenta en la nube: las claves aparecen como cambiadas, nunca con una clave o un hash. Lo que un agente informa al conectarse y al reportarse queda fuera, como antes.
+
+## Inicios de sesión y sesiones
+
+Cada vez que un miembro del proyecto inicia sesión en OneUptime, el registro de auditoría lo guarda, y otra vez cuando esa sesión termina. Un inicio de sesión es en OneUptime, no en un solo proyecto, así que lo guarda cada proyecto del que la persona es miembro.
+
+| Acción | Cuándo se registra |
+| --- | --- |
+| `Sign In` | Alguien inicia sesión: con una contraseña o un enlace de inicio de sesión, una clave de acceso, Google, Microsoft, Vercel o el inicio de sesión único. |
+| `Sign Out` | La persona cierra sesión. |
+| `Session Timeout` | OneUptime termina la sesión al cumplirse su tiempo: el tiempo de inactividad o la duración de la sesión que fijó un administrador del servidor, o 30 días sin uso. |
+| `Session Revoked` | OneUptime termina la sesión porque la contraseña cambió, la cuenta se bloqueó, o un administrador del servidor restableció o exigió la autenticación de dos factores. |
+
+El **Recurso** de una entrada es la sesión, que recibe el nombre del dispositivo desde el que se inició, por ejemplo `Chrome 130 on macOS`. Su **Actor** es la persona a quien pertenece la sesión, así que filtrar por **Correo electrónico del usuario** encuentra todos sus inicios de sesión y sesiones. Sus detalles indican cómo inició sesión la persona y con qué segundo factor, la dirección IP y la ubicación, y, en una sesión que terminó, cuándo se inició, cuándo se usó por última vez y cuándo caducó. El proveedor de SSO propio de un proyecto solo se nombra en el registro de auditoría de ese proyecto.
+
+Los inicios de sesión y las sesiones se registran guarde o no el proyecto los eventos del sistema. Una duración de la sesión o 30 días sin uso se registran a los pocos minutos de cumplirse. Un tiempo de inactividad se registra cuando la pestaña abierta de la persona o la aplicación móvil vuelve a comunicarse con OneUptime.
 
 ## Cuánto tiempo se conservan las entradas
 

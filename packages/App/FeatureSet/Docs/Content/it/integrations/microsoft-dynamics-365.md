@@ -120,7 +120,7 @@ Il passaggio **Configura** della procedura guidata di creazione chiede fino a se
 
 **Come accedono i modelli.** La procedura guidata salva il tenant, il client ID e il segreto in un'unica [variabile OAuth 2.0](/docs/workflows/variables#variabili-oauth-20-token-che-si-rinnovano-da-soli), `dynamicsAccessToken`, in **Variabili del flusso** del workflow: Client Credentials, l'URL del token `https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token`, l'ambito `<environment URL>/.default` e il client secret, inviato nel corpo della richiesta e salvato cifrato. Ogni chiamata a Dynamics 365 invia `Authorization: Bearer {{local.variables.dynamicsAccessToken}}`. OneUptime ottiene il token la prima volta che un passaggio ne ha bisogno, ne ottiene uno nuovo prima che scada e lo sostituisce con `[REDACTED]` nei log delle esecuzioni e nelle tracce dei passaggi.
 
-Per verificare l'accesso prima che parta qualcosa, apri **Variabili del flusso**, fai clic su **Visualizza** su `dynamicsAccessToken` e fai clic su **Aggiorna ora**. **Access Token Fetched** significa che la registrazione dell'app è corretta. Altrimenti l'errore di Microsoft Entra ID nomina cosa non va, come `AADSTS7000215: Invalid client secret provided`.
+Per verificare l'accesso prima che parta qualcosa, apri **Variabili del flusso**, fai clic su **Visualizza** su `dynamicsAccessToken` e fai clic su **Aggiorna ora**. **Token di accesso recuperato** significa che la registrazione dell'app è corretta. Altrimenti l'errore di Microsoft Entra ID nomina cosa non va, come `AADSTS7000215: Invalid client secret provided`.
 
 Ogni workflow conserva la propria copia. Quando sostituisci il client secret, apri `dynamicsAccessToken` in ogni workflow Dynamics 365 e usa **Aggiorna le credenziali**.
 
@@ -258,7 +258,7 @@ I modelli coprono i casi comuni. Per costruire una direzione da solo, questa sez
 
 Crea il token una volta, per tutti i workflow, come [variabile OAuth 2.0](/docs/workflows/variables#variabili-oauth-20-token-che-si-rinnovano-da-soli):
 
-1. Vai su **Flussi di lavoro → Variabili globali**, apri il menu **Altro** (**⋯**) accanto a **Crea: Variabile del flusso di lavoro** e scegli **Create OAuth 2.0 Variable**. Chiamala `DYNAMICS_TOKEN`.
+1. Vai su **Flussi di lavoro → Variabili globali**, apri il menu **Altro** (**⋯**) accanto a **Crea: Variabile del flusso di lavoro** e scegli **Crea variabile OAuth 2.0**. Chiamala `DYNAMICS_TOKEN`.
 2. In **Provider**, scegli **Microsoft Entra ID**, sostituisci `{tenant-id}` nell'**URL del token** con il tuo Directory (tenant) ID e scegli **Client Credentials**.
 3. In **Credenziali**, inserisci il **Client ID** e il **Client Secret**. In **Avanzato**, imposta l'ambito su `https://yourorg.crm.dynamics.com/.default`, poi crea la variabile.
 

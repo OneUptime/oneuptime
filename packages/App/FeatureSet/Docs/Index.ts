@@ -4,6 +4,7 @@ import {
   getEnglishAnchorAliases,
 } from "./Utils/AnchorAliases";
 import LlmsTxtUtil from "./Utils/LlmsTxt";
+import DocsGlossaryData, { DocsGlossary } from "./Utils/Glossary";
 import DocsNav, { NavGroup, NavLink } from "./Utils/Nav";
 import DocsRender from "./Utils/Render";
 import DocsSearchIndex, {
@@ -11,6 +12,10 @@ import DocsSearchIndex, {
   summarizeDocsPage,
 } from "./Utils/SearchIndex";
 import DocsSitemap from "./Utils/Sitemap";
+import DocsSearch, { DocsSearchAnswer } from "./Utils/DocsSearch";
+import DocsFeedback, { DocsFeedbackAnswer } from "./Utils/DocsFeedback";
+import DocsAIReader from "./Utils/AIDocsReader";
+import AIDocsLibrary from "Common/Server/Utils/AI/Docs/AIDocsLibrary";
 import DocsTranslations from "./Utils/Translations";
 import { DocsPageSeo, getDocsPageSeo } from "./Utils/Seo";
 import {
@@ -32,6 +37,7 @@ import FeatureSet from "Common/Server/Types/FeatureSet";
 import Express, {
   ExpressApplication,
   ExpressRequest,
+  ExpressJson,
   ExpressResponse,
   ExpressStatic,
   NextFunction,
@@ -185,6 +191,12 @@ const DocsFeatureSet: FeatureSet = {
     const app: ExpressApplication = Express.getExpressApp();
 
     /*
+     * Ask AI answers "how do I...?" from these docs (issue #6828): its
+     * docs tools (Common's Toolbox/DocsTools) read them through this.
+     */
+    AIDocsLibrary.setReader(new DocsAIReader());
+
+    /*
      * The docs' built Tailwind stylesheet, when the image built one: the
      * pages link it instead of generating their CSS in the browser with the
      * Tailwind runtime (Utils/DocsTailwind.ts).
@@ -282,11 +294,74 @@ const DocsFeatureSet: FeatureSet = {
     );
 
     /*
-     * The search index for one language: every page's title, group,
-     * summary and section headings (Utils/SearchIndex.ts). The search box
-     * fetches it the first time it opens. Registered before the two-segment
+     * Docs search, for one language: the results for ?q= (and at most
+     * ?limit= of them), read from every page in full, forgiving typos and a
+     * reader's other words (Utils/DocsSearch.ts). The docs' search box asks
+     * it as the reader types, and so does Search (Cmd/Ctrl+K) in the
+     * Dashboard for its Docs group. Registered before the two-segment
      * legacy redirect below, which would otherwise take the address for a
      * page called "<lang>.json".
+     */
+    app.get(
+      "/docs/search/:lang.json",
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const lang: string = req.params["lang"] || "";
+          const query: string =
+            typeof req.query["q"] === "string" ? req.query["q"] : "";
+          const limit: number = Number(req.query["limit"]);
+
+          if (!isSupportedDocsLanguage(lang)) {
+            res.status(404);
+            return res.json({ query: "", results: [], words: [] });
+          }
+
+          const answer: DocsSearchAnswer = query.trim()
+            ? await DocsSearch.search({
+                query,
+                language: lang,
+                limit: Number.isFinite(limit) && limit > 0 ? limit : undefined,
+              })
+            : { query: "", results: [], words: [] };
+
+          res.setHeader("Cache-Control", "public, max-age=300");
+          return res.json(answer);
+        } catch (err) {
+          logger.error(err);
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * "Was this page helpful?": a page's answer, which goes on to product
+     * analytics only where it is set up (OneUptime Cloud). Anywhere else
+     * the page never posts here, and an answer that arrives is dropped: it
+     * answers 204 either way, and 400 for anything that is not an answer
+     * (Utils/DocsFeedback.ts). Its body is a few dozen bytes.
+     */
+    app.post(
+      "/docs/feedback",
+      ExpressJson({ limit: "2kb" }),
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        const answer: DocsFeedbackAnswer | null = DocsFeedback.read(req.body);
+
+        if (!answer) {
+          return res.status(400).json({});
+        }
+
+        await DocsFeedback.send(answer);
+
+        return res.status(204).end();
+      },
+    );
+
+    /*
+     * The headings index for one language: every page's title, group,
+     * summary and section headings (Utils/SearchIndex.ts), for tools that
+     * want the docs' outline. The search box asks /docs/search instead.
+     * Registered before the two-segment legacy redirect below, which would
+     * otherwise take the address for a page called "<lang>.json".
      */
     app.get(
       "/docs/search-index/:lang.json",
@@ -301,6 +376,34 @@ const DocsFeatureSet: FeatureSet = {
             await DocsSearchIndex.getIndex(lang);
           res.setHeader("Cache-Control", "public, max-age=600");
           return res.json(index);
+        } catch (err) {
+          logger.error(err);
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * The Glossary as data, for one language: each term with its id (its
+     * English anchor, the same in every language), its definition, the other
+     * names it goes by and the pages that cover it (Utils/Glossary.ts). The
+     * Dashboard shows a term's definition where the word is used, and Ask AI
+     * reads it. Registered before the two-segment legacy redirect below,
+     * like the search index.
+     */
+    app.get(
+      "/docs/glossary/:lang.json",
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const lang: string = req.params["lang"] || "";
+          if (!isSupportedDocsLanguage(lang)) {
+            res.status(404);
+            return res.json({ lang: lang, entries: [] });
+          }
+          const glossary: DocsGlossary =
+            await DocsGlossaryData.getGlossary(lang);
+          res.setHeader("Cache-Control", "public, max-age=600");
+          return res.json(glossary);
         } catch (err) {
           logger.error(err);
           return next(err);
@@ -893,6 +996,16 @@ const DocsFeatureSet: FeatureSet = {
             pageDescription: summarizeDocsPage(content.markdown).description,
             markdownUrl: `/docs/as-markdown/${lang}/${fullPath}`,
             githubPath: fullPath,
+            // "Was this page helpful?" (Views/Partials/PageFeedback.ejs, Utils/DocsFeedback.ts).
+            feedback: {
+              page: fullPath,
+              isSent: DocsFeedback.isSent(),
+              githubIssueUrl: DocsFeedback.getGitHubIssueUrl({
+                page: fullPath,
+                title: currentNavLink.title,
+                lang: lang,
+              }),
+            },
             enableGoogleTagManager: GoogleTagManagerEnabled,
             prevLink: prevRaw ? translateFlatLink(prevRaw) : null,
             nextLink: nextRaw ? translateFlatLink(nextRaw) : null,

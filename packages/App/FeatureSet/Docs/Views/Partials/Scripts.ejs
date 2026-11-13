@@ -6,6 +6,7 @@
     window.__docsI18n = {
         typeToSearch: <%- JSON.stringify(t('ui.searchTypeToSearch')) %>,
         noResults: <%- JSON.stringify(t('ui.searchNoResults')) %>,
+        searching: <%- JSON.stringify(t('ui.searchSearching')) %>,
         copy: <%- JSON.stringify(t('ui.copy')) %>,
         copied: <%- JSON.stringify(t('ui.copied')) %>,
         copyFailed: <%- JSON.stringify(t('ui.copyFailed')) %>,
@@ -530,45 +531,98 @@
             return Boolean(searchModal) && searchModal.classList.contains('is-open');
         }
 
-        function highlightMatch(text, query) {
-            var position = text.toLowerCase().indexOf(query);
-            if (position < 0) {
-                return escapeHtml(text);
+        /*
+         * `text`, escaped, with every one of `words` in it marked: the words
+         * the docs server found for what was typed ("escalation" for
+         * "escalaton"), or what was typed itself in the titles search. A
+         * word is found as the titles search finds one, by its lower-case
+         * letters (normalize), and read as text: no pattern is built from
+         * it, so nothing in it needs escaping.
+         */
+        function highlightWords(text, words) {
+            var source = String(text);
+            var wanted = (words || []).filter(function (word) {
+                return word && word.length > 0;
+            }).map(function (word) {
+                return { length: String(word).length, letters: normalize(word) };
+            });
+            if (wanted.length === 0) {
+                return escapeHtml(source);
             }
-            return escapeHtml(text.slice(0, position)) +
-                '<mark>' + escapeHtml(text.slice(position, position + query.length)) + '</mark>' +
-                escapeHtml(text.slice(position + query.length));
+            var html = '';
+            var last = 0;
+            var offset = 0;
+            while (offset < source.length) {
+                /* The first of the words that starts here, as an alternation would take it. */
+                var length = 0;
+                for (var index = 0; index < wanted.length; index++) {
+                    if (normalize(source.slice(offset, offset + wanted[index].length)) === wanted[index].letters) {
+                        length = wanted[index].length;
+                        break;
+                    }
+                }
+                if (length === 0) {
+                    offset += 1;
+                    continue;
+                }
+                html += escapeHtml(source.slice(last, offset)) + '<mark>' + escapeHtml(source.slice(offset, offset + length)) + '</mark>';
+                offset += length;
+                last = offset;
+            }
+            return html + escapeHtml(source.slice(last));
         }
 
         /*
-         * The full index - every page's headings and summary - is fetched
-         * the first time search opens (Utils/SearchIndex.ts). Until it
-         * arrives, or if it cannot, search falls back to the page titles
-         * embedded above.
+         * Search asks the docs server (/docs/search/<lang>.json,
+         * Utils/DocsSearch.ts), which reads every page in full and forgives
+         * a wrong letter, a half-typed word and a reader's other words for
+         * the docs' own. While it answers - and if it cannot be reached -
+         * the page titles embedded above answer at once.
          */
-        var fullIndex = null;
-        var fullIndexRequested = false;
+        var SEARCH_DELAY_MS = 120;
+        var searchTimer = null;
+        var searchSequence = 0;
+        var serverAnswer = null;
+        // What the box said when the server could not answer: the titles' answer is the last word.
+        var serverFailedFor = null;
 
-        function loadFullIndex() {
-            if (fullIndexRequested || !window.fetch) {
+        function showIfCurrent(rawQuery) {
+            if (isSearchOpen() && searchInput.value === rawQuery) {
+                renderResults(rawQuery);
+            }
+        }
+
+        function askServer(rawQuery) {
+            if (!window.fetch) {
                 return;
             }
-            fullIndexRequested = true;
-            window.fetch('/docs/search-index/' + encodeURIComponent(window.__docsLang || 'en') + '.json')
-                .then(function (response) {
-                    return response.ok ? response.json() : null;
-                })
-                .then(function (data) {
-                    if (Array.isArray(data)) {
-                        fullIndex = data;
-                        if (isSearchOpen() && searchInput.value.trim()) {
-                            renderResults(searchInput.value);
+            var sequence = ++searchSequence;
+            window.clearTimeout(searchTimer);
+            searchTimer = window.setTimeout(function () {
+                window.fetch('/docs/search/' + encodeURIComponent(window.__docsLang || 'en') + '.json?q=' + encodeURIComponent(rawQuery))
+                    .then(function (response) {
+                        return response.ok ? response.json() : null;
+                    })
+                    .then(function (answer) {
+                        /* Only the answer to what the box says now. */
+                        if (sequence !== searchSequence) {
+                            return;
                         }
-                    }
-                })
-                .catch(function () {
-                    /* Offline or blocked: the title search keeps working. */
-                });
+                        if (!answer || !Array.isArray(answer.results)) {
+                            serverFailedFor = rawQuery;
+                        } else {
+                            serverAnswer = { query: rawQuery, results: answer.results, words: answer.words || [] };
+                        }
+                        showIfCurrent(rawQuery);
+                    })
+                    .catch(function () {
+                        /* Offline or blocked: the titles search keeps answering. */
+                        if (sequence === searchSequence) {
+                            serverFailedFor = rawQuery;
+                            showIfCurrent(rawQuery);
+                        }
+                    });
+            }, SEARCH_DELAY_MS);
         }
 
         function normalize(value) {
@@ -586,61 +640,49 @@
             return true;
         }
 
-        function findMatches(query) {
+        // The pages whose title (and group) holds what was typed: the answer before the server's.
+        function findTitleMatches(query) {
             var terms = query.split(/\s+/).filter(function (term) { return term.length > 0; });
             var found = [];
 
-            if (!fullIndex) {
-                searchIndex.forEach(function (item) {
-                    var titlePosition = normalize(item.title).indexOf(query);
-                    if (titlePosition !== -1 || hasEveryTerm(item.title + ' ' + item.category, terms)) {
-                        found.push({
-                            title: item.title,
-                            meta: item.category,
-                            url: item.url,
-                            isSection: false,
-                            score: titlePosition === -1 ? 400 : 1000 - titlePosition
-                        });
-                    }
-                });
-            } else {
-                fullIndex.forEach(function (entry) {
-                    /*
-                     * A hit in the page title is what people mean; then a
-                     * section heading, then the group, then the summary.
-                     */
-                    var titlePosition = normalize(entry.t).indexOf(query);
-                    var score = 0;
-                    if (titlePosition !== -1) {
-                        score = 1000 - titlePosition;
-                    } else if (hasEveryTerm(entry.t, terms)) {
-                        score = 800;
-                    } else if (hasEveryTerm(entry.t + ' ' + entry.c, terms)) {
-                        score = 500;
-                    } else if (hasEveryTerm(entry.d, terms)) {
-                        score = 200;
-                    }
-                    if (score > 0) {
-                        found.push({ title: entry.t, meta: entry.c, detail: entry.d, url: entry.u, isSection: false, score: score });
-                    }
-                    (entry.h || []).forEach(function (heading) {
-                        var headingPosition = normalize(heading.t).indexOf(query);
-                        if (headingPosition !== -1 || hasEveryTerm(heading.t, terms)) {
-                            found.push({
-                                title: heading.t,
-                                meta: entry.c + ' \u203a ' + entry.t,
-                                url: entry.u + '#' + heading.a,
-                                isSection: true,
-                                score: headingPosition === -1 ? 550 : 700 - Math.min(headingPosition, 100)
-                            });
-                        }
+            searchIndex.forEach(function (item) {
+                var titlePosition = normalize(item.title).indexOf(query);
+                if (titlePosition !== -1 || hasEveryTerm(item.title + ' ' + item.category, terms)) {
+                    found.push({
+                        title: item.title,
+                        meta: item.category,
+                        url: item.url,
+                        isSection: false,
+                        score: titlePosition === -1 ? 400 : 1000 - titlePosition
                     });
-                });
-            }
+                }
+            });
 
             return found.sort(function (a, b) {
                 return b.score - a.score;
             }).slice(0, 30);
+        }
+
+        /*
+         * What to show for what the box says: the server's answer once it
+         * has one for exactly that, the titles search until then.
+         */
+        function findMatches(rawQuery, query) {
+            if (serverAnswer && serverAnswer.query === rawQuery) {
+                return {
+                    words: serverAnswer.words,
+                    items: serverAnswer.results.map(function (result) {
+                        return {
+                            title: result.title,
+                            meta: result.where,
+                            detail: result.snippet,
+                            url: result.url,
+                            isSection: Boolean(result.isSection)
+                        };
+                    })
+                };
+            }
+            return { words: [query], items: findTitleMatches(query) };
         }
 
         var pageIcon = '<svg class="h-4 w-4 flex-none opacity-40" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>';
@@ -658,7 +700,19 @@
                 return;
             }
 
-            matches = findMatches(query);
+            var found = findMatches(rawQuery, query);
+            var hasServerAnswer = Boolean(serverAnswer && serverAnswer.query === rawQuery) || serverFailedFor === rawQuery;
+
+            if (found.items.length === 0 && !hasServerAnswer && window.fetch) {
+                /* Nothing by title: say the search is on, and wait for the server, which forgives typos. */
+                matches = [];
+                highlightedIndex = -1;
+                searchInput.removeAttribute('aria-activedescendant');
+                searchResults.innerHTML = '<div class="docs-search__empty" data-search-pending>' + escapeHtml(i18n.searching || '') + '</div>';
+                return;
+            }
+
+            matches = found.items;
 
             if (matches.length === 0) {
                 highlightedIndex = -1;
@@ -675,9 +729,9 @@
                     ' class="docs-search__item' + (index === 0 ? ' is-highlighted' : '') + '">' +
                     (item.isSection ? sectionIcon : pageIcon) +
                     '<span class="min-w-0 flex-1">' +
-                    '<span class="docs-search__item-title block truncate">' + highlightMatch(item.title, query) + '</span>' +
-                    '<span class="docs-search__item-meta block truncate">' + highlightMatch(item.meta, query) + '</span>' +
-                    (item.detail ? '<span class="docs-search__item-detail block truncate">' + highlightMatch(item.detail, query) + '</span>' : '') +
+                    '<span class="docs-search__item-title block truncate">' + highlightWords(item.title, found.words) + '</span>' +
+                    '<span class="docs-search__item-meta block truncate">' + escapeHtml(item.meta) + '</span>' +
+                    (item.detail ? '<span class="docs-search__item-detail block truncate">' + highlightWords(item.detail, found.words) + '</span>' : '') +
                     '</span>' +
                     '<svg class="docs-rtl-mirror h-3.5 w-3.5 flex-none opacity-30" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>' +
                     '</a>';
@@ -701,7 +755,6 @@
         }
 
         function openSearch() {
-            loadFullIndex();
             lastFocused = document.activeElement;
             searchOverlay.classList.add('is-open');
             searchModal.classList.add('is-open');
@@ -727,7 +780,14 @@
             });
             searchOverlay.addEventListener('click', closeSearch);
             searchInput.addEventListener('input', function () {
-                renderResults(searchInput.value);
+                var rawQuery = searchInput.value;
+                renderResults(rawQuery);
+                if (rawQuery.trim()) {
+                    askServer(rawQuery);
+                } else {
+                    searchSequence++;
+                    window.clearTimeout(searchTimer);
+                }
             });
         }
 
@@ -777,6 +837,133 @@
                 searchInput.focus();
             }
         });
+
+        /* ===================== Was this page helpful? ==================== */
+        /*
+         * Views/Partials/PageFeedback.ejs. Where the docs may send an answer
+         * (data-feedback-mode="send": product analytics is set up, which is
+         * OneUptime Cloud), it is posted to /docs/feedback - and only with
+         * the reader's consent, by the rule the Dashboard's events follow
+         * (Common/Utils/Analytics isProductAnalyticsAllowed): never after
+         * "Reject all", and not under Global Privacy Control unless the
+         * reader accepted. A no waits for its reason, and goes without one
+         * when the reader leaves the page or after a while. Anywhere else
+         * nothing is posted: a no offers the GitHub issue, already written.
+         */
+        var FEEDBACK_REASON_WAIT_MS = 30000;
+        var feedbackBox = document.querySelector('[data-docs-feedback]');
+
+        function isMeasurementAllowed() {
+            var consent = 'unset';
+            try {
+                if (window.oneUptimeConsent && typeof window.oneUptimeConsent.state === 'function') {
+                    consent = window.oneUptimeConsent.state();
+                } else {
+                    var stored = window.localStorage.getItem('cookiesAccepted');
+                    consent = stored === 'true' ? 'granted' : (stored === 'false' ? 'denied' : 'unset');
+                }
+            } catch (error) {
+                consent = 'unset';
+            }
+            if (consent === 'granted') {
+                return true;
+            }
+            if (consent === 'denied') {
+                return false;
+            }
+            try {
+                return !(window.navigator && window.navigator.globalPrivacyControl === true);
+            } catch (error) {
+                return true;
+            }
+        }
+
+        if (feedbackBox) {
+            var feedbackMode = feedbackBox.getAttribute('data-feedback-mode');
+            var feedbackSent = false;
+            var pendingNo = null;
+            var pendingTimer = null;
+
+            var showFeedbackStep = function (step) {
+                feedbackBox.querySelectorAll('[data-feedback-step]').forEach(function (element) {
+                    element.hidden = element.getAttribute('data-feedback-step') !== step;
+                });
+            };
+
+            var postFeedback = function (answer, isLeaving) {
+                if (feedbackMode !== 'send' || feedbackSent || !isMeasurementAllowed()) {
+                    return;
+                }
+                feedbackSent = true;
+                var body = JSON.stringify({
+                    page: feedbackBox.getAttribute('data-feedback-page') || '',
+                    language: feedbackBox.getAttribute('data-feedback-language') || '',
+                    isHelpful: answer.isHelpful,
+                    reason: answer.reason || undefined
+                });
+                try {
+                    if (isLeaving && window.navigator && typeof window.navigator.sendBeacon === 'function') {
+                        window.navigator.sendBeacon('/docs/feedback', new Blob([body], { type: 'application/json' }));
+                        return;
+                    }
+                    if (window.fetch) {
+                        window.fetch('/docs/feedback', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: body,
+                            keepalive: true
+                        }).catch(function () {
+                            /* An answer is never worth an error on the page. */
+                        });
+                    }
+                } catch (error) {
+                    /* As above. */
+                }
+            };
+
+            var sendPendingNo = function (isLeaving) {
+                if (!pendingNo) {
+                    return;
+                }
+                window.clearTimeout(pendingTimer);
+                var answer = pendingNo;
+                pendingNo = null;
+                postFeedback(answer, isLeaving);
+            };
+
+            feedbackBox.querySelectorAll('[data-feedback-answer]').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    if (button.getAttribute('data-feedback-answer') === 'yes') {
+                        postFeedback({ isHelpful: true }, false);
+                        showFeedbackStep('thanks');
+                        return;
+                    }
+                    showFeedbackStep('no');
+                    if (feedbackMode === 'send') {
+                        pendingNo = { isHelpful: false };
+                        pendingTimer = window.setTimeout(function () {
+                            sendPendingNo(false);
+                        }, FEEDBACK_REASON_WAIT_MS);
+                    }
+                });
+            });
+
+            feedbackBox.querySelectorAll('[data-feedback-reason]').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    if (pendingNo) {
+                        pendingNo.reason = button.getAttribute('data-feedback-reason') || undefined;
+                    }
+                    sendPendingNo(false);
+                    showFeedbackStep('thanks');
+                });
+            });
+
+            window.addEventListener('pagehide', function () {
+                sendPendingNo(true);
+            });
+
+            feedbackBox.hidden = false;
+        }
 
         /* ================= Scroll progress + header state ============== */
         var progressBar = document.getElementById('scroll-progress');

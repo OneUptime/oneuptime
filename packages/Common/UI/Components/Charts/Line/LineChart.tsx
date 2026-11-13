@@ -21,7 +21,10 @@ import FormattedReferenceRegion from "../ChartLibrary/Types/FormattedReferenceRe
 import FormattedTimeReferenceLine from "../ChartLibrary/Types/FormattedTimeReferenceLine";
 import DataPointUtil from "../Utils/DataPoint";
 import TimeAnnotationUtil from "../Utils/TimeAnnotation";
-import ChartReferenceLineProps from "../Types/ReferenceLineProps";
+import ChartReferenceLineProps, {
+  ReferenceLineLabelPlacement,
+} from "../Types/ReferenceLineProps";
+import ReferenceLineLegend from "../ReferenceLineLegend/ReferenceLineLegend";
 import ChartReferenceRegionProps from "../Types/ReferenceRegionProps";
 import ChartTimeReferenceLineProps from "../Types/TimeReferenceLineProps";
 import ExemplarPoint from "../Types/ExemplarPoint";
@@ -55,6 +58,19 @@ export interface ComponentProps {
   sync: boolean;
   heightInPx?: number | undefined;
   referenceLines?: Array<ChartReferenceLineProps> | undefined;
+  /*
+   * Where the reference lines' labels are written: at the right end of each
+   * line (OnLine, the default) or in a legend under the chart (Legend), off
+   * the series and the time axis. A chart that names its lines in a legend
+   * needs a heightInPx: the legend goes under that height, not into it.
+   */
+  referenceLineLabelPlacement?: ReferenceLineLabelPlacement | undefined;
+  /*
+   * The legend's entries centred under the plot, for a chart whose title
+   * and status are centred above and below it (a dashboard's SLO widget).
+   * Unset, they start the line, under a card's own title.
+   */
+  isReferenceLineLegendCentered?: boolean | undefined;
   /*
    * Time-anchored annotations: vertical event markers and shaded regions.
    * Dates are snapped onto the categorical x-axis buckets; annotations
@@ -116,6 +132,15 @@ export interface ComponentProps {
    * across missing points as they always have.
    */
   connectNulls?: boolean | undefined;
+  /*
+   * true keeps the plot as tall as heightInPx gives it when the legend
+   * wraps onto more lines than one: the chart grows by those lines, instead
+   * of taking them from the plot. Three long series names on a phone took a
+   * 176px card chart's plot from 78px down to 30px (Product Analytics'
+   * Active users). Unset, the legend's lines come out of heightInPx, for a
+   * chart that has to fit a box of its own size (a dashboard widget).
+   */
+  growsWhenLegendWraps?: boolean | undefined;
 }
 
 export interface LineInternalProps extends ComponentProps {
@@ -126,6 +151,18 @@ const LineChartElement: FunctionComponent<LineInternalProps> = (
   props: LineInternalProps,
 ): ReactElement => {
   const [records, setRecords] = React.useState<Array<ChartDataPoint>>([]);
+  /*
+   * How much taller than one line the legend is, as the chart last measured
+   * it: the height the chart grows by when growsWhenLegendWraps is on.
+   */
+  const [legendExtraRowsHeight, setLegendExtraRowsHeight] =
+    React.useState<number>(0);
+  const isGrownByLegend: boolean = Boolean(
+    props.growsWhenLegendWraps && props.showLegend !== false,
+  );
+  const chartHeightInPx: number | undefined = props.heightInPx
+    ? props.heightInPx + (isGrownByLegend ? legendExtraRowsHeight : 0)
+    : undefined;
 
   /*
    * Drag-to-zoom: the host's own handlers, or else the enclosing page's
@@ -233,7 +270,33 @@ const LineChartElement: FunctionComponent<LineInternalProps> = (
   const maxValueProp: { maxValue: number } | Record<string, unknown> =
     typeof yAxisMaxOption === "number" ? { maxValue: yAxisMaxOption } : {};
 
-  return (
+  /*
+   * Lines named in the legend under the chart are drawn on the plot without
+   * their labels; the legend carries them. A named line always reaches the
+   * value axis (extendsDomain), so the legend never names a line that is off
+   * the plot: an error budget's "Budget exhausted" at 0% while the budget is
+   * still high, or a burn rate rule's 14.4× while the burn is low.
+   */
+  const hasLabelLegend: boolean =
+    props.referenceLineLabelPlacement === ReferenceLineLabelPlacement.Legend &&
+    (props.referenceLines || []).some(
+      (line: ChartReferenceLineProps): boolean => {
+        return Boolean(line.label?.trim());
+      },
+    );
+
+  const plottedReferenceLines: Array<ChartReferenceLineProps> | undefined =
+    hasLabelLegend
+      ? (props.referenceLines || []).map(
+          (line: ChartReferenceLineProps): ChartReferenceLineProps => {
+            return line.label?.trim()
+              ? { ...line, label: undefined, extendsDomain: true }
+              : { ...line, label: undefined };
+          },
+        )
+      : props.referenceLines;
+
+  const chart: ReactElement = (
     <div
       /*
        * `isolate` opens a stacking context so the recharts tooltip's
@@ -241,9 +304,16 @@ const LineChartElement: FunctionComponent<LineInternalProps> = (
        * (zIndex 10, pinned to the chart's top edge) ties with the app
        * header's sticky z-10 in the root context and paints over the
        * navbar on half-scrolled charts.
+       *
+       * Over a legend the plot keeps its own height (no flex-1): in the
+       * column below, a flex basis would take the place of that height.
        */
-      className="relative isolate flex flex-1"
-      style={props.heightInPx ? { height: `${props.heightInPx}px` } : undefined}
+      className={
+        hasLabelLegend
+          ? "relative isolate flex"
+          : "relative isolate flex flex-1"
+      }
+      style={chartHeightInPx ? { height: `${chartHeightInPx}px` } : undefined}
     >
       <LineChart
         data={records}
@@ -267,7 +337,7 @@ const LineChartElement: FunctionComponent<LineInternalProps> = (
         {...maxValueProp}
         allowDecimals={props.allowDecimals !== false}
         onValueChange={() => {}}
-        referenceLines={props.referenceLines}
+        referenceLines={plottedReferenceLines}
         formattedTimeReferenceLines={
           formattedTimeReferenceLines.length > 0
             ? formattedTimeReferenceLines
@@ -286,8 +356,29 @@ const LineChartElement: FunctionComponent<LineInternalProps> = (
         onTimeRangeReset={timeRangeZoom.onTimeRangeReset}
         onBucketClick={props.onBucketClick}
         ghostCategories={props.ghostSeriesNames}
+        // The legend under the plot follows the time axis's labels closely.
+        isFollowedByLegend={hasLabelLegend}
+        onLegendExtraRowsHeightChange={
+          isGrownByLegend ? setLegendExtraRowsHeight : undefined
+        }
       />
       {hasNoData && <NoDataMessage />}
+    </div>
+  );
+
+  if (!hasLabelLegend) {
+    return chart;
+  }
+
+  return (
+    <div className="flex min-w-0 flex-1 flex-col">
+      {chart}
+      <ReferenceLineLegend
+        lines={props.referenceLines || []}
+        className={
+          props.isReferenceLineLegendCentered ? "mt-2 justify-center" : "mt-2"
+        }
+      />
     </div>
   );
 };

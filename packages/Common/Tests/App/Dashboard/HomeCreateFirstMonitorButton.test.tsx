@@ -131,8 +131,8 @@ function renderCard(options: CardOptions = {}): void {
           }
         />
         <Route
-          path="/dashboard/:projectId/monitors/create"
-          element={<div data-testid="create-monitor-page"></div>}
+          path="/dashboard/:projectId/monitors/setup"
+          element={<div data-testid="guided-setup-page"></div>}
         />
       </Routes>
     </MemoryRouter>,
@@ -173,17 +173,18 @@ describe("before anything is monitored", () => {
     ).toBeTruthy();
   });
 
-  test("it opens the create monitor form of this project", () => {
+  // The guided setup (#6804), whose first step links to Create Monitor.
+  test("it opens the guided setup of this project", () => {
     renderCard({ canCreateMonitor: true });
 
     expect(button()).toHaveAttribute(
       "href",
-      `/dashboard/${PROJECT_ID}/monitors/create`,
+      `/dashboard/${PROJECT_ID}/monitors/setup`,
     );
 
     fireEvent.click(button()!);
 
-    expect(screen.getByTestId("create-monitor-page")).toBeInTheDocument();
+    expect(screen.getByTestId("guided-setup-page")).toBeInTheDocument();
   });
 
   test("it is a link, so it opens in a new tab too, drawn as the primary button", () => {

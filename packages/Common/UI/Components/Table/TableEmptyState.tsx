@@ -1,4 +1,7 @@
 import Button, { ButtonStyleType } from "../Button/Button";
+import ErrorExplanation, {
+  isUnexplainedErrorMessage,
+} from "../ErrorMessage/ErrorExplanation";
 import Icon from "../Icon/Icon";
 import IsolatedText from "../IsolatedText/IsolatedText";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -149,13 +152,24 @@ const TableEmptyState: FunctionComponent<ComponentProps> = (
   const translatedDescription: TranslatableValue = props.description
     ? translateValue(props.description)
     : undefined;
-  const description: TranslatableValue =
-    typeof translatedDescription === "string" &&
+  /*
+   * A failed load nobody explained says why and what to do next, with the
+   * reference to give when the server failed (ErrorExplanation, #6836).
+   * The title already says what failed, and Try again is the action below.
+   */
+  const description: TranslatableValue = isUnexplainedErrorMessage(
+    props.description,
+  ) ? (
+    <ErrorExplanation
+      message={props.description as string}
+      hideWhatFailed={true}
+    />
+  ) : typeof translatedDescription === "string" &&
     getTranslatedLineDirection(translatedDescription, translator.language) ? (
-      <IsolatedText text={translatedDescription} />
-    ) : (
-      translatedDescription
-    );
+    <IsolatedText text={translatedDescription} />
+  ) : (
+    translatedDescription
+  );
 
   /*
    * A title given as a sentence ("No services match the current filters.")

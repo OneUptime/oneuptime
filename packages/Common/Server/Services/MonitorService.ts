@@ -1,3 +1,5 @@
+import ProjectMilestoneService from "./ProjectMilestoneService";
+import ActivationMilestone from "../../Types/Analytics/ActivationMilestone";
 import { buildNotificationSms } from "../../Utils/Sms/NotificationSms";
 import DatabaseConfig from "../DatabaseConfig";
 import { InboundEmailDomain, IsBillingEnabled } from "../EnvironmentConfig";
@@ -188,11 +190,13 @@ export interface MonitorProbeFlagChanges {
  * and the labels each monitor the update matches held before the write,
  * of those the update writes, keyed by monitor id
  * (recordStoredValuesBeforeUpdate), and the monitors whose monitoring the
- * update turns off - those that had it on (findMonitorIdsTurnedOff).
+ * update turns off - those that had it on - or back on - those that had it
+ * off (findMonitorIdsSwitched).
  */
 type MonitorUpdateCarryForward = {
   valuesBeforeUpdate?: Dictionary<EventValuesBeforeUpdate> | undefined;
   monitorIdsTurnedOff?: Array<string> | undefined;
+  monitorIdsTurnedOn?: Array<string> | undefined;
 };
 
 export class Service extends ProjectReferencesService<Model> {
@@ -1155,11 +1159,20 @@ export class Service extends ProjectReferencesService<Model> {
     const valuesBeforeUpdate: Dictionary<EventValuesBeforeUpdate> | null =
       await this.recordStoredValuesBeforeUpdate(updateBy);
 
-    // Whose open incidents and alerts onUpdateSuccess resolves.
-    const monitorIdsTurnedOff: Array<string> =
-      await this.findMonitorIdsTurnedOff(updateBy);
+    /*
+     * Whose switch onUpdateSuccess marks on their status timelines, and
+     * whose open incidents and alerts it resolves (those turned off).
+     */
+    const switched: {
+      monitorIdsTurnedOff: Array<string>;
+      monitorIdsTurnedOn: Array<string>;
+    } = await this.findMonitorIdsSwitched(updateBy);
 
-    if (!valuesBeforeUpdate && monitorIdsTurnedOff.length === 0) {
+    if (
+      !valuesBeforeUpdate &&
+      switched.monitorIdsTurnedOff.length === 0 &&
+      switched.monitorIdsTurnedOn.length === 0
+    ) {
       return { updateBy, carryForward: null };
     }
 
@@ -1169,29 +1182,43 @@ export class Service extends ProjectReferencesService<Model> {
       carryForward.valuesBeforeUpdate = valuesBeforeUpdate;
     }
 
-    if (monitorIdsTurnedOff.length > 0) {
-      carryForward.monitorIdsTurnedOff = monitorIdsTurnedOff;
+    if (switched.monitorIdsTurnedOff.length > 0) {
+      carryForward.monitorIdsTurnedOff = switched.monitorIdsTurnedOff;
+    }
+
+    if (switched.monitorIdsTurnedOn.length > 0) {
+      carryForward.monitorIdsTurnedOn = switched.monitorIdsTurnedOn;
     }
 
     return { updateBy, carryForward: carryForward };
   }
 
   /*
-   * The monitors whose monitoring this update turns off: those it writes
-   * disableActiveMonitoring: true to that do not hold it already. Writing
-   * the switch back as it is - a form that sends every field, a bulk
-   * Disable over a selection that has some off already - turns nothing off,
-   * so nothing is resolved twice or long after the fact.
+   * The monitors whose monitoring this update turns off - those it writes
+   * disableActiveMonitoring: true to that do not hold it already - or back
+   * on - those it writes false to that hold true. Writing the switch back as
+   * it is - a form that sends every field, a bulk Disable over a selection
+   * that has some off already - turns nothing, so nothing is resolved or
+   * marked twice, or long after the fact.
    *
    * Read from the monitors the update writes (findRowsAndHoldUpdateToThem):
    * for a teammate, the ones they may write, with the update held to them.
-   * Nothing is read for an update that does not turn monitoring off.
+   * Nothing is read for an update that leaves the switch alone.
    */
-  private async findMonitorIdsTurnedOff(
-    updateBy: UpdateBy<Model>,
-  ): Promise<Array<string>> {
-    if (updateBy.data.disableActiveMonitoring !== true) {
-      return [];
+  private async findMonitorIdsSwitched(updateBy: UpdateBy<Model>): Promise<{
+    monitorIdsTurnedOff: Array<string>;
+    monitorIdsTurnedOn: Array<string>;
+  }> {
+    const switched: {
+      monitorIdsTurnedOff: Array<string>;
+      monitorIdsTurnedOn: Array<string>;
+    } = { monitorIdsTurnedOff: [], monitorIdsTurnedOn: [] };
+
+    const turnsOff: boolean = updateBy.data.disableActiveMonitoring === true;
+    const turnsOn: boolean = updateBy.data.disableActiveMonitoring === false;
+
+    if (!turnsOff && !turnsOn) {
+      return switched;
     }
 
     const monitors: Array<Model> = await this.findRowsAndHoldUpdateToThem(
@@ -1202,15 +1229,23 @@ export class Service extends ProjectReferencesService<Model> {
       },
     );
 
-    const monitorIdsTurnedOff: Array<string> = [];
-
     for (const monitor of monitors) {
-      if (monitor.id && monitor.disableActiveMonitoring !== true) {
-        monitorIdsTurnedOff.push(monitor.id.toString());
+      if (!monitor.id) {
+        continue;
+      }
+
+      const isOffNow: boolean = monitor.disableActiveMonitoring === true;
+
+      if (turnsOff && !isOffNow) {
+        switched.monitorIdsTurnedOff.push(monitor.id.toString());
+      }
+
+      if (turnsOn && isOffNow) {
+        switched.monitorIdsTurnedOn.push(monitor.id.toString());
       }
     }
 
-    return monitorIdsTurnedOff;
+    return switched;
   }
 
   /*
@@ -1911,6 +1946,50 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
+    const monitorIdsTurnedOff: Set<string> = new Set<string>(
+      (onUpdate.carryForward as MonitorUpdateCarryForward | null | undefined)
+        ?.monitorIdsTurnedOff || [],
+    );
+    const monitorIdsTurnedOn: Set<string> = new Set<string>(
+      (onUpdate.carryForward as MonitorUpdateCarryForward | null | undefined)
+        ?.monitorIdsTurnedOn || [],
+    );
+
+    /*
+     * Monitoring turned off or back on: marked on each monitor's status
+     * timeline (MonitorStatusTimelineService.recordMonitoringSwitch, issue
+     * #6480), so uptime, status pages and SLOs leave out the time it is off
+     * instead of counting it as the status it was left at. First, so the
+     * status changes turning it off leads to - below - fall in the time it
+     * is off. Each monitor in a try/catch of its own, as a side effect never
+     * fails the save.
+     */
+    for (const monitorId of updatedItemIds) {
+      const isTurnedOff: boolean = monitorIdsTurnedOff.has(
+        monitorId.toString(),
+      );
+
+      if (!isTurnedOff && !monitorIdsTurnedOn.has(monitorId.toString())) {
+        continue;
+      }
+
+      try {
+        await MonitorStatusTimelineService.recordMonitoringSwitch({
+          monitorId: monitorId,
+          isMonitoringOff: isTurnedOff,
+          switchedByUserId: onUpdate.updateBy.props.userId,
+        });
+      } catch (error) {
+        logger.error(
+          "Marking a monitor's monitoring turned off or on on its status timeline failed in MonitorService.onUpdateSuccess",
+          {
+            monitorId: monitorId?.toString(),
+          } as LogAttributes,
+        );
+        logger.error(error as Error);
+      }
+    }
+
     /*
      * Monitoring turned off: nothing checks these monitors any more, so the
      * open incidents and alerts each would have resolved itself on recovery
@@ -1918,11 +1997,6 @@ export class Service extends ProjectReferencesService<Model> {
      * that reloads after the switch shows them resolved; each monitor in a
      * try/catch of its own, as a side effect never fails the save.
      */
-    const monitorIdsTurnedOff: Set<string> = new Set<string>(
-      (onUpdate.carryForward as MonitorUpdateCarryForward | null | undefined)
-        ?.monitorIdsTurnedOff || [],
-    );
-
     for (const monitorId of updatedItemIds) {
       if (!monitorIdsTurnedOff.has(monitorId.toString())) {
         continue;
@@ -1938,6 +2012,49 @@ export class Service extends ProjectReferencesService<Model> {
           "Resolving what a monitor would have resolved after its monitoring was turned off failed in MonitorService.onUpdateSuccess",
           {
             monitorId: monitorId?.toString(),
+          } as LogAttributes,
+        );
+        logger.error(error as Error);
+      }
+    }
+
+    /*
+     * The network devices these monitors back are stamped again when the
+     * update turns monitoring off or on, or archives or unarchives them
+     * (issue #6965): a device takes no status from a monitor that is not
+     * checked, so its site's roll-up, the Network Map and the site's alerts
+     * stop counting the status the monitor was left at, and follow it again
+     * once it is checked. After MonitorTurnedOff, so what the devices end up
+     * with is the monitor as the save left it. Archiving reads no "before",
+     * so every monitor an archive write touched is re-stamped: a device that
+     * already agrees is not written again. Never fails the save.
+     */
+    const isArchiveWrite: boolean =
+      onUpdate.updateBy.data.isArchived !== undefined;
+
+    const monitorIdsWhoseDevicesToRestamp: Array<ObjectID> =
+      updatedItemIds.filter((monitorId: ObjectID): boolean => {
+        return (
+          isArchiveWrite ||
+          monitorIdsTurnedOff.has(monitorId.toString()) ||
+          monitorIdsTurnedOn.has(monitorId.toString())
+        );
+      });
+
+    if (monitorIdsWhoseDevicesToRestamp.length > 0) {
+      try {
+        await NetworkDeviceService.refreshStampsOfDevicesBoundToMonitors({
+          monitorIds: monitorIdsWhoseDevicesToRestamp,
+        });
+      } catch (error) {
+        logger.error(
+          "Stamping the network devices of monitors turned off, on, archived or unarchived again failed in MonitorService.onUpdateSuccess",
+          {
+            monitorIds: monitorIdsWhoseDevicesToRestamp
+              .map((monitorId: ObjectID): string => {
+                return monitorId.toString();
+              })
+              .join(","),
           } as LogAttributes,
         );
         logger.error(error as Error);
@@ -2331,7 +2448,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (!monitorStatus || !monitorStatus.id) {
       throw new BadDataException(
-        "Operational status not found for this project. Please add an operational status",
+        "This project has no monitor status marked as operational, so a new monitor has no status to start in. Add one under Monitors > Settings > Monitor Status, then create the monitor again.",
       );
     }
 
@@ -2464,15 +2581,15 @@ export class Service extends ProjectReferencesService<Model> {
     createdItem: Model,
   ): Promise<Model> {
     if (!createdItem.projectId) {
-      throw new BadDataException("projectId is required");
+      throw new BadDataException("The monitor has no project.");
     }
 
     if (!createdItem.id) {
-      throw new BadDataException("id is required");
+      throw new BadDataException("The new monitor has no ID.");
     }
 
     if (!createdItem.currentMonitorStatusId) {
-      throw new BadDataException("currentMonitorStatusId is required");
+      throw new BadDataException("The new monitor has no status to start in.");
     }
 
     /*
@@ -2486,6 +2603,12 @@ export class Service extends ProjectReferencesService<Model> {
         project_id: createdItem.projectId.toString(),
         monitor_type: createdItem.monitorType?.toString() || "",
       },
+    });
+
+    // The project's first monitor, whoever made it (issue #6830).
+    ProjectMilestoneService.reachInBackground({
+      projectId: createdItem.projectId,
+      milestone: ActivationMilestone.FirstMonitorCreated,
     });
 
     const monitor: Model | null = await this.findOneById({
@@ -2887,7 +3010,7 @@ ${FeedMarkdown.asMarkdown(createdItem.description?.trim() || "No description pro
   @CaptureSpan()
   public async findOwners(monitorId: ObjectID): Promise<Array<User>> {
     if (!monitorId) {
-      throw new BadDataException("monitorId is required");
+      throw new BadDataException("No monitor was named.");
     }
 
     const ownerUsers: Array<MonitorOwnerUser> =
@@ -3053,11 +3176,11 @@ ${FeedMarkdown.asMarkdown(createdItem.description?.trim() || "No description pro
     selectedProbeIds: Array<ObjectID> | undefined;
   }): Promise<void> {
     if (!data.projectId) {
-      throw new BadDataException("projectId is required");
+      throw new BadDataException("The monitor has no project.");
     }
 
     if (!data.monitorId) {
-      throw new BadDataException("monitorId is required");
+      throw new BadDataException("No monitor was named.");
     }
 
     if (data.selectedProbeIds === undefined) {

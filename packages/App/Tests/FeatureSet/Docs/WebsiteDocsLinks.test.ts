@@ -218,7 +218,12 @@ const SKIPPED_FILES: Array<string> = [
   "tsconfig.json",
 ];
 // The docs' endpoints: an address under one of them is no page.
-const DOCS_ENDPOINTS: Array<string> = ["static", "as-markdown", "search-index"];
+const DOCS_ENDPOINTS: Array<string> = [
+  "static",
+  "as-markdown",
+  "search-index",
+  "search",
+];
 // A redirect the docs answer with.
 const REDIRECT_STATUSES: Array<number> = [301, 302, 307, 308];
 const MAX_REDIRECTS: number = 5;

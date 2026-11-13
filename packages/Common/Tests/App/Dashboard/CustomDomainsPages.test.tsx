@@ -25,7 +25,9 @@ import splitActionButtons, {
 } from "../../../UI/Components/ActionButton/SplitActionButtons";
 import { ModalType } from "../../../UI/Components/ModelTable/BaseModelTable";
 import { ModelField } from "../../../UI/Components/Forms/ModelForm";
-import { FormFieldCollapsibleSection } from "../../../UI/Components/Forms/Types/Field";
+import Field, {
+  FormFieldCollapsibleSection,
+} from "../../../UI/Components/Forms/Types/Field";
 import FormValues from "../../../UI/Components/Forms/Types/FormValues";
 import Filter from "../../../UI/Components/ModelFilter/Filter";
 import StatusPageDomains from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/Domains";
@@ -43,7 +45,15 @@ import {
   STATUS_PAGE_CUSTOM_DOMAIN_COPY,
   STATUS_TEST_IDS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/CustomDomain/CustomDomainCopy";
-import { CustomDomainModel } from "../../../../App/FeatureSet/Dashboard/src/Components/CustomDomain/CustomDomainKinds";
+import {
+  CustomDomainKind,
+  CustomDomainModel,
+  DASHBOARD_CUSTOM_DOMAINS,
+  FORM_CUSTOM_DOMAINS,
+  STATUS_PAGE_CUSTOM_DOMAINS,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/CustomDomain/CustomDomainKinds";
+import { getAddCustomDomainFields } from "../../../../App/FeatureSet/Dashboard/src/Components/CustomDomain/AddCustomDomainModal";
+import { CustomDomainAddressCopy } from "../../../../App/FeatureSet/Dashboard/src/Components/CustomDomain/CustomDomainAddress";
 import { CUSTOM_DOMAIN_NAME_TEST_IDS } from "../../../../App/FeatureSet/Dashboard/src/Components/CustomDomain/CustomDomainName";
 import FieldType from "../../../UI/Components/Types/FieldType";
 import API from "../../../UI/Utils/API/API";
@@ -81,9 +91,8 @@ import Permission from "../../../Types/Permission";
  * are one table now - and a form's (Forms > <form> > Custom Domains) is the
  * same table - and every test here runs on all three:
  *
- *   - adding a domain is one page: Subdomain and Domain - verified domains
- *     only, with a link to add one - and the certificate options folded
- *     under Advanced;
+ *   - adding a domain is a dialog of its own: the address people will
+ *     open, and the certificate options folded under Advanced;
  *   - the new domain's DNS Setup dialog opens as soon as it is added;
  *   - DNS Setup (the old Add CNAME) shows until the record is verified;
  *     there is no Order Free SSL; Reissue SSL stays;
@@ -128,6 +137,16 @@ jest.mock("../../../UI/Config", () => {
   Object.defineProperty(mocked, "StatusPageCNameRecord", cnameRecord);
   Object.defineProperty(mocked, "DashboardCNameRecord", cnameRecord);
   Object.defineProperty(mocked, "FormCNameRecord", cnameRecord);
+
+  /*
+   * OneUptime Cloud: a self-hosted server's readiness, read when DNS Setup
+   * or Add Custom Domain opens, is AddCustomDomainModal.test.tsx's.
+   */
+  Object.defineProperty(mocked, "BILLING_ENABLED", {
+    get: (): boolean => {
+      return true;
+    },
+  });
 
   // Whether the installation issues free certificates: yes unless a test says.
   Object.defineProperty(mocked, "CUSTOM_DOMAIN_FREE_CERTIFICATES", {
@@ -254,6 +273,9 @@ interface PageCase {
   route: string;
   crudApiPath: string;
   copy: CustomDomainKindCopy;
+  kind: CustomDomainKind;
+  // Add Custom Domain's example address.
+  addressPlaceholder: string;
   cardDescription: string;
   /*
    * A role that may change the kind's domains: a member, for a status page's
@@ -279,6 +301,8 @@ const PAGES: Array<PageCase> = [
     route: "/dashboard/status-pages",
     crudApiPath: "/status-page-domain",
     copy: STATUS_PAGE_CUSTOM_DOMAIN_COPY,
+    kind: STATUS_PAGE_CUSTOM_DOMAINS,
+    addressPlaceholder: "status.example.com",
     cardDescription:
       "Serve this status page on your own domain. Point each domain's CNAME record to statuspage.oneuptime.com, and we issue its SSL certificate and renew it for you.",
     editorRole: Permission.ProjectMember,
@@ -298,6 +322,8 @@ const PAGES: Array<PageCase> = [
     route: "/dashboard/dashboards",
     crudApiPath: "/dashboard-domain",
     copy: DASHBOARD_CUSTOM_DOMAIN_COPY,
+    kind: DASHBOARD_CUSTOM_DOMAINS,
+    addressPlaceholder: "dashboard.example.com",
     cardDescription:
       "Serve this dashboard on your own domain. Point each domain's CNAME record to dashboards.oneuptime.com, and we issue its SSL certificate and renew it for you.",
     editorRole: Permission.ProjectMember,
@@ -317,6 +343,8 @@ const PAGES: Array<PageCase> = [
     route: "/dashboard/forms",
     crudApiPath: "/form-domain",
     copy: FORM_CUSTOM_DOMAIN_COPY,
+    kind: FORM_CUSTOM_DOMAINS,
+    addressPlaceholder: "report.example.com",
     cardDescription:
       "Serve this form on your own domain, at its root. Point each domain's CNAME record to forms.oneuptime.com, and we issue its SSL certificate and renew it for you.",
     editorRole: Permission.ProjectAdmin,
@@ -413,17 +441,6 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
   function tableProps(): ModelTableProps<CustomDomainModel> {
     expect(mockTableProps).not.toBeNull();
     return mockTableProps!;
-  }
-
-  function fieldOf(key: string): ModelField<CustomDomainModel> {
-    const field: ModelField<CustomDomainModel> | undefined = (
-      tableProps().formFields || []
-    ).find((candidate: ModelField<CustomDomainModel>) => {
-      return Object.keys(candidate.field || {})[0] === key;
-    });
-
-    expect(field).toBeDefined();
-    return field!;
   }
 
   // The fields the Create or the Edit dialog is given, as ModelTable picks them.
@@ -536,30 +553,6 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
       expect(String(query["projectId"])).toBe(PROJECT_ID.toString());
     });
 
-    test("a new domain belongs to this page and to the project", async () => {
-      const project: Project = new Project();
-      project._id = PROJECT_ID.toString();
-
-      renderPage([], project);
-
-      const created: CustomDomainModel = await tableProps().onBeforeCreate!(
-        new page.modelType(),
-        {},
-        {},
-      );
-
-      expect(
-        String(
-          (created as unknown as Record<string, unknown>)[page.parentColumn],
-        ),
-      ).toBe(PARENT_ID.toString());
-      expect(created.projectId?.toString()).toBe(PROJECT_ID.toString());
-    });
-
-    /*
-     * Regression: "CNAME Valid" and "SSL Provisioned" had an empty field,
-     * so picking Yes or No filtered nothing.
-     */
     test("every filter filters a column", () => {
       renderPage();
 
@@ -1112,7 +1105,7 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
       });
 
       expect(String(get.mock.calls[0]![0].url)).toContain(
-        `${page.crudApiPath}/verify-cname/${rowNamed(UNVERIFIED)._id}`,
+        `${page.crudApiPath}/check-dns/${rowNamed(UNVERIFIED)._id}`,
       );
     });
   });
@@ -1289,26 +1282,121 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
   });
 
   describe("adding a domain", () => {
-    test("is one page: no steps", () => {
+    /*
+     * Add Custom Domain is a dialog of its own (AddCustomDomainModal, and
+     * AddCustomDomainModal.test.tsx for its flow): one field, the address,
+     * and the project's domain verified in place when it is not yet. The
+     * table's own form is Edit's alone.
+     */
+    test("is a dialog of its own, opened by the table's Add Custom Domain", () => {
       renderPage();
 
+      expect(tableProps().onCreateClick).toBeDefined();
+      expect(tableProps().createVerb).toBe("Add");
+      expect(tableProps().singularName).toBe("Custom Domain");
+      expect(tableProps().isCreateable).toBe(true);
+      // Nothing of the table's own create form is left.
+      expect(formKeys(ModalType.Create)).toEqual([]);
+      expect(tableProps().onCreateSuccess).toBeUndefined();
       expect(tableProps().formSteps || []).toEqual([]);
-
-      for (const field of tableProps().formFields || []) {
-        expect(field.stepId).toBeUndefined();
-      }
     });
 
-    test("asks for the subdomain and the domain, then the certificate options", () => {
+    test("Add Custom Domain asks for the address, with this page's example", async () => {
+      getJestSpyOn(API, "get").mockResolvedValue(
+        new HTTPResponse(200, { target: "", checks: [] }, {}) as never,
+      );
+
       renderPage();
 
-      expect(formKeys(ModalType.Create)).toEqual([
-        "subdomain",
-        "domain",
-        "isCustomCertificate",
-        "customCertificate",
-        "customCertificateKey",
-      ]);
+      expect(screen.queryByTestId("modal")).toBeNull();
+
+      await act(async (): Promise<void> => {
+        tableProps().onCreateClick!();
+      });
+
+      const dialog: HTMLElement = screen.getByTestId("modal");
+
+      expect(dialog).toHaveTextContent(CustomDomainCopy.addTitle);
+      expect(
+        within(dialog).getByPlaceholderText(page.copy.addressPlaceholder),
+      ).toBeInTheDocument();
+      expect(page.copy.addressPlaceholder).toBe(page.addressPlaceholder);
+    });
+
+    test("on a verified domain the new domain's DNS Setup opens as soon as it is added", async () => {
+      getJestSpyOn(API, "get").mockResolvedValue(
+        new HTTPResponse(200, { target: "", checks: [] }, {}) as never,
+      );
+
+      const projectDomain: Domain = new Domain();
+      projectDomain._id = ObjectID.generate().toString();
+      projectDomain.domain = "acme.com" as never;
+      projectDomain.isVerified = true;
+
+      getJestSpyOn(ModelAPI, "getList").mockResolvedValue({
+        data: [projectDomain],
+        count: 1,
+        skip: 0,
+        limit: 1,
+      } as never);
+
+      const create: jest.SpyInstance<any, any> = getJestSpyOn(
+        ModelAPI,
+        "create",
+      ).mockResolvedValue(
+        new HTTPResponse(
+          200,
+          {
+            _id: ObjectID.generate().toString(),
+            fullDomain: "new.acme.com",
+            subdomain: "new",
+          },
+          {},
+        ) as never,
+      );
+
+      renderPage([], { _id: PROJECT_ID.toString() } as unknown as Project);
+
+      await act(async (): Promise<void> => {
+        tableProps().onCreateClick!();
+      });
+
+      await act(async (): Promise<void> => {
+        fireEvent.change(
+          within(screen.getByTestId("modal")).getByPlaceholderText(
+            page.copy.addressPlaceholder,
+          ),
+          { target: { value: "new.acme.com" } },
+        );
+      });
+
+      await act(async (): Promise<void> => {
+        fireEvent.click(
+          within(screen.getByTestId("modal")).getByRole("button", {
+            name: CustomDomainCopy.addSubmit,
+          }),
+        );
+      });
+
+      await act(async (): Promise<void> => {
+        await new Promise<void>((resolve: () => void) => {
+          setTimeout(resolve, 0);
+        });
+      });
+
+      expect(create).toHaveBeenCalledTimes(1);
+
+      const dialog: HTMLElement = screen.getByTestId("modal");
+
+      expect(
+        within(dialog).getByRole("heading", { name: "DNS Setup" }),
+      ).toBeInTheDocument();
+      expect(
+        within(dialog).getByTestId(DNS_SETUP_TEST_IDS.recordName),
+      ).toHaveTextContent("new.acme.com");
+      expect(
+        within(dialog).getByRole("button", { name: "Check now" }),
+      ).toBeInTheDocument();
     });
 
     /*
@@ -1324,14 +1412,13 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
         "customCertificate",
         "customCertificateKey",
       ]);
-      expect(fieldOf("domain").doNotShowWhenEditing).toBe(true);
     });
 
     /*
      * Folded under More fields on Edit too, they left the Edit dialog with
      * nothing in it but the fold's line.
      */
-    test("Edit shows the certificate options at once, not folded", () => {
+    test("Edit shows the certificate options at once, not folded, saying what Add says", () => {
       renderPage();
 
       const onEdit: Array<ModelField<CustomDomainModel>> = formFieldsOn(
@@ -1345,18 +1432,21 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
         expect(field.doNotShowWhenCreating).toBe(true);
       }
 
-      // The same switch, saying the same, as on Create.
-      const createSwitch: ModelField<CustomDomainModel> = fieldOf(
-        "isCustomCertificate",
-      );
+      // The same switch, saying the same, as Add Custom Domain's.
+      const addSwitch: Field<FormValues<JSONObject>> | undefined =
+        getAddCustomDomainFields(page.kind).find(
+          (field: Field<FormValues<JSONObject>>) => {
+            return Object.keys(field.field || {})[0] === "isCustomCertificate";
+          },
+        ) as Field<FormValues<JSONObject>> | undefined;
       const editSwitch: ModelField<CustomDomainModel> = onEdit[0]!;
 
       expect(Object.keys(editSwitch.field || {})).toEqual([
         "isCustomCertificate",
       ]);
-      expect(editSwitch.title).toBe(createSwitch.title);
-      expect(editSwitch.description).toBe(createSwitch.description);
-      expect(editSwitch.fieldType).toBe(createSwitch.fieldType);
+      expect(editSwitch.title).toBe(addSwitch?.title);
+      expect(editSwitch.description).toBe(addSwitch?.description);
+      expect(editSwitch.fieldType).toBe(addSwitch?.fieldType);
       expect(editSwitch.defaultValue).toBe(false);
 
       // The certificate and its key, only while the switch is on.
@@ -1371,12 +1461,6 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
             field.required as (values: FormValues<CustomDomainModel>) => boolean
           )({ isCustomCertificate: true } as FormValues<CustomDomainModel>),
         ).toBe(true);
-      }
-
-      // And on Create they stay folded, Create only.
-      for (const field of formFieldsOn(ModalType.Create).slice(2)) {
-        expect(field.collapsibleSection).toBeDefined();
-        expect(field.doNotShowWhenEditing).toBe(true);
       }
     });
 
@@ -1397,8 +1481,7 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
         );
       });
 
-      // Create's and Edit's.
-      expect(certificateFields).toHaveLength(4);
+      expect(certificateFields).toHaveLength(2);
 
       for (const field of certificateFields) {
         expect(field.hideColumnDescription).toBe(true);
@@ -1406,222 +1489,62 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
       }
     });
 
-    /*
-     * A name another status page, dashboard or form has already used to be
-     * said over the whole form, in red, while the subdomain to change sat
-     * under it.
-     */
-    test("a refusal about the subdomain or the domain is said under that field", () => {
-      renderPage();
+    test("Add's certificate options are one folded Advanced section, which says which certificate the domain will use", () => {
+      const fields: Array<Field<FormValues<JSONObject>>> =
+        getAddCustomDomainFields(page.kind) as unknown as Array<
+          Field<FormValues<JSONObject>>
+        >;
 
-      const subdomainOwns: (message: string) => boolean =
-        fieldOf("subdomain").ownsServerError!;
-      const domainOwns: (message: string) => boolean =
-        fieldOf("domain").ownsServerError!;
+      const keyOf: (field: Field<FormValues<JSONObject>>) => string = (
+        field: Field<FormValues<JSONObject>>,
+      ): string => {
+        return Object.keys(field.field || {})[0] || "";
+      };
 
-      const nameInUse: string =
-        "report.acme.com is already in use: a domain can show only one status page, dashboard or form. Choose another subdomain, or remove report.acme.com where it is used first.";
-      const notValid: string =
-        'Subdomain a/b is not valid. Use a plain subdomain such as "report" — schemes, ports, paths and "/" are not allowed.';
-      const notVerified: string =
-        "This domain is not verified. Please verify it in Project Settings > Advanced > Domains.";
-      const noDomain: string = "Please select a valid domain.";
-
-      expect(subdomainOwns(nameInUse)).toBe(true);
-      expect(subdomainOwns(notValid)).toBe(true);
-      expect(subdomainOwns(notVerified)).toBe(false);
-      expect(domainOwns(notVerified)).toBe(true);
-      expect(domainOwns(noDomain)).toBe(true);
-      expect(domainOwns(nameInUse)).toBe(false);
-
-      // Anything else stays over the form.
-      for (const other of [
-        "Custom certificate or private key is missing",
-        "We could not reach OneUptime. Check your connection and try again.",
-      ]) {
-        expect(subdomainOwns(other)).toBe(false);
-        expect(domainOwns(other)).toBe(false);
-      }
-    });
-
-    test("the subdomain's example is this page's own", () => {
-      renderPage();
-
-      expect(fieldOf("subdomain").placeholder).toBe(
-        page.copy.subdomainPlaceholder,
-      );
-      expect(fieldOf("subdomain").description).toBe(
-        page.copy.subdomainDescription,
-      );
-    });
-
-    /*
-     * The server refuses a domain that is not verified, so listing one only
-     * led to "This domain is not verified" after the form was filled in.
-     */
-    test("Domain lists verified domains only, and links to where a domain is added", () => {
-      renderPage();
-
-      const domainField: ModelField<CustomDomainModel> = fieldOf("domain");
-
-      expect(domainField.dropdownModal?.type).toBe(Domain);
-      expect(domainField.dropdownModal?.query).toEqual({ isVerified: true });
-      expect(domainField.required).toBe(true);
-      expect(domainField.description).toBe(
-        "Only domains verified in Project Settings → Advanced → Domains are listed.",
-      );
-      expect(domainField.sideLink?.text).toBe("Add a domain");
-      expect(domainField.sideLink?.url.toString()).toContain(
-        `/${PROJECT_ID.toString()}/settings/domains`,
-      );
-      // A new tab: the form being filled in stays as it is.
-      expect(domainField.sideLink?.openLinkInNewTab).toBe(true);
-    });
-
-    test("the certificate options are one folded Advanced section", () => {
-      renderPage();
-
-      const sections: Array<FormFieldCollapsibleSection<CustomDomainModel>> = [
+      expect(fields.map(keyOf)).toEqual([
+        "address",
         "isCustomCertificate",
         "customCertificate",
         "customCertificateKey",
-      ].map((key: string) => {
-        return fieldOf(key).collapsibleSection!;
-      });
+      ]);
+
+      const sections: Array<unknown> = fields
+        .slice(1)
+        .map((field: Field<FormValues<JSONObject>>) => {
+          return field.collapsibleSection;
+        });
 
       expect(sections[0]).toBeDefined();
-      // One section: the same object on each field.
       expect(sections[1]).toBe(sections[0]);
       expect(sections[2]).toBe(sections[0]);
-      expect(sections[0]!.title).toBe(MORE_FIELDS_SECTION_TITLE);
-      expect(sections[0]!.openWhenConfigured).toBe(false);
+      expect(fields[0]!.collapsibleSection).toBeUndefined();
 
-      expect(fieldOf("subdomain").collapsibleSection).toBeUndefined();
-      expect(fieldOf("domain").collapsibleSection).toBeUndefined();
-    });
+      const section: FormFieldCollapsibleSection<FormValues<JSONObject>> =
+        fields[1]!.collapsibleSection!;
 
-    test("folded, Advanced says which certificate the domain will use", () => {
-      renderPage();
-
-      const section: FormFieldCollapsibleSection<CustomDomainModel> = fieldOf(
-        "isCustomCertificate",
-      ).collapsibleSection!;
-
-      expect(section.getSummary!({} as FormValues<CustomDomainModel>)).toEqual([
+      expect(section.title).toBe(MORE_FIELDS_SECTION_TITLE);
+      expect(section.openWhenConfigured).toBe(false);
+      expect(section.getSummary!({} as FormValues<JSONObject>)).toEqual([
         CustomDomainCopy.advancedSummaryFreeCertificate,
       ]);
       expect(
         section.getSummary!({
           isCustomCertificate: true,
-        } as FormValues<CustomDomainModel>),
+        } as FormValues<JSONObject>),
       ).toEqual([CustomDomainCopy.advancedSummaryUploadedCertificate]);
-    });
 
-    test("the switch starts off, as the column does, and the certificate and key are needed only when it is on", () => {
-      renderPage();
-
-      expect(fieldOf("isCustomCertificate").defaultValue).toBe(false);
-
-      for (const key of ["customCertificate", "customCertificateKey"]) {
-        const field: ModelField<CustomDomainModel> = fieldOf(key);
-        const required: (values: FormValues<CustomDomainModel>) => boolean =
-          field.required as (values: FormValues<CustomDomainModel>) => boolean;
-
-        expect(
-          required({
-            isCustomCertificate: true,
-          } as FormValues<CustomDomainModel>),
-        ).toBe(true);
-        expect(
-          required({
-            isCustomCertificate: false,
-          } as FormValues<CustomDomainModel>),
-        ).toBe(false);
-        expect(
-          field.showIf!({
-            isCustomCertificate: false,
-          } as FormValues<CustomDomainModel>),
-        ).toBe(false);
-      }
-    });
-
-    /*
-     * The full domain is worked out when the domain is added and never
-     * again, so a subdomain changed on Edit changed nothing on screen.
-     */
-    test("Edit does not offer the subdomain, which an edit could not change", () => {
-      renderPage();
-
-      expect(fieldOf("subdomain").doNotShowWhenEditing).toBe(true);
-    });
-
-    test("the new domain's DNS Setup opens as soon as it is added", async () => {
-      renderPage();
-
-      const created: CustomDomainModel = domain("new.acme.com", {});
-
-      expect(screen.queryByTestId("modal")).toBeNull();
-
-      await act(async (): Promise<void> => {
-        await tableProps().onCreateSuccess!(created, ModalType.Create);
-      });
-
-      const dialog: HTMLElement = screen.getByTestId("modal");
-
+      // The address is needed, and must be one.
+      expect(fields[0]!.required).toBe(true);
       expect(
-        within(dialog).getByRole("heading", { name: "DNS Setup" }),
-      ).toBeInTheDocument();
+        fields[0]!.customValidation!({
+          address: "not a domain",
+        } as FormValues<JSONObject>),
+      ).toBe(CustomDomainAddressCopy.invalidAddress);
       expect(
-        within(dialog).getByTestId(DNS_SETUP_TEST_IDS.recordName),
-      ).toHaveTextContent("new.acme.com");
-      expect(
-        within(dialog).getByRole("button", { name: "Check now" }),
-      ).toBeInTheDocument();
-    });
-
-    test("saving an edit does not open DNS Setup", async () => {
-      renderPage();
-
-      await act(async (): Promise<void> => {
-        await tableProps().onCreateSuccess!(
-          domain(ORDERED, { isCnameVerified: true }),
-          ModalType.Edit,
-        );
-      });
-
-      expect(screen.queryByTestId("modal")).toBeNull();
-    });
-
-    test("a created domain that came back without its name is read again before DNS Setup opens", async () => {
-      renderPage();
-
-      const created: CustomDomainModel = new page.modelType();
-      created._id = ObjectID.generate().toString();
-
-      const fetched: CustomDomainModel = domain("read-again.acme.com", {});
-      fetched._id = created._id;
-
-      const getItem: jest.SpyInstance<any, any> = getJestSpyOn(
-        ModelAPI,
-        "getItem",
-      ).mockResolvedValue(fetched as never);
-
-      await act(async (): Promise<void> => {
-        await tableProps().onCreateSuccess!(created, ModalType.Create);
-      });
-
-      expect(getItem).toHaveBeenCalledTimes(1);
-
-      const request: { id: ObjectID; modelType: unknown } = getItem.mock
-        .calls[0]![0] as { id: ObjectID; modelType: unknown };
-
-      expect(request.id.toString()).toBe(created._id);
-      expect(request.modelType).toBe(page.modelType);
-      expect(
-        within(screen.getByTestId("modal")).getByTestId(
-          DNS_SETUP_TEST_IDS.recordName,
-        ),
-      ).toHaveTextContent("read-again.acme.com");
+        fields[0]!.customValidation!({
+          address: page.addressPlaceholder,
+        } as FormValues<JSONObject>),
+      ).toBeNull();
     });
   });
 
@@ -1774,20 +1697,20 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
       );
     });
 
-    test("the folded certificate options say the proxy serves it, unless a certificate is uploaded", () => {
-      renderPage();
+    test("Add Custom Domain's folded certificate options say the proxy serves it, unless a certificate is uploaded", () => {
+      const section: FormFieldCollapsibleSection<FormValues<JSONObject>> = (
+        getAddCustomDomainFields(page.kind) as unknown as Array<
+          Field<FormValues<JSONObject>>
+        >
+      )[1]!.collapsibleSection!;
 
-      const section: FormFieldCollapsibleSection<CustomDomainModel> = fieldOf(
-        "isCustomCertificate",
-      ).collapsibleSection!;
-
-      expect(section.getSummary!({} as FormValues<CustomDomainModel>)).toEqual([
+      expect(section.getSummary!({} as FormValues<JSONObject>)).toEqual([
         CustomDomainCopy.advancedSummaryWithoutFreeCertificate,
       ]);
       expect(
         section.getSummary!({
           isCustomCertificate: true,
-        } as FormValues<CustomDomainModel>),
+        } as FormValues<JSONObject>),
       ).toEqual([CustomDomainCopy.advancedSummaryUploadedCertificate]);
     });
   });

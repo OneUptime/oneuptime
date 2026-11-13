@@ -122,6 +122,9 @@ describe("ProjectAPI", () => {
             paymentProviderMeteredSubscriptionStatus: true,
             paymentProviderSubscriptionStatus: true,
             isBlocked: true,
+            createdByUserId: true,
+            // The products the project shows, drawn before any request (#6814).
+            productSettings: true,
           },
         },
         limit: LIMIT_PER_PROJECT,
@@ -209,6 +212,9 @@ describe("ProjectAPI", () => {
             paymentProviderMeteredSubscriptionStatus: true,
             paymentProviderSubscriptionStatus: true,
             isBlocked: true,
+            createdByUserId: true,
+            // The products the project shows, drawn before any request (#6814).
+            productSettings: true,
           },
         },
         limit: LIMIT_PER_PROJECT,

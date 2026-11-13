@@ -45,7 +45,7 @@ import {
 import URL from "../../Types/API/URL";
 import Dictionary from "../../Types/Dictionary";
 import { AppVersion, Env, DisableTelemetry } from "../EnvironmentConfig";
-import logger from "./Logger";
+import logger, { EXTERNAL_FAULT } from "./Logger";
 import GracefulShutdown, { ShutdownPriority } from "./GracefulShutdown";
 import ContextSpanProcessor from "./Telemetry/ContextSpanProcessor";
 import { createSpanExportProcessor } from "./Telemetry/SpanExportQueue";
@@ -57,6 +57,13 @@ import ErrorClass, {
 import { ERROR_CLASS_ATTRIBUTE_KEY } from "../../Types/Telemetry/UnitOfWork";
 import RuntimeMetrics from "./Telemetry/RuntimeMetrics";
 import { getKubernetesResourceAttributes } from "./Telemetry/KubernetesResourceAttributes";
+import {
+  describeUnreadableOtlpHeaders,
+  NOTHING_EXPORTED_WITHOUT_A_HEADER,
+  OTLP_EXPORTER_HEADERS_SETTING,
+  readOtlpExporterHeaders,
+  type OtlpExporterHeaders,
+} from "./Telemetry/OtlpExporterHeaders";
 import fs from "fs";
 import os from "os";
 
@@ -129,24 +136,46 @@ export default class Telemetry {
     return this.spanExportEnabled;
   }
 
+  /*
+   * Whether the operator has been told about a header OneUptime cannot read.
+   * They are told once a process, however often the headers are read.
+   */
+  private static hasWarnedAboutUnreadableHeaders: boolean = false;
+
+  /*
+   * The headers the exporters send, from OPENTELEMETRY_EXPORTER_OTLP_HEADERS:
+   * name=value pairs separated by ';', each split at its first '=' so that a
+   * value may hold '=' (see OtlpExporterHeaders).
+   */
   public static getHeaders(): Dictionary<string> {
-    if (!process.env["OPENTELEMETRY_EXPORTER_OTLP_HEADERS"]) {
-      return {};
+    const read: OtlpExporterHeaders = this.readHeaders();
+
+    this.warnAboutUnreadableHeaders(read);
+
+    return read.headers;
+  }
+
+  private static readHeaders(): OtlpExporterHeaders {
+    return readOtlpExporterHeaders(process.env[OTLP_EXPORTER_HEADERS_SETTING]);
+  }
+
+  private static warnAboutUnreadableHeaders(read: OtlpExporterHeaders): void {
+    const unreadable: string | null = describeUnreadableOtlpHeaders(read);
+
+    if (!unreadable || this.hasWarnedAboutUnreadableHeaders) {
+      return;
     }
 
-    const headersStrings: Array<string> =
-      process.env["OPENTELEMETRY_EXPORTER_OTLP_HEADERS"].split(";");
+    this.hasWarnedAboutUnreadableHeaders = true;
 
-    const headers: Dictionary<string> = {};
-
-    for (const headerString of headersStrings) {
-      const header: Array<string> = headerString.split("=");
-      if (header.length === 2) {
-        headers[header[0]!.toString()] = header[1]!.toString();
-      }
-    }
-
-    return headers;
+    /*
+     * Logged at WARN severity, through error(): EXTERNAL_FAULT marks a
+     * setting the operator wrote, so the line is a warning and never an
+     * Issue, yet it still prints under LOG_LEVEL=ERROR, the level
+     * config.example.env ships, where warn() would print nothing. The line
+     * names each header by its place only, never by a name or a value.
+     */
+    logger.error(unreadable, EXTERNAL_FAULT);
   }
 
   public static getOtlpEndpoint(): URL | null {
@@ -222,7 +251,15 @@ export default class Telemetry {
     }
 
     if (!this.sdk) {
-      const headers: Dictionary<string> = this.getHeaders();
+      /*
+       * Read quietly here: the operator is told about a header OneUptime
+       * cannot read once the logger provider below is in place, so that,
+       * when the other headers can be sent, the warning reaches the exported
+       * logs too, not only the process's own output.
+       */
+      const headersRead: OtlpExporterHeaders = this.readHeaders();
+
+      const headers: Dictionary<string> = headersRead.headers;
 
       const hasHeaders: boolean = Object.keys(headers).length > 0;
 
@@ -298,6 +335,17 @@ export default class Telemetry {
       this.loggerProvider = new LoggerProvider(loggerProviderConfig);
 
       logs.setGlobalLoggerProvider(this.loggerProvider);
+
+      this.warnAboutUnreadableHeaders(headersRead);
+
+      /*
+       * Every signal is exported only with a header. An endpoint set without
+       * one used to send nothing and say nothing, so the operator found an
+       * empty backend and no reason for it.
+       */
+      if (this.getOtlpEndpoint() && !hasHeaders) {
+        logger.error(NOTHING_EXPORTED_WITHOUT_A_HEADER, EXTERNAL_FAULT);
+      }
 
       const nodeSdkConfiguration: Partial<opentelemetry.NodeSDKConfiguration> =
         {

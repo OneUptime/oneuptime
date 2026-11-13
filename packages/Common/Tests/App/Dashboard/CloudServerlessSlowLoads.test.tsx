@@ -10,7 +10,13 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
@@ -230,7 +236,18 @@ interface OverviewCase {
   liveCalls: () => number;
   // Where the page remembers the reader's auto-refresh interval.
   storageKey: string;
+  /*
+   * What each chart's empty box says, by its title, once every metric
+   * aggregate failed: a chart whose read knows it failed says so (the Cloud
+   * environment's spans, as its tiles read "could not load"), and one whose
+   * helper answers a failure with an empty result says it has no data.
+   */
+  chartsWhenAggregatesFail: Array<[string, string]>;
 }
+
+const NO_DATA: string = "No data in this time range";
+const CHART_LOAD_FAILED: string =
+  "Something went wrong. Try again in a moment.";
 
 const OVERVIEWS: Array<[string, OverviewCase]> = [
   [
@@ -252,6 +269,10 @@ const OVERVIEWS: Array<[string, OverviewCase]> = [
         return getListMock.mock.calls.length; // the instance list
       },
       storageKey: "cloud-overview-auto-refresh-interval",
+      chartsWhenAggregatesFail: [
+        ["Requests", CHART_LOAD_FAILED],
+        ["Memory", NO_DATA],
+      ],
     },
   ],
   [
@@ -273,6 +294,10 @@ const OVERVIEWS: Array<[string, OverviewCase]> = [
         return countMock.mock.calls.length; // the instance count
       },
       storageKey: "serverless-overview-auto-refresh-interval",
+      chartsWhenAggregatesFail: [
+        ["Invocations", NO_DATA],
+        ["p95 duration", NO_DATA],
+      ],
     },
   ],
 ];
@@ -282,6 +307,18 @@ function tileOf(title: string): HTMLElement {
   return screen
     .getAllByRole("button", { name: `About ${title}` })[0]!
     .closest(".rounded-xl") as HTMLElement;
+}
+
+/*
+ * A chart's card, by its title: the last "About <title>", since the charts
+ * are drawn after the tiles and a tile may share the title.
+ */
+function chartCardOf(title: string): HTMLElement {
+  const abouts: Array<HTMLElement> = screen.getAllByRole("button", {
+    name: `About ${title}`,
+  });
+
+  return abouts[abouts.length - 1]!.closest(".rounded-xl") as HTMLElement;
 }
 
 async function mount(overview: OverviewCase): Promise<void> {
@@ -579,13 +616,26 @@ describe.each(OVERVIEWS)(
       expect(backlog.calls().every(endsAt(at("12:00:30")))).toBe(true);
     });
 
-    test("failed aggregates settle the load too: the charts leave their skeletons, and the next tick loads again", async () => {
+    test("failed aggregates settle the load too: the charts leave their skeletons, each says why it is empty, and the next tick loads again", async () => {
       await mount(overview);
       await advance(5_000);
 
       await backlog.fail(endsAt(NOW), new Error("Analytics is down"));
-      // The metric helpers answer a failure with an empty result.
-      expect(screen.getAllByText("No data in this time range")).toHaveLength(2);
+
+      for (const [title, says] of overview.chartsWhenAggregatesFail) {
+        expect(within(chartCardOf(title)).getByText(says)).toBeInTheDocument();
+      }
+
+      // Nothing else says it: each sentence is drawn once per chart that has it.
+      for (const says of [NO_DATA, CHART_LOAD_FAILED]) {
+        expect(screen.queryAllByText(says)).toHaveLength(
+          overview.chartsWhenAggregatesFail.filter(
+            ([, chartSays]: [string, string]): boolean => {
+              return chartSays === says;
+            },
+          ).length,
+        );
+      }
 
       // 12:00:30: nothing is running any more, so the tick loads again.
       await advance(AUTO_REFRESH_MS - 5_000);

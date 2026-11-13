@@ -1,5 +1,9 @@
 import { describe, expect, test } from "@jest/globals";
 import DockerSwarmResource from "../../../Models/DatabaseModels/DockerSwarmResource";
+import { Translator } from "../../../Types/Translator";
+import { withSentenceDigits } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/SentenceDigits";
+import { dashboardTranslator } from "../../Helpers/DashboardLocales";
+import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 import Route from "../../../Types/API/Route";
 import IconProp from "../../../Types/Icon/IconProp";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
@@ -1181,5 +1185,72 @@ describe("which part an open incident or alert is about", () => {
       false,
     );
     expect(getDockerSwarmTaskId(webTask)).toBe("k3x9q");
+  });
+});
+
+/*
+ * A reason's counts are kept as plain digits ("2", "3"): every place that
+ * draws a reason fills its sentence through withSentenceDigits, which
+ * writes a whole number in the sentence's own digits (issue #7107) - "۲
+ * از ۳ رونوشت اجرا می‌شوند" on a Persian page, and English digits in a
+ * sentence the reader's language has not worded yet.
+ */
+describe("a reason's counts, drawn in the sentence's digits", () => {
+  const drawn: (
+    translator: Translator,
+    reason: ResourceAttentionText,
+  ) => string = (
+    translator: Translator,
+    reason: ResourceAttentionText,
+  ): string => {
+    return withoutIsolateMarks(
+      translator.translateTemplate(
+        reason.text,
+        withSentenceDigits(reason.values),
+      ),
+    );
+  };
+
+  test("a service short of replicas and the managers a swarm can reach, in Persian", () => {
+    const persian: Translator = dashboardTranslator("fa");
+    const short: ResourceAttentionText = assessDockerSwarmService(
+      service("shop_web", { runningReplicas: 2 }),
+      NOW,
+    ).reasons[0]!;
+
+    // Plain digits in the rules: the filter and the sort read them.
+    expect(short.values).toEqual({ running: "2", desired: "3" });
+    expect(drawn(persian, short)).toBe("۲ از ۳ رونوشت اجرا می‌شوند");
+
+    const none: ResourceAttentionText = assessDockerSwarmService(
+      service("shop_db", { runningReplicas: 0, desiredReplicas: 12 }),
+      NOW,
+    ).reasons[0]!;
+    expect(drawn(persian, none)).toBe("هیچ‌یک از ۱۲ رونوشت آن اجرا نمی‌شود");
+
+    const managers: ResourceAttentionText = {
+      text: "{{reachable}} of {{total}} managers reachable",
+      values: { reachable: "2", total: "3" },
+    };
+    expect(drawn(persian, managers)).toBe("۲ از ۳ مدیر در دسترس");
+  });
+
+  test("in English and Arabic, Latin digits", () => {
+    const short: ResourceAttentionText = assessDockerSwarmService(
+      service("shop_web", { runningReplicas: 2 }),
+      NOW,
+    ).reasons[0]!;
+
+    expect(drawn(dashboardTranslator("en"), short)).toBe("2 of 3 replicas run");
+    expect(drawn(dashboardTranslator("ar"), short)).toMatch(/2.*3/);
+  });
+
+  test("a sentence the reader's language has not worded yet keeps English digits", () => {
+    expect(
+      drawn(dashboardTranslator("fa"), {
+        text: "{{running}} of {{desired}} replicas in a sentence no locale has",
+        values: { running: "2", desired: "3" },
+      }),
+    ).toBe("2 of 3 replicas in a sentence no locale has");
   });
 });

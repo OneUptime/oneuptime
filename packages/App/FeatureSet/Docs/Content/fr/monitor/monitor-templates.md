@@ -100,7 +100,7 @@ Enregistrez vos modifications. La carte **Critères de surveillance**, et la con
 Utilisez **Synchroniser les critères vers les moniteurs liés**, ou **Synchroniser depuis le modèle** sur un moniteur lié en particulier.
 :::
 
-Par exemple, protégez **Monitor destination** et **Request headers** sur un modèle d'API. Les moniteurs de production et de préproduction gardent leurs propres URL et en-têtes, tandis que tous deux reçoivent les critères mis à jour du modèle et ses autres réglages non protégés.
+Par exemple, protégez **Monitor destination** et **En-têtes de la requête** sur un modèle d'API. Les moniteurs de production et de préproduction gardent leurs propres URL et en-têtes, tandis que tous deux reçoivent les critères mis à jour du modèle et ses autres réglages non protégés.
 
 Les options disponibles dépendent du type de moniteur. Elles comprennent les destinations et les ports, les options de requête HTTP, les connexions aux bases de données, les réglages DNS, les sélecteurs d'infrastructure et les requêtes de télémétrie. Les identifiants liés, comme un certificat client et sa clé privée, sont gardés ensemble.
 

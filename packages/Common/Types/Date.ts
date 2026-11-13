@@ -556,6 +556,37 @@ export default class OneUptimeDate {
   }
 
   /*
+   * A day with its month and its year, as a chart's axis names a day when
+   * its window holds a year or more: "02 Mar 2026" in English. In such a
+   * window "12 Nov" is two days, a year apart (XAxisUtil).
+   *
+   * In another language, as that language writes a short date with its year
+   * (Intl): "2. März 2026", "2 mars 2026", "2026年3月2日", "۲ مارس ۲۰۲۶".
+   */
+  public static getDateAsLocalDayMonthYearString(date: Date | string): string {
+    const instant: Date = this.fromString(date);
+
+    return writeInDateDisplayLanguage(
+      (): string => {
+        const local: moment.Moment = this.inCurrentTimezone(instant);
+        const day: string = this.padDatePart(local.date());
+        const month: string = this.getLocalShortMonthName(instant);
+
+        return `${day} ${month} ${local.year()}`;
+      },
+      (language: string, locale: string): string | null => {
+        // "2. März 2026", "2 mars 2026", "2026年3月2日", "۲ مارس ۲۰۲۶".
+        return this.getLocalizedDateText({
+          date: instant,
+          language,
+          locale,
+          shape: { onlyShowDate: true },
+        });
+      },
+    );
+  }
+
+  /*
    * The hour a chart's bucket starts at, with its day: "02 Mar, 14:00" in
    * English.
    *
@@ -662,18 +693,23 @@ export default class OneUptimeDate {
    * configured timezone (falling back to the one the browser reports), and the
    * 12- vs 24-hour choice follows the operating system's clock preference
    * unless a caller overrides it.
+   *
+   * With `showYear`, the year too: "Mar 1, 2025, 14:30" - for a window whose
+   * ends are not both in this year (isWindowInTheCurrentYear).
    */
   public static getDateAsLocalShortDateTimeString(
     date: Date | string,
     options?: {
       use12HourFormat?: boolean | undefined;
       includeSeconds?: boolean | undefined;
+      showYear?: boolean | undefined;
     },
   ): string {
     date = this.fromString(date);
 
     const use12HourFormat: boolean =
       options?.use12HourFormat ?? this.getUserPrefers12HourFormat();
+    const showYear: boolean = Boolean(options?.showYear);
 
     let timeFormat: string = use12HourFormat ? "h:mm" : "HH:mm";
 
@@ -686,19 +722,25 @@ export default class OneUptimeDate {
     }
 
     const instant: Date = date;
+    const dateFormat: string = showYear ? "MMM D, YYYY" : "MMM D";
 
     return writeInDateDisplayLanguage(
       (): string => {
-        return this.inCurrentTimezone(instant).format(`MMM D, ${timeFormat}`);
+        return this.inCurrentTimezone(instant).format(
+          `${dateFormat}, ${timeFormat}`,
+        );
       },
       (language: string, locale: string): string | null => {
-        // "1. März, 14:30", "1 mars, 14:30", "3月1日 14:30".
+        /*
+         * "1. März, 14:30", "1 mars, 14:30", "3月1日 14:30"; with the year,
+         * "1. März 2025, 14:30", "1 mars 2025, 14:30", "2025年3月1日 14:30".
+         */
         return this.getLocalizedDateText({
           date: instant,
           language,
           locale,
           shape: {
-            hideYear: true,
+            hideYear: !showYear,
             use12HourFormat,
             showSeconds: Boolean(options?.includeSeconds),
           },
@@ -780,6 +822,32 @@ export default class OneUptimeDate {
           locale,
           timezones: this.getCurrentTimezoneNames(),
           options: { month: "short", year: "numeric" },
+        });
+
+        return format ? format.format(instant) : null;
+      },
+    );
+  }
+
+  /*
+   * A moment's year on the reader's calendar (the configured timezone), as
+   * the reader's language writes a year alone: "2026"; "۲۰۲۶" in Persian;
+   * "2026年" in Japanese and Chinese; "2026년" in Korean. A yearly chart
+   * axis names its ticks with it, as its month ticks are named with
+   * getDateAsLocalMonthYearString ("2026年10月").
+   */
+  public static getDateAsLocalYearString(date: Date | string): string {
+    const instant: Date = this.fromString(date);
+
+    return writeInDateDisplayLanguage(
+      (): string => {
+        return this.inCurrentTimezone(instant).year().toString();
+      },
+      (_language: string, locale: string): string | null => {
+        const format: Intl.DateTimeFormat | null = getDateTimeFormat({
+          locale,
+          timezones: this.getCurrentTimezoneNames(),
+          options: { year: "numeric" },
         });
 
         return format ? format.format(instant) : null;
@@ -996,6 +1064,30 @@ export default class OneUptimeDate {
     };
 
     return yearOf(a) === yearOf(b);
+  }
+
+  /**
+   * Whether both ends of a window fall in the current year, on the reader's
+   * calendar (the configured timezone, New Year included): a label of the
+   * window can then leave the year out, as the time range button does
+   * ("Mar 1, 14:30 – Mar 2, 09:00"). Otherwise it cannot: a custom range of
+   * exactly a year read "Nov 12, 9:49 AM – Nov 12, 9:49 AM", as if it were
+   * no time at all, and a range in an earlier year did not say which (issue
+   * #7124).
+   *
+   * "The current year" is the one `now` is in: now, unless a caller says.
+   */
+  public static isWindowInTheCurrentYear(data: {
+    start: Date | string;
+    end: Date | string;
+    now?: Date | undefined;
+  }): boolean {
+    const now: Date = data.now || this.getCurrentDate();
+
+    return (
+      this.isSameYearInTimezone(data.start, now) &&
+      this.isSameYearInTimezone(data.end, now)
+    );
   }
 
   /*

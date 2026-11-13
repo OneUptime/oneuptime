@@ -511,6 +511,14 @@ export default class SlackConnectPrompt {
     place: SlackAnswerPlace;
     slackTeamId?: string | undefined;
     /*
+     * The workspace of the channel the press was made in, when it is known
+     * (SlackRequest.slackChannelTeamId): where the settings page's "Back to
+     * Slack" opens the channel - else the press's own workspace, kept until
+     * the person comes back connected and Slack is asked for the channel's
+     * (SlackOrganization.getWorkspaceIdToOpenChannelIn).
+     */
+    slackChannelTeamId?: string | undefined;
+    /*
      * The workspace and, in a Slack Enterprise organization, the
      * organization the press was made in: the projects connected to either
      * are the ones it could be about (SlackRequestWorkspace). Without it,
@@ -528,7 +536,7 @@ export default class SlackConnectPrompt {
         pendingAction: data.description.pendingAction,
         again: data.description.again,
         slack: {
-          teamId: data.slackTeamId,
+          teamId: data.slackChannelTeamId || data.slackTeamId,
           channelId: data.place.slackChannelId,
           threadTs: data.place.slackThreadTs,
           responseUrl: data.place.responseUrl,

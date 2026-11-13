@@ -204,9 +204,13 @@ const ENTERPRISE_ROUTES: Array<string> = [
  * Available on every edition. /visitor-addresses (where people sign in
  * from) takes a master admin's session only, never the master API key, so
  * the API reference does not list it (VisitorAddressesRoute.test.ts).
+ * /doctor (what is wrong with the installation, #6826) answers a POST too,
+ * which takes the cluster key instead, for `npm run doctor` and diagnose.sh
+ * (InstallationHealthRoute.test.ts).
  */
 const COMMUNITY_ROUTES: Array<string> = [
   "/clickhouse-capacity",
+  "/doctor",
   "/instance-health-logs",
   "/migrations",
   "/support-bundle",
@@ -1120,6 +1124,8 @@ describe("the master admin API reference matches the routes", () => {
 
     expect(flags).toEqual({
       "/overview": true,
+      // What needs attention (#6826): every edition.
+      "/doctor": false,
       "/queues": true,
       "/queues/{queueName}/failed-jobs": true,
       "/clickhouse-capacity": false,

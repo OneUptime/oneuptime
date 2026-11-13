@@ -15,6 +15,7 @@ import AuthenticationEmail from "../../../../App/FeatureSet/Identity/Utils/Authe
 import GoogleSignInRouter from "../../../../App/FeatureSet/Identity/API/GoogleSignIn";
 import { SSO_REQUIRED_SIGN_IN_MESSAGE } from "../../../Types/SSO/SignInMethods";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import { SignInMethod } from "../../../Types/UserSession/SessionSignIn";
 
 /*
  * Continue with Google's two endpoints. The callback is where a Google
@@ -390,7 +391,8 @@ describe("GET /google/callback", () => {
       expect.objectContaining({
         userId: user.id,
         isGlobalLogin: true,
-        additionalInfo: { signInMethod: "Google" },
+        // The audit log names how they signed in (SessionSignIn).
+        signIn: { method: SignInMethod.Google },
       }),
     );
     expect(CookieUtil.setUserCookie).toHaveBeenCalledWith(

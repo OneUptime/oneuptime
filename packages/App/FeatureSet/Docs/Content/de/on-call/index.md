@@ -1,6 +1,9 @@
 # Bereitschaft – Übersicht
 
-Bereitschaft ist der Weg, auf dem OneUptime zu jeder Stunde eine Person an ein Problem bringt. Braucht ein Vorfall, eine Warnung oder eine Episode jemanden, alarmieren ihre Bereitschaftsrichtlinien Personen Stufe für Stufe, bis jemand bestätigt, und jede Person wird so erreicht, wie sie es gewählt hat: per Push-Benachrichtigung, SMS, Anruf, E-Mail oder Chat-Nachricht. Diese Seite zeigt, wie die Teile zusammenpassen und wo jedes zu finden ist.
+Bereitschaft ist der Weg, auf dem OneUptime zu jeder Stunde eine Person an ein Problem bringt. Braucht ein Vorfall, eine Warnung oder eine Episode jemanden, alarmieren ihre Bereitschaftsrichtlinien Personen Stufe für Stufe, bis jemand bestätigt, und jede Person wird so erreicht, wie sie es gewählt hat: per Push-Benachrichtigung, SMS, Anruf, E-Mail oder Chat-Nachricht. Diese Seite zeigt, wie die Teile zusammenpassen und wo jedes zu finden ist. Das [Glossar](/docs/introduction/glossary#bereitschaftsrichtlinie) erklärt jedes Wort, das die Bereitschaft verwendet, in ein oder zwei Sätzen.
+
+> [!TIP]
+> Neu hier? Folgen Sie zuerst der Anleitung: [Per Anruf, SMS oder Push alarmiert werden](/docs/guides/paging).
 
 :::cards
 - [Wie ein Alarm jemanden erreicht](#wie-ein-alarm-jemanden-erreicht): Von einem neuen Vorfall bis zur Person, die antwortet.
@@ -36,6 +39,8 @@ Wenn ein Alarm zum ersten Mal jemanden erreicht, hält OneUptime das am Vorfall,
 > Ein Vorfall, eine Warnung oder Episode, die bereits bestätigt oder behoben erstellt wird, führt keine ihrer Richtlinien aus, und ihr Feed sagt das. Siehe [Bereits bestätigt oder behoben erstellt](/docs/alerts/index#bereits-bestätigt-oder-behoben-erstellt).
 
 ## Die Bausteine
+
+Die Wörter, die in ganz OneUptime verwendet werden, stehen im [Glossar](/docs/introduction/glossary).
 
 | Baustein | Was er entscheidet | Mehr dazu |
 | --- | --- | --- |

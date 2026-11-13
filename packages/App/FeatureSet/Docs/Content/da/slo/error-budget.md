@@ -19,13 +19,13 @@ total budget = (100% − target) × window length
 
 | Mål | Vindue på 7 dage | Vindue på 28 dage | Vindue på 30 dage | Vindue på 90 dage |
 | --- | --- | --- | --- | --- |
-| 99% | 1h 40m 48s | 6h 43m 12s | 7h 12m | 21h 36m |
-| 99.5% | 50m 24s | 3h 21m 36s | 3h 36m | 10h 48m |
-| 99.9% | 10m 5s | 40m 19s | 43m 12s | 2h 9m 36s |
-| 99.95% | 5m 2s | 20m 10s | 21m 36s | 1h 4m 48s |
-| 99.99% | 1m 0s | 4m 2s | 4m 19s | 12m 58s |
+| 99 % | 1 t., 40 min. og 48 sek. | 6 t., 43 min. og 12 sek. | 7 t. og 12 min. | 21 t. og 36 min. |
+| 99,5 % | 50 min. og 24 sek. | 3 t., 21 min. og 36 sek. | 3 t. og 36 min. | 10 t. og 48 min. |
+| 99,9 % | 10 min. og 5 sek. | 40 min. og 19 sek. | 43 min. og 12 sek. | 2 t., 9 min. og 36 sek. |
+| 99,95 % | 5 min. og 2 sek. | 20 min. og 10 sek. | 21 min. og 36 sek. | 1 t., 4 min. og 48 sek. |
+| 99,99 % | 1 min. og 0 sek. | 4 min. og 2 sek. | 4 min. og 19 sek. | 12 min. og 58 sek. |
 
-SLO'ets side **Indstillinger** viser det budget, dets mål tillader, ved siden af målet, for eksempel "43m 12s nedetid pr. vindue på 30 dage".
+SLO'ets side **Indstillinger** viser det budget, dets mål tillader, ved siden af målet, for eksempel "43 min. og 12 sek. nedetid pr. vindue på 30 dage".
 
 ### Budgettet for et SLO med flere monitorer
 
@@ -35,16 +35,16 @@ I tilstanden **Gennemsnit af monitorsekunder** tælles budgettet i monitorsekund
 
 ### Budgettet for en kalendermåned
 
-Et SLO med kalendermåned har hele månedens budget fra første dag: et SLO på 99,9 % i en måned med 31 dage har alle sine 44m 38s den 1. Budgettet beregnes ikke forholdsmæssigt efter den del af måneden, der er gået, så et nedbrud på et minut om morgenen den 1. bruger et minut af månedens budget.
+Et SLO med kalendermåned har hele månedens budget fra første dag: et SLO på 99,9 % i en måned med 31 dage har alle sine 44 min. og 38 sek. den 1. Budgettet beregnes ikke forholdsmæssigt efter den del af måneden, der er gået, så et nedbrud på et minut om morgenen den 1. bruger et minut af månedens budget.
 
 ## Resterende budget
 
 Efterhånden som nedetiden løber op, viser **Oversigt** det resterende budget i feltet **Fejlbudget tilbage**:
 
 - som en procentdel af det samlede budget, der også afgør SLO'ets status og fylder bjælken. Bjælken har et mærke ved SLO'ets risikotærskel;
-- som en varighed, for eksempel "31m 4s left of 43m 12s".
+- som en varighed, for eksempel "31 min. og 4 sek. tilbage af 43 min. og 12 sek.".
 
-Når budgettet er brugt op, viser feltet **Intet budget tilbage**. Når nedetiden overskrider det, viser feltet **Budget overskredet** og overskridelsen som tid, for eksempel "4d 23m over budget · 5m 47s allowed": SLO'et har brugt alle 5 minutter og 47 sekunder af sit budget og 4 dage og 23 minutter mere. Bjælken forbliver tom og rød.
+Når budgettet er brugt op, viser feltet **Intet budget tilbage**. Når nedetiden overskrider det, viser feltet **Budget overskredet** og overskridelsen som tid, for eksempel "4 dage og 23 min. over budget · 5 min. og 47 sek. tilladt": SLO'et har brugt alle 5 minutter og 47 sekunder af sit budget og 4 dage og 23 minutter mere. Bjælken forbliver tom og rød.
 
 Det resterende budget gemmes som et tal med fortegn til beregninger og historikdiagrammer, så der vises et overskredet budget som en negativ procentdel. En stærkt negativ procentdel betyder, at overskridelsen er stor i forhold til budgettet; det er ikke den andel af tiden, hvor tjenesten var nede.
 
@@ -60,7 +60,7 @@ runway = budget left ÷ (burn rate × (100% − target))
 
 | Feltet viser | Hvad det betyder |
 | --- | --- |
-| En varighed, som **~2d 5h** | I det nuværende tempo løber budgettet tør om cirka så lang tid. Gul, og rød ved en dag eller mindre. **Under 1 min.** betyder mindre end et minut. |
+| En varighed, som **~2 dage og 5 t.** | I det nuværende tempo løber budgettet tør om cirka så lang tid. Gul, og rød ved en dag eller mindre. **Under 1 min.** betyder mindre end et minut. |
 | **Intet forbrug** | Der er ikke brugt noget budget i de seneste 60 minutter. |
 | **Holdbart** | Kun rullende vinduer: rækkevidden er mindst ét helt vindue, så budgettet bruges ikke hurtigere, end gammel nedetid falder ud af vinduet. I det tempo løber det ikke tør. |
 | **Rækker til nulstilling** | Kun kalendermåneder: budgettet nulstilles ved starten af næste måned, før det løber tør. |
@@ -97,7 +97,7 @@ Et SLO med kalendermåned nulstilles ved midnat den første i hver måned, i sin
 
 ### Unge SLO'er
 
-Et SLO med rullende vindue, der er yngre end sit vindue, måles over de data, der findes indtil videre, og dets samlede budget vokser med dem: et SLO på 30 dage, der blev oprettet for en uge siden, har indtil videre et budget for 7 dage. Indtil vinduet er fyldt, viser **Oversigt**, hvor fyldt det er, med en indikator **Window 23% full** og den samme bemærkning i feltet **Fejlbudget tilbage**. Forvent, at tallene falder til ro, efterhånden som vinduet fyldes.
+Et SLO med rullende vindue, der er yngre end sit vindue, måles over de data, der findes indtil videre, og dets samlede budget vokser med dem: et SLO på 30 dage, der blev oprettet for en uge siden, har indtil videre et budget for 7 dage. Indtil vinduet er fyldt, viser **Oversigt**, hvor fyldt det er, med en indikator **Vinduet er 23 % fyldt** og den samme bemærkning i feltet **Fejlbudget tilbage**. Forvent, at tallene falder til ro, efterhånden som vinduet fyldes.
 
 ## Statusændringer og risikotærsklen
 

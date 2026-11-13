@@ -66,10 +66,10 @@ const DATABASE_SHOWCASE: ResourceShowcase = {
     name: "orders-pg",
     subtitle: translationKey("PostgreSQL 16.4 · Kubernetes · prod-us-east"),
     stats: [
-      { label: translationKey("Queries"), value: "482k" },
-      { label: translationKey("Error rate"), value: "0.3%" },
-      { label: translationKey("p95 latency"), value: "14 ms" },
-      { label: translationKey("Calling services"), value: "4" },
+      { label: translationKey("Queries"), value: { abbreviated: 482_000 } },
+      { label: translationKey("Error rate"), value: { percent: 0.3 } },
+      { label: translationKey("p95 latency"), value: { milliseconds: 14 } },
+      { label: translationKey("Calling services"), value: 4 },
     ],
     chart: {
       label: translationKey("Queries from applications"),

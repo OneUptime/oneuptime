@@ -120,7 +120,7 @@ Trinnet **Konfigurer** i oprettelsesguiden beder om op til syv værdier: hver sk
 
 **Sådan logger skabelonerne ind.** Guiden gemmer lejeren, klient-ID'et og hemmeligheden i én [OAuth 2.0-variabel](/docs/workflows/variables#oauth-20-variabler-tokens-der-fornyer-sig-selv), `dynamicsAccessToken`, under workflowets **Arbejdsgangsvariabler**: Client Credentials, token-URL'en `https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token`, scopet `<environment URL>/.default` og klienthemmeligheden, sendt i anmodningens brødtekst og gemt krypteret. Hvert kald til Dynamics 365 sender `Authorization: Bearer {{local.variables.dynamicsAccessToken}}`. OneUptime henter tokenet første gang, et trin har brug for det, henter et nyt, før det udløber, og erstatter det med `[REDACTED]` i kørselslogs og trinspor.
 
-For at kontrollere login, før noget kører, åbner du **Arbejdsgangsvariabler**, klikker på **Vis** ved `dynamicsAccessToken` og klikker på **Opdater nu**. **Access Token Fetched** betyder, at appregistreringen er i orden. Ellers nævner fejlen fra Microsoft Entra ID, hvad der er galt, f.eks. `AADSTS7000215: Invalid client secret provided`.
+For at kontrollere login, før noget kører, åbner du **Arbejdsgangsvariabler**, klikker på **Vis** ved `dynamicsAccessToken` og klikker på **Opdater nu**. **Adgangstoken hentet** betyder, at appregistreringen er i orden. Ellers nævner fejlen fra Microsoft Entra ID, hvad der er galt, f.eks. `AADSTS7000215: Invalid client secret provided`.
 
 Hvert workflow har sin egen kopi. Når du udskifter klienthemmeligheden, åbner du `dynamicsAccessToken` i hvert Dynamics 365-workflow og bruger **Opdater legitimationsoplysninger**.
 
@@ -258,7 +258,7 @@ Skabelonerne dækker de almindelige tilfælde. For at bygge en retning selv bygg
 
 Opret tokenet én gang, til alle workflows, som en [OAuth 2.0-variabel](/docs/workflows/variables#oauth-20-variabler-tokens-der-fornyer-sig-selv):
 
-1. Gå til **Arbejdsgange → Globale variabler**, åbn menuen **Mere** (**⋯**) ved siden af **Opret Workflow Variabel**, og vælg **Create OAuth 2.0 Variable**. Giv den navnet `DYNAMICS_TOKEN`.
+1. Gå til **Arbejdsgange → Globale variabler**, åbn menuen **Mere** (**⋯**) ved siden af **Opret Workflow Variabel**, og vælg **Opret OAuth 2.0-variabel**. Giv den navnet `DYNAMICS_TOKEN`.
 2. Vælg **Microsoft Entra ID** under **Udbyder**, erstat `{tenant-id}` i **Token-URL** med dit Directory (tenant) ID, og vælg **Client Credentials**.
 3. Indtast **Klient-ID** og **Klienthemmelighed** under **Loginoplysninger**. Sæt under **Avanceret** scopet til `https://yourorg.crm.dynamics.com/.default`, og opret derefter variablen.
 

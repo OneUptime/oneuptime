@@ -1,6 +1,6 @@
 # Vorfälle – Übersicht
 
-Ein Vorfall ist der Datensatz, mit dem Ihr Team arbeitet, wenn etwas kaputtgeht: was betroffen ist, wie schlimm es ist, wo die Reaktion steht, wem er gehört und alles, was unterwegs festgehalten wird. Wenn Sie einen Vorfall melden, wird die richtige Bereitschaftsrotation alarmiert, seine Eigentümer werden informiert und – wenn Sie das möchten – der Ausfall erscheint auf Ihrer Statusseite, damit Kunden wissen, dass Sie daran arbeiten.
+Ein Vorfall ist der Datensatz, mit dem Ihr Team arbeitet, wenn etwas kaputtgeht: was betroffen ist, wie schlimm es ist, wo die Reaktion steht, wem er gehört und alles, was unterwegs festgehalten wird. Wenn Sie einen Vorfall melden, wird die richtige Bereitschaftsrotation alarmiert, seine Eigentümer werden informiert und – wenn Sie das möchten – der Ausfall erscheint auf Ihrer Statusseite, damit Kunden wissen, dass Sie daran arbeiten. Nicht sicher, ob ein Problem ein Vorfall oder eine Warnung ist? [Was nehme ich wann?](/docs/introduction/which-one#vorfall-warnung-oder-eine-andere-art-von-problem) stellt beide nebeneinander.
 
 :::cards
 - [Einen Vorfall melden](/docs/incidents/declaring-incidents): Von Hand, aus einer Vorlage, von einem Monitor, über die API oder per Formular.
@@ -86,7 +86,7 @@ Danach können Sie ein [Postmortem](/docs/incidents/postmortems) schreiben und e
 
 ## Wichtige Begriffe
 
-Eine Handvoll Begriffe taucht auf jeder weiteren Seite dieses Abschnitts auf. Klären Sie diese zuerst.
+Eine Handvoll Begriffe taucht auf jeder weiteren Seite dieses Abschnitts auf. Klären Sie diese zuerst. Die Wörter, die in ganz OneUptime verwendet werden, stehen im [Glossar](/docs/introduction/glossary).
 
 | Begriff | Bedeutung |
 | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -162,7 +162,7 @@ Schweregrade bearbeiten oder ergänzen Sie unter **Vorfälle → Einstellungen �
 | **KI** | **Einblicke**, **Protokolle**, **Einstellungen**: was die OneUptime-KI aus Ihren Vorfällen gelernt und alles, was sie für sie getan hat, und was sie selbstständig tun darf – mit den Regeln, welche Vorfälle sie untersucht und behebt. Siehe [AI SRE](/docs/ai/ai-sre). |
 | **Arbeitsbereich** | Die Chat-Arbeitsbereiche, die dieses Projekt verbunden hat: **Slack**, **Microsoft Teams** und **Mattermost**, jeweils mit ihren Benachrichtigungsregeln für Vorfälle. Ist keiner verbunden, enthält er **Arbeitsbereich verbinden**, eine Seite, die alle drei zeigt und erklärt, wie man sie verbindet. |
 | **Regeln** | Die Regel-Engines: **Gruppierungsregeln**, **Bereitschaftsregeln**, **Eigentümerregeln**, **Runbook-Regeln**, **Datenschutzregeln**, **Beschriftungsregeln**, **SLA-Regeln**, **Erinnerungsregeln**. |
-| **Einstellungen** | **Vorfallsstatus**, **Vorfallsschweregrad**, **Vorfall-Vorlagen**, **Notiz-Vorlagen**, **Genehmigung öffentlicher Notizen**, **Postmortem-Vorlagen**, **Postmortem-Status**, **Benutzerdefinierte Felder**, **Vorfallsrollen**, **Messungen**, **Verknüpfte Warnungen**, **Episodenzugehörigkeit**, **Nummerierung**. |
+| **Einstellungen** | **Vorfallsstatus**, **Vorfallsschweregrad**, **Vorfall-Vorlagen**, **Notiz-Vorlagen**, **Genehmigung öffentlicher Notizen**, **Postmortem-Vorlagen**, **Postmortem-Status**, **Benutzerdefinierte Felder**, **Vorfallsrollen**, **Messungen**, **Verknüpfte Warnungen**, **Episodenzugehörigkeit**, **Nummerierung**, **Datenaufbewahrung**. |
 
 **Übersicht** und **Episoden** sind geöffnet; **KI**, **Arbeitsbereich**, **Regeln**, **Einstellungen** und **Entwickler** sind standardmäßig eingeklappt, damit das Menü mit den Listen beginnt, die Sie täglich nutzen. Klicken Sie auf den Titel eines Abschnitts, um ihn aufzuklappen und die Seiten zu finden, auf die sich der Rest dieser Doku bezieht; ein Abschnitt öffnet sich auch von selbst, wenn Sie auf einer seiner Seiten sind. Die Vorfallskonfiguration liegt nicht in den Projekteinstellungen, sondern vollständig hier.
 

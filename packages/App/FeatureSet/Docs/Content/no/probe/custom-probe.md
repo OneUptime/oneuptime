@@ -1,6 +1,6 @@
 # Egendefinerte probes
 
-En egendefinert sonde er en liten agent som du kjører i ditt eget nettverk. Den sjekker overvåkerne du legger den til, for eksempel interne nettsteder, API-er og servere bak brannmuren din, og sender resultatene til OneUptime. Den åpner bare utgående tilkoblinger over HTTPS, så ingenting i nettverket ditt trenger å ta imot tilkoblinger fra internett.
+En egendefinert sonde er en liten agent som du kjører i ditt eget nettverk. Den sjekker overvåkerne du legger den til, for eksempel interne nettsteder, API-er og servere bak brannmuren din, og sender resultatene til OneUptime. Den åpner bare utgående tilkoblinger over HTTPS, så ingenting i nettverket ditt trenger å ta imot tilkoblinger fra internett. Se [Hvilken skal jeg bruke?](/docs/introduction/which-one#sonde-agent-collector-eller-runner) for å velge mellom en sonde, en agent, en collector og en Runner.
 
 :::cards
 - [Slik fungerer det](#slik-fungerer-det): Hva sonden gjør, og hvordan OneUptime vet at den kjører.
@@ -288,6 +288,7 @@ Sonden leser innstillingene sine fra miljøet når den starter: endre en, og sta
 | `PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED` | `false` | Sett til `true` for å kjøre Chromium i syntetiske overvåkere inne i sin egen sandkasse. Slå den bare på når sondens container kjører med en seccomp-profil som tillater sandkassen, som Playwrights: uten en kan ikke Chromium starte. Så lenge den er av, logger sonden en advarsel ved oppstart. |
 | `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | Tidsgrense for skriptene til Custom Code-overvåkere, i millisekunder. |
 | `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` | `false` | Sett til `true` for at Website-, API-, External Status Page- og Custom Code-overvåkere på denne sonden skal kunne nå private adresser. Se [Tilgang til privat nettverk](/docs/self-hosted/private-network-access). |
+| `PROBE_CERTIFICATE_REVOCATION_CHECK_ENABLED` | `true` | SSL Certificate-, Website- og API-overvåkere på denne sonden spør utstederen av et sertifikat om den har tilbakekalt sertifikatet, slik nettlesere gjør. Sett til `false` for å slutte å spørre, for eksempel på en sonde uten internettilgang. En utsteder sonden ikke når, regnes aldri som en tilbakekalling: sonden venter noen sekunder på hver responder den ikke når, omtrent én gang hvert 5. minutt. Se [SSL-sertifikat-overvåking](/docs/monitor/ssl-certificate-monitor). |
 | `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` | `25` | Hvor mange nettverksenheter sonden poller samtidig. Øk den for en sonde som poller mange enheter. |
 
 Grensene en syntetisk overvåker kjører innenfor (hvor mange samtidig, minnet og disken deres), står på siden [Syntetisk overvåking](/docs/monitor/synthetic-monitor).

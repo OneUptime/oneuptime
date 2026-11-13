@@ -11,6 +11,7 @@ import DashboardSloListComponent from "Common/Types/Dashboard/DashboardComponent
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import DashboardResourceListBase, {
   ResourceListColumn,
+  ResourceListNameCell,
   ResourceListViewMode,
 } from "./DashboardResourceListBase";
 import { HoneycombTile } from "./DashboardResourceHoneycomb";
@@ -320,7 +321,10 @@ const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
                 className="inline-block w-2 h-2 rounded-full"
                 style={{ backgroundColor: entry.color.toString() }}
               ></span>
-              <span className="font-semibold text-gray-700">{entry.count}</span>
+              {/* "۲" on a Persian page, as the figures in the rows. */}
+              <span className="font-semibold text-gray-700">
+                {translator.formatNumber(entry.count)}
+              </span>
               <span>{translator.translateText(entry.label)}</span>
             </span>
           );
@@ -354,7 +358,8 @@ const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
       const sloId: string = slo._id?.toString() || "";
       const name: string =
         slo.name || (translator.translateText("Unnamed SLO") as string);
-      const display: SloListRowDisplay = getSloListRowDisplay(slo);
+      // The figures as the reader's language writes them: "99,874 %".
+      const display: SloListRowDisplay = getSloListRowDisplay(slo, translator);
 
       return {
         id: sloId || name,
@@ -378,7 +383,11 @@ const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
       const sloId: string = slo._id?.toString() || "";
       const name: string =
         slo.name || (translator.translateText("Unnamed SLO") as string);
-      const display: SloListRowDisplay = getSloListRowDisplay(slo);
+      /*
+       * The figures, the target line ("Ziel 99,9 %") and the budget line in
+       * the reader's language.
+       */
+      const display: SloListRowDisplay = getSloListRowDisplay(slo, translator);
       const route: Route | undefined = getSloRoute(sloId);
       const statusColor: string = display.statusColor.toString();
 
@@ -388,7 +397,15 @@ const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
           className="hover:bg-gray-50/50 transition-colors duration-100 group"
           data-testid="slo-list-row"
         >
-          <td className="px-3 py-2 text-xs text-gray-700 truncate max-w-0">
+          {/*
+           * Cut short at its own end: an English name on an Arabic page
+           * loses its end ("Checkout availab..."), not its start.
+           */}
+          <ResourceListNameCell
+            name={name}
+            className="px-3 py-2 text-xs text-gray-700 truncate max-w-0"
+            dataTestId="slo-list-name"
+          >
             {route ? (
               <AppLink
                 to={route}
@@ -399,7 +416,7 @@ const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
             ) : (
               <span title={name}>{name}</span>
             )}
-          </td>
+          </ResourceListNameCell>
           <td className="px-3 py-2">
             <span className="inline-flex items-center gap-1.5 text-xs font-medium whitespace-nowrap">
               <span
@@ -411,7 +428,7 @@ const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
                * lighter shade of it that reads on the dark card.
                */}
               <span {...getStatusTextProps(statusColor)}>
-                {display.statusText}
+                {translator.translateText(display.statusText)}
               </span>
             </span>
           </td>

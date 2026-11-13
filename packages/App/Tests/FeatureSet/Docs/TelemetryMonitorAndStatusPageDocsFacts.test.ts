@@ -57,6 +57,9 @@ import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
 import StatusPageMonitorRule from "Common/Models/DatabaseModels/StatusPageMonitorRule";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
+import FrozenMonitorResources, {
+  NOT_MONITORED_STATUS_COLOR,
+} from "Common/Utils/StatusPage/FrozenMonitorResources";
 import { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import AggregationInterval from "Common/Types/BaseDatabase/AggregationInterval";
 import AggregationIntervalUtil from "Common/Types/BaseDatabase/AggregationIntervalUtil";
@@ -2827,6 +2830,91 @@ describe("status page resources", () => {
       "the old `/groups` address now opens this screen.",
     );
   });
+
+  /*
+   * Issue #6478: a resource nothing checks keeps its row, in gray, and
+   * decides no status: not its group's, not the page's.
+   */
+  it("draws a monitor whose monitoring is off as Not monitored, deciding no status (#6478)", () => {
+    const overviewWords: Record<string, unknown> = (
+      JSON.parse(
+        readSource("App/FeatureSet/StatusPage/src/Locales/en.json"),
+      ) as Record<string, Record<string, unknown>>
+    )["overview"] as Record<string, unknown>;
+    const overview: string = oneLine(
+      readSource("App/FeatureSet/StatusPage/src/Pages/Overview/Overview.tsx"),
+    );
+
+    expect(overviewWords["notMonitored"]).toBe("Not monitored");
+    expect(overviewWords["noResourcesAreMonitored"]).toBe(
+      "No Resources are monitored right now",
+    );
+    expect(overview).toContain('t("overview.noResourcesAreMonitored")');
+    expect(NOT_MONITORED_STATUS_COLOR.toString().toLowerCase()).toBe("#6b7280");
+
+    // A monitor whose monitoring is off, and a group whose monitors all have it off.
+    expect(
+      FrozenMonitorResources.getNotMonitoredResourceIds({
+        statusPageResources: [
+          {
+            _id: "monitor-off",
+            monitorId: "a",
+            monitor: { disableActiveMonitoring: true },
+          },
+          {
+            _id: "monitor-on",
+            monitorId: "b",
+            monitor: { disableActiveMonitoring: false },
+          },
+          { _id: "group-off", monitorGroupId: "c" },
+          { _id: "group-mixed", monitorGroupId: "d" },
+        ],
+        monitorGroupResources: {
+          c: [{ monitor: { disableActiveMonitoring: true } }],
+          d: [
+            { monitor: { disableActiveMonitoring: true } },
+            { monitor: { disableActiveMonitoring: false } },
+          ],
+        },
+      }),
+    ).toEqual(["monitor-off", "group-off"]);
+
+    /*
+     * Its history bars, and a group's bars and uptime, keep the time up to
+     * when monitoring was turned off and leave out the time after (#6480,
+     * #6987): the rows that mark it off are dropped after the LEAD of every
+     * SQL statement a status page's bars and uptime are read with, and the
+     * rows the page reads for a percentage carry the mark.
+     */
+    const timelineService: string = readSource(
+      "Common/Server/Services/MonitorStatusTimelineService.ts",
+    );
+    const dropsOffRows: RegExp = /AND NOT (src\.)?is_off/;
+    for (const method of [
+      "public async getDailyUptimeAggregate(",
+      "public async getMonitorGroupDailyUptimeAggregate(",
+      "public async getMergedDowntimeSeconds(",
+    ]) {
+      const start: number = timelineService.indexOf(method);
+      const body: string = timelineService.slice(
+        start,
+        // To the next method.
+        timelineService.indexOf("  public async ", start + method.length),
+      );
+      expect({
+        method: method,
+        reads: body.includes('t."isMonitoringOff" IS TRUE AS is_off'),
+        drops: dropsOffRows.test(body),
+      }).toEqual({ method: method, reads: true, drops: true });
+    }
+    expect(readSource("Common/Server/Services/StatusPageService.ts")).toContain(
+      "isMonitoringOff: true,",
+    );
+
+    expect(RESOURCES).toContain(
+      "- **A monitor whose monitoring is off shows Not monitored.** Nothing checks it, so the status it last had says nothing now: its row shows **Not monitored** in gray, and counts toward neither the group above it nor the overall status banner. Its history bars keep its history up to when its monitoring was turned off and leave out the time after. A monitor group counts only its monitors whose monitoring is on, and shows **Not monitored** when it is off for all of them; its bars and uptime leave out each monitor's time with monitoring off. When nothing on the page is monitored, the banner says so.",
+    );
+  });
 });
 
 describe("status page groups", () => {
@@ -3311,7 +3399,8 @@ describe("status page branding", () => {
       customCode: dashboardSource("Pages/StatusPages/View/CustomHtmlCss.tsx"),
       domains:
         dashboardSource("Components/CustomDomain/CustomDomainCopy.ts") +
-        dashboardSource("Components/CustomDomain/CustomDomainsTable.tsx"),
+        dashboardSource("Components/CustomDomain/CustomDomainsTable.tsx") +
+        dashboardSource("Components/CustomDomain/AddCustomDomainModal.tsx"),
     };
 
     for (const [where, placeholders] of [
@@ -3337,7 +3426,8 @@ describe("status page branding", () => {
           "Insert Custom JavaScript here.",
         ],
       ],
-      ["domains", ["status (leave blank for root)", "Select domain"]],
+      // Add Custom Domain asks for the address: one field.
+      ["domains", ["status.example.com"]],
     ] as Array<[string, Array<string>]>) {
       for (const placeholder of placeholders) {
         expect({
@@ -3363,7 +3453,7 @@ describe("custom domain timings", () => {
       '"StatusPageCerts:VerifyCnameWhoseCnameisNotVerified", { schedule: IsDevelopment ? EVERY_FIFTEEN_MINUTE : EVERY_FIFTEEN_MINUTE,',
     );
     expect(BRANDING).toContain(
-      "OneUptime checks every unverified domain every 15 minutes",
+      "OneUptime checks the CNAME record of every unverified domain every 15 minutes",
     );
   });
 

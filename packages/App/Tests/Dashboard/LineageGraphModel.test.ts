@@ -21,6 +21,9 @@ import {
   LINEAGE_CARD_HEIGHT,
   LINEAGE_CARD_WIDTH,
   LINEAGE_COLUMN_GAP,
+  LINEAGE_EDGE_LABEL_CLEARANCE,
+  LINEAGE_EDGE_LABEL_MAX_HEIGHT,
+  LINEAGE_EDGE_LABEL_MAX_WIDTH,
   LINEAGE_HIGHLIGHT_COLOR,
   LINEAGE_HIGHLIGHT_WIDTH,
   LINEAGE_NEUTRAL_COLOR,
@@ -32,6 +35,7 @@ import {
   LINEAGE_ROW_GAP,
   LINEAGE_VIEW_DEFINITION_DASH,
   LineageArrowLook,
+  LineageBox,
   LineageCardRole,
   LineageHighlightSets,
   LineageLayout,
@@ -40,17 +44,21 @@ import {
   LineageViewport,
   countPipelineTables,
   fitHeights,
+  getLineageArrowLabelBox,
   getLineageArrowLook,
   getLineageCardRole,
   getLineageCardsInView,
+  getLineageCauseLabelBoxes,
   getLineageColumns,
   getLineageEdgeLabel,
   getLineageEdgeStyle,
   getLineageHighlightSets,
   getLineageNodeTone,
   getLineageViewport,
+  isLineageArrowLevel,
   isLineageCardDimmed,
   isLineageEmpty,
+  joinLineageHighlightSets,
   layoutLineage,
   summarizeLineage,
 } from "../../FeatureSet/Dashboard/src/Components/DataObservability/LineageGraphModel";
@@ -669,6 +677,83 @@ describe("where the drawing is looked at from", () => {
   });
 });
 
+describe("an arrow's label: where it sits", () => {
+  const A: string = getLineageTableNodeId("a");
+  const B: string = getLineageTableNodeId("b");
+
+  // Cards placed by hand.
+  function cardsAt(points: Record<string, [number, number]>): LineageLayout {
+    const positions: Map<string, LineagePoint> = new Map();
+
+    for (const [id, [x, y]] of Object.entries(points)) {
+      positions.set(id, { x, y });
+    }
+
+    return { positions, columns: new Map(), width: 0, height: 0 };
+  }
+
+  test("an arrow is level when its two ends are at one height - its cards side by side - to within a pixel", () => {
+    expect(isLineageArrowLevel(42, 42)).toBe(true);
+    expect(isLineageArrowLevel(42, 42.6)).toBe(true);
+    expect(isLineageArrowLevel(42.6, 42)).toBe(true);
+    expect(isLineageArrowLevel(42, 43)).toBe(false);
+    expect(isLineageArrowLevel(43, 42)).toBe(false);
+    expect(isLineageArrowLevel(42, 142)).toBe(false);
+  });
+
+  test("over a level arrow: centred in the gap, just clear of the arrow, never on a card nor above the cards' tops", () => {
+    const layout: LineageLayout = cardsAt({
+      [A]: [0, 100],
+      [B]: [COLUMN, 100],
+    });
+    const box: LineageBox = getLineageArrowLabelBox(layout, feeds("a", "b"))!;
+    const arrowY: number = 100 + LINEAGE_CARD_HEIGHT / 2;
+
+    expect(box.bottom).toBe(arrowY - LINEAGE_EDGE_LABEL_CLEARANCE);
+    expect(box.bottom - box.top).toBe(LINEAGE_EDGE_LABEL_MAX_HEIGHT);
+    expect(box.right - box.left).toBe(LINEAGE_EDGE_LABEL_MAX_WIDTH);
+    expect((box.left + box.right) / 2).toBe(
+      LINEAGE_CARD_WIDTH + LINEAGE_COLUMN_GAP / 2,
+    );
+    // In the gap: clear of both cards.
+    expect(box.left).toBeGreaterThan(LINEAGE_CARD_WIDTH);
+    expect(box.right).toBeLessThan(COLUMN);
+    // Within the cards' own height: it never reaches into the row above.
+    expect(box.top).toBeGreaterThanOrEqual(100);
+  });
+
+  test("on a curved arrow - its cards in different rows - on its middle", () => {
+    const layout: LineageLayout = cardsAt({
+      [A]: [0, 0],
+      [B]: [COLUMN, 2 * ROW],
+    });
+    const box: LineageBox = getLineageArrowLabelBox(layout, feeds("a", "b"))!;
+
+    expect((box.top + box.bottom) / 2).toBe(
+      (LINEAGE_CARD_HEIGHT / 2 + 2 * ROW + LINEAGE_CARD_HEIGHT / 2) / 2,
+    );
+    expect(box.bottom - box.top).toBe(LINEAGE_EDGE_LABEL_MAX_HEIGHT);
+    expect((box.left + box.right) / 2).toBe(
+      LINEAGE_CARD_WIDTH + LINEAGE_COLUMN_GAP / 2,
+    );
+  });
+
+  test("an arrow one of whose cards is not laid out has no label to place", () => {
+    const layout: LineageLayout = cardsAt({ [A]: [0, 0] });
+
+    expect(getLineageArrowLabelBox(layout, feeds("a", "b"))).toBeNull();
+    expect(getLineageArrowLabelBox(layout, feeds("b", "a"))).toBeNull();
+  });
+
+  test("the room a label is given fits the gap between two columns", () => {
+    expect(LINEAGE_EDGE_LABEL_MAX_WIDTH).toBeLessThan(LINEAGE_COLUMN_GAP);
+    // A name with Cause under it, over a level arrow, stays within a card's height.
+    expect(
+      LINEAGE_EDGE_LABEL_MAX_HEIGHT + LINEAGE_EDGE_LABEL_CLEARANCE,
+    ).toBeLessThanOrEqual(LINEAGE_CARD_HEIGHT / 2);
+  });
+});
+
 describe("an alert's drawing: the cards it opens on", () => {
   const A: string = getLineageTableNodeId("a");
   const B: string = getLineageTableNodeId("b");
@@ -707,6 +792,7 @@ describe("an alert's drawing: the cards it opens on", () => {
               causeNodeIds: [],
               consequenceNodeIds: [],
               dataPipelineIds: [],
+              causeDataPipelineIds: [],
               ...highlight,
             },
           }
@@ -815,6 +901,7 @@ describe("an alert's drawing: the cards it opens on", () => {
           ],
           consequenceNodeIds: [],
           dataPipelineIds: [],
+          causeDataPipelineIds: [],
         },
       };
 
@@ -1050,6 +1137,89 @@ describe("an alert's drawing: the cards it opens on", () => {
       );
     });
 
+    test("a label wanted before any card: whole in view first, the view leaning toward the first card that did not fit", () => {
+      // The label over the level arrow from b into the table, in the gap between them.
+      const left: number =
+        COLUMN_X(2) +
+        LINEAGE_CARD_WIDTH +
+        (LINEAGE_COLUMN_GAP - LINEAGE_EDGE_LABEL_MAX_WIDTH) / 2;
+      const label: LineageBox = {
+        left,
+        top: LINEAGE_CARD_HEIGHT / 2 - 38,
+        right: left + LINEAGE_EDGE_LABEL_MAX_WIDTH,
+        bottom: LINEAGE_CARD_HEIGHT / 2 - 6,
+      };
+      // Room for the label and 100 more: not for the table's card beside it.
+      const width: number = canvasFor(LINEAGE_EDGE_LABEL_MAX_WIDTH + 100);
+      const viewport: LineageViewport | null = getLineageViewport({
+        layout: row,
+        focusNodeId: FOCUS,
+        width,
+        height: HEIGHT,
+        inView: [FOCUS, D],
+        labelsInView: [label],
+      });
+
+      expect(viewport!.zoom).toBe(LINEAGE_READABLE_ZOOM);
+      expect(onCanvas(viewport!, label.left)).toBeGreaterThan(0);
+      expect(onCanvas(viewport!, label.right)).toBeLessThan(width);
+      // Toward the table's card by all the room there is: half of the 100.
+      expect(middleOf(viewport!, { width, height: HEIGHT }).x).toBeCloseTo(
+        (label.left + label.right) / 2 + 50,
+        9,
+      );
+
+      // Without it, the table's card alone: the label off the canvas.
+      const plain: LineageViewport = viewOf(row, width, [FOCUS, D]);
+
+      expect(onCanvas(plain, label.right)).toBeLessThan(0);
+    });
+
+    test("a label and the cards after it, as many as fit", () => {
+      const left: number = COLUMN_X(2) + LINEAGE_CARD_WIDTH + 6;
+      const label: LineageBox = {
+        left,
+        top: 4,
+        right: left + LINEAGE_EDGE_LABEL_MAX_WIDTH,
+        bottom: 36,
+      };
+      // Room for the label and the table's card, not for c after it.
+      const span: number = COLUMN_X(3) + LINEAGE_CARD_WIDTH - label.left;
+      const width: number = canvasFor(span + 20);
+      const viewport: LineageViewport | null = getLineageViewport({
+        layout: row,
+        focusNodeId: FOCUS,
+        width,
+        height: HEIGHT,
+        inView: [FOCUS, C],
+        labelsInView: [label],
+      });
+
+      expect(onCanvas(viewport!, label.left)).toBeGreaterThan(0);
+      expect(
+        onCanvas(viewport!, COLUMN_X(3) + LINEAGE_CARD_WIDTH),
+      ).toBeLessThan(width);
+      expect(middleOf(viewport!, { width, height: HEIGHT }).x).toBeCloseTo(
+        label.left + span / 2 + 10,
+        9,
+      );
+    });
+
+    test("no label named: the same view as before", () => {
+      const width: number = canvasFor(600);
+
+      expect(
+        getLineageViewport({
+          layout: row,
+          focusNodeId: FOCUS,
+          width,
+          height: HEIGHT,
+          inView: [A, FOCUS],
+          labelsInView: [],
+        }),
+      ).toEqual(viewOf(row, width, [A, FOCUS]));
+    });
+
     test("an alert's drawing laid out as it is drawn: the cause in view", () => {
       const layout: LineageLayout = layoutLineage(ways);
       const cause: LineagePoint = layout.positions.get(A)!;
@@ -1282,18 +1452,21 @@ describe("a table's Lineage tab", () => {
       ),
       "utf8",
     );
-    const diagram: number = page.indexOf(
-      "<TableLineageDiagram dataAssetId={dataAssetId} />",
+    const squashed: string = page.replace(/\s+/g, " ");
+    // With the table's columns in its own order: one of them can be followed on the diagram.
+    const diagram: number = squashed.indexOf(
+      "<TableLineageDiagram dataAssetId={dataAssetId} columnOrder={columnOrder} />",
     );
 
     expect(diagram).toBeGreaterThan(-1);
-    expect(diagram).toBeLessThan(page.indexOf("<TableDashboards"));
+    expect(diagram).toBeLessThan(squashed.indexOf("<TableDashboards"));
     expect(diagram).toBeLessThan(
-      page.indexOf('id="data-observability-table-upstream"'),
+      squashed.indexOf('id="data-observability-table-upstream"'),
     );
+    expect(squashed).toContain("readDataAssetColumns(dataAsset?.columns).map(");
   });
 
-  test("asks the table-lineage route through the Dashboard's own client", () => {
+  test("asks the table-lineage route, and the route that draws more, through the Dashboard's own client", () => {
     const api: string = fs.readFileSync(
       path.join(
         DASHBOARD_SRC,
@@ -1305,6 +1478,7 @@ describe("a table's Lineage tab", () => {
     );
 
     expect(api).toContain("DATA_OBSERVABILITY_API_ROUTES.tableLineage");
+    expect(api).toContain("DATA_OBSERVABILITY_API_ROUTES.lineageExpand");
   });
 });
 
@@ -1526,6 +1700,7 @@ describe("an alert's drawing: the ways it picks out", () => {
         causeNodeIds: [getLineageTableNodeId("cause")],
         consequenceNodeIds: [getLineageTableNodeId("b")],
         dataPipelineIds: ["p2"],
+        causeDataPipelineIds: [],
       },
     };
   }
@@ -1541,6 +1716,7 @@ describe("an alert's drawing: the ways it picks out", () => {
           causeNodeIds: [],
           consequenceNodeIds: [],
           dataPipelineIds: [],
+          causeDataPipelineIds: [],
         },
       }),
     ).toBeNull();
@@ -1625,7 +1801,11 @@ describe("an alert's drawing: the ways it picks out", () => {
 
     expect(look.color).toBe(LINEAGE_PROBLEM_COLOR);
     expect(look.width).toBeGreaterThanOrEqual(LINEAGE_HIGHLIGHT_WIDTH);
-    expect(look.label).toEqual({ pipeline: failed, isFailed: true });
+    expect(look.label).toEqual({
+      pipeline: failed,
+      isFailed: true,
+      isCause: false,
+    });
     expect(look.isHighlighted).toBe(true);
   });
 
@@ -1640,7 +1820,7 @@ describe("an alert's drawing: the ways it picks out", () => {
       color: style.color,
       width: style.width,
       dash: style.dash,
-      label: { pipeline: failed, isFailed: true },
+      label: { pipeline: failed, isFailed: true, isCause: false },
       isHighlighted: false,
       isDimmed: false,
     });
@@ -1653,6 +1833,7 @@ describe("an alert's drawing: the ways it picks out", () => {
     expect(getLineageEdgeLabel(lineage.edges[2]!, FOCUS, sets)).toEqual({
       pipeline: onTheWay,
       isFailed: false,
+      isCause: false,
     });
     // The same pipeline on an arrow off the ways: nothing.
     expect(
@@ -1688,7 +1869,7 @@ describe("an alert's drawing: the ways it picks out", () => {
         FOCUS,
         getLineageHighlightSets(lineage),
       ),
-    ).toEqual({ pipeline: failed, isFailed: true });
+    ).toEqual({ pipeline: failed, isFailed: true, isCause: false });
   });
 
   test("never a pipeline whose card starts the arrow, nor the pipeline the drawing is about", () => {
@@ -1712,6 +1893,573 @@ describe("an alert's drawing: the ways it picks out", () => {
         null,
       ),
     ).toBeNull();
+  });
+});
+
+describe("an alert's drawing: the cause's pipeline says Cause on its arrows", () => {
+  // The pipeline the cause is on: it loads staging from raw, and builds mart from the table too.
+  const causeRun: DataTableLineagePipeline = {
+    dataPipelineId: "p3",
+    name: "orders_load",
+    lastRunState: "COMPLETE",
+  };
+  const otherFailed: DataTableLineagePipeline = {
+    dataPipelineId: "p1",
+    name: "orders_etl",
+    lastRunState: "FAIL",
+  };
+  const onTheWay: DataTableLineagePipeline = {
+    dataPipelineId: "p2",
+    name: "orders_mart",
+    lastRunState: "COMPLETE",
+  };
+
+  /*
+   * focus <- staging <-[orders_load]- raw, the way up ending on orders_load's
+   * arrow; focus -[orders_load]-> mart, the way down to an alert it caused;
+   * c -[orders_load]-> focus off the ways.
+   */
+  function withCausePipeline(
+    edges: Array<DataTableLineageEdge> = [
+      feeds("raw", "staging", { pipelines: [causeRun] }),
+      feeds("staging", "focus"),
+      feeds("focus", "mart", { pipelines: [causeRun] }),
+      feeds("c", "focus", { pipelines: [causeRun] }),
+    ],
+    // null: an answer from before the cause's pipelines were sent, naming none.
+    causeDataPipelineIds: Array<string> | null = ["p3"],
+  ): DataTableLineage {
+    return {
+      ...lineageOf(
+        [up("staging", -1), up("raw", -2), up("c", -1), down("mart", 1)],
+        edges,
+      ),
+      highlight: {
+        nodeIds: [
+          FOCUS,
+          getLineageTableNodeId("staging"),
+          getLineageTableNodeId("raw"),
+          getLineageTableNodeId("mart"),
+        ],
+        edgeIds: [
+          feeds("raw", "staging").id,
+          feeds("staging", "focus").id,
+          feeds("focus", "mart").id,
+        ],
+        causeNodeIds: [],
+        consequenceNodeIds: [getLineageTableNodeId("mart")],
+        dataPipelineIds: ["p2", "p3"],
+        ...(causeDataPipelineIds ? { causeDataPipelineIds } : {}),
+      } as DataTableLineage["highlight"],
+    };
+  }
+
+  function labelOf(
+    lineage: DataTableLineage,
+    upstream: string,
+    downstream: string,
+  ): ReturnType<typeof getLineageEdgeLabel> {
+    const arrow: DataTableLineageEdge = lineage.edges.find(
+      (candidate: DataTableLineageEdge): boolean => {
+        return candidate.id === feeds(upstream, downstream).id;
+      },
+    )!;
+
+    return getLineageEdgeLabel(arrow, FOCUS, getLineageHighlightSets(lineage));
+  }
+
+  test("the arrow the way up ends on names the cause's pipeline and says Cause", () => {
+    const lineage: DataTableLineage = withCausePipeline();
+    const sets: LineageHighlightSets = getLineageHighlightSets(lineage)!;
+
+    expect(Array.from(sets.causeDataPipelineIds)).toEqual(["p3"]);
+    expect(Array.from(sets.causeEdgeIds)).toEqual([feeds("raw", "staging").id]);
+    expect(labelOf(lineage, "raw", "staging")).toEqual({
+      pipeline: causeRun,
+      isFailed: false,
+      isCause: true,
+    });
+    // The arrow it draws keeps the way's look, with the label.
+    expect(getLineageArrowLook(lineage.edges[0]!, FOCUS, sets)).toMatchObject({
+      color: LINEAGE_HIGHLIGHT_COLOR,
+      isHighlighted: true,
+      label: { pipeline: causeRun, isFailed: false, isCause: true },
+    });
+  });
+
+  test("the same pipeline on the way down to an alert it caused is named, without Cause", () => {
+    const lineage: DataTableLineage = withCausePipeline();
+
+    expect(labelOf(lineage, "focus", "mart")).toEqual({
+      pipeline: causeRun,
+      isFailed: false,
+      isCause: false,
+    });
+  });
+
+  test("off the ways it is neither named nor the cause", () => {
+    const lineage: DataTableLineage = withCausePipeline();
+
+    expect(labelOf(lineage, "c", "focus")).toBeNull();
+    expect(
+      getLineageHighlightSets(lineage)!.causeEdgeIds.has(
+        feeds("c", "focus").id,
+      ),
+    ).toBe(false);
+  });
+
+  test("an arrow straight into the table says Cause too", () => {
+    const lineage: DataTableLineage = withCausePipeline([
+      feeds("raw", "staging"),
+      feeds("staging", "focus", { pipelines: [causeRun] }),
+      feeds("focus", "mart"),
+      feeds("c", "focus"),
+    ]);
+
+    expect(labelOf(lineage, "staging", "focus")).toEqual({
+      pipeline: causeRun,
+      isFailed: false,
+      isCause: true,
+    });
+    expect(labelOf(lineage, "raw", "staging")).toBeNull();
+  });
+
+  test("the cause's run failed: red, and still Cause", () => {
+    const failedCause: DataTableLineagePipeline = {
+      ...causeRun,
+      lastRunState: "FAIL",
+    };
+    const lineage: DataTableLineage = withCausePipeline([
+      feeds("raw", "staging", { pipelines: [failedCause] }),
+      feeds("staging", "focus"),
+      feeds("focus", "mart"),
+      feeds("c", "focus"),
+    ]);
+    const look: LineageArrowLook = getLineageArrowLook(
+      lineage.edges[0]!,
+      FOCUS,
+      getLineageHighlightSets(lineage),
+    );
+
+    expect(look.color).toBe(LINEAGE_PROBLEM_COLOR);
+    expect(look.label).toEqual({
+      pipeline: failedCause,
+      isFailed: true,
+      isCause: true,
+    });
+  });
+
+  test("another pipeline's failed run on the cause's arrow is named first, and says nothing of the cause", () => {
+    const lineage: DataTableLineage = withCausePipeline([
+      feeds("raw", "staging", { pipelines: [causeRun, otherFailed] }),
+      feeds("staging", "focus"),
+      feeds("focus", "mart"),
+      feeds("c", "focus"),
+    ]);
+
+    expect(labelOf(lineage, "raw", "staging")).toEqual({
+      pipeline: otherFailed,
+      isFailed: true,
+      isCause: false,
+    });
+  });
+
+  test("a pipeline on the way up that is not the cause is named, without Cause", () => {
+    const lineage: DataTableLineage = withCausePipeline([
+      feeds("raw", "staging", { pipelines: [onTheWay] }),
+      feeds("staging", "focus"),
+      feeds("focus", "mart"),
+      feeds("c", "focus"),
+    ]);
+
+    expect(labelOf(lineage, "raw", "staging")).toEqual({
+      pipeline: onTheWay,
+      isFailed: false,
+      isCause: false,
+    });
+    expect(getLineageHighlightSets(lineage)!.causeEdgeIds.size).toBe(0);
+  });
+
+  test("an answer from before the cause's pipelines were sent: no arrow says Cause", () => {
+    const lineage: DataTableLineage = withCausePipeline(undefined, null);
+    expect(lineage.highlight).not.toHaveProperty("causeDataPipelineIds");
+    const sets: LineageHighlightSets = getLineageHighlightSets(lineage)!;
+
+    expect(sets.causeDataPipelineIds.size).toBe(0);
+    expect(sets.causeEdgeIds.size).toBe(0);
+    expect(labelOf(lineage, "raw", "staging")).toEqual({
+      pipeline: causeRun,
+      isFailed: false,
+      isCause: false,
+    });
+  });
+
+  test("too wide to read whole, the drawing keeps the label saying Cause in view before any card", () => {
+    const lineage: DataTableLineage = withCausePipeline();
+    const layout: LineageLayout = layoutLineage(lineage);
+
+    expect(
+      getLineageCauseLabelBoxes(
+        lineage,
+        layout,
+        getLineageHighlightSets(lineage),
+      ),
+    ).toEqual([getLineageArrowLabelBox(layout, feeds("raw", "staging"))]);
+  });
+
+  test("several arrows say Cause: the label nearest the alert's own card first", () => {
+    const lineage: DataTableLineage = withCausePipeline([
+      feeds("raw", "staging", { pipelines: [causeRun] }),
+      feeds("staging", "focus", { pipelines: [causeRun] }),
+      feeds("focus", "mart"),
+      feeds("c", "focus"),
+    ]);
+    const layout: LineageLayout = layoutLineage(lineage);
+
+    expect(
+      getLineageCauseLabelBoxes(
+        lineage,
+        layout,
+        getLineageHighlightSets(lineage),
+      ),
+    ).toEqual([
+      getLineageArrowLabelBox(layout, feeds("staging", "focus")),
+      getLineageArrowLabelBox(layout, feeds("raw", "staging")),
+    ]);
+  });
+
+  test("no label to keep first: a drawing with no ways, a cause on a card, or an answer naming no cause's pipeline", () => {
+    const lineage: DataTableLineage = withCausePipeline();
+    const layout: LineageLayout = layoutLineage(lineage);
+
+    expect(getLineageCauseLabelBoxes(lineage, layout, null)).toEqual([]);
+
+    // A cause on a card too: the card is the one kept first (getLineageCardsInView).
+    const onCard: DataTableLineage = {
+      ...lineage,
+      highlight: {
+        ...lineage.highlight!,
+        causeNodeIds: [getLineageTableNodeId("raw")],
+      },
+    };
+    const onCardSets: LineageHighlightSets = getLineageHighlightSets(onCard)!;
+
+    expect(onCardSets.causeEdgeIds.size).toBe(1);
+    expect(getLineageCauseLabelBoxes(onCard, layout, onCardSets)).toEqual([]);
+
+    const old: DataTableLineage = withCausePipeline(undefined, null);
+
+    expect(
+      getLineageCauseLabelBoxes(old, layout, getLineageHighlightSets(old)),
+    ).toEqual([]);
+  });
+
+  test("on a phone, laid out as it is drawn: the label saying Cause opens whole on the canvas, where the alert's own card would have left it off", () => {
+    const lineage: DataTableLineage = withCausePipeline();
+    const layout: LineageLayout = layoutLineage(lineage);
+    const sets: LineageHighlightSets | null = getLineageHighlightSets(lineage);
+    const label: LineageBox = getLineageArrowLabelBox(
+      layout,
+      feeds("raw", "staging"),
+    )!;
+    const width: number = 320;
+    const height: number = 400;
+    const viewport: LineageViewport | null = getLineageViewport({
+      layout,
+      focusNodeId: FOCUS,
+      width,
+      height,
+      inView: getLineageCardsInView(lineage, layout, sets),
+      labelsInView: getLineageCauseLabelBoxes(lineage, layout, sets),
+    });
+
+    expect(viewport!.zoom).toBe(LINEAGE_READABLE_ZOOM);
+
+    for (const [x, y] of [
+      [label.left, label.top],
+      [label.right, label.bottom],
+    ] as Array<[number, number]>) {
+      expect(viewport!.x + x * viewport!.zoom).toBeGreaterThanOrEqual(0);
+      expect(viewport!.x + x * viewport!.zoom).toBeLessThanOrEqual(width);
+      expect(viewport!.y + y * viewport!.zoom).toBeGreaterThanOrEqual(0);
+      expect(viewport!.y + y * viewport!.zoom).toBeLessThanOrEqual(height);
+    }
+
+    const before: LineageViewport | null = getLineageViewport({
+      layout,
+      focusNodeId: FOCUS,
+      width,
+      height,
+      inView: getLineageCardsInView(lineage, layout, sets),
+    });
+
+    expect(before!.x + label.right * before!.zoom).toBeLessThan(0);
+  });
+
+  test("a table's drawing, with no ways: no arrow says Cause", () => {
+    const arrow: DataTableLineageEdge = feeds("raw", "focus", {
+      pipelines: [{ ...causeRun, lastRunState: "FAIL" }],
+    });
+
+    expect(getLineageEdgeLabel(arrow, FOCUS, null)).toEqual({
+      pipeline: { ...causeRun, lastRunState: "FAIL" },
+      isFailed: true,
+      isCause: false,
+    });
+  });
+
+  test("any drawing: an arrow says Cause only on the way, into the table or a card upstream, carrying the cause's pipeline", () => {
+    const random: SeededRandom = seededRandom(6687);
+    const pipelines: Array<DataTableLineagePipeline> = [
+      causeRun,
+      { ...causeRun, lastRunState: "FAIL" },
+      otherFailed,
+      onTheWay,
+    ];
+
+    for (let round: number = 0; round < 120; round++) {
+      const nodes: Array<DataTableLineageNode> = [];
+      const edges: Array<DataTableLineageEdge> = [];
+      const names: Array<string> = ["focus"];
+
+      for (let index: number = 0; index < 2 + random(6); index++) {
+        const isUp: boolean = random(2) === 0;
+        const name: string = `${isUp ? "u" : "d"}${index}`;
+        const inner: string = names[random(names.length)]!;
+        const carried: Array<DataTableLineagePipeline> = pipelines.filter(
+          (): boolean => {
+            return random(3) === 0;
+          },
+        );
+
+        nodes.push(isUp ? up(name, -1 - random(3)) : down(name, 1 + random(3)));
+        names.push(name);
+        edges.push(
+          isUp
+            ? feeds(name, inner, { pipelines: carried })
+            : feeds(inner, name, { pipelines: carried }),
+        );
+      }
+
+      const lineage: DataTableLineage = {
+        ...lineageOf(nodes, edges),
+        highlight: {
+          nodeIds: [FOCUS],
+          edgeIds: edges
+            .filter((): boolean => {
+              return random(2) === 0;
+            })
+            .map((arrow: DataTableLineageEdge): string => {
+              return arrow.id;
+            }),
+          causeNodeIds: [],
+          consequenceNodeIds: [],
+          dataPipelineIds: ["p2", "p3"],
+          causeDataPipelineIds: random(4) === 0 ? [] : ["p3"],
+        },
+      };
+      const sets: LineageHighlightSets | null =
+        getLineageHighlightSets(lineage);
+
+      if (!sets) {
+        continue;
+      }
+
+      const sides: Map<string, DataLineageSide> = new Map(
+        lineage.nodes.map((node: DataTableLineageNode) => {
+          return [node.id, node.side];
+        }),
+      );
+
+      for (const arrow of edges) {
+        const label: ReturnType<typeof getLineageEdgeLabel> =
+          getLineageEdgeLabel(arrow, FOCUS, sets);
+        const isCauseArrow: boolean =
+          sets.edgeIds.has(arrow.id) &&
+          sides.get(arrow.target) !== DataLineageSide.Downstream &&
+          arrow.pipelines.some(
+            (pipeline: DataTableLineagePipeline): boolean => {
+              return sets.causeDataPipelineIds.has(pipeline.dataPipelineId);
+            },
+          );
+
+        expect(sets.causeEdgeIds.has(arrow.id)).toBe(isCauseArrow);
+
+        if (label?.isCause) {
+          expect(isCauseArrow).toBe(true);
+          expect(label.pipeline.dataPipelineId).toBe("p3");
+        }
+
+        // A cause arrow names a pipeline: the cause's, unless another one's run failed first.
+        if (isCauseArrow) {
+          expect(label).not.toBeNull();
+          expect(label!.isCause).toBe(label!.pipeline.dataPipelineId === "p3");
+        }
+      }
+    }
+  });
+});
+
+describe("an alert's drawing with a column followed", () => {
+  // focus <- a <- cause, focus -> b (a consequence); the column comes from c and goes to d.
+  function alertWays(): LineageHighlightSets {
+    return getLineageHighlightSets({
+      ...lineageOf(
+        [up("a", -1), up("cause", -2), up("c", -1), down("b", 1), down("d", 1)],
+        [
+          feeds("cause", "a"),
+          feeds("a", "focus"),
+          feeds("focus", "b", {
+            pipelines: [
+              {
+                dataPipelineId: "p2",
+                name: "orders_mart",
+                lastRunState: "COMPLETE",
+              },
+            ],
+          }),
+          feeds("c", "focus"),
+          feeds("focus", "d"),
+        ],
+      ),
+      highlight: {
+        nodeIds: [
+          FOCUS,
+          getLineageTableNodeId("a"),
+          getLineageTableNodeId("cause"),
+          getLineageTableNodeId("b"),
+        ],
+        edgeIds: [
+          feeds("cause", "a").id,
+          feeds("a", "focus").id,
+          feeds("focus", "b").id,
+        ],
+        causeNodeIds: [getLineageTableNodeId("cause")],
+        consequenceNodeIds: [getLineageTableNodeId("b")],
+        dataPipelineIds: ["p2"],
+        causeDataPipelineIds: ["p2"],
+      },
+    })!;
+  }
+
+  function columnWay(): LineageHighlightSets {
+    return {
+      nodeIds: new Set([
+        FOCUS,
+        getLineageTableNodeId("c"),
+        getLineageTableNodeId("d"),
+      ]),
+      edgeIds: new Set([feeds("c", "focus").id, feeds("focus", "d").id]),
+      causeNodeIds: new Set(),
+      consequenceNodeIds: new Set(),
+      dataPipelineIds: new Set(),
+      causeDataPipelineIds: new Set(),
+      causeEdgeIds: new Set(),
+    };
+  }
+
+  test("both ways are picked out: the alert's and the column's", () => {
+    const joined: LineageHighlightSets = joinLineageHighlightSets(
+      alertWays(),
+      columnWay(),
+    );
+
+    expect(Array.from(joined.nodeIds).sort()).toEqual(
+      [FOCUS, "a", "cause", "b", "c", "d"]
+        .map((name: string): string => {
+          return name === FOCUS ? FOCUS : getLineageTableNodeId(name);
+        })
+        .sort(),
+    );
+    expect(Array.from(joined.edgeIds).sort()).toEqual(
+      [
+        feeds("cause", "a").id,
+        feeds("a", "focus").id,
+        feeds("focus", "b").id,
+        feeds("c", "focus").id,
+        feeds("focus", "d").id,
+      ].sort(),
+    );
+
+    // No card on either way is faint.
+    for (const name of ["a", "cause", "b", "c", "d"]) {
+      expect(isLineageCardDimmed(joined, getLineageTableNodeId(name))).toBe(
+        false,
+      );
+    }
+  });
+
+  test("the cause and what it caused are still named, and nothing on the column's way is", () => {
+    const joined: LineageHighlightSets = joinLineageHighlightSets(
+      alertWays(),
+      columnWay(),
+    );
+
+    expect(getLineageCardRole(joined, getLineageTableNodeId("cause"))).toBe(
+      LineageCardRole.Cause,
+    );
+    expect(getLineageCardRole(joined, getLineageTableNodeId("b"))).toBe(
+      LineageCardRole.Consequence,
+    );
+    expect(getLineageCardRole(joined, getLineageTableNodeId("c"))).toBeNull();
+    expect(getLineageCardRole(joined, getLineageTableNodeId("d"))).toBeNull();
+    expect(Array.from(joined.dataPipelineIds)).toEqual(["p2"]);
+    expect(Array.from(joined.causeDataPipelineIds)).toEqual(["p2"]);
+    expect(Array.from(joined.causeEdgeIds)).toEqual([]);
+  });
+
+  test("an arrow on the column's way only is drawn as a way, unnamed", () => {
+    const joined: LineageHighlightSets = joinLineageHighlightSets(
+      alertWays(),
+      columnWay(),
+    );
+    const look: LineageArrowLook = getLineageArrowLook(
+      feeds("c", "focus"),
+      FOCUS,
+      joined,
+    );
+
+    expect(look).toMatchObject({
+      color: LINEAGE_HIGHLIGHT_COLOR,
+      width: LINEAGE_HIGHLIGHT_WIDTH,
+      isHighlighted: true,
+      isDimmed: false,
+      label: null,
+    });
+  });
+
+  test("neither set is changed by the join", () => {
+    const ways: LineageHighlightSets = alertWays();
+    const column: LineageHighlightSets = columnWay();
+    const before: string = JSON.stringify(
+      [ways, column].map((sets: LineageHighlightSets) => {
+        return Object.entries(sets).map(
+          ([key, value]: [string, Set<string>]) => {
+            return [key, Array.from(value).sort()];
+          },
+        );
+      }),
+    );
+
+    joinLineageHighlightSets(ways, column);
+
+    expect(
+      JSON.stringify(
+        [ways, column].map((sets: LineageHighlightSets) => {
+          return Object.entries(sets).map(
+            ([key, value]: [string, Set<string>]) => {
+              return [key, Array.from(value).sort()];
+            },
+          );
+        }),
+      ),
+    ).toBe(before);
+  });
+
+  test("without an alert's ways, the column's alone", () => {
+    const column: LineageHighlightSets = columnWay();
+
+    expect(joinLineageHighlightSets(null, column)).toBe(column);
   });
 });
 

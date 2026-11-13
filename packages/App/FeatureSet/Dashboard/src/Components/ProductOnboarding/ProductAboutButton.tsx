@@ -1,3 +1,5 @@
+import ProductEvents from "Common/UI/Utils/ProductEvents";
+import { ProductEventName } from "Common/Types/Analytics/ProductEvent";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -7,26 +9,32 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import ResourceShowcaseCard from "../ResourceShowcase/ResourceShowcaseCard";
 import {
   PRODUCT_ABOUT_TEXT,
-  ProductKey,
+  OnboardedProductKey,
   ProductOnboarding,
 } from "./ProductOnboarding";
 import { getProductOnboarding } from "./ProductOnboardings";
+import { PRODUCT_TITLE_BUTTON_CLASS_NAME } from "./ProductTitleButtonClassName";
+import ProductPinButton from "../ProjectProducts/ProductPinButton";
 
 /*
  * "How it works" beside a product page's title (Page's titleRight): the
  * product's explanation - what it does, its first steps, an example and its
  * documentation - one click away once the page has data of its own and no
  * longer shows it. Every product's layout draws one.
+ *
+ * Beside it, Pin (issue #6814): puts the product in the top bar for this
+ * person (ProductPinButton). Drawn here, so every product's page has it
+ * wherever its layout draws How it works.
  */
 
 export const PRODUCT_ABOUT_BUTTON_TEST_ID: string = "product-about-button";
 export const PRODUCT_ABOUT_DIALOG_TEST_ID: string = "product-about-dialog";
 
 export const PRODUCT_ABOUT_BUTTON_CLASS_NAME: string =
-  "inline-flex flex-shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
+  PRODUCT_TITLE_BUTTON_CLASS_NAME;
 
 export interface ComponentProps {
-  product: ProductKey;
+  product: OnboardedProductKey;
 }
 
 const ProductAboutButton: FunctionComponent<ComponentProps> = (
@@ -38,6 +46,7 @@ const ProductAboutButton: FunctionComponent<ComponentProps> = (
 
   return (
     <>
+      <ProductPinButton product={props.product} />
       <button
         type="button"
         className={PRODUCT_ABOUT_BUTTON_CLASS_NAME}
@@ -45,6 +54,10 @@ const ProductAboutButton: FunctionComponent<ComponentProps> = (
         data-testid={PRODUCT_ABOUT_BUTTON_TEST_ID}
         onClick={() => {
           setIsOpen(true);
+          // Who opens the explanation, and for which product (issue #6830).
+          ProductEvents.send(ProductEventName.HowItWorksOpened, {
+            product: props.product,
+          });
         }}
       >
         <Icon

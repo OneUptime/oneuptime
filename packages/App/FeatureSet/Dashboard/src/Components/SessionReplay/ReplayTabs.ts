@@ -2,6 +2,7 @@ import {
   createTranslator,
   DEFAULT_LANGUAGE,
   formatInline,
+  PluralTemplate,
   translationKey,
   Translator,
 } from "Common/Types/Translator";
@@ -10,7 +11,7 @@ import {
   SessionReplayManifestTab,
   tabHasFootage,
 } from "./ReplayManifest";
-import { formatReplayOffset } from "./ReplayTimeFormat";
+import { formatReplayOffsetInLanguage } from "./ReplayTimeFormat";
 import { formatReplayDurationInLanguage } from "./ReplayTimelineMath";
 
 /*
@@ -108,9 +109,16 @@ export const REPLAY_TAB_PAGE_MAX_SEARCH_LENGTH: number = 40;
  */
 export const REPLAY_TAB_UNKNOWN_PAGE: string = translationKey("Unknown page");
 
-/* "Tab 3": the name of the third tab the end user opened. */
+/*
+ * "Tab 3": the name of the third tab the end user opened, its number in the
+ * digits the reader's language writes ("زبانه ۳" in Persian, #7098). A
+ * template value goes in exactly as it is given, so a raw ordinal read "زبانه
+ * 3" beside the Persian digits of the counts next to it.
+ */
 function nameReplayTab(ordinal: number, translator: Translator): string {
-  return translator.translateTemplate("Tab {{number}}", { number: ordinal });
+  return translator.translateTemplate("Tab {{number}}", {
+    number: translator.formatNumber(ordinal),
+  });
 }
 
 /*
@@ -316,9 +324,33 @@ export function orderReplayTabsForDisplay(
     );
 }
 
+/*
+ * How many tabs are in each state, in the words the summary line and the
+ * picker's headings share ("3 tabs · 2 still open · 1 closed", and "2 still
+ * open" over the picker's open group). Each is a key of its own that only
+ * counts browser tabs, so a language words it for a tab - in a tab's gender
+ * and number - and never for the open incidents the Home page counts with
+ * "{{count}} open", nor with the bare "Open" every Open button reads.
+ */
+export const REPLAY_TAB_COUNT: Readonly<
+  Record<"total" | "open" | "closed" | "empty", PluralTemplate>
+> = {
+  total: { one: "{{count}} tab", other: "{{count}} tabs" },
+  open: { one: "{{count}} still open", other: "{{count}} still open" },
+  closed: { one: "{{count}} closed", other: "{{count}} closed" },
+  empty: {
+    one: "{{count}} without footage",
+    other: "{{count}} without footage",
+  },
+};
+
 export interface ReplayTabGroup {
   id: "open" | "closed" | "empty" | "all";
-  title: string;
+  /*
+   * The group's heading, a count of its tabs: "2 still open". The "all"
+   * group's is never drawn (one group is the whole list).
+   */
+  heading: PluralTemplate;
   tabs: Array<ReplayTabSummary>;
 }
 
@@ -326,8 +358,8 @@ export interface ReplayTabGroup {
  * The picker's sections. Open/closed headings only mean something while
  * at least one tab is KNOWN to be open: for a finished session every tab
  * is closed, and for an older server every tab is unknown, and a lone
- * "Closed" or "Open" heading over the whole list would say nothing (or
- * the wrong thing). Then the footage tabs form one "all" group titled
+ * "closed" or "still open" heading over the whole list would say nothing
+ * (or the wrong thing). Then the footage tabs form one "all" group of
  * "Tabs". Tabs without footage always get their own trailing group, since
  * they cannot be selected. Empty groups are never returned; tabs keep
  * display order within each group.
@@ -348,17 +380,33 @@ export function groupReplayTabs(
 
   const candidates: Array<ReplayTabGroup> = hasOpenReplayTabs(tabs)
     ? [
-        { id: "open", title: "Open", tabs: withStatus(["open", "unknown"]) },
-        { id: "closed", title: "Closed", tabs: withStatus(["closed"]) },
-        { id: "empty", title: "No footage", tabs: withStatus(["empty"]) },
+        {
+          id: "open",
+          heading: REPLAY_TAB_COUNT.open,
+          tabs: withStatus(["open", "unknown"]),
+        },
+        {
+          id: "closed",
+          heading: REPLAY_TAB_COUNT.closed,
+          tabs: withStatus(["closed"]),
+        },
+        {
+          id: "empty",
+          heading: REPLAY_TAB_COUNT.empty,
+          tabs: withStatus(["empty"]),
+        },
       ]
     : [
         {
           id: "all",
-          title: "Tabs",
+          heading: REPLAY_TAB_COUNT.total,
           tabs: withStatus(["open", "unknown", "closed"]),
         },
-        { id: "empty", title: "No footage", tabs: withStatus(["empty"]) },
+        {
+          id: "empty",
+          heading: REPLAY_TAB_COUNT.empty,
+          tabs: withStatus(["empty"]),
+        },
       ];
 
   return candidates.filter((group: ReplayTabGroup): boolean => {
@@ -400,13 +448,24 @@ export function countReplayTabs(
 }
 
 /*
- * "3 tabs · 1 open · 2 closed · 1 without footage" (zero parts omitted).
- * The open part counts the unknown tabs too, so it always matches the
- * picker's "Open · N" heading, which groups them together. When no tab is
- * known to be open (a finished session, or an older server that cannot
- * say) the breakdown would only restate the total, so it is just "3 tabs".
- * Each count in the translator's plural, set off the way its language
- * sets facts off on one line (formatInline).
+ * A picker group's heading in the translator's language: its count of
+ * tabs, "2 still open", worded as the summary line words it.
+ */
+export function describeReplayTabGroupHeading(
+  group: ReplayTabGroup,
+  translator: Translator = ENGLISH,
+): string {
+  return translator.translatePlural(group.heading, group.tabs.length);
+}
+
+/*
+ * "3 tabs · 1 still open · 2 closed · 1 without footage" (zero parts
+ * omitted). The open part counts the unknown tabs too, so it always
+ * matches the picker's "1 still open" heading, which groups them together.
+ * When no tab is known to be open (a finished session, or an older server
+ * that cannot say) the breakdown would only restate the total, so it is
+ * just "3 tabs". Each count in the translator's plural, set off the way its
+ * language sets facts off on one line (formatInline).
  */
 export function describeReplayTabCounts(
   tabs: Array<ReplayTabSummary>,
@@ -414,7 +473,7 @@ export function describeReplayTabCounts(
 ): string {
   const counts: ReplayTabCounts = countReplayTabs(tabs);
   const total: string = translator.translatePlural(
-    { one: "{{count}} tab", other: "{{count}} tabs" },
+    REPLAY_TAB_COUNT.total,
     counts.total,
   );
 
@@ -425,29 +484,20 @@ export function describeReplayTabCounts(
   const parts: Array<string> = [
     total,
     translator.translatePlural(
-      { one: "{{count}} open", other: "{{count}} open" },
+      REPLAY_TAB_COUNT.open,
       counts.open + counts.unknown,
     ),
   ];
 
   if (counts.closed > 0) {
     parts.push(
-      translator.translatePlural(
-        { one: "{{count}} closed", other: "{{count}} closed" },
-        counts.closed,
-      ),
+      translator.translatePlural(REPLAY_TAB_COUNT.closed, counts.closed),
     );
   }
 
   if (counts.empty > 0) {
     parts.push(
-      translator.translatePlural(
-        {
-          one: "{{count}} without footage",
-          other: "{{count}} without footage",
-        },
-        counts.empty,
-      ),
+      translator.translatePlural(REPLAY_TAB_COUNT.empty, counts.empty),
     );
   }
 
@@ -508,19 +558,45 @@ function readTabOrdinal(label: string): number | null {
   return match && match[1] ? Number(match[1]) : null;
 }
 
+// A Persian (۰ to ۹) or an Arabic-Indic (٠ to ٩) digit.
+const READER_DIGIT_PATTERN: RegExp = /[\u{0660}-\u{0669}\u{06F0}-\u{06F9}]/gu;
+
+const PERSIAN_ZERO_CODE_POINT: number = 0x06f0;
+
+const ARABIC_INDIC_ZERO_CODE_POINT: number = 0x0660;
+
+/*
+ * Persian and Arabic-Indic digits as the Latin ones they stand for. A
+ * Persian reader sees "زبانه ۳" and types "۳" from a Persian keyboard; read
+ * as "3", that finds Tab 3 the way "3" does in every other language.
+ */
+function readLatinDigits(text: string): string {
+  return text.replace(READER_DIGIT_PATTERN, (digit: string): string => {
+    const codePoint: number = digit.codePointAt(0) || 0;
+    const zero: number =
+      codePoint >= PERSIAN_ZERO_CODE_POINT
+        ? PERSIAN_ZERO_CODE_POINT
+        : ARABIC_INDIC_ZERO_CODE_POINT;
+
+    return String(codePoint - zero);
+  });
+}
+
 /*
  * The picker's search. Case-insensitive substring match on the label
  * ("tab 3"), the name the reader sees in their language, the first and
  * last url; a query of digits (optionally "#3") also matches the tab with
- * that ordinal. A blank query keeps every tab. Input order is kept, so the
- * caller decides whether it filters a display order or the opened order.
+ * that ordinal. Digits match in whichever digits they are typed, so "۳"
+ * finds what "3" finds (the names are drawn in the reader's digits). A
+ * blank query keeps every tab. Input order is kept, so the caller decides
+ * whether it filters a display order or the opened order.
  */
 export function filterReplayTabs(
   tabs: Array<ReplayTabSummary>,
   query: string,
   translator: Translator = ENGLISH,
 ): Array<ReplayTabSummary> {
-  const needle: string = (typeof query === "string" ? query : "")
+  const needle: string = readLatinDigits(typeof query === "string" ? query : "")
     .trim()
     .toLowerCase();
 
@@ -548,7 +624,7 @@ export function filterReplayTabs(
     ];
 
     return haystacks.some((haystack: string): boolean => {
-      return haystack.toLowerCase().includes(needle);
+      return readLatinDigits(haystack).toLowerCase().includes(needle);
     });
   });
 }
@@ -740,8 +816,13 @@ export function describeReplayTabOpened(
     return null;
   }
 
+  /*
+   * The session clock's m:ss in the reader's digits: "۲:۱۴" in Persian
+   * (#7098). Persian digits keep a clock's left-to-right order in a
+   * right-to-left line, as Latin ones do.
+   */
   return translator.translateTemplate("opened {{time}}", {
-    time: formatReplayOffset(tab.openedAtMs),
+    time: formatReplayOffsetInLanguage(tab.openedAtMs, translator.language),
   });
 }
 

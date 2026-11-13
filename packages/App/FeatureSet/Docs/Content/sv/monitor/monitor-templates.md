@@ -100,7 +100,7 @@ Spara dina ändringar. Kortet **Övervakningskriterier** och bekräftelsen av b�
 Använd **Synkronisera kriterier till länkade övervakare**, eller **Synkronisera från mall** på en enskild länkad monitor.
 :::
 
-Skydda till exempel **Monitor destination** och **Request headers** på en API-mall. Produktions- och staging-monitorer behåller sina egna URL:er och huvuden, medan båda får mallens uppdaterade kriterier och övriga oskyddade inställningar.
+Skydda till exempel **Monitor destination** och **Begärandehuvuden** på en API-mall. Produktions- och staging-monitorer behåller sina egna URL:er och huvuden, medan båda får mallens uppdaterade kriterier och övriga oskyddade inställningar.
 
 Vilka alternativ som finns beror på monitortypen. De omfattar mål och portar, alternativ för HTTP-begäranden, databasanslutningar, DNS-inställningar, infrastrukturväljare och telemetrifrågor. Relaterade inloggningsuppgifter, som ett klientcertifikat och dess privata nyckel, hålls ihop.
 

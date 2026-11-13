@@ -2,6 +2,9 @@
 
 A resource is one row on your status page: a monitor, or a monitor group, with a name your customers understand, its current status and, if you like, its uptime and history. Groups are sections that hold resources, so a page with forty monitors reads as "API", "Web app" and "Data pipeline" instead of one endless list. You build both on one screen: open a status page and pick **Resources** in its side menu.
 
+> [!TIP]
+> New here? Follow the guide first: [Publish a Status Page](/docs/guides/status-page).
+
 :::cards
 - [Add a monitor](#add-a-monitor): Put a monitor on the page, with the name visitors read.
 - [Groups](#groups): Split the page into sections, and nest them.
@@ -30,6 +33,7 @@ flowchart TB
 A resource decides more than the color of its row:
 
 - **Archived monitors are not shown.** A monitor that is archived is no longer checked, so its last status is frozen; the page leaves its row out (and leaves it out of a monitor group's status) rather than show that frozen status as if it were live. The row is kept, so unarchiving the monitor puts it straight back.
+- **A monitor whose monitoring is off shows Not monitored.** Nothing checks it, so the status it last had says nothing now: its row shows **Not monitored** in gray, and counts toward neither the group above it nor the overall status banner. Its history bars keep its history up to when its monitoring was turned off and leave out the time after. A monitor group counts only its monitors whose monitoring is on, and shows **Not monitored** when it is off for all of them; its bars and uptime leave out each monitor's time with monitoring off. When nothing on the page is monitored, the banner says so.
 - **Resources decide which incidents the page shows.** An incident appears here, and the page's subscribers hear about it, when one of the incident's monitors is a resource on the page, directly or through a monitor group. Put the same monitor on several pages and its incidents reach all of them, unless an incident is limited to some of those pages. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
 - **A monitor group row stands for every monitor in it, for subscribers too.** On a page that lets subscribers choose resources, someone who subscribes to a monitor group hears about incidents, scheduled maintenance events and announcements on any monitor in the group, as if they had picked that monitor. See [Subscribers & Announcements](/docs/status-pages/subscribers#letting-subscribers-choose-resources-and-event-types).
 
@@ -118,6 +122,8 @@ Groups have their own copies of these switches (see below), so a group can show 
 The colors of the history chart bars are set under **More settings** on the **Branding** page, and which monitor statuses count as "down" in **Counts as downtime**, in the **What your status page shows** card on **Advanced Settings**, both covered in [Status Page Branding & Domains](/docs/status-pages/branding-and-domains).
 
 Each bar is one day. Point at a bar, or click it (tap it on a phone, or press Enter on it with the keyboard), to read the day: its uptime, how long each status lasted, the incidents declared that day and the scheduled maintenance that ran on it, each linked to its own page. A day with scheduled maintenance has a blue band across the top of its bar, and while an event is in progress, each resource of its monitors says "Under maintenance" beside its name. Maintenance changes neither a bar's color nor the uptime, which come from the monitor's statuses: to keep planned work out of the uptime, give the event a **Change Monitor Status to** that is not one of the page's **Counts as downtime** statuses. See [What an event affects](/docs/scheduled-maintenance/index#what-an-event-affects).
+
+Every bar is a day in the reader's own time zone, the same one the page shows every other time in, so the last bar is their today. A monitor group's bar shows how long the group itself spent in each status that day: at each moment the group has the worst status among its monitors, so a day's statuses add up to the time at least one of its monitors was checked, and never to more than the day.
 
 ## Groups
 

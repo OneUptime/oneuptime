@@ -1,6 +1,6 @@
 # Advarsler – Oversigt
 
-En advarsel gør dit team opmærksom på et problem, der skal undersøges, før dine brugere opdager det: en disk, der er ved at blive fuld, et certifikat, der snart udløber, en fejlrate, der kryber op. Den kan tilkalde den, der har vagt, og give dens ejere besked, men den vises aldrig på en statusside og giver aldrig dine abonnenter besked. Denne side forklarer, hvor advarsler kommer fra, hvor de findes i dashboardet, og hvordan dit team arbejder med dem.
+En advarsel gør dit team opmærksom på et problem, der skal undersøges, før dine brugere opdager det: en disk, der er ved at blive fuld, et certifikat, der snart udløber, en fejlrate, der kryber op. Den kan tilkalde den, der har vagt, og give dens ejere besked, men den vises aldrig på en statusside og giver aldrig dine abonnenter besked. Denne side forklarer, hvor advarsler kommer fra, hvor de findes i dashboardet, og hvordan dit team arbejder med dem. Er du i tvivl om, hvorvidt et problem er en advarsel eller en hændelse? [Hvilken skal jeg bruge?](/docs/introduction/which-one#hændelse-advarsel-eller-en-anden-slags-problem) stiller dem op side om side.
 
 :::cards
 - [Advarsler og hændelser](#advarsler-og-hændelser): Hvilken af dem et problem skal være, og hvordan de to hænger sammen.
@@ -61,7 +61,7 @@ Udløs en advarsel, når dit team bør kigge, før nogen udenfor opdager noget, 
 | **AI**            | **Indsigter**, **Protokoller** og **Indstillinger**: hvad OneUptime AI har lært af dine advarsler, alt, hvad den har gjort, og hvad den må gøre. |
 | **Arbejdsområde** | **Slack**, **Microsoft Teams** og **Mattermost**, alt efter hvad projektet har forbundet, eller **Forbind et arbejdsområde**, når det har ingen af dem. |
 | **Regler**        | **Grupperingsregler**, **Vagtregler**, **Hændelsesregler**, **Ejerregler**, **Runbook-regler**, **Privatlivsregler**, **Etiketregler**, **Påmindelsesregler**. |
-| **Indstillinger** | **Advarselsstatus**, **Advarselsalvor**, **Noteskabeloner**, **Brugerdefinerede felter**, **Målinger**, **Medlemskab af episoder**, **Nummerering**. |
+| **Indstillinger** | **Advarselsstatus**, **Advarselsalvor**, **Noteskabeloner**, **Brugerdefinerede felter**, **Målinger**, **Medlemskab af episoder**, **Nummerering**, **Dataopbevaring**. |
 
 **Advarsler** og **Episoder** er åbne; **AI**, **Arbejdsområde**, **Regler**, **Indstillinger** og **Udvikler** er foldet sammen fra start, og en sektion åbner af sig selv, når du er på en af dens sider. Konfigurationen af advarsler ligger her, ikke i **Projektindstillinger**.
 

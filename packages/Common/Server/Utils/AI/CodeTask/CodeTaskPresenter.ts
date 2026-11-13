@@ -3,9 +3,17 @@ import AIRunService from "../../../Services/AIRunService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import Select from "../../../Types/Database/Select";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import CodeTaskListRows, {
+  CodeTaskOutcomesRead,
+  CodeTaskRepliesRead,
+} from "./CodeTaskListRows";
 import CodeTaskOrigin, { CodeTaskOriginSubjects } from "./CodeTaskOrigin";
 import CodeTaskSteps from "./CodeTaskSteps";
-import CodeTaskThread, { CODE_TASK_TURN_SELECT } from "./CodeTaskThread";
+import CodeTaskThread, {
+  CODE_TASK_TURN_SELECT,
+  CodeTaskNumberedTurn,
+  CodeTaskTurnsRead,
+} from "./CodeTaskThread";
 import FixProductionReportUtil from "../CodeFix/FixProductionReportUtil";
 import FixProductionReport from "../../../../Types/AI/FixProductionReport";
 import AIAgentTaskPullRequest from "../../../../Models/DatabaseModels/AIAgentTaskPullRequest";
@@ -27,6 +35,8 @@ import {
   CodeTaskChangeStatsJSON,
   CodeTaskContextItem,
   CodeTaskContextItemJSON,
+  CodeTaskConversationJSON,
+  CodeTaskLinkedTurnJSON,
   CodeTaskOriginJSON,
   CodeTaskOriginType,
   CodeTaskOutcome,
@@ -54,11 +64,14 @@ import ObjectID from "../../../../Types/ObjectID";
  *
  * A list row (summarize): the task's title, its state - read from its latest
  * turn - its number, who asked or what started it, its pull request, how
- * much it changed and when anything last happened. A conversation (getConversation): every turn, with
- * what was asked and the context added (never the snapshots the AI read),
- * the steps the AI took in plain words, its reply, the files it changed, the
- * diff for people who may change the code, the pull requests, and why a turn
- * failed.
+ * much it changed and when anything last happened, each read per task by
+ * Postgres however many turns the task has (CodeTaskListRows). A
+ * conversation (getConversation): every turn - or, for a task of more turns
+ * than are read, its first and its newest, with how many between them are
+ * not shown - with what was asked and the context added (never the
+ * snapshots the AI read), the steps the AI took in plain words, its reply,
+ * the files it changed, the diff for people who may change the code, the
+ * pull requests, and why a turn failed.
  *
  * Everything is read as root; the Code API decides beforehand who may read
  * the task and who may see its diff (CodeTaskAccess).
@@ -66,6 +79,20 @@ import ObjectID from "../../../../Types/ObjectID";
 
 // Steps read for one turn. The Log page has the whole trail.
 export const MAX_STEPS_PER_TURN: number = 400;
+
+/*
+ * What a turn a long task's conversation does not show is read with: what
+ * the task at the top adds up over every turn (the files it changed, what
+ * AI last said, its pull requests) and how long AI worked on it - never its
+ * request, steps or diff.
+ */
+export const TURN_NOT_SHOWN_SELECT: Select<AIRun> = {
+  _id: true,
+  createdAt: true,
+  startedAt: true,
+  completedAt: true,
+  taskOutcome: true,
+};
 
 // What a step is read from: never a tool's arguments or output.
 export const CODE_TASK_STEP_EVENT_SELECT: Select<AIRunEvent> = {
@@ -77,6 +104,25 @@ export const CODE_TASK_STEP_EVENT_SELECT: Select<AIRunEvent> = {
   resultSummary: true,
   createdAt: true,
 };
+
+/*
+ * What a task's summary is made of. A list reads these per task in SQL
+ * (CodeTaskListRows); a conversation adds them up from the turns it read
+ * (getTurnFacts).
+ */
+export interface CodeTaskSummaryFacts {
+  // The newest turn - the task itself when nobody replied: how it stands.
+  latest: AIRun;
+  turnCount: number;
+  // When anything last happened: a turn asked, or ended.
+  lastActivityAt: Date;
+  // The pull request it shows: the newest open one, else the newest.
+  pullRequest?: AIAgentTaskPullRequest | undefined;
+  // What its turns changed, added up; null for nothing.
+  changes: CodeTaskChangeStatsJSON | null;
+  // What AI last said, whole: cut to MAX_CODE_TASK_SUMMARY_REPLY_LENGTH.
+  lastReply?: string | undefined;
+}
 
 export default class CodeTaskPresenter {
   @CaptureSpan()
@@ -94,33 +140,26 @@ export default class CodeTaskPresenter {
       return task.id!;
     });
 
-    const repliesByTask: Map<
-      string,
-      Array<AIRun>
-    > = await CodeTaskThread.getRepliesByTask({
-      projectId: data.projectId,
-      taskIds,
-    });
-
-    const allRunIds: Array<ObjectID> = [...taskIds];
-
-    for (const replies of repliesByTask.values()) {
-      for (const reply of replies) {
-        allRunIds.push(reply.id!);
-      }
-    }
-
-    const [pullRequests, subjects, contexts, people, outcomes]: [
-      Array<AIAgentTaskPullRequest>,
+    const [
+      replies,
+      outcomes,
+      pullRequests,
+      subjects,
+      contexts,
+      people,
+      reviews,
+    ]: [
+      Map<string, CodeTaskRepliesRead>,
+      Map<string, CodeTaskOutcomesRead>,
+      Map<string, AIAgentTaskPullRequest>,
       CodeTaskOriginSubjects,
       Map<string, AIRun>,
       Map<string, CodeTaskPersonJSON>,
       Map<string, CodeTaskOutcome>,
     ] = await Promise.all([
-      CodeTaskThread.getPullRequests({
-        projectId: data.projectId,
-        runIds: allRunIds,
-      }),
+      CodeTaskListRows.readReplies({ projectId: data.projectId, taskIds }),
+      CodeTaskListRows.readOutcomes({ projectId: data.projectId, taskIds }),
+      CodeTaskListRows.readPullRequests({ projectId: data.projectId, taskIds }),
       CodeTaskOrigin.loadSubjects({
         projectId: data.projectId,
         runs: data.tasks,
@@ -136,22 +175,38 @@ export default class CodeTaskPresenter {
             return task.userId!;
           }),
       ),
-      CodeTaskPresenter.loadOutcomes(allRunIds),
+      // A production review's row says what its latest review found.
+      CodeTaskPresenter.loadOutcomes(
+        data.tasks
+          .filter((task: AIRun): boolean => {
+            return CodeFixTaskTypeHelper.isProductionReview(
+              task.codeFixTaskType,
+            );
+          })
+          .map((task: AIRun): ObjectID => {
+            return task.id!;
+          }),
+      ),
     ]);
 
     return data.tasks.map((task: AIRun): CodeTaskSummaryJSON => {
-      const turns: Array<AIRun> = [
-        task,
-        ...(repliesByTask.get(task.id!.toString()) || []),
-      ];
+      const key: string = CodeTaskListRows.key(task.id!);
+      const taskReplies: CodeTaskRepliesRead | undefined = replies.get(key);
+      const taskOutcomes: CodeTaskOutcomesRead | undefined = outcomes.get(key);
 
       return CodeTaskPresenter.toSummary({
         task,
-        turns,
-        outcomes: turns.map((turn: AIRun): CodeTaskOutcome | undefined => {
-          return outcomes.get(turn.id!.toString());
-        }),
-        pullRequests: CodeTaskPresenter.pullRequestsOf(pullRequests, turns),
+        latest: taskReplies?.newest || task,
+        turnCount: 1 + (taskReplies?.count || 0),
+        lastActivityAt: CodeTaskPresenter.getLastActivity(task, [
+          task.createdAt,
+          task.completedAt,
+          taskReplies?.lastActivityAt,
+        ]),
+        pullRequest: pullRequests.get(key),
+        changes: taskOutcomes?.changes || null,
+        lastReply: taskOutcomes?.lastReply,
+        reviewOutcome: reviews.get(task.id!.toString()),
         origin: CodeTaskOrigin.describe({
           run: task,
           subjects,
@@ -167,13 +222,26 @@ export default class CodeTaskPresenter {
     });
   }
 
+  /*
+   * A task's conversation: its first turn and its newest - at most
+   * MAX_TURNS_PER_TASK - and, for a task with more, how many turns between
+   * them are not shown and how long AI worked on those. The task at the top
+   * is every turn's: what it changed, its pull request and how many turns
+   * it has count the ones not shown too.
+   *
+   * `linkedTurnId`, the turn a link names (the Log page's `?turn=`), comes
+   * back as `linkedTurn` with its place in the task when it is one of the
+   * task's turns the conversation does not show - never a run of another
+   * task, or of anything else.
+   */
   @CaptureSpan()
   public static async getConversation(data: {
     projectId: ObjectID;
     task: AIRun;
     canSeeChanges: boolean;
     props: DatabaseCommonInteractionProps;
-  }): Promise<{ task: CodeTaskSummaryJSON; turns: Array<CodeTaskTurnJSON> }> {
+    linkedTurnId?: ObjectID | undefined;
+  }): Promise<CodeTaskConversationJSON> {
     const select: Select<AIRun> = {
       ...CODE_TASK_TURN_SELECT,
       taskContext: true,
@@ -187,15 +255,40 @@ export default class CodeTaskPresenter {
       props: { isRoot: true },
     });
 
-    const turns: Array<AIRun> = await CodeTaskThread.getTurns({
+    const read: CodeTaskTurnsRead = await CodeTaskThread.getTurns({
       projectId: data.projectId,
       task: task || data.task,
       select,
     });
 
-    const turnIds: Array<ObjectID> = turns.map((turn: AIRun): ObjectID => {
-      return turn.id!;
-    });
+    const turns: Array<AIRun> = read.turns;
+
+    const [turnsNotShown, linked]: [Array<AIRun>, CodeTaskNumberedTurn | null] =
+      await Promise.all([
+        // None for a task the conversation shows whole: nothing more is read.
+        CodeTaskThread.getTurnsLeftOut({
+          projectId: data.projectId,
+          task: turns[0]!,
+          read,
+          select: TURN_NOT_SHOWN_SELECT,
+        }),
+        CodeTaskPresenter.findLinkedTurn({
+          projectId: data.projectId,
+          task: turns[0]!,
+          turns,
+          linkedTurnId: data.linkedTurnId,
+          select,
+        }),
+      ]);
+
+    // The turns sent whole: the ones shown, and the one a link names.
+    const sentTurns: Array<AIRun> = linked ? [...turns, linked.turn] : turns;
+
+    const sentTurnIds: Array<ObjectID> = sentTurns.map(
+      (turn: AIRun): ObjectID => {
+        return turn.id!;
+      },
+    );
 
     const [pullRequests, subjects, people, eventsByRun]: [
       Array<AIAgentTaskPullRequest>,
@@ -203,9 +296,15 @@ export default class CodeTaskPresenter {
       Map<string, CodeTaskPersonJSON>,
       Map<string, Array<AIRunEvent>>,
     ] = await Promise.all([
+      // Every turn's: the task's pull request may be one a turn not shown opened.
       CodeTaskThread.getPullRequests({
         projectId: data.projectId,
-        runIds: turnIds,
+        runIds: CodeTaskPresenter.uniqueIds([
+          ...sentTurnIds,
+          ...turnsNotShown.map((turn: AIRun): ObjectID => {
+            return turn.id!;
+          }),
+        ]),
       }),
       CodeTaskOrigin.loadSubjects({
         projectId: data.projectId,
@@ -213,7 +312,7 @@ export default class CodeTaskPresenter {
         props: data.props,
       }),
       CodeTaskThread.getPeople(
-        turns
+        sentTurns
           .filter((turn: AIRun): boolean => {
             return Boolean(turn.userId);
           })
@@ -221,7 +320,7 @@ export default class CodeTaskPresenter {
             return turn.userId!;
           }),
       ),
-      CodeTaskPresenter.loadEvents(turnIds),
+      CodeTaskPresenter.loadEvents(sentTurnIds),
     ]);
 
     const first: AIRun = turns[0]!;
@@ -237,32 +336,140 @@ export default class CodeTaskPresenter {
 
     const summary: CodeTaskSummaryJSON = CodeTaskPresenter.toSummary({
       task: first,
-      turns,
-      pullRequests,
+      // Every turn, in order: the ones not shown changed files too.
+      ...CodeTaskPresenter.getTurnFacts({
+        task: first,
+        turns: [first, ...turnsNotShown, ...turns.slice(1)],
+        pullRequests,
+      }),
+      // As counted: more turns than one read takes are not read, but are the task's.
+      turnCount: turns.length + read.olderTurnsLeftOut,
+      reviewOutcome: first.taskOutcome,
       origin,
       requestedBy: first.userId
         ? people.get(first.userId.toString())
         : undefined,
     });
 
-    return {
+    const toTurn: (turn: AIRun, isFirst: boolean) => CodeTaskTurnJSON = (
+      turn: AIRun,
+      isFirst: boolean,
+    ): CodeTaskTurnJSON => {
+      return CodeTaskPresenter.toTurn({
+        turn,
+        isFirst,
+        origin,
+        people,
+        pullRequests: pullRequests.filter(
+          (pullRequest: AIAgentTaskPullRequest): boolean => {
+            return pullRequest.aiRunId?.toString() === turn.id!.toString();
+          },
+        ),
+        events: eventsByRun.get(turn.id!.toString()) || [],
+        canSeeChanges: data.canSeeChanges,
+      });
+    };
+
+    const conversation: CodeTaskConversationJSON = {
       task: summary,
       turns: turns.map((turn: AIRun, index: number): CodeTaskTurnJSON => {
-        return CodeTaskPresenter.toTurn({
-          turn,
-          isFirst: index === 0,
-          origin,
-          people,
-          pullRequests: pullRequests.filter(
-            (pullRequest: AIAgentTaskPullRequest): boolean => {
-              return pullRequest.aiRunId?.toString() === turn.id!.toString();
-            },
-          ),
-          events: eventsByRun.get(turn.id!.toString()) || [],
-          canSeeChanges: data.canSeeChanges,
-        });
+        return toTurn(turn, index === 0);
       }),
     };
+
+    if (read.olderTurnsLeftOut > 0) {
+      conversation.turnsNotShown = {
+        count: read.olderTurnsLeftOut,
+        workMilliseconds: CodeTaskPresenter.getWorkMilliseconds(turnsNotShown),
+      };
+    }
+
+    if (linked) {
+      const linkedTurn: CodeTaskLinkedTurnJSON = {
+        number: linked.number,
+        turn: toTurn(linked.turn, false),
+      };
+
+      conversation.linkedTurn = linkedTurn;
+    }
+
+    return conversation;
+  }
+
+  /*
+   * The turn a link names, when the conversation does not show it: one of
+   * the task's replies, read as the turns shown are, with its place in the
+   * task. Null for no link, a turn shown (the first always is), and a run
+   * that is not one of the task's replies.
+   */
+  private static async findLinkedTurn(data: {
+    projectId: ObjectID;
+    task: AIRun;
+    turns: Array<AIRun>;
+    linkedTurnId?: ObjectID | undefined;
+    select: Select<AIRun>;
+  }): Promise<CodeTaskNumberedTurn | null> {
+    if (!data.linkedTurnId) {
+      return null;
+    }
+
+    const linkedKey: string = CodeTaskListRows.key(data.linkedTurnId);
+
+    if (
+      data.turns.some((turn: AIRun): boolean => {
+        return CodeTaskListRows.key(turn.id!) === linkedKey;
+      })
+    ) {
+      return null;
+    }
+
+    return await CodeTaskThread.findReply({
+      projectId: data.projectId,
+      task: data.task,
+      runId: data.linkedTurnId,
+      select: data.select,
+    });
+  }
+
+  // Each id once, in the order first given.
+  private static uniqueIds(ids: Array<ObjectID>): Array<ObjectID> {
+    const seen: Set<string> = new Set<string>();
+
+    return ids.filter((id: ObjectID): boolean => {
+      const key: string = CodeTaskListRows.key(id);
+
+      if (seen.has(key)) {
+        return false;
+      }
+
+      seen.add(key);
+      return true;
+    });
+  }
+
+  /*
+   * How long AI worked on turns, in all: each from when it started to when
+   * it ended. A turn that never started, or has no end, adds nothing - the
+   * turns this adds up are done.
+   */
+  public static getWorkMilliseconds(turns: Array<AIRun>): number {
+    let total: number = 0;
+
+    for (const turn of turns) {
+      if (!turn.startedAt || !turn.completedAt) {
+        continue;
+      }
+
+      const took: number =
+        new Date(turn.completedAt).getTime() -
+        new Date(turn.startedAt).getTime();
+
+      if (Number.isFinite(took) && took > 0) {
+        total += took;
+      }
+    }
+
+    return total;
   }
 
   /*
@@ -372,30 +579,45 @@ export default class CodeTaskPresenter {
     });
   }
 
-  public static toSummary(data: {
+  /*
+   * A summary's facts from turns read whole, oldest first - a
+   * conversation's: its newest turn, when anything last happened, the pull
+   * request it shows (of `pullRequests`, newest first), what the turns
+   * changed, and what AI last said - the newest reply that says anything:
+   * a turn still working has none yet, and the one before it is what AI
+   * said.
+   */
+  public static getTurnFacts(data: {
     task: AIRun;
     turns: Array<AIRun>;
     pullRequests: Array<AIAgentTaskPullRequest>;
-    origin: CodeTaskOriginJSON;
-    requestedBy?: CodeTaskPersonJSON | undefined;
-    /*
-     * What each turn ended with, when the turns were read without it (a
-     * list); otherwise each turn's own taskOutcome is read.
-     */
-    outcomes?: Array<CodeTaskOutcome | null | undefined> | undefined;
-  }): CodeTaskSummaryJSON {
-    const latest: AIRun = data.turns[data.turns.length - 1] || data.task;
-    const state: CodeTaskState = CodeTaskStateUtil.fromRun(latest);
-
-    let lastActivity: Date = new Date(data.task.createdAt || Date.now());
+  }): Omit<CodeTaskSummaryFacts, "turnCount"> {
+    const moments: Array<Date | undefined> = [];
 
     for (const turn of data.turns) {
-      for (const moment of [turn.createdAt, turn.completedAt]) {
-        if (moment && new Date(moment) > lastActivity) {
-          lastActivity = new Date(moment);
-        }
+      moments.push(turn.createdAt, turn.completedAt);
+    }
+
+    let lastReply: string | undefined = undefined;
+
+    for (let index: number = data.turns.length - 1; index >= 0; index--) {
+      const reply: unknown = data.turns[index]?.taskOutcome?.summary;
+
+      if (typeof reply === "string" && reply.trim()) {
+        lastReply = reply;
+        break;
       }
     }
+
+    const facts: Omit<CodeTaskSummaryFacts, "turnCount"> = {
+      latest: data.turns[data.turns.length - 1] || data.task,
+      lastActivityAt: CodeTaskPresenter.getLastActivity(data.task, moments),
+      changes: CodeTaskChangeStats.fromOutcomes(
+        data.turns.map((turn: AIRun): CodeTaskOutcome | undefined => {
+          return turn.taskOutcome;
+        }),
+      ),
+    };
 
     const pullRequest: AIAgentTaskPullRequest | undefined =
       data.pullRequests.find((candidate: AIAgentTaskPullRequest): boolean => {
@@ -404,6 +626,45 @@ export default class CodeTaskPresenter {
           PullRequestState.Open
         );
       }) || data.pullRequests[0];
+
+    if (pullRequest) {
+      facts.pullRequest = pullRequest;
+    }
+
+    if (lastReply) {
+      facts.lastReply = lastReply;
+    }
+
+    return facts;
+  }
+
+  // The latest of these moments - never before the task was asked.
+  public static getLastActivity(
+    task: AIRun,
+    moments: Array<Date | string | null | undefined>,
+  ): Date {
+    let lastActivity: Date = new Date(task.createdAt || Date.now());
+
+    for (const moment of moments) {
+      if (moment && new Date(moment) > lastActivity) {
+        lastActivity = new Date(moment);
+      }
+    }
+
+    return lastActivity;
+  }
+
+  public static toSummary(
+    data: CodeTaskSummaryFacts & {
+      task: AIRun;
+      origin: CodeTaskOriginJSON;
+      requestedBy?: CodeTaskPersonJSON | undefined;
+      // A production review's own outcome: it is reviewed again in place.
+      reviewOutcome?: CodeTaskOutcome | null | undefined;
+    },
+  ): CodeTaskSummaryJSON {
+    const latest: AIRun = data.latest;
+    const state: CodeTaskState = CodeTaskStateUtil.fromRun(latest);
 
     const summary: CodeTaskSummaryJSON = {
       id: data.task.id!.toString(),
@@ -414,9 +675,9 @@ export default class CodeTaskPresenter {
       state,
       isQueued: latest.status === AIRunStatus.Queued,
       createdAt: new Date(data.task.createdAt || Date.now()).toISOString(),
-      lastActivityAt: lastActivity.toISOString(),
+      lastActivityAt: data.lastActivityAt.toISOString(),
       origin: data.origin,
-      turnCount: data.turns.length,
+      turnCount: data.turnCount,
     };
 
     if (data.task.taskNumber) {
@@ -427,33 +688,22 @@ export default class CodeTaskPresenter {
       summary.requestedBy = data.requestedBy;
     }
 
-    if (pullRequest) {
-      summary.pullRequest = CodeTaskPresenter.toPullRequest(pullRequest);
+    if (data.pullRequest) {
+      summary.pullRequest = CodeTaskPresenter.toPullRequest(data.pullRequest);
     }
 
     if (data.task.codeRepositoryId) {
       summary.codeRepositoryId = data.task.codeRepositoryId.toString();
     }
 
-    const changes: CodeTaskChangeStatsJSON | null =
-      CodeTaskChangeStats.fromOutcomes(
-        data.outcomes ||
-          data.turns.map((turn: AIRun): CodeTaskOutcome | undefined => {
-            return turn.taskOutcome;
-          }),
-      );
-
-    if (changes) {
-      summary.changes = changes;
+    if (data.changes) {
+      summary.changes = data.changes;
     }
 
-    /*
-     * A production review: what its latest review found, at a glance. Its
-     * task is reviewed again in place, so the task's own outcome is it.
-     */
+    // A production review: what its latest review found, at a glance.
     const review: ProductionReviewReport | undefined =
       CodeFixTaskTypeHelper.isProductionReview(data.task.codeFixTaskType)
-        ? (data.outcomes?.[0] || data.task.taskOutcome)?.productionReview
+        ? data.reviewOutcome?.productionReview
         : undefined;
 
     if (review) {
@@ -482,26 +732,14 @@ export default class CodeTaskPresenter {
       summary.completedAt = new Date(latest.completedAt).toISOString();
     }
 
-    /*
-     * What AI last said: the newest turn's reply that has one - a turn
-     * still working has none yet, and the one before it is what AI said.
-     */
-    const outcomes: Array<CodeTaskOutcome | null | undefined> =
-      data.outcomes ||
-      data.turns.map((turn: AIRun): CodeTaskOutcome | undefined => {
-        return turn.taskOutcome;
-      });
+    // What AI last said, at a glance.
+    const reply: string = (data.lastReply || "").trim();
 
-    for (let index: number = outcomes.length - 1; index >= 0; index--) {
-      const reply: string = (outcomes[index]?.summary || "").trim();
-
-      if (reply) {
-        summary.latestReply =
-          reply.length > MAX_CODE_TASK_SUMMARY_REPLY_LENGTH
-            ? `${reply.substring(0, MAX_CODE_TASK_SUMMARY_REPLY_LENGTH - 1)}…`
-            : reply;
-        break;
-      }
+    if (reply) {
+      summary.latestReply =
+        reply.length > MAX_CODE_TASK_SUMMARY_REPLY_LENGTH
+          ? `${reply.substring(0, MAX_CODE_TASK_SUMMARY_REPLY_LENGTH - 1)}…`
+          : reply;
     }
 
     return summary;
@@ -667,23 +905,6 @@ export default class CodeTaskPresenter {
     return json;
   }
 
-  private static pullRequestsOf(
-    pullRequests: Array<AIAgentTaskPullRequest>,
-    turns: Array<AIRun>,
-  ): Array<AIAgentTaskPullRequest> {
-    const turnIds: Set<string> = new Set<string>(
-      turns.map((turn: AIRun): string => {
-        return turn.id!.toString();
-      }),
-    );
-
-    return pullRequests.filter(
-      (pullRequest: AIAgentTaskPullRequest): boolean => {
-        return turnIds.has(pullRequest.aiRunId?.toString() || "");
-      },
-    );
-  }
-
   /*
    * The task contexts a list needs to name its origins: only those of tasks
    * that name their subject there (GitHub, trace and service recipes), and
@@ -722,8 +943,8 @@ export default class CodeTaskPresenter {
   }
 
   /*
-   * What each run ended with, by run id: a list's runs are read without it,
-   * and a row adds up the lines its turns changed (CodeTaskChangeStats).
+   * What each run ended with, by run id: a list's runs are read without
+   * it, and a production review's row says what its latest review found.
    */
   private static async loadOutcomes(
     runIds: Array<ObjectID>,

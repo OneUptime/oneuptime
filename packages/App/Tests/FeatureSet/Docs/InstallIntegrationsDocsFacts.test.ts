@@ -27,6 +27,7 @@ import { RETENTION_TTL_ROUNDED_UP_TO_EVENT_DAY } from "Common/Types/AnalyticsDat
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import { getTableColumns } from "Common/Types/Database/TableColumn";
 import Domain from "Common/Types/Domain";
+import { isEmptyErrorPhrase } from "Common/Types/Exception/ErrorMessageRule";
 import Permission, {
   PermissionHelper,
   PermissionProps,
@@ -151,6 +152,7 @@ const SOURCES: Record<string, string> = {
   slackApi: `${COMMON_SERVER}/API/SlackAPI.ts`,
   slackAuthorization: `${COMMON_SERVER}/Middleware/SlackAuthorization.ts`,
   slackManifest: `${COMMON_SERVER}/Utils/Workspace/Slack/app-manifest.json`,
+  slackOrganization: `${COMMON_SERVER}/Utils/Workspace/Slack/SlackOrganization.ts`,
   slackIntegration: `${DASHBOARD}/Components/Slack/SlackIntegration.tsx`,
   slackDocumentation: `${DASHBOARD}/Components/Slack/SlackIntegrationDocumentation.tsx`,
   teamsApi: `${COMMON_SERVER}/API/MicrosoftTeamsAPI.ts`,
@@ -1343,12 +1345,14 @@ describe("Docker Compose, against the compose files and scripts", () => {
     );
   });
 
-  it("probe-1 runs by default, and probe-2 only when asked for", () => {
+  it("probe-1 runs by default; probe-2 is only in the base file, for an override that adds it", () => {
     expect(composeServices("compose")["probe-1"]).toBeDefined();
     expect(composeServices("compose")["probe-2"]).toBeUndefined();
     expect(composeServices("baseCompose")["probe-2"]).toBeDefined();
+    // run-probes named probe-2 too, which the stock compose file does not define (#6826).
+    expect(scriptsOf("rootPackage")["run-probes"]).toMatch(/-d probe-1$/);
     expect(scriptsOf("rootPackage")["run-probes"]).toContain(
-      "docker compose up --remove-orphans -d probe-1 probe-2",
+      "docker compose up --remove-orphans -d probe-1",
     );
     expect(page).toContain("(`probe-1` runs by default)");
   });
@@ -1578,7 +1582,10 @@ describe("Docker Compose, against the compose files and scripts", () => {
     expect(scripts["start"]).toContain(
       "sh ./Scripts/Install/WithConfig.sh docker compose up --remove-orphans -d",
     );
-    expect(scripts["start"]).toMatch(/&& npm run status-check$/);
+    // Then the doctor's quiet run (#6826).
+    expect(scripts["start"]).toMatch(
+      /&& npm run status-check && node \.\/Scripts\/Install\/Doctor\.js --after-start$/,
+    );
     expect(scripts["status-check"]).toBe(
       "bash ./Tests/Scripts/status-check.sh",
     );
@@ -2499,6 +2506,35 @@ describe("Slack Integration, against the manifest and the server", () => {
     );
   });
 
+  /*
+   * #6748: an app installed for a whole Slack Enterprise organization hears
+   * when an admin adds OneUptime to a workspace or removes it once its
+   * manifest subscribes to the two events, and the events route reads the
+   * workspaces again then. Until an app is updated, the list is read again
+   * when it is older than the 10 minutes the page names, or on Refresh.
+   */
+  it("an organization's app hears its workspaces change once it is updated, and the page says what happens until then", () => {
+    const events: Array<string> = valueAt(
+      manifest,
+      "settings.event_subscriptions.bot_events",
+    ) as Array<string>;
+    const route: string = readSource("slackApi");
+
+    expect(events).toContain("team_access_granted");
+    expect(events).toContain("team_access_revoked");
+    expect(route).toContain('event["type"] === "team_access_granted"');
+    expect(route).toContain('event["type"] === "team_access_revoked"');
+    expect(route).toContain("SlackOrganization.refreshOrganization(");
+    expect(readSource("slackOrganization")).toContain(
+      "WORKSPACES_FRESH_FOR_SECONDS: number = 10 * 60;",
+    );
+    expect(
+      sectionOf(page, "### Apps created from an older manifest"),
+    ).toContain(
+      "The update subscribes the app to the `team_access_granted` and `team_access_revoked` events, and OneUptime then reads the workspaces again at once. Until then, it reads them again when they are needed and were last read more than 10 minutes ago, or when someone clicks **Refresh** on the **Slack workspaces** card. It adds no scope, so nothing needs connecting again.",
+    );
+  });
+
   it("the manifest's URLs are built from HOST and HTTP_PROTOCOL", () => {
     const handler: string = blockFrom(
       readSource("slackApi"),
@@ -2733,9 +2769,21 @@ describe("Microsoft Teams Integration, against the server and the Teams card", (
     expect(readSource("startServer")).toContain(
       "new NotFoundException(`Page not found - ${req.url}`)",
     );
-    expect(readSource("response")).toContain(
-      "oneUptimeResponse.status(status).send({ message });",
+    /*
+     * The answer is the message alone: only a BadDataExceptionWithDetails
+     * adds fields beside it, and only an empty message is answered with the
+     * unexplained-error body instead.
+     */
+    const response: string = readSource("response");
+    expect(response).toContain(
+      "error instanceof BadDataExceptionWithDetails ? error.details : {};",
     );
+    expect(response).toContain(
+      ".send({ ...details, message: error.message });",
+    );
+    expect(
+      isEmptyErrorPhrase("Page not found - /api/microsoft-bot/messages"),
+    ).toBe(false);
     expect(Buffer.byteLength(body)).toBe(58);
     expect(page).toContain(`\`${body}\``);
     expect(page).toContain(

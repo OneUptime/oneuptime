@@ -1,6 +1,6 @@
 # Hændelser – Oversigt
 
-En hændelse er den optegnelse, dit team arbejder ud fra, når noget går i stykker: hvad der er ramt, hvor slemt det er, hvor langt indsatsen er nået, hvem der ejer den, og alt det, der bliver skrevet ned undervejs. At erklære en tilkalder den rigtige vagtrotation, giver ejerne besked og — hvis du vil — sætter udfaldet på din statusside, så kunderne ved, at du er på sagen.
+En hændelse er den optegnelse, dit team arbejder ud fra, når noget går i stykker: hvad der er ramt, hvor slemt det er, hvor langt indsatsen er nået, hvem der ejer den, og alt det, der bliver skrevet ned undervejs. At erklære en tilkalder den rigtige vagtrotation, giver ejerne besked og — hvis du vil — sætter udfaldet på din statusside, så kunderne ved, at du er på sagen. Er du i tvivl om, hvorvidt et problem er en hændelse eller en advarsel? [Hvilken skal jeg bruge?](/docs/introduction/which-one#hændelse-advarsel-eller-en-anden-slags-problem) stiller dem op side om side.
 
 :::cards
 - [Opret en hændelse](/docs/incidents/declaring-incidents): I hånden, fra en skabelon, fra en monitor, via API'et eller via en formular.
@@ -86,7 +86,7 @@ Derefter kan du skrive en [postmortem](/docs/incidents/postmortems) og eventuelt
 
 ## Nøglebegreber
 
-En håndfuld ord går igen på hver anden side i dette afsnit. Få dem på plads først.
+En håndfuld ord går igen på hver anden side i dette afsnit. Få dem på plads først. Se [Ordliste](/docs/introduction/glossary) for de ord, der bruges på tværs af OneUptime.
 
 | Begreb                 | Hvad det betyder                                                                                                                                    |
 | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -162,7 +162,7 @@ Rediger eller tilføj alvorsgrader under **Hændelser → Indstillinger → Hæn
 | **AI**        | **Indsigter**, **Protokoller**, **Indstillinger**: hvad OneUptime AI har lært af dine hændelser, og alt, hvad den har gjort for dem, og hvad den må gøre på egen hånd — med reglerne for, hvilke hændelser den undersøger og retter. Se [AI SRE](/docs/ai/ai-sre). |
 | **Arbejdsområde** | De chatarbejdsområder, projektet har forbundet: **Slack**, **Microsoft Teams** og **Mattermost**, hver med sine notifikationsregler for hændelser. Er ingen af dem forbundet, indeholder det **Forbind et arbejdsområde**, en side, der viser alle tre, og hvordan de forbindes. |
 | **Regler**    | Regelmotorerne: **Grupperingsregler**, **Vagtregler**, **Ejerregler**, **Runbook-regler**, **Privatlivsregler**, **Etiketregler**, **SLA-regler**, **Påmindelsesregler**. |
-| **Indstillinger** | **Hændelsesstatus**, **Hændelsesalvor**, **Hændelsesskabeloner**, **Noteskabeloner**, **Godkendelse af offentlige noter**, **Postmortem-skabeloner**, **Postmortem-statusser**, **Brugerdefinerede felter**, **Hændelsesroller**, **Målinger**, **Tilknyttede advarsler**, **Medlemskab af episoder**, **Nummerering**. |
+| **Indstillinger** | **Hændelsesstatus**, **Hændelsesalvor**, **Hændelsesskabeloner**, **Noteskabeloner**, **Godkendelse af offentlige noter**, **Postmortem-skabeloner**, **Postmortem-statusser**, **Brugerdefinerede felter**, **Hændelsesroller**, **Målinger**, **Tilknyttede advarsler**, **Medlemskab af episoder**, **Nummerering**, **Dataopbevaring**. |
 
 **Oversigt** og **Episoder** er åbne; **AI**, **Arbejdsområde**, **Regler**, **Indstillinger** og **Udvikler** er foldet sammen som standard, så menuen åbner på de lister, du bruger hver dag. Klik på et afsnits titel for at folde det ud og finde de sider, resten af denne dokumentation henviser til; et afsnit åbner også af sig selv, når du er på en af dets sider. Konfigurationen af hændelser ligger ikke under projektindstillingerne; den ligger helt her.
 

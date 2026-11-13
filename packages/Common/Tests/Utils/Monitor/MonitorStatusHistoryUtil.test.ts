@@ -25,6 +25,7 @@ const row: (data: {
   color?: string;
   startsAt: string;
   endsAt?: string | undefined;
+  isMonitoringOff?: boolean | undefined;
 }) => MonitorStatusTimeline = (data: {
   id: string;
   statusId: string;
@@ -32,11 +33,16 @@ const row: (data: {
   color?: string;
   startsAt: string;
   endsAt?: string | undefined;
+  isMonitoringOff?: boolean | undefined;
 }): MonitorStatusTimeline => {
   const timeline: MonitorStatusTimeline = new MonitorStatusTimeline();
   timeline._id = data.id;
   timeline.monitorStatusId = new ObjectID(data.statusId);
   timeline.startsAt = new Date(data.startsAt);
+
+  if (data.isMonitoringOff !== undefined) {
+    timeline.isMonitoringOff = data.isMonitoringOff;
+  }
 
   if (data.endsAt) {
     timeline.endsAt = new Date(data.endsAt);
@@ -184,6 +190,7 @@ describe("MonitorStatusHistoryUtil.getStatusChangeRows", () => {
         startsAt: new Date("2026-09-18T08:00:00.000Z"),
         endsAt: undefined,
         isOngoing: true,
+        isMonitoringOff: false,
       },
       {
         id: "row-2",
@@ -192,7 +199,52 @@ describe("MonitorStatusHistoryUtil.getStatusChangeRows", () => {
         startsAt: new Date("2026-09-18T07:30:00.000Z"),
         endsAt: new Date("2026-09-18T08:00:00.000Z"),
         isOngoing: false,
+        isMonitoringOff: false,
       },
+    ]);
+  });
+
+  /*
+   * Turning monitoring off starts a row of the same status (issue #6480).
+   * The card marks it, so the two read as one status with monitoring
+   * turned off, not as Operational twice.
+   */
+  it("says which rows were held with monitoring off", () => {
+    const rows: Array<MonitorStatusChangeRow> =
+      MonitorStatusHistoryUtil.getStatusChangeRows([
+        row({
+          id: "row-off",
+          statusId: OPERATIONAL_ID,
+          statusName: "Operational",
+          startsAt: "2026-09-19T08:00:00.000Z",
+          isMonitoringOff: true,
+        }),
+        row({
+          id: "row-on",
+          statusId: OPERATIONAL_ID,
+          statusName: "Operational",
+          startsAt: "2026-09-18T08:00:00.000Z",
+          endsAt: "2026-09-19T08:00:00.000Z",
+          isMonitoringOff: false,
+        }),
+        // A row read without the column says nothing about it.
+        row({
+          id: "row-unread",
+          statusId: OFFLINE_ID,
+          statusName: "Offline",
+          startsAt: "2026-09-17T08:00:00.000Z",
+          endsAt: "2026-09-18T08:00:00.000Z",
+        }),
+      ]);
+
+    expect(
+      rows.map((changeRow: MonitorStatusChangeRow) => {
+        return [changeRow.id, changeRow.isMonitoringOff, changeRow.isOngoing];
+      }),
+    ).toEqual([
+      ["row-off", true, true],
+      ["row-on", false, false],
+      ["row-unread", false, false],
     ]);
   });
 

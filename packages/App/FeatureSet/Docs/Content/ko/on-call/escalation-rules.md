@@ -2,6 +2,9 @@
 
 온콜 정책은 단계별로 사람을 호출합니다. 각 에스컬레이션 규칙은 하나의 단계로, 누구를 호출할지, 그리고 다음 단계를 호출하기 전에 누군가 확인하기를 얼마나 기다릴지를 정합니다. 정책의 규칙은 정책의 **에스컬레이션 규칙** 페이지에 순서대로 표시됩니다.
 
+> [!TIP]
+> 처음이신가요? 먼저 가이드를 따라 해 보세요: [전화, SMS, 푸시로 호출 받기](/docs/guides/paging).
+
 ```mermaid title="온콜 정책은 누군가 확인할 때까지 단계별로 호출합니다"
 flowchart TB
     trigger["인시던트 또는 알림"] --> level1["Level 1 호출"]
@@ -163,6 +166,8 @@ OneUptime이 보내는 다른 SMS(내가 소유한 인시던트의 변경이나 
 - 프로젝트에서 채널이 꺼져 있으며, 누가 켤 수 있는지.
 
 프로젝트 소유자는 잔액이 충전되거나 채널이 다시 켜질 때까지 이에 관한 이메일을 한 번 받습니다.
+
+OneUptime의 알림 서비스에 닿지 못한 호출에는 `Could not reach the Notification service to send this (ECONNREFUSED).` 메시지가 표시되며, 괄호 안은 네트워크 오류 코드입니다. 전송이 끝나지 않은 호출(예를 들어 전송 중에 서버가 다시 시작된 경우)에는 `Sending did not finish within 15 minutes, so this notification may not have been sent.` 메시지가 표시됩니다. 나중에라도 전송이 끝나면 그 결과가 이 메시지를 대신합니다.
 
 OneUptime Cloud에서는 SMS, 통화, WhatsApp, Telegram 메시지마다 **프로젝트 설정 > 알림 > 알림 설정** 에 있는 프로젝트 잔액에서 비용이 지불됩니다. 제공자가 메시지를 받으면 정확한 비용이 잔액에서 차감되며, 한꺼번에 나가는 메시지 수와는 관계가 없습니다.
 

@@ -66,10 +66,13 @@ const DOCKER_SWARM_CLUSTER_SHOWCASE: ResourceShowcase = {
     name: "swarm-prod-01",
     subtitle: translationKey("3 managers · 2 workers · Docker 27.3.1"),
     stats: [
-      { label: translationKey("Nodes ready"), value: "5/5" },
-      { label: translationKey("Services"), value: "13/14" },
-      { label: translationKey("Tasks running"), value: "41/42" },
-      { label: translationKey("Stacks"), value: "4" },
+      { label: translationKey("Nodes ready"), value: { count: 5, outOf: 5 } },
+      { label: translationKey("Services"), value: { count: 13, outOf: 14 } },
+      {
+        label: translationKey("Tasks running"),
+        value: { count: 41, outOf: 42 },
+      },
+      { label: translationKey("Stacks"), value: 4 },
     ],
     chart: {
       label: translationKey("Cluster CPU"),

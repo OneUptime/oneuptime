@@ -1,6 +1,6 @@
 # SLO's – Overzicht
 
-Een service level objective (SLO) is een betrouwbaarheidsdoel voor wat u bewaakt, zoals "99,9% van de tijd beschikbaar over een voortschrijdende periode van 30 dagen". OneUptime meet elke SLO elke 5 minuten tegen zijn doel, zodat u in plaats van "werkt het nu?" kunt antwoorden op "zijn we betrouwbaar genoeg geweest, over een periode die voor onze gebruikers telt, en hoeveel ruimte voor fouten hebben we nog?".
+Een service level objective (SLO) is een betrouwbaarheidsdoel voor wat u bewaakt, zoals "99,9% van de tijd beschikbaar over een voortschrijdende periode van 30 dagen". OneUptime meet elke SLO elke 5 minuten tegen zijn doel, zodat u in plaats van "werkt het nu?" kunt antwoorden op "zijn we betrouwbaar genoeg geweest, over een periode die voor onze gebruikers telt, en hoeveel ruimte voor fouten hebben we nog?". De [Woordenlijst](/docs/introduction/glossary#slo) zet SLO's naast de andere woorden die OneUptime gebruikt.
 
 :::cards
 - [Een SLO aanmaken](#een-slo-aanmaken): Een naam en een doel. Al het andere begint met een standaardwaarde.
@@ -11,7 +11,7 @@ Een service level objective (SLO) is een betrouwbaarheidsdoel voor wat u bewaakt
 
 ## Zo werkt het
 
-Een SLO leest de statustijdlijnen van de monitoren die eraan gekoppeld zijn: dezelfde gegevens die uw statuspagina's tonen. Daaruit berekent OneUptime welk deel van het compliancevenster goede tijd was, hoeveel van het foutbudget over is en hoe snel het opraakt.
+Een SLO leest de statustijdlijnen van de monitoren die eraan gekoppeld zijn: dezelfde gegevens die uw statuspagina's tonen. Daaruit berekent OneUptime welk deel van het compliancevenster goede tijd was, hoeveel van het foutbudget over is en hoe snel het opraakt. Tijd waarin de bewaking van een monitor uit staat, telt niet mee: niets controleert de monitor dan, dus die tijd verbruikt geen foutbudget en telt ook niet als goede tijd.
 
 ```mermaid title="Van monitorcontroles naar de status van een SLO"
 flowchart TB
@@ -25,6 +25,8 @@ flowchart TB
 ```
 
 ## Belangrijke begrippen
+
+De woorden die in heel OneUptime worden gebruikt, staan in de [Woordenlijst](/docs/introduction/glossary).
 
 | Begrip | Betekenis |
 | --- | --- |
@@ -176,7 +178,7 @@ Het **Overzicht** beantwoordt "zitten we binnen het budget?", van boven naar ben
 - **De samenvatting**: de status, een zin over wat die betekent en de beschrijving. Ernaast staan **Vernieuwen** en wanneer de SLO voor het laatst is geëvalueerd. Daaronder staan het doel, het **Nalevingsvenster** (met een vulindicator zolang een jong voortschrijdend venster zich vult: zie [Jonge SLO's en de vulindicator van het venster](#jonge-slos-en-de-vulindicator-van-het-venster)), het aantal monitoren en de eigenaren, met **Eigenaren toevoegen** om er daar meteen een toe te voegen.
 - **De kerncijfers**:
   - **SLI**: het deel goede tijd in het venster, en hoeveel het boven of onder het doel zit.
-  - **Foutbudget over**: een percentage, een duur zoals "12m 30s left of 43m 12s" en een balk met een markering op de risicodrempel. Als het budget is overschreden, toont het **Budget overschreden** en met hoeveel.
+  - **Foutbudget over**: een percentage, een duur zoals "12 min, 30 sec over van 43 min, 12 sec" en een balk met een markering op de risicodrempel. Als het budget is overschreden, toont het **Budget overschreden** en met hoeveel.
   - **Verbruikssnelheid**: hoe snel het budget wordt uitgegeven over de laatste 60 minuten, de periode die de standaardregel voor snel verbruik gebruikt. Wordt oranje boven 1× en rood, met **Regeldrempel bereikt**, bij de laagste drempel van de ingeschakelde regels voor verbruikssnelheid van de SLO die 6 uur of minder terugkijken. Een uur zegt weinig over een regel die dagen terugkijkt, zoals **Slow leak**, dus wordt ze niet met zo'n regel vergeleken.
   - **Resterende looptijd van budget**: hoelang het budget in dit tempo meegaat. Zie [Foutbudgetten](/docs/slo/error-budget#looptijd-van-het-budget).
 - **Burn-down van foutbudget**: het resterende budget over het huidige venster. Zie [Foutbudgetten](/docs/slo/error-budget#verbranding-van-het-foutbudget).
@@ -193,7 +195,7 @@ De pagina **Instellingen** brengt samen hoe een SLO meet, één kaart per onderd
 
 | Kaart | Wat u wijzigt | Goed om te weten |
 | --- | --- | --- |
-| **Doelstelling** | **Doel (%)** en **Risicodrempel (%)**, met **Doelstelling bewerken**. | Toont de downtime die het doel toestaat, bijvoorbeeld "43m 12s downtime per venster van 30 dagen". |
+| **Doelstelling** | **Doel (%)** en **Risicodrempel (%)**, met **Doelstelling bewerken**. | Toont de downtime die het doel toestaat, bijvoorbeeld "43 min, 12 sec downtime per venster van 30 dagen". |
 | **Nalevingsperiode** | **Type venster**, **Venster (dagen)** en **Tijdzone**, met **Periode bewerken**. | Regels voor verbruikssnelheid houden hun drempels als het venster verandert, dus controleer ze daarna. |
 | **Downtimeberekening** | **Modus voor meerdere monitoren** en **Downtime-monitorstatussen**, met **Downtimeberekening bewerken**. | Zonder statussen tellen alle niet-operationele statussen, ook statussen die later worden toegevoegd. |
 | **Evaluatie** | De schakelaar **Dit SLO evalueren**, die opslaat zodra u hem omzet. | Uitzetten vraagt om bevestiging, omdat het ook de open waarschuwingen en incidenten voor verbruikssnelheid van de SLO oplost. |
@@ -238,7 +240,7 @@ Het zijmenu van een monitor heeft ook een pagina **SLOs**: de SLO's die die moni
 
 Een SLO met een voortschrijdend venster die jonger is dan zijn venster, wordt gemeten over de gegevens die er tot nu toe zijn: een SLO van 30 dagen die gisteren is aangemaakt, heeft één dag aan gegevens. Zijn foutbudget begint klein en groeit naarmate het venster zich vult, dus zijn eerste cijfers schommelen meer dan later.
 
-Zolang dat zo is, zegt het **Overzicht** het: de samenvatting toont een indicator **Window 23% full** (**Venster minder dan 1% gevuld** op de eerste dag), en de tegel **Foutbudget over** herhaalt het onder zijn getal. Beide verdwijnen als het venster vol is. SLO's met een kalendermaand tonen ze nooit, omdat hun budget vanaf de eerste dag de hele maand dekt, en SLO's in de modus **Gemiddelde monitorseconden** ook niet, omdat hun budget over de monitoren heen wordt geteld.
+Zolang dat zo is, zegt het **Overzicht** het: de samenvatting toont een indicator **Venster 23% gevuld** (**Venster minder dan 1% gevuld** op de eerste dag), en de tegel **Foutbudget over** herhaalt het onder zijn getal. Beide verdwijnen als het venster vol is. SLO's met een kalendermaand tonen ze nooit, omdat hun budget vanaf de eerste dag de hele maand dekt, en SLO's in de modus **Gemiddelde monitorseconden** ook niet, omdat hun budget over de monitoren heen wordt geteld.
 
 ## Problemen oplossen
 

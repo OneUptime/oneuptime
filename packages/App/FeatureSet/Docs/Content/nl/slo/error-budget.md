@@ -19,13 +19,13 @@ total budget = (100% − target) × window length
 
 | Doel | Venster van 7 dagen | Venster van 28 dagen | Venster van 30 dagen | Venster van 90 dagen |
 | --- | --- | --- | --- | --- |
-| 99% | 1h 40m 48s | 6h 43m 12s | 7h 12m | 21h 36m |
-| 99.5% | 50m 24s | 3h 21m 36s | 3h 36m | 10h 48m |
-| 99.9% | 10m 5s | 40m 19s | 43m 12s | 2h 9m 36s |
-| 99.95% | 5m 2s | 20m 10s | 21m 36s | 1h 4m 48s |
-| 99.99% | 1m 0s | 4m 2s | 4m 19s | 12m 58s |
+| 99% | 1 uur, 40 min, 48 sec | 6 uur, 43 min, 12 sec | 7 uur, 12 min | 21 uur, 36 min |
+| 99,5% | 50 min, 24 sec | 3 uur, 21 min, 36 sec | 3 uur, 36 min | 10 uur, 48 min |
+| 99,9% | 10 min, 5 sec | 40 min, 19 sec | 43 min, 12 sec | 2 uur, 9 min, 36 sec |
+| 99,95% | 5 min, 2 sec | 20 min, 10 sec | 21 min, 36 sec | 1 uur, 4 min, 48 sec |
+| 99,99% | 1 min, 0 sec | 4 min, 2 sec | 4 min, 19 sec | 12 min, 58 sec |
 
-De pagina **Instellingen** van de SLO toont het budget dat zijn doel toestaat naast het doel, bijvoorbeeld "43m 12s downtime per venster van 30 dagen".
+De pagina **Instellingen** van de SLO toont het budget dat zijn doel toestaat naast het doel, bijvoorbeeld "43 min, 12 sec downtime per venster van 30 dagen".
 
 ### Het budget van een SLO met meerdere monitoren
 
@@ -35,16 +35,16 @@ In de modus **Gemiddelde monitorseconden** wordt het budget geteld in monitorsec
 
 ### Het budget van een kalendermaand
 
-Een SLO met een kalendermaand heeft vanaf de eerste dag het budget van de hele maand: een SLO van 99,9% in een maand van 31 dagen heeft op de 1e al zijn 44m 38s. Het budget wordt niet naar rato van het verstreken deel van de maand berekend, dus een storing van een minuut op de ochtend van de 1e kost een minuut van het maandbudget.
+Een SLO met een kalendermaand heeft vanaf de eerste dag het budget van de hele maand: een SLO van 99,9% in een maand van 31 dagen heeft op de 1e al zijn 44 min, 38 sec. Het budget wordt niet naar rato van het verstreken deel van de maand berekend, dus een storing van een minuut op de ochtend van de 1e kost een minuut van het maandbudget.
 
 ## Resterend budget
 
 Naarmate downtime oploopt, toont het **Overzicht** het resterende budget in zijn tegel **Foutbudget over**:
 
 - als percentage van het totaal, dat ook de status van de SLO bepaalt en de balk vult. De balk heeft een markering op de risicodrempel van de SLO;
-- als duur, bijvoorbeeld "31m 4s left of 43m 12s".
+- als duur, bijvoorbeeld "31 min, 4 sec over van 43 min, 12 sec".
 
-Als het budget op is, toont de tegel **Geen budget meer**. Als downtime het overschrijdt, toont de tegel **Budget overschreden** en de overschrijding als tijd, bijvoorbeeld "4d 23m over budget · 5m 47s allowed": de SLO heeft alle 5 minuten en 47 seconden van zijn budget gebruikt, en nog 4 dagen en 23 minuten meer. De balk blijft leeg en rood.
+Als het budget op is, toont de tegel **Geen budget meer**. Als downtime het overschrijdt, toont de tegel **Budget overschreden** en de overschrijding als tijd, bijvoorbeeld "4 dagen, 23 min boven budget · 5 min, 47 sec toegestaan": de SLO heeft alle 5 minuten en 47 seconden van zijn budget gebruikt, en nog 4 dagen en 23 minuten meer. De balk blijft leeg en rood.
 
 Het resterende budget wordt voor berekeningen en geschiedenisgrafieken als getal met teken opgeslagen, dus daar verschijnt een overschreden budget als negatief percentage. Een sterk negatief percentage betekent dat de overschrijding groot is ten opzichte van het budget; het is niet het deel van de tijd dat de dienst uit de lucht was.
 
@@ -60,7 +60,7 @@ runway = budget left ÷ (burn rate × (100% − target))
 
 | De tegel toont | Wat het betekent |
 | --- | --- |
-| Een duur, zoals **~2d 5h** | In het huidige tempo is het budget over ongeveer zo lang op. Oranje, en rood bij een dag of minder. **Minder dan 1 min** betekent minder dan een minuut. |
+| Een duur, zoals **~2 dagen, 5 uur** | In het huidige tempo is het budget over ongeveer zo lang op. Oranje, en rood bij een dag of minder. **Minder dan 1 min** betekent minder dan een minuut. |
 | **Geen verbruik** | In de laatste 60 minuten is geen budget uitgegeven. |
 | **Houdbaar** | Alleen voortschrijdende vensters: de looptijd is minstens één volledig venster, dus het budget wordt niet sneller uitgegeven dan oude downtime uit het venster valt. In dit tempo raakt het niet op. |
 | **Houdt het tot de reset** | Alleen kalendermaanden: het budget wordt aan het begin van de volgende maand teruggezet voordat het op is. |
@@ -97,7 +97,7 @@ Een SLO met een kalendermaand wordt om middernacht op de eerste van elke maand t
 
 ### Jonge SLO's
 
-Een SLO met een voortschrijdend venster die jonger is dan zijn venster, wordt gemeten over de gegevens die er tot nu toe zijn, en zijn totale budget groeit mee: een SLO van 30 dagen die een week geleden is aangemaakt, heeft voorlopig een budget van 7 dagen. Tot het venster vol is, toont het **Overzicht** hoe vol het is, met een indicator **Window 23% full** en dezelfde opmerking in de tegel **Foutbudget over**. Verwacht dat de cijfers tot rust komen naarmate het venster zich vult.
+Een SLO met een voortschrijdend venster die jonger is dan zijn venster, wordt gemeten over de gegevens die er tot nu toe zijn, en zijn totale budget groeit mee: een SLO van 30 dagen die een week geleden is aangemaakt, heeft voorlopig een budget van 7 dagen. Tot het venster vol is, toont het **Overzicht** hoe vol het is, met een indicator **Venster 23% gevuld** en dezelfde opmerking in de tegel **Foutbudget over**. Verwacht dat de cijfers tot rust komen naarmate het venster zich vult.
 
 ## Statuswijzigingen en de risicodrempel
 

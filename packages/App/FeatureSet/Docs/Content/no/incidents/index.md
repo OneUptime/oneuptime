@@ -1,6 +1,6 @@
 # Hendelser – Oversikt
 
-En hendelse er posten teamet ditt jobber ut fra når noe ryker: hva som er berørt, hvor ille det er, hvor langt responsen har kommet, hvem som eier den, og alt som skrives ned underveis. Å erklære én tilkaller riktig vaktrotasjon, gir eierne beskjed og — hvis du vil — legger avbruddet ut på statussiden din, slik at kundene vet at du jobber med saken.
+En hendelse er posten teamet ditt jobber ut fra når noe ryker: hva som er berørt, hvor ille det er, hvor langt responsen har kommet, hvem som eier den, og alt som skrives ned underveis. Å erklære én tilkaller riktig vaktrotasjon, gir eierne beskjed og — hvis du vil — legger avbruddet ut på statussiden din, slik at kundene vet at du jobber med saken. Usikker på om et problem er en hendelse eller et varsel? [Hvilken skal jeg bruke?](/docs/introduction/which-one#hendelse-varsel-eller-en-annen-type-problem) stiller dem opp side om side.
 
 :::cards
 - [Opprette en hendelse](/docs/incidents/declaring-incidents): For hånd, fra en mal, fra en monitor, via API-et eller via et skjema.
@@ -86,7 +86,7 @@ Deretter kan du skrive en [etteranalyse](/docs/incidents/postmortems) og eventue
 
 ## Nøkkelbegreper
 
-En håndfull ord går igjen på hver annen side i denne delen. Få dem på plass først.
+En håndfull ord går igjen på hver annen side i denne delen. Få dem på plass først. Se [Ordliste](/docs/introduction/glossary) for ordene som brukes på tvers av OneUptime.
 
 | Begrep                 | Hva det betyr                                                                                                                                       |
 | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -162,7 +162,7 @@ Rediger eller legg til alvorlighetsgrader under **Hendelser → Innstillinger �
 | **KI**        | **Innsikt**, **Logger**, **Innstillinger**: hva OneUptime AI har lært av hendelsene dine og alt den har gjort for dem, og hva den kan gjøre på egen hånd — med reglene for hvilke hendelser den undersøker og retter. Se [AI SRE](/docs/ai/ai-sre). |
 | **Arbeidsområde** | Chatarbeidsområdene prosjektet har koblet til: **Slack**, **Microsoft Teams** og **Mattermost**, hver med sine varselregler for hendelser. Er ingen av dem koblet til, inneholder den **Koble til et arbeidsområde**, en side som viser alle tre og hvordan de kobles til. |
 | **Regler**    | Regelmotorene: **Grupperingsregler**, **Vaktregler**, **Eierregler**, **Runbook-regler**, **Personvernregler**, **Etikettregler**, **SLA-regler**, **Påminnelsesregler**. |
-| **Innstillinger** | **Hendelsesstatus**, **Hendelsesalvor**, **Hendelsesmaler**, **Notatmaler**, **Godkjenning av offentlige notater**, **Postmortem-maler**, **Statuser for etteranalyse**, **Egendefinerte felt**, **Hendelsesroller**, **Målinger**, **Tilknyttede varsler**, **Medlemskap i episoder**, **Nummerering**. |
+| **Innstillinger** | **Hendelsesstatus**, **Hendelsesalvor**, **Hendelsesmaler**, **Notatmaler**, **Godkjenning av offentlige notater**, **Postmortem-maler**, **Statuser for etteranalyse**, **Egendefinerte felt**, **Hendelsesroller**, **Målinger**, **Tilknyttede varsler**, **Medlemskap i episoder**, **Nummerering**, **Dataoppbevaring**. |
 
 **Oversikt** og **Episoder** er åpne; **KI**, **Arbeidsområde**, **Regler**, **Innstillinger** og **Utvikler** er brettet sammen som standard, slik at menyen åpner på listene du bruker hver dag. Klikk på tittelen til en seksjon for å brette den ut og finne sidene resten av denne dokumentasjonen viser til; en seksjon åpner seg også av seg selv når du er på en av sidene i den. Konfigurasjonen av hendelser ligger ikke under prosjektinnstillingene; den ligger helt her.
 

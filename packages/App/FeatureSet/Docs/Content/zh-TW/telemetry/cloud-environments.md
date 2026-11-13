@@ -52,11 +52,11 @@ flowchart TB
 | Google App Engine | `gcp_app_engine` | 資源偵測器 | `faas.instance` | [其他雲端平台](/docs/telemetry/cloud-other-platforms) |
 | Azure Container Apps | `azure_container_apps` | 資源偵測器 | `azure.container_app.instance.id` | [Azure Container Apps](/docs/telemetry/cloud-azure-container-apps) |
 | Azure Container Instances | `azure_container_instances` | 手動設定 | `host.name` | [其他雲端平台](/docs/telemetry/cloud-other-platforms) |
-| Azure App Service | `azure_app_service` | 資源偵測器 | `host.id` | [其他雲端平台](/docs/telemetry/cloud-other-platforms) |
+| Azure App Service | `azure_app_service` | 資源偵測器 | `azure.app_service.instance.id` | [其他雲端平台](/docs/telemetry/cloud-other-platforms) |
 
 - **資源偵測器：** SDK 或 Collector 的 `resourcedetection` 處理器中的 OpenTelemetry 資源偵測器會替你設定 `cloud.*` 屬性。
 - **手動設定：** 沒有偵測器，所以你要把屬性寫進 `OTEL_RESOURCE_ATTRIBUTES`。平台頁面會列出確切的那一行。
-- **Azure 偵測器知道的比較少。** Container Apps 偵測器既不知道區域也不知道訂用帳戶，App Service 偵測器則不知道訂用帳戶：缺少的部分需要你自己設定。
+- **Azure 偵測器知道的比較少。** Container Apps 偵測器既不知道區域也不知道訂用帳戶，Node.js 與 .NET 的 App Service 偵測器則不知道訂用帳戶（Collector 的偵測器知道）：缺少的部分需要你自己設定。
 - **帶點號的 Azure 寫法也能用。** Node.js 與 .NET 的 Azure 偵測器寫入的是 `azure.container_apps` 與 `azure.app_service`。OneUptime 收到後會把它們改寫為上面帶底線的值。
 
 ## OneUptime 如何識別環境
@@ -88,10 +88,11 @@ azure_container_apps|00000000-0000-0000-0000-000000000000|eastus
 2. `aws.ecs.task.arn`（縮短為任務 ID）
 3. `faas.instance`
 4. `azure.container_app.instance.id`
-5. `service.instance.id`
-6. `container.id`
-7. `host.id`
-8. `host.name`
+5. `azure.app_service.instance.id`
+6. `service.instance.id`
+7. `container.id`
+8. `host.id`
+9. `host.name`
 
 平台自己的識別會刻意排在最前面。sidecar Collector 與應用程式的 SDK 都看得到它，而且它在重新啟動後保持不變。SDK 通常會為每個程序產生新的 `service.instance.id`（Node.js SDK 預設就是如此），因此如果先用它當作金鑰，一個 ECS 任務就會被拆成兩列。只有在平台沒有設定自己的識別時，才會使用 `service.instance.id`。[支援的平台](#支援的平台) 中的 **執行個體識別** 欄列出每個平台上典型設定所使用的屬性。
 
@@ -122,6 +123,8 @@ azure_container_apps|00000000-0000-0000-0000-000000000000|eastus
 - **每個應用程式每小時最多記錄 12 個新修訂版本。** 否則，隨每次建置變化的 `service.version` 會變成每分鐘一次部署。
 
 應用程式的頁面有顯示其請求、錯誤、延遲、執行個體與目前執行之修訂版本的 **概覽**、顯示每個修訂版本數據的 **修訂版本** 分頁、篩選到該應用程式的 **執行個體**、**日誌** 與 **追蹤** 分頁，以及列出 OneUptime 為其建議之監視器的 **建議** 分頁：作業失敗、錯誤激增、流量中斷與請求緩慢，從應用程式自身的 span 及其 `http.server.request.duration` 讀取，每個都連結到應用程式的環境。**設定警示** 會開啟該分頁；對於名稱太長、無法用來篩選其遙測資料的應用程式，它會改為開啟 **服務** 中該應用程式所屬服務的建議監視器。
+
+應用程式從未傳送過的數字不會顯示為 0。沒有傳送過追蹤的應用程式，其請求、錯誤率與延遲圖格顯示 **未收到追蹤**；正在執行、但遙測資料沒有指出任何執行個體的應用程式，其 **執行個體** 圖格顯示 **未回報**。在應用程式傳送追蹤、執行個體與版本之前，它的 **概覽** 頂端會顯示 **設定檢查**：列出每種遙測資料是否送達，以及需要加入什麼。
 
 30 天內沒有傳送任何資料的應用程式會連同其修訂版本一起被移除；30 天內沒有任何執行個體回報的修訂版本也會被移除，除非應用程式仍在執行它。在自行託管的 OneUptime 上，可以用 `CLOUD_APP_RETENTION_DAYS` 設定這個 30。
 

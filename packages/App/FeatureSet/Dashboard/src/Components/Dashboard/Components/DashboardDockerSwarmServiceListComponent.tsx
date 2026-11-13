@@ -3,6 +3,7 @@ import DashboardDockerSwarmServiceListComponent from "Common/Types/Dashboard/Das
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import {
   ResourceListColumn,
+  ResourceListNameCell,
   ResourceListViewMode,
 } from "./DashboardResourceListBase";
 import DashboardModelResourceListBase from "../../Infrastructure/DashboardModelResourceListBase";
@@ -218,7 +219,12 @@ function renderServiceRow(r: DockerSwarmResource): ReactElement {
       key={id}
       className="hover:bg-gray-50/50 transition-colors duration-100 group"
     >
-      <td className="px-3 py-2 text-xs text-gray-700 truncate">{detailLink}</td>
+      <ResourceListNameCell
+        name={name}
+        className="px-3 py-2 text-xs text-gray-700 truncate"
+      >
+        {detailLink}
+      </ResourceListNameCell>
       <td className="px-3 py-2 text-xs text-gray-500 capitalize">
         {(r.serviceMode as string) || "—"}
       </td>
@@ -235,9 +241,10 @@ function renderServiceRow(r: DockerSwarmResource): ReactElement {
           <span style={{ color: status.textColor }}>{status.text}</span>
         </span>
       </td>
-      <td className="px-3 py-2 text-xs text-gray-500 truncate">
-        {(r.image as string) || "—"}
-      </td>
+      <ResourceListNameCell
+        name={(r.image as string) || "—"}
+        className="px-3 py-2 text-xs text-gray-500 truncate"
+      />
     </tr>
   );
 }

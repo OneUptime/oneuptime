@@ -176,6 +176,23 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
   },
   // A cron schedule in words: the monitor's interval, a workflow's schedule.
   { directory: "packages/Common/Utils/CronScheduleText.ts", kind: "ui" },
+  /*
+   * What each Setup health finding says (#6812): the server sends its
+   * template, and the page says it in the reader's language.
+   */
+  {
+    directory: "packages/Common/Types/SetupHealth/SetupHealth.ts",
+    kind: "ui",
+  },
+  /*
+   * Why an email was not sent when the server has no email set up: the
+   * project's Email Logs show it in the reader's language. Only the words
+   * the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/ServerSending/ServerSendingWords.ts",
+    kind: "ui",
+  },
   // The common schedules a workflow's Schedule trigger offers.
   { directory: "packages/Common/Utils/CronTab.ts", kind: "ui" },
   /*
@@ -232,12 +249,14 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "ui",
   },
   /*
-   * A Security Events connection's own words for what it imports - Google
+   * A Security Events connection's own words: what it imports - Google
    * SecOps' Data to import, Alerts, Detections, Alerts only - which the
    * connection form, the connections list and the diagnostics put in the
-   * reader's language and into their sentences (#6658). Only the words the
-   * file marks are read: provider names, vendor names and field keys stay
-   * as written.
+   * reader's language and into their sentences (#6658), and every field's
+   * title, description and choices plus each provider's description, which
+   * the connection form draws (#6700). Only the words the file marks are
+   * read: provider names, vendor names, field keys and placeholders that
+   * show a value to type (an ID, an address, a query) stay as written.
    */
   {
     directory:
@@ -341,6 +360,31 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * What a custom domain's DNS check looked up and what came back, and what
+   * a self-hosted server still needs before a custom domain can work: DNS
+   * Setup and Add Custom Domain say them in the reader's language. Only the
+   * words the files mark are read: record types and hostnames stay as
+   * written.
+   */
+  {
+    directory: "packages/Common/Types/CustomDomain/DnsRecordCheckWords.ts",
+    kind: "keys",
+  },
+  {
+    directory:
+      "packages/Common/Types/CustomDomain/CustomDomainServerReadiness.ts",
+    kind: "keys",
+  },
+  /*
+   * An error nobody explained (#6836): what happened, what to do next and
+   * where to look, which ErrorExplanation says in the reader's language.
+   * Only the words the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/Exception/UnexplainedError.ts",
+    kind: "keys",
+  },
+  /*
    * A RUM application's status - Receiving data, No recent traffic, Waiting
    * for data - and what each means: the RUM Applications list and an
    * application's hero say them in the reader's language. Only the words
@@ -360,6 +404,21 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   {
     directory: "packages/Common/Utils/SessionReplay/SessionReplayHealth.ts",
+    kind: "keys",
+  },
+  /*
+   * A dashboard's SLO widgets: the single SLO's metric labels, "Not
+   * evaluated yet", the line under its error budget ("43 min remaining")
+   * and under its SLI ("target 99.9%"), and the SLO list's Not Evaluated
+   * and Disabled. Only the words each file marks are read: the metric names
+   * the worker writes and the API's values stay as written.
+   */
+  {
+    directory: "packages/Common/Utils/Slo/SloWidgetFormat.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Utils/Slo/SloListWidgetFormat.ts",
     kind: "keys",
   },
   /*
@@ -612,11 +671,18 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
  * out of every locale file (a test in ee/ holds every frontend's locales to
  * that). BackupSetting and BackupRun are the instance's backups, which only
  * the Admin Dashboard shows, in words of its own (ee/AdminDashboard/Backups).
+ * ProductFeedback is what people told the server, which only the Admin
+ * Dashboard's Feedback page shows (#6832).
  */
 export const SKIPPED_SOURCE_FILES: ReadonlySet<string> = new Set<string>([
   "packages/Common/Models/DatabaseModels/EnterpriseLicense.ts",
   "packages/Common/Models/DatabaseModels/BackupSetting.ts",
   "packages/Common/Models/DatabaseModels/BackupRun.ts",
+  /*
+   * What people told OneUptime (#6832): only the Admin Dashboard's Feedback
+   * page reads it, in words of its own.
+   */
+  "packages/Common/Models/DatabaseModels/ProductFeedback.ts",
 ]);
 
 /*

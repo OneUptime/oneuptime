@@ -313,6 +313,36 @@ describe("API.getRequestFailedDetails - existing classification", () => {
     },
   );
 
+  /*
+   * The probe's own revocation check (Website and API monitors) throws an
+   * error with code CERT_REVOKED and a message that starts like Node's TLS
+   * errors. It is a certificate problem with its own explanation, not the
+   * generic "TLS/SSL handshake failed" its "certificate" wording would fall
+   * into, and not a timeout.
+   */
+  test("a revoked certificate is a certificate error of its own", () => {
+    const revoked: Error & { code?: string } = new Error(
+      "certificate has been revoked by its issuer on 2026-11-03 13:03:13 UTC (reason: Superseded), according to the OCSP response the server sent. Browsers refuse a revoked certificate.",
+    );
+    revoked.code = "CERT_REVOKED";
+
+    const details: RequestFailedDetails = API.getRequestFailedDetails(revoked);
+
+    expect(details.failedPhase).toBe(RequestFailedPhase.CertificateError);
+    expect(details.errorCode).toBe("CERT_REVOKED");
+    expect(details.errorDescription).toContain("has been revoked");
+    expect(details.rawErrorMessage).toBe(revoked.message);
+  });
+
+  test("the revoked wording is recognised even without the code", () => {
+    const details: RequestFailedDetails = API.getRequestFailedDetails(
+      new Error("certificate has been revoked by its issuer"),
+    );
+
+    expect(details.failedPhase).toBe(RequestFailedPhase.CertificateError);
+    expect(details.errorCode).toBe("CERT_REVOKED");
+  });
+
   test("an unrecognised error still falls through to Unknown", () => {
     const details: RequestFailedDetails = API.getRequestFailedDetails(
       new Error("something odd"),

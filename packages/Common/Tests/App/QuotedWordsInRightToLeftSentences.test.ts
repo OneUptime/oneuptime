@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { isRightToLeftLanguage } from "../../Types/ReadingDirection";
 import { BidiClass, getBidiClass } from "../Helpers/BidiLayout";
+import { SYSTEMD_UNIT_KINDS } from "../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/SystemdUnits";
 
 /*
  * A WORD QUOTED IN AN ARABIC OR PERSIAN SENTENCE IS THE WORD THE PAGE SHOWS.
@@ -339,6 +340,12 @@ const SHOWN_AS_WRITTEN: Array<ShownAsWritten> = [
     words: ["Guest Down"],
     reason:
       "A Proxmox alert template, which the template picker names as the template does.",
+  },
+  {
+    english: "as systemd writes it at the end of the unit's name",
+    words: ["service"],
+    reason:
+      "A systemd unit's kind, which the Systemd Units list and a unit's page show as systemd writes it (#6731).",
   },
   {
     english: "SNMP Table Value on the Wi-Fi Radios table (for example TX Power",
@@ -743,6 +750,143 @@ describe("the sentences #6659 put right", () => {
 
     expect(translatedAway).toEqual([]);
     expect(named.length).toBeGreaterThan(20);
+  });
+});
+
+/*
+ * #6731: a systemd unit's kind is shown as systemd writes it - service,
+ * socket, timer, target - on the Systemd Units list, its Type filter and a
+ * unit's page (Components/Host/SystemdUnitKind), in every language. The
+ * help texts that name the kinds quote each one so in Arabic and Persian:
+ * never the Dashboard's word for Service, Mount or Target, which other
+ * screens use for a service, a connection or a target value.
+ */
+describe("the systemd unit kinds a help text names", () => {
+  const SYSTEMD_KINDS_NAMED: string =
+    "as systemd writes it at the end of the unit's name";
+  const NOT_A_LETTER: RegExp = /[^a-z]+/;
+
+  interface KindSentence {
+    languageOfApp: LanguageOfApp;
+    sentence: Sentence;
+    // The kinds the English names, as systemd writes them.
+    kinds: Array<string>;
+  }
+
+  const KIND_SENTENCES: Array<KindSentence> = LANGUAGES_OF_APPS.filter(
+    (languageOfApp: LanguageOfApp): boolean => {
+      return languageOfApp.app === "Dashboard";
+    },
+  ).flatMap((languageOfApp: LanguageOfApp): Array<KindSentence> => {
+    return languageOfApp.sentences
+      .filter((sentence: Sentence): boolean => {
+        return sentence.english.includes(SYSTEMD_KINDS_NAMED);
+      })
+      .map((sentence: Sentence): KindSentence => {
+        return {
+          languageOfApp,
+          sentence,
+          kinds: sentence.english
+            .split(NOT_A_LETTER)
+            .filter((word: string): boolean => {
+              return SYSTEMD_UNIT_KINDS.includes(word);
+            }),
+        };
+      });
+  });
+
+  const titled: (kind: string) => string = (kind: string): string => {
+    return `${kind.charAt(0).toUpperCase()}${kind.slice(1)}`;
+  };
+
+  // The kinds a sentence quotes as written, and the page's words it uses.
+  const readKinds: (
+    text: string,
+    kindSentence: KindSentence,
+  ) => { missing: Array<string>; pageWords: Array<string> } = (
+    text: string,
+    kindSentence: KindSentence,
+  ): { missing: Array<string>; pageWords: Array<string> } => {
+    return {
+      missing: kindSentence.kinds.filter((kind: string): boolean => {
+        return !text.includes(`«${kind}»`);
+      }),
+      pageWords: kindSentence.kinds
+        .map((kind: string): string | undefined => {
+          return kindSentence.languageOfApp.words.translated.get(titled(kind));
+        })
+        .filter((word: string | undefined): word is string => {
+          return word !== undefined && text.includes(word);
+        }),
+    };
+  };
+
+  test("the Unit Type tile's and the Type column's texts, in Arabic and in Persian", () => {
+    expect(
+      KIND_SENTENCES.map((kindSentence: KindSentence): string => {
+        return `${kindSentence.sentence.language}: ${kindSentence.kinds.join(" ")}`;
+      }).sort(),
+    ).toEqual([
+      "ar: service socket timer mount target",
+      "ar: service timer",
+      "fa: service socket timer mount target",
+      "fa: service timer",
+    ]);
+  });
+
+  test("quote every kind the English names as written, and none of the page's words for it", () => {
+    for (const kindSentence of KIND_SENTENCES) {
+      expect({
+        key: kindSentence.sentence.key,
+        language: kindSentence.sentence.language,
+        ...readKinds(kindSentence.sentence.text, kindSentence),
+      }).toEqual({
+        key: kindSentence.sentence.key,
+        language: kindSentence.sentence.language,
+        missing: [],
+        pageWords: [],
+      });
+    }
+  });
+
+  /*
+   * The negative controls: «service» put back as the page's word for
+   * Service - as Arabic had it, «الخدمة» - or as the English word, title-
+   * cased, which this guard's first rule reports.
+   */
+  test("a kind worded as the page's word, or title-cased in English, is caught", () => {
+    let swapped: number = 0;
+
+    for (const kindSentence of KIND_SENTENCES) {
+      const pageWord: string | undefined =
+        kindSentence.languageOfApp.words.translated.get("Service");
+
+      expect(pageWord).toEqual(expect.any(String));
+
+      const asPageWord: string = kindSentence.sentence.text.replace(
+        "«service»",
+        (): string => {
+          return `«${pageWord}»`;
+        },
+      );
+
+      expect(readKinds(asPageWord, kindSentence)).toEqual({
+        missing: ["service"],
+        pageWords: [pageWord],
+      });
+
+      const titleCased: string = kindSentence.sentence.text.replace(
+        "«service»",
+        "«Service»",
+      );
+
+      expect(
+        findQuotedPageWords(titleCased, kindSentence.languageOfApp.words),
+      ).toContainEqual({ phrase: "Service", pageWord });
+      swapped += 1;
+    }
+
+    expect(swapped).toBe(4);
   });
 });
 

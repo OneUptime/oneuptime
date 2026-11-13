@@ -105,7 +105,11 @@ export interface AuditLogExportRecord {
   // When the change was recorded, ISO 8601 in UTC.
   createdAt: string;
   projectId: string | null;
-  // Create, Update, Delete or Download.
+  /*
+   * Create, Update, Delete or Download; for a person's session, SignIn,
+   * SignOut, SessionTimeout or SessionRevoked (AuditLogSessionEvent) - new
+   * values of a key every version has, so no new version.
+   */
   action: string | null;
   resourceType: string | null;
   resourceId: string | null;

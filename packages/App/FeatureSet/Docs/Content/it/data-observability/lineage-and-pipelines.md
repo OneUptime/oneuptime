@@ -17,7 +17,11 @@ La scheda **Derivazione** di una tabella mostra le tabelle da cui viene costruit
 
 In cima alla scheda, un diagramma disegna questa derivazione per alcuni passi in ogni direzione (tre, oppure scegli 1, 2 o 5): a sinistra ciò da cui viene costruita la tabella, a destra le tabelle e le dashboard costruite a partire da essa, e le pipeline che caricano dati dall'esterno, nel punto in cui entrano. Ogni riquadro dice com'è adesso - in ritardo, un avviso aperto, un'esecuzione non riuscita - e una freccia diventa rossa quando l'ultima esecuzione della sua pipeline non è riuscita, così una tabella in ritardo si può seguire fino all'esecuzione che l'ha fermata. Apri qualsiasi tabella per centrare il diagramma su di essa.
 
+Un riquadro disegna al massimo dieci tabelle in ogni direzione e conta le altre, per esempio **+14**. Seleziona il numero per disegnarne fino a dieci in più dove si trovano, prima quelle con problemi, con ogni freccia tra loro e ciò che è già disegnato. **Reimposta il diagramma** torna al diagramma com'era disegnato all'inizio. Quando un lato contiene tante tabelle quante un diagramma ne può contenere, apri una tabella per centrare il diagramma su di essa.
+
 Dove la fonte indica le colonne, la scheda **Colonne** di una tabella dice da dove viene ciascuna colonna e cosa alimenta: la cronologia degli accessi di Snowflake (edizione Enterprise, che richiede `IMPORTED PRIVILEGES` sul database `SNOWFLAKE`) e la faccetta `columnLineage` di OpenLineage.
+
+Nella scheda **Derivazione**, scegli una colonna della tabella in **Segui una colonna** per evidenziare da dove viene e dove va: risalendo il diagramma fino alle colonne da cui è costruita, scendendo fino alle colonne costruite a partire da essa, ciascuna indicata sulla sua tabella, anche dove è stata rinominata lungo il percorso. Una freccia le cui fonti non indicano colonne può portarla oltre ciò che è evidenziato, e il diagramma lo dice.
 
 ## OpenLineage
 
@@ -117,7 +121,7 @@ Ogni job, progetto dbt e sincronizzazione compare in **Pipeline**, con le sue es
 - **Pipeline Run Unusually Long**: un'esecuzione ha impiegato il doppio del tempo abituale o più, verificato ogni cinque minuti mentre è in corso, così un'esecuzione bloccata viene notata prima che finisca.
 - **Pipeline Is Late**: nessuna esecuzione è partita da più tempo di quanto la sua pianificazione consenta.
 
-La pagina di una pipeline disegna la sua **Derivazione**, il primo posto in cui guardare quando un'esecuzione non riesce o è in ritardo: a sinistra le tabelle che legge, a destra le tabelle che scrive, la pipeline in mezzo, e ogni riquadro dice com'è adesso. Scegli più passi per vedere da cosa sono costruite quelle tabelle e cosa è costruito a partire da esse, e apri qualsiasi tabella per vedere la sua scheda **Derivazione**.
+La pagina di una pipeline disegna la sua **Derivazione**, il primo posto in cui guardare quando un'esecuzione non riesce o è in ritardo: a sinistra le tabelle che legge, a destra le tabelle che scrive, la pipeline in mezzo, e ogni riquadro dice com'è adesso. Scegli più passi per vedere da cosa sono costruite quelle tabelle e cosa è costruito a partire da esse, e apri qualsiasi tabella per vedere la sua scheda **Derivazione**. Un numero di tabelle non disegnate, sul riquadro della pipeline o su quello di una tabella, ne disegna altre sul posto anche qui.
 
 ## Una segnalazione per causa
 
@@ -128,7 +132,7 @@ Quando una tabella smette di essere aggiornata, ogni tabella costruita a partire
 
 Il riquadro **Dati** della causa elenca il suo **Impatto a valle**: ogni avviso che ha causato. Il riquadro di un avviso su una tabella mostra anche i servizi che scrivono la tabella, con le loro scritture non riuscite, e i loro deploy e le altre modifiche nel giorno precedente l'avviso.
 
-Sotto il riquadro **Dati**, la pagina di un avviso disegna la sua **Derivazione**: attorno alla sua tabella, come la disegna la scheda **Derivazione** della tabella, o attorno alla sua pipeline. Il percorso che sale fino all'avviso che lo ha causato e scende fino a ogni avviso che ha causato è evidenziato - la tabella o la pipeline della causa segnata come **Causa**, quelle di ogni avviso causato come **Conseguenza** - e il resto si attenua, così chi lo apre vede in quale punto della catena è iniziato il problema. Quando la causa riguarda un intero database, o si trova più in alto di dove arriva il diagramma, il riquadro lo dice a parole. **Esplora la derivazione** apre la scheda **Derivazione** della tabella, o la pagina della pipeline.
+Sotto il riquadro **Dati**, la pagina di un avviso disegna la sua **Derivazione**: attorno alla sua tabella, come la disegna la scheda **Derivazione** della tabella, o attorno alla sua pipeline. Il percorso che sale fino all'avviso che lo ha causato e scende fino a ogni avviso che ha causato è evidenziato - la tabella o la pipeline della causa segnata come **Causa**, quelle di ogni avviso causato come **Conseguenza** - e il resto si attenua, così chi lo apre vede in quale punto della catena è iniziato il problema. Quando la causa è su una pipeline disegnata su una freccia, la freccia indica **Causa** sotto il nome della pipeline. Quando la causa riguarda un intero database, o si trova più in alto di dove arriva il diagramma, il riquadro lo dice a parole. Un avviso da un controllo su una sola colonna, come un controllo Null Percent su `customer_id`, si apre con quella colonna seguita accanto a questi percorsi, come nella scheda **Derivazione** della tabella: da dove viene e dove va, indicata su ciascuna tabella. Scegli lì un'altra colonna della tabella, oppure cancellala per vedere solo i percorsi. **Esplora la derivazione** apre la scheda **Derivazione** della tabella, o la pagina della pipeline.
 
 Chi non può vedere l'avviso che lo ha causato non riceve né il riquadro **Dati** né la derivazione, e un avviso causato che non può vedere non viene né evidenziato né contato.
 

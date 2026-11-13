@@ -322,10 +322,15 @@ describe("a monitor list's column headers", () => {
     });
 
     expect(lastRequest().sort).toEqual({ name: ASC });
+    /*
+     * With whether monitoring is off: such a monitor says Disabled, and a
+     * Status sort puts it after every monitor that is checked (#6476).
+     */
     expect(lastRequest().select).toEqual({
       _id: true,
       name: true,
       monitorType: true,
+      disableActiveMonitoring: true,
       currentMonitorStatus: { name: true, color: true, priority: true },
     });
     expect(lastRequest().limit).toBe(25);
@@ -336,12 +341,23 @@ describe("a monitor list's column headers", () => {
     render(<DashboardMonitorListComponentElement {...props} />);
     await screen.findByText("checkout");
 
-    // Worst first: the highest priority (Offline) on top, nameless last.
+    /*
+     * Worst first: the highest priority (Offline) on top, nameless last -
+     * among the monitors that are checked. One whose monitoring is off
+     * comes after all of them, whatever status it was frozen at, so it is
+     * ordered first (#6476).
+     */
     await clickHeader("status", 2);
     expect(lastRequest().sort).toEqual({
+      disableActiveMonitoring: ASC,
       currentMonitorStatus: { priority: DESC_NULLS_LAST },
       name: ASC,
     });
+    expect(Object.keys(lastRequest().sort)).toEqual([
+      "disableActiveMonitoring",
+      "currentMonitorStatus",
+      "name",
+    ]);
     expect(lastRequest().limit).toBe(25);
     await waitFor(() => {
       expect(headerCell("status")).toHaveAttribute("aria-sort", "descending");
@@ -355,12 +371,18 @@ describe("a monitor list's column headers", () => {
       window.localStorage.getItem(pickKey(props.componentId, DASHBOARD_ID)),
     ).toBe("status:desc");
 
-    // Best first.
+    // Best first - and a monitor whose monitoring is off is still last.
     await clickHeader("status", 3);
     expect(lastRequest().sort).toEqual({
+      disableActiveMonitoring: ASC,
       currentMonitorStatus: { priority: ASC },
       name: ASC,
     });
+    expect(Object.keys(lastRequest().sort)).toEqual([
+      "disableActiveMonitoring",
+      "currentMonitorStatus",
+      "name",
+    ]);
     await waitFor(() => {
       expect(headerCell("status")).toHaveAttribute("aria-sort", "ascending");
     });
@@ -426,6 +448,7 @@ describe("a monitor list's column headers", () => {
 
     expect(listMock).toHaveBeenCalledTimes(1);
     expect(lastRequest().sort).toEqual({
+      disableActiveMonitoring: ASC,
       currentMonitorStatus: { priority: DESC_NULLS_LAST },
       name: ASC,
     });
@@ -473,6 +496,7 @@ describe("a monitor list's column headers", () => {
 
     expect(listMock).toHaveBeenCalledTimes(1);
     expect(lastRequest().sort).toEqual({
+      disableActiveMonitoring: ASC,
       currentMonitorStatus: { priority: DESC_NULLS_LAST },
       name: ASC,
     });
@@ -485,6 +509,7 @@ describe("a monitor list's column headers", () => {
     // The other way is the viewer's own.
     await clickHeader("status", 2);
     expect(lastRequest().sort).toEqual({
+      disableActiveMonitoring: ASC,
       currentMonitorStatus: { priority: ASC },
       name: ASC,
     });
@@ -495,6 +520,7 @@ describe("a monitor list's column headers", () => {
     // Then back to the saved sort, which is not kept as a pick.
     await clickHeader("status", 3);
     expect(lastRequest().sort).toEqual({
+      disableActiveMonitoring: ASC,
       currentMonitorStatus: { priority: DESC_NULLS_LAST },
       name: ASC,
     });
@@ -546,6 +572,7 @@ describe("a monitor list's column headers", () => {
 
     await waitFor(() => {
       expect(lastRequest().sort).toEqual({
+        disableActiveMonitoring: ASC,
         currentMonitorStatus: { priority: DESC_NULLS_LAST },
         name: ASC,
       });
@@ -613,6 +640,7 @@ describe("a monitor list's column headers", () => {
       expect(listMock).toHaveBeenCalledTimes(1);
     });
     expect(lastRequest().sort).toEqual({
+      disableActiveMonitoring: ASC,
       currentMonitorStatus: { priority: DESC_NULLS_LAST },
       name: ASC,
     });
@@ -631,6 +659,7 @@ describe("a monitor list's column headers", () => {
 
     await clickHeader("status", 2);
     expect(lastRequest().sort).toEqual({
+      disableActiveMonitoring: ASC,
       currentMonitorStatus: { priority: DESC_NULLS_LAST },
       name: ASC,
     });

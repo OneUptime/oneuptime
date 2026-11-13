@@ -27,6 +27,8 @@ flowchart TB
 
 Wanneer geen van de criteria van de monitor de body van het antwoord leest (een filter **Antwoordlichaam** of **JavaScript-expressie**), stuurt de sonde een aanvraag `HEAD` in plaats van een `GET`, en herhaalt die als `GET` als de server `HEAD` weigert. De toegangslogboeken van uw server kunnen beide tonen.
 
+De sonde controleert het certificaat van de site zoals een browser dat doet, ook of de uitgever het heeft ingetrokken. Een ingetrokken certificaat laat de controle mislukken zoals een verlopen certificaat: de monitor gaat offline en de oorzaak van de fout zegt dat het certificaat is ingetrokken. **Zelfondertekende certificaten toestaan** zet deze controles uit voor de eigen hostnaam van de monitor.
+
 Een sonde die haar eigen netwerkverbinding kwijt is, meldt geen resultaat, en kan uw site dus niet als offline markeren.
 
 ## Voordat u begint

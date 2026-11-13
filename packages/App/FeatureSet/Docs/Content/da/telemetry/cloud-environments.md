@@ -52,11 +52,11 @@ flowchart TB
 | Google App Engine | `gcp_app_engine` | ressourcedetektor | `faas.instance` | [Andre cloud-platforme](/docs/telemetry/cloud-other-platforms) |
 | Azure Container Apps | `azure_container_apps` | ressourcedetektor | `azure.container_app.instance.id` | [Azure Container Apps](/docs/telemetry/cloud-azure-container-apps) |
 | Azure Container Instances | `azure_container_instances` | sat i hånden | `host.name` | [Andre cloud-platforme](/docs/telemetry/cloud-other-platforms) |
-| Azure App Service | `azure_app_service` | ressourcedetektor | `host.id` | [Andre cloud-platforme](/docs/telemetry/cloud-other-platforms) |
+| Azure App Service | `azure_app_service` | ressourcedetektor | `azure.app_service.instance.id` | [Andre cloud-platforme](/docs/telemetry/cloud-other-platforms) |
 
 - **Ressourcedetektor:** en OpenTelemetry-ressourcedetektor, i SDK'et eller i Collectorens processor `resourcedetection`, sætter attributterne `cloud.*` for dig.
 - **Sat i hånden:** der findes ingen detektor, så du sætter attributterne i `OTEL_RESOURCE_ATTRIBUTES`. Platformens side viser den præcise linje.
-- **Azure-detektorerne ved mindre.** Container Apps-detektorerne kender hverken regionen eller abonnementet, og App Service-detektorerne kender ikke abonnementet: sæt selv det, der mangler.
+- **Azure-detektorerne ved mindre.** Container Apps-detektorerne kender hverken regionen eller abonnementet, og App Service-detektorerne til Node.js og .NET kender ikke abonnementet (Collectorens gør): sæt selv det, der mangler.
 - **Azure-stavemåder med punktum virker.** Azure-detektorerne til Node.js og .NET skriver `azure.container_apps` og `azure.app_service`. OneUptime omskriver dem til værdierne med understregning ovenfor, når de modtages.
 
 ## Sådan identificerer OneUptime et miljø
@@ -88,10 +88,11 @@ Inden for et miljø får hver kørende opgave, instans eller replika én række 
 2. `aws.ecs.task.arn` (forkortet til opgave-ID'et)
 3. `faas.instance`
 4. `azure.container_app.instance.id`
-5. `service.instance.id`
-6. `container.id`
-7. `host.id`
-8. `host.name`
+5. `azure.app_service.instance.id`
+6. `service.instance.id`
+7. `container.id`
+8. `host.id`
+9. `host.name`
 
 Platformens egen identitet kommer først med vilje. En sidecar-collector og applikationens SDK ser den begge, og den overlever genstarter. Et SDK finder som regel på et nyt `service.instance.id` for hver proces (Node.js-SDK'et gør det som standard), så hvis det var nøglen først, ville én ECS-opgave blive delt i to rækker. `service.instance.id` bruges, når platformen ikke selv sætter en identitet. Kolonnen **Instansidentitet** i [Understøttede platforme](#understøttede-platforme) nævner den attribut, en typisk opsætning bruger på hver platform.
 
@@ -122,6 +123,8 @@ Den første attribut, telemetrien bærer, navngiver appen, så en app på en pla
 - **Der registreres højst 12 nye revisioner af en app i timen.** En `service.version`, der ændrer sig med hvert build, ville ellers være en udrulning i minuttet.
 
 En apps side har en **Oversigt** med dens anmodninger, fejl, latens, instanser og de revisioner, der kører nu, en fane **Revisioner** med hver revisions tal, fanerne **Instanser**, **Protokoller** og **Spor**, filtreret til appen, og en fane **Anbefalinger** med de monitorer, OneUptime anbefaler til den: mislykkede handlinger, fejlbølger, trafik, der stopper, og langsomme anmodninger, læst fra appens egne spans og dens `http.server.request.duration`, hver knyttet til appens miljø. **Opsæt advarsler** åbner den; for en app, hvis navn er for langt til at filtrere dens telemetri efter, åbner den i stedet de anbefalede monitorer for appens tjeneste under **Tjenester**.
+
+Et tal, appen aldrig har sendt, vises ikke som 0. Felterne for anmodninger, fejlrate og latens for en app, der ikke har sendt spor, viser **Ingen spor modtaget**, og feltet **Instanser** for en kørende app, hvis telemetri ikke nævner nogen instans, viser **Ikke rapporteret**. Indtil appen sender spor, en instans og en version, åbner dens **Oversigt** med et **Opsætningstjek**: hver slags telemetri, om den ankommer, og hvad der skal tilføjes.
 
 En app, der ikke sender noget i 30 dage, fjernes med sine revisioner, og det samme gør en revision, som ingen instans rapporterer i 30 dage, medmindre appen stadig kører den. På en selvhostet OneUptime sætter `CLOUD_APP_RETENTION_DAYS` de 30.
 

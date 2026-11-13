@@ -4,6 +4,16 @@ import {
 } from "../../Config";
 import { HttpTimingAgents, HttpTimingCollector } from "../HttpTimingAgents";
 import ProxyConfig from "../ProxyConfig";
+import CertificateRevocationChecker, {
+  CertificateRevocationCheckResult,
+  DEFAULT_REVOCATION_CHECK_TIMEOUT_IN_MS,
+} from "./CertificateRevocation/CertificateRevocationChecker";
+import CertificateRevokedError from "./CertificateRevocation/CertificateRevokedError";
+import {
+  TlsPeerCertificateChain,
+  TlsPeerCertificateRecorder,
+} from "./CertificateRevocation/TlsPeerCertificates";
+import CertificateRevocationStatus from "Common/Types/Monitor/SSLMonitor/CertificateRevocationStatus";
 import DataSourceEgressGuard, {
   EgressLookupFunction,
   ResolvedAddress,
@@ -78,6 +88,15 @@ export class HttpMonitorExecutionContext {
 
   public canWait(waitInMs: number): boolean {
     return !this.signal.aborted && Date.now() + waitInMs < this.deadlineInMs;
+  }
+
+  // Like remainingTimeoutInMs, but 0 instead of throwing once time is up.
+  public remainingTimeInMsOrZero(): number {
+    if (this.signal.aborted) {
+      return 0;
+    }
+
+    return Math.max(0, this.deadlineInMs - Date.now());
   }
 
   public async run<T>(operation: () => Promise<T>): Promise<T> {
@@ -158,6 +177,12 @@ export interface PreparedHttpMonitorRequest {
   disableProxy: true;
   maxContentLength: number;
   maxBodyLength: number;
+  /*
+   * The certificate chain (and stapled OCSP response) of this hop's TLS
+   * connection, kept when the caller asked for the revocation check. See
+   * HttpMonitorRequest.assertCertificatesNotRevoked.
+   */
+  peerCertificates?: TlsPeerCertificateRecorder | undefined;
 }
 
 export interface RedirectRequest {
@@ -236,11 +261,13 @@ export class PinnedHttpProxyAgent extends HttpProxyAgent<string> {
 export class PinnedHttpsProxyAgent extends HttpsProxyAgent<string> {
   private readonly targetHost: string;
   private readonly targetTlsOptions: https.AgentOptions;
+  private readonly peerCertificates: TlsPeerCertificateRecorder | undefined;
 
   public constructor(
     proxyUrl: string,
     targetHost: string,
     tlsOptions: https.AgentOptions,
+    peerCertificates?: TlsPeerCertificateRecorder | undefined,
   ) {
     /*
      * Constructor options configure TLS to an HTTPS proxy, not TLS through
@@ -250,6 +277,7 @@ export class PinnedHttpsProxyAgent extends HttpsProxyAgent<string> {
     super(proxyUrl);
     this.targetHost = targetHost;
     this.targetTlsOptions = tlsOptions;
+    this.peerCertificates = peerCertificates;
   }
 
   public override connect(
@@ -283,7 +311,27 @@ export class PinnedHttpsProxyAgent extends HttpsProxyAgent<string> {
       },
     } as HttpsProxyConnectOptions;
 
-    return super.connect(request, targetOptions);
+    const peerCertificates: TlsPeerCertificateRecorder | undefined =
+      this.peerCertificates;
+
+    if (!peerCertificates) {
+      return super.connect(request, targetOptions);
+    }
+
+    /*
+     * The tunnelled TLS socket is handed back while its handshake is still
+     * under way (the server's reply arrives on a later I/O turn), so the
+     * recorder's listeners are in place before the stapled response and
+     * 'secureConnect' arrive.
+     */
+    return super
+      .connect(request, targetOptions)
+      .then(
+        (socket: Awaited<ReturnType<HttpsProxyAgent<string>["connect"]>>) => {
+          peerCertificates.attach(socket as net.Socket);
+          return socket;
+        },
+      );
   }
 }
 
@@ -313,6 +361,14 @@ export default class HttpMonitorRequest {
       headers?: Headers | undefined;
       tls?: MonitorTlsOptions | undefined;
       timingCollector?: HttpTimingCollector | undefined;
+      /*
+       * Keep this hop's certificate chain for the revocation check. Ignored
+       * for http:// and for a hop whose certificate is not verified
+       * (allowSelfSignedCertificates).
+       */
+      recordPeerCertificates?: boolean | undefined;
+      // How a refusal names the target. Defaults to "Monitor target".
+      targetLabel?: string | undefined;
     } = {},
   ): Promise<PreparedHttpMonitorRequest> {
     const urlString: string = rawUrl.toString();
@@ -337,7 +393,7 @@ export default class HttpMonitorRequest {
     try {
       validated = await DataSourceEgressGuard.assertUrlAllowed(urlString, {
         blockPrivateAddresses: !PROBE_ALLOW_PRIVATE_NETWORK_MONITORS,
-        targetLabel: "Monitor target",
+        targetLabel: options.targetLabel || "Monitor target",
         privateNetworkHint: PROBE_PRIVATE_NETWORK_HINT,
         includeResolvedAddressInError: false,
         resolveTimeoutInMs: MONITOR_DNS_RESOLVE_BUDGET_IN_MS,
@@ -349,11 +405,27 @@ export default class HttpMonitorRequest {
     }
 
     const requestHeaders: Headers = { ...(options.headers || {}) };
+    const isHttps: boolean = validated.url.protocol === "https:";
+
+    const peerCertificates: TlsPeerCertificateRecorder | undefined =
+      options.recordPeerCertificates &&
+      isHttps &&
+      !options.tls?.allowSelfSignedCertificates
+        ? new TlsPeerCertificateRecorder()
+        : undefined;
+
     const tlsOptions: https.AgentOptions = this.getTlsAgentOptions(options.tls);
+
+    if (peerCertificates) {
+      /*
+       * Ask the server to staple its OCSP response, as browsers do. A server
+       * that staples saves the revocation check a request to the issuer.
+       */
+      (tlsOptions as tls.ConnectionOptions).requestOCSP = true;
+    }
+
     const pinnedLookup: EgressLookupFunction =
       DataSourceEgressGuard.createPinnedLookup(validated.addresses);
-
-    const isHttps: boolean = validated.url.protocol === "https:";
     const configuredProxyAgent: http.Agent | null = isHttps
       ? ProxyConfig.getHttpsProxyAgent(urlString)
       : ProxyConfig.getHttpProxyAgent(urlString);
@@ -395,11 +467,13 @@ export default class HttpMonitorRequest {
             proxyUrl,
             validated.url.hostname.replace(/^\[|\]$/g, ""),
             tlsOptions,
+            peerCertificates,
           ) as unknown as https.Agent,
           doNotFollowRedirects: true,
           disableProxy: true,
           maxContentLength: HTTP_MONITOR_MAX_RESPONSE_BYTES,
           maxBodyLength: HTTP_MONITOR_MAX_REQUEST_BYTES,
+          peerCertificates: peerCertificates,
         };
       }
 
@@ -429,6 +503,10 @@ export default class HttpMonitorRequest {
           { lookup: pinnedLookup as never },
         );
 
+      if (peerCertificates) {
+        this.recordPeerCertificates(agents.httpsAgent, peerCertificates);
+      }
+
       return {
         url: URL.fromStringLenient(validated.url.toString()),
         dispatchUrl: validated.url.href,
@@ -438,6 +516,7 @@ export default class HttpMonitorRequest {
         disableProxy: true,
         maxContentLength: HTTP_MONITOR_MAX_RESPONSE_BYTES,
         maxBodyLength: HTTP_MONITOR_MAX_REQUEST_BYTES,
+        peerCertificates: peerCertificates,
       };
     }
 
@@ -449,6 +528,10 @@ export default class HttpMonitorRequest {
       }),
     };
 
+    if (peerCertificates) {
+      this.recordPeerCertificates(agents.httpsAgent, peerCertificates);
+    }
+
     return {
       url: URL.fromStringLenient(validated.url.toString()),
       dispatchUrl: validated.url.href,
@@ -458,6 +541,84 @@ export default class HttpMonitorRequest {
       disableProxy: true,
       maxContentLength: HTTP_MONITOR_MAX_RESPONSE_BYTES,
       maxBodyLength: HTTP_MONITOR_MAX_REQUEST_BYTES,
+      peerCertificates: peerCertificates,
+    };
+  }
+
+  /*
+   * Fails a check whose server presented a certificate its issuer revoked,
+   * the way a browser refuses one. Called once the response is in, for every
+   * hop that recorded its certificates, so the response time is not
+   * stretched by the lookup.
+   *
+   * Only a signed answer that says "revoked" fails the check. No answer
+   * (nothing to ask, unreachable responder, no time left) lets it pass, as
+   * browsers do.
+   */
+  public static async assertCertificatesNotRevoked(data: {
+    hops: Array<{
+      url: string;
+      peerCertificates?: TlsPeerCertificateRecorder | undefined;
+    }>;
+    // The check's remaining time; the lookup waits for at most this long.
+    remainingTimeInMs: number;
+  }): Promise<void> {
+    const deadline: number =
+      Date.now() +
+      Math.min(DEFAULT_REVOCATION_CHECK_TIMEOUT_IN_MS, data.remainingTimeInMs);
+
+    for (const hop of data.hops) {
+      const chain: TlsPeerCertificateChain | undefined =
+        hop.peerCertificates?.getChain();
+
+      if (!chain || !chain.issuer) {
+        continue;
+      }
+
+      const remainingInMs: number = deadline - Date.now();
+
+      if (remainingInMs <= 0) {
+        return;
+      }
+
+      const result: CertificateRevocationCheckResult =
+        await CertificateRevocationChecker.check({
+          certificate: chain.certificate,
+          issuer: chain.issuer,
+          stapledOcspResponse: chain.stapledOcspResponse,
+          timeoutInMs: remainingInMs,
+        });
+
+      if (result.status === CertificateRevocationStatus.Revoked) {
+        throw new CertificateRevokedError(
+          CertificateRevocationChecker.describeRevocation(result),
+        );
+      }
+    }
+  }
+
+  // Hands every TLS socket the agent opens to the recorder.
+  private static recordPeerCertificates(
+    agent: https.Agent,
+    peerCertificates: TlsPeerCertificateRecorder,
+  ): void {
+    /*
+     * createConnection is http.Agent's documented override point, which
+     * @types/node does not declare (see HttpTimingAgents). Wrapping whatever
+     * is there keeps any wrapper already installed.
+     */
+    const createConnection: (
+      options: unknown,
+      callback?: unknown,
+    ) => net.Socket = (agent as any).createConnection.bind(agent);
+
+    (agent as any).createConnection = (
+      options: unknown,
+      callback?: unknown,
+    ): net.Socket => {
+      const socket: net.Socket = createConnection(options, callback);
+      peerCertificates.attach(socket);
+      return socket;
     };
   }
 

@@ -17,7 +17,11 @@ Fanen **Opphav** for en tabell viser tabellene den er bygget fra, pipelinene som
 
 Øverst i fanen tegner et diagram dette opphavet noen trinn i hver retning (tre, eller velg 1, 2 eller 5): til venstre det tabellen er bygget fra, til høyre tabellene og dashbordene som er bygget fra den, og pipelinene som laster inn data utenfra, der dataene kommer inn. Hvert kort viser hvordan det står til nå - forsinket, et åpent varsel, en mislykket kjøring - og en pil blir rød når siste kjøring av pipelinen feilet, slik at en forsinket tabell kan følges opp til kjøringen som stanset den. Åpne en hvilken som helst tabell for å sentrere diagrammet på den.
 
+Et kort tegner høyst ti tabeller i hver retning og teller resten, for eksempel **+14**. Velg tallet for å tegne opptil ti til av dem der de er, problemer først, med hver pil mellom dem og det som allerede er tegnet. **Tilbakestill diagram** går tilbake til diagrammet slik det først ble tegnet. Når en side har så mange tabeller som ett diagram kan romme, åpner du en tabell for å sentrere diagrammet på den.
+
 Der kilden oppgir kolonner, sier fanen **Kolonner** for en tabell hvor hver kolonne kommer fra og hva den mater: tilgangshistorikken i Snowflake (Enterprise-utgaven, som trenger `IMPORTED PRIVILEGES` på databasen `SNOWFLAKE`), og `columnLineage`-fasetten i OpenLineage.
+
+Velg i fanen **Opphav** en av tabellens kolonner i **Følg en kolonne** for å utheve hvor den kommer fra og hvor den går: opp i diagrammet til kolonnene den er bygget fra, ned til kolonnene som er bygget fra den, hver navngitt på sin tabell, også der kolonnen fikk nytt navn underveis. En pil der kildene ikke oppgir kolonner, kan føre den lenger enn det som er uthevet, og diagrammet sier fra om det.
 
 ## OpenLineage
 
@@ -117,7 +121,7 @@ Hver jobb, hvert dbt-prosjekt og hver synkronisering vises under **Pipelines**, 
 - **Pipeline Run Unusually Long**: en kjøring har tatt dobbelt så lang tid som vanlig eller mer, sjekket hvert femte minutt mens den kjører, så en kjøring som henger, oppdages før den er ferdig.
 - **Pipeline Is Late**: ingen kjøring har startet på lengre tid enn tidsplanen tillater.
 
-Siden for en pipeline har kortet **Opphav**, det første stedet å se når en kjøring feiler eller er forsinket: til venstre tabellene den leser, til høyre tabellene den skriver, pipelinen imellom, og hvert kort viser hvordan det står til nå. Velg flere trinn for å se hva disse tabellene er bygget fra, og hva som er bygget fra dem, og åpne en hvilken som helst tabell for å se dens egen fane **Opphav**.
+Siden for en pipeline har kortet **Opphav**, det første stedet å se når en kjøring feiler eller er forsinket: til venstre tabellene den leser, til høyre tabellene den skriver, pipelinen imellom, og hvert kort viser hvordan det står til nå. Velg flere trinn for å se hva disse tabellene er bygget fra, og hva som er bygget fra dem, og åpne en hvilken som helst tabell for å se dens egen fane **Opphav**. Et tall for tabeller som ikke er tegnet, på pipelinens kort eller en tabells, tegner flere av dem på stedet her også.
 
 ## Én sak per årsak
 
@@ -128,7 +132,7 @@ Når en tabell blir utdatert, blir hver tabell som er bygget fra den, også utda
 
 **Data**-kortet til årsaken viser **Påvirkning nedstrøms**: hvert varsel den forårsaket. Kortet for et tabellvarsel viser også tjenestene som skriver til tabellen, med de mislykkede skrivingene deres, og utrullingene og andre endringer deres i døgnet før varselet.
 
-Under **Data**-kortet har siden for et varsel kortet **Opphav**: opphavet rundt tabellen, slik fanen **Opphav** for tabellen tegner det, eller rundt pipelinen. Veien opp til varselet som forårsaket det, og ned til hvert varsel det forårsaket, er uthevet - tabellen eller pipelinen til årsaken merket **Årsak**, den til hvert forårsaket varsel merket **Følge** - og resten tones ned, slik at den som åpner det, ser hvor i kjeden problemet startet. Gjelder årsaken en hel database, eller ligger den lenger opp enn diagrammet når, sier kortet det med ord. **Utforsk opphav** åpner fanen **Opphav** for tabellen, eller siden for pipelinen.
+Under **Data**-kortet har siden for et varsel kortet **Opphav**: opphavet rundt tabellen, slik fanen **Opphav** for tabellen tegner det, eller rundt pipelinen. Veien opp til varselet som forårsaket det, og ned til hvert varsel det forårsaket, er uthevet - tabellen eller pipelinen til årsaken merket **Årsak**, den til hvert forårsaket varsel merket **Følge** - og resten tones ned, slik at den som åpner det, ser hvor i kjeden problemet startet. Ligger årsaken på en pipeline som er tegnet på en pil, står det **Årsak** under navnet på pipelinen på pilen. Gjelder årsaken en hel database, eller ligger den lenger opp enn diagrammet når, sier kortet det med ord. Et varsel fra en kontroll av én kolonne, som en Null Percent-kontroll av `customer_id`, åpnes med den kolonnen fulgt ved siden av disse veiene, som i fanen **Opphav** for tabellen: hvor den kommer fra og hvor den går, navngitt på hver tabell. Velg en annen av tabellens kolonner der, eller fjern den for å se bare veiene. **Utforsk opphav** åpner fanen **Opphav** for tabellen, eller siden for pipelinen.
 
 Den som ikke har tilgang til varselet som forårsaket det, får verken **Data**-kortet eller opphavet, og et forårsaket varsel vedkommende ikke har tilgang til, blir verken uthevet eller talt med.
 

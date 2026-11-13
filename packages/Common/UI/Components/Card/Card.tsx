@@ -1,3 +1,5 @@
+import GlossaryTerm from "../../../Types/Docs/GlossaryTerm";
+import DefinedTerm from "../Glossary/LazyDefinedTerm";
 import readAsWritten from "../IsolatedText/ReadAsWritten";
 import useTranslator from "../../Utils/UseTranslator";
 import { Translator } from "../../Utils/TranslateTemplate";
@@ -152,6 +154,14 @@ export interface ComponentProps {
    * The title as written, in English, as `title` is.
    */
   titleText?: string | undefined;
+  /*
+   * The Glossary term the title names ("On-Call Policies", "Escalation
+   * Rules"): the title's words are drawn as a defined term
+   * (Glossary/DefinedTerm), and hovering, focusing or tapping them shows
+   * what the word means. For the card where a page first uses a word people
+   * trip on. A table's card takes it in its cardProps.
+   */
+  titleGlossaryTerm?: GlossaryTerm | undefined;
 }
 
 /*
@@ -658,7 +668,13 @@ const Card: FunctionComponent<ComponentProps> = (
             : CARD_TITLE_CLASS_NAME
         }
       >
-        {translatedTitle}
+        {props.titleGlossaryTerm && typeof translatedTitle === "string" ? (
+          <DefinedTerm term={props.titleGlossaryTerm}>
+            {translatedTitle}
+          </DefinedTerm>
+        ) : (
+          translatedTitle
+        )}
       </h2>
     );
 

@@ -74,6 +74,8 @@ flowchart TB
 
 概览就是取得整个页面的一个请求。它与状态页绘制的数据相同，最多是 15 秒前的数据。
 
+除非您指定时区，否则可用率条的日期都是 UTC 日期：在 `GET` 中加上 `?timezone=Asia/Shanghai`，或将 `{"timezone": "Asia/Shanghai"}` 作为 `POST` 的请求体发送，`uptimeDailyAggregate` 和 `monitorGroupUptimeDailyAggregate` 就会按该时区的日期划分，就像状态页为每位访问者所请求的那样。服务器不认识的时区按 UTC 处理，两者都会在各自的 `timezone` 中说明是按哪个时区划分的。
+
 :::tabs
 @tab curl
 ```bash
@@ -111,7 +113,7 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 ```
 :::
 
-总体状态是页面上监控器和监控器分组当前状态中最差的那个，也就是优先级最高的那个。一个监控器状态如下所示：
+总体状态是页面上监控器和监控器分组当前状态中最差的那个，也就是优先级最高的那个。页面显示为 **未监控** 的资源（列在 `notMonitoredResourceIds` 中）不计入其中。一个监控器状态如下所示：
 
 ```json
 {
@@ -127,13 +129,14 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 
 | 键 | 内容 |
 | --- | ------------- |
-| `overallStatus` | 页面的总体状态，即上面那样的监控器状态；页面上什么都没有时，是项目中优先级最低的状态。 |
+| `overallStatus` | 页面的总体状态，即上面那样的监控器状态；页面上什么都没有时，是项目中优先级最低的状态；页面上所有资源都是 **未监控** 时，为 `null`。 |
 | `statusPage` | 页面的公开设置：标题、描述、品牌，以及显示的内容。 |
 | `statusPageResources` | 每个资源：显示名称、描述、分组、监控器或监控器分组，以及显示选项。 |
 | `resourceGroups` | 分组；嵌套分组带有 `parentStatusPageGroupId`。 |
 | `monitorStatuses` | 项目的所有监控器状态，按优先级从低到高排列。 |
 | `monitorGroupCurrentStatuses`、`monitorsInGroup` | 页面上每个监控器分组的当前状态，以及其中的监控器。 |
-| `monitorStatusTimelines`、`uptimeDailyAggregate`、`monitorGroupMergedDowntime`、`statusPageHistoryChartBarColorRules` | 绘制可用率条所用的数据，以及页面的条形颜色规则。 |
+| `notMonitoredResourceIds` | 页面显示为 **未监控** 的资源的 ID：监控已关闭的监控器，或所有监控器的监控都已关闭的监控器分组。它们不决定任何状态，这样的分组在 `monitorGroupCurrentStatuses` 中没有条目。 |
+| `monitorStatusTimelines`、`uptimeDailyAggregate`、`monitorGroupUptimeDailyAggregate`、`monitorGroupMergedDowntime`、`statusPageHistoryChartBarColorRules` | 绘制可用率条所用的数据，以及页面的条形颜色规则。 |
 | `activeIncidents`、`incidentPublicNotes`、`incidentStateTimelines`、`incidentStates` | 页面显示的未解决事件、它们的公开备注和状态变化，以及项目的事件状态。 |
 | `timelineIncidents` | 可用率条时间窗口内的事件（包括已解决的），用于条形的提示信息。 |
 | `activeEpisodes`、`episodePublicNotes`、`episodeStateTimelines` | 事件片段的相同内容。 |
@@ -168,6 +171,7 @@ curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
         "color": "#2ab57d",
         "isOperational": true
       },
+      "isMonitored": true,
       "isUnderMaintenance": true
     }
   ],
@@ -188,12 +192,12 @@ curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
 
 | 键 | 摘要中的内容 |
 | --- | -------------- |
-| `overallStatus` | 页面的整体状态，与其横幅显示的一致：`name`、`color` 和 `isOperational`。 |
-| `resources` | 页面显示的每个资源，按页面顺序：它在页面上的 `name`、包含上级分组的 `groupName`、它的 `currentStatus`，以及 `isUnderMaintenance`。 |
+| `overallStatus` | 页面的整体状态，与其横幅显示的一致：`name`、`color` 和 `isOperational`。页面上所有资源都是 **未监控** 时为 `null`。 |
+| `resources` | 页面显示的每个资源，按页面顺序：它在页面上的 `name`、包含上级分组的 `groupName`、它的 `currentStatus`、`isMonitored`，以及 `isUnderMaintenance`。 |
 | `activeIncidents` | 页面显示的未解决事件，每个都带有它所影响资源的 `affectedResourceIds`。 |
 | `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | 进行中和即将到来的计划维护事件，每个都带有它的 `affectedResourceIds`。 |
 
-页面不显示资源的状态时，该资源的 `currentStatus` 为 `null`。只要进行中的事件指定了该资源的某个监视器，或其监视器组中的某个监视器，无论这些监视器处于什么状态，`isUnderMaintenance` 都为 `true`。
+页面不显示资源的状态时，以及 `isMonitored` 为 `false` 时，该资源的 `currentStatus` 为 `null`：后者表示没有任何东西检查该资源，因为其监视器的监控已关闭，或其监视器组中每个监视器的监控都已关闭，所以页面将其显示为 **未监控**。只要进行中的事件指定了该资源的某个监视器，或其监视器组中的某个监视器，无论这些监视器处于什么状态，`isUnderMaintenance` 都为 `true`。
 
 ## 指定日期范围的可用率
 
@@ -276,7 +280,8 @@ for group in uptime["groupUptimes"]:
         "color": { "_type": "Color", "value": "#2ab57d" },
         "isOperationalState": true,
         "priority": 1
-      }
+      },
+      "isMonitored": true
     }
   ],
   "groupUptimes": [
@@ -301,7 +306,8 @@ for group in uptime["groupUptimes"]:
             "color": { "_type": "Color", "value": "#2ab57d" },
             "isOperationalState": true,
             "priority": 1
-          }
+          },
+          "isMonitored": true
         }
       ],
       "statusPageGroupName": "Web",
@@ -311,7 +317,8 @@ for group in uptime["groupUptimes"]:
         "color": { "_type": "Color", "value": "#2ab57d" },
         "isOperationalState": true,
         "priority": 1
-      }
+      },
+      "isMonitored": true
     }
   ],
   "startDate": "2026-09-01T00:00:00.000Z",
@@ -325,6 +332,7 @@ for group in uptime["groupUptimes"]:
 | `groupUptimes` | 每个分组一项。分组的 `uptimePercent` 和 `currentStatus` 覆盖它下面的所有资源，包括嵌套分组；它的 `statusPageResourceUptimes` 只列出直接位于该分组中的资源。用 `parentStatusPageGroupId` 重建树。 |
 | `uptimePercent` | 按资源或分组自身的精度取整。资源或分组不显示可用率百分比时为 `null`。 |
 | `currentStatus` | 资源或分组不显示当前状态时为 `null`。 |
+| `isMonitored` | 页面将资源显示为 **未监控** 时为 `false`；对分组而言，其下每个资源都如此时也是。此时其 `currentStatus` 为 `null`。 |
 
 当一段时间的监控器状态属于页面的 **计为停机时间** 状态之一时，这段时间计为停机。
 

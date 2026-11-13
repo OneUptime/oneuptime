@@ -64,6 +64,7 @@ import ToolResultSerializer, {
   SerializedResult,
 } from "./Serializer";
 import WidgetBuilder from "./WidgetBuilder";
+import { getSecurityCaseCardWords } from "./ReadCardWords";
 import {
   ObservabilityTool,
   ToolArgs,
@@ -580,16 +581,20 @@ async function readOneCase(
     isTruncated: caseText.isTruncated || detectionText.isTruncated,
     widget: WidgetBuilder.resourceCard({
       title: "Security case",
-      resourceType: "Security Case",
       heading: caseLabel(securityCase),
-      subheading: `${getStatusName(values, securityCase.securityCaseStatusId)} · ${getPriorityName(values, securityCase.securityCasePriorityId)}`,
-      fields: [
-        {
-          label: "Detections",
-          value: String(securityCase.detectionCount || 0),
-        },
-        { label: "Entities", value: entityList(securityCase.entities) || "-" },
-      ],
+      /*
+       * In the reader's language (issue #7175): the status and priority by
+       * the names the project gave them, each entity by its kind's word.
+       */
+      words: getSecurityCaseCardWords({
+        statusName: getStatusName(values, securityCase.securityCaseStatusId),
+        priorityName: getPriorityName(
+          values,
+          securityCase.securityCasePriorityId,
+        ),
+        detectionCount: securityCase.detectionCount || 0,
+        entities: securityCase.entities,
+      }),
       link: target,
     }),
   };

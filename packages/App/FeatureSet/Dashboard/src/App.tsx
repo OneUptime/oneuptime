@@ -1,6 +1,9 @@
 import AskAiPanel from "./Components/AIChat/AskAiPanel";
 import DashboardCommandPalette from "./Components/CommandPalette/DashboardCommandPalette";
 import DashboardKeyboardShortcuts from "./Components/KeyboardShortcuts/DashboardKeyboardShortcuts";
+import HowOneUptimeWorksDialog from "./Components/Home/HowOneUptimeWorksDialog";
+import GiveFeedbackDialog from "./Components/Feedback/GiveFeedbackDialog";
+import ProductFeedbackInit from "./Components/Feedback/ProductFeedbackInit";
 import MasterPage from "./Components/MasterPage/MasterPage";
 import UseTimezoneInitElement from "./Components/UserTimezone/UserTimezoneInit";
 import UserLanguageInit from "./Components/UserLanguage/UserLanguageInit";
@@ -55,12 +58,17 @@ import { RoutesProps } from "./Types/RoutesProps";
 // Keep the landing and recovery pages available in the initial bundle.
 import Welcome from "./Pages/Onboarding/Welcome";
 import Home from "./Pages/Home/Home";
+import HomeLayout from "./Pages/Home/Layout";
+/*
+ * Where Home's old lists were: a few lines, and everything they import is in
+ * this bundle already, so an old bookmark forwards without a download.
+ */
+import MovedHomeRoutes from "./Routes/MovedHomeRoutes";
 
 /*
  * Keep menu-owning shells outside the lazy leaf boundaries so a page download
  * can replace the right pane without unmounting its side menu.
  */
-import HomeLayout from "./Pages/Home/Layout";
 import InventoryLayout from "./Pages/Inventory/Layout";
 import MonitorLayout from "./Pages/Monitor/Layout";
 import NetworkLayout from "./Pages/Network/Layout";
@@ -87,26 +95,11 @@ type LazyRoutes = React.LazyExoticComponent<
 const AICopilot: LazyRoutes = lazy(() => {
   return import("./Pages/AICopilot/AICopilot");
 });
+const SetupHealth: LazyRoutes = lazy(() => {
+  return import("./Pages/Home/SetupHealth");
+});
 const Sso: LazyRoutes = lazy(() => {
   return import("./Pages/Onboarding/SSO");
-});
-const HomeActiveIncidents: LazyRoutes = lazy(() => {
-  return import("./Pages/Home/ActiveIncidents");
-});
-const NotOperationalMonitors: LazyRoutes = lazy(() => {
-  return import("./Pages/Home/NotOperationalMonitors");
-});
-const HomeActiveAlerts: LazyRoutes = lazy(() => {
-  return import("./Pages/Home/ActiveAlerts");
-});
-const OngoingScheduledEvents: LazyRoutes = lazy(() => {
-  return import("./Pages/Home/OngoingScheduledMaintenance");
-});
-const HomeActiveEpisodes: LazyRoutes = lazy(() => {
-  return import("./Pages/Home/ActiveEpisodes");
-});
-const HomeActiveIncidentEpisodes: LazyRoutes = lazy(() => {
-  return import("./Pages/Home/ActiveIncidentEpisodes");
 });
 const UserProfilePicture: LazyRoutes = lazy(() => {
   return import("./Pages/Global/UserProfile/Picture");
@@ -643,9 +636,15 @@ const App: () => JSX.Element = () => {
     >
       <UseTimezoneInitElement />
       <UserLanguageInit />
+      <ProductFeedbackInit />
       <AskAiPanel />
-      <DashboardCommandPalette />
+      <DashboardCommandPalette
+        projects={projects}
+        onProjectSelected={onProjectSelected}
+      />
       <DashboardKeyboardShortcuts />
+      <HowOneUptimeWorksDialog />
+      <GiveFeedbackDialog />
       {/*
        * Contain page-level render errors here. Without a boundary a single
        * throwing component (or a lazy chunk that 404s after a deploy) unmounts
@@ -701,83 +700,27 @@ const App: () => JSX.Element = () => {
                   />
                 }
               />
-              <PageRoute
-                path={RouteMap[PageMap.HOME_ACTIVE_INCIDENTS]?.toString() || ""}
-                element={
-                  <HomeActiveIncidents
-                    {...commonPageProps}
-                    pageRoute={RouteMap[PageMap.HOME_ACTIVE_INCIDENTS] as Route}
-                  />
-                }
-              />
-              <PageRoute
-                path={
-                  RouteMap[PageMap.HOME_NOT_OPERATIONAL_MONITORS]?.toString() ||
-                  ""
-                }
-                element={
-                  <NotOperationalMonitors
-                    {...commonPageProps}
-                    pageRoute={
-                      RouteMap[PageMap.HOME_NOT_OPERATIONAL_MONITORS] as Route
-                    }
-                  />
-                }
-              />
-
-              <PageRoute
-                path={RouteMap[PageMap.HOME_ACTIVE_ALERTS]?.toString() || ""}
-                element={
-                  <HomeActiveAlerts
-                    {...commonPageProps}
-                    pageRoute={RouteMap[PageMap.HOME_ACTIVE_ALERTS] as Route}
-                  />
-                }
-              />
-
-              <PageRoute
-                path={
-                  RouteMap[
-                    PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS
-                  ]?.toString() || ""
-                }
-                element={
-                  <OngoingScheduledEvents
-                    {...commonPageProps}
-                    pageRoute={
-                      RouteMap[
-                        PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS
-                      ] as Route
-                    }
-                  />
-                }
-              />
-
-              <PageRoute
-                path={RouteMap[PageMap.HOME_ACTIVE_EPISODES]?.toString() || ""}
-                element={
-                  <HomeActiveEpisodes
-                    {...commonPageProps}
-                    pageRoute={RouteMap[PageMap.HOME_ACTIVE_EPISODES] as Route}
-                  />
-                }
-              />
-
-              <PageRoute
-                path={
-                  RouteMap[PageMap.HOME_ACTIVE_INCIDENT_EPISODES]?.toString() ||
-                  ""
-                }
-                element={
-                  <HomeActiveIncidentEpisodes
-                    {...commonPageProps}
-                    pageRoute={
-                      RouteMap[PageMap.HOME_ACTIVE_INCIDENT_EPISODES] as Route
-                    }
-                  />
-                }
-              />
             </PageRoute>
+
+            {/*
+             * Setup health (#6812), under Home: its address outranks the
+             * forwarding of Home's old lists below.
+             */}
+            <PageRoute
+              path={RouteMap[PageMap.HOME_SETUP_HEALTH]?.toString() || ""}
+              element={
+                <SetupHealth
+                  {...commonPageProps}
+                  pageRoute={RouteMap[PageMap.HOME_SETUP_HEALTH] as Route}
+                />
+              }
+            />
+
+            {/* Home's old lists, forwarded to the products' own lists */}
+            <PageRoute
+              path={RouteMap[PageMap.MOVED_HOME_LISTS_ROOT]?.toString() || ""}
+              element={<MovedHomeRoutes />}
+            />
 
             <PageRoute
               path={RouteMap[PageMap.PROJECT_SSO]?.toString() || ""}

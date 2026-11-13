@@ -2,6 +2,9 @@
 
 En ressurs er én rad på statussiden din: en monitor eller en monitorgruppe, med et navn kundene dine forstår, gjeldende status og, hvis du vil, oppetid og historikk. Grupper er seksjoner som inneholder ressurser, slik at en side med førti monitorer leses som «API», «Webapp» og «Datapipeline» i stedet for én endeløs liste. Du bygger begge på én skjerm: åpne en statusside og velg **Ressurser** i sidemenyen.
 
+> [!TIP]
+> Ny her? Følg guiden først: [Publiser en statusside](/docs/guides/status-page).
+
 :::cards
 - [Legg til en monitor](#legg-til-en-monitor): Sett en monitor på siden, med navnet besøkende leser.
 - [Grupper](#grupper): Del siden opp i seksjoner, og nøst dem.
@@ -30,6 +33,7 @@ flowchart TB
 En ressurs avgjør mer enn fargen på raden sin:
 
 - **Arkiverte monitorer vises ikke.** En arkivert monitor sjekkes ikke lenger, så den siste statusen er frosset; siden utelater raden (og utelater den fra statusen til en monitorgruppe) i stedet for å vise den frosne statusen som om den var gjeldende. Raden beholdes, så når monitoren tas ut av arkivet, kommer den rett tilbake.
+- **En monitor med overvåking slått av vises som Ikke overvåket.** Ingenting sjekker den, så statusen den sist hadde, sier ingenting nå: raden viser **Ikke overvåket** i grått og teller verken for gruppen over den eller for banneret med den samlede statusen. Historikkstolpene beholder historikken frem til overvåkingen ble slått av, og utelater tiden etterpå. En monitorgruppe teller bare monitorene med overvåking slått på, og viser **Ikke overvåket** når den er slått av for alle; stolpene og oppetiden utelater for hver monitor tiden med overvåking slått av. Når ingenting på siden overvåkes, sier banneret det.
 - **Ressurser avgjør hvilke hendelser siden viser.** En hendelse vises her, og sidens abonnenter får høre om den, når en av hendelsens monitorer er en ressurs på siden, direkte eller via en monitorgruppe. Sett den samme monitoren på flere sider, og hendelsene når alle, med mindre en hendelse er begrenset til noen av de sidene. Se [Én statusside per målgruppe](/docs/status-pages/one-status-page-per-audience).
 - **En rad for en monitorgruppe står for alle monitorene i den, også for abonnenter.** På en side som lar abonnenter velge ressurser, får den som abonnerer på en monitorgruppe, høre om hendelser, planlagt vedlikehold og kunngjøringer for alle monitorer i gruppen, som om vedkommende hadde valgt den monitoren. Se [Abonnenter og kunngjøringer](/docs/status-pages/subscribers#la-abonnentene-velge-ressurser-og-hendelsestyper).
 
@@ -118,6 +122,8 @@ Grupper har sine egne utgaver av disse bryterne (se nedenfor), så en gruppe kan
 Fargene på historikkdiagrammets søyler angis under **Flere innstillinger** på siden **Merkevare**, og hvilke monitorstatuser som teller som «nede» under **Teller som nedetid** på kortet **Hva statussiden din viser** under **Avanserte innstillinger**; begge deler er beskrevet i [Statusside – merkevare og domener](/docs/status-pages/branding-and-domains).
 
 Hver søyle er én dag. Pek på en søyle, eller klikk på den (trykk på den på en telefon, eller trykk Enter med tastaturet), for å lese dagen: oppetiden, hvor lenge hver status varte, hendelsene som ble erklært den dagen, og det planlagte vedlikeholdet som foregikk på den, hver med en lenke til sin egen side. En dag med planlagt vedlikehold har et blått bånd øverst på søylen, og mens et planlagt vedlikehold pågår, står det «Under vedlikehold» ved navnet på hver ressurs for monitorene det gjelder. Vedlikehold endrer verken fargen på en søyle eller oppetiden, som kommer fra monitorens statuser: for å holde planlagt arbeid utenfor oppetiden velger du en **Endre overvåkingsstatus til** for vedlikeholdet som ikke er en av sidens statuser under **Teller som nedetid**. Se [Hva en hendelse påvirker](/docs/scheduled-maintenance/index#hva-en-hendelse-påvirker).
+
+Hver søyle er en dag i leserens egen tidssone, den samme som siden viser alle andre tidspunkter i, så den siste søylen er leserens i dag. Søylen til en monitorgruppe viser hvor lenge gruppen selv var i hver status den dagen: i hvert øyeblikk har gruppen den verste statusen blant monitorene sine, så statusene for en dag summerer seg til tiden da minst én av monitorene ble sjekket, og aldri til mer enn dagen.
 
 ## Grupper
 

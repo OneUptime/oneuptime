@@ -1,4 +1,6 @@
 import MonitorCriteriaElement from "./MonitorCriteria";
+import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
+import LearnMoreLink from "Common/UI/Components/Link/LearnMoreLink";
 import TelemetryRuleEditor from "./TelemetryRule/TelemetryRuleEditor";
 import TelemetryRuleRecipePicker from "./TelemetryRule/TelemetryRuleRecipePicker";
 import TelemetryAlertRuleUtil from "Common/Types/Monitor/TelemetryAlertRule";
@@ -60,6 +62,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useId,
   useRef,
   useState,
 } from "react";
@@ -322,6 +325,14 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
   ] = useState<boolean>(false);
 
   const [telemetryServices, setServices] = useState<Array<Service>>([]);
+
+  /*
+   * The address field's label names its box and its help describes it, so
+   * the box is read out as "Website URL" (or "Hostname", "Port"...), not as
+   * an unnamed text box, and found by its name.
+   */
+  const destinationFieldId: string = useId();
+  const destinationDescriptionId: string = `${destinationFieldId}-description`;
 
   const isRuleMonitorType: boolean = TelemetryAlertRuleUtil.isRuleMonitorType(
     props.monitorType,
@@ -1059,9 +1070,21 @@ return {
               <FieldLabelElement
                 title={destinationFieldCopy?.title || "URL"}
                 description={destinationFieldCopy?.description}
+                htmlFor={destinationFieldId}
+                descriptionId={
+                  destinationFieldCopy?.description
+                    ? destinationDescriptionId
+                    : undefined
+                }
                 required={true}
               />
               <Input
+                id={destinationFieldId}
+                ariaDescribedby={
+                  destinationFieldCopy?.description
+                    ? destinationDescriptionId
+                    : undefined
+                }
                 initialValue={destinationInputValue}
                 placeholder={destinationFieldCopy?.placeholder}
                 disableSpellCheck={true}
@@ -2604,7 +2627,14 @@ return {
       ) : (
         <Card
           title="Monitor Criteria"
+          titleGlossaryTerm={GlossaryTerm.Criteria}
           description="When this monitor changes status, declares an incident or creates an alert. They are checked from top to bottom, and the first one that matches decides."
+          rightElement={
+            <LearnMoreLink
+              docsPath="/docs/monitor/criteria-and-statuses"
+              dataTestId="monitor-criteria-learn-more"
+            />
+          }
         >
           {criteriaElement}
         </Card>

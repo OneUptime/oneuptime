@@ -144,6 +144,8 @@ Erstat selv pladsholderhemmelighederne før første start, som [Generér tilfæl
 Åbn `http://` efterfulgt af din `HOST` (for eksempel `http://localhost`), og tilmeld dig. Den første konto på en ny instans bliver dens masteradministrator, som kan åbne Admin Dashboard på `/admin`.
 
 Alle, der kan nå siden, kan tilmelde sig efter dig. For at forhindre det åbner du Admin Dashboard, går til **Indstillinger > Godkendelse** og slår **Tillad tilmelding** fra. Personer, du inviterer til et projekt, kan stadig oprette deres konto.
+
+Gør derefter opsætningen af serveren færdig på `/admin/setup`, hvor e-mail, sms og opkald sættes op og testes: se [Gør opsætningen af serveren færdig](/docs/installation/self-hosting-guide#gør-opsætningen-af-serveren-færdig).
 :::
 
 ### Generér tilfældige hemmeligheder
@@ -477,7 +479,27 @@ Slet derefter mappen `oneuptime`.
 > [!CAUTION]
 > `--volumes` sletter hver monitor, hændelse, bruger og al telemetri for altid. Tag backup først, hvis du kunne få brug for noget af det.
 
+## Tjek din installation
+
+Når noget ikke virker, så kør doctor i mappen `oneuptime`:
+
+```bash
+npm run doctor
+```
+
+Den viser, hvad der er galt, det alvorligste først, hver linje med den præcise løsning, og slutter med **Everything looks right.** eller antallet af ting, der skal rettes. Den tjekker hver container og viser de sidste linjer af loggen for dem, der ikke kører, `config.env`, at `HOST` når denne server, certifikatet, når `PROVISION_SSL` er slået til, og ledig diskplads. Den spørger også OneUptime, hvad den ser af sig selv: PostgreSQL, ClickHouse og Valkey, migreringerne, køerne, versionen og serverens opsætningstrin, såsom e-mail og prober. `npm start` slutter med de samme tjek og nævner kun det, der kræver opmærksomhed.
+
+For også at se de seneste fejl fra hver tjeneste, hver med tjenestens navn:
+
+```bash
+npm run doctor -- --logs
+```
+
+Den afslutter med koden `1`, når noget markeret med ✗ skal rettes, så et script kan køre den. Admin Dashboard viser øverst på **OneUptime-tilstand**, hvad OneUptime ser af sig selv, og på Kubernetes udskriver `HelmChart/Public/diagnose.sh` det.
+
 ## Fejlfinding
+
+Start med `npm run doctor`: den nævner de fleste af problemerne nedenfor med deres løsning.
 
 :::details npm start stopper, før den starter OneUptime
 `npm start` tjekker først serveren og stopper ved alt, der ville forhindre OneUptime i at virke: Docker eller dets Compose-plugin mangler, Docker kører ikke eller er uden for din brugers rækkevidde, et andet program holder en port, eller `HOST` er en adresse, ingen browser kan åbne. Hver linje markeret med ✗ siger, hvad du skal ændre. Ret det, og kør derefter `npm start` igen. Tager et tjek fejl om din server, så start uden tjekkene:
@@ -546,8 +568,8 @@ Admin Dashboard viser proben under **Indstillinger > Overvågning > Globale prob
 ## Næste trin
 
 :::cards
+- [Gør opsætningen af serveren færdig](/docs/installation/self-hosting-guide#gør-opsætningen-af-serveren-færdig): E-mail, derefter sms og opkald, hver med en test.
+- [Hurtigstart](/docs/introduction/quickstart): Din første monitor, din første vagtpolitik og din første statusside.
 - [Opgradering af OneUptime](/docs/installation/upgrading): Hvad hver hovedversion kræver af dig.
-- [Dimensionering og kapacitetsplanlægning](/docs/installation/sizing): Planlæg hukommelse og disk til din telemetri.
 - [Selvhostet arkitektur](/docs/self-hosted/architecture): Hvordan komponenterne hænger sammen.
-- [Enterprise Edition](/docs/self-hosted/enterprise): Hvad Enterprise-imaget tilføjer, og dets licens.
 :::

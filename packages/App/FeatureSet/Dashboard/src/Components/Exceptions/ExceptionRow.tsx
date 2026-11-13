@@ -13,7 +13,6 @@ import {
 } from "Common/UI/Utils/LineDirection";
 import {
   getTextReadingDirectionByMostLetters,
-  LEFT_TO_RIGHT,
   ReadingDirection,
 } from "Common/Types/ReadingDirection";
 import PeopleAvatar, {
@@ -45,10 +44,14 @@ export interface ExceptionRowProps {
   stats?: ExceptionListStatsItem | undefined;
   // While the page's numbers are being read: the chart's place is held.
   isStatsLoading?: boolean | undefined;
+  /*
+   * Whether the row says where the exception stands (Unresolved, Resolved,
+   * Archived) in words. A list of one status (its Unresolved tab) leaves
+   * it out: every row would say the same thing, and the row's dot already
+   * does. Shown unless set to false.
+   */
+  showStatus?: boolean | undefined;
 }
-
-// A fingerprint is a code: it reads left to right in every language.
-const FINGERPRINT_DIRECTION: ReadingDirection = LEFT_TO_RIGHT;
 
 // "5m ago", in the reader's language.
 function formatRelativeTime(time: Date, translator: Translator): string {
@@ -109,6 +112,7 @@ const ExceptionRow: FunctionComponent<ExceptionRowProps> = (
 
   const isResolved: boolean = Boolean(exception.isResolved);
   const isArchived: boolean = Boolean(exception.isArchived);
+  const showStatus: boolean = props.showStatus !== false;
   const assignee: PeopleAvatarItem | null =
     getExceptionAssigneeAvatar(exception);
   const assigneeNameDirection: ReadingDirection | undefined = assignee
@@ -187,12 +191,14 @@ const ExceptionRow: FunctionComponent<ExceptionRowProps> = (
 
             {/* Line 2: (on a phone, the status first) service + environment */}
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px]">
-              <span
-                className="flex sm:hidden"
-                data-testid="exception-row-status-inline"
-              >
-                {statusPill}
-              </span>
+              {showStatus && (
+                <span
+                  className="flex sm:hidden"
+                  data-testid="exception-row-status-inline"
+                >
+                  {statusPill}
+                </span>
+              )}
               {/* Regressed or New, and Unhandled: what to look at first. */}
               <ExceptionIssueBadges exception={exception} />
               {/* Who owns it, when someone does. */}
@@ -239,20 +245,6 @@ const ExceptionRow: FunctionComponent<ExceptionRowProps> = (
               {exception.environment && (
                 <span className="whitespace-nowrap rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-[10px] text-gray-500">
                   {exception.environment}
-                </span>
-              )}
-              {/*
-               * A code, read left to right in every language: on a
-               * Persian page it is cut short, and ends in its "...", at
-               * its right end.
-               */}
-              {exception.fingerprint && (
-                <span
-                  className="min-w-0 truncate font-mono text-[10px] text-gray-400"
-                  dir={FINGERPRINT_DIRECTION}
-                  data-testid="exception-row-fingerprint"
-                >
-                  {exception.fingerprint.toString().slice(0, 12)}…
                 </span>
               )}
             </div>
@@ -364,12 +356,14 @@ const ExceptionRow: FunctionComponent<ExceptionRowProps> = (
           )}
 
           {/* Status pill, from sm up */}
-          <div
-            className="flex flex-shrink-0 items-center max-sm:hidden"
-            data-testid="exception-row-status"
-          >
-            {statusPill}
-          </div>
+          {showStatus && (
+            <div
+              className="flex flex-shrink-0 items-center max-sm:hidden"
+              data-testid="exception-row-status"
+            >
+              {statusPill}
+            </div>
+          )}
         </div>
       </button>
       {props.actionButtons && props.actionButtons.length > 0 ? (

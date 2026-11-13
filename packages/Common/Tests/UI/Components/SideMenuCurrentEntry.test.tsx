@@ -35,6 +35,7 @@ import {
 import SideMenuItem from "../../../UI/Components/SideMenu/SideMenuItem";
 import SideMenuSection from "../../../UI/Components/SideMenu/SideMenuSection";
 import Navigation from "../../../UI/Utils/Navigation";
+import { SIDE_MENU_FOLDS_STORAGE_KEY } from "../../../UI/Components/SideMenu/SideMenuSectionState";
 
 /*
  * The side menu's entry for the page you are on is lit: a tinted row with
@@ -146,6 +147,8 @@ const ROLE_PAGE: string = "/teams/roles/11111111-1111-4111-8111-111111111111";
 
 beforeEach(() => {
   setViewportWidth(DESKTOP_WIDTH);
+  // Each test's menu starts from its defaults, not a fold an earlier test made.
+  window.localStorage.removeItem(SIDE_MENU_FOLDS_STORAGE_KEY);
 });
 
 afterEach(() => {

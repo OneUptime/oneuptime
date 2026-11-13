@@ -1,11 +1,12 @@
 # Audit-Protokolle
 
-Das Audit-Protokoll hält fest, wer was in Ihrem Projekt geändert hat: jedes Anlegen, Ändern und Löschen der Ressourcen, die es erfasst, mit den Werten vorher und nachher. Damit finden Sie heraus, wer einen Monitor ausgeschaltet oder einen API-Schlüssel geändert hat, und führen einen Nachweis für Compliance-Prüfungen. Es gehört in OneUptime Cloud zum Enterprise-Tarif und beim Selbsthosten zur Enterprise Edition.
+Das Audit-Protokoll hält fest, wer was in Ihrem Projekt geändert hat: jedes Anlegen, Ändern und Löschen der Ressourcen, die es erfasst, mit den Werten vorher und nachher, und jedes Mal, wenn sich jemand an- oder abmeldet. Damit finden Sie heraus, wer einen Monitor ausgeschaltet oder einen API-Schlüssel geändert hat, wer sich angemeldet hat und von wo, und führen einen Nachweis für Compliance-Prüfungen. Es gehört in OneUptime Cloud zum Enterprise-Tarif und beim Selbsthosten zur Enterprise Edition.
 
 :::cards
 - [Audit-Protokollierung einschalten](#audit-protokollierung-einschalten): Sie ist in jedem Projekt anfangs aus.
 - [Das Audit-Protokoll lesen](#das-audit-protokoll-lesen): Wer was geändert hat, und wann.
 - [Was erfasst wird](#was-erfasst-wird): Die Ressourcen und Aktionen, die es abdeckt.
+- [Anmeldungen und Sitzungen](#anmeldungen-und-sitzungen): Wer sich angemeldet hat, und wie jede Sitzung endete.
 - [Wie lange Einträge bleiben](#wie-lange-einträge-bleiben): Von 7 bis 180 Tagen.
 :::
 
@@ -64,10 +65,10 @@ Eine Änderung dieser Einstellungen gilt innerhalb einer Minute.
 | Spalte | Was sie zeigt |
 | --- | --- |
 | **Wann** | Wie lange es her ist, mit Datum und Uhrzeit. |
-| **Aktion** | `Create`, `Update` oder `Delete`, oder `Download` für eine Paketmitschnitt-Datei, die jemand heruntergeladen hat. |
+| **Aktion** | `Create`, `Update` oder `Delete`, `Download` für eine Paketmitschnitt-Datei, die jemand heruntergeladen hat, oder `Sign In`, `Sign Out`, `Session Timeout` oder `Session Revoked` für eine Sitzung. |
 | **Ressource** | Der Name der Ressource, der sie öffnet, solange es sie gibt, und ihr Typ. |
 | **Akteur** | Wer die Änderung vorgenommen hat: eine Person, ein API-Schlüssel, ein Workflow oder `System` für eine Änderung, die OneUptime selbst vorgenommen hat. Kam die Änderung einer Person über einen MCP-Client, nennt der Eintrag ihn. |
-| **Änderungen** | Wie viele Felder sich geändert haben, oder bei einem Anlegen oder Löschen erfasst wurden. Klicken Sie darauf, um jedes Feld zu sehen. |
+| **Änderungen** | Wie viele Felder sich geändert haben, oder bei einem Anlegen oder Löschen erfasst wurden. Bei einer Sitzung, wie sie angemeldet wurde oder warum sie endete. Klicken Sie darauf, um jedes Feld zu sehen. |
 
 Filtern Sie nach **Ressourcentyp**, **Ressourcenname**, **Aktion**, **Benutzer-E-Mail** oder **Zeit**. Eine Änderung listet nur die geänderten Felder, vorher und nachher, und ein Speichern, das nichts ändert, erzeugt keinen Eintrag.
 
@@ -85,8 +86,9 @@ Alles, was Personen in einem Projekt anlegen, ändern oder löschen, wird erfass
 | Aufzeichnungen von Ausführungen | Jede ist bereits der Nachweis einer Workflow-Ausführung, einer Bereitschaftseskalation, eines Scans, eines Imports oder eines KI-Laufs. |
 | Was Agenten und Telemetrie melden | Gefundene Ressourcen, Messwerte und Nutzung ändern sich mit jeder Meldung, nicht weil jemand sie geändert hat. |
 | Aktivitätsfeeds | Ein Feed zeigt Änderungen, die das Audit-Protokoll bereits erfasst. |
-| Arbeitszustand von OneUptime | Sitzungen, wartende Jobs und anderer Zustand, den OneUptime während seiner Arbeit hält. |
+| Arbeitszustand von OneUptime | Sitzungen der Leser von Statusseiten, wartende Jobs und anderer Zustand, den OneUptime während seiner Arbeit hält. |
 | Die eigene Benachrichtigungseinrichtung einer Person | Die Adressen, Nummern und persönlichen Bereitschaftsregeln jeder Person gehören nur ihr. |
+| Die eigenen Präferenzen einer Person | Die Produkte, die jede Person in ihrer eigenen oberen Leiste fixiert, gehören nur ihr, und nur sie sieht sie. |
 
 Fügt ein Administrator eine Benachrichtigungsmethode oder eine persönliche Bereitschaftsregel zum Konto einer anderen Person hinzu oder entfernt sie, wird das ebenfalls erfasst, ohne die Adresse oder Nummer selbst.
 
@@ -104,6 +106,21 @@ Was OneUptime tut, weil jemand darum gebeten hat, wird ebenfalls als dessen Änd
 Was eine Regel von sich aus tut, ist eine Änderung von OneUptime selbst und wird erfasst, wenn **Systemereignisse speichern** eingeschaltet ist: die Labels und Eigentümer, die eine Regel beim Anlegen eines Datensatzes hinzufügt, und ein Datensatz, den sie dabei privat macht; die Geräte und Monitore, die eine Regel für automatischen Import aus neuen Scan-Ergebnissen anlegt; und was eine Monitor-Regel einer Statusseite oder eines SLOs ändert, wenn eine Regel, ein Monitor oder ein Label gespeichert wird.
 
 Das Zurücksetzen des KI-Agenten eines Hosts, eines Clusters oder eines Cloud-Kontos wird auf der eigenen Seite **Audit-Protokolle** dieser Ressource als Änderung von `aiAgentResetAt` durch die Person erfasst, die ihn zurückgesetzt hat: wer, und wann. Ebenso das Erstellen eines Schlüssels für den KI-Agenten eines Cloud-Kontos: Die Schlüssel erscheinen als geändert, nie mit einem Schlüssel oder einem Hash. Was ein Agent beim Verbinden und bei seinen Meldungen berichtet, bleibt wie bisher außen vor.
+
+## Anmeldungen und Sitzungen
+
+Jedes Mal, wenn sich ein Mitglied des Projekts bei OneUptime anmeldet, erfasst das Audit-Protokoll das, und noch einmal, wenn diese Sitzung endet. Eine Anmeldung gilt für OneUptime, nicht für ein einzelnes Projekt, daher wird sie in jedem Projekt erfasst, in dem die Person Mitglied ist.
+
+| Aktion | Wann sie erfasst wird |
+| --- | --- |
+| `Sign In` | Jemand meldet sich an: mit einem Passwort oder einem Anmeldelink, einem Passkey, mit Google, Microsoft, Vercel oder Single Sign-On. |
+| `Sign Out` | Die Person meldet sich ab. |
+| `Session Timeout` | OneUptime beendet die Sitzung, weil ihre Zeit abgelaufen ist: die Inaktivitätsdauer oder Sitzungsdauer, die ein Server-Admin festgelegt hat, oder 30 Tage ohne Nutzung. |
+| `Session Revoked` | OneUptime beendet die Sitzung, weil das Passwort geändert wurde, das Konto gesperrt wurde oder ein Server-Admin die Zwei-Faktor-Authentifizierung zurückgesetzt oder vorgeschrieben hat. |
+
+Die **Ressource** eines Eintrags ist die Sitzung, benannt nach dem Gerät, von dem aus sie angemeldet wurde, etwa `Chrome 130 on macOS`. Sein **Akteur** ist die Person, der die Sitzung gehört, sodass ein Filter nach **Benutzer-E-Mail** jede ihrer Anmeldungen und Sitzungen findet. Seine Details nennen, wie sich die Person angemeldet hat und mit welchem zweiten Faktor, die IP-Adresse und den Standort, und bei einer beendeten Sitzung, wann sie angemeldet wurde, wann sie zuletzt genutzt wurde und wann sie abgelaufen ist. Der eigene SSO-Anbieter eines Projekts wird nur im Audit-Protokoll dieses Projekts genannt.
+
+Anmeldungen und Sitzungen werden erfasst, ob das Projekt Systemereignisse speichert oder nicht. Eine Sitzungsdauer oder 30 Tage ohne Nutzung werden innerhalb weniger Minuten nach ihrem Ablauf erfasst. Eine Inaktivitätsdauer wird erfasst, sobald der offene Tab der Person oder die mobile App OneUptime das nächste Mal erreicht.
 
 ## Wie lange Einträge bleiben
 

@@ -2,7 +2,11 @@ import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObje
 import ServiceLevelObjectiveErrorBudgetPolicyTier from "Common/Models/DatabaseModels/ServiceLevelObjectiveErrorBudgetPolicyTier";
 import OneUptimeDate from "Common/Types/Date";
 import type ChartReferenceLineProps from "Common/UI/Components/Charts/Types/ReferenceLineProps";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  getInlineSeparator,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import {
   areSloDeploymentsAllowedInTier,
   formatSloPolicyTierThreshold,
@@ -166,24 +170,33 @@ export const getSloCurrentPolicyTier: GetSloCurrentPolicyTierFunction = (data: {
 export const POLICY_TIER_LINE_COLOR: string = "#8b5cf6";
 export const POLICY_TIER_LINE_DASH: string = "2 3";
 
-export type GetSloPolicyTierLineLabelFunction = (tier: {
-  name?: string | undefined | null;
-  thresholdPercentage?: number | string | undefined | null;
-}) => string;
-
-// "Caution 50%": the tier's name and its threshold, as a rule's line says "Fast burn 14.4×".
-export const getSloPolicyTierLineLabel: GetSloPolicyTierLineLabelFunction =
-  (tier: {
+export type GetSloPolicyTierLineLabelFunction = (
+  tier: {
     name?: string | undefined | null;
     thresholdPercentage?: number | string | undefined | null;
-  }): string => {
-    return [
-      tier.name?.trim() || "",
-      formatSloPolicyTierThreshold(tier.thresholdPercentage),
-    ]
-      .filter(Boolean)
-      .join(" ");
-  };
+  },
+  translator?: Translator | undefined,
+) => string;
+
+/*
+ * "Caution 50%": the tier's name as written and its threshold, as a rule's
+ * line says "Fast burn 14.4×" - the threshold written the reader's way
+ * ("Caution 50 %" in German) when their translator is passed.
+ */
+export const getSloPolicyTierLineLabel: GetSloPolicyTierLineLabelFunction = (
+  tier: {
+    name?: string | undefined | null;
+    thresholdPercentage?: number | string | undefined | null;
+  },
+  translator?: Translator | undefined,
+): string => {
+  return [
+    tier.name?.trim() || "",
+    formatSloPolicyTierThreshold(tier.thresholdPercentage, translator),
+  ]
+    .filter(Boolean)
+    .join(" ");
+};
 
 export type GetSloPolicyTierReferenceLinesFunction = (data: {
   // The lines the chart already draws: the exhausted and at-risk lines.
@@ -193,6 +206,8 @@ export type GetSloPolicyTierReferenceLinesFunction = (data: {
     thresholdPercentage?: number | string | undefined | null;
     isEnabled?: boolean | undefined | null;
   }>;
+  // The reader's: each tier's threshold in their figures.
+  translator?: Translator | undefined;
 }) => Array<ChartReferenceLineProps>;
 
 /*
@@ -204,7 +219,8 @@ export type GetSloPolicyTierReferenceLinesFunction = (data: {
  * tier at 0%, a tier at the SLO's at-risk threshold - is said on that line
  * rather than drawn over it: two labels at one height would be drawn one on
  * top of the other. The line keeps its colour, and its label names the tier
- * too, once ("Budget exhausted 0%" for a tier named like the line).
+ * too, once ("Budget exhausted 0%" for a tier named like the line), after
+ * the separator the reader's language puts between two facts on a line.
  */
 export const getSloPolicyTierReferenceLines: GetSloPolicyTierReferenceLinesFunction =
   (data: {
@@ -214,6 +230,7 @@ export const getSloPolicyTierReferenceLines: GetSloPolicyTierReferenceLinesFunct
       thresholdPercentage?: number | string | undefined | null;
       isEnabled?: boolean | undefined | null;
     }>;
+    translator?: Translator | undefined;
   }): Array<ChartReferenceLineProps> => {
     const lines: Array<ChartReferenceLineProps> = data.lines.map(
       (line: ChartReferenceLineProps): ChartReferenceLineProps => {
@@ -233,7 +250,7 @@ export const getSloPolicyTierReferenceLines: GetSloPolicyTierReferenceLinesFunct
       }
 
       tiers.push({
-        label: getSloPolicyTierLineLabel(tier),
+        label: getSloPolicyTierLineLabel(tier, data.translator),
         name: tier.name?.trim() || "",
         value: value,
       });
@@ -271,7 +288,7 @@ export const getSloPolicyTierReferenceLines: GetSloPolicyTierReferenceLinesFunct
 
       existing.label =
         existingLabel && existingLabel.toLowerCase() !== tier.name.toLowerCase()
-          ? `${existingLabel} · ${tier.label}`
+          ? `${existingLabel}${getInlineSeparator(data.translator?.language)}${tier.label}`
           : tier.label;
     }
 

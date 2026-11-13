@@ -69,7 +69,7 @@ Die Seite einer Aufgabe ist eine Unterhaltung: was gefragt wurde und welcher Kon
 | **Fehlgeschlagen** | Der Durchgang konnte nicht abgeschlossen werden und sagt, warum, und nach wie vielen Versuchen, wenn die KI ihn von selbst erneut versucht hat. **Erneut versuchen** fragt dasselbe noch einmal. |
 | **Gestoppt** | Jemand hat sie gestoppt. **Erneut versuchen** fragt dasselbe noch einmal. |
 
-Um nachzufassen, schreiben Sie in das Feld unten, das sichtbar bleibt, während die Unterhaltung scrollt: Antworten Sie der KI, fügen Sie Kontext hinzu oder bitten Sie um Änderungen. Jede Antwort ist der nächste Durchgang derselben Aufgabe: Sie arbeitet im selben Branch und pusht in denselben Pull Request, solange er offen ist. Eine Aufgabe hat immer nur einen Durchgang zur Zeit, deshalb wartet das Feld, während die KI arbeitet. Das **Protokoll** jedes Durchgangs ist die wörtliche Aufzeichnung dessen, was er getan hat. Bei einer Aufgabe mit mehr als einem Durchgang wechselt eine Auswahl oben auf der Seite **Protokoll** zwischen ihren Durchgängen.
+Um nachzufassen, schreiben Sie in das Feld unten, das sichtbar bleibt, während die Unterhaltung scrollt: Antworten Sie der KI, fügen Sie Kontext hinzu oder bitten Sie um Änderungen. Jede Antwort ist der nächste Durchgang derselben Aufgabe: Sie arbeitet im selben Branch und pusht in denselben Pull Request, solange er offen ist. Eine Aufgabe hat immer nur einen Durchgang zur Zeit, deshalb wartet das Feld, während die KI arbeitet. Das **Protokoll** jedes Durchgangs ist die wörtliche Aufzeichnung dessen, was er getan hat. Bei einer Aufgabe mit mehr als einem Durchgang wechselt eine Auswahl oben auf der Seite **Protokoll** zwischen ihren Durchgängen. Eine Aufgabe mit mehr als 200 Durchgängen zeigt ihren ersten Durchgang und ihre neuesten 199, dazwischen eine Linie, die sagt, wie viele frühere Durchgänge nicht angezeigt werden. Oben auf der Seite wird weiterhin jeder Durchgang mitgezählt.
 
 Wer ein Repository lesen darf, liest seine Aufgaben. Die KI bitten, antworten und eine Aufgabe stoppen erfordern die Berechtigung, das Repository zu bearbeiten, ebenso das Ansehen des Diffs einer Änderung: Alle anderen sehen, welche Dateien sich geändert haben. Die Aufgaben, die OneUptime selbst startet (unten), stehen ebenfalls in ihrem Repository, als Unterhaltungen, in denen Sie antworten können.
 
@@ -104,18 +104,18 @@ Eine Ausführung macht so viele LLM-Aufrufe und Abfragen der Produktionstelemetr
 
 | Wo | Klick | Der Pull Request |
 | --- | --- | --- |
-| Die Seite **KI-Unterstützung** einer Ausnahme | **Mit KI beheben** | Behebt den Fehler hinter der Ausnahme. |
-| Die Seite **KI-Unterstützung** einer Ausnahme | **Regressionstest generieren** | Fügt einen Test hinzu, der die Ausnahme reproduziert und fehlschlägt, bis der Fehler behoben ist. |
-| Die Seite **KI-Unterstützung** einer Ausnahme | **Fehlerbehandlung verbessern** | Für einen erwarteten Fehler, etwa eine ungültige Eingabe: nimmt Benutzerdaten aus der Meldung, prüft die Eingabe früher und markiert den Fehler als behandelt, ohne das Verhalten zu ändern. |
+| Die Seite **Mit KI beheben** einer Ausnahme | **Mit KI beheben** | Behebt den Fehler hinter der Ausnahme. Bei einem erwarteten Fehler, etwa einer ungültigen Eingabe, behandelt er stattdessen den Fehler besser: nimmt Benutzerdaten aus der Meldung, prüft die Eingabe früher und markiert den Fehler als behandelt, ohne das Verhalten zu ändern. |
+| **Weitere KI-Aufgaben** auf der Seite **Mit KI beheben** einer Ausnahme | **Starten** bei **Regressionstest schreiben** | Fügt einen Test hinzu, der die Ausnahme reproduziert und fehlschlägt, bis der Fehler behoben ist. |
+| **Weitere KI-Aufgaben** auf der Seite **Mit KI beheben** einer Ausnahme | **Starten** bei **Code korrigieren** oder **Fehler besser behandeln** | Die Art von Korrektur, die **Mit KI beheben** für die Ausnahme nicht vornimmt. |
 | Der Schritt **Behebung** der Karte **OneUptime AI** eines Vorfalls oder einer Warnung | **Korrektur-Pull-Request öffnen** | Behebt die Grundursache, die die Untersuchung veröffentlicht hat (siehe [Automatische Codekorrekturen aus Untersuchungen](#automatische-codekorrekturen-aus-untersuchungen)). |
 | Ein Trace, der eine Korrektur lohnt | **Mit KI beschleunigen** | Behebt das langsame Muster, das die Schaltfläche nennt, etwa eine N+1-Abfrage oder Aufrufe, die parallel laufen könnten. |
 | Die Seite **Protokolle** eines Dienstes | **Logging verbessern** | Macht die Logs des Dienstes strukturiert, mit dem richtigen Schweregrad und mit seinen Traces verknüpft, ohne das Verhalten zu ändern. |
 | Die Seite **Traces** eines Dienstes | **Tracing verbessern** | Fügt Spans und Attribute hinzu, wo das Tracing des Dienstes fehlt, ohne das Verhalten zu ändern. |
 | Eine Funktion in **Leistungsprofile** | **Mit KI beheben** | Lässt die Funktion dieselbe Arbeit mit weniger Zeit oder Speicher erledigen, mit ihrem Profil als Beleg. |
 
-Diese Schaltflächen erscheinen nur dort, wo sie eine Aufgabe starten können. Ist KI für das Projekt ausgeschaltet, erscheint keine davon, und das Seitenmenü einer Ausnahme hat keine **KI-Unterstützung**. **Logging verbessern** und **Tracing verbessern** erscheinen, sobald ein Repository verbunden ist und nichts die KI darin aufhält (etwa der Tarif, aufgebrauchtes KI-Guthaben oder kein Runner, der online ist), und **Mit KI beschleunigen** nur bei einem Trace, der eine Korrektur lohnt (siehe [Trace-Explorer](/docs/telemetry/traces-explorer)). **Mit KI beheben** bei einer Funktion erscheint nur für den eigenen Code der Anwendung, der mindestens 5 % der Zeit oder des Speichers des Profils beansprucht oder dessen Anteil seit dem Vergleichsfenster um 3 Punkte oder mehr gewachsen ist (siehe [Kontinuierliches Profiling](/docs/telemetry/profiles)).
+Diese Schaltflächen erscheinen nur dort, wo sie eine Aufgabe starten können. Ist KI für das Projekt ausgeschaltet, erscheint keine davon, und im Seitenmenü einer Ausnahme fehlt **Mit KI beheben**. **Logging verbessern** und **Tracing verbessern** erscheinen, sobald ein Repository verbunden ist und nichts die KI darin aufhält (etwa der Tarif, aufgebrauchtes KI-Guthaben oder kein Runner, der online ist), und **Mit KI beschleunigen** nur bei einem Trace, der eine Korrektur lohnt (siehe [Trace-Explorer](/docs/telemetry/traces-explorer)). **Mit KI beheben** bei einer Funktion erscheint nur für den eigenen Code der Anwendung, der mindestens 5 % der Zeit oder des Speichers des Profils beansprucht oder dessen Anteil seit dem Vergleichsfenster um 3 Punkte oder mehr gewachsen ist (siehe [Kontinuierliches Profiling](/docs/telemetry/profiles)).
 
-Um die Seite **KI-Unterstützung** einer Ausnahme zu öffnen, öffnen Sie die Ausnahme unter **Produkte → Observability → Ausnahmen** und wählen im Seitenmenü **KI-Unterstützung**. Eine gelöste oder archivierte Ausnahme muss zuerst als ungelöst markiert werden.
+Um die Seite **Mit KI beheben** einer Ausnahme zu öffnen, öffnen Sie die Ausnahme unter **Produkte → Observability → Ausnahmen** und wählen im Seitenmenü **Mit KI beheben**. Eine gelöste oder archivierte Ausnahme muss zuerst als ungelöst markiert werden.
 
 OneUptime AI startet Korrekturaufgaben auch selbst: aus einer Untersuchung, die eine Codeänderung findet, aus einer, die ergebnislos endet, weil Telemetrie fehlte, und aus KI-Einblicken zu Ausnahmen und langsamen Traces. Jede davon hat einen eigenen Schalter; siehe [Automatische Codekorrekturen](/docs/ai/ai-sre#automatische-code-korrekturen).
 
@@ -202,7 +202,7 @@ Die Befehle sind Repository-Einstellungen, die Ihr Team schreibt und die auf Ihr
 
 ## Nach dem Zusammenführen einer Korrektur
 
-Das Zusammenführen einer Korrektur behebt nichts, bis sie läuft. Sobald ein Korrektur-Pull-Request zusammengeführt ist, wartet OneUptime auf einen aufgezeichneten Deploy, der ihn enthält (siehe [Deploys und Änderungen](/docs/telemetry/change-events)), und beobachtet in diesem Deploy, wofür die Korrektur gedacht war. Der Pull-Request der Aufgabe in Code zeigt, wie es ausging, ebenso die Seite **KI-Unterstützung** der Ausnahme, die KI-Protokolle des Vorfalls und der KI-Insight, aus dem die Korrektur kam:
+Das Zusammenführen einer Korrektur behebt nichts, bis sie läuft. Sobald ein Korrektur-Pull-Request zusammengeführt ist, wartet OneUptime auf einen aufgezeichneten Deploy, der ihn enthält (siehe [Deploys und Änderungen](/docs/telemetry/change-events)), und beobachtet in diesem Deploy, wofür die Korrektur gedacht war. Der Pull-Request der Aufgabe in Code zeigt, wie es ausging, ebenso die Seite **Mit KI beheben** der Ausnahme, die KI-Protokolle des Vorfalls und der KI-Insight, aus dem die Korrektur kam:
 
 | Eine Korrektur für | Was beobachtet wird | Sie hat gewirkt | Sie hat nicht gewirkt |
 | --- | --- | --- | --- |
@@ -242,7 +242,7 @@ OneUptime Cloud erreicht nur Git-Server im Internet, nie eine private, Loopback-
 
 ## Bevor Sie beginnen
 
-Eine Aufgabe braucht drei Dinge. Das Anfragefeld von Code und die Seite **KI-Unterstützung** der Ausnahme prüfen alle drei, bevor sie den Start anbieten, und sagen, was fehlt.
+Eine Aufgabe braucht drei Dinge. Das Anfragefeld von Code und die Seite **Mit KI beheben** der Ausnahme prüfen alle drei, bevor sie den Start anbieten, und sagen, was fehlt.
 
 | Was | OneUptime Cloud | Selbst gehostet |
 | --- | --- | --- |
@@ -263,7 +263,7 @@ GLOBAL_LLM_PROVIDER_MODEL_NAME=llama3.1
 
 Jeder unterstützte Anbieter funktioniert: siehe [LLM-Anbieter](/docs/ai/llm-provider) für alle Anbieter und jede Umgebungsvariable.
 
-Sie ordnen Repositories keinen Diensten zu. Wenn eine Aufgabe startet, findet OneUptime das Repository, indem es die Dateipfade aus dem Stack-Trace der Ausnahme mit Ihren verbundenen Repositories abgleicht. Passt nichts, weicht es auf ein Repository aus, das wie der Dienst heißt, und dann auf das einzige Repository des Projekts, wenn es nur eines gibt. Die Seite **KI-Unterstützung** zeigt, welches Repository gefunden wurde.
+Sie ordnen Repositories keinen Diensten zu. Wenn eine Aufgabe startet, findet OneUptime das Repository, indem es die Dateipfade aus dem Stack-Trace der Ausnahme mit Ihren verbundenen Repositories abgleicht. Passt nichts, weicht es auf ein Repository aus, das wie der Dienst heißt, und dann auf das einzige Repository des Projekts, wenn es nur eines gibt. Die Seite **Mit KI beheben** der Ausnahme zeigt, welches Repository gefunden wurde.
 
 ### Den Runner des Repositorys auswählen
 

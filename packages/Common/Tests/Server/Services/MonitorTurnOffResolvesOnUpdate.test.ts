@@ -2,6 +2,8 @@ import * as fs from "fs";
 import * as path from "path";
 import MonitorFeedService from "../../../Server/Services/MonitorFeedService";
 import MonitorService from "../../../Server/Services/MonitorService";
+import MonitorStatusTimelineService from "../../../Server/Services/MonitorStatusTimelineService";
+import NetworkDeviceService from "../../../Server/Services/NetworkDeviceService";
 import { OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import logger from "../../../Server/Utils/Logger";
@@ -43,8 +45,20 @@ import {
  * as it is resolves nothing. A failure to resolve is logged and never fails
  * the save.
  *
+ * The same hooks mark the switch on each monitor's status timeline
+ * (MonitorStatusTimelineService.recordMonitoringSwitch, issue #6480) - turned
+ * off, and turned back on - so uptime, status pages and SLOs leave out the
+ * time it is off. Marked first, before anything turning it off leads to,
+ * and only for a monitor whose switch the update really turned.
+ *
+ * The same hooks stamp the network devices the monitors back again
+ * (NetworkDeviceService.refreshStampsOfDevicesBoundToMonitors, issue
+ * #6965) when monitoring is turned off or on, or the monitor is archived or
+ * unarchived: a device takes no status from a monitor nothing checks.
+ *
  * The real onBeforeUpdate runs, and what it carries forward goes to the
- * real onUpdateSuccess; the database and MonitorTurnedOff are stubbed.
+ * real onUpdateSuccess; the database, MonitorTurnedOff and the device
+ * re-stamp are stubbed.
  *
  * On a server without billing (TestBillingFlag): where billing is on, as in
  * CI, turning monitoring on also passes the pay-as-you-go gate, which reads
@@ -84,8 +98,10 @@ let storedMonitors: Array<StoredMonitor> = [];
 
 let reads: MockFunction;
 let resolves: MockFunction;
+let switches: MockFunction;
 let feed: MockFunction;
 let errors: MockFunction;
+let restamps: MockFunction;
 
 type OnBeforeUpdate = (
   updateBy: UpdateBy<Monitor>,
@@ -222,8 +238,20 @@ beforeEach(() => {
     .spyOn(MonitorTurnedOff, "resolveWhatItWouldHaveResolved")
     .mockImplementation(resolves as never);
 
+  switches = getJestMockFunction();
+  switches.mockResolvedValue(null as never);
+  jest
+    .spyOn(MonitorStatusTimelineService, "recordMonitoringSwitch")
+    .mockImplementation(switches as never);
+
   errors = getJestMockFunction();
   jest.spyOn(logger, "error").mockImplementation(errors as never);
+
+  restamps = getJestMockFunction();
+  restamps.mockResolvedValue(undefined as never);
+  jest
+    .spyOn(NetworkDeviceService, "refreshStampsOfDevicesBoundToMonitors")
+    .mockImplementation(restamps as never);
 });
 
 afterEach(() => {
@@ -277,6 +305,33 @@ function resolvedMonitorIds(): Array<string> {
   });
 }
 
+interface SwitchMarked {
+  monitorId: string;
+  isMonitoringOff: boolean;
+  switchedByUserId: string | undefined;
+}
+
+// Each switch marked on a status timeline, in order.
+function switchesMarked(): Array<SwitchMarked> {
+  return switches.mock.calls.map((call: Array<unknown>): SwitchMarked => {
+    const data: {
+      monitorId: ObjectID;
+      isMonitoringOff: boolean;
+      switchedByUserId?: ObjectID | null | undefined;
+    } = call[0] as {
+      monitorId: ObjectID;
+      isMonitoringOff: boolean;
+      switchedByUserId?: ObjectID | null | undefined;
+    };
+
+    return {
+      monitorId: data.monitorId.toString(),
+      isMonitoringOff: data.isMonitoringOff,
+      switchedByUserId: data.switchedByUserId?.toString(),
+    };
+  });
+}
+
 describe("what onBeforeUpdate notices", () => {
   test("a monitor the update turns off is carried forward", async () => {
     const onUpdate: OnUpdate<Monitor> = await runBeforeUpdate({
@@ -319,23 +374,50 @@ describe("what onBeforeUpdate notices", () => {
     ).toEqual([CHECKED, ALSO_CHECKED].sort());
   });
 
-  test.each([
-    ["turning monitoring on", { disableActiveMonitoring: false }],
-    [
-      "an edit that leaves the switch alone",
-      { isAllProbesDisconnectedFromThisMonitor: false },
-    ],
-  ])(
-    "%s reads nothing for it and carries nothing",
-    async (_name: string, data: Dictionary<unknown>) => {
-      const onUpdate: OnUpdate<Monitor> = await runBeforeUpdate(
-        data as Dictionary<unknown>,
-      );
+  test("an edit that leaves the switch alone reads nothing for it and carries nothing", async () => {
+    const onUpdate: OnUpdate<Monitor> = await runBeforeUpdate({
+      isAllProbesDisconnectedFromThisMonitor: false,
+    });
 
-      expect(reads).not.toHaveBeenCalled();
-      expect(onUpdate.carryForward).toBeNull();
-    },
-  );
+    expect(reads).not.toHaveBeenCalled();
+    expect(onUpdate.carryForward).toBeNull();
+  });
+
+  /*
+   * Issue #6480: turning monitoring back on is marked on the monitor's
+   * status timeline too, so its time counts again from that moment.
+   */
+  test("turning monitoring back on carries the monitor that had it off", async () => {
+    const onUpdate: OnUpdate<Monitor> = await runBeforeUpdate(
+      { disableActiveMonitoring: false },
+      { ids: [ALREADY_OFF] },
+    );
+
+    expect(reads).toHaveBeenCalledTimes(1);
+    expect(onUpdate.carryForward).toEqual({
+      monitorIdsTurnedOn: [ALREADY_OFF],
+    });
+  });
+
+  test("turning monitoring on for a monitor that has it on already turns nothing: nothing carried", async () => {
+    const onUpdate: OnUpdate<Monitor> = await runBeforeUpdate({
+      disableActiveMonitoring: false,
+    });
+
+    expect(reads).toHaveBeenCalledTimes(1);
+    expect(onUpdate.carryForward).toBeNull();
+  });
+
+  test("a bulk Enable over monitors some of which are on carries forward only the one it turns on", async () => {
+    const onUpdate: OnUpdate<Monitor> = await runBeforeUpdate(
+      { disableActiveMonitoring: false },
+      { ids: [CHECKED, ALREADY_OFF, ALSO_CHECKED] },
+    );
+
+    expect(onUpdate.carryForward).toEqual({
+      monitorIdsTurnedOn: [ALREADY_OFF],
+    });
+  });
 
   test("a rename that also turns monitoring off carries both: the feed's values and the monitor turned off", async () => {
     const onUpdate: OnUpdate<Monitor> = await runBeforeUpdate({
@@ -454,6 +536,246 @@ describe("the hook is the one place", () => {
     expect(source).toContain(
       "await MonitorTurnedOff.resolveWhatItWouldHaveResolved({",
     );
-    expect(source).toContain("await this.findMonitorIdsTurnedOff(updateBy)");
+    expect(source).toContain(
+      "await MonitorStatusTimelineService.recordMonitoringSwitch({",
+    );
+    expect(source).toContain("await this.findMonitorIdsSwitched(updateBy)");
+  });
+});
+
+/*
+ * Issue #6480: the switch is marked on each monitor's status timeline -
+ * turned off, and turned back on - so uptime, status pages and SLOs leave
+ * out the time it is off instead of counting the status it was left at.
+ */
+describe("what onUpdateSuccess marks on the status timeline", () => {
+  test("turning monitoring off marks it, credited to whoever turned it off, before anything is resolved", async () => {
+    await runUpdate({ disableActiveMonitoring: true });
+
+    expect(switchesMarked()).toEqual([
+      {
+        monitorId: CHECKED,
+        isMonitoringOff: true,
+        switchedByUserId: USER_ID.toString(),
+      },
+    ]);
+
+    // First: the status changes resolving its incidents leads to fall in the time it is off.
+    expect(resolves).toHaveBeenCalledTimes(1);
+    expect(switches.mock.invocationCallOrder[0]!).toBeLessThan(
+      resolves.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  test("turning monitoring back on marks it, and resolves nothing", async () => {
+    await runUpdate({ disableActiveMonitoring: false }, { ids: [ALREADY_OFF] });
+
+    expect(switchesMarked()).toEqual([
+      {
+        monitorId: ALREADY_OFF,
+        isMonitoringOff: false,
+        switchedByUserId: USER_ID.toString(),
+      },
+    ]);
+    expect(resolves).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    [
+      "turning off a monitor that is off already",
+      { disableActiveMonitoring: true },
+      [ALREADY_OFF],
+    ],
+    [
+      "turning on a monitor that is on already",
+      { disableActiveMonitoring: false },
+      [CHECKED],
+    ],
+    [
+      "an edit that leaves the switch alone",
+      { isAllProbesDisconnectedFromThisMonitor: false },
+      [CHECKED],
+    ],
+    ["a rename", { name: "Checkout API v2" }, [CHECKED]],
+  ])(
+    "%s marks nothing",
+    async (_name: string, data: Dictionary<unknown>, ids: Array<string>) => {
+      await runUpdate(data as Dictionary<unknown>, { ids: ids });
+
+      expect(switches).not.toHaveBeenCalled();
+    },
+  );
+
+  test("a bulk Disable marks only the monitors it turned off", async () => {
+    await runUpdate(
+      { disableActiveMonitoring: true },
+      { ids: [CHECKED, ALREADY_OFF, ALSO_CHECKED] },
+    );
+
+    expect(
+      switchesMarked()
+        .map((marked: SwitchMarked): string => {
+          return `${marked.monitorId} ${marked.isMonitoringOff}`;
+        })
+        .sort(),
+    ).toEqual([`${CHECKED} true`, `${ALSO_CHECKED} true`].sort());
+  });
+
+  test("a bulk Enable marks only the monitor it turned back on", async () => {
+    await runUpdate(
+      { disableActiveMonitoring: false },
+      { ids: [CHECKED, ALREADY_OFF, ALSO_CHECKED] },
+    );
+
+    expect(
+      switchesMarked().map((marked: SwitchMarked): string => {
+        return `${marked.monitorId} ${marked.isMonitoringOff}`;
+      }),
+    ).toEqual([`${ALREADY_OFF} false`]);
+  });
+
+  test("only a monitor the update wrote: one read but not written is not marked", async () => {
+    await runUpdate(
+      { disableActiveMonitoring: true },
+      { ids: [CHECKED, ALSO_CHECKED], updatedIds: [ALSO_CHECKED] },
+    );
+
+    expect(
+      switchesMarked().map((marked: SwitchMarked): string => {
+        return marked.monitorId;
+      }),
+    ).toEqual([ALSO_CHECKED]);
+  });
+
+  test("turned by OneUptime itself - a policy, a workflow as root - it is credited to nobody", async () => {
+    await runUpdate(
+      { disableActiveMonitoring: true },
+      { props: { isRoot: true, tenantId: PROJECT_ID } },
+    );
+
+    expect(switchesMarked()).toEqual([
+      {
+        monitorId: CHECKED,
+        isMonitoringOff: true,
+        switchedByUserId: undefined,
+      },
+    ]);
+  });
+
+  test("a failure to mark is logged and does not fail the save; the next monitor is still marked and both still resolved", async () => {
+    switches.mockImplementation((async (data: { monitorId: ObjectID }) => {
+      if (data.monitorId.toString() === CHECKED) {
+        throw new Error("database is down");
+      }
+      return null;
+    }) as never);
+
+    await expect(
+      runUpdate(
+        { disableActiveMonitoring: true },
+        { ids: [CHECKED, ALSO_CHECKED] },
+      ),
+    ).resolves.toBeDefined();
+
+    expect(
+      switchesMarked()
+        .map((marked: SwitchMarked): string => {
+          return marked.monitorId;
+        })
+        .sort(),
+    ).toEqual([CHECKED, ALSO_CHECKED].sort());
+    expect(resolvedMonitorIds().sort()).toEqual([CHECKED, ALSO_CHECKED].sort());
+    expect(errors).toHaveBeenCalled();
+  });
+});
+
+/*
+ * Issue #6965: a network device backed by a monitor takes no status from it
+ * while nothing checks it, so the devices of every monitor an update turns
+ * off or on, archives or unarchives are stamped again - once, after the
+ * monitor's own incidents and alerts are resolved.
+ */
+describe("what onUpdateSuccess stamps again on the network devices the monitors back", () => {
+  function restampedMonitorIds(): Array<Array<string>> {
+    return restamps.mock.calls.map((call: Array<unknown>): Array<string> => {
+      return (call[0] as { monitorIds: Array<ObjectID> }).monitorIds.map(
+        (monitorId: ObjectID): string => {
+          return monitorId.toString();
+        },
+      );
+    });
+  }
+
+  test("turning monitoring off stamps the devices of that monitor again, after what it would have resolved", async () => {
+    await runUpdate({ disableActiveMonitoring: true });
+
+    expect(restampedMonitorIds()).toEqual([[CHECKED]]);
+    expect(resolves.mock.invocationCallOrder[0]!).toBeLessThan(
+      restamps.mock.invocationCallOrder[0]!,
+    );
+    expect(switches.mock.invocationCallOrder[0]!).toBeLessThan(
+      restamps.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  test("turning monitoring back on stamps them again, so they follow the monitor", async () => {
+    await runUpdate({ disableActiveMonitoring: false }, { ids: [ALREADY_OFF] });
+
+    expect(restampedMonitorIds()).toEqual([[ALREADY_OFF]]);
+  });
+
+  test("a bulk Disable stamps again only the devices of the monitors it turned off, in one call", async () => {
+    await runUpdate(
+      { disableActiveMonitoring: true },
+      { ids: [CHECKED, ALREADY_OFF, ALSO_CHECKED] },
+    );
+
+    expect(restamps).toHaveBeenCalledTimes(1);
+    expect(restampedMonitorIds()[0]!.sort()).toEqual(
+      [CHECKED, ALSO_CHECKED].sort(),
+    );
+  });
+
+  test("writing the switch back as it is stamps nothing", async () => {
+    await runUpdate({ disableActiveMonitoring: true }, { ids: [ALREADY_OFF] });
+    await runUpdate({ disableActiveMonitoring: false });
+
+    expect(restamps).not.toHaveBeenCalled();
+  });
+
+  test("an edit that leaves the switch and the archive alone stamps nothing", async () => {
+    await runUpdate({ name: "Checkout API v2" });
+
+    expect(restamps).not.toHaveBeenCalled();
+  });
+
+  test("archiving stamps the devices of every monitor the update wrote, and so does unarchiving", async () => {
+    await runUpdate({ isArchived: true }, { ids: [CHECKED, ALREADY_OFF] });
+    await runUpdate({ isArchived: false });
+
+    expect(restampedMonitorIds()).toEqual([[CHECKED, ALREADY_OFF], [CHECKED]]);
+  });
+
+  test("only a monitor the update wrote: one read but not written is not stamped again", async () => {
+    await runUpdate(
+      { disableActiveMonitoring: true },
+      { ids: [CHECKED, ALSO_CHECKED], updatedIds: [ALSO_CHECKED] },
+    );
+
+    expect(restampedMonitorIds()).toEqual([[ALSO_CHECKED]]);
+  });
+
+  test("a failure to stamp them is logged and does not fail the save", async () => {
+    restamps.mockRejectedValue(new Error("database is down") as never);
+
+    await expect(
+      runUpdate({ disableActiveMonitoring: true }),
+    ).resolves.toBeDefined();
+
+    expect(resolvedMonitorIds()).toEqual([CHECKED]);
+    expect(errors).toHaveBeenCalled();
+    expect(String(errors.mock.calls[0]![0])).toContain(
+      "Stamping the network devices",
+    );
   });
 });

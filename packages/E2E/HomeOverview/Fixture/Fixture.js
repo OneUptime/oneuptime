@@ -1,10 +1,12 @@
 /*
  * Offline fixture for the real dashboard Home page.
  *
- * The Home Layout (Page + the Home side menu) and the Home page are the
- * production components from this branch, mounted under their real RouteMap
- * patterns. Only the data boundary (ModelAPI / API) and the signed-in user
- * are replaced.
+ * The Home Layout (Page, with no side menu: Home is one page, #6857), the
+ * Home page and the forwards from Home's old list addresses
+ * (Routes/MovedHomeRoutes) are the production components from this branch,
+ * mounted under their real RouteMap patterns as App.tsx mounts them. Only
+ * the data boundary (ModelAPI / API) and the signed-in user are replaced.
+ * The products' lists Home opens are stubs that say which list they are.
  *
  * Every record is fabricated for a generic "Acme Commerce" workspace. The
  * clock is pinned: every date is relative to NOW = 2026-10-13T12:00:00Z and
@@ -30,8 +32,36 @@
  *                 overview-once  only the FIRST Incident list fails
  *                 resources  every Status Page count fails
  *                 upcoming   the upcoming maintenance list fails
- *   ?lang=      de reads the German locale file
+ *   ?lang=      de reads the German locale file, fa the Persian one (the
+ *               page then reads right to left, as the Dashboard's does)
  *   ?theme=     dark adds html.dark (handled by server.js)
+ *   ?welcome=   the Welcome checklist's answer (GET /welcome-checklist),
+ *               built with the real rules (Common/Types/WelcomeChecklist):
+ *                 ask     a new project nobody has answered for yet: the
+ *                         question first
+ *                 half    the four steps, the monitor's first check in
+ *                 hidden  the four steps, hidden by this person
+ *               without it, a new project skipped the question (the four
+ *               steps, none done) and every other scenario finished it
+ *   ?plan=      free: OneUptime Cloud's Free plan (the team step needs Growth)
+ *   ?setup=     Setup health (#6812: GET /setup-health and /setup-health/
+ *               summary), whose page (Pages/Home/SetupHealth) is mounted
+ *               under Home as App.tsx mounts it:
+ *                 busy    findings of every level, one check broken for
+ *                         five monitors, and one finding dismissed
+ *               without it, nothing to fix: Home says nothing of the setup
+ *
+ * A viewer was invited (#6807): Home draws their own first steps, from
+ * their personal checklist's reads (readiness, the project's channel
+ * switches, notification settings, incoming-call numbers, chat workspaces,
+ * profile fields, the calendar link) and their shifts (/my-shifts). The
+ * fixture answers as for Grace, a member invited a minute ago: only her
+ * sign-in email, on a team that an on-call policy pages, her first shift
+ * tomorrow at 09:00 on "Primary on-call".
+ *
+ * The header carries the Dashboard's Help menu, and the page the dialog
+ * How OneUptime works opens in (App.tsx mounts it once), so Help and
+ * Home's Explore OneUptime open it as they do in the product (#6819).
  *
  * Every read is recorded on window.__homeOverviewFixture: listRequests,
  * countRequests, apiRequests, paletteToggles (Search) and unhandled:
@@ -50,11 +80,17 @@ import {
 } from "react-router-dom";
 import i18next from "i18next";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
+import { followLanguageForPage } from "Common/UI/Utils/PageLanguage";
 import { initReactI18next } from "react-i18next";
 import en from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import de from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
+import fa from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
+import Help from "../../../App/FeatureSet/Dashboard/src/Components/Header/Help";
+import HowOneUptimeWorksDialog from "../../../App/FeatureSet/Dashboard/src/Components/Home/HowOneUptimeWorksDialog";
 import HomeLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Home/Layout";
 import Home from "../../../App/FeatureSet/Dashboard/src/Pages/Home/Home";
+import SetupHealthPage from "../../../App/FeatureSet/Dashboard/src/Pages/Home/SetupHealth";
+import MovedHomeRoutes from "../../../App/FeatureSet/Dashboard/src/Routes/MovedHomeRoutes";
 import EventName from "../../../App/FeatureSet/Dashboard/src/Utils/EventName";
 import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
@@ -77,6 +113,14 @@ import Service from "Common/Models/DatabaseModels/Service";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
+import TeamMemberCustomField from "Common/Models/DatabaseModels/TeamMemberCustomField";
+import IncomingCallPolicy from "Common/Models/DatabaseModels/IncomingCallPolicy";
+import ProjectUserProfile from "Common/Models/DatabaseModels/ProjectUserProfile";
+import UserIncomingCallNumber from "Common/Models/DatabaseModels/UserIncomingCallNumber";
+import UserNotificationSetting from "Common/Models/DatabaseModels/UserNotificationSetting";
+import WorkspaceProjectAuthToken from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
+import WorkspaceUserAuthToken from "Common/Models/DatabaseModels/WorkspaceUserAuthToken";
+import NotificationRuleType from "Common/Types/NotificationRule/NotificationRuleType";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -97,6 +141,23 @@ import Navigation from "Common/UI/Utils/Navigation";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
+import ActivationMilestone from "Common/Types/Analytics/ActivationMilestone";
+import { parseProjectGoals } from "Common/Types/WelcomeChecklist/ProjectGoal";
+import {
+  WelcomeAudience,
+  buildWelcomeChecklist,
+} from "Common/Types/WelcomeChecklist/WelcomeChecklist";
+import {
+  SETUP_HEALTH_WORDS,
+  SetupHealthCheck,
+  SetupHealthEventKind,
+  SetupHealthFix,
+  SetupHealthLevel,
+  SetupHealthRecordKind,
+  getSetupHealthCounts,
+  getSetupHealthDismissalId,
+  makeSetupHealthFinding,
+} from "Common/Types/SetupHealth/SetupHealth";
 
 /*
  * ---------------------------------------------------------------------------
@@ -132,7 +193,9 @@ const scenario = SCENARIOS.includes(params.get("scenario"))
   : "busy";
 const roleMode = params.get("role") === "viewer" ? "viewer" : "owner";
 const failures = listParam("fail");
-const language = params.get("lang") === "de" ? "de" : "en";
+const language = ["de", "fa"].includes(params.get("lang"))
+  ? params.get("lang")
+  : "en";
 
 const GLOBAL_PERMISSIONS = [
   Permission.Public,
@@ -1035,7 +1098,31 @@ ModelAPI.count = async (options) => {
   }).length;
 };
 
+/*
+ * What an invited member's personal checklist reads besides readiness: a
+ * new member has none of these yet (#6807).
+ */
+[
+  UserNotificationSetting,
+  IncomingCallPolicy,
+  UserIncomingCallNumber,
+  WorkspaceProjectAuthToken,
+  WorkspaceUserAuthToken,
+  TeamMemberCustomField,
+  ProjectUserProfile,
+].forEach((modelType) => {
+  table(modelType);
+});
+
 ModelAPI.getItem = async (options) => {
+  // The project's channel switches and fallback, for the personal checklist.
+  if (tableName(options.modelType) === "Project") {
+    return make(Project, {
+      _id: PROJECT_ID,
+      disableOnCallNotificationFallback: false,
+    });
+  }
+
   fixture.unhandled.push({
     kind: "getItem",
     modelName: tableName(options.modelType),
@@ -1043,9 +1130,382 @@ ModelAPI.getItem = async (options) => {
   return null;
 };
 
+/*
+ * The Welcome checklist (issue #6803): one answer for the project and the
+ * person, built with the real rules, and the routes that change it.
+ */
+const welcomeMode = params.get("welcome") || "";
+const welcome = {
+  goals: welcomeMode === "ask" ? null : [],
+  isHiddenForMe: welcomeMode === "hidden",
+  isFinished: !isNew,
+  reached:
+    welcomeMode === "half"
+      ? [
+          ActivationMilestone.FirstMonitorCreated,
+          ActivationMilestone.FirstCheckResultReceived,
+        ]
+      : [],
+  isFreePlan: params.get("plan") === "free",
+};
+fixture.welcomeRequests = [];
+
+function welcomeAnswer() {
+  const base = {
+    goals: welcome.goals,
+    shouldAskForGoals: false,
+    canChooseGoals: roleMode !== "viewer",
+    isHiddenForMe: welcome.isHiddenForMe,
+    isFinished: welcome.isFinished,
+    canSendEmail: true,
+    steps: [],
+    doneCount: 0,
+    totalCount: 0,
+  };
+
+  // A viewer was invited: the owner's checklist is not theirs (#6807).
+  if (roleMode === "viewer") {
+    return { ...base, audience: WelcomeAudience.InvitedMember };
+  }
+
+  if (welcome.isFinished) {
+    return { ...base, audience: WelcomeAudience.SetUp };
+  }
+
+  const checklist = buildWelcomeChecklist({
+    goals: welcome.goals,
+    facts: {
+      reached: welcome.reached,
+      hasRuleThatPagesSomeone: false,
+      hasFinishedImport: false,
+      serverCanSendEmail: true,
+    },
+    plan: { isFreePlan: welcome.isFreePlan },
+    readerIsServerAdmin: false,
+  });
+
+  return {
+    ...base,
+    audience: WelcomeAudience.SetUp,
+    shouldAskForGoals: welcome.goals === null,
+    steps: checklist.steps,
+    doneCount: checklist.doneCount,
+    totalCount: checklist.totalCount,
+  };
+}
+
+function handleWelcome(method, url, options) {
+  const path = new URL(url).pathname;
+
+  if (!path.includes("/welcome-checklist")) {
+    return null;
+  }
+
+  fixture.welcomeRequests.push({
+    method,
+    path,
+    data: serialize(options.data),
+  });
+
+  if (method === "GET" && path.endsWith("/welcome-checklist")) {
+    return ok(welcomeAnswer());
+  }
+
+  if (method === "POST" && path.endsWith("/welcome-checklist/goals")) {
+    welcome.goals = parseProjectGoals(options.data?.goals) || [];
+    return ok(welcomeAnswer());
+  }
+
+  if (method === "POST" && path.endsWith("/welcome-checklist/hide")) {
+    welcome.isHiddenForMe = true;
+    return ok(welcomeAnswer());
+  }
+
+  if (method === "POST" && path.endsWith("/welcome-checklist/show")) {
+    welcome.isHiddenForMe = false;
+    return ok(welcomeAnswer());
+  }
+
+  return null;
+}
+
+/*
+ * An invited member's own reads (#6807): Grace, invited a minute ago - her
+ * sign-in email only, paged through a team, her first shift tomorrow.
+ */
+const MEMBER_SEVERITY_ID = "70000000-0000-4000-8000-000000000001";
+
+function memberReadiness() {
+  return {
+    userId: ID.user(1),
+    userName: "Maya Chen",
+    userEmail: "maya@acme-commerce.example",
+    status: "Ready",
+    methods: [
+      {
+        methodId: "70000000-0000-4000-8000-000000000002",
+        methodType: "Email",
+        maskedIdentifier: "m***@acme-commerce.example",
+        isVerified: true,
+      },
+    ],
+    coverage: [
+      NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+      NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE,
+      NotificationRuleType.ON_CALL_EXECUTED_ALERT,
+      NotificationRuleType.ON_CALL_EXECUTED_ALERT_EPISODE,
+    ].map((ruleType) => {
+      return {
+        ruleType,
+        severityId: MEMBER_SEVERITY_ID,
+        severityName: "Critical",
+        hasRule: true,
+        isOptOut: false,
+      };
+    }),
+    reasons: [],
+    reachedVia: ["Team"],
+    teams: [],
+  };
+}
+
+function memberShifts() {
+  // Tomorrow, 09:00 to 17:00 UTC.
+  const start = new Date(
+    Date.UTC(NOW.getUTCFullYear(), NOW.getUTCMonth(), NOW.getUTCDate() + 1, 9),
+  );
+  const end = new Date(start.getTime() + 8 * HOUR);
+
+  return {
+    shifts: [
+      {
+        shiftKey: `70000000-0000-4000-8000-000000000003:${start.getTime() / 1000}`,
+        contentHash: "fixture",
+        projectId: PROJECT_ID,
+        projectName: "Acme Commerce",
+        scheduleId: "70000000-0000-4000-8000-000000000003",
+        scheduleName: "Primary on-call",
+        scheduleTimezone: "UTC",
+        userId: ID.user(1),
+        userName: "Maya Chen",
+        start: start.toISOString(),
+        end: end.toISOString(),
+        coverageSeconds: 8 * 3600,
+        layerId: "70000000-0000-4000-8000-000000000004",
+        layerName: "Layer 1",
+        policies: [],
+        isPast: false,
+        lastModifiedAt: ago(DAY).toISOString(),
+        shiftConfigVersion: 1,
+      },
+    ],
+    truncated: false,
+    generatedAt: NOW.toISOString(),
+  };
+}
+
+/*
+ * Setup health (#6812): the project's findings, built with the real
+ * makeSetupHealthFinding, for the page (GET /setup-health) and the count
+ * Home's Needs attention says (GET /setup-health/summary).
+ */
+const setupMode = params.get("setup") || "";
+fixture.setupHealthRequests = [];
+
+const SETUP_POLICY_ID = uuid("60000000", 9);
+const SETUP_STATUS_PAGE_ID = uuid("61000000", 9);
+
+function setupFinding(data) {
+  return makeSetupHealthFinding(data);
+}
+
+function setupMonitorPagesNobody(index, name) {
+  return setupFinding({
+    check: SetupHealthCheck.MonitorPagesNobody,
+    level: SetupHealthLevel.WorthFixing,
+    subject: SetupHealthEventKind.Incident,
+    record: {
+      kind: SetupHealthRecordKind.Monitor,
+      id: ID.monitor(20 + index),
+      name: name,
+    },
+    fix: SetupHealthFix.IncidentOnCallRules,
+    words: SETUP_HEALTH_WORDS.monitorPagesNobody.incident,
+    values: { monitor: name },
+  });
+}
+
+function setupHealthFindings() {
+  if (setupMode !== "busy") {
+    return [];
+  }
+
+  const project = { kind: SetupHealthRecordKind.Project, id: PROJECT_ID, name: "" };
+
+  return [
+    setupFinding({
+      check: SetupHealthCheck.MonitorAlertsPageNobody,
+      level: SetupHealthLevel.PagesWillNotArrive,
+      record: {
+        kind: SetupHealthRecordKind.Monitor,
+        id: ID.monitor(19),
+        name: "Payments API",
+      },
+      fix: SetupHealthFix.AlertOnCallRules,
+      words: SETUP_HEALTH_WORDS.monitorAlertsPageNobody,
+      values: { monitor: "Payments API" },
+    }),
+    setupFinding({
+      check: SetupHealthCheck.PolicyReachesNobody,
+      level: SetupHealthLevel.PagesWillNotArrive,
+      record: {
+        kind: SetupHealthRecordKind.OnCallDutyPolicy,
+        id: SETUP_POLICY_ID,
+        name: "Weekend escalation",
+      },
+      fix: SetupHealthFix.OnCallPolicy,
+      fixRecordId: SETUP_POLICY_ID,
+      words: SETUP_HEALTH_WORDS.policyReachesNobody,
+      values: { policy: "Weekend escalation" },
+    }),
+    setupFinding({
+      check: SetupHealthCheck.ChannelOff,
+      level: SetupHealthLevel.PagesWillNotArrive,
+      subject: "SMS",
+      record: project,
+      fix: SetupHealthFix.ProjectNotificationSettings,
+      words: SETUP_HEALTH_WORDS.channelOff,
+      values: { channel: "SMS" },
+    }),
+    ...[
+      "Checkout API",
+      "Search API",
+      "Marketing site",
+      "Image CDN",
+      "Status webhook",
+    ].map((name, index) => {
+      return setupMonitorPagesNobody(index, name);
+    }),
+    setupFinding({
+      check: SetupHealthCheck.StatusPageShowsNoMonitor,
+      level: SetupHealthLevel.WorthFixing,
+      record: {
+        kind: SetupHealthRecordKind.StatusPage,
+        id: SETUP_STATUS_PAGE_ID,
+        name: "Partner status",
+      },
+      fix: SetupHealthFix.StatusPageResources,
+      fixRecordId: SETUP_STATUS_PAGE_ID,
+      words: SETUP_HEALTH_WORDS.statusPageShowsNoMonitor,
+      values: { statusPage: "Partner status" },
+    }),
+    setupFinding({
+      check: SetupHealthCheck.OneOwner,
+      level: SetupHealthLevel.Suggestion,
+      record: project,
+      fix: SetupHealthFix.ProjectOwners,
+      words: SETUP_HEALTH_WORDS.oneOwner,
+    }),
+  ];
+}
+
+function setupHealthDismissed() {
+  if (setupMode !== "busy") {
+    return [];
+  }
+
+  const finding = setupMonitorPagesNobody(9, "Staging API");
+
+  return [
+    {
+      finding,
+      dismissal: {
+        id: "70000000-0000-4000-8000-000000000068",
+        recommendationId: getSetupHealthDismissalId(finding),
+        resourceType: finding.record.kind,
+        resourceId: finding.record.id,
+        reason: "Staging never pages anybody.",
+        dismissedByName: "Maya Chen",
+        dismissedAt: NOW.toISOString(),
+      },
+    },
+  ];
+}
+
+function handleSetupHealth(method, url) {
+  const path = new URL(url).pathname;
+
+  if (!path.includes("/setup-health")) {
+    return null;
+  }
+
+  fixture.setupHealthRequests.push({ method, url });
+
+  const findings = setupHealthFindings();
+  const counts = getSetupHealthCounts(findings);
+
+  if (method === "GET" && path.endsWith("/setup-health/summary")) {
+    return ok({ counts, checkedAt: NOW.toISOString() });
+  }
+
+  if (method === "GET" && path.endsWith("/setup-health")) {
+    return ok({
+      findings,
+      dismissed: setupHealthDismissed(),
+      counts,
+      monitorCount: 14,
+      checkedAt: NOW.toISOString(),
+    });
+  }
+
+  return null;
+}
+
+function handleMember(method, url) {
+  const path = new URL(url).pathname;
+
+  if (method !== "GET") {
+    return null;
+  }
+
+  if (path.includes("/on-call-readiness/user/")) {
+    return ok(memberReadiness());
+  }
+
+  if (path.endsWith("/on-call-calendar/my-shifts")) {
+    return ok(memberShifts());
+  }
+
+  // No calendar link yet, as an older API answers: the row is left out.
+  if (path.endsWith("/on-call-calendar/feed/current")) {
+    return fail(404, "Not found");
+  }
+
+  return null;
+}
+
 async function handleApi(method, options) {
   const url = options.url.toString();
   fixture.apiRequests.push({ method, url });
+
+  const welcomeResponse = handleWelcome(method, url, options);
+
+  if (welcomeResponse) {
+    return welcomeResponse;
+  }
+
+  const memberResponse = handleMember(method, url);
+
+  if (memberResponse) {
+    return memberResponse;
+  }
+
+  const setupHealthResponse = handleSetupHealth(method, url);
+
+  if (setupHealthResponse) {
+    return setupHealthResponse;
+  }
+
   fixture.unhandled.push({ kind: "api", method, url });
   return ok({ data: [], count: 0 });
 }
@@ -1072,11 +1532,14 @@ await i18next.use(initReactI18next).init({
   resources: {
     en: { translation: en },
     de: { translation: de },
+    fa: { translation: fa },
   },
   interpolation: { escapeValue: false },
 });
 // Dates in the reader's language ("vor 2 Stunden"), as Utils/i18n.ts sets them.
 followLanguageForDates(i18next);
+// <html lang dir> follow the reader's language: Persian reads right to left.
+followLanguageForPage(i18next);
 
 /*
  * ---------------------------------------------------------------------------
@@ -1113,6 +1576,12 @@ function HomePage() {
   );
 }
 
+// Setup health (#6812): the real page, as App.tsx mounts it under Home.
+function SetupHealthRoute() {
+  useNavigationHooks();
+  return <SetupHealthPage {...pageProps(PageMap.HOME_SETUP_HEALTH)} />;
+}
+
 // A page Home links to that is not modelled here: says where it is.
 function StubPage(props) {
   useNavigationHooks();
@@ -1132,38 +1601,19 @@ function StubPage(props) {
 }
 
 /*
- * One of Home's own lists, drawn inside the Home layout, whose Page already
- * has the list's title as its heading: says where it is, with no heading of
- * its own.
+ * The products' own lists Home opens: its numbers, View all and the old
+ * addresses of Home's copies of them (#6857). Each is a stub that names
+ * the list, so the spec can tell where a click or a forward ended up.
  */
-function InLayoutStubPage(props) {
-  useNavigationHooks();
-  const location = useLocation();
-  return (
-    <p
-      data-testid="stub-page"
-      data-page={props.pageKey}
-      className="rounded-xl border border-gray-200 bg-white p-6 font-mono text-sm text-gray-600"
-    >
-      {location.pathname}
-    </p>
-  );
-}
-
-// Home's own lists, drawn in the Home layout beside its side menu.
-const HOME_TABS = [
-  [PageMap.HOME_ACTIVE_INCIDENTS, "Active Incidents"],
-  [PageMap.HOME_ACTIVE_ALERTS, "Active Alerts"],
-  [PageMap.HOME_ACTIVE_EPISODES, "Active Alert Episodes"],
-  [PageMap.HOME_ACTIVE_INCIDENT_EPISODES, "Active Incident Episodes"],
-  [PageMap.HOME_NOT_OPERATIONAL_MONITORS, "Not Operational Monitors"],
-  [
-    PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS,
-    "Ongoing Scheduled Maintenance",
-  ],
-].filter(([pageKey]) => {
-  return Boolean(pageKey && RouteMap[pageKey]);
-});
+const PRODUCT_LISTS = [
+  [PageMap.UNRESOLVED_INCIDENTS, "Active Incidents"],
+  [PageMap.UNRESOLVED_INCIDENT_EPISODES, "Active Incident Episodes"],
+  [PageMap.UNRESOLVED_ALERTS, "Active Alerts"],
+  [PageMap.UNRESOLVED_ALERT_EPISODES, "Active Alert Episodes"],
+  [PageMap.MONITORS_INOPERATIONAL, "Not Operational Monitors"],
+  [PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS, "Ongoing Events"],
+  [PageMap.SLOS, "SLOs"],
+];
 
 function FixtureApp() {
   useNavigationHooks();
@@ -1178,26 +1628,43 @@ function FixtureApp() {
           <span className="text-lg font-semibold text-gray-900">OneUptime</span>
           <span className="text-sm text-gray-500">Acme Commerce</span>
         </div>
-        <span data-testid="synthetic-banner" className="text-xs text-gray-500">
-          Preview workspace · Synthetic data
-        </span>
+        <div className="flex items-center gap-3">
+          <span
+            data-testid="synthetic-banner"
+            className="text-xs text-gray-500"
+          >
+            Preview workspace · Synthetic data
+          </span>
+          <Help />
+        </div>
       </header>
+      <HowOneUptimeWorksDialog />
       <Routes>
         <Route element={<FixtureHomeLayout />}>
           <Route
             path={RouteMap[PageMap.HOME].toString()}
             element={<HomePage />}
           />
-          {HOME_TABS.map(([pageKey]) => {
-            return (
-              <Route
-                key={pageKey}
-                path={RouteMap[pageKey].toString()}
-                element={<InLayoutStubPage pageKey={pageKey} />}
-              />
-            );
-          })}
         </Route>
+        {/* Setup health (#6812), under Home, as App.tsx mounts it. */}
+        <Route
+          path={RouteMap[PageMap.HOME_SETUP_HEALTH].toString()}
+          element={<SetupHealthRoute />}
+        />
+        {/* Home's old lists, forwarded to the products' own lists. */}
+        <Route
+          path={RouteMap[PageMap.MOVED_HOME_LISTS_ROOT].toString()}
+          element={<MovedHomeRoutes />}
+        />
+        {PRODUCT_LISTS.map(([pageKey, title]) => {
+          return (
+            <Route
+              key={pageKey}
+              path={RouteMap[pageKey].toString()}
+              element={<StubPage pageKey={pageKey} title={title} />}
+            />
+          );
+        })}
         <Route
           path="*"
           element={<StubPage pageKey="other" title="Not modelled" />}

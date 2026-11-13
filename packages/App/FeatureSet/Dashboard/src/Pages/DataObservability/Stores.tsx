@@ -159,7 +159,7 @@ const DataObservabilityStoresPage: FunctionComponent<
           },
         ]}
       >
-        <div className="px-6 pb-6">
+        <div>
           {actionError ? (
             <p className="mb-3 text-sm text-red-600">{actionError}</p>
           ) : (

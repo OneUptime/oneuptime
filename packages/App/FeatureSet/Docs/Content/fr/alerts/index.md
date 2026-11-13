@@ -1,6 +1,6 @@
 # Vue d'ensemble des alertes
 
-Une alerte signale à votre équipe un problème à examiner avant que vos utilisateurs ne le remarquent : un disque qui se remplit, un certificat sur le point d'expirer, un taux d'erreurs qui grimpe. Elle peut alerter la personne d'astreinte et prévenir ses propriétaires, mais elle n'apparaît jamais sur une page de statut et ne prévient jamais vos abonnés. Cette page explique d'où viennent les alertes, où elles se trouvent dans le tableau de bord et comment votre équipe les traite.
+Une alerte signale à votre équipe un problème à examiner avant que vos utilisateurs ne le remarquent : un disque qui se remplit, un certificat sur le point d'expirer, un taux d'erreurs qui grimpe. Elle peut alerter la personne d'astreinte et prévenir ses propriétaires, mais elle n'apparaît jamais sur une page de statut et ne prévient jamais vos abonnés. Cette page explique d'où viennent les alertes, où elles se trouvent dans le tableau de bord et comment votre équipe les traite. Vous ne savez pas si un problème est une alerte ou un incident ? [Lequel choisir ?](/docs/introduction/which-one#incident-alerte-ou-autre-type-de-problème) les compare côte à côte.
 
 :::cards
 - [Alertes et incidents](#alertes-et-incidents): Ce qu'un problème devrait être, et comment les deux se relient.
@@ -61,7 +61,7 @@ Ouvrez **Alertes** depuis le menu **Produits** de la barre supérieure. La liste
 | **IA**                | **Analyses**, **Journaux** et **Paramètres** : ce que OneUptime AI a appris de vos alertes, tout ce qu'il a fait et ce qu'il a le droit de faire. |
 | **Espace de travail** | **Slack**, **Microsoft Teams** et **Mattermost**, selon ce que le projet a connecté, ou **Connecter un espace de travail** s'il n'en a aucun. |
 | **Règles**            | **Règles de regroupement**, **Règles d'astreinte**, **Règles d'incident**, **Règles de propriétaire**, **Règles de runbook**, **Règles de confidentialité**, **Règles d'étiquettes**, **Règles de rappel**. |
-| **Paramètres**        | **État de l'alerte**, **Gravité de l'alerte**, **Modèles de notes**, **Champs personnalisés**, **Mesures**, **Appartenance aux épisodes**, **Numérotation**. |
+| **Paramètres**        | **État de l'alerte**, **Gravité de l'alerte**, **Modèles de notes**, **Champs personnalisés**, **Mesures**, **Appartenance aux épisodes**, **Numérotation**, **Rétention des données**. |
 
 **Alertes** et **Épisodes** sont ouvertes ; **IA**, **Espace de travail**, **Règles**, **Paramètres** et **Développeurs** commencent repliées, et une section s'ouvre d'elle-même quand vous êtes sur l'une de ses pages. La configuration des alertes se trouve ici, pas dans les **Paramètres du projet**.
 

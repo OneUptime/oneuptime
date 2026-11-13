@@ -702,6 +702,129 @@ describe("filterPaletteCommands", () => {
   });
 
   /*
+   * A command named for another product ("Import from PagerDuty", #6809)
+   * gives up points: a page that goes by the word typed, even as the start
+   * of one of its other names, comes first; a word only it holds still
+   * finds it first.
+   */
+  describe("a command's searchPenalty", () => {
+    const policies: PaletteCommand = makePage(
+      "page-policies",
+      "On-Call Policies",
+      ["On-Call Duty"],
+      ["pager", "escalation policy"],
+    );
+    const importPagerDuty: PaletteCommand = {
+      ...makePage("import-pagerduty", "Import from PagerDuty", [
+        "Project Settings",
+      ]),
+      searchPenalty: 12,
+    };
+    const commands: Array<PaletteCommand> = [importPagerDuty, policies];
+
+    test("a word a page holds as one of its names opens that page first, the start of one too", () => {
+      expect(ids(filterPaletteCommands(commands, "pager"))).toEqual([
+        "page-policies",
+        "import-pagerduty",
+      ]);
+      expect(ids(filterPaletteCommands(commands, "esc"))).toEqual([
+        "page-policies",
+      ]);
+    });
+
+    test("without the penalty, the title match would have won", () => {
+      expect(
+        ids(
+          filterPaletteCommands(
+            [{ ...importPagerDuty, searchPenalty: undefined }, policies],
+            "pager",
+          ),
+        )[0],
+      ).toBe("import-pagerduty");
+    });
+
+    test("a word only it holds still finds it first, and its score says what it gave up", () => {
+      const found: Array<PaletteCommandMatch> = filterPaletteCommands(
+        commands,
+        "pagerduty",
+      );
+
+      expect(ids(found)).toEqual(["import-pagerduty"]);
+
+      const unpenalized: PaletteCommandMatch = filterPaletteCommands(
+        [{ ...importPagerDuty, searchPenalty: undefined }],
+        "pagerduty",
+      )[0]!;
+
+      expect(found[0]!.score).toBe(unpenalized.score - 12);
+      expect(found[0]!.rank).toBe(unpenalized.rank);
+    });
+
+    test("its whole name still opens it first", () => {
+      expect(
+        ids(filterPaletteCommands(commands, "import from pagerduty"))[0],
+      ).toBe("import-pagerduty");
+    });
+
+    test("it never pushes another's fallback out: initials still find their page first", () => {
+      const apiKeys: PaletteCommand = makePage("page-api-keys", "API Keys", [
+        "Project Settings",
+      ]);
+      const importStatusCake: PaletteCommand = {
+        ...makePage("import-statuscake", "Import from StatusCake", [
+          "Project Settings",
+        ]),
+        searchPenalty: 12,
+      };
+
+      const apiKeyEvents: PaletteCommand = makePage(
+        "page-api-key-events",
+        "API Key Events",
+        ["Project Settings"],
+      );
+
+      // "ak" is inside StatusCake, and the initials of API Keys.
+      expect(
+        ids(filterPaletteCommands([importStatusCake, apiKeys], "ak")),
+      ).toEqual(["page-api-keys", "import-statuscake"]);
+      // "ake" is inside StatusCake too, and the initials of API Key Events.
+      expect(
+        ids(filterPaletteCommands([importStatusCake, apiKeyEvents], "ake")),
+      ).toEqual(["page-api-key-events", "import-statuscake"]);
+      /*
+       * Without the penalty, its letters would have hidden the initials (one
+       * or two letters inside a word never do: see below).
+       */
+      expect(
+        ids(
+          filterPaletteCommands(
+            [{ ...importStatusCake, searchPenalty: undefined }, apiKeyEvents],
+            "ake",
+          ),
+        ),
+      ).toEqual(["import-statuscake"]);
+    });
+
+    test("one or two letters inside a word never push initials out: a sentence holds them anywhere", () => {
+      const apiKeys: PaletteCommand = makePage("page-api-keys", "API Keys", [
+        "Project Settings",
+      ]);
+      const onCallSetup: PaletteCommand = makePage(
+        "on-call-setup",
+        "Page the right person when something breaks",
+        ["On-Call Duty"],
+      );
+
+      // "ak" is inside "breaks": found, and listed after the initials.
+      expect(ids(filterPaletteCommands([onCallSetup, apiKeys], "ak"))).toEqual([
+        "page-api-keys",
+        "on-call-setup",
+      ]);
+      // Letters that start a word still push initials out (see 'ai' above).
+    });
+  });
+
+  /*
    * A setting found by the name its card shows (the Dashboard's page index)
    * names the page it is on. "saml" is a word for the SSO page and the name
    * of its SAML card, which matches better on its own: the page still comes

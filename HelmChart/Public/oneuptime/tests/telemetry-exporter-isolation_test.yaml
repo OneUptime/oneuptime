@@ -60,6 +60,48 @@ tests:
           content:
             name: PUBLIC_OPENTELEMETRY_EXPORTER_OTLP_BROWSER_INGESTION_KEY
 
+  # A Basic Authorization value ends in base64 padding, and many tokens end
+  # in '='. The server reads each header up to its FIRST '=' as the name, so
+  # the chart must hand the value over whole, padding and all, and every
+  # workload that exports its own telemetry must get the same value.
+  - it: hands a header value that holds '=' to the app whole
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      worker:
+        enabled: true
+      openTelemetryExporter:
+        endpoint: https://collector.example.com/otlp
+        headers: Authorization=Basic dXNlcjpwYXNzd29yZA==;x-scope=tenant=eu
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: Authorization=Basic dXNlcjpwYXNzd29yZA==;x-scope=tenant=eu
+
+  - it: hands a header value that holds '=' to the worker whole
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      worker:
+        enabled: true
+      openTelemetryExporter:
+        endpoint: https://collector.example.com/otlp
+        headers: Authorization=Basic dXNlcjpwYXNzd29yZA==;x-scope=tenant=eu
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: Authorization=Basic dXNlcjpwYXNzd29yZA==;x-scope=tenant=eu
+
   - it: keeps public browser settings under browser-only environment names
     templates:
       - templates/app.yaml
@@ -136,3 +178,885 @@ tests:
           path: spec.template.spec.containers[0].env
           content:
             name: PUBLIC_OPENTELEMETRY_EXPORTER_OTLP_BROWSER_INGESTION_KEY
+
+  # ---------------------------------------------------------------------------
+  # The headers are often a credential, and many credentials hold characters
+  # YAML reads as its own syntax when a value is written unquoted: ': ' makes
+  # the line a mapping (the render fails), ' #' starts a comment (everything
+  # after it is silently dropped, so the collector refuses a shortened key),
+  # and a leading '*', '&' or '!' is an alias, anchor or tag. Every template
+  # that hands a workload the exporter settings writes them through the
+  # chart's oneuptime.envValue helper, a quoted string, so each value below
+  # must reach the app, the worker, every probe and the global runner exactly
+  # as it was set. Tests/Ops/HelmEnvValuesQuoted.test.js holds every other env
+  # value of the chart to the same rule.
+  # ---------------------------------------------------------------------------
+  - it: renders the probe's exporter variables empty when none is set
+    templates:
+      - templates/probe.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: null
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
+            value: null
+
+  - it: renders the global runner's exporter variables empty when none is set
+    templates:
+      - templates/global-runner.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: null
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
+            value: null
+
+  # --- the app -------------------------------------------------------------------
+  - it: "hands the app a header list holding ': ' (a colon and a space) whole"
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter:
+        endpoint: https://collector.example.com/otlp
+        headers: "x-tenant=region: eu-west"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "x-tenant=region: eu-west"
+
+  - it: "hands the app a header list holding ' #' (a space and a hash) whole"
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter:
+        endpoint: https://collector.example.com/otlp
+        headers: "x-api-key=abc123 #def456"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "x-api-key=abc123 #def456"
+
+  - it: "hands the app a header list holding a leading '*' whole"
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter:
+        endpoint: https://collector.example.com/otlp
+        headers: "*x-wildcard=1"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "*x-wildcard=1"
+
+  - it: "hands the app a header list holding a leading '&' whole"
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter:
+        endpoint: https://collector.example.com/otlp
+        headers: "&x-anchor=1"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "&x-anchor=1"
+
+  - it: "hands the app a header list holding a leading '!' whole"
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter:
+        endpoint: https://collector.example.com/otlp
+        headers: "!x-tag=1"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "!x-tag=1"
+
+  - it: "hands the app a header list holding a double quote whole"
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter:
+        endpoint: https://collector.example.com/otlp
+        headers: "x-quote=\"double quoted\""
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "x-quote=\"double quoted\""
+
+  - it: "hands the app a header list holding a single quote whole"
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter:
+        endpoint: https://collector.example.com/otlp
+        headers: "x-quote='single quoted'"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "x-quote='single quoted'"
+
+  - it: "hands the app a header list holding braces, a comma and a colon (a JSON-ish value) whole"
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter:
+        endpoint: https://collector.example.com/otlp
+        headers: "x-tenant={\"region\": \"eu\", \"tier\": 1}"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "x-tenant={\"region\": \"eu\", \"tier\": 1}"
+
+  - it: "hands the app a header list holding a backslash whole"
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter:
+        endpoint: https://collector.example.com/otlp
+        headers: "x-path=C:\\temp\\new"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "x-path=C:\\temp\\new"
+
+  - it: "hands the app an endpoint with an IPv6 host, a query and a fragment whole"
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter:
+        endpoint: "https://[fd00::4318]:4318/otlp?tenant=eu&tier=1#exporter"
+        headers: x-oneuptime-token=server-key
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
+            value: "https://[fd00::4318]:4318/otlp?tenant=eu&tier=1#exporter"
+
+  # --- the worker ----------------------------------------------------------------
+  - it: "hands the worker a header list holding ': ' (a colon and a space) whole"
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      worker:
+        enabled: true
+      openTelemetryExporter:
+        endpoint: https://collector.example.com/otlp
+        headers: "x-tenant=region: eu-west"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "x-tenant=region: eu-west"
+
+  - it: "hands the worker a header list holding ' #' (a space and a hash) whole"
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      worker:
+        enabled: true
+      openTelemetryExporter:
+        endpoint: https://collector.example.com/otlp
+        headers: "x-api-key=abc123 #def456"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "x-api-key=abc123 #def456"
+
+  - it: "hands the worker a header list holding a leading '*' whole"
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      worker:
+        enabled: true
+      openTelemetryExporter:
+        endpoint: https://collector.example.com/otlp
+        headers: "*x-wildcard=1"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "*x-wildcard=1"
+
+  - it: "hands the worker a header list holding a leading '&' whole"
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      worker:
+        enabled: true
+      openTelemetryExporter:
+        endpoint: https://collector.example.com/otlp
+        headers: "&x-anchor=1"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "&x-anchor=1"
+
+  - it: "hands the worker a header list holding a leading '!' whole"
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      worker:
+        enabled: true
+      openTelemetryExporter:
+        endpoint: https://collector.example.com/otlp
+        headers: "!x-tag=1"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "!x-tag=1"
+
+  - it: "hands the worker a header list holding a double quote whole"
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      worker:
+        enabled: true
+      openTelemetryExporter:
+        endpoint: https://collector.example.com/otlp
+        headers: "x-quote=\"double quoted\""
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "x-quote=\"double quoted\""
+
+  - it: "hands the worker a header list holding a single quote whole"
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      worker:
+        enabled: true
+      openTelemetryExporter:
+        endpoint: https://collector.example.com/otlp
+        headers: "x-quote='single quoted'"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "x-quote='single quoted'"
+
+  - it: "hands the worker a header list holding braces, a comma and a colon (a JSON-ish value) whole"
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      worker:
+        enabled: true
+      openTelemetryExporter:
+        endpoint: https://collector.example.com/otlp
+        headers: "x-tenant={\"region\": \"eu\", \"tier\": 1}"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "x-tenant={\"region\": \"eu\", \"tier\": 1}"
+
+  - it: "hands the worker a header list holding a backslash whole"
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      worker:
+        enabled: true
+      openTelemetryExporter:
+        endpoint: https://collector.example.com/otlp
+        headers: "x-path=C:\\temp\\new"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "x-path=C:\\temp\\new"
+
+  - it: "hands the worker an endpoint with an IPv6 host, a query and a fragment whole"
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      worker:
+        enabled: true
+      openTelemetryExporter:
+        endpoint: "https://[fd00::4318]:4318/otlp?tenant=eu&tier=1#exporter"
+        headers: x-oneuptime-token=server-key
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
+            value: "https://[fd00::4318]:4318/otlp?tenant=eu&tier=1#exporter"
+
+  # --- the probe -----------------------------------------------------------------
+  - it: "hands the probe a header list holding ': ' (a colon and a space) whole"
+    templates:
+      - templates/probe.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter:
+        endpoint: https://collector.example.com/otlp
+        headers: "x-tenant=region: eu-west"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "x-tenant=region: eu-west"
+
+  - it: "hands the probe a header list holding ' #' (a space and a hash) whole"
+    templates:
+      - templates/probe.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter:
+        endpoint: https://collector.example.com/otlp
+        headers: "x-api-key=abc123 #def456"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "x-api-key=abc123 #def456"
+
+  - it: "hands the probe a header list holding a leading '*' whole"
+    templates:
+      - templates/probe.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter:
+        endpoint: https://collector.example.com/otlp
+        headers: "*x-wildcard=1"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "*x-wildcard=1"
+
+  - it: "hands the probe a header list holding a leading '&' whole"
+    templates:
+      - templates/probe.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter:
+        endpoint: https://collector.example.com/otlp
+        headers: "&x-anchor=1"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "&x-anchor=1"
+
+  - it: "hands the probe a header list holding a leading '!' whole"
+    templates:
+      - templates/probe.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter:
+        endpoint: https://collector.example.com/otlp
+        headers: "!x-tag=1"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "!x-tag=1"
+
+  - it: "hands the probe a header list holding a double quote whole"
+    templates:
+      - templates/probe.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter:
+        endpoint: https://collector.example.com/otlp
+        headers: "x-quote=\"double quoted\""
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "x-quote=\"double quoted\""
+
+  - it: "hands the probe a header list holding a single quote whole"
+    templates:
+      - templates/probe.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter:
+        endpoint: https://collector.example.com/otlp
+        headers: "x-quote='single quoted'"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "x-quote='single quoted'"
+
+  - it: "hands the probe a header list holding braces, a comma and a colon (a JSON-ish value) whole"
+    templates:
+      - templates/probe.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter:
+        endpoint: https://collector.example.com/otlp
+        headers: "x-tenant={\"region\": \"eu\", \"tier\": 1}"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "x-tenant={\"region\": \"eu\", \"tier\": 1}"
+
+  - it: "hands the probe a header list holding a backslash whole"
+    templates:
+      - templates/probe.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter:
+        endpoint: https://collector.example.com/otlp
+        headers: "x-path=C:\\temp\\new"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "x-path=C:\\temp\\new"
+
+  - it: "hands the probe a header list holding '=' and ';' (a Basic value and a second header) whole"
+    templates:
+      - templates/probe.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter:
+        endpoint: https://collector.example.com/otlp
+        headers: "Authorization=Basic dXNlcjpwYXNzd29yZA==;x-scope=tenant=eu"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "Authorization=Basic dXNlcjpwYXNzd29yZA==;x-scope=tenant=eu"
+
+  - it: "hands the probe an endpoint with an IPv6 host, a query and a fragment whole"
+    templates:
+      - templates/probe.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter:
+        endpoint: "https://[fd00::4318]:4318/otlp?tenant=eu&tier=1#exporter"
+        headers: x-oneuptime-token=server-key
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
+            value: "https://[fd00::4318]:4318/otlp?tenant=eu&tier=1#exporter"
+
+  # --- the global runner ---------------------------------------------------------
+  - it: "hands the global runner a header list holding ': ' (a colon and a space) whole"
+    templates:
+      - templates/global-runner.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter:
+        endpoint: https://collector.example.com/otlp
+        headers: "x-tenant=region: eu-west"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "x-tenant=region: eu-west"
+
+  - it: "hands the global runner a header list holding ' #' (a space and a hash) whole"
+    templates:
+      - templates/global-runner.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter:
+        endpoint: https://collector.example.com/otlp
+        headers: "x-api-key=abc123 #def456"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "x-api-key=abc123 #def456"
+
+  - it: "hands the global runner a header list holding a leading '*' whole"
+    templates:
+      - templates/global-runner.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter:
+        endpoint: https://collector.example.com/otlp
+        headers: "*x-wildcard=1"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "*x-wildcard=1"
+
+  - it: "hands the global runner a header list holding a leading '&' whole"
+    templates:
+      - templates/global-runner.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter:
+        endpoint: https://collector.example.com/otlp
+        headers: "&x-anchor=1"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "&x-anchor=1"
+
+  - it: "hands the global runner a header list holding a leading '!' whole"
+    templates:
+      - templates/global-runner.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter:
+        endpoint: https://collector.example.com/otlp
+        headers: "!x-tag=1"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "!x-tag=1"
+
+  - it: "hands the global runner a header list holding a double quote whole"
+    templates:
+      - templates/global-runner.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter:
+        endpoint: https://collector.example.com/otlp
+        headers: "x-quote=\"double quoted\""
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "x-quote=\"double quoted\""
+
+  - it: "hands the global runner a header list holding a single quote whole"
+    templates:
+      - templates/global-runner.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter:
+        endpoint: https://collector.example.com/otlp
+        headers: "x-quote='single quoted'"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "x-quote='single quoted'"
+
+  - it: "hands the global runner a header list holding braces, a comma and a colon (a JSON-ish value) whole"
+    templates:
+      - templates/global-runner.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter:
+        endpoint: https://collector.example.com/otlp
+        headers: "x-tenant={\"region\": \"eu\", \"tier\": 1}"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "x-tenant={\"region\": \"eu\", \"tier\": 1}"
+
+  - it: "hands the global runner a header list holding a backslash whole"
+    templates:
+      - templates/global-runner.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter:
+        endpoint: https://collector.example.com/otlp
+        headers: "x-path=C:\\temp\\new"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "x-path=C:\\temp\\new"
+
+  - it: "hands the global runner a header list holding '=' and ';' (a Basic value and a second header) whole"
+    templates:
+      - templates/global-runner.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter:
+        endpoint: https://collector.example.com/otlp
+        headers: "Authorization=Basic dXNlcjpwYXNzd29yZA==;x-scope=tenant=eu"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "Authorization=Basic dXNlcjpwYXNzd29yZA==;x-scope=tenant=eu"
+
+  - it: "hands the global runner an endpoint with an IPv6 host, a query and a fragment whole"
+    templates:
+      - templates/global-runner.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter:
+        endpoint: "https://[fd00::4318]:4318/otlp?tenant=eu&tier=1#exporter"
+        headers: x-oneuptime-token=server-key
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
+            value: "https://[fd00::4318]:4318/otlp?tenant=eu&tier=1#exporter"
+
+
+  # ---------------------------------------------------------------------------
+  # A header list read from a file (helm --set-file, Terraform's file()) ends
+  # in a newline. Written unquoted, YAML always left the whitespace around a
+  # value out, so the pods got the list without it; quoted, they still do.
+  # ---------------------------------------------------------------------------
+  - it: "hands the app a header list read from a file without the whitespace around it"
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter:
+        endpoint: "https://collector.example.com/otlp\n"
+        headers: "  x-oneuptime-token=key-from-a-file\n"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "x-oneuptime-token=key-from-a-file"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
+            value: https://collector.example.com/otlp
+
+  - it: "hands the worker a header list read from a file without the whitespace around it"
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      worker:
+        enabled: true
+      openTelemetryExporter:
+        endpoint: "https://collector.example.com/otlp\n"
+        headers: "  x-oneuptime-token=key-from-a-file\n"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "x-oneuptime-token=key-from-a-file"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
+            value: https://collector.example.com/otlp
+
+  - it: "hands the probe a header list read from a file without the whitespace around it"
+    templates:
+      - templates/probe.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter:
+        endpoint: "https://collector.example.com/otlp\n"
+        headers: "  x-oneuptime-token=key-from-a-file\n"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "x-oneuptime-token=key-from-a-file"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
+            value: https://collector.example.com/otlp
+
+  - it: "hands the global runner a header list read from a file without the whitespace around it"
+    templates:
+      - templates/global-runner.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter:
+        endpoint: "https://collector.example.com/otlp\n"
+        headers: "  x-oneuptime-token=key-from-a-file\n"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "x-oneuptime-token=key-from-a-file"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
+            value: https://collector.example.com/otlp

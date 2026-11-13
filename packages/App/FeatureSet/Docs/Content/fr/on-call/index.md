@@ -1,6 +1,9 @@
 # Vue d'ensemble de l'astreinte
 
-L'astreinte, c'est la façon dont OneUptime amène quelqu'un sur un problème, à toute heure. Quand un incident, une alerte ou un épisode a besoin de quelqu'un, ses politiques d'astreinte alertent des personnes niveau par niveau jusqu'à ce que quelqu'un prenne en compte, et chaque personne est jointe comme elle l'a choisi : notification push, SMS, appel, e-mail ou message de chat. Cette page montre comment les éléments s'articulent et où se trouve chacun d'eux.
+L'astreinte, c'est la façon dont OneUptime amène quelqu'un sur un problème, à toute heure. Quand un incident, une alerte ou un épisode a besoin de quelqu'un, ses politiques d'astreinte alertent des personnes niveau par niveau jusqu'à ce que quelqu'un prenne en compte, et chaque personne est jointe comme elle l'a choisi : notification push, SMS, appel, e-mail ou message de chat. Cette page montre comment les éléments s'articulent et où se trouve chacun d'eux. Le [Glossaire](/docs/introduction/glossary#politique-dastreinte) explique en une phrase ou deux chaque mot qu'utilise l'astreinte.
+
+> [!TIP]
+> Vous débutez ? Suivez d'abord le guide : [Être alerté par appel, SMS ou push](/docs/guides/paging).
 
 :::cards
 - [Comment une alerte joint quelqu'un](#comment-une-alerte-joint-quelquun): D'un nouvel incident à la personne qui répond.
@@ -36,6 +39,8 @@ La première fois qu'une alerte joint quelqu'un, OneUptime l'enregistre sur l'in
 > Un incident, une alerte ou un épisode créé déjà pris en compte ou résolu n'exécute aucune de ses politiques, et son fil d'activité l'indique. Voir [Créée déjà prise en compte ou résolue](/docs/alerts/index#créée-déjà-prise-en-compte-ou-résolue).
 
 ## Les éléments de base
+
+Les mots utilisés dans tout OneUptime se trouvent dans le [Glossaire](/docs/introduction/glossary).
 
 | Élément | Ce qu'il décide | En savoir plus |
 | --- | --- | --- |

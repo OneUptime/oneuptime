@@ -9,6 +9,7 @@ import NotificationService from "Common/Server/Services/NotificationService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import SmsLogService from "Common/Server/Services/SmsLogService";
 import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
+import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
 import MessagingBalance from "Common/Server/Utils/Billing/MessagingBalance";
 import CustomChannelActionToken from "Common/Server/Utils/OnCall/CustomChannelActionToken";
 import SSRFProtection from "Common/Server/Utils/SSRFProtection";
@@ -29,6 +30,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import OnCallTimelineRows from "Common/Tests/Server/TestingUtils/OnCallTimelineRows";
 import type { SpyInstance } from "jest-mock";
 import Twilio from "twilio";
 
@@ -288,6 +290,10 @@ beforeEach(() => {
   jest
     .spyOn(SmsLogService, "updateColumnsByIdWithoutHooks")
     .mockResolvedValue(undefined as never);
+  // The send's result is written only while the log still says Sending.
+  jest
+    .spyOn(SmsLogService, "compareAndSetColumnsByIdWithoutHooks")
+    .mockResolvedValue(true as never);
   jest.spyOn(CallLogService, "create").mockImplementation(((data: {
     data: CallLog;
   }) => {
@@ -297,6 +303,10 @@ beforeEach(() => {
   jest
     .spyOn(UserOnCallLogTimelineService, "updateOneById")
     .mockResolvedValue(undefined as never);
+  // An SMS page's notification, written Sending as its page went out.
+  const timeline: OnCallTimelineRows = new OnCallTimelineRows();
+  timeline.add(TIMELINE_ID, UserNotificationStatus.Sending);
+  timeline.standIn(UserOnCallLogTimelineService);
   jest
     .spyOn(UserOnCallLogTimelineService, "markNotSent")
     .mockResolvedValue(undefined as never);

@@ -39,6 +39,13 @@ import { dashboardLocale, drawnDashboardLabel } from "./DocsDashboardLabels";
  *     draws it;
  *   - the two troubleshooting headings named after a section name it in the
  *     section's own words.
+ *
+ * The window types a criteria filter is judged with - All Values, Any Value,
+ * Maximum Value and Minimum Value - are held the same way (#6473): the
+ * criteria form's Evaluate dropdown draws them in the reader's language, so
+ * do the pages that say which one to pick (the Probe Status page still said
+ * All Values in every language), and so does the form's own description
+ * under the dropdown, which named them in English beside a translated list.
  */
 
 const DASHBOARD: string = path.resolve(
@@ -61,7 +68,18 @@ const LABELS: ReadonlyArray<string> = [
   "Page load time (p95)",
   "Performance",
   "Session Replay",
+  // How a criteria filter's window is judged (EvaluateOverTimeType, #6473).
+  "All Values",
+  "Any Value",
+  "Maximum Value",
+  "Minimum Value",
 ];
+
+// The criteria form's Evaluate description, which names the window types.
+const EVALUATE_DESCRIPTION_CHECK_BY_CHECK: string =
+  "All Values matches only when every check in the window matched. Any Value matches as soon as one check did.";
+const EVALUATE_DESCRIPTION: string =
+  "Average, Sum, Maximum Value and Minimum Value compare one figure for the whole window. All Values needs every check to meet the condition, Any Value just one.";
 
 // The cloud Instances tab's description, which names the Stale pill.
 const INSTANCES_DESCRIPTION: string =
@@ -109,6 +127,17 @@ const SENTENCES_NAMING_A_LABEL: ReadonlyArray<SentenceNamingALabel> = [
       "The broker metrics Broker health charts, and which of them offer Create monitor.",
     label: "Broker health",
   },
+  /*
+   * The description under the criteria form's Evaluate dropdown, which
+   * names its choices: "Alle Werte", never "All Values", above a German
+   * dropdown that lists Alle Werte (#6473).
+   */
+  { sentence: EVALUATE_DESCRIPTION_CHECK_BY_CHECK, label: "All Values" },
+  { sentence: EVALUATE_DESCRIPTION_CHECK_BY_CHECK, label: "Any Value" },
+  { sentence: EVALUATE_DESCRIPTION, label: "Maximum Value" },
+  { sentence: EVALUATE_DESCRIPTION, label: "Minimum Value" },
+  { sentence: EVALUATE_DESCRIPTION, label: "All Values" },
+  { sentence: EVALUATE_DESCRIPTION, label: "Any Value" },
 ];
 
 /*
@@ -122,6 +151,10 @@ const LABELS_NAMED_IN_SENTENCES: ReadonlyArray<string> = [
   "Queries from applications",
   "Page loads",
   "Page load time (p95)",
+  "All Values",
+  "Any Value",
+  "Maximum Value",
+  "Minimum Value",
 ];
 
 interface LinkToDocsHeading {
@@ -292,6 +325,28 @@ const KNOWN_QUOTES: Readonly<Record<string, ReadonlyArray<string>>> = {
   "Page loads": ["rum/index"],
   "Page load time (p95)": ["rum/index"],
   "Session Replay": ["rum/index", "telemetry/session-replay"],
+  "All Values": [
+    "monitor/api-monitor",
+    "monitor/criteria-and-statuses",
+    "monitor/database-health-monitor",
+    "monitor/ping-monitor",
+    "monitor/port-monitor",
+    "monitor/probe-status-monitor",
+    "monitor/website-monitor",
+    "telemetry/log-recording-rules",
+  ],
+  "Any Value": [
+    "monitor/api-monitor",
+    "monitor/metrics-monitor",
+    "monitor/port-monitor",
+    "monitor/website-monitor",
+  ],
+  "Maximum Value": [
+    "monitor/docker-monitor",
+    "monitor/port-monitor",
+    "telemetry/session-replay",
+  ],
+  "Minimum Value": ["monitor/docker-monitor", "monitor/port-monitor"],
 };
 
 // Troubleshooting entries named after a Dashboard section.

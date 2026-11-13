@@ -317,6 +317,37 @@ function linkOf(element: HTMLElement): string {
   return element.closest("a")?.getAttribute("href") || "";
 }
 
+/*
+ * The query of an address, read the way the list it opens reads it: each
+ * parameter's value decoded and parsed. Nothing, when there is none.
+ */
+function listStateIn(href: string): Record<string, unknown> | null {
+  const query: string = href.includes("?") ? href.split("?")[1]! : "";
+  const params: URLSearchParams = new URLSearchParams(query);
+  const names: Array<string> = Array.from(params.keys());
+
+  if (names.length === 0) {
+    return null;
+  }
+
+  return Object.fromEntries(
+    names.map((name: string): [string, unknown] => {
+      return [name, JSON.parse(params.get(name) || "null")];
+    }),
+  );
+}
+
+// The SLOs list's chips that show the SLOs at risk, as its bar reads them.
+const SLOS_AT_RISK_STATE: Record<string, unknown> = {
+  "slos-table-facets": {
+    facetSelections: {
+      sloEnabled: ["true"],
+      sloStatus: ["At Risk", "Budget Exhausted"],
+    },
+    facetOperators: { sloEnabled: "is", sloStatus: "is" },
+  },
+};
+
 beforeEach(() => {
   activeLocale = EN;
   currentProjectId = new ObjectID(PROJECT_ID);
@@ -362,22 +393,44 @@ describe("the groups", () => {
     expect(screen.queryByTestId("home-attention-group-maintenance")).toBeNull();
   });
 
-  test("each kind says its total and opens its full list", () => {
+  /*
+   * In the product the kind belongs to, with that product's side menu: Home
+   * keeps no lists of its own (#6857), so Active alerts' View all is Alerts >
+   * Active Alerts, never a page under Home. The SLOs list holds every SLO, so
+   * the SLOs' View all opens it with its chips set to the SLOs at risk.
+   */
+  test("each kind says its total and opens its full list, in its own product", () => {
     renderCard(busy());
 
-    const expected: Array<[AttentionGroupKey, string, PageMap]> = [
-      [AttentionGroupKey.Incidents, "2", PageMap.HOME_ACTIVE_INCIDENTS],
-      [AttentionGroupKey.Alerts, "1", PageMap.HOME_ACTIVE_ALERTS],
-      [AttentionGroupKey.Monitors, "1", PageMap.HOME_NOT_OPERATIONAL_MONITORS],
-      [AttentionGroupKey.Slos, "2", PageMap.SLOS],
+    const expected: Array<[AttentionGroupKey, string, PageMap, string]> = [
+      [
+        AttentionGroupKey.Incidents,
+        "2",
+        PageMap.UNRESOLVED_INCIDENTS,
+        "incidents/unresolved",
+      ],
+      [
+        AttentionGroupKey.Alerts,
+        "1",
+        PageMap.UNRESOLVED_ALERTS,
+        "alerts/unresolved",
+      ],
+      [
+        AttentionGroupKey.Monitors,
+        "1",
+        PageMap.MONITORS_INOPERATIONAL,
+        "monitors/inoperational",
+      ],
+      [AttentionGroupKey.Slos, "2", PageMap.SLOS, "slos"],
       [
         AttentionGroupKey.Maintenance,
         "1",
-        PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS,
+        PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS,
+        "scheduled-maintenance-events/ongoing",
       ],
     ];
 
-    for (const [key, count, pageMap] of expected) {
+    for (const [key, count, pageMap, address] of expected) {
       expect(
         screen.getByTestId(`home-attention-group-${key}-count`),
       ).toHaveTextContent(count);
@@ -385,7 +438,16 @@ describe("the groups", () => {
         `home-attention-group-${key}-view-all`,
       );
       expect(viewAll).toHaveTextContent("View all");
-      expect(linkOf(viewAll)).toBe(routeOf(pageMap));
+
+      const href: string = linkOf(viewAll);
+
+      expect(href.split("?")[0]).toBe(routeOf(pageMap));
+      expect(href.split("?")[0]).toBe(`/dashboard/${PROJECT_ID}/${address}`);
+      expect(href).not.toContain("/home");
+      expect({ key, state: listStateIn(href) }).toEqual({
+        key,
+        state: key === AttentionGroupKey.Slos ? SLOS_AT_RISK_STATE : null,
+      });
     }
   });
 
@@ -985,5 +1047,111 @@ describe("a title that reads the other way from the page", () => {
     );
 
     expect(title).not.toHaveAttribute("dir");
+  });
+});
+
+describe("the project's setup (Setup health, #6812)", () => {
+  function renderWithSetup(
+    data: HomeOverviewData | null,
+    setupHealthCount: number | null | undefined,
+  ): void {
+    render(
+      <MemoryRouter>
+        <NeedsAttention
+          data={data}
+          isLoading={false}
+          now={NOW}
+          setupHealthCount={setupHealthCount}
+        />
+      </MemoryRouter>,
+    );
+  }
+
+  beforeEach(() => {
+    activeLocale = EN;
+  });
+
+  test("things that need a look end the card with Setup, opening Setup health from Home", () => {
+    renderWithSetup(
+      overview({
+        activeIncidents: list([incident({ number: 1, title: "Down" })]),
+      }),
+      3,
+    );
+
+    const setup: HTMLElement = screen.getByTestId("home-attention-group-setup");
+
+    expect(setup).toHaveTextContent("Setup");
+    expect(
+      screen.getByTestId("home-attention-group-setup-count"),
+    ).toHaveTextContent("3");
+
+    const row: HTMLElement = screen.getByTestId("home-attention-row-setup");
+
+    expect(row).toHaveTextContent("3 things in your setup need a look.");
+    expect(linkOf(row)).toBe(
+      `/dashboard/${PROJECT_ID}/home/setup-health?from=home`,
+    );
+
+    // After what is open now.
+    const incidents: HTMLElement = screen.getByTestId(
+      `home-attention-group-${AttentionGroupKey.Incidents}`,
+    );
+
+    expect(
+      incidents.compareDocumentPosition(setup) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // The open count counts problems, never the setup.
+    expect(screen.getByTestId("home-attention-total")).toHaveTextContent(
+      "1 open",
+    );
+  });
+
+  test("one thing is said in the singular", () => {
+    renderWithSetup(overview(), 1);
+
+    expect(screen.getByTestId("home-attention-row-setup")).toHaveTextContent(
+      "1 thing in your setup needs a look.",
+    );
+  });
+
+  test("nothing open and something in the setup: the card is the Setup section, never all clear", () => {
+    renderWithSetup(overview(), 2);
+
+    expect(screen.getByTestId("home-attention-groups")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("home-attention-group-setup"),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("home-attention-empty")).toBeNull();
+    expect(screen.queryByText(ALL_CLEAR_TITLE)).toBeNull();
+    expect(screen.queryByTestId("home-attention-total")).toBeNull();
+  });
+
+  test.each([
+    ["nothing in the setup", 0],
+    ["no count read", null],
+    ["no count asked for", undefined],
+  ])(
+    "%s: no Setup section, and the card is as it always was",
+    (_label: string, count: number | null | undefined) => {
+      renderWithSetup(overview(), count);
+
+      expect(screen.queryByTestId("home-attention-group-setup")).toBeNull();
+      expect(screen.getByTestId("home-attention-empty")).toHaveAttribute(
+        "data-state",
+        "all-clear",
+      );
+    },
+  );
+
+  test("in German, the section and its line are in the reader's words", () => {
+    activeLocale = DE;
+    renderWithSetup(overview(), 3);
+
+    const row: HTMLElement = screen.getByTestId("home-attention-row-setup");
+
+    expect(row).not.toHaveTextContent("things in your setup need a look");
+    expect(row).toHaveTextContent("3");
   });
 });

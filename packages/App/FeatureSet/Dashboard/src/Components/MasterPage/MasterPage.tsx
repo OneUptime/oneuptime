@@ -4,6 +4,7 @@ import Footer from "../Footer/Footer";
 import ProjectBlocked from "../Project/ProjectBlocked";
 import Header from "../Header/Header";
 import NavBar from "../NavBar/NavBar";
+import WelcomeNextStep from "../Home/WelcomeChecklist/WelcomeNextStep";
 import Route from "Common/Types/API/Route";
 import SubscriptionStatus, {
   SubscriptionStatusUtil,
@@ -12,7 +13,13 @@ import SSOAuthorizationException from "Common/Types/Exception/SsoAuthorizationEx
 import AppLink from "../AppLink/AppLink";
 import MasterPage from "Common/UI/Components/MasterPage/MasterPage";
 import TopAlert, { TopAlertType } from "Common/UI/Components/TopAlert/TopAlert";
-import { BILLING_ENABLED } from "Common/UI/Config";
+import ServerSendingTopAlert from "Common/UI/Components/ServerSending/ServerSendingTopAlert";
+import { ADMIN_DASHBOARD_URL, BILLING_ENABLED } from "Common/UI/Config";
+import URL from "Common/Types/API/URL";
+import {
+  ADMIN_EMAIL_SETTINGS_ROUTE,
+  ADMIN_GLOBAL_PROBES_ROUTE,
+} from "../../Utils/ServerEmail";
 import Navigation from "Common/UI/Utils/Navigation";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
@@ -129,6 +136,20 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
 
   return (
     <div>
+      {/*
+       * A master admin is told, on every page, while the server cannot send
+       * email or its global probes have stopped reporting - and where to fix
+       * it, in the Admin Dashboard. Nobody else sees it.
+       */}
+      <ServerSendingTopAlert
+        emailSettingsLink={URL.fromString(
+          ADMIN_DASHBOARD_URL.toString(),
+        ).addRoute(ADMIN_EMAIL_SETTINGS_ROUTE)}
+        globalProbesLink={URL.fromString(
+          ADMIN_DASHBOARD_URL.toString(),
+        ).addRoute(ADMIN_GLOBAL_PROBES_ROUTE)}
+        openLinksInNewTab={true}
+      />
       {BILLING_ENABLED &&
         isSubscriptionInactiveOrOverdue &&
         !showProjectBlocked && (
@@ -187,7 +208,19 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
          */
         className="flex flex-col min-h-screen"
       >
-        {showProjectBlocked ? <ProjectBlocked /> : props.children}
+        {showProjectBlocked ? (
+          <ProjectBlocked />
+        ) : (
+          <>
+            {/*
+             * After a Welcome checklist step's record is created, the page
+             * it lands on says what is next (issue #6803). Nothing anywhere
+             * else.
+             */}
+            <WelcomeNextStep />
+            {props.children}
+          </>
+        )}
       </MasterPage>
     </div>
   );

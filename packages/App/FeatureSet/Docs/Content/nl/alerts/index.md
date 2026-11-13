@@ -1,6 +1,6 @@
 # Waarschuwingen – Overzicht
 
-Een waarschuwing wijst je team op een probleem dat bekeken moet worden voordat je gebruikers het merken: een schijf die volloopt, een certificaat dat bijna verloopt, een foutpercentage dat langzaam stijgt. Een waarschuwing kan wie dienst heeft oproepen en haar eigenaren op de hoogte brengen, maar verschijnt nooit op een statuspagina en informeert nooit je abonnees. Deze pagina legt uit waar waarschuwingen vandaan komen, waar ze in het dashboard staan en hoe je team ermee werkt.
+Een waarschuwing wijst je team op een probleem dat bekeken moet worden voordat je gebruikers het merken: een schijf die volloopt, een certificaat dat bijna verloopt, een foutpercentage dat langzaam stijgt. Een waarschuwing kan wie dienst heeft oproepen en haar eigenaren op de hoogte brengen, maar verschijnt nooit op een statuspagina en informeert nooit je abonnees. Deze pagina legt uit waar waarschuwingen vandaan komen, waar ze in het dashboard staan en hoe je team ermee werkt. Twijfel je of een probleem een waarschuwing of een incident is? [Welke gebruik ik?](/docs/introduction/which-one#incident-waarschuwing-of-een-ander-soort-probleem) zet ze naast elkaar.
 
 :::cards
 - [Waarschuwingen en incidenten](#waarschuwingen-en-incidenten): Wat een probleem moet zijn, en hoe de twee samenhangen.
@@ -61,7 +61,7 @@ Open **Waarschuwingen** via het menu **Producten** in de bovenste balk. De lijst
 | **AI**            | **Inzichten**, **Logboeken** en **Instellingen**: wat OneUptime AI van je waarschuwingen heeft geleerd, alles wat het heeft gedaan en wat het mag doen. |
 | **Werkruimte**    | **Slack**, **Microsoft Teams** en **Mattermost**, afhankelijk van wat het project heeft gekoppeld, of **Werkruimte koppelen** als het er geen heeft. |
 | **Regels**        | **Groeperingsregels**, **Bereikbaarheidsregels**, **Incidentregels**, **Eigenaarsregels**, **Runbook-regels**, **Privacyregels**, **Labelregels**, **Herinneringsregels**. |
-| **Instellingen**  | **Status waarschuwing**, **Ernst van waarschuwing**, **Notitie-sjablonen**, **Aangepaste velden**, **Metingen**, **Lidmaatschap van episodes**, **Nummering**. |
+| **Instellingen**  | **Status waarschuwing**, **Ernst van waarschuwing**, **Notitie-sjablonen**, **Aangepaste velden**, **Metingen**, **Lidmaatschap van episodes**, **Nummering**, **Gegevensbewaring**. |
 
 **Waarschuwingen** en **Episoden** zijn open; **AI**, **Werkruimte**, **Regels**, **Instellingen** en **Ontwikkelaars** beginnen ingeklapt, en een sectie gaat vanzelf open wanneer je op een van haar pagina's bent. De configuratie van waarschuwingen staat hier, niet in **Projectinstellingen**.
 

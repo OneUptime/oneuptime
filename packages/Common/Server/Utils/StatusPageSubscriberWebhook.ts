@@ -7,6 +7,14 @@ import logger from "./Logger";
 import SSRFProtection, {
   WebhookTargetValidationOptions,
 } from "./SSRFProtection";
+import NotificationDeliveryMetrics, {
+  NotificationDeliveryChannel,
+  NotificationDeliveryProvider,
+  NotificationDestination,
+  NotificationDispatch,
+  NotificationDispatchStart,
+  NotificationProviderConfig,
+} from "./Telemetry/NotificationDeliveryMetrics";
 
 export interface StatusPageWebhookPayload extends JSONObject {
   eventType: string;
@@ -35,6 +43,22 @@ export const SIGN_UP_PRIVATE_NETWORK_HINT: string =
  */
 export const SIGNED_UP_SUBSCRIBER_PRIVATE_NETWORK_HINT: string =
   " This subscriber signed up on the status page, so its webhook must be on the public internet.";
+
+/*
+ * What every post to a subscriber's webhook is counted as, for the
+ * platform's operator (NotificationDeliveryMetrics, issue #6685): a webhook
+ * message, to the subscriber's own endpoint - which the project's status
+ * page posts to, as a project's own webhook ("project") - told apart from a
+ * person's webhook by its destination. Never an on-call page, and never the
+ * subscriber, its URL or what it was sent: every value is a fixed one.
+ */
+const SUBSCRIBER_WEBHOOK_DISPATCH: Readonly<NotificationDispatchStart> = {
+  channel: NotificationDeliveryChannel.Webhook,
+  provider: NotificationDeliveryProvider.Webhook,
+  providerConfig: NotificationProviderConfig.Project,
+  isOnCallPage: false,
+  destination: NotificationDestination.StatusPageSubscriber,
+};
 
 export default class StatusPageSubscriberWebhookUtil {
   /*
@@ -99,6 +123,21 @@ export default class StatusPageSubscriberWebhookUtil {
     );
   }
 
+  /*
+   * Posts one message to a subscriber's webhook, and counts it once for the
+   * platform's operator (notification.send.count and .duration, issue
+   * #6685), whoever sends it - every subscriber job, a scheduled event, the
+   * message a new subscriber is sent:
+   *
+   *   - success: the endpoint answered with a 2xx status;
+   *   - failure: it answered with anything else, the post threw (once
+   *     API.post's own retries are spent), or its address was refused
+   *     before any request (getTargetValidationOptions) - the subscriber
+   *     got nothing, as when its endpoint is down, so its webhook shows in
+   *     the success rate however long it fails.
+   *
+   * What it answers or throws is passed on as it always was.
+   */
   public static async sendWebhookNotification(data: {
     webhookUrl: URL;
     /*
@@ -106,6 +145,43 @@ export default class StatusPageSubscriberWebhookUtil {
      * sender says which subscriber it sends to: the rule its URL is held to
      * depends on it (getTargetValidationOptions).
      */
+    isAddedByTeam: boolean | undefined;
+    payload: StatusPageWebhookPayload;
+  }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> {
+    return await NotificationDeliveryMetrics.measureDispatch(
+      SUBSCRIBER_WEBHOOK_DISPATCH,
+      async (
+        dispatch: NotificationDispatch,
+      ): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
+        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await StatusPageSubscriberWebhookUtil.postWebhookNotification(data);
+
+        if (!StatusPageSubscriberWebhookUtil.isDelivered(response)) {
+          dispatch.markFailed();
+        }
+
+        return response;
+      },
+    );
+  }
+
+  /*
+   * Whether a subscriber's endpoint took a post: it answered, with a 2xx
+   * status. An error answer - a refused address, a 4xx, a 5xx, a redirect
+   * that is not followed - or no answer at all, is no delivery.
+   */
+  public static isDelivered(
+    response: HTTPResponse<JSONObject> | HTTPErrorResponse | null | undefined,
+  ): boolean {
+    if (!response || response instanceof HTTPErrorResponse) {
+      return false;
+    }
+
+    return response.statusCode >= 200 && response.statusCode < 300;
+  }
+
+  private static async postWebhookNotification(data: {
+    webhookUrl: URL;
     isAddedByTeam: boolean | undefined;
     payload: StatusPageWebhookPayload;
   }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> {

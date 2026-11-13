@@ -72,9 +72,9 @@ Klicken Sie unter **Vor dem Speichern testen** auf **Diese Einstellungen testen*
 | **Region** | Der Code der Region, etwa `us-east-1`, `eu-central-1` oder `us-gov-west-1`: für die Findings anderer Konten die Heimatregion des Administratorkontos. |
 | **Zugriffsschlüssel-ID** | Die ID des Schlüssels: 16 bis 128 Buchstaben oder Ziffern, meist 20, beginnend mit `AKIA`, oder mit `ASIA` bei temporären Anmeldedaten. |
 | **Geheimer Zugriffsschlüssel** | Das Geheimnis des Schlüssels. Es wird verschlüsselt, nie von der API zurückgegeben und nie wieder angezeigt. Ersetzen Sie es mit **Anmeldedaten aktualisieren** an der Verbindung. |
-| **Session token** | Nur für temporäre Anmeldedaten, die es brauchen: Ein Schlüssel `ASIA` wird ohne eines abgelehnt, und ein Schlüssel `AKIA` wird mit einem abgelehnt. |
+| **Sitzungstoken** | Nur für temporäre Anmeldedaten, die es brauchen: Ein Schlüssel `ASIA` wird ohne eines abgelehnt, und ein Schlüssel `AKIA` wird mit einem abgelehnt. |
 
-Temporäre Anmeldedaten aus `aws sts assume-role` oder `aws sts get-session-token` laufen ab, bei einer übernommenen Rolle nach höchstens 12 Stunden, und das Abfragen stoppt, bis Sie neue mit **Anmeldedaten aktualisieren** einfügen. Ein langlebiger Schlüssel mit dieser engen Richtlinie, nach Ihrem eigenen Plan rotiert, hält das Abfragen ohne Aufsicht am Laufen. Um von temporären Anmeldedaten zu einem langlebigen Schlüssel zu wechseln, tragen Sie den neuen Schlüssel in **Anmeldedaten aktualisieren** ein und schalten Sie **Remove the stored Session token** ein.
+Temporäre Anmeldedaten aus `aws sts assume-role` oder `aws sts get-session-token` laufen ab, bei einer übernommenen Rolle nach höchstens 12 Stunden, und das Abfragen stoppt, bis Sie neue mit **Anmeldedaten aktualisieren** einfügen. Ein langlebiger Schlüssel mit dieser engen Richtlinie, nach Ihrem eigenen Plan rotiert, hält das Abfragen ohne Aufsicht am Laufen. Um von temporären Anmeldedaten zu einem langlebigen Schlüssel zu wechseln, tragen Sie den neuen Schlüssel in **Anmeldedaten aktualisieren** ein und schalten Sie **Gespeichertes Feld „Sitzungstoken“ entfernen** ein.
 
 Der Schritt **Abfrage** hat außerdem eine optionale **Beschreibung**, das **Abfrageintervall (Minuten)**, eine ganze Zahl von `1` bis `1440`, die mit `5` beginnt, und **Aktiviert**, das eingeschaltet beginnt.
 
@@ -140,7 +140,7 @@ Ein Lauf, der ganz fehlschlägt, mit einem Fehler von AWS, behält den Cursor un
 Klicken Sie an einer Verbindung auf **Diagnose**, um ihre letzten Läufe zu sehen und von Hand mit ihr zu arbeiten. Wer die Verbindung ändern darf, kann diese starten; wer sie sehen darf, kann den Verlauf lesen.
 
 - **Jetzt ausführen** startet sofort eine Abfrage, mit dem üblichen Cursor, auch wenn die Verbindung nicht **Aktiviert** ist.
-- **Preview findings** liest einen Zeitraum von bis zu 7 Tagen und importiert nichts.
+- **Vorschau der Befunde** liest einen Zeitraum von bis zu 7 Tagen und importiert nichts.
 - **Diesen Zeitraum importieren** importiert nach Ihrer Bestätigung einen Zeitraum von bis zu 7 Tagen, ohne den Cursor zu verschieben. Bereits importierte Findings werden übersprungen.
 - **Diagnosen kopieren** an einem Lauf kopiert seinen Bericht für den Support. Er enthält nie Anmeldedaten.
 
@@ -169,7 +169,7 @@ AWS hat die Anfrage abgelehnt. Die Meldung zitiert den Fehlercode von AWS, oder 
 - `AccessDeniedException` oder `is not authorized to perform`: Der Schlüssel stimmt, aber seine Identität darf `securityhub:GetFindings` nicht aufrufen. Hängen Sie die Richtlinie aus [Die Verbindung einrichten](#die-verbindung-einrichten) an. Auch eine Berechtigungsgrenze oder eine Service Control Policy kann es verweigern.
 - `InvalidAccessException` oder `is not subscribed to AWS Security Hub`: Security Hub ist für dieses Konto in dieser **Region** nicht aktiviert, oder das Konto ist dort nicht sein Administrator.
 - `InvalidSignatureException` oder `SignatureDoesNotMatch`, oder `The request signature we calculated does not match`: Der **Geheimer Zugriffsschlüssel** gehört nicht zur **Zugriffsschlüssel-ID**. Erstellen Sie einen neuen Zugriffsschlüssel und speichern Sie ihn mit **Anmeldedaten aktualisieren**.
-- `UnrecognizedClientException` oder `InvalidClientTokenId`, oder `The security token included in the request is invalid`: AWS kennt die **Zugriffsschlüssel-ID** nicht. Sie ist vertippt, gelöscht, deaktiviert oder aus einer anderen Partition, oder es ist ein temporärer Schlüssel ohne sein **Session token**.
+- `UnrecognizedClientException` oder `InvalidClientTokenId`, oder `The security token included in the request is invalid`: AWS kennt die **Zugriffsschlüssel-ID** nicht. Sie ist vertippt, gelöscht, deaktiviert oder aus einer anderen Partition, oder es ist ein temporärer Schlüssel ohne sein **Sitzungstoken**.
 - `ExpiredTokenException` oder `The security token included in the request is expired`: Die temporären Anmeldedaten sind abgelaufen. Stellen Sie neue aus oder wechseln Sie zu einem langlebigen Schlüssel.
 - `RequestTimeTooSkewed` oder `RequestExpired`, oder `Signature expired`: Die Uhr der OneUptime-Hosts geht mehr als 5 Minuten falsch. Richten Sie NTP auf den App- und Worker-Hosts ein.
 - Gar kein Code: AWS hat nicht gesagt, ob der Schlüssel oder die Richtlinie die Anfrage abgelehnt hat. Prüfen Sie zuerst den Schlüssel, dann die Richtlinie.

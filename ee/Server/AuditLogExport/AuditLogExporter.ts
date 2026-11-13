@@ -45,6 +45,7 @@ import {
   AuditLogExportFailureNotice,
   AuditLogExportNotifier,
   auditLogExportEmailNotifier,
+  getAuditLogExportEntriesLostAt,
   getAuditLogExportFailureNotice,
 } from "./AuditLogExportNotifications";
 import { redactAuditLogExportRecord } from "./AuditLogExportRedaction";
@@ -100,11 +101,12 @@ import {
  * (nextAttemptAt): one minute, then two, four... up to an hour between
  * tries. Nothing queues up anywhere: the entries wait in the audit log
  * itself, and the next successful delivery catches up, oldest first. An
- * entry older than its project's audit log retention is deleted before it
- * can be sent, which is the only way one is lost - the page says so, and
- * the people who can fix it are emailed (AuditLogExportNotifications): after
- * 30 minutes of failures, and again a day before the first unsent entry
- * would be deleted.
+ * entry is deleted once it is older than the audit log retention it was
+ * recorded with (the retentionDate the recorder stamped on it), sent or
+ * not, which is the only way one is lost - the page says so, and the
+ * people who can fix it are emailed (AuditLogExportNotifications): after 30
+ * minutes of failures, and again a day before the first of the entries it
+ * has not sent is deleted, read from their own stamps.
  *
  * WHEN IT STOPS. Without the Enterprise Edition (self-hosted: a license
  * that includes audit logs) nothing is exported, as nothing is recorded; on
@@ -161,10 +163,14 @@ export function getAuditLogExportBackoffInMinutes(
   );
 }
 
-// Where the audit log is read from: AuditLogService (ClickHouse) by default.
+/*
+ * Where the audit log is read from: AuditLogService (ClickHouse) by default.
+ * The entries to send, and - for a failing export - the soonest date one of
+ * the entries it has not sent is deleted.
+ */
 export type AuditLogExportEntryReader = Pick<
   typeof AuditLogService,
-  "findEntriesForExport"
+  "findEntriesForExport" | "findSoonestRetentionDateForExport"
 >;
 
 // The lock that keeps one export to one worker; Valkey by default.
@@ -764,10 +770,10 @@ export default class AuditLogExporter {
 
   /*
    * The email a run of failures is due now, if any
-   * (AuditLogExportNotifications). The retention (and the oldest unsent
-   * entry, when no batch said it) is read only once the export has failed
-   * for long enough that an email can be due. Never throws: telling people
-   * must not stop the export.
+   * (AuditLogExportNotifications). The retention, the oldest unsent entry
+   * (when no batch said it) and when the first unsent entry is deleted are
+   * read only once the export has failed for long enough that an email can
+   * be due. Never throws: telling people must not stop the export.
    */
   private async notifyFailure(data: {
     item: AuditLogExport;
@@ -794,6 +800,17 @@ export default class AuditLogExporter {
         data.oldestUnsentAt !== undefined
           ? data.oldestUnsentAt
           : await this.findOldestUnsentAt(data);
+      // Nothing waits: no entry to lose, so no stamp to read.
+      const soonestRetentionDate: Date | null = oldestUnsentAt
+        ? await this.findSoonestRetentionDate(data)
+        : null;
+      const entriesLostAt: Date | null = oldestUnsentAt
+        ? getAuditLogExportEntriesLostAt({
+            oldestUnsentAt,
+            retentionInDays,
+            soonestRetentionDate,
+          })
+        : null;
       const notice: AuditLogExportFailureNotice | null =
         getAuditLogExportFailureNotice({
           failingSince: data.failingSince,
@@ -802,19 +819,24 @@ export default class AuditLogExporter {
             ? data.item.lastAttemptAt
             : null,
           now: data.now,
-          oldestUnsentAt,
-          retentionInDays,
+          entriesLostAt,
         });
 
       if (!notice) {
         return;
       }
 
+      /*
+       * With the try's own time, which the email reads entriesLostAt
+       * against: past it, entries are being lost now (#7185).
+       */
       await this.notifier.notifyFailure({
         item: data.item,
         notice,
         failingSince: data.failingSince,
         oldestUnsentAt,
+        entriesLostAt,
+        now: data.now,
         error: data.message,
         retentionInDays,
       });
@@ -823,6 +845,59 @@ export default class AuditLogExporter {
         `AuditLogExport: could not tell anyone that export ${data.item.id?.toString()} is failing.`,
       );
       logger.error(error);
+    }
+  }
+
+  /*
+   * The entries the export has not sent yet, as both of its reads ask for
+   * them: from its Export From to now, after its cursor, its project's only
+   * (every project's for the instance's export).
+   */
+  private static unsentWindow(
+    item: AuditLogExport,
+    now: Date,
+  ): {
+    projectId: ObjectID | null;
+    startsAt: Date;
+    until: Date;
+    after: { createdAt: Date; id: ObjectID } | null;
+  } {
+    return {
+      projectId: item.projectId || null,
+      startsAt: new Date(item.startsAt || item.createdAt || now),
+      until: now,
+      after:
+        item.cursorCreatedAt && item.cursorEntryId
+          ? {
+              createdAt: new Date(item.cursorCreatedAt),
+              id: new ObjectID(item.cursorEntryId.toString()),
+            }
+          : null,
+    };
+  }
+
+  /*
+   * The soonest retentionDate stamped on the entries the export has not
+   * sent: each is deleted on its own stamp, from the retention its project
+   * had when it was recorded, whatever the retention is now (#6563). Null
+   * when the audit log cannot answer, or answers that none waits; the
+   * export then reckons from the oldest unsent entry and the retention as
+   * it is now, as it did before (getAuditLogExportEntriesLostAt).
+   */
+  private async findSoonestRetentionDate(data: {
+    item: AuditLogExport;
+    now: Date;
+  }): Promise<Date | null> {
+    try {
+      return await this.reader.findSoonestRetentionDateForExport(
+        AuditLogExporter.unsentWindow(data.item, data.now),
+      );
+    } catch (error) {
+      logger.warn(
+        `AuditLogExport: could not read when the entries export ${data.item.id?.toString()} has not sent are deleted; reckoning from the retention as it is now.`,
+      );
+      logger.warn(error);
+      return null;
     }
   }
 
@@ -842,16 +917,7 @@ export default class AuditLogExporter {
 
     try {
       const rows: Array<JSONObject> = await this.reader.findEntriesForExport({
-        projectId: item.projectId || null,
-        startsAt: new Date(item.startsAt || item.createdAt || data.now),
-        until: data.now,
-        after:
-          item.cursorCreatedAt && item.cursorEntryId
-            ? {
-                createdAt: new Date(item.cursorCreatedAt),
-                id: new ObjectID(item.cursorEntryId.toString()),
-              }
-            : null,
+        ...AuditLogExporter.unsentWindow(item, data.now),
         limit: 1,
       });
       const oldest: AuditLogExportRecord | null = rows[0]

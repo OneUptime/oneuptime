@@ -1,5 +1,6 @@
 import { ExternalStatusPageComponentStatus } from "../../Types/Monitor/ExternalStatusPageMonitor/ExternalStatusPageMonitorResponse";
 import ExternalStatusPageComponentNames from "./ExternalStatusPageComponentNames";
+import { ExternalStatusPageComponentStatusValue } from "./ExternalStatusPageComponentStatusUtil";
 import {
   ExternalStatusPageComponent,
   ExternalStatusPageIncident,
@@ -21,6 +22,8 @@ import {
  *   - the overall status is the page's own while it watches the whole page,
  *     and otherwise the worst status of the components in scope (degraded
  *     when one of their incidents is open while they all say operational).
+ *     A component the page shows as not monitored decides nothing, and
+ *     when every component in scope is so the status is unknown.
  *
  * What it leaves out is said too, so the person can tell a quiet monitor
  * from one that watches nothing: the chosen names no component on the
@@ -152,15 +155,34 @@ export default class ExternalStatusPageScope {
    * Derives an overall status from the (already scoped) component list. Returns a
    * standard status string (e.g. "operational", "degraded_performance",
    * "major_outage") so it is comparable in monitor criteria.
+   *
+   * A component the page shows as not monitored (isMonitored false: a
+   * OneUptime page's resource whose monitoring is off) decides nothing, as
+   * on the page's own banner. When every component is so, and no incident
+   * is open on them, there is no status to give: unknown.
    */
   public static deriveOverallStatus(
     components: Array<ExternalStatusPageComponent>,
     scopedIncidentCount: number,
   ): string {
+    const monitored: Array<ExternalStatusPageComponent> = components.filter(
+      (component: ExternalStatusPageComponent): boolean => {
+        return component.isMonitored !== false;
+      },
+    );
+
+    if (
+      components.length > 0 &&
+      monitored.length === 0 &&
+      scopedIncidentCount === 0
+    ) {
+      return ExternalStatusPageComponentStatusValue.Unknown;
+    }
+
     let worstStatus: string = "operational";
     let worstRank: number = 0;
 
-    for (const component of components) {
+    for (const component of monitored) {
       const rank: number = ExternalStatusPageScope.getStatusRank(
         component.status,
       );

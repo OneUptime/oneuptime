@@ -67,10 +67,11 @@ El entorno está, pero su pestaña **Instancias** no lista nada: la telemetría 
 2. `aws.ecs.task.arn` (acortado al ID de la tarea)
 3. `faas.instance`
 4. `azure.container_app.instance.id`
-5. `service.instance.id`
-6. `container.id`
-7. `host.id`
-8. `host.name`
+5. `azure.app_service.instance.id`
+6. `service.instance.id`
+7. `container.id`
+8. `host.id`
+9. `host.name`
 
 La identidad propia de la plataforma va antes que `service.instance.id`, para que un ID que el SDK inventa para cada proceso (el SDK de Node.js lo hace por defecto) no pueda separar una tarea de la CPU y la memoria de su sidecar. Qué define la identidad en cada plataforma:
 
@@ -80,7 +81,7 @@ La identidad propia de la plataforma va antes que `service.instance.id`, para qu
 | Cloud Run, App Engine | El detector `gcp` define `faas.instance` |
 | Container Apps | El detector `azurecontainerapps` del Collector define el ID de la réplica; o defina `service.instance.id` a partir de `CONTAINER_APP_REPLICA_NAME`, o ejecute el detector de host |
 | App Runner, Container Instances | El `host.name` del detector de host |
-| App Service, Elastic Beanstalk | El detector de la plataforma define `service.instance.id`; en Beanstalk, elimínelo para que `host.id` nombre cada instancia |
+| App Service, Elastic Beanstalk | El detector de la plataforma define `service.instance.id` (en App Service, el del Collector define `azure.app_service.instance.id`); en Beanstalk, elimine `service.instance.id` para que `host.id` nombre cada instancia |
 
 Una instancia aparece al minuto de la primera señal que lleva el atributo.
 
@@ -89,7 +90,7 @@ Una instancia aparece al minuto de la primera señal que lleva el atributo.
 Las instancias aparecen, pero los mosaicos **CPU** y **Memoria** de la vista general, y las columnas de CPU y memoria de **Instancias**, están vacíos. Proceden de métricas, no de trazas: puntos de datos `container.cpu.utilization` y `container.memory.usage` (o `container.memory.usage.total`) cuyo recurso lleva la misma identidad de instancia que las trazas, y `cloud.platform`.
 
 - **En ECS,** el receptor `awsecscontainermetrics` de un colector sidecar los aporta como `ecs.task.cpu.utilized` y `ecs.task.memory.utilized`. Manténgalo en el pipeline `metrics`, y mantenga también `resourcedetection` en ese pipeline, o las métricas llegarán sin `cloud.platform` y se archivarán en otro lugar.
-- **En Cloud Run, Container Apps y las demás plataformas,** la plataforma no muestra el uso de los contenedores a un sidecar. Los mosaicos quedan vacíos salvo que usted envíe esas métricas: lea en su lugar los mosaicos de solicitudes.
+- **En Cloud Run, Container Apps y las demás plataformas,** la plataforma no muestra el uso de los contenedores a un sidecar. Los mosaicos quedan vacíos salvo que usted envíe esas métricas: lea en su lugar los mosaicos de solicitudes. En App Service, conecte la suscripción en **Nube → Conectar**: la página de la aplicación muestra entonces el tiempo de CPU y la memoria de su sitio desde **Azure Monitor**.
 - **Con SDK direct,** nada envía métricas de contenedor, así que los mosaicos vacíos son lo esperado.
 
 ## El entorno muestra Desconectado

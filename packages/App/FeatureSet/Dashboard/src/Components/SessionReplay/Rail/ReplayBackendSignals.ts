@@ -10,7 +10,15 @@ import Query from "Common/Types/BaseDatabase/Query";
 import Select from "Common/Types/BaseDatabase/Select";
 import Sort from "Common/Types/BaseDatabase/Sort";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import Permission, { PermissionHelper } from "Common/Types/Permission";
+import Permission from "Common/Types/Permission";
+import { getSessionReplayPermissionTitle } from "../SessionReplayPermissionTitle";
+import {
+  createTranslator,
+  TranslatableTerm,
+  translatableTerm,
+  translationKey,
+  Translator,
+} from "Common/Types/Translator";
 import ModelAPI, {
   ListResult,
 } from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
@@ -170,11 +178,18 @@ export const REPLAY_BACKEND_SIGNAL_PERMISSIONS: Record<
   exception: Permission.ReadTelemetryException,
 };
 
+/*
+ * What each read loads, as a sentence names it ("Loading backend logs
+ * failed"): a word of the reader's language, put into the sentence with it.
+ */
 const KIND_NOUNS: Record<ReplayBackendSignalKind, string> = {
-  log: "backend logs",
-  span: "traces",
-  exception: "server exceptions",
+  log: translationKey("backend logs"),
+  span: translationKey("traces"),
+  exception: translationKey("server exceptions"),
 };
+
+/* The words of a store made without the reader's translator: English. */
+const ENGLISH: Translator = createTranslator(undefined);
 
 export interface ReplayBackendSignalsWindowInput {
   startTimeUnixMs: number;
@@ -626,13 +641,9 @@ export type ReplayBackendSignalsFailure =
   | { status: "locked"; lockedPermission: string }
   | { status: "error"; errorMessage: string };
 
+// The permission as the roles screen names it.
 function permissionTitle(permission: Permission): string {
-  try {
-    return PermissionHelper.getTitle(permission);
-  } catch {
-    /* A permission without props is a programming error; the enum value still names it. */
-    return String(permission);
-  }
+  return getSessionReplayPermissionTitle(permission);
 }
 
 function readStatusCode(error: unknown): number | null {
@@ -677,6 +688,7 @@ function readErrorMessage(error: unknown): string {
 export function classifyBackendSignalsFailure(
   error: unknown,
   kind: ReplayBackendSignalKind,
+  translator: Translator = ENGLISH,
 ): ReplayBackendSignalsFailure {
   const statusCode: number | null = readStatusCode(error);
 
@@ -689,26 +701,37 @@ export function classifyBackendSignalsFailure(
     };
   }
 
-  const noun: string = KIND_NOUNS[kind];
+  const noun: TranslatableTerm = translatableTerm(KIND_NOUNS[kind], {
+    inSentence: true,
+  });
   const message: string = readErrorMessage(error).trim();
 
   if (statusCode !== null && statusCode > 0) {
     return {
       status: "error",
-      errorMessage: `Loading ${noun} failed (HTTP ${statusCode}). Retry.`,
+      errorMessage: translator.translateTemplate(
+        "Loading {{noun}} failed (HTTP {{status}}). Retry.",
+        { noun: noun, status: String(statusCode) },
+      ),
     };
   }
 
   if (message.length > 0) {
     return {
       status: "error",
-      errorMessage: `Loading ${noun} failed: ${message}. Retry.`,
+      errorMessage: translator.translateTemplate(
+        "Loading {{noun}} failed: {{message}}. Retry.",
+        { noun: noun, message: message },
+      ),
     };
   }
 
   return {
     status: "error",
-    errorMessage: `Loading ${noun} failed before the server answered. Retry.`,
+    errorMessage: translator.translateTemplate(
+      "Loading {{noun}} failed before the server answered. Retry.",
+      { noun: noun },
+    ),
   };
 }
 
@@ -720,20 +743,32 @@ export function classifyBackendSignalsFailure(
 export function describePartialBackendSignalsFailure(
   error: unknown,
   kind: ReplayBackendSignalKind,
+  translator: Translator = ENGLISH,
 ): string {
-  const noun: string = KIND_NOUNS[kind];
+  const noun: TranslatableTerm = translatableTerm(KIND_NOUNS[kind], {
+    inSentence: true,
+  });
   const statusCode: number | null = readStatusCode(error);
   const message: string = readErrorMessage(error).trim();
 
   if (statusCode !== null && statusCode > 0) {
-    return `Some linked ${noun} did not load (HTTP ${statusCode}). Retry.`;
+    return translator.translateTemplate(
+      "Some linked {{noun}} did not load (HTTP {{status}}). Retry.",
+      { noun: noun, status: String(statusCode) },
+    );
   }
 
   if (message.length > 0) {
-    return `Some linked ${noun} did not load: ${message}. Retry.`;
+    return translator.translateTemplate(
+      "Some linked {{noun}} did not load: {{message}}. Retry.",
+      { noun: noun, message: message },
+    );
   }
 
-  return `Some linked ${noun} did not load. Retry.`;
+  return translator.translateTemplate(
+    "Some linked {{noun}} did not load. Retry.",
+    { noun: noun },
+  );
 }
 
 /* ---- The store. ---- */
@@ -770,6 +805,11 @@ export interface ReplayBackendSignalsStoreOptions {
   /* Injected for tests; defaults to Date.now and ModelAPI.getList. */
   now?: (() => number) | undefined;
   fetchList?: ReplayBackendListFetcher | undefined;
+  /*
+   * The reader's translator: a read that fails says so in their language.
+   * English without one.
+   */
+  translator?: Translator | undefined;
 }
 
 export type ReplayBackendSignalsListener = (
@@ -895,6 +935,7 @@ export class ReplayBackendSignalsStore {
   private recordingReloadTimer: ReturnType<typeof setTimeout> | null;
   private readonly now: () => number;
   private readonly fetchList: ReplayBackendListFetcher;
+  private readonly translator: Translator;
   private readonly listeners: Set<ReplayBackendSignalsListener>;
   private readonly generations: Record<ReplayBackendSignalKind, number>;
   private snapshot: ReplayBackendSignalsSnapshot;
@@ -929,6 +970,7 @@ export class ReplayBackendSignalsStore {
         return Date.now();
       });
     this.fetchList = options.fetchList || defaultFetchList;
+    this.translator = options.translator || ENGLISH;
     this.listeners = new Set<ReplayBackendSignalsListener>();
     this.generations = { log: 0, span: 0, exception: 0 };
     this.snapshot = {
@@ -1186,7 +1228,7 @@ export class ReplayBackendSignalsStore {
       }
 
       const failure: ReplayBackendSignalsFailure =
-        classifyBackendSignalsFailure(error, kind);
+        classifyBackendSignalsFailure(error, kind, this.translator);
       const previous: ReplayBackendSignalsSlot = this.snapshot.slots[kind];
       const refreshStamp: number = getBackendRefreshStamp(
         startedAtUnixMs,
@@ -1403,6 +1445,7 @@ export class ReplayBackendSignalsStore {
       slot.errorMessage = describePartialBackendSignalsFailure(
         read.traceReadFailure.error,
         kind,
+        this.translator,
       );
     }
 

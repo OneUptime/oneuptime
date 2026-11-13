@@ -2,6 +2,9 @@
 
 Eine Ressource ist eine Zeile auf Ihrer Statusseite: ein Monitor oder eine Monitor-Gruppe, mit einem Namen, den Ihre Kunden verstehen, ihrem aktuellen Status und, wenn Sie möchten, ihrer Verfügbarkeit und ihrem Verlauf. Gruppen sind Abschnitte, die Ressourcen enthalten, sodass sich eine Seite mit vierzig Monitoren als „API“, „Web-App“ und „Datenpipeline“ liest statt als endlose Liste. Beides bauen Sie auf einem Bildschirm: Öffnen Sie eine Statusseite und wählen Sie **Ressourcen** in ihrem Seitenmenü.
 
+> [!TIP]
+> Neu hier? Folgen Sie zuerst der Anleitung: [Eine Statusseite veröffentlichen](/docs/guides/status-page).
+
 :::cards
 - [Einen Monitor hinzufügen](#einen-monitor-hinzufügen): Einen Monitor auf die Seite bringen, mit dem Namen, den Besucher lesen.
 - [Gruppen](#gruppen): Die Seite in Abschnitte teilen und diese verschachteln.
@@ -30,6 +33,7 @@ flowchart TB
 Eine Ressource entscheidet über mehr als die Farbe ihrer Zeile:
 
 - **Archivierte Monitore werden nicht angezeigt.** Ein archivierter Monitor wird nicht mehr geprüft, sein letzter Status ist also eingefroren; die Seite lässt seine Zeile weg (und lässt ihn aus dem Status einer Monitor-Gruppe heraus), statt diesen eingefrorenen Status so zu zeigen, als wäre er aktuell. Die Zeile bleibt erhalten, sodass sie wieder erscheint, sobald Sie den Monitor aus dem Archiv holen.
+- **Ein Monitor mit ausgeschalteter Überwachung zeigt Nicht überwacht.** Nichts prüft ihn, der Status, den er zuletzt hatte, sagt jetzt also nichts: Seine Zeile zeigt **Nicht überwacht** in Grau und zählt weder für die Gruppe darüber noch für das Banner mit dem Gesamtstatus. Seine Verlaufsbalken behalten seinen Verlauf bis zum Ausschalten seiner Überwachung und lassen die Zeit danach aus. Eine Monitor-Gruppe zählt nur ihre Monitore mit eingeschalteter Überwachung und zeigt **Nicht überwacht**, wenn sie für alle ausgeschaltet ist; ihre Balken und ihre Verfügbarkeit lassen bei jedem Monitor die Zeit mit ausgeschalteter Überwachung aus. Wird nichts auf der Seite überwacht, sagt das Banner das.
 - **Ressourcen entscheiden, welche Vorfälle die Seite zeigt.** Ein Vorfall erscheint hier, und die Abonnenten der Seite erfahren davon, wenn einer der Monitore des Vorfalls eine Ressource auf der Seite ist, direkt oder über eine Monitor-Gruppe. Stellen Sie denselben Monitor auf mehrere Seiten, erreichen seine Vorfälle alle davon, sofern ein Vorfall nicht auf einige dieser Seiten beschränkt ist. Siehe [Eine Statusseite pro Zielgruppe](/docs/status-pages/one-status-page-per-audience).
 - **Die Zeile einer Monitor-Gruppe steht für jeden Monitor darin, auch für Abonnenten.** Auf einer Seite, auf der Abonnenten Ressourcen wählen können, erfährt jemand, der eine Monitor-Gruppe abonniert, von Vorfällen, geplanten Wartungen und Ankündigungen zu jedem Monitor der Gruppe, als hätte er diesen Monitor gewählt. Siehe [Abonnenten & Ankündigungen](/docs/status-pages/subscribers#abonnenten-ressourcen-und-ereignistypen-wählen-lassen).
 
@@ -118,6 +122,8 @@ Gruppen haben ihre eigenen Kopien dieser Schalter (siehe unten), sodass eine Gru
 Die Farben der Balken des Verlaufsdiagramms werden unter **Weitere Einstellungen** auf der Seite **Branding** festgelegt, und welche Monitorstatus als „ausgefallen“ zählen, in **Zählt als Ausfallzeit**, in der Karte **Was Ihre Statusseite zeigt** unter **Erweiterte Einstellungen** – beides erklärt [Statusseiten – Branding & Domains](/docs/status-pages/branding-and-domains).
 
 Jeder Balken ist ein Tag. Zeigen Sie auf einen Balken oder klicken Sie ihn an (auf dem Telefon antippen, mit der Tastatur Enter drücken), um den Tag zu lesen: seine Verfügbarkeit, wie lange jeder Status dauerte, die an diesem Tag gemeldeten Vorfälle und die geplante Wartung, die an ihm lief, jeweils mit einem Link auf ihre eigene Seite. Ein Tag mit geplanter Wartung trägt oben an seinem Balken einen blauen Streifen, und solange ein Ereignis läuft, steht neben dem Namen jeder Ressource seiner Monitore „In Wartung“. Wartung ändert weder die Farbe eines Balkens noch die Verfügbarkeit, die beide aus den Status des Monitors kommen: Damit geplante Arbeit nicht in die Verfügbarkeit eingeht, wählen Sie für das Ereignis bei **Monitor-Status ändern in** einen Status, der nicht zu den Status unter **Zählt als Ausfallzeit** der Seite gehört. Siehe [Was ein Ereignis beeinflusst](/docs/scheduled-maintenance/index#was-ein-ereignis-beeinflusst).
+
+Jeder Balken ist ein Tag in der eigenen Zeitzone des Lesers, derselben, in der die Seite alle anderen Zeiten anzeigt, sodass der letzte Balken sein heutiger Tag ist. Der Balken einer Monitor-Gruppe zeigt, wie lange die Gruppe selbst an diesem Tag in jedem Status war: In jedem Moment hat die Gruppe den schlechtesten Status ihrer Monitore, sodass sich die Status eines Tages zu der Zeit addieren, in der mindestens einer ihrer Monitore geprüft wurde, und nie zu mehr als dem Tag.
 
 ## Gruppen
 

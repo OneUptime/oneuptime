@@ -11,6 +11,7 @@ import { MOVED_CODE_ROOT_PATHS } from "../Routes/MovedPagePaths";
 export const MonitorsRoutePath: Dictionary<string> = {
   [PageMap.MONITORS_INOPERATIONAL]: "inoperational",
   [PageMap.MONITOR_CREATE]: "create",
+  [PageMap.MONITOR_GUIDED_SETUP]: "setup",
   [PageMap.MONITORS_DISABLED]: "disabled",
   [PageMap.MONITORS_ARCHIVED]: "archived",
   [PageMap.MONITORS_PROBE_DISCONNECTED]: "probe-disconnected",
@@ -76,6 +77,7 @@ export const ServiceRoutePath: Dictionary<string> = {
   [PageMap.SERVICE_SETTINGS_LABEL_RULES]: `settings/label-rules`,
   [PageMap.SERVICE_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.SERVICE_ARCHIVED]: `archived`,
+  [PageMap.SERVICES_GUIDED_SETUP]: `setup`,
 };
 
 /*
@@ -1280,6 +1282,7 @@ export const DashboardsRoutePath: Dictionary<string> = {
 
 export const StatusPagesRoutePath: Dictionary<string> = {
   [PageMap.STATUS_PAGES_ARCHIVED]: "archived",
+  [PageMap.STATUS_PAGES_GUIDED_SETUP]: "setup",
   [PageMap.STATUS_PAGE_ANNOUNCEMENTS]: "announcements",
   [PageMap.ANNOUNCEMENT_CREATE]: "announcements/create",
   [PageMap.ANNOUNCEMENT_VIEW]: `announcements/${RouteParams.ModelID}`,
@@ -1395,6 +1398,7 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP]:
     "settings/episode-membership",
   [PageMap.INCIDENTS_SETTINGS_NUMBERING]: "settings/numbering",
+  [PageMap.INCIDENTS_SETTINGS_RETENTION]: "settings/data-retention",
 
   /*
    * The AI section. Settings and Auto Remediation Rules were at settings/ai
@@ -1474,6 +1478,7 @@ export const AlertsRoutePath: Dictionary<string> = {
   [PageMap.ALERTS_SETTINGS_MEASUREMENTS]: "settings/measurements",
   [PageMap.ALERTS_SETTINGS_EPISODE_MEMBERSHIP]: "settings/episode-membership",
   [PageMap.ALERTS_SETTINGS_NUMBERING]: "settings/numbering",
+  [PageMap.ALERTS_SETTINGS_RETENTION]: "settings/data-retention",
 
   /*
    * The AI section. Settings and Auto Remediation Rules were at settings/ai
@@ -1593,6 +1598,7 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_BILLING_INVOICES]: "invoices",
   [PageMap.SETTINGS_USAGE_HISTORY]: "usage-history",
   [PageMap.SETTINGS_LABELS]: "labels",
+  [PageMap.SETTINGS_PRODUCTS]: "products",
   [PageMap.SETTINGS_IMPORT_FROM_TOOL]: "import",
 };
 
@@ -1647,6 +1653,7 @@ export const OnCallDutyRoutePath: Dictionary<string> = {
   [PageMap.ON_CALL_DUTY_POLICIES]: "policies",
   [PageMap.ON_CALL_DUTY_POLICIES_ARCHIVED]: "policies/archived",
   [PageMap.ON_CALL_DUTY_READINESS]: "readiness",
+  [PageMap.ON_CALL_DUTY_GUIDED_SETUP]: "setup",
   [PageMap.ON_CALL_DUTY_CALENDAR_FEEDS]: "calendar-feeds",
   [PageMap.ON_CALL_DUTY_SCHEDULE_TIMELINE]: "schedule-timeline",
   [PageMap.ON_CALL_DUTY_POLICY_VIEW]: `policies/${RouteParams.ModelID}`,
@@ -1715,6 +1722,15 @@ export const UserSettingsRoutePath: Dictionary<string> = {
   [PageMap.USER_SETTINGS_SETUP]: "setup",
 };
 
+/*
+ * The pages under Home (…/home/): Home itself is one page, and Setup health
+ * is about the whole project, so it lives beside it rather than in a
+ * product (#6812).
+ */
+export const HomeRoutePath: Dictionary<string> = {
+  [PageMap.HOME_SETUP_HEALTH]: "setup-health",
+};
+
 const RouteMap: Dictionary<Route> = {
   [PageMap.INIT]: new Route(`/dashboard`),
 
@@ -1726,28 +1742,20 @@ const RouteMap: Dictionary<Route> = {
 
   [PageMap.HOME]: new Route(`/dashboard/${RouteParams.ProjectID}/home/`),
 
-  [PageMap.HOME_ACTIVE_INCIDENTS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/home/active-incidents`,
+  [PageMap.HOME_SETUP_HEALTH]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/home/${
+      HomeRoutePath[PageMap.HOME_SETUP_HEALTH]
+    }`,
   ),
 
-  [PageMap.HOME_NOT_OPERATIONAL_MONITORS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/home/monitors-inoperational`,
-  ),
-
-  [PageMap.HOME_ACTIVE_ALERTS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/home/active-alerts`,
-  ),
-
-  [PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/home/scheduled-maintenance-ongoing`,
-  ),
-
-  [PageMap.HOME_ACTIVE_EPISODES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/home/active-episodes`,
-  ),
-
-  [PageMap.HOME_ACTIVE_INCIDENT_EPISODES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/home/active-incident-episodes`,
+  /*
+   * Everything under …/home/ but Home itself: the addresses of the lists
+   * Home used to hold, which forward to the products' own lists
+   * (MOVED_HOME_LIST_PATHS). Home (…/home/) outranks it in the router, so
+   * it only ever gets the addresses under Home.
+   */
+  [PageMap.MOVED_HOME_LISTS_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/home/*`,
   ),
 
   [PageMap.MONITORS_ROOT]: new Route(
@@ -1788,6 +1796,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.MONITOR_CREATE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/monitors/${
       MonitorsRoutePath[PageMap.MONITOR_CREATE]
+    }`,
+  ),
+
+  [PageMap.MONITOR_GUIDED_SETUP]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/monitors/${
+      MonitorsRoutePath[PageMap.MONITOR_GUIDED_SETUP]
     }`,
   ),
 
@@ -2262,6 +2276,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.ALERTS_SETTINGS_NUMBERING]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
       AlertsRoutePath[PageMap.ALERTS_SETTINGS_NUMBERING]
+    }`,
+  ),
+
+  [PageMap.ALERTS_SETTINGS_RETENTION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERTS_SETTINGS_RETENTION]
     }`,
   ),
 
@@ -2860,6 +2880,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.INCIDENTS_SETTINGS_RETENTION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_RETENTION]
+    }`,
+  ),
+
   [PageMap.INCIDENTS_SETTINGS_AI]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_AI]
@@ -3198,6 +3224,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SERVICE_ARCHIVED]: new Route(
     `/dashboard/${RouteParams.ProjectID}/service/${
       ServiceRoutePath[PageMap.SERVICE_ARCHIVED]
+    }`,
+  ),
+
+  [PageMap.SERVICES_GUIDED_SETUP]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICES_GUIDED_SETUP]
     }`,
   ),
 
@@ -7474,6 +7506,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.STATUS_PAGES_GUIDED_SETUP]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/status-pages/${
+      StatusPagesRoutePath[PageMap.STATUS_PAGES_GUIDED_SETUP]
+    }`,
+  ),
+
   [PageMap.STATUS_PAGE_ANNOUNCEMENTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/status-pages/${
       StatusPagesRoutePath[PageMap.STATUS_PAGE_ANNOUNCEMENTS]
@@ -7819,6 +7857,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.ON_CALL_DUTY_READINESS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
       OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_READINESS]
+    }`,
+  ),
+
+  [PageMap.ON_CALL_DUTY_GUIDED_SETUP]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+      OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_GUIDED_SETUP]
     }`,
   ),
 
@@ -9622,6 +9666,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_LABELS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_LABELS]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_PRODUCTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_PRODUCTS]
     }`,
   ),
 

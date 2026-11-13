@@ -104,14 +104,22 @@ const KIND_COPIES: Array<[string, CustomDomainKindCopy]> = [
   ["dashboard", DASHBOARD_CUSTOM_DOMAIN_COPY],
 ];
 
-// Every sentence this flow shows, from the copy module.
+/*
+ * Every sentence this flow shows, from the copy module. The example
+ * addresses (status.example.com) are hostnames, drawn as they are.
+ */
 const SENTENCES: Array<string> = [
   ...Object.values(CUSTOM_DOMAIN_STATUS),
   ...Object.values(CUSTOM_DOMAIN_VERIFIED_NEXT),
   ...Object.values(CustomDomainCopy),
   ...Object.values(STATUS_PAGE_CUSTOM_DOMAIN_COPY),
   ...Object.values(DASHBOARD_CUSTOM_DOMAIN_COPY),
-];
+].filter((sentence: string): boolean => {
+  return ![
+    STATUS_PAGE_CUSTOM_DOMAIN_COPY.addressPlaceholder,
+    DASHBOARD_CUSTOM_DOMAIN_COPY.addressPlaceholder,
+  ].includes(sentence);
+});
 
 /*
  * Words and sentences the flow shares with the rest of the Dashboard, or
@@ -126,11 +134,12 @@ const SHARED: Array<string> = [
   CustomDomainCopy.dnsSetupDone,
   CustomDomainCopy.cardDescriptionNotEnabled,
   CustomDomainCopy.reissueRateLimit,
+  // Add Custom Domain's field and button: the Dashboard's own words.
+  CustomDomainCopy.addAddressTitle,
+  CustomDomainCopy.addSubmit,
   ...KIND_COPIES.flatMap(([, copy]: [string, CustomDomainKindCopy]) => {
     return [
       copy.dnsSetupNotEnabled,
-      copy.subdomainPlaceholder,
-      copy.subdomainDescription,
       copy.reissueTitle,
       copy.reissueDescription,
     ];
@@ -467,8 +476,15 @@ describe("the copy", () => {
    * its folded header, its two DNS Setup sentences (before and after Check
    * now verifies the record) and both kinds' card descriptions.
    */
-  test("brings 36 sentences of its own", () => {
-    expect(NEW_SENTENCES).toHaveLength(36);
+  /*
+   * #6835 brought nine (Add Custom Domain's title, its field's line and the
+   * word for who may add a project domain; DNS Setup's line over each
+   * record, when it last looked, what happens next with two records, and
+   * both kinds' intro for two records) and took two away (the Domain
+   * dropdown's line and its link to Project Settings): 43.
+   */
+  test("brings 43 sentences of its own", () => {
+    expect(NEW_SENTENCES).toHaveLength(43);
   });
 
   test.each(OTHER_LOCALES)(
@@ -536,11 +552,17 @@ describe("each kind's own words", () => {
     expect(DASHBOARD_CUSTOM_DOMAIN_COPY.dnsSetupNotEnabled).toContain(
       "dashboard.cnameRecord",
     );
-    expect(DASHBOARD_CUSTOM_DOMAIN_COPY.subdomainPlaceholder).toBe(
-      "dashboard (leave blank for root)",
+    expect(DASHBOARD_CUSTOM_DOMAIN_COPY.addressPlaceholder).toBe(
+      "dashboard.example.com",
     );
-    expect(STATUS_PAGE_CUSTOM_DOMAIN_COPY.subdomainPlaceholder).toBe(
-      "status (leave blank for root)",
+    expect(STATUS_PAGE_CUSTOM_DOMAIN_COPY.addressPlaceholder).toBe(
+      "status.example.com",
+    );
+    expect(STATUS_PAGE_CUSTOM_DOMAIN_COPY.dnsSetupIntroTwoRecords).toContain(
+      "your status page",
+    );
+    expect(DASHBOARD_CUSTOM_DOMAIN_COPY.dnsSetupIntroTwoRecords).toContain(
+      "your dashboard",
     );
     expect(DASHBOARD_CUSTOM_DOMAIN_COPY.reissueTitle).toBe(
       "Reissue SSL Certificate for this Dashboard",
@@ -614,13 +636,22 @@ describe("the Custom Domains pages", () => {
     expect(table).not.toContain("stepId");
   });
 
-  test("lists verified domains only", () => {
-    expect(table).toMatch(/query: \{ isVerified: true, \}/);
+  /*
+   * Add Custom Domain is a dialog of its own: the address people will open,
+   * and the project's domain verified in place when it is not yet. The
+   * table's create form - a subdomain and a list of verified domains only -
+   * is gone.
+   */
+  test("adds a domain with a dialog of its own, not the table's create form", () => {
+    expect(table).toContain("onCreateClick");
+    expect(table).toContain("<AddCustomDomainModal");
+    expect(table).not.toMatch(/query: \{ isVerified: true, \}/);
+    expect(table).not.toContain("onBeforeCreate");
   });
 
   test("opens DNS Setup on a domain that was just added", () => {
-    expect(table).toContain("onCreateSuccess");
-    expect(table).toContain("modalType === ModalType.Create");
+    expect(table).toContain("onAdded");
+    expect(table).toContain("openDnsSetupForNewDomain");
     expect(table).toContain("CustomDomainDnsSetupModal");
   });
 
@@ -645,10 +676,17 @@ describe("the Custom Domains pages", () => {
     );
   });
 
-  test("the dialog asks verify-cname, the one call it makes", () => {
+  /*
+   * check-dns answers every record it looked up, found or not, where
+   * verify-cname refuses a record that is not found; check-txt verifies the
+   * project's domain while it waits for its TXT record.
+   */
+  test("the dialog asks check-dns, and check-txt while the project's domain waits", () => {
     const dialog: string = readSource(DIALOG);
 
-    expect(dialog).toContain("/verify-cname/");
+    expect(dialog).toContain("/check-dns/");
+    expect(dialog).toContain("/domain/check-txt/");
+    expect(dialog).not.toContain("/verify-cname/");
     expect(dialog).not.toContain("order-ssl");
   });
 
@@ -660,10 +698,33 @@ describe("the Custom Domains pages", () => {
     const kinds: string = readSource(KINDS);
 
     expect(kinds).toMatch(
-      /STATUS_PAGE_CUSTOM_DOMAINS: CustomDomainKind = \{ modelType: StatusPageDomain, parentColumn: "statusPageId", tableId: "domains-table", tableName: "Status Page > Domains", userPreferencesKey: "status-page-domains-table", saveFilterTableId: "status-page-domains-table", getCnameRecord: \(\): string => \{ return StatusPageCNameRecord; \}, cnameRecordVariable: "STATUS_PAGE_CNAME_RECORD", copy: STATUS_PAGE_CUSTOM_DOMAIN_COPY, \}/,
+      /STATUS_PAGE_CUSTOM_DOMAINS: CustomDomainKind = \{ modelType: StatusPageDomain, parentColumn: "statusPageId", tableId: "domains-table", tableName: "Status Page > Domains", userPreferencesKey: "status-page-domains-table", saveFilterTableId: "status-page-domains-table", getCnameRecord: \(\): string => \{ return StatusPageCNameRecord; \}, cnameRecordVariable: "STATUS_PAGE_CNAME_RECORD", copy: STATUS_PAGE_CUSTOM_DOMAIN_COPY, docsPath: "\/docs\/status-pages\/branding-and-domains#custom-domains", \}/,
     );
     expect(kinds).toMatch(
-      /DASHBOARD_CUSTOM_DOMAINS: CustomDomainKind = \{ modelType: DashboardDomain, parentColumn: "dashboardId", tableId: "dashboard-domains-table", tableName: "Dashboard > Domains", userPreferencesKey: "dashboard-domains-table", saveFilterTableId: "dashboard-domains-table", getCnameRecord: \(\): string => \{ return DashboardCNameRecord; \}, cnameRecordVariable: "DASHBOARD_CNAME_RECORD", copy: DASHBOARD_CUSTOM_DOMAIN_COPY, \}/,
+      /DASHBOARD_CUSTOM_DOMAINS: CustomDomainKind = \{ modelType: DashboardDomain, parentColumn: "dashboardId", tableId: "dashboard-domains-table", tableName: "Dashboard > Domains", userPreferencesKey: "dashboard-domains-table", saveFilterTableId: "dashboard-domains-table", getCnameRecord: \(\): string => \{ return DashboardCNameRecord; \}, cnameRecordVariable: "DASHBOARD_CNAME_RECORD", copy: DASHBOARD_CUSTOM_DOMAIN_COPY, docsPath: "\/docs\/dashboards\/sharing#custom-domains", \}/,
+    );
+  });
+});
+
+/*
+ * Each kind's list opens the docs section that explains it (#6822): View
+ * Documentation, from the kind's own docsPath, which DocsLinksResolve holds
+ * to a heading that exists.
+ */
+describe("the Custom Domains list's View Documentation", () => {
+  test("opens each kind's own docs section, from the kind", () => {
+    const kinds: string = readSource(KINDS);
+
+    for (const docsPath of [
+      "/docs/status-pages/branding-and-domains#custom-domains",
+      "/docs/dashboards/sharing#custom-domains",
+      "/docs/forms/sharing-and-security#custom-domains",
+    ]) {
+      expect(kinds).toContain(`docsPath: "${docsPath}"`);
+    }
+    expect(kinds.match(/docsPath: "/g)).toHaveLength(3);
+    expect(readSource(TABLE)).toContain(
+      "documentationLink={Route.fromString(kind.docsPath)}",
     );
   });
 });
@@ -826,11 +887,15 @@ describe("the pages ask the installation", () => {
     expect(kinds).toContain("protocol: HTTP_PROTOCOL");
   });
 
-  test("the table's card and folded header change their words with it", () => {
+  // The certificate options fold under Add Custom Domain (AddCustomDomainModal).
+  test("the table's card and Add Custom Domain's folded header change their words with it", () => {
     const table: string = readSource(TABLE);
+    const add: string = readSource(
+      path.join(path.dirname(TABLE), "AddCustomDomainModal.tsx"),
+    );
 
     expect(table).toContain("kind.copy.cardDescriptionWithoutFreeCertificates");
-    expect(table).toContain(
+    expect(add).toContain(
       "CustomDomainCopy.advancedSummaryWithoutFreeCertificate",
     );
   });

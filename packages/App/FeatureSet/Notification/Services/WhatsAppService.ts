@@ -4,9 +4,9 @@ import {
   MetaWhatsAppConfig,
   DEFAULT_META_WHATSAPP_API_VERSION,
 } from "../Config";
+import { recordSendResult } from "Common/Server/Utils/OnCall/OnCallNotificationStatus";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
-import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
 import WhatsAppMessage from "Common/Types/WhatsApp/WhatsAppMessage";
 import WhatsAppStatus from "Common/Types/WhatsAppStatus";
 import {
@@ -90,6 +90,11 @@ export default class WhatsAppService {
   ): Promise<void> {
     let sendError: Error | null = null;
     const whatsAppLog: WhatsAppLog = new WhatsAppLog();
+    /*
+     * Set once the log is written, just before the message is handed to
+     * Meta, so the send's result below is an update of it, not an insert.
+     */
+    let whatsAppLogId: ObjectID | null = null;
 
     try {
       if (!message.to) {
@@ -421,7 +426,35 @@ export default class WhatsAppService {
         new Route(`${apiVersion}/${config.phoneNumberId}/messages`),
       );
 
-      logger.debug(`WhatsApp API request: ${JSON.stringify(payload)}`);
+      // Never the number it goes to, nor what the message says.
+      logger.debug(
+        `WhatsApp API request: template ${message.templateKey} (${message.templateLanguageCode || "en"}).`,
+      );
+
+      /*
+       * Written BEFORE the message is handed to Meta, as an SMS's log is
+       * (SmsService): Queued, with no message id yet - the id comes back
+       * with Meta's answer, and is written with the send's result below. A
+       * status Meta reports before that write lands finds no log by its id,
+       * but finds this send on its way, and Meta's status webhook
+       * (API/WhatsApp.ts) asks Meta to send it again rather than drop it.
+       * Delivery is tracked for a project's messages only, as only their
+       * logs are kept.
+       */
+      if (options.projectId) {
+        whatsAppLog.status = WhatsAppStatus.Queued;
+
+        const createdWhatsAppLog: WhatsAppLog = await WhatsAppLogService.create(
+          {
+            data: whatsAppLog,
+            props: {
+              isRoot: true,
+            },
+          },
+        );
+
+        whatsAppLogId = createdWhatsAppLog.id || null;
+      }
 
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
         await API.post<JSONObject>({
@@ -510,31 +543,53 @@ export default class WhatsAppService {
     }
 
     if (options.projectId) {
-      await WhatsAppLogService.create({
-        data: whatsAppLog,
-        props: {
-          isRoot: true,
-        },
-      });
+      if (whatsAppLogId) {
+        /*
+         * The log was written before the send: the send's result, with the
+         * message's id, in one hookless UPDATE - WhatsAppLog has update
+         * workflows disabled and no audit/realtime decorators or service
+         * update hooks, as SmsLog (SmsService). Nothing else writes the log
+         * before this: Meta's status webhook finds it only by the id this
+         * write gives it.
+         */
+        await WhatsAppLogService.updateColumnsByIdWithoutHooks({
+          id: whatsAppLogId,
+          data: {
+            status: whatsAppLog.status!,
+            statusMessage: whatsAppLog.statusMessage!,
+            whatsAppCostInUSDCents: whatsAppLog.whatsAppCostInUSDCents!,
+            ...(whatsAppLog.whatsAppMessageId
+              ? { whatsAppMessageId: whatsAppLog.whatsAppMessageId }
+              : {}),
+          },
+        });
+      } else {
+        // The send failed before the log could be written (no template, say).
+        await WhatsAppLogService.create({
+          data: whatsAppLog,
+          props: {
+            isRoot: true,
+          },
+        });
+      }
     }
 
     if (options.userOnCallLogTimelineId) {
-      await UserOnCallLogTimelineService.updateOneById({
-        id: options.userOnCallLogTimelineId,
-        data: {
-          status: [
-            WhatsAppStatus.Success,
-            WhatsAppStatus.Sent,
-            WhatsAppStatus.Delivered,
-            WhatsAppStatus.Read,
-          ].includes(whatsAppLog.status || WhatsAppStatus.Error)
-            ? UserNotificationStatus.Sent
-            : UserNotificationStatus.Error,
-          statusMessage: whatsAppLog.statusMessage,
-        },
-        props: {
-          isRoot: true,
-        },
+      /*
+       * Only while the page's timeline entry still says Sending
+       * (OnCallNotificationStatus): Meta's report that the message failed
+       * (API/WhatsApp.ts) can land there first, once the log has its id,
+       * and the person may have acknowledged the page meanwhile.
+       */
+      await recordSendResult({
+        userOnCallLogTimelineId: options.userOnCallLogTimelineId,
+        isSent: [
+          WhatsAppStatus.Success,
+          WhatsAppStatus.Sent,
+          WhatsAppStatus.Delivered,
+          WhatsAppStatus.Read,
+        ].includes(whatsAppLog.status || WhatsAppStatus.Error),
+        statusMessage: whatsAppLog.statusMessage || "",
       });
     }
 

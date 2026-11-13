@@ -10,6 +10,7 @@ import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTim
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
 import CurrentlyActiveIndicator from "Common/UI/Components/StateTimeline/CurrentlyActiveIndicator";
+import MonitoringOffIndicator from "Common/UI/Components/StateTimeline/MonitoringOffIndicator";
 import MonitorStatusHistoryUtil, {
   MonitorStatusChangeRow,
 } from "Common/Utils/Monitor/MonitorStatusHistoryUtil";
@@ -29,7 +30,9 @@ export interface ComponentProps {
  * long each lasted. Only the newest open row is ongoing - marked "Currently
  * Active", as on the full status timeline, with a duration that keeps
  * counting: an older row the reconciler has not closed yet is capped at the
- * start of the next one.
+ * start of the next one. A status held with monitoring off is marked
+ * Monitoring Off, as on the timeline: turning monitoring off or on starts a
+ * row of the same status, which would otherwise read as the status twice.
  */
 const MonitorStatusChangesCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -140,6 +143,7 @@ const MonitorStatusChangesCard: FunctionComponent<ComponentProps> = (
                     <span className="text-sm font-medium text-gray-900">
                       {row.statusName}
                     </span>
+                    {row.isMonitoringOff ? <MonitoringOffIndicator /> : <></>}
                     {row.isOngoing ? <CurrentlyActiveIndicator /> : <></>}
                   </div>
                   <p className="mt-0.5 text-xs text-gray-500">

@@ -318,13 +318,15 @@ describe("the instances on the license", () => {
     expect(thisInstance).toHaveTextContent("This instance");
     expect(thisInstance).toHaveTextContent("v13.0.0");
     expect(thisInstance).not.toHaveTextContent("v12.9.0");
-    expect(thisInstance).toHaveTextContent("7users");
+    // A label and its figure, "Users: 7", the number drawn bolder (#7134).
+    expect(thisInstance).toHaveTextContent("Users: 7");
     expect(thisInstance).not.toHaveTextContent("Update available.");
 
     expect(staging).not.toHaveTextContent("This instance");
     expect(staging).toHaveTextContent("v12.0.0");
     expect(staging).toHaveTextContent("No usage reported yet. Update available.");
-    expect(staging).toHaveTextContent("1user");
+    // The same line for one user: a label reads alike for every count.
+    expect(staging).toHaveTextContent("Users: 1");
 
     expect(
       screen.getByText(/counted uniquely across all 2 instances/),

@@ -75,6 +75,7 @@ import {
   CodeTaskContextInput,
   CodeTaskContextInputUtil,
   CodeTaskContextItem,
+  CodeTaskConversationJSON,
   CodeTaskListCountsJSON,
   CodeTaskListFilter,
   CodeTaskListKind,
@@ -82,7 +83,6 @@ import {
   MAX_CODE_TASKS_PER_REQUEST,
   CodeTaskRepositoryJSON,
   CodeTaskSummaryJSON,
-  CodeTaskTurnJSON,
   CodeTaskTurnProgressJSON,
 } from "../../Types/AI/CodeTask";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -108,7 +108,10 @@ import { CodeHost } from "../../Types/CodeRepository/CodeHost";
  *                                         or every task the caller may read)
  *   POST /code-task/branches/:id          a repository's branches, for the
  *                                         branch a task starts from
- *   POST /code-task/get/:taskId           a task's conversation
+ *   POST /code-task/get/:taskId           a task's conversation: its first
+ *                                         turn and its newest, and how many
+ *                                         between them are not shown - and
+ *                                         a turn not shown a link names
  *   POST /code-task/progress/:taskId      how a turn AI is working on stands,
  *                                         and the steps it took since the
  *                                         page last read it
@@ -843,7 +846,12 @@ export default class CodeTaskAPI {
     return answer as unknown as JSONObject;
   }
 
-  // A task's conversation, and what the caller may do in it.
+  /*
+   * A task's conversation, and what the caller may do in it. Body: { turn }
+   * - optional, the turn a link names (the Log page's ?turn=): sent back
+   * as linkedTurn, with its place in the task, when it is one of the
+   * task's turns the conversation does not show.
+   */
   private async getTask(
     req: ExpressRequest,
     props: DatabaseCommonInteractionProps,
@@ -855,6 +863,12 @@ export default class CodeTaskAPI {
       projectId,
     );
 
+    const body: JSONObject = (req.body as JSONObject) || {};
+    const linkedTurnId: ObjectID | undefined = CodeTaskAPI.readOptionalId(
+      body["turn"],
+      "turn",
+    );
+
     const canAsk: boolean = repository
       ? await CodeTaskAccess.canAskInRepository({
           props,
@@ -864,7 +878,7 @@ export default class CodeTaskAPI {
       : false;
 
     const [conversation, blocker, connections]: [
-      { task: CodeTaskSummaryJSON; turns: Array<CodeTaskTurnJSON> },
+      CodeTaskConversationJSON,
       CodeTaskBlocker | null,
       Map<string, CodeHostConnectionSummary>,
     ] = await Promise.all([
@@ -877,6 +891,7 @@ export default class CodeTaskAPI {
         task,
         canSeeChanges: canAsk,
         props,
+        linkedTurnId,
       }),
       repository
         ? CodeTaskGate.getBlocker({ props, projectId, repository, canAsk })
@@ -892,6 +907,21 @@ export default class CodeTaskAPI {
     return {
       task: conversation.task as unknown as JSONObject,
       turns: conversation.turns as unknown as Array<JSONObject>,
+      /*
+       * A task with more turns than its conversation shows: how many are not
+       * shown, between its first turn and the newest.
+       */
+      ...(conversation.turnsNotShown
+        ? {
+            turnsNotShown: conversation.turnsNotShown as unknown as JSONObject,
+          }
+        : {}),
+      // The turn not shown a link names, when it is one of the task's.
+      ...(conversation.linkedTurn
+        ? {
+            linkedTurn: conversation.linkedTurn as unknown as JSONObject,
+          }
+        : {}),
       repository: repository
         ? (CodeTaskAPI.toRepositoryJSON(
             repository,
@@ -1604,6 +1634,18 @@ export default class CodeTaskAPI {
     }
 
     return new ObjectID(raw);
+  }
+
+  // An id the body may leave out (nothing, null or ""); anything else must be one.
+  private static readOptionalId(
+    raw: unknown,
+    what: string,
+  ): ObjectID | undefined {
+    if (raw === undefined || raw === null || raw === "") {
+      return undefined;
+    }
+
+    return CodeTaskAPI.readId(raw, what);
   }
 
   private static readNumber(

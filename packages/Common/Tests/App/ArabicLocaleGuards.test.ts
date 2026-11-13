@@ -1,3 +1,4 @@
+// UX rule: Docs/ux/README.md#in-every-language
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -201,6 +202,7 @@ const SAME_AS_ENGLISH: Record<string, Array<string>> = {
     "PostgreSQL",
     "Syslog",
     "Telegram",
+    "Valkey",
     "Wasabi",
     "WhatsApp",
     "gpt-4o, claude-3-opus, llama-3.3-70b-versatile",

@@ -6,19 +6,23 @@
  * `service.instance.id`, then the generic fallbacks:
  *
  *   - The platform's task / instance id (ECS task, Cloud Run instance,
- *     Container Apps replica) is what the platform's resource detector
- *     stamps on BOTH the application's telemetry and a sidecar collector's
- *     container metrics, and it survives process restarts. Keying on it
- *     puts the app's spans and the sidecar's CPU / memory points on one
- *     row.
+ *     Container Apps replica, App Service instance) is what the platform's
+ *     resource detector stamps on BOTH the application's telemetry and a
+ *     sidecar collector's container metrics, and it survives process
+ *     restarts. Keying on it puts the app's spans and the sidecar's CPU /
+ *     memory points on one row. On App Service it is the Collector's and
+ *     the Go SDK's `azureappservice` detectors' WEBSITE_INSTANCE_ID, as
+ *     `azure.app_service.instance.id` (issue #6770: unread, an app they
+ *     describe named no instance, and read 0 instances while it ran).
  *   - `service.instance.id` is usually minted by the SDK as a random id per
  *     process (the Node SDK's default `serviceinstance` detector does
  *     exactly that). If it came first, an ECS task would split into two
  *     rows — one under the SDK's uuid, one under the task id the
  *     awsecscontainermetrics receiver reports — and the live-instance count
  *     would double. It is used when the platform sets no identity of its
- *     own, which is the case on App Runner, App Service, Beanstalk and
- *     Container Instances.
+ *     own, which is the case on App Runner, Beanstalk and Container
+ *     Instances - and on App Service with the Node.js and .NET detectors,
+ *     which put the same WEBSITE_INSTANCE_ID there.
  *   - `container.id`, `host.id` and `host.name` catch everything else; on a
  *     managed platform the container hostname is normally the instance name
  *     (Container Apps sets it to the replica name).
@@ -40,6 +44,7 @@ export const CLOUD_INSTANCE_IDENTITY_ATTRIBUTES: ReadonlyArray<string> = [
   "aws.ecs.task.arn",
   "faas.instance",
   "azure.container_app.instance.id",
+  "azure.app_service.instance.id",
   "service.instance.id",
   "container.id",
   "host.id",

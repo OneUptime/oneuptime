@@ -72,6 +72,14 @@ export const SLACK_CHANNEL_GONE_ERRORS: ReadonlyArray<string> = [
   "channel_not_found",
 ];
 
+/*
+ * Slack installed for a whole Enterprise organization: the answer to a call
+ * made in a workspace OneUptime is not added to, or no longer is. The
+ * project's connection still works in the organization's other workspaces.
+ */
+export const SLACK_WORKSPACE_NOT_ADDED_ERROR: string =
+  "team_access_not_granted";
+
 // Answers that mean the project's connection to Slack no longer works.
 export const SLACK_NOT_CONNECTED_ERRORS: ReadonlyArray<string> = [
   "invalid_auth",
@@ -79,7 +87,7 @@ export const SLACK_NOT_CONNECTED_ERRORS: ReadonlyArray<string> = [
   "account_inactive",
   "token_revoked",
   "token_expired",
-  "team_access_not_granted",
+  SLACK_WORKSPACE_NOT_ADDED_ERROR,
   "missing_scope",
   "not_allowed_token_type",
 ];
@@ -140,6 +148,18 @@ export class SlackChannelMembersError extends Error {
   public static isNotConnected(error: unknown): boolean {
     const code: string | null = SlackChannelMembersError.getCode(error);
     return code !== null && SLACK_NOT_CONNECTED_ERRORS.includes(code);
+  }
+
+  /*
+   * One of the not-connected answers (isNotConnected): the workspace the
+   * call was made in no longer has OneUptime, for an Enterprise
+   * organization's installation (SLACK_WORKSPACE_NOT_ADDED_ERROR).
+   */
+  public static isWorkspaceNotAdded(error: unknown): boolean {
+    return (
+      SlackChannelMembersError.getCode(error) ===
+      SLACK_WORKSPACE_NOT_ADDED_ERROR
+    );
   }
 
   public static isUnavailable(error: unknown): boolean {

@@ -19,13 +19,13 @@ total budget = (100% − target) × window length
 
 | Mål | Fönster på 7 dagar | Fönster på 28 dagar | Fönster på 30 dagar | Fönster på 90 dagar |
 | --- | --- | --- | --- | --- |
-| 99% | 1h 40m 48s | 6h 43m 12s | 7h 12m | 21h 36m |
-| 99.5% | 50m 24s | 3h 21m 36s | 3h 36m | 10h 48m |
-| 99.9% | 10m 5s | 40m 19s | 43m 12s | 2h 9m 36s |
-| 99.95% | 5m 2s | 20m 10s | 21m 36s | 1h 4m 48s |
-| 99.99% | 1m 0s | 4m 2s | 4m 19s | 12m 58s |
+| 99 % | 1 tim 40 min 48 s | 6 tim 43 min 12 s | 7 tim 12 min | 21 tim 36 min |
+| 99,5 % | 50 min 24 s | 3 tim 21 min 36 s | 3 tim 36 min | 10 tim 48 min |
+| 99,9 % | 10 min 5 s | 40 min 19 s | 43 min 12 s | 2 tim 9 min 36 s |
+| 99,95 % | 5 min 2 s | 20 min 10 s | 21 min 36 s | 1 tim 4 min 48 s |
+| 99,99 % | 1 min 0 s | 4 min 2 s | 4 min 19 s | 12 min 58 s |
 
-SLO:ets sida **Inställningar** visar budgeten som målet tillåter bredvid målet, till exempel ”43m 12s driftstopp per fönster på 30 dagar”.
+SLO:ets sida **Inställningar** visar budgeten som målet tillåter bredvid målet, till exempel ”43 min 12 s driftstopp per fönster på 30 dagar”.
 
 ### Budgeten för ett SLO med flera monitorer
 
@@ -35,16 +35,16 @@ I läget **Genomsnitt av monitorsekunder** räknas budgeten i monitorsekunder, s
 
 ### Budgeten för en kalendermånad
 
-Ett SLO med kalendermånad har hela månadens budget från första dagen: ett SLO på 99,9 % i en månad med 31 dagar har alla sina 44m 38s den 1:a. Budgeten fördelas inte efter hur stor del av månaden som har gått, så ett avbrott på en minut på morgonen den 1:a förbrukar en minut av månadens budget.
+Ett SLO med kalendermånad har hela månadens budget från första dagen: ett SLO på 99,9 % i en månad med 31 dagar har alla sina 44 min 38 s den 1:a. Budgeten fördelas inte efter hur stor del av månaden som har gått, så ett avbrott på en minut på morgonen den 1:a förbrukar en minut av månadens budget.
 
 ## Återstående budget
 
 Allteftersom driftstoppet ökar visar **Översikt** den återstående budgeten i rutan **Felbudget kvar**:
 
 - som en procentandel av totalen, som också avgör SLO:ets status och fyller stapeln. Stapeln har en markering vid SLO:ets tröskel för riskzon;
-- som en varaktighet, till exempel "31m 4s left of 43m 12s".
+- som en varaktighet, till exempel "31 min 4 s kvar av 43 min 12 s".
 
-När budgeten är slut visar rutan **Ingen budget kvar**. När driftstoppet överskrider den visar rutan **Budgeten överskriden** och överskridandet som tid, till exempel "4d 23m over budget · 5m 47s allowed": SLO:et har använt alla 5 minuter och 47 sekunder av sin budget, och 4 dagar och 23 minuter till. Stapeln förblir tom och röd.
+När budgeten är slut visar rutan **Ingen budget kvar**. När driftstoppet överskrider den visar rutan **Budgeten överskriden** och överskridandet som tid, till exempel "4 d 23 min över budget · 5 min 47 s tillåtet": SLO:et har använt alla 5 minuter och 47 sekunder av sin budget, och 4 dagar och 23 minuter till. Stapeln förblir tom och röd.
 
 Den återstående budgeten lagras som ett tal med tecken för beräkningar och historikdiagram, så där visas en överskriden budget som en negativ procentandel. En starkt negativ procentandel betyder att överskridandet är stort i förhållande till budgeten; det är inte den andel av tiden som tjänsten var nere.
 
@@ -60,7 +60,7 @@ runway = budget left ÷ (burn rate × (100% − target))
 
 | Rutan visar | Vad det betyder |
 | --- | --- |
-| En varaktighet, som **~2d 5h** | I nuvarande takt tar budgeten slut om ungefär så lång tid. Gul, och röd vid en dag eller mindre. **Under 1 min** betyder mindre än en minut. |
+| En varaktighet, som **~2 d 5 tim** | I nuvarande takt tar budgeten slut om ungefär så lång tid. Gul, och röd vid en dag eller mindre. **Under 1 min** betyder mindre än en minut. |
 | **Ingen förbrukning** | Ingen budget har förbrukats under de senaste 60 minuterna. |
 | **Hållbar** | Bara rullande fönster: räckvidden är minst ett helt fönster, så budgeten förbrukas inte snabbare än gammalt driftstopp faller ur fönstret. I den här takten tar den inte slut. |
 | **Räcker till återställningen** | Bara kalendermånader: budgeten nollställs i början av nästa månad innan den tar slut. |
@@ -97,7 +97,7 @@ Ett SLO med kalendermånad nollställs vid midnatt den första i varje månad, i
 
 ### Unga SLO:er
 
-Ett SLO med rullande fönster som är yngre än sitt fönster mäts över de data som finns hittills, och dess totala budget växer med dem: ett SLO på 30 dagar som skapades för en vecka sedan har tills vidare en budget för 7 dagar. Tills fönstret är fullt visar **Översikt** hur fullt det är, med en indikator **Window 23% full** och samma anteckning i rutan **Felbudget kvar**. Räkna med att siffrorna stabiliseras när fönstret fylls.
+Ett SLO med rullande fönster som är yngre än sitt fönster mäts över de data som finns hittills, och dess totala budget växer med dem: ett SLO på 30 dagar som skapades för en vecka sedan har tills vidare en budget för 7 dagar. Tills fönstret är fullt visar **Översikt** hur fullt det är, med en indikator **Fönstret är 23 % fyllt** och samma anteckning i rutan **Felbudget kvar**. Räkna med att siffrorna stabiliseras när fönstret fylls.
 
 ## Statusändringar och tröskeln för riskzon
 

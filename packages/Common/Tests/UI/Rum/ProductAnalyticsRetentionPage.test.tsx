@@ -803,6 +803,50 @@ describe("ProductAnalyticsRetention", () => {
     }
   });
 
+  it("draws every period however wide the table is, and says nothing is left out: a dashboard widget's fitting is the widget's alone (issue #6721)", async () => {
+    /*
+     * A table laid out far wider than any screen: each heading 400px. A
+     * widget would draw one period of it and say "3 more weeks"; the page
+     * draws all four and scrolls, and measures nothing.
+     */
+    const measured: Array<string> = [];
+
+    getJestSpyOn(Element.prototype, "getBoundingClientRect").mockImplementation(
+      function (this: Element): DOMRect {
+        measured.push(this.tagName);
+
+        return { width: 400, height: 20 } as DOMRect;
+      },
+    );
+    mockReads({});
+
+    renderPage();
+
+    await waitFor(() => {
+      expect(
+        screen.getAllByTestId("product-analytics-retention-table-row"),
+      ).toHaveLength(3);
+    });
+
+    const table: HTMLElement = screen.getByTestId(
+      "product-analytics-retention-table",
+    );
+
+    expect(
+      within(table)
+        .getAllByRole("columnheader")
+        .map((header: HTMLElement): string => {
+          return (header.textContent || "").trim();
+        }),
+    ).toEqual(["Cohort", "People", "Week 0", "Week 1", "Week 2", "Week 3"]);
+    expect(within(table).getByRole("table")).toHaveClass("min-w-full");
+    expect(within(table).getByRole("table")).not.toHaveClass("w-max");
+    expect(table).toHaveClass("overflow-x-auto");
+    expect(measured).not.toContain("TABLE");
+    expect(measured).not.toContain("TH");
+    expect(screen.queryByText(/more weeks?$/)).not.toBeInTheDocument();
+  });
+
   it("draws All cohorts above the cohorts, weighted by their people, on the sticky cohort column", async () => {
     mockReads({});
 

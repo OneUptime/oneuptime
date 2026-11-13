@@ -30,6 +30,9 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import OnCallTimelineRows, {
+  OnCallNotificationWrite,
+} from "Common/Tests/Server/TestingUtils/OnCallTimelineRows";
 import type { Mock } from "jest-mock";
 import Twilio from "twilio";
 
@@ -170,6 +173,7 @@ type AsyncMock = Mock<(...args: Array<unknown>) => Promise<unknown>>;
 let project: Project | null;
 let createMessage: AsyncMock;
 let createCall: AsyncMock;
+let timeline: OnCallTimelineRows;
 
 interface TimelineUpdate {
   id: string;
@@ -177,8 +181,14 @@ interface TimelineUpdate {
   statusMessage: string;
 }
 
+/*
+ * Every write to the person's timeline row: each made only while the row
+ * still said Sending (OnCallNotificationStatus) - a skip, a send's result -
+ * and any write by id, which none makes any more (issue #7082): one would
+ * show here as a write too many.
+ */
 function timelineUpdates(): Array<TimelineUpdate> {
-  return (
+  const byId: Array<TimelineUpdate> = (
     UserOnCallLogTimelineService.updateOneById as unknown as jest.Mock
   ).mock.calls.map((call: Array<unknown>): TimelineUpdate => {
     const argument: {
@@ -195,6 +205,17 @@ function timelineUpdates(): Array<TimelineUpdate> {
       statusMessage: argument.data.statusMessage,
     };
   });
+
+  return [
+    ...byId,
+    ...timeline.writes.map((write: OnCallNotificationWrite): TimelineUpdate => {
+      return {
+        id: write.id,
+        status: write.data.status as UserNotificationStatus,
+        statusMessage: write.data.statusMessage as string,
+      };
+    }),
+  ];
 }
 
 // What the person's timeline row ends up saying: one update, not sent, why.
@@ -353,9 +374,22 @@ beforeEach(() => {
   jest
     .spyOn(SmsLogService, "updateColumnsByIdWithoutHooks")
     .mockResolvedValue(undefined as never);
+  // The send's result is written only while the log still says Sending.
+  jest
+    .spyOn(SmsLogService, "compareAndSetColumnsByIdWithoutHooks")
+    .mockResolvedValue(true as never);
+  // A WhatsApp message's log, written before the send, gets its result after.
+  jest
+    .spyOn(WhatsAppLogService, "updateColumnsByIdWithoutHooks")
+    .mockResolvedValue(undefined as never);
   jest
     .spyOn(UserOnCallLogTimelineService, "updateOneById")
     .mockResolvedValue(undefined as never);
+
+  // The person's notification, written Sending as its page went out.
+  timeline = new OnCallTimelineRows();
+  timeline.add(TIMELINE_ID, UserNotificationStatus.Sending);
+  timeline.standIn(UserOnCallLogTimelineService);
   jest.spyOn(API, "post").mockResolvedValue({
     jsonData: {
       ok: true,
@@ -537,11 +571,72 @@ describe("everything else stays as it was", () => {
     expect(timelineUpdates()[0]!.status).toBe(UserNotificationStatus.Sent);
   });
 
+  test.each([
+    ["an SMS", sms],
+    ["a call", call],
+    ["a Telegram message", telegram],
+  ])(
+    "%s that goes out after the person acknowledged the page from another message: the acknowledgement stays (issue #7082)",
+    async (
+      _name: string,
+      send: (options: { onTimeline?: boolean }) => Promise<void>,
+    ) => {
+      project!.smsOrCallCurrentBalanceInUSDCents = 1000;
+      timeline.get(TIMELINE_ID)!.status = UserNotificationStatus.Acknowledged;
+      timeline.get(TIMELINE_ID)!.statusMessage = "Notification Acknowledged";
+
+      await send({});
+
+      expect(timeline.get(TIMELINE_ID)).toMatchObject({
+        status: UserNotificationStatus.Acknowledged,
+        statusMessage: "Notification Acknowledged",
+        version: 1,
+      });
+      expect(timelineUpdates()).toEqual([]);
+    },
+  );
+
   test("a timeline update that fails does not turn a skipped page into an error for the sender", async () => {
     (
-      UserOnCallLogTimelineService.updateOneById as unknown as jest.Mock
+      UserOnCallLogTimelineService.updateOneBy as unknown as jest.Mock
     ).mockRejectedValue(new Error("database unavailable") as never);
 
     await expect(sms()).resolves.toBeUndefined();
+    expect(UserOnCallLogTimelineService.updateOneBy).toHaveBeenCalled();
   });
+
+  test("a timeline read that fails does not either", async () => {
+    (
+      UserOnCallLogTimelineService.findOneById as unknown as jest.Mock
+    ).mockRejectedValue(new Error("database unavailable") as never);
+
+    await expect(sms()).resolves.toBeUndefined();
+    expect(timeline.get(TIMELINE_ID)!.status).toBe(
+      UserNotificationStatus.Sending,
+    );
+  });
+
+  /*
+   * Issue #7082: the person may answer the page - from another of its
+   * messages - before this one is refused. Their answer stays.
+   */
+  test.each([
+    [UserNotificationStatus.Acknowledged, "Notification Acknowledged"],
+    [UserNotificationStatus.PassedOn, "Escalated from this notification."],
+  ])(
+    "a row already %s - the person answered from another message - stays: the refusal is not written over it",
+    async (status: UserNotificationStatus, statusMessage: string) => {
+      timeline.get(TIMELINE_ID)!.status = status;
+      timeline.get(TIMELINE_ID)!.statusMessage = statusMessage;
+
+      await sms();
+
+      expect(timeline.get(TIMELINE_ID)).toMatchObject({
+        status: status,
+        statusMessage: statusMessage,
+        version: 1,
+      });
+      expect(timelineUpdates()).toEqual([]);
+    },
+  );
 });

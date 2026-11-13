@@ -71,22 +71,26 @@ Klicka på en rad för att öppna undantagets sida.
 
 ## Ett undantags sida
 
+Varje sida för ett undantag öppnas under samma rubrik: dess typ och meddelande, dess status, om det hanterades, dess felklass och miljö, och dess uppgifter: hur många gånger det har inträffat, när det sågs första och senaste gången, dess tjänst och vem det är tilldelat. På alla sidor utom **Inställningar**, som har egna knappar, står **Lös** och **Arkivera** bredvid dem, och ⋯ bredvid de knapparna innehåller **Lös i nästa version** och **Skapa monitor**.
+
 Sidans sidomeny samlar det du gör med ett undantag:
 
 | Sida | Vad den visar |
 | --- | --- |
-| **Översikt** | Meddelandet, tjänsten, hur ofta det inträffade och när det sågs första och senaste gången, dess utveckling över tid, och dess senaste förekomst: release, miljö, span, spår och användarsession. Högst upp OneUptime AI:s förklaring av vad som hände, när AI är på. |
+| **Översikt** | **Var det hände**: raden i din kod som det kastades från. Dess utveckling över tid, och dess senaste förekomst: release, miljö, fingeravtryck, span, spår och användarsession. Högst upp OneUptime AI:s förklaring av vad som hände, när AI är på. |
 | **Stack trace** | Stackens ramar. För webbläsarkod de ursprungliga filerna och raderna, när du har laddat upp [Source maps](/docs/telemetry/source-maps) för releasen. |
 | **Förekomster** | Varje förekomst, med tidpunkt, meddelande och spåret där den inträffade. |
 | **Kontext** | Den senaste förekomstens attribut, dess sessionsinspelning när en spelades in, och stegen som ledde fram till den. |
 | **Loggar** | Loggarna som skrevs runt den senaste förekomsten. |
-| **AI-hjälp** | AI-uppgifter som rättar undantaget eller testar det. |
+| **Åtgärda med AI** | En AI-uppgift som rättar undantaget med en pull request, och de andra uppgifterna hopfällda under den. |
 | **Inställningar** | Lös eller arkivera undantaget. Sidan ligger under **Hantera**, som är hopfällt från början. |
 | **Granskningsloggar** | Vem som löste, arkiverade, tilldelade eller slog ihop undantaget, och när. Sidan ligger också under **Hantera**. |
 
+**Var det hände** visar den första ramen i din egen kod, den mest sannolika platsen där felet kastades: dess ursprungliga fil och rad när en source map har mappat den, koden runt den när source mapen innehöll koden, och upp till tre ramar i din kod som anropade den. Finns ingen ram i din egen kod visas den innersta ramen i stack trace. **Visa hela stack tracen** öppnar alla ramar på sidan **Stack trace**. När den senaste förekomsten inte registrerade några strukturerade ramar visar kortet de första raderna i stack trace som de är (de sista raderna i en Python-traceback, där felet står), och ett undantag utan stack trace har inget kort.
+
 ## Lös, öppna igen och arkivera
 
-Knapparna högst upp på undantagets sida, dess sida **Inställningar** och menyn ⋯ på dess rad i listan ändrar dess status:
+Knapparna högst upp på undantagets sida och ⋯ bredvid dem, dess sida **Inställningar** och menyn ⋯ på dess rad i listan ändrar dess status:
 
 | Åtgärd | När du använder den | Vad som händer sedan |
 | --- | --- | --- |
@@ -96,13 +100,15 @@ Knapparna högst upp på undantagets sida, dess sida **Inställningar** och meny
 | **Arkivera** | Det är brus som du inte tänker rätta. | Det lämnar listan. Nya förekomster räknas men skickar inte längre aviseringar. |
 | **Avarkivera** | Du vill höra om det igen. | Det är tillbaka i den lista där det hör hemma. |
 
-**Lös i nästa version** finns i menyn bredvid **Lös**, i radens meny ⋯, under **Massåtgärder** och på **Inställningar**, så länge undantagets förekomster anger sin version: resursattributet `service.version`.
+**Lös i nästa version** finns i ⋯ högst upp på undantagets sida, i radens meny ⋯, under **Massåtgärder** och på **Inställningar**, så länge undantagets förekomster anger sin version: resursattributet `service.version`.
 
 **Inställningar** visar vem som senast löste eller arkiverade undantaget, och när. Knapparna där heter **Markera som löst** eller **Markera som olöst**, och **Arkivera** eller **Avarkivera**.
 
 Om du vill ändra flera på en gång markerar du deras rader i listan, eller rutan ovanför raderna för alla undantag på sidan, och använder samma åtgärder under **Massåtgärder**. När alla undantag på sidan är markerade erbjuder fältet ovanför raderna att markera alla undantag som matchar listans sökning och filter, på alla sidor, upp till 10 000 åt gången; en åtgärd frågar då innan den ändrar dem. Resultatet visar vilka undantag som ändrades, vilka som lämnades som de var och varför.
 
-**Tilldela** i undantagets rubrik ger det till en person eller ett team, och tar du bort valet upphävs tilldelningen. Varje rad visar vem den tillhör, dess meny ⋯ erbjuder **Tilldela mig**, och **Tilldela till…** under **Massåtgärder** tilldelar flera på en gång. Personen det tilldelas, eller varje medlem i teamet, får en avisering som raden **Undantag tilldelat mig** i deras [Aviseringsinställningar](/docs/notifications/notification-settings) säger; den som tilldelade det får ingen.
+**Tilldela**, under **Ansvarig** i undantagets rubrik, ger det till en person eller ett team; klicka på namnet för att ge det till någon annan, och på × bredvid namnet för att ta bort tilldelningen. Varje rad visar vem den tillhör, dess meny ⋯ erbjuder **Tilldela mig**, och **Tilldela till…** under **Massåtgärder** tilldelar flera på en gång. Personen det tilldelas, eller varje medlem i teamet, får en avisering som raden **Undantag tilldelat mig** i deras [Aviseringsinställningar](/docs/notifications/notification-settings) säger; den som tilldelade det får ingen.
+
+**Skapa monitor**, i ⋯ högst upp på undantagets sida, öppnar en ny [undantagsmonitor](/docs/monitor/exceptions-monitor) för det här undantagets typ i dess tjänst, så att du får ett larm när det händer igen. Den visas för dem som får skapa monitorer.
 
 **Aktivitet** längst ned i undantagets **Översikt** visar vem som ändrade det och när, nyaste först: vem som löste, öppnade igen, arkiverade eller tilldelade det, slog ihop ett annat undantag med det eller delade upp ett, och när det kom tillbaka efter att det hade lösts. Varje ändring finns där, gjord på undantagets sida, i listan, under **Massåtgärder**, via API:et eller av OneUptime självt, och en ändring gjord med en API-nyckel bär nyckelns namn.
 
@@ -132,7 +138,7 @@ Högst upp på ett undantags **Översikt** frågar **Förklara med OneUptime AI*
 | **Var du ska titta** | De ramar i stack trace som du ska öppna först. |
 | **Nästa steg** | Högst tre steg för att bekräfta eller rätta det. |
 
-Förklaringen sparas på undantaget, så nästa person som öppnar det läser den direkt, och **Förklara igen** ber om en ny. **Öppna en pull request med rättelsen** öppnar undantagets sida **AI-hjälp**, och **Ställ en följdfråga** öppnar Ask AI om undantaget.
+Förklaringen sparas på undantaget, så nästa person som öppnar det läser den direkt, och **Förklara igen** ber om en ny. **Åtgärda med AI** öppnar undantagets sida **Åtgärda med AI**, och **Ställ en följdfråga** öppnar Ask AI om undantaget.
 
 ID:n, e-post- och IP-adresser samt tokens tas bort från allt som skickas, och av ett spans attribut skickas bara några få, som dess route och statuskod. Förklaringen använder projektets LLM-leverantör och AI-krediter och erbjuds inte medan **Aktivera AI** är av. Alla som kan läsa undantaget kan be om en.
 
@@ -142,13 +148,22 @@ Slå ihop ett som OneUptime AI kallar **Troligen samma bugg**, i samma tjänst, 
 
 ## Rätta det med AI
 
-Sidan **AI-hjälp** erbjuder tre uppgifter. Var och en körs som en AI-uppgift som öppnar en pull request i ditt kodförråd:
+Sidan **Åtgärda med AI** inleds med en uppgift, som startas med **Åtgärda med AI**. Den körs som en AI-uppgift som öppnar en pull request i ditt kodförråd, och vad pull requesten gör beror på undantagets [felklass](#felklasser):
+
+| Felklass | Vad pull requesten gör |
+| --- | --- |
+| `user-error` eller `expected-denial` | Hanterar felet bättre, utan att ändra vad koden gör: kontrollerar indata tidigare med ett tydligt meddelande, håller användardata utanför meddelandet och markerar felet som hanterat. |
+| Någon annan, eller inte klassificerat ännu | Hittar grundorsaken i din kod och rättar den. |
+
+Tre steg under den beskriver hur det går till: den läser stack trace och hittar koden som kastade felet, ändrar den koden i ditt förråd på en egen gren och öppnar en pull request som du granskar. Inget ändras förrän du slår ihop den. När den har körts heter knappen **Åtgärda igen**, eller **Försök igen** när försöket misslyckades eller inte hittade någon rättelse.
+
+**Andra AI-uppgifter**, hopfällt under den, öppnar de andra pull requesterna med **Starta**:
 
 | Uppgift | Vad pull requesten gör |
 | --- | --- |
-| **Fix this exception with AI** | Rättar grundorsaken. Starta den med **Åtgärda med AI**. |
-| **Generate Regression Test** | Lägger till ett test som misslyckas tills felet är rättat. |
-| **Förbättra felhantering** | För förväntade fel: validerar indata tidigare, håller användardata utanför meddelanden och markerar felet som hanterat. |
+| **Åtgärda koden** | Rättar grundorsaken. Den listas när **Åtgärda med AI** hanterar ett förväntat fel. |
+| **Hantera felet bättre** | Hanterar ett förväntat fel bättre, som ovan. Den listas när **Åtgärda med AI** rättar koden. |
+| **Skriv ett regressionstest** | Lägger till ett test som återskapar undantaget och misslyckas tills buggen är rättad. Den rättar inte buggen. |
 
 AI behöver tre saker först: en LLM-leverantör, ett anslutet förråd (på GitHub, GitLab, Forgejo eller Gitea, eller valfri Git-server), och en AI-agent online som kör uppgiften. Sidan kontrollerar var och en och länkar till det som saknas. Uppgifterna pausas medan undantaget är löst eller arkiverat. Se [Kod](/docs/ai/ai-agent). Att starta en uppgift kräver behörighet att redigera förrådet den arbetar i: Den som bara får läsa undantaget ser dess uppgifter men kan inte starta någon.
 
@@ -162,7 +177,7 @@ Var 15:e minut går OneUptime igenom dina undantag efter nya, efter dem som plö
 | **Topp i undantag** | Ett undantag som har inträffat 10 gånger eller fler under den senaste timmen, med 5 gånger eller mer sin timtakt under de 24 timmarna innan. | Rättar undantaget, eller hanterar det bättre. |
 | **Saknad stack trace** | De undantag som en tjänst registrerade under det senaste dygnet saknar stack trace och har tillsammans inträffat 20 gånger eller fler. | Får tjänsten att registrera en stack trace med varje undantag. |
 
-Pull requesten för ett nytt eller ökande undantag är undantagets egen AI-uppgift, den som undantagets sida **AI-hjälp** startar, och den väntar tills OneUptime AI har undersökt fyndet. Hittar den den skyldiga koden (`code-fault`), rättar pull requesten den, som **Fix this exception with AI** gör. Hittar den ett förväntat fel (`user-error` eller `expected-denial`), hanterar pull requesten felet bättre, som **Förbättra felhantering** gör. Varje annan slutsats öppnar ingen pull request av sig själv. Med **Arkivera förväntade undantag** påslaget arkiveras ett förväntat nekande i stället och får ingen pull request.
+Pull requesten för ett nytt eller ökande undantag är undantagets egen AI-uppgift, den som undantagets sida **Åtgärda med AI** startar, och den väntar tills OneUptime AI har undersökt fyndet. Hittar den den skyldiga koden (`code-fault`), rättar pull requesten den, som **Åtgärda koden** gör. Hittar den ett förväntat fel (`user-error` eller `expected-denial`), hanterar pull requesten felet bättre, som **Hantera felet bättre** gör. Varje annan slutsats öppnar ingen pull request av sig själv. Med **Arkivera förväntade undantag** påslaget arkiveras ett förväntat nekande i stället och får ingen pull request.
 
 OneUptime AI öppnar bara själv en för ett undantag som kastats i din egen kod: ett undantag vars stack trace har en ram från din kod, och inte bara ramar från bibliotek eller körmiljön. En pull request som någon stängde utan att slå ihop den pausar de automatiska för det undantaget. Vem som helst kan ändå be om vilken som helst av dem med **Åtgärda med AI** på fyndet.
 
@@ -188,7 +203,7 @@ Under **Fler fält** väljer en regel de kodrepositorier, MCP-servrar och den LL
 
 - **Undantag → AI → Insikter** visar vad OneUptime hittade, varje fynd med sina bevis, ramarna från din kod i dess stack trace inräknade. **View Exception Group** öppnar undantaget, och för en tjänsts saknade stack traces öppnar **Öppna i Undantag** dess olösta undantag från det senaste dygnet.
 - **Undantag → AI → Loggar** visar varje utredning och varje pull request, nyast först, med hur var och en står och vad varje utredning hittade.
-- Pull requesten säger varför den öppnades, med en länk till dess fynd. Den för ett nytt eller ökande undantag länkar också till undantaget och visas på undantagets sida **AI-hjälp**. I Kod nämner dess uppgift undantaget den rättar, eller fyndet den kom från.
+- Pull requesten säger varför den öppnades, med en länk till dess fynd. Den för ett nytt eller ökande undantag länkar också till undantaget och visas på undantagets sida **Åtgärda med AI**. I Kod nämner dess uppgift undantaget den rättar, eller fyndet den kom från.
 
 ## Insikter i undantag
 

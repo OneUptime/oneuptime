@@ -69,7 +69,7 @@ A página de uma tarefa é uma conversa: o que foi pedido e o contexto adicionad
 | **Falhou** | A vez não pôde terminar, e diz por quê, e depois de quantas tentativas quando a IA tentou de novo sozinha. **Tentar novamente** pede o mesmo outra vez. |
 | **Parado** | Alguém a interrompeu. **Tentar novamente** pede o mesmo outra vez. |
 
-Para continuar, escreva na caixa embaixo, que fica à vista enquanto a conversa rola: responda à IA, adicione contexto ou peça alterações. Cada resposta é a próxima vez da mesma tarefa: ela trabalha no mesmo branch e envia para o mesmo pull request enquanto ele estiver aberto. Uma tarefa faz uma vez de cada vez, então a caixa espera enquanto a IA trabalha. O **Registro** de cada vez é o registro literal do que ela fez. Em uma tarefa com mais de uma vez, um seletor no topo da página **Registro** passa de uma vez para outra.
+Para continuar, escreva na caixa embaixo, que fica à vista enquanto a conversa rola: responda à IA, adicione contexto ou peça alterações. Cada resposta é a próxima vez da mesma tarefa: ela trabalha no mesmo branch e envia para o mesmo pull request enquanto ele estiver aberto. Uma tarefa faz uma vez de cada vez, então a caixa espera enquanto a IA trabalha. O **Registro** de cada vez é o registro literal do que ela fez. Em uma tarefa com mais de uma vez, um seletor no topo da página **Registro** passa de uma vez para outra. Uma tarefa com mais de 200 vezes mostra a primeira vez e as 199 mais recentes, com uma linha entre elas que diz quantas vezes anteriores não são mostradas. O topo da página continua contando cada vez.
 
 Quem pode ler um repositório lê as tarefas dele. Pedir à IA, responder e parar uma tarefa exigem permissão para editar o repositório, assim como ver o diff de uma alteração: os demais veem quais arquivos mudaram. As tarefas que o OneUptime inicia por conta própria (abaixo) também ficam no repositório delas, como conversas em que você pode responder.
 
@@ -104,18 +104,18 @@ Uma execução faz quantas chamadas ao LLM e consultas de telemetria de produç�
 
 | Onde | Clique | O pull request |
 | --- | --- | --- |
-| A página **Assistência de IA** de uma exceção | **Corrigir com IA** | Corrige o bug por trás da exceção. |
-| A página **Assistência de IA** de uma exceção | **Generate Regression Test** | Adiciona um teste que reproduz a exceção e falha até o bug ser corrigido. |
-| A página **Assistência de IA** de uma exceção | **Melhorar o tratamento de erros** | Para um erro esperado, como uma entrada inválida: tira os dados do usuário da mensagem, valida a entrada mais cedo e marca o erro como tratado, sem mudar o comportamento. |
+| A página **Corrigir com IA** de uma exceção | **Corrigir com IA** | Corrige o bug por trás da exceção. Para um erro esperado, como uma entrada inválida, ele trata melhor o erro em vez disso: tira os dados do usuário da mensagem, valida a entrada mais cedo e marca o erro como tratado, sem mudar o comportamento. |
+| **Outras tarefas de IA** na página **Corrigir com IA** de uma exceção | **Iniciar** em **Escrever um teste de regressão** | Adiciona um teste que reproduz a exceção e falha até o bug ser corrigido. |
+| **Outras tarefas de IA** na página **Corrigir com IA** de uma exceção | **Iniciar** em **Corrigir o código** ou **Tratar melhor o erro** | O tipo de correção que **Corrigir com IA** não faz para a exceção. |
 | A etapa **Remediação** do cartão **OneUptime AI** de um incidente ou de um alerta | **Abrir pull request de correção** | Corrige a causa raiz que a investigação publicou (veja [Correções de código automáticas a partir de investigações](#correções-de-código-automáticas-a-partir-de-investigações)). |
 | Um trace que vale a pena corrigir | **Acelerar com IA** | Corrige o padrão lento que o botão indica, como uma consulta N+1 ou chamadas que poderiam rodar em paralelo. |
 | A página **Registros** de um serviço | **Melhorar os registros** | Torna os logs do serviço estruturados, com a severidade certa e ligados aos traces dele, sem mudar o comportamento. |
 | A página **Traços** de um serviço | **Melhorar o rastreamento** | Adiciona spans e atributos onde falta tracing no serviço, sem mudar o comportamento. |
 | Uma função em **Perfis de desempenho** | **Corrigir com IA** | Faz a função realizar o mesmo trabalho com menos tempo ou memória, com o perfil dela como evidência. |
 
-Esses botões só aparecem onde podem iniciar uma tarefa. Com a IA desativada para o projeto, nenhum deles aparece e o menu lateral de uma exceção não tem **Assistência de IA**. **Melhorar os registros** e **Melhorar o rastreamento** aparecem assim que um repositório é conectado e nada impede a IA de trabalhar nele (como o plano, os créditos de IA esgotados ou nenhum Runner online), e **Acelerar com IA** só em um trace que vale a pena corrigir (veja [Explorador de traços](/docs/telemetry/traces-explorer)). O botão **Corrigir com IA** de uma função só aparece no código próprio da aplicação que ocupa pelo menos 5% do tempo ou da memória do perfil, ou cuja participação cresceu 3 pontos ou mais desde a janela com que é comparada (veja [Profiling contínuo](/docs/telemetry/profiles)).
+Esses botões só aparecem onde podem iniciar uma tarefa. Com a IA desativada para o projeto, nenhum deles aparece e o menu lateral de uma exceção não tem **Corrigir com IA**. **Melhorar os registros** e **Melhorar o rastreamento** aparecem assim que um repositório é conectado e nada impede a IA de trabalhar nele (como o plano, os créditos de IA esgotados ou nenhum Runner online), e **Acelerar com IA** só em um trace que vale a pena corrigir (veja [Explorador de traços](/docs/telemetry/traces-explorer)). O botão **Corrigir com IA** de uma função só aparece no código próprio da aplicação que ocupa pelo menos 5% do tempo ou da memória do perfil, ou cuja participação cresceu 3 pontos ou mais desde a janela com que é comparada (veja [Profiling contínuo](/docs/telemetry/profiles)).
 
-Para abrir a página **Assistência de IA** de uma exceção, abra a exceção em **Produtos → Observabilidade → Exceções** e escolha **Assistência de IA** no menu lateral. Uma exceção resolvida ou arquivada precisa primeiro ser marcada como não resolvida.
+Para abrir a página **Corrigir com IA** de uma exceção, abra a exceção em **Produtos → Observabilidade → Exceções** e escolha **Corrigir com IA** no menu lateral. Uma exceção resolvida ou arquivada precisa primeiro ser marcada como não resolvida.
 
 A OneUptime AI também inicia tarefas de correção por conta própria: a partir de uma investigação que encontra uma alteração de código, de uma que termina sem conclusão porque faltou telemetria, e dos AI Insights sobre exceções e traces lentos. Cada uma tem a própria chave; veja [Correções de código automáticas](/docs/ai/ai-sre#correções-automáticas-de-código).
 
@@ -202,7 +202,7 @@ Os comandos são configurações do repositório que a sua equipe escreve, execu
 
 ## Depois do merge de uma correção
 
-Fazer o merge de uma correção não corrige nada até ela rodar. Assim que um pull request de correção passa pelo merge, o OneUptime espera um deploy registrado que o contenha (veja [Deploys e alterações](/docs/telemetry/change-events)) e observa nesse deploy aquilo para o que a correção servia. O pull request da tarefa no Code diz como foi, assim como a página **Assistência de IA** da exceção, os registros de IA do incidente e o insight de IA de onde veio a correção:
+Fazer o merge de uma correção não corrige nada até ela rodar. Assim que um pull request de correção passa pelo merge, o OneUptime espera um deploy registrado que o contenha (veja [Deploys e alterações](/docs/telemetry/change-events)) e observa nesse deploy aquilo para o que a correção servia. O pull request da tarefa no Code diz como foi, assim como a página **Corrigir com IA** da exceção, os registros de IA do incidente e o insight de IA de onde veio a correção:
 
 | Uma correção de | O que é observado | Funcionou | Não funcionou |
 | --- | --- | --- | --- |
@@ -242,7 +242,7 @@ O OneUptime Cloud só alcança servidores Git na internet, nunca um endereço pr
 
 ## Antes de começar
 
-Uma tarefa precisa de três coisas. A caixa de pedidos do Código e a página **Assistência de IA** da exceção verificam as três antes de oferecer o início, e dizem o que falta.
+Uma tarefa precisa de três coisas. A caixa de pedidos do Código e a página **Corrigir com IA** da exceção verificam as três antes de oferecer o início, e dizem o que falta.
 
 | O quê | OneUptime Cloud | Auto-hospedado |
 | --- | --- | --- |
@@ -263,7 +263,7 @@ GLOBAL_LLM_PROVIDER_MODEL_NAME=llama3.1
 
 Qualquer provedor compatível funciona: veja [Provedores LLM](/docs/ai/llm-provider) para todos eles e cada variável de ambiente.
 
-Você não associa repositórios a serviços. Quando uma tarefa começa, o OneUptime encontra o repositório comparando os caminhos de arquivo do stack trace da exceção com os seus repositórios conectados. Quando nada corresponde, ele recorre a um repositório com o mesmo nome do serviço e, depois, ao único repositório do projeto, quando há só um. A página **Assistência de IA** mostra qual repositório ele encontrou.
+Você não associa repositórios a serviços. Quando uma tarefa começa, o OneUptime encontra o repositório comparando os caminhos de arquivo do stack trace da exceção com os seus repositórios conectados. Quando nada corresponde, ele recorre a um repositório com o mesmo nome do serviço e, depois, ao único repositório do projeto, quando há só um. A página **Corrigir com IA** da exceção mostra qual repositório ele encontrou.
 
 ### Escolha o Runner do repositório
 

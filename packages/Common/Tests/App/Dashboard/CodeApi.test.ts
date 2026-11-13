@@ -59,6 +59,8 @@ import CodeApi, {
   CodeTaskResponse,
   getIdBatches,
   getTaskListScopeBody,
+  parseLinkedTurn,
+  parseTurnsNotShown,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeApi";
 
 const TASK_ID: string = "4c1d2e3f-5a6b-4c7d-8e9f-0a1b2c3d4e5f";
@@ -418,7 +420,140 @@ describe("every Code route", () => {
     expect(response.turns).toHaveLength(1);
     expect(response.repository).toBeNull();
     expect(response.canReadLogContent).toBe(true);
+    // A task shown whole: nothing is left out.
+    expect(response.turnsNotShown).toBeNull();
+    expect(response.linkedTurn).toBeNull();
     expect(lastCall().url).toBe(apiUrl(`/get/${TASK_ID}`));
+    // No turn named: nothing more is asked.
+    expect(lastCall().data).toEqual({});
+  });
+
+  /*
+   * A link to a turn (the Log page's ?turn=): the task is asked for it by
+   * name, and a turn its page does not show comes back with its place
+   * (issue #7130).
+   */
+  test("a task read for a turn a link names asks for it, and reads back the turn not shown with its place", async () => {
+    const LINKED_RUN_ID: string = "4c1d2e3f-5a6b-4c7d-8e9f-0a1b2c3d4e60";
+
+    postMock.mockResolvedValue(
+      answer({
+        task: { id: TASK_ID, title: "Retry charges" },
+        turns: [{ runId: TASK_ID, steps: [], pullRequests: [] }],
+        turnsNotShown: { count: 5, workMilliseconds: 300000 },
+        linkedTurn: {
+          number: 4,
+          turn: { runId: LINKED_RUN_ID, steps: [], pullRequests: [] },
+        },
+        repository: null,
+        canAsk: true,
+        canSeeChanges: true,
+        canReadLogContent: false,
+        blocker: null,
+      }) as never,
+    );
+
+    const response: CodeTaskResponse = await CodeApi.getTask(TASK_ID, {
+      turn: LINKED_RUN_ID,
+    });
+
+    expect(lastCall().url).toBe(apiUrl(`/get/${TASK_ID}`));
+    expect(lastCall().data).toEqual({ turn: LINKED_RUN_ID });
+    expect(response.linkedTurn).toEqual({
+      number: 4,
+      turn: { runId: LINKED_RUN_ID, steps: [], pullRequests: [] },
+    });
+
+    // An empty turn names none.
+    await CodeApi.getTask(TASK_ID, { turn: "" });
+    expect(lastCall().data).toEqual({});
+  });
+
+  test("a linked turn reads as none unless it has a place after the first and a turn named by a run id", () => {
+    const turn: JSONObject = {
+      runId: "4c1d2e3f-5a6b-4c7d-8e9f-0a1b2c3d4e60",
+      steps: [],
+      pullRequests: [],
+    };
+
+    for (const value of [
+      undefined,
+      null,
+      4,
+      "turn",
+      [{ number: 4, turn }],
+      {},
+      { number: 4 },
+      { number: 1, turn },
+      { number: 0, turn },
+      { number: -3, turn },
+      { number: 2.5, turn },
+      { number: "4", turn },
+      { number: Number.NaN, turn },
+      { number: 4, turn: null },
+      { number: 4, turn: [turn] },
+      { number: 4, turn: { ...turn, runId: "turn-4" } },
+      { number: 4, turn: { ...turn, runId: 4 } },
+    ]) {
+      expect(parseLinkedTurn(value)).toBeNull();
+    }
+
+    expect(parseLinkedTurn({ number: 2, turn })).toEqual({ number: 2, turn });
+    expect(parseLinkedTurn({ number: 10205, turn })).toEqual({
+      number: 10205,
+      turn,
+    });
+  });
+
+  test("a long task's conversation says how many turns it does not show, and how long AI worked on them", async () => {
+    postMock.mockResolvedValue(
+      answer({
+        task: { id: TASK_ID, title: "Retry charges" },
+        turns: [{ runId: TASK_ID, steps: [], pullRequests: [] }],
+        turnsNotShown: { count: 5, workMilliseconds: 300000 },
+        repository: null,
+        canAsk: true,
+        canSeeChanges: true,
+        canReadLogContent: false,
+        blocker: null,
+      }) as never,
+    );
+
+    const response: CodeTaskResponse = await CodeApi.getTask(TASK_ID);
+
+    expect(response.turnsNotShown).toEqual({
+      count: 5,
+      workMilliseconds: 300000,
+    });
+  });
+
+  test("turns not shown read as none unless they are a whole count of one or more; a work time that is not one reads as none", () => {
+    expect(parseTurnsNotShown(undefined)).toBeNull();
+    expect(parseTurnsNotShown(null)).toBeNull();
+    expect(parseTurnsNotShown(5)).toBeNull();
+    expect(parseTurnsNotShown([{ count: 5 }])).toBeNull();
+    expect(parseTurnsNotShown({})).toBeNull();
+    expect(parseTurnsNotShown({ count: 0, workMilliseconds: 10 })).toBeNull();
+    expect(parseTurnsNotShown({ count: -2 })).toBeNull();
+    expect(parseTurnsNotShown({ count: 2.5 })).toBeNull();
+    expect(parseTurnsNotShown({ count: "5" })).toBeNull();
+    expect(parseTurnsNotShown({ count: 1 })).toEqual({
+      count: 1,
+      workMilliseconds: 0,
+    });
+    expect(parseTurnsNotShown({ count: 3, workMilliseconds: "60000" })).toEqual(
+      { count: 3, workMilliseconds: 0 },
+    );
+    expect(
+      parseTurnsNotShown({ count: 3, workMilliseconds: Number.NaN }),
+    ).toEqual({ count: 3, workMilliseconds: 0 });
+    expect(parseTurnsNotShown({ count: 3, workMilliseconds: -5 })).toEqual({
+      count: 3,
+      workMilliseconds: 0,
+    });
+    expect(parseTurnsNotShown({ count: 205, workMilliseconds: 61000 })).toEqual(
+      { count: 205, workMilliseconds: 61000 },
+    );
   });
 
   test("a working turn's progress: the turn and the last step the page has are sent, the steps and the state read back", async () => {

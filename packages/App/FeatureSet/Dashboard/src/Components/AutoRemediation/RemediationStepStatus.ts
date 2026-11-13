@@ -32,6 +32,7 @@ import {
   isRemediationRoundUnfinished,
   RemediationRoundView,
 } from "./RemediationRoundView";
+import { hasRemediationRoundAppliedSteps } from "Common/Types/AutoRemediation/RemediationRound";
 import { FinishedFixOutcome } from "Common/Utils/Suggestions/CodeFixSuggestion";
 import { InvestigationCodeFixSuggestion } from "Common/Utils/Suggestions/InvestigationCodeFixSuggestion";
 import SuggestionOffer from "Common/Utils/Suggestions/SuggestionOffer";
@@ -157,7 +158,22 @@ export interface RemediationFixFacts {
    * not in progress, and it did not find that no fix applies.
    */
   isUnfinished?: boolean | undefined;
+  /*
+   * What a fix in progress is doing (issue #6860): being worked out, its
+   * commands or changes running, or its recovery being checked. Only for
+   * a fix in progress; the step's summary says it in a sentence.
+   */
+  progress?: RemediationFixProgress | undefined;
+  // It ran, and the incident or alert did not recover.
+  didNotRecover?: boolean | undefined;
+  /*
+   * Its round made a change before it stopped (RemediationRound's applied
+   * steps): never said to have changed nothing.
+   */
+  hasAppliedSteps?: boolean | undefined;
 }
+
+export type RemediationFixProgress = "planning" | "running" | "verifying";
 
 export function getRemediationFixFacts(
   suggestion: Pick<
@@ -233,6 +249,20 @@ export function getRemediationFixFacts(
     verification === AutoRemediationVerificationStatus.Failed ||
     (isStarted && executionStatus === AiRemediationPlanExecutionStatus.Failed);
 
+  // What it is doing while it moves: running comes first, then the check.
+  const progress: RemediationFixProgress | undefined = !isInProgress
+    ? undefined
+    : isPlanRunning || isMcpRunning
+      ? "running"
+      : verification === AutoRemediationVerificationStatus.Pending
+        ? "verifying"
+        : "planning";
+  const didNotRecover: boolean =
+    verification === AutoRemediationVerificationStatus.Failed;
+  const hasAppliedSteps: boolean = Boolean(
+    reader?.round && hasRemediationRoundAppliedSteps(reader.round.appliedSteps),
+  );
+
   return {
     status,
     isUnapprovable:
@@ -248,6 +278,9 @@ export function getRemediationFixFacts(
     isVerified: verification === AutoRemediationVerificationStatus.Verified,
     isFirstApprovedByReader: approvals.isFirstApprovedByReader,
     ...(isUnfinished ? { isUnfinished } : {}),
+    ...(progress ? { progress } : {}),
+    ...(didNotRecover ? { didNotRecover } : {}),
+    ...(hasAppliedSteps ? { hasAppliedSteps } : {}),
   };
 }
 

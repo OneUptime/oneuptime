@@ -26,7 +26,6 @@ import {
   Routes,
   useNavigate,
 } from "react-router-dom";
-import HomeLayout from "../../../../App/FeatureSet/Dashboard/src/Pages/Home/Layout";
 import UserProfileLayout from "../../../../App/FeatureSet/Dashboard/src/Pages/Global/UserProfile/Layout";
 import InventoryLayout from "../../../../App/FeatureSet/Dashboard/src/Pages/Inventory/Layout";
 import MonitorLayout from "../../../../App/FeatureSet/Dashboard/src/Pages/Monitor/Layout";
@@ -48,7 +47,6 @@ import Navigation from "../../../UI/Utils/Navigation";
  * the same commit.
  */
 type LayoutFamily =
-  | "home"
   | "user-profile"
   | "settings"
   | "monitor"
@@ -62,7 +60,6 @@ interface SideMenuLifecycle {
 }
 
 const sideMenuLifecycle: Record<LayoutFamily, SideMenuLifecycle> = {
-  home: { mounts: 0, unmounts: 0, countInitializations: 0 },
   "user-profile": { mounts: 0, unmounts: 0, countInitializations: 0 },
   settings: { mounts: 0, unmounts: 0, countInitializations: 0 },
   monitor: { mounts: 0, unmounts: 0, countInitializations: 0 },
@@ -71,7 +68,6 @@ const sideMenuLifecycle: Record<LayoutFamily, SideMenuLifecycle> = {
 };
 
 const familyTitle: Record<LayoutFamily, string> = {
-  home: "Home",
   "user-profile": "User Profile",
   settings: "Settings",
   monitor: "Monitor",
@@ -135,18 +131,6 @@ const MockPersistentSideMenu: FunctionComponent<{
     </aside>
   );
 };
-
-jest.mock(
-  "../../../../App/FeatureSet/Dashboard/src/Pages/Home/SideMenu",
-  () => {
-    return {
-      __esModule: true,
-      default: function MockHomeSideMenu(): ReactElement {
-        return <MockPersistentSideMenu family="home" />;
-      },
-    };
-  },
-);
 
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Pages/Global/UserProfile/SideMenu",
@@ -323,22 +307,11 @@ function projectPath(page: PageMap): string {
     .replace(":projectId", project._id?.toString() || "");
 }
 
+/*
+ * Home is not one of them: it is one page with no side menu, and what it
+ * counts opens in its product (#6857).
+ */
 const layoutCases: Array<LayoutCase> = [
-  {
-    /*
-     * From one of Home's lists to another: the overview draws every list
-     * itself and has no side menu to keep.
-     */
-    family: "home",
-    parentRoute: "/dashboard/:projectId/home",
-    initialLeaf: "active-incidents",
-    initialPath: `/dashboard/${project._id}/home/active-incidents`,
-    targetLeaf: "active-alerts",
-    targetPath: `/dashboard/${project._id}/home/active-alerts`,
-    renderLayout: (): ReactElement => {
-      return <HomeLayout {...pageProps} />;
-    },
-  },
   {
     family: "user-profile",
     parentRoute: "/dashboard/user-profile",

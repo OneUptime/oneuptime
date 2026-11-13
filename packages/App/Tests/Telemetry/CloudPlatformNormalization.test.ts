@@ -336,6 +336,38 @@ describe("the auto-discovery gates read the canonical spelling", () => {
     );
   });
 
+  test("autoDiscoverCloudResource names an App Service instance from the Collector detector's attribute (issue #6770)", async () => {
+    /*
+     * The Collector's azureappservice detector sends the dotted platform,
+     * the subscription and WEBSITE_INSTANCE_ID as
+     * azure.app_service.instance.id - and no service.instance.id. Unread,
+     * the app's Instances tile read 0 while it ran.
+     */
+    const result: unknown = await baseService["autoDiscoverCloudResource"]({
+      projectId: PROJECT_ID,
+      attributes: attributes({
+        "cloud.platform": "azure.app_service",
+        "cloud.region": "northcentralus",
+        "cloud.account.id": "sub-app-service",
+        "azure.app_service.instance.id": "6d1f0b6e2b4a9c1e",
+      }),
+    });
+
+    expect(result).not.toBeNull();
+    expect(
+      CloudResourceService.findOrCreateByResourceIdentifier,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resourceIdentifier: "azure_app_service|sub-app-service|northcentralus",
+        cloudPlatform: "azure_app_service",
+        cloudProvider: "azure",
+      }),
+    );
+    expect(CloudResourceInstanceService.recordInstance).toHaveBeenCalledWith(
+      expect.objectContaining({ instanceName: "6d1f0b6e2b4a9c1e" }),
+    );
+  });
+
   test("both spellings of the same subscription land on the same environment key", async () => {
     /*
      * A subscription no other test in this file discovers: the entity-id

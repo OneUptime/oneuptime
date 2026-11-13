@@ -127,8 +127,8 @@ Ihr Marketplace-Abonnement ist Ihre Lizenz. Jeder Bericht, den der Marketplace a
 | Was geschieht | Was das Editions-Label zeigt |
 | --- | --- |
 | Der Marketplace nimmt die stündlichen Berichte an | Die Enterprise Edition, lizenziert über Ihren Marketplace. |
-| Seit 72 Stunden wurde kein Bericht angenommen | **Enterprise Edition (Marketplace Reports Failing)**: Jede Enterprise-Funktion funktioniert während einer 30-tägigen Kulanzfrist weiter. |
-| Der Marketplace meldet, dass für die Installation kein Abonnement besteht, oder die Kulanzfrist endet | **Enterprise Edition (Marketplace Subscription Ended)**: Die Enterprise-Funktionen enden, genau wie beim [Auslaufen einer Lizenz](/docs/self-hosted/enterprise#wenn-eine-lizenz-abläuft-oder-fehlt). |
+| Seit 72 Stunden wurde kein Bericht angenommen | **Enterprise Edition (Marketplace-Berichte schlagen fehl)**: Jede Enterprise-Funktion funktioniert während einer 30-tägigen Kulanzfrist weiter. |
+| Der Marketplace meldet, dass für die Installation kein Abonnement besteht, oder die Kulanzfrist endet | **Enterprise Edition (Marketplace-Abonnement beendet)**: Die Enterprise-Funktionen enden, genau wie beim [Auslaufen einer Lizenz](/docs/self-hosted/enterprise#wenn-eine-lizenz-abläuft-oder-fehlt). |
 
 Der Marketplace lehnt ein gekündigtes oder ausgesetztes Abonnement ab, ebenso eine Installation, die nicht die von Ihnen gekaufte ist. Monitoring, Alarme, Incidents, Bereitschaftsdienst und Statusseiten funktionieren in jedem Fall weiter, und nichts wird gelöscht. Abonnieren Sie erneut, und der nächste angenommene Bericht lizenziert die Enterprise Edition wieder, ohne Neustart.
 
@@ -162,7 +162,7 @@ Die Abrechnung hängt nicht davon ab, wie viele Replikate laufen: Berichte sende
 
 ## Fehlerbehebung
 
-:::details Das Editions-Label zeigt Enterprise Edition (Marketplace Reports Failing)
+:::details Das Editions-Label zeigt Enterprise Edition (Marketplace-Berichte schlagen fehl)
 OneUptime kann keine Berichte an den Marketplace senden. Jede Zeile, die es dazu protokolliert, beginnt mit `OneUptime Enterprise marketplace billing`; eine Zeile mit „cannot be reported“ nennt, was fehlt. Die üblichen Ursachen:
 
 - **AWS:** Das Dienstkonto `oneuptime` hat keine IAM-Rolle, oder der Rolle fehlt die Richtlinie `AWSMarketplaceMeteringFullAccess` (`AWSMarketplaceMeteringRegisterUsage` genügt nicht). Hängen Sie die Richtlinie an die Rolle an, oder legen Sie die Rolle mit dem `eksctl`-Befehl unter [AWS Marketplace](#aws-marketplace) an und starten Sie danach die Pods von OneUptime mit `kubectl rollout restart deployment --namespace oneuptime` neu.
@@ -173,7 +173,7 @@ OneUptime kann keine Berichte an den Marketplace senden. Jede Zeile, die es dazu
 Die Nutzung bleibt erhalten, während Sie das Problem beheben, und wird abgerechnet, sobald OneUptime wieder Berichte senden kann. Nutzung, die älter als 30 Tage ist, wird nicht abgerechnet.
 :::
 
-:::details Das Editions-Label zeigt Enterprise Edition (Marketplace Subscription Ended)
+:::details Das Editions-Label zeigt Enterprise Edition (Marketplace-Abonnement beendet)
 Der Marketplace hat die Installation abgelehnt: Das Abonnement wurde gekündigt oder ausgesetzt, oder die Installation ist nicht die auf dem Marketplace gekaufte. Prüfen Sie das Abonnement auf dem Marketplace und abonnieren Sie erneut; der nächste angenommene Bericht lizenziert die Enterprise Edition wieder. Dasselbe Label erscheint, wenn die Berichte während der gesamten Kulanzfrist fehlgeschlagen sind.
 :::
 

@@ -201,7 +201,7 @@ Move o valor de um atributo (**Chave de origem**) para outro (**Chave de Destino
 
 ## Processador de categorias
 
-Avalia uma lista de regras em ordem e armazena em um atributo de destino o nome da primeira regra cujo filtro corresponde, para que você encontre de uma vez todos os registros "Payment Error". Defina **Atributo de Destino** (`category` por padrão) e adicione **Regras de categoria**: um **Category name** e as condições em **When logs match**. Vence a primeira regra que corresponder; um registro que não corresponde a nenhuma fica sem alteração. Nos registros de um dispositivo de rede, uma regra com nome de evento (`ups.on_battery`) sob o atributo de destino `event.name` faz do registro um [evento de rede](/docs/monitor/network-events#seus-próprios-eventos).
+Avalia uma lista de regras em ordem e armazena em um atributo de destino o nome da primeira regra cujo filtro corresponde, para que você encontre de uma vez todos os registros "Payment Error". Defina **Atributo de Destino** (`category` por padrão) e adicione **Regras de categoria**: um **Nome da categoria** e as condições em **When logs match**. Vence a primeira regra que corresponder; um registro que não corresponde a nenhuma fica sem alteração. Nos registros de um dispositivo de rede, uma regra com nome de evento (`ups.on_battery`) sob o atributo de destino `event.name` faz do registro um [evento de rede](/docs/monitor/network-events#seus-próprios-eventos).
 
 ## Próximos passos
 

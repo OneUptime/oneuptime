@@ -325,7 +325,7 @@ They read these metrics, each tagged with \`oneuptime.data.pipeline.id\` and \`o
 - \`oneuptime.data.pipeline.run_duration_ratio\`: the run's time over the typical run's (counted as at least a minute), as each run ends and every five minutes while it runs.
 - \`oneuptime.data.pipeline.overdue_seconds\`: how long past its schedule the next run is, every five minutes; 0 while on time.
 
-A pipeline's page draws its **Lineage**, the first place to look when a run fails or is late: the tables it reads on the left, the tables it writes on the right, and how each is now. Pick more steps to see what those tables are built from and what is built from them. The same lineage is at \`POST /api/data-observability/pipelines/lineage\`, for your own tools.
+A pipeline's page draws its **Lineage**, the first place to look when a run fails or is late: the tables it reads on the left, the tables it writes on the right, and how each is now. Pick more steps to see what those tables are built from and what is built from them; a count of tables not drawn, on the pipeline's card or a table's, draws more of them in place. The same lineage is at \`POST /api/data-observability/pipelines/lineage\`, for your own tools.
 
 
 
@@ -372,7 +372,7 @@ Lineage is read once an hour, back to the last read, and a week back at a databa
 
 Each edge on a table's **Lineage** tab says where it was seen: a pipeline's run, the query history (with a login whose queries moved the data), or a view's definition. Lineage from every source counts for **One issue per cause**.
 
-At the top of a table's **Lineage** tab, a diagram draws its lineage a few steps each way (three, or pick 1, 2 or 5): what it is built from on the left, the tables and dashboards built from it on the right, and the pipelines that load data from outside where it comes in. Each card says how it is now - late, an open alert, a failed run - and an arrow turns red when its pipeline's latest run failed, so a late table can be followed up to the run that broke it. Open any table to center the diagram on it. The same lineage is at \`POST /api/data-observability/tables/lineage\`, for your own tools.
+At the top of a table's **Lineage** tab, a diagram draws its lineage a few steps each way (three, or pick 1, 2 or 5): what it is built from on the left, the tables and dashboards built from it on the right, and the pipelines that load data from outside where it comes in. Each card says how it is now - late, an open alert, a failed run - and an arrow turns red when its pipeline's latest run failed, so a late table can be followed up to the run that broke it. Open any table to center the diagram on it. A card draws at most ten tables each way and counts the rest, such as **+14**: select the count to draw the next of them where they are, and **Reset diagram** to go back. Where the sources name columns, pick one of the table's columns in **Follow a column** to highlight where it comes from and where it goes, even where it is renamed on the way. The same lineage is at \`POST /api/data-observability/tables/lineage\`, for your own tools: send \`"withColumns": true\` for each arrow's columns, and ask \`POST /api/data-observability/lineage/expand\` for a card's next tables.
 
 ## dbt
 
@@ -420,12 +420,12 @@ When a table goes stale, every table built from it goes stale too. Before a data
 
 The cause's **Data** card lists its **Downstream Impact**: every alert it caused. A table alert's card also shows the services that write the table, with their failed writes, and their deploys and other changes in the day before the alert.
 
-Under the **Data** card, an alert's page draws its **Lineage**: around its table, as the table's **Lineage** tab draws it, or around its pipeline, with the way up to the alert that caused it and down to each alert it caused highlighted, the cause marked **Cause** and each alert it caused **Consequence**. Someone who may not see the alert that caused it gets neither the **Data** card nor the lineage, and an alert it caused that they may not see is neither highlighted nor counted. The same lineage is at \`POST /api/data-observability/alerts/<alert ID>/lineage\`.
+Under the **Data** card, an alert's page draws its **Lineage**: around its table, as the table's **Lineage** tab draws it, or around its pipeline, with the way up to the alert that caused it and down to each alert it caused highlighted, the cause marked **Cause** and each alert it caused **Consequence**. When the cause is on a pipeline drawn on an arrow, the arrow says **Cause** under the pipeline's name. An alert from a check on one column, such as a Null Percent check on \`customer_id\`, opens with that column followed beside these ways, as on the table's **Lineage** tab; pick another of the table's columns there, or clear it to see the ways alone. Someone who may not see the alert that caused it gets neither the **Data** card nor the lineage, and an alert it caused that they may not see is neither highlighted nor counted. The same lineage is at \`POST /api/data-observability/alerts/<alert ID>/lineage\`, with the \`column\` a column check's alert reads and the columns each arrow carries.
 
 
 ## OneUptime AI
 
-- **Investigations of data alerts.** When OneUptime AI investigates an alert on a table, a pipeline or a database, it reads what is next to it: the table's freshness and open alerts, the alert it is a consequence of, the runs of the pipelines that write it since the day before (a failed run with its error), the services that write it with their failed writes and their deploys and other changes, and its lineage: the tables it is built from and the tables built from it, the ones with a problem first, with where the alert it is a consequence of sits and which tables the alerts it caused are on. It names the run, deploy or upstream table behind the alert.
+- **Investigations of data alerts.** When OneUptime AI investigates an alert on a table, a pipeline or a database, it reads what is next to it: the table's freshness and open alerts, the alert it is a consequence of, the runs of the pipelines that write it since the day before (a failed run with its error), the services that write it with their failed writes and their deploys and other changes, and its lineage: the tables it is built from and the tables built from it, the ones with a problem first, with where the alert it is a consequence of sits and which tables the alerts it caused are on. For an alert from a check on one column, it also follows that column through the lineage: the columns it is built from upstream and the columns built from it downstream, table by table. It names the run, deploy or upstream table behind the alert.
 - **A check from a sentence.** On a table's Checks tab, **Write a Check from a Sentence** turns a rule such as "orders never have a negative total" into a Custom SQL check that counts the rows breaking it, with an alert when any do. You read the query before **Add Check** adds it, and it is held to everything any Custom SQL check is: one read-only statement, run in a read-only transaction.
 - **Is this table fresh?** Ask OneUptime AI in Ask AI, Slack or Microsoft Teams ("is the orders table fresh?"). It answers with the table's freshness by its own rhythm, when it last changed, its open alerts, its writers' latest runs and the data products it is part of. AI agents ask the same through the MCP server's \`get_data_table_freshness\` tool, before they use the data.
 - **What is this table built from?** Ask the same way ("what feeds the revenue table?", "what breaks if raw.orders stops loading?"). It follows the table's lineage three steps each way, or up to five when asked, and puts the tables upstream and downstream that are late, dropped, have open alerts or whose pipeline failed its last run first, nearest first, with how many steps away each is and the tables between; then the rest, the pipelines that load its sources from outside what OneUptime watches, and the BI dashboards built on it. Open alerts are counted, never named, and only those the person who asks may see. AI agents ask the same through the MCP server's \`get_data_table_lineage\` tool, before they change a table.
@@ -449,9 +449,7 @@ const DataObservabilityDocumentationPage: FunctionComponent<
       title="Documentation"
       description="How Data Observability watches your tables, and how to connect a database."
     >
-      <div className="px-6 pb-6">
-        <MarkdownViewer text={DOCUMENTATION} />
-      </div>
+      <MarkdownViewer text={DOCUMENTATION} />
     </Card>
   );
 };

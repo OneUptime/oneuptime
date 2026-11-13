@@ -1456,6 +1456,20 @@ export default class API {
 
     // SSL/TLS Certificate errors
     if (
+      errorCode === "CERT_REVOKED" ||
+      lowerMessage.includes("certificate has been revoked") ||
+      lowerMessage.includes("cert_revoked")
+    ) {
+      return {
+        failedPhase: RequestFailedPhase.CertificateError,
+        errorCode: "CERT_REVOKED",
+        errorDescription:
+          "SSL certificate has been revoked. The certificate's issuer has withdrawn it, so browsers refuse it even though it has not expired. Install a new certificate on the server.",
+        rawErrorMessage,
+      };
+    }
+
+    if (
       lowerMessage.includes("certificate has expired") ||
       lowerMessage.includes("cert_has_expired")
     ) {

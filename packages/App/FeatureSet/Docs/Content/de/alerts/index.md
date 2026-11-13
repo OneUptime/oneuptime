@@ -1,6 +1,6 @@
 # Warnungen – Übersicht
 
-Eine Warnung macht Ihr Team auf ein Problem aufmerksam, das es sich ansehen sollte, bevor Ihre Nutzer es bemerken: eine Festplatte, die vollläuft, ein Zertifikat kurz vor dem Ablauf, eine steigende Fehlerrate. Sie kann die Bereitschaft alarmieren und ihre Eigentümer benachrichtigen, erscheint aber nie auf einer Statusseite und informiert nie Ihre Abonnenten. Diese Seite erklärt, woher Warnungen kommen, wo sie im Dashboard zu finden sind und wie Ihr Team sie bearbeitet.
+Eine Warnung macht Ihr Team auf ein Problem aufmerksam, das es sich ansehen sollte, bevor Ihre Nutzer es bemerken: eine Festplatte, die vollläuft, ein Zertifikat kurz vor dem Ablauf, eine steigende Fehlerrate. Sie kann die Bereitschaft alarmieren und ihre Eigentümer benachrichtigen, erscheint aber nie auf einer Statusseite und informiert nie Ihre Abonnenten. Diese Seite erklärt, woher Warnungen kommen, wo sie im Dashboard zu finden sind und wie Ihr Team sie bearbeitet. Nicht sicher, ob ein Problem eine Warnung oder ein Vorfall ist? [Was nehme ich wann?](/docs/introduction/which-one#vorfall-warnung-oder-eine-andere-art-von-problem) stellt beide nebeneinander.
 
 :::cards
 - [Warnungen und Vorfälle](#warnungen-und-vorfälle): Was ein Problem sein sollte, und wie beide zusammenhängen.
@@ -61,7 +61,7 @@ Lösen Sie eine Warnung aus, wenn Ihr Team nachsehen sollte, bevor jemand außer
 | **KI**        | **Einblicke**, **Protokolle** und **Einstellungen**: was OneUptime AI aus Ihren Warnungen gelernt hat, alles, was es getan hat, und was es darf. |
 | **Arbeitsbereich** | **Slack**, **Microsoft Teams** und **Mattermost**, je nachdem, was das Projekt verbunden hat, oder **Arbeitsbereich verbinden**, wenn es keines hat. |
 | **Regeln**    | **Gruppierungsregeln**, **Bereitschaftsregeln**, **Vorfallsregeln**, **Eigentümerregeln**, **Runbook-Regeln**, **Datenschutzregeln**, **Beschriftungsregeln**, **Erinnerungsregeln**. |
-| **Einstellungen** | **Warnungsstatus**, **Warnungsschweregrad**, **Notiz-Vorlagen**, **Benutzerdefinierte Felder**, **Messungen**, **Episodenzugehörigkeit**, **Nummerierung**. |
+| **Einstellungen** | **Warnungsstatus**, **Warnungsschweregrad**, **Notiz-Vorlagen**, **Benutzerdefinierte Felder**, **Messungen**, **Episodenzugehörigkeit**, **Nummerierung**, **Datenaufbewahrung**. |
 
 **Warnungen** und **Episoden** sind geöffnet; **KI**, **Arbeitsbereich**, **Regeln**, **Einstellungen** und **Entwickler** sind zunächst eingeklappt, und ein Bereich öffnet sich von selbst, wenn Sie auf einer seiner Seiten sind. Die Konfiguration von Warnungen liegt hier, nicht in den **Projekteinstellungen**.
 

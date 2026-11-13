@@ -17,7 +17,8 @@ import ts from "typescript";
  * every value this repository ships to every route, the other too many
  * different wrong keys. ClusterKeyGuard checks every use of a check is such a
  * route, and that each route is called by OneUptime's own code
- * (CLUSTER_KEY_ROUTE_CALLERS below).
+ * (CLUSTER_KEY_ROUTE_CALLERS below) or by one of the installation's own
+ * tools that run on the server (CLUSTER_KEY_ROUTE_TOOL_CALLERS).
  */
 
 export interface ClusterKeyRoute {
@@ -205,6 +206,94 @@ export const CLUSTER_KEY_ROUTE_CALLERS: Array<ClusterKeyRouteCaller> = [
     calls: "INCOMING_EMAIL_TRIGGER_DELIVERY_PATH",
   },
 ];
+
+/*
+ * The installation's own tools that present the cluster key (#6826): scripts
+ * an operator runs on the server, which read the key from the installation's
+ * own configuration - config.env on a Docker Compose host, the app pod's
+ * environment on Kubernetes - and ask the app at an address of that server
+ * alone, never at HOST, so the key never leaves it. They call one route, the
+ * doctor's POST. ClusterKeyGuard holds each to how it is listed here, and
+ * fails on any other file outside the product's own code that names the
+ * key's header.
+ */
+export interface ClusterKeyRouteToolCaller {
+  route: {
+    file: string;
+    method: string;
+    path: string;
+  };
+  // The tool's file, from the repository root.
+  tool: string;
+  /*
+   * The shell variable holding the script that presents the key, which the
+   * tool runs with node; null when the tool's file is that script.
+   */
+  script: string | null;
+  // The address it calls, as the script writes it.
+  calls: string;
+  /*
+   * The declarations the address is made of, as the script writes them:
+   * an address of the server itself, and the route's path.
+   */
+  address: Array<string>;
+  // The route's path on the app: where App/Index.ts mounts its router, then the route's.
+  path: string;
+  // Where the script reads the key: the installation's own configuration.
+  key: string;
+  /*
+   * The header's value, as the script writes it: the key URI-encoded with
+   * the global encodeURIComponent, as ClusterKeyAuthorization.getClusterKey()
+   * presents the app's own and isAcceptedClusterKey compares what it is
+   * sent, so a key with + / = @ & % or a letter beyond ASCII is accepted.
+   */
+  presents: string;
+  /*
+   * How the request never follows a redirect, which would hand the key's
+   * header to wherever it points: fetch told not to ("manual"), or Node's
+   * http and https, which never follow one.
+   */
+  client: "fetch" | "node-http";
+}
+
+const DOCTOR_ROUTE: ClusterKeyRouteToolCaller["route"] = {
+  file: "packages/App/API/AdminHealth.ts",
+  method: "POST",
+  path: '"/doctor"',
+};
+
+export const CLUSTER_KEY_ROUTE_TOOL_CALLERS: Array<ClusterKeyRouteToolCaller> =
+  [
+    // Inside the app pod, with the key the pod holds.
+    {
+      route: DOCTOR_ROUTE,
+      tool: "HelmChart/Public/diagnose.sh",
+      script: "SERVER_FINDINGS_SCRIPT",
+      calls: '"http://127.0.0.1:" + port + "/api/admin/health/doctor"',
+      address: ['const port = process.env.PORT || "3002";'],
+      path: "/api/admin/health/doctor",
+      key: 'process.env.ONEUPTIME_SECRET || ""',
+      presents: 'encodeURIComponent(process.env.ONEUPTIME_SECRET || "")',
+      client: "fetch",
+    },
+    // `npm run doctor`: the ingress on this host, with the key in its config.env.
+    {
+      route: DOCTOR_ROUTE,
+      tool: "Scripts/Install/Doctor.js",
+      script: null,
+      calls: "`${ingressUrl}${DOCTOR_PATH}`",
+      address: [
+        'const DOCTOR_PATH = "/api/admin/health/doctor";',
+        'const { ingressUrlOf } = require("./FollowIngressPort");',
+        'const ingress = ingressUrlOf(settings.get("ONEUPTIME_HTTP_PORT"));',
+        'const ingressUrl = ingress ? ingress.url : "http://localhost";',
+      ],
+      path: "/api/admin/health/doctor",
+      key: 'String(settings.get("ONEUPTIME_SECRET") || "").trim()',
+      presents: "encodeURIComponent(secret)",
+      client: "node-http",
+    },
+  ];
 
 function parse(relativePath: string): ts.SourceFile {
   return ts.createSourceFile(

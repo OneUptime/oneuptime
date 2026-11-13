@@ -48,6 +48,7 @@ import MonitorViewNotificationLogs from "../Pages/Monitor/View/NotificationLogs"
 import MonitorViewAuditLogs from "../Pages/Monitor/View/AuditLogs";
 
 import MonitorCreate from "../Pages/Monitor/Create";
+import MonitorGuidedSetup from "../Pages/Monitor/GuidedSetup";
 
 // Settings Pages
 import MonitorSettingsStatus from "../Pages/Monitor/Settings/MonitorStatus";
@@ -216,6 +217,17 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
           <MonitorCreate
             {...props}
             pageRoute={RouteMap[PageMap.MONITOR_CREATE] as Route}
+          />
+        }
+      />
+
+      {/* Guided setup: know when my website or API is down (#6804). */}
+      <PageRoute
+        path={MonitorsRoutePath[PageMap.MONITOR_GUIDED_SETUP] || ""}
+        element={
+          <MonitorGuidedSetup
+            {...props}
+            pageRoute={RouteMap[PageMap.MONITOR_GUIDED_SETUP] as Route}
           />
         }
       />

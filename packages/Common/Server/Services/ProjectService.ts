@@ -117,6 +117,11 @@ import {
   getDiscoveredDeviceRetentionProblem,
   toDiscoveredDeviceRetentionInDays,
 } from "../../Types/NetworkDevice/DiscoveredDeviceRetention";
+import {
+  ResolvedRecordKind,
+  getResolvedRecordRetentionProblem,
+  toResolvedRecordRetentionInDays,
+} from "../../Types/Retention/ResolvedRecordRetention";
 import { NetworkTopologyLayoutUtil } from "../../Types/NetworkDevice/NetworkTopologyLayout";
 import { DefaultTableColumnsUtil } from "../../Types/Table/DefaultTableColumns";
 import { coerceNumericColumnValue } from "../../Types/Database/NumericColumnValue";
@@ -196,6 +201,10 @@ import TelemetryIngestionBudgetSettings from "../Utils/Telemetry/TelemetryIngest
 import TelemetryIngestionBudgetValidation, {
   isTelemetryIngestionBudgetColumnTouched,
 } from "../Utils/Telemetry/TelemetryIngestionBudgetValidation";
+import {
+  getNewProjectWelcomeChecklistState,
+  toWelcomeChecklistStateJSON,
+} from "../../Types/WelcomeChecklist/WelcomeChecklistState";
 import { IsNull, Repository, UpdateResult } from "typeorm";
 import { ColumnMetadata } from "typeorm/metadata/ColumnMetadata";
 import { EntityMetadata } from "typeorm/metadata/EntityMetadata";
@@ -802,6 +811,44 @@ export class ProjectService extends ProjectReferencesService<Model> {
   }
 
   /*
+   * How long a resolved incident and a resolved alert stay (issue #6903):
+   * each one of the choices in Types/Retention/ResolvedRecordRetention, or 0
+   * to keep every one, stored as a number. Anything else is refused with the
+   * choices - null too, since the columns always hold a value, and a number
+   * that is not a choice, which must never delete more than was meant. A
+   * write that leaves a column out is not judged on it.
+   */
+  public applyResolvedRecordRetentionRules(data: {
+    incidentRetentionInDays?: unknown;
+    alertRetentionInDays?: unknown;
+  }): void {
+    const columns: Array<{
+      column: "incidentRetentionInDays" | "alertRetentionInDays";
+      kind: ResolvedRecordKind;
+    }> = [
+      { column: "incidentRetentionInDays", kind: ResolvedRecordKind.Incident },
+      { column: "alertRetentionInDays", kind: ResolvedRecordKind.Alert },
+    ];
+
+    for (const { column, kind } of columns) {
+      if (data[column] === undefined) {
+        continue;
+      }
+
+      const problem: string | null = getResolvedRecordRetentionProblem(
+        data[column],
+        kind,
+      );
+
+      if (problem) {
+        throw new BadDataException(problem);
+      }
+
+      data[column] = toResolvedRecordRetentionInDays(data[column]);
+    }
+  }
+
+  /*
    * The columns the project's lists show everyone who has not chosen their
    * own (Project.defaultTableColumns): lists' keys to layouts of column ids,
    * within DefaultTableColumnsUtil's limits, stored tidied (each id once, no
@@ -869,7 +916,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
     await super.onBeforeCreate(data);
 
     if (!data.data.name) {
-      throw new BadDataException("Project name is required");
+      throw new BadDataException("Give the project a name.");
     }
 
     this.applyDataResidencyRules(data.data);
@@ -887,12 +934,29 @@ export class ProjectService extends ProjectReferencesService<Model> {
     this.applyDiscoveredDeviceRetentionRules(
       data.data as { discoveredDeviceRetentionInDays?: unknown },
     );
+    this.applyResolvedRecordRetentionRules(
+      data.data as {
+        incidentRetentionInDays?: unknown;
+        alertRetentionInDays?: unknown;
+      },
+    );
     this.applyDefaultTableColumnsRules(
       data.data as { defaultTableColumns?: unknown },
     );
     this.applyAuditLogRetentionRules(
       data.data as { auditLogsRetentionInDays?: unknown },
     );
+
+    /*
+     * The Welcome checklist starts here, whatever the caller sent: a new
+     * project never had the checklist before it, so it is never looked at
+     * as one that did (Types/WelcomeChecklist/WelcomeChecklistState), and
+     * nobody has chosen its goals yet.
+     */
+    data.data.welcomeChecklistState = toWelcomeChecklistStateJSON(
+      getNewProjectWelcomeChecklistState(),
+    );
+    delete data.data.goals;
 
     if (data.props.userId) {
       RelationIdUtil.stamp(
@@ -1024,12 +1088,14 @@ export class ProjectService extends ProjectReferencesService<Model> {
           // check if the same user is creating the project.
           if (promoCode.userEmail?.toString() !== user.email?.toString()) {
             throw new BadDataException(
-              "This promocode is assigned to a different user and cannot be used.",
+              "This promo code belongs to another account. Leave Promo Code empty to create the project without it.",
             );
           }
 
           if (promoCode.isPromoCodeUsed) {
-            throw new BadDataException("This promocode has already been used.");
+            throw new BadDataException(
+              "This promo code has already been used. Leave Promo Code empty to create the project without it.",
+            );
           }
 
           if (promoCode.resellerPlan?.monitorLimit) {
@@ -1071,7 +1137,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
           data.data.paymentProviderPromoCode,
         ))
       ) {
-        throw new BadDataException("Promo code is invalid.");
+        throw new BadDataException(
+          "This promo code is not valid. Check it for typos, or leave Promo Code empty to create the project without it.",
+        );
       }
 
       // check if promocode is valid.
@@ -1104,7 +1172,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
     }
 
     if (existingProjectWithSameNameCount > 0) {
-      throw new BadDataException("Project with the same name already exists");
+      throw new BadDataException(
+        "You already have a project with the same name. Choose another name.",
+      );
     }
 
     data.data.createdOwnerName = user.name!;
@@ -1587,6 +1657,12 @@ export class ProjectService extends ProjectReferencesService<Model> {
     );
     this.applyDiscoveredDeviceRetentionRules(
       updateBy.data as { discoveredDeviceRetentionInDays?: unknown },
+    );
+    this.applyResolvedRecordRetentionRules(
+      updateBy.data as {
+        incidentRetentionInDays?: unknown;
+        alertRetentionInDays?: unknown;
+      },
     );
     this.applyDefaultTableColumnsRules(
       updateBy.data as { defaultTableColumns?: unknown },
@@ -3214,9 +3290,12 @@ export class ProjectService extends ProjectReferencesService<Model> {
       ProductAnalytics.capture({
         event: "server/project_created",
         distinctId: createdItem.createdOwnerEmail.toString(),
+        /*
+         * No project name: no event carries a name (issue #6830,
+         * Docs/analytics/activation.md). The id joins it to the project.
+         */
         properties: {
           project_id: createdItem.id?.toString() || "",
-          project_name: createdItem.name?.toString() || "",
           plan: createdItem.planName?.toString() || "",
           ...utmAnalyticsProperties(createdItem as unknown as JSONObject),
           click_ids: createdItem.clickIds || {},

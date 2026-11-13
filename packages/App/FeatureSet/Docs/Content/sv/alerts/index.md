@@ -1,6 +1,6 @@
 # Larm – Översikt
 
-Ett larm gör ditt team uppmärksamt på ett problem som bör undersökas innan dina användare märker det: en disk som håller på att bli full, ett certifikat som snart går ut, en felfrekvens som smyger uppåt. Larmet kan larma den som har jour och meddela sina ägare, men det visas aldrig på en statussida och meddelar aldrig dina prenumeranter. Den här sidan förklarar var larm kommer ifrån, var de finns i instrumentpanelen och hur ditt team arbetar med dem.
+Ett larm gör ditt team uppmärksamt på ett problem som bör undersökas innan dina användare märker det: en disk som håller på att bli full, ett certifikat som snart går ut, en felfrekvens som smyger uppåt. Larmet kan larma den som har jour och meddela sina ägare, men det visas aldrig på en statussida och meddelar aldrig dina prenumeranter. Den här sidan förklarar var larm kommer ifrån, var de finns i instrumentpanelen och hur ditt team arbetar med dem. Osäker på om ett problem är ett larm eller en incident? [Vilken ska jag använda?](/docs/introduction/which-one#incident-larm-eller-ett-annat-slags-problem) ställer dem sida vid sida.
 
 :::cards
 - [Larm och incidenter](#larm-och-incidenter): Vad ett problem bör vara, och hur de två hänger ihop.
@@ -61,7 +61,7 @@ Utlös ett larm när ditt team bör titta innan någon utanför märker något, 
 | **AI**            | **Insikter**, **Loggar** och **Inställningar**: vad OneUptime AI har lärt sig av dina larm, allt den har gjort och vad den får göra. |
 | **Arbetsyta**     | **Slack**, **Microsoft Teams** och **Mattermost**, beroende på vad projektet har anslutit, eller **Anslut en arbetsyta** när det inte har någon av dem. |
 | **Regler**        | **Grupperingsregler**, **Jourregler**, **Incidentregler**, **Ägarregler**, **Runbook-regler**, **Sekretessregler**, **Etikettregler**, **Påminnelseregler**. |
-| **Inställningar** | **Larmstatus**, **Larmallvar**, **Anteckningsmallar**, **Anpassade fält**, **Mätningar**, **Medlemskap i episoder**, **Numrering**.         |
+| **Inställningar** | **Larmstatus**, **Larmallvar**, **Anteckningsmallar**, **Anpassade fält**, **Mätningar**, **Medlemskap i episoder**, **Numrering**, **Datalagring**.         |
 
 **Larm** och **Episoder** är öppna; **AI**, **Arbetsyta**, **Regler**, **Inställningar** och **Utvecklare** börjar hopfällda, och ett avsnitt öppnar sig självt när du är på en av dess sidor. Konfigurationen av larm finns här, inte i **Projektinställningar**.
 

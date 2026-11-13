@@ -1,4 +1,5 @@
 import PageComponentProps from "../PageComponentProps";
+import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -174,6 +175,7 @@ const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
           title: "Runbooks",
           description:
             "Reusable response procedures: ordered checklists of manual or automated steps.",
+          titleGlossaryTerm: GlossaryTerm.Runbook,
         }}
         formFields={[
           {

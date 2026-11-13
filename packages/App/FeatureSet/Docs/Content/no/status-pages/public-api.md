@@ -74,6 +74,8 @@ Endepunktene følger sidens egne innstillinger, i kortet **Hva statussiden din v
 
 Oversikten er én request for hele siden. Det er de samme dataene statussiden tegner, og de er høyst 15 sekunder gamle.
 
+Dagene i oppetidsstolpene er UTC-dager med mindre du oppgir en tidssone: legg til `?timezone=Asia/Shanghai` i en `GET`, eller send `{"timezone": "Asia/Shanghai"}` som body i en `POST`, så deles `uptimeDailyAggregate` og `monitorGroupUptimeDailyAggregate` opp i dagene i den sonen, slik statussiden ber om for hver besøkende. En sone serveren ikke kjenner, er UTC, og begge sier i sin `timezone` hvilken sone de ble delt opp i.
+
 :::tabs
 @tab curl
 ```bash
@@ -111,7 +113,7 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 ```
 :::
 
-Den samlede statusen er den verste nåværende statusen blant monitorene og monitorgruppene på siden, den med høyest prioritet. En monitorstatus ser slik ut:
+Den samlede statusen er den verste nåværende statusen blant monitorene og monitorgruppene på siden, den med høyest prioritet. Ressurser siden viser som **Ikke overvåket**, oppført i `notMonitoredResourceIds`, holdes utenfor. En monitorstatus ser slik ut:
 
 ```json
 {
@@ -127,13 +129,14 @@ Den samlede statusen er den verste nåværende statusen blant monitorene og moni
 
 | Nøkkel | Hva den inneholder |
 | --- | ------------- |
-| `overallStatus` | Sidens samlede status, en monitorstatus som over. En side uten noe på får prosjektets status med lavest prioritet. |
+| `overallStatus` | Sidens samlede status, en monitorstatus som over. En side uten noe på får prosjektets status med lavest prioritet, og en side der alle ressursene er **Ikke overvåket**, får `null`. |
 | `statusPage` | Sidens offentlige innstillinger: tittel, beskrivelse, merkevare og hva den viser. |
 | `statusPageResources` | Hver ressurs: visningsnavn, beskrivelse, gruppe, monitor eller monitorgruppe og visningsvalg. |
 | `resourceGroups` | Gruppene, med `parentStatusPageGroupId` for nestede grupper. |
 | `monitorStatuses` | Alle monitorstatusene i prosjektet, fra lavest prioritet til høyest. |
 | `monitorGroupCurrentStatuses`, `monitorsInGroup` | Nåværende status for hver monitorgruppe på siden, og monitorene i den. |
-| `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | Det oppetidsstolpene tegnes ut fra, og sidens fargeregler for stolpene. |
+| `notMonitoredResourceIds` | ID-ene til ressursene siden viser som **Ikke overvåket**: en monitor med overvåking slått av, eller en monitorgruppe der alle monitorene har den slått av. De avgjør ingen status, og en slik gruppe har ingen oppføring i `monitorGroupCurrentStatuses`. |
+| `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupUptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | Det oppetidsstolpene tegnes ut fra, og sidens fargeregler for stolpene. |
 | `activeIncidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates` | De uløste hendelsene siden viser, deres offentlige notater og tilstandsendringer, og prosjektets hendelsestilstander. |
 | `timelineIncidents` | Hendelsene i tidsvinduet til oppetidsstolpene, løste hendelser medregnet, for verktøytipsene til stolpene. |
 | `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | Det samme for hendelsesepisoder. |
@@ -168,6 +171,7 @@ Svaret:
         "color": "#2ab57d",
         "isOperational": true
       },
+      "isMonitored": true,
       "isUnderMaintenance": true
     }
   ],
@@ -188,12 +192,12 @@ Svaret:
 
 | Nøkkel | I sammendraget |
 | --- | -------------- |
-| `overallStatus` | Den samlede statusen til siden, slik banneret viser den: `name`, `color` og `isOperational`. |
-| `resources` | Hver ressurs siden viser, i rekkefølgen sin: `name` på siden, `groupName` med gruppene over, `currentStatus` og `isUnderMaintenance`. |
+| `overallStatus` | Den samlede statusen til siden, slik banneret viser den: `name`, `color` og `isOperational`. `null` når hver ressurs på siden er **Ikke overvåket**. |
+| `resources` | Hver ressurs siden viser, i rekkefølgen sin: `name` på siden, `groupName` med gruppene over, `currentStatus`, `isMonitored` og `isUnderMaintenance`. |
 | `activeIncidents` | De uløste hendelsene siden viser, hver med `affectedResourceIds` for ressursene den berører. |
 | `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | De planlagte vedlikeholdshendelsene som pågår eller kommer, hver med sine `affectedResourceIds`. |
 
-`currentStatus` til en ressurs er `null` når siden ikke viser den. `isUnderMaintenance` er `true` mens en pågående hendelse nevner en av monitorene til ressursen, eller en monitor i monitorgruppen dens, uansett hvilken status de monitorene har.
+`currentStatus` til en ressurs er `null` når siden ikke viser den, og når `isMonitored` er `false`: ingenting sjekker ressursen, fordi overvåkingen av monitoren er slått av, eller fordi alle monitorene i monitorgruppen har den slått av, så siden viser den som **Ikke overvåket**. `isUnderMaintenance` er `true` mens en pågående hendelse nevner en av monitorene til ressursen, eller en monitor i monitorgruppen dens, uansett hvilken status de monitorene har.
 
 ## Oppetid for et datointervall
 
@@ -276,7 +280,8 @@ Svaret:
         "color": { "_type": "Color", "value": "#2ab57d" },
         "isOperationalState": true,
         "priority": 1
-      }
+      },
+      "isMonitored": true
     }
   ],
   "groupUptimes": [
@@ -301,7 +306,8 @@ Svaret:
             "color": { "_type": "Color", "value": "#2ab57d" },
             "isOperationalState": true,
             "priority": 1
-          }
+          },
+          "isMonitored": true
         }
       ],
       "statusPageGroupName": "Web",
@@ -311,7 +317,8 @@ Svaret:
         "color": { "_type": "Color", "value": "#2ab57d" },
         "isOperationalState": true,
         "priority": 1
-      }
+      },
+      "isMonitored": true
     }
   ],
   "startDate": "2026-09-01T00:00:00.000Z",
@@ -325,6 +332,7 @@ Svaret:
 | `groupUptimes` | Én oppføring per gruppe. `uptimePercent` og `currentStatus` for en gruppe dekker alle ressurser under den, nestede grupper medregnet; dens `statusPageResourceUptimes` viser bare ressursene som ligger rett i den. Bygg opp treet igjen med `parentStatusPageGroupId`. |
 | `uptimePercent` | Avrundet til ressursens eller gruppens egen presisjon. `null` når ressursen eller gruppen ikke viser en oppetidsprosent. |
 | `currentStatus` | `null` når ressursen eller gruppen ikke viser sin nåværende status. |
+| `isMonitored` | `false` når siden viser ressursen som **Ikke overvåket**, og for en gruppe når hver ressurs under den er det. `currentStatus` er da `null`. |
 
 Tid teller som nedetid når monitorstatusen er en av sidens statuser under **Teller som nedetid**.
 

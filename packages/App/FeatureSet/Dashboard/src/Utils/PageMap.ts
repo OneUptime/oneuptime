@@ -245,12 +245,17 @@ enum PageMap {
   PROFILES_AI_SETTINGS = "PROFILES_AI_SETTINGS",
 
   HOME = "HOME",
-  HOME_ACTIVE_INCIDENTS = "HOME_ACTIVE_INCIDENTS",
-  HOME_NOT_OPERATIONAL_MONITORS = "HOME_NOT_OPERATIONAL_MONITORS",
-  HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS = "HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS",
-  HOME_ACTIVE_ALERTS = "HOME_ACTIVE_ALERTS",
-  HOME_ACTIVE_EPISODES = "HOME_ACTIVE_EPISODES",
-  HOME_ACTIVE_INCIDENT_EPISODES = "HOME_ACTIVE_INCIDENT_EPISODES",
+  /*
+   * Setup health (#6812): what is misconfigured in the project, each
+   * finding with its fix. Opened from Home's "Needs attention" and Search.
+   */
+  HOME_SETUP_HEALTH = "HOME_SETUP_HEALTH",
+  /*
+   * Where Home's own copies of the products' lists used to be (…/home/…):
+   * Home is one page now, and their addresses forward to the products'
+   * lists (Routes/MovedHomeRoutes).
+   */
+  MOVED_HOME_LISTS_ROOT = "MOVED_HOME_LISTS_ROOT",
 
   INCIDENTS_ROOT = "INCIDENTS_ROOT",
   INCIDENTS = "INCIDENTS",
@@ -334,6 +339,8 @@ enum PageMap {
   // Whether an incident can be in only one episode.
   INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP = "INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP",
   INCIDENTS_SETTINGS_NUMBERING = "INCIDENTS_SETTINGS_NUMBERING",
+  // How long a resolved incident is kept (issue #6903).
+  INCIDENTS_SETTINGS_RETENTION = "INCIDENTS_SETTINGS_RETENTION",
   /*
    * The Incidents menu's AI section: Insights, Logs, then
    * INCIDENTS_SETTINGS_AI (its Settings), whose key kept its name when the
@@ -410,6 +417,8 @@ enum PageMap {
   // Whether an alert can be in only one episode.
   ALERTS_SETTINGS_EPISODE_MEMBERSHIP = "ALERTS_SETTINGS_EPISODE_MEMBERSHIP",
   ALERTS_SETTINGS_NUMBERING = "ALERTS_SETTINGS_NUMBERING",
+  // How long a resolved alert is kept (issue #6903).
+  ALERTS_SETTINGS_RETENTION = "ALERTS_SETTINGS_RETENTION",
   /*
    * The Alerts menu's AI section: Insights, Logs, then ALERTS_SETTINGS_AI
    * (its Settings), whose key kept its name when the page moved there from
@@ -466,6 +475,8 @@ enum PageMap {
   MONITORS = "MONITORS",
   MONITORS_ROOT = "MONITORS_ROOT",
   MONITOR_CREATE = "MONITOR_CREATE",
+  // Guided setup: know when my website or API is down (#6804).
+  MONITOR_GUIDED_SETUP = "MONITOR_GUIDED_SETUP",
   MONITORS_INOPERATIONAL = "MONITORS_INOPERATIONAL",
   MONITORS_DISABLED = "MONITORS_DISABLED",
   MONITORS_ARCHIVED = "MONITORS_ARCHIVED",
@@ -541,6 +552,8 @@ enum PageMap {
   SERVICE_SETTINGS_LABEL_RULES = "SERVICE_SETTINGS_LABEL_RULES",
   SERVICE_SETTINGS_LABEL_RULE_VIEW = "SERVICE_SETTINGS_LABEL_RULE_VIEW",
   SERVICE_ARCHIVED = "SERVICE_ARCHIVED",
+  // Guided setup: send logs, metrics and traces, then get alerted (#6806).
+  SERVICES_GUIDED_SETUP = "SERVICES_GUIDED_SETUP",
 
   // Kubernetes (standalone product)
   KUBERNETES_ROOT = "KUBERNETES_ROOT",
@@ -1359,6 +1372,8 @@ enum PageMap {
   STATUS_PAGES_ROOT = "STATUS_PAGES_ROOT",
   STATUS_PAGES = "STATUS_PAGES",
   STATUS_PAGES_ARCHIVED = "STATUS_PAGES_ARCHIVED",
+  // Guided setup: publish a status page (#6806).
+  STATUS_PAGES_GUIDED_SETUP = "STATUS_PAGES_GUIDED_SETUP",
   STATUS_PAGE_ANNOUNCEMENTS = "STATUS_PAGE_ANNOUNCEMENTS",
   ANNOUNCEMENT_CREATE = "ANNOUNCEMENT_CREATE",
   ANNOUNCEMENT_VIEW = "ANNOUNCEMENT_VIEW",
@@ -1412,6 +1427,8 @@ enum PageMap {
   ON_CALL_DUTY_POLICIES = "ON_CALL_DUTY_POLICIES",
   ON_CALL_DUTY_POLICIES_ARCHIVED = "ON_CALL_DUTY_POLICIES_ARCHIVED",
   ON_CALL_DUTY_READINESS = "ON_CALL_DUTY_READINESS",
+  // Guided setup: page the right person, and escalate (#6805).
+  ON_CALL_DUTY_GUIDED_SETUP = "ON_CALL_DUTY_GUIDED_SETUP",
   ON_CALL_DUTY_CALENDAR_FEEDS = "ON_CALL_DUTY_CALENDAR_FEEDS",
   ON_CALL_DUTY_SCHEDULE_TIMELINE = "ON_CALL_DUTY_SCHEDULE_TIMELINE",
   ON_CALL_DUTY_POLICY_USER_OVERRIDES = "ON_CALL_DUTY_POLICY_USER_OVERRIDES",
@@ -1558,6 +1575,9 @@ enum PageMap {
 
   // Labels.
   SETTINGS_LABELS = "SETTINGS_LABELS",
+
+  // The products the project shows (#6814).
+  SETTINGS_PRODUCTS = "SETTINGS_PRODUCTS",
 
   // Import from another tool (Opsgenie, incident.io, ...).
   SETTINGS_IMPORT_FROM_TOOL = "SETTINGS_IMPORT_FROM_TOOL",

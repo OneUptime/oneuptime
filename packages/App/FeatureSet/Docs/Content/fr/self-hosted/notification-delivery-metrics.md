@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 Définissez-les dans `config.env`, puis lancez `npm start`. `DISABLE_TELEMETRY_FOR_APP` vaut `true` par défaut, et alors rien n'est envoyé.
 :::
 
-OneUptime a besoin à la fois du point de terminaison et des en-têtes : sans en-tête, il n'envoie rien. Séparez plusieurs en-têtes par `;`. OneUptime ajoute lui-même `/v1/metrics` au point de terminaison, et les mêmes paramètres envoient aussi ses propres traces et journaux. Chaque métrique apparaît dès que OneUptime l'enregistre pour la première fois : `notification.send.count` avec le premier message envoyé.
+OneUptime a besoin à la fois du point de terminaison et des en-têtes : sans en-tête, il n'envoie rien. Écrivez chaque en-tête sous la forme `name=value`, et séparez-en plusieurs par `;`. Une valeur peut contenir `=`. OneUptime ajoute lui-même `/v1/metrics` au point de terminaison, et les mêmes paramètres envoient aussi ses propres traces et journaux. Chaque métrique apparaît dès que OneUptime l'enregistre pour la première fois : `notification.send.count` avec le premier message envoyé.
 
 ### Envoyer des deltas à un projet OneUptime
 
@@ -109,14 +109,14 @@ Chaque attribut prend l'une de quelques valeurs fixes, jamais un projet, une per
 | `notification.provider.config` | `global` pour le compte et les paramètres de l'installation ; `project` pour le propre compte Twilio, le serveur SMTP, le webhook ou la connexion à l'espace de travail d'un projet, dont les échecs relèvent du projet |
 | `notification.on_call_page` | `true` pour une notification d'une alerte d'astreinte, sinon `false` |
 | `outcome` | `success`, `failure` ou `not_sent`, comme ci-dessous |
-| `notification.destination` | Slack, Microsoft Teams et Mattermost uniquement : `direct_message` vers une personne, `channel` pour une publication dans un canal ou une conversation de groupe Teams, `incoming_webhook` pour un webhook entrant, comme celui d'un abonné à une page de statut |
+| `notification.destination` | Slack, Microsoft Teams et Mattermost : `direct_message` vers une personne, `channel` pour une publication dans un canal ou une conversation de groupe Teams, `incoming_webhook` pour un webhook entrant, comme celui d'un abonné à une page de statut. Webhooks : `status_page_subscriber` pour le webhook propre d'un abonné à une page de statut. Absent pour le webhook d'une personne et pour tous les autres canaux |
 | `notification.custom_channel.id`, `notification.custom_channel.name` | Canaux personnalisés uniquement : l'ID du canal, et son nom tronqué à 100 caractères |
 
 - `success` : le fournisseur a accepté le message.
 - `failure` : le fournisseur l'a refusé ou était injoignable, ou l'envoi a échoué. Un canal de discussion introuvable est un échec sans durée.
 - `not_sent` : volontairement non envoyé. Le projet a désactivé le canal, n'a pas assez de solde ou est bloqué, le push est désactivé sur ce serveur, ou un canal personnalisé est désactivé, supprimé ou non couvert par la licence. Un taux de réussite les laisse de côté : ce sont des paramètres à l'œuvre, pas une plateforme en panne.
 
-Les webhooks simples des abonnés aux pages de statut ne sont pas encore comptés.
+Un message vers le webhook propre d'un abonné à une page de statut compte une fois, quel que soit le nombre de tentatives : `success` quand le point de terminaison a répondu avec un statut 2xx, et `failure` quand il a répondu avec un autre statut, n'a pas pu être joint ou que son adresse n'est pas autorisée.
 
 ### Ce qui a atteint le téléphone
 
@@ -155,7 +155,7 @@ Les statuts n'arrivent que là où le fournisseur peut les signaler :
 | --- | --- |
 | `monitor_data_received` | Quand OneUptime a reçu les données qui ont déclenché le moniteur : une requête entrante, le rapport d'un agent serveur, un e-mail entrant, la vérification d'une sonde, un trap SNMP ou l'interrogation d'un équipement réseau. Elle inclut le temps que les données ont attendu dans la file avant d'être évaluées. |
 | `record_created` | Quand l'incident, l'alerte ou l'épisode a été créé : par un moniteur de télémétrie, une règle ou une personne, et pour une vérification d'absence, comme un heartbeat qui s'est arrêté. |
-| `page_started` | Quand une alerte a démarré plus tard : une personne, un workflow ou une règle qui correspond désormais l'a démarrée, une nouvelle alerte, une alerte directe, ou une alerte qui a attendu la fin d'une suspension demandée par sa règle d'astreinte. |
+| `page_started` | Quand une alerte a démarré plus tard : une personne, un workflow ou une règle qui correspond désormais l'a démarrée, ou c'est une alerte directe. Pour une alerte retenue par sa règle d'astreinte ou par OneUptime AI, quand sa suspension a pris fin, ou quand elle a démarré si c'était plus tôt. Pour une nouvelle alerte, quand le délai après prise en compte a expiré. Un worker arrivé en retard à l'une ou l'autre se voit donc dans le temps. |
 
 Pour une requête entrante, la durée part de la dernière requête reçue par le point de terminaison, elle peut donc être un peu courte.
 
@@ -170,7 +170,7 @@ Pour une requête entrante, la durée part de la dernière requête reçue par l
 | `escalation` | Un niveau d'escalade ultérieur : quand le niveau précédent a fini son attente, ou aussitôt quand une personne transmet l'alerte. |
 | `policy_repeat` | La politique qui recommence à son premier niveau : quand l'attente de son dernier niveau a expiré. |
 
-Elle porte aussi `notification.channel`, `notification.trigger.type` et, pour les canaux personnalisés, `notification.custom_channel.id` et `notification.custom_channel.name`. Une notification due au démarrage de son alerte n'y figure jamais : elle est dans le délai d'envoi.
+Elle porte aussi `notification.channel`, `notification.trigger.type` et, pour les canaux personnalisés, `notification.custom_channel.id` et `notification.custom_channel.name`. Une notification due au démarrage de son alerte n'y figure jamais, même quand un worker a démarré l'alerte en retard, après une suspension ou comme nouvelle alerte : elle est dans le délai d'envoi.
 
 ### Compartiments des histogrammes
 
@@ -220,7 +220,7 @@ La formule `$b / $a * 100` est la part qui a échoué, et l'objectif tient tant 
 | --- | --- | --- | --- |
 | `a` | `notification.time_to_send` | **P95** | `notification.page.start != page_started` |
 
-L'objectif tient tant que `a` reste inférieur ou égal à 30000. Les alertes démarrées plus tard sont chronométrées depuis leur démarrage, pas depuis un déclencheur, elles sont donc exclues. Regroupez par `notification.page.start` pour voir la file des moniteurs (`monitor_data_received`) à part du reste, ou par `notification.channel` pour trouver un canal lent.
+L'objectif tient tant que `a` reste inférieur ou égal à 30000. Les alertes démarrées plus tard sont chronométrées depuis leur démarrage ou leur échéance, pas depuis un déclencheur, elles sont donc exclues. Regroupez par `notification.page.start` pour voir la file des moniteurs (`monitor_data_received`) à part du reste, ou par `notification.channel` pour trouver un canal lent.
 
 ### Les notifications envoyées plus tard partent en moins de 90 secondes
 
@@ -246,7 +246,7 @@ La formule `$b / $a * 100` est la part non distribuée. Les opérateurs et les t
 ## Dépannage
 
 :::details Aucune métrique de notification n'arrive
-Vérifiez que `OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT` et `OPENTELEMETRY_EXPORTER_OTLP_HEADERS` sont tous deux définis, et dans Docker Compose que `DISABLE_TELEMETRY_FOR_APP` vaut `false`, puis redémarrez OneUptime. Une métrique n'apparaît qu'une fois que quelque chose est enregistré, envoyez donc d'abord une notification.
+Vérifiez que `OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT` et `OPENTELEMETRY_EXPORTER_OTLP_HEADERS` sont tous deux définis, et dans Docker Compose que `DISABLE_TELEMETRY_FOR_APP` vaut `false`, puis redémarrez OneUptime. Au démarrage, OneUptime journalise un avertissement lorsqu'il ne peut pas lire un en-tête, ou lorsqu'il n'envoie rien. Une métrique n'apparaît qu'une fois que quelque chose est enregistré, envoyez donc d'abord une notification.
 :::
 
 :::details Un compte ne fait que croître, ou un percentile bouge à peine

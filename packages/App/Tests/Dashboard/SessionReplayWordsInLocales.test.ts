@@ -41,10 +41,10 @@ import path from "path";
  * translations fails here, and so does a sentence written into the markup
  * again.
  *
- * The events rail's own sentences (Components/SessionReplay/Rail) are the
- * one exception to "nothing drawn as written": issue #6516 routes them, so
- * this suite holds the rail to no more of them than it had, and to wording
- * the ones it already looks up.
+ * The events rail's own sentences (Components/SessionReplay/Rail) were the
+ * one exception to "nothing drawn as written" until #6658 routed them: the
+ * rail keeps one string as written, the "x" between a viewport's width and
+ * height (1440x900), which reads the same in every language.
  */
 
 const REPOSITORY_ROOT: string = path.resolve(__dirname, "../../../..");
@@ -110,10 +110,10 @@ const KEYS_FILES: ReadonlyArray<string> = [
 ];
 
 /*
- * The rail's sentences still drawn as written, which issue #6516 routes:
- * never more than this.
+ * What the rail still draws as written: the "x" of a viewport's size
+ * (1440x900). A sentence written into the rail again fails here.
  */
-const RAIL_HARDCODED_CEILING: number = 108;
+const RAIL_AS_WRITTEN: ReadonlyArray<string> = ["x"];
 
 const LANGUAGES: ReadonlyArray<string> = [
   "de",
@@ -620,21 +620,25 @@ describe("Session Replay's words", () => {
     ).toBeGreaterThan(40);
   });
 
-  test("draw nothing as written outside the events rail, and no more in the rail than it had", () => {
-    let inRail: number = 0;
+  test("draw nothing as written, except the rail's viewport size", () => {
+    const inRail: Array<string> = [];
 
     for (const [file, scan] of SCANS) {
       const hardcoded: Array<HardcodedString> = scan.hardcoded;
 
       if (file.startsWith(RAIL)) {
-        inRail += hardcoded.length;
+        inRail.push(
+          ...hardcoded.map((entry: HardcodedString): string => {
+            return entry.text;
+          }),
+        );
         continue;
       }
 
       expect({ file, hardcoded }).toEqual({ file, hardcoded: [] });
     }
 
-    expect(inRail).toBeLessThanOrEqual(RAIL_HARDCODED_CEILING);
+    expect(inRail).toEqual(RAIL_AS_WRITTEN);
   });
 
   test("are every one a key of the English locale", () => {

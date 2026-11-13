@@ -8,6 +8,7 @@ import {
   formatLastSeen,
   formatLastSeenInLanguage,
   isEntityActive,
+  isLastSeenKnown,
   partitionByActivity,
 } from "../../FeatureSet/Dashboard/src/Components/Topology/TopologyActivity";
 
@@ -137,6 +138,40 @@ describe("formatLastSeen", () => {
 
   test("unknown timestamps render a dash", () => {
     expect(formatLastSeen(undefined, now)).toBe("—");
+  });
+});
+
+/*
+ * #6693: Last seen is the status on one line and how long ago under it.
+ * A row with no time to tell has no second line - not a dash under its
+ * status - and every row with a time has one, in the buckets above.
+ */
+describe("isLastSeenKnown", () => {
+  const now: Date = new Date("2026-09-07T10:00:00Z");
+
+  test.each([
+    ["2026-09-07T09:59:30Z"],
+    ["2026-09-07T09:48:00Z"],
+    ["2026-09-07T05:00:00Z"],
+    ["2026-07-04T10:00:00Z"],
+    // A clock skewed into the future still reads "just now".
+    ["2026-09-07T10:05:00Z"],
+  ])("a time (%s) is known", (at: string) => {
+    expect(isLastSeenKnown(new Date(at), now)).toBe(true);
+    expect(formatLastSeen(new Date(at), now)).not.toBe("—");
+  });
+
+  test("no time, or one that is not a time, is not known: the dash is never drawn", () => {
+    for (const at of [undefined, new Date("not a date")]) {
+      expect(isLastSeenKnown(at, now)).toBe(false);
+      expect(formatLastSeen(at, now)).toBe("—");
+    }
+  });
+
+  test("a time sent as text, as the API hands it over, is known", () => {
+    expect(
+      isLastSeenKnown("2026-09-04T10:00:00Z" as unknown as Date, now),
+    ).toBe(true);
   });
 });
 

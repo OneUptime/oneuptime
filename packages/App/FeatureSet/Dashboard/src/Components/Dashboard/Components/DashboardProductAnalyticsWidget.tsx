@@ -28,6 +28,14 @@ import AppLink from "../../AppLink/AppLink";
 import DashboardResourceList from "../Utils/DashboardResourceList";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import WidgetPlaceholder from "./WidgetPlaceholder";
+import DashboardWidgetLine from "./DashboardWidgetLine";
+import { useIsDashboardWidgetPreview } from "./DashboardWidgetPreview";
+import {
+  DASHBOARD_WIDGET_SETUP_LINE_TEST_ID,
+  DashboardWidgetSetupNeed,
+  getDashboardWidgetPlace,
+  getDashboardWidgetSetupLine,
+} from "./DashboardWidgetSetupCopy";
 
 /*
  * What the Funnel and Retention widgets share (issue #6630): each shows a
@@ -45,7 +53,11 @@ export interface ProductAnalyticsWidgetWords {
   // The kind's icon, in a placeholder.
   icon: IconProp;
   notOnPublic: string;
-  setup: string;
+  /*
+   * What it needs before it draws anything: its line, for where it is
+   * drawn, is DashboardWidgetSetupCopy's.
+   */
+  setupNeed: DashboardWidgetSetupNeed;
   missing: string;
   open: string;
 }
@@ -59,7 +71,7 @@ export const PRODUCT_ANALYTICS_WIDGET_WORDS: Readonly<
     notOnPublic: translationKey(
       "Funnels are not available on public dashboards.",
     ),
-    setup: translationKey("Pick a saved funnel in this widget's settings."),
+    setupNeed: DashboardWidgetSetupNeed.SavedFunnel,
     missing: translationKey(
       "The saved funnel this widget shows was deleted, or you cannot see it.",
     ),
@@ -70,9 +82,7 @@ export const PRODUCT_ANALYTICS_WIDGET_WORDS: Readonly<
     notOnPublic: translationKey(
       "Retention tables are not available on public dashboards.",
     ),
-    setup: translationKey(
-      "Pick a saved retention table in this widget's settings.",
-    ),
+    setupNeed: DashboardWidgetSetupNeed.SavedRetentionTable,
     missing: translationKey(
       "The saved retention table this widget shows was deleted, or you cannot see it.",
     ),
@@ -230,6 +240,74 @@ export function useProductAnalyticsWidgetPeriod(
   }, [props.dashboardStartAndEndDate, props.refreshTick]);
 }
 
+/*
+ * Whether a widget links to its page: once its saved one is read, and not
+ * while the board is edited (a navigation would drop the edit) nor in the
+ * widget settings' live preview, which is drawn over a board being edited
+ * (issue #6859), nor on a playlist's screen, which nobody drives. A public
+ * dashboard reads no saved one, so never there either.
+ */
+export function isProductAnalyticsWidgetLinked(data: {
+  state: ProductAnalyticsWidgetState;
+  hasView: boolean;
+  isEditMode: boolean;
+  isPreview: boolean;
+  isPlayback: boolean;
+}): boolean {
+  return (
+    data.hasView &&
+    data.state === ProductAnalyticsWidgetState.Ready &&
+    !data.isEditMode &&
+    !data.isPreview &&
+    !data.isPlayback
+  );
+}
+
+export interface ProductAnalyticsWidgetPageLinkProps<
+  T extends ProductAnalyticsSavedViewType,
+> {
+  view: ProductAnalyticsSavedView<T>;
+  viewType: T;
+  dashboardStartAndEndDate: RangeStartAndEndDateTime;
+  // Under the pointer: where it goes ("Open in User Retention").
+  title: string;
+  className: string;
+  dataTestId: string;
+  children: ReactElement | Array<ReactElement> | string;
+}
+
+/*
+ * A link to the saved one on its page, in the dashboard's range: the
+ * title's icon, and a retention table's "2 more weeks" under it. A link,
+ * so it opens in a new tab too; not also a click on the widget under it.
+ */
+export function ProductAnalyticsWidgetPageLink<
+  T extends ProductAnalyticsSavedViewType,
+>(props: ProductAnalyticsWidgetPageLinkProps<T>): ReactElement {
+  return (
+    <span
+      className="flex flex-none"
+      onClick={(event: React.MouseEvent<HTMLSpanElement>): void => {
+        event.stopPropagation();
+      }}
+    >
+      <AppLink
+        to={getProductAnalyticsSavedViewRoute({
+          rumApplicationId: props.view.rumApplicationId,
+          viewType: props.viewType,
+          savedViewId: props.view.id,
+          timeRange: props.dashboardStartAndEndDate,
+        })}
+        title={props.title}
+        dataTestId={props.dataTestId}
+        className={props.className}
+      >
+        {props.children}
+      </AppLink>
+    </span>
+  );
+}
+
 export interface ProductAnalyticsWidgetFrameProps<
   T extends ProductAnalyticsSavedViewType,
 > {
@@ -248,8 +326,9 @@ export interface ProductAnalyticsWidgetFrameProps<
 /*
  * The widget's box: its title over what it shows, with the link to the
  * page - left out on a public dashboard (no session to open it in), while
- * the board is edited (a navigation would drop the edit) and on a
- * playlist's screen, which nobody drives.
+ * the board is edited (a navigation would drop the edit), in the widget
+ * settings' live preview, which is drawn over a board being edited, and on
+ * a playlist's screen, which nobody drives.
  */
 export function ProductAnalyticsWidgetFrame<
   T extends ProductAnalyticsSavedViewType,
@@ -259,12 +338,14 @@ export function ProductAnalyticsWidgetFrame<
     PRODUCT_ANALYTICS_WIDGET_WORDS[props.viewType];
   const view: ProductAnalyticsSavedView<T> | null = props.saved.view;
   const title: string = props.title?.trim() || view?.name || "";
-  const isLinked: boolean = Boolean(
-    view &&
-      props.saved.state === ProductAnalyticsWidgetState.Ready &&
-      !props.isEditMode &&
-      !props.isPlayback,
-  );
+  const isPreview: boolean = useIsDashboardWidgetPreview();
+  const isLinked: boolean = isProductAnalyticsWidgetLinked({
+    state: props.saved.state,
+    hasView: Boolean(view),
+    isEditMode: props.isEditMode,
+    isPreview: isPreview,
+    isPlayback: props.isPlayback,
+  });
 
   let body: ReactNode;
 
@@ -275,7 +356,24 @@ export function ProductAnalyticsWidgetFrame<
       );
       break;
     case ProductAnalyticsWidgetState.Setup:
-      body = <WidgetPlaceholder icon={words.icon} message={words.setup} />;
+      /*
+       * "Pick a saved funnel in this widget's settings." where they can be
+       * opened - the board being edited, the Live Preview above them - and
+       * only what is missing on a reader's board (issue #7160).
+       */
+      body = (
+        <WidgetPlaceholder
+          icon={words.icon}
+          message={getDashboardWidgetSetupLine(
+            words.setupNeed,
+            getDashboardWidgetPlace({
+              isEditMode: props.isEditMode,
+              isPreview: isPreview,
+            }),
+          )}
+          messageTestId={DASHBOARD_WIDGET_SETUP_LINE_TEST_ID}
+        />
+      );
       break;
     case ProductAnalyticsWidgetState.Missing:
       body = <WidgetPlaceholder icon={words.icon} message={words.missing} />;
@@ -308,45 +406,33 @@ export function ProductAnalyticsWidgetFrame<
     <div className="flex h-full w-full flex-col" data-testid={props.dataTestId}>
       {title || isLinked ? (
         <div className="mb-1 flex min-w-0 items-center justify-between gap-2 px-1">
-          <div
+          <DashboardWidgetLine
+            text={title}
             className="min-w-0 truncate text-sm font-medium text-gray-700"
             title={title}
-            data-testid={`${props.dataTestId}-title`}
-          >
-            {title}
-          </div>
+            dataTestId={`${props.dataTestId}-title`}
+          />
           {isLinked && view ? (
             /*
              * As the Chart widget's Open in Metric Explorer: an icon at the
              * title's end, its words on hover and to assistive tech, so the
              * title keeps the widget's width - the words beside it cut
              * "Weekly return visits" to "Weekly retur..." on a phone, and
-             * German's longer ones cut more. A link, so it opens in a new
-             * tab too; not also a click on the widget under it.
+             * German's longer ones cut more.
              */
-            <span
-              className="flex flex-none"
-              onClick={(event: React.MouseEvent<HTMLSpanElement>): void => {
-                event.stopPropagation();
-              }}
+            <ProductAnalyticsWidgetPageLink
+              view={view}
+              viewType={props.viewType}
+              dashboardStartAndEndDate={props.dashboardStartAndEndDate}
+              title={translator.translateText(words.open) || words.open}
+              dataTestId={`${props.dataTestId}-open`}
+              className="inline-flex h-5 w-5 items-center justify-center rounded-full text-gray-500 transition-all duration-150 hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
             >
-              <AppLink
-                to={getProductAnalyticsSavedViewRoute({
-                  rumApplicationId: view.rumApplicationId,
-                  viewType: props.viewType,
-                  savedViewId: view.id,
-                  timeRange: props.dashboardStartAndEndDate,
-                })}
-                title={translator.translateText(words.open)}
-                dataTestId={`${props.dataTestId}-open`}
-                className="inline-flex h-5 w-5 items-center justify-center rounded-full text-gray-500 transition-all duration-150 hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-              >
-                <Icon icon={IconProp.ExternalLink} className="h-3.5 w-3.5" />
-                <span className="sr-only">
-                  {translator.translateText(words.open)}
-                </span>
-              </AppLink>
-            </span>
+              <Icon icon={IconProp.ExternalLink} className="h-3.5 w-3.5" />
+              <span className="sr-only">
+                {translator.translateText(words.open)}
+              </span>
+            </ProductAnalyticsWidgetPageLink>
           ) : (
             <></>
           )}

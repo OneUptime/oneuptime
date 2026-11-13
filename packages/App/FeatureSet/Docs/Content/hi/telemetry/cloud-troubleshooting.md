@@ -67,10 +67,11 @@ Node.js और .NET के Azure डिटेक्टर `azure.container_apps`
 2. `aws.ecs.task.arn` (टास्क ID तक छोटा किया गया)
 3. `faas.instance`
 4. `azure.container_app.instance.id`
-5. `service.instance.id`
-6. `container.id`
-7. `host.id`
-8. `host.name`
+5. `azure.app_service.instance.id`
+6. `service.instance.id`
+7. `container.id`
+8. `host.id`
+9. `host.name`
 
 प्लेटफ़ॉर्म की अपनी पहचान `service.instance.id` से पहले आती है, इसलिए SDK जो ID हर प्रोसेस के लिए बना लेता है (Node.js SDK डिफ़ॉल्ट रूप से ऐसा करता है), वह किसी टास्क को उसके sidecar के CPU और मेमोरी से अलग नहीं कर सकता। हर प्लेटफ़ॉर्म पर पहचान क्या सेट करता है:
 
@@ -80,7 +81,7 @@ Node.js और .NET के Azure डिटेक्टर `azure.container_apps`
 | Cloud Run, App Engine | `gcp` डिटेक्टर `faas.instance` सेट करता है |
 | Container Apps | कलेक्टर का `azurecontainerapps` डिटेक्टर रेप्लिका ID सेट करता है; या `CONTAINER_APP_REPLICA_NAME` से `service.instance.id` सेट करें, या होस्ट डिटेक्टर चलाएं |
 | App Runner, Container Instances | होस्ट डिटेक्टर का `host.name` |
-| App Service, Elastic Beanstalk | प्लेटफ़ॉर्म का डिटेक्टर `service.instance.id` सेट करता है; Beanstalk पर इसे हटाएं ताकि `host.id` हर इंस्टेंस का नाम रखे |
+| App Service, Elastic Beanstalk | प्लेटफ़ॉर्म का डिटेक्टर `service.instance.id` सेट करता है (App Service पर कलेक्टर का डिटेक्टर `azure.app_service.instance.id` सेट करता है); Beanstalk पर `service.instance.id` हटाएं ताकि `host.id` हर इंस्टेंस का नाम रखे |
 
 एट्रिब्यूट वाला पहला सिग्नल आने के एक मिनट के भीतर इंस्टेंस दिखता है।
 
@@ -89,7 +90,7 @@ Node.js और .NET के Azure डिटेक्टर `azure.container_apps`
 इंस्टेंस सूची में हैं, लेकिन अवलोकन की **CPU** और **मेमोरी** टाइलें, और **इंस्टेंस** के CPU और मेमोरी कॉलम खाली हैं। ये ट्रेस से नहीं, मेट्रिक्स से आते हैं: `container.cpu.utilization` और `container.memory.usage` (या `container.memory.usage.total`) के डेटा पॉइंट, जिनके रिसोर्स पर ट्रेस वाली ही इंस्टेंस पहचान और `cloud.platform` हो।
 
 - **ECS पर** sidecar कलेक्टर का `awsecscontainermetrics` रिसीवर इन्हें `ecs.task.cpu.utilized` और `ecs.task.memory.utilized` के रूप में देता है। इसे `metrics` पाइपलाइन में रखें, और उसी पाइपलाइन में `resourcedetection` भी रखें, वरना मेट्रिक्स `cloud.platform` के बिना आते हैं और कहीं और दर्ज हो जाते हैं।
-- **Cloud Run, Container Apps और बाकी प्लेटफ़ॉर्म पर** प्लेटफ़ॉर्म किसी sidecar को कंटेनर का उपयोग नहीं दिखाता। जब तक आप वे मेट्रिक्स खुद नहीं भेजते, टाइलें खाली रहती हैं: इसके बजाय अनुरोध वाली टाइलें देखें।
+- **Cloud Run, Container Apps और बाकी प्लेटफ़ॉर्म पर** प्लेटफ़ॉर्म किसी sidecar को कंटेनर का उपयोग नहीं दिखाता। जब तक आप वे मेट्रिक्स खुद नहीं भेजते, टाइलें खाली रहती हैं: इसके बजाय अनुरोध वाली टाइलें देखें। App Service पर **क्लाउड → कनेक्ट करें** में सब्सक्रिप्शन कनेक्ट करें: तब ऐप का पेज **Azure Monitor** से उसकी साइट का CPU टाइम और मेमोरी दिखाता है।
 - **SDK direct के साथ** कोई कंटेनर मेट्रिक्स नहीं भेजता, इसलिए खाली टाइलें अपेक्षित हैं।
 
 ## परिवेश डिस्कनेक्टेड दिखाता है

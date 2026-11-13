@@ -2,6 +2,9 @@
 
 En vagtpolitik tilkalder folk i niveauer. Hver eskaleringsregel er ét niveau: hvem der tilkaldes, og hvor længe der ventes på, at nogen kvitterer, før næste niveau tilkaldes. En politiks regler står i rækkefølge på dens side **Eskaleringsregler**.
 
+> [!TIP]
+> Ny her? Følg guiden først: [Bliv tilkaldt via opkald, SMS eller push](/docs/guides/paging).
+
 ```mermaid title="En vagtpolitik tilkalder niveau for niveau, indtil nogen kvitterer"
 flowchart TB
     trigger["Hændelse eller advarsel"] --> level1["Level 1 tilkalder"]
@@ -163,6 +166,8 @@ Et tilkald, der ikke sendes, siger hvorfor i personens **Vagtlogs** (Brugerindst
 - kanalen er slået fra i projektet, og hvem der kan slå den til.
 
 Projektets ejere får én e-mail om det, indtil saldoen er fyldt op, eller kanalen er slået til igen.
+
+Et tilkald, der ikke kunne nå OneUptimes notifikationstjeneste, siger `Could not reach the Notification service to send this (ECONNREFUSED).`, med netværksfejlens kode i parentesen. Et tilkald, hvis afsendelse aldrig blev færdig, for eksempel fordi en server genstartede under afsendelsen, siger `Sending did not finish within 15 minutes, so this notification may not have been sent.` Bliver afsendelsen alligevel færdig, erstatter resultatet den besked.
 
 På OneUptime Cloud betales hver SMS, hvert opkald, hver WhatsApp- og Telegram-besked af projektets saldo på **Projektindstillinger > Notifikationer > Notifikationsindstillinger**: den præcise pris trækkes fra saldoen, når udbyderen tager imod beskeden, uanset hvor mange beskeder der går ud på én gang.
 

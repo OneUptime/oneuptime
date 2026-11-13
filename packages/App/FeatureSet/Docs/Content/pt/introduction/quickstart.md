@@ -2,6 +2,8 @@
 
 Este guia leva você de uma conta nova a uma configuração funcionando em cerca de quinze minutos: um monitor que verifica seu site a cada cinco minutos, uma política de plantão que aciona você quando o site cai e uma página de status que informa seus clientes. Ele segue a lista **Boas-vindas ao OneUptime 👋** na página inicial do seu projeto.
 
+Vindo de outra ferramenta? Primeiro [importe sua configuração](/docs/introduction/getting-started#vindo-de-outra-ferramenta): seus monitores, agendamentos de plantão e páginas de status vêm junto.
+
 ```mermaid title="O que você configura neste guia"
 flowchart TB
     monitor["Monitor de site"] -->|"site fora do ar"| incident["Incidente"]
@@ -32,7 +34,7 @@ Digite um **Nome do projeto**, por exemplo o nome da sua empresa. No OneUptime C
 
 ### Criar o projeto
 
-Clique em **Criar projeto**. A página inicial do seu projeto abre, com a lista **Boas-vindas ao OneUptime 👋** no topo.
+Clique em **Criar projeto**. A página inicial do seu projeto abre, com a lista **Boas-vindas ao OneUptime 👋** no topo. Primeiro ele pergunta **O que você quer fazer primeiro?**: marque **Saber quando meu site ou API cair**, **Acionar a pessoa certa quando algo quebrar** e **Informar meus clientes com uma página de status**, e clique em **Continuar**.
 :::
 
 ## Monitorar seu site
@@ -80,6 +82,8 @@ Seu e-mail de login já é uma forma de contatar você. Para receber também SMS
 
 Para mais níveis, rodízios e quanto tempo cada nível espera, veja [Regras de escalonamento](/docs/on-call/escalation-rules) e [Agendamentos de plantão](/docs/on-call/schedules).
 
+Para ser acionado por SMS, ligação e push, com a próxima pessoa acionada quando ninguém responde e um acionamento de teste que comprova isso, siga [Ser acionado por telefone, SMS ou push](/docs/guides/paging).
+
 ## Publicar uma página de status
 
 :::steps
@@ -97,6 +101,8 @@ Escolha **Visão geral** no menu lateral. O cartão **Link da página de status*
 :::
 
 Uma página de status nova é pública: qualquer pessoa com o endereço pode abri-la. Para dar a ela seu próprio domínio, seu logotipo e suas cores, veja [Marca e domínios da página de status](/docs/status-pages/branding-and-domains).
+
+Para colocar a página de status no seu próprio domínio, por HTTPS, siga [Publicar uma página de status](/docs/guides/status-page).
 
 ## Convidar sua equipe
 
@@ -141,6 +147,7 @@ Abra o monitor e confira o que as sondas receberam. Veja a seção de solução 
 
 :::cards
 - [Conceitos básicos](/docs/introduction/core-concepts): As ideias por trás do que você acabou de configurar.
+- [Glossário](/docs/introduction/glossary): Cada palavra que você encontrou pelo caminho, em uma ou duas frases.
 - [Agendamentos de plantão](/docs/on-call/schedules): Dividir o plantão com sua equipe.
 - [Marca e domínios da página de status](/docs/status-pages/branding-and-domains): Deixar a página de status com a sua cara.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Enviar logs, métricas e traces dos seus aplicativos.

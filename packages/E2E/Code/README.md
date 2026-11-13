@@ -84,6 +84,15 @@ The suite drives the pages the way a person does, on a laptop and on a phone:
   question waiting for an answer, live steps ending in "Working on it…" and
   Stop, Try again, a failed turn and why, a task OneUptime started from an
   exception, a turn's Log and back, and the trail;
+- a task kept open for weeks, past 200 turns (`?long=1`: 207, read as the
+  server reads them): its first turn, a line saying how many turns are not
+  shown, then its newest 199, with the top still counting every turn's
+  work; a reply sent from the top of the page going to its end, where the
+  reply is drawn; its Log numbering each turn where it stands in the task
+  (Turn 1, then Turn 9); a Log link to a turn the page does not show
+  (Turn 5) opening that turn, listed at its place with a line either side,
+  and one to another task's run showing the task's first turn and saying
+  so (issue #7130); German;
 - each step reaching the page as it is announced (`?live=1`): read as its
   turn's new steps, never the whole task until the turn is done, rising
   into place, in a conversation a screen reader follows as a log; a turn
@@ -134,12 +143,15 @@ The suite drives the pages the way a person does, on a laptop and on a phone:
   comment, a refused token, a Git server's address - and German and dark
   mode for them;
 - dark mode (`?theme=dark`: no light surface, and a spinner's arc that keeps
-  its own colour) and German (`?lang=de`).
+  its own colour) and German (`?lang=de`); Arabic (`?lang=ar`) reads right
+  to left, laid out as production lays it out (`server.js` loads the
+  reading-direction script right after Tailwind's runtime).
 
 What the pages send is recorded on `window.__fixture` (`creates`, `replies`,
 `retries`, `stops`, `settings`, `deletes`, `navigations`, `branchReads`,
 `lists`, `reviewLists`, `reviewAgains`, `reviewAsks`, `progressReads` (each
-read of a working turn's progress), `liveSubscriptions` (what the pages
+read of a working turn's progress), `taskTurnReads` (each task read that
+asked for a turn a Log link names), `liveSubscriptions` (what the pages
 listen to on the live connection), and the connect dialog's
 `connectReads`, `connects`, `gitConnects` and `tokenReplacements`), so the
 tests check what was sent as

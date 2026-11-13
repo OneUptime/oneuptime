@@ -19,6 +19,7 @@ import {
   NextFunction,
 } from "Common/Server/Utils/Express";
 import { beforeEach, describe, expect, it } from "@jest/globals";
+import { SessionEndCause } from "Common/Types/UserSession/SessionEndCause";
 
 /*
  * ---------------------------------------------------------------------------
@@ -674,7 +675,7 @@ describe("POST /refresh-token", () => {
       "77777777-7777-4777-8777-777777777777",
     );
     expect(revokeSessionById.mock.calls[0]![1]).toEqual({
-      reason: "User blocked",
+      cause: SessionEndCause.AccountBlocked,
     });
     expect(removeAllCookies).toHaveBeenCalledTimes(1);
   });

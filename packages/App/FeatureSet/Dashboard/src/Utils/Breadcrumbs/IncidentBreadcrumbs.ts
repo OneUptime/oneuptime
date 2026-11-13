@@ -285,6 +285,12 @@ export function getIncidentsBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Numbering",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_RETENTION, [
+      "Project",
+      "Incidents",
+      "Settings",
+      "Data Retention",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_STATE, [
       "Project",
       "Incidents",

@@ -22,6 +22,10 @@ import {
   NextFunction,
 } from "Common/Server/Utils/Express";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import {
+  SecondFactor,
+  SignInMethod,
+} from "Common/Types/UserSession/SessionSignIn";
 
 const mockRouter: MockIdentityRouter = createMockIdentityRouter();
 
@@ -736,6 +740,15 @@ describe("POST /verify-backup-code -- signing in when the factor is unreachable"
 
     expect(loginSucceeded()).toBe(true);
     expect(createSession).toHaveBeenCalledTimes(1);
+    // The audit log says how they signed in (SessionSignIn, issue #6762).
+    expect(createSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        signIn: {
+          method: SignInMethod.Password,
+          secondFactor: SecondFactor.BackupCode,
+        },
+      }),
+    );
 
     const miscData: JSONObject = responseMiscData();
 
@@ -834,7 +847,9 @@ describe("POST /verify-backup-code -- what it refuses", () => {
     const result: InvokeResult = await postBackupCode();
 
     expect(loginSucceeded()).toBe(false);
-    expect(refusalMessage(result)).toBe("Invalid backup code.");
+    expect(refusalMessage(result)).toBe(
+      "That backup code is not right, or it was already used. Each backup code works once.",
+    );
     expect(sessionViolations()).toEqual([]);
   });
 
@@ -856,7 +871,9 @@ describe("POST /verify-backup-code -- what it refuses", () => {
 
     const result: InvokeResult = await postBackupCode();
 
-    expect(refusalMessage(result)).toBe("Invalid backup code.");
+    expect(refusalMessage(result)).toBe(
+      "That backup code is not right, or it was already used. Each backup code works once.",
+    );
   });
 
   /*
@@ -928,7 +945,7 @@ describe("POST /verify-backup-code -- what it refuses", () => {
   /*
    * An absent code must be named as absent. It would normalize to the empty
    * string and `consumeCode` refuses that on its own, so the login is refused
-   * either way -- but "Invalid backup code." tells a user whose form did not
+   * either way -- but "That backup code is not right, or it was already used. Each backup code works once." tells a user whose form did not
    * submit the field that their printed codes have stopped working, which is
    * the moment they give up and open a support ticket.
    */

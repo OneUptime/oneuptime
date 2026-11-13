@@ -43,8 +43,12 @@ import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTim
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
-import { UptimeDailyAggregate } from "Common/Types/StatusPage/UptimeDailyAggregate";
+import {
+  MonitorGroupUptimeDailyAggregate,
+  UptimeDailyAggregate,
+} from "Common/Types/StatusPage/UptimeDailyAggregate";
 import UptimeDailyAggregateUtil from "Common/Utils/StatusPage/UptimeDailyAggregateUtil";
+import MonitorGroupUptimeDailyAggregateUtil from "Common/Utils/StatusPage/MonitorGroupUptimeDailyAggregateUtil";
 import { MergedDowntimeTotals } from "Common/Types/StatusPage/MergedDowntimeTotals";
 import MonitorGroupMergedDowntimeUtil from "Common/Utils/StatusPage/MonitorGroupMergedDowntimeUtil";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
@@ -90,6 +94,35 @@ import StatusPageLiveRefreshUtil from "../../Utils/LiveRefresh";
 import LastUpdated from "../../Components/LiveStatus/LastUpdated";
 import ResourceSearchBox from "../../Components/Search/ResourceSearchBox";
 import { getStatusTextProps } from "Common/UI/Utils/StatusColorStyle";
+import FrozenMonitorResources, {
+  NOT_MONITORED_STATUS_COLOR,
+} from "Common/Utils/StatusPage/FrozenMonitorResources";
+
+// No resource is drawn as Not monitored until the overview says so.
+const NO_RESOURCE_IDS: ReadonlySet<string> = new Set<string>();
+
+/*
+ * The ids of the resources the overview says the page draws as Not
+ * monitored (notMonitoredResourceIds): nothing checks them right now. An
+ * answer without the list - an older server's - has none.
+ */
+const readNotMonitoredResourceIds: (value: unknown) => ReadonlySet<string> = (
+  value: unknown,
+): ReadonlySet<string> => {
+  const ids: Set<string> = new Set<string>();
+
+  if (!Array.isArray(value)) {
+    return ids;
+  }
+
+  for (const id of value) {
+    if (typeof id === "string" && id.trim()) {
+      ids.add(id.trim());
+    }
+  }
+
+  return ids;
+};
 
 const parseAxisValues: (raw?: string) => Array<string> = (
   raw?: string,
@@ -205,6 +238,17 @@ const Overview: FunctionComponent<PageComponentProps> = (
   const [monitorGroupMergedDowntime, setMonitorGroupMergedDowntime] = useState<
     Dictionary<MergedDowntimeTotals>
   >({});
+  /*
+   * Server-measured day buckets per monitor group: how long the GROUP spent
+   * in each status each day - the worst status among its monitors at each
+   * instant - so a group's day adds up to at most the day (issue #6697).
+   * What a group's bars and uptime percentage are painted from. Empty from
+   * a server that predates it, and a group then falls back to its rows.
+   */
+  const [
+    monitorGroupUptimeDailyAggregate,
+    setMonitorGroupUptimeDailyAggregate,
+  ] = useState<MonitorGroupUptimeDailyAggregate | null>(null);
   const [resourceGroups, setResourceGroups] = useState<Array<StatusPageGroup>>(
     [],
   );
@@ -262,15 +306,53 @@ const Overview: FunctionComponent<PageComponentProps> = (
    * that predates the aggregate) there is nothing to line up with, and the
    * strips keep the visitor's own days.
    */
-  const uptimeBucketWindow: { startDate: Date; endDate: Date } | null =
+  const monitorBucketWindow: { startDate: Date; endDate: Date } | null =
     useMemo(() => {
       return UptimeDailyAggregateUtil.getWindow(uptimeDailyAggregate);
     }, [uptimeDailyAggregate]);
+  const monitorGroupBucketWindow: { startDate: Date; endDate: Date } | null =
+    useMemo(() => {
+      return MonitorGroupUptimeDailyAggregateUtil.getWindow(
+        monitorGroupUptimeDailyAggregate,
+      );
+    }, [monitorGroupUptimeDailyAggregate]);
+  /*
+   * The monitors' and the monitor groups' buckets are cut together, in the
+   * zone the page asked for and on one grid, so one window serves every
+   * strip - from whichever has buckets, or the span of both.
+   */
+  const uptimeBucketWindow: { startDate: Date; endDate: Date } | null =
+    useMemo(() => {
+      if (!monitorBucketWindow || !monitorGroupBucketWindow) {
+        return monitorBucketWindow || monitorGroupBucketWindow;
+      }
+
+      return {
+        startDate: new Date(
+          Math.min(
+            monitorBucketWindow.startDate.getTime(),
+            monitorGroupBucketWindow.startDate.getTime(),
+          ),
+        ),
+        endDate: new Date(
+          Math.max(
+            monitorBucketWindow.endDate.getTime(),
+            monitorGroupBucketWindow.endDate.getTime(),
+          ),
+        ),
+      };
+    }, [monitorBucketWindow, monitorGroupBucketWindow]);
   const uptimeStripStartDate: Date = uptimeBucketWindow?.startDate || startDate;
   const uptimeStripEndDate: Date = uptimeBucketWindow?.endDate || endDate;
-  const uptimeStripTimezone: string | undefined = uptimeBucketWindow
+  /*
+   * The visitor's own zone, which the page asked for, unless the server
+   * could not cut days in it and said UTC instead.
+   */
+  const uptimeStripTimezone: string | undefined = monitorBucketWindow
     ? UptimeDailyAggregateUtil.getTimezone(uptimeDailyAggregate)
-    : undefined;
+    : monitorGroupBucketWindow
+      ? monitorGroupUptimeDailyAggregate?.timezone
+      : undefined;
   const [currentStatus, setCurrentStatus] = useState<MonitorStatus | null>(
     null,
   );
@@ -282,6 +364,14 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
   const [monitorGroupCurrentStatuses, setMonitorGroupCurrentStatuses] =
     useState<Dictionary<ObjectID>>({});
+
+  /*
+   * The resources drawn as Not monitored, in gray, in place of a status:
+   * a monitor whose monitoring is off, a monitor group whose monitors all
+   * have it off. Their status decides no other (FrozenMonitorResources).
+   */
+  const [notMonitoredResourceIds, setNotMonitoredResourceIds] =
+    useState<ReadonlySet<string>>(NO_RESOURCE_IDS);
 
   const [timelineIncidents, setTimelineIncidents] = useState<
     Array<UptimeBarTooltipIncident>
@@ -361,7 +451,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
         url: URL.fromString(STATUS_PAGE_API_URL.toString()).addRoute(
           `/overview/${id.toString()}`,
         ),
-        data: {},
+        /*
+         * The zone the page shows every time in, so each bar of the uptime
+         * history is one of the visitor's own days, and the incidents and
+         * maintenance its tooltip lists - in that same zone - are the day's.
+         * The bars used to be UTC days for everyone (issue #6697).
+         */
+        data: {
+          timezone: OneUptimeDate.getCurrentTimezone(),
+        },
         headers: API.getDefaultHeaders(),
       });
 
@@ -453,6 +551,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
       const monitorGroupMergedDowntime: Dictionary<MergedDowntimeTotals> =
         MonitorGroupMergedDowntimeUtil.fromJSON(
           data["monitorGroupMergedDowntime"] as JSONObject,
+        );
+      const monitorGroupUptimeDailyAggregate: MonitorGroupUptimeDailyAggregate =
+        MonitorGroupUptimeDailyAggregateUtil.fromJSON(
+          data["monitorGroupUptimeDailyAggregate"] as JSONObject,
         );
       const resourceGroups: Array<StatusPageGroup> = BaseModel.fromJSONArray(
         (data["resourceGroups"] as JSONArray) || [],
@@ -550,6 +652,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
       setTimelineMaintenance(parsedTimelineMaintenance);
       setMonitorsInGroup(monitorsInGroup);
       setMonitorGroupCurrentStatuses(monitorGroupCurrentStatuses);
+      setNotMonitoredResourceIds(
+        readNotMonitoredResourceIds(data["notMonitoredResourceIds"]),
+      );
 
       setStatusPageHistoryChartBarColorRules(
         statusPageHistoryChartBarColorRules,
@@ -570,6 +675,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
       setMonitorStatusTimelines(monitorStatusTimelines);
       setUptimeDailyAggregate(uptimeDailyAggregate);
       setMonitorGroupMergedDowntime(monitorGroupMergedDowntime);
+      setMonitorGroupUptimeDailyAggregate(monitorGroupUptimeDailyAggregate);
       setResourceGroups(resourceGroups);
       setMonitorStatuses(monitorStatuses);
       setStatusPage(statusPage);
@@ -772,7 +878,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
           monitorGroupCurrentStatuses: monitorGroupCurrentStatuses,
           allStatusPageGroups: resourceGroups,
           statusPageGroupTreeIndex: groupTreeIndex,
+          notMonitoredResourceIds: notMonitoredResourceIds,
         });
+
+      // Nothing beneath the group is checked: it has no status to give.
+      const isNotMonitored: boolean =
+        FrozenMonitorResources.isEveryResourceNotMonitored(
+          resourcesInSubtree,
+          notMonitoredResourceIds,
+        );
 
       const color: string =
         currentStatus?.color?.toString() || Green.toString();
@@ -804,6 +918,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
               statusPageGroupTreeIndex: groupTreeIndex,
               uptimeDailyAggregate: uptimeDailyAggregate,
               monitorGroupMergedDowntime: monitorGroupMergedDowntime,
+              monitorGroupUptimeDailyAggregate:
+                monitorGroupUptimeDailyAggregate,
             },
           )
         : null;
@@ -815,7 +931,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
           isCurrentlyDown: isCurrentlyDown,
           uptimePercent: uptimePercent,
           resourceCountInSubtree: resourcesInSubtree.length,
+          isNotMonitored: isNotMonitored,
         });
+
+      if (kind === StatusPageGroupRollupKind.NotMonitored) {
+        return {
+          label: t("overview.notMonitored"),
+          color: NOT_MONITORED_STATUS_COLOR.toString(),
+        };
+      }
 
       if (kind === StatusPageGroupRollupKind.UptimePercent) {
         return {
@@ -848,10 +972,12 @@ const Overview: FunctionComponent<PageComponentProps> = (
     monitorStatusTimelines,
     monitorStatuses,
     monitorGroupCurrentStatuses,
+    notMonitoredResourceIds,
     statusPage,
     monitorsInGroup,
     uptimeDailyAggregate,
     monitorGroupMergedDowntime,
+    monitorGroupUptimeDailyAggregate,
     startDate,
     endDate,
     t,
@@ -935,6 +1061,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
       const resourceKey: string =
         resource._id?.toString() || `position-${overviews.size}`;
 
+      const isNotMonitored: boolean = FrozenMonitorResources.isNotMonitored(
+        resource,
+        notMonitoredResourceIds,
+      );
+
       // if it's a monitor
 
       if (resource.monitor) {
@@ -980,23 +1111,20 @@ const Overview: FunctionComponent<PageComponentProps> = (
             downtimeMonitorStatuses={statusPage?.downtimeMonitorStatuses || []}
             /*
              * Single-monitor resource, so the monitor's own buckets are the
-             * resource's reading. A GROUP resource deliberately gets none:
-             * its status at any moment is the highest-priority status among
-             * its monitors, and summing per-monitor day buckets would count
-             * two monitors down at the same time as twice the downtime. A
-             * group's uptime percentage is read from the server's merged
-             * figure instead (below); its bars keep the old event-derived
-             * behaviour until there is a merged reading per day.
+             * resource's reading. A GROUP resource reads its own buckets
+             * instead (below): its status at any moment is the worst status
+             * among its monitors, and summing per-monitor day buckets would
+             * count two monitors down at the same time as twice the downtime.
              */
             uptimeBuckets={UptimeDailyAggregateUtil.getBucketsForMonitor(
               uptimeDailyAggregate,
               resource.monitorId || resource.monitor?.id || "",
             )}
             /*
-             * The buckets are UTC days (one cached payload serves every
-             * visitor), so the bars are drawn on UTC days too. Drawn on the
-             * visitor's local days instead, a bucket landed on the wrong bar
-             * west of UTC and today's bar had no bucket at all.
+             * The zone the buckets were cut in - the visitor's own, which the
+             * page asks for - so each bar is exactly one bucket. Drawn on any
+             * other days, a bucket lands on the wrong bar and today's bar has
+             * no bucket at all.
              */
             uptimeTimezone={uptimeStripTimezone}
             monitorStatuses={monitorStatuses}
@@ -1018,6 +1146,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             endDate={uptimeStripEndDate}
             showHistoryChart={resource.showStatusHistoryChart}
             showCurrentStatus={resource.showCurrentStatus}
+            isNotMonitored={isNotMonitored}
             uptimeGraphHeight={10}
             defaultBarColor={statusPage?.defaultBarColor || Green}
             uptimeHistoryDays={uptimeHistoryDays}
@@ -1103,9 +1232,23 @@ const Overview: FunctionComponent<PageComponentProps> = (
             )}
             downtimeMonitorStatuses={statusPage?.downtimeMonitorStatuses || []}
             /*
-             * The group's uptime percentage: the time at least one of its
-             * monitors was down, merged by the server from every row. Its
-             * rows are what the page-wide cap left, merged by priority.
+             * The group's own day buckets, measured by the server from every
+             * row: how long the GROUP spent in each status each day, the
+             * worst status among its monitors at each instant. Its bars and
+             * its uptime percentage are painted from them, so a finished day
+             * adds up to at most the day, and the percentage is the sum of
+             * the days. Its rows are what the page-wide cap left; they paint
+             * only a day these do not cover.
+             */
+            uptimeBuckets={MonitorGroupUptimeDailyAggregateUtil.getBucketsForMonitorGroup(
+              monitorGroupUptimeDailyAggregate,
+              resource.monitorGroupId?.toString() || "",
+            )}
+            monitorStatuses={monitorStatuses}
+            /*
+             * The group's uptime percentage from a server that sends no
+             * buckets for it: the time at least one of its monitors was
+             * down, merged from every row.
              */
             mergedDowntime={
               monitorGroupMergedDowntime[
@@ -1115,14 +1258,13 @@ const Overview: FunctionComponent<PageComponentProps> = (
             startDate={uptimeStripStartDate}
             endDate={uptimeStripEndDate}
             /*
-             * A group has no buckets and is painted from its rows, but it
-             * shares the list's "N days ago ... Today" axis with the monitor
-             * strips, so it is drawn on their days. On the visitor's own days
-             * column i would be a different day on each row.
+             * Drawn on the same days as every monitor strip - the visitor's
+             * own - so column i is the same day on every row.
              */
             uptimeTimezone={uptimeStripTimezone}
             showHistoryChart={resource.showStatusHistoryChart}
             showCurrentStatus={resource.showCurrentStatus}
+            isNotMonitored={isNotMonitored}
             uptimeGraphHeight={10}
             defaultBarColor={statusPage?.defaultBarColor || Green}
             uptimeHistoryDays={uptimeHistoryDays}
@@ -1155,8 +1297,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
     monitorStatusTimelines,
     uptimeDailyAggregate,
     monitorGroupMergedDowntime,
+    monitorGroupUptimeDailyAggregate,
     monitorsInGroup,
     monitorGroupCurrentStatuses,
+    notMonitoredResourceIds,
     uptimeStripStartDate,
     uptimeStripEndDate,
     uptimeStripTimezone,
@@ -1184,6 +1328,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
         uptimeWindow: { startDate, endDate },
         uptimeDailyAggregate,
         monitorGroupMergedDowntime,
+        monitorGroupUptimeDailyAggregate,
       },
     );
   }, [
@@ -1192,6 +1337,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
     monitorStatusTimelines,
     uptimeDailyAggregate,
     monitorGroupMergedDowntime,
+    monitorGroupUptimeDailyAggregate,
     statusPageResources,
     resourceGroups,
     monitorsInGroup,
@@ -1390,11 +1536,39 @@ const Overview: FunctionComponent<PageComponentProps> = (
         };
       }
 
-      const statuses: Array<MonitorStatus> = cell.resources.map(
-        (resource: StatusPageResource) => {
+      /*
+       * Nothing in the cell is checked: it reads Not monitored, in gray,
+       * with no uptime - a percentage would speak for a time nothing checks.
+       */
+      if (
+        FrozenMonitorResources.isEveryResourceNotMonitored(
+          cell.resources,
+          notMonitoredResourceIds,
+        )
+      ) {
+        return {
+          isEmpty: false,
+          color: NOT_MONITORED_STATUS_COLOR.toString(),
+          statusName: t("overview.notMonitored"),
+          uptimeText: null,
+          labels: cell.resources.map((resource: StatusPageResource) => {
+            return resource.displayName || resource.monitor?.name || "";
+          }),
+          resourceCount: cell.resources.length,
+        };
+      }
+
+      // The cell's status comes from the resources in it that are checked.
+      const statuses: Array<MonitorStatus> = cell.resources
+        .filter((resource: StatusPageResource) => {
+          return !FrozenMonitorResources.isNotMonitored(
+            resource,
+            notMonitoredResourceIds,
+          );
+        })
+        .map((resource: StatusPageResource) => {
           return getCurrentStatusForResource(resource);
-        },
-      );
+        });
 
       const worstStatus: MonitorStatus =
         StatusPageResourceUptimeUtil.getWorstMonitorStatus({
@@ -1426,6 +1600,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
               uptimeWindow: { startDate: startDate, endDate: endDate },
               uptimeDailyAggregate: uptimeDailyAggregate,
               monitorGroupMergedDowntime: monitorGroupMergedDowntime,
+              monitorGroupUptimeDailyAggregate:
+                monitorGroupUptimeDailyAggregate,
             });
           if (percent !== null) {
             uptimePercents.push(percent);
@@ -1983,6 +2159,22 @@ const Overview: FunctionComponent<PageComponentProps> = (
                   const isMaintenance: boolean =
                     rawStatusName.toLowerCase() === "maintenance";
                   if (currentStatus.isOperationalState) {
+                    /*
+                     * A resource drawn as Not monitored has no status at
+                     * all, so the banner speaks for the monitored ones
+                     * rather than say all of them are Operational.
+                     */
+                    if (
+                      FrozenMonitorResources.isSomeResourceNotMonitored(
+                        statusPageResources,
+                        notMonitoredResourceIds,
+                      )
+                    ) {
+                      return t("overview.allMonitoredResourcesAre", {
+                        status: statusName,
+                      });
+                    }
+
                     return t("overview.allResourcesAre", {
                       status: statusName,
                     });
@@ -2009,6 +2201,26 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 id="overview-alert"
               />
             )}
+            {/*
+             * Nothing on the page is checked right now: there is no overall
+             * status to give, so the banner says so, in gray, rather than
+             * leaving the page without one.
+             */}
+            {!currentStatus &&
+              FrozenMonitorResources.isEveryResourceNotMonitored(
+                statusPageResources,
+                notMonitoredResourceIds,
+              ) && (
+                <Alert
+                  size={AlertSize.Large}
+                  title={t("overview.noResourcesAreMonitored")}
+                  color={NOT_MONITORED_STATUS_COLOR}
+                  doNotShowIcon={true}
+                  textClassName="text-white text-lg flex justify-between w-full"
+                  id="overview-alert"
+                  dataTestId="overview-not-monitored-alert"
+                />
+              )}
           </div>
 
           {StatusPageGroupNestingLayoutUtil.shouldRenderResourcesSection({

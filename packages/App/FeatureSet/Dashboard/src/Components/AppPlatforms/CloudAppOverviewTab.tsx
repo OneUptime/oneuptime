@@ -9,8 +9,10 @@ import CloudApp from "Common/Models/DatabaseModels/CloudApp";
 import CloudAppRevision from "Common/Models/DatabaseModels/CloudAppRevision";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import CloudResourceInstance from "Common/Models/DatabaseModels/CloudResourceInstance";
+import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
+import ObjectID from "Common/Types/ObjectID";
 import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import Card from "Common/UI/Components/Card/Card";
 import { useCardRuledListClassName } from "Common/UI/Components/Card/CardSurface";
@@ -41,21 +43,42 @@ import {
   CloudAppChangeMarker,
   CloudAppChangeMarkerKind,
   CloudAppRevisionState,
+  CloudAppState,
   countLiveInstancesByRevision,
   getCloudAppAttributeNoun,
   getCloudAppAttributes,
   getCloudAppChangeMarkers,
   getCloudAppDetailAttributeKeys,
   getCloudAppRevisionNoun,
+  getCloudAppState,
   getCloudAppTelemetryFilters,
   getShortRevision,
 } from "../../Pages/AppPlatforms/Utils/CloudApps";
 import { isCloudInstanceLive } from "../../Pages/AppPlatforms/Utils/CloudResourceTelemetryScope";
+import {
+  CLOUD_APP_CHART_LOAD_FAILED,
+  CLOUD_APP_LOAD_FAILED_SUBLABEL,
+  CloudAppPlatformResourceState,
+  getCloudAppInstancesTileNote,
+  getCloudAppSetupRows,
+  getCloudAppTraceTileNote,
+  getCloudAppUsageTileNote,
+  isCloudAppSetupIncomplete,
+  showsCloudAppUsageTiles,
+} from "../../Pages/AppPlatforms/Utils/CloudAppTelemetrySetup";
+import {
+  fetchCloudAppPlatformResource,
+  hasCloudAppPlatformResource,
+} from "../../Pages/AppPlatforms/Utils/CloudAppPlatformResource";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import { APP_INSTANCE_COUNT } from "./CloudAppCells";
 import {
   CLOUD_APP_REVISION_STATE_COLORS,
   REVISION_REPLACED,
 } from "./CloudAppRevisionsTab";
+import CloudAppAzureMonitorCard from "./CloudAppAzureMonitorCard";
+import CloudAppSetupCheckCard from "./CloudAppSetupCheckCard";
 
 /*
  * An App Platforms app's Overview tab: how it is doing in the range picked
@@ -72,6 +95,16 @@ import {
  * (ResourceOverview): each attribute named as the app's telemetry chips
  * name it, its key under it - "Cluster" over "aws.ecs.cluster.arn" - and
  * the revision it runs under the attribute it is read from.
+ *
+ * A number is shown only where it was measured (issue #6770): an app that
+ * sends no traces reads "No traces received" where its requests, error rate
+ * and latency would be, not "0"; one whose telemetry names no instance reads
+ * "Not reported", not "0 instances"; CPU and memory read "Not on Azure App
+ * Service" where the platform gives an app none; a failed read reads "—"
+ * over "could not load". While any of that is missing the tab leads with
+ * its Setup check, which says what to send. An App Service app whose site
+ * Azure Monitor reports has the site's own numbers under its own
+ * (CloudAppAzureMonitorCard).
  */
 
 export const DEPLOY_MARKER_LABEL: string = translationKey(
@@ -155,6 +188,16 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
   const ruledListClassName: string = useCardRuledListClassName();
   const [metrics, setMetrics] = useState<SpanMetrics | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  /*
+   * The site Azure Monitor reports an App Service app as: undefined while
+   * it is looked up, null when there is none (or the look-up failed).
+   */
+  const [platformResource, setPlatformResource] = useState<
+    CloudResource | null | undefined
+  >(undefined);
+  // The look-up failed (no access to Cloud resources, or the read did).
+  const [platformResourceCheckFailed, setPlatformResourceCheckFailed] =
+    useState<boolean>(false);
 
   const filters: Record<string, string> = getCloudAppTelemetryFilters({
     environment: props.environment,
@@ -163,6 +206,9 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
   const scopeKey: string = JSON.stringify(filters);
   const isScoped: boolean =
     Object.keys(getCloudAppAttributes(props.app)).length > 0;
+  const looksUpPlatformResource: boolean = hasCloudAppPlatformResource(
+    props.app,
+  );
 
   useEffect(() => {
     if (!isScoped) {
@@ -187,7 +233,20 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
         }
       })
       .catch((): void => {
+        // Unknown, not zero: the tiles read "could not load".
         if (!ignore) {
+          setMetrics((previous: SpanMetrics | null): SpanMetrics => {
+            return {
+              total: 0,
+              errors: 0,
+              errorRatePercent: null,
+              p95DurationMs: null,
+              countSeries: previous?.countSeries || [],
+              errorSeries: previous?.errorSeries || [],
+              p95Series: previous?.p95Series || [],
+              failed: true,
+            };
+          });
           setIsLoading(false);
         }
       });
@@ -199,6 +258,44 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
     scopeKey,
     props.start.getTime(),
     props.end.getTime(),
+    props.refreshToken,
+  ]);
+
+  useEffect(() => {
+    if (!looksUpPlatformResource) {
+      setPlatformResource(null);
+      setPlatformResourceCheckFailed(false);
+      return;
+    }
+
+    let ignore: boolean = false;
+
+    fetchCloudAppPlatformResource(props.app)
+      .then((resource: CloudResource | null): void => {
+        if (!ignore) {
+          setPlatformResource(resource);
+          setPlatformResourceCheckFailed(false);
+        }
+      })
+      .catch((): void => {
+        /*
+         * No access to Cloud resources, or the read failed: no section, and
+         * no Setup check row - it cannot say whether one is connected.
+         */
+        if (!ignore) {
+          setPlatformResource(null);
+          setPlatformResourceCheckFailed(true);
+        }
+      });
+
+    return (): void => {
+      ignore = true;
+    };
+  }, [
+    props.app._id?.toString(),
+    props.app.name,
+    props.app.groupName,
+    props.app.providerResourceId,
     props.refreshToken,
   ]);
 
@@ -234,30 +331,69 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
     },
   );
 
-  const m: SpanMetrics | null = metrics;
+  const isRunning: boolean =
+    getCloudAppState(props.app.lastSeenAt, now) === CloudAppState.Running;
+  // Any instance the app ever named: a stale one is kept until it is swept.
+  const hasReportedInstances: boolean = props.instances.length > 0;
+
+  /*
+   * A failed read is unknown, not zero (a RUM application's tiles read the
+   * same): its tiles read "—" over "could not load".
+   */
+  const spanReadFailed: boolean = Boolean(metrics?.failed);
+  const m: SpanMetrics | null = metrics && !metrics.failed ? metrics : null;
+  // Nothing from the app's traces to show: "No traces received".
+  const traceNote: string | undefined = getCloudAppTraceTileNote({
+    app: props.app,
+    metrics,
+  });
+  const usageNote: (hasReading: boolean) => string | undefined = (
+    hasReading: boolean,
+  ): string | undefined => {
+    return getCloudAppUsageTileNote({
+      cloudPlatform: props.app.cloudPlatform,
+      isRunning,
+      hasReading,
+      translator,
+    });
+  };
+  const cpuNote: string | undefined = usageNote(avgCpu !== null);
+  const memoryNote: string | undefined = usageNote(hasMemory);
+  const instancesNote: string | undefined = getCloudAppInstancesTileNote({
+    isRunning,
+    hasReportedInstances,
+  });
 
   const tiles: Array<ResourceOverviewTile> = [
     {
       title: "Requests",
       value: m ? formatCompact(m.total) : "—",
+      valueNote: traceNote,
       icon: IconProp.Workflow,
       iconColor: "sky",
       loading: isLoading,
-      sublabel: "selected range",
+      sublabel: spanReadFailed
+        ? CLOUD_APP_LOAD_FAILED_SUBLABEL
+        : traceNote
+          ? undefined
+          : "selected range",
       description: CLOUD_APP_METRIC_DESCRIPTIONS.requests,
     },
     {
       title: "Error rate",
       value: m ? formatPercent(m.errorRatePercent) : "—",
+      valueNote: traceNote,
       icon: IconProp.Alert,
       iconColor: "rose",
       loading: isLoading,
-      sublabel: m
-        ? translator.translateTemplate("{{errors}} errored", {
-            errors: formatCompact(m.errors),
-          })
-        : undefined,
-      percent: m ? m.errorRatePercent : null,
+      sublabel: spanReadFailed
+        ? CLOUD_APP_LOAD_FAILED_SUBLABEL
+        : m && !traceNote
+          ? translator.translateTemplate("{{errors}} errored", {
+              errors: formatCompact(m.errors),
+            })
+          : undefined,
+      percent: m && !traceNote ? m.errorRatePercent : null,
       higherIsBetter: false,
       thresholds: { warn: 1, danger: 5 },
       description: CLOUD_APP_METRIC_DESCRIPTIONS.errorRate,
@@ -265,41 +401,127 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
     {
       title: "p95 latency",
       value: m ? formatDurationMs(m.p95DurationMs) : "—",
+      valueNote: traceNote,
       icon: IconProp.Clock,
       iconColor: "emerald",
       loading: isLoading,
-      sublabel: "selected range",
+      sublabel: spanReadFailed
+        ? CLOUD_APP_LOAD_FAILED_SUBLABEL
+        : traceNote
+          ? undefined
+          : "selected range",
       description: CLOUD_APP_METRIC_DESCRIPTIONS.p95Latency,
     },
     {
       title: "Instances",
       value: formatCompact(liveInstances.length),
+      valueNote: instancesNote,
       icon: IconProp.Cube,
       iconColor: "amber",
-      sublabel: translator.translateTemplate(
-        "live in the last {{minutes}} min",
-        { minutes: CLOUD_APP_LIVE_WINDOW_MINUTES },
-      ),
+      // The note says it all: the line under it would only repeat it.
+      sublabel: instancesNote
+        ? undefined
+        : translator.translateTemplate("live in the last {{minutes}} min", {
+            minutes: CLOUD_APP_LIVE_WINDOW_MINUTES,
+          }),
       description: CLOUD_APP_METRIC_DESCRIPTIONS.instances,
     },
+  ];
+
+  const usageTiles: Array<ResourceOverviewTile> = [
     {
       title: "CPU",
       value: formatPercent(avgCpu),
+      valueNote: cpuNote,
       icon: IconProp.ChartBar,
       iconColor: "blue",
-      sublabel: "avg across live instances",
-      percent: avgCpu,
+      sublabel: cpuNote ? undefined : "avg across live instances",
+      percent: cpuNote ? undefined : avgCpu,
       description: CLOUD_APP_METRIC_DESCRIPTIONS.cpu,
     },
     {
       title: "Memory",
       value: hasMemory ? formatBytes(totalMemory) : "—",
+      valueNote: memoryNote,
       icon: IconProp.SquareStack,
       iconColor: "violet",
-      sublabel: "total across live instances",
+      sublabel: memoryNote ? undefined : "total across live instances",
       description: CLOUD_APP_METRIC_DESCRIPTIONS.memory,
     },
   ];
+
+  /*
+   * An App Service app has no CPU or memory of its own: once the Azure
+   * Monitor section below shows its site's, the two tiles that would only
+   * say "Not on Azure App Service" above those numbers give way, and the
+   * other four fill one row.
+   */
+  const showsUsageTiles: boolean = showsCloudAppUsageTiles({
+    cloudPlatform: props.app.cloudPlatform,
+    hasCpuReading: avgCpu !== null,
+    hasMemoryReading: hasMemory,
+    hasPlatformSection: Boolean(platformResource),
+  });
+  const shownTiles: Array<ResourceOverviewTile> = showsUsageTiles
+    ? [...tiles, ...usageTiles]
+    : tiles;
+
+  /*
+   * The Setup check leads the tab while a number on it waits for something
+   * the app does not send: traces, an instance, a version.
+   */
+  const setupIncomplete: boolean = isCloudAppSetupIncomplete({
+    app: props.app,
+    isRunning,
+    hasReportedInstances,
+  });
+  const environmentId: string = props.app.cloudResourceId?.toString() || "";
+  const guideRoute: Route | null = environmentId
+    ? RouteUtil.populateRouteParams(
+        RouteMap[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_DOCUMENTATION] as Route,
+        { modelId: new ObjectID(environmentId) },
+      )
+    : null;
+  const setupCheck: ReactElement =
+    setupIncomplete && guideRoute ? (
+      <CloudAppSetupCheckCard
+        rows={getCloudAppSetupRows({
+          app: props.app,
+          isRunning,
+          hasReportedInstances,
+          // A look-up that failed says nothing: it is not "not connected".
+          platformResource:
+            looksUpPlatformResource && !platformResourceCheckFailed
+              ? platformResource === undefined
+                ? CloudAppPlatformResourceState.Checking
+                : platformResource
+                  ? CloudAppPlatformResourceState.Found
+                  : CloudAppPlatformResourceState.NotFound
+              : undefined,
+          now,
+          translator,
+        })}
+        guideRoute={guideRoute}
+        connectRoute={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.CLOUD_CONNECT] as Route,
+        )}
+      />
+    ) : (
+      <></>
+    );
+
+  /*
+   * The trace charts have nothing to draw for an app that sends no traces:
+   * the tiles and the Setup check say why, so the charts give way - to the
+   * site's own numbers, for an App Service app Azure Monitor reports.
+   */
+  const showsTraceCharts: boolean = !traceNote;
+  /*
+   * "Running now" lists the instances by revision; for an app that names
+   * none it has nothing to list, and the Setup check says why.
+   */
+  const showsRunningNow: boolean = !(isRunning && !hasReportedInstances);
+  const chartSyncId: string = `cloud-app-${props.app._id?.toString() || ""}`;
 
   const markers: Array<CloudAppChangeMarker> = getCloudAppChangeMarkers({
     revisions: props.revisions,
@@ -417,139 +639,173 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
 
   return (
     <div data-testid="cloud-app-overview">
+      {setupCheck}
+
       <div
-        className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-3"
+        className={`mb-6 grid grid-cols-2 gap-4 ${
+          showsUsageTiles ? "lg:grid-cols-3" : "lg:grid-cols-4"
+        }`}
         data-testid="cloud-app-tiles"
       >
-        {tiles.map((tile: ResourceOverviewTile): ReactElement => {
+        {shownTiles.map((tile: ResourceOverviewTile): ReactElement => {
           return <ResourceOverviewTileCard key={tile.title} {...tile} />;
         })}
       </div>
 
-      <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <ChartCard
-          title="Requests"
-          icon={IconProp.Workflow}
-          iconColor="sky"
-          series={
-            [
-              { seriesName: "Requests", data: m?.countSeries ?? [] },
-              { seriesName: "Errors", data: m?.errorSeries ?? [] },
-            ] as Array<SeriesPoint>
-          }
-          windowStart={props.start}
-          windowEnd={props.end}
-          syncId={`cloud-app-${props.app._id?.toString() || ""}`}
-          showLegend={true}
-          loading={isLoading && !m}
-          description={CLOUD_APP_METRIC_DESCRIPTIONS.requestsChart}
-          timeReferenceLines={referenceLines}
-        />
-        <ChartCard
-          title="p95 latency"
-          icon={IconProp.Clock}
-          iconColor="emerald"
-          series={
-            [
-              { seriesName: "p95 latency", data: m?.p95Series ?? [] },
-            ] as Array<SeriesPoint>
-          }
-          windowStart={props.start}
-          windowEnd={props.end}
-          syncId={`cloud-app-${props.app._id?.toString() || ""}`}
-          yFormatter={(value: number): string => {
-            return formatDurationMs(value);
-          }}
-          loading={isLoading && !m}
-          description={CLOUD_APP_METRIC_DESCRIPTIONS.latencyChart}
-          timeReferenceLines={referenceLines}
-        />
-      </div>
-
-      <div className="mb-6">
-        <Card
-          title={RUNNING_NOW_TITLE}
-          description={CLOUD_APP_METRIC_DESCRIPTIONS.rollout}
+      {showsTraceCharts ? (
+        <div
+          className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2"
+          data-testid="cloud-app-trace-charts"
         >
-          {runningRevisions.length === 0 ? (
-            <p
-              className="text-sm text-gray-500"
-              data-testid="cloud-app-running-now-empty"
-            >
-              {translator.translateText(RUNNING_NOW_EMPTY)}
-            </p>
-          ) : (
-            <>
-              <ul className="space-y-4" data-testid="cloud-app-running-now">
-                {runningRevisions.map(
-                  (entry: [string, number]): ReactElement => {
-                    const [revision, count] = entry;
-                    const share: number =
-                      totalRunning > 0 ? (count / totalRunning) * 100 : 0;
-                    const isCurrent: boolean =
-                      revision === props.app.currentRevision;
-                    const state: CloudAppRevisionState = isCurrent
-                      ? CloudAppRevisionState.Current
-                      : CloudAppRevisionState.Running;
+          <ChartCard
+            title="Requests"
+            icon={IconProp.Workflow}
+            iconColor="sky"
+            series={
+              [
+                { seriesName: "Requests", data: m?.countSeries ?? [] },
+                { seriesName: "Errors", data: m?.errorSeries ?? [] },
+              ] as Array<SeriesPoint>
+            }
+            windowStart={props.start}
+            windowEnd={props.end}
+            syncId={chartSyncId}
+            showLegend={true}
+            loading={isLoading && !m && !spanReadFailed}
+            description={CLOUD_APP_METRIC_DESCRIPTIONS.requestsChart}
+            emptyMessage={
+              spanReadFailed ? CLOUD_APP_CHART_LOAD_FAILED : undefined
+            }
+            timeReferenceLines={referenceLines}
+          />
+          <ChartCard
+            title="p95 latency"
+            icon={IconProp.Clock}
+            iconColor="emerald"
+            series={
+              [
+                { seriesName: "p95 latency", data: m?.p95Series ?? [] },
+              ] as Array<SeriesPoint>
+            }
+            windowStart={props.start}
+            windowEnd={props.end}
+            syncId={chartSyncId}
+            yFormatter={(value: number): string => {
+              return formatDurationMs(value);
+            }}
+            loading={isLoading && !m && !spanReadFailed}
+            description={CLOUD_APP_METRIC_DESCRIPTIONS.latencyChart}
+            emptyMessage={
+              spanReadFailed ? CLOUD_APP_CHART_LOAD_FAILED : undefined
+            }
+            timeReferenceLines={referenceLines}
+          />
+        </div>
+      ) : (
+        <></>
+      )}
 
-                    return (
-                      <li
-                        key={revision}
-                        data-testid="cloud-app-running-revision"
-                        data-current={isCurrent ? "true" : "false"}
-                      >
-                        <div className="flex items-center justify-between gap-3 text-sm">
-                          <span className="flex min-w-0 items-center gap-2">
-                            <span
-                              className="min-w-0 truncate font-mono text-gray-900"
-                              title={revision}
-                            >
-                              <bdi>
-                                {getShortRevision({
-                                  revision,
-                                  appName: props.app.name,
-                                })}
-                              </bdi>
+      {platformResource ? (
+        <CloudAppAzureMonitorCard
+          resource={platformResource}
+          start={props.start}
+          end={props.end}
+          refreshToken={props.refreshToken}
+          syncId={chartSyncId}
+          timeReferenceLines={referenceLines}
+        />
+      ) : (
+        <></>
+      )}
+
+      {showsRunningNow ? (
+        <div className="mb-6">
+          <Card
+            title={RUNNING_NOW_TITLE}
+            description={CLOUD_APP_METRIC_DESCRIPTIONS.rollout}
+          >
+            {runningRevisions.length === 0 ? (
+              <p
+                className="text-sm text-gray-500"
+                data-testid="cloud-app-running-now-empty"
+              >
+                {translator.translateText(RUNNING_NOW_EMPTY)}
+              </p>
+            ) : (
+              <>
+                <ul className="space-y-4" data-testid="cloud-app-running-now">
+                  {runningRevisions.map(
+                    (entry: [string, number]): ReactElement => {
+                      const [revision, count] = entry;
+                      const share: number =
+                        totalRunning > 0 ? (count / totalRunning) * 100 : 0;
+                      const isCurrent: boolean =
+                        revision === props.app.currentRevision;
+                      const state: CloudAppRevisionState = isCurrent
+                        ? CloudAppRevisionState.Current
+                        : CloudAppRevisionState.Running;
+
+                      return (
+                        <li
+                          key={revision}
+                          data-testid="cloud-app-running-revision"
+                          data-current={isCurrent ? "true" : "false"}
+                        >
+                          <div className="flex items-center justify-between gap-3 text-sm">
+                            <span className="flex min-w-0 items-center gap-2">
+                              <span
+                                className="min-w-0 truncate font-mono text-gray-900"
+                                title={revision}
+                              >
+                                <bdi>
+                                  {getShortRevision({
+                                    revision,
+                                    appName: props.app.name,
+                                  })}
+                                </bdi>
+                              </span>
+                              <Pill
+                                text={CLOUD_APP_REVISION_STATE_LABELS[state]}
+                                color={CLOUD_APP_REVISION_STATE_COLORS[state]}
+                              />
                             </span>
-                            <Pill
-                              text={CLOUD_APP_REVISION_STATE_LABELS[state]}
-                              color={CLOUD_APP_REVISION_STATE_COLORS[state]}
+                            <span className="flex-shrink-0 text-gray-500">
+                              {translator.translatePlural(
+                                APP_INSTANCE_COUNT,
+                                count,
+                              )}
+                            </span>
+                          </div>
+                          <div className="mt-2 h-1.5 w-full rounded-full bg-gray-100">
+                            <div
+                              className={`h-1.5 rounded-full ${
+                                isCurrent ? "bg-emerald-500" : "bg-amber-400"
+                              }`}
+                              style={{ width: `${share}%` }}
                             />
-                          </span>
-                          <span className="flex-shrink-0 text-gray-500">
-                            {translator.translatePlural(
-                              APP_INSTANCE_COUNT,
-                              count,
-                            )}
-                          </span>
-                        </div>
-                        <div className="mt-2 h-1.5 w-full rounded-full bg-gray-100">
-                          <div
-                            className={`h-1.5 rounded-full ${
-                              isCurrent ? "bg-emerald-500" : "bg-amber-400"
-                            }`}
-                            style={{ width: `${share}%` }}
-                          />
-                        </div>
-                      </li>
-                    );
-                  },
+                          </div>
+                        </li>
+                      );
+                    },
+                  )}
+                </ul>
+                {runningRevisions.length > 1 ? (
+                  <p
+                    className="mt-4 text-sm text-gray-500"
+                    data-testid="cloud-app-running-now-split"
+                  >
+                    {translator.translateText(RUNNING_NOW_SPLIT)}
+                  </p>
+                ) : (
+                  <></>
                 )}
-              </ul>
-              {runningRevisions.length > 1 ? (
-                <p
-                  className="mt-4 text-sm text-gray-500"
-                  data-testid="cloud-app-running-now-split"
-                >
-                  {translator.translateText(RUNNING_NOW_SPLIT)}
-                </p>
-              ) : (
-                <></>
-              )}
-            </>
-          )}
-        </Card>
-      </div>
+              </>
+            )}
+          </Card>
+        </div>
+      ) : (
+        <></>
+      )}
 
       <Card title="Details" description={APP_DETAILS_DESCRIPTION}>
         <div className={ruledListClassName}>

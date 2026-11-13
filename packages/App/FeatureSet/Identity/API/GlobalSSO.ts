@@ -31,6 +31,8 @@ import ObjectID from "Common/Types/ObjectID";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import SsoProviderType from "Common/Types/SSO/SsoProviderType";
+import { SignInMethod } from "Common/Types/UserSession/SessionSignIn";
+import RequestOriginUtil from "Common/Server/Utils/RequestOrigin/RequestOriginUtil";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
 import AccessTokenService from "Common/Server/Services/AccessTokenService";
 import GlobalSSOService from "Common/Server/Services/GlobalSsoService";
@@ -325,6 +327,8 @@ const loginUserWithGlobalSso: LoginUserWithGlobalSsoFunction = async (
       },
       select: {
         _id: true,
+        // The audit log's sign-in entry names the provider (SessionSignIn).
+        name: true,
         signOnURL: true,
         issuerURL: true,
         publicCertificate: true,
@@ -763,6 +767,12 @@ const loginUserWithGlobalSso: LoginUserWithGlobalSsoFunction = async (
         ...extractDeviceInfo(req),
         additionalInfo: {
           globalSsoId: globalSsoId.toString(),
+        },
+        requestOrigin: RequestOriginUtil.fromRequest(req),
+        // The server's own provider: every project's audit log names it.
+        signIn: {
+          method: SignInMethod.Saml,
+          ssoProviderName: globalSso.name,
         },
       });
 

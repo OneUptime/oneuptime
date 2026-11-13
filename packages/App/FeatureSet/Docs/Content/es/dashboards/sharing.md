@@ -86,29 +86,28 @@ La tarjeta se titula **Dominios personalizados** y explica qué hacer: apunta el
 
 Poner el panel en tu propio dominio lleva tres pasos, y solo los dos primeros son cosa tuya:
 
-1. **Añadir el dominio**: un subdominio y uno de tus dominios verificados.
-2. **Añadir su registro CNAME** en tu proveedor de DNS. El cuadro de diálogo **Configuración de DNS** se abre con el registro en cuanto añades el dominio.
+1. **Añadir el dominio**: escribe la dirección que la gente abrirá, como `dashboard.acme.com`.
+2. **Añadir sus registros DNS** en tu proveedor de DNS. El cuadro de diálogo **Configuración de DNS** los muestra: un registro CNAME para la dirección y, la primera vez que el proyecto usa un dominio, un registro TXT que demuestra que el dominio es del proyecto.
 3. **El certificado SSL gratuito se emite automáticamente** en cuanto se encuentra el registro. No hay ningún botón que pulsar.
 
 Una vez verificado, el panel es accesible tanto en tu dominio personalizado como en la URL original.
 
 ### Añadir el dominio
 
-Haz clic en **Crear Dominio del panel**. El cuadro de diálogo es una sola página:
+Haz clic en **Añadir dominio personalizado**. El cuadro de diálogo pide una sola cosa:
 
-- **Subdominio**: solo la etiqueta, con el texto de ejemplo `dashboard (leave blank for root)`. Introduce solo `dashboard`, no el nombre de host completo. Déjalo vacío o introduce `@` para usar el dominio raíz (apex).
-- **Dominio**: los dominios verificados en **Ajustes del proyecto → Avanzado → Dominios**, donde demuestras con un registro TXT que un dominio es tuyo. Un dominio que no has verificado no aparece en la lista, porque se rechazaría. El enlace **Añadir un dominio** junto al campo abre esa página en una pestaña nueva.
+- **Dominio**: la dirección completa que la gente abrirá, con el texto de ejemplo `dashboard.example.com`. Un enlace pegado también funciona: solo se conserva su nombre de host. Para usar la raíz de un dominio, escribe el propio dominio.
 - **Más campos**: plegado. Mientras está plegado, su encabezado indica qué certificado usará el dominio: "Emitimos un certificado SSL gratuito para este dominio y lo renovamos automáticamente." Ábrelo solo para usar un certificado propio (consulta más abajo).
 
-Haz clic en **Crear Dominio del panel**. El cuadro de diálogo se cierra y se abre la **Configuración de DNS** del nuevo dominio. El nombre completo de un dominio queda fijado al añadirlo, así que **Editar** solo cambia su certificado. Para usar otro subdominio, añade ese dominio y elimina el anterior.
+Haz clic en **Continuar**. Si el proyecto ha verificado el dominio en el que está la dirección, en **Ajustes del proyecto → Avanzado → Dominios**, el dominio se añade y se abre su **Configuración de DNS**. Si no, OneUptime añade ese dominio al proyecto y la **Configuración de DNS** se abre también con su registro TXT, para que lo verifiques ahí mismo. El nombre completo de un dominio queda fijado al añadirlo, así que **Editar** solo cambia su certificado. Para usar otra dirección, añádela y elimina la anterior.
 
 ### Configuración de DNS y Comprobar ahora
 
-El cuadro de diálogo **Configuración de DNS** muestra el registro que debes añadir en tu proveedor de DNS, un campo por fila, cada uno con un botón de copiar: **Tipo** `CNAME`, **Nombre** el dominio completo que añadiste, y **Valor** el registro CNAME de paneles de tu instalación. Para un dominio raíz, sin subdominio, el cuadro de diálogo añade una nota: muchos proveedores de DNS no permiten ahí un registro CNAME, así que usa en su lugar el registro ALIAS, ANAME o de aplanamiento de CNAME de tu proveedor, con el mismo valor.
+El cuadro de diálogo **Configuración de DNS** muestra cada registro que debes añadir en tu proveedor de DNS, un campo por fila, cada uno con un botón de copiar: **Tipo** `CNAME`, **Nombre** el dominio completo que añadiste, y **Valor** el registro CNAME de paneles de tu instalación, después del registro TXT del dominio mientras el proyecto no lo haya verificado. Para un dominio raíz, sin subdominio, el cuadro de diálogo añade una nota: muchos proveedores de DNS no permiten ahí un registro CNAME, así que usa en su lugar el registro ALIAS, ANAME o de aplanamiento de CNAME de tu proveedor, con el mismo valor.
 
 OneUptime comprueba cada dominio sin verificar cada 15 minutos, y cuando la comprobación encuentra el registro, solicita el certificado gratuito de Let's Encrypt del dominio en esa misma comprobación, vuelvas o no. Para comprobarlo en el momento, haz clic en **Comprobar ahora**:
 
-- **El registro aún no se encuentra.** El cuadro de diálogo sigue abierto e indica qué registro buscó. Un registro DNS nuevo puede tardar un rato en aparecer. Vuelve a hacer clic en **Comprobar ahora** más tarde, o deja que lo haga la comprobación de cada 15 minutos.
+- **El registro aún no se encuentra.** El cuadro de diálogo sigue abierto y, debajo de cada registro, indica lo que OneUptime buscó y lo que obtuvo: nada, otro valor, o una dirección donde se esperaba un registro CNAME. Un registro DNS nuevo puede tardar un rato en aparecer. Vuelve a hacer clic en **Comprobar ahora** más tarde, o deja que lo haga la comprobación de cada 15 minutos.
 - **El registro se encuentra.** El cuadro de diálogo dice "Tu registro CNAME está verificado." y qué pasa después con el certificado. El certificado gratuito se solicita en ese momento, y normalmente está activo en menos de 15 minutos.
 
 Hasta que un dominio está verificado y su certificado está en su sitio, su fila tiene una acción **Configuración de DNS** que abre el mismo cuadro de diálogo. En un dominio verificado cuya solicitud de certificado sigue fallando, o cuyo certificado ha caducado, **Comprobar ahora** vuelve a solicitarlo desde ahí y muestra por qué falló la última solicitud. Solicita como máximo una vez por dominio cada 15 minutos; entre medias, OneUptime sigue reintentándolo por su cuenta, esperando un poco más después de cada fallo consecutivo. La renovación es automática, mucho antes de que caduque el certificado, y una comprobación de DNS fallida nunca quita un certificado que sigue siendo válido.

@@ -1,6 +1,6 @@
 # Aangepaste probes
 
-Een aangepaste sonde is een kleine agent die u in uw eigen netwerk draait. Hij controleert de monitors waaraan u hem toevoegt, zoals interne websites, API's en servers achter uw firewall, en stuurt de resultaten naar OneUptime. Hij maakt alleen uitgaande verbindingen, via HTTPS, dus niets in uw netwerk hoeft verbindingen vanaf internet te accepteren.
+Een aangepaste sonde is een kleine agent die u in uw eigen netwerk draait. Hij controleert de monitors waaraan u hem toevoegt, zoals interne websites, API's en servers achter uw firewall, en stuurt de resultaten naar OneUptime. Hij maakt alleen uitgaande verbindingen, via HTTPS, dus niets in uw netwerk hoeft verbindingen vanaf internet te accepteren. Om te kiezen tussen een sonde, een agent, een collector en een Runner, zie [Welke gebruik ik?](/docs/introduction/which-one#sonde-agent-collector-of-runner).
 
 :::cards
 - [Hoe het werkt](#hoe-het-werkt): Wat de sonde doet, en hoe OneUptime weet dat hij draait.
@@ -288,6 +288,7 @@ De sonde leest zijn instellingen bij het starten uit zijn omgeving: wijzig er ee
 | `PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED` | `false` | Zet op `true` om Chromium in synthetische monitors in zijn eigen sandbox te laten draaien. Zet het alleen aan als de container van de sonde draait met een seccomp-profiel dat de sandbox toestaat, zoals dat van Playwright: zonder zo'n profiel kan Chromium niet starten. Zolang het uit staat, logt de sonde bij het opstarten een waarschuwing. |
 | `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | Time-out voor scripts van Custom Code-monitors, in milliseconden. |
 | `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` | `false` | Zet op `true` zodat Website-, API-, External Status Page- en Custom Code-monitors op deze sonde privéadressen mogen bereiken. Zie [Toegang tot privénetwerk](/docs/self-hosted/private-network-access). |
+| `PROBE_CERTIFICATE_REVOCATION_CHECK_ENABLED` | `true` | SSL Certificate-, Website- en API-monitors op deze sonde vragen de uitgever van een certificaat of die het certificaat heeft ingetrokken, zoals browsers dat doen. Zet op `false` om niet meer te vragen, bijvoorbeeld op een sonde zonder internettoegang. Een uitgever die de sonde niet bereikt, geldt nooit als intrekking: de sonde wacht enkele seconden op elke responder die hij niet bereikt, ongeveer eens per 5 minuten. Zie [SSL-certificaat-monitor](/docs/monitor/ssl-certificate-monitor). |
 | `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` | `25` | Hoeveel netwerkapparaten de sonde tegelijk bevraagt. Verhoog het voor een sonde die veel apparaten bevraagt. |
 
 De limieten waarbinnen een synthetische monitor draait (hoeveel tegelijk, hun geheugen en hun schijf) staan op de pagina [Synthetische monitor](/docs/monitor/synthetic-monitor).

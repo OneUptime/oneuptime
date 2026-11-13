@@ -44,6 +44,15 @@ export interface ComponentProps {
    * table's row on a phone). A pill of one line looks as any other.
    */
   isWrapping?: boolean | undefined;
+  /*
+   * With isWrapping: its words run onto a next line between one another,
+   * never broken inside one - a state's few words in a table's column,
+   * which is then at least as wide as the longest of them. A label's one
+   * long key and value still breaks where it must (isWrapping alone): in a
+   * column held at 8rem, a Russian connection's Health read
+   * "приостановле / но" (#6891).
+   */
+  isKeepingWordsWhole?: boolean | undefined;
 }
 
 /*
@@ -81,6 +90,15 @@ export const PILL_TEXT_CLASS_NAME: string = "min-w-0 truncate";
 
 export const WRAPPING_PILL_TEXT_CLASS_NAME: string =
   "min-w-0 whitespace-normal [overflow-wrap:anywhere]";
+
+/*
+ * A wrapping pill's words when they are kept whole (isKeepingWordsWhole):
+ * break-word, unlike anywhere, leaves the pill's narrowest width that of
+ * its longest word, so a table never squeezes it below that; a word wider
+ * than all the room there is still breaks rather than spill out.
+ */
+export const WHOLE_WORDS_PILL_TEXT_CLASS_NAME: string =
+  "min-w-0 whitespace-normal [overflow-wrap:break-word]";
 
 const Pill: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -171,7 +189,9 @@ const Pill: FunctionComponent<ComponentProps> = (
           dir={textDirection}
           className={
             props.isWrapping
-              ? WRAPPING_PILL_TEXT_CLASS_NAME
+              ? props.isKeepingWordsWhole
+                ? WHOLE_WORDS_PILL_TEXT_CLASS_NAME
+                : WRAPPING_PILL_TEXT_CLASS_NAME
               : PILL_TEXT_CLASS_NAME
           }
           onMouseEnter={(event: React.MouseEvent<HTMLSpanElement>) => {

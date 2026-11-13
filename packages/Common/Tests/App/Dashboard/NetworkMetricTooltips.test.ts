@@ -9,7 +9,12 @@ import {
   NETWORK_SITE_METRIC_DESCRIPTIONS,
   NetworkSiteMetric,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/MetricDescriptions/NetworkSiteMetricDescriptions";
-import { summarizeLatencySeries } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceDiagnosticsViewModel";
+import {
+  DiagnosticRow,
+  PingResultSummary,
+  describePingResult,
+  summarizeLatencySeries,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceDiagnosticsViewModel";
 import AggregationInterval from "../../../Types/BaseDatabase/AggregationInterval";
 import { AggregationIntervalUtil } from "../../../Types/BaseDatabase/AggregationIntervalUtil";
 import OneUptimeDate from "../../../Types/Date";
@@ -566,9 +571,28 @@ describe("latency and ping texts match what is fetched", () => {
     expect(viewModel).toContain(
       '"{{percent}} ({{received}}/{{sent}} received)"',
     );
-    expect(viewModel).toContain(
-      "received: result.pingResponse.packetsReceived, sent: result.pingResponse.packetsSent,",
+
+    /*
+     * Since #7107 each number of the pair is written in the sentence's own
+     * digits, so the order is checked by running the row: 3 of 5 replies
+     * came back.
+     */
+    const summary: PingResultSummary = describePingResult({
+      isOnline: true,
+      failureCause: "",
+      pingResponse: {
+        packetsSent: 5,
+        packetsReceived: 3,
+        packetLossPercent: 40,
+      },
+    });
+    const loss: DiagnosticRow | undefined = summary.rows.find(
+      (row: DiagnosticRow): boolean => {
+        return row.label === "Packet loss";
+      },
     );
+
+    expect(loss?.value).toBe("40% (3/5 received)");
     expect(DEVICE.pingPacketLoss).toContain(
       "how many replies came back out of the pings sent",
     );

@@ -76,6 +76,20 @@ export enum AIChatCitationTargetType {
   DataTableView = "DataTableView",
   // Data Observability: one watched table's Lineage tab ({ dataAssetId }).
   DataTableLineageView = "DataTableLineageView",
+  /*
+   * A page of the installation's own docs, read by read_docs; params:
+   * { page, language, anchor? } - the page's address under /docs/<lang>/
+   * ("monitor/website-monitor"), the language it was read in, and the
+   * section's anchor. Opens the docs in a new tab (DocsTools).
+   */
+  DocsPage = "DocsPage",
+  /*
+   * A page of the Dashboard, found by find_dashboard_page in the catalog
+   * built from Search's page index; params: { path, title } - its route
+   * template ("/dashboard/:projectId/monitors/create"), which the Dashboard
+   * opens only when it is one of its own routes, and its English title.
+   */
+  DashboardPage = "DashboardPage",
 }
 
 export interface AIChatCitationTarget {
@@ -179,6 +193,38 @@ export interface AIChatWidgetSpan {
 }
 
 /*
+ * Which kind of tool left a ResourceCard (issue #6968). A read shows a
+ * record as it is - a monitor that is Offline, one whose monitoring is
+ * off - so its card is drawn plain; a write created or changed the record,
+ * and its card is drawn as done, with a check. A card saved before cards
+ * said which has none, and is drawn as a write's, as it was then.
+ */
+export enum AIChatResourceCardOrigin {
+  Read = "Read",
+  Write = "Write",
+}
+
+// A status colour a card may draw: "#rgb" or "#rrggbb", nothing else.
+const RESOURCE_CARD_STATUS_COLOR: RegExp = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
+
+/*
+ * The status colour a card's data names, when it is one (a stored card is
+ * read as untrusted): null for anything else, and the card draws no dot.
+ */
+export function getAIChatResourceCardStatusColor(
+  value: unknown,
+): string | null {
+  return typeof value === "string" && RESOURCE_CARD_STATUS_COLOR.test(value)
+    ? value
+    : null;
+}
+
+// Whether a card was left by a read, and is drawn plain (issue #6968).
+export function isAIChatReadResourceCard(data: AIChatWidgetData): boolean {
+  return data.origin === AIChatResourceCardOrigin.Read;
+}
+
+/*
  * Type-specific widget payload. Only the fields relevant to `type` are set:
  * - TimeSeriesChart / BarChart: `series` (+ `stacked`, `unit`, `xIsTime`)
  * - Table: `columns` + `rows`
@@ -186,6 +232,7 @@ export interface AIChatWidgetSpan {
  * - IncidentList / AlertList / ExceptionList: `items`
  * - StatCards: `stats`
  * - ResourceCard: `resourceType`, `heading`, `subheading`, `fields`, `link`
+ *   (+ `origin`, `statusColor`, `words`)
  */
 export interface AIChatWidgetData {
   series?: Array<AIChatWidgetSeries> | undefined;
@@ -210,8 +257,35 @@ export interface AIChatWidgetData {
    * what a card saved before it had words reads as.
    */
   words?: AIActionCardWords | undefined;
+  /*
+   * A ResourceCard: whether a read or a write left it (issue #6968). Left
+   * out on a card saved before, which is drawn as a write's.
+   */
+  origin?: AIChatResourceCardOrigin | undefined;
+  /*
+   * A ResourceCard of a record with a status, read: the status's own
+   * colour ("#ef4444"), drawn as a dot before the line that names it - as
+   * the Monitors table draws a status, gray for one whose monitoring is off.
+   */
+  statusColor?: string | undefined;
   link?: AIChatCitationTarget | undefined;
+  /*
+   * The test page a setup action's card offers once its record exists
+   * (#6829, #6811): to yourself for a monitor you now own, or to the
+   * on-call policy just made. The Dashboard offers it once under the
+   * answer (the policy's first), and the test page's own route checks the
+   * person may send it.
+   */
+  testPage?: AIChatTestPageOffer | undefined;
 }
+
+/*
+ * Who a test page goes to (#6811's POST /on-call-test-page/page-person and
+ * /page-policy): the person reading the answer, or an on-call policy by id.
+ */
+export type AIChatTestPageOffer =
+  | { kind: "self" }
+  | { kind: "policy"; policyId: string; policyName?: string | undefined };
 
 export interface AIChatWidget {
   id: string; // "W1", "W2" — sequential per message

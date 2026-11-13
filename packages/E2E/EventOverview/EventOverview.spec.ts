@@ -3475,9 +3475,9 @@ test.describe("investigation states", () => {
  * and nothing on it moves until then.
  */
 const FAILED_CAUSE: string =
-  "The AI provider could not be reached, or was too busy to answer.";
+  "The LLM provider could not be reached, or was too busy to answer.";
 const FAILED_FIX: string =
-  "Check that the AI provider is up and that OneUptime can reach it, then try again.";
+  "Check that the LLM provider is up and that OneUptime can reach it, then try again.";
 // The fixture's refusal of Try again (?fail=investigation-try-again).
 const TRY_AGAIN_REFUSAL: string =
   "OneUptime AI is switched off for this project. A project owner or someone with Manage Billing can turn it on in Project Settings > AI > AI Features.";
@@ -3698,7 +3698,7 @@ test.describe("a run that did not finish (issues #6437, #6438)", () => {
     );
     await expect(step.getByTestId("activity-attempt-end")).toHaveText(
       new RegExp(
-        `^Did not finish: The AI provider did not answer within 120 seconds\\. Trying again at ${RETRY_TIME}\\.$`,
+        `^Did not finish: The LLM provider did not answer within 120 seconds\\. Trying again at ${RETRY_TIME}\\.$`,
       ),
     );
     // The model call that ran out of time failed; nothing promises a retry.
@@ -7592,7 +7592,8 @@ test.describe("the AI card as one line when AI was off for the record (?ai=off-*
       title: "Severity was below the minimum for AI investigation",
       description:
         "OneUptime AI investigates only the incidents with a severity of SEV-1 or higher, and this one's severity was SEV-2.",
-      serverWords: "did not meet the minimum SEV-1 investigation severity",
+      serverWords:
+        "did not meet the minimum severity for AI investigation (SEV-1)",
     },
     {
       name: "an alert, in German",
@@ -7601,7 +7602,8 @@ test.describe("the AI card as one line when AI was off for the record (?ai=off-*
       title: "Der Schweregrad lag unter dem Mindestwert für KI-Untersuchungen",
       description:
         "OneUptime AI untersucht nur Warnungen mit dem Schweregrad Critical oder höher, und diese Warnung hatte den Schweregrad High.",
-      serverWords: "did not meet the minimum Critical investigation severity",
+      serverWords:
+        "did not meet the minimum severity for AI investigation (Critical)",
     },
   ]) {
     test(`the whole card names the severity and the minimum for ${name} (?ai=off-severity&fixing=acted)`, async ({
@@ -21755,6 +21757,14 @@ const APPROVAL_NOTE: string =
   "Approving runs exactly what is shown, under your name.";
 
 // The fix on the step whose name or buttons hold the given words.
+/*
+ * The names of the busy incident's fixes, as the step words them (issue
+ * #6860): the cluster's round by its cluster, the rule's fix through MCP
+ * servers by what it is.
+ */
+const CLUSTER_FIX_TITLE: string = 'Fix on cluster "prod-eu-west-1"';
+const MCP_FIX_TITLE: string = "Fix through MCP servers";
+
 function fixOnStep(page: Page, words: string): Locator {
   return remediationStep(page)
     .getByTestId("remediation-fix")
@@ -21845,7 +21855,7 @@ test.describe("a busy incident's fixes on the Remediation step read as lines (?f
     ).toHaveCount(1);
 
     // The kubectl fix that waits: its facts, and no chip that repeats kubectl.
-    const kubectl: Locator = fixOnStep(page, "AI kubectl fix");
+    const kubectl: Locator = fixOnStep(page, CLUSTER_FIX_TITLE);
     await expect(kubectl.getByTestId("remediation-fix-status")).toHaveText(
       "Waiting for approval",
     );
@@ -21871,7 +21881,7 @@ test.describe("a busy incident's fixes on the Remediation step read as lines (?f
     ).toBeVisible();
 
     // The fix through MCP servers: the change that failed is said in red.
-    const mcp: Locator = fixOnStep(page, "AI fix through MCP servers");
+    const mcp: Locator = fixOnStep(page, MCP_FIX_TITLE);
     await expect(mcp.getByTestId("remediation-fix-status")).toHaveText(
       "Auto-executed",
     );
@@ -21926,7 +21936,7 @@ test.describe("a busy incident's fixes on the Remediation step read as lines (?f
 
       const body: Locator = page.getByTestId("ai-card-step-remediation-body");
       const bodyBox: Box = await documentBox(body);
-      const approve: Locator = fixOnStep(page, "AI kubectl fix").getByTestId(
+      const approve: Locator = fixOnStep(page, CLUSTER_FIX_TITLE).getByTestId(
         "remediation-approve-button",
       );
       const approveBox: Box = await documentBox(approve);
@@ -22007,7 +22017,7 @@ test.describe("a busy incident's fixes on the Remediation step read as lines (?f
     page: Page;
   }) => {
     await openManyFixes(page);
-    const kubectl: Locator = fixOnStep(page, "AI kubectl fix");
+    const kubectl: Locator = fixOnStep(page, CLUSTER_FIX_TITLE);
 
     await kubectl.getByTestId("remediation-approve-button").click();
 
@@ -22040,7 +22050,7 @@ test.describe("a busy incident's fixes on the Remediation step read as lines (?f
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await openManyFixes(page, "fail=approve");
-    const kubectl: Locator = fixOnStep(page, "AI kubectl fix");
+    const kubectl: Locator = fixOnStep(page, CLUSTER_FIX_TITLE);
 
     await kubectl.getByTestId("remediation-approve-button").click();
 
@@ -22104,17 +22114,17 @@ test.describe("a busy incident's fixes, step by step (?fixes=many)", () => {
   }) => {
     await openManyFixes(page, "", { isFolded: true });
     const remediation: Locator = remediationStep(page);
-    const kubectl: Locator = fixOnStep(page, "AI kubectl fix");
-    const mcp: Locator = fixOnStep(page, "AI fix through MCP servers");
+    const kubectl: Locator = fixOnStep(page, CLUSTER_FIX_TITLE);
+    const mcp: Locator = fixOnStep(page, MCP_FIX_TITLE);
     const runbook: Locator = fixOnStep(page, "Restart checkout-api pods");
 
     // The order OneUptime AI tried them in: the oldest first.
     expect(
       await remediation.getByTestId("remediation-fix-title").allTextContents(),
     ).toEqual([
-      "Restart checkout-api pods",
-      "AI fix through MCP servers",
-      "AI kubectl fix",
+      'Runbook "Restart checkout-api pods"',
+      MCP_FIX_TITLE,
+      CLUSTER_FIX_TITLE,
     ]);
 
     expect(await stepTitles(runbook)).toEqual([
@@ -22281,7 +22291,7 @@ test.describe("a busy incident's fixes, step by step (?fixes=many)", () => {
     page: Page;
   }) => {
     await openManyFixes(page, "", { isFolded: true });
-    const kubectl: Locator = fixOnStep(page, "AI kubectl fix");
+    const kubectl: Locator = fixOnStep(page, CLUSTER_FIX_TITLE);
     const toggle: Locator = kubectl.getByTestId(
       "remediation-fix-details-toggle",
     );
@@ -22342,7 +22352,7 @@ test.describe("a busy incident's fixes, step by step (?fixes=many)", () => {
 
     // A step's own press opens it by keyboard too, and keeps the keyboard.
     const mcpRun: Locator = fixStep(
-      fixOnStep(page, "AI fix through MCP servers"),
+      fixOnStep(page, MCP_FIX_TITLE),
       "run",
     ).getByTestId("remediation-fix-step-toggle");
     await mcpRun.focus();
@@ -22435,7 +22445,7 @@ test.describe("two people approve a riskier fix (?approvals=)", () => {
     page: Page;
   }) => {
     await openManyFixes(page, "approvals=on");
-    const kubectl: Locator = fixOnStep(page, "AI kubectl fix");
+    const kubectl: Locator = fixOnStep(page, CLUSTER_FIX_TITLE);
     const approve: Locator = kubectl.getByTestId("remediation-approve-button");
 
     expect(await stepTitles(kubectl)).toEqual([
@@ -22517,7 +22527,7 @@ test.describe("two people approve a riskier fix (?approvals=)", () => {
     page: Page;
   }) => {
     await openManyFixes(page, "approvals=first");
-    const kubectl: Locator = fixOnStep(page, "AI kubectl fix");
+    const kubectl: Locator = fixOnStep(page, CLUSTER_FIX_TITLE);
     const approve: Locator = kubectl.getByTestId("remediation-approve-button");
 
     await expect(kubectl.getByTestId("remediation-fix-status")).toHaveText(
@@ -22568,7 +22578,7 @@ test.describe("two people approve a riskier fix (?approvals=)", () => {
   }) => {
     await page.setViewportSize({ width: 390, height: 1000 });
     await openManyFixes(page, "approvals=mine&theme=dark");
-    const kubectl: Locator = fixOnStep(page, "AI kubectl fix");
+    const kubectl: Locator = fixOnStep(page, CLUSTER_FIX_TITLE);
 
     await expect(kubectl.getByTestId("remediation-fix-status")).toHaveText(
       "Waiting for a second approval",
@@ -22601,7 +22611,7 @@ test.describe("two people approve a riskier fix (?approvals=)", () => {
     page: Page;
   }) => {
     await openManyFixes(page, "approvals=on");
-    const kubectl: Locator = fixOnStep(page, "AI kubectl fix");
+    const kubectl: Locator = fixOnStep(page, CLUSTER_FIX_TITLE);
     const approve: Locator = kubectl.getByTestId("remediation-approve-button");
     await expect(approve).toHaveText("Approve");
 
@@ -22891,7 +22901,7 @@ test.describe("a fix that did not work, step by step (?fixes=rolled-back)", () =
  */
 const UNFINISHED_ROUND_FIX_ID: string = "93000000-0000-4000-8000-000000000010";
 const ROUND_TIMEOUT_CAUSE: string =
-  "The AI provider did not answer within 120 seconds.";
+  "The LLM provider did not answer within 120 seconds.";
 // The fixture's refusal of the round's Try again (?fail=round-try-again).
 const ROUND_LIMIT_REFUSAL: string =
   "The project reached its daily AI limit. OneUptime AI starts again at midnight UTC.";
@@ -22948,12 +22958,17 @@ test.describe("a round of an AI fix, said as it went (?fixes=unfinished | no-fix
       title: "Stopped before it found a fix",
       summary: ROUND_TIMEOUT_CAUSE,
     });
-    await expect(fix.getByTestId("remediation-fix-status")).toHaveText(
-      "Did not finish",
-    );
+    // Its one step says it: no status beside the fix's name repeats it.
+    await expect(fix.getByTestId("remediation-fix-status")).toHaveCount(0);
     await expect(
       stepPillWords(remediationStep(page), "remediation"),
     ).toHaveText("Did not finish");
+    // The step opens with what came of it, in one sentence (#6860).
+    await expect(
+      remediationStep(page).getByTestId("remediation-step-summary"),
+    ).toHaveText(
+      "OneUptime AI stopped before it found a fix for this incident, so nothing was changed.",
+    );
     await expect(remediationStep(page)).not.toContainText("Found no safe fix");
     // What to do about it is in sight before the step opens.
     await expect(
@@ -23044,9 +23059,13 @@ test.describe("a round of an AI fix, said as it went (?fixes=unfinished | no-fix
       timeout: 30000,
     });
     await expect(roundNotice(fix)).toHaveCount(0);
-    await expect(fix.getByTestId("remediation-fix-status")).not.toHaveText(
-      "Did not finish",
-    );
+    // The step's sentence follows the round: it works again (#6860).
+    await expect(
+      remediationStep(page).getByTestId("remediation-step-summary"),
+    ).toHaveText("OneUptime AI is working out a fix for this incident.");
+    await expect(
+      stepPillWords(remediationStep(page), "remediation"),
+    ).not.toHaveText("Did not finish");
 
     const started: Array<RecordedApiRequest> = await apiRequestsTo(
       page,

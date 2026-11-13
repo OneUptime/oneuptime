@@ -15,7 +15,9 @@ import {
 import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
+import ErrorExplanation from "Common/UI/Components/ErrorMessage/ErrorExplanation";
 import Icon from "Common/UI/Components/Icon/Icon";
+import { UNEXPLAINED_ERROR_MESSAGES } from "Common/Types/Exception/UnexplainedError";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -48,7 +50,9 @@ export interface ComponentProps {
 /*
  * The one primary button on Home, and only before anything is monitored: the
  * headline says to create a monitor, so it offers to. The Button component's
- * PRIMARY look, as a link so it opens in a new tab too.
+ * PRIMARY look, as a link so it opens in a new tab too. It opens the guided
+ * setup (#6804) - an address, who is told and a test page on one page -
+ * whose first step links to Create Monitor for every other type.
  */
 export const CREATE_FIRST_MONITOR_BUTTON_CLASS_NAME: string =
   "mt-4 inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
@@ -158,10 +162,14 @@ const ProjectHealthCard: FunctionComponent<ComponentProps> = (
                 data-testid="home-health-error"
                 className="mt-1 max-w-2xl break-words text-sm text-gray-600"
               >
-                {props.error ||
-                  translator.translateText(
-                    "Something went wrong. Please try again.",
-                  )}
+                {/*
+                 * What failed is the heading above; nobody's explanation
+                 * says what to do next, with the reference to give (#6836).
+                 */}
+                <ErrorExplanation
+                  message={props.error || UNEXPLAINED_ERROR_MESSAGES.server}
+                  hideWhatFailed={true}
+                />
               </p>
               <button
                 type="button"
@@ -231,7 +239,7 @@ const ProjectHealthCard: FunctionComponent<ComponentProps> = (
                 props.canCreateMonitor ? (
                   <AppLink
                     to={RouteUtil.populateRouteParams(
-                      RouteMap[PageMap.MONITOR_CREATE] as Route,
+                      RouteMap[PageMap.MONITOR_GUIDED_SETUP] as Route,
                     )}
                     className={CREATE_FIRST_MONITOR_BUTTON_CLASS_NAME}
                   >

@@ -206,11 +206,39 @@ export const systemdPlotRankLabel: (rank: number) => string = (
 };
 
 /*
- * The suffix after the final dot is the unit type — `.service`, `.socket`,
- * `.timer`, `.target`, `.mount`, ... The receiver defaults to `*.service`,
- * but `units:` can be widened, and the type is then the useful second facet
- * (it is what the Windows page's "Startup" column has no analogue for:
- * systemd's enablement state is not exposed by the receiver).
+ * The kinds of unit systemd defines, as `systemctl --type=help` lists them
+ * and as each unit's name ends: nginx.service, docker.socket,
+ * logrotate.timer, multi-user.target. Every kind the receiver can report is
+ * one of these.
+ * https://www.freedesktop.org/software/systemd/man/latest/systemd.unit.html
+ */
+export const SYSTEMD_UNIT_KINDS: ReadonlyArray<string> = [
+  "service",
+  "mount",
+  "swap",
+  "socket",
+  "target",
+  "device",
+  "automount",
+  "timer",
+  "path",
+  "slice",
+  "scope",
+];
+
+/*
+ * A unit's kind, as systemd writes it: the suffix after the final dot -
+ * `service`, `socket`, `timer`, `target`, `mount`, ... - or "" for a name
+ * with none. The receiver defaults to `*.service`, but `units:` can be
+ * widened, and the kind is then the useful second facet (it is what the
+ * Windows page's "Startup" column has no analogue for: systemd's enablement
+ * state is not exposed by the receiver).
+ *
+ * The pages show it exactly so, set apart as code, in every language
+ * (Components/Host/SystemdUnitKind): `systemctl` prints it, the unit's file
+ * is named with it, and `systemctl list-units --type=` takes it. It is never
+ * looked up as a word - the Dashboard's Target is a target value and its
+ * Mount a connection in other languages (#6731).
  */
 export const unitTypeOf: (unitName: string) => string = (
   unitName: string,
@@ -220,16 +248,6 @@ export const unitTypeOf: (unitName: string) => string = (
     return "";
   }
   return unitName.substring(lastDot + 1).toLowerCase();
-};
-
-export const unitTypeLabel: (unitName: string) => string = (
-  unitName: string,
-): string => {
-  const type: string = unitTypeOf(unitName);
-  if (!type) {
-    return "Unit";
-  }
-  return `${type.charAt(0).toUpperCase()}${type.substring(1)}`;
 };
 
 /*
@@ -272,8 +290,8 @@ export interface SystemdUnitRow {
   name: string;
   activeState: string | null;
   stateLabel: string;
+  // The unit's kind as systemd writes it (unitTypeOf): "service", or "".
   unitType: string;
-  unitTypeLabel: string;
 }
 
 export interface SystemdUnitRollup {
@@ -459,7 +477,6 @@ export const buildSystemdUnitRows: (
       activeState: state,
       stateLabel: activeStateMeta(state).label,
       unitType: unitTypeOf(unitName),
-      unitTypeLabel: unitTypeLabel(unitName),
     });
   }
 

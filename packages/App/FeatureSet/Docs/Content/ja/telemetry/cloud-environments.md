@@ -52,11 +52,11 @@ flowchart TB
 | Google App Engine | `gcp_app_engine` | リソース検出器 | `faas.instance` | [その他のクラウドプラットフォーム](/docs/telemetry/cloud-other-platforms) |
 | Azure Container Apps | `azure_container_apps` | リソース検出器 | `azure.container_app.instance.id` | [Azure Container Apps](/docs/telemetry/cloud-azure-container-apps) |
 | Azure Container Instances | `azure_container_instances` | 手動で設定 | `host.name` | [その他のクラウドプラットフォーム](/docs/telemetry/cloud-other-platforms) |
-| Azure App Service | `azure_app_service` | リソース検出器 | `host.id` | [その他のクラウドプラットフォーム](/docs/telemetry/cloud-other-platforms) |
+| Azure App Service | `azure_app_service` | リソース検出器 | `azure.app_service.instance.id` | [その他のクラウドプラットフォーム](/docs/telemetry/cloud-other-platforms) |
 
 - **リソース検出器:** SDK、または Collector の `resourcedetection` プロセッサーにある OpenTelemetry リソース検出器が、`cloud.*` 属性を自動で設定します。
 - **手動で設定:** 検出器がないため、属性を `OTEL_RESOURCE_ATTRIBUTES` に入れます。正確な行は各プラットフォームのページに載っています。
-- **Azure の検出器が知っていることは限られます。** Container Apps の検出器はリージョンもサブスクリプションも知らず、App Service の検出器はサブスクリプションを知りません。足りないものは自分で設定します。
+- **Azure の検出器が知っていることは限られます。** Container Apps の検出器はリージョンもサブスクリプションも知らず、Node.js と .NET の App Service 検出器はサブスクリプションを知りません (Collector の検出器は知っています)。足りないものは自分で設定します。
 - **ドット区切りの Azure の表記も使えます。** Node.js と .NET の Azure 検出器は `azure.container_apps` と `azure.app_service` を書き込みます。OneUptime は受信時に、これらを上記のアンダースコアの値に書き換えます。
 
 ## OneUptime が環境を識別する方法
@@ -88,10 +88,11 @@ azure_container_apps|00000000-0000-0000-0000-000000000000|eastus
 2. `aws.ecs.task.arn` (タスク ID に短縮)
 3. `faas.instance`
 4. `azure.container_app.instance.id`
-5. `service.instance.id`
-6. `container.id`
-7. `host.id`
-8. `host.name`
+5. `azure.app_service.instance.id`
+6. `service.instance.id`
+7. `container.id`
+8. `host.id`
+9. `host.name`
 
 プラットフォーム自身の識別子を、意図的に先に使います。サイドカー Collector とアプリケーションの SDK の両方から見え、再起動しても変わらないからです。SDK は通常、プロセスごとに新しい `service.instance.id` を作ります (Node.js SDK は既定でそうします)。そのため、これを先にキーにすると一つの ECS タスクが二行に分かれてしまいます。`service.instance.id` は、プラットフォームが独自の識別子を設定しない場合に使われます。[サポートされているプラットフォーム](#サポートされているプラットフォーム) の **インスタンスの識別子** 列は、各プラットフォームの一般的な構成で使われる属性を示しています。
 
@@ -122,6 +123,8 @@ azure_container_apps|00000000-0000-0000-0000-000000000000|eastus
 - **一つのアプリについて記録される新しいリビジョンは、一時間に最大 12 個です。** そうしないと、ビルドごとに変わる `service.version` が、一分ごとのデプロイになってしまいます。
 
 アプリのページには、リクエスト、エラー、レイテンシ、インスタンス、現在実行中のリビジョンを示す **概要**、各リビジョンの数値を示す **リビジョン** タブ、アプリに絞り込まれた **インスタンス**、**ログ**、**トレース** タブ、そして OneUptime がアプリに推奨するモニターを示す **推奨事項** タブがあります。推奨モニターは、失敗した操作、エラーの急増、途絶えたトラフィック、遅いリクエストを、アプリ自身のスパンと `http.server.request.duration` から読み取り、それぞれアプリの環境にリンクされます。**アラートをセットアップ** はこのタブを開きます。名前が長すぎてテレメトリを絞り込めないアプリでは、代わりに **サービス** にあるアプリのサービスの推奨モニターを開きます。
+
+アプリが一度も送っていない数値は 0 とは表示されません。トレースを送っていないアプリのリクエスト、エラー率、レイテンシのタイルには **トレースを受信していません** と表示され、テレメトリがインスタンスを示していない実行中のアプリの **インスタンス** タイルには **報告されていません** と表示されます。アプリがトレース、インスタンス、バージョンを送るまで、その **概要** の先頭には **セットアップ チェック** が表示され、テレメトリの種類ごとに届いているかどうかと、何を追加すればよいかを示します。
 
 30 日間何も送らないアプリは、そのリビジョンとともに削除されます。30 日間どのインスタンスも報告しないリビジョンも、アプリがまだ実行していない限り削除されます。セルフホストの OneUptime では、`CLOUD_APP_RETENTION_DAYS` でこの 30 を設定します。
 

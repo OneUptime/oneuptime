@@ -358,8 +358,13 @@ describe("Slack install callback: a whole Enterprise organization", () => {
         enterpriseId: ORG_ID,
         enterpriseName: ORG_NAME,
         isEnterpriseInstall: true,
-        // As Slack listed them; the default is picked when they are read.
+        // As Slack listed them.
         workspaces: [WEST, EAST],
+        /*
+         * The first by name is the default, and stored (#6784): OneUptime
+         * added to a workspace that comes first by name later does not move it.
+         */
+        defaultWorkspaceId: EAST.id,
       });
 
       const readAt: number = OneUptimeDate.fromString(
@@ -399,6 +404,8 @@ describe("Slack install callback: a whole Enterprise organization", () => {
       expect(row.miscData["isEnterpriseInstall"]).toBe(true);
       expect(row.miscData["workspaces"]).toBeUndefined();
       expect(row.miscData["workspacesReadAt"]).toBeUndefined();
+      // Stored once Slack lists them (SlackOrganization.getOfConnection).
+      expect(row.miscData["defaultWorkspaceId"]).toBeUndefined();
     });
 
     test("is_enterprise_install as Slack's text 'true' is the organization's install too", async () => {
@@ -700,6 +707,86 @@ describe("Slack install callback: a whole Enterprise organization", () => {
           teamId: EAST.id,
         },
       });
+    });
+
+    test("keeps the workspaces OneUptime was removed from by the names they had - one Slack no longer lists joins them, one it lists again leaves", async () => {
+      const OLD: JSONObject = { id: "T0OLD", name: "Acme Old" };
+
+      connections.add({
+        projectId: projectId,
+        workspaceProjectId: ORG_ID,
+        authToken: "xoxb-acme-organization-old",
+        miscData: {
+          teamId: ORG_ID,
+          teamName: ORG_NAME,
+          botUserId: BOT_USER_ID,
+          enterpriseId: ORG_ID,
+          enterpriseName: ORG_NAME,
+          isEnterpriseInstall: true,
+          workspaces: [EAST, WEST],
+          workspacesReadAt: "2026-10-01T00:00:00.000Z",
+          removedWorkspaces: [OLD, LAB],
+        },
+      });
+      // West removed since; Lab added again.
+      slack.workspacesOfToken.set(ORG_TOKEN, [EAST, LAB]);
+
+      expectInstalled(await install(organizationInstall()));
+
+      expect(stored().miscData["workspaces"]).toEqual([EAST, LAB]);
+      expect(stored().miscData["removedWorkspaces"]).toEqual([WEST, OLD]);
+    });
+
+    test("installed before installs stored a default: the first workspace by name of those listed again is stored", async () => {
+      connections.add({
+        projectId: projectId,
+        workspaceProjectId: ORG_ID,
+        authToken: "xoxb-acme-organization-old",
+        miscData: {
+          teamId: ORG_ID,
+          teamName: ORG_NAME,
+          botUserId: BOT_USER_ID,
+          enterpriseId: ORG_ID,
+          enterpriseName: ORG_NAME,
+          isEnterpriseInstall: true,
+          workspaces: [EAST, WEST],
+          workspacesReadAt: "2026-10-01T00:00:00.000Z",
+        },
+      });
+      // East removed since; Lab added.
+      slack.workspacesOfToken.set(ORG_TOKEN, [WEST, LAB]);
+
+      expectInstalled(await install(organizationInstall()));
+
+      expect(stored().miscData["defaultWorkspaceId"]).toBe(LAB.id);
+    });
+
+    test("Slack not listing the workspaces at install: those removed stay as they were", async () => {
+      const OLD: JSONObject = { id: "T0OLD", name: "Acme Old" };
+
+      connections.add({
+        projectId: projectId,
+        workspaceProjectId: ORG_ID,
+        authToken: "xoxb-acme-organization-old",
+        miscData: {
+          teamId: ORG_ID,
+          teamName: ORG_NAME,
+          botUserId: BOT_USER_ID,
+          enterpriseId: ORG_ID,
+          enterpriseName: ORG_NAME,
+          isEnterpriseInstall: true,
+          workspaces: [EAST, WEST],
+          workspacesReadAt: "2026-10-01T00:00:00.000Z",
+          removedWorkspaces: [OLD],
+        },
+      });
+      slack.answers.set("auth.teams.list", (): JSONObject => {
+        return { ok: false, error: "ratelimited" };
+      });
+
+      expectInstalled(await install(organizationInstall()));
+
+      expect(stored().miscData["removedWorkspaces"]).toEqual([OLD]);
     });
   });
 

@@ -1,6 +1,6 @@
 # Gruppi di monitor
 
-Un gruppo di monitor riunisce più monitor in un unico stato. Raggruppate i monitor che insieme formano un servizio, come Checkout: la sua API, il suo servizio di pagamento e la sua app web. Il gruppo mostra lo stato peggiore tra loro, ha una propria disponibilità, e una pagina di stato può mostrare l'intero gruppo come una sola riga.
+Un gruppo di monitor riunisce più monitor in un unico stato. Raggruppate i monitor che insieme formano un servizio, come Checkout: la sua API, il suo servizio di pagamento e la sua app web. Il gruppo mostra lo stato peggiore tra loro, ha una propria disponibilità, e una pagina di stato può mostrare l'intero gruppo come una sola riga. Per scegliere tra un gruppo di monitor, un servizio e un'etichetta, consultate [Quale usare?](/docs/introduction/which-one#gruppo-di-monitor-servizio-o-etichetta).
 
 :::cards
 - [Come si calcola lo stato di un gruppo](#come-si-calcola-lo-stato-di-un-gruppo): Lo stato peggiore tra i suoi monitor.
@@ -27,8 +27,9 @@ flowchart TB
 ```
 
 - **I monitor archiviati non contano.** Un monitor archiviato non viene controllato, quindi il suo stato è congelato; il gruppo lo esclude.
+- **I monitor con il monitoraggio disattivato non contano.** Niente controlla un monitor il cui monitoraggio è disattivato, quindi il suo stato è solo ciò che ha visto il suo ultimo controllo. Il gruppo lo esclude dal suo stato: un monitor rimasto **Offline** quando il suo monitoraggio è stato disattivato non rende il gruppo **Offline**. L'uptime e il **Grafico di uptime** del gruppo conservano la cronologia del monitor fino alla disattivazione del suo monitoraggio ed escludono il tempo successivo, nella dashboard come nelle pagine di stato. Riattivato, il monitor conta di nuovo da quel momento.
 - **Un gruppo vuoto è operativo.** Un gruppo senza monitor, o con soli monitor archiviati, mostra il vostro stato operativo. Finché non aggiungete un monitor, la dashboard mostra **Nessun monitor ancora** al posto del suo stato.
-- **Il monitoraggio disattivato mostra Disabilitato.** Quando il monitoraggio è disattivato per tutti i monitor di un gruppo, niente li controlla, quindi la dashboard mostra **Disabilitato** al posto dello stato del gruppo.
+- **Il monitoraggio disattivato mostra Disabilitato.** Quando il monitoraggio è disattivato per tutti i monitor di un gruppo, niente li controlla, quindi la dashboard mostra **Disabilitato** al posto dello stato del gruppo, e il suo **Grafico di uptime** e il suo uptime si fermano dove il monitoraggio è stato disattivato per l'ultimo di essi. Una pagina di stato mostra il gruppo come **Non monitorato**.
 - **L'ordine lo decidete voi.** Quale stato sia il peggiore segue l'ordine di **Monitor → Impostazioni → Stato del monitor**. Vedere [Stati dei monitor](/docs/monitor/criteria-and-statuses#stati-dei-monitor).
 
 Un gruppo di monitor non è un gruppo di una pagina di stato. Un gruppo di una pagina di stato è un'intestazione su una pagina di stato che contiene righe. Un gruppo di monitor è una riga che rappresenta più monitor, e qualsiasi pagina di stato può mostrarla.
@@ -91,6 +92,8 @@ Aprite un gruppo per vederne le pagine nel menu laterale:
 
 La disponibilità nella **Panoramica** conta come inattività ogni stato tranne quello operativo. Una pagina di stato conta solo gli stati nel proprio elenco **Conta come inattività**: vedere [Scegliere cosa mostra la pagina](/docs/status-pages/index#scegliere-che-cosa-compare-sulla-pagina).
 
+Ogni barra del grafico di uptime, qui e su una pagina di stato, mostra per quanto tempo il gruppo stesso è rimasto in ciascuno stato quel giorno: in ogni momento ha lo stato peggiore tra i suoi monitor, quindi un'ora in cui due di essi sono offline insieme è un'ora del gruppo, e un giorno non supera mai un giorno. I giorni sono i vostri: la dashboard li disegna nel fuso orario delle vostre impostazioni utente, e una pagina di stato in quello di ogni visitatore.
+
 L'elenco **Gruppi di monitor** può filtrare i gruppi per proprietario ed etichetta, impostare etichette e proprietari su molti gruppi insieme, ed esportare o importare gruppi in JSON.
 
 ## Disattivare il monitoraggio di un intero gruppo
@@ -122,7 +125,7 @@ Scegliete il gruppo. **Nome visualizzato**, il nome che leggono i visitatori, pr
 
 Sulla pagina di stato, la riga rappresenta ogni monitor del gruppo:
 
-- **Il suo stato.** È quello del gruppo: il peggiore dei suoi monitor.
+- **Il suo stato.** È quello del gruppo: il peggiore dei suoi monitor con il monitoraggio attivo. Quando il monitoraggio è disattivato per tutti, la riga mostra **Non monitorato** e non conta né per l'intestazione sopra di essa né per lo stato complessivo della pagina.
 - **I suoi incidenti.** Un incidente su qualsiasi monitor del gruppo compare sulla pagina, con il gruppo tra le risorse interessate.
 - **I suoi iscritti.** Un iscritto che sceglie il gruppo riceve notizie su ogni monitor che contiene. Vedere [Lasciare che gli iscritti scelgano risorse e tipi di evento](/docs/status-pages/subscribers#lasciare-che-gli-iscritti-scelgano-risorse-e-tipi-di-evento).
 

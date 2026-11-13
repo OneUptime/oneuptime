@@ -461,6 +461,11 @@ export default class MonitorStatusTimelineReconciler {
    *
    * The (monitorId, startsAt) index answers each NOT EXISTS, so a run costs a probe per
    * monitor; only a monitor that has no row left has its feed read, through its monitorId.
+   *
+   * The row restored is the monitor's current status, so it takes the monitor's monitoring
+   * switch as it is now, as a status change appended by MonitorStatusTimelineService does
+   * (isMonitoringOff, issue #6480): a monitor whose monitoring is off gets a row that uptime
+   * and status pages leave out.
    */
   private static async restoreMissingStatusTimelinesBatch(data: {
     batchSize: number;
@@ -479,7 +484,8 @@ export default class MonitorStatusTimelineReconciler {
         SELECT m."_id" AS "monitorId",
                m."projectId" AS "projectId",
                m."currentMonitorStatusId" AS "monitorStatusId",
-               m."createdAt" AS "monitorCreatedAt"
+               m."createdAt" AS "monitorCreatedAt",
+               m."disableActiveMonitoring" IS TRUE AS "isMonitoringOff"
         FROM "Monitor" m
         WHERE (SELECT "mayRun" FROM run)
           AND m."deletedAt" IS NULL
@@ -506,6 +512,7 @@ export default class MonitorStatusTimelineReconciler {
         "monitorId",
         "monitorStatusId",
         "isOwnerNotified",
+        "isMonitoringOff",
         "rootCause",
         "startsAt",
         "version"
@@ -514,6 +521,7 @@ export default class MonitorStatusTimelineReconciler {
              missing."monitorId",
              missing."monitorStatusId",
              TRUE,
+             missing."isMonitoringOff",
              $3,
              LEAST(
                GREATEST(

@@ -120,7 +120,7 @@ Trinnet **Konfigurer** i opprettelsesveiviseren ber om opptil sju verdier: hver 
 
 **Slik logger malene på.** Veiviseren lagrer leieren, klient-ID-en og hemmeligheten i én [OAuth 2.0-variabel](/docs/workflows/variables#oauth-20-variabler-tokener-som-fornyer-seg-selv), `dynamicsAccessToken`, under arbeidsflytens **Arbeidsflytvariabler**: Client Credentials, token-URL-en `https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token`, scopet `<environment URL>/.default` og klienthemmeligheten, sendt i forespørselens innhold og lagret kryptert. Hvert kall til Dynamics 365 sender `Authorization: Bearer {{local.variables.dynamicsAccessToken}}`. OneUptime henter tokenet første gang et trinn trenger det, henter et nytt før det utløper, og erstatter det med `[REDACTED]` i kjøringslogger og trinnspor.
 
-For å sjekke påloggingen før noe kjører, åpner du **Arbeidsflytvariabler**, klikker på **Vis** ved `dynamicsAccessToken` og klikker på **Oppdater nå**. **Access Token Fetched** betyr at appregistreringen er riktig. Ellers sier feilen fra Microsoft Entra ID hva som er galt, f.eks. `AADSTS7000215: Invalid client secret provided`.
+For å sjekke påloggingen før noe kjører, åpner du **Arbeidsflytvariabler**, klikker på **Vis** ved `dynamicsAccessToken` og klikker på **Oppdater nå**. **Tilgangstoken hentet** betyr at appregistreringen er riktig. Ellers sier feilen fra Microsoft Entra ID hva som er galt, f.eks. `AADSTS7000215: Invalid client secret provided`.
 
 Hver arbeidsflyt har sin egen kopi. Når du bytter ut klienthemmeligheten, åpner du `dynamicsAccessToken` i hver Dynamics 365-arbeidsflyt og bruker **Oppdater påloggingsinformasjon**.
 
@@ -258,7 +258,7 @@ Malene dekker de vanlige tilfellene. For å bygge en retning selv bygger denne d
 
 Opprett tokenet én gang, for alle arbeidsflyter, som en [OAuth 2.0-variabel](/docs/workflows/variables#oauth-20-variabler-tokener-som-fornyer-seg-selv):
 
-1. Gå til **Arbeidsflyter → Globale variabler**, åpne menyen **Mer** (**⋯**) ved siden av **Opprett Workflow Variabel**, og velg **Create OAuth 2.0 Variable**. Gi den navnet `DYNAMICS_TOKEN`.
+1. Gå til **Arbeidsflyter → Globale variabler**, åpne menyen **Mer** (**⋯**) ved siden av **Opprett Workflow Variabel**, og velg **Opprett OAuth 2.0-variabel**. Gi den navnet `DYNAMICS_TOKEN`.
 2. Velg **Microsoft Entra ID** under **Leverandør**, erstatt `{tenant-id}` i **Token-URL** med Directory (tenant) ID-en din, og velg **Client Credentials**.
 3. Skriv inn **Klient-ID** og **Klienthemmelighet** under **Påloggingsinformasjon**. Sett scopet til `https://yourorg.crm.dynamics.com/.default` under **Avansert**, og opprett deretter variabelen.
 

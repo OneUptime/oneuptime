@@ -1,5 +1,11 @@
 import { DataAssetFreshness } from "Common/Types/DataObservability/DataAssetFreshness";
 import DataAssetLineageSource from "Common/Types/DataObservability/DataAssetLineageSource";
+import { LineageColumnTrail } from "Common/Types/DataObservability/DataLineageColumnTrail";
+import {
+  DataLineageDrawnTable,
+  DataLineageExpandRequest,
+  DataLineageExpansion,
+} from "Common/Types/DataObservability/DataLineageExpansion";
 import {
   DataLineageEdgeKind,
   DataLineageHighlight,
@@ -9,6 +15,7 @@ import {
   DataTableLineageEdge,
   DataTableLineageNode,
   DataTableLineagePipeline,
+  MAX_DATA_LINEAGE_TABLES_PER_SIDE,
   getLineagePipelineNodeId,
   isFailedLineageRunState,
   isLineagePipelineNodeId,
@@ -45,6 +52,10 @@ export const LINEAGE_CARD_HEIGHT: number = 84;
 // Room between columns for a failed pipeline's name on its arrow.
 export const LINEAGE_COLUMN_GAP: number = 96;
 export const LINEAGE_EDGE_LABEL_MAX_WIDTH: number = LINEAGE_COLUMN_GAP - 12;
+// The tallest an arrow's label is: a pipeline's name with Cause under it.
+export const LINEAGE_EDGE_LABEL_MAX_HEIGHT: number = 32;
+// How far over a level arrow its label sits: clear of the arrow's halo.
+export const LINEAGE_EDGE_LABEL_CLEARANCE: number = 6;
 export const LINEAGE_ROW_GAP: number = 16;
 
 // The room around the drawing when it is fitted, as React Flow counts it.
@@ -126,6 +137,8 @@ export interface LineageEdgeLabel {
   pipeline: DataTableLineagePipeline;
   // Its latest run failed (red); otherwise it is on an alert's way (indigo).
   isFailed: boolean;
+  // It is the alert's cause, on an arrow the way up ends on: it says Cause, as a cause's card does.
+  isCause: boolean;
 }
 
 // How an arrow is drawn, all told.
@@ -147,6 +160,9 @@ export interface LineageHighlightSets {
   causeNodeIds: Set<string>;
   consequenceNodeIds: Set<string>;
   dataPipelineIds: Set<string>;
+  // The cause's pipelines drawn on arrows, and the arrows on the way up that carry them: those say Cause.
+  causeDataPipelineIds: Set<string>;
+  causeEdgeIds: Set<string>;
 }
 
 export const LINEAGE_NEUTRAL_COLOR: string = "#94a3b8";
@@ -257,7 +273,13 @@ export function getLineageEdgeStyle(
   };
 }
 
-// The ways a drawing picks out, as sets; null when it picks none.
+/*
+ * The ways a drawing picks out, as sets; null when it picks none. A cause
+ * on a pipeline drawn on the arrows it moves data along is said on those
+ * of its arrows the way up ends on: picked out, into the drawing's own
+ * card or a card upstream of it. The same pipeline on a way down - a run
+ * that builds the tables on both sides - is not the way to the cause.
+ */
 export function getLineageHighlightSets(
   lineage: DataTableLineage,
 ): LineageHighlightSets | null {
@@ -267,12 +289,83 @@ export function getLineageHighlightSets(
     return null;
   }
 
+  const edgeIds: Set<string> = new Set(highlight.edgeIds);
+  // An answer from before the cause's pipelines were sent names none.
+  const causeDataPipelineIds: Set<string> = new Set(
+    highlight.causeDataPipelineIds || [],
+  );
+  const causeEdgeIds: Set<string> = new Set();
+
+  if (causeDataPipelineIds.size > 0) {
+    const upstream: Set<string> = new Set(
+      lineage.nodes
+        .filter((node: DataTableLineageNode): boolean => {
+          return node.side === DataLineageSide.Upstream;
+        })
+        .map((node: DataTableLineageNode): string => {
+          return node.id;
+        }),
+    );
+
+    for (const edge of lineage.edges) {
+      if (
+        edgeIds.has(edge.id) &&
+        (edge.target === lineage.focusNodeId || upstream.has(edge.target)) &&
+        edge.pipelines.some((pipeline: DataTableLineagePipeline): boolean => {
+          return causeDataPipelineIds.has(pipeline.dataPipelineId);
+        })
+      ) {
+        causeEdgeIds.add(edge.id);
+      }
+    }
+  }
+
   return {
     nodeIds: new Set(highlight.nodeIds),
-    edgeIds: new Set(highlight.edgeIds),
+    edgeIds,
     causeNodeIds: new Set(highlight.causeNodeIds),
     consequenceNodeIds: new Set(highlight.consequenceNodeIds),
     dataPipelineIds: new Set(highlight.dataPipelineIds),
+    causeDataPipelineIds,
+    causeEdgeIds,
+  };
+}
+
+/*
+ * A column followed on an alert's drawing: its way is picked out beside
+ * the alert's, which keep naming the cause and what it caused - the person
+ * paged sees both where the problem started and where the column comes
+ * from. Without an alert's ways, the column's alone.
+ */
+export function joinLineageHighlightSets(
+  ways: LineageHighlightSets | null,
+  column: LineageHighlightSets,
+): LineageHighlightSets {
+  if (!ways) {
+    return column;
+  }
+
+  const join: (first: Set<string>, second: Set<string>) => Set<string> = (
+    first: Set<string>,
+    second: Set<string>,
+  ): Set<string> => {
+    return new Set([...first, ...second]);
+  };
+
+  return {
+    nodeIds: join(ways.nodeIds, column.nodeIds),
+    edgeIds: join(ways.edgeIds, column.edgeIds),
+    causeNodeIds: join(ways.causeNodeIds, column.causeNodeIds),
+    consequenceNodeIds: join(
+      ways.consequenceNodeIds,
+      column.consequenceNodeIds,
+    ),
+    dataPipelineIds: join(ways.dataPipelineIds, column.dataPipelineIds),
+    causeDataPipelineIds: join(
+      ways.causeDataPipelineIds,
+      column.causeDataPipelineIds,
+    ),
+    causeEdgeIds: join(ways.causeEdgeIds, column.causeEdgeIds),
   };
 }
 
@@ -304,7 +397,10 @@ export function isLineageCardDimmed(
  * The pipeline an arrow names: one whose latest run failed, or - on an
  * alert's way - the pipeline that is its cause or an alert it caused. Never
  * a pipeline that has its own card at the arrow's start, or that the
- * drawing is about: its card already says how it is.
+ * drawing is about: its card already says how it is. On an arrow the way
+ * up to the cause ends on, the cause's pipeline also says Cause - red
+ * still, when its run failed; a failed run of another pipeline is named
+ * first, and says nothing of the cause.
  */
 export function getLineageEdgeLabel(
   edge: DataTableLineageEdge,
@@ -319,6 +415,15 @@ export function getLineageEdgeLabel(
     return edge.source === card || focusNodeId === card;
   };
 
+  const isCause: (pipeline: DataTableLineagePipeline) => boolean = (
+    pipeline: DataTableLineagePipeline,
+  ): boolean => {
+    return Boolean(
+      sets?.causeEdgeIds.has(edge.id) &&
+        sets.causeDataPipelineIds.has(pipeline.dataPipelineId),
+    );
+  };
+
   const failed: DataTableLineagePipeline | undefined = edge.pipelines.find(
     (pipeline: DataTableLineagePipeline): boolean => {
       return (
@@ -328,7 +433,7 @@ export function getLineageEdgeLabel(
   );
 
   if (failed) {
-    return { pipeline: failed, isFailed: true };
+    return { pipeline: failed, isFailed: true, isCause: isCause(failed) };
   }
 
   if (sets?.edgeIds.has(edge.id)) {
@@ -342,7 +447,7 @@ export function getLineageEdgeLabel(
     );
 
     if (named) {
-      return { pipeline: named, isFailed: false };
+      return { pipeline: named, isFailed: false, isCause: isCause(named) };
     }
   }
 
@@ -897,7 +1002,7 @@ export function getLineageCardsInView(
 }
 
 // A box in the drawing's own units.
-interface LineageBox {
+export interface LineageBox {
   left: number;
   top: number;
   right: number;
@@ -911,6 +1016,96 @@ function getCardBox(point: LineagePoint): LineageBox {
     right: point.x + LINEAGE_CARD_WIDTH,
     bottom: point.y + LINEAGE_CARD_HEIGHT,
   };
+}
+
+/*
+ * An arrow runs level when its two ends are at one height: its two cards
+ * side by side. Its label then sits just over it, not on it - on it, the
+ * label would hide nearly all of the arrow in the column gap, its head
+ * too, and a two-line label (a pipeline's name with Cause under it) would
+ * leave nothing of it. A curved arrow keeps its label on its middle, the
+ * curve going in and out of it.
+ */
+export function isLineageArrowLevel(sourceY: number, targetY: number): boolean {
+  return Math.abs(sourceY - targetY) < 1;
+}
+
+/*
+ * Where an arrow's label sits in the drawing at its tallest (a pipeline's
+ * name with Cause under it), as LineageArrow places it: in the gap between
+ * the two cards, over the arrow when it runs level, on its middle
+ * otherwise. Null when a card of the arrow is not laid out.
+ */
+export function getLineageArrowLabelBox(
+  layout: LineageLayout,
+  edge: DataTableLineageEdge,
+): LineageBox | null {
+  const source: LineagePoint | undefined = layout.positions.get(edge.source);
+  const target: LineagePoint | undefined = layout.positions.get(edge.target);
+
+  if (!source || !target) {
+    return null;
+  }
+
+  // An arrow leaves a card's right side and enters the next card's left, halfway down each.
+  const startY: number = source.y + LINEAGE_CARD_HEIGHT / 2;
+  const endY: number = target.y + LINEAGE_CARD_HEIGHT / 2;
+  const middleX: number = (source.x + LINEAGE_CARD_WIDTH + target.x) / 2;
+  const middleY: number = (startY + endY) / 2;
+  const top: number = isLineageArrowLevel(startY, endY)
+    ? middleY - LINEAGE_EDGE_LABEL_CLEARANCE - LINEAGE_EDGE_LABEL_MAX_HEIGHT
+    : middleY - LINEAGE_EDGE_LABEL_MAX_HEIGHT / 2;
+
+  return {
+    left: middleX - LINEAGE_EDGE_LABEL_MAX_WIDTH / 2,
+    top,
+    right: middleX + LINEAGE_EDGE_LABEL_MAX_WIDTH / 2,
+    bottom: top + LINEAGE_EDGE_LABEL_MAX_HEIGHT,
+  };
+}
+
+/*
+ * What a drawing too wide to read whole keeps in view before any card: an
+ * alert's cause said on the arrows its pipeline moves data along
+ * (causeEdgeIds) - the cause, when no card is - each arrow's label, the
+ * one nearest the alert's own card first. Without it a phone's drawing
+ * opened on the alert's card, the Cause label cut at the canvas's edge.
+ * None when a card is the cause: getLineageCardsInView puts it first.
+ */
+export function getLineageCauseLabelBoxes(
+  lineage: DataTableLineage,
+  layout: LineageLayout,
+  sets: LineageHighlightSets | null,
+): Array<LineageBox> {
+  if (!sets || sets.causeNodeIds.size > 0 || sets.causeEdgeIds.size === 0) {
+    return [];
+  }
+
+  const focusColumn: number = layout.columns.get(lineage.focusNodeId) || 0;
+  const stepsAway: (edge: DataTableLineageEdge) => number = (
+    edge: DataTableLineageEdge,
+  ): number => {
+    return Math.abs(
+      (layout.columns.get(edge.target) ?? focusColumn) - focusColumn,
+    );
+  };
+  const boxes: Array<LineageBox> = [];
+
+  for (const edge of lineage.edges
+    .filter((edge: DataTableLineageEdge): boolean => {
+      return sets.causeEdgeIds.has(edge.id);
+    })
+    .sort((a: DataTableLineageEdge, b: DataTableLineageEdge): number => {
+      return stepsAway(a) - stepsAway(b) || compareText(a.id, b.id);
+    })) {
+    const box: LineageBox | null = getLineageArrowLabelBox(layout, edge);
+
+    if (box) {
+      boxes.push(box);
+    }
+  }
+
+  return boxes;
 }
 
 /*
@@ -933,15 +1128,29 @@ function getLeaningMiddle(data: {
   return Math.min(middle + slack, Math.max(middle - slack, data.toward));
 }
 
+// The zoom that holds the whole drawing on a canvas of a given size, never past life size.
+function getLineageFitZoom(
+  layout: LineageLayout,
+  width: number,
+  height: number,
+): number {
+  return Math.min(
+    1,
+    width / (layout.width * (1 + LINEAGE_FIT_PADDING)),
+    height / (layout.height * (1 + LINEAGE_FIT_PADDING)),
+  );
+}
+
 /*
  * Where the diagram is looked at from on a canvas of a given size: the whole
  * drawing, fitted and centered, when it fits with its cards' names still
  * readable. Otherwise, at the least zoom that keeps names readable, the
- * cards it is asked to keep in view (getLineageCardsInView: the table
- * itself, unless an alert's ways say more), as many as fit, the most wanted
- * first; the view leans toward the first card that did not fit, so the way
- * to it starts on screen. The rest is a drag away, and the fit control shows
- * all of it. Null while the canvas has no size to go by.
+ * arrow labels it is asked to keep in view (getLineageCauseLabelBoxes: an
+ * alert's cause said on an arrow), then the cards (getLineageCardsInView:
+ * the table itself, unless an alert's ways say more), as many as fit, the
+ * most wanted first; the view leans toward the first one that did not fit,
+ * so the way to it starts on screen. The rest is a drag away, and the fit
+ * control shows all of it. Null while the canvas has no size to go by.
  */
 export function getLineageViewport(data: {
   layout: LineageLayout;
@@ -950,15 +1159,17 @@ export function getLineageViewport(data: {
   height: number;
   // The cards to keep in view, the most wanted first; the drawing's own card when none are named.
   inView?: ReadonlyArray<string> | undefined;
+  // Arrow labels to keep in view before any card, the most wanted first.
+  labelsInView?: ReadonlyArray<LineageBox> | undefined;
 }): LineageViewport | null {
   if (!(data.width > 0) || !(data.height > 0)) {
     return null;
   }
 
-  const fitZoom: number = Math.min(
-    1,
-    data.width / (data.layout.width * (1 + LINEAGE_FIT_PADDING)),
-    data.height / (data.layout.height * (1 + LINEAGE_FIT_PADDING)),
+  const fitZoom: number = getLineageFitZoom(
+    data.layout,
+    data.width,
+    data.height,
   );
 
   if (fitZoom >= LINEAGE_READABLE_ZOOM) {
@@ -975,40 +1186,42 @@ export function getLineageViewport(data: {
   const roomHeight: number = data.height / (zoom * (1 + LINEAGE_FIT_PADDING));
   const wanted: ReadonlyArray<string> =
     data.inView && data.inView.length > 0 ? data.inView : [data.focusNodeId];
-
-  let shown: LineageBox | null = null;
-  // The first card wanted that did not fit: the view leans toward it.
-  let leftOut: LineageBox | null = null;
+  const boxes: Array<LineageBox> = [...(data.labelsInView || [])];
 
   for (const id of wanted) {
     const point: LineagePoint | undefined = data.layout.positions.get(id);
 
-    if (!point) {
-      continue;
+    if (point) {
+      boxes.push(getCardBox(point));
     }
+  }
 
-    const card: LineageBox = getCardBox(point);
+  let shown: LineageBox | null = null;
+  // The first label or card wanted that did not fit: the view leans toward it.
+  let leftOut: LineageBox | null = null;
+
+  for (const box of boxes) {
     const joined: LineageBox = shown
       ? {
-          left: Math.min(shown.left, card.left),
-          top: Math.min(shown.top, card.top),
-          right: Math.max(shown.right, card.right),
-          bottom: Math.max(shown.bottom, card.bottom),
+          left: Math.min(shown.left, box.left),
+          top: Math.min(shown.top, box.top),
+          right: Math.max(shown.right, box.right),
+          bottom: Math.max(shown.bottom, box.bottom),
         }
-      : card;
+      : box;
     const fits: boolean =
       joined.right - joined.left <= roomWidth &&
       joined.bottom - joined.top <= roomHeight;
 
     if (fits || !shown) {
-      // A card that cannot fit even alone is still the one shown.
+      // A label or card that cannot fit even alone is still the one shown.
       shown = joined;
     } else if (!leftOut) {
-      leftOut = card;
+      leftOut = box;
     }
   }
 
-  // Not one card to keep in view: the drawing's middle.
+  // Not one label or card to keep in view: the drawing's middle.
   const centerX: number = shown
     ? getLeaningMiddle({
         low: shown.left,
@@ -1030,5 +1243,417 @@ export function getLineageViewport(data: {
     x: data.width / 2 - centerX * zoom,
     y: data.height / 2 - centerY * zoom,
     zoom,
+  };
+}
+
+/*
+ * DRAWING MORE OF A DRAWING WHERE IT IS (Common/Types/DataObservability/
+ * DataLineageExpansion).
+ *
+ * A card's count of tables not drawn ("+14") draws the next of them in
+ * place: the drawing asks for them naming every table and dashboard it has,
+ * adds what comes back - nothing it already has - and keeps every count
+ * true: the card pressed takes the count the answer gives, and each card
+ * already drawn that counted a table drawn now as one it did not draw counts
+ * one fewer, as a drawing read whole would have it.
+ */
+
+// The tables drawn on one side: a side holds at most MAX_DATA_LINEAGE_TABLES_PER_SIDE.
+export function countLineageTables(
+  lineage: DataTableLineage,
+  side: DataLineageSide,
+): number {
+  return lineage.nodes.filter((node: DataTableLineageNode): boolean => {
+    return node.kind === DataLineageNodeKind.Table && node.side === side;
+  }).length;
+}
+
+/*
+ * Whether a card's count of tables not drawn one way can be pressed to draw
+ * them here: a table counts only its own way (the drawing's own table both),
+ * a pipeline only on its own drawing, and a side already holding its most
+ * tables draws no more - its count stays words, and opening the table
+ * centers the diagram on it.
+ */
+export function canExpandLineageCard(
+  lineage: DataTableLineage,
+  node: DataTableLineageNode,
+  side: DataLineageSide,
+): boolean {
+  const count: number =
+    side === DataLineageSide.Upstream
+      ? node.hiddenUpstreamCount || 0
+      : side === DataLineageSide.Downstream
+        ? node.hiddenDownstreamCount || 0
+        : 0;
+
+  if (count <= 0) {
+    return false;
+  }
+
+  if (node.kind === DataLineageNodeKind.Pipeline) {
+    if (node.id !== lineage.focusNodeId) {
+      return false;
+    }
+  } else if (node.kind === DataLineageNodeKind.Table) {
+    if (node.side !== DataLineageSide.Focus && node.side !== side) {
+      return false;
+    }
+  } else {
+    return false;
+  }
+
+  return countLineageTables(lineage, side) < MAX_DATA_LINEAGE_TABLES_PER_SIDE;
+}
+
+// What pressing a card's count asks: the next of its tables, naming every table and dashboard drawn.
+export function getLineageExpandRequest(data: {
+  lineage: DataTableLineage;
+  nodeId: string;
+  side: DataLineageSide;
+  // The drawing was read with the columns of its arrows: the new arrows come with theirs.
+  withColumns: boolean;
+}): DataLineageExpandRequest {
+  const tables: Array<DataLineageDrawnTable> = [];
+  const dataDashboardIds: Array<string> = [];
+
+  for (const node of data.lineage.nodes) {
+    if (node.kind === DataLineageNodeKind.Table && node.dataAssetId) {
+      tables.push({
+        dataAssetId: node.dataAssetId,
+        side: node.side,
+        depth: node.depth,
+      });
+    }
+
+    if (node.kind === DataLineageNodeKind.Dashboard && node.dataDashboardId) {
+      dataDashboardIds.push(node.dataDashboardId);
+    }
+  }
+
+  return {
+    focusNodeId: data.lineage.focusNodeId,
+    nodeId: data.nodeId,
+    side: data.side,
+    tables,
+    dataDashboardIds,
+    ...(data.withColumns ? { withColumns: true } : {}),
+  };
+}
+
+/*
+ * A drawing with the next tables of one card drawn in it. What the drawing
+ * has stays as it is, where it is in the lists - the cards and arrows of
+ * the answer it has already are left out, and an arrow to a card it does
+ * not have is never drawn - and what is new follows. The card pressed
+ * counts what the answer says it still does not draw; a card drawn before
+ * that counted a table drawn now - an arrow between them its own way - and
+ * the pipeline a drawing is about, for each table drawn now it reads or
+ * writes, count one fewer each. A count never goes below none.
+ */
+export function mergeLineageExpansion(
+  lineage: DataTableLineage,
+  expansion: DataLineageExpansion,
+): DataTableLineage {
+  const nodes: Array<DataTableLineageNode> = lineage.nodes.map(
+    (node: DataTableLineageNode): DataTableLineageNode => {
+      return { ...node };
+    },
+  );
+  const byId: Map<string, DataTableLineageNode> = new Map();
+
+  for (const node of nodes) {
+    byId.set(node.id, node);
+  }
+
+  const added: Set<string> = new Set();
+
+  for (const node of expansion.nodes) {
+    if (!byId.has(node.id)) {
+      const copy: DataTableLineageNode = { ...node };
+
+      nodes.push(copy);
+      byId.set(copy.id, copy);
+      added.add(copy.id);
+    }
+  }
+
+  const edgeIds: Set<string> = new Set(
+    lineage.edges.map((edge: DataTableLineageEdge): string => {
+      return edge.id;
+    }),
+  );
+  const newEdges: Array<DataTableLineageEdge> = [];
+
+  for (const edge of expansion.edges) {
+    if (
+      edgeIds.has(edge.id) ||
+      !byId.has(edge.source) ||
+      !byId.has(edge.target)
+    ) {
+      continue;
+    }
+
+    edgeIds.add(edge.id);
+    newEdges.push(edge);
+  }
+
+  const isUpstream: boolean = expansion.side === DataLineageSide.Upstream;
+  const countsOneFewer: (
+    node: DataTableLineageNode | undefined,
+    way: DataLineageSide,
+  ) => void = (
+    node: DataTableLineageNode | undefined,
+    way: DataLineageSide,
+  ): void => {
+    // The card pressed takes the answer's own count that way.
+    if (!node || (node.id === expansion.nodeId && way === expansion.side)) {
+      return;
+    }
+
+    if (way === DataLineageSide.Upstream) {
+      node.hiddenUpstreamCount = Math.max(
+        0,
+        (node.hiddenUpstreamCount || 0) - 1,
+      );
+    } else {
+      node.hiddenDownstreamCount = Math.max(
+        0,
+        (node.hiddenDownstreamCount || 0) - 1,
+      );
+    }
+  };
+
+  for (const edge of newEdges) {
+    const isSourceNew: boolean = added.has(edge.source);
+    const isTargetNew: boolean = added.has(edge.target);
+
+    if (edge.kind === DataLineageEdgeKind.Feeds) {
+      // Between a table drawn now and one drawn before: the one before counted it, its own way.
+      if (isSourceNew === isTargetNew) {
+        continue;
+      }
+
+      const before: DataTableLineageNode | undefined = byId.get(
+        isSourceNew ? edge.target : edge.source,
+      );
+
+      if (!before || before.kind !== DataLineageNodeKind.Table) {
+        continue;
+      }
+
+      if (
+        isSourceNew &&
+        (before.side === DataLineageSide.Upstream ||
+          before.side === DataLineageSide.Focus)
+      ) {
+        countsOneFewer(before, DataLineageSide.Upstream);
+      }
+
+      if (
+        isTargetNew &&
+        (before.side === DataLineageSide.Downstream ||
+          before.side === DataLineageSide.Focus)
+      ) {
+        countsOneFewer(before, DataLineageSide.Downstream);
+      }
+
+      continue;
+    }
+
+    // The pipeline the drawing is about, reading or writing a table drawn now.
+    if (
+      edge.kind === DataLineageEdgeKind.Reads &&
+      edge.target === lineage.focusNodeId &&
+      isSourceNew
+    ) {
+      countsOneFewer(byId.get(edge.target), DataLineageSide.Upstream);
+    }
+
+    if (
+      edge.kind === DataLineageEdgeKind.Writes &&
+      edge.source === lineage.focusNodeId &&
+      isTargetNew &&
+      isLineagePipelineNodeId(edge.source)
+    ) {
+      countsOneFewer(byId.get(edge.source), DataLineageSide.Downstream);
+    }
+  }
+
+  const pressed: DataTableLineageNode | undefined = byId.get(expansion.nodeId);
+
+  if (pressed) {
+    if (isUpstream) {
+      pressed.hiddenUpstreamCount = Math.max(0, expansion.hiddenCount);
+    } else {
+      pressed.hiddenDownstreamCount = Math.max(0, expansion.hiddenCount);
+    }
+  }
+
+  return {
+    ...lineage,
+    nodes,
+    edges: [...lineage.edges, ...newEdges].sort(
+      (a: DataTableLineageEdge, b: DataTableLineageEdge): number => {
+        return compareText(a.id, b.id);
+      },
+    ),
+    hiddenDashboardCount:
+      typeof expansion.hiddenDashboardCount === "number"
+        ? Math.max(0, expansion.hiddenDashboardCount)
+        : lineage.hiddenDashboardCount,
+    isTruncated: lineage.isTruncated || expansion.isTruncated,
+  };
+}
+
+/*
+ * Where the diagram is looked at from once a card's tables are drawn in
+ * it. A reader who has not moved the view sees the whole drawing fitted
+ * again while it is still readable whole (isFitted). Otherwise the zoom
+ * stays and the card pressed stays where it was on the screen - every card
+ * may move as the drawing is laid out again around what is new, so the
+ * view follows the card the reader is at - and then the view slides as
+ * little as it can to bring the cards drawn now into view, the nearest to
+ * the card pressed first, as many as fit beside it. Null while the canvas
+ * has no size to go by.
+ */
+export function getLineageViewportAfterExpanding(data: {
+  before: LineageLayout;
+  after: LineageLayout;
+  // Where the drawing was looked at from when the card was pressed.
+  viewport: LineageViewport;
+  nodeId: string;
+  newNodeIds: ReadonlyArray<string>;
+  focusNodeId: string;
+  width: number;
+  height: number;
+  hasReaderMoved: boolean;
+}): { viewport: LineageViewport; isFitted: boolean } | null {
+  if (!(data.width > 0) || !(data.height > 0)) {
+    return null;
+  }
+
+  if (
+    !data.hasReaderMoved &&
+    getLineageFitZoom(data.after, data.width, data.height) >=
+      LINEAGE_READABLE_ZOOM
+  ) {
+    const fitted: LineageViewport | null = getLineageViewport({
+      layout: data.after,
+      focusNodeId: data.focusNodeId,
+      width: data.width,
+      height: data.height,
+    });
+
+    if (fitted) {
+      return { viewport: fitted, isFitted: true };
+    }
+  }
+
+  const zoom: number = data.viewport.zoom > 0 ? data.viewport.zoom : 1;
+  const was: LineagePoint | undefined = data.before.positions.get(data.nodeId);
+  const now: LineagePoint | undefined = data.after.positions.get(data.nodeId);
+  let x: number = data.viewport.x;
+  let y: number = data.viewport.y;
+
+  if (!was || !now) {
+    return { viewport: { x, y, zoom }, isFitted: false };
+  }
+
+  // The card pressed where it was on the screen.
+  x += (was.x - now.x) * zoom;
+  y += (was.y - now.y) * zoom;
+
+  // The room in view, kept clear of the canvas's edges as a fitted drawing is.
+  const roomWidth: number = data.width / (zoom * (1 + LINEAGE_FIT_PADDING));
+  const roomHeight: number = data.height / (zoom * (1 + LINEAGE_FIT_PADDING));
+  const anchor: LineageBox = getCardBox(now);
+  const middleOf: (box: LineageBox) => LineagePoint = (
+    box: LineageBox,
+  ): LineagePoint => {
+    return { x: (box.left + box.right) / 2, y: (box.top + box.bottom) / 2 };
+  };
+  const from: LineagePoint = middleOf(anchor);
+  const distanceOf: (id: string) => number = (id: string): number => {
+    const middle: LineagePoint = middleOf(
+      getCardBox(data.after.positions.get(id)!),
+    );
+
+    return Math.hypot(middle.x - from.x, middle.y - from.y);
+  };
+  let shown: LineageBox = anchor;
+
+  for (const id of [...data.newNodeIds]
+    .filter((id: string): boolean => {
+      return data.after.positions.has(id);
+    })
+    .sort((a: string, b: string): number => {
+      return distanceOf(a) - distanceOf(b) || compareText(a, b);
+    })) {
+    const card: LineageBox = getCardBox(data.after.positions.get(id)!);
+    const joined: LineageBox = {
+      left: Math.min(shown.left, card.left),
+      top: Math.min(shown.top, card.top),
+      right: Math.max(shown.right, card.right),
+      bottom: Math.max(shown.bottom, card.bottom),
+    };
+
+    if (
+      joined.right - joined.left <= roomWidth &&
+      joined.bottom - joined.top <= roomHeight
+    ) {
+      shown = joined;
+    }
+  }
+
+  // What is in view now, in the drawing's own units, and its room.
+  const viewLeft: number = -x / zoom;
+  const viewTop: number = -y / zoom;
+  const marginX: number = (data.width / zoom - roomWidth) / 2;
+  const marginY: number = (data.height / zoom - roomHeight) / 2;
+  const roomLeft: number = viewLeft + marginX;
+  const roomTop: number = viewTop + marginY;
+
+  // Slide as little as brings it all into the room: one edge or the other, never both.
+  if (shown.left < roomLeft) {
+    x += (roomLeft - shown.left) * zoom;
+  } else if (shown.right > roomLeft + roomWidth) {
+    x -= (shown.right - (roomLeft + roomWidth)) * zoom;
+  }
+
+  if (shown.top < roomTop) {
+    y += (roomTop - shown.top) * zoom;
+  } else if (shown.bottom > roomTop + roomHeight) {
+    y -= (shown.bottom - (roomTop + roomHeight)) * zoom;
+  }
+
+  return { viewport: { x, y, zoom }, isFitted: false };
+}
+
+/*
+ * FOLLOWING ONE COLUMN UP AND DOWN THE DRAWING: picking one of the table's
+ * columns follows it up the arrows into the table and down the arrows out
+ * of it (DataLineageColumnTrail, shared with an alert's AI investigation).
+ * Its way is picked out as an alert's ways are (LineageHighlightSets), and
+ * each card on it names the column there.
+ */
+export {
+  followLineageColumn,
+  getLineageColumnChoices,
+} from "Common/Types/DataObservability/DataLineageColumnTrail";
+export type { LineageColumnTrail };
+
+// A column's way, picked out as an alert's ways are: no card named its cause or a consequence.
+export function getLineageColumnHighlightSets(
+  trail: LineageColumnTrail,
+): LineageHighlightSets {
+  return {
+    nodeIds: new Set(trail.columns.keys()),
+    edgeIds: new Set(trail.edgeIds),
+    causeNodeIds: new Set(),
+    consequenceNodeIds: new Set(),
+    dataPipelineIds: new Set(),
+    causeDataPipelineIds: new Set(),
+    causeEdgeIds: new Set(),
   };
 }

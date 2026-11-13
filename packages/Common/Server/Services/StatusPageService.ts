@@ -71,6 +71,7 @@ import MonitorStatusTimelineService, {
   MergedDowntimeTotals,
 } from "./MonitorStatusTimelineService";
 import {
+  MonitorGroupUptimeDailyAggregate,
   UptimeDailyAggregate,
   UptimeDayBucket,
 } from "../../Types/StatusPage/UptimeDailyAggregate";
@@ -87,7 +88,9 @@ import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
 import ForbiddenException from "../../Types/Exception/ForbiddenException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
-import ArchivedMonitorResources from "../../Utils/StatusPage/ArchivedMonitorResources";
+import FrozenMonitorResources, {
+  NotMonitoredResourceIds,
+} from "../../Utils/StatusPage/FrozenMonitorResources";
 import {
   STATUS_PAGE_ARCHIVED_SENDS_NOTHING_MESSAGE,
   STATUS_PAGE_NOT_FOUND_MESSAGE,
@@ -254,6 +257,10 @@ const applyReportScheduleWrite: (
  * incidents to count, and whether the page only shows incidents limited to
  * it (IncidentStatusPageScope decides from that which incidents count).
  */
+// A status page asked for that is not there any more (#6836).
+export const STATUS_PAGE_GONE_MESSAGE: string =
+  "This status page no longer exists. It may have been deleted.";
+
 export const INCIDENT_COUNT_STATUS_PAGE_SELECT: Select<StatusPage> = {
   _id: true,
   projectId: true,
@@ -603,7 +610,7 @@ export class Service extends ProjectReferencesService<StatusPage> {
     });
 
     if (!createBy.data.projectId) {
-      throw new BadDataException("projectId is required");
+      throw new BadDataException("The status page has no project.");
     }
 
     // if the project is on the free plan, then only allow 1 status page.
@@ -977,7 +984,7 @@ export class Service extends ProjectReferencesService<StatusPage> {
   @CaptureSpan()
   public async findOwners(statusPageId: ObjectID): Promise<Array<User>> {
     if (!statusPageId) {
-      throw new BadDataException("statusPageId is required");
+      throw new BadDataException("No status page was named.");
     }
 
     const ownerUsers: Array<StatusPageOwnerUser> =
@@ -1097,13 +1104,13 @@ export class Service extends ProjectReferencesService<StatusPage> {
   ): Promise<URL> {
     if (!projectId) {
       throw new BadDataException(
-        "projectId is required to build status page dashboard link",
+        "A link to a status page in the Dashboard needs its project.",
       );
     }
 
     if (!statusPageId) {
       throw new BadDataException(
-        "statusPageId is required to build status page dashboard link",
+        "A link to a status page in the Dashboard needs the status page.",
       );
     }
 
@@ -1500,6 +1507,76 @@ export class Service extends ProjectReferencesService<StatusPage> {
     });
   }
 
+  /**
+   * Each monitor group's day buckets on a status page: how long the GROUP
+   * spent in each status each day, the worst status among its monitors at
+   * each instant, cut in `timezone` on the same grid as the monitors'
+   * buckets. See MonitorStatusTimelineService.getMonitorGroupDailyUptimeAggregate.
+   */
+  @CaptureSpan()
+  public async getMonitorGroupUptimeDailyAggregateForStatusPage(data: {
+    monitorGroups: Array<{
+      monitorGroupId: ObjectID;
+      monitorIds: Array<ObjectID>;
+    }>;
+    rankedMonitorStatusIds: Array<ObjectID | string>;
+    startDate: Date;
+    endDate: Date;
+    timezone?: string | undefined;
+  }): Promise<MonitorGroupUptimeDailyAggregate> {
+    return await MonitorStatusTimelineService.getMonitorGroupDailyUptimeAggregate(
+      {
+        monitorGroups: data.monitorGroups,
+        rankedMonitorStatusIds: data.rankedMonitorStatusIds,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        timezone: data.timezone,
+      },
+    );
+  }
+
+  /*
+   * The monitor groups a status page's uptime history is cut for: every
+   * group whose resource shows its history chart or its uptime, once
+   * however many resources name it, with its monitors. A resource that
+   * names a monitor as well is that monitor's (StatusPageResourceUptimeUtil
+   * measures it so), and adds no group.
+   */
+  public static getMonitorGroupsForUptimeHistory(data: {
+    statusPageResources: Array<StatusPageResource>;
+    monitorsInGroup: Dictionary<Array<ObjectID>>;
+  }): Array<{ monitorGroupId: ObjectID; monitorIds: Array<ObjectID> }> {
+    const monitorGroups: Array<{
+      monitorGroupId: ObjectID;
+      monitorIds: Array<ObjectID>;
+    }> = [];
+    const seen: Set<string> = new Set<string>();
+
+    for (const resource of data.statusPageResources) {
+      if (
+        !resource.monitorGroupId ||
+        resource.monitorId ||
+        !(resource.showStatusHistoryChart || resource.showUptimePercent)
+      ) {
+        continue;
+      }
+
+      const monitorGroupId: string = resource.monitorGroupId.toString();
+
+      if (seen.has(monitorGroupId)) {
+        continue;
+      }
+
+      seen.add(monitorGroupId);
+      monitorGroups.push({
+        monitorGroupId: resource.monitorGroupId,
+        monitorIds: data.monitorsInGroup[monitorGroupId] || [],
+      });
+    }
+
+    return monitorGroups;
+  }
+
   /*
    * One key per distinct set of monitors, whatever order they come in and
    * however often one repeats, for caching a figure that depends only on
@@ -1559,6 +1636,12 @@ export class Service extends ProjectReferencesService<StatusPage> {
           createdAt: true,
           endsAt: true,
           startsAt: true,
+          /*
+           * Whether the monitor's monitoring was off for the row: uptime
+           * leaves that time out (UptimeUtil.getMonitorEventsForId, issue
+           * #6480), and needs it to know which time that is.
+           */
+          isMonitoringOff: true,
           /*
            * `_id` is selected explicitly because UptimeUtil reads `monitorStatus.id` (a getter
            * over `_id`) to match events against the downtime statuses. It works today only
@@ -1965,13 +2048,13 @@ export class Service extends ProjectReferencesService<StatusPage> {
         throw new BadDataException(STATUS_PAGE_ARCHIVED_SENDS_NOTHING_MESSAGE);
       }
 
-      throw new BadDataException("Status page not found");
+      throw new BadDataException(STATUS_PAGE_GONE_MESSAGE);
     }
 
     const statuspage: StatusPage = statusPages[0]!;
 
     if (!statuspage.id) {
-      throw new BadDataException("Status page not found");
+      throw new BadDataException(STATUS_PAGE_GONE_MESSAGE);
     }
 
     const statusPageURL: string = await this.getStatusPageURL(statuspage.id);
@@ -2247,7 +2330,7 @@ export class Service extends ProjectReferencesService<StatusPage> {
     });
 
     if (!statusPage) {
-      throw new BadDataException("Status page not found");
+      throw new BadDataException(STATUS_PAGE_GONE_MESSAGE);
     }
 
     const statusPageResources: StatusPageResource[] =
@@ -2986,23 +3069,60 @@ export class Service extends ProjectReferencesService<StatusPage> {
 
     /*
      * An archived monitor is retired and its status frozen, so it is not
-     * shown (see ArchivedMonitorResources). Everything that works out which
+     * shown (see FrozenMonitorResources). Everything that works out which
      * monitors are on the page - incidents, maintenance, reports - reads it
-     * from here and so skips it too.
+     * from here and so skips it too. A monitor whose monitoring is off stays:
+     * the page still shows it, as Not monitored, with its incidents and
+     * maintenance.
      */
-    return ArchivedMonitorResources.withoutArchivedMonitors(
+    return FrozenMonitorResources.withoutArchivedMonitors(
       statusPageResources,
     ).sort((a: StatusPageResource, b: StatusPageResource) => {
       return a.order! - b.order!;
     });
   }
 
+  /*
+   * The status of each monitor group on the page, by its id: what the
+   * embedded badge reads. The status the group has everywhere else
+   * (MonitorGroupService.getCurrentStatusesForMonitorGroups, as the page's
+   * overview reads it): the WORST status among its monitors that are
+   * checked - an archived monitor, or one whose monitoring is off, holds a
+   * frozen status (FrozenMonitorResources) - so a group whose monitors all
+   * have monitoring off has no entry, and colors nothing. This used to keep
+   * the best status instead (the lowest priority number), so a group with
+   * one monitor Offline and one Operational colored the badge Operational.
+   *
+   * monitorGroupResources, when the caller has them, are the groups'
+   * members as MonitorGroupService.getMonitorGroupResourcesByGroupIds reads
+   * them; without them they are read here.
+   */
   @CaptureSpan()
   public async getMonitorGroupCurrentStatuses(data: {
     statusPageResources: Array<StatusPageResource>;
     monitorStatuses: Array<MonitorStatus>;
+    monitorGroupResources?: Dictionary<Array<MonitorGroupResource>> | undefined;
   }): Promise<Dictionary<ObjectID>> {
     const monitorGroupCurrentStatuses: Dictionary<ObjectID> = {};
+
+    const monitorGroupIds: Array<ObjectID> = [];
+    const seen: Set<string> = new Set<string>();
+
+    for (const resource of data.statusPageResources) {
+      const monitorGroupId: string | undefined =
+        resource.monitorGroupId?.toString();
+
+      if (!monitorGroupId || seen.has(monitorGroupId)) {
+        continue;
+      }
+
+      seen.add(monitorGroupId);
+      monitorGroupIds.push(resource.monitorGroupId!);
+    }
+
+    if (monitorGroupIds.length === 0) {
+      return monitorGroupCurrentStatuses;
+    }
 
     /*
      * Batched: this used to issue one MonitorGroupResource query per status
@@ -3010,66 +3130,73 @@ export class Service extends ProjectReferencesService<StatusPage> {
      * subscriber report. One query now serves all groups.
      */
     const resourcesByGroupId: Dictionary<Array<MonitorGroupResource>> =
-      await MonitorGroupService.getMonitorGroupResourcesByGroupIds(
-        data.statusPageResources
-          .map((resource: StatusPageResource) => {
-            return resource.monitorGroupId!;
-          })
-          .filter((id: ObjectID) => {
-            return Boolean(id); // remove nulls
+      data.monitorGroupResources ||
+      (await MonitorGroupService.getMonitorGroupResourcesByGroupIds(
+        monitorGroupIds,
+      ));
+
+    const monitorGroupStatuses: Dictionary<MonitorStatus> =
+      FrozenMonitorResources.withoutNotMonitoredMonitorGroups({
+        monitorGroupStatuses:
+          await MonitorGroupService.getCurrentStatusesForMonitorGroups({
+            monitorGroupIds: monitorGroupIds,
+            monitorStatuses: data.monitorStatuses,
+            monitorGroupResources: resourcesByGroupId,
           }),
-      );
+        monitorGroupResources: resourcesByGroupId,
+      });
 
-    for (const resource of data.statusPageResources) {
-      if (resource.monitorGroupId) {
-        const monitorGroupResources: Array<MonitorGroupResource> =
-          resourcesByGroupId[resource.monitorGroupId.toString()] || [];
+    for (const monitorGroupId of Object.keys(monitorGroupStatuses)) {
+      const statusId: ObjectID | null =
+        monitorGroupStatuses[monitorGroupId]?.id || null;
 
-        const statuses: Array<ObjectID> = monitorGroupResources
-          .filter((item: MonitorGroupResource) => {
-            return (
-              item.monitor &&
-              item.monitor.currentMonitorStatusId &&
-              item.monitorId
-            );
-          })
-          .map((item: MonitorGroupResource) => {
-            return item.monitor!.currentMonitorStatusId!;
-          });
-
-        let worstStatus: MonitorStatus | null = null;
-
-        for (const statusId of statuses) {
-          const status: MonitorStatus | undefined = data.monitorStatuses.find(
-            (status: MonitorStatus) => {
-              return status._id?.toString() === statusId.toString();
-            },
-          );
-
-          if (
-            status &&
-            (!worstStatus || status.priority! < worstStatus.priority!)
-          ) {
-            worstStatus = status;
-          }
-        }
-
-        if (worstStatus && worstStatus._id) {
-          monitorGroupCurrentStatuses[resource.monitorGroupId.toString()] =
-            new ObjectID(worstStatus._id);
-        }
+      if (statusId) {
+        monitorGroupCurrentStatuses[monitorGroupId] = statusId;
       }
     }
 
     return monitorGroupCurrentStatuses;
   }
 
+  /*
+   * The page's overall status - its banner, its badge, its summary: the
+   * worst status among its resources, from the first of monitorStatuses
+   * (sorted by priority) up.
+   *
+   * A resource the page draws as Not monitored decides nothing: one in
+   * notMonitoredResourceIds (FrozenMonitorResources.getNotMonitoredResourceIds),
+   * and a monitor whose monitoring is off, listed or not. Neither does an
+   * archived monitor, nor a monitor group missing from
+   * monitorGroupCurrentStatuses. When every resource on the page is Not
+   * monitored there is no status to give: null, which the page draws as
+   * Not monitored.
+   */
   @CaptureSpan()
   public getOverallMonitorStatus(data: {
     statusPageResources: Array<StatusPageResource>;
     monitorStatuses: Array<MonitorStatus>;
     monitorGroupCurrentStatuses: Dictionary<ObjectID>;
+    notMonitoredResourceIds?: NotMonitoredResourceIds | undefined;
   }): MonitorStatus | null {
+    const notMonitoredResourceIds: NotMonitoredResourceIds =
+      data.notMonitoredResourceIds || [];
+
+    const isNotMonitored: (resource: StatusPageResource) => boolean = (
+      resource: StatusPageResource,
+    ): boolean => {
+      return (
+        FrozenMonitorResources.isMonitoringOff(resource) ||
+        FrozenMonitorResources.isNotMonitored(resource, notMonitoredResourceIds)
+      );
+    };
+
+    if (
+      data.statusPageResources.length > 0 &&
+      data.statusPageResources.every(isNotMonitored)
+    ) {
+      return null;
+    }
+
     let currentStatus: MonitorStatus | null =
       data.monitorStatuses.length > 0 && data.monitorStatuses[0]
         ? data.monitorStatuses[0]
@@ -3078,6 +3205,13 @@ export class Service extends ProjectReferencesService<StatusPage> {
     const dict: Dictionary<number> = {};
 
     for (const resource of data.statusPageResources) {
+      if (
+        FrozenMonitorResources.isMonitorArchived(resource) ||
+        isNotMonitored(resource)
+      ) {
+        continue;
+      }
+
       if (resource.monitor?.currentMonitorStatusId) {
         if (
           !Object.keys(dict).includes(

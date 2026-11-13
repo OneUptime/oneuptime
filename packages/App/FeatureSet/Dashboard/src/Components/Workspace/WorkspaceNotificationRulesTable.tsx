@@ -74,6 +74,7 @@ import {
   TestSendTargets,
 } from "../TestSend/TestSendLock";
 import {
+  MattermostConnectionTeam,
   MicrosoftTeamsChat,
   MicrosoftTeamsTeam,
   SlackOrganizationWorkspace,
@@ -91,11 +92,18 @@ import {
   NOTIFICATION_RULE_DESTINATION_TITLES,
   NOTIFICATION_RULES_CARD_DESCRIPTIONS,
   getNotificationRulesCardTitle,
+  MattermostRuleTeams,
   RULE_PLURAL_NAMES,
   RULE_SINGULAR_NAMES,
+  SlackRuleWorkspaces,
   VIDEO_CALL_STEP_DESCRIPTIONS,
   VIDEO_CALL_STEP_TITLE,
 } from "./NotificationRuleForm/NotificationRuleCopy";
+import {
+  readSlackConnectionDescription,
+  SlackConnectionDescription,
+} from "../Slack/SlackOrganizationCard";
+import { fetchMattermostRuleTeams } from "../Mattermost/MattermostTeamsCard";
 import { canRuleCreateChannel } from "./NotificationRuleForm/NotificationRuleOwnChannel";
 import {
   SecurityCaseValueLists,
@@ -193,6 +201,29 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
   const [slackWorkspaces, setSlackWorkspaces] = React.useState<
     Array<SlackOrganizationWorkspace>
   >([]);
+  /*
+   * The same organization, with the workspaces OneUptime was removed from:
+   * a rule that still picks one says so on its card, and its form still
+   * shows the pick so it can be changed. Undefined for any other connection.
+   */
+  const [slackOrganization, setSlackOrganization] = React.useState<
+    SlackRuleWorkspaces | undefined
+  >(undefined);
+  /*
+   * Mattermost: the teams of the server the project's bot is a member of,
+   * for a rule to pick the one its channels are in.
+   */
+  const [mattermostTeams, setMattermostTeams] = React.useState<
+    Array<MattermostConnectionTeam>
+  >([]);
+  /*
+   * The same connection, with the teams the bot was taken out of: a rule
+   * that still names one says so on its card, and its form still shows the
+   * pick so it can be changed. Undefined for any other connection.
+   */
+  const [mattermostConnection, setMattermostConnection] = React.useState<
+    MattermostRuleTeams | undefined
+  >(undefined);
   const [users, setUsers] = React.useState<Array<User>>([]);
   const [onCallSchedules, setOnCallSchedules] = React.useState<
     Array<OnCallDutyPolicySchedule>
@@ -223,7 +254,15 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
     WorkspaceNotificationRule | undefined
   >(undefined);
 
-  const [showTestSuccessModal, setShowTestSuccessModal] =
+  /*
+   * What the test came to, once it is sent: Test Notification Sent, or
+   * Test Failed with what the server said and what to do next. The failure
+   * showed inside the Test Rule dialog, under its Test button, and pressing
+   * Test again could post a second test into the channels that got the
+   * first: whatever the answer, that dialog closes and this one opens
+   * (#7114), as the summaries' Send Test Now does.
+   */
+  const [showTestResultModal, setShowTestResultModal] =
     React.useState<boolean>(false);
 
   // Locked, saying why, for someone who may not send a test (TestSendLock).
@@ -255,20 +294,18 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
            */
           headers: ModelAPI.getCommonHeaders(),
         });
-      if (response.isSuccess()) {
-        setIsTestLoading(false);
-        setShowTestModal(false);
-        setShowTestSuccessModal(true);
-      }
-
       if (response instanceof HTTPErrorResponse) {
         throw response;
       }
 
       setIsTestLoading(false);
+      setShowTestModal(false);
+      setShowTestResultModal(true);
     } catch (err) {
       setTestError(API.getFriendlyErrorMessage(err as Exception));
       setIsTestLoading(false);
+      setShowTestModal(false);
+      setShowTestResultModal(true);
     }
   };
 
@@ -695,7 +732,23 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
        * has none, and its rules simply pick no workspace.
        */
       if (props.workspaceType === WorkspaceType.Slack) {
-        setSlackWorkspaces(await loadSlackWorkspaces());
+        const organization: SlackRuleWorkspaces | undefined =
+          await loadSlackOrganization();
+
+        setSlackOrganization(organization);
+        setSlackWorkspaces(organization?.workspaces || []);
+      }
+
+      /*
+       * Mattermost: the teams its bot is a member of. A bot in one team -
+       * or a server OneUptime could not ask - has rules that pick no team.
+       */
+      if (props.workspaceType === WorkspaceType.Mattermost) {
+        const connection: MattermostRuleTeams | undefined =
+          await fetchMattermostRuleTeams();
+
+        setMattermostConnection(connection);
+        setMattermostTeams(connection?.teams || []);
       }
     } catch (err) {
       setError(API.getFriendlyErrorMessage(err as Exception));
@@ -703,38 +756,41 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
     setIsLoading(false);
   };
 
-  type LoadSlackWorkspacesFunction = () => Promise<
-    Array<SlackOrganizationWorkspace>
+  type LoadSlackOrganizationFunction = () => Promise<
+    SlackRuleWorkspaces | undefined
   >;
 
-  const loadSlackWorkspaces: LoadSlackWorkspacesFunction = async (): Promise<
-    Array<SlackOrganizationWorkspace>
-  > => {
-    try {
-      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-        await API.get({
-          url: URL.fromString(APP_API_URL.toString()).addRoute(
-            `/slack/workspaces`,
-          ),
-          headers: ModelAPI.getCommonHeaders(),
-        });
+  const loadSlackOrganization: LoadSlackOrganizationFunction =
+    async (): Promise<SlackRuleWorkspaces | undefined> => {
+      try {
+        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await API.get({
+            url: URL.fromString(APP_API_URL.toString()).addRoute(
+              `/slack/workspaces`,
+            ),
+            headers: ModelAPI.getCommonHeaders(),
+          });
 
-      if (
-        response instanceof HTTPErrorResponse ||
-        response.data?.["isOrganization"] !== true
-      ) {
-        return [];
+        if (response instanceof HTTPErrorResponse) {
+          return undefined;
+        }
+
+        const connection: SlackConnectionDescription =
+          readSlackConnectionDescription(response.data);
+
+        if (!connection.isOrganization) {
+          return undefined;
+        }
+
+        return {
+          workspaces: connection.workspaces,
+          removedWorkspaces: connection.removedWorkspaces,
+          organizationName: connection.organizationName,
+        };
+      } catch {
+        return undefined;
       }
-
-      const workspaces: unknown = response.data["workspaces"];
-
-      return Array.isArray(workspaces)
-        ? (workspaces as Array<SlackOrganizationWorkspace>)
-        : [];
-    } catch {
-      return [];
-    }
-  };
+    };
 
   useEffect(() => {
     loadPage().catch((err: Exception) => {
@@ -799,6 +855,9 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         microsoftTeamsTeams={microsoftTeamsTeams}
         microsoftTeamsChats={microsoftTeamsChats}
         slackWorkspaces={slackWorkspaces}
+        slackOrganization={slackOrganization}
+        mattermostTeams={mattermostTeams}
+        mattermostConnection={mattermostConnection}
         users={users}
         onCallSchedules={onCallSchedules}
         numberPrefixes={numberPrefixes}
@@ -1230,6 +1289,9 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             microsoftTeamsTeams: microsoftTeamsTeams,
             microsoftTeamsChats: microsoftTeamsChats,
             slackWorkspaces: slackWorkspaces,
+            slackOrganization: slackOrganization,
+            mattermostTeams: mattermostTeams,
+            mattermostConnection: mattermostConnection,
             videoCallConnections: videoCallConnections,
             numberPrefixes: numberPrefixes,
             exampleRecordName: exampleRecordName,
@@ -1239,23 +1301,28 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         ]}
       />
 
+      {/*
+       * What the test does, naming the rule in quotes: a name such as
+       * "Page the database team" ran into the sentence around it ("Test the
+       * rule Page the database team by sending..."). Set apart, so a Latin
+       * name keeps its place in an Arabic or Persian sentence.
+       */}
       {showTestModal && testNotificationRule ? (
         <ConfirmModal
           title={`Test Rule`}
-          error={testError}
           description={translator.translateTemplate(
-            "Test the rule {{rule}} by sending a test notification to {{workspace}}.",
+            'Send a test notification for the rule "{{rule}}" to {{workspace}}.',
             {
               rule: testNotificationRule.name || "",
               workspace: getWorkspaceTypeDisplayName(props.workspaceType),
             },
+            { setsValuesApart: true },
           )}
           submitButtonText={"Test"}
           onClose={() => {
             setShowTestModal(false);
             setTestNotificationRule(undefined);
             setTestError(undefined);
-            setError("");
           }}
           isLoading={isTestLoading}
           onSubmit={async () => {
@@ -1269,21 +1336,41 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         <></>
       )}
 
-      {showTestSuccessModal ? (
+      {/*
+       * No onClose: a dialog that only reports an outcome needs one way
+       * out, and "Close" is it (SendTestNotificationButton's, the same).
+       * A failure says what the server said, then what to do next - never
+       * Test again. Close clears it, so a later test that succeeds does
+       * not show it. A success is titled as the product's other test sends
+       * are (Test Notification Sent) and says where to look, naming the
+       * rule: it repeated its own title ("Test executed successfully.")
+       * before saying anything new.
+       */}
+      {showTestResultModal ? (
         <ConfirmModal
-          title={testError ? `Test Failed` : `Test Executed Successfully`}
+          title={testError ? `Test Failed` : `Test Notification Sent`}
           error={testError}
-          description={translator.translateTemplate(
-            "Test executed successfully. You should now see a notification in {{workspace}}.",
-            { workspace: getWorkspaceTypeDisplayName(props.workspaceType) },
-          )}
+          description={
+            testError
+              ? translator.translateTemplate(
+                  "Fix the problem above, then test the rule again.",
+                )
+              : translator.translateTemplate(
+                  'Check {{workspace}} to confirm the test notification for the rule "{{rule}}" arrived.',
+                  {
+                    workspace: getWorkspaceTypeDisplayName(props.workspaceType),
+                    rule: testNotificationRule?.name || "",
+                  },
+                  { setsValuesApart: true },
+                )
+          }
           submitButtonType={ButtonStyleType.NORMAL}
           submitButtonText={"Close"}
           onSubmit={async () => {
-            setShowTestSuccessModal(false);
+            setShowTestResultModal(false);
             setTestNotificationRule(undefined);
             setShowTestModal(false);
-            setTestError("");
+            setTestError(undefined);
           }}
         />
       ) : (

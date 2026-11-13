@@ -1,7 +1,7 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import ValueFormatter from "Common/Utils/ValueFormatter";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import {
   GaugeArcGeometry,
   computeGaugeArcGeometry,
@@ -11,6 +11,15 @@ import {
   computeGaugeValueFontPx,
   gaugeAngleForPercentage,
 } from "./GaugeArcData";
+import DashboardWidgetLine from "./DashboardWidgetLine";
+import {
+  DASHBOARD_WIDGET_SETUP_LINE_CLASS_NAME,
+  DASHBOARD_WIDGET_SETUP_LINE_TEST_ID,
+  DASHBOARD_WIDGET_SETUP_NAME_CLASS_NAME,
+} from "./DashboardWidgetSetupCopy";
+
+// The row of the arc's bounds under it: the minimum, then the maximum.
+export const GAUGE_BOUNDS_TEST_ID: string = "gauge-bounds";
 
 /*
  * The radial gauge's PRESENTATION, with no opinion about where its number
@@ -94,7 +103,10 @@ export interface GaugeWidgetViewProps {
   /** Shown instead of a gauge when `value` is null. */
   noDataMessage: string;
 
-  /** False while the widget has no query yet — renders the setup prompt. */
+  /*
+   * False while the widget has no query yet — renders the setup prompt,
+   * the host's line for where the widget is drawn (DashboardWidgetSetupCopy).
+   */
   isConfigured: boolean;
   setupTitle: string;
   setupMessage: string;
@@ -165,8 +177,13 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
     return (
       <div className="flex flex-col items-center justify-center w-full h-full gap-1.5">
         <GaugeStateIcon tone="emerald" />
-        <p className="text-xs font-medium text-gray-500">{setupTitle}</p>
-        <p className="text-xs text-gray-400 text-center">{setupMessage}</p>
+        <p className={DASHBOARD_WIDGET_SETUP_NAME_CLASS_NAME}>{setupTitle}</p>
+        <p
+          className={DASHBOARD_WIDGET_SETUP_LINE_CLASS_NAME}
+          data-testid={DASHBOARD_WIDGET_SETUP_LINE_TEST_ID}
+        >
+          {setupMessage}
+        </p>
       </div>
     );
   }
@@ -307,19 +324,22 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
   const valueFontPx: number = baseValueFontPx * widthScale;
   const unitFontPx: number = baseUnitFontPx * widthScale;
 
-  // Status label derived from threshold state
-  let statusLabel: string = "Healthy";
+  /*
+   * Status label derived from threshold state, read out in the reader's
+   * words: it was "HEALTHY" under an Arabic or a German gauge.
+   */
+  let statusLabel: string = translationKey("Healthy");
   let statusTextColor: string = "text-emerald-600";
   let statusDotColor: string = "#10b981";
   if (criticalThreshold !== undefined && scaledValue >= criticalThreshold) {
-    statusLabel = "Critical";
+    statusLabel = translationKey("Critical");
     statusTextColor = "text-red-600";
     statusDotColor = "#ef4444";
   } else if (
     warningThreshold !== undefined &&
     scaledValue >= warningThreshold
   ) {
-    statusLabel = "Warning";
+    statusLabel = translationKey("Warning");
     statusTextColor = "text-amber-600";
     statusDotColor = "#f59e0b";
   }
@@ -398,9 +418,10 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
       }}
     >
       {props.title && (
-        <div className="text-[11px] font-medium text-gray-400 truncate uppercase tracking-wider w-full text-center">
-          {props.title}
-        </div>
+        <DashboardWidgetLine
+          text={props.title}
+          className="text-[11px] font-medium text-gray-400 truncate uppercase tracking-wider w-full text-center"
+        />
       )}
 
       <div
@@ -512,14 +533,21 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
               }}
             />
             <span className="font-medium tracking-wide uppercase">
-              {statusLabel}
+              {translator.translateText(statusLabel) || statusLabel}
             </span>
           </div>
         </div>
       </div>
 
-      {/* Min/Max footer */}
+      {/*
+       * Min/Max footer, under the arc's two ends. The arc fills from the
+       * left in every language, as a chart's time runs, so its bounds are
+       * laid out left to right too: mirrored on an Arabic board, "100" sat
+       * under the end the fill starts from.
+       */}
       <div
+        dir="ltr"
+        data-testid={GAUGE_BOUNDS_TEST_ID}
         className="flex justify-between w-full text-[10px] text-gray-400 tabular-nums"
         style={{ maxWidth: `${gaugeSize}px` }}
       >

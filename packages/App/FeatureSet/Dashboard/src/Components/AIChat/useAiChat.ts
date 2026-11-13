@@ -1,3 +1,5 @@
+import ProductEvents from "Common/UI/Utils/ProductEvents";
+import { ProductEventName } from "Common/Types/Analytics/ProductEvent";
 import AIConversation from "Common/Models/DatabaseModels/AIConversation";
 import AIConversationMessage, {
   AIConversationMessageFeedback,
@@ -32,6 +34,10 @@ import { useLocation } from "react-router-dom";
 import { isAIAccessibleOnCurrentPlan } from "../AI/AIPlanGate";
 import EventName from "../../Utils/EventName";
 import WorkflowChangesSeen from "./WorkflowChangedByAi";
+import {
+  getSetupApprovedEvent,
+  takeNewSetupProposal,
+} from "./AskAiSetupEvents";
 import AIChatUnavailableReason, {
   getAIChatUnavailableReason,
 } from "./AIChatAvailability";
@@ -241,6 +247,16 @@ export function useAiChat(options: {
   const messagesSignatureRef: React.MutableRefObject<string> =
     useRef<string>("");
   const eventsSignatureRef: React.MutableRefObject<string> = useRef<string>("");
+  /*
+   * The answers whose setup plan was counted as proposed (issue #6829), and
+   * the messages as last drawn, which an approval reads its plan from.
+   */
+  const setupPlansSeenRef: React.MutableRefObject<Set<string>> = useRef<
+    Set<string>
+  >(new Set<string>());
+  const messagesRef: React.MutableRefObject<Array<AIConversationMessage>> =
+    useRef<Array<AIConversationMessage>>([]);
+  messagesRef.current = messages;
 
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
   const projectIdString: string = projectId?.toString() || "";
@@ -442,6 +458,22 @@ export function useAiChat(options: {
         if (signature !== messagesSignatureRef.current) {
           messagesSignatureRef.current = signature;
           setMessages(ordered);
+        }
+
+        /*
+         * A setup plan waiting on its card (issue #6829), counted once per
+         * answer: its parts and how many, never what they name.
+         */
+        for (const message of ordered) {
+          const proposed: JSONObject | null = takeNewSetupProposal({
+            message: message,
+            seen: setupPlansSeenRef.current,
+            permissionMode: String(permissionModeRef.current || ""),
+          });
+
+          if (proposed) {
+            ProductEvents.send(ProductEventName.AskAiSetupProposed, proposed);
+          }
         }
 
         // A workflow's Builder behind the panel reads what was just done to it.
@@ -871,6 +903,15 @@ export function useAiChat(options: {
           "conversationId"
         ] as string;
 
+        /*
+         * A question Ask AI took (issue #6830) - never its words: whether it
+         * started a conversation, and the permission mode it runs under.
+         */
+        ProductEvents.send(ProductEventName.AskAiQuestionAsked, {
+          is_new_conversation: !activeConversationIdRef.current,
+          permission_mode: String(permissionModeRef.current || ""),
+        });
+
         if (!activeConversationIdRef.current) {
           activeConversationIdRef.current = conversationId;
           setActiveConversationId(conversationId);
@@ -925,6 +966,23 @@ export function useAiChat(options: {
 
       setError("");
       setIsSubmittingApproval(true);
+
+      /*
+       * A setup plan's card answered (issue #6829): how many parts were
+       * approved and skipped, never what they name.
+       */
+      const answered: AIConversationMessage | undefined =
+        messagesRef.current.find((message: AIConversationMessage) => {
+          return message.id?.toString() === assistantMessageId;
+        });
+      const approved: JSONObject | null = getSetupApprovedEvent({
+        toolActions: answered?.toolActions || [],
+        decisions: decisions,
+      });
+
+      if (approved) {
+        ProductEvents.send(ProductEventName.AskAiSetupApproved, approved);
+      }
 
       /*
        * Optimistically move the message off "waiting" so the spinner and
@@ -1065,6 +1123,11 @@ export function useAiChat(options: {
         if (response instanceof HTTPErrorResponse) {
           throw response;
         }
+
+        // How an answer was rated, or that its rating was cleared (issue #6830).
+        ProductEvents.send(ProductEventName.AskAiAnswerRated, {
+          rating: feedback ? String(feedback) : "cleared",
+        });
       } catch (err) {
         setError(API.getFriendlyMessage(err));
         if (activeConversationIdRef.current) {

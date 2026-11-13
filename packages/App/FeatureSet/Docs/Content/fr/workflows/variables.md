@@ -64,8 +64,8 @@ La liste affiche le nom et la description de chaque variable. Cliquez sur **Voir
 | Bouton                                       | Ce qu'il fait                                                                                                                                       |
 | -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Modifier la variable**                     | Change le nom, la description et — pour une variable statique qui n'est pas encore secrète — l'indicateur secret. Une fois secrète, une variable le reste. |
-| **Update Content**                           | Remplace une valeur statique. Le contenu enregistré ne peut pas être relu : vous tapez donc la nouvelle valeur en entier.                           |
-| **Use in Workflows**                         | Affiche la référence exacte à coller dans vos blocs, avec un bouton de copie.                                                                      |
+| **Mettre à jour le contenu**                 | Remplace une valeur statique. Le contenu enregistré ne peut pas être relu : vous tapez donc la nouvelle valeur en entier.                           |
+| **Utiliser dans les workflows**              | Affiche la référence exacte à coller dans vos blocs, avec un bouton de copie.                                                                      |
 | **Supprimer : Variable de flux de travail**  | La supprime, après vous avoir demandé confirmation. La confirmation nomme la variable, pour que vous puissiez vérifier que c'est bien celle-là.     |
 
 Pour créer plutôt une variable **jeton d'accès OAuth 2.0**, ouvrez le menu **Plus** (**⋯**) à côté de **Créer : Variable de flux de travail** et choisissez **Créer une variable OAuth 2.0**. Les variables OAuth 2.0 ont [leur propre section](#variables-oauth-20-des-jetons-qui-se-renouvellent-seuls) plus bas. Le type d'une variable ne peut pas être changé une fois enregistrée.
@@ -154,11 +154,11 @@ La carte **Jeton d'accès** sur la page d'une variable OAuth 2.0 affiche l'un de
 
 | Statut                     | Ce que cela signifie                                                                                                                       |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Valid**                  | Le jeton en cache n'a pas encore expiré.                                                                                                   |
+| **Valide**                 | Le jeton en cache n'a pas encore expiré.                                                                                                   |
 | **Expiré**                 | Normal pour une variable qu'aucun workflow n'a utilisée récemment. La prochaine exécution qui l'utilise récupère un nouveau jeton.          |
 | **Pas encore récupéré**    | Aucun jeton n'a été récupéré depuis la création de la variable ou la modification de ses paramètres.                                      |
-| **No expiry reported**     | Le fournisseur n'a pas dit quand le jeton expire : chaque exécution en récupère donc un nouveau.                                           |
-| **Refresh failed**         | La dernière tentative pour obtenir un jeton a échoué. La raison donnée par le fournisseur est affichée en entier, avec le moment de l'échec. Le prochain renouvellement réussi l'efface. |
+| **Aucune expiration indiquée** | Le fournisseur n'a pas dit quand le jeton expire : chaque exécution en récupère donc un nouveau.                                           |
+| **Échec de l'actualisation** | La dernière tentative pour obtenir un jeton a échoué. La raison donnée par le fournisseur est affichée en entier, avec le moment de l'échec. Le prochain renouvellement réussi l'efface. |
 
 **Actualiser maintenant**, sous le statut, récupère aussitôt un nouveau jeton. Utilisez-le pour vérifier de nouveaux paramètres sans exécuter de workflow. **Mettre à jour les identifiants**, sur la carte **Paramètres OAuth 2.0**, remplace le secret client ou le jeton d'actualisation, puis récupère un jeton avec eux. Modifier n'importe quel paramètre (URL du jeton, ID client, portée, etc.) supprime le jeton en cache, si bien que la prochaine exécution en récupère un avec les nouveaux paramètres.
 

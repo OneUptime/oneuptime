@@ -367,7 +367,7 @@ function openPlan(): HTMLElement {
 }
 
 describe("a fix whose round stopped before it found one", () => {
-  test("says it stopped and why - never that it found no safe fix - on its plan step, its fact and the step's pill", async () => {
+  test("says it stopped and why - never that it found no safe fix - on its plan step, the step's first sentence and its pill", async () => {
     roundServed = unfinishedRound(true);
     await renderStep([
       kubectlFix(AutoRemediationSuggestionStatus.NoneApplicable),
@@ -378,16 +378,27 @@ describe("a fix whose round stopped before it found one", () => {
     });
     expect(planStep()).toHaveAttribute("data-tone", "failed");
     expect(planSummary()).toBe(
-      "The AI provider did not answer within 120 seconds.",
+      "The LLM provider did not answer within 120 seconds.",
     );
-    expect(
-      within(theFix()).getByTestId("remediation-fix-status"),
-    ).toHaveTextContent("Did not finish");
+    /*
+     * Its one step says it under its name: no fact beside the name says it
+     * again (issue #6860). The step opens with it in a sentence, and its
+     * pill says it too.
+     */
+    expect(within(theFix()).queryByTestId("remediation-fix-status")).toBeNull();
+    expect(screen.getByTestId("remediation-step-summary")).toHaveTextContent(
+      "OneUptime AI stopped before it found a fix for this incident, so nothing was changed.",
+    );
+    expect(screen.getByTestId("remediation-step-summary")).toHaveAttribute(
+      "data-summary",
+      "stopped",
+    );
     expect(
       screen.getByTestId("ai-card-step-remediation-status"),
     ).toHaveTextContent("Did not finish");
     expect(screen.queryByText("Found no safe fix")).toBeNull();
     expect(screen.queryByText("No fix found")).toBeNull();
+    expect(screen.queryByText(/found no fix/)).toBeNull();
   });
 
   test("opens to why it stopped, how often it tried, what to do, Try again, and that nothing ran or was asked", async () => {
@@ -406,7 +417,7 @@ describe("a fix whose round stopped before it found one", () => {
 
     expect(within(notice).getByText("Why it stopped")).toBeInTheDocument();
     expect(notice).toHaveTextContent(
-      "The AI provider did not answer within 120 seconds.",
+      "The LLM provider did not answer within 120 seconds.",
     );
     expect(notice).toHaveTextContent("OneUptime tried 3 times.");
     expect(notice).toHaveTextContent(
@@ -420,7 +431,7 @@ describe("a fix whose round stopped before it found one", () => {
     expect(planSummary()).toBe("");
     expect(
       within(planStep()).getAllByText(
-        "The AI provider did not answer within 120 seconds.",
+        "The LLM provider did not answer within 120 seconds.",
         { exact: false },
       ),
     ).toHaveLength(1);
@@ -1269,13 +1280,17 @@ describe("what the step reads", () => {
 
     await waitFor(() => {
       expect(planSummary()).toBe(
-        `Did not finish: The AI provider did not answer within 120 seconds. Trying again at ${formatAiRunTime(nextAttemptAt)}.`,
+        `Did not finish: The LLM provider did not answer within 120 seconds. Trying again at ${formatAiRunTime(nextAttemptAt)}.`,
       );
     });
     expect(planTitle()).toBe("Working out a fix…");
-    // Waiting on its own is not a failure.
+    // Waiting on its own is not a failure: it is still working out a fix.
+    expect(within(theFix()).queryByTestId("remediation-fix-status")).toBeNull();
+    expect(screen.getByTestId("remediation-step-summary")).toHaveTextContent(
+      "OneUptime AI is working out a fix for this incident.",
+    );
     expect(
-      within(theFix()).getByTestId("remediation-fix-status"),
+      screen.getByTestId("ai-card-step-remediation-status"),
     ).not.toHaveTextContent("Did not finish");
   });
 });

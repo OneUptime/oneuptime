@@ -37,6 +37,12 @@ import Name from "Common/Types/Name";
 import RequestOrigin from "Common/Types/RequestOrigin";
 import ObjectID from "Common/Types/ObjectID";
 import { getSignupPasswordValidationError } from "Common/Types/Password";
+import {
+  getAccountAlreadyExistsMessage,
+  INCOMPLETE_RESET_LINK_MESSAGE,
+  INCOMPLETE_VERIFICATION_LINK_MESSAGE,
+  TWO_FACTOR_MESSAGES,
+} from "Common/Types/Accounts/SignInMessages";
 import MagicLink, {
   MAGIC_LINK_EXPIRY_MINUTES,
   MAGIC_LINK_INVALID_MESSAGE,
@@ -60,6 +66,12 @@ import AccessTokenService from "Common/Server/Services/AccessTokenService";
 import EmailVerificationTokenService from "Common/Server/Services/EmailVerificationTokenService";
 import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
 import MailService from "Common/Server/Services/MailService";
+import ServerSendingStatus from "Common/Server/Utils/ServerSending/ServerSendingStatus";
+import {
+  PASSWORD_RESET_CANNOT_BE_EMAILED_MESSAGE,
+  REGISTRATION_LINK_CANNOT_BE_EMAILED_MESSAGE,
+  SIGN_IN_LINK_CANNOT_BE_EMAILED_MESSAGE,
+} from "Common/Types/ServerSending/ServerSendingWords";
 import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
 import RequestOriginUtil from "Common/Server/Utils/RequestOrigin/RequestOriginUtil";
 import SsoRequiredSignIn from "Common/Server/Utils/SsoRequiredSignIn";
@@ -73,6 +85,12 @@ import UserSessionService, {
   SessionRenewalDecision,
 } from "Common/Server/Services/UserSessionService";
 import SessionEndedException from "Common/Types/Exception/SessionEndedException";
+import { SessionEndCause } from "Common/Types/UserSession/SessionEndCause";
+import {
+  SecondFactor,
+  SessionSignIn,
+  SignInMethod,
+} from "Common/Types/UserSession/SessionSignIn";
 import {
   INACTIVE_FOR_IN_SECONDS_FIELD,
   readReportedInactivityInSeconds,
@@ -226,6 +244,8 @@ type FinalizeUserLoginInput = {
   res: ExpressResponse;
   user: User;
   isGlobalLogin: boolean;
+  // How they signed in, for the audit log's sign-in entry (SessionSignIn).
+  signIn: SessionSignIn;
   setCookie?: boolean;
 };
 
@@ -243,6 +263,8 @@ const finalizeUserLogin: (
       ipAddress: getClientIp(req),
       userAgent: headerValueToString(req.headers["user-agent"]),
       ...extractDeviceInfo(req),
+      signIn: data.signIn,
+      requestOrigin: RequestOriginUtil.fromRequest(req),
     });
 
   if (data.setCookie !== false) {
@@ -452,6 +474,7 @@ router.post(
         res,
         user,
         isGlobalLogin: true,
+        signIn: { method: SignInMethod.Passkey },
       });
 
       logger.info(
@@ -523,6 +546,7 @@ router.post(
         res,
         user,
         isGlobalLogin: true,
+        signIn: { method: SignInMethod.Passkey },
         setCookie: false,
       });
       logger.info(
@@ -692,7 +716,9 @@ router.post(
           req,
           res,
           new BadDataException(
-            `User with email ${partialUser.email} already exists.`,
+            getAccountAlreadyExistsMessage(
+              partialUser.email?.toString() || "this email address",
+            ),
           ),
         );
       }
@@ -749,7 +775,21 @@ router.post(
            * handler, where it is on, and the limits on the emails a sign-up
            * sends (PublicMessageRateLimit: per caller and per address) are
            * what stop this branch from being a mail cannon.
+           *
+           * A server with no email set up cannot send that link: the person
+           * is told to ask whoever invited them for theirs, which a master
+           * admin can copy (TeamMemberAPI's invitation-link), rather than to
+           * wait for an email. This branch already answers differently from
+           * a new sign-up, so it says nothing more about the address.
            */
+          if (await ServerSendingStatus.isEmailKnownNotSetUp()) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(REGISTRATION_LINK_CANNOT_BE_EMAILED_MESSAGE),
+            );
+          }
+
           await PublicMessageRateLimit.assertMaySend({
             req: req,
             kind: PublicMessageKind.SignUpEmail,
@@ -993,6 +1033,7 @@ router.post(
           res,
           user: savedUser,
           isGlobalLogin: true,
+          signIn: { method: SignInMethod.Password },
         });
 
         logger.info(
@@ -1049,7 +1090,9 @@ router.post(
       return Response.sendErrorResponse(
         req,
         res,
-        new BadRequestException("Failed to create a user"),
+        new BadRequestException(
+          "Your account was not created. Try again in a moment.",
+        ),
       );
     } catch (err) {
       // A sign-up refused for its rate limits says when to come back.
@@ -1077,6 +1120,18 @@ router.post(
        * account may legitimately be using).
        */
       CredentialGuard.assertPresent(user.email, "Email");
+
+      /*
+       * A server with no email set up cannot send the link, so nobody is
+       * told it was sent: they are told who can let them in instead. Asked
+       * before the address is looked up, so every address gets the same
+       * answer - a fact about the server, never about an account. The
+       * Forgot password page says the same before anyone types
+       * (GET /global-config/vars' canSendEmail).
+       */
+      if (await ServerSendingStatus.isEmailKnownNotSetUp()) {
+        throw new BadDataException(PASSWORD_RESET_CANNOT_BE_EMAILED_MESSAGE);
+      }
 
       const alreadySavedUser: User | null = await UserService.findOneBy({
         query: { email: user.email! },
@@ -1245,6 +1300,14 @@ router.post(
         throw new BadDataException(MAGIC_LINK_TURNED_OFF_MESSAGE);
       }
 
+      /*
+       * No email set up: no link can go, so nobody is told to check their
+       * inbox. The same for every address, asked before any is looked up.
+       */
+      if (await ServerSendingStatus.isEmailKnownNotSetUp()) {
+        throw new BadDataException(SIGN_IN_LINK_CANNOT_BE_EMAILED_MESSAGE);
+      }
+
       await PublicMessageRateLimit.assertMaySend({
         req: req,
         kind: PublicMessageKind.MagicLink,
@@ -1368,7 +1431,11 @@ router.post(
        * predicate, and the query returns the newest verification token in the instance --
        * verifying an address the caller never proved they control.
        */
-      CredentialGuard.assertPresent(token.token, "Verification token");
+      CredentialGuard.assertPresent(
+        token.token,
+        "Verification token",
+        INCOMPLETE_VERIFICATION_LINK_MESSAGE,
+      );
 
       const alreadySavedToken: EmailVerificationToken | null =
         await EmailVerificationTokenService.findOneBy({
@@ -2019,7 +2086,11 @@ router.post(
        * password would silently reset the matched account's password to `undefined`.
        */
       CredentialGuard.assertAllPresent([
-        { value: user.resetPasswordToken, label: "Reset password token" },
+        {
+          value: user.resetPasswordToken,
+          label: "Reset password token",
+          message: INCOMPLETE_RESET_LINK_MESSAGE,
+        },
         { value: user.password, label: "Password" },
       ]);
 
@@ -2111,7 +2182,7 @@ router.post(
 
       // Revoke all active sessions for this user on password reset
       await UserSessionService.revokeAllSessionsByUserId(alreadySavedUser.id!, {
-        reason: "Password reset",
+        cause: SessionEndCause.PasswordReset,
       });
 
       logger.info(
@@ -2191,7 +2262,7 @@ router.post(
         OneUptimeDate.hasExpired(session.refreshTokenExpiresAt)
       ) {
         await UserSessionService.revokeSessionById(session.id, {
-          reason: "Refresh token expired",
+          cause: SessionEndCause.Expired,
         });
         CookieUtil.removeAllCookies(req, res);
         return Response.sendErrorResponse(
@@ -2250,7 +2321,7 @@ router.post(
        */
       if (user.isBlocked) {
         await UserSessionService.revokeSessionById(session.id, {
-          reason: "User blocked",
+          cause: SessionEndCause.AccountBlocked,
         });
         CookieUtil.removeAllCookies(req, res);
         return Response.sendErrorResponse(
@@ -2364,7 +2435,9 @@ router.post(
 
       if (refreshToken) {
         await UserSessionService.revokeSessionByRefreshToken(refreshToken, {
-          reason: "User logout",
+          cause: SessionEndCause.SignedOut,
+          // Where they signed out from, for the audit log's entry.
+          requestOrigin: RequestOriginUtil.fromRequest(req),
         });
       }
 
@@ -2820,6 +2893,37 @@ const tellOwnerAboutWrongCode: TellOwnerAboutWrongCodeFunction = async (data: {
  * that: it finishes whichever first step began it, by what its request
  * carries -- the password again, or the link's token again.
  */
+/*
+ * The second factor a login proved, for the audit log's sign-in entry
+ * (SessionSignIn): the step it is finishing, or none for an account
+ * without one. An enrolment proves the authenticator app it sets up.
+ */
+const getSecondFactorOfLogin: (stage: {
+  verifyTotpAuth: boolean;
+  verifyWebAuthn: boolean;
+  verifyTotpEnrolment: boolean;
+  verifyBackupCode: boolean;
+}) => SecondFactor | undefined = (stage: {
+  verifyTotpAuth: boolean;
+  verifyWebAuthn: boolean;
+  verifyTotpEnrolment: boolean;
+  verifyBackupCode: boolean;
+}): SecondFactor | undefined => {
+  if (stage.verifyTotpAuth || stage.verifyTotpEnrolment) {
+    return SecondFactor.AuthenticatorApp;
+  }
+
+  if (stage.verifyWebAuthn) {
+    return SecondFactor.SecurityKey;
+  }
+
+  if (stage.verifyBackupCode) {
+    return SecondFactor.BackupCode;
+  }
+
+  return undefined;
+};
+
 type LoginFunction = (options: {
   req: ExpressRequest;
   res: ExpressResponse;
@@ -3395,7 +3499,7 @@ const login: LoginFunction = async (options: {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Invalid two factor auth id."),
+              new BadDataException(TWO_FACTOR_MESSAGES.authenticatorGone),
             );
           }
 
@@ -3403,7 +3507,7 @@ const login: LoginFunction = async (options: {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Invalid code."),
+              new BadDataException(TWO_FACTOR_MESSAGES.wrongCode),
             );
           }
         } else if (verifyWebAuthn) {
@@ -3548,7 +3652,7 @@ const login: LoginFunction = async (options: {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Invalid backup code."),
+              new BadDataException(TWO_FACTOR_MESSAGES.wrongBackupCode),
             );
           }
 
@@ -3691,7 +3795,7 @@ const login: LoginFunction = async (options: {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Invalid two factor auth id."),
+              new BadDataException(TWO_FACTOR_MESSAGES.authenticatorGone),
             );
           }
 
@@ -3705,7 +3809,7 @@ const login: LoginFunction = async (options: {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Invalid code."),
+              new BadDataException(TWO_FACTOR_MESSAGES.wrongCode),
             );
           }
 
@@ -3862,6 +3966,17 @@ const login: LoginFunction = async (options: {
           res,
           user: alreadySavedUser,
           isGlobalLogin: true,
+          signIn: {
+            method: isMagicLinkSignIn
+              ? SignInMethod.SignInLink
+              : SignInMethod.Password,
+            secondFactor: getSecondFactorOfLogin({
+              verifyTotpAuth,
+              verifyWebAuthn,
+              verifyTotpEnrolment,
+              verifyBackupCode,
+            }),
+          },
         });
 
         /*

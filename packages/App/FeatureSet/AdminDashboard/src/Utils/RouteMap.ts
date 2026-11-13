@@ -7,6 +7,12 @@ import ObjectID from "Common/Types/ObjectID";
 const RouteMap: Dictionary<Route> = {
   [PageMap.INIT]: new Route(`/admin`),
   [PageMap.HOME]: new Route(`/admin`),
+  /*
+   * The server's setup checklist. A stable address: the Dashboard's card,
+   * `npm start`, the Welcome checklist (#6803) and the docs link to it.
+   */
+  [PageMap.SERVER_SETUP]: new Route(`/admin/setup`),
+  [PageMap.FEEDBACK]: new Route(`/admin/feedback`),
   [PageMap.HEALTH]: new Route(`/admin/health`),
   [PageMap.HEALTH_QUEUES]: new Route(`/admin/health/queues`),
   [PageMap.HEALTH_INSTANCE_LOGS]: new Route(`/admin/health/instance-logs`),

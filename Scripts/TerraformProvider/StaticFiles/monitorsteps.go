@@ -147,6 +147,7 @@ var monitorStepsCheckOnValues = []string{
 	"Is Expired Certificate",
 	"Is Valid Certificate",
 	"Is Not A Valid Certificate",
+	"Is Revoked Certificate",
 	"Is Request Timeout",
 	"Result Value",
 	"Error",
@@ -534,9 +535,12 @@ func (v MonitorStepsValue) ListSemanticEquals(ctx context.Context, otherValuable
 	}
 
 	// The server normalizes URL destinations (e.g. appends a trailing slash
-	// to bare origins); normalize both sides before structural comparison.
-	minePlain = normalizeURLWrapperLeaves(minePlain)
-	theirsPlain = normalizeURLWrapperLeaves(theirsPlain)
+	// to bare origins), and stores a rolling time or a metric aggregation
+	// written another way as the one it means ("15 minutes" is "Past 15
+	// Minutes", see monitorstepsvalues.go); read both sides so before the
+	// structural comparison.
+	minePlain = normalizeMonitorStepsValues(normalizeURLWrapperLeaves(minePlain))
+	theirsPlain = normalizeMonitorStepsValues(normalizeURLWrapperLeaves(theirsPlain))
 
 	return jsonIsSubset(theirsPlain, minePlain), diags
 }
@@ -643,9 +647,12 @@ func monitorStepsFilterSchema() schema.NestedAttributeObject {
 				Validators:          []validator.String{stringvalidator.LengthAtLeast(1)},
 			},
 			"metric_monitor_options": schema.StringAttribute{
-				MarkdownDescription: "Raw JSON escape hatch for metric filter options (metricAlias, metricAggregationType, anomaly detection, ...). Write it with `jsonencode()`.",
+				MarkdownDescription: "Raw JSON escape hatch for metric filter options (metricAlias, metricAggregationType, anomaly detection, ...). metricAggregationType is one of `Average`, `Sum`, `Maximum Value`, `Minimum Value`, `All Values` or `Any Value`, and onNoDataPolicy one of `Ignore`, `Treat As Zero` or `Trigger`. One written another way (`avg`, `max`, `treat_as_zero`) is stored as the value it means and plans no change; any other value is refused at plan time. Write it with `jsonencode()`.",
 				Optional:            true,
-				Validators:          []validator.String{stringvalidator.LengthAtLeast(1)},
+				Validators: []validator.String{
+					stringvalidator.LengthAtLeast(1),
+					monitorStepsMetricMonitorOptionsValidator{},
+				},
 			},
 			"snmp_monitor_options": schema.StringAttribute{
 				MarkdownDescription: "Raw JSON escape hatch for SNMP filter options (oid, interfaceName, and for SNMP table criteria tableKey, tableColumnOid and tableRow). Write it with `jsonencode()`.",
@@ -972,7 +979,7 @@ func monitorStepsStepSchema() schema.NestedAttributeObject {
 		"log_monitor":                  "Raw JSON escape hatch for the Logs monitor query config (attributes, body, severityTexts, telemetryServiceIds, lastXSecondsOfLogs).",
 		"trace_monitor":                "Raw JSON escape hatch for the Traces monitor query config.",
 		"llm_monitor":                  "Raw JSON escape hatch for the AI / LLM monitor config (issues, slowAnswerSeconds, model, telemetryServiceIds, lastXSecondsOfCalls).",
-		"metric_monitor":               "Raw JSON escape hatch for the Metrics monitor query config (metricViewConfig, rollingTime). The server normalizes this object, so provide the full shape to avoid drift.",
+		"metric_monitor":               "Raw JSON escape hatch for the Metrics monitor query config (metricViewConfig, rollingTime). The server normalizes this object, so provide the full shape to avoid drift. rollingTime is how far back each check reads: one of `Past 1 Minute`, `Past 5 Minutes`, `Past 10 Minutes`, `Past 15 Minutes`, `Past 30 Minutes`, `Past 1 Hour`, `Past 2 Hours`, `Past 3 Hours`, `Past 6 Hours`, `Past 12 Hours`, `Past 1 Day`, `Past 2 Days`, `Past 3 Days`, `Past 7 Days`, `Past 14 Days`, `Past 30 Days`, `Past 60 Days`, `Past 90 Days`, `Past 180 Days` or `Past 365 Days`. A length written another way that is exactly as long as one of them (`15 minutes`, `1h`, `PT15M`) is stored as that one and plans no change; on a Metrics monitor any other value is refused at plan time.",
 		"exception_monitor":            "Raw JSON escape hatch for the Exceptions monitor query config.",
 		"profile_monitor":              "Raw JSON escape hatch for the Profiles monitor query config.",
 		"network_device_monitor":       "Raw JSON escape hatch for the Network Device monitor config (networkDeviceId).",
@@ -982,17 +989,17 @@ func monitorStepsStepSchema() schema.NestedAttributeObject {
 		"sql_monitor":                  "Raw JSON escape hatch for the SQL Query monitor config (databaseType, host, port, databaseName, query, ...).",
 		"database_monitor":             "Raw JSON escape hatch for the Database Health monitor config (databaseType, host, port, databaseName, username, password, enabledMetricGroups, ...).",
 		"external_status_page_monitor": "Raw JSON escape hatch for the External Status Page monitor config (statusPageUrl, provider, componentGroupName, componentNames).",
-		"kubernetes_monitor":           "Raw JSON escape hatch for the Kubernetes monitor config (clusterIdentifier, ...).",
-		"docker_monitor":               "Raw JSON escape hatch for the Docker monitor config (hostIdentifier, ...).",
-		"host_monitor":                 "Raw JSON escape hatch for the Host monitor config (hostIdentifier, ...).",
-		"podman_monitor":               "Raw JSON escape hatch for the Podman monitor config (hostIdentifier, ...).",
-		"proxmox_monitor":              "Raw JSON escape hatch for the Proxmox monitor config (clusterIdentifier, ...).",
-		"openstack_monitor":            "Raw JSON escape hatch for the OpenStack monitor config (cloudIdentifier, resourceFilters, ...).",
-		"vmware_monitor":               "Raw JSON escape hatch for the VMware monitor config (vcenterIdentifier, resourceFilters, ...).",
-		"docker_swarm_monitor":         "Raw JSON escape hatch for the Docker Swarm monitor config (clusterIdentifier, ...).",
-		"ceph_monitor":                 "Raw JSON escape hatch for the Ceph monitor config (clusterIdentifier, ...).",
-		"storage_array_monitor":        "Raw JSON escape hatch for the Storage Array monitor config (arrayIdentifier, storageSystem, resourceFilters, ...).",
-		"iot_monitor":                  "Raw JSON escape hatch for the IoT monitor config (fleetIdentifier, ...).",
+		"kubernetes_monitor":           "Raw JSON escape hatch for the Kubernetes monitor config (clusterIdentifier, ...). rollingTime takes the values listed for `metric_monitor`, read the same way.",
+		"docker_monitor":               "Raw JSON escape hatch for the Docker monitor config (hostIdentifier, ...). rollingTime takes the values listed for `metric_monitor`, read the same way.",
+		"host_monitor":                 "Raw JSON escape hatch for the Host monitor config (hostIdentifier, ...). rollingTime takes the values listed for `metric_monitor`, read the same way.",
+		"podman_monitor":               "Raw JSON escape hatch for the Podman monitor config (hostIdentifier, ...). rollingTime takes the values listed for `metric_monitor`, read the same way.",
+		"proxmox_monitor":              "Raw JSON escape hatch for the Proxmox monitor config (clusterIdentifier, ...). rollingTime takes the values listed for `metric_monitor`, read the same way.",
+		"openstack_monitor":            "Raw JSON escape hatch for the OpenStack monitor config (cloudIdentifier, resourceFilters, ...). rollingTime takes the values listed for `metric_monitor`, read the same way.",
+		"vmware_monitor":               "Raw JSON escape hatch for the VMware monitor config (vcenterIdentifier, resourceFilters, ...). rollingTime takes the values listed for `metric_monitor`, read the same way.",
+		"docker_swarm_monitor":         "Raw JSON escape hatch for the Docker Swarm monitor config (clusterIdentifier, ...). rollingTime takes the values listed for `metric_monitor`, read the same way.",
+		"ceph_monitor":                 "Raw JSON escape hatch for the Ceph monitor config (clusterIdentifier, ...). rollingTime takes the values listed for `metric_monitor`, read the same way.",
+		"storage_array_monitor":        "Raw JSON escape hatch for the Storage Array monitor config (arrayIdentifier, storageSystem, resourceFilters, ...). rollingTime takes the values listed for `metric_monitor`, read the same way.",
+		"iot_monitor":                  "Raw JSON escape hatch for the IoT monitor config (fleetIdentifier, ...). rollingTime takes the values listed for `metric_monitor`, read the same way.",
 		"probe_status_monitor":         "Raw JSON escape hatch for the Probe Status monitor config (probeIds: the ids of the probes the monitor watches - this project's own probes and the global probes).",
 	}
 
@@ -1000,7 +1007,12 @@ func monitorStepsStepSchema() schema.NestedAttributeObject {
 		attrs[sub.tfName] = schema.StringAttribute{
 			MarkdownDescription: subDescriptions[sub.tfName] + " Write it with `jsonencode()`.",
 			Optional:            true,
-			Validators:          []validator.String{stringvalidator.LengthAtLeast(1)},
+			// A rolling time the server would refuse is refused at plan time
+			// (monitorstepsvalues.go).
+			Validators: append(
+				[]validator.String{stringvalidator.LengthAtLeast(1)},
+				monitorStepsSubConfigValidators(sub.apiKey)...,
+			),
 		}
 	}
 
@@ -1084,7 +1096,8 @@ func (m monitorStepsAfterImportModifier) PlanModifyList(ctx context.Context, req
 
 // monitorStepsSameAfterImport: the steps a configuration writes, as the API
 // takes them, are a subset of the steps an import read, bare origins
-// compared without their trailing slash.
+// compared without their trailing slash and each value written another way
+// read as the one OneUptime stores (normalizeMonitorStepsValues).
 func monitorStepsSameAfterImport(ctx context.Context, planned types.List, imported types.List) bool {
 	plannedSteps, plannedDiags := MonitorStepsToAPI(ctx, planned)
 	importedSteps, importedDiags := MonitorStepsToAPI(ctx, imported)
@@ -1098,7 +1111,10 @@ func monitorStepsSameAfterImport(ctx context.Context, planned types.List, import
 		return false
 	}
 
-	return jsonIsSubset(normalizeURLWrapperLeaves(plannedPlain), normalizeURLWrapperLeaves(importedPlain))
+	return jsonIsSubset(
+		normalizeMonitorStepsValues(normalizeURLWrapperLeaves(plannedPlain)),
+		normalizeMonitorStepsValues(normalizeURLWrapperLeaves(importedPlain)),
+	)
 }
 
 // ---------------------------------------------------------------------------

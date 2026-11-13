@@ -5,11 +5,15 @@ import { getAdminDashboardPlugins } from "../../Enterprise/Plugins";
 import CommunityHealthOverview from "./CommunityHealthOverview";
 import { EnterpriseHealthNote } from "./EnterpriseHealthUpgrade";
 import HealthPage from "./HealthPage";
+import InstallationHealthSummary from "./InstallationHealthSummary";
 import Route from "Common/Types/API/Route";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
  * The OneUptime Health landing page.
+ *
+ * It opens with what needs attention on this server, in every edition
+ * (InstallationHealthSummary, the same findings as `npm run doctor`).
  *
  * Every edition gets ClickHouse capacity at a glance and the tools that need
  * no Enterprise license (capacity and pruning, the instance log, probes,
@@ -24,6 +28,7 @@ const Health: FunctionComponent = (): ReactElement => {
       title="Overview"
       currentRoute={RouteMap[PageMap.HEALTH] as Route}
     >
+      <InstallationHealthSummary />
       <EnterprisePluginPage
         plugin={getAdminDashboardPlugins().HealthOverview}
         renderUpsell={(): ReactElement => {

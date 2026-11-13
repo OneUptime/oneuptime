@@ -144,6 +144,8 @@ sh Scripts/Install/WithConfig.sh docker compose up --remove-orphans -d
 `http://` に続けて `HOST` を開き (例: `http://localhost`)、サインアップします。新しいインスタンスの最初のアカウントはマスター管理者になり、`/admin` で Admin Dashboard を開けます。
 
 ページにアクセスできる人は誰でも、あなたのあとにサインアップできます。それを止めるには、Admin Dashboard を開いて **設定 > 認証** に移動し、 **サインアップを許可** をオフにします。プロジェクトに招待した人は引き続きアカウントを作成できます。
+
+続いて `/admin/setup` でサーバーのセットアップを完了します。ここでメール、SMS、電話を設定してテストします。[サーバーのセットアップを完了する](/docs/installation/self-hosting-guide#サーバーのセットアップを完了する)を参照してください。
 :::
 
 ### ランダムなシークレットを生成する
@@ -477,7 +479,27 @@ sh Scripts/Install/WithConfig.sh docker compose down --volumes --remove-orphans
 > [!CAUTION]
 > `--volumes` は、すべてのモニター、インシデント、ユーザー、テレメトリを完全に削除します。どれかが必要になる可能性があるなら、先にバックアップを取ってください。
 
+## インストールを確認する
+
+うまく動かないときは、`oneuptime` フォルダーで doctor を実行します。
+
+```bash
+npm run doctor
+```
+
+問題を重要なものから順に一覧にし、各行に正確な直し方を示し、最後に **Everything looks right.** か直すべき項目の数を表示します。すべてのコンテナーを確認して動いていないもののログの最後の行を示すほか、`config.env`、`HOST` がこのサーバーに届くか、`PROVISION_SSL` がオンのときの証明書、空きディスク容量を確認します。さらに OneUptime 自身に見えている状態も尋ねます。PostgreSQL、ClickHouse、Valkey、移行、キュー、バージョン、そしてメールやプローブなどサーバーのセットアップ手順です。`npm start` も最後に同じ確認を行い、対応が必要なものだけを表示します。
+
+各サービスの最近のエラーもサービス名付きで表示するには、次を実行します。
+
+```bash
+npm run doctor -- --logs
+```
+
+✗ の付いた項目を直す必要があるときは終了コード `1` で終わるので、スクリプトからも実行できます。Admin Dashboard は OneUptime 自身に見えている状態を **OneUptime のヘルス** の一番上に表示し、Kubernetes では `HelmChart/Public/diagnose.sh` が出力します。
+
 ## トラブルシューティング
+
+まず `npm run doctor` を実行してください。以下の問題のほとんどを、直し方とともに示します。
 
 :::details npm start が OneUptime を起動する前に止まる
 `npm start` は最初にサーバーを確認し、OneUptime の動作を妨げる問題があればそこで止まります。Docker やその Compose プラグインがない、Docker が動いていないかユーザーから使えない、別のプログラムがポートを使っている、`HOST` がどのブラウザーでも開けないアドレスになっている、といった場合です。✗ の付いた各行が、何を変えればよいかを示します。それを直してから、もう一度 `npm start` を実行します。チェックがサーバーについて誤っている場合は、チェックなしで起動します。
@@ -546,8 +568,8 @@ Admin Dashboard は **設定 > 監視 > グローバルプローブ** でプロ�
 ## 次のステップ
 
 :::cards
+- [サーバーのセットアップを完了する](/docs/installation/self-hosting-guide#サーバーのセットアップを完了する): メール、次に SMS と電話。それぞれテスト付きです。
+- [クイックスタート](/docs/introduction/quickstart): 最初のモニター、オンコールポリシー、ステータスページ。
 - [OneUptime のアップグレード](/docs/installation/upgrading): 各メジャーバージョンで必要な作業。
-- [サイジングとキャパシティプランニング](/docs/installation/sizing): テレメトリに必要なメモリとディスクを計画します。
 - [セルフホストのアーキテクチャ](/docs/self-hosted/architecture): コンポーネントの組み合わさり方。
-- [エンタープライズ版](/docs/self-hosted/enterprise): Enterprise イメージで追加されるものと、そのライセンス。
 :::

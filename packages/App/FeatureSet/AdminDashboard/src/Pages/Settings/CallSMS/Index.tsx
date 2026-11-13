@@ -2,6 +2,15 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import DashboardSideMenu from "../SideMenu";
 import CallAndSmsGatewayCard from "./CallAndSmsGatewayCard";
+import ServerTestCard, {
+  SERVER_TEST_CARD_COPY,
+} from "../../../Components/ServerSetup/ServerTestCard";
+import { ServerSendingChannel } from "Common/Types/ServerSending/ServerSendingStatus";
+import { ServerSetupCheckId } from "Common/Types/ServerSetup/ServerSetupChecklist";
+import {
+  useServerSetupChecklist,
+  UseServerSetupChecklistResult,
+} from "Common/UI/Utils/ServerSetupChecklist";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
@@ -65,6 +74,14 @@ const usedFor: (
 
 const Settings: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
+  // Where SMS and calls stand, for the test card, read again after a save.
+  const checklist: UseServerSetupChecklistResult = useServerSetupChecklist();
+
+  const onSettingsSaved: () => void = (): void => {
+    // Saving the settings starts SMS and calls again at "not tested yet".
+    void checklist.reload();
+  };
+
   return (
     <Page
       title={t("pages.settings.title")}
@@ -88,11 +105,24 @@ const Settings: FunctionComponent = (): ReactElement => {
       ]}
       sideMenu={<DashboardSideMenu />}
     >
+      {/*
+       * Does it work? Where SMS and calls stand, and their test sends -
+       * through Twilio or the gateway, whichever the server sends through.
+       */}
+      <ServerTestCard
+        check={ServerSetupCheckId.SmsAndCalls}
+        title={t(SERVER_TEST_CARD_COPY.callAndSmsTitle)}
+        description={t(SERVER_TEST_CARD_COPY.callAndSmsDescription)}
+        channels={[ServerSendingChannel.SMS, ServerSendingChannel.Call]}
+        checklist={checklist}
+      />
+
       {/* What carries the server's SMS and calls: Twilio, or a gateway. */}
-      <CallAndSmsGatewayCard />
+      <CallAndSmsGatewayCard onSaveSuccess={onSettingsSaved} />
 
       <CardModelDetail
         name="Call and SMS Settings"
+        onSaveSuccess={onSettingsSaved}
         cardProps={{
           title: t("pages.settings.callSms.cardTitle"),
           description: t("pages.settings.callSms.cardDescription"),
@@ -315,7 +345,11 @@ const Settings: FunctionComponent = (): ReactElement => {
                 twilioSmsPhoneNumbers: true,
               },
               title: "Twilio SMS Phone Numbers",
-              fieldType: FieldType.LongText,
+              /*
+               * Each number of the list read +447700900123 in every
+               * language, separated the reader's way (Detail's Phone).
+               */
+              fieldType: FieldType.Phone,
               // Without them, SMS go out from the numbers calls do.
               placeholder: t("pages.settings.callSms.smsSameAsCalls"),
               // An account used for calls only sends no SMS, from any number.
@@ -328,7 +362,7 @@ const Settings: FunctionComponent = (): ReactElement => {
                 twilioSecondaryPhoneNumbers: true,
               },
               title: "Twilio Secondary Phone Numbers",
-              fieldType: FieldType.LongText,
+              fieldType: FieldType.Phone,
               placeholder: t("common.none"),
               showIf: (item: GlobalConfig): boolean => {
                 return TwilioConfigUses.makesCalls(item.twilioUsedFor);

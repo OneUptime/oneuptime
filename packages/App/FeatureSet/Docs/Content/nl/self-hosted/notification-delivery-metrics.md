@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 Stel ze in `config.env` in en voer daarna `npm start` uit. `DISABLE_TELEMETRY_FOR_APP` is standaard `true`, en dan wordt er niets verstuurd.
 :::
 
-OneUptime heeft zowel het endpoint als de headers nodig: zonder header verstuurt het niets. Scheid meerdere headers met `;`. OneUptime voegt zelf `/v1/metrics` aan het endpoint toe, en dezelfde instellingen versturen ook de eigen traces en logs. Elke metric verschijnt zodra OneUptime hem voor het eerst vastlegt: `notification.send.count` bij het eerste verstuurde bericht.
+OneUptime heeft zowel het endpoint als de headers nodig: zonder header verstuurt het niets. Schrijf elke header als `name=value` en scheid meerdere met `;`. Een waarde mag `=` bevatten. OneUptime voegt zelf `/v1/metrics` aan het endpoint toe, en dezelfde instellingen versturen ook de eigen traces en logs. Elke metric verschijnt zodra OneUptime hem voor het eerst vastlegt: `notification.send.count` bij het eerste verstuurde bericht.
 
 ### Delta's naar een OneUptime-project sturen
 
@@ -109,14 +109,14 @@ Elk attribuut bevat een van een paar vaste waarden, nooit een project, een perso
 | `notification.provider.config` | `global` voor het eigen account en de eigen instellingen van de installatie; `project` voor het eigen Twilio-account, de SMTP-server, de webhook of de werkruimteverbinding van een project, waarvan het project de fouten moet oplossen |
 | `notification.on_call_page` | `true` voor een melding van een oproep, anders `false` |
 | `outcome` | `success`, `failure` of `not_sent`, zoals hieronder |
-| `notification.destination` | Alleen Slack, Microsoft Teams en Mattermost: `direct_message` naar één persoon, `channel` voor een bericht in een kanaal of een Teams-groepschat, `incoming_webhook` voor een inkomende webhook, zoals die van een abonnee van een statuspagina |
+| `notification.destination` | Slack, Microsoft Teams en Mattermost: `direct_message` naar één persoon, `channel` voor een bericht in een kanaal of een Teams-groepschat, `incoming_webhook` voor een inkomende webhook, zoals die van een abonnee van een statuspagina. Webhooks: `status_page_subscriber` voor de eigen webhook van een abonnee van een statuspagina. Ontbreekt bij de webhook van een persoon en bij alle andere kanalen |
 | `notification.custom_channel.id`, `notification.custom_channel.name` | Alleen aangepaste kanalen: de ID van het kanaal, en de naam ingekort tot 100 tekens |
 
 - `success`: de provider heeft het bericht aangenomen.
 - `failure`: de provider heeft het geweigerd of was niet bereikbaar, of het versturen is mislukt. Een chatkanaal dat niet werd gevonden, is een mislukking zonder duur.
 - `not_sent`: bewust niet verstuurd. Het project heeft het kanaal uitgeschakeld, heeft te weinig tegoed of is geblokkeerd, push is uitgeschakeld op deze server, of een aangepast kanaal is uitgeschakeld, verwijderd of valt niet onder de licentie. Een slagingspercentage laat deze weg: dit zijn instellingen die hun werk doen, geen platform dat faalt.
 
-Gewone webhooks van abonnees van statuspagina's worden nog niet geteld.
+Een bericht naar de eigen webhook van een abonnee van een statuspagina telt één keer, hoe vaak het ook is geprobeerd: `success` als het endpoint antwoordde met een 2xx-status, en `failure` als het antwoordde met een andere status, niet bereikbaar was of het adres niet is toegestaan.
 
 ### Wat de telefoon bereikte
 
@@ -155,7 +155,7 @@ Statussen komen alleen binnen waar de provider ze kan melden:
 | --- | --- |
 | `monitor_data_received` | Wanneer OneUptime de gegevens ontving die de monitor deden afgaan: een inkomend verzoek, het rapport van een serveragent, een inkomende e-mail, de controle van een probe, een SNMP-trap of een poll van een netwerkapparaat. Inclusief de tijd die de gegevens in de wachtrij wachtten om te worden beoordeeld. |
 | `record_created` | Wanneer het incident, de waarschuwing of de episode werd aangemaakt: door een telemetriemonitor, een regel of een persoon, en bij een controle op afwezigheid, zoals een heartbeat die stopte. |
-| `page_started` | Wanneer een oproep later begon: een persoon, een workflow of een regel die nu overeenkomt startte hem, een nieuwe oproep, een directe oproep, of een oproep die een pauze afwachtte waar zijn bereikbaarheidsregel om vroeg. |
+| `page_started` | Wanneer een oproep later begon: een persoon, een workflow of een regel die nu overeenkomt startte hem, of het is een directe oproep. Voor een oproep die zijn bereikbaarheidsregel of OneUptime AI vasthield, wanneer de pauze afliep, of wanneer hij begon als dat eerder was. Voor een nieuwe oproep, wanneer de time-out na bevestiging afliep. Zo is een worker die een van beide te laat oppakte te zien in de tijd. |
 
 Bij een inkomend verzoek loopt de tijd vanaf het laatste verzoek dat het endpoint ontving, dus die kan iets te kort uitvallen.
 
@@ -170,7 +170,7 @@ Bij een inkomend verzoek loopt de tijd vanaf het laatste verzoek dat het endpoin
 | `escalation` | Een later escalatieniveau: als het niveau ervoor zijn wachttijd heeft afgerond, of meteen als een persoon de oproep doorgeeft. |
 | `policy_repeat` | Het beleid dat opnieuw begint bij het eerste niveau: als de wachttijd van het laatste niveau is afgelopen. |
 
-Hij draagt ook `notification.channel`, `notification.trigger.type` en, voor aangepaste kanalen, `notification.custom_channel.id` en `notification.custom_channel.name`. Een melding die verschuldigd is als de oproep begint, staat er nooit in: die staat in de verzendtijd.
+Hij draagt ook `notification.channel`, `notification.trigger.type` en, voor aangepaste kanalen, `notification.custom_channel.id` en `notification.custom_channel.name`. Een melding die verschuldigd is als de oproep begint, staat er nooit in, ook niet als een worker de oproep te laat startte, na een pauze of als nieuwe oproep: die staat in de verzendtijd.
 
 ### Buckets van de histogrammen
 
@@ -220,7 +220,7 @@ De formule `$b / $a * 100` is het aandeel dat mislukte, en het doel wordt gehaal
 | --- | --- | --- | --- |
 | `a` | `notification.time_to_send` | **P95** | `notification.page.start != page_started` |
 
-Het doel wordt gehaald zolang `a` op of onder 30000 blijft. Oproepen die later zijn gestart, worden getimed vanaf hun start, niet vanaf een aanleiding, dus die blijven buiten beschouwing. Groepeer op `notification.page.start` om de wachtrij van de monitors (`monitor_data_received`) los van de rest te zien, of op `notification.channel` om een traag kanaal te vinden.
+Het doel wordt gehaald zolang `a` op of onder 30000 blijft. Oproepen die later zijn gestart, worden getimed vanaf hun start of het moment dat ze verschuldigd waren, niet vanaf een aanleiding, dus die blijven buiten beschouwing. Groepeer op `notification.page.start` om de wachtrij van de monitors (`monitor_data_received`) los van de rest te zien, of op `notification.channel` om een traag kanaal te vinden.
 
 ### Later verstuurde meldingen vertrekken binnen 90 seconden
 
@@ -246,7 +246,7 @@ De formule `$b / $a * 100` is het aandeel dat niet werd bezorgd. Providers en ui
 ## Problemen oplossen
 
 :::details Er komen geen metrics van meldingen binnen
-Controleer of `OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT` en `OPENTELEMETRY_EXPORTER_OTLP_HEADERS` allebei zijn ingesteld, en in Docker Compose of `DISABLE_TELEMETRY_FOR_APP` op `false` staat, en start OneUptime daarna opnieuw. Een metric verschijnt pas als er iets is vastgelegd, dus verstuur eerst een melding.
+Controleer of `OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT` en `OPENTELEMETRY_EXPORTER_OTLP_HEADERS` allebei zijn ingesteld, en in Docker Compose of `DISABLE_TELEMETRY_FOR_APP` op `false` staat, en start OneUptime daarna opnieuw. Bij het starten logt OneUptime een waarschuwing als het een header niet kan lezen, of als het niets verstuurt. Een metric verschijnt pas als er iets is vastgelegd, dus verstuur eerst een melding.
 :::
 
 :::details Een aantal groeit alleen maar, of een percentiel beweegt nauwelijks

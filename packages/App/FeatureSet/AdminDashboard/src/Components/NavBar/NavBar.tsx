@@ -92,6 +92,20 @@ const DashboardNavbar: FunctionComponent = (): ReactElement => {
       iconColor: "rose",
       category: monitoringCategory,
     },
+    /*
+     * What people told this server about how things went (#6832): the
+     * question at the end of a guided setup, Give feedback, Was this clear?
+     * and the first-week check-in, with Ask AI's thumbs.
+     */
+    {
+      title: "Feedback",
+      description: "What people said was hard, and how each setup went.",
+      route: RouteUtil.populateRouteParams(RouteMap[PageMap.FEEDBACK] as Route),
+      activeRoute: RouteMap[PageMap.FEEDBACK],
+      icon: IconProp.ChatBubbleLeftRight,
+      iconColor: "violet",
+      category: monitoringCategory,
+    },
     {
       title: "Send Email",
       description: "Send a broadcast email to all users.",
@@ -103,6 +117,26 @@ const DashboardNavbar: FunctionComponent = (): ReactElement => {
       iconColor: "cyan",
       category: toolsCategory,
     },
+    /*
+     * What a self-hosted server still needs, and the tests that prove it
+     * (the setup checklist). OneUptime Cloud is not set up this way.
+     */
+    ...(BILLING_ENABLED
+      ? []
+      : [
+          {
+            title: "Server Setup",
+            description:
+              "What this server still needs: email, HTTPS, sign-ups and more.",
+            route: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SERVER_SETUP] as Route,
+            ),
+            activeRoute: RouteMap[PageMap.SERVER_SETUP],
+            icon: IconProp.CheckCircle,
+            iconColor: "green",
+            category: settingsCategory,
+          } as MoreMenuItem,
+        ]),
     {
       title: "Settings",
       description:

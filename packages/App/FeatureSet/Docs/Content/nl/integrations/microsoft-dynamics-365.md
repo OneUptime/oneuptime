@@ -120,7 +120,7 @@ De stap **Configureren** van de aanmaakwizard vraagt om maximaal zeven waarden: 
 
 **Hoe de sjablonen zich aanmelden.** De wizard slaat de tenant, de client-ID en het geheim op in één [OAuth 2.0-variabele](/docs/workflows/variables#oauth-20-variabelen-tokens-die-zichzelf-vernieuwen), `dynamicsAccessToken`, onder **Workflow-variabelen** van de workflow: Client Credentials, de token-URL `https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token`, de scope `<environment URL>/.default` en het clientgeheim, verstuurd in de body van het verzoek en versleuteld opgeslagen. Elke aanroep naar Dynamics 365 stuurt `Authorization: Bearer {{local.variables.dynamicsAccessToken}}`. OneUptime haalt het token op de eerste keer dat een stap het nodig heeft, haalt een nieuw op voordat het verloopt, en vervangt het door `[REDACTED]` in uitvoeringslogboeken en staptraces.
 
-Om de aanmelding te controleren voordat er iets draait, open je **Workflow-variabelen**, klik je bij `dynamicsAccessToken` op **Bekijken** en klik je op **Nu vernieuwen**. **Access Token Fetched** betekent dat de app-registratie klopt. Anders noemt de fout van Microsoft Entra ID wat er mis is, zoals `AADSTS7000215: Invalid client secret provided`.
+Om de aanmelding te controleren voordat er iets draait, open je **Workflow-variabelen**, klik je bij `dynamicsAccessToken` op **Bekijken** en klik je op **Nu vernieuwen**. **Toegangstoken opgehaald** betekent dat de app-registratie klopt. Anders noemt de fout van Microsoft Entra ID wat er mis is, zoals `AADSTS7000215: Invalid client secret provided`.
 
 Elke workflow houdt een eigen kopie bij. Wanneer je het clientgeheim vervangt, open je `dynamicsAccessToken` in elke Dynamics 365-workflow en gebruik je **Inloggegevens bijwerken**.
 
@@ -258,7 +258,7 @@ De sjablonen dekken de gebruikelijke gevallen. Om een richting zelf te bouwen, b
 
 Maak het token één keer aan, voor elke workflow, als een [OAuth 2.0-variabele](/docs/workflows/variables#oauth-20-variabelen-tokens-die-zichzelf-vernieuwen):
 
-1. Ga naar **Workflows → Globale variabelen**, open het menu **Meer** (**⋯**) naast **Workflowvariabele aanmaken** en kies **Create OAuth 2.0 Variable**. Noem hem `DYNAMICS_TOKEN`.
+1. Ga naar **Workflows → Globale variabelen**, open het menu **Meer** (**⋯**) naast **Workflowvariabele aanmaken** en kies **OAuth 2.0-variabele maken**. Noem hem `DYNAMICS_TOKEN`.
 2. Kies bij **Provider** **Microsoft Entra ID**, vervang `{tenant-id}` in de **Token-URL** door je Directory (tenant) ID en kies **Client Credentials**.
 3. Vul bij **Inloggegevens** de **Client-ID** en het **Client-secret** in. Stel bij **Geavanceerd** de scope in op `https://yourorg.crm.dynamics.com/.default` en maak daarna de variabele aan.
 

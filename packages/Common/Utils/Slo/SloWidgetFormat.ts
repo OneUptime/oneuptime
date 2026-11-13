@@ -1,6 +1,18 @@
 import AggregationInterval from "../../Types/BaseDatabase/AggregationInterval";
 import { SloWidgetMetric } from "../../Types/Dashboard/DashboardComponents/DashboardSloComponent";
+import {
+  getNumberLocale,
+  isEnglishDateLanguage,
+} from "../../Types/DateLanguage";
+import { isRightToLeftLanguage } from "../../Types/ReadingDirection";
 import SloStatus from "../../Types/ServiceLevelObjective/SloStatus";
+import {
+  fillTemplate,
+  PluralTemplate,
+  SentenceOptions,
+  translationKey,
+  Translator,
+} from "../../Types/Translator";
 
 /**
  * Pure value/label derivation for the dashboard SLO widget.
@@ -13,16 +25,73 @@ import SloStatus from "../../Types/ServiceLevelObjective/SloStatus";
  * The worker-maintained state columns on ServiceLevelObjective are NULL
  * until the SLO is first evaluated, so every entry point must be able to
  * answer "not evaluated yet" instead of rendering "null%" or "NaN%".
+ *
+ * Each helper takes the reader's Translator as an optional last argument
+ * (the Dashboard passes useTranslator()). With one, a figure is written the
+ * way the reader's language writes it - "99,874 %" in German, "۹۹٫۸۷۴٪" in
+ * Persian, Latin digits in Arabic (DateLanguage's LATIN_DIGIT_LANGUAGES) -
+ * and the words are the reader's: each is a key of the Dashboard's locales,
+ * read from this file by the extractor (SOURCE_ROOTS in
+ * scripts/i18n/ExtractStrings.ts), which reads only what the file marks.
+ * Without one, and for an English reader, every text reads exactly as it
+ * always did: what the API, Terraform, the server and a unit test get.
  */
 
 /** Shown in place of a number whenever the SLO has no evaluated state. */
-export const SLO_NOT_EVALUATED_TEXT: string = "Not evaluated yet";
+export const SLO_NOT_EVALUATED_TEXT: string =
+  translationKey("Not evaluated yet");
 
 /** U+2212 MINUS SIGN — reads as a minus rather than a hyphen at tile sizes. */
 const MINUS_SIGN: string = "−";
 
 /** U+00D7 MULTIPLICATION SIGN — burn rate is a multiplier ("3.2×"). */
 const MULTIPLICATION_SIGN: string = "×";
+
+/*
+ * U+200E LEFT-TO-RIGHT MARK. On a page read right to left the burn rate's
+ * sign is set between two of them, as Intl sets Arabic's percent sign (a
+ * mark on each side of the "%"): the sign then stays after its figure,
+ * where the percentages beside it keep theirs - "14.4×" in a tile, a table
+ * cell and after a rule's name ("Fast burn 14.4×"), never "×14.4" or
+ * "×Fast burn 14.4", which the bidi algorithm draws for a bare "×" at the
+ * end of a line read right to left.
+ */
+const LEFT_TO_RIGHT_MARK: string = String.fromCharCode(0x200e);
+
+/*
+ * The line under the error budget: "43 min remaining", "−42 min over
+ * budget". Each case is a whole sentence of its own, so a language words
+ * it its way - and counts its minutes its way, which is why the forms are
+ * plurals even where English writes "min" for any count.
+ */
+const MINUTES_REMAINING: PluralTemplate = {
+  one: translationKey("{{count}} min remaining"),
+  other: translationKey("{{count}} min remaining"),
+};
+
+const MINUTES_OVER_BUDGET: PluralTemplate = {
+  one: translationKey("−{{count}} min over budget"),
+  other: translationKey("−{{count}} min over budget"),
+};
+
+const UNDER_A_MINUTE_REMAINING: string = translationKey(
+  "under 1 min remaining",
+);
+
+const UNDER_A_MINUTE_OVER_BUDGET: string = translationKey(
+  "under 1 min over budget",
+);
+
+/** "target 99.9%": the line under an SLI, on the widget and the SLO list. */
+export const SLO_TARGET_SUBLINE_TEMPLATE: string =
+  translationKey("target {{target}}");
+
+/*
+ * The widget's title is the SLO's name and the metric's label: a name as
+ * written, set apart from the line where it reads the other way (an English
+ * name on an Arabic dashboard), and the label in the reader's words.
+ */
+const TITLE_OPTIONS: SentenceOptions = { setsValuesApart: true };
 
 /**
  * The subset of ServiceLevelObjective the widget reads. Declared
@@ -91,23 +160,143 @@ const roundToDecimals: RoundToDecimalsFunction = (
 };
 
 /**
- * SLI is quoted to three decimals to match the SLO pages — the digits
- * past the second matter at 99.99x targets. Error budget remaining is a
- * coarse gauge, so one decimal is enough; the precise number lives in the
+ * SLI is quoted to three decimals to match the SLO pages — the digits past
+ * the second matter at 99.99x targets. Error budget remaining is a coarse
+ * gauge, so one decimal is enough; the precise number lives in the
  * seconds subline.
  */
-const SLI_DECIMALS: number = 3;
-const BUDGET_PERCENT_DECIMALS: number = 1;
-const BURN_RATE_DECIMALS: number = 2;
+export const SLI_DECIMALS: number = 3;
+export const BUDGET_PERCENT_DECIMALS: number = 1;
+export const BURN_RATE_DECIMALS: number = 2;
+
+/*
+ * One Intl format per language, kind and precision: the SLO pages write the
+ * same few figures many times on every render.
+ */
+const figureFormats: Map<string, Intl.NumberFormat | null> = new Map<
+  string,
+  Intl.NumberFormat | null
+>();
+
+interface FigureData {
+  // Already rounded to at most `maxDecimals` places.
+  rounded: number;
+  maxDecimals: number;
+  isPercent: boolean;
+}
+
+/*
+ * A rounded figure as `language` writes it: its decimal mark, its digits
+ * and, for a percentage, its own sign and spacing - "99,874 %" in German,
+ * "99,874%" in Italian, "۹۹٫۸۷۴٪" in Persian, Latin digits in Arabic
+ * (getNumberLocale). Null when Intl cannot write it.
+ */
+type WriteFigureInLanguageFunction = (
+  figure: FigureData,
+  language: string,
+) => string | null;
+
+const writeFigureInLanguage: WriteFigureInLanguageFunction = (
+  figure: FigureData,
+  language: string,
+): string | null => {
+  const key: string = [
+    language,
+    figure.isPercent ? "percent" : "decimal",
+    figure.maxDecimals,
+  ].join("|");
+
+  if (!figureFormats.has(key)) {
+    let format: Intl.NumberFormat | null = null;
+
+    try {
+      format = new Intl.NumberFormat(getNumberLocale(language), {
+        style: figure.isPercent ? "percent" : "decimal",
+        maximumFractionDigits: figure.maxDecimals,
+      });
+    } catch {
+      format = null;
+    }
+
+    figureFormats.set(key, format);
+  }
+
+  const format: Intl.NumberFormat | null = figureFormats.get(key) || null;
+
+  if (!format) {
+    return null;
+  }
+
+  return format.format(
+    figure.isPercent ? figure.rounded / 100 : figure.rounded,
+  );
+};
+
+/*
+ * A rounded figure for the reader: in the reader's language, or exactly as
+ * it always read ("99.874%", "1440.5") without a translator and for an
+ * English reader, whose figures never took a thousands separator.
+ */
+type WriteFigureFunction = (
+  figure: FigureData,
+  translator: Translator | undefined,
+) => string;
+
+const writeFigure: WriteFigureFunction = (
+  figure: FigureData,
+  translator: Translator | undefined,
+): string => {
+  const plain: string = `${figure.rounded}${figure.isPercent ? "%" : ""}`;
+
+  if (!translator || isEnglishDateLanguage(translator.language)) {
+    return plain;
+  }
+
+  return writeFigureInLanguage(figure, translator.language) ?? plain;
+};
+
+/**
+ * A figure with no unit of its own - a gap in percentage points, a rule's
+ * threshold in a sentence that writes its "×" - rounded to at most
+ * `maxDecimals` places and written the reader's way.
+ */
+export type FormatSloNumberFunction = (
+  value: number | undefined | null,
+  maxDecimals: number,
+  translator?: Translator | undefined,
+) => string | null;
+
+export const formatSloNumber: FormatSloNumberFunction = (
+  value: number | undefined | null,
+  maxDecimals: number,
+  translator?: Translator | undefined,
+): string | null => {
+  const numericValue: number | null = toFiniteNumber(value);
+
+  if (numericValue === null) {
+    return null;
+  }
+
+  return writeFigure(
+    {
+      rounded: roundToDecimals(numericValue, maxDecimals),
+      maxDecimals: maxDecimals,
+      isPercent: false,
+    },
+    translator,
+  );
+};
 
 export type FormatSloPercentFunction = (
   value: number | undefined | null,
   maxDecimals?: number | undefined,
+  translator?: Translator | undefined,
 ) => string | null;
 
 export const formatSloPercent: FormatSloPercentFunction = (
   value: number | undefined | null,
   maxDecimals?: number | undefined,
+  translator?: Translator | undefined,
 ): string | null => {
   const numericValue: number | null = toFiniteNumber(value);
 
@@ -115,23 +304,40 @@ export const formatSloPercent: FormatSloPercentFunction = (
     return null;
   }
 
-  return `${roundToDecimals(numericValue, maxDecimals ?? SLI_DECIMALS)}%`;
+  const decimals: number = maxDecimals ?? SLI_DECIMALS;
+
+  return writeFigure(
+    {
+      rounded: roundToDecimals(numericValue, decimals),
+      maxDecimals: decimals,
+      isPercent: true,
+    },
+    translator,
+  );
 };
 
 export type FormatSloBurnRateFunction = (
   value: number | undefined | null,
+  translator?: Translator | undefined,
 ) => string | null;
 
 export const formatSloBurnRate: FormatSloBurnRateFunction = (
   value: number | undefined | null,
+  translator?: Translator | undefined,
 ): string | null => {
-  const numericValue: number | null = toFiniteNumber(value);
+  const figure: string | null = formatSloNumber(
+    value,
+    BURN_RATE_DECIMALS,
+    translator,
+  );
 
-  if (numericValue === null) {
+  if (figure === null) {
     return null;
   }
 
-  return `${roundToDecimals(numericValue, BURN_RATE_DECIMALS)}${MULTIPLICATION_SIGN}`;
+  return translator && isRightToLeftLanguage(translator.language)
+    ? `${figure}${LEFT_TO_RIGHT_MARK}${MULTIPLICATION_SIGN}${LEFT_TO_RIGHT_MARK}`
+    : `${figure}${MULTIPLICATION_SIGN}`;
 };
 
 /**
@@ -141,10 +347,14 @@ export const formatSloBurnRate: FormatSloBurnRateFunction = (
  */
 export type FormatErrorBudgetRemainingSecondsFunction = (
   seconds: number | undefined | null,
+  translator?: Translator | undefined,
 ) => string | null;
 
 export const formatErrorBudgetRemainingSeconds: FormatErrorBudgetRemainingSecondsFunction =
-  (seconds: number | undefined | null): string | null => {
+  (
+    seconds: number | undefined | null,
+    translator?: Translator | undefined,
+  ): string | null => {
     const numericSeconds: number | null = toFiniteNumber(seconds);
 
     if (numericSeconds === null) {
@@ -152,41 +362,59 @@ export const formatErrorBudgetRemainingSeconds: FormatErrorBudgetRemainingSecond
     }
 
     const isOverBudget: boolean = numericSeconds < 0;
-    const suffix: string = isOverBudget ? "over budget" : "remaining";
     const minutes: number = Math.round(Math.abs(numericSeconds) / 60);
 
-    if (minutes === 0) {
-      /*
-       * Exactly zero is a real state worth stating; a sub-30-second
-       * remainder would otherwise round to a misleading "0 min".
-       */
-      if (numericSeconds === 0) {
-        return `0 min ${suffix}`;
-      }
+    /*
+     * Exactly zero is a real state worth stating ("0 min remaining"); a
+     * sub-30-second remainder would otherwise round to a misleading "0 min".
+     */
+    if (minutes === 0 && numericSeconds !== 0) {
+      const underAMinute: string = isOverBudget
+        ? UNDER_A_MINUTE_OVER_BUDGET
+        : UNDER_A_MINUTE_REMAINING;
 
-      return `under 1 min ${suffix}`;
+      return translator
+        ? translator.translateText(underAMinute) || underAMinute
+        : underAMinute;
     }
 
-    return `${isOverBudget ? MINUS_SIGN : ""}${minutes} min ${suffix}`;
+    if (!translator) {
+      return `${isOverBudget ? MINUS_SIGN : ""}${minutes} min ${
+        isOverBudget ? "over budget" : "remaining"
+      }`;
+    }
+
+    return translator.translatePlural(
+      isOverBudget ? MINUTES_OVER_BUDGET : MINUTES_REMAINING,
+      minutes,
+      {
+        count: writeFigure(
+          { rounded: minutes, maxDecimals: 0, isPercent: false },
+          translator,
+        ),
+      },
+    );
   };
 
 export type GetSloMetricLabelFunction = (
   sloMetric: SloWidgetMetric | undefined | null,
+  translator?: Translator | undefined,
 ) => string;
 
 export const getSloMetricLabel: GetSloMetricLabelFunction = (
   sloMetric: SloWidgetMetric | undefined | null,
+  translator?: Translator | undefined,
 ): string => {
-  if (sloMetric === SloWidgetMetric.ErrorBudgetRemaining) {
-    return "Error Budget Remaining";
-  }
-
-  if (sloMetric === SloWidgetMetric.BurnRate) {
-    return "Burn Rate";
-  }
-
   // Sli is the default metric, so it is also the fallback label.
-  return "SLI";
+  let label: string = translationKey("SLI");
+
+  if (sloMetric === SloWidgetMetric.ErrorBudgetRemaining) {
+    label = translationKey("Error Budget Remaining");
+  } else if (sloMetric === SloWidgetMetric.BurnRate) {
+    label = translationKey("Burn Rate");
+  }
+
+  return translator ? translator.translateText(label) || label : label;
 };
 
 /**
@@ -211,12 +439,8 @@ export const getSloHistoryMetricName: GetSloHistoryMetricNameFunction = (
   return "sli.percent";
 };
 
-/**
- * Widget header: the author's title wins; otherwise fall back to the SLO
- * name plus the metric label so an unnamed widget still says what it is.
- * A whitespace-only title counts as empty.
- */
-export type GetSloWidgetTitleFunction = (data: {
+/** What the widget's header is made of (getSloWidgetTitle). */
+export interface SloWidgetTitleData {
   widgetTitle?: string | undefined | null;
   sloName?: string | undefined | null;
   sloMetric?: SloWidgetMetric | undefined | null;
@@ -227,30 +451,125 @@ export type GetSloWidgetTitleFunction = (data: {
    * where a pinned widget's own title stands alone.
    */
   followsSelection?: boolean | undefined;
-}) => string;
+  /*
+   * The reader's: the metric's label in their words, the name and the
+   * author's title as written, with the separator their language puts
+   * between two facts on a line (getInlineSeparator).
+   */
+  translator?: Translator | undefined;
+}
 
-export const getSloWidgetTitle: GetSloWidgetTitleFunction = (data: {
-  widgetTitle?: string | undefined | null;
-  sloName?: string | undefined | null;
-  sloMetric?: SloWidgetMetric | undefined | null;
-  followsSelection?: boolean | undefined;
-}): string => {
+/**
+ * A header that holds the SLO's name, in pieces: the sentence around the
+ * name - its English template, a key of the locales - and the name, as
+ * written.
+ *
+ * Drawn as one line, the sentence reads the reader's way, so on an Arabic
+ * dashboard an English name in it lost its START where the tile cut the
+ * line ("...T AVAILABILITY (EU WEST, 30 DAYS)"), and took the metric after
+ * it out of sight. The widget draws a name that reads the other way in a
+ * box of its own (TranslatedSentence), cut at its own end.
+ */
+export interface SloWidgetTitleSentence {
+  template: string;
+  name: string;
+  // The sentence's other value: the metric's label, or the author's title.
+  values: Record<string, string>;
+}
+
+export type GetSloWidgetTitleSentenceFunction = (
+  data: SloWidgetTitleData,
+) => SloWidgetTitleSentence | null;
+
+/*
+ * Null for a header of one piece: the author's own title on a pinned
+ * widget, or the metric's label before the SLO's name is known.
+ */
+export const getSloWidgetTitleSentence: GetSloWidgetTitleSentenceFunction = (
+  data: SloWidgetTitleData,
+): SloWidgetTitleSentence | null => {
   const trimmedTitle: string = (data.widgetTitle || "").trim();
   const trimmedName: string = (data.sloName || "").trim();
 
+  if (!trimmedName || (trimmedTitle && !data.followsSelection)) {
+    return null;
+  }
+
   if (trimmedTitle) {
-    return data.followsSelection && trimmedName
-      ? `${trimmedName} · ${trimmedTitle}`
-      : trimmedTitle;
+    return {
+      template: "{{name}} · {{title}}",
+      name: trimmedName,
+      values: { title: trimmedTitle },
+    };
   }
 
-  const metricLabel: string = getSloMetricLabel(data.sloMetric);
+  return {
+    template: "{{name}} · {{metric}}",
+    name: trimmedName,
+    values: { metric: getSloMetricLabel(data.sloMetric, data.translator) },
+  };
+};
 
-  if (!trimmedName) {
-    return metricLabel;
+/**
+ * Widget header: the author's title wins; otherwise fall back to the SLO
+ * name plus the metric label so an unnamed widget still says what it is.
+ * A whitespace-only title counts as empty.
+ */
+export type GetSloWidgetTitleFunction = (data: SloWidgetTitleData) => string;
+
+export const getSloWidgetTitle: GetSloWidgetTitleFunction = (
+  data: SloWidgetTitleData,
+): string => {
+  const translator: Translator | undefined = data.translator;
+  const sentence: SloWidgetTitleSentence | null =
+    getSloWidgetTitleSentence(data);
+
+  if (!sentence) {
+    return (
+      (data.widgetTitle || "").trim() ||
+      getSloMetricLabel(data.sloMetric, translator)
+    );
   }
 
-  return `${trimmedName} · ${metricLabel}`;
+  const values: Record<string, string> = {
+    name: sentence.name,
+    ...sentence.values,
+  };
+
+  return translator
+    ? translator.translateTemplate(sentence.template, values, TITLE_OPTIONS)
+    : fillTemplate(sentence.template, values);
+};
+
+/**
+ * "target 99.9%" under an SLI, or null when the SLO has no target - in the
+ * reader's words and with the figure written their way when a translator
+ * is passed.
+ */
+export type FormatSloTargetSublineFunction = (
+  targetPercentage: number | undefined | null,
+  translator?: Translator | undefined,
+) => string | null;
+
+export const formatSloTargetSubline: FormatSloTargetSublineFunction = (
+  targetPercentage: number | undefined | null,
+  translator?: Translator | undefined,
+): string | null => {
+  const target: string | null = formatSloPercent(
+    targetPercentage,
+    SLI_DECIMALS,
+    translator,
+  );
+
+  if (target === null) {
+    return null;
+  }
+
+  return translator
+    ? translator.translateTemplate(SLO_TARGET_SUBLINE_TEMPLATE, {
+        target: target,
+      })
+    : `target ${target}`;
 };
 
 /**
@@ -261,15 +580,23 @@ export const getSloWidgetTitle: GetSloWidgetTitleFunction = (data: {
 export type GetSloWidgetTileDisplayFunction = (data: {
   sloMetric?: SloWidgetMetric | undefined | null;
   slo?: SloWidgetStateData | undefined | null;
+  // The reader's, for the figures, the line under them and "Not evaluated yet".
+  translator?: Translator | undefined;
 }) => SloWidgetTileDisplay;
 
 export const getSloWidgetTileDisplay: GetSloWidgetTileDisplayFunction = (data: {
   sloMetric?: SloWidgetMetric | undefined | null;
   slo?: SloWidgetStateData | undefined | null;
+  translator?: Translator | undefined;
 }): SloWidgetTileDisplay => {
+  const translator: Translator | undefined = data.translator;
+
   const notEvaluated: SloWidgetTileDisplay = {
     isEvaluated: false,
-    value: SLO_NOT_EVALUATED_TEXT,
+    value: translator
+      ? translator.translateText(SLO_NOT_EVALUATED_TEXT) ||
+        SLO_NOT_EVALUATED_TEXT
+      : SLO_NOT_EVALUATED_TEXT,
     subline: null,
   };
 
@@ -283,6 +610,7 @@ export const getSloWidgetTileDisplay: GetSloWidgetTileDisplayFunction = (data: {
     const value: string | null = formatSloPercent(
       slo.errorBudgetRemainingPercentage,
       BUDGET_PERCENT_DECIMALS,
+      translator,
     );
 
     if (value === null) {
@@ -294,12 +622,16 @@ export const getSloWidgetTileDisplay: GetSloWidgetTileDisplayFunction = (data: {
       value: value,
       subline: formatErrorBudgetRemainingSeconds(
         slo.errorBudgetRemainingSeconds,
+        translator,
       ),
     };
   }
 
   if (data.sloMetric === SloWidgetMetric.BurnRate) {
-    const value: string | null = formatSloBurnRate(slo.currentBurnRate);
+    const value: string | null = formatSloBurnRate(
+      slo.currentBurnRate,
+      translator,
+    );
 
     if (value === null) {
       return notEvaluated;
@@ -316,21 +648,17 @@ export const getSloWidgetTileDisplay: GetSloWidgetTileDisplayFunction = (data: {
   const value: string | null = formatSloPercent(
     slo.currentSliPercentage,
     SLI_DECIMALS,
+    translator,
   );
 
   if (value === null) {
     return notEvaluated;
   }
 
-  const target: string | null = formatSloPercent(
-    slo.targetPercentage,
-    SLI_DECIMALS,
-  );
-
   return {
     isEvaluated: true,
     value: value,
-    subline: target === null ? null : `target ${target}`,
+    subline: formatSloTargetSubline(slo.targetPercentage, translator),
   };
 };
 
@@ -375,19 +703,21 @@ export const getSloChartAggregationInterval: GetSloChartAggregationIntervalFunct
 export type FormatSloChartValueFunction = (
   sloMetric: SloWidgetMetric | undefined | null,
   value: number,
+  translator?: Translator | undefined,
 ) => string;
 
 export const formatSloChartValue: FormatSloChartValueFunction = (
   sloMetric: SloWidgetMetric | undefined | null,
   value: number,
+  translator?: Translator | undefined,
 ): string => {
   if (sloMetric === SloWidgetMetric.BurnRate) {
-    return formatSloBurnRate(value) || "";
+    return formatSloBurnRate(value, translator) || "";
   }
 
   if (sloMetric === SloWidgetMetric.ErrorBudgetRemaining) {
-    return formatSloPercent(value, BUDGET_PERCENT_DECIMALS) || "";
+    return formatSloPercent(value, BUDGET_PERCENT_DECIMALS, translator) || "";
   }
 
-  return formatSloPercent(value, SLI_DECIMALS) || "";
+  return formatSloPercent(value, SLI_DECIMALS, translator) || "";
 };

@@ -1,6 +1,6 @@
 # Visión general de los SLO
 
-Un objetivo de nivel de servicio (SLO) es un objetivo de fiabilidad para lo que supervisas, como «disponible el 99,9 % del tiempo durante 30 días móviles». OneUptime mide cada SLO frente a su objetivo cada 5 minutos, así que en lugar de «¿funciona ahora mismo?» puedes responder «¿hemos sido lo bastante fiables, en una ventana que importa a nuestros usuarios, y cuánto margen de fallo nos queda?».
+Un objetivo de nivel de servicio (SLO) es un objetivo de fiabilidad para lo que supervisas, como «disponible el 99,9 % del tiempo durante 30 días móviles». OneUptime mide cada SLO frente a su objetivo cada 5 minutos, así que en lugar de «¿funciona ahora mismo?» puedes responder «¿hemos sido lo bastante fiables, en una ventana que importa a nuestros usuarios, y cuánto margen de fallo nos queda?». El [Glosario](/docs/introduction/glossary#slo) sitúa los SLO junto a las demás palabras que usa OneUptime.
 
 :::cards
 - [Crear un SLO](#crear-un-slo): Un nombre y un objetivo. Todo lo demás empieza con un valor predeterminado.
@@ -11,7 +11,7 @@ Un objetivo de nivel de servicio (SLO) es un objetivo de fiabilidad para lo que 
 
 ## Cómo funciona
 
-Un SLO lee las líneas de tiempo de estado de los monitores asociados a él: los mismos datos que muestran tus páginas de estado. A partir de ellas, OneUptime calcula qué parte de la ventana de cumplimiento fue tiempo bueno, cuánto queda del presupuesto de errores y a qué velocidad se consume.
+Un SLO lee las líneas de tiempo de estado de los monitores asociados a él: los mismos datos que muestran tus páginas de estado. A partir de ellas, OneUptime calcula qué parte de la ventana de cumplimiento fue tiempo bueno, cuánto queda del presupuesto de errores y a qué velocidad se consume. El tiempo con el monitoreo de un monitor desactivado queda fuera: nada comprueba entonces el monitor, así que ese tiempo ni consume presupuesto de errores ni cuenta como tiempo bueno.
 
 ```mermaid title="De las comprobaciones de los monitores al estado de un SLO"
 flowchart TB
@@ -25,6 +25,8 @@ flowchart TB
 ```
 
 ## Conceptos clave
+
+Las palabras que se usan en todo OneUptime están en el [Glosario](/docs/introduction/glossary).
 
 | Término | Significado |
 | --- | --- |
@@ -176,7 +178,7 @@ La **Vista general** responde a «¿estamos dentro del presupuesto?», de arriba
 - **El resumen**: el estado, una frase sobre lo que significa y la descripción. Al lado están **Actualizar** y cuándo se evaluó el SLO por última vez. Debajo están el objetivo, la **Ventana de cumplimiento** (con un indicador de llenado mientras una ventana móvil joven se llena: consulta [Los SLO jóvenes y el indicador de llenado de la ventana](#los-slo-jóvenes-y-el-indicador-de-llenado-de-la-ventana)), el número de monitores y los propietarios, con **Añadir propietarios** para añadir uno allí mismo.
 - **Las cifras principales**:
   - **SLI**: la parte de tiempo bueno en la ventana, y cuánto está por encima o por debajo del objetivo.
-  - **Presupuesto de errores restante**: un porcentaje, una duración como "12m 30s left of 43m 12s" y una barra con una marca en el umbral de riesgo. Cuando el presupuesto se supera, muestra **Presupuesto superado** y por cuánto.
+  - **Presupuesto de errores restante**: un porcentaje, una duración como "Quedan 12 min 30 s de 43 min 12 s" y una barra con una marca en el umbral de riesgo. Cuando el presupuesto se supera, muestra **Presupuesto superado** y por cuánto.
   - **Tasa de consumo**: a qué velocidad se gasta el presupuesto en los últimos 60 minutos, el periodo que usa la regla de consumo rápido predeterminada. Se vuelve ámbar por encima de 1× y roja, con **Se alcanzó el umbral de la regla**, en el umbral más bajo de las reglas de tasa de consumo habilitadas del SLO cuyo periodo es de 6 horas o menos. Una hora dice poco de una regla cuyo periodo abarca días, como **Slow leak**, así que no se compara con una regla de ese tipo.
   - **Autonomía del presupuesto**: cuánto dura el presupuesto a ese ritmo. Consulta [Presupuestos de errores](/docs/slo/error-budget#autonomía-del-presupuesto).
 - **Consumo del presupuesto de errores**: el presupuesto restante a lo largo de la ventana actual. Consulta [Presupuestos de errores](/docs/slo/error-budget#consumo-del-presupuesto-de-errores).
@@ -193,7 +195,7 @@ La página **Ajustes** reúne cómo mide un SLO, una tarjeta para cada cosa:
 
 | Tarjeta | Qué cambias | Conviene saber |
 | --- | --- | --- |
-| **Objetivo** | **Objetivo (%)** y **Umbral de riesgo (%)**, con **Editar objetivo**. | Muestra el tiempo de inactividad que permite el objetivo, por ejemplo «43m 12s de inactividad por ventana de 30 días». |
+| **Objetivo** | **Objetivo (%)** y **Umbral de riesgo (%)**, con **Editar objetivo**. | Muestra el tiempo de inactividad que permite el objetivo, por ejemplo «43 min 12 s de tiempo de inactividad por ventana de 30 días». |
 | **Periodo de cumplimiento** | **Tipo de ventana**, **Ventana (días)** y **Zona horaria**, con **Editar periodo**. | Las reglas de tasa de consumo conservan sus umbrales cuando cambia la ventana, así que revísalas después. |
 | **Cálculo del tiempo de inactividad** | **Modo de varios monitores** y **Estados de monitor de tiempo de inactividad**, con **Editar cálculo del tiempo de inactividad**. | Sin estados se cuentan todos los estados no operativos, incluidos los que se añadan después. |
 | **Evaluación** | El interruptor **Evaluar este SLO**, que guarda en cuanto lo cambias. | Al desactivarlo pide confirmación, porque también resuelve las alertas e incidentes de tasa de consumo abiertos del SLO. |
@@ -238,7 +240,7 @@ El menú lateral de un monitor también tiene una página **SLO**: los SLO que m
 
 Un SLO con ventana móvil más joven que su ventana se mide sobre los datos que existen hasta ahora: un SLO de 30 días creado ayer tiene un día de datos. Su presupuesto de errores empieza pequeño y crece a medida que la ventana se llena, así que sus primeras cifras se mueven más de lo que lo harán después.
 
-Mientras sea así, la **Vista general** lo indica: el resumen muestra un indicador **Window 23% full** (**Ventana llena a menos del 1 %** el primer día), y el mosaico **Presupuesto de errores restante** lo repite bajo su cifra. Ambos desaparecen cuando la ventana está llena. Los SLO de mes natural nunca los muestran, porque su presupuesto cubre todo el mes desde el primer día, y tampoco los SLO en modo **Promedio de segundos del monitor**, cuyo presupuesto se cuenta entre varios monitores.
+Mientras sea así, la **Vista general** lo indica: el resumen muestra un indicador **Ventana llena al 23 %** (**Ventana llena a menos del 1 %** el primer día), y el mosaico **Presupuesto de errores restante** lo repite bajo su cifra. Ambos desaparecen cuando la ventana está llena. Los SLO de mes natural nunca los muestran, porque su presupuesto cubre todo el mes desde el primer día, y tampoco los SLO en modo **Promedio de segundos del monitor**, cuyo presupuesto se cuenta entre varios monitores.
 
 ## Solución de problemas
 

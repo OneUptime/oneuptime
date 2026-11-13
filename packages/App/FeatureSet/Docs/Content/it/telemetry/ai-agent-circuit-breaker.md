@@ -193,7 +193,7 @@ Il titolo è vuoto o non corrisponde. Un campo che non è in **Fields to pass on
 :::
 
 :::details Il tuo endpoint risponde 401
-L'intestazione `Authorization` non corrisponde al token che il tuo endpoint si aspetta. Controlla il nome in `{{global.variables.AGENT_KILL_TOKEN}}` e il valore salvato nella variabile globale. Il valore di una variabile segreta non si può rileggere, quindi nel dubbio riscrivilo con **Update Content**.
+L'intestazione `Authorization` non corrisponde al token che il tuo endpoint si aspetta. Controlla il nome in `{{global.variables.AGENT_KILL_TOKEN}}` e il valore salvato nella variabile globale. Il valore di una variabile segreta non si può rileggere, quindi nel dubbio riscrivilo con **Aggiorna contenuto**.
 :::
 
 :::details L'avviso di budget si apre e si risolve di continuo

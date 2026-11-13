@@ -1,6 +1,9 @@
 # Bereikbaarheid – Overzicht
 
-Bereikbaarheidsdienst is hoe OneUptime iemand op elk uur bij een probleem krijgt. Als een incident, een waarschuwing of een episode iemand nodig heeft, roept het bereikbaarheidsbeleid ervan mensen niveau voor niveau op tot iemand bevestigt, en elke persoon wordt bereikt zoals die dat heeft gekozen: een pushmelding, een sms, een oproep, een e-mail of een chatbericht. Deze pagina laat zien hoe de onderdelen samenhangen en waar elk onderdeel staat.
+Bereikbaarheidsdienst is hoe OneUptime iemand op elk uur bij een probleem krijgt. Als een incident, een waarschuwing of een episode iemand nodig heeft, roept het bereikbaarheidsbeleid ervan mensen niveau voor niveau op tot iemand bevestigt, en elke persoon wordt bereikt zoals die dat heeft gekozen: een pushmelding, een sms, een oproep, een e-mail of een chatbericht. Deze pagina laat zien hoe de onderdelen samenhangen en waar elk onderdeel staat. De [Woordenlijst](/docs/introduction/glossary#bereikbaarheidsbeleid) legt elk woord dat bereikbaarheid gebruikt in een zin of twee uit.
+
+> [!TIP]
+> Nieuw hier? Volg eerst de handleiding: [Opgeroepen worden via telefoon, sms of push](/docs/guides/paging).
 
 :::cards
 - [Hoe een oproep iemand bereikt](#hoe-een-oproep-iemand-bereikt): Van een nieuw incident tot de persoon die antwoordt.
@@ -36,6 +39,8 @@ De eerste keer dat een oproep iemand bereikt, legt OneUptime dat vast op het inc
 > Een incident, waarschuwing of episode die al bevestigd of opgelost wordt aangemaakt, voert geen enkel beleid uit, en de feed ervan zegt dat. Zie [Al bevestigd of opgelost aangemaakt](/docs/alerts/index#al-bevestigd-of-opgelost-aangemaakt).
 
 ## De bouwstenen
+
+De woorden die in heel OneUptime worden gebruikt, staan in de [Woordenlijst](/docs/introduction/glossary).
 
 | Bouwsteen | Wat die bepaalt | Meer lezen |
 | --- | --- | --- |

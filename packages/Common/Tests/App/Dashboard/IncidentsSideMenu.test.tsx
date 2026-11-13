@@ -529,17 +529,26 @@ describe("Incidents side menu", () => {
           title: "Numbering",
           href: routeFor(PageMap.INCIDENTS_SETTINGS_NUMBERING),
         },
+        // How long a resolved incident is kept (#6903).
+        {
+          title: "Data Retention",
+          href: routeFor(PageMap.INCIDENTS_SETTINGS_RETENTION),
+        },
       ]);
     });
 
-    test("lists Numbering last, at settings/numbering", async () => {
+    test("lists Numbering, at settings/numbering, then Data Retention last", async () => {
       await renderIncidentsMenu();
 
       const settings: Array<MenuLink> = linksIn("Settings");
 
-      expect(settings[settings.length - 1]).toEqual({
+      expect(settings[settings.length - 2]).toEqual({
         title: "Numbering",
         href: `/dashboard/${PROJECT_ID}/incidents/settings/numbering`,
+      });
+      expect(settings[settings.length - 1]).toEqual({
+        title: "Data Retention",
+        href: routeFor(PageMap.INCIDENTS_SETTINGS_RETENTION),
       });
     });
 

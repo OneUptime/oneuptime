@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 Set them in `config.env`, then run `npm start`. `DISABLE_TELEMETRY_FOR_APP` is `true` by default, and then nothing is sent.
 :::
 
-OneUptime needs both the endpoint and the headers: it sends nothing without a header. Separate several headers with `;`. OneUptime adds `/v1/metrics` to the endpoint itself, and the same settings send its own traces and logs too. Each metric appears once OneUptime first records it: `notification.send.count` with the first message sent.
+OneUptime needs both the endpoint and the headers: it sends nothing without a header. Write each header as `name=value`, and separate several with `;`. A value may hold `=`. OneUptime adds `/v1/metrics` to the endpoint itself, and the same settings send its own traces and logs too. Each metric appears once OneUptime first records it: `notification.send.count` with the first message sent.
 
 ### Send deltas to a OneUptime project
 
@@ -109,14 +109,14 @@ Every attribute holds one of a few fixed values, never a project, a person, a ph
 | `notification.provider.config` | `global` for the installation's own account and settings; `project` for a project's own Twilio account, SMTP server, webhook or workspace connection, whose failures are the project's to fix |
 | `notification.on_call_page` | `true` for a notification of an on-call page, otherwise `false` |
 | `outcome` | `success`, `failure` or `not_sent`, as below |
-| `notification.destination` | Slack, Microsoft Teams and Mattermost only: `direct_message` to one person, `channel` for a post into a channel or a Teams group chat, `incoming_webhook` for an incoming webhook, such as a status page subscriber's |
+| `notification.destination` | Slack, Microsoft Teams and Mattermost: `direct_message` to one person, `channel` for a post into a channel or a Teams group chat, `incoming_webhook` for an incoming webhook, such as a status page subscriber's. Webhooks: `status_page_subscriber` for a status page subscriber's own webhook. Left out on a person's webhook and on every other channel |
 | `notification.custom_channel.id`, `notification.custom_channel.name` | Custom channels only: the channel's ID, and its name cut to 100 characters |
 
 - `success`: the provider accepted the message.
 - `failure`: the provider refused it or could not be reached, or sending it failed. A chat channel that could not be found is a failure with no duration.
 - `not_sent`: deliberately not sent. The project turned the channel off, has too little balance or is blocked, push is turned off on this server, or a custom channel is turned off, deleted or not covered by the license. A success rate leaves these out: they are settings at work, not the platform failing.
 
-Status page subscribers' plain webhooks are not counted yet.
+A message to a status page subscriber's own webhook counts once, however many times it was tried: `success` when the endpoint answered with a 2xx status, and `failure` when it answered with another status, could not be reached, or its address is not allowed.
 
 ### What reached the phone
 
@@ -155,7 +155,7 @@ Statuses arrive only where the provider can report them:
 | --- | --- |
 | `monitor_data_received` | When OneUptime received the data that tripped the monitor: an incoming request, a server agent's report, an incoming email, a probe's check, an SNMP trap or a network device poll. It includes the time the data waited in the queue to be evaluated. |
 | `record_created` | When the incident, alert or episode was created: by a telemetry monitor, a rule or a person, and for a check of absence, such as a heartbeat that stopped. |
-| `page_started` | When a page started later: a person, a workflow or a rule that now matches started it, a page again, a direct page, or a page that waited out a hold its on-call rule asked for. |
+| `page_started` | When a page started later: a person, a workflow or a rule that now matches started it, or it is a direct page. For a page held by its on-call rule or by OneUptime AI, when its hold ran out, or when it started if that was sooner. For a page again, when its acknowledgement timeout ran out. So a worker that got to either late shows in the time. |
 
 For an incoming request, the time runs from the latest request the endpoint received, so it can read a little short.
 
@@ -170,7 +170,7 @@ For an incoming request, the time runs from the latest request the endpoint rece
 | `escalation` | A later escalation level: when the level before it finished its wait, or at once when a person passes the page on. |
 | `policy_repeat` | The policy starting again from its first level: when its last level's wait ran out. |
 
-It also carries `notification.channel`, `notification.trigger.type` and, for custom channels, `notification.custom_channel.id` and `notification.custom_channel.name`. A notification due as its page starts is never in it: it is in time to send.
+It also carries `notification.channel`, `notification.trigger.type` and, for custom channels, `notification.custom_channel.id` and `notification.custom_channel.name`. A notification due as its page starts is never in it, even when a worker started the page late, after a hold or as a page again: it is in time to send.
 
 ### Histogram buckets
 
@@ -220,7 +220,7 @@ The formula `$b / $a * 100` is the share that failed, and the objective holds wh
 | --- | --- | --- | --- |
 | `a` | `notification.time_to_send` | **P95** | `notification.page.start != page_started` |
 
-The objective holds while `a` stays at or below 30000. Pages started later are timed from when they started, not from a trigger, so they are left out. Group by `notification.page.start` to see the monitors' queue (`monitor_data_received`) apart from the rest, or by `notification.channel` to find a slow channel.
+The objective holds while `a` stays at or below 30000. Pages started later are timed from when they started or were due, not from a trigger, so they are left out. Group by `notification.page.start` to see the monitors' queue (`monitor_data_received`) apart from the rest, or by `notification.channel` to find a slow channel.
 
 ### Notifications sent later go out within 90 seconds
 
@@ -246,7 +246,7 @@ The formula `$b / $a * 100` is the share not delivered. Carriers and phones that
 ## Troubleshooting
 
 :::details No notification metrics arrive
-Check that `OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT` and `OPENTELEMETRY_EXPORTER_OTLP_HEADERS` are both set, and in Docker Compose that `DISABLE_TELEMETRY_FOR_APP` is `false`, then restart OneUptime. A metric appears only once something is recorded, so send a notification first.
+Check that `OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT` and `OPENTELEMETRY_EXPORTER_OTLP_HEADERS` are both set, and in Docker Compose that `DISABLE_TELEMETRY_FOR_APP` is `false`, then restart OneUptime. As it starts, OneUptime logs a warning when it cannot read a header, or when it sends nothing. A metric appears only once something is recorded, so send a notification first.
 :::
 
 :::details A count only ever grows, or a percentile barely moves

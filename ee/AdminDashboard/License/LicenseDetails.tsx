@@ -4,13 +4,32 @@ import {
 } from "Common/UI/Components/EditionLabel/LicenseDetails";
 import { SeatTone } from "Common/UI/Components/EditionLabel/LicenseSeatUsage";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { joinSentences } from "Common/UI/Components/DeleteConfirmation/DeleteConsequences";
 import Icon from "Common/UI/Components/Icon/Icon";
+import { getIsolatedLine } from "Common/UI/Components/IsolatedText/IsolatedLine";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import OneUptimeDate from "Common/Types/Date";
 import EnterpriseLicenseInstanceSummary from "Common/Types/EnterpriseLicense/EnterpriseLicenseInstanceSummary";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
+import { ReadingDirection } from "Common/Types/ReadingDirection";
 import VersionUtil from "Common/Utils/VersionUtil";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
+import {
+  FIRST_REPORT_WITHIN,
+  FIRST_REPORT_WITHIN_HOURS,
+  INSTANCES,
+  LicenseDetailsCopy,
+  PER_INSTANCE_COUNTS,
+  SEAT_LIMIT,
+  SEATS_COUNTED_UNIQUELY,
+  SEATS_LEFT,
+  SEATS_REMAINING,
+  USERS_OVER_LICENSED_SEATS,
+  USERS_OVER_LIMIT,
+} from "./LicenseDetailsCopy";
 
 /*
  * The Enterprise license details: the seat usage card and the instances on
@@ -28,6 +47,10 @@ import React, { FunctionComponent, ReactElement, useMemo } from "react";
  * resolve - Common/... and react, never "@oneuptime/admin-dashboard/..." -
  * and ee/Dashboard/tsconfig.json includes this file so the Dashboard's type
  * check proves it.
+ *
+ * In the reader's language, as the dialog around it is: every word is in
+ * ./LicenseDetailsCopy.ts, numbers and dates are written the reader's way,
+ * and a host name reads the way it is written on an Arabic or Persian page.
  */
 
 const SALES_EMAIL: string = "sales@oneuptime.com";
@@ -84,29 +107,74 @@ const parseLicenseInstances: ParseLicenseInstancesFunction = (
   return instances;
 };
 
+type FormatReportedAtFunction = (value: unknown) => string | null;
+
+/*
+ * A report's time in the reader's language, or null when there is none:
+ * "Nov 11, 12:00 PM", "11. Nov., 12:00", with the year only when it is not
+ * this one - as every list writes a moment (OneUptimeDate's compact local
+ * string), in the zone and the 12- or 24-hour clock the reader picked. It
+ * was the browser's toLocaleString: the browser's zone rather than the
+ * reader's, seconds nobody needs, a numeric date beside the page's "31 May
+ * 2027", and a Latin comma inside a Persian sentence.
+ */
+const formatReportedAt: FormatReportedAtFunction = (
+  value: unknown,
+): string | null => {
+  if (!value || typeof value !== "string") {
+    return null;
+  }
+
+  const reportedAt: Date = OneUptimeDate.fromString(value);
+
+  if (Number.isNaN(reportedAt.getTime())) {
+    return null;
+  }
+
+  return OneUptimeDate.getDateAsCompactLocalString(reportedAt);
+};
+
+/*
+ * A sentence that ends with a time whose half of the day is written with a
+ * dot of its own - Persian "۱۲:۰۰ ب.ظ.", Spanish "12:00 p. m." - ends with
+ * one full stop, not two.
+ */
+const DOUBLE_FULL_STOP_AT_THE_END: RegExp = /\.\.$/;
+
+type EndWithOneFullStopFunction = (sentence: string) => string;
+
+const endWithOneFullStop: EndWithOneFullStopFunction = (
+  sentence: string,
+): string => {
+  return sentence.replace(DOUBLE_FULL_STOP_AT_THE_END, ".");
+};
+
 type FormatInstanceReportedAtFunction = (
   lastReportedAt: string | null,
+  translator: Translator,
 ) => string;
 
 const formatInstanceReportedAt: FormatInstanceReportedAtFunction = (
   lastReportedAt: string | null,
+  translator: Translator,
 ): string => {
-  if (!lastReportedAt) {
-    return "No usage reported yet.";
+  const date: string | null = formatReportedAt(lastReportedAt);
+
+  if (!date) {
+    return translator.translateTemplate(LicenseDetailsCopy.noUsageReported);
   }
 
-  const reportedAt: Date = OneUptimeDate.fromString(lastReportedAt);
-
-  if (Number.isNaN(reportedAt.getTime())) {
-    return "No usage reported yet.";
-  }
-
-  return `Last reported ${reportedAt.toLocaleString()}.`;
+  return endWithOneFullStop(
+    translator.translateTemplate(LicenseDetailsCopy.lastReported, {
+      date: date,
+    }),
+  );
 };
 
 const LicenseDetails: FunctionComponent<LicenseDetailsProps> = (
   props: LicenseDetailsProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const license: LicenseSnapshot = props.license;
 
   const canManageLicense: boolean = license.canManageLicense;
@@ -160,21 +228,9 @@ const LicenseDetails: FunctionComponent<LicenseDetailsProps> = (
   const canRefreshLicense: boolean =
     activationMode !== "offline" && !isMarketplaceLicense;
 
-  const userCountUpdatedAtText: string | null = useMemo(() => {
-    if (!payload["userCountUpdatedAt"]) {
-      return null;
-    }
-
-    const reportedAt: Date = OneUptimeDate.fromString(
-      payload["userCountUpdatedAt"] as string,
-    );
-
-    if (Number.isNaN(reportedAt.getTime())) {
-      return null;
-    }
-
-    return reportedAt.toLocaleString();
-  }, [payload]);
+  const userCountUpdatedAtText: string | null = formatReportedAt(
+    payload["userCountUpdatedAt"],
+  );
 
   /*
    * The displayed percent clamped to 0-100. Drives the bar width and
@@ -210,22 +266,19 @@ const LicenseDetails: FunctionComponent<LicenseDetailsProps> = (
     }
 
     if (seatsRemaining > 0) {
-      return `${seatsRemaining.toLocaleString()} ${
-        seatsRemaining === 1 ? "seat" : "seats"
-      } remaining`;
+      return translator.translatePlural(SEATS_REMAINING, seatsRemaining);
     }
 
     if (seatsRemaining === 0) {
-      return "No seats remaining";
+      return translator.translateTemplate(LicenseDetailsCopy.noSeatsRemaining);
     }
 
-    return `${Math.abs(seatsRemaining).toLocaleString()} over limit`;
-  }, [seatsRemaining]);
+    return translator.translatePlural(
+      USERS_OVER_LIMIT,
+      Math.abs(seatsRemaining),
+    );
+  }, [seatsRemaining, translator]);
 
-  /*
-   * Copy containing apostrophes lives in string literals rather than JSX text,
-   * because react/no-unescaped-entities is enforced in this repo.
-   */
   const seatAdvisoryTitle: string = useMemo(() => {
     if (seatTone === "breached") {
       const over: number = Math.abs(seatsRemaining || 0);
@@ -235,30 +288,28 @@ const LicenseDetails: FunctionComponent<LicenseDetailsProps> = (
        * an installation sitting exactly on its limit is not "0 users over".
        */
       if (over === 0) {
-        return "Every licensed seat is in use";
+        return translator.translateTemplate(LicenseDetailsCopy.everySeatInUse);
       }
 
-      return over === 1
-        ? "1 user over your licensed seats"
-        : `${over.toLocaleString()} users over your licensed seats`;
+      return translator.translatePlural(USERS_OVER_LICENSED_SEATS, over);
     }
 
     if (seatTone === "approaching") {
       if (seatsRemaining === 0) {
-        return "Every licensed seat is in use";
+        return translator.translateTemplate(LicenseDetailsCopy.everySeatInUse);
       }
 
-      return seatsRemaining === 1
-        ? "Only 1 seat left on your license"
-        : `Only ${(seatsRemaining || 0).toLocaleString()} seats left on your license`;
+      return translator.translatePlural(SEATS_LEFT, seatsRemaining || 0);
     }
 
     return "";
-  }, [seatTone, seatsRemaining]);
+  }, [seatTone, seatsRemaining, translator]);
 
   const seatAdvisoryBody: string = useMemo(() => {
-    const limitText: string = (userLimit || 0).toLocaleString();
-    const inUse: string = `${(effectiveUserCount || 0).toLocaleString()} of ${limitText}`;
+    const seats: { used: string; limit: string } = {
+      used: translator.formatNumber(effectiveUserCount || 0),
+      limit: translator.formatNumber(userLimit || 0),
+    };
 
     if (seatTone === "breached") {
       /*
@@ -268,14 +319,20 @@ const LicenseDetails: FunctionComponent<LicenseDetailsProps> = (
        * as though adding people were still an option.
        */
       if (isSeatLimitEnforced && !canAddMoreUsers) {
-        return `This installation is using ${inUse} licensed seats. New users cannot be invited, signed up or provisioned until a seat is freed up or the license is expanded.`;
+        return translator.translateTemplate(
+          LicenseDetailsCopy.overLimitEnforced,
+          seats,
+        );
       }
 
-      return `This installation is using ${inUse} licensed seats. Expand your license so it covers everyone on the platform.`;
+      return translator.translateTemplate(LicenseDetailsCopy.overLimit, seats);
     }
 
     if (seatTone === "approaching") {
-      return `You're using ${inUse} licensed seats. Anyone you add beyond ${limitText} puts this installation over its licensed limit — if more people are joining, it's worth talking to OneUptime about expanding now.`;
+      return translator.translateTemplate(
+        LicenseDetailsCopy.nearlyOutOfSeats,
+        seats,
+      );
     }
 
     return "";
@@ -285,24 +342,33 @@ const LicenseDetails: FunctionComponent<LicenseDetailsProps> = (
     userLimit,
     isSeatLimitEnforced,
     canAddMoreUsers,
+    translator,
   ]);
 
+  const seatsInUseText: string =
+    typeof seatUsageDisplayPercent === "number"
+      ? translator.translateTemplate(LicenseDetailsCopy.seatsInUsePercent, {
+          percent: translator.formatNumber(seatUsageDisplayPercent),
+        })
+      : "";
+
+  // The caption under the bar, then what the reader most needs to know.
   const seatUsageAriaValueText: string = useMemo(() => {
-    if (typeof seatUsageDisplayPercent !== "number") {
+    if (!seatsInUseText) {
       return "";
     }
 
     if (seatTone === "breached") {
-      return `${seatUsageDisplayPercent}% of licensed seats in use — ${seatAdvisoryTitle}`;
+      return `${seatsInUseText} — ${seatAdvisoryTitle}`;
     }
 
     if (typeof seatsRemaining === "number") {
-      return `${seatUsageDisplayPercent}% of licensed seats in use — ${seatsRemainingText}`;
+      return `${seatsInUseText} — ${seatsRemainingText}`;
     }
 
-    return `${seatUsageDisplayPercent}% of licensed seats in use`;
+    return seatsInUseText;
   }, [
-    seatUsageDisplayPercent,
+    seatsInUseText,
     seatTone,
     seatAdvisoryTitle,
     seatsRemaining,
@@ -319,19 +385,52 @@ const LicenseDetails: FunctionComponent<LicenseDetailsProps> = (
    * reading "119 / 120 seats".
    */
   const instanceOverlapText: string = useMemo(() => {
-    const countingRule: string = `Seats are counted uniquely across all ${licenseInstances.length} instances that share this license — the same person on multiple instances uses one seat.`;
+    return joinSentences([
+      translator.translatePlural(
+        SEATS_COUNTED_UNIQUELY,
+        licenseInstances.length,
+      ),
+      typeof currentUserCount === "number"
+        ? translator.translatePlural(PER_INSTANCE_COUNTS, currentUserCount)
+        : "",
+    ]);
+  }, [licenseInstances.length, currentUserCount, translator]);
 
-    if (typeof currentUserCount !== "number") {
-      return countingRule;
-    }
-
-    return `${countingRule} Per-instance counts can therefore add up to more than the ${currentUserCount.toLocaleString()} unique ${
-      currentUserCount === 1 ? "user" : "users"
-    } counted above.`;
-  }, [licenseInstances.length, currentUserCount]);
+  // Under the seat card: where the count comes from, and what the limit does.
+  const seatReportText: string = joinSentences([
+    activationMode === "offline"
+      ? translator.translateTemplate(LicenseDetailsCopy.activatedOffline)
+      : userCountUpdatedAtText
+        ? endWithOneFullStop(
+            translator.translateTemplate(
+              LicenseDetailsCopy.lastReportedToOneUptime,
+              { date: userCountUpdatedAtText },
+            ),
+          )
+        : translator.translatePlural(
+            FIRST_REPORT_WITHIN,
+            FIRST_REPORT_WITHIN_HOURS,
+          ),
+    isSeatLimitEnforced
+      ? translator.translateTemplate(LicenseDetailsCopy.enforcesSeatLimit)
+      : "",
+    /*
+     * Only pointed at somebody who can actually do it. Refreshing is a
+     * master admin's, on the license page, so telling anybody else would be
+     * an instruction they cannot follow. No place in the sentence: the page
+     * has the button, and the dialog leads to the page.
+     */
+    isSeatLimitEnforced && canManageLicense && canRefreshLicense
+      ? translator.translateTemplate(LicenseDetailsCopy.boughtMoreSeats)
+      : "",
+  ]);
 
   type BuildSeatExpansionMailtoFunction = () => string;
 
+  /*
+   * The email is to OneUptime's sales team, so it is in English whatever
+   * language the dialog is in.
+   */
   const buildSeatExpansionMailto: BuildSeatExpansionMailtoFunction =
     (): string => {
       const subject: string =
@@ -382,370 +481,388 @@ const LicenseDetails: FunctionComponent<LicenseDetailsProps> = (
 
   const usage: ReactElement = (
     <>
-                {showSeatDetails && (
-                  <section
-                    aria-labelledby="edition-seats-heading"
-                    className="rounded-xl border border-gray-200 bg-white p-5"
+      {showSeatDetails && (
+        <section
+          aria-labelledby="edition-seats-heading"
+          className="rounded-xl border border-gray-200 bg-white p-5"
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <h4
+                id="edition-seats-heading"
+                className="text-sm font-semibold text-gray-900"
+              >
+                {translator.translateText(LicenseDetailsCopy.seatsTitle)}
+              </h4>
+              <p className="mt-0.5 text-xs text-gray-500">
+                {translator.translateText(LicenseDetailsCopy.seatsDescription)}
+              </p>
+            </div>
+            {seatTone !== "healthy" && (
+              <span
+                className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                  seatTone === "breached"
+                    ? "bg-red-100 text-red-700"
+                    : "bg-amber-100 text-amber-800"
+                }`}
+              >
+                {translator.translateText(
+                  seatTone === "breached"
+                    ? LicenseDetailsCopy.limitExceeded
+                    : LicenseDetailsCopy.nearlyFull,
+                )}
+              </span>
+            )}
+          </div>
+
+          {/*
+           * Wraps rather than overflowing: "37 / 50 Plätze" and "3 Plätze
+           * frei" are longer than the English, and a narrow dialog puts the
+           * seats left under the seats in use.
+           */}
+          <div className="mt-4 flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
+            <p className="flex items-baseline gap-1.5">
+              <span
+                className={`text-3xl font-semibold leading-none tabular-nums ${
+                  typeof effectiveUserCount !== "number"
+                    ? "text-gray-300"
+                    : seatTone === "breached"
+                      ? "text-red-700"
+                      : "text-gray-900"
+                }`}
+              >
+                {typeof effectiveUserCount === "number"
+                  ? translator.formatNumber(effectiveUserCount)
+                  : "—"}
+              </span>
+              <span className="text-sm tabular-nums text-gray-500">
+                {typeof userLimit === "number" && userLimit > 0
+                  ? translator.translatePlural(SEAT_LIMIT, userLimit)
+                  : translator.translateText(LicenseDetailsCopy.unlimited)}
+              </span>
+            </p>
+            {typeof seatsRemaining === "number" && (
+              <p
+                className={`text-xs font-medium tabular-nums ${
+                  seatTone === "breached"
+                    ? "text-red-700"
+                    : seatTone === "approaching"
+                      ? "text-amber-700"
+                      : "text-gray-500"
+                }`}
+              >
+                {seatsRemainingText}
+              </p>
+            )}
+          </div>
+
+          {typeof seatUsageDisplayPercent === "number" && (
+            <div className="mt-2.5">
+              <div
+                className="h-2.5 w-full overflow-hidden rounded-full bg-gray-100"
+                role="progressbar"
+                aria-label={translator.translateText(
+                  LicenseDetailsCopy.seatUsageLabel,
+                )}
+                aria-valuenow={seatUsageBarPercent}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuetext={seatUsageAriaValueText}
+              >
+                <div
+                  className={`h-full rounded-full transition-all duration-300 ease-out ${
+                    seatTone === "breached"
+                      ? "bg-red-500"
+                      : seatTone === "approaching"
+                        ? "bg-amber-500"
+                        : "bg-emerald-500"
+                  }`}
+                  style={{ width: `${seatUsageBarPercent}%` }}
+                />
+              </div>
+              <p className="mt-1.5 text-xs tabular-nums text-gray-500">
+                {seatsInUseText}
+              </p>
+            </div>
+          )}
+
+          {seatTone !== "healthy" && canSeeLicenseAdmin && (
+            <div
+              role={seatTone === "breached" ? "alert" : "status"}
+              className={`mt-4 rounded-lg border p-3.5 ${
+                seatTone === "breached"
+                  ? "border-red-200 bg-red-50"
+                  : "border-amber-200 bg-amber-50"
+              }`}
+            >
+              <div className="flex items-start gap-2.5">
+                {/*
+                 * Colour comes from className only. Never add a type
+                 * prop here: Icon emits both the type colour and
+                 * className into one class attribute, so two colour
+                 * classes would land on one svg and Tailwind's
+                 * emission order would pick the winner.
+                 */}
+                <Icon
+                  icon={
+                    seatTone === "breached"
+                      ? IconProp.Alert
+                      : IconProp.ExclaimationCircle
+                  }
+                  className={`mt-0.5 h-4 w-4 shrink-0 ${
+                    seatTone === "breached" ? "text-red-600" : "text-amber-600"
+                  }`}
+                />
+                <div className="min-w-0 flex-1">
+                  <h5
+                    className={`text-sm font-semibold ${
+                      seatTone === "breached"
+                        ? "text-red-900"
+                        : "text-amber-900"
+                    }`}
                   >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0">
-                        <h4
-                          id="edition-seats-heading"
-                          className="text-sm font-semibold text-gray-900"
-                        >
-                          Licensed seats
-                        </h4>
-                        <p className="mt-0.5 text-xs text-gray-500">
-                          Unique users across every instance on this license.
-                        </p>
-                      </div>
-                      {seatTone !== "healthy" && (
-                        <span
-                          className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                            seatTone === "breached"
-                              ? "bg-red-100 text-red-700"
-                              : "bg-amber-100 text-amber-800"
-                          }`}
-                        >
-                          {seatTone === "breached"
-                            ? "Limit exceeded"
-                            : "Nearly full"}
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="mt-4 flex items-end justify-between gap-4">
-                      <p className="flex items-baseline gap-1.5">
-                        <span
-                          className={`text-3xl font-semibold leading-none tabular-nums ${
-                            typeof effectiveUserCount !== "number"
-                              ? "text-gray-300"
-                              : seatTone === "breached"
-                                ? "text-red-700"
-                                : "text-gray-900"
-                          }`}
-                        >
-                          {typeof effectiveUserCount === "number"
-                            ? effectiveUserCount.toLocaleString()
-                            : "—"}
-                        </span>
-                        <span className="text-sm tabular-nums text-gray-500">
-                          {" / "}
-                          {typeof userLimit === "number" && userLimit > 0
-                            ? `${userLimit.toLocaleString()} seats`
-                            : "unlimited"}
-                        </span>
-                      </p>
-                      {typeof seatsRemaining === "number" && (
-                        <p
-                          className={`text-xs font-medium tabular-nums ${
-                            seatTone === "breached"
-                              ? "text-red-700"
-                              : seatTone === "approaching"
-                                ? "text-amber-700"
-                                : "text-gray-500"
-                          }`}
-                        >
-                          {seatsRemainingText}
-                        </p>
-                      )}
-                    </div>
-
-                    {typeof seatUsageDisplayPercent === "number" && (
-                      <div className="mt-2.5">
-                        <div
-                          className="h-2.5 w-full overflow-hidden rounded-full bg-gray-100"
-                          role="progressbar"
-                          aria-label="Licensed seat usage"
-                          aria-valuenow={seatUsageBarPercent}
-                          aria-valuemin={0}
-                          aria-valuemax={100}
-                          aria-valuetext={seatUsageAriaValueText}
-                        >
-                          <div
-                            className={`h-full rounded-full transition-all duration-300 ease-out ${
-                              seatTone === "breached"
-                                ? "bg-red-500"
-                                : seatTone === "approaching"
-                                  ? "bg-amber-500"
-                                  : "bg-emerald-500"
-                            }`}
-                            style={{ width: `${seatUsageBarPercent}%` }}
-                          />
-                        </div>
-                        <p className="mt-1.5 text-xs tabular-nums text-gray-500">
-                          {seatUsageDisplayPercent}% of licensed seats in use
-                        </p>
-                      </div>
-                    )}
-
-                    {seatTone !== "healthy" && canSeeLicenseAdmin && (
-                      <div
-                        role={seatTone === "breached" ? "alert" : "status"}
-                        className={`mt-4 rounded-lg border p-3.5 ${
-                          seatTone === "breached"
-                            ? "border-red-200 bg-red-50"
-                            : "border-amber-200 bg-amber-50"
-                        }`}
-                      >
-                        <div className="flex items-start gap-2.5">
-                          {/*
-                           * Colour comes from className only. Never add a type
-                           * prop here: Icon emits both the type colour and
-                           * className into one class attribute, so two colour
-                           * classes would land on one svg and Tailwind's
-                           * emission order would pick the winner.
-                           */}
-                          <Icon
-                            icon={
-                              seatTone === "breached"
-                                ? IconProp.Alert
-                                : IconProp.ExclaimationCircle
-                            }
-                            className={`mt-0.5 h-4 w-4 shrink-0 ${
-                              seatTone === "breached"
-                                ? "text-red-600"
-                                : "text-amber-600"
-                            }`}
-                          />
-                          <div className="min-w-0 flex-1">
-                            <h5
-                              className={`text-sm font-semibold ${
+                    {seatAdvisoryTitle}
+                  </h5>
+                  <p
+                    className={`mt-1 text-xs leading-relaxed ${
+                      seatTone === "breached"
+                        ? "text-red-800"
+                        : "text-amber-800"
+                    }`}
+                  >
+                    {seatAdvisoryBody}
+                  </p>
+                  <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+                    {/* Button says its title in the reader's language. */}
+                    <Button
+                      title={
+                        seatTone === "breached"
+                          ? LicenseDetailsCopy.expandLicense
+                          : LicenseDetailsCopy.requestMoreSeats
+                      }
+                      icon={IconProp.Email}
+                      buttonStyle={
+                        seatTone === "breached"
+                          ? ButtonStyleType.DANGER
+                          : ButtonStyleType.PRIMARY
+                      }
+                      onClick={handleRequestMoreSeats}
+                      className="!mt-0 md:!ml-0"
+                    />
+                    <span
+                      className={`text-[11px] ${
+                        seatTone === "breached"
+                          ? "text-red-700"
+                          : "text-amber-700"
+                      }`}
+                    >
+                      <TranslatedSentence
+                        template={LicenseDetailsCopy.orEmailDirectly}
+                        slots={{
+                          email: (
+                            <a
+                              href={SALES_MAILTO_URL}
+                              className={`font-medium underline ${
                                 seatTone === "breached"
-                                  ? "text-red-900"
-                                  : "text-amber-900"
+                                  ? "text-red-800 hover:text-red-900"
+                                  : "text-amber-900 hover:text-amber-950"
                               }`}
                             >
-                              {seatAdvisoryTitle}
-                            </h5>
-                            <p
-                              className={`mt-1 text-xs leading-relaxed ${
-                                seatTone === "breached"
-                                  ? "text-red-800"
-                                  : "text-amber-800"
-                              }`}
-                            >
-                              {seatAdvisoryBody}
-                            </p>
-                            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-                              <Button
-                                title={
-                                  seatTone === "breached"
-                                    ? "Expand your license"
-                                    : "Request more seats"
-                                }
-                                icon={IconProp.Email}
-                                buttonStyle={
-                                  seatTone === "breached"
-                                    ? ButtonStyleType.DANGER
-                                    : ButtonStyleType.PRIMARY
-                                }
-                                onClick={handleRequestMoreSeats}
-                                className="!mt-0 md:!ml-0"
-                              />
-                              <span
-                                className={`text-[11px] ${
-                                  seatTone === "breached"
-                                    ? "text-red-700"
-                                    : "text-amber-700"
-                                }`}
-                              >
-                                Or email{" "}
-                                <a
-                                  href={SALES_MAILTO_URL}
-                                  className={`font-medium underline ${
-                                    seatTone === "breached"
-                                      ? "text-red-800 hover:text-red-900"
-                                      : "text-amber-900 hover:text-amber-950"
-                                  }`}
-                                >
-                                  {SALES_EMAIL}
-                                </a>{" "}
-                                directly.
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                              {SALES_EMAIL}
+                            </a>
+                          ),
+                        }}
+                      />
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
-                    <div className="mt-4 border-t border-gray-100 pt-3">
-                      <p className="text-xs text-gray-500">
-                        {activationMode === "offline"
-                          ? "This installation was activated offline, so it does not report its user count to OneUptime."
-                          : userCountUpdatedAtText
-                            ? `Last reported to OneUptime on ${userCountUpdatedAtText}.`
-                            : "User count has not been reported to OneUptime yet. The first report will be sent within 24 hours."}
-                        {isSeatLimitEnforced && (
-                          <>
-                            {" "}
-                            This installation enforces the seat limit: users
-                            above it cannot be invited, signed up or
-                            provisioned.
-                          </>
+          <div className="mt-4 border-t border-gray-100 pt-3">
+            <p className="text-xs text-gray-500">{seatReportText}</p>
+          </div>
+        </section>
+      )}
+
+      {showSeatDetails && licenseInstances.length > 0 && (
+        <section
+          aria-labelledby="edition-instances-heading"
+          className="rounded-xl border border-gray-200 bg-white p-5"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <h4
+              id="edition-instances-heading"
+              className="text-sm font-semibold text-gray-900"
+            >
+              {translator.translateText(LicenseDetailsCopy.instancesTitle)}
+            </h4>
+            <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium tabular-nums text-gray-600">
+              {translator.translatePlural(INSTANCES, licenseInstances.length)}
+            </span>
+          </div>
+          <p className="mt-1 text-xs leading-relaxed text-gray-500">
+            {translator.translateText(LicenseDetailsCopy.instancesDescription)}
+          </p>
+          {licenseInstances.length > 1 && (
+            <p className="mt-1.5 text-xs leading-relaxed text-gray-500">
+              {instanceOverlapText}
+            </p>
+          )}
+          <ul className="mt-3 divide-y divide-gray-100 overflow-hidden rounded-lg border border-gray-200">
+            {licenseInstances.map(
+              (instance: EnterpriseLicenseInstanceSummary, index: number) => {
+                const isThisInstance: boolean =
+                  Boolean(thisInstanceId) &&
+                  instance.instanceId === thisInstanceId;
+
+                /*
+                 * The list is a snapshot of what each instance last
+                 * reported, refreshed at most once a day. For the
+                 * instance serving this page the server just told us
+                 * what it is running right now, so prefer that —
+                 * otherwise this row contradicts the "This
+                 * installation" card above it for up to a day after
+                 * an upgrade. hasComparableVersion keeps a dev build
+                 * from rendering "vunknown".
+                 */
+                const displayVersion: string | null =
+                  isThisInstance && hasComparableVersion
+                    ? currentVersion
+                    : instance.version;
+
+                /*
+                 * Per-instance, so an admin can see which of their
+                 * deployments are lagging rather than only the one
+                 * they happen to be signed in to.
+                 */
+                const isInstanceOutdated: boolean =
+                  VersionUtil.isUpdateAvailable({
+                    currentVersion: displayVersion,
+                    latestVersion: latestVersion,
+                  });
+
+                const host: string =
+                  instance.host ||
+                  translator.translateTemplate(LicenseDetailsCopy.unknownHost);
+
+                /*
+                 * A host name reads the way it is written: on an Arabic or
+                 * Persian page it is cut short at its own end
+                 * ("staging.example...") rather than losing its start.
+                 */
+                const hostLine: {
+                  dir: ReadingDirection | undefined;
+                  className: string;
+                } = getIsolatedLine({
+                  text: host,
+                  pageLanguage: translator.language,
+                  className:
+                    "min-w-0 max-w-full truncate text-sm font-medium text-gray-900",
+                });
+
+                return (
+                  <li
+                    key={instance.instanceId || index}
+                    className="flex items-center justify-between gap-4 bg-white px-3 py-2.5 transition-colors hover:bg-gray-50"
+                  >
+                    <div className="min-w-0 flex-1">
+                      {/*
+                       * Wraps rather than squeezing: both pills are
+                       * shrink-0, so without this a long hostname on
+                       * a narrow modal absorbs all the overflow and
+                       * truncates to a few characters.
+                       */}
+                      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                        <span
+                          className={hostLine.className}
+                          dir={hostLine.dir}
+                          title={host}
+                        >
+                          {host}
+                        </span>
+                        {isThisInstance && (
+                          <span className="shrink-0 rounded-full bg-indigo-50 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-indigo-700">
+                            {translator.translateText(
+                              LicenseDetailsCopy.thisInstance,
+                            )}
+                          </span>
                         )}
-                        {/*
-                         * Only pointed at somebody who can actually do it.
-                         * Refreshing is a master admin's, on the license page,
-                         * so telling anybody else would be an instruction they
-                         * cannot follow. No place in the sentence: the page
-                         * has the button, and the dialog leads to the page.
-                         */}
-                        {isSeatLimitEnforced &&
-                          canManageLicense &&
-                          canRefreshLicense && (
-                            <>
-                              {" "}
-                              Bought more seats? Refresh the license to apply
-                              the new limit without waiting for the next daily
-                              report.
-                            </>
-                          )}
+                        {displayVersion && (
+                          <span
+                            className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium tabular-nums ${
+                              isInstanceOutdated
+                                ? "bg-amber-50 text-amber-800"
+                                : "bg-gray-100 text-gray-600"
+                            }`}
+                            title={
+                              isInstanceOutdated
+                                ? translator.translateTemplate(
+                                    LicenseDetailsCopy.runningUpdateAvailable,
+                                    {
+                                      version: displayVersion,
+                                      latest: latestVersion,
+                                    },
+                                  )
+                                : translator.translateTemplate(
+                                    LicenseDetailsCopy.running,
+                                    { version: displayVersion },
+                                  )
+                            }
+                          >
+                            v{displayVersion}
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-0.5 truncate text-xs text-gray-500">
+                        {joinSentences([
+                          formatInstanceReportedAt(
+                            instance.lastReportedAt,
+                            translator,
+                          ),
+                          isInstanceOutdated
+                            ? translator.translateTemplate(
+                                LicenseDetailsCopy.updateAvailable,
+                              )
+                            : "",
+                        ])}
                       </p>
                     </div>
-                  </section>
-                )}
-
-                {showSeatDetails && licenseInstances.length > 0 && (
-                  <section
-                    aria-labelledby="edition-instances-heading"
-                    className="rounded-xl border border-gray-200 bg-white p-5"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <h4
-                        id="edition-instances-heading"
-                        className="text-sm font-semibold text-gray-900"
-                      >
-                        Instances on this license
-                      </h4>
-                      <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium tabular-nums text-gray-600">
-                        {licenseInstances.length}{" "}
-                        {licenseInstances.length === 1
-                          ? "instance"
-                          : "instances"}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-xs leading-relaxed text-gray-500">
-                      Use the same license key on every instance you deploy
-                      (staging, production, and so on). Each instance reports
-                      its usage and the version it runs once a day.
-                    </p>
-                    {licenseInstances.length > 1 && (
-                      <p className="mt-1.5 text-xs leading-relaxed text-gray-500">
-                        {instanceOverlapText}
-                      </p>
-                    )}
-                    <ul className="mt-3 divide-y divide-gray-100 overflow-hidden rounded-lg border border-gray-200">
-                      {licenseInstances.map(
-                        (
-                          instance: EnterpriseLicenseInstanceSummary,
-                          index: number,
-                        ) => {
-                          const isThisInstance: boolean =
-                            Boolean(thisInstanceId) &&
-                            instance.instanceId === thisInstanceId;
-
-                          /*
-                           * The list is a snapshot of what each instance last
-                           * reported, refreshed at most once a day. For the
-                           * instance serving this page the server just told us
-                           * what it is running right now, so prefer that —
-                           * otherwise this row contradicts the "This
-                           * installation" card above it for up to a day after
-                           * an upgrade. hasComparableVersion keeps a dev build
-                           * from rendering "vunknown".
-                           */
-                          const displayVersion: string | null =
-                            isThisInstance && hasComparableVersion
-                              ? currentVersion
-                              : instance.version;
-
-                          /*
-                           * Per-instance, so an admin can see which of their
-                           * deployments are lagging rather than only the one
-                           * they happen to be signed in to.
-                           */
-                          const isInstanceOutdated: boolean =
-                            VersionUtil.isUpdateAvailable({
-                              currentVersion: displayVersion,
-                              latestVersion: latestVersion,
-                            });
-
-                          return (
-                            <li
-                              key={instance.instanceId || index}
-                              className="flex items-center justify-between gap-4 bg-white px-3 py-2.5 transition-colors hover:bg-gray-50"
-                            >
-                              <div className="min-w-0 flex-1">
-                                {/*
-                                 * Wraps rather than squeezing: both pills are
-                                 * shrink-0, so without this a long hostname on
-                                 * a narrow modal absorbs all the overflow and
-                                 * truncates to a few characters.
-                                 */}
-                                <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                                  <span
-                                    className="min-w-0 max-w-full truncate text-sm font-medium text-gray-900"
-                                    title={instance.host || "Unknown host"}
-                                  >
-                                    {instance.host || "Unknown host"}
-                                  </span>
-                                  {isThisInstance && (
-                                    <span className="shrink-0 rounded-full bg-indigo-50 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-indigo-700">
-                                      This instance
-                                    </span>
-                                  )}
-                                  {displayVersion && (
-                                    <span
-                                      className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium tabular-nums ${
-                                        isInstanceOutdated
-                                          ? "bg-amber-50 text-amber-800"
-                                          : "bg-gray-100 text-gray-600"
-                                      }`}
-                                      title={
-                                        isInstanceOutdated
-                                          ? `Running v${displayVersion}. OneUptime v${latestVersion} is available.`
-                                          : `Running v${displayVersion}.`
-                                      }
-                                    >
-                                      v{displayVersion}
-                                    </span>
-                                  )}
-                                </div>
-                                <p className="mt-0.5 truncate text-xs text-gray-500">
-                                  {formatInstanceReportedAt(
-                                    instance.lastReportedAt,
-                                  )}
-                                  {isInstanceOutdated
-                                    ? " Update available."
-                                    : ""}
-                                </p>
-                              </div>
-                              <div className="flex shrink-0 items-baseline justify-end gap-1">
-                                {typeof instance.userCount === "number" ? (
-                                  <>
-                                    <span className="text-sm font-medium tabular-nums text-gray-900">
-                                      {instance.userCount.toLocaleString()}
-                                    </span>
-                                    <span className="text-xs text-gray-500">
-                                      {instance.userCount === 1
-                                        ? "user"
-                                        : "users"}
-                                    </span>
-                                  </>
-                                ) : (
-                                  <span className="text-sm text-gray-400">
-                                    —
-                                  </span>
-                                )}
-                              </div>
-                            </li>
-                          );
-                        },
+                    {/*
+                     * The count bolder than its label, where the reader's
+                     * language puts it ("Users: 7", "Пользователей: 7").
+                     */}
+                    <div className="flex shrink-0 items-baseline justify-end gap-1">
+                      {typeof instance.userCount === "number" ? (
+                        <TranslatedSentence
+                          template={LicenseDetailsCopy.instanceUsers}
+                          slots={{
+                            count: (
+                              <span className="text-sm font-medium tabular-nums text-gray-900">
+                                {translator.formatNumber(instance.userCount)}
+                              </span>
+                            ),
+                          }}
+                          renderText={(text: string): ReactElement => {
+                            return (
+                              <span className="text-xs text-gray-500">
+                                {text}
+                              </span>
+                            );
+                          }}
+                        />
+                      ) : (
+                        <span className="text-sm text-gray-400">—</span>
                       )}
-                    </ul>
-                  </section>
-                )}
+                    </div>
+                  </li>
+                );
+              },
+            )}
+          </ul>
+        </section>
+      )}
     </>
   );
 

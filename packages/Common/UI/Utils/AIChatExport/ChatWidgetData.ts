@@ -6,13 +6,26 @@ import {
   AIChatWidgetSpan,
   AIChatWidgetStat,
   AIChatWidgetType,
+  isAIChatReadResourceCard,
 } from "../../../Types/AI/AIChatTypes";
+import {
+  AIActionCardFact,
+  isAIActionMoment,
+  isKnownAIActionCardWords,
+} from "../../../Types/AI/AIActionWords";
+import {
+  getFactsNotInHeading,
+  ResourceCardFact,
+} from "../../../Types/AI/ResourceCardFacts";
 import { JSONObject } from "../../../Types/JSON";
 import {
   TableDateTexts,
   getTableDateTexts,
 } from "../../Components/Table/TableDate";
-import { getReaderNumberLocale } from "../../../Types/DateLanguage";
+import {
+  getReaderNumberLocale,
+  inEnglishDates,
+} from "../../../Types/DateLanguage";
 
 /*
  * The formatting rules the AI chat widgets use on screen, factored out so the
@@ -118,6 +131,207 @@ export function getChatTableCellText(
 }
 
 /*
+ * The most letters a word of a table cell keeps whole on a narrow screen
+ * (issue #6969): "Operational", "Investigating", "Kubernetes". A longer
+ * one - an id, a host name - has nothing to wrap at, and whole it would
+ * push the table's other columns out of view, so it may break anywhere.
+ * A word wraps after each of its hyphens anyway, so its longest part
+ * between them is what counts ("legacy-payments-api").
+ */
+export const CHAT_TABLE_WHOLE_WORD_LENGTH: number = 16;
+
+// A cell's text between its spaces, the spaces kept.
+const CHAT_TABLE_SPACES: RegExp = /(\s+)/;
+
+// Where a word may wrap on its own: after each hyphen.
+const CHAT_TABLE_WORD_HYPHEN: string = "-";
+
+/*
+ * What makes a word a path, as an endpoint, a URL or a file has one: a
+ * slash ("/ledger/entries", "C:\Windows\System32"). A path may break
+ * anywhere however short its parts, and wraps after its slashes first
+ * (getChatTableWordParts). Kept whole, "POST /ledger/entries" was as wide
+ * as a long word, and a phone's table of endpoints no longer fit its card.
+ * A short one ("N/A") never breaks: a text column is at least 5rem wide.
+ */
+const CHAT_TABLE_PATH_SLASHES: ReadonlyArray<string> = ["/", "\\"];
+
+function isChatTablePathSlash(letter: string | undefined): boolean {
+  return letter !== undefined && CHAT_TABLE_PATH_SLASHES.includes(letter);
+}
+
+// Whether a word of a cell may break anywhere: a path, or a word too long to keep whole.
+function mayBreakAnywhere(word: string): boolean {
+  const isPath: boolean = CHAT_TABLE_PATH_SLASHES.some(
+    (slash: string): boolean => {
+      return word.includes(slash);
+    },
+  );
+
+  return (
+    isPath ||
+    word.split(CHAT_TABLE_WORD_HYPHEN).some((wrapsAlone: string): boolean => {
+      // Letters as a person counts them, not UTF-16 units.
+      return Array.from(wrapsAlone).length > CHAT_TABLE_WHOLE_WORD_LENGTH;
+    })
+  );
+}
+
+// A run of a table cell's text, and whether it may break between any two letters.
+export interface ChatTableCellPiece {
+  text: string;
+  breaksAnywhere: boolean;
+}
+
+/*
+ * A text cell of DataTableWidget in runs (issue #6969): its words of up to
+ * CHAT_TABLE_WHOLE_WORD_LENGTH letters - between hyphens - kept whole,
+ * which the cell breaks only when one is wider than the whole column, and
+ * each longer word, or path, on its own, which may break anywhere.
+ * Breaking every word anywhere let a phone's table make a column narrower
+ * than its words, and "Operational" was drawn as "Operationa" and "l".
+ */
+export function getChatTableCellPieces(
+  text: string,
+): Array<ChatTableCellPiece> {
+  const pieces: Array<ChatTableCellPiece> = [];
+
+  // Split at its spaces, kept: a word, then the spaces after it, by turns.
+  const parts: Array<string> = text.split(CHAT_TABLE_SPACES);
+
+  for (let index: number = 0; index < parts.length; index++) {
+    const part: string = parts[index]!;
+
+    if (!part) {
+      continue;
+    }
+
+    const isSpace: boolean = index % 2 === 1;
+    const breaksAnywhere: boolean = !isSpace && mayBreakAnywhere(part);
+    const last: ChatTableCellPiece | undefined = pieces[pieces.length - 1];
+
+    if (last && !last.breaksAnywhere && !breaksAnywhere) {
+      last.text += part;
+    } else {
+      pieces.push({ text: part, breaksAnywhere });
+    }
+  }
+
+  return pieces;
+}
+
+// The dot of a dotted name, "payments.example.com", which it may wrap before.
+const CHAT_TABLE_NAME_DOT: string = ".";
+
+// A letter of any script: what a name after a dot starts with.
+const CHAT_TABLE_LETTER: RegExp = /^\p{L}$/u;
+
+// A letter or a digit of any script: what a name before a dot ends with.
+const CHAT_TABLE_LETTER_OR_DIGIT: RegExp = /^[\p{L}\p{N}]$/u;
+
+/*
+ * Whether the dot at a place in a word starts a name of a dotted one - a
+ * host's "payments.example.com" - so the word may wrap before it: a dot
+ * between a name's last letter or digit and the next name's first letter.
+ * Never a number's ("10.0.12.34", "3.14"), a run of dots, or one at either
+ * end. Letters as a person counts them: an emoji is never half read.
+ */
+function isChatTableNameDot(word: string, index: number): boolean {
+  if (word[index] !== CHAT_TABLE_NAME_DOT || index === 0) {
+    return false;
+  }
+
+  const before: string | undefined = Array.from(
+    word.slice(Math.max(0, index - 2), index),
+  ).pop();
+  const afterCode: number | undefined = word.codePointAt(index + 1);
+
+  return (
+    before !== undefined &&
+    CHAT_TABLE_LETTER_OR_DIGIT.test(before) &&
+    afterCode !== undefined &&
+    CHAT_TABLE_LETTER.test(String.fromCodePoint(afterCode))
+  );
+}
+
+/*
+ * A word that may break anywhere, in the parts it wraps between first
+ * (issue #6969): after each run of slashes inside it, so a path wraps as
+ * "/api/", "v2/" and "checkout", and a part breaks only when it is wider
+ * than the whole column. Broken anywhere, "/ledger/entries" was drawn as
+ * "/ledger/en" and "tries". The slashes a word starts with stay with its
+ * first part ("/api/"), and so do those after a colon, with the name after
+ * them ("https://payments", "C:\Windows\"): alone on a line they say
+ * nothing, and take a line of the three a cell shows.
+ *
+ * A dotted name wraps before each dot that starts a name in it, as a style
+ * guide breaks a URL: a URL's host, after the two slashes that follow its
+ * scheme or start the word ("https://payments", ".example", ".com/"), and
+ * a word with no slash at all - a long host name. Broken anywhere, a
+ * monitor named by its URL was drawn as "https://payments.ex" over
+ * "ample.com/" at the panel's width. A path's other names keep their dots:
+ * "charge.ts" never wraps before its ".ts". The parts put together are the
+ * word.
+ */
+export function getChatTableWordParts(word: string): Array<string> {
+  if (!word) {
+    return [];
+  }
+
+  const parts: Array<string> = [];
+  let start: number = 0;
+  // Whether the part being read has a letter yet, not only slashes.
+  let hasLetter: boolean = false;
+  // Whether the name being read wraps before its dots: a word with no slash.
+  let isDottedName: boolean = !CHAT_TABLE_PATH_SLASHES.some(
+    (slash: string): boolean => {
+      return word.includes(slash);
+    },
+  );
+
+  // By UTF-16 unit: a slash and a dot are one, and never half of a pair.
+  for (let index: number = 0; index < word.length; index++) {
+    if (isChatTablePathSlash(word[index])) {
+      continue;
+    }
+
+    if (isChatTablePathSlash(word[index - 1])) {
+      // The letter before the run of slashes just read, if any.
+      let before: number = index - 1;
+      while (isChatTablePathSlash(word[before])) {
+        before--;
+      }
+
+      /*
+       * A URL's host is the name after two slashes or more, which follow
+       * its scheme's colon or start the word: a path's names, each after
+       * one slash, are not hosts.
+       */
+      isDottedName =
+        index - 1 - before >= 2 && (before < 0 || word[before] === ":");
+
+      if (hasLetter && word[before] !== ":") {
+        parts.push(word.slice(start, index));
+        start = index;
+      }
+    } else if (
+      isDottedName &&
+      index > start &&
+      isChatTableNameDot(word, index)
+    ) {
+      parts.push(word.slice(start, index));
+      start = index;
+    }
+
+    hasLetter = true;
+  }
+
+  parts.push(word.slice(start));
+
+  return parts;
+}
+
+/*
  * A table cell in the markdown and PDF exports. A date is written whole -
  * "Oct 14 2026, 11:57 AM GMT" - as the chat says it under the pointer: a
  * document is read later and elsewhere, so it keeps the year and the zone
@@ -143,6 +357,60 @@ export function formatTableCell(
     return value.toLocaleString(getReaderNumberLocale());
   }
   return String(value);
+}
+
+/*
+ * A resource card's facts as the exports write them: each once, as the
+ * card draws them (Types/AI/ResourceCardFacts), and a moment - when an
+ * on-call shift started, when it hands off - as the export writes its own
+ * dates ("Oct 26 2026, 13:00 GMT"), never the ISO text the card stores for
+ * them ("2026-10-26T13:00:00.000Z"), which the PDF printed as it was.
+ *
+ * A stored fact is a moment when the card's words say so at its place and
+ * its stored English is that moment's ISO text: a card saved before words,
+ * or one whose words are not ours, prints as stored.
+ */
+export function getExportedResourceCardFacts(
+  widget: AIChatWidget,
+): Array<ResourceCardFact> {
+  const stored: Array<ResourceCardFact> = widget.data.fields || [];
+  const words: Array<AIActionCardFact> = isKnownAIActionCardWords(
+    widget.data.words,
+    { isRead: isAIChatReadResourceCard(widget.data) },
+  )
+    ? widget.data.words.facts || []
+    : [];
+
+  const fields: Array<ResourceCardFact> = stored.map(
+    (field: ResourceCardFact, index: number): ResourceCardFact => {
+      const value: AIActionCardFact["value"] | undefined =
+        words.length === stored.length ? words[index]?.value : undefined;
+
+      if (!value || !isAIActionMoment(value) || value.moment !== field.value) {
+        return field;
+      }
+
+      const moment: Date = new Date(value.moment);
+
+      if (isNaN(moment.getTime())) {
+        return field;
+      }
+
+      return {
+        label: field.label,
+        // The export is English throughout, in the reader's time zone.
+        value: inEnglishDates((): string => {
+          return OneUptimeDate.getDateAsLocalFormattedString(moment);
+        }),
+      };
+    },
+  );
+
+  return getFactsNotInHeading({
+    heading: widget.data.heading,
+    subheading: widget.data.subheading,
+    fields,
+  });
 }
 
 // StatCardsWidget: the number/string union is discriminated at runtime.

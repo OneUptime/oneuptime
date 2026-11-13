@@ -1067,9 +1067,19 @@ describe("NoteTemplateMenu", () => {
       "Identified. We know why.",
     );
 
+    /*
+     * Each is a line of its own, read the way it is written (IsolatedLine):
+     * on this English page an English template reads the page's way, drawn
+     * with no dir of its own. An Arabic or Persian menu is in
+     * Tests/App/Dashboard/IncidentPageNamesReadingDirection.test.tsx.
+     */
+    expect(name).toHaveAttribute("data-testid", "note-template-name");
+    expect(preview).toHaveAttribute("data-testid", "note-template-preview");
+
     for (const written of [name, preview]) {
-      expect(written.tagName).toBe("BDI");
-      expect(written).toHaveAttribute("dir", "ltr");
+      expect(written.tagName).toBe("SPAN");
+      expect(written).not.toHaveAttribute("dir");
+      expect(written).toHaveClass("w-full", "truncate");
     }
   });
 });

@@ -868,7 +868,11 @@ describeWhenEnterprisePresent(
         "A failing export emails the people who can fix it: the project's owners for a project's export, and every master admin for the instance's.",
       );
 
-      // After 30 minutes, then a day before the oldest unsent entry is deleted.
+      /*
+       * After 30 minutes, then a day before the first of the unsent entries
+       * is deleted: the soonest retentionDate stamped on them (#6563), read
+       * whenever an email can be due, or reckoned only when it cannot be.
+       */
       expect(
         numberConstant(
           notifications,
@@ -884,8 +888,38 @@ describeWhenEnterprisePresent(
       expect(exporter).toContain(
         "await this.recordFailure(item, result.failure, batch.firstCreatedAt);",
       );
+      expect(exporter).toContain("? await this.findSoonestRetentionDate(data)");
+      expect(exporter).toContain(
+        "this.reader.findSoonestRetentionDateForExport(",
+      );
+      expect(notifications).toContain(
+        "return new Date(data.soonestRetentionDate);",
+      );
       expect(fails).toContain(
-        "The first email goes after 30 minutes of failures, with what the destination answered. A second goes a day before the oldest entry the export has not sent is deleted, with when entries start to be lost.",
+        "The first email goes after 30 minutes of failures, with what the destination answered. A second goes a day before the first of the entries the export has not sent is deleted, with when entries start to be lost.",
+      );
+
+      /*
+       * #7185: when that moment has already passed, the second email is due
+       * with the first (never sooner than 30 minutes) and goes in its place,
+       * as the more pressing one, and says entries are being lost now: the
+       * email reads the date against the time of the try.
+       */
+      expect(notifications).toContain(
+        "lostAt - AUDIT_LOG_EXPORT_LOSING_NOTICE_LEAD_IN_HOURS * HOUR_IN_MS,",
+      );
+      expect(notifications).toContain(
+        "return AuditLogExportFailureNotice.LosingEntries;\n  }\n\n  const failingAt: number =",
+      );
+      expect(notifications).toContain(
+        "lostAt.getTime() <= new Date(data.now).getTime()",
+      );
+      expect(notifications).toContain('lost: "is losing entries",');
+      expect(exporter).toContain(
+        "entriesLostAt,\n        now: data.now,\n        error: data.message,",
+      );
+      expect(fails).toContain(
+        "If that moment has already passed, as when **Export from** reaches back further than the retention, the second email takes the place of the first, 30 minutes in, and says entries are being lost now.",
       );
 
       // Once each while the failures go on: a delivery that works clears failingSince.

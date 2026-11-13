@@ -52,6 +52,8 @@ Geben Sie die Adresse unter **E-Mail** ein. Verwendet noch kein OneUptime-Konto 
 ### Die Einladung senden
 
 Klicken Sie auf **Einladen**. OneUptime sendet die Einladung per E-Mail und öffnet die Seite der Person. Bis zur Annahme erscheint sie als **Einladung gesendet**.
+
+Auf einem selbst gehosteten Server, der noch keine E-Mails senden kann, geht keine E-Mail hinaus, und die Person erscheint als **Eingeladen**. Ein Master-Admin sieht zuerst **Einladungslink selbst senden**: Kopieren Sie den Link, senden Sie ihn der Person selbst und klicken Sie dann auf **Fertig**. Alle anderen bitten den Admin des Servers, [E-Mail einzurichten](/docs/emails/smtp#das-formular-öffnen).
 :::
 
 > [!TIP]
@@ -76,7 +78,7 @@ Mit der Annahme ist die Person sofort im Projekt, mit den Berechtigungen ihres T
 | --- | --- |
 | **Benutzer** | Name und E-Mail-Adresse. |
 | **Teams** | Jedes Team des Projekts, in dem die Person ist oder zu dem sie eingeladen ist. |
-| **Status** | **Mitglied**, sobald sie beigetreten ist, mit der Zahl der noch nicht angenommenen Einladungen in andere Teams. **Einladung gesendet** bis dahin. |
+| **Status** | **Mitglied**, sobald sie beigetreten ist, mit der Zahl der noch nicht angenommenen Einladungen in andere Teams. **Einladung gesendet** bis dahin. Auf einem selbst gehosteten Server, der noch keine E-Mails senden kann, stattdessen **Eingeladen**: Die Einladung wird erstellt, aber keine E-Mail verschickt. |
 
 Filtern Sie die Liste nach **Benutzer**, **Status** oder **Team**. Klicken Sie auf eine Zeile, um die Seite der Person zu öffnen:
 
@@ -134,6 +136,8 @@ An eine Adresse können 10 Einladungen pro Stunde gesendet werden, zu Projekten 
 
 :::details Die Einladungs-E-Mail kam nicht an, oder ihr Link ist abgelaufen
 Die Einladung hängt nicht an der E-Mail. Bitten Sie die Person, sich mit der eingeladenen Adresse zu registrieren: OneUptime sendet an diese Adresse einen neuen Link, um das Konto fertig anzulegen. Wer schon ein Konto hat, meldet sich an und findet die Einladung vor.
+
+Auf einem selbst gehosteten Server, der noch keine E-Mails senden kann, kann auch die Registrierung keinen neuen Link per E-Mail senden: Sie bittet die Person stattdessen, nach ihrem Einladungslink zu fragen. Sobald der Admin des Servers [E-Mail eingerichtet](/docs/emails/smtp#das-formular-öffnen) hat, funktioniert die Registrierung wie oben. Bis dahin kann ein Master-Admin die Person aus dem Projekt entfernen, sie erneut einladen und ihr den neuen Einladungslink senden, der einmal funktioniert, nur für diese Adresse, 7 Tage lang.
 :::
 
 :::details Benutzer einladen meldet, dass Benutzer über SCIM Push Groups verwaltet werden

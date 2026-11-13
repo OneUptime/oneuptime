@@ -158,6 +158,8 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import { formatReaderFigure } from "Common/Types/DateLanguage";
+import { figureInSentence } from "../../../Components/ResourcePart/SentenceDigits";
 
 interface ResourceLink {
   title: string;
@@ -177,13 +179,18 @@ interface GoldenStats {
   networkOutBytesPerSec: number | null;
 }
 
+/*
+ * A tile's figure in the reader's digits, decimal sign and percent sign
+ * ("۹۷٫۵٪" in Persian, "97,5 %" in German; issue #7106). English reads
+ * exactly as toFixed wrote it.
+ */
 const formatPercent: (value: number | null) => string = (
   value: number | null,
 ): string => {
   if (value === null || !isFinite(value)) {
     return "—";
   }
-  return `${value.toFixed(1)}%`;
+  return formatReaderFigure(value, { decimals: 1, isPercent: true });
 };
 
 const formatMemoryBytes: (bytes: number | null | undefined) => string = (
@@ -199,7 +206,7 @@ const formatMemoryBytes: (bytes: number | null | undefined) => string = (
     v /= 1024;
     i++;
   }
-  return `${v.toFixed(v < 10 ? 1 : 0)} ${units[i]}`;
+  return `${formatReaderFigure(v, { decimals: v < 10 ? 1 : 0 })} ${units[i]}`;
 };
 
 const formatBytesPerSec: (value: number | null) => string = (
@@ -1615,7 +1622,10 @@ const KubernetesClusterOverview: FunctionComponent<
           value={
             availabilityPct === null
               ? "—"
-              : `${availabilityPct.toFixed(availabilityPct >= 99.95 ? 1 : 2)}%`
+              : formatReaderFigure(availabilityPct, {
+                  decimals: availabilityPct >= 99.95 ? 1 : 2,
+                  isPercent: true,
+                })
           }
           sublabel="heartbeat presence"
           percent={availabilityPct}
@@ -1795,7 +1805,9 @@ const KubernetesClusterOverview: FunctionComponent<
           }`}
         >
           {translator.translateTemplate("{{percent}}% uptime", {
-            percent: availabilityPct.toFixed(availabilityPct >= 99.95 ? 1 : 2),
+            percent: figureInSentence(availabilityPct, {
+              decimals: availabilityPct >= 99.95 ? 1 : 2,
+            }),
           })}
         </span>
       );
@@ -1885,7 +1897,7 @@ const KubernetesClusterOverview: FunctionComponent<
     links: Array<ResourceLink>,
   ): ReactElement => {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 py-4 pr-4 pl-1">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {links.map((link: ResourceLink) => {
           return (
             <div
@@ -1915,7 +1927,7 @@ const KubernetesClusterOverview: FunctionComponent<
                   </span>
                   {link.count !== undefined && (
                     <span className="inline-flex flex-shrink-0 items-center justify-center min-w-[1.5rem] h-6 px-2 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-700">
-                      {link.count}
+                      {translator.formatNumber(link.count)}
                     </span>
                   )}
                 </div>
@@ -2424,11 +2436,13 @@ const KubernetesClusterOverview: FunctionComponent<
               <span className="text-2xl font-semibold text-gray-300">—</span>
             ) : (
               <span className="text-2xl font-semibold">
-                {nodeCount.toString()}
+                {translator.formatNumber(nodeCount)}
                 {nodeHealthSummary.notReady > 0 && (
                   <span className="text-sm text-red-500 ml-1">
                     {translator.translateTemplate("({{notReady}} not ready)", {
-                      notReady: nodeHealthSummary.notReady,
+                      notReady: translator.formatNumber(
+                        nodeHealthSummary.notReady,
+                      ),
                     })}
                   </span>
                 )}
@@ -2454,7 +2468,7 @@ const KubernetesClusterOverview: FunctionComponent<
               <span className="text-2xl font-semibold text-gray-300">—</span>
             ) : (
               <span className="text-2xl font-semibold">
-                {podCount.toString()}
+                {translator.formatNumber(podCount)}
               </span>
             )
           }
@@ -2477,7 +2491,7 @@ const KubernetesClusterOverview: FunctionComponent<
               <span className="text-2xl font-semibold text-gray-300">—</span>
             ) : (
               <span className="text-2xl font-semibold">
-                {namespaceCount.toString()}
+                {translator.formatNumber(namespaceCount)}
               </span>
             )
           }
@@ -2588,12 +2602,10 @@ const KubernetesClusterOverview: FunctionComponent<
           )}
           description="Distribution of pod statuses across the cluster."
         >
-          <div className="p-4">
-            <StackedProgressBar
-              segments={podHealthSegments}
-              totalValue={podCount}
-            />
-          </div>
+          <StackedProgressBar
+            segments={podHealthSegments}
+            totalValue={podCount}
+          />
         </Card>
       )}
 
@@ -2656,7 +2668,7 @@ const KubernetesClusterOverview: FunctionComponent<
                         <div className="flex items-center justify-between mb-1.5">
                           <div className="flex items-center gap-2 min-w-0 flex-1">
                             <span className="flex-shrink-0 text-xs font-medium text-gray-400 w-4">
-                              {index + 1}.
+                              {translator.formatNumber(index + 1)}.
                             </span>
                             <span className="text-sm font-medium text-gray-900 truncate group-hover:text-indigo-700">
                               {pod.name}
@@ -2761,7 +2773,7 @@ const KubernetesClusterOverview: FunctionComponent<
                           <div className="flex items-center justify-between mb-1.5">
                             <div className="flex items-center gap-2 min-w-0 flex-1">
                               <span className="flex-shrink-0 text-xs font-medium text-gray-400 w-4">
-                                {index + 1}.
+                                {translator.formatNumber(index + 1)}.
                               </span>
                               <span className="text-sm font-medium text-gray-900 truncate group-hover:text-indigo-700">
                                 {pod.name}
@@ -2773,20 +2785,35 @@ const KubernetesClusterOverview: FunctionComponent<
                               )}
                             </div>
                             <div className="flex-shrink-0 text-right ml-2">
+                              {/*
+                               * A size set apart, as the tiles above write
+                               * theirs: "۳۲۹٫۰ MB" on a Persian page, never
+                               * "MB ۳۲۹٫۰".
+                               */}
                               <div className="text-sm font-semibold text-gray-700 tabular-nums">
-                                {pod.memoryUtilization !== null &&
-                                pod.memoryUtilization !== undefined
-                                  ? `${pod.memoryUtilization.toFixed(1)}%`
-                                  : KubernetesResourceUtils.formatMemoryValue(
-                                      pod.memoryUsageBytes,
-                                    )}
+                                <bdi>
+                                  {pod.memoryUtilization !== null &&
+                                  pod.memoryUtilization !== undefined
+                                    ? formatReaderFigure(
+                                        pod.memoryUtilization,
+                                        {
+                                          decimals: 1,
+                                          isPercent: true,
+                                        },
+                                      )
+                                    : KubernetesResourceUtils.formatMemoryValue(
+                                        pod.memoryUsageBytes,
+                                      )}
+                                </bdi>
                               </div>
                               {pod.memoryUtilization !== null &&
                               pod.memoryUtilization !== undefined ? (
                                 <div className="text-xs text-gray-400 tabular-nums">
-                                  {KubernetesResourceUtils.formatMemoryValue(
-                                    pod.memoryUsageBytes,
-                                  )}
+                                  <bdi>
+                                    {KubernetesResourceUtils.formatMemoryValue(
+                                      pod.memoryUsageBytes,
+                                    )}
+                                  </bdi>
                                 </div>
                               ) : null}
                             </div>

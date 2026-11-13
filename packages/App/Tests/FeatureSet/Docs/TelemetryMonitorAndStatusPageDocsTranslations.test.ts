@@ -10,6 +10,7 @@ import {
 } from "./DocsContentSupport";
 import {
   dashboardLocale,
+  dashboardTranslator,
   drawnActionLabel,
   isActionLabel,
 } from "./DocsDashboardLabels";
@@ -32,6 +33,12 @@ import {
   CUSTOM_DOMAIN_STATUS,
   CustomDomainCopy,
 } from "../../../FeatureSet/Dashboard/src/Components/CustomDomain/CustomDomainCopy";
+import {
+  CREATED_IMPORT_RESULT,
+  CREATED_IMPORT_RESULT_IN_ENGLISH,
+  getCreatedImportResultLabel,
+} from "../../../FeatureSet/Dashboard/src/Utils/ImportResultWords";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
@@ -78,6 +85,11 @@ import { isPermissionTitleKeptInEnglish } from "./DocsRoleNames";
  *   - One navigator button is a sentence with numbers in it ("Show N more of
  *     M"), and two empty tables say a whole sentence: TEMPLATES and MESSAGES
  *     name each as that language's locale words it.
+ *   - A word a screen draws under a key of its own, because the same
+ *     English means something else elsewhere, is OWN_KEY: an import
+ *     result's "Created" is drawn from "Created (import result)", never
+ *     the date column's "Created" (#7097), so Japanese writes 作成済み
+ *     there, not the column's 作成.
  *   - The Traces page's trace-pipeline recipe is held, sentence by sentence,
  *     by TracesMonitorSpanStatusDocs; here its menu path and filter are
  *     checked to be drawn segment by segment.
@@ -194,6 +206,9 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     "Scale",
     "Edit Status Page Domain",
     "Read Status Page Domain",
+    // What adding and verifying a project's domain takes.
+    "Create Domain",
+    "Edit Domain",
   ],
 };
 
@@ -283,6 +298,36 @@ const TEMPLATES: Record<string, Array<TemplateLabel>> = {
     },
   ],
 };
+
+interface OwnKeyLabel {
+  english: string;
+  // The key the screen draws it from.
+  key: string;
+  // What the screen draws, in a translator's language.
+  draw: (translator: Translator) => string;
+  // A component that draws it, and the call it draws it with.
+  file: string;
+  draws: string;
+}
+
+// Bold words a screen draws under a key of their own.
+const OWN_KEY: Record<string, Array<OwnKeyLabel>> = {
+  [RESOURCES_AND_GROUPS]: [
+    {
+      english: CREATED_IMPORT_RESULT_IN_ENGLISH,
+      key: CREATED_IMPORT_RESULT,
+      draw: getCreatedImportResultLabel,
+      file: "App/FeatureSet/Dashboard/src/Components/StatusPage/ImportGroupsFromCsvModal.tsx",
+      draws: "getCreatedImportResultLabel(translator)",
+    },
+  ],
+};
+
+function ownKeyLabels(page: string): Array<string> {
+  return (OWN_KEY[page] || []).map((entry: OwnKeyLabel): string => {
+    return entry.english;
+  });
+}
 
 interface MessageLabel {
   english: string;
@@ -413,6 +458,7 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     // A resource's name as a customer would say it.
     "Checkout API",
     "Archived monitors are not shown.",
+    "A monitor whose monitoring is off shows Not monitored.",
     "Resources decide which incidents the page shows.",
     "A monitor group row stands for every monitor in it, for subscribers too.",
     // The parts of the Resources screen, named for what they are.
@@ -435,12 +481,10 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "There is no brand-color picker.",
     "Custom code in the dark theme.",
     "Add the domain",
-    "Add its CNAME record",
+    "Add its DNS records",
     "The free SSL certificate is issued automatically",
-    "The parent domain must be verified.",
     "Your installation needs a status page CNAME record.",
-    "The record is not found yet.",
-    "The record is found.",
+    "A self-hosted server is checked first.",
   ],
 };
 
@@ -745,6 +789,7 @@ describe("the lists this test keeps", () => {
       FLAT_LOOKUP,
       TEMPLATES,
       MESSAGES,
+      OWN_KEY,
       PROSE,
       PROSE_LEADS,
       CONDITIONS_WITH_VALUES,
@@ -887,6 +932,28 @@ describe("the lists this test keeps", () => {
     }
   });
 
+  it("name as own-key words only bold words a component draws under that key", () => {
+    for (const page of Object.keys(OWN_KEY)) {
+      const labels: Array<string> = boldLabels(englishPage(page));
+
+      for (const entry of OWN_KEY[page] as Array<OwnKeyLabel>) {
+        expect({
+          english: entry.english,
+          bold: true,
+          drawnInEnglish: entry.english,
+          keyInLocale: true,
+          found: true,
+        }).toEqual({
+          english: entry.english,
+          bold: labels.includes(entry.english),
+          drawnInEnglish: entry.draw(dashboardTranslator("en")),
+          keyInLocale: typeof dashboardLocale("en")[entry.key] === "string",
+          found: readSource(entry.file).includes(entry.draws),
+        });
+      }
+    }
+  });
+
   it("name templates and messages the locale has, as the English page bolds them", () => {
     for (const page of Object.keys(TEMPLATES)) {
       const labels: Array<string> = boldLabels(englishPage(page));
@@ -934,6 +1001,7 @@ describe("the lists this test keeps", () => {
         ...(MESSAGES[page] || []).map((entry: MessageLabel): string => {
           return entry.english;
         }),
+        ...ownKeyLabels(page),
       ];
       const recipe: Array<string> =
         page === TRACES_MONITOR
@@ -1227,6 +1295,7 @@ describe.each(LANGUAGES)("%s", (language: string) => {
         ...(PROSE[entry.page] || []),
         ...(KEPT_IN_ENGLISH[entry.page] || []),
         ...flatLabels(entry.page),
+        ...ownKeyLabels(entry.page),
       ];
       const missing: Array<string> = boldLabels(english)
         .filter((label: string): boolean => {
@@ -1322,6 +1391,27 @@ describe.each(LANGUAGES)("%s", (language: string) => {
           found: translated.includes(`**${drawn}**`),
           // Where the language draws the condition otherwise, the English is gone.
           english: drawn !== english && translated.includes(`**${english}**`),
+        });
+      }
+    });
+
+    it("names a word drawn under a key of its own as that key words it, not as the plain label", () => {
+      const translated: string = readPage(language, entry.page);
+
+      for (const own of OWN_KEY[entry.page] || []) {
+        const drawn: string = own.draw(dashboardTranslator(language));
+        const plain: string = drawnActionLabel(language, own.english);
+
+        expect({
+          language,
+          drawn,
+          found: true,
+          plainInstead: false,
+        }).toEqual({
+          language,
+          drawn,
+          found: translated.includes(`**${drawn}**`),
+          plainInstead: plain !== drawn && translated.includes(`**${plain}**`),
         });
       }
     });

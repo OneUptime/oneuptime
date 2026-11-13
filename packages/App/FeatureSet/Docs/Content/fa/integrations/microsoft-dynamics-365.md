@@ -120,7 +120,7 @@ Dataverse چیزی شبیه برچسب‌های Jira ندارد، پس یک پر
 
 **قالب‌ها چگونه وارد می‌شوند.** جادوگر مستأجر، شناسه کلاینت و راز را در یک [متغیر OAuth 2.0](/docs/workflows/variables#متغیرهای-oauth-20-توکنهایی-که-خودشان-را-تازه-میکنند)، یعنی `dynamicsAccessToken`، زیر **متغیرهای گردش کاری** گردش کاری ذخیره می‌کند: Client Credentials، نشانی توکن `https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token`، دامنه `<environment URL>/.default`، و راز کلاینت که در بدنه درخواست فرستاده و رمزگذاری‌شده ذخیره می‌شود. هر فراخوانی Dynamics 365 سرآیند `Authorization: Bearer {{local.variables.dynamicsAccessToken}}` را می‌فرستد. OneUptime توکن را نخستین باری که گامی به آن نیاز دارد می‌گیرد، پیش از انقضایش توکن تازه‌ای می‌گیرد، و در لاگ‌های اجرا و ردگیری گام‌ها آن را با `[REDACTED]` جایگزین می‌کند.
 
-برای بررسی ورود پیش از اجرای هر چیزی، **متغیرهای گردش کاری** را باز کنید، روی **مشاهده** در `dynamicsAccessToken` کلیک کنید، و روی **تازه‌سازی فوری** کلیک کنید. **Access Token Fetched** یعنی ثبت برنامه درست است. در غیر این صورت خطای Microsoft Entra ID نام می‌برد چه چیزی نادرست است، مانند `AADSTS7000215: Invalid client secret provided`.
+برای بررسی ورود پیش از اجرای هر چیزی، **متغیرهای گردش کاری** را باز کنید، روی **مشاهده** در `dynamicsAccessToken` کلیک کنید، و روی **تازه‌سازی فوری** کلیک کنید. **توکن دسترسی دریافت شد** یعنی ثبت برنامه درست است. در غیر این صورت خطای Microsoft Entra ID نام می‌برد چه چیزی نادرست است، مانند `AADSTS7000215: Invalid client secret provided`.
 
 هر گردش کاری نسخه خودش را نگه می‌دارد. وقتی راز کلاینت را جایگزین می‌کنید، `dynamicsAccessToken` را در هر گردش کاری Dynamics 365 باز کنید و از **به‌روزرسانی اطلاعات ورود** استفاده کنید.
 
@@ -258,7 +258,7 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 
 توکن را یک بار، برای همه گردش‌های کاری، به صورت یک [متغیر OAuth 2.0](/docs/workflows/variables#متغیرهای-oauth-20-توکنهایی-که-خودشان-را-تازه-میکنند) بسازید:
 
-1. به **گردش‌های کاری** > **متغیرهای سراسری** بروید، منوی **بیشتر** (**⋯**) کنار **ساخت متغیر گردش کاری** را باز کنید، و **Create OAuth 2.0 Variable** را برگزینید. نامش را `DYNAMICS_TOKEN` بگذارید.
+1. به **گردش‌های کاری** > **متغیرهای سراسری** بروید، منوی **بیشتر** (**⋯**) کنار **ساخت متغیر گردش کاری** را باز کنید، و **ساخت متغیر OAuth 2.0** را برگزینید. نامش را `DYNAMICS_TOKEN` بگذارید.
 2. در **ارائه‌دهنده**، **Microsoft Entra ID** را برگزینید، `{tenant-id}` را در **نشانی توکن** با Directory (tenant) ID خود جایگزین کنید، و **Client Credentials** را برگزینید.
 3. در **اعتبارنامه‌ها**، **شناسه کلاینت** و **کلید محرمانه کلاینت** را وارد کنید. در **پیشرفته**، دامنه را روی `https://yourorg.crm.dynamics.com/.default` بگذارید، سپس متغیر را بسازید.
 
@@ -270,7 +270,7 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 
 :::steps
 1. از صفر یک گردش کاری به نام `Incidents to Dynamics 365` بسازید. روی بلوک خط‌چین کلیک کنید و تریگر **On Create Incident** را اضافه کنید. **Fields to pass on** آن از پیش **عنوان** را دارد: روی **افزودن فیلد** کلیک کنید و **توضیحات** و **شماره حادثه** را برگزینید. شناسه همیشه منتقل می‌شود.
-2. روی **افزودن مؤلفه** کلیک کنید، یک بلوک **API Post (JSON)** اضافه کنید، و نقطه **Success** تریگر را به آن وصل کنید. **Identifier** آن را روی `create-case`، و **URL** آن را روی `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber` بگذارید.
+2. روی **افزودن مؤلفه** کلیک کنید، یک بلوک **API Post (JSON)** اضافه کنید، و نقطه **Success** تریگر را به آن وصل کنید. **شناسه** آن را روی `create-case`، و **URL** آن را روی `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber` بگذارید.
 3. زیر **فیلدهای بیشتر**، **Request Headers** آن را روی این بگذارید:
 
    ```json
@@ -323,9 +323,9 @@ Dynamics 365 ستون `severitycode` را با تنها یک گزینه عرضه
 این را به صورت یک گردش کاری دوم بسازید، تا شکستی در اینجا هرگز جلوی باز شدن پرونده‌ها را نگیرد.
 
 :::steps
-1. گردش کاری‌ای به نام `Close Dynamics 365 cases` با تریگر **On Update Incident** بسازید. در **Fields to watch** روی **افزودن فیلد** کلیک کنید و **Current Incident State** را برگزینید. در **Fields to pass on** روی **افزودن فیلد** کلیک کنید، **Current Incident State** را باز کنید و **Is Resolved State** را برگزینید.
+1. گردش کاری‌ای به نام `Close Dynamics 365 cases` با تریگر **On Update Incident** بسازید. در **Fields to watch** روی **افزودن فیلد** کلیک کنید و **حالت فعلی حادثه** را برگزینید. در **Fields to pass on** روی **افزودن فیلد** کلیک کنید، **حالت فعلی حادثه** را باز کنید و **حالت برطرف‌شده است** را برگزینید.
 2. یک بلوک **If / Else** اضافه کنید: **Value to check** برابر `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`، **Comparison** برابر **is true**.
-3. پس از سمت **Yes** آن، یک بلوک **API Get (JSON)** با **Identifier** برابر `find-case`، همان سرآیندها بدون `Prefer`، و این **URL** اضافه کنید:
+3. پس از سمت **Yes** آن، یک بلوک **API Get (JSON)** با **شناسه** برابر `find-case`، همان سرآیندها بدون `Prefer`، و این **URL** اضافه کنید:
 
    ```text
    https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid&$filter=new_oneuptimelink%20eq%20'oneuptime-incident-{{local.components.incident-on-update-1.returnValues.model._id}}'

@@ -34,6 +34,14 @@ import DashboardWidgetTimeRangeZoom, {
 } from "../Utils/DashboardWidgetTimeRangeZoom";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { useDashboardWidgetPlace } from "./DashboardWidgetPreview";
+import {
+  DASHBOARD_WIDGET_SETUP_LINE_CLASS_NAME,
+  DASHBOARD_WIDGET_SETUP_LINE_TEST_ID,
+  DASHBOARD_WIDGET_SETUP_NAME_CLASS_NAME,
+  DashboardWidgetSetupNeed,
+  getDashboardWidgetSetupLine,
+} from "./DashboardWidgetSetupCopy";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardDataSourceChartComponentType;
@@ -64,6 +72,15 @@ const DashboardDataSourceChartComponent: FunctionComponent<ComponentProps> = (
   const queryConfigs: Array<DataSourceQueryConfig> = useMemo(() => {
     return getConfiguredDataSourceQueries(props.component.arguments.queries);
   }, [props.component.arguments.queries]);
+
+  /*
+   * What the chart says until a query is set up, for where it is drawn: a
+   * click opens its settings only on the board being edited (issue #7160).
+   */
+  const setupMessage: string = getDashboardWidgetSetupLine(
+    DashboardWidgetSetupNeed.Query,
+    useDashboardWidgetPlace(props.isEditMode),
+  );
 
   const startAndEndDate: ReturnType<
     typeof RangeStartAndEndDateTimeUtil.getStartAndEndDate
@@ -275,12 +292,15 @@ const DashboardDataSourceChartComponent: FunctionComponent<ComponentProps> = (
             <Icon icon={IconProp.ChartBar} />
           </div>
         </div>
-        <p className="text-xs font-medium text-gray-500">
+        <p className={DASHBOARD_WIDGET_SETUP_NAME_CLASS_NAME}>
           {props.component.arguments.chartTitle?.trim() ||
             translator.translateText("Data Source Chart")}
         </p>
-        <p className="text-xs text-gray-400 text-center">
-          {translator.translateText("Click to configure a query")}
+        <p
+          className={DASHBOARD_WIDGET_SETUP_LINE_CLASS_NAME}
+          data-testid={DASHBOARD_WIDGET_SETUP_LINE_TEST_ID}
+        >
+          {translator.translateText(setupMessage)}
         </p>
       </div>
     );
@@ -358,9 +378,11 @@ const DashboardDataSourceChartComponent: FunctionComponent<ComponentProps> = (
            * synthetic query config — OneUptime's logs/traces/exceptions
            * and the Metric Explorer know nothing about them, so the
            * per-series investigate menu would only mislead (and it must
-           * never render on unauthenticated public dashboards).
+           * never render on unauthenticated public dashboards). Nor do
+           * they have OneUptime exemplars to open a trace from.
            */
           enableSeriesActions={false}
+          enableExemplarActions={false}
           chartSyncId={props.chartSyncId}
           onTimeRangeSelect={timeRangeZoom.onTimeRangeSelect}
           onTimeRangeReset={timeRangeZoom.onTimeRangeReset}

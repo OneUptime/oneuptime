@@ -1,6 +1,6 @@
 # Incidenten – Overzicht
 
-Een incident is het dossier van waaruit je team werkt als er iets stukgaat: wat er getroffen is, hoe erg het is, hoe ver de respons staat, wie de eigenaar is, en alles wat er onderweg wordt opgeschreven. Eén melden roept de juiste bereikbaarheidsrotatie op, laat de eigenaren het weten en zet — als je dat wilt — de storing op je statuspagina, zodat klanten weten dat je ermee bezig bent.
+Een incident is het dossier van waaruit je team werkt als er iets stukgaat: wat er getroffen is, hoe erg het is, hoe ver de respons staat, wie de eigenaar is, en alles wat er onderweg wordt opgeschreven. Eén melden roept de juiste bereikbaarheidsrotatie op, laat de eigenaren het weten en zet — als je dat wilt — de storing op je statuspagina, zodat klanten weten dat je ermee bezig bent. Twijfel je of een probleem een incident of een waarschuwing is? [Welke gebruik ik?](/docs/introduction/which-one#incident-waarschuwing-of-een-ander-soort-probleem) zet ze naast elkaar.
 
 :::cards
 - [Een incident melden](/docs/incidents/declaring-incidents): Met de hand, vanuit een sjabloon, vanuit een monitor, via de API of via een formulier.
@@ -86,7 +86,7 @@ Daarna kun je een [postmortem](/docs/incidents/postmortems) schrijven en het eve
 
 ## Kernbegrippen
 
-Een handvol woorden komt op elke andere pagina in deze sectie terug. Zet die eerst op een rij.
+Een handvol woorden komt op elke andere pagina in deze sectie terug. Zet die eerst op een rij. De woorden die in heel OneUptime worden gebruikt, staan in de [Woordenlijst](/docs/introduction/glossary).
 
 | Begrip                 | Wat het betekent                                                                                                                                    |
 | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -162,7 +162,7 @@ Open **Incidenten** vanuit het menu **Producten** in de bovenbalk. Het zijmenu i
 | **AI**         | **Inzichten**, **Logboeken**, **Instellingen**: wat OneUptime AI van je incidenten heeft geleerd en alles wat het ervoor heeft gedaan, en wat het zelf mag doen — met de regels voor welke incidenten het onderzoekt en herstelt. Zie [AI SRE](/docs/ai/ai-sre). |
 | **Werkruimte** | De chatwerkruimten die dit project heeft gekoppeld: **Slack**, **Microsoft Teams** en **Mattermost**, elk met zijn meldingsregels voor incidenten. Is er geen gekoppeld, dan staat hier **Werkruimte koppelen**, een pagina die alle drie toont en hoe je ze koppelt. |
 | **Regels**     | De regelmotoren: **Groeperingsregels**, **Bereikbaarheidsregels**, **Eigenaarsregels**, **Runbook-regels**, **Privacyregels**, **Labelregels**, **SLA-regels**, **Herinneringsregels**. |
-| **Instellingen** | **Status incident**, **Ernst van incident**, **Incident-sjablonen**, **Notitie-sjablonen**, **Goedkeuring van openbare notities**, **Postmortem-sjablonen**, **Postmortem-statussen**, **Aangepaste velden**, **Incidentrollen**, **Metingen**, **Gekoppelde waarschuwingen**, **Lidmaatschap van episodes**, **Nummering**. |
+| **Instellingen** | **Status incident**, **Ernst van incident**, **Incident-sjablonen**, **Notitie-sjablonen**, **Goedkeuring van openbare notities**, **Postmortem-sjablonen**, **Postmortem-statussen**, **Aangepaste velden**, **Incidentrollen**, **Metingen**, **Gekoppelde waarschuwingen**, **Lidmaatschap van episodes**, **Nummering**, **Gegevensbewaring**. |
 
 **Overzicht** en **Episoden** staan open; **AI**, **Werkruimte**, **Regels**, **Instellingen** en **Ontwikkelaars** zijn standaard ingeklapt, zodat het menu opent op de lijsten die je elke dag gebruikt. Klik op de titel van een sectie om die uit te klappen en de pagina's te vinden waar de rest van deze documentatie naar verwijst; een sectie gaat ook vanzelf open wanneer je op een van haar pagina's bent. De incidentconfiguratie staat niet onder de projectinstellingen; die staat helemaal hier.
 

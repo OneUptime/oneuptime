@@ -1,17 +1,21 @@
 # SSL-certificaat-monitor
 
-Een SSL-certificaatmonitor controleert de TLS-certificaten die uw sites en services tonen, zoals een browser dat doet, en waarschuwt u voordat ze verlopen. Hij zet de monitor ook offline wanneer een certificaat niet meer geldig is: verlopen, zelfondertekend, uitgegeven voor een andere hostnaam, of door een instantie die browsers niet vertrouwen.
+Een SSL-certificaatmonitor controleert de TLS-certificaten die uw sites en services tonen, zoals een browser dat doet, en waarschuwt u voordat ze verlopen. Hij zet de monitor ook offline wanneer een certificaat niet meer geldig is: verlopen, ingetrokken door de uitgever, zelfondertekend, uitgegeven voor een andere hostnaam, of door een instantie die browsers niet vertrouwen.
 
 :::cards
 - [De monitor maken](#een-ssl-certificaatmonitor-maken): Zes stappen in het dashboard.
 - [Standaardcriteria](#standaardcriteria): Een waarschuwing 14 dagen voor het verlopen, zonder instellen.
-- [Bewakingscriteria](#bewakingscriteria): Geldigheid, verlopen en zelfondertekende certificaten.
-- [Problemen oplossen](#problemen-oplossen): Zelfondertekende en interne certificaten.
+- [Bewakingscriteria](#bewakingscriteria): Geldigheid, verlopen, intrekking en zelfondertekende certificaten.
+- [Problemen oplossen](#problemen-oplossen): Zelfondertekende en interne certificaten, en de intrekkingscontrole.
 :::
 
 ## Hoe het werkt
 
 Bij elke controle opent een sonde een TLS-verbinding met de host en poort in de URL, poort `443` tenzij de URL een andere noemt, en controleert het certificaat zoals een browser dat zou doen: een vertrouwde uitgever, een hostnaam die overeenkomt en data die vandaag omvatten. Als het certificaat de controle niet doorstaat, leest de sonde het toch, zodat de vervaldatum, de uitgever en de vingerafdrukken hoe dan ook worden vastgelegd. Een verbinding die mislukt, een time-out krijgt of een ongeldig certificaat toont, wordt opnieuw geprobeerd, tot het aantal nieuwe pogingen dat u toestaat. Daarna beoordeelt OneUptime het resultaat met de criteria van de monitor.
+
+Een certificaat dat die controles doorstaat, wordt ook op intrekking gecontroleerd, zoals een browser dat doet. De sonde leest het OCSP-antwoord dat de server met zijn certificaat meestuurt, als dat er is, vraagt daarna de OCSP-responder van de uitgever die in het certificaat staat en leest, alleen als die geen antwoord geeft, de certificaatintrekkingslijst (CRL) van de uitgever. Hij vertrouwt alleen een actueel antwoord dat is ondertekend door de uitgever of door een responder die de uitgever heeft gemachtigd, en hij controleert het eigen certificaat van de server, niet de tussencertificaten. Een ingetrokken certificaat is niet geldig. Als er geen ondertekend antwoord te krijgen is, is de intrekkingsstatus onbekend en wordt het certificaat, net als in een browser, niet als ingetrokken behandeld.
+
+Een antwoord wordt bewaard tot de volgende update van de uitgever, hoogstens een uur, en een opvraging die mislukte wordt na 5 minuten opnieuw geprobeerd. Een nieuw certificaat wordt dus meteen gecontroleerd, en een certificaat dat wordt ingetrokken terwijl het in gebruik is, wordt binnen een uur opgemerkt.
 
 ```mermaid title="Hoe de standaardcriteria een certificaat beoordelen"
 flowchart TB
@@ -34,7 +38,7 @@ Een sonde die haar eigen netwerkverbinding kwijt is, meldt geen resultaat en kan
 :::steps
 ### Een nieuwe monitor beginnen
 
-Ga naar **Monitoren** en klik op **Monitor maken**. Kies onder **Monitortype** het type **SSL Certificate**.
+Ga naar **Monitoren** en klik op **Monitor maken**. Kies onder **Monitortype** het type **SSL-certificaat**.
 
 ### Hem een naam geven
 
@@ -73,9 +77,10 @@ Criteria bepalen wanneer het certificaat telt als in orde, verminderd of kapot, 
 
 | Filter | Voorwaarden | Wat het controleert |
 | --- | --- | --- |
-| **Certificaat is geldig** | **Waar**, **Onwaar** | Het certificaat doorstaat de controles van een browser: een vertrouwde uitgever, een hostnaam die overeenkomt en data die vandaag omvatten. **Onwaar** wanneer het eindpunt niet antwoordde. |
+| **Certificaat is geldig** | **Waar**, **Onwaar** | Het certificaat doorstaat de controles van een browser: een vertrouwde uitgever, een hostnaam die overeenkomt, data die vandaag omvatten en geen intrekking door de uitgever. **Onwaar** wanneer het eindpunt niet antwoordde. |
 | **Certificaat is ongeldig** | **Waar**, **Onwaar** | Het tegenovergestelde van **Certificaat is geldig**: **Waar** wanneer het certificaat die controles niet doorstaat of niet kon worden gecontroleerd. |
 | **Certificaat is verlopen** | **Waar**, **Onwaar** | De vervaldatum van het certificaat is verstreken. |
+| **Certificaat is ingetrokken** | **Waar**, **Onwaar** | De uitgever van het certificaat heeft het ingetrokken. **Onwaar** wanneer de uitgever zegt dat het niet is ingetrokken, en wanneer dat niet kon worden gecontroleerd. |
 | **Certificaat is zelfondertekend** | **Waar**, **Onwaar** | Het certificaat, of een certificaat in de keten, is zelfondertekend. |
 | **Dagen tot verloop** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | Dagen totdat het certificaat verloopt. |
 | **Uren tot verloop** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | Uren totdat het certificaat verloopt. |
@@ -88,7 +93,7 @@ Met twee of meer filters bepaalt **Overeenkomstvoorwaarde** of **Alle** filters 
 
 Een nieuwe SSL-certificaatmonitor begint met drie criteria, zodat hij u zonder instellen waarschuwt voordat een certificaat verloopt:
 
-1. **Certificaat is niet geldig** — het certificaat is verlopen, zelfondertekend, uitgegeven voor een andere hostnaam of door een niet-vertrouwde instantie, of kon niet worden gecontroleerd omdat het eindpunt niet antwoordde. De monitor wordt als **Offline** gemarkeerd en er wordt een incident met de naam "_monitor name_ certificate is not valid" gemaakt. De hoofdoorzaak ervan zegt welk van deze gevallen het was. Het incident lost zichzelf op zodra het certificaat weer geldig is.
+1. **Certificaat is niet geldig** — het certificaat is verlopen, ingetrokken door de uitgever, zelfondertekend, uitgegeven voor een andere hostnaam of door een niet-vertrouwde instantie, of kon niet worden gecontroleerd omdat het eindpunt niet antwoordde. De monitor wordt als **Offline** gemarkeerd en er wordt een incident met de naam "_monitor name_ certificate is not valid" gemaakt. De hoofdoorzaak ervan zegt welk van deze gevallen het was en, bij een ingetrokken certificaat, wanneer en waarom de uitgever het heeft ingetrokken. Het incident lost zichzelf op zodra het certificaat weer geldig is.
 2. **Certificaat verloopt binnenkort** — het certificaat is geldig, maar verloopt binnen 14 dagen. Er wordt een **waarschuwing** met de naam "_monitor name_ certificate expires soon" aangemaakt.
 3. **Certificaat is geldig** — de monitor wordt als **Operationeel** gemarkeerd.
 
@@ -115,8 +120,9 @@ Monitoren die zijn gemaakt voordat OneUptime deze waarschuwing toevoegde, hebben
 | Iemand op de laatste dag oproepen | **Uren tot verloop** | **Kleiner dan** | `24` |
 | Pas offline wanneer het certificaat verlopen is | **Certificaat is verlopen** | **Waar** | — |
 | Een zelfondertekend certificaat markeren | **Certificaat is zelfondertekend** | **Waar** | — |
+| Het securityteam oproepen wanneer de uitgever het certificaat intrekt | **Certificaat is ingetrokken** | **Waar** | — |
 
-Een criterium over het verlopen moet boven het criterium staan dat het certificaat als geldig markeert: een certificaat dat bijna verloopt is nog geldig, en het eerste criterium dat overeenkomt wint.
+Een criterium over het verlopen moet boven het criterium staan dat het certificaat als geldig markeert: een certificaat dat bijna verloopt is nog geldig, en het eerste criterium dat overeenkomt wint. Op dezelfde manier is een ingetrokken certificaat ook niet geldig, dus een criterium met **Certificaat is ingetrokken** moet boven het criterium "niet geldig" staan.
 
 ## Aanbevolen werkwijzen
 
@@ -143,6 +149,12 @@ Zolang het certificaat actueel is, komt geen enkel criterium overeen en toont de
 
 :::details De monitor is offline met "could not be checked because the endpoint is not reachable"
 De sonde kon geen TLS-verbinding met de host en poort openen. Controleer de poort in de URL, en of een firewall de sondes doorlaat. Een host in een privénetwerk heeft een [aangepaste sonde](/docs/probe/custom-probe) nodig.
+:::
+
+:::details De intrekkingsstatus van het certificaat kon niet worden gecontroleerd
+Als de sonde geen ondertekend antwoord van de uitgever van het certificaat kan krijgen, toont de samenvatting van de monitor **Intrekkingsstatus** als **Kon niet worden gecontroleerd**, en **Probleem bij intrekkingscontrole**, onder **Meer details weergeven**, zegt waarom: het certificaat noemt geen OCSP-responder of CRL, de uitgever antwoordde niet op tijd, of zijn antwoord kon niet worden geverifieerd. Net als in een browser wordt zo'n certificaat niet als ingetrokken behandeld, en de sonde vraagt het na 5 minuten opnieuw.
+
+Een [aangepaste sonde](/docs/probe/custom-probe) zonder internettoegang kan geen enkele uitgever bereiken. Hij controleert certificaten toch: hij wacht enkele seconden op elke responder die hij niet bereikt, ongeveer eens per 5 minuten. Zet `PROBE_CERTIFICATE_REVOCATION_CHECK_ENABLED` op de sonde op `false` en start hem opnieuw om hem te laten stoppen met vragen.
 :::
 
 ## Volgende stappen

@@ -26,7 +26,7 @@ flowchart TB
 | AWS Elastic Beanstalk | `aws_elastic_beanstalk` | Collectorens detektorer `elastic_beanstalk` og `ec2`; `aws` i Node.js | `host.id` (fjern udrulningens `service.instance.id`) |
 | AWS App Runner | `aws_app_runner` | Dig (ingen detektor) | `host.name` |
 | Google App Engine | `gcp_app_engine` | Detektoren `gcp` (Collectorens og hvert SDK's) | `faas.instance` |
-| Azure App Service | `azure_app_service` | Collectorens `azureappservice`, Azure-detektorerne `azure` til Node.js og .NET; `cloud.account.id` af dig | `service.instance.id`, derefter `host.id` |
+| Azure App Service | `azure_app_service` | Collectorens `azureappservice`, Azure-detektorerne `azure` til Node.js og .NET; med SDK'erne `cloud.account.id` af dig | `azure.app_service.instance.id`, ellers `service.instance.id`, derefter `host.id` |
 | Azure Container Instances | `azure_container_instances` | Dig (ingen detektor) | `host.name` |
 
 Hvert afsnit nedenfor kræver en indtagelsesnøgle af typen **Server** fra **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler** og en applikation, der er instrumenteret med et OpenTelemetry-SDK. Hvis du selv hoster OneUptime, så erstat `https://oneuptime.com/otlp` med `https://YOUR-ONEUPTIME-HOST/otlp`.
@@ -158,7 +158,7 @@ env_variables:
 
 ## Azure App Service
 
-`cloud.platform`: `azure_app_service`. Azure-detektorerne til Node.js og .NET samt Collectorens detektor `azureappservice` læser variablerne `WEBSITE_*`, som App Service sætter. De udfylder `cloud.platform`, `cloud.region`, `service.instance.id` (fra `WEBSITE_INSTANCE_ID`), `deployment.environment` (slottet) og `host.id`. Ingen af dem sætter `cloud.account.id`: tilføj selv abonnements-ID'et, ellers får miljønøglen et tomt kontosegment.
+`cloud.platform`: `azure_app_service`. Azure-detektorerne til Node.js og .NET læser variablerne `WEBSITE_*`, som App Service sætter, og udfylder `cloud.platform`, `cloud.region`, `service.instance.id` (fra `WEBSITE_INSTANCE_ID`), `deployment.environment` (slottet) og `host.id`, men ikke `cloud.account.id`: tilføj selv abonnements-ID'et, ellers får miljønøglen et tomt kontosegment. Collectorens detektor `azureappservice` læser de samme variabler, sætter også `cloud.account.id` og navngiver instansen i `azure.app_service.instance.id`.
 
 ```bash
 OTEL_SERVICE_NAME=checkout-api
@@ -181,6 +181,8 @@ SDK-detektorerne staver platformen `azure.app_service` med et punktum; OneUptime
 :::
 
 **Netværk:** App Service når internettet direkte, medmindre **VNet integration** med **Route All** er slået til. Så skal VNet'et have en NAT-gateway eller en rute til en firewall, der tillader TCP 443 til OneUptime-værten.
+
+**Hvad appens side viser:** anmodninger, fejlrate og latens kommer fra appens spor, så en app, der kun sender logs eller metrikker, viser **Ingen spor modtaget** dér, og dens **Opsætningstjek** siger, hvad der skal tilføjes. App Service giver ikke en app sin egen CPU eller hukommelse, og dens felter for CPU og hukommelse siger det. Forbind abonnementet under **Cloud → Forbind**, og appens **Oversigt** får en sektion **Azure Monitor**: sitets anmodninger, serverfejl, svartid, CPU-tid og hukommelse, som Azure måler dem, uanset hvad appen sender.
 
 ## Azure Container Instances
 
@@ -238,7 +240,11 @@ Key Vault-referencen blev ikke opløst, så App Service sendte den bogstavelige 
 :::
 
 :::details Et App Service-miljø har et tomt kontosegment
-Ingen af App Service-detektorerne sætter `cloud.account.id`. Føj abonnements-ID'et til `OTEL_RESOURCE_ATTRIBUTES` på hver app: telemetri med og uden det havner i to miljøer.
+App Service-detektorerne til Node.js og .NET sætter ikke `cloud.account.id`. Føj abonnements-ID'et til `OTEL_RESOURCE_ATTRIBUTES` på hver app: telemetri med og uden det havner i to miljøer.
+:::
+
+:::details En App Service-app viser ingen anmodninger eller instanser
+Anmodninger, fejlrate og latens kommer fra spor, så en app, der kun sender logs eller metrikker, har ingen: dens **Opsætningstjek** siger, hvad der skal tilføjes. Instanser kommer fra `azure.app_service.instance.id` eller `service.instance.id`, som Azure-detektorerne sætter: uden nogen af dem viser feltet **Instanser** værdien **Ikke rapporteret**. For at se sitets anmodninger, uanset hvad appen sender, skal du forbinde abonnementet: appens side får en sektion **Azure Monitor**.
 :::
 
 :::details En ændret Container Instances-variabel har ingen effekt

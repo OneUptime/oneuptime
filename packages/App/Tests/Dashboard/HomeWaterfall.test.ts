@@ -253,10 +253,16 @@ const STRIP_SOURCE: string = readDashboardCode(
   "OverviewStats.tsx",
 );
 
+/*
+ * Home's Active incidents number opens Incidents > Active Incidents, the
+ * product's own list (#6857). Home used to keep a copy of that list, with a
+ * side menu of its own; the copy is gone, and the list it opens is held to
+ * the same rule the copy was.
+ */
 const ACTIVE_INCIDENTS_SOURCE: string = readDashboardCode(
   "Pages",
-  "Home",
-  "ActiveIncidents.tsx",
+  "Incidents",
+  "Unresolved.tsx",
 );
 
 const BATCH_BODY: string = arrowFunctionBody(
@@ -489,11 +495,12 @@ describe("Home and its cards", () => {
 
     const gettingStartedEffect: string = useEffectContaining(
       GETTING_STARTED_SOURCE,
-      "fetchTaskCompletion",
+      "fetchWelcomeChecklist()",
     );
 
-    expect(gettingStartedEffect).toMatch(
-      /\[\s*props\.projectId\??\.toString\(\)\s*\]\s*\)$/,
+    expect(gettingStartedEffect).toMatch(/\[\s*projectIdString\s*\]\s*\)$/);
+    expect(GETTING_STARTED_SOURCE).toMatch(
+      /projectIdString: string = props\.projectId\.toString\(\)/,
     );
   });
 
@@ -517,75 +524,86 @@ describe("Home and its cards", () => {
 });
 
 describe("Getting Started", () => {
-  test("its effect short-circuits on dismissal before any count request", () => {
+  /*
+   * The Welcome checklist (issue #6803) is ONE server answer - goals, steps
+   * ticked on outcomes, hidden or finished - instead of four count requests
+   * per visit. Finished and hidden are the server's, for every device, so
+   * the old short-circuits on this browser's storage are gone with the
+   * counts they guarded.
+   */
+  test("its effect makes one read, and counts nothing", () => {
     const effect: string = useEffectContaining(
       GETTING_STARTED_SOURCE,
-      "fetchTaskCompletion",
+      "fetchWelcomeChecklist()",
     );
 
-    /*
-     * The counts only exist to decide whether the checklist should render.
-     * A dismissed checklist never renders, so the dismissal read must come
-     * first and a bare `return` must sit between it and the fetch.
-     */
-    const dismissalIndex: number = effect.indexOf("getDismissKey");
-    const fetchIndex: number = effect.indexOf("fetchTaskCompletion");
-
-    expect(dismissalIndex).toBeGreaterThanOrEqual(0);
-    expect(fetchIndex).toBeGreaterThan(dismissalIndex);
-
-    const betweenDismissalAndFetch: string = effect.slice(
-      dismissalIndex,
-      fetchIndex,
-    );
-
-    expect(betweenDismissalAndFetch).toMatch(/\breturn\b/);
+    expect(effect.match(/fetchWelcomeChecklist\(\)/g)).toHaveLength(1);
     expect(effect).not.toContain("ModelAPI");
+    expect(GETTING_STARTED_SOURCE).not.toContain("ModelAPI.count");
   });
 
-  test("a fully completed checklist is remembered so its counts are never re-fetched", () => {
+  test("what the old checklist kept in this browser is sent first, once, and only then is the card read", () => {
     const effect: string = useEffectContaining(
       GETTING_STARTED_SOURCE,
-      "fetchTaskCompletion",
+      "fetchWelcomeChecklist()",
     );
 
-    expect(effect).toContain("getCompleteKey");
+    const legacyIndex: number = effect.indexOf("sendLegacyBrowserState(");
+    const fetchIndex: number = effect.indexOf("fetchWelcomeChecklist()");
 
-    expect(GETTING_STARTED_SOURCE).toMatch(
-      /LocalStorage\.setItem\(\s*getCompleteKey/,
+    expect(legacyIndex).toBeGreaterThanOrEqual(0);
+    expect(fetchIndex).toBeGreaterThan(legacyIndex);
+    // The answer to the old state is the card: no second read after it.
+    expect(effect).toMatch(
+      /fromLegacy \|\| \(await fetchWelcomeChecklist\(\)\)/,
     );
+  });
+
+  test("a response for a project that was left is dropped", () => {
+    const effect: string = useEffectContaining(
+      GETTING_STARTED_SOURCE,
+      "fetchWelcomeChecklist()",
+    );
+
+    expect(effect).toMatch(/isCurrent = false/);
+    expect(effect).toMatch(/if \(isCurrent\)/);
   });
 });
 
-describe("Home's Active Incidents page", () => {
-  test("only the incidents table waits for the unresolved states, and it still waits", () => {
-    /*
-     * The states are not dead weight - the table's query is scoped by
-     * them. The table moved here from Home; it must still be gated.
-     */
-    const tableGates: Array<string> = loadingGateBlocks(
-      ACTIVE_INCIDENTS_SOURCE,
-    ).filter((gate: string): boolean => {
-      return gate.includes("<IncidentsTable");
-    });
-
-    expect(tableGates.length).toBe(1);
-    expect(tableGates[0]).toContain("unresolvedIncidentStates");
+describe("the Active Incidents list Home's number opens", () => {
+  test("is the Incidents product's own list, not a page of Home's", () => {
+    expect(STRIP_SOURCE).toContain("pageMap: PageMap.UNRESOLVED_INCIDENTS,");
+    expect(
+      fs.existsSync(
+        path.join(DASHBOARD_SRC, "Pages", "Home", "ActiveIncidents.tsx"),
+      ),
+    ).toBe(false);
   });
 
-  test("the page still surfaces its loading and error states", () => {
-    const gates: Array<string> = loadingGateBlocks(ACTIVE_INCIDENTS_SOURCE);
+  test("the incidents table waits for the unresolved states its query is scoped by", () => {
+    /*
+     * The states are not dead weight - the table's query is scoped by
+     * them, so the table must not be drawn before they are read.
+     */
+    const waitIndex: number = ACTIVE_INCIDENTS_SOURCE.indexOf(
+      "if (!unresolvedStateIds)",
+    );
+    const tableIndex: number =
+      ACTIVE_INCIDENTS_SOURCE.indexOf("<IncidentsTable");
 
+    expect(waitIndex).toBeGreaterThanOrEqual(0);
+    expect(tableIndex).toBeGreaterThan(waitIndex);
     expect(
-      gates.some((gate: string): boolean => {
-        return gate.includes("isLoading") && gate.includes("<PageLoader");
-      }),
-    ).toBe(true);
+      ACTIVE_INCIDENTS_SOURCE.slice(tableIndex).replace(/\s+/g, " "),
+    ).toContain(
+      "currentIncidentStateId: new Includes( unresolvedStateIds.map(",
+    );
+  });
 
-    expect(
-      gates.some((gate: string): boolean => {
-        return gate.includes("error") && gate.includes("<ErrorMessage");
-      }),
-    ).toBe(true);
+  test("the list still surfaces its loading and error states", () => {
+    const code: string = ACTIVE_INCIDENTS_SOURCE.replace(/\s+/g, " ");
+
+    expect(code).toContain("if (error) { return <ErrorMessage");
+    expect(code).toContain("if (!unresolvedStateIds) { return <PageLoader");
   });
 });

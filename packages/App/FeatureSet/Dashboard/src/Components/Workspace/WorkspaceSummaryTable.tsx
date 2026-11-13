@@ -11,9 +11,11 @@ import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import React, {
   Fragment,
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
   useEffect,
   useMemo,
+  useRef,
 } from "react";
 import WorkspaceType, {
   getWorkspaceTypeDisplayName,
@@ -33,10 +35,24 @@ import NotificationRuleCondition, {
 } from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
 import IncidentNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/IncidentNotificationRule";
 import NotificationRuleConditions from "./NotificationRuleForm/NotificationRuleConditions";
-import { NOTIFICATION_RULE_CONDITIONS_TITLES } from "./NotificationRuleForm/NotificationRuleCopy";
+import {
+  EXISTING_CHANNELS_MATTERMOST_TEAM_DESCRIPTION,
+  getMattermostTeamOptions,
+  getMattermostTeamsNotJoined,
+  MATTERMOST_TEAM_PLACEHOLDER,
+  MATTERMOST_TEAM_TITLE,
+  MattermostRuleTeams,
+  NOTIFICATION_RULE_CONDITIONS_TITLES,
+} from "./NotificationRuleForm/NotificationRuleCopy";
+import { fetchMattermostRuleTeams } from "../Mattermost/MattermostTeamsCard";
+import { MattermostConnectionTeam } from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
 import FilterCondition from "Common/Types/Filter/FilterCondition";
 import { isFilterConditionNeeded } from "Common/Types/Filter/FilterConditionUtil";
 import WorkspaceSummaryScheduleUtil from "Common/Utils/Workspace/WorkspaceSummarySchedule";
+import WorkspaceSummarySetup, {
+  MAX_LOOKBACK_DAYS,
+  MIN_LOOKBACK_DAYS,
+} from "Common/Utils/Workspace/WorkspaceSummarySetup";
 import WorkspaceSummaryFirstSendPreview from "./WorkspaceSummaryFirstSendPreview";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -72,6 +88,15 @@ import {
   TestSendLock,
   TestSendTargets,
 } from "../TestSend/TestSendLock";
+import {
+  getWorkspaceSummaryTestChannels,
+  WorkspaceSummaryTestChannel,
+} from "Common/Types/Workspace/NotificationSummary/WorkspaceSummaryTestChannel";
+import WorkspaceSummaryTestFailure, {
+  getChannelsNotPostedIn,
+  getWorkspaceSummaryTestLead,
+  getWorkspaceSummaryTestNextStep,
+} from "./WorkspaceSummaryTestFailure";
 
 export interface ComponentProps {
   workspaceType: WorkspaceType;
@@ -99,6 +124,26 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
     Array<IncidentState>
   >([]);
 
+  /*
+   * A Mattermost project's connection: the teams its bot is a member of,
+   * for a summary to pick the team of its channels from, and those it was
+   * taken out of. Undefined for another workspace, or when it cannot be
+   * read: no picker, as before.
+   */
+  const [mattermostConnection, setMattermostConnection] = React.useState<
+    MattermostRuleTeams | undefined
+  >(undefined);
+
+  /*
+   * The teams the bot was taken out of that the open form's summary picks:
+   * still offered, said to be so, while the form is open - changed to
+   * another team and back too - as a notification rule's are. Emptied when
+   * the form closes, for the next one.
+   */
+  const summaryTeamsNotJoined: MutableRefObject<
+    Array<MattermostConnectionTeam>
+  > = useRef<Array<MattermostConnectionTeam>>([]);
+
   // Locked, saying why, for someone who may not send a test (TestSendLock).
   const testSummaryLock: TestSendLock = getTestSendLock(
     TestSendTargets.Summary,
@@ -113,8 +158,23 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
   const [testSummary, setTestSummary] = React.useState<
     WorkspaceNotificationSummary | undefined
   >(undefined);
-  const [showTestSuccessModal, setShowTestSuccessModal] =
+  /*
+   * What the test came to, once it is sent: Summary Sent, or Test Failed
+   * with what the server said - each channel the summary was not posted
+   * in, and why. A test that failed in one channel may have been posted in
+   * the others, so it is reported, not offered again to send.
+   */
+  const [showTestResultModal, setShowTestResultModal] =
     React.useState<boolean>(false);
+  /*
+   * A failed test's channels, as the test route answers them: listed in
+   * Test Failed, each under why it did not get the test. Empty for a
+   * failure the route says only in words (a summary with no channels, a
+   * network error): the dialog says those words.
+   */
+  const [testChannels, setTestChannels] = React.useState<
+    Array<WorkspaceSummaryTestChannel>
+  >([]);
 
   // The time zones the Timezone field offers: worked out once, not per render.
   const timezoneOptions: Array<DropdownOption> =
@@ -219,6 +279,11 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
         },
       );
       setIncidentStates(incStatesResult.data);
+
+      // A Mattermost summary picks the team of its channels among the bot's.
+      if (props.workspaceType === WorkspaceType.Mattermost) {
+        setMattermostConnection(await fetchMattermostRuleTeams());
+      }
     } catch (err) {
       setError(API.getFriendlyErrorMessage(err as Exception));
     }
@@ -247,6 +312,7 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
     try {
       setIsTestLoading(true);
       setTestError(undefined);
+      setTestChannels([]);
 
       const response: HTTPResponse<EmptyResponseData> | HTTPErrorResponse =
         await API.post({
@@ -257,22 +323,39 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
           headers: ModelAPI.getCommonHeaders(),
         });
 
-      if (response.isSuccess()) {
-        setIsTestLoading(false);
-        setShowTestModal(false);
-        setShowTestSuccessModal(true);
-      }
-
       if (response instanceof HTTPErrorResponse) {
         throw response;
       }
 
       setIsTestLoading(false);
+
+      if (response.isSuccess()) {
+        setShowTestModal(false);
+        setShowTestResultModal(true);
+      }
     } catch (err) {
+      setTestChannels(
+        err instanceof HTTPErrorResponse
+          ? getWorkspaceSummaryTestChannels(err.jsonData)
+          : [],
+      );
       setTestError(API.getFriendlyErrorMessage(err as Exception));
       setIsTestLoading(false);
+      setShowTestModal(false);
+      setShowTestResultModal(true);
     }
   };
+
+  /*
+   * Test Failed's red line: how many channels did not get the test, in the
+   * reader's language, when the route said which - else its own words.
+   * Summary Sent has none.
+   */
+  const testFailureLead: string | undefined = testError
+    ? getWorkspaceSummaryTestLead(translator, testChannels) || testError
+    : undefined;
+  const hasTestChannelsNotPostedIn: boolean =
+    getChannelsNotPostedIn(testChannels).length > 0;
 
   const allSummaryItems: Array<WorkspaceNotificationSummaryItem> =
     Object.values(WorkspaceNotificationSummaryItem);
@@ -329,6 +412,9 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
         isDeleteable={true}
         isEditable={true}
         createEditModalWidth={ModalWidth.Large}
+        onCreateEditModalClose={() => {
+          summaryTeamsNotJoined.current = [];
+        }}
         isCreateable={true}
         cardProps={{
           title: translator.translateTemplate(copy.cardTitle, {
@@ -382,16 +468,11 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
               });
           }
 
-          // Parse channel names from comma-separated string
-          if (values.channelNames && typeof values.channelNames === "string") {
-            values.channelNames = (values.channelNames as unknown as string)
-              .split(",")
-              .map((name: string) => {
-                return name.trim();
-              })
-              .filter((name: string) => {
-                return name.length > 0;
-              });
+          // The channel names typed, comma-separated, as the list they name.
+          if (values.channelNames) {
+            values.channelNames = WorkspaceSummarySetup.readChannelNames(
+              values.channelNames,
+            );
           }
 
           // Default to "All" if none selected
@@ -439,6 +520,30 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
 
           return Promise.resolve(values);
         }}
+        /*
+         * An edit saves what a create does. Channel Names edited in its
+         * text box went to the server as the text typed, "#ops, #alerts",
+         * saved as it was, and the summary was then posted in a channel
+         * per letter; it is the list it names. With nothing to include
+         * picked, it includes everything, as a new summary does - one
+         * saved with nothing could never be sent (#7116).
+         */
+        onBeforeUpdate={(values: WorkspaceNotificationSummary) => {
+          if (values.channelNames !== undefined) {
+            values.channelNames = WorkspaceSummarySetup.readChannelNames(
+              values.channelNames,
+            );
+          }
+
+          if (
+            Array.isArray(values.summaryItems) &&
+            values.summaryItems.length === 0
+          ) {
+            values.summaryItems = [WorkspaceNotificationSummaryItem.All];
+          }
+
+          return Promise.resolve(values);
+        }}
         formFields={[
           {
             field: {
@@ -479,6 +584,79 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             required: true,
             placeholder: "#incidents-summary, #engineering",
           },
+          /*
+           * Mattermost, whose bot is a member of two or more teams - or a
+           * summary that picks a team the bot was taken out of: the team its
+           * channels are in, as a notification rule picks it. Left empty,
+           * they are looked for in the default team first, then in the
+           * bot's other teams. Kept as the team's id in teamName, which the
+           * summary hands Mattermost as the team of its channels
+           * (WorkspaceNotificationSummaryService).
+           */
+          ...(props.workspaceType === WorkspaceType.Mattermost &&
+          mattermostConnection
+            ? [
+                {
+                  field: {
+                    teamName: true,
+                  },
+                  stepId: "basic",
+                  title: MATTERMOST_TEAM_TITLE,
+                  description: EXISTING_CHANNELS_MATTERMOST_TEAM_DESCRIPTION,
+                  fieldType: FormFieldSchemaType.Dropdown,
+                  required: false,
+                  placeholder: MATTERMOST_TEAM_PLACEHOLDER,
+                  dropdownOptions: getMattermostTeamOptions({
+                    connection: mattermostConnection,
+                    teams: mattermostConnection.teams,
+                    notJoined: [],
+                    translator: translator,
+                  }),
+                  fetchDropdownOptions: async (
+                    values: FormValues<WorkspaceNotificationSummary>,
+                  ): Promise<Array<DropdownOption>> => {
+                    /*
+                     * Run each time the step opens, on the form's values: a
+                     * pick of a team the bot left is kept till the form closes.
+                     */
+                    for (const team of getMattermostTeamsNotJoined({
+                      connection: mattermostConnection,
+                      teamIds: [
+                        typeof values.teamName === "string"
+                          ? values.teamName
+                          : undefined,
+                      ],
+                    })) {
+                      if (
+                        !summaryTeamsNotJoined.current.some(
+                          (kept: MattermostConnectionTeam): boolean => {
+                            return kept.id === team.id;
+                          },
+                        )
+                      ) {
+                        summaryTeamsNotJoined.current = [
+                          ...summaryTeamsNotJoined.current,
+                          team,
+                        ];
+                      }
+                    }
+
+                    return getMattermostTeamOptions({
+                      connection: mattermostConnection,
+                      teams: mattermostConnection.teams,
+                      notJoined: summaryTeamsNotJoined.current,
+                      translator: translator,
+                    });
+                  },
+                  showIf: (): boolean => {
+                    return (
+                      mattermostConnection.teams.length > 1 ||
+                      summaryTeamsNotJoined.current.length > 0
+                    );
+                  },
+                },
+              ]
+            : []),
           ...(props.workspaceType === WorkspaceType.MicrosoftTeams
             ? [
                 {
@@ -610,6 +788,15 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
              * until a number was typed.
              */
             defaultValue: 7,
+            /*
+             * 1 to 365 days, as the server holds every write to
+             * (WorkspaceSummarySetup): it took 0, which the server refused
+             * by the column's name, and -5, which it saved.
+             */
+            validation: {
+              minValue: MIN_LOOKBACK_DAYS,
+              maxValue: MAX_LOOKBACK_DAYS,
+            },
           },
           {
             field: {
@@ -900,12 +1087,15 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             },
             title: "Lookback",
             type: FieldType.Element,
+            // The days the summary covers, read as its report reads them.
             getElement: (value: WorkspaceNotificationSummary): ReactElement => {
               return (
                 <span>
                   {translator.translatePlural(
                     { one: "{{count}} day", other: "{{count}} days" },
-                    value.numberOfDaysOfData || 0,
+                    WorkspaceSummarySetup.getLookbackDays(
+                      value.numberOfDaysOfData,
+                    ),
                   )}
                 </span>
               );
@@ -933,14 +1123,15 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
       {showTestModal && testSummary ? (
         <ConfirmModal
           title={`Send Test Summary Now`}
-          error={testError}
           description={translator.translatePlural(
             {
               one: 'Send the "{{name}}" summary to {{workspace}} now, with the last {{count}} day of data. The regular schedule is not affected.',
               other:
                 'Send the "{{name}}" summary to {{workspace}} now, with the last {{count}} days of data. The regular schedule is not affected.',
             },
-            testSummary.numberOfDaysOfData || 7,
+            WorkspaceSummarySetup.getLookbackDays(
+              testSummary.numberOfDaysOfData,
+            ),
             { name: testSummary.name || "", workspace: workspaceName },
           )}
           submitButtonText={"Send Now"}
@@ -961,25 +1152,38 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
         <></>
       )}
 
-      {showTestSuccessModal ? (
+      {/*
+       * No onClose: a dialog that only reports an outcome needs one way
+       * out, and "Close" is it (SendTestNotificationButton's, the same).
+       * A failure says how many channels did not get the test, lists each
+       * under why (WorkspaceSummaryTestFailure), then what to do next.
+       */}
+      {showTestResultModal ? (
         <ConfirmModal
           title={testError ? `Test Failed` : `Summary Sent`}
-          error={testError}
+          error={testFailureLead}
           description={
-            testError
-              ? `The test summary could not be sent. Please check your channel names and workspace connection settings.`
-              : translator.translateTemplate(
-                  "The test summary was sent successfully. Check your {{workspace}} channel to see how it looks.",
-                  { workspace: workspaceName },
-                )
+            testError ? (
+              hasTestChannelsNotPostedIn ? (
+                <WorkspaceSummaryTestFailure channels={testChannels} />
+              ) : (
+                getWorkspaceSummaryTestNextStep(translator, 1)
+              )
+            ) : (
+              translator.translateTemplate(
+                "The test summary was sent successfully. Check your {{workspace}} channel to see how it looks.",
+                { workspace: workspaceName },
+              )
+            )
           }
           submitButtonType={ButtonStyleType.NORMAL}
           submitButtonText={"Close"}
           onSubmit={async () => {
-            setShowTestSuccessModal(false);
+            setShowTestResultModal(false);
             setTestSummary(undefined);
             setShowTestModal(false);
-            setTestError("");
+            setTestError(undefined);
+            setTestChannels([]);
           }}
         />
       ) : (

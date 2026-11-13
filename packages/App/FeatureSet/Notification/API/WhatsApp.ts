@@ -13,6 +13,10 @@ import {
 import WhatsAppStatus from "Common/Types/WhatsAppStatus";
 import WhatsAppLog from "Common/Models/DatabaseModels/WhatsAppLog";
 import Select from "Common/Server/Types/Database/Select";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
+import OneUptimeDate from "Common/Types/Date";
+import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
+import { recordProviderReport } from "Common/Server/Utils/OnCall/OnCallNotificationStatus";
 import NotificationDeliveryMetrics, {
   NotificationDeliveryChannel,
   NotificationDeliveryProvider,
@@ -218,31 +222,128 @@ export function isStaleWhatsAppStatus(data: {
   );
 }
 
-const updateWhatsAppLogStatus: (
-  statusPayload: JSONObject,
-) => Promise<void> = async (statusPayload: JSONObject): Promise<void> => {
-  const messageId: string | undefined = statusPayload["id"]
-    ? String(statusPayload["id"])
-    : undefined;
+/*
+ * What became of one status of Meta's webhook: handled - written, or
+ * nothing to write - or to be sent again by Meta, as it names a message
+ * whose log does not have the message's id yet while a send is on its way.
+ */
+export enum WhatsAppStatusOutcome {
+  Handled = "Handled",
+  SendAgain = "SendAgain",
+}
 
-  if (!messageId) {
-    logger.warn(
-      `[Meta WhatsApp Webhook] Received status payload without message id. Payload: ${JSON.stringify(statusPayload)}`,
-      {} as any,
-    );
-    return;
+/*
+ * How long a send counts as on its way once its log is written: the log is
+ * written Queued, with no message id, just before the message is handed to
+ * Meta, and gets the id with Meta's answer (WhatsAppService) - a moment
+ * later. A log left so for longer is a send that never finished.
+ */
+export const SEND_ON_ITS_WAY_FOR_MS: number = 5 * 60 * 1000;
+
+/*
+ * How recent a status - by the time Meta says it happened - must be for
+ * Meta to be asked to send it again. Meta retries a webhook it was not
+ * answered 200 for, for days: a status of a message no log will ever have -
+ * one sent by another app on the business account, or a test from the
+ * Admin Dashboard, which is not logged - is never asked for again once it
+ * is older than this.
+ */
+export const STATUS_SENT_AGAIN_WITHIN_MS: number = 10 * 60 * 1000;
+
+/*
+ * Whether Meta says the status happened within STATUS_SENT_AGAIN_WITHIN_MS
+ * of now. A timestamp a little ahead of the server's clock is recent; one
+ * that cannot be read is not.
+ */
+export function isRecentStatus(statusPayload: JSONObject): boolean {
+  const timestamp: unknown = statusPayload["timestamp"];
+
+  if (
+    timestamp === undefined ||
+    timestamp === null ||
+    String(timestamp).trim() === ""
+  ) {
+    return false;
   }
 
-  const rawStatus: string | undefined = statusPayload["status"]
-    ? String(statusPayload["status"])
-    : undefined;
+  const timestampInSeconds: number = Number(timestamp);
 
-  const derivedStatus: WhatsAppStatus =
-    mapWebhookStatusToWhatsAppStatus(rawStatus);
+  if (!Number.isFinite(timestampInSeconds)) {
+    return false;
+  }
 
-  const statusMessage: string | undefined = buildStatusMessage(statusPayload);
+  return (
+    timestampInSeconds * 1000 >=
+    OneUptimeDate.getCurrentDate().getTime() - STATUS_SENT_AGAIN_WITHIN_MS
+  );
+}
 
-  let whatsAppLog: WhatsAppLog | null = await WhatsAppLogService.findOneBy({
+/*
+ * What a failed WhatsApp page's on-call timeline entry says: that Meta
+ * could not deliver it, and why, in Meta's words - as a failed SMS page's
+ * says Twilio's (API/SMS.ts).
+ */
+export function buildFailedDeliveryMessage(data: {
+  messageId: string;
+  statusPayload: JSONObject;
+}): string {
+  let message: string = `Delivery status: ${WhatsAppStatus.Failed}. Message ID: ${data.messageId}.`;
+
+  const errors: JSONArray | undefined =
+    (data.statusPayload["errors"] as JSONArray | undefined) || undefined;
+
+  if (!Array.isArray(errors) || errors.length === 0) {
+    return message;
+  }
+
+  const firstError: JSONObject = (errors[0] || {}) as JSONObject;
+  const errorData: JSONObject | undefined =
+    (firstError["error_data"] as JSONObject | undefined) || undefined;
+
+  // Meta's words, without the dot they may end with.
+  const wordsOf: (value: unknown) => string = (value: unknown): string => {
+    const text: string =
+      value === undefined || value === null ? "" : String(value).trim();
+
+    return text.endsWith(".") ? text.slice(0, -1).trim() : text;
+  };
+
+  const title: string = wordsOf(firstError["title"] || firstError["message"]);
+  const details: string = wordsOf(
+    errorData?.["details"] || firstError["detail"],
+  );
+  const code: string = wordsOf(firstError["code"]);
+
+  const parts: Array<string> = [];
+
+  if (title) {
+    parts.push(code ? `${title} (code ${code})` : title);
+  } else if (code) {
+    parts.push(`code ${code}`);
+  }
+
+  // Meta's details often say again what its title says.
+  if (details && details.toLowerCase() !== title.toLowerCase()) {
+    parts.push(details);
+  }
+
+  if (parts.length > 0) {
+    message += ` Provider error: ${parts.join(": ")}.`;
+  }
+
+  return message;
+}
+
+/*
+ * The log of the message Meta's id names. The log gets the id with the
+ * send's result, once Meta answered the send (WhatsAppService).
+ */
+const findLogOfMessage: (
+  messageId: string,
+) => Promise<WhatsAppLog | null> = async (
+  messageId: string,
+): Promise<WhatsAppLog | null> => {
+  return await WhatsAppLogService.findOneBy({
     query: {
       whatsAppMessageId: messageId,
     },
@@ -251,13 +352,99 @@ const updateWhatsAppLogStatus: (
       isRoot: true,
     },
   });
+};
 
-  if (!whatsAppLog) {
+/*
+ * Whether a message is being handed to Meta right now: a log written
+ * Queued, with no message id yet, in the last SEND_ON_ITS_WAY_FOR_MS. Its
+ * id - which a status names - is written once Meta answers.
+ */
+export const isSendOnItsWay: () => Promise<boolean> =
+  async (): Promise<boolean> => {
+    const sendOnItsWay: WhatsAppLog | null = await WhatsAppLogService.findOneBy(
+      {
+        query: {
+          status: WhatsAppStatus.Queued,
+          whatsAppMessageId: QueryHelper.isNull(),
+          createdAt: QueryHelper.greaterThan(
+            new Date(
+              OneUptimeDate.getCurrentDate().getTime() - SEND_ON_ITS_WAY_FOR_MS,
+            ),
+          ),
+        },
+        select: {
+          _id: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      },
+    );
+
+    return Boolean(sendOnItsWay);
+  };
+
+export const updateWhatsAppLogStatus: (
+  statusPayload: JSONObject,
+) => Promise<WhatsAppStatusOutcome> = async (
+  statusPayload: JSONObject,
+): Promise<WhatsAppStatusOutcome> => {
+  const messageId: string | undefined = statusPayload["id"]
+    ? String(statusPayload["id"])
+    : undefined;
+
+  const rawStatus: string | undefined = statusPayload["status"]
+    ? String(statusPayload["status"])
+    : undefined;
+
+  /*
+   * What a log line says of a status: its message's id and its status,
+   * never the payload - which holds the recipient's phone number.
+   */
+  const statusInLogs: string = rawStatus || "none";
+
+  if (!messageId) {
     logger.warn(
-      `[Meta WhatsApp Webhook] No WhatsApp log found for message id ${messageId}. Payload: ${JSON.stringify(statusPayload)}`,
+      `[Meta WhatsApp Webhook] Received a status without a message id (status: ${statusInLogs}).`,
       {} as any,
     );
-    return;
+    return WhatsAppStatusOutcome.Handled;
+  }
+
+  const derivedStatus: WhatsAppStatus =
+    mapWebhookStatusToWhatsAppStatus(rawStatus);
+
+  const statusMessage: string | undefined = buildStatusMessage(statusPayload);
+
+  let whatsAppLog: WhatsAppLog | null = await findLogOfMessage(messageId);
+
+  if (!whatsAppLog) {
+    /*
+     * No log has the id yet. Meta can report a status before the send's
+     * result - and the id with it - is written (WhatsAppService): then
+     * Meta is asked to send the status again, and it lands on the log once
+     * the id is there - once, as every write is a compare-and-set below. A
+     * status of a message no log will have is answered 200: an old one, or
+     * one that comes while nothing is being sent.
+     */
+    if (isRecentStatus(statusPayload) && (await isSendOnItsWay())) {
+      logger.debug(
+        `[Meta WhatsApp Webhook] No WhatsApp log has message id ${messageId} yet (status: ${statusInLogs}) while a message is being sent: Meta is asked to send the status again.`,
+        {} as any,
+      );
+      return WhatsAppStatusOutcome.SendAgain;
+    }
+
+    // The send's result, with the id, may have been written since it was looked for.
+    whatsAppLog = await findLogOfMessage(messageId);
+
+    if (!whatsAppLog) {
+      logger.warn(
+        `[Meta WhatsApp Webhook] No WhatsApp log found for message id ${messageId} (status: ${statusInLogs}).`,
+        {} as any,
+      );
+      return WhatsAppStatusOutcome.Handled;
+    }
   }
 
   /*
@@ -287,7 +474,7 @@ const updateWhatsAppLogStatus: (
       });
 
       if (!whatsAppLog) {
-        return;
+        return WhatsAppStatusOutcome.Handled;
       }
     }
 
@@ -301,7 +488,7 @@ const updateWhatsAppLogStatus: (
         `[Meta WhatsApp Webhook] Kept the status of the WhatsApp log for message id ${messageId}: ${derivedStatus} came after ${whatsAppLog.status}.`,
         {} as any,
       );
-      return;
+      return WhatsAppStatusOutcome.Handled;
     }
 
     isWritten = await WhatsAppLogService.compareAndSetColumnsByIdWithoutHooks({
@@ -322,7 +509,7 @@ const updateWhatsAppLogStatus: (
       `[Meta WhatsApp Webhook] Could not write the status of the WhatsApp log for message id ${messageId}: it kept changing.`,
       {} as any,
     );
-    return;
+    return WhatsAppStatusOutcome.Handled;
   }
 
   /*
@@ -333,10 +520,13 @@ const updateWhatsAppLogStatus: (
   const deliveryStatus: NotificationDeliveryStatus | null =
     NotificationDeliveryMetrics.getDeliveryStatusOfWhatsApp(derivedStatus);
 
-  if (
-    deliveryStatus &&
-    !NotificationDeliveryMetrics.getDeliveryStatusOfWhatsApp(whatsAppLog.status)
-  ) {
+  const hasEndedNow: boolean =
+    Boolean(deliveryStatus) &&
+    !NotificationDeliveryMetrics.getDeliveryStatusOfWhatsApp(
+      whatsAppLog.status,
+    );
+
+  if (deliveryStatus && hasEndedNow) {
     NotificationDeliveryMetrics.recordDelivery({
       channel: NotificationDeliveryChannel.WhatsApp,
       provider: NotificationDeliveryProvider.MetaWhatsApp,
@@ -344,10 +534,33 @@ const updateWhatsAppLogStatus: (
       providerConfig: NotificationProviderConfig.Global,
       isOnCallPage: Boolean(whatsAppLog.userOnCallLogTimelineId),
       status: deliveryStatus,
-      // The log is written as Meta accepts the message.
+      // The log is written just before the message is handed to Meta.
       timeToStatusInMs: NotificationDeliveryMetrics.getMillisecondsSince(
         whatsAppLog.createdAt,
       ),
+    });
+  }
+
+  /*
+   * A page Meta could not deliver says so on the person's on-call timeline,
+   * with Meta's words, as an SMS page Twilio could not deliver does
+   * (API/SMS.ts): once, by the webhook that moved the log into Failed - a
+   * repeated one finds the log failed already, and stops above - and only
+   * while the page still says Sent or Sending (OnCallNotificationStatus).
+   * An acknowledgement or a skip is never written over.
+   */
+  if (
+    hasEndedNow &&
+    derivedStatus === WhatsAppStatus.Failed &&
+    whatsAppLog.userOnCallLogTimelineId
+  ) {
+    await recordProviderReport({
+      userOnCallLogTimelineId: whatsAppLog.userOnCallLogTimelineId,
+      status: UserNotificationStatus.Error,
+      statusMessage: buildFailedDeliveryMessage({
+        messageId: messageId,
+        statusPayload: statusPayload,
+      }),
     });
   }
 
@@ -355,6 +568,8 @@ const updateWhatsAppLogStatus: (
     `[Meta WhatsApp Webhook] Updated WhatsApp log for message id ${messageId} with status ${derivedStatus}.`,
     {} as any,
   );
+
+  return WhatsAppStatusOutcome.Handled;
 };
 
 const toTemplateVariables: (
@@ -520,8 +735,9 @@ router.post(
       if (
         (body["object"] as string | undefined) !== "whatsapp_business_account"
       ) {
+        // Its kind only: the event itself may name people.
         logger.debug(
-          `[Meta WhatsApp Webhook] Received event for unsupported object: ${JSON.stringify(body)}`,
+          `[Meta WhatsApp Webhook] Received event for unsupported object: ${String(body["object"])}`,
           getLogAttributesFromRequest(req as any),
         );
         return Response.sendEmptySuccessResponse(req, res);
@@ -533,13 +749,13 @@ router.post(
 
       if (!Array.isArray(entries)) {
         logger.warn(
-          `[Meta WhatsApp Webhook] Payload did not include entries array. Payload: ${JSON.stringify(body)}`,
+          "[Meta WhatsApp Webhook] Payload did not include entries array.",
           getLogAttributesFromRequest(req as any),
         );
         return Response.sendEmptySuccessResponse(req, res);
       }
 
-      const statusUpdatePromises: Array<Promise<void>> = [];
+      const statusItems: Array<JSONObject> = [];
 
       for (const entry of entries) {
         const entryObject: JSONObject = entry as JSONObject;
@@ -564,16 +780,58 @@ router.post(
 
           if (Array.isArray(statuses)) {
             for (const statusItem of statuses) {
-              statusUpdatePromises.push(
-                updateWhatsAppLogStatus(statusItem as JSONObject),
-              );
+              statusItems.push(statusItem as JSONObject);
             }
           }
         }
       }
 
-      if (statusUpdatePromises.length > 0) {
-        await Promise.allSettled(statusUpdatePromises);
+      // Handled at once: each is written on its own log, by compare-and-set.
+      const results: Array<PromiseSettledResult<WhatsAppStatusOutcome>> =
+        await Promise.allSettled(
+          statusItems.map(
+            (statusItem: JSONObject): Promise<WhatsAppStatusOutcome> => {
+              return updateWhatsAppLogStatus(statusItem);
+            },
+          ),
+        );
+
+      let isSentAgain: boolean = false;
+
+      results.forEach(
+        (
+          result: PromiseSettledResult<WhatsAppStatusOutcome>,
+          index: number,
+        ): void => {
+          if (result.status === "rejected") {
+            /*
+             * A status that could not be handled - the database failed -
+             * leaves the others handled. Its message's id only: the
+             * payload holds the recipient's phone number.
+             */
+            logger.error(
+              `[Meta WhatsApp Webhook] Could not handle the status of message id ${String(statusItems[index]?.["id"] || "none")}: ${result.reason}`,
+              getLogAttributesFromRequest(req as any),
+            );
+            return;
+          }
+
+          if (result.value === WhatsAppStatusOutcome.SendAgain) {
+            isSentAgain = true;
+          }
+        },
+      );
+
+      /*
+       * A status that came before its message's log had the message's id,
+       * while the message was being sent: Meta sends a webhook it was not
+       * answered 200 for again later, all of it. The statuses handled now
+       * change nothing then - each write is a compare-and-set, and a
+       * message is counted once.
+       */
+      if (isSentAgain) {
+        res.sendStatus(503);
+        return;
       }
 
       return Response.sendEmptySuccessResponse(req, res);

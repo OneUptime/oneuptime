@@ -9,8 +9,10 @@ import {
   scanMarkdown,
 } from "./DocsContentSupport";
 import {
+  drawnBudgetFigure,
   drawnCreateButton,
   drawnDashboardLabel,
+  drawnTextWithFigures,
   isDashboardLabel,
 } from "./DocsDashboardLabels";
 import {
@@ -34,6 +36,7 @@ import {
   SLO_RECOMMENDED_POLICY_TIERS,
   SloRecommendedPolicyTier,
 } from "Common/Utils/Slo/SloErrorBudgetPolicy";
+import { formatDurationCompactInLanguage } from "Common/Utils/Slo/SloDuration";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -64,12 +67,21 @@ import { describe, expect, it } from "@jest/globals";
  *     read the same whatever the reader's language.
  *   - SHOWN_IN_ENGLISH: what the SLO pages quote in English in every
  *     language, because the Dashboard has no label of that exact text: the
- *     banners' titles, the window-fill chip with an example count, the SLO
- *     Dashboard template's charts, and so on. The runway and budget words of
- *     the Overview's tiles, the first day's window chip and the Metrics
- *     page's SLO Metrics and Error Budget History tabs are worded in every
- *     language since #6658, so each page names them as its language's
- *     Dashboard draws them.
+ *     banners' titles, the SLO Dashboard template's charts, and so on. The
+ *     runway and budget words of the Overview's tiles, the first day's
+ *     window chip and the Metrics page's SLO Metrics and Error Budget
+ *     History tabs are worded in every language since #6658, so each page
+ *     names them as its language's Dashboard draws them.
+ *   - DRAWN_WITH_FIGURES: the Overview's texts with figures in them - the
+ *     window chip "Window 23% full", the error budget tile's lines and a
+ *     runway - which the Dashboard has drawn in every language since #6658:
+ *     each page quotes them as its language's Dashboard draws them, words,
+ *     units and digits (drawnTextWithFigures, #6696). The Settings page's
+ *     Error Budget line too, since #6925.
+ *   - BUDGET_FIGURES: the Error Budgets page's table of targets and budgets
+ *     and the 31-day month's budget under it, which each page writes as its
+ *     language's Dashboard writes a percentage and a duration
+ *     (drawnBudgetFigure, #6925): "99,9 %" and "43 Min., 12 Sek." in German.
  *
  * Bold words that are Dashboard labels only by coincidence are PROSE; the
  * pages' own bold leads are PROSE_LEADS. A new bold word on these English
@@ -183,7 +195,6 @@ const PERMISSIONS_THAT_ARE_BUTTONS: Array<string> = [
 const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
   [INTRODUCTION]: [
     "Archive SLO",
-    "Window 23% full",
     "Waiting for SLO evaluation",
     "Measurement is paused",
     "The target is out of range",
@@ -191,7 +202,6 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "This SLO is archived",
   ],
   [MONITOR_RULES]: ["Auto-Add Monitors With Labels"],
-  [ERROR_BUDGET]: ["~2d 5h", "Window 23% full"],
   [METRICS]: [
     "Monitor Metric Retention (Days)",
     "Follow SLO Variable",
@@ -259,37 +269,49 @@ const TABLE_CREATE_BUTTONS: Record<string, Array<string>> = {
 };
 
 /*
- * What the product prints in English whatever the reader's language: the
- * Overview tile's budget lines and the budget durations of the tables, which
- * every translation quotes as they are.
+ * The Overview's texts with figures in them, which the Dashboard draws in
+ * the reader's language: what this language's Dashboard draws for each is
+ * drawnTextWithFigures's answer, from the Dashboard's own helpers.
  */
-const PRINTED_AS_IS: Record<string, Array<string>> = {
-  [INTRODUCTION]: ["12m 30s left of 43m 12s"],
+const DRAWN_WITH_FIGURES: Record<string, Array<string>> = {
+  [INTRODUCTION]: [
+    "12m 30s left of 43m 12s",
+    "Window 23% full",
+    // The Settings page's Error Budget line (describeSloErrorBudget).
+    "43m 12s of downtime per 30-day window",
+  ],
   [ERROR_BUDGET]: [
-    "1h 40m 48s",
-    "6h 43m 12s",
-    "7h 12m",
-    "21h 36m",
-    "50m 24s",
-    "3h 21m 36s",
-    "3h 36m",
-    "10h 48m",
-    "10m 5s",
-    "40m 19s",
-    "43m 12s",
-    "2h 9m 36s",
-    "5m 2s",
-    "20m 10s",
-    "21m 36s",
-    "1h 4m 48s",
-    "1m 0s",
-    "4m 2s",
-    "4m 19s",
-    "12m 58s",
-    "44m 38s",
     "31m 4s left of 43m 12s",
     "4d 23m over budget · 5m 47s allowed",
+    "~2d 5h",
+    "Window 23% full",
+    // The Settings page's Error Budget line (describeSloErrorBudget).
+    "43m 12s of downtime per 30-day window",
   ],
+};
+
+/*
+ * The figures of the Error Budgets page's budget table - its targets and the
+ * budget each allows over each window, worked out from the formula - and
+ * the 31-day month's budget in the sentence under it. Each page writes them
+ * as its language's Dashboard writes a percentage and a duration
+ * (drawnBudgetFigure): they used to stay "99.9%" and "43m 12s" on every
+ * page, beside a Settings page that wrote "0,1 %" and "43 Min., 12 Sek."
+ * (#6925).
+ */
+const BUDGET_TABLE_SECTION: string = "How the budget is calculated";
+
+const BUDGET_FIGURES_IN_PROSE: Record<string, Array<string>> = {
+  [ERROR_BUDGET]: ["44m 38s"],
+};
+
+// An English compact unit right after its figure: "43m", "12s".
+const ENGLISH_UNIT: RegExp = /\d[dhms]\b/;
+
+/*
+ * What the pages print as they are whatever the reader's language.
+ */
+const PRINTED_AS_IS: Record<string, Array<string>> = {
   /*
    * What the recommended policy's tiers say the team does, which OneUptime
    * writes into each tier in English and the confirmation lists as written.
@@ -400,6 +422,19 @@ const ARABIC_DECIMAL_SEPARATOR: RegExp = /(\d)\u066b(?=\d)/g;
 const DECIMAL_COMMA: RegExp = /(\d),(\d{1,2})(?!\d)/g;
 const INLINE_CODE_SPAN: RegExp = /`[^`\n]*`/g;
 const RIGHT_ARROW: string = "→";
+/*
+ * The no-break spaces a language's Dashboard writes inside a figure - French
+ * "12 min 30 s" - which a page may write as plain spaces: they read the same.
+ */
+const NO_BREAK_SPACES: RegExp = new RegExp(
+  `[${String.fromCharCode(0xa0)}${String.fromCharCode(0x202f)}]`,
+  "g",
+);
+
+// A text as a reader sees it, its no-break spaces as spaces.
+function asRead(text: string): string {
+  return text.replace(NO_BREAK_SPACES, " ");
+}
 
 function englishPage(page: string): string {
   return readPage("en", page);
@@ -520,6 +555,59 @@ function sections(markdown: string): Array<DocsHeading> {
 }
 
 /*
+ * The body rows of the Error Budgets page's budget table, cell by cell: the
+ * first table of the section that sits where the English page's "How the
+ * budget is calculated" sits, minus its header and delimiter rows. None on
+ * any other page.
+ */
+function budgetTableRows(page: string, markdown: string): Array<Array<string>> {
+  if (page !== ERROR_BUDGET) {
+    return [];
+  }
+
+  const index: number = sections(englishPage(ERROR_BUDGET)).findIndex(
+    (heading: DocsHeading): boolean => {
+      return heading.text === BUDGET_TABLE_SECTION;
+    },
+  );
+  const headings: Array<DocsHeading> = sections(markdown);
+  const heading: DocsHeading | undefined =
+    index < 0 ? undefined : headings[index];
+
+  if (!heading) {
+    return [];
+  }
+
+  const next: DocsHeading | undefined = headings[index + 1];
+  const lines: Array<string> = markdown
+    .split("\n")
+    .slice(heading.line, next ? next.line - 1 : undefined);
+  const rows: Array<Array<string>> = [];
+
+  for (const line of lines) {
+    if (!line.startsWith("|")) {
+      if (rows.length > 0) {
+        break;
+      }
+
+      continue;
+    }
+
+    rows.push(
+      line
+        .trim()
+        .slice(1, -1)
+        .split("|")
+        .map((cell: string): string => {
+          return cell.trim();
+        }),
+    );
+  }
+
+  return rows.slice(2);
+}
+
+/*
  * The anchor of the heading of a page in a language that sits where the
  * English page's heading with this anchor sits, or null when the English
  * page has no such heading.
@@ -601,6 +689,7 @@ describe("the lists this test keeps", () => {
       PROSE,
       PROSE_LEADS,
       TABLE_CREATE_BUTTONS,
+      DRAWN_WITH_FIGURES,
       PRINTED_AS_IS,
       VALUES_AS_IS,
       NUMBERS,
@@ -696,6 +785,7 @@ describe("the lists this test keeps", () => {
         ...notDashboardLabels(page),
         ...listed(KEPT_IN_ENGLISH, page),
         ...listed(TABLE_CREATE_BUTTONS, page),
+        ...listed(DRAWN_WITH_FIGURES, page),
       ];
       const unlisted: Array<string> = boldLabels(englishPage(page)).filter(
         (span: string): boolean => {
@@ -736,6 +826,91 @@ describe("the lists this test keeps", () => {
       expect(englishPage(LABEL_RULES)).toMatch(
         italicPattern(namedFromPicks("en", entry)),
       );
+    }
+  });
+
+  it("quote the Overview's texts with figures as the English Dashboard draws them, worded anew in every language", () => {
+    for (const page of Object.keys(DRAWN_WITH_FIGURES)) {
+      for (const text of DRAWN_WITH_FIGURES[page] as Array<string>) {
+        expect({ page, text, quoted: true, drawnInEnglish: text }).toEqual({
+          page,
+          text,
+          quoted: englishPage(page).includes(text),
+          drawnInEnglish: drawnTextWithFigures("en", text),
+        });
+
+        // Every docs language's Dashboard words it: none reads it in English.
+        for (const language of LANGUAGES) {
+          expect({ language, text, inEnglish: false }).toEqual({
+            language,
+            text,
+            inEnglish: drawnTextWithFigures(language, text) === text,
+          });
+        }
+      }
+    }
+  });
+
+  it("find the Error Budgets page's budget table, every figure of it one the English Dashboard writes as the page does", () => {
+    const rows: Array<Array<string>> = budgetTableRows(
+      ERROR_BUDGET,
+      englishPage(ERROR_BUDGET),
+    );
+
+    // No other page of the group has the table.
+    expect(budgetTableRows(INTRODUCTION, englishPage(INTRODUCTION))).toEqual(
+      [],
+    );
+
+    // Five targets, each with its budget over 7, 28, 30 and 90 days.
+    expect(rows.length).toBe(5);
+
+    for (const row of rows) {
+      expect(row.length).toBe(5);
+
+      for (const cell of row) {
+        expect({ cell, drawnInEnglish: cell }).toEqual({
+          cell,
+          drawnInEnglish: drawnBudgetFigure("en", cell),
+        });
+      }
+    }
+
+    for (const page of Object.keys(BUDGET_FIGURES_IN_PROSE)) {
+      for (const text of BUDGET_FIGURES_IN_PROSE[page] as Array<string>) {
+        expect({ page, text, quoted: true, drawnInEnglish: text }).toEqual({
+          page,
+          text,
+          quoted: prose(englishPage(page)).includes(text),
+          drawnInEnglish: drawnBudgetFigure("en", text),
+        });
+      }
+    }
+  });
+
+  it("write the budget table's durations in every docs language's own units, none of them in English", () => {
+    const durations: Array<string> = [
+      ...budgetTableRows(ERROR_BUDGET, englishPage(ERROR_BUDGET)).flatMap(
+        (row: Array<string>): Array<string> => {
+          return row.slice(1);
+        },
+      ),
+      ...listed(BUDGET_FIGURES_IN_PROSE, ERROR_BUDGET),
+    ];
+
+    expect(durations.length).toBe(21);
+
+    for (const language of LANGUAGES) {
+      for (const duration of durations) {
+        const drawn: string | null = drawnBudgetFigure(language, duration);
+
+        expect({ language, duration, drawn: true, inEnglish: false }).toEqual({
+          language,
+          duration,
+          drawn: drawn !== null,
+          inEnglish: drawn === duration || ENGLISH_UNIT.test(drawn || ""),
+        });
+      }
     }
   });
 });
@@ -991,6 +1166,78 @@ describe.each(LANGUAGES)("%s translation", (language: string) => {
       }
     });
 
+    it("quotes the Overview's texts with figures as this language's Dashboard draws them (#6696)", () => {
+      const translated: string = asRead(readPage(language, entry.page));
+      const problems: Array<string> = [];
+
+      for (const text of listed(DRAWN_WITH_FIGURES, entry.page)) {
+        const drawn: string = asRead(
+          drawnTextWithFigures(language, text) || text,
+        );
+
+        // As often as the English page quotes it, and bold where it is bold.
+        if (occurrences(translated, drawn) < occurrences(english, text)) {
+          problems.push(`${text} -> ${drawn}: not quoted`);
+        }
+
+        if (
+          occurrences(translated, `**${drawn}**`) <
+          occurrences(english, `**${text}**`)
+        ) {
+          problems.push(`${text} -> ${drawn}: not bold`);
+        }
+
+        // No page still quotes the English its Dashboard no longer draws.
+        if (translated.includes(text)) {
+          problems.push(`${text}: still in English`);
+        }
+      }
+
+      expect(problems).toEqual([]);
+    });
+
+    it("writes the budget table's and the 31-day month's figures as this language's Dashboard writes a percentage and a duration (#6925)", () => {
+      const translated: string = readPage(language, entry.page);
+      const englishRows: Array<Array<string>> = budgetTableRows(
+        entry.page,
+        english,
+      );
+      const problems: Array<string> = [];
+
+      // Cell by cell: each target and budget as the language writes it.
+      expect(
+        budgetTableRows(entry.page, translated).map(
+          (row: Array<string>): Array<string> => {
+            return row.map(asRead);
+          },
+        ),
+      ).toEqual(
+        englishRows.map((row: Array<string>): Array<string> => {
+          return row.map((cell: string): string => {
+            return asRead(drawnBudgetFigure(language, cell) || cell);
+          });
+        }),
+      );
+
+      // The month's budget in the sentence under the table.
+      for (const text of listed(BUDGET_FIGURES_IN_PROSE, entry.page)) {
+        const drawn: string = asRead(drawnBudgetFigure(language, text) || text);
+
+        if (
+          occurrences(asRead(prose(translated)), drawn) <
+          occurrences(prose(english), text)
+        ) {
+          problems.push(`${text} -> ${drawn}: not written`);
+        }
+
+        if (translated.includes(text)) {
+          problems.push(`${text}: still in English`);
+        }
+      }
+
+      expect(problems).toEqual([]);
+    });
+
     it("writes menu paths the way its script reads them", () => {
       const translated: string = prose(readPage(language, entry.page));
 
@@ -1101,5 +1348,138 @@ describe("the helpers, on these pages' shapes", () => {
         },
       ),
     ).toBe("Add Checkout team as owners");
+  });
+
+  it("draw the Overview's texts with figures as each language's Dashboard draws them", () => {
+    // The window chip: the locale's "Window {{percent}}% full", 23 put in.
+    expect(drawnTextWithFigures("de", "Window 23% full")).toBe(
+      "Fenster zu 23 % gefüllt",
+    );
+    // Persian writes its own digits, as its Dashboard does.
+    expect(drawnTextWithFigures("fa", "Window 23% full")).toBe(
+      "۲۳٪ بازه پر شده",
+    );
+    // The budget lines and the runway, in the language's own units.
+    expect(drawnTextWithFigures("de", "31m 4s left of 43m 12s")).toBe(
+      "Noch 31 Min., 4 Sek. von 43 Min., 12 Sek.",
+    );
+    expect(
+      drawnTextWithFigures("de", "4d 23m over budget · 5m 47s allowed"),
+    ).toBe("4 Tg., 23 Min. über dem Budget · 5 Min., 47 Sek. erlaubt");
+    expect(drawnTextWithFigures("ko", "~2d 5h")).toBe("~2일 5시간");
+    // Persian punctuates the line with its own separator.
+    expect(
+      drawnTextWithFigures("fa", "4d 23m over budget · 5m 47s allowed"),
+    ).toBe("۴ روز ۲۳ دقیقه بیش از بودجه • ۵ دقیقه ۴۷ ثانیه مجاز");
+
+    // In English, each reads exactly as written.
+    for (const texts of Object.values(DRAWN_WITH_FIGURES)) {
+      for (const text of texts) {
+        expect(drawnTextWithFigures("en", text)).toBe(text);
+      }
+    }
+  });
+
+  it("draw nothing for a text the Dashboard does not draw from figures", () => {
+    // A label with no figure in it: drawnDashboardLabel's.
+    expect(drawnTextWithFigures("de", "Budget exceeded")).toBeNull();
+    // A percentage the chip never writes: it floors to a whole percent.
+    expect(drawnTextWithFigures("de", "Window 23.5% full")).toBeNull();
+    // Durations the Dashboard never writes: "1m", never "60s"; no "0h".
+    expect(drawnTextWithFigures("de", "60s left of 43m 12s")).toBeNull();
+    expect(
+      drawnTextWithFigures("de", "4d 0h 23m over budget · 5m 47s allowed"),
+    ).toBeNull();
+    // Not a duration at all.
+    expect(drawnTextWithFigures("de", "~2 days")).toBeNull();
+  });
+
+  it("draw the Settings page's Error Budget line as each language's Settings page draws it (#6925)", () => {
+    const line: string = "43m 12s of downtime per 30-day window";
+
+    expect(drawnTextWithFigures("en", line)).toBe(line);
+    expect(asRead(drawnTextWithFigures("de", line) || "")).toBe(
+      "43 Min., 12 Sek. Ausfallzeit pro Zeitfenster von 30 Tagen",
+    );
+    // Persian digits and units, as its Settings page writes them.
+    expect(drawnTextWithFigures("fa", line)).toBe(
+      "۴۳ دقیقه ۱۲ ثانیه زمان قطعی در هر بازه ۳۰ روزه",
+    );
+    // The same budget the Overview's tile names, in the same words.
+    expect(drawnTextWithFigures("de", line)).toContain(
+      (drawnTextWithFigures("de", "31m 4s left of 43m 12s") || "").replace(
+        /^.* von /,
+        "",
+      ),
+    );
+    // A budget no target leaves in that window, or no window at all.
+    expect(
+      drawnTextWithFigures("de", "43m 12s of downtime per 0-day window"),
+    ).toBeNull();
+    // "1m", never "60s": the Settings page never writes it.
+    expect(
+      drawnTextWithFigures("de", "60s of downtime per 30-day window"),
+    ).toBeNull();
+  });
+
+  it("draw the budget table's figures as each language's Dashboard writes a percentage and a duration (#6925)", () => {
+    // A target with the language's decimal separator and percent.
+    expect(asRead(drawnBudgetFigure("de", "99.9%") || "")).toBe("99,9 %");
+    expect(asRead(drawnBudgetFigure("fr", "99.95%") || "")).toBe("99,95 %");
+    expect(drawnBudgetFigure("fa", "99.9%")).toBe("۹۹٫۹٪");
+    expect(drawnBudgetFigure("ja", "99.99%")).toBe("99.99%");
+    expect(asRead(drawnBudgetFigure("de", "99.999%") || "")).toBe("99,999 %");
+
+    // A budget with the units the Dashboard names a duration's parts with.
+    expect(asRead(drawnBudgetFigure("de", "43m 12s") || "")).toBe(
+      "43 Min., 12 Sek.",
+    );
+    expect(drawnBudgetFigure("fa", "44m 38s")).toBe("۴۴ دقیقه ۳۸ ثانیه");
+    expect(asRead(drawnBudgetFigure("es", "7h 12m") || "")).toBe("7 h 12 min");
+
+    // Two parts read exactly as the Dashboard's own compact duration.
+    for (const language of ["de", "fa", "ar", "ja", "ru", "zh-CN"]) {
+      expect({
+        language,
+        drawn: drawnBudgetFigure(language, "43m 12s"),
+      }).toEqual({
+        language,
+        drawn: formatDurationCompactInLanguage(43 * 60 + 12, language),
+      });
+    }
+
+    // The table keeps a third part and a zero part the Dashboard leaves out.
+    expect(asRead(drawnBudgetFigure("de", "1h 40m 48s") || "")).toBe(
+      "1 Std., 40 Min. und 48 Sek.",
+    );
+    expect(asRead(drawnBudgetFigure("de", "1m 0s") || "")).toBe(
+      "1 Min., 0 Sek.",
+    );
+    expect(drawnBudgetFigure("fa", "2h 9m 36s")).toBe(
+      "۲ ساعت ۹ دقیقه ۳۶ ثانیه",
+    );
+
+    // In English, each reads exactly as written.
+    for (const figure of ["99%", "99.95%", "1h 40m 48s", "1m 0s", "44m 38s"]) {
+      expect(drawnBudgetFigure("en", figure)).toBe(figure);
+    }
+
+    // Nothing for what is no target or budget of the table.
+    for (const text of [
+      "",
+      "99.9",
+      "99.9 %",
+      "Target",
+      "1h40m",
+      "43m  12s",
+      "43 m",
+      "5w",
+      "43m 12s of downtime per 30-day window",
+    ]) {
+      expect({ text, drawn: drawnBudgetFigure("de", text) }).toEqual({
+        text,
+        drawn: null,
+      });
+    }
   });
 });

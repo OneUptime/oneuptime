@@ -144,6 +144,8 @@ Before the first start, replace the placeholder secrets yourself, as [Generate r
 Open `http://` followed by your `HOST` (for example `http://localhost`) and sign up. The first account on a new instance becomes its master admin, who can open the Admin Dashboard at `/admin`.
 
 Anyone who can reach the page can sign up after you. To stop that, open the Admin Dashboard, go to **Settings > Authentication** and turn off **Let people sign up**. People you invite to a project can still create their account.
+
+Then finish setting up the server at `/admin/setup`, where email, SMS and calls are set up and tested: see [Finish setting up the server](/docs/installation/self-hosting-guide#finish-setting-up-the-server).
 :::
 
 ### Generate random secrets
@@ -477,7 +479,27 @@ Then delete the `oneuptime` folder.
 > [!CAUTION]
 > `--volumes` deletes every monitor, incident, user and all telemetry for good. Back up first if you might need any of it.
 
+## Check your installation
+
+When something does not work, run the doctor in the `oneuptime` folder:
+
+```bash
+npm run doctor
+```
+
+It lists what is wrong, worst first, each line with the exact fix, and ends with **Everything looks right.** or the number of things to fix. It checks every container and shows the last lines of the log of any that is not running, `config.env`, that `HOST` reaches this server, the certificate when `PROVISION_SSL` is on, and free disk. It also asks OneUptime what it sees of itself: PostgreSQL, ClickHouse and Valkey, the migrations, the queues, the version, and the server's setup steps, such as email and probes. `npm start` ends with the same checks, and says only what needs attention.
+
+To see the recent errors of every service as well, each with the service named:
+
+```bash
+npm run doctor -- --logs
+```
+
+It exits with `1` when something marked ✗ needs fixing, so a script can run it. The Admin Dashboard shows what OneUptime sees of itself at the top of **OneUptime Health**, and on Kubernetes `HelmChart/Public/diagnose.sh` prints it.
+
 ## Troubleshooting
+
+Start with `npm run doctor`: it names most of the problems below, with their fixes.
 
 :::details npm start stops before it starts OneUptime
 `npm start` checks the server first, and stops on anything that would keep OneUptime from working: Docker or its Compose plugin missing, Docker stopped or out of your user's reach, a port another program holds, or a `HOST` no browser can open. Each line marked ✗ says what to change. Change it, then run `npm start` again. If a check is wrong about your server, start without the checks:
@@ -546,8 +568,8 @@ The Admin Dashboard lists the probe under **Settings > Monitoring > Global Probe
 ## Next steps
 
 :::cards
+- [Finish setting up the server](/docs/installation/self-hosting-guide#finish-setting-up-the-server): Email, then SMS and calls, each with a test.
+- [Quickstart](/docs/introduction/quickstart): Your first monitor, on-call policy and status page.
 - [Upgrading OneUptime](/docs/installation/upgrading): What each major version needs from you.
-- [Sizing & Capacity Planning](/docs/installation/sizing): Plan memory and disk for your telemetry.
 - [Self-Hosted Architecture](/docs/self-hosted/architecture): How the components fit together.
-- [Enterprise Edition](/docs/self-hosted/enterprise): What the Enterprise image adds, and its license.
 :::

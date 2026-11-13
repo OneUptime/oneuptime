@@ -1,3 +1,4 @@
+// UX rule: Docs/ux/README.md#finding-a-page
 import {
   afterAll,
   beforeAll,
@@ -226,15 +227,11 @@ const PAGES_SEARCH_LEAVES_OUT: Readonly<Partial<Record<PageMap, string>>> = {
 };
 
 /*
- * Menus whose pages Search reaches through another menu, and why.
+ * Menus whose pages Search reaches through another menu, and why. None
+ * today: the one there was, Home's, is gone with the copies of the products'
+ * lists it led to (#6857).
  */
-const MENUS_SEARCH_LEAVES_OUT: Readonly<Record<string, string>> = {
-  /*
-   * Home's lists (Active Incidents, Not Operational, Ongoing...) are the
-   * products' own pages, which Search offers under each product.
-   */
-  "Pages/Home/SideMenu.tsx": "Home lists the products' own pages",
-};
+const MENUS_SEARCH_LEAVES_OUT: Readonly<Record<string, string>> = {};
 
 const DASHBOARD_SRC: string = path.join(
   __dirname,

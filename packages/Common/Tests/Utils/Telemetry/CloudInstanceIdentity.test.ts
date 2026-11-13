@@ -46,6 +46,7 @@ describe("CLOUD_INSTANCE_IDENTITY_ATTRIBUTES", () => {
       "aws.ecs.task.arn",
       "faas.instance",
       "azure.container_app.instance.id",
+      "azure.app_service.instance.id",
       "service.instance.id",
       "container.id",
       "host.id",
@@ -131,6 +132,50 @@ describe("resolveCloudInstanceName precedence", () => {
       "aws.ecs.task.arn",
       "faas.instance",
     ]);
+  });
+
+  test("azure.app_service.instance.id identifies an App Service instance (issue #6770)", () => {
+    /*
+     * The Collector's and the Go SDK's azureappservice detectors set
+     * WEBSITE_INSTANCE_ID here and no service.instance.id: an app they
+     * describe named no instance, and read 0 instances while it ran.
+     */
+    expect(
+      resolveCloudInstanceName(
+        getterFor({
+          "azure.app_service.instance.id":
+            "6d1f0b6e2b4a9c1e3f5a7b9d0c2e4f6a8b0d2f4e6a8c0e2f4a6c8e0a2c4e6f8a",
+          "host.name": "localhost",
+        }),
+      ),
+    ).toBe("6d1f0b6e2b4a9c1e3f5a7b9d0c2e4f6a8b0d2f4e6a8c0e2f4a6c8e0a2c4e6f8a");
+  });
+
+  test("an App Service instance keeps one name whichever detector named it", () => {
+    /*
+     * The Node.js and .NET detectors put the same WEBSITE_INSTANCE_ID in
+     * service.instance.id: an app's spans and a sidecar Collector's metrics
+     * land on one row, and an SDK-minted id never splits it.
+     */
+    const websiteInstanceId: string = "a1b2c3d4e5f6";
+
+    expect(
+      resolveCloudInstanceName(
+        getterFor({
+          "azure.app_service.instance.id": websiteInstanceId,
+          "service.instance.id": "0f8fad5b-d9cb-469f-a165-70867728950e",
+          "host.id": "checkout-api.azurewebsites.net",
+        }),
+      ),
+    ).toBe(websiteInstanceId);
+    expect(
+      resolveCloudInstanceName(
+        getterFor({
+          "service.instance.id": websiteInstanceId,
+          "host.id": "checkout-api.azurewebsites.net",
+        }),
+      ),
+    ).toBe(websiteInstanceId);
   });
 
   test("faas.instance identifies a Cloud Run instance", () => {

@@ -1,3 +1,5 @@
+import ProjectMilestoneService from "./ProjectMilestoneService";
+import ActivationMilestone from "../../Types/Analytics/ActivationMilestone";
 import DatabaseConfig from "../DatabaseConfig";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
@@ -216,11 +218,15 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
     }
 
     if (!projectId) {
-      throw new BadDataException("Project Id is required to invite a member");
+      throw new BadDataException(
+        "The request did not say which project to invite the member to.",
+      );
     }
 
     if (!teamId) {
-      throw new BadDataException("Team Id is required to invite a member");
+      throw new BadDataException(
+        "The request did not say which team to invite the member to.",
+      );
     }
 
     createBy.data.projectId = projectId;
@@ -250,7 +256,9 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
       });
 
       if (!team) {
-        throw new BadDataException("Invalid Team ID");
+        throw new BadDataException(
+          "This team no longer exists in this project. Reload the page and pick another team.",
+        );
       }
 
       await TeamPermissionService.assertCanGrantTeamPermissions({
@@ -1144,6 +1152,12 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
       this.followUpWaitingPublicNotes([onCreate.createBy.data.projectId]);
     }
 
+    if (createdItem.hasAcceptedInvitation) {
+      this.noteSecondMemberJoined([
+        onCreate.createBy.data.projectId || createdItem.projectId,
+      ]);
+    }
+
     // Activation event for marketing funnels, attributed to the inviter.
     ProductAnalytics.captureForUser({
       userId: onCreate.createBy.props.userId,
@@ -1229,7 +1243,70 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
       );
     }
 
+    if (updateBy.data.hasAcceptedInvitation) {
+      this.noteSecondMemberJoined(
+        items.map((item: TeamMember): ObjectID | undefined => {
+          return item.projectId;
+        }),
+      );
+    }
+
     return { updateBy, carryForward: onUpdate.carryForward };
+  }
+
+  /*
+   * A project's second person (issue #6830): once somebody accepts to be in
+   * it - an invitation accepted, a member added already accepted - and two
+   * different people have, its SecondMemberJoined milestone is kept. A
+   * person in several teams is one person. In the background: it never
+   * holds up or fails the write, and once the project has the milestone it
+   * costs a memo lookup and no query.
+   */
+  private noteSecondMemberJoined(
+    projectIds: Array<ObjectID | null | undefined>,
+  ): void {
+    const projects: Map<string, ObjectID> = new Map<string, ObjectID>();
+
+    for (const projectId of projectIds) {
+      if (
+        projectId &&
+        !ProjectMilestoneService.isKnownReached(
+          projectId,
+          ActivationMilestone.SecondMemberJoined,
+        )
+      ) {
+        projects.set(projectId.toString().toLowerCase(), projectId);
+      }
+    }
+
+    for (const projectId of projects.values()) {
+      this.hasTwoAcceptedMembers(projectId)
+        .then((hasTwo: boolean): void => {
+          if (hasTwo) {
+            ProjectMilestoneService.reachInBackground({
+              projectId: projectId,
+              milestone: ActivationMilestone.SecondMemberJoined,
+            });
+          }
+        })
+        .catch((error: Error): void => {
+          logger.error(
+            "Could not check whether a project has a second member:",
+          );
+          logger.error(error);
+        });
+    }
+  }
+
+  // Whether two different people have accepted to be in the project.
+  public async hasTwoAcceptedMembers(projectId: ObjectID): Promise<boolean> {
+    const rows: Array<{ userId: string }> =
+      (await this.getRepository().manager.query(
+        `SELECT DISTINCT "userId" FROM "TeamMember" WHERE "projectId" = $1 AND "hasAcceptedInvitation" = true AND "userId" IS NOT NULL AND "deletedAt" IS NULL LIMIT 2`,
+        [projectId.toString()],
+      )) as Array<{ userId: string }>;
+
+    return Array.isArray(rows) && rows.length >= 2;
   }
 
   /*

@@ -10,7 +10,8 @@
  * viewer's pick (`widgetSort`) when it names one of the widget's sortable
  * columns, else the widget's own sort, else its built-in order - read step
  * by step through the same registry (Common/Utils/Dashboard/
- * DashboardWidgetSorts), whatever order the browser itself asked for.
+ * DashboardWidgetSorts), whatever order the browser itself asked for - and
+ * kept to the rows the route's policy keeps it to (POLICY_QUERY_BY_RESOURCE).
  *
  * Everything the page asks for is recorded on window.__dashboardWidgetSortFixture:
  * every resource list request's body (resourceLists), and every request the
@@ -31,6 +32,7 @@ import {
   readDashboardWidgetListInSteps,
   readDashboardWidgetSavedSort,
 } from "Common/Utils/Dashboard/DashboardWidgetSorts";
+import { getMonitorListQuery } from "Common/Utils/Dashboard/MonitorListWidgetFormat";
 import {
   DASHBOARD_ID,
   buildConfig,
@@ -53,6 +55,18 @@ const API_PREFIX = "/public-dashboard-api";
 const ROWS_BY_RESOURCE = {
   monitor: () => monitors(),
   "kubernetes-resource": () => pods(),
+};
+
+/*
+ * The rows the public route's policy keeps a widget to
+ * (Common/Server/Utils/Dashboard/PublicDashboardResourceListPolicy): a pod
+ * list its pods; a monitor list the query its stored settings make, through
+ * the helper the policy and the widget share - no archived monitor, and a
+ * status filter matching only the monitors that are checked.
+ */
+const POLICY_QUERY_BY_RESOURCE = {
+  monitor: (widget) => getMonitorListQuery(widget.arguments || {}),
+  "kubernetes-resource": () => ({ kind: "Pod" }),
 };
 
 const widgetOf = (componentId) => {
@@ -82,7 +96,7 @@ const readResourceList = async (resource, body) => {
   const steps = getDashboardWidgetListReadSteps({
     componentType: widget.componentType,
     choice,
-    query: resource === "kubernetes-resource" ? { kind: "Pod" } : {},
+    query: POLICY_QUERY_BY_RESOURCE[resource](widget),
   });
 
   const phases = [];

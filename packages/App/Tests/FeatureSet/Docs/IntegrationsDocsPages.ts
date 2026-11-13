@@ -9,6 +9,9 @@
  * other: importing a .test.ts file runs its tests.
  */
 
+import { DashboardTemplateLabel } from "./DocsDashboardLabels";
+import { translatableTerm } from "Common/Types/Translator";
+
 export interface IntegrationsDocsPageEntry {
   page: string;
   // The page's nav link, as the docs' English locale keys it.
@@ -783,11 +786,13 @@ export const OTHER_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
 
 /*
  * Bold names no Dashboard locale has as a label, kept as written in every
- * language: the ⋯ menu, a symbol everywhere; what the OAuth 2.0 variable's
- * card says once a token is fetched, drawn in English; and a custom
- * field's name, which is code. (The grant type, Client Credentials, is a
- * label of the SMTP form's OAuth answers now, and reads the same in every
- * language: i18n/SameAsEnglish.json.)
+ * language: the ⋯ menu, a symbol everywhere, and a custom field's name,
+ * which is code. (The grant type, Client Credentials, is a label of the
+ * SMTP form's OAuth answers now, and reads the same in every language:
+ * i18n/SameAsEnglish.json. What the OAuth 2.0 variable's card says once a
+ * token is fetched, Access Token Fetched, was drawn in English and kept
+ * here until c29ecc007f5 (#6868) gave it a key worded in every locale: each
+ * language's page names it as its Dashboard draws it.)
  */
 export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
   {
@@ -797,28 +802,25 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
      * worded in every language in f155e8e0998: the criteria form draws them
      * translated, so the page names them as drawn.)
      */
-    [DYNAMICS]: ["⋯", "Access Token Fetched", "`customFields.dynamicsCaseId`."],
+    [DYNAMICS]: ["⋯", "`customFields.dynamicsCaseId`."],
     /*
      * What the Security Events connection pages name that no Dashboard
-     * locale words: the providers' titles, the connection form's settings
-     * from the connector catalog, the checks a test reports and the
-     * provider-named counts and buttons (Returned by Google SecOps, Preview
-     * detections), which the Dashboard words as one sentence around the
-     * provider's name. A version is a version. (The Health states, Data to
-     * import and the run details' counts and fields are labels since #6658:
-     * the Dashboard draws them through the locales, so each language's page
-     * names them as drawn.) (Instance resource name and
-     * Service account JSON are labels now: the Send to your SIEM form draws
-     * them through the locales. So are Directory (tenant) ID, Application
-     * (client) ID, Subscription ID, the two Azure clouds, Access key ID and
-     * Secret access key, which the AI connections' form words in every
-     * language: the form draws a setting's title and options through the
-     * locales, so the Security Events form names them the same way. And
-     * Waiting for first poll is one too: a threat intel feed's Status words
-     * it in every language, and the Health pill looks its text up. So is
-     * Okta System Log, since the Rule Library's Data filter names the
-     * events a rule reads (#5233): it reads the same in every language, and
-     * the page names it as drawn.)
+     * locale words: the providers' titles and the checks a test reports,
+     * which the server names (#6701). A version is a version. (The Health
+     * states, Data to import and the run details' counts and fields are
+     * labels since #6658: the Dashboard draws them through the locales, so
+     * each language's page names them as drawn. Instance resource name,
+     * Service account JSON, Directory (tenant) ID, Application (client) ID,
+     * Subscription ID, the Azure clouds, Access key ID, Secret access key,
+     * Waiting for first poll and Okta System Log are labels too. Since #6700
+     * so is every setting the connector catalog names - Resource group,
+     * Workspace name, Falcon cloud, Splunk management URL, Authentication
+     * token, Kibana URL, Kibana space, Session token, Okta organization URL,
+     * API token, Event filter, Administrator email - which the connection
+     * form draws through the locales. And the labels the Dashboard builds
+     * from a sentence and a value - Preview detections, Returned by Google
+     * SecOps, Remove the stored Password - are TEMPLATE_LABELS since #6703:
+     * each language's page names them as its Dashboard fills them.)
      */
     [GOOGLE_SECOPS]: [
       "Read late alerts by detection time",
@@ -830,15 +832,10 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "Background workers",
       "Poll scheduler",
       "Security event storage",
-      "Preview detections",
-      "Returned by Google SecOps",
       "13.0.0",
     ],
     [SENTINEL]: [
-      "Resource group",
       "Microsoft Sentinel",
-      "Workspace name",
-      "Preview incidents",
       "Authenticate with Microsoft Entra",
       "Read incidents",
       "Incidents available to import",
@@ -848,7 +845,6 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
     ],
     [DEFENDER]: [
       "Microsoft Defender XDR",
-      "Preview alerts",
       "Authenticate with Microsoft Entra",
       "Read alerts from Microsoft Graph",
       "Alerts available to import",
@@ -857,13 +853,11 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "Security event storage",
     ],
     [CROWDSTRIKE]: [
-      "Falcon cloud",
       "CrowdStrike Falcon",
       "US-1 (api.crowdstrike.com)",
       "US-2 (api.us-2.crowdstrike.com)",
       "EU-1 (api.eu-1.crowdstrike.com)",
       "US-GOV-1 (api.laggar.gcw.crowdstrike.com)",
-      "Preview alerts",
       "Authenticate with CrowdStrike Falcon",
       "Read alerts from the Falcon Alerts API",
       "Alerts available to import",
@@ -871,17 +865,8 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "Poll scheduler",
       "Security event storage",
     ],
-    /*
-     * The connection form's switch to remove a stored secret is drawn from
-     * the setting's title, in English like the setting itself.
-     */
     [SPLUNK]: [
       "Splunk Enterprise Security",
-      "Authentication token",
-      "Splunk management URL",
-      "Remove the stored Authentication token",
-      "Remove the stored Password",
-      "Preview notable events",
       "Authenticate with Splunk",
       "Run the search on Splunk",
       "Notable events available to import",
@@ -891,9 +876,6 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
     ],
     [ELASTIC]: [
       "Elastic Security",
-      "Kibana URL",
-      "Kibana space",
-      "Preview alerts",
       "Authenticate with Kibana",
       "Read detection alerts",
       "Alerts available to import",
@@ -903,9 +885,6 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
     ],
     [AWS_SECURITY_HUB]: [
       "AWS Security Hub",
-      "Session token",
-      "Remove the stored Session token",
-      "Preview findings",
       "Authenticate with AWS",
       "Read findings",
       "Findings available to import",
@@ -914,10 +893,6 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "Security event storage",
     ],
     [OKTA]: [
-      "API token",
-      "Okta organization URL",
-      "Event filter",
-      "Preview log events",
       "Authenticate with Okta",
       "Read System Log events",
       "Events available to import",
@@ -926,7 +901,6 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "Security event storage",
     ],
     [ENTRA_ID]: [
-      "Preview records",
       "Authenticate with Microsoft Entra",
       "Read sign-ins",
       "Read directory changes",
@@ -939,8 +913,6 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "Security event storage",
     ],
     [GOOGLE_WORKSPACE]: [
-      "Administrator email",
-      "Preview audit events",
       "Authenticate with Google",
       "Read the audit logs",
       "Read Drive activity",
@@ -954,6 +926,60 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
     [DISCORD]: ["{ }"],
     [TELEGRAM]: ["{ }"],
   };
+
+/*
+ * Bold labels the Dashboard builds from a sentence and a value (#6703), by
+ * page: the diagnostics' Preview button names the records the connector
+ * imports, the run details name the provider a count was returned by, and
+ * the connection form's switch to remove a stored secret names the setting.
+ * No locale has the English label as a key, so each is named with the
+ * template and the values the Dashboard fills it with (drawnTemplateLabel),
+ * and each language's page quotes it as that language's Dashboard draws it.
+ */
+function preview(records: string): DashboardTemplateLabel {
+  return {
+    label: `Preview ${records}`,
+    template: "Preview {{records}}",
+    // connectorRecordsTerm: the records' name, cased as inside a sentence.
+    values: { records: translatableTerm(records, { inSentence: true }) },
+  };
+}
+
+function removeStored(field: string): DashboardTemplateLabel {
+  return {
+    label: `Remove the stored ${field}`,
+    template: "Remove the stored {{field}}",
+    // The setting's title, as the form names it.
+    values: { field: translatableTerm(field) },
+  };
+}
+
+export const TEMPLATE_LABELS: Readonly<
+  Record<string, ReadonlyArray<DashboardTemplateLabel>>
+> = {
+  [GOOGLE_SECOPS]: [
+    preview("detections"),
+    {
+      label: "Returned by Google SecOps",
+      template: "Returned by {{provider}}",
+      // The provider's title: a name, drawn as written.
+      values: { provider: "Google SecOps" },
+    },
+  ],
+  [SENTINEL]: [preview("incidents")],
+  [DEFENDER]: [preview("alerts")],
+  [CROWDSTRIKE]: [preview("alerts")],
+  [SPLUNK]: [
+    removeStored("Authentication token"),
+    removeStored("Password"),
+    preview("notable events"),
+  ],
+  [ELASTIC]: [preview("alerts")],
+  [AWS_SECURITY_HUB]: [removeStored("Session token"), preview("findings")],
+  [OKTA]: [preview("log events")],
+  [ENTRA_ID]: [preview("records")],
+  [GOOGLE_WORKSPACE]: [preview("audit events")],
+};
 
 // The plans the pages name: the Dashboard shows a plan's name as written.
 export const PLAN_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {

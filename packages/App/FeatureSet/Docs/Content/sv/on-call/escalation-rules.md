@@ -2,6 +2,9 @@
 
 En jourpolicy larmar personer i nivåer. Varje eskaleringsregel är ett nivå: vem som larmas och hur länge det väntas på att någon bekräftar innan nästa nivå larmas. En policys regler visas i ordning på dess sida **Eskaleringsregler**.
 
+> [!TIP]
+> Ny här? Följ guiden först: [Bli larmad via samtal, SMS eller push](/docs/guides/paging).
+
 ```mermaid title="En jourpolicy larmar nivå för nivå tills någon bekräftar"
 flowchart TB
     trigger["Incident eller larm"] --> level1["Level 1 larmar"]
@@ -163,6 +166,8 @@ Ett larm som inte skickas säger varför i personens **Jourloggar** (Användarin
 - kanalen är avstängd i projektet, och vem som kan slå på den.
 
 Projektets ägare får ett e-postmeddelande om det en gång, tills saldot har fyllts på eller kanalen är på igen.
+
+Ett larm som inte nådde OneUptimes aviseringstjänst säger `Could not reach the Notification service to send this (ECONNREFUSED).`, med nätverksfelets kod inom parentesen. Ett larm vars sändning aldrig blev klar, till exempel för att en server startade om under sändningen, säger `Sending did not finish within 15 minutes, so this notification may not have been sent.` Blir sändningen klar ändå ersätter resultatet det meddelandet.
 
 På OneUptime Cloud betalas varje SMS, samtal, WhatsApp- och Telegram-meddelande från projektets saldo på **Projektinställningar > Aviseringar > Aviseringsinställningar**: den exakta kostnaden dras från saldot när leverantören tar emot meddelandet, oavsett hur många meddelanden som går ut samtidigt.
 

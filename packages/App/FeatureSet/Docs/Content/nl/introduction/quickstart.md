@@ -2,6 +2,8 @@
 
 Deze handleiding brengt u in ongeveer vijftien minuten van een nieuw account naar een werkende inrichting: een monitor die uw website elke vijf minuten controleert, een bereikbaarheidsbeleid dat u oproept wanneer de site uitvalt, en een statuspagina die uw klanten informeert. Ze volgt de checklist **Welkom bij OneUptime 👋** op de startpagina van uw project.
 
+Komt u van een andere tool? [Importeer dan eerst uw inrichting](/docs/introduction/getting-started#overstappen-van-een-andere-tool): uw monitoren, bereikbaarheidsschema's en statuspagina's gaan mee.
+
 ```mermaid title="Wat u in deze handleiding inricht"
 flowchart TB
     monitor["Websitemonitor"] -->|"site is down"| incident["Incident"]
@@ -32,7 +34,7 @@ Voer een **Projectnaam** in, bijvoorbeeld de naam van uw bedrijf. Bij OneUptime 
 
 ### Het project aanmaken
 
-Klik op **Project maken**. De startpagina van uw project opent, met bovenaan de checklist **Welkom bij OneUptime 👋**.
+Klik op **Project maken**. De startpagina van uw project opent, met bovenaan de checklist **Welkom bij OneUptime 👋**. Eerst vraagt het **Wat wil je eerst doen?**: vink **Weten wanneer mijn website of API plat ligt**, **De juiste persoon oproepen als er iets kapotgaat** en **Mijn klanten informeren met een statuspagina** aan, en klik op **Doorgaan**.
 :::
 
 ## Uw website bewaken
@@ -80,6 +82,8 @@ Uw inlog-e-mail is al een manier om u te bereiken. Om ook sms'jes of oproepen te
 
 Voor meer niveaus, roosters en hoe lang elk niveau wacht, zie [Escalatieregels](/docs/on-call/escalation-rules) en [Bereikbaarheidsschema's](/docs/on-call/schedules).
 
+Wilt u per sms, telefoonoproep en push worden opgeroepen, met de volgende persoon als niemand antwoordt en een testoproep die bewijst dat het werkt, volg dan de handleiding [Opgeroepen worden via telefoon, sms of push](/docs/guides/paging).
+
 ## Een statuspagina publiceren
 
 :::steps
@@ -97,6 +101,8 @@ Kies **Overzicht** in het zijmenu. De kaart **Link naar de statuspagina** linkt 
 :::
 
 Een nieuwe statuspagina is openbaar: iedereen met het adres kan haar openen. Hoe u haar uw eigen domein, logo en kleuren geeft, leest u in [Statuspagina – branding en domeinen](/docs/status-pages/branding-and-domains).
+
+Wilt u de statuspagina via HTTPS op uw eigen domein zetten, volg dan de handleiding [Een statuspagina publiceren](/docs/guides/status-page).
 
 ## Uw team uitnodigen
 
@@ -141,6 +147,7 @@ Open de monitor en bekijk wat de sondes hebben ontvangen. Zie het gedeelte over 
 
 :::cards
 - [Kernbegrippen](/docs/introduction/core-concepts): De ideeën achter wat u net hebt ingericht.
+- [Woordenlijst](/docs/introduction/glossary): Elk woord dat u onderweg bent tegengekomen, in een zin of twee.
 - [Bereikbaarheidsschema's](/docs/on-call/schedules): De bereikbaarheid met uw team delen.
 - [Statuspagina – branding en domeinen](/docs/status-pages/branding-and-domains): De statuspagina uw eigen maken.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Logs, metrics en traces vanuit uw applicaties versturen.

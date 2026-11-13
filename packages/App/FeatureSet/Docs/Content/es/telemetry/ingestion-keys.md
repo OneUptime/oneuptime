@@ -1,6 +1,6 @@
 # Claves de ingesta
 
-Una clave de ingesta conecta su telemetría con su proyecto. Las aplicaciones, los OpenTelemetry Collectors y los agentes la envían con cada solicitud, y OneUptime archiva sus registros, trazas y métricas en el proyecto al que pertenece la clave. Esta página muestra cómo crear una clave, qué tipo elegir y cómo mantener las claves seguras.
+Una clave de ingesta conecta su telemetría con su proyecto. Las aplicaciones, los OpenTelemetry Collectors y los agentes la envían con cada solicitud, y OneUptime archiva sus registros, trazas y métricas en el proyecto al que pertenece la clave. Esta página muestra cómo crear una clave, qué tipo elegir y cómo mantener las claves seguras. Para distinguir una clave de ingesta de una clave de API, consulte [¿Cuál uso?](/docs/introduction/which-one#clave-de-ingesta-o-clave-de-api).
 
 :::cards
 - [Crear una clave de ingesta](#crear-una-clave-de-ingesta): Un nombre, un tipo y un secreto que copiar.

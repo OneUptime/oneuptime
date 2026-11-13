@@ -41,10 +41,14 @@ jest.mock("../../../UI/Utils/Translation", () => {
         translateValue: (value: unknown): unknown => {
           return value;
         },
+        language: pageLanguage,
       };
     },
   };
 });
+
+// The page's language: a call's title reads its own way on any other.
+let pageLanguage: string = "en";
 
 import EventVideoCallsCard from "../../../../App/FeatureSet/Dashboard/src/Components/VideoCall/EventVideoCallsCard";
 import {
@@ -62,6 +66,7 @@ import ObjectID from "../../../Types/ObjectID";
 import VideoCallProvider from "../../../Types/VideoCall/VideoCallProvider";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import { LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME } from "../../../UI/Utils/LineDirection";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
@@ -665,5 +670,82 @@ describe("starting a call", () => {
     expect(connect.getAttribute("href")).toBe(
       `/dashboard/${PROJECT_ID}/settings/video-calls`,
     );
+  });
+});
+
+/*
+ * A call's title on an Arabic or Persian page (#6471): the meeting's own
+ * title, often the incident's English one, cut short where the card ends
+ * lost its start. It is a line that reads the way it is written now
+ * (IsolatedLine), its "..." at its own end, the whole title under the
+ * pointer.
+ */
+describe("a call's title reads the way it is written", () => {
+  const ENGLISH_TITLE: string =
+    "INC-42: Checkout is down for every card payment (EU West)";
+  const ARABIC_TITLE: string = "الحادث ٤٢: الدفع متوقف";
+  const TITLE_CLASS_NAME: string = "truncate text-sm text-gray-600";
+
+  afterEach(() => {
+    pageLanguage = "en";
+  });
+
+  const drawCallTitled: (title: string) => HTMLElement = (
+    title: string,
+  ): HTMLElement => {
+    renderCard({
+      calls: [
+        incidentCall({
+          provider: VideoCallProvider.Zoom,
+          joinUrl: ZOOM_URL,
+          title: title,
+          byRule: true,
+        }),
+      ],
+    });
+
+    return screen.getByTestId("event-video-call-title");
+  };
+
+  test.each(["ar", "fa"])(
+    "on an %s page an English title reads left to right, lined up as the page's lines",
+    (language: string) => {
+      pageLanguage = language;
+
+      const title: HTMLElement = drawCallTitled(ENGLISH_TITLE);
+
+      expect(title.tagName).toBe("P");
+      expect(title.textContent).toBe(ENGLISH_TITLE);
+      expect(title).toHaveAttribute("dir", "ltr");
+      expect(title.getAttribute("class")).toBe(
+        `${TITLE_CLASS_NAME} ${LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME}`,
+      );
+      expect(title).toHaveAttribute("title", ENGLISH_TITLE);
+      // The block it shares with the call's headline keeps the page's way.
+      expect(title.parentElement).not.toHaveAttribute("dir");
+    },
+  );
+
+  test.each(["ar", "fa"])(
+    "on an %s page an Arabic title is drawn as it was",
+    (language: string) => {
+      pageLanguage = language;
+
+      const title: HTMLElement = drawCallTitled(ARABIC_TITLE);
+
+      expect(title).not.toHaveAttribute("dir");
+      expect(title.getAttribute("class")).toBe(TITLE_CLASS_NAME);
+    },
+  );
+
+  test("on an English page an English title is drawn as it was, and an Arabic one reads right to left", () => {
+    expect(drawCallTitled(ENGLISH_TITLE)).not.toHaveAttribute("dir");
+    expect(
+      screen.getByTestId("event-video-call-title").getAttribute("class"),
+    ).toBe(TITLE_CLASS_NAME);
+
+    cleanup();
+
+    expect(drawCallTitled(ARABIC_TITLE)).toHaveAttribute("dir", "rtl");
   });
 });

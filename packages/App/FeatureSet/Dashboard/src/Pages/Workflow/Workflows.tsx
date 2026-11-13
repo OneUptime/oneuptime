@@ -1,4 +1,5 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import URL from "Common/Types/API/URL";
@@ -215,6 +216,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Workflows",
             description:
               "No-code automations that run when something happens, such as posting to Slack when an incident is created. Start from a template or build your own.",
+            titleGlossaryTerm: GlossaryTerm.Workflow,
           }}
           videoLink={URL.fromString("https://youtu.be/z-b7_KQcUDY")}
           /*

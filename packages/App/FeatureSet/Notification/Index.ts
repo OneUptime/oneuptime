@@ -9,6 +9,7 @@ import WebhookAPI from "./API/Webhook";
 import CallAndSmsGatewayAPI from "./API/CallAndSmsGateway";
 import PushRelayAPI from "./API/PushRelay";
 import SMTPConfigAPI from "./API/SMTPConfig";
+import ServerTestSendAPI from "./API/ServerTestSend";
 import PhoneNumberAPI from "./API/PhoneNumber";
 import IncomingCallAPI from "./API/IncomingCall";
 import SubscriberNotificationPreviewAPI from "./API/SubscriberNotificationPreview";
@@ -18,7 +19,9 @@ import FeatureSet from "Common/Server/Types/FeatureSet";
 import Express, { ExpressApplication } from "Common/Server/Utils/Express";
 import { CarriedLogo } from "Common/Server/Utils/Mail/EmailCarriedLogos";
 import StatusPageCarriedLogo from "Common/Server/Utils/StatusPage/StatusPageCarriedLogo";
+import ServerSendingStatus from "Common/Server/Utils/ServerSending/ServerSendingStatus";
 import SubscriberNotificationPreview from "Common/Types/StatusPage/SubscriberNotificationPreview";
+import { SERVER_TEST_SEND_ROUTE } from "Common/Types/ServerSetup/ServerTestSend";
 import "ejs";
 
 const NotificationFeatureSet: FeatureSet = {
@@ -37,6 +40,13 @@ const NotificationFeatureSet: FeatureSet = {
       },
     );
 
+    /*
+     * How the server's own emails, SMS and calls go is written down
+     * (ServerSendingStatus), so the server can say whether it can send -
+     * to its admins in the product, and on the sign-in pages.
+     */
+    ServerSendingStatus.startRecordingOutcomes();
+
     app.use([`/${APP_NAME}/email`, "/email"], MailAPI);
     app.use([`/${APP_NAME}/sms`, "/sms"], SmsAPI);
     app.use([`/${APP_NAME}/whatsapp`, "/whatsapp"], WhatsAppAPI);
@@ -49,6 +59,15 @@ const NotificationFeatureSet: FeatureSet = {
     app.use([`/${APP_NAME}/push-relay`, "/push-relay"], PushRelayAPI);
     app.use([`/${APP_NAME}/call`, "/call"], CallAPI);
     app.use([`/${APP_NAME}/smtp-config`, "/smtp-config"], SMTPConfigAPI);
+    /*
+     * A master admin's test send through the server's own email, SMS and
+     * call settings (Admin Dashboard, ServerTestSend). The Admin Dashboard
+     * reaches it at NOTIFICATION_URL, as the Dashboard reaches /smtp-config.
+     */
+    app.use(
+      [`/${APP_NAME}${SERVER_TEST_SEND_ROUTE}`, SERVER_TEST_SEND_ROUTE],
+      ServerTestSendAPI,
+    );
     app.use([`/${APP_NAME}/phone-number`, "/phone-number"], PhoneNumberAPI);
     app.use([`/${APP_NAME}/incoming-call`, "/incoming-call"], IncomingCallAPI);
     /*

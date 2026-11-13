@@ -22,9 +22,11 @@ import Fields from "../Forms/Types/Fields";
 import { FormStep } from "../Forms/Types/FormStep";
 import { ModalWidth } from "../Modal/Modal";
 import ModelFormModal from "../ModelFormModal/ModelFormModal";
+import { announceModelHeaderChanged } from "../Page/ModelHeaderEvents";
 import ModelDetail, { ComponentProps as ModeDetailProps } from "./ModelDetail";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IconProp from "../../../Types/Icon/IconProp";
+import ObjectID from "../../../Types/ObjectID";
 import RuleCriteriaSubject from "../../../Types/Rules/RuleCriteriaSubject";
 import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
@@ -127,6 +129,12 @@ export const CARD_MODEL_DETAIL_BODY_CLASS_NAME: string = `${CARD_RULED_BODY_CLAS
  */
 export const CARD_MODEL_DETAIL_SECTION_BODY_CLASS_NAME: string = "pt-2";
 
+// The two refreshers a page can hand the card, as the card last saw them.
+interface PageRefreshers {
+  card: boolean | undefined;
+  detail: boolean | number | undefined;
+}
+
 const CardModelDetail: <TBaseModel extends BaseModel>(
   props: ComponentProps<TBaseModel>,
 ) => ReactElement = <TBaseModel extends BaseModel>(
@@ -136,7 +144,6 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
   const isCardSection: boolean = useIsCardSection();
   const [showModel, setShowModal] = useState<boolean>(false);
   const [item, setItem] = useState<TBaseModel | null>(null);
-  const [refresher, setRefresher] = useState<boolean>(false);
   const model: TBaseModel = new props.modelDetailProps.modelType();
 
   /*
@@ -160,23 +167,78 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
   }, [props.onBeforeEdit]);
 
   /*
-   * Only a real change to props.refresher toggles the internal one. Toggling
-   * on mount as well handed ModelDetail a second refresher value right after
-   * its first render, so every card sent two getItem requests on page load.
-   * Comparing against the last seen value, rather than skipping the first
-   * run, also holds when StrictMode re-runs effects on mount.
+   * The card reads its record again for three reasons: the page's refresher
+   * prop changed, a refresher the page put in modelDetailProps instead
+   * changed, or the card's own Edit dialog saved. Each adds one to this
+   * count, and the count is ModelDetail's refresher - handed over after the
+   * page's modelDetailProps, so nothing the page passes can stand in for it.
+   *
+   * modelDetailProps used to be spread over the card's refresher. A page
+   * that refreshed its cards through modelDetailProps - the Admin
+   * Dashboard's project Subscription page did - therefore swapped the
+   * card's refresher for its own, and a save flipped a refresher ModelDetail
+   * never saw: the dialog closed and the card kept the old value until the
+   * page was reloaded (issue #6766, the Active Monitors card's limit).
+   *
+   * A count rather than a flipped boolean: two reasons that land in one
+   * render - a save, and the page's refresher changing as it does - would
+   * flip it back where it was, and ModelDetail would read nothing. Counted
+   * from the value React holds, never one a callback captured earlier, so a
+   * save that finishes after the page refreshed still makes a change.
    */
-  const lastPropsRefresherRef: React.MutableRefObject<boolean | undefined> =
-    useRef<boolean | undefined>(props.refresher);
+  const [readAgainCount, setReadAgainCount] = useState<number>(0);
+
+  /*
+   * The record the Edit dialog updates. Prefer the id the caller already
+   * handed us. Deriving it purely from the loaded item meant that opening the
+   * modal before (or without) a successful detail fetch produced an Update
+   * form with no id: ModelForm silently skipped its fetch, rendered defaults,
+   * and BasicForm coerced every untouched Toggle to false - so saving quietly
+   * wrote blank values over the real record.
+   */
+  const editedModelId: ObjectID | undefined =
+    props.modelDetailProps.modelId || item?.id || undefined;
+
+  type ReadAgainFunction = () => void;
+
+  const readAgain: ReadAgainFunction = (): void => {
+    setReadAgainCount((count: number) => {
+      return count + 1;
+    });
+  };
+
+  /*
+   * Only a real change to either page refresher reads again. Reading on
+   * mount as well handed ModelDetail a second refresher value right after
+   * its first render, so every card sent two getItem requests on page load.
+   * Comparing against the last seen values, rather than skipping the first
+   * run, also holds when StrictMode re-runs effects on mount; and a page
+   * that changes both at once - the same state passed to each, as the
+   * Subscription page did - is one change, so one read.
+   */
+  const lastPageRefreshersRef: React.MutableRefObject<PageRefreshers> =
+    useRef<PageRefreshers>({
+      card: props.refresher,
+      detail: props.modelDetailProps.refresher,
+    });
 
   useEffect(() => {
-    if (lastPropsRefresherRef.current === props.refresher) {
+    const lastSeen: PageRefreshers = lastPageRefreshersRef.current;
+
+    if (
+      lastSeen.card === props.refresher &&
+      lastSeen.detail === props.modelDetailProps.refresher
+    ) {
       return;
     }
 
-    lastPropsRefresherRef.current = props.refresher;
-    setRefresher(!refresher);
-  }, [props.refresher]);
+    lastPageRefreshersRef.current = {
+      card: props.refresher,
+      detail: props.modelDetailProps.refresher,
+    };
+
+    readAgain();
+  }, [props.refresher, props.modelDetailProps.refresher]);
 
   /*
    * The header's actions: Edit, then the page's buttons, then a ⋯ holding
@@ -341,8 +403,9 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
           data-testid="card-model-detail-body"
         >
           <ModelDetail
-            refresher={refresher}
             {...props.modelDetailProps}
+            // After the spread: a page's refresher adds to it, never replaces it.
+            refresher={readAgainCount}
             modelAPI={props.modelAPI}
             onItemLoaded={(item: TBaseModel) => {
               setItem(item);
@@ -365,11 +428,28 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
           }}
           submitButtonText={`Save Changes`}
           onBeforeUpdate={props.onBeforeUpdate}
-          onSuccess={(item: TBaseModel) => {
+          onSuccess={(savedItem: TBaseModel) => {
             setShowModal(false);
-            setRefresher(!refresher);
+            // Read the record again, so the card shows what was just saved.
+            readAgain();
+
+            /*
+             * And so does the record's page header. A save can rename the
+             * record, change its labels or the field its page is headed
+             * with (a user's email), and the layout's ModelPage - "Team -
+             * Platform", "Project - Acme" - reads its header once and kept
+             * the old name until a reload. Keyed on this record, so no other
+             * header reads again.
+             */
+            if (editedModelId) {
+              announceModelHeaderChanged({
+                modelType: props.modelDetailProps.modelType,
+                modelId: editedModelId,
+              });
+            }
+
             if (props.onSaveSuccess) {
-              props.onSaveSuccess(item);
+              props.onSaveSuccess(savedItem);
             }
           }}
           name={props.name}
@@ -387,17 +467,7 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
               : {}),
             onItemFetched: props.onEditFormItemFetched,
           }}
-          /*
-           * Prefer the id the caller already handed us. Deriving it purely
-           * from the loaded item meant that opening the modal before (or
-           * without) a successful detail fetch produced an Update form with
-           * no id: ModelForm silently skipped its fetch, rendered defaults,
-           * and BasicForm coerced every untouched Toggle to false - so
-           * saving quietly wrote blank values over the real record.
-           */
-          modelIdToEdit={
-            props.modelDetailProps.modelId || item?.id || undefined
-          }
+          modelIdToEdit={editedModelId}
         />
       ) : (
         <></>

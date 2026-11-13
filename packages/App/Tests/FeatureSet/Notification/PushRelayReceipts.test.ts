@@ -29,8 +29,10 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import PushDeviceType from "Common/Types/PushNotification/PushDeviceType";
+import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
 import API from "Common/Utils/API";
 import FakeSortedSetRedis from "Common/Tests/Server/TestingUtils/Redis/FakeSortedSetRedis";
+import OnCallTimelineRows from "Common/Tests/Server/TestingUtils/OnCallTimelineRows";
 import {
   afterAll,
   afterEach,
@@ -277,7 +279,21 @@ beforeAll(async () => {
       return undefined;
     },
   );
-  olderRelayApp.use(expressErrorHandler);
+  /*
+   * Its error handler, as it was before this server's own learned to say
+   * what an unexplained error means (#6836): any error that is not
+   * OneUptime's own is 500 "Server Error".
+   */
+  olderRelayApp.use(
+    (
+      _error: Error,
+      _req: ExpressRequest,
+      res: ExpressResponse,
+      _next: NextFunction,
+    ) => {
+      res.status(500).send({ error: "Server Error" });
+    },
+  );
   olderRelay = await listen(olderRelayApp);
   olderRelayUrl = `${originOf(olderRelay)}${RELAY_PATH}/send`;
 
@@ -573,7 +589,8 @@ describe("the relay answers receipts (POST /receipts)", () => {
 describe("a self-hosted server relaying through it", () => {
   let markAsGone: SpyInstance<typeof UserPushService.markExpoPushTokenAsGone>;
   let logUpdates: Array<{ query: JSONObject; data: JSONObject }>;
-  let timelineUpdates: Array<{ query: JSONObject; data: JSONObject }>;
+  // The page's row, read and written as OnCallNotificationStatus does.
+  let timeline: OnCallTimelineRows;
 
   beforeEach(() => {
     markAsGone = jest
@@ -602,16 +619,10 @@ describe("a self-hosted server relaying through it", () => {
         return 1;
       }) as never);
 
-    timelineUpdates = [];
-    jest
-      .spyOn(selfHosted.UserOnCallLogTimelineService, "updateOneBy")
-      .mockImplementation((async (updateBy: {
-        query: JSONObject;
-        data: JSONObject;
-      }) => {
-        timelineUpdates.push({ query: updateBy.query, data: updateBy.data });
-        return 1;
-      }) as never);
+    // Sent, as the push's own write left it.
+    timeline = new OnCallTimelineRows();
+    timeline.add(TIMELINE_ID, UserNotificationStatus.Sent);
+    timeline.standIn(selfHosted.UserOnCallLogTimelineService);
   });
 
   async function page(
@@ -710,9 +721,10 @@ describe("a self-hosted server relaying through it", () => {
           data: { status: "Error", statusMessage: GONE_PAGE_MESSAGE },
         },
       ]);
-      expect(timelineUpdates).toEqual([
+      // A provider's report (#6873): over Sent, at the version read.
+      expect(timeline.writes).toEqual([
         {
-          query: { _id: TIMELINE_ID.toString(), status: "Sent" },
+          id: TIMELINE_ID.toString(),
           data: { status: "Error", statusMessage: GONE_PAGE_MESSAGE },
         },
       ]);
@@ -731,7 +743,7 @@ describe("a self-hosted server relaying through it", () => {
     expect(summary.delivered).toBe(1);
     expect(markAsGone).not.toHaveBeenCalled();
     expect(logUpdates).toEqual([]);
-    expect(timelineUpdates).toEqual([]);
+    expect(timeline.writes).toEqual([]);
   });
 
   test("another refusal in the receipt: the page says so in Expo's words, and the phone is left as it is", async () => {
@@ -745,7 +757,7 @@ describe("a self-hosted server relaying through it", () => {
     await readReceipts(16 * MINUTE);
 
     expect(markAsGone).not.toHaveBeenCalled();
-    expect(timelineUpdates[0]!.data).toEqual({
+    expect(timeline.writes[0]!.data).toEqual({
       status: "Error",
       statusMessage:
         "Push notification not delivered. Expo could not deliver it to the device (MessageRateExceeded): Too many notifications to this device",

@@ -8,6 +8,7 @@ import {
 } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 import WorkspaceProjectAuthToken, {
+  SlackChannelCache,
   SlackMiscData,
   SlackOrganizationWorkspace,
 } from "../../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
@@ -16,6 +17,7 @@ import logger from "../../../../../Server/Utils/Logger";
 import SlackOrganization, {
   SlackInstallation,
   SlackOrganizationConnection,
+  SlackWorkspaceNotAddedException,
 } from "../../../../../Server/Utils/Workspace/Slack/SlackOrganization";
 import HTTPErrorResponse from "../../../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../../../Types/API/HTTPResponse";
@@ -376,6 +378,7 @@ describe("readConnection: what a project's connection says of its organization",
       workspaces: [WEST, EAST, LABS],
       defaultWorkspaceId: WEST.id,
       workspacesReadAt: OneUptimeDate.addRemoveMinutes(NOW, -3),
+      removedWorkspaces: [],
     } as SlackOrganizationConnection);
   });
 
@@ -554,6 +557,7 @@ describe("isFresh: whether the workspaces listed last are used as they are", () 
       workspaces: [EAST],
       defaultWorkspaceId: EAST.id,
       workspacesReadAt: readAt,
+      removedWorkspaces: [],
     };
   }
 
@@ -770,6 +774,7 @@ describe("getOfConnection: the organization, its workspaces read again when stal
       workspaces: [EAST, LABS, WEST],
       defaultWorkspaceId: EAST.id,
       workspacesReadAt: NOW,
+      removedWorkspaces: [],
     } as SlackOrganizationConnection);
 
     expect(methodCalls("auth.teams.list")).toHaveLength(2);
@@ -779,6 +784,7 @@ describe("getOfConnection: the organization, its workspaces read again when stal
       workspaceProjectId: "E0ACME",
       workspaces: [WEST, LABS, EAST],
       workspacesReadAt: NOW,
+      removedWorkspaces: [],
     });
   });
 
@@ -833,6 +839,175 @@ describe("getOfConnection: the organization, its workspaces read again when stal
 
     expect(connection?.defaultWorkspaceId).toBe(LABS.id);
     expect(idsOf(connection!.workspaces)).toEqual([LABS.id, WEST.id]);
+  });
+
+  /*
+   * #6748: the default moves for good. Stored where it moved, OneUptime
+   * added to the old one again later does not move it back, and the
+   * channels cached as other workspaces' are looked up again
+   * (updateSlackOrganization).
+   */
+  test("the default OneUptime was removed from is stored where it moved - with the list it moved by", async () => {
+    answer(
+      "auth.teams.list",
+      teamsPage([
+        { id: "T0WEST", name: "Acme West" },
+        { id: "T0LABS", name: "Acme Labs" },
+      ]),
+    );
+
+    await SlackOrganization.getOfConnection({
+      projectId: PROJECT_ID,
+      projectAuth: organizationAuth({ workspacesReadAt: minutesAgo(30) }),
+    });
+
+    expect(updateSpy).toHaveBeenCalledTimes(1);
+    expect(updateSpy.mock.calls[0]![0]).toEqual({
+      projectId: PROJECT_ID,
+      workspaceProjectId: "E0ACME",
+      workspaces: [WEST, LABS],
+      workspacesReadAt: NOW,
+      removedWorkspaces: [EAST],
+      defaultWorkspaceId: LABS.id,
+    });
+  });
+
+  test("a default Slack still lists, or one kept while Slack lists none: not stored again", async () => {
+    // Still listed - even with one that comes first by name: stays, and is not written.
+    answer(
+      "auth.teams.list",
+      teamsPage([WEST, LABS, EAST] as unknown as Array<JSONObject>),
+    );
+
+    const listed: SlackOrganizationConnection | null =
+      await SlackOrganization.getOfConnection({
+        projectId: PROJECT_ID,
+        projectAuth: organizationAuth({ defaultWorkspaceId: LABS.id }),
+        refresh: true,
+      });
+
+    // Listed none: nowhere to move to.
+    answer("auth.teams.list", teamsPage([]));
+
+    const none: SlackOrganizationConnection | null =
+      await SlackOrganization.getOfConnection({
+        projectId: PROJECT_ID,
+        projectAuth: organizationAuth(),
+        refresh: true,
+      });
+
+    expect(listed?.defaultWorkspaceId).toBe(LABS.id);
+    expect(none?.defaultWorkspaceId).toBe(EAST.id);
+    expect(updateSpy).toHaveBeenCalledTimes(2);
+
+    for (const call of updateSpy.mock.calls) {
+      expect(Object.keys(call[0]!)).not.toContain("defaultWorkspaceId");
+    }
+  });
+
+  /*
+   * #6784: an installation with no default stored - made before installs
+   * stored the first workspace by name - has it stored once Slack lists
+   * them. Left to be read each time, OneUptime added to a workspace that
+   * comes first by name took it over, and OneUptime removed from it moved it
+   * without dropping its cached channels: a rule that names no workspace
+   * kept finding its channel in the workspace OneUptime left.
+   */
+  test("a default never stored: the first workspace by name is stored", async () => {
+    answer(
+      "auth.teams.list",
+      teamsPage([WEST, EAST] as unknown as Array<JSONObject>),
+    );
+
+    const connection: SlackOrganizationConnection | null =
+      await SlackOrganization.getOfConnection({
+        projectId: PROJECT_ID,
+        projectAuth: organizationAuth({ defaultWorkspaceId: undefined }),
+        refresh: true,
+      });
+
+    expect(connection?.defaultWorkspaceId).toBe(EAST.id);
+    expect(updateSpy).toHaveBeenCalledTimes(1);
+    expect(updateSpy.mock.calls[0]![0]).toEqual({
+      projectId: PROJECT_ID,
+      workspaceProjectId: "E0ACME",
+      workspaces: [WEST, EAST],
+      workspacesReadAt: NOW,
+      removedWorkspaces: [],
+      defaultWorkspaceId: EAST.id,
+    });
+  });
+
+  test("a default never stored that OneUptime was removed from: the first workspace left by name is stored, with the one it left", async () => {
+    // Listed before: East and West, so East was the default, read by name.
+    answer(
+      "auth.teams.list",
+      teamsPage([WEST, LABS] as unknown as Array<JSONObject>),
+    );
+
+    const connection: SlackOrganizationConnection | null =
+      await SlackOrganization.getOfConnection({
+        projectId: PROJECT_ID,
+        projectAuth: organizationAuth({
+          defaultWorkspaceId: undefined,
+          workspacesReadAt: minutesAgo(30),
+        }),
+      });
+
+    expect(connection?.defaultWorkspaceId).toBe(LABS.id);
+    expect(updateSpy).toHaveBeenCalledTimes(1);
+    expect(updateSpy.mock.calls[0]![0]).toEqual({
+      projectId: PROJECT_ID,
+      workspaceProjectId: "E0ACME",
+      workspaces: [WEST, LABS],
+      workspacesReadAt: NOW,
+      removedWorkspaces: [EAST],
+      defaultWorkspaceId: LABS.id,
+    });
+  });
+
+  test("a default stored where it moved stays there when OneUptime is added to the old one again", async () => {
+    // Removed from East: the default moves to Labs, and is stored there.
+    answer(
+      "auth.teams.list",
+      teamsPage([WEST, LABS] as unknown as Array<JSONObject>),
+    );
+
+    await SlackOrganization.getOfConnection({
+      projectId: PROJECT_ID,
+      projectAuth: organizationAuth({ defaultWorkspaceId: undefined }),
+      refresh: true,
+    });
+
+    const moved: string | undefined = (
+      updateSpy.mock.calls[0]![0] as { defaultWorkspaceId?: string }
+    ).defaultWorkspaceId;
+
+    expect(moved).toBe(LABS.id);
+
+    // Added to East again, which comes first by name: Labs stays the default.
+    answer(
+      "auth.teams.list",
+      teamsPage([WEST, LABS, EAST] as unknown as Array<JSONObject>),
+    );
+
+    const connection: SlackOrganizationConnection | null =
+      await SlackOrganization.getOfConnection({
+        projectId: PROJECT_ID,
+        projectAuth: organizationAuth({
+          workspaces: [WEST, LABS],
+          removedWorkspaces: [EAST],
+          defaultWorkspaceId: moved,
+        }),
+        refresh: true,
+      });
+
+    expect(connection?.defaultWorkspaceId).toBe(LABS.id);
+    expect(idsOf(connection!.workspaces)).toEqual([LABS.id, EAST.id, WEST.id]);
+    expect(updateSpy).toHaveBeenCalledTimes(2);
+    expect(Object.keys(updateSpy.mock.calls[1]![0]!)).not.toContain(
+      "defaultWorkspaceId",
+    );
   });
 
   test.each([
@@ -935,6 +1110,121 @@ describe("getOfProject", () => {
     expect(
       await SlackOrganization.getOfProject({ projectId: PROJECT_ID }),
     ).toBeNull();
+  });
+});
+
+/*
+ * #6748: Slack telling the organization's installation that an admin added
+ * it to workspaces or removed it (team_access_granted, team_access_revoked).
+ * Each project connected to the organization reads its workspaces again at
+ * once, however fresh they are.
+ */
+describe("refreshOrganization: the projects connected to an organization read its workspaces again", () => {
+  const STAGING_ID: ObjectID = new ObjectID(
+    "5a000000-0000-4000-8000-000000000002",
+  );
+  const EAST_OPS_ID: ObjectID = new ObjectID(
+    "5a000000-0000-4000-8000-000000000003",
+  );
+
+  test("each one connected under the organization's id, with its own token - even with a list read a minute ago; a workspace's own connection stored under it is left alone", async () => {
+    const findBy: SpyInstance<typeof WorkspaceProjectAuthTokenService.findBy> =
+      jest.spyOn(WorkspaceProjectAuthTokenService, "findBy").mockResolvedValue([
+        organizationAuth({ workspacesReadAt: minutesAgo(1) }),
+        organizationAuth(
+          { workspacesReadAt: minutesAgo(1) },
+          { projectId: STAGING_ID, authToken: "xoxb-organization-staging" },
+        ),
+        // Not the organization's installation: it lists no workspaces.
+        workspaceAuth(
+          {},
+          { projectId: EAST_OPS_ID, workspaceProjectId: "E0ACME" },
+        ),
+      ]);
+
+    answer(
+      "auth.teams.list",
+      teamsPage([EAST, WEST, LABS] as unknown as Array<JSONObject>),
+    );
+
+    const refreshed: Array<ObjectID> =
+      await SlackOrganization.refreshOrganization({ enterpriseId: " E0ACME " });
+
+    expect(
+      refreshed.map((projectId: ObjectID): string => {
+        return projectId.toString();
+      }),
+    ).toEqual([PROJECT_ID.toString(), STAGING_ID.toString()]);
+
+    expect(findBy).toHaveBeenCalledTimes(1);
+    expect(findBy.mock.calls[0]![0]).toMatchObject({
+      query: {
+        workspaceType: WorkspaceType.Slack,
+        workspaceProjectId: "E0ACME",
+      },
+      select: {
+        projectId: true,
+        authToken: true,
+        workspaceProjectId: true,
+        miscData: true,
+      },
+      props: { isRoot: true },
+    });
+
+    expect(
+      methodCalls("auth.teams.list").map((call: SlackCall): unknown => {
+        return call.headers["Authorization"];
+      }),
+    ).toEqual(["Bearer xoxb-organization", "Bearer xoxb-organization-staging"]);
+
+    expect(
+      updateSpy.mock.calls.map((call: Array<unknown>): string => {
+        return (call[0] as { projectId: ObjectID }).projectId.toString();
+      }),
+    ).toEqual([PROJECT_ID.toString(), STAGING_ID.toString()]);
+  });
+
+  test("no organization named: nothing is read", async () => {
+    const findBy: SpyInstance<typeof WorkspaceProjectAuthTokenService.findBy> =
+      jest.spyOn(WorkspaceProjectAuthTokenService, "findBy");
+
+    for (const enterpriseId of [undefined, "", "   "]) {
+      expect(
+        await SlackOrganization.refreshOrganization({
+          enterpriseId: enterpriseId,
+        }),
+      ).toEqual([]);
+    }
+
+    expect(findBy).not.toHaveBeenCalled();
+    expect(calls).toEqual([]);
+  });
+
+  test("no project connected to it, or the connections cannot be read: none read, never a throw", async () => {
+    const error: SpyInstance<typeof logger.error> = jest
+      .spyOn(logger, "error")
+      .mockImplementation((() => {
+        return undefined;
+      }) as never);
+
+    const findBy: SpyInstance<typeof WorkspaceProjectAuthTokenService.findBy> =
+      jest
+        .spyOn(WorkspaceProjectAuthTokenService, "findBy")
+        .mockResolvedValue([]);
+
+    expect(
+      await SlackOrganization.refreshOrganization({ enterpriseId: "E0ACME" }),
+    ).toEqual([]);
+
+    findBy.mockRejectedValue(new Error("database is down"));
+
+    expect(
+      await SlackOrganization.refreshOrganization({ enterpriseId: "E0ACME" }),
+    ).toEqual([]);
+
+    expect(error).toHaveBeenCalled();
+    expect(calls).toEqual([]);
+    expect(updateSpy).not.toHaveBeenCalled();
   });
 });
 
@@ -1270,6 +1560,7 @@ describe("which workspace each call is made in", () => {
     workspaces: [EAST, LABS, WEST],
     defaultWorkspaceId: EAST.id,
     workspacesReadAt: NOW,
+    removedWorkspaces: [],
   };
 
   test("getWorkspaceIdsToSearch: the default first and then the others; the rule's workspace first when it names one", () => {
@@ -1482,5 +1773,385 @@ describe("which workspace each call is made in", () => {
       ),
     ).toEqual([WEST.id, EAST.id, "T0A", "T0B"]);
     expect(given).toEqual(copy);
+  });
+});
+
+/*
+ * A WORKSPACE ONEUPTIME WAS REMOVED FROM (#6749): Slack lists it no more,
+ * and a rule that still picks it is told so by the name it had - never
+ * posted in another workspace instead.
+ */
+describe("workspaces OneUptime was removed from", () => {
+  const OLD: SlackOrganizationWorkspace = { id: "T0OLD", name: "Acme Old" };
+
+  test("readConnection: as stored, by the names they had - one listed again is not removed; junk is none", () => {
+    const connection: SlackOrganizationConnection | null =
+      SlackOrganization.readConnection(
+        organizationAuth({
+          workspaces: [WEST, EAST],
+          removedWorkspaces: [
+            LABS,
+            { id: EAST.id, name: "Acme East, as it was" },
+            { id: "", name: "Nobody" },
+            null as unknown as SlackOrganizationWorkspace,
+            LABS,
+            { id: " T0NONAME " } as unknown as SlackOrganizationWorkspace,
+          ],
+        }),
+      );
+
+    expect(connection?.removedWorkspaces).toEqual([
+      LABS,
+      { id: "T0NONAME", name: "T0NONAME" },
+    ]);
+  });
+
+  test("readConnection: none stored, or not a list - none", () => {
+    expect(
+      SlackOrganization.readConnection(organizationAuth())?.removedWorkspaces,
+    ).toEqual([]);
+    expect(
+      SlackOrganization.readConnection(
+        organizationAuth({
+          removedWorkspaces: {
+            T0LABS: LABS,
+          } as unknown as Array<SlackOrganizationWorkspace>,
+        }),
+      )?.removedWorkspaces,
+    ).toEqual([]);
+  });
+
+  test("getOfConnection: one Slack lists no more is kept by the name it had - the latest first - and stored with the list", async () => {
+    // Listed before: West and East; Old was removed earlier. Now: West only.
+    answer("auth.teams.list", teamsPage([{ id: "T0WEST", name: "Acme West" }]));
+
+    const connection: SlackOrganizationConnection | null =
+      await SlackOrganization.getOfConnection({
+        projectId: PROJECT_ID,
+        projectAuth: organizationAuth({
+          workspacesReadAt: minutesAgo(30),
+          removedWorkspaces: [OLD],
+        }),
+      });
+
+    expect(connection?.workspaces).toEqual([WEST]);
+    expect(connection?.removedWorkspaces).toEqual([EAST, OLD]);
+    expect(updateSpy).toHaveBeenCalledTimes(1);
+    expect(updateSpy.mock.calls[0]![0]).toEqual({
+      projectId: PROJECT_ID,
+      workspaceProjectId: "E0ACME",
+      workspaces: [WEST],
+      workspacesReadAt: NOW,
+      removedWorkspaces: [EAST, OLD],
+      // East was the default: it moved to West, the one left (#6748).
+      defaultWorkspaceId: WEST.id,
+    });
+  });
+
+  test("getOfConnection: one OneUptime is added to again leaves the list - by the name Slack gives it now", async () => {
+    answer(
+      "auth.teams.list",
+      teamsPage([
+        { id: "T0WEST", name: "Acme West" },
+        { id: "T0EAST", name: "Acme East" },
+        { id: "T0OLD", name: "Acme Old, renamed" },
+      ]),
+    );
+
+    const connection: SlackOrganizationConnection | null =
+      await SlackOrganization.getOfConnection({
+        projectId: PROJECT_ID,
+        projectAuth: organizationAuth({
+          workspacesReadAt: minutesAgo(30),
+          removedWorkspaces: [OLD],
+        }),
+      });
+
+    expect(connection?.removedWorkspaces).toEqual([]);
+    expect(updateSpy.mock.calls[0]![0].removedWorkspaces).toEqual([]);
+    expect(
+      SlackOrganization.getWorkspaceName({
+        organization: connection!,
+        teamId: OLD.id,
+      }),
+    ).toBe("Acme Old, renamed");
+  });
+
+  test("getOfConnection: Slack cannot list them - the removed ones read as stored, nothing stored", async () => {
+    answer("auth.teams.list", refused("ratelimited"));
+
+    const connection: SlackOrganizationConnection | null =
+      await SlackOrganization.getOfConnection({
+        projectId: PROJECT_ID,
+        projectAuth: organizationAuth({
+          workspacesReadAt: minutesAgo(30),
+          removedWorkspaces: [OLD],
+        }),
+      });
+
+    expect(connection?.removedWorkspaces).toEqual([OLD]);
+    expect(updateSpy).not.toHaveBeenCalled();
+  });
+
+  test("getRemovedWorkspaces: those listed before and not now first, then those removed before - each once, by the name it had, none listed now", () => {
+    expect(
+      SlackOrganization.getRemovedWorkspaces({
+        listedBefore: [WEST, EAST, { id: "", name: "Nobody" }],
+        removedBefore: [OLD, EAST, LABS],
+        listedNow: [WEST, { id: LABS.id, name: "Acme Labs, back" }],
+      }),
+    ).toEqual([EAST, OLD]);
+
+    // A name never known: named by its id.
+    expect(
+      SlackOrganization.getRemovedWorkspaces({
+        listedBefore: [{ id: "T0BARE", name: "" }],
+        removedBefore: [],
+        listedNow: [],
+      }),
+    ).toEqual([{ id: "T0BARE", name: "T0BARE" }]);
+
+    // Nothing listed before, nothing removed: none.
+    expect(
+      SlackOrganization.getRemovedWorkspaces({
+        listedBefore: [],
+        removedBefore: [],
+        listedNow: [WEST],
+      }),
+    ).toEqual([]);
+  });
+
+  test("getRemovedWorkspaces: at most 50 are kept - the latest removed, in order - whatever is listed", () => {
+    const random: SeededRandom = seededRandom(6749);
+    // Rounds with more than 50 to keep: the cap is reached.
+    let capped: number = 0;
+
+    for (let round: number = 0; round < 20; round++) {
+      const listedBefore: Array<SlackOrganizationWorkspace> = [];
+      const removedBefore: Array<SlackOrganizationWorkspace> = [];
+      const listedCount: number = 10 + random(50);
+      const removedCount: number = 10 + random(50);
+
+      for (let index: number = 0; index < listedCount; index++) {
+        listedBefore.push({ id: `T0L${index}`, name: `Listed ${index}` });
+      }
+
+      for (let index: number = 0; index < removedCount; index++) {
+        removedBefore.push({ id: `T0R${index}`, name: `Removed ${index}` });
+      }
+
+      // Some of those listed before are listed still.
+      const listedNow: Array<SlackOrganizationWorkspace> = listedBefore.filter(
+        (): boolean => {
+          return random(3) === 0;
+        },
+      );
+
+      const candidates: Array<SlackOrganizationWorkspace> = [
+        ...listedBefore.filter((workspace: SlackOrganizationWorkspace) => {
+          return !listedNow.includes(workspace);
+        }),
+        ...removedBefore,
+      ];
+
+      if (candidates.length > 50) {
+        capped++;
+      }
+
+      const expected: Array<SlackOrganizationWorkspace> = candidates.slice(
+        0,
+        SlackOrganization.MAX_REMOVED_WORKSPACES,
+      );
+
+      const removed: Array<SlackOrganizationWorkspace> =
+        SlackOrganization.getRemovedWorkspaces({
+          listedBefore: listedBefore,
+          removedBefore: removedBefore,
+          listedNow: listedNow,
+        });
+
+      expect(removed).toEqual(expected);
+      expect(removed.length).toBeLessThanOrEqual(50);
+    }
+
+    expect(capped).toBeGreaterThan(0);
+  });
+
+  test("isWorkspaceAdded: one Slack listed is; one it did not list is not; before Slack listed any, each is taken as added", () => {
+    const organization: SlackOrganizationConnection =
+      SlackOrganization.readConnection(organizationAuth())!;
+
+    expect(
+      SlackOrganization.isWorkspaceAdded({
+        organization: organization,
+        teamId: EAST.id,
+      }),
+    ).toBe(true);
+    expect(
+      SlackOrganization.isWorkspaceAdded({
+        organization: organization,
+        teamId: LABS.id,
+      }),
+    ).toBe(false);
+
+    // Listed, and added to none.
+    expect(
+      SlackOrganization.isWorkspaceAdded({
+        organization: SlackOrganization.readConnection(
+          organizationAuth({ workspaces: [], defaultWorkspaceId: undefined }),
+        )!,
+        teamId: EAST.id,
+      }),
+    ).toBe(false);
+
+    // Never listed: Slack is the one to say.
+    expect(
+      SlackOrganization.isWorkspaceAdded({
+        organization: SlackOrganization.readConnection(
+          organizationAuth({ workspaces: [], workspacesReadAt: undefined }),
+        )!,
+        teamId: LABS.id,
+      }),
+    ).toBe(true);
+  });
+
+  test("getNotAddedMessage: the workspace by the name it had and the organization's name, and what to do - nothing about another workspace taking over", () => {
+    const organization: SlackOrganizationConnection =
+      SlackOrganization.readConnection(
+        organizationAuth({ workspaces: [WEST], removedWorkspaces: [EAST] }),
+      )!;
+
+    expect(
+      SlackOrganization.getNotAddedMessage({
+        organization: organization,
+        teamId: EAST.id,
+      }),
+    ).toBe(
+      "OneUptime is no longer added to the Acme East workspace of Acme Corp. Add it again in Slack's organization settings, or pick another workspace on the rule.",
+    );
+
+    // A workspace never named: by its id. An organization never named: said so.
+    expect(
+      SlackOrganization.getNotAddedMessage({
+        organization: { ...organization, enterpriseName: "" },
+        teamId: "T0UNKNOWN",
+      }),
+    ).toBe(
+      "OneUptime is no longer added to the T0UNKNOWN workspace of your Slack Enterprise organization. Add it again in Slack's organization settings, or pick another workspace on the rule.",
+    );
+  });
+
+  test("getNotAddedException: a bad request carrying the workspace and the plain message", () => {
+    const organization: SlackOrganizationConnection =
+      SlackOrganization.readConnection(
+        organizationAuth({ workspaces: [WEST], removedWorkspaces: [EAST] }),
+      )!;
+
+    const exception: SlackWorkspaceNotAddedException =
+      SlackOrganization.getNotAddedException({
+        organization: organization,
+        teamId: EAST.id,
+      });
+
+    expect(exception).toBeInstanceOf(SlackWorkspaceNotAddedException);
+    expect(exception).toBeInstanceOf(BadRequestException);
+    expect(exception.teamId).toBe(EAST.id);
+    expect(exception.message).toBe(
+      SlackOrganization.getNotAddedMessage({
+        organization: organization,
+        teamId: EAST.id,
+      }),
+    );
+  });
+
+  test("getWorkspaceName: a removed workspace by the name it had; one listed by its name now", () => {
+    const organization: SlackOrganizationConnection =
+      SlackOrganization.readConnection(
+        organizationAuth({
+          workspaces: [WEST, EAST],
+          removedWorkspaces: [OLD],
+        }),
+      )!;
+
+    expect(
+      SlackOrganization.getWorkspaceName({
+        organization: organization,
+        teamId: OLD.id,
+      }),
+    ).toBe("Acme Old");
+    expect(
+      SlackOrganization.getWorkspaceName({
+        organization: organization,
+        teamId: WEST.id,
+      }),
+    ).toBe("Acme West");
+  });
+
+  test("getWorkspaceIdOfKnownChannel: the workspace a channel OneUptime knows is in - by its id; none for one it does not know, or a workspace's own connection", () => {
+    const channelCache: SlackChannelCache = {
+      "inc-1-checkout": {
+        id: "C0INC1",
+        name: "inc-1-checkout",
+        lastUpdated: NOW.toISOString(),
+        teamId: WEST.id,
+      },
+      oncall: {
+        id: "C0ONCALL",
+        name: "oncall",
+        lastUpdated: NOW.toISOString(),
+        teamId: EAST.id,
+      },
+      // Cached before the organization's installation: no workspace.
+      general: {
+        id: "C0GENERAL",
+        name: "general",
+        lastUpdated: NOW.toISOString(),
+      },
+    };
+
+    const projectAuth: WorkspaceProjectAuthToken = organizationAuth({
+      channelCache: channelCache,
+    });
+
+    expect(
+      SlackOrganization.getWorkspaceIdOfKnownChannel({
+        projectAuth: projectAuth,
+        channelId: "C0INC1",
+      }),
+    ).toBe(WEST.id);
+    expect(
+      SlackOrganization.getWorkspaceIdOfKnownChannel({
+        projectAuth: projectAuth,
+        channelId: " C0ONCALL ",
+      }),
+    ).toBe(EAST.id);
+
+    for (const channelId of ["C0GENERAL", "C0UNKNOWN", "", undefined]) {
+      expect(
+        SlackOrganization.getWorkspaceIdOfKnownChannel({
+          projectAuth: projectAuth,
+          channelId: channelId,
+        }),
+      ).toBeUndefined();
+    }
+
+    // A workspace's own connection: its channels are all in it.
+    expect(
+      SlackOrganization.getWorkspaceIdOfKnownChannel({
+        projectAuth: workspaceAuth({
+          channelCache: channelCache,
+        }),
+        channelId: "C0INC1",
+      }),
+    ).toBeUndefined();
+
+    for (const missing of [null, undefined, organizationAuth()]) {
+      expect(
+        SlackOrganization.getWorkspaceIdOfKnownChannel({
+          projectAuth: missing,
+          channelId: "C0INC1",
+        }),
+      ).toBeUndefined();
+    }
   });
 });

@@ -30,6 +30,7 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import ObjectID from "../../../Types/ObjectID";
 import EventName from "../../../Types/Realtime/EventName";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { SessionEndCause } from "../../../Types/UserSession/SessionEndCause";
 
 /*
  * Whatever takes access away from someone takes their live updates with it,
@@ -340,7 +341,7 @@ describe("live updates follow every change of access", () => {
 
       expect(UserSessionService.revokeAllSessionsByUserId).toHaveBeenCalledWith(
         USER,
-        { reason: "User blocked" },
+        { cause: SessionEndCause.AccountBlocked },
       );
       expect(announced).toEqual([
         {

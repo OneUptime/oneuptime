@@ -3,10 +3,16 @@ import {
   DataLineageDirection,
   DataLineageEdgeRow,
   DataLineagePipelineRow,
+  DataLineageTablePair,
   DataLineageTableRow,
   DataPipelineLineageReader,
+  getLineageTablePairKey,
 } from "../../../../Server/Utils/DataObservability/DataTableLineage";
 import DataAssetKind from "../../../../Types/DataObservability/DataAssetKind";
+import {
+  DataColumnMapping,
+  mergeColumnMappings,
+} from "../../../../Types/DataObservability/DataColumnLineage";
 import {
   DataLineageEdgeKind,
   DataTableLineage,
@@ -43,16 +49,30 @@ export function d(index: number): string {
   return uuid(3, index);
 }
 
+// One row's columns of an arrow between two tables, as a source named them.
+export interface MemoryColumnRow {
+  upstreamDataAssetId: string;
+  downstreamDataAssetId: string;
+  columnMappings: unknown;
+}
+
 export interface MemoryGraph {
   tables: Map<string, DataLineageTableRow>;
   edges: Array<DataLineageEdgeRow>;
   pipelines: Map<string, DataLineagePipelineRow>;
   openAlerts: Map<string, number>;
   dashboards: Array<DataLineageDashboardRow>;
+  columnRows: Array<MemoryColumnRow>;
   // Every read the walk made, in order.
   edgeReads: Array<{ direction: DataLineageDirection; ids: Array<string> }>;
   pipelineEdgeReads: Array<string>;
   alertReads: Array<Array<string>>;
+  dashboardReads: Array<{
+    dataAssetIds: Array<string>;
+    limit: number;
+    drawnDataAssetIds: Array<string>;
+  }>;
+  columnReads: Array<Array<DataLineageTablePair>>;
   // Rows to hand back however many are asked for: more rows than are read.
   overflow?: boolean;
 }
@@ -64,10 +84,31 @@ export function newGraph(): MemoryGraph {
     pipelines: new Map(),
     openAlerts: new Map(),
     dashboards: [],
+    columnRows: [],
     edgeReads: [],
     pipelineEdgeReads: [],
     alertReads: [],
+    dashboardReads: [],
+    columnReads: [],
   };
+}
+
+// The columns one row of an arrow names: [upstream column, downstream column] pairs.
+export function columns(
+  graph: MemoryGraph,
+  upstream: string,
+  downstream: string,
+  pairs: Array<[string, string]>,
+): void {
+  graph.columnRows.push({
+    upstreamDataAssetId: upstream,
+    downstreamDataAssetId: downstream,
+    columnMappings: pairs.map(
+      ([upstreamColumn, downstreamColumn]: [string, string]) => {
+        return { upstreamColumn, downstreamColumn };
+      },
+    ),
+  });
 }
 
 // A table that changes hourly and last changed half an hour ago: fresh.
@@ -294,11 +335,23 @@ export function memoryReader(graph: MemoryGraph): DataPipelineLineageReader {
     readDashboards: async (data: {
       dataAssetIds: Array<string>;
       limit: number;
+      drawnDataAssetIds?: Array<string> | undefined;
     }): Promise<{
       dashboards: Array<DataLineageDashboardRow>;
       total: number;
     }> => {
+      graph.dashboardReads.push({
+        dataAssetIds: [...data.dataAssetIds],
+        limit: data.limit,
+        drawnDataAssetIds: [...(data.drawnDataAssetIds || [])],
+      });
+
       const asked: Set<string> = new Set(data.dataAssetIds);
+      // Which tables each says it reads: those asked about and those drawn.
+      const told: Set<string> = new Set([
+        ...data.dataAssetIds,
+        ...(data.drawnDataAssetIds || []),
+      ]);
       const reading: Array<DataLineageDashboardRow> = graph.dashboards
         .filter((dashboard: DataLineageDashboardRow): boolean => {
           return dashboard.dataAssetIds.some((id: string): boolean => {
@@ -309,7 +362,7 @@ export function memoryReader(graph: MemoryGraph): DataPipelineLineageReader {
           return {
             ...dashboard,
             dataAssetIds: dashboard.dataAssetIds.filter((id: string) => {
-              return asked.has(id);
+              return told.has(id);
             }),
           };
         });
@@ -318,6 +371,35 @@ export function memoryReader(graph: MemoryGraph): DataPipelineLineageReader {
         dashboards: reading.slice(0, data.limit),
         total: reading.length,
       };
+    },
+    readColumnMappings: async (
+      pairs: Array<DataLineageTablePair>,
+    ): Promise<Map<string, Array<DataColumnMapping>>> => {
+      graph.columnReads.push(
+        pairs.map((pair: DataLineageTablePair): DataLineageTablePair => {
+          return { ...pair };
+        }),
+      );
+
+      const wanted: Set<string> = new Set(pairs.map(getLineageTablePairKey));
+      const found: Map<string, Array<DataColumnMapping>> = new Map();
+
+      for (const row of graph.columnRows) {
+        const key: string = getLineageTablePairKey(row);
+
+        if (wanted.has(key)) {
+          const merged: Array<DataColumnMapping> = mergeColumnMappings(
+            found.get(key),
+            row.columnMappings,
+          );
+
+          if (merged.length > 0) {
+            found.set(key, merged);
+          }
+        }
+      }
+
+      return found;
     },
   };
 }

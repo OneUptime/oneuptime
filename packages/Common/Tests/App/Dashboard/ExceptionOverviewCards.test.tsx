@@ -23,26 +23,15 @@ import ExceptionLatestOccurrence, {
   EXCEPTION_LATEST_OCCURRENCE_EMPTY_CLASS_NAME,
   EXCEPTION_LATEST_OCCURRENCE_LOADING_CLASS_NAME,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Exceptions/ExceptionLatestOccurrence";
-import ExceptionDetail from "../../../../App/FeatureSet/Dashboard/src/Components/Exceptions/ExceptionDetail";
-import Card from "../../../UI/Components/Card/Card";
-import CardGrid, {
-  CARD_GRID_CELL_TEST_ID,
-} from "../../../UI/Components/Card/CardGrid";
-import {
-  describeHeightFill,
-  describeHeightFillChain,
-} from "../../ResponsiveHeightFill";
+import { describeHeightFill } from "../../ResponsiveHeightFill";
 import { WIDTHS_IN_PX } from "../../RenderedMarkup";
 import ExceptionInstance from "../../../Models/AnalyticsModels/ExceptionInstance";
-import Service from "../../../Models/DatabaseModels/Service";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
-import Color from "../../../Types/Color";
 import IconProp from "../../../Types/Icon/IconProp";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import ServiceType from "../../../Types/Telemetry/ServiceType";
 
 type PostArgs = { url: { toString: () => string }; data: JSONObject };
 
@@ -316,61 +305,12 @@ describe("ExceptionLatestOccurrence", () => {
   });
 
   /*
-   * Beside the exception's details on the Overview the card is as tall as
-   * they are (CardGrid). With no occurrence stored, or while the latest one
-   * is read, what the card holds takes the room under its header - the
-   * dashed box's clock and words, or the loader, in the middle of it -
-   * rather than sitting at its top over blank card.
+   * The card is on its own on both pages that show it - as wide as the
+   * Overview, beside nothing, and on the Context page over the replay - so
+   * with no occurrence stored, or while the latest one is read, the card is
+   * as tall as what it holds.
    */
-  test("beside the details, the empty box and the loader take the card's room under its header", () => {
-    for (const [isLoading, testId] of [
-      [false, "exception-latest-occurrence-empty"],
-      [true, "exception-latest-occurrence-loading"],
-    ] as Array<[boolean, string]>) {
-      render(
-        <MemoryRouter>
-          <CardGrid columns={2} dataTestId="exception-overview-cards">
-            <Card title="Details">
-              <p>The exception, its service and its releases.</p>
-            </Card>
-            <ExceptionLatestOccurrence
-              isLoading={isLoading}
-              instance={undefined}
-            />
-          </CardGrid>
-        </MemoryRouter>,
-      );
-
-      const cell: HTMLElement = within(
-        screen.getByTestId("exception-overview-cards"),
-      ).getAllByTestId(CARD_GRID_CELL_TEST_ID)[1]!;
-      const body: HTMLElement = within(cell).getByTestId(testId);
-
-      expect(within(cell).getByTestId("card")).toHaveAttribute(
-        "data-fill-height",
-        "true",
-      );
-      expect(body).toHaveClass(
-        ...(isLoading
-          ? EXCEPTION_LATEST_OCCURRENCE_LOADING_CLASS_NAME
-          : EXCEPTION_LATEST_OCCURRENCE_EMPTY_CLASS_NAME
-        ).split(" "),
-      );
-      // Its middle is the card's: what holds it runs to the cell's bottom.
-      expect(body).toHaveClass("items-center");
-      for (const width of WIDTHS_IN_PX) {
-        expect([
-          testId,
-          width,
-          describeHeightFillChain(body, cell, width),
-        ]).toEqual([testId, width, []]);
-      }
-
-      cleanup();
-    }
-  });
-
-  test("on its own - the Context page - the empty box and the loader are as tall as what they hold", () => {
+  test("on its own - the Overview and the Context page - the empty box and the loader are as tall as what they hold", () => {
     for (const [isLoading, testId] of [
       [false, "exception-latest-occurrence-empty"],
       [true, "exception-latest-occurrence-loading"],
@@ -387,6 +327,12 @@ describe("ExceptionLatestOccurrence", () => {
       const card: HTMLElement = screen.getByTestId("card");
       const body: HTMLElement = screen.getByTestId(testId);
 
+      expect(body).toHaveClass(
+        ...(isLoading
+          ? EXCEPTION_LATEST_OCCURRENCE_LOADING_CLASS_NAME
+          : EXCEPTION_LATEST_OCCURRENCE_EMPTY_CLASS_NAME
+        ).split(" "),
+      );
       // No row: the card keeps the height of what it holds, as it always has.
       expect(card).not.toHaveAttribute("data-fill-height");
       for (const width of WIDTHS_IN_PX) {
@@ -406,63 +352,120 @@ describe("ExceptionLatestOccurrence", () => {
   });
 });
 
-describe("ExceptionDetail", () => {
-  test("lists identity, service, releases and a copyable fingerprint", () => {
-    const service: Service = new Service();
-    service._id = SERVICE_ID;
-    service.name = "checkout-api";
-    service.serviceColor = new Color("#6366f1");
+describe("the latest occurrence, as wide as the Overview", () => {
+  function occurrence(values: Partial<ExceptionInstance>): ExceptionInstance {
+    const instance: ExceptionInstance = new ExceptionInstance();
+    Object.assign(instance, values);
+    return instance;
+  }
 
+  test("names how it was grouped: its fingerprint, whole on hover, copyable", () => {
     render(
       <MemoryRouter>
-        <ExceptionDetail
-          exceptionType="InventoryReservationError"
-          fingerprint={FINGERPRINT}
-          firstSeenAt={new Date(Date.now() - 6 * 24 * 60 * MINUTE)}
-          lastSeenAt={new Date(Date.now() - 4 * MINUTE)}
-          firstSeenInRelease="checkout-api@2026.09.08"
-          lastSeenInRelease="checkout-api@2026.09.14"
-          environment="production"
-          primaryEntityId={new ObjectID(SERVICE_ID)}
-          primaryEntityType={ServiceType.OpenTelemetry}
-          services={[service]}
+        <ExceptionLatestOccurrence
+          isLoading={false}
+          instance={occurrence({
+            time: new Date(Date.now() - 4 * MINUTE),
+            escaped: true,
+            fingerprint: FINGERPRINT,
+          })}
         />
       </MemoryRouter>,
     );
 
-    expect(screen.getByTestId("exception-detail-type")).toHaveTextContent(
-      "InventoryReservationError",
+    const row: HTMLElement = screen.getByTestId(
+      "exception-latest-occurrence-fingerprint",
     );
-    expect(screen.getByTestId("exception-detail-service")).toHaveTextContent(
-      "checkout-api",
-    );
-    expect(screen.getByTestId("exception-detail-active-for")).toHaveTextContent(
-      "6 days",
-    );
-    expect(screen.getByTestId("exception-detail-first-seen")).toHaveTextContent(
-      "Introduced in checkout-api@2026.09.08",
-    );
-    expect(screen.getByTestId("exception-detail-last-seen")).toHaveTextContent(
-      "Latest release checkout-api@2026.09.14",
+
+    expect(within(row).getByText("Fingerprint")).toBeInTheDocument();
+
+    const code: HTMLElement = within(row).getByText(FINGERPRINT);
+
+    expect(code.tagName).toBe("CODE");
+    expect(code).toHaveAttribute(
+      "title",
+      "Occurrences with this fingerprint are grouped into this exception.",
     );
     expect(
-      screen.getByTestId("exception-detail-fingerprint"),
-    ).toHaveTextContent(FINGERPRINT);
-    expect(
-      screen.getByRole("button", { name: "Copy fingerprint" }),
+      within(row).getByRole("button", { name: "Copy fingerprint" }),
     ).toBeInTheDocument();
+    // The last row, after what happened.
+    expect(row.parentElement!.lastElementChild).toBe(row);
   });
 
-  test("marks every missing value as not recorded", () => {
+  test("an occurrence without a fingerprint has no row for one", () => {
     render(
       <MemoryRouter>
-        <ExceptionDetail />
+        <ExceptionLatestOccurrence
+          isLoading={false}
+          instance={occurrence({ escaped: false })}
+        />
       </MemoryRouter>,
     );
 
-    expect(screen.getAllByText("Not recorded")).toHaveLength(7);
+    expect(
+      screen.queryByTestId("exception-latest-occurrence-fingerprint"),
+    ).toBeNull();
     expect(
       screen.queryByRole("button", { name: "Copy fingerprint" }),
-    ).not.toBeInTheDocument();
+    ).toBeNull();
+  });
+
+  test("with three columns its facts take two from md and three from lg, and the long ones span them all", () => {
+    render(
+      <MemoryRouter>
+        <ExceptionLatestOccurrence
+          isLoading={false}
+          columns={3}
+          instance={occurrence({
+            escaped: true,
+            sessionId: "d".repeat(32),
+            fingerprint: FINGERPRINT,
+          })}
+        />
+      </MemoryRouter>,
+    );
+
+    const list: HTMLElement = screen.getByLabelText("Latest occurrence");
+
+    expect(list.tagName).toBe("DL");
+    expect(list).toHaveClass("grid-cols-1", "md:grid-cols-2", "lg:grid-cols-3");
+
+    for (const testId of [
+      "exception-latest-occurrence-session",
+      "exception-latest-occurrence-fingerprint",
+    ]) {
+      expect(screen.getByTestId(testId)).toHaveClass(
+        "md:col-span-2",
+        "lg:col-span-3",
+      );
+    }
+
+    // A short fact keeps one column.
+    expect(
+      screen.getByTestId("exception-latest-occurrence-handling").className,
+    ).not.toContain("col-span");
+  });
+
+  test("by default - the Context page, beside its replay - it keeps two columns", () => {
+    render(
+      <MemoryRouter>
+        <ExceptionLatestOccurrence
+          isLoading={false}
+          instance={occurrence({ fingerprint: FINGERPRINT })}
+        />
+      </MemoryRouter>,
+    );
+
+    const list: HTMLElement = screen.getByLabelText("Latest occurrence");
+
+    expect(list).toHaveClass("md:grid-cols-2");
+    expect(list.className).not.toContain("lg:grid-cols-3");
+    expect(
+      screen.getByTestId("exception-latest-occurrence-fingerprint"),
+    ).toHaveClass("md:col-span-2");
+    expect(
+      screen.getByTestId("exception-latest-occurrence-fingerprint").className,
+    ).not.toContain("lg:col-span-3");
   });
 });

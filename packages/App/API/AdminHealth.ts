@@ -4,6 +4,7 @@ import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
 import {
   AppVersion,
   ClickhouseDatabase as ClickhouseDatabaseName,
+  DisableUpdateCheck,
   GitSha,
   Host,
 } from "Common/Server/EnvironmentConfig";
@@ -32,6 +33,20 @@ import { JSONArray, JSONObject } from "Common/Types/JSON";
 import InstanceHealthLogService from "Common/Server/Services/InstanceHealthLogService";
 import InstanceHealthLog from "Common/Models/DatabaseModels/InstanceHealthLog";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import Redis from "Common/Server/Infrastructure/Redis";
+import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
+import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
+import { getClickhouseDiskSnapshots } from "Common/Server/Utils/AnalyticsDatabase/ClickhouseCapacity";
+import CustomDomainServerReadiness from "Common/Server/Utils/CustomDomain/CustomDomainServerReadiness";
+import ServerSetupChecklist from "Common/Server/Utils/ServerSetup/ServerSetupChecklist";
+import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
+import ObjectID from "Common/Types/ObjectID";
+import VersionUtil from "Common/Utils/VersionUtil";
+import InstallationHealthUtil, {
+  InstallationHealthAnswer,
+  InstallationHealthFacts,
+} from "Common/Types/InstallationHealth/InstallationHealth";
+import { ServerSetupChecklistAnswer } from "Common/Types/ServerSetup/ServerSetupChecklist";
 import {
   ClickhouseJsonResult,
   getClickhouseDiagnostics,
@@ -914,6 +929,312 @@ router.get(
       return next(err);
     }
   },
+);
+
+/*
+ * ---------------------------------------------------------------------------
+ * What is wrong with this installation (#6826)
+ *
+ * /api/admin/health/doctor answers the findings of
+ * Common/Types/InstallationHealth: the datastores, the migrations,
+ * ClickHouse's disks, the queues, the version and the server setup
+ * checklist, worst first, each with its fix. Every edition: a self-hoster
+ * who cannot tell why their server is broken needs the answer, not an
+ * upsell.
+ *
+ * GET is read by the Admin Dashboard's OneUptime Health overview, with a
+ * master admin's session or the master API key. POST is read by
+ * `npm run doctor` on a Docker Compose host and by
+ * HelmChart/Public/diagnose.sh inside the app pod, with the cluster key
+ * (ONEUPTIME_SECRET) that the host's config.env and the pod already hold, so
+ * neither needs an API key set up first. Like every route that takes the
+ * cluster key, the POST is handed ClusterKeyAuthorization's check by the
+ * router, and the key is never read here (Common's ClusterKeyGuard). The
+ * answer is read-only and carries yes/no answers and fixes, never a
+ * setting's value.
+ * ---------------------------------------------------------------------------
+ */
+
+// Each fact's reader, so the tests can answer them without a datastore.
+export interface InstallationHealthReaders {
+  isPostgresConnected: () => Promise<boolean>;
+  isClickhouseConnected: () => Promise<boolean>;
+  isValkeyConnected: () => Promise<boolean>;
+  migrations: () => Promise<JSONObject>;
+  clickhouseDisks: () => Promise<InstallationHealthFacts["clickhouseDisks"]>;
+  queues: () => Promise<JSONArray>;
+  latestVersion: () => Promise<string | null>;
+  serverSetup: () => Promise<ServerSetupChecklistAnswer>;
+}
+
+/*
+ * Each datastore is asked through the connection this process already holds
+ * (no connection: it does not answer), as the support bundle's probes do.
+ */
+const DEFAULT_INSTALLATION_HEALTH_READERS: InstallationHealthReaders = {
+  isPostgresConnected: async (): Promise<boolean> => {
+    const dataSource: ReturnType<typeof PostgresAppInstance.getDataSource> =
+      PostgresAppInstance.getDataSource();
+
+    if (!dataSource) {
+      return false;
+    }
+
+    await dataSource.query("SELECT 1");
+    return true;
+  },
+  isClickhouseConnected: async (): Promise<boolean> => {
+    const client: ReturnType<typeof ClickhouseAppInstance.getDataSource> =
+      ClickhouseAppInstance.getDataSource();
+
+    if (!client) {
+      return false;
+    }
+
+    return (await client.ping()).success;
+  },
+  isValkeyConnected: async (): Promise<boolean> => {
+    const client: ReturnType<typeof Redis.getClient> = Redis.getClient();
+
+    if (!client) {
+      return false;
+    }
+
+    return (await client.ping()) === "PONG";
+  },
+  migrations: (): Promise<JSONObject> => {
+    return getMigrationStatus();
+  },
+  clickhouseDisks: async (): Promise<
+    InstallationHealthFacts["clickhouseDisks"]
+  > => {
+    return (await getClickhouseDiskSnapshots()).map(
+      (disk: {
+        host: string;
+        diskName: string;
+        freeInBytes: number;
+        totalInBytes: number;
+      }): InstallationHealthFacts["clickhouseDisks"][number] => {
+        return {
+          name: [disk.host, disk.diskName].filter(Boolean).join(" "),
+          freeInBytes: disk.freeInBytes,
+          totalInBytes: disk.totalInBytes,
+        };
+      },
+    );
+  },
+  queues: (): Promise<JSONArray> => {
+    return getQueueStats();
+  },
+  latestVersion: async (): Promise<string | null> => {
+    const config: GlobalConfig | null = await GlobalConfigService.findOneById({
+      id: ObjectID.getZeroObjectID(),
+      select: { latestReleaseVersion: true },
+      props: { isRoot: true },
+    });
+
+    return config?.latestReleaseVersion || null;
+  },
+  serverSetup: (): Promise<ServerSetupChecklistAnswer> => {
+    return ServerSetupChecklist.getAnswer();
+  },
+};
+
+// A reader that fails answers its fallback: one datastore down must not hide the rest.
+async function readOr<T>(
+  read: () => Promise<T>,
+  fallback: T,
+  what: string,
+): Promise<T> {
+  try {
+    return await read();
+  } catch (err) {
+    logger.error(`AdminHealth: could not read ${what} for the doctor`);
+    logger.error(err);
+    return fallback;
+  }
+}
+
+/*
+ * The latest failed attempt of a migration that is still pending, from one
+ * runner's status (getPostgresMigrationStatus / getDataMigrationStatus).
+ */
+export function getPendingMigrationFailure(
+  status: JSONObject | undefined,
+): { name: string; reason: string; at: string | null } | null {
+  if (!status) {
+    return null;
+  }
+
+  const pending: Set<string> = new Set(
+    (Array.isArray(status["pendingMigrations"])
+      ? (status["pendingMigrations"] as Array<unknown>)
+      : []
+    ).map((name: unknown): string => {
+      return String(name);
+    }),
+  );
+  const failures: Array<unknown> = Array.isArray(status["recentFailures"])
+    ? (status["recentFailures"] as Array<unknown>)
+    : [];
+
+  for (const failure of failures) {
+    const row: JSONObject = (failure || {}) as JSONObject;
+    const name: string = String(row["migrationName"] || "");
+
+    if (name && pending.has(name)) {
+      return {
+        name: name,
+        reason:
+          String(row["errorMessage"] || "").trim() || "no error was recorded",
+        at: typeof row["attemptedAt"] === "string" ? row["attemptedAt"] : null,
+      };
+    }
+  }
+
+  return null;
+}
+
+export async function getInstallationHealthFacts(
+  readers: InstallationHealthReaders = DEFAULT_INSTALLATION_HEALTH_READERS,
+): Promise<InstallationHealthFacts> {
+  const [isPostgresConnected, isClickhouseConnected, isValkeyConnected] =
+    await Promise.all([
+      readOr(readers.isPostgresConnected, false, "PostgreSQL"),
+      readOr(readers.isClickhouseConnected, false, "ClickHouse"),
+      readOr(readers.isValkeyConnected, false, "Valkey"),
+    ]);
+
+  const [migrations, clickhouseDisks, queues, latestVersion, serverSetup] =
+    await Promise.all([
+      isPostgresConnected
+        ? readOr<JSONObject | null>(readers.migrations, null, "migrations")
+        : Promise.resolve(null),
+      isClickhouseConnected
+        ? readOr(readers.clickhouseDisks, [], "ClickHouse's disks")
+        : Promise.resolve([]),
+      isValkeyConnected
+        ? readOr<JSONArray>(readers.queues, [], "the queues")
+        : Promise.resolve([] as JSONArray),
+      isPostgresConnected
+        ? readOr<string | null>(readers.latestVersion, null, "the version")
+        : Promise.resolve(null),
+      isPostgresConnected
+        ? readOr<ServerSetupChecklistAnswer | null>(
+            readers.serverSetup,
+            null,
+            "the server setup checklist",
+          )
+        : Promise.resolve(null),
+    ]);
+
+  const postgresMigrations: JSONObject | undefined = migrations?.[
+    "postgres"
+  ] as JSONObject | undefined;
+  const dataMigrations: JSONObject | undefined = migrations?.[
+    "dataMigrations"
+  ] as JSONObject | undefined;
+  const pendingOf: (status: JSONObject | undefined) => number = (
+    status: JSONObject | undefined,
+  ): number => {
+    return status && status["connected"] === true
+      ? toNumberOrNull(status["totalPending"]) || 0
+      : 0;
+  };
+
+  return {
+    isPostgresConnected: isPostgresConnected,
+    isClickhouseConnected: isClickhouseConnected,
+    isValkeyConnected: isValkeyConnected,
+    migrations: migrations
+      ? {
+          pending: pendingOf(postgresMigrations) + pendingOf(dataMigrations),
+          failure:
+            getPendingMigrationFailure(postgresMigrations) ||
+            getPendingMigrationFailure(dataMigrations),
+        }
+      : null,
+    clickhouseDisks: clickhouseDisks,
+    queues: queues
+      .map((queue: unknown): { name: string; waiting: number } => {
+        const row: JSONObject = (queue || {}) as JSONObject;
+
+        return {
+          name: String(row["name"] || ""),
+          waiting: toNumberOrNull(row["waiting"]) || 0,
+        };
+      })
+      .filter((queue: { name: string }): boolean => {
+        return Boolean(queue.name);
+      }),
+    version: {
+      current: AppVersion,
+      latest: latestVersion,
+      isUpdateAvailable: VersionUtil.isUpdateAvailable({
+        currentVersion: AppVersion,
+        latestVersion: latestVersion,
+      }),
+      isUpdateCheckDisabled: DisableUpdateCheck,
+    },
+    serverSetup: serverSetup,
+  };
+}
+
+type InstallationHealthHandler = (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+) => Promise<void>;
+
+/*
+ * Both routes answer the same findings. Only the doctor's answer carries the
+ * address proof: the doctor asks HOST for it from outside the containers, to
+ * tell this OneUptime from another server at that address.
+ */
+const answerInstallationHealth: (options: {
+  withAddressProof: boolean;
+}) => InstallationHealthHandler = (options: {
+  withAddressProof: boolean;
+}): InstallationHealthHandler => {
+  return async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const answer: InstallationHealthAnswer = InstallationHealthUtil.getAnswer(
+        {
+          facts: await getInstallationHealthFacts(),
+          addressProof: options.withAddressProof
+            ? CustomDomainServerReadiness.createProof()
+            : null,
+          checkedAt: OneUptimeDate.getCurrentDate().toISOString(),
+        },
+      );
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        JSON.parse(JSON.stringify(answer)) as JSONObject,
+      );
+    } catch (err) {
+      return next(err);
+    }
+  };
+};
+
+// The Admin Dashboard's "What needs attention" card.
+router.get(
+  "/doctor",
+  MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddleware,
+  answerInstallationHealth({ withAddressProof: false }),
+);
+
+// `npm run doctor` and HelmChart/Public/diagnose.sh, with the cluster key.
+router.post(
+  "/doctor",
+  ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
+  answerInstallationHealth({ withAddressProof: true }),
 );
 
 /*

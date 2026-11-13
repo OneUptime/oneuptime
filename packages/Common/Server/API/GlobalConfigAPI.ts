@@ -13,6 +13,15 @@ import MasterAdminAuthorization from "../Middleware/MasterAdminAuthorization";
 import CallAndSmsGatewayTest, {
   CallAndSmsGatewayTestResult,
 } from "../Utils/CallAndSmsGatewayTest";
+import ServerSendingStatus from "../Utils/ServerSending/ServerSendingStatus";
+import { SERVER_CHANNEL_SETUP_SELECT } from "../Utils/ServerSending/ServerChannelSetup";
+import { ServerSendingStatusAnswer } from "../../Types/ServerSending/ServerSendingStatus";
+import ServerSetupChecklist from "../Utils/ServerSetup/ServerSetupChecklist";
+import ServerSetupChecklistUtil, {
+  ServerSetupChecklistAnswer,
+  ServerSetupChoiceKind,
+} from "../../Types/ServerSetup/ServerSetupChecklist";
+import BadDataException from "../../Types/Exception/BadDataException";
 import GlobalConfig from "../../Models/DatabaseModels/GlobalConfig";
 import ObjectID from "../../Types/ObjectID";
 import { JSONObject } from "../../Types/JSON";
@@ -29,7 +38,9 @@ import EnterpriseMarketplaceBillingUtil, {
   EnterpriseMarketplaceBillingState,
 } from "../../Types/EnterpriseLicense/EnterpriseMarketplaceBilling";
 import VersionUtil from "../../Utils/VersionUtil";
-import UserMiddleware from "../Middleware/UserAuthorization";
+import UserMiddleware, {
+  RequestSession,
+} from "../Middleware/UserAuthorization";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
 import EnterpriseEdition from "../Enterprise/EnterpriseEdition";
 import {
@@ -107,27 +118,172 @@ export default class GlobalConfigAPI extends BaseAPI<
               select: {
                 disableUserProjectCreation: true,
                 disablePushNotifications: true,
+                // Whether the server can send email: read, never sent on.
+                ...SERVER_CHANNEL_SETUP_SELECT,
+                serverSendingHealth: true,
               },
               props: {
                 isRoot: true,
               },
             });
 
-          return Response.sendJsonObjectResponse(req, res, {
-            disableUserProjectCreation: Boolean(
-              globalConfig?.disableUserProjectCreation,
-            ),
-            /*
-             * Whether push notifications are turned off for the whole
-             * server: the Dashboard says so in place of the push devices,
-             * and offers none in a notification rule.
-             */
-            disablePushNotifications: Boolean(
-              globalConfig?.disablePushNotifications,
-            ),
-          });
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            GlobalConfigAPI.buildVarsResponse(globalConfig),
+          );
         } catch (err) {
           next(err);
+        }
+      },
+    );
+
+    /*
+     * GET /global-config/sending-status - whether this server can send
+     * email, SMS, calls and push notifications (ServerSendingStatus): each
+     * channel's state, since when it fails and why, what its settings are
+     * missing, and whether the server's global probes report. The banner in
+     * the Dashboard and the Admin Dashboard reads it.
+     *
+     * Master admins only: why a mail server refuses mail, and that a server
+     * is not finished, are its admins' business. Anybody else reads only
+     * GET /global-config/vars' canSendEmail.
+     */
+    this.router.get(
+      `${new this.entityType().getCrudApiPath()?.toString()}/sending-status`,
+      MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const answer: ServerSendingStatusAnswer =
+            await ServerSendingStatus.getAnswer();
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            JSON.parse(JSON.stringify(answer)) as JSONObject,
+          );
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * GET /global-config/setup-checklist - what this server still needs
+     * (ServerSetupChecklist, #6824): every check of the setup checklist,
+     * worked out from the server's real state - email, HTTPS, sign-ups, SMS
+     * and calls, probes, backups, update checks, browser push, AI and single
+     * sign-on - with what each was checked against, what an admin chose,
+     * and whether the asking admin hid the card. The Admin Dashboard's
+     * Server setup page and the Dashboard's card read it.
+     *
+     * Master admins only, or the server's master API key (read-only, so the
+     * command line - `npm run doctor`, #6826 - can ask it too): a mail
+     * server's name and why it refuses mail are the server's admins'
+     * business.
+     */
+    this.router.get(
+      `${new this.entityType().getCrudApiPath()?.toString()}/setup-checklist`,
+      MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const answer: ServerSetupChecklistAnswer =
+            await ServerSetupChecklist.getAnswer({
+              readerUserId: await GlobalConfigAPI.getSessionUserId(req),
+            });
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            JSON.parse(JSON.stringify(answer)) as JSONObject,
+          );
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * POST /global-config/setup-checklist/choice - a master admin making, or
+     * undoing ({ choice: null }), the one choice a check allows: "We will use
+     * email and push only", "Keep sign-ups open", "Not needed" for probes and
+     * update checks, "This server is backed up". Kept with who chose it and
+     * when. Answers the checklist as it now stands.
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/setup-checklist/choice`,
+      MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const body: JSONObject = (req.body || {}) as JSONObject;
+          const check: unknown = body["check"];
+          const choice: unknown = body["choice"];
+
+          if (!ServerSetupChecklistUtil.isCheckId(check)) {
+            throw new BadDataException("Unknown setup checklist check.");
+          }
+
+          const allowed: ServerSetupChoiceKind | null =
+            ServerSetupChecklistUtil.getDefinition(check).choice;
+
+          if (choice !== null && (!allowed || choice !== allowed)) {
+            throw new BadDataException(
+              "This choice cannot be made for this check.",
+            );
+          }
+
+          const userId: ObjectID | null =
+            await GlobalConfigAPI.getSessionUserId(req);
+
+          await ServerSetupChecklist.choose({
+            check: check,
+            kind: choice as ServerSetupChoiceKind | null,
+            byUserId: userId,
+          });
+
+          const answer: ServerSetupChecklistAnswer =
+            await ServerSetupChecklist.getAnswer({ readerUserId: userId });
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            JSON.parse(JSON.stringify(answer)) as JSONObject,
+          );
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * POST /global-config/setup-checklist/hide - a master admin hiding the
+     * setup card from the Dashboard, in every browser they use, until a
+     * required check opens that is not open now. Nobody else's card changes.
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/setup-checklist/hide`,
+      MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const userId: ObjectID | null =
+            await GlobalConfigAPI.getSessionUserId(req);
+
+          if (!userId) {
+            throw new BadDataException("Sign in to hide the setup checklist.");
+          }
+
+          await ServerSetupChecklist.hideFor(userId);
+
+          const answer: ServerSetupChecklistAnswer =
+            await ServerSetupChecklist.getAnswer({ readerUserId: userId });
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            JSON.parse(JSON.stringify(answer)) as JSONObject,
+          );
+        } catch (err) {
+          return next(err);
         }
       },
     );
@@ -277,6 +433,53 @@ export default class GlobalConfigAPI extends BaseAPI<
         }
       },
     );
+  }
+
+  /*
+   * The body of GET /global-config/vars, which anybody reads, signed in or
+   * not: switches the pages follow, and whether the server can send email -
+   * a yes or no only, never an address, a setting or why a send failed.
+   */
+  public static buildVarsResponse(
+    globalConfig: GlobalConfig | null,
+  ): JSONObject {
+    return {
+      disableUserProjectCreation: Boolean(
+        globalConfig?.disableUserProjectCreation,
+      ),
+      /*
+       * Whether push notifications are turned off for the whole server: the
+       * Dashboard says so in place of the push devices, and offers none in a
+       * notification rule.
+       */
+      disablePushNotifications: Boolean(globalConfig?.disablePushNotifications),
+      /*
+       * False while the server is known not to be able to send email - its
+       * settings are missing, or it has never managed to send one - so no
+       * page promises an email that cannot come (ServerSendingStatus.
+       * canSendEmailPubliclyFrom). Once email has worked, a later failure is
+       * told to master admins only (GET /global-config/sending-status).
+       */
+      canSendEmail: ServerSendingStatus.canSendEmailPubliclyFrom(globalConfig),
+    };
+  }
+
+  /*
+   * The signed-in person asking, from their session, or null (the master API
+   * key, which is nobody): whose "Hide" the checklist reads, and who made a
+   * choice on it.
+   */
+  public static async getSessionUserId(
+    req: ExpressRequest,
+  ): Promise<ObjectID | null> {
+    const session: RequestSession =
+      await UserMiddleware.readRequestSession(req);
+
+    if (session.kind !== "user" || !session.session.userId) {
+      return null;
+    }
+
+    return new ObjectID(session.session.userId.toString());
   }
 
   /*

@@ -2,6 +2,8 @@
 
 Den här guiden tar dig från ett nytt konto till en fungerande konfiguration på ungefär femton minuter: en monitor som kontrollerar din webbplats var femte minut, en jourpolicy som larmar dig när webbplatsen går ner och en statussida som informerar dina kunder. Den följer checklistan **Välkommen till OneUptime 👋** på projektets startsida.
 
+Kommer du från ett annat verktyg? [Importera därifrån](/docs/introduction/getting-started#om-du-kommer-från-ett-annat-verktyg) först: dina monitorer, jourscheman och statussidor följer med.
+
 ```mermaid title="Det du konfigurerar i den här guiden"
 flowchart TB
     monitor["Webbplatsmonitor"] -->|"webbplatsen är nere"| incident["Incident"]
@@ -32,7 +34,7 @@ Ange ett **Projektnamn**, till exempel ditt företags namn. På OneUptime Cloud 
 
 ### Skapa det
 
-Klicka på **Skapa projekt**. Projektets startsida öppnas, med checklistan **Välkommen till OneUptime 👋** överst.
+Klicka på **Skapa projekt**. Projektets startsida öppnas, med checklistan **Välkommen till OneUptime 👋** överst. Först frågar den **Vad vill du göra först?**: kryssa i **Veta när min webbplats eller mitt API ligger nere**, **Larma rätt person när något går sönder** och **Berätta för mina kunder med en statussida**, och klicka på **Fortsätt**.
 :::
 
 ## Övervaka din webbplats
@@ -80,6 +82,8 @@ E-postadressen du loggar in med är redan ett sätt att nå dig. För att också
 
 Se [Eskaleringsregler](/docs/on-call/escalation-rules) och [Jourscheman](/docs/on-call/schedules) för fler nivåer, rotationer och hur länge varje nivå väntar.
 
+För att larmas via SMS, telefonsamtal och push, där nästa person larmas när ingen svarar och ett testlarm visar att det fungerar, följer du [Bli larmad via samtal, SMS eller push](/docs/guides/paging).
+
 ## Publicera en statussida
 
 :::steps
@@ -97,6 +101,8 @@ Välj **Översikt** i sidomenyn. Kortet **Länk till statussidan** länkar till 
 :::
 
 En ny statussida är offentlig: alla som har adressen kan öppna den. Se [Statussidans varumärke och domäner](/docs/status-pages/branding-and-domains) för att ge den din egen domän, logotyp och dina egna färger.
+
+För att lägga statussidan på din egen domän, över HTTPS, följer du [Publicera en statussida](/docs/guides/status-page).
 
 ## Bjud in ditt team
 
@@ -141,6 +147,7 @@ En statussida visar en incident när en av incidentens monitorer finns på sidan
 
 :::cards
 - [Grundbegrepp](/docs/introduction/core-concepts): Idéerna bakom det du just har konfigurerat.
+- [Ordlista](/docs/introduction/glossary): Varje ord som du stötte på längs vägen, med en eller två meningar.
 - [Jourscheman](/docs/on-call/schedules): Dela jouren med ditt team.
 - [Statussidans varumärke och domäner](/docs/status-pages/branding-and-domains): Gör statussidan till din egen.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Skicka loggar, mätvärden och spår från dina appar.

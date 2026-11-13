@@ -1,3 +1,5 @@
+import ProjectMilestoneService from "./ProjectMilestoneService";
+import ActivationMilestone from "../../Types/Analytics/ActivationMilestone";
 import CreateBy from "../Types/Database/CreateBy";
 import AlertMeasurementValueService from "./AlertMeasurementValueService";
 import DeleteBy from "../Types/Database/DeleteBy";
@@ -47,6 +49,7 @@ import OnCallAcknowledgementTimeout from "../Utils/OnCall/OnCallAcknowledgementT
 import FindBy from "../Types/Database/FindBy";
 import CountBy from "../Types/Database/CountBy";
 import { applyAlertRelatedRecordPrivacyFilter } from "../Utils/Alert/AlertPrivacyFilter";
+import StateChangeLogScreenshots from "../../Utils/Monitor/StateChangeLogScreenshots";
 
 export class Service extends ProjectReferencesService<AlertStateTimeline> {
   public constructor() {
@@ -128,6 +131,17 @@ export class Service extends ProjectReferencesService<AlertStateTimeline> {
     createBy: CreateBy<AlertStateTimeline>,
   ): Promise<OnCreate<AlertStateTimeline>> {
     await super.onBeforeCreate(createBy);
+
+    /*
+     * The check that caused the change, without a Synthetic monitor's
+     * screenshots: the log is read as JSON text, and they are megabytes a
+     * row. See StateChangeLogScreenshots.
+     */
+    if (createBy.data.stateChangeLog) {
+      createBy.data.stateChangeLog = StateChangeLogScreenshots.leaveOut(
+        createBy.data.stateChangeLog,
+      );
+    }
 
     if (!createBy.data.alertId) {
       throw new BadDataException("alertId is null");
@@ -468,6 +482,21 @@ export class Service extends ProjectReferencesService<AlertStateTimeline> {
         projectId: createdItem.projectId!,
         alertStateId: createdItem.alertStateId,
       });
+
+    /*
+     * The project's first incident or alert a person answered (issue
+     * #6830): acknowledged by the rule above, on a row a person made. Not a
+     * monitor, a workflow or a linked incident carrying its state over.
+     */
+    if (
+      isAcknowledged &&
+      (createdItem.createdByUserId || onCreate.createBy.props.userId)
+    ) {
+      ProjectMilestoneService.reachInBackground({
+        projectId: createdItem.projectId,
+        milestone: ActivationMilestone.FirstIncidentOrAlertAcknowledged,
+      });
+    }
 
     /*
      * The state's name is plain text, placed into the feed item's Markdown

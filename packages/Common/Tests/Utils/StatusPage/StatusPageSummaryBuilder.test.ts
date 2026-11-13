@@ -374,6 +374,7 @@ describe("StatusPageSummaryBuilder.fromOverview: scheduled maintenance", () => {
         color: "#ef4444",
         isOperational: false,
       },
+      isMonitored: true,
       isUnderMaintenance: true,
     });
   });
@@ -634,6 +635,321 @@ describe("StatusPageSummaryBuilder.fromOverview: incidents", () => {
     );
 
     expect(summary.activeIncidents).toEqual([]);
+  });
+});
+
+describe("StatusPageSummaryBuilder.fromOverview: resources nothing checks", () => {
+  /*
+   * A monitor whose monitoring is off is not checked, and neither is a
+   * monitor group whose monitors all have it off: the status each still
+   * holds is frozen. The page keeps the resource and draws it as Not
+   * monitored (overview.notMonitoredResourceIds); the summary says the same
+   * - listed, not monitored, no status - and counts it toward no other
+   * status.
+   */
+
+  test("a monitor whose monitoring is off is listed as not monitored, with no status, however bad its last one", () => {
+    const summary: StatusPageSummary = summarize(
+      departmentPage({
+        resources: [
+          {
+            id: R_API,
+            name: "Checkout API",
+            groupId: PG_CORE,
+            monitorId: M_API,
+            statusId: FAKE_STATUSES.operational.id,
+          },
+          {
+            id: R_WEB,
+            name: "Storefront",
+            monitorId: M_WEB,
+            statusId: FAKE_STATUSES.offline.id,
+            isMonitoringOff: true,
+          },
+        ],
+        monitorGroups: [],
+      }),
+    );
+
+    expect(resource(summary, R_WEB)).toEqual({
+      id: R_WEB,
+      name: "Storefront",
+      groupName: null,
+      currentStatus: null,
+      isMonitored: false,
+      isUnderMaintenance: false,
+    });
+    expect(resource(summary, R_API).isMonitored).toBe(true);
+    expect(resource(summary, R_API).currentStatus?.name).toBe("Operational");
+
+    // Its frozen Offline reaches nothing: not the resource, not the banner.
+    expect(JSON.stringify(summary)).not.toContain("Offline");
+    expect(summary.overallStatus?.name).toBe("Operational");
+  });
+
+  test("the banner is the worst status among the resources that are monitored", () => {
+    const summary: StatusPageSummary = summarize(
+      departmentPage({
+        resources: [
+          {
+            id: R_API,
+            name: "Checkout API",
+            monitorId: M_API,
+            statusId: FAKE_STATUSES.degraded.id,
+          },
+          {
+            id: R_WEB,
+            name: "Storefront",
+            monitorId: M_WEB,
+            statusId: FAKE_STATUSES.offline.id,
+            isMonitoringOff: true,
+          },
+        ],
+        monitorGroups: [],
+      }),
+    );
+
+    expect(summary.overallStatus).toEqual({
+      name: "Degraded",
+      color: "#f59e0b",
+      isOperational: false,
+    });
+  });
+
+  test("a monitor group whose monitors all have monitoring off is not monitored, and its status counts for nothing", () => {
+    const summary: StatusPageSummary = summarize(
+      departmentPage({
+        monitorGroups: [
+          {
+            id: G_DATABASES,
+            monitorIds: [M_DB_PRIMARY, M_DB_REPLICA],
+            offMonitorIds: [M_DB_PRIMARY, M_DB_REPLICA],
+            statusId: FAKE_STATUSES.offline.id,
+          },
+        ],
+      }),
+    );
+
+    expect(resource(summary, R_DATABASES)).toEqual({
+      id: R_DATABASES,
+      name: "Databases",
+      groupName: "Core / Data",
+      currentStatus: null,
+      isMonitored: false,
+      isUnderMaintenance: false,
+    });
+
+    // The Storefront is Degraded: the worst of what is still checked.
+    expect(summary.overallStatus?.name).toBe("Degraded");
+  });
+
+  test("a monitor group with any monitor still checked is monitored, with its status", () => {
+    const summary: StatusPageSummary = summarize(
+      departmentPage({
+        monitorGroups: [
+          {
+            id: G_DATABASES,
+            monitorIds: [M_DB_PRIMARY, M_DB_REPLICA],
+            offMonitorIds: [M_DB_PRIMARY],
+            statusId: FAKE_STATUSES.offline.id,
+          },
+        ],
+      }),
+    );
+
+    expect(resource(summary, R_DATABASES).isMonitored).toBe(true);
+    expect(resource(summary, R_DATABASES).currentStatus?.name).toBe("Offline");
+    expect(summary.overallStatus?.name).toBe("Offline");
+  });
+
+  test("a page none of whose resources is monitored has no overall status", () => {
+    const summary: StatusPageSummary = summarize({
+      resources: [
+        {
+          id: R_API,
+          name: "Checkout API",
+          monitorId: M_API,
+          statusId: FAKE_STATUSES.offline.id,
+          isMonitoringOff: true,
+        },
+        {
+          id: R_DATABASES,
+          name: "Databases",
+          monitorGroupId: G_DATABASES,
+        },
+      ],
+      monitorGroups: [
+        {
+          id: G_DATABASES,
+          monitorIds: [M_DB_PRIMARY],
+          offMonitorIds: [M_DB_PRIMARY],
+          statusId: FAKE_STATUSES.degraded.id,
+        },
+      ],
+    });
+
+    expect(summary.overallStatus).toBeNull();
+    expect(
+      summary.resources.map((item: StatusPageSummaryResource) => {
+        return [item.id, item.isMonitored, item.currentStatus];
+      }),
+    ).toEqual([
+      [R_API, false, null],
+      [R_DATABASES, false, null],
+    ]);
+  });
+
+  test("a resource whose page hides its status, and whose monitoring is off, is still not monitored", () => {
+    const summary: StatusPageSummary = summarize(
+      departmentPage({
+        resources: [
+          {
+            id: R_WEB,
+            name: "Storefront",
+            monitorId: M_WEB,
+            statusId: FAKE_STATUSES.operational.id,
+            showCurrentStatus: false,
+            isMonitoringOff: true,
+          },
+          {
+            id: R_API,
+            name: "Checkout API",
+            monitorId: M_API,
+            statusId: FAKE_STATUSES.operational.id,
+            showCurrentStatus: false,
+          },
+        ],
+      }),
+    );
+
+    expect(resource(summary, R_WEB).currentStatus).toBeNull();
+    expect(resource(summary, R_WEB).isMonitored).toBe(false);
+
+    // Hiding a status is not turning monitoring off.
+    expect(resource(summary, R_API).currentStatus).toBeNull();
+    expect(resource(summary, R_API).isMonitored).toBe(true);
+  });
+
+  test("maintenance in progress on a monitor whose monitoring is off: under maintenance, and not monitored", () => {
+    const summary: StatusPageSummary = summarize(
+      departmentPage({
+        resources: [
+          {
+            id: R_API,
+            name: "Checkout API",
+            monitorId: M_API,
+            statusId: FAKE_STATUSES.operational.id,
+            isMonitoringOff: true,
+          },
+          {
+            id: R_WEB,
+            name: "Storefront",
+            monitorId: M_WEB,
+            statusId: FAKE_STATUSES.operational.id,
+          },
+        ],
+        maintenance: [
+          {
+            id: id("e21"),
+            title: "Checkout upgrade",
+            state: "ongoing",
+            startsAt: new Date(NOW.getTime() - HOUR),
+            monitorIds: [M_API],
+          },
+        ],
+      }),
+    );
+
+    expect(resource(summary, R_API).isUnderMaintenance).toBe(true);
+    expect(resource(summary, R_API).isMonitored).toBe(false);
+    expect(summary.ongoingScheduledMaintenance[0]?.affectedResourceIds).toEqual(
+      [R_API],
+    );
+  });
+
+  test("an incident on a monitor whose monitoring is off still names it", () => {
+    const summary: StatusPageSummary = summarize(
+      departmentPage({
+        resources: [
+          {
+            id: R_WEB,
+            name: "Storefront",
+            monitorId: M_WEB,
+            statusId: FAKE_STATUSES.offline.id,
+            isMonitoringOff: true,
+          },
+        ],
+        incidents: [
+          {
+            id: id("f21"),
+            title: "Storefront down",
+            declaredAt: NOW,
+            state: "Identified",
+            severity: "SEV-1",
+            monitorIds: [M_WEB],
+          },
+        ],
+      }),
+    );
+
+    expect(summary.activeIncidents[0]?.affectedResourceIds).toEqual([R_WEB]);
+    expect(resource(summary, R_WEB).isMonitored).toBe(false);
+  });
+
+  test("an overview from a server older than the list monitors every resource", () => {
+    const overview: JSONObject = JSON.parse(
+      JSON.stringify(buildFakeOverview(departmentPage())),
+    ) as JSONObject;
+    delete overview["notMonitoredResourceIds"];
+
+    const summary: StatusPageSummary =
+      StatusPageSummaryBuilder.fromOverview(overview);
+
+    expect(
+      summary.resources.every((item: StatusPageSummaryResource): boolean => {
+        return item.isMonitored;
+      }),
+    ).toBe(true);
+    expect(resource(summary, R_DATABASES).currentStatus?.name).toBe("Offline");
+  });
+
+  test("reads the list as text ids alone, trimmed: anything else marks nothing", () => {
+    const overview: JSONObject = JSON.parse(
+      JSON.stringify(buildFakeOverview(departmentPage())),
+    ) as JSONObject;
+    overview["notMonitoredResourceIds"] = [
+      `  ${R_WEB}  `,
+      7,
+      null,
+      { id: R_API },
+      "",
+      [R_QUEUE],
+    ];
+
+    const summary: StatusPageSummary =
+      StatusPageSummaryBuilder.fromOverview(overview);
+
+    expect(
+      summary.resources
+        .filter((item: StatusPageSummaryResource): boolean => {
+          return !item.isMonitored;
+        })
+        .map((item: StatusPageSummaryResource): string => {
+          return item.id;
+        }),
+    ).toEqual([R_WEB]);
+  });
+
+  test("a list that is not a list marks nothing", () => {
+    const overview: JSONObject = JSON.parse(
+      JSON.stringify(buildFakeOverview(departmentPage())),
+    ) as JSONObject;
+    overview["notMonitoredResourceIds"] = R_WEB;
+
+    const summary: StatusPageSummary =
+      StatusPageSummaryBuilder.fromOverview(overview);
+
+    expect(resource(summary, R_WEB).isMonitored).toBe(true);
   });
 });
 

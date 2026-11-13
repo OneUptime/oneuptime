@@ -10,6 +10,7 @@ import DashboardMonitorListComponent from "Common/Types/Dashboard/DashboardCompo
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import DashboardResourceListBase, {
   ResourceListColumn,
+  ResourceListNameCell,
   ResourceListViewMode,
 } from "./DashboardResourceListBase";
 import { HoneycombTile } from "./DashboardResourceHoneycomb";
@@ -34,6 +35,12 @@ import ObjectID from "Common/Types/ObjectID";
 import Color from "Common/Types/Color";
 import { getStatusTextProps } from "Common/UI/Utils/StatusColorStyle";
 import DashboardLabelVariable from "Common/Utils/Dashboard/LabelVariable";
+import {
+  getMonitorListQuery,
+  getMonitorListRowStatus,
+  MONITOR_LIST_WIDGET_SELECT,
+  MonitorListRowStatus,
+} from "Common/Utils/Dashboard/MonitorListWidgetFormat";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useDashboardListWidgetSort, {
@@ -93,24 +100,16 @@ const DashboardMonitorListComponentElement: FunctionComponent<
     }
 
     try {
+      /*
+       * Archived monitors are never listed, and a status filter matches only
+       * the monitors that are checked: one whose monitoring is off keeps the
+       * status its last check saw, and its row says Disabled instead
+       * (MonitorListWidgetFormat - the public policy builds the same query).
+       */
       const query: Query<Monitor> = {
         projectId: projectId,
+        ...getMonitorListQuery({ statusFilter, monitorStatusIds }),
       } as Query<Monitor>;
-
-      if (statusFilter === "operational") {
-        (query as Record<string, unknown>)["currentMonitorStatus"] = {
-          isOperationalState: true,
-        };
-      } else if (statusFilter === "non-operational") {
-        (query as Record<string, unknown>)["currentMonitorStatus"] = {
-          isOperationalState: false,
-        };
-      }
-
-      if (monitorStatusIds && monitorStatusIds.length > 0) {
-        (query as Record<string, unknown>)["currentMonitorStatusId"] =
-          new Includes(monitorStatusIds);
-      }
 
       if (monitorTypes && monitorTypes.length > 0) {
         (query as Record<string, unknown>)["monitorType"] = new Includes(
@@ -138,14 +137,9 @@ const DashboardMonitorListComponentElement: FunctionComponent<
         query: query,
         limit: maxRows,
         skip: 0,
+        // With disableActiveMonitoring, so a monitor that is off says so.
         select: widgetSort.withSortSelect({
-          _id: true,
-          name: true,
-          monitorType: true,
-          currentMonitorStatus: {
-            name: true,
-            color: true,
-          },
+          ...MONITOR_LIST_WIDGET_SELECT,
         } as JSONObject) as Select<Monitor>,
         // The viewer's pick, else the widget's own sort, else by name.
         sort: widgetSort.modelSort as Sort<Monitor>,
@@ -190,10 +184,8 @@ const DashboardMonitorListComponentElement: FunctionComponent<
     (monitor: Monitor): HoneycombTile => {
       const monitorId: string = (monitor._id as string) || "";
       const name: string = (monitor.name as string) || "Unnamed";
-      const statusName: string =
-        (monitor.currentMonitorStatus?.name as string) || "Unknown";
-      const statusColor: Color | undefined = monitor.currentMonitorStatus
-        ?.color as Color | undefined;
+      // Disabled, in gray, when the monitor's monitoring is off.
+      const status: MonitorListRowStatus = getMonitorListRowStatus(monitor);
       const monitorType: string = (monitor.monitorType as string) || "—";
 
       const detailRoute: Route | undefined = monitorId
@@ -205,8 +197,9 @@ const DashboardMonitorListComponentElement: FunctionComponent<
 
       return {
         id: monitorId || name,
-        status: statusName,
-        color: statusColor ? statusColor.toString() : "#9ca3af",
+        // The honeycomb looks the status up in the reader's language.
+        status: status.text,
+        color: status.color ? status.color.toString() : "#9ca3af",
         route: detailRoute,
         tooltip: {
           title: name,
@@ -219,11 +212,21 @@ const DashboardMonitorListComponentElement: FunctionComponent<
   const rows: Array<ReactElement> = monitors.map(
     (monitor: Monitor): ReactElement => {
       const monitorId: string = (monitor._id as string) || "";
-      const statusName: string =
-        (monitor.currentMonitorStatus?.name as string) || "Unknown";
-      const statusColor: Color | undefined = monitor.currentMonitorStatus
-        ?.color as Color | undefined;
+      /*
+       * A monitor whose monitoring is off is not checked, so the status it
+       * holds is only what its last check saw: the row says Disabled, in
+       * gray and in the reader's language, as the Monitors table does. Any
+       * other row says its status's own name, as stored.
+       */
+      const status: MonitorListRowStatus = getMonitorListRowStatus(monitor);
+      const statusName: string = status.isMonitoringOff
+        ? (translator.translateText(status.text) as string)
+        : status.text;
+      const statusColor: Color | null = status.color;
       const monitorType: string = (monitor.monitorType as string) || "—";
+      const name: string =
+        (monitor.name as string) ||
+        (translator.translateText("Unnamed") as string);
 
       const detailRoute: Route = RouteUtil.populateRouteParams(
         RouteMap[PageMap.MONITOR_VIEW] as Route,
@@ -235,19 +238,22 @@ const DashboardMonitorListComponentElement: FunctionComponent<
           key={monitorId}
           className="hover:bg-gray-50/50 transition-colors duration-100 group"
         >
-          <td className="px-3 py-2 text-xs text-gray-700 truncate">
+          <ResourceListNameCell
+            name={name}
+            className="px-3 py-2 text-xs text-gray-700 truncate"
+          >
             <AppLink
               to={detailRoute}
               className="hover:underline text-gray-700 group-hover:text-blue-600"
             >
-              {(monitor.name as string) ||
-                (translator.translateText("Unnamed") as string)}
+              {name}
             </AppLink>
-          </td>
+          </ResourceListNameCell>
           <td className="px-3 py-2">
             <span
               className="inline-flex items-center gap-1.5 text-xs font-medium"
               style={{ fontSize: "10px" }}
+              data-testid="monitor-list-status"
             >
               <span
                 className="inline-block w-2 h-2 rounded-full"

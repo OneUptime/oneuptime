@@ -63,6 +63,7 @@ import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
 import { Client } from "openid-client";
 import SsoProviderType from "Common/Types/SSO/SsoProviderType";
+import { SignInMethod } from "Common/Types/UserSession/SessionSignIn";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -396,6 +397,8 @@ const handleOidcCallback: HandleOidcCallbackFunction = async (
         isEnabled: true,
       },
       select: {
+        // The audit log's sign-in entry names the provider (SessionSignIn).
+        name: true,
         discoveryURL: true,
         issuerURL: true,
         clientId: true,
@@ -693,6 +696,12 @@ const handleOidcCallback: HandleOidcCallbackFunction = async (
         userAgent: headerValueToString(req.headers["user-agent"]),
         ...extractDeviceInfo(req),
         additionalInfo: { projectId: projectId.toString() },
+        requestOrigin: RequestOriginUtil.fromRequest(req),
+        signIn: {
+          method: SignInMethod.OpenIdConnect,
+          ssoProviderName: projectOidc.name,
+          ssoProjectId: projectId,
+        },
       });
 
     if (isMobileRequest) {

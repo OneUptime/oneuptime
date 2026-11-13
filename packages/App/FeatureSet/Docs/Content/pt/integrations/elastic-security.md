@@ -53,8 +53,8 @@ Clique em **Testar estas configurações** em **Testar antes de salvar**. O test
 
 | Configuração | O que informar |
 | --- | --- |
-| **Kibana URL** | O endereço de onde o Kibana é servido, por exemplo `https://kibana.example.com` ou `https://<deployment>.kb.<region>.cloud.es.io`. Sem caminho: nem `/app/security`, nem `/api`, nem a parte `/s/<space>`. |
-| **Kibana space** | O ID do espaço, não o nome dele: letras, dígitos, hifens e sublinhados. Deixe vazio para o espaço padrão. |
+| **URL do Kibana** | O endereço de onde o Kibana é servido, por exemplo `https://kibana.example.com` ou `https://<deployment>.kb.<region>.cloud.es.io`. Sem caminho: nem `/app/security`, nem `/api`, nem a parte `/s/<space>`. |
+| **Espaço do Kibana** | O ID do espaço, não o nome dele: letras, dígitos, hifens e sublinhados. Deixe vazio para o espaço padrão. |
 | **Chave de API** | O valor **Base64** da chave, sozinho: o OneUptime adiciona o esquema `ApiKey` por conta própria. Ele é criptografado, nunca devolvido pela API e nunca mostrado de novo. Substitua-o com **Atualizar credenciais** na conexão. |
 
 A etapa **Consulta periódica** também tem uma **Descrição** opcional, o **Intervalo de consulta (minutos)**, um número inteiro de `1` a `1440` que começa em `5`, e **Habilitado**, que começa ativado.
@@ -115,7 +115,7 @@ Quando uma execução não consegue passar do cursor salvo de jeito nenhum, o On
 
 1. **Reduzir.** A consulta seguinte lê uma janela com a metade do tamanho, a partir do mesmo ponto de partida, e continua dividindo pela metade até que uma janela seja lida por inteiro, até um minuto. O aviso da execução diz isso: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Voltar a crescer.** Depois que uma janela é lida por inteiro, a seguinte volta a ter o dobro do tamanho, até 24 horas.
-3. **Passar de um único minuto.** Se até um minuto contém mais do que uma consulta consegue ler, a consulta passa dele, para que os alertas mais novos continuem chegando. A execução continua **Parcial**, e **Último erro** mostra `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importe esse minuto com **Import this time range** para recuperar o que uma execução consegue ler.
+3. **Passar de um único minuto.** Se até um minuto contém mais do que uma consulta consegue ler, a consulta passa dele, para que os alertas mais novos continuem chegando. A execução continua **Parcial**, e **Último erro** mostra `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importe esse minuto com **Importar este intervalo de tempo** para recuperar o que uma execução consegue ler.
 
 Uma execução que falha por completo, com um erro do Kibana, mantém o cursor e o tamanho da janela, e a consulta seguinte relê a mesma janela. A única exceção é uma requisição que expirou: o cursor fica, mas a janela seguinte tem a metade do tamanho, porque uma janela pesada demais para ser respondida a tempo expiraria em toda tentativa. Mudar o **Intervalo de consulta (minutos)** não muda nada disso: ele decide com que frequência uma consulta começa, não onde a janela dela começa.
 
@@ -124,9 +124,9 @@ Uma execução que falha por completo, com um erro do Kibana, mantém o cursor e
 Clique em **Diagnóstico** em uma conexão para ver as execuções recentes dela e trabalhar com ela manualmente. Quem pode alterar a conexão pode iniciar essas ações; quem pode vê-la pode ler o histórico.
 
 - **Executar agora** inicia uma consulta na hora, com o cursor de sempre, mesmo quando a conexão não está **Habilitado**.
-- **Preview alerts** lê um intervalo de tempo de até 7 dias e não importa nada.
-- **Import this time range** importa um intervalo de até 7 dias, depois que você confirma, sem mover o cursor. Os alertas já importados são pulados.
-- **Copy diagnostics** em uma execução copia o relatório dela para o suporte. Ele nunca inclui credenciais.
+- **Prévia de alertas** lê um intervalo de tempo de até 7 dias e não importa nada.
+- **Importar este intervalo de tempo** importa um intervalo de até 7 dias, depois que você confirma, sem mover o cursor. Os alertas já importados são pulados.
+- **Copiar diagnóstico** em uma execução copia o relatório dela para o suporte. Ele nunca inclui credenciais.
 
 ## Testar conexão
 
@@ -139,7 +139,7 @@ Clique em **Diagnóstico** em uma conexão para ver as execuções recentes dela
 | **Read detection alerts** | Um alerta criado nas últimas 24 horas pode ser lido. Isso prova os privilégios e o espaço. |
 | **Alerts available to import** | Quantos alertas foram criados nas últimas 24 horas e nos últimos 7 dias, com `+` onde o Elasticsearch contou só uma parte deles. Nenhum em 7 dias é um aviso, não uma falha. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | O lado do próprio OneUptime: um processo pega os jobs da fila Worker, o job de consulta roda a cada minuto e o armazenamento de eventos de segurança responde. |
-| **Scheduled polling** | Para uma conexão salva: a consulta está ativada, nenhuma execução está presa esperando um worker e as consultas rodam no horário. |
+| **Consulta agendada** | Para uma conexão salva: a consulta está ativada, nenhuma execução está presa esperando um worker e as consultas rodam no horário. |
 
 Cada requisição de um teste tem um prazo de 20 segundos. Um teste nunca importa nada nem move o cursor, e cada verificação que falha diz o que mudar.
 
@@ -192,7 +192,7 @@ O **Último erro** da conexão guarda a mensagem de erro completa, com as creden
 :::details Last Error começa com `Elastic Security status request`
 - `Elastic Security status request failed (HTTP ...)`: o Kibana recusou a requisição de status.
   - `HTTP 401`: o Kibana não aceitou a chave de API. Ela não é o valor **Base64**, ou expirou ou foi invalidada. Crie uma nova chave e salve-a com **Atualizar credenciais**.
-  - `HTTP 404`: a **Kibana URL** tem um caminho, ou não é o Kibana.
+  - `HTTP 404`: a **URL do Kibana** tem um caminho, ou não é o Kibana.
   - `HTTP 503`: o Kibana se declara indisponível, normalmente porque não consegue alcançar o Elasticsearch.
   - `HTTP 3xx`: o Kibana redirecionou a requisição, e redirecionamentos são recusados. Use o endereço de onde o Kibana é servido.
 - `Elastic Security status request returned ...`: respondeu algo diferente do Kibana, por exemplo uma página de login ou um proxy.
@@ -202,7 +202,7 @@ O **Último erro** da conexão guarda a mensagem de erro completa, com as creden
 :::details Last Error começa com `Elastic Security alerts search`
 - `Elastic Security alerts search failed (HTTP ...)`: o Kibana recusou a pesquisa de alertas.
   - `HTTP 403`: a chave entra, mas não consegue ler os alertas do espaço. Dê a ela os privilégios de [Antes de começar](#antes-de-começar).
-  - `HTTP 404`: nenhum espaço tem esse ID de **Kibana space**, ou o Elastic Security não está habilitado nele.
+  - `HTTP 404`: nenhum espaço tem esse ID de **Espaço do Kibana**, ou o Elastic Security não está habilitado nele.
   - `HTTP 429` ou `HTTP 5xx`: o Kibana ou o Elasticsearch está limitando requisições ou falhando. A consulta seguinte tenta de novo.
 - `Elastic Security alerts search returned ...`: o Kibana respondeu `200`, mas sem uma página de alertas legível, por exemplo com um erro próprio. A mensagem o cita. Isso é relatado em vez de ser tomado como uma janela vazia, para que o cursor nunca passe de alertas que ninguém leu.
 :::
@@ -217,11 +217,11 @@ Nenhuma consulta terminou para essa conexão. Rode **Testar conexão**: as verif
 
 :::details Uma execução está Partial
 - `Stopped after collecting 10000 alerts; the window holds more`: a janela continha mais do que os 10.000 alertas que uma execução lê. Nada se perde: a consulta seguinte começa depois do último alerta lido. Uma conexão que continua **Parcial** consulta após consulta está se atualizando de um atraso, e os seus **Última consulta** e **Último evento importado** continuam avançando. Se ela nunca se atualiza, o espaço cria mais de 10.000 alertas por intervalo de consulta: encurte o **Intervalo de consulta (minutos)**.
-- `More records were created in the one minute from ... than one poll can read`: a consulta passou desse minuto. Importe-o com **Import this time range** em **Diagnóstico**. Uma importação lê tanto quanto uma consulta.
+- `More records were created in the one minute from ... than one poll can read`: a consulta passou desse minuto. Importe-o com **Importar este intervalo de tempo** em **Diagnóstico**. Uma importação lê tanto quanto uma consulta.
 :::
 
 :::details O teste passa, mas nada é importado
-Leia **Alerts available to import** no relatório do teste. `0` nos últimos 7 dias significa que nenhuma regra criou um alerta nesse espaço: verifique se há regras habilitadas ali, e se **Kibana space** é o espaço em que elas rodam. Se existem alertas, amplie o intervalo de tempo no explorador de eventos de segurança: os alertas aparecem no horário da sua atividade, que pode ser bem anterior à criação deles.
+Leia **Alerts available to import** no relatório do teste. `0` nos últimos 7 dias significa que nenhuma regra criou um alerta nesse espaço: verifique se há regras habilitadas ali, e se **Espaço do Kibana** é o espaço em que elas rodam. Se existem alertas, amplie o intervalo de tempo no explorador de eventos de segurança: os alertas aparecem no horário da sua atividade, que pode ser bem anterior à criação deles.
 :::
 
 ## O que você ganha

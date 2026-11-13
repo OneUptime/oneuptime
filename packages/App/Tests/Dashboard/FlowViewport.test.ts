@@ -2709,19 +2709,47 @@ describe("the Service Map these properties describe", () => {
   });
 
   test("follows keyboard focus 24 px inside the canvas, from the focused box to the canvas's on each axis, through React Flow's panBy", () => {
-    const guard: string = readCode("FlowViewportGuard.tsx");
-    expect(guard).toMatch(/FOCUS_REVEAL_PADDING_PX: number = 24;/);
-    expect(guard).toMatch(
+    const focus: string = readCode("FlowKeyboardFocus.tsx");
+    expect(focus).toMatch(/FOCUS_REVEAL_PADDING_PX: number = 24;/);
+    expect(focus).toMatch(
       /panDeltaToReveal\(\s*box\.left,\s*box\.right,\s*view\.left,\s*view\.right,\s*FOCUS_REVEAL_PADDING_PX,?\s*\)/,
     );
-    expect(guard).toMatch(
+    expect(focus).toMatch(
       /panDeltaToReveal\(\s*box\.top,\s*box\.bottom,\s*view\.top,\s*view\.bottom,\s*FOCUS_REVEAL_PADDING_PX,?\s*\)/,
     );
     /*
      * React Flow's panBy runs d3-zoom's constrain on the pan, as a drag
      * does, so what is proved above for the extent holds for these pans.
      */
-    expect(guard).toMatch(/store\.getState\(\)\.panBy\(\{ x, y \}\)/);
+    expect(focus).toMatch(/store\.getState\(\)\.panBy\(\{ x, y \}\)/);
+  });
+
+  /*
+   * One copy of the focus following, which the Service Map's guard and the
+   * lineage drawings both use (#6779): a fix to it reaches both, and neither
+   * grows a copy of its own.
+   */
+  test("the map's guard and the lineage drawing follow keyboard focus with the one shared piece", () => {
+    const guard: string = readCode("FlowViewportGuard.tsx");
+    expect(guard).toMatch(/useFlowKeyboardFocus\(/);
+    expect(guard).toMatch(/props\.autoFrame\.current = false;/);
+    expect(guard).not.toMatch(/addEventListener\(\s*"focusin"/);
+    expect(guard).not.toMatch(/panDeltaToReveal/);
+
+    const lineage: string = fs
+      .readFileSync(
+        path.join(TOPOLOGY_DIR, "..", "DataObservability", "LineageGraph.tsx"),
+        "utf8",
+      )
+      .replace(/\/\*[\s\S]*?\*\//g, " ")
+      .replace(/\/\/.*$/gm, " ");
+    expect(lineage).toMatch(
+      /import FlowKeyboardFocus from "\.\.\/Topology\/FlowKeyboardFocus";/,
+    );
+    expect(lineage).toMatch(
+      /<FlowKeyboardFocus onViewMoved=\{onFocusMovedView\} \/>/,
+    );
+    expect(lineage).not.toMatch(/addEventListener\(\s*"focusin"/);
   });
 
   test("keeps the out-of-view notice 16 px inside the canvas, placed from the canvas's box and the window's height", () => {

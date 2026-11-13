@@ -52,6 +52,8 @@ Scrivi il suo indirizzo in **E-mail**. Se nessun account OneUptime lo usa ancora
 ### Inviare l'invito
 
 Fai clic su **Invita**. OneUptime invia l'invito per email e apre la pagina della persona. Compare come **Invito inviato** finché non accetta.
+
+Su un server self-hosted che non può ancora inviare email, non parte nessuna email e la persona compare come **Invitato**. Un amministratore principale vede prima **Invia il link di invito**: copia il link, invialo tu stesso alla persona, poi fai clic su **Fatto**. Chiunque altro chiede all'amministratore del server di [configurare l'email](/docs/emails/smtp#aprire-il-modulo).
 :::
 
 > [!TIP]
@@ -76,7 +78,7 @@ Accettando entra subito nel progetto, con le autorizzazioni del suo team e la co
 | --- | --- |
 | **Utente** | Il suo nome e il suo indirizzo email. |
 | **Team** | Ogni team del progetto di cui fa parte, o in cui è invitata. |
-| **Stato** | **Membro** una volta entrata, con il numero degli inviti ad altri team che non ha ancora accettato. **Invito inviato** fino ad allora. |
+| **Stato** | **Membro** una volta entrata, con il numero degli inviti ad altri team che non ha ancora accettato. **Invito inviato** fino ad allora. Su un server self-hosted che non può ancora inviare email, invece **Invitato**: l'invito viene creato, ma non parte nessuna email. |
 
 Filtra l'elenco per **Utente**, **Stato** o **Team**. Fai clic su una riga per aprire la pagina della persona:
 
@@ -134,6 +136,8 @@ A un indirizzo si possono inviare 10 inviti all'ora, a progetti e pagine di stat
 
 :::details L'email di invito non è arrivata, o il suo link è scaduto
 L'invito non dipende dall'email. Chiedi alla persona di registrarsi con l'indirizzo invitato: OneUptime invia a quell'indirizzo un nuovo link per completare la creazione dell'account. Chi ha già un account accede e trova l'invito ad aspettarlo.
+
+Su un server self-hosted che non può ancora inviare email, nemmeno la registrazione può inviare un nuovo link via email: chiede invece alla persona di farsi dare il suo link di invito. Quando l'amministratore del server avrà [configurato l'email](/docs/emails/smtp#aprire-il-modulo), la registrazione funziona come sopra. Fino ad allora, un amministratore principale può rimuovere la persona dal progetto, invitarla di nuovo e inviarle il nuovo link di invito, che funziona una volta, solo per quell'indirizzo, per 7 giorni.
 :::
 
 :::details Invita utente dice che gli utenti sono gestiti da SCIM Push Groups

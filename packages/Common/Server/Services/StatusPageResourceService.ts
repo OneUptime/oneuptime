@@ -1,3 +1,5 @@
+import ProjectMilestoneService from "./ProjectMilestoneService";
+import ActivationMilestone from "../../Types/Analytics/ActivationMilestone";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
@@ -334,7 +336,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (!statusPageId) {
       throw new BadDataException(
-        "Status Page Resource statusPageId is required",
+        "Pick the status page to add this resource to.",
       );
     }
 
@@ -348,7 +350,7 @@ export class Service extends ProjectReferencesService<Model> {
       createBy.props.tenantId || createBy.data.projectId;
 
     if (!projectId) {
-      throw new BadDataException("Status Page Resource projectId is required");
+      throw new BadDataException("The status page resource has no project.");
     }
 
     const target: StatusPageResourceTarget = this.getResourceMonitorTarget(
@@ -420,6 +422,18 @@ export class Service extends ProjectReferencesService<Model> {
       });
     }
 
+    /*
+     * The project's first status page that shows a monitor (issue #6830): a
+     * monitor, or a monitor group, put on a page. A resource that shows
+     * something else does not count.
+     */
+    if (createdItem.monitorId || createdItem.monitorGroupId) {
+      ProjectMilestoneService.reachInBackground({
+        projectId: createdItem.projectId,
+        milestone: ActivationMilestone.FirstStatusPageMonitorAdded,
+      });
+    }
+
     return createdItem;
   }
 
@@ -429,7 +443,7 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnDelete<Model>> {
     if (!deleteBy.query._id && !deleteBy.props.isRoot) {
       throw new BadDataException(
-        "_id should be present when deleting status page resource. Please try the delete with objectId",
+        "Name the status page resource to delete by its ID.",
       );
     }
 

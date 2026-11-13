@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectCardsFit } from "../SuiteHelpers/CardBodyFit";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
@@ -211,6 +212,134 @@ async function stripCells(page: Page): Promise<Array<StripCell>> {
     });
 }
 
+// Where the page is: its path, query and hash.
+async function whereIs(
+  page: Page,
+): Promise<{ pathname: string; search: string; hash: string }> {
+  const url: URL = new URL(page.url());
+
+  return { pathname: url.pathname, search: url.search, hash: url.hash };
+}
+
+/*
+ * The query of the address a link opened, read the way the list reads it:
+ * each parameter's value decoded and parsed. Nothing, when there is none.
+ */
+function listStateIn(search: string): Record<string, unknown> | null {
+  const params: URLSearchParams = new URLSearchParams(search);
+  const names: Array<string> = Array.from(params.keys());
+
+  if (names.length === 0) {
+    return null;
+  }
+
+  return Object.fromEntries(
+    names.map((name: string): [string, unknown] => {
+      return [name, JSON.parse(params.get(name) || "null")];
+    }),
+  );
+}
+
+/*
+ * Home is one page with no side menu, and keeps no lists of its own
+ * (#6857): each number and each View all opens the list in the product it
+ * belongs to, and the addresses of Home's old copies forward there.
+ */
+interface ProductList {
+  stat: string;
+  group: string;
+  path: string;
+  page: string;
+  /*
+   * The list's own filters the link sets, decoded, when that list holds
+   * more than Home counted: the SLOs list's Status and Enabled chips.
+   */
+  state: Record<string, unknown> | null;
+}
+
+// The SLOs list's chips that show the SLOs at risk, as its bar reads them.
+const SLOS_AT_RISK_STATE: Record<string, unknown> = {
+  "slos-table-facets": {
+    facetSelections: {
+      sloEnabled: ["true"],
+      sloStatus: ["At Risk", "Budget Exhausted"],
+    },
+    facetOperators: { sloEnabled: "is", sloStatus: "is" },
+  },
+};
+
+const PRODUCT_LISTS: Array<ProductList> = [
+  {
+    stat: "active-incidents",
+    group: "incidents",
+    path: `/dashboard/${PROJECT_ID}/incidents/unresolved`,
+    page: "UNRESOLVED_INCIDENTS",
+    state: null,
+  },
+  {
+    stat: "active-alerts",
+    group: "alerts",
+    path: `/dashboard/${PROJECT_ID}/alerts/unresolved`,
+    page: "UNRESOLVED_ALERTS",
+    state: null,
+  },
+  {
+    stat: "not-operational-monitors",
+    group: "monitors",
+    path: `/dashboard/${PROJECT_ID}/monitors/inoperational`,
+    page: "MONITORS_INOPERATIONAL",
+    state: null,
+  },
+  {
+    stat: "ongoing-maintenance",
+    group: "maintenance",
+    path: `/dashboard/${PROJECT_ID}/scheduled-maintenance-events/ongoing`,
+    page: "ONGOING_SCHEDULED_MAINTENANCE_EVENTS",
+    state: null,
+  },
+  {
+    stat: "slos-needing-attention",
+    group: "slos",
+    path: `/dashboard/${PROJECT_ID}/slos`,
+    page: "SLOS",
+    state: SLOS_AT_RISK_STATE,
+  },
+];
+
+// Home's old lists: the address under Home, and where it goes now.
+const OLD_HOME_LISTS: Array<{ old: string; path: string; page: string }> = [
+  {
+    old: "active-incidents",
+    path: `/dashboard/${PROJECT_ID}/incidents/unresolved`,
+    page: "UNRESOLVED_INCIDENTS",
+  },
+  {
+    old: "active-incident-episodes",
+    path: `/dashboard/${PROJECT_ID}/incidents/episodes/unresolved`,
+    page: "UNRESOLVED_INCIDENT_EPISODES",
+  },
+  {
+    old: "active-alerts",
+    path: `/dashboard/${PROJECT_ID}/alerts/unresolved`,
+    page: "UNRESOLVED_ALERTS",
+  },
+  {
+    old: "active-episodes",
+    path: `/dashboard/${PROJECT_ID}/alerts/episodes/unresolved`,
+    page: "UNRESOLVED_ALERT_EPISODES",
+  },
+  {
+    old: "monitors-inoperational",
+    path: `/dashboard/${PROJECT_ID}/monitors/inoperational`,
+    page: "MONITORS_INOPERATIONAL",
+  },
+  {
+    old: "scheduled-maintenance-ongoing",
+    path: `/dashboard/${PROJECT_ID}/scheduled-maintenance-events/ongoing`,
+    page: "ONGOING_SCHEDULED_MAINTENANCE_EVENTS",
+  },
+];
+
 async function attentionGroups(page: Page): Promise<Array<string>> {
   return page
     .locator('[data-testid^="home-attention-group-"]')
@@ -321,45 +450,124 @@ test.describe("a busy project", () => {
     );
   });
 
-  test("the strip's cells open Home's own lists, which have the side menu the overview leaves out", async ({
+  test("each number opens its product's own list, and Back comes home to one page with no side menu", async ({
     page,
   }: {
     page: Page;
   }) => {
     await openReady(page);
 
-    // The overview draws every list itself, so its cards take the full width.
+    // One page: no side menu, so no menu sections and no Overview link.
     const menuSections: Locator = page.locator("h6");
     await expect(menuSections).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Overview" })).toHaveCount(0);
 
-    await stat(page, "active-incidents").click();
+    for (const list of PRODUCT_LISTS) {
+      await stat(page, list.stat).click();
 
-    await expect(page).toHaveURL(
-      new RegExp(`/dashboard/${PROJECT_ID}/home/active-incidents$`),
-    );
-    await expect(page.getByTestId("stub-page")).toHaveAttribute(
-      "data-page",
-      "HOME_ACTIVE_INCIDENTS",
-    );
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-      "Active Incidents",
-    );
-    await expect(menuSections).toHaveText([
-      "Home",
-      "Incidents",
-      "Alerts",
-      "Monitors",
-      "Scheduled Events",
-    ]);
+      await expect(page.getByTestId("stub-page")).toHaveAttribute(
+        "data-page",
+        list.page,
+      );
 
-    // Overview leads back, and the overview is again without the menu.
-    await page.getByRole("link", { name: "Overview" }).click();
-    await expect(page).toHaveURL(
-      new RegExp(`/dashboard/${PROJECT_ID}/home/?$`),
-    );
-    await expect(page.getByTestId("home-project-health")).toBeVisible();
-    await expect(menuSections).toHaveCount(0);
+      const where: { pathname: string; search: string; hash: string } =
+        await whereIs(page);
+
+      expect({
+        pathname: where.pathname,
+        state: listStateIn(where.search),
+        hash: where.hash,
+      }).toEqual({ pathname: list.path, state: list.state, hash: "" });
+
+      await page.goBack();
+      await expect(page.getByTestId("home-overview-stats")).toBeVisible();
+      expect((await whereIs(page)).pathname).toBe(HOME);
+      await expect(menuSections).toHaveCount(0);
+    }
+  });
+
+  test("each View all in Needs attention opens the same list as its number", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page);
+
+    for (const list of PRODUCT_LISTS) {
+      await page
+        .getByTestId(`home-attention-group-${list.group}-view-all`)
+        .click();
+
+      await expect(page.getByTestId("stub-page")).toHaveAttribute(
+        "data-page",
+        list.page,
+      );
+
+      const where: { pathname: string; search: string; hash: string } =
+        await whereIs(page);
+
+      expect({
+        pathname: where.pathname,
+        state: listStateIn(where.search),
+      }).toEqual({ pathname: list.path, state: list.state });
+
+      await page.goBack();
+      await expect(page.getByTestId("home-attention-total")).toBeVisible();
+    }
+  });
+
+  test("the addresses of Home's old lists forward to the products' own, keeping the query and the hash", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page);
+
+    for (const [index, list] of OLD_HOME_LISTS.entries()) {
+      await page.goto(`${HOME}${list.old}?page=2#top`);
+
+      await expect(page.getByTestId("stub-page")).toHaveAttribute(
+        "data-page",
+        list.page,
+        { timeout: 60000 },
+      );
+      expect(await whereIs(page)).toEqual({
+        pathname: list.path,
+        search: "?page=2",
+        hash: "#top",
+      });
+      // Home's frame never drew on the way.
+      await expect(page.getByTestId("home-overview-stats")).toHaveCount(0);
+
+      if (index === 0) {
+        // The old address is replaced: Back skips it, and comes home.
+        await page.goBack();
+        await expect(page.getByTestId("home-overview-stats")).toBeVisible({
+          timeout: 60000,
+        });
+        expect((await whereIs(page)).pathname).toBe(HOME);
+      }
+    }
+  });
+
+  test("Home without its slash is Home, and an address under Home that never was a page lands on Home", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.clock.setFixedTime(NOW);
+    await page.goto(HOME.replace(/\/$/, ""));
+    await expect(page.getByTestId("home-overview-stats")).toBeVisible({
+      timeout: 60000,
+    });
+    expect((await whereIs(page)).pathname).toBe(HOME.replace(/\/$/, ""));
+
+    await page.goto(`${HOME}not-a-page`);
+    await expect(page.getByTestId("home-overview-stats")).toBeVisible({
+      timeout: 60000,
+    });
+    expect((await whereIs(page)).pathname).toBe(HOME);
+    await expect(page.getByTestId("stub-page")).toHaveCount(0);
   });
 
   test("lists what the project is made of, and what is coming up", async ({
@@ -454,6 +662,59 @@ test.describe("a busy project", () => {
  * ---------------------------------------------------------------------------
  */
 
+/*
+ * What a card holds lines up with its title (#6956). Explore's strip of
+ * categories scrolls sideways on a phone, so it clips what reaches past its
+ * edges: it reaches 4px past the card's padding all round and pads that
+ * back, so a focused tab's 2px ring shows whole - its top was cut - while
+ * the tabs still start under the title. Home's row of cards runs its lists
+ * to the cards' edges (HOME_ROW_CARD_BODY_CLASS_NAME), each row padded back.
+ */
+test.describe("Home's cards line up with their titles", () => {
+  test("Explore and the row under the health card, on a laptop and a phone; a tab's focus ring has room", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page);
+
+    await expectCardsFit(page, [
+      page.getByTestId("home-explore-products"),
+      page.getByTestId("home-needs-attention"),
+    ]);
+
+    for (const size of [
+      { width: 1280, height: 900 },
+      { width: 390, height: 844 },
+    ]) {
+      await page.setViewportSize(size);
+
+      // The room the strip leaves around its first tab, inside what it clips.
+      const room: { top: number; bottom: number; start: number } = await page
+        .getByRole("tablist", { name: "Product categories" })
+        .evaluate(
+          (list: Element): { top: number; bottom: number; start: number } => {
+            const strip: DOMRect = list.getBoundingClientRect();
+            const tab: DOMRect = list
+              .querySelector('[role="tab"]')!
+              .getBoundingClientRect();
+
+            return {
+              top: tab.top - strip.top,
+              bottom: strip.bottom - tab.bottom,
+              start: tab.left - strip.left,
+            };
+          },
+        );
+
+      // focus-visible:ring-2: two pixels on every side of a tab.
+      expect(room.top).toBeGreaterThanOrEqual(2);
+      expect(room.bottom).toBeGreaterThanOrEqual(2);
+      expect(room.start).toBeGreaterThanOrEqual(2);
+    }
+  });
+});
+
 test.describe("search and the create actions", () => {
   test("the search box opens the command palette, by mouse and by keyboard", async ({
     page,
@@ -538,6 +799,31 @@ test.describe("the verdicts", () => {
     await expect(page.getByTestId("home-upcoming-row")).toHaveCount(1);
 
     await screenshot(page, "home-healthy");
+  });
+
+  test("healthy: with no SLO at risk, the SLO number opens the whole SLOs list", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, "scenario=healthy");
+
+    await expect(stat(page, "slos-needing-attention")).toHaveText("0");
+    await expect(statStatus(page, "slos-needing-attention")).toHaveText(
+      "Budgets healthy",
+    );
+
+    await stat(page, "slos-needing-attention").click();
+
+    await expect(page.getByTestId("stub-page")).toHaveAttribute(
+      "data-page",
+      "SLOS",
+    );
+    expect(await whereIs(page)).toEqual({
+      pathname: `/dashboard/${PROJECT_ID}/slos`,
+      search: "",
+      hash: "",
+    });
   });
 
   test("needs attention: alerts, a degraded monitor and an SLO at risk", async ({
@@ -650,17 +936,18 @@ test.describe("the verdicts", () => {
  * someone - on a phone as on a desktop, and in the reader's language.
  */
 
+// The four steps a project that skipped the question gets, in How OneUptime works' order.
 const NEWCOMER_STEPS: Array<string> = [
-  "create-monitor",
-  "create-status-page",
-  "invite-team",
-  "create-on-call-policy",
+  "monitor",
+  "on_call",
+  "status_page",
+  "team",
 ];
 
 const ON_CALL_STEP_TITLE: string = "Set up an on-call policy";
 
 const ON_CALL_STEP_SENTENCE: string =
-  "Page the right person when an incident or alert opens. Until then, the project's owners get an email.";
+  "Page the right person when an incident or alert opens. Done when an on-call rule runs a policy that reaches someone. Until then, the project's owners get an email.";
 
 async function checklistSteps(page: Page): Promise<Array<string>> {
   return page
@@ -692,9 +979,7 @@ test.describe("a newcomer's first steps", () => {
       await expect(page.getByTestId("getting-started")).toBeVisible();
       expect(await checklistSteps(page)).toEqual(NEWCOMER_STEPS);
 
-      const onCall: Locator = page.getByTestId(
-        "getting-started-task-create-on-call-policy",
-      );
+      const onCall: Locator = page.getByTestId("getting-started-task-on_call");
 
       await expect(onCall).toContainText(ON_CALL_STEP_TITLE);
       await expect(onCall).toContainText(ON_CALL_STEP_SENTENCE);
@@ -738,9 +1023,7 @@ test.describe("a newcomer's first steps", () => {
   }) => {
     await openReady(page, "scenario=new&lang=de");
 
-    const onCall: Locator = page.getByTestId(
-      "getting-started-task-create-on-call-policy",
-    );
+    const onCall: Locator = page.getByTestId("getting-started-task-on_call");
 
     await expect(onCall).toContainText("Bereitschaftsrichtlinie einrichten");
     await expect(onCall).toContainText(
@@ -758,9 +1041,7 @@ test.describe("a newcomer's first steps", () => {
   }) => {
     await openReady(page, "scenario=new&theme=dark");
 
-    const onCall: Locator = page.getByTestId(
-      "getting-started-task-create-on-call-policy",
-    );
+    const onCall: Locator = page.getByTestId("getting-started-task-on_call");
 
     await expect(onCall).toContainText(ON_CALL_STEP_SENTENCE);
 
@@ -781,6 +1062,333 @@ test.describe("a newcomer's first steps", () => {
 
     await screenshot(page, "home-newcomer-dark");
   });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * What do you want to do first? (issue #6803)
+ * ---------------------------------------------------------------------------
+ *
+ * A new project's owner is asked once what they came to do; the checklist
+ * that follows holds those goals' steps, ticks on outcomes, marks the next
+ * one, says what the plan cannot do before the click, and hides for this
+ * person alone. The fixture builds every answer with the real rules.
+ */
+
+async function welcomeRequests(
+  page: Page,
+): Promise<Array<{ method: string; path: string; data: unknown }>> {
+  return page.evaluate(
+    (): Array<{ method: string; path: string; data: unknown }> => {
+      return JSON.parse(
+        JSON.stringify(
+          (
+            window as unknown as {
+              __homeOverviewFixture: {
+                welcomeRequests: Array<{
+                  method: string;
+                  path: string;
+                  data: unknown;
+                }>;
+              };
+            }
+          ).__homeOverviewFixture.welcomeRequests,
+        ),
+      );
+    },
+  );
+}
+
+test.describe("what do you want to do first?", () => {
+  for (const width of [1280, 390]) {
+    test(`at ${width}px: the question first, then the checklist its goals bring`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({
+        width: width,
+        height: width === 390 ? 844 : 900,
+      });
+      await openReady(page, "scenario=new&welcome=ask");
+
+      const question: Locator = page.getByTestId("welcome-question");
+
+      await expect(question).toBeVisible();
+      await expect(question).toContainText("What do you want to do first?");
+      await expect(question.getByRole("checkbox")).toHaveCount(7);
+      await expect(page.getByTestId("getting-started")).toHaveCount(0);
+      await expect(
+        page.getByTestId("welcome-question-continue"),
+      ).toBeDisabled();
+      await expectNoSidewaysScroll(page);
+
+      await screenshot(page, `home-welcome-question-${width}`);
+
+      await page
+        .getByTestId("welcome-goal-uptime")
+        .getByRole("checkbox")
+        .check();
+      await page
+        .getByTestId("welcome-goal-status_page")
+        .getByRole("checkbox")
+        .check();
+      await page.getByTestId("welcome-question-continue").click();
+
+      await expect(page.getByTestId("getting-started")).toBeVisible();
+      expect(await checklistSteps(page)).toEqual([
+        "monitor",
+        "on_call",
+        "status_page",
+      ]);
+      await expect(page.getByTestId("getting-started-next")).toHaveCount(1);
+      await expect(
+        page.getByTestId("getting-started-task-monitor"),
+      ).toHaveAttribute("data-next", "true");
+      await expect(
+        page.getByTestId("welcome-checklist-goal-uptime"),
+      ).toContainText("Know when my website or API is down");
+
+      const goals: Array<{ method: string; path: string; data: unknown }> = (
+        await welcomeRequests(page)
+      ).filter((request: { path: string }): boolean => {
+        return request.path.endsWith("/goals");
+      });
+
+      expect(goals).toEqual([
+        {
+          method: "POST",
+          path: "/api/welcome-checklist/goals",
+          data: { goals: ["uptime", "status_page"] },
+        },
+      ]);
+      await expectNoSidewaysScroll(page);
+
+      await screenshot(page, `home-welcome-goals-${width}`);
+    });
+  }
+
+  test("Skip gives the four steps, and Change asks again with the answer ticked", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, "scenario=new&welcome=ask");
+
+    await page.getByTestId("welcome-question-skip").click();
+
+    await expect(page.getByTestId("getting-started")).toBeVisible();
+    expect(await checklistSteps(page)).toEqual(NEWCOMER_STEPS);
+
+    await page.getByTestId("welcome-checklist-change-goals").click();
+
+    await expect(page.getByTestId("welcome-question")).toBeVisible();
+    await expect(page.getByTestId("welcome-question-continue")).toHaveText(
+      "Save",
+    );
+    await page.getByTestId("welcome-question-cancel").click();
+    await expect(page.getByTestId("getting-started")).toBeVisible();
+  });
+
+  test("a step ticks on its outcome, and the next one is marked", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, "scenario=new&welcome=half");
+
+    const monitor: Locator = page.getByTestId("getting-started-task-monitor");
+
+    await expect(monitor).toHaveAttribute("data-done", "true");
+    await expect(monitor).toContainText("Done");
+    await expect(
+      page.getByTestId("getting-started-task-on_call"),
+    ).toHaveAttribute("data-next", "true");
+
+    await screenshot(page, "home-welcome-half");
+  });
+
+  test("on the Free plan, the team step says it needs Growth before the click", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, "scenario=new&plan=free");
+
+    await expect(
+      page.getByTestId("getting-started-task-team-needs-plan"),
+    ).toHaveText("Needs the Growth plan");
+    await expect(page.getByTestId("getting-started-task-team")).toContainText(
+      "The Free plan has one person.",
+    );
+
+    await screenshot(page, "home-welcome-free-plan");
+  });
+
+  test("Hide is this person's own: a line stays, with Show it and How OneUptime works", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, "scenario=new");
+
+    await page.getByTestId("getting-started-dismiss").click();
+
+    await expect(page.getByTestId("getting-started")).toHaveCount(0);
+    await expect(page.getByTestId("welcome-checklist-hidden")).toContainText(
+      "You hid the Welcome checklist.",
+    );
+
+    await page.getByTestId("welcome-checklist-how-it-works").click();
+    await expect(page.getByTestId("how-oneuptime-works")).toBeVisible();
+
+    await screenshot(page, "home-welcome-hidden");
+
+    await page.getByTestId("welcome-checklist-show").click();
+    await expect(page.getByTestId("getting-started")).toBeVisible();
+
+    expect(
+      (await welcomeRequests(page)).map(
+        (request: { method: string; path: string }): string => {
+          return `${request.method} ${request.path}`;
+        },
+      ),
+    ).toEqual([
+      "GET /api/welcome-checklist",
+      "POST /api/welcome-checklist/hide",
+      "POST /api/welcome-checklist/show",
+    ]);
+  });
+
+  test("an invited member sees no checklist and no question", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, "scenario=new&role=viewer&welcome=ask");
+
+    await expect(page.getByTestId("welcome-question")).toHaveCount(0);
+    await expect(page.getByTestId("getting-started")).toHaveCount(0);
+  });
+
+  test("German and dark: the question in German, readable on a dark card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, "scenario=new&welcome=ask&lang=de&theme=dark");
+
+    const question: Locator = page.getByTestId("welcome-question");
+
+    await expect(question).toContainText("Was möchten Sie zuerst tun?");
+    await expect(question).toContainText(
+      "Wissen, wenn meine Website oder API ausfällt",
+    );
+    await expect(question).not.toContainText("What do you want to do first?");
+    await expectNoSidewaysScroll(page);
+
+    await screenshot(page, "home-welcome-question-de-dark");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * An invited member's first steps (#6807)
+ * ---------------------------------------------------------------------------
+ */
+
+test.describe("an invited member's first steps", () => {
+  for (const width of [1280, 390]) {
+    test(`at ${width}px: when they are on call, and that only email reaches them`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({
+        width: width,
+        height: width === 390 ? 844 : 900,
+      });
+      await openReady(page, "scenario=new&role=viewer");
+
+      const card: Locator = page.getByTestId("member-first-steps");
+
+      await expect(card).toBeVisible();
+      await expect(page.getByText("Your first steps here")).toBeVisible();
+      // The reader's clock: en-US writes 12-hour times.
+      await expect(page.getByTestId("member-first-steps-on_call")).toHaveText(
+        /Your next shift: Tomorrow, 9:00\sAM.*Primary on-call, until 5:00\sPM/,
+      );
+      await expect(page.getByTestId("member-first-steps-reach")).toContainText(
+        "Add a faster way to reach you",
+      );
+      await expect(
+        page.getByTestId("member-first-steps-reach"),
+      ).toHaveAttribute("data-next", "true");
+      await expect(card).not.toContainText("Create your first monitor");
+      await expect(page.getByTestId("getting-started")).toHaveCount(0);
+      await expectNoSidewaysScroll(page);
+      await screenshot(page, `home-member-first-steps-${width}`);
+
+      await page.getByTestId("member-first-steps-mobile_app").click();
+
+      await expect(
+        page.getByTestId("member-first-steps-mobile-app-panel"),
+      ).toBeVisible();
+      await expect(
+        page.getByTestId("member-first-steps-server-url"),
+      ).toHaveText(/^http/);
+      await expectNoSidewaysScroll(page);
+      await screenshot(page, `home-member-first-steps-app-${width}`);
+    });
+  }
+
+  test("Hide keeps it hidden for this person, and Show brings it back", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, "scenario=new&role=viewer");
+
+    await page.getByTestId("member-first-steps-hide").click();
+
+    await expect(page.getByTestId("member-first-steps-hidden")).toContainText(
+      "You hid your first steps.",
+    );
+    await expect(page.getByTestId("member-first-steps")).toHaveCount(0);
+
+    await page.getByTestId("member-first-steps-show").click();
+
+    await expect(page.getByTestId("member-first-steps")).toBeVisible();
+    expect(
+      (await welcomeRequests(page)).map(
+        (request: { method: string; path: string }): string => {
+          return `${request.method} ${request.path}`;
+        },
+      ),
+    ).toEqual([
+      "GET /api/welcome-checklist",
+      "POST /api/welcome-checklist/hide",
+      "POST /api/welcome-checklist/show",
+    ]);
+  });
+
+  for (const [query, name, title] of [
+    ["lang=de&theme=dark", "de-dark", "Ihre ersten Schritte hier"],
+    ["lang=fa", "fa", "نخستین گام‌های شما در اینجا"],
+  ]) {
+    test(`in ${name}: the card in the reader's language`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openReady(page, `scenario=new&role=viewer&${query}`);
+
+      await expect(page.getByTestId("member-first-steps")).toBeVisible();
+      await expect(page.getByText(title as string)).toBeVisible();
+      await expectNoSidewaysScroll(page);
+      await screenshot(page, `home-member-first-steps-${name}`);
+    });
+  }
 });
 
 /*
@@ -1559,5 +2167,180 @@ test.describe("the row under the health card", () => {
 
     expect(background).not.toBe("rgb(255, 255, 255)");
     await screenshot(page, "home-quiet-dark");
+  });
+});
+
+/*
+ * Setup health (#6812): Needs attention ends with Setup while something in
+ * the project's setup needs a look, and its line opens the page that lists
+ * what is misconfigured, worst first, each finding with its fix.
+ */
+test.describe("setup health", () => {
+  const SETUP_HEALTH: string = `/dashboard/${PROJECT_ID}/home/setup-health`;
+
+  async function openSetupHealth(
+    page: Page,
+    query: string = "setup=busy",
+  ): Promise<void> {
+    await page.clock.setFixedTime(NOW);
+    await page.goto(`${SETUP_HEALTH}?${query}`);
+    await expect(page.getByTestId("synthetic-banner")).toBeVisible({
+      timeout: 60000,
+    });
+    await expect(page.getByTestId("setup-health-recheck")).toBeEnabled({
+      timeout: 30000,
+    });
+  }
+
+  test("Needs attention ends with Setup, and its line opens Setup Health, saying it came from Home", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await openReady(page, "scenario=healthy&setup=busy");
+
+    const setup: Locator = page.getByTestId("home-attention-group-setup");
+
+    await expect(setup).toBeVisible();
+    // Nothing is open: the card is the Setup section, never "all clear".
+    await expect(page.getByTestId("home-attention-empty")).toHaveCount(0);
+    await expect(page.getByTestId("home-attention-row-setup")).toHaveText(
+      "9 things in your setup need a look.",
+    );
+    await screenshot(page, "setup-health-home-1280");
+
+    await page.getByTestId("home-attention-row-setup").click();
+
+    await expect(page).toHaveURL(new RegExp(`/home/setup-health\\?from=home$`));
+    await expect(page.getByTestId("setup-health-recheck")).toBeEnabled();
+  });
+
+  test("with nothing to fix, Home says nothing of the setup", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, "scenario=healthy");
+
+    await expect(page.getByTestId("home-attention-empty")).toBeVisible();
+    await expect(page.getByTestId("home-attention-group-setup")).toHaveCount(0);
+  });
+
+  test("at 1280px: the findings by level, worst first, each with its fix, and Dismissed folded", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await openSetupHealth(page);
+
+    const levels: Array<string> = await page
+      .locator(
+        '[data-testid^="setup-health-level-"]:not([data-testid$="-count"])',
+      )
+      .evaluateAll((elements: Array<Element>): Array<string> => {
+        return elements.map((element: Element): string => {
+          return element.getAttribute("data-testid") || "";
+        });
+      });
+
+    expect(levels).toEqual([
+      "setup-health-level-pages_will_not_arrive",
+      "setup-health-level-worth_fixing",
+      "setup-health-level-suggestion",
+    ]);
+
+    const worst: Locator = page.getByTestId(
+      "setup-health-level-pages_will_not_arrive",
+    );
+
+    await expect(worst).toContainText(
+      "Nobody is paged for the alerts of Payments API: only incidents have on-call rules.",
+    );
+    await expect(worst.getByTestId("setup-health-fix").first()).toHaveText(
+      "Set Up Paging",
+    );
+
+    // Five monitors page nobody: three show, two fold.
+    const toggle: Locator = page.getByTestId("setup-health-group-toggle");
+
+    await expect(toggle).toHaveText("Show 2 more");
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+
+    await expect(page.getByTestId("setup-health-dismissed-toggle")).toHaveText(
+      "Show 1",
+    );
+    await screenshot(page, "setup-health-1280");
+
+    await toggle.click();
+    await page.getByTestId("setup-health-dismissed-toggle").click();
+
+    await expect(page.getByTestId("setup-health-dismissed-by")).toHaveText(
+      "Dismissed by Maya Chen: Staging never pages anybody.",
+    );
+    await screenshot(page, "setup-health-1280-open");
+  });
+
+  test("at 390px: one column, nothing wider than the screen", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openSetupHealth(page);
+
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "setup-health-390");
+  });
+
+  test("dark: every card on a dark surface", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openSetupHealth(page, "setup=busy&theme=dark");
+
+    const background: string = await page
+      .getByTestId("setup-health-level-pages_will_not_arrive")
+      .getByTestId("card")
+      .locator(":scope > div")
+      .evaluate((frame: Element): string => {
+        return getComputedStyle(frame).backgroundColor;
+      });
+
+    expect(background).not.toBe("rgb(255, 255, 255)");
+    await screenshot(page, "setup-health-dark");
+  });
+
+  test("German, and Persian read right to left", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openSetupHealth(page, "setup=busy&lang=de");
+
+    await expect(page.locator("body")).not.toContainText(
+      "Pages Will Not Arrive",
+    );
+    await expect(page.locator("body")).toContainText("Payments API");
+    await screenshot(page, "setup-health-de");
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openSetupHealth(page, "setup=busy&lang=fa");
+
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "setup-health-fa-390");
+  });
+
+  test("nothing to fix, said plainly", async ({ page }: { page: Page }) => {
+    await openSetupHealth(page, "scenario=healthy");
+
+    await expect(page.getByTestId("setup-health-nothing-to-fix")).toContainText(
+      "Nothing to fix",
+    );
+    await expect(page.getByTestId("setup-health-finding")).toHaveCount(0);
+    await screenshot(page, "setup-health-nothing");
   });
 });

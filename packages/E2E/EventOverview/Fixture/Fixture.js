@@ -66,8 +66,8 @@
  *            #1042). "none": no number at all.
  *   ?dir=    auto: <html> takes its language's reading direction as the
  *            Dashboard sets it (Common/UI/Utils/PageLanguage), right to
- *            left for Persian. Left out, every language is laid out left to
- *            right, as the header specs measure it.
+ *            left for Arabic and Persian. Left out, every language is laid
+ *            out left to right, as the header specs measure it.
  *   ?verdict= none (default) | confirmed | rejected
  *            A responder's verdict already saved on the completed runs of
  *            Incident #1042 and Alert #311, as if rated before the page
@@ -582,6 +582,7 @@ import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 const params = new URLSearchParams(window.location.search);
 // Every language the Dashboard has besides English (Dashboard/src/Locales).
 const LANGUAGES = [
+  "ar",
   "da",
   "de",
   "es",
@@ -742,6 +743,30 @@ const securityMode = ["declared", "naming", "both"].includes(
  * by a data monitor.
  */
 const dataMode = params.get("data") === "table" ? "table" : "";
+/*
+ * ?data=table&check=column: #311 came from a check on one column of its
+ * table, payments.ledger_entries.provider_reference, which the arrow from
+ * payments.provider_callbacks says callback_reference feeds.
+ */
+const dataCheckColumn =
+  dataMode === "table" && params.get("check") === "column"
+    ? "provider_reference"
+    : null;
+/*
+ * ?data=table&cause=pipeline: on #311's page, its cause is on the pipeline
+ * that moves payments.provider_callbacks into payments.ledger_entries,
+ * drawn on that arrow, its name longer than the arrow's label holds.
+ * &run=failed: that pipeline's latest run failed - FAIL, as OpenLineage
+ * names the run state (isFailedLineageRunState).
+ */
+const dataCausePipeline =
+  dataMode === "table" && params.get("cause") === "pipeline"
+    ? {
+        dataPipelineId: uuid("8e000000", 1),
+        name: "payments_callbacks_hourly_sync",
+        lastRunState: params.get("run") === "failed" ? "FAIL" : "COMPLETE",
+      }
+    : null;
 /*
  * ?ai=off-*: not investigated because something was off for the record;
  * ?fixing=: what auto-remediation recorded beside it; ?switches=: the
@@ -2103,7 +2128,7 @@ function incidentEvaluationDetails() {
           filterType: "Contains",
           value: "miss",
           met: true,
-          message: "Response header value contains miss.",
+          message: "A response header has the value miss.",
           field: "x-cache",
           actual: "MISS",
         },
@@ -2616,7 +2641,11 @@ const DATA_ALERT_REFUSAL = "You do not have permission to read data alerts.";
  * ?data=table, #311's table payments.ledger_entries drawn with the table it
  * is built from, payments.provider_callbacks, the way up to its cause #310
  * picked out; on #310's page, the way down to #311. Both tables have their
- * alert open. Any other alert has nothing to draw.
+ * alert open. Any other alert has nothing to draw. With &check=column,
+ * #311's drawing comes with the columns its arrow carries and the column
+ * its check reads, as for a check on one column. With &cause=pipeline,
+ * #311's cause is the pipeline drawn on its arrow, not the table it comes
+ * from: the arrow names it and says Cause.
  */
 function dataAlertLineage(url) {
   const isCause = url.includes(`/alerts/${ID.alert(DATA_CAUSE_ALERT_NUMBER)}/`);
@@ -2629,8 +2658,22 @@ function dataAlertLineage(url) {
       isCauseDrawn: false,
       consequenceCount: 0,
       drawnConsequenceCount: 0,
+      column: null,
     };
   }
+
+  const column = isConsequence ? dataCheckColumn : null;
+  const causePipeline = isConsequence ? dataCausePipeline : null;
+  // Whether the page's alert is open, said with the drawing: its own table counts it then.
+  const pageAlert = table(Alert).find((item) => {
+    return (
+      String(item._id) ===
+      ID.alert(isCause ? DATA_CAUSE_ALERT_NUMBER : ALERT_NUMBER)
+    );
+  });
+  const isAlertOpen =
+    Boolean(pageAlert) &&
+    String(pageAlert.currentAlertStateId) !== String(alertStates.resolved.id);
 
   const callbacks = `table:${ID.dataAsset(1)}`;
   const ledger = `table:${ID.dataAsset(2)}`;
@@ -2674,8 +2717,22 @@ function dataAlertLineage(url) {
           target: ledger,
           kind: "Feeds",
           seenIn: ["Pipeline"],
-          pipelines: [],
+          pipelines: causePipeline ? [causePipeline] : [],
           lastSeenAt: at("18:05").toISOString(),
+          ...(column
+            ? {
+                columnMappings: [
+                  {
+                    upstreamColumn: "amount",
+                    downstreamColumn: "amount_minor",
+                  },
+                  {
+                    upstreamColumn: "callback_reference",
+                    downstreamColumn: "provider_reference",
+                  },
+                ],
+              }
+            : {}),
         },
       ],
       hiddenDashboardCount: 0,
@@ -2683,15 +2740,20 @@ function dataAlertLineage(url) {
       highlight: {
         nodeIds: isCause ? [callbacks, ledger] : [ledger, callbacks],
         edgeIds: [feeds],
-        causeNodeIds: isCause ? [] : [callbacks],
+        causeNodeIds: isCause || causePipeline ? [] : [callbacks],
         consequenceNodeIds: isCause ? [ledger] : [],
-        dataPipelineIds: [],
+        dataPipelineIds: causePipeline ? [causePipeline.dataPipelineId] : [],
+        causeDataPipelineIds: causePipeline
+          ? [causePipeline.dataPipelineId]
+          : [],
       },
     },
     hasCause: !isCause,
     isCauseDrawn: !isCause,
     consequenceCount: isCause ? 1 : 0,
     drawnConsequenceCount: isCause ? 1 : 0,
+    column,
+    isAlertOpen,
   };
 }
 const DATA_WRITERS_FAILURE =
@@ -6862,15 +6924,18 @@ function aiOffReason(investigation) {
       description: isRecorded
         ? `AI was disabled for this project when this ${kind} was created, so its automatic investigation did not start.`
         : "AI is currently disabled for this project, so new automatic investigations cannot start.",
-      nextStep:
-        "Review project AI settings (Project Settings → AI → AI Features) for new records. Existing records are not automatically retried when AI is enabled.",
+      nextStep: isRecorded
+        ? "Review the Enable AI switch under Project Settings → AI → AI Features for new records. Existing records are not automatically retried when AI is enabled."
+        : "Turn on Enable AI under Project Settings → AI → AI Features to investigate new records. Existing records are not automatically retried.",
     },
     automatic_investigation_disabled: {
       title: isRecorded
         ? `Automatic ${kind} investigation was off at creation`
         : `Automatic ${kind} investigation is currently turned off`,
       description: `Automatic investigation was not enabled for ${kind}s when this ${kind} was created. Alerts and incidents have separate investigation settings.`,
-      nextStep: `Review automatic ${kind} investigation settings for new ${kind}s. Enabling investigation later does not automatically retry this ${kind}.`,
+      nextStep: isRecorded
+        ? `Review the Investigate new ${kind}s switch under ${kind === "alert" ? "Alerts" : "Incidents"} → AI → Settings for new ${kind}s. Turning it on later does not automatically retry this ${kind}.`
+        : `Turn on Investigate new ${kind}s under ${kind === "alert" ? "Alerts" : "Incidents"} → AI → Settings for new ${kind}s. Existing records are not automatically retried.`,
     },
     no_investigation_rule_matched: {
       title: isRecorded
@@ -6881,13 +6946,12 @@ function aiOffReason(investigation) {
     },
     severity_below_threshold: {
       title: isRecorded
-        ? "Severity was below the investigation threshold at creation"
-        : "Severity is below the current investigation threshold",
+        ? "Severity was below the minimum for AI investigation at creation"
+        : "Severity is currently below the minimum for AI investigation",
       description: isRecorded
-        ? `When this ${kind} was created, its ${severityName} severity did not meet the minimum ${minimumSeverityName} investigation severity.`
-        : `This ${kind}'s ${severityName} severity does not meet the minimum ${minimumSeverityName} investigation severity.`,
-      nextStep:
-        "Review the minimum investigation severity in AI settings. Changes apply to new records and do not retry this record.",
+        ? `When this ${kind} was created, its ${severityName} severity did not meet the minimum severity for AI investigation (${minimumSeverityName}).`
+        : `This ${kind}'s ${severityName} severity does not meet the minimum severity for AI investigation (${minimumSeverityName}).`,
+      nextStep: `Review the minimum severity for AI investigation under ${kind === "alert" ? "Alerts" : "Incidents"} → AI → Settings → More settings. Changes apply to new records and do not retry this record.`,
     },
   }[code];
   return {

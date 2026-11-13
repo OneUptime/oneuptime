@@ -629,6 +629,21 @@ export const findLinesWithValuesHidden: LinesWithValuesHiddenFunction = (data: {
   return { lines: lines, placeholders: Array.from(placeholders) };
 };
 
+type CopyLineRangesFunction = (
+  ranges: ReadonlyArray<AIChatLineRange>,
+) => Array<AIChatLineRange>;
+
+// Runs of lines as a change's arguments carry them: the first so many, each its first and last line only.
+const copyLineRanges: CopyLineRangesFunction = (
+  ranges: ReadonlyArray<AIChatLineRange>,
+): Array<AIChatLineRange> => {
+  return ranges
+    .slice(0, MAX_LINE_RANGES)
+    .map((range: AIChatLineRange): AIChatLineRange => {
+      return { first: range.first, last: range.last };
+    });
+};
+
 type ProposedOnFunction = (data: {
   branchName: string;
   files: ReadonlyArray<CodeFileNow>;
@@ -673,11 +688,16 @@ export const getCodeChangeProposedOn: ProposedOnFunction = (data: {
           ...(finding.lineCount !== undefined && finding.linesNotRead
             ? {
                 lineCount: finding.lineCount,
-                linesNotRead: finding.linesNotRead
-                  .slice(0, MAX_LINE_RANGES)
-                  .map((range: AIChatLineRange): AIChatLineRange => {
-                    return { first: range.first, last: range.last };
-                  }),
+                linesNotRead: copyLineRanges(finding.linesNotRead),
+              }
+            : {}),
+          // And the lines it read earlier and no longer had (issue #6984).
+          ...(finding.lineCount !== undefined && finding.linesNoLongerInHand
+            ? {
+                lineCount: finding.lineCount,
+                linesNoLongerInHand: copyLineRanges(
+                  finding.linesNoLongerInHand,
+                ),
               }
             : {}),
           // Placeholders written in place of hidden values (issue #6364): where, for the reviewer.
@@ -802,9 +822,11 @@ type LinesForPersonFunction = (data: {
  * unseen, in the order a person reads what matters most first: placeholders
  * written in place of hidden values (issue #6364) - which reading the file
  * again never mends - undone since the read, read on another branch, never
- * read, read only in an earlier answer (issue #6365), read only in part,
- * not checked. A file is either read in an earlier answer or read in part,
- * never both: this turn's lines decide.
+ * read, read only in an earlier answer (issue #6365), read earlier in this
+ * answer and no longer in hand (issue #6570), read all of and part of it
+ * no longer in hand (issue #6984), read only in part, not checked. A file
+ * is one of the last four - never two of them: the lines still in hand,
+ * and the lines ever read, decide.
  */
 export const describeCodeFilesUnseenForPerson: LinesForPersonFunction = (data: {
   branchName: string;
@@ -901,6 +923,36 @@ export const describeCodeFilesUnseenForPerson: LinesForPersonFunction = (data: {
     );
   }
 
+  const leftOut: Array<CodeFileUnseenFinding> = ofKind(
+    data.findings,
+    CodeFileUnseen.ReadEarlierInThisAnswer,
+  );
+
+  if (leftOut.length > 0) {
+    lines.push(
+      aiActionPluralSentence(
+        AI_ACTION_PLURAL_LINES.codeFilesReadEarlierInThisAnswer,
+        leftOut.length,
+        { files: listFilesOnCard(pathsOf(leftOut)) },
+      ),
+    );
+  }
+
+  const partNoLongerInHand: Array<CodeFileUnseenFinding> = ofKind(
+    data.findings,
+    CodeFileUnseen.PartNoLongerInHand,
+  );
+
+  if (partNoLongerInHand.length > 0) {
+    lines.push(
+      aiActionPluralSentence(
+        AI_ACTION_PLURAL_LINES.codeFilesPartNoLongerInHand,
+        partNoLongerInHand.length,
+        { files: listFilesOnCard(pathsOf(partNoLongerInHand)) },
+      ),
+    );
+  }
+
   const inPart: Array<CodeFileUnseenFinding> = ofKind(
     data.findings,
     CodeFileUnseen.ReadInPart,
@@ -957,6 +1009,10 @@ export const CODE_UNSEEN_SUMMARIES: Record<
       "Not committed: Ask AI had not read a file the commit replaces.",
     [CodeFileUnseen.ReadInEarlierAnswer]:
       "Not committed: Ask AI had read a file the commit replaces only in an earlier answer, and no longer had its text.",
+    [CodeFileUnseen.ReadEarlierInThisAnswer]:
+      "Not committed: Ask AI had read a file the commit replaces earlier in this answer, and no longer had its text.",
+    [CodeFileUnseen.PartNoLongerInHand]:
+      "Not committed: Ask AI had read a file the commit replaces whole, and no longer had part of its text.",
     [CodeFileUnseen.ReadInPart]:
       "Not committed: Ask AI had read only part of a file the commit replaces whole.",
     [CodeFileUnseen.NotChecked]:
@@ -973,6 +1029,10 @@ export const CODE_UNSEEN_SUMMARIES: Record<
       "Not opened: Ask AI had not read a file the pull request replaces.",
     [CodeFileUnseen.ReadInEarlierAnswer]:
       "Not opened: Ask AI had read a file the pull request replaces only in an earlier answer, and no longer had its text.",
+    [CodeFileUnseen.ReadEarlierInThisAnswer]:
+      "Not opened: Ask AI had read a file the pull request replaces earlier in this answer, and no longer had its text.",
+    [CodeFileUnseen.PartNoLongerInHand]:
+      "Not opened: Ask AI had read a file the pull request replaces whole, and no longer had part of its text.",
     [CodeFileUnseen.ReadInPart]:
       "Not opened: Ask AI had read only part of a file the pull request replaces whole.",
     [CodeFileUnseen.NotChecked]:
@@ -988,6 +1048,8 @@ const ORDER_OF_IMPORTANCE: ReadonlyArray<CodeFileUnseen> = [
   CodeFileUnseen.ReadOnAnotherBranch,
   CodeFileUnseen.NotRead,
   CodeFileUnseen.ReadInEarlierAnswer,
+  CodeFileUnseen.ReadEarlierInThisAnswer,
+  CodeFileUnseen.PartNoLongerInHand,
   CodeFileUnseen.ReadInPart,
   CodeFileUnseen.NotChecked,
 ];
@@ -1059,8 +1121,58 @@ export const describeValuesHiddenOnRead: ValuesHiddenOnReadFunction = (
 type LineCountFunction = (lineCount: number) => string;
 
 // "1 line", "2000 lines".
-const describeLineCount: LineCountFunction = (lineCount: number): string => {
+export const describeLineCount: LineCountFunction = (
+  lineCount: number,
+): string => {
   return `${lineCount} ${lineCount === 1 ? "line" : "lines"}`;
+};
+
+type LinesPronounFunction = (ranges: ReadonlyArray<AIChatLineRange>) => string;
+
+// "it" for one line, "them" for more: what describeLineRanges names.
+export const describeLinesPronoun: LinesPronounFunction = (
+  ranges: ReadonlyArray<AIChatLineRange>,
+): string => {
+  return ranges.length === 1 && ranges[0]!.first === ranges[0]!.last
+    ? "it"
+    : "them";
+};
+
+type NoLongerInHandFunction = (
+  finding: CodeFileUnseenFinding,
+) => Array<AIChatLineRange>;
+
+/*
+ * The runs of a file's lines Ask AI read earlier and no longer has (issue
+ * #6984): those of a file it read all of, and of one it read only part
+ * of. None for any other finding.
+ */
+export const getLinesNoLongerInHand: NoLongerInHandFunction = (
+  finding: CodeFileUnseenFinding,
+): Array<AIChatLineRange> => {
+  return (finding.unseen === CodeFileUnseen.PartNoLongerInHand ||
+    finding.unseen === CodeFileUnseen.ReadInPart) &&
+    finding.linesNoLongerInHand
+    ? finding.linesNoLongerInHand
+    : [];
+};
+
+type NoLongerHadFunction = (finding: CodeFileUnseenFinding) => boolean;
+
+/*
+ * Whether a finding is of text Ask AI read and no longer has, in whole or
+ * in part - so "what you have not read" alone would be untrue of it
+ * (issue #6984).
+ */
+export const isTextNoLongerInHand: NoLongerHadFunction = (
+  finding: CodeFileUnseenFinding,
+): boolean => {
+  return (
+    finding.unseen === CodeFileUnseen.ReadInEarlierAnswer ||
+    finding.unseen === CodeFileUnseen.ReadEarlierInThisAnswer ||
+    finding.unseen === CodeFileUnseen.PartNoLongerInHand ||
+    getLinesNoLongerInHand(finding).length > 0
+  );
 };
 
 type TimesFunction = (count: number) => string;
@@ -1107,6 +1219,19 @@ const describeValuesHiddenForModel: PlaceholdersForModelFunction = (data: {
     : `- ${data.finding.filePath}: your version writes placeholders for values hidden from you, and ${onBranch}.`;
 };
 
+type NoLongerInHandForModelFunction = (
+  finding: CodeFileUnseenFinding,
+) => string;
+
+// "lines 1-400 earlier and no longer have them", "line 7 earlier and no longer have it" (issue #6984).
+const describeNoLongerInHandForModel: NoLongerInHandForModelFunction = (
+  finding: CodeFileUnseenFinding,
+): string => {
+  const lines: Array<AIChatLineRange> = getLinesNoLongerInHand(finding);
+
+  return `${describeLineRanges(lines)} earlier and no longer have ${describeLinesPronoun(lines)}`;
+};
+
 type ForModelFunction = (data: {
   change: CodeChangeKind;
   branchName: string;
@@ -1140,12 +1265,38 @@ export const describeCodeFilesUnseenForModel: ForModelFunction = (data: {
     data.findings.every((finding: CodeFileUnseenFinding): boolean => {
       return finding.unseen === CodeFileUnseen.ValuesHidden;
     });
+  const every: (kinds: ReadonlyArray<CodeFileUnseen>) => boolean = (
+    kinds: ReadonlyArray<CodeFileUnseen>,
+  ): boolean => {
+    return (
+      data.findings.length > 0 &&
+      data.findings.every((finding: CodeFileUnseenFinding): boolean => {
+        return kinds.includes(finding.unseen);
+      })
+    );
+  };
   // Only files read in an earlier answer (issue #6365): read, but no longer in hand.
-  const onlyEarlier: boolean =
-    data.findings.length > 0 &&
-    data.findings.every((finding: CodeFileUnseenFinding): boolean => {
-      return finding.unseen === CodeFileUnseen.ReadInEarlierAnswer;
-    });
+  const onlyEarlier: boolean = every([CodeFileUnseen.ReadInEarlierAnswer]);
+  // Only files read earlier in this answer and left out since (issue #6570): likewise.
+  const onlyLeftOut: boolean = every([CodeFileUnseen.ReadEarlierInThisAnswer]);
+  // Some of each: read, all of them, and none of them in hand.
+  const onlyNotInHand: boolean = every([
+    CodeFileUnseen.ReadInEarlierAnswer,
+    CodeFileUnseen.ReadEarlierInThisAnswer,
+  ]);
+  /*
+   * Read, all of them, and some of each no longer in hand (issue #6984):
+   * read in parts, and a part of each no longer had.
+   */
+  const onlyPartNotInHand: boolean = every([
+    CodeFileUnseen.ReadInEarlierAnswer,
+    CodeFileUnseen.ReadEarlierInThisAnswer,
+    CodeFileUnseen.PartNoLongerInHand,
+  ]);
+  // Among other reasons, a file read and no longer had: never only "not read" (issue #6984).
+  const noLongerHad: string = data.findings.some(isTextNoLongerInHand)
+    ? ", or no longer have"
+    : "";
   const lines: Array<string> = [
     onlyHidden
       ? isCommit
@@ -1155,9 +1306,21 @@ export const describeCodeFilesUnseenForModel: ForModelFunction = (data: {
         ? isCommit
           ? `Not done: nothing was committed to ${branch}, because you read these files in an earlier answer and no longer have their text:`
           : `Not done: no pull request was opened, because you read these files in an earlier answer and no longer have their text:`
-        : isCommit
-          ? `Not done: nothing was committed to ${branch}, because writing these files whole would undo or replace what you have not read there:`
-          : `Not done: no pull request was opened, because writing these files whole on top of ${branch}, the branch it starts from, would undo or replace what you have not read there:`,
+        : onlyLeftOut
+          ? isCommit
+            ? `Not done: nothing was committed to ${branch}, because you read these files earlier in this answer and their text has been left out of this conversation since:`
+            : `Not done: no pull request was opened, because you read these files earlier in this answer and their text has been left out of this conversation since:`
+          : onlyNotInHand
+            ? isCommit
+              ? `Not done: nothing was committed to ${branch}, because you read these files before and no longer have their text:`
+              : `Not done: no pull request was opened, because you read these files before and no longer have their text:`
+            : onlyPartNotInHand
+              ? isCommit
+                ? `Not done: nothing was committed to ${branch}, because you read these files before and no longer have all of their text:`
+                : `Not done: no pull request was opened, because you read these files before and no longer have all of their text:`
+              : isCommit
+                ? `Not done: nothing was committed to ${branch}, because writing these files whole would undo or replace what you have not read there${noLongerHad}:`
+                : `Not done: no pull request was opened, because writing these files whole on top of ${branch}, the branch it starts from, would undo or replace what you have not read there${noLongerHad}:`,
   ];
 
   for (const finding of data.findings) {
@@ -1187,10 +1350,25 @@ export const describeCodeFilesUnseenForModel: ForModelFunction = (data: {
           `- ${finding.filePath}: you read it in an earlier answer, and you no longer have its text.`,
         );
         break;
+      case CodeFileUnseen.ReadEarlierInThisAnswer:
+        lines.push(
+          `- ${finding.filePath}: you read it earlier in this answer, and its text has been left out of this conversation since, to keep it within your context window.`,
+        );
+        break;
+      case CodeFileUnseen.PartNoLongerInHand:
+        lines.push(
+          finding.lineCount !== undefined &&
+            getLinesNoLongerInHand(finding).length > 0
+            ? `- ${finding.filePath} has ${describeLineCount(finding.lineCount)} on ${branch}, and you read ${describeNoLongerInHandForModel(finding)}.`
+            : `- ${finding.filePath}: you read all of it before, and you no longer have part of its text.`,
+        );
+        break;
       case CodeFileUnseen.ReadInPart:
         lines.push(
           finding.lineCount !== undefined && finding.linesNotRead
-            ? `- ${finding.filePath} has ${describeLineCount(finding.lineCount)} on ${branch}, and you have not read ${describeLineRanges(finding.linesNotRead)} of it.`
+            ? getLinesNoLongerInHand(finding).length > 0
+              ? `- ${finding.filePath} has ${describeLineCount(finding.lineCount)} on ${branch}, and you have not read ${describeLineRanges(finding.linesNotRead)} of it; you read ${describeNoLongerInHandForModel(finding)}.`
+              : `- ${finding.filePath} has ${describeLineCount(finding.lineCount)} on ${branch}, and you have not read ${describeLineRanges(finding.linesNotRead)} of it.`
             : `- ${finding.filePath}: you have read only part of it on ${branch}.`,
         );
         break;
@@ -1207,7 +1385,9 @@ export const describeCodeFilesUnseenForModel: ForModelFunction = (data: {
       return (
         finding.unseen !== CodeFileUnseen.NotChecked &&
         finding.unseen !== CodeFileUnseen.ReadInPart &&
+        finding.unseen !== CodeFileUnseen.PartNoLongerInHand &&
         finding.unseen !== CodeFileUnseen.ReadInEarlierAnswer &&
+        finding.unseen !== CodeFileUnseen.ReadEarlierInThisAnswer &&
         finding.unseen !== CodeFileUnseen.ValuesHidden
       );
     },
@@ -1230,6 +1410,17 @@ export const describeCodeFilesUnseenForModel: ForModelFunction = (data: {
     );
   }
 
+  // Read earlier in this answer, and left out since (issue #6570): read again now.
+  if (
+    data.findings.some((finding: CodeFileUnseenFinding): boolean => {
+      return finding.unseen === CodeFileUnseen.ReadEarlierInThisAnswer;
+    })
+  ) {
+    lines.push(
+      `Read each file whose text was left out again now, on ${branch} with read_code_file and branchName "${branch}", and write it whole right after you read it: ${isCommit ? "a commit" : "a pull request"} replaces each file whole, and you no longer have the text you read before.`,
+    );
+  }
+
   // Read in part (issue #6330): the rest is to read, a window at a time.
   if (
     data.findings.some((finding: CodeFileUnseenFinding): boolean => {
@@ -1238,6 +1429,17 @@ export const describeCodeFilesUnseenForModel: ForModelFunction = (data: {
   ) {
     lines.push(
       `Read the lines you have not read of each file you read only part of, on ${branch} with read_code_file, branchName "${branch}", startLine and endLine, and only then write the whole file: ${isCommit ? "a commit" : "a pull request"} replaces each file whole, so a line you have not read would be dropped from it.`,
+    );
+  }
+
+  // Lines read and no longer in hand (issue #6984): read them again, and write right after.
+  if (
+    data.findings.some((finding: CodeFileUnseenFinding): boolean => {
+      return getLinesNoLongerInHand(finding).length > 0;
+    })
+  ) {
+    lines.push(
+      `Read the lines you no longer have again now, on ${branch} with read_code_file, branchName "${branch}", startLine and endLine, and write each file whole right after you read them: ${isCommit ? "a commit" : "a pull request"} replaces each file whole, and you no longer have the text you read of those lines before.`,
     );
   }
 

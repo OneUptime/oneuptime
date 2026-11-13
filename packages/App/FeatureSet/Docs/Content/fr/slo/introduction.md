@@ -1,6 +1,6 @@
 # Vue d'ensemble des SLO
 
-Un objectif de niveau de service (SLO) est un objectif de fiabilité pour ce que vous surveillez, par exemple « disponible 99,9 % du temps sur 30 jours glissants ». OneUptime mesure chaque SLO par rapport à son objectif toutes les 5 minutes : au lieu de « est-ce que ça marche en ce moment ? », vous pouvez répondre à « avons-nous été assez fiables, sur une fenêtre qui compte pour nos utilisateurs, et quelle marge d'échec nous reste-t-il ? »
+Un objectif de niveau de service (SLO) est un objectif de fiabilité pour ce que vous surveillez, par exemple « disponible 99,9 % du temps sur 30 jours glissants ». OneUptime mesure chaque SLO par rapport à son objectif toutes les 5 minutes : au lieu de « est-ce que ça marche en ce moment ? », vous pouvez répondre à « avons-nous été assez fiables, sur une fenêtre qui compte pour nos utilisateurs, et quelle marge d'échec nous reste-t-il ? » Le [Glossaire](/docs/introduction/glossary#slo) place les SLO à côté des autres mots qu'utilise OneUptime.
 
 :::cards
 - [Créer un SLO](#créer-un-slo): Un nom et un objectif. Tout le reste part d'une valeur par défaut.
@@ -11,7 +11,7 @@ Un objectif de niveau de service (SLO) est un objectif de fiabilité pour ce que
 
 ## Comment ça marche
 
-Un SLO lit les chronologies de statut des moniteurs qui lui sont rattachés : les mêmes données que celles de vos pages de statut. À partir d'elles, OneUptime calcule quelle part de la fenêtre de conformité était du bon temps, ce qu'il reste du budget d'erreur et à quelle vitesse il se consomme.
+Un SLO lit les chronologies de statut des moniteurs qui lui sont rattachés : les mêmes données que celles de vos pages de statut. À partir d'elles, OneUptime calcule quelle part de la fenêtre de conformité était du bon temps, ce qu'il reste du budget d'erreur et à quelle vitesse il se consomme. Le temps pendant lequel la surveillance d'un moniteur est désactivée est écarté : rien ne vérifie alors le moniteur, ce temps ne consomme donc pas de budget d'erreur et ne compte pas non plus comme du bon temps.
 
 ```mermaid title="Des vérifications des moniteurs au statut d'un SLO"
 flowchart TB
@@ -25,6 +25,8 @@ flowchart TB
 ```
 
 ## Notions clés
+
+Les mots utilisés dans tout OneUptime se trouvent dans le [Glossaire](/docs/introduction/glossary).
 
 | Terme | Signification |
 | --- | --- |
@@ -176,7 +178,7 @@ La **Vue d'ensemble** répond à « sommes-nous dans le budget ? », de haut en 
 - **Le résumé** : le statut, une phrase sur ce qu'il signifie, et la description. À côté se trouvent **Actualiser** et la date de la dernière évaluation. En dessous figurent l'objectif, la **Fenêtre de conformité** (avec une pastille de remplissage tant qu'une jeune fenêtre glissante se remplit : voir [Les jeunes SLO et l'indicateur de remplissage de la fenêtre](#les-jeunes-slo-et-lindicateur-de-remplissage-de-la-fenêtre)), le nombre de moniteurs et les propriétaires, avec **Ajouter des propriétaires** pour en ajouter un sur place.
 - **Les chiffres clés** :
   - **SLI** : la part de bon temps dans la fenêtre, et à quelle distance au-dessus ou en dessous de l'objectif elle se trouve.
-  - **Budget d'erreur restant** : un pourcentage, une durée comme "12m 30s left of 43m 12s", et une barre avec un repère au seuil à risque. Une fois le budget dépassé, la tuile affiche **Budget dépassé** et de combien.
+  - **Budget d'erreur restant** : un pourcentage, une durée comme "12 min 30 s restant sur 43 min 12 s", et une barre avec un repère au seuil à risque. Une fois le budget dépassé, la tuile affiche **Budget dépassé** et de combien.
   - **Taux de consommation** : la vitesse à laquelle le budget se consomme sur les 60 dernières minutes, la période qu'utilise la règle de consommation rapide par défaut. Il passe à l'orange au-dessus de 1× et au rouge, avec **Seuil de la règle atteint**, au plus bas seuil des règles de taux de consommation activées du SLO dont la période est de 6 heures ou moins. Une heure en dit peu sur une règle dont la période se compte en jours, comme **Slow leak**, il n'est donc pas comparé à une telle règle.
   - **Autonomie du budget** : combien de temps le budget tient à ce rythme. Voir [Budgets d'erreur](/docs/slo/error-budget#autonomie-du-budget).
 - **Consommation du budget d'erreur** : le budget restant sur la fenêtre actuelle. Voir [Budgets d'erreur](/docs/slo/error-budget#consommation-du-budget-derreur).
@@ -193,7 +195,7 @@ La page **Paramètres** regroupe la façon dont un SLO mesure, une carte chacun 
 
 | Carte | Ce que vous modifiez | Bon à savoir |
 | --- | --- | --- |
-| **Objectif** | **Cible (%)** et **Seuil à risque (%)**, avec **Modifier l'objectif**. | Affiche l'indisponibilité que l'objectif autorise, par exemple « 43m 12s d'indisponibilité par fenêtre de 30 jours ». |
+| **Objectif** | **Cible (%)** et **Seuil à risque (%)**, avec **Modifier l'objectif**. | Affiche l'indisponibilité que l'objectif autorise, par exemple « 43 min 12 s d'indisponibilité par fenêtre de 30 jours ». |
 | **Période de conformité** | **Type de fenêtre**, **Fenêtre (jours)** et **Fuseau horaire**, avec **Modifier la période**. | Les règles de taux de consommation gardent leurs seuils quand la fenêtre change, revoyez-les donc ensuite. |
 | **Calcul de l'indisponibilité** | **Mode multi-moniteurs** et **Statuts de moniteur d'indisponibilité**, avec **Modifier le calcul de l'indisponibilité**. | Des statuts vides comptent tous les statuts non opérationnels, y compris ceux ajoutés plus tard. |
 | **Évaluation** | L'interrupteur **Évaluer ce SLO**, qui enregistre dès que vous le basculez. | Le désactiver demande d'abord confirmation, car cela résout aussi les alertes et incidents de taux de consommation ouverts du SLO. |
@@ -238,7 +240,7 @@ Le menu latéral d'un moniteur a lui aussi une page **SLOs** : les SLO qui mesur
 
 Un SLO à fenêtre glissante plus jeune que sa fenêtre est mesuré sur les données qui existent jusqu'ici : un SLO de 30 jours créé hier a un jour de données. Son budget d'erreur commence petit et grandit à mesure que la fenêtre se remplit, ses premiers chiffres bougent donc plus qu'ils ne le feront ensuite.
 
-Tant que c'est le cas, la **Vue d'ensemble** le dit : le résumé affiche une pastille **Window 23% full** (**Fenêtre remplie à moins de 1 %** le premier jour), et la tuile **Budget d'erreur restant** la reprend sous son chiffre. Les deux disparaissent une fois la fenêtre pleine. Les SLO par mois calendaire ne les affichent jamais, car leur budget couvre tout le mois dès le premier jour, pas plus que les SLO en mode **Moyenne des secondes des moniteurs**, dont le budget est compté sur l'ensemble des moniteurs.
+Tant que c'est le cas, la **Vue d'ensemble** le dit : le résumé affiche une pastille **Fenêtre remplie à 23 %** (**Fenêtre remplie à moins de 1 %** le premier jour), et la tuile **Budget d'erreur restant** la reprend sous son chiffre. Les deux disparaissent une fois la fenêtre pleine. Les SLO par mois calendaire ne les affichent jamais, car leur budget couvre tout le mois dès le premier jour, pas plus que les SLO en mode **Moyenne des secondes des moniteurs**, dont le budget est compté sur l'ensemble des moniteurs.
 
 ## Dépannage
 

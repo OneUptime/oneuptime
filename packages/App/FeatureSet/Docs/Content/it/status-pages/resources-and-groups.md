@@ -2,6 +2,9 @@
 
 Una risorsa è una riga della vostra pagina di stato: un monitor o un gruppo di monitor, con un nome che i vostri clienti capiscono, il suo stato attuale e, se volete, il suo tempo di attività e la sua cronologia. I gruppi sono sezioni che contengono risorse, così una pagina con quaranta monitor si legge come «API», «App web» e «Pipeline di dati» invece che come un elenco infinito. Create entrambi in un'unica schermata: aprite una pagina di stato e scegliete **Risorse** nel suo menu laterale.
 
+> [!TIP]
+> Prima volta qui? Inizia dalla guida: [Pubblicare una pagina di stato](/docs/guides/status-page).
+
 :::cards
 - [Aggiungere un monitor](#aggiungere-un-monitor): Mettere un monitor sulla pagina, con il nome che leggono i visitatori.
 - [Gruppi](#gruppi): Dividere la pagina in sezioni e annidarle.
@@ -30,6 +33,7 @@ flowchart TB
 Una risorsa decide più del colore della sua riga:
 
 - **I monitor archiviati non vengono mostrati.** Un monitor archiviato non viene più controllato, quindi il suo ultimo stato è congelato; la pagina omette la sua riga (e lo esclude dallo stato di un gruppo di monitor) invece di mostrare quello stato congelato come se fosse attuale. La riga viene conservata, quindi togliere il monitor dall'archivio la riporta subito.
+- **Un monitor con il monitoraggio disattivato mostra Non monitorato.** Niente lo controlla, quindi l'ultimo stato che aveva ora non dice nulla: la sua riga mostra **Non monitorato** in grigio e non conta né per il gruppo sopra di essa né per il banner dello stato complessivo. Le sue barre della cronologia conservano la sua cronologia fino alla disattivazione del suo monitoraggio ed escludono il tempo successivo. Un gruppo di monitor conta solo i suoi monitor con il monitoraggio attivo, e mostra **Non monitorato** quando è disattivato per tutti; le sue barre e il suo uptime escludono, per ogni monitor, il tempo con il monitoraggio disattivato. Quando niente sulla pagina è monitorato, il banner lo dice.
 - **Le risorse decidono quali incidenti mostra la pagina.** Un incidente compare qui, e gli iscritti della pagina ne vengono informati, quando uno dei monitor dell'incidente è una risorsa della pagina, direttamente o tramite un gruppo di monitor. Mettete lo stesso monitor su più pagine e i suoi incidenti le raggiungono tutte, a meno che un incidente non sia limitato ad alcune di esse. Vedete [Una pagina di stato per pubblico](/docs/status-pages/one-status-page-per-audience).
 - **La riga di un gruppo di monitor rappresenta ogni monitor che contiene, anche per gli iscritti.** Su una pagina che lascia scegliere le risorse agli iscritti, chi si iscrive a un gruppo di monitor viene informato di incidenti, manutenzioni pianificate e annunci su qualsiasi monitor del gruppo, come se avesse scelto quel monitor. Vedete [Iscritti e annunci](/docs/status-pages/subscribers#lasciare-che-gli-iscritti-scelgano-risorse-e-tipi-di-evento).
 
@@ -118,6 +122,8 @@ I gruppi hanno le proprie copie di questi interruttori (vedete sotto), quindi un
 I colori delle barre del grafico della cronologia si impostano in **Altre impostazioni** nella pagina **Branding**, e quali stati dei monitor contano come «inattivo» in **Conta come inattività**, nella scheda **Cosa mostra la tua pagina di stato** delle **Impostazioni avanzate**; entrambi sono descritti in [Branding e domini della pagina di stato](/docs/status-pages/branding-and-domains).
 
 Ogni barra è un giorno. Passa il puntatore su una barra o fai clic su di essa (toccala sul telefono, o premi Invio dalla tastiera) per leggere la giornata: il suo tempo di attività, quanto è durato ogni stato, gli incidenti dichiarati quel giorno e la manutenzione programmata che vi si è svolta, ciascuno con un link alla propria pagina. Un giorno con manutenzione programmata ha una fascia blu in cima alla sua barra e, finché un evento è in corso, ogni risorsa dei suoi monitor mostra «In manutenzione» accanto al nome. La manutenzione non cambia né il colore di una barra né il tempo di attività, che vengono dagli stati del monitor: per tenere il lavoro pianificato fuori dal tempo di attività, scegli per l'evento in **Cambia lo stato del monitor in** uno stato che non sia tra quelli di **Conta come inattività** della pagina. Vedi [Cosa influenza un evento](/docs/scheduled-maintenance/index#cosa-influenza-un-evento).
+
+Ogni barra è un giorno nel fuso orario del lettore, lo stesso in cui la pagina mostra tutti gli altri orari, quindi l'ultima barra è il suo oggi. La barra di un gruppo di monitor mostra per quanto tempo il gruppo stesso è rimasto in ciascuno stato quel giorno: in ogni momento il gruppo ha lo stato peggiore tra i suoi monitor, quindi gli stati di un giorno sommano il tempo in cui almeno uno dei suoi monitor veniva controllato, e mai più del giorno.
 
 ## Gruppi
 

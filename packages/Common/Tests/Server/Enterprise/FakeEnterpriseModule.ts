@@ -125,6 +125,9 @@ export const createAuditLogRecorderSpy: () => MockedAuditLogRecorder =
       recordDownload: jest.fn(async (): Promise<void> => {
         return undefined;
       }) as unknown as MockedAuditLogRecorder["recordDownload"],
+      recordSessionEvents: jest.fn(async (): Promise<void> => {
+        return undefined;
+      }) as unknown as MockedAuditLogRecorder["recordSessionEvents"],
       invalidateProjectSettings: jest.fn((): void => {
         return undefined;
       }) as unknown as MockedAuditLogRecorder["invalidateProjectSettings"],

@@ -11,7 +11,7 @@ O Início é a primeira página que você vê em um projeto. Ele mostra num rela
 
 ## O que o Início mostra
 
-Abra **Início** na barra do topo, ou pressione `g` e depois `h` de qualquer lugar. O Início é a visão geral do seu projeto. De cima para baixo, ele mostra:
+Abra **Início** na barra do topo, ou pressione `g` e depois `h` de qualquer lugar. O Início é a visão geral do seu projeto, uma única página sem menu lateral. De cima para baixo, ele mostra:
 
 1. Uma caixa de pesquisa, com **Declarar incidente** e **Criar** ao lado.
 2. Uma linha que diz se algo está errado, acima de cinco números que contam o que precisa de atenção.
@@ -38,49 +38,64 @@ A linha do topo nomeia o que há de mais urgente em aberto, numa cor corresponde
 
 Ao lado, o Início diz quando leu o projeto pela última vez, e **Atualizar** o lê de novo. Quando você volta a uma aba do Início depois de um minuto ou mais, ele se atualiza sozinho.
 
-Enquanto nada está sendo monitorado, a linha termina com o botão **Crie seu primeiro monitor**, que abre o formulário para criar um. Só quem tem permissão para criar monitores o vê.
+Enquanto nada está sendo monitorado, a linha termina com o botão **Crie seu primeiro monitor**, que abre a configuração guiada **Saber quando meu site ou API cair**. Só quem tem permissão para criar monitores o vê.
 
 ### Os cinco números
 
-Cada número conta algo, diz se isso precisa de você e abre a lista por trás dele.
+Cada número conta algo, diz se isso precisa de você e abre a lista por trás dele, no produto a que ela pertence.
 
-| Número | O que conta | Quando o número é zero |
-| --- | --- | --- |
-| **Incidentes ativos** | Incidentes não resolvidos | **Tudo certo** |
-| **Alertas ativos** | Alertas não resolvidos | **Tudo certo** |
-| **Monitores não operacionais** | Monitores cujo status não é operacional. Monitores arquivados, e monitores com o monitoramento desligado, não entram. | **Todos operacionais** |
-| **Manutenção em andamento** | Eventos de manutenção programada em andamento | **Nenhuma em andamento** |
-| **SLOs em risco** | SLOs ativados que estão em risco ou esgotaram o orçamento de erro | **Orçamentos saudáveis** |
+| Número | O que conta | Quando o número é zero | Abre |
+| --- | --- | --- | --- |
+| **Incidentes ativos** | Incidentes não resolvidos | **Tudo certo** | **Incidentes → Incidentes ativos** |
+| **Alertas ativos** | Alertas não resolvidos | **Tudo certo** | **Alertas → Alertas ativos** |
+| **Monitores não operacionais** | Monitores cujo status não é operacional. Monitores arquivados, e monitores com o monitoramento desligado, não entram. | **Todos operacionais** | **Monitores → Não operacional** |
+| **Manutenção em andamento** | Eventos de manutenção programada em andamento | **Nenhuma em andamento** | **Manutenção programada → Eventos em andamento** |
+| **SLOs em risco** | SLOs ativados que estão em risco ou esgotaram o orçamento de erro | **Orçamentos saudáveis** | **SLOs** |
 
-Um número acima de zero mostra **Requer atenção**, ou **Em andamento** e **Orçamento se esgotando** para manutenção e SLOs. Um projeto sem monitores vê **Nenhum monitor ainda**, e um sem SLOs vê **Nenhum SLO ainda**: um projeto vazio não é o mesmo que um projeto saudável. Esses dois abrem então as listas **Monitores** e **SLOs**, onde você cria um.
+Um número acima de zero mostra **Requer atenção**, ou **Em andamento** e **Orçamento se esgotando** para manutenção e SLOs. Enquanto algum SLO estiver em risco, **SLOs em risco** abre a lista **SLOs** filtrada para esses SLOs. Um projeto sem monitores vê **Nenhum monitor ainda**, e um sem SLOs vê **Nenhum SLO ainda**: um projeto vazio não é o mesmo que um projeto saudável. Esses dois abrem então as listas **Monitores** e **SLOs**, onde você cria um.
 
 ### A lista de boas-vindas
 
-A lista guia você pelas quatro coisas de que um projeto precisa para ser útil. Cada etapa abre a página onde você a realiza, e se marca sozinha quando o projeto tem o que ela pede.
+Na primeira vez que um proprietário ou administrador do projeto abre o Início de um projeto novo, o cartão pergunta **O que você quer fazer primeiro?** Marque um ou mais objetivos, como **Saber quando meu site ou API cair** ou **Só estou dando uma olhada**, e clique em **Continuar**: a lista passa a ter as etapas de que esses objetivos precisam. **Pular** dá as quatro etapas que todo projeto recebe. Para responder de novo depois, clique em **Alterar** na lista. Um projeto que já usa monitores, telemetria ou plantão não é perguntado.
+
+Cada etapa se marca sozinha quando a coisa funciona, não quando um registro existe, e todos que configuram o projeto veem a mesma lista, em todos os dispositivos:
 
 | Etapa | Concluída quando | Abre |
 | --- | --- | --- |
-| **Crie seu primeiro monitor** | O projeto tem um monitor. | O formulário **Criar monitor**, ou a lista **Monitores** para quem não pode criar monitores. |
-| **Publique uma página de status** | O projeto tem uma página de status. | **Páginas de status** |
-| **Convide sua equipe** | Alguém além de você está no projeto, ou foi convidado. | **Usuários** |
-| **Configure uma política de plantão** | O projeto tem uma política de plantão. | **Plantão** |
+| **Importe da sua ferramenta atual** | Uma importação de outra ferramenta termina. | **Importar de outra ferramenta** |
+| **Crie seu primeiro monitor** | Chega a primeira verificação. | A configuração guiada **Saber quando meu site ou API cair**, ou a lista **Monitores** para quem não pode criar monitores. |
+| **Conecte um servidor ou cluster** | Chegam as primeiras métricas. | **Hosts** |
+| **Envie seus primeiros logs, métricas ou traces** | Chegam os primeiros logs, métricas, traces, exceções ou perfis do projeto. | A configuração guiada **Enviar registros, métricas e traços e receber alertas** |
+| **Configure uma política de plantão** | Um acionamento de teste é reconhecido, um acionamento alcança alguém, ou uma regra de plantão executa uma política que pode alcançar alguém. | A configuração guiada **Acionar a pessoa certa quando algo quebrar** |
+| **Publique uma página de status** | Uma página de status mostra um monitor. | A configuração guiada **Publique uma página de status**, ou a lista **Páginas de status** para quem não pode criar páginas de status. |
+| **Convide sua equipe** | Alguém aceita seu convite. | **Usuários** |
 
-Abaixo das etapas, **Como o OneUptime funciona** mostra os quatro produtos principais na ordem em que um problema passa por eles: **Monitores**, **Incidentes e alertas**, **Plantão** e **Páginas de status**. Clique em um para abri-lo.
+A etapa a fazer primeiro é marcada com **Próxima etapa**. No plano Free do OneUptime Cloud, que tem uma pessoa, **Convide sua equipe** diz que precisa do plano Growth e abre **Cobrança**. Em um servidor auto-hospedado que ainda não pode enviar e-mails, os administradores do servidor veem primeiro **Este servidor ainda não pode enviar e-mails**, que abre o painel de administração.
 
-```mermaid title="Quando a lista de boas-vindas some"
+Uma configuração guiada faz todo o trabalho em uma só página, uma etapa de cada vez, e termina com o que configurou e o que fazer em seguida. Para abri-la de novo mais tarde, pesquise pelo nome dela.
+
+Abaixo das etapas, **Como o OneUptime funciona** mostra os quatro produtos principais na ordem em que um problema passa por eles: **Monitores**, **Incidentes e alertas**, **Plantão** e **Páginas de status**. Clique em um para abri-lo. Abaixo, ele diz o que alimenta esse ciclo, a telemetria e a infraestrutura, e leva a [Conceitos básicos](/docs/introduction/core-concepts) e [Glossário](/docs/introduction/glossary).
+
+```mermaid title="Quando a lista de boas-vindas aparece"
 flowchart TB
-    open["O Início abre"] --> dismissed{"Dispensada neste<br/>navegador?"}
-    dismissed -->|"Não"| done{"As quatro etapas<br/>concluídas?"}
-    dismissed -->|"Sim"| hidden["Sem lista"]
-    done -->|"Sim"| hidden
-    done -->|"Não"| shown["A lista, com as<br/>etapas restantes"]
+    open["O Início abre"] --> answered{"Objetivos escolhidos<br/>ou pulados?"}
+    answered -->|"Não"| question["O que você quer<br/>fazer primeiro?"]
+    answered -->|"Sim"| hidden{"Ocultada<br/>por você?"}
+    hidden -->|"Sim"| line["Uma linha para<br/>mostrá-la de novo"]
+    hidden -->|"Não"| done{"Todas as etapas<br/>concluídas?"}
+    done -->|"Sim"| gone["Sem lista"]
+    done -->|"Não"| shown["A lista, com<br/>as etapas restantes"]
 ```
 
-A lista some quando as quatro etapas estão concluídas. Para escondê-la antes, clique em **Dispensar**. A dispensa vale para este navegador e este projeto; tudo o que as etapas abrem continua no menu **Produtos**.
+A lista some para todos quando todas as etapas estão concluídas. Para ocultá-la antes, clique em **Ocultar**: ela fica oculta só para você, em todos os dispositivos, e fica uma linha com **Mostrar** e **Como o OneUptime funciona**. Quem foi convidado ao projeto como membro não vê a lista. **Como o OneUptime funciona** continua a um clique, em qualquer projeto: abra-o em **Ajuda** ou com o botão ao lado de **Explore o OneUptime**.
 
 ### Requer atenção
 
-**Requer atenção** lista, pelo nome, o que os números contam: os incidentes abertos, os alertas abertos, os monitores que não estão operacionais, os SLOs em risco e as manutenções em andamento, os mais urgentes primeiro. Cada linha mostra a severidade ou o status, diz quando um incidente ou alerta começou e quando a manutenção termina, e abre o registro. Cada tipo mostra até cinco, com **Mostrar todos** para o resto. Quando nada está aberto, diz **Nada precisa da sua atenção**.
+**Requer atenção** lista, pelo nome, o que os números contam: os incidentes abertos, os alertas abertos, os monitores que não estão operacionais, os SLOs em risco e as manutenções em andamento, os mais urgentes primeiro. Cada linha mostra a severidade ou o status, diz quando um incidente ou alerta começou e quando a manutenção termina, e abre o registro. Cada tipo mostra até cinco, com **Mostrar todos** para o resto, que abre a mesma lista que o seu número. Quando nada está aberto, diz **Nada precisa da sua atenção**.
+
+### Saúde da configuração
+
+Quando algo na configuração do projeto impediria que as pessoas fossem avisadas, **Requer atenção** termina com **Configuração**: quantas coisas precisam de uma olhada. Ela abre **Saúde da configuração**, que lista o que está mal configurado, o mais grave primeiro, em **Os acionamentos não chegarão**, **Vale corrigir** e **Sugestões**: um monitor que não aciona ninguém, uma política de plantão que nada executa, uma pessoa que não pode ser acionada, SMS desativado, um agendamento de plantão sem ninguém de plantão, uma página de status que não mostra nenhum monitor. Cada descoberta diz em uma frase o que está errado, com o botão que abre a correção, e as descobertas de um monitor são as falhas que o cartão **Quando cair** dele aponta. Uma descoberta que sua equipe deixa assim de propósito pode ser dispensada com um motivo, para todos, e restaurada em **Dispensado**. A pesquisa encontra a página como **Saúde da configuração**, e Pergunte à IA responde "minha configuração está OK?" a partir dela.
 
 ### Seu projeto
 
@@ -90,21 +105,7 @@ A lista some quando as quatro etapas estão concluídas. Para escondê-la antes,
 
 ### Explore o OneUptime
 
-**Explore o OneUptime** mostra os produtos do menu **Produtos** uma categoria por vez, começando pelos essenciais. Cada produto diz para que serve e abre quando você clica nele.
-
-### O menu lateral do Início
-
-O Início não tem menu lateral: ele já mostra tudo o que o menu mostraria. As listas que ele abre compartilham um, que mostra cada lista com sua contagem e volta ao Início em **Visão geral**:
-
-| Seção | Páginas |
-| --- | --- |
-| **Início** | **Visão geral** |
-| **Incidentes** | **Incidentes ativos** e **Episódios ativos** |
-| **Alertas** | **Alertas ativos** e **Episódios ativos** |
-| **Monitores** | **Não operacional** |
-| **Eventos programados** | **Em andamento** |
-
-Um episódio agrupa incidentes ou alertas relacionados para você tratá-los como um só. Veja [Conceitos básicos](/docs/introduction/core-concepts#incidentes-e-alertas).
+**Explore o OneUptime** mostra os produtos do menu **Produtos** uma categoria por vez, começando pelos essenciais. Cada produto diz para que serve e abre quando você clica nele. Os produtos que o seu projeto oculta ficam de fora.
 
 ## Encontrar o caminho
 
@@ -114,6 +115,9 @@ Tudo no OneUptime fica em **Produtos**, na barra do topo. O menu lista seus grup
 - **Você começa onde está.** O grupo da página em que você está se expande sozinho, e os produtos que você abriu recentemente aparecem no topo.
 - **Suas escolhas ficam.** O menu lembra, no seu navegador, quais dos outros grupos você expandiu ou recolheu. Os essenciais voltam a ficar expandidos cada vez que você abre o menu, mesmo que você os tenha recolhido.
 - **No celular**, o botão do menu lista os produtos do mesmo jeito: os essenciais expandidos no topo, e cada um dos outros grupos como uma linha que abre com um toque.
+- **Produtos que o projeto não usa.** Um proprietário ou administrador do projeto pode ocultá-los em **Configurações do projeto → Básico → Produtos**. Um produto oculto vai para **Mais produtos**, a última linha do menu: a pesquisa ainda o encontra, suas páginas continuam funcionando e seus dados continuam chegando. Quando um deles começa a receber dados, o Início avisa quem pode mostrá-lo de novo.
+- **Fixar.** Mantenha um produto na barra superior, ao lado de **Início** e **Produtos**: toque no alfinete do cartão dele no menu, ou em **Fixar** ao lado do título da página dele. Você pode fixar cinco, e eles acompanham você em qualquer navegador. No celular, seus produtos fixados vêm primeiro no menu.
+- **O que está em uso.** Em cada grupo, exceto os essenciais e as configurações, os produtos que o seu projeto usa vêm primeiro, e um que você ainda não configurou diz **Não configurado**. No OneUptime Cloud, um produto que o seu plano não inclui nomeia o plano que o inclui.
 
 ### As barras do topo
 
@@ -125,7 +129,9 @@ Duas barras atravessam o topo de cada página.
 | Canto superior direito | **Pesquisar** e **Pergunte à IA**, o sino de notificações com o que precisa de você agora (incidentes e alertas ativos, as políticas de plantão em que você está de turno, convites pendentes), **Ajuda**, e sua foto, que abre o menu da sua [conta](/docs/introduction/your-account). |
 | Abaixo delas | **Início** e **Produtos** à esquerda, **Configurações do usuário** à direita: como o OneUptime contata você neste projeto. |
 
-**Ajuda** abre esta documentação (**Documentação**) e a lista **Keyboard shortcuts**, e oferece suporte por e-mail e no Slack. Em uma tela estreita, como a de um celular, **Pesquisar**, **Pergunte à IA** e **Ajuda** saem para ganhar espaço; o sino e sua foto ficam.
+**Ajuda** começa pelo que ajuda a aprender: **Início rápido**, **Como o OneUptime funciona**, **Glossário** e esta documentação (**Documentação**). Abaixo ficam a lista **Keyboard shortcuts** e o suporte por e-mail e no Slack. Em um tablet ou em uma janela estreita, **Pergunte à IA** sai para ganhar espaço: ela está entre as ações de **Pesquisar**. Em um celular, **Pesquisar** e **Ajuda** passam para a lista do botão de menu, no topo e no final; o sino e sua foto ficam.
+
+Uma palavra com uma linha pontilhada embaixo, como **Sondas** no formulário de um novo monitor, diz o que significa quando você aponta para ela, chega a ela com Tab ou toca nela. O **Ler mais** dela abre a palavra no [Glossário](/docs/introduction/glossary).
 
 ### Páginas e listas
 
@@ -146,6 +152,7 @@ Pressione **Cmd+K** (Mac) ou **Ctrl+K** (Windows e Linux), ou clique no ícone d
 - **As configurações de uma página**, pelo nome que o cartão ou o botão delas mostra: *Exigir SSO para login* encontra SSO, e *Canais de notificação* encontra Configurações de notificação. Digite o nome em inglês ou no seu idioma.
 - **Ações**, pelo que você quer fazer: Declarar incidente, Criar monitor ou Delete Project, que abre a Zona de perigo. Uma ação que muda algo só é oferecida a quem tem permissão para fazê-la.
 - **Seus monitores, incidentes, alertas, páginas de status e políticas de plantão**, pelo nome, e incidentes e alertas também pelo número, como `INC-42`. Cada resultado de incidente ou alerta começa pelo número dele, para que dois com o mesmo título se distingam.
+- **A documentação**, em um grupo *Documentação* abaixo de todo o resto: as páginas e seções cujas palavras correspondem ao que você digitou, no seu idioma, mesmo com um erro de digitação. Cada uma abre em uma nova aba, para você não perder seu lugar.
 
 A pesquisa lê o que você digita do jeito que você quer dizer:
 

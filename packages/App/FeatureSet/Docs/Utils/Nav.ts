@@ -2,6 +2,13 @@ export interface NavLink {
   // Stable English title — also used as a translation key.
   title: string;
   url: string;
+  /*
+   * A guide: a page written to be followed from its first line to its last
+   * to get one job done (the Quickstart, the Self-Hosting Guide, and the
+   * guides of #6821). Docs search ranks a guide above a reference page for
+   * the same words (Utils/DocsSearch.ts).
+   */
+  isGuide?: boolean | undefined;
 }
 
 export interface NavGroup {
@@ -70,10 +77,19 @@ const DocsNav: NavGroup[] = [
       {
         title: "Quickstart",
         url: "/docs/introduction/quickstart",
+        isGuide: true,
       },
       {
         title: "Core Concepts",
         url: "/docs/introduction/core-concepts",
+      },
+      {
+        title: "Glossary",
+        url: "/docs/introduction/glossary",
+      },
+      {
+        title: "Which One Do I Use?",
+        url: "/docs/introduction/which-one",
       },
       {
         title: "Home Page & Shortcuts",
@@ -82,6 +98,30 @@ const DocsNav: NavGroup[] = [
       {
         title: "Your Account",
         url: "/docs/introduction/your-account",
+      },
+    ],
+  },
+  /*
+   * One page per job people come to OneUptime with (#6821), each followed
+   * from its first line to its last: what you will have, what you need,
+   * the steps (walking the product's guided setup where there is one),
+   * how to check it worked, what can go wrong and what to do next.
+   * Getting Started's "What do you want to do?" opens them, and the
+   * reference pages they replace for a newcomer point to them first.
+   */
+  {
+    title: "Guides",
+    section: "Get Started",
+    links: [
+      {
+        title: "Get Paged by Phone, SMS or Push",
+        url: "/docs/guides/paging",
+        isGuide: true,
+      },
+      {
+        title: "Publish a Status Page",
+        url: "/docs/guides/status-page",
+        isGuide: true,
       },
     ],
   },
@@ -1674,10 +1714,17 @@ const DocsNav: NavGroup[] = [
     section: "Self-Hosting",
     links: [
       /*
-       * Docker Compose first: /docs/installation opens a category's first
-       * page, and people who type it want to install OneUptime. Running it
-       * from source, to work on it, comes last.
+       * The Self-Hosting Guide first: /docs/installation opens a category's
+       * first page, and people who type it want to install OneUptime. It
+       * goes from an empty server to one that has sent a test email and can
+       * page, and leads to Docker Compose and the chart's docs for detail.
+       * Running OneUptime from source, to work on it, comes last.
        */
+      {
+        title: "Self-Hosting Guide",
+        url: "/docs/installation/self-hosting-guide",
+        isGuide: true,
+      },
       {
         title: "Docker Compose",
         url: "/docs/installation/docker-compose",

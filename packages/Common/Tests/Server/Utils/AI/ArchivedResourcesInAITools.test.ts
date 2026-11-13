@@ -21,6 +21,7 @@ import {
   QueryWorkflowsTool,
 } from "../../../../Server/Utils/AI/Toolbox/WorkflowProbeTools";
 import IncidentService from "../../../../Server/Services/IncidentService";
+import MonitorGroupService from "../../../../Server/Services/MonitorGroupService";
 import MonitorOwnerTeamService from "../../../../Server/Services/MonitorOwnerTeamService";
 import MonitorOwnerUserService from "../../../../Server/Services/MonitorOwnerUserService";
 import MonitorService from "../../../../Server/Services/MonitorService";
@@ -40,6 +41,8 @@ import WorkspaceMemberActions, {
 } from "../../../../Server/Utils/Workspace/WorkspaceMemberActions";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
+import MonitorGroup from "../../../../Models/DatabaseModels/MonitorGroup";
+import MonitorGroupResource from "../../../../Models/DatabaseModels/MonitorGroupResource";
 import MonitorStatus from "../../../../Models/DatabaseModels/MonitorStatus";
 import OnCallDutyPolicy from "../../../../Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyEscalationRule from "../../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
@@ -50,6 +53,7 @@ import User from "../../../../Models/DatabaseModels/User";
 import Workflow from "../../../../Models/DatabaseModels/Workflow";
 import WorkflowLog from "../../../../Models/DatabaseModels/WorkflowLog";
 import BadDataException from "../../../../Types/Exception/BadDataException";
+import Dictionary from "../../../../Types/Dictionary";
 import { JSONObject } from "../../../../Types/JSON";
 import MonitorType from "../../../../Types/Monitor/MonitorType";
 import Name from "../../../../Types/Name";
@@ -314,8 +318,11 @@ describe("query_status_pages and archived status pages", () => {
     return row;
   }
 
-  // The monitors of the resources below that are archived, by id.
-  let archivedMonitors: Array<Monitor> = [];
+  /*
+   * The monitors of the resources below, as the read as OneUptime returns
+   * them: each with whether it is archived and whether its monitoring is off.
+   */
+  let monitorsRead: Array<Monitor> = [];
 
   /*
    * A resource as the caller's read returns it: the monitor's id and name,
@@ -323,7 +330,7 @@ describe("query_status_pages and archived status pages", () => {
    */
   function resource(
     displayName: string,
-    monitorIsArchived: boolean,
+    state: { isArchived?: boolean; isMonitoringOff?: boolean } = {},
   ): StatusPageResource {
     const row: StatusPageResource = new StatusPageResource();
     row._id = ObjectID.generate().toString();
@@ -333,9 +340,10 @@ describe("query_status_pages and archived status pages", () => {
     monitor.name = `${displayName} monitor`;
     row.monitor = monitor;
 
-    if (monitorIsArchived) {
-      archivedMonitors.push(new Monitor(row.monitorId));
-    }
+    const read: Monitor = new Monitor(row.monitorId);
+    read.isArchived = state.isArchived === true;
+    read.disableActiveMonitoring = state.isMonitoringOff === true;
+    monitorsRead.push(read);
 
     return row;
   }
@@ -354,14 +362,17 @@ describe("query_status_pages and archived status pages", () => {
       "findBy",
       resources,
     );
-    const monitorsFindBy: AnySpy = spy(
-      MonitorService,
-      "findBy",
-      archivedMonitors,
-    );
+    const monitorsFindBy: AnySpy = spy(MonitorService, "findBy", monitorsRead);
     spy(StatusPageSubscriberService, "countBy", new PositiveNumber(12));
     spy(StatusPageService, "getStatusPageURL", "https://status.acme.dev");
     return { findOneById, resourcesFindBy, monitorsFindBy };
+  }
+
+  async function readPage(): Promise<ToolExecutionResult> {
+    return await QueryStatusPagesTool.execute(
+      { statusPageId: ObjectID.generate().toString() },
+      ctx,
+    );
   }
 
   test("the list leaves archived status pages out, in the rows and in the count", async () => {
@@ -411,38 +422,51 @@ describe("query_status_pages and archived status pages", () => {
   });
 
   test("an archived monitor is not among the resources a page shows, as the public page leaves it off", async () => {
-    archivedMonitors = [];
-    const checkout: StatusPageResource = resource("Checkout", false);
-    const legacy: StatusPageResource = resource("Legacy API", true);
+    monitorsRead = [];
+    const checkout: StatusPageResource = resource("Checkout");
+    const legacy: StatusPageResource = resource("Legacy API", {
+      isArchived: true,
+    });
     const { resourcesFindBy, monitorsFindBy } = mockDetail(statusPage(false), [
       checkout,
       legacy,
     ]);
 
-    const result: ToolExecutionResult = await QueryStatusPagesTool.execute(
-      { statusPageId: ObjectID.generate().toString() },
-      ctx,
-    );
+    const result: ToolExecutionResult = await readPage();
 
     /*
      * The caller's read asks for each resource's monitor and its name, and
-     * never for whether it is archived: a relation read does not read that
-     * column, and asking for it refused every member's read.
+     * never for whether it is archived or off: a relation read does not
+     * read those columns, and asking for one refused every member's read.
      */
     const select: JSONObject = firstCallArg(resourcesFindBy)[
       "select"
     ] as JSONObject;
     expect(select["monitorId"]).toBe(true);
+    expect(select["monitorGroupId"]).toBe(true);
     expect((select["monitor"] as JSONObject)["isArchived"]).toBeUndefined();
+    expect(
+      (select["monitor"] as JSONObject)["disableActiveMonitoring"],
+    ).toBeUndefined();
 
-    // Which of those monitors are archived is read as OneUptime, and only those.
+    /*
+     * Whether each of those monitors is archived, and whether its
+     * monitoring is off, is read as OneUptime - for those monitors alone,
+     * in the caller's project.
+     */
+    expect(monitorsFindBy).toHaveBeenCalledTimes(1);
     const monitorRead: JSONObject = firstCallArg(monitorsFindBy);
     expect(monitorRead["props"]).toEqual({ isRoot: true });
-    expect((monitorRead["query"] as JSONObject)["isArchived"]).toBe(true);
+    expect((monitorRead["query"] as JSONObject)["isArchived"]).toBeUndefined();
+    expect((monitorRead["query"] as JSONObject)["_id"]).toBeDefined();
     expect((monitorRead["query"] as JSONObject)["projectId"]).toBe(
       ctx.projectId,
     );
-    expect(monitorRead["select"]).toEqual({ _id: true });
+    expect(monitorRead["select"]).toEqual({
+      _id: true,
+      isArchived: true,
+      disableActiveMonitoring: true,
+    });
 
     expect(result.dataForLlm).toContain("Checkout");
     expect(result.dataForLlm).not.toContain("Legacy API");
@@ -451,6 +475,217 @@ describe("query_status_pages and archived status pages", () => {
       label: "Resources shown",
       value: "1: Checkout (monitor: Checkout monitor)",
     });
+  });
+});
+
+describe("query_status_pages and monitors whose monitoring is off", () => {
+  /*
+   * The public page keeps a resource whose monitor has monitoring turned
+   * off, and draws it as Not monitored, with no status: nothing checks it,
+   * so the status it holds is frozen (FrozenMonitorResources). The
+   * assistant lists it the same way - still on the page, still part of what
+   * a post reaches - marked "not monitored", so a reply never reads its
+   * frozen status as live.
+   */
+  function statusPage(): StatusPage {
+    const row: StatusPage = new StatusPage();
+    row._id = ObjectID.generate().toString();
+    row.name = "Acme Status";
+    row.isPublicStatusPage = true;
+    row.isArchived = false;
+    return row;
+  }
+
+  let monitorsRead: Array<Monitor> = [];
+
+  function resource(
+    displayName: string,
+    state: { isArchived?: boolean; isMonitoringOff?: boolean } = {},
+  ): StatusPageResource {
+    const row: StatusPageResource = new StatusPageResource();
+    row._id = ObjectID.generate().toString();
+    row.displayName = displayName;
+    row.monitorId = ObjectID.generate();
+    const monitor: Monitor = new Monitor();
+    monitor.name = `${displayName} monitor`;
+    row.monitor = monitor;
+
+    const read: Monitor = new Monitor(row.monitorId);
+    read.isArchived = state.isArchived === true;
+    read.disableActiveMonitoring = state.isMonitoringOff === true;
+    monitorsRead.push(read);
+
+    return row;
+  }
+
+  function groupResource(
+    displayName: string,
+    monitorGroupId: ObjectID,
+  ): StatusPageResource {
+    const row: StatusPageResource = new StatusPageResource();
+    row._id = ObjectID.generate().toString();
+    row.displayName = displayName;
+    row.monitorGroupId = monitorGroupId;
+    const group: MonitorGroup = new MonitorGroup();
+    group.name = `${displayName} group`;
+    row.monitorGroup = group;
+    return row;
+  }
+
+  // A member of a monitor group, as MonitorGroupService reads it.
+  function member(isMonitoringOff: boolean): MonitorGroupResource {
+    const row: MonitorGroupResource = new MonitorGroupResource();
+    row.monitorId = ObjectID.generate();
+    const monitor: Monitor = new Monitor(row.monitorId);
+    monitor.isArchived = false;
+    monitor.disableActiveMonitoring = isMonitoringOff;
+    row.monitor = monitor;
+    return row;
+  }
+
+  function mockDetail(
+    resources: Array<StatusPageResource>,
+    monitorGroupMembers: Dictionary<Array<MonitorGroupResource>> = {},
+  ): { monitorsFindBy: AnySpy; groupMembersRead: AnySpy } {
+    spy(StatusPageService, "findOneById", statusPage());
+    spy(StatusPageResourceService, "findBy", resources);
+    const monitorsFindBy: AnySpy = spy(MonitorService, "findBy", monitorsRead);
+    const groupMembersRead: AnySpy = spy(
+      MonitorGroupService,
+      "getMonitorGroupResourcesByGroupIds",
+      monitorGroupMembers,
+    );
+    spy(StatusPageSubscriberService, "countBy", new PositiveNumber(12));
+    spy(StatusPageService, "getStatusPageURL", "https://status.acme.dev");
+    return { monitorsFindBy, groupMembersRead };
+  }
+
+  async function readPage(): Promise<ToolExecutionResult> {
+    return await QueryStatusPagesTool.execute(
+      { statusPageId: ObjectID.generate().toString() },
+      ctx,
+    );
+  }
+
+  function resourcesShown(result: ToolExecutionResult): string | undefined {
+    return cardFields(result).find(
+      (field: { label: string; value: string }): boolean => {
+        return field.label === "Resources shown";
+      },
+    )?.value;
+  }
+
+  afterEach(() => {
+    monitorsRead = [];
+  });
+
+  test("a monitor whose monitoring is off stays among the resources a page shows, marked not monitored", async () => {
+    const checkout: StatusPageResource = resource("Checkout");
+    const search: StatusPageResource = resource("Search", {
+      isMonitoringOff: true,
+    });
+    mockDetail([checkout, search]);
+
+    const result: ToolExecutionResult = await readPage();
+
+    expect(result.dataForLlm).toContain("resourceCount=2");
+    expect(result.dataForLlm).toContain(
+      "Search (monitor: Search monitor) - not monitored",
+    );
+    expect(result.dataForLlm).not.toContain(
+      "Checkout (monitor: Checkout monitor) - not monitored",
+    );
+    expect(resourcesShown(result)).toBe(
+      "2: Checkout (monitor: Checkout monitor), Search (monitor: Search monitor) - not monitored",
+    );
+  });
+
+  test("a page whose monitors are all off lists every one, each marked", async () => {
+    mockDetail([
+      resource("Checkout", { isMonitoringOff: true }),
+      resource("Search", { isMonitoringOff: true }),
+    ]);
+
+    const result: ToolExecutionResult = await readPage();
+
+    expect(result.dataForLlm).toContain("resourceCount=2");
+    expect(resourcesShown(result)).toBe(
+      "2: Checkout (monitor: Checkout monitor) - not monitored, Search (monitor: Search monitor) - not monitored",
+    );
+  });
+
+  test("a monitor that is both archived and off is left off the page, not marked", async () => {
+    mockDetail([
+      resource("Checkout"),
+      resource("Legacy API", { isArchived: true, isMonitoringOff: true }),
+    ]);
+
+    const result: ToolExecutionResult = await readPage();
+
+    expect(result.dataForLlm).not.toContain("Legacy API");
+    expect(resourcesShown(result)).toBe(
+      "1: Checkout (monitor: Checkout monitor)",
+    );
+  });
+
+  test("a monitor the read as OneUptime did not find counts as checked: nothing is marked by guess", async () => {
+    const checkout: StatusPageResource = resource("Checkout");
+    // The read finds no row for it - deleted, or in another project.
+    monitorsRead = [];
+    mockDetail([checkout]);
+
+    const result: ToolExecutionResult = await readPage();
+
+    expect(resourcesShown(result)).toBe(
+      "1: Checkout (monitor: Checkout monitor)",
+    );
+  });
+
+  test("a monitor group is marked not monitored when every monitor in it has monitoring off, and only then", async () => {
+    const allOffId: ObjectID = ObjectID.generate();
+    const mixedId: ObjectID = ObjectID.generate();
+    const emptyId: ObjectID = ObjectID.generate();
+
+    const { groupMembersRead, monitorsFindBy } = mockDetail(
+      [
+        groupResource("Payments", allOffId),
+        groupResource("Edge", mixedId),
+        groupResource("Empty", emptyId),
+      ],
+      {
+        [allOffId.toString()]: [member(true), member(true)],
+        [mixedId.toString()]: [member(true), member(false)],
+        [emptyId.toString()]: [],
+      },
+    );
+
+    const result: ToolExecutionResult = await readPage();
+
+    // The groups' members are read once, for the groups on the page.
+    expect(groupMembersRead).toHaveBeenCalledTimes(1);
+    expect(
+      (groupMembersRead.mock.calls[0]?.[0] as unknown as Array<ObjectID>).map(
+        (id: ObjectID): string => {
+          return id.toString();
+        },
+      ),
+    ).toEqual([allOffId.toString(), mixedId.toString(), emptyId.toString()]);
+
+    // No resource is a monitor, so no monitor is read.
+    expect(monitorsFindBy).not.toHaveBeenCalled();
+
+    expect(resourcesShown(result)).toBe(
+      "3: Payments (monitor group: Payments group) - not monitored, Edge (monitor group: Edge group), Empty (monitor group: Empty group)",
+    );
+  });
+
+  test("the tool tells the model what not monitored means", () => {
+    expect(QueryStatusPagesTool.description).toContain(
+      "A resource marked 'not monitored' has its monitoring turned off",
+    );
+    expect(QueryStatusPagesTool.description).toContain(
+      "counts toward no status on the page",
+    );
   });
 });
 

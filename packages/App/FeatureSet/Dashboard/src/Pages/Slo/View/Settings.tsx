@@ -171,11 +171,17 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
    * Built once per mount: the period fields carry the full timezone list,
    * and rebuilding it on every render would hand each form new field
    * objects for no reason.
+   *
+   * The objective's fields are built again when the reader switches
+   * language: Target (%)'s help is a sentence filled in with its figures
+   * when it is built (getSloTargetHelpText), not a key the field looks up
+   * as it draws, so Edit Objective would otherwise keep the language the
+   * page opened in.
    */
   const objectiveFormFields: Array<ModelField<ServiceLevelObjective>> =
     useMemo((): Array<ModelField<ServiceLevelObjective>> => {
       return getSloObjectiveSettingsFormFields();
-    }, []);
+    }, [translator.language]);
   const periodFormFields: Array<ModelField<ServiceLevelObjective>> =
     useMemo((): Array<ModelField<ServiceLevelObjective>> => {
       return getSloPeriodSettingsFormFields();
@@ -226,8 +232,13 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
               title: "Target",
               fieldType: FieldType.Element,
               getElement: (item: ServiceLevelObjective): ReactElement => {
+                // "99,9 %" in German: the figures the reader's way.
                 return getValueElement(
-                  formatSloPercent(item.targetPercentage) || EM_DASH,
+                  formatSloPercent(
+                    item.targetPercentage,
+                    undefined,
+                    translator,
+                  ) || EM_DASH,
                 );
               },
             },
@@ -240,6 +251,8 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
               getElement: (item: ServiceLevelObjective): ReactElement => {
                 const threshold: string | null = formatSloPercent(
                   item.atRiskThresholdPercentage,
+                  undefined,
+                  translator,
                 );
 
                 return getValueElement(
@@ -262,12 +275,16 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
               title: "Error Budget",
               fieldType: FieldType.Element,
               getElement: (item: ServiceLevelObjective): ReactElement => {
+                // "0,1 % jedes Monats: 43 Min., 12 Sek. ..." in German.
                 return getValueElement(
-                  describeSloErrorBudget({
-                    targetPercentage: item.targetPercentage,
-                    windowType: item.windowType,
-                    windowDays: item.windowDays,
-                  }) || EM_DASH,
+                  describeSloErrorBudget(
+                    {
+                      targetPercentage: item.targetPercentage,
+                      windowType: item.windowType,
+                      windowDays: item.windowDays,
+                    },
+                    translator,
+                  ) || EM_DASH,
                   translator.translateTemplate(
                     "The downtime this objective allows before it is breached.",
                   ),
@@ -313,11 +330,14 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   item.windowType || SloWindowType.Rolling;
 
                 return getValueElement(
-                  describeSloWindow({
-                    windowType: windowType,
-                    windowDays: item.windowDays,
-                    timezone: item.timezone,
-                  }),
+                  describeSloWindow(
+                    {
+                      windowType: windowType,
+                      windowDays: item.windowDays,
+                      timezone: item.timezone,
+                    },
+                    translator,
+                  ),
                   translator.translateText(
                     SLO_WINDOW_TYPE_DESCRIPTIONS[windowType],
                   ),

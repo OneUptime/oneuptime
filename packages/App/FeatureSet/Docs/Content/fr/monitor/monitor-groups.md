@@ -1,6 +1,6 @@
 # Groupes de moniteurs
 
-Un groupe de moniteurs réunit plusieurs moniteurs en un seul statut. Regroupez les moniteurs qui forment ensemble un service, comme Checkout : son API, son service de paiement et son application web. Le groupe affiche le pire statut parmi eux, a sa propre disponibilité, et une page de statut peut afficher tout le groupe sur une seule ligne.
+Un groupe de moniteurs réunit plusieurs moniteurs en un seul statut. Regroupez les moniteurs qui forment ensemble un service, comme Checkout : son API, son service de paiement et son application web. Le groupe affiche le pire statut parmi eux, a sa propre disponibilité, et une page de statut peut afficher tout le groupe sur une seule ligne. Pour choisir entre un groupe de moniteurs, un service et une étiquette, consultez [Lequel choisir ?](/docs/introduction/which-one#groupe-de-moniteurs-service-ou-étiquette).
 
 :::cards
 - [Comment le statut d'un groupe est calculé](#comment-le-statut-dun-groupe-est-calculé): Le pire statut parmi ses moniteurs.
@@ -27,8 +27,9 @@ flowchart TB
 ```
 
 - **Les moniteurs archivés ne comptent pas.** Un moniteur archivé n'est pas vérifié, son statut est donc figé ; le groupe l'écarte.
+- **Les moniteurs dont la surveillance est désactivée ne comptent pas.** Rien ne vérifie un moniteur dont la surveillance est désactivée, son statut n'est donc que ce qu'a vu sa dernière vérification. Le groupe l'écarte de son statut : un moniteur resté **Hors ligne** quand sa surveillance a été désactivée ne rend pas le groupe **Hors ligne**. La disponibilité et le **Graphique de disponibilité** du groupe gardent l'historique du moniteur jusqu'à la désactivation de sa surveillance et écartent le temps qui suit, dans le tableau de bord comme sur les pages de statut. Une fois sa surveillance réactivée, le moniteur compte de nouveau à partir de ce moment.
 - **Un groupe vide est opérationnel.** Un groupe sans moniteur, ou avec seulement des moniteurs archivés, affiche votre statut opérationnel. Tant que vous n'ajoutez pas de moniteur, le tableau de bord affiche **Aucun moniteur pour l'instant** à la place de son statut.
-- **Une surveillance désactivée affiche Désactivé.** Quand la surveillance est désactivée pour tous les moniteurs d'un groupe, rien ne les vérifie, et le tableau de bord affiche **Désactivé** à la place du statut du groupe.
+- **Une surveillance désactivée affiche Désactivé.** Quand la surveillance est désactivée pour tous les moniteurs d'un groupe, rien ne les vérifie, et le tableau de bord affiche **Désactivé** à la place du statut du groupe ; son **Graphique de disponibilité** et sa disponibilité s'arrêtent là où la surveillance a été désactivée pour le dernier d'entre eux. Une page de statut affiche le groupe comme **Non surveillé**.
 - **L'ordre est le vôtre.** Le pire statut suit l'ordre de **Moniteurs → Paramètres → Statut du moniteur**. Voir [Statuts de moniteur](/docs/monitor/criteria-and-statuses#statuts-de-moniteur).
 
 Un groupe de moniteurs n'est pas un groupe de page de statut. Un groupe de page de statut est un titre sur une page de statut qui contient des lignes. Un groupe de moniteurs est une ligne qui représente plusieurs moniteurs, et n'importe quelle page de statut peut l'afficher.
@@ -91,6 +92,8 @@ Ouvrez un groupe pour voir ses pages dans le menu latéral :
 
 La disponibilité de la **Vue d'ensemble** compte tout statut autre que l'opérationnel comme indisponibilité. Une page de statut ne compte que les statuts de sa propre liste **Compte comme indisponibilité** : voir [Choisir ce qui s'affiche sur la page](/docs/status-pages/index#choisir-ce-qui-saffiche-sur-la-page).
 
+Chaque barre du graphique de disponibilité, ici comme sur une page de statut, montre combien de temps le groupe lui-même est resté dans chaque statut ce jour-là : à chaque instant, il a le pire statut parmi ses moniteurs, si bien qu'une heure pendant laquelle deux d'entre eux sont hors ligne en même temps compte pour une heure du groupe, et qu'une journée ne fait jamais plus d'une journée. Les jours sont les vôtres : le tableau de bord les dessine dans le fuseau horaire de vos paramètres utilisateur, et une page de statut dans celui de chaque visiteur.
+
 La liste **Groupes de moniteurs** peut filtrer les groupes par propriétaire et par libellé, définir les libellés et les propriétaires de nombreux groupes à la fois, et exporter ou importer des groupes en JSON.
 
 ## Désactiver la surveillance de tout un groupe
@@ -122,7 +125,7 @@ Choisissez le groupe. **Nom d'affichage**, le nom que lisent les visiteurs, repr
 
 Sur la page de statut, la ligne représente chaque moniteur du groupe :
 
-- **Son statut.** C'est celui du groupe : le pire de ses moniteurs.
+- **Son statut.** C'est celui du groupe : le pire de ses moniteurs dont la surveillance est activée. Quand la surveillance est désactivée pour tous, la ligne affiche **Non surveillé** et ne compte ni pour l'en-tête au-dessus d'elle ni pour le statut global de la page.
 - **Ses incidents.** Un incident sur n'importe quel moniteur du groupe apparaît sur la page, avec le groupe cité parmi les ressources affectées.
 - **Ses abonnés.** Un abonné qui choisit le groupe est informé pour chaque moniteur qu'il contient. Voir [Laisser les abonnés choisir les ressources et les types d'événements](/docs/status-pages/subscribers#laisser-les-abonnés-choisir-ressources-et-types-dévénements).
 
