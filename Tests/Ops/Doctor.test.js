@@ -1290,6 +1290,8 @@ describe("against a real HTTP server standing in for the ingress", () => {
   let elsewherePort;
   // Where the doctor's path redirects to, when a test says.
   let redirectTo = null;
+  // The ONEUPTIME_SECRET the app runs with, which it compares the key with.
+  let appKey = SECRET;
   const seen = [];
   const seenElsewhere = [];
 
@@ -1328,7 +1330,8 @@ describe("against a real HTTP server standing in for the ingress", () => {
           return;
         }
 
-        if (req.headers.clusterkey !== SECRET) {
+        // As the app compares a key: with its own, URI-encoded (ClusterKeyAuthorization.getClusterKey).
+        if (req.headers.clusterkey !== encodeURIComponent(appKey)) {
           res.writeHead(400, { "content-type": "application/json" });
           res.end(JSON.stringify({ error: "Invalid cluster key" }));
           return;
@@ -1369,6 +1372,7 @@ describe("against a real HTTP server standing in for the ingress", () => {
 
   beforeEach(() => {
     redirectTo = null;
+    appKey = SECRET;
     seen.length = 0;
     seenElsewhere.length = 0;
   });
@@ -1455,6 +1459,44 @@ describe("against a real HTTP server standing in for the ingress", () => {
       "OneUptime could not say how its databases, migrations, queues and setup are (HTTP 307).",
     );
   });
+
+  /*
+   * Keys with characters URI-encoding changes: + / = @ & %, a Latin-1
+   * letter, which Node's http would send as one byte, and letters beyond
+   * Latin-1, which it would not send at all.
+   */
+  test.each([
+    ["+ / = @ & %", "Ab+c/d=e@f&g%h"],
+    ["a Latin-1 letter", "clé-du-cluster"],
+    ["letters beyond Latin-1", "clé-du-cluster-ä-ø-漢字-🔑"],
+  ])(
+    "a key with %s goes URI-encoded, as the app compares it, and the server's answer is read",
+    async (_characters, key) => {
+      appKey = key;
+
+      const result = await runAgainstServer(
+        healthyConfig([
+          `HOST=127.0.0.1:${port}`,
+          "HTTP_PROTOCOL=http",
+          "PROVISION_SSL=false",
+          `ONEUPTIME_HTTP_PORT=127.0.0.1:${port}`,
+          `ONEUPTIME_SECRET=${key}`,
+        ]),
+      );
+
+      expect(
+        seen.filter((entry) => {
+          return entry.url === DOCTOR_PATH;
+        }),
+      ).toEqual([
+        Object.assign({}, DOCTORS_POST, {
+          clusterkey: encodeURIComponent(key),
+        }),
+      ]);
+      expect(result.output).toContain("✗ Email: Not set up yet");
+      expect(result.output).not.toContain("did not accept ONEUPTIME_SECRET");
+    },
+  );
 
   test("a key the server refuses is said, not a crash", async () => {
     const result = await runAgainstServer(

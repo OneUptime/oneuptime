@@ -827,9 +827,11 @@ check_ingress() {
 # sign-ups, SMS and calls, probes, backups, update checks). Asked from inside
 # the app pod, with the cluster key the pod already holds, so the key never
 # leaves the pod: only the findings do. It is a POST to
-# /api/admin/health/doctor, the key in the clusterkey header, as every request
-# that presents the cluster key; the POST changes nothing. A redirect is not
-# followed, so the key goes to no other address.
+# /api/admin/health/doctor, the key in the clusterkey header, URI-encoded as
+# every request that presents the cluster key (ClusterKeyAuthorization's
+# getClusterKey), so a key with + / = @ & % or a letter beyond ASCII is
+# accepted too; the POST changes nothing. A redirect is not followed, so the
+# key goes to no other address.
 # ---------------------------------------------------------------------------
 
 # Run with node inside the app pod. Prints one line a finding,
@@ -841,7 +843,7 @@ const clean = (text) => String(text || "").replace(/[|\s]+/g, " ").trim();
 fetch("http://127.0.0.1:" + port + "/api/admin/health/doctor", {
   method: "POST",
   redirect: "manual",
-  headers: { clusterkey: process.env.ONEUPTIME_SECRET || "" },
+  headers: { clusterkey: encodeURIComponent(process.env.ONEUPTIME_SECRET || "") },
 })
   .then(async (response) => {
     if (response.status !== 200) {
