@@ -73,12 +73,8 @@ function readTree(file: string): Tree {
 
 // Every string of a Persian locale, beside the English at the same key.
 function textsOf(folder: string): Array<Text> {
-  const english: Tree = readTree(
-    path.join(REPOSITORY_ROOT, folder, "en.json"),
-  );
-  const persian: Tree = readTree(
-    path.join(REPOSITORY_ROOT, folder, "fa.json"),
-  );
+  const english: Tree = readTree(path.join(REPOSITORY_ROOT, folder, "en.json"));
+  const persian: Tree = readTree(path.join(REPOSITORY_ROOT, folder, "fa.json"));
   const texts: Array<Text> = [];
 
   const walk: (fa: Tree, en: unknown, at: Array<string>) => void = (
@@ -111,9 +107,7 @@ function textsOf(folder: string): Array<Text> {
 function namesASoftwareLicense(english: string): boolean {
   const words: string = english.replace(PLACEHOLDER, " ");
 
-  return (
-    NAMES_A_LICENSE.test(words) && !NAMES_A_DRIVING_LICENCE.test(words)
-  );
+  return NAMES_A_LICENSE.test(words) && !NAMES_A_DRIVING_LICENCE.test(words);
 }
 
 /*
@@ -327,7 +321,8 @@ describe("Persian's word for a software license", () => {
       },
       {
         where: "c",
-        english: "A warning, not a failure, without the permission or the licence.",
+        english:
+          "A warning, not a failure, without the permission or the licence.",
         persian: "بدون مجوز دسترسی یک هشدار است، نه یک شکست.",
       },
       {
@@ -347,7 +342,8 @@ describe("Persian's word for a software license", () => {
       },
       {
         where: "g",
-        english: "A warning, not a failure, without the permission or the licence.",
+        english:
+          "A warning, not a failure, without the permission or the licence.",
         persian: "بدون مجوز دسترسی یا پروانه یک هشدار است، نه یک شکست.",
       },
       {
@@ -391,15 +387,15 @@ describe("Persian's word for a software license", () => {
     ["pages.enterpriseLicenses.title", "پروانه‌های سازمانی"],
     ["pages.enterpriseLicenseView.title", "پروانهٔ سازمانی"],
     ["pages.enterpriseLicenseView.cardTitle", "جزئیات پروانه"],
-    ["pages.enterpriseLicenseView.offlineTokenCardTitle", "توکن پروانهٔ آفلاین"],
+    [
+      "pages.enterpriseLicenseView.offlineTokenCardTitle",
+      "توکن پروانهٔ آفلاین",
+    ],
     ["Enterprise License", "پروانهٔ سازمانی"],
     ["Enterprise license required.", "پروانهٔ Enterprise لازم است."],
-  ])(
-    "the Admin Dashboard's %s reads %s",
-    (key: string, persian: string) => {
-      expect(persianOf(ADMIN_DASHBOARD, key)).toBe(persian);
-    },
-  );
+  ])("the Admin Dashboard's %s reads %s", (key: string, persian: string) => {
+    expect(persianOf(ADMIN_DASHBOARD, key)).toBe(persian);
+  });
 
   test.each([
     ["Enterprise License", "پروانهٔ سازمانی"],

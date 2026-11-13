@@ -319,11 +319,7 @@ function walkBundle(app: App): Set<string> {
       file,
       fs.readFileSync(file, "utf8"),
     )) {
-      const target: string | undefined = resolveSpecifier(
-        app,
-        file,
-        specifier,
-      );
+      const target: string | undefined = resolveSpecifier(app, file, specifier);
 
       if (target && !reached.has(target)) {
         reached.add(target);
@@ -351,9 +347,11 @@ function partsDrawnBy(app: App): Array<ChromePart> {
 }
 
 function wordsDrawnBy(app: App): Array<string> {
-  return partsDrawnBy(app).flatMap((part: ChromePart): ReadonlyArray<string> => {
-    return part.words;
-  });
+  return partsDrawnBy(app).flatMap(
+    (part: ChromePart): ReadonlyArray<string> => {
+      return part.words;
+    },
+  );
 }
 
 const CASES: Array<[App, string]> = APPS.flatMap(
@@ -365,18 +363,22 @@ const CASES: Array<[App, string]> = APPS.flatMap(
 );
 
 describe("the page's shared words", () => {
-  test.each(CHROME_PARTS.map((part: ChromePart): [string, ChromePart] => {
-    return [part.file, part];
-  }))("%s still draws its words", (_file: string, part: ChromePart) => {
+  test.each(
+    CHROME_PARTS.map((part: ChromePart): [string, ChromePart] => {
+      return [part.file, part];
+    }),
+  )("%s still draws its words", (_file: string, part: ChromePart) => {
     const source: string = fs.readFileSync(
       path.join(COMPONENTS, part.file),
       "utf8",
     );
 
     for (const word of part.words) {
-      expect({ part: part.what, word, drawn: source.includes(`"${word}"`) }).toEqual(
-        { part: part.what, word, drawn: true },
-      );
+      expect({
+        part: part.what,
+        word,
+        drawn: source.includes(`"${word}"`),
+      }).toEqual({ part: part.what, word, drawn: true });
     }
   });
 
@@ -411,17 +413,20 @@ describe("the page's shared words", () => {
     ).toEqual(["Common/UI/Components/Breadcrumbs/Breadcrumbs"]);
   });
 
-  test.each(APPS)("%s's English has each word it draws, as written", (app: App) => {
-    const english: Locale = readLocale(app, "en");
+  test.each(APPS)(
+    "%s's English has each word it draws, as written",
+    (app: App) => {
+      const english: Locale = readLocale(app, "en");
 
-    for (const word of wordsDrawnBy(app)) {
-      expect({ app, word, english: english[word] }).toEqual({
-        app,
-        word,
-        english: word,
-      });
-    }
-  });
+      for (const word of wordsDrawnBy(app)) {
+        expect({ app, word, english: english[word] }).toEqual({
+          app,
+          word,
+          english: word,
+        });
+      }
+    },
+  );
 
   test.each(CASES)("%s says them in %s", (app: App, language: string) => {
     expect({
@@ -435,19 +440,24 @@ describe("the page's shared words", () => {
     }).toEqual({ app, language, leftInEnglish: [] });
   });
 
-  test.each(CASES.filter(([app]: [App, string]): boolean => {
-    return app !== "Dashboard";
-  }))("%s words them in %s as the Dashboard does", (app: App, language: string) => {
-    const dashboard: Locale = readLocale("Dashboard", language);
-    const locale: Locale = readLocale(app, language);
-    const apart: Array<string> = wordsDrawnBy(app).filter(
-      (word: string): boolean => {
-        return locale[word] !== dashboard[word];
-      },
-    );
+  test.each(
+    CASES.filter(([app]: [App, string]): boolean => {
+      return app !== "Dashboard";
+    }),
+  )(
+    "%s words them in %s as the Dashboard does",
+    (app: App, language: string) => {
+      const dashboard: Locale = readLocale("Dashboard", language);
+      const locale: Locale = readLocale(app, language);
+      const apart: Array<string> = wordsDrawnBy(app).filter(
+        (word: string): boolean => {
+          return locale[word] !== dashboard[word];
+        },
+      );
 
-    expect({ app, language, apart }).toEqual({ app, language, apart: [] });
-  });
+      expect({ app, language, apart }).toEqual({ app, language, apart: [] });
+    },
+  );
 
   test("each word a language keeps in English is still English there, and drawn", () => {
     for (const [language, words] of Object.entries(SAME_AS_ENGLISH)) {
