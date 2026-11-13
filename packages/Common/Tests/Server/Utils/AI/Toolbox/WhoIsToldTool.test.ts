@@ -20,6 +20,7 @@ import {
   WhoIsToldPersonProblem,
   WhoIsToldResult,
   WhoIsToldRule,
+  WhoIsToldStatusPage,
   redactWhoIsTold,
 } from "../../../../../Types/Monitor/WhoIsTold";
 import ObjectID from "../../../../../Types/ObjectID";
@@ -250,6 +251,7 @@ describe("describeWhoIsToldForModel", () => {
 function opening(
   owners: WhoIsToldOwners,
   ownerRules: Array<WhoIsToldRule> = [],
+  statusPages: Array<WhoIsToldStatusPage> = [],
 ): WhoIsToldResult {
   return {
     ...RESULT,
@@ -266,7 +268,7 @@ function opening(
             ownerRules: ownerRules,
             rules: [],
             policies: [],
-            statusPages: [],
+            statusPages: statusPages,
           },
         ],
       },
@@ -551,6 +553,40 @@ describe("describeWhoIsToldForModel: who it emails, for each owners source", () 
         "    - owner rules that add its owners: an owner rule the person may not read",
       ) - 1,
     );
+  });
+
+  /*
+   * The same for a status page: one the person may not read keeps its place
+   * in the list, said as such - never as an empty "" the model would read as
+   * a page with no name, nor by the name redaction took away.
+   */
+  test("through redactWhoIsTold, a status page the person may not read is said as such, never as an empty name", () => {
+    const text: string = describeWhoIsToldForModel(
+      redactWhoIsTold({
+        result: opening(
+          {
+            source: WhoIsToldOwnersSource.ProjectOwners,
+            userNames: ["Me Myself"],
+            teamNames: [],
+          },
+          [],
+          [
+            { id: "s1", name: "Acme Status" },
+            { id: "s2", name: "Internal Ops Status" },
+          ],
+        ),
+        readablePolicyIds: new Set<string>(),
+        readableRuleIds: new Set<string>(),
+        readableOwnerRuleIds: new Set<string>(),
+        readableStatusPageIds: new Set<string>(["s1"]),
+      }),
+    );
+
+    expect(text.split("\n")).toContain(
+      '    - shows on status pages: "Acme Status", a status page the person may not read',
+    );
+    expect(text).not.toContain("Internal Ops");
+    expect(text).not.toContain('""');
   });
 });
 

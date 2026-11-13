@@ -13,6 +13,7 @@ import {
   WhoIsToldPolicy,
   WhoIsToldResult,
   WhoIsToldRule,
+  WhoIsToldStatusPage,
 } from "../../../../Types/Monitor/WhoIsTold";
 import ObjectID from "../../../../Types/ObjectID";
 import { getOnCallPageChannelName } from "../../../../Types/OnCallDutyPolicy/OnCallPageChannel";
@@ -215,11 +216,17 @@ function describeEvent(event: WhoIsToldEvent): Array<string> {
     lines.push(`    - pages ${describePolicy(policy)}`);
   }
 
+  /*
+   * A status page the person may not read keeps its place without its name,
+   * as the card's "A status page you can't see" does - never as an empty "".
+   */
   if (event.statusPages.length > 0) {
     lines.push(
       `    - shows on status pages: ${event.statusPages
-        .map((page: { name: string }): string => {
-          return `"${page.name}"`;
+        .map((page: WhoIsToldStatusPage): string => {
+          return page.name
+            ? `"${page.name}"`
+            : "a status page the person may not read";
         })
         .join(", ")}`,
     );
