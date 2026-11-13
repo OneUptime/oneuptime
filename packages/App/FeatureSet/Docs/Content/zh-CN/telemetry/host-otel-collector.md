@@ -858,6 +858,35 @@ docker run -d \
 
 `--network host`、`--pid host`、`/hostfs` 挂载以及 `HOST_*` 变量让 `hostmetrics` 和 `process` 读取主机的内核，而不是容器的。只使用配置中的指标管道：该镜像没有 `journalctl`，而 `systemd` 接收器需要主机的 D-Bus。
 
+或者使用 Docker Compose，将以下内容保存为 `config.yaml` 旁边的 `docker-compose.yml`：
+
+```yaml title="docker-compose.yml"
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.161.0
+    container_name: otel-collector
+    restart: unless-stopped
+    network_mode: host
+    pid: host
+    volumes:
+      - ./config.yaml:/etc/otelcol-contrib/config.yaml:ro
+      - /:/hostfs:ro,rslave
+    environment:
+      - HOST_PROC=/hostfs/proc
+      - HOST_SYS=/hostfs/sys
+      - HOST_ETC=/hostfs/etc
+      - HOST_VAR=/hostfs/var
+      - HOST_RUN=/hostfs/run
+      - HOST_DEV=/hostfs/dev
+    command: ["--config", "/etc/otelcol-contrib/config.yaml"]
+```
+
+使用以下命令启动：
+
+```bash
+docker compose up -d
+```
+
 ### 使用发布版 tarball
 
 无法使用软件包时，解压静态二进制文件并为它创建一个专门的 systemd 单元：

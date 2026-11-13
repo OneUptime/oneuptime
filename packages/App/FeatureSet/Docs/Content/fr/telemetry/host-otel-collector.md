@@ -858,6 +858,35 @@ docker run -d \
 
 `--network host`, `--pid host`, le montage `/hostfs` et les variables `HOST_*` permettent à `hostmetrics` et `process` de lire le noyau de l'hôte plutôt que celui du conteneur. N'utilisez que le pipeline de métriques de la configuration : l'image n'a pas de `journalctl`, et le receiver `systemd` a besoin du D-Bus de l'hôte.
 
+Ou avec Docker Compose, enregistrez ceci sous le nom `docker-compose.yml` à côté de `config.yaml` :
+
+```yaml title="docker-compose.yml"
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.161.0
+    container_name: otel-collector
+    restart: unless-stopped
+    network_mode: host
+    pid: host
+    volumes:
+      - ./config.yaml:/etc/otelcol-contrib/config.yaml:ro
+      - /:/hostfs:ro,rslave
+    environment:
+      - HOST_PROC=/hostfs/proc
+      - HOST_SYS=/hostfs/sys
+      - HOST_ETC=/hostfs/etc
+      - HOST_VAR=/hostfs/var
+      - HOST_RUN=/hostfs/run
+      - HOST_DEV=/hostfs/dev
+    command: ["--config", "/etc/otelcol-contrib/config.yaml"]
+```
+
+Démarrez-le avec :
+
+```bash
+docker compose up -d
+```
+
 ### À partir de l'archive de la version
 
 Là où les paquets ne sont pas envisageables, décompressez le binaire statique et donnez-lui sa propre unité systemd :

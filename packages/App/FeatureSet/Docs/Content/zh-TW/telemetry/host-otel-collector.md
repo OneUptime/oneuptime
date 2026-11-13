@@ -858,6 +858,35 @@ docker run -d \
 
 `--network host`、`--pid host`、`/hostfs` 掛載以及 `HOST_*` 變數，讓 `hostmetrics` 和 `process` 讀取主機的核心，而不是容器的。請只使用設定中的指標管道：該映像檔沒有 `journalctl`，而 `systemd` 接收器需要主機的 D-Bus。
 
+或者使用 Docker Compose，將以下內容儲存為 `config.yaml` 旁的 `docker-compose.yml`：
+
+```yaml title="docker-compose.yml"
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.161.0
+    container_name: otel-collector
+    restart: unless-stopped
+    network_mode: host
+    pid: host
+    volumes:
+      - ./config.yaml:/etc/otelcol-contrib/config.yaml:ro
+      - /:/hostfs:ro,rslave
+    environment:
+      - HOST_PROC=/hostfs/proc
+      - HOST_SYS=/hostfs/sys
+      - HOST_ETC=/hostfs/etc
+      - HOST_VAR=/hostfs/var
+      - HOST_RUN=/hostfs/run
+      - HOST_DEV=/hostfs/dev
+    command: ["--config", "/etc/otelcol-contrib/config.yaml"]
+```
+
+使用以下指令啟動：
+
+```bash
+docker compose up -d
+```
+
 ### 使用發行版本 tarball
 
 無法使用套件時，請解壓縮靜態二進位檔，並為它建立一個專用的 systemd 單元：
