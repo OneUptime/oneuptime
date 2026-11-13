@@ -52,10 +52,11 @@ import ServerSendingStatusUtil, {
  *   - GlobalConfigService, which starts a channel again at untested when its
  *     settings are saved (forgetChannels).
  *
- * SMS and calls can also change without a save, when the GLOBAL_TWILIO_
- * environment variables set the Twilio account (#7515): their entries are
- * marked with the route they were learned with, and one learned with
- * another is read as untested (ServerSendingSettings, #7736).
+ * SMS, calls and email can also change without a save, when the
+ * GLOBAL_TWILIO_ environment variables set the Twilio account (#7515) or
+ * the GLOBAL_EMAIL_ ones the email settings (#7738): their entries are
+ * marked with the settings they were learned with, and one learned with
+ * others is read as untested (ServerSendingSettings, #7736, #7803).
  */
 
 /*
@@ -72,7 +73,7 @@ type ChannelFingerprints = Partial<
 
 interface CachedHealth {
   health: ServerSendingHealth;
-  // The routes it was read with: an SMS or call entry is news for those.
+  // The settings it was read with: an email, SMS or call entry is news for those.
   fingerprints: ChannelFingerprints;
   readAt: number;
 }
@@ -102,8 +103,8 @@ export default class ServerSendingStatus {
 
   /*
    * What the server remembers of a channel's sends with the settings it
-   * sends with now: an SMS or call entry learned through another route is
-   * read as nothing remembered.
+   * sends with now: an email, SMS or call entry learned with other settings
+   * is read as nothing remembered.
    */
   public static getCurrentEntry(
     health: ServerSendingHealth,
@@ -327,10 +328,10 @@ export default class ServerSendingStatus {
    * again on a fresh read, so two servers sending at once lose nothing but
    * the order of their news.
    *
-   * An SMS or call entry learned through another route than the one the
-   * settings give now is read as nothing remembered, so the first send
-   * through the new route is news, and the entry written is marked with
-   * the route it was learned with.
+   * An email, SMS or call entry learned with other settings than the ones
+   * the channel sends with now is read as nothing remembered, so the first
+   * send with the new settings is news, and the entry written is marked
+   * with the settings it was learned with.
    */
   @CaptureSpan()
   public static async recordOutcome(
