@@ -173,7 +173,7 @@ jest.mock("Common/Server/Services/MonitorProbeService", () => {
   return {
     __esModule: true,
     default: {
-      countBy: jest.fn(),
+      countMonitorProbesDueForProbing: jest.fn(),
     },
   };
 });
@@ -279,8 +279,10 @@ const projectService: { getOwners: AnyMock } = ProjectService as unknown as {
   getOwners: AnyMock;
 };
 
-const monitorProbeService: { countBy: AnyMock } =
-  MonitorProbeService as unknown as { countBy: AnyMock };
+const monitorProbeService: { countMonitorProbesDueForProbing: AnyMock } =
+  MonitorProbeService as unknown as {
+    countMonitorProbesDueForProbing: AnyMock;
+  };
 
 const syslogService: { processSyslogMessages: AnyMock } =
   ProbeSyslogIngestService as unknown as { processSyslogMessages: AnyMock };
@@ -712,25 +714,28 @@ describe("POST /metrics/queue-size: the count is the sending probe's", () => {
   });
 
   test("counts the authenticated probe's monitors, whatever the body says", async () => {
-    monitorProbeService.countBy.mockResolvedValue({
-      toNumber: () => {
-        return 3;
-      },
-    } as never);
+    monitorProbeService.countMonitorProbesDueForProbing.mockResolvedValue(
+      3 as never,
+    );
 
     await callEndpoint(
       path,
       makeRequest({ body: { ...probeBody({}), probeId: OTHER.toString() } }),
     );
 
-    expect(monitorProbeService.countBy).toHaveBeenCalledTimes(1);
     expect(
-      (
-        monitorProbeService.countBy.mock.calls[0]![0] as {
-          query: { probeId: ObjectID };
-        }
-      ).query.probeId.toString(),
-    ).toBe(SENDER.toString());
+      monitorProbeService.countMonitorProbesDueForProbing,
+    ).toHaveBeenCalledTimes(1);
+
+    const counted: { probeId: ObjectID; dueAt: Date } = monitorProbeService
+      .countMonitorProbesDueForProbing.mock.calls[0]![0] as {
+      probeId: ObjectID;
+      dueAt: Date;
+    };
+
+    expect(counted.probeId.toString()).toBe(SENDER.toString());
+    // Waiting for more than two minutes, not merely due.
+    expect(counted.dueAt.getTime()).toBeLessThan(Date.now() - 60 * 1000);
     expect(responseUtil.sendJsonObjectResponse).toHaveBeenCalledWith(
       expect.anything(),
       mockResponse,
@@ -742,7 +747,9 @@ describe("POST /metrics/queue-size: the count is the sending probe's", () => {
     await callEndpoint(path, makeRequest({ body: probeBody({}), probe: null }));
 
     expectRefused("Probe ID not found");
-    expect(monitorProbeService.countBy).not.toHaveBeenCalled();
+    expect(
+      monitorProbeService.countMonitorProbesDueForProbing,
+    ).not.toHaveBeenCalled();
   });
 });
 

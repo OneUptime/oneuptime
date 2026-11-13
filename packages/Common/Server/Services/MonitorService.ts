@@ -104,6 +104,7 @@ import MonitorFeedService from "./MonitorFeedService";
 import { MonitorFeedEventType } from "../../Models/DatabaseModels/MonitorFeed";
 import { Gray500, Green500 } from "../../Types/BrandColors";
 import logger, { LogAttributes } from "../Utils/Logger";
+import { MONITOR_PAUSE_FLAGS_SELECT } from "../../Utils/Monitor/MonitorPauseState";
 import ProductAnalytics from "../Utils/ProductAnalytics";
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
 import ExceptionMessages from "../../Types/Exception/ExceptionMessages";
@@ -1788,6 +1789,30 @@ export class Service extends ProjectReferencesService<Model> {
       );
     }
 
+    /*
+     * A pause lifted - switched back on, unarchived, its maintenance window
+     * over, its manual incident resolved: its probes are due now. While it
+     * could not be probed the claim set them aside for up to a quarter of
+     * an hour (MonitorProbeService.setAsideUnprobeable), and turning a
+     * monitor back on must not wait for that. Its own try, the house rule
+     * for this hook: the monitor is saved already.
+     */
+    if (
+      updatedItemIds.length > 0 &&
+      Service.liftsAPause(onUpdate.updateBy.data)
+    ) {
+      try {
+        await MonitorProbeService.makeDueNowForMonitors({
+          monitorIds: updatedItemIds,
+        });
+      } catch (error) {
+        logger.error(
+          "MonitorService.onUpdateSuccess: could not make the probes of monitors whose pause was lifted due now; the claim picks them up within a quarter of an hour.",
+        );
+        logger.error(error as Error);
+      }
+    }
+
     if (updatedItemIds.length > 0) {
       for (const monitorId of updatedItemIds) {
         const monitor: Model | null = await this.findOneById({
@@ -2199,6 +2224,28 @@ export class Service extends ProjectReferencesService<Model> {
        */
       skipUpdateDateColumn: true,
     });
+  }
+
+  /*
+   * Whether an update writes any of the four pause flags
+   * (MONITOR_PAUSE_FLAGS_SELECT) to false - switched back on, unarchived,
+   * out of maintenance, its manual incident resolved - so the monitor may
+   * be probed again, unless another flag still holds it. Writing a flag
+   * back as false where it already was counts too: its probes are then
+   * made due a little early, which costs one check.
+   */
+  public static liftsAPause(data: unknown): boolean {
+    if (!data || typeof data !== "object") {
+      return false;
+    }
+
+    const written: Record<string, unknown> = data as Record<string, unknown>;
+
+    return Object.keys(MONITOR_PAUSE_FLAGS_SELECT).some(
+      (flag: string): boolean => {
+        return written[flag] === false;
+      },
+    );
   }
 
   /*
