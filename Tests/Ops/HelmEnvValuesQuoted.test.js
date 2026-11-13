@@ -74,6 +74,22 @@ const HELPERS = "HelmChart/Public/oneuptime/templates/_helpers.tpl";
 // which quotes what it joins).
 const DECLARATION = /^\$\w+\s*:?=/;
 const TEMPLATE_FILE = /\.(ya?ml|tpl)$/;
+// Every template action of a value, with the text before and after it.
+const ACTION = /\{\{-?\s*((?:(?!\}\}).)*?)\s*-?\}\}/g;
+// An action that writes nothing itself: a branch, the end of one, a comment,
+// or a variable declared for later.
+const CONTROL_ACTION =
+  /^(?:(?:if|else|end|with|range|define|block|template)\b|\/\*|\$\w+\s*:?=)/;
+// An action that reads a setting from the values.
+const READS_SETTING = /\.Values\b/;
+/*
+ * The settings a Service's address is built from, which are written as they
+ * are: the cluster's DNS domain and the ports. A DNS name and a port number
+ * hold none of YAML's syntax.
+ */
+const ADDRESS_SETTING =
+  /^\$?\.Values\.(?:global\.clusterDomain|(?:\w+\.)+ports\.\w+)$/;
+const WHITESPACE_ONLY = /^\s*$/;
 
 const WORKLOAD_KINDS = ["Deployment", "StatefulSet", "Job", "DaemonSet"];
 
@@ -131,6 +147,148 @@ function unquotedValues(source, seen = { actions: 0, quoted: 0 }) {
 
   return found;
 }
+
+/*
+ * The values of a template's text that are built from several pieces and
+ * splice a setting in where YAML reads it by its own rules, as "<line
+ * number>: <line>". A piece that reads a setting is fine when it is part of a
+ * Service's address (the cluster's DNS domain or a port), or when it is a
+ * whole value of its own: quoted, with no text of the value before or after
+ * it, as each branch of `{{ if x }}{{ $.Values.a | quote }}{{ else }}""{{ end
+ * }}` is. Anything else is the shape #7336 found:
+ * `value: "kubernetes-agent-{{ .Values.clusterName }}"` ends its string early
+ * at a '"' in the setting and reads a '\' as an escape, and the same piece
+ * without the literal quotes meets ': ' and ' #' as an unquoted one does.
+ * Counts the setting pieces it read in `seen`.
+ */
+function splicedSettings(source, seen = { pieces: 0 }) {
+  const found = [];
+
+  source.split("\n").forEach((line, index) => {
+    const value = VALUE_LINE.exec(line);
+
+    if (!value || !value[1].includes("{{") || ONE_ACTION.test(value[1])) {
+      return;
+    }
+
+    const text = value[1];
+    const actions = [...text.matchAll(ACTION)];
+    // Every piece is read (no short cut at the first refusal), so `seen`
+    // counts them all.
+    const refused = actions.filter((action, position) => {
+      const body = action[1];
+
+      if (CONTROL_ACTION.test(body) || !READS_SETTING.test(body)) {
+        return false;
+      }
+
+      seen.pieces += 1;
+
+      if (ADDRESS_SETTING.test(body)) {
+        return false;
+      }
+
+      const previous = actions[position - 1];
+      const next = actions[position + 1];
+      const before = text.slice(
+        previous ? previous.index + previous[0].length : 0,
+        action.index,
+      );
+      const after = text.slice(
+        action.index + action[0].length,
+        next ? next.index : text.length,
+      );
+
+      return !(
+        QUOTED.test(body) &&
+        WHITESPACE_ONLY.test(before) &&
+        WHITESPACE_ONLY.test(after)
+      );
+    });
+
+    if (refused.length > 0) {
+      found.push(`${index + 1}: ${line.trim()}`);
+    }
+  });
+
+  return found;
+}
+
+describe("the scan of values built from several pieces finds a setting spliced in", () => {
+  const sample = [
+    "  - name: A",
+    '    value: "kubernetes-agent-{{ .Values.clusterName }}"',
+    "  - name: B",
+    '    value: "k8s.cluster.name={{ .Values.clusterName }}"',
+    "  - name: C",
+    "    value: kubernetes-agent-{{ .Values.clusterName }}",
+    "  - name: D",
+    '    value: "kubernetes-agent-{{ .Values.clusterName | quote }}"',
+    "  - name: E",
+    "    value: prefix-{{ $.Values.a | quote }}",
+    "  - name: F",
+    "    value: {{ $.Values.a | quote }}-suffix",
+    "  - name: G",
+    '    value: "{{ $.Values.a }}{{ $.Values.b }}"',
+    "  - name: H",
+    "    value: {{ $.Release.Name }}-app.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}",
+    "  - name: I",
+    "    value: http://{{ $.Release.Name }}-vllm.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}:{{ $.Values.vllm.ports.http }}/v1",
+    "  - name: J",
+    '    value: "http://{{ include "kubernetes-agent.fullname" . }}-otlp.{{ .Release.Namespace }}.svc.cluster.local:4318"',
+    "  - name: K",
+    '    value: "app.kubernetes.io/instance={{ .Release.Name }}"',
+    "  - name: L",
+    '    value: {{ if $.Values.a }}{{ $.Values.a | quote }}{{ else }}{{ $.Values.b | quote }}{{ end }}',
+    "  - name: M",
+    '    value: {{ if kindIs "bool" ($.Values.c).d }}{{ ternary "true" "false" ($.Values.c).d | quote }}{{ else }}""{{ end }}',
+    "  - name: N",
+    '    value: {{ if kindIs "invalid" $enabled }}"true"{{ else }}{{ ternary "true" "false" $enabled | quote }}{{ end }}',
+    "  - name: O",
+    '    value: {{ printf "kubernetes-agent-%s" (include "kubernetes-agent.clusterName" .) | quote }}',
+    "  - name: P",
+    "    value: http://{{ $.Release.Name }}:{{ $.Values.app.port }}",
+    "  - name: Q",
+    "    value: {{ if $.Values.a }}x-{{ $.Values.a | quote }}{{ end }}",
+  ].join("\n");
+
+  test("refuses a setting inside literal quotes, or joined to other text of the value", () => {
+    expect(splicedSettings(sample)).toEqual([
+      '2: value: "kubernetes-agent-{{ .Values.clusterName }}"',
+      '4: value: "k8s.cluster.name={{ .Values.clusterName }}"',
+      "6: value: kubernetes-agent-{{ .Values.clusterName }}",
+      '8: value: "kubernetes-agent-{{ .Values.clusterName | quote }}"',
+      "10: value: prefix-{{ $.Values.a | quote }}",
+      "12: value: {{ $.Values.a | quote }}-suffix",
+      '14: value: "{{ $.Values.a }}{{ $.Values.b }}"',
+      // A port named `port` rather than under `ports` is not an address
+      // setting it knows, so it is refused rather than guessed at.
+      "32: value: http://{{ $.Release.Name }}:{{ $.Values.app.port }}",
+      "34: value: {{ if $.Values.a }}x-{{ $.Values.a | quote }}{{ end }}",
+    ]);
+  });
+
+  test("keeps a Service's address, the release's own names, and a quoted setting that is a whole branch", () => {
+    const kept = splicedSettings(sample);
+
+    for (const name of ["H", "I", "J", "K", "L", "M", "N", "O"]) {
+      const line = sample.split("\n").indexOf(`  - name: ${name}`) + 2;
+
+      expect({ name, refused: kept.some((entry) => {
+        return entry.startsWith(`${line}: `);
+      }) }).toEqual({ name, refused: false });
+    }
+  });
+
+  test("counts the setting pieces it read", () => {
+    const seen = { pieces: 0 };
+
+    splicedSettings(sample, seen);
+
+    // A, B, C, D, E, F, G twice, H, I twice, L twice, M, P and Q.
+    expect(seen.pieces).toBe(16);
+  });
+});
 
 describe("the scan of env values reads the lines it is meant to", () => {
   const sample = [
@@ -233,6 +391,23 @@ describe("every env value a chart template writes as one action is quoted", () =
     // Hundreds of env values are written so today; far fewer would mean the
     // scan stopped reading them.
     expect(seen.quoted).toBeGreaterThan(300);
+  });
+
+  test("no template splices a setting into a value built from several pieces", () => {
+    const seen = { pieces: 0 };
+    const spliced = files.flatMap((file) => {
+      return splicedSettings(
+        fs.readFileSync(path.join(REPO_ROOT, file), "utf8"),
+        seen,
+      ).map((line) => {
+        return `${file}:${line}`;
+      });
+    });
+
+    expect(spliced).toEqual([]);
+    // The Service addresses of the oneuptime chart read the cluster domain
+    // and ports this way; none would mean the scan stopped reading them.
+    expect(seen.pieces).toBeGreaterThan(10);
   });
 
   test("the exporter's settings are quoted wherever a template hands them over", () => {

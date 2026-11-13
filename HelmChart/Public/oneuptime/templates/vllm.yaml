@@ -15,11 +15,17 @@ metadata:
     "helm.sh/resource-policy": "keep"
 type: Opaque
 stringData:
+  {{- /*
+    Without the whitespace around them, as every key the chart stores: the
+    server and vLLM read api-key from here, and a key that kept the final
+    newline of the file it was read from (helm --set-file) can never be sent
+    in an Authorization header (#7337).
+  */}}
   {{- if and .Values.vllm.apiKey (not .Values.vllm.existingApiKeySecret.name) }}
-  api-key: {{ .Values.vllm.apiKey | quote }}
+  api-key: {{ include "oneuptime.envValue" .Values.vllm.apiKey }}
   {{- end }}
   {{- if and .Values.vllm.huggingFace.token (not .Values.vllm.huggingFace.existingSecret.name) }}
-  hf-token: {{ .Values.vllm.huggingFace.token | quote }}
+  hf-token: {{ include "oneuptime.envValue" .Values.vllm.huggingFace.token }}
   {{- end }}
 ---
 {{- end }}
@@ -56,8 +62,14 @@ spec:
       annotations:
         {{- if $manageSecret }}
         # Roll the pods when the chart-managed secret content changes - env vars
-        # from secrets are only read at container start.
-        checksum/vllm-secret: {{ printf "%s|%s" .Values.vllm.apiKey .Values.vllm.huggingFace.token | sha256sum }}
+        # from secrets are only read at container start. Hashed as the Secret
+        # stores them, without the whitespace around them: a value with none
+        # hashes as it always did, so its pods do not roll.
+        {{- $vllmApiKey := .Values.vllm.apiKey }}
+        {{- if kindIs "string" $vllmApiKey }}{{ $vllmApiKey = trim $vllmApiKey }}{{ end }}
+        {{- $vllmHfToken := .Values.vllm.huggingFace.token }}
+        {{- if kindIs "string" $vllmHfToken }}{{ $vllmHfToken = trim $vllmHfToken }}{{ end }}
+        checksum/vllm-secret: {{ printf "%s|%s" $vllmApiKey $vllmHfToken | sha256sum }}
         {{- end }}
         {{- with .Values.vllm.podAnnotations }}
         {{- toYaml . | nindent 8 }}
