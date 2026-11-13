@@ -277,7 +277,10 @@ describe("the lines it sits on draw no colour of their own", () => {
       "incident-create-notify-subscribers-line",
     );
 
-    expect(className).toBe("flex flex-wrap items-center gap-x-3 gap-y-1");
+    // focus:outline-none: the line takes the focus after Change to Yes.
+    expect(className).toBe(
+      "flex flex-wrap items-center gap-x-3 gap-y-1 focus:outline-none",
+    );
     expect(colorTokensOf(`"${className}"`)).toEqual([]);
   });
 

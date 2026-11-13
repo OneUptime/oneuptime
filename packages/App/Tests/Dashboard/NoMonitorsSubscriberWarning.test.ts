@@ -439,7 +439,7 @@ describe("Declare Incident", () => {
 
   test("the summary step says Yes or No with the preview beside it when something can be sent, then who", () => {
     expect(source).toContain(
-      'getSummaryElement: (item: FormValues<Incident>) => { return ( <> <div className="flex flex-wrap items-center gap-x-3 gap-y-1" data-testid="incident-create-notify-subscribers-line" ref={notifyReviewLineRef} tabIndex={-1} > <BooleanValue value={isNotifyTicked(item)} dataTestId="incident-create-notify-subscribers-value" /> {isNotifyingSubscribers(item) && hasMonitors(item) ? ( <SubscriberNotificationPreviewButton',
+      'getSummaryElement: (item: FormValues<Incident>) => { return ( <> <div className="flex flex-wrap items-center gap-x-3 gap-y-1 focus:outline-none" data-testid="incident-create-notify-subscribers-line" ref={notifyReviewLineRef} tabIndex={-1} > <BooleanValue value={isNotifyTicked(item)} dataTestId="incident-create-notify-subscribers-value" /> {isNotifyingSubscribers(item) && hasMonitors(item) ? ( <SubscriberNotificationPreviewButton',
     );
     expect(source).toContain("</div> {getAudienceSummary(item)} </> ); },");
     expect(source).toContain(
