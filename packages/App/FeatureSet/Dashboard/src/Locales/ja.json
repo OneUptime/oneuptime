@@ -8016,7 +8016,7 @@
   "At threshold": "しきい値ちょうど",
   "At-Risk Threshold": "リスクありのしきい値",
   "At-Risk Threshold:": "リスクありのしきい値:",
-  "Attach": "割り当て",
+  "Attach": "添付",
   "Attach every monitor whose name, description or labels match — and keep monitors created later in sync automatically.": "名前、説明、ラベルが一致するすべてのモニターを割り当て、後から作成されるモニターも自動的に同期します。",
   "Attach labels such as team or environment to the cluster and everything it reports.": "チームや環境などのラベルを、クラスターとそのすべての報告内容に付与します。",
   "Attach labels such as team or environment to the cluster from the collector config.": "コレクターの設定から、チームや環境などのラベルをクラスターに付与します。",

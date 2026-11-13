@@ -8016,7 +8016,7 @@
   "At threshold": "En el umbral",
   "At-Risk Threshold": "Umbral de riesgo",
   "At-Risk Threshold:": "Umbral de riesgo:",
-  "Attach": "Asociar",
+  "Attach": "Adjuntar",
   "Attach every monitor whose name, description or labels match — and keep monitors created later in sync automatically.": "Asocia cada monitor cuyo nombre, descripción o etiquetas coincidan, y mantén sincronizados automáticamente los monitores que se creen más adelante.",
   "Attach labels such as team or environment to the cluster and everything it reports.": "Asocia etiquetas como equipo o entorno al clúster y a todo lo que informa.",
   "Attach labels such as team or environment to the cluster from the collector config.": "Asocia etiquetas como equipo o entorno al clúster desde la configuración del collector.",

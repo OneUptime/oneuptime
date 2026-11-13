@@ -8016,7 +8016,7 @@
   "At threshold": "已達閾值",
   "At-Risk Threshold": "風險閾值",
   "At-Risk Threshold:": "風險門檻：",
-  "Attach": "附加",
+  "Attach": "新增附件",
   "Attach every monitor whose name, description or labels match — and keep monitors created later in sync automatically.": "Attach every monitor whose name, description or labels match — and keep monitors created later in sync automatically.",
   "Attach labels such as team or environment to the cluster and everything it reports.": "Attach labels such as team or environment to the cluster and everything it reports.",
   "Attach labels such as team or environment to the cluster from the collector config.": "Attach labels such as team or environment to the cluster from the collector config.",

@@ -8016,7 +8016,7 @@
   "At threshold": "Au seuil",
   "At-Risk Threshold": "Seuil de risque",
   "At-Risk Threshold:": "Seuil de risque :",
-  "Attach": "Rattacher",
+  "Attach": "Joindre",
   "Attach every monitor whose name, description or labels match — and keep monitors created later in sync automatically.": "Rattachez chaque moniteur dont le nom, la description ou les étiquettes correspondent — et synchronisez automatiquement les moniteurs créés ultérieurement.",
   "Attach labels such as team or environment to the cluster and everything it reports.": "Associez des étiquettes, comme l'équipe ou l'environnement, au cluster et à tout ce qu'il rapporte.",
   "Attach labels such as team or environment to the cluster from the collector config.": "Associez des étiquettes, comme l'équipe ou l'environnement, au cluster depuis la configuration du collecteur.",

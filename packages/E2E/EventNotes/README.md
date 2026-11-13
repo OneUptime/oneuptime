@@ -14,7 +14,11 @@ Every one of those pages is a thin wrapper around the shared notes feed in
 `App/FeatureSet/Dashboard/src/Components/EventNotes`.
 
 `Fixture/server.js` bundles the production layouts and pages with esbuild, serves them with
-the same Tailwind build, `tailwind.config` and `Theme.css` production uses, and listens on
+the same Tailwind build, `tailwind.config` and `Theme.css` production uses, loads the
+reading-direction script right after the runtime (left and right utilities mirror on an
+Arabic page, as in the Dashboard) and draws every element in Inter with the Dashboard's own
+`index.ejs` font rule (the machine's fallback font is wider, so a check of what fits on a line
+would measure a page the product does not draw). It listens on
 `127.0.0.1:4223` (`EVENT_NOTES_FIXTURE_PORT`). No Docker, no database, no sign-in. Only the
 `ModelAPI` / `API` data boundary and the signed-in user are replaced. Pass `--watch` to
 rebuild on every change while working on the pages.
