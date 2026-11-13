@@ -35,6 +35,7 @@ import {
 } from "./DocsTranslationChecks";
 import { describe, expect, it } from "@jest/globals";
 import { isPermissionTitleKeptInEnglish } from "./DocsRoleNames";
+import { pathWithArrows } from "./DocsPageShape";
 
 /*
  * The seven Workflows pages - the overview, authoring, triggers, components,
@@ -590,11 +591,12 @@ describe.each(LANGUAGES)("%s workflow pages", (language: string) => {
       const translated: string = readPage(language, entry.page);
       const missing: Array<string> = menuPaths(english)
         .map((segments: Array<string>): string => {
-          return segments
-            .map((segment: string): string => {
+          return pathWithArrows(
+            segments.map((segment: string): string => {
               return drawnActionLabel(language, segment);
-            })
-            .join(PATH_SEPARATOR);
+            }),
+            language,
+          );
         })
         .filter((localized: string): boolean => {
           return !translated.includes(`**${localized}**`);

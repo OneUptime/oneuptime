@@ -46,7 +46,7 @@ const ENGLISH_SETTINGS_PATH: RegExp =
  * What each locale's docs call Project Settings in a navigation path. A path
  * that starts with one of these and then names Runners, Runbook agents (the
  * page's translated title in most locales) or their credentials is the old
- * location.
+ * location. A Persian page points "←" from a step in Persian words (#7611).
  */
 const SETTINGS_WORDS: Record<string, Array<string>> = {
   da: ["Indstillinger"],
@@ -81,7 +81,7 @@ const settingsPathPattern: SettingsPathPatternFunction = (
   ];
 
   return new RegExp(
-    `(?:${words.join("|")})\\*{0,2}\\s*(?:→|->|>)\\s*\\*{0,2}${RUNNER_PAGE_WORDS}`,
+    `(?:${words.join("|")})\\*{0,2}\\s*(?:→|←|->|>)\\s*\\*{0,2}${RUNNER_PAGE_WORDS}`,
   );
 };
 
@@ -218,6 +218,7 @@ describe("the suite reads the docs it claims to", () => {
     ["ko", "**설정 → 러너** 에서"],
     ["fr", "sous **Paramètres → Runners**."],
     ["zh-TW", "請到 **設定 → Runners** 下確認"],
+    ["fa", "زیر **تنظیمات ← Runnerها** بررسی کنید"],
     ["en", "under **Settings** > **Runners** and"],
   ])(
     "the %s pattern catches an old-location sentence",
@@ -232,6 +233,7 @@ describe("the suite reads the docs it claims to", () => {
     ["ru", "**Настройки → ИИ → Агенты ИИ**"],
     ["en", "under **Runbooks → Runners**"],
     ["en", "Project Settings → AI → AI Features"],
+    ["fa", "زیر **رانبوک‌ها ← Runnerها** بررسی کنید"],
   ])(
     "the %s pattern leaves a current sentence alone",
     (language: string, sentence: string) => {

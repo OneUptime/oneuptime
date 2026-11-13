@@ -44,11 +44,13 @@ function readPage(relativePath: string): string {
 
 /*
  * A bold menu path that ends at an Archived page, such as
- * **Workflows → Archived** or **Inventory → Advanced → Archived**.
+ * **Workflows → Archived** or **Inventory → Advanced → Archived**, whichever
+ * way its arrows point (a Persian page points "←" from a step in Persian
+ * words, #7611).
  */
-const ARCHIVED_MENU_PATH: RegExp = /\*\*([^*\n]*→\s*Archived[^*\n]*)\*\*/g;
+const ARCHIVED_MENU_PATH: RegExp = /\*\*([^*\n]*[→←]\s*Archived[^*\n]*)\*\*/g;
 
-const THROUGH_ADVANCED: RegExp = /(^|→\s*)Advanced\s*→\s*Archived/;
+const THROUGH_ADVANCED: RegExp = /(^|[→←]\s*)Advanced\s*[→←]\s*Archived/;
 
 interface MenuPathMention {
   page: string;

@@ -1,3 +1,4 @@
+// UX rule: Docs/ux/README.md#errors
 import {
   ALLOWED_USES,
   ERROR_SENTENCE_EXCEPTIONS,

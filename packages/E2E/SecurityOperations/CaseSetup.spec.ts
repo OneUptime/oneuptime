@@ -85,6 +85,7 @@ interface OpenOptions {
     | "fail-twice"
     | "notes-fail-with-reference"
     | "notes-fail-twice"
+    | "notes-more-fail"
     | undefined;
 }
 
@@ -1486,6 +1487,160 @@ test.describe("a case's notes feed, when the notes do not load", () => {
   });
 });
 
+/*
+ * A case's Load more that fails (#7620). The banner over the feed said
+ * what API.getFriendlyMessage said, and nothing else: English on every
+ * page - on a Persian one with its full stop at its start - without the
+ * reference to give, and silent on what had failed; and its Dismiss dropped
+ * the keyboard's focus to the page. It says what failed now, then why and
+ * what to do next with the reference and its copy button, in the reader's
+ * language; Dismiss leaves the focus on Load more, one key from trying again.
+ */
+test.describe("a case's notes feed, when Load more fails", () => {
+  // CASE-142's notes under ?casesetup=notes-more-fail: a page, then 3 more.
+  const FIRST_PAGE: number = 25;
+  const ALL_NOTES: number = 28;
+
+  for (const lang of ["en", "fa"] as const) {
+    test(`says what failed, why, what to do and its reference over the notes, at 1280 and 390 (${lang === "en" ? "English" : "Persian"})`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      // The Dashboard's Persian words, as the fixture draws them with ?lang=fa.
+      const persian: Record<string, string> = JSON.parse(
+        await fs.readFile(
+          path.resolve(
+            __dirname,
+            "../../App/FeatureSet/Dashboard/src/Locales/fa.json",
+          ),
+          "utf8",
+        ),
+      ) as Record<string, string>;
+      const wordsOf: (english: string) => string = (
+        english: string,
+      ): string => {
+        return lang === "fa" ? persian[english]! : english;
+      };
+
+      for (const width of [1280, 390]) {
+        await open(page, CASE_NOTES_PATH, {
+          width,
+          caseSetup: "notes-more-fail",
+          ...(lang === "fa" ? { lang } : {}),
+        });
+        await expect(page.getByTestId("note-card")).toHaveCount(FIRST_PAGE, {
+          timeout: 30000,
+        });
+        await page.getByTestId("notes-load-more").click();
+
+        const banner: Locator = page.getByTestId("notes-action-error");
+        await expect(banner).toBeVisible();
+        await expect(banner).toHaveAttribute("role", "alert");
+
+        // What failed, once, then why and what to do next.
+        await expect(
+          banner.getByTestId("notes-action-error-what-failed"),
+        ).toHaveText(wordsOf("Couldn't load more notes."));
+        await expect(banner.getByTestId("error-what-failed")).toHaveCount(0);
+        const whyAndNext: Locator = banner.getByTestId("error-why-and-next");
+        await expect(whyAndNext).toContainText(
+          wordsOf("The server ran into a problem it could not explain."),
+        );
+        await expect(whyAndNext).toContainText(
+          wordsOf(
+            "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:",
+          ),
+        );
+        // The reference as written, left to right, with its copy button.
+        const reference: Locator = banner.getByTestId("error-reference");
+        await expect(reference.locator("code")).toHaveText(
+          FAILED_READ_REFERENCE,
+        );
+        await expect(reference.locator("code")).toHaveAttribute("dir", "ltr");
+        await expect(reference.getByRole("button")).toBeVisible();
+        const dismiss: Locator = banner.getByRole("button", {
+          name: wordsOf("Dismiss"),
+        });
+        await expect(dismiss).toBeVisible();
+        // Dismiss on one line, though Persian says it in two words.
+        const dismissLines: number = await dismiss.evaluate(
+          (element: Element): number => {
+            const range: Range = document.createRange();
+            range.selectNodeContents(element);
+            return new Set(
+              Array.from(range.getClientRects()).map(
+                (rect: DOMRect): number => {
+                  return Math.round(rect.top);
+                },
+              ),
+            ).size;
+          },
+        );
+        expect(dismissLines, `Dismiss's lines at ${width}`).toBe(1);
+        // Never the sentence as API.getFriendlyMessage wrote it.
+        await expect(banner).not.toContainText("so this did not finish");
+        if (lang === "fa") {
+          for (const english of [
+            "Couldn't load more notes.",
+            "The server ran into a problem",
+            "Dismiss",
+          ]) {
+            await expect(banner).not.toContainText(english);
+          }
+        }
+        // The notes on screen stay.
+        await expect(page.getByTestId("note-card")).toHaveCount(FIRST_PAGE);
+
+        await expectNoSidewaysScroll(page, {
+          message: `the notes feed's banner at ${width}`,
+        });
+        await banner.scrollIntoViewIfNeeded();
+        await screenshot(page, `case-notes-more-fail-${lang}-${width}`, {
+          fullPage: false,
+        });
+      }
+    });
+  }
+
+  /*
+   * Dismiss takes the banner away, and the focus on it fell to the page:
+   * the next Tab started over at its top. It leaves the focus on Load more
+   * now, and the next Enter reads the notes again.
+   */
+  test("dismissed from the keyboard, the banner leaves the focus on Load more, whose next press reads the notes", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CASE_NOTES_PATH, { caseSetup: "notes-more-fail" });
+    await expect(page.getByTestId("note-card")).toHaveCount(FIRST_PAGE, {
+      timeout: 30000,
+    });
+    const loadMore: Locator = page.getByTestId("notes-load-more");
+    await loadMore.focus();
+    await page.keyboard.press("Enter");
+
+    const banner: Locator = page.getByTestId("notes-action-error");
+    const dismiss: Locator = banner.getByRole("button", { name: "Dismiss" });
+    await expect(banner).toBeVisible();
+
+    // From the reference's copy button, one Tab reaches Dismiss.
+    await banner.getByTestId("error-reference").getByRole("button").focus();
+    await page.keyboard.press("Tab");
+    await expect(dismiss).toBeFocused();
+
+    await page.keyboard.press("Enter");
+    await expect(banner).toHaveCount(0);
+    await expect(loadMore).toBeFocused();
+
+    // Load more's next read answers.
+    await page.keyboard.press("Enter");
+    await expect(page.getByTestId("note-card")).toHaveCount(ALL_NOTES);
+    await expect(page.getByTestId("notes-action-error")).toHaveCount(0);
+  });
+});
+
 test.describe("a case's Custom Fields card on a phone", () => {
   /*
    * The card's fields' box is a detail card's: the rule under its header
@@ -1601,6 +1756,91 @@ test.describe("in the reader's language", () => {
     await screenshot(page, "case-custom-fields-fa-1280-isolated", {
       fullPage: false,
     });
+  });
+
+  /*
+   * A recent note's time beside its author (#7648) read "20 minutes ago" on
+   * every language's page, and a Persian page laid that English out from
+   * the right: "minutes ago 20". It is in the reader's language now, its
+   * count in the language's digits, and read from the right in the order it
+   * is written.
+   */
+  test("a recent note's time reads in Persian, from the right in the order it is written", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // CASE-142's notes: Diego's, 20 minutes old, and Maya's, 35.
+    await open(page, CASE_NOTES_PATH);
+    const times: Locator = page.getByTestId("note-time");
+    for (const written of ["20 minutes ago", "35 minutes ago"]) {
+      await expect(times.filter({ hasText: written })).toHaveCount(1, {
+        timeout: 30000,
+      });
+    }
+
+    await open(page, CASE_NOTES_PATH, { lang: "fa" });
+    for (const written of ["۲۰ دقیقه پیش", "۳۵ دقیقه پیش"]) {
+      await expect(times.filter({ hasText: written })).toHaveCount(1, {
+        timeout: 30000,
+      });
+    }
+    await expect(times).toHaveCount(2);
+    await expect(times.filter({ hasText: /ago|[0-9]/ })).toHaveCount(0);
+
+    // Where each word and each digit of "۲۰ دقیقه پیش" is drawn.
+    const drawn: Array<{ text: string; left: number; right: number }> =
+      await times
+        .filter({ hasText: "۲۰ دقیقه پیش" })
+        .evaluate(
+          (
+            element: Element,
+          ): Array<{ text: string; left: number; right: number }> => {
+            const label: Node = element.firstChild!;
+            const content: string = label.textContent || "";
+            const boxOf: (
+              from: number,
+              to: number,
+            ) => { text: string; left: number; right: number } = (
+              from: number,
+              to: number,
+            ): { text: string; left: number; right: number } => {
+              const range: Range = document.createRange();
+              range.setStart(label, from);
+              range.setEnd(label, to);
+              const box: DOMRect = range.getBoundingClientRect();
+              return {
+                text: content.slice(from, to),
+                left: box.left,
+                right: box.right,
+              };
+            };
+            const pieces: Array<{ text: string; left: number; right: number }> =
+              [];
+            let start: number = 0;
+            for (const word of content.split(" ")) {
+              pieces.push(boxOf(start, start + word.length));
+              start += word.length + 1;
+            }
+            // The count's two digits, each on its own.
+            pieces.push(boxOf(0, 1), boxOf(1, 2));
+            return pieces;
+          },
+        );
+    const [count, minutes, ago, firstDigit, secondDigit] = drawn;
+
+    expect(
+      [count!.text, minutes!.text, ago!.text, firstDigit!.text],
+      "the words as written",
+    ).toEqual(["۲۰", "دقیقه", "پیش", "۲"]);
+    // From the right: the count, then the unit to its left, then "ago".
+    expect(minutes!.right).toBeLessThanOrEqual(count!.left + 0.5);
+    expect(ago!.right).toBeLessThanOrEqual(minutes!.left + 0.5);
+    // The count is drawn as written: "۲۰", never "۰۲".
+    expect(firstDigit!.right).toBeLessThanOrEqual(secondDigit!.left + 0.5);
+
+    await times.filter({ hasText: "۲۰ دقیقه پیش" }).scrollIntoViewIfNeeded();
+    await screenshot(page, "case-notes-time-fa-1280", { fullPage: false });
   });
 });
 

@@ -394,7 +394,7 @@ const NoteCard: FunctionComponent<ComponentProps> = (
                     className="whitespace-nowrap text-sm text-gray-500"
                     data-testid="note-time"
                   >
-                    {getNoteTimeLabel(timestamp, props.now)}
+                    {getNoteTimeLabel(timestamp, props.now, translator)}
                   </time>
                 </Tooltip>
               )}

@@ -430,13 +430,18 @@ describe("getFeedEventTypeLabel", () => {
     [IncidentFeedEventType.OnCallPolicy, "On-Call Policy"],
     [IncidentFeedEventType.OnCallNotification, "On-Call Notification"],
     [IncidentFeedEventType.OnCallRuleExecuted, "On-Call Rule Executed"],
+    // "OnCallDuty" too: "On-Call Duty" is a retired name (#6817).
     [
       OnCallDutyPolicyFeedEventType.OnCallDutyPolicyCreated,
-      "On-Call Duty Policy Created",
+      "On-Call Policy Created",
     ],
     [
       OnCallDutyPolicyFeedEventType.OnCallDutyScheduleAdded,
-      "On-Call Duty Schedule Added",
+      "On-Call Schedule Added",
+    ],
+    [
+      OnCallDutyPolicyFeedEventType.OnCallDutyScheduleRemoved,
+      "On-Call Schedule Removed",
     ],
     // "VMware" and "vCenter" keep their product spelling.
     [VMwareVCenterFeedEventType.VMwareVCenterCreated, "VMware vCenter Created"],

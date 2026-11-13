@@ -3765,9 +3765,10 @@ ModelAPI.getList = async (options) => {
   });
   /*
    * ?casesetup=fail: the first read of the case fields or templates fails;
-   * notes-fail-with-reference: the first of a case's notes.
+   * notes-fail-with-reference: the first of a case's notes; notes-more-fail:
+   * the first of a later page of them.
    */
-  if (caseSetup.failsRead(modelName)) {
+  if (caseSetup.failsRead(modelName, skip)) {
     throw new HTTPErrorResponse(500, caseSetup.failedReadAnswer(), {});
   }
   const known = knownTable(options.modelType, "getList", {

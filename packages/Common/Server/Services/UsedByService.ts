@@ -640,11 +640,7 @@ export const USED_BY_RELATION_DEFINITIONS: Readonly<
     getPlan: async (context: UsedByReadContext): Promise<UsedByReadPlan> => {
       return plainPlan({
         service: asService(DashboardService),
-        query: {
-          dashboardViewConfig: QueryHelper.textContainsAnyOf([
-            context.recordId.toString(),
-          ]),
-        },
+        query: DashboardService.getQueryForLayoutsNaming(context.recordId),
       });
     },
   },
