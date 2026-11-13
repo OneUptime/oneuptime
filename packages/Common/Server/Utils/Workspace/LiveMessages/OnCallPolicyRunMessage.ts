@@ -69,6 +69,7 @@ import { readAwayUntil } from "../../../../Types/OnCallDutyPolicy/AwayTimelineMe
 import { ALREADY_PAGED_TIMELINE_MESSAGE } from "../../../../Types/OnCallDutyPolicy/AlreadyPagedTimelineMessage";
 import { isOnCallDirectPage } from "../../../../Types/OnCallDutyPolicy/OnCallDirectPage";
 import { isOnCallPersonPage } from "../../../../Types/OnCallDutyPolicy/OnCallPersonPage";
+import { isOnCallPolicyStartedByHand } from "../../../../Types/OnCallDutyPolicy/OnCallPolicyStartedByHand";
 import { isOnCallObserverPage } from "../../../../Types/OnCallDutyPolicy/OnCallObserverPage";
 import { isOnCallPageAgainRun } from "../../../../Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
 import { isOnCallEmptyLevelMovedOnAtOnce } from "../../../../Types/OnCallDutyPolicy/OnCallEmptyLevel";
@@ -776,6 +777,11 @@ export default class OnCallPolicyRunMessage {
           pageMessage: true,
           // An observer's page (OnCallObserverPage).
           isObserverPage: true,
+          /*
+           * A test page is no policy started by hand
+           * (OnCallPolicyStartedByHand), though a person sent it.
+           */
+          userNotificationEventType: true,
         },
         props: {
           isRoot: true,
@@ -1844,13 +1850,15 @@ export default class OnCallPolicyRunMessage {
         ) {
           /*
            * A page a person asked for goes on whether or not somebody else
-           * acknowledges the record (OnCallPersonPage). Ending with nobody
-           * answering while somebody is on the record, it went unanswered:
-           * nobody needs to take the record. Read once, as it ends: the
-           * ending is kept as it was first told (keepEnding).
+           * acknowledges the record (OnCallPersonPage), and so does a policy
+           * a person started by hand (OnCallPolicyStartedByHand). Ending
+           * with nobody answering while somebody is on the record, it went
+           * unanswered: nobody needs to take the record. Read once, as it
+           * ends: the ending is kept as it was first told (keepEnding).
            */
           if (
-            isOnCallPersonPage(executionLog) &&
+            (isOnCallPersonPage(executionLog) ||
+              isOnCallPolicyStartedByHand(executionLog)) &&
             (await data.record.isAcknowledged())
           ) {
             return { outcome: OnCallPolicyRunOutcome.NobodyAnswered };

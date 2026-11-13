@@ -281,7 +281,7 @@ Le message d'un incident a quatre boutons, **Acknowledge Incident**, **Resolve I
 | **Change Severity** | Définit la gravité de l'incident. |
 | **Change Incident State** | Fait passer l'incident à un état suivant. |
 | **Assign Role** | Donne à quelqu'un un rôle sur l'incident, comme **Incident Commander**. Un rôle réservé à une seule personne lui revient. |
-| **Page Someone** | Alerte des personnes, une équipe, la personne d'astreinte dans un planning, ou une politique d'astreinte au sujet de l'incident, avec un message facultatif. Les personnes sont alertées jusqu'à ce que l'une d'elles réponde ; une politique alerte jusqu'à ce que quelqu'un accuse réception de l'incident. |
+| **Page Someone** | Alerte des personnes, une équipe, la personne d'astreinte dans un planning, ou une politique d'astreinte au sujet de l'incident, avec un message facultatif. Toutes les personnes qu'il alerte, y compris celles d'une politique, sont alertées jusqu'à ce que l'une d'elles réponde ou que l'incident soit résolu. |
 | **Edit Custom Fields** | Définit les champs personnalisés de l'incident, chacun rempli avec ce que contient l'incident. Un champ laissé vide est effacé. |
 
 `/oneuptime incident 42` affiche l'incident 42, avec ces boutons et son menu, dans un message que vous seul voyez. Tapez le numéro tel que OneUptime l'affiche : `42`, `#42` ou `INC-42`. Dans le canal propre à un incident, `/oneuptime incident` seul affiche cet incident.

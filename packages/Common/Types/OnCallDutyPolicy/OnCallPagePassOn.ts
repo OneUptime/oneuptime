@@ -395,11 +395,15 @@ export interface OnCallOpenPage {
   // The API's answer only: the preview as the server words it (see above).
   sentence?: string | undefined;
   /*
-   * Present (true) when the page is a page again
-   * (OnCallAcknowledgementTimeout): its record was acknowledged all along,
-   * so the record's own Acknowledge is gone, and the page is acknowledged
-   * as the page it is (ON_CALL_PAGE_AGAIN_ACKNOWLEDGE_ROUTE). Absent
-   * otherwise.
+   * Present (true) when the page is acknowledged as the page it is
+   * (ON_CALL_PAGE_AGAIN_ACKNOWLEDGE_ROUTE), since its record is acknowledged
+   * and the record's own Acknowledge is gone: a page again
+   * (OnCallAcknowledgementTimeout), whose record was acknowledged all
+   * along; and a page a person asked for (OnCallPersonPage) or a policy a
+   * person started by hand (OnCallPolicyStartedByHand) about a record
+   * somebody acknowledged already - both go on until one of their people
+   * answers them. Its name is the first kind's: the Dashboard and the app
+   * offer "Acknowledge again" for each. Absent otherwise.
    */
   isPageAgain?: true | undefined;
   /*

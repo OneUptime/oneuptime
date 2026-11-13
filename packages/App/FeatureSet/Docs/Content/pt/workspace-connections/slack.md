@@ -281,7 +281,7 @@ A mensagem de um incidente tem quatro botões, **Acknowledge Incident**, **Resol
 | **Change Severity** | Define a severidade do incidente. |
 | **Change Incident State** | Leva o incidente a um estado posterior. |
 | **Assign Role** | Dá a alguém uma função no incidente, como **Incident Commander**. Uma função de uma só pessoa passa para ela. |
-| **Page Someone** | Aciona pessoas, uma equipe, quem estiver de plantão em um agendamento, ou uma política de plantão sobre o incidente, com uma mensagem opcional. As pessoas são acionadas até que uma delas responda; uma política aciona até que alguém confirme o incidente. |
+| **Page Someone** | Aciona pessoas, uma equipe, quem estiver de plantão em um agendamento, ou uma política de plantão sobre o incidente, com uma mensagem opcional. Todas as pessoas que ele aciona, inclusive as de uma política, são acionadas até que uma delas responda ou o incidente seja resolvido. |
 | **Edit Custom Fields** | Define os campos personalizados do incidente, cada um preenchido com o que o incidente tem. Um campo deixado vazio é limpo. |
 
 `/oneuptime incident 42` mostra o incidente 42, com esses botões e o menu dele, em uma mensagem que só você vê. Digite o número como o OneUptime o mostra: `42`, `#42` ou `INC-42`. No canal próprio de um incidente, `/oneuptime incident` sozinho mostra esse incidente.

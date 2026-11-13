@@ -253,7 +253,7 @@ En hændelses kort har fire knapper, **Acknowledge Incident**, **Resolve Inciden
 | **Change Severity** | Sætter hændelsens alvorlighed. |
 | **Change Incident State** | Flytter hændelsen til en senere tilstand. |
 | **Assign Role** | Giver nogen en rolle i hændelsen, som **Incident Commander**. En rolle til én person går over til vedkommende. |
-| **Page Someone** | Tilkalder personer, et team, den der har vagt i en vagtplan, eller en vagtpolitik om hændelsen, med en valgfri besked. Personer tilkaldes, indtil en af dem svarer; en politik tilkalder, indtil nogen kvitterer for hændelsen. |
+| **Page Someone** | Tilkalder personer, et team, den der har vagt i en vagtplan, eller en vagtpolitik om hændelsen, med en valgfri besked. Alle, den tilkalder, også en politiks personer, tilkaldes, indtil en af dem svarer, eller hændelsen er løst. |
 | **Edit Custom Fields** | Sætter hændelsens brugerdefinerede felter, hvert udfyldt med det, hændelsen har. Et felt, der efterlades tomt, ryddes. |
 
 `incident 42`, skrevet til botten, svarer med hændelse 42, disse knapper og dens menu. Skriv nummeret, som OneUptime viser det: `42`, `#42` eller `INC-42`. I en hændelses egen kanal viser `incident` alene den hændelse.

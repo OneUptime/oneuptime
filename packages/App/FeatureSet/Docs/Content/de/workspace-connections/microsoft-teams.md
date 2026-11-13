@@ -253,7 +253,7 @@ Die Karte eines Vorfalls hat vier Schaltflächen, **Acknowledge Incident**, **Re
 | **Change Severity** | Legt den Schweregrad des Vorfalls fest. |
 | **Change Incident State** | Versetzt den Vorfall in einen späteren Status. |
 | **Assign Role** | Gibt jemandem eine Rolle im Vorfall, etwa **Incident Commander**. Eine Rolle für nur eine Person geht an diese Person über. |
-| **Page Someone** | Alarmiert Personen, ein Team, wer in einem Bereitschaftsplan gerade Bereitschaft hat, oder eine Bereitschaftsrichtlinie zu dem Vorfall, mit einer optionalen Nachricht. Personen werden alarmiert, bis eine von ihnen antwortet; eine Richtlinie alarmiert, bis jemand den Vorfall bestätigt. |
+| **Page Someone** | Alarmiert Personen, ein Team, wer in einem Bereitschaftsplan gerade Bereitschaft hat, oder eine Bereitschaftsrichtlinie zu dem Vorfall, mit einer optionalen Nachricht. Alle, die es alarmiert, auch die Personen einer Richtlinie, werden alarmiert, bis eine von ihnen antwortet oder der Vorfall behoben ist. |
 | **Edit Custom Fields** | Setzt die benutzerdefinierten Felder des Vorfalls, jedes ausgefüllt mit dem, was der Vorfall enthält. Ein leer gelassenes Feld wird geleert. |
 
 `incident 42`, an den Bot geschrieben, antwortet mit Vorfall 42, diesen Schaltflächen und seinem Menü. Schreiben Sie die Nummer so, wie OneUptime sie zeigt: `42`, `#42` oder `INC-42`. Im eigenen Kanal eines Vorfalls zeigt `incident` allein diesen Vorfall.

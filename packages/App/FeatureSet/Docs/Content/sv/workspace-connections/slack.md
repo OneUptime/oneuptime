@@ -281,7 +281,7 @@ En incidents meddelande har fyra knappar, **Acknowledge Incident**, **Resolve In
 | **Change Severity** | Anger incidentens allvarlighetsgrad. |
 | **Change Incident State** | Flyttar incidenten till ett senare tillstånd. |
 | **Assign Role** | Ger någon en roll i incidenten, som **Incident Commander**. En roll för en person går över till den personen. |
-| **Page Someone** | Larmar personer, ett team, den som har jour i ett schema just nu, eller en jourpolicy om incidenten, med ett valfritt meddelande. Personer larmas tills någon av dem svarar; en policy larmar tills någon bekräftar incidenten. |
+| **Page Someone** | Larmar personer, ett team, den som har jour i ett schema just nu, eller en jourpolicy om incidenten, med ett valfritt meddelande. Alla som den larmar, även personerna i en policy, larmas tills någon av dem svarar eller incidenten är löst. |
 | **Edit Custom Fields** | Anger incidentens anpassade fält, vart och ett ifyllt med det incidenten har. Ett fält som lämnas tomt rensas. |
 
 `/oneuptime incident 42` visar incident 42, med de här knapparna och dess meny, i ett meddelande som bara du ser. Skriv numret som OneUptime visar det: `42`, `#42` eller `INC-42`. I en incidents egen kanal visar `/oneuptime incident` ensamt den incidenten.
