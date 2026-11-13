@@ -473,14 +473,12 @@ describe("which channels a settings save starts again", () => {
     ).toEqual(emailColumns.sort());
   });
 
-  test("every column the answers read is in the select", () => {
+  test("every column the answers and the settings' fingerprints read is in the select", () => {
     for (const column of [
       ...SERVER_CHANNEL_SETTING_COLUMNS[ServerSendingChannel.SMS],
       "disablePushNotifications",
-      "emailServerType",
-      "smtpHost",
-      "sendgridApiKey",
-      "resendFromEmail",
+      // Every email column: email's fingerprint reads all of its type's (#7803).
+      ...SERVER_CHANNEL_SETTING_COLUMNS[ServerSendingChannel.Email],
     ]) {
       expect(
         (SERVER_CHANNEL_SETUP_SELECT as Record<string, unknown>)[column],
