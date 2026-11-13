@@ -4,6 +4,7 @@ import { describe, expect, test } from "@jest/globals";
 import {
   DATADOG_BASE_PATH,
   DATADOG_LOGS_PATH,
+  DATADOG_PATHS,
   DATADOG_ROOT_PATHS,
   DATADOG_SERIES_V1_PATH,
   DATADOG_SERIES_V2_PATH,
@@ -31,7 +32,7 @@ describe("isCompatibleIngestPath", () => {
     ...SPLUNK_HEC_EVENT_PATHS,
     ...SPLUNK_HEC_RAW_PATHS,
     ...SPLUNK_HEC_HEALTH_PATHS,
-    ...DATADOG_ROOT_PATHS.map((datadogPath: string): string => {
+    ...DATADOG_PATHS.map((datadogPath: string): string => {
       return `${DATADOG_BASE_PATH}${datadogPath}`;
     }),
     ...DATADOG_ROOT_PATHS,
@@ -77,8 +78,8 @@ describe("isCompatibleIngestPath", () => {
     expect(isCompatibleIngestPath(other)).toBe(false);
   });
 
-  test("Datadog's root paths are exactly the intake routes the Agent posts to", () => {
-    expect(DATADOG_ROOT_PATHS).toEqual(
+  test("under /datadog every intake path is served; at the root only logs, which logs_dd_url cannot put under a path", () => {
+    expect(DATADOG_PATHS).toEqual(
       expect.arrayContaining([
         DATADOG_LOGS_PATH,
         DATADOG_SERIES_V1_PATH,
@@ -86,13 +87,14 @@ describe("isCompatibleIngestPath", () => {
         DATADOG_VALIDATE_PATH,
       ]),
     );
+    expect(DATADOG_ROOT_PATHS).toEqual([DATADOG_LOGS_PATH]);
 
-    for (const datadogPath of DATADOG_ROOT_PATHS) {
-      // Nothing of OneUptime's own API lives under these.
-      expect(datadogPath === "/intake" || datadogPath.startsWith("/api/")).toBe(
-        true,
-      );
-    }
+    // dd_url takes a path, so the rest stay OneUptime's own API's.
+    expect(isCompatibleIngestPath(DATADOG_SERIES_V2_PATH)).toBe(false);
+    expect(isCompatibleIngestPath("/intake")).toBe(false);
+    expect(isCompatibleIngestPath(`/datadog${DATADOG_SERIES_V2_PATH}`)).toBe(
+      true,
+    );
   });
 
   test("StartServer's body parsers and urlencoded parser both leave these paths alone", () => {

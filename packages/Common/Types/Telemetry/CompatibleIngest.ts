@@ -40,11 +40,9 @@ export const SPLUNK_HEC_EVENT_PATHS: ReadonlyArray<string> = [
 ];
 export const SPLUNK_HEC_RAW_PATHS: ReadonlyArray<string> = [
   "/services/collector/raw",
-  "/services/collector/raw/1.0",
 ];
 export const SPLUNK_HEC_HEALTH_PATHS: ReadonlyArray<string> = [
   "/services/collector/health",
-  "/services/collector/health/1.0",
 ];
 
 /*
@@ -67,13 +65,8 @@ export const DATADOG_METADATA_PATHS: ReadonlyArray<string> = [
   "/api/v1/metadata",
 ];
 
-/*
- * The Datadog Agent posts logs to /api/v2/logs on the host it is given
- * (logs_config.logs_dd_url is a host and port, never a path), so Datadog's
- * routes are served at the root too - only to a request that carries a
- * DD-API-KEY header, so nothing else under /api is ever answered by them.
- */
-export const DATADOG_ROOT_PATHS: ReadonlyArray<string> = [
+// Every intake path, as served under /datadog.
+export const DATADOG_PATHS: ReadonlyArray<string> = [
   DATADOG_LOGS_PATH,
   DATADOG_SERIES_V1_PATH,
   DATADOG_SERIES_V2_PATH,
@@ -82,6 +75,15 @@ export const DATADOG_ROOT_PATHS: ReadonlyArray<string> = [
   DATADOG_VALIDATE_PATH,
   ...DATADOG_METADATA_PATHS,
 ];
+
+/*
+ * The Datadog Agent posts logs to /api/v2/logs on the host it is given
+ * (logs_config.logs_dd_url is a host and port, never a path), so that one
+ * route is served at the root too - only to a request that carries a
+ * DD-API-KEY header, so nothing else under /api is ever answered by it.
+ * Everything else the Agent sends goes to dd_url, which takes a path.
+ */
+export const DATADOG_ROOT_PATHS: ReadonlyArray<string> = [DATADOG_LOGS_PATH];
 
 /*
  * Sentry's ingest API under /sentry: a DSN of
@@ -125,11 +127,14 @@ export function isCompatibleIngestPath(path: string): boolean {
     return true;
   }
 
-  const datadogPath: string = normalized.startsWith(`${DATADOG_BASE_PATH}/`)
-    ? normalized.slice(DATADOG_BASE_PATH.length)
-    : normalized;
+  if (
+    normalized.startsWith(`${DATADOG_BASE_PATH}/`) &&
+    DATADOG_PATHS.includes(normalized.slice(DATADOG_BASE_PATH.length))
+  ) {
+    return true;
+  }
 
-  if (DATADOG_ROOT_PATHS.includes(datadogPath)) {
+  if (DATADOG_ROOT_PATHS.includes(normalized)) {
     return true;
   }
 

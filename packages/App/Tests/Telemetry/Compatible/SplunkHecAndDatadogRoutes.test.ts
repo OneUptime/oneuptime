@@ -303,7 +303,7 @@ describe("Splunk HTTP Event Collector", () => {
 
   test("an empty raw body is HEC's No data", async () => {
     const response: RouteResponse = await send(
-      hec(`${SPLUNK_HEC_BASE_PATH}/raw/1.0`),
+      hec(`${COMPATIBLE_INGEST_URL_PREFIX}${SPLUNK_HEC_BASE_PATH}/raw`),
       {
         headers: { authorization: `Splunk ${INGESTION_KEY}` },
         body: "\n\n",
@@ -316,7 +316,6 @@ describe("Splunk HTTP Event Collector", () => {
 
   test.each<[string]>([
     [`${SPLUNK_HEC_BASE_PATH}/health`],
-    [`${SPLUNK_HEC_BASE_PATH}/health/1.0`],
     [`${COMPATIBLE_INGEST_URL_PREFIX}${SPLUNK_HEC_BASE_PATH}/health`],
   ])("%s answers HEC is healthy without a token", async (path: string) => {
     const response: RouteResponse = await send(hec(path), { method: "GET" });
@@ -397,7 +396,20 @@ describe("Datadog intake", () => {
     expect(jobs).toHaveLength(1);
   });
 
-  test("the root routes step aside for a request without a DD-API-KEY, to OneUptime's own API", async () => {
+  test("only logs are served at the root: dd_url takes a path, so nothing else needs to be", async () => {
+    const response: RouteResponse = await send(`${server.url}/api/v1/series`, {
+      headers: {
+        "dd-api-key": INGESTION_KEY,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ series: [] }),
+    });
+
+    expect(response.status).toBe(404);
+    expect(jobs).toHaveLength(0);
+  });
+
+  test("the root logs route steps aside for a request without a DD-API-KEY, to OneUptime's own API", async () => {
     const response: RouteResponse = await send(`${server.url}/api/v2/logs`, {
       headers: { "x-oneuptime-token": INGESTION_KEY },
       body: LOGS,
@@ -549,7 +561,7 @@ describe("Datadog intake", () => {
     expect(valid.status).toBe(200);
     expect(valid.json()).toEqual({ valid: true });
 
-    const invalid: RouteResponse = await send(`${server.url}/api/v1/validate`, {
+    const invalid: RouteResponse = await send(datadog("/api/v1/validate"), {
       method: "GET",
       headers: { "dd-api-key": "00000000000040008000000000000000" },
     });

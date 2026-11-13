@@ -33,7 +33,6 @@ const HEC_PATHS = [
   "/services/collector/event",
   "/services/collector/event/1.0",
   "/services/collector/raw",
-  "/services/collector/raw/1.0",
   "/services/collector/health",
 ];
 

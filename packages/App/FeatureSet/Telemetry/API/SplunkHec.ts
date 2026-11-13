@@ -86,25 +86,9 @@ router.post(
   ingestRaw,
 );
 
-router.post(
-  "/services/collector/raw/1.0",
-  TelemetryIngestionDisabled.middleware,
-  credentials,
-  SplunkHecIngestService.setProductType,
-  TelemetryIngest.forSurface(TelemetryIngestSurface.SplunkHec),
-  ingestRaw,
-);
-
 // HEC's health check, which Splunk answers without a token.
 router.get(
   "/services/collector/health",
-  (req: ExpressRequest, res: ExpressResponse): void => {
-    SplunkHecIngestService.health(req, res);
-  },
-);
-
-router.get(
-  "/services/collector/health/1.0",
   (req: ExpressRequest, res: ExpressResponse): void => {
     SplunkHecIngestService.health(req, res);
   },

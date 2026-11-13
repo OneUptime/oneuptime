@@ -20,10 +20,10 @@ import DatadogIngestService from "../Services/DatadogIngestService";
  *   - under /datadog (and /telemetry/datadog), where the Agent's dd_url
  *     points: dd_url = https://<host>/telemetry/datadog, and the Agent adds
  *     /api/v2/series and the rest itself;
- *   - at the root, for a request that carries a DD-API-KEY header only:
- *     the Agent posts logs to /api/v2/logs on the host:port its
- *     logs_dd_url names, which takes no path. Without the header, these
- *     routes step aside (DatadogIngestService.onlyWithApiKey) and the
+ *   - /api/v2/logs at the root too, for a request that carries a
+ *     DD-API-KEY header only: the Agent posts logs there, on the host:port
+ *     its logs_dd_url names, which takes no path. Without the header, the
+ *     route steps aside (DatadogIngestService.onlyWithApiKey) and the
  *     request goes on to OneUptime's own API.
  *
  * Bodies are read raw after the key is checked: StartServer leaves these
@@ -153,7 +153,7 @@ router.post(
   acceptMetadata,
 );
 
-// At the root, for a request with a DD-API-KEY header only.
+// At the root, for a request with a DD-API-KEY header only: the Agent's logs.
 
 // Logs: the Agent (logs_dd_url), and Datadog's log libraries and forwarders.
 router.post(
@@ -164,83 +164,6 @@ router.post(
   DatadogIngestService.setProductType,
   TelemetryIngest.forSurface(TelemetryIngestSurface.Datadog),
   ingest("ingestLogs"),
-);
-
-// Metrics, Datadog's v1 JSON series.
-router.post(
-  "/api/v1/series",
-  DatadogIngestService.onlyWithApiKey,
-  TelemetryIngestionDisabled.middleware,
-  credentials,
-  DatadogIngestService.setProductType,
-  TelemetryIngest.forSurface(TelemetryIngestSurface.Datadog),
-  ingest("ingestSeriesV1"),
-);
-
-// Metrics: the Agent's protobuf MetricPayload, or v2 JSON series.
-router.post(
-  "/api/v2/series",
-  DatadogIngestService.onlyWithApiKey,
-  TelemetryIngestionDisabled.middleware,
-  credentials,
-  DatadogIngestService.setProductType,
-  TelemetryIngest.forSurface(TelemetryIngestSurface.Datadog),
-  ingest("ingestSeriesV2"),
-);
-
-// Distributions, as the Agent's sketches.
-router.post(
-  "/api/beta/sketches",
-  DatadogIngestService.onlyWithApiKey,
-  TelemetryIngestionDisabled.middleware,
-  credentials,
-  DatadogIngestService.setProductType,
-  TelemetryIngest.forSurface(TelemetryIngestSurface.Datadog),
-  ingest("ingestSketches"),
-);
-
-// Service checks.
-router.post(
-  "/api/v1/check_run",
-  DatadogIngestService.onlyWithApiKey,
-  TelemetryIngestionDisabled.middleware,
-  credentials,
-  DatadogIngestService.setProductType,
-  TelemetryIngest.forSurface(TelemetryIngestSurface.Datadog),
-  ingest("ingestCheckRuns"),
-);
-
-// The Agent checks its API key here, at start and now and then.
-router.get(
-  "/api/v1/validate",
-  DatadogIngestService.onlyWithApiKey,
-  TelemetryIngestionDisabled.middleware,
-  credentials,
-  DatadogIngestService.setProductType,
-  TelemetryIngest.forSurface(TelemetryIngestSurface.Datadog),
-  validate,
-);
-
-// The Agent's host metadata: accepted, not kept.
-router.post(
-  "/intake",
-  DatadogIngestService.onlyWithApiKey,
-  TelemetryIngestionDisabled.middleware,
-  credentials,
-  DatadogIngestService.setProductType,
-  TelemetryIngest.forSurface(TelemetryIngestSurface.Datadog),
-  acceptMetadata,
-);
-
-// The Agent's inventory metadata: accepted, not kept.
-router.post(
-  "/api/v1/metadata",
-  DatadogIngestService.onlyWithApiKey,
-  TelemetryIngestionDisabled.middleware,
-  credentials,
-  DatadogIngestService.setProductType,
-  TelemetryIngest.forSurface(TelemetryIngestSurface.Datadog),
-  acceptMetadata,
 );
 
 export default router;

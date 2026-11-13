@@ -183,11 +183,6 @@ const EXPECTED_WIRING: Array<WiredIngestRoute> = [
     surfaceMember: "SplunkHec",
   },
   {
-    file: `${TELEMETRY_API_DIRECTORY}/SplunkHec.ts`,
-    routePath: "/services/collector/raw/1.0",
-    surfaceMember: "SplunkHec",
-  },
-  {
     file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
     routePath: "/datadog/api/v2/logs",
     surfaceMember: "Datadog",
@@ -230,41 +225,6 @@ const EXPECTED_WIRING: Array<WiredIngestRoute> = [
   {
     file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
     routePath: "/api/v2/logs",
-    surfaceMember: "Datadog",
-  },
-  {
-    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
-    routePath: "/api/v1/series",
-    surfaceMember: "Datadog",
-  },
-  {
-    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
-    routePath: "/api/v2/series",
-    surfaceMember: "Datadog",
-  },
-  {
-    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
-    routePath: "/api/beta/sketches",
-    surfaceMember: "Datadog",
-  },
-  {
-    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
-    routePath: "/api/v1/check_run",
-    surfaceMember: "Datadog",
-  },
-  {
-    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
-    routePath: "/api/v1/validate",
-    surfaceMember: "Datadog",
-  },
-  {
-    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
-    routePath: "/intake",
-    surfaceMember: "Datadog",
-  },
-  {
-    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
-    routePath: "/api/v1/metadata",
     surfaceMember: "Datadog",
   },
   {

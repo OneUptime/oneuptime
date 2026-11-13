@@ -26,10 +26,10 @@ import CompatibleIngestService, {
 
 /*
  * The Datadog Agent's and Datadog HTTP API's intake, under /datadog (the
- * Agent's dd_url is <host>/telemetry/datadog) and, for a request carrying
- * a DD-API-KEY header, at the root - the Agent posts logs to /api/v2/logs
- * on the host:port logs_dd_url names. See DatadogIntake for what each
- * payload becomes.
+ * Agent's dd_url is <host>/telemetry/datadog), and logs at the root too,
+ * for a request carrying a DD-API-KEY header - the Agent posts logs to
+ * /api/v2/logs on the host:port logs_dd_url names. See DatadogIntake for
+ * what each payload becomes.
  *
  * Answered as Datadog's intake answers: 202 with {} for logs, sketches and
  * the Agent's metadata, {"status": "ok"} for v1 series and check runs,
@@ -53,9 +53,9 @@ export default class DatadogIngestService {
   }
 
   /*
-   * The root paths (/api/v2/logs, /api/v1/series, ...) are OneUptime's API
-   * namespace: they are only Datadog's for a request that says it is, with
-   * a DD-API-KEY header. Anything else goes on to the routes after these.
+   * /api/v2/logs at the root is OneUptime's API namespace: it is only
+   * Datadog's for a request that says it is, with a DD-API-KEY header.
+   * Anything else goes on to the routes after this one.
    */
   public static onlyWithApiKey(
     req: ExpressRequest,

@@ -121,9 +121,9 @@ const TelemetryFeatureSet: FeatureSet = {
        * The compatible endpoints (Common/Types/Telemetry/CompatibleIngest):
        * the agents and SDKs a team already runs - Prometheus, Loki's
        * clients, Splunk forwarders, the Datadog Agent, Sentry SDKs - send
-       * here unchanged, and what they send is stored as OTLP. Datadog's routes
-       * at the root (/api/v2/logs, ...) only answer a request with a
-       * DD-API-KEY header and step aside for anything else.
+       * here unchanged, and what they send is stored as OTLP. Datadog's logs
+       * route at the root (/api/v2/logs) only answers a request with a
+       * DD-API-KEY header and steps aside for anything else.
        */
       app.use(TELEMETRY_PREFIXES, PrometheusRemoteWriteAPI);
       app.use(TELEMETRY_PREFIXES, LokiAPI);
