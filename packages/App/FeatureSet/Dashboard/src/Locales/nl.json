@@ -51841,5 +51841,7 @@
   "Couldn't reject the note.": "Kan de notitie niet afwijzen.",
   "Couldn't publish the note.": "Kan de notitie niet publiceren.",
   "Couldn't withdraw the edit.": "Kan de bewerking niet intrekken.",
-  "Couldn't load the public notes.": "Kan de openbare notities niet laden."
+  "Couldn't load the public notes.": "Kan de openbare notities niet laden.",
+  "{{count}} of {{total}} monitors could not be linked: {{errors}}": "{{count}} van {{total}} monitoren konden niet worden gekoppeld: {{errors}}",
+  "{{count}} of {{total}} monitors could not be linked: {{errors}}_one": "{{count}} van {{total}} monitoren kon niet worden gekoppeld: {{errors}}"
 }

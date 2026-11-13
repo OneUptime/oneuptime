@@ -51841,5 +51841,7 @@
   "Couldn't reject the note.": "Det gick inte att avvisa anteckningen.",
   "Couldn't publish the note.": "Det gick inte att publicera anteckningen.",
   "Couldn't withdraw the edit.": "Det gick inte att dra tillbaka redigeringen.",
-  "Couldn't load the public notes.": "Det gick inte att läsa in de offentliga anteckningarna."
+  "Couldn't load the public notes.": "Det gick inte att läsa in de offentliga anteckningarna.",
+  "{{count}} of {{total}} monitors could not be linked: {{errors}}": "{{count}} av {{total}} övervakare kunde inte länkas: {{errors}}",
+  "{{count}} of {{total}} monitors could not be linked: {{errors}}_one": "{{count}} av {{total}} övervakare kunde inte länkas: {{errors}}"
 }

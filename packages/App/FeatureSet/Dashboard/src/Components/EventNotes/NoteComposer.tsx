@@ -295,7 +295,8 @@ const NoteComposer: FunctionComponent<ComponentProps> = (
         <MarkdownEditor
           key={props.editorKey}
           initialValue={props.values.note}
-          placeholder={tx(props.copy.composerPlaceholder)}
+          // In English: the editor looks it up, once.
+          placeholder={props.copy.composerPlaceholder}
           ariaLabelledby={editorLabelId}
           dataTestId="note-editor"
           onChange={(value: string) => {
