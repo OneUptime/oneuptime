@@ -51765,5 +51765,6 @@
   "Profiles — All profiles": "Profielen — Alle profielen",
   "Profiles — Overview": "Profielen — Overzicht",
   "Profiles — Setup guide": "Profielen — Installatiegids",
-  "Turn On Profiling in the Agent": "Profilering in de agent inschakelen"
+  "Turn On Profiling in the Agent": "Profilering in de agent inschakelen",
+  "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Periode: {{range}}. Pas de filters aan of kies een ruimere periode."
 }

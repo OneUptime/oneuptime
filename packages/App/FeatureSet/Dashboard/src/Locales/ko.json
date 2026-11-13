@@ -51765,5 +51765,6 @@
   "Profiles — All profiles": "프로파일 — 모든 프로필",
   "Profiles — Overview": "프로파일 — 개요",
   "Profiles — Setup guide": "프로파일 — 설정 가이드",
-  "Turn On Profiling in the Agent": "에이전트에서 프로파일링 켜기"
+  "Turn On Profiling in the Agent": "에이전트에서 프로파일링 켜기",
+  "Time range: {{range}}. Try adjusting filters or expanding the time range.": "기간: {{range}}. 필터를 조정하거나 기간을 넓혀 보세요."
 }

@@ -563,6 +563,24 @@ export interface DateTextShape {
   twoDigitDay?: boolean | undefined;
 }
 
+/*
+ * How Intl writes the hour of a time of day on the reader's clock.
+ *
+ * A 12-hour time's hour has no leading zero in any language: "5:14 AM",
+ * "오전 5:14", "上午5:14", "5:14 am", "5:14 ص", "۵:۱۴ ق.ظ.". Asked for two
+ * digits there, Intl wrote "오전 05:14" and "05:14 ص" in every language but
+ * English, which moment writes "5:14 AM" (issue #7279). A 24-hour time keeps
+ * its zero: "05:14" - "numeric" would drop it in German, French, Japanese
+ * and most others ("5:14") while Korean, Hindi and Arabic keep it.
+ */
+export const getHourOption: (
+  use12HourFormat: boolean | undefined,
+) => "numeric" | "2-digit" = (
+  use12HourFormat: boolean | undefined,
+): "numeric" | "2-digit" => {
+  return use12HourFormat ? "numeric" : "2-digit";
+};
+
 // The Intl options a shape of OneUptimeDate's dates asks for.
 export const getDateTimeOptions: (
   shape: DateTextShape,
@@ -583,7 +601,7 @@ export const getDateTimeOptions: (
   }
 
   if (!shape.onlyShowDate) {
-    options.hour = "2-digit";
+    options.hour = getHourOption(shape.use12HourFormat);
     options.minute = "2-digit";
     options.hour12 = Boolean(shape.use12HourFormat);
 

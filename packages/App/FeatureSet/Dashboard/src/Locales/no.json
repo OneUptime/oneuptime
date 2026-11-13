@@ -51765,5 +51765,6 @@
   "Profiles — All profiles": "Profiler — Alle profiler",
   "Profiles — Overview": "Profiler — Oversikt",
   "Profiles — Setup guide": "Profiler — Oppsettveiledning",
-  "Turn On Profiling in the Agent": "Slå på profilering i agenten"
+  "Turn On Profiling in the Agent": "Slå på profilering i agenten",
+  "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Tidsrom: {{range}}. Prøv å justere filtrene eller utvide tidsrommet."
 }

@@ -51765,5 +51765,6 @@
   "Profiles — All profiles": "پروفایل‌ها — همه پروفایل‌ها",
   "Profiles — Overview": "پروفایل‌ها — نمای کلی",
   "Profiles — Setup guide": "پروفایل‌ها — راهنمای راه‌اندازی",
-  "Turn On Profiling in the Agent": "روشن کردن پروفایل‌گیری در عامل"
+  "Turn On Profiling in the Agent": "روشن کردن پروفایل‌گیری در عامل",
+  "Time range: {{range}}. Try adjusting filters or expanding the time range.": "بازهٔ زمانی: {{range}}. فیلترها را تغییر دهید یا بازهٔ زمانی را بزرگ‌تر کنید."
 }

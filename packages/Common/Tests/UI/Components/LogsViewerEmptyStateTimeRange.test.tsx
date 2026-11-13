@@ -10,6 +10,14 @@
  * 24-hour, and always in the browser's own zone rather than the one configured
  * in User Settings. The picker meanwhile always said 24-hour. One screen, one
  * window, two disagreeing renderings, neither of them the user's.
+ *
+ * And it was English on every page (issue #7280): built as one English
+ * sentence with the dates inside it, it had no wording in any language, and
+ * a preset was named by its English name in lower case. It is one sentence
+ * with the window as its value now ("Time range: {{range}}. ..."), worded in
+ * all 18 Dashboard languages, with the window written in the language the
+ * sentence comes out in - a preset by the name the picker gives it, a custom
+ * window in the reader's words and digits.
  */
 import "@testing-library/jest-dom";
 import {
@@ -70,17 +78,96 @@ postMock.mockImplementation(() => {
 });
 
 // Imported after the mocks so the module picks the mocked API surfaces up.
-import { getEmptyMessageWithTimeRange } from "../../../UI/Components/LogsViewer/LogsViewer";
-import { getTimeRangeButtonLabel } from "../../../UI/Components/Date/TimeRangePickerDropdown";
+import {
+  getEmptyMessageWithTimeRange,
+  LOGS_TIME_RANGE_EMPTY_HINT,
+} from "../../../UI/Components/LogsViewer/LogsViewer";
+import {
+  LOGS_TABLE_EMPTY_HINT,
+  LogsEmptyMessage,
+  writeLogsEmptyMessage,
+} from "../../../UI/Components/LogsViewer/components/LogsTable";
+import {
+  getTimeRangeButtonLabel,
+  getTimeRangeLabel,
+  TIME_RANGE_PRESET_OPTIONS,
+  TimeRangePickerPresetOption,
+} from "../../../UI/Components/Date/TimeRangePickerDropdown";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import OneUptimeDate from "../../../Types/Date";
+import {
+  forgetRememberedDateTexts,
+  setDateDisplayLanguage,
+} from "../../../Types/DateLanguage";
+import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "../../../Types/Time/TimeRange";
 import Timezone from "../../../Types/Timezone";
+import {
+  createTranslator,
+  Translator,
+} from "../../../UI/Utils/TranslateTemplate";
+import {
+  DASHBOARD_LANGUAGES,
+  dashboardTranslator,
+  readDashboardLocale,
+} from "../../Helpers/DashboardLocales";
+import { isolated, withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 
 const AFTERNOON: InBetween<Date> = new InBetween<Date>(
   new Date("2024-03-01T14:30:00.000Z"),
   new Date("2024-03-01T18:45:00.000Z"),
 );
+
+const CUSTOM_AFTERNOON: RangeStartAndEndDateTime = {
+  range: TimeRange.CUSTOM,
+  startAndEndDate: AFTERNOON,
+};
+
+const NO_BREAK_SPACE: string = String.fromCharCode(0x00a0);
+
+// Persian's half space, inside a word: "بزرگ" + it + "تر".
+const ZERO_WIDTH_NON_JOINER: string = String.fromCharCode(0x200c);
+
+// A space, a no-break space or a narrow one: the same to a reader.
+const ANY_SPACE: RegExp = /\s/g;
+const LATIN_DIGIT: RegExp = /[0-9]/;
+const PERSIAN_DIGIT: RegExp = /[۰-۹]/;
+
+function spaced(text: string): string {
+  return text.replace(ANY_SPACE, " ");
+}
+
+// The sentence in English, as a reader sees it.
+function english(message: LogsEmptyMessage): string {
+  return spaced(writeLogsEmptyMessage(message));
+}
+
+// The sentence as `language`'s Dashboard draws it: its values set apart.
+function drawnIn(language: string, message: LogsEmptyMessage): string {
+  return writeLogsEmptyMessage(message, dashboardTranslator(language), {
+    setsValuesApart: true,
+  });
+}
+
+// What a reader of `language` reads: no isolate marks, any space a space.
+function readIn(language: string, message: LogsEmptyMessage): string {
+  return spaced(withoutIsolateMarks(drawnIn(language, message)));
+}
+
+// The custom window's two ends as the picker button writes them in `language`.
+function buttonLabelIn(
+  language: string,
+  value: RangeStartAndEndDateTime,
+  now?: Date,
+): string {
+  setDateDisplayLanguage(language);
+
+  try {
+    return spaced(getTimeRangeButtonLabel(value, now));
+  } finally {
+    setDateDisplayLanguage(null);
+  }
+}
 
 function pin(use12HourFormat: boolean): void {
   jest
@@ -91,6 +178,8 @@ function pin(use12HourFormat: boolean): void {
 afterEach(() => {
   jest.restoreAllMocks();
   OneUptimeDate.setUserTimezone(null);
+  setDateDisplayLanguage(null);
+  forgetRememberedDateTexts();
 });
 
 /*
@@ -110,12 +199,7 @@ describe("getEmptyMessageWithTimeRange", () => {
     test("is written with AM/PM on a 12-hour machine", () => {
       pin(true);
 
-      expect(
-        getEmptyMessageWithTimeRange({
-          range: TimeRange.CUSTOM,
-          startAndEndDate: AFTERNOON,
-        }),
-      ).toBe(
+      expect(english(getEmptyMessageWithTimeRange(CUSTOM_AFTERNOON))).toBe(
         "Time range: Mar 1, 2:30 PM – Mar 1, 6:45 PM. Try adjusting filters or expanding the time range.",
       );
     });
@@ -123,10 +207,9 @@ describe("getEmptyMessageWithTimeRange", () => {
     test("is written on a 24-hour clock on a 24-hour machine", () => {
       pin(false);
 
-      const message: string = getEmptyMessageWithTimeRange({
-        range: TimeRange.CUSTOM,
-        startAndEndDate: AFTERNOON,
-      });
+      const message: string = english(
+        getEmptyMessageWithTimeRange(CUSTOM_AFTERNOON),
+      );
 
       expect(message).toBe(
         "Time range: Mar 1, 14:30 – Mar 1, 18:45. Try adjusting filters or expanding the time range.",
@@ -143,10 +226,7 @@ describe("getEmptyMessageWithTimeRange", () => {
       pin(false);
 
       expect(
-        getEmptyMessageWithTimeRange({
-          range: TimeRange.CUSTOM,
-          startAndEndDate: AFTERNOON,
-        }),
+        english(getEmptyMessageWithTimeRange(CUSTOM_AFTERNOON)),
       ).not.toContain("02:30 PM");
     });
 
@@ -154,12 +234,9 @@ describe("getEmptyMessageWithTimeRange", () => {
       pin(true);
       OneUptimeDate.setUserTimezone(Timezone.AsiaKolkata);
 
-      expect(
-        getEmptyMessageWithTimeRange({
-          range: TimeRange.CUSTOM,
-          startAndEndDate: AFTERNOON,
-        }),
-      ).toContain("Mar 1, 8:00 PM – Mar 2, 12:15 AM");
+      expect(english(getEmptyMessageWithTimeRange(CUSTOM_AFTERNOON))).toContain(
+        "Mar 1, 8:00 PM – Mar 2, 12:15 AM",
+      );
     });
 
     test("matches the label the picker button puts on the same window", () => {
@@ -178,12 +255,33 @@ describe("getEmptyMessageWithTimeRange", () => {
         AFTERNOON.endValue,
       );
 
-      expect(
-        getEmptyMessageWithTimeRange({
-          range: TimeRange.CUSTOM,
-          startAndEndDate: AFTERNOON,
-        }),
-      ).toContain(`${start} – ${end}`);
+      expect(english(getEmptyMessageWithTimeRange(CUSTOM_AFTERNOON))).toContain(
+        `${start} – ${end}`,
+      );
+    });
+
+    test("each end is kept on one line, with the one break after the dash", () => {
+      /*
+       * As the picker's list writes a window (renderTimeRangeDetail): on a
+       * phone's narrow line a time or an "AM" was left alone on the next
+       * one. The only breaking space inside the window is the one after the
+       * dash; the rest are no-break spaces.
+       */
+      pin(true);
+
+      const written: string = writeLogsEmptyMessage(
+        getEmptyMessageWithTimeRange(CUSTOM_AFTERNOON),
+      );
+
+      const start: string = ["Mar", "1,", "2:30", "PM", "–"].join(
+        NO_BREAK_SPACE,
+      );
+      const end: string = ["Mar", "1,", "6:45", "PM."].join(NO_BREAK_SPACE);
+
+      expect(written).toContain(`Time range: ${start} ${end} Try adjusting`);
+      // A negative control: spaces a reader cannot tell apart, all but one no-break.
+      expect(spaced(written)).toContain("Mar 1, 2:30 PM – Mar 1, 6:45 PM.");
+      expect(written).not.toContain("Mar 1, 2:30 PM – Mar 1, 6:45 PM.");
     });
   });
 
@@ -191,9 +289,9 @@ describe("getEmptyMessageWithTimeRange", () => {
     test("names the preset rather than any clock time", () => {
       pin(true);
 
-      const message: string = getEmptyMessageWithTimeRange({
-        range: TimeRange.PAST_ONE_HOUR,
-      });
+      const message: string = english(
+        getEmptyMessageWithTimeRange({ range: TimeRange.PAST_ONE_HOUR }),
+      );
 
       expect(message).toBe(
         "Time range: past 1 hour. Try adjusting filters or expanding the time range.",
@@ -201,16 +299,30 @@ describe("getEmptyMessageWithTimeRange", () => {
       expect(message).not.toMatch(/\d{1,2}:\d{2}/);
     });
 
+    test("by the name the picker gives it, as a sentence holds a name: past 30 minutes", () => {
+      /*
+       * It was the range's own value lowered ("past 30 mins") while the
+       * picker above it said "Past 30 Minutes".
+       */
+      expect(
+        english(
+          getEmptyMessageWithTimeRange({ range: TimeRange.PAST_THIRTY_MINS }),
+        ),
+      ).toBe(
+        "Time range: past 30 minutes. Try adjusting filters or expanding the time range.",
+      );
+    });
+
     test("reads the same on either clock", () => {
       pin(true);
-      const on12Hour: string = getEmptyMessageWithTimeRange({
-        range: TimeRange.PAST_THIRTY_MINS,
-      });
+      const on12Hour: string = english(
+        getEmptyMessageWithTimeRange({ range: TimeRange.PAST_THIRTY_MINS }),
+      );
 
       pin(false);
-      const on24Hour: string = getEmptyMessageWithTimeRange({
-        range: TimeRange.PAST_THIRTY_MINS,
-      });
+      const on24Hour: string = english(
+        getEmptyMessageWithTimeRange({ range: TimeRange.PAST_THIRTY_MINS }),
+      );
 
       expect(on12Hour).toBe(on24Hour);
     });
@@ -219,12 +331,17 @@ describe("getEmptyMessageWithTimeRange", () => {
   describe("no window at all", () => {
     test("falls back to a message with no range in it", () => {
       expect(getEmptyMessageWithTimeRange(undefined)).toBe(
+        LOGS_TABLE_EMPTY_HINT,
+      );
+      expect(english(getEmptyMessageWithTimeRange(undefined))).toBe(
         "Adjust filters or check again later.",
       );
     });
 
     test("falls back when a custom range carries no dates", () => {
-      expect(getEmptyMessageWithTimeRange({ range: TimeRange.CUSTOM })).toBe(
+      expect(
+        english(getEmptyMessageWithTimeRange({ range: TimeRange.CUSTOM })),
+      ).toBe(
         "Time range: custom. Try adjusting filters or expanding the time range.",
       );
     });
@@ -242,15 +359,17 @@ describe("getEmptyMessageWithTimeRange", () => {
       pin(true);
 
       expect(
-        getEmptyMessageWithTimeRange(
-          {
-            range: TimeRange.CUSTOM,
-            startAndEndDate: new InBetween<Date>(
-              new Date("2025-11-12T09:49:00.000Z"),
-              new Date("2026-11-12T09:49:00.000Z"),
-            ),
-          },
-          NOW,
+        english(
+          getEmptyMessageWithTimeRange(
+            {
+              range: TimeRange.CUSTOM,
+              startAndEndDate: new InBetween<Date>(
+                new Date("2025-11-12T09:49:00.000Z"),
+                new Date("2026-11-12T09:49:00.000Z"),
+              ),
+            },
+            NOW,
+          ),
         ),
       ).toBe(
         "Time range: Nov 12, 2025, 9:49 AM – Nov 12, 2026, 9:49 AM. Try adjusting filters or expanding the time range.",
@@ -260,12 +379,7 @@ describe("getEmptyMessageWithTimeRange", () => {
     test("a window in an earlier year names it at both ends", () => {
       pin(false);
 
-      expect(
-        getEmptyMessageWithTimeRange(
-          { range: TimeRange.CUSTOM, startAndEndDate: AFTERNOON },
-          NOW,
-        ),
-      ).toBe(
+      expect(english(getEmptyMessageWithTimeRange(CUSTOM_AFTERNOON, NOW))).toBe(
         "Time range: Mar 1, 2024, 14:30 – Mar 1, 2024, 18:45. Try adjusting filters or expanding the time range.",
       );
     });
@@ -274,9 +388,11 @@ describe("getEmptyMessageWithTimeRange", () => {
       pin(false);
 
       expect(
-        getEmptyMessageWithTimeRange(
-          { range: TimeRange.CUSTOM, startAndEndDate: AFTERNOON },
-          new Date("2024-11-12T10:00:00.000Z"),
+        english(
+          getEmptyMessageWithTimeRange(
+            CUSTOM_AFTERNOON,
+            new Date("2024-11-12T10:00:00.000Z"),
+          ),
         ),
       ).toBe(
         "Time range: Mar 1, 14:30 – Mar 1, 18:45. Try adjusting filters or expanding the time range.",
@@ -286,22 +402,315 @@ describe("getEmptyMessageWithTimeRange", () => {
     test("it says what the picker button says about the same window", () => {
       pin(true);
 
-      const window: InBetween<Date> = new InBetween<Date>(
-        new Date("2025-12-20T09:00:00.000Z"),
-        new Date("2026-01-05T17:00:00.000Z"),
-      );
+      const window: RangeStartAndEndDateTime = {
+        range: TimeRange.CUSTOM,
+        startAndEndDate: new InBetween<Date>(
+          new Date("2025-12-20T09:00:00.000Z"),
+          new Date("2026-01-05T17:00:00.000Z"),
+        ),
+      };
 
-      expect(
-        getEmptyMessageWithTimeRange(
-          { range: TimeRange.CUSTOM, startAndEndDate: window },
-          NOW,
-        ),
-      ).toContain(
-        getTimeRangeButtonLabel(
-          { range: TimeRange.CUSTOM, startAndEndDate: window },
-          NOW,
-        ),
+      expect(english(getEmptyMessageWithTimeRange(window, NOW))).toContain(
+        spaced(getTimeRangeButtonLabel(window, NOW)),
       );
     });
   });
 });
+
+describe("the sentence in the reader's language (issue #7280)", () => {
+  test("is one key with the window as its value, worded in every Dashboard language", () => {
+    expect(LOGS_TIME_RANGE_EMPTY_HINT).toBe(
+      "Time range: {{range}}. Try adjusting filters or expanding the time range.",
+    );
+
+    const message: LogsEmptyMessage =
+      getEmptyMessageWithTimeRange(CUSTOM_AFTERNOON);
+
+    expect(typeof message).toBe("object");
+    expect((message as { template: string }).template).toBe(
+      LOGS_TIME_RANGE_EMPTY_HINT,
+    );
+
+    for (const language of DASHBOARD_LANGUAGES) {
+      const words: string | undefined =
+        readDashboardLocale(language)[LOGS_TIME_RANGE_EMPTY_HINT];
+
+      expect({ language, worded: words !== LOGS_TIME_RANGE_EMPTY_HINT }).toEqual(
+        { language, worded: true },
+      );
+      expect({ language, keepsRange: words?.includes("{{range}}") }).toEqual({
+        language,
+        keepsRange: true,
+      });
+    }
+  });
+
+  test("German, on a 24-hour clock: the sentence and the window in German", () => {
+    pin(false);
+
+    expect(readIn("de", getEmptyMessageWithTimeRange(CUSTOM_AFTERNOON))).toBe(
+      "Zeitraum: 1. März, 14:30 – 1. März, 18:45. Passen Sie die Filter an oder erweitern Sie den Zeitraum.",
+    );
+  });
+
+  test("German, on a 12-hour clock: no leading zero on the hour", () => {
+    pin(true);
+
+    expect(readIn("de", getEmptyMessageWithTimeRange(CUSTOM_AFTERNOON))).toBe(
+      "Zeitraum: 1. März, 2:30 PM – 1. März, 6:45 PM. Passen Sie die Filter an oder erweitern Sie den Zeitraum.",
+    );
+  });
+
+  test("German, a window across two years: both years, where German writes them", () => {
+    pin(false);
+
+    expect(
+      readIn(
+        "de",
+        getEmptyMessageWithTimeRange(
+          {
+            range: TimeRange.CUSTOM,
+            startAndEndDate: new InBetween<Date>(
+              new Date("2025-11-12T09:49:00.000Z"),
+              new Date("2026-11-12T09:49:00.000Z"),
+            ),
+          },
+          new Date("2026-11-12T10:00:00.000Z"),
+        ),
+      ),
+    ).toBe(
+      "Zeitraum: 12. Nov. 2025, 09:49 – 12. Nov. 2026, 09:49. Passen Sie die Filter an oder erweitern Sie den Zeitraum.",
+    );
+  });
+
+  test("Persian: the sentence in Persian, the window in Persian digits, and no Latin digit left", () => {
+    pin(false);
+
+    const read: string = readIn(
+      "fa",
+      getEmptyMessageWithTimeRange(CUSTOM_AFTERNOON),
+    );
+
+    expect(read).toBe(
+      `${readDashboardLocale("fa")[LOGS_TIME_RANGE_EMPTY_HINT]!.replace(
+        "{{range}}",
+        buttonLabelIn("fa", CUSTOM_AFTERNOON),
+      )}`,
+    );
+    expect(read).toContain("۱۴:۳۰");
+    expect(read).toContain("۱۸:۴۵");
+    expect(read).toMatch(PERSIAN_DIGIT);
+    expect(read).not.toMatch(LATIN_DIGIT);
+    expect(read.startsWith("بازهٔ زمانی: ")).toBe(true);
+  });
+
+  test("Persian: the window is set apart in the right-to-left sentence, start then end", () => {
+    /*
+     * A value with digits in a sentence read right to left is set apart in
+     * an isolate (FSI ... PDI): the browser draws it as one piece where the
+     * sentence puts it, its own first letter reading it right to left, so
+     * the start is read first and the end after it.
+     */
+    pin(false);
+
+    const drawn: string = drawnIn(
+      "fa",
+      getEmptyMessageWithTimeRange(CUSTOM_AFTERNOON),
+    );
+    const window: string = getTimeRangeWindowAsWritten("fa");
+
+    expect(drawn).toContain(isolated(window));
+    expect(withoutIsolateMarks(drawn).indexOf("۱۴:۳۰")).toBeLessThan(
+      withoutIsolateMarks(drawn).indexOf("۱۸:۴۵"),
+    );
+  });
+
+  test("Arabic, on a 12-hour clock: the sentence in Arabic, Latin digits, no leading zero, the window set apart", () => {
+    pin(true);
+
+    const drawn: string = drawnIn(
+      "ar",
+      getEmptyMessageWithTimeRange(CUSTOM_AFTERNOON),
+    );
+
+    expect(spaced(withoutIsolateMarks(drawn))).toBe(
+      "النطاق الزمني: 1 مارس، 2:30 م – 1 مارس، 6:45 م. جرّب تعديل عوامل التصفية أو توسيع النطاق الزمني.",
+    );
+    expect(drawn).toContain(isolated(getTimeRangeWindowAsWritten("ar")));
+    expect(drawn).not.toContain("02:30");
+  });
+
+  test("Japanese: the window as Japanese writes it", () => {
+    pin(false);
+
+    expect(readIn("ja", getEmptyMessageWithTimeRange(CUSTOM_AFTERNOON))).toBe(
+      "時間範囲: 3月1日 14:30 – 3月1日 18:45。フィルターを調整するか、時間範囲を広げてみてください。",
+    );
+  });
+
+  test("a preset is named in the reader's language: German, Persian, Arabic", () => {
+    const hour: LogsEmptyMessage = getEmptyMessageWithTimeRange({
+      range: TimeRange.PAST_ONE_HOUR,
+    });
+
+    expect(readIn("de", hour)).toBe(
+      "Zeitraum: Letzte Stunde. Passen Sie die Filter an oder erweitern Sie den Zeitraum.",
+    );
+    expect(readIn("fa", hour)).toBe(
+      `بازهٔ زمانی: ۱ ساعت گذشته. فیلترها را تغییر دهید یا بازهٔ زمانی را بزرگ${ZERO_WIDTH_NON_JOINER}تر کنید.`,
+    );
+    expect(readIn("ar", hour)).toBe(
+      "النطاق الزمني: آخر ساعة. جرّب تعديل عوامل التصفية أو توسيع النطاق الزمني.",
+    );
+  });
+
+  test("every preset, in every Dashboard language, is named by the word the picker shows, in a worded sentence", () => {
+    for (const language of DASHBOARD_LANGUAGES) {
+      const translator: Translator = dashboardTranslator(language);
+
+      for (const option of TIME_RANGE_PRESET_OPTIONS) {
+        const read: string = readIn(
+          language,
+          getEmptyMessageWithTimeRange({ range: option.range }),
+        );
+        const name: string = translator.translateTerm(option.label, {
+          inSentence: true,
+        });
+
+        expect({ language, preset: option.label, named: read.includes(name) })
+          .toEqual({ language, preset: option.label, named: true });
+        // The sentence's own words, not English's.
+        expect({
+          language,
+          preset: option.label,
+          english: read.includes("Try adjusting filters"),
+        }).toEqual({ language, preset: option.label, english: false });
+      }
+    }
+  });
+
+  test("the presets the sentence names are the picker's, each a worded key", () => {
+    // Every preset the picker offers is named by its label, never its value.
+    for (const option of TIME_RANGE_PRESET_OPTIONS) {
+      expect(getTimeRangeLabel(option.range)).toBe(option.label);
+    }
+
+    const untranslated: Array<string> = [];
+
+    for (const language of DASHBOARD_LANGUAGES) {
+      for (const option of TIME_RANGE_PRESET_OPTIONS) {
+        if (readDashboardLocale(language)[option.label] === option.label) {
+          untranslated.push(`${language}: ${option.label}`);
+        }
+      }
+    }
+
+    expect(untranslated).toEqual([]);
+    expect(
+      TIME_RANGE_PRESET_OPTIONS.map((option: TimeRangePickerPresetOption) => {
+        return option.range;
+      }),
+    ).toContain(TimeRange.PAST_ONE_HOUR);
+  });
+
+  test("a language with no wording of the sentence yet reads it in English, dates and all", () => {
+    /*
+     * A negative control for the language of the values: German's words
+     * for everything but this sentence. The sentence falls back to English,
+     * and so does its window - never a German date in an English sentence.
+     */
+    pin(false);
+
+    const german: Record<string, string> = readDashboardLocale("de");
+    const withoutTheSentence: Translator = createTranslator(
+      (text: string): string | undefined => {
+        return text === LOGS_TIME_RANGE_EMPTY_HINT ? undefined : german[text];
+      },
+      "de",
+    );
+
+    const read: string = spaced(
+      withoutIsolateMarks(
+        writeLogsEmptyMessage(
+          getEmptyMessageWithTimeRange(CUSTOM_AFTERNOON),
+          withoutTheSentence,
+          { setsValuesApart: true },
+        ),
+      ),
+    );
+
+    expect(read).toBe(
+      "Time range: Mar 1, 14:30 – Mar 1, 18:45. Try adjusting filters or expanding the time range.",
+    );
+    expect(read).not.toContain("März");
+
+    // A preset too: its English name in an English sentence.
+    expect(
+      spaced(
+        writeLogsEmptyMessage(
+          getEmptyMessageWithTimeRange({ range: TimeRange.PAST_ONE_HOUR }),
+          withoutTheSentence,
+        ),
+      ),
+    ).toBe(
+      "Time range: past 1 hour. Try adjusting filters or expanding the time range.",
+    );
+  });
+
+  test("English is unchanged with the English Dashboard's words, and holds no isolate marks", () => {
+    pin(true);
+
+    const drawn: string = drawnIn(
+      "en",
+      getEmptyMessageWithTimeRange(CUSTOM_AFTERNOON),
+    );
+
+    expect(spaced(drawn)).toBe(
+      "Time range: Mar 1, 2:30 PM – Mar 1, 6:45 PM. Try adjusting filters or expanding the time range.",
+    );
+    expect(drawn).toBe(withoutIsolateMarks(drawn));
+  });
+
+  test("the window in every language is what that language's picker button says", () => {
+    pin(true);
+
+    for (const language of DASHBOARD_LANGUAGES) {
+      expect({
+        language,
+        holdsButton: readIn(
+          language,
+          getEmptyMessageWithTimeRange(CUSTOM_AFTERNOON),
+        ).includes(buttonLabelIn(language, CUSTOM_AFTERNOON)),
+      }).toEqual({ language, holdsButton: true });
+    }
+  });
+
+  test("a host's own line is still looked up as it is", () => {
+    expect(
+      writeLogsEmptyMessage(LOGS_TABLE_EMPTY_HINT, dashboardTranslator("de")),
+    ).toBe(readDashboardLocale("de")[LOGS_TABLE_EMPTY_HINT]);
+    expect(
+      writeLogsEmptyMessage(
+        "A line no locale words.",
+        dashboardTranslator("de"),
+      ),
+    ).toBe("A line no locale words.");
+  });
+});
+
+// The window as the sentence holds it in `language`: each end kept whole.
+function getTimeRangeWindowAsWritten(language: string): string {
+  setDateDisplayLanguage(language);
+
+  try {
+    const label: string = getTimeRangeButtonLabel(CUSTOM_AFTERNOON);
+    const [start, end] = label.split(" – ") as [string, string];
+    const whole: (text: string) => string = (text: string): string => {
+      return text.split(" ").join(NO_BREAK_SPACE);
+    };
+
+    return `${whole(start)}${NO_BREAK_SPACE}– ${whole(end)}`;
+  } finally {
+    setDateDisplayLanguage(null);
+  }
+}

@@ -5,6 +5,7 @@ import Color from "../../Types/Color";
 import OneUptimeDate from "../../Types/Date";
 import {
   getDateTimeFormat,
+  getHourOption,
   writeInDateDisplayLanguage,
 } from "../../Types/DateLanguage";
 import UptimeBarTooltipMaintenance from "../../Types/Monitor/UptimeBarTooltipMaintenance";
@@ -481,7 +482,8 @@ export default class UptimeMaintenanceUtil {
             ),
           ],
           options: {
-            hour: "2-digit",
+            // "5:14 ص" on a 12-hour clock, "05:14" on a 24-hour one.
+            hour: getHourOption(use12HourFormat),
             minute: "2-digit",
             hour12: use12HourFormat,
           },

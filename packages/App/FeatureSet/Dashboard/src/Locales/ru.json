@@ -51765,5 +51765,6 @@
   "Profiles — All profiles": "Профили — Все профили",
   "Profiles — Overview": "Профили — Обзор",
   "Profiles — Setup guide": "Профили — Руководство по настройке",
-  "Turn On Profiling in the Agent": "Включить профилирование в агенте"
+  "Turn On Profiling in the Agent": "Включить профилирование в агенте",
+  "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Период: {{range}}. Попробуйте изменить фильтры или расширить период."
 }

@@ -51765,5 +51765,6 @@
   "Profiles — All profiles": "Perfiles — Todos los perfiles",
   "Profiles — Overview": "Perfiles — Vista general",
   "Profiles — Setup guide": "Perfiles — Guía de configuración",
-  "Turn On Profiling in the Agent": "Activar el perfilado en el agente"
+  "Turn On Profiling in the Agent": "Activar el perfilado en el agente",
+  "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Intervalo de tiempo: {{range}}. Prueba a ajustar los filtros o a ampliar el intervalo de tiempo."
 }
