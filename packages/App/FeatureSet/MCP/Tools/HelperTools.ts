@@ -62,9 +62,15 @@ export function generateHelperTools(): McpToolInfo[] {
   ];
 }
 
-function getResourceDescription(singularName: string): string {
-  const descriptions: Record<string, string> = {
-    Incident:
+/*
+ * What oneuptime_list_resources says a resource is, by its model's
+ * singularName - the name it is looked up by. A key that is no model's
+ * singularName is never shown: "Scheduled Maintenance" waited here unused
+ * until #6817 named the model "Maintenance Event". HelperTools.test holds
+ * every key to a model's name.
+ */
+export const RESOURCE_DESCRIPTIONS: Readonly<Record<string, string>> = {
+  Incident:
       "Represents service disruptions or issues affecting your systems. Track incident lifecycle from creation to resolution.",
     Monitor:
       "Defines what to monitor (websites, APIs, servers) and how to check their health and availability.",
@@ -72,7 +78,6 @@ function getResourceDescription(singularName: string): string {
       "Notifications triggered when monitors detect issues. Configures who gets notified and how.",
     "Status Page":
       "Public-facing page showing the status of your services to your customers.",
-    // Keyed by the model's singularName, as every entry here is (#6817).
     "Maintenance Event":
       "Planned downtime events that inform users about expected service interruptions.",
     Team: "Groups of users with shared access to project resources.",
@@ -110,10 +115,11 @@ function getResourceDescription(singularName: string): string {
     "Exception Instance": "Application exceptions captured via telemetry.",
     "Monitor Log":
       "Raw probe results for monitors — explains why a monitor check passed or failed.",
-  };
+};
 
+function getResourceDescription(singularName: string): string {
   return (
-    descriptions[singularName] ||
+    RESOURCE_DESCRIPTIONS[singularName] ||
     `Manages ${singularName} resources in OneUptime.`
   );
 }
