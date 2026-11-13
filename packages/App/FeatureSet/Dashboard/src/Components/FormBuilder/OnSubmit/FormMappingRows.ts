@@ -29,7 +29,7 @@ import FormTargetType from "Common/Types/Form/FormTargetType";
  */
 
 export enum FormMappingLineKind {
-  // The answer to a question, named in quotes after "Answer to the question:".
+  // The answer to a question: "Answer to the question: “Title”".
   Answer = "Answer",
   // "If it is left empty:" what applies then.
   Fallback = "Fallback",

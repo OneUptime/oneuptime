@@ -91,6 +91,33 @@ export const getLineDirection: (
 };
 
 /*
+ * A LINE READ ONE WAY ON EVERY PAGE, WHATEVER ITS LETTERS.
+ *
+ * The user flow map is drawn from the left in every language, so a
+ * transition is named its way: its two pages and the arrow between them
+ * (joinWithArrowsInDirection), "/home → /cart" on an Arabic page too. Each
+ * page is set apart there, so the line has no letter of its own, and read
+ * by the letters in its isolates (getLineDirection) a transition between
+ * two folds named in Arabic - "صفحات أخرى → صفحات أخرى" - or from one
+ * into "/" was laid out from the right on an Arabic page, its arrow
+ * pointing back at where the sessions came from. Such a line's box takes
+ * the line's direction instead: `direction` where the page reads the other
+ * way, and, as getLineDirection gives, none where the page reads that way
+ * too.
+ */
+export const getOneWayLineDirection: (
+  direction: ReadingDirection,
+  pageLanguage: string | null | undefined,
+) => ReadingDirection | undefined = (
+  direction: ReadingDirection,
+  pageLanguage: string | null | undefined,
+): ReadingDirection | undefined => {
+  return direction === getReadingDirection(pageLanguage)
+    ? undefined
+    : direction;
+};
+
+/*
  * A LINE OF THE PRODUCT'S OWN WORDS - a help line, the sentence under a
  * title, an error - in the reader's language or, not worded in it yet, in
  * English: the dir a box that holds it needs.

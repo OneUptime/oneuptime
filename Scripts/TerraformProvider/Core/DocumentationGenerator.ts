@@ -148,6 +148,15 @@ export class DocumentationGenerator {
         /^(call|email|sms|push_notification|webhook|whatsapp|telegram|workspace_notification|user_notification)_log$/,
       name: "Notification Logs",
     },
+    /*
+     * A project's own Twilio account and mail server, which send its SMS,
+     * calls and email in place of OneUptime's: Settings > Notification
+     * Channels in the dashboard.
+     */
+    {
+      pattern: /^call_and_sms_config$|^smtp_config$/,
+      name: "Notification Channels",
+    },
     {
       pattern:
         /^team|^user|^project|^api_key|^custom_role|^audit_log|^scim|^totp|^two_factor|^web_authn/,
@@ -1440,6 +1449,15 @@ resource "${provider}_monitor" "example" {
         attrInfo.relation.name,
       );
       return attrInfo.relation.isList ? `[${reference}]` : reference;
+    }
+
+    /*
+     * Ids of records the provider has no resource or data source for: still
+     * a list of ids, as the attribute takes them. The spec's own example is
+     * the API's list of objects ([{ id = "..." }]), which Terraform refuses.
+     */
+    if (attrInfo.elementKind === "entity") {
+      return '["<id>"]';
     }
 
     // Typed nested monitor steps: show the real nested syntax.

@@ -674,8 +674,12 @@ const SLACK_KINDS: Array<SlackKind> = [
     },
   },
   {
-    name: "scheduled maintenance event",
-    noun: "scheduled maintenance event",
+    /*
+     * A maintenance event, as the model has named it since #6817: a
+     * refusal says the button's action and the record in the same words.
+     */
+    name: "maintenance event",
+    noun: "maintenance event",
     handle: (args: HandlerArgs): Promise<void> => {
       return SlackScheduledMaintenanceActions.handleScheduledMaintenanceAction(
         args,
@@ -695,7 +699,7 @@ const SLACK_KINDS: Array<SlackKind> = [
     acknowledge: null,
     resolve: {
       actionType: SlackActionType.MarkScheduledMaintenanceAsComplete,
-      refusal: "mark this scheduled maintenance event as complete",
+      refusal: "mark this maintenance event as complete",
     },
     changeState: {
       view: SlackActionType.ViewChangeScheduledMaintenanceState,
@@ -711,7 +715,7 @@ const SLACK_KINDS: Array<SlackKind> = [
         viewValues: { noteType: "public", note: "Starting now." },
         service: ScheduledMaintenancePublicNoteService,
         modelType: ScheduledMaintenancePublicNote,
-        refusal: "add a public note to this scheduled maintenance event",
+        refusal: "add a public note to this maintenance event",
       },
       {
         label: "private",
@@ -719,7 +723,7 @@ const SLACK_KINDS: Array<SlackKind> = [
         viewValues: { noteType: "private", note: "Replica first." },
         service: ScheduledMaintenanceInternalNoteService,
         modelType: ScheduledMaintenanceInternalNote,
-        refusal: "add a private note to this scheduled maintenance event",
+        refusal: "add a private note to this maintenance event",
       },
     ],
     execute: null,
@@ -750,7 +754,7 @@ function stateMovesOf(kind: SlackKind): Array<StateMove> {
     moves.push({
       label: "Mark as Ongoing",
       actionType: SlackActionType.MarkScheduledMaintenanceAsOngoing,
-      refusal: "mark this scheduled maintenance event as ongoing",
+      refusal: "mark this maintenance event as ongoing",
       target: (states: ProjectStates): ObjectID => {
         return states.acknowledged;
       },
