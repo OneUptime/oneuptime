@@ -116,12 +116,16 @@ afterEach(() => {
 });
 
 describe("which channels carry fingerprints", () => {
-  test("SMS and calls, whose account can change without a save; not email or push", () => {
+  test("email, SMS and calls, whose settings can change without a save (#7803 for email); not push", () => {
     expect(
       SERVER_SENDING_CHANNELS.filter((channel: ServerSendingChannel) => {
         return ServerSendingSettings.hasFingerprints(channel);
       }),
-    ).toEqual([ServerSendingChannel.SMS, ServerSendingChannel.Call]);
+    ).toEqual([
+      ServerSendingChannel.Email,
+      ServerSendingChannel.SMS,
+      ServerSendingChannel.Call,
+    ]);
 
     setEnvironmentAccount();
 
@@ -130,7 +134,7 @@ describe("which channels carry fingerprints", () => {
         ServerSendingChannel.Email,
         savedRow(),
       ),
-    ).toBeNull();
+    ).not.toBeNull();
     expect(
       ServerSendingSettings.getFingerprints(
         ServerSendingChannel.Push,

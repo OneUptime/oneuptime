@@ -46,9 +46,16 @@ import { TwilioMessageKind } from "../../../Utils/Project/TwilioAccount";
  * never a value, a password or a key.
  */
 
-// Every column the four answers read, and nothing else.
+/*
+ * Every column the four answers read, and the fingerprints of the settings
+ * each channel sends with (ServerSendingSettings), and nothing else. Email's
+ * fingerprint reads every column of its Email Server Type: one left out
+ * here would go unseen, and settings that differ only in it would read as
+ * the same.
+ */
 export const SERVER_CHANNEL_SETUP_SELECT: Select<GlobalConfig> = {
   emailServerType: true,
+  isSMTPSecure: true,
   smtpTransportType: true,
   smtpAuthType: true,
   smtpHost: true,
@@ -61,6 +68,7 @@ export const SERVER_CHANNEL_SETUP_SELECT: Select<GlobalConfig> = {
   smtpClientSecret: true,
   smtpTokenUrl: true,
   smtpScope: true,
+  smtpOAuthProviderType: true,
   sendgridApiKey: true,
   sendgridFromEmail: true,
   sendgridFromName: true,
@@ -69,13 +77,18 @@ export const SERVER_CHANNEL_SETUP_SELECT: Select<GlobalConfig> = {
   amazonSesSecretAccessKey: true,
   amazonSesRegion: true,
   amazonSesFromEmail: true,
+  amazonSesFromName: true,
   mailgunApiKey: true,
   mailgunDomain: true,
+  mailgunRegion: true,
   mailgunFromEmail: true,
+  mailgunFromName: true,
   postmarkServerToken: true,
   postmarkFromEmail: true,
+  postmarkFromName: true,
   resendApiKey: true,
   resendFromEmail: true,
+  resendFromName: true,
   ...GLOBAL_TWILIO_CONFIG_SELECT,
   ...GLOBAL_CALL_AND_SMS_GATEWAY_SELECT,
   disablePushNotifications: true,
@@ -445,6 +458,15 @@ export default class ServerChannelSetup {
     }
 
     if (authType === SMTPAuthenticationType.OAuth) {
+      /*
+       * Over SMTP, OAuth signs in as a mailbox, which the sender refuses
+       * every email without (#7833). Microsoft Graph sends as the From
+       * Email, and needs none.
+       */
+      if (!isMicrosoftGraph && !isPresent(config.smtpUsername)) {
+        return notSet(provider, "Username");
+      }
+
       if (!isPresent(config.smtpClientId)) {
         return notSet(provider, "OAuth Client ID");
       }

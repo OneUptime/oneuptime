@@ -68,6 +68,8 @@ const STORED_DATA_USES: Record<string, string> = {
     "keys the Redis names of cached SMTP OAuth tokens, so Redis holds no client secret",
   "packages/Common/Server/Utils/DataSecurity/DataSecurityRunner.ts":
     "keys the stored Data Security fingerprints of a project's sensitive values, so they compare only within the project and reveal no value",
+  "packages/Common/Server/Utils/ServerSending/ServerSendingSettings.ts":
+    "keys the stored fingerprints of the server's SMS and call route (GlobalConfig.serverSendingHealth), so they reveal no Twilio or gateway credential",
 };
 
 /*
