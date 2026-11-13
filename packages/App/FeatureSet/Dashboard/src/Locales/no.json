@@ -51843,5 +51843,22 @@
   "Couldn't withdraw the edit.": "Kunne ikke trekke tilbake redigeringen.",
   "Couldn't load the public notes.": "Kunne ikke laste inn de offentlige notatene.",
   "{{count}} of {{total}} monitors could not be linked: {{errors}}": "{{count}} av {{total}} overvåkere kunne ikke kobles til: {{errors}}",
-  "{{count}} of {{total}} monitors could not be linked: {{errors}}_one": "{{count}} av {{total}} overvåkere kunne ikke kobles til: {{errors}}"
+  "{{count}} of {{total}} monitors could not be linked: {{errors}}_one": "{{count}} av {{total}} overvåkere kunne ikke kobles til: {{errors}}",
+  "Linked Monitors ({{count}})": "Tilkoblede overvåkere ({{count}})",
+  "Linked {{count}} monitors to this template.": "{{count}} overvåkere ble koblet til denne malen.",
+  "Linked {{count}} monitors to this template._one": "{{count}} overvåker ble koblet til denne malen.",
+  "Sync Criteria to {{count}} Linked Monitors": "Synkroniser kriterier til {{count}} koblede overvåkere",
+  "Sync Criteria to {{count}} Linked Monitors_one": "Synkroniser kriterier til {{count}} koblet overvåker",
+  "Sync Custom Fields to {{count}} Linked Monitors": "Synkroniser egendefinerte felt til {{count}} tilknyttede monitorer",
+  "Sync Custom Fields to {{count}} Linked Monitors_one": "Synkroniser egendefinerte felt til {{count}} tilknyttet monitor",
+  "Sync Interval to {{count}} Linked Monitors": "Synkroniser intervall til {{count}} koblede overvåkere",
+  "Sync Interval to {{count}} Linked Monitors_one": "Synkroniser intervall til {{count}} koblet overvåker",
+  "Sync Labels to {{count}} Linked Monitors": "Synkroniser etiketter til {{count}} koblede overvåkere",
+  "Sync Labels to {{count}} Linked Monitors_one": "Synkroniser etiketter til {{count}} koblet overvåker",
+  "Synced \"{{monitorName}}\" from this template.": "«{{monitorName}}» er synkronisert fra denne malen.",
+  "This monitor and this template are in different projects.": "Denne overvåkeren og denne malen er i forskjellige prosjekter.",
+  "This monitor does not exist in this project, or you do not have access to it.": "Denne overvåkeren finnes ikke i dette prosjektet, eller du har ikke tilgang til den.",
+  "This monitor is not linked to this template.": "Denne overvåkeren er ikke koblet til denne malen.",
+  "This monitor's type is {{monitorType}}, and this template's type is {{templateType}}. Only monitors of the template's type can be linked to it.": "Denne overvåkeren er av typen {{monitorType}}, og denne malen er av typen {{templateType}}. Bare overvåkere av malens type kan kobles til den.",
+  "Unlinked \"{{monitorName}}\" from this template.": "«{{monitorName}}» er koblet fra denne malen."
 }

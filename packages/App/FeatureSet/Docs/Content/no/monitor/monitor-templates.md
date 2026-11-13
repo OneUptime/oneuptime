@@ -61,7 +61,7 @@ Verdier som er satt under **Standardverdier for egendefinerte felt**, skrives ti
 
 ## Synkroniser endringer til tilkoblede monitorer
 
-Å redigere en mal endrer bare malen. For å kopiere en endring til de tilkoblede monitorene bruker du synkroniseringsknappen på kortet du endret. Hver knapp sier hvor mange monitorer den når, som **Sync Criteria to 3 Linked Monitors**, og er nedtonet så lenge ingenting er koblet til. En synkronisering kan ikke angres.
+Å redigere en mal endrer bare malen. For å kopiere en endring til de tilkoblede monitorene bruker du synkroniseringsknappen på kortet du endret. Hver knapp sier hvor mange monitorer den når, som **Synkroniser kriterier til 3 koblede overvåkere**, og er nedtonet så lenge ingenting er koblet til. En synkronisering kan ikke angres.
 
 | Knapp | Kopierer til hver tilkoblede monitor | Lar være |
 | --- | --- | --- |
