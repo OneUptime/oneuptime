@@ -287,6 +287,37 @@ describe.each(Object.keys(EXPECTED))(
   },
 );
 
+/*
+ * #7728: where a language's plural reads like English's singular - Italian's
+ * hosts, pods, clusters and VMs, the VMs of French, Spanish, Hindi and
+ * Persian - the count read English's plural, "3 hosts" and "3 VMs": the
+ * translator took that plural for an English placeholder. Read from the
+ * shipped files, for 3, and for 0, which French, Hindi and Persian count
+ * as one.
+ */
+describe("a plural that reads like English's singular", () => {
+  test.each([
+    ["it", EntityType.Host, 3, "3 host"],
+    ["it", EntityType.KubernetesPod, 3, "3 pod"],
+    ["it", EntityType.KubernetesCluster, 3, "3 cluster"],
+    ["it", EntityType.VMwareVirtualMachine, 3, "3 VM"],
+    ["fr", EntityType.VMwareVirtualMachine, 3, "3 VM"],
+    ["es", EntityType.VMwareVirtualMachine, 3, "3 VM"],
+    ["hi", EntityType.VMwareVirtualMachine, 3, "3 VM"],
+    ["fa", EntityType.VMwareVirtualMachine, 3, "۳ VM"],
+    ["fr", EntityType.VMwareVirtualMachine, 0, "0 VM"],
+    ["hi", EntityType.VMwareVirtualMachine, 0, "0 VM"],
+    ["fa", EntityType.VMwareVirtualMachine, 0, "۰ VM"],
+  ])(
+    "%s counts %s: %d reads %s",
+    (language: string, entityType: string, count: number, expected: string) => {
+      expect(countOfType(entityType, count, translatorFor(language))).toBe(
+        expected,
+      );
+    },
+  );
+});
+
 describe("English, as before", () => {
   test("no translator reads English, with English's grouping", () => {
     expect(

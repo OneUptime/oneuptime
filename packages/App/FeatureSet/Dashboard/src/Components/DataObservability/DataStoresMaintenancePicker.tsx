@@ -82,7 +82,7 @@ const DataStoresMaintenancePicker: FunctionComponent<ComponentProps> = (
         return chosen.has(String(option.value));
       })}
       ariaLabelledby={props.ariaLabelledby}
-      placeholder={translator.translateText("Select Databases")}
+      placeholder="Select Databases"
       onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
         props.onChange(
           (Array.isArray(value) ? value : value ? [value] : []).map(String),

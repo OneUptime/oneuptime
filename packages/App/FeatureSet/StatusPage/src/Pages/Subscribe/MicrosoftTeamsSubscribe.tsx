@@ -128,6 +128,7 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
       fieldType: FormFieldSchemaType.Text,
       required: true,
       placeholder: t("subscribe.microsoftTeams.workspaceNamePlaceholder"),
+      isPlaceholderTranslated: true,
     },
     {
       field: {
@@ -138,6 +139,7 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
       fieldType: FormFieldSchemaType.URL,
       required: true,
       placeholder: t("subscribe.microsoftTeams.webhookUrlPlaceholder"),
+      isPlaceholderTranslated: true,
     },
     // On a page that lets subscribers choose: Preferences, folded.
     ...getSubscribePreferenceFields({
@@ -203,6 +205,7 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
               placeholder: t(
                 "subscribe.microsoftTeams.workspaceNamePlaceholder",
               ),
+              isPlaceholderTranslated: true,
             },
           ]}
           createOrUpdateApiUrl={URL.fromString(
