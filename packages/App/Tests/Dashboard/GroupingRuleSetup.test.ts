@@ -71,13 +71,13 @@ import ObjectID from "Common/Types/ObjectID";
  * people. How can we make this simple?"
  *
  * The Incident and Alert Grouping Rules pages now ask one question - group by
- * monitor, severity, title, everything together, or a custom mix - instead of
- * five switches, add four ready-made rules in one click, and say what each
- * rule does in words. All of that is decided by the React-free module pinned
- * here. The rule's columns, and the engines that read them, are unchanged; so
- * the properties that matter most are that the one-question view of a rule
- * is a faithful view of its five switches, and that opening an existing rule
- * and saving it changes nothing.
+ * monitor, everything together, connected services, severity, title, or a
+ * custom mix - instead of six switches, add five ready-made rules in one
+ * click, and say what each rule does in words. All of that is decided by the
+ * React-free module pinned here. The rule's columns, and the engines that
+ * read them, are unchanged; so the properties that matter most are that the
+ * one-question view of a rule is a faithful view of its six switches, and
+ * that opening an existing rule and saving it changes nothing.
  */
 
 const KINDS: Array<GroupingRuleKind> = [
@@ -106,7 +106,7 @@ const marked: GroupingRuleTranslateFunction = (
   return `«${english(text, values)}»`;
 };
 
-// Every combination of the five group-by switches, for one kind.
+// Every combination of the six group-by switches, for one kind.
 function everySwitchCombination(
   kind: GroupingRuleKind,
 ): Array<Record<string, boolean>> {
@@ -117,10 +117,11 @@ function everySwitchCombination(
     names.title,
     names.labels,
     names.monitorLabels,
+    names.connectedServices,
   ];
   const combinations: Array<Record<string, boolean>> = [];
 
-  for (let mask: number = 0; mask < 32; mask++) {
+  for (let mask: number = 0; mask < 64; mask++) {
     const values: Record<string, boolean> = {};
 
     fields.forEach((field: string, index: number): void => {
@@ -145,6 +146,7 @@ describe("the group-by switches each model has", () => {
       title: "groupByIncidentTitle",
       labels: "groupByIncidentLabels",
       monitorLabels: "groupByMonitorLabels",
+      connectedServices: "groupByConnectedServices",
     });
     expect(GROUP_BY_FIELD_NAMES[GroupingRuleKind.Alert]).toEqual({
       monitor: "groupByMonitor",
@@ -152,13 +154,14 @@ describe("the group-by switches each model has", () => {
       title: "groupByAlertTitle",
       labels: "groupByAlertLabels",
       monitorLabels: "groupByMonitorLabels",
+      connectedServices: "groupByConnectedServices",
     });
   });
 });
 
 describe("getGroupingMode", () => {
   test.each(KINDS)(
-    "%s: reads every one of the 32 switch combinations",
+    "%s: reads every one of the 64 switch combinations",
     (kind: GroupingRuleKind) => {
       const names: GroupByFieldNames = GROUP_BY_FIELD_NAMES[kind];
 
@@ -174,6 +177,8 @@ describe("getGroupingMode", () => {
           expected = GroupingMode.Severity;
         } else if (on === 1 && values[names.title]) {
           expected = GroupingMode.Title;
+        } else if (on === 1 && values[names.connectedServices]) {
+          expected = GroupingMode.ConnectedServices;
         }
 
         expect({ values, mode: getGroupingMode(values, kind) }).toEqual({
@@ -237,6 +242,7 @@ describe("getGroupByValuesForMode", () => {
         [names.title]: false,
         [names.labels]: false,
         [names.monitorLabels]: false,
+        [names.connectedServices]: false,
       });
       expect(getGroupByValuesForMode(GroupingMode.Severity, kind)).toEqual({
         [names.monitor]: false,
@@ -244,6 +250,7 @@ describe("getGroupByValuesForMode", () => {
         [names.title]: false,
         [names.labels]: false,
         [names.monitorLabels]: false,
+        [names.connectedServices]: false,
       });
       expect(getGroupByValuesForMode(GroupingMode.Title, kind)).toEqual({
         [names.monitor]: false,
@@ -251,6 +258,7 @@ describe("getGroupByValuesForMode", () => {
         [names.title]: true,
         [names.labels]: false,
         [names.monitorLabels]: false,
+        [names.connectedServices]: false,
       });
       expect(getGroupByValuesForMode(GroupingMode.Everything, kind)).toEqual({
         [names.monitor]: false,
@@ -258,6 +266,17 @@ describe("getGroupByValuesForMode", () => {
         [names.title]: false,
         [names.labels]: false,
         [names.monitorLabels]: false,
+        [names.connectedServices]: false,
+      });
+      expect(
+        getGroupByValuesForMode(GroupingMode.ConnectedServices, kind),
+      ).toEqual({
+        [names.monitor]: false,
+        [names.severity]: false,
+        [names.title]: false,
+        [names.labels]: false,
+        [names.monitorLabels]: false,
+        [names.connectedServices]: true,
       });
     },
   );
@@ -276,6 +295,7 @@ describe("getGroupByValuesForMode", () => {
         GroupingMode.Severity,
         GroupingMode.Title,
         GroupingMode.Everything,
+        GroupingMode.ConnectedServices,
       ]) {
         expect(
           getGroupingMode(
@@ -367,7 +387,7 @@ describe("getSelectedGroupingMode", () => {
     ).toBe(GroupingMode.Severity);
   });
 
-  test("isGroupingMode knows the five answers and nothing else", () => {
+  test("isGroupingMode knows the six answers and nothing else", () => {
     for (const mode of Object.values(GroupingMode)) {
       expect(isGroupingMode(mode)).toBe(true);
     }
@@ -379,7 +399,7 @@ describe("getSelectedGroupingMode", () => {
 });
 
 describe("the ready-made rules", () => {
-  test("there are four, one per named answer, in the order the page offers them", () => {
+  test("there are five, one per named answer, in the order the page offers them", () => {
     expect(
       GROUPING_RULE_TEMPLATES.map((template: GroupingRuleTemplate) => {
         return [template.id, template.mode];
@@ -387,6 +407,7 @@ describe("the ready-made rules", () => {
     ).toEqual([
       ["same-monitor", GroupingMode.Monitor],
       ["happen-together", GroupingMode.Everything],
+      ["connected-services", GroupingMode.ConnectedServices],
       ["same-severity", GroupingMode.Severity],
       ["same-title", GroupingMode.Title],
     ]);
@@ -405,8 +426,8 @@ describe("the ready-made rules", () => {
         },
       );
 
-      expect(new Set(names).size).toBe(4);
-      expect(new Set(descriptions).size).toBe(4);
+      expect(new Set(names).size).toBe(5);
+      expect(new Set(descriptions).size).toBe(5);
     }
   });
 
@@ -425,6 +446,7 @@ describe("the ready-made rules", () => {
   test.each([
     ["same-monitor", 30, "30 minutes"],
     ["happen-together", 10, "10 minutes"],
+    ["connected-services", 30, "30 minutes"],
     ["same-severity", 30, "30 minutes"],
     ["same-title", 60, "an hour"],
   ])(
@@ -481,6 +503,9 @@ describe("the ready-made rules", () => {
       "same-severity",
     );
     expect(getGroupingRuleTemplate(GroupingMode.Title)?.id).toBe("same-title");
+    expect(getGroupingRuleTemplate(GroupingMode.ConnectedServices)?.id).toBe(
+      "connected-services",
+    );
     expect(getGroupingRuleTemplate(GroupingMode.Custom)).toBeNull();
   });
 
@@ -489,12 +514,15 @@ describe("the ready-made rules", () => {
     expect(getDefaultTimeWindowMinutes(GroupingMode.Everything)).toBe(10);
     expect(getDefaultTimeWindowMinutes(GroupingMode.Severity)).toBe(30);
     expect(getDefaultTimeWindowMinutes(GroupingMode.Title)).toBe(60);
+    expect(getDefaultTimeWindowMinutes(GroupingMode.ConnectedServices)).toBe(
+      30,
+    );
     expect(getDefaultTimeWindowMinutes(GroupingMode.Custom)).toBeNull();
   });
 });
 
 describe("the cards of the Group-by question", () => {
-  test("offer the four answers and Custom, the recommended one first", () => {
+  test("offer the five answers and Custom, the recommended one first", () => {
     expect(
       GROUPING_MODE_OPTIONS.map((option: GroupingModeOption) => {
         return option.mode;
@@ -502,6 +530,7 @@ describe("the cards of the Group-by question", () => {
     ).toEqual([
       GroupingMode.Monitor,
       GroupingMode.Everything,
+      GroupingMode.ConnectedServices,
       GroupingMode.Severity,
       GroupingMode.Title,
       GroupingMode.Custom,
@@ -1107,6 +1136,12 @@ describe("getGroupingRuleSummary", () => {
         details: [],
       },
       {
+        grouping: "Incidents on connected services share one episode",
+        timing:
+          "New incidents join while they arrive within 30 minutes of the last one",
+        details: [],
+      },
+      {
         grouping: "One episode per severity",
         timing:
           "New incidents join while they arrive within 30 minutes of the last one",
@@ -1173,6 +1208,21 @@ describe("getGroupingRuleSummary", () => {
     expect(
       summarize({ groupByAlertLabels: true }, GroupingRuleKind.Alert).grouping,
     ).toBe("One episode per combination of: Alert Labels");
+    // Connected services last, as the Group By step draws it.
+    expect(
+      summarize({ groupByConnectedServices: true, groupBySeverity: true })
+        .grouping,
+    ).toBe("One episode per combination of: Severity, Connected Services");
+  });
+
+  test("connected services on their own read as the card says, for each product", () => {
+    expect(summarize({ groupByConnectedServices: true }).grouping).toBe(
+      "Incidents on connected services share one episode",
+    );
+    expect(
+      summarize({ groupByConnectedServices: true }, GroupingRuleKind.Alert)
+        .grouping,
+    ).toBe("Alerts on connected services share one episode");
   });
 
   test("notes the lifecycle settings that are on, and only those", () => {

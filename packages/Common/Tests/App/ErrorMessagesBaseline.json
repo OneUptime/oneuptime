@@ -326,7 +326,7 @@
   "packages/Common/Server/Services/MonitorFeedService.ts": 4,
   "packages/Common/Server/Services/MonitorStatusService.ts": 1,
   "packages/Common/Server/Services/MonitorStatusTimelineService.ts": 4,
-  "packages/Common/Server/Services/MonitorTemplateService.ts": 18,
+  "packages/Common/Server/Services/MonitorTemplateService.ts": 10,
   "packages/Common/Server/Services/NetworkDeviceAutoImportRuleService.ts": 3,
   "packages/Common/Server/Services/NetworkDeviceDiagnosticService.ts": 1,
   "packages/Common/Server/Services/NetworkDeviceNamingRuleService.ts": 1,

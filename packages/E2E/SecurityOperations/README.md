@@ -647,6 +647,11 @@ screenshots are named `case-custom-fields-*`, `case-custom-fields-settings-*`,
 `case-numbering-*`, `case-overview-custom-fields-390-*` and
 `cases-business-unit-column-1280-light`, beside the other screenshots (below).
 
+After a Load more that failed (`notes-more-fail`, #7646), Load more pressed again brings the notes
+and takes the banner away, and a focus on the banner stays in the feed rather than falling to the
+page; on a Persian page, the count by a case's notes heading is in Persian digits, as the count
+over its notes is.
+
 ## Run it
 
 ```
