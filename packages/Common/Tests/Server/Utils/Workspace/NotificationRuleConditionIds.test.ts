@@ -1,8 +1,11 @@
 import WorkspaceNotificationRule from "../../../../Models/DatabaseModels/WorkspaceNotificationRule";
+import WorkspaceNotificationSummary from "../../../../Models/DatabaseModels/WorkspaceNotificationSummary";
 import OnCallDutyPolicyService from "../../../../Server/Services/OnCallDutyPolicyService";
 import TeamMemberService from "../../../../Server/Services/TeamMemberService";
 import TeamService from "../../../../Server/Services/TeamService";
 import WorkspaceNotificationRuleService from "../../../../Server/Services/WorkspaceNotificationRuleService";
+import WorkspaceNotificationSummaryService from "../../../../Server/Services/WorkspaceNotificationSummaryService";
+import WorkspaceNotificationSummaryItem from "../../../../Types/Workspace/NotificationSummary/WorkspaceNotificationSummaryItem";
 import { EXAMPLE_UUID } from "../../../../Server/Types/Database/UUIDColumnFilter";
 import NotificationRuleConditionIds, {
   CHECKED_ID_CONDITIONS,
@@ -535,6 +538,131 @@ describe("A rule is held to it when it is written", () => {
           props: MEMBER_PROPS,
         }),
       ).rejects.toThrow(STRANGER);
+    });
+
+    test("an update that leaves the conditions alone reads nothing", async () => {
+      await hookOf("onBeforeUpdate")({
+        query: { _id: ObjectID.generate() },
+        data: { name: "Renamed" },
+        props: MEMBER_PROPS,
+      });
+
+      expect(teamQueries).toEqual([]);
+      expect(memberQueries).toEqual([]);
+    });
+  });
+});
+
+/*
+ * A summary offers the conditions a rule does, so its owners condition is
+ * held to the project the same way, when it is created or its conditions
+ * are written again (WorkspaceNotificationSummaryService).
+ */
+describe("A summary is held to it too", () => {
+  type Hook = (data: unknown) => Promise<unknown>;
+
+  function hookOf(name: string): Hook {
+    return (
+      WorkspaceNotificationSummaryService as unknown as Record<string, Hook>
+    )[name]!.bind(WorkspaceNotificationSummaryService);
+  }
+
+  function summaryData(
+    filters: Array<unknown>,
+  ): WorkspaceNotificationSummary {
+    const summary: WorkspaceNotificationSummary =
+      new WorkspaceNotificationSummary();
+    summary.projectId = PROJECT_ID;
+    summary.name = "Platform incidents this week";
+    summary.channelNames = ["#ops"];
+    summary.summaryItems = [WorkspaceNotificationSummaryItem.All];
+    summary.filters = filters as Array<NotificationRuleCondition>;
+    summary.filterCondition = FilterCondition.All;
+    return summary;
+  }
+
+  const MEMBER_PROPS: Record<string, unknown> = {
+    tenantId: PROJECT_ID,
+    userId: new ObjectID(JANE),
+  };
+
+  test("a summary created through the API cannot name a stranger as an owner", async () => {
+    givenProject({ teams: [PLATFORM_TEAM], members: [JANE] });
+
+    await expect(
+      hookOf("onBeforeCreate")({
+        data: summaryData([owners([PLATFORM_TEAM, STRANGER])]),
+        props: MEMBER_PROPS,
+      }),
+    ).rejects.toThrow(STRANGER);
+    expect(memberQueries).toHaveLength(1);
+  });
+
+  test("an owner id that is not an id is refused, naming the condition", async () => {
+    await expect(
+      hookOf("onBeforeCreate")({
+        data: summaryData([
+          owners(["Platform"], NotificationRuleConditionCheckOn.AlertOwners),
+        ]),
+        props: MEMBER_PROPS,
+      }),
+    ).rejects.toThrow('Invalid ID in the "Alert Owner" condition');
+  });
+
+  test("OneUptime's own writes are not held to it", async () => {
+    await hookOf("onBeforeCreate")({
+      data: summaryData([owners([STRANGER])]),
+      props: { isRoot: true },
+    });
+
+    expect(teamQueries).toEqual([]);
+    expect(memberQueries).toEqual([]);
+  });
+
+  describe("conditions written again", () => {
+    beforeEach(() => {
+      // The summary as it is stored: it names a team since deleted.
+      const stored: WorkspaceNotificationSummary = summaryData([
+        owners([DELETED_TEAM]),
+      ]);
+      stored.id = ObjectID.generate();
+
+      jest
+        .spyOn(
+          WorkspaceNotificationSummaryService as unknown as {
+            findRowsAndHoldUpdateToThem: () => Promise<unknown>;
+          },
+          "findRowsAndHoldUpdateToThem",
+        )
+        .mockResolvedValue([stored] as never);
+    });
+
+    test("keep what the summary named, found or not", async () => {
+      await hookOf("onBeforeUpdate")({
+        query: { _id: ObjectID.generate() },
+        data: { filters: [owners([DELETED_TEAM.toUpperCase()])] },
+        props: MEMBER_PROPS,
+      });
+
+      expect(teamQueries).toEqual([]);
+      expect(memberQueries).toEqual([]);
+    });
+
+    test("cannot add a stranger", async () => {
+      givenProject({ teams: [PLATFORM_TEAM] });
+
+      await expect(
+        hookOf("onBeforeUpdate")({
+          query: { _id: ObjectID.generate() },
+          data: { filters: [owners([DELETED_TEAM, PLATFORM_TEAM, STRANGER])] },
+          props: MEMBER_PROPS,
+        }),
+      ).rejects.toThrow(STRANGER);
+
+      // Only the ids added now are looked up.
+      expect(anyValues(teamQueries[0]!["_id"]).sort()).toEqual(
+        [PLATFORM_TEAM, STRANGER].sort(),
+      );
     });
 
     test("an update that leaves the conditions alone reads nothing", async () => {
