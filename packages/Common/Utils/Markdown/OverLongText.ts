@@ -282,10 +282,11 @@ const getCut: (text: string, position: number) => number = (
  * with the rest of the middle, its "[text](" went into the token, and the
  * parser read what the kept end holds of its address as text: an email
  * showed "[Run](https://..." as text. So the middle's last pieces leave
- * such a link's "[" - an image's "![" - and its "](" in view, its text held
- * back between them, and then its address and its title apart, as above.
- * An autolink keeps its "<" and its scheme. The link is found as the rest
- * of the middle is read, on from where a link across its start ended: each
+ * such a link's "[" - an image's "![" - and its "](" in view, with its
+ * text as written between them (held back past MAX_KEPT_LINK_TEXT_LENGTH),
+ * and hold back its address and its title apart, as above. An autolink
+ * keeps its "<" and its scheme. The link is found as the rest of the
+ * middle is read, on from where a link across its start ended: each
  * character once, with at most MAX_OPEN_LABELS labels' starts remembered.
  */
 
