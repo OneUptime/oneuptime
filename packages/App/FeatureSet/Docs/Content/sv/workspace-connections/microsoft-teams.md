@@ -160,7 +160,7 @@ Reagera på ett meddelande, eller ett svar, i den kanal som OneUptime skapade f�
 
 | Reaktion | Sparas som |
 | --- | --- |
-| 📌 eller 📍 | En privat anteckning, som bara ditt team ser |
+| 📌 eller 📍 | En privat anteckning, som bara de som kan se posten kan läsa |
 | 📣 eller 📢 | En offentlig anteckning, som visas på statussidan. Endast incidenter och schemalagda underhållshändelser. På en privat incident en privat anteckning, och bekräftelsen säger varför. När projektets offentliga anteckningar kräver godkännande visas den först när den har godkänts, och bekräftelsen säger vem den väntar på: se [Godkännande av offentliga anteckningar](/docs/incidents/notes-owners-and-feed#godkännande-av-offentliga-anteckningar). |
 
 Anteckningen behåller meddelandet så som Microsoft Teams visade det: formateringen, länkarna och koden, personerna det nämner, med namn, och filerna och bilderna som länkar till dem. En offentlig anteckning utelämnar filerna och bilderna, eftersom de bara öppnas för ditt team.
@@ -255,7 +255,7 @@ En incidents kort har fyra knappar, **Acknowledge Incident**, **Resolve Incident
 | **Change Severity** | Anger incidentens allvarlighetsgrad. |
 | **Change Incident State** | Flyttar incidenten till ett senare tillstånd. |
 | **Assign Role** | Ger någon en roll i incidenten, som **Incident Commander**. En roll för en person går över till den personen. |
-| **Page Someone** | Larmar personer, ett team, den som har jour i ett schema just nu, eller en jourpolicy om incidenten, med ett valfritt meddelande. Personer larmas tills någon av dem svarar; en policy larmar tills någon bekräftar incidenten. |
+| **Page Someone** | Larmar personer, ett team, den som har jour i ett schema just nu, eller en jourpolicy om incidenten, med ett valfritt meddelande. Alla som den larmar, även personerna i en policy, larmas tills någon av dem svarar eller incidenten är löst. |
 | **Edit Custom Fields** | Anger incidentens anpassade fält, vart och ett ifyllt med det incidenten har. Ett fält som lämnas tomt rensas. |
 
 `incident 42`, skrivet till boten, svarar med incident 42, de här knapparna och dess meny. Skriv numret som OneUptime visar det: `42`, `#42` eller `INC-42`. I en incidents egen kanal visar `incident` ensamt den incidenten.

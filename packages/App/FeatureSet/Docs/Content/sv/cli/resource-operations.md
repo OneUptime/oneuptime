@@ -182,7 +182,7 @@ Incidenter, larm, deras episoder och schemalagda underhållshändelser har komma
 | `resolve <id>` | Flyttar den till ditt projekts löst-tillstånd | Samma fyra |
 | `start <id>` | Flyttar händelsen till ditt projekts pågående tillstånd | `scheduled-maintenance-event` |
 | `end <id>` | Flyttar den till ditt projekts avslutad-tillstånd | `scheduled-maintenance-event` |
-| `add-note <id> --note <markdown>` | Lägger till en anteckning som ditt team ser, eller med `--public` en på postens statussidor | Alla fem |
+| `add-note <id> --note <markdown>` | Lägger till en anteckning som bara de som kan se posten kan läsa, eller med `--public` en på postens statussidor | Alla fem |
 
 ```bash
 oneuptime incident acknowledge 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11

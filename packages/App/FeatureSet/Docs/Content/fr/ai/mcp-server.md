@@ -330,7 +330,7 @@ En plus des outils pour chaque type d'enregistrement, le serveur a des outils co
 
 - **`acknowledge_incident`** / **`resolve_incident`** : faire passer un incident à l'état Acknowledged ou Resolved du projet, comme le fait le bouton du tableau de bord
 - **`acknowledge_alert`** / **`resolve_alert`** : la même chose pour les alertes
-- **`add_incident_note`** : ajouter une note à un incident avec `visibility: "internal"` (l'équipe seulement, par défaut) ou `visibility: "public"` (publiée sur la page de statut). Le Markdown est pris en charge
+- **`add_incident_note`** : ajouter une note à un incident avec `visibility: "internal"` (seules les personnes qui peuvent voir l'incident, par défaut) ou `visibility: "public"` (publiée sur la page de statut). Le Markdown est pris en charge
 - **`add_alert_note`** : ajouter une note interne à une alerte
 
 Une boucle typique : `list_incidents` → `acknowledge_incident` → enquêter avec `list_logs` → `add_incident_note` (publique) → `resolve_incident`.
