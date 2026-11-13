@@ -37,6 +37,7 @@ import {
 } from "Common/UI/Components/Feed/FeedOptions";
 import { INCIDENT_PREFILL_RESOURCE_KEYS } from "Common/Utils/Incident/IncidentFromAlerts";
 import { drawnDashboardLabel } from "./DocsDashboardLabels";
+import { pathWithArrows } from "./DocsPageShape";
 import { escapeRegExp } from "./DocsTranslationChecks";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
@@ -283,13 +284,20 @@ function bold(language: string, english: string): string {
   return `**${drawnDashboardLabel(language, english)}**`;
 }
 
-// Where both pages tell readers to find the switches: a Settings page of their own.
+/*
+ * Where both pages tell readers to find the switches: a Settings page of
+ * their own, with the arrows the language's pages draw between its steps
+ * ("←" beside a Persian step, #7611).
+ */
 function linkedAlertsSettingsPath(language: string): string {
-  return `**${["Incidents", "Settings", "Linked Alerts"]
-    .map((segment: string): string => {
-      return drawnDashboardLabel(language, segment);
-    })
-    .join(" → ")}**`;
+  return `**${pathWithArrows(
+    ["Incidents", "Settings", "Linked Alerts"].map(
+      (segment: string): string => {
+        return drawnDashboardLabel(language, segment);
+      },
+    ),
+    language,
+  )}**`;
 }
 const LINKED_ALERTS_SETTINGS_URL: string =
   "/dashboard/{projectId}/incidents/settings/linked-alerts";

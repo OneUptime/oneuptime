@@ -51828,5 +51828,20 @@
   "Couldn't search the notes.": "Couldn't search the notes.",
   "Couldn't sort the notes.": "Couldn't sort the notes.",
   "Couldn't load more notes.": "Couldn't load more notes.",
-  "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Time range: {{range}}. Try adjusting filters or expanding the time range."
+  "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Time range: {{range}}. Try adjusting filters or expanding the time range.",
+  "On-Call Policy Created": "On-Call Policy Created",
+  "On-Call Schedule Added": "On-Call Schedule Added",
+  "On-Call Schedule Removed": "On-Call Schedule Removed",
+  "Couldn't post the note.": "Couldn't post the note.",
+  "Couldn't save your changes.": "Couldn't save your changes.",
+  "Couldn't delete the note.": "Couldn't delete the note.",
+  "Couldn't send the note for approval.": "Couldn't send the note for approval.",
+  "Couldn't send the edit for approval.": "Couldn't send the edit for approval.",
+  "Couldn't approve the note.": "Couldn't approve the note.",
+  "Couldn't reject the note.": "Couldn't reject the note.",
+  "Couldn't publish the note.": "Couldn't publish the note.",
+  "Couldn't withdraw the edit.": "Couldn't withdraw the edit.",
+  "Couldn't load the public notes.": "Couldn't load the public notes.",
+  "{{count}} of {{total}} monitors could not be linked: {{errors}}": "{{count}} of {{total}} monitors could not be linked: {{errors}}",
+  "{{count}} of {{total}} monitors could not be linked: {{errors}}_one": "{{count}} of {{total}} monitors could not be linked: {{errors}}"
 }

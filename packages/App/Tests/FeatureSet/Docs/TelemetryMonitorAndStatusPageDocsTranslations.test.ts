@@ -44,6 +44,7 @@ import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import { isPermissionTitleKeptInEnglish } from "./DocsRoleNames";
+import { pathArrowPattern, pathWithArrows } from "./DocsPageShape";
 
 /*
  * Docs overhaul task 10: the Logs, Metrics, Traces, Exceptions and Profiles
@@ -532,7 +533,7 @@ const LINKS_INTO_THESE_PAGES: ReadonlyArray<LinkIntoPage> = [
 const PATH_SEPARATOR: string = " → ";
 
 // A bold span that is a Dashboard path, some of whose parts are placeholders.
-const PLACEHOLDER_SEGMENT: string = "[^*→\\n]+?";
+const PLACEHOLDER_SEGMENT: string = "[^*→←\\n]+?";
 
 // An inline code span, which may hold asterisks of its own.
 const INLINE_CODE_SPAN: RegExp = /`[^`\n]*`/g;
@@ -1330,11 +1331,12 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       const translated: string = readPage(language, entry.page);
       const missing: Array<string> = menuPaths(english)
         .map((segments: Array<string>): string => {
-          return segments
-            .map((segment: string): string => {
+          return pathWithArrows(
+            segments.map((segment: string): string => {
               return drawnActionLabel(language, segment);
-            })
-            .join(PATH_SEPARATOR);
+            }),
+            language,
+          );
         })
         .filter((localized: string): boolean => {
           return !translated.includes(`**${localized}**`);
@@ -1354,7 +1356,7 @@ describe.each(LANGUAGES)("%s", (language: string) => {
                   ? escapeRegExp(drawnActionLabel(language, segment))
                   : PLACEHOLDER_SEGMENT;
               })
-              .join(escapeRegExp(PATH_SEPARATOR))}\\*\\*`,
+              .join(pathArrowPattern(language))}\\*\\*`,
           );
         })
         .filter((pattern: RegExp): boolean => {

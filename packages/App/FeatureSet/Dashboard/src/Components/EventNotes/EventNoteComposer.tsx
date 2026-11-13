@@ -37,6 +37,7 @@ import React, {
 } from "react";
 import { EventNoteKind } from "./EventNoteKind";
 import {
+  NoteActionFailedCopy,
   NotesCopy,
   applyTemplateToDraft,
   canWriteNoteColumn,
@@ -635,6 +636,11 @@ function EventNoteComposer<TNote extends BaseModel>(
         isPostedAtEditable={isCreatePostedAtEditable}
         isSubmitting={isPosting}
         error={postError}
+        errorWhatFailed={
+          isApprovalRequired
+            ? PublicNoteApprovalCopy.sendFailed
+            : NoteActionFailedCopy.post
+        }
         isAutoFocused={true}
         leadingActions={composerActions}
         submitLabel={isApprovalRequired ? submitLabel : undefined}

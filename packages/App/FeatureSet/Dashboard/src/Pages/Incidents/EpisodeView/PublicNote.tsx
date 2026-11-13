@@ -1,6 +1,8 @@
 import EventNotes from "../../../Components/EventNotes/EventNotes";
 import { getIncidentEpisodePublicNoteKind } from "../../../Components/EventNotes/NoteKinds/IncidentEpisodeNoteKinds";
-import useParentNotifyDefault from "../../../Components/EventNotes/useParentNotifyDefault";
+import useParentNotifyDefault, {
+  PUBLIC_NOTES_LOAD_FAILED,
+} from "../../../Components/EventNotes/useParentNotifyDefault";
 import PageComponentProps from "../../PageComponentProps";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodePublicNote from "Common/Models/DatabaseModels/IncidentEpisodePublicNote";
@@ -10,12 +12,14 @@ import PrivateRecordPublicNotes from "Common/Types/StatusPage/PrivateRecordPubli
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Navigation from "Common/UI/Utils/Navigation";
+import useTranslateValue from "Common/UI/Utils/Translation";
 import React, { FunctionComponent, ReactElement } from "react";
 
 const EpisodePublicNotes: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const { translateString } = useTranslateValue();
 
   const { isNotifyingByDefault, isPrivate, error } =
     useParentNotifyDefault<IncidentEpisode>({
@@ -40,7 +44,12 @@ const EpisodePublicNotes: FunctionComponent<PageComponentProps> = (
     });
 
   if (error) {
-    return <ErrorMessage message={error} />;
+    return (
+      <ErrorMessage
+        message={error}
+        whatFailed={translateString(PUBLIC_NOTES_LOAD_FAILED)}
+      />
+    );
   }
 
   if (isNotifyingByDefault === null) {
