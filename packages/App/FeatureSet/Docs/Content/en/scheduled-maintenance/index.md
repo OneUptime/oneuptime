@@ -41,12 +41,12 @@ Announcements are covered on [Subscribers & Announcements](/docs/status-pages/su
 
 ## Where events come from
 
-- **The form.** Click **Create Scheduled Maintenance Event** on the list of events, or on the **Scheduled Maintenance** tab of a host, a cluster, a service, a network site or another resource, which picks that resource for you. See [Creating Maintenance Events](/docs/scheduled-maintenance/creating-events).
+- **The form.** Click **Create Maintenance Event** on the list of events, or on the **Scheduled Maintenance** tab of a host, a cluster, a service, a network site or another resource, which picks that resource for you. See [Creating Maintenance Events](/docs/scheduled-maintenance/creating-events).
 - **A template.** **Create from Template** fills the form in from a template you saved for work you do often. See [Templates & Recurring Events](/docs/scheduled-maintenance/templates).
 - **A schedule.** A recurring template creates a new event on a schedule, such as every week or every month, without anyone opening the form.
 - **A form.** A form whose submissions create maintenance events turns a change request into an event. See [What a Submission Creates](/docs/forms/on-submit#how-a-submission-becomes-a-scheduled-maintenance-event).
 - **Chat.** `/oneuptime maintenance` in Slack, or `maintenance` typed to the OneUptime bot in Microsoft Teams, opens the form in your chat tool. See [Slack](/docs/workspace-connections/slack#creating-incidents-and-maintenance-from-slack).
-- **Code.** The API at `/api/scheduled-maintenance`, the `oneuptime_scheduled_maintenance_event` Terraform resource, and the **Create One Scheduled Maintenance Event** step of a workflow.
+- **Code.** The API at `/api/scheduled-maintenance`, the `oneuptime_scheduled_maintenance_event` Terraform resource, and the **Create One Maintenance Event** step of a workflow.
 
 ## Where maintenance lives in the dashboard
 
@@ -54,11 +54,11 @@ Open **Scheduled Maintenance** from the **Products** menu in the top bar. The li
 
 | Section       | What you do there                                                                                                                    |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Overview**  | **All Events** and **Ongoing Events**, whose badge counts the events in progress right now.                                          |
+| **Overview**  | **All Maintenance Events** and **Ongoing Maintenance Events**, whose badge counts the events in progress right now.                                          |
 | **Calendar**  | **Maintenance Calendar**: every event on a month, a week or a day, beside the calendars from outside the project you add.            |
 | **Workspace** | **Slack**, **Microsoft Teams** and **Mattermost**, whichever the project has connected, or **Connect a workspace** when it has none. |
 | **Rules**     | **Owner Rules**, **Runbook Rules**, **Label Rules**, **Reminder Rules**.                                                             |
-| **Settings**  | **Event State**, **Event Templates**, **Note Templates**, **Public Note Approval**, **Custom Fields**, **Measurements**, **Calendar Settings**, **Numbering**. |
+| **Settings**  | **Maintenance State**, **Maintenance Templates**, **Note Templates**, **Public Note Approval**, **Custom Fields**, **Measurements**, **Calendar Settings**, **Numbering**. |
 
 **Overview** and **Calendar** are open; **Workspace**, **Rules**, **Settings** and **Developer** start folded, and a section opens by itself when you are on one of its pages. **Developer** holds **Terraform**, **API**, **CLI** and **AI Assistants**, for managing maintenance from code. Everything about maintenance lives here, not in **Project Settings**.
 
@@ -88,7 +88,7 @@ Open an event from the list to see its pages. Its side menu holds:
 | **Notifications**          | **Notification Logs** and **AI Logs**: every message sent about the event, and what AI did for it |
 | **Notes**         | **Private Notes** and **Public Notes**                                                         |
 | **Developer**     | **Terraform**, **API**, **CLI** and **AI Assistants**: the event managed from code            |
-| **Advanced**      | **Custom Fields**, **Settings**, **Audit Logs**, **Delete Event**                             |
+| **Advanced**      | **Custom Fields**, **Settings**, **Audit Logs**, **Delete Maintenance Event**                 |
 
 **Overview**, **Team** and **Notes** are open; the other sections start folded until you click them.
 

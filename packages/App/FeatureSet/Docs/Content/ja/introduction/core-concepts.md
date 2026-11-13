@@ -72,7 +72,7 @@ flowchart TB
 
 :::cards
 - [モニターグループ](/docs/monitor/monitor-groups): 複数のモニターを 1 つのステータスにまとめます。
-- [サービスカタログ](/docs/telemetry/services): 運用しているすべてのアプリケーションを、それぞれ 1 ページで。
+- [サービス](/docs/telemetry/services): 運用しているすべてのアプリケーションを、それぞれ 1 ページで。
 - [インベントリの概要](/docs/inventory/overview): OneUptime があなたの環境について知っているすべて。
 :::
 

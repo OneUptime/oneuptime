@@ -19,7 +19,7 @@ import { getPublishingSummary } from "./ScheduledMaintenancePublishing";
  * paralysis as much as possible: show people as few options as possible
  * (and hide those other 'advanced' options), and have sane defaults."
  *
- * Create Scheduled Maintenance Event walked seven steps - Event Info, Event
+ * Create Maintenance Event walked seven steps - Event Info, Event
  * Time, Resources Affected, Status Pages, Owners, Subscribers, Labels - with
  * both times empty and required, and four subscriber controls that already
  * did the right thing. It now walks two, each one a question, in the shape
@@ -38,7 +38,7 @@ import { getPublishingSummary } from "./ScheduledMaintenancePublishing";
  *
  * and the review step after them. Only the title has to be typed: every
  * other field has a default or is optional, so Next walks the other steps
- * without asking for anything, and Create Scheduled Maintenance Event is on
+ * without asking for anything, and Create Maintenance Event is on
  * the review step, the last one (Forms/Utils/SteppedFormFooter).
  *
  * The scheduled maintenance template forms and the event's own edit card
@@ -205,7 +205,7 @@ export const getSubscriberNotificationsSection: <
 };
 
 /*
- * The same section on Create Scheduled Maintenance Event, where it first
+ * The same section on Create Maintenance Event, where it first
  * asks when the event is published on its status pages (#5249) - which is
  * when their subscribers are told it is scheduled - then the switches and
  * the reminders. Folded, its line starts with when the event shows:

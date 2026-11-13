@@ -1636,7 +1636,7 @@ const PRODUCT_LISTS = [
   [PageMap.UNRESOLVED_ALERTS, "Active Alerts"],
   [PageMap.UNRESOLVED_ALERT_EPISODES, "Active Alert Episodes"],
   [PageMap.MONITORS_INOPERATIONAL, "Not Operational Monitors"],
-  [PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS, "Ongoing Events"],
+  [PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS, "Ongoing Maintenance Events"],
   [PageMap.SLOS, "SLOs"],
 ];
 

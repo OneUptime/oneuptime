@@ -79,7 +79,7 @@ Et felt, der står tomt, falder tilbage på den næste indstilling i rækkefølg
 
 Åbn tjenestens eller ressourcens side **Indstillinger** og derefter **Yderligere indstillinger**. Dens kort **Opbevaring af telemetridata** indeholder **Bevar telemetridata i (dage)**, ét tal for alt, hvad den sender, og dens kort **Opbevaring efter telemetritype** har de samme felter som projektets. Lad et felt stå tomt for at bruge projektets indstillinger.
 
-Tjenester, værter, Kubernetes-klynger, Docker- og Podman-værter, Docker Swarm-, Proxmox- og Ceph-klynger, lagersystemer, vCentre, databaser, serverless-funktioner, cloud-miljøer, RUM-applikationer og IoT-flåder har alle disse kort. Se [Tjenestekataloget](/docs/telemetry/services#skift-en-tjeneste) for en tjenestes side **Indstillinger**.
+Tjenester, værter, Kubernetes-klynger, Docker- og Podman-værter, Docker Swarm-, Proxmox- og Ceph-klynger, lagersystemer, vCentre, databaser, serverless-funktioner, cloud-miljøer, RUM-applikationer og IoT-flåder har alle disse kort. Se [Tjenester](/docs/telemetry/services#skift-en-tjeneste) for en tjenestes side **Indstillinger**.
 
 ### Når abonnementet eller licensen ikke længere omfatter tilsidesættelser
 
@@ -121,6 +121,6 @@ Udløbne poster holder op med at vise sig i søgninger, grafer og lister, så sn
 :::cards
 - [Indtagelsesnøgler](/docs/telemetry/ingestion-keys): Send telemetri til dit projekt.
 - [Drop-filtre og scrub-regler](/docs/telemetry/drop-filters-and-scrub-rules): Behold kun den telemetri, du har brug for.
-- [Tjenestekatalog](/docs/telemetry/services): Angiv en tjenestes egen opbevaring.
+- [Tjenester](/docs/telemetry/services): Angiv en tjenestes egen opbevaring.
 - [Enterprise Edition](/docs/self-hosted/enterprise): Hvad tilsidesættelser af opbevaringen følger med.
 :::

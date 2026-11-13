@@ -84,7 +84,7 @@ Legg ID-en til tjenesten i `telemetryServiceIds`, eller la listen være tom for 
 | `attributes` | Profiler der attributtene har disse verdiene. | Tom: ingen betingelse |
 | `lastXSecondsOfProfiles` | Profiler som startet innenfor dette antallet sekunder før evalueringen. | Ingen: sett den alltid, ellers telles hver lagrede profil, og antallet faller aldri til 0 |
 
-Alle filtrene du setter, må samsvare for at en profil skal leses. I skjemaet setter **Funksjon** `functionName`, **Hva som skal analyseres** setter `profileTypes` (**Alle typer profiler** lar den være tom), **Overvåk profiler for (tid)** setter `lastXSecondsOfProfiles`, og **Filtrer etter telemetritjeneste** og **Filtrer etter infrastrukturenhet** setter `telemetryServiceIds` og `entityKeys`.
+Alle filtrene du setter, må samsvare for at en profil skal leses. I skjemaet setter **Funksjon** `functionName`, **Hva som skal analyseres** setter `profileTypes` (**Alle typer profiler** lar den være tom), **Overvåk profiler for (tid)** setter `lastXSecondsOfProfiles`, og **Filtrer etter tjeneste** og **Filtrer etter infrastrukturenhet** setter `telemetryServiceIds` og `entityKeys`.
 
 ## Slik evalueres den
 

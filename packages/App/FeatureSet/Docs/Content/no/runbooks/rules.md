@@ -1,6 +1,6 @@
 # Runbook-regler
 
-Runbook-regler starter runbooks automatisk når en **hendelse**, et **varsel** eller en **planlagt vedlikeholdshendelse** opprettes, så ingen må huske å kjøre dem midt i et driftsavbrudd. Hvert produkt har sin egen regelside i menyen **Regler**:
+Runbook-regler starter runbooks automatisk når en **hendelse**, et **varsel** eller en **vedlikeholdshendelse** opprettes, så ingen må huske å kjøre dem midt i et driftsavbrudd. Hvert produkt har sin egen regelside i menyen **Regler**:
 
 - Hendelser → Regler → **Runbook-regler**
 - Varsler → Regler → **Runbook-regler**

@@ -41,12 +41,12 @@ Kunngjøringer beskrives på [Abonnenter og kunngjøringer](/docs/status-pages/s
 
 ## Hvor hendelser kommer fra
 
-- **Skjemaet.** Klikk på **Opprett planlagt vedlikeholdshendelse** i listen over hendelser, eller på fanen **Planlagt vedlikehold** for en vert, en klynge, en tjeneste, en nettverkslokasjon eller en annen ressurs, som velger den ressursen for deg. Se [Opprett vedlikeholdshendelser](/docs/scheduled-maintenance/creating-events).
+- **Skjemaet.** Klikk på **Opprett vedlikeholdshendelse** i listen over hendelser, eller på fanen **Planlagt vedlikehold** for en vert, en klynge, en tjeneste, en nettverkslokasjon eller en annen ressurs, som velger den ressursen for deg. Se [Opprett vedlikeholdshendelser](/docs/scheduled-maintenance/creating-events).
 - **En mal.** **Opprett fra mal** fyller ut skjemaet fra en mal du har lagret for arbeid du gjør ofte. Se [Maler og gjentakende hendelser](/docs/scheduled-maintenance/templates).
 - **En tidsplan.** En gjentakende mal oppretter en ny hendelse etter en tidsplan, for eksempel hver uke eller hver måned, uten at noen åpner skjemaet.
 - **Et skjema.** Et skjema der innsendinger oppretter vedlikeholdshendelser, gjør en endringsforespørsel om til en hendelse. Se [Hva en innsending oppretter](/docs/forms/on-submit#slik-blir-en-innsending-til-en-planlagt-vedlikeholdsbegivenhet).
 - **Chat.** `/oneuptime maintenance` i Slack, eller `maintenance` skrevet til OneUptime-boten i Microsoft Teams, åpner skjemaet i chatverktøyet ditt. Se [Slack](/docs/workspace-connections/slack#opprett-hendelser-og-vedlikehold-fra-slack).
-- **Kode.** API-et på `/api/scheduled-maintenance`, Terraform-ressursen `oneuptime_scheduled_maintenance_event` og trinnet **Create One Scheduled Maintenance Event** i en arbeidsflyt.
+- **Kode.** API-et på `/api/scheduled-maintenance`, Terraform-ressursen `oneuptime_scheduled_maintenance_event` og trinnet **Create One Maintenance Event** i en arbeidsflyt.
 
 ## Hvor vedlikehold ligger i dashbordet
 
@@ -54,11 +54,11 @@ Kunngjøringer beskrives på [Abonnenter og kunngjøringer](/docs/status-pages/s
 
 | Seksjon       | Hva du gjør der                                                                                                            |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| **Oversikt**  | **Alle hendelser** og **Pågående hendelser**, der merket teller hendelsene som pågår akkurat nå.                            |
+| **Oversikt**  | **Alle vedlikeholdshendelser** og **Pågående vedlikeholdshendelser**, der merket teller hendelsene som pågår akkurat nå.                            |
 | **Kalender** | **Vedlikeholdskalender**: hver hendelse på en måned, en uke eller en dag, ved siden av kalenderne utenfor prosjektet som du legger til. |
 | **Arbeidsområde** | **Slack**, **Microsoft Teams** og **Mattermost**, avhengig av hva prosjektet har koblet til, eller **Koble til et arbeidsområde** når det ikke har noen av dem. |
 | **Regler**    | **Eierregler**, **Runbook-regler**, **Etikettregler**, **Påminnelsesregler**.                                                  |
-| **Innstillinger** | **Hendelsesstatus**, **Hendelsesmaler**, **Notatmaler**, **Godkjenning av offentlige notater**, **Egendefinerte felt**, **Målinger**, **Kalenderinnstillinger**, **Nummerering**.       |
+| **Innstillinger** | **Vedlikeholdsstatus**, **Vedlikeholdsmaler**, **Notatmaler**, **Godkjenning av offentlige notater**, **Egendefinerte felt**, **Målinger**, **Kalenderinnstillinger**, **Nummerering**.       |
 
 **Oversikt** og **Kalender** er åpne; **Arbeidsområde**, **Regler**, **Innstillinger** og **Utvikler** starter sammenslått, og en seksjon åpner seg av seg selv når du er på en av sidene dens. **Utvikler** rommer **Terraform**, **API**, **CLI** og **AI-assistenter**, for å styre vedlikehold fra kode. Alt om vedlikehold ligger her, ikke i **Prosjektinnstillinger**.
 
@@ -88,7 +88,7 @@ Mens en hendelse pågår, behandler OneUptime avbruddet den planlegger, som forv
 | **Varsler**        | **Varsellogger** og **AI-logger**: hver melding som er sendt om hendelsen, og hva AI har gjort for den |
 | **Notater**       | **Private notater** og **Offentlige notater**                                                  |
 | **Utvikler**      | **Terraform**, **API**, **CLI** og **AI-assistenter**: hendelsen styrt fra kode                |
-| **Avansert**      | **Egendefinerte felt**, **Innstillinger**, **Revisjonslogger**, **Slett hendelse**             |
+| **Avansert**      | **Egendefinerte felt**, **Innstillinger**, **Revisjonslogger**, **Slett vedlikeholdshendelse**             |
 
 **Oversikt**, **Team** og **Notater** er åpne; de andre seksjonene forblir sammenslått til du klikker på dem.
 

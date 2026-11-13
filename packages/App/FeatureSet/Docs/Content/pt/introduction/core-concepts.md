@@ -72,7 +72,7 @@ flowchart TB
 
 :::cards
 - [Grupos de monitores](/docs/monitor/monitor-groups): Reunir vários monitores em um único status.
-- [Catálogo de serviços](/docs/telemetry/services): Cada aplicativo que você executa, cada um em sua própria página.
+- [Serviços](/docs/telemetry/services): Cada aplicativo que você executa, cada um em sua própria página.
 - [Visão geral do inventário](/docs/inventory/overview): Tudo o que o OneUptime sabe sobre o seu ambiente.
 :::
 

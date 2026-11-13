@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Aprire il modulo
 
-Andate in **Manutenzione programmata → Tutti gli eventi** e fate clic su **Crea evento di manutenzione programmata**. Il modulo si apre sul suo primo passo, **Evento**.
+Andate in **Manutenzione programmata → Tutti gli eventi di manutenzione** e fate clic su **Crea evento di manutenzione**. Il modulo si apre sul suo primo passo, **Dettagli della manutenzione**.
 
 ### Dire cosa succede e quando
 
@@ -47,7 +47,7 @@ Scegliete le pagine di stato in **Mostra evento su queste pagine di stato**. **N
 
 ### Crearlo
 
-Fate clic su **Avanti** per vedere il riepilogo, controllatelo, poi fate clic su **Crea evento di manutenzione programmata**. Si apre la pagina dell'evento.
+Fate clic su **Avanti** per vedere il riepilogo, controllatelo, poi fate clic su **Crea evento di manutenzione**. Si apre la pagina dell'evento.
 :::
 
 Non viene inviato nulla finché non scegliete una pagina di stato: un evento mostrato su nessuna pagina di stato non avvisa nessun iscritto.
@@ -56,12 +56,12 @@ Non viene inviato nulla finché non scegliete una pagina di stato: un evento mos
 
 | Campo                                | Passo              | Parte come                      | Cosa fa                                                                          |
 | ------------------------------------ | ------------------ | ------------------------------- | -------------------------------------------------------------------------------- |
-| **Titolo**                           | **Evento**         | Vuoto, e obbligatorio           | Dà il nome all'evento ovunque, anche sulle vostre pagine di stato.               |
-| **Descrizione**                      | **Evento**         | Vuota                           | Spiega il lavoro ai vostri clienti, in Markdown.                                 |
-| **Inizia il**                        | **Evento**         | La prossima ora piena           | Quando l'evento inizia, da solo.                                                 |
-| **Termina il**                       | **Evento**         | Un'ora dopo **Inizia il**       | Quando l'evento termina, da solo. Deve venire dopo **Inizia il**.                |
-| **Proprietari**                      | **Evento**         | Nessuno                         | Persone e team a cui appartiene l'evento e che ne vengono avvisati.              |
-| **Etichette**                        | **Evento**         | Nessuna                         | Etichette su cui regole e filtri possono basarsi.                                |
+| **Titolo**                           | **Dettagli della manutenzione**         | Vuoto, e obbligatorio           | Dà il nome all'evento ovunque, anche sulle vostre pagine di stato.               |
+| **Descrizione**                      | **Dettagli della manutenzione**         | Vuota                           | Spiega il lavoro ai vostri clienti, in Markdown.                                 |
+| **Inizia il**                        | **Dettagli della manutenzione**         | La prossima ora piena           | Quando l'evento inizia, da solo.                                                 |
+| **Termina il**                       | **Dettagli della manutenzione**         | Un'ora dopo **Inizia il**       | Quando l'evento termina, da solo. Deve venire dopo **Inizia il**.                |
+| **Proprietari**                      | **Dettagli della manutenzione**         | Nessuno                         | Persone e team a cui appartiene l'evento e che ne vengono avvisati.              |
+| **Etichette**                        | **Dettagli della manutenzione**         | Nessuna                         | Etichette su cui regole e filtri possono basarsi.                                |
 | **Monitor**                          | **Risorse interessate** | Nessuno                    | I monitor che non vengono controllati mentre l'evento è in corso.                |
 | **Cambia lo stato del monitor in**   | **Risorse interessate** | Nessun cambio              | Lo stato che questi monitor mostrano durante l'evento. Viene chiesto appena si sceglie un monitor. |
 | **Altre risorse interessate**        | **Risorse interessate** | Nessuna                    | Host, cluster, database, siti di rete, servizi e altro.                          |
@@ -75,13 +75,13 @@ Due cose compilano il modulo per voi strada facendo:
 
 ## Partire da una risorsa o da un modello
 
-Nella scheda **Manutenzione programmata** di un host, un cluster Kubernetes, Proxmox, Ceph o Docker Swarm, un host Docker o Podman, un vCenter, un cloud OpenStack, uno storage array, una flotta IoT, un database, una risorsa cloud, un servizio o un sito di rete, **Crea evento di manutenzione programmata** apre lo stesso modulo con quella risorsa già scelta in **Altre risorse interessate**, e la scheda elenca gli eventi che la riguardano. La scheda di un elemento dell'inventario sceglie l'host, il servizio o il cluster Kubernetes a cui punta l'elemento.
+Nella scheda **Manutenzione programmata** di un host, un cluster Kubernetes, Proxmox, Ceph o Docker Swarm, un host Docker o Podman, un vCenter, un cloud OpenStack, uno storage array, una flotta IoT, un database, una risorsa cloud, un servizio o un sito di rete, **Crea evento di manutenzione** apre lo stesso modulo con quella risorsa già scelta in **Altre risorse interessate**, e la scheda elenca gli eventi che la riguardano. La scheda di un elemento dell'inventario sceglie l'host, il servizio o il cluster Kubernetes a cui punta l'elemento.
 
 **Crea da modello**, accanto al pulsante di creazione, vi chiede di **Seleziona modello di manutenzione programmata**, poi apre il modulo compilato dal modello. Vedere [Modelli ed eventi ricorrenti](/docs/scheduled-maintenance/templates).
 
 ## Cosa succede quando lo create
 
-Nel momento in cui fate clic su **Crea evento di manutenzione programmata**, OneUptime esegue questi passi, in quest'ordine:
+Nel momento in cui fate clic su **Crea evento di manutenzione**, OneUptime esegue questi passi, in quest'ordine:
 
 1. **Riceve un numero e uno stato.** Il numero viene da un contatore per progetto, mostrato con il vostro prefisso (`SM-42`). L'evento parte nel vostro stato programmato, qualunque stato indichi una richiesta.
 2. **I vostri strumenti di chat lo vengono a sapere.** Le regole Slack e Microsoft Teams in **Area di lavoro** lo pubblicano nei loro canali, e una regola può creare un canale per l'evento. Il suo feed registra che è stato creato.
@@ -90,7 +90,7 @@ Nel momento in cui fate clic su **Crea evento di manutenzione programmata**, One
 5. **Le regole di runbook avviano** i runbook che corrispondono all'evento.
 6. **Vengono pianificati i promemoria**, quando corrisponde una regola di promemoria, per i suoi proprietari.
 
-Entro un minuto dalla sua pubblicazione, che è immediata a meno che abbiate scelto un **Pubblica il**, gli iscritti delle sue pagine di stato vengono avvisati che è stato pianificato, a meno che abbiate disattivato **Quando l'evento viene pianificato**. Il trigger di workflow **On Create Scheduled Maintenance Event** avvia qualsiasi workflow costruito su di esso, e i suoi proprietari lo vengono a sapere se hanno attivato quella notifica: vedere [Impostazioni notifiche](/docs/notifications/notification-settings).
+Entro un minuto dalla sua pubblicazione, che è immediata a meno che abbiate scelto un **Pubblica il**, gli iscritti delle sue pagine di stato vengono avvisati che è stato pianificato, a meno che abbiate disattivato **Quando l'evento viene pianificato**. Il trigger di workflow **On Create Maintenance Event** avvia qualsiasi workflow costruito su di esso, e i suoi proprietari lo vengono a sapere se hanno attivato quella notifica: vedere [Impostazioni notifiche](/docs/notifications/notification-settings).
 
 ## Pubblicarlo più tardi
 
@@ -113,7 +113,7 @@ Tutto ciò che c'è nel modulo si può cambiare sulle pagine dell'evento, tranne
 
 | Per cambiare                                | Andate a                                                                       |
 | ------------------------------------------- | ------------------------------------------------------------------------------ |
-| Il titolo, la finestra o le etichette       | **Modifica** sulla scheda **Dettagli della manutenzione** della sua **Panoramica**, passo **Evento** |
+| Il titolo, la finestra o le etichette       | **Modifica** sulla scheda **Dettagli della manutenzione** della sua **Panoramica**, passo **Dettagli della manutenzione** |
 | Le pagine di stato, quando viene pubblicato, o i promemoria | Lo stesso **Modifica**, passo **Pagine di stato**                  |
 | I monitor, il loro stato o le altre risorse | **Modifica** sulla scheda **Risorse interessate**                               |
 | La descrizione                              | **Descrizione** nel suo menu laterale                                          |
@@ -155,7 +155,7 @@ curl -X POST https://oneuptime.com/api/scheduled-maintenance \
 | `shouldStatusPageSubscribersBeNotifiedOnEventCreated` | L'interruttore **Quando l'evento viene pianificato**. Gli altri due momenti hanno campi propri. |
 | `publishOnStatusPageAt`                               | Quando l'evento viene pubblicato sulle sue pagine di stato e i suoi iscritti vengono avvisati che è pianificato. Se omesso, subito. |
 
-Lo stesso evento come codice è la risorsa Terraform `oneuptime_scheduled_maintenance_event`: vedere [Esempi](/docs/terraform/examples#manutenzione-programmata). Un workflow ne crea uno con il suo passo **Create One Scheduled Maintenance Event**, e `/oneuptime maintenance` apre il modulo in Slack: vedere [Slack](/docs/workspace-connections/slack#creare-incidenti-e-manutenzioni-da-slack).
+Lo stesso evento come codice è la risorsa Terraform `oneuptime_scheduled_maintenance_event`: vedere [Esempi](/docs/terraform/examples#manutenzione-programmata). Un workflow ne crea uno con il suo passo **Create One Maintenance Event**, e `/oneuptime maintenance` apre il modulo in Slack: vedere [Slack](/docs/workspace-connections/slack#creare-incidenti-e-manutenzioni-da-slack).
 
 ## Risoluzione dei problemi
 

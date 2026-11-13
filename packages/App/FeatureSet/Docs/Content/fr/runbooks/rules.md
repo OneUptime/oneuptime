@@ -1,6 +1,6 @@
 # Règles de runbook
 
-Les règles de runbook lancent automatiquement des runbooks quand un **incident**, une **alerte** ou un **événement de maintenance planifiée** est créé, pour que personne n'ait à penser à les lancer au milieu d'une panne. Chaque produit a sa propre page de règles, dans son menu **Règles** :
+Les règles de runbook lancent automatiquement des runbooks quand un **incident**, une **alerte** ou un **événement de maintenance** est créé, pour que personne n'ait à penser à les lancer au milieu d'une panne. Chaque produit a sa propre page de règles, dans son menu **Règles** :
 
 - Incidents → Règles → **Règles de runbook**
 - Alertes → Règles → **Règles de runbook**

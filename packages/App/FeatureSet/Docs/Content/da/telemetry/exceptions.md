@@ -39,7 +39,7 @@ flowchart TB
 ## Før du begynder
 
 - **Spans eller protokoller, der ankommer.** Instrumentér dine tjenester med [OpenTelemetry](/docs/telemetry/open-telemetry). Fanen **Opsætningsvejledning** viser koden til dit sprog.
-- **En rolle, der må læse telemetri.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member eller Telemetry Viewer, eller en brugerdefineret rolle med tilladelsen Read Telemetry Service Exception. At løse og arkivere kræver Project Owner eller Project Admin eller tilladelsen Edit Telemetry Service Exception.
+- **En rolle, der må læse telemetri.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member eller Telemetry Viewer, eller en brugerdefineret rolle med tilladelsen Read Exceptions. At løse og arkivere kræver Project Owner eller Project Admin eller tilladelsen Edit Exceptions.
 
 ## Gennemgå listen
 

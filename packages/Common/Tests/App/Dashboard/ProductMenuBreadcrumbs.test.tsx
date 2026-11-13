@@ -30,7 +30,7 @@ import { ReactElement } from "react";
  *
  * Settings is checked more loosely — only that the trail still says
  * "Settings". Those trails predate this change and word some leaf titles
- * differently from the menu ("Event State" in the menu, "State" in the trail);
+ * differently from the menu ("Maintenance State" in the menu, "State" in the trail);
  * rewording them is not what this change is about.
  */
 /*

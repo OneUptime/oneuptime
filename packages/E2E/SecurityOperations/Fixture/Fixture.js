@@ -73,8 +73,9 @@
  *            spans out.)
  *   ?casesetup= none or fail: a busy project that has no case fields
  *            and no note templates yet, or whose first read of either
- *            fails (a 500) and the next answers. (CaseSetupFixture.js lays
- *            the fields, templates and numbering out.)
+ *            fails (a 500) and the next answers; notes-fail-with-reference:
+ *            whose first read of a case's notes fails. (CaseSetupFixture.js
+ *            lays the fields, templates and numbering out.)
  *   ?retrohunt= quiet, noisy or fail: what Run on Past Events answers - a
  *            rule that would not have fired, one that would have fired more
  *            than a person can look at, or YAML the run refuses.
@@ -3762,7 +3763,10 @@ ModelAPI.getList = async (options) => {
     skip,
     limit,
   });
-  // ?casesetup=fail: the first read of the case fields or templates fails.
+  /*
+   * ?casesetup=fail: the first read of the case fields or templates fails;
+   * notes-fail-with-reference: the first of a case's notes.
+   */
   if (caseSetup.failsRead(modelName)) {
     throw new HTTPErrorResponse(500, caseSetup.failedReadAnswer(), {});
   }

@@ -236,7 +236,7 @@ describe("the impact, first", () => {
     }
   });
 
-  test("each aspect has its own mark: the people, the Service Catalog's, the SLOs'", () => {
+  test("each aspect has its own mark: the people, the services', the SLOs'", () => {
     expect(IMPACT_ASPECT_ICONS).toEqual({
       [InvestigationImpactAspect.Users]: IconProp.UserGroup,
       [InvestigationImpactAspect.Services]: IconProp.SquareStack,

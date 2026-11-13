@@ -1621,8 +1621,8 @@ export default class StatusPage extends BaseModel {
   @TableColumn({
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
-    title: "Show Scheduled Event Labels",
-    description: "Show Scheduled Event Labels on Status Page?",
+    title: "Show Maintenance Event Labels",
+    description: "Show Maintenance Event Labels on Status Page?",
     defaultValue: false,
   })
   @Column({
@@ -1756,7 +1756,7 @@ export default class StatusPage extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Allow Subscribers to subscribe to event types",
     description:
-      "Can subscribers choose which event type like Announcements, Incidents, Scheduled Events to subscribe to?",
+      "Can subscribers choose which event type like Announcements, Incidents, Maintenance Events to subscribe to?",
     defaultValue: false,
   })
   @Column({
@@ -3910,8 +3910,8 @@ export default class StatusPage extends BaseModel {
   @TableColumn({
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
-    title: "Show Scheduled Maintenance Events on Status Page",
-    description: "Show Scheduled Maintenance Events on Status Page?",
+    title: "Show Maintenance Events on Status Page",
+    description: "Show Maintenance Events on Status Page?",
     defaultValue: true,
   })
   @Column({

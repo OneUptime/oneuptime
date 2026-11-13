@@ -72,7 +72,7 @@ Fate clic su **Crea monitor**. Il monitor si apre sulla sua pagina **Panoramica*
 | **Finestra temporale** (in **Quando avvisare**) | Log degli ultimi 5 secondi fino alle ultime 24 ore. | **Ultimi 5 minuti** |
 | **Raggruppa per attributi** | Non è un filtro: conta separatamente ogni combinazione di valori di questi attributi. | Vuoto: un solo conteggio |
 | **Risolto per attributi** | Non è un filtro: il log che risolve un gruppo. Compare appena **Raggruppa per attributi** ha un attributo; vedi [Risolto da un log](#risolto-da-un-log). | Vuoto: un gruppo si risolve quando i suoi log si fermano |
-| **Filtra per servizio di telemetria** (in **Altri campi**) | Log di uno qualsiasi dei servizi scelti. | Vuoto: tutti i servizi |
+| **Filtra per servizio** (in **Altri campi**) | Log di uno qualsiasi dei servizi scelti. | Vuoto: tutti i servizi |
 | **Filtra per entità dell'infrastruttura** (in **Altri campi**) | Log di uno qualsiasi degli host, pod, container e altre entità scelti. | Vuoto: tutte le entità |
 | **Filtra per attributi** (in **Altri campi**) | Log i cui attributi soddisfano ogni condizione. Ogni condizione ha il proprio operatore, come «uguale a» o «contiene». | Vuoto: nessuna condizione |
 
@@ -140,7 +140,7 @@ Volete un incidente quando il servizio di checkout registra più di 50 errori in
 
 - **Gravità del log**: **Errore**
 - **Finestra temporale**: **Ultimi 5 minuti**
-- **Filtra per servizio di telemetria**: `checkout`
+- **Filtra per servizio**: `checkout`
 - **Quando avvisare**: **Più di** `50`
 - **Cosa succede**: **Dichiara un incidente**
 

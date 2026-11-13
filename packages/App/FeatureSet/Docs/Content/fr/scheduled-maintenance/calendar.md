@@ -21,15 +21,15 @@ flowchart TB
 
 ## La page du calendrier
 
-Ouvrez **Maintenance planifiée → Calendrier de maintenance**, dans la section **Calendrier** du menu latéral. **Tous les événements** montre les mêmes événements sous forme de liste.
+Ouvrez **Maintenance planifiée → Calendrier de maintenance**, dans la section **Calendrier** du menu latéral. **Tous les événements de maintenance** montre les mêmes événements sous forme de liste.
 
 - Le calendrier s'ouvre sur le mois en cours, avec aujourd'hui mis en évidence. **Mois**, **Semaine** et **Jour** changent ce qu'il montre ; naviguez avec les flèches et revenez avec **Aujourd'hui**. Les heures sont dans votre propre fuseau horaire.
 - Chaque événement est un bloc de la couleur de son état, et les couleurs des états sont nommées sous le calendrier. Cliquez sur un événement pour l'ouvrir.
 - Les filtres au-dessus du calendrier fonctionnent comme sur la liste : choisissez un état, une étiquette ou un propriétaire pour ne voir que ces événements.
-- Un jour encore à venir affiche un **+** quand vous pointez sa semaine. Il ouvre **Créer un événement de maintenance planifiée** avec **Commence le** à ce jour, à l'heure que le formulaire choisirait aujourd'hui. Vous ne le voyez que si vous pouvez créer des événements.
+- Un jour encore à venir affiche un **+** quand vous pointez sa semaine. Il ouvre **Créer un événement de maintenance** avec **Commence le** à ce jour, à l'heure que le formulaire choisirait aujourd'hui. Vous ne le voyez que si vous pouvez créer des événements.
 - Une vue montre jusqu'à 500 événements. Un mois plus chargé le signale : affinez-le avec les filtres, ou regardez une semaine.
 
-**Tous les événements** basculait autrefois entre une liste et un calendrier. Si votre navigateur l'a laissé en dernier sur le calendrier, **Tous les événements** ouvre une fois le **Calendrier de maintenance**, puis reste la liste.
+**Tous les événements de maintenance** basculait autrefois entre une liste et un calendrier. Si votre navigateur l'a laissé en dernier sur le calendrier, **Tous les événements de maintenance** ouvre une fois le **Calendrier de maintenance**, puis reste la liste.
 
 ## Calendriers externes
 

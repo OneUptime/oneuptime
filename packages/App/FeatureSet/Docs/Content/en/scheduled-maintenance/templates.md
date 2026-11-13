@@ -15,7 +15,7 @@ A template is a starting point. An event created from it is a copy with its own 
 
 ```mermaid title="Two ways a template becomes an event"
 flowchart TB
-    template["A template<br/>in Event Templates"] --> byhand["Create from Template<br/>fills in the form"]
+    template["A template<br/>in Maintenance Templates"] --> byhand["Create from Template<br/>fills in the form"]
     template --> schedule["Recurring Event on<br/>checked every minute"]
     byhand --> event["A new event<br/>in Scheduled"]
     schedule --> event
@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Open the templates
 
-Go to **Scheduled Maintenance → Settings → Event Templates**. **Settings** starts folded in the side menu: expand it first. Click **Create Scheduled Maintenance Template**.
+Go to **Scheduled Maintenance → Settings → Maintenance Templates**. **Settings** starts folded in the side menu: expand it first. Click **Create Scheduled Maintenance Template**.
 
 ### Name the template
 
@@ -39,7 +39,7 @@ On **Template Info**, give it a **Template Name** and a **Template Description**
 
 ### Describe the event
 
-On **Event**, fill in the **Title** and the **Description** every event from it starts with. **Owners** and **Labels** wait under **More fields**.
+On **Maintenance Details**, fill in the **Title** and the **Description** every event from it starts with. **Owners** and **Labels** wait under **More fields**.
 
 ### Pick what it affects
 
@@ -68,7 +68,7 @@ A template asks for **Change Monitor Status to** even when it names no monitors:
 :::steps
 ### Pick the template
 
-On **Scheduled Maintenance → All Events**, click **Create from Template**, and choose a template under **Select Scheduled Maintenance Template**.
+On **Scheduled Maintenance → All Maintenance Events**, click **Create from Template**, and choose a template under **Select Scheduled Maintenance Template**.
 
 ### Check the form
 
@@ -76,10 +76,10 @@ Click **Create from Template**. The create form opens with the template's answer
 
 ### Create the event
 
-Walk the steps with **Next**, then click **Create Scheduled Maintenance Event** on the review.
+Walk the steps with **Next**, then click **Create Maintenance Event** on the review.
 :::
 
-When the project has no template yet, **Create from Template** says so, and links to **Event Templates**.
+When the project has no template yet, **Create from Template** says so, and links to **Maintenance Templates**.
 
 ## Recurring events
 
@@ -108,7 +108,7 @@ A job checks the recurring templates every minute. When a template's next time c
 
 Open a template from the list to see its page:
 
-- **Scheduled Maintenance Template Details** shows what new events start with. Its **Edit** walks **Template Info**, **Event**, **Status Pages** and **Recurring**.
+- **Scheduled Maintenance Template Details** shows what new events start with. Its **Edit** walks **Template Info**, **Maintenance Details**, **Status Pages** and **Recurring**.
 - **Affected Resources** holds its **Monitors**, their **Change Monitor Status to** and its **Other Affected Resources**, with an **Edit** of its own.
 - **Owners** lists the people and teams who own every event scheduled from it.
 

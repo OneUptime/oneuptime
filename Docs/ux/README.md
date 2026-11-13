@@ -423,12 +423,14 @@ work out, starts from a default for everything else, and folds what most people 
 - **A retired name does not come back.** When one thing had several names, #6817 kept one and retired
   the rest ([`RetiredNames`](../../packages/Common/Types/Docs/RetiredNames.ts)): "On-Call Duty" is
   On-Call, a person's "on-call rules" are How to Reach Me, the project's "Notification Settings" are
-  Notification Channels. A retired name stays only where people who learned it look: a Search keyword,
-  the glossary's "Also called", a docs-search synonym, and an address, API name or stored value (a
-  model's `apiSingularName`, a workspace rule's condition shown through a label). Enforced by
+  Notification Channels, a "Scheduled Maintenance Event" is a Maintenance Event. A retired name stays
+  only where people who learned it look: a Search keyword, the glossary's "Also called", a docs-search
+  synonym, and an address, API name or stored value (a model's `apiSingularName`, a workspace rule's
+  condition shown through a label), or a name another app keeps (the Slack app's shortcuts, as its
+  manifest names them). Enforced by
   [RetiredNamesGuard](../../packages/App/Tests/Dashboard/RetiredNamesGuard.test.ts), which reads the
-  Dashboard's words, permission names, emails, every string the server and the front ends write, the
-  English docs with their diagrams, and the website, and
+  Dashboard's words, permission names, emails, every front end's English locale, every string the
+  server and the front ends write, the English docs with their diagrams, and the website, and
   [RetiredNamesFindable](../../packages/App/Tests/Dashboard/RetiredNamesFindable.test.ts), which checks
   that each old name still finds the page.
 - **At most three words on a page are marked as defined terms, each the first time it is met.** A

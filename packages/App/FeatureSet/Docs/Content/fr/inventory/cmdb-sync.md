@@ -59,7 +59,7 @@ Ouvrez **Paramètres du projet → Avancé → Clés API** et cliquez sur **Cré
 
 ### Ne lui donner que le nécessaire
 
-Un export en lecture seule n'a besoin que d'une autorisation, **Read Telemetry Service** : l'inventaire partage les autorisations de télémétrie au lieu d'avoir les siennes. Sur la page de la clé, cliquez sur **Ajouter une permission** et choisissez-la. Pour réécrire des valeurs, ajoutez aussi **Edit Telemetry Service**.
+Un export en lecture seule n'a besoin que d'une autorisation, **Read Inventory Item** : l'inventaire partage les autorisations de télémétrie au lieu d'avoir les siennes. Sur la page de la clé, cliquez sur **Ajouter une permission** et choisissez-la. Pour réécrire des valeurs, ajoutez aussi **Edit Inventory Item**.
 
 ### Copier la clé
 
@@ -232,9 +232,9 @@ Un élément qui disparaît entre deux exécutions a soit expiré (un élément 
 
 ## Réécrire
 
-Les mêmes points de terminaison acceptent les écritures, si bien qu'une synchronisation peut pousser des valeurs dans `customFields` : par exemple l'étiquette d'actif que votre CMDB gère déjà, apposée sur l'élément OneUptime correspondant. La clé a besoin pour cela de **Edit Telemetry Service**.
+Les mêmes points de terminaison acceptent les écritures, si bien qu'une synchronisation peut pousser des valeurs dans `customFields` : par exemple l'étiquette d'actif que votre CMDB gère déjà, apposée sur l'élément OneUptime correspondant. La clé a besoin pour cela de **Edit Inventory Item**.
 
-Vous pouvez aussi ajouter des éléments pour des choses que OneUptime ne peut pas voir, avec `POST /api/inventory-item`, un `entityType` parmi `external.service`, `external.database` ou `appliance`, et un `displayName`. OneUptime calcule la clé d'identité pour vous, et ces éléments n'expirent jamais. La clé a besoin de **Create Telemetry Service** pour cela.
+Vous pouvez aussi ajouter des éléments pour des choses que OneUptime ne peut pas voir, avec `POST /api/inventory-item`, un `entityType` parmi `external.service`, `external.database` ou `appliance`, et un `displayName`. OneUptime calcule la clé d'identité pour vous, et ces éléments n'expirent jamais. La clé a besoin de **Create Inventory Item** pour cela.
 
 ## Dépannage
 
@@ -243,7 +243,7 @@ Sur OneUptime Cloud, les clés API ne fonctionnent que tant que le projet est su
 :::
 
 :::details Chaque requête répond 422 You do not have permissions
-La clé n'a aucune autorisation qui lit l'inventaire. Une clé créée avec **Choisir les autorisations plus tard** ne peut rien faire tant qu'elle n'en a pas reçu : ajoutez **Read Telemetry Service** sur sa page, comme dans [Avant de commencer](#avant-de-commencer).
+La clé n'a aucune autorisation qui lit l'inventaire. Une clé créée avec **Choisir les autorisations plus tard** ne peut rien faire tant qu'elle n'en a pas reçu : ajoutez **Read Inventory Item** sur sa page, comme dans [Avant de commencer](#avant-de-commencer).
 :::
 
 :::details La liste revient sans les colonnes dont j'ai besoin

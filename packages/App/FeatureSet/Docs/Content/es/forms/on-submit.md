@@ -1,6 +1,6 @@
 # Lo que crea un envío
 
-Cada envío a través de un formulario crea un registro en tu proyecto: un **incidente** o un **evento de mantenimiento programado**. La página **Al enviar** de un formulario muestra cuál, y cómo se rellena cada campo del registro nuevo — a partir de una respuesta, de un valor predeterminado, de un ajuste que siempre se aplica, o de la plantilla de incidente. **Editar configuración** cambia los valores predeterminados y lo que siempre se aplica.
+Cada envío a través de un formulario crea un registro en tu proyecto: un **incidente** o un **evento de mantenimiento**. La página **Al enviar** de un formulario muestra cuál, y cómo se rellena cada campo del registro nuevo — a partir de una respuesta, de un valor predeterminado, de un ajuste que siempre se aplica, o de la plantilla de incidente. **Editar configuración** cambia los valores predeterminados y lo que siempre se aplica.
 
 :::cards
 - [Cómo un envío se convierte en un incidente](#cómo-un-envío-se-convierte-en-un-incidente): Cada campo del incidente nuevo, y de dónde sale su valor.

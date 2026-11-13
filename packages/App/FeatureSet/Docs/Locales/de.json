@@ -299,7 +299,7 @@
     "Incoming Request Ingress": "Eingehende-Anfrage-Ingress",
     "Packet Capture": "Paketmitschnitt",
     "OpenTelemetry": "OpenTelemetry",
-    "Service Catalog": "Dienstkatalog",
+    "Services": "Dienste",
     "Logs Explorer": "Protokoll-Explorer",
     "Traces Explorer": "Trace-Explorer",
     "Metrics Explorer": "Metrik-Explorer",

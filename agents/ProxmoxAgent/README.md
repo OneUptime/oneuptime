@@ -352,6 +352,10 @@ bash troubleshoot.sh                 # add -d <dir> if you installed outside /op
 
 The API token is wrong or lacks permissions. Re-check the token id format (`user@realm!tokenname`), the secret, and that the **PVEAuditor** role is granted on path `/` to the token and to its user.
 
+### The cluster shows "Can't read API"
+
+The agent is running, but it has not read the cluster from the Proxmox VE API for 15 minutes or more: the node it reads is down and no other node in `PVE_NODES` answers, the API token was revoked or lost the **PVEAuditor** role, or the agent's machine cannot reach port `8006` on any node. The cluster's pages keep what it last read. `troubleshoot.sh` checks each of these, and `docker logs oneuptime-pve-api-failover` says which node the agent reads and why it passed over the others.
+
 ### Only node metrics, no guest metrics
 
 Guest series (`qemu/*`, `lxc/*` ids) come from the cluster collector. The shipped config enables it (`cluster=1` scrape parameter) — if you customized the config, restore the `cluster: ["1"]` param.
