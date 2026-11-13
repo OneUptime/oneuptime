@@ -12,6 +12,8 @@ import {
   WhoIsToldPerson,
   WhoIsToldPolicy,
   WhoIsToldResult,
+  WhoIsToldRule,
+  WhoIsToldStatusPage,
 } from "../../../../Types/Monitor/WhoIsTold";
 import ObjectID from "../../../../Types/ObjectID";
 import { getOnCallPageChannelName } from "../../../../Types/OnCallDutyPolicy/OnCallPageChannel";
@@ -105,6 +107,29 @@ async function findMonitor(
   );
 }
 
+/*
+ * Who an incident, an alert or a status change emails, for each source as
+ * Types/Monitor/WhoIsTold defines it and in the words the monitor's "When
+ * this goes down" card says it (the Dashboard's WhoIsToldWords, "It emails
+ * ..."), so Ask AI and the page never disagree (#7396):
+ *   - Named: the owners the criteria names (and the network device's), with
+ *     whom owner rules add;
+ *   - OwnerRules: nobody is named, and only the project's owner rules add
+ *     owners;
+ *   - ProjectOwners: nobody is named or added by a rule (or, for a status
+ *     change, the monitor has no owners), so the project's owners are
+ *     emailed instead;
+ *   - MonitorOwners: a status change emails the monitor's own owners.
+ * A Record, so a new source does not compile until it is worded here.
+ */
+const OWNERS_WORDS: Readonly<Record<WhoIsToldOwnersSource, string>> = {
+  [WhoIsToldOwnersSource.Named]: "its owners",
+  [WhoIsToldOwnersSource.OwnerRules]: "the owners added by owner rules",
+  [WhoIsToldOwnersSource.ProjectOwners]: "the project's owners",
+  [WhoIsToldOwnersSource.MonitorOwners]: "the monitor's owners",
+};
+
+// "the owners added by owner rules (Dana Reyes, team Platform)".
 function describeOwners(owners: WhoIsToldOwners): string {
   const named: Array<string> = [
     ...owners.userNames,
@@ -112,29 +137,24 @@ function describeOwners(owners: WhoIsToldOwners): string {
       return `team ${team}`;
     }),
   ];
+  const who: string = OWNERS_WORDS[owners.source];
 
-  /*
-   * The resolver plans the project's owner rules on what opens, so it knows
-   * whether they add anyone: the project's owners are emailed only when
-   * nobody is named and no rule adds an owner.
-   */
-  if (owners.source === WhoIsToldOwnersSource.ProjectOwners) {
-    return "the project's owners";
-  }
+  return named.length > 0 ? `${who} (${named.join(", ")})` : who;
+}
 
-  if (owners.source === WhoIsToldOwnersSource.OwnerRules) {
-    return named.length > 0
-      ? `the owners added by owner rules (${named.join(", ")})`
-      : "the owners added by owner rules";
-  }
-
-  if (owners.source === WhoIsToldOwnersSource.MonitorOwners) {
-    return named.length > 0
-      ? `the monitor's owners (${named.join(", ")})`
-      : "the monitor's owners (none yet)";
-  }
-
-  return named.length > 0 ? named.join(", ") : "nobody named";
+/*
+ * The owner rules that add owners to what opens, by name, as the card's
+ * "Owner Rules" row lists them; one the person may not read keeps its
+ * place without its name.
+ */
+function describeOwnerRules(rules: Array<WhoIsToldRule>): string {
+  return rules
+    .map((rule: WhoIsToldRule): string => {
+      return rule.name
+        ? `"${rule.name}"`
+        : "an owner rule the person may not read";
+    })
+    .join(", ");
 }
 
 function describePerson(person: WhoIsToldPerson): string {
@@ -182,6 +202,12 @@ function describeEvent(event: WhoIsToldEvent): Array<string> {
     `  - opens ${event.kind === "Alert" ? "an alert" : "an incident"} (${event.severityName}); emails ${describeOwners(event.owners)}`,
   ];
 
+  if (event.ownerRules.length > 0) {
+    lines.push(
+      `    - owner rules that add its owners: ${describeOwnerRules(event.ownerRules)}`,
+    );
+  }
+
   if (event.policies.length === 0) {
     lines.push("    - pages nobody: no on-call rule runs a policy for it");
   }
@@ -190,11 +216,17 @@ function describeEvent(event: WhoIsToldEvent): Array<string> {
     lines.push(`    - pages ${describePolicy(policy)}`);
   }
 
+  /*
+   * A status page the person may not read keeps its place without its name,
+   * as the card's "A status page you can't see" does - never as an empty "".
+   */
   if (event.statusPages.length > 0) {
     lines.push(
       `    - shows on status pages: ${event.statusPages
-        .map((page: { name: string }): string => {
-          return `"${page.name}"`;
+        .map((page: WhoIsToldStatusPage): string => {
+          return page.name
+            ? `"${page.name}"`
+            : "a status page the person may not read";
         })
         .join(", ")}`,
     );
