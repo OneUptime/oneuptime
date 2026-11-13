@@ -80,7 +80,10 @@ interface Findable {
 const FINDABLE: Record<string, Findable> = {
   "On-Call Duty": {
     search: { query: "on-call duty policies", offers: "On-Call Policies" },
-    product: { titleKey: "navbar.items.onCallDutyTitle", keyword: "on-call duty" },
+    product: {
+      titleKey: "navbar.items.onCallDutyTitle",
+      keyword: "on-call duty",
+    },
     glossaryMentions: "On-Call Duty",
     docs: { query: "on-call duty", opens: "/docs/en/on-call/index" },
   },
@@ -155,7 +158,10 @@ const FINDABLE: Record<string, Findable> = {
       keyword: "continuous profiling",
     },
     glossaryMentions: "Continuous Profiling",
-    docs: { query: "continuous profiling", opens: "/docs/en/telemetry/profiles" },
+    docs: {
+      query: "continuous profiling",
+      opens: "/docs/en/telemetry/profiles",
+    },
   },
   "Exception Tracking": {
     search: { query: "exception tracking", offers: "Exceptions" },

@@ -401,11 +401,7 @@ describe("the criteria step's cards", () => {
       const cards: Array<HTMLElement> = within(holder).getAllByTestId("card");
 
       expect(cardTitles(cards)).toEqual(
-        expect.arrayContaining([
-          "Monitor Target",
-          "Test Monitor",
-          "Criteria",
-        ]),
+        expect.arrayContaining(["Monitor Target", "Test Monitor", "Criteria"]),
       );
 
       for (const card of cards) {

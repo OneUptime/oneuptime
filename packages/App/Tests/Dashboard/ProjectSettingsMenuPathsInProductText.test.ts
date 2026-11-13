@@ -381,9 +381,7 @@ describe("a written Project Settings path, as a reader follows it", () => {
     [
       "a page by its breadcrumb, not its menu entry",
       "Two allowlists compose (Project Settings > Telemetry Settings).",
-      [
-        'names no section or page of Project Settings: "Telemetry Settings',
-      ],
+      ['names no section or page of Project Settings: "Telemetry Settings'],
     ],
     [
       "the AI agent email's old pointer, at a retired page",

@@ -8,7 +8,7 @@ The agent is config-only: a stock `otel/opentelemetry-collector-contrib` contain
 
 - Docker Engine 20.10+ with the Docker Compose v2 plugin, on any machine that can reach your Proxmox VE API (port 8006)
 - A Proxmox VE API token with the **PVEAuditor** role (read-only) — create one under *Datacenter → Permissions → API Tokens*
-- A **OneUptime Telemetry Ingestion Key** — create one from *Project Settings → Telemetry Ingestion Keys*
+- A **OneUptime ingestion key** — create one from *Project Settings → Telemetry & APM → Ingestion Keys*
 
 ### Creating the Proxmox API token
 
@@ -90,7 +90,7 @@ PVE_EXPORTER_URL=your-exporter-host:9221
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `ONEUPTIME_URL` | Yes | Your OneUptime instance URL |
-| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes | Telemetry ingestion key (*Project Settings → Telemetry Ingestion Keys*) |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes | Ingestion key (*Project Settings → Telemetry & APM → Ingestion Keys*) |
 | `PROXMOX_CLUSTER_NAME` | Yes | Cluster identifier shown in OneUptime. Stamped on every metric as the `proxmox.cluster.name` resource attribute. Keep it stable — changing it registers a new cluster (default: `proxmox-cluster`) |
 | `PVE_HOST` | Yes | The node whose Proxmox VE API the exporter reads the cluster from and the AI agent queries, e.g. `192.168.1.10`. While its API does not answer, both use the next node in `PVE_NODES` that does (see [When a node goes down](#when-a-node-goes-down)) |
 | `PVE_NODES` | On a cluster | Every node's own API address, comma-separated in square brackets, e.g. `[192.168.1.10,192.168.1.11,192.168.1.12]`: the exporter reads start-on-boot, replication and the subscription from each node in turn, and the agent reads the cluster from the next of them when `PVE_HOST` goes down. Defaults to `PVE_HOST` alone, which is enough for a single node (see [Every node, not just one](#every-node-not-just-one)) |

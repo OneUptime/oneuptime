@@ -599,9 +599,7 @@ describe("the criteria of these monitors", () => {
   // The Proxmox page's criteria table, which InfrastructureMonitorDocsFacts holds to the form.
   const proxmoxRows: Array<Array<string>> = tableBody(
     readPage("en", "monitor/proxmox-monitor").slice(
-      readPage("en", "monitor/proxmox-monitor").indexOf(
-        "## Criteria",
-      ),
+      readPage("en", "monitor/proxmox-monitor").indexOf("## Criteria"),
     ),
   );
 

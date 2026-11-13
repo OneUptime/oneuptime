@@ -241,13 +241,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
   }
 
   if (!props.monitorSteps) {
-    return (
-      <div>
-        {translator.translateText(
-          "No criteria are set yet.",
-        )}
-      </div>
-    );
+    return <div>{translator.translateText("No criteria are set yet.")}</div>;
   }
 
   if (error) {

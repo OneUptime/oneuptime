@@ -3244,8 +3244,7 @@ export class PermissionHelper {
       {
         permission: Permission.EditTelemetryIngestionKey,
         title: "Edit Ingestion Key",
-        description:
-          "This permission can edit ingestion keys of this project.",
+        description: "This permission can edit ingestion keys of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -3254,8 +3253,7 @@ export class PermissionHelper {
       {
         permission: Permission.ReadTelemetryIngestionKey,
         title: "Read Ingestion Key",
-        description:
-          "This permission can read ingestion keys of this project.",
+        description: "This permission can read ingestion keys of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

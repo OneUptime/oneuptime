@@ -130,9 +130,7 @@ describe("the Profiles page's section on finding and fixing slow code", () => {
 
     for (const page of ["Insights", "Logs", "Settings"]) {
       expect(aiSection).toContain(`title: "${page}"`);
-      expect(section).toContain(
-        `**Products → Profiles → AI → ${page}**`,
-      );
+      expect(section).toContain(`**Products → Profiles → AI → ${page}**`);
     }
   });
 

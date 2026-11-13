@@ -1051,7 +1051,10 @@ test.describe("Create Monitor, start to finish", () => {
 
     // The criteria step: what to check first, the criteria folded below.
     await expect(
-      form.getByTestId("card-details-heading").getByText("Criteria", { exact: true }).first(),
+      form
+        .getByTestId("card-details-heading")
+        .getByText("Criteria", { exact: true })
+        .first(),
     ).toBeVisible({ timeout: 60000 });
     const headers: Locator = page.getByTestId("monitor-criteria-header");
     await expect(headers).toHaveCount(2, { timeout: 30000 });

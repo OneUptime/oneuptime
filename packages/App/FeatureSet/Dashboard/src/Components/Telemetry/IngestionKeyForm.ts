@@ -22,7 +22,7 @@ import { getTelemetryPayAsYouGoFormFields } from "../Billing/PayAsYouGo";
 /*
  * CREATE A TELEMETRY INGESTION KEY: ONE PREFILLED PAGE, FROM EVERY DOOR.
  *
- * A key is created from two places: Settings > Telemetry Ingestion Keys,
+ * A key is created from two places: Settings > Ingestion Keys,
  * and the "Choose an ingestion key" step at the top of every setup guide
  * (IngestionKeySelector). Both build their form here, so they ask the same
  * questions, in the same words, with the same checks - a browser key's

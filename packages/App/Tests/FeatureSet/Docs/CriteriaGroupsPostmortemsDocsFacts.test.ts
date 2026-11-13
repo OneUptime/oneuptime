@@ -1901,9 +1901,7 @@ describe("changing a monitor's criteria", () => {
 
   it("edits on the Criteria card, every criteria open", () => {
     expect(CRITERIA_PAGE).toContain('title: "Criteria",');
-    expect(CRITERIA_PAGE).toContain(
-      'editButtonText="Edit Criteria"',
-    );
+    expect(CRITERIA_PAGE).toContain('editButtonText="Edit Criteria"');
     // Only Create Monitor folds a new monitor's criteria to their headers.
     expect(CRITERIA_PAGE).not.toContain("foldDefaultCriteria");
     expect(readDashboardSource("Pages/Monitor/Create.tsx")).toContain(

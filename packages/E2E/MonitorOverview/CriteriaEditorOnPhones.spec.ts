@@ -19,7 +19,7 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
  * frame with its padding - and the alert's description editor was 166px
  * wide inside its fold.
  *
- * The step's cards (Monitor Target, Test Monitor, Monitor Criteria) are
+ * The step's cards (Monitor Target, Test Monitor, Criteria) are
  * sections of the page's card - a rule above each, no frame - at every
  * width: below sm since #5482, and from sm up too, where they were cards
  * inside the page's card. Below sm the criteria's box is the one frame

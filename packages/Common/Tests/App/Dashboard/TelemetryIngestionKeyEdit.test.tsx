@@ -225,9 +225,7 @@ async function openEditForm(user: UserEvent): Promise<void> {
   await waitFor(() => {
     expect(editDialog()).toBeVisible();
   });
-  await within(editDialog()).findByPlaceholderText(
-    "Ingestion Key Name",
-  );
+  await within(editDialog()).findByPlaceholderText("Ingestion Key Name");
 }
 
 async function openBrowserSettings(user: UserEvent): Promise<void> {
@@ -303,9 +301,7 @@ describe("Telemetry ingestion key detail page", () => {
       }),
     ).toBeVisible();
     expect(
-      within(editDialog()).queryByPlaceholderText(
-        "Ingestion Key Name",
-      ),
+      within(editDialog()).queryByPlaceholderText("Ingestion Key Name"),
     ).not.toBeInTheDocument();
 
     await next(user);

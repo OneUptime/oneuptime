@@ -360,7 +360,8 @@ export const waitForCriteriaStepReady: (data: {
   page: Page;
 }) => Promise<void> = async (data: { page: Page }): Promise<void> => {
   await data.page
-    .getByTestId("card-details-heading").getByText("Criteria", { exact: true })
+    .getByTestId("card-details-heading")
+    .getByText("Criteria", { exact: true })
     .or(data.page.getByText("When to alert", { exact: true }))
     .first()
     .waitFor({ state: "visible", timeout: 60000 });
