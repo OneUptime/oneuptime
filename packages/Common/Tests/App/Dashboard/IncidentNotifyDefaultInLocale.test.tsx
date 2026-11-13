@@ -172,6 +172,7 @@ import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import Project from "../../../Models/DatabaseModels/Project";
 import Route from "../../../Types/API/Route";
 import Navigation from "../../../UI/Utils/Navigation";
+import escapeRegExp from "../../../Utils/RegExpEscape";
 
 const BOX: string = "Notify Status Page Subscribers";
 
@@ -366,12 +367,8 @@ function englishLeft(): Array<string> {
   );
 }
 
-function escapeForPattern(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
 function startingWithText(text: string): RegExp {
-  return new RegExp(`^${escapeForPattern(text)}`);
+  return new RegExp(`^${escapeRegExp(text)}`);
 }
 
 let projectSetting: boolean = false;
@@ -528,7 +525,7 @@ describe.each(["de", "ar"])("drawn in %s", (language: string) => {
       }),
     );
     const box: HTMLElement = await screen.findByRole("checkbox", {
-      name: new RegExp(escapeForPattern(word(language, BOX))),
+      name: new RegExp(escapeRegExp(word(language, BOX))),
     });
     expect(box).not.toBeChecked();
     expect(
