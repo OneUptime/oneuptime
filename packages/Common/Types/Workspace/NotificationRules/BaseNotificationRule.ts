@@ -1,5 +1,6 @@
 import FilterCondition from "../../Filter/FilterCondition";
 import NotificationRuleCondition from "./NotificationRuleCondition";
+import { NotificationRuleUpdateKind } from "./NotificationRuleUpdates";
 
 export default interface BaseNotificationRule {
   _type: string;
@@ -19,4 +20,12 @@ export default interface BaseNotificationRule {
   // Post to group / personal chats (for MS Teams only).
   shouldPostToExistingChat?: boolean;
   existingChatIds?: Array<string>; // Teams chat ids the OneUptime app has been added to.
+
+  /*
+   * The updates the rule posts in its channels and chats, for the kinds of
+   * rule that choose them (NotificationRuleUpdates): left out, every update.
+   * The record's first message and a video call's Join button are posted
+   * whatever it lists.
+   */
+  updatesToPost?: Array<NotificationRuleUpdateKind> | undefined;
 }

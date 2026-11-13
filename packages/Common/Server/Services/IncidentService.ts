@@ -225,6 +225,7 @@ import FeedApiKeyActorUtil, {
   FeedApiKeyActor,
 } from "../Utils/Feed/FeedApiKeyActor";
 import FeedWorkspaceNotificationUtil from "../Utils/Feed/FeedWorkspaceNotification";
+import { NotificationRuleUpdateKind } from "../../Types/Workspace/NotificationRules/NotificationRuleUpdates";
 import StateChangeLogScreenshots from "../../Utils/Monitor/StateChangeLogScreenshots";
 
 /*
@@ -5890,6 +5891,13 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
 
         let shouldAddIncidentFeed: boolean = false;
         /*
+         * Which updates the entry is, for the rules that choose theirs
+         * (NotificationRuleUpdates): a severity change, the postmortem's
+         * status, and any other edit. A quiet channel that wants severity
+         * changes hears of one even when the title changed with it.
+         */
+        const updateKinds: Array<NotificationRuleUpdateKind> = [];
+        /*
          * Written to follow the name of whoever made the change - the
          * person or the API key the entry names, which its message opens
          * with: "Valeria Mustafaeva updated Incident INC-18." Read after a
@@ -5922,6 +5930,7 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
         if (!fieldsMarkdown.isEmpty()) {
           feedInfoInMarkdown += fieldsMarkdown.toString();
           shouldAddIncidentFeed = true;
+          updateKinds.push(NotificationRuleUpdateKind.Edits);
         }
 
         /*
@@ -5944,6 +5953,7 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
         if (!customFieldsMarkdown.isEmpty()) {
           feedInfoInMarkdown += customFieldsMarkdown.toString();
           shouldAddIncidentFeed = true;
+          updateKinds.push(NotificationRuleUpdateKind.Edits);
         }
 
         /*
@@ -5981,6 +5991,7 @@ ${postmortemStatus.name}
 `;
 
             shouldAddIncidentFeed = true;
+            updateKinds.push(NotificationRuleUpdateKind.Postmortem);
           }
         }
 
@@ -6004,6 +6015,7 @@ ${incidentSeverity.name}
 `;
 
             shouldAddIncidentFeed = true;
+            updateKinds.push(NotificationRuleUpdateKind.SeverityChanges);
 
             // Recalculate SLA deadlines when severity changes
             try {
@@ -6179,6 +6191,7 @@ ${incidentSeverity.name}
               }
 
               shouldAddIncidentFeed = true;
+              updateKinds.push(NotificationRuleUpdateKind.Edits);
             }
 
             if (incidentCarryForward.monitorsAdded.length > 0) {
@@ -6212,6 +6225,7 @@ ${incidentSeverity.name}
               }
 
               shouldAddIncidentFeed = true;
+              updateKinds.push(NotificationRuleUpdateKind.Edits);
             }
 
             const statusPageScopeMarkdown: string =
@@ -6224,6 +6238,7 @@ ${incidentSeverity.name}
             if (statusPageScopeMarkdown) {
               feedInfoInMarkdown += statusPageScopeMarkdown;
               shouldAddIncidentFeed = true;
+              updateKinds.push(NotificationRuleUpdateKind.Edits);
             }
 
             await this.requeueCreatedNotificationIfAddedPagesWereMissed({
@@ -6266,6 +6281,7 @@ ${incidentSeverity.name}
               if (oldMonitorStatus && newMonitorStatus) {
                 feedInfoInMarkdown += mdText`\n\n**🔄 Monitor Status Changed**:\n- **From** ${oldMonitorStatus.name} to ${newMonitorStatus.name}`;
                 shouldAddIncidentFeed = true;
+                updateKinds.push(NotificationRuleUpdateKind.Edits);
               }
             }
 
@@ -6292,6 +6308,7 @@ ${incidentSeverity.name}
               sendWorkspaceNotification: true,
               // Who changed it - the title, the labels - as the feed names them.
               leadWithAuthor: true,
+              updateKinds: Array.from(new Set(updateKinds)),
             },
           });
         }

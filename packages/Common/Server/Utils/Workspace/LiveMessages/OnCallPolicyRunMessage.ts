@@ -43,6 +43,7 @@ import WorkspaceMessagePayload, {
   WorkspacePayloadMarkdown,
 } from "../../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
+import { NotificationRuleUpdateKind } from "../../../../Types/Workspace/NotificationRules/NotificationRuleUpdates";
 import DatabaseConfig from "../../../DatabaseConfig";
 import AlertEpisodeService from "../../../Services/AlertEpisodeService";
 import AlertService from "../../../Services/AlertService";
@@ -364,6 +365,8 @@ export default class OnCallPolicyRunMessage {
               }),
               ...(endedAs ? { endedAs: endedAs } : {}),
             },
+            // Only where a rule posts Paging (NotificationRuleUpdates).
+            updateKinds: [NotificationRuleUpdateKind.Paging],
           })),
         );
       } else {
@@ -424,6 +427,8 @@ export default class OnCallPolicyRunMessage {
             notificationText: alarm.text,
             workspaceNotification: {
               sendWorkspaceNotification: true,
+              // Where the run's message goes: where a rule posts Paging.
+              updateKinds: [NotificationRuleUpdateKind.Paging],
             },
           },
         );
