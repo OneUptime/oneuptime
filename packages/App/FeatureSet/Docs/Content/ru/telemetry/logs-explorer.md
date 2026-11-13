@@ -37,7 +37,7 @@ flowchart TB
 ## Перед началом
 
 - **Поступающие логи.** Отправляйте их через [OpenTelemetry](/docs/telemetry/open-telemetry), [Fluent Bit](/docs/telemetry/fluentbit), [Fluentd](/docs/telemetry/fluentd) или [Syslog](/docs/telemetry/syslog). Вкладка **Руководство по настройке** показывает конфигурацию для вашего языка или коллектора.
-- **Роль, которая читает телеметрию.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member или Telemetry Viewer либо пользовательская роль с разрешением Read Telemetry Service Log. Её область определяет, чьи логи вы видите: см. [Телеметрия](/docs/permissions/index#телеметрия).
+- **Роль, которая читает телеметрию.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member или Telemetry Viewer либо пользовательская роль с разрешением Read Logs. Её область определяет, чьи логи вы видите: см. [Телеметрия](/docs/permissions/index#телеметрия).
 
 ## Найти строку лога
 

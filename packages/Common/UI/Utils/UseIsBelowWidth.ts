@@ -15,7 +15,7 @@ export const isWindowBelowWidth: (width: number) => boolean = (
  * Table's phone layout reads it (window.innerWidth) - read again as the
  * window is resized. Read from the window as it is first drawn, too: a
  * phone never paints a frame laid out for a wide window first - a table
- * header's "Create Scheduled Maintenance Event" broken onto two lines for
+ * header's "Create Maintenance Event" broken onto two lines for
  * a moment, then "Create".
  */
 const useIsBelowWidth: (width: number) => boolean = (

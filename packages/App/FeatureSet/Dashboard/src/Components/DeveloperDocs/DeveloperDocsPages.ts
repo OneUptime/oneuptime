@@ -574,8 +574,8 @@ export const DEVELOPER_DOCS_RESOURCE_OPTIONS: Readonly<
     pluralName: "Announcements",
   },
   ScheduledMaintenance: {
-    singularName: "Scheduled Maintenance Event",
-    pluralName: "Scheduled Maintenance Events",
+    singularName: "Maintenance Event",
+    pluralName: "Maintenance Events",
   },
   OnCallDutyPolicy: { pluralName: "On-Call Policies" },
   OnCallDutyPolicySchedule: {

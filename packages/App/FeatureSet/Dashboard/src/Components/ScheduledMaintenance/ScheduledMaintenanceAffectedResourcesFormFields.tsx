@@ -149,7 +149,7 @@ const getMonitorStatusField: (
 
 /*
  * The Edit form of a scheduled maintenance event's Affected Resources card,
- * split as Create Scheduled Maintenance Event is: the monitors on their own,
+ * split as Create Maintenance Event is: the monitors on their own,
  * the status they change to right under them once one is picked, and
  * everything else the event affects below. Each picker writes back only its
  * own relations, and the form still saves exactly the columns the one

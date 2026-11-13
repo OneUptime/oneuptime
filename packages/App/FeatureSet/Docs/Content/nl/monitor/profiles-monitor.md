@@ -84,7 +84,7 @@ Zet de ID van de service in `telemetryServiceIds`, of laat de lijst leeg om prof
 | `attributes` | Profielen waarvan de attributen deze waarden hebben. | Leeg: geen voorwaarde |
 | `lastXSecondsOfProfiles` | Profielen die binnen dit aantal seconden vóór de evaluatie zijn begonnen. | Geen: stel het altijd in, anders wordt elk opgeslagen profiel geteld en zakt het aantal nooit naar 0 |
 
-Alle filters die u instelt, moeten overeenkomen voordat een profiel wordt gelezen. In het formulier stelt **Functie** `functionName` in, **Wat analyseren** stelt `profileTypes` in (**Elk soort profiel** laat het leeg), **Profielen bewaken gedurende (tijd)** stelt `lastXSecondsOfProfiles` in, en **Filteren op telemetrieservice** en **Filteren op infrastructuurentiteit** stellen `telemetryServiceIds` en `entityKeys` in.
+Alle filters die u instelt, moeten overeenkomen voordat een profiel wordt gelezen. In het formulier stelt **Functie** `functionName` in, **Wat analyseren** stelt `profileTypes` in (**Elk soort profiel** laat het leeg), **Profielen bewaken gedurende (tijd)** stelt `lastXSecondsOfProfiles` in, en **Filteren op service** en **Filteren op infrastructuurentiteit** stellen `telemetryServiceIds` en `entityKeys` in.
 
 ## Hoe hij wordt geëvalueerd
 

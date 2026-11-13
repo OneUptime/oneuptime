@@ -181,7 +181,7 @@ export const ARCHIVABLE_VALUES: Record<
     tableName: "ScheduledMaintenanceState",
     singular: "scheduled maintenance state",
     plural: "scheduled maintenance states",
-    settingsPath: "Scheduled Maintenance > Settings > Event State",
+    settingsPath: "Scheduled Maintenance > Settings > Maintenance State",
     protections: [
       {
         column: "isScheduledState",

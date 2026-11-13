@@ -28,7 +28,7 @@ flowchart LR
 ## Bevor Sie beginnen
 
 - **Telemetrie, die ankommt.** Die Dienstkarte braucht Traces: siehe [OpenTelemetry](/docs/telemetry/open-telemetry). Die Infrastrukturansicht braucht einen Host oder einen Cluster, der meldet: siehe den [Kubernetes-Agent](/docs/telemetry/kubernetes-agent). Die Netzwerkansicht braucht Netzwerkgeräte: siehe [Netzwerkgeräte-Überwachung](/docs/monitor/network-device-monitor).
-- **Eine Rolle, die Telemetrie lesen darf.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member oder Telemetry Viewer, oder eine eigene Rolle mit der Berechtigung Read Telemetry Service.
+- **Eine Rolle, die Telemetrie lesen darf.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member oder Telemetry Viewer, oder eine eigene Rolle mit der Berechtigung Read Inventory Item.
 
 ## Die Topologie öffnen
 
@@ -114,7 +114,7 @@ Ein sehr großes Projekt erreicht die Grenzen der Karte, und ein Hinweis sagt, w
 ## Nächste Schritte
 
 :::cards
-- [Dienstkatalog](/docs/telemetry/services): Alles über einen Dienst.
+- [Dienste](/docs/telemetry/services): Alles über einen Dienst.
 - [Trace-Explorer](/docs/telemetry/traces-explorer): Die Anfragen hinter jedem Pfeil.
 - [Inventar – Übersicht](/docs/inventory/overview): Jede Ressource, die die Karte zeichnet.
 - [Netzwerkgeräte-Überwachung](/docs/monitor/network-device-monitor): Ihr Netzwerk auf die Karte bringen.

@@ -3,6 +3,7 @@ import ProxmoxResourceService, {
   ParsedProxmoxResource,
   ProxmoxRemoveNodeResult,
   ProxmoxResourceLatestMetric,
+  ProxmoxResourceStartOnBoot,
 } from "../../../Server/Services/ProxmoxResourceService";
 import logger from "../../../Server/Utils/Logger";
 import {
@@ -142,10 +143,19 @@ const DETECTION_ENV_KEY: string = "PVE_NATIVE_NODE_SILENCE_DETECTION";
  * with silent-node detection on (the default), the prune with the native
  * Node keep; with it switched off, the plain prune from before the keep.
  */
+/*
+ * Both end with the guard that never deletes a cluster's whole inventory at
+ * once (issue #7439): only while some row of the cluster is fresher than the
+ * cutoff.
+ */
+const ANY_ROW_FRESH_SQL: string =
+  'AND EXISTS ( SELECT 1 FROM "ProxmoxResource" AS fresh WHERE fresh."proxmoxClusterId" = $1 AND fresh."lastSeenAt" >= $2 AND fresh."deletedAt" IS NULL )';
 const PRUNE_WITH_NATIVE_KEEP_SQL: string =
-  'DELETE FROM "ProxmoxResource" WHERE "proxmoxClusterId" = $1 AND "lastSeenAt" < $2 AND NOT ("kind" = \'Node\' AND "isNativePush" IS TRUE AND "lastSeenAt" >= $3)';
+  'DELETE FROM "ProxmoxResource" WHERE "proxmoxClusterId" = $1 AND "lastSeenAt" < $2 AND NOT ("kind" = \'Node\' AND "isNativePush" IS TRUE AND "lastSeenAt" >= $3) ' +
+  ANY_ROW_FRESH_SQL;
 const PLAIN_PRUNE_SQL: string =
-  'DELETE FROM "ProxmoxResource" WHERE "proxmoxClusterId" = $1 AND "lastSeenAt" < $2';
+  'DELETE FROM "ProxmoxResource" WHERE "proxmoxClusterId" = $1 AND "lastSeenAt" < $2 ' +
+  ANY_ROW_FRESH_SQL;
 
 // markNodesNotReporting's SET and full WHERE, whitespace collapsed.
 const MARK_SET_SQL: string =
@@ -926,9 +936,14 @@ describe("ProxmoxResourceService.deleteStaleForCluster", () => {
     expect(sql).not.toContain('"isUp"');
     expect(sql).not.toContain('"uptimeSeconds"');
     expect(sql).not.toContain("notReportingMarkedAt");
-    // It reads the kind, isNativePush and the node's own lastSeenAt only.
+    /*
+     * It reads the kind, isNativePush and the node's own lastSeenAt only -
+     * then, for the whole-inventory guard, the lastSeenAt of the cluster's
+     * other rows.
+     */
     expect(whereClauseOf(sql).trim()).toBe(
-      'WHERE "proxmoxClusterId" = $1 AND "lastSeenAt" < $2 AND NOT ("kind" = \'Node\' AND "isNativePush" IS TRUE AND "lastSeenAt" >= $3)',
+      'WHERE "proxmoxClusterId" = $1 AND "lastSeenAt" < $2 AND NOT ("kind" = \'Node\' AND "isNativePush" IS TRUE AND "lastSeenAt" >= $3) ' +
+        ANY_ROW_FRESH_SQL,
     );
   });
 
@@ -969,11 +984,17 @@ describe("ProxmoxResourceService.deleteStaleForCluster", () => {
     expect(params[2]).toBeInstanceOf(Date);
     expect((params[2] as Date).toISOString()).toBe("2026-09-21T12:00:00.000Z");
 
-    // Each placeholder is bound exactly once.
-    expect(countOccurrences(sql, "$1")).toBe(1);
-    expect(countOccurrences(sql, "$2")).toBe(1);
+    /*
+     * Each placeholder is bound where it belongs: the cluster and the cutoff
+     * once in the delete's own predicate and once more in the guard that
+     * never deletes the whole inventory (issue #7439), the retention cutoff
+     * once. Nothing else is bound.
+     */
+    expect(countOccurrences(sql, "$1")).toBe(2);
+    expect(countOccurrences(sql, "$2")).toBe(2);
     expect(countOccurrences(sql, "$3")).toBe(1);
     expect(sql).not.toContain("$4");
+    expect(countOccurrences(normalizeSql(sql), ANY_ROW_FRESH_SQL)).toBe(1);
   });
 
   test("the retention cutoff honors PVE_SILENT_NODE_RETENTION_HOURS", async () => {
@@ -3145,6 +3166,7 @@ const MODEL_PRUNE_SQL: string = [
   "AND NOT (\"kind\" = 'Node'",
   'AND "isNativePush" IS TRUE',
   'AND "lastSeenAt" >= $3)',
+  ANY_ROW_FRESH_SQL,
 ].join(" ");
 
 // Silent-node detection switched off: the plain prune, no keep.
@@ -3152,6 +3174,7 @@ const MODEL_PLAIN_PRUNE_SQL: string = [
   'DELETE FROM "ProxmoxResource"',
   'WHERE "proxmoxClusterId" = $1',
   'AND "lastSeenAt" < $2',
+  ANY_ROW_FRESH_SQL,
 ].join(" ");
 
 const MODEL_ROSTER_SQL: string = [
@@ -3934,6 +3957,9 @@ class SimulatedProxmoxCluster {
       Date,
       Date,
     ];
+    if (!this.anyRowFresh(proxmoxClusterId, olderThan)) {
+      return [[], 0];
+    }
     const before: number = this.rows.length;
     this.rows = this.rows.filter((row: ModelRow): boolean => {
       const exempt: boolean =
@@ -3954,6 +3980,9 @@ class SimulatedProxmoxCluster {
     expect(params).toHaveLength(2);
     this.prunes.plain++;
     const [proxmoxClusterId, olderThan] = params as [string, Date];
+    if (!this.anyRowFresh(proxmoxClusterId, olderThan)) {
+      return [[], 0];
+    }
     const before: number = this.rows.length;
     // No exemption: every row of the cluster behind the cutoff goes.
     this.rows = this.rows.filter((row: ModelRow): boolean => {
@@ -3963,6 +3992,16 @@ class SimulatedProxmoxCluster {
       );
     });
     return [[], before - this.rows.length];
+  }
+
+  // AND EXISTS (a row of the cluster with "lastSeenAt" >= $2): see ANY_ROW_FRESH_SQL.
+  private anyRowFresh(proxmoxClusterId: string, olderThan: Date): boolean {
+    return this.rows.some((row: ModelRow): boolean => {
+      return (
+        row.proxmoxClusterId === proxmoxClusterId &&
+        row.lastSeenAt.getTime() >= olderThan.getTime()
+      );
+    });
   }
 
   private executeRoster(params: Array<unknown>): Array<RosterRow> {
@@ -6876,4 +6915,299 @@ describe("ProxmoxResourceService inventory model — Remove Node", () => {
       expect(await cluster.remove(storedName)).toBe("not-found");
     },
   );
+});
+
+/*
+ * Issue #7439: what only a node's own scrape reported about a guest - its
+ * start-on-boot flag (pve_onboot_status) - keeps arriving from the nodes
+ * still up while the cluster cannot be read. It is written as configuration:
+ * the flag and the node, never the row's lastSeenAt, its metricsUpdatedAt or
+ * its status, and never a new row.
+ */
+describe("ProxmoxResourceService.bulkUpdateStartOnBoot (issue #7439)", () => {
+  function startOnBoot(
+    overrides: Partial<ProxmoxResourceStartOnBoot> = {},
+  ): ProxmoxResourceStartOnBoot {
+    return {
+      kind: "Guest",
+      externalId: "qemu/100",
+      onboot: true,
+      parentNodeName: "pve2",
+      ...overrides,
+    };
+  }
+
+  test("an UPDATE of the flag and the node only: never lastSeenAt, the readings' clock or the status, and never an INSERT", async () => {
+    const query: jest.Mock = mockQueryRunner();
+    await ProxmoxResourceService.bulkUpdateStartOnBoot({
+      projectId: PROJECT_ID,
+      proxmoxClusterId: CLUSTER_ID,
+      resources: [startOnBoot()],
+    });
+
+    expect(query).toHaveBeenCalledTimes(1);
+    const [sql] = query.mock.calls[0] as QueryCall;
+    const normalized: string = normalizeSql(sql);
+    expect(normalized.startsWith('UPDATE "ProxmoxResource" AS p')).toBe(true);
+    expect(normalized).not.toMatch(/INSERT|ON CONFLICT|DELETE/);
+    expect(setClauseOf(sql)).toBe(
+      ' SET "onboot" = COALESCE(v."onboot", p."onboot"), "parentNodeName" = COALESCE(v."parentNodeName", p."parentNodeName"), "updatedAt" = now() FROM (VALUES ($3, $4, $5::boolean, $6)) AS v("kind", "externalId", "onboot", "parentNodeName")',
+    );
+    for (const column of [
+      '"lastSeenAt"',
+      '"metricsUpdatedAt"',
+      '"isUp"',
+      '"uptimeSeconds"',
+      '"notReportingMarkedAt"',
+      '"isNativePush"',
+    ]) {
+      expect(normalized).not.toContain(column);
+    }
+  });
+
+  test("only this project's and this cluster's row of that kind and id", async () => {
+    const query: jest.Mock = mockQueryRunner();
+    await ProxmoxResourceService.bulkUpdateStartOnBoot({
+      projectId: PROJECT_ID,
+      proxmoxClusterId: CLUSTER_ID,
+      resources: [startOnBoot()],
+    });
+
+    const [sql, params] = query.mock.calls[0] as QueryCall;
+    expect(whereClauseOf(sql).trim()).toBe(
+      'WHERE p."projectId" = $1 AND p."proxmoxClusterId" = $2 AND p."kind" = v."kind" AND p."externalId" = v."externalId"',
+    );
+    expect(params).toEqual([
+      PROJECT_ID.toString(),
+      CLUSTER_ID.toString(),
+      "Guest",
+      "qemu/100",
+      true,
+      "pve2",
+    ]);
+  });
+
+  test("a flag that is off is written as false, and a missing node as NULL for COALESCE to keep", async () => {
+    const query: jest.Mock = mockQueryRunner();
+    await ProxmoxResourceService.bulkUpdateStartOnBoot({
+      projectId: PROJECT_ID,
+      proxmoxClusterId: CLUSTER_ID,
+      resources: [
+        startOnBoot({ onboot: false }),
+        startOnBoot({ externalId: "lxc/101", parentNodeName: null }),
+      ],
+    });
+
+    const [, params] = query.mock.calls[0] as QueryCall;
+    expect(params.slice(2)).toEqual([
+      "Guest",
+      "qemu/100",
+      false,
+      "pve2",
+      "Guest",
+      "lxc/101",
+      true,
+      null,
+    ]);
+  });
+
+  test("sends nothing for an empty list, or for rows with nothing to write", async () => {
+    const query: jest.Mock = mockQueryRunner();
+    await ProxmoxResourceService.bulkUpdateStartOnBoot({
+      projectId: PROJECT_ID,
+      proxmoxClusterId: CLUSTER_ID,
+      resources: [],
+    });
+    await ProxmoxResourceService.bulkUpdateStartOnBoot({
+      projectId: PROJECT_ID,
+      proxmoxClusterId: CLUSTER_ID,
+      resources: [startOnBoot({ onboot: null, parentNodeName: null })],
+    });
+
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  test("chunks at 500 rows, like the upsert", async () => {
+    const query: jest.Mock = mockQueryRunner();
+    const resources: Array<ProxmoxResourceStartOnBoot> = [];
+    for (let i: number = 0; i < 1001; i++) {
+      resources.push(startOnBoot({ externalId: `qemu/${1000 + i}` }));
+    }
+    await ProxmoxResourceService.bulkUpdateStartOnBoot({
+      projectId: PROJECT_ID,
+      proxmoxClusterId: CLUSTER_ID,
+      resources,
+    });
+
+    expect(query).toHaveBeenCalledTimes(3);
+    const rowCounts: Array<number> = (query.mock.calls as Array<QueryCall>).map(
+      (call: QueryCall): number => {
+        return (call[1].length - 2) / 4;
+      },
+    );
+    expect(rowCounts).toEqual([500, 500, 1]);
+  });
+
+  test("clamps the identity as the upsert does, so it finds the row the upsert wrote", async () => {
+    const query: jest.Mock = mockQueryRunner();
+    const longId: string = "qemu/" + "9".repeat(400);
+    await ProxmoxResourceService.bulkUpdateStartOnBoot({
+      projectId: PROJECT_ID,
+      proxmoxClusterId: CLUSTER_ID,
+      resources: [startOnBoot({ externalId: longId })],
+    });
+    const upsertQuery: jest.Mock = mockQueryRunner();
+    await ProxmoxResourceService.bulkUpsert({
+      projectId: PROJECT_ID,
+      proxmoxClusterId: CLUSTER_ID,
+      resources: [parsedResource({ externalId: longId })],
+    });
+
+    const [, params] = query.mock.calls[0] as QueryCall;
+    const [, upsertParams] = upsertQuery.mock.calls[0] as QueryCall;
+    expect(params[3]).toBe(upsertParams[3]);
+    expect((params[3] as string).length).toBeLessThan(longId.length);
+  });
+});
+
+/*
+ * Issue #7439: a prune never deletes a cluster's whole inventory at once.
+ * Every read of a cluster reports at least one node, so a cluster with no
+ * row fresher than the cutoff has not lost every node - its reads stopped
+ * describing it (the agent cannot read the Proxmox VE API, ingest is behind,
+ * the agent's clock is) - and its pages keep what they last showed.
+ */
+describe("ProxmoxResourceService.deleteStaleForCluster never deletes a whole inventory at once (issue #7439)", () => {
+  preserveEnv(RETENTION_ENV_KEY);
+  preserveEnv(STALE_ENV_KEY);
+  preserveEnv(DETECTION_ENV_KEY);
+
+  test.each([
+    ["on", undefined],
+    ["switched off", "false"],
+  ] as Array<[string, string | undefined]>)(
+    "with silent-node detection %s, the delete runs only while a row of the same cluster, not deleted, is fresher than the cutoff - with no parameter of its own",
+    async (_label: string, detection: string | undefined) => {
+      if (detection !== undefined) {
+        process.env[DETECTION_ENV_KEY] = detection;
+      }
+      const query: jest.Mock = mockQueryRunner([[], 0]);
+      await ProxmoxResourceService.deleteStaleForCluster({
+        proxmoxClusterId: CLUSTER_ID,
+        olderThan: new Date("2026-09-28T11:45:00.000Z"),
+        now: new Date("2026-09-28T12:00:00.000Z"),
+      });
+
+      const [sql, params] = query.mock.calls[0] as QueryCall;
+      const normalized: string = normalizeSql(sql);
+      expect(normalized.endsWith(ANY_ROW_FRESH_SQL)).toBe(true);
+      // The guard reuses the cluster ($1) and the cutoff ($2).
+      expect(params).toHaveLength(detection === "false" ? 2 : 3);
+      // ANDed on, so it can only ever delete less.
+      expect(normalized).not.toMatch(/\bOR\b/);
+    },
+  );
+
+  test("a cluster whose every row went stale at once keeps them all; once a read refreshes a row, what it no longer reports goes", async () => {
+    const cluster: SimulatedProxmoxCluster = new SimulatedProxmoxCluster(
+      MODEL_T0_MS,
+    );
+    // The agent path: pve-exporter reports every node itself.
+    cluster.reportsEnabled = false;
+    cluster.isNativePushArg = false;
+    cluster.carry("pve1", [
+      { kind: "Guest", externalId: "qemu/100", isUp: true },
+      { kind: "Storage", externalId: "storage/pve1/local", isUp: true },
+    ]);
+    await cluster.push(["pve1", "pve2"]);
+
+    /*
+     * Then nothing reads the cluster for half an hour, while something
+     * still moved its anchor along: a cutoff a quarter of an hour behind
+     * the clock is past every row.
+     */
+    cluster.clockMs += 30 * MINUTE_MS;
+    const cutoff: Date = new Date(cluster.clockMs - 15 * MINUTE_MS);
+    const deleted: number = await ProxmoxResourceService.deleteStaleForCluster({
+      proxmoxClusterId: CLUSTER_ID,
+      olderThan: cutoff,
+    });
+
+    expect(deleted).toBe(0);
+    for (const externalId of [
+      "node/pve1",
+      "node/pve2",
+      "qemu/100",
+      "storage/pve1/local",
+    ]) {
+      expect([externalId, Boolean(cluster.row(externalId))]).toEqual([
+        externalId,
+        true,
+      ]);
+    }
+
+    // The read comes back - through pve1, with pve2 gone from the cluster.
+    await cluster.push(["pve1"]);
+    const afterRead: number =
+      await ProxmoxResourceService.deleteStaleForCluster({
+        proxmoxClusterId: CLUSTER_ID,
+        olderThan: cutoff,
+      });
+
+    expect(afterRead).toBe(1);
+    expect(cluster.row("node/pve2")).toBeUndefined();
+    expect(cluster.row("node/pve1")).toBeDefined();
+    expect(cluster.row("qemu/100")).toBeDefined();
+    expect(cluster.row("storage/pve1/local")).toBeDefined();
+  });
+
+  test("with silent-node detection switched off the plain prune keeps the guard too", async () => {
+    process.env[DETECTION_ENV_KEY] = "false";
+    const cluster: SimulatedProxmoxCluster = new SimulatedProxmoxCluster(
+      MODEL_T0_MS,
+    );
+    cluster.reportsEnabled = false;
+    cluster.isNativePushArg = false;
+    await cluster.push(["pve1", "pve2"]);
+    cluster.clockMs += 30 * MINUTE_MS;
+
+    const deleted: number = await ProxmoxResourceService.deleteStaleForCluster({
+      proxmoxClusterId: CLUSTER_ID,
+      olderThan: new Date(cluster.clockMs - 15 * MINUTE_MS),
+    });
+
+    expect(deleted).toBe(0);
+    expect(cluster.row("node/pve1")).toBeDefined();
+    expect(cluster.row("node/pve2")).toBeDefined();
+  });
+
+  test("another cluster's fresh rows never let this one's inventory go", async () => {
+    const cluster: SimulatedProxmoxCluster = new SimulatedProxmoxCluster(
+      MODEL_T0_MS,
+    );
+    cluster.reportsEnabled = false;
+    cluster.isNativePushArg = false;
+    await cluster.push(["pve1"]);
+    cluster.clockMs += 30 * MINUTE_MS;
+    // A different cluster of the project, read just now.
+    await ProxmoxResourceService.bulkUpsert({
+      projectId: PROJECT_ID,
+      proxmoxClusterId: ObjectID.generate(),
+      resources: [
+        modelResource(
+          { kind: "Node", externalId: "node/other1", isUp: true },
+          cluster.clockMs,
+        ),
+      ],
+      isNativePush: false,
+    });
+
+    const deleted: number = await ProxmoxResourceService.deleteStaleForCluster({
+      proxmoxClusterId: CLUSTER_ID,
+      olderThan: new Date(cluster.clockMs - 15 * MINUTE_MS),
+    });
+
+    expect(deleted).toBe(0);
+    expect(cluster.row("node/pve1")).toBeDefined();
+  });
 });

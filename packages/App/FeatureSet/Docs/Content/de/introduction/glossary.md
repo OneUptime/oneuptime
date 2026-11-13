@@ -124,7 +124,7 @@ Siehe [Abonnenten & Ankündigungen](/docs/status-pages/subscribers).
 
 ### Geplante Wartung
 
-Geplante Arbeiten, vorab angekündigt. Ein Ereignis durchläuft **Geplant**, **Laufend**, **Beendet** und **Abgeschlossen**, und die Statusseiten, auf denen es angezeigt wird, informieren Besucher und Abonnenten darüber.
+Geplante Arbeiten, vorab angekündigt. Jedes Wartungsereignis durchläuft die Wartungsstatus **Geplant**, **Laufend**, **Beendet** und **Abgeschlossen**, und die Statusseiten, auf denen es angezeigt wird, informieren Besucher und Abonnenten darüber.
 
 Auch genannt: **Geplantes Wartungsereignis**, **Geplantes Ereignis**, **Ereignis**. Siehe [Geplante Wartung – Übersicht](/docs/scheduled-maintenance/index).
 
@@ -146,7 +146,7 @@ Siehe [Monitor-Gruppen](/docs/monitor/monitor-groups).
 
 Eine Anwendung oder ein Microservice, den Sie betreiben. OneUptime legt ihn an, sobald seine Telemetrie zum ersten Mal eintrifft, benannt nach seinem `service.name`, und führt seine Protokolle, Traces, Metriken, Ausnahmen, Vorfälle und Eigentümer auf einer Seite zusammen.
 
-Auch genannt: **Dienstkatalog**, **Telemetrie-Dienst**. Siehe [Dienstkatalog](/docs/telemetry/services).
+Auch genannt: **Dienstkatalog**, **Telemetrie-Dienst**. Siehe [Dienste](/docs/telemetry/services).
 
 ### Host
 

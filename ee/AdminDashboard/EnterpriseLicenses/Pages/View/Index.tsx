@@ -355,7 +355,6 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
                 },
                 title: "License ID",
                 fieldType: FieldType.ObjectID,
-                placeholder: "-",
               },
               {
                 field: {
@@ -375,7 +374,6 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
                 opts: {
                   isCopyable: true,
                 },
-                placeholder: "-",
               },
               {
                 field: {
@@ -383,7 +381,6 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
                 },
                 title: "Expires At",
                 fieldType: FieldType.Date,
-                placeholder: "-",
               },
               {
                 field: {
@@ -417,7 +414,6 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
                 },
                 title: "Annual Contract Value (USD)",
                 fieldType: FieldType.Number,
-                placeholder: "-",
               },
               {
                 field: {
@@ -425,7 +421,6 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
                 },
                 title: "Issued On",
                 fieldType: FieldType.Date,
-                placeholder: "-",
               },
             ],
             modelId: modelId,
@@ -695,7 +690,6 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
               },
               title: "Users",
               type: FieldType.Number,
-              noValueMessage: "-",
             },
             {
               field: {

@@ -179,7 +179,7 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     "On Create Form",
     "On Update Form",
     "On Create Incident",
-    "On Create Scheduled Maintenance Event",
+    "On Create Maintenance Event",
     // The questions an upgraded incident form got, stored with these labels.
     "Your Name",
     "Your Email",
@@ -216,7 +216,7 @@ const WORKFLOW_COMPONENTS: Array<string> = [
   "On Create Form",
   "On Update Form",
   "On Create Incident",
-  "On Create Scheduled Maintenance Event",
+  "On Create Maintenance Event",
 ];
 
 // Labels a form's default questions are stored with (FormField.ts).
@@ -369,7 +369,7 @@ const PROSE: Record<string, Array<string>> = {
   [FORMS]: [
     // What a submission creates, said in the lead's own sentence.
     "incident",
-    "scheduled maintenance event",
+    "maintenance event",
   ],
   [SMTP]: [
     // The authentication methods, said in the lead's list.
@@ -991,7 +991,7 @@ describe("the lists this test keeps", () => {
      * builder names them: after the model's singular name
      * (Common/Types/Workflow/Components/BaseModel.ts). The page named the
      * maintenance trigger "On Create Scheduled Maintenance", which the
-     * builder has never listed: it is "... Scheduled Maintenance Event".
+     * builder has never listed: it is "... Maintenance Event".
      */
     const builder: string = fs.readFileSync(
       path.join(PACKAGES_DIR, "Common/Types/Workflow/Components/BaseModel.ts"),

@@ -9,13 +9,28 @@ import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
 import StatusPageGroup from "../../Models/DatabaseModels/StatusPageGroup";
 import StatusPageResource from "../../Models/DatabaseModels/StatusPageResource";
-import DropdownUtil from "./Dropdown";
 import StatusPageEventType from "../../Types/StatusPage/StatusPageEventType";
 import { DropdownOption } from "../Components/Dropdown/Dropdown";
 
+/*
+ * The event types a subscriber picks, by the names the pages give them. The
+ * values are stored (StatusPageSubscriber.statusPageEventTypes), so a
+ * maintenance event keeps the value "Scheduled Event" it always had and
+ * reads as a Maintenance Event (#6817).
+ */
+const EVENT_TYPE_LABELS: Record<StatusPageEventType, string> = {
+  [StatusPageEventType.Incident]: "Incident",
+  [StatusPageEventType.Announcement]: "Announcement",
+  [StatusPageEventType.ScheduledEvent]: "Maintenance Event",
+};
+
 export default class StatusPageUtil {
   public static getDropdownPropsBasedOnEventTypes(): Array<DropdownOption> {
-    return DropdownUtil.getDropdownOptionsFromEnum(StatusPageEventType);
+    return Object.values(StatusPageEventType).map(
+      (value: StatusPageEventType): DropdownOption => {
+        return { value: value, label: EVENT_TYPE_LABELS[value] };
+      },
+    );
   }
 
   public static async getCategoryCheckboxPropsBasedOnResources(

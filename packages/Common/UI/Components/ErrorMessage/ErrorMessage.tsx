@@ -1,11 +1,6 @@
-import ErrorExplanation, {
-  isUnexplainedErrorMessage,
-} from "./ErrorExplanation";
-import IsolatedText from "../IsolatedText/IsolatedText";
-import { getTranslatedLineDirection } from "../../Utils/LineDirection";
-import { Translator } from "../../Utils/TranslateTemplate";
+import { isUnexplainedErrorMessage } from "./ErrorExplanation";
+import ErrorMessageText from "./ErrorMessageText";
 import useTranslateValue from "../../Utils/Translation";
-import useTranslator from "../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -27,40 +22,28 @@ export interface ComponentProps {
 const ErrorMessage: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const { translateValue, translateString } = useTranslateValue();
-  // The page's language: the way its lines read.
-  const translator: Translator = useTranslator();
+  const { translateString } = useTranslateValue();
   /*
    * An error nobody explained (#6836) says what failed, what to do next
    * and, when the server failed, the reference to give - and its way out is
    * called Try again rather than Refresh?.
    */
   const isUnexplained: boolean = isUnexplainedErrorMessage(props.message);
-  const translatedMessage: string | ReactElement | undefined =
-    typeof props.message === "string"
-      ? (translateValue(props.message) as string | ReactElement | undefined) ??
-        props.message
-      : props.message;
+  /*
+   * Read the way it is written (ErrorMessageText): a failed read's answer
+   * from the server is in English, and keeps its full stop at its end on a
+   * Persian page, in an isolate of its own. Words in the page's own way are
+   * drawn as they always were.
+   */
+  const words: ReactElement = (
+    <ErrorMessageText message={props.message} whatFailed={props.whatFailed} />
+  );
   return (
     <div className="text-center my-10 text-gray-500 text-sm">
-      {/*
-       * Read the way it is written: a failed read's answer from the server
-       * is in English, and keeps its full stop at its end on a Persian page,
-       * in an isolate of its own. Words in the page's own way are drawn as
-       * they always were.
-       */}
       {isUnexplained ? (
-        <span className="mx-auto block max-w-prose">
-          <ErrorExplanation
-            message={props.message as string}
-            whatFailed={props.whatFailed}
-          />
-        </span>
-      ) : typeof translatedMessage === "string" &&
-        getTranslatedLineDirection(translatedMessage, translator.language) ? (
-        <IsolatedText text={translatedMessage} />
+        <span className="mx-auto block max-w-prose">{words}</span>
       ) : (
-        translatedMessage
+        words
       )}
       {props.action ? (
         <div className="mt-4 flex justify-center" data-testid="empty-action">

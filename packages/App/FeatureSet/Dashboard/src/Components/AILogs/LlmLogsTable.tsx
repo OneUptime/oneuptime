@@ -46,13 +46,11 @@ const LlmLogsTable: FunctionComponent<LlmLogsTableProps> = (
       field: { llmProviderName: true },
       title: "Provider",
       type: FieldType.Text,
-      noValueMessage: "-",
     },
     {
       field: { feature: true },
       title: "Feature",
       type: FieldType.Text,
-      noValueMessage: "-",
     },
     {
       field: {
@@ -64,7 +62,6 @@ const LlmLogsTable: FunctionComponent<LlmLogsTableProps> = (
       },
       title: "User",
       type: FieldType.Text,
-      noValueMessage: "-",
       getElement: (item: LlmLog): ReactElement => {
         if (!item["user"]) {
           return <p>-</p>;

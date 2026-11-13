@@ -410,6 +410,10 @@ Het eindigt met een oordeel dat de meest waarschijnlijke oorzaak noemt.
 Het API-token is onjuist of heeft niet de juiste rechten. Controleer de vorm van de token-ID (`user@realm!tokenname`), het secret, en of de rol **PVEAuditor** op pad `/` staat voor het token en voor de gebruiker ervan. De eigen logs van de exporter tonen het antwoord van de API: `docker logs oneuptime-pve-exporter`.
 :::
 
+:::details Het cluster toont "API niet leesbaar"
+De agent draait, maar heeft het cluster al 15 minuten of langer niet uit de Proxmox VE API gelezen, dus het cluster toont **API niet leesbaar** in plaats van **Verbonden**: het knooppunt waarvan hij leest ligt eruit en geen ander knooppunt in `PVE_NODES` antwoordt, het API-token is ingetrokken of heeft de rol **PVEAuditor** verloren, of de machine van de agent bereikt poort `8006` op geen enkel knooppunt. Zijn pagina's houden wat hij het laatst las. Het diagnosescript hierboven controleert elk van deze oorzaken, en `docker logs oneuptime-pve-api-failover` zegt via welk knooppunt de agent leest en waarom hij de andere heeft overgeslagen.
+:::
+
 :::details Alleen nodemetrics, geen gastmetrics
 Gastseries (ID's `qemu/*` en `lxc/*`) komen van de clustercollector van de exporter, die de meegeleverde configuratie inschakelt met de scrapeparameter `cluster=1`. Heb je `otel-collector-config.yaml` aangepast, zet de parameter `cluster: ["1"]` dan terug.
 :::

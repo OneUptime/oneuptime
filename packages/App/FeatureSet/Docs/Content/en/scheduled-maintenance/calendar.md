@@ -21,15 +21,15 @@ flowchart TB
 
 ## The calendar page
 
-Open **Scheduled Maintenance → Maintenance Calendar**, in the **Calendar** section of the side menu. **All Events** shows the same events as a list.
+Open **Scheduled Maintenance → Maintenance Calendar**, in the **Calendar** section of the side menu. **All Maintenance Events** shows the same events as a list.
 
 - The calendar opens on this month, with today marked. **Month**, **Week** and **Day** change how much it shows; move with the arrows and return with **Today**. Times are in your own time zone.
 - Each event is a block in the colour of its state, and the states' colours are named under the calendar. Click an event to open it.
 - The filters above the calendar work as they do on the list: pick a state, a label or an owner to see only those events.
-- A day that is still to come shows a **+** when you point at its week. It opens **Create Scheduled Maintenance Event** with **Starts At** on that day, at the hour the form would pick today. You see it only if you can create events.
+- A day that is still to come shows a **+** when you point at its week. It opens **Create Maintenance Event** with **Starts At** on that day, at the hour the form would pick today. You see it only if you can create events.
 - One view shows up to 500 events. A busier month says so: narrow it with the filters, or look at a week.
 
-**All Events** used to switch between a list and a calendar. If your browser last left it on the calendar, **All Events** opens **Maintenance Calendar** once, and is the list from then on.
+**All Maintenance Events** used to switch between a list and a calendar. If your browser last left it on the calendar, **All Maintenance Events** opens **Maintenance Calendar** once, and is the list from then on.
 
 ## External calendars
 

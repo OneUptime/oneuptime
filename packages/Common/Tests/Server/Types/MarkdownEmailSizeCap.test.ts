@@ -14,6 +14,10 @@ import EmailSize, {
 } from "../../../Server/Utils/Mail/EmailSize";
 import logger from "../../../Server/Utils/Logger";
 import { getBase64Runs } from "../../../Utils/Markdown/Base64Data";
+import {
+  LinkReferenceDefinition,
+  getLinkReferenceDefinitions,
+} from "../../../Utils/Markdown/LinkReferenceDefinitions";
 import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 import { generatedTexts } from "../../Helpers/GeneratedTexts";
 import {
@@ -419,6 +423,152 @@ describe("Markdown.cutEmailMarkdown - the definitions its kept references need (
   });
 });
 
+/*
+ * A definition in a block quote or a list item - or right after a setext
+ * heading - is one marked reads, and a field cut to fit brings it along
+ * (#7230): on a line of its own before the kept part, as marked reads it
+ * there - without the quote's markers or the item's bullet and
+ * indentation, which would make a quote or a list of it there.
+ */
+describe("Markdown.cutEmailMarkdown - a definition in a quote or a list item, or after a setext heading, comes along (#7230)", () => {
+  const X: string = "x".repeat(50);
+  const Y: string = "y".repeat(50);
+  const DEFINITION: string = "[home]: https://example.com/home.png";
+
+  test.each([
+    ["in a block quote", `> ${DEFINITION}`],
+    ["in a block quote, no space after its marker", `>${DEFINITION}`],
+    ["in a block quote in a block quote", `> > ${DEFINITION}`],
+    [
+      "in a block quote, after its paragraph and a blank line",
+      `> Screenshot:\n>\n> ${DEFINITION}`,
+    ],
+    ["in a list item", `- ${DEFINITION}`],
+    ["in a numbered list item", `1. ${DEFINITION}`],
+    ["in a task list item", `- [ ] ${DEFINITION}`],
+    ["in a block quote in a list item", `- > ${DEFINITION}`],
+    ["in a list item, after a blank line", `- Screenshot\n\n  ${DEFINITION}`],
+    [
+      "in a list item, indented four spaces",
+      `- Screenshot\n\n    ${DEFINITION}`,
+    ],
+    ["right after a setext heading of '='", `Screenshot\n===\n${DEFINITION}`],
+    ["right after a setext heading of '-'", `Screenshot\n---\n${DEFINITION}`],
+    ["right after an HTML comment", `<!-- the screenshot -->\n${DEFINITION}`],
+  ])(
+    "%s: written on a line of its own, without markers, before the kept part",
+    async (_name: string, ending: string) => {
+      const markdown: string = ["![Home][home]", X, Y, "", ending].join("\n");
+
+      const cut: string = Markdown.cutEmailMarkdown(markdown, 120);
+
+      expect(cut).toBe(`${DEFINITION}\n\n![Home][home]\n${X}`);
+      expect(await render(cut)).toBe(
+        `<p><img src="https://example.com/home.png" alt="Home" style="${EMAIL_IMAGE_STYLE}">\n${X}</p>\n`,
+      );
+    },
+  );
+
+  test.each([
+    [
+      "> ",
+      160,
+      '[home]: https://example.com/home.png "The home page, as the run left it"',
+      60,
+    ],
+    ["> ", 140, "[home]: https://example.com/home.png", 56],
+    [
+      "- ",
+      160,
+      '[home]: https://example.com/home.png "The home page, as the run left it"',
+      60,
+    ],
+    ["- ", 140, "[home]: https://example.com/home.png", 56],
+  ])(
+    "after %j, a definition comes whole where it fits, else without its title - cut to %i",
+    (nesting: string, weight: number, definition: string, kept: number) => {
+      const markdown: string = [
+        "![Home][home]",
+        "x".repeat(60),
+        "y".repeat(60),
+        "",
+        `${nesting}[home]: https://example.com/home.png "The home page, as the run left it"`,
+      ].join("\n");
+
+      expect(Markdown.cutEmailMarkdown(markdown, weight)).toBe(
+        `${definition}\n\n![Home][home]\n${"x".repeat(kept)}`,
+      );
+    },
+  );
+
+  test("a title over lines of a block quote comes over lines, without their markers", async () => {
+    const markdown: string = [
+      "![Home][home]",
+      X,
+      Y,
+      "",
+      "> [home]: https://example.com/home.png",
+      '> "The home',
+      '> page"',
+    ].join("\n");
+
+    const cut: string = Markdown.cutEmailMarkdown(markdown, 140);
+
+    expect(cut).toBe(
+      `[home]: https://example.com/home.png\n"The home\npage"\n\n![Home][home]\n${X}`,
+    );
+    expect(await render(cut)).toBe(
+      `<p><img src="https://example.com/home.png" alt="Home" title="The home\npage" style="${EMAIL_IMAGE_STYLE}">\n${X}</p>\n`,
+    );
+  });
+
+  test("a label over lines of a block quote, too heavy to come whole, comes empty without the quote's marker: its references are their text, never Markdown", async () => {
+    const markdown: string = `![Home][Home Page] [Open it][home page]\n\n> [Home\n> Page]: https://example.com/${"a".repeat(200)}`;
+
+    const cut: string = Markdown.cutEmailMarkdown(markdown, 100);
+
+    expect(cut).toBe(
+      "[Home\nPage]: <>\n\n![Home][Home Page] [Open it][home page]",
+    );
+    expect(await render(cut)).toBe("<p>Home Open it</p>\n");
+  });
+
+  test("a screenshot defined in a block quote weighs only its line's text: it comes whole where a short line fits", () => {
+    const data: string = png(30 * 1024);
+    const markdown: string = [
+      "![Home][home]",
+      X,
+      Y,
+      "",
+      `> [home]: data:image/png;base64,${data}`,
+    ].join("\n");
+
+    const cut: string = Markdown.cutEmailMarkdown(markdown, 120);
+
+    // Compared without the data, so a failure does not print it.
+    expect(cut.split(data).join("<data>")).toBe(
+      `[home]: data:image/png;base64,<data>\n\n![Home][home]\n${X}`,
+    );
+    expect(countOf(cut, data)).toBe(1);
+  });
+
+  test("of a label defined in a block quote and again on a line of its own, the first comes, as marked reads the first", () => {
+    const markdown: string = [
+      "![Home][home]",
+      X,
+      Y,
+      "",
+      "> [home]: https://example.com/first.png",
+      "",
+      "[home]: https://example.com/second.png",
+    ].join("\n");
+
+    expect(Markdown.cutEmailMarkdown(markdown, 120)).toBe(
+      `[home]: https://example.com/first.png\n\n![Home][home]\n${X}`,
+    );
+  });
+});
+
 describe("Markdown email field - a screenshot defined once, cut to fit (#6963)", () => {
   test("the issue's case: a screenshot defined at the end of 300 KB of text is attached and shown, and the text is cut with the note", async () => {
     jest.spyOn(logger, "warn").mockImplementation((): void => {});
@@ -475,6 +625,45 @@ describe("Markdown email field - a screenshot defined once, cut to fit (#6963)",
     expect(email.html.includes("![Home")).toBe(false);
     expect(email.html.includes("base64")).toBe(false);
   });
+});
+
+/*
+ * The issue's case with the screenshot defined where #7230 found marked
+ * reads it and the cut did not look: in a block quote, in a list item
+ * indented four spaces, and right after a setext heading.
+ */
+describe("Markdown email field - a screenshot defined in a quote, a list item or after a setext heading, cut to fit (#7230)", () => {
+  test.each([
+    ["in a block quote", "> "],
+    ["in a list item, indented four spaces", "- Screenshot\n\n    "],
+    ["right after a setext heading of '='", "Screenshot\n===\n"],
+  ])(
+    "%s, at the end of 300 KB of text: attached once and shown, and the text cut with the note",
+    async (_name: string, before: string) => {
+      jest.spyOn(logger, "warn").mockImplementation((): void => {});
+      const data: string = png(30 * 1024);
+      const markdown: string = `![Home][home]\n\n${"The login form did not load in time.\n".repeat(8200)}\n${before}[home]: data:image/png;base64,${data}`;
+
+      const html: string = await render(markdown);
+      const email: EmailHtmlWithInlineImages = EmailInlineImages.attach(html);
+
+      expect(
+        html.startsWith(
+          `<p><img src="data:image/png;base64,${data}" alt="Home" style="${EMAIL_IMAGE_STYLE}"></p>\n<p>The login form did not load in time.\n`,
+        ),
+      ).toBe(true);
+      expect(html.endsWith(EMAIL_TRUNCATED_TEXT_NOTE_HTML)).toBe(true);
+      expect(EmailSize.getFieldSizeInBytes(html)).toBeLessThanOrEqual(
+        MAX_EMAIL_FIELD_HTML_BYTES,
+      );
+      expect(email.inlineImages).toHaveLength(1);
+      expect(email.inlineImages[0]!.base64 === data).toBe(true);
+      expect(countOf(email.html, '<img src="cid:')).toBe(1);
+      expect(email.html.includes("![Home")).toBe(false);
+      expect(email.html.includes("[home]")).toBe(false);
+      expect(email.html.includes("base64")).toBe(false);
+    },
+  );
 });
 
 // A kind of definition the generated fields below are made of.
@@ -570,16 +759,36 @@ describe("Markdown email field - generated fields cut to fit (#6962, #6963)", ()
     return false;
   };
 
+  /*
+   * Where each definition is written: on lines of its own, mostly, else in
+   * a block quote or a list item, or right after a setext heading (#7230).
+   * Drawn from a generator of its own, so the fields are what they were
+   * before but for that.
+   */
+  const NESTINGS: ReadonlyArray<string> = [
+    "",
+    "",
+    "",
+    "> ",
+    "- ",
+    "- Screenshot\n\n    ",
+    "Screenshot\n===\n",
+  ];
+
   test("every field fits, holds no mark nor base64, shows no reference to a definition as Markdown, and attaches a screenshot an image refers to", async () => {
     jest.spyOn(logger, "warn").mockImplementation((): void => {});
     const random: SeededRandom = seededRandom(7198);
+    const nestingRandom: SeededRandom = seededRandom(7230);
     const problems: Array<string> = [];
     let cutFields: number = 0;
     let screenshotFields: number = 0;
+    let nestedScreenshotFields: number = 0;
 
     for (let round: number = 0; round < 24; round++) {
       const labels: Array<string> = [];
       const screenshotLabels: Set<string> = new Set<string>();
+      // The screenshots defined in a quote or a list item, or after a setext heading.
+      const nestedScreenshotLabels: Set<string> = new Set<string>();
       const first: Array<string> = [];
       const last: Array<string> = [];
       const definitionCount: number = 1 + random(4);
@@ -594,9 +803,15 @@ describe("Markdown email field - generated fields cut to fit (#6962, #6963)", ()
           screenshotLabels.add(label);
         }
 
+        const nesting: string = NESTINGS[nestingRandom(NESTINGS.length)]!;
+
+        if (kind.isScreenshot && nesting !== "") {
+          nestedScreenshotLabels.add(label);
+        }
+
         // At the end, as a description defines its screenshot; now and then first.
         (kind.mayComeFirst && random(4) === 0 ? first : last).push(
-          kind.write(label),
+          `${nesting}${kind.write(label)}`,
         );
       }
 
@@ -679,12 +894,26 @@ describe("Markdown email field - generated fields cut to fit (#6962, #6963)", ()
           problems.push(`${name}: the screenshot is not attached`);
         }
       }
+
+      if (
+        Array.from(screenshotImages).some((label: string): boolean => {
+          return (
+            nestedScreenshotLabels.has(label) && isDefined(full.links, label)
+          );
+        })
+      ) {
+        nestedScreenshotFields++;
+      }
     }
 
     expect(problems).toEqual([]);
-    // The rounds reach what they test: most fields cut, many with a screenshot.
+    /*
+     * The rounds reach what they test: most fields cut, many with a
+     * screenshot, some defined in a quote, a list item or after a heading.
+     */
     expect(cutFields).toBeGreaterThanOrEqual(16);
     expect(screenshotFields).toBeGreaterThanOrEqual(8);
+    expect(nestedScreenshotFields).toBeGreaterThanOrEqual(4);
   });
 });
 
@@ -876,6 +1105,114 @@ describe("Markdown.cutEmailMarkdown - generated texts (#6963)", () => {
     expect(cuts).toBe(12000);
     expect(broughtAlong).toBeGreaterThan(2500);
     expect(emptied).toBeGreaterThan(1000);
+  });
+
+  /*
+   * The same definitions in block quotes and list items - indented four
+   * spaces too - and right after a setext heading or an HTML comment
+   * (#7230). marked reads each there as the line of DEFINITIONS it is, so
+   * a cut writes it as that line: whole, without its title, or empty.
+   */
+  const NESTING: ReadonlyArray<string> = [
+    "> ",
+    ">",
+    "> > ",
+    "- ",
+    "1. ",
+    "- [ ] ",
+    "- > ",
+    "> - ",
+    "- Screenshot\n\n  ",
+    "- Screenshot\n\n    ",
+    "Screenshot\n===\n",
+    "<!-- the screenshot -->\n",
+  ];
+  const NESTED_DEFINITIONS: ReadonlyArray<string> = [
+    ...DEFINITIONS,
+    ...DEFINITIONS.flatMap((line: string): Array<string> => {
+      return NESTING.map((nesting: string): string => {
+        return `${nesting}${line}`;
+      });
+    }),
+    "\n",
+  ];
+
+  test("in quotes, list items and after setext headings too: the same holds, and each comes as a line of its own", () => {
+    const bodies: Array<string> = generatedTexts(1500, 7230, BODY, 40);
+    const endings: Array<string> = generatedTexts(
+      1500,
+      7231,
+      NESTED_DEFINITIONS,
+      6,
+    );
+    const problems: Array<string> = [];
+    let cuts: number = 0;
+    let nestedBroughtAlong: number = 0;
+    let emptied: number = 0;
+
+    bodies.forEach((body: string, index: number): void => {
+      const text: string = `${body}\n\n${endings[index]!}`;
+      const whole: MarkedReferences = readMarkedReferences(text);
+      const length: number = text.length;
+      // The labels whose first definition, the one marked reads, is in a quote or a list item.
+      const nestedLabels: Set<string> = new Set<string>();
+      const seen: Set<string> = new Set<string>();
+
+      for (const definition of getLinkReferenceDefinitions(text)) {
+        if (!seen.has(definition.label) && definition.nested) {
+          nestedLabels.add(definition.label);
+        }
+
+        seen.add(definition.label);
+      }
+
+      for (const weight of [
+        0,
+        1,
+        9,
+        40,
+        Math.floor(length / 4),
+        Math.floor(length / 2),
+        Math.floor((3 * length) / 4),
+        length - 1,
+      ]) {
+        const cut: string = Markdown.cutEmailMarkdown(text, weight);
+        const problem: string | null = problemWith(text, whole, cut, weight);
+
+        cuts++;
+
+        if (problem !== null) {
+          problems.push(
+            `${problem}: ${JSON.stringify(text)} cut to ${weight}: ${JSON.stringify(cut)}`,
+          );
+        }
+
+        // The definitions written before the kept part, a blank line after them.
+        const written: string = text.startsWith(cut)
+          ? ""
+          : cut.slice(0, cut.indexOf("\n\n"));
+
+        if (
+          getLinkReferenceDefinitions(written).some(
+            (definition: LinkReferenceDefinition): boolean => {
+              return nestedLabels.has(definition.label);
+            },
+          )
+        ) {
+          nestedBroughtAlong++;
+        }
+
+        if (cut.includes("]: <>\n")) {
+          emptied++;
+        }
+      }
+    });
+
+    expect(problems.slice(0, 3)).toEqual([]);
+    // The texts reach every case: many cuts bring a definition from a quote or a list item.
+    expect(cuts).toBe(12000);
+    expect(nestedBroughtAlong).toBeGreaterThan(1900);
+    expect(emptied).toBeGreaterThan(950);
   });
 });
 

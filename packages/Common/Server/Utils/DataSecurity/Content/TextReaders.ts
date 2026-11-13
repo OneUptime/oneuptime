@@ -13,10 +13,10 @@ import { MAX_FIELD_VALUE_LENGTH } from "../../../../Utils/DataSecurity/FieldClas
  *
  * Everything here reads text of any length in time that grows with its
  * length alone, and with no regular expression over more than a short,
- * bounded piece of it (AGENTS.md, "Megabyte-long values"): loops and
- * indexOf find lines, cells, tags and strings. A scan reads the first
- * bytes of an object, so every reader also accepts text cut off anywhere:
- * the record that was cut is dropped and the rest is kept.
+ * bounded piece of it (Docs/notifications/README.md, "Megabyte-long values"):
+ * loops and indexOf find lines, cells, tags and strings. A scan reads the first
+ * bytes of an object, so every reader also accepts text cut off anywhere: the
+ * record that was cut is dropped and the rest is kept.
  */
 
 // The most records whose values are collected; the rest are only counted.

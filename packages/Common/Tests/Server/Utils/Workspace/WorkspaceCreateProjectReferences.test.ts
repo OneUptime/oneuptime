@@ -741,7 +741,7 @@ describe("Slack: SubmitNewScheduledMaintenance", (): void => {
      */
     expect(directMessages).toHaveBeenCalledTimes(1);
     expect(directMessages.mock.calls[0]![0].text).toBe(
-      "Scheduled event created successfully.",
+      "Maintenance event created successfully.",
     );
   });
 
@@ -755,7 +755,7 @@ describe("Slack: SubmitNewScheduledMaintenance", (): void => {
 
     expect(directMessages).toHaveBeenCalledTimes(1);
     expect(directMessages.mock.calls[0]![0].text).toBe(
-      "Scheduled Event SM-3 created successfully.",
+      "Maintenance Event SM-3 created successfully.",
     );
     const markdown: string = String(
       (
@@ -765,7 +765,7 @@ describe("Slack: SubmitNewScheduledMaintenance", (): void => {
       ).text,
     );
     expect(markdown).toContain(
-      "**Scheduled Event SM-3** created successfully.",
+      "**Maintenance Event SM-3** created successfully.",
     );
     expect(markdown).toContain("[View Event](");
     expect(markdown).toContain(
@@ -781,7 +781,7 @@ describe("Slack: SubmitNewScheduledMaintenance", (): void => {
     await submit({ ...OWN_CHOICE, monitors: OWN_MONITOR_ID });
 
     expect(directMessages.mock.calls[0]![0].text).toBe(
-      "Scheduled Event #3 created successfully.",
+      "Maintenance Event #3 created successfully.",
     );
     expect(JSON.stringify(directMessages.mock.calls)).not.toContain(
       "undefined",

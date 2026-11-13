@@ -37,7 +37,7 @@ flowchart TB
 The `ScheduledMaintenanceState` model has `name`, `description`, `color` and `order`, plus four flags: `isScheduledState`, `isOngoingState`, `isEndedState` and `isResolvedState`. OneUptime reads the flags and the order, never the name, so you can rename **Completed** to "Signed off" and nothing breaks.
 
 > [!TIP]
-> The list is under **Scheduled Maintenance → Settings → Event State**. **Settings** starts folded in the side menu: expand it first.
+> The list is under **Scheduled Maintenance → Settings → Maintenance State**. **Settings** starts folded in the side menu: expand it first.
 
 ## The seeded states
 
@@ -74,7 +74,7 @@ An event starts when it moves from a state where it waits into **Ongoing**, or s
 
 - **Its monitors stop being checked**, and change to its **Change Monitor Status to**, if it has one. A monitor you add to the event while it runs changes too.
 - **Its status pages list it as in progress**, and its subscribers are told: at its time if **When the event starts** is on, and by hand as the dialog's **Notify Status Page Subscribers** says.
-- **Its owners are told**, if they turned the state change notification on, and the event appears under **Ongoing Events**.
+- **Its owners are told**, if they turned the state change notification on, and the event appears under **Ongoing Maintenance Events**.
 
 An event ends when it moves from a state where it is in progress into **Ended**, **Completed**, or a state of yours placed after **Ended**. Then its monitors are checked again and go back to operational, unless another event in progress still holds them, and its subscribers are told the same way: at its time if **When the event ends** is on, and by hand as the dialog says.
 
@@ -106,7 +106,7 @@ A state you add is a step your team walks through that the seeded four do not na
 :::steps
 ### Open the state list
 
-Go to **Scheduled Maintenance → Settings → Event State**. The **Scheduled Maintenance States** card lists your states in their order. Each row shows its color and name, what an event in it **Counts as**, and its description.
+Go to **Scheduled Maintenance → Settings → Maintenance State**. The **Scheduled Maintenance States** card lists your states in their order. Each row shows its color and name, what an event in it **Counts as**, and its description.
 
 ### Create the state
 

@@ -30,7 +30,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * whose tab they sat on - Monitor > Alerts even handed its list the monitor
  * as create values that no form ever read. Now a list takes the record it
  * belongs to (createFrom) and every one of its create buttons - Declare
- * Incident, Create Alert, Create Scheduled Maintenance Event, and Create
+ * Incident, Create Alert, Create Maintenance Event, and Create
  * from Template beside them - puts it in the address; from a project's list
  * the address carries nothing new.
  *
@@ -446,9 +446,9 @@ describe("the project's alerts list", () => {
 });
 
 describe("a host's Scheduled Maintenance tab", () => {
-  test("Create Scheduled Maintenance Event opens the create page with the host", async () => {
+  test("Create Maintenance Event opens the create page with the host", async () => {
     await renderTable(<ScheduledMaintenancesTable createFrom={host} />);
-    await press("Create Scheduled Maintenance Event");
+    await press("Create Maintenance Event");
 
     expect(navigatedTo()).toEqual([`${MAINTENANCE_CREATE}?hostId=${HOST_ID}`]);
   });
@@ -464,7 +464,7 @@ describe("a host's Scheduled Maintenance tab", () => {
 });
 
 describe("a network site's Scheduled Maintenance tab", () => {
-  test("Create Scheduled Maintenance Event opens the create page with the site", async () => {
+  test("Create Maintenance Event opens the create page with the site", async () => {
     await renderTable(
       <ScheduledMaintenancesTable
         createFrom={{
@@ -473,7 +473,7 @@ describe("a network site's Scheduled Maintenance tab", () => {
         }}
       />,
     );
-    await press("Create Scheduled Maintenance Event");
+    await press("Create Maintenance Event");
 
     expect(navigatedTo()).toEqual([
       `${MAINTENANCE_CREATE}?networkSiteId=${NETWORK_SITE_ID}`,
@@ -484,7 +484,7 @@ describe("a network site's Scheduled Maintenance tab", () => {
 describe("the project's maintenance list", () => {
   test("both buttons open the create page as they always did", async () => {
     await renderTable(<ScheduledMaintenancesTable />);
-    await press("Create Scheduled Maintenance Event");
+    await press("Create Maintenance Event");
     await createFromTemplate("Weekly patching");
 
     expect(navigatedTo()).toEqual([

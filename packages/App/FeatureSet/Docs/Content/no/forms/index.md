@@ -1,6 +1,6 @@
 # Skjemaer – oversikt
 
-Et skjema er en side som alle med lenken kan fylle ut, uten en OneUptime-konto. Hver innsending oppretter noe i prosjektet ditt: en **hendelse**, for feilrapporter, eller en **planlagt vedlikeholdshendelse**, for endrings- og vedlikeholdsforespørsler. Du bygger skjemaets spørsmål i et dra-og-slipp-verktøy, bestemmer hvordan svarene blir til posten, og deler lenken med dem som skal bruke det.
+Et skjema er en side som alle med lenken kan fylle ut, uten en OneUptime-konto. Hver innsending oppretter noe i prosjektet ditt: en **hendelse**, for feilrapporter, eller en **vedlikeholdshendelse**, for endrings- og vedlikeholdsforespørsler. Du bygger skjemaets spørsmål i et dra-og-slipp-verktøy, bestemmer hvordan svarene blir til posten, og deler lenken med dem som skal bruke det.
 
 Bruk et skjema når de som oppdager et problem, eller trenger en endring, ikke er de som håndterer hendelsene og vedlikeholdet ditt: brukerstøtte, kolleger i en annen avdeling, en butikksjef, driftsteamet til en kunde. De åpner lenken, svarer på spørsmålene dine og trykker på **Send inn**. Teamet ditt får en vanlig hendelse eller vedlikeholdshendelse, med svarene i feltene og et privat notat som viser hvem som sendte den.
 
@@ -257,7 +257,7 @@ Svaret på et filspørsmål er filene slik de ble lagret, hver med sin `fileId`,
 
 ### Arbeidsflyter
 
-Skjemaer har de genererte arbeidsflytkomponentene: **On Create Form**, **On Update Form** og så videre. Bruk **On Create Incident** eller **On Create Scheduled Maintenance Event** for å handle på det et skjema har opprettet.
+Skjemaer har de genererte arbeidsflytkomponentene: **On Create Form**, **On Update Form** og så videre. Bruk **On Create Incident** eller **On Create Maintenance Event** for å handle på det et skjema har opprettet.
 
 ### Den offentlige sidens egne endepunkter
 

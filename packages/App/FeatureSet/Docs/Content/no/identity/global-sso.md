@@ -34,10 +34,10 @@ Logg inn som master-admin, og åpne Admin Dashboard med **Admin-innstillinger** 
 :::tabs
 @tab SAML
 - Klikk på **Legg til SAML-leverandør**.
-- Skriv inn et **Navn**, **Sign On URL** og **Issuer** fra identitetsleverandøren din, og lim inn **Public Certificate**. Resten er allerede fylt ut under **Flere felt**: **Signature Method** (`RSA-SHA256`), **Digest Method** (`SHA256`) og en beskrivelse (`Sign in with` og navnet). Endre dem bare hvis IdP-en din krever det. Når du lagrer, åpnes siden til leverandøren.
+- Skriv inn et **Navn**, **Påloggings-URL** og **Utsteder** fra identitetsleverandøren din, og lim inn **Offentlig sertifikat**. Resten er allerede fylt ut under **Flere felt**: **Signaturmetode** (`RSA-SHA256`), **Digest-metode** (`SHA256`) og en beskrivelse (`Sign in with` og navnet). Endre dem bare hvis IdP-en din krever det. Når du lagrer, åpnes siden til leverandøren.
 @tab OpenID Connect
 - Klikk på **Legg til OIDC-leverandør**.
-- Skriv inn et **Navn**, **Issuer URL** og **Client ID** og **Client Secret** for appen du registrerte i IdP-en din. Det fungerer også å lime inn oppdagelses-URL-en til IdP-en i **Issuer URL**. Resten er allerede fylt ut under **Flere felt**: **Discovery URL** (utstederen etterfulgt av `/.well-known/openid-configuration`), **Scopes** (`openid email profile`), kravnavnene `email` og `name` og en beskrivelse (`Sign in with` og navnet). Endre dem bare hvis IdP-en din krever det. Når du lagrer, åpnes siden til leverandøren.
+- Skriv inn et **Navn**, **Utsteder-URL** og **Klient-ID** og **Klienthemmelighet** for appen du registrerte i IdP-en din. Det fungerer også å lime inn oppdagelses-URL-en til IdP-en i **Utsteder-URL**. Resten er allerede fylt ut under **Flere felt**: **Oppdagelses-URL** (utstederen etterfulgt av `/.well-known/openid-configuration`), **Omfang** (`openid email profile`), kravnavnene `email` og `name` og en beskrivelse (`Sign in with` og navnet). Endre dem bare hvis IdP-en din krever det. Når du lagrer, åpnes siden til leverandøren.
 :::
 
 ### Kopier URL-ene til OneUptime inn i identitetsleverandøren din
@@ -150,7 +150,7 @@ Personen har en konto, men hører ikke til noe prosjekt, og leverandøren har in
 :::
 
 :::details "Issuer URL does not match"
-For en SAML-leverandør er issuer i svaret fra identitetsleverandøren din ikke den **Issuer** som er lagret på leverandøren. Kopier den på nytt fra identitetsleverandøren din; de to må samsvare nøyaktig.
+For en SAML-leverandør er utstederen i svaret fra identitetsleverandøren din ikke den **Utsteder** som er lagret på leverandøren. Kopier den på nytt fra identitetsleverandøren din; de to må samsvare nøyaktig.
 :::
 
 :::details "SAML Audience does not match"

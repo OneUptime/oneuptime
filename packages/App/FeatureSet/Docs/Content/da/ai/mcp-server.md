@@ -483,7 +483,7 @@ MCP-serveren er tilstandsløs: den hverken udsteder eller sporer sessions-id'er,
 | Hændelser | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert, Postmortem Status |
 | Advarsler | Alert, Alert State, Alert Severity, Alert State Timeline, Alert Internal Note |
 | Statussider | Status Page, Status Page Announcement |
-| Planlagt vedligeholdelse | Scheduled Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |
+| Planlagt vedligeholdelse | Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |
 | Teams og vagt | Team, On-Call Policy |
 | Etiketter | Label |
 | Sikkerhed | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |

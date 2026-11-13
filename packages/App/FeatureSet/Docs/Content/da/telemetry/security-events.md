@@ -591,7 +591,7 @@ level: high
 
 En monitor for sikkerhedsbegivenheder tæller de begivenheder, der matcher dens filtre, over et glidende vindue og kører de sædvanlige monitorkriterier på optællingen: den ændrer monitorens status, åbner advarsler eller hændelser og tilkalder vagthavende. Opret en under **Overvågninger → Opret monitor** med **Sikkerhedshændelser** som type; den vises der sammen med dine andre monitorer.
 
-Dens formular viser **Monitor events that include this text**, **Monitor Security Events for (time)**, **Event Severity** og **Begivenhedsklasse**. **Filtrér efter telemetritjeneste**, **Filtrér efter attributter** og **Filtrér efter overvågningslister** venter under **Flere felter**, hvis overskrift viser dem, en monitor bruger. **Filtrér efter overvågningslister** beholder de hændelser, hvis felt står eller ikke står på en af dine [overvågningslister](#overvågningslister). Dens kriterier tjekker **Antal sikkerhedshændelser**.
+Dens formular viser **Monitor events that include this text**, **Monitor Security Events for (time)**, **Event Severity** og **Begivenhedsklasse**. **Filtrer efter tjeneste**, **Filtrér efter attributter** og **Filtrér efter overvågningslister** venter under **Flere felter**, hvis overskrift viser dem, en monitor bruger. **Filtrér efter overvågningslister** beholder de hændelser, hvis felt står eller ikke står på en af dine [overvågningslister](#overvågningslister). Dens kriterier tjekker **Antal sikkerhedshændelser**.
 
 | | Detektionsregel | Monitor for sikkerhedsbegivenheder |
 | --- | --- | --- |

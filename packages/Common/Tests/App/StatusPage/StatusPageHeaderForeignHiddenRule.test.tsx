@@ -84,7 +84,7 @@ const NAV_ENTRIES: Array<string> = [
   "Overview",
   "Incidents",
   "Announcements",
-  "Scheduled Events",
+  "Scheduled Maintenance",
   "Subscribe",
   "Log Out",
 ];

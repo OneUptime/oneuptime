@@ -60,7 +60,7 @@ A stuck agent leaves a trace you can recognize: the same tool span, again and ag
 
 :::steps
 1. Open **Monitors**, click **Create Monitor**, and pick **Traces** under **More monitor types**. Under **What should this monitor tell you about?**, pick **Something else**, and clear **Span Status**.
-2. Under **More fields**, set **Filter by Telemetry Service** to the agent's service, and **Filter by Attributes** to `gen_ai.tool.name` equal to the tool you expect it to loop on, such as `search_web`. If your instrumentation names each tool's span, put that name in **Span name contains** instead.
+2. Under **More fields**, set **Filter by Service** to the agent's service, and **Filter by Attributes** to `gen_ai.tool.name` equal to the tool you expect it to loop on, such as `search_web`. If your instrumentation names each tool's span, put that name in **Span name contains** instead.
 3. Set the **Time window** to **Last 5 minutes**.
 4. In **When to alert**, set **More than** a number no healthy run reaches in five minutes, such as `50`, and title the alert like `Agent loop: support-bot`.
 :::

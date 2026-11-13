@@ -174,6 +174,17 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     directory: "packages/Common/Types/Monitor/MonitorCriteriaInstance.ts",
     kind: "keys",
   },
+  /*
+   * A monitor template's Template sync settings (#7546): the name of each
+   * field a linked monitor can keep its own value for, and what it keeps
+   * together, as the card and its summary line say them. Only the words the
+   * file marks are read: each field's path is stored in a template's
+   * doNotSyncFields as written.
+   */
+  {
+    directory: "packages/Common/Types/Monitor/MonitorTemplateSyncField.ts",
+    kind: "keys",
+  },
   // A cron schedule in words: the monitor's interval, a workflow's schedule.
   { directory: "packages/Common/Utils/CronScheduleText.ts", kind: "ui" },
   /*
