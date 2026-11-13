@@ -707,7 +707,7 @@ describe("the AI Agent Circuit Breakers page", () => {
     for (const field of [
       "Span name contains",
       "Span Status",
-      "Filter by Telemetry Service",
+      "Filter by Service",
       "Filter by Attributes",
     ]) {
       expect(titles).toContain(field);

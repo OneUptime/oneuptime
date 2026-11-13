@@ -104,7 +104,7 @@ Une origine se compose d'un schéma, d'un hôte et d'un port facultatif : `https
 ]
 ```
 
-Le [Catalogue de services](/docs/telemetry/services#comment-un-service-entre-dans-le-catalogue) montre comment un nom épinglé décide du service. Le Runner et l'agent IA de l'agent Kubernetes, ainsi que les agents IA d'infrastructure, ne s'enregistrent pas avec une clé épinglée : donnez-leur une clé de serveur non épinglée.
+[Services](/docs/telemetry/services#comment-un-service-entre-dans-le-catalogue) montre comment un nom épinglé décide du service. Le Runner et l'agent IA de l'agent Kubernetes, ainsi que les agents IA d'infrastructure, ne s'enregistrent pas avec une clé épinglée : donnez-leur une clé de serveur non épinglée.
 
 ## Renouveler, désactiver ou supprimer une clé
 
@@ -155,7 +155,7 @@ Rien n'a envoyé de données avec cette clé depuis que OneUptime enregistre son
 
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Envoyer des traces, des métriques et des journaux avec votre clé.
-- [Catalogue de services](/docs/telemetry/services): Voir les services sous lesquels votre télémétrie est rangée.
+- [Services](/docs/telemetry/services): Voir les services sous lesquels votre télémétrie est rangée.
 - [Rétention des données](/docs/telemetry/data-retention): Décider combien de temps les données sont conservées.
 - [Filtres de suppression et règles de masquage](/docs/telemetry/drop-filters-and-scrub-rules): Supprimer ou masquer des données avant leur stockage.
 - [Budgets d'ingestion](/docs/telemetry/ingestion-budgets): Plafonner ce que chaque clé peut envoyer en une journée.

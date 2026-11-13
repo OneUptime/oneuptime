@@ -1,6 +1,6 @@
 # Vad en inlämning skapar
 
-Varje inlämning via ett formulär skapar en post i ditt projekt: en **incident** eller en **schemalagd underhållshändelse**. Ett formulärs sida **Vid inlämning** visar vilken, och hur varje fält på den nya posten fylls i — från ett svar, från ett standardvärde, från en inställning som alltid gäller, eller från incidentmallen. **Redigera inställningar** ändrar standardvärdena och det som alltid gäller.
+Varje inlämning via ett formulär skapar en post i ditt projekt: en **incident** eller en **underhållshändelse**. Ett formulärs sida **Vid inlämning** visar vilken, och hur varje fält på den nya posten fylls i — från ett svar, från ett standardvärde, från en inställning som alltid gäller, eller från incidentmallen. **Redigera inställningar** ändrar standardvärdena och det som alltid gäller.
 
 :::cards
 - [Så blir en inlämning en incident](#så-blir-en-inlämning-en-incident): Varje fält på den nya incidenten, och var dess värde kommer ifrån.

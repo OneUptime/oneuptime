@@ -72,7 +72,7 @@ flowchart TB
 
 :::cards
 - [Monitorgrupper](/docs/monitor/monitor-groups): Saml flere monitorer i én status.
-- [Tjenestekatalog](/docs/telemetry/services): Hver applikation, du kører, med sin egen side.
+- [Tjenester](/docs/telemetry/services): Hver applikation, du kører, med sin egen side.
 - [Inventar – Oversigt](/docs/inventory/overview): Alt, hvad OneUptime ved om dit miljø.
 :::
 

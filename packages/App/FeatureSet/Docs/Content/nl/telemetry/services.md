@@ -1,6 +1,6 @@
-# Servicecatalogus
+# Services
 
-De servicecatalogus toont de applicaties en microservices die u draait. OneUptime voegt een service toe zodra de telemetrie ervan voor het eerst binnenkomt, en brengt daarna de logboeken, traces, metrieken, uitzonderingen, incidenten en eigenaren van die service samen op één pagina, zodat iedereen ziet wat een service doet, van wie hij is en hoe het ermee gaat. Om te kiezen tussen een service, een monitorgroep en een label, zie [Welke gebruik ik?](/docs/introduction/which-one#monitorgroep-service-of-label).
+Services toont de applicaties en microservices die u draait. OneUptime voegt een service toe zodra de telemetrie ervan voor het eerst binnenkomt, en brengt daarna de logboeken, traces, metrieken, uitzonderingen, incidenten en eigenaren van die service samen op één pagina, zodat iedereen ziet wat een service doet, van wie hij is en hoe het ermee gaat. Om te kiezen tussen een service, een monitorgroep en een label, zie [Welke gebruik ik?](/docs/introduction/which-one#monitorgroep-service-of-label).
 
 :::cards
 - [Hoe een service in de catalogus komt](#hoe-een-service-in-de-catalogus-komt): Zijn `service.name`, bij zijn eerste telemetrie.

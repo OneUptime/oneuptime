@@ -112,11 +112,14 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
 })
 @EnableAuditLog()
 @TableMetadata({
-  singularName: "Scheduled Maintenance Event",
-  pluralName: "Scheduled Maintenance Events",
+  singularName: "Maintenance Event",
+  pluralName: "Maintenance Events",
+  // Was "Scheduled Maintenance Event" (#6817): oneuptime_scheduled_maintenance_event stays.
+  apiSingularName: "Scheduled Maintenance Event",
+  apiPluralName: "Scheduled Maintenance Events",
   icon: IconProp.Clock,
   tableName: "ScheduledMaintenance",
-  tableDescription: "Manage scheduled maintenance event for your project",
+  tableDescription: "Manage maintenance events for your project",
 })
 export default class ScheduledMaintenance extends BaseModel {
   @ColumnAccessControl({

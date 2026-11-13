@@ -591,7 +591,7 @@ level: high
 
 Un monitor de eventos de seguridad cuenta los eventos que coinciden con sus filtros sobre una ventana deslizante y aplica al recuento los criterios habituales de los monitores: cambia el estado del monitor, abre alertas o incidentes y avisa a la guardia. Crea uno en **Monitores → Crear monitor**, con **Eventos de seguridad** como tipo; aparece allí junto a sus demás monitores.
 
-Su formulario muestra **Monitorear eventos que incluyan este texto**, **Monitorear eventos de seguridad durante (tiempo)**, **Gravedad del evento** y **Clase de evento**. **Filtrar por servicio de telemetría**, **Filtrar por atributos** y **Filtrar por listas de seguimiento** esperan en **Más campos**, cuya cabecera muestra los que usa un monitor. **Filtrar por listas de seguimiento** conserva los eventos cuyo campo está, o no está, en una de tus [listas de seguimiento](#listas-de-seguimiento). Sus criterios comprueban **Número de eventos de seguridad**.
+Su formulario muestra **Monitorear eventos que incluyan este texto**, **Monitorear eventos de seguridad durante (tiempo)**, **Gravedad del evento** y **Clase de evento**. **Filtrar por servicio**, **Filtrar por atributos** y **Filtrar por listas de seguimiento** esperan en **Más campos**, cuya cabecera muestra los que usa un monitor. **Filtrar por listas de seguimiento** conserva los eventos cuyo campo está, o no está, en una de tus [listas de seguimiento](#listas-de-seguimiento). Sus criterios comprueban **Número de eventos de seguridad**.
 
 | | Regla de detección | Monitor de eventos de seguridad |
 | --- | --- | --- |

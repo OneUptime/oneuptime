@@ -37,7 +37,7 @@ L'explorateur a cinq onglets :
 ## Avant de commencer
 
 - **Des journaux qui arrivent.** Envoyez-les avec [OpenTelemetry](/docs/telemetry/open-telemetry), [Fluent Bit](/docs/telemetry/fluentbit), [Fluentd](/docs/telemetry/fluentd) ou [Syslog](/docs/telemetry/syslog). L'onglet **Guide de configuration** montre la configuration pour votre langage ou votre collecteur.
-- **Un rôle qui peut lire la télémétrie.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member ou Telemetry Viewer, ou un rôle personnalisé avec la permission Read Telemetry Service Log. Sa portée décide de quels journaux vous voyez : voir [Télémétrie](/docs/permissions/index#télémétrie).
+- **Un rôle qui peut lire la télémétrie.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member ou Telemetry Viewer, ou un rôle personnalisé avec la permission Read Logs. Sa portée décide de quels journaux vous voyez : voir [Télémétrie](/docs/permissions/index#télémétrie).
 
 ## Trouver une ligne de journal
 

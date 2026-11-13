@@ -18,6 +18,7 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { joinClauses } from "Common/UI/Utils/ListSeparator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -243,7 +244,9 @@ export function describeFinishedRunKubectlUsage(
 
   /*
    * The commands that did not end in kubectl's own answer, one whole clause
-   * each, listed in brackets after the sentence about the ones that ran.
+   * each, listed in brackets after the sentence about the ones that ran -
+   * with the semicolon of the script they are written in (joinClauses):
+   * "；" between Chinese clauses, "؛ " between Persian ones.
    */
   const notes: Array<string> = [];
 
@@ -288,7 +291,7 @@ export function describeFinishedRunKubectlUsage(
     // Counted by the commands that ran; the total is a value.
     const values: { total: string; notes: string } = {
       total: translator.formatNumber(executed + notRun + unknown),
-      notes: notes.join("; "),
+      notes: joinClauses(notes),
     };
 
     return {
@@ -325,7 +328,7 @@ export function describeFinishedRunKubectlUsage(
                 "OneUptime AI ran {{count}} read-only kubectl commands during this investigation ({{notes}} — see Investigation activity).",
             },
             executed,
-            { notes: notes.join("; ") },
+            { notes: joinClauses(notes) },
           )
         : translator.translatePlural(
             {

@@ -219,7 +219,7 @@ const PAGE_SECTIONS: Readonly<Record<string, string>> = {
   "Delete Incident": "Advanced",
   "Delete Alert": "Advanced",
   "Delete Episode": "Advanced",
-  "Delete Event": "Advanced",
+  "Delete Maintenance Event": "Advanced",
   "Delete Case": "Advanced",
 };
 

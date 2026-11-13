@@ -37,7 +37,7 @@ flowchart TB
 Le modèle `ScheduledMaintenanceState` a `name`, `description`, `color` et `order`, plus quatre indicateurs : `isScheduledState`, `isOngoingState`, `isEndedState` et `isResolvedState`. OneUptime lit les indicateurs et l'ordre, jamais le nom, vous pouvez donc renommer **Achevé** en « Validé » sans rien casser.
 
 > [!TIP]
-> La liste se trouve sous **Maintenance planifiée → Paramètres → État de l'événement**. **Paramètres** est replié au départ dans le menu latéral : dépliez-le d'abord.
+> La liste se trouve sous **Maintenance planifiée → Paramètres → État de la maintenance**. **Paramètres** est replié au départ dans le menu latéral : dépliez-le d'abord.
 
 ## Les états initiaux
 
@@ -74,7 +74,7 @@ Un événement démarre quand il passe d'un état où il attend à **En cours**,
 
 - **Ses moniteurs cessent d'être vérifiés** et passent à son **Changer le statut du moniteur en**, s'il en a un. Un moniteur que vous ajoutez à l'événement pendant les travaux change aussi.
 - **Ses pages de statut le listent comme en cours**, et ses abonnés sont prévenus : à son heure si **Lorsque l'événement commence** est activé, et à la main selon ce que dit **Notifier les abonnés de la page de statut** dans la boîte de dialogue.
-- **Ses propriétaires sont prévenus**, s'ils ont activé la notification de changement d'état, et l'événement apparaît sous **Événements en cours**.
+- **Ses propriétaires sont prévenus**, s'ils ont activé la notification de changement d'état, et l'événement apparaît sous **Événements de maintenance en cours**.
 
 Un événement se termine quand il passe d'un état où il est en cours à **Terminé**, **Achevé** ou l'un de vos états placé après **Terminé**. Ses moniteurs sont alors de nouveau vérifiés et reviennent à « opérationnel », sauf si un autre événement en cours les retient encore, et ses abonnés sont prévenus de la même façon : à son heure si **Lorsque l'événement se termine** est activé, et à la main selon ce que dit la boîte de dialogue.
 
@@ -106,7 +106,7 @@ Un état que vous ajoutez est une étape que votre équipe franchit et que les q
 :::steps
 ### Ouvrir la liste des états
 
-Allez dans **Maintenance planifiée → Paramètres → État de l'événement**. La carte **États de maintenance planifiée** liste vos états dans leur ordre. Chaque ligne affiche sa couleur et son nom, ce que vaut un événement qui s'y trouve (colonne **Compte comme**) et sa description.
+Allez dans **Maintenance planifiée → Paramètres → État de la maintenance**. La carte **États de maintenance planifiée** liste vos états dans leur ordre. Chaque ligne affiche sa couleur et son nom, ce que vaut un événement qui s'y trouve (colonne **Compte comme**) et sa description.
 
 ### Créer l'état
 

@@ -49,7 +49,7 @@ Each number counts something, says whether that needs you, and opens the list be
 | **Active incidents** | Incidents that are not resolved | **All clear** | **Incidents → Active Incidents** |
 | **Active alerts** | Alerts that are not resolved | **All clear** | **Alerts → Active Alerts** |
 | **Not operational monitors** | Monitors whose status is not an operational one. Archived monitors, and monitors with monitoring turned off, are left out. | **All operational** | **Monitors → Not Operational** |
-| **Ongoing maintenance** | Scheduled maintenance events in progress | **None ongoing** | **Scheduled Maintenance → Ongoing Events** |
+| **Ongoing maintenance** | Scheduled maintenance events in progress | **None ongoing** | **Scheduled Maintenance → Ongoing Maintenance Events** |
 | **SLOs at risk** | Turned-on SLOs that are at risk or have used up their error budget | **Budgets healthy** | **SLOs** |
 
 A count above zero reads **Needs attention**, or **In progress** and **Budget burning** for maintenance and SLOs. While any SLO is at risk, **SLOs at risk** opens the **SLOs** list filtered to those SLOs. A project with no monitors yet sees **No monitors yet**, and one with no SLOs sees **No SLOs yet**: an empty project is not the same as a healthy one. Those two then open the **Monitors** and **SLOs** lists, where you create one.

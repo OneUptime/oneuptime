@@ -37,7 +37,7 @@ Utforskeren har fem faner:
 ## Før du begynner
 
 - **Logger som kommer inn.** Send dem med [OpenTelemetry](/docs/telemetry/open-telemetry), [Fluent Bit](/docs/telemetry/fluentbit), [Fluentd](/docs/telemetry/fluentd) eller [Syslog](/docs/telemetry/syslog). Fanen **Oppsettveiledning** viser konfigurasjonen for språket eller collectoren din.
-- **En rolle som kan lese telemetri.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member eller Telemetry Viewer, eller en egendefinert rolle med tillatelsen Read Telemetry Service Log. Omfanget avgjør hvem sine logger du ser: se [Telemetri](/docs/permissions/index#telemetri).
+- **En rolle som kan lese telemetri.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member eller Telemetry Viewer, eller en egendefinert rolle med tillatelsen Read Logs. Omfanget avgjør hvem sine logger du ser: se [Telemetri](/docs/permissions/index#telemetri).
 
 ## Finn en logglinje
 

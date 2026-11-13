@@ -36,7 +36,7 @@ El explorador tiene cinco pestañas:
 ## Antes de empezar
 
 - **Métricas que llegan.** Envíelas con [OpenTelemetry](/docs/telemetry/open-telemetry), o desde un agente como el [colector de OpenTelemetry para hosts](/docs/telemetry/host-otel-collector) o el [agente de Kubernetes](/docs/telemetry/kubernetes-agent).
-- **Un rol que pueda leer telemetría.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member o Telemetry Viewer, o un rol personalizado con el permiso Read Telemetry Service Metrics. Consulte [Telemetría](/docs/permissions/index#telemetría) para saber qué métricas lee.
+- **Un rol que pueda leer telemetría.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member o Telemetry Viewer, o un rol personalizado con el permiso Read Metrics. Consulte [Telemetría](/docs/permissions/index#telemetría) para saber qué métricas lee.
 
 ## Encontrar una métrica
 

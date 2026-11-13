@@ -37,7 +37,7 @@ flowchart TB
 Modellen `ScheduledMaintenanceState` har `name`, `description`, `color` og `order`, pluss fire flagg: `isScheduledState`, `isOngoingState`, `isEndedState` og `isResolvedState`. OneUptime leser flaggene og rekkefølgen, aldri navnet, så du kan gi **Fullført** nytt navn til "Godkjent" uten at noe går i stykker.
 
 > [!TIP]
-> Listen ligger under **Planlagt vedlikehold → Innstillinger → Hendelsesstatus**. **Innstillinger** starter sammenslått i sidemenyen: utvid den først.
+> Listen ligger under **Planlagt vedlikehold → Innstillinger → Vedlikeholdsstatus**. **Innstillinger** starter sammenslått i sidemenyen: utvid den først.
 
 ## Standardtilstandene
 
@@ -74,7 +74,7 @@ En hendelse starter når den går fra en tilstand der den venter, til **Pågåen
 
 - **Monitorene dens slutter å bli sjekket**, og går over til **Endre overvåkingsstatus til**, hvis den har en. En monitor du legger til hendelsen mens den pågår, går også over.
 - **Statussidene dens viser den som pågående**, og abonnentene får beskjed: i tide hvis **Når hendelsen starter** er på, og manuelt slik **Varsle statussideabonnenter** i dialogen sier.
-- **Eierne får beskjed**, hvis de har slått på varselet om tilstandsendring, og hendelsen vises under **Pågående hendelser**.
+- **Eierne får beskjed**, hvis de har slått på varselet om tilstandsendring, og hendelsen vises under **Pågående vedlikeholdshendelser**.
 
 En hendelse avsluttes når den går fra en tilstand der den pågår, til **Avsluttet**, **Fullført** eller en egen tilstand plassert etter **Avsluttet**. Da sjekkes monitorene igjen og går tilbake til "operativ", med mindre en annen pågående hendelse fortsatt holder dem, og abonnentene får beskjed på samme måte: i tide hvis **Når hendelsen slutter** er på, og manuelt slik dialogen sier.
 
@@ -106,7 +106,7 @@ En tilstand du legger til, er et trinn teamet ditt går gjennom som de fire stan
 :::steps
 ### Åpne tilstandslisten
 
-Gå til **Planlagt vedlikehold → Innstillinger → Hendelsesstatus**. Kortet **Tilstander for planlagt vedlikehold** viser tilstandene dine i rekkefølge. Hver rad viser fargen og navnet, hva en hendelse i den regnes som (kolonnen **Teller som**), og beskrivelsen.
+Gå til **Planlagt vedlikehold → Innstillinger → Vedlikeholdsstatus**. Kortet **Tilstander for planlagt vedlikehold** viser tilstandene dine i rekkefølge. Hver rad viser fargen og navnet, hva en hendelse i den regnes som (kolonnen **Teller som**), og beskrivelsen.
 
 ### Opprett tilstanden
 

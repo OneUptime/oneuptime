@@ -323,7 +323,7 @@ describe("the Dashboard locale files", () => {
     ["Status Pages", "No status pages yet."],
     ["On-Call Policies", "No on-call policies yet."],
     ["On-Call Schedules", "No on-call schedules yet."],
-    ["Scheduled Maintenance Events", "No scheduled maintenance events yet."],
+    ["Maintenance Events", "No maintenance events yet."],
     ["Workflows", "No workflows yet."],
     ["Dashboards", "No dashboards yet."],
     ["Teams", "No teams yet."],

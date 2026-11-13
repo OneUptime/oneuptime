@@ -72,7 +72,7 @@ Klikk på **Opprett monitor**. Monitoren åpnes på siden **Oversikt**, og den f
 | **Unntakstyper** | Unntak av en av disse typene, atskilt med komma, som `TypeError, NullReferenceException`. Typenavnet må samsvare nøyaktig. | Tom: alle typer |
 | **Miljøer** | Unntak fra et av disse miljøene, atskilt med komma (se [Miljøer](#miljøer)). | Tom: alle miljøer |
 | **Tidsvindu** (i **Når det skal varsles**) | Unntak fra de siste 5 sekundene opp til de siste 24 timene. | **Siste 5 minutter** |
-| **Filtrer etter telemetritjeneste** (under **Flere felt**) | Unntak fra en av de valgte tjenestene. | Tom: alle tjenester |
+| **Filtrer etter tjeneste** (under **Flere felt**) | Unntak fra en av de valgte tjenestene. | Tom: alle tjenester |
 | **Filtrer etter infrastrukturenhet** (under **Flere felt**) | Unntak fra en av de valgte vertene, podene, containerne og andre entitetene. | Tom: alle entiteter |
 | **Inkluder løste unntak** (under **Flere felt**) | Tell også unntak som er merket som løst. | Av |
 | **Inkluder arkiverte unntak** (under **Flere felt**) | Tell også arkiverte unntak. | Av |

@@ -20,7 +20,7 @@ Open **Geplande onderhoud** via het menu **Producten** in de bovenste balk. De s
 | **Labelregels**    | Voegt labels toe aan passende gebeurtenissen.                       |
 | **Herinneringsregels** | Herinnert eigenaren met een interval tot een gebeurtenis voltooid is. |
 
-De sectie **Instellingen** bevat **Status gebeurtenis**, behandeld in [Onderhoudsstatussen](/docs/scheduled-maintenance/states), **Gebeurtenis-sjablonen**, behandeld in [Sjablonen en terugkerende gebeurtenissen](/docs/scheduled-maintenance/templates), en daarna **Notitie-sjablonen**, **Goedkeuring van openbare notities**, **Aangepaste velden**, **Metingen**, **Agenda-instellingen** en **Nummering**. **Agenda-instellingen** wordt behandeld in [Onderhoudsagenda](/docs/scheduled-maintenance/calendar#externe-agendas), de rest hieronder.
+De sectie **Instellingen** bevat **Onderhoudsstatus**, behandeld in [Onderhoudsstatussen](/docs/scheduled-maintenance/states), **Onderhoudssjablonen**, behandeld in [Sjablonen en terugkerende gebeurtenissen](/docs/scheduled-maintenance/templates), en daarna **Notitie-sjablonen**, **Goedkeuring van openbare notities**, **Aangepaste velden**, **Metingen**, **Agenda-instellingen** en **Nummering**. **Agenda-instellingen** wordt behandeld in [Onderhoudsagenda](/docs/scheduled-maintenance/calendar#externe-agendas), de rest hieronder.
 
 De sectie **Werkruimte** bevat de Slack- en Microsoft Teams-regels die gebeurtenissen in kanalen plaatsen. Zie [Slack](/docs/workspace-connections/slack#meldingsregels) en [Microsoft Teams](/docs/workspace-connections/microsoft-teams#meldingsregels).
 
@@ -92,7 +92,7 @@ Deze herinneringen zijn voor je team. De herinneringen die de abonnees van je st
 
 ### Notitiesjablonen
 
-**Geplande onderhoud → Instellingen → Notitie-sjablonen** bevat kant-en-klare tekst voor onderhoudsupdates. De kaart **Openbare of privénotitiesjablonen voor geplande onderhoudsevenementen** toont ze; **Notitiesjabloon voor gepland onderhoud aanmaken** vraagt om een **Sjabloonnaam**, een **Sjabloonbeschrijving** en de **Notitie**. Een sjabloon wordt aangeboden wanneer iemand een openbare of privénotitie bij een gebeurtenis schrijft en wanneer iemand haar status wijzigt, en de tekst kan vóór het plaatsen worden bewerkt. Anders dan notitiesjablonen voor incidenten vullen notitiesjablonen voor onderhoud geen variabelen in.
+**Geplande onderhoud → Instellingen → Notitie-sjablonen** bevat kant-en-klare tekst voor onderhoudsupdates. De kaart **Openbare of privé-notitiesjablonen voor onderhoudsgebeurtenissen** toont ze; **Notitiesjabloon voor gepland onderhoud aanmaken** vraagt om een **Sjabloonnaam**, een **Sjabloonbeschrijving** en de **Notitie**. Een sjabloon wordt aangeboden wanneer iemand een openbare of privénotitie bij een gebeurtenis schrijft en wanneer iemand haar status wijzigt, en de tekst kan vóór het plaatsen worden bewerkt. Anders dan notitiesjablonen voor incidenten vullen notitiesjablonen voor onderhoud geen variabelen in.
 
 ### Goedkeuring van openbare notities
 
@@ -117,7 +117,7 @@ De kaart **Volgend nummer** eronder stelt het nummer in dat de volgende gebeurte
 
 ## Workflows
 
-Elk onderhoudsmodel heeft workflowtriggers en -acties, naar het model genoemd: **On Create Scheduled Maintenance Event**, **On Update Scheduled Maintenance Event**, **On Create or Update Scheduled Maintenance Event** en **On Delete Scheduled Maintenance Event**, hetzelfde voor **Scheduled Maintenance State Timeline** en de andere, en acties zoals **Create One Scheduled Maintenance Event** en **Update One Scheduled Maintenance Event**. Definities van aangepaste velden en meetwaarden zijn de uitzonderingen: ze hebben geen workflowstappen. Zie [Workflows – Overzicht](/docs/workflows/index).
+Elk onderhoudsmodel heeft workflowtriggers en -acties, naar het model genoemd: **On Create Maintenance Event**, **On Update Maintenance Event**, **On Create or Update Maintenance Event** en **On Delete Maintenance Event**, hetzelfde voor **Scheduled Maintenance State Timeline** en de andere, en acties zoals **Create One Maintenance Event** en **Update One Maintenance Event**. Definities van aangepaste velden en meetwaarden zijn de uitzonderingen: ze hebben geen workflowstappen. Zie [Workflows – Overzicht](/docs/workflows/index).
 
 ## Wie ze mag wijzigen
 
@@ -142,8 +142,8 @@ Controleer of een herinneringsregel past op de labels van de gebeurtenis, of **H
 ## Volgende stappen
 
 :::cards
-- [Onderhoudsstatussen](/docs/scheduled-maintenance/states): De pagina Status gebeurtenis, en wat elke status doet.
-- [Sjablonen en terugkerende gebeurtenissen](/docs/scheduled-maintenance/templates): De pagina Gebeurtenis-sjablonen, in detail.
+- [Onderhoudsstatussen](/docs/scheduled-maintenance/states): De pagina Onderhoudsstatus, en wat elke status doet.
+- [Sjablonen en terugkerende gebeurtenissen](/docs/scheduled-maintenance/templates): De pagina Onderhoudssjablonen, in detail.
 - [Label- en eigenaarsregels](/docs/configuration/label-and-owner-rules): Het regelformulier, stap voor stap.
 - [Meldingsinstellingen](/docs/notifications/notification-settings): Hoe elke eigenaar kiest wat hem bereikt.
 :::
