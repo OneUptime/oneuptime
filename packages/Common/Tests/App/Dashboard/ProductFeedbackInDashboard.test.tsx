@@ -846,11 +846,32 @@ describe("the first-week check-in on Home", () => {
     );
   };
 
+  /*
+   * Clicks Not yet and waits until the answer it sends is kept, so the card
+   * is at rest when a test reads it: nothing updates it outside act.
+   */
+  const answerNotYet: () => Promise<void> = async (): Promise<void> => {
+    const answersKept: number = postsTo(PRODUCT_FEEDBACK_ROUTE).length;
+
+    const notYet: HTMLElement = await screen.findByTestId(
+      SETUP_CHECK_IN_NOT_YET_TEST_ID,
+    );
+
+    await act(async () => {
+      fireEvent.click(notYet);
+      await new Promise<void>((resolve: () => void) => {
+        setTimeout(resolve, 0);
+      });
+    });
+
+    expect(postsTo(PRODUCT_FEEDBACK_ROUTE)).toHaveLength(answersKept + 1);
+  };
+
   test("Not yet leads to Setup health when it found something, without repeating its findings", async () => {
     projectMadeDaysAgo(8);
     drawCheckIn(false, 3);
 
-    fireEvent.click(await screen.findByTestId(SETUP_CHECK_IN_NOT_YET_TEST_ID));
+    await answerNotYet();
 
     const line: HTMLElement = screen.getByTestId(
       SETUP_CHECK_IN_SETUP_HEALTH_TEST_ID,
@@ -870,9 +891,7 @@ describe("the first-week check-in on Home", () => {
       projectMadeDaysAgo(8);
       drawCheckIn(false, count);
 
-      fireEvent.click(
-        await screen.findByTestId(SETUP_CHECK_IN_NOT_YET_TEST_ID),
-      );
+      await answerNotYet();
 
       expect(screen.queryByTestId(SETUP_CHECK_IN_SETUP_HEALTH_TEST_ID)).toBe(
         null,
@@ -1083,29 +1102,12 @@ describe("the first-week check-in on Home", () => {
       return kept;
     };
 
-    /*
-     * Not yet, with Setup health's finding: both kinds of link are drawn.
-     * It waits until the answer is kept, so the card is at rest (nothing
-     * updates it outside act) when a test reads its links.
-     */
+    // Not yet, with Setup health's finding: both kinds of link are drawn.
     const openNotYet: () => Promise<void> = async (): Promise<void> => {
-      const answersKept: number = postsTo(PRODUCT_FEEDBACK_ROUTE).length;
-
       projectMadeDaysAgo(8);
       drawCheckIn(false, 3);
 
-      const notYet: HTMLElement = await screen.findByTestId(
-        SETUP_CHECK_IN_NOT_YET_TEST_ID,
-      );
-
-      await act(async () => {
-        fireEvent.click(notYet);
-        await new Promise<void>((resolve: () => void) => {
-          setTimeout(resolve, 0);
-        });
-      });
-
-      expect(postsTo(PRODUCT_FEEDBACK_ROUTE)).toHaveLength(answersKept + 1);
+      await answerNotYet();
     };
 
     const setupHealthLink: () => HTMLAnchorElement = (): HTMLAnchorElement => {
