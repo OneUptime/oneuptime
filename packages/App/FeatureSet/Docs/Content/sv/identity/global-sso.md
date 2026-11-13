@@ -34,10 +34,10 @@ Logga in som master admin och öppna Admin Dashboard med **Admin-inställningar*
 :::tabs
 @tab SAML
 - Klicka på **Lägg till SAML-leverantör**.
-- Ange ett **Namn**, **Sign On URL** och **Issuer** från din identitetsleverantör, och klistra in **Public Certificate**. Resten är redan ifyllt under **Fler fält**: **Signature Method** (`RSA-SHA256`), **Digest Method** (`SHA256`) och en beskrivning (`Sign in with` och namnet). Ändra dem bara om din IdP kräver det. När du sparar öppnas leverantörens sida.
+- Ange ett **Namn**, **Inloggnings-URL** och **Utfärdare** från din identitetsleverantör, och klistra in **Offentligt certifikat**. Resten är redan ifyllt under **Fler fält**: **Signaturmetod** (`RSA-SHA256`), **Digest-metod** (`SHA256`) och en beskrivning (`Sign in with` och namnet). Ändra dem bara om din IdP kräver det. När du sparar öppnas leverantörens sida.
 @tab OpenID Connect
 - Klicka på **Lägg till OIDC-leverantör**.
-- Ange ett **Namn**, **Issuer URL** samt **Client ID** och **Client Secret** för appen du har registrerat i din IdP. Det fungerar också att klistra in IdP:ns discovery-URL i **Issuer URL**. Resten är redan ifyllt under **Fler fält**: **Discovery URL** (utfärdaren följd av `/.well-known/openid-configuration`), **Scopes** (`openid email profile`), anspråksnamnen `email` och `name` och en beskrivning (`Sign in with` och namnet). Ändra dem bara om din IdP kräver det. När du sparar öppnas leverantörens sida.
+- Ange ett **Namn**, **Utfärdar-URL** samt **Klient-ID** och **Klienthemlighet** för appen du har registrerat i din IdP. Det fungerar också att klistra in IdP:ns discovery-URL i **Utfärdar-URL**. Resten är redan ifyllt under **Fler fält**: **Discovery-URL** (utfärdaren följd av `/.well-known/openid-configuration`), **Omfattningar** (`openid email profile`), anspråksnamnen `email` och `name` och en beskrivning (`Sign in with` och namnet). Ändra dem bara om din IdP kräver det. När du sparar öppnas leverantörens sida.
 :::
 
 ### Kopiera OneUptimes URL:er till din identitetsleverantör
@@ -150,7 +150,7 @@ Personen har ett konto men tillhör inget projekt, och leverantören har inget a
 :::
 
 :::details "Issuer URL does not match"
-För en SAML-leverantör är utfärdaren i svaret från din identitetsleverantör inte den **Issuer** som är sparad på leverantören. Kopiera den igen från din identitetsleverantör; de två måste matcha exakt.
+För en SAML-leverantör är utfärdaren i svaret från din identitetsleverantör inte den **Utfärdare** som är sparad på leverantören. Kopiera den igen från din identitetsleverantör; de två måste matcha exakt.
 :::
 
 :::details "SAML Audience does not match"

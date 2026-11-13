@@ -247,7 +247,7 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
                 };
               },
             ),
-            title: "Filter by Telemetry Service",
+            title: "Filter by Service",
             description: "Only logs from these services. Empty: every service.",
             hideOptionalLabel: true,
             collapsibleSection: MORE_LOG_FILTERS,

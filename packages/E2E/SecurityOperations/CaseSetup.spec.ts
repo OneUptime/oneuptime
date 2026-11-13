@@ -83,6 +83,8 @@ interface OpenOptions {
     | "fail"
     | "fail-with-reference"
     | "fail-twice"
+    | "notes-fail-with-reference"
+    | "notes-fail-twice"
     | undefined;
 }
 
@@ -1307,6 +1309,180 @@ test.describe("the Templates menu's failure", () => {
       menu.getByRole("button", { name: /^Containment checklist/ }),
     ).toBeFocused();
     await expect(menu.getByTestId("note-templates-error")).toHaveCount(0);
+  });
+});
+
+/*
+ * A case's notes that do not load (#7570). The feed said "Notes could not
+ * be loaded" and, under it, API.getFriendlyMessage's English sentence as it
+ * came: on a Persian page with its full stop at its start, and without the
+ * reference to give. It reads as the lists and the Templates menu do now:
+ * under the feed's heading - which alone says what failed - why and what
+ * to do next, and the reference with its copy button, in the reader's
+ * language; then Try again.
+ */
+test.describe("a case's notes feed, when the notes do not load", () => {
+  for (const lang of ["en", "fa"] as const) {
+    test(`says why, what to do and its reference under its own heading, at 1280 and 390, and Try again reads the notes (${lang === "en" ? "English" : "Persian"})`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      // The Dashboard's Persian words, as the fixture draws them with ?lang=fa.
+      const persian: Record<string, string> = JSON.parse(
+        await fs.readFile(
+          path.resolve(
+            __dirname,
+            "../../App/FeatureSet/Dashboard/src/Locales/fa.json",
+          ),
+          "utf8",
+        ),
+      ) as Record<string, string>;
+      const wordsOf: (english: string) => string = (
+        english: string,
+      ): string => {
+        return lang === "fa" ? persian[english]! : english;
+      };
+
+      for (const width of [1280, 390]) {
+        await open(page, CASE_NOTES_PATH, {
+          width,
+          caseSetup: "notes-fail-with-reference",
+          ...(lang === "fa" ? { lang } : {}),
+        });
+        const failure: Locator = page.getByTestId("notes-error");
+        await expect(failure).toBeVisible({ timeout: 30000 });
+
+        // What failed, once: the heading's words, and no line of its own.
+        await expect(failure.locator("p").first()).toHaveText(
+          wordsOf("Notes could not be loaded"),
+        );
+        await expect(failure.getByTestId("error-what-failed")).toHaveCount(0);
+        await expect(failure).not.toContainText(
+          wordsOf("This did not finish."),
+        );
+        const whyAndNext: Locator = failure.getByTestId("error-why-and-next");
+        await expect(whyAndNext).toContainText(
+          wordsOf("The server ran into a problem it could not explain."),
+        );
+        await expect(whyAndNext).toContainText(
+          wordsOf(
+            "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:",
+          ),
+        );
+        // The reference as written, left to right, with its copy button.
+        const reference: Locator = failure.getByTestId("error-reference");
+        await expect(reference.locator("code")).toHaveText(
+          FAILED_READ_REFERENCE,
+        );
+        await expect(reference.locator("code")).toHaveAttribute("dir", "ltr");
+        await expect(reference.getByRole("button")).toBeVisible();
+        await expect(
+          failure.getByRole("button", { name: wordsOf("Try again") }),
+        ).toBeVisible();
+        // The reference and its copy button are centred, as the lines are.
+        const offCentre: number = await failure.evaluate(
+          (element: Element): number => {
+            const row: Element = element.querySelector(
+              "[data-testid='error-reference']",
+            )!;
+            const first: DOMRect =
+              row.firstElementChild!.getBoundingClientRect();
+            const last: DOMRect = row.lastElementChild!.getBoundingClientRect();
+            const view: DOMRect = element.getBoundingClientRect();
+            const drawn: number =
+              (Math.min(first.left, last.left) +
+                Math.max(first.right, last.right)) /
+              2;
+            return Math.abs(drawn - (view.left + view.width / 2));
+          },
+        );
+        expect(
+          offCentre,
+          `the reference's row at ${width}`,
+        ).toBeLessThanOrEqual(2);
+        // Never the sentence as API.getFriendlyMessage wrote it.
+        await expect(failure).not.toContainText("so this did not finish");
+        if (lang === "fa") {
+          for (const english of [
+            "Notes could not be loaded",
+            "The server ran into a problem",
+            "Try again",
+          ]) {
+            await expect(failure).not.toContainText(english);
+          }
+        }
+
+        await expectNoSidewaysScroll(page, {
+          message: `the notes feed's failure at ${width}`,
+        });
+        await failure.scrollIntoViewIfNeeded();
+        await screenshot(page, `case-notes-fail-${lang}-${width}`, {
+          fullPage: false,
+        });
+      }
+
+      await page
+        .getByTestId("notes-error")
+        .getByRole("button", { name: wordsOf("Try again") })
+        .click();
+      await expect(page.getByTestId("note-card")).toHaveCount(2);
+      await expect(page.getByTestId("notes-error")).toHaveCount(0);
+    });
+  }
+
+  /*
+   * Try again gives way to the loading skeleton, which holds nothing to
+   * focus: the focus fell to the page, and the next Tab started over at
+   * its top. Pressed from the keyboard, it leaves the focus with the feed
+   * while the notes load again - on Try again once more if they fail again,
+   * though the reference's copy button comes before it, and in the feed,
+   * just before the notes, when they arrive.
+   */
+  test("pressed from the keyboard, Try again keeps the focus: on Try again after another failure, then just before the notes", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CASE_NOTES_PATH, { caseSetup: "notes-fail-twice" });
+    const failure: Locator = page.getByTestId("notes-error");
+    const copy: Locator = failure
+      .getByTestId("error-reference")
+      .getByRole("button");
+    const tryAgain: Locator = failure.getByRole("button", {
+      name: "Try again",
+    });
+    await copy.focus({ timeout: 30000 });
+
+    // From the copy button, one Tab reaches Try again.
+    await page.keyboard.press("Tab");
+    await expect(tryAgain).toBeFocused();
+
+    // The second read fails too.
+    await page.keyboard.press("Enter");
+    await expect(tryAgain).toBeFocused();
+    await expect(copy).not.toBeFocused();
+
+    // The third answers.
+    await page.keyboard.press("Enter");
+    await expect(page.getByTestId("note-card")).toHaveCount(2);
+    await expect(page.getByTestId("notes-feed-body")).toBeFocused();
+
+    // The next Tab reaches the first note.
+    await page.keyboard.press("Tab");
+    expect(
+      await page.evaluate((): boolean => {
+        const firstNote: Element | null = document.querySelector(
+          "[data-testid='note-card']",
+        );
+        return Boolean(
+          firstNote &&
+            document.activeElement &&
+            firstNote.contains(document.activeElement),
+        );
+      }),
+      "the focus is in the first note",
+    ).toBe(true);
   });
 });
 

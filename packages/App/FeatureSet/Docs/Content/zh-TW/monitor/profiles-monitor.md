@@ -84,7 +84,7 @@ OneUptime 每分鐘讀取符合監測器篩選器、且在其時間視窗內開�
 | `attributes` | 屬性具有這些值的剖析資料。 | 空：無條件 |
 | `lastXSecondsOfProfiles` | 在評估前這麼多秒內開始的剖析資料。 | 無：務必設定，否則會計算所有已儲存的剖析資料，計數永遠不會降到 0 |
 
-剖析資料必須符合您設定的所有篩選器才會被讀取。在表單中，**函式** 設定 `functionName`，**分析內容** 設定 `profileTypes`（選 **所有類型的效能剖析** 時為空），**監控效能剖析的時長（時間）** 設定 `lastXSecondsOfProfiles`，**依遙測服務篩選** 和 **依基礎架構實體篩選** 設定 `telemetryServiceIds` 和 `entityKeys`。
+剖析資料必須符合您設定的所有篩選器才會被讀取。在表單中，**函式** 設定 `functionName`，**分析內容** 設定 `profileTypes`（選 **所有類型的效能剖析** 時為空），**監控效能剖析的時長（時間）** 設定 `lastXSecondsOfProfiles`，**依服務篩選** 和 **依基礎架構實體篩選** 設定 `telemetryServiceIds` 和 `entityKeys`。
 
 ## 如何評估
 

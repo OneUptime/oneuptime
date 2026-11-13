@@ -100,6 +100,7 @@ export const VIEWER_SLOW_MARKDOWN_LIMITS: SlowMarkdownLimits = {
   holdBackCodeBlockContent: true,
   countUrlLiterals: true,
   countWordUnderscores: true,
+  countAsMarked: false,
 };
 
 export interface HeldBackViewerText {

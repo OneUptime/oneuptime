@@ -30,8 +30,9 @@ import { extractJsonObject } from "./ExceptionExplanationPrompt";
  * so the model cannot point the digest at an exception that is not one of
  * them. Every value is cut to a fixed length FIRST, then scrubbed
  * (ExceptionSanitizer) - a message or a stack trace can be megabytes on one
- * line (AGENTS.md, "Megabyte-long values") - and the answer is found with
- * indexOf (extractJsonObject), never a regular expression over it.
+ * line (Docs/notifications/README.md, "Megabyte-long values") - and the answer
+ * is found with indexOf (extractJsonObject), never a regular expression over
+ * it.
  */
 
 export const MAX_DIGEST_PROMPT_MESSAGE_LENGTH: number = 300;

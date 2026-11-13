@@ -136,10 +136,10 @@ const PROSE: Record<string, Array<string>> = {
     "Monitors",
   ],
   "runbooks/rules": [
-    // "when an incident, alert, or scheduled maintenance event is created"
+    // "when an incident, alert, or maintenance event is created"
     "incident",
     "alert",
-    "scheduled maintenance event",
+    "maintenance event",
     // The rule's match criteria, as the anatomy table describes them.
     "Conditions",
   ],

@@ -483,7 +483,7 @@ De MCP-server is stateless: hij geeft geen sessie-id's uit en houdt ze niet bij,
 | Incidenten | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert, Postmortem Status |
 | Waarschuwingen | Alert, Alert State, Alert Severity, Alert State Timeline, Alert Internal Note |
 | Statuspagina's | Status Page, Status Page Announcement |
-| Gepland onderhoud | Scheduled Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |
+| Gepland onderhoud | Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |
 | Teams en bereikbaarheid | Team, On-Call Policy |
 | Labels | Label |
 | Beveiliging | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |

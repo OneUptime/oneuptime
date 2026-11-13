@@ -34,10 +34,10 @@ Connectez-vous en tant qu'administrateur principal et ouvrez l'Admin Dashboard a
 :::tabs
 @tab SAML
 - Cliquez sur **Ajouter un fournisseur SAML**.
-- Saisissez un **Nom**, la **Sign On URL** et l'**Issuer** de votre fournisseur d'identité, puis collez le **Public Certificate**. Tout le reste est prérempli sous **Plus de champs** : la **Signature Method** (`RSA-SHA256`), la **Digest Method** (`SHA256`) et une description (`Sign in with` suivi du nom). Ne les modifiez que si votre IdP l'exige. L'enregistrement ouvre la page du fournisseur.
+- Saisissez un **Nom**, l'**URL de connexion** et l'**Émetteur** de votre fournisseur d'identité, puis collez le **Certificat public**. Tout le reste est prérempli sous **Plus de champs** : la **Méthode de signature** (`RSA-SHA256`), la **Méthode de hachage** (`SHA256`) et une description (`Sign in with` suivi du nom). Ne les modifiez que si votre IdP l'exige. L'enregistrement ouvre la page du fournisseur.
 @tab OpenID Connect
 - Cliquez sur **Ajouter un fournisseur OIDC**.
-- Saisissez un **Nom**, l'**Issuer URL**, ainsi que le **Client ID** et le **Client Secret** de l'application que vous avez enregistrée dans votre IdP. Coller l'URL de découverte de l'IdP dans **Issuer URL** fonctionne aussi. Tout le reste est prérempli sous **Plus de champs** : la **Discovery URL** (l'émetteur suivi de `/.well-known/openid-configuration`), les **Scopes** (`openid email profile`), les noms de revendications `email` et `name`, et une description (`Sign in with` suivi du nom). Ne les modifiez que si votre IdP l'exige. L'enregistrement ouvre la page du fournisseur.
+- Saisissez un **Nom**, l'**URL de l'émetteur**, ainsi que l'**ID client** et le **Secret client** de l'application que vous avez enregistrée dans votre IdP. Coller l'URL de découverte de l'IdP dans **URL de l'émetteur** fonctionne aussi. Tout le reste est prérempli sous **Plus de champs** : l'**URL de découverte** (l'émetteur suivi de `/.well-known/openid-configuration`), les **Portées** (`openid email profile`), les noms de revendications `email` et `name`, et une description (`Sign in with` suivi du nom). Ne les modifiez que si votre IdP l'exige. L'enregistrement ouvre la page du fournisseur.
 :::
 
 ### Copier les URL d'OneUptime dans votre fournisseur d'identité
@@ -150,7 +150,7 @@ La personne a un compte mais n'appartient à aucun projet, et le fournisseur n'a
 :::
 
 :::details "Issuer URL does not match"
-Pour un fournisseur SAML, l'émetteur figurant dans la réponse de votre fournisseur d'identité n'est pas l'**Issuer** enregistré sur le fournisseur. Copiez-le de nouveau depuis votre fournisseur d'identité ; les deux doivent correspondre exactement.
+Pour un fournisseur SAML, l'émetteur figurant dans la réponse de votre fournisseur d'identité n'est pas l'**Émetteur** enregistré sur le fournisseur. Copiez-le de nouveau depuis votre fournisseur d'identité ; les deux doivent correspondre exactement.
 :::
 
 :::details "SAML Audience does not match"

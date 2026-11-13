@@ -28,7 +28,7 @@ flowchart LR
 ## शुरू करने से पहले
 
 - **आती हुई टेलीमेट्री।** सेवा मैप को ट्रेस चाहिए: देखें [OpenTelemetry](/docs/telemetry/open-telemetry)। इंफ्रास्ट्रक्चर व्यू को डेटा भेजने वाला कोई होस्ट या क्लस्टर चाहिए: देखें [Kubernetes एजेंट](/docs/telemetry/kubernetes-agent)। नेटवर्क व्यू को नेटवर्क डिवाइस चाहिए: देखें [नेटवर्क डिवाइस मॉनिटर](/docs/monitor/network-device-monitor)।
-- **ऐसी भूमिका जो टेलीमेट्री पढ़े।** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member या Telemetry Viewer, या Read Telemetry Service अनुमति वाली कोई कस्टम भूमिका।
+- **ऐसी भूमिका जो टेलीमेट्री पढ़े।** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member या Telemetry Viewer, या Read Inventory Item अनुमति वाली कोई कस्टम भूमिका।
 
 ## टोपोलॉजी खोलें
 
@@ -114,7 +114,7 @@ OneUptime हर 10 मिनट में आपके ट्रेस मे�
 ## अगले कदम
 
 :::cards
-- [सेवा कैटलॉग](/docs/telemetry/services): एक सेवा के बारे में सब कुछ।
+- [सेवाएं](/docs/telemetry/services): एक सेवा के बारे में सब कुछ।
 - [ट्रेस एक्सप्लोरर](/docs/telemetry/traces-explorer): हर तीर के पीछे के अनुरोध।
 - [इन्वेंटरी अवलोकन](/docs/inventory/overview): मैप पर दिखने वाला हर संसाधन।
 - [नेटवर्क डिवाइस मॉनिटर](/docs/monitor/network-device-monitor): अपने नेटवर्क को मैप पर लाएँ।

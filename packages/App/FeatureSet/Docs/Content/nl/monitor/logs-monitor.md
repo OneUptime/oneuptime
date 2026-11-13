@@ -72,7 +72,7 @@ Klik op **Monitor maken**. De monitor opent op zijn pagina **Overzicht**, en zij
 | **Tijdvenster** (in **Wanneer waarschuwen**) | Logs van de laatste 5 seconden tot de laatste 24 uur. | **Laatste 5 minuten** |
 | **Groeperen op attributen** | Geen filter: telt elke combinatie van waarden van deze attributen apart. | Leeg: één telling |
 | **Opgelost door attributen** | Geen filter: de log die een groep oplost. Verschijnt zodra **Groeperen op attributen** een attribuut heeft; zie [Opgelost door een log](#opgelost-door-een-log). | Leeg: een groep wordt opgelost wanneer de logs ervan stoppen |
-| **Filteren op telemetrieservice** (onder **Meer velden**) | Logs van een van de gekozen services. | Leeg: elke service |
+| **Filteren op service** (onder **Meer velden**) | Logs van een van de gekozen services. | Leeg: elke service |
 | **Filteren op infrastructuurentiteit** (onder **Meer velden**) | Logs van een van de gekozen hosts, pods, containers en andere entiteiten. | Leeg: elke entiteit |
 | **Filteren op attributen** (onder **Meer velden**) | Logs waarvan de attributen aan elke voorwaarde voldoen. Elke voorwaarde heeft een eigen operator, zoals "is gelijk aan" of "bevat". | Leeg: geen voorwaarde |
 
@@ -140,7 +140,7 @@ U wilt een incident wanneer de checkout-service in vijf minuten meer dan 50 fout
 
 - **Logernst**: **Fout**
 - **Tijdvenster**: **Laatste 5 minuten**
-- **Filteren op telemetrieservice**: `checkout`
+- **Filteren op service**: `checkout`
 - **Wanneer waarschuwen**: **Meer dan** `50`
 - **Wat er gebeurt**: **Een incident melden**
 

@@ -12,7 +12,7 @@ import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
- * The Dashboard's ongoing scheduled maintenance: the Ongoing Events list
+ * The Dashboard's ongoing scheduled maintenance: the Ongoing Maintenance Events list
  * under Scheduled Maintenance and its menu badge. Home's Ongoing maintenance
  * number opens that list: Home keeps no copy of it (#6857).
  *
@@ -254,7 +254,7 @@ afterEach(() => {
   listMock.mockReset();
 });
 
-describe("the Scheduled Maintenance menu's Ongoing Events badge", () => {
+describe("the Scheduled Maintenance menu's Ongoing Maintenance Events badge", () => {
   async function renderMenuAndWait(): Promise<void> {
     await renderMenu(<ScheduledMaintenanceSideMenu project={project()} />);
     await settle();
@@ -393,7 +393,7 @@ describe("the Scheduled Maintenance menu's Ongoing Events badge", () => {
 
 describe.each([
   [
-    "Scheduled Maintenance > Ongoing Events",
+    "Scheduled Maintenance > Ongoing Maintenance Events",
     OngoingScheduledMaintenancePage,
     "scheduled-maintenance-events/ongoing",
   ],

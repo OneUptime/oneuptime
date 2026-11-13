@@ -591,7 +591,7 @@ level: high
 
 En monitor for sikkerhetshendelser teller hendelsene som treffer filtrene, over et glidende vindu, og kjører de vanlige monitorkriteriene på tellingen: den endrer monitorens status, åpner varsler eller hendelser (incidents), og varsler vakthavende. Opprett en under **Overvåkere → Opprett monitor**, med **Sikkerhetshendelser** som type; den vises der sammen med de andre monitorene dine.
 
-Skjemaet viser **Monitor events that include this text**, **Monitor Security Events for (time)**, **Event Severity** og **Hendelsesklasse**. **Filtrer etter telemetritjeneste**, **Filtrer etter attributter** og **Filtrer etter overvåkingslister** venter under **Flere felt**, der overskriften viser hvilke en monitor bruker. **Filtrer etter overvåkingslister** beholder hendelsene der feltet står eller ikke står på en av [overvåkingslistene](#overvåkingslister) dine. Kriteriene sjekker **Antall sikkerhetshendelser**.
+Skjemaet viser **Monitor events that include this text**, **Monitor Security Events for (time)**, **Event Severity** og **Hendelsesklasse**. **Filtrer etter tjeneste**, **Filtrer etter attributter** og **Filtrer etter overvåkingslister** venter under **Flere felt**, der overskriften viser hvilke en monitor bruker. **Filtrer etter overvåkingslister** beholder hendelsene der feltet står eller ikke står på en av [overvåkingslistene](#overvåkingslister) dine. Kriteriene sjekker **Antall sikkerhetshendelser**.
 
 | | Deteksjonsregel | Monitor for sikkerhetshendelser |
 | --- | --- | --- |

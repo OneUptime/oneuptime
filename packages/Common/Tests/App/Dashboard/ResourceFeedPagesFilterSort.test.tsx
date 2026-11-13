@@ -420,7 +420,7 @@ const FEED_PAGES: Array<FeedPageSpec> = [
     enumObject: DatabaseServerFeedEventType,
   },
   {
-    product: "Service Catalog",
+    product: "Services",
     file: "Pages/Service/View/Feed.tsx",
     Page: ServiceFeedPage,
     route: RouteMap[PageMap.SERVICE_VIEW_FEED] as Route,

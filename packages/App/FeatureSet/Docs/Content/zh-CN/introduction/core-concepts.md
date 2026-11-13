@@ -72,7 +72,7 @@ flowchart TB
 
 :::cards
 - [监视器组](/docs/monitor/monitor-groups): 把多个监视器汇总为一个状态。
-- [服务目录](/docs/telemetry/services): 你运行的每个应用，各占一个页面。
+- [服务](/docs/telemetry/services): 你运行的每个应用，各占一个页面。
 - [资产清单概览](/docs/inventory/overview): OneUptime 对你的环境所知道的一切。
 :::
 

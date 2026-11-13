@@ -18,7 +18,10 @@ import GlossaryTerm from "./GlossaryTerm";
  *     would not find the page by itself;
  *   - an address or an API name, which never change: /on-call-duty,
  *     OnCallDutyPolicy, a model's apiSingularName (Common/Utils/ModelApiName),
- *     a stored value a rule keeps matching on.
+ *     a stored value a rule keeps matching on;
+ *   - a name another app keeps: the Slack app's shortcuts, as its manifest
+ *     (Workspace/Slack/app-manifest.json) names them, which every installed
+ *     app keeps until it is updated.
  *
  * To retire a name, add it here with what it is called now, give its
  * glossary term the old name under "Also called", and make Search find the
@@ -133,6 +136,42 @@ export const RETIRED_NAMES: ReadonlyArray<RetiredName> = [
     glossaryTerm: GlossaryTerm.IngestionKey,
     pattern: /\bTelemetry Ingestion Keys?\b/,
     retiredIn: "#6817 part 2",
+  },
+  {
+    name: "Service Catalog",
+    nowCalled: "Services",
+    glossaryTerm: GlossaryTerm.Service,
+    pattern: /\bService Catalog\b/,
+    retiredIn: "#6817 part 3",
+  },
+  {
+    name: "Telemetry Service",
+    nowCalled: "Service",
+    glossaryTerm: GlossaryTerm.Service,
+    pattern: /\bTelemetry Services?\b/,
+    retiredIn: "#6817 part 3",
+  },
+  {
+    name: "Scheduled Maintenance Event",
+    nowCalled: "Maintenance Event",
+    glossaryTerm: GlossaryTerm.ScheduledMaintenance,
+    // One record: the product keeps its name, Scheduled Maintenance.
+    pattern: /\bScheduled Maintenance Events?\b/,
+    retiredIn: "#6817 part 3",
+  },
+  {
+    name: "Scheduled Event",
+    nowCalled: "Maintenance Event",
+    glossaryTerm: GlossaryTerm.ScheduledMaintenance,
+    pattern: /\bScheduled Events?\b/,
+    retiredIn: "#6817 part 3",
+  },
+  {
+    name: "Event State",
+    nowCalled: "Maintenance State",
+    glossaryTerm: GlossaryTerm.ScheduledMaintenance,
+    pattern: /\bEvent States?\b/,
+    retiredIn: "#6817 part 3",
   },
 ];
 

@@ -59,7 +59,7 @@ En synkronisering behöver en API-nyckel som får läsa inventariet. I OneUptime
 
 ### Ge den bara det den behöver
 
-En skrivskyddad export behöver en enda behörighet, **Read Telemetry Service**: inventariet delar telemetribehörigheterna i stället för att ha egna. Klicka på **Lägg till behörighet** på nyckelns sida och välj den. För att skriva tillbaka värden lägger du också till **Edit Telemetry Service**.
+En skrivskyddad export behöver en enda behörighet, **Read Inventory Item**: inventariet delar telemetribehörigheterna i stället för att ha egna. Klicka på **Lägg till behörighet** på nyckelns sida och välj den. För att skriva tillbaka värden lägger du också till **Edit Inventory Item**.
 
 ### Kopiera nyckeln
 
@@ -232,9 +232,9 @@ Ett objekt som försvinner mellan två körningar har antingen löpt ut (ett upp
 
 ## Skriv tillbaka
 
-Samma slutpunkter tar emot skrivningar, så en synkronisering kan skicka in värden i `customFields`: till exempel den tillgångsetikett som din CMDB redan äger, stämplad på det motsvarande OneUptime-objektet. Nyckeln behöver **Edit Telemetry Service** för det.
+Samma slutpunkter tar emot skrivningar, så en synkronisering kan skicka in värden i `customFields`: till exempel den tillgångsetikett som din CMDB redan äger, stämplad på det motsvarande OneUptime-objektet. Nyckeln behöver **Edit Inventory Item** för det.
 
-Du kan också lägga till objekt för saker som OneUptime inte kan se, med `POST /api/inventory-item`, en `entityType` av `external.service`, `external.database` eller `appliance` och ett `displayName`. OneUptime räknar ut identitetsnyckeln åt dig, och de objekten löper aldrig ut. Nyckeln behöver **Create Telemetry Service** för det.
+Du kan också lägga till objekt för saker som OneUptime inte kan se, med `POST /api/inventory-item`, en `entityType` av `external.service`, `external.database` eller `appliance` och ett `displayName`. OneUptime räknar ut identitetsnyckeln åt dig, och de objekten löper aldrig ut. Nyckeln behöver **Create Inventory Item** för det.
 
 ## Felsökning
 
@@ -243,7 +243,7 @@ I OneUptime Cloud fungerar API-nycklar bara medan projektet har planen **Growth*
 :::
 
 :::details Varje begäran besvaras med 422 You do not have permissions
-Nyckeln har ingen behörighet som läser inventariet. En nyckel som skapats med **Välj behörigheter senare** kan ingenting förrän den får en: lägg till **Read Telemetry Service** på dess sida, som i [Innan du börjar](#innan-du-börjar).
+Nyckeln har ingen behörighet som läser inventariet. En nyckel som skapats med **Välj behörigheter senare** kan ingenting förrän den får en: lägg till **Read Inventory Item** på dess sida, som i [Innan du börjar](#innan-du-börjar).
 :::
 
 :::details Listan kommer tillbaka utan de kolumner jag behöver

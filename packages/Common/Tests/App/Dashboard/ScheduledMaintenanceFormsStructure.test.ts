@@ -23,7 +23,7 @@ import {
  * Resources Affected - the shape of Declare Incident. The four forms of a
  * scheduled maintenance event put each field they hold on the same step:
  *
- *   - Create Scheduled Maintenance Event (Pages/ScheduledMaintenanceEvents/
+ *   - Create Maintenance Event (Pages/ScheduledMaintenanceEvents/
  *     Create.tsx), and the review step after them;
  *   - the event's details card Edit (View/Index.tsx) - its resources,
  *     description and owners are edited elsewhere on the page, so its
@@ -323,14 +323,14 @@ describe("the scheduled maintenance forms", () => {
     }
   });
 
-  test("Create walks Event and Resources Affected, then the review", () => {
+  test("Create walks Maintenance Details and Resources Affected, then the review", () => {
     const form: FormFacts = scannedForm(
       CREATE_FILE,
       "ModelForm: Create New Scheduled Maintenance Event",
     );
 
     expect(CREATE.steps).toEqual([
-      "event: Event",
+      "event: Maintenance Details",
       "resources-affected: Resources Affected",
     ]);
     expect(readSource(CREATE_FILE)).toContain("summary={{");
@@ -382,8 +382,8 @@ describe("the scheduled maintenance forms", () => {
     expect(source).toContain("return getMaintenanceEndsAtError(values);");
   });
 
-  test("the details card Edit walks Event and Status Pages", () => {
-    expect(EDIT.steps).toEqual(["event: Event", "status-pages: Status Pages"]);
+  test("the details card Edit walks Maintenance Details and Status Pages", () => {
+    expect(EDIT.steps).toEqual(["event: Maintenance Details", "status-pages: Status Pages"]);
     expect(rowsByStep(EDIT)).toEqual({
       event: ["title", "startsAt", "endsAt", `${ADVANCED}: labels`],
       "status-pages": ["statusPages", PUBLISH_CHOICE, PUBLISH_AT, REMINDERS],
@@ -399,7 +399,7 @@ describe("the scheduled maintenance forms", () => {
   test("a template's create form adds its name in front and its schedule at the end", () => {
     expect(TEMPLATE_CREATE.steps).toEqual([
       "template-info: Template Info",
-      "event: Event",
+      "event: Maintenance Details",
       "resources-affected: Resources Affected",
       "recurring: Recurring",
     ]);
@@ -424,7 +424,7 @@ describe("the scheduled maintenance forms", () => {
   test("a template's Edit leaves out the resources and owners its page has cards for", () => {
     expect(TEMPLATE_EDIT.steps).toEqual([
       "template-info: Template Info",
-      "event: Event",
+      "event: Maintenance Details",
       "resources-affected: Status Pages",
       "recurring: Recurring",
     ]);

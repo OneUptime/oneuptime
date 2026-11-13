@@ -37,7 +37,7 @@ flowchart TB
 ## 시작하기 전에
 
 - **도착하는 트레이스.** [OpenTelemetry](/docs/telemetry/open-telemetry)로 서비스를 계측합니다. **설정 가이드** 탭에 사용하는 언어에 맞는 코드가 표시됩니다.
-- **텔레메트리를 읽을 수 있는 역할.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member, Telemetry Viewer 중 하나이거나 Read Telemetry Service Traces 권한이 있는 사용자 지정 역할입니다. 역할의 범위에 따라 누구의 스팬을 볼 수 있는지가 정해집니다. [텔레메트리](/docs/permissions/index#텔레메트리)를 참고하세요.
+- **텔레메트리를 읽을 수 있는 역할.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member, Telemetry Viewer 중 하나이거나 Read Traces 권한이 있는 사용자 지정 역할입니다. 역할의 범위에 따라 누구의 스팬을 볼 수 있는지가 정해집니다. [텔레메트리](/docs/permissions/index#텔레메트리)를 참고하세요.
 
 ## 요청 찾기
 

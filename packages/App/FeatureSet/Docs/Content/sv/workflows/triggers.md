@@ -202,7 +202,7 @@ För att testa en händelseutlösare utan att vänta på händelsen klickar du p
 | **Incident**                              | Reagera när en incident deklareras, uppdateras (kvitterad, löst) eller tas bort.         |
 | **Larm**                                  | Samma tre händelser, för larm.                                                            |
 | **Övervakning**                           | Reagera när en monitor läggs till, redigeras eller tas bort.                              |
-| **Schemalagd underhållshändelse**         | Meddela ett underhållsfönster automatiskt när det schemaläggs.                            |
+| **Underhållshändelse**         | Meddela ett underhållsfönster automatiskt när det schemaläggs.                            |
 | **Statussideprenumerant**                | Välkomna någon som prenumererar på en statussida.                                         |
 | **Jourpolicy**                            | Synkronisera ändringar i policyn med ett annat jourschemasystem.                          |
 

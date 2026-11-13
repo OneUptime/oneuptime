@@ -104,7 +104,7 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 ]
 ```
 
-[服务目录](/docs/telemetry/services#服务如何进入目录) 说明了固定的名称如何决定服务。Kubernetes 代理的 Runner 和 AI 代理，以及基础设施 AI 代理，不会使用固定了名称的密钥注册：请给它们一个没有固定名称的服务器密钥。
+[服务](/docs/telemetry/services#服务如何进入目录) 说明了固定的名称如何决定服务。Kubernetes 代理的 Runner 和 AI 代理，以及基础设施 AI 代理，不会使用固定了名称的密钥注册：请给它们一个没有固定名称的服务器密钥。
 
 ## 轮换、停用或删除密钥
 
@@ -155,7 +155,7 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): 用你的密钥发送追踪、指标和日志。
-- [服务目录](/docs/telemetry/services): 查看你的遥测所归入的服务。
+- [服务](/docs/telemetry/services): 查看你的遥测所归入的服务。
 - [数据保留](/docs/telemetry/data-retention): 决定数据保留多长时间。
 - [丢弃过滤器与清理规则](/docs/telemetry/drop-filters-and-scrub-rules): 在存储之前丢弃或掩码数据。
 - [摄取预算](/docs/telemetry/ingestion-budgets): 限制每个密钥一天内最多可发送多少。
