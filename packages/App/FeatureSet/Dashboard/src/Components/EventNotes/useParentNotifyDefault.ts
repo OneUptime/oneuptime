@@ -1,6 +1,7 @@
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Select from "Common/Types/BaseDatabase/Select";
 import ObjectID from "Common/Types/ObjectID";
+import { translationKey } from "Common/Types/Translator";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { useEffect, useState } from "react";
@@ -33,6 +34,15 @@ export interface UseParentNotifyDefaultResult {
   isPrivate: boolean;
   error: string;
 }
+
+/*
+ * What a public note page says first when the event's setting did not load
+ * and nobody explained why (ErrorMessage's whatFailed): without it, the page
+ * shows no notes. Left out, that line said "This did not finish."
+ */
+export const PUBLIC_NOTES_LOAD_FAILED: string = translationKey(
+  "Couldn't load the public notes.",
+);
 
 interface LoadedSetting {
   // The event the answer belongs to.

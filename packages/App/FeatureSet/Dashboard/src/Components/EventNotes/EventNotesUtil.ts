@@ -676,6 +676,22 @@ export function getNotesCopy(
 }
 
 /*
+ * What failed, said first when posting, editing or deleting a note fails
+ * with an error nobody explained (ErrorExplanation): the composer's error
+ * line and the delete dialog have no heading that says it. English keys,
+ * looked up where they are shown.
+ */
+export const NoteActionFailedCopy: {
+  post: string;
+  edit: string;
+  delete: string;
+} = {
+  post: translationKey("Couldn't post the note."),
+  edit: translationKey("Couldn't save your changes."),
+  delete: translationKey("Couldn't delete the note."),
+};
+
+/*
  * Whether the viewer holds one of a column's permissions for an operation,
  * by the server's column rule (HeldPermissionsUtil.holdsColumnPermission):
  * one of the permissions held - Public by everyone - no team block on any of
