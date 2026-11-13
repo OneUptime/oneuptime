@@ -376,6 +376,21 @@ const startsAutolink: (text: string, index: number) => boolean = (
 };
 
 /*
+ * Where the character the backslash at `index` escapes ends: past both
+ * halves of a surrogate pair - an emoji - so a piece held back never
+ * starts or ends between them.
+ */
+const getEscapeEnd: (text: string, index: number) => number = (
+  text: string,
+  index: number,
+): number => {
+  return isHighSurrogate(text.charCodeAt(index + 1)) &&
+    isLowSurrogate(text.charCodeAt(index + 2))
+    ? index + 3
+    : index + 2;
+};
+
+/*
  * Reads one character of a line - or a backslash and the character it
  * escapes - in `reading`, moving it to the part of the link the character
  * starts, and returns where the next character starts. A character that
@@ -393,7 +408,7 @@ const readLinkUnit: (
   switch (reading.part) {
     case "text":
       if (code === BACKSLASH) {
-        return index + 2;
+        return getEscapeEnd(text, index);
       }
 
       if (
@@ -461,7 +476,7 @@ const readLinkUnit: (
       if (code === BACKSLASH) {
         return isWhiteSpaceCode(text.charCodeAt(index + 1))
           ? index + 1
-          : index + 2;
+          : getEscapeEnd(text, index);
       }
 
       if (reading.isInline && code === OPEN_PARENTHESIS) {
@@ -478,7 +493,7 @@ const readLinkUnit: (
 
     case "angleDestination":
       if (code === BACKSLASH) {
-        return index + 2;
+        return getEscapeEnd(text, index);
       }
 
       if (code === GREATER_THAN) {
@@ -515,7 +530,7 @@ const readLinkUnit: (
 
     case "title":
       if (code === BACKSLASH) {
-        return index + 2;
+        return getEscapeEnd(text, index);
       }
 
       if (code === reading.closer) {

@@ -512,6 +512,110 @@ describe("OverLongText - a link across the start of a line's middle (#7229)", ()
     expect(heldLine.inView[1]).toBe('") ');
   });
 
+  // An emoji: one character, two halves of a surrogate pair.
+  const EMOJI: string = String.fromCodePoint(0x1f600);
+
+  // Whether `text` holds one half of a surrogate pair without the other.
+  const hasLoneSurrogate: (text: string) => boolean = (
+    text: string,
+  ): boolean => {
+    for (let index: number = 0; index < text.length; index++) {
+      const code: number = text.charCodeAt(index);
+
+      if (code >= 0xdc00 && code <= 0xdfff) {
+        return true;
+      }
+
+      if (code >= 0xd800 && code <= 0xdbff) {
+        const next: number = text.charCodeAt(index + 1);
+
+        if (!(next >= 0xdc00 && next <= 0xdfff)) {
+          return true;
+        }
+
+        index++;
+      }
+    }
+
+    return false;
+  };
+
+  test.each([
+    [
+      "a title",
+      '[Run](https://example.com/x "',
+      `") then ${WORDS}`,
+      "b".repeat(2000),
+    ],
+    [
+      "an address",
+      "[Run](https://example.com/",
+      ` "${TITLE}")`,
+      "b".repeat(2000),
+    ],
+    [
+      "an address in angle brackets",
+      "[Run](<https://example.com/",
+      `> "${TITLE}")`,
+      "b".repeat(2000),
+    ],
+  ])(
+    "an emoji a backslash in the kept start escapes, in %s, stays whole and in view: no piece starts or ends between its halves",
+    (_label: string, start: string, end: string, heldFirst: string) => {
+      // The backslash is the kept start's last character, the emoji the middle's first.
+      const line: string = `${start}${"b".repeat(OVER_LONG_LINE_KEPT_LENGTH - start.length - 1)}\\${EMOJI}${"b".repeat(2000)}${end}`;
+
+      expect(line.charAt(OVER_LONG_LINE_KEPT_LENGTH - 1)).toBe("\\");
+
+      const heldLine: HeldLine = holdBackLine(line);
+
+      expect(heldLine.inView[0]!.endsWith(`b\\${EMOJI}`)).toBe(true);
+      expect(heldLine.held[0]).toBe(heldFirst);
+      expect(heldLine.inView.filter(hasLoneSurrogate)).toEqual([]);
+      expect(heldLine.held.filter(hasLoneSurrogate)).toEqual([]);
+    },
+  );
+
+  test("lines of links, escapes and emoji, drawn at random, never part an emoji between what is in view and what is held back", () => {
+    const random: SeededRandom = seededRandom(72290);
+    const fragments: Array<string> = [
+      "[Run](",
+      "[Run](<",
+      "[s]: ",
+      ">",
+      " ",
+      '"',
+      "'",
+      "(",
+      ")",
+      "\\",
+      `\\${EMOJI}`,
+      EMOJI,
+      "word",
+      "a".repeat(300),
+    ];
+    let parted: number = 0;
+
+    for (let attempt: number = 0; attempt < 300; attempt++) {
+      let line: string = "";
+
+      while (line.length < OVER_LONG_LINE_LENGTH + 200) {
+        line += fragments[random(fragments.length)]!;
+      }
+
+      const heldLine: HeldLine = holdBackLine(line);
+
+      if (
+        heldLine.inView.some(hasLoneSurrogate) ||
+        heldLine.held.some(hasLoneSurrogate)
+      ) {
+        parted++;
+      }
+    }
+
+    expect(parted).toBe(0);
+  });
+
   test("what the kept start shows of a link in a code span or after a backslash is read as written", () => {
     // "\](" opens nothing: the cut is inside a word, held back to its end.
     const escaped: HeldLine = holdBackLine(`[Run\\](${ADDRESS} "${TITLE}")`);
