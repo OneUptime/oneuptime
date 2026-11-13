@@ -798,7 +798,13 @@ describe("PushRepeatControl - changing the interval", () => {
     expect(onChange.mock.calls).toEqual([[5], [15], [30]]);
     expect(pill().textContent).toBe(repeatsEvery(15));
     expect(control()).toHaveAttribute("data-repeat-every-minutes", "15");
-    expect(errorNote()).toHaveTextContent("Server Error");
+    /*
+     * "Server Error" says only that the change failed: since #6836 it is
+     * said as a problem the server could not explain.
+     */
+    expect(errorNote()!.textContent).toBe(
+      `${SAVE_FAILED} The server ran into a problem it could not explain, so this did not finish. Try again in a moment.`,
+    );
   });
 
   test("refusals in a row keep putting back the same stored interval", async () => {
