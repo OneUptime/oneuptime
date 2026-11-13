@@ -51831,5 +51831,15 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Zeitraum: {{range}}. Passen Sie die Filter an oder erweitern Sie den Zeitraum.",
   "On-Call Policy Created": "Bereitschaftsrichtlinie erstellt",
   "On-Call Schedule Added": "Bereitschaftsplan hinzugefügt",
-  "On-Call Schedule Removed": "Bereitschaftsplan entfernt"
+  "On-Call Schedule Removed": "Bereitschaftsplan entfernt",
+  "Couldn't post the note.": "Die Notiz konnte nicht hinzugefügt werden.",
+  "Couldn't save your changes.": "Ihre Änderungen konnten nicht gespeichert werden.",
+  "Couldn't delete the note.": "Die Notiz konnte nicht gelöscht werden.",
+  "Couldn't send the note for approval.": "Die Notiz konnte nicht zur Genehmigung gesendet werden.",
+  "Couldn't send the edit for approval.": "Die Bearbeitung konnte nicht zur Genehmigung gesendet werden.",
+  "Couldn't approve the note.": "Die Notiz konnte nicht genehmigt werden.",
+  "Couldn't reject the note.": "Die Notiz konnte nicht abgelehnt werden.",
+  "Couldn't publish the note.": "Die Notiz konnte nicht veröffentlicht werden.",
+  "Couldn't withdraw the edit.": "Die Bearbeitung konnte nicht zurückgezogen werden.",
+  "Couldn't load the public notes.": "Die öffentlichen Notizen konnten nicht geladen werden."
 }

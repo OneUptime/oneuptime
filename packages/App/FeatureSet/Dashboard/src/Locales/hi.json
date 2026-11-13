@@ -51831,5 +51831,15 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "समय सीमा: {{range}}। फ़िल्टर बदलकर या समय सीमा बढ़ाकर देखें।",
   "On-Call Policy Created": "ऑन-कॉल नीति बनाई गई",
   "On-Call Schedule Added": "ऑन-कॉल अनुसूची जोड़ी गई",
-  "On-Call Schedule Removed": "ऑन-कॉल अनुसूची हटाई गई"
+  "On-Call Schedule Removed": "ऑन-कॉल अनुसूची हटाई गई",
+  "Couldn't post the note.": "नोट जोड़ा नहीं जा सका।",
+  "Couldn't save your changes.": "आपके बदलाव सहेजे नहीं जा सके।",
+  "Couldn't delete the note.": "नोट हटाया नहीं जा सका।",
+  "Couldn't send the note for approval.": "नोट स्वीकृति के लिए नहीं भेजा जा सका।",
+  "Couldn't send the edit for approval.": "संपादन स्वीकृति के लिए नहीं भेजा जा सका।",
+  "Couldn't approve the note.": "नोट स्वीकृत नहीं किया जा सका।",
+  "Couldn't reject the note.": "नोट अस्वीकार नहीं किया जा सका।",
+  "Couldn't publish the note.": "नोट प्रकाशित नहीं किया जा सका।",
+  "Couldn't withdraw the edit.": "संपादन वापस नहीं लिया जा सका।",
+  "Couldn't load the public notes.": "सार्वजनिक नोट लोड नहीं हो सके।"
 }

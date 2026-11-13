@@ -2,6 +2,7 @@ import FileModel from "Common/Models/DatabaseModels/File";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
+import ErrorMessageText from "Common/UI/Components/ErrorMessage/ErrorMessageText";
 import FilePicker from "Common/UI/Components/FilePicker/FilePicker";
 import Icon from "Common/UI/Components/Icon/Icon";
 import KeyboardKey, {
@@ -19,6 +20,7 @@ import React, {
   useState,
 } from "react";
 import {
+  NoteActionFailedCopy,
   NotesCopy,
   NoteVisibility,
   fromDateTimeInputValue,
@@ -89,6 +91,12 @@ export interface ComponentProps {
   isPostedAtEditable: boolean;
   isSubmitting: boolean;
   error?: string | undefined;
+  /*
+   * What the composer was doing, as an English key looked up here: said
+   * first when the error is one nobody explained (ErrorExplanation). Left
+   * out, it is posting the note, or saving the edit.
+   */
+  errorWhatFailed?: string | undefined;
   onSubmit: () => void;
   onCancel?: (() => void) | undefined;
   // Templates, "Draft with AI" - shown at the start of the footer.
@@ -420,7 +428,26 @@ const NoteComposer: FunctionComponent<ComponentProps> = (
           className={`${insetBox} mt-3 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800`}
         >
           <Icon icon={IconProp.Error} className="mt-0.5 h-4 w-4 shrink-0" />
-          <span>{props.error}</span>
+          {/*
+           * Read as a list's failure reads (ErrorMessageText): an error
+           * nobody explained says what failed, why and what to do next,
+           * with the reference to give when the server failed (#6836); any
+           * other is in the reader's language, read the way it is written.
+           * It was the message as API.getFriendlyMessage words it: English
+           * on every page, and on a Persian one with its full stop at its
+           * start.
+           */}
+          <span className="min-w-0 flex-1">
+            <ErrorMessageText
+              message={props.error}
+              whatFailed={tx(
+                props.errorWhatFailed ||
+                  (props.mode === "edit"
+                    ? NoteActionFailedCopy.edit
+                    : NoteActionFailedCopy.post),
+              )}
+            />
+          </span>
         </div>
       )}
 

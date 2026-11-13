@@ -51831,5 +51831,15 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Tidsrum: {{range}}. Prøv at justere filtrene eller udvide tidsrummet.",
   "On-Call Policy Created": "Vagtpolitik oprettet",
   "On-Call Schedule Added": "Vagtplan tilføjet",
-  "On-Call Schedule Removed": "Vagtplan fjernet"
+  "On-Call Schedule Removed": "Vagtplan fjernet",
+  "Couldn't post the note.": "Noten kunne ikke tilføjes.",
+  "Couldn't save your changes.": "Dine ændringer kunne ikke gemmes.",
+  "Couldn't delete the note.": "Noten kunne ikke slettes.",
+  "Couldn't send the note for approval.": "Noten kunne ikke sendes til godkendelse.",
+  "Couldn't send the edit for approval.": "Redigeringen kunne ikke sendes til godkendelse.",
+  "Couldn't approve the note.": "Noten kunne ikke godkendes.",
+  "Couldn't reject the note.": "Noten kunne ikke afvises.",
+  "Couldn't publish the note.": "Noten kunne ikke offentliggøres.",
+  "Couldn't withdraw the edit.": "Redigeringen kunne ikke trækkes tilbage.",
+  "Couldn't load the public notes.": "De offentlige noter kunne ikke indlæses."
 }
