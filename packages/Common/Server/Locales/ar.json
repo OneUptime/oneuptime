@@ -195,7 +195,7 @@
   "Scheduled": "مجدول",
   "Scheduled Date:": "التاريخ المجدول:",
   "Scheduled Maintenance - {{title}}": "الصيانة المجدولة - {{title}}",
-  "Maintenance Event: {{title}}": "حدث الصيانة: {{title}}",
+  "Maintenance Event: {{title}}": "حدث صيانة: {{title}}",
   "Scheduled Maintenance State Update - {{statusPageName}}": "تحديث حالة الصيانة المجدولة - {{statusPageName}}",
   "Scheduled Maintenance Update - {{statusPageName}}": "تحديث الصيانة المجدولة - {{statusPageName}}",
   "Scheduled Maintenance: {{title}}": "الصيانة المجدولة: {{title}}",
