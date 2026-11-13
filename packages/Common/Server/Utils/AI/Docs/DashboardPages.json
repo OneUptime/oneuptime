@@ -683,6 +683,22 @@
     "billing": true
   },
   {
+    "title": "AI Results",
+    "where": [
+      "Project Settings",
+      "AI"
+    ],
+    "keywords": [
+      "pages avoided",
+      "fixes verified",
+      "root causes confirmed",
+      "ai quality",
+      "ai outcomes"
+    ],
+    "path": "/dashboard/:projectId/settings/ai-results",
+    "kind": "page"
+  },
+  {
     "title": "AI Logs",
     "where": [
       "Project Settings",

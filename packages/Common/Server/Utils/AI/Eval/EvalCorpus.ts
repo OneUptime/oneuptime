@@ -36,9 +36,9 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  * AIRunEvent stores the validated tool ARGUMENTS (`toolArguments`) and a
  * result SUMMARY (`resultSummary`: rowCount, durationInMs, isTruncated,
  * bytesSentToLlm, errorMessage) — never the tool's actual result rows. So the
- * corpus supports labeled-run SCORING (this file + EvalScores.ts) but not
- * offline REPLAY; see ReplayInvestigation.ts for exactly what full replay
- * would need.
+ * corpus supports labeled-run SCORING (this file + EvalScores.ts); offline
+ * REPLAY reads what a run saw from its recording instead (AIRunRecording,
+ * kept for 30 days: ReplayCorpus.ts + ReplayInvestigation.ts).
  *
  * "Data-bearing" is defined ONCE, in
  * AIConfidenceSignal.isDataBearingRowCount (rowCount > 0; rowCount 0 is
