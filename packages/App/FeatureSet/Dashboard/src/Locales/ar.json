@@ -51822,5 +51822,9 @@
   "Whether the OneUptime Proxmox agent is reading this cluster from the Proxmox VE API. It switches to Disconnected 15 to 20 minutes after data stops arriving, and to Can't read API when the agent is still running but has not read the cluster for that long. Either way, the numbers on this page are as it last read them.": "ما إذا كان وكيل OneUptime لـ Proxmox يقرأ هذا العنقود من API الخاصة بـ Proxmox VE. وتتحول الحالة إلى «غير متصل» بعد 15 إلى 20 دقيقة من توقف وصول البيانات، وإلى «لا يمكن قراءة API» عندما يظل الوكيل يعمل لكنه لم يقرأ العنقود طوال هذه المدة. وفي الحالتين، الأرقام في هذه الصفحة كما قرأها آخر مرة.",
   "The page paused recording with OneUptimeReplay.pause(). Nothing is captured until the page calls OneUptimeReplay.resume(); the visitor's input keeps the session open but does not resume recording.": "أوقفت الصفحة التسجيل مؤقتًا باستدعاء OneUptimeReplay.pause(). لا يُلتقط أي شيء حتى تستدعي الصفحة OneUptimeReplay.resume()؛ وتُبقي تفاعلات الزائر الجلسة مفتوحة لكنها لا تستأنف التسجيل.",
   "If this page should be recorded, find where it calls OneUptimeReplay.pause().": "إذا كان ينبغي تسجيل هذه الصفحة، فابحث عن الموضع الذي تستدعي فيه OneUptimeReplay.pause().",
-  "The page resumed recording with OneUptimeReplay.resume(). Recording goes on in the same session from a fresh snapshot, or in a new session if that one ended while recording was paused.": "استأنفت الصفحة التسجيل باستدعاء OneUptimeReplay.resume(). يتواصل التسجيل في الجلسة نفسها بلقطة جديدة، أو في جلسة جديدة إذا انتهت السابقة أثناء الإيقاف المؤقت."
+  "The page resumed recording with OneUptimeReplay.resume(). Recording goes on in the same session from a fresh snapshot, or in a new session if that one ended while recording was paused.": "استأنفت الصفحة التسجيل باستدعاء OneUptimeReplay.resume(). يتواصل التسجيل في الجلسة نفسها بلقطة جديدة، أو في جلسة جديدة إذا انتهت السابقة أثناء الإيقاف المؤقت.",
+  "Couldn't refresh the notes.": "تعذّر تحديث الملاحظات.",
+  "Couldn't search the notes.": "تعذّر البحث في الملاحظات.",
+  "Couldn't sort the notes.": "تعذّر ترتيب الملاحظات.",
+  "Couldn't load more notes.": "تعذّر تحميل المزيد من الملاحظات."
 }
