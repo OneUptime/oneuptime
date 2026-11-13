@@ -177,7 +177,7 @@ Reagieren Sie auf eine Nachricht im Kanal eines Vorfalls, einer Warnung, einer E
 
 | Reaktion | Gespeichert als |
 | --- | --- |
-| 📌 Ein Pin-Emoji oder Slacks eigenes **Pin to channel** | Eine private Notiz, die nur Ihr Team sieht |
+| 📌 Ein Pin-Emoji oder Slacks eigenes **Pin to channel** | Eine private Notiz, die nur lesen kann, wer den Datensatz sehen kann |
 | 📢 Ein Megafon- oder Lautsprecher-Emoji | Eine öffentliche Notiz, die auf der Statusseite erscheint. Nur Vorfälle und geplante Wartungsereignisse. Bei einem privaten Vorfall eine private Notiz, und die Bestätigung sagt, warum. Wenn öffentliche Notizen im Projekt eine Genehmigung brauchen, erscheint sie erst nach der Genehmigung, und die Bestätigung sagt, auf wen sie wartet: siehe [Genehmigung öffentlicher Notizen](/docs/incidents/notes-owners-and-feed#genehmigung-öffentlicher-notizen). |
 
 Die Notiz übernimmt die Nachricht so, wie Slack sie gezeigt hat: ihre Formatierung, Links und Code, die erwähnten Personen und Kanäle mit Namen und ihre Dateien und Bilder als Links darauf. Eine öffentliche Notiz lässt die Dateien und Bilder weg, da sie sich nur für Ihr Team öffnen.
@@ -284,7 +284,7 @@ Die Nachricht eines Vorfalls hat vier Schaltflächen, **Acknowledge Incident**, 
 | **Change Severity** | Legt den Schweregrad des Vorfalls fest. |
 | **Change Incident State** | Versetzt den Vorfall in einen späteren Status. |
 | **Assign Role** | Gibt jemandem eine Rolle im Vorfall, etwa **Incident Commander**. Eine Rolle für nur eine Person geht an diese Person über. |
-| **Page Someone** | Alarmiert Personen, ein Team, wer in einem Bereitschaftsplan gerade Bereitschaft hat, oder eine Bereitschaftsrichtlinie zu dem Vorfall, mit einer optionalen Nachricht. Personen werden alarmiert, bis eine von ihnen antwortet; eine Richtlinie alarmiert, bis jemand den Vorfall bestätigt. |
+| **Page Someone** | Alarmiert Personen, ein Team, wer in einem Bereitschaftsplan gerade Bereitschaft hat, oder eine Bereitschaftsrichtlinie zu dem Vorfall, mit einer optionalen Nachricht. Alle, die es alarmiert, auch die Personen einer Richtlinie, werden alarmiert, bis eine von ihnen antwortet oder der Vorfall behoben ist. |
 | **Edit Custom Fields** | Setzt die benutzerdefinierten Felder des Vorfalls, jedes ausgefüllt mit dem, was der Vorfall enthält. Ein leer gelassenes Feld wird geleert. |
 
 `/oneuptime incident 42` zeigt Vorfall 42, mit diesen Schaltflächen und seinem Menü, in einer Nachricht, die nur Sie sehen. Schreiben Sie die Nummer so, wie OneUptime sie zeigt: `42`, `#42` oder `INC-42`. Im eigenen Kanal eines Vorfalls zeigt `/oneuptime incident` allein diesen Vorfall.

@@ -8,6 +8,7 @@ import WorkspaceMemberActions, {
   WorkspaceEventType,
 } from "../../../../Server/Utils/Workspace/WorkspaceMemberActions";
 import WorkspaceNoteForm, {
+  SCHEDULED_MAINTENANCE_NOTE_NOUN,
   WORKSPACE_NOTE_FORM_TEXT,
   WorkspaceNoteFormType,
   WorkspaceSubmittedNote,
@@ -68,7 +69,6 @@ describe("WorkspaceNoteForm: the words of the form", () => {
       publicOption: "Public Note (Will be posted on Status Page)",
       publicOptionWithApproval:
         "Public Note (Posted on Status Page once approved)",
-      privateOption: "Private Note (Only visible to team members)",
       noteLabel: "Note",
       notePlaceholder: "Note",
       noteDescription: "Please type in plain text or markdown.",
@@ -180,7 +180,8 @@ describe("WorkspaceNoteForm.getSlackForm", () => {
           value: "public",
         },
         {
-          label: "Private Note (Only visible to team members)",
+          label:
+            "Private Note (Only people who can see the incident can read it)",
           value: "private",
         },
       ],
@@ -210,7 +211,8 @@ describe("WorkspaceNoteForm.getSlackForm", () => {
         value: "public",
       },
       {
-        label: "Private Note (Only visible to team members)",
+        label:
+          "Private Note (Only people who can see the incident episode can read it)",
         value: "private",
       },
     ]);
@@ -241,6 +243,65 @@ describe("WorkspaceNoteForm.getSlackForm", () => {
 
     expect(form.title).toBe("Add Private Note");
     expect(JSON.stringify(form)).not.toContain("Public Note");
+  });
+});
+
+/*
+ * Who can read a private note, as the form's Private Note option says it
+ * (#7595): the people who can see the record it is on - never "team
+ * members", which read as one of OneUptime's Teams, or as the team in
+ * Microsoft Teams. Slack refuses an option longer than 75 characters.
+ */
+describe("WorkspaceNoteForm.getPrivateOption", () => {
+  const SLACK_OPTION_TEXT_LIMIT: number = 75;
+
+  test.each([
+    [
+      PrivateRecordKind.Incident,
+      "Private Note (Only people who can see the incident can read it)",
+    ],
+    [
+      PrivateRecordKind.IncidentEpisode,
+      "Private Note (Only people who can see the incident episode can read it)",
+    ],
+  ])("an %s's form names it", (kind: PrivateRecordKind, option: string) => {
+    expect(WorkspaceNoteForm.getRecordPrivateOption(kind)).toBe(option);
+  });
+
+  test("a scheduled maintenance event's forms call it the maintenance event", () => {
+    expect(SCHEDULED_MAINTENANCE_NOTE_NOUN).toBe("maintenance event");
+    expect(
+      WorkspaceNoteForm.getPrivateOption(SCHEDULED_MAINTENANCE_NOTE_NOUN),
+    ).toBe(
+      "Private Note (Only people who can see the maintenance event can read it)",
+    );
+  });
+
+  test("every option fits Slack's 75 characters, and none says team", () => {
+    const options: Array<string> = [
+      WorkspaceNoteForm.getRecordPrivateOption(PrivateRecordKind.Incident),
+      WorkspaceNoteForm.getRecordPrivateOption(
+        PrivateRecordKind.IncidentEpisode,
+      ),
+      WorkspaceNoteForm.getPrivateOption(SCHEDULED_MAINTENANCE_NOTE_NOUN),
+      WorkspaceNoteForm.getPublicOption(false),
+      WorkspaceNoteForm.getPublicOption(true),
+    ];
+
+    for (const option of options) {
+      expect({
+        option: option,
+        fits: option.length <= SLACK_OPTION_TEXT_LIMIT,
+      }).toEqual({ option: option, fits: true });
+      expect(option.toLowerCase()).not.toContain("team");
+    }
+  });
+
+  test("the form's words no longer hold one private option for every record", () => {
+    expect(Object.keys(WORKSPACE_NOTE_FORM_TEXT)).not.toContain(
+      "privateOption",
+    );
+    expect(JSON.stringify(WORKSPACE_NOTE_FORM_TEXT)).not.toContain("team");
   });
 });
 

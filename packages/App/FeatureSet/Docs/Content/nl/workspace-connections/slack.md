@@ -177,7 +177,7 @@ Reageer op een bericht in het kanaal van een incident, waarschuwing, episode of 
 
 | Reactie | Opgeslagen als |
 | --- | --- |
-| 📌 Een punaise-emoji, of Slacks eigen **Pin to channel** | Een privénotitie, alleen zichtbaar voor je team |
+| 📌 Een punaise-emoji, of Slacks eigen **Pin to channel** | Een privénotitie, die alleen kan lezen wie het record kan zien |
 | 📢 Een megafoon- of luidspreker-emoji | Een openbare notitie, getoond op de statuspagina. Alleen incidenten en geplande onderhoudsgebeurtenissen. Bij een privé-incident een privénotitie, en de bevestiging zegt waarom. Als openbare notities in het project goedkeuring nodig hebben, wordt ze pas getoond nadat ze is goedgekeurd, en de bevestiging zegt op wie ze wacht: zie [Goedkeuring van openbare notities](/docs/incidents/notes-owners-and-feed#goedkeuring-van-openbare-notities). |
 
 De notitie houdt het bericht zoals Slack het liet zien: de opmaak, links en code, de personen en kanalen die het noemt bij naam, en de bestanden en afbeeldingen als links ernaar. Een openbare notitie laat de bestanden en afbeeldingen weg, omdat die alleen voor je team opengaan.
@@ -284,7 +284,7 @@ Het bericht van een incident heeft vier knoppen, **Acknowledge Incident**, **Res
 | **Change Severity** | Stelt de ernst van het incident in. |
 | **Change Incident State** | Zet het incident in een latere status. |
 | **Assign Role** | Geeft iemand een rol in het incident, zoals **Incident Commander**. Een rol voor één persoon gaat naar die persoon over. |
-| **Page Someone** | Roept mensen, een team, wie in een schema nu dienst heeft, of een bereikbaarheidsbeleid op over het incident, met een optioneel bericht. Mensen worden opgeroepen tot een van hen antwoordt; een beleid roept op tot iemand het incident bevestigt. |
+| **Page Someone** | Roept mensen, een team, wie in een schema nu dienst heeft, of een bereikbaarheidsbeleid op over het incident, met een optioneel bericht. Iedereen die het oproept, ook de mensen van een beleid, wordt opgeroepen tot een van hen antwoordt of het incident is opgelost. |
 | **Edit Custom Fields** | Stelt de aangepaste velden van het incident in, elk ingevuld met wat het incident bevat. Een leeg gelaten veld wordt gewist. |
 
 `/oneuptime incident 42` toont incident 42, met deze knoppen en zijn menu, in een bericht dat alleen jij ziet. Typ het nummer zoals OneUptime het toont: `42`, `#42` of `INC-42`. In het eigen kanaal van een incident toont `/oneuptime incident` zonder meer dat incident.

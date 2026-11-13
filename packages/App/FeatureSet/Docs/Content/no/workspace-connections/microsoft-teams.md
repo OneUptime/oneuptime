@@ -161,7 +161,7 @@ Reager på en melding, eller et svar, i kanalen OneUptime opprettet for en hende
 
 | Reaksjon | Lagret som |
 | --- | --- |
-| 📌 eller 📍 | Et privat notat, som bare teamet ditt ser |
+| 📌 eller 📍 | Et privat notat, som bare de som kan se posten, kan lese |
 | 📣 eller 📢 | Et offentlig notat, vist på statussiden. Bare hendelser og planlagte vedlikeholdsbegivenheter. På en privat hendelse et privat notat, og bekreftelsen sier hvorfor. Når prosjektets offentlige notater krever godkjenning, vises det først når det er godkjent, og bekreftelsen sier hvem det venter på: se [Godkjenning av offentlige notater](/docs/incidents/notes-owners-and-feed#godkjenning-av-offentlige-notater). |
 
 Notatet beholder meldingen slik Microsoft Teams viste den: formateringen, lenkene og koden, personene den nevner, ved navn, og filene og bildene som lenker til dem. Et offentlig notat utelater filene og bildene, siden de bare åpnes for teamet ditt.
@@ -256,7 +256,7 @@ Kortet til en hendelse har fire knapper, **Acknowledge Incident**, **Resolve Inc
 | **Change Severity** | Setter alvorlighetsgraden til hendelsen. |
 | **Change Incident State** | Flytter hendelsen til en senere tilstand. |
 | **Assign Role** | Gir noen en rolle i hendelsen, som **Incident Commander**. En rolle for én person går over til vedkommende. |
-| **Page Someone** | Tilkaller personer, et team, den som har vakt i en vaktplan nå, eller en vaktpolicy om hendelsen, med en valgfri melding. Personer tilkalles til en av dem svarer; en policy tilkaller til noen bekrefter hendelsen. |
+| **Page Someone** | Tilkaller personer, et team, den som har vakt i en vaktplan nå, eller en vaktpolicy om hendelsen, med en valgfri melding. Alle den tilkaller, også personene i en policy, tilkalles til en av dem svarer eller hendelsen er løst. |
 | **Edit Custom Fields** | Setter de egendefinerte feltene til hendelsen, hvert fylt ut med det hendelsen har. Et felt som står tomt, tømmes. |
 
 `incident 42`, skrevet til boten, svarer med hendelse 42, disse knappene og menyen. Skriv nummeret slik OneUptime viser det: `42`, `#42` eller `INC-42`. I den egne kanalen til en hendelse viser `incident` alene den hendelsen.

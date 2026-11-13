@@ -196,7 +196,7 @@ describe("the bulk Change State form", () => {
       stateOptions: STATE_OPTIONS,
       noteType: BulkStateChangeNoteType.Private,
       noteTitle: "Private Note",
-      noteDescription: "Only your team can see it.",
+      noteDescription: "Only people who can see an alert can read it.",
       noteTemplates: TEMPLATES,
     });
 

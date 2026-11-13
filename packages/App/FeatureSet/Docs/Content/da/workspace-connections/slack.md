@@ -177,7 +177,7 @@ Reagér på en besked i kanalen for en hændelse, advarsel, episode eller planla
 
 | Reaktion | Gemt som |
 | --- | --- |
-| 📌 En knappenål-emoji, eller Slacks egen **Pin to channel** | En privat note, som kun dit team ser |
+| 📌 En knappenål-emoji, eller Slacks egen **Pin to channel** | En privat note, som kun dem, der kan se posten, kan læse |
 | 📢 En megafon- eller højttaler-emoji | En offentlig note, vist på statussiden. Kun hændelser og planlagte vedligeholdelsesbegivenheder. På en privat hændelse en privat note, og bekræftelsen siger hvorfor. Når projektets offentlige noter kræver godkendelse, vises den først, når den er godkendt, og bekræftelsen siger, hvem den venter på: se [Godkendelse af offentlige noter](/docs/incidents/notes-owners-and-feed#godkendelse-af-offentlige-noter). |
 
 Noten bevarer beskeden, som Slack viste den: dens formatering, links og kode, de personer og kanaler, den nævner, ved navn, og dens filer og billeder som links til dem. En offentlig note udelader filerne og billederne, da de kun åbner for dit team.
@@ -284,7 +284,7 @@ En hændelses besked har fire knapper, **Acknowledge Incident**, **Resolve Incid
 | **Change Severity** | Sætter hændelsens alvorlighed. |
 | **Change Incident State** | Flytter hændelsen til en senere tilstand. |
 | **Assign Role** | Giver nogen en rolle i hændelsen, som **Incident Commander**. En rolle til én person går over til vedkommende. |
-| **Page Someone** | Tilkalder personer, et team, den der har vagt i en vagtplan, eller en vagtpolitik om hændelsen, med en valgfri besked. Personer tilkaldes, indtil en af dem svarer; en politik tilkalder, indtil nogen kvitterer for hændelsen. |
+| **Page Someone** | Tilkalder personer, et team, den der har vagt i en vagtplan, eller en vagtpolitik om hændelsen, med en valgfri besked. Alle, den tilkalder, også en politiks personer, tilkaldes, indtil en af dem svarer, eller hændelsen er løst. |
 | **Edit Custom Fields** | Sætter hændelsens brugerdefinerede felter, hvert udfyldt med det, hændelsen har. Et felt, der efterlades tomt, ryddes. |
 
 `/oneuptime incident 42` viser hændelse 42, med disse knapper og dens menu, i en besked, som kun du kan se. Skriv nummeret, som OneUptime viser det: `42`, `#42` eller `INC-42`. I en hændelses egen kanal viser `/oneuptime incident` alene den hændelse.

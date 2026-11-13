@@ -161,7 +161,7 @@ Réagissez à un message, ou à une réponse, dans le canal que OneUptime a cré
 
 | Réaction | Enregistré comme |
 | --- | --- |
-| 📌 ou 📍 | Une note privée, visible seulement par votre équipe |
+| 📌 ou 📍 | Une note privée, lisible uniquement par les personnes qui peuvent voir l'enregistrement |
 | 📣 ou 📢 | Une note publique, affichée sur la page de statut. Incidents et événements de maintenance planifiée uniquement. Sur un incident privé, une note privée, et la confirmation dit pourquoi. Quand les notes publiques du projet doivent être approuvées, elle n'est affichée qu'une fois approuvée, et la confirmation dit qui elle attend : voir [Approbation des notes publiques](/docs/incidents/notes-owners-and-feed#approbation-des-notes-publiques). |
 
 La note reprend le message tel que Microsoft Teams l'affichait : sa mise en forme, ses liens et son code, les personnes qu'il mentionne par leur nom, et ses fichiers et images sous forme de liens. Une note publique laisse de côté les fichiers et les images, puisqu'ils ne s'ouvrent que pour votre équipe.
@@ -256,7 +256,7 @@ La carte d'un incident a quatre boutons, **Acknowledge Incident**, **Resolve Inc
 | **Change Severity** | Définit la gravité de l'incident. |
 | **Change Incident State** | Fait passer l'incident à un état suivant. |
 | **Assign Role** | Donne à quelqu'un un rôle sur l'incident, comme **Incident Commander**. Un rôle réservé à une seule personne lui revient. |
-| **Page Someone** | Alerte des personnes, une équipe, la personne d'astreinte dans un planning, ou une politique d'astreinte au sujet de l'incident, avec un message facultatif. Les personnes sont alertées jusqu'à ce que l'une d'elles réponde ; une politique alerte jusqu'à ce que quelqu'un accuse réception de l'incident. |
+| **Page Someone** | Alerte des personnes, une équipe, la personne d'astreinte dans un planning, ou une politique d'astreinte au sujet de l'incident, avec un message facultatif. Toutes les personnes qu'il alerte, y compris celles d'une politique, sont alertées jusqu'à ce que l'une d'elles réponde ou que l'incident soit résolu. |
 | **Edit Custom Fields** | Définit les champs personnalisés de l'incident, chacun rempli avec ce que contient l'incident. Un champ laissé vide est effacé. |
 
 `incident 42`, écrit au bot, répond avec l'incident 42, ces boutons et son menu. Tapez le numéro tel que OneUptime l'affiche : `42`, `#42` ou `INC-42`. Dans le canal propre à un incident, `incident` seul affiche cet incident.

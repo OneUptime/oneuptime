@@ -161,7 +161,7 @@ Reagieren Sie auf eine Nachricht oder eine Antwort in dem Kanal, den OneUptime f
 
 | Reaktion | Gespeichert als |
 | --- | --- |
-| 📌 oder 📍 | Eine private Notiz, die nur Ihr Team sieht |
+| 📌 oder 📍 | Eine private Notiz, die nur lesen kann, wer den Datensatz sehen kann |
 | 📣 oder 📢 | Eine öffentliche Notiz, die auf der Statusseite erscheint. Nur Vorfälle und geplante Wartungsereignisse. Bei einem privaten Vorfall eine private Notiz, und die Bestätigung sagt, warum. Wenn öffentliche Notizen im Projekt eine Genehmigung brauchen, erscheint sie erst nach der Genehmigung, und die Bestätigung sagt, auf wen sie wartet: siehe [Genehmigung öffentlicher Notizen](/docs/incidents/notes-owners-and-feed#genehmigung-öffentlicher-notizen). |
 
 Die Notiz übernimmt die Nachricht so, wie Microsoft Teams sie gezeigt hat: ihre Formatierung, Links und Code, die erwähnten Personen mit Namen und ihre Dateien und Bilder als Links darauf. Eine öffentliche Notiz lässt die Dateien und Bilder weg, da sie sich nur für Ihr Team öffnen.
@@ -256,7 +256,7 @@ Die Karte eines Vorfalls hat vier Schaltflächen, **Acknowledge Incident**, **Re
 | **Change Severity** | Legt den Schweregrad des Vorfalls fest. |
 | **Change Incident State** | Versetzt den Vorfall in einen späteren Status. |
 | **Assign Role** | Gibt jemandem eine Rolle im Vorfall, etwa **Incident Commander**. Eine Rolle für nur eine Person geht an diese Person über. |
-| **Page Someone** | Alarmiert Personen, ein Team, wer in einem Bereitschaftsplan gerade Bereitschaft hat, oder eine Bereitschaftsrichtlinie zu dem Vorfall, mit einer optionalen Nachricht. Personen werden alarmiert, bis eine von ihnen antwortet; eine Richtlinie alarmiert, bis jemand den Vorfall bestätigt. |
+| **Page Someone** | Alarmiert Personen, ein Team, wer in einem Bereitschaftsplan gerade Bereitschaft hat, oder eine Bereitschaftsrichtlinie zu dem Vorfall, mit einer optionalen Nachricht. Alle, die es alarmiert, auch die Personen einer Richtlinie, werden alarmiert, bis eine von ihnen antwortet oder der Vorfall behoben ist. |
 | **Edit Custom Fields** | Setzt die benutzerdefinierten Felder des Vorfalls, jedes ausgefüllt mit dem, was der Vorfall enthält. Ein leer gelassenes Feld wird geleert. |
 
 `incident 42`, an den Bot geschrieben, antwortet mit Vorfall 42, diesen Schaltflächen und seinem Menü. Schreiben Sie die Nummer so, wie OneUptime sie zeigt: `42`, `#42` oder `INC-42`. Im eigenen Kanal eines Vorfalls zeigt `incident` allein diesen Vorfall.

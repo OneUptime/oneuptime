@@ -29,6 +29,8 @@
  *   ?fail=      comma separated: list, create, update, delete, resend,
  *               templates, ai. The matching call throws HTTPErrorResponse.
  *   ?theme=     dark adds html.dark (handled by server.js).
+ *   ?lang=      en (default) | de | ar: the Dashboard's own words in
+ *               German or Arabic (an Arabic page reads from the right).
  *
  * Every read and write is recorded on window.__eventNotesFixture:
  *   getItemRequests, listRequests, countRequests, apiRequests, creates,
@@ -102,6 +104,10 @@ import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
 import PermissionUtil from "Common/UI/Utils/Permission";
+import { followLanguageForPage } from "Common/UI/Utils/PageLanguage";
+import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
+import DE from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
+import AR from "../../../App/FeatureSet/Dashboard/src/Locales/ar.json";
 
 /*
  * ---------------------------------------------------------------------------
@@ -129,6 +135,10 @@ const templatesMode = ["none", "many"].includes(params.get("templates"))
 const isQuietIncident = params.get("quiet") === "1";
 const isPrivateEvent = params.get("private") === "1";
 const failures = new Set((params.get("fail") || "").split(",").filter(Boolean));
+// ?lang=de|ar: the page in German or Arabic, from the Dashboard's own files.
+const language = ["de", "ar"].includes(params.get("lang"))
+  ? params.get("lang")
+  : "en";
 
 const NOW = new Date();
 const MINUTE = 60 * 1000;
@@ -974,11 +984,27 @@ API.put = async (options) => handleApi("PUT", options);
 API.delete = async (options) => handleApi("DELETE", options);
 API.fetch = async (options) => handleApi(options.method || "GET", options);
 
+/*
+ * The Dashboard looks every string up by its English text, so the
+ * separators i18next reads in a key (the "." and ":" of a sentence) are
+ * turned off. <html lang> and <html dir> follow the language, as the
+ * Dashboard's own set-up has them (followLanguageForPage): an Arabic page
+ * reads from the right.
+ */
+followLanguageForPage(i18next);
+followLanguageForDates(i18next);
+
 await i18next.use(initReactI18next).init({
-  lng: "en",
+  lng: language,
   fallbackLng: "en",
-  resources: { en: { translation: {} } },
+  resources: {
+    en: { translation: {} },
+    de: { translation: DE },
+    ar: { translation: AR },
+  },
   interpolation: { escapeValue: false },
+  keySeparator: false,
+  nsSeparator: false,
 });
 
 /*

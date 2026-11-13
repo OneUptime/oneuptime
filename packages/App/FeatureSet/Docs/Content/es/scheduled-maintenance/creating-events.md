@@ -124,7 +124,7 @@ Todo lo del formulario se puede cambiar en las páginas del evento, excepto los 
 ## Publicar notas mientras avanza el trabajo
 
 - Las **Notas públicas** son actualizaciones para tus clientes: se muestran en las páginas de estado del evento, y cada una puede avisar a sus suscriptores con **Notificar a los suscriptores de la página de estado**.
-- Las **Notas privadas** son solo para tu equipo.
+- Las **Notas privadas** solo puede leerlas quien puede ver el evento.
 
 Escribe una en la página **Notas públicas** o **Notas privadas** del evento, o desde el menú **Acciones** del **Feed del mantenimiento programado** con **Añadir nota pública** o **Añadir nota privada**. El mismo menú ejecuta un runbook con **Ejecutar runbook**. Una plantilla de nota rellena el texto que tu equipo escribe a menudo: consulta [Reglas y ajustes del mantenimiento](/docs/scheduled-maintenance/settings#plantillas-de-notas).
 

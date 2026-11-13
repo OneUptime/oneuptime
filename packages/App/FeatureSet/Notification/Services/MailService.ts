@@ -697,15 +697,10 @@ export default class MailService {
     }
 
     /*
-     * Host/port/username are SMTP-only. Microsoft Graph posts to graph.microsoft.com
+     * Host/port are SMTP-only. Microsoft Graph posts to graph.microsoft.com
      * directly and uses OAuth credentials, not SMTP AUTH.
      */
     if (transportType === MailTransportType.SMTP) {
-      if (!obj["SMTP_USERNAME"]) {
-        logger.error("SMTP_USERNAME env var not found", EXTERNAL_FAULT);
-        return false;
-      }
-
       if (!obj["SMTP_PORT"]) {
         logger.error("SMTP_PORT env var not found", EXTERNAL_FAULT);
         return false;
@@ -742,6 +737,21 @@ export default class MailService {
         ? SMTPAuthenticationType.OAuth
         : (obj["SMTP_AUTH_TYPE"] as SMTPAuthenticationType) ||
           SMTPAuthenticationType.UsernamePassword;
+
+    /*
+     * The username is who an SMTP server is signed in to as: with a
+     * password, or the mailbox OAuth signs in as. A relay that needs no
+     * sign-in has none - ProjectSmtpConfigService.toEmailServer hands it on
+     * without one - and Microsoft Graph sends as the From Email (#7833).
+     */
+    if (
+      transportType === MailTransportType.SMTP &&
+      authType !== SMTPAuthenticationType.None &&
+      !obj["SMTP_USERNAME"]
+    ) {
+      logger.error("SMTP_USERNAME env var not found", EXTERNAL_FAULT);
+      return false;
+    }
 
     if (authType === SMTPAuthenticationType.UsernamePassword) {
       if (!obj["SMTP_PASSWORD"]) {

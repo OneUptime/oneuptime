@@ -26,6 +26,7 @@ import {
   getBreadcrumbAttributes,
   groupBreadcrumbEvents,
   sortBreadcrumbEvents,
+  UNNAMED_EVENT_TEXT,
 } from "../../Utils/BreadcrumbTimelinePresentation";
 import ExceptionSegmentedControl from "./ExceptionSegmentedControl";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -138,7 +139,9 @@ const CategoryFilter: FunctionComponent<CategoryFilterProps> = (
         }`}
       >
         {translator.translateText("All")}
-        <span className="tabular-nums opacity-70">{props.total}</span>
+        <span className="tabular-nums opacity-70">
+          {translator.formatNumber(props.total)}
+        </span>
       </button>
       {BREADCRUMB_CATEGORY_ORDER.filter((category: BreadcrumbCategory) => {
         return (props.counts.get(category) || 0) > 0;
@@ -164,7 +167,7 @@ const CategoryFilter: FunctionComponent<CategoryFilterProps> = (
             <Icon icon={style.icon} className="h-3.5 w-3.5" />
             {translator.translateText(BREADCRUMB_CATEGORY_LABELS[category])}
             <span className="tabular-nums opacity-70">
-              {props.counts.get(category)}
+              {translator.formatNumber(props.counts.get(category) || 0)}
             </span>
           </button>
         );
@@ -284,6 +287,12 @@ const TimelineRow: FunctionComponent<TimelineRowProps> = (
     return formatBreadcrumbClockTime(time);
   };
 
+  // An event that says nothing about itself reads "Event" in the reader's words.
+  const summary: string =
+    group.summary ||
+    translator.translateText(UNNAMED_EVENT_TEXT) ||
+    UNNAMED_EVENT_TEXT;
+
   const eventName: string = group.events[0]!.name;
   const secondaryParts: Array<string> = [];
 
@@ -356,10 +365,10 @@ const TimelineRow: FunctionComponent<TimelineRowProps> = (
                 className={`min-w-0 flex-1 truncate font-mono text-[13px] leading-6 ${
                   isException ? "font-semibold text-red-800" : "text-gray-900"
                 }`}
-                title={group.summary}
+                title={summary}
                 data-testid="breadcrumb-summary"
               >
-                {group.summary}
+                {summary}
               </p>
               <span
                 className={`flex-shrink-0 whitespace-nowrap font-mono text-xs leading-6 tabular-nums ${
@@ -410,7 +419,7 @@ const TimelineRow: FunctionComponent<TimelineRowProps> = (
                   className="rounded-full bg-gray-100 px-1.5 font-semibold tabular-nums text-gray-600"
                   data-testid="breadcrumb-count"
                 >
-                  ×{group.count}
+                  ×{translator.formatNumber(group.count)}
                 </span>
               )}
               {secondaryParts.map((part: string) => {

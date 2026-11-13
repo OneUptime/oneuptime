@@ -177,7 +177,7 @@ React to a message in the channel of an incident, alert, episode or scheduled ma
 
 | Reaction | Saved as |
 | --- | --- |
-| 📌 A pin emoji, or Slack's own **Pin to channel** | A private note, seen only by your team |
+| 📌 A pin emoji, or Slack's own **Pin to channel** | A private note, read only by the people who can see the record |
 | 📢 A megaphone or loudspeaker emoji | A public note, shown on the status page. Incidents and scheduled maintenance events only. On a private incident, a private note, and the confirmation says why. When the project's public notes need approval, it is shown once approved, and the confirmation says who it waits for: see [Public note approval](/docs/incidents/notes-owners-and-feed#public-note-approval). |
 
 The note keeps the message as Slack showed it: its formatting, links and code, the people and channels it mentions by name, and its files and images as links to them. A public note leaves the files and images out, since they open only for your team.
@@ -284,7 +284,7 @@ An incident's message has four buttons, **Acknowledge Incident**, **Resolve Inci
 | **Change Severity** | Sets the incident's severity. |
 | **Change Incident State** | Moves the incident to a later state. |
 | **Assign Role** | Gives somebody a role on the incident, such as **Incident Commander**. A role that takes one person moves to them. |
-| **Page Someone** | Pages people, a team, whoever is on call in a schedule, or an on-call policy about the incident, with an optional message. People are paged until one of them answers; a policy pages until somebody acknowledges the incident. |
+| **Page Someone** | Pages people, a team, whoever is on call in a schedule, or an on-call policy about the incident, with an optional message. Whoever it pages, a policy's people too, is paged until one of them answers or the incident is resolved. |
 | **Edit Custom Fields** | Sets the incident's custom fields, each filled in with what the incident holds. A field left empty is cleared. |
 
 `/oneuptime incident 42` shows incident 42, with these buttons and its menu, in a message only you see. Type the number as OneUptime shows it: `42`, `#42` or `INC-42`. In an incident's own channel, `/oneuptime incident` alone shows that incident.
