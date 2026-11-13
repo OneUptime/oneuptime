@@ -2,7 +2,13 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import ObjectID from "../../../Types/ObjectID";
 import ModelEventType from "../../../Types/Realtime/ModelEventType";
 import CoalescedRefresh from "../../Utils/CoalescedRefresh";
-import Realtime from "../../Utils/Realtime";
+import { getOpenLiveConnection } from "../../Utils/LiveConnection";
+/*
+ * Type-only on purpose: the count joins the connection the app opened
+ * (LiveConnection), so a page that draws a side menu and opens none - a
+ * status page - does not load Realtime and socket.io with it.
+ */
+import type Realtime from "../../Utils/Realtime";
 import {
   LIVE_ROWS_MIN_INTERVAL_IN_MS,
   getLiveRowEventTypes,
@@ -31,7 +37,9 @@ import { MutableRefObject, useEffect, useMemo, useRef } from "react";
  *     at again, if anything changed meanwhile;
  *   - only on the live connection the app keeps open (the Dashboard opens it
  *     as it starts, before anything is drawn). A page drawn without one - a
- *     preview, an offline check - opens none on a count's account.
+ *     preview, an offline check - opens none on a count's account, and does
+ *     not even load one: the count asks LiveConnection, so a status page's
+ *     subscribe menu does not download socket.io to draw its side menu.
  *
  * A table the server announces nothing for (Monitor, ScheduledMaintenance)
  * is not heard: its count follows what the page asks (SideMenuCountRefresh).
@@ -75,8 +83,14 @@ const useLiveCount: (options: UseLiveCountOptions) => void = (
   >(options.recount);
   recountRef.current = options.recount;
 
-  const modelType: { new (): BaseModel } | undefined =
-    options.isEnabled && Realtime.isStarted() ? options.modelType : undefined;
+  // The app's live connection, once it has opened one.
+  const realtime: typeof Realtime | null = options.isEnabled
+    ? getOpenLiveConnection()
+    : null;
+
+  const modelType: { new (): BaseModel } | undefined = realtime
+    ? options.modelType
+    : undefined;
 
   // What the server announces for the table: read once per kind.
   const announced: AnnouncedTable | null = useMemo(() => {
@@ -106,7 +120,7 @@ const useLiveCount: (options: UseLiveCountOptions) => void = (
     options.minIntervalInMs ?? LIVE_ROWS_MIN_INTERVAL_IN_MS;
 
   useEffect(() => {
-    if (!subscriptionKey || !modelType || !announced) {
+    if (!subscriptionKey || !modelType || !announced || !realtime) {
       return undefined;
     }
 
@@ -147,7 +161,7 @@ const useLiveCount: (options: UseLiveCountOptions) => void = (
 
     const stopListening: Array<() => void> = announced.eventTypes.map(
       (eventType: ModelEventType): (() => void) => {
-        return Realtime.listenToModelEvent<BaseModel>(
+        return realtime.listenToModelEvent<BaseModel>(
           {
             modelType: modelType,
             eventType: eventType,

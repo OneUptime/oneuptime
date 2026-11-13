@@ -1,7 +1,17 @@
 import "@testing-library/jest-dom";
 import { cleanup, render, screen } from "@testing-library/react";
 import React, { ReactElement } from "react";
-import { afterEach, describe, expect, test } from "@jest/globals";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
+
+/*
+ * The word as DefinedTerm draws it, its file there: FieldLabel draws it
+ * through LazyDefinedTerm, and LazyDefinedTerm.test.tsx holds the word as it
+ * is drawn until the file arrives.
+ */
+jest.mock("../../../../UI/Components/Glossary/LazyDefinedTerm", () => {
+  return jest.requireActual("../../../../UI/Components/Glossary/DefinedTerm");
+});
+
 import GlossaryTerm from "../../../../Types/Docs/GlossaryTerm";
 import FieldLabelElement from "../../../../UI/Components/Forms/Fields/FieldLabel";
 import { DEFINED_TERM_TEST_ID } from "../../../../UI/Components/Glossary/DefinedTerm";

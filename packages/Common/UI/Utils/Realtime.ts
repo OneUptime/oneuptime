@@ -1,5 +1,6 @@
 import { HOST, HTTP_PROTOCOL } from "../Config";
 import API from "./API/API";
+import { setOpenLiveConnection } from "./LiveConnection";
 import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { RealtimeRoute } from "../../ServiceRoute";
@@ -131,6 +132,9 @@ export default abstract class Realtime {
     );
 
     this.socket = socket;
+
+    // For a part that only joins an open connection (LiveConnection).
+    setOpenLiveConnection(this);
   }
 
   /*

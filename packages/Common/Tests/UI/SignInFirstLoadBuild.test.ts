@@ -16,13 +16,15 @@ const COMMON_ROOT: string = path.resolve(__dirname, "..", "..");
  * step, the QR code library, a database model through the edition label, the
  * browser OpenTelemetry SDK with zone.js through the entry's Telemetry, and
  * through FormField the code editor with its syntax checks and grammars, the
- * Markdown editor with DOMPurify, the file picker with react-dropzone, and the
- * people picker with the kinds of record it searches and their models; the
- * i18n set-up's post-processor brought the rules that set code apart in an
- * Arabic or Persian sentence. Each is now loaded where it is used -
- * posthog-js once analytics starts, the SDK where browser telemetry is
- * configured, the rules with an Arabic or Persian locale file, the rest by
- * the first list, form field, summary or code that needs it. zone.js is gone
+ * Markdown editor with DOMPurify, the file picker with react-dropzone, the
+ * people picker with the kinds of record it searches and their models, and
+ * a field title's word with its definition (DefinedTerm, with the Glossary
+ * it reads and "Was this clear?" under it); the i18n set-up's
+ * post-processor brought the rules that set code apart in an Arabic or
+ * Persian sentence. Each is now loaded where it is used - posthog-js once
+ * analytics starts, the SDK where browser telemetry is configured, the rules
+ * with an Arabic or Persian locale file, the rest by the first list, form
+ * field, summary, code or marked word that needs it. zone.js is gone
  * altogether (BrowserTelemetrySdk.ts says why), and so are crypto-js's
  * ciphers, which HashedString brought with the SHA-256 it hashes with.
  *
@@ -182,6 +184,26 @@ const LEFT_OUT: ReadonlyArray<LeftOut> = [
   {
     name: "the kinds of record the people picker searches, with their models",
     path: "UI/Components/PeoplePicker/PeoplePickerKinds.ts",
+    isLoadedWhenNeeded: true,
+  },
+  {
+    name: "DefinedTerm, for a title that marks a word with its definition",
+    path: "UI/Components/Glossary/DefinedTerm.tsx",
+    isLoadedWhenNeeded: true,
+  },
+  {
+    name: "the Glossary a definition is read from",
+    path: "UI/Utils/Glossary.ts",
+    isLoadedWhenNeeded: true,
+  },
+  {
+    name: '"Was this clear?", which DefinedTerm draws under a definition',
+    path: "UI/Components/Feedback/WasThisClear.tsx",
+    isLoadedWhenNeeded: true,
+  },
+  {
+    name: "the product events an answer to it sends",
+    path: "Types/Analytics/ProductEvent.ts",
     isLoadedWhenNeeded: true,
   },
   {

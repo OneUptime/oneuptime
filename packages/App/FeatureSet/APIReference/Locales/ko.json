@@ -344,6 +344,7 @@
       "logsDesc": "앱 프로세스 내부에서 접근할 수 있는 진단 로그입니다. 이 인스턴스 자체의 최근 로그 줄과 Postgres, ClickHouse, Valkey가 노출하는 로그를 제공합니다. 컨테이너 stdout은 포함되지 않으므로, 그것은 <code>kubectl logs</code> 또는 <code>docker logs</code>를 사용하세요.",
       "migrationsDesc": "Postgres 스키마 및 데이터 마이그레이션 상태입니다. 인스턴스가 완전히 마이그레이션되었는지, 아직 대기 중인 항목은 무엇인지, 최근 실패는 무엇인지 알려줍니다. 업그레이드가 완료되었는지 확인하는 방법입니다.",
       "supportBundleDesc": "인스턴스에 대한 모든 진단 정보를 담은 하나의 JSON 문서입니다. 버전, 런타임, 민감 정보가 제거된 설정, 컴포넌트 상태, 마이그레이션, 데이터스토어 진단, 스키마, 실패한 작업, 로그를 포함합니다. 지원 요청에 첨부하기에 가장 유용한 자료입니다.",
+      "doctorDesc": "인스턴스에서 확인이 필요한 항목을 가장 심각한 것부터, 각각의 해결 방법과 함께 알려줍니다. 응답하지 않는 Postgres, ClickHouse 또는 Valkey, 대기 중이거나 실패한 마이그레이션, 공간이 부족해지는 ClickHouse 디스크, 처리가 밀리는 큐, 새 릴리스, 아직 끝나지 않은 서버 설정 단계가 포함됩니다. OneUptime Health 페이지 맨 위에 표시되는 목록과 같습니다.",
       "queueNamesBody": "<code>{queueName}</code> 경로 파라미터는 <code>Workflow</code>, <code>Worker</code>, <code>Telemetry</code> 또는 <code>Runbook</code> 중 하나여야 합니다. 그 외의 값은 <code>400</code>으로 거부됩니다.",
       "editions": "에디션",
       "editionsBody": "대부분의 Master Admin API는 OneUptime Enterprise Edition의 일부이며, 이들이 뒷받침하는 OneUptime Health 대시보드와 대응됩니다. Community 인스턴스에서는 데이터 대신 <code>402 Payment Required</code>를 반환합니다.",

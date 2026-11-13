@@ -27,6 +27,12 @@ import useTranslator from "../../Utils/UseTranslator";
 import Icon from "../Icon/Icon";
 import WasThisClear from "../Feedback/WasThisClear";
 import { TOOLTIP_PLUGINS } from "../Tooltip/TooltipEscape";
+import {
+  DEFINED_TERM_CLASS_NAME,
+  DEFINED_TERM_TEST_ID,
+  keepDefinedTermKeys,
+  keepDefinedTermPress,
+} from "./DefinedTermWord";
 
 /*
  * A WORD WITH ITS DEFINITION.
@@ -51,6 +57,10 @@ import { TOOLTIP_PLUGINS } from "../Tooltip/TooltipEscape";
  * link. A press keeps the popover open while the pointer moves on to read
  * it - on a phone the finger lifts at once - and the next press, a press
  * anywhere else or Escape puts it away.
+ *
+ * A form field's, a card's and a table column's titles draw it through
+ * LazyDefinedTerm, so the pages that never mark a word - the sign-in pages,
+ * a status page, a public dashboard - do not load it.
  */
 
 export interface ComponentProps {
@@ -61,7 +71,9 @@ export interface ComponentProps {
   dataTestId?: string | undefined;
 }
 
-export const DEFINED_TERM_TEST_ID: string = "defined-term";
+// The word, as its place draws it too (DefinedTermWord).
+export { DEFINED_TERM_CLASS_NAME, DEFINED_TERM_TEST_ID };
+
 export const DEFINED_TERM_POPOVER_TEST_ID: string = "defined-term-popover";
 export const DEFINED_TERM_DEFINITION_TEST_ID: string =
   "defined-term-definition";
@@ -77,13 +89,6 @@ export const DEFINED_TERM_LOADING_TEXT: string = translationKey(
 export const DEFINED_TERM_UNAVAILABLE_TEXT: string = translationKey(
   "Read what this means in the glossary",
 );
-
-/*
- * The word: its own font and colour, with a dotted line under it that
- * darkens on hover, and the focus ring every control has.
- */
-export const DEFINED_TERM_CLASS_NAME: string =
-  "inline cursor-help rounded-sm bg-transparent p-0 text-start underline decoration-gray-400 decoration-dotted decoration-1 underline-offset-4 hover:decoration-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1";
 
 /*
  * The popover is drawn inside its word's parent, so it would take on that
@@ -359,19 +364,8 @@ const DefinedTerm: FunctionComponent<ComponentProps> = (
           data-testid={props.dataTestId || DEFINED_TERM_TEST_ID}
           data-glossary-term={props.term}
           className={DEFINED_TERM_CLASS_NAME}
-          onClick={(event: React.MouseEvent<HTMLButtonElement>): void => {
-            event.preventDefault();
-            event.stopPropagation();
-          }}
-          /*
-           * A card that is itself a button hears Enter and Space bubble up
-           * and would open; they are this word's.
-           */
-          onKeyDown={(event: React.KeyboardEvent<HTMLButtonElement>): void => {
-            if (event.key === "Enter" || event.key === " ") {
-              event.stopPropagation();
-            }
-          }}
+          onClick={keepDefinedTermPress}
+          onKeyDown={keepDefinedTermKeys}
         >
           <span id={wordId}>{props.children}</span>
         </button>

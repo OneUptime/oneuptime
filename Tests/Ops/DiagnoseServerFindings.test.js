@@ -3,9 +3,9 @@
 /**
  * HelmChart/Public/diagnose.sh prints what OneUptime says is wrong with
  * itself, on Kubernetes (#6826): the same findings as `npm run doctor` and
- * the Admin Dashboard's OneUptime Health overview, from
- * GET /api/admin/health/doctor, asked from inside the app pod with the
- * cluster key the pod holds.
+ * the Admin Dashboard's OneUptime Health overview, from a POST to
+ * /api/admin/health/doctor, asked from inside the app pod with the cluster
+ * key the pod holds in the clusterkey header, following no redirect.
  *
  * The script the pod runs is run here with this machine's node against a
  * real HTTP server standing in for the app, and the shell that reads its
@@ -81,40 +81,94 @@ const runNode = (script, env) => {
 describe("the script the app pod runs", () => {
   let server;
   let port;
+  // Another server, which nothing should reach.
+  let elsewhere;
+  let elsewherePort;
   let status = 200;
   const seen = [];
+  const seenElsewhere = [];
+
+  const recordOf = (req) => {
+    return {
+      method: req.method,
+      url: req.url,
+      clusterkey: req.headers.clusterkey,
+      contentLength: req.headers["content-length"],
+      transferEncoding: req.headers["transfer-encoding"],
+    };
+  };
 
   beforeAll(async () => {
     server = http.createServer((req, res) => {
-      seen.push({ url: req.url, clusterkey: req.headers.clusterkey });
+      seen.push(recordOf(req));
+
+      // The app's GET is the Admin Dashboard's: the cluster key opens only the POST.
+      if (req.method !== "POST") {
+        res.writeHead(401, { "content-type": "application/json" });
+        res.end(
+          JSON.stringify({
+            message: "Unauthorized: Access token is required.",
+          }),
+        );
+        return;
+      }
+
+      if (status >= 300 && status < 400) {
+        res.writeHead(status, {
+          location: `http://127.0.0.1:${elsewherePort}/api/admin/health/doctor`,
+        });
+        res.end();
+        return;
+      }
+
       res.writeHead(status, { "content-type": "application/json" });
       res.end(JSON.stringify(status === 200 ? ANSWER : { error: "x" }));
+    });
+    elsewhere = http.createServer((req, res) => {
+      seenElsewhere.push(recordOf(req));
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify(ANSWER));
     });
     await new Promise((resolve) => {
       server.listen(0, "127.0.0.1", resolve);
     });
     port = server.address().port;
+    await new Promise((resolve) => {
+      elsewhere.listen(0, "127.0.0.1", resolve);
+    });
+    elsewherePort = elsewhere.address().port;
   });
 
   afterAll(async () => {
     await new Promise((resolve) => {
       server.close(resolve);
     });
+    await new Promise((resolve) => {
+      elsewhere.close(resolve);
+    });
   });
 
   beforeEach(() => {
     status = 200;
     seen.length = 0;
+    seenElsewhere.length = 0;
   });
 
-  test("asks the doctor's route on PORT with the pod's cluster key, and prints one line a finding", async () => {
+  test("asks the doctor's route on PORT with a POST and the pod's cluster key, and prints one line a finding", async () => {
     const output = await runNode(podScript(), {
       PORT: String(port),
       ONEUPTIME_SECRET: SECRET,
     });
 
     expect(seen).toEqual([
-      { url: "/api/admin/health/doctor", clusterkey: SECRET },
+      {
+        method: "POST",
+        url: "/api/admin/health/doctor",
+        clusterkey: SECRET,
+        // An empty body, said so.
+        contentLength: "0",
+        transferEncoding: undefined,
+      },
     ]);
     expect(output.trim().split("\n")).toEqual([
       "fix|Valkey|Valkey does not answer, so background jobs and live updates stop.|Check that Valkey is running, and read its log for the reason.",
@@ -135,6 +189,22 @@ describe("the script the app pod runs", () => {
 
     expect(output.trim()).toBe("ERROR|the app answered HTTP 400");
   });
+
+  test.each([301, 302, 303, 307, 308])(
+    "a redirect (HTTP %i) is not followed, so the key reaches no other server",
+    async (redirect) => {
+      status = redirect;
+
+      const output = await runNode(podScript(), {
+        PORT: String(port),
+        ONEUPTIME_SECRET: SECRET,
+      });
+
+      expect(output.trim()).toBe(`ERROR|the app answered HTTP ${redirect}`);
+      expect(seen.length).toBe(1);
+      expect(seenElsewhere).toEqual([]);
+    },
+  );
 
   test("an app that does not answer says so", async () => {
     const output = await runNode(podScript(), { PORT: "1" });
