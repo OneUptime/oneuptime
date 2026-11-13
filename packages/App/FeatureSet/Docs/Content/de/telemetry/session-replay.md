@@ -102,6 +102,8 @@ window.__ONEUPTIME_SESSION_REPLAY__ = {
   respectDoNotTrack: true, // optional
   debug: false, // optional
   offlineStorage: true, // optional; false keeps offline chunks in memory only
+  maskAllText: false, // optional; true masks all text, whatever the policy says
+  blockSelectors: [], // optional; added to the policy's block selectors
 };
 ```
 
@@ -253,7 +255,7 @@ Der Recorder veröffentlicht `window.OneUptimeReplay`. Weil er asynchron lädt, 
 );
 ```
 
-`grantConsent`, `revokeConsent`, `stop`, `identify`, `setTags` und `addTag` werden angewendet, bevor der Recorder startet, daher entscheidet eine eingereihte Einwilligungsentscheidung, ob überhaupt etwas hochgeladen wird, und eine eingereihte Identität reist schon mit dem allerersten Chunk. `track`, `metric`, `captureSession` und `onSessionChange` laufen direkt nach dem Start.
+`grantConsent`, `revokeConsent`, `stop`, `pause`, `resume`, `identify`, `setTags` und `addTag` werden angewendet, bevor der Recorder startet, daher entscheidet eine eingereihte Einwilligungsentscheidung, ob überhaupt etwas hochgeladen wird, und eine eingereihte Identität reist schon mit dem allerersten Chunk. `track`, `metric`, `captureSession` und `onSessionChange` laufen direkt nach dem Start.
 
 | Methode | Was sie tut |
 | --- | --- |
@@ -268,6 +270,8 @@ Der Recorder veröffentlicht `window.OneUptimeReplay`. Weil er asynchron lädt, 
 | `getSessionId()` | Die aktuelle Sitzungs-ID, oder `null`, wenn nichts aufgezeichnet wird. Bevorzugen Sie `onSessionChange()`, das auch Wechsel verfolgt. |
 | `getVisitorId()` | Die [anonyme Besucher-ID](#anonyme-besucher) — 32 Hex-Zeichen, eine pro Browserprofil, über Sitzungswechsel hinweg dieselbe — oder `""`, bevor der Recorder gestartet ist, nach `stop()` und solange die Einwilligung widerrufen ist. Zufällig und keine Identität; unterliegt nicht **Endbenutzeridentität erfassen**. |
 | `stop()` | Lädt das letzte Chunk hoch, schließt die Sitzung ab und stoppt für den Rest des Lebens der Seite. |
+| `pause()` | Hält die Aufnahme dessen, was auf dem Bildschirm ist, bis `resume()` an: Das offene Chunk geht mit einer _paused_-Markierung hinaus, und in der Zwischenzeit wird nichts aufgezeichnet – weder die Seite noch Eingaben, Anfragen, Konsole oder Klicks. Die Sitzung bleibt offen, und Eingaben des Besuchers setzen sie nicht fort. Für eine Seite, die nur einige ihrer Teile aufzeichnet; vor dem Laden des Recorders eingereiht, startet er pausiert. |
+| `resume()` | Setzt die Aufzeichnung nach `pause()` in derselben Sitzung fort, mit einem frischen Snapshot der Seite, wie sie jetzt ist. Der Player überspringt den pausierten Abschnitt. |
 | `setDebug(enabled)` | Gibt die Entscheidungen des Recorders ab jetzt in der Konsole aus. |
 | `getDiagnostics()` | Alles, was der Recorder entschieden hat, ob die Diagnose eingeschaltet war oder nicht. Siehe unten. |
 
@@ -370,7 +374,12 @@ Maskierte Werte erhalten die Länge nicht. Ein maskiertes Feld ist ein Platzhalt
 
 <!-- Recorded, but input events inside are dropped. -->
 <div class="oneuptime-ignore">...</div>
+
+<!-- Under Mask all text, the text inside is recorded as written. -->
+<div class="oneuptime-unmask">...</div>
 ```
+
+Unter _Mask all text_ wird Text in einem Element mit der Klasse `oneuptime-unmask` so aufgezeichnet, wie er dasteht: Nutzen Sie sie für die eigenen Oberflächenwörter Ihrer Seite, etwa Schaltflächen, Überschriften und Menüs. Ein `oneuptime-mask`-Element oder einer Ihrer zusätzlichen Maskierungs-Selektoren darin maskiert seinen Text wieder, Formularfelder bleiben maskiert, und in den anderen Maskierungsmodi bewirkt die Klasse nichts. Eine Seite kann auf dem Init-Global auch mehr Maskierung verlangen, als ihre Richtlinie vorgibt: `maskAllText: true` zeichnet unabhängig von der Richtlinie unter _Mask all text_ auf, und `blockSelectors` ergänzt die Blockierungs-Selektoren der Richtlinie. Keines von beiden kann eine Aufzeichnung mehr zeigen lassen.
 
 Sie können außerdem auf der Seite **Wiedergaberichtlinie** Ihrer Anwendung **Zusätzliche Maskierungs-Selektoren** und **Blockierungs-Selektoren** hinzufügen, ohne Ihr Markup zu ändern. Im Standard-Maskierungsmodus sind sie das wichtigste Werkzeug, um Inhalte zu schützen, die Ihr Markup nicht als sensibel kennzeichnet.
 

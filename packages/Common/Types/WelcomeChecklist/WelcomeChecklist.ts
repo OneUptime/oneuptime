@@ -1,6 +1,7 @@
 import ActivationMilestone from "../Analytics/ActivationMilestone";
 import { PlanType } from "../Billing/SubscriptionPlan";
 import ProjectGoal, { parseProjectGoals } from "./ProjectGoal";
+import ProductKey from "../Product/ProductKey";
 
 /*
  * THE WELCOME CHECKLIST ON HOME (issue #6803): which steps a project is
@@ -105,6 +106,73 @@ export const DEFAULT_WELCOME_STEPS: ReadonlyArray<WelcomeStep> = [
   WelcomeStep.StatusPage,
   WelcomeStep.Team,
 ];
+
+/*
+ * The products each step is done in (#6815): a step whose product is
+ * switched off on the server is not on the checklist, and a goal whose
+ * products are off is not offered - Home never asks for what this server
+ * does not run. Telemetry's step opens its guided setup, which sends logs,
+ * metrics and traces to a service.
+ */
+export const WELCOME_STEP_PRODUCTS: Readonly<
+  Record<WelcomeStep, ReadonlyArray<ProductKey>>
+> = {
+  [WelcomeStep.ServerEmail]: [],
+  [WelcomeStep.Import]: [],
+  [WelcomeStep.Monitor]: [ProductKey.Monitors],
+  [WelcomeStep.Infrastructure]: [ProductKey.Hosts],
+  [WelcomeStep.Telemetry]: [
+    ProductKey.Services,
+    ProductKey.Logs,
+    ProductKey.Metrics,
+    ProductKey.Traces,
+  ],
+  [WelcomeStep.OnCall]: [ProductKey.OnCall],
+  [WelcomeStep.StatusPage]: [ProductKey.StatusPages],
+  [WelcomeStep.Team]: [],
+};
+
+export const GOAL_PRODUCTS: Readonly<
+  Record<ProjectGoal, ReadonlyArray<ProductKey>>
+> = {
+  [ProjectGoal.Uptime]: [ProductKey.Monitors],
+  [ProjectGoal.OnCall]: [ProductKey.OnCall],
+  [ProjectGoal.StatusPage]: [ProductKey.StatusPages],
+  [ProjectGoal.Telemetry]: [
+    ProductKey.Logs,
+    ProductKey.Metrics,
+    ProductKey.Traces,
+  ],
+  [ProjectGoal.Infrastructure]: [ProductKey.Hosts],
+  [ProjectGoal.Import]: [],
+  [ProjectGoal.Explore]: [],
+};
+
+// Whether a step needs a product switched off on the server.
+export const isWelcomeStepOffOnServer: (
+  step: WelcomeStep,
+  offProducts: ReadonlyArray<ProductKey>,
+) => boolean = (
+  step: WelcomeStep,
+  offProducts: ReadonlyArray<ProductKey>,
+): boolean => {
+  return WELCOME_STEP_PRODUCTS[step].some((product: ProductKey): boolean => {
+    return offProducts.includes(product);
+  });
+};
+
+// Whether a goal needs a product switched off on the server.
+export const isGoalOffOnServer: (
+  goal: ProjectGoal,
+  offProducts: ReadonlyArray<ProductKey>,
+) => boolean = (
+  goal: ProjectGoal,
+  offProducts: ReadonlyArray<ProductKey>,
+): boolean => {
+  return GOAL_PRODUCTS[goal].some((product: ProductKey): boolean => {
+    return offProducts.includes(product);
+  });
+};
 
 // The project's own steps for its goals, each once, in the checklist's order.
 export const getStepsForGoals: (
@@ -306,13 +374,20 @@ export const buildWelcomeChecklist: (data: {
   plan: WelcomePlanFacts;
   // The reader is a master admin of a self-hosted server.
   readerIsServerAdmin: boolean;
+  // The products switched off on the server: their steps are left out.
+  offProducts?: ReadonlyArray<ProductKey> | undefined;
 }) => WelcomeChecklist = (data: {
   goals: ReadonlyArray<ProjectGoal> | null;
   facts: WelcomeOutcomeFacts;
   plan: WelcomePlanFacts;
   readerIsServerAdmin: boolean;
+  offProducts?: ReadonlyArray<ProductKey> | undefined;
 }): WelcomeChecklist => {
-  const keys: Array<WelcomeStep> = getStepsForGoals(data.goals);
+  const keys: Array<WelcomeStep> = getStepsForGoals(data.goals).filter(
+    (step: WelcomeStep): boolean => {
+      return !isWelcomeStepOffOnServer(step, data.offProducts || []);
+    },
+  );
 
   // Shown to the one person who can fix it, and only while it is broken.
   if (data.readerIsServerAdmin && !data.facts.serverCanSendEmail) {

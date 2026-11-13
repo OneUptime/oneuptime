@@ -5,6 +5,7 @@ import DatabaseService from "./DatabaseService";
 import GlobalConfigService from "./GlobalConfigService";
 import IncidentService from "./IncidentService";
 import IncidentStateService from "./IncidentStateService";
+import ProjectService from "./ProjectService";
 import UserService from "./UserService";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -150,7 +151,7 @@ export class Service extends DatabaseService<Model> {
     key: string;
     now: Date;
   }): Promise<FeedbackQuestionDecision> {
-    const [isServerOn, user] = await Promise.all([
+    const [isServerOn, user, isSampleProject] = await Promise.all([
       this.isServerOn(),
       UserService.findOneById({
         id: data.userId,
@@ -162,6 +163,13 @@ export class Service extends DatabaseService<Model> {
           isRoot: true,
         },
       }),
+      /*
+       * Nothing is asked in a sample project (issue #6808): the first-week
+       * check-in, the end of a guided setup, Was this clear? - none.
+       */
+      data.projectId
+        ? ProjectService.isSampleProject(data.projectId)
+        : Promise.resolve(false),
     ]);
 
     const asked: Record<string, string> = readAskedQuestions(
@@ -178,6 +186,7 @@ export class Service extends DatabaseService<Model> {
         asked: asked,
         isIncidentOpen: isIncidentOpen,
         now: data.now,
+        isSampleProject: isSampleProject,
       });
     };
 

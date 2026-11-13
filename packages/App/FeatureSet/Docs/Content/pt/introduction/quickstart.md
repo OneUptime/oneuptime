@@ -34,6 +34,8 @@ Digite um **Nome do projeto**, por exemplo o nome da sua empresa. No OneUptime C
 
 ### Criar o projeto
 
+![Início pergunta "O que você quer fazer primeiro?", com os três objetivos deste guia marcados](screen:home-goals-three)
+
 Clique em **Criar projeto**. A página inicial do seu projeto abre, com a lista **Boas-vindas ao OneUptime 👋** no topo. Primeiro ele pergunta **O que você quer fazer primeiro?**: marque **Saber quando meu site ou API cair**, **Acionar a pessoa certa quando algo quebrar** e **Informar meus clientes com uma página de status**, e clique em **Continuar**.
 :::
 
@@ -121,9 +123,13 @@ Abra **Incidentes** e clique em **Declarar incidente**. Digite um **Título**, p
 
 ### Ver o que acontece
 
+!["Feed do incidente" de um incidente resolvido: quem foi acionado e cada mudança de estado, do mais recente ao mais antigo](screen:incident-feed)
+
 Em um ou dois minutos, sua política de plantão aciona você, e o incidente aparece na sua página de status.
 
 ### Resolver
+
+![Um incidente em "Confirmado", com "Resolver" destacado](screen:incident-resolve)
 
 Na página do incidente, clique em **Resolver**. Os acionamentos param, e o incidente sai da sua página de status.
 :::

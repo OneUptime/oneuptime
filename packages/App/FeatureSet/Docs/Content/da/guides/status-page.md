@@ -28,17 +28,25 @@ Din server skal have sit eget værtsnavn med en A-post, der peger på den, for e
 :::steps
 ### Åbn den guidede opsætning
 
+![Hjem spørger »Hvad vil du gøre først?«, med »Fortælle mine kunder det via en statusside« markeret](screen:home-goal-status-page)
+
 På siden **Hjem** i dit projekt klikker du på **Udgiv en statusside** i tjeklisten **Velkommen til OneUptime 👋**. Et nyt projekts startside spørger først **Hvad vil du gøre først?**: sæt flueben ved **Fortælle mine kunder det via en statusside**, og klik på **Fortsæt**. Mangler trinnet, eller er det allerede udført, så tryk på `Ctrl+K` (`Cmd+K` på en Mac), skriv `status page`, og vælg **Udgiv en statusside**.
 
 ### Giv den et navn, og vælg, hvad den viser
+
+![Trinnet »Giv den et navn, og vælg, hvad den viser«, med »Opret statussiden« fremhævet](screen:status-page-pick)
 
 Under **Giv den et navn, og vælg, hvad den viser** beholder du forslaget i **Statussidens navn** eller skriver dit eget. Under **Hvad den viser** sætter du flueben ved de monitorer, dine kunder skal se, eller klikker på **Vælg alle**. Klik på **Opret statussiden**. Fra nu af er siden offentlig på sit link og viser kun de monitorer, du satte flueben ved.
 
 ### Se, hvad dine kunder ser
 
+![Trinnet »Det er dette, dine kunder ser«, med »Ser godt ud« fremhævet](screen:status-page-review)
+
 Under **Det er dette, dine kunder ser** åbner du adressen under **Offentligt link**: dine monitorer står på listen med deres status. Tilbage i opsætningen klikker du på **Ser godt ud**.
 
 ### Åbn Brugerdefinerede domæner
+
+![Oversigten, med »Dit eget domæne« fremhævet under »Gør den til din egen (valgfrit)«](screen:status-page-summary)
 
 Opsætningen slutter med en oversigt. Under **Gør den til din egen (valgfrit)** klikker du på **Dit eget domæne**. Statussidens **Brugerdefinerede domæner** åbner.
 

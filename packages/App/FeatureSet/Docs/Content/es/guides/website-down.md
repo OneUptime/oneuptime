@@ -26,13 +26,19 @@ La dirección se comprueba desde la propia sonda de tu servidor, así que debe s
 :::steps
 ### Abrir la configuración guiada
 
+![Inicio pregunta «¿Qué quieres hacer primero?», con «Saber cuándo cae mi sitio web o mi API» marcado](screen:home-goal-website)
+
 La página **Inicio** de un proyecto nuevo empieza preguntando **¿Qué quieres hacer primero?**: marca **Saber cuándo cae mi sitio web o mi API** y haz clic en **Continuar**. Después haz clic en **Crea tu primer monitor**, en la lista **Te damos la bienvenida a OneUptime 👋**. Si la lista no lo muestra, pulsa `Ctrl+K` (`Cmd+K` en un Mac), escribe `website down` y elige **Saber cuándo cae mi sitio web o mi API**.
 
 ### Escribir la dirección
 
+![El paso «¿Qué debemos comprobar?», con «Empezar a comprobar» resaltado](screen:website-down-address)
+
 En **¿Qué debemos comprobar?**, escribe la dirección en **Dirección del sitio web o de la API**. Para un endpoint de API, marca **Este es un endpoint de API**. Haz clic en **Empezar a comprobar**: las sondas la comprueban de inmediato, y una frase dice lo que han encontrado. Haz clic en **Continuar**.
 
 ### Elegir a quién se avisa
+
+![El paso «¿A quién hay que avisar?», con «Guardar y continuar» resaltado](screen:website-down-who)
 
 En **¿A quién hay que avisar?**, lo que ves depende del proyecto:
 
@@ -42,6 +48,8 @@ En **¿A quién hay que avisar?**, lo que ves depende del proyecto:
 
 ### Enviarte una prueba
 
+![El paso «Envía una prueba», con «Enviarme un aviso de prueba» resaltado](screen:website-down-test)
+
 En **Envía una prueba**, haz clic en **Enviarme un aviso de prueba**. Elige una **Gravedad** y haz clic en **Enviar aviso de prueba**. La prueba te llega igual que un aviso real, y cada mensaje dice TEST. No se crea ningún incidente.
 
 ### Reconocer el aviso de prueba
@@ -50,6 +58,8 @@ Abre el enlace del correo y reconoce ahí el aviso. Un número de teléfono veri
 :::
 
 ## Comprobar que ha funcionado
+
+![El resumen, leído de los registros: «Comprobado», «Cuando se cae», «A quién se avisa» y «Probado»](screen:website-down-summary)
 
 - La configuración termina en su resumen, con lo que se ha guardado: **Comprobado**, **Cuando se cae**, **A quién se avisa** y **Probado**.
 - Haz clic en **Abrir el monitor** y, después, en **Mostrar la cadena**, en su tarjeta **Cuando falla**: muestra la cadena que va del monitor a las personas a las que llega, y dice **Nada detiene la cadena.** cuando nada la detendría.

@@ -7,6 +7,8 @@ import {
   getStepState,
 } from "./GuidedSetupProgress";
 import SetupFeedback from "../Feedback/SetupFeedback";
+import GuidedSetupContext from "../../Utils/DashboardRecording/GuidedSetupContext";
+import { PRODUCT_TEXT_CLASS_NAME } from "Common/UI/Utils/ProductText";
 import {
   GuidedSetupEvents,
   useGuidedSetupEvents,
@@ -136,7 +138,22 @@ const GuidedSetupFrame: FunctionComponent<ComponentProps> = (
 
   useEffect(() => {
     events.reachStep(props.openStepKey || SUMMARY_STEP_KEY);
+
+    /*
+     * Where the person is, by the same keys, for a recording of OneUptime
+     * Cloud's setup pages to tie what it sees to the step (#6834).
+     */
+    GuidedSetupContext.set({
+      setup: props.setup,
+      step: props.openStepKey || SUMMARY_STEP_KEY,
+    });
   }, [props.openStepKey]);
+
+  useEffect(() => {
+    return () => {
+      GuidedSetupContext.clear(props.setup);
+    };
+  }, []);
 
   useEffect(() => {
     if (props.isFinished) {
@@ -150,7 +167,7 @@ const GuidedSetupFrame: FunctionComponent<ComponentProps> = (
     <div className="w-full max-w-3xl" data-testid="guided-setup">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
         <p
-          className="text-sm text-gray-500"
+          className={`text-sm text-gray-500 ${PRODUCT_TEXT_CLASS_NAME}`}
           data-testid="guided-setup-progress"
           aria-live="polite"
         >
@@ -195,12 +212,16 @@ const GuidedSetupFrame: FunctionComponent<ComponentProps> = (
                 number={getStepNumber(props.steps, step.key) || index + 1}
               />
               <span className="min-w-0 pt-0.5">
+                {/*
+                 * The step's title is the setup's own words; its done line
+                 * may name what the person made, and stays masked (#6834).
+                 */}
                 <span
                   className={`block text-base font-semibold ${
                     state === GuidedSetupStepState.Upcoming
                       ? "text-gray-500"
                       : "text-gray-900"
-                  }`}
+                  } ${PRODUCT_TEXT_CLASS_NAME}`}
                 >
                   {title}
                 </span>

@@ -3,6 +3,10 @@ import { getHomeListRoute } from "./HomeListRoute";
 import AppLink from "../AppLink/AppLink";
 import { getSlosAtRiskQueryParams } from "../Slo/SloListFacetRoute";
 import PageMap from "../../Utils/PageMap";
+import { ProjectProductsState } from "../../Utils/ProjectProducts/ProjectProductsStore";
+import useProjectProducts from "../../Utils/ProjectProducts/UseProjectProducts";
+import ProductKey from "Common/Types/Product/ProductKey";
+import { getOffProducts } from "Common/Types/Product/ServerProducts";
 import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -21,6 +25,10 @@ import React, { FunctionComponent, ReactElement } from "react";
  * The counts come in from Home's one parallel batch (HomeOverviewData), which
  * also feeds the headline and the attention list, so the strip makes no
  * request of its own.
+ *
+ * A cell of a product switched off on the server (#6815) is left out, and
+ * the others share the row: a server with Monitoring and status pages shows
+ * incidents, monitors and maintenance, not alerts or SLOs.
  */
 
 export interface ComponentProps {
@@ -82,6 +90,8 @@ interface StatTileDefinition {
   attentionIcon: IconProp;
   // Shown when the count is zero.
   allClearLabel: string;
+  // The product the cell counts: left out while it is off on the server.
+  product: ProductKey;
   notSetUp?: ((counts: HomeCounts) => NotSetUpState) | undefined;
 }
 
@@ -101,6 +111,7 @@ const STAT_TILE_DEFINITIONS: Array<StatTileDefinition> = [
     attentionTone: StatTileTone.Attention,
     attentionIcon: IconProp.Alert,
     allClearLabel: "All clear",
+    product: ProductKey.Incidents,
   },
   {
     key: "active-alerts",
@@ -113,6 +124,7 @@ const STAT_TILE_DEFINITIONS: Array<StatTileDefinition> = [
     attentionTone: StatTileTone.Attention,
     attentionIcon: IconProp.Alert,
     allClearLabel: "All clear",
+    product: ProductKey.Alerts,
   },
   {
     key: "not-operational-monitors",
@@ -125,6 +137,7 @@ const STAT_TILE_DEFINITIONS: Array<StatTileDefinition> = [
     attentionTone: StatTileTone.Attention,
     attentionIcon: IconProp.Error,
     allClearLabel: "All operational",
+    product: ProductKey.Monitors,
     /*
      * The Monitors list, not the create form: its empty state offers the
      * Create Monitor button behind the same permission gate as its header,
@@ -149,6 +162,7 @@ const STAT_TILE_DEFINITIONS: Array<StatTileDefinition> = [
     attentionTone: StatTileTone.Warning,
     attentionIcon: IconProp.Clock,
     allClearLabel: "None ongoing",
+    product: ProductKey.ScheduledMaintenance,
   },
   {
     key: "slos-needing-attention",
@@ -162,6 +176,7 @@ const STAT_TILE_DEFINITIONS: Array<StatTileDefinition> = [
     attentionTone: StatTileTone.Warning,
     attentionIcon: IconProp.Gauge,
     allClearLabel: "Budgets healthy",
+    product: ProductKey.Slos,
     notSetUp: (counts: HomeCounts): NotSetUpState => {
       return {
         isNotSetUp: counts.totalSlos === 0,
@@ -178,6 +193,33 @@ export const STAT_TILE_KEYS: Array<string> = STAT_TILE_DEFINITIONS.map(
     return definition.key;
   },
 );
+
+/*
+ * The keys of the cells a server shows: every cell but those of products
+ * switched off on it (#6815).
+ */
+export const getStatTileKeysOnServer: (
+  offProducts: ReadonlyArray<ProductKey>,
+) => Array<string> = (
+  offProducts: ReadonlyArray<ProductKey>,
+): Array<string> => {
+  return STAT_TILE_DEFINITIONS.filter(
+    (definition: StatTileDefinition): boolean => {
+      return !offProducts.includes(definition.product);
+    },
+  ).map((definition: StatTileDefinition): string => {
+    return definition.key;
+  });
+};
+
+// The grid's columns from xl up, for as many cells as are shown.
+const XL_COLUMNS_CLASS_NAME: Record<number, string> = {
+  1: "xl:grid-cols-1",
+  2: "xl:grid-cols-2",
+  3: "xl:grid-cols-3",
+  4: "xl:grid-cols-4",
+  5: "xl:grid-cols-5",
+};
 
 // What each cell says for these counts. Pure, for the tests.
 export const getStatTiles: (counts: HomeCounts) => Array<StatTile> = (
@@ -257,6 +299,15 @@ const OverviewStats: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const products: ProjectProductsState = useProjectProducts();
+  const shownKeys: Array<string> = getStatTileKeysOnServer(
+    getOffProducts(products.answer.offOnServer || {}),
+  );
+  const definitions: Array<StatTileDefinition> = STAT_TILE_DEFINITIONS.filter(
+    (definition: StatTileDefinition): boolean => {
+      return shownKeys.includes(definition.key);
+    },
+  );
 
   const tiles: Array<StatTile> | null = props.counts
     ? getStatTiles(props.counts)
@@ -265,18 +316,25 @@ const OverviewStats: FunctionComponent<ComponentProps> = (
   return (
     <div
       data-testid="home-overview-stats"
-      className="grid grid-cols-2 gap-px border-t border-gray-200 bg-gray-200 xl:grid-cols-5"
+      className={`grid grid-cols-2 gap-px border-t border-gray-200 bg-gray-200 ${
+        XL_COLUMNS_CLASS_NAME[Math.max(1, definitions.length)] ||
+        "xl:grid-cols-5"
+      }`}
     >
-      {STAT_TILE_DEFINITIONS.map(
+      {definitions.map(
         (definition: StatTileDefinition, index: number): ReactElement => {
-          const tile: StatTile | null = tiles ? tiles[index] || null : null;
+          const tile: StatTile | null = tiles
+            ? tiles.find((each: StatTile): boolean => {
+                return each.key === definition.key;
+              }) || null
+            : null;
 
           /*
-           * Two to a row until the five fit on one: the fifth then spans its
-           * row, so no empty grey slot is left beside it.
+           * Two to a row until they all fit on one: an odd last one then
+           * spans its row, so no empty grey slot is left beside it.
            */
           const spanClassName: string =
-            index === STAT_TILE_DEFINITIONS.length - 1
+            index === definitions.length - 1 && definitions.length % 2 === 1
               ? "col-span-2 xl:col-span-1"
               : "";
 
