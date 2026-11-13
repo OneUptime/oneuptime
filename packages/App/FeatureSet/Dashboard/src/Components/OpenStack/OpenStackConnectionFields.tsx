@@ -171,7 +171,7 @@ export const OpenStackCollectionOptionsField: FunctionComponent<
             <OpenStackNamesField
               value={options.portNetworkIds || []}
               ariaLabelledby={networksLabelId}
-              placeholder={translator.translateText("Network IDs") as string}
+              placeholder="Network IDs"
               disabled={props.disabled}
               dataTestId="openstack-option-port-networks"
               onChange={(names: Array<string>) => {
@@ -189,7 +189,7 @@ export const OpenStackCollectionOptionsField: FunctionComponent<
             <OpenStackNamesField
               value={options.portProjectIds || []}
               ariaLabelledby={projectsLabelId}
-              placeholder={translator.translateText("Project IDs") as string}
+              placeholder="Project IDs"
               disabled={props.disabled}
               dataTestId="openstack-option-port-projects"
               onChange={(names: Array<string>) => {
@@ -212,7 +212,7 @@ export const OpenStackCollectionOptionsField: FunctionComponent<
           <OpenStackNamesField
             value={options.swiftReconAddresses || []}
             ariaLabelledby={reconLabelId}
-            placeholder={translator.translateText("host:port") as string}
+            placeholder="host:port"
             disabled={props.disabled}
             dataTestId="openstack-option-swift-recon"
             onChange={(names: Array<string>) => {

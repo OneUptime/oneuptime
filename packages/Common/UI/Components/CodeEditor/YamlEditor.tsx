@@ -14,6 +14,8 @@ export interface ComponentProps {
   onFocus?: (() => void) | undefined;
   /** Shown in the toolbar as a hint. Never written into the document. */
   placeholder?: string | undefined;
+  // In the reader's words already: drawn as given (Field's, #7682).
+  isPlaceholderTranslated?: boolean | undefined;
   error?: string | undefined;
   readOnly?: boolean | undefined;
   tabIndex?: number | undefined;
@@ -59,6 +61,9 @@ const YamlEditor: FunctionComponent<ComponentProps> = (
          * write it, and has to stay readable once there is text in the box.
          */
         hint={props.placeholder || YAML_DEFAULT_HINT}
+        isHintTranslated={Boolean(
+          props.placeholder && props.isPlaceholderTranslated,
+        )}
         error={props.error}
         ariaInvalid={Boolean(props.error)}
         readOnly={props.readOnly}
