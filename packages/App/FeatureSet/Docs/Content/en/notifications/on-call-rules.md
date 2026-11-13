@@ -1,6 +1,6 @@
-# Personal On-Call Rules
+# How to Reach Me
 
-Your on-call rules decide how a page reaches you: which of your notification methods OneUptime tries, and how long after the page starts. Each kind of page has its own rules, one set per severity, so a critical incident can call you at once while a low alert waits for an email. You set them under **User Settings → How to Reach Me**.
+How to Reach Me decides how a page reaches you: which of your notification methods OneUptime tries, and how long after the page starts. Each kind of page has its own rules, one set per severity, so a critical incident can call you at once while a low alert waits for an email. You set them under **User Settings → How to Reach Me**.
 
 > [!NOTE]
 > These rules are yours alone. The **On-Call Rules** under **Incidents → Rules** and **Alerts → Rules** are something else: they decide which on-call policies a new incident or alert runs.

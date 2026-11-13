@@ -22,7 +22,7 @@ flowchart TB
 
 While an override is in force, from its start to its end:
 
-- With somebody under **Who covers?**, that person gets all of the away person's pages, from every schedule, team and rule the override applies to. The page reaches them through their own personal on-call rules.
+- With somebody under **Who covers?**, that person gets all of the away person's pages, from every schedule, team and rule the override applies to. The page reaches them as their How to Reach Me says.
 - With nobody to cover, the person is skipped. In an on-call schedule, each of their turns goes to the next person in the rotation who is not away; if everyone in a layer is away, the layers below it take over. A rule that names them directly, or through a team, does not page them, and the policy's run says they are away, and until when.
 - Overrides do not chain. If the person covering is away too, they are still the one paged for the person they cover.
 
@@ -33,7 +33,7 @@ Once the override ends, the pages are theirs again. The **Schedule Timeline**, a
 :::steps
 ### Open the overrides
 
-Go to **On-Call Duty → Advanced → User Overrides** to cover someone on every on-call policy, or to a policy's own **User Overrides** page, under **Advanced**, to cover them on that policy only. Click **Add User Override**.
+Go to **On-Call → Advanced → User Overrides** to cover someone on every on-call policy, or to a policy's own **User Overrides** page, under **Advanced**, to cover them on that policy only. Click **Add User Override**.
 
 ### Say who is away
 
@@ -54,7 +54,7 @@ Each override is a row: **Away**, **Covered by**, **Starts** and **Ends**, filte
 
 | Added under | Card | Applies to |
 | --- | --- | --- |
-| **On-Call Duty → Advanced → User Overrides** | **Global User Overrides** | Every on-call policy in the project |
+| **On-Call → Advanced → User Overrides** | **Global User Overrides** | Every on-call policy in the project |
 | A policy's **User Overrides** | **On-Call Policy User Overrides** | That policy only |
 
 When two overrides for the same person overlap, the policy's own one wins over a global one, and one that names who covers wins over a skip. A page sent without a policy, from a workflow or from chat, follows the global overrides only.
@@ -68,9 +68,9 @@ When someone leaves the project, every override that names them and has not ende
 
 ## Who can add overrides
 
-**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** and **On-Call Member** can add and delete overrides; **Viewer** and **On-Call Viewer** can see them. In a custom role, the permissions are **Create On-Call Duty Policy User Override**, **Delete On-Call Duty Policy User Override** and **Read On-Call Duty Policy User Override**. On the **Schedule Timeline**, only people who can read overrides see whose shift is being covered.
+**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** and **On-Call Member** can add and delete overrides; **Viewer** and **On-Call Viewer** can see them. In a custom role, the permissions are **Create On-Call Policy User Override**, **Delete On-Call Policy User Override** and **Read On-Call Policy User Override**. On the **Schedule Timeline**, only people who can read overrides see whose shift is being covered.
 
-An override on a policy follows the policy's scope. Give a team **On-Call Member** limited to the policies it owns, or to its label, and its members add and delete overrides on those policies only. A global override applies to every policy, another team's included, so adding or deleting one takes the override permission over the whole project. With a narrower one, **Add User Override** and **Delete** on **On-Call Duty → Advanced → User Overrides** are locked and say why. **Skip until…** on a schedule's layers and **Get cover** on your upcoming shifts, which add global overrides, offer instead the policies you may cover, one override on each, and so does the mobile app's cover; where you may cover none of them, they are locked and say why. The team adds its overrides on each policy's own **User Overrides** page. The same holds for the API: an override with no `onCallDutyPolicyId` is refused for a permission limited to labels or to owned policies.
+An override on a policy follows the policy's scope. Give a team **On-Call Member** limited to the policies it owns, or to its label, and its members add and delete overrides on those policies only. A global override applies to every policy, another team's included, so adding or deleting one takes the override permission over the whole project. With a narrower one, **Add User Override** and **Delete** on **On-Call → Advanced → User Overrides** are locked and say why. **Skip until…** on a schedule's layers and **Get cover** on your upcoming shifts, which add global overrides, offer instead the policies you may cover, one override on each, and so does the mobile app's cover; where you may cover none of them, they are locked and say why. The team adds its overrides on each policy's own **User Overrides** page. The same holds for the API: an override with no `onCallDutyPolicyId` is refused for a permission limited to labels or to owned policies.
 
 On OneUptime Cloud, user overrides need the **Growth** plan.
 
@@ -105,11 +105,11 @@ An override whose away person and cover are the same is refused, and so is one t
 ## Troubleshooting
 
 :::details The person on holiday was still paged
-Check where the override was added. One on a policy's **User Overrides** page covers that policy only, and other policies still page them: add it under **On-Call Duty → Advanced → User Overrides** to cover every policy. Check its **Starts** and **Ends** too: times are shown in your time zone.
+Check where the override was added. One on a policy's **User Overrides** page covers that policy only, and other policies still page them: add it under **On-Call → Advanced → User Overrides** to cover every policy. Check its **Starts** and **Ends** too: times are shown in your time zone.
 :::
 
 :::details The person covering was not paged either
-They are reached through their own personal on-call rules and verified methods. Look them up on **On-Call Duty → Readiness**, and check the policy's **Execution Logs** for the run.
+They are reached through their How to Reach Me and verified methods. Look them up on **On-Call → Readiness**, and check the policy's **Execution Logs** for the run.
 :::
 
 :::details I cannot add an override

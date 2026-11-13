@@ -89,6 +89,6 @@ Check the number's country code first. After a test page, close the dialog with 
 :::cards
 - [On-Call Schedules](/docs/on-call/schedules): Take turns, so each page goes to whoever is on call. On Cloud, from the Growth plan.
 - [Escalation Rules](/docs/on-call/escalation-rules): Add levels, teams and schedules to the policy.
-- [Personal On-Call Rules](/docs/notifications/on-call-rules): Choose which method reaches you first, and when.
+- [How to Reach Me](/docs/notifications/on-call-rules): Choose which method reaches you first, and when.
 - [Publish a Status Page](/docs/guides/status-page): Tell your customers what is happening, on your own domain.
 :::

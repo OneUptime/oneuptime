@@ -84,7 +84,7 @@ Click **Create Alert On-Call Rule**. On **Match**, **All alerts**, where a new r
 
 ### Pick the policies
 
-On **On-Call Policies**, pick the **On-Call Duty Policies** the rule pages. Its **Name** follows them, such as "Page Platform on-call", until you type your own, and a **Description** waits under **More fields**. Then create the rule.
+On **On-Call Policies**, pick the **On-Call Policies** the rule pages. Its **Name** follows them, such as "Page Platform on-call", until you type your own, and a **Description** waits under **More fields**. Then create the rule.
 :::
 
 A severity pages nobody on its own: an on-call rule that matches **Alert Severities** is how "page the database team for every High alert" is set up. To see what ran for one alert, open its **On-Call Executions** page. Each person is then reached the way they set up under **User Settings → How to Reach Me**, on the **Alerts** tab; see [Escalation Rules](/docs/on-call/escalation-rules).

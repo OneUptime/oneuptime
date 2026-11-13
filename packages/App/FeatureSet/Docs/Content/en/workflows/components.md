@@ -208,7 +208,7 @@ Connections to loopback (`localhost`, `127.0.0.1`), link-local and cloud metadat
 
 ## Paging
 
-Page people from a workflow: each person gets a phone call, an SMS, a push notification or an email, as their own on-call rules say, until somebody acknowledges. There is a block for each way of saying who to page. In the **Add Component** panel, search for `page`.
+Page people from a workflow: each person gets a phone call, an SMS, a push notification or an email, as their How to Reach Me says, until somebody acknowledges. There is a block for each way of saying who to page. In the **Add Component** panel, search for `page`.
 
 | Block                       | Who it pages                                                                              |
 | --------------------------- | ----------------------------------------------------------------------------------------- |

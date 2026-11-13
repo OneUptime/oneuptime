@@ -198,7 +198,7 @@ A monitor's own rules are its criteria. The on-call rules under **User Settings*
 
 :::cards
 - [Incident Settings & Automation](/docs/incidents/settings#rules-that-run-when-an-incident-is-created): The rules that run when an incident is created, in order.
-- [Personal On-Call Rules](/docs/notifications/on-call-rules): How a page reaches you.
+- [How to Reach Me](/docs/notifications/on-call-rules): How a page reaches you.
 :::
 
 ## Next steps

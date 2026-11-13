@@ -38,7 +38,7 @@ flowchart TB
 :::steps
 ### Add your Twilio account
 
-Go to **Project Settings** > **Notifications** > **Notification Settings**, and open **More settings**. In the **Twilio Config** card, click **Create Twilio Config** and fill in the form:
+Go to **Project Settings** > **Notifications** > **Notification Channels**, and open **More settings**. In the **Twilio Config** card, click **Create Twilio Config** and fill in the form:
 
 - **Name** and **Description**: what the account is for, such as "Support hotline".
 - **Twilio Account SID**: from the Twilio Console. It starts with `AC`.
@@ -48,7 +48,7 @@ Go to **Project Settings** > **Notifications** > **Notification Settings**, and 
 
 ### Create the policy
 
-Go to **On-Call Duty** > **Incoming Call Policies** and click **Create Incoming Call Policy**. Give it a **Name**, such as "Support Hotline"; a **Description** and **Labels** are optional, under **More fields**. The new policy opens on its **Overview**.
+Go to **On-Call** > **Incoming Call Policies** and click **Create Incoming Call Policy**. Give it a **Name**, such as "Support Hotline"; a **Description** and **Labels** are optional, under **More fields**. The new policy opens on its **Overview**.
 
 ### Choose the Twilio account
 
@@ -160,7 +160,7 @@ A rule rings a person on the number they verified for incoming calls in this pro
 
 Each person can have one verified number per project. To change it, delete the old number first. These numbers are separate from the phone numbers under **Notification Methods**, which on-call pages use. See [Notification Methods](/docs/notifications/notification-methods).
 
-Incoming call numbers are verified by SMS, so **SMS** has to be on for the project first. A project owner, a **Billing Admin** or someone with **Manage Billing** turns it on in the **Notification Channels** card on **Project Settings > Notifications > Notification Settings**.
+Incoming call numbers are verified by SMS, so **SMS** has to be on for the project first. A project owner, a **Billing Admin** or someone with **Manage Billing** turns it on in the **Notification Channels** card on **Project Settings > Notifications > Notification Channels**.
 
 ## Voice messages and policy settings
 

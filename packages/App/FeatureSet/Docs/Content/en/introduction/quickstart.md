@@ -68,7 +68,7 @@ As it is, an incident with no owners is emailed to the project's owners, and tha
 :::steps
 ### Create an on-call policy
 
-In the checklist, click **Set up an on-call policy**, or open **On-Call Duty** from the **Products** menu. Click **Create On-Call Policy** and enter a **Name**. Under **Who gets paged first?**, click **Add responder** and pick yourself. Leave **Page this policy for every new incident and alert** on, and click **Create On-Call Policy**.
+In the checklist, click **Set up an on-call policy**, or open **On-Call** from the **Products** menu. Click **Create On-Call Policy** and enter a **Name**. Under **Who gets paged first?**, click **Add responder** and pick yourself. Leave **Page this policy for every new incident and alert** on, and click **Create On-Call Policy**.
 
 ### See the rule that pages it
 
@@ -80,7 +80,7 @@ Your sign-in email is already a way to reach you. To be texted or called too, op
 :::
 
 > [!NOTE]
-> SMS and phone calls are off in a new project. A project owner, a Billing Admin or someone with Manage Billing turns them on in the **Notification Channels** card, under **Project Settings → Notifications → Notification Settings**.
+> SMS and phone calls are off in a new project. A project owner, a Billing Admin or someone with Manage Billing turns them on in the **Notification Channels** card, under **Project Settings → Notifications → Notification Channels**.
 
 For more levels, rotations and how long each level waits, see [Escalation Rules](/docs/on-call/escalation-rules) and [On-Call Schedules](/docs/on-call/schedules).
 
