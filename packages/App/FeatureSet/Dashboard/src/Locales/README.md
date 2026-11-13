@@ -40,6 +40,13 @@ a language, and the rules the guard test enforces.
   along with the sentence and cased for mid-sentence use in the reader's
   language: "No incidents yet." in English, "Noch keine Vorfälle." in German,
   whose nouns keep their capital. Acronyms and brand names keep their casing.
+  Where the reader's sentence starts with it, it takes a capital there
+  ("Overvågning kan ikke indlæses."), so a locale words such a key for the
+  middle of a sentence: "le collecteur OneUptime", never "Le collecteur".
+  A full stop ends a sentence, except an abbreviation's ("z.B.") and that of
+  a word shortened before a value ("pr. {{signal}}", "kl. {{time}}"). A
+  locale that shortens another word before a value adds it to
+  `SHORTENED_BEFORE_A_VALUE` in `Common/Types/Translator.ts`.
 - **Values built from translated pieces.** Clauses joined into one sentence,
   or names joined with "or", go into a sentence as
   `composedValue((translator) => ...)`, built with the `translator` they are

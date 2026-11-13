@@ -13,6 +13,8 @@ import {
   getHostCollectorServiceCommands,
 } from "Common/Utils/HostCollector/HostCollectorInstallCommand";
 import {
+  TranslatableTerm,
+  translatableTerm,
   translateTemplate,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
@@ -62,8 +64,17 @@ export interface ResourceConnectionCopy {
 }
 
 export interface ResourceConnectionGuide {
-  // What sends its data: "OneUptime Kubernetes Agent" ...
-  agentName: string;
+  /*
+   * What sends its data, as the card's sentences name it: a product's name,
+   * as written ("OneUptime Kubernetes Agent", "OpenTelemetry Collector"), or
+   * words a language words for the middle of a sentence - an inSentence
+   * term: "OneUptime collector" is "le collecteur OneUptime" in French. The
+   * card's stopped sentence starts with it in French, Italian and Russian,
+   * and its setup sentence names it in the middle ("Configurez le
+   * collecteur OneUptime"), so such a term takes a capital only where a
+   * sentence starts with it (Translator's startsASentence, issue #7692).
+   */
+  agentName: string | TranslatableTerm;
   /*
    * What the card says while nothing has ever arrived - "Connect this
    * cluster", and why it reads Disconnected - and once data has stopped -
@@ -995,7 +1006,7 @@ const getManagedHostConnectionGuide: (
 
   return {
     ...HOST_COPY,
-    agentName: translationKey("OneUptime collector"),
+    agentName: translatableTerm("OneUptime collector", { inSentence: true }),
     startingCopy: isStarting
       ? {
           title: translationKey("This host is starting"),
@@ -1096,8 +1107,9 @@ export const getIoTFleetConnectionGuide: (
 
   return {
     ...FLEET_COPY,
-    agentName: translationKey(
+    agentName: translatableTerm(
       "OpenTelemetry exporter on your devices or gateway",
+      { inSentence: true },
     ),
     setupSteps: [
       PICK_INGESTION_KEY_STEP,
@@ -1164,7 +1176,9 @@ export const getCloudResourceConnectionGuide: (
 
   return {
     ...ENVIRONMENT_COPY,
-    agentName: translationKey("OpenTelemetry SDK or collector"),
+    agentName: translatableTerm("OpenTelemetry SDK or collector", {
+      inSentence: true,
+    }),
     setupSteps: [
       PICK_INGESTION_KEY_STEP,
       {
@@ -1235,7 +1249,9 @@ export const getRumApplicationConnectionGuide: (
       title: RUM_APPLICATION_IDLE_COPY.title,
       description: RUM_APPLICATION_IDLE_COPY.description,
     },
-    agentName: translationKey("OpenTelemetry browser or mobile SDK"),
+    agentName: translatableTerm("OpenTelemetry browser or mobile SDK", {
+      inSentence: true,
+    }),
     setupSteps: [
       {
         title: "Create a Browser ingestion key",
