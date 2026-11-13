@@ -17,6 +17,7 @@ import URL from "../../../Types/API/URL";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
+import { NotificationRuleUpdateKind } from "../../../Types/Workspace/NotificationRules/NotificationRuleUpdates";
 import WorkspaceLiveMessageKey, {
   WorkspaceLiveMessagePageRecordType,
 } from "../../../Types/Workspace/WorkspaceLiveMessageKey";
@@ -583,6 +584,37 @@ describe("Jane: /oneuptime page @nitin The checkout API is throwing 500s, in #op
       ).toHaveLength(1);
       expect(started).not.toBeNull();
     });
+  });
+});
+
+/*
+ * #7581: a rule that chose its updates hears of a page only if it ticked
+ * Paging. The alert's own channel is that rule's, so a rule on other updates
+ * keeps the run's message out of it; #ops, where Jane asked, is told as
+ * before.
+ */
+describe("the same page, when the rule of the alert's own channel did not tick Paging", () => {
+  beforeEach(async () => {
+    world.ruleUpdatesToPost = [
+      NotificationRuleUpdateKind.ResolvedAndReopened,
+      NotificationRuleUpdateKind.PublicNotes,
+    ];
+
+    expect(await postCommand(app.port, `page <@U0NITIN|nitin> ${TITLE}`)).toBe(
+      200,
+    );
+
+    await settled();
+  });
+
+  test("#ops still gets the page's one message", () => {
+    expect(lines(pageMessageIn(OPS))[0]).toBe(
+      `📟 *Jane Doe* is paging for ${ALERT_IN_SLACK}`,
+    );
+  });
+
+  test("the alert's own channel gets no message of the run", () => {
+    expect(pageMessageIn(ALERT_CHANNEL)).toBeUndefined();
   });
 });
 
