@@ -158,16 +158,19 @@ const NotificationRuleUpdatesForm: FunctionComponent<ComponentProps> = (
           );
         })}
       </div>
-      {posted.length === 0 ? (
-        <p
-          className="mt-3 text-sm text-gray-500"
-          data-testid="notification-rule-updates-nothing-chosen"
-        >
-          {translator.translateText(copy.nothingChosenNote)}
-        </p>
-      ) : (
-        <></>
-      )}
+      {/* Read out as the last box is cleared, below the box just clicked. */}
+      <div aria-live="polite">
+        {posted.length === 0 ? (
+          <p
+            className="mt-3 text-sm text-gray-500"
+            data-testid="notification-rule-updates-nothing-chosen"
+          >
+            {translator.translateText(copy.nothingChosenNote)}
+          </p>
+        ) : (
+          <></>
+        )}
+      </div>
     </div>
   );
 

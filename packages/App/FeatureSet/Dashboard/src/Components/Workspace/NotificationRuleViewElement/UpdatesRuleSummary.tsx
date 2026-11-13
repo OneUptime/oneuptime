@@ -1,5 +1,8 @@
 import { StoredRuleUpdates } from "Common/Types/Workspace/NotificationRules/NotificationRuleUpdates";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  getInlineSeparator,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import {
@@ -14,9 +17,18 @@ import {
  *   Updates   Key updates only
  *             Resolved and reopened · Severity changes · Public notes
  *
- * The answer it picked on its Updates step, and the updates it posts. The
- * card shows the row only for a rule that leaves some updates out: every
- * other rule posts every update, as rules always did.
+ *   Updates   Private notes · Paging
+ *
+ *   Updates   Only when an incident is declared or a video call starts
+ *
+ * The answer it picked on its Updates step and the updates it posts; a rule
+ * that ticked its own boxes is said by its updates alone. The card shows
+ * the row only for a rule that leaves some updates out: every other rule
+ * posts every update, as rules always did.
+ *
+ * Each update stays whole on its line, the mark after it with it: a narrow
+ * card breaks the list between two updates, never inside one ("Änderungen
+ * des / Schweregrads") or with a mark at the start of a line.
  */
 
 export interface ComponentProps {
@@ -35,21 +47,44 @@ const UpdatesRuleSummary: FunctionComponent<ComponentProps> = (
     translator: translator,
   });
 
+  // " · ", or " • " where the zero is a dot (Persian).
+  const mark: string = getInlineSeparator(translator.language).trim();
+  const lastIndex: number = summary.updates.length - 1;
+
   return (
     <div className="text-sm" data-testid="notification-rule-updates-summary">
-      <p
-        className="text-gray-700"
-        data-testid="notification-rule-updates-summary-title"
-      >
-        {summary.title}
-      </p>
-      {summary.detail ? (
+      {summary.title ? (
         <p
-          className="mt-0.5 text-pretty text-gray-500"
-          data-testid="notification-rule-updates-summary-detail"
+          className="text-gray-700"
+          data-testid="notification-rule-updates-summary-title"
         >
-          {summary.detail}
+          {summary.title}
         </p>
+      ) : (
+        <></>
+      )}
+      {summary.updates.length > 0 ? (
+        <ul
+          role="list"
+          className={summary.title ? "mt-0.5 text-gray-500" : "text-gray-700"}
+          data-testid="notification-rule-updates-summary-list"
+        >
+          {summary.updates.map((name: string, index: number): ReactElement => {
+            return (
+              <React.Fragment key={name}>
+                <li className="inline-block">
+                  {name}
+                  {index < lastIndex ? (
+                    <span aria-hidden="true">{` ${mark}`}</span>
+                  ) : (
+                    <></>
+                  )}
+                </li>
+                {index < lastIndex ? " " : <></>}
+              </React.Fragment>
+            );
+          })}
+        </ul>
       ) : (
         <></>
       )}
