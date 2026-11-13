@@ -330,6 +330,44 @@ describe("the picker, rendered in the reader's language", () => {
       );
     },
   );
+
+  /*
+   * The picker is searchable: a reader types the operator as the menu
+   * words it. It searched only the English, so "stimmt nicht" found
+   * nothing in German, and the menu said "No options".
+   */
+  test.each(RENDERED)(
+    "in %s, typing an operator as the menu words it finds it, and the English still does",
+    async (language: string) => {
+      await act(async (): Promise<void> => {
+        await i18next.changeLanguage(language);
+      });
+      const words: Record<string, string> = readDashboardLocale(language);
+
+      renderFilter({ "http.route": new Wildcard("/api/*") });
+
+      const operatorPicker: HTMLElement = screen.getAllByRole("combobox")[1]!;
+      const listed: () => Array<string> = (): Array<string> => {
+        return Array.from(
+          document.querySelectorAll<HTMLElement>(".ou-select__option"),
+        ).map((option: HTMLElement): string => {
+          return option.textContent || "";
+        });
+      };
+
+      act(() => {
+        fireEvent.change(operatorPicker, {
+          target: { value: words["does not match"] },
+        });
+      });
+      expect(listed()).toEqual([words["does not match"]]);
+
+      act(() => {
+        fireEvent.change(operatorPicker, { target: { value: "is any of" } });
+      });
+      expect(listed()).toEqual([words["is any of"]]);
+    },
+  );
 });
 
 /*
