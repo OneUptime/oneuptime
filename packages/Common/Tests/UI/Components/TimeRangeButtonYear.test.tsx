@@ -569,15 +569,12 @@ describe("a 12-hour time in the reader's language has no leading zero", () => {
     ["zh-CN", "2025年11月5日 上午5:14 – 2025年11月5日 上午6:14"],
     ["de", "5. Nov. 2025, 5:14 AM – 5. Nov. 2025, 6:14 AM"],
     ["fa", "۵ نوامبر ۲۰۲۵، ۵:۱۴ ق.ظ. – ۵ نوامبر ۲۰۲۵، ۶:۱۴ ق.ظ."],
-  ])(
-    "%s on a 12-hour clock: %s",
-    (language: string, expected: string) => {
-      pin(true);
-      setDateDisplayLanguage(language);
+  ])("%s on a 12-hour clock: %s", (language: string, expected: string) => {
+    pin(true);
+    setDateDisplayLanguage(language);
 
-      expect(label(MORNING)).toBe(expected);
-    },
-  );
+    expect(label(MORNING)).toBe(expected);
+  });
 
   test.each<[string, string]>([
     ["ko", "2025년 11월 5일 05:14 – 2025년 11월 5일 06:14"],
@@ -628,24 +625,25 @@ describe("a 12-hour time in the reader's language has no leading zero", () => {
     expect(getHourOption(undefined)).toBe("2-digit");
   });
 
-  describe.each(DASHBOARD_LANGUAGES.map((code: string) => [code]))(
-    "in %s",
-    (language: string) => {
-      test("on a 12-hour clock, neither end's hour has a zero", () => {
-        pin(true);
-        setDateDisplayLanguage(language);
+  describe.each(
+    DASHBOARD_LANGUAGES.map((code: string): [string] => {
+      return [code];
+    }),
+  )("in %s", (language: string) => {
+    test("on a 12-hour clock, neither end's hour has a zero", () => {
+      pin(true);
+      setDateDisplayLanguage(language);
 
-        expect(hoursOf(label(MORNING))).toEqual(["5", "6"]);
-      });
+      expect(hoursOf(label(MORNING))).toEqual(["5", "6"]);
+    });
 
-      test("on a 24-hour clock, both ends' hours keep theirs", () => {
-        pin(false);
-        setDateDisplayLanguage(language);
+    test("on a 24-hour clock, both ends' hours keep theirs", () => {
+      pin(false);
+      setDateDisplayLanguage(language);
 
-        expect(hoursOf(label(MORNING))).toEqual(["05", "06"]);
-      });
-    },
-  );
+      expect(hoursOf(label(MORNING))).toEqual(["05", "06"]);
+    });
+  });
 
   test("every Dashboard language is read here, and the reader of hours finds two times in each", () => {
     // A negative control: the pattern reads a zero where there is one.

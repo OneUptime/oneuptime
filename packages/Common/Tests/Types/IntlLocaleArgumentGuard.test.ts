@@ -66,6 +66,8 @@ const ALLOWED: ReadonlyMap<string, number> = new Map<string, number>([
   ["Common/UI/Components/Calendar/Calendar.tsx ENGLISH_LANGUAGE", 2],
   // getDateLocale's own probe of the locale it has just pinned.
   ["Common/Types/DateLanguage.ts locale", 1],
+  // getLocaleClockHourOption's probe of a pinned locale's own clock.
+  ["Common/Types/DateLanguage.ts pinnedLocale", 1],
   // getReaderNumberLocale's read of the runtime's own locale.
   ["Common/Types/DateLanguage.ts ", 1],
   // Whether the browser's clock is a 12-hour one, and that probe's fallback.

@@ -435,9 +435,10 @@ describe("the sentence in the reader's language (issue #7280)", () => {
       const words: string | undefined =
         readDashboardLocale(language)[LOGS_TIME_RANGE_EMPTY_HINT];
 
-      expect({ language, worded: words !== LOGS_TIME_RANGE_EMPTY_HINT }).toEqual(
-        { language, worded: true },
-      );
+      expect({
+        language,
+        worded: words !== LOGS_TIME_RANGE_EMPTY_HINT,
+      }).toEqual({ language, worded: true });
       expect({ language, keepsRange: words?.includes("{{range}}") }).toEqual({
         language,
         keepsRange: true,
@@ -577,8 +578,11 @@ describe("the sentence in the reader's language (issue #7280)", () => {
           inSentence: true,
         });
 
-        expect({ language, preset: option.label, named: read.includes(name) })
-          .toEqual({ language, preset: option.label, named: true });
+        expect({
+          language,
+          preset: option.label,
+          named: read.includes(name),
+        }).toEqual({ language, preset: option.label, named: true });
         // The sentence's own words, not English's.
         expect({
           language,

@@ -142,12 +142,15 @@ describe("EventStartTileValue in another language", () => {
     ["ja", "午後6:01"],
     ["hi", `6:01${NBSP}pm`],
     ["de", `6:01${NBSP}PM`],
-  ])("%s writes the 12-hour time without a leading zero: %s", (language: string, time: string) => {
-    const value: string = valueIn(language);
+  ])(
+    "%s writes the 12-hour time without a leading zero: %s",
+    (language: string, time: string) => {
+      const value: string = valueIn(language);
 
-    expect(value).toContain(time);
-    expect(value).not.toContain("06:01");
-  });
+      expect(value).toContain(time);
+      expect(value).not.toContain("06:01");
+    },
+  );
 
   test("English keeps the zero its own pattern writes", () => {
     expect(valueIn("en")).toContain(`06:01${NBSP}PM`);
