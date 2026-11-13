@@ -620,6 +620,11 @@ const isWorkerTimestampName: (name: string) => boolean = (
 export interface AuditLogCoverageModel {
   tableName: string | null;
   singularName: string | null;
+  /*
+   * What the audit log stores a model renamed on screen under: the name it
+   * kept (Common/Utils/ModelApiName), as the recorder's resource type is.
+   */
+  apiSingularName?: string | null | undefined;
   getTenantColumn: () => string | null;
   getTableColumns: () => { columns: Array<string> };
   getTableColumnMetadata: (column: string) => TableColumnMetadata;
@@ -746,10 +751,12 @@ export const inferRootResource: (
       metadata.modelType as unknown as CoverageModelType,
     );
     const rootTable: string | null = root.tableName;
+    // The type the root's own entries are stored under, so the two match.
+    const rootType: string | null = root.apiSingularName || root.singularName;
 
     if (
       !rootTable ||
-      !root.singularName ||
+      !rootType ||
       rootTable === tableName ||
       !tableName.startsWith(rootTable) ||
       !AUDIT_LOG_ROOT_RESOURCE_TABLES.has(rootTable)
@@ -774,7 +781,7 @@ export const inferRootResource: (
     if (!found || rootTable.length > found.tableLength) {
       found = {
         tableLength: rootTable.length,
-        root: { resourceType: root.singularName, column: idColumn },
+        root: { resourceType: rootType, column: idColumn },
       };
       isTied = false;
     }

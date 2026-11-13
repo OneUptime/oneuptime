@@ -125,7 +125,7 @@ flowchart TB
 
 ## 誰可以變更策略
 
-**專案擁有者** 、 **專案管理員** 、 **專案成員** 、 **待命管理員** 和 **待命成員** 可以建立、變更和刪除策略； **檢視者** 和 **待命檢視者** 可以檢視。在自訂角色中，權限名稱為 **Create On-Call Duty Policy** 、 **Edit On-Call Duty Policy** 、 **Delete On-Call Duty Policy** 和 **Read On-Call Duty Policy** ，限定於某些標籤的角色只能存取帶有這些標籤的策略。在 OneUptime Cloud 上，新增擁有者和自訂欄位需要 **Growth** 方案。
+**專案擁有者** 、 **專案管理員** 、 **專案成員** 、 **待命管理員** 和 **待命成員** 可以建立、變更和刪除策略； **檢視者** 和 **待命檢視者** 可以檢視。在自訂角色中，權限名稱為 **Create On-Call Policy** 、 **Edit On-Call Policy** 、 **Delete On-Call Policy** 和 **Read On-Call Policy** ，限定於某些標籤的角色只能存取帶有這些標籤的策略。在 OneUptime Cloud 上，新增擁有者和自訂欄位需要 **Growth** 方案。
 
 ## API 和 Terraform
 

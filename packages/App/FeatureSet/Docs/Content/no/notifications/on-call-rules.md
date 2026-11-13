@@ -1,4 +1,4 @@
-# Personlige vaktregler
+# Slik når man meg
 
 Vaktreglene dine avgjør hvordan en tilkalling når deg: hvilke av varselmetodene dine OneUptime prøver, og hvor lenge etter at tilkallingen startet. Hver type tilkalling har egne regler, ett sett per alvorlighetsgrad, så en kritisk hendelse kan ringe deg med en gang mens et lavt varsel venter på en e-post. Du setter dem opp under **Brukerinnstillinger → Slik når man meg**.
 

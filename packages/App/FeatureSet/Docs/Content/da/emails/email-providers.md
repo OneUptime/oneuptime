@@ -15,7 +15,7 @@ Send OneUptimes e-mail gennem en e-mailudbyders HTTPS-API i stedet for en SMTP-s
 
 :::tabs
 @tab Projekt
-Åbn **Yderligere indstillinger** under **Projektindstillinger > Notifikationer > Notifikationsindstillinger**, og klik på **Opret SMTP-konfiguration** i kortet **Brugerdefinerede SMTP-konfigurationer**. I trinnet **Udbyder** angiver du et **Navn** og vælger udbyderen. Det næste trin beder om udbyderens indstillinger, og trinnet **Afsender** om **E-mail fra** og **Fra-navn**. Når konfigurationen er gemt, tjekker **Send test-e-mail** i dens række, at den virker.
+Åbn **Yderligere indstillinger** under **Projektindstillinger > Notifikationer > Notifikationskanaler**, og klik på **Opret SMTP-konfiguration** i kortet **Brugerdefinerede SMTP-konfigurationer**. I trinnet **Udbyder** angiver du et **Navn** og vælger udbyderen. Det næste trin beder om udbyderens indstillinger, og trinnet **Afsender** om **E-mail fra** og **Fra-navn**. Når konfigurationen er gemt, tjekker **Send test-e-mail** i dens række, at den virker.
 @tab Selvhostet instans
 Åbn **Indstillinger** i Admin Dashboard og derefter **Notifikationer > E-mails**. Klik i kortet **E-mail-serverindstillinger** på **Rediger server**, og vælg udbyderen som **E-mailservertype**. Udbyderens kort vises nedenunder, for eksempel **Amazon SES-indstillinger**: klik på dets redigeringsknap, for eksempel **Rediger Amazon SES**, og udfyld udbyderens indstillinger og trinnet **Afsender**. Indtil kortet har alt, hvad det skal bruge, siger det, hvad der mangler, og hver e-mail afvises med den indstilling, der skal udfyldes.
 :::

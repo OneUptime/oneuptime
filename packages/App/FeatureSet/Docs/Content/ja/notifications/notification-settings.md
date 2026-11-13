@@ -106,14 +106,14 @@ flowchart TB
 :::
 
 :::details すべてオフにしたのに、まだメールが届く
-呼び出しはこれらのスイッチではなくオンコールルールに従います。また、サインイン、セキュリティ、請求に関するメールは、レコードの最新情報ではありません。設定はプロジェクトごとにあるため、メールの送信元のプロジェクトを確認してください。 [個人のオンコールルール](/docs/notifications/on-call-rules) を参照してください。
+呼び出しはこれらのスイッチではなくオンコールルールに従います。また、サインイン、セキュリティ、請求に関するメールは、レコードの最新情報ではありません。設定はプロジェクトごとにあるため、メールの送信元のプロジェクトを確認してください。 [私への連絡方法](/docs/notifications/on-call-rules) を参照してください。
 :::
 
 ## 次のステップ
 
 :::cards
 - [通知方法](/docs/notifications/notification-methods): 設定の送信先となる通知方法を追加します。
-- [個人のオンコールルール](/docs/notifications/on-call-rules): 呼び出しがどのように届くかを決めます。
+- [私への連絡方法](/docs/notifications/on-call-rules): 呼び出しがどのように届くかを決めます。
 - [通知のまとめ](/docs/emails/notification-rollup): 集中時には、少なく、まとまったメールに。
 - [OneUptime からの連絡の仕組み](/docs/notifications/index): 通知方法、ルール、設定の関係。
 :::

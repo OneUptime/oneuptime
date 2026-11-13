@@ -510,7 +510,7 @@ test("each output keeps title and severity beside collapsible optional sections"
     ).toBeVisible();
     await setSection(page, "On-Call", true);
     await expect(
-      page.getByRole("combobox", { name: `${output} On-Call Duty Policies` }),
+      page.getByRole("combobox", { name: `${output} On-Call Policies` }),
     ).toBeVisible();
     await setSection(page, "More fields", true);
     await expect(toggle(page, `Auto Resolve ${output}`)).toHaveAttribute(
@@ -589,7 +589,7 @@ async function configureOutput(
   await pickOwners(page, output, [values.user, values.team]);
   await selectOption(page, `${output} Labels`, values.label);
   await setSection(page, "On-Call", true);
-  await selectOption(page, `${output} On-Call Duty Policies`, values.policy);
+  await selectOption(page, `${output} On-Call Policies`, values.policy);
   await setSection(page, "More fields", true);
   await toggle(page, `Auto Resolve ${output}`).click();
   await toggle(page, `Private ${output}`).click();

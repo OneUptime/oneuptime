@@ -9,7 +9,7 @@ Vakt er hvordan OneUptime får en person til å ta tak i et problem, når som he
 - [Slik når en tilkalling noen](#slik-når-en-tilkalling-noen): Fra en ny hendelse til personen som svarer.
 - [Byggesteinene](#byggesteinene): Retningslinjer, eskaleringsregler, vaktplaner, overstyringer og personlige regler.
 - [Sett opp vakt](#sett-opp-vakt): Fra ingenting til et team som tilkalles, i fem steg.
-- [Hvor vakt ligger](#hvor-vakt-ligger): Menyen Vakttjeneste, seksjon for seksjon.
+- [Hvor vakt ligger](#hvor-vakt-ligger): Menyen Vakt, seksjon for seksjon.
 :::
 
 ## Slik når en tilkalling noen
@@ -48,17 +48,17 @@ Se [Ordliste](/docs/introduction/glossary) for ordene som brukes på tvers av On
 | Eskaleringsregel | Ett nivå i en retningslinje: hvem det tilkaller, og hvor lenge det venter på en bekreftelse | [Eskaleringsregler](/docs/on-call/escalation-rules) |
 | Vaktplan | Hvem som har vakt til enhver tid, etter hvert som folk bytter på | [Vaktplaner](/docs/on-call/schedules) |
 | Brukeroverstyring | Hvem som dekker for noen mens de er borte | [Brukeroverstyringer](/docs/on-call/user-overrides) |
-| Personlige vaktregler | Hvordan én person nås: hvilken metode, og etter hvor lang tid | [Personlige vaktregler](/docs/notifications/on-call-rules) |
+| Slik når man meg | Hvordan én person nås: hvilken metode, og etter hvor lang tid | [Slik når man meg](/docs/notifications/on-call-rules) |
 | Policy for innkommende anrop | Et telefonnummer som ringer til den som har vakt | [Policy for innkommende anrop](/docs/on-call/incoming-call-policy) |
 
-Retningslinjer, eskaleringsregler, vaktplaner og overstyringer hører til prosjektet, under **Vakttjeneste**. Varselmetoder og personlige vaktregler hører til hver person, under **Brukerinnstillinger**: en administrator kan se oppsettet til noen, men bare personen selv kan verifisere telefonen eller e-posten sin. Se [Slik når OneUptime deg](/docs/notifications/index).
+Retningslinjer, eskaleringsregler, vaktplaner og overstyringer hører til prosjektet, under **Vakt**. Varselmetoder og personlige vaktregler hører til hver person, under **Brukerinnstillinger**: en administrator kan se oppsettet til noen, men bare personen selv kan verifisere telefonen eller e-posten sin. Se [Slik når OneUptime deg](/docs/notifications/index).
 
 ## Sett opp vakt
 
 :::steps
 ### Bygg en vaktplan
 
-Åpne **Vakttjeneste** fra menyen **Produkter**, og gå til **Vaktplaner**. Klikk på **Opprett vaktplan**, gi den et navn, og velg personene under **Hvem bytter på å ha vakt?** i den rekkefølgen de bytter på. Se [Vaktplaner](/docs/on-call/schedules).
+Åpne **Vakt** fra menyen **Produkter**, og gå til **Vaktplaner**. Klikk på **Opprett vaktplan**, gi den et navn, og velg personene under **Hvem bytter på å ha vakt?** i den rekkefølgen de bytter på. Se [Vaktplaner](/docs/on-call/schedules).
 
 ### Opprett en retningslinje
 
@@ -74,7 +74,7 @@ Den første retningslinjen i et prosjekt kan gjøre dette allerede når den oppr
 
 ### Sjekk at alle kan nås
 
-Åpne **Vakttjeneste → Beredskap**. Alle retningslinjene dine kan tilkalle, står oppført som **Klar**, **Må settes opp** eller **Utilgjengelig**, med det som mangler. Se [Beredskap og rapporter](/docs/on-call/readiness).
+Åpne **Vakt → Beredskap**. Alle retningslinjene dine kan tilkalle, står oppført som **Klar**, **Må settes opp** eller **Utilgjengelig**, med det som mangler. Se [Beredskap og rapporter](/docs/on-call/readiness).
 :::
 
 > [!NOTE]
@@ -82,7 +82,7 @@ Den første retningslinjen i et prosjekt kan gjøre dette allerede når den oppr
 
 ## Hvor vakt ligger
 
-Åpne **Vakttjeneste** fra menyen **Produkter** i topplinjen. Den åpner på **Vaktretningslinjer**, på `/dashboard/{projectId}/on-call-duty/policies`, og sidemenyen inneholder resten:
+Åpne **Vakt** fra menyen **Produkter** i topplinjen. Den åpner på **Vaktretningslinjer**, på `/dashboard/{projectId}/on-call-duty/policies`, og sidemenyen inneholder resten:
 
 | Seksjon | Sider |
 | --- | --- |
@@ -106,11 +106,11 @@ Når du har vakt for en retningslinje, viser klokken øverst til høyre det. Kli
 :::
 
 :::details Noen ble tilkalt på feil kanal, eller ikke i det hele tatt
-Åpne **Vakttjeneste → Beredskap**, og klikk på **Dekning** i raden til personen. Den viser metodene de har verifisert, og hver alvorlighetsgrad de ikke har noen regel for. Bare de selv kan rette det, under **Brukerinnstillinger**: send dem en påminnelse om oppsettet fra den samme siden. Se [Beredskap og rapporter](/docs/on-call/readiness). På OneUptime Cloud kan en telefon som blokkerer ukjente oppringere, dempe et varsel: legg [OneUptimes numre](/docs/on-call/phone-number-whitelist) til i tillatelseslisten.
+Åpne **Vakt → Beredskap**, og klikk på **Dekning** i raden til personen. Den viser metodene de har verifisert, og hver alvorlighetsgrad de ikke har noen regel for. Bare de selv kan rette det, under **Brukerinnstillinger**: send dem en påminnelse om oppsettet fra den samme siden. Se [Beredskap og rapporter](/docs/on-call/readiness). På OneUptime Cloud kan en telefon som blokkerer ukjente oppringere, dempe et varsel: legg [OneUptimes numre](/docs/on-call/phone-number-whitelist) til i tillatelseslisten.
 :::
 
 :::details En person på ferie blir fortsatt tilkalt
-Legg til en brukeroverstyring med personen under **Hvem er borte?**. En under **Vakttjeneste → Avansert → Brukeroverstyringer** gjelder for alle retningslinjer; en på en retningslinjes egen side **Brukeroverstyringer** gjelder bare for den retningslinjen. Se [Brukeroverstyringer](/docs/on-call/user-overrides).
+Legg til en brukeroverstyring med personen under **Hvem er borte?**. En under **Vakt → Avansert → Brukeroverstyringer** gjelder for alle retningslinjer; en på en retningslinjes egen side **Brukeroverstyringer** gjelder bare for den retningslinjen. Se [Brukeroverstyringer](/docs/on-call/user-overrides).
 :::
 
 ## Neste steg

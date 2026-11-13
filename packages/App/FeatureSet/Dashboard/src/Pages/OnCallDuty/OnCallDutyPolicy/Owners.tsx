@@ -15,7 +15,7 @@ const OnCallDutyPolicyOwners: FunctionComponent<
     <OwnersCard<OnCallDutyPolicyOwnerUser, OnCallDutyPolicyOwnerTeam>
       resourceId={modelId}
       resourceIdField="onCallDutyPolicyId"
-      resourceDisplayName="on-call duty policy"
+      resourceDisplayName="on-call policy"
       ownerUserModelType={OnCallDutyPolicyOwnerUser}
       ownerTeamModelType={OnCallDutyPolicyOwnerTeam}
     />

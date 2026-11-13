@@ -654,7 +654,13 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         pages: [
           {
             page: PageMap.SETTINGS_NOTIFICATION_SETTINGS,
-            title: "Notification Settings",
+            /*
+             * Named for what it holds (#6817): the project's channel
+             * switches, the balance they are paid from and its own mail
+             * servers and Twilio accounts. Its old name, which User Settings'
+             * page keeps, still finds it.
+             */
+            title: "Notification Channels",
             icon: IconProp.Settings,
             keywords: [
               "sms",
@@ -666,9 +672,9 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "twilio",
               "balance",
               "auto recharge",
+              "notification settings",
             ],
             settings: [
-              "Notification Channels",
               { name: "Current Balance", gate: PageSearchGate.Billing },
               { name: "Auto Recharge", gate: PageSearchGate.Billing },
             ],
@@ -1504,7 +1510,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
   },
   {
     id: "on-call-duty",
-    title: "On-Call Duty",
+    title: "On-Call",
     productPage: PageMap.ON_CALL_DUTY,
     icon: IconProp.Call,
     iconColor: "stone",
@@ -1522,7 +1528,14 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "escalation rules",
               "paging policy",
               "pager",
+              /*
+               * One policy, by its name: "on-call policy" also starts the
+               * schedules' old name below, and finds the policies first.
+               */
+              "on-call policy",
               "create on-call policy",
+              // Its name before On-Call Duty became On-Call (#6817).
+              "on-call duty policies",
             ],
           },
           /*
@@ -1566,6 +1579,9 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "shifts",
               "who is on call",
               "create on-call schedule",
+              // Its names before On-Call Duty became On-Call (#6817).
+              "on-call duty schedules",
+              "on-call policy schedules",
             ],
           },
           {
@@ -1625,7 +1641,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         pages: [
           {
             page: PageMap.ON_CALLDUTY_USER_TIME_LOGS,
-            title: "User On Call Time",
+            title: "User On-Call Time",
             icon: IconProp.Clock,
             keywords: ["on-call hours", "time report"],
           },
@@ -4220,9 +4236,10 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.USER_SETTINGS_ON_CALL_RULES,
             title: "How to Reach Me",
             icon: IconProp.BellRinging,
-            // Its old name finds it still (#6817).
+            // Its old names find it still (#6817).
             keywords: [
               "on-call rules",
+              "personal on-call rules",
               "how i get paged",
               "my notification rules",
               "paging ladder",

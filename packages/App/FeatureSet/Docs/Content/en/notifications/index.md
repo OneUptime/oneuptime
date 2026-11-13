@@ -14,13 +14,13 @@ OneUptime reaches you in two ways. It pages you when an incident or alert fires 
 
 ```mermaid title="Two ways OneUptime reaches you, through one set of methods"
 flowchart TB
-    page["An incident or alert<br/>pages you on call"] --> rules["Your on-call rules"]
+    page["An incident or alert<br/>pages you on call"] --> rules["How to Reach Me"]
     owned["Something happens to<br/>a record you own"] --> settings["Your notification<br/>settings"]
     rules --> methods["Your verified methods:<br/>email, phone, push, chat"]
     settings --> methods
 ```
 
-- An on-call policy pages you when one of its escalation rules names you, a team you are in, or a schedule you are on call in. Your on-call rules then decide which of your methods OneUptime tries, and after how long.
+- An on-call policy pages you when one of its escalation rules names you, a team you are in, or a schedule you are on call in. How to Reach Me then decides which of your methods OneUptime tries, and after how long.
 - When something happens to a record you own, or to your shifts, your notification settings decide which channels the update goes to.
 - Either way, OneUptime only uses methods you have verified, in the project the page or update comes from.
 
@@ -63,7 +63,7 @@ When you join a project with a verified sign-in email, OneUptime sets you up so 
 2. For every severity, on each of the four tabs of **How to Reach Me**, a rule emails you as soon as you are paged.
 3. A set of updates about what you own, and about your shifts, is switched on by email. See [Notification Settings](/docs/notifications/notification-settings#what-is-on-for-a-new-member).
 
-Every method you verify later gets the same rules: a rule for every severity, sent as soon as you are paged. So verifying a phone number for SMS means every page also texts you. To keep texts for critical pages only, delete the other severities' SMS rules. See [Personal On-Call Rules](/docs/notifications/on-call-rules#the-rules-you-start-with).
+Every method you verify later gets the same rules: a rule for every severity, sent as soon as you are paged. So verifying a phone number for SMS means every page also texts you. To keep texts for critical pages only, delete the other severities' SMS rules. See [How to Reach Me](/docs/notifications/on-call-rules#the-rules-you-start-with).
 
 ## The setup checklist
 
@@ -95,7 +95,7 @@ A page can reach you for a kind and severity you have no rule for: a severity ad
 2. If you have none of those, one paid method, in this order: SMS, a phone call, WhatsApp, Telegram. It is the first one you have verified, on a channel the project has turned on.
 3. If you have none of those either, a webhook.
 
-You get an email saying so, and so do the on-call policy's owners, or the project's owners when the policy has none. With nothing verified at all, the page cannot be delivered, and the email says that instead. These emails are held back while pages keep coming, so a storm of pages is not a storm of mail. To add the missing rule, see [Personal On-Call Rules](/docs/notifications/on-call-rules#when-a-severity-has-no-rule).
+You get an email saying so, and so do the on-call policy's owners, or the project's owners when the policy has none. With nothing verified at all, the page cannot be delivered, and the email says that instead. These emails are held back while pages keep coming, so a storm of pages is not a storm of mail. To add the missing rule, see [How to Reach Me](/docs/notifications/on-call-rules#when-a-severity-has-no-rule).
 
 ## The language of your pages
 
@@ -131,7 +131,7 @@ A number joins your rules once it is verified. Click **Verify** on its row and e
 
 :::cards
 - [Notification Methods](/docs/notifications/notification-methods): Add and verify the addresses OneUptime may reach you at.
-- [Personal On-Call Rules](/docs/notifications/on-call-rules): Decide which method each page tries, and when.
+- [How to Reach Me](/docs/notifications/on-call-rules): Decide which method each page tries, and when.
 - [Notification Settings](/docs/notifications/notification-settings): Choose the updates you hear about, and on which channels.
 - [Escalation Rules](/docs/on-call/escalation-rules): How an on-call policy decides who is paged, level by level.
 :::

@@ -198,7 +198,7 @@ OneUptime에는 규칙이라고 불리는 것이 많습니다. 각 규칙은 새
 
 :::cards
 - [인시던트 설정 및 자동화](/docs/incidents/settings#인시던트가-생성될-때-실행되는-규칙): 인시던트가 생성될 때 실행되는 규칙을 순서대로.
-- [개인 온콜 규칙](/docs/notifications/on-call-rules): 호출이 여러분에게 닿는 방식.
+- [나에게 연락하는 방법](/docs/notifications/on-call-rules): 호출이 여러분에게 닿는 방식.
 :::
 
 ## 다음 단계

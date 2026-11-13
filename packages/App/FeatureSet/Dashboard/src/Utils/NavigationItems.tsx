@@ -6,6 +6,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import ProductKey from "Common/Types/Product/ProductKey";
 import { NavItem, MoreMenuItem } from "Common/UI/Components/Navbar/NavBar";
 import { useTranslation } from "react-i18next";
+import { BILLING_ENABLED } from "Common/UI/Config";
 
 export interface DashboardNavigationItems {
   navItems: NavItem[];
@@ -131,9 +132,14 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.OnCall,
       title: t("navbar.items.onCallDutyTitle"),
+      /*
+       * The product was "On-Call Duty" until #6817 named it On-Call: its
+       * old name is a keyword, so people who learned it still find it.
+       */
       keywords: [
         "oncall",
         "on call",
+        "on-call duty",
         "pager",
         "paging",
         "escalation",
@@ -1070,7 +1076,17 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "permissions",
         "sso",
       ],
-      description: t("navbar.items.projectSettingsDescription"),
+      /*
+       * What Project Settings holds, by the names of its pages (#6817: the
+       * channel switches are Notification Channels). A server without
+       * billing has no Billing page, so it is not offered (#7474).
+       */
+      description: BILLING_ENABLED
+        ? t("navbar.items.projectSettingsDescription")
+        : t(
+            "navbar.items.projectSettingsDescriptionWithoutBilling",
+            "API keys, SSO, labels and notification channels.",
+          ),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.SETTINGS] as Route),
       activeRoute: RouteMap[PageMap.SETTINGS],
       icon: IconProp.Settings,

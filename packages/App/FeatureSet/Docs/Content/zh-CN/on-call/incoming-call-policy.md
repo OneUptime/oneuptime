@@ -38,7 +38,7 @@ flowchart TB
 :::steps
 ### 添加您的 Twilio 账户
 
-前往 **项目设置** > **通知** > **通知设置** ，展开 **更多设置** 。在 **Twilio 配置** 卡片中点击 **创建 Twilio 配置** ，然后填写表单：
+前往 **项目设置** > **通知** > **通知渠道** ，展开 **更多设置** 。在 **Twilio 配置** 卡片中点击 **创建 Twilio 配置** ，然后填写表单：
 
 - **名称** 和 **描述** ：账户的用途，例如"客服热线"。
 - **Twilio 账户 SID** ：来自 Twilio Console。以 `AC` 开头。
@@ -143,7 +143,7 @@ OneUptime 会使用 Twilio 配置的 Auth Token 校验每个请求上的 Twilio 
 
 OneUptime 会把号码的语音 webhook 设为 `https://<your host>/notification/incoming-call/voice` ，在自托管安装上由 `HOST` 和 `HTTP_PROTOCOL` 构建。要把策略迁移到另一个 Twilio 账户，请先释放其号码：只有在策略没有号码时才能更改账户。
 
-要释放号码，请点击其旁边的 **释放** ，并用 **释放号码** 确认。
+要释放号码，请点击其旁边的 **释放号码** ，并用 **释放号码** 确认。
 
 > [!CAUTION]
 > 释放号码会把它归还给 Twilio，即使是通过 **使用现有电话号码** 带来的号码，而且您可能无法再次获得它。删除策略或其使用的 Twilio 配置也会释放其号码。
@@ -160,7 +160,7 @@ OneUptime 会把号码的语音 webhook 设为 `https://<your host>/notification
 
 每个人在每个项目中只能有一个已验证的号码。要更换号码，请先删除旧号码。这些号码独立于值班呼叫使用的 **通知方式** 中的电话号码。请参阅 [通知方式](/docs/notifications/notification-methods)。
 
-来电号码通过短信验证，因此必须先为项目开启 **SMS** 。项目所有者、 **账单管理员** 或拥有 **Manage Billing** 的人可以在 **项目设置 > 通知 > 通知设置** 上的 **通知渠道** 卡片中开启它。
+来电号码通过短信验证，因此必须先为项目开启 **SMS** 。项目所有者、 **账单管理员** 或拥有 **Manage Billing** 的人可以在 **项目设置 > 通知 > 通知渠道** 上的 **通知渠道** 卡片中开启它。
 
 ## 语音消息和策略设置
 
@@ -228,7 +228,7 @@ Twilio 用文字转语音朗读这些消息，因此请按您希望听到的样�
 - **查找号码** - 在 Twilio 中搜索要预订的号码，或列出您的 Twilio 账户已有的号码 - 需要读取来电策略的权限和读取通话与短信配置的权限，因为它通过其中之一读取您的 Twilio 账户。 **项目所有者** 、 **项目管理员** 、 **项目成员** 、 **查看者** 、 **设置管理员** 、 **设置成员** 和 **设置查看者** 都拥有这两项。在自定义角色中，就是 **Read Incoming Call Policy** 和 **Read Call and SMS** 。
 - **预订号码、使用已有号码和释放号码** 需要编辑来电策略的权限： **项目所有者** 、 **项目管理员** 、 **项目成员** 、 **设置管理员** 和 **设置成员** ，或自定义角色中的 **Edit Incoming Call Policy** 。它们会更改您可以编辑的策略的号码：如果角色仅限某些标签，则是带有这些标签的策略。
 
-团队在这些权限之一上不带标签的封禁会取消该权限。对其他人来说， **添加电话号码** 和 **释放** 仍留在页面上但处于锁定状态，其提示会说明需要什么。API 会用一句说明所需权限的话拒绝其请求："Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." 或 "Adding or releasing a phone number needs permission to edit incoming call policies." 预订号码的费用记入您自己的 Twilio 账户，而不是您的 OneUptime 余额，因此不需要账单权限。
+团队在这些权限之一上不带标签的封禁会取消该权限。对其他人来说， **添加电话号码** 和 **释放号码** 仍留在页面上但处于锁定状态，其提示会说明需要什么。API 会用一句说明所需权限的话拒绝其请求："Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." 或 "Adding or releasing a phone number needs permission to edit incoming call policies." 预订号码的费用记入您自己的 Twilio 账户，而不是您的 OneUptime 余额，因此不需要账单权限。
 
 ## 使用 API 或 Terraform 创建策略
 

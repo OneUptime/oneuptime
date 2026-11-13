@@ -34,7 +34,7 @@ flowchart LR
 | **Grundlæggende** | **Projekt**, **Produkter**, **Etiketter** | [Projektets detaljer](#projektets-detaljer), [Produkter](#produkter), [Etiketter](#etiketter) |
 | **Arbejdsområde** | **Slack**, **Microsoft Teams**, **Mattermost**, **Videoopkald** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [Videoopkald](/docs/workspace-connections/video-calls) |
 | **Telemetri og APM** | **Indtagelsesnøgler**, **Dataopbevaring**, **Forbrug** | [Indtagelsesnøgler](/docs/telemetry/ingestion-keys), [Dataopbevaring](/docs/telemetry/data-retention), [Telemetriforbrug](/docs/telemetry/usage) |
-| **Notifikationer** | **Notifikationsindstillinger**, **Notifikationslogs**, **Mobilapps** | [Notifikationer](#notifikationer) |
+| **Notifikationer** | **Notifikationskanaler**, **Notifikationslogs**, **Mobilapps** | [Notifikationer](#notifikationer) |
 | **AI** | **AI-funktioner**, **LLM-udbydere**, **Eksterne MCP-servere**, **AI-kreditter**, **AI-logs**, **MCP-server** | [LLM-udbydere](/docs/ai/llm-provider), [Eksterne MCP-servere](/docs/ai/external-mcp-servers), [MCP-server](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#omkostningsstyring) |
 | **Avanceret** | **Domæner**, **API-nøgler**, **Funktionsflag**, **Importér fra et andet værktøj** | [Egne domæner](/docs/status-pages/branding-and-domains#brugerdefinerede-domæner), [API-nøgler](/docs/permissions/index#api-nøgler), [Funktionsflag](#funktionsflag), [Skift fra Opsgenie](/docs/moving-to-oneuptime/opsgenie) og de andre flyttevejledninger |
 | **Sikkerhed** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
@@ -96,7 +96,7 @@ For at udfase en etiket skal du arkivere den fra rækkens menu **⋯** i stedet 
 
 **Projektindstillinger → Notifikationer** rummer, hvordan projektet sender notifikationer:
 
-- **Notifikationsindstillinger**: kortet **Notifikationskanaler** slår SMS, telefonopkald, WhatsApp og Telegram til eller fra for projektet. Alle fire er slået fra fra start. En Project Owner, en **Faktureringsadministrator** eller en med **Manage Billing** slår dem til. Siden rummer også, sammenklappet under **Yderligere indstillinger**, projektets egne mailservere i **Brugerdefinerede SMTP-konfigurationer** (se [SMTP](/docs/emails/smtp)) og dets egen Twilio-konto (se [Twilio-integration](/docs/self-hosted/twilio-integration)). I OneUptime Cloud rummer den saldoen, som disse beskeder betales fra: se [Forudbetalte saldi](/docs/configuration/billing#forudbetalte-saldi).
+- **Notifikationskanaler**: kortet **Notifikationskanaler** slår SMS, telefonopkald, WhatsApp og Telegram til eller fra for projektet. Alle fire er slået fra fra start. En Project Owner, en **Faktureringsadministrator** eller en med **Manage Billing** slår dem til. Siden rummer også, sammenklappet under **Yderligere indstillinger**, projektets egne mailservere i **Brugerdefinerede SMTP-konfigurationer** (se [SMTP](/docs/emails/smtp)) og dets egen Twilio-konto (se [Twilio-integration](/docs/self-hosted/twilio-integration)). I OneUptime Cloud rummer den saldoen, som disse beskeder betales fra: se [Forudbetalte saldi](/docs/configuration/billing#forudbetalte-saldi).
 - **Notifikationslogs**: hver notifikation, projektet har sendt, med én fane pr. kanal: **E-mail**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Kald**, **Push** og **Arbejdsområde**.
 - **Mobilapps**: hvor du får apps til iOS og Android. Se [Apps – Oversigt](/docs/mobile-desktop-apps/index).
 

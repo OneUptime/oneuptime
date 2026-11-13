@@ -710,12 +710,12 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeCreate - labels, team
 
     expect(referencesAt(validatorSpy, 0)).toEqual([
       {
-        modelName: "On-Call Duty Policy",
+        modelName: "On-Call Policy",
         id: POLICY_ID.toString(),
         service: OnCallDutyPolicyService,
       },
       {
-        modelName: "On-Call Duty Policy",
+        modelName: "On-Call Policy",
         id: SECOND_POLICY_ID.toString(),
         service: OnCallDutyPolicyService,
       },
@@ -1117,7 +1117,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeUpdate - labels, team
     ]);
     validatorSpy.mockRejectedValue(
       new BadDataException(
-        `This SLO burn rate rule references records that are not in this project: On-Call Duty Policy "${POLICY_ID.toString()}". Please pick values from this project and try again.`,
+        `This SLO burn rate rule references records that are not in this project: On-Call Policy "${POLICY_ID.toString()}". Please pick values from this project and try again.`,
       ),
     );
 

@@ -93,6 +93,13 @@ export interface ComponentProps {
   outerDivClassName?: string | undefined;
   autoFocus?: boolean | undefined;
   disableSpellCheck?: boolean | undefined;
+  /*
+   * A value that reads left to right in every language, typed as text: a
+   * list of phone numbers, which a phone's dial pad has no comma for. A
+   * phone number (inputMode "tel") and an address on the web read so
+   * already.
+   */
+  readsLeftToRight?: boolean | undefined;
   showSecondsForDateTime?: boolean | undefined;
   autoComplete?: string | undefined;
   // The most characters it takes, as the column it fills keeps them.
@@ -252,9 +259,12 @@ const Input: FunctionComponent<ComponentProps> = (
    * "https://hooks.slack.com/services/..." - and a number typed in with
    * spaces or brackets started at the far end from its placeholder. So such
    * a field reads left to right, its error icon (at the end of the box
-   * around it) on the right with it, whatever the page's language.
+   * around it) on the right with it, whatever the page's language. And a
+   * field that says it reads so: a list of phone numbers, whose example
+   * "+14155550123, +447700900123" put each "+" after its digits (#7180).
    */
   const readsLeftToRight: boolean =
+    props.readsLeftToRight === true ||
     props.inputMode === "tel" ||
     props.inputMode === "url" ||
     props.type === InputType.URL;

@@ -24,10 +24,12 @@ import { beforeAll, describe, expect, test } from "@jest/globals";
  *
  * The usage counter calls a table whose rows belong to one person
  * (@CurrentUserCanAccessRecordBy) people's own settings, counted by person
- * (ArchivableValueUsageKind.Personal): a member's on-call rules for a
- * severity, their notification settings for a security case priority. The
- * dialogs say them as whose they are - "On-call rules of 11 people", and in
- * the Archive dialog what stays and where to see your own. This holds every
+ * (ArchivableValueUsageKind.Personal): a member's rules for a severity in
+ * How to Reach Me, their notification settings for a security case
+ * priority. The dialogs say them as whose they are - "11 people's How to
+ * Reach Me" (they were "On-call rules of 11 people" until #6817 gave the
+ * name to the project's rules alone), and in the Archive dialog what stays
+ * and where to see your own. This holds every
  * such table the models declare, for every kind of value, to its words in
  * the Dashboard, and the words to tables that are really people's own: a
  * model that starts naming a value from a person's own table fails here
@@ -81,7 +83,7 @@ const personalUses: () => Array<PersonalUse> = (): Array<PersonalUse> => {
 };
 
 describe("people's own settings that name a value", () => {
-  test("the models declare some: the on-call rules and notification settings", () => {
+  test("the models declare some: How to Reach Me's rules and notification settings", () => {
     expect(
       personalUses()
         .map((use: PersonalUse): string => {
@@ -161,16 +163,16 @@ describe("people's own settings that name a value", () => {
     expect(
       PERSONAL_USAGE_NOTES["IncidentSeverity:UserNotificationRule"]!.sentence,
     ).toEqual({
-      one: "{{count}} person has their own on-call rules for this severity. Those rules stay as they are, so incidents with it still page them.",
+      one: "{{count}} person has rules for this severity in How to Reach Me. Those rules stay as they are, so incidents with it still page them.",
       other:
-        "{{count}} people have their own on-call rules for this severity. Those rules stay as they are, so incidents with it still page them.",
+        "{{count}} people have rules for this severity in How to Reach Me. Those rules stay as they are, so incidents with it still page them.",
     });
     expect(
       PERSONAL_USAGE_NOTES["AlertSeverity:UserNotificationRule"]!.sentence,
     ).toEqual({
-      one: "{{count}} person has their own on-call rules for this severity. Those rules stay as they are, so alerts with it still page them.",
+      one: "{{count}} person has rules for this severity in How to Reach Me. Those rules stay as they are, so alerts with it still page them.",
       other:
-        "{{count}} people have their own on-call rules for this severity. Those rules stay as they are, so alerts with it still page them.",
+        "{{count}} people have rules for this severity in How to Reach Me. Those rules stay as they are, so alerts with it still page them.",
     });
   });
 
@@ -205,8 +207,9 @@ describe("people's own settings that name a value", () => {
     ]) {
       const note: PersonalUsageNote = PERSONAL_USAGE_NOTES[key]!;
 
-      expect(note.sentence.other).toContain("their own on-call rules");
-      expect(note.sentence.one).toContain("their own on-call rules");
+      // How to Reach Me is each person's own page, never the project's rules.
+      expect(note.sentence.other).toContain("in How to Reach Me");
+      expect(note.sentence.one).toContain("in How to Reach Me");
       expect(note.sentence.other).toContain("Those rules stay as they are");
     }
 

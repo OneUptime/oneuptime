@@ -183,7 +183,7 @@ export default class UserOnCallShiftReminderLog extends BaseModel {
     manyToOneRelationColumn: "onCallDutyPolicyScheduleId",
     type: TableColumnType.Entity,
     modelType: OnCallDutyPolicySchedule,
-    title: "On-Call Policy Schedule",
+    title: "On-Call Schedule",
     description: "Relation to the schedule the reminded shift is on.",
   })
   @ManyToOne(
@@ -210,7 +210,7 @@ export default class UserOnCallShiftReminderLog extends BaseModel {
     type: TableColumnType.ObjectID,
     required: true,
     canReadOnRelationQuery: true,
-    title: "On-Call Policy Schedule ID",
+    title: "On-Call Schedule ID",
     description: "ID of the schedule the reminded shift is on.",
     example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })

@@ -93,7 +93,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   pluralName: "Incident Severities",
   icon: IconProp.Alert,
   tableDescription:
-    "Manage incident severity for your project (Created, Acknowledged for example). Add / edit or remove severities.",
+    "How much an incident matters. A new project starts with Critical Incident, Major Incident and Minor Incident: rename them, recolor them or add your own.",
 })
 @Entity({
   name: "IncidentSeverity",

@@ -4016,7 +4016,7 @@ export class Service extends ProjectReferencesService<Model> {
           );
         } catch (error) {
           logger.error(
-            `On-call duty policy execution failed in IncidentService.onCreateSuccess: ${error}`,
+            `On-call policy execution failed in IncidentService.onCreateSuccess: ${error}`,
             {
               projectId: createdItem.projectId?.toString(),
               incidentId: createdItem.id?.toString(),

@@ -22,7 +22,7 @@ flowchart TB
     Provider --> Phone
 ```
 
-La pasarela ocupa el lugar de la cuenta de Twilio propia del servidor para todo lo que pasaría por ella: avisos de guardia, notificaciones, códigos de verificación y SMS a los suscriptores de las páginas de estado. Los proyectos que añaden su propia configuración de Twilio, en la tarjeta **Configuración de Twilio** de **Ajustes del proyecto > Notificaciones > Ajustes de notificaciones**, siguen enviando a través de esa configuración. Los interruptores de SMS y llamadas de cada proyecto, y su saldo donde la facturación está activada, se comprueban igual que con Twilio.
+La pasarela ocupa el lugar de la cuenta de Twilio propia del servidor para todo lo que pasaría por ella: avisos de guardia, notificaciones, códigos de verificación y SMS a los suscriptores de las páginas de estado. Los proyectos que añaden su propia configuración de Twilio, en la tarjeta **Configuración de Twilio** de **Ajustes del proyecto > Notificaciones > Canales de notificación**, siguen enviando a través de esa configuración. Los interruptores de SMS y llamadas de cada proyecto, y su saldo donde la facturación está activada, se comprueban igual que con Twilio.
 
 ## Configurar la pasarela
 

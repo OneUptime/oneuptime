@@ -106,14 +106,14 @@ Sjekk at du har en verifisert metode på den kanalen under **Brukerinnstillinger
 :::
 
 :::details Jeg får fortsatt e-poster etter at jeg slo av alt
-Tilkallinger følger vaktreglene dine, ikke disse bryterne, og e-poster om pålogging, sikkerhet og fakturering er ikke oppdateringer om ting. Hvert prosjekt har egne innstillinger, så sjekk prosjektet e-posten kom fra. Se [Personlige vaktregler](/docs/notifications/on-call-rules).
+Tilkallinger følger vaktreglene dine, ikke disse bryterne, og e-poster om pålogging, sikkerhet og fakturering er ikke oppdateringer om ting. Hvert prosjekt har egne innstillinger, så sjekk prosjektet e-posten kom fra. Se [Slik når man meg](/docs/notifications/on-call-rules).
 :::
 
 ## Neste steg
 
 :::cards
 - [Varselmetoder](/docs/notifications/notification-methods): Legg til metodene innstillingene dine sender til.
-- [Personlige vaktregler](/docs/notifications/on-call-rules): Bestem hvordan en tilkalling når deg.
+- [Slik når man meg](/docs/notifications/on-call-rules): Bestem hvordan en tilkalling når deg.
 - [Varseloppsummering](/docs/emails/notification-rollup): Færre, fyldigere e-poster under en bølge.
 - [Slik når OneUptime deg](/docs/notifications/index): Hvordan metoder, regler og innstillinger henger sammen.
 :::

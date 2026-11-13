@@ -34,7 +34,7 @@ flowchart TB
 
 - **購読者ページを表示**（`showSubscriberPageOnStatusPage`）— 既定でオン。ステータスページのナビゲーションバーに **購読する** 項目を表示し、訪問者は以下のチャネルで登録します。
 - **メール**（`enableEmailSubscribers`）— 既定でオン。それ以外はオンにするまでオフです。
-- **SMS**（`enableSmsSubscribers`）— 既定でオフ。OneUptime Cloud では、ページに独自の **Twilio 設定** がない限り（[後述](#メールフッターカスタム-smtptwilio) を参照）、SMS は 1 通ごとにプロジェクトの SMS・通話残高から支払われます。オンにするには、 **プロジェクト設定 > 通知 > 通知設定** の **通知チャネル** カードで、プロジェクトの **SMS** もオンにする必要があります。これはプロジェクトのオーナー、 **請求管理者**、または **Manage Billing** を持つユーザーが行えます。
+- **SMS**（`enableSmsSubscribers`）— 既定でオフ。OneUptime Cloud では、ページに独自の **Twilio 設定** がない限り（[後述](#メールフッターカスタム-smtptwilio) を参照）、SMS は 1 通ごとにプロジェクトの SMS・通話残高から支払われます。オンにするには、 **プロジェクト設定 > 通知 > 通知チャネル** の **通知チャネル** カードで、プロジェクトの **SMS** もオンにする必要があります。これはプロジェクトのオーナー、 **請求管理者**、または **Manage Billing** を持つユーザーが行えます。
 - **Slack**（`enableSlackSubscribers`）— 既定でオフ。
 - **Microsoft Teams**（`enableMicrosoftTeamsSubscribers`）— 既定でオフ。
 - **Webhook**（`enableWebhookSubscribers`）— 既定でオフ。

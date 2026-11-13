@@ -84,7 +84,7 @@ Klikk på **Opprett Alert On-Call Rule**. Under **Treff** samsvarer **Alle varsl
 
 ### Velg policyene
 
-Under **Vaktretningslinjer** velger du **Vaktpolicyer** regelen tilkaller. **Navn** følger dem, for eksempel "Tilkall Platform on-call", til du skriver inn ditt eget, og en **Beskrivelse** venter under **Flere felt**. Opprett deretter regelen.
+Under **Vaktretningslinjer** velger du **Vaktretningslinjer** regelen tilkaller. **Navn** følger dem, for eksempel "Tilkall Platform on-call", til du skriver inn ditt eget, og en **Beskrivelse** venter under **Flere felt**. Opprett deretter regelen.
 :::
 
 En alvorlighetsgrad tilkaller ingen på egen hånd: En vaktregel som samsvarer på **Alvorlighetsgrader for varsler**, er måten å sette opp "tilkall databaseteamet for hvert High-varsel" på. For å se hva som kjørte for ett varsel, åpner du siden **Vaktutførelser**. Hver person nås deretter på den måten de har satt opp under **Brukerinnstillinger → Slik når man meg** på fanen **Varsler**; se [Eskaleringsregler](/docs/on-call/escalation-rules).

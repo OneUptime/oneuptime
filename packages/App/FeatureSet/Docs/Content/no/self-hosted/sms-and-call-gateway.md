@@ -22,7 +22,7 @@ flowchart TB
     Provider --> Phone
 ```
 
-Gatewayen tar plassen til serverens egen Twilio-konto for alt som ellers ville gått gjennom den: vakttilkallinger, varsler, verifiseringskoder og SMS til abonnenter på statussider. Prosjekter som legger til sin egen Twilio-konfigurasjon på kortet **Twilio-konfigurasjon** under **Prosjektinnstillinger > Varsler > Varselinnstillinger**, sender fortsatt gjennom den konfigurasjonen. Hvert prosjekts brytere for SMS og anrop, og saldoen der fakturering er slått på, kontrolleres som for Twilio.
+Gatewayen tar plassen til serverens egen Twilio-konto for alt som ellers ville gått gjennom den: vakttilkallinger, varsler, verifiseringskoder og SMS til abonnenter på statussider. Prosjekter som legger til sin egen Twilio-konfigurasjon på kortet **Twilio-konfigurasjon** under **Prosjektinnstillinger > Varsler > Varslingskanaler**, sender fortsatt gjennom den konfigurasjonen. Hvert prosjekts brytere for SMS og anrop, og saldoen der fakturering er slått på, kontrolleres som for Twilio.
 
 ## Sett opp gatewayen
 

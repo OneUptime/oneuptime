@@ -1189,6 +1189,127 @@ describe("Settings > Call & SMS", () => {
       }
     });
   });
+
+  /*
+   * ISSUE #7180: ON A PAGE READ RIGHT TO LEFT, A LIST'S EXAMPLE PUT EACH "+"
+   * AFTER ITS DIGITS.
+   *
+   * A list of numbers is typed as text - a phone's dial pad has no comma -
+   * so its field took the page's direction, and on a Persian or Arabic page
+   * its example "+14155550123, +447700900123" drew each "+" after the
+   * digits. Every list of numbers on the form reads left to right now, on
+   * every page, as the primary number's Phone field does: the field, the box
+   * around it, and so the example in it. Its title and help above it are
+   * sentences of the page, and keep the page's way.
+   */
+  describe("the lists of numbers, on a page read right to left (#7180)", () => {
+    const SMS_NUMBERS: string = "Twilio SMS Phone Numbers";
+    const SECONDARY: string = "Twilio Secondary Phone Numbers";
+    const PRIMARY: string = "Twilio Primary Phone Number";
+
+    afterEach(() => {
+      document.documentElement.removeAttribute("dir");
+    });
+
+    async function openIn(language: string): Promise<HTMLElement> {
+      const locale: Locale = readLocale(language);
+
+      if (language !== "en") {
+        document.documentElement.setAttribute("dir", "rtl");
+      }
+
+      await renderWithLocale(<CallSmsSettings />, language);
+
+      const dialog: HTMLElement = await openEditDialog(
+        text(locale, "pages.settings.callSms.editButton"),
+      );
+
+      await waitFor(
+        () => {
+          expect(
+            label(dialog, text(locale, "Twilio Account SID")),
+          ).toBeVisible();
+        },
+        { timeout: WAIT_FOR_TIMEOUT },
+      );
+      await settle();
+
+      return dialog;
+    }
+
+    function fieldIn(
+      dialog: HTMLElement,
+      language: string,
+      title: string,
+    ): HTMLInputElement {
+      return within(dialog).getByLabelText(text(readLocale(language), title), {
+        exact: false,
+      }) as HTMLInputElement;
+    }
+
+    test.each(["fa", "ar", "en"])(
+      "on a %s page, the SMS numbers and the extra numbers read left to right, each example with them",
+      async (language: string) => {
+        const dialog: HTMLElement = await openIn(language);
+
+        fireEvent.click(
+          advancedHeader(dialog, text(readLocale(language), "More fields")),
+        );
+
+        for (const [title, example] of [
+          [SMS_NUMBERS, PHONE_NUMBER_LIST_EXAMPLE],
+          [SECONDARY, "+441234567890, +461234567890"],
+        ] as Array<[string, string]>) {
+          const field: HTMLInputElement = fieldIn(dialog, language, title);
+
+          expect([title, field.getAttribute("dir")]).toEqual([title, "ltr"]);
+          expect([title, field.parentElement?.getAttribute("dir")]).toEqual([
+            title,
+            "ltr",
+          ]);
+          // The example as written: numbers, the same in every language.
+          expect(field).toHaveAttribute("placeholder", example);
+          // A list is typed as text, commas between its numbers: no dial pad.
+          expect(field).toHaveAttribute("type", "text");
+          expect(field).not.toHaveAttribute("inputmode", "tel");
+
+          // Its title is a sentence of the page, with no direction of its own.
+          expect(
+            label(dialog, text(readLocale(language), title)).closest(
+              '[dir="ltr"]',
+            ),
+          ).toBeNull();
+        }
+
+        // The primary number reads so too, as a Phone field always has.
+        expect(fieldIn(dialog, language, PRIMARY)).toHaveAttribute(
+          "dir",
+          "ltr",
+        );
+      },
+    );
+
+    test("used for SMS only, the open list of SMS numbers reads left to right on a Persian page", async () => {
+      const persian: Locale = readLocale("fa");
+      const dialog: HTMLElement = await openIn("fa");
+
+      await act(async () => {
+        fireEvent.click(
+          within(dialog).getByRole("radio", {
+            name: text(persian, "SMS only"),
+          }),
+        );
+      });
+      await settle();
+
+      const field: HTMLInputElement = fieldIn(dialog, "fa", SMS_NUMBERS);
+
+      expect(field).toBeVisible();
+      expect(field).toHaveAttribute("dir", "ltr");
+      expect(field.parentElement).toHaveAttribute("dir", "ltr");
+      expect(field).toHaveAttribute("placeholder", PHONE_NUMBER_LIST_EXAMPLE);
+    });
+  });
 });
 
 describe("Settings > WhatsApp", () => {

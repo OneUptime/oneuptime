@@ -448,7 +448,7 @@ For at gendanne PostgreSQL angiver du værdierne `DATABASE_RESTORE_*` i `config.
 
 Mange servere kører OneUptime til én opgave, f.eks. at overvåge websteder og udgive en statusside. En masteradministrator kan slå de produkter fra, som ingen bruger, for alle projekter på serveren på én gang, under **Indstillinger > Produkter** i Admin Dashboard.
 
-- **Forudindstillinger** sætter alle kontakter med ét klik: **Overvågning og statussider** beholder Monitorer, Hændelser, Vagtordning, Statussider og Planlagt vedligeholdelse; **Hændelseshåndtering** tilføjer Advarsler, SLOs, Arbejdsgange og Runbooks; **Alt** beholder alle produkter. **Vælg produkter ét ad gangen** slår et enkelt produkt om. Brugere, Teams og Projektindstillinger er altid slået til.
+- **Forudindstillinger** sætter alle kontakter med ét klik: **Overvågning og statussider** beholder Monitorer, Hændelser, Vagt, Statussider og Planlagt vedligeholdelse; **Hændelseshåndtering** tilføjer Advarsler, SLOs, Arbejdsgange og Runbooks; **Alt** beholder alle produkter. **Vælg produkter ét ad gangen** slår et enkelt produkt om. Brugere, Teams og Projektindstillinger er altid slået til.
 - Et produkt, der er slået fra, forsvinder fra hvert projekts menu **Produkter**, fra Hjem og fra Søg, og **Projektindstillinger > Produkter** viser det som slået fra. Et link til en af dets sider siger, at produktet er slået fra på denne server, og hvem der kan slå det til.
 - API'et afviser at oprette, ændre eller slette produktets poster, og Spørg AI udelader det. Læsning virker stadig, fordi produkter, der forbliver slået til, viser andres poster: en hændelse nævner sine monitorer.
 - Intet slettes, og det, der allerede kører, bliver ved med at køre: monitorer bliver ved med at tjekke, udgivne statussider forbliver oppe, og telemetri bliver ved med at komme, medmindre du også stopper indtaget. Et produkt, der slås til igen, kommer tilbage, som det var.
@@ -468,7 +468,7 @@ MQTT_INGEST_ENABLED=false
 
 | Indstilling | Hvad den gør |
 | --- | --- |
-| `SERVER_PRODUCTS=monitoring-and-status-pages` | Alle projekter tilbyder Monitorer, Hændelser, Vagtordning, Statussider og Planlagt vedligeholdelse. |
+| `SERVER_PRODUCTS=monitoring-and-status-pages` | Alle projekter tilbyder Monitorer, Hændelser, Vagt, Statussider og Planlagt vedligeholdelse. |
 | `DISABLE_TELEMETRY_INGESTION=true` | OneUptime gemmer ingen af de logs, metrikker, traces eller profiler, det får tilsendt. Protokoller, Metrikker, Spor, Ydeevneprofiler og Undtagelser vises som slået fra. |
 | `GLOBAL_RUNNER_REPLICAS=0` | Tjenesten `global-runner` starter ikke. Kun runbooks og OneUptime AI's koderettelser bruger den. |
 | `MQTT_INGEST_ENABLED=false` | De MQTT-lyttere, som IoT-enheder sender til, er slået fra. |

@@ -125,7 +125,7 @@ Archiviare toglie una policy dal servizio e conserva tutto: aprite le **Impostaz
 
 ## Chi può modificare una policy
 
-**Proprietario del progetto**, **Amministratore del progetto**, **Membro del progetto**, **Amministratore della reperibilità** e **Membro della reperibilità** possono creare, modificare ed eliminare le policy; **Visualizzatore** e **Visualizzatore della reperibilità** possono leggerle. In un ruolo personalizzato, i permessi sono **Create On-Call Duty Policy**, **Edit On-Call Duty Policy**, **Delete On-Call Duty Policy** e **Read On-Call Duty Policy**, e un ruolo limitato ad alcune etichette raggiunge solo le policy che le portano. Aggiungere proprietari e campi personalizzati richiede il piano **Growth** su OneUptime Cloud.
+**Proprietario del progetto**, **Amministratore del progetto**, **Membro del progetto**, **Amministratore della reperibilità** e **Membro della reperibilità** possono creare, modificare ed eliminare le policy; **Visualizzatore** e **Visualizzatore della reperibilità** possono leggerle. In un ruolo personalizzato, i permessi sono **Create On-Call Policy**, **Edit On-Call Policy**, **Delete On-Call Policy** e **Read On-Call Policy**, e un ruolo limitato ad alcune etichette raggiunge solo le policy che le portano. Aggiungere proprietari e campi personalizzati richiede il piano **Growth** su OneUptime Cloud.
 
 ## API e Terraform
 

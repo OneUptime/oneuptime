@@ -67,10 +67,13 @@ import IncidentEpisode from "./IncidentEpisode";
 @Index(["alertSentToUserId", "projectId"])
 @TableMetadata({
   tableName: "OnCallDutyPolicyExecutionLogTimeline",
-  singularName: "On-Call Duty Execution Log Timeline",
-  pluralName: "On-Call Duty Execution Log Timeline",
+  singularName: "On-Call Policy Execution Log Timeline",
+  pluralName: "On-Call Policy Execution Log Timeline",
+  // Its names before #6817, which the API, the CLI and MCP keep.
+  apiSingularName: "On-Call Duty Execution Log Timeline",
+  apiPluralName: "On-Call Duty Execution Log Timeline",
   icon: IconProp.Call,
-  tableDescription: "Timeline events for on-call duty policy execution log.",
+  tableDescription: "Timeline events for on-call policy execution log.",
 })
 export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
   @ColumnAccessControl({
@@ -156,8 +159,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
     type: TableColumnType.Entity,
     modelType: OnCallDutyPolicy,
     title: "OnCallDutyPolicy",
-    description:
-      "Relation to on-call duty policy Resource in which this object belongs",
+    description: "Relation to the on-call policy this object belongs to",
   })
   @ManyToOne(
     () => {
@@ -191,9 +193,9 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
   @TableColumn({
     type: TableColumnType.ObjectID,
     canReadOnRelationQuery: true,
-    title: "OnCallDutyPolicy ID",
+    title: "On-Call Policy ID",
     description:
-      "ID of your OneUptime on-call duty policy in which this object belongs. Empty for a step of a direct page, which has no on-call policy.",
+      "ID of your OneUptime on-call policy in which this object belongs. Empty for a step of a direct page, which has no on-call policy.",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -649,7 +651,7 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
     type: TableColumnType.ShortText,
     allowedValues: Object.values(UserNotificationEventType),
     title: "Notification Event Type",
-    description: "Type of event that triggered this on-call duty policy.",
+    description: "Type of event that triggered this on-call policy.",
     canReadOnRelationQuery: false,
   })
   @Column({

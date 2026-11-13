@@ -97,7 +97,7 @@ The docs are organized like the sidebar, in nine sections. Pick the part you nee
 - [Incidents](/docs/incidents/index): Declare, coordinate and resolve incidents, with a full timeline.
 - [Alerts](/docs/alerts/index): Look into problems before your users notice, and group the noise into episodes.
 - [On-call](/docs/on-call/index): Policies, escalation rules, rotations and who gets paged when.
-- [Notifications](/docs/notifications/index): How OneUptime reaches you: your methods, on-call rules and notification settings.
+- [Notifications](/docs/notifications/index): How OneUptime reaches you: your methods, How to Reach Me and notification settings.
 - [Status pages](/docs/status-pages/index): Keep customers informed on public or private status pages.
 - [Scheduled maintenance](/docs/scheduled-maintenance/index): Announce planned work, and pause the monitors it touches.
 - [Workspace connections](/docs/workspace-connections/slack): Work on incidents from Slack and Microsoft Teams.

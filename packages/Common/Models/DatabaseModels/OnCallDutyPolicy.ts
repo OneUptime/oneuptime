@@ -96,10 +96,12 @@ import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 @TableMetadata({
   tableName: "OnCallDutyPolicy",
   singularName: "On-Call Policy",
-  pluralName: "On-Call Duty Policies",
+  pluralName: "On-Call Policies",
+  // Was "On-Call Duty Policies" (#6817): MCP's list_on_call_duty_policies stays.
+  apiPluralName: "On-Call Duty Policies",
   icon: IconProp.Call,
   tableDescription:
-    "Manage on-call duty, schedules and roster for your project",
+    "Who is paged about an incident, an alert or an episode, and who is paged next if nobody acknowledges. Its levels are escalation rules.",
 })
 export default class OnCallDutyPolicy extends BaseModel {
   @ColumnAccessControl({

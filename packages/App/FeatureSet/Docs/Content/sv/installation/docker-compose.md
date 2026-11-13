@@ -448,7 +448,7 @@ För att återställa PostgreSQL anger du värdena `DATABASE_RESTORE_*` i `confi
 
 Många servrar kör OneUptime för ett enda jobb, till exempel att övervaka webbplatser och publicera en statussida. En huvudadministratör kan stänga av de produkter som ingen använder, för alla projekt på servern på en gång, under **Inställningar > Produkter** i Admin Dashboard.
 
-- **Förinställningar** sätter alla brytare med ett klick: **Övervakning och statussidor** behåller Monitorer, Incidenter, Jourtjänst, Statussidor och Schemalagt underhåll; **Incidenthantering** lägger till Larm, SLOs, Arbetsflöden och Runbooks; **Allt** behåller alla produkter. **Välj produkter en i taget** slår om en enskild produkt. Användare, Team och Projektinställningar är alltid på.
+- **Förinställningar** sätter alla brytare med ett klick: **Övervakning och statussidor** behåller Monitorer, Incidenter, Jour, Statussidor och Schemalagt underhåll; **Incidenthantering** lägger till Larm, SLOs, Arbetsflöden och Runbooks; **Allt** behåller alla produkter. **Välj produkter en i taget** slår om en enskild produkt. Användare, Team och Projektinställningar är alltid på.
 - En produkt som är avstängd försvinner från menyn **Produkter** i varje projekt, från Hem och från Sök, och **Projektinställningar > Produkter** visar den som avstängd. En länk till en av dess sidor säger att produkten är avstängd på den här servern och vem som kan slå på den.
 - API:t vägrar att skapa, ändra eller ta bort produktens poster, och Fråga AI utelämnar den. Läsning fungerar fortfarande, eftersom produkter som förblir på visar andras poster: en incident nämner sina monitorer.
 - Ingenting tas bort, och det som redan körs fortsätter att köras: monitorer fortsätter att kontrollera, publicerade statussidor förblir uppe och telemetri fortsätter att komma in, om du inte också stoppar inläsningen. En produkt som slås på igen kommer tillbaka som den var.
@@ -468,7 +468,7 @@ MQTT_INGEST_ENABLED=false
 
 | Inställning | Vad den gör |
 | --- | --- |
-| `SERVER_PRODUCTS=monitoring-and-status-pages` | Varje projekt erbjuder Monitorer, Incidenter, Jourtjänst, Statussidor och Schemalagt underhåll. |
+| `SERVER_PRODUCTS=monitoring-and-status-pages` | Varje projekt erbjuder Monitorer, Incidenter, Jour, Statussidor och Schemalagt underhåll. |
 | `DISABLE_TELEMETRY_INGESTION=true` | OneUptime behåller inga av de loggar, mätvärden, traces eller profiler som skickas till det. Loggar, Mätvärden, Spår, Prestandaprofiler och Undantag visas som avstängda. |
 | `GLOBAL_RUNNER_REPLICAS=0` | Tjänsten `global-runner` startar inte. Bara runbooks och OneUptime AI:s kodkorrigeringar använder den. |
 | `MQTT_INGEST_ENABLED=false` | MQTT-lyssnarna som IoT-enheter skickar till stängs av. |

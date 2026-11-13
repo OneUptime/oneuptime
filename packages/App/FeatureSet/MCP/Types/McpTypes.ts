@@ -50,6 +50,13 @@ export interface McpToolInfo {
   modelType: ModelType;
   singularName: string;
   pluralName: string;
+  /*
+   * The names the tool is named by, when the model was renamed on screen and
+   * keeps its old names in the API (Common/Utils/ModelApiName). Left out,
+   * they are singularName and pluralName.
+   */
+  apiSingularName?: string;
+  apiPluralName?: string;
   tableName: string;
   apiPath?: string;
   title?: string;

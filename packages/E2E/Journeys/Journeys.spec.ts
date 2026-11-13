@@ -194,7 +194,7 @@ journey(
       `${DASHBOARD}/monitors/${MONITOR}?seed=monitor`,
       page.getByRole("heading", { name: "Acme website" }).first(),
     );
-    await person.openProduct("On-Call Duty");
+    await person.openProduct("On-Call");
     await person.press(/Create On-Call Policy/);
     await person.type("Name", "Website on-call");
     await person.press("Add responder");
@@ -275,7 +275,7 @@ journey(
       page.getByRole("heading", { name: "Home" }),
     );
     await person.openProduct("Project Settings");
-    await person.sideMenu("Notification Settings", "Notifications");
+    await person.sideMenu("Notification Channels", "Notifications");
     await person.toggle(/^Phone Calls/);
     await person.press("Recharge Balance");
     await person.type(/Amount/, "20");
@@ -287,7 +287,7 @@ journey(
     // The number gets a code as it is added: the Verify dialog opens.
     await person.type(/code/i, VERIFICATION_CODE);
     await person.submit("Verify");
-    await person.openProduct("On-Call Duty");
+    await person.openProduct("On-Call");
     await person.press(/Create On-Call Policy/);
     await person.type("Name", "Website on-call");
     await person.press("Add responder");

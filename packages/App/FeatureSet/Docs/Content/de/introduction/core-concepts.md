@@ -198,7 +198,7 @@ Die eigenen Regeln eines Monitors sind seine Kriterien. Die Bereitschaftsregeln 
 
 :::cards
 - [Vorfalleinstellungen & Automatisierung](/docs/incidents/settings#regeln-die-beim-anlegen-eines-vorfalls-laufen): Die Regeln, die laufen, wenn ein Vorfall angelegt wird, der Reihe nach.
-- [Persönliche Bereitschaftsregeln](/docs/notifications/on-call-rules): Wie eine Alarmierung Sie erreicht.
+- [Wie ich erreichbar bin](/docs/notifications/on-call-rules): Wie eine Alarmierung Sie erreicht.
 :::
 
 ## Nächste Schritte

@@ -88,7 +88,7 @@ En forhåndsvisning lagres i én dag. Bare personen som leste kontoen, kan kryss
 Åpne hver av dem under **Monitorer** og sjekk de første resultatene. En heartbeat-monitor har en ny adresse: Pek jobben som kaller den, dit.
 
 ### Velg hvem som får beskjed
-Legg til eiere på monitorene dine, eller en vaktretningslinje under **Vakttjeneste** > **Vaktretningslinjer** på hendelsene de åpner, slik at de riktige personene får vite det når noe går ned.
+Legg til eiere på monitorene dine, eller en vaktretningslinje under **Vakt** > **Vaktretningslinjer** på hendelsene de åpner, slik at de riktige personene får vite det når noe går ned.
 
 ### Slå av kontrollene i StatusCake
 Når OneUptime kontrollerer de samme tingene, setter du dem på pause i StatusCake, så ingen får beskjed to ganger.

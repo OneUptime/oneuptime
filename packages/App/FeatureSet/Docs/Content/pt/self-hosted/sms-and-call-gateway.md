@@ -22,7 +22,7 @@ flowchart TB
     Provider --> Phone
 ```
 
-O gateway toma o lugar da conta do Twilio do próprio servidor em tudo o que passaria por ela: acionamentos de plantão, notificações, códigos de verificação e SMS para assinantes de páginas de status. Os projetos que adicionam uma configuração do Twilio própria, no cartão **Configuração do Twilio** em **Configurações do projeto > Notificações > Configurações de notificação**, continuam enviando por essa configuração. Os interruptores de SMS e de chamadas de cada projeto, e o saldo dele onde a cobrança está ativada, são verificados como no Twilio.
+O gateway toma o lugar da conta do Twilio do próprio servidor em tudo o que passaria por ela: acionamentos de plantão, notificações, códigos de verificação e SMS para assinantes de páginas de status. Os projetos que adicionam uma configuração do Twilio própria, no cartão **Configuração do Twilio** em **Configurações do projeto > Notificações > Canais de notificação**, continuam enviando por essa configuração. Os interruptores de SMS e de chamadas de cada projeto, e o saldo dele onde a cobrança está ativada, são verificados como no Twilio.
 
 ## Configurar o gateway
 

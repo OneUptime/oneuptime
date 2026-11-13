@@ -74,7 +74,7 @@ De stap die je eerst doet, is gemarkeerd met **Volgende stap**. In het Free-abon
 
 Een begeleide installatie doet het hele werk op één pagina, stap voor stap, en eindigt met wat ze heeft ingesteld en wat je daarna doet. Zoek later op de naam om er een opnieuw te openen.
 
-Onder de stappen toont **Hoe OneUptime werkt** de vier kernproducten in de volgorde waarin een probleem ze doorloopt: **Monitoren**, **Incidenten & waarschuwingen**, **Bereikbaarheidsdienst** en **Statuspagina's**. Klik op een ervan om het te openen. Daaronder staat wat die kringloop voedt, telemetrie en infrastructuur, met links naar [Kernbegrippen](/docs/introduction/core-concepts) en [Woordenlijst](/docs/introduction/glossary).
+Onder de stappen toont **Hoe OneUptime werkt** de vier kernproducten in de volgorde waarin een probleem ze doorloopt: **Monitoren**, **Incidenten & waarschuwingen**, **Bereikbaarheid** en **Statuspagina's**. Klik op een ervan om het te openen. Daaronder staat wat die kringloop voedt, telemetrie en infrastructuur, met links naar [Kernbegrippen](/docs/introduction/core-concepts) en [Woordenlijst](/docs/introduction/glossary).
 
 ```mermaid title="Wanneer de welkomstchecklist verschijnt"
 flowchart TB
@@ -109,7 +109,7 @@ Als iets in de inrichting van het project zou verhinderen dat mensen een melding
 
 ## Uw weg vinden
 
-Alles in OneUptime staat onder **Producten** in de bovenste balk. Het menu toont zijn groepen als de rijen van één lijst, en opent altijd met de eerste ervan, de essenties, uitgeklapt: Monitoren, Incidenten, Waarschuwingen, Bereikbaarheidsdienst, Statuspagina's, Geplande onderhoud en SLOs. Elke andere groep (Observability, Beveiliging, AI, Code, Bronnen, Infrastructuur, Cloud, Dashboards & automatisering en Instellingen) is ingeklapt tot een rij van dezelfde lijst. Elke rij noemt de producten van de groep en zegt hoeveel het er zijn. Klik op een rij om hem uit of in te klappen, of ga er met de pijltjestoetsen naartoe en druk op **Enter**.
+Alles in OneUptime staat onder **Producten** in de bovenste balk. Het menu toont zijn groepen als de rijen van één lijst, en opent altijd met de eerste ervan, de essenties, uitgeklapt: Monitoren, Incidenten, Waarschuwingen, Bereikbaarheid, Statuspagina's, Geplande onderhoud en SLOs. Elke andere groep (Observability, Beveiliging, AI, Code, Bronnen, Infrastructuur, Cloud, Dashboards & automatisering en Instellingen) is ingeklapt tot een rij van dezelfde lijst. Elke rij noemt de producten van de groep en zegt hoeveel het er zijn. Klik op een rij om hem uit of in te klappen, of ga er met de pijltjestoetsen naartoe en druk op **Enter**.
 
 - **Zoeken vindt alles.** Typ in het zoekvak van het menu om elk product te vinden op naam, op wat het doet, of op een bekend woord zoals `k8s` of `RUM`. Zoeken kijkt ook in de ingeklapte groepen.
 - **U begint waar u bent.** De groep van de pagina waarop u bent, klapt vanzelf uit, en de producten die u onlangs hebt geopend, staan bovenaan.
@@ -149,7 +149,7 @@ Boven de titel van elke pagina toont een pad zoals *Project › Docker › Inste
 Druk op **Cmd+K** (Mac) of **Ctrl+K** (Windows en Linux), of klik op het zoekpictogram in de bovenste balk, en begin te typen. Zoeken vindt:
 
 - **Elke pagina in de menu's**, onder de naam die het menu haar geeft: API-sleutels, Gevarenzone, Bereikbaarheidsschema's, Ernst van incident, uw eigen Meldingsmethoden. Elk resultaat zegt waar het staat, zoals *Projectinstellingen › Geavanceerd*, zodat pagina's met dezelfde naam (Aangepaste velden bij Incidenten, Waarschuwingen en Monitoren) makkelijk uit elkaar te houden zijn.
-- **De instellingen op een pagina**, onder de naam die hun kaart of schakelaar toont: *SSO vereisen voor inloggen* vindt SSO, en *Meldingskanalen* vindt Meldingsinstellingen. Typ de naam in het Engels of in uw eigen taal.
+- **De instellingen op een pagina**, onder de naam die hun kaart of schakelaar toont: *SSO vereisen voor inloggen* vindt SSO, en *Aangepaste SMTP-configuraties* vindt Meldingskanalen. Typ de naam in het Engels of in uw eigen taal.
 - **Acties**, naar wat u wilt doen: Incident melden, Monitor maken of Delete Project, dat de Gevarenzone opent. Een actie die iets verandert, wordt alleen aangeboden aan wie die mag uitvoeren.
 - **Uw monitoren, incidenten, waarschuwingen, statuspagina's en bereikbaarheidsbeleid**, op naam, en incidenten en waarschuwingen ook op nummer, zoals `INC-42`. Elk resultaat van een incident of waarschuwing begint met zijn nummer, zodat twee met dezelfde titel uit elkaar te houden zijn.
 - **De documentatie**, in een groep *Documentatie* onder al het andere: de pagina's en secties waarvan de woorden overeenkomen met wat u typt, in uw taal, ook met een typfout. Elke opent in een nieuw tabblad, zodat u uw plek houdt.
@@ -185,7 +185,7 @@ Druk op `g` en dan op een letter om direct naar een product te gaan. Druk de let
 | `g` dan `m` | Monitoren |
 | `g` dan `i` | Incidenten |
 | `g` dan `a` | Waarschuwingen |
-| `g` dan `o` | Bereikbaarheidsdienst |
+| `g` dan `o` | Bereikbaarheid |
 | `g` dan `s` | Statuspagina's |
 | `g` dan `e` | Geplande onderhoud |
 | `g` dan `d` | Dashboards |

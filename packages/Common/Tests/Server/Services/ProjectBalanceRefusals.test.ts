@@ -183,7 +183,7 @@ function createBy<T extends DatabaseBaseModel>(data: T): CreateBy<T> {
 function expectSaysWhoCanAddBalance(message: string): void {
   expect(message.toLowerCase()).toContain("this project's balance is too low");
   expect(message).toContain(
-    "A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Settings.",
+    "A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
   );
   expect(message).not.toMatch(/please/i);
   expect(message).not.toMatch(/\brecharge\b/i);
@@ -263,7 +263,7 @@ describe("adding a phone number for SMS", () => {
       getProjectBalanceTooLowMessage(ProjectNotificationChannel.SMS),
     );
     expect(message).toBe(
-      "This project's balance is too low to send SMS. A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Settings.",
+      "This project's balance is too low to send SMS. A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
     );
     expectSaysWhoCanAddBalance(message);
   });
@@ -370,7 +370,7 @@ describe("adding a phone number for calls", () => {
     );
 
     expect(message).toBe(
-      "This project's balance is too low to make phone calls. A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Settings.",
+      "This project's balance is too low to make phone calls. A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
     );
     expect(message).not.toContain("SMS");
     expectSaysWhoCanAddBalance(message);
@@ -440,7 +440,7 @@ describe("adding a WhatsApp number", () => {
     );
 
     expect(message).toBe(
-      "This project's balance is too low to send WhatsApp messages. A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Settings.",
+      "This project's balance is too low to send WhatsApp messages. A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
     );
     expectSaysWhoCanAddBalance(message);
   });
@@ -476,7 +476,7 @@ describe("linking a Telegram account", () => {
     );
 
     expect(message).toBe(
-      "This project's balance is too low to send Telegram messages. A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Settings.",
+      "This project's balance is too low to send Telegram messages. A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
     );
     expectSaysWhoCanAddBalance(message);
   });

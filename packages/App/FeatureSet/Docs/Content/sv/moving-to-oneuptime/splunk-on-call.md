@@ -80,10 +80,10 @@ En förhandsgranskning sparas i en dag. Bara den som läste kontot kan markera o
 
 :::steps
 ### Kontrollera jourschemana
-Öppna varje schema under **Jourtjänst** > **Jourscheman** och kontrollera vem som har jour nu och vem som är näst på tur.
+Öppna varje schema under **Jour** > **Jourscheman** och kontrollera vem som har jour nu och vem som är näst på tur.
 
 ### Se till att alla kan larmas
-Inbjudna personer accepterar sin inbjudan och lägger sedan till ett telefonnummer, en e-postadress eller mobilappen att larmas på. **Jourtjänst** > **Beredskap** visar vem som inte kan nås än.
+Inbjudna personer accepterar sin inbjudan och lägger sedan till ett telefonnummer, en e-postadress eller mobilappen att larmas på. **Jour** > **Beredskap** visar vem som inte kan nås än.
 
 ### Fortsätt dina incidentnummer
 Om ditt team hänvisar till incidenter med nummer, låt numren i OneUptime börja efter ditt sista i Splunk On-Call: under **Incidenter** > **Inställningar** > **Numrering** sätter du **Nästa incidentnummer** på kortet **Nästa nummer** till numret efter det. Ett nummer betyder då aldrig två olika incidenter.

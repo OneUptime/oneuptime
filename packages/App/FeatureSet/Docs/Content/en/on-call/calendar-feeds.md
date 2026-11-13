@@ -34,7 +34,7 @@ Standing assignments — a user or team named directly on an escalation policy r
 | --- | --- | --- | --- |
 | **Personal feed** | Each user, one per project | Your shifts on every schedule in that project, plus the shifts where you cover for someone (optional) | **User Settings** > **Calendar** > **Calendar Feed** |
 | **Schedule feed** | Anyone who can edit the schedule; anyone who can read it may copy the link | Everyone's shifts on one schedule, with optional coverage-gap events | The schedule's page, card **Subscribe to this schedule** |
-| **Project feed** | Anyone who can edit on-call schedules; anyone who can read them may copy the link | Everyone's shifts on every schedule in the project, with optional coverage-gap events | **On-Call Duty** > **Calendar Feeds** |
+| **Project feed** | Anyone who can edit on-call schedules; anyone who can read them may copy the link | Everyone's shifts on every schedule in the project, with optional coverage-gap events | **On-Call** > **Calendar Feeds** |
 
 The links look like this:
 
@@ -206,7 +206,7 @@ On a schedule's page the card **Subscribe to this schedule** has two halves: **O
 
 ### Project feed
 
-**On-Call Duty** > **Calendar Feeds** holds the card **Everyone's shifts in this project (shared link)** — one shared link covering every schedule in the project — with the same publish, regenerate and disable actions, and a link to your personal feed page.
+**On-Call** > **Calendar Feeds** holds the card **Everyone's shifts in this project (shared link)** — one shared link covering every schedule in the project — with the same publish, regenerate and disable actions, and a link to your personal feed page.
 
 ### Shared link settings
 
@@ -233,7 +233,7 @@ When a person leaves their last team in a project, OneUptime also removes them f
 
 ## Planning, not audit
 
-The feed shows the rotation **as it is configured now**, including for past days: an override entered afterwards rewrites history in the calendar. For hours actually spent on call, fairness reviews and compensation, use **On-Call Duty** > **Reports** > **User On Call Time**, which is written from what the pager actually did. See [User On Call Time](/docs/on-call/readiness#user-on-call-time).
+The feed shows the rotation **as it is configured now**, including for past days: an override entered afterwards rewrites history in the calendar. For hours actually spent on call, fairness reviews and compensation, use **On-Call** > **Reports** > **User On-Call Time**, which is written from what the pager actually did. See [User On-Call Time](/docs/on-call/readiness#user-on-call-time).
 
 ## Security
 

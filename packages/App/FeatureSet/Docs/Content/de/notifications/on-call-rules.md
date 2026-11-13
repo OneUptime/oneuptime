@@ -1,4 +1,4 @@
-# Persönliche Bereitschaftsregeln
+# Wie ich erreichbar bin
 
 Ihre Bereitschaftsregeln entscheiden, wie ein Alarm Sie erreicht: welche Ihrer Benachrichtigungsmethoden OneUptime versucht, und wie lange nach dem Beginn des Alarms. Jede Art von Alarm hat eigene Regeln, ein Satz pro Schweregrad, sodass ein kritischer Vorfall Sie sofort anrufen kann, während eine Warnung mit niedrigem Schweregrad auf eine E-Mail wartet. Sie legen sie unter **Benutzereinstellungen → Wie ich erreichbar bin** fest.
 

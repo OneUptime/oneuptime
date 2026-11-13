@@ -33,14 +33,14 @@ When an on-call policy pages someone and their on-call rule uses the channel, On
 
 1. In the Admin Dashboard, open **Settings**, then **Notifications > Custom Channels** in the side menu (**Notifications** starts folded), and select **Add**.
 2. On the **Channel** step, fill in:
-   - **Name**: what people see in their notification methods and on-call rules, for example `CorpoApp`.
+   - **Name**: what people see in their notification methods and How to Reach Me, for example `CorpoApp`.
    - **Webhook URL**: where OneUptime sends each page. It can be on your private network.
    - **Signing Secret**: OneUptime makes one for you. Copy it into your service, which checks every request with it. You can see it again by editing the channel.
 3. On the **Delivery** step, save, then select **Send test** to send your service a [test request](#test-requests).
 
-On the **Delivery** step, **Page everyone through this channel** is on. OneUptime then adds the channel to everyone's on-call rules in every project, and to the rules of everyone who joins a project later, and uses it to reach a responder who has no rule for what fired. Turn it off to let people add the channel to their rules themselves.
+On the **Delivery** step, **Page everyone through this channel** is on. OneUptime then adds the channel to everyone's How to Reach Me in every project, and to that of everyone who joins a project later, and uses it to reach a responder who has no step for what fired. Turn it off to let people add the channel to their How to Reach Me themselves.
 
-People see the channel under **User Settings**, then **Notification Methods**, then **Custom Channels**, with a **Send test** button, and pick it in their on-call rules as `Custom Channel: CorpoApp`. They set nothing up: your service is told who each page is for.
+People see the channel under **User Settings**, then **Notification Methods**, then **Custom Channels**, with a **Send test** button, and pick it in How to Reach Me as `Custom Channel: CorpoApp`. They set nothing up: your service is told who each page is for.
 
 To stop sending without changing anyone's rules, choose **Disable** in the channel's ⋯ menu, or edit the channel and turn off **On**; **Enable** in the same menu turns it back on. Pages that would have gone to it are recorded in the on-call log as not sent. Deleting a channel deletes every on-call rule that uses it.
 

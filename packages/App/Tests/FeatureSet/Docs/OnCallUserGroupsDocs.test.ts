@@ -137,9 +137,9 @@ describe("each page's section, against the schedule page's card", () => {
       // Linked from the page's cards.
       expect(page.markdown).toContain(`- [${page.heading}](${anchor}): `);
 
-      // Found where the card is: a schedule, under On-Call Duty.
+      // Found where the card is: a schedule, under On-Call.
       expect(text).toContain(
-        "Open the schedule under **On-Call Duty** > **On-Call Schedules**.",
+        "Open the schedule under **On-Call** > **On-Call Schedules**.",
       );
       expect(text).toContain(
         `**${copy.title}** card, click **${copy.connectButton}**`,
@@ -189,7 +189,7 @@ describe("each page's section, against the schedule page's card", () => {
           .sort(),
       ).toEqual(model.getCreatePermissions().map(titleOf).sort());
       expect(titleOf(Permission.EditProjectOnCallDutyPolicySchedule)).toBe(
-        "Edit On-Call Duty Policy Schedule",
+        "Edit On-Call Schedule",
       );
 
       // And the plan.

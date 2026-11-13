@@ -412,7 +412,7 @@ const PROSE_LEADS: Record<string, Array<string>> = {
  */
 const PATHS_HELD_ELSEWHERE: Record<string, Array<string>> = {
   [PERMISSIONS_PAGE]: [
-    "Project Settings > Notifications > Notification Settings",
+    "Project Settings > Notifications > Notification Channels",
     "Project Settings > AI > AI Credits",
   ],
 };

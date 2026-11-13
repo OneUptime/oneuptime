@@ -12,7 +12,7 @@ import {
  *
  * - its balance for SMS, phone calls, WhatsApp and Telegram
  *   (Project.smsOrCallCurrentBalanceInUSDCents), on Project Settings >
- *   Notifications > Notification Settings;
+ *   Notifications > Notification Channels;
  * - its AI credits (Project.aiCurrentBalanceInUSDCents), which pay for
  *   OneUptime AI on the OneUptime-hosted LLM provider, on Project Settings →
  *   AI → AI Credits.
@@ -133,7 +133,7 @@ const capitalize: (text: string) => string = (text: string): string => {
  * Who can add to a balance, and where, as the sentence after one that says
  * it is too low - for whoever reads it, who may or may not be one of them:
  * "A project owner or someone with Manage Billing can add balance in Project
- * Settings > Notification Settings."
+ * Settings > Notification Channels."
  *
  * It does not offer Auto Recharge as the way out: most readers cannot turn
  * it on, and where it is already on, it is what could not add more (its
@@ -186,7 +186,7 @@ const ONE_MESSAGE_WORDS: Readonly<Record<ProjectNotificationChannel, string>> =
  * verification code again, is refused because the project's balance is too
  * low to pay for the code: "This project's balance is too low to send SMS.
  * A project owner or someone with Manage Billing can add balance in Project
- * Settings > Notification Settings." Said to whoever asked, so it names who
+ * Settings > Notification Channels." Said to whoever asked, so it names who
  * can rather than telling the reader to.
  */
 export const getProjectBalanceTooLowMessage: (

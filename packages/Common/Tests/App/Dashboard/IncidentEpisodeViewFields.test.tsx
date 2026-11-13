@@ -697,7 +697,7 @@ describe("Incident Episode overview: details column", () => {
       "Episode Severity",
       "Incident Count",
       "Grouping Rule",
-      "On-Call Duty Policies",
+      "On-Call Policies",
       "Labels",
     ]);
 

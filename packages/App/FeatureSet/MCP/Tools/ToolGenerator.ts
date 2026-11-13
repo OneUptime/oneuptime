@@ -38,6 +38,10 @@ import {
   SelectableFieldsInfo,
 } from "../Services/SelectFieldGenerator";
 import { LIST_DEFAULT_LIMIT, LIST_MAX_LIMIT } from "../Config/ServerConfig";
+import {
+  getApiPluralName,
+  getApiSingularName,
+} from "Common/Utils/ModelApiName";
 import MCPLogger from "../Utils/MCPLogger";
 
 /*
@@ -358,7 +362,49 @@ export function generateToolsForDatabaseModel(
     createCountTool(modelName, singularName, pluralName, apiPath),
   ];
 
-  return { tools, modelInfo };
+  return {
+    tools: tools.map((tool: McpToolInfo): McpToolInfo => {
+      return withKeptToolName(tool, model);
+    }),
+    modelInfo,
+  };
+}
+
+// What each operation's tool name starts with, before the model's name.
+const TOOL_NAME_PREFIXES: Readonly<Record<OneUptimeOperation, string>> = {
+  [OneUptimeOperation.Create]: "create",
+  [OneUptimeOperation.Read]: "get",
+  [OneUptimeOperation.List]: "list",
+  [OneUptimeOperation.Update]: "update",
+  [OneUptimeOperation.Delete]: "delete",
+  [OneUptimeOperation.Count]: "count",
+};
+
+/*
+ * A tool is named by the names the API keeps (Common/Utils/ModelApiName): a
+ * model renamed on screen (#6817: On-Call Duty Policies are On-Call
+ * Policies) keeps the names agents and their allowed tools call
+ * (list_on_call_duty_policies), while the tool's title and description say
+ * what it is called now. A model never renamed is named as it always was.
+ */
+export function withKeptToolName(
+  tool: McpToolInfo,
+  model: DatabaseBaseModel,
+): McpToolInfo {
+  const apiSingularName: string = getApiSingularName(model);
+  const apiPluralName: string = getApiPluralName(model);
+  const isPlural: boolean =
+    tool.operation === OneUptimeOperation.List ||
+    tool.operation === OneUptimeOperation.Count;
+  const name: string = isPlural ? apiPluralName : apiSingularName;
+
+  return {
+    ...tool,
+    name: `${TOOL_NAME_PREFIXES[tool.operation]}_${sanitizeToolName(name)}`,
+    // What the help tools and suggestions name its tools by.
+    ...(apiSingularName !== tool.singularName ? { apiSingularName } : {}),
+    ...(apiPluralName !== tool.pluralName ? { apiPluralName } : {}),
+  };
 }
 
 /**

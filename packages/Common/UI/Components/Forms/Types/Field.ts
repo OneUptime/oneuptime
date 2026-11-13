@@ -513,6 +513,16 @@ export default interface Field<TEntity> {
   disableSpellCheck?: boolean | undefined;
 
   /*
+   * For a Text or LongText field whose value reads left to right in every
+   * language - a list of phone numbers, an email address or a phone number:
+   * the box reads left to right on a page read right to left too, as a
+   * Phone or URL field does (Input), its example with it. A list's example
+   * "+14155550123, +447700900123", drawn the page's way, put each "+" after
+   * its digits on a Persian or Arabic page (#7180).
+   */
+  readsLeftToRight?: boolean | undefined;
+
+  /*
    * For a LongText field: start a few lines tall and grow with what is typed,
    * up to a limit where it scrolls, rather than sitting at a fixed six lines.
    * Suits values that are usually a line or two but sometimes run to

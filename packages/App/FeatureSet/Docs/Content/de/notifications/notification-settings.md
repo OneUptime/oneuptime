@@ -106,14 +106,14 @@ Prüfen Sie, ob Sie auf diesem Kanal eine verifizierte Methode unter **Benutzere
 :::
 
 :::details Ich bekomme weiter E-Mails, obwohl ich alles ausgeschaltet habe
-Alarme folgen Ihren Bereitschaftsregeln, nicht diesen Schaltern, und E-Mails zu Anmeldung, Sicherheit und Abrechnung sind keine Neuigkeiten zu Datensätzen. Jedes Projekt hat eigene Einstellungen, prüfen Sie also das Projekt, aus dem die E-Mail kam. Siehe [Persönliche Bereitschaftsregeln](/docs/notifications/on-call-rules).
+Alarme folgen Ihren Bereitschaftsregeln, nicht diesen Schaltern, und E-Mails zu Anmeldung, Sicherheit und Abrechnung sind keine Neuigkeiten zu Datensätzen. Jedes Projekt hat eigene Einstellungen, prüfen Sie also das Projekt, aus dem die E-Mail kam. Siehe [Wie ich erreichbar bin](/docs/notifications/on-call-rules).
 :::
 
 ## Nächste Schritte
 
 :::cards
 - [Benachrichtigungsmethoden](/docs/notifications/notification-methods): Fügen Sie die Methoden hinzu, an die Ihre Einstellungen senden.
-- [Persönliche Bereitschaftsregeln](/docs/notifications/on-call-rules): Legen Sie fest, wie ein Alarm Sie erreicht.
+- [Wie ich erreichbar bin](/docs/notifications/on-call-rules): Legen Sie fest, wie ein Alarm Sie erreicht.
 - [Benachrichtigungs-Zusammenfassung](/docs/emails/notification-rollup): Weniger, vollere E-Mails während eines Schubs.
 - [Wie OneUptime Sie erreicht](/docs/notifications/index): Wie Methoden, Regeln und Einstellungen zusammenpassen.
 :::

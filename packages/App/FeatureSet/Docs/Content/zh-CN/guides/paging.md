@@ -103,6 +103,6 @@ flowchart TB
 :::cards
 - [值班计划](/docs/on-call/schedules): 轮流值班，让每次呼叫都送到正在值班的人。在 Cloud 上，从 Growth 套餐起提供。
 - [升级规则](/docs/on-call/escalation-rules): 为策略添加级别、团队和值班计划。
-- [个人值班规则](/docs/notifications/on-call-rules): 选择先用哪种方式联系你，以及何时联系。
+- [如何联系我](/docs/notifications/on-call-rules): 选择先用哪种方式联系你，以及何时联系。
 - [发布状态页面](/docs/guides/status-page): 在你自己的域名上告诉客户正在发生什么。
 :::

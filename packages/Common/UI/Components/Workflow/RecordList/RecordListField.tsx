@@ -88,7 +88,7 @@ export const RECORD_LIST_COPY: Record<PeoplePickerKind, RecordListCopy> = {
     addButtonText: translationKey("Add on-call schedule"),
     searchPlaceholder: translationKey("Search on-call schedules by name"),
     emptyText: translationKey(
-      "This project has no on-call schedules yet. Create one under On-Call Duty.",
+      "This project has no on-call schedules yet. Create one under On-Call.",
     ),
   },
   // Not offered as a list of records; listed as its schedules are.
@@ -96,14 +96,14 @@ export const RECORD_LIST_COPY: Record<PeoplePickerKind, RecordListCopy> = {
     addButtonText: translationKey("Add next in rotation"),
     searchPlaceholder: translationKey("Search on-call schedules by name"),
     emptyText: translationKey(
-      "This project has no on-call schedules yet. Create one under On-Call Duty.",
+      "This project has no on-call schedules yet. Create one under On-Call.",
     ),
   },
   [PeoplePickerKind.OnCallPolicy]: {
     addButtonText: translationKey("Add on-call policy"),
     searchPlaceholder: translationKey("Search on-call policies by name"),
     emptyText: translationKey(
-      "This project has no on-call policies yet. Create one under On-Call Duty.",
+      "This project has no on-call policies yet. Create one under On-Call.",
     ),
   },
 };

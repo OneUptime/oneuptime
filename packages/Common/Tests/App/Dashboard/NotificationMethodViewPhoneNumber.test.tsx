@@ -1,7 +1,9 @@
 import "@testing-library/jest-dom";
 import { afterEach, beforeAll, describe, expect, test } from "@jest/globals";
 import { cleanup, render } from "@testing-library/react";
+import fs from "fs";
 import { createInstance, i18n } from "i18next";
+import path from "path";
 import React from "react";
 import { I18nextProvider } from "react-i18next";
 import NotificationMethodView from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/NotificationMethod";
@@ -10,35 +12,68 @@ import UserSMS from "../../../Models/DatabaseModels/UserSMS";
 import UserCall from "../../../Models/DatabaseModels/UserCall";
 import UserWhatsApp from "../../../Models/DatabaseModels/UserWhatsApp";
 import UserEmail from "../../../Models/DatabaseModels/UserEmail";
+import UserPush from "../../../Models/DatabaseModels/UserPush";
 import Email from "../../../Types/Email";
 import Phone from "../../../Types/Phone";
 import { LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME } from "../../../UI/Utils/LineDirection";
+import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 
 /*
  * Issue #6605: the method a rule or an on-call log line notified -
- * "SMS: +447700900123" - is drawn on a Persian or Arabic page too.
+ * "SMS: +447700900123" - is drawn on a Persian or Arabic page too. The
+ * number of an SMS, call or WhatsApp method is an isolate that reads left
+ * to right (PhoneNumberText).
  *
- * The number of an SMS, call or WhatsApp method is an isolate that reads
- * left to right (PhoneNumberText). And the line itself reads the way its
- * words do: the method's name is the channel's own, in Latin letters, so
- * on a page read from the right the line reads left to right, aligned
- * where the page's lines end, as an email method's line under it does.
- * Left the page's way, the number set apart went before the name -
- * "+447700900123 :SMS" over "Email: jane@example.com" in one column.
+ * Issue #7178: and the line is a sentence of the reader's language. The
+ * method's name is a phrase of its own - "Phone call", never the shared
+ * "Call", which is a function call (调用) in Chinese; "Push notification",
+ * never the shared "Push", which is a payment (الدفع) in Arabic - and the
+ * colon is the language's ("Appel téléphonique : ...", "电话：..."). So
+ * the line reads the page's way: from the right on a Persian page, the
+ * name first, the number still reading left to right inside it, and an
+ * address an isolate of its own. Read from the Dashboard's locale files.
  */
 
 const UK: string = "+447700900123";
+const EMAIL: string = "jane@example.com";
+
+const LOCALES_DIR: string = path.join(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "..",
+  "App",
+  "FeatureSet",
+  "Dashboard",
+  "src",
+  "Locales",
+);
+
+const LANGUAGES: Array<string> = ["en", "fa", "ar", "fr", "zh-CN"];
+
+function readLocale(language: string): Record<string, string> {
+  return JSON.parse(
+    fs.readFileSync(path.join(LOCALES_DIR, `${language}.json`), "utf8"),
+  ) as Record<string, string>;
+}
 
 const instances: Record<string, i18n> = {};
+const locales: Record<string, Record<string, string>> = {};
 
 beforeAll(async () => {
-  for (const language of ["en", "fa", "ar"]) {
+  for (const language of LANGUAGES) {
+    locales[language] = readLocale(language);
+
     const instance: i18n = createInstance();
 
     await instance.init({
       lng: language,
       fallbackLng: "en",
-      resources: { en: { translation: {} }, [language]: { translation: {} } },
+      resources: {
+        en: { translation: readLocale("en") },
+        [language]: { translation: locales[language]! },
+      },
       interpolation: { escapeValue: false },
     });
 
@@ -63,7 +98,7 @@ function renderView(
   rule: UserNotificationRule,
   language: string = "fa",
 ): HTMLElement {
-  if (language !== "en") {
+  if (language === "fa" || language === "ar") {
     document.documentElement.setAttribute("dir", "rtl");
   }
 
@@ -74,6 +109,16 @@ function renderView(
   ).container;
 }
 
+// A method's line as a language writes it: its own name, its own colon.
+function lineIn(language: string, name: string, identifier: string): string {
+  const words: Record<string, string> = locales[language]!;
+
+  return (words["{{label}}: {{identifier}}"] || "{{label}}: {{identifier}}")
+    .replace("{{label}}", words[name] || name)
+    .replace("{{identifier}}", identifier);
+}
+
+// Each method reached at a phone number, with the key it is named by.
 const PHONE_METHODS: Array<[string, (rule: UserNotificationRule) => void]> = [
   [
     "SMS",
@@ -84,7 +129,7 @@ const PHONE_METHODS: Array<[string, (rule: UserNotificationRule) => void]> = [
     },
   ],
   [
-    "Call",
+    "Phone call",
     (rule: UserNotificationRule): void => {
       const call: UserCall = new UserCall();
       call.phone = new Phone(UK);
@@ -105,48 +150,88 @@ const withEmail: (rule: UserNotificationRule) => void = (
   rule: UserNotificationRule,
 ): void => {
   const email: UserEmail = new UserEmail();
-  email.email = new Email("jane@example.com");
+  email.email = new Email(EMAIL);
   rule.userEmail = email;
 };
+
+const withPush: (rule: UserNotificationRule) => void = (
+  rule: UserNotificationRule,
+): void => {
+  const push: UserPush = new UserPush();
+  push.deviceName = "Pixel 8";
+  rule.userPush = push;
+};
+
+function firstLine(container: HTMLElement): HTMLElement {
+  return container.querySelector("p") as HTMLElement;
+}
 
 describe("a notification method's line", () => {
   describe.each(["fa", "ar"])(
     "on a page read from the right (%s)",
     (language: string) => {
       test.each(PHONE_METHODS)(
-        "%s: its number is an isolate that reads left to right, after the method's name, on a line that reads as its words do",
-        (title: string, set: (rule: UserNotificationRule) => void) => {
-          const container: HTMLElement = renderView(ruleWith(set), language);
-          const line: HTMLElement = container.querySelector("p") as HTMLElement;
+        "%s: the method's name is the reader's, the number an isolate that reads left to right, the line the page's way",
+        (name: string, set: (rule: UserNotificationRule) => void) => {
+          const line: HTMLElement = firstLine(
+            renderView(ruleWith(set), language),
+          );
           const isolates: Array<Element> = Array.from(
             line.querySelectorAll("bdi"),
           );
 
-          expect(line.textContent).toBe(`${title}: ${UK}`);
+          expect(withoutIsolateMarks(line.textContent || "")).toBe(
+            lineIn(language, name, UK),
+          );
           expect(isolates).toHaveLength(1);
           expect(isolates[0]).toHaveAttribute("dir", "ltr");
           expect(isolates[0]!.textContent).toBe(UK);
-          // The name first, then the number: "SMS: +447700900123".
-          expect(line).toHaveAttribute("dir", "ltr");
-          // Where the page's lines end: at the right, as the column's others.
-          expect(line).toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
+          /*
+           * Words of the reader's language: the line reads as the page
+           * does, from the right, the name first.
+           */
+          expect(line).not.toHaveAttribute("dir");
+          expect(line).not.toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
         },
       );
 
-      test("an email method's line reads the same way, its address as it was", () => {
-        const container: HTMLElement = renderView(
-          ruleWith(withEmail),
-          language,
-        );
-        const line: HTMLElement = container.querySelector("p") as HTMLElement;
+      test("the method's name is not left in English", () => {
+        for (const [name] of PHONE_METHODS) {
+          if (name === "WhatsApp") {
+            // A product's name, kept as it is written.
+            continue;
+          }
 
-        expect(line.textContent).toBe("Email: jane@example.com");
-        expect(line.querySelector("bdi")).toBeNull();
-        expect(line).toHaveAttribute("dir", "ltr");
-        expect(line).toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
+          expect(locales[language]![name]).toBeDefined();
+          expect(locales[language]![name]).not.toBe(name);
+        }
+
+        const line: HTMLElement = firstLine(
+          renderView(ruleWith(PHONE_METHODS[1]![1]), language),
+        );
+
+        expect(line.textContent).not.toContain("Call");
+        expect(line.textContent).toContain(locales[language]!["Phone call"]!);
       });
 
-      test("every line of one item reads the same way", () => {
+      test("an email method's line: its name the reader's, its address an isolate of its own", () => {
+        const line: HTMLElement = firstLine(
+          renderView(ruleWith(withEmail), language),
+        );
+        const isolates: Array<Element> = Array.from(
+          line.querySelectorAll("bdi"),
+        );
+
+        expect(withoutIsolateMarks(line.textContent || "")).toBe(
+          lineIn(language, "Email", EMAIL),
+        );
+        expect(isolates).toHaveLength(1);
+        expect(isolates[0]).toHaveAttribute("dir", "ltr");
+        expect(isolates[0]!.textContent).toBe(EMAIL);
+        expect(line).not.toHaveAttribute("dir");
+      });
+
+      test("every line of one item reads the same way: the page's", () => {
         const container: HTMLElement = renderView(
           ruleWith((rule: UserNotificationRule): void => {
             PHONE_METHODS[0]![1](rule);
@@ -160,37 +245,79 @@ describe("a notification method's line", () => {
 
         expect(
           lines.map((line: HTMLElement): string => {
-            return `${line.getAttribute("dir")} ${line.className} ${line.textContent}`;
+            return `${line.getAttribute("dir")} ${line.className} ${withoutIsolateMarks(line.textContent || "")}`;
           }),
         ).toEqual([
-          `ltr ${LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME} Email: jane@example.com`,
-          `ltr ${LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME} SMS: ${UK}`,
+          `null  ${lineIn(language, "Email", EMAIL)}`,
+          `null  ${lineIn(language, "SMS", UK)}`,
         ]);
       });
     },
   );
 
+  test("in Arabic, a push device's line names a notification, never a payment", () => {
+    const line: HTMLElement = firstLine(renderView(ruleWith(withPush), "ar"));
+
+    expect(withoutIsolateMarks(line.textContent || "")).toBe(
+      lineIn("ar", "Push notification", "Pixel 8"),
+    );
+    // The shared "Push" is الدفع - a payment - in Arabic.
+    expect(locales["ar"]!["Push"]).toBe("الدفع");
+    expect(line.textContent).not.toContain("الدفع");
+    expect(line.textContent).toContain(locales["ar"]!["Push notification"]!);
+  });
+
+  test("in Chinese, a call method's line names a phone call, never a function call, with the full-width colon", () => {
+    const line: HTMLElement = firstLine(
+      renderView(ruleWith(PHONE_METHODS[1]![1]), "zh-CN"),
+    );
+
+    // The shared "Call" is 调用 - a function call - in Chinese.
+    expect(locales["zh-CN"]!["Call"]).toBe("调用");
+    expect(line.textContent).not.toContain("调用");
+    expect(withoutIsolateMarks(line.textContent || "")).toBe(
+      `${locales["zh-CN"]!["Phone call"]}：${UK}`,
+    );
+  });
+
+  test("in French, the colon is spaced as French spaces it", () => {
+    const line: HTMLElement = firstLine(
+      renderView(ruleWith(PHONE_METHODS[0]![1]), "fr"),
+    );
+
+    expect(withoutIsolateMarks(line.textContent || "")).toBe(
+      `${locales["fr"]!["SMS"]} : ${UK}`,
+    );
+  });
+
   describe("on an English page", () => {
     test.each(PHONE_METHODS)(
-      "%s: drawn as it always was, with no direction of its own",
-      (title: string, set: (rule: UserNotificationRule) => void) => {
-        const container: HTMLElement = renderView(ruleWith(set), "en");
-        const line: HTMLElement = container.querySelector("p") as HTMLElement;
+      "%s: the method's name, then its number in its isolate, with no direction of its own",
+      (name: string, set: (rule: UserNotificationRule) => void) => {
+        const line: HTMLElement = firstLine(renderView(ruleWith(set), "en"));
 
-        expect(line.textContent).toBe(`${title}: ${UK}`);
+        expect(line.textContent).toBe(`${name}: ${UK}`);
         expect(line).not.toHaveAttribute("dir");
         expect(line).not.toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
         expect(line.querySelector("bdi")).toHaveAttribute("dir", "ltr");
       },
     );
 
-    test("an email method's line too", () => {
-      const container: HTMLElement = renderView(ruleWith(withEmail), "en");
-      const line: HTMLElement = container.querySelector("p") as HTMLElement;
+    test("an email method's line too, its address in its isolate", () => {
+      const line: HTMLElement = firstLine(
+        renderView(ruleWith(withEmail), "en"),
+      );
 
-      expect(line.textContent).toBe("Email: jane@example.com");
+      expect(line.textContent).toBe(`Email: ${EMAIL}`);
       expect(line).not.toHaveAttribute("dir");
       expect(line.className).toBe("");
+      expect(line.querySelector("bdi")).toHaveTextContent(EMAIL);
+    });
+
+    test("a push device's line names a push notification", () => {
+      const line: HTMLElement = firstLine(renderView(ruleWith(withPush), "en"));
+
+      expect(line.textContent).toBe("Push notification: Pixel 8");
     });
   });
 

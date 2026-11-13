@@ -12,7 +12,7 @@ En jourpolicy avgör vem som larmas om en incident eller ett larm, och vem som s
 ## Skapa en policy
 
 :::steps
-1. Gå till **Jourtjänst → Jourpolicyer** och klicka på **Skapa Jourpolicy**.
+1. Gå till **Jour → Jourpolicyer** och klicka på **Skapa Jourpolicy**.
 2. Ange ett **Namn**, till exempel "Betalningar primär".
 3. Klicka på **Lägg till mottagare** under **Vem larmas först?** och välj de jourscheman, team och personer som ska larmas först.
 4. Klicka på **Skapa Jourpolicy**. Policyn öppnas på sin sida **Eskaleringsregler**, med **Level 1** på plats.
@@ -109,7 +109,7 @@ flowchart TB
 Du hittar exekveringsloggar på tre ställen:
 
 - i policyns egna **Exekveringsloggar**, under **Loggar**;
-- under **Jourtjänst → Avancerad → Exekveringsloggar**, för varje policy, där direkta utlarmningar från arbetsflöden och chatt visas som **Direkt utlarmning**;
+- under **Jour → Avancerad → Exekveringsloggar**, för varje policy, där direkta utlarmningar från arbetsflöden och chatt visas som **Direkt utlarmning**;
 - på en incidents eller ett larms sida **Jourexekveringar**.
 
 Varje rad visar vad som startade körningen, när, dess **Status** och vem som bekräftade den. **Visa tidslinje** öppnar dess **Tidslinje för körningen**: varje eskaleringsregel, vem den larmade, via vilket schema och hur varje utlarmning slutade. **Aviserad via** visar hur varje utlarmning nådde personen: telefonsamtal, SMS, e-post, push-avisering och så vidare. Ett schema där ingen har jour visar **Ingen hade jour** i stället för en person. En nivå som inte larmade någon säger varför, med **Gick vidare direkt** under: policyn väntade inte på den. I OneUptime Cloud kräver exekveringsloggar abonnemanget **Growth**.
@@ -119,13 +119,13 @@ Varje rad visar vad som startade körningen, när, dess **Status** och vem som b
 Att arkivera tar en policy ur drift och behåller allt: öppna policyns **Inställningar** och klicka på **Arkivera** på dess arkiveringskort, eller markera policyer i listan och välj **Arkivera**.
 
 - En arkiverad policy larmar ingen. Incidenter och larm som använder den hoppar över den, och en körning som fortfarande eskalerar slutar vid sitt nästa steg.
-- Den lämnar listan **Jourpolicyer** för **Jourtjänst → Avancerad → Arkiverade policyer**, där **Avarkivera** sätter den i drift igen.
+- Den lämnar listan **Jourpolicyer** för **Jour → Avancerad → Arkiverade policyer**, där **Avarkivera** sätter den i drift igen.
 
 **Ta bort policy**, under **Avancerad**, tar bort policyn med dess eskaleringsregler och användaråsidosättningar. Borttagning från listan frågar först och föreslår att arkivera i stället.
 
 ## Vem som får ändra en policy
 
-**Projektägare**, **Projektadministratör**, **Projektmedlem**, **Jouradministratör** och **Jourmedlem** får skapa, ändra och ta bort policyer; **Tittare** och **Jourtittare** får läsa dem. I en anpassad roll heter behörigheterna **Create On-Call Duty Policy**, **Edit On-Call Duty Policy**, **Delete On-Call Duty Policy** och **Read On-Call Duty Policy**, och en roll som är begränsad till vissa etiketter når bara de policyer som har dem. Att lägga till ägare och anpassade fält kräver abonnemanget **Growth** i OneUptime Cloud.
+**Projektägare**, **Projektadministratör**, **Projektmedlem**, **Jouradministratör** och **Jourmedlem** får skapa, ändra och ta bort policyer; **Tittare** och **Jourtittare** får läsa dem. I en anpassad roll heter behörigheterna **Create On-Call Policy**, **Edit On-Call Policy**, **Delete On-Call Policy** och **Read On-Call Policy**, och en roll som är begränsad till vissa etiketter når bara de policyer som har dem. Att lägga till ägare och anpassade fält kräver abonnemanget **Growth** i OneUptime Cloud.
 
 ## API och Terraform
 
@@ -149,7 +149,7 @@ Se [Skapa regler med API:et eller Terraform](/docs/on-call/escalation-rules#skap
 ## Felsökning
 
 :::details En policy kördes, men ingen larmades
-Dess körning visar **Execution Completed - No One Notified**. Öppna **Visa tidslinje**: en rad med **Ingen hade jour** pekar på ett schema med en lucka, och statusmeddelandet på en rad med **Hoppade över** säger varför, till exempel någon som var borta utan någon som täckte upp. **Jourtjänst → Beredskap** visar vem som inte kunde nås.
+Dess körning visar **Execution Completed - No One Notified**. Öppna **Visa tidslinje**: en rad med **Ingen hade jour** pekar på ett schema med en lucka, och statusmeddelandet på en rad med **Hoppade över** säger varför, till exempel någon som var borta utan någon som täckte upp. **Jour → Beredskap** visar vem som inte kunde nås.
 :::
 
 :::details Nästa nivå larmades en minut efter sin väntetid
@@ -161,7 +161,7 @@ Nivån före hade ingen att larma: inga mottagare, ingen med jour i dess scheman
 :::
 
 :::details En incident visar en policy som inte larmade någon
-Policyn är arkiverad: en arkiverad policy finns kvar på incidenterna och larmen som använder den, larmar ingen, och dess exekveringslogg säger att den inte kördes. Avarkivera den under **Jourtjänst → Avancerad → Arkiverade policyer**.
+Policyn är arkiverad: en arkiverad policy finns kvar på incidenterna och larmen som använder den, larmar ingen, och dess exekveringslogg säger att den inte kördes. Avarkivera den under **Jour → Avancerad → Arkiverade policyer**.
 :::
 
 ## Nästa steg
