@@ -8748,7 +8748,10 @@
       "my profile",
       "profile",
       "my name",
-      "my email"
+      "my email",
+      "feedback",
+      "survey",
+      "stop asking"
     ],
     "path": "/dashboard/user-profile/overview",
     "kind": "page"
@@ -8775,6 +8778,26 @@
   },
   {
     "title": "Timezone",
+    "where": [
+      "User Profile",
+      "Basic",
+      "Overview"
+    ],
+    "path": "/dashboard/user-profile/overview",
+    "kind": "setting"
+  },
+  {
+    "title": "Feedback Questions",
+    "where": [
+      "User Profile",
+      "Basic",
+      "Overview"
+    ],
+    "path": "/dashboard/user-profile/overview",
+    "kind": "setting"
+  },
+  {
+    "title": "Ask me how things went",
     "where": [
       "User Profile",
       "Basic",
