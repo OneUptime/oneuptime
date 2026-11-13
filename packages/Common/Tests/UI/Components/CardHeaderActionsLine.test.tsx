@@ -13,6 +13,7 @@ import Card, {
   cardHeaderActionsAreUnderTitle,
 } from "../../../UI/Components/Card/Card";
 import IconProp from "../../../Types/Icon/IconProp";
+import { withProductText } from "../../../UI/Utils/ProductText";
 import "@testing-library/jest-dom";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import React from "react";
@@ -62,6 +63,20 @@ const REFRESH: CardButtonSchema = {
 const DESCRIPTION: string =
   "Reusable response procedures: ordered checklists of manual or automated steps.";
 
+/*
+ * The classes that description is drawn with: its place's, and the
+ * product's-words mark. Card marks a description it is given as words as
+ * the product's own, so a recording of the first-run pages shows it as
+ * written (Utils/ProductText, #6834; ProductTextMarked.test.tsx). The mark
+ * has no style: where the description sits is its place's classes alone.
+ */
+const DRAWN_DESCRIPTION_CLASS_NAME: string = withProductText(
+  CARD_DESCRIPTION_CLASS_NAME,
+);
+const DRAWN_DESCRIPTION_UNDER_ACTIONS_CLASS_NAME: string = withProductText(
+  CARD_DESCRIPTION_UNDER_ACTIONS_CLASS_NAME,
+);
+
 const STACKED_LAYOUTS: Array<CardHeaderLayout> = ["stacked", "toolbar"];
 
 function propsFor(layout: CardHeaderLayout): ComponentProps {
@@ -102,7 +117,7 @@ function expectDescriptionInTitleBlock(): void {
     screen.getByTestId("card-details-heading"),
   );
   // ...6px under it, as in a card with no actions.
-  expect(classOf(description())).toBe(CARD_DESCRIPTION_CLASS_NAME);
+  expect(classOf(description())).toBe(DRAWN_DESCRIPTION_CLASS_NAME);
   // The actions follow the block, and reach past nothing.
   expect(titleBlock().nextElementSibling).toBe(actions());
   for (const className of Object.values(
@@ -126,7 +141,7 @@ function expectDescriptionUnderLine(): void {
   expect(titleRow().nextElementSibling).toBe(description());
   // ...9px under the title, clear of the controls centred on its line.
   expect(classOf(description())).toBe(
-    CARD_DESCRIPTION_UNDER_ACTIONS_CLASS_NAME,
+    DRAWN_DESCRIPTION_UNDER_ACTIONS_CLASS_NAME,
   );
   expect(classOf(actions()).split(" ")).toContain(
     CARD_HEADER_ACTIONS_BESIDE_TITLE_CLASS_NAMES.overDescription,
@@ -529,13 +544,13 @@ describe("only a header with something to move reads where its actions went", ()
 
       if (place === "title block") {
         expect(found!.parentElement).toBe(titleBlock());
-        expect(classOf(found)).toBe(CARD_DESCRIPTION_CLASS_NAME);
+        expect(classOf(found)).toBe(DRAWN_DESCRIPTION_CLASS_NAME);
         return;
       }
 
       expect(found!.parentElement).toBe(screen.getByTestId("card-header"));
       expect(found!.previousElementSibling).toBe(titleRow());
-      expect(classOf(found)).toBe(CARD_DESCRIPTION_CLASS_NAME);
+      expect(classOf(found)).toBe(DRAWN_DESCRIPTION_CLASS_NAME);
     },
   );
 
