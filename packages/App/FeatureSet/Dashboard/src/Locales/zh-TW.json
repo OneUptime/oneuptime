@@ -9100,7 +9100,7 @@
   "Connection labels": "連線標籤",
   "Connection refused or reset": "Connection refused or reset",
   "Connection successful.": "Connection successful.",
-  "Connection successful. The LLM provider responded to a test prompt.": "Connection successful. The LLM provider responded to a test prompt.",
+  "Connection successful. The LLM provider responded to a test prompt.": "連線成功。LLM 提供商已回應測試提示詞。",
   "Connection test report": "連線測試報告",
   "Connections": "連線",
   "Connections between these top-level sites.": "Connections between these top-level sites.",
