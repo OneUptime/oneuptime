@@ -27,6 +27,10 @@ import Input, { InputType } from "Common/UI/Components/Input/Input";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
+// Each column card's header: its letter and kind, and its Remove.
+export const TABLE_COLUMN_CARD_HEADER_TEST_ID: string =
+  "table-column-card-header";
+
 export interface ComponentProps {
   columns: Array<TableColumn>;
   metricTypes: Array<MetricType>;
@@ -208,8 +212,11 @@ const TableColumnsEditor: FunctionComponent<ComponentProps> = (
 
         return (
           <div key={column.id} className={cardClasses}>
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
+            <div
+              className="flex items-center justify-between gap-3 mb-3"
+              data-testid={TABLE_COLUMN_CARD_HEADER_TEST_ID}
+            >
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <span className="inline-flex items-center justify-center h-5 px-1.5 rounded bg-indigo-100 text-indigo-700 text-xs font-semibold">
                   {column.variable}
                 </span>
@@ -227,13 +234,15 @@ const TableColumnsEditor: FunctionComponent<ComponentProps> = (
               {/*
                * The shared Button is the full width of a narrow screen (and
                * steps 12px in from md up, for a dialog's footer): here it
-               * keeps its own width beside the column's name.
+               * keeps its own size beside the column's name, at every width
+               * (isFullWidthOnPhone, issue #7331).
                */}
-              <div className="flex-none [&_button]:ml-0 [&_button]:w-auto [&_button]:md:ml-0">
+              <div className="flex-none">
                 <Button
                   title="Remove"
                   buttonSize={ButtonSize.Small}
                   buttonStyle={ButtonStyleType.DANGER_OUTLINE}
+                  isFullWidthOnPhone={false}
                   icon={IconProp.Trash}
                   onClick={(): void => {
                     removeColumn(index);

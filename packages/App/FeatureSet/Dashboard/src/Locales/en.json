@@ -51831,5 +51831,11 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Time range: {{range}}. Try adjusting filters or expanding the time range.",
   "On-Call Policy Created": "On-Call Policy Created",
   "On-Call Schedule Added": "On-Call Schedule Added",
-  "On-Call Schedule Removed": "On-Call Schedule Removed"
+  "On-Call Schedule Removed": "On-Call Schedule Removed",
+  "Click to configure a metric column": "Click to configure a metric column",
+  "Click to pick a dimension to group rows by": "Click to pick a dimension to group rows by",
+  "No dimension to group rows by yet.": "No dimension to group rows by yet.",
+  "No metric column set up yet.": "No metric column set up yet.",
+  "Pick a dimension to group rows by in the settings below.": "Pick a dimension to group rows by in the settings below.",
+  "Pick a metric for a column in the settings below.": "Pick a metric for a column in the settings below."
 }

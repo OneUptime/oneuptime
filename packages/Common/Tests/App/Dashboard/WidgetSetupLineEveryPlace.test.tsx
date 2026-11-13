@@ -175,6 +175,8 @@ import DashboardGaugeComponentUtil from "../../../Utils/Dashboard/Components/Das
 import DashboardProductAnalyticsFunnelComponentUtil from "../../../Utils/Dashboard/Components/DashboardProductAnalyticsFunnelComponent";
 import DashboardProductAnalyticsRetentionComponentUtil from "../../../Utils/Dashboard/Components/DashboardProductAnalyticsRetentionComponent";
 import DashboardSloComponentUtil from "../../../Utils/Dashboard/Components/DashboardSloComponent";
+import DashboardTableComponentUtil from "../../../Utils/Dashboard/Components/DashboardTableComponent";
+import DashboardTraceTableComponentUtil from "../../../Utils/Dashboard/Components/DashboardTraceTableComponent";
 import DashboardValueComponentUtil from "../../../Utils/Dashboard/Components/DashboardValueComponent";
 import ProjectUtil from "../../../UI/Utils/Project";
 import {
@@ -278,6 +280,37 @@ const WIDGET_KINDS: ReadonlyArray<WidgetKind> = [
       return DashboardSloComponentUtil.getDefaultComponent();
     },
     need: DashboardWidgetSetupNeed.Slo,
+  },
+  /*
+   * The metric Table (issue #7329): one column, with no metric picked yet.
+   * It was read anyway, and said "Add a metric column with a Metric Name to
+   * start populating the table." in English in every place.
+   */
+  {
+    type: DashboardComponentType.Table,
+    build: () => {
+      return DashboardTableComponentUtil.getDefaultComponent();
+    },
+    need: DashboardWidgetSetupNeed.MetricColumn,
+  },
+  /*
+   * The Trace Table groups its rows by span name until that is cleared:
+   * then it has no rows to draw (issue #7329).
+   */
+  {
+    type: DashboardComponentType.TraceTable,
+    build: () => {
+      const table: DashboardBaseComponent =
+        DashboardTraceTableComponentUtil.getDefaultComponent();
+
+      return {
+        ...table,
+        arguments: { ...table.arguments, groupByAttribute: "" },
+      } as DashboardBaseComponent;
+    },
+    need: DashboardWidgetSetupNeed.GroupByDimension,
+    notOnPublicDashboards:
+      "Trace tables are not available on public dashboards.",
   },
   {
     type: DashboardComponentType.ProductAnalyticsFunnel,

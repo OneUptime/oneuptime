@@ -18,13 +18,18 @@ import { getNumberSpacingClassName } from "./DashboardWidgetDigits";
 import { getLineDirection } from "Common/UI/Utils/LineDirection";
 import { ReadingDirection } from "Common/Types/ReadingDirection";
 import {
+  DASHBOARD_WIDGET_ERROR_LINE_CLASS_NAME,
   DASHBOARD_WIDGET_SETUP_LINE_CLASS_NAME,
   DASHBOARD_WIDGET_SETUP_LINE_TEST_ID,
   DASHBOARD_WIDGET_SETUP_NAME_CLASS_NAME,
 } from "./DashboardWidgetSetupCopy";
+import { DashboardWidgetErrorLine } from "./DashboardWidgetError";
+import ErrorMessageText from "Common/UI/Components/ErrorMessage/ErrorMessageText";
 
 // The row of the arc's bounds under it: the minimum, then the maximum.
 export const GAUGE_BOUNDS_TEST_ID: string = "gauge-bounds";
+// The line in its place when there is no value: none read, or why not.
+export const GAUGE_NO_DATA_TEST_ID: string = "gauge-no-data";
 // The centre's number, with its unit in a span of its own.
 export const GAUGE_VALUE_TEST_ID: string = "gauge-value";
 
@@ -122,7 +127,8 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
    * translationKey so the extractor finds them) and are read out in the
    * reader's language here, as the Value widget reads its own. A
    * connector's own error message has no entry, so it reads as the
-   * connector wrote it.
+   * connector wrote it, in its own reading direction (ErrorMessageText,
+   * for the no-data and error lines).
    */
   const setupTitle: string =
     props.title?.trim() ||
@@ -130,8 +136,6 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
     props.setupTitle;
   const setupMessage: string =
     translator.translateText(props.setupMessage) || props.setupMessage;
-  const noDataMessage: string =
-    translator.translateText(props.noDataMessage) || props.noDataMessage;
 
   if (props.isLoading && !props.hasEverLoaded) {
     // Skeleton loading for gauge - only on initial load
@@ -172,13 +176,16 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
     );
   }
 
+  /*
+   * The error's line every widget draws (DashboardWidgetErrorLine): in the
+   * reader's language and readable, under the gauge's own icon. It was
+   * drawn as set, in gray-400, in a 160px column.
+   */
   if (props.error) {
     return (
       <div className="flex flex-col items-center justify-center w-full h-full gap-1.5">
         <GaugeStateIcon tone="gray" />
-        <p className="text-xs text-gray-400 text-center max-w-40">
-          {props.error}
-        </p>
+        <DashboardWidgetErrorLine error={props.error} />
       </div>
     );
   }
@@ -199,8 +206,21 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
         ) : (
           <></>
         )}
-        <p className="text-xs text-gray-400 text-center max-w-40">
-          {noDataMessage}
+        {/*
+         * The line every widget says why it draws nothing in (issue #7330):
+         * readable, and a read's failure reason in the reader's language,
+         * or English from a connector in its own reading direction. It was
+         * gray-400 in a 160px column.
+         */}
+        <p
+          className={DASHBOARD_WIDGET_ERROR_LINE_CLASS_NAME}
+          data-testid={GAUGE_NO_DATA_TEST_ID}
+        >
+          <ErrorMessageText
+            message={props.noDataMessage}
+            hideWhatFailed={true}
+            isCentered={true}
+          />
         </p>
       </div>
     );

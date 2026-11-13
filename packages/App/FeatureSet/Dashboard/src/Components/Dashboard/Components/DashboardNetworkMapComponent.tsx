@@ -20,6 +20,7 @@ import DashboardResourceList from "../Utils/DashboardResourceList";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import API from "Common/UI/Utils/API/API";
 import IconProp from "Common/Types/Icon/IconProp";
+import DashboardWidgetError from "./DashboardWidgetError";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Query from "Common/Types/BaseDatabase/Query";
 import Includes from "Common/Types/BaseDatabase/Includes";
@@ -451,17 +452,13 @@ const DashboardNetworkMapComponentElement: FunctionComponent<ComponentProps> = (
     );
   }
 
+  /*
+   * The map's own icon over its error line, as every widget draws one
+   * (DashboardWidgetError). It drew an empty circle, with the error inside
+   * it once more for a screen reader, which read it twice.
+   */
   if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center w-full h-full gap-2">
-        <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center">
-          <div className="h-5 w-5 text-gray-300">
-            <span className="sr-only">{error}</span>
-          </div>
-        </div>
-        <p className="text-xs text-gray-400 text-center max-w-48">{error}</p>
-      </div>
-    );
+    return <DashboardWidgetError icon={IconProp.Map} error={error} />;
   }
 
   const zoom: number = zoomOfViewport(viewport);

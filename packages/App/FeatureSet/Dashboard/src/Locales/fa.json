@@ -51831,5 +51831,11 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "بازهٔ زمانی: {{range}}. فیلترها را تغییر دهید یا بازهٔ زمانی را بزرگ‌تر کنید.",
   "On-Call Policy Created": "سیاست آنکال ساخته شد",
   "On-Call Schedule Added": "زمان‌بندی آنکال افزوده شد",
-  "On-Call Schedule Removed": "زمان‌بندی آنکال حذف شد"
+  "On-Call Schedule Removed": "زمان‌بندی آنکال حذف شد",
+  "Click to configure a metric column": "برای پیکربندی یک ستون متریک کلیک کنید",
+  "Click to pick a dimension to group rows by": "برای انتخاب بُعدی برای گروه‌بندی سطرها کلیک کنید",
+  "No dimension to group rows by yet.": "هنوز هیچ بُعدی برای گروه‌بندی سطرها انتخاب نشده است.",
+  "No metric column set up yet.": "هنوز هیچ ستون متریکی تنظیم نشده است.",
+  "Pick a dimension to group rows by in the settings below.": "در تنظیمات زیر یک بُعد برای گروه‌بندی سطرها انتخاب کنید.",
+  "Pick a metric for a column in the settings below.": "در تنظیمات زیر برای یک ستون متریکی انتخاب کنید."
 }

@@ -249,56 +249,82 @@ describe("no widget asks a reader for a click that does nothing", () => {
 
     visit(sourceFile);
 
+    // A metric, a query, an SLO, a Table's column, a Trace Table's dimension.
     expect(placesOfClicks).toEqual([
+      "DashboardWidgetPlace.EditedBoard",
+      "DashboardWidgetPlace.EditedBoard",
       "DashboardWidgetPlace.EditedBoard",
       "DashboardWidgetPlace.EditedBoard",
       "DashboardWidgetPlace.EditedBoard",
     ]);
   });
 
-  test("the Chart widget's old lines are written nowhere in the Dashboard", () => {
-    const dashboardSource: string = path.resolve(
-      __dirname,
-      "../../../../App/FeatureSet/Dashboard/src",
-    );
-    const oldLine: RegExp =
-      /Click here to add a (metric|aggregation)|a aggregation/;
-    const found: Array<string> = [];
-
-    for (const entry of fs.readdirSync(dashboardSource, { recursive: true })) {
-      const file: string = entry.toString();
-
-      if (!SOURCE_FILE.test(file)) {
-        continue;
-      }
-
-      const source: string = fs.readFileSync(
-        path.join(dashboardSource, file),
-        "utf8",
+  test.each([
+    [
+      "the Chart widget's",
+      /Click here to add a (metric|aggregation)|a aggregation/,
+      'setError("Please select a aggregation. Click here to add a aggregation.");',
+    ],
+    /*
+     * The metric Table's and the Trace Table's (issue #7329): one line for
+     * every place, in English - a reader's board told to add a column, and
+     * a table stopped on an aggregation its picker already showed.
+     */
+    [
+      "the metric Table's",
+      /Add a metric column with a Metric Name|Pick an aggregation for your first metric column/,
+      'setError(\n  "Pick an aggregation for your first metric column.",\n);',
+    ],
+    [
+      "the Trace Table's",
+      /dimension in the widget settings to populate this table/,
+      'const line = <div>{t("Choose a “Group rows by” dimension in the widget settings to populate this table.")}</div>;',
+    ],
+  ])(
+    "%s old lines are written nowhere in the Dashboard",
+    (_widget: string, oldLine: RegExp, snippet: string) => {
+      const dashboardSource: string = path.resolve(
+        __dirname,
+        "../../../../App/FeatureSet/Dashboard/src",
       );
+      const found: Array<string> = [];
 
-      // Only a file that holds the words anywhere is read as syntax.
-      if (!oldLine.test(source)) {
-        continue;
-      }
+      for (const entry of fs.readdirSync(dashboardSource, {
+        recursive: true,
+      })) {
+        const file: string = entry.toString();
 
-      for (const text of writtenTexts(file, source)) {
-        if (oldLine.test(text.text)) {
-          found.push(`${file}:${text.line} ${text.text}`);
+        if (!SOURCE_FILE.test(file)) {
+          continue;
+        }
+
+        const source: string = fs.readFileSync(
+          path.join(dashboardSource, file),
+          "utf8",
+        );
+
+        // Only a file that holds the words anywhere is read as syntax.
+        if (!oldLine.test(source)) {
+          continue;
+        }
+
+        for (const text of writtenTexts(file, source)) {
+          if (oldLine.test(text.text)) {
+            found.push(`${file}:${text.line} ${text.text}`);
+          }
         }
       }
-    }
 
-    expect(found).toEqual([]);
+      expect(found).toEqual([]);
 
-    // And the reader finds them where they are written.
-    expect(
-      writtenTexts(
-        "Snippet.tsx",
-        'setError("Please select a aggregation. Click here to add a aggregation.");',
-      ).filter((text: WrittenText): boolean => {
-        return oldLine.test(text.text);
-      }).length,
-    ).toBe(1);
-  });
+      // And the reader finds them where they are written.
+      expect(
+        writtenTexts("Snippet.tsx", snippet).filter(
+          (text: WrittenText): boolean => {
+            return oldLine.test(text.text);
+          },
+        ).length,
+      ).toBe(1);
+    },
+  );
 });

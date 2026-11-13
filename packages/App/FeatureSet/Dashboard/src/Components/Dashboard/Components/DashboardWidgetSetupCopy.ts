@@ -36,6 +36,18 @@ export enum DashboardWidgetSetupNeed {
   SavedFunnel = "saved-funnel",
   // User Retention: a retention table saved on its page.
   SavedRetentionTable = "saved-retention-table",
+  /*
+   * The metric Table: a column that reads a metric. A new table has one
+   * column, with no metric picked for it yet (issue #7329).
+   */
+  MetricColumn = "metric-column",
+  /*
+   * The Trace Table: the dimension its rows are grouped by - one row per
+   * span name, status or attribute value. Its "Group rows by" setting is
+   * required, and a table whose dimension was cleared has no rows to draw
+   * (issue #7329).
+   */
+  GroupByDimension = "group-by-dimension",
 }
 
 // Where a widget is drawn, which decides what its setup line may ask.
@@ -136,6 +148,38 @@ export const DASHBOARD_WIDGET_SETUP_LINES: Readonly<
       "No saved retention table picked yet.",
     ),
   },
+  /*
+   * The metric Table drew "Add a metric column with a Metric Name to start
+   * populating the table." in English, in pale gray, in every place - a
+   * wall screen told to add a column (issue #7329).
+   */
+  [DashboardWidgetSetupNeed.MetricColumn]: {
+    [DashboardWidgetPlace.EditedBoard]: translationKey(
+      "Click to configure a metric column",
+    ),
+    [DashboardWidgetPlace.SettingsPreview]: translationKey(
+      "Pick a metric for a column in the settings below.",
+    ),
+    [DashboardWidgetPlace.Board]: translationKey(
+      "No metric column set up yet.",
+    ),
+  },
+  /*
+   * The Trace Table said "Choose a “Group rows by” dimension in the widget
+   * settings to populate this table." wherever it was drawn, to readers
+   * who cannot open the widget's settings (issue #7329).
+   */
+  [DashboardWidgetSetupNeed.GroupByDimension]: {
+    [DashboardWidgetPlace.EditedBoard]: translationKey(
+      "Click to pick a dimension to group rows by",
+    ),
+    [DashboardWidgetPlace.SettingsPreview]: translationKey(
+      "Pick a dimension to group rows by in the settings below.",
+    ),
+    [DashboardWidgetPlace.Board]: translationKey(
+      "No dimension to group rows by yet.",
+    ),
+  },
 };
 
 // A need's line in a place, in English: the key the widget translates.
@@ -175,3 +219,21 @@ export const DASHBOARD_WIDGET_SETUP_LINE_CLASS_NAME: string =
  */
 export const DASHBOARD_WIDGET_SETUP_NAME_CLASS_NAME: string =
   "text-xs font-medium text-gray-500 text-center text-balance break-words max-w-full px-2";
+
+/*
+ * A WIDGET'S ERROR LINE (issue #7330): why it has nothing to draw - a read
+ * that failed, a time range with no start or end - drawn in the same
+ * readable look as the setup line (gray-500, centred, balanced, as wide as
+ * a line reads well), and broken inside a word that is longer than the
+ * tile, as a server's message or an address can be. Every widget drew its
+ * own: the Chart, the Data Source Chart and Table, the metric Table, the
+ * Log Stream, the Gauge and the Network Map in gray-400 (2.5:1 on white),
+ * held to a 160 or 192px column, most of them in English. One line for
+ * every widget (DashboardWidgetError) keeps them from drifting apart again.
+ */
+export const DASHBOARD_WIDGET_ERROR_LINE_CLASS_NAME: string =
+  "text-xs text-gray-500 text-center text-balance break-words max-w-xs px-2";
+
+// The error line's element, whatever the widget.
+export const DASHBOARD_WIDGET_ERROR_LINE_TEST_ID: string =
+  "dashboard-widget-error-line";

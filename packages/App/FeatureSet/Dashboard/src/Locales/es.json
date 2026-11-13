@@ -51831,5 +51831,11 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Intervalo de tiempo: {{range}}. Prueba a ajustar los filtros o a ampliar el intervalo de tiempo.",
   "On-Call Policy Created": "Política de guardia creada",
   "On-Call Schedule Added": "Programación de guardia añadida",
-  "On-Call Schedule Removed": "Programación de guardia quitada"
+  "On-Call Schedule Removed": "Programación de guardia quitada",
+  "Click to configure a metric column": "Haz clic para configurar una columna de métrica",
+  "Click to pick a dimension to group rows by": "Haz clic para elegir una dimensión para agrupar las filas",
+  "No dimension to group rows by yet.": "Aún no hay ninguna dimensión para agrupar las filas.",
+  "No metric column set up yet.": "Aún no se ha configurado ninguna columna de métrica.",
+  "Pick a dimension to group rows by in the settings below.": "Elige una dimensión para agrupar las filas en la configuración de abajo.",
+  "Pick a metric for a column in the settings below.": "Elige una métrica para una columna en la configuración de abajo."
 }

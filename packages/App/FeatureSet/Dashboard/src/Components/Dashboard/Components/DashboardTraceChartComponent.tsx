@@ -31,7 +31,7 @@ import { JSONObject } from "Common/Types/JSON";
 import { APP_API_URL } from "Common/UI/Config";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import DashboardWidgetError from "./DashboardWidgetError";
 import IconProp from "Common/Types/Icon/IconProp";
 import WidgetPlaceholder from "./WidgetPlaceholder";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -450,7 +450,7 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
           (DashboardResourceList.isPublic() ? (
             <WidgetPlaceholder icon={IconProp.Waterfall} message={error} />
           ) : (
-            <ErrorMessage message={error} />
+            <DashboardWidgetError icon={IconProp.Waterfall} error={error} />
           ))}
         {!isLoading && !error && pivotedData.length === 0 && (
           <div className="flex h-full items-center justify-center text-xs text-gray-400">

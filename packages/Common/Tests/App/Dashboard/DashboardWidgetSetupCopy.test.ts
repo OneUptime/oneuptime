@@ -38,7 +38,11 @@ const NAMES_THE_SETTINGS: RegExp = /settings/;
 const SAYS_WHAT_IS_MISSING: RegExp = /^No .+ yet\.$/;
 const ASKS_SOMETHING: RegExp = /\b(pick|write|select|configure|settings)\b/i;
 const DIRECTION_MARKS: RegExp = /[\u200E\u200F\u061C]/;
-const CLICK_NAMES_A_THING: RegExp = /^Click to \w+ (?:a|an) \w+$/;
+/*
+ * "Click to <verb> a|an <thing>": the thing may be a few words long - "a
+ * metric column", "a dimension to group rows by" - but it has its article.
+ */
+const CLICK_NAMES_A_THING: RegExp = /^Click to \w+ (?:a|an) \w+(?: \w+)*$/;
 
 function everyLine(): Array<{
   need: DashboardWidgetSetupNeed;
@@ -121,6 +125,59 @@ describe("each need has a line in each place", () => {
   });
 
   /*
+   * The metric Table and the Trace Table (issue #7329) drew one English
+   * line in every place: "Add a metric column with a Metric Name to start
+   * populating the table." and "Choose a “Group rows by” dimension in the
+   * widget settings to populate this table.". Each now has a line for each
+   * place, as every other widget's.
+   */
+  test.each([
+    [
+      DashboardWidgetSetupNeed.MetricColumn,
+      "Click to configure a metric column",
+      "Pick a metric for a column in the settings below.",
+      "No metric column set up yet.",
+    ],
+    [
+      DashboardWidgetSetupNeed.GroupByDimension,
+      "Click to pick a dimension to group rows by",
+      "Pick a dimension to group rows by in the settings below.",
+      "No dimension to group rows by yet.",
+    ],
+  ])(
+    "%s: a click, the settings below, and what is missing",
+    (
+      need: DashboardWidgetSetupNeed,
+      editedBoard: string,
+      settingsPreview: string,
+      board: string,
+    ) => {
+      expect({
+        edited: getDashboardWidgetSetupLine(
+          need,
+          DashboardWidgetPlace.EditedBoard,
+        ),
+        preview: getDashboardWidgetSetupLine(
+          need,
+          DashboardWidgetPlace.SettingsPreview,
+        ),
+        board: getDashboardWidgetSetupLine(need, DashboardWidgetPlace.Board),
+      }).toEqual({
+        edited: editedBoard,
+        preview: settingsPreview,
+        board: board,
+      });
+
+      // None of them is the old one-line-everywhere sentence.
+      for (const place of PLACES) {
+        expect(getDashboardWidgetSetupLine(need, place)).not.toMatch(
+          /populat|Metric Name|widget settings/,
+        );
+      }
+    },
+  );
+
+  /*
    * One board drew "Click to configure metric" beside "Click to configure a
    * query": each click line names what it asks for as a thing - a metric, a
    * query, an SLO - as every other place's line does.
@@ -144,6 +201,12 @@ describe("each need has a line in each place", () => {
     }
 
     expect(CLICK_NAMES_A_THING.test("Click to configure metric")).toBe(false);
+    expect(CLICK_NAMES_A_THING.test("Click to configure metric column")).toBe(
+      false,
+    );
+    expect(CLICK_NAMES_A_THING.test("Click to configure a metric column")).toBe(
+      true,
+    );
   });
 
   test("the Live Preview points at the settings below it, which are there", () => {

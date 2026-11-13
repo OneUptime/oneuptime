@@ -16,10 +16,19 @@ import { JSONObject } from "Common/Types/JSON";
 import { APP_API_URL } from "Common/UI/Config";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import WidgetPlaceholder from "./WidgetPlaceholder";
 import DashboardWidgetLine from "./DashboardWidgetLine";
+import DashboardWidgetError from "./DashboardWidgetError";
+import {
+  DASHBOARD_WIDGET_SETUP_LINE_CLASS_NAME,
+  DASHBOARD_WIDGET_SETUP_LINE_TEST_ID,
+  DASHBOARD_WIDGET_SETUP_NAME_CLASS_NAME,
+  DashboardWidgetSetupNeed,
+  getDashboardWidgetSetupLine,
+} from "./DashboardWidgetSetupCopy";
+import { useDashboardWidgetPlace } from "./DashboardWidgetPreview";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import JSONFunctions from "Common/Types/JSONFunctions";
@@ -117,6 +126,12 @@ const DashboardTraceTableComponentElement: FunctionComponent<ComponentProps> = (
 
   const groupByAttribute: string | undefined =
     props.component.arguments.groupByAttribute?.trim() || undefined;
+
+  // What the table says while no dimension is picked, for where it is drawn.
+  const setupMessage: string = getDashboardWidgetSetupLine(
+    DashboardWidgetSetupNeed.GroupByDimension,
+    useDashboardWidgetPlace(props.isEditMode),
+  );
 
   const sortColumns: Array<DashboardWidgetSortColumnInfo> =
     getTraceTableSortColumns(groupByAttribute);
@@ -388,6 +403,43 @@ const DashboardTraceTableComponentElement: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * A table is a breakdown by a dimension: with none picked it has no rows
+   * to draw, and says so as a setup line for where it is drawn - a click on
+   * the board being edited, the settings below in the Live Preview, only
+   * what is missing to a reader (issue #7329). It said "Choose a “Group
+   * rows by” dimension in the widget settings to populate this table." in
+   * every place, in pale gray, to readers who cannot open its settings. A
+   * public dashboard reads no traces at all, and says that instead.
+   */
+  if (!groupByAttribute && !DashboardResourceList.isPublic()) {
+    const setupTitle: string =
+      props.component.arguments.title?.trim() ||
+      translator.translateText("Trace Table") ||
+      "Trace Table";
+
+    return (
+      <div className="flex flex-col items-center justify-center w-full h-full gap-1.5">
+        <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center flex-none">
+          <div className="h-5 w-5 text-indigo-300">
+            <Icon icon={IconProp.Waterfall} />
+          </div>
+        </div>
+        <DashboardWidgetLine
+          as="p"
+          text={setupTitle}
+          className={DASHBOARD_WIDGET_SETUP_NAME_CLASS_NAME}
+        />
+        <p
+          className={DASHBOARD_WIDGET_SETUP_LINE_CLASS_NAME}
+          data-testid={DASHBOARD_WIDGET_SETUP_LINE_TEST_ID}
+        >
+          {translator.translateText(setupMessage)}
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-full w-full flex-col">
       {props.component.arguments.title && (
@@ -415,15 +467,8 @@ const DashboardTraceTableComponentElement: FunctionComponent<ComponentProps> = (
           (DashboardResourceList.isPublic() ? (
             <WidgetPlaceholder icon={IconProp.Waterfall} message={error} />
           ) : (
-            <ErrorMessage message={error} />
+            <DashboardWidgetError icon={IconProp.Waterfall} error={error} />
           ))}
-        {!isLoading && !error && !groupByAttribute && (
-          <div className="flex h-full items-center justify-center px-4 text-center text-xs text-gray-400">
-            {translator.translateText(
-              "Choose a “Group rows by” dimension in the widget settings to populate this table.",
-            )}
-          </div>
-        )}
         {!isLoading && !error && groupByAttribute && rows.length === 0 && (
           <div className="flex h-full items-center justify-center text-xs text-gray-400">
             {translator.translateText("No data for the selected time range")}

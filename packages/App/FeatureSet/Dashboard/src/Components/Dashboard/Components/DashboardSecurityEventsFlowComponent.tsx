@@ -28,7 +28,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Query from "Common/Types/BaseDatabase/Query";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import DashboardWidgetError from "./DashboardWidgetError";
 import IconProp from "Common/Types/Icon/IconProp";
 import WidgetPlaceholder from "./WidgetPlaceholder";
 import {
@@ -241,7 +241,10 @@ const DashboardSecurityEventsFlowComponentElement: FunctionComponent<
               message={error}
             />
           ) : (
-            <ErrorMessage message={error} />
+            <DashboardWidgetError
+              icon={IconProp.ShieldExclamation}
+              error={error}
+            />
           ))}
         {!isLoading && !error && flowData.links.length === 0 && (
           <div className="flex h-full items-center justify-center text-xs text-gray-400">
