@@ -153,6 +153,16 @@ const EXPECTED_WIRING: Array<WiredIngestRoute> = [
     surfaceMember: "Loki",
   },
   {
+    file: `${TELEMETRY_API_DIRECTORY}/Sentry.ts`,
+    routePath: "/sentry/api/:sentryProjectId/envelope",
+    surfaceMember: "Sentry",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Sentry.ts`,
+    routePath: "/sentry/api/:sentryProjectId/store",
+    surfaceMember: "Sentry",
+  },
+  {
     file: `${TELEMETRY_API_DIRECTORY}/SplunkHec.ts`,
     routePath: "/services/collector",
     surfaceMember: "SplunkHec",
@@ -294,6 +304,14 @@ const EXPECTED_BROWSER_REACHABLE_ROUTE_PATHS: Array<string> = [
   "/otlp/v1/logs",
   "/otlp/v1/metrics",
   "/otlp/v1/traces",
+  /*
+   * Sentry's ingest (#6797): @sentry/browser is given a DSN in page
+   * JavaScript, as the web OTLP SDKs are given a browser key, and posts its
+   * errors, transactions and logs here with it. (Sorted: /sentry before
+   * /session.)
+   */
+  "/sentry/api/:sentryProjectId/envelope",
+  "/sentry/api/:sentryProjectId/store",
   "/session-replay/v1/chunk",
   "/session-replay/v1/config",
   /*
@@ -569,7 +587,7 @@ describe("Telemetry ingest route -> surface wiring", () => {
     }
   });
 
-  test("only the OTLP traces/logs/metrics routes and the session replay routes are reachable by a published browser key", () => {
+  test("only the OTLP traces/logs/metrics routes, the session replay routes and Sentry's ingest are reachable by a published browser key", () => {
     /*
      * The cross-check that gives BROWSER_ALLOWED_INGEST_SURFACES its meaning.
      * Adding a member to that set is not an abstract act - it opens a specific

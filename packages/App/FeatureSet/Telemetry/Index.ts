@@ -21,6 +21,7 @@ import PrometheusRemoteWriteAPI from "./API/PrometheusRemoteWrite";
 import LokiAPI from "./API/Loki";
 import SplunkHecAPI from "./API/SplunkHec";
 import DatadogAPI from "./API/Datadog";
+import SentryAPI from "./API/Sentry";
 // OpAMP: the hosts OneUptime installs and configures (HostCollectorAgent)
 import HostCollectorOpAmpAPI from "./API/HostCollectorOpAmp";
 // ProbeIngest routes
@@ -119,8 +120,8 @@ const TelemetryFeatureSet: FeatureSet = {
       /*
        * The compatible endpoints (Common/Types/Telemetry/CompatibleIngest):
        * the agents and SDKs a team already runs - Prometheus, Loki's
-       * clients, Splunk forwarders, the Datadog Agent - send here
-       * unchanged, and what they send is stored as OTLP. Datadog's routes
+       * clients, Splunk forwarders, the Datadog Agent, Sentry SDKs - send
+       * here unchanged, and what they send is stored as OTLP. Datadog's routes
        * at the root (/api/v2/logs, ...) only answer a request with a
        * DD-API-KEY header and step aside for anything else.
        */
@@ -128,6 +129,7 @@ const TelemetryFeatureSet: FeatureSet = {
       app.use(TELEMETRY_PREFIXES, LokiAPI);
       app.use(TELEMETRY_PREFIXES, SplunkHecAPI);
       app.use(TELEMETRY_PREFIXES, DatadogAPI);
+      app.use(TELEMETRY_PREFIXES, SentryAPI);
       /*
        * The supervisor on every host OneUptime manages polls here for the
        * config the host runs: /opamp/v1, and /telemetry/opamp/v1 behind an

@@ -1007,7 +1007,8 @@ const PHP_ERROR_EVENT: JSONObject = {
                 "/var/www/html/app/Http/Controllers/CheckoutController.php",
               lineno: 38,
               in_app: true,
-              context_line: "        throw new PaymentDeclined('Card declined');",
+              context_line:
+                "        throw new PaymentDeclined('Card declined');",
             },
           ],
         },
@@ -1296,9 +1297,7 @@ describe("SentryEnvelope.parseEnvelope", () => {
       items: [],
       droppedItemCount: 0,
     });
-    expect(SentryEnvelope.parseEnvelope(Buffer.from("{}\n")).items).toEqual(
-      [],
-    );
+    expect(SentryEnvelope.parseEnvelope(Buffer.from("{}\n")).items).toEqual([]);
 
     const envelope: ParsedSentryEnvelope = SentryEnvelope.parseEnvelope(
       Buffer.from(
@@ -1353,9 +1352,7 @@ describe("SentryEnvelope.parseEnvelope", () => {
   test("refuses a length that runs past the end, or is not a whole number of bytes", () => {
     expect(
       parseError('{}\n{"type":"attachment","length":100}\nshort\n').message,
-    ).toBe(
-      "Item 1 says it is 100 bytes long, past the end of the envelope.",
-    );
+    ).toBe("Item 1 says it is 100 bytes long, past the end of the envelope.");
     expect(parseError('{}\n{"type":"attachment","length":1}').message).toBe(
       "Item 1 says it is 1 bytes long, past the end of the envelope.",
     );
@@ -1996,7 +1993,12 @@ describe("SentryEnvelope.fromEnvelope: error events", () => {
 
     expect(
       StackTraceParser.parse(RUBY_TRACE).frames.map((frame: StackFrame) => {
-        return [frame.functionName, frame.fileName, frame.lineNumber, frame.inApp];
+        return [
+          frame.functionName,
+          frame.fileName,
+          frame.lineNumber,
+          frame.inApp,
+        ];
       }),
     ).toEqual([
       [
@@ -2013,7 +2015,9 @@ describe("SentryEnvelope.fromEnvelope: error events", () => {
     const { exception } = errorOf(PHP_ERROR_EVENT);
 
     expect(exception["exception.stacktrace"]).toBe(PHP_TRACE);
-    expect(exception["exception.type"]).toBe("App\\Exceptions\\PaymentDeclined");
+    expect(exception["exception.type"]).toBe(
+      "App\\Exceptions\\PaymentDeclined",
+    );
     // A handled exception did not escape.
     expect(exception["exception.escaped"]).toBe(false);
 
@@ -2029,7 +2033,14 @@ describe("SentryEnvelope.fromEnvelope: error events", () => {
   });
 
   test("writes an exception without a stack trace as its type and message", () => {
-    for (const platform of ["python", "node", "java", "ruby", "php", "csharp"]) {
+    for (const platform of [
+      "python",
+      "node",
+      "java",
+      "ruby",
+      "php",
+      "csharp",
+    ]) {
       expect(
         stackTraceOf({
           platform: platform,
@@ -2633,9 +2644,16 @@ describe("SentryEnvelope: transactions", () => {
         { code: 0 },
       ],
       // No description: its op; no parent: under the root.
-      ["4444444444444444", NODE_ROOT_SPAN_ID, NODE_TRACE_ID, "function", 1, {
-        code: 0,
-      }],
+      [
+        "4444444444444444",
+        NODE_ROOT_SPAN_ID,
+        NODE_TRACE_ID,
+        "function",
+        1,
+        {
+          code: 0,
+        },
+      ],
     ]);
 
     expect(spans[1]!.span).toMatchObject({
@@ -2745,7 +2763,11 @@ describe("SentryEnvelope: transactions", () => {
   test("keeps at most 1000 child spans a transaction", () => {
     const children: Array<JSONObject> = [];
 
-    for (let index: number = 0; index < MAX_SPANS_PER_TRANSACTION + 50; index++) {
+    for (
+      let index: number = 0;
+      index < MAX_SPANS_PER_TRANSACTION + 50;
+      index++
+    ) {
       children.push({
         span_id: (index + 1).toString(16).padStart(16, "0"),
         op: "db",
@@ -2825,7 +2847,9 @@ describe("SentryEnvelope: transactions", () => {
 
   test("reads a transaction sent as an event item, or to the store endpoint", () => {
     const viaEventItem: SentryTranslation = translateEnvelope(
-      envelopeOf({}, [{ header: { type: "event" }, payload: NODE_TRANSACTION }]),
+      envelopeOf({}, [
+        { header: { type: "event" }, payload: NODE_TRANSACTION },
+      ]),
     );
 
     expect(viaEventItem.accepted.transactions).toBe(1);
