@@ -69,7 +69,7 @@ Las **Reglas de runbook** inician un runbook cuando coincide un evento nuevo, co
 :::steps
 ### Elegir sobre qué eventos recordar
 
-Haz clic en **Crear Regla de recordatorio de mantenimiento programado**. En **Coincidencia**, deja marcado **Todos los eventos de mantenimiento programado** para recordar todos los eventos, o elige **Solo los eventos de mantenimiento programado que cumplen las condiciones** y luego las **Etiquetas** a las que se aplica.
+Haz clic en **Crear Regla de recordatorio de mantenimiento programado**. En **Coincidencia**, deja marcado **Todos los eventos de mantenimiento** para recordar todos los eventos, o elige **Solo los eventos de mantenimiento que cumplen las condiciones** y luego las **Etiquetas** a las que se aplica.
 
 ### Fijar el intervalo
 

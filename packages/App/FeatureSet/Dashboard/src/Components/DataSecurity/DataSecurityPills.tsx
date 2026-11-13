@@ -157,13 +157,22 @@ export function getIssueStatusLabel(
   return translator.translateText(status) || status;
 }
 
-// The statuses as a list's filter offers them, in the words of the pill.
+/*
+ * The statuses as a list's filter offers them, in the words of the pill:
+ * already in the reader's language, so the menu and the chip draw them as
+ * they are, never looked up a second time (DropdownOption.isUserContent).
+ */
 export function getIssueStatusOptions(
   translator: Translator,
   statuses: ReadonlyArray<DataSecurityIssueStatus>,
 ): Array<DropdownOption> {
   return statuses.map((status: DataSecurityIssueStatus): DropdownOption => {
-    return { value: status, label: getIssueStatusLabel(translator, status) };
+    return {
+      value: status,
+      label: getIssueStatusLabel(translator, status),
+      isUserContent: true,
+      isInPageDirection: true,
+    };
   });
 }
 

@@ -89,6 +89,31 @@ twilio:
 
 OneUptime 在啟動時讀取這些變數。如果其中有錯誤，例如 OneUptime 無法識別的電話號碼或缺少 auth token，在修正之前該帳戶不會傳送簡訊，也不會撥打電話；伺服器記錄、**Admin Dashboard > 設定 > 通話和簡訊** 和 `/admin/setup` 上的檢查清單會指出是哪個變數。auth token 永遠不會顯示。若要變更帳戶，請修改這些變數並重新啟動 OneUptime：Admin Dashboard 不會變更它。
 
+### 使用 Terraform 管理專案設定
+
+專案設定也是 [Terraform 提供者](/docs/terraform/index) 的 `oneuptime_call_and_sms_config` 資源，同名的資料來源可以讀取它。Auth Token 是敏感值，因此計畫、記錄和輸出中從不顯示它。請透過敏感變數傳入：
+
+```hcl
+variable "twilio_auth_token" {
+  type      = string
+  sensitive = true
+}
+
+resource "oneuptime_call_and_sms_config" "production" {
+  name                        = "Production Twilio"
+  used_for                    = "Calls and SMS"
+  twilio_account_sid          = "ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+  twilio_auth_token           = var.twilio_auth_token
+  twilio_primary_phone_number = "+14155550100"
+  is_project_default          = true
+}
+```
+
+- **專案預設設定。** 只有設定 `is_project_default = true`，Terraform 才會把設定設為專案預設。省略時 Terraform 會傳送 `false`，因此與在儀表板中不同，專案的第一個設定不會成為預設。每種訊息只在一個設定上設定它：如果 `used_for` 相同的兩個設定都設定了它，它們會在每次 apply 時互相奪走預設。`is_project_default_for_sms` 和 `is_project_default_for_calls` 由 OneUptime 設定，Terraform 只讀取它們。
+- **電話號碼。** 每個號碼都要寫上 `+` 和國碼。數字之間可以有空格、連字號、句點或括號：OneUptime 會把 `+1 415 555 0100` 存成 `+14155550100`，而 Terraform 會將它視為您寫的號碼，因此 plan 不會顯示任何變更。
+- **API 金鑰。** Terraform 使用的金鑰除了能建立和編輯設定外，還必須能讀取 Auth Token：**專案擁有者**、**專案管理員**，或自訂角色中的 **Read Call and SMS**。如果金鑰無法讀取，讀取設定會失敗，錯誤會說明誰可以讀取該權杖。
+- **參照。** 狀態頁面的 `call_sms_config_id` 和來電策略的 `project_call_sms_config_id` 取設定的 `id`。
+
 ### 為通話和簡訊使用不同號碼
 
 Twilio 號碼可以同時撥打電話和傳送簡訊，也可以只支援其中一種；在某些國家，沒有一個號碼能同時支援兩者：國內號碼可能僅支援語音，而簡訊需要手機號碼。無論是專案的設定還是整個安裝的設定，都可以在 **更多欄位** 中列出用於簡訊的號碼：

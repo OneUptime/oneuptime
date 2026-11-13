@@ -510,6 +510,12 @@ work out, starts from a default for everything else, and folds what most people 
 - **A date is written by `OneUptimeDate` in the reader's language,** never put into an English
   template literal. Enforced by
   [DatesInEnglishTextGuard](../../packages/App/Tests/Dashboard/DatesInEnglishTextGuard.test.ts).
+- **A date and time people fill in shows and keeps hours and minutes, never seconds.** Add User
+  Override's Starts read "13/11/2026 11:15:52", and nobody schedules a shift to the second (#7593).
+  Draw the field with the shared Input. Only a field read against telemetry's own timestamps, like a
+  time range's From and To, opts in to seconds (`showSecondsForDateTime`), with its reason listed.
+  Enforced by
+  [MinutePickersGuard](../../packages/Common/Tests/UI/MinutePickersGuard.test.ts).
 - **A duration in milliseconds is written in the reader's language,** with the Dashboard's
   `formatMilliseconds` ("{{value}} ms", each language's own unit and order, the figure in the
   reader's digits), never a figure joined to " ms": every monitor's Response Time read "ms 411" on
@@ -562,7 +568,8 @@ then `npm run i18n:validate` from the root.
   On a page read from the right the arrow is "←", the first value is drawn at the right, and each
   value is set apart so the arrow stays the line's. A line that reads one way on every page, like
   the names of the user flow map's bands (drawn from the left everywhere), takes
-  `joinWithArrowsInDirection`. Enforced by
+  `joinWithArrowsInDirection`, and its box takes that way too (`getOneWayLineDirection`), whatever
+  letters its values are in. Enforced by
   [ComponentArrowsInRightToLeftPages](../../packages/Common/Tests/App/ComponentArrowsInRightToLeftPages.test.ts)
   and
   [DirectionArrowsInReadersLanguage](../../packages/Common/Tests/App/Dashboard/DirectionArrowsInReadersLanguage.test.tsx).
@@ -588,6 +595,22 @@ then `npm run i18n:validate` from the root.
   [CloudResourceTypeNamesGuard](../../packages/Common/Tests/App/Dashboard/CloudResourceTypeNamesGuard.test.ts)
   and
   [CloudResourceTypeNamesInSpanish](../../packages/Common/Tests/App/Dashboard/CloudResourceTypeNamesInSpanish.test.tsx).
+- **French sets its colon and semicolon apart,** as it does its question and exclamation marks:
+  "Étape {{number}} : {{fields}}", with a space before the mark, as the Dashboard's French writes it
+  thousands of times. One text did not ("... depuis une analyse IA: {{label}}", #7679). Only a mark
+  that belongs to the English, as written, stays next to its word: a field a search is typed with
+  ("user:"), or a setting in a vendor's console. Enforced by
+  [DashboardFrenchPunctuation](../../packages/App/Tests/Dashboard/DashboardFrenchPunctuation.test.ts).
+- **An option reads the same in a filter's menu and in its chip.** An option's label is either the
+  product's words, a key looked up in the reader's language wherever the option is drawn, or a name
+  marked `isUserContent` and drawn as written: a record's ("Network"), a value read from data, a
+  product's own ("Google Cloud", "Resend"). A Spanish Health filter read "Con problemas" in its menu
+  and "Unhealthy" in its chip; a monitor named "Network" read "Red" in a menu over rows that said
+  "Network"; the email provider Resend read "Reenviar". Draw an option through
+  `getDropdownOptionText`. Enforced by
+  [FilterOptionLabelsGuard](../../packages/Common/Tests/App/Dashboard/FilterOptionLabelsGuard.test.ts)
+  and
+  [FilterChipAndMenuInSpanish](../../packages/Common/Tests/App/Dashboard/FilterChipAndMenuInSpanish.test.tsx).
 - **Pick words that translate as you mean them.** "About" read "Regarding" in 13 languages, so the
   button says "How it works"; "Uptime" read "runtime", so a share of time up says "Availability". Not
   enforced: use judgement.

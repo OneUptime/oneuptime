@@ -89,6 +89,31 @@ Docker Compose에서는 `config.env`에서 `GLOBAL_TWILIO_` 설정을 지정한 
 
 OneUptime은 시작할 때 변수를 읽습니다. OneUptime이 읽을 수 없는 전화번호나 누락된 auth token처럼 하나라도 잘못되면, 고칠 때까지 계정은 SMS를 보내지 않고 전화도 걸지 않습니다. 서버 로그, **Admin Dashboard > 설정 > 통화 및 SMS**, `/admin/setup`의 체크리스트가 해당 변수를 알려 줍니다. auth token은 절대 표시되지 않습니다. 계정을 바꾸려면 변수를 바꾸고 OneUptime을 다시 시작하세요. Admin Dashboard에서는 바꿀 수 없습니다.
 
+### Terraform으로 프로젝트 구성 관리하기
+
+프로젝트 구성은 [Terraform 프로바이더](/docs/terraform/index)의 `oneuptime_call_and_sms_config` 리소스이기도 하며, 같은 이름의 데이터 소스로 구성을 읽을 수 있습니다. Auth Token은 민감한 값이므로 플랜, 로그, 출력에 표시되지 않습니다. 민감한 변수로 전달하세요.
+
+```hcl
+variable "twilio_auth_token" {
+  type      = string
+  sensitive = true
+}
+
+resource "oneuptime_call_and_sms_config" "production" {
+  name                        = "Production Twilio"
+  used_for                    = "Calls and SMS"
+  twilio_account_sid          = "ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+  twilio_auth_token           = var.twilio_auth_token
+  twilio_primary_phone_number = "+14155550100"
+  is_project_default          = true
+}
+```
+
+- **프로젝트 기본값.** Terraform은 `is_project_default = true`일 때만 구성을 프로젝트 기본값으로 만듭니다. 생략하면 Terraform이 `false`를 보내므로, 대시보드에서와 달리 프로젝트의 첫 구성이 기본값이 되지 않습니다. 메시지 종류마다 구성 하나에만 설정하세요. `used_for`가 같은 두 구성에 모두 설정하면 apply할 때마다 서로 기본값을 가져갑니다. `is_project_default_for_sms`와 `is_project_default_for_calls`는 OneUptime이 설정하며, Terraform은 읽기만 합니다.
+- **전화번호.** 각 번호는 `+`와 국가 코드를 붙여 쓰세요. 숫자 사이의 공백, 하이픈, 점, 괄호는 괜찮습니다. OneUptime은 `+1 415 555 0100`을 `+14155550100`으로 저장하고, Terraform은 이를 작성한 번호와 같은 번호로 읽으므로 plan에 변경 사항이 나타나지 않습니다.
+- **API 키.** Terraform이 사용하는 키는 구성을 만들고 편집하는 것 외에 Auth Token도 읽을 수 있어야 합니다: **프로젝트 소유자**, **프로젝트 관리자**, 또는 사용자 지정 역할의 **Read Call and SMS**. 읽을 수 없는 키로는 구성 읽기가 실패하며, 오류에 토큰을 읽을 수 있는 사람이 표시됩니다.
+- **참조.** 상태 페이지의 `call_sms_config_id`와 수신 통화 정책의 `project_call_sms_config_id`에는 구성의 `id`를 지정합니다.
+
 ### 통화와 SMS에 별도 번호 사용
 
 Twilio 번호는 통화와 SMS를 모두 하거나 둘 중 하나만 할 수 있으며, 어떤 국가에서는 한 번호로 둘 다 할 수 없습니다. 이런 국가에서는 국내 번호가 음성 전용이고 SMS에는 휴대전화 번호가 필요할 수 있습니다. 프로젝트의 구성이든 설치 전체의 구성이든, **추가 필드**에서 SMS용 번호를 지정할 수 있습니다.

@@ -866,7 +866,7 @@ describe("the on-call tools and archived policies", () => {
 
       await expect(attempt).rejects.toThrow(BadDataException);
       await expect(attempt).rejects.toThrow(
-        'On-call duty policy "Payments primary" is archived, so it pages no one. Unarchive it first, or page a different policy.',
+        'On-call policy "Payments primary" is archived, so it pages no one. Unarchive it first, or page a different policy.',
       );
       expect(
         (firstCallArg(findOneById)["select"] as JSONObject)["isArchived"],

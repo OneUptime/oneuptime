@@ -89,6 +89,31 @@ Docker Compose では、`config.env` で `GLOBAL_TWILIO_` の設定を行い、`
 
 OneUptime は起動時に変数を読み取ります。OneUptime が読み取れない電話番号や auth token の欠落など、いずれかが誤っていると、修正されるまでこのアカウントは SMS を送信せず、電話もかけません。どの変数かは、サーバーのログ、**Admin Dashboard > 設定 > 通話とSMS**、`/admin/setup` のチェックリストに表示されます。auth token が表示されることはありません。アカウントを変更するには、変数を変更して OneUptime を再起動してください。Admin Dashboard では変更できません。
 
+### Terraform でプロジェクトの設定を管理する
+
+プロジェクトの設定は [Terraform プロバイダー](/docs/terraform/index) の `oneuptime_call_and_sms_config` リソースでもあり、同じ名前のデータソースで読み取れます。Auth Token は機密の値なので、プラン、ログ、出力に表示されることはありません。機密の変数で渡してください。
+
+```hcl
+variable "twilio_auth_token" {
+  type      = string
+  sensitive = true
+}
+
+resource "oneuptime_call_and_sms_config" "production" {
+  name                        = "Production Twilio"
+  used_for                    = "Calls and SMS"
+  twilio_account_sid          = "ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+  twilio_auth_token           = var.twilio_auth_token
+  twilio_primary_phone_number = "+14155550100"
+  is_project_default          = true
+}
+```
+
+- **プロジェクトのデフォルト。** Terraform は `is_project_default = true` のときだけ設定をプロジェクトのデフォルトにします。省略すると Terraform は `false` を送るため、ダッシュボードとは違い、プロジェクトの最初の設定はデフォルトになりません。メッセージの種類ごとに 1 つの設定にだけ指定してください。`used_for` が同じ 2 つの設定の両方に指定すると、apply のたびにデフォルトを奪い合います。`is_project_default_for_sms` と `is_project_default_for_calls` は OneUptime が設定し、Terraform は読み取るだけです。
+- **電話番号。** 各番号は `+` と国番号を付けて書いてください。数字の間のスペース、ハイフン、ピリオド、括弧は使えます。OneUptime は `+1 415 555 0100` を `+14155550100` として保存し、Terraform はそれを書いた番号と同じものとして読むため、plan に変更は表示されません。
+- **API キー。** Terraform が使うキーは、設定の作成と編集に加えて、Auth Token を読める必要があります: **プロジェクト所有者**、**プロジェクト管理者**、またはカスタムロールの **Read Call and SMS** です。読めないキーでは設定の読み取りが失敗し、エラーにトークンを読める人が示されます。
+- **参照。** ステータスページの `call_sms_config_id` と着信ポリシーの `project_call_sms_config_id` には、設定の `id` を指定します。
+
 ### 通話と SMS で番号を分ける
 
 Twilio の番号には、通話と SMS の両方ができるものと、どちらか一方しかできないものがあり、1 つの番号で両方をこなせない国もあります。そうした国では、国内番号が音声専用で、SMS には携帯番号が必要なことがあります。プロジェクトの設定でもインストール全体の設定でも、 **その他の項目** で SMS 用の番号を指定できます。

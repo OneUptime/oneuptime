@@ -5,6 +5,12 @@ import {
 } from "../ServerTwilioConfig";
 import { ServerTwilioEnvironmentReading } from "../../../Types/CallAndSMS/ServerTwilioEnvironment";
 import {
+  getServerEmailEnvironment,
+  getServerEmailEnvironmentProblem,
+  toServerEmailSettings,
+} from "../ServerEmailSettings";
+import { ServerEmailEnvironmentReading } from "../../../Types/Email/ServerEmailEnvironment";
+import {
   GLOBAL_CALL_AND_SMS_GATEWAY_SELECT,
   GLOBAL_TWILIO_CONFIG_SELECT,
 } from "../TwilioConfigSelect";
@@ -236,8 +242,28 @@ export default class ServerChannelSetup {
    * picked.
    */
   public static getEmailSetUpProblem(
-    config: ServerChannelSetupSettings | null | undefined,
+    row: ServerChannelSetupSettings | null | undefined,
   ): string | null {
+    /*
+     * Settings the GLOBAL_EMAIL_ environment variables set (#7738) are fixed
+     * where they are set, not under Settings > Emails: say what is wrong
+     * with them, by the variable's name. With nothing wrong, they are what
+     * an email is sent with, and are checked as the saved row would be.
+     */
+    const environment: ServerEmailEnvironmentReading =
+      getServerEmailEnvironment();
+    const environmentProblem: string | null =
+      getServerEmailEnvironmentProblem(environment);
+
+    if (environmentProblem) {
+      return environmentProblem;
+    }
+
+    const config: ServerChannelSetupSettings | null = toServerEmailSettings(
+      row,
+      environment,
+    );
+
     if (!config) {
       return EMAIL_NOT_SET_UP_PROBLEM;
     }

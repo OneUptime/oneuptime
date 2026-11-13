@@ -25,38 +25,98 @@ import { toServerTwilioConfig } from "Common/Server/Utils/ServerTwilioConfig";
 import { TwilioMessageKind } from "Common/Utils/Project/TwilioAccount";
 import { CallAndSmsGateway } from "Common/Types/CallAndSMS/CallAndSmsProvider";
 import CallAndSmsGatewayConfig from "Common/Server/Utils/CallAndSmsGatewayConfig";
+import Select from "Common/Server/Types/Database/Select";
+import {
+  getServerEmailEnvironment,
+  getServerEmailEnvironmentProblem,
+} from "Common/Server/Utils/ServerEmailSettings";
+import ServerEmailEnvironment, {
+  ServerEmailEnvironmentReading,
+  ServerEmailSettings,
+} from "Common/Types/Email/ServerEmailEnvironment";
 
 type GetGlobalSMTPConfig = () => Promise<EmailServer | null>;
+
+interface ServerEmailSettingsRead {
+  // The settings an email is sent with, or null when there are none.
+  settings: ServerEmailSettings | null;
+  /*
+   * What is wrong with the GLOBAL_EMAIL_ environment variables, by their
+   * names: nothing is sent while it is set.
+   */
+  problem: string | null;
+}
+
+/*
+ * The server's email settings, as every getter below reads them: those the
+ * GLOBAL_EMAIL_ environment variables set (#7738) - read again on every
+ * call, whatever the saved row holds, and none at all while something is
+ * wrong with them - or else the saved row's columns in select.
+ */
+const readServerEmailSettings: (
+  select: Select<GlobalConfig>,
+) => Promise<ServerEmailSettingsRead> = async (
+  select: Select<GlobalConfig>,
+): Promise<ServerEmailSettingsRead> => {
+  const environment: ServerEmailEnvironmentReading =
+    getServerEmailEnvironment();
+
+  if (environment.isSet) {
+    return {
+      settings: ServerEmailEnvironment.isUsable(environment)
+        ? environment.settings
+        : null,
+      problem: getServerEmailEnvironmentProblem(environment),
+    };
+  }
+
+  const globalConfig: GlobalConfig | null = await GlobalConfigService.findOneBy(
+    {
+      query: {
+        _id: ObjectID.getZeroObjectID().toString(),
+      },
+      props: {
+        isRoot: true,
+      },
+      select: select,
+    },
+  );
+
+  return { settings: globalConfig, problem: null };
+};
 
 export const DEFAULT_META_WHATSAPP_API_VERSION: string = "v23.0";
 
 export const getGlobalSMTPConfig: GetGlobalSMTPConfig =
   async (): Promise<EmailServer | null> => {
-    const globalConfig: GlobalConfig | null =
-      await GlobalConfigService.findOneBy({
-        query: {
-          _id: ObjectID.getZeroObjectID().toString(),
-        },
-        props: {
-          isRoot: true,
-        },
-        select: {
-          smtpFromEmail: true,
-          smtpHost: true,
-          smtpPort: true,
-          smtpUsername: true,
-          smtpPassword: true,
-          isSMTPSecure: true,
-          smtpFromName: true,
-          smtpTransportType: true,
-          smtpAuthType: true,
-          smtpClientId: true,
-          smtpClientSecret: true,
-          smtpTokenUrl: true,
-          smtpScope: true,
-          smtpOAuthProviderType: true,
-        },
-      });
+    const read: ServerEmailSettingsRead = await readServerEmailSettings({
+      smtpFromEmail: true,
+      smtpHost: true,
+      smtpPort: true,
+      smtpUsername: true,
+      smtpPassword: true,
+      isSMTPSecure: true,
+      smtpFromName: true,
+      smtpTransportType: true,
+      smtpAuthType: true,
+      smtpClientId: true,
+      smtpClientSecret: true,
+      smtpTokenUrl: true,
+      smtpScope: true,
+      smtpOAuthProviderType: true,
+    });
+
+    /*
+     * Environment variables with something wrong (#7738): a setting left
+     * blank, as below, so MailService writes what is wrong to the server's
+     * log, by the variable's name, and tells everyone else email is not set
+     * up (getEmailServerType reads such settings as Custom SMTP).
+     */
+    if (read.problem) {
+      throw new BadDataException(read.problem);
+    }
+
+    const globalConfig: ServerEmailSettings | null = read.settings;
 
     if (!globalConfig) {
       throw new BadDataException("Global Config not found");
@@ -212,34 +272,32 @@ type GetGlobalEmailProviderServerFunction = (
  */
 export const getGlobalEmailProviderServer: GetGlobalEmailProviderServerFunction =
   async (transportType: MailTransportType): Promise<EmailServer> => {
-    const globalConfig: GlobalConfig | null =
-      await GlobalConfigService.findOneBy({
-        query: {
-          _id: ObjectID.getZeroObjectID().toString(),
-        },
-        props: {
-          isRoot: true,
-        },
-        select: {
-          amazonSesAuthenticationType: true,
-          amazonSesAccessKeyId: true,
-          amazonSesSecretAccessKey: true,
-          amazonSesRegion: true,
-          amazonSesFromEmail: true,
-          amazonSesFromName: true,
-          mailgunApiKey: true,
-          mailgunDomain: true,
-          mailgunRegion: true,
-          mailgunFromEmail: true,
-          mailgunFromName: true,
-          postmarkServerToken: true,
-          postmarkFromEmail: true,
-          postmarkFromName: true,
-          resendApiKey: true,
-          resendFromEmail: true,
-          resendFromName: true,
-        },
-      });
+    const read: ServerEmailSettingsRead = await readServerEmailSettings({
+      amazonSesAuthenticationType: true,
+      amazonSesAccessKeyId: true,
+      amazonSesSecretAccessKey: true,
+      amazonSesRegion: true,
+      amazonSesFromEmail: true,
+      amazonSesFromName: true,
+      mailgunApiKey: true,
+      mailgunDomain: true,
+      mailgunRegion: true,
+      mailgunFromEmail: true,
+      mailgunFromName: true,
+      postmarkServerToken: true,
+      postmarkFromEmail: true,
+      postmarkFromName: true,
+      resendApiKey: true,
+      resendFromEmail: true,
+      resendFromName: true,
+    });
+
+    // Environment variables with something wrong (#7738), by their names.
+    if (read.problem) {
+      throw new BadDataException(read.problem).asUserError();
+    }
+
+    const globalConfig: ServerEmailSettings | null = read.settings;
 
     if (!globalConfig) {
       throw new BadDataException("Global Config not found");
@@ -394,24 +452,22 @@ type GetEmailServerTypeFunction = () => Promise<EmailServerType>;
 
 export const getEmailServerType: GetEmailServerTypeFunction =
   async (): Promise<EmailServerType> => {
-    const globalConfig: GlobalConfig | null =
-      await GlobalConfigService.findOneBy({
-        query: {
-          _id: ObjectID.getZeroObjectID().toString(),
-        },
-        props: {
-          isRoot: true,
-        },
-        select: {
-          emailServerType: true,
-        },
-      });
+    const read: ServerEmailSettingsRead = await readServerEmailSettings({
+      emailServerType: true,
+    });
 
-    if (!globalConfig) {
+    /*
+     * Environment variables with something wrong (#7738) send nothing:
+     * read as Custom SMTP, whose settings then refuse every email with
+     * what is wrong, by the variable's name (getGlobalSMTPConfig) - in the
+     * server's log, never in another type's words about the Admin
+     * Dashboard.
+     */
+    if (read.problem || !read.settings) {
       return EmailServerType.CustomSMTP;
     }
 
-    return globalConfig.emailServerType || EmailServerType.CustomSMTP;
+    return read.settings.emailServerType || EmailServerType.CustomSMTP;
   };
 
 export interface SendGridConfig {
@@ -424,20 +480,14 @@ type GetSendgridConfigFunction = () => Promise<SendGridConfig | null>;
 
 export const getSendgridConfig: GetSendgridConfigFunction =
   async (): Promise<SendGridConfig | null> => {
-    const globalConfig: GlobalConfig | null =
-      await GlobalConfigService.findOneBy({
-        query: {
-          _id: ObjectID.getZeroObjectID().toString(),
-        },
-        props: {
-          isRoot: true,
-        },
-        select: {
-          sendgridApiKey: true,
-          sendgridFromEmail: true,
-          sendgridFromName: true,
-        },
-      });
+    // No settings, or variables with something wrong (#7738): no SendGrid.
+    const globalConfig: ServerEmailSettings | null = (
+      await readServerEmailSettings({
+        sendgridApiKey: true,
+        sendgridFromEmail: true,
+        sendgridFromName: true,
+      })
+    ).settings;
 
     if (!globalConfig) {
       return null;

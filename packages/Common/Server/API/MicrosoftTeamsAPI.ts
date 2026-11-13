@@ -226,10 +226,11 @@ export default class MicrosoftTeamsAPI {
        * are the words Slack's /oneuptime takes; 1.8.0: page; 1.9.0: shared
        * and private channels; 1.10.0: incident takes an incident's number;
        * 1.11.0: the description says what OneUptime AI does, and how to
-       * report an answer).
+       * report an answer; 1.12.0: show scheduled maintenance lists
+       * maintenance events, as #6817 renamed them).
        */
       version: AppVersion.toLowerCase().includes("unknown")
-        ? "1.11.0"
+        ? "1.12.0"
         : AppVersion,
       /*
        * The app works in shared and private channels as in standard ones: it
