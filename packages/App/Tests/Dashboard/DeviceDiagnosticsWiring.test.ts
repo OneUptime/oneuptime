@@ -269,7 +269,7 @@ describe("the pure view-model", () => {
       "../../Types/Exception/UnexplainedError",
       "../../Types/Translator",
       "../../Utils/Monitor/MonitorTemplateLinkRefusal",
-      "../Components/DeleteConfirmation/DeleteConsequences",
+      "./SentenceSeparator",
     ]);
     expect(
       importsOf(
@@ -289,17 +289,15 @@ describe("the pure view-model", () => {
       "../../Types/Exception/RefusalWithValues",
       "../../Types/Translator",
     ]);
+    /*
+     * The sentence joiner is a module of its own, which imports nothing
+     * (SentenceSeparator): joined through DeleteConsequences, the error
+     * words brought its table of sentences about deleting records into
+     * every page's first load (first-load-budgets.js).
+     */
     expect(
-      importsOf(
-        readRaw(
-          COMMON_ROOT,
-          "UI",
-          "Components",
-          "DeleteConfirmation",
-          "DeleteConsequences.ts",
-        ),
-      ),
-    ).toEqual(["../../Utils/TranslateTemplate"]);
+      importsOf(readRaw(COMMON_ROOT, "UI", "Utils", "SentenceSeparator.ts")),
+    ).toEqual([]);
   });
 
   test("the metric descriptions it reads import only the translation-key marker", () => {

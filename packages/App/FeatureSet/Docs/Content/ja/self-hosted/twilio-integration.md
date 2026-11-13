@@ -110,7 +110,7 @@ resource "oneuptime_call_and_sms_config" "production" {
 ```
 
 - **プロジェクトのデフォルト。** Terraform は `is_project_default = true` のときだけ設定をプロジェクトのデフォルトにします。省略すると Terraform は `false` を送るため、ダッシュボードとは違い、プロジェクトの最初の設定はデフォルトになりません。メッセージの種類ごとに 1 つの設定にだけ指定してください。`used_for` が同じ 2 つの設定の両方に指定すると、apply のたびにデフォルトを奪い合います。`is_project_default_for_sms` と `is_project_default_for_calls` は OneUptime が設定し、Terraform は読み取るだけです。
-- **電話番号。** 各番号は Twilio の表示どおりに、`+`、国番号、番号の順に、スペースなしで書いてください。
+- **電話番号。** 各番号は `+` と国番号を付けて書いてください。数字の間のスペース、ハイフン、ピリオド、括弧は使えます。OneUptime は `+1 415 555 0100` を `+14155550100` として保存し、Terraform はそれを書いた番号と同じものとして読むため、plan に変更は表示されません。
 - **API キー。** Terraform が使うキーは、設定の作成と編集に加えて、Auth Token を読める必要があります: **プロジェクト所有者**、**プロジェクト管理者**、またはカスタムロールの **Read Call and SMS** です。読めないキーでは設定の読み取りが失敗し、エラーにトークンを読める人が示されます。
 - **参照。** ステータスページの `call_sms_config_id` と着信ポリシーの `project_call_sms_config_id` には、設定の `id` を指定します。
 
