@@ -62,6 +62,19 @@ const toFiniteNumber: ToFiniteNumberFunction = (
   return value;
 };
 
+// How a compact duration is written.
+export interface CompactDurationOptions {
+  /*
+   * The largest unit and the one right below it only: "41d" for 41 days
+   * and a second, "3h" for 3 hours and 5 seconds - never a day count with
+   * seconds beside it. For an age read at a glance that grows while the
+   * page is open (a host's "Up 41d"), where a unit two steps down is noise
+   * that changes every second. Off by default: an error budget's "2d 30s"
+   * names 30 seconds of budget, which are not noise.
+   */
+  adjacentUnitsOnly?: boolean | undefined;
+}
+
 /**
  * An unsigned duration as "2d 5h" / "43m 12s" / "45s". Fractional seconds
  * are floored, so a 59.9-second budget renders "59s" rather than rounding
@@ -70,13 +83,18 @@ const toFiniteNumber: ToFiniteNumberFunction = (
  * A duration that floors to zero renders "0s" — a real, sayable state —
  * instead of an empty string.
  */
-export type FormatDurationCompactFunction = (seconds: number) => string;
+export type FormatDurationCompactFunction = (
+  seconds: number,
+  options?: CompactDurationOptions | undefined,
+) => string;
 
 // The units a compact duration names, with their counts: [2 d, 5 h].
 const getCompactParts: (
   seconds: number,
+  options?: CompactDurationOptions | undefined,
 ) => Array<{ count: number; suffix: string; unit: DurationTextUnit }> = (
   seconds: number,
+  options?: CompactDurationOptions | undefined,
 ): Array<{ count: number; suffix: string; unit: DurationTextUnit }> => {
   let remainingSeconds: number = Math.floor(Math.abs(seconds));
 
@@ -97,8 +115,14 @@ const getCompactParts: (
      * Skip leading zero units ("0d 5h"), but once a larger unit has been
      * emitted a zero is still skipped rather than padded — "2d" is
      * correct for exactly 48 hours, "2d 0h" is not how anyone says it.
+     * With adjacentUnitsOnly a zero right after the first unit ends the
+     * duration there: "2d", never "2d 30s".
      */
     if (count <= 0) {
+      if (parts.length > 0 && options?.adjacentUnitsOnly) {
+        break;
+      }
+
       continue;
     }
 
@@ -111,9 +135,12 @@ const getCompactParts: (
 
 export const formatDurationCompact: FormatDurationCompactFunction = (
   seconds: number,
+  options?: CompactDurationOptions | undefined,
 ): string => {
-  const parts: Array<{ count: number; suffix: string }> =
-    getCompactParts(seconds);
+  const parts: Array<{ count: number; suffix: string }> = getCompactParts(
+    seconds,
+    options,
+  );
 
   if (parts.length === 0) {
     return "0s";
@@ -147,14 +174,22 @@ export const formatDurationCompact: FormatDurationCompactFunction = (
 export const formatDurationCompactInLanguage: (
   seconds: number,
   language?: string | undefined,
-) => string = (seconds: number, language?: string | undefined): string => {
+  options?: CompactDurationOptions | undefined,
+) => string = (
+  seconds: number,
+  language?: string | undefined,
+  options?: CompactDurationOptions | undefined,
+): string => {
   const write: () => string = (): string => {
     return writeInDateDisplayLanguage(
       (): string => {
-        return formatDurationCompact(seconds);
+        return formatDurationCompact(seconds, options);
       },
       (_language: string, locale: string): string | null => {
-        const parts: Array<DurationTextPart> = getCompactParts(seconds).map(
+        const parts: Array<DurationTextPart> = getCompactParts(
+          seconds,
+          options,
+        ).map(
           (part: {
             count: number;
             unit: DurationTextUnit;
