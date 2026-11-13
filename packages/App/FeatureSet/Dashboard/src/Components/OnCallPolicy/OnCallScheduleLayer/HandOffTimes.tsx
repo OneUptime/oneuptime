@@ -1,5 +1,6 @@
 import { formatHandOffInstant } from "./LayerSummary";
 import OneUptimeDate from "Common/Types/Date";
+import DirectionArrow from "Common/UI/Components/DirectionArrow/DirectionArrow";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -41,14 +42,14 @@ const HandOffTimes: FunctionComponent<ComponentProps> = (
         className={HAND_OFF_MOMENT_CLASS_NAME}
         data-testid="hand-off-moment"
       >
-        {formatHandOffInstant(props.start, props.timezone, now)}
-        <span className="ml-1 text-gray-300">&rarr;</span>
+        <bdi>{formatHandOffInstant(props.start, props.timezone, now)}</bdi>
+        <DirectionArrow className="ml-1 text-gray-300" />
       </span>{" "}
       <span
         className={HAND_OFF_MOMENT_CLASS_NAME}
         data-testid="hand-off-moment"
       >
-        {formatHandOffInstant(props.end, props.timezone, now)}
+        <bdi>{formatHandOffInstant(props.end, props.timezone, now)}</bdi>
       </span>
     </span>
   );

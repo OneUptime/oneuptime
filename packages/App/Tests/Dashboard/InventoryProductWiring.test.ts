@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { pageRoutesIn, routeMapPath, routesAt } from "../Helpers/PageRoutes";
 
 /*
  * The Inventory product was previously shipped as "Entities": four routes, one
@@ -210,8 +211,17 @@ describe("every route is actually mounted", () => {
   test("App.tsx mounts the product router at the product root", () => {
     const app: string = squash(readSource("App.tsx"));
 
-    expect(app).toContain("RouteMap[PageMap.INVENTORY_ROOT]");
-    expect(app).toContain("<InventoryRoutes {...commonPageProps} />");
+    expect(
+      routesAt(
+        pageRoutesIn(path.join(DASHBOARD_SRC, "App.tsx")),
+        routeMapPath("INVENTORY_ROOT"),
+      ),
+    ).toEqual([
+      {
+        path: routeMapPath("INVENTORY_ROOT"),
+        element: "<InventoryRoutes {...commonPageProps} />",
+      },
+    ]);
     expect(app).not.toContain("EntitiesRoutes");
   });
 });

@@ -541,7 +541,12 @@
         "cardTitle": "Twilio 구성",
         "cardDescription": "OneUptime이 SMS를 보내고 전화를 거는 데 사용하는 Twilio 계정입니다. 프로젝트가 자체 Twilio 구성을 사용하는 경우는 제외됩니다.",
         "editButton": "Twilio 구성 편집",
-        "smsSameAsCalls": "통화와 같은 번호"
+        "smsSameAsCalls": "통화와 같은 번호",
+        "environmentCardDescription": "환경 변수로 설정됨: Helm 차트 값의 twilio 또는 config.env의 GLOBAL_TWILIO_ 설정입니다. 이 계정을 변경하려면 그곳에서 변경한 뒤 OneUptime을 다시 시작하세요.",
+        "environmentProblemsTitle": "이 환경 변수가 수정될 때까지 이 계정은 SMS를 보내지 않고 전화도 걸지 않습니다:",
+        "environmentUnusedTitle": "사용되지 않는 Twilio 환경 변수가 있습니다:",
+        "authTokenSet": "설정됨",
+        "authTokenNotSet": "설정되지 않음"
       },
       "whatsapp": {
         "metaCardTitle": "Meta WhatsApp 설정",

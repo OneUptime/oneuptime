@@ -61,7 +61,7 @@ Os valores definidos em **Valores padrão de campos personalizados** são gravad
 
 ## Sincronizar alterações com os monitores vinculados
 
-Editar um modelo altera apenas o modelo. Para copiar uma alteração para os monitores vinculados, use o botão de sincronização do cartão que você alterou. Cada botão mostra quantos monitores alcança, como **Sync Criteria to 3 Linked Monitors**, e fica esmaecido enquanto nada estiver vinculado. Uma sincronização não pode ser desfeita.
+Editar um modelo altera apenas o modelo. Para copiar uma alteração para os monitores vinculados, use o botão de sincronização do cartão que você alterou. Cada botão mostra quantos monitores alcança, como **Sincronizar Critérios com 3 Monitores Vinculados**, e fica esmaecido enquanto nada estiver vinculado. Uma sincronização não pode ser desfeita.
 
 | Botão | Copia para cada monitor vinculado | Deixa como está |
 | --- | --- | --- |

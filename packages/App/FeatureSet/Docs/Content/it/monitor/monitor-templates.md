@@ -61,7 +61,7 @@ I valori impostati in **Valori predefiniti dei campi personalizzati** vengono sc
 
 ## Sincronizzare le modifiche sui monitor collegati
 
-Modificare un modello cambia solo il modello. Per copiare una modifica sui monitor collegati, usate il pulsante di sincronizzazione della scheda che avete modificato. Ogni pulsante indica quanti monitor raggiunge, come **Sync Criteria to 3 Linked Monitors**, ed è disattivato finché nulla è collegato. Una sincronizzazione non si può annullare.
+Modificare un modello cambia solo il modello. Per copiare una modifica sui monitor collegati, usate il pulsante di sincronizzazione della scheda che avete modificato. Ogni pulsante indica quanti monitor raggiunge, come **Sincronizza criteri con 3 monitor collegati**, ed è disattivato finché nulla è collegato. Una sincronizzazione non si può annullare.
 
 | Pulsante | Copia su ogni monitor collegato | Lascia invariato |
 | --- | --- | --- |

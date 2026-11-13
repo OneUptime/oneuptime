@@ -32,6 +32,12 @@ import {
   getSetupGuideMarkdown,
 } from "../../FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
 import OPENSTACK_CLOUD_SHOWCASE from "../../FeatureSet/Dashboard/src/Components/OpenStack/OpenStackCloudShowcase";
+import {
+  RouteAttributes,
+  pageRoutesIn,
+  routeMapPath,
+  routesAt,
+} from "../Helpers/PageRoutes";
 
 /*
  * js-yaml from Common/node_modules, as OpenTelemetryCollectorExampleDocs.test.ts loads it
@@ -379,9 +385,13 @@ describe("every page of this merge is mounted, and nothing else is", () => {
 
   test("the cloud view renders the Overview by default", () => {
     // Otherwise a link to /openstack/:id lands on a blank layout.
-    expect(squash(routeCode)).toContain(
-      "<PageRoute index element={ <OpenStackCloudOverview",
-    );
+    expect(
+      pageRoutesIn(path.join(DASHBOARD_SRC, "Routes", "OpenStackRoutes.tsx")),
+    ).toContainEqual({
+      index: "true",
+      element:
+        "<OpenStackCloudOverview {...props} pageRoute={RouteMap[PageMap.OPENSTACK_CLOUD_VIEW] as Route} />",
+    });
   });
 
   test("no View page on disk is left unrouted", () => {
@@ -418,17 +428,25 @@ describe("every page of this merge is mounted, and nothing else is", () => {
   });
 
   test("App.tsx gives OpenStack a route of its own, and leaves Proxmox's whole", () => {
-    const app: string = squash(readSource("App.tsx"));
+    const routes: Array<RouteAttributes> = pageRoutesIn(
+      path.join(DASHBOARD_SRC, "App.tsx"),
+    );
 
     expect(dense(readSource("App.tsx"))).toContain(
       'lazy(()=>{returnimport("./Routes/OpenStackRoutes");})',
     );
-    expect(app).toContain(
-      '<PageRoute path={RouteMap[PageMap.OPENSTACK_ROOT]?.toString() || ""} element={<OpenStackRoutes {...commonPageProps} />} />',
-    );
-    expect(app).toContain(
-      '<PageRoute path={RouteMap[PageMap.PROXMOX_ROOT]?.toString() || ""} element={<ProxmoxRoutes {...commonPageProps} />} />',
-    );
+    expect(routesAt(routes, routeMapPath("OPENSTACK_ROOT"))).toEqual([
+      {
+        path: routeMapPath("OPENSTACK_ROOT"),
+        element: "<OpenStackRoutes {...commonPageProps} />",
+      },
+    ]);
+    expect(routesAt(routes, routeMapPath("PROXMOX_ROOT"))).toEqual([
+      {
+        path: routeMapPath("PROXMOX_ROOT"),
+        element: "<ProxmoxRoutes {...commonPageProps} />",
+      },
+    ]);
   });
 });
 
