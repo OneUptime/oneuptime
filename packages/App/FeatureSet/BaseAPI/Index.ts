@@ -42,6 +42,7 @@ import AIInsightService, {
   Service as AIInsightServiceType,
 } from "Common/Server/Services/AIInsightService";
 import TelemetryAPI from "Common/Server/API/TelemetryAPI";
+import PrometheusAPI from "Common/Server/API/PrometheusAPI";
 import SessionReplayReadService from "Common/Server/Utils/SessionReplay/SessionReplayReadService";
 import { getRecorderVersion } from "../BrowserRecorder/Manifest";
 import ProbeAPI from "Common/Server/API/ProbeAPI";
@@ -7506,6 +7507,9 @@ const BaseAPIFeatureSet: FeatureSet = {
     );
 
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, TelemetryAPI);
+
+    // The Prometheus HTTP API over the project's metrics: PromQL (#6796).
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, PrometheusAPI);
 
     //attach api's
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserAPI().getRouter());
