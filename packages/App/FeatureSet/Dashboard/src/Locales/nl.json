@@ -6760,7 +6760,7 @@
   "Edit Settings": "Instellingen bewerken",
   "Field": "Veld",
   "Comes From": "Komt van",
-  "Answer to the question:": "Antwoord op de vraag:",
+  "Answer to the question: “{{question}}”": "Antwoord op de vraag: ‘{{question}}’",
   "If it is left empty:": "Als het leeg blijft:",
   "Always added:": "Altijd toegevoegd:",
   "Not asked": "Niet gevraagd",
@@ -52062,5 +52062,15 @@
   "All judged investigations": "Alle beoordeelde onderzoeken",
   "Fixes that worked": "Oplossingen die werkten",
   "{{count}} fixes could not be checked: there was nothing to check them against.": "{{count}} oplossingen konden niet worden gecontroleerd: er was niets om ze mee te vergelijken.",
-  "{{count}} fixes could not be checked: there was nothing to check them against._one": "{{count}} oplossing kon niet worden gecontroleerd: er was niets om die mee te vergelijken."
+  "{{count}} fixes could not be checked: there was nothing to check them against._one": "{{count}} oplossing kon niet worden gecontroleerd: er was niets om die mee te vergelijken.",
+  "at exception": "bij de uitzondering",
+  "{{minutes}} m": "{{minutes}} min",
+  "{{minutes}} m {{seconds}} s": "{{minutes}} min {{seconds}} s",
+  "{{count}} events in the {{span}} before the exception": "{{count}} gebeurtenissen in de {{span}} vóór de uitzondering",
+  "{{count}} events in the {{span}} before the exception_one": "{{count}} gebeurtenis in de {{span}} vóór de uitzondering",
+  "{{count}} events around the exception": "{{count}} gebeurtenissen rond de uitzondering",
+  "{{count}} events around the exception_one": "{{count}} gebeurtenis rond de uitzondering",
+  "{{filtered}} of {{count}} events match the filters": "{{filtered}} van {{count}} gebeurtenissen komen overeen met de filters",
+  "{{filtered}} of {{count}} events match the filters_one": "{{filtered}} van {{count}} gebeurtenis komen overeen met de filters",
+  "{{description}} (latest {{shown}} of {{total}})": "{{description}} (de laatste {{shown}} van {{total}})"
 }

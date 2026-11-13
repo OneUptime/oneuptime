@@ -6760,7 +6760,7 @@
   "Edit Settings": "Editar configuración",
   "Field": "Campo",
   "Comes From": "Procede de",
-  "Answer to the question:": "Respuesta a la pregunta:",
+  "Answer to the question: “{{question}}”": "Respuesta a la pregunta: «{{question}}»",
   "If it is left empty:": "Si se deja vacía:",
   "Always added:": "Siempre se añade:",
   "Not asked": "No se pregunta",
@@ -52062,5 +52062,15 @@
   "All judged investigations": "Todas las investigaciones evaluadas",
   "Fixes that worked": "Correcciones que funcionaron",
   "{{count}} fixes could not be checked: there was nothing to check them against.": "No se pudieron comprobar {{count}} correcciones: no había nada con qué compararlas.",
-  "{{count}} fixes could not be checked: there was nothing to check them against._one": "No se pudo comprobar {{count}} corrección: no había nada con qué compararla."
+  "{{count}} fixes could not be checked: there was nothing to check them against._one": "No se pudo comprobar {{count}} corrección: no había nada con qué compararla.",
+  "at exception": "en la excepción",
+  "{{minutes}} m": "{{minutes}} min",
+  "{{minutes}} m {{seconds}} s": "{{minutes}} min {{seconds}} s",
+  "{{count}} events in the {{span}} before the exception": "{{count}} eventos en {{span}} antes de la excepción",
+  "{{count}} events in the {{span}} before the exception_one": "{{count}} evento en {{span}} antes de la excepción",
+  "{{count}} events around the exception": "{{count}} eventos en torno a la excepción",
+  "{{count}} events around the exception_one": "{{count}} evento en torno a la excepción",
+  "{{filtered}} of {{count}} events match the filters": "{{filtered}} de {{count}} eventos coinciden con los filtros",
+  "{{filtered}} of {{count}} events match the filters_one": "{{filtered}} de {{count}} evento coinciden con los filtros",
+  "{{description}} (latest {{shown}} of {{total}})": "{{description}} (los {{shown}} más recientes de {{total}})"
 }

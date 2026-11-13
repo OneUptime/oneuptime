@@ -6760,7 +6760,7 @@
   "Edit Settings": "Изменить настройки",
   "Field": "Поле",
   "Comes From": "Источник",
-  "Answer to the question:": "Ответ на вопрос:",
+  "Answer to the question: “{{question}}”": "Ответ на вопрос: «{{question}}»",
   "If it is left empty:": "Если оставить пустым:",
   "Always added:": "Добавляется всегда:",
   "Not asked": "Не спрашивается",
@@ -52062,5 +52062,15 @@
   "All judged investigations": "Все оценённые расследования",
   "Fixes that worked": "Сработавшие исправления",
   "{{count}} fixes could not be checked: there was nothing to check them against.": "Исправлений, которые не удалось проверить: {{count}}. Их не с чем было сравнить.",
-  "{{count}} fixes could not be checked: there was nothing to check them against._one": "{{count}} исправление не удалось проверить: его не с чем было сравнить."
+  "{{count}} fixes could not be checked: there was nothing to check them against._one": "{{count}} исправление не удалось проверить: его не с чем было сравнить.",
+  "at exception": "в момент исключения",
+  "{{minutes}} m": "{{minutes}} мин",
+  "{{minutes}} m {{seconds}} s": "{{minutes}} мин {{seconds}} с",
+  "{{count}} events in the {{span}} before the exception": "Событий за {{span}} до исключения: {{count}}",
+  "{{count}} events in the {{span}} before the exception_one": "{{count}} событие за {{span}} до исключения",
+  "{{count}} events around the exception": "Событий рядом с исключением: {{count}}",
+  "{{count}} events around the exception_one": "{{count}} событие рядом с исключением",
+  "{{filtered}} of {{count}} events match the filters": "Событий, подходящих под фильтры: {{filtered}} из {{count}}",
+  "{{filtered}} of {{count}} events match the filters_one": "Событий, подходящих под фильтры: {{filtered}} из {{count}}",
+  "{{description}} (latest {{shown}} of {{total}})": "{{description}} (последние {{shown}} из {{total}})"
 }

@@ -6760,7 +6760,7 @@
   "Edit Settings": "설정 편집",
   "Field": "필드",
   "Comes From": "출처",
-  "Answer to the question:": "다음 질문의 답변:",
+  "Answer to the question: “{{question}}”": "다음 질문의 답변: “{{question}}”",
   "If it is left empty:": "비워 두면:",
   "Always added:": "항상 추가:",
   "Not asked": "묻지 않음",
@@ -52062,5 +52062,15 @@
   "All judged investigations": "모든 판정된 조사",
   "Fixes that worked": "효과가 있었던 수정",
   "{{count}} fixes could not be checked: there was nothing to check them against.": "수정 {{count}}건은 확인할 수 없었습니다. 비교할 대상이 없었습니다.",
-  "{{count}} fixes could not be checked: there was nothing to check them against._one": "수정 {{count}}건은 확인할 수 없었습니다. 비교할 대상이 없었습니다."
+  "{{count}} fixes could not be checked: there was nothing to check them against._one": "수정 {{count}}건은 확인할 수 없었습니다. 비교할 대상이 없었습니다.",
+  "at exception": "예외 발생 시",
+  "{{minutes}} m": "{{minutes}}분",
+  "{{minutes}} m {{seconds}} s": "{{minutes}}분 {{seconds}}초",
+  "{{count}} events in the {{span}} before the exception": "예외 전 {{span}} 동안의 이벤트 {{count}}개",
+  "{{count}} events in the {{span}} before the exception_one": "예외 전 {{span}} 동안의 이벤트 {{count}}개",
+  "{{count}} events around the exception": "예외 전후의 이벤트 {{count}}개",
+  "{{count}} events around the exception_one": "예외 전후의 이벤트 {{count}}개",
+  "{{filtered}} of {{count}} events match the filters": "이벤트 {{count}}개 중 {{filtered}}개가 필터와 일치",
+  "{{filtered}} of {{count}} events match the filters_one": "이벤트 {{count}}개 중 {{filtered}}개가 필터와 일치",
+  "{{description}} (latest {{shown}} of {{total}})": "{{description}}({{total}}개 중 최근 {{shown}}개)"
 }

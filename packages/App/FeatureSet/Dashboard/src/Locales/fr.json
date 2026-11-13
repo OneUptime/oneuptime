@@ -6760,7 +6760,7 @@
   "Edit Settings": "Modifier les paramètres",
   "Field": "Champ",
   "Comes From": "Provient de",
-  "Answer to the question:": "Réponse à la question :",
+  "Answer to the question: “{{question}}”": "Réponse à la question : « {{question}} »",
   "If it is left empty:": "Si elle est laissée vide :",
   "Always added:": "Toujours ajouté :",
   "Not asked": "Non demandé",
@@ -52062,5 +52062,15 @@
   "All judged investigations": "Toutes les investigations jugées",
   "Fixes that worked": "Correctifs qui ont fonctionné",
   "{{count}} fixes could not be checked: there was nothing to check them against.": "{{count}} correctifs n'ont pas pu être vérifiés : il n'y avait rien à quoi les comparer.",
-  "{{count}} fixes could not be checked: there was nothing to check them against._one": "{{count}} correctif n'a pas pu être vérifié : il n'y avait rien à quoi le comparer."
+  "{{count}} fixes could not be checked: there was nothing to check them against._one": "{{count}} correctif n'a pas pu être vérifié : il n'y avait rien à quoi le comparer.",
+  "at exception": "lors de l'exception",
+  "{{minutes}} m": "{{minutes}} min",
+  "{{minutes}} m {{seconds}} s": "{{minutes}} min {{seconds}} s",
+  "{{count}} events in the {{span}} before the exception": "{{count}} événements dans les {{span}} avant l'exception",
+  "{{count}} events in the {{span}} before the exception_one": "{{count}} événement dans les {{span}} avant l'exception",
+  "{{count}} events around the exception": "{{count}} événements autour de l'exception",
+  "{{count}} events around the exception_one": "{{count}} événement autour de l'exception",
+  "{{filtered}} of {{count}} events match the filters": "{{filtered}} sur {{count}} événements correspondent aux filtres",
+  "{{filtered}} of {{count}} events match the filters_one": "{{filtered}} sur {{count}} événement correspond aux filtres",
+  "{{description}} (latest {{shown}} of {{total}})": "{{description}} (les {{shown}} plus récents sur {{total}})"
 }

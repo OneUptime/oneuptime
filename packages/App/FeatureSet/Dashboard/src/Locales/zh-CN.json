@@ -6760,7 +6760,7 @@
   "Edit Settings": "编辑设置",
   "Field": "字段",
   "Comes From": "来源",
-  "Answer to the question:": "以下问题的回答：",
+  "Answer to the question: “{{question}}”": "以下问题的回答：“{{question}}”",
   "If it is left empty:": "如果留空：",
   "Always added:": "始终添加：",
   "Not asked": "不询问",
@@ -52062,5 +52062,15 @@
   "All judged investigations": "所有已判定的调查",
   "Fixes that worked": "有效的修复",
   "{{count}} fixes could not be checked: there was nothing to check them against.": "有 {{count}} 个修复无法检查：没有可供比对的依据。",
-  "{{count}} fixes could not be checked: there was nothing to check them against._one": "有 {{count}} 个修复无法检查：没有可供比对的依据。"
+  "{{count}} fixes could not be checked: there was nothing to check them against._one": "有 {{count}} 个修复无法检查：没有可供比对的依据。",
+  "at exception": "异常发生时",
+  "{{minutes}} m": "{{minutes}} 分钟",
+  "{{minutes}} m {{seconds}} s": "{{minutes}} 分钟 {{seconds}} 秒",
+  "{{count}} events in the {{span}} before the exception": "异常前 {{span}} 内的 {{count}} 个事件",
+  "{{count}} events in the {{span}} before the exception_one": "异常前 {{span}} 内的 {{count}} 个事件",
+  "{{count}} events around the exception": "异常前后的 {{count}} 个事件",
+  "{{count}} events around the exception_one": "异常前后的 {{count}} 个事件",
+  "{{filtered}} of {{count}} events match the filters": "{{count}} 个事件中有 {{filtered}} 个符合过滤器",
+  "{{filtered}} of {{count}} events match the filters_one": "{{count}} 个事件中有 {{filtered}} 个符合过滤器",
+  "{{description}} (latest {{shown}} of {{total}})": "{{description}}（{{total}} 个中最新的 {{shown}} 个）"
 }

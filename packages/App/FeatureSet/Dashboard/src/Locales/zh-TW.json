@@ -6760,7 +6760,7 @@
   "Edit Settings": "編輯設定",
   "Field": "欄位",
   "Comes From": "來源",
-  "Answer to the question:": "以下問題的回答：",
+  "Answer to the question: “{{question}}”": "以下問題的回答：「{{question}}」",
   "If it is left empty:": "如果留空：",
   "Always added:": "一律新增：",
   "Not asked": "不詢問",
@@ -52062,5 +52062,15 @@
   "All judged investigations": "所有已判定的調查",
   "Fixes that worked": "有效的修正",
   "{{count}} fixes could not be checked: there was nothing to check them against.": "有 {{count}} 個修正無法檢查：沒有可供比對的依據。",
-  "{{count}} fixes could not be checked: there was nothing to check them against._one": "有 {{count}} 個修正無法檢查：沒有可供比對的依據。"
+  "{{count}} fixes could not be checked: there was nothing to check them against._one": "有 {{count}} 個修正無法檢查：沒有可供比對的依據。",
+  "at exception": "例外發生時",
+  "{{minutes}} m": "{{minutes}} 分鐘",
+  "{{minutes}} m {{seconds}} s": "{{minutes}} 分鐘 {{seconds}} 秒",
+  "{{count}} events in the {{span}} before the exception": "例外前 {{span}} 內的 {{count}} 個事件",
+  "{{count}} events in the {{span}} before the exception_one": "例外前 {{span}} 內的 {{count}} 個事件",
+  "{{count}} events around the exception": "例外前後的 {{count}} 個事件",
+  "{{count}} events around the exception_one": "例外前後的 {{count}} 個事件",
+  "{{filtered}} of {{count}} events match the filters": "{{count}} 個事件中有 {{filtered}} 個符合篩選器",
+  "{{filtered}} of {{count}} events match the filters_one": "{{count}} 個事件中有 {{filtered}} 個符合篩選器",
+  "{{description}} (latest {{shown}} of {{total}})": "{{description}}（{{total}} 個中最新的 {{shown}} 個）"
 }

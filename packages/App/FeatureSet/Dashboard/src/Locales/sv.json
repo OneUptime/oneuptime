@@ -6760,7 +6760,7 @@
   "Edit Settings": "Redigera inställningar",
   "Field": "Fält",
   "Comes From": "Kommer från",
-  "Answer to the question:": "Svar på frågan:",
+  "Answer to the question: “{{question}}”": "Svar på frågan: ”{{question}}”",
   "If it is left empty:": "Om det lämnas tomt:",
   "Always added:": "Läggs alltid till:",
   "Not asked": "Frågas inte",
@@ -52062,5 +52062,15 @@
   "All judged investigations": "Alla bedömda utredningar",
   "Fixes that worked": "Åtgärder som fungerade",
   "{{count}} fixes could not be checked: there was nothing to check them against.": "{{count}} åtgärder kunde inte kontrolleras: det fanns inget att jämföra dem med.",
-  "{{count}} fixes could not be checked: there was nothing to check them against._one": "{{count}} åtgärd kunde inte kontrolleras: det fanns inget att jämföra den med."
+  "{{count}} fixes could not be checked: there was nothing to check them against._one": "{{count}} åtgärd kunde inte kontrolleras: det fanns inget att jämföra den med.",
+  "at exception": "vid undantaget",
+  "{{minutes}} m": "{{minutes}} min",
+  "{{minutes}} m {{seconds}} s": "{{minutes}} min {{seconds}} s",
+  "{{count}} events in the {{span}} before the exception": "{{count}} händelser under {{span}} före undantaget",
+  "{{count}} events in the {{span}} before the exception_one": "{{count}} händelse under {{span}} före undantaget",
+  "{{count}} events around the exception": "{{count}} händelser kring undantaget",
+  "{{count}} events around the exception_one": "{{count}} händelse kring undantaget",
+  "{{filtered}} of {{count}} events match the filters": "{{filtered}} av {{count}} händelser matchar filtren",
+  "{{filtered}} of {{count}} events match the filters_one": "{{filtered}} av {{count}} händelse matchar filtren",
+  "{{description}} (latest {{shown}} of {{total}})": "{{description}} (de senaste {{shown}} av {{total}})"
 }

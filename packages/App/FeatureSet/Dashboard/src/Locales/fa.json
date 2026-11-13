@@ -6760,7 +6760,7 @@
   "Edit Settings": "ویرایش تنظیمات",
   "Field": "فیلد",
   "Comes From": "منبع",
-  "Answer to the question:": "پاسخ به پرسش:",
+  "Answer to the question: “{{question}}”": "پاسخ به پرسش: «{{question}}»",
   "If it is left empty:": "اگر خالی بماند:",
   "Always added:": "همیشه افزوده می‌شود:",
   "Not asked": "پرسیده نمی‌شود",
@@ -52062,5 +52062,15 @@
   "All judged investigations": "همه بررسی‌های ارزیابی‌شده",
   "Fixes that worked": "اصلاح‌های مؤثر",
   "{{count}} fixes could not be checked: there was nothing to check them against.": "بررسی {{count}} اصلاح ممکن نبود: چیزی برای مقایسه وجود نداشت.",
-  "{{count}} fixes could not be checked: there was nothing to check them against._one": "بررسی {{count}} اصلاح ممکن نبود: چیزی برای مقایسه وجود نداشت."
+  "{{count}} fixes could not be checked: there was nothing to check them against._one": "بررسی {{count}} اصلاح ممکن نبود: چیزی برای مقایسه وجود نداشت.",
+  "at exception": "هنگام استثنا",
+  "{{minutes}} m": "{{minutes}} دقیقه",
+  "{{minutes}} m {{seconds}} s": "{{minutes}} دقیقه {{seconds}} ثانیه",
+  "{{count}} events in the {{span}} before the exception": "{{count}} رویداد در {{span}} پیش از استثنا",
+  "{{count}} events in the {{span}} before the exception_one": "{{count}} رویداد در {{span}} پیش از استثنا",
+  "{{count}} events around the exception": "{{count}} رویداد در حوالی استثنا",
+  "{{count}} events around the exception_one": "{{count}} رویداد در حوالی استثنا",
+  "{{filtered}} of {{count}} events match the filters": "{{filtered}} از {{count}} رویداد با فیلترها مطابقت دارند",
+  "{{filtered}} of {{count}} events match the filters_one": "{{filtered}} از {{count}} رویداد با فیلترها مطابقت دارند",
+  "{{description}} (latest {{shown}} of {{total}})": "{{description}} (آخرین {{shown}} مورد از {{total}})"
 }
