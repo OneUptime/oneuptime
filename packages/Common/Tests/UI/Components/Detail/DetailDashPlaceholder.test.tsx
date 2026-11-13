@@ -14,6 +14,9 @@ import EmptyValue, {
 } from "../../../../UI/Components/Detail/EmptyValue";
 import Field from "../../../../UI/Components/Detail/Field";
 import { PLACEHOLDER_TEXT_CLASS_NAME } from "../../../../UI/Components/Detail/PlaceholderText";
+import { TableCellContext } from "../../../../UI/Components/Table/TableCellContext";
+import { TABLE_EMPTY_VALUE_TEST_ID } from "../../../../UI/Components/Table/TableEmptyValue";
+import TableColumnListComponent from "../../../../UI/Components/TableColumnList/TableColumnListComponent";
 import FieldType from "../../../../UI/Components/Types/FieldType";
 
 /*
@@ -260,5 +263,122 @@ describe("EmptyValue", () => {
 
     expect(screen.getByTestId(EMPTY_VALUE_TEST_ID)).toBeVisible();
     expect(screen.queryByTestId("placeholder-text")).toBeNull();
+  });
+});
+
+/*
+ * A record's list on a detail card (TableColumnListComponent: labels,
+ * monitors, owners) with nothing in it shows its noItemsMessage as the
+ * card's quiet placeholder words. Words that are only a dash are the card's
+ * own dash, as a field's dash placeholder is - not a hyphen as placeholder
+ * words beside the dash of the field next to it. In a table's cell, an
+ * empty list was the quiet dash already; a dash for its words is read out
+ * as "Not set", never as a dash.
+ */
+describe("an empty list whose noItemsMessage is a dash", () => {
+  function drawDetailWithElement(element: React.ReactElement): HTMLElement {
+    return render(
+      <div data-testid="detail">
+        <Detail<Item>
+          id="detail-dash-list"
+          item={{ name: "Production", value: "set" }}
+          fields={[
+            { key: "name", title: "Name", fieldType: FieldType.Text },
+            {
+              key: "value",
+              title: "Monitors",
+              fieldType: FieldType.Element,
+              getElement: (): React.ReactElement => {
+                return element;
+              },
+            },
+          ]}
+          showRecordLine={false}
+        />
+      </div>,
+    ).getByTestId("detail");
+  }
+
+  function drawList(data: {
+    noItemsMessage: string;
+    inTableCell?: boolean | undefined;
+  }): HTMLElement {
+    const list: React.ReactElement = (
+      <TableColumnListComponent<Item>
+        items={[]}
+        moreTemplate={{
+          one: "{{count}} more monitor",
+          other: "{{count}} more monitors",
+        }}
+        noItemsMessage={data.noItemsMessage}
+        getEachElement={(item: Item): React.ReactElement => {
+          return <span>{item.name}</span>;
+        }}
+      />
+    );
+
+    if (data.inTableCell) {
+      return render(
+        <div data-testid="cell">
+          <TableCellContext.Provider value={true}>
+            {list}
+          </TableCellContext.Provider>
+        </div>,
+      ).getByTestId("cell");
+    }
+
+    return drawDetailWithElement(list);
+  }
+
+  describe.each(DASHES)("written as %s", (_label: string, dash: string) => {
+    test("on a detail card is the card's quiet dash, read out as 'Not set'", () => {
+      const detail: HTMLElement = drawList({ noItemsMessage: dash });
+      const empty: HTMLElement =
+        within(detail).getByTestId(EMPTY_VALUE_TEST_ID);
+
+      expect(empty).toBeVisible();
+      expect(within(empty).getByText(EMPTY_VALUE_MARK)).toHaveAttribute(
+        "aria-hidden",
+        "true",
+      );
+      expect(within(empty).getByText("Not set")).toHaveClass("sr-only");
+      expect(within(detail).queryByTestId("placeholder-text")).toBeNull();
+    });
+
+    test("in a table's cell is the quiet dash, read out as 'Not set'", () => {
+      const cell: HTMLElement = drawList({
+        noItemsMessage: dash,
+        inTableCell: true,
+      });
+      const empty: HTMLElement = within(cell).getByTestId(
+        TABLE_EMPTY_VALUE_TEST_ID,
+      );
+
+      expect(within(empty).getByText("Not set")).toHaveClass("sr-only");
+      // The only dash is the quiet one, hidden from a screen reader.
+      expect(empty.textContent).toBe(EMPTY_VALUE_MARK + "Not set");
+    });
+  });
+
+  test("on a detail card, words are still the card's placeholder words", () => {
+    const detail: HTMLElement = drawList({ noItemsMessage: "No monitors." });
+    const words: HTMLElement = within(detail).getByTestId("placeholder-text");
+
+    expect(words).toHaveTextContent("No monitors.");
+    expect(words.className).toBe(PLACEHOLDER_TEXT_CLASS_NAME);
+    expect(within(detail).queryByTestId(EMPTY_VALUE_TEST_ID)).toBeNull();
+  });
+
+  test("on a detail card, a dash draws what an empty field with no words draws", () => {
+    const listDashHtml: string = within(
+      drawList({ noItemsMessage: "-" }),
+    ).getByTestId(EMPTY_VALUE_TEST_ID).outerHTML;
+    cleanup();
+
+    render(<EmptyValue />);
+
+    expect(listDashHtml).toBe(
+      screen.getByTestId(EMPTY_VALUE_TEST_ID).outerHTML,
+    );
   });
 });
