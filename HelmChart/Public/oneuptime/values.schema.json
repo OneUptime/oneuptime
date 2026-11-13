@@ -2135,6 +2135,76 @@
             },
             "additionalProperties": false
         },
+        "twilio": {
+            "type": "object",
+            "properties": {
+                "accountSid": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "authToken": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "usedFor": {
+                    "type": [
+                        "string",
+                        "null"
+                    ],
+                    "enum": [
+                        null,
+                        "",
+                        "calls-and-sms",
+                        "sms-only",
+                        "calls-only"
+                    ]
+                },
+                "primaryPhoneNumber": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "secondaryPhoneNumbers": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "smsPhoneNumbers": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "existingSecret": {
+                    "type": [
+                        "object",
+                        "null"
+                    ],
+                    "properties": {
+                        "name": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "authTokenKey": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
         "incidents": {
             "type": "object",
             "properties": {
