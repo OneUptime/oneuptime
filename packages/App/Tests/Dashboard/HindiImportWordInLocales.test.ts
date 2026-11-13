@@ -194,12 +194,15 @@ const DRAWN_IMPORT_KEYS: Array<string> = DRAWN_KEYS.filter(
 );
 
 describe("Hindi's word for import", () => {
-  test.each(HINDI_LOCALES)("%s never says इम्पोर्ट or इंपोर्ट", (file: string) => {
-    expect({ file, keys: withLoanword(valuesOf(readLocale(file))) }).toEqual({
-      file,
-      keys: [],
-    });
-  });
+  test.each(HINDI_LOCALES)(
+    "%s never says इम्पोर्ट or इंपोर्ट",
+    (file: string) => {
+      expect({ file, keys: withLoanword(valuesOf(readLocale(file))) }).toEqual({
+        file,
+        keys: [],
+      });
+    },
+  );
 
   test("no Hindi docs page says it: prose, headings, link anchors and diagram labels", () => {
     expect(markdownFiles(HINDI_DOCS).length).toBeGreaterThan(100);
@@ -373,9 +376,9 @@ describe("the words the issue named", () => {
       dashboardWord("Preview Import"),
     );
     expect(dashboardWord("Importing...")).toBe("आयात हो रहा है...");
-    expect(dashboardWord("{{count}} {{itemsName}} imported successfully.")).toBe(
-      "{{count}} {{itemsName}} सफलतापूर्वक आयात हुए।",
-    );
+    expect(
+      dashboardWord("{{count}} {{itemsName}} imported successfully."),
+    ).toBe("{{count}} {{itemsName}} सफलतापूर्वक आयात हुए।");
     expect(
       dashboardWord("{{count}} {{itemsName}} imported successfully._one"),
     ).toBe("{{count}} {{itemName}} सफलतापूर्वक आयात हुआ।");
