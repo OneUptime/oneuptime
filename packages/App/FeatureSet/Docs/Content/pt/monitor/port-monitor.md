@@ -27,7 +27,7 @@ sequenceDiagram
 
 A sonda abre apenas conexões TCP: um serviço que escuta somente em UDP, como um agente SNMP, não pode ser verificado com um monitor de porta.
 
-Quando uma verificação falha, a sonda também rastreia a rota até o host e procura o nome dele, e anexa o que encontrou ao resultado como **Network Path at Time of Failure**, para você ver onde a rota se interrompeu. Uma sonda que perdeu a própria conexão de rede não informa nenhum resultado, então não pode marcar o seu serviço como offline.
+Quando uma verificação falha, a sonda também rastreia a rota até o host e procura o nome dele, e anexa o que encontrou ao resultado como **Caminho de rede no momento da falha**, para você ver onde a rota se interrompeu. Uma sonda que perdeu a própria conexão de rede não informa nenhum resultado, então não pode marcar o seu serviço como offline.
 
 ## Antes de começar
 
@@ -164,7 +164,7 @@ Escolha uma janela mais longa que o intervalo de monitoramento, para que ela con
 ## Solução de problemas
 
 :::details O serviço está no ar, mas o monitor diz que está offline
-A sonda não conseguiu abrir uma conexão: um firewall a descarta, o serviço só escuta em uma interface privada, ou a porta está errada. A causa raiz do incidente, e **Registros de monitoramento** no monitor, mostram o erro, e **Network Path at Time of Failure** mostra até onde a rota chegou. Libere as sondas no firewall, ou use uma [sonda personalizada](/docs/probe/custom-probe) dentro da rede.
+A sonda não conseguiu abrir uma conexão: um firewall a descarta, o serviço só escuta em uma interface privada, ou a porta está errada. A causa raiz do incidente, e **Registros de monitoramento** no monitor, mostram o erro, e **Caminho de rede no momento da falha** mostra até onde a rota chegou. Libere as sondas no firewall, ou use uma [sonda personalizada](/docs/probe/custom-probe) dentro da rede.
 :::
 
 :::details O tempo de resolução DNS está sempre vazio

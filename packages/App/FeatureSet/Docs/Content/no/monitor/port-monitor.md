@@ -27,7 +27,7 @@ sequenceDiagram
 
 Sonden åpner bare TCP-tilkoblinger: en tjeneste som bare lytter på UDP, som en SNMP-agent, kan ikke sjekkes med en port-monitor.
 
-Når en sjekk feiler, sporer sonden også ruten til verten og slår opp navnet, og legger det den fant ved resultatet som **Network Path at Time of Failure**, så du kan se hvor ruten brøt sammen. En sonde som har mistet sin egen nettverkstilkobling, rapporterer ikke noe resultat, så den kan ikke merke tjenesten din som frakoblet.
+Når en sjekk feiler, sporer sonden også ruten til verten og slår opp navnet, og legger det den fant ved resultatet som **Nettverksbane på feiltidspunktet**, så du kan se hvor ruten brøt sammen. En sonde som har mistet sin egen nettverkstilkobling, rapporterer ikke noe resultat, så den kan ikke merke tjenesten din som frakoblet.
 
 ## Før du starter
 
@@ -164,7 +164,7 @@ Gjør vinduet lengre enn overvåkingsintervallet, slik at det rommer flere sjekk
 ## Feilsøking
 
 :::details Tjenesten kjører, men monitoren sier frakoblet
-Sonden kunne ikke åpne en tilkobling: en brannmur dropper den, tjenesten lytter bare på et privat grensesnitt, eller porten er feil. Hendelsens rotårsak og **Overvåkingslogger** på monitoren viser feilen, og **Network Path at Time of Failure** viser hvor langt ruten kom. Slipp sondene gjennom brannmuren, eller bruk en [egendefinert sonde](/docs/probe/custom-probe) inne i nettverket.
+Sonden kunne ikke åpne en tilkobling: en brannmur dropper den, tjenesten lytter bare på et privat grensesnitt, eller porten er feil. Hendelsens rotårsak og **Overvåkingslogger** på monitoren viser feilen, og **Nettverksbane på feiltidspunktet** viser hvor langt ruten kom. Slipp sondene gjennom brannmuren, eller bruk en [egendefinert sonde](/docs/probe/custom-probe) inne i nettverket.
 :::
 
 :::details DNS-oppslagstiden er alltid tom

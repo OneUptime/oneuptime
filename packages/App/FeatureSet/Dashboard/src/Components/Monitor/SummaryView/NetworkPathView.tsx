@@ -4,6 +4,7 @@ import NetworkPathTrace, {
   TraceRouteHop,
 } from "Common/Types/Monitor/NetworkMonitor/NetworkPathTrace";
 import React, { FunctionComponent, ReactElement } from "react";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { composedValue, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -12,6 +13,9 @@ import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 export interface ComponentProps {
   networkPathTrace: NetworkPathTrace;
 }
+
+// The line under the hop table: the verdict, then the trace's own message.
+export const NETWORK_PATH_VERDICT_TEST_ID: string = "network-path-verdict";
 
 /*
  * The one-line verdict under the hop table.
@@ -44,8 +48,13 @@ const getRouteVerdict: GetRouteVerdictFunction = (
   }
 
   if (traceRoute.failedHop !== undefined) {
+    const failedHop: number = traceRoute.failedHop;
+
+    // The hop's number in the sentence's digits, as the hop table writes it.
     return translator.translateTemplate("Route broke at hop {{hop}}.", {
-      hop: traceRoute.failedHop,
+      hop: composedValue((sentence: Translator): string => {
+        return sentence.formatNumber(failedHop);
+      }),
     });
   }
 
@@ -128,12 +137,25 @@ const NetworkPathView: FunctionComponent<ComponentProps> = (
         <TracerouteHopsTable hops={trace.traceRoute.hops || []} />
       )}
 
+      {/*
+       * The trace's own message is the probe's, as it wrote it (English):
+       * set apart from the verdict, so on an Arabic or Persian page it
+       * reads left to right with its full stop at its end.
+       */}
       {trace.traceRoute && (
-        <div className="mt-2 text-xs text-gray-500">
+        <div
+          className="mt-2 text-xs text-gray-500"
+          data-testid={NETWORK_PATH_VERDICT_TEST_ID}
+        >
           {getRouteVerdict(trace.traceRoute, translator)}
-          {trace.traceRoute.failureMessage
-            ? ` ${trace.traceRoute.failureMessage}`
-            : ""}
+          {trace.traceRoute.failureMessage ? (
+            <>
+              {" "}
+              <IsolatedText text={trace.traceRoute.failureMessage} />
+            </>
+          ) : (
+            <></>
+          )}
         </div>
       )}
     </div>

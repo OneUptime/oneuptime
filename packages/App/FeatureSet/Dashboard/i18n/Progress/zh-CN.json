@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 51296,
-    "untranslated": 9279
+    "keys": 51794,
+    "untranslated": 9198
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -94,6 +94,7 @@
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "Powered by OneUptime",
     "Proxmox ID",
+    "RTT",
     "RabbitMQ",
     "Re-encrypt",
     "Red Hat OpenShift",

@@ -23,7 +23,7 @@ flowchart TB
     trace --> criteria
 ```
 
-檢查失敗時，探測器還會追蹤到該位址的路由，並把找到的內容以 **Network Path at Time of Failure** 附加到結果中，讓您看到路由在哪裡中斷。
+檢查失敗時，探測器還會追蹤到該位址的路由，並把找到的內容以 **失敗時的網路路徑** 附加到結果中，讓您看到路由在哪裡中斷。
 
 該用哪一個：
 
@@ -139,7 +139,7 @@ flowchart TB
 ## 疑難排解
 
 :::details 位址可以回覆，但監測器顯示離線
-該位址或它前面的防火牆沒有回覆來自探測器的 ICMP 回應要求。請允許來自探測器的 ICMP 回應要求，或者改用 [連接埠監控](/docs/monitor/port-monitor) 監測該位址上的服務。失敗檢查上的 **Network Path at Time of Failure** 會顯示路由到達了哪裡。
+該位址或它前面的防火牆沒有回覆來自探測器的 ICMP 回應要求。請允許來自探測器的 ICMP 回應要求，或者改用 [連接埠監控](/docs/monitor/port-monitor) 監測該位址上的服務。失敗檢查上的 **失敗時的網路路徑** 會顯示路由到達了哪裡。
 :::
 
 :::details IPv6 位址總是失敗

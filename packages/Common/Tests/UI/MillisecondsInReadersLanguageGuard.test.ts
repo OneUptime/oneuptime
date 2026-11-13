@@ -16,10 +16,14 @@ import {
  * `responseTimeInMs + " ms"` (issue #7224): English glued to a Latin
  * figure. On an Arabic or Persian page the browser lays that out from the
  * right, so it read "ms 411", and in Persian its digits stayed Latin beside
- * the card's Persian date. A duration is now the Dashboard's
- * formatMilliseconds (Dashboard/src/Utils/Milliseconds), the "{{value}} ms"
- * key that every language words with its own unit and order, with the
- * figure as the reader's language writes a number.
+ * the card's Persian date. A duration is now formatMilliseconds
+ * (Common/Utils/Milliseconds, which the Dashboard's Utils/Milliseconds
+ * re-exports), the "{{value}} ms" key that every language words with its
+ * own unit and order, with the figure as the reader's language writes a
+ * number. The monitor overview - its hero's Latest result
+ * (Common/Utils/Monitor/MonitorOverviewPresentationUtil) and its Probes
+ * card - wrote "Up · 182 ms" by hand too (issue #7416), and is held to the
+ * same rule.
  *
  * This reads every frontend's source through the TypeScript AST (comments
  * are no code), and fails on:
@@ -28,8 +32,9 @@ import {
  *     summaries wrote it;
  *   - in the monitor summaries (MONITOR_SUMMARY_SCOPE - the views every
  *     monitor type's Summary, Test Monitor and Monitoring Logs draw, the
- *     incident and alert pages' evaluation, and the traceroute hops a
- *     network check's summary lists): "ms" written after a template's
+ *     incident and alert pages' evaluation, the traceroute hops a network
+ *     check's summary lists, and the monitor overview's cards and the
+ *     shared monitor helpers that write its hero): "ms" written after a template's
  *     figure (`${x} ms`), or a lone duration's key ("{{value}} ms") looked
  *     up by hand instead of through formatMilliseconds. A whole sentence
  *     that holds a duration ("{{host}} resolved to {{addresses}} in
@@ -48,7 +53,23 @@ const MONITOR_SUMMARY_SCOPE: ReadonlyArray<string> = [
   "Components/Monitor/SummaryView",
   "Components/EventView/EventEvaluationDetails.tsx",
   "Components/NetworkDevice/TracerouteHopsTable.tsx",
+  // The monitor overview's cards: the Probes card, the Response time card.
+  "Components/Monitor/Overview",
 ];
+
+/*
+ * The shared monitor helpers that write a monitor page's words with the
+ * reader's Translator - the overview's hero and facts among them
+ * (MonitorOverviewPresentationUtil). They live outside every frontend's
+ * source, so they are read on their own, as monitor summaries, relative to
+ * the repository.
+ */
+const SHARED_MONITOR_SUMMARY_SCOPE: ReadonlyArray<string> = [
+  "packages/Common/Utils/Monitor",
+];
+
+// The one helper that writes a lone duration, relative to the repository.
+const MILLISECONDS_HELPER: string = "packages/Common/Utils/Milliseconds.ts";
 
 // "ms" right after a figure: " ms", "ms", never "msg" or "msec".
 const MILLISECONDS_AFTER_FIGURE: RegExp = /^\s?ms(?![A-Za-z])/;
@@ -71,9 +92,12 @@ const isMonitorSummaryFile: (relativeFile: string) => boolean = (
 ): boolean => {
   const dashboard: string = toRelativePath(REPOSITORY_ROOT, DASHBOARD_SOURCE);
 
-  return MONITOR_SUMMARY_SCOPE.some((scope: string): boolean => {
-    const scoped: string = `${dashboard}/${scope}`;
-
+  return [
+    ...MONITOR_SUMMARY_SCOPE.map((scope: string): string => {
+      return `${dashboard}/${scope}`;
+    }),
+    ...SHARED_MONITOR_SUMMARY_SCOPE,
+  ].some((scoped: string): boolean => {
     return relativeFile === scoped || relativeFile.startsWith(`${scoped}/`);
   });
 };
@@ -168,7 +192,14 @@ const readAllFindings: () => ScanResult = (): ScanResult => {
   let filesRead: number = 0;
   let summaryFilesRead: number = 0;
 
-  for (const root of listScanRoots(REPOSITORY_ROOT)) {
+  const roots: Array<string> = [
+    ...listScanRoots(REPOSITORY_ROOT),
+    ...SHARED_MONITOR_SUMMARY_SCOPE.map((scope: string): string => {
+      return path.join(REPOSITORY_ROOT, scope);
+    }),
+  ];
+
+  for (const root of roots) {
     for (const filePath of listSourceFiles(root)) {
       const file: string = toRelativePath(REPOSITORY_ROOT, filePath);
       const isMonitorSummary: boolean = isMonitorSummaryFile(file);
@@ -215,18 +246,55 @@ describe("durations in milliseconds, in the reader's language", () => {
       }).toEqual({ scope, exists: true });
     }
 
+    for (const scope of SHARED_MONITOR_SUMMARY_SCOPE) {
+      expect({
+        scope,
+        exists: fs.existsSync(path.join(REPOSITORY_ROOT, scope)),
+      }).toEqual({ scope, exists: true });
+    }
+
     expect(filesRead).toBeGreaterThan(1000);
-    // The summary views (about 40 of them) and the two files beside them.
-    expect(summaryFilesRead).toBeGreaterThan(30);
+    /*
+     * The summary views (about 40 of them), the two files beside them, the
+     * overview's cards (about 30) and the shared monitor helpers (about 30).
+     */
+    expect(summaryFilesRead).toBeGreaterThan(90);
+  });
+
+  test("the overview's hero and its Probes card are read as monitor summaries", () => {
+    expect(
+      isMonitorSummaryFile(
+        "packages/Common/Utils/Monitor/MonitorOverviewPresentationUtil.ts",
+      ),
+    ).toBe(true);
+    expect(
+      isMonitorSummaryFile(
+        "packages/App/FeatureSet/Dashboard/src/Components/Monitor/Overview/MonitorProbesCard.tsx",
+      ),
+    ).toBe(true);
+    expect(
+      isMonitorSummaryFile(
+        "packages/App/FeatureSet/Dashboard/src/Components/Monitor/Overview/MonitorResponseTimeCard.tsx",
+      ),
+    ).toBe(true);
   });
 
   test("the duration helper is the one place that holds the key", () => {
     const helper: string = fs.readFileSync(
+      path.join(REPOSITORY_ROOT, MILLISECONDS_HELPER),
+      "utf8",
+    );
+    const dashboardHelper: string = fs.readFileSync(
       path.join(DASHBOARD_SOURCE, "Utils/Milliseconds.ts"),
       "utf8",
     );
 
     expect(helper).toContain('translationKey("{{value}} ms")');
+    // The Dashboard hands its views the same helper, never a copy of it.
+    expect(dashboardHelper).toContain('from "Common/Utils/Milliseconds"');
+    expect(dashboardHelper).not.toContain("translationKey(");
+    expect(dashboardHelper).not.toContain("translateTemplate(");
+    expect(isMonitorSummaryFile(MILLISECONDS_HELPER)).toBe(false);
     expect(
       isMonitorSummaryFile(
         "packages/App/FeatureSet/Dashboard/src/Utils/Milliseconds.ts",
@@ -282,6 +350,32 @@ describe("negative controls: the scan catches what it is for", () => {
     ).toEqual([]);
   });
 
+  test("a template's figure followed by 'ms' on the monitor overview: its cards and its hero", () => {
+    // How the Probes card and the hero's Latest result wrote it (#7416).
+    const source: string = [
+      "const a: string = `Up · ${Math.round(responseTimeInMs)} ms`;",
+      "value += ` · ${Math.round(result.responseTimeInMs)} ms`;",
+    ].join("\n");
+
+    for (const file of [
+      "packages/App/FeatureSet/Dashboard/src/Components/Monitor/Overview/MonitorProbesCard.tsx",
+      "packages/Common/Utils/Monitor/MonitorOverviewPresentationUtil.ts",
+    ]) {
+      expect(
+        findHandWrittenMilliseconds({
+          file: file,
+          source: source,
+          isMonitorSummary: isMonitorSummaryFile(file),
+        }).map((finding: MillisecondsFinding): string => {
+          return `${finding.file}:${finding.line} ${finding.rule}`;
+        }),
+      ).toEqual([
+        `${file}:1 written after a template's figure`,
+        `${file}:2 written after a template's figure`,
+      ]);
+    }
+  });
+
   test("what is no duration is left alone: a comment, 'msg', a whole sentence", () => {
     const source: string = [
       '// value + " ms" was how a summary wrote it',
@@ -299,7 +393,7 @@ describe("negative controls: the scan catches what it is for", () => {
     ).toEqual([]);
   });
 
-  test("the summary scope is the summaries, the evaluation and the hops table", () => {
+  test("the summary scope is the summaries, the evaluation, the hops table and the overview", () => {
     expect(
       isMonitorSummaryFile(
         "packages/App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/WebsiteMonitorView.tsx",
@@ -319,6 +413,14 @@ describe("negative controls: the scan catches what it is for", () => {
       isMonitorSummaryFile(
         "packages/App/FeatureSet/Dashboard/src/Components/Monitor/SummaryViewer.tsx",
       ),
+    ).toBe(false);
+    expect(
+      isMonitorSummaryFile(
+        "packages/App/FeatureSet/Dashboard/src/Components/Monitor/OverviewMade.tsx",
+      ),
+    ).toBe(false);
+    expect(
+      isMonitorSummaryFile("packages/Common/Utils/MonitorMade/Made.ts"),
     ).toBe(false);
   });
 });

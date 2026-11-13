@@ -23,7 +23,7 @@ flowchart TB
     trace --> criteria
 ```
 
-Quando uma verificação falha, a sonda também rastreia a rota até o endereço, e anexa o que encontrou ao resultado como **Network Path at Time of Failure**, para você ver onde a rota se interrompeu.
+Quando uma verificação falha, a sonda também rastreia a rota até o endereço, e anexa o que encontrou ao resultado como **Caminho de rede no momento da falha**, para você ver onde a rota se interrompeu.
 
 Qual usar:
 
@@ -139,7 +139,7 @@ Escolha uma janela mais longa que o intervalo de monitoramento, para que ela con
 ## Solução de problemas
 
 :::details O endereço está no ar, mas o monitor diz que está offline
-O endereço, ou um firewall na frente dele, não responde às requisições de eco ICMP da sonda. Libere as requisições de eco ICMP das sondas, ou vigie um serviço nesse endereço com um [monitor de porta](/docs/monitor/port-monitor). **Network Path at Time of Failure**, na verificação que falhou, mostra até onde a rota chegou.
+O endereço, ou um firewall na frente dele, não responde às requisições de eco ICMP da sonda. Libere as requisições de eco ICMP das sondas, ou vigie um serviço nesse endereço com um [monitor de porta](/docs/monitor/port-monitor). **Caminho de rede no momento da falha**, na verificação que falhou, mostra até onde a rota chegou.
 :::
 
 :::details Um endereço IPv6 sempre falha

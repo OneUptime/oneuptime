@@ -79,7 +79,14 @@ jest.mock(
 
 import MonitorResponseTimeCard, {
   ComponentProps,
+  getLatestResponseTimeText,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/MonitorResponseTimeCard";
+import { MonitorOverviewResponseTime } from "../../../Utils/Monitor/MonitorOverviewProbeUtil";
+import { Translator } from "../../../Types/Translator";
+import {
+  DASHBOARD_LANGUAGES,
+  dashboardTranslator,
+} from "../../Helpers/DashboardLocales";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap, {
   RouteUtil,
@@ -382,5 +389,82 @@ describe("MonitorResponseTimeCard", () => {
 
     expect(screen.getByTestId("embedded-metric-card")).toBeInTheDocument();
     expect(screen.queryByTestId("monitor-response-time-fallback")).toBeNull();
+  });
+});
+
+/*
+ * The fallback line in the reader's language (#7416): each language words
+ * the sentence and its unit, and every figure in it - the median, the
+ * range and the counts - is in the language's digits, grouped as the
+ * language groups them.
+ */
+describe("the latest response times in the reader's language", () => {
+  const SOME_RESPONDED: MonitorOverviewResponseTime = {
+    medianMs: 1234,
+    minMs: 950,
+    maxMs: 1800,
+    respondedCount: 12,
+    totalCount: 13,
+  };
+  const ONE_PROBE: MonitorOverviewResponseTime = {
+    medianMs: 95,
+    minMs: 95,
+    maxMs: 95,
+    respondedCount: 1,
+    totalCount: 1,
+  };
+
+  test("English: as it read, its thousands grouped", () => {
+    expect(
+      getLatestResponseTimeText(SOME_RESPONDED, dashboardTranslator("en")),
+    ).toBe("Latest: 1,234 ms median across 12 of 13 probes (950–1,800 ms)");
+  });
+
+  test("German: German words, German grouping, one probe in the singular", () => {
+    const german: Translator = dashboardTranslator("de");
+
+    expect(getLatestResponseTimeText(SOME_RESPONDED, german)).toBe(
+      "Zuletzt: Median 1.234 ms über 12 von 13 Sonden (950–1.800 ms)",
+    );
+    expect(getLatestResponseTimeText(ONE_PROBE, german)).toBe(
+      "Zuletzt: Median 95 ms über 1 Sonde (95–95 ms)",
+    );
+  });
+
+  test("Persian: every figure in Persian digits, the unit in Persian", () => {
+    const line: string = getLatestResponseTimeText(
+      SOME_RESPONDED,
+      dashboardTranslator("fa"),
+    );
+
+    for (const figure of ["۱٬۲۳۴", "۹۵۰", "۱٬۸۰۰", "۱۲", "۱۳"]) {
+      expect(line).toContain(figure);
+    }
+    expect(line).not.toMatch(/[0-9A-Za-z]/);
+  });
+
+  test("Arabic: the unit as Arabic writes a duration, never a Latin ms", () => {
+    const line: string = getLatestResponseTimeText(
+      SOME_RESPONDED,
+      dashboardTranslator("ar"),
+    );
+
+    expect(line).toBe(
+      "الأحدث: الوسيط 1,234 ملي ث عبر 12 من 13 من المسابير (950–1,800 ملي ث)",
+    );
+    expect(line).not.toMatch(/[A-Za-z]/);
+  });
+
+  test("each language words the sentence: none reads the English", () => {
+    for (const language of DASHBOARD_LANGUAGES) {
+      const translator: Translator = dashboardTranslator(language);
+
+      expect(getLatestResponseTimeText(SOME_RESPONDED, translator)).not.toMatch(
+        /^Latest:/,
+      );
+      expect(getLatestResponseTimeText(ONE_PROBE, translator)).not.toMatch(
+        /^Latest:/,
+      );
+    }
   });
 });

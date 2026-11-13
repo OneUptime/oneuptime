@@ -1,7 +1,9 @@
 import "@testing-library/jest-dom";
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "@jest/globals";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, beforeAll, describe, expect, it } from "@jest/globals";
+import { createInstance, i18n } from "i18next";
 import * as React from "react";
+import { I18nextProvider } from "react-i18next";
 import IP from "../../../Types/IP/IP";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import NetworkPathTrace, {
@@ -14,8 +16,12 @@ import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import ProbeNetworkFailureUtil, {
   ProbeNetworkOperation,
 } from "../../../Utils/ProbeNetworkFailureUtil";
-import NetworkPathView from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/NetworkPathView";
+import NetworkPathView, {
+  NETWORK_PATH_VERDICT_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/NetworkPathView";
 import SummaryInfo from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/SummaryInfo";
+import { readDashboardLocale } from "../../Helpers/DashboardLocales";
+import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 
 /*
  * "Network Path at Time of Failure" under a failed Ping or Port check.
@@ -59,6 +65,17 @@ const HOPS: Array<TraceRouteHop> = [
     isTimeout: false,
   },
 ];
+
+/*
+ * The line under the hop table: the verdict, then the trace's own message,
+ * drawn in an isolate of its own (so getByText, which reads one element's
+ * own text, cannot find the whole line).
+ */
+function verdictText(): string {
+  return withoutIsolateMarks(
+    screen.getByTestId(NETWORK_PATH_VERDICT_TEST_ID).textContent || "",
+  );
+}
 
 function buildTraceRoute(overrides: Partial<TraceRoute> = {}): TraceRoute {
   return {
@@ -134,9 +151,9 @@ describe("Network path card when traceroute recorded no hops", () => {
     expect(
       screen.getByText("Network Path at Time of Failure"),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText(`No path was recorded. ${TRACEROUTE_COULD_NOT_RUN}`),
-    ).toBeInTheDocument();
+    expect(verdictText()).toBe(
+      `No path was recorded. ${TRACEROUTE_COULD_NOT_RUN}`,
+    );
 
     /*
      * The check is still Offline (the probe could not verify the host), but
@@ -170,9 +187,7 @@ describe("Network path card when traceroute recorded no hops", () => {
   it("says no path was recorded when traceroute hit its deadline before any hop", () => {
     renderPath(buildTraceRoute({ failureMessage: "Traceroute timed out" }));
 
-    expect(
-      screen.getByText("No path was recorded. Traceroute timed out"),
-    ).toBeInTheDocument();
+    expect(verdictText()).toBe("No path was recorded. Traceroute timed out");
   });
 
   it("shows the lead-in alone, and no hop table, when there is no message either", () => {
@@ -199,9 +214,7 @@ describe("Network path card when traceroute recorded no hops", () => {
       }),
     );
 
-    expect(
-      screen.getByText("No path was recorded. Traceroute timed out"),
-    ).toBeInTheDocument();
+    expect(verdictText()).toBe("No path was recorded. Traceroute timed out");
   });
 });
 
@@ -237,9 +250,7 @@ describe("Network path card when traceroute recorded hops", () => {
     );
 
     expect(screen.getByText("* * *")).toBeInTheDocument();
-    expect(
-      screen.getByText("Route broke at hop 2. Hop 2 timed out"),
-    ).toBeInTheDocument();
+    expect(verdictText()).toBe("Route broke at hop 2. Hop 2 timed out");
   });
 
   it("keeps 'did not reach' for a walked route that fell short with no failed hop", () => {
@@ -285,5 +296,163 @@ describe("Network path card without a traceroute", () => {
     const container: HTMLElement = renderPath(undefined);
 
     expect(container).toBeEmptyDOMElement();
+  });
+});
+
+/*
+ * The card in the reader's language (#7420), rendered with the Dashboard's
+ * real locale files: its title, its description, its column headers, its
+ * DNS line and its verdict are the reader's words; a hop's number is
+ * written in the reader's digits, in the table and in "Route broke at hop
+ * 2."; RTT and the DNS label stay as abbreviations. What the probe wrote -
+ * the trace's own message, a host and its address - stays as written, read
+ * left to right on an Arabic or Persian page.
+ */
+describe("Network path card in the reader's language", () => {
+  const LANGUAGES: Array<string> = ["en", "de", "fa", "ar"];
+  const instances: Record<string, i18n> = {};
+
+  beforeAll(async () => {
+    for (const language of LANGUAGES) {
+      const instance: i18n = createInstance();
+
+      await instance.init({
+        lng: language,
+        fallbackLng: "en",
+        resources: {
+          [language]: { translation: readDashboardLocale(language) },
+        },
+        interpolation: { escapeValue: false },
+        keySeparator: false,
+        nsSeparator: false,
+      });
+      instances[language] = instance;
+    }
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  const BROKEN_ROUTE: TraceRoute = buildTraceRoute({
+    hops: HOPS,
+    destinationAddress: "203.0.113.9",
+    totalHops: 3,
+    failedHop: 2,
+    failureMessage: "Hop 2 timed out",
+  });
+
+  const renderIn: (language: string, traceRoute: TraceRoute) => void = (
+    language: string,
+    traceRoute: TraceRoute,
+  ): void => {
+    render(
+      <I18nextProvider i18n={instances[language]!}>
+        <NetworkPathView
+          networkPathTrace={{
+            timestamp: MONITORED_AT,
+            traceRoute: traceRoute,
+            dnsLookup: {
+              hostName: "api.example.com",
+              resolvedAddresses: ["203.0.113.9"],
+              resolvedInMS: 1234,
+              isSuccess: true,
+              errorMessage: undefined,
+            },
+          }}
+        />
+      </I18nextProvider>,
+    );
+  };
+
+  const verdict: () => HTMLElement = (): HTMLElement => {
+    return screen.getByTestId(NETWORK_PATH_VERDICT_TEST_ID);
+  };
+
+  const hopNumbers: () => Array<string> = (): Array<string> => {
+    return screen
+      .getAllByTestId("traceroute-hop-number")
+      .map((cell: HTMLElement): string => {
+        return cell.textContent || "";
+      });
+  };
+
+  const headers: () => Array<string> = (): Array<string> => {
+    return Array.from(document.querySelectorAll("thead th")).map(
+      (cell: Element): string => {
+        return withoutIsolateMarks(cell.textContent || "").trim();
+      },
+    );
+  };
+
+  it("English reads as it always did", () => {
+    renderIn("en", BROKEN_ROUTE);
+
+    expect(
+      screen.getByText("Network Path at Time of Failure"),
+    ).toBeInTheDocument();
+    expect(withoutIsolateMarks(verdict().textContent || "")).toBe(
+      "Route broke at hop 2. Hop 2 timed out",
+    );
+    expect(hopNumbers()).toEqual(["1", "2", "3"]);
+    expect(headers()).toEqual(["Hop", "Host", "RTT"]);
+  });
+
+  it("German: the card's words in German, RTT as an abbreviation", () => {
+    renderIn("de", BROKEN_ROUTE);
+
+    expect(
+      screen.getByText("Netzwerkpfad zum Zeitpunkt des Fehlers"),
+    ).toBeInTheDocument();
+    expect(withoutIsolateMarks(verdict().textContent || "")).toBe(
+      "Die Route brach bei Hop 2 ab. Hop 2 timed out",
+    );
+    expect(headers()).toEqual(["Hop", "Host", "RTT"]);
+    expect(document.body.textContent).toContain(
+      "api.example.com wurde in 1.234 ms zu 203.0.113.9 aufgelöst",
+    );
+  });
+
+  it("Persian: Persian words, the hops' numbers in Persian digits, in the table and the verdict", () => {
+    renderIn("fa", BROKEN_ROUTE);
+
+    const persian: Record<string, string> = readDashboardLocale("fa");
+
+    expect(
+      screen.getByText(persian["Network Path at Time of Failure"]!),
+    ).toBeInTheDocument();
+    expect(hopNumbers()).toEqual(["۱", "۲", "۳"]);
+
+    const verdictWords: string = withoutIsolateMarks(
+      verdict().textContent || "",
+    );
+
+    expect(verdictWords).toBe(
+      `${persian["Route broke at hop {{hop}}."]!.replace("{{hop}}", "۲")} Hop 2 timed out`,
+    );
+    expect(headers()[0]).toBe(persian["Hop"]);
+    expect(headers()[1]).toBe(persian["Host"]);
+  });
+
+  it("Arabic and Persian: the probe's own message and each host read left to right", () => {
+    for (const language of ["ar", "fa"]) {
+      renderIn(language, BROKEN_ROUTE);
+
+      const message: HTMLElement | null = verdict().querySelector("bdi");
+
+      expect(message).toHaveTextContent("Hop 2 timed out");
+      expect(message).toHaveAttribute("dir", "ltr");
+
+      const hosts: Array<Element> = Array.from(
+        document.querySelectorAll("tbody tr td:nth-child(2) bdi"),
+      );
+
+      expect(hosts).toHaveLength(3);
+      for (const host of hosts) {
+        expect(host).toHaveAttribute("dir", "ltr");
+      }
+      expect(hosts[0]).toHaveTextContent("gw.example.com (192.168.1.1)");
+      cleanup();
+    }
   });
 });

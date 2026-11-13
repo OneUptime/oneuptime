@@ -22016,7 +22016,7 @@
   "Last request {{time}}": "最終リクエスト {{time}}",
   "Last request: none yet": "最終リクエスト: まだありません",
   "Latest: {{median}} ms median across {{count}} probes ({{min}}–{{max}} ms)": "最新: {{count}} 個のプローブの中央値 {{median}} ms（{{min}}～{{max}} ms）",
-  "Latest: {{median}} ms median across {{count}} probes ({{min}}–{{max}} ms)_one": "Latest: {{median}} ms median across {{count}} probe ({{min}}–{{max}} ms)",
+  "Latest: {{median}} ms median across {{count}} probes ({{min}}–{{max}} ms)_one": "最新: {{count}} 個のプローブの中央値 {{median}} ms（{{min}}～{{max}} ms）",
   "Latest: {{median}} ms median across {{responded}} of {{total}} probes ({{min}}–{{max}} ms)": "最新: {{total}} 個中 {{responded}} 個のプローブの中央値 {{median}} ms（{{min}}～{{max}} ms）",
   "Layer {{number}}": "レイヤー {{number}}",
   "Left divided by Sessions: the share of the sessions that visited this page and ended on it. Sessions that saw only this page are included, and it is per session, not per visit.": "離脱 ÷ セッション: このページを訪れたセッションのうち、このページで終了したセッションの割合です。このページだけを表示したセッションも含み、訪問単位ではなくセッション単位です。",
@@ -51831,5 +51831,6 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "時間範囲: {{range}}。フィルターを調整するか、時間範囲を広げてみてください。",
   "On-Call Policy Created": "オンコールポリシー作成済み",
   "On-Call Schedule Added": "オンコールスケジュール追加済み",
-  "On-Call Schedule Removed": "オンコールスケジュール削除済み"
+  "On-Call Schedule Removed": "オンコールスケジュール削除済み",
+  "Turned off for this monitor": "このモニターではオフ"
 }

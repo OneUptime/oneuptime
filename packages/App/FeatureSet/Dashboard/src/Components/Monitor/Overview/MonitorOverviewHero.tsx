@@ -36,6 +36,7 @@ import MonitorType, {
 import ObjectID from "Common/Types/ObjectID";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
+import readAsWritten from "Common/UI/Components/IsolatedText/ReadAsWritten";
 import Link from "Common/UI/Components/Link/Link";
 import StatusBadge from "Common/UI/Components/StatusBadge/StatusBadge";
 import {
@@ -576,9 +577,20 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
           }`}
         >
           {getFactValue(fact)}
+          {/*
+           * The line under a value is the reader's words ("from London")
+           * or a probe's own message, as it wrote it (a failed check's
+           * cause, in English). The message is drawn the way its words
+           * read, so on an Arabic or Persian page it keeps its full stop
+           * at its end; the reader's words read as the page does, however
+           * many Latin letters the names in them have (readAsWritten).
+           */}
           {fact.secondary ? (
-            <span className="mt-0.5 block break-words text-xs font-normal text-gray-500">
-              {fact.secondary}
+            <span
+              className="mt-0.5 block break-words text-xs font-normal text-gray-500"
+              data-testid="monitor-overview-secondary-line"
+            >
+              {readAsWritten(fact.secondary, translator.language)}
             </span>
           ) : (
             <></>

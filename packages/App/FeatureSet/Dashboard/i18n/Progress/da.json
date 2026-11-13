@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 51296,
-    "untranslated": 9524
+    "keys": 51794,
+    "untranslated": 9440
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -142,6 +142,7 @@
     "Hello world",
     "Hertz",
     "Histogram",
+    "Hop",
     "Hunt",
     "Hunts",
     "Hypervisor",
@@ -265,6 +266,7 @@
     "Pull request {{label}}",
     "Pull requests",
     "Push",
+    "RTT",
     "RabbitMQ",
     "Radio",
     "Re-encrypt",

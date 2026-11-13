@@ -3,6 +3,7 @@
 import "@testing-library/jest-dom";
 import {
   afterEach,
+  beforeAll,
   beforeEach,
   describe,
   expect,
@@ -10,12 +11,28 @@ import {
   test,
 } from "@jest/globals";
 import { cleanup, render, screen, within } from "@testing-library/react";
+import { createInstance, i18n } from "i18next";
 import React from "react";
+import { I18nextProvider } from "react-i18next";
 import { MemoryRouter } from "react-router-dom";
+import englishLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/en.json";
+import germanLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/de.json";
+import persianLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
+import arabicLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/ar.json";
 import MonitorProbesCard, {
   ComponentProps,
+  getProbeAgreementText,
   getProbeHealthText,
+  PROBE_HEALTH_WORDS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/MonitorProbesCard";
+import {
+  forgetRememberedDateTexts,
+  setDateDisplayLanguage,
+} from "../../../Types/DateLanguage";
+import {
+  createTranslator,
+  Translator,
+} from "../../../UI/Utils/TranslateTemplate";
 import { PROBE_HEALTH_TEXT_CLASS } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/MonitorOverviewTones";
 import { MonitorOverviewProbeData } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/MonitorOverviewTypes";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
@@ -304,7 +321,9 @@ describe("MonitorProbesCard", () => {
         isConnected: true,
         health: health,
       };
-      expect(getProbeHealthText(row)).toBeTruthy();
+      expect(
+        getProbeHealthText(row, createTranslator(undefined, "en")),
+      ).toBeTruthy();
     }
   });
 
@@ -598,5 +617,289 @@ describe("MonitorProbesCard", () => {
 
     const row: HTMLElement = screen.getAllByTestId("monitor-probe-row")[0]!;
     expect(within(row).getByTestId("probe-name")).toHaveTextContent("Ohio");
+  });
+});
+
+/*
+ * The card as a reader of another language sees it (#7416), rendered with
+ * the Dashboard's real locale files: each probe's state is the reader's
+ * word for it - the hero's word for the same state - an up probe's
+ * response time is written as every monitor summary writes a duration, in
+ * the language's digits and unit, and the counts in the agreement
+ * footnote are the language's digits. A probe's own message stays as it
+ * wrote it, read left to right on an Arabic or Persian page.
+ */
+const LOCALES: Record<string, Record<string, unknown>> = {
+  en: englishLocale as Record<string, unknown>,
+  de: germanLocale as Record<string, unknown>,
+  fa: persianLocale as Record<string, unknown>,
+  ar: arabicLocale as Record<string, unknown>,
+};
+
+const instances: Record<string, i18n> = {};
+
+const translatorFor: (language: string) => Translator = (
+  language: string,
+): Translator => {
+  const locale: Record<string, unknown> = LOCALES[language]!;
+
+  return createTranslator((text: string): string | undefined => {
+    const value: unknown = locale[text];
+
+    return typeof value === "string" ? value : undefined;
+  }, language);
+};
+
+const renderRowsIn: (
+  language: string,
+  rows: Array<MonitorProbe>,
+  minimumProbeAgreement?: number,
+) => void = (
+  language: string,
+  rows: Array<MonitorProbe>,
+  minimumProbeAgreement?: number,
+): void => {
+  setDateDisplayLanguage(language);
+
+  render(
+    <I18nextProvider i18n={instances[language]!}>
+      <MemoryRouter>
+        <MonitorProbesCard
+          monitorId={MONITOR_ID}
+          probes={loaded(rows)}
+          summary={summarize(rows)}
+          now={NOW}
+          minimumProbeAgreement={minimumProbeAgreement}
+        />
+      </MemoryRouter>
+    </I18nextProvider>,
+  );
+};
+
+// A probe that is on, connected and up.
+const upProbe: (name: string) => MonitorProbe = (
+  name: string,
+): MonitorProbe => {
+  return monitorProbe({
+    name: name,
+    result: { monitoredAt: minutesAgo(1), isOnline: true },
+  });
+};
+
+const healthTexts: () => Array<string> = (): Array<string> => {
+  return screen
+    .getAllByTestId("monitor-probe-health")
+    .map((element: HTMLElement): string => {
+      return element.textContent || "";
+    });
+};
+
+describe("MonitorProbesCard in the reader's language", () => {
+  beforeAll(async () => {
+    for (const [language, locale] of Object.entries(LOCALES)) {
+      const instance: i18n = createInstance();
+
+      // The Dashboard's own configuration (Utils/i18n.ts).
+      await instance.init({
+        lng: language,
+        fallbackLng: "en",
+        resources: {
+          en: { translation: englishLocale },
+          [language]: { translation: locale },
+        },
+        interpolation: { escapeValue: false },
+      });
+
+      instances[language] = instance;
+    }
+  });
+
+  afterEach(() => {
+    setDateDisplayLanguage(null);
+    forgetRememberedDateTexts();
+  });
+
+  test("English reads as it always did", () => {
+    renderRowsIn("en", EVERY_HEALTH());
+
+    expect(healthTexts()).toEqual([
+      "Down",
+      "Disconnected",
+      "Late",
+      "No result yet",
+      "Up · 119 ms",
+      "Reported",
+      "Turned off for this monitor",
+    ]);
+  });
+
+  test("German: each state in German, the hero's words for it", () => {
+    renderRowsIn("de", EVERY_HEALTH());
+
+    expect(healthTexts()).toEqual([
+      "Ausgefallen",
+      "Getrennt",
+      "Verspätet",
+      "Noch kein Ergebnis",
+      // "Up" is drawn as the German network pages and docs draw it.
+      "Up · 119 ms",
+      "Gemeldet",
+      "Für diesen Monitor ausgeschaltet",
+    ]);
+  });
+
+  test("Persian: no English word, Persian digits and unit, a bullet between", () => {
+    renderRowsIn("fa", EVERY_HEALTH());
+
+    const texts: Array<string> = healthTexts();
+
+    expect(texts).toHaveLength(7);
+    for (const text of texts) {
+      expect(text).not.toMatch(/[A-Za-z0-9]/);
+    }
+    expect(texts[4]).toBe("فعال \u2022 ۱۱۹ میلی\u200cثانیه");
+  });
+
+  test("Arabic: the unit as Arabic writes it, never a Latin ms", () => {
+    renderRowsIn("ar", EVERY_HEALTH());
+
+    const texts: Array<string> = healthTexts();
+
+    expect(texts[4]).toBe("يعمل · 119 ملي ث");
+    expect(texts[6]).toBe("معطّل لهذه المراقبة");
+    for (const text of texts) {
+      expect(text).not.toMatch(/[A-Za-z]/);
+    }
+  });
+
+  test("Persian: the agreement footnote counts in Persian digits", () => {
+    renderRowsIn(
+      "fa",
+      [upProbe("London"), upProbe("Ohio"), upProbe("Tokyo")],
+      2,
+    );
+
+    const footnote: string =
+      screen.getByTestId("monitor-probe-agreement").textContent || "";
+
+    expect(footnote).toBe(
+      translatorFor("fa").translateTemplate(
+        "A status change needs {{required}} of {{count}} connected probes to agree.",
+        { required: "۲", count: "۳" },
+      ),
+    );
+    expect(footnote).toContain("۲");
+    expect(footnote).toContain("۳");
+    expect(footnote).not.toMatch(/[0-9]/);
+  });
+
+  test("a probe's English message reads left to right on an Arabic or Persian page, and as the page on an English one", () => {
+    for (const language of ["ar", "fa"]) {
+      renderRowsIn(language, EVERY_HEALTH());
+
+      const cause: HTMLElement = screen.getByTestId(
+        "monitor-probe-failure-cause",
+      );
+
+      expect(cause).toHaveTextContent("Connection refused on port 443");
+      expect(cause).toHaveAttribute("dir", "ltr");
+      // Still clamped to two lines, with the whole message on hover.
+      expect(cause).toHaveClass("line-clamp-2");
+      expect(cause).toHaveAttribute("title", "Connection refused on port 443");
+      cleanup();
+    }
+
+    renderRowsIn("en", EVERY_HEALTH());
+    expect(
+      screen.getByTestId("monitor-probe-failure-cause"),
+    ).not.toHaveAttribute("dir");
+  });
+});
+
+describe("getProbeHealthText and getProbeAgreementText write in the translator's language", () => {
+  const row: (
+    health: MonitorOverviewProbeHealth,
+    responseTimeInMs?: number,
+  ) => MonitorOverviewProbeRow = (
+    health: MonitorOverviewProbeHealth,
+    responseTimeInMs?: number,
+  ): MonitorOverviewProbeRow => {
+    return {
+      probeId: "p",
+      name: "P",
+      isEnabled: true,
+      isConnected: true,
+      health: health,
+      ...(responseTimeInMs === undefined
+        ? {}
+        : {
+            latestResult: {
+              monitoredAt: NOW,
+              isOnline: true,
+              responseTimeInMs: responseTimeInMs,
+            },
+          }),
+    } as MonitorOverviewProbeRow;
+  };
+
+  test("each state is looked up: a pseudo-locale wraps every one", () => {
+    const pseudo: Translator = createTranslator(
+      (text: string): string | undefined => {
+        return `[${text}]`;
+      },
+      "en",
+    );
+
+    for (const health of Object.values(MonitorOverviewProbeHealth)) {
+      expect(getProbeHealthText(row(health), pseudo)).toBe(
+        `[${PROBE_HEALTH_WORDS[health]}]`,
+      );
+    }
+  });
+
+  test("an up probe's time in German grouping; only an up probe shows one", () => {
+    const german: Translator = translatorFor("de");
+
+    expect(
+      getProbeHealthText(row(MonitorOverviewProbeHealth.Up, 2410.4), german),
+    ).toBe("Up · 2.410 ms");
+    expect(
+      getProbeHealthText(row(MonitorOverviewProbeHealth.Late, 2410.4), german),
+    ).toBe("Verspätet");
+  });
+
+  test("Persian: the footnote's both and all forms are Persian, their counts in Persian digits", () => {
+    const persian: Translator = translatorFor("fa");
+    const rows: Array<MonitorOverviewProbeRow> = [
+      row(MonitorOverviewProbeHealth.Up),
+      row(MonitorOverviewProbeHealth.Up),
+      row(MonitorOverviewProbeHealth.Up),
+      row(MonitorOverviewProbeHealth.Up),
+    ];
+
+    const all: string | null = getProbeAgreementText({
+      rows: rows,
+      minimumProbeAgreement: undefined,
+      translator: persian,
+    });
+
+    expect(all).toBe(
+      persian.translateTemplate(
+        "A status change needs all {{count}} connected probes to agree.",
+        { count: "۴" },
+      ),
+    );
+    expect(all).not.toMatch(/[A-Za-z0-9]/);
+    expect(
+      getProbeAgreementText({
+        rows: rows.slice(0, 2),
+        minimumProbeAgreement: 2,
+        translator: persian,
+      }),
+    ).toBe(
+      persian.translateTemplate(
+        "A status change needs both connected probes to agree.",
+      ),
+    );
   });
 });

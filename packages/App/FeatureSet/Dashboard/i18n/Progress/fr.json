@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 51296,
-    "untranslated": 5278
+    "keys": 51794,
+    "untranslated": 5231
   },
   "sameAsEnglish": [
     " incidents",
@@ -445,6 +445,7 @@
     "Questions",
     "Quota",
     "Quotas",
+    "RTT",
     "RabbitMQ",
     "Radio",
     "Re-encrypt",

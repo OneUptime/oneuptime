@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 51296,
-    "untranslated": 9546
+    "keys": 51794,
+    "untranslated": 9462
   },
   "sameAsEnglish": [
     " is",
@@ -182,6 +182,7 @@
     "Headers (JSON)",
     "Hertz",
     "Histogram",
+    "Hop",
     "Host",
     "Hosts",
     "Hunt",
@@ -358,6 +359,7 @@
     "Purity//FA 6.7.3 · 48 volumes · 12 hosts",
     "Push",
     "Query",
+    "RTT",
     "RabbitMQ",
     "Radio",
     "Re-encrypt",

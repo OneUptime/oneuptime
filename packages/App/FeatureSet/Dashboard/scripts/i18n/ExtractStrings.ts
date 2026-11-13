@@ -159,6 +159,11 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   { directory: "packages/Common/Utils/Monitor", kind: "ui" },
   /*
+   * A duration in milliseconds in the reader's language ("{{value}} ms"):
+   * the Dashboard's views and the overview's hero write it with one helper.
+   */
+  { directory: "packages/Common/Utils/Milliseconds.ts", kind: "ui" },
+  /*
    * The monitor types' cards in Create Monitor's picker: each type's title
    * and what it alerts on, and the categories More lists them under.
    */

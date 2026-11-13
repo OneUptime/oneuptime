@@ -51831,5 +51831,6 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Time range: {{range}}. Try adjusting filters or expanding the time range.",
   "On-Call Policy Created": "On-Call Policy Created",
   "On-Call Schedule Added": "On-Call Schedule Added",
-  "On-Call Schedule Removed": "On-Call Schedule Removed"
+  "On-Call Schedule Removed": "On-Call Schedule Removed",
+  "Turned off for this monitor": "Turned off for this monitor"
 }

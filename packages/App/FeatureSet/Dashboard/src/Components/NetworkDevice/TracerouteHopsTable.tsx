@@ -103,13 +103,26 @@ const TracerouteHopsTable: FunctionComponent<ComponentProps> = (
                 key={hop.hopNumber}
                 className={hop.isTimeout ? "text-red-700" : ""}
               >
-                <td className="pr-4 py-1 font-mono">{hop.hopNumber}</td>
+                {/*
+                 * The hop's number as the reader's language writes a
+                 * number (Persian digits beside the Persian times), the
+                 * host as the network named it, read left to right on
+                 * every page so its address stays in its brackets.
+                 */}
+                <td
+                  className="pr-4 py-1 tabular-nums"
+                  data-testid="traceroute-hop-number"
+                >
+                  {translator.formatNumber(hop.hopNumber)}
+                </td>
                 <td className="pr-4 py-1 font-mono break-all">
-                  {hop.isTimeout
-                    ? "* * *"
-                    : `${hop.hostName ? hop.hostName + " " : ""}${
-                        hop.address ? `(${hop.address})` : ""
-                      }`}
+                  <bdi dir="ltr">
+                    {hop.isTimeout
+                      ? "* * *"
+                      : `${hop.hostName ? hop.hostName + " " : ""}${
+                          hop.address ? `(${hop.address})` : ""
+                        }`}
+                  </bdi>
                 </td>
                 <td className="py-1">
                   {hop.roundTripTimeInMS !== undefined

@@ -35,6 +35,7 @@ import {
 } from "../../../Types/Monitor/MonitorUptimeSummary";
 import ObjectID from "../../../Types/ObjectID";
 import { formatDurationCompactInLanguage } from "../../../Utils/Slo/SloDuration";
+import { formatMilliseconds } from "../../../Utils/Milliseconds";
 import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
@@ -966,6 +967,21 @@ const SAME_AS_ENGLISH: Record<string, ReadonlyArray<string>> = {
   "{{count}} incidents_one": ["fr", "nl", "sv"],
   "{{count}} minutes": ["fr"],
   "{{count}} minutes_one": ["fr"],
+  // The unit as SI writes it: Russian, Chinese, Persian and Arabic word it.
+  "{{value}} ms": [
+    "de",
+    "fr",
+    "es",
+    "it",
+    "pt",
+    "nl",
+    "da",
+    "no",
+    "sv",
+    "ja",
+    "ko",
+    "hi",
+  ],
 };
 
 /*
@@ -1148,9 +1164,18 @@ describe("the monitor overview in every locale", () => {
       );
       // What the monitor's owner named stays as written.
       expect(translated.badge.text).toBe("Operational");
-      expect(factOf(translated, "latest-result").value).toContain(
-        "120 ms · HTTP 200",
+      /*
+       * The response time in the language's digits and unit, as every
+       * monitor summary writes a duration; the status code as HTTP has it.
+       */
+      const latest: string = factOf(translated, "latest-result").value;
+
+      expect(latest).toContain(
+        formatMilliseconds(translatorFor(language), 120, {
+          maximumFractionDigits: 0,
+        }),
       );
+      expect(latest.endsWith("HTTP 200")).toBe(true);
     },
   );
 });
@@ -1366,6 +1391,150 @@ describe("the monitor overview in German", () => {
     expect(
       build(running(MonitorType.CustomJavaScriptCode), GERMAN).target?.value,
     ).toBe("Eigenes Skript");
+  });
+});
+
+/*
+ * The Latest result and Probes facts write their figures as the reader's
+ * language writes them (#7416): a response time in the language's digits
+ * and unit, as every monitor summary writes a duration, the facts of one
+ * line set apart as the language sets them, and each count in the
+ * language's digits. The status code stays as the server answered it.
+ */
+describe("the latest result and the probes in the reader's digits", () => {
+  const latestOf: (
+    language: string | undefined,
+    overrides?: Partial<MonitorOverviewProbeSummary>,
+  ) => string = (
+    language: string | undefined,
+    overrides?: Partial<MonitorOverviewProbeSummary>,
+  ): string => {
+    return factOf(
+      build(
+        running(MonitorType.Website, {
+          probes: probes({
+            latestResult: {
+              probeId: "11111111-1111-4111-8111-111111111111",
+              probeName: "London",
+              monitoredAt: secondsAgo(60),
+              isOnline: false,
+              responseTimeInMs: 2410.4,
+              responseCode: 503,
+              failureCause: "Service Unavailable",
+            },
+            ...overrides,
+          }),
+        }),
+        language ? translatorFor(language) : undefined,
+      ),
+      "latest-result",
+    ).value;
+  };
+
+  test("English: the response time grouped as English groups it", () => {
+    expect(latestOf(undefined)).toBe("Down · 2,410 ms · HTTP 503");
+    expect(latestOf("en")).toBe("Down · 2,410 ms · HTTP 503");
+  });
+
+  test("German: German grouping, the unit as German writes it", () => {
+    expect(latestOf("de")).toBe("Ausgefallen · 2.410 ms · HTTP 503");
+  });
+
+  test("Persian: Persian digits and unit, set apart by bullets", () => {
+    const latest: string = latestOf("fa");
+
+    expect(latest).toBe(
+      "از کار افتاده \u2022 ۲٬۴۱۰ میلی\u200cثانیه \u2022 HTTP 503",
+    );
+    // Never the Latin figure, unit or middle dot, which reads as a zero.
+    expect(latest).not.toMatch(/2,?410|\bms\b|\u00b7/);
+  });
+
+  test("Arabic: Latin digits, the unit as Arabic writes it", () => {
+    const latest: string = latestOf("ar");
+
+    expect(latest).toBe("متوقف · 2,410 ملي ث · HTTP 503");
+    expect(latest).not.toMatch(/\bms\b/);
+  });
+
+  test("Russian and Chinese: each its own unit and grouping", () => {
+    expect(latestOf("ru")).toBe("Недоступен · 2\u00a0410 мс · HTTP 503");
+    expect(latestOf("zh-CN")).toBe("宕机 · 2,410 毫秒 · HTTP 503");
+  });
+
+  test("probes that disagree: the counts in the reader's digits", () => {
+    const mixed: (language: string) => string = (language: string): string => {
+      return latestOf(language, { upCount: 12, downCount: 3 });
+    };
+
+    expect(mixed("en")).toBe("Mixed · 12 up, 3 down");
+    expect(mixed("fa")).toBe(
+      translatorFor("fa").translateTemplate(
+        "Mixed · {{up}} up, {{down}} down",
+        {
+          up: "۱۲",
+          down: "۳",
+        },
+      ),
+    );
+    expect(mixed("fa")).toContain("۱۲");
+    expect(mixed("fa")).not.toMatch(/[0-9]/);
+  });
+
+  test("the Probes fact: its counts in Persian digits, its parts set apart by bullets", () => {
+    const fact: MonitorOverviewFact = factOf(
+      build(
+        running(MonitorType.Website, {
+          probes: probes({
+            attachedCount: 14,
+            enabledCount: 12,
+            reportingCount: 11,
+            disabledCount: 2,
+            disconnectedCount: 1,
+            downCount: 3,
+          }),
+        }),
+        translatorFor("fa"),
+      ),
+      "probes",
+    );
+    const fa: Translator = translatorFor("fa");
+
+    expect(fact.value).toBe(
+      fa.translateTemplate("{{reporting}} of {{enabled}} reporting", {
+        reporting: "۱۱",
+        enabled: "۱۲",
+      }),
+    );
+    expect(fact.secondary).toBe(
+      [
+        fa.translateTemplate("{{count}} down", { count: "۳" }),
+        fa.translateTemplate("{{count}} disabled", { count: "۲" }),
+        fa.translateTemplate("{{count}} disconnected", { count: "۱" }),
+      ].join(" \u2022 "),
+    );
+    expect(`${fact.value} ${fact.secondary}`).not.toMatch(/[0-9]|\u00b7/);
+  });
+
+  test("the Probes fact in English is as it was", () => {
+    const fact: MonitorOverviewFact = factOf(
+      build(
+        running(MonitorType.Website, {
+          probes: probes({
+            attachedCount: 14,
+            enabledCount: 12,
+            reportingCount: 11,
+            disabledCount: 2,
+            disconnectedCount: 1,
+            downCount: 3,
+          }),
+        }),
+      ),
+      "probes",
+    );
+
+    expect(fact.value).toBe("11 of 12 reporting");
+    expect(fact.secondary).toBe("3 down · 2 disabled · 1 disconnected");
   });
 });
 

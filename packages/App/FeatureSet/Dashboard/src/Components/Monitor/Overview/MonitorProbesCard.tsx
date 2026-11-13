@@ -9,6 +9,7 @@ import Probe from "Common/Models/DatabaseModels/Probe";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 import ProbeElement from "Common/UI/Components/Probe/Probe";
 import {
   MonitorOverviewProbeHealth,
@@ -18,11 +19,13 @@ import {
 import React, { FunctionComponent, ReactElement } from "react";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import {
-  translateTemplate,
+  formatInline,
+  translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
+import { formatMilliseconds } from "../../../Utils/Milliseconds";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -39,32 +42,59 @@ export interface ComponentProps {
   minimumProbeAgreement?: number | undefined;
 }
 
-// The words on the right of a probe row.
-export const getProbeHealthText: (row: MonitorOverviewProbeRow) => string = (
-  row: MonitorOverviewProbeRow,
-): string => {
-  switch (row.health) {
-    case MonitorOverviewProbeHealth.Up: {
-      const responseTimeInMs: number | undefined =
-        row.latestResult?.responseTimeInMs;
+/*
+ * What each probe's state is called on the right of its row. Up, Down,
+ * Late and the rest are the words the overview's hero already says, so the
+ * card and the hero name a state alike in every language.
+ */
+export const PROBE_HEALTH_WORDS: Record<MonitorOverviewProbeHealth, string> = {
+  [MonitorOverviewProbeHealth.Up]: translationKey("Up"),
+  [MonitorOverviewProbeHealth.Down]: translationKey("Down"),
+  [MonitorOverviewProbeHealth.Disconnected]: translationKey("Disconnected"),
+  [MonitorOverviewProbeHealth.Late]: translationKey("Late"),
+  [MonitorOverviewProbeHealth.NoResultYet]: translationKey("No result yet"),
+  [MonitorOverviewProbeHealth.TurnedOff]: translationKey(
+    "Turned off for this monitor",
+  ),
+  [MonitorOverviewProbeHealth.Reported]: translationKey("Reported"),
+};
 
-      return responseTimeInMs !== undefined
-        ? `Up · ${Math.round(responseTimeInMs)} ms`
-        : "Up";
-    }
-    case MonitorOverviewProbeHealth.Down:
-      return "Down";
-    case MonitorOverviewProbeHealth.Disconnected:
-      return "Disconnected";
-    case MonitorOverviewProbeHealth.Late:
-      return "Late";
-    case MonitorOverviewProbeHealth.NoResultYet:
-      return "No result yet";
-    case MonitorOverviewProbeHealth.TurnedOff:
-      return "Turned off for this monitor";
-    default:
-      return "Reported";
+/*
+ * The words on the right of a probe row, in the reader's language: the
+ * state, and for a probe that is up its latest response time, written as
+ * every monitor summary writes a duration (formatMilliseconds: "Up · 182
+ * ms", "فعال • ۱۸۲ میلی‌ثانیه"). The two are set apart as the reader's
+ * language sets two facts on one line (formatInline).
+ */
+export const getProbeHealthText: (
+  row: MonitorOverviewProbeRow,
+  translator: Translator,
+) => string = (
+  row: MonitorOverviewProbeRow,
+  translator: Translator,
+): string => {
+  const state: string = translator.translateTemplate(
+    PROBE_HEALTH_WORDS[row.health] ||
+      PROBE_HEALTH_WORDS[MonitorOverviewProbeHealth.Reported],
+  );
+  const responseTimeInMs: number | undefined =
+    row.health === MonitorOverviewProbeHealth.Up
+      ? row.latestResult?.responseTimeInMs
+      : undefined;
+
+  if (responseTimeInMs === undefined) {
+    return state;
   }
+
+  return formatInline(
+    [
+      state,
+      formatMilliseconds(translator, responseTimeInMs, {
+        maximumFractionDigits: 0,
+      }),
+    ],
+    translator,
+  );
 };
 
 /*
@@ -74,15 +104,19 @@ export const getProbeHealthText: (row: MonitorOverviewProbeRow) => string = (
  * is capped at how many take part. So 3 required with one of three probes
  * disconnected is 2 of 2, never "3 of 2". A probe whose connection is not
  * known counts as connected, as it does everywhere else on this card.
- * Null when no agreement is needed: one probe, or a minimum of one.
+ * Null when no agreement is needed: one probe, or a minimum of one. Its
+ * counts are written in the reader's digits ("۲ از ۳ پراب متصل").
  */
 export const getProbeAgreementText: (data: {
   rows: Array<MonitorOverviewProbeRow>;
   minimumProbeAgreement: number | null | undefined;
+  translator: Translator;
 }) => string | null = (data: {
   rows: Array<MonitorOverviewProbeRow>;
   minimumProbeAgreement: number | null | undefined;
+  translator: Translator;
 }): string | null => {
+  const translator: Translator = data.translator;
   const activeCount: number = data.rows.filter(
     (row: MonitorOverviewProbeRow) => {
       return row.isEnabled && row.isConnected !== false;
@@ -102,17 +136,22 @@ export const getProbeAgreementText: (data: {
   }
 
   if (requiredCount < activeCount) {
-    return translateTemplate(
+    return translator.translateTemplate(
       "A status change needs {{required}} of {{count}} connected probes to agree.",
-      { required: requiredCount, count: activeCount },
+      {
+        required: translator.formatNumber(requiredCount),
+        count: translator.formatNumber(activeCount),
+      },
     );
   }
 
   return activeCount === 2
-    ? translateTemplate("A status change needs both connected probes to agree.")
-    : translateTemplate(
+    ? translator.translateTemplate(
+        "A status change needs both connected probes to agree.",
+      )
+    : translator.translateTemplate(
         "A status change needs all {{count}} connected probes to agree.",
-        { count: activeCount },
+        { count: translator.formatNumber(activeCount) },
       );
 };
 
@@ -197,13 +236,19 @@ const MonitorProbesCard: FunctionComponent<ComponentProps> = (
               <>{translator.translateText("No result yet")}</>
             )}
           </p>
+          {/*
+           * The probe's own message, as it wrote it (English): drawn the
+           * way its words read, so on an Arabic or Persian page it starts
+           * at its start and keeps its full stop at its end.
+           */}
           {failureCause ? (
-            <p
+            <IsolatedLine
+              as="p"
               className="mt-0.5 line-clamp-2 break-words text-xs text-gray-500"
               title={failureCause}
-            >
-              {failureCause}
-            </p>
+              text={failureCause}
+              dataTestId="monitor-probe-failure-cause"
+            />
           ) : (
             <></>
           )}
@@ -214,7 +259,7 @@ const MonitorProbesCard: FunctionComponent<ComponentProps> = (
             PROBE_HEALTH_TEXT_CLASS[row.health]
           }`}
         >
-          {getProbeHealthText(row)}
+          {getProbeHealthText(row, translator)}
         </span>
       </li>
     );
@@ -278,6 +323,7 @@ const MonitorProbesCard: FunctionComponent<ComponentProps> = (
     const agreementText: string | null = getProbeAgreementText({
       rows: rows,
       minimumProbeAgreement: props.minimumProbeAgreement,
+      translator: translator,
     });
 
     return (

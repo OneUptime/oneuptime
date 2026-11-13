@@ -10,7 +10,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { createInstance, i18n } from "i18next";
 import React, { ReactElement } from "react";
 import { I18nextProvider } from "react-i18next";
@@ -19,6 +19,7 @@ import { getJestSpyOn } from "../../Spy";
 import englishLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import germanLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import persianLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
+import arabicLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/ar.json";
 import MonitorOverviewHero, {
   ComponentProps as HeroProps,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/MonitorOverviewHero";
@@ -122,6 +123,7 @@ const LOCALES: Record<string, Record<string, unknown>> = {
   en: englishLocale as Record<string, unknown>,
   de: germanLocale as Record<string, unknown>,
   fa: persianLocale as Record<string, unknown>,
+  ar: arabicLocale as Record<string, unknown>,
 };
 
 beforeAll(async () => {
@@ -369,6 +371,110 @@ describe("the hero's target line names the monitor type in the reader's words", 
     drawHero({ language: "en", monitorType: MonitorType.SSLCertificate });
 
     expect(textOf("monitor-overview-target")).toContain("SSL Certificate");
+  });
+});
+
+describe("the hero's latest result in the reader's digits and unit (#7416)", () => {
+  // A failed check: its response time, its status code and its cause.
+  const drawFailedCheck: (language: string) => void = (
+    language: string,
+  ): void => {
+    drawHero({
+      language: language,
+      overrides: {
+        probes: {
+          ...probeSummary(),
+          latestResult: {
+            probeId: "33333333-3333-4333-8333-333333333333",
+            probeName: "London",
+            monitoredAt: secondsAgo(60),
+            isOnline: false,
+            responseTimeInMs: 2410.4,
+            responseCode: 503,
+            failureCause: "Connection refused.",
+          },
+        },
+      },
+    });
+  };
+
+  const latestValue: () => string = (): string => {
+    const fact: HTMLElement = screen.getByTestId(
+      "monitor-overview-fact-latest-result",
+    );
+    const secondary: string =
+      within(fact).queryByTestId("monitor-overview-secondary-line")
+        ?.textContent || "";
+    const dd: string = fact.querySelector("dd")?.textContent || "";
+
+    return dd.slice(0, dd.length - secondary.length).trim();
+  };
+
+  const cause: () => HTMLElement = (): HTMLElement => {
+    return within(
+      screen.getByTestId("monitor-overview-fact-latest-result"),
+    ).getByTestId("monitor-overview-secondary-line");
+  };
+
+  // The isolate the line's words are drawn in, when they read against the page.
+  const isolate: () => HTMLElement | null = (): HTMLElement | null => {
+    return cause().querySelector("bdi");
+  };
+
+  test("English, as it always read, its figure grouped", () => {
+    drawFailedCheck("en");
+
+    expect(latestValue()).toBe("Down · 2,410 ms · HTTP 503");
+    expect(cause()).toHaveTextContent("Connection refused.");
+    expect(isolate()).toBeNull();
+  });
+
+  test("German: the verdict in German, the figure grouped as German groups it", () => {
+    drawFailedCheck("de");
+
+    expect(latestValue()).toBe("Ausgefallen · 2.410 ms · HTTP 503");
+    // An English cause on a page that reads left to right needs no isolate.
+    expect(isolate()).toBeNull();
+    expect(cause()).toHaveTextContent("Connection refused.");
+  });
+
+  test("Persian: Persian digits and unit, bullets between, the cause read left to right", () => {
+    drawFailedCheck("fa");
+
+    const latest: string = latestValue();
+
+    expect(latest).toBe(
+      "از کار افتاده \u2022 ۲٬۴۱۰ میلی\u200cثانیه \u2022 HTTP 503",
+    );
+    expect(latest.replace("HTTP", "")).not.toMatch(LATIN_LETTERS);
+    expect(latest).not.toMatch(/2,?410|\u00b7/);
+    // The probe's English message keeps its full stop at its end.
+    expect(isolate()).toHaveAttribute("dir", "ltr");
+    expect(isolate()).toHaveTextContent("Connection refused.");
+  });
+
+  test("Arabic: Latin digits, the unit as Arabic writes it, the cause read left to right", () => {
+    drawFailedCheck("ar");
+
+    const latest: string = latestValue();
+
+    expect(latest).toBe("متوقف · 2,410 ملي ث · HTTP 503");
+    expect(latest).not.toMatch(/\bms\b/);
+    expect(isolate()).toHaveAttribute("dir", "ltr");
+    expect(isolate()).toHaveTextContent("Connection refused.");
+  });
+
+  test("the reader's words under the value read as the page does, however Latin the name in them", () => {
+    // "from London": more Latin letters than Persian ones, yet Persian words.
+    for (const language of ["fa", "ar"]) {
+      drawHero({ language: language });
+
+      expect(cause().textContent).toContain("London");
+      expect(cause().textContent).not.toContain("from");
+      expect(isolate()).toBeNull();
+      expect(cause()).not.toHaveAttribute("dir");
+      cleanup();
+    }
   });
 });
 

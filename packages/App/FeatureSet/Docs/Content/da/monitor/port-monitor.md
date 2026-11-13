@@ -27,7 +27,7 @@ sequenceDiagram
 
 Sonden åbner kun TCP-forbindelser: en tjeneste, der kun lytter på UDP, som en SNMP-agent, kan ikke tjekkes med en port-monitor.
 
-Når et tjek fejler, sporer sonden også ruten til værten og slår dens navn op og vedhæfter det, den fandt, til resultatet som **Network Path at Time of Failure**, så du kan se, hvor ruten brød sammen. En sonde, der har mistet sin egen netværksforbindelse, rapporterer intet resultat, så den kan ikke markere din tjeneste som offline.
+Når et tjek fejler, sporer sonden også ruten til værten og slår dens navn op og vedhæfter det, den fandt, til resultatet som **Netværkssti på fejltidspunktet**, så du kan se, hvor ruten brød sammen. En sonde, der har mistet sin egen netværksforbindelse, rapporterer intet resultat, så den kan ikke markere din tjeneste som offline.
 
 ## Før du starter
 
@@ -164,7 +164,7 @@ Gør vinduet længere end overvågningsintervallet, så det rummer flere tjek: e
 ## Fejlfinding
 
 :::details Tjenesten kører, men monitoren siger offline
-Sonden kunne ikke åbne en forbindelse: en firewall dropper den, tjenesten lytter kun på en privat grænseflade, eller porten er forkert. Hændelsens grundårsag og **Overvågningslogs** på monitoren viser fejlen, og **Network Path at Time of Failure** viser, hvor langt ruten nåede. Lad sonderne komme gennem firewallen, eller brug en [brugerdefineret sonde](/docs/probe/custom-probe) inde i netværket.
+Sonden kunne ikke åbne en forbindelse: en firewall dropper den, tjenesten lytter kun på en privat grænseflade, eller porten er forkert. Hændelsens grundårsag og **Overvågningslogs** på monitoren viser fejlen, og **Netværkssti på fejltidspunktet** viser, hvor langt ruten nåede. Lad sonderne komme gennem firewallen, eller brug en [brugerdefineret sonde](/docs/probe/custom-probe) inde i netværket.
 :::
 
 :::details DNS-opslagstiden er altid tom

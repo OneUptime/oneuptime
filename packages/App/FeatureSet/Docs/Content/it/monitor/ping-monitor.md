@@ -23,7 +23,7 @@ flowchart TB
     trace --> criteria
 ```
 
-Quando un controllo fallisce, la sonda traccia anche il percorso verso l'host e ne cerca il nome, e allega quanto trovato al risultato come **Network Path at Time of Failure**, così potete vedere dove il percorso si è interrotto.
+Quando un controllo fallisce, la sonda traccia anche il percorso verso l'host e ne cerca il nome, e allega quanto trovato al risultato come **Percorso di rete al momento dell'errore**, così potete vedere dove il percorso si è interrotto.
 
 > [!NOTE]
 > Alcuni provider di hosting bloccano ICMP sulle macchine su cui gira una sonda. Una sonda che non può inviare ping del tutto controlla invece la porta TCP `80` dell'host, così il monitor dice comunque se l'host è raggiungibile. In quel caso perdita di pacchetti e jitter non vengono misurati.
@@ -136,7 +136,7 @@ Per avvisare solo quando la latenza resta alta, attivate **Valuta questo criteri
 ## Risoluzione dei problemi
 
 :::details L'host è attivo, ma il monitor lo dà offline
-L'host, o un firewall davanti a esso, non risponde alle richieste di eco ICMP della sonda. Molti server e reti cloud scartano il ping per impostazione predefinita. Consentite le richieste di eco ICMP dalle sonde, oppure sorvegliate invece un servizio sull'host con un [monitor porta](/docs/monitor/port-monitor). **Network Path at Time of Failure**, sul controllo fallito, mostra fin dove è arrivato il percorso.
+L'host, o un firewall davanti a esso, non risponde alle richieste di eco ICMP della sonda. Molti server e reti cloud scartano il ping per impostazione predefinita. Consentite le richieste di eco ICMP dalle sonde, oppure sorvegliate invece un servizio sull'host con un [monitor porta](/docs/monitor/port-monitor). **Percorso di rete al momento dell'errore**, sul controllo fallito, mostra fin dove è arrivato il percorso.
 :::
 
 :::details Il controllo fallisce con «This probe could not resolve» per l'host

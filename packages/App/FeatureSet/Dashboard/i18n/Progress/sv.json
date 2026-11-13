@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 51296,
-    "untranslated": 9518
+    "keys": 51794,
+    "untranslated": 9434
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -218,6 +218,7 @@
     "Pull request",
     "Pull requests",
     "Push",
+    "RTT",
     "RabbitMQ",
     "Radio",
     "Re-encrypt",

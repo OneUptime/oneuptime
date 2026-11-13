@@ -19,7 +19,12 @@ import PermissionGate, {
 import ProjectUtil from "Common/UI/Utils/Project";
 import { MonitorOverviewResponseTime } from "Common/Utils/Monitor/MonitorOverviewProbeUtil";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
-import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  composedValue,
+  ComposedValue,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
@@ -51,12 +56,27 @@ export const RESPONSE_TIME_CARD_DESCRIPTION: string = translationKey(
 );
 
 /*
+ * A figure of the sentence below, in the sentence's own digits: Persian
+ * ones in the Persian sentence ("۱٬۲۳۴"), and as English writes it while a
+ * language has not worded the sentence yet.
+ */
+const formatInSentenceDigits: (value: number) => ComposedValue = (
+  value: number,
+): ComposedValue => {
+  return composedValue((sentence: Translator): string => {
+    return sentence.formatNumber(value);
+  });
+};
+
+/*
  * "across 3 probes", or "across 2 of 3 probes" when some probes' latest
  * result had no response time to count.
  */
 /*
  * The latest numbers the probes reported, as one sentence: how many of
- * them responded decides its wording.
+ * them responded decides its wording. Each language words the unit after
+ * its figures ("ms", "میلی‌ثانیه", "ملي ث"), and writes the figures in its
+ * own digits.
  */
 export const getLatestResponseTimeText: (
   responseTime: MonitorOverviewResponseTime,
@@ -65,10 +85,14 @@ export const getLatestResponseTimeText: (
   responseTime: MonitorOverviewResponseTime,
   translator: Translator,
 ): string => {
-  const values: { median: number; min: number; max: number } = {
-    median: responseTime.medianMs,
-    min: responseTime.minMs,
-    max: responseTime.maxMs,
+  const values: {
+    median: ComposedValue;
+    min: ComposedValue;
+    max: ComposedValue;
+  } = {
+    median: formatInSentenceDigits(responseTime.medianMs),
+    min: formatInSentenceDigits(responseTime.minMs),
+    max: formatInSentenceDigits(responseTime.maxMs),
   };
 
   if (responseTime.totalCount > responseTime.respondedCount) {
@@ -76,8 +100,8 @@ export const getLatestResponseTimeText: (
       "Latest: {{median}} ms median across {{responded}} of {{total}} probes ({{min}}–{{max}} ms)",
       {
         ...values,
-        responded: responseTime.respondedCount,
-        total: responseTime.totalCount,
+        responded: formatInSentenceDigits(responseTime.respondedCount),
+        total: formatInSentenceDigits(responseTime.totalCount),
       },
     );
   }

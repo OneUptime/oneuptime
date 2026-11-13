@@ -22015,9 +22015,9 @@
   "Last report: none yet": "آخر تقرير: لا يوجد بعد",
   "Last request {{time}}": "آخر طلب {{time}}",
   "Last request: none yet": "آخر طلب: لا يوجد بعد",
-  "Latest: {{median}} ms median across {{count}} probes ({{min}}–{{max}} ms)": "الأحدث: الوسيط {{median}} ms عبر {{count}} من المسابير ({{min}}–{{max}} ms)",
-  "Latest: {{median}} ms median across {{count}} probes ({{min}}–{{max}} ms)_one": "الأحدث: الوسيط {{median}} ms عبر {{count}} مسبار ({{min}}–{{max}} ms)",
-  "Latest: {{median}} ms median across {{responded}} of {{total}} probes ({{min}}–{{max}} ms)": "الأحدث: الوسيط {{median}} ms عبر {{responded}} من {{total}} من المسابير ({{min}}–{{max}} ms)",
+  "Latest: {{median}} ms median across {{count}} probes ({{min}}–{{max}} ms)": "الأحدث: الوسيط {{median}} ملي ث عبر {{count}} من المسابير ({{min}}–{{max}} ملي ث)",
+  "Latest: {{median}} ms median across {{count}} probes ({{min}}–{{max}} ms)_one": "الأحدث: الوسيط {{median}} ملي ث عبر {{count}} مسبار ({{min}}–{{max}} ملي ث)",
+  "Latest: {{median}} ms median across {{responded}} of {{total}} probes ({{min}}–{{max}} ms)": "الأحدث: الوسيط {{median}} ملي ث عبر {{responded}} من {{total}} من المسابير ({{min}}–{{max}} ملي ث)",
   "Layer {{number}}": "الطبقة {{number}}",
   "Left divided by Sessions: the share of the sessions that visited this page and ended on it. Sessions that saw only this page are included, and it is per session, not per visit.": "«المغادرة» مقسومةً على «الجلسات»: نسبة الجلسات التي زارت هذه الصفحة وانتهت عليها. وتدخل فيها الجلسات التي لم تشاهد سوى هذه الصفحة، وهي محسوبة لكل جلسة لا لكل زيارة.",
   "Line {{line}}: {{message}}": "السطر {{line}}: {{message}}",
@@ -51831,5 +51831,6 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "النطاق الزمني: {{range}}. جرّب تعديل عوامل التصفية أو توسيع النطاق الزمني.",
   "On-Call Policy Created": "أُنشئت سياسة مناوبة",
   "On-Call Schedule Added": "أُضيف جدول مناوبة",
-  "On-Call Schedule Removed": "أُزيل جدول مناوبة"
+  "On-Call Schedule Removed": "أُزيل جدول مناوبة",
+  "Turned off for this monitor": "معطّل لهذه المراقبة"
 }

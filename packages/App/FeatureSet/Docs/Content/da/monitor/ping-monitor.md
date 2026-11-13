@@ -23,7 +23,7 @@ flowchart TB
     trace --> criteria
 ```
 
-Når et tjek fejler, sporer sonden også ruten til værten og slår dens navn op og vedhæfter det, den fandt, til resultatet som **Network Path at Time of Failure**, så du kan se, hvor ruten brød sammen.
+Når et tjek fejler, sporer sonden også ruten til værten og slår dens navn op og vedhæfter det, den fandt, til resultatet som **Netværkssti på fejltidspunktet**, så du kan se, hvor ruten brød sammen.
 
 > [!NOTE]
 > Nogle hostingudbydere blokerer ICMP på de maskiner, en sonde kører på. En sonde, der slet ikke kan sende ping, tjekker i stedet TCP-port `80` på værten, så monitoren stadig siger, om værten kan nås. Pakketab og jitter måles så ikke.
@@ -136,7 +136,7 @@ For kun at advare, når latensen forbliver høj, slår du **Evaluér disse krite
 ## Fejlfinding
 
 :::details Værten kører, men monitoren siger offline
-Værten, eller en firewall foran den, svarer ikke på ICMP-ekkoanmodninger fra sonden. Mange servere og cloudnetværk dropper ping som standard. Tillad ICMP-ekkoanmodninger fra sonderne, eller overvåg i stedet en tjeneste på værten med en [port-monitor](/docs/monitor/port-monitor). **Network Path at Time of Failure** på det mislykkede tjek viser, hvor langt ruten nåede.
+Værten, eller en firewall foran den, svarer ikke på ICMP-ekkoanmodninger fra sonden. Mange servere og cloudnetværk dropper ping som standard. Tillad ICMP-ekkoanmodninger fra sonderne, eller overvåg i stedet en tjeneste på værten med en [port-monitor](/docs/monitor/port-monitor). **Netværkssti på fejltidspunktet** på det mislykkede tjek viser, hvor langt ruten nåede.
 :::
 
 :::details Tjekket fejler med "This probe could not resolve" for værten
