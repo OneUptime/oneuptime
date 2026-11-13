@@ -46,6 +46,11 @@ export interface CustomElementProps {
   onChange?: ((value: any) => void) | undefined;
   onBlur?: () => void;
   initialValue?: any;
+  /*
+   * The field's placeholder as written, in English: looked up where it is
+   * drawn, once. Input, TextArea, Dropdown and the other controls do that
+   * for a placeholder they are given.
+   */
   placeholder?: string | undefined;
   /*
    * The id of the field's label, so a custom control can be named by it the
@@ -155,6 +160,13 @@ export default interface Field<TEntity> {
   title?: string;
   description?: string | ReactElement;
   field?: SelectFormFields<TEntity> | undefined;
+  /*
+   * In English. FormField hands it over as written, and the control that
+   * draws it looks it up in the reader's language, once (#7663). A sentence
+   * built around a value ("Select {{axis}}") is the page's to translate,
+   * with translateTemplate: the control finds no key for the translation
+   * and draws it as it is.
+   */
   placeholder?: string;
   showEvenIfPermissionDoesNotExist?: boolean; // show this field even if user does not have permissions to view.
   disabled?: boolean;
@@ -525,7 +537,8 @@ export default interface Field<TEntity> {
   /*
    * The placeholder is an identifier a program reads, not words: an OIDC
    * claim's name ("email", "name"), the scopes sign-in asks for ("openid
-   * email profile"). Drawn as given, never looked up, as a product's name
+   * email profile"), an OpenStack domain's name or ID ("Default",
+   * "default"). Drawn as given, never looked up, as a product's name
    * is (isTitleProductName): the identity provider sends the claim under
    * exactly that name, and a name that is interface text too would
    * otherwise be shown as that text's translation - "email" read "E-Mail"
