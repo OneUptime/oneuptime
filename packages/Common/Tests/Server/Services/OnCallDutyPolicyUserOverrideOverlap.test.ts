@@ -521,6 +521,26 @@ describe("through the service", () => {
         `Jane Doe is already covered by Kim Ito on this policy from ${said("12:00")} to ${said("14:00")}. Change the times, or edit that override.`,
       );
     });
+
+    test("where a skip that starts first and one that names who covers are both in the way, it names the one that covers: the one used there, as the dialog names it", async () => {
+      // Saved before the rule: a skip of Jane from 12:00 PM, into Bob's 1:00 PM to 5:00 PM.
+      table.rows.push(
+        savedRow({
+          id: "7630aaaa-0000-4000-8000-0000000000d6",
+          cover: null,
+          from: "12:00",
+          until: "14:00",
+          addedAt: "2026-11-02T09:00",
+        }),
+      );
+
+      const refusal: Error = await refusalOf(
+        add({ from: "13:30", until: "16:00" }),
+      );
+
+      expect(refusal.message).toBe(ISSUE_REFUSAL);
+      expect(table.inserts).toHaveLength(0);
+    });
   });
 
   describe("an add is decided under the project's lock on override times", () => {

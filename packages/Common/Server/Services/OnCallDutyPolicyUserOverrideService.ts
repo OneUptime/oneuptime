@@ -121,6 +121,30 @@ const idText: (value: unknown) => string = (value: unknown): string => {
 };
 
 /*
+ * How many of the same person's overrides in the way the overlap check
+ * reads, to name the one used first: more than one is in the way only where
+ * overlaps were saved before the rule.
+ */
+const OVERLAP_CONFLICTS_READ: number = 50;
+
+// An override the overlap check read, as UserOverrideOverlap weighs it.
+const toOverlapTimes: (
+  row: OnCallDutyPolicyUserOverride,
+) => UserOverrideTimes = (
+  row: OnCallDutyPolicyUserOverride,
+): UserOverrideTimes => {
+  return {
+    id: idText(row._id) || null,
+    overrideUserId: idText(row.overrideUserId),
+    onCallDutyPolicyId: idText(row.onCallDutyPolicyId) || null,
+    routeAlertsToUserId: idText(row.routeAlertsToUserId) || null,
+    startsAt: OneUptimeDate.fromString(row.startsAt!),
+    endsAt: OneUptimeDate.fromString(row.endsAt!),
+    createdAt: row.createdAt ? OneUptimeDate.fromString(row.createdAt) : null,
+  };
+};
+
+/*
  * The subset of OnCallDutyPolicyScheduleService the override hooks call.
  * Lazily required (see refreshRostersForOverrideUser) because that service
  * imports this one.
@@ -765,15 +789,31 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
       .find({
         where: where as FindOptionsWhere<OnCallDutyPolicyUserOverride>,
         select: OVERLAP_COLUMNS,
-        // The one used first where they overlap: named first.
         order: {
           startsAt: "ASC",
           createdAt: "ASC",
         },
-        take: 1,
+        take: OVERLAP_CONFLICTS_READ,
       });
 
-    const conflict: OnCallDutyPolicyUserOverride | undefined = conflicts[0];
+    /*
+     * Named: the one used first where they overlap (compareUse) - one that
+     * names who covers over a skip, then the one that starts first, then the
+     * one added first - as the dialog's notice and the Overlaps marks name it.
+     */
+    const conflict: OnCallDutyPolicyUserOverride | undefined = [
+      ...conflicts,
+    ].sort(
+      (
+        a: OnCallDutyPolicyUserOverride,
+        b: OnCallDutyPolicyUserOverride,
+      ): number => {
+        return UserOverrideOverlap.compareUse(
+          toOverlapTimes(a),
+          toOverlapTimes(b),
+        );
+      },
+    )[0];
 
     if (!conflict) {
       return;
