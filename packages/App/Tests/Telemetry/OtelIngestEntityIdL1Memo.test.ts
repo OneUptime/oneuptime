@@ -141,7 +141,10 @@ const DISCOVER_CASES: Array<DiscoverCase> = [
       service: ProxmoxClusterService,
       method: "findOrCreateByName",
     },
-    maintenance: { service: ProxmoxClusterService, method: "updateLastSeen" },
+    maintenance: {
+      service: ProxmoxClusterService,
+      method: "updateAgentLastSeen",
+    },
   },
   {
     name: "autoDiscoverOpenStackCloud",

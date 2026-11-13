@@ -410,6 +410,10 @@ bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-p
 API 令牌错误或缺少权限。请检查令牌 ID 的格式（`user@realm!tokenname`）、密钥，以及令牌及其用户在路径 `/` 上是否都具有 **PVEAuditor** 角色。导出器自己的日志会显示 API 的响应：`docker logs oneuptime-pve-exporter`。
 :::
 
+:::details 集群显示“无法读取 API”
+代理正在运行，但已有 15 分钟或更久未从 Proxmox VE API 读取集群，因此集群显示 **无法读取 API** 而不是 **已连接**：它读取的节点宕机且 `PVE_NODES` 中没有其他节点响应，API 令牌已被吊销或失去了 **PVEAuditor** 角色，或者代理所在的机器无法访问任何节点的端口 `8006`。它的页面会保留最后一次读取的内容。上面的诊断脚本会逐一检查这些原因，`docker logs oneuptime-pve-api-failover` 会说明代理从哪个节点读取，以及为什么跳过了其他节点。
+:::
+
 :::details 只有节点指标，没有客户机指标
 客户机序列（`qemu/*` 和 `lxc/*` ID）来自导出器的集群收集器，随附的配置通过抓取参数 `cluster=1` 开启它。如果你自定义了 `otel-collector-config.yaml`，请把 `cluster: ["1"]` 参数加回去。
 :::

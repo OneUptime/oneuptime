@@ -51807,5 +51807,17 @@
   "Show Maintenance Events": "유지 관리 이벤트 표시",
   "Show Maintenance Events on Status Page": "상태 페이지에 유지 관리 이벤트 표시",
   "View Maintenance Event": "유지 관리 이벤트 보기",
-  "Delete Maintenance Event": "유지 관리 이벤트 삭제"
+  "Delete Maintenance Event": "유지 관리 이벤트 삭제",
+  "Agent Last Seen At": "에이전트 마지막 확인 시각",
+  "Can't read API": "API를 읽을 수 없음",
+  "Check that a node answers": "노드가 응답하는지 확인",
+  "Check the API token": "API 토큰 확인",
+  "It checks the API token and every node in PVE_HOST and PVE_NODES from the agent's machine, and says what is wrong.": "에이전트의 머신에서 API 토큰과 PVE_HOST 및 PVE_NODES의 모든 노드를 확인하고, 무엇이 잘못되었는지 알려 줍니다.",
+  "PVE_API_TOKEN_ID and PVE_API_TOKEN_SECRET in the agent's .env must name a token that still exists, with the PVEAuditor role on / for the token and its user.": "에이전트의 .env에 있는 PVE_API_TOKEN_ID와 PVE_API_TOKEN_SECRET은 아직 존재하는 토큰을 가리켜야 하며, 토큰과 그 사용자에게 / 경로의 PVEAuditor 역할이 있어야 합니다.",
+  "The agent can't read the Proxmox VE API": "에이전트가 Proxmox VE API를 읽을 수 없습니다",
+  "The agent has not read the cluster yet": "에이전트가 아직 클러스터를 읽지 않았습니다",
+  "The agent reads the cluster from PVE_HOST, or from the next node in PVE_NODES whose API answers on port 8006. Its logs say which node it reads, and why it passed over the others:": "에이전트는 PVE_HOST에서, 또는 PVE_NODES 중 포트 8006에서 API가 응답하는 다음 노드에서 클러스터를 읽습니다. 어느 노드에서 읽는지, 다른 노드를 건너뛴 이유는 로그에 나옵니다:",
+  "The {{agentName}} is running and reads the cluster from the Proxmox VE API every 30 seconds, but no read has arrived yet. If this does not change within a few minutes, check the API with the steps below.": "{{agentName}}이(가) 실행 중이며 30초마다 Proxmox VE API에서 클러스터를 읽지만, 아직 읽은 결과가 도착하지 않았습니다. 몇 분 안에 바뀌지 않으면 아래 단계로 API를 확인하세요.",
+  "The {{agentName}} is running, but it last read the cluster from the Proxmox VE API {{lastRead}}. The nodes, guests and storage here are as it read them then.": "{{agentName}}이(가) 실행 중이지만, Proxmox VE API에서 클러스터를 마지막으로 읽은 것은 {{lastRead}}입니다. 여기의 노드, 게스트, 스토리지는 그때 읽은 상태입니다.",
+  "Whether the OneUptime Proxmox agent is reading this cluster from the Proxmox VE API. It switches to Disconnected 15 to 20 minutes after data stops arriving, and to Can't read API when the agent is still running but has not read the cluster for that long. Either way, the numbers on this page are as it last read them.": "OneUptime Proxmox 에이전트가 Proxmox VE API에서 이 클러스터를 읽고 있는지 여부입니다. 데이터가 들어오지 않은 지 15~20분이 지나면 '연결 끊김'으로, 에이전트는 실행 중이지만 그동안 클러스터를 읽지 못하면 'API를 읽을 수 없음'으로 바뀝니다. 어느 경우든 이 페이지의 숫자는 마지막으로 읽은 시점의 값입니다."
 }

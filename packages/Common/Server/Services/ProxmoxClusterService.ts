@@ -37,8 +37,22 @@ import logger, { LogAttributes } from "../Utils/Logger";
 import crypto from "crypto";
 import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
 
+/*
+ * Two clocks, two heartbeats, two throttles. lastSeenAt is when the cluster
+ * was last read (updateLastSeen, from the metrics snapshot flush);
+ * agentLastSeenAt is when the agent last sent anything (updateAgentLastSeen,
+ * from the fenced ingest maintenance path). They must not share a liveness
+ * key: ResourceHeartbeat gates liveness on the key's presence alone, so an
+ * agent heartbeat that claimed the window first would hold back the read's
+ * lastSeenAt for that window - and a read held back is a cluster that turns
+ * Disconnected while it is being read.
+ */
 const LAST_SEEN_CACHE_NAMESPACE: string = "proxmox-cluster-last-seen";
 const LAST_SEEN_THROTTLE_SECONDS: number = 60;
+
+const AGENT_LAST_SEEN_CACHE_NAMESPACE: string =
+  "proxmox-cluster-agent-last-seen";
+const AGENT_LAST_SEEN_THROTTLE_SECONDS: number = 60;
 
 const LABELS_APPLIED_CACHE_NAMESPACE: string = "proxmox-cluster-labels-applied";
 const LABELS_APPLIED_CACHE_TTL_SECONDS: number = 60;
@@ -154,12 +168,20 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     try {
-      // Create new cluster
+      /*
+       * A new cluster is not Connected until it is read (issue #7439): its
+       * status stays the column's "disconnected" and lastSeenAt stays empty
+       * until a batch that carries the cluster reaches the snapshot flush,
+       * which is usually the very batch that created it. Whoever creates it
+       * says nothing about a read - ingest's first contact may be the
+       * agent's own scrape metrics alone, and a Proxmox AI agent registers
+       * its cluster before any telemetry - so ingest's heartbeat stamps
+       * agentLastSeenAt itself (updateAgentLastSeen), and the AI agent
+       * stamps nothing.
+       */
       const newCluster: Model = new Model();
       newCluster.projectId = data.projectId;
       newCluster.name = name;
-      newCluster.otelCollectorStatus = "connected";
-      newCluster.lastSeenAt = OneUptimeDate.getCurrentDate();
 
       const createdCluster: Model = await this.create({
         data: newCluster,
@@ -200,34 +222,33 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * Refresh lastSeenAt / connection status and (optionally) the
-   * snapshot columns the list page renders. Count columns ride this
-   * extras path with COALESCE-per-column semantics: a key that is
-   * undefined is simply not written, so a partial batch (one that
-   * lacked the matching *_info series) never zeroes a count. The
-   * 60-second extras fingerprint cache is the write throttle — the
-   * steady state (identical snapshot every scrape) costs one Redis
-   * read per batch and at most one Postgres UPDATE per minute.
+   * THE CLUSTER WAS READ: refresh lastSeenAt / connection status and
+   * (optionally) the snapshot columns the list page renders. Only the
+   * metrics snapshot flush calls this, and only for a batch that carried
+   * what the Proxmox VE API says about the cluster - its nodes, guests,
+   * storage, version, backup coverage or quorum, or a native push's
+   * recount (deriveProxmoxClusterSnapshotExtras). A batch the agent sends
+   * while it cannot read the API - its own scrape metrics, or the
+   * per-node collectors of the nodes still up - derives none of that and
+   * never reaches here, so the cluster turns Disconnected 15 minutes after
+   * its last read instead of reading Connected for as long as the agent
+   * runs (issue #7439). That the agent is still running is
+   * updateAgentLastSeen's to say.
    *
-   * Two callers share this throttle with DISJOINT extras shapes: the
-   * metrics snapshot flush (pveVersion + counts, every batch) and the
-   * fenced autoDiscoverProxmoxCluster maintenance path (agentVersion
-   * only — the oneuptime.agent.version the shipped agent config stamps;
-   * a cluster that pushes its own metrics sends none, an all-null
-   * fingerprint that never touches the enrichment gates). The single
-   * fingerprint covers the whole extras object, so each alternation
-   * between the two shapes busts the throttle: at most one extra
-   * Postgres UPDATE per maintenance-fence window (~5 min), which is
-   * accepted. Do NOT key the cache per-caller — that would let two
-   * callers each refresh lastSeenAt under their own throttle and is
-   * not worth the complexity for one UPDATE per 5 minutes.
+   * Count columns ride this extras path with COALESCE-per-column
+   * semantics: a key that is undefined is simply not written, so a
+   * partial batch (one that lacked the matching *_info series) never
+   * zeroes a count. The 60-second extras fingerprint cache is the write
+   * throttle — the steady state (identical snapshot every scrape) costs
+   * one Redis read per batch and at most one Postgres UPDATE per minute.
+   * Being per batch rather than fenced, lastSeenAt is at most about a
+   * minute old while the cluster is read.
    */
   @CaptureSpan()
   public async updateLastSeen(
     clusterId: ObjectID,
     extra?: {
       pveVersion?: string | undefined;
-      agentVersion?: string | undefined;
       nodeCount?: number | undefined;
       onlineNodeCount?: number | undefined;
       guestCount?: number | undefined;
@@ -241,7 +262,6 @@ export class Service extends ProjectReferencesService<Model> {
       .update(
         JSON.stringify({
           pveVersion: extra?.pveVersion ?? null,
-          agentVersion: extra?.agentVersion ?? null,
           nodeCount: extra?.nodeCount ?? null,
           onlineNodeCount: extra?.onlineNodeCount ?? null,
           guestCount: extra?.guestCount ?? null,
@@ -263,9 +283,6 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (extra?.pveVersion) {
       metadata.pveVersion = extra.pveVersion;
-    }
-    if (extra?.agentVersion) {
-      metadata.agentVersion = extra.agentVersion;
     }
     // Counts: 0 is a legitimate value — gate on undefined, not falsiness.
     if (extra?.nodeCount !== undefined) {
@@ -303,6 +320,53 @@ export class Service extends ProjectReferencesService<Model> {
       metadata: metadata,
       fingerprint: extrasFingerprint,
       describe: `proxmox cluster ${clusterId.toString()}`,
+    });
+  }
+
+  /*
+   * THE AGENT WAS HEARD: refresh agentLastSeenAt and the agent's version
+   * (the oneuptime.agent.version the shipped agent config stamps on every
+   * batch; a cluster that pushes its own metrics sends none). The fenced
+   * ingest maintenance path calls this for every batch that names the
+   * cluster, whatever it carries - so at most once per fence window (~5
+   * minutes), which is why a reading of it allows 15 minutes.
+   *
+   * It never writes lastSeenAt or otelCollectorStatus: hearing the agent is
+   * not reading the cluster. While the agent cannot read the Proxmox VE API
+   * this stays fresh and lastSeenAt does not, which is how the Overview
+   * tells "the agent cannot read the API" from "the agent stopped". Its
+   * own liveness key and fingerprint: see AGENT_LAST_SEEN_CACHE_NAMESPACE.
+   */
+  @CaptureSpan()
+  public async updateAgentLastSeen(
+    clusterId: ObjectID,
+    extra?: {
+      agentVersion?: string | undefined;
+    },
+  ): Promise<ResourceHeartbeatResult> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const liveness: any = {
+      agentLastSeenAt: OneUptimeDate.getCurrentDate(),
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const metadata: any = {};
+    if (extra?.agentVersion) {
+      metadata.agentVersion = extra.agentVersion;
+    }
+
+    return await ResourceHeartbeat.write({
+      service: this,
+      id: clusterId,
+      cacheNamespace: AGENT_LAST_SEEN_CACHE_NAMESPACE,
+      throttleInSeconds: AGENT_LAST_SEEN_THROTTLE_SECONDS,
+      liveness: liveness,
+      metadata: metadata,
+      fingerprint: crypto
+        .createHash("sha1")
+        .update(JSON.stringify({ agentVersion: extra?.agentVersion ?? null }))
+        .digest("hex"),
+      describe: `proxmox cluster ${clusterId.toString()} (agent)`,
     });
   }
 
@@ -411,12 +475,14 @@ export class Service extends ProjectReferencesService<Model> {
   @CaptureSpan()
   public async markDisconnectedClusters(): Promise<void> {
     /*
-     * Threshold must stay well above the 5-minute OTel ingest
-     * maintenance fence (MAINTENANCE_FENCE_TTL_SECONDS in
-     * OtelIngestBaseService) — lastSeenAt is legitimately up to
-     * ~5 minutes stale during continuous telemetry, so a threshold
-     * equal to the fence TTL flaps healthy resources. 15 minutes
-     * gives 3x headroom.
+     * Disconnected means NOT READ for 15 minutes: lastSeenAt is the last
+     * read (updateLastSeen), not the last batch, so a cluster whose agent
+     * runs but cannot read the Proxmox VE API turns Disconnected too
+     * (issue #7439) - the Overview then tells the two apart by
+     * agentLastSeenAt. While the cluster is read, lastSeenAt is at most
+     * about a minute old (one throttle window), so 15 minutes never flaps
+     * a healthy cluster, and it is the same window the inventory prune and
+     * the agent's fenced heartbeat are read over.
      */
     /*
      * Measured in time OneUptime was receiving: a stretch when OneUptime

@@ -2094,6 +2094,13 @@ export default abstract class OtelIngestBaseService {
        * Same fence rationale as the Kubernetes path — skip the
        * per-batch maintenance UPDATE + label upsert when we
        * already ran it within the fence window.
+       *
+       * Its heartbeat says the agent was heard, never that the cluster
+       * was read: every batch the agent sends names the cluster - its own
+       * scrape metrics and the per-node collectors too, which keep coming
+       * while it cannot read the Proxmox VE API. Connected (lastSeenAt) is
+       * the snapshot flush's to write, for a batch that read the cluster
+       * (issue #7439).
        */
       const liveIdStr: string | null = await this.maintainDiscoveredResource({
         kind: DiscoveredResourceKinds.ProxmoxCluster,
@@ -2107,7 +2114,7 @@ export default abstract class OtelIngestBaseService {
             data.attributes,
             "oneuptime.agent.version",
           );
-          return await ProxmoxClusterService.updateLastSeen(clusterId, {
+          return await ProxmoxClusterService.updateAgentLastSeen(clusterId, {
             agentVersion: agentVersion || undefined,
           });
         },

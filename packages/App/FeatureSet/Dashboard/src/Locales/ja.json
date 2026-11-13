@@ -51807,5 +51807,17 @@
   "Show Maintenance Events": "メンテナンスイベントを表示",
   "Show Maintenance Events on Status Page": "ステータスページにメンテナンスイベントを表示",
   "View Maintenance Event": "メンテナンスイベントを表示",
-  "Delete Maintenance Event": "メンテナンスイベントを削除"
+  "Delete Maintenance Event": "メンテナンスイベントを削除",
+  "Agent Last Seen At": "エージェントの最終確認日時",
+  "Can't read API": "API を読み取れません",
+  "Check that a node answers": "ノードが応答することを確認",
+  "Check the API token": "API トークンを確認",
+  "It checks the API token and every node in PVE_HOST and PVE_NODES from the agent's machine, and says what is wrong.": "エージェントのマシンから API トークンと PVE_HOST および PVE_NODES の各ノードを確認し、何が問題かを示します。",
+  "PVE_API_TOKEN_ID and PVE_API_TOKEN_SECRET in the agent's .env must name a token that still exists, with the PVEAuditor role on / for the token and its user.": "エージェントの .env にある PVE_API_TOKEN_ID と PVE_API_TOKEN_SECRET は、まだ存在するトークンを指定し、そのトークンとユーザーに / の PVEAuditor ロールが付与されている必要があります。",
+  "The agent can't read the Proxmox VE API": "エージェントが Proxmox VE API を読み取れません",
+  "The agent has not read the cluster yet": "エージェントはまだクラスターを読み取っていません",
+  "The agent reads the cluster from PVE_HOST, or from the next node in PVE_NODES whose API answers on port 8006. Its logs say which node it reads, and why it passed over the others:": "エージェントは PVE_HOST から、または PVE_NODES のうちポート 8006 で API が応答する次のノードからクラスターを読み取ります。どのノードから読み取っているか、ほかのノードを飛ばした理由はログに記録されます：",
+  "The {{agentName}} is running and reads the cluster from the Proxmox VE API every 30 seconds, but no read has arrived yet. If this does not change within a few minutes, check the API with the steps below.": "{{agentName}} は実行中で、30 秒ごとに Proxmox VE API からクラスターを読み取りますが、まだ読み取り結果が届いていません。数分たっても変わらない場合は、以下の手順で API を確認してください。",
+  "The {{agentName}} is running, but it last read the cluster from the Proxmox VE API {{lastRead}}. The nodes, guests and storage here are as it read them then.": "{{agentName}} は実行中ですが、Proxmox VE API からクラスターを最後に読み取ったのは {{lastRead}} です。ここに表示されているノード、ゲスト、ストレージは、そのときに読み取った内容です。",
+  "Whether the OneUptime Proxmox agent is reading this cluster from the Proxmox VE API. It switches to Disconnected 15 to 20 minutes after data stops arriving, and to Can't read API when the agent is still running but has not read the cluster for that long. Either way, the numbers on this page are as it last read them.": "OneUptime Proxmox エージェントが Proxmox VE API からこのクラスターを読み取っているかどうかです。データが届かなくなってから 15〜20 分後に「切断済み」に、エージェントは実行中でもその間クラスターを読み取っていない場合は「API を読み取れません」に切り替わります。いずれの場合も、このページの数値は最後に読み取った時点のものです。"
 }

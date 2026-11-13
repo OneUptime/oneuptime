@@ -51807,5 +51807,17 @@
   "Show Maintenance Events": "Visa underhållshändelser",
   "Show Maintenance Events on Status Page": "Visa underhållshändelser på statussidan",
   "View Maintenance Event": "Visa underhållshändelse",
-  "Delete Maintenance Event": "Ta bort underhållshändelse"
+  "Delete Maintenance Event": "Ta bort underhållshändelse",
+  "Agent Last Seen At": "Agent senast sedd",
+  "Can't read API": "Kan inte läsa API",
+  "Check that a node answers": "Kontrollera att en nod svarar",
+  "Check the API token": "Kontrollera API-token",
+  "It checks the API token and every node in PVE_HOST and PVE_NODES from the agent's machine, and says what is wrong.": "Det kontrollerar API-token och varje nod i PVE_HOST och PVE_NODES från agentens dator och säger vad som är fel.",
+  "PVE_API_TOKEN_ID and PVE_API_TOKEN_SECRET in the agent's .env must name a token that still exists, with the PVEAuditor role on / for the token and its user.": "PVE_API_TOKEN_ID och PVE_API_TOKEN_SECRET i agentens .env måste ange en token som fortfarande finns, med rollen PVEAuditor på / för token och dess användare.",
+  "The agent can't read the Proxmox VE API": "Agenten kan inte läsa Proxmox VE API:t",
+  "The agent has not read the cluster yet": "Agenten har inte läst klustret ännu",
+  "The agent reads the cluster from PVE_HOST, or from the next node in PVE_NODES whose API answers on port 8006. Its logs say which node it reads, and why it passed over the others:": "Agenten läser klustret från PVE_HOST, eller från nästa nod i PVE_NODES vars API svarar på port 8006. Dess loggar säger vilken nod den läser från och varför den hoppade över de andra:",
+  "The {{agentName}} is running and reads the cluster from the Proxmox VE API every 30 seconds, but no read has arrived yet. If this does not change within a few minutes, check the API with the steps below.": "{{agentName}} körs och läser klustret från Proxmox VE API:t var 30:e sekund, men ingen läsning har kommit ännu. Om detta inte ändras inom några minuter, kontrollera API:t med stegen nedan.",
+  "The {{agentName}} is running, but it last read the cluster from the Proxmox VE API {{lastRead}}. The nodes, guests and storage here are as it read them then.": "{{agentName}} körs, men läste senast klustret från Proxmox VE API:t {{lastRead}}. Noderna, gästerna och lagringen här är som den läste dem då.",
+  "Whether the OneUptime Proxmox agent is reading this cluster from the Proxmox VE API. It switches to Disconnected 15 to 20 minutes after data stops arriving, and to Can't read API when the agent is still running but has not read the cluster for that long. Either way, the numbers on this page are as it last read them.": "Om OneUptime Proxmox-agenten läser det här klustret från Proxmox VE API:t. Den växlar till Frånkopplad 15 till 20 minuter efter att data slutar komma, och till Kan inte läsa API när agenten fortfarande körs men inte har läst klustret på så länge. I båda fallen är siffrorna på den här sidan som den senast läste dem."
 }
