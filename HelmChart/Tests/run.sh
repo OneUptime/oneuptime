@@ -21,7 +21,7 @@ SUITES_DIR="${TESTS_DIR}/suites"
 # Ordered cheapest-first. Every file in ./suites has to appear here or in
 # OPT_IN_SUITES, which is checked below: a new suite cannot be added and then
 # silently never run.
-ALL_SUITES=(lint unit extra-values vapid-existing-secret twilio-environment air-gapped iron-bank marketplace secrets-lifecycle keda-bootstrap)
+ALL_SUITES=(lint unit extra-values vapid-existing-secret twilio-environment email-environment air-gapped iron-bank marketplace secrets-lifecycle keda-bootstrap)
 
 # Run only when named, never by default (so not in the helm-test job). Two reasons:
 # gitops-revert pulls third-party images and waits out reconcile intervals,

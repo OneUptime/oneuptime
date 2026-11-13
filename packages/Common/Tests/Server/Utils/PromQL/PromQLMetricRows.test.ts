@@ -13,7 +13,9 @@ import {
   PromQLMetricRequest,
   PromQLSeriesKind,
 } from "../../../../Utils/PromQL/PromQLMetricNames";
-import { describe, expect, test } from "@jest/globals";
+import * as PatternCache from "../../../../Utils/LinearRegExp/PatternCache";
+import { describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * OneUptime's OpenTelemetry points as PromQL series (issue #6796): a
@@ -360,6 +362,36 @@ describe("matchers and the window", () => {
         }),
       ),
     ).toEqual(['metric{host="a", http_method="GET"}']);
+  });
+
+  test("a matcher's pattern is compiled once for a read's rows, not once per series", () => {
+    const compiles: SpyInstance<typeof PatternCache.getLinearRegExp> =
+      jest.spyOn(PatternCache, "getLinearRegExp");
+
+    try {
+      expect(
+        Object.keys(
+          seriesOf({
+            rows: ["a", "b", "c", "d", "e"].map(
+              (host: string): PromQLMetricRow => {
+                return row({ attributes: { host } });
+              },
+            ),
+            requests: [request("metric", PromQLSeriesKind.Value, "metric")],
+            matchers: [
+              {
+                name: "host",
+                type: PromQLMatchType.RegexMatch,
+                value: "[a-c]",
+              },
+            ],
+          }),
+        ),
+      ).toEqual(['metric{host="a"}', 'metric{host="b"}', 'metric{host="c"}']);
+      expect(compiles).toHaveBeenCalledTimes(1);
+    } finally {
+      compiles.mockRestore();
+    }
   });
 
   test("a matcher on le picks one bucket", () => {

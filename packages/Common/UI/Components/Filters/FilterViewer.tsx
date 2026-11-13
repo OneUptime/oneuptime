@@ -18,7 +18,7 @@ import GreaterThanOrEqual from "../../../Types/BaseDatabase/GreaterThanOrEqual";
 import LessThanOrEqual from "../../../Types/BaseDatabase/LessThanOrEqual";
 import IsNull from "../../../Types/BaseDatabase/IsNull";
 import NotNull from "../../../Types/BaseDatabase/NotNull";
-import { DropdownOption } from "../Dropdown/Dropdown";
+import { DropdownOption, getDropdownOptionText } from "../Dropdown/Dropdown";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import Modal, { ModalWidth } from "../Modal/Modal";
 import FieldType from "../Types/FieldType";
@@ -583,6 +583,13 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
        * query *before* its labels exist. Returning null there left the user
        * looking at a filtered table with nothing to explain it and no
        * "Clear Filters" button to escape it.
+       *
+       * An option's label reads as its menu reads it, by the one rule on
+       * DropdownOption.isUserContent (getDropdownOptionText): the product's
+       * words in the reader's language, a name as written. The chip drew
+       * every label as written, so a Spanish Health filter read "Con
+       * problemas" in its menu and "Unhealthy" in its chip (#7690). A raw
+       * value with no option is data, drawn as it is.
        */
       const entityNames: string = items
         .map((item: string) => {
@@ -593,7 +600,7 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
               },
             );
           if (entity) {
-            return entity.label.toString();
+            return getDropdownOptionText(entity, translateString).toString();
           }
           return item.toString();
         })

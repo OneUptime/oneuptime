@@ -110,7 +110,7 @@ resource "oneuptime_call_and_sms_config" "production" {
 ```
 
 - **專案預設設定。** 只有設定 `is_project_default = true`，Terraform 才會把設定設為專案預設。省略時 Terraform 會傳送 `false`，因此與在儀表板中不同，專案的第一個設定不會成為預設。每種訊息只在一個設定上設定它：如果 `used_for` 相同的兩個設定都設定了它，它們會在每次 apply 時互相奪走預設。`is_project_default_for_sms` 和 `is_project_default_for_calls` 由 OneUptime 設定，Terraform 只讀取它們。
-- **電話號碼。** 依 Twilio 顯示的樣子書寫每個號碼：`+`、國碼和號碼，不含空格。
+- **電話號碼。** 每個號碼都要寫上 `+` 和國碼。數字之間可以有空格、連字號、句點或括號：OneUptime 會把 `+1 415 555 0100` 存成 `+14155550100`，而 Terraform 會將它視為您寫的號碼，因此 plan 不會顯示任何變更。
 - **API 金鑰。** Terraform 使用的金鑰除了能建立和編輯設定外，還必須能讀取 Auth Token：**專案擁有者**、**專案管理員**，或自訂角色中的 **Read Call and SMS**。如果金鑰無法讀取，讀取設定會失敗，錯誤會說明誰可以讀取該權杖。
 - **參照。** 狀態頁面的 `call_sms_config_id` 和來電策略的 `project_call_sms_config_id` 取設定的 `id`。
 

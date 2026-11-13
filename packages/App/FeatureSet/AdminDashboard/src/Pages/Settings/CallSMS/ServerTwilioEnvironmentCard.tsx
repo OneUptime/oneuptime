@@ -225,7 +225,6 @@ const ServerTwilioEnvironmentCard: FunctionComponent<ComponentProps> = (
           <Detail<EnvironmentAccountItem>
             id="server-twilio-environment-detail"
             item={item}
-            showRecordLine={false}
             fields={[
               {
                 key: "usedFor",

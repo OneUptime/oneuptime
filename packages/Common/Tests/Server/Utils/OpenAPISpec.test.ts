@@ -1221,6 +1221,143 @@ describe("OpenAPI specification", () => {
     );
   });
 
+  /*
+   * OneUptime keeps a phone number as written when it reads as three digits,
+   * three and four, and any other as its digits (Types/Phone.ts). The
+   * Terraform provider writes a phone column as a plain string and compares
+   * it as OneUptime keeps it (Scripts/TerraformProvider/StaticFiles/phone.go,
+   * #7777), so that "+1 415 555 0100" applies cleanly. The generator knows a
+   * phone column by the wrapper's marker.
+   */
+  describe("phone numbers", () => {
+    let parser: OpenAPIParser;
+
+    beforeAll(() => {
+      parser = new OpenAPIParser();
+      parser.setSpec(spec as never);
+    });
+
+    // The columns of a schema the spec writes as the Phone wrapper.
+    function getPhoneColumns(schemaName: string): Array<string> {
+      const properties: JSONObject = ((
+        schemas[schemaName] as JSONObject | undefined
+      )?.["properties"] || {}) as JSONObject;
+
+      return Object.keys(properties)
+        .filter((name: string): boolean => {
+          const example: unknown = (properties[name] as JSONObject)["example"];
+
+          return (
+            typeof example === "object" &&
+            example !== null &&
+            (example as JSONObject)["_type"] === "Phone"
+          );
+        })
+        .sort();
+    }
+
+    it("marks every phone column of every schema as one", () => {
+      let columns: number = 0;
+
+      for (const schemaName of Object.keys(schemas)) {
+        const properties: JSONObject = ((schemas[schemaName] as JSONObject)[
+          "properties"
+        ] || {}) as JSONObject;
+
+        for (const name of getPhoneColumns(schemaName)) {
+          columns++;
+          expect([
+            schemaName,
+            name,
+            (properties[name] as JSONObject)["x-oneuptime-type"],
+          ]).toEqual([schemaName, name, "Phone"]);
+        }
+      }
+
+      // The Twilio account's number and a subscriber's, at the least.
+      expect(columns).toBeGreaterThanOrEqual(8);
+    });
+
+    it("makes every phone column of a resource a phone number, written as a plain string", () => {
+      const writable: Array<string> = [];
+
+      for (const resource of parser.getResources()) {
+        const phoneColumns: Array<string> = getPhoneColumns(
+          resource.tableName || "",
+        );
+        const phones: Array<[string, TerraformAttribute]> = Object.entries(
+          resource.schema,
+        ).filter(([, attribute]: [string, TerraformAttribute]): boolean => {
+          return Boolean(attribute.isPhone);
+        });
+
+        expect([
+          resource.name,
+          phones
+            .map(([, attribute]: [string, TerraformAttribute]): string => {
+              return attribute.apiFieldName || "";
+            })
+            .sort(),
+        ]).toEqual([
+          resource.name,
+          phoneColumns.filter((column: string): boolean => {
+            return Object.values(resource.schema).some(
+              (attribute: TerraformAttribute): boolean => {
+                return attribute.apiFieldName === column;
+              },
+            );
+          }),
+        ]);
+
+        for (const [name, attribute] of phones) {
+          expect([
+            `${resource.name}.${name}`,
+            attribute.type,
+            Boolean(attribute.isComplexObject),
+          ]).toEqual([`${resource.name}.${name}`, "string", false]);
+
+          if (!attribute.computed || attribute.optional) {
+            writable.push(`${resource.name}.${name}`);
+          }
+        }
+      }
+
+      expect(writable).toEqual(
+        expect.arrayContaining([
+          "call_and_sms_config.twilio_primary_phone_number",
+          "incoming_call_log_item.user_phone_number",
+          "status_page_subscriber.subscriber_phone",
+        ]),
+      );
+    });
+
+    it("reads phone numbers in data sources, and looks nothing up by one", () => {
+      const phones: Array<string> = [];
+
+      for (const dataSource of parser.getDataSources()) {
+        for (const [name, attribute] of Object.entries(dataSource.schema)) {
+          if (!attribute.isPhone) {
+            continue;
+          }
+
+          phones.push(`${dataSource.name}.${name}`);
+          expect([
+            `${dataSource.name}.${name}`,
+            attribute.isLookupFilter,
+          ]).toEqual([`${dataSource.name}.${name}`, undefined]);
+        }
+      }
+
+      expect(phones).toEqual(
+        expect.arrayContaining([
+          "call_and_sms_config.twilio_primary_phone_number",
+          "call_log.from_number",
+          "status_page_subscriber.subscriber_phone",
+        ]),
+      );
+    });
+  });
+
   describe("caching", () => {
     /*
      * The spec is expensive to build -- it walks every model in the product --
