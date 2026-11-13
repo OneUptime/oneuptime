@@ -966,6 +966,24 @@ describe("a root that marks its keys", () => {
     ).toBe("keys");
   });
 
+  test("the guided setups' status page records give the locales the name a page starts with, and nothing else (#7247)", () => {
+    const file: string =
+      "packages/Common/Utils/GuidedSetup/StatusPageRecords.ts";
+    const result: SourceScanResult = scanSourceRoots(
+      [{ directory: file, kind: "keys" }],
+      path.join(__dirname, "..", "..", "..", ".."),
+    );
+
+    // The guided setup and Ask AI both name a page with it, in the reader's language.
+    expect(textsOf(result)).toEqual(["{{project}} Status"]);
+    expect(result.hardcoded).toEqual([]);
+    expect(
+      SOURCE_ROOTS.find((root: { directory: string }): boolean => {
+        return root.directory === file;
+      })?.kind,
+    ).toBe("keys");
+  });
+
   test("HostHealth gives the locales its words, each count as a plural, and nothing else", () => {
     const file: string = "packages/Common/Types/Host/HostHealth.ts";
     const result: SourceScanResult = scanSourceRoots(

@@ -26,15 +26,17 @@ import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import { createTranslator, Translator } from "../../../Types/Translator";
+import { getDefaultStatusPageName } from "../../../Utils/GuidedSetup/StatusPageRecords";
 
 /*
  * SENTENCES THE SERVER AND THE DASHBOARD BOTH WRITE (#7247).
  *
  * A new monitor's default criteria - each criteria's name and description,
- * and the title and description of the incident and alert it opens - are
- * written in the language of the person the monitor is made for: by the
- * Dashboard (Create Monitor, the website guided setup) and by the server
- * when Ask AI sets the monitor up (SetupTools). The same answers must make
+ * and the title and description of the incident and alert it opens - and
+ * the name a new status page starts with ("Acme Status") are written in
+ * the language of the person the record is made for: by the Dashboard
+ * (Create Monitor, the guided setups) and by the server when Ask AI sets
+ * the monitor up or publishes the page (SetupTools). The same answers must make
  * the same record, so the server's locale set holds a copy of those
  * sentences that is never worded by hand: npm run i18n:server-sync copies
  * each language's wording from the Dashboard's file (withDashboardWordings).
@@ -52,20 +54,23 @@ const MONITOR_TYPES: Array<MonitorType> = Object.values(
   MonitorType,
 ) as Array<MonitorType>;
 
+// A translator that records what it is asked into `asked`, and words nothing.
+const recordingTranslator: (asked: Set<string>) => Translator = (
+  asked: Set<string>,
+): Translator => {
+  return createTranslator((text: string): string | undefined => {
+    asked.add(text);
+    return undefined;
+  }, "de");
+};
+
 /*
  * Every sentence a new monitor's default criteria look up, for every
- * monitor type: a translator that records what it is asked and words
- * nothing.
+ * monitor type.
  */
 const sentencesTheCriteriaLookUp: () => Set<string> = (): Set<string> => {
   const asked: Set<string> = new Set<string>();
-  const recording: Translator = createTranslator(
-    (text: string): string | undefined => {
-      asked.add(text);
-      return undefined;
-    },
-    "de",
-  );
+  const recording: Translator = recordingTranslator(asked);
 
   for (const monitorType of MONITOR_TYPES) {
     MonitorSteps.getDefaultMonitorSteps({
@@ -84,10 +89,26 @@ const sentencesTheCriteriaLookUp: () => Set<string> = (): Set<string> => {
   return asked;
 };
 
+// Every sentence the name a new status page starts with looks up.
+const sentencesTheStatusPageNameLooksUp: () => Set<string> =
+  (): Set<string> => {
+    const asked: Set<string> = new Set<string>();
+
+    getDefaultStatusPageName({
+      translator: recordingTranslator(asked),
+      projectName: "Acme",
+    });
+
+    return asked;
+  };
+
 describe("the sentences the server and the Dashboard both write", () => {
-  test("come from files the server's scan reads, a new monitor's criteria among them", () => {
+  test("come from files the server's scan reads, a new monitor's criteria and a new status page's name among them", () => {
     expect(DASHBOARD_SHARED_TEXT_SOURCES).toContain(
       "packages/Common/Types/Monitor/MonitorCriteriaInstance.ts",
+    );
+    expect(DASHBOARD_SHARED_TEXT_SOURCES).toContain(
+      "packages/Common/Utils/GuidedSetup/StatusPageRecords.ts",
     );
 
     const scanned: Array<string> = listSourceFiles();
@@ -101,8 +122,16 @@ describe("the sentences the server and the Dashboard both write", () => {
     expect(fs.existsSync(DASHBOARD_LOCALES_DIRECTORY)).toBe(true);
   });
 
-  test("are every sentence a new monitor's default criteria are written with, for every monitor type, and nothing else", () => {
-    const asked: Set<string> = sentencesTheCriteriaLookUp();
+  test("are every sentence a new monitor's default criteria, for every monitor type, and a new status page's name are written with, and nothing else", () => {
+    const asked: Set<string> = new Set<string>([
+      ...sentencesTheCriteriaLookUp(),
+      ...sentencesTheStatusPageNameLooksUp(),
+    ]);
+
+    // The name Ask AI and the status page guided setup start a page with.
+    expect(sentencesTheStatusPageNameLooksUp()).toEqual(
+      new Set<string>(["{{project}} Status"]),
+    );
 
     // The criteria of the website and API monitors Ask AI sets up are among them.
     expect(asked).toContain("Check if {{monitorName}} is online");

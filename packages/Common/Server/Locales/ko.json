@@ -445,6 +445,7 @@
   "{{pager}} paged {{team}} as observers": "{{pager}} 님이 {{team}}을(를) 관찰자로 호출했습니다",
   "{{pager}} wrote: “{{message}}”": "{{pager}} 님의 메시지: “{{message}}”",
   "{{probeStatusSummary}}\n\nA probe is disconnected when nothing has been heard from it for three minutes. Monitors that run only on a disconnected probe are not checked until it is back. This resolves itself once every probe this monitor watches is connected again.": "{{probeStatusSummary}}\n\n프로브는 3분 동안 응답이 없으면 연결 끊김으로 간주됩니다. 연결이 끊긴 프로브에서만 실행되는 모니터는 해당 프로브가 다시 연결될 때까지 검사되지 않습니다. 이 모니터가 감시하는 모든 프로브가 다시 연결되면 자동으로 해결됩니다.",
+  "{{project}} Status": "{{project}} 상태",
   "{{record}} in {{project}}": "{{project}}의 {{record}}",
   "{{record}} in {{project}} is still not resolved": "{{project}}의 {{record}} 아직 미해결",
   "{{record}} is still not resolved": "{{record}} 아직 미해결",

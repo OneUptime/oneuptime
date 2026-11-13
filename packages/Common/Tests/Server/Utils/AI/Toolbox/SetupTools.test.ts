@@ -1560,6 +1560,168 @@ describe("publish_status_page", () => {
   });
 });
 
+/*
+ * #7247: a status page the person does not name is named after the project
+ * in the language they read the Dashboard in, as the status page guided
+ * setup starts its name for them ("Status von Acme" in German), and the
+ * card and the page carry that name.
+ */
+describe("publish_status_page, in the person's language", () => {
+  const prepareUnnamed: (
+    context: ToolContext,
+  ) => Promise<PreparedMutation> = async (
+    context: ToolContext,
+  ): Promise<PreparedMutation> => {
+    stubLocations();
+    monitorsNamed([{ id: API_MONITOR_ID, name: "API" }]);
+
+    return await PublishStatusPageTool.prepareMutation!(
+      { monitors: ["API"] },
+      context,
+    );
+  };
+
+  // The name the status page guided setup starts with, read in `language`.
+  const guidedName: (language: string) => string = (
+    language: string,
+  ): string => {
+    return dashboardTranslator(language).translateTemplate(
+      "{{project}} Status",
+      { project: "Acme" },
+    );
+  };
+
+  test("approved by a person reading the Dashboard in German, the page the person did not name is named in German, on the card and the page", async () => {
+    const saved: Spy = jest
+      .spyOn(UserLanguage, "getLanguage")
+      .mockResolvedValue("en" as never);
+
+    const prepared: PreparedMutation = await prepareUnnamed({
+      ...ctx,
+      language: "de",
+    });
+
+    expect(guidedName("de")).toBe("Status von Acme");
+    expect(prepared.arguments["name"]).toBe("Status von Acme");
+    expect(actionTitleText(prepared.title)).toBe(
+      'Publish status page "Status von Acme"',
+    );
+    // The language the Dashboard sent wins: the saved one is not read.
+    expect(saved).not.toHaveBeenCalled();
+
+    // Once approved, the page is made under the name the card showed.
+    const create: Spy = jest
+      .spyOn(StatusPageService, "create")
+      .mockImplementation((async (args: {
+        data: StatusPage;
+      }): Promise<StatusPage> => {
+        return model(StatusPage, { ...args.data, _id: STATUS_PAGE_ID });
+      }) as never);
+    jest
+      .spyOn(StatusPageService, "getStatusPageURL")
+      .mockResolvedValue("" as never);
+    jest
+      .spyOn(StatusPageResourceService, "findBy")
+      .mockResolvedValue([] as never);
+    jest
+      .spyOn(StatusPageResourceService, "create")
+      .mockImplementation((async (args: {
+        data: StatusPageResource;
+      }): Promise<StatusPageResource> => {
+        return args.data;
+      }) as never);
+
+    await PublishStatusPageTool.execute(prepared.arguments, {
+      ...ctx,
+      language: "de",
+    });
+
+    expect((create.mock.calls[0]![0] as { data: StatusPage }).data.name).toBe(
+      "Status von Acme",
+    );
+  });
+
+  test.each(["ar", "fa", "ja", "zh-TW", "hi"])(
+    "read in %s, the page is named as the guided setup names it, the project's name whole and no invisible marks in it",
+    async (language: string) => {
+      jest.spyOn(UserLanguage, "getLanguage").mockResolvedValue("en" as never);
+
+      const name: string = (
+        await prepareUnnamed({ ...ctx, language: language })
+      ).arguments["name"] as string;
+
+      expect(name).toBe(guidedName(language));
+      expect(name).not.toBe("Acme Status");
+      expect(name).toContain("Acme");
+      expect(name).not.toContain(FIRST_STRONG_ISOLATE);
+      expect(name).not.toContain(POP_DIRECTIONAL_ISOLATE);
+    },
+  );
+
+  test("with no language sent, the person's saved one names it; with none saved, or one OneUptime does not write in, it is the English name as before", async () => {
+    const saved: Spy = jest
+      .spyOn(UserLanguage, "getLanguage")
+      .mockResolvedValue("fr" as never);
+
+    expect((await prepareUnnamed(ctx)).arguments["name"]).toBe(
+      guidedName("fr"),
+    );
+    expect(guidedName("fr")).not.toBe("Acme Status");
+    expect(saved).toHaveBeenCalledWith(USER_ID);
+
+    saved.mockResolvedValue("en" as never);
+    expect((await prepareUnnamed(ctx)).arguments["name"]).toBe("Acme Status");
+    expect(
+      (await prepareUnnamed({ ...ctx, language: "xx" })).arguments["name"],
+    ).toBe("Acme Status");
+    expect(
+      (await prepareUnnamed({ ...ctx, language: "en" })).arguments["name"],
+    ).toBe("Acme Status");
+  });
+
+  test("a name the person gave is kept as they gave it, in any language", async () => {
+    jest.spyOn(UserLanguage, "getLanguage").mockResolvedValue("de" as never);
+    stubLocations();
+    monitorsNamed([{ id: API_MONITOR_ID, name: "API" }]);
+
+    const prepared: PreparedMutation =
+      await PublishStatusPageTool.prepareMutation!(
+        { name: "Acme Uptime", monitors: ["API"] },
+        { ...ctx, language: "de" },
+      );
+
+    expect(prepared.arguments["name"]).toBe("Acme Uptime");
+  });
+
+  test("a project that cannot be read, or has no name, gives the page the plain name Status, in every language", async () => {
+    jest.spyOn(UserLanguage, "getLanguage").mockResolvedValue("de" as never);
+    monitorsNamed([{ id: API_MONITOR_ID, name: "API" }]);
+    const project: Spy = jest
+      .spyOn(ProjectService, "findOneById")
+      .mockRejectedValue(new Error("The database is slow") as never);
+
+    expect(
+      (
+        await PublishStatusPageTool.prepareMutation!(
+          { monitors: ["API"] },
+          { ...ctx, language: "de" },
+        )
+      ).arguments["name"],
+    ).toBe("Status");
+
+    project.mockResolvedValue(model(Project, { name: "   " }) as never);
+
+    expect(
+      (
+        await PublishStatusPageTool.prepareMutation!(
+          { monitors: ["API"] },
+          { ...ctx, language: "ar" },
+        )
+      ).arguments["name"],
+    ).toBe("Status");
+  });
+});
+
 describe("add_monitors_to_status_page", () => {
   function stubPage(): Spy {
     return jest.spyOn(StatusPageService, "findOneBy").mockResolvedValue(

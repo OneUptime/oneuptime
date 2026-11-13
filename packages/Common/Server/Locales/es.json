@@ -445,6 +445,7 @@
   "{{pager}} paged {{team}} as observers": "{{pager}} avisó a {{team}} como observadores",
   "{{pager}} wrote: “{{message}}”": "{{pager}} escribió: «{{message}}»",
   "{{probeStatusSummary}}\n\nA probe is disconnected when nothing has been heard from it for three minutes. Monitors that run only on a disconnected probe are not checked until it is back. This resolves itself once every probe this monitor watches is connected again.": "{{probeStatusSummary}}\n\nUna sonda se considera desconectada cuando no se ha sabido nada de ella durante tres minutos. Los monitores que solo se ejecutan en una sonda desconectada no se comprueban hasta que vuelva. Esto se resuelve solo en cuanto todas las sondas que vigila este monitor vuelvan a estar conectadas.",
+  "{{project}} Status": "Estado de {{project}}",
   "{{record}} in {{project}}": "{{record}} en {{project}}",
   "{{record}} in {{project}} is still not resolved": "{{record}} en {{project}} sigue sin resolverse",
   "{{record}} is still not resolved": "{{record}} sigue sin resolverse",

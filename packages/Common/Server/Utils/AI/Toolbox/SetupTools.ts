@@ -58,6 +58,7 @@ import {
   STATUS_PAGE_NAME_MIN_LENGTH,
   buildGuidedStatusPage,
   buildGuidedStatusPageMonitor,
+  getDefaultStatusPageName,
 } from "../../../../Utils/GuidedSetup/StatusPageRecords";
 import {
   GUIDED_SETUP_MONITORING_INTERVAL,
@@ -126,7 +127,8 @@ import WidgetBuilder from "./WidgetBuilder";
  *     Dashboard in, as the guided setup names them (#7247,
  *     readSetupRecordsLanguage).
  *   - set_up_paging: who is told, as #6804 decides it - the project's first
- *     on-call policy, "Default on-call policy", paging the people and teams
+ *     on-call policy, "Default on-call policy" (the guided setups' name for
+ *     it, in every language), paging the people and teams
  *     picked ("you" by default), with the two catch-all rules that run it
  *     for every new incident and alert. A project that pages people already
  *     keeps its own policies and rules: nothing is proposed beside them.
@@ -134,7 +136,9 @@ import WidgetBuilder from "./WidgetBuilder";
  *     setup's; this action is where they plug in.
  *   - publish_status_page: the status page of the status page guided setup
  *     (#6806), created together with the monitors it shows - never empty -
- *     and public from that moment, which the card says.
+ *     and public from that moment, which the card says. A page the person
+ *     does not name is named after the project in the language they read
+ *     the Dashboard in, as the guided setup names it (#7247).
  *   - add_monitors_to_status_page: monitors put on a status page as Add
  *     Multiple Monitors puts them.
  *
@@ -1774,9 +1778,18 @@ async function readStatusPageName(
       select: { _id: true, name: true },
       props: { isRoot: true },
     });
-    const projectName: string = project?.name?.trim() || "";
+    /*
+     * The guided setup's name for it, in the person's language (#7247):
+     * "Status von Acme" for a reader of German, as the guided setup
+     * starts it. "Status" only when the project cannot be read, as
+     * every project has a name.
+     */
+    const name: string = getDefaultStatusPageName({
+      translator: getRecordWordsTranslator(await readSetupRecordsLanguage(ctx)),
+      projectName: project?.name || undefined,
+    });
 
-    return projectName ? `${projectName} Status` : "Status";
+    return name || "Status";
   } catch {
     return "Status";
   }
@@ -1795,7 +1808,7 @@ const NO_MONITORS_TO_SHOW: (notFound: ReadonlyArray<string>) => string = (
 export const PublishStatusPageTool: ObservabilityTool = {
   name: "publish_status_page",
   description:
-    "Publish a status page that shows monitors, as the status page guided setup does: the page is created together with the monitors it shows - each with its status, uptime and history - and is public at its link from that moment. Name the monitors by their names (query_monitors), or by the address of one set_up_website_monitoring sets up in the same answer. The name defaults to '<project name> Status'. Use it for 'publish a status page', 'show our uptime to customers'. It always shows the person an approval card, in every mode.",
+    "Publish a status page that shows monitors, as the status page guided setup does: the page is created together with the monitors it shows - each with its status, uptime and history - and is public at its link from that moment. Name the monitors by their names (query_monitors), or by the address of one set_up_website_monitoring sets up in the same answer. The name defaults to '<project name> Status', in the language the person reads the Dashboard in. Use it for 'publish a status page', 'show our uptime to customers'. It always shows the person an approval card, in every mode.",
   inputSchema: {
     type: "object",
     properties: {

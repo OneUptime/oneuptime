@@ -445,6 +445,7 @@
   "{{pager}} paged {{team}} as observers": "{{pager}} ने {{team}} को पर्यवेक्षकों के रूप में बुलाया",
   "{{pager}} wrote: “{{message}}”": "{{pager}} ने लिखा: “{{message}}”",
   "{{probeStatusSummary}}\n\nA probe is disconnected when nothing has been heard from it for three minutes. Monitors that run only on a disconnected probe are not checked until it is back. This resolves itself once every probe this monitor watches is connected again.": "{{probeStatusSummary}}\n\nकिसी प्रोब से तीन मिनट तक कोई संपर्क न होने पर उसे डिस्कनेक्ट माना जाता है। जो मॉनिटर केवल किसी डिस्कनेक्ट प्रोब पर चलते हैं, उनकी जाँच तब तक नहीं होती जब तक वह प्रोब वापस न आ जाए। यह मॉनिटर जिन प्रोब पर नज़र रखता है, उन सभी के फिर से कनेक्ट होते ही यह अपने आप सुलझ जाएगा।",
+  "{{project}} Status": "{{project}} स्थिति",
   "{{record}} in {{project}}": "{{project}} में {{record}}",
   "{{record}} in {{project}} is still not resolved": "{{project}} में {{record}} अब तक हल नहीं",
   "{{record}} is still not resolved": "{{record}} अब तक हल नहीं",

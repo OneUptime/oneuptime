@@ -445,6 +445,7 @@
   "{{pager}} paged {{team}} as observers": "{{pager}} 以观察者身份呼叫了 {{team}}",
   "{{pager}} wrote: “{{message}}”": "{{pager}} 写道：“{{message}}”",
   "{{probeStatusSummary}}\n\nA probe is disconnected when nothing has been heard from it for three minutes. Monitors that run only on a disconnected probe are not checked until it is back. This resolves itself once every probe this monitor watches is connected again.": "{{probeStatusSummary}}\n\n探测器在三分钟内没有任何消息即视为已断开连接。仅在已断开连接的探测器上运行的监视器，在该探测器恢复之前不会被检查。此监视器监视的所有探测器都重新连接后，此问题将自动解决。",
+  "{{project}} Status": "{{project}} 状态",
   "{{record}} in {{project}}": "{{project}} 中的 {{record}}",
   "{{record}} in {{project}} is still not resolved": "{{project}} 中的 {{record}} 仍未解决",
   "{{record}} is still not resolved": "{{record}} 仍未解决",

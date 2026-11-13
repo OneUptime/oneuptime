@@ -445,6 +445,7 @@
   "{{pager}} paged {{team}} as observers": "استدعى {{pager}} {{team}} بصفة مراقبين",
   "{{pager}} wrote: “{{message}}”": "كتب {{pager}}: «{{message}}»",
   "{{probeStatusSummary}}\n\nA probe is disconnected when nothing has been heard from it for three minutes. Monitors that run only on a disconnected probe are not checked until it is back. This resolves itself once every probe this monitor watches is connected again.": "{{probeStatusSummary}}\n\nيُعدّ المسبار غير متصل إذا لم تصل منه أي إشارة لمدة ثلاث دقائق. لا تُفحص المراقبات التي تعمل على مسبار غير متصل فقط حتى يعود. يُحَلّ هذا تلقائيًا بمجرد أن تتصل جميع المسابير التي تتابعها هذه المراقبة من جديد.",
+  "{{project}} Status": "حالة {{project}}",
   "{{record}} in {{project}}": "{{record}} في {{project}}",
   "{{record}} in {{project}} is still not resolved": "{{record}} في {{project}} لم يُحل بعد",
   "{{record}} is still not resolved": "{{record}} لم يُحل بعد",

@@ -23,10 +23,12 @@ a language of their own:
 - the words of a record the server makes for a person, which become the
   project's own text once saved: a new monitor's default criteria - each
   criteria's name and description, and the incident and alert it opens -
-  when Ask AI sets up a website monitor (`set_up_website_monitoring`), in
-  the language the person reads the Dashboard in, as the website guided
-  setup names them (`ServerTranslation.getRecordWordsTranslator`). These
-  sentences are the Dashboard's: see "Sentences the Dashboard words" below.
+  when Ask AI sets up a website monitor (`set_up_website_monitoring`), and
+  the name a status page starts with ("Acme Status") when Ask AI publishes
+  one the person did not name (`publish_status_page`), in the language the
+  person reads the Dashboard in, as the guided setups name them
+  (`ServerTranslation.getRecordWordsTranslator`). These sentences are the
+  Dashboard's: see "Sentences the Dashboard words" below.
 
 Everything else the server writes - the other emails, texts, calls and
 pushes to a project's own team, every API answer, feed items - is still
@@ -107,7 +109,8 @@ test report.
 ## Sentences the Dashboard words
 
 A sentence the Dashboard writes too, for a record a person makes (a new
-monitor's default criteria, `Common/Types/Monitor/MonitorCriteriaInstance.ts`),
+monitor's default criteria, `Common/Types/Monitor/MonitorCriteriaInstance.ts`,
+and a new status page's name, `Common/Utils/GuidedSetup/StatusPageRecords.ts`),
 must read the same whichever way the record was made, so it is never
 worded here by hand. The files `DASHBOARD_SHARED_TEXT_SOURCES` lists
 (`Common/Scripts/I18n/ServerLocales.ts`) are worded in the Dashboard's locale

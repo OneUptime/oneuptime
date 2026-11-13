@@ -232,9 +232,10 @@ written with `formatDurationCompactInLanguage(seconds, translator.language)`
 ("12 Min." in German), which an English sentence turns back into "12m".
 
 The words of a new monitor's default criteria
-(`Common/Types/Monitor/MonitorCriteriaInstance.ts`) are written by the server
-too, when Ask AI sets a monitor up for a person, and must read as the
-Dashboard reads them: the server's locale set keeps a copy of their wording
+(`Common/Types/Monitor/MonitorCriteriaInstance.ts`) and the name a guided
+setup's status page starts with (`Common/Utils/GuidedSetup/StatusPageRecords.ts`)
+are written by the server too, when Ask AI sets a monitor up or publishes a
+status page for a person, and must read as the Dashboard reads them: the server's locale set keeps a copy of their wording
 in every language (`Common/Server/Locales`, its README's "Sentences the
 Dashboard words"). After adding, changing or translating one of them here,
 run `npm run i18n:server-sync` from the repository's root as well, or

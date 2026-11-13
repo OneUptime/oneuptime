@@ -445,6 +445,7 @@
   "{{pager}} paged {{team}} as observers": "{{pager}} さんが {{team}} をオブザーバーとして呼び出しました",
   "{{pager}} wrote: “{{message}}”": "{{pager}} さんのメッセージ：「{{message}}」",
   "{{probeStatusSummary}}\n\nA probe is disconnected when nothing has been heard from it for three minutes. Monitors that run only on a disconnected probe are not checked until it is back. This resolves itself once every probe this monitor watches is connected again.": "{{probeStatusSummary}}\n\nプローブは 3 分間応答がないと切断とみなされます。切断されたプローブでのみ実行されるモニターは、そのプローブが復帰するまでチェックされません。このモニターが監視するすべてのプローブが再び接続されると、自動的に解決されます。",
+  "{{project}} Status": "{{project}} ステータス",
   "{{record}} in {{project}}": "{{project}} の {{record}}",
   "{{record}} in {{project}} is still not resolved": "{{project}} の {{record}} がまだ解決していません",
   "{{record}} is still not resolved": "{{record}} がまだ解決していません",

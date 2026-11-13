@@ -445,6 +445,7 @@
   "{{pager}} paged {{team}} as observers": "{{pager}} вызвал {{team}} как наблюдателей",
   "{{pager}} wrote: “{{message}}”": "{{pager}} пишет: «{{message}}»",
   "{{probeStatusSummary}}\n\nA probe is disconnected when nothing has been heard from it for three minutes. Monitors that run only on a disconnected probe are not checked until it is back. This resolves itself once every probe this monitor watches is connected again.": "{{probeStatusSummary}}\n\nЗонд считается отключённым, если от него ничего не поступало в течение трёх минут. Мониторы, которые работают только на отключённом зонде, не проверяются, пока он не вернётся. Это будет устранено автоматически, как только все зонды, за которыми следит этот монитор, снова подключатся.",
+  "{{project}} Status": "Статус {{project}}",
   "{{record}} in {{project}}": "{{record}} в {{project}}",
   "{{record}} in {{project}} is still not resolved": "{{record}} в {{project}}: всё ещё не решено",
   "{{record}} is still not resolved": "{{record}}: всё ещё не решено",

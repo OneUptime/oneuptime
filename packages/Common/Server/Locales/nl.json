@@ -445,6 +445,7 @@
   "{{pager}} paged {{team}} as observers": "{{pager}} heeft {{team}} als waarnemers opgeroepen",
   "{{pager}} wrote: “{{message}}”": "{{pager}} schreef: ‘{{message}}’",
   "{{probeStatusSummary}}\n\nA probe is disconnected when nothing has been heard from it for three minutes. Monitors that run only on a disconnected probe are not checked until it is back. This resolves itself once every probe this monitor watches is connected again.": "{{probeStatusSummary}}\n\nEen sonde geldt als losgekoppeld als er drie minuten lang niets van is gehoord. Monitoren die alleen op een losgekoppelde sonde draaien, worden pas weer gecontroleerd als de sonde terug is. Dit wordt automatisch opgelost zodra alle sondes die deze monitor volgt, weer verbonden zijn.",
+  "{{project}} Status": "Status van {{project}}",
   "{{record}} in {{project}}": "{{record}} in project {{project}}",
   "{{record}} in {{project}} is still not resolved": "{{record}} in project {{project}} is nog niet opgelost",
   "{{record}} is still not resolved": "{{record}} is nog niet opgelost",

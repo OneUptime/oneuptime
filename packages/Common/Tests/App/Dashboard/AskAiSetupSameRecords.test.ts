@@ -33,6 +33,7 @@ import StatusPageService from "../../../Server/Services/StatusPageService";
 import WebsiteDownApi from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/WebsiteDown/WebsiteDownApi";
 import { parseWebsiteAddress } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/WebsiteDown/WebsiteDownSetup";
 import StatusPageSetupApi from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/StatusPage/StatusPageSetupApi";
+import { getDefaultStatusPageName } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/StatusPage/StatusPageSetup";
 import { DEFAULT_MONITORING_INTERVAL } from "../../../../App/FeatureSet/Dashboard/src/Utils/Form/Monitor/MonitoringIntervalDefault";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
@@ -73,7 +74,8 @@ import { dashboardTranslator } from "../../Helpers/DashboardLocales";
  * In every language (#7247): the monitor's criteria, and the incident and
  * alert they open, are named in the language the person reads the
  * Dashboard in - the guided setup with the Dashboard's translator, Ask AI
- * with the server's for the language the Dashboard sent - so the records
+ * with the server's for the language the Dashboard sent - and so is the
+ * name a status page the person does not name starts with, so the records
  * are compared read in English, German, Arabic, Persian and Japanese.
  */
 
@@ -582,4 +584,80 @@ describe("the same records, for the same answers", () => {
     expect(resourceFromAskAi.showUptimePercent).toBe(true);
     expect(resourceFromAskAi.monitorId?.toString()).toBe(MONITOR_ID);
   });
+
+  /*
+   * #7247: a page the person does not name starts with the project's name,
+   * in the language they read the Dashboard in - the guided setup fills its
+   * name field with it, and Ask AI names the page it proposes with it.
+   */
+  test.each(RECORD_LANGUAGES)(
+    "a status page the person does not name, read in %s, is named and made as the status page guided setup makes it",
+    async (language: string) => {
+      // The guided setup: the name it starts with, kept as it is.
+      const startingName: string = getDefaultStatusPageName({
+        translator: dashboardTranslator(language),
+        projectName: "Acme",
+      });
+      await StatusPageSetupApi.createStatusPage(startingName);
+      const page: { model: unknown } = browserCreates()[0]!;
+
+      // Ask AI, asked for a page without a name, by the same person.
+      jest
+        .spyOn(MonitorService, "findBy")
+        .mockResolvedValue([
+          model(Monitor, { _id: MONITOR_ID, name: "example.com" }),
+        ] as never);
+      const pageCreate: SpyInstance<(...args: Array<never>) => unknown> = jest
+        .spyOn(StatusPageService, "create")
+        .mockImplementation((async (args: {
+          data: StatusPage;
+        }): Promise<StatusPage> => {
+          return model(StatusPage, { ...args.data, _id: STATUS_PAGE_ID });
+        }) as never) as unknown as SpyInstance<
+        (...args: Array<never>) => unknown
+      >;
+      jest
+        .spyOn(StatusPageService, "getStatusPageURL")
+        .mockResolvedValue("" as never);
+      jest
+        .spyOn(StatusPageResourceService, "findBy")
+        .mockResolvedValue([] as never);
+      jest
+        .spyOn(StatusPageResourceService, "create")
+        .mockImplementation((async (args: {
+          data: StatusPageResource;
+        }): Promise<StatusPageResource> => {
+          return args.data;
+        }) as never);
+
+      const context: ToolContext = { ...ctx, language: language };
+      const prepared: { arguments: JSONObject } =
+        await PublishStatusPageTool.prepareMutation!(
+          { monitors: ["example.com"] },
+          context,
+        );
+      await PublishStatusPageTool.execute(prepared.arguments, context);
+
+      const pageFromAskAi: StatusPage = (
+        pageCreate.mock.calls[0]![0] as unknown as { data: StatusPage }
+      ).data;
+
+      expect(prepared.arguments["name"]).toBe(startingName);
+      expect(JSON.parse(JSON.stringify(pageFromAskAi))).toEqual(
+        JSON.parse(JSON.stringify(page.model)),
+      );
+      expect(pageFromAskAi.name).toBe(startingName);
+      // A record keeps no invisible marks, in a language read from the right too.
+      expect(startingName).not.toContain(FIRST_STRONG_ISOLATE);
+      expect(startingName).not.toContain(POP_DIRECTIONAL_ISOLATE);
+
+      if (language === "en") {
+        expect(startingName).toBe("Acme Status");
+      } else {
+        // In the reader's language: not the English a server without one writes.
+        expect(startingName).not.toBe("Acme Status");
+        expect(startingName).toContain("Acme");
+      }
+    },
+  );
 });

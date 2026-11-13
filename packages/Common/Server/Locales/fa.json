@@ -445,6 +445,7 @@
   "{{pager}} paged {{team}} as observers": "{{pager}} {{team}} را به‌عنوان ناظر فراخواند",
   "{{pager}} wrote: “{{message}}”": "{{pager}} نوشت: «{{message}}»",
   "{{probeStatusSummary}}\n\nA probe is disconnected when nothing has been heard from it for three minutes. Monitors that run only on a disconnected probe are not checked until it is back. This resolves itself once every probe this monitor watches is connected again.": "{{probeStatusSummary}}\n\nپراب زمانی قطع‌شده به شمار می‌آید که سه دقیقه هیچ خبری از آن نرسیده باشد. مانیتورهایی که فقط روی یک پراب قطع‌شده اجرا می‌شوند، تا بازگشت آن پراب بررسی نمی‌شوند. وقتی همه پراب‌های تحت نظر این مانیتور دوباره متصل شوند، این مورد خودبه‌خود برطرف می‌شود.",
+  "{{project}} Status": "وضعیت {{project}}",
   "{{record}} in {{project}}": "{{record}} در {{project}}",
   "{{record}} in {{project}} is still not resolved": "{{record}} در {{project}} هنوز برطرف نشده",
   "{{record}} is still not resolved": "{{record}} هنوز برطرف نشده",

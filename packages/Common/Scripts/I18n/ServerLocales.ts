@@ -23,7 +23,8 @@ import path from "path";
  * and gives every other language each new sentence in English, to be
  * translated - or, for a sentence the Dashboard writes too, the Dashboard's
  * wording of it (DASHBOARD_SHARED_TEXT_SOURCES);
- * Tests/Server/Locales/ServerLocales.test.ts holds the files to it. Pure but for reading and writing the files, linear in what it reads.
+ * Tests/Server/Locales/ServerLocales.test.ts holds the files to it. Pure
+ * but for reading and writing the files, linear in what it reads.
  */
 
 export const REPOSITORY_ROOT: string = path.resolve(
@@ -80,12 +81,13 @@ export const PLURAL_ONE_SUFFIX: string = "_one";
  *
  * Some of OneUptime's words become a record's own text once saved: a new
  * monitor's default criteria - each criteria's name and description, and
- * the title and description of the incident and alert it opens - which the
- * project's people then edit like anything they typed. The Dashboard writes
- * them in the language of the person making the monitor (Create Monitor,
- * the website guided setup), and so does the server when it makes the
- * monitor for a person (Ask AI's set_up_website_monitoring), so the same
- * answers make the same record in every language.
+ * the title and description of the incident and alert it opens - and the
+ * name a new status page starts with ("Acme Status"), which the project's
+ * people then edit like anything they typed. The Dashboard writes them in
+ * the language of the person making the record (Create Monitor, the
+ * guided setups), and so does the server when it makes the record for a
+ * person (Ask AI's set_up_website_monitoring and publish_status_page), so
+ * the same answers make the same record in every language.
  *
  * The Dashboard's locale files are where these sentences are worded: the
  * Dashboard's i18n:extract finds them (these files are "keys" roots of its
@@ -98,6 +100,7 @@ export const PLURAL_ONE_SUFFIX: string = "_one";
  */
 export const DASHBOARD_SHARED_TEXT_SOURCES: ReadonlyArray<string> = [
   "packages/Common/Types/Monitor/MonitorCriteriaInstance.ts",
+  "packages/Common/Utils/GuidedSetup/StatusPageRecords.ts",
 ];
 
 export const DASHBOARD_LOCALES_DIRECTORY: string = path.join(
