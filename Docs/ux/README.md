@@ -549,10 +549,12 @@ then `npm run i18n:validate` from the root.
   [DashboardListNameCellsGuard](../../packages/Common/Tests/App/Dashboard/DashboardListNameCellsGuard.test.ts)
   and
   [TranslatedSentenceInRowGuard](../../packages/Common/Tests/UI/TranslatedSentenceInRowGuard.test.ts).
-- **A path's arrows point the way it is read.** A browser never turns "→" round, so on a page read
-  from the right it points each step back at the one before: Arabic and Persian write "←" beside a
-  step in their own words (`تنظیمات پروژه ← پیشرفته`), and keep "→" between two steps left in Latin
-  letters, which are drawn from the left. ">" and "›" turn round by themselves. Enforced by
+- **A path's arrows point the way it is read, and a link's the way it leads.** A browser never turns
+  "→" round, so on a page read from the right it points each step back at the one before: Arabic and
+  Persian write "←" beside a step in their own words (`تنظیمات پروژه ← پیشرفته`), and keep "→"
+  between two steps left in Latin letters, which are drawn from the left. ">" and "›" turn round by
+  themselves. A link that leads on ends with "←" there ("All metrics →" is `همهٔ متریک‌ها ←`), and
+  one that leads back starts with "→" ("← Back" is `→ بازگشت`). Enforced by
   [PathArrowsInRightToLeftSentences](../../packages/Common/Tests/App/PathArrowsInRightToLeftSentences.test.ts).
 - **A bare word has one meaning everywhere,** because a label is translated by its English text.
   "Any" is the Match Condition's word. Enforced by
@@ -565,6 +567,17 @@ then `npm run i18n:validate` from the root.
   [NounKeysDrawnAsLabelsGuard](../../packages/Common/Tests/App/Dashboard/NounKeysDrawnAsLabelsGuard.test.ts)
   and
   [NounLabelsStartWithACapital](../../packages/Common/Tests/App/Dashboard/NounLabelsStartWithACapital.test.tsx).
+- **A cloud's product name is written as the cloud writes it.** A kind of cloud resource is named by
+  the catalog's label, a product's name ("Virtual Machine", "Cloud Run"), in every language and on
+  every page: the rows, the cards, the overview, Topology, a Type filter's menu and its chip. The docs'
+  tables of supported resources write them so too. Never look a label up: some are also Dashboard
+  words, and a Spanish menu said "Máquina virtual" over rows that said "Virtual Machine". A kind the
+  catalog only names in words reads in the reader's words ("Subred"), through
+  `getCloudResourceTypeText`; a Type filter takes its options from `getCloudResourceTypeOptions`.
+  Enforced by
+  [CloudResourceTypeNamesGuard](../../packages/Common/Tests/App/Dashboard/CloudResourceTypeNamesGuard.test.ts)
+  and
+  [CloudResourceTypeNamesInSpanish](../../packages/Common/Tests/App/Dashboard/CloudResourceTypeNamesInSpanish.test.tsx).
 - **Pick words that translate as you mean them.** "About" read "Regarding" in 13 languages, so the
   button says "How it works"; "Uptime" read "runtime", so a share of time up says "Availability". Not
   enforced: use judgement.

@@ -814,6 +814,7 @@
     "{{count}} s",
     "{{count}} vCPU",
     "{{count}} vCPUs",
+    "{{exceptionType}} in {{serviceName}}",
     "{{gigabytes}} GB",
     "{{in}} in",
     "{{size}} in {{duration}}",

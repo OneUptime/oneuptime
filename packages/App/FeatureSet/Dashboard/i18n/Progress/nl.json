@@ -788,6 +788,7 @@
     "{{count}}m",
     "{{count}}s",
     "{{delta}} pp",
+    "{{exceptionType}} in {{serviceName}}",
     "{{field}} is {{value}}",
     "{{gigabytes}} GB",
     "{{inQuorum}}/{{count}} mon in quorum",
