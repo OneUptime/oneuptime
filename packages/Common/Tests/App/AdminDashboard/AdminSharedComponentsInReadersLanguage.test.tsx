@@ -127,6 +127,7 @@ import Navigation from "../../../UI/Utils/Navigation";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import ServerSetupChecklistLoader from "../../../UI/Utils/ServerSetupChecklist";
 import TableFilterUrlState from "../../../UI/Utils/TableFilterUrlState";
+import { escapeRegExp } from "../../../Utils/RegExpEscape";
 import { readDashboardLocale } from "../../Helpers/DashboardLocales";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 
@@ -273,7 +274,7 @@ async function settle(): Promise<void> {
 async function openMoreFields(root: HTMLElement): Promise<void> {
   const title: string = sharedWord("More fields");
   const header: HTMLElement = within(root).getByRole("button", {
-    name: new RegExp(title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
+    name: new RegExp(escapeRegExp(title)),
   });
 
   if (header.getAttribute("aria-expanded") !== "true") {

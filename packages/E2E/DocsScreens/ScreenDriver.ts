@@ -1,6 +1,7 @@
 import { expect, Locator, Page } from "@playwright/test";
 import fs from "fs";
 import path from "path";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import {
   DocsScreenAction,
   DocsScreenFixture,
@@ -93,10 +94,6 @@ export function wordsIn(lang: string, english: string): string {
   return typeof translated === "string" && translated.trim()
     ? translated
     : english;
-}
-
-function escapeRegExp(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 /*
