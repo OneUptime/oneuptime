@@ -63,6 +63,7 @@ import useDashboardWidgetColumns, {
   DashboardWidgetColumns,
 } from "./DashboardWidgetColumns";
 import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
+import { getUnsetText } from "./DashboardWidgetFallbackWords";
 
 // The table's header line: its title, and its controls beside or under it.
 export const DASHBOARD_TABLE_HEADER_TEST_ID: string = "dashboard-table-header";
@@ -743,8 +744,17 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
                   className="text-sm font-semibold text-gray-700 tracking-tight truncate"
                 />
               )}
+              {/*
+               * The description, read the way its words are written (#7092): it
+               * wraps, so an English one on an Arabic or Persian board starts
+               * each of its lines at its own start, and ends at its own end.
+               */}
               {description && (
-                <p className="mt-0.5 text-xs text-gray-400">{description}</p>
+                <DashboardWidgetLine
+                  as="p"
+                  text={description}
+                  className="mt-0.5 text-xs text-gray-400 whitespace-normal"
+                />
               )}
             </>
           )}
@@ -915,8 +925,15 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
                               text={value}
                               className="px-3 py-2 text-gray-700 text-xs truncate"
                             >
+                              {/*
+                               * In the gray every table draws a missing value
+                               * in (TableEmptyValue): gray-300 was 1.5:1 on
+                               * the card, too faint to read.
+                               */}
                               {value || (
-                                <span className="text-gray-300">(unset)</span>
+                                <span className="text-gray-400">
+                                  {getUnsetText(translator)}
+                                </span>
                               )}
                             </DashboardWidgetLine>
                           );
