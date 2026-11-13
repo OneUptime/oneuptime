@@ -33,12 +33,13 @@ import OtlpJson, {
  * Collector's splunkhecreceiver gives it: host as host.name, and source,
  * sourcetype and index as com.splunk.source, com.splunk.sourcetype and
  * com.splunk.index; the request's query string fills in what an event
- * leaves out. HEC has no service: a `service.name` or `service` indexed
- * field names one (the OpenTelemetry Collector's exporter sends its
- * resource's service.name that way). With none, service.name is left
- * unset, and OneUptime files the records by host or under its unknown
- * service - an ingestion key can be pinned to a service instead. Events
- * are grouped into one resource per distinct service and metadata.
+ * leaves out. HEC has no service: a `service.name` indexed field names
+ * one (the OpenTelemetry Collector's exporter sends its resource's
+ * service.name that way), and so does a log's `service` field - not a
+ * metric event's, where `service` is a dimension. With none, service.name
+ * is left unset, and OneUptime files the records by host or under its
+ * unknown service - an ingestion key can be pinned to a service instead.
+ * Events are grouped into one resource per distinct service and metadata.
  *
  * An event whose `event` is "metric" is in Splunk's metrics format: its
  * measurements are gauge points, never logs.
@@ -287,8 +288,8 @@ const HEX_SPAN_ID_LENGTH: number = 16;
 
 /*
  * The indexed fields that name the service. service.name is the
- * resource's, never a record or point attribute; service names it too
- * (when service.name does not), and is kept as an attribute as well.
+ * resource's, never a record or point attribute; a log's service names it
+ * too (when service.name does not), and is kept as an attribute as well.
  */
 const SERVICE_NAME_FIELD: string = "service.name";
 const SERVICE_FIELD: string = "service";
@@ -468,6 +469,7 @@ export default class SplunkHec {
         event,
         fields,
         context,
+        event["event"] === METRIC_EVENT,
       );
       const timeUnixNano: string =
         SplunkHec.readTime(event["time"]) ?? context.defaultTimeUnixNano;
@@ -850,19 +852,22 @@ export default class SplunkHec {
 
   /*
    * An event's resource: the service the route names, else its
-   * service.name or service field; its own metadata, else the query
-   * string's.
+   * service.name field, else - for a log - its service field; its own
+   * metadata, else the query string's. A metric event's `service` is a
+   * dimension like any other (Splunk's own metrics examples send
+   * "service": "6"), so only service.name names a metric's service.
    */
   private static identityOf(
     event: JSONObject,
     fields: JSONObject | null,
     context: TranslateContext,
+    isMetric: boolean,
   ): ResourceIdentity {
     return {
       serviceName:
         context.serviceName ||
         SplunkHec.readText(fields?.[SERVICE_NAME_FIELD]) ||
-        SplunkHec.readText(fields?.[SERVICE_FIELD]),
+        (isMetric ? "" : SplunkHec.readText(fields?.[SERVICE_FIELD])),
       host: SplunkHec.readText(event["host"]) || context.defaults.host,
       source: SplunkHec.readText(event["source"]) || context.defaults.source,
       sourcetype:

@@ -46,7 +46,7 @@ const attributesOf: (item: unknown) => Attributes = (
   const result: Attributes = {};
 
   for (const attribute of ((item as JSONObject)["attributes"] ||
-    []) as Array<KeyValue>) {
+    []) as unknown as Array<KeyValue>) {
     result[attribute.key] = Object.values(attribute.value)[0];
   }
 
@@ -56,7 +56,7 @@ const attributesOf: (item: unknown) => Attributes = (
 const attributeKeysOf: (item: unknown) => Array<string> = (
   item: unknown,
 ): Array<string> => {
-  return ((item as JSONObject)["attributes"] as Array<KeyValue>).map(
+  return ((item as JSONObject)["attributes"] as unknown as Array<KeyValue>).map(
     (attribute: KeyValue): string => {
       return attribute.key;
     },
@@ -473,7 +473,11 @@ describe("DatadogIntake.logsToOtlp: Datadog's log libraries and tracers", () => 
   it("reads Log4j 2's contextMap and keeps the rest of it", () => {
     const { record } = translateLog({
       message: "m",
-      contextMap: { "dd.trace_id": "123", "dd.span_id": "456", requestId: "r-1" },
+      contextMap: {
+        "dd.trace_id": "123",
+        "dd.span_id": "456",
+        requestId: "r-1",
+      },
     });
 
     expect(record["traceId"]).toBe("0000000000000000000000000000007b");
@@ -541,9 +545,9 @@ describe("DatadogIntake.logsToOtlp: Datadog's log libraries and tracers", () => 
 
 describe("DatadogIntake.logsToOtlp: message", () => {
   it("keeps a string message as it is, and writes any other as its JSON", () => {
-    expect(
-      translateLog({ message: "  spaced out\n" }).record["body"],
-    ).toEqual({ stringValue: "  spaced out\n" });
+    expect(translateLog({ message: "  spaced out\n" }).record["body"]).toEqual({
+      stringValue: "  spaced out\n",
+    });
     expect(
       translateLog({ message: { event: "login", ok: true } }).record["body"],
     ).toEqual({ stringValue: '{"event":"login","ok":true}' });
@@ -685,7 +689,11 @@ describe("DatadogIntake.logsToOtlp: status", () => {
 
 describe("DatadogIntake.logsToOtlp: time", () => {
   test.each<[string, unknown, string]>([
-    ["milliseconds (what the Agent sends)", 1700000000123, "1700000000123000000"],
+    [
+      "milliseconds (what the Agent sends)",
+      1700000000123,
+      "1700000000123000000",
+    ],
     ["milliseconds with a fraction", 1700000000123.5, "1700000000123500000"],
     ["seconds", 1700000000, "1700000000000000000"],
     ["fractional seconds", 1700000000.25, "1700000000250000000"],
@@ -704,9 +712,17 @@ describe("DatadogIntake.logsToOtlp: time", () => {
       "1700000000123456789",
     ],
     ["an offset", "2023-11-14T23:13:20+01:00", "1700000000000000000"],
-    ["an offset with no colon", "2023-11-14T17:43:20-0430", "1700000000000000000"],
+    [
+      "an offset with no colon",
+      "2023-11-14T17:43:20-0430",
+      "1700000000000000000",
+    ],
     ["no zone, read as UTC", "2023-11-14 22:13:20", "1700000000000000000"],
-    ["a comma before the fraction", "2023-11-14T22:13:20,5Z", "1700000000500000000"],
+    [
+      "a comma before the fraction",
+      "2023-11-14T22:13:20,5Z",
+      "1700000000500000000",
+    ],
     ["UTC spelled out", "2023-11-14 22:13:20 UTC", "1700000000000000000"],
   ])(
     "reads a timestamp in %s",
@@ -915,9 +931,7 @@ describe("DatadogIntake.logsToOtlp: the body", () => {
   });
 
   it("reads a body that starts with a byte order mark", () => {
-    expect(
-      DatadogIntake.logsToOtlp('﻿[{"message":"bom"}]').count,
-    ).toBe(1);
+    expect(DatadogIntake.logsToOtlp('﻿[{"message":"bom"}]').count).toBe(1);
   });
 
   it("is no logs for an empty body or array", () => {
@@ -952,7 +966,11 @@ describe("DatadogIntake.logsToOtlp: the body", () => {
   it(`translates at most ${MAX_DATADOG_LOGS_PER_REQUEST} logs a request, and counts the rest`, () => {
     const logs: Array<JSONObject> = [];
 
-    for (let index: number = 0; index <= MAX_DATADOG_LOGS_PER_REQUEST; index++) {
+    for (
+      let index: number = 0;
+      index <= MAX_DATADOG_LOGS_PER_REQUEST;
+      index++
+    ) {
       logs.push({ message: `log ${index}` });
     }
 
@@ -1044,8 +1062,10 @@ const V1_SERIES: JSONObject = {
 
 describe("DatadogIntake.seriesV1ToOtlp", () => {
   it("writes gauges, rates and counts, grouped by resource and then by metric", () => {
-    const translation: DatadogMetricsTranslation =
-      DatadogIntake.seriesV1ToOtlp(V1_SERIES, { nowInMs: NOW_MS });
+    const translation: DatadogMetricsTranslation = DatadogIntake.seriesV1ToOtlp(
+      V1_SERIES,
+      { nowInMs: NOW_MS },
+    );
 
     const load: Array<KeyValue> = [
       kv("env", "prod"),
@@ -1364,9 +1384,8 @@ describe("DatadogIntake.seriesV1ToOtlp", () => {
 
   it("reads a bare array of series, and is no metrics for none", () => {
     expect(
-      DatadogIntake.seriesV1ToOtlp([
-        { metric: "m", points: [[1700000000, 1]] },
-      ]).pointCount,
+      DatadogIntake.seriesV1ToOtlp([{ metric: "m", points: [[1700000000, 1]] }])
+        .pointCount,
     ).toBe(1);
     expect(DatadogIntake.seriesV1ToOtlp({ series: [] })).toEqual({
       metrics: null,
@@ -1444,7 +1463,7 @@ const V2_SERIES: JSONObject = {
   ],
 };
 
-const V2_SERIES_OTLP: JSONObject = {
+const V2_SERIES_OTLP: Record<string, unknown> = {
   resourceMetrics: [
     {
       resource: {
@@ -1581,9 +1600,9 @@ const V2_SERIES_OTLP: JSONObject = {
 
 describe("DatadogIntake.seriesV2ToOtlp", () => {
   it("reads types, the host and device resources, and units, grouping by name, type and unit", () => {
-    expect(DatadogIntake.seriesV2ToOtlp(V2_SERIES, { nowInMs: NOW_MS })).toEqual(
-      { metrics: V2_SERIES_OTLP, pointCount: 5, droppedPointCount: 0 },
-    );
+    expect(
+      DatadogIntake.seriesV2ToOtlp(V2_SERIES, { nowInMs: NOW_MS }),
+    ).toEqual({ metrics: V2_SERIES_OTLP, pointCount: 5, droppedPointCount: 0 });
   });
 
   test.each<[unknown, string, boolean]>([
@@ -2009,58 +2028,57 @@ describe("DatadogIntake.sketchesToOtlp", () => {
   });
 
   it("writes each Dogsketch, and an older Agent's Distribution, as a summary point", () => {
-    const translation: DatadogMetricsTranslation =
-      DatadogIntake.sketchesToOtlp(
-        encodeSketchPayload({
-          sketches: [
-            {
-              metric: "checkout.latency",
-              host: "web-1",
-              tags: ["env:prod", "service:checkout", "endpoint:/pay"],
-              dogsketches: [
-                {
-                  ts: 1700000000,
-                  cnt: 4,
-                  min: 0.012,
-                  max: 0.25,
-                  avg: 0.0805,
-                  sum: 0.322,
-                  k: [1290, 1310, 1388, 1400],
-                  n: [1, 1, 1, 1],
-                },
-                {
-                  ts: 1700000010,
-                  cnt: 1,
-                  min: 0.03,
-                  max: 0.03,
-                  avg: 0.03,
-                  sum: 0.03,
-                  k: [1335],
-                  n: [1],
-                },
-              ],
-            },
-            {
-              metric: "legacy.histogram",
-              host: "old-agent",
-              distributions: [
-                {
-                  ts: 1700000000,
-                  cnt: 2,
-                  min: 1,
-                  max: 3,
-                  avg: 2,
-                  sum: 4,
-                  v: [1, 3],
-                  g: [1, 1],
-                  delta: [0, 0],
-                },
-              ],
-            },
-          ],
-        }),
-        { nowInMs: NOW_MS },
-      );
+    const translation: DatadogMetricsTranslation = DatadogIntake.sketchesToOtlp(
+      encodeSketchPayload({
+        sketches: [
+          {
+            metric: "checkout.latency",
+            host: "web-1",
+            tags: ["env:prod", "service:checkout", "endpoint:/pay"],
+            dogsketches: [
+              {
+                ts: 1700000000,
+                cnt: 4,
+                min: 0.012,
+                max: 0.25,
+                avg: 0.0805,
+                sum: 0.322,
+                k: [1290, 1310, 1388, 1400],
+                n: [1, 1, 1, 1],
+              },
+              {
+                ts: 1700000010,
+                cnt: 1,
+                min: 0.03,
+                max: 0.03,
+                avg: 0.03,
+                sum: 0.03,
+                k: [1335],
+                n: [1],
+              },
+            ],
+          },
+          {
+            metric: "legacy.histogram",
+            host: "old-agent",
+            distributions: [
+              {
+                ts: 1700000000,
+                cnt: 2,
+                min: 1,
+                max: 3,
+                avg: 2,
+                sum: 4,
+                v: [1, 3],
+                g: [1, 1],
+                delta: [0, 0],
+              },
+            ],
+          },
+        ],
+      }),
+      { nowInMs: NOW_MS },
+    );
 
     expect(translation.pointCount).toBe(3);
     expect(translation.droppedPointCount).toBe(0);
@@ -2140,28 +2158,27 @@ describe("DatadogIntake.sketchesToOtlp", () => {
   });
 
   it("drops a sketch point with no sum and the points of a sketch with no name, and leaves out quantiles that are no numbers", () => {
-    const translation: DatadogMetricsTranslation =
-      DatadogIntake.sketchesToOtlp(
-        encodeSketchPayload({
-          sketches: [
-            {
-              metric: "edge",
-              host: "h",
-              dogsketches: [
-                { ts: 1700000000, cnt: 0, min: Infinity, max: -Infinity },
-                { ts: 1700000000, cnt: 2, sum: NaN, min: 1, max: 2 },
-                { ts: 1700000000, cnt: 2, sum: 3, min: -Infinity, max: 2 },
-                { ts: -1, cnt: 1, sum: 1, min: 1, max: 1 },
-              ],
-            },
-            {
-              host: "h",
-              dogsketches: [{ ts: 1700000000, cnt: 1, sum: 1 }],
-            },
-          ],
-        }),
-        { nowInMs: NOW_MS },
-      );
+    const translation: DatadogMetricsTranslation = DatadogIntake.sketchesToOtlp(
+      encodeSketchPayload({
+        sketches: [
+          {
+            metric: "edge",
+            host: "h",
+            dogsketches: [
+              { ts: 1700000000, cnt: 0, min: Infinity, max: -Infinity },
+              { ts: 1700000000, cnt: 2, sum: NaN, min: 1, max: 2 },
+              { ts: 1700000000, cnt: 2, sum: 3, min: -Infinity, max: 2 },
+              { ts: -1, cnt: 1, sum: 1, min: 1, max: 1 },
+            ],
+          },
+          {
+            host: "h",
+            dogsketches: [{ ts: 1700000000, cnt: 1, sum: 1 }],
+          },
+        ],
+      }),
+      { nowInMs: NOW_MS },
+    );
 
     expect(translation.pointCount).toBe(2);
     expect(translation.droppedPointCount).toBe(3);
@@ -2187,20 +2204,19 @@ describe("DatadogIntake.sketchesToOtlp", () => {
   });
 
   it("names the service after the header", () => {
-    const translation: DatadogMetricsTranslation =
-      DatadogIntake.sketchesToOtlp(
-        encodeSketchPayload({
-          sketches: [
-            {
-              metric: "m",
-              host: "web-1",
-              tags: ["service:checkout"],
-              dogsketches: [{ ts: 1700000000, cnt: 1, sum: 1, min: 1, max: 1 }],
-            },
-          ],
-        }),
-        { serviceName: "billing" },
-      );
+    const translation: DatadogMetricsTranslation = DatadogIntake.sketchesToOtlp(
+      encodeSketchPayload({
+        sketches: [
+          {
+            metric: "m",
+            host: "web-1",
+            tags: ["service:checkout"],
+            dogsketches: [{ ts: 1700000000, cnt: 1, sum: 1, min: 1, max: 1 }],
+          },
+        ],
+      }),
+      { serviceName: "billing" },
+    );
 
     expect(
       attributesOf(resourceMetricsOf(translation)[0]!["resource"]),

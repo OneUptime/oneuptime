@@ -440,6 +440,17 @@ describe("SplunkHec.parseEvents", () => {
     ]);
   });
 
+  it("keeps a large event whole, with braces, quotes and runs of backslashes in it", () => {
+    const message: string = `${"x".repeat(2 * 1024 * 1024)} } { "quoted" ${"\\".repeat(1024)}`;
+    const records: Array<JSONObject> = logRecordsOf(
+      translate(concatenated([{ event: message }, { event: "after it" }], "")),
+    );
+
+    expect(records).toHaveLength(2);
+    expect(bodyOf(records[0]!)).toBe(message);
+    expect(bodyOf(records[1]!)).toBe("after it");
+  });
+
   it("reads a JSON array of events, though HEC itself refuses one", () => {
     expect(
       SplunkHec.parseEvents('  [ {"event":"one"}, {"event":"two"} ]\n'),
@@ -1556,11 +1567,11 @@ describe("SplunkHec.eventsToOtlp: metric events", () => {
     const resourceMetric: JSONObject = resourceMetricsOf(otlp)[0]!;
 
     /*
-     * Splunk's own example has a `service` dimension, and a service field
-     * names the service, here as anywhere.
+     * Splunk's own example has a `service` dimension ("6"). On a metric
+     * event it stays a dimension: only service.name names a metric's
+     * service, so no service called "6" appears.
      */
     expect(resourceAttributesOf(resourceMetric)).toEqual({
-      "service.name": "6",
       "host.name": "host_99",
       "com.splunk.source": "disk",
       "com.splunk.index": "metrics",

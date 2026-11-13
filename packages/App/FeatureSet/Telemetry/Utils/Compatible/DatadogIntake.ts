@@ -171,10 +171,12 @@ const PROTO_PATH: string = path.resolve(
 
 const AgentPayloadProto: protobuf.Root = protobuf.loadSync(PROTO_PATH);
 
-export const DatadogMetricPayload: protobuf.Type =
-  AgentPayloadProto.lookupType("datadog.agentpayload.MetricPayload");
-export const DatadogSketchPayload: protobuf.Type =
-  AgentPayloadProto.lookupType("datadog.agentpayload.SketchPayload");
+export const DatadogMetricPayload: protobuf.Type = AgentPayloadProto.lookupType(
+  "datadog.agentpayload.MetricPayload",
+);
+export const DatadogSketchPayload: protobuf.Type = AgentPayloadProto.lookupType(
+  "datadog.agentpayload.SketchPayload",
+);
 
 /*
  * int64s as numbers (every Datadog timestamp, count and interval fits),
@@ -1253,7 +1255,9 @@ export default class DatadogIntake {
 
       attributes.push({
         key:
-          type.toLowerCase() === "device" ? "device" : `datadog.resource.${type}`,
+          type.toLowerCase() === "device"
+            ? "device"
+            : `datadog.resource.${type}`,
         value: { stringValue: name },
       });
     }
