@@ -51838,5 +51838,15 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Période : {{range}}. Essayez d'ajuster les filtres ou d'élargir la période.",
   "On-Call Policy Created": "Politique d'astreinte créée",
   "On-Call Schedule Added": "Planning d'astreinte ajouté",
-  "On-Call Schedule Removed": "Planning d'astreinte retiré"
+  "On-Call Schedule Removed": "Planning d'astreinte retiré",
+  "Couldn't post the note.": "Impossible d'ajouter la note.",
+  "Couldn't save your changes.": "Impossible d'enregistrer vos modifications.",
+  "Couldn't delete the note.": "Impossible de supprimer la note.",
+  "Couldn't send the note for approval.": "Impossible d'envoyer la note pour approbation.",
+  "Couldn't send the edit for approval.": "Impossible d'envoyer la modification pour approbation.",
+  "Couldn't approve the note.": "Impossible d'approuver la note.",
+  "Couldn't reject the note.": "Impossible de rejeter la note.",
+  "Couldn't publish the note.": "Impossible de publier la note.",
+  "Couldn't withdraw the edit.": "Impossible de retirer la modification.",
+  "Couldn't load the public notes.": "Impossible de charger les notes publiques."
 }

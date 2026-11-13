@@ -51838,5 +51838,15 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "النطاق الزمني: {{range}}. جرّب تعديل عوامل التصفية أو توسيع النطاق الزمني.",
   "On-Call Policy Created": "أُنشئت سياسة مناوبة",
   "On-Call Schedule Added": "أُضيف جدول مناوبة",
-  "On-Call Schedule Removed": "أُزيل جدول مناوبة"
+  "On-Call Schedule Removed": "أُزيل جدول مناوبة",
+  "Couldn't post the note.": "تعذّرت إضافة الملاحظة.",
+  "Couldn't save your changes.": "تعذّر حفظ تغييراتك.",
+  "Couldn't delete the note.": "تعذّر حذف الملاحظة.",
+  "Couldn't send the note for approval.": "تعذّر إرسال الملاحظة للموافقة.",
+  "Couldn't send the edit for approval.": "تعذّر إرسال التعديل للموافقة.",
+  "Couldn't approve the note.": "تعذّرت الموافقة على الملاحظة.",
+  "Couldn't reject the note.": "تعذّر رفض الملاحظة.",
+  "Couldn't publish the note.": "تعذّر نشر الملاحظة.",
+  "Couldn't withdraw the edit.": "تعذّر سحب التعديل.",
+  "Couldn't load the public notes.": "تعذّر تحميل الملاحظات العامة."
 }

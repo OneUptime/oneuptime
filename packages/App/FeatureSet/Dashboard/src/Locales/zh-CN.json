@@ -51838,5 +51838,15 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "时间范围：{{range}}。请尝试调整筛选条件或扩大时间范围。",
   "On-Call Policy Created": "值班策略已创建",
   "On-Call Schedule Added": "值班排班已添加",
-  "On-Call Schedule Removed": "值班排班已移除"
+  "On-Call Schedule Removed": "值班排班已移除",
+  "Couldn't post the note.": "无法添加备注。",
+  "Couldn't save your changes.": "无法保存你的更改。",
+  "Couldn't delete the note.": "无法删除备注。",
+  "Couldn't send the note for approval.": "无法提交备注审批。",
+  "Couldn't send the edit for approval.": "无法提交编辑以供批准。",
+  "Couldn't approve the note.": "无法批准备注。",
+  "Couldn't reject the note.": "无法拒绝备注。",
+  "Couldn't publish the note.": "无法发布备注。",
+  "Couldn't withdraw the edit.": "无法撤回编辑。",
+  "Couldn't load the public notes.": "无法加载公开备注。"
 }

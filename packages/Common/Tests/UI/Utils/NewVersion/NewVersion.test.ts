@@ -16,6 +16,7 @@ import NewVersion, {
   NEW_VERSION_MINIMUM_CHECK_GAP_IN_MS,
   NEW_VERSION_PLACE_KEY,
   NEW_VERSION_PLACE_MAX_AGE_IN_MS,
+  NEW_VERSION_PLACE_RESTORE_STEP_IN_MS,
   NEW_VERSION_PLACE_RESTORE_TIMEOUT_IN_MS,
   NewVersionAudience,
   NewVersionState,
@@ -736,17 +737,53 @@ describe("a reload into the new version comes back to the same place", () => {
     "https://oneuptime.example/dashboard/project/incidents?page=2#notes";
 
   let scrollY: number = 0;
+  // How far down the page can be scrolled; the page's height goes with it.
   let documentHeight: number = 0;
+  // document.fonts.status: "loading" while a font the page asked for is on its way.
+  let fontStatus: string = "loaded";
   let scrollToMock: Mock<(x: number, y: number) => void>;
+
+  const savePlace: (scrollYToSave: number) => void = (
+    scrollYToSave: number,
+  ): void => {
+    TabMemory.set(
+      NEW_VERSION_PLACE_KEY,
+      JSON.stringify({
+        href: HREF,
+        scrollX: 0,
+        scrollY: scrollYToSave,
+        savedAt: Date.now(),
+      }),
+    );
+    setLocation(HREF);
+  };
+
+  const scrollToCalls: () => number = (): number => {
+    return scrollToMock.mock.calls.length;
+  };
 
   beforeEach(() => {
     scrollY = 0;
     documentHeight = 0;
+    fontStatus = "loaded";
     scrollToMock = jest.fn<(x: number, y: number) => void>(
       (_x: number, y: number) => {
         scrollY = Math.min(y, documentHeight);
       },
     );
+
+    Object.defineProperty(document.documentElement, "scrollHeight", {
+      configurable: true,
+      get: (): number => {
+        return documentHeight;
+      },
+    });
+    Object.defineProperty(document, "fonts", {
+      configurable: true,
+      get: (): { status: string } => {
+        return { status: fontStatus };
+      },
+    });
 
     Object.defineProperty(window, "scrollTo", {
       configurable: true,
@@ -767,6 +804,14 @@ describe("a reload into the new version comes back to the same place", () => {
     });
   });
 
+  afterEach(() => {
+    // Back to jsdom's own.
+    delete (document.documentElement as unknown as Record<string, unknown>)[
+      "scrollHeight"
+    ];
+    delete (document as unknown as Record<string, unknown>)["fonts"];
+  });
+
   test("the place is saved with the address, query and hash", () => {
     setLocation(HREF);
     documentHeight = 5000;
@@ -780,17 +825,8 @@ describe("a reload into the new version comes back to the same place", () => {
     );
   });
 
-  test("after the reload, it scrolls back as the page fills in", () => {
-    TabMemory.set(
-      NEW_VERSION_PLACE_KEY,
-      JSON.stringify({
-        href: HREF,
-        scrollX: 0,
-        scrollY: 1200,
-        savedAt: Date.now(),
-      }),
-    );
-    setLocation(HREF);
+  test("after the reload, it scrolls back as the page fills in, and lets go once the page stays put there", () => {
+    savePlace(1200);
 
     start();
 
@@ -798,19 +834,129 @@ describe("a reload into the new version comes back to the same place", () => {
     expect(scrollY).toBe(0);
 
     documentHeight = 600;
-    jest.advanceTimersByTime(100);
+    jest.advanceTimersByTime(NEW_VERSION_PLACE_RESTORE_STEP_IN_MS);
     expect(scrollY).toBe(600);
 
     documentHeight = 4000;
-    jest.advanceTimersByTime(100);
+    jest.advanceTimersByTime(NEW_VERSION_PLACE_RESTORE_STEP_IN_MS);
     expect(scrollY).toBe(1200);
 
-    const callsWhenThere: number = scrollToMock.mock.calls.length;
+    // The next look finds it there, the page the same size: it lets go.
+    jest.advanceTimersByTime(NEW_VERSION_PLACE_RESTORE_STEP_IN_MS);
+    const callsWhenSettled: number = scrollToCalls();
     jest.advanceTimersByTime(2000);
-    expect(scrollToMock.mock.calls.length).toBe(callsWhenThere);
+    expect(scrollToCalls()).toBe(callsWhenSettled);
 
     // The place is used once.
     expect(TabMemory.get(NEW_VERSION_PLACE_KEY)).toBeNull();
+  });
+
+  /*
+   * 14.0.109's gate: on a phone, the page reached its height and was
+   * scrolled back before Inter landed; Inter made the text above the place
+   * 20 px shorter, and the browser's scroll anchoring moved the reader with
+   * it - to 1180 of 1200, where nothing scrolled them back.
+   */
+  test("a font that lands after it got there moves the reader, and it scrolls them back", () => {
+    savePlace(1200);
+    fontStatus = "loading";
+
+    start();
+
+    documentHeight = 3097;
+    jest.advanceTimersByTime(NEW_VERSION_PLACE_RESTORE_STEP_IN_MS);
+    expect(scrollY).toBe(1200);
+
+    // Inter lands: the page is 20 px shorter, the reader moved with the text.
+    fontStatus = "loaded";
+    documentHeight = 3077;
+    scrollY = 1180;
+
+    jest.advanceTimersByTime(NEW_VERSION_PLACE_RESTORE_STEP_IN_MS);
+    expect(scrollY).toBe(1200);
+
+    jest.advanceTimersByTime(NEW_VERSION_PLACE_RESTORE_STEP_IN_MS);
+    const callsWhenSettled: number = scrollToCalls();
+    jest.advanceTimersByTime(2000);
+    expect(scrollToCalls()).toBe(callsWhenSettled);
+    expect(scrollY).toBe(1200);
+  });
+
+  test("a page that shrinks and grows again after it got there is scrolled back to the place", () => {
+    savePlace(1200);
+
+    start();
+
+    documentHeight = 4000;
+    jest.advanceTimersByTime(NEW_VERSION_PLACE_RESTORE_STEP_IN_MS);
+    expect(scrollY).toBe(1200);
+
+    // Shorter for a moment, as a page restyles: the browser clamps the reader.
+    documentHeight = 1000;
+    scrollY = 1000;
+    jest.advanceTimersByTime(NEW_VERSION_PLACE_RESTORE_STEP_IN_MS);
+    expect(scrollY).toBe(1000);
+
+    // And as long as before.
+    documentHeight = 4000;
+    jest.advanceTimersByTime(NEW_VERSION_PLACE_RESTORE_STEP_IN_MS);
+    expect(scrollY).toBe(1200);
+
+    jest.advanceTimersByTime(NEW_VERSION_PLACE_RESTORE_STEP_IN_MS);
+    const callsWhenSettled: number = scrollToCalls();
+    jest.advanceTimersByTime(2000);
+    expect(scrollToCalls()).toBe(callsWhenSettled);
+  });
+
+  test("holds the place while a font the page asked for is still on its way", () => {
+    savePlace(1200);
+    fontStatus = "loading";
+    documentHeight = 4000;
+
+    start();
+    expect(scrollY).toBe(1200);
+
+    // There, and the page the same size, but the font may yet move the text.
+    const callsWhenThere: number = scrollToCalls();
+    jest.advanceTimersByTime(1000);
+    expect(scrollToCalls()).toBeGreaterThan(callsWhenThere);
+
+    fontStatus = "loaded";
+    jest.advanceTimersByTime(NEW_VERSION_PLACE_RESTORE_STEP_IN_MS);
+    const callsWhenSettled: number = scrollToCalls();
+    jest.advanceTimersByTime(2000);
+    expect(scrollToCalls()).toBe(callsWhenSettled);
+  });
+
+  test("the reader scrolling by themselves while it holds the place stops it at once", () => {
+    savePlace(1200);
+    fontStatus = "loading";
+    documentHeight = 4000;
+
+    start();
+    expect(scrollY).toBe(1200);
+
+    window.dispatchEvent(new Event("touchstart"));
+    scrollY = 300;
+    const calls: number = scrollToCalls();
+    jest.advanceTimersByTime(2000);
+
+    expect(scrollToCalls()).toBe(calls);
+    expect(scrollY).toBe(300);
+  });
+
+  test("lets go after ten seconds even while the page never settles", () => {
+    savePlace(1200);
+    fontStatus = "loading";
+    documentHeight = 4000;
+
+    start();
+
+    jest.advanceTimersByTime(NEW_VERSION_PLACE_RESTORE_TIMEOUT_IN_MS + 500);
+    const calls: number = scrollToCalls();
+    jest.advanceTimersByTime(5000);
+
+    expect(scrollToCalls()).toBe(calls);
   });
 
   test("stops as soon as the reader scrolls by themselves", () => {

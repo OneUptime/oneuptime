@@ -51838,5 +51838,15 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "기간: {{range}}. 필터를 조정하거나 기간을 넓혀 보세요.",
   "On-Call Policy Created": "온콜 정책 생성됨",
   "On-Call Schedule Added": "온콜 일정 추가됨",
-  "On-Call Schedule Removed": "온콜 일정 제거됨"
+  "On-Call Schedule Removed": "온콜 일정 제거됨",
+  "Couldn't post the note.": "노트를 추가하지 못했습니다.",
+  "Couldn't save your changes.": "변경 사항을 저장하지 못했습니다.",
+  "Couldn't delete the note.": "노트를 삭제하지 못했습니다.",
+  "Couldn't send the note for approval.": "노트 승인을 요청하지 못했습니다.",
+  "Couldn't send the edit for approval.": "편집 승인을 요청하지 못했습니다.",
+  "Couldn't approve the note.": "노트를 승인하지 못했습니다.",
+  "Couldn't reject the note.": "노트를 거부하지 못했습니다.",
+  "Couldn't publish the note.": "노트를 게시하지 못했습니다.",
+  "Couldn't withdraw the edit.": "편집을 철회하지 못했습니다.",
+  "Couldn't load the public notes.": "공개 노트를 불러오지 못했습니다."
 }

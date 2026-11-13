@@ -51838,5 +51838,15 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Período: {{range}}. Tente ajustar os filtros ou ampliar o período.",
   "On-Call Policy Created": "Política de plantão criada",
   "On-Call Schedule Added": "Agendamento de plantão adicionado",
-  "On-Call Schedule Removed": "Agendamento de plantão removido"
+  "On-Call Schedule Removed": "Agendamento de plantão removido",
+  "Couldn't post the note.": "Não foi possível adicionar a nota.",
+  "Couldn't save your changes.": "Não foi possível salvar suas alterações.",
+  "Couldn't delete the note.": "Não foi possível excluir a nota.",
+  "Couldn't send the note for approval.": "Não foi possível enviar a nota para aprovação.",
+  "Couldn't send the edit for approval.": "Não foi possível enviar a edição para aprovação.",
+  "Couldn't approve the note.": "Não foi possível aprovar a nota.",
+  "Couldn't reject the note.": "Não foi possível rejeitar a nota.",
+  "Couldn't publish the note.": "Não foi possível publicar a nota.",
+  "Couldn't withdraw the edit.": "Não foi possível retirar a edição.",
+  "Couldn't load the public notes.": "Não foi possível carregar as notas públicas."
 }
