@@ -191,7 +191,7 @@ describe("where each balance is", () => {
       PROJECT_NOTIFICATION_CHANNEL_SETTINGS_PAGE,
     );
     expect(PROJECT_BALANCE_SETTINGS_PAGE[ProjectBalanceType.SmsOrCall]).toBe(
-      "Project Settings > Notifications > Notification Settings",
+      "Project Settings > Notifications > Notification Channels",
     );
     expect(PROJECT_BALANCE_SETTINGS_PATH[ProjectBalanceType.SmsOrCall]).toBe(
       PROJECT_NOTIFICATION_CHANNEL_SETTINGS_PATH,
@@ -213,7 +213,7 @@ describe("who can add balance, as a sentence", () => {
     expect(
       getProjectBalanceWhoCanAddSentence(ProjectBalanceType.SmsOrCall),
     ).toBe(
-      "A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Settings.",
+      "A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
     );
   });
 
@@ -236,19 +236,19 @@ describe("what the server says when a method's code cannot be paid for", () => {
   test.each([
     [
       ProjectNotificationChannel.SMS,
-      "This project's balance is too low to send SMS. A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Settings.",
+      "This project's balance is too low to send SMS. A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
     ],
     [
       ProjectNotificationChannel.Call,
-      "This project's balance is too low to make phone calls. A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Settings.",
+      "This project's balance is too low to make phone calls. A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
     ],
     [
       ProjectNotificationChannel.WhatsApp,
-      "This project's balance is too low to send WhatsApp messages. A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Settings.",
+      "This project's balance is too low to send WhatsApp messages. A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
     ],
     [
       ProjectNotificationChannel.Telegram,
-      "This project's balance is too low to send Telegram messages. A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Settings.",
+      "This project's balance is too low to send Telegram messages. A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
     ],
   ])("%s", (channel: ProjectNotificationChannel, expected: string) => {
     expect(getProjectBalanceTooLowMessage(channel)).toBe(expected);
@@ -262,7 +262,7 @@ describe("what the server says when a method's code cannot be paid for", () => {
 
   test("numbers for incoming calls say they are verified by SMS", () => {
     expect(INCOMING_CALL_NUMBER_BALANCE_TOO_LOW_MESSAGE).toBe(
-      "Numbers for incoming calls are verified by SMS, and this project's balance is too low to send SMS. A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Settings.",
+      "Numbers for incoming calls are verified by SMS, and this project's balance is too low to send SMS. A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
     );
   });
 });
@@ -323,7 +323,7 @@ describe("why one message was not sent", () => {
         costInUSDCents: 35,
       }),
     ).toBe(
-      "This project's balance (0.20 USD) is less than this call costs (0.35 USD). A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Settings.",
+      "This project's balance (0.20 USD) is less than this call costs (0.35 USD). A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
     );
     expect(
       getProjectBalanceMessageNotSentReason({
@@ -332,7 +332,7 @@ describe("why one message was not sent", () => {
         costInUSDCents: 1,
       }),
     ).toBe(
-      "This project's balance is used up. A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Settings.",
+      "This project's balance is used up. A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Channels.",
     );
   });
 });
@@ -340,7 +340,7 @@ describe("why one message was not sent", () => {
 describe("what the owners are told", () => {
   test("to add balance or turn on Auto Recharge, which tops it up at once", () => {
     expect(getProjectBalanceOwnerSentence(ProjectBalanceType.SmsOrCall)).toBe(
-      "Add balance in Project Settings > Notifications > Notification Settings, or turn on Auto Recharge there so it does not run out.",
+      "Add balance in Project Settings > Notifications > Notification Channels, or turn on Auto Recharge there so it does not run out.",
     );
   });
 

@@ -17,6 +17,9 @@ export interface ResourceInfo {
   name: string;
   singularName: string;
   pluralName: string;
+  // What its tools are named by, when it differs (McpToolInfo).
+  apiSingularName?: string | undefined;
+  apiPluralName?: string | undefined;
   description: string;
   operations: string[];
   modelType: ModelType;
@@ -32,6 +35,8 @@ function getResources(resourceTools: McpToolInfo[]): ResourceInfo[] {
         name: tool.tableName,
         singularName: tool.singularName,
         pluralName: tool.pluralName,
+        apiSingularName: tool.apiSingularName,
+        apiPluralName: tool.apiPluralName,
         description: getResourceDescription(tool.singularName),
         operations: [],
         modelType: tool.modelType,
@@ -438,8 +443,12 @@ function handleHelpTool(
 // A resource's tools by operation.
 function getResourceTools(resource: ResourceInfo): Record<string, string> {
   // Tool names must match ToolGenerator exactly — always sanitize
-  const singular: string = sanitizeToolName(resource.singularName);
-  const plural: string = sanitizeToolName(resource.pluralName);
+  const singular: string = sanitizeToolName(
+    resource.apiSingularName || resource.singularName,
+  );
+  const plural: string = sanitizeToolName(
+    resource.apiPluralName || resource.pluralName,
+  );
   const operations: string[] = resource.operations;
 
   const tools: Record<string, string> = {};
@@ -493,7 +502,15 @@ function findResource(
 
   return resources.find((resource: ResourceInfo): boolean => {
     return (
-      [resource.name, resource.singularName, resource.pluralName]
+      [
+        resource.name,
+        resource.singularName,
+        resource.pluralName,
+        // A renamed resource is found by the names it had, too.
+        resource.apiSingularName || "",
+        resource.apiPluralName || "",
+      ]
+        .filter(Boolean)
         .map(sanitizeToolName)
         .includes(wanted) ||
       Object.values(getResourceTools(resource)).includes(wanted)

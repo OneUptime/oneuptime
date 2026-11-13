@@ -369,8 +369,7 @@ export default class UserOnCallLog extends BaseModel {
     type: TableColumnType.Entity,
     modelType: Incident,
     title: "Triggered By Incident",
-    description:
-      "Relation to Incident which triggered this on-call duty policy.",
+    description: "Relation to Incident which triggered this on-call policy.",
   })
   @ManyToOne(
     () => {
@@ -422,7 +421,7 @@ export default class UserOnCallLog extends BaseModel {
     type: TableColumnType.Entity,
     modelType: Alert,
     title: "Triggered By Alert",
-    description: "Relation to Alert which triggered this on-call duty policy.",
+    description: "Relation to Alert which triggered this on-call policy.",
   })
   @ManyToOne(
     () => {
@@ -475,7 +474,7 @@ export default class UserOnCallLog extends BaseModel {
     modelType: AlertEpisode,
     title: "Triggered By Alert Episode",
     description:
-      "Relation to Alert Episode which triggered this on-call duty policy.",
+      "Relation to Alert Episode which triggered this on-call policy.",
   })
   @ManyToOne(
     () => {
@@ -528,7 +527,7 @@ export default class UserOnCallLog extends BaseModel {
     modelType: IncidentEpisode,
     title: "Triggered By Incident Episode",
     description:
-      "Relation to Incident Episode which triggered this on-call duty policy.",
+      "Relation to Incident Episode which triggered this on-call policy.",
   })
   @ManyToOne(
     () => {
@@ -876,7 +875,7 @@ export default class UserOnCallLog extends BaseModel {
     manyToOneRelationColumn: "onCallDutyScheduleId",
     type: TableColumnType.Entity,
     modelType: OnCallDutyPolicySchedule,
-    title: "On Call Schedule",
+    title: "On-Call Schedule",
     description:
       "Which schedule did the user belong to when the alert was sent?",
   })
@@ -901,7 +900,7 @@ export default class UserOnCallLog extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ObjectID,
-    title: "On Call Schedule ID",
+    title: "On-Call Schedule ID",
     description:
       "Which schedule ID did the user belong to when the alert was sent?",
     example: "5e6f7a8b-9c0d-1e2f-3a4b-5c6d7e8f9a0b",

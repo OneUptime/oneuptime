@@ -160,7 +160,7 @@
     "text": [
       "2",
       "Quem deve ser avisado?",
-      "Quando ele cai, o OneUptime abre um incidente e aciona essas pessoas por meio de suas próprias regras de notificação. Começa por você, por e-mail.",
+      "Quando ele cai, o OneUptime abre um incidente e aciona essas pessoas, cada uma como diz o seu “Como me contatar”. Começa por você, por e-mail.",
       "Quem é acionado",
       "Adicionar membros da equipe",
       "AL",

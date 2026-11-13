@@ -103,6 +103,6 @@ Tjek først nummerets landekode. Efter et testkald lukker du dialogen med **Fær
 :::cards
 - [Vagtplaner](/docs/on-call/schedules): Del vagterne, så hvert tilkald går til den, der har vagt. På Cloud fra Growth-planen.
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Føj niveauer, teams og vagtplaner til politikken.
-- [Personlige vagtregler](/docs/notifications/on-call-rules): Vælg, hvilken metode der når dig først, og hvornår.
+- [Sådan når man mig](/docs/notifications/on-call-rules): Vælg, hvilken metode der når dig først, og hvornår.
 - [Udgiv en statusside](/docs/guides/status-page): Fortæl dine kunder, hvad der sker, på dit eget domæne.
 :::

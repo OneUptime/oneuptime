@@ -82,7 +82,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   pluralName: "Incident States",
   icon: IconProp.ArrowCircleRight,
   tableDescription:
-    "Manage incident states for your project (Created, Acknowledged for example). Add / edit or remove states.",
+    "Where an incident is in your response. A new project starts with Identified, Acknowledged and Resolved: rename them or add your own between them.",
 })
 @Entity({
   name: "IncidentState",

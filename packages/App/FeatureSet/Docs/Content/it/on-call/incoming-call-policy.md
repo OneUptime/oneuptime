@@ -38,7 +38,7 @@ flowchart TB
 :::steps
 ### Aggiungi il tuo account Twilio
 
-Vai in **Impostazioni del progetto** > **Notifiche** > **Impostazioni notifiche** e apri **Altre impostazioni**. Nella scheda **Configurazione Twilio**, fai clic su **Crea configurazione Twilio** e compila il modulo:
+Vai in **Impostazioni del progetto** > **Notifiche** > **Canali di notifica** e apri **Altre impostazioni**. Nella scheda **Configurazione Twilio**, fai clic su **Crea configurazione Twilio** e compila il modulo:
 
 - **Nome** e **Descrizione**: a che cosa serve l'account, ad esempio «Linea di supporto».
 - **SID dell'account Twilio**: dalla console di Twilio. Inizia con `AC`.
@@ -143,7 +143,7 @@ Un numero le cui chiamate vanno già altrove lo indica con «Currently has a web
 
 OneUptime imposta il webhook vocale del numero su `https://<your host>/notification/incoming-call/voice`, costruito da `HOST` e `HTTP_PROTOCOL` su un'installazione self-hosted. Per spostare una policy su un altro account Twilio, rilascia prima i suoi numeri: l'account può cambiare solo finché la policy non ne ha.
 
-Per rilasciare un numero, fai clic su **Rilascia** accanto a esso e conferma con **Rilascia numero**.
+Per rilasciare un numero, fai clic su **Rilascia numero** accanto a esso e conferma con **Rilascia numero**.
 
 > [!CAUTION]
 > Rilasciare un numero lo restituisce a Twilio, anche un numero portato con **Usa un numero di telefono esistente**, e potresti non riaverlo. Eliminare una policy, o la configurazione Twilio che usa, rilascia anche i suoi numeri.
@@ -160,7 +160,7 @@ Una regola fa squillare una persona sul numero che ha verificato per le chiamate
 
 Ogni persona può avere un numero verificato per progetto. Per cambiarlo, elimina prima il vecchio numero. Questi numeri sono separati dai numeri di telefono in **Metodi di notifica**, usati dagli avvisi di reperibilità. Vedi [Metodi di notifica](/docs/notifications/notification-methods).
 
-I numeri per le chiamate in entrata vengono verificati via SMS, quindi gli **SMS** devono prima essere attivi per il progetto. Un proprietario del progetto o qualcuno con il ruolo **Amministratore della fatturazione** o il permesso **Manage Billing** li attiva nella scheda **Canali di notifica** di **Impostazioni del progetto > Notifiche > Impostazioni notifiche**.
+I numeri per le chiamate in entrata vengono verificati via SMS, quindi gli **SMS** devono prima essere attivi per il progetto. Un proprietario del progetto o qualcuno con il ruolo **Amministratore della fatturazione** o il permesso **Manage Billing** li attiva nella scheda **Canali di notifica** di **Impostazioni del progetto > Notifiche > Canali di notifica**.
 
 ## Messaggi vocali e impostazioni della policy
 
@@ -228,7 +228,7 @@ I numeri di telefono di una policy seguono gli stessi ruoli della policy stessa:
 - **Cercare numeri** - cercare su Twilio un numero da prenotare, o elencare i numeri che il tuo account Twilio ha già - richiede il permesso di leggere le policy chiamate in entrata e di leggere le configurazioni di chiamate e SMS, perché legge il tuo account Twilio tramite una di esse. **Proprietario del progetto**, **Amministratore del progetto**, **Membro del progetto**, **Visualizzatore**, **Amministratore delle impostazioni**, **Membro delle impostazioni** e **Visualizzatore delle impostazioni** li hanno entrambi. In un ruolo personalizzato, sono **Read Incoming Call Policy** e **Read Call and SMS**.
 - **Prenotare un numero, usarne uno esistente e rilasciarne uno** richiedono il permesso di modificare le policy chiamate in entrata: **Proprietario del progetto**, **Amministratore del progetto**, **Membro del progetto**, **Amministratore delle impostazioni** e **Membro delle impostazioni**, oppure **Edit Incoming Call Policy** in un ruolo personalizzato. Cambiano i numeri di una policy che puoi modificare: con un ruolo limitato ad alcune etichette, le policy che hanno quelle etichette.
 
-Un blocco di team senza etichette su uno di questi permessi lo toglie. Per chiunque altro, **Aggiungi numero di telefono** e **Rilascia** restano nella pagina, bloccati, e il loro suggerimento dice che cosa serve. L'API rifiuta la richiesta con una frase che dice che cosa serve: "Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." oppure "Adding or releasing a phone number needs permission to edit incoming call policies." Prenotare un numero viene addebitato sul tuo account Twilio, non sul saldo di OneUptime, quindi non richiede alcun permesso di fatturazione.
+Un blocco di team senza etichette su uno di questi permessi lo toglie. Per chiunque altro, **Aggiungi numero di telefono** e **Rilascia numero** restano nella pagina, bloccati, e il loro suggerimento dice che cosa serve. L'API rifiuta la richiesta con una frase che dice che cosa serve: "Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." oppure "Adding or releasing a phone number needs permission to edit incoming call policies." Prenotare un numero viene addebitato sul tuo account Twilio, non sul saldo di OneUptime, quindi non richiede alcun permesso di fatturazione.
 
 ## Creare policy con l'API o Terraform
 

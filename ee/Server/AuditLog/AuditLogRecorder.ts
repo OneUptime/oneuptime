@@ -1873,9 +1873,17 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
     return service;
   }
 
+  /*
+   * The type an entry is stored under: the model's name as the API keeps it
+   * (apiSingularName, Common/Utils/ModelApiName), so a model renamed on
+   * screen keeps one type across its old entries and its new ones.
+   */
   private getResourceType<TModel extends BaseModel>(model: TModel): string {
-    if (model.singularName) {
-      return model.singularName;
+    const storedName: string | null =
+      model.apiSingularName || model.singularName;
+
+    if (storedName) {
+      return storedName;
     }
     return (model as unknown as { constructor: { name: string } }).constructor
       .name;

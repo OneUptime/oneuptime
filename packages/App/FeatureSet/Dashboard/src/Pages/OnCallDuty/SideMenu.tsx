@@ -170,7 +170,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
       items: [
         {
           link: {
-            title: "User On Call Time",
+            title: "User On-Call Time",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.ON_CALLDUTY_USER_TIME_LOGS] as Route,
             ),

@@ -100,7 +100,7 @@ En el paso **Criterios**, abre el primer criterio, el que marca el monitor como 
 - **Título del incidente**: `{{requestBody.title}}`.
 - **Descripción del incidente**, en **Descripción**: `{{requestBody.body}}` y luego `Datadog: {{requestBody.link}}` en una línea propia.
 - **Gravedad**: la gravedad de incidente que deben tener estas alertas.
-- **Políticas de guardia**, en **De guardia**: las políticas a las que avisar.
+- **Políticas de guardia**, en **Guardia**: las políticas a las que avisar.
 - **Resolver incidente automáticamente**, en **Más campos**: déjalo activado, como viene. Sin él, las recuperaciones se ignoran y los incidentes siguen abiertos.
 
 ### Abrir un incidente por alerta

@@ -88,7 +88,7 @@ export function getIncidentsBreadcrumbs(path: string): Array<Link> | undefined {
 
     ...BuildBreadcrumbLinksByTitles(
       PageMap.INCIDENT_VIEW_ON_CALL_POLICY_EXECUTION_LOGS,
-      ["Project", "Incidents", "View Incident", "On Call Executions"],
+      ["Project", "Incidents", "View Incident", "On-Call Executions"],
     ),
     ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENT_VIEW_INTERNAL_NOTE, [
       "Project",

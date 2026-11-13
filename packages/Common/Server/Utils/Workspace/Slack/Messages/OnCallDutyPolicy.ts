@@ -17,7 +17,7 @@ export default class SlackIncidentMessages {
     projectId: ObjectID;
   }): Promise<Array<WorkspaceMessageBlock>> {
     if (!data.onCallDutyPolicyId) {
-      throw new BadDataException("On Call Policy ID is required");
+      throw new BadDataException("On-call policy ID is required.");
     }
 
     // Slack.

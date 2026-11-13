@@ -308,7 +308,7 @@ export default class MicrosoftTeamsAlertActions {
         );
       if (!card) {
         await turnContext.sendActivity(
-          "No on-call policies are available to you in this project yet. Add one in the OneUptime Dashboard under On-Call Duty > Policies, or ask a project admin for access to one.",
+          "No on-call policies are available to you in this project yet. Add one in the OneUptime Dashboard under On-Call > On-Call Policies, or ask a project admin for access to one.",
         );
         return;
       }

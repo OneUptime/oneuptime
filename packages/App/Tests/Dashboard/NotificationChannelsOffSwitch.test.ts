@@ -242,7 +242,7 @@ describe("the four channels", () => {
         "A project owner, a Billing Admin or someone with Manage Billing can turn",
       );
       expect(definition.offSentence).toContain(
-        "in Project Settings → Notifications → Notification Settings.",
+        "in Project Settings → Notifications → Notification Channels.",
       );
       expect(definition.offSentence).toContain("off in this project");
       expect(definition.offSentence.toLowerCase()).not.toContain(
@@ -536,8 +536,9 @@ describe("nothing tells a reader to ask a project admin, or to turn a channel on
       /Please enable (them|SMS|Call|call|WhatsApp|Telegram)[^"`]*Project Settings/,
     ],
     [
-      "tells the reader to turn channels on in Notification Settings",
-      /\bTurn (it|them) on in Project Settings > Notifications > Notification Settings/,
+      "tells the reader to turn channels on in Notification Channels",
+      // Notification Settings was the page's name until #6817.
+      /\bTurn (it|them) on in Project Settings > Notifications > Notification (Settings|Channels)/,
     ],
   ];
 
@@ -613,7 +614,7 @@ describe("translations", () => {
     ),
     ProjectNotificationChannelsCopy.whoCanChange,
     ProjectNotificationChannelsCopy.settingsLinkText,
-    "Channels that are off in this project are not offered. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings → Notifications → Notification Settings.",
+    "Channels that are off in this project are not offered. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings → Notifications → Notification Channels.",
     "Channels that are off in this project are not offered. Turn them on in {{settingsLink}}.",
     "You can add an email address, phone number or WhatsApp number for {{name}}, and remove any method they no longer use. Identifiers are always shown masked.",
     "You can add an email address or phone number for {{name}}, and remove any method they no longer use. Identifiers are always shown masked.",
@@ -665,11 +666,21 @@ describe("the docs", () => {
           ? ProjectNotificationChannelsCopy.cardTitle
           : readLocale(locale)[ProjectNotificationChannelsCopy.cardTitle];
 
+      // The switch, by the name its language's Dashboard draws (Persian: پیامک).
+      const smsSwitch: string = getProjectNotificationChannel(
+        ProjectNotificationChannel.SMS,
+      ).title;
+      const switchName: unknown =
+        locale === "en" ? smsSwitch : readLocale(locale)[smsSwitch];
+
       expect([locale, smsLine.includes(`**${String(cardTitle)}**`)]).toEqual([
         locale,
         true,
       ]);
-      expect([locale, smsLine.includes("**SMS**")]).toEqual([locale, true]);
+      expect([locale, smsLine.includes(`**${String(switchName)}**`)]).toEqual([
+        locale,
+        true,
+      ]);
       expect([locale, smsLine.includes("Enable SMS Notifications")]).toEqual([
         locale,
         false,

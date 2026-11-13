@@ -34,7 +34,7 @@ Uma página de status oferece cinco canais. Eles, e a página em que os visitant
 
 - **Mostrar página de assinantes** (`showSubscriberPageOnStatusPage`) — ligado por padrão. Coloca o item **Inscrever-se** na barra de navegação da página de status, onde os visitantes se inscrevem pelos canais abaixo.
 - **E-mail** (`enableEmailSubscribers`) — ligado por padrão. Todo o resto fica desligado até você ligá-lo.
-- **SMS** (`enableSmsSubscribers`) — desligado por padrão. No OneUptime Cloud, cada SMS é pago com o saldo de SMS e chamadas do projeto, a menos que a página tenha sua própria **Configuração do Twilio** (veja [abaixo](#rodapé-de-e-mail-smtp-próprio-e-twilio)). Ligá-lo também exige **SMS** ligado para o projeto, no cartão **Canais de notificação** em **Configurações do projeto > Notificações > Configurações de notificação**, o que pode ser feito por um proprietário do projeto, um **Administrador de cobrança** ou alguém com **Manage Billing**.
+- **SMS** (`enableSmsSubscribers`) — desligado por padrão. No OneUptime Cloud, cada SMS é pago com o saldo de SMS e chamadas do projeto, a menos que a página tenha sua própria **Configuração do Twilio** (veja [abaixo](#rodapé-de-e-mail-smtp-próprio-e-twilio)). Ligá-lo também exige **SMS** ligado para o projeto, no cartão **Canais de notificação** em **Configurações do projeto > Notificações > Canais de notificação**, o que pode ser feito por um proprietário do projeto, um **Administrador de cobrança** ou alguém com **Manage Billing**.
 - **Slack** (`enableSlackSubscribers`) — desligado por padrão.
 - **Microsoft Teams** (`enableMicrosoftTeamsSubscribers`) — desligado por padrão.
 - **Webhook** (`enableWebhookSubscribers`) — desligado por padrão.

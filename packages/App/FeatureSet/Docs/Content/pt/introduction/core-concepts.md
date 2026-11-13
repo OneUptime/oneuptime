@@ -198,7 +198,7 @@ As regras próprias de um monitor são os critérios dele. As regras de plantão
 
 :::cards
 - [Configurações e automação de incidentes](/docs/incidents/settings#regras-executadas-quando-um-incidente-é-criado): As regras que são executadas quando um incidente é criado, em ordem.
-- [Regras de Plantão pessoais](/docs/notifications/on-call-rules): Como um acionamento chega até você.
+- [Como me contatar](/docs/notifications/on-call-rules): Como um acionamento chega até você.
 :::
 
 ## Próximos passos

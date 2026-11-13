@@ -1,4 +1,4 @@
-# Règles d'astreinte personnelles
+# Comment me joindre
 
 Vos règles d'astreinte décident comment une alerte vous parvient : quelles méthodes de notification OneUptime essaie, et combien de temps après le début de l'alerte. Chaque type d'alerte a ses propres règles, un ensemble par gravité, si bien qu'un incident critique peut vous appeler tout de suite tandis qu'une alerte de faible gravité attend un e-mail. Vous les réglez dans **Paramètres utilisateur → Comment me joindre**.
 

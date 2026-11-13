@@ -618,7 +618,7 @@ describe.each(["global", "policy"] as Array<Page>)(
 
       const description: string =
         page === "policy"
-          ? "While someone is away, their pages from this policy go to whoever covers for them, or to the next person in the rotation. For every policy at once, use On-Call Duty > Advanced > User Overrides."
+          ? "While someone is away, their pages from this policy go to whoever covers for them, or to the next person in the rotation. For every policy at once, use On-Call > Advanced > User Overrides."
           : "While someone is away, their pages from every on-call policy go to whoever covers for them, or to the next person in the rotation. For one policy only, use that policy's User Overrides page, under Advanced.";
 
       expect(await screen.findByText(description)).toBeInTheDocument();
@@ -626,9 +626,7 @@ describe.each(["global", "policy"] as Array<Page>)(
        * The other User Overrides page is named with the folded Advanced
        * section it sits in: On-Call Duty's menu, or the policy's own.
        */
-      expect(document.body).not.toHaveTextContent(
-        "On-Call Duty > User Overrides",
-      );
+      expect(document.body).not.toHaveTextContent("On-Call > User Overrides");
       // The old one-sentence version ran a dash and a colon together.
       expect(document.body).not.toHaveTextContent("skips them, so the next");
     });

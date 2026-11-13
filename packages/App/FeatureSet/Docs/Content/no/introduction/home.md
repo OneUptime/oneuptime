@@ -74,7 +74,7 @@ Steget du skal ta først, er merket med **Neste steg**. På Free-abonnementet i 
 
 Et veiledet oppsett gjør hele jobben på én side, ett steg om gangen, og avslutter med hva det har satt opp og hva du kan gjøre etterpå. Søk etter navnet for å åpne det igjen senere.
 
-Under stegene viser **Slik fungerer OneUptime** de fire kjerneproduktene i rekkefølgen et problem går gjennom dem: **Monitorer**, **Hendelser og varsler**, **Vakttjeneste** og **Statussider**. Klikk på ett for å åpne det. Under dem står det hva som mater kretsløpet, telemetri og infrastruktur, med lenker til [Grunnbegreper](/docs/introduction/core-concepts) og [Ordliste](/docs/introduction/glossary).
+Under stegene viser **Slik fungerer OneUptime** de fire kjerneproduktene i rekkefølgen et problem går gjennom dem: **Monitorer**, **Hendelser og varsler**, **Vakt** og **Statussider**. Klikk på ett for å åpne det. Under dem står det hva som mater kretsløpet, telemetri og infrastruktur, med lenker til [Grunnbegreper](/docs/introduction/core-concepts) og [Ordliste](/docs/introduction/glossary).
 
 ```mermaid title="Når velkomstsjekklisten vises"
 flowchart TB
@@ -109,7 +109,7 @@ Når noe i prosjektets oppsett ville hindre at folk blir varslet, slutter **Krev
 
 ## Finn frem
 
-Alt i OneUptime ligger under **Produkter** i topplinjen. Menyen viser gruppene sine som radene i én liste, og åpner alltid med den første av dem, det grunnleggende, utvidet: Overvåkere, Hendelser, Varsler, Vakttjeneste, Statussider, Planlagt vedlikehold og SLOs. Hver annen gruppe (Observerbarhet, Sikkerhet, AI, Kode, Ressurser, Infrastruktur, Sky, Dashbord og automatisering og Innstillinger) er slått sammen til en rad i den samme listen. Hver rad nevner produktene i gruppen og sier hvor mange det er. Klikk på en rad for å utvide eller slå den sammen, eller gå til den med piltastene og trykk **Enter**.
+Alt i OneUptime ligger under **Produkter** i topplinjen. Menyen viser gruppene sine som radene i én liste, og åpner alltid med den første av dem, det grunnleggende, utvidet: Overvåkere, Hendelser, Varsler, Vakt, Statussider, Planlagt vedlikehold og SLOs. Hver annen gruppe (Observerbarhet, Sikkerhet, AI, Kode, Ressurser, Infrastruktur, Sky, Dashbord og automatisering og Innstillinger) er slått sammen til en rad i den samme listen. Hver rad nevner produktene i gruppen og sier hvor mange det er. Klikk på en rad for å utvide eller slå den sammen, eller gå til den med piltastene og trykk **Enter**.
 
 - **Søk finner alt.** Skriv i menyens søkefelt for å finne ethvert produkt etter navn, etter hva det gjør, eller etter et kjent ord som `k8s` eller `RUM`. Søket ser også inni de sammenslåtte gruppene.
 - **Du starter der du er.** Gruppen til siden du er på, utvides av seg selv, og produktene du nylig har åpnet, står øverst.
@@ -149,7 +149,7 @@ Over tittelen på hver side viser et spor som *Prosjekt › Docker › Innstilli
 Trykk **Cmd+K** (Mac) eller **Ctrl+K** (Windows og Linux), eller klikk på søkeikonet i topplinjen, og begynn å skrive. Søket finner:
 
 - **Hver side i menyene**, under navnet menyen gir den: API-nøkler, Faresone, Vaktplaner, Hendelsesalvor, dine egne Varselmetoder. Hvert resultat sier hvor det ligger, for eksempel *Prosjektinnstillinger › Avansert*, slik at sider med samme navn (Egendefinerte felt under Hendelser, Varsler og Monitorer) er lette å skille fra hverandre.
-- **Innstillingene på en side**, under navnet kortet eller bryteren deres viser: *Krev SSO for innlogging* finner SSO, og *Varslingskanaler* finner Varselinnstillinger. Skriv navnet på engelsk eller på ditt eget språk.
+- **Innstillingene på en side**, under navnet kortet eller bryteren deres viser: *Krev SSO for innlogging* finner SSO, og *Egendefinerte SMTP-konfigurasjoner* finner Varslingskanaler. Skriv navnet på engelsk eller på ditt eget språk.
 - **Handlinger**, etter hva du vil gjøre: Erklær hendelse, Opprett monitor eller Delete Project, som åpner Faresone. En handling som endrer noe, tilbys bare dem som har lov til å utføre den.
 - **Monitorene, hendelsene, varslene, statussidene og vaktpolicyene dine**, etter navn, og hendelser og varsler også etter nummer, for eksempel `INC-42`. Hvert resultat for en hendelse eller et varsel begynner med nummeret, så to med samme tittel kan skilles fra hverandre.
 - **Dokumentasjonen**, i en gruppe *Dokumentasjon* under alt annet: sidene og avsnittene der ordene passer til det du skriver, på ditt språk, også med en skrivefeil. Hver åpnes i en ny fane, så du beholder plassen din.
@@ -185,7 +185,7 @@ Trykk `g` og deretter en bokstav for å gå rett til et produkt. Trykk bokstaven
 | `g` deretter `m` | Overvåkere |
 | `g` deretter `i` | Hendelser |
 | `g` deretter `a` | Varsler |
-| `g` deretter `o` | Vakttjeneste |
+| `g` deretter `o` | Vakt |
 | `g` deretter `s` | Statussider |
 | `g` deretter `e` | Planlagt vedlikehold |
 | `g` deretter `d` | Dashbord |

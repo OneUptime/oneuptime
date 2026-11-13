@@ -33,7 +33,7 @@ Is de overschrijving voorbij, dan zijn de oproepen weer van de persoon zelf. De 
 :::steps
 ### De overschrijvingen openen
 
-Ga naar **Bereikbaarheidsdienst → Geavanceerd → Gebruikersoverschrijvingen** om iemand in elk bereikbaarheidsbeleid te vervangen, of naar de pagina **Gebruikersoverschrijvingen** van een beleid, onder **Geavanceerd**, om iemand alleen in dat beleid te vervangen. Klik op **Gebruikersoverschrijving toevoegen**.
+Ga naar **Bereikbaarheid → Geavanceerd → Gebruikersoverschrijvingen** om iemand in elk bereikbaarheidsbeleid te vervangen, of naar de pagina **Gebruikersoverschrijvingen** van een beleid, onder **Geavanceerd**, om iemand alleen in dat beleid te vervangen. Klik op **Gebruikersoverschrijving toevoegen**.
 
 ### Zeggen wie afwezig is
 
@@ -54,7 +54,7 @@ Elke overschrijving is een rij: **Afwezig**, **Vervangen door**, **Begint** en *
 
 | Toegevoegd onder | Kaart | Geldt voor |
 | --- | --- | --- |
-| **Bereikbaarheidsdienst → Geavanceerd → Gebruikersoverschrijvingen** | **Globale gebruikersoverschrijvingen** | Elk bereikbaarheidsbeleid in het project |
+| **Bereikbaarheid → Geavanceerd → Gebruikersoverschrijvingen** | **Globale gebruikersoverschrijvingen** | Elk bereikbaarheidsbeleid in het project |
 | **Gebruikersoverschrijvingen** van een beleid | **Gebruikersoverschrijvingen van het bereikbaarheidsbeleid** | Alleen dat beleid |
 
 Overlappen twee overschrijvingen voor dezelfde persoon, dan gaat die van het beleid zelf voor op een globale, en gaat een die een vervanger noemt voor op overslaan. Een oproep zonder beleid, vanuit een workflow of vanuit chat, volgt alleen de globale overschrijvingen.
@@ -68,9 +68,9 @@ Verlaat iemand het project, dan wordt elke overschrijving die die persoon noemt 
 
 ## Wie overschrijvingen mag toevoegen
 
-**Projecteigenaar**, **Projectbeheerder**, **Projectlid**, **Bereikbaarheidsbeheerder** en **Bereikbaarheidslid** mogen overschrijvingen toevoegen en verwijderen; **Kijker** en **Bereikbaarheidskijker** mogen ze zien. In een aangepaste rol heten de rechten **Create On-Call Duty Policy User Override**, **Delete On-Call Duty Policy User Override** en **Read On-Call Duty Policy User Override**. Op de **Tijdlijn van bereikbaarheidsschema's** zien alleen mensen die overschrijvingen mogen lezen wiens dienst wordt vervangen.
+**Projecteigenaar**, **Projectbeheerder**, **Projectlid**, **Bereikbaarheidsbeheerder** en **Bereikbaarheidslid** mogen overschrijvingen toevoegen en verwijderen; **Kijker** en **Bereikbaarheidskijker** mogen ze zien. In een aangepaste rol heten de rechten **Create On-Call Policy User Override**, **Delete On-Call Policy User Override** en **Read On-Call Policy User Override**. Op de **Tijdlijn van bereikbaarheidsschema's** zien alleen mensen die overschrijvingen mogen lezen wiens dienst wordt vervangen.
 
-Een overschrijving op een beleid volgt het bereik van dat beleid. Geef een team **Bereikbaarheidslid**, beperkt tot het beleid dat het bezit of tot zijn label, en zijn leden voegen alleen op dat beleid overschrijvingen toe en verwijderen ze alleen daar. Een globale overschrijving geldt voor elk beleid, ook dat van een ander team, dus het toevoegen of verwijderen ervan vraagt het recht voor overschrijvingen over het hele project. Met een smaller recht zijn **Gebruikersoverschrijving toevoegen** en **Verwijderen** onder **Bereikbaarheidsdienst → Geavanceerd → Gebruikersoverschrijvingen** vergrendeld en zeggen ze waarom. **Overslaan tot…** in de lagen van een schema en **Vervanging regelen** bij je komende diensten, die globale overschrijvingen toevoegen, bieden in plaats daarvan het beleid aan waarvoor je overschrijvingen mag toevoegen, met één overschrijving per beleid, net als de vervanging in de mobiele app; waar je dat voor geen enkel beleid mag, zijn ze vergrendeld en zeggen ze waarom. Het team voegt zijn overschrijvingen toe op de eigen pagina **Gebruikersoverschrijvingen** van elk beleid. Hetzelfde geldt voor de API: een overschrijving zonder `onCallDutyPolicyId` wordt geweigerd voor een recht dat tot labels of tot eigen beleid is beperkt.
+Een overschrijving op een beleid volgt het bereik van dat beleid. Geef een team **Bereikbaarheidslid**, beperkt tot het beleid dat het bezit of tot zijn label, en zijn leden voegen alleen op dat beleid overschrijvingen toe en verwijderen ze alleen daar. Een globale overschrijving geldt voor elk beleid, ook dat van een ander team, dus het toevoegen of verwijderen ervan vraagt het recht voor overschrijvingen over het hele project. Met een smaller recht zijn **Gebruikersoverschrijving toevoegen** en **Verwijderen** onder **Bereikbaarheid → Geavanceerd → Gebruikersoverschrijvingen** vergrendeld en zeggen ze waarom. **Overslaan tot…** in de lagen van een schema en **Vervanging regelen** bij je komende diensten, die globale overschrijvingen toevoegen, bieden in plaats daarvan het beleid aan waarvoor je overschrijvingen mag toevoegen, met één overschrijving per beleid, net als de vervanging in de mobiele app; waar je dat voor geen enkel beleid mag, zijn ze vergrendeld en zeggen ze waarom. Het team voegt zijn overschrijvingen toe op de eigen pagina **Gebruikersoverschrijvingen** van elk beleid. Hetzelfde geldt voor de API: een overschrijving zonder `onCallDutyPolicyId` wordt geweigerd voor een recht dat tot labels of tot eigen beleid is beperkt.
 
 In OneUptime Cloud hebben gebruikersoverschrijvingen het abonnement **Growth** nodig.
 
@@ -105,11 +105,11 @@ Een overschrijving waarin de afwezige persoon en de vervanger dezelfde zijn, wor
 ## Probleemoplossing
 
 :::details De persoon op vakantie werd toch opgeroepen
-Controleer waar de overschrijving is toegevoegd. Een op de pagina **Gebruikersoverschrijvingen** van een beleid geldt alleen voor dat beleid, en ander beleid roept de persoon nog steeds op: voeg haar toe onder **Bereikbaarheidsdienst → Geavanceerd → Gebruikersoverschrijvingen** om elk beleid te dekken. Controleer ook **Begint** en **Eindigt**: tijden staan in jouw tijdzone.
+Controleer waar de overschrijving is toegevoegd. Een op de pagina **Gebruikersoverschrijvingen** van een beleid geldt alleen voor dat beleid, en ander beleid roept de persoon nog steeds op: voeg haar toe onder **Bereikbaarheid → Geavanceerd → Gebruikersoverschrijvingen** om elk beleid te dekken. Controleer ook **Begint** en **Eindigt**: tijden staan in jouw tijdzone.
 :::
 
 :::details De vervanger werd ook niet opgeroepen
-Die wordt bereikt via de eigen persoonlijke bereikbaarheidsregels en geverifieerde methoden. Zoek die persoon op onder **Bereikbaarheidsdienst → Gereedheid**, en bekijk de uitvoering in de **Uitvoeringslogboeken** van het beleid.
+Die wordt bereikt via de eigen persoonlijke bereikbaarheidsregels en geverifieerde methoden. Zoek die persoon op onder **Bereikbaarheid → Gereedheid**, en bekijk de uitvoering in de **Uitvoeringslogboeken** van het beleid.
 :::
 
 :::details Ik kan geen overschrijving toevoegen

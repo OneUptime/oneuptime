@@ -272,7 +272,7 @@ const FIX_WORDS: Readonly<Record<WhoIsToldFix, string>> = {
   [WhoIsToldFix.OnCallPolicy]: translationKey("Open On-Call Policy"),
   [WhoIsToldFix.OnCallReadiness]: translationKey("Open Readiness"),
   [WhoIsToldFix.ProjectNotificationSettings]: translationKey(
-    "Open Notification Settings",
+    "Open Notification Channels",
   ),
   [WhoIsToldFix.ProjectBilling]: translationKey("Open Billing"),
   [WhoIsToldFix.ServerSettings]: translationKey("Open Admin Dashboard"),

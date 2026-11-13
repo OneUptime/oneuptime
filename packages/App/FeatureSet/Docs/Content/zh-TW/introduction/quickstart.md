@@ -82,7 +82,7 @@ OneUptime 中的一切都位於專案中：你的監測器、事件、待命策�
 :::
 
 > [!NOTE]
-> 新專案中的簡訊和電話預設關閉。專案擁有者、Billing Admin 或具有 Manage Billing 權限的人，可以在 **專案設定 → 通知 → 通知設定** 下的 **通知管道** 卡片中開啟它們。
+> 新專案中的簡訊和電話預設關閉。專案擁有者、Billing Admin 或具有 Manage Billing 權限的人，可以在 **專案設定 → 通知 → 通知管道** 下的 **通知管道** 卡片中開啟它們。
 
 關於更多層級、輪值以及每個層級等待多久，請參閱 [上報規則](/docs/on-call/escalation-rules) 和 [待命排程](/docs/on-call/schedules)。
 

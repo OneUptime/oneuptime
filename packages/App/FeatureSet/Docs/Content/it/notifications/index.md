@@ -63,7 +63,7 @@ Quando entrate in un progetto con un'e-mail di accesso verificata, OneUptime vi 
 2. Per ogni gravità, su ciascuna delle quattro schede delle **Come contattarmi**, una regola vi invia un'e-mail appena venite chiamati.
 3. Un insieme di aggiornamenti su ciò che è vostro, e sui vostri turni, viene attivato via e-mail. Vedete [Impostazioni notifiche](/docs/notifications/notification-settings#cosa-è-attivo-per-un-nuovo-membro).
 
-Ogni metodo che verificate in seguito riceve le stesse regole: una regola per ogni gravità, inviata appena venite chiamati. Quindi verificare un numero di telefono per gli SMS significa che ogni chiamata vi manda anche un SMS. Per tenere gli SMS solo per le chiamate critiche, eliminate le regole SMS delle altre gravità. Vedete [Regole di reperibilità personali](/docs/notifications/on-call-rules#le-regole-con-cui-partite).
+Ogni metodo che verificate in seguito riceve le stesse regole: una regola per ogni gravità, inviata appena venite chiamati. Quindi verificare un numero di telefono per gli SMS significa che ogni chiamata vi manda anche un SMS. Per tenere gli SMS solo per le chiamate critiche, eliminate le regole SMS delle altre gravità. Vedete [Come contattarmi](/docs/notifications/on-call-rules#le-regole-con-cui-partite).
 
 ## L'elenco di configurazione
 
@@ -95,7 +95,7 @@ Una chiamata può raggiungervi per un tipo e una gravità per cui non avete una 
 2. Se non ne avete nessuno, un solo metodo a pagamento, in questo ordine: SMS, una chiamata telefonica, WhatsApp, Telegram. È il primo che avete verificato, su un canale che il progetto ha attivato.
 3. Se non avete nemmeno questi, un webhook.
 
-Ricevete un'e-mail al riguardo, e così i proprietari della politica di reperibilità, o quelli del progetto se la politica non ne ha. Se non c'è nulla di verificato, la chiamata non può essere consegnata, e l'e-mail lo dice. Queste e-mail vengono trattenute finché continuano ad arrivare chiamate, così una tempesta di chiamate non diventa una tempesta di e-mail. Per aggiungere la regola mancante, vedete [Regole di reperibilità personali](/docs/notifications/on-call-rules#quando-una-gravità-non-ha-una-regola).
+Ricevete un'e-mail al riguardo, e così i proprietari della politica di reperibilità, o quelli del progetto se la politica non ne ha. Se non c'è nulla di verificato, la chiamata non può essere consegnata, e l'e-mail lo dice. Queste e-mail vengono trattenute finché continuano ad arrivare chiamate, così una tempesta di chiamate non diventa una tempesta di e-mail. Per aggiungere la regola mancante, vedete [Come contattarmi](/docs/notifications/on-call-rules#quando-una-gravità-non-ha-una-regola).
 
 ## La lingua delle vostre chiamate
 
@@ -131,7 +131,7 @@ Un numero entra nelle vostre regole quando è verificato. Fate clic su **Verific
 
 :::cards
 - [Metodi di notifica](/docs/notifications/notification-methods): Aggiungete e verificate gli indirizzi su cui OneUptime può raggiungervi.
-- [Regole di reperibilità personali](/docs/notifications/on-call-rules): Decidete quale metodo prova ogni chiamata, e quando.
+- [Come contattarmi](/docs/notifications/on-call-rules): Decidete quale metodo prova ogni chiamata, e quando.
 - [Impostazioni notifiche](/docs/notifications/notification-settings): Scegliete gli aggiornamenti di cui venite a sapere, e su quali canali.
 - [Regole di escalation](/docs/on-call/escalation-rules): Come una politica di reperibilità decide chi chiamare, livello per livello.
 :::

@@ -63,7 +63,7 @@ Quand vous rejoignez un projet avec un e-mail de connexion vérifié, OneUptime 
 2. Pour chaque gravité, sur chacun des quatre onglets des **Comment me joindre**, une règle vous envoie un e-mail dès que vous êtes alerté.
 3. Un ensemble de nouvelles sur ce dont vous êtes propriétaire, et sur vos permanences, est activé par e-mail. Voir [Paramètres de notification](/docs/notifications/notification-settings#ce-qui-est-activé-pour-un-nouveau-membre).
 
-Chaque méthode que vous vérifiez ensuite reçoit les mêmes règles : une règle pour chaque gravité, envoyée dès que vous êtes alerté. Vérifier un numéro de téléphone pour les SMS signifie donc que chaque alerte vous envoie aussi un SMS. Pour garder les SMS pour les alertes critiques uniquement, supprimez les règles SMS des autres gravités. Voir [Règles d'astreinte personnelles](/docs/notifications/on-call-rules#les-règles-de-départ).
+Chaque méthode que vous vérifiez ensuite reçoit les mêmes règles : une règle pour chaque gravité, envoyée dès que vous êtes alerté. Vérifier un numéro de téléphone pour les SMS signifie donc que chaque alerte vous envoie aussi un SMS. Pour garder les SMS pour les alertes critiques uniquement, supprimez les règles SMS des autres gravités. Voir [Comment me joindre](/docs/notifications/on-call-rules#les-règles-de-départ).
 
 ## La liste de configuration
 
@@ -95,7 +95,7 @@ Une alerte peut vous parvenir pour un type et une gravité pour lesquels vous n'
 2. Si vous n'en avez aucune, une seule méthode payante, dans cet ordre : SMS, appel téléphonique, WhatsApp, Telegram. C'est la première que vous avez vérifiée, sur un canal que le projet a activé.
 3. Si vous n'en avez aucune non plus, un webhook.
 
-Vous recevez un e-mail à ce sujet, tout comme les propriétaires de la politique d'astreinte, ou ceux du projet si la politique n'en a pas. Si rien n'est vérifié, l'alerte ne peut pas être livrée, et l'e-mail le dit. Ces e-mails sont retenus tant que les alertes continuent, afin qu'une tempête d'alertes ne devienne pas une tempête d'e-mails. Pour ajouter la règle manquante, voir [Règles d'astreinte personnelles](/docs/notifications/on-call-rules#quand-une-gravité-na-pas-de-règle).
+Vous recevez un e-mail à ce sujet, tout comme les propriétaires de la politique d'astreinte, ou ceux du projet si la politique n'en a pas. Si rien n'est vérifié, l'alerte ne peut pas être livrée, et l'e-mail le dit. Ces e-mails sont retenus tant que les alertes continuent, afin qu'une tempête d'alertes ne devienne pas une tempête d'e-mails. Pour ajouter la règle manquante, voir [Comment me joindre](/docs/notifications/on-call-rules#quand-une-gravité-na-pas-de-règle).
 
 ## La langue de vos alertes
 
@@ -131,7 +131,7 @@ Un numéro rejoint vos règles une fois vérifié. Cliquez sur **Vérifier** dan
 
 :::cards
 - [Méthodes de notification](/docs/notifications/notification-methods): Ajoutez et vérifiez les adresses auxquelles OneUptime peut vous joindre.
-- [Règles d'astreinte personnelles](/docs/notifications/on-call-rules): Décidez quelle méthode chaque alerte essaie, et quand.
+- [Comment me joindre](/docs/notifications/on-call-rules): Décidez quelle méthode chaque alerte essaie, et quand.
 - [Paramètres de notification](/docs/notifications/notification-settings): Choisissez les nouvelles dont vous êtes informé, et par quels canaux.
 - [Règles d'escalade](/docs/on-call/escalation-rules): Comment une politique d'astreinte décide qui est alerté, niveau par niveau.
 :::

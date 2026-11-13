@@ -1810,7 +1810,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       _id: true,
                     },
                   },
-                  title: "On-Call Duty Policies",
+                  title: "On-Call Policies",
                   fieldType: FieldType.Element,
                   getElement: (item: Alert): ReactElement => {
                     return (

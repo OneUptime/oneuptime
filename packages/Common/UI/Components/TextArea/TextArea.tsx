@@ -61,6 +61,13 @@ export interface ComponentProps {
   rows?: number | undefined;
   // Only with autoGrow: the most lines it grows to before it scrolls.
   maxRows?: number | undefined;
+  /*
+   * Lines that read left to right in every language - phone numbers, one
+   * a line: the box reads left to right on a page read right to left too,
+   * its example with it, as a phone number field does (Input). Drawn the
+   * page's way, "+11234567890" put its "+" after its digits (#7180).
+   */
+  readsLeftToRight?: boolean | undefined;
 }
 
 type ToPixelsFunction = (value: string) => number;
@@ -253,11 +260,15 @@ const TextArea: FunctionComponent<ComponentProps> = (
 
   return (
     <>
-      <div className="relative mt-2 mb-1 rounded-md shadow-sm">
+      <div
+        className="relative mt-2 mb-1 rounded-md shadow-sm"
+        dir={props.readsLeftToRight ? "ltr" : undefined}
+      >
         <textarea
           ref={textAreaRef}
           autoFocus={props.autoFocus}
           id={props.id}
+          dir={props.readsLeftToRight ? "ltr" : undefined}
           placeholder={translateString(props.placeholder)}
           data-testid={props.dataTestId}
           className={`${className || ""}`}

@@ -185,9 +185,9 @@ export default class OnCallDutyPolicyScheduleLayerUser extends BaseModel {
     manyToOneRelationColumn: "onCallDutyPolicyScheduleId",
     type: TableColumnType.Entity,
     modelType: OnCallDutyPolicySchedule,
-    title: "On-Call Policy Schedule",
+    title: "On-Call Schedule",
     description:
-      "Relation to On-Call Policy Schedule where this escalation rule belongs.",
+      "Relation to On-Call Schedule where this escalation rule belongs.",
   })
   @ManyToOne(
     () => {
@@ -229,7 +229,7 @@ export default class OnCallDutyPolicyScheduleLayerUser extends BaseModel {
     type: TableColumnType.ObjectID,
     required: true,
     canReadOnRelationQuery: true,
-    title: "On-Call Policy Schedule ID",
+    title: "On-Call Schedule ID",
     description: "ID of the on-call schedule the layer is in",
   })
   @Column({
@@ -264,9 +264,8 @@ export default class OnCallDutyPolicyScheduleLayerUser extends BaseModel {
     manyToOneRelationColumn: "onCallDutyPolicyScheduleLayerId",
     type: TableColumnType.Entity,
     modelType: OnCallDutyPolicyScheduleLayer,
-    title: "On-Call Policy Schedule Layer",
-    description:
-      "Relation to On-Call Policy Schedule Layer where this belongs.",
+    title: "On-Call Schedule Layer",
+    description: "Relation to On-Call Schedule Layer where this belongs.",
   })
   @ManyToOne(
     () => {
@@ -309,7 +308,7 @@ export default class OnCallDutyPolicyScheduleLayerUser extends BaseModel {
     type: TableColumnType.ObjectID,
     required: true,
     canReadOnRelationQuery: true,
-    title: "On-Call Policy Schedule Layer ID",
+    title: "On-Call Schedule Layer ID",
     description: "ID of the layer the person takes turns on call in",
   })
   @Column({

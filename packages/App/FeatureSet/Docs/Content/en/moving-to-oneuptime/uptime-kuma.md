@@ -89,7 +89,7 @@ A preview is kept for a day. Only the person who read the file can tick and star
 Open each one under **Monitors** and check its first results. A heartbeat monitor has a new address: point the job that pings it there.
 
 ### Choose who is told
-Add owners to your monitors, or an on-call policy under **On-Call Duty** > **On-Call Policies** to the incidents they open, so the right people hear when something goes down.
+Add owners to your monitors, or an on-call policy under **On-Call** > **On-Call Policies** to the incidents they open, so the right people hear when something goes down.
 
 ### Turn off the checks in Uptime Kuma
 Once OneUptime checks the same things, pause them in Uptime Kuma so nobody is told twice.

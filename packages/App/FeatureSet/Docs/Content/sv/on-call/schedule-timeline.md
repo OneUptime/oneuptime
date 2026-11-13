@@ -20,7 +20,7 @@ flowchart TB
 
 ## Öppna tidslinjen
 
-- **Jourtjänst** > **Tidslinje för jourscheman** visar alla scheman du kan se, grupperade efter det team som äger dem. På **Jourscheman** öppnar **Tidslinje för jourscheman** i menyn **⋯** samma sida.
+- **Jour** > **Tidslinje för jourscheman** visar alla scheman du kan se, grupperade efter det team som äger dem. På **Jourscheman** öppnar **Tidslinje för jourscheman** i menyn **⋯** samma sida.
 - **Team** > ett team > **Jourscheman** visar bara de scheman som teamet äger.
 
 Ett team äger ett schema när det finns på schemats sida **Ägare**. Scheman utan ett ägande team grupperas under **Inget ägarteam**. Stäng av **Gruppera efter team** för att se alla scheman i en lista, sorterad efter namn.
@@ -47,7 +47,7 @@ Under rutnätet visar **Jour den här veckan** (**Jour den här månaden** i må
 - Tidslinjen täcker 180 dagar bakåt och 365 dagar framåt.
 
 > [!NOTE]
-> Tidigare pass räknas om utifrån varje schemas nuvarande inställningar, så de visar rotationen som den är inställd nu, vilket kan skilja sig från vem som faktiskt larmades då. För de timmar personer faktiskt hade jour använder du **Jourtjänst** > **Rapporter** > **Användarens jourtid**. Se [Användarens jourtid](/docs/on-call/readiness#användarens-jourtid).
+> Tidigare pass räknas om utifrån varje schemas nuvarande inställningar, så de visar rotationen som den är inställd nu, vilket kan skilja sig från vem som faktiskt larmades då. För de timmar personer faktiskt hade jour använder du **Jour** > **Rapporter** > **Användarens jourtid**. Se [Användarens jourtid](/docs/on-call/readiness#användarens-jourtid).
 
 ## Hitta ett schema eller en person
 

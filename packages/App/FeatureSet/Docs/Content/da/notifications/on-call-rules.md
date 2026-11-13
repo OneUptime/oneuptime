@@ -1,4 +1,4 @@
-# Personlige vagtregler
+# Sådan når man mig
 
 Dine vagtregler afgør, hvordan et tilkald når dig: hvilke af dine notifikationsmetoder OneUptime prøver, og hvor lang tid efter tilkaldets start. Hver slags tilkald har sine egne regler, ét sæt pr. alvorlighed, så en kritisk hændelse kan ringe til dig med det samme, mens en mindre advarsel venter på en e-mail. Du sætter dem op under **Brugerindstillinger → Sådan når man mig**.
 

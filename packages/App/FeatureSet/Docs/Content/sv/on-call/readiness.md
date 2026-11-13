@@ -34,7 +34,7 @@ En lucka är en allvarlighetsgrad utan regel, på fliken för incidenter, incide
 
 ## Sidan Beredskap
 
-Öppna **Jourtjänst → Beredskap**. Kortet **Jourberedskap** listar alla som någon jourpolicy i projektet kan nå, med de som behöver något först. Alla i projektet kan öppna den.
+Öppna **Jour → Beredskap**. Kortet **Jourberedskap** listar alla som någon jourpolicy i projektet kan nå, med de som behöver något först. Alla i projektet kan öppna den.
 
 Ovanför listan räknar rutorna **Mottagare**, **Klar**, **Behöver konfigureras** och **Onåbar**. Klicka på **Klar**, **Behöver konfigureras** eller **Onåbar** för att bara lista de mottagarna, och klicka igen för att lista alla.
 
@@ -58,7 +58,7 @@ Bara personen själv kan lägga till och verifiera sina aviseringsmetoder och re
 3. Bekräfta. Varje person får ett e-postmeddelande som säger vad som saknas i hens egna inställningar, med en länk till sidan där det åtgärdas.
 :::
 
-En banner visar sedan hur många påminnelser som skickades, hoppades över eller misslyckades, och varför för varje som inte skickades. Ingen påminns mer än en gång per 24 timmar, och en omgång påminner högst 250 personer. För att skicka påminnelser krävs **Projektägare**, **Projektadministratör** eller **Jouradministratör**, eller **Edit On-Call Duty Policy** i en anpassad roll.
+En banner visar sedan hur många påminnelser som skickades, hoppades över eller misslyckades, och varför för varje som inte skickades. Ingen påminns mer än en gång per 24 timmar, och en omgång påminner högst 250 personer. För att skicka påminnelser krävs **Projektägare**, **Projektadministratör** eller **Jouradministratör**, eller **Edit On-Call Policy** i en anpassad roll.
 
 ## Beredskap på andra sidor
 
@@ -75,7 +75,7 @@ En vecka då alla är klara skickas inget, så e-postmeddelandet betyder alltid 
 
 ## Användarens jourtid
 
-**Jourtjänst → Rapporter → Användarens jourtid** visar hur länge varje person hade jour, under en period du väljer: **Senaste månaden** till att börja med.
+**Jour → Rapporter → Användarens jourtid** visar hur länge varje person hade jour, under en period du väljer: **Senaste månaden** till att börja med.
 
 | Kolumn | Vad den visar |
 | --- | --- |
@@ -108,5 +108,5 @@ Det skickas bara en vecka då någon är **Onåbar** eller **Behöver konfigurer
 :::cards
 - [Så når OneUptime dig](/docs/notifications/index): Metoderna, reglerna och reservlösningen bakom varje status.
 - [Aviseringsmetoder](/docs/notifications/notification-methods): Lägg till och verifiera sätten som OneUptime når någon på.
-- [Personliga jourregler](/docs/notifications/on-call-rules): Täpp till luckorna, allvarlighetsgrad för allvarlighetsgrad.
+- [Så når man mig](/docs/notifications/on-call-rules): Täpp till luckorna, allvarlighetsgrad för allvarlighetsgrad.
 :::

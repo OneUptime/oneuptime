@@ -448,7 +448,7 @@ Om PostgreSQL te herstellen, stelt u de waarden `DATABASE_RESTORE_*` in `config.
 
 Veel servers draaien OneUptime voor één taak, zoals websites bewaken en een statuspagina publiceren. Een hoofdbeheerder kan de producten die niemand gebruikt uitschakelen, voor alle projecten op de server tegelijk, onder **Instellingen > Producten** in het Admin Dashboard.
 
-- **Voorinstellingen** zetten elke schakelaar met één klik: **Monitoring en statuspagina's** houdt Monitoren, Incidenten, Bereikbaarheidsdienst, Statuspagina's en Geplande onderhoud; **Incidentrespons** voegt Waarschuwingen, SLOs, Workflows en Runbooks toe; **Alles** houdt elk product. **Producten een voor een kiezen** zet één product om. Gebruikers, Teams en Projectinstellingen staan altijd aan.
+- **Voorinstellingen** zetten elke schakelaar met één klik: **Monitoring en statuspagina's** houdt Monitoren, Incidenten, Bereikbaarheid, Statuspagina's en Geplande onderhoud; **Incidentrespons** voegt Waarschuwingen, SLOs, Workflows en Runbooks toe; **Alles** houdt elk product. **Producten een voor een kiezen** zet één product om. Gebruikers, Teams en Projectinstellingen staan altijd aan.
 - Een product dat uit staat, verdwijnt uit het menu **Producten** van elk project, van Start en uit Zoeken, en **Projectinstellingen > Producten** toont het als uitgeschakeld. Een link naar een van zijn pagina's zegt dat het product op deze server is uitgeschakeld en wie het kan inschakelen.
 - De API weigert records van het product aan te maken, te wijzigen of te verwijderen, en AI vragen laat het weg. Lezen werkt nog steeds, omdat producten die aan blijven records van andere tonen: een incident noemt zijn monitors.
 - Er wordt niets verwijderd, en wat al draait, blijft draaien: monitors blijven controleren, gepubliceerde statuspagina's blijven online en telemetrie blijft binnenkomen, tenzij u ook de opname stopt. Een product dat weer wordt ingeschakeld, komt terug zoals het was.
@@ -468,7 +468,7 @@ MQTT_INGEST_ENABLED=false
 
 | Instelling | Wat ze doet |
 | --- | --- |
-| `SERVER_PRODUCTS=monitoring-and-status-pages` | Elk project biedt Monitoren, Incidenten, Bereikbaarheidsdienst, Statuspagina's en Geplande onderhoud. |
+| `SERVER_PRODUCTS=monitoring-and-status-pages` | Elk project biedt Monitoren, Incidenten, Bereikbaarheid, Statuspagina's en Geplande onderhoud. |
 | `DISABLE_TELEMETRY_INGESTION=true` | OneUptime bewaart niets van de logs, metrics, traces of profielen die het krijgt. Logboeken, Metrieken, Traces, Prestatieprofielen en Uitzonderingen staan als uitgeschakeld. |
 | `GLOBAL_RUNNER_REPLICAS=0` | De service `global-runner` start niet. Alleen runbooks en de codecorrecties van OneUptime AI gebruiken hem. |
 | `MQTT_INGEST_ENABLED=false` | De MQTT-listeners waar IoT-apparaten naar sturen, staan uit. |

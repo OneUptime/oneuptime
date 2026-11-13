@@ -189,7 +189,7 @@ describe("the people the docs name", () => {
 
     // [section, page]: each page sits in its section, before the next one.
     for (const [section, page] of [
-      ["Notifications", "Notification Settings"],
+      ["Notifications", "Notification Channels"],
       ["AI", "AI Credits"],
     ] as Array<[string, string]>) {
       const start: number = menu.indexOf(`title: "${section}",`);
@@ -212,7 +212,7 @@ describe("Users, Teams & Permissions (English)", () => {
 
   test("says recharging either balance is billing: an owner or Manage Billing, not a project admin", () => {
     expect(balances).toBe(
-      "Recharging the project's prepaid balances counts as billing too. On OneUptime Cloud, SMS, phone calls, WhatsApp and Telegram are paid from the balance on **Project Settings > Notifications > Notification Settings**, and AI from the AI credits on **Project Settings > AI > AI Credits**. Only a project owner or someone with **Manage Billing** can recharge them or change their **Auto Recharge** — a project admin cannot. A message about a balance that has run low names who can add to it, and only those people get a working **Recharge Balance** button or a link to the page.",
+      "Recharging the project's prepaid balances counts as billing too. On OneUptime Cloud, SMS, phone calls, WhatsApp and Telegram are paid from the balance on **Project Settings > Notifications > Notification Channels**, and AI from the AI credits on **Project Settings > AI > AI Credits**. Only a project owner or someone with **Manage Billing** can recharge them or change their **Auto Recharge** — a project admin cannot. A message about a balance that has run low names who can add to it, and only those people get a working **Recharge Balance** button or a link to the page.",
     );
   });
 

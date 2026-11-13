@@ -34,7 +34,7 @@ flowchart LR
 | **基礎** | **專案**、**產品**、**標籤** | [專案詳細資訊](#專案詳細資訊)、[產品](#產品)、[標籤](#標籤) |
 | **工作區** | **Slack**、**Microsoft Teams**、**Mattermost**、**視訊通話** | [Slack](/docs/workspace-connections/slack)、[Microsoft Teams](/docs/workspace-connections/microsoft-teams)、[Mattermost](/docs/workspace-connections/mattermost)、[視訊通話](/docs/workspace-connections/video-calls) |
 | **遙測與 APM** | **擷取金鑰**、**資料保留**、**使用量** | [擷取金鑰](/docs/telemetry/ingestion-keys)、[資料保留](/docs/telemetry/data-retention)、[遙測使用量](/docs/telemetry/usage) |
-| **通知** | **通知設定**、**通知日誌**、**行動應用程式** | [通知](#通知) |
+| **通知** | **通知管道**、**通知日誌**、**行動應用程式** | [通知](#通知) |
 | **人工智慧** | **AI 功能**、**LLM 提供商**、**外部 MCP 伺服器**、**AI 點數**、**AI 日誌**、**MCP 伺服器** | [LLM 提供者](/docs/ai/llm-provider)、[外部 MCP 伺服器](/docs/ai/external-mcp-servers)、[MCP 伺服器](/docs/ai/mcp-server)、[AI SRE](/docs/ai/ai-sre#成本控制) |
 | **進階** | **網域**、**API 金鑰**、**功能旗標**、**從其他工具匯入** | [自訂網域](/docs/status-pages/branding-and-domains#自訂網域)、[API 金鑰](/docs/permissions/index#api-金鑰)、[功能旗標](#功能旗標)、[從 Opsgenie 移轉](/docs/moving-to-oneuptime/opsgenie)及其他移轉指南 |
 | **安全性** | **SSO**、**SCIM** | [SSO](/docs/identity/sso)、[SCIM](/docs/identity/scim) |
@@ -96,7 +96,7 @@ flowchart LR
 
 **專案設定 → 通知**包含專案傳送通知的方式：
 
-- **通知設定**：**通知管道**卡片為專案開啟或關閉簡訊、電話、WhatsApp 和 Telegram。四者預設皆為關閉。由 Project Owner、**帳單管理員** 或擁有 **Manage Billing** 的人開啟它們。該頁面的 **更多設定** 中還包含專案自己的郵件伺服器，位於**自訂 SMTP 設定**下（請參閱[SMTP](/docs/emails/smtp)），以及專案自己的 Twilio 帳戶（請參閱[Twilio 整合](/docs/self-hosted/twilio-integration)）。在 OneUptime Cloud 上，它還包含支付這些訊息的餘額：請參閱[預付餘額](/docs/configuration/billing#預付餘額)。
+- **通知管道**：**通知管道**卡片為專案開啟或關閉簡訊、電話、WhatsApp 和 Telegram。四者預設皆為關閉。由 Project Owner、**帳單管理員** 或擁有 **Manage Billing** 的人開啟它們。該頁面的 **更多設定** 中還包含專案自己的郵件伺服器，位於**自訂 SMTP 設定**下（請參閱[SMTP](/docs/emails/smtp)），以及專案自己的 Twilio 帳戶（請參閱[Twilio 整合](/docs/self-hosted/twilio-integration)）。在 OneUptime Cloud 上，它還包含支付這些訊息的餘額：請參閱[預付餘額](/docs/configuration/billing#預付餘額)。
 - **通知日誌**：專案傳送的每則通知，每個管道一個分頁：**電子郵件**、**SMS**、**WhatsApp**、**Telegram**、**Webhook**、**呼叫**、**推送**和**工作區**。
 - **行動應用程式**：取得 iOS 和 Android 應用程式的位置。請參閱[應用程式概觀](/docs/mobile-desktop-apps/index)。
 

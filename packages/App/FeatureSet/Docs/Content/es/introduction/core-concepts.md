@@ -198,7 +198,7 @@ Las reglas propias de un monitor son sus criterios. Las reglas de guardia de **A
 
 :::cards
 - [Configuración y automatización de incidentes](/docs/incidents/settings#reglas-que-se-ejecutan-al-crear-un-incidente): Las reglas que se ejecutan cuando se crea un incidente, en orden.
-- [Reglas de guardia personales](/docs/notifications/on-call-rules): Cómo te llega un aviso.
+- [Cómo contactarme](/docs/notifications/on-call-rules): Cómo te llega un aviso.
 :::
 
 ## Próximos pasos

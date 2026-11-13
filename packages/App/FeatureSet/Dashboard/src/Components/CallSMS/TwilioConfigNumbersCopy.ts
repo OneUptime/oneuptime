@@ -10,7 +10,7 @@ import {
 
 /*
  * Which numbers a project's Twilio config sends SMS and calls from, on
- * Project Settings > Notifications > Notification Settings > Twilio Config.
+ * Project Settings > Notifications > Notification Channels > Twilio Config.
  *
  * A Twilio number can make calls and send SMS, or only one of the two, and
  * in some countries no one number does both: national numbers can be

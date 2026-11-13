@@ -109,7 +109,7 @@ export interface SlackAnswerPlaceSource {
 export default class SlackActionAnswer {
   // What Execute On-Call Policy says when there is no policy to offer.
   public static readonly NO_ON_CALL_POLICIES_MESSAGE: string =
-    "No on-call policies are available to you in this project yet. Add one in the OneUptime Dashboard under On-Call Duty > Policies, or ask a project admin for access to one.";
+    "No on-call policies are available to you in this project yet. Add one in the OneUptime Dashboard under On-Call > On-Call Policies, or ask a project admin for access to one.";
 
   // The place a request says it was made in; null without a token or a person.
   public static getPlace(

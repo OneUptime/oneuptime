@@ -34,7 +34,7 @@ Faste tildelinger — en bruger eller et team, der er nævnt direkte i en regel 
 | --- | --- | --- | --- |
 | **Personligt feed** | Hver bruger, ét pr. projekt | Dine vagter i alle vagtplaner i det projekt plus de vagter, hvor du dækker for nogen (valgfrit) | **Brugerindstillinger** > **Kalender** > **Kalenderfeed** |
 | **Vagtplanfeed** | Alle, der kan redigere vagtplanen; alle, der kan læse den, kan kopiere linket | Alles vagter i én vagtplan, med valgfrie begivenheder for huller i dækningen | Vagtplanens side, kortet **Abonnér på denne vagtplan** |
-| **Projektfeed** | Alle, der kan redigere vagtplaner; alle, der kan læse dem, kan kopiere linket | Alles vagter i alle projektets vagtplaner, med valgfrie begivenheder for huller i dækningen | **Vagtordning** > **Kalenderfeeds** |
+| **Projektfeed** | Alle, der kan redigere vagtplaner; alle, der kan læse dem, kan kopiere linket | Alles vagter i alle projektets vagtplaner, med valgfrie begivenheder for huller i dækningen | **Vagt** > **Kalenderfeeds** |
 
 Linkene ser sådan ud:
 
@@ -206,7 +206,7 @@ På en vagtplans side har kortet **Abonnér på denne vagtplan** to halvdele: **
 
 ### Projektfeed
 
-**Vagtordning** > **Kalenderfeeds** indeholder kortet **Alles vagter i dette projekt (delt link)** — ét delt link, der dækker alle vagtplaner i projektet — med de samme handlinger til at udgive, generere igen og deaktivere og et link til siden med dit personlige feed.
+**Vagt** > **Kalenderfeeds** indeholder kortet **Alles vagter i dette projekt (delt link)** — ét delt link, der dækker alle vagtplaner i projektet — med de samme handlinger til at udgive, generere igen og deaktivere og et link til siden med dit personlige feed.
 
 ### Indstillinger for delte links
 
@@ -233,7 +233,7 @@ Når en person forlader sit sidste team i et projekt, fjerner OneUptime også pe
 
 ## Planlægning, ikke revision
 
-Feedet viser rotationen, **som den er sat op nu**, også for tidligere dage: en override, der indtastes bagefter, omskriver historikken i kalenderen. Til de timer, der faktisk er brugt på vagt, til vurderinger af fordelingen og til kompensation skal du bruge **Vagtordning** > **Rapporter** > **Brugerens vagttid**, som bygger på, hvad personsøgeren faktisk gjorde. Se [Brugerens vagttid](/docs/on-call/readiness#brugerens-vagttid).
+Feedet viser rotationen, **som den er sat op nu**, også for tidligere dage: en override, der indtastes bagefter, omskriver historikken i kalenderen. Til de timer, der faktisk er brugt på vagt, til vurderinger af fordelingen og til kompensation skal du bruge **Vagt** > **Rapporter** > **Brugerens vagttid**, som bygger på, hvad personsøgeren faktisk gjorde. Se [Brugerens vagttid](/docs/on-call/readiness#brugerens-vagttid).
 
 ## Sikkerhed
 
