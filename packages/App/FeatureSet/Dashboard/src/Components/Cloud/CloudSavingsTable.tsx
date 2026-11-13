@@ -38,6 +38,7 @@ import {
   isCloudSavingAmountKnown,
 } from "./CloudRightSizingText";
 import { readCloudRightSizingEvidence } from "Common/Types/Cloud/CloudRightSizing";
+import { joinWithArrowsOn } from "Common/Types/DirectionArrow";
 
 /*
  * The ways to spend less, as a table: every recommendation your clouds'
@@ -86,18 +87,24 @@ const PROVIDER_OPTIONS: Array<DropdownOption> = Object.values(
   return { label: getCloudProviderLabel(provider), value: provider };
 });
 
-// "m5.xlarge → m5.large": what it would change, when the recommender says.
+/*
+ * "m5.xlarge → m5.large": what it would change, when the recommender says,
+ * in a line read in `language`. Each configuration keeps its own reading
+ * and the arrow points the way the page reads (joinWithArrowsOn).
+ */
 export function getSavingChangeText(
   recommendation: CloudCostRecommendation,
+  language: string,
 ): string {
   const from: string = (recommendation.currentConfiguration || "").trim();
   const to: string = (recommendation.recommendedConfiguration || "").trim();
 
-  if (from && to) {
-    return `${from} → ${to}`;
-  }
-
-  return from || to;
+  return joinWithArrowsOn(
+    [from, to].filter((part: string): boolean => {
+      return part.length > 0;
+    }),
+    language,
+  );
 }
 
 export interface ComponentProps {
@@ -196,7 +203,10 @@ const CloudSavingsTable: FunctionComponent<ComponentProps> = (
           isNotCustomizable: true,
           wrapContent: true,
           getElement: (item: CloudCostRecommendation): ReactElement => {
-            const change: string = getSavingChangeText(item);
+            const change: string = getSavingChangeText(
+              item,
+              translator.language,
+            );
             const evidence: string | null = getCloudRightSizingEvidenceLine({
               evidence: readCloudRightSizingEvidence(item.evidence),
               translator,
@@ -216,7 +226,7 @@ const CloudSavingsTable: FunctionComponent<ComponentProps> = (
                     className="mt-0.5 break-words text-xs text-gray-500"
                     data-testid="cloud-saving-change"
                   >
-                    <bdi>{change}</bdi>
+                    {change}
                   </div>
                 ) : (
                   <></>

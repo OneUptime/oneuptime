@@ -1647,6 +1647,82 @@ test.describe("a case's notes feed, when Load more fails", () => {
     await expect(page.getByTestId("note-card")).toHaveCount(ALL_NOTES);
     await expect(page.getByTestId("notes-action-error")).toHaveCount(0);
   });
+
+  /*
+   * The banner stayed up until it was dismissed: Load more pressed again
+   * brought the notes under "Couldn't load more notes." (#7646). Its notes
+   * take the banner away now, and a focus on the banner goes where Dismiss
+   * puts it while Load more reads - the feed, just before the notes - not
+   * to the page.
+   */
+  test("Load more pressed again brings the notes and takes the banner away, and a focus on the banner stays in the feed", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CASE_NOTES_PATH, { caseSetup: "notes-more-fail" });
+    await expect(page.getByTestId("note-card")).toHaveCount(FIRST_PAGE, {
+      timeout: 30000,
+    });
+    const loadMore: Locator = page.getByTestId("notes-load-more");
+    await loadMore.click();
+
+    const banner: Locator = page.getByTestId("notes-action-error");
+    await expect(banner).toBeVisible();
+
+    // A keyboard user on the banner, at its reference's copy button.
+    await banner.getByTestId("error-reference").getByRole("button").focus();
+
+    // Counts each change to the page that left the focus on the page itself.
+    await page.evaluate((): void => {
+      const tracked: Window & { focusFellToPage?: number } = window;
+      tracked.focusFellToPage = 0;
+      new MutationObserver((): void => {
+        if (document.activeElement === document.body) {
+          tracked.focusFellToPage = (tracked.focusFellToPage || 0) + 1;
+        }
+      }).observe(document.body, { childList: true, subtree: true });
+    });
+
+    // Load more, by a click that leaves the focus where it was, as Safari's does.
+    await loadMore.dispatchEvent("click");
+
+    await expect(page.getByTestId("note-card")).toHaveCount(ALL_NOTES);
+    await expect(banner).toHaveCount(0);
+    await expect(page.getByTestId("notes-feed-body")).toBeFocused();
+    expect(
+      await page.evaluate((): number => {
+        return (window as Window & { focusFellToPage?: number })
+          .focusFellToPage as number;
+      }),
+      "changes to the page that left the focus on the page itself",
+    ).toBe(0);
+  });
+});
+
+/*
+ * The count by a case's notes heading was drawn as it came, in Latin
+ * digits, on a Persian page whose count over the notes was in its own
+ * (#7646).
+ */
+test.describe("a case's notes count on a Persian page", () => {
+  test("the count by the heading is in Persian digits, as the count over the notes is", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // CASE-142's 28 notes under ?casesetup=notes-more-fail.
+    await open(page, CASE_NOTES_PATH, {
+      caseSetup: "notes-more-fail",
+      lang: "fa",
+    });
+    await expect(page.getByTestId("note-card")).toHaveCount(25, {
+      timeout: 30000,
+    });
+
+    await expect(page.getByTestId("notes-count")).toHaveText("۲۸");
+    await expect(page.getByTestId("notes-summary")).toContainText("۲۸");
+  });
 });
 
 /*

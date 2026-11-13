@@ -1,6 +1,12 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import {
+  RouteAttributes,
+  pageRoutesIn,
+  routeMapPath,
+  routesAt,
+} from "../Helpers/PageRoutes";
 
 /*
  * App Platforms is the product the apps on managed app and container
@@ -135,51 +141,84 @@ describe("the product's pages", () => {
       'const AppPlatformsRoutes: LazyRoutes = lazy(() => { return import("./Routes/AppPlatformsRoutes"); });',
     );
 
-    const mount: number = app.indexOf(
-      'path={RouteMap[PageMap.APP_PLATFORMS_ROOT]?.toString() || ""} element={<AppPlatformsRoutes {...commonPageProps} />}',
+    const routes: Array<RouteAttributes> = pageRoutesIn(
+      path.join(DASHBOARD_SRC, "App.tsx"),
     );
-    const cloud: number = app.indexOf(
-      'path={RouteMap[PageMap.CLOUD_ROOT]?.toString() || ""} element={<CloudResourceRoutes {...commonPageProps} />}',
+    const mountPath: string = routeMapPath("APP_PLATFORMS_ROOT");
+    const cloudPath: string = routeMapPath("CLOUD_ROOT");
+
+    expect(routesAt(routes, mountPath)).toEqual([
+      {
+        path: mountPath,
+        element: "<AppPlatformsRoutes {...commonPageProps} />",
+      },
+    ]);
+    expect(routesAt(routes, cloudPath)).toEqual([
+      {
+        path: cloudPath,
+        element: "<CloudResourceRoutes {...commonPageProps} />",
+      },
+    ]);
+
+    // Each the only route at its path, so where it sits is where it mounts.
+    const paths: Array<string | undefined> = routes.map(
+      (route: RouteAttributes): string | undefined => {
+        return route["path"];
+      },
     );
 
-    expect(mount).toBeGreaterThan(-1);
-    expect(cloud).toBeGreaterThan(mount);
+    expect(paths.indexOf(cloudPath)).toBeGreaterThan(paths.indexOf(mountPath));
     expect(readCode("Routes/AllRoutes.tsx")).toContain(
       'export { default as AppPlatformsRoutes } from "./AppPlatformsRoutes";',
     );
   });
 
   test("every routed page is mounted by the route group", () => {
-    const routes: string = readCode("Routes/AppPlatformsRoutes.tsx");
+    const routes: Array<RouteAttributes> = pageRoutesIn(
+      path.join(DASHBOARD_SRC, "Routes", "AppPlatformsRoutes.tsx"),
+    );
 
     /*
-     * The Overview is the group's index; every other page names its key -
-     * an environment's app page by its last two segments (apps/:subModelId).
+     * The Overview is the group's index; every other page is mounted at its
+     * key - an environment's app page by its last two segments
+     * (apps/:subModelId).
      */
     const unmounted: Array<string> = ROUTED_KEYS.filter(
       (key: string): boolean => {
         return (
           key !== "APP_PLATFORMS_OVERVIEW" &&
-          !routes.includes(`AppPlatformsRoutePath[PageMap.${key}]`) &&
-          !routes.includes(`RouteUtil.getLastPathForKey(PageMap.${key})`) &&
-          !routes.includes(`RouteUtil.getLastPathForKey(PageMap.${key}, 2)`)
+          [
+            `AppPlatformsRoutePath[PageMap.${key}] || ""`,
+            `RouteUtil.getLastPathForKey(PageMap.${key})`,
+            `RouteUtil.getLastPathForKey(PageMap.${key}, 2)`,
+          ].every((routePath: string): boolean => {
+            return routesAt(routes, routePath).length === 0;
+          })
         );
       },
     );
 
     expect(unmounted).toEqual([]);
-    expect(routes).toContain(
-      "<PageRoute index element={<AppPlatformsOverview {...props} pageRoute={RouteMap[PageMap.APP_PLATFORMS_OVERVIEW] as Route}",
-    );
+    expect(routes).toContainEqual({
+      index: "true",
+      element:
+        "<AppPlatformsOverview {...props} pageRoute={RouteMap[PageMap.APP_PLATFORMS_OVERVIEW] as Route} />",
+    });
   });
 
   test("an address the product does not have is Page Not Found, not a blank page", () => {
-    const routes: string = readCode("Routes/AppPlatformsRoutes.tsx");
-
     // One under an environment's own menu, one for the product.
     expect(
-      routes.match(/<PageRoute path="\*" element=\{<PageNotFound/g) || [],
-    ).toHaveLength(2);
+      routesAt(
+        pageRoutesIn(
+          path.join(DASHBOARD_SRC, "Routes", "AppPlatformsRoutes.tsx"),
+        ),
+        '"*"',
+      ),
+    ).toEqual([
+      { path: '"*"', element: expect.stringMatching(/^<PageNotFound /) },
+      { path: '"*"', element: expect.stringMatching(/^<PageNotFound /) },
+    ]);
   });
 });
 
@@ -326,7 +365,9 @@ describe("finding the product", () => {
 });
 
 describe("old Cloud addresses still arrive", () => {
-  const cloudRoutes: string = readCode("Routes/CloudResourceRoutes.tsx");
+  const cloudRoutes: Array<RouteAttributes> = pageRoutesIn(
+    path.join(DASHBOARD_SRC, "Routes", "CloudResourceRoutes.tsx"),
+  );
 
   /*
    * Cloud's own address was the environments list, then its accounts
@@ -334,18 +375,32 @@ describe("old Cloud addresses still arrive", () => {
    * still a Cloud page, never an App Platforms one.
    */
   test("Cloud's own address, which was the environments list, opens Cloud's Overview", () => {
-    expect(cloudRoutes).toContain(
-      "<PageRoute index element={<CloudOverview {...props} pageRoute={RouteMap[PageMap.CLOUD_OVERVIEW] as Route} />}",
-    );
-    expect(cloudRoutes).not.toContain(
-      "<PageRoute index element={<MovedPageRedirect",
-    );
+    expect(cloudRoutes).toContainEqual({
+      index: "true",
+      element:
+        "<CloudOverview {...props} pageRoute={RouteMap[PageMap.CLOUD_OVERVIEW] as Route} />",
+    });
+    expect(
+      cloudRoutes.filter((route: RouteAttributes): boolean => {
+        return (
+          route["index"] === "true" &&
+          (route["element"] || "").startsWith("<MovedPageRedirect ")
+        );
+      }),
+    ).toEqual([]);
   });
 
   test("the environments list's Developer pages forward to All Resources' own", () => {
-    expect(cloudRoutes).toContain(
-      "path={getDeveloperDocsRelativePath(page.type)} element={<MovedPageRedirect pageMap={getDeveloperDocsPageKey(PageMap.CLOUD_MONITORED_RESOURCES, page.type)}",
-    );
+    expect(
+      routesAt(cloudRoutes, "getDeveloperDocsRelativePath(page.type)"),
+    ).toEqual([
+      {
+        key: "`moved-${page.type}`",
+        path: "getDeveloperDocsRelativePath(page.type)",
+        element:
+          "<MovedPageRedirect pageMap={getDeveloperDocsPageKey(PageMap.CLOUD_MONITORED_RESOURCES, page.type)} />",
+      },
+    ]);
   });
 
   test("each product's view forwards a row of the other's kind to the same tab there", () => {
