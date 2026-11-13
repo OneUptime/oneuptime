@@ -32,6 +32,10 @@ import Queue from "Common/Server/Infrastructure/Queue";
 import Redis from "Common/Server/Infrastructure/Redis";
 import InfrastructureStatus from "Common/Server/Infrastructure/Status";
 import logger from "Common/Server/Utils/Logger";
+import { getServerTwilioEnvironment } from "Common/Server/Utils/ServerTwilioConfig";
+import ServerTwilioEnvironment, {
+  ServerTwilioEnvironmentReading,
+} from "Common/Types/CallAndSMS/ServerTwilioEnvironment";
 import Realtime from "Common/Server/Utils/Realtime";
 import App from "Common/Server/Utils/StartServer";
 import Telemetry from "Common/Server/Utils/Telemetry";
@@ -162,6 +166,27 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
      */
     if (InboundEmailWebhookSecretWarning) {
       logger.warn(InboundEmailWebhookSecretWarning);
+    }
+
+    /*
+     * The server's Twilio account set by the GLOBAL_TWILIO_ environment
+     * variables (#7515), said once: that they set it, so nobody looks for it
+     * in the Admin Dashboard, and what is wrong with them - or which are set
+     * without GLOBAL_TWILIO_ACCOUNT_SID, and so read by nothing.
+     */
+    const twilioEnvironment: ServerTwilioEnvironmentReading =
+      getServerTwilioEnvironment();
+    const twilioEnvironmentNotice: string | null =
+      ServerTwilioEnvironment.getStartupNotice(twilioEnvironment);
+    const twilioEnvironmentWarning: string | null =
+      ServerTwilioEnvironment.getStartupWarning(twilioEnvironment);
+
+    if (twilioEnvironmentNotice) {
+      logger.info(twilioEnvironmentNotice);
+    }
+
+    if (twilioEnvironmentWarning) {
+      logger.warn(twilioEnvironmentWarning);
     }
 
     // Connect to Redis
