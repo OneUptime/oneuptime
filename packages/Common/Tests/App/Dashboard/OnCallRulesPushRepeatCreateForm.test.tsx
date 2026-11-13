@@ -57,8 +57,9 @@ const OWN_IPHONE_ID: string = "00000000-0000-4000-8000-0000000000f1";
 const OWN_BROWSER_ID: string = "00000000-0000-4000-8000-0000000000f3";
 const OWN_EMAIL_ID: string = "00000000-0000-4000-8000-0000000000e1";
 
-const IPHONE_OPTION: string = "Push: iPhone 17";
-const BROWSER_OPTION: string = "Push: Chrome on Mac";
+// A push device by its method's own name (#7178).
+const IPHONE_OPTION: string = "Push notification: iPhone 17";
+const BROWSER_OPTION: string = "Push notification: Chrome on Mac";
 const EMAIL_OPTION: string = "Email: me@example.com";
 
 const REPEAT_FIELD_NAME: RegExp = /^Repeat until acknowledged/;

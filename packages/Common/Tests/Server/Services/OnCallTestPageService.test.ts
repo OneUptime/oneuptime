@@ -46,12 +46,20 @@ import OnCallDutyExecutionLogTimelineStatus from "../../../Types/OnCallDutyPolic
 import OnCallDutyPolicyStatus from "../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
 import {
+  NOT_A_PROJECT_MEMBER_TIMELINE_MESSAGE,
+  PUSH_NOT_SENT_TO_BROWSER_THAT_NO_LONGER_RECEIVES_MESSAGE,
+  SENDING_NOTIFICATION_TO_USER_TIMELINE_MESSAGE,
+} from "../../../Types/OnCallDutyPolicy/OnCallPageLine";
+import {
   ON_CALL_TEST_PAGES_PER_PROJECT_PER_HOUR,
   ON_CALL_TEST_PAGE_LIMIT_UNREADABLE_MESSAGE,
   ON_CALL_TEST_PAGE_PROJECT_LIMIT_MESSAGE,
+  ON_CALL_TEST_PAGE_ENDED_UNANSWERED_MESSAGE,
+  ON_CALL_TEST_PAGE_ANSWER_WINDOW_IN_MINUTES,
   OnCallTestPageDeliveryStatus,
   OnCallTestPageFix,
   OnCallTestPageKind,
+  OnCallTestPageLineCode,
   OnCallTestPageNotPagedCode,
   OnCallTestPagePreview,
   OnCallTestPagePreviewMethod,
@@ -1421,6 +1429,129 @@ describe("what became of a test: the chain as it happened", () => {
       OnCallTestPageDeliveryStatus.Delivered,
     );
   });
+
+  /*
+   * ISSUE #7260: the result says each line it knows as a code too, with the
+   * values it names, so the Dashboard words it in the reader's language -
+   * the run's own line, each person's and each message's. Each keeps its
+   * English for every other reader of the API, and a line no code stands
+   * for - a provider's own error, an acknowledgement - comes without one.
+   */
+  test("each line it knows comes with its code and its English; a line it does not know, with its English alone", async () => {
+    runRead.mockResolvedValue({
+      id: RUN,
+      projectId: PROJECT,
+      status: OnCallDutyPolicyStatus.Completed,
+      statusMessage: ON_CALL_TEST_PAGE_ENDED_UNANSWERED_MESSAGE,
+      createdAt: new Date("2026-11-11T09:00:00.000Z"),
+      userNotificationEventType: UserNotificationEventType.TestPage,
+      testPageRecordKind: OnCallTestPageRecordKind.Incident,
+      testPageSeverityId: SEVERITY,
+      testPageWalksEscalation: false,
+      createdByUserId: DAN,
+      onCallDutyPolicyId: POLICY,
+      onCallDutyPolicy: { name: "Primary" },
+    } as never);
+
+    jest
+      .spyOn(OnCallDutyPolicyExecutionLogTimelineService, "findBy")
+      .mockResolvedValue([
+        {
+          ...line(
+            LINE_ANA,
+            ANA,
+            OnCallDutyExecutionLogTimelineStatus.NotificationSent,
+          ),
+          statusMessage: SENDING_NOTIFICATION_TO_USER_TIMELINE_MESSAGE,
+        },
+        {
+          ...line(LINE_BOB, BOB, OnCallDutyExecutionLogTimelineStatus.Skipped),
+          statusMessage: NOT_A_PROJECT_MEMBER_TIMELINE_MESSAGE,
+        },
+      ] as never);
+
+    const twilioError: string =
+      "Twilio error 21610: Attempt to send to unsubscribed recipient.";
+
+    jest.spyOn(UserOnCallLogTimelineService, "findBy").mockResolvedValue([
+      delivery({
+        id: "7e5ae000-0000-4000-8000-000000000401",
+        userId: ANA,
+        lineId: LINE_ANA,
+        sms: true,
+        status: UserNotificationStatus.Error,
+        statusMessage: twilioError,
+        sentAt: "2026-11-11T09:00:00.000Z",
+      }),
+      delivery({
+        id: "7e5ae000-0000-4000-8000-000000000402",
+        userId: ANA,
+        lineId: LINE_ANA,
+        status: UserNotificationStatus.Error,
+        statusMessage:
+          "Email notification not sent because email bob@example.com is not verified.",
+        sentAt: "2026-11-11T09:00:01.000Z",
+      }),
+    ] as never);
+
+    const result: OnCallTestPageResult = await OnCallTestPageService.getResult({
+      projectId: PROJECT,
+      executionLogId: RUN,
+      props: { isRoot: true },
+    });
+
+    // The run's own line: nobody acknowledged it in its window.
+    expect(result.statusMessage).toBe(
+      ON_CALL_TEST_PAGE_ENDED_UNANSWERED_MESSAGE,
+    );
+    expect(result.statusMessageCode).toEqual({
+      code: OnCallTestPageLineCode.EndedUnanswered,
+      minutes: ON_CALL_TEST_PAGE_ANSWER_WINDOW_IN_MINUTES,
+    });
+
+    // A person's line: being paged, and one who is not a member, by name.
+    expect(result.steps[0]!.statusMessage).toBe(
+      SENDING_NOTIFICATION_TO_USER_TIMELINE_MESSAGE,
+    );
+    expect(result.steps[0]!.statusMessageCode).toEqual({
+      code: OnCallTestPageLineCode.SendingToPerson,
+    });
+    expect(result.steps[1]!.statusMessage).toBe(
+      NOT_A_PROJECT_MEMBER_TIMELINE_MESSAGE,
+    );
+    expect(result.steps[1]!.statusMessageCode).toEqual({
+      code: OnCallTestPageLineCode.NotProjectMember,
+      name: "Bob Stone",
+    });
+
+    // A message's line: the provider's own error has none, an unverified email has one.
+    const [sms, email] = result.steps[0]!.deliveries;
+
+    expect(sms!.statusMessage).toBe(twilioError);
+    expect(sms!.statusMessageCode).toBeUndefined();
+    expect(email!.statusMessage).toBe(
+      "Email notification not sent because email bob@example.com is not verified.",
+    );
+    expect(email!.statusMessageCode).toEqual({
+      code: OnCallTestPageLineCode.MethodNotVerified,
+      channel: OnCallPageChannel.Email,
+    });
+  });
+
+  test("an acknowledged test's own line has no code: its words name who and how, as written", async () => {
+    const result: OnCallTestPageResult = await OnCallTestPageService.getResult({
+      projectId: PROJECT,
+      executionLogId: RUN,
+      props: { isRoot: true },
+    });
+
+    expect(result.statusMessage).toBe(
+      "Test page acknowledged by Ana Lopez by SMS after 14 seconds.",
+    );
+    expect(result.statusMessageCode).toBeUndefined();
+    // A line with no words of its own has no code either.
+    expect(result.steps[0]!.statusMessageCode).toBeUndefined();
+  });
 });
 
 describe("the result's words, from the records", () => {
@@ -1484,6 +1615,53 @@ describe("the result's words, from the records", () => {
       canAcknowledge: false,
       fix: OnCallTestPageFix.NotificationMethods,
       sentAt: "2026-11-11T09:00:00.000Z",
+      // Its line as a code (#7260): a phone's app, not a browser.
+      statusMessageCode: {
+        code: OnCallTestPageLineCode.PushDeviceNoLongerReceives,
+        isMobileApp: true,
+      },
+    });
+  });
+
+  test("a message's line as a code: a browser that no longer receives, a channel that is off (#7260)", () => {
+    const browser: UserOnCallLogTimeline = {
+      id: new ObjectID("7e5ae000-0000-4000-8000-000000000503"),
+      userPushId: new ObjectID("7e5ae000-0000-4000-8000-000000000504"),
+      userPush: { deviceName: "Chrome on macOS" },
+      status: UserNotificationStatus.Skipped,
+      statusMessage: PUSH_NOT_SENT_TO_BROWSER_THAT_NO_LONGER_RECEIVES_MESSAGE,
+      createdAt: new Date("2026-11-11T09:00:00.000Z"),
+    } as unknown as UserOnCallLogTimeline;
+
+    expect(
+      toDelivery({ delivery: browser, isDelivered: false }).statusMessageCode,
+    ).toEqual({
+      code: OnCallTestPageLineCode.PushDeviceNoLongerReceives,
+      isMobileApp: false,
+    });
+
+    const smsOff: UserOnCallLogTimeline = {
+      id: new ObjectID("7e5ae000-0000-4000-8000-000000000505"),
+      userSmsId: new ObjectID("7e5ae000-0000-4000-8000-000000000506"),
+      userSms: { phone: new Phone("+15550100") },
+      status: UserNotificationStatus.Error,
+      statusMessage: getProjectNotificationChannelOffMessage(
+        ProjectNotificationChannel.SMS,
+      ),
+      createdAt: new Date("2026-11-11T09:00:00.000Z"),
+    } as unknown as UserOnCallLogTimeline;
+
+    const delivered: ReturnType<typeof toDelivery> = toDelivery({
+      delivery: smsOff,
+      isDelivered: false,
+    });
+
+    expect(delivered.statusMessage).toBe(
+      getProjectNotificationChannelOffMessage(ProjectNotificationChannel.SMS),
+    );
+    expect(delivered.statusMessageCode).toEqual({
+      code: OnCallTestPageLineCode.ChannelOff,
+      channel: OnCallPageChannel.SMS,
     });
   });
 

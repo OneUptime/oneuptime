@@ -155,6 +155,13 @@ describe("toSentenceTerm", () => {
     // Only after "Google" is "Cloud" a name.
     ["Cloud Resources", "en", "cloud resources"],
     ["Cloud Google", "en", "cloud Google"],
+    // Notification methods named in a sentence ("Remove this ... method?").
+    ["Microsoft Teams", "en", "Microsoft Teams"],
+    ["Mattermost", "en", "Mattermost"],
+    ["Phone call", "en", "phone call"],
+    ["Push notification", "en", "push notification"],
+    // Only after "Microsoft" is "Teams" a name.
+    ["Teams", "en", "teams"],
     // ... alone or as a compound's first part.
     ["Google Cloud-projekt", "da", "Google Cloud-projekt"],
     ["Google Cloud-project", "nl", "Google Cloud-project"],

@@ -51779,5 +51779,16 @@
   "{{column}} is unique": "{{column}} is unique",
   "{{column}} looks like an email address": "{{column}} looks like an email address",
   "{{column}} looks like {{dataType}}": "{{column}} looks like {{dataType}}",
-  "{{column}} takes its usual values": "{{column}} takes its usual values"
+  "{{column}} takes its usual values": "{{column}} takes its usual values",
+  "Already paged by this test, so not paged again.": "Already paged by this test, so not paged again.",
+  "Every on-call rule for this severity ran at once.": "Every on-call rule for this severity ran at once.",
+  "No on-call rule covers this severity, and paging the verified methods instead failed.": "No on-call rule covers this severity, and paging the verified methods instead failed.",
+  "Nobody at this level could be paged, so the policy moved on at once.": "Nobody at this level could be paged, so the policy moved on at once.",
+  "Test ended: it went through every escalation level and nobody acknowledged it.": "Test ended: it went through every escalation level and nobody acknowledged it.",
+  "Test ended: nobody acknowledged it within {{count}} minutes.": "Test ended: nobody acknowledged it within {{count}} minutes.",
+  "Test ended: nobody acknowledged it within {{count}} minutes._one": "Test ended: nobody acknowledged it within {{count}} minute.",
+  "Test ended: the first escalation level reached nobody. Each person's line says why.": "Test ended: the first escalation level reached nobody. Each person's line says why.",
+  "The test page reached nobody. Each person's line says why.": "The test page reached nobody. Each person's line says why.",
+  "This level has no responders, so the policy moved on at once.": "This level has no responders, so the policy moved on at once.",
+  "This test page does not say which kind of page and severity it tests, so nothing was sent.": "This test page does not say which kind of page and severity it tests, so nothing was sent."
 }

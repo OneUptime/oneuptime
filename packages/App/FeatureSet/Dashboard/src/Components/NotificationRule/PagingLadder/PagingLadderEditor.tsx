@@ -31,6 +31,7 @@ import Dropdown, {
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import API from "Common/UI/Utils/API/API";
+import NotificationMethodUtil from "Common/UI/Utils/NotificationMethodUtil";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
@@ -397,10 +398,17 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
                   (choice: PagingMethodChoice): DropdownOption => {
                     return {
                       value: getPagingLadderMethodKey(choice),
-                      label: choice.identifier
-                        ? `${choice.title}: ${choice.identifier}`
-                        : choice.title,
-                      isUserContent: true,
+                      /*
+                       * The method's line in the reader's words, as the
+                       * cards' own dropdowns name it (#7178), drawn as
+                       * written and in the page's direction.
+                       */
+                      label: NotificationMethodUtil.getMethodLabel(
+                        translator,
+                        choice.channel,
+                        choice.identifier,
+                      ),
+                      ...NotificationMethodUtil.TRANSLATED_LABEL_OPTION,
                     };
                   },
                 )}

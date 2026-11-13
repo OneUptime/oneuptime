@@ -17815,7 +17815,7 @@
   "United States Minor Outlying Islands": "United States Minor Outlying Islands",
   "Units": "单元",
   "Unknown Action": "Unknown Action",
-  "Unknown Device": "Unknown Device",
+  "Unknown Device": "未知设备",
   "Unknown Policy": "Unknown Policy",
   "Unknown Role": "未知角色",
   "Unknown Service": "未知服务",
@@ -51779,5 +51779,16 @@
   "{{column}} is unique": "{{column}} 唯一",
   "{{column}} looks like an email address": "{{column}} 看起来像电子邮件地址",
   "{{column}} looks like {{dataType}}": "{{column}} 看起来像{{dataType}}",
-  "{{column}} takes its usual values": "{{column}} 保持常见取值"
+  "{{column}} takes its usual values": "{{column}} 保持常见取值",
+  "Already paged by this test, so not paged again.": "已被此测试呼叫过，因此不再重复呼叫。",
+  "Every on-call rule for this severity ran at once.": "此严重程度的所有值班规则都已立即执行。",
+  "No on-call rule covers this severity, and paging the verified methods instead failed.": "没有值班规则覆盖此严重程度，改为呼叫已验证方式也失败了。",
+  "Nobody at this level could be paged, so the policy moved on at once.": "此级别无人可被呼叫，因此策略立即转到下一步。",
+  "Test ended: it went through every escalation level and nobody acknowledged it.": "测试已结束：已经过所有升级级别，但无人确认。",
+  "Test ended: nobody acknowledged it within {{count}} minutes.": "测试已结束：{{count}} 分钟内无人确认。",
+  "Test ended: nobody acknowledged it within {{count}} minutes._one": "测试已结束：{{count}} 分钟内无人确认。",
+  "Test ended: the first escalation level reached nobody. Each person's line says why.": "测试已结束：第一个升级级别没有联系到任何人。每个人所在的行说明了原因。",
+  "The test page reached nobody. Each person's line says why.": "测试呼叫没有联系到任何人。每个人所在的行说明了原因。",
+  "This level has no responders, so the policy moved on at once.": "此级别没有响应人，因此策略立即转到下一步。",
+  "This test page does not say which kind of page and severity it tests, so nothing was sent.": "此测试呼叫未说明要测试哪种呼叫和严重程度，因此没有发送任何内容。"
 }

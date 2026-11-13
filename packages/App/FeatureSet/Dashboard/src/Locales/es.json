@@ -51779,5 +51779,16 @@
   "{{column}} is unique": "{{column}} es único",
   "{{column}} looks like an email address": "{{column}} parece una dirección de correo electrónico",
   "{{column}} looks like {{dataType}}": "{{column}} tiene formato de {{dataType}}",
-  "{{column}} takes its usual values": "{{column}} toma sus valores habituales"
+  "{{column}} takes its usual values": "{{column}} toma sus valores habituales",
+  "Already paged by this test, so not paged again.": "Ya avisado por esta prueba, así que no se avisa de nuevo.",
+  "Every on-call rule for this severity ran at once.": "Todas las reglas de guardia de esta gravedad se ejecutaron a la vez.",
+  "No on-call rule covers this severity, and paging the verified methods instead failed.": "Ninguna regla de guardia cubre esta gravedad, y falló el aviso a los métodos verificados en su lugar.",
+  "Nobody at this level could be paged, so the policy moved on at once.": "No se pudo avisar a nadie en este nivel, así que la política pasó al siguiente de inmediato.",
+  "Test ended: it went through every escalation level and nobody acknowledged it.": "Prueba terminada: pasó por todos los niveles de escalado y nadie lo reconoció.",
+  "Test ended: nobody acknowledged it within {{count}} minutes.": "Prueba terminada: nadie lo reconoció en {{count}} minutos.",
+  "Test ended: nobody acknowledged it within {{count}} minutes._one": "Prueba terminada: nadie lo reconoció en {{count}} minuto.",
+  "Test ended: the first escalation level reached nobody. Each person's line says why.": "Prueba terminada: el primer nivel de escalado no llegó a nadie. La línea de cada persona indica por qué.",
+  "The test page reached nobody. Each person's line says why.": "El aviso de prueba no llegó a nadie. La línea de cada persona indica por qué.",
+  "This level has no responders, so the policy moved on at once.": "Este nivel no tiene respondedores, así que la política pasó al siguiente de inmediato.",
+  "This test page does not say which kind of page and severity it tests, so nothing was sent.": "Este aviso de prueba no indica qué tipo de aviso ni qué gravedad prueba, así que no se envió nada."
 }

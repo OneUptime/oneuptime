@@ -355,7 +355,8 @@ describe("every path OneUptime writes is one a reader can follow", () => {
       "App/FeatureSet/Dashboard/src/Components/NotificationMethods/MicrosoftTeams.tsx",
       "App/FeatureSet/Dashboard/src/Components/NotificationMethods/Mattermost.tsx",
       "App/FeatureSet/Dashboard/src/Components/NotificationMethods/Telegram.tsx",
-      "Common/Server/Services/UserOnCallLogService.ts",
+      // The page lines the server writes and the Dashboard words (#7260).
+      "Common/Types/OnCallDutyPolicy/OnCallPageLine.ts",
       "Common/Server/Services/UserSlackService.ts",
     ]) {
       expect({ file: expected, read: files.has(expected) }).toEqual({

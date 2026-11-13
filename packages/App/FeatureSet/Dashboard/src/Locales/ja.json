@@ -51779,5 +51779,16 @@
   "{{column}} is unique": "{{column}} が一意である",
   "{{column}} looks like an email address": "{{column}} がメールアドレスの形式である",
   "{{column}} looks like {{dataType}}": "{{column}} が{{dataType}}の形式である",
-  "{{column}} takes its usual values": "{{column}} がいつもの値をとる"
+  "{{column}} takes its usual values": "{{column}} がいつもの値をとる",
+  "Already paged by this test, so not paged again.": "このテストですでに呼び出されているため、再度呼び出されません。",
+  "Every on-call rule for this severity ran at once.": "この重大度のオンコールルールはすべて直ちに実行されました。",
+  "No on-call rule covers this severity, and paging the verified methods instead failed.": "この重大度に該当するオンコールルールがなく、代わりに確認済みの方法への呼び出しも失敗しました。",
+  "Nobody at this level could be paged, so the policy moved on at once.": "このレベルでは誰も呼び出せなかったため、ポリシーはすぐに次へ進みました。",
+  "Test ended: it went through every escalation level and nobody acknowledged it.": "テストが終了しました。すべてのエスカレーションレベルを経ましたが、誰も確認しませんでした。",
+  "Test ended: nobody acknowledged it within {{count}} minutes.": "テストが終了しました。{{count}} 分以内に誰も確認しませんでした。",
+  "Test ended: nobody acknowledged it within {{count}} minutes._one": "テストが終了しました。{{count}} 分以内に誰も確認しませんでした。",
+  "Test ended: the first escalation level reached nobody. Each person's line says why.": "テストが終了しました。最初のエスカレーションレベルでは誰にも届きませんでした。理由は各メンバーの行に表示されています。",
+  "The test page reached nobody. Each person's line says why.": "テスト呼び出しは誰にも届きませんでした。理由は各メンバーの行に表示されています。",
+  "This level has no responders, so the policy moved on at once.": "このレベルには対応者がいないため、ポリシーはすぐに次へ進みました。",
+  "This test page does not say which kind of page and severity it tests, so nothing was sent.": "このテスト呼び出しには、どの種類の呼び出しと重大度をテストするかが示されていないため、何も送信されませんでした。"
 }

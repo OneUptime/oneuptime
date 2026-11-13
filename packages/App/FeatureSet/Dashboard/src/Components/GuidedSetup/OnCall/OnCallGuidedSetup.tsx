@@ -743,6 +743,12 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
           id="on-call-setup-phone"
           value={phoneText}
           placeholder="+15551234567"
+          /*
+           * A phone number: a phone offers its dial pad, and the box reads
+           * left to right on every page, as a Phone field does - on a
+           * Persian or Arabic page its "+" went after its digits (#7180).
+           */
+          inputMode="tel"
           onChange={(value: string) => {
             setPhoneText(value);
             setPhoneError("");

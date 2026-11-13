@@ -432,6 +432,7 @@ import Name from "../../../Types/Name";
 import NotificationRuleType from "../../../Types/NotificationRule/NotificationRuleType";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
+import NotificationMethodUtil from "../../../UI/Utils/NotificationMethodUtil";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import ProjectUtil from "../../../UI/Utils/Project";
 import UserUtil from "../../../UI/Utils/User";
@@ -1448,8 +1449,16 @@ describe("the page is read at rest, whichever order its fetches land in", () => 
 
     capturedTables.forEach((table: CapturedTableProps) => {
       expect(methodOptionsFor(table)).toEqual([
-        { label: `Email: ${MASKED_EMAIL}`, value: EMAIL_METHOD_ID },
-        { label: `SMS: ${MASKED_PHONE}`, value: SMS_METHOD_ID },
+        {
+          label: `Email: ${MASKED_EMAIL}`,
+          value: EMAIL_METHOD_ID,
+          ...NotificationMethodUtil.TRANSLATED_LABEL_OPTION,
+        },
+        {
+          label: `SMS: ${MASKED_PHONE}`,
+          value: SMS_METHOD_ID,
+          ...NotificationMethodUtil.TRANSLATED_LABEL_OPTION,
+        },
       ]);
 
       expect(table.noItemsMessage).toContain(
@@ -1760,8 +1769,16 @@ describe("the shared rules table, as the admin page wires it", () => {
        * device whose number it was never told.
        */
       expect(methodOptionsFor(table)).toEqual([
-        { label: `Email: ${MASKED_EMAIL}`, value: EMAIL_METHOD_ID },
-        { label: `SMS: ${MASKED_PHONE}`, value: SMS_METHOD_ID },
+        {
+          label: `Email: ${MASKED_EMAIL}`,
+          value: EMAIL_METHOD_ID,
+          ...NotificationMethodUtil.TRANSLATED_LABEL_OPTION,
+        },
+        {
+          label: `SMS: ${MASKED_PHONE}`,
+          value: SMS_METHOD_ID,
+          ...NotificationMethodUtil.TRANSLATED_LABEL_OPTION,
+        },
       ]);
     });
   });
@@ -2267,21 +2284,24 @@ describe("methods are a page of their own now, not a card on this one", () => {
     }
 
     /*
-     * The link, not the defined term of the same words over the rules'
-     * tabs (OnCallRulesTabs' intro), which the page now draws as well.
+     * The rules tabs below open with a definition of the same words - a
+     * button that explains them, not a link - so the entry is the one the
+     * words sit in an anchor for, and there is exactly one of those.
      */
-    const rulesLink: HTMLElement | null =
-      screen
-        .getAllByText("On-call rules")
-        .map((element: HTMLElement): HTMLElement | null => {
-          return element.closest("a");
-        })
-        .find((anchor: HTMLElement | null): boolean => {
-          return anchor !== null;
-        }) || null;
+    const rulesLinks: Array<HTMLAnchorElement> = screen
+      .getAllByText("On-call rules")
+      .map((element: HTMLElement): HTMLAnchorElement | null => {
+        return element.closest("a");
+      })
+      .filter((link: HTMLAnchorElement | null): link is HTMLAnchorElement => {
+        return link !== null;
+      });
 
-    expect(rulesLink).not.toBeNull();
-    expect(rulesLink!.getAttribute("href")).toBe(
+    expect(rulesLinks).toHaveLength(1);
+
+    const rulesLink: HTMLAnchorElement = rulesLinks[0]!;
+
+    expect(rulesLink.getAttribute("href")).toBe(
       `/dashboard/${PROJECT_ID_STRING}/users/${TARGET_USER_ID_STRING}/on-call-rules`,
     );
     expect(container.textContent).toContain(

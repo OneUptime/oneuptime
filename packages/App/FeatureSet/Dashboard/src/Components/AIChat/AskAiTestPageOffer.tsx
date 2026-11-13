@@ -1,6 +1,6 @@
 import SendTestPageButton from "../OnCallTestPage/SendTestPageButton";
 import { RESULT_STATUS_WORDS } from "../OnCallTestPage/OnCallTestPageWords";
-import { getResultSentence } from "../OnCallTestPage/TestPageResult";
+import { getResultSentenceWords } from "../OnCallTestPage/TestPageResult";
 import { getSetupTestPageSentEvent } from "./AskAiSetupEvents";
 import { ProductEventName } from "Common/Types/Analytics/ProductEvent";
 import {
@@ -124,7 +124,7 @@ const AskAiTestPageOffer: FunctionComponent<ComponentProps> = (
           <span className="font-medium text-gray-900">
             {translator.translateText(RESULT_STATUS_WORDS[result.status].title)}
           </span>{" "}
-          {getResultSentence(translator, result)}
+          {getResultSentenceWords(translator, result)}
         </p>
       ) : (
         <></>

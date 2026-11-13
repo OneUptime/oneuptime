@@ -143,7 +143,7 @@ Ett nummer som redan skickar sina samtal någon annanstans säger "Currently has
 
 OneUptime ställer in numrets röst-webhook på `https://<your host>/notification/incoming-call/voice`, byggd från `HOST` och `HTTP_PROTOCOL` i en egen installation. För att flytta en policy till ett annat Twilio-konto frigör du först dess nummer: kontot kan bara ändras medan policyn inte har några.
 
-För att frigöra ett nummer klickar du på **Frigör** bredvid det och bekräftar med **Frigör nummer**.
+För att frigöra ett nummer klickar du på **Frigör nummer** bredvid det och bekräftar med **Frigör nummer**.
 
 > [!CAUTION]
 > Att frigöra ett nummer ger tillbaka det till Twilio, även ett nummer som du tog med via **Använd befintligt telefonnummer**, och du kanske inte får det igen. Att ta bort en policy, eller den Twilio-konfiguration som den använder, frigör också dess nummer.
@@ -228,7 +228,7 @@ En policys telefonnummer följer samma roller som själva policyn:
 - **Slå upp nummer** - söka i Twilio efter ett nummer att reservera, eller visa de nummer som ditt Twilio-konto redan har - kräver behörighet att läsa policyer för inkommande samtal och att läsa konfigurationer för samtal och SMS, eftersom det läser ditt Twilio-konto via en sådan. **Projektägare**, **Projektadministratör**, **Projektmedlem**, **Tittare**, **Inställningsadministratör**, **Inställningsmedlem** och **Inställningstittare** har båda. I en anpassad roll är det **Read Incoming Call Policy** och **Read Call and SMS**.
 - **Reservera ett nummer, använda ett befintligt och frigöra ett** kräver behörighet att redigera policyer för inkommande samtal: **Projektägare**, **Projektadministratör**, **Projektmedlem**, **Inställningsadministratör** och **Inställningsmedlem**, eller **Edit Incoming Call Policy** i en anpassad roll. De ändrar numren för en policy som du får redigera: med en roll som är begränsad till vissa etiketter, de policyer som har de etiketterna.
 
-Ett teams spärr utan etiketter på en av de här behörigheterna tar bort den. För alla andra finns **Lägg till telefonnummer** och **Frigör** kvar på sidan, låsta, och deras knappbeskrivning säger vad som krävs. API:et avvisar deras förfrågan med en mening som säger vad som krävs: "Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." eller "Adding or releasing a phone number needs permission to edit incoming call policies." Att reservera ett nummer debiteras ditt eget Twilio-konto, inte ditt OneUptime-saldo, så det kräver ingen faktureringsbehörighet.
+Ett teams spärr utan etiketter på en av de här behörigheterna tar bort den. För alla andra finns **Lägg till telefonnummer** och **Frigör nummer** kvar på sidan, låsta, och deras knappbeskrivning säger vad som krävs. API:et avvisar deras förfrågan med en mening som säger vad som krävs: "Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." eller "Adding or releasing a phone number needs permission to edit incoming call policies." Att reservera ett nummer debiteras ditt eget Twilio-konto, inte ditt OneUptime-saldo, så det kräver ingen faktureringsbehörighet.
 
 ## Skapa policyer med API:et eller Terraform
 

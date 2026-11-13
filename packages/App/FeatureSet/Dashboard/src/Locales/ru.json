@@ -17815,7 +17815,7 @@
   "United States Minor Outlying Islands": "United States Minor Outlying Islands",
   "Units": "Юниты",
   "Unknown Action": "Unknown Action",
-  "Unknown Device": "Unknown Device",
+  "Unknown Device": "Неизвестное устройство",
   "Unknown Policy": "Unknown Policy",
   "Unknown Role": "Неизвестная роль",
   "Unknown Service": "Неизвестный сервис",
@@ -51779,5 +51779,16 @@
   "{{column}} is unique": "Столбец {{column}} уникален",
   "{{column}} looks like an email address": "Значения {{column}} похожи на адреса электронной почты",
   "{{column}} looks like {{dataType}}": "Значения {{column}} похожи на {{dataType}}",
-  "{{column}} takes its usual values": "Столбец {{column}} принимает обычные значения"
+  "{{column}} takes its usual values": "Столбец {{column}} принимает обычные значения",
+  "Already paged by this test, so not paged again.": "Уже вызван этой проверкой, поэтому повторно не вызывается.",
+  "Every on-call rule for this severity ran at once.": "Все правила дежурства для этой серьёзности сработали сразу.",
+  "No on-call rule covers this severity, and paging the verified methods instead failed.": "Ни одно правило дежурства не охватывает эту серьёзность, а вызов через подтверждённые методы вместо этого не удался.",
+  "Nobody at this level could be paged, so the policy moved on at once.": "Никого на этом уровне не удалось вызвать, поэтому политика сразу перешла дальше.",
+  "Test ended: it went through every escalation level and nobody acknowledged it.": "Проверка завершена: вызов прошёл все уровни эскалации, и никто его не подтвердил.",
+  "Test ended: nobody acknowledged it within {{count}} minutes.": "Проверка завершена: никто не подтвердил вызов за {{count}} мин.",
+  "Test ended: nobody acknowledged it within {{count}} minutes._one": "Проверка завершена: никто не подтвердил вызов за {{count}} мин.",
+  "Test ended: the first escalation level reached nobody. Each person's line says why.": "Проверка завершена: первый уровень эскалации никого не достиг. В строке каждого человека указано почему.",
+  "The test page reached nobody. Each person's line says why.": "Тестовый вызов никого не достиг. В строке каждого человека указано почему.",
+  "This level has no responders, so the policy moved on at once.": "На этом уровне нет получателей, поэтому политика сразу перешла дальше.",
+  "This test page does not say which kind of page and severity it tests, so nothing was sent.": "В этом тестовом вызове не указано, какой тип вызова и какую серьёзность он проверяет, поэтому ничего не отправлено."
 }

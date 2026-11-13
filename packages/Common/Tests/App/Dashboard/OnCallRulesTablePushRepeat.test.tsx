@@ -984,7 +984,8 @@ describe("somebody else's push rules", () => {
       }),
     );
 
-    expect(cell).toHaveTextContent("Push: Pixel •••");
+    // The method by its own name (#7178): "Push notification", not "Push".
+    expect(cell).toHaveTextContent("Push notification: Pixel •••");
     expect(levelPillIn(cell)).toHaveTextContent(STANDARD_TITLE);
     expect(repeatPillIn(cell)!.textContent).toBe(repeatsEvery(15));
     expect(inCell(cell, "push-notification-level-device-hint")).toBeNull();

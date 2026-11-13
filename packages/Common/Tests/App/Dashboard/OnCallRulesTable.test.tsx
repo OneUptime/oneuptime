@@ -74,6 +74,20 @@ const MASKED_TELEGRAM: string = "@ja•••";
 const RAW_PHONE: string = "+15551234821";
 
 /*
+ * Every method option is drawn as written, in the page's direction, as the
+ * "Notification Method" column draws the same line: never looked up again,
+ * and on a Persian page "پیامک: ..." and "WhatsApp: ..." both read from the
+ * right. Restated rather than imported, so dropping either flag fails here.
+ */
+const TRANSLATED_LABEL_OPTION: {
+  isUserContent: boolean;
+  isInPageDirection: boolean;
+} = {
+  isUserContent: true,
+  isInPageDirection: true,
+};
+
+/*
  * Restated rather than imported, so that changing the wording in the component
  * fails here. This string is what distinguishes "deliberately never page me for
  * this" from a row that merely looks broken, and the whole risk it guards
@@ -844,8 +858,16 @@ describe("OnCallRulesTable", () => {
      * foreign key, so the number itself is never in the page to begin with.
      */
     expect(options).toEqual([
-      { label: `SMS: ${MASKED_SMS}`, value: SUPPLIED_SMS_ID },
-      { label: `Email: ${MASKED_EMAIL}`, value: SUPPLIED_EMAIL_ID },
+      {
+        label: `SMS: ${MASKED_SMS}`,
+        value: SUPPLIED_SMS_ID,
+        ...TRANSLATED_LABEL_OPTION,
+      },
+      {
+        label: `Email: ${MASKED_EMAIL}`,
+        value: SUPPLIED_EMAIL_ID,
+        ...TRANSLATED_LABEL_OPTION,
+      },
     ]);
 
     for (const option of options) {
@@ -1056,7 +1078,11 @@ describe("OnCallRulesTable", () => {
     ).toHaveLength(10);
 
     expect(getMethodOptions(capturedTables[0]!)).toEqual([
-      { label: `Email: ${OWN_EMAIL_ADDRESS}`, value: OWN_EMAIL_ID },
+      {
+        label: `Email: ${OWN_EMAIL_ADDRESS}`,
+        value: OWN_EMAIL_ID,
+        ...TRANSLATED_LABEL_OPTION,
+      },
     ]);
 
     const created: UserNotificationRule =
@@ -1090,7 +1116,11 @@ describe("OnCallRulesTable", () => {
     );
 
     expect(getMethodOptions(capturedTables[0]!)).toEqual([
-      { label: `Email: ${OWN_EMAIL_ADDRESS}`, value: OWN_EMAIL_ID },
+      {
+        label: `Email: ${OWN_EMAIL_ADDRESS}`,
+        value: OWN_EMAIL_ID,
+        ...TRANSLATED_LABEL_OPTION,
+      },
     ]);
   });
 

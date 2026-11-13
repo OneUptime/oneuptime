@@ -17815,7 +17815,7 @@
   "United States Minor Outlying Islands": "United States Minor Outlying Islands",
   "Units": "Enheter",
   "Unknown Action": "Unknown Action",
-  "Unknown Device": "Unknown Device",
+  "Unknown Device": "Ukjent enhet",
   "Unknown Policy": "Unknown Policy",
   "Unknown Role": "Ukjent rolle",
   "Unknown Service": "Ukjent tjeneste",
@@ -51779,5 +51779,16 @@
   "{{column}} is unique": "{{column}} er unik",
   "{{column}} looks like an email address": "{{column}} ser ut som en e-postadresse",
   "{{column}} looks like {{dataType}}": "{{column}} har formatet {{dataType}}",
-  "{{column}} takes its usual values": "{{column}} har sine vanlige verdier"
+  "{{column}} takes its usual values": "{{column}} har sine vanlige verdier",
+  "Already paged by this test, so not paged again.": "Allerede kalt opp av denne testen, så ikke kalt opp igjen.",
+  "Every on-call rule for this severity ran at once.": "Alle vaktregler for denne alvorlighetsgraden kjørte med en gang.",
+  "No on-call rule covers this severity, and paging the verified methods instead failed.": "Ingen vaktregel dekker denne alvorlighetsgraden, og oppkall av de verifiserte metodene i stedet mislyktes.",
+  "Nobody at this level could be paged, so the policy moved on at once.": "Ingen på dette nivået kunne kalles opp, så policyen gikk videre med en gang.",
+  "Test ended: it went through every escalation level and nobody acknowledged it.": "Testen ble avsluttet: den gikk gjennom alle eskaleringsnivåer, og ingen bekreftet den.",
+  "Test ended: nobody acknowledged it within {{count}} minutes.": "Testen ble avsluttet: ingen bekreftet den innen {{count}} minutter.",
+  "Test ended: nobody acknowledged it within {{count}} minutes._one": "Testen ble avsluttet: ingen bekreftet den innen {{count}} minutt.",
+  "Test ended: the first escalation level reached nobody. Each person's line says why.": "Testen ble avsluttet: det første eskaleringsnivået nådde ingen. Linjen til hver person sier hvorfor.",
+  "The test page reached nobody. Each person's line says why.": "Testoppkallet nådde ingen. Linjen til hver person sier hvorfor.",
+  "This level has no responders, so the policy moved on at once.": "Dette nivået har ingen mottakere, så policyen gikk videre med en gang.",
+  "This test page does not say which kind of page and severity it tests, so nothing was sent.": "Dette testoppkallet sier ikke hvilken type oppkall og alvorlighetsgrad det tester, så ingenting ble sendt."
 }
