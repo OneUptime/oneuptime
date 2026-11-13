@@ -51999,12 +51999,10 @@
   "Alert Owner": "Ejer af advarsel",
   "Incident Episode Owner": "Ejer af hændelsesepisode",
   "Incident Owner": "Ejer af hændelse",
-  "Matches words in a policy's description.": "Matcher ord i en politiks beskrivelse.",
   "Matches words in a policy's name. To keep matching a policy after it is renamed, use On-Call Policy.": "Matcher ord i en politiks navn. Brug »Vagtpolitik« for at blive ved med at matche en politik, efter at den er omdøbt.",
   "Monitor Owner": "Ejer af overvågning",
   "No longer in this project": "Ikke længere i dette projekt",
   "On-Call Policy Owner": "Ejer af vagtpolitik",
-  "People and teams recorded as owners. Being in an owning team does not count.": "Personer og teams, der er registreret som ejere. Medlemskab af et ejerteam tæller ikke.",
   "Pick policies from the list. Keeps matching a policy after it is renamed.": "Vælg politikker på listen. Bliver ved med at matche en politik, efter at den er omdøbt.",
   "SLO Owner": "Ejer af SLO",
   "Scheduled Maintenance Owner": "Ejer af planlagt vedligeholdelse",
@@ -52012,5 +52010,7 @@
   "has any of": "har en af",
   "has none of": "har ingen af",
   "Which items the summary includes. An owner condition, such as Incident Owner, names people and teams of this project by ID.": "Hvilke elementer oversigten medtager. En ejerbetingelse, som »Ejer af hændelse«, angiver personer og teams i dette projekt med deres id.",
-  "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "Hvilke begivenheder reglen gælder for, og hvor den slår op. Ejerbetingelser og »Vagtpolitik« angiver personer, teams og politikker i dette projekt med deres id."
+  "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "Hvilke begivenheder reglen gælder for, og hvor den slår op. Ejerbetingelser og »Vagtpolitik« angiver personer, teams og politikker i dette projekt med deres id.",
+  "Matches the people and teams added as owners. Team membership does not count.": "Matcher de personer og teams, der er tilføjet som ejere. Medlemskab af et team tæller ikke.",
+  "To keep matching a policy after it is renamed, use On-Call Policy.": "Brug »Vagtpolitik« for at blive ved med at matche en politik, efter at den er omdøbt."
 }

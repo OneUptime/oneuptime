@@ -142,10 +142,10 @@ export const getConditionOperatorWords: (data: {
 };
 
 /*
- * A line under a field in the Conditions step's field list, where two
+ * A line under a field in the Conditions step's field list, only where two
  * fields could be taken for each other: an on-call rule picks its policies
- * from a list, or matches words in their names - and an owners condition
- * matches owners as they are recorded, not the members of an owning team.
+ * from a list, or matches words in their names. Every other field is read
+ * by its name alone, so the list stays one name a line to scan.
  */
 export const CONDITION_FIELD_HINTS: Readonly<
   Partial<Record<NotificationRuleConditionCheckOn, string>>
@@ -156,17 +156,42 @@ export const CONDITION_FIELD_HINTS: Readonly<
   [NotificationRuleConditionCheckOn.OnCallDutyPolicyName]: translationKey(
     "Matches words in a policy's name. To keep matching a policy after it is renamed, use On-Call Policy.",
   ),
-  [NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription]:
-    translationKey("Matches words in a policy's description."),
 };
 
-// Under every owners field: who counts as an owner.
+/*
+ * Under an owners condition's people picker: who counts as an owner. A team
+ * picked matches what the team owns, not what one of its members owns, and
+ * a person picked does not match what their team owns.
+ */
 export const OWNER_CONDITION_HINT: string = translationKey(
-  "People and teams recorded as owners. Being in an owning team does not count.",
+  "Matches the people and teams added as owners. Team membership does not count.",
 );
 
-// The hint under a field in the field list, if it has one (English, to look up).
+/*
+ * Under an On-Call Policy Name condition's words: a renamed policy no
+ * longer matches them, and On-Call Policy is what keeps matching it - said
+ * where a rule written before policies could be picked types its name.
+ */
+export const POLICY_NAME_CONDITION_HINT: string = translationKey(
+  "To keep matching a policy after it is renamed, use On-Call Policy.",
+);
+
+// The line under a field in the field list, if it has one (English, to look up).
 export const getConditionFieldHint: (
+  checkOn: NotificationRuleConditionCheckOn,
+) => string | undefined = (
+  checkOn: NotificationRuleConditionCheckOn,
+): string | undefined => {
+  return CONDITION_FIELD_HINTS[checkOn];
+};
+
+/*
+ * The line under a condition's value, read with it, if the value needs one
+ * (English, to look up): who counts as an owner, and what keeps matching a
+ * policy a name condition names. A value picked from a list of the
+ * project's own needs none: the list says what can be picked.
+ */
+export const getConditionValueHint: (
   checkOn: NotificationRuleConditionCheckOn,
 ) => string | undefined = (
   checkOn: NotificationRuleConditionCheckOn,
@@ -175,7 +200,11 @@ export const getConditionFieldHint: (
     return OWNER_CONDITION_HINT;
   }
 
-  return CONDITION_FIELD_HINTS[checkOn];
+  if (checkOn === NotificationRuleConditionCheckOn.OnCallDutyPolicyName) {
+    return POLICY_NAME_CONDITION_HINT;
+  }
+
+  return undefined;
 };
 
 /*

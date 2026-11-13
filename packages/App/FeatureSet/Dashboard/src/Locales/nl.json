@@ -51999,12 +51999,10 @@
   "Alert Owner": "Eigenaar van waarschuwing",
   "Incident Episode Owner": "Eigenaar van incidentepisode",
   "Incident Owner": "Eigenaar van incident",
-  "Matches words in a policy's description.": "Zoekt woorden in de beschrijving van een beleid.",
   "Matches words in a policy's name. To keep matching a policy after it is renamed, use On-Call Policy.": "Zoekt woorden in de naam van een beleid. Gebruik “Bereikbaarheidsbeleid” om een beleid ook na het hernoemen te blijven vinden.",
   "Monitor Owner": "Eigenaar van monitor",
   "No longer in this project": "Niet meer in dit project",
   "On-Call Policy Owner": "Eigenaar van bereikbaarheidsbeleid",
-  "People and teams recorded as owners. Being in an owning team does not count.": "Personen en teams die als eigenaar zijn vastgelegd. Lid zijn van een team dat eigenaar is, telt niet.",
   "Pick policies from the list. Keeps matching a policy after it is renamed.": "Kies beleid uit de lijst. Blijft een beleid vinden nadat het is hernoemd.",
   "SLO Owner": "Eigenaar van SLO",
   "Scheduled Maintenance Owner": "Eigenaar van gepland onderhoud",
@@ -52012,5 +52010,7 @@
   "has any of": "heeft een van",
   "has none of": "heeft geen van",
   "Which items the summary includes. An owner condition, such as Incident Owner, names people and teams of this project by ID.": "Welke items de samenvatting bevat. Een eigenaarvoorwaarde, zoals “Eigenaar van incident”, noemt mensen en teams van dit project met hun ID.",
-  "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "Voor welke gebeurtenissen de regel geldt en waar hij plaatst. Eigenaarvoorwaarden en “Bereikbaarheidsbeleid” noemen mensen, teams en beleid van dit project met hun ID."
+  "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "Voor welke gebeurtenissen de regel geldt en waar hij plaatst. Eigenaarvoorwaarden en “Bereikbaarheidsbeleid” noemen mensen, teams en beleid van dit project met hun ID.",
+  "Matches the people and teams added as owners. Team membership does not count.": "Komt overeen met de personen en teams die als eigenaar zijn toegevoegd. Lid zijn van een team telt niet.",
+  "To keep matching a policy after it is renamed, use On-Call Policy.": "Gebruik “Bereikbaarheidsbeleid” om een beleid ook na het hernoemen te blijven vinden."
 }

@@ -51999,12 +51999,10 @@
   "Alert Owner": "مالك التنبيه",
   "Incident Episode Owner": "مالك حلقة الحوادث",
   "Incident Owner": "مالك الحادثة",
-  "Matches words in a policy's description.": "يطابق كلمات في وصف السياسة.",
   "Matches words in a policy's name. To keep matching a policy after it is renamed, use On-Call Policy.": "يطابق كلمات في اسم السياسة. لمواصلة مطابقة سياسة بعد إعادة تسميتها، استخدم «سياسة المناوبة».",
   "Monitor Owner": "مالك المراقبة",
   "No longer in this project": "لم يعد ضمن هذا المشروع",
   "On-Call Policy Owner": "مالك سياسة المناوبة",
-  "People and teams recorded as owners. Being in an owning team does not count.": "الأشخاص والفرق المسجّلون كمالكين. لا تُحتسب العضوية في فريق مالك.",
   "Pick policies from the list. Keeps matching a policy after it is renamed.": "اختر السياسات من القائمة. يواصل مطابقة السياسة بعد إعادة تسميتها.",
   "SLO Owner": "مالك هدف SLO",
   "Scheduled Maintenance Owner": "مالك الصيانة المجدولة",
@@ -52012,5 +52010,7 @@
   "has any of": "تتضمن أيًا من",
   "has none of": "لا تتضمن أيًا من",
   "Which items the summary includes. An owner condition, such as Incident Owner, names people and teams of this project by ID.": "العناصر التي يتضمنها الملخص. يحدد شرط المالك، مثل «مالك الحادثة»، أشخاصًا وفرقًا من هذا المشروع بمعرّفاتهم.",
-  "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "الأحداث التي تنطبق عليها القاعدة والمكان الذي تنشر فيه. تحدد شروط المالك و«سياسة المناوبة» أشخاصًا وفرقًا وسياسات من هذا المشروع بمعرّفاتها."
+  "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "الأحداث التي تنطبق عليها القاعدة والمكان الذي تنشر فيه. تحدد شروط المالك و«سياسة المناوبة» أشخاصًا وفرقًا وسياسات من هذا المشروع بمعرّفاتها.",
+  "Matches the people and teams added as owners. Team membership does not count.": "يطابق الأشخاص والفرق المضافين كمالكين. لا تُحتسب العضوية في فريق.",
+  "To keep matching a policy after it is renamed, use On-Call Policy.": "لمواصلة مطابقة سياسة بعد إعادة تسميتها، استخدم «سياسة المناوبة»."
 }

@@ -33,8 +33,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * A workspace rule's Conditions step, and the rule's card, drawn for real:
  *
  *   If   [Incident Owner ]  [is any of]  (+ Add owner) (Jane Doe) (Platform)
- *        People and teams recorded as owners. Being in an owning team does
- *        not count.
+ *                                        Matches the people and teams added
+ *                                        as owners. Team membership does
+ *                                        not count.
  *   And  [On-Call Policy ]  [is any of]  [(Payments Escalation) (Old) v]
  *
  * - an owners condition picks people and teams as owners are picked
@@ -73,7 +74,9 @@ import {
   CONDITION_FIELD_HINTS,
   getConditionFieldHint,
   getConditionOperatorWords,
+  getConditionValueHint,
   OWNER_CONDITION_HINT,
+  POLICY_NAME_CONDITION_HINT,
   VALUE_NOT_FOUND_NAME,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleForm/NotificationRuleConditionWords";
 import NotificationRuleViewConditionElement, {
@@ -103,6 +106,10 @@ import {
   PeoplePickerKind,
   PeoplePickerOption,
 } from "../../../UI/Components/PeoplePicker/PeoplePickerTypes";
+import {
+  ARABIC_LIST_SEPARATOR,
+  LIST_SEPARATOR,
+} from "../../../UI/Utils/ListSeparator";
 
 const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
 
@@ -742,12 +749,15 @@ describe("an owners condition (#7583)", () => {
 
     await openDropdown(0);
 
-    // Its own line under it in the list of fields.
+    /*
+     * A name alone in the list of fields, one a line like the others: who
+     * counts as an owner is said under the picker once the field is chosen.
+     */
     expect(
       listedOptions().find((option: { label: string }) => {
         return option.label === "Incident Owner";
       }),
-    ).toEqual({ label: "Incident Owner", description: OWNER_CONDITION_HINT });
+    ).toEqual({ label: "Incident Owner" });
 
     await pickOption("Incident Owner");
 
@@ -843,7 +853,7 @@ describe("an on-call rule's policies, picked by name and kept by id (#7554)", ()
     expect(listedLabels()).toContain("Search Escalation");
   });
 
-  test("says in the list of fields which policy field does what", async () => {
+  test("says in the list of fields which policy field does what, and nothing under the others", async () => {
     renderRow({
       eventType: NotificationRuleEventType.OnCallDutyPolicy,
       condition: condition(
@@ -866,16 +876,13 @@ describe("an on-call rule's policies, picked by name and kept by id (#7554)", ()
         description:
           "Matches words in a policy's name. To keep matching a policy after it is renamed, use On-Call Policy.",
       },
-      {
-        label: "On-Call Policy Description",
-        description: "Matches words in a policy's description.",
-      },
+      { label: "On-Call Policy Description" },
       { label: "On-Call Policy Labels" },
-      { label: "On-Call Policy Owner", description: OWNER_CONDITION_HINT },
+      { label: "On-Call Policy Owner" },
     ]);
   });
 
-  test("the line under the chosen field says it again, read with the value", () => {
+  test("a name condition says under its words what keeps matching a renamed policy, read with them", () => {
     renderRow({
       eventType: NotificationRuleEventType.OnCallDutyPolicy,
       condition: condition(
@@ -890,12 +897,56 @@ describe("an on-call rule's policies, picked by name and kept by id (#7554)", ()
     );
 
     expect(hint).toHaveTextContent(
-      "Matches words in a policy's name. To keep matching a policy after it is renamed, use On-Call Policy.",
+      "To keep matching a policy after it is renamed, use On-Call Policy.",
     );
     expect(
       screen.getByRole("textbox", { name: "Value for condition 1" }),
     ).toHaveAttribute("aria-describedby", hint.id);
   });
+
+  test.each([
+    [
+      NotificationRuleEventType.OnCallDutyPolicy,
+      NotificationRuleConditionCheckOn.OnCallDutyPolicies,
+      [PAYMENTS_POLICY],
+    ],
+    [
+      NotificationRuleEventType.Incident,
+      NotificationRuleConditionCheckOn.IncidentSeverity,
+      [CRITICAL],
+    ],
+  ])(
+    "a %s rule's %s condition, picked from a list, has no line under its picks",
+    (
+      eventType: NotificationRuleEventType,
+      checkOn: NotificationRuleConditionCheckOn,
+      value: Array<string>,
+    ) => {
+      renderRow({
+        eventType: eventType,
+        condition: condition(checkOn, ConditionType.ContainsAny, value),
+      });
+
+      expect(
+        screen.queryByTestId("notification-rule-condition-hint-0"),
+      ).toBeNull();
+
+      // Nothing points the picks at a line that is not there.
+      const describedBy: Array<string> = (
+        screen
+          .getByRole("combobox", { name: "Value for condition 1" })
+          .getAttribute("aria-describedby") || ""
+      )
+        .split(" ")
+        .filter((id: string): boolean => {
+          return Boolean(id);
+        });
+
+      for (const id of describedBy) {
+        expect(id).not.toMatch(/-hint$/);
+      }
+    },
+  );
 
   test("a name condition switched to On-Call Policy starts empty, never carrying the typed name over as an id", async () => {
     renderRow({
@@ -1105,6 +1156,18 @@ describe("the rule's card", () => {
     expect(
       within(named).getByTestId("notification-rule-condition-value-not-found"),
     ).toHaveTextContent(VALUE_NOT_FOUND_NAME);
+
+    /*
+     * The archived one and its tag are one piece, which a narrow card
+     * wraps whole: the tag never starts a line alone, beside the next name.
+     */
+    const archived: Array<HTMLElement> = within(named).getAllByTestId(
+      "notification-rule-condition-archived-value",
+    );
+
+    expect(archived).toHaveLength(1);
+    expect(archived[0]!.textContent).toBe("Old EscalationArchived");
+    expect(archived[0]).toHaveClass("inline-flex");
   });
 
   test("names each policy once however often the rule holds it, and says nothing is gone when nothing is", () => {
@@ -1193,7 +1256,7 @@ describe("in the reader's language", () => {
   );
 
   test.each(LANGUAGES)(
-    "an on-call rule's policy field and its line read in %s",
+    "an on-call rule's policy field, and the list of fields, read in %s",
     async (language: string) => {
       await inLanguage(language);
 
@@ -1212,20 +1275,54 @@ describe("in the reader's language", () => {
       expect(
         screen.getByTestId("notification-rule-condition-operator-0"),
       ).toHaveTextContent(word(language, "is none of"));
-      expect(
-        screen.getByTestId("notification-rule-condition-hint-0"),
-      ).toHaveTextContent(
-        word(
-          language,
-          CONDITION_FIELD_HINTS[
-            NotificationRuleConditionCheckOn.OnCallDutyPolicies
-          ]!,
-        ),
-      );
       // A policy's name is the team's own, drawn as written.
       expect(pickedValues()).toEqual([
         { name: "Payments Escalation", isArchived: false },
       ]);
+
+      // The two policy fields say which does what, in the language.
+      await openDropdown(0);
+
+      expect(listedOptions().slice(0, 2)).toEqual([
+        {
+          label: word(language, "On-Call Policy"),
+          description: word(
+            language,
+            CONDITION_FIELD_HINTS[
+              NotificationRuleConditionCheckOn.OnCallDutyPolicies
+            ]!,
+          ),
+        },
+        {
+          label: word(language, "On-Call Policy Name"),
+          description: word(
+            language,
+            CONDITION_FIELD_HINTS[
+              NotificationRuleConditionCheckOn.OnCallDutyPolicyName
+            ]!,
+          ),
+        },
+      ]);
+    },
+  );
+
+  test.each(LANGUAGES)(
+    "a policy name condition's line reads in %s",
+    async (language: string) => {
+      await inLanguage(language);
+
+      renderRow({
+        eventType: NotificationRuleEventType.OnCallDutyPolicy,
+        condition: condition(
+          NotificationRuleConditionCheckOn.OnCallDutyPolicyName,
+          ConditionType.Contains,
+          "Payments",
+        ),
+      });
+
+      expect(
+        screen.getByTestId("notification-rule-condition-hint-0"),
+      ).toHaveTextContent(word(language, POLICY_NAME_CONDITION_HINT));
     },
   );
 
@@ -1257,6 +1354,20 @@ describe("in the reader's language", () => {
       expect(
         screen.getByTestId("notification-rule-condition-value-not-found"),
       ).toHaveTextContent(word(language, VALUE_NOT_FOUND_NAME));
+
+      /*
+       * Listed with the commas of the words that say a policy is gone: an
+       * Arabic line takes the Arabic comma, though the policy is named in
+       * English.
+       */
+      expect(
+        screen.getByTestId("notification-rule-condition-named-values")
+          .textContent,
+      ).toBe(
+        `Old Escalation${word(language, "Archived")}${
+          language === "ar" ? ARABIC_LIST_SEPARATOR : LIST_SEPARATOR
+        }${word(language, VALUE_NOT_FOUND_NAME)}`,
+      );
     },
   );
 
@@ -1404,25 +1515,35 @@ describe("the helpers the rows are drawn with", () => {
     ).toBe("");
   });
 
-  test("getConditionFieldHint: every owners field says who counts, the policy fields which does what, and no other field has a line", () => {
-    for (const checkOn of Object.values(NotificationRuleConditionCheckOn)) {
-      const expected: string | undefined = OWNER_CHECK_ONS.includes(checkOn)
-        ? OWNER_CONDITION_HINT
-        : CONDITION_FIELD_HINTS[checkOn];
-
-      expect({ checkOn, hint: getConditionFieldHint(checkOn) }).toEqual({
-        checkOn,
-        hint: expected,
-      });
-    }
-
+  test("getConditionFieldHint: only the two policy fields have a line in the list of fields", () => {
     expect(Object.keys(CONDITION_FIELD_HINTS).sort()).toEqual(
       [
         NotificationRuleConditionCheckOn.OnCallDutyPolicies,
         NotificationRuleConditionCheckOn.OnCallDutyPolicyName,
-        NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription,
       ].sort(),
     );
+
+    for (const checkOn of Object.values(NotificationRuleConditionCheckOn)) {
+      expect({ checkOn, hint: getConditionFieldHint(checkOn) }).toEqual({
+        checkOn,
+        hint: CONDITION_FIELD_HINTS[checkOn],
+      });
+    }
+  });
+
+  test("getConditionValueHint: every owners field says who counts, a policy name what keeps matching, and no other value has a line", () => {
+    for (const checkOn of Object.values(NotificationRuleConditionCheckOn)) {
+      const expected: string | undefined = OWNER_CHECK_ONS.includes(checkOn)
+        ? OWNER_CONDITION_HINT
+        : checkOn === NotificationRuleConditionCheckOn.OnCallDutyPolicyName
+          ? POLICY_NAME_CONDITION_HINT
+          : undefined;
+
+      expect({ checkOn, hint: getConditionValueHint(checkOn) }).toEqual({
+        checkOn,
+        hint: expected,
+      });
+    }
   });
 
   test("every owners field is named as the record's owner, in the singular", () => {

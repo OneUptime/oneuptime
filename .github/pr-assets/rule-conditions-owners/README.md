@@ -16,13 +16,23 @@ severities Critical, Major, Minor and an archived "Sev 5 (legacy)", and on-call 
 - `on-call-rules.png`: on-call policy rules. "On-Call Policy is any of" names the policies picked,
   marks an archived one and says when one was deleted; "On-Call Policy Owner" lists people and
   teams.
-- `owner-picker.png`: a new rule's Conditions step with "Incident Owner": the people and teams
-  picker, and the line under it that says who counts as an owner.
+- `on-call-rules-phone.png`: the same on a phone. The Archived tag stays on the line of the
+  policy it marks, never at the start of the next one.
+- `on-call-rules-ar.png`: the same in Arabic. The policies are named in English, and the list
+  still takes the Arabic comma, as the words "No longer in this project" are Arabic.
+- `conditions.png`: a new rule's Conditions step with "Incident Owner" and "Incident Severity".
+  The owner picker says under it who counts: "Matches the people and teams added as owners. Team
+  membership does not count." The severity picker has no line under it.
+- `conditions-phone.png`, `conditions-dark.png`, `conditions-de.png`: the same step on a phone,
+  in dark mode and in German.
+- `owner-picker.png`: the people and teams picker, open.
 - `archived-severity-not-offered.png`: "Incident Severity is any of": the archived severity is
   not offered for a new pick.
 - `kept-archived-severity.png`: editing the first rule. The archived severity it already holds
   stays, marked Archived, and is not offered again.
 - `on-call-policy-picker.png`: a new on-call policy rule starts on "On-Call Policy", picked from
   the project's policies by name; the archived one is not offered.
-- `conditions-phone.png`, `conditions-dark.png`: the Conditions step with an owner and a severity
-  condition, on a phone and in dark mode.
+- `on-call-fields.png`: the on-call rule's list of fields. Only "On-Call Policy" and "On-Call
+  Policy Name" have a line under them, saying which one keeps matching a renamed policy.
+- `on-call-policy-name.png`: an "On-Call Policy Name" condition. The line under the typed name
+  says to use "On-Call Policy" to keep matching a policy after it is renamed.

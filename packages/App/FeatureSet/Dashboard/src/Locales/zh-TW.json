@@ -51999,12 +51999,10 @@
   "Alert Owner": "警示擁有者",
   "Incident Episode Owner": "事件片段擁有者",
   "Incident Owner": "事件擁有者",
-  "Matches words in a policy's description.": "比對策略描述中的字詞。",
   "Matches words in a policy's name. To keep matching a policy after it is renamed, use On-Call Policy.": "比對策略名稱中的字詞。若要在策略重新命名後仍能比對，請使用「待命策略」。",
   "Monitor Owner": "監測器擁有者",
   "No longer in this project": "已不在此專案中",
   "On-Call Policy Owner": "待命策略擁有者",
-  "People and teams recorded as owners. Being in an owning team does not count.": "記錄為擁有者的人員和團隊。僅是擁有者團隊的成員不算。",
   "Pick policies from the list. Keeps matching a policy after it is renamed.": "從清單中選擇策略。策略重新命名後仍能比對。",
   "SLO Owner": "SLO 擁有者",
   "Scheduled Maintenance Owner": "排定維護擁有者",
@@ -52012,5 +52010,7 @@
   "has any of": "包含以下任一項",
   "has none of": "不包含以下任何一項",
   "Which items the summary includes. An owner condition, such as Incident Owner, names people and teams of this project by ID.": "摘要包含哪些項目。擁有者條件（例如「事件擁有者」）依 ID 指定此專案的人員和團隊。",
-  "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "規則適用於哪些事件以及發布到哪裡。擁有者條件和「待命策略」依 ID 指定此專案的人員、團隊和策略。"
+  "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "規則適用於哪些事件以及發布到哪裡。擁有者條件和「待命策略」依 ID 指定此專案的人員、團隊和策略。",
+  "Matches the people and teams added as owners. Team membership does not count.": "比對被新增為擁有者的人員和團隊。僅是團隊成員不算。",
+  "To keep matching a policy after it is renamed, use On-Call Policy.": "若要在策略重新命名後仍能比對，請使用「待命策略」。"
 }

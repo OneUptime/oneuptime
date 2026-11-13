@@ -51999,12 +51999,10 @@
   "Alert Owner": "Propriétaire de l'alerte",
   "Incident Episode Owner": "Propriétaire de l'épisode d'incident",
   "Incident Owner": "Propriétaire de l'incident",
-  "Matches words in a policy's description.": "Correspond aux mots de la description d'une politique.",
   "Matches words in a policy's name. To keep matching a policy after it is renamed, use On-Call Policy.": "Correspond aux mots du nom d'une politique. Pour continuer à trouver une politique après son renommage, utilisez « Politique d'astreinte ».",
   "Monitor Owner": "Propriétaire du moniteur",
   "No longer in this project": "N'est plus dans ce projet",
   "On-Call Policy Owner": "Propriétaire de la politique d'astreinte",
-  "People and teams recorded as owners. Being in an owning team does not count.": "Personnes et équipes enregistrées comme propriétaires. Faire partie d'une équipe propriétaire ne compte pas.",
   "Pick policies from the list. Keeps matching a policy after it is renamed.": "Choisissez des politiques dans la liste. Continue de trouver une politique après son renommage.",
   "SLO Owner": "Propriétaire du SLO",
   "Scheduled Maintenance Owner": "Propriétaire de la maintenance planifiée",
@@ -52012,5 +52010,7 @@
   "has any of": "contient l'un de",
   "has none of": "ne contient aucun de",
   "Which items the summary includes. An owner condition, such as Incident Owner, names people and teams of this project by ID.": "Les éléments que le résumé inclut. Une condition de propriétaire, comme « Propriétaire de l'incident », désigne des personnes et des équipes de ce projet par leur ID.",
-  "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "Pour quels événements est la règle et où elle publie. Les conditions de propriétaire et « Politique d'astreinte » désignent des personnes, équipes et politiques de ce projet par leur ID."
+  "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "Pour quels événements est la règle et où elle publie. Les conditions de propriétaire et « Politique d'astreinte » désignent des personnes, équipes et politiques de ce projet par leur ID.",
+  "Matches the people and teams added as owners. Team membership does not count.": "Correspond aux personnes et aux équipes ajoutées comme propriétaires. L'appartenance à une équipe ne compte pas.",
+  "To keep matching a policy after it is renamed, use On-Call Policy.": "Pour continuer à trouver une politique après son renommage, utilisez « Politique d'astreinte »."
 }

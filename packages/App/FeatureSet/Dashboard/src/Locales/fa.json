@@ -51999,12 +51999,10 @@
   "Alert Owner": "مالک هشدار",
   "Incident Episode Owner": "مالک اپیزود حادثه",
   "Incident Owner": "مالک حادثه",
-  "Matches words in a policy's description.": "کلمه‌های توضیحات سیاست را تطبیق می‌دهد.",
   "Matches words in a policy's name. To keep matching a policy after it is renamed, use On-Call Policy.": "کلمه‌های نام سیاست را تطبیق می‌دهد. برای اینکه پس از تغییر نام سیاست هم با آن مطابقت داشته باشد، از «سیاست آنکال» استفاده کنید.",
   "Monitor Owner": "مالک مانیتور",
   "No longer in this project": "دیگر در این پروژه نیست",
   "On-Call Policy Owner": "مالک سیاست آنکال",
-  "People and teams recorded as owners. Being in an owning team does not count.": "افراد و تیم‌هایی که به‌عنوان مالک ثبت شده‌اند. عضویت در تیم مالک حساب نمی‌شود.",
   "Pick policies from the list. Keeps matching a policy after it is renamed.": "سیاست‌ها را از فهرست انتخاب کنید. پس از تغییر نام سیاست هم با آن مطابقت دارد.",
   "SLO Owner": "مالک SLO",
   "Scheduled Maintenance Owner": "مالک تعمیر و نگهداری زمان‌بندی‌شده",
@@ -52012,5 +52010,7 @@
   "has any of": "یکی از این‌ها را دارد",
   "has none of": "هیچ‌یک از این‌ها را ندارد",
   "Which items the summary includes. An owner condition, such as Incident Owner, names people and teams of this project by ID.": "خلاصه کدام موارد را شامل می‌شود. شرط مالک، مانند «مالک حادثه»، افراد و تیم‌های همین پروژه را با شناسه مشخص می‌کند.",
-  "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "قاعده برای کدام رویدادهاست و کجا منتشر می‌کند. شرط‌های مالک و «سیاست آنکال» افراد، تیم‌ها و سیاست‌های همین پروژه را با شناسه‌شان مشخص می‌کنند."
+  "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "قاعده برای کدام رویدادهاست و کجا منتشر می‌کند. شرط‌های مالک و «سیاست آنکال» افراد، تیم‌ها و سیاست‌های همین پروژه را با شناسه‌شان مشخص می‌کنند.",
+  "Matches the people and teams added as owners. Team membership does not count.": "با افراد و تیم‌هایی که به‌عنوان مالک افزوده شده‌اند مطابقت دارد. عضویت در تیم حساب نمی‌شود.",
+  "To keep matching a policy after it is renamed, use On-Call Policy.": "برای اینکه پس از تغییر نام سیاست هم با آن مطابقت داشته باشد، از «سیاست آنکال» استفاده کنید."
 }

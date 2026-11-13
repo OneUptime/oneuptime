@@ -51999,12 +51999,10 @@
   "Alert Owner": "Ägare av larm",
   "Incident Episode Owner": "Ägare av incidentepisod",
   "Incident Owner": "Ägare av incident",
-  "Matches words in a policy's description.": "Matchar ord i en policys beskrivning.",
   "Matches words in a policy's name. To keep matching a policy after it is renamed, use On-Call Policy.": "Matchar ord i en policys namn. Använd ”Jourpolicy” för att fortsätta matcha en policy efter att den har bytt namn.",
   "Monitor Owner": "Ägare av övervakning",
   "No longer in this project": "Inte längre i det här projektet",
   "On-Call Policy Owner": "Ägare av jourpolicy",
-  "People and teams recorded as owners. Being in an owning team does not count.": "Personer och team som har registrerats som ägare. Att vara med i ett ägande team räknas inte.",
   "Pick policies from the list. Keeps matching a policy after it is renamed.": "Välj policyer i listan. Fortsätter att matcha en policy efter att den har bytt namn.",
   "SLO Owner": "Ägare av SLO",
   "Scheduled Maintenance Owner": "Ägare av schemalagt underhåll",
@@ -52012,5 +52010,7 @@
   "has any of": "har någon av",
   "has none of": "har ingen av",
   "Which items the summary includes. An owner condition, such as Incident Owner, names people and teams of this project by ID.": "Vilka objekt sammanfattningen tar med. Ett ägarvillkor, som ”Ägare av incident”, anger personer och team i det här projektet med id.",
-  "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "Vilka händelser regeln gäller och var den publicerar. Ägarvillkor och ”Jourpolicy” anger personer, team och policyer i det här projektet med id."
+  "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "Vilka händelser regeln gäller och var den publicerar. Ägarvillkor och ”Jourpolicy” anger personer, team och policyer i det här projektet med id.",
+  "Matches the people and teams added as owners. Team membership does not count.": "Matchar de personer och team som har lagts till som ägare. Medlemskap i ett team räknas inte.",
+  "To keep matching a policy after it is renamed, use On-Call Policy.": "Använd ”Jourpolicy” för att fortsätta matcha en policy efter att den har bytt namn."
 }

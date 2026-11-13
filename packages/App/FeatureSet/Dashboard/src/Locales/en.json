@@ -51999,12 +51999,10 @@
   "Alert Owner": "Alert Owner",
   "Incident Episode Owner": "Incident Episode Owner",
   "Incident Owner": "Incident Owner",
-  "Matches words in a policy's description.": "Matches words in a policy's description.",
   "Matches words in a policy's name. To keep matching a policy after it is renamed, use On-Call Policy.": "Matches words in a policy's name. To keep matching a policy after it is renamed, use On-Call Policy.",
   "Monitor Owner": "Monitor Owner",
   "No longer in this project": "No longer in this project",
   "On-Call Policy Owner": "On-Call Policy Owner",
-  "People and teams recorded as owners. Being in an owning team does not count.": "People and teams recorded as owners. Being in an owning team does not count.",
   "Pick policies from the list. Keeps matching a policy after it is renamed.": "Pick policies from the list. Keeps matching a policy after it is renamed.",
   "SLO Owner": "SLO Owner",
   "Scheduled Maintenance Owner": "Scheduled Maintenance Owner",
@@ -52012,5 +52010,7 @@
   "has any of": "has any of",
   "has none of": "has none of",
   "Which items the summary includes. An owner condition, such as Incident Owner, names people and teams of this project by ID.": "Which items the summary includes. An owner condition, such as Incident Owner, names people and teams of this project by ID.",
-  "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID."
+  "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.",
+  "Matches the people and teams added as owners. Team membership does not count.": "Matches the people and teams added as owners. Team membership does not count.",
+  "To keep matching a policy after it is renamed, use On-Call Policy.": "To keep matching a policy after it is renamed, use On-Call Policy."
 }

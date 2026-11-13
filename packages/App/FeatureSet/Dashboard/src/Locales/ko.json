@@ -51999,12 +51999,10 @@
   "Alert Owner": "경고 소유자",
   "Incident Episode Owner": "인시던트 에피소드 소유자",
   "Incident Owner": "인시던트 소유자",
-  "Matches words in a policy's description.": "정책 설명에 포함된 단어와 일치합니다.",
   "Matches words in a policy's name. To keep matching a policy after it is renamed, use On-Call Policy.": "정책 이름에 포함된 단어와 일치합니다. 이름이 바뀐 후에도 정책과 계속 일치하게 하려면 “온콜 정책”을 사용하세요.",
   "Monitor Owner": "모니터 소유자",
   "No longer in this project": "더 이상 이 프로젝트에 없음",
   "On-Call Policy Owner": "온콜 정책 소유자",
-  "People and teams recorded as owners. Being in an owning team does not count.": "소유자로 기록된 사람과 팀입니다. 소유 팀의 구성원인 것은 포함되지 않습니다.",
   "Pick policies from the list. Keeps matching a policy after it is renamed.": "목록에서 정책을 선택하세요. 이름이 바뀐 후에도 정책과 계속 일치합니다.",
   "SLO Owner": "SLO 소유자",
   "Scheduled Maintenance Owner": "예정된 유지 관리 소유자",
@@ -52012,5 +52010,7 @@
   "has any of": "다음 중 하나를 포함",
   "has none of": "다음 중 어느 것도 포함하지 않음",
   "Which items the summary includes. An owner condition, such as Incident Owner, names people and teams of this project by ID.": "요약에 포함할 항목입니다. “인시던트 소유자” 같은 소유자 조건은 이 프로젝트의 사람과 팀을 ID로 지정합니다.",
-  "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "규칙의 대상이 되는 이벤트와 게시할 곳입니다. 소유자 조건과 “온콜 정책”은 이 프로젝트의 사람, 팀, 정책을 ID로 지정합니다."
+  "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "규칙의 대상이 되는 이벤트와 게시할 곳입니다. 소유자 조건과 “온콜 정책”은 이 프로젝트의 사람, 팀, 정책을 ID로 지정합니다.",
+  "Matches the people and teams added as owners. Team membership does not count.": "소유자로 추가된 사람 및 팀과 일치합니다. 팀의 구성원인 것은 포함되지 않습니다.",
+  "To keep matching a policy after it is renamed, use On-Call Policy.": "이름이 바뀐 후에도 정책과 계속 일치하게 하려면 “온콜 정책”을 사용하세요."
 }

@@ -51999,12 +51999,10 @@
   "Alert Owner": "アラートの所有者",
   "Incident Episode Owner": "インシデントエピソードの所有者",
   "Incident Owner": "インシデントの所有者",
-  "Matches words in a policy's description.": "ポリシーの説明に含まれる語句に一致します。",
   "Matches words in a policy's name. To keep matching a policy after it is renamed, use On-Call Policy.": "ポリシー名に含まれる語句に一致します。名前が変更された後もポリシーに一致させるには、「オンコールポリシー」を使用してください。",
   "Monitor Owner": "モニターの所有者",
   "No longer in this project": "このプロジェクトにはもう存在しません",
   "On-Call Policy Owner": "オンコールポリシーの所有者",
-  "People and teams recorded as owners. Being in an owning team does not count.": "所有者として登録されているユーザーとチーム。所有者チームのメンバーであることは含まれません。",
   "Pick policies from the list. Keeps matching a policy after it is renamed.": "一覧からポリシーを選択します。名前が変更された後もポリシーに一致し続けます。",
   "SLO Owner": "SLO の所有者",
   "Scheduled Maintenance Owner": "定期メンテナンスの所有者",
@@ -52012,5 +52010,7 @@
   "has any of": "次のいずれかを含む",
   "has none of": "次のいずれも含まない",
   "Which items the summary includes. An owner condition, such as Incident Owner, names people and teams of this project by ID.": "概要に含める項目です。「インシデントの所有者」のような所有者の条件は、このプロジェクトの人とチームを ID で指定します。",
-  "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "ルールの対象となるイベントと投稿先です。所有者の条件と「オンコールポリシー」は、このプロジェクトの人、チーム、ポリシーを ID で指定します。"
+  "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "ルールの対象となるイベントと投稿先です。所有者の条件と「オンコールポリシー」は、このプロジェクトの人、チーム、ポリシーを ID で指定します。",
+  "Matches the people and teams added as owners. Team membership does not count.": "所有者として追加されたユーザーとチームに一致します。チームのメンバーであることは含まれません。",
+  "To keep matching a policy after it is renamed, use On-Call Policy.": "名前が変更された後もポリシーに一致させるには、「オンコールポリシー」を使用してください。"
 }

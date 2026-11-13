@@ -51999,12 +51999,10 @@
   "Alert Owner": "Eigentümer der Warnung",
   "Incident Episode Owner": "Eigentümer der Vorfallsepisode",
   "Incident Owner": "Eigentümer des Vorfalls",
-  "Matches words in a policy's description.": "Findet Wörter in der Beschreibung einer Richtlinie.",
   "Matches words in a policy's name. To keep matching a policy after it is renamed, use On-Call Policy.": "Findet Wörter im Namen einer Richtlinie. Damit eine Richtlinie auch nach einer Umbenennung erfasst wird, verwenden Sie „Bereitschaftsrichtlinie“.",
   "Monitor Owner": "Eigentümer der Überwachung",
   "No longer in this project": "Nicht mehr in diesem Projekt",
   "On-Call Policy Owner": "Eigentümer der Bereitschaftsrichtlinie",
-  "People and teams recorded as owners. Being in an owning team does not count.": "Als Eigentümer eingetragene Personen und Teams. Die Mitgliedschaft in einem Eigentümer-Team zählt nicht.",
   "Pick policies from the list. Keeps matching a policy after it is renamed.": "Wählen Sie Richtlinien aus der Liste. Erfasst eine Richtlinie auch nach einer Umbenennung.",
   "SLO Owner": "Eigentümer des SLO",
   "Scheduled Maintenance Owner": "Eigentümer der geplanten Wartung",
@@ -52012,5 +52010,7 @@
   "has any of": "enthält eines von",
   "has none of": "enthält keines von",
   "Which items the summary includes. An owner condition, such as Incident Owner, names people and teams of this project by ID.": "Welche Einträge die Zusammenfassung enthält. Eine Eigentümer-Bedingung wie „Eigentümer des Vorfalls“ nennt Personen und Teams dieses Projekts über ihre ID.",
-  "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "Für welche Ereignisse die Regel gilt und wohin sie postet. Eigentümer-Bedingungen und „Bereitschaftsrichtlinie“ nennen Personen, Teams und Richtlinien dieses Projekts über ihre ID."
+  "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "Für welche Ereignisse die Regel gilt und wohin sie postet. Eigentümer-Bedingungen und „Bereitschaftsrichtlinie“ nennen Personen, Teams und Richtlinien dieses Projekts über ihre ID.",
+  "Matches the people and teams added as owners. Team membership does not count.": "Erfasst die als Eigentümer hinzugefügten Personen und Teams. Die Mitgliedschaft in einem Team zählt nicht.",
+  "To keep matching a policy after it is renamed, use On-Call Policy.": "Damit eine Richtlinie auch nach einer Umbenennung erfasst wird, verwenden Sie „Bereitschaftsrichtlinie“."
 }

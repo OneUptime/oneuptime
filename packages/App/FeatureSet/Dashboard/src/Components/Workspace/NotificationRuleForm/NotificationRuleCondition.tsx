@@ -58,15 +58,17 @@ import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import {
   getConditionFieldHint,
   getConditionOperatorWords,
+  getConditionValueHint,
 } from "./NotificationRuleConditionWords";
 
 /*
  * ONE CONDITION OF A WORKSPACE RULE, AS A LINE OF A SENTENCE.
  *
  *   If   [Incident Owner   v]  [is any of  v]  (+ Add owner) (Platform) (Jane)  (bin)
+ *                                              Matches the people and teams
+ *                                              added as owners. Team
+ *                                              membership does not count.
  *   And  [Incident Severity v]  [is none of v]  [(Low) (Info)              v]  (bin)
- *        People and teams recorded as owners. Being in an owning team does
- *        not count.
  *
  * The first condition opens with "If", each one after it with "And" or "Or",
  * as the rule's Match Condition combines them. The field, how it compares
@@ -248,8 +250,13 @@ const NotificationRuleConditionFormElement: FunctionComponent<
       conditionType: conditionType,
     });
 
+  /*
+   * The line under the value, read with it: who counts as an owner, and
+   * what keeps matching a renamed policy. A value picked from a list has
+   * none - the line would sit under the open list, saying what it shows.
+   */
   const hint: string | undefined = checkOn
-    ? getConditionFieldHint(checkOn)
+    ? getConditionValueHint(checkOn)
     : undefined;
 
   const changeValue: (value: string | Array<string> | undefined) => void = (

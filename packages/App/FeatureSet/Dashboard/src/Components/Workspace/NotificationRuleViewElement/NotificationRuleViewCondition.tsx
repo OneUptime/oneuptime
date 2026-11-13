@@ -446,9 +446,10 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
      * The SLOs an SLO rule picks and the policies an on-call rule picks, by
      * their names as the team wrote them, in the project's order, listed
      * with the commas of the script they are written in - each followed by
-     * "Archived" when it is. A policy since deleted is said to be gone,
-     * rather than left out: the rule still holds it. (An SLO since deleted
-     * is left out, as it always was.)
+     * "Archived" when it is, on the same line as its name. A policy since
+     * deleted is said to be gone, rather than left out: the rule still
+     * holds it, and the words that say so, in the reader's language, choose
+     * the commas too. (An SLO since deleted is left out, as it always was.)
      */
     if (
       checkOn === NotificationRuleConditionCheckOn.Slos ||
@@ -492,11 +493,17 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
       const isAPolicyGone: boolean =
         checkOn === NotificationRuleConditionCheckOn.OnCallDutyPolicies &&
         found.length < picked.size;
-      const separator: string = getListSeparator(
-        found.map((row: ServiceLevelObjective | OnCallDutyPolicy): string => {
-          return row.name || "";
-        }),
-      );
+      const notFoundName: string = isAPolicyGone
+        ? translator.translateText(VALUE_NOT_FOUND_NAME) || VALUE_NOT_FOUND_NAME
+        : "";
+      const separator: string = getListSeparator([
+        ...found.map(
+          (row: ServiceLevelObjective | OnCallDutyPolicy): string => {
+            return row.name || "";
+          },
+        ),
+        notFoundName,
+      ]);
 
       valueElement = (
         <span
@@ -508,16 +515,24 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
               row: ServiceLevelObjective | OnCallDutyPolicy,
               index: number,
             ): ReactElement => {
+              /*
+               * An archived one keeps its tag beside it: the tag never
+               * starts the next line alone, where it would seem to mark
+               * what follows.
+               */
               return (
                 <React.Fragment key={row.id?.toString() || `${index}`}>
                   {index > 0 ? separator : ""}
-                  {row.name || ""}
                   {isArchivedValue(row) ? (
-                    <span className="ms-1 inline-flex align-middle">
+                    <span
+                      className="inline-flex max-w-full items-center gap-1"
+                      data-testid="notification-rule-condition-archived-value"
+                    >
+                      <span className="min-w-0">{row.name || ""}</span>
                       <ArchivedTag isCompact={true} />
                     </span>
                   ) : (
-                    <></>
+                    row.name || ""
                   )}
                 </React.Fragment>
               );
@@ -530,7 +545,7 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
                 className="font-normal italic text-gray-500"
                 data-testid="notification-rule-condition-value-not-found"
               >
-                {translator.translateText(VALUE_NOT_FOUND_NAME)}
+                {notFoundName}
               </span>
             </>
           ) : (

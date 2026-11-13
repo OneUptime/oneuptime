@@ -51999,12 +51999,10 @@
   "Alert Owner": "Eier av varsel",
   "Incident Episode Owner": "Eier av hendelsesepisode",
   "Incident Owner": "Eier av hendelse",
-  "Matches words in a policy's description.": "Samsvarer med ord i beskrivelsen av en retningslinje.",
   "Matches words in a policy's name. To keep matching a policy after it is renamed, use On-Call Policy.": "Samsvarer med ord i navnet på en retningslinje. Bruk «Vaktpolicy» for å fortsette å samsvare med en retningslinje etter at den har fått nytt navn.",
   "Monitor Owner": "Eier av overvåking",
   "No longer in this project": "Ikke lenger i dette prosjektet",
   "On-Call Policy Owner": "Eier av vaktretningslinje",
-  "People and teams recorded as owners. Being in an owning team does not count.": "Personer og team som er registrert som eiere. Å være med i et eierteam teller ikke.",
   "Pick policies from the list. Keeps matching a policy after it is renamed.": "Velg retningslinjer fra listen. Fortsetter å samsvare med en retningslinje etter at den har fått nytt navn.",
   "SLO Owner": "Eier av SLO",
   "Scheduled Maintenance Owner": "Eier av planlagt vedlikehold",
@@ -52012,5 +52010,7 @@
   "has any of": "har en av",
   "has none of": "har ingen av",
   "Which items the summary includes. An owner condition, such as Incident Owner, names people and teams of this project by ID.": "Hvilke elementer sammendraget tar med. En eierbetingelse, som «Eier av hendelse», angir personer og team i dette prosjektet med ID.",
-  "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "Hvilke hendelser regelen gjelder for, og hvor den publiserer. Eierbetingelser og «Vaktpolicy» angir personer, team og policyer i dette prosjektet med ID."
+  "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "Hvilke hendelser regelen gjelder for, og hvor den publiserer. Eierbetingelser og «Vaktpolicy» angir personer, team og policyer i dette prosjektet med ID.",
+  "Matches the people and teams added as owners. Team membership does not count.": "Samsvarer med personene og teamene som er lagt til som eiere. Teammedlemskap teller ikke.",
+  "To keep matching a policy after it is renamed, use On-Call Policy.": "Bruk «Vaktpolicy» for å fortsette å samsvare med en retningslinje etter at den har fått nytt navn."
 }

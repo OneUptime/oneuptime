@@ -51999,12 +51999,10 @@
   "Alert Owner": "Proprietário do alerta",
   "Incident Episode Owner": "Proprietário do episódio de incidente",
   "Incident Owner": "Proprietário do incidente",
-  "Matches words in a policy's description.": "Corresponde a palavras na descrição de uma política.",
   "Matches words in a policy's name. To keep matching a policy after it is renamed, use On-Call Policy.": "Corresponde a palavras no nome de uma política. Para continuar encontrando uma política depois que ela for renomeada, use “Política de plantão”.",
   "Monitor Owner": "Proprietário do monitor",
   "No longer in this project": "Não está mais neste projeto",
   "On-Call Policy Owner": "Proprietário da política de plantão",
-  "People and teams recorded as owners. Being in an owning team does not count.": "Pessoas e equipes registradas como proprietárias. Fazer parte de uma equipe proprietária não conta.",
   "Pick policies from the list. Keeps matching a policy after it is renamed.": "Escolha políticas na lista. Continua encontrando uma política depois que ela for renomeada.",
   "SLO Owner": "Proprietário do SLO",
   "Scheduled Maintenance Owner": "Proprietário da manutenção programada",
@@ -52012,5 +52010,7 @@
   "has any of": "tem qualquer um de",
   "has none of": "não tem nenhum de",
   "Which items the summary includes. An owner condition, such as Incident Owner, names people and teams of this project by ID.": "Quais itens o resumo inclui. Uma condição de proprietário, como “Proprietário do incidente”, indica pessoas e equipes deste projeto pelo ID.",
-  "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "A quais eventos a regra se aplica e onde ela publica. As condições de proprietário e “Política de plantão” indicam pessoas, equipes e políticas deste projeto pelo ID."
+  "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "A quais eventos a regra se aplica e onde ela publica. As condições de proprietário e “Política de plantão” indicam pessoas, equipes e políticas deste projeto pelo ID.",
+  "Matches the people and teams added as owners. Team membership does not count.": "Corresponde às pessoas e equipes adicionadas como proprietárias. Fazer parte de uma equipe não conta.",
+  "To keep matching a policy after it is renamed, use On-Call Policy.": "Para continuar encontrando uma política depois que ela for renomeada, use “Política de plantão”."
 }
