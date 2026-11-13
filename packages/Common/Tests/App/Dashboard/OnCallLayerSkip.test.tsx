@@ -484,7 +484,6 @@ function renderCard(options: {
       total={1}
       isExpanded={false}
       actionsDisabled={false}
-      isDeleteButtonLoading={false}
       overrides={options.overrides}
       overridePolicyContextId=""
       overrideUserInfo={options.overrideUserInfo || {}}
@@ -629,10 +628,15 @@ async function renderUsersList(options: {
     return { data, count: data.length, skip: 0, limit: data.length };
   });
 
+  /*
+   * The page hands the list its people, as it holds them (Layers): the
+   * list reads none itself.
+   */
   render(
     <LayerUser
       layer={makeLayer()}
-      onUpdateUsers={noop}
+      users={layerUsers()}
+      onChange={noop}
       overrides={options.overrides}
       coverNameById={{ [DANA.id]: DANA.name }}
       timezone="UTC"
