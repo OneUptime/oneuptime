@@ -683,6 +683,22 @@
     "billing": true
   },
   {
+    "title": "AI Results",
+    "where": [
+      "Project Settings",
+      "AI"
+    ],
+    "keywords": [
+      "pages avoided",
+      "fixes verified",
+      "root causes confirmed",
+      "ai quality",
+      "ai outcomes"
+    ],
+    "path": "/dashboard/:projectId/settings/ai-results",
+    "kind": "page"
+  },
+  {
     "title": "AI Logs",
     "where": [
       "Project Settings",
@@ -3452,6 +3468,21 @@
       "search metrics"
     ],
     "path": "/dashboard/:projectId/metrics",
+    "kind": "page"
+  },
+  {
+    "title": "PromQL",
+    "where": [
+      "Metrics"
+    ],
+    "keywords": [
+      "prometheus",
+      "query metrics",
+      "metrics query language",
+      "grafana",
+      "prometheus data source"
+    ],
+    "path": "/dashboard/:projectId/metrics/promql",
     "kind": "page"
   },
   {

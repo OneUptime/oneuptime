@@ -19,6 +19,7 @@
  * still reads, just with less to say.
  */
 
+import DirectionArrow from "../DirectionArrow/DirectionArrow";
 import Icon from "../Icon/Icon";
 import Tooltip from "../Tooltip/Tooltip";
 import BreakableCode from "./BreakableCode";
@@ -258,9 +259,7 @@ const StepOutcomeLine: FunctionComponent<StepOutcomeLineProps> = (
       {outcome.kind === StepOutcomeKind.LedTo && (
         <>
           {" "}
-          <span aria-hidden="true" className="text-gray-400">
-            →
-          </span>{" "}
+          <DirectionArrow isDecorative={true} className="text-gray-400" />{" "}
           <span className="sr-only">
             {translator.translateText("which led to")}
           </span>{" "}

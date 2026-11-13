@@ -541,7 +541,12 @@
         "cardTitle": "Twilio-konfiguration",
         "cardDescription": "Twilio-kontot som OneUptime skickar SMS och ringer via, om inte ett projekt använder en egen Twilio-konfiguration.",
         "editButton": "Redigera Twilio-konfig",
-        "smsSameAsCalls": "Samma nummer som för samtal"
+        "smsSameAsCalls": "Samma nummer som för samtal",
+        "environmentCardDescription": "Angivet med miljövariabler: twilio i Helm-chartets värden eller GLOBAL_TWILIO_-inställningarna i config.env. Ändra dem där och starta om OneUptime för att ändra det här kontot.",
+        "environmentProblemsTitle": "Det här kontot skickar inga sms och ringer inga samtal förrän de här miljövariablerna har rättats:",
+        "environmentUnusedTitle": "Vissa Twilio-miljövariabler används inte:",
+        "authTokenSet": "Angiven",
+        "authTokenNotSet": "Inte angiven"
       },
       "whatsapp": {
         "metaCardTitle": "Meta WhatsApp-inställningar",

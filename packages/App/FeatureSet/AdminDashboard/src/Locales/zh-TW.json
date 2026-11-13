@@ -541,7 +541,12 @@
         "cardTitle": "Twilio 設定",
         "cardDescription": "OneUptime 用來傳送簡訊與撥打電話的 Twilio 帳戶，除非專案使用自己的 Twilio 設定。",
         "editButton": "編輯 Twilio 設定",
-        "smsSameAsCalls": "與通話相同的號碼"
+        "smsSameAsCalls": "與通話相同的號碼",
+        "environmentCardDescription": "由環境變數設定：Helm chart 值中的 twilio，或 config.env 中的 GLOBAL_TWILIO_ 設定。若要變更此帳戶，請在那裡變更並重新啟動 OneUptime。",
+        "environmentProblemsTitle": "在這些環境變數修正之前，此帳戶不會傳送簡訊，也不會撥打電話：",
+        "environmentUnusedTitle": "部分 Twilio 環境變數未被使用：",
+        "authTokenSet": "已設定",
+        "authTokenNotSet": "未設定"
       },
       "whatsapp": {
         "metaCardTitle": "Meta WhatsApp 設定",
