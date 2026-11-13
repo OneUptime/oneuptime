@@ -23,6 +23,8 @@ import {
   sortedManifest,
   STATIC_FOLDER,
   webpSize,
+  withScreenAddresses,
+  cachedManifest,
 } from "../../../FeatureSet/Docs/Screens/DocsScreenFiles";
 import { DocsScreenFingerprints } from "../../../FeatureSet/Docs/Screens/DocsScreenFingerprint";
 import { describe, expect, it } from "@jest/globals";
@@ -258,6 +260,42 @@ describe("which picture a page shows", () => {
     expect(resolveScreen(manifest, "nowhere", "en")).toBeNull();
     expect(resolveScreen(manifest, "no-english", "fr")).toBeNull();
     expect(resolveScreen(manifest, "no-english", "de")?.lang).toBe("de");
+  });
+});
+
+describe("a page handed out as Markdown", () => {
+  const manifest: DocsScreenManifest = {
+    pixelRatio: 2,
+    shots: {
+      "website-down-who": {
+        en: { width: 780, height: 314 },
+        de: { width: 780, height: 340 },
+      },
+    },
+  };
+
+  it("gets the picture's own address in place of the shot's, in the page's language or English", () => {
+    const markdown: string =
+      "### Step\n\n![Der Schritt](screen:website-down-who)\n\nText.";
+
+    expect(withScreenAddresses(markdown, "de", manifest)).toBe(
+      "### Step\n\n![Der Schritt](/docs/static/images/screens/de/website-down-who.webp)\n\nText.",
+    );
+    expect(withScreenAddresses(markdown, "ja", manifest)).toContain(
+      "](/docs/static/images/screens/en/website-down-who.webp)",
+    );
+  });
+
+  it("leaves a shot with no picture, and every other address, as written", () => {
+    const markdown: string =
+      "![x](screen:no-such-shot) [a link](/docs/guides/paging) ![y](/docs/static/images/monitors.png)";
+
+    expect(withScreenAddresses(markdown, "en", manifest)).toBe(markdown);
+  });
+
+  it("reads the manifest on disk once, for the docs server", () => {
+    expect(cachedManifest()).toBe(cachedManifest());
+    expect(cachedManifest()).toEqual(readManifest());
   });
 });
 

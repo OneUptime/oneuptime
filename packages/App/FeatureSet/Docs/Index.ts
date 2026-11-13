@@ -1,5 +1,9 @@
 import { ContentPath, StaticPath, ViewsPath } from "./Utils/Config";
 import {
+  cachedManifest,
+  withScreenAddresses,
+} from "./Screens/DocsScreenFiles";
+import {
   addEnglishAnchorAliases,
   getEnglishAnchorAliases,
 } from "./Utils/AnchorAliases";
@@ -792,7 +796,11 @@ const DocsFeatureSet: FeatureSet = {
           return Response.sendMarkdownResponse(
             req,
             res,
-            DocsPlaceholders.render(content.markdown, lang),
+            withScreenAddresses(
+              DocsPlaceholders.render(content.markdown, lang),
+              content.lang,
+              cachedManifest(),
+            ),
           );
         } catch (err) {
           logger.error(err);
@@ -822,7 +830,11 @@ const DocsFeatureSet: FeatureSet = {
           return Response.sendMarkdownResponse(
             req,
             res,
-            DocsPlaceholders.render(content.markdown, DEFAULT_DOCS_LANGUAGE),
+            withScreenAddresses(
+              DocsPlaceholders.render(content.markdown, DEFAULT_DOCS_LANGUAGE),
+              content.lang,
+              cachedManifest(),
+            ),
           );
         } catch (err) {
           logger.error(err);

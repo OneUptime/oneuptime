@@ -213,6 +213,34 @@ export const resolveScreen: (
   return null;
 };
 
+// A screenshot's address as a page writes it: "](screen:<name>" ...
+const SCREEN_ADDRESS: RegExp = /\]\(\s*screen:([a-z0-9]+(?:-[a-z0-9]+)*)/g;
+
+/*
+ * A page's Markdown as the docs hand it out as Markdown (/docs/as-markdown,
+ * llms-full.txt): each screenshot's address made the picture's own, so a
+ * reader of the Markdown gets an image that loads. A shot with no picture
+ * keeps the address it has.
+ */
+export const withScreenAddresses: (
+  markdown: string,
+  lang: string,
+  manifest: DocsScreenManifest,
+) => string = (
+  markdown: string,
+  lang: string,
+  manifest: DocsScreenManifest,
+): string => {
+  return markdown.replace(
+    SCREEN_ADDRESS,
+    (whole: string, name: string): string => {
+      const screen: ResolvedScreen | null = resolveScreen(manifest, name, lang);
+
+      return screen ? `](${screen.src}` : whole;
+    },
+  );
+};
+
 // The manifest as the renderer writes it: shots and languages in order.
 export const sortedManifest: (
   manifest: DocsScreenManifest,
@@ -361,3 +389,15 @@ export const readManifest: (file?: string) => DocsScreenManifest = (
 
   return JSON.parse(fs.readFileSync(file, "utf8")) as DocsScreenManifest;
 };
+
+let cached: DocsScreenManifest | null = null;
+
+// The manifest on disk, read once: the docs server's copy.
+export const cachedManifest: () => DocsScreenManifest =
+  (): DocsScreenManifest => {
+    if (!cached) {
+      cached = readManifest();
+    }
+
+    return cached;
+  };

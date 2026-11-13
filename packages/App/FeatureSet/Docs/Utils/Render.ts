@@ -12,8 +12,8 @@ import {
   TranslateFn,
 } from "./I18n";
 import {
+  cachedManifest,
   DocsScreenManifest,
-  readManifest,
   resolveScreen,
   ResolvedScreen,
 } from "../Screens/DocsScreenFiles";
@@ -34,21 +34,11 @@ export interface DocsRenderOptions {
   screens?: DocsScreenManifest | undefined;
 }
 
-// The screenshots' manifest, read once, the first time a page shows one.
-let screenManifest: DocsScreenManifest | null = null;
-
+// The screenshots' manifest: the one on disk, read once, unless a test hands one in.
 const screensOf: (options: DocsRenderOptions) => DocsScreenManifest = (
   options: DocsRenderOptions,
 ): DocsScreenManifest => {
-  if (options.screens) {
-    return options.screens;
-  }
-
-  if (!screenManifest) {
-    screenManifest = readManifest();
-  }
-
-  return screenManifest;
+  return options.screens || cachedManifest();
 };
 
 /*
