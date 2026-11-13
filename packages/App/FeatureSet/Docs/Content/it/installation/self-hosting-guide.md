@@ -139,13 +139,7 @@ npm run doctor
 
 Controlla ogni container, `config.env`, che `HOST` raggiunga questo server, il certificato e lo spazio libero su disco, e chiede a OneUptime cosa vede di sé, come l'email e le sonde. Ogni problema arriva con la sua soluzione: vedi [Controllare l'installazione](/docs/installation/docker-compose#controllare-linstallazione).
 @tab Kubernetes
-Scarica lo script di diagnostica del chart ed eseguilo sul tuo cluster. Legge soltanto, e termina con un riepilogo di ciò che ha trovato, prima il più grave:
-
-```bash
-curl -sLO https://raw.githubusercontent.com/OneUptime/oneuptime/main/HelmChart/Public/diagnose.sh
-chmod +x diagnose.sh
-./diagnose.sh
-```
+Esegui lo script di diagnostica del chart sul tuo cluster, come mostra la [guida alla risoluzione dei problemi del chart](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/troubleshooting.md#run-it). Legge soltanto, e termina con un riepilogo di ciò che ha trovato, prima il più grave.
 :::
 
 **Ha funzionato quando** il doctor termina con **Everything looks right.** ed esce con `0`. Esce con `1` quando c'è qualcosa da sistemare, e con `2` quando non è riuscito a fare i suoi controlli. Su Kubernetes, il riepilogo non ha alcun risultato `CRITICAL`.

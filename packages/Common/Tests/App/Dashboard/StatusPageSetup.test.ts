@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import {
+  STATUS_PAGE_NAME_SENTENCE,
   STATUS_PAGE_SETUP,
   STATUS_PAGE_SETUP_COPY,
   STATUS_PAGE_SETUP_EXTRAS,
@@ -14,17 +15,28 @@ import {
   getDefaultStatusPageName,
   getPickDoneLine,
   getPickedMonitors,
+  getStartOverStatusPageName,
+  getStatusPageNameIdentity,
   getStatusPageSetupProgress,
   isPickDone,
+  isSameStatusPageName,
   isStatusPageNameValid,
   isStatusPageSetupFinished,
   pickAllMonitors,
   togglePickedMonitor,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/StatusPage/StatusPageSetup";
+import { WEBSITE_DOWN_COPY } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/WebsiteDown/WebsiteDownSetup";
 import { getFirstOpenStepKey } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/GuidedSetupProgress";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import { Translator, createTranslator } from "../../../Types/Translator";
+import {
+  DASHBOARD_LANGUAGES,
+  dashboardTranslator,
+  isWordedInDashboardLocale,
+  readDashboardLocale,
+} from "../../Helpers/DashboardLocales";
+import { isolated, withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 
 /*
  * The status page guided setup's rules and words (issue #6806): the name
@@ -88,6 +100,116 @@ describe("the name", () => {
     expect(isStatusPageNameValid("A")).toBe(false);
     expect(isStatusPageNameValid(" A ")).toBe(false);
     expect(isStatusPageNameValid("")).toBe(false);
+  });
+});
+
+/*
+ * ONE NAME, HOWEVER IT IS TYPED (#7252): a run the browser lost - or a
+ * second tab - that types a page's name again goes on with the page this
+ * person made, so what counts as "the same name" decides whether a second
+ * page appears.
+ */
+describe("one name, however it is typed (#7252)", () => {
+  const ACUTE: string = String.fromCodePoint(0x0301);
+  const NO_BREAK_SPACE: string = String.fromCodePoint(0x00a0);
+
+  test.each([
+    ["Acme Status", "Acme Status"],
+    ["Acme Status", "acme status"],
+    ["Acme Status", "ACME STATUS"],
+    ["Acme Status", "  Acme Status  "],
+    ["Acme Status", "Acme   Status"],
+    ["Acme Status", "Acme\tStatus"],
+    ["Acme Status", "\nAcme Status\n"],
+    ["Acme Status", `Acme${NO_BREAK_SPACE}Status`],
+    // An accent typed as one letter, or as a letter and a mark.
+    ["Café Status", `Cafe${ACUTE} Status`],
+    ["Statusseite Ärzte", "statusseite ärzte"],
+    ["حالة أكمي", "  حالة   أكمي "],
+    ["وضعیت اکمی", "وضعیت اکمی"],
+  ])("%p and %p name one page", (first: string, second: string) => {
+    expect(isSameStatusPageName(first, second)).toBe(true);
+    expect(isSameStatusPageName(second, first)).toBe(true);
+  });
+
+  test.each([
+    ["Acme Status", "Acme Status Page"],
+    ["Acme Status", "Acme-Status"],
+    ["Acme Status", "AcmeStatus"],
+    ["Acme Status", "Acme Statuses"],
+    ["Acme Status", "Status Acme"],
+    ["Acme Status", "Acme Status."],
+    ["Café Status", "Cafe Status"],
+    ["حالة أكمي", "حالة اكمي"],
+  ])("%p and %p are two pages", (first: string, second: string) => {
+    expect(isSameStatusPageName(first, second)).toBe(false);
+    expect(isSameStatusPageName(second, first)).toBe(false);
+  });
+
+  test("a name with no letters names no page, not even another empty one", () => {
+    expect(isSameStatusPageName("", "")).toBe(false);
+    expect(isSameStatusPageName("   ", "")).toBe(false);
+    expect(isSameStatusPageName("\t", " ")).toBe(false);
+    expect(isSameStatusPageName("", "Acme Status")).toBe(false);
+  });
+
+  test("the identity keeps the letters and their order, in small letters, one space between words", () => {
+    expect(getStatusPageNameIdentity("  ACME \t Public   Status ")).toBe(
+      "acme public status",
+    );
+    expect(getStatusPageNameIdentity("")).toBe("");
+    expect(getStatusPageNameIdentity("   ")).toBe("");
+  });
+
+  test("a long run of spaces between two words is one space", () => {
+    const name: string = `Acme${" ".repeat(200000)}Status`;
+
+    expect(getStatusPageNameIdentity(name)).toBe("acme status");
+    expect(isSameStatusPageName(name, "Acme Status")).toBe(true);
+  });
+});
+
+describe("the name another status page starts with (#7252)", () => {
+  test("is empty when the page just set up has the project's name: another page needs its own", () => {
+    expect(
+      getStartOverStatusPageName({
+        defaultName: "Acme Status",
+        finishedName: "Acme Status",
+      }),
+    ).toBe("");
+    expect(
+      getStartOverStatusPageName({
+        defaultName: "Acme Status",
+        finishedName: " acme  STATUS ",
+      }),
+    ).toBe("");
+  });
+
+  test("is the project's when the page just set up has a name of its own", () => {
+    expect(
+      getStartOverStatusPageName({
+        defaultName: "Acme Status",
+        finishedName: "Acme Public Status",
+      }),
+    ).toBe("Acme Status");
+  });
+
+  test("is the project's when no page was set up, and empty when the project's name is not known", () => {
+    expect(
+      getStartOverStatusPageName({
+        defaultName: "Acme Status",
+        finishedName: undefined,
+      }),
+    ).toBe("Acme Status");
+    expect(
+      getStartOverStatusPageName({ defaultName: "", finishedName: "" }),
+    ).toBe("");
+    expect(
+      getStartOverStatusPageName({
+        defaultName: "",
+        finishedName: "Acme Status",
+      }),
+    ).toBe("");
   });
 });
 
@@ -197,6 +319,55 @@ describe("the summary's lines", () => {
     expect(
       getPickDoneLine({ translator: english, name: "Acme", monitorCount: 3 }),
     ).toBe('"Acme" shows 3 monitors.');
+  });
+
+  /*
+   * In an Arabic or Persian sentence a name in Latin letters, and the count
+   * after it, are set apart: without it the bidi algorithm pulled the 1 into
+   * the name's run and drew it between the quotes and the name.
+   */
+  test("step 1's line sets the page's name apart in Arabic and Persian, and adds no marks in German", () => {
+    for (const language of ["ar", "fa"]) {
+      const line: string = getPickDoneLine({
+        translator: dashboardTranslator(language),
+        name: "Acme Status",
+        monitorCount: 1,
+      });
+
+      expect({
+        language,
+        setApart: line.includes(isolated("Acme Status")),
+      }).toEqual({ language, setApart: true });
+    }
+
+    // A sentence read from the left, as the name is, sets nothing apart.
+    const german: string = getPickDoneLine({
+      translator: dashboardTranslator("de"),
+      name: "Acme Status",
+      monitorCount: 2,
+    });
+
+    expect(german).toBe(withoutIsolateMarks(german));
+    expect(german).toContain("Acme Status");
+  });
+
+  test("every sentence naming the page is filled setting its values apart, for the page and nothing else", () => {
+    expect(STATUS_PAGE_NAME_SENTENCE).toEqual({ setsValuesApart: true });
+    // A name that starts with a figure is set apart in a sentence read from the right.
+    expect(
+      dashboardTranslator("ar").translateTemplate(
+        STATUS_PAGE_SETUP_COPY.summaryTitle,
+        { name: "24/7 Status" },
+        STATUS_PAGE_NAME_SENTENCE,
+      ),
+    ).toContain(isolated("24/7 Status"));
+    // Negative control: without it, nothing is set apart.
+    expect(
+      dashboardTranslator("ar").translateTemplate(
+        STATUS_PAGE_SETUP_COPY.summaryTitle,
+        { name: "24/7 Status" },
+      ),
+    ).not.toContain(isolated("24/7 Status"));
   });
 
   test("what it shows lists up to five names, then how many more", () => {
@@ -385,5 +556,132 @@ describe("the words", () => {
         }
       }
     }
+  });
+});
+
+/*
+ * THE NOTE THAT A PAGE WAS FOUND (#7252), in every language: worded, the
+ * page's name kept once, and quoted the way that language's website-down
+ * note quotes a monitor's name - the two say the same kind of thing, a
+ * step apart in the same product.
+ */
+describe("the note that the name is one of the reader's pages (#7252)", () => {
+  const NOTE: string = STATUS_PAGE_SETUP_COPY.existingStatusPage;
+  const SIBLING: string = WEBSITE_DOWN_COPY.existingMonitor;
+  const NAME: string = "{{name}}";
+
+  // The marks either side of the name, spaces aside: «» „“ 「」 "".
+  const quotesAround: (text: string) => string = (text: string): string => {
+    const at: number = text.indexOf(NAME);
+
+    if (at === -1) {
+      return "";
+    }
+
+    const before: string = text.slice(0, at).trimEnd();
+    const after: string = text.slice(at + NAME.length).trimStart();
+
+    return `${before.slice(-1)}${after.slice(0, 1)}`;
+  };
+
+  const problemsOf: (data: {
+    language: string;
+    note: string | undefined;
+    sibling: string | undefined;
+  }) => Array<string> = (data: {
+    language: string;
+    note: string | undefined;
+    sibling: string | undefined;
+  }): Array<string> => {
+    const problems: Array<string> = [];
+
+    if (!data.note || data.note === NOTE) {
+      problems.push("not worded");
+      return problems;
+    }
+
+    if (data.note.split(NAME).length !== 2) {
+      problems.push("the name is not there exactly once");
+    }
+
+    if (quotesAround(data.note) !== quotesAround(data.sibling || "")) {
+      problems.push(
+        `quoted ${quotesAround(data.note)}, the monitor note ${quotesAround(
+          data.sibling || "",
+        )}`,
+      );
+    }
+
+    return problems;
+  };
+
+  test("the English quotes the name and says no second page was made, in one sentence", () => {
+    expect(NOTE).toBe(
+      'You already have a status page named "{{name}}", so no new one was made.',
+    );
+    expect(quotesAround(NOTE)).toBe('""');
+    expect(quotesAround(SIBLING)).toBe('""');
+  });
+
+  test("is worded in every Dashboard language, the name kept once and quoted as the monitor note quotes it", () => {
+    expect(DASHBOARD_LANGUAGES).toHaveLength(17);
+
+    for (const language of DASHBOARD_LANGUAGES) {
+      const table: Record<string, string> = readDashboardLocale(language);
+
+      expect({
+        language,
+        worded: isWordedInDashboardLocale(NOTE, language),
+      }).toEqual({ language, worded: true });
+      expect({
+        language,
+        problems: problemsOf({
+          language,
+          note: table[NOTE],
+          sibling: table[SIBLING],
+        }),
+      }).toEqual({ language, problems: [] });
+    }
+  });
+
+  test("reads, filled, with the page's name and none of the English", () => {
+    for (const language of DASHBOARD_LANGUAGES) {
+      const sentence: string = withoutIsolateMarks(
+        dashboardTranslator(language).translateTemplate(NOTE, {
+          name: "Acme Status",
+        }),
+      );
+
+      expect({ language, named: sentence.includes("Acme Status") }).toEqual({
+        language,
+        named: true,
+      });
+      expect({
+        language,
+        english: sentence.includes("no new one was made"),
+      }).toEqual({ language, english: false });
+    }
+  });
+
+  test("negative control: the English left in, a name lost or quoted another way is caught", () => {
+    const german: Record<string, string> = readDashboardLocale("de");
+
+    expect(
+      problemsOf({ language: "de", note: NOTE, sibling: german[SIBLING] }),
+    ).toEqual(["not worded"]);
+    expect(
+      problemsOf({
+        language: "de",
+        note: german[NOTE]!.split(NAME).join("Acme"),
+        sibling: german[SIBLING],
+      }),
+    ).toContain("the name is not there exactly once");
+    expect(
+      problemsOf({
+        language: "de",
+        note: `Sie haben bereits eine Statusseite namens "${NAME}".`,
+        sibling: german[SIBLING],
+      }),
+    ).toEqual([expect.stringMatching(/^quoted ""/)]);
   });
 });

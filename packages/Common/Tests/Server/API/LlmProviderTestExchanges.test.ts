@@ -429,9 +429,7 @@ describe("a test that fails shows every request and the provider's raw answer", 
 
     expect(exchanges.length).toBeGreaterThan(0);
     expect(exchanges[0]!.statusCode).toBe(502);
-    expect(JSON.stringify(exchanges[0]!.responseBody)).toContain(
-      "Bad Gateway",
-    );
+    expect(JSON.stringify(exchanges[0]!.responseBody)).toContain("Bad Gateway");
   });
 
   test("a provider that echoes the key back: the key is masked in its body too", async () => {
@@ -562,7 +560,9 @@ describe("a blank Model Name: the model list request is shown first", () => {
 
     expect(exchanges).toHaveLength(2);
     expect(exchanges[0]!.method).toBe("GET");
-    expect(exchanges[0]!.url).toBe("http://llm.internal.example:8000/v1/models");
+    expect(exchanges[0]!.url).toBe(
+      "http://llm.internal.example:8000/v1/models",
+    );
     expect(exchanges[0]!.responseBody).toEqual({
       data: [{ id: "served-model" }],
     });

@@ -100,7 +100,7 @@ Sla uw wijzigingen op. De kaart **Bewakingscriteria**, en de bevestiging van bei
 Gebruik **Criteria synchroniseren naar gekoppelde monitoren**, of **Synchroniseren vanuit sjabloon** op één gekoppelde monitor.
 :::
 
-Bescherm bijvoorbeeld **Monitor destination** en **Request headers** op een API-sjabloon. Productie- en stagingmonitoren houden hun eigen URL's en headers, terwijl beide de bijgewerkte criteria van het sjabloon en de andere onbeschermde instellingen krijgen.
+Bescherm bijvoorbeeld **Monitor destination** en **Aanvraagheaders** op een API-sjabloon. Productie- en stagingmonitoren houden hun eigen URL's en headers, terwijl beide de bijgewerkte criteria van het sjabloon en de andere onbeschermde instellingen krijgen.
 
 Welke opties er zijn, hangt af van het monitortype. Daaronder vallen bestemmingen en poorten, HTTP-aanvraagopties, databaseverbindingen, DNS-instellingen, infrastructuurselectors en telemetriequery's. Samenhangende inloggegevens, zoals een clientcertificaat en de privésleutel ervan, worden samen behouden.
 

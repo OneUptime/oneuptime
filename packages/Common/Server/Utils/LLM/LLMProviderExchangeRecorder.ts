@@ -71,9 +71,7 @@ export default class LLMProviderExchangeRecorder {
    * are collected whether `work` resolves or throws: a failed test is when
    * they matter most.
    */
-  public static async record<T>(
-    work: () => Promise<T>,
-  ): Promise<{
+  public static async record<T>(work: () => Promise<T>): Promise<{
     exchanges: Array<LLMProviderExchange>;
     value?: T;
     error?: unknown;

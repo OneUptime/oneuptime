@@ -31,6 +31,13 @@ const DASHBOARD_SRC: string = path.join(
 );
 const COMMON_UI: string = path.join(REPOSITORY_ROOT, "packages/Common/UI");
 
+const SOURCE_FILE: RegExp = /\.(ts|tsx)$/;
+const ASKS: RegExp = /\bProductFeedback\.ask\(/;
+const GUIDED_SETUP_FILE: RegExp = /GuidedSetup\.tsx$/;
+const USES_FRAME: RegExp = /<GuidedSetupFrame\b/;
+const ASKS_TO_RECOMMEND: RegExp =
+  /how likely are you to recommend|net promoter/i;
+
 /*
  * The places that ask a question of their own, and why each may. A new one
  * goes here with its reason, and through ProductFeedback.ask.
@@ -56,7 +63,7 @@ const listFiles: (directory: string) => Array<string> = (
 
     if (entry.isDirectory()) {
       files.push(...listFiles(full));
-    } else if (/\.(ts|tsx)$/.test(entry.name)) {
+    } else if (SOURCE_FILE.test(entry.name)) {
       files.push(full);
     }
   }
@@ -83,9 +90,7 @@ describe("a question OneUptime asks goes through the rules", () => {
   test("only the listed places ask, and each through ProductFeedback.ask", () => {
     const asking: Array<string> = SOURCE_FILES.filter(
       (file: string): boolean => {
-        return /\bProductFeedback\.ask\(/.test(
-          withoutComments(fs.readFileSync(file, "utf8")),
-        );
+        return ASKS.test(withoutComments(fs.readFileSync(file, "utf8")));
       },
     ).map(relative);
 
@@ -96,7 +101,7 @@ describe("a question OneUptime asks goes through the rules", () => {
     const setups: Array<string> = listFiles(
       path.join(DASHBOARD_SRC, "Components/GuidedSetup"),
     ).filter((file: string): boolean => {
-      return /GuidedSetup\.tsx$/.test(file);
+      return GUIDED_SETUP_FILE.test(file);
     });
 
     expect(setups.length).toBeGreaterThanOrEqual(4);
@@ -106,7 +111,7 @@ describe("a question OneUptime asks goes through the rules", () => {
 
       expect({
         setup: relative(setup),
-        usesFrame: /<GuidedSetupFrame\b/.test(source),
+        usesFrame: USES_FRAME.test(source),
       }).toEqual({
         setup: relative(setup),
         usesFrame: true,
@@ -136,9 +141,7 @@ describe("a question OneUptime asks goes through the rules", () => {
       ),
     ]
       .filter((file: string): boolean => {
-        return /how likely are you to recommend|net promoter/i.test(
-          fs.readFileSync(file, "utf8"),
-        );
+        return ASKS_TO_RECOMMEND.test(fs.readFileSync(file, "utf8"));
       })
       .map(relative);
 
@@ -195,7 +198,11 @@ describe("an answer carries the answer, the page and the version - nothing else"
       },
     );
 
-    expect(keys.filter((key: string) => key !== "data")).toEqual([
+    expect(
+      keys.filter((key: string) => {
+        return key !== "data";
+      }),
+    ).toEqual([
       "kind",
       "topic",
       "score",

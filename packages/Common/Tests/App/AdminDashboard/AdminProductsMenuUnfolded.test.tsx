@@ -44,9 +44,9 @@ jest.mock("../../../UI/Config", () => {
 
 /*
  * The Dashboard's products menu opens on Essentials and folds its other
- * sections. The Admin Dashboard shares the menu but has five entries in four
- * sections: there is nothing worth folding, so it names no sections to open
- * on and keeps every one of them open, as before.
+ * sections. The Admin Dashboard shares the menu but has eight entries in
+ * four sections: there is nothing worth folding, so it names no sections to
+ * open on and keeps every one of them open, as before.
  */
 
 const ORIGINAL_WIDTH: number = window.innerWidth;
@@ -118,6 +118,8 @@ describe("the Admin Dashboard menu", () => {
       // Every project's telemetry usage, with billing on or off (#5916).
       "Telemetry Usage",
       "OneUptime Health",
+      // What people told this server about how things went (#6832).
+      "Feedback",
       "Send Email",
       // What a self-hosted server still needs (#6824).
       "Server Setup",
@@ -134,7 +136,7 @@ describe("the Admin Dashboard menu", () => {
     render(<AdminNavBar />);
     fireEvent.click(screen.getByRole("button", { name: "Menu" }));
 
-    expect(screen.getAllByRole("option")).toHaveLength(7);
+    expect(screen.getAllByRole("option")).toHaveLength(8);
   });
 
   /*
@@ -157,7 +159,7 @@ describe("the Admin Dashboard menu", () => {
     expect(within(menu).queryByRole("group", { name: /Recent/ })).toBeNull();
     expect(within(menu).queryByText("Recently visited")).toBeNull();
     // Each entry once.
-    expect(within(menu).getAllByRole("option")).toHaveLength(7);
+    expect(within(menu).getAllByRole("option")).toHaveLength(8);
   });
 
   test("remembers no page it is on, and no entry opened from it", () => {

@@ -139,13 +139,7 @@ npm run doctor
 
 यह हर कंटेनर, `config.env`, कि `HOST` इस सर्वर तक पहुँचता है, सर्टिफ़िकेट और ख़ाली डिस्क जाँचता है, और OneUptime से पूछता है कि वह अपने बारे में क्या देखता है, जैसे ईमेल और प्रोब। हर समस्या के साथ उसका समाधान आता है: देखें [अपना इंस्टॉलेशन जाँचें](/docs/installation/docker-compose#अपना-इंस्टॉलेशन-जाँचें)।
 @tab Kubernetes
-चार्ट की डायग्नोस्टिक स्क्रिप्ट डाउनलोड करें और उसे अपने क्लस्टर पर चलाएँ। वह सिर्फ़ पढ़ती है, और जो मिला उसके सारांश के साथ ख़त्म होती है, सबसे गंभीर पहले:
-
-```bash
-curl -sLO https://raw.githubusercontent.com/OneUptime/oneuptime/main/HelmChart/Public/diagnose.sh
-chmod +x diagnose.sh
-./diagnose.sh
-```
+चार्ट की डायग्नोस्टिक स्क्रिप्ट अपने क्लस्टर पर चलाएँ, जैसा [चार्ट की समस्या निवारण गाइड](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/troubleshooting.md#run-it) में बताया गया है। वह सिर्फ़ पढ़ती है, और जो मिला उसके सारांश के साथ ख़त्म होती है, सबसे गंभीर पहले।
 :::
 
 **काम कर गया जब** doctor **Everything looks right.** के साथ ख़त्म हो और `0` के साथ बाहर निकले। कुछ ठीक करना हो तो वह `1` के साथ, और जाँच न चला पाए तो `2` के साथ बाहर निकलता है। Kubernetes पर, सारांश में कोई `CRITICAL` निष्कर्ष नहीं होता।

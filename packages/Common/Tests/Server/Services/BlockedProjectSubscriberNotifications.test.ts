@@ -14,7 +14,9 @@ import ProjectSmtpConfigService from "../../../Server/Services/ProjectSmtpConfig
 import ScheduledMaintenanceService from "../../../Server/Services/ScheduledMaintenanceService";
 import SmsService from "../../../Server/Services/SmsService";
 import StatusPageResourceService from "../../../Server/Services/StatusPageResourceService";
-import StatusPageService from "../../../Server/Services/StatusPageService";
+import StatusPageService, {
+  STATUS_PAGE_GONE_MESSAGE,
+} from "../../../Server/Services/StatusPageService";
 import StatusPageSubscriberNotificationTemplateService from "../../../Server/Services/StatusPageSubscriberNotificationTemplateService";
 import StatusPageSubscriberService from "../../../Server/Services/StatusPageSubscriberService";
 import Markdown from "../../../Server/Types/Markdown";
@@ -752,8 +754,12 @@ describe("what the dashboard is told", () => {
     });
 
     test("for a page that does not exist, still says it was not found", async () => {
+      // In the words #6836 gave a page that is not there any more.
       await expect(sendTestReport(MISSING_PAGE_ID)).rejects.toThrow(
-        new BadDataException("Status page not found"),
+        new BadDataException(STATUS_PAGE_GONE_MESSAGE),
+      );
+      expect(STATUS_PAGE_GONE_MESSAGE).toBe(
+        "This status page no longer exists. It may have been deleted.",
       );
     });
 

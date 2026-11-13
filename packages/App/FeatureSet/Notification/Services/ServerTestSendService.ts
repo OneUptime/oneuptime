@@ -137,6 +137,8 @@ export default class ServerTestSendService {
 
     try {
       await SmsService.sendSms(to, SERVER_TEST_SMS_TEXT, {
+        // The server's own Twilio account: no project's config is tested.
+        customTwilioConfig: undefined,
         // Throw rather than return quietly when it is not sent.
         failIfNotSent: true,
       });
@@ -189,6 +191,8 @@ export default class ServerTestSendService {
 
     try {
       await CallService.makeCall(callRequest, {
+        // The server's own Twilio account: no project's config is tested.
+        customTwilioConfig: undefined,
         failIfNotSent: true,
       });
     } catch (err) {

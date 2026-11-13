@@ -10,6 +10,7 @@ import MoreMenu from "../MoreMenu/MoreMenu";
 import MoreMenuItem from "../MoreMenu/MoreMenuItem";
 import IsolatedLine from "../IsolatedText/IsolatedLine";
 import IsolatedText from "../IsolatedText/IsolatedText";
+import InlineSeparator from "../InlineSeparator/InlineSeparator";
 import {
   RESOURCE_CHIP_NAME_CLASS_NAME,
   RESOURCE_CHIP_TEXT_CLASS_NAME,
@@ -22,6 +23,7 @@ import {
 } from "./ResourceGridLayout";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import {
+  getInlineSeparator,
   translatableTerm,
   Translator,
   translationKey,
@@ -429,7 +431,7 @@ const ResourceGrid: FunctionComponent<ComponentProps> = (
   ): ReactElement => {
     const rowValue: string = statusPageResource.rowAxisValue || "—";
     const columnValue: string = statusPageResource.columnAxisValue || "—";
-    const line: string = `${props.rowLabel}: ${rowValue} · ${props.columnLabel}: ${columnValue}`;
+    const line: string = `${props.rowLabel}: ${rowValue}${getInlineSeparator(translator.language)}${props.columnLabel}: ${columnValue}`;
 
     return (
       <IsolatedLine
@@ -444,8 +446,7 @@ const ResourceGrid: FunctionComponent<ComponentProps> = (
         >
           <IsolatedText text={props.rowLabel} />
           {": "}
-          <IsolatedText text={rowValue} />
-          {" ·"}
+          <IsolatedText text={rowValue} /> <InlineSeparator markOnly={true} />
         </span>{" "}
         <span
           className={RESOURCE_GRID_ORPHAN_AXIS_CLASS_NAME}

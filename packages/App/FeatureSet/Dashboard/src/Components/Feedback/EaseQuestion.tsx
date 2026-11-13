@@ -10,6 +10,7 @@ import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import Icon from "Common/UI/Components/Icon/Icon";
 import TextArea from "Common/UI/Components/TextArea/TextArea";
 import { BILLING_ENABLED } from "Common/UI/Config";
@@ -65,6 +66,12 @@ type Stage = "score" | "details" | "sent";
  */
 export const EASY_SCORE: number = 4;
 
+// One of the five numbers, and what it does under the pointer.
+const SCORE_CLASS_NAME: string =
+  "h-10 w-10 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
+const SCORE_HOVER_CLASS_NAME: string =
+  "hover:border-indigo-400 hover:bg-indigo-50 hover:text-indigo-700";
+
 const EaseQuestion: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -78,6 +85,14 @@ const EaseQuestion: FunctionComponent<ComponentProps> = (
   const [hasFailed, setHasFailed] = useState<boolean>(false);
   // The score given: an easy one is not asked what got in the way.
   const [score, setScore] = useState<number>(0);
+
+  /*
+   * A score's look. While the answer is sent the scores are busy, not
+   * locked: they keep their look, without the hover (ButtonStates).
+   */
+  const scoreClassName: string = `${SCORE_CLASS_NAME} ${getHandDrawnButtonStateClassName(
+    { isBusy: isSending, hoverClassName: SCORE_HOVER_CLASS_NAME },
+  )}`;
 
   const answer: (score: number) => Promise<void> = async (
     score: number,
@@ -169,7 +184,7 @@ const EaseQuestion: FunctionComponent<ComponentProps> = (
                   key={score}
                   type="button"
                   disabled={isSending}
-                  className="h-10 w-10 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:border-indigo-400 hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+                  className={scoreClassName}
                   data-testid={`${EASE_QUESTION_SCORE_TEST_ID}-${score}`}
                   onClick={() => {
                     void answer(score);

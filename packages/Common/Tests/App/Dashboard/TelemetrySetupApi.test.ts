@@ -9,6 +9,7 @@ import {
 import type { SpyInstance } from "jest-mock";
 import TelemetrySetupApi, {
   TelemetryMonitorCreateResult,
+  TelemetrySetupService,
   getTelemetryRecommendations,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/Telemetry/TelemetrySetupApi";
 import * as PayAsYouGo from "../../../../App/FeatureSet/Dashboard/src/Components/Billing/PayAsYouGo";
@@ -42,7 +43,7 @@ const id: (n: number) => ObjectID = (n: number): ObjectID => {
 };
 
 const PROJECT_ID: ObjectID = id(6806);
-const SERVICE = {
+const SERVICE: TelemetrySetupService = {
   id: id(70).toString(),
   name: "checkout",
   hasReported: true,
