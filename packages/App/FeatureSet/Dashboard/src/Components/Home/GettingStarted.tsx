@@ -1,6 +1,7 @@
 import GoalQuestion from "./WelcomeChecklist/GoalQuestion";
 import HowOneUptimeWorks from "./HowOneUptimeWorks";
 import MemberFirstSteps from "./MemberFirstSteps/MemberFirstSteps";
+import ExploreSampleProject from "../SampleProject/ExploreSampleProject";
 import {
   fetchWelcomeChecklist,
   postWelcomeChecklist,
@@ -23,6 +24,7 @@ import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
+import { SampleProjectEntryPoint } from "Common/Types/SampleProject/SampleProject";
 import ProjectGoal, {
   toGoalsEventValue,
 } from "Common/Types/WelcomeChecklist/ProjectGoal";
@@ -108,6 +110,36 @@ export const getGettingStartedTaskDescription: (
   return serverEmail.isMasterAdmin
     ? task.descriptionWithoutEmail.forAdmin
     : task.descriptionWithoutEmail.forOthers;
+};
+
+/*
+ * Where Home's Welcome card offers the sample project (issue #6808): to
+ * someone "Just looking around", right under their goals, and to a
+ * project with nothing in it yet, at the foot of the card. Never once a
+ * step is done: the project is being set up for real.
+ */
+export enum SampleProjectOffer {
+  None = "none",
+  // "Just looking around": offered first, under the goals.
+  Goals = "goals",
+  // Nothing in the project yet: offered at the foot of the card.
+  Home = "home",
+}
+
+export const getSampleProjectOffer: (data: {
+  goals: ReadonlyArray<ProjectGoal>;
+  doneCount: number;
+}) => SampleProjectOffer = (data: {
+  goals: ReadonlyArray<ProjectGoal>;
+  doneCount: number;
+}): SampleProjectOffer => {
+  if (data.doneCount > 0) {
+    return SampleProjectOffer.None;
+  }
+
+  return data.goals.includes(ProjectGoal.Explore)
+    ? SampleProjectOffer.Goals
+    : SampleProjectOffer.Home;
 };
 
 export enum WelcomeCardView {
@@ -434,6 +466,11 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
     isMasterAdmin: Boolean(UserUtil.isMasterAdmin()),
   };
 
+  const sampleProjectOffer: SampleProjectOffer = getSampleProjectOffer({
+    goals: goals,
+    doneCount: answer.doneCount,
+  });
+
   const hide: () => void = (): void => {
     ProductEvents.send(ProductEventName.ChecklistDismissed, {
       done_count: answer.doneCount,
@@ -598,6 +635,16 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
         ) : (
           <></>
         )}
+        {sampleProjectOffer === SampleProjectOffer.Goals ? (
+          <ExploreSampleProject
+            className="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-4"
+            from={SampleProjectEntryPoint.Goals}
+            isOffered={answer.canExploreSampleProject}
+            buttonStyle={ButtonStyleType.PRIMARY}
+          />
+        ) : (
+          <></>
+        )}
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
           {answer.steps.map((state: WelcomeChecklistStepState) => {
             const entry: WelcomeStepEntry = getWelcomeStepEntry(state.step);
@@ -727,6 +774,16 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
          * (HowOneUptimeWorksDialog) at any time too, however old the project.
          */}
         <div className="mt-6">{howItWorks}</div>
+        {sampleProjectOffer === SampleProjectOffer.Home ? (
+          <ExploreSampleProject
+            className="mt-6 border-t border-gray-100 pt-4"
+            from={SampleProjectEntryPoint.Home}
+            isOffered={answer.canExploreSampleProject}
+            buttonSize={ButtonSize.Small}
+          />
+        ) : (
+          <></>
+        )}
       </div>
     </Card>
   );

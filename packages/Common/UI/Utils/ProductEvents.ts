@@ -26,9 +26,25 @@ import { JSONObject } from "../../Types/JSON";
  * and only with the visitor's consent and without Global Privacy Control.
  * It never throws: a page never breaks because of an event.
  */
+/*
+ * The only events a sample project sends (issue #6808): nothing done inside
+ * one is a project getting value, so the activation funnel never sees it.
+ */
+export const SAMPLE_PROJECT_EVENTS: ReadonlyArray<ProductEventName> = [
+  ProductEventName.SampleProjectStarted,
+  ProductEventName.SampleProjectDeleted,
+];
+
 export default class ProductEvents {
   public static send(name: ProductEventName, properties?: JSONObject): void {
     try {
+      if (
+        ProductEvents.isInSampleProject() &&
+        !SAMPLE_PROJECT_EVENTS.includes(name)
+      ) {
+        return;
+      }
+
       UiAnalytics.capture(name, {
         ...ProductEvents.getCommonProperties(),
         ...toProductEventProperties({
@@ -39,6 +55,15 @@ export default class ProductEvents {
       });
     } catch {
       // An event is never worth an error on the page.
+    }
+  }
+
+  // Whether the page is in a sample project (Project.isSampleProject).
+  public static isInSampleProject(): boolean {
+    try {
+      return ProjectUtil.getCurrentProject()?.isSampleProject === true;
+    } catch {
+      return false;
     }
   }
 

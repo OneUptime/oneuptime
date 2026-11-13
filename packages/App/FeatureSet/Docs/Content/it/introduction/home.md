@@ -129,7 +129,7 @@ Due barre attraversano la parte alta di ogni pagina.
 | In alto a destra | **Cerca** e **Chiedi all'IA**, la campanella delle notifiche con ciò che ti aspetta ora (incidenti e avvisi attivi, le policy di reperibilità in cui sei di turno, gli inviti in sospeso), **Aiuto**, e la tua foto, che apre il menu del tuo [account](/docs/introduction/your-account). |
 | Sotto | **Home** e **Prodotti** a sinistra, **Impostazioni utente** a destra: come OneUptime ti raggiunge in questo progetto. |
 
-**Aiuto** inizia da ciò che aiuta a imparare: **Guida rapida**, **Come funziona OneUptime**, **Glossario** e questa documentazione (**Documentazione**). Sotto ci sono l'elenco **Keyboard shortcuts** e il supporto via e-mail e su Slack. Su un tablet o in una finestra stretta, **Chiedi all'IA** viene tolto per fare spazio: si trova tra le azioni di **Cerca**. Su un telefono, **Cerca** e **Aiuto** passano nell'elenco del pulsante del menu, in cima e in fondo; la campanella e la tua foto restano.
+**Aiuto** inizia da ciò che aiuta a imparare: **Guida rapida**, **Come funziona OneUptime**, **Glossario** e questa documentazione (**Documentazione**). Sotto ci sono l'elenco **Scorciatoie da tastiera** e il supporto via e-mail e su Slack. Su un tablet o in una finestra stretta, **Chiedi all'IA** viene tolto per fare spazio: si trova tra le azioni di **Cerca**. Su un telefono, **Cerca** e **Aiuto** passano nell'elenco del pulsante del menu, in cima e in fondo; la campanella e la tua foto restano.
 
 Una parola con una linea tratteggiata sotto, come **Sonde** nel modulo di un nuovo monitor, dice cosa significa quando la indichi, la raggiungi con Tab o la tocchi. Il suo **Leggi di più** apre la parola nel [Glossario](/docs/introduction/glossary).
 
@@ -165,7 +165,7 @@ Con la casella di ricerca vuota, la ricerca elenca le pagine aperte di recente, 
 
 ## Scorciatoie da tastiera
 
-Premi `?` in qualsiasi punto della dashboard per vedere tutte le scorciatoie, oppure apri **Aiuto** e scegli **Keyboard shortcuts**. Su un Mac, `Mod` è il tasto Comando; su Windows e Linux è Ctrl.
+Premi `?` in qualsiasi punto della dashboard per vedere tutte le scorciatoie, oppure apri **Aiuto** e scegli **Scorciatoie da tastiera**. Su un Mac, `Mod` è il tasto Comando; su Windows e Linux è Ctrl.
 
 | Tasti | Cosa fanno |
 | --- | --- |
