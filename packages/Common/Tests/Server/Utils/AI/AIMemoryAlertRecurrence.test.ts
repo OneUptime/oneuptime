@@ -327,9 +327,15 @@ describe("an alert's recurrence context", () => {
         labels: ["Checkout"],
         rootCause: "a bad deploy",
       }),
+      /*
+       * Shares nothing: another monitor, another label, and words that say
+       * something else happened (its default title, "High CPU on web-4",
+       * would read like this alert's and match by meaning).
+       */
       pastAlert({
         index: 4,
         monitorId: OTHER_MONITOR_ID,
+        title: "Disk full on db-4",
         labels: ["payments"],
         rootCause: "an unrelated cause",
       }),
