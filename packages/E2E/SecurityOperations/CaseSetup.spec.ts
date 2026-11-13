@@ -50,6 +50,17 @@ const SCREENSHOTS: string = path.resolve(
   "../../../output/playwright/security-operations-ui",
 );
 
+/*
+ * A failed read whose answer says nothing ("Server Error", as the fixture's
+ * ?casesetup=fail answers) is one the server did not explain (#6836): a page
+ * says why and what to do next under its own words for what failed, and a
+ * line that shows the message as it is says both in one sentence.
+ */
+const UNEXPLAINED_WHY_AND_NEXT: string =
+  "The server ran into a problem it could not explain. Try again in a moment.";
+const UNEXPLAINED_MESSAGE: string =
+  "The server ran into a problem it could not explain, so this did not finish. Try again in a moment.";
+
 interface FixtureState {
   creates: Array<{ modelName: string; data: Record<string, unknown> }>;
   updates: Array<{
@@ -875,14 +886,23 @@ test.describe("reads that fail", () => {
     page: Page;
   }) => {
     await open(page, CASE_FIELDS_PATH, { caseSetup: "fail" });
-    await expect(page.getByText("Server Error")).toBeVisible({
-      timeout: 30000,
-    });
+    /*
+     * The read's answer says nothing ("Server Error"): the card says the
+     * server could not explain it, and what to do next (#6836).
+     */
+    await expect(page.getByTestId("error-what-failed")).toHaveText(
+      "This did not finish.",
+      { timeout: 30000 },
+    );
+    await expect(page.getByTestId("error-why-and-next")).toHaveText(
+      UNEXPLAINED_WHY_AND_NEXT,
+    );
+    await expect(page.getByText("Server Error")).toHaveCount(0);
     await screenshot(page, "case-custom-fields-fail-1280-light");
 
     await page.getByRole("button", { name: "Try again" }).click();
     await expect(page.getByText("INC-48213")).toBeVisible();
-    await expect(page.getByText("Server Error")).toHaveCount(0);
+    await expect(page.getByTestId("error-explanation")).toHaveCount(0);
   });
 
   test("the settings lists say why and read again; so does the Templates menu", async ({
@@ -895,9 +915,12 @@ test.describe("reads that fail", () => {
       [NOTE_TEMPLATES_PATH, "Containment checklist"],
     ] as Array<[string, string]>) {
       await open(page, address, { caseSetup: "fail" });
-      await expect(page.getByText("Server Error")).toBeVisible({
-        timeout: 30000,
-      });
+      // Under the list's own "Couldn't load ...", why and what to do next.
+      await expect(page.getByTestId("error-why-and-next")).toHaveText(
+        UNEXPLAINED_WHY_AND_NEXT,
+        { timeout: 30000 },
+      );
+      await expect(page.getByText("Server Error")).toHaveCount(0);
       await page.getByRole("button", { name: "Try again" }).click();
       await expect(
         page.locator("tbody tr").filter({ hasText: row }),
@@ -915,7 +938,9 @@ test.describe("reads that fail", () => {
       .getByTestId("note-template-menu-button")
       .click();
     const menu: Locator = page.getByTestId("note-template-menu");
-    await expect(menu).toContainText("Server Error");
+    // The menu shows the message as it is: why and what to do, in one.
+    await expect(menu).toContainText(UNEXPLAINED_MESSAGE);
+    await expect(menu).not.toContainText("Server Error");
     await menu.getByRole("button", { name: "Try again" }).click();
     await expect(
       menu.getByRole("button", { name: /^Containment checklist/ }),
@@ -1005,13 +1030,19 @@ test.describe("in the reader's language", () => {
     await expect(menu).not.toContainText("Insert a template");
     /*
      * A template's English name and first line read the way they are
-     * written, each in an isolate of its own: "Contained:", never
-     * ":Contained", in the Persian menu.
+     * written: "Contained:", never ":Contained", in the Persian menu. Each
+     * is a line of its own that reads left to right (IsolatedLine, #6979),
+     * so one too long for the menu is cut short at its own end.
      */
-    for (const written of ["Containment checklist", "Contained:"]) {
-      await expect(
-        menu.locator("bdi[dir='ltr']").filter({ hasText: written }),
-      ).toHaveCount(1);
+    for (const [line, written] of [
+      ["note-template-name", "Containment checklist"],
+      ["note-template-preview", "Contained:"],
+    ] as Array<[string, string]>) {
+      const drawn: Locator = menu
+        .getByTestId(line)
+        .filter({ hasText: written });
+      await expect(drawn).toHaveCount(1);
+      await expect(drawn).toHaveAttribute("dir", "ltr");
     }
     await screenshot(page, "case-note-templates-menu-fa-1280", {
       fullPage: false,

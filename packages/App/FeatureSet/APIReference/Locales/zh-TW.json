@@ -344,6 +344,7 @@
       "logsDesc": "可從應用程式行程內部取得的診斷記錄:本執行個體自身最近的記錄行,以及 Postgres、ClickHouse 和 Valkey 所提供的內容。不包含容器的標準輸出 - 那部分請使用 <code>kubectl logs</code> 或 <code>docker logs</code>。",
       "migrationsDesc": "Postgres 結構描述與資料移轉狀態:執行個體是否已完全移轉、還有哪些待處理,以及最近的失敗項目。這是您確認升級已完成的方式。",
       "supportBundleDesc": "一份 JSON 文件,包含關於執行個體的所有診斷資訊 - 版本、執行階段、已遮蔽的設定、元件健康狀態、移轉、資料儲存區診斷、結構描述、失敗的工作和記錄。這是附加到支援請求時最有用的單一項目。",
+      "doctorDesc": "執行個體上需要注意的問題,依嚴重程度排序,每一項都附有修正方式:Postgres、ClickHouse 或 Valkey 沒有回應、待處理或失敗的移轉、ClickHouse 磁碟空間不足、佇列積壓、有較新的版本可用,以及尚未完成的伺服器設定步驟。這就是 OneUptime Health 頁面頂端顯示的清單。",
       "queueNamesBody": "<code>{queueName}</code> 路徑參數必須是 <code>Workflow</code>、<code>Worker</code>、<code>Telemetry</code> 或 <code>Runbook</code> 其中之一。其他任何值都會以 <code>400</code> 遭到拒絕。",
       "editions": "版本",
       "editionsBody": "大多數主管理員 API 屬於 OneUptime Enterprise Edition 的一部分,並與其所支援的 OneUptime Health 儀表板相對應。在 Community 執行個體上,它們會回傳 <code>402 Payment Required</code> 而不是資料。",

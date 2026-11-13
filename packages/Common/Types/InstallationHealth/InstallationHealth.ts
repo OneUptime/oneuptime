@@ -13,7 +13,7 @@ import ServerSetupChecklistUtil, {
  *
  * One list of findings, worst first, each with what is wrong, why it matters
  * and the exact fix. The server works it out from what it can see of itself
- * (GET /api/admin/health/doctor, App/API/AdminHealth.ts):
+ * (/api/admin/health/doctor, App/API/AdminHealth.ts):
  *
  *   - PostgreSQL, ClickHouse and Valkey answer;
  *   - the database migrations have all run, and none failed;
@@ -27,11 +27,14 @@ import ServerSetupChecklistUtil, {
  * Three readers print the same findings:
  *
  *   - `npm run doctor` (Scripts/Install/Doctor.js), on a Docker Compose
- *     server. It asks the local ingress with the cluster key from config.env
- *     and adds what only the host can see: the containers, config.env,
- *     whether HOST reaches this OneUptime, the certificate and the disk.
- *   - HelmChart/Public/diagnose.sh, on Kubernetes, from inside the app pod.
- *   - The Admin Dashboard's OneUptime Health overview, in every edition.
+ *     server. It asks the local ingress, in a POST with the cluster key from
+ *     config.env, and adds what only the host can see: the containers,
+ *     config.env, whether HOST reaches this OneUptime, the certificate and
+ *     the disk.
+ *   - HelmChart/Public/diagnose.sh, on Kubernetes, from inside the app pod,
+ *     in a POST with the cluster key the pod holds.
+ *   - The Admin Dashboard's OneUptime Health overview, in every edition, in
+ *     a GET as a master admin.
  *
  * The terminals read `sentence` and `fixSentence`, filled in English. The
  * Admin Dashboard translates `words` and `fix` with `values`.
@@ -246,7 +249,7 @@ export interface InstallationHealthFacts {
   serverSetup: ServerSetupChecklistAnswer | null;
 }
 
-// The body of GET /api/admin/health/doctor.
+// The body of /api/admin/health/doctor's answer, to a GET and to a POST.
 export interface InstallationHealthAnswer {
   findings: Array<InstallationHealthFinding>;
   checked: Array<InstallationHealthCheck>;
@@ -255,7 +258,8 @@ export interface InstallationHealthAnswer {
    * A proof this installation answers at its custom-domain-readiness
    * address (CustomDomainServerReadiness): `npm run doctor` asks HOST for
    * it from outside the containers, to tell this OneUptime from another
-   * server. Null in the Admin Dashboard's answer.
+   * server. Only the answer to the POST, which the cluster key opens,
+   * carries one: null in the Admin Dashboard's answer to its GET.
    */
   addressProof: string | null;
   checkedAt: string;

@@ -67,6 +67,10 @@ import MonitorEvaluationSummary from "../../../Types/Monitor/MonitorEvaluationSu
 import MonitorSummarySnapshot from "../../../Types/Monitor/MonitorSummarySnapshot";
 import MonitorSummarySnapshotUtil from "../../../Utils/Monitor/MonitorSummarySnapshotUtil";
 import { PerSeriesCriteriaMatch } from "../../../Types/Probe/ProbeApiIngestResponse";
+import CreatedNotificationHold, {
+  OwnersAddedBy,
+} from "../Notification/CreatedNotificationHold";
+import CreateBy from "../../Types/Database/CreateBy";
 
 export default class MonitorAlert {
   @CaptureSpan()
@@ -1104,84 +1108,103 @@ export default class MonitorAlert {
           }
 
           /*
-           * Its pages start when OneUptime received the data that tripped
-           * the monitor, when it knows it (OnCallPageTiming).
+           * Its owners are added below, once it exists - the rules on an
+           * OpenStack project's, a data asset's, the criteria's and the
+           * network device's - and its owners' "Alert Created" notification
+           * waits for them (CreatedNotificationHold): until they are in, or
+           * adding them failed.
            */
-          const createdAlert: Alert =
-            await OnCallPageTiming.runAsMonitorTriggered(
+          const createBy: CreateBy<Alert> = {
+            data: alert,
+            props: {
+              isRoot: true,
+            },
+          };
+
+          CreatedNotificationHold.willAddOwners(createBy, OwnersAddedBy.Caller);
+
+          let createdAlert: Alert;
+
+          try {
+            /*
+             * Its pages start when OneUptime received the data that tripped
+             * the monitor, when it knows it (OnCallPageTiming).
+             */
+            createdAlert = await OnCallPageTiming.runAsMonitorTriggered(
               {
                 dataReceivedAt: OnCallPageTiming.getMonitorDataReceivedAt(
                   input.dataToProcess,
                 ),
               },
               (): Promise<Alert> => {
-                return AlertService.create({
-                  data: alert,
-                  props: {
-                    isRoot: true,
-                  },
-                });
+                return AlertService.create(createBy);
               },
             );
 
-          await OpenStackScopedRules.finishAlert({
-            projectId: input.monitor.projectId!,
-            alertId: createdAlert.id!,
-            match: openStackRules,
-          });
+            await OpenStackScopedRules.finishAlert({
+              projectId: input.monitor.projectId!,
+              alertId: createdAlert.id!,
+              match: openStackRules,
+            });
 
-          if (dataSubject) {
-            try {
-              await DataAlertCause.record({
-                alert: createdAlert,
-                subject: dataSubject,
-                cause: dataCause,
-              });
-            } catch (error) {
-              logger.error(
-                `${input.monitor.id?.toString()} - Could not record what a data alert is about.`,
-                alertLogAttributes,
-              );
-              logger.error(error, alertLogAttributes);
+            if (dataSubject) {
+              try {
+                await DataAlertCause.record({
+                  alert: createdAlert,
+                  subject: dataSubject,
+                  cause: dataCause,
+                });
+              } catch (error) {
+                logger.error(
+                  `${input.monitor.id?.toString()} - Could not record what a data alert is about.`,
+                  alertLogAttributes,
+                );
+                logger.error(error, alertLogAttributes);
+              }
             }
-          }
 
-          /*
-           * Add owner teams and users after alert creation. Owners configured
-           * on the criteria template are merged (deduped) with the owners of
-           * the network device this monitor watches, so device ownership flows
-           * into the alerts its monitor raises.
-           */
-          if (networkDeviceOwners === null) {
-            networkDeviceOwners =
-              await NetworkDeviceOwnerUserService.getDeviceOwnersForMonitor({
-                monitor: input.monitor,
-                monitorStepId: (
-                  input.dataToProcess as ProbeMonitorResponse
-                ).monitorStepId?.toString(),
-              });
-          }
+            /*
+             * Add owner teams and users after alert creation. Owners
+             * configured on the criteria template are merged (deduped) with
+             * the owners of the network device this monitor watches, so
+             * device ownership flows into the alerts its monitor raises.
+             */
+            if (networkDeviceOwners === null) {
+              networkDeviceOwners =
+                await NetworkDeviceOwnerUserService.getDeviceOwnersForMonitor({
+                  monitor: input.monitor,
+                  monitorStepId: (
+                    input.dataToProcess as ProbeMonitorResponse
+                  ).monitorStepId?.toString(),
+                });
+            }
 
-          const ownerUserIds: Array<ObjectID> = this.mergeOwnerIds(
-            criteriaAlert.ownerUserIds || [],
-            networkDeviceOwners.ownerUserIds,
-          );
+            const ownerUserIds: Array<ObjectID> = this.mergeOwnerIds(
+              criteriaAlert.ownerUserIds || [],
+              networkDeviceOwners.ownerUserIds,
+            );
 
-          const ownerTeamIds: Array<ObjectID> = this.mergeOwnerIds(
-            criteriaAlert.ownerTeamIds || [],
-            networkDeviceOwners.ownerTeamIds,
-          );
+            const ownerTeamIds: Array<ObjectID> = this.mergeOwnerIds(
+              criteriaAlert.ownerTeamIds || [],
+              networkDeviceOwners.ownerTeamIds,
+            );
 
-          if (ownerTeamIds.length || ownerUserIds.length) {
-            await AlertService.addOwners(
-              input.monitor.projectId!,
-              createdAlert.id!,
-              ownerUserIds,
-              ownerTeamIds,
-              true, // notify owners
-              {
-                isRoot: true,
-              },
+            if (ownerTeamIds.length || ownerUserIds.length) {
+              await AlertService.addOwners(
+                input.monitor.projectId!,
+                createdAlert.id!,
+                ownerUserIds,
+                ownerTeamIds,
+                true, // notify owners
+                {
+                  isRoot: true,
+                },
+              );
+            }
+          } finally {
+            await CreatedNotificationHold.ownersAreIn(
+              createBy,
+              OwnersAddedBy.Caller,
             );
           }
 

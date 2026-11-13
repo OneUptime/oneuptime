@@ -1,5 +1,9 @@
 import { ADMIN_EMAIL_SETTINGS_ROUTE } from "../../../Utils/ServerEmail";
 import RelativeTime from "../../EpisodeView/RelativeTime";
+import {
+  getNotPagedLines,
+  getReachedThroughWords,
+} from "../../OnCallTestPage/OnCallTestPageWords";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import WhoIsToldApi from "./WhoIsToldApi";
@@ -130,6 +134,11 @@ const ChainRow: FunctionComponent<{
  * language does. The mark keeps to the fact before it, so a line that
  * wraps never starts with one. The icon has a column of its own, never a
  * line of its own over the name.
+ *
+ * How the policy reaches them is worded in the reader's language from its
+ * code, as the test page's dialog words it ("Team Platform", "Schedule
+ * Primary (next in rotation)"), the name set apart from the words around
+ * it; a server that sends no code has its English shown (#7261).
  */
 const PersonLine: FunctionComponent<{ person: WhoIsToldPerson }> = (props: {
   person: WhoIsToldPerson;
@@ -139,6 +148,7 @@ const PersonLine: FunctionComponent<{ person: WhoIsToldPerson }> = (props: {
   const separator: string = `\u00a0${getInlineSeparator(
     translator.language,
   ).trim()} `;
+  const reachedThrough: string = getReachedThroughWords(translator, person);
 
   return (
     <li
@@ -156,10 +166,12 @@ const PersonLine: FunctionComponent<{ person: WhoIsToldPerson }> = (props: {
         <span className="text-sm font-medium text-gray-900" dir="auto">
           {person.name || translator.translateText("Someone")}
         </span>
-        {person.reachedThrough ? (
+        {reachedThrough ? (
           <>
             {separator}
-            <span dir="auto">{person.reachedThrough}</span>
+            <span dir="auto" data-testid="who-is-told-reached-through">
+              {reachedThrough}
+            </span>
           </>
         ) : (
           <></>
@@ -184,6 +196,40 @@ const PersonLine: FunctionComponent<{ person: WhoIsToldPerson }> = (props: {
   );
 };
 
+/*
+ * A target of a policy's first level that reaches nobody, and why ("Team
+ * Night Shift has no members."): a row of the policy's list, as a person
+ * who can't be paged is - the warning in the icon column, the sentence
+ * where the names are - so it reads as a gap in who is paged, never as a
+ * note about the person above it. Worded in the reader's language from the
+ * server's code, as the test page's dialog words it; the server's English
+ * when it sends none (#7261). The sentence takes the direction of its own
+ * words: an older server's English reads left to right on a right-to-left
+ * page, each of its lines from its own start.
+ */
+const NotPagedLine: FunctionComponent<{ line: string }> = (props: {
+  line: string;
+}): ReactElement => {
+  return (
+    <li
+      className="flex items-start gap-2"
+      data-testid="who-is-told-not-paged-row"
+    >
+      <Icon icon={IconProp.Alert} className="h-4 w-4 shrink-0 text-amber-600" />
+      <IsolatedLine
+        as="p"
+        text={props.line}
+        className="min-w-0 text-xs text-gray-600 break-words"
+        dataTestId="who-is-told-not-paged"
+      />
+    </li>
+  );
+};
+
+/*
+ * A policy: its name, then one list of its first level's targets - who it
+ * reaches and by what, then each target it can't reach and why.
+ */
 const PolicyBlock: FunctionComponent<{ policy: WhoIsToldPolicy }> = (props: {
   policy: WhoIsToldPolicy;
 }): ReactElement => {
@@ -207,6 +253,7 @@ const PolicyBlock: FunctionComponent<{ policy: WhoIsToldPolicy }> = (props: {
     RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW] as Route,
     { modelId: new ObjectID(policy.id) },
   );
+  const notPaged: Array<string> = getNotPagedLines(translator, policy);
 
   return (
     <div data-testid="who-is-told-policy">
@@ -216,22 +263,18 @@ const PolicyBlock: FunctionComponent<{ policy: WhoIsToldPolicy }> = (props: {
       >
         {policy.name}
       </Link>
-      {policy.people.length > 0 ? (
+      {policy.people.length > 0 || notPaged.length > 0 ? (
         <ul className="mt-1 space-y-1">
           {policy.people.map((person: WhoIsToldPerson): ReactElement => {
             return <PersonLine key={person.userId} person={person} />;
+          })}
+          {notPaged.map((line: string, index: number): ReactElement => {
+            return <NotPagedLine key={`not-paged-${index}`} line={line} />;
           })}
         </ul>
       ) : (
         <></>
       )}
-      {policy.notPaged.map((line: string): ReactElement => {
-        return (
-          <p key={line} className="mt-1 text-xs text-gray-500">
-            {line}
-          </p>
-        );
-      })}
     </div>
   );
 };
