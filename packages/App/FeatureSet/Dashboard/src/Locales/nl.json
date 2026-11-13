@@ -51912,5 +51912,18 @@
   "{{count}} service instances_one": "{{count}} service-instantie",
   "{{count}} telemetry SDKs": "{{count}} telemetrie-SDK's",
   "{{count}} telemetry SDKs_one": "{{count}} telemetrie-SDK",
-  "{{start}} → {{end}}": "{{start}} → {{end}}"
+  "{{start}} → {{end}}": "{{start}} → {{end}}",
+  "Connected Services": "Verbonden services",
+  "One episode for incidents on services that call each other on the Service Map. Catches one failure spreading to its callers.": "Eén episode voor incidenten bij services die elkaar aanroepen op de servicekaart. Vangt een storing op die zich naar zijn aanroepers verspreidt.",
+  "One episode for alerts on services that call each other on the Service Map. Catches one failure spreading to its callers.": "Eén episode voor waarschuwingen bij services die elkaar aanroepen op de servicekaart. Vangt een storing op die zich naar zijn aanroepers verspreidt.",
+  "Combine monitor, severity, title, labels and connected services yourself on the next step.": "Combineer in de volgende stap zelf monitor, ernst, titel, labels en verbonden services.",
+  "Group incidents on connected services": "Incidenten van verbonden services groeperen",
+  "Group alerts on connected services": "Waarschuwingen van verbonden services groeperen",
+  "One episode for incidents on services that call each other on the Service Map, while they arrive within 30 minutes of each other. Incidents on no service are grouped by monitor.": "Eén episode voor incidenten bij services die elkaar aanroepen op de servicekaart, zolang ze binnen 30 minuten na elkaar binnenkomen. Incidenten zonder service worden per monitor gegroepeerd.",
+  "One episode for alerts on services that call each other on the Service Map, while they arrive within 30 minutes of each other. Alerts on no service are grouped by monitor.": "Eén episode voor waarschuwingen bij services die elkaar aanroepen op de servicekaart, zolang ze binnen 30 minuten na elkaar binnenkomen. Waarschuwingen zonder service worden per monitor gegroepeerd.",
+  "Incidents on connected services share one episode": "Incidenten van verbonden services delen één episode",
+  "Alerts on connected services share one episode": "Waarschuwingen van verbonden services delen één episode",
+  "Group By Connected Services": "Groeperen op verbonden services",
+  "Alerts on services that call each other on the Service Map go into the same episode.": "Waarschuwingen bij services die elkaar aanroepen op de servicekaart komen in dezelfde episode.",
+  "Incidents on services that call each other on the Service Map go into the same episode.": "Incidenten bij services die elkaar aanroepen op de servicekaart komen in dezelfde episode."
 }

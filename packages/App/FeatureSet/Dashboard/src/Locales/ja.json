@@ -51912,5 +51912,18 @@
   "{{count}} service instances_one": "サービスのインスタンス {{count}} 個",
   "{{count}} telemetry SDKs": "テレメトリ SDK {{count}} 個",
   "{{count}} telemetry SDKs_one": "テレメトリ SDK {{count}} 個",
-  "{{start}} → {{end}}": "{{start}} → {{end}}"
+  "{{start}} → {{end}}": "{{start}} → {{end}}",
+  "Connected Services": "接続されたサービス",
+  "One episode for incidents on services that call each other on the Service Map. Catches one failure spreading to its callers.": "サービスマップ上で互いに呼び出し合うサービスのインシデントを 1 つのエピソードにまとめます。呼び出し元へ広がる障害を捉えます。",
+  "One episode for alerts on services that call each other on the Service Map. Catches one failure spreading to its callers.": "サービスマップ上で互いに呼び出し合うサービスのアラートを 1 つのエピソードにまとめます。呼び出し元へ広がる障害を捉えます。",
+  "Combine monitor, severity, title, labels and connected services yourself on the next step.": "次のステップで、モニター、重大度、タイトル、ラベル、接続されたサービスを自由に組み合わせます。",
+  "Group incidents on connected services": "接続されたサービスのインシデントをグループ化",
+  "Group alerts on connected services": "接続されたサービスのアラートをグループ化",
+  "One episode for incidents on services that call each other on the Service Map, while they arrive within 30 minutes of each other. Incidents on no service are grouped by monitor.": "サービスマップ上で互いに呼び出し合うサービスのインシデントが互いに 30 分以内に発生する限り、1 つのエピソードにまとめます。サービスのないインシデントはモニターごとにグループ化されます。",
+  "One episode for alerts on services that call each other on the Service Map, while they arrive within 30 minutes of each other. Alerts on no service are grouped by monitor.": "サービスマップ上で互いに呼び出し合うサービスのアラートが互いに 30 分以内に発生する限り、1 つのエピソードにまとめます。サービスのないアラートはモニターごとにグループ化されます。",
+  "Incidents on connected services share one episode": "接続されたサービスのインシデントで 1 つのエピソードを共有",
+  "Alerts on connected services share one episode": "接続されたサービスのアラートで 1 つのエピソードを共有",
+  "Group By Connected Services": "接続されたサービスでグループ化",
+  "Alerts on services that call each other on the Service Map go into the same episode.": "サービスマップ上で互いに呼び出し合うサービスのアラートは同じエピソードになります。",
+  "Incidents on services that call each other on the Service Map go into the same episode.": "サービスマップ上で互いに呼び出し合うサービスのインシデントは同じエピソードになります。"
 }

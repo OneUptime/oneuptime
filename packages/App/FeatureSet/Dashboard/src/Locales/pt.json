@@ -51912,5 +51912,18 @@
   "{{count}} service instances_one": "{{count}} instância do serviço",
   "{{count}} telemetry SDKs": "{{count}} SDKs de telemetria",
   "{{count}} telemetry SDKs_one": "{{count}} SDK de telemetria",
-  "{{start}} → {{end}}": "{{start}} → {{end}}"
+  "{{start}} → {{end}}": "{{start}} → {{end}}",
+  "Connected Services": "Serviços conectados",
+  "One episode for incidents on services that call each other on the Service Map. Catches one failure spreading to its callers.": "Um episódio para incidentes em serviços que chamam uns aos outros no mapa de serviços. Captura uma falha que se espalha para quem a chama.",
+  "One episode for alerts on services that call each other on the Service Map. Catches one failure spreading to its callers.": "Um episódio para alertas em serviços que chamam uns aos outros no mapa de serviços. Captura uma falha que se espalha para quem a chama.",
+  "Combine monitor, severity, title, labels and connected services yourself on the next step.": "Combine você mesmo monitor, gravidade, título, rótulos e serviços conectados na próxima etapa.",
+  "Group incidents on connected services": "Agrupar incidentes de serviços conectados",
+  "Group alerts on connected services": "Agrupar alertas de serviços conectados",
+  "One episode for incidents on services that call each other on the Service Map, while they arrive within 30 minutes of each other. Incidents on no service are grouped by monitor.": "Um episódio para incidentes em serviços que chamam uns aos outros no mapa de serviços, enquanto chegarem a menos de 30 minutos uns dos outros. Incidentes sem serviço são agrupados por monitor.",
+  "One episode for alerts on services that call each other on the Service Map, while they arrive within 30 minutes of each other. Alerts on no service are grouped by monitor.": "Um episódio para alertas em serviços que chamam uns aos outros no mapa de serviços, enquanto chegarem a menos de 30 minutos uns dos outros. Alertas sem serviço são agrupados por monitor.",
+  "Incidents on connected services share one episode": "Incidentes de serviços conectados compartilham um episódio",
+  "Alerts on connected services share one episode": "Alertas de serviços conectados compartilham um episódio",
+  "Group By Connected Services": "Agrupar Por Serviços Conectados",
+  "Alerts on services that call each other on the Service Map go into the same episode.": "Alertas em serviços que chamam uns aos outros no mapa de serviços vão para o mesmo episódio.",
+  "Incidents on services that call each other on the Service Map go into the same episode.": "Incidentes em serviços que chamam uns aos outros no mapa de serviços vão para o mesmo episódio."
 }

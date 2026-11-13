@@ -51912,5 +51912,18 @@
   "{{count}} service instances_one": "{{count}} экземпляр сервиса",
   "{{count}} telemetry SDKs": "SDK телеметрии: {{count}}",
   "{{count}} telemetry SDKs_one": "{{count}} SDK телеметрии",
-  "{{start}} → {{end}}": "{{start}} → {{end}}"
+  "{{start}} → {{end}}": "{{start}} → {{end}}",
+  "Connected Services": "Связанные сервисы",
+  "One episode for incidents on services that call each other on the Service Map. Catches one failure spreading to its callers.": "Один эпизод для инцидентов в сервисах, которые вызывают друг друга на карте сервисов. Подходит для сбоя, который распространяется на вызывающие его сервисы.",
+  "One episode for alerts on services that call each other on the Service Map. Catches one failure spreading to its callers.": "Один эпизод для оповещений в сервисах, которые вызывают друг друга на карте сервисов. Подходит для сбоя, который распространяется на вызывающие его сервисы.",
+  "Combine monitor, severity, title, labels and connected services yourself on the next step.": "Сами сочетайте монитор, серьёзность, заголовок, метки и связанные сервисы на следующем шаге.",
+  "Group incidents on connected services": "Группировать инциденты связанных сервисов",
+  "Group alerts on connected services": "Группировать оповещения связанных сервисов",
+  "One episode for incidents on services that call each other on the Service Map, while they arrive within 30 minutes of each other. Incidents on no service are grouped by monitor.": "Один эпизод для инцидентов в сервисах, которые вызывают друг друга на карте сервисов, пока они поступают с интервалом не более 30 минут. Инциденты без сервиса группируются по монитору.",
+  "One episode for alerts on services that call each other on the Service Map, while they arrive within 30 minutes of each other. Alerts on no service are grouped by monitor.": "Один эпизод для оповещений в сервисах, которые вызывают друг друга на карте сервисов, пока они поступают с интервалом не более 30 минут. Оповещения без сервиса группируются по монитору.",
+  "Incidents on connected services share one episode": "Инциденты связанных сервисов попадают в один эпизод",
+  "Alerts on connected services share one episode": "Оповещения связанных сервисов попадают в один эпизод",
+  "Group By Connected Services": "Группировать по связанным сервисам",
+  "Alerts on services that call each other on the Service Map go into the same episode.": "Оповещения в сервисах, которые вызывают друг друга на карте сервисов, попадают в один эпизод.",
+  "Incidents on services that call each other on the Service Map go into the same episode.": "Инциденты в сервисах, которые вызывают друг друга на карте сервисов, попадают в один эпизод."
 }

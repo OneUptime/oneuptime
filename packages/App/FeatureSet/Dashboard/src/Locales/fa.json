@@ -51912,5 +51912,18 @@
   "{{count}} service instances_one": "{{count}} نمونه سرویس",
   "{{count}} telemetry SDKs": "{{count}} SDK تله‌متری",
   "{{count}} telemetry SDKs_one": "{{count}} SDK تله‌متری",
-  "{{start}} → {{end}}": "{{start}} ← {{end}}"
+  "{{start}} → {{end}}": "{{start}} ← {{end}}",
+  "Connected Services": "سرویس‌های متصل",
+  "One episode for incidents on services that call each other on the Service Map. Catches one failure spreading to its callers.": "یک اپیزود برای حادثه‌های سرویس‌هایی که در نقشهٔ سرویس‌ها یکدیگر را فراخوانی می‌کنند. خرابی‌ای را که به فراخوانندگانش سرایت می‌کند می‌گیرد.",
+  "One episode for alerts on services that call each other on the Service Map. Catches one failure spreading to its callers.": "یک اپیزود برای هشدارهای سرویس‌هایی که در نقشهٔ سرویس‌ها یکدیگر را فراخوانی می‌کنند. خرابی‌ای را که به فراخوانندگانش سرایت می‌کند می‌گیرد.",
+  "Combine monitor, severity, title, labels and connected services yourself on the next step.": "در مرحله بعد مانیتور، شدت، عنوان، برچسب‌ها و سرویس‌های متصل را خودتان ترکیب کنید.",
+  "Group incidents on connected services": "گروه‌بندی حادثه‌های سرویس‌های متصل",
+  "Group alerts on connected services": "گروه‌بندی هشدارهای سرویس‌های متصل",
+  "One episode for incidents on services that call each other on the Service Map, while they arrive within 30 minutes of each other. Incidents on no service are grouped by monitor.": "یک اپیزود برای حادثه‌های سرویس‌هایی که در نقشهٔ سرویس‌ها یکدیگر را فراخوانی می‌کنند، تا وقتی با فاصله کمتر از ۳۰ دقیقه از یکدیگر برسند. حادثه‌های بدون سرویس بر اساس مانیتور گروه‌بندی می‌شوند.",
+  "One episode for alerts on services that call each other on the Service Map, while they arrive within 30 minutes of each other. Alerts on no service are grouped by monitor.": "یک اپیزود برای هشدارهای سرویس‌هایی که در نقشهٔ سرویس‌ها یکدیگر را فراخوانی می‌کنند، تا وقتی با فاصله کمتر از ۳۰ دقیقه از یکدیگر برسند. هشدارهای بدون سرویس بر اساس مانیتور گروه‌بندی می‌شوند.",
+  "Incidents on connected services share one episode": "حادثه‌های سرویس‌های متصل یک اپیزود مشترک دارند",
+  "Alerts on connected services share one episode": "هشدارهای سرویس‌های متصل یک اپیزود مشترک دارند",
+  "Group By Connected Services": "گروه‌بندی بر اساس سرویس‌های متصل",
+  "Alerts on services that call each other on the Service Map go into the same episode.": "هشدارهای سرویس‌هایی که در نقشهٔ سرویس‌ها یکدیگر را فراخوانی می‌کنند در یک اپیزود قرار می‌گیرند.",
+  "Incidents on services that call each other on the Service Map go into the same episode.": "حادثه‌های سرویس‌هایی که در نقشهٔ سرویس‌ها یکدیگر را فراخوانی می‌کنند در یک اپیزود قرار می‌گیرند."
 }

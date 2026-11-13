@@ -51912,5 +51912,18 @@
   "{{count}} service instances_one": "{{count}} सेवा इंस्टेंस",
   "{{count}} telemetry SDKs": "{{count}} टेलीमेट्री SDK",
   "{{count}} telemetry SDKs_one": "{{count}} टेलीमेट्री SDK",
-  "{{start}} → {{end}}": "{{start}} → {{end}}"
+  "{{start}} → {{end}}": "{{start}} → {{end}}",
+  "Connected Services": "जुड़ी हुई सेवाएं",
+  "One episode for incidents on services that call each other on the Service Map. Catches one failure spreading to its callers.": "सेवा मानचित्र पर एक-दूसरे को कॉल करने वाली सेवाओं की घटनाओं के लिए एक एपिसोड। ऐसी खराबी पकड़ता है जो उसे कॉल करने वाली सेवाओं तक फैलती है।",
+  "One episode for alerts on services that call each other on the Service Map. Catches one failure spreading to its callers.": "सेवा मानचित्र पर एक-दूसरे को कॉल करने वाली सेवाओं के अलर्ट के लिए एक एपिसोड। ऐसी खराबी पकड़ता है जो उसे कॉल करने वाली सेवाओं तक फैलती है।",
+  "Combine monitor, severity, title, labels and connected services yourself on the next step.": "अगले चरण में मॉनिटर, गंभीरता, शीर्षक, लेबल और जुड़ी हुई सेवाएं खुद मिलाएँ।",
+  "Group incidents on connected services": "जुड़ी हुई सेवाओं की घटनाओं को समूहित करें",
+  "Group alerts on connected services": "जुड़ी हुई सेवाओं के अलर्ट को समूहित करें",
+  "One episode for incidents on services that call each other on the Service Map, while they arrive within 30 minutes of each other. Incidents on no service are grouped by monitor.": "सेवा मानचित्र पर एक-दूसरे को कॉल करने वाली सेवाओं की घटनाओं के लिए एक एपिसोड, जब तक वे एक-दूसरे से 30 मिनट के भीतर आती हैं। बिना सेवा वाली घटनाएँ मॉनिटर के अनुसार समूहित होती हैं।",
+  "One episode for alerts on services that call each other on the Service Map, while they arrive within 30 minutes of each other. Alerts on no service are grouped by monitor.": "सेवा मानचित्र पर एक-दूसरे को कॉल करने वाली सेवाओं के अलर्ट के लिए एक एपिसोड, जब तक वे एक-दूसरे से 30 मिनट के भीतर आते हैं। बिना सेवा वाले अलर्ट मॉनिटर के अनुसार समूहित होते हैं।",
+  "Incidents on connected services share one episode": "जुड़ी हुई सेवाओं की घटनाएँ एक एपिसोड साझा करती हैं",
+  "Alerts on connected services share one episode": "जुड़ी हुई सेवाओं के अलर्ट एक एपिसोड साझा करते हैं",
+  "Group By Connected Services": "जुड़ी हुई सेवाओं के अनुसार समूहित करें",
+  "Alerts on services that call each other on the Service Map go into the same episode.": "सेवा मानचित्र पर एक-दूसरे को कॉल करने वाली सेवाओं के अलर्ट एक ही एपिसोड में जाते हैं।",
+  "Incidents on services that call each other on the Service Map go into the same episode.": "सेवा मानचित्र पर एक-दूसरे को कॉल करने वाली सेवाओं की घटनाएँ एक ही एपिसोड में जाती हैं।"
 }
