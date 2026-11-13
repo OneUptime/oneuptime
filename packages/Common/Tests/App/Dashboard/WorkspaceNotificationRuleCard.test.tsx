@@ -950,6 +950,17 @@ describe("a rule's updates", () => {
       ["PrivateNotes"],
       "Chosen updates",
     ],
+    // An on-call policy rule's updates are who is on call (#7549).
+    [
+      NotificationRuleEventType.OnCallDutyPolicy,
+      ["OnCallNow", "NobodyOnCall"],
+      "Key updates only",
+    ],
+    [
+      NotificationRuleEventType.OnCallDutyPolicy,
+      ["OnCallNext"],
+      "Chosen updates",
+    ],
   ])(
     "a %s rule's card says what it picked",
     async (
@@ -973,9 +984,51 @@ describe("a rule's updates", () => {
     },
   );
 
+  test("an on-call policy rule's card names who is on call, in the order of its boxes (#7549)", async () => {
+    const [card] = await renderCards(
+      [
+        {
+          id: KEY_ONLY,
+          name: "Payments on-call",
+          rule: ruleJson({
+            updatesToPost: ["NobodyOnCall", "OnCallNow"],
+          }),
+        },
+      ],
+      {
+        eventType: NotificationRuleEventType.OnCallDutyPolicy,
+        canStartVideoCall: false,
+      },
+    );
+
+    expect(updatesRow(card!)).toEqual({
+      title: "Key updates only",
+      detail: "Who is on call now · Nobody on call",
+    });
+  });
+
+  test("an on-call policy rule saved before on-call rules chose has no Updates row: it posts every update", async () => {
+    const cards: Array<HTMLElement> = await renderCards(
+      [
+        {
+          id: KEY_ONLY,
+          name: "Saved before on-call rules chose",
+          rule: ruleJson({}),
+        },
+      ],
+      {
+        eventType: NotificationRuleEventType.OnCallDutyPolicy,
+        canStartVideoCall: false,
+      },
+    );
+
+    expect(
+      within(cards[0]!).queryByTestId("notification-rule-updates-summary"),
+    ).not.toBeInTheDocument();
+  });
+
   test.each([
     NotificationRuleEventType.Monitor,
-    NotificationRuleEventType.OnCallDutyPolicy,
     NotificationRuleEventType.SecurityCase,
     NotificationRuleEventType.SecurityHunt,
     NotificationRuleEventType.ServiceLevelObjective,

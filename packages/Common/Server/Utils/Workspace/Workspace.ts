@@ -60,6 +60,13 @@ export default class WorkspaceUtil {
      */
     apiKeyName?: string | undefined;
     markdown: string;
+    /*
+     * What a workspace is sent, where it is not `markdown`: a message
+     * that names somebody as each workspace knows them (issue #7549).
+     */
+    markdownByWorkspaceType?:
+      | Partial<Record<WorkspaceType, string>>
+      | undefined;
   }): Promise<Array<MessageBlocksByWorkspaceType>> {
     const workspaceTypes: Array<WorkspaceType> = this.getAllWorkspaceTypes();
 
@@ -87,7 +94,8 @@ export default class WorkspaceUtil {
             _type: "WorkspacePayloadMarkdown",
             text: leadWithAuthorMarkdown({
               authorMarkdown: authorMarkdown,
-              markdown: data.markdown,
+              markdown:
+                data.markdownByWorkspaceType?.[workspaceType] ?? data.markdown,
             }),
           } as WorkspacePayloadMarkdown,
         ],

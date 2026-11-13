@@ -51,7 +51,7 @@ Open a policy from the list. Its side menu holds everything about it:
 
 **Basic** is open; the other sections start folded until you click them.
 
-- **Overview** shows the **On-Call Policy Details**, then **Policy at a glance**: how many levels and responders the policy has, how long until its last level, and how often it repeats. **Responder readiness** says whether everyone it can page can be reached now, and **On-Call Policy Feed** lists what changed: people, teams and schedules added or removed, overrides and hand-offs.
+- **Overview** shows the **On-Call Policy Details**, then **Policy at a glance**: how many levels and responders the policy has, how long until its last level, and how often it repeats. **Responder readiness** says whether everyone it can page can be reached now, and **On-Call Policy Feed** lists what changed: people, teams and schedules added or removed, overrides and hand-offs. Its Slack, Microsoft Teams and Mattermost rules post them to your channels, a hand-off in one line: see [On-call messages](/docs/workspace-connections/slack#on-call-messages).
 - **Owners** are the people and teams responsible for the policy. When a page it sends finds no rule for someone, or cannot be delivered, they are emailed; a policy with no owners emails the project's owners instead.
 - **Notification Logs** lists every message the policy sent, with a tab per channel.
 - **User Overrides** covers people on this policy only. See [User Overrides](/docs/on-call/user-overrides).

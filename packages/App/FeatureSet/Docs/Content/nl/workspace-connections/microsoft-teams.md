@@ -98,7 +98,7 @@ Een regel aanmaken gaat in hooguit vijf stappen:
 | **Basis** | **Regelnaam** en **Regelbeschrijving**. |
 | **Voorwaarden** | Voor welke gebeurtenissen de regel geldt, bijvoorbeeld op ernst, status, label, monitor of woorden in de titel. Ze worden gecontroleerd wanneer een gebeurtenis wordt aangemaakt en opnieuw bij elke update die OneUptime erover plaatst, dus een regel voor bevestigde incidenten werkt zodra een incident wordt bevestigd. Een nieuwe regel geldt voor elke gebeurtenis, bijvoorbeeld **Alle incidenten**. Om de regel in te perken, kies **Alleen incidenten die aan de voorwaarden voldoen** en voeg de voorwaarden toe. Met twee of meer bepaalt **Overeenkomstvoorwaarde** of ze allemaal moeten kloppen, of één ervan. |
 | **Bestemming** | Waar hij plaatst: een bestaand kanaal van een team dat je kiest, de chats die je kiest, een kanaal voor elk incident (of waarschuwing, episode, evenement, monitor of bereikbaarheidsbeleid) dat wordt aangemaakt in een team dat je kiest, of meerdere daarvan samen. Onder de stap zegt **Wat deze regel doet** het in zinnen, zoals de kaart van de regel. |
-| **Updates** | Alleen incidenten, waarschuwingen, episodes en gepland onderhoud: welke updates de regel na het eerste bericht van het record plaatst. **Elke update**, waarmee een nieuwe regel begint, plaatst ze allemaal. **Alleen belangrijke updates** plaatst de updates die het meest tellen, die de stap per soort record opsomt: bij een incident het oplossen of heropenen ervan, wijzigingen van de ernst, openbare notities en de postmortem. Met **Updates kiezen** vink je ze een voor een aan. Wat je ook kiest, de regel plaatst het eerste bericht van het record, en een videogesprek wanneer er een begint. |
+| **Updates** | Alleen incidenten, waarschuwingen, episodes, gepland onderhoud en bereikbaarheidsbeleid: welke updates de regel na het eerste bericht van het record plaatst. **Elke update** plaatst ze allemaal, en een nieuwe regel begint ermee, behalve die van een bereikbaarheidsbeleid. **Alleen belangrijke updates** plaatst de updates die het meest tellen, die de stap per soort record opsomt: bij een incident het oplossen of heropenen ervan, wijzigingen van de ernst, openbare notities en de postmortem; bij een bereikbaarheidsbeleid wie nu dienst heeft en wanneer niemand dienst heeft, waarmee een nieuwe regel voor bereikbaarheidsbeleid begint. Met **Updates kiezen** vink je ze een voor een aan. Wat je ook kiest, de regel plaatst het eerste bericht van het record, en een videogesprek wanneer er een begint. Zie [Dienstberichten](#dienstberichten). |
 | **Video Call** | Alleen incidenten en waarschuwingen: start voor elk een gesprek. Zie [Videogesprekken](/docs/workspace-connections/video-calls). |
 
 Een regel voor SLO's plaatst de wijzigingen in het foutbudgetbeleid van een SLO: wanneer de SLO een niveau binnengaat, herstelt naar een minder ernstig niveau of elk niveau verlaat, en wanneer zijn implementaties worden bevroren of weer toegestaan. Hij plaatst alleen in bestaande kanalen en chats, omdat een SLO geen eigen kanaal krijgt. Zie [Berichten plaatsen in Slack, Microsoft Teams en Mattermost](/docs/slo/error-budget-policy#berichten-plaatsen-in-slack-microsoft-teams-en-mattermost).
@@ -120,6 +120,14 @@ Kanalen en chats blijven leesbaar: elke gebeurtenis wordt één keer geplaatst, 
 **Projectinstellingen** > **Werkruimte** > **Microsoft Teams** toont de kanalen die OneUptime in je teams ziet, en de chats waaraan het is toegevoegd, met **Test verzenden** naast elk ervan. Een chat verschijnt zodra de OneUptime-app er in Microsoft Teams aan wordt toegevoegd; **Refresh Chats** haalt nieuwe chats en hun huidige namen op.
 
 Een meldingsregel kan bij teams horen. **Verantwoordelijke teams**, onder **Meer velden**, beperkt hem tot de teams die u kiest: alleen hun leden en projectbeheerders kunnen hem bewerken of verwijderen, en alle anderen die de regels zien, zien hem alleen-lezen. Zie [Regels die bij teams horen](/docs/permissions/index#regels-die-bij-teams-horen).
+
+### Dienstberichten
+
+Bij elke overdracht horen de kanalen en chats van een bereikbaarheidsbeleid in één regel wie dienst heeft:
+
+> 📞 @Ana Lee is now on call for Payments until Fri, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
+
+Payments linkt naar het beleid in OneUptime. Iemand wordt bij zijn Microsoft Teams-naam genoemd zodra hij zijn Microsoft Teams-account met OneUptime heeft verbonden, en tot dan bij zijn naam in OneUptime. Tijden verschijnen in de tijdzone van elke lezer. De stap **Updates** van een regel kiest welke dienstberichten hij plaatst, zoals in Slack, en een nieuwe regel begint met wie nu dienst heeft en wanneer niemand dienst heeft: zie [Dienstberichten](/docs/workspace-connections/slack#dienstberichten).
 
 ## Een regel testen
 

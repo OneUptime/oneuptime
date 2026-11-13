@@ -100,7 +100,7 @@ Att skapa en regel går igenom upp till fem steg:
 | **Grundläggande** | **Regelnamn** och **Regelbeskrivning**. |
 | **Villkor** | Vilka händelser regeln gäller, till exempel efter allvarlighetsgrad, tillstånd, etikett, monitor eller ord i titeln. De kontrolleras när en händelse skapas och igen vid varje uppdatering som OneUptime publicerar om den, så en regel för bekräftade incidenter verkar när en incident bekräftas. En ny regel gäller varje händelse, till exempel **Alla incidenter**. För att snäva in den väljer du **Endast incidenter som uppfyller villkoren** och lägger till villkoren. Med två eller fler anger **Matchningsvillkor** om alla måste matcha, eller om det räcker med ett. |
 | **Mål** | Var den publicerar: **Publicera i befintliga kanaler** med kanalnamnen, **Skapa en kanal för varje incident** (eller larm, episod, händelse, monitor eller jourpolicy) med vilka som går med i den, eller båda. Under steget säger **Vad regeln gör** det i meningar, som regelns kort. |
-| **Uppdateringar** | Endast incidenter, larm, episoder och schemalagt underhåll: vilka uppdateringar regeln publicerar efter postens första meddelande. **Alla uppdateringar**, som en ny regel börjar med, publicerar alla. **Bara viktiga uppdateringar** publicerar dem som betyder mest, som steget listar för varje slags post: för en incident att den löses eller öppnas igen, ändringar av allvarlighetsgrad, offentliga anteckningar och efteranalysen. Med **Välj uppdateringar** bockar du för dem en i taget. Vad du än väljer publicerar regeln postens första meddelande, och ett videosamtal när ett startar. |
+| **Uppdateringar** | Endast incidenter, larm, episoder, schemalagt underhåll och jourpolicyer: vilka uppdateringar regeln publicerar efter postens första meddelande. **Alla uppdateringar** publicerar alla, och en ny regel börjar med det, utom en jourpolicys. **Bara viktiga uppdateringar** publicerar dem som betyder mest, som steget listar för varje slags post: för en incident att den löses eller öppnas igen, ändringar av allvarlighetsgrad, offentliga anteckningar och efteranalysen; för en jourpolicy vem som har jour nu och när ingen har det, som en ny regel för en jourpolicy börjar med. Med **Välj uppdateringar** bockar du för dem en i taget. Vad du än väljer publicerar regeln postens första meddelande, och ett videosamtal när ett startar. Se [Jourmeddelanden](#jourmeddelanden). |
 | **Video Call** | Endast incidenter och larm: starta ett samtal för var och en. Se [Videosamtal](/docs/workspace-connections/video-calls). |
 
 Ett SLO:s regel publicerar ändringarna i dess felbudgetpolicy: när SLO:et går in i en nivå, återhämtar sig till en mindre allvarlig nivå eller lämnar alla nivåer, och när dess distributioner fryses eller tillåts igen. Den publicerar bara i befintliga kanaler, eftersom ett SLO inte får någon egen kanal. Se [Publicera i Slack, Microsoft Teams och Mattermost](/docs/slo/error-budget-policy#publicera-i-slack-microsoft-teams-och-mattermost).
@@ -122,6 +122,29 @@ En kanal förblir läsbar: varje händelse publiceras en gång, och postens för
 **Projektinställningar** > **Arbetsyta** > **Slack** visar de kanaler som OneUptime kan se, med **Skicka test** bredvid var och en. OneUptime går själv med i en offentlig kanal första gången den publicerar där. En privat kanal visas, och kan ta emot publiceringar, först när OneUptime-appen har bjudits in till den i Slack.
 
 En aviseringsregel kan tillhöra team. **Ansvariga team** under **Fler fält** förbehåller den de team du väljer: bara deras medlemmar och projektadministratörer kan redigera eller ta bort den, och alla andra som ser reglerna ser den skrivskyddad. Se [Regler som tillhör team](/docs/permissions/index#regler-som-tillhör-team).
+
+### Jourmeddelanden
+
+Vid varje överlämning får en jourpolicys kanaler veta vem som har jour, på en rad:
+
+> 📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then @bob.
+
+- Payments länkar till policyn i OneUptime. När policyn larmar mer än ett schema nämner raden också schemat: Payments (Primary).
+- En person nämns med sitt Slack-namn när hen har kopplat sitt Slack-konto till OneUptime, och med sitt namn i OneUptime fram till dess. Tider visas i varje läsares egen tidszon.
+- När flera av policyns eskaleringsregler larmar samma schema publiceras varje överlämning en gång, inte en gång per regel.
+
+En regel publicerar det den valde i sitt steg **Uppdateringar**, och en ny regel börjar med **Bara viktiga uppdateringar**: vem som har jour nu, och när ingen har det.
+
+| Uppdatering | Vad kanalen får veta |
+| --- | --- |
+| **Vem som har jour nu** | Raden ovan, vid varje överlämning. |
+| **Vem som har jour härnäst** | Vem som tar över vid nästa överlämning, och när: i slutet av den raden, eller på en egen rad för en regel som inte publicerar vem som har jour nu. |
+| **Ingen har jour** | Ett schema som står utan någon som har jour, så att larm som når det inte larmar någon: "⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over." |
+| **Användaråsidosättningar** | En åsidosättning som lagts till eller dragits tillbaka: vem som är borta, och vem som täcker upp. |
+| **Ändringar i policyn** | Scheman, personer och team som lagts till i dess eskaleringsregler eller tagits bort. |
+| **Ägare** | Ägare som lagts till och tagits bort. |
+
+En kanal får ett meddelande per överlämning, även när två regler publicerar i den. En jourregel som sparades innan regler valde sina uppdateringar publicerar alla, som förut.
 
 ## Vem som är i en posts kanal
 

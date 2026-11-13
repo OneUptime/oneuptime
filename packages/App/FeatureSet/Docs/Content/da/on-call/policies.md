@@ -51,7 +51,7 @@ En politik, som flere regler tilføjer, kører én gang. En alvorlighed kører a
 
 **Grundlæggende** er åben; de andre sektioner starter foldet sammen, indtil du klikker på dem.
 
-- **Oversigt** viser **Detaljer om vagtpolitik** og derefter **Politikken i overblik**: hvor mange niveauer og modtagere politikken har, hvor lang tid der går til dens sidste niveau, og hvor ofte den gentages. **Modtagernes parathed** siger, om alle, den kan tilkalde, kan nås nu, og **Vagtpolitikkens feed** viser, hvad der er ændret: personer, teams og vagtplaner, der er tilføjet eller fjernet, tilsidesættelser og overdragelser.
+- **Oversigt** viser **Detaljer om vagtpolitik** og derefter **Politikken i overblik**: hvor mange niveauer og modtagere politikken har, hvor lang tid der går til dens sidste niveau, og hvor ofte den gentages. **Modtagernes parathed** siger, om alle, den kan tilkalde, kan nås nu, og **Vagtpolitikkens feed** viser, hvad der er ændret: personer, teams og vagtplaner, der er tilføjet eller fjernet, tilsidesættelser og overdragelser. Dens regler for Slack, Microsoft Teams og Mattermost slår dem op i dine kanaler, et vagtskifte i én linje: se [Vagtbeskeder](/docs/workspace-connections/slack#vagtbeskeder).
 - **Ejere** er de personer og teams, der er ansvarlige for politikken. Når et tilkald fra den ikke finder en regel for nogen eller ikke kan leveres, får de en e-mail; en politik uden ejere sender i stedet en e-mail til projektets ejere.
 - **Notifikationslogs** viser hver besked, politikken har sendt, med en fane pr. kanal.
 - **Brugertilsidesættelser** dækker kun for folk i denne politik. Se [Brugertilsidesættelser](/docs/on-call/user-overrides).

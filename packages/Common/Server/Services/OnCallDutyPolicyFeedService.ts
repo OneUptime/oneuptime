@@ -14,6 +14,11 @@ import FeedWorkspaceNotificationUtil, {
   FeedWorkspaceAuthor,
   FeedWorkspaceNotification,
 } from "../Utils/Feed/FeedWorkspaceNotification";
+import FeedUpdateKinds, {
+  ON_CALL_DUTY_POLICY_FEED_UPDATE_KINDS,
+} from "../Utils/Feed/FeedUpdateKinds";
+import { NotificationRuleUpdateKind } from "../../Types/Workspace/NotificationRules/NotificationRuleUpdates";
+import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends ProjectReferencesService<OnCallDutyPolicyFeed> {
@@ -48,6 +53,13 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyFeed> {
     postedAt?: Date | undefined;
     // Posted to Slack and Microsoft Teams too (FeedWorkspaceNotification).
     workspaceNotification?: FeedWorkspaceNotification | undefined;
+    /*
+     * What the channels are sent, when the entry says more than a channel
+     * needs (issue #7549): the policy's feed keeps which escalation rule a
+     * schedule was added to, and its order; the channel hears "Added
+     * schedule Primary to Payments".
+     */
+    chatInfoInMarkdown?: string | undefined;
   }): Promise<void> {
     try {
       logger.debug(
@@ -131,8 +143,17 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyFeed> {
           await this.sendWorkspaceNotification({
             projectId: data.projectId,
             onCallDutyPolicyId: data.onCallDutyPolicyId,
-            feedInfoInMarkdown: data.feedInfoInMarkdown,
+            feedInfoInMarkdown:
+              data.chatInfoInMarkdown || data.feedInfoInMarkdown,
             workspaceNotification: data.workspaceNotification,
+            // Which updates it is: posted where a rule wants one of them.
+            updateKinds: FeedUpdateKinds.resolve({
+              named: data.workspaceNotification.updateKinds,
+              ofType:
+                ON_CALL_DUTY_POLICY_FEED_UPDATE_KINDS[
+                  data.onCallDutyPolicyFeedEventType
+                ],
+            }),
             author: FeedWorkspaceNotificationUtil.getAuthor({
               workspaceNotification: data.workspaceNotification,
               userId: data.userId,
@@ -177,6 +198,22 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyFeed> {
     workspaceNotification: FeedWorkspaceNotification;
     // Who the message opens with (FeedWorkspaceNotificationUtil.getAuthor).
     author?: FeedWorkspaceAuthor | undefined;
+    /*
+     * Which updates the entry is (FeedUpdateKinds): posted only where a
+     * rule wants one of them. Left out, wherever its messages go.
+     */
+    updateKinds?: Array<NotificationRuleUpdateKind> | undefined;
+    /*
+     * For one of several messages about one handoff (OnCallHandoffPosts):
+     * posted only where a rule also wants one of these updates, and where
+     * no rule wants any of those not wanted.
+     */
+    alsoWantedUpdateKinds?: Array<NotificationRuleUpdateKind> | undefined;
+    notWantedUpdateKinds?: Array<NotificationRuleUpdateKind> | undefined;
+    // What a workspace is sent, where it is not feedInfoInMarkdown.
+    markdownByWorkspaceType?:
+      | Partial<Record<WorkspaceType, string>>
+      | undefined;
   }): Promise<void> {
     return await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification(
       {
@@ -185,12 +222,21 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyFeed> {
           onCallDutyPolicyId: data.onCallDutyPolicyId,
         },
         feedInfoInMarkdown: data.feedInfoInMarkdown,
+        markdownByWorkspaceType: data.markdownByWorkspaceType,
         notificationText: data.workspaceNotification.notificationText,
-        workspaceNotification:
-          FeedWorkspaceNotificationUtil.toWorkspaceNotification({
+        workspaceNotification: {
+          ...FeedWorkspaceNotificationUtil.toWorkspaceNotification({
             workspaceNotification: data.workspaceNotification,
             author: data.author,
+            updateKinds: data.updateKinds,
           }),
+          ...(data.alsoWantedUpdateKinds
+            ? { alsoWantedUpdateKinds: data.alsoWantedUpdateKinds }
+            : {}),
+          ...(data.notWantedUpdateKinds
+            ? { notWantedUpdateKinds: data.notWantedUpdateKinds }
+            : {}),
+        },
       },
     );
   }

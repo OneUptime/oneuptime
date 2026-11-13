@@ -98,7 +98,7 @@ At oprette en regel går gennem op til fem trin:
 | **Grundlæggende** | **Regelnavn** og **Regelbeskrivelse**. |
 | **Betingelser** | Hvilke begivenheder reglen gælder for, for eksempel efter alvorlighed, tilstand, etiket, monitor eller ord i titlen. De kontrolleres, når en begivenhed oprettes, og igen ved hver opdatering, OneUptime slår op om den, så en regel for bekræftede hændelser virker, når en hændelse bekræftes. En ny regel gælder for hver begivenhed, for eksempel **Alle hændelser**. For at indsnævre den vælger du **Kun hændelser, der opfylder betingelserne** og tilføjer betingelserne. Med to eller flere siger **Matchbetingelse**, om alle skal passe, eller om én er nok. |
 | **Destination** | Hvor den slår op: en eksisterende kanal i et team, du vælger, de chats, du vælger, en kanal for hver hændelse (eller advarsel, episode, begivenhed, monitor eller vagtpolitik), der oprettes i et team, du vælger, eller flere af dem sammen. Under trinnet siger **Hvad reglen gør** det i sætninger, ligesom reglens kort. |
-| **Opdateringer** | Kun hændelser, advarsler, episoder og planlagt vedligeholdelse: hvilke opdateringer reglen slår op efter postens første besked. **Alle opdateringer**, som en ny regel starter med, slår dem alle op. **Kun vigtige opdateringer** slår dem op, der betyder mest, som trinnet viser for hver slags post: for en hændelse dens løsning eller genåbning, ændringer i alvorlighed, offentlige noter og postmortem. Med **Vælg opdateringer** sætter du flueben ved dem én ad gangen. Uanset hvad du vælger, slår reglen postens første besked op og et videoopkald, når et starter. |
+| **Opdateringer** | Kun hændelser, advarsler, episoder, planlagt vedligeholdelse og vagtpolitikker: hvilke opdateringer reglen slår op efter postens første besked. **Alle opdateringer** slår dem alle op, og en ny regel starter med den, undtagen en vagtpolitiks. **Kun vigtige opdateringer** slår dem op, der betyder mest, som trinnet viser for hver slags post: for en hændelse dens løsning eller genåbning, ændringer i alvorlighed, offentlige noter og postmortem; for en vagtpolitik, hvem der har vagt nu, og hvornår ingen har, som en ny regel for en vagtpolitik starter med. Med **Vælg opdateringer** sætter du flueben ved dem én ad gangen. Uanset hvad du vælger, slår reglen postens første besked op og et videoopkald, når et starter. Se [Vagtbeskeder](#vagtbeskeder). |
 | **Video Call** | Kun hændelser og advarsler: start et opkald for hver. Se [Videoopkald](/docs/workspace-connections/video-calls). |
 
 En regel for SLO'er slår skiftene i et SLO's fejlbudgetpolitik op: når SLO'et går ind i et niveau, kommer sig til et mindre alvorligt niveau eller forlader alle niveauer, og når dets udrulninger fryses eller tillades igen. Den slår kun op i eksisterende kanaler og chats, da et SLO ikke får sin egen kanal. Se [Slå op i Slack, Microsoft Teams og Mattermost](/docs/slo/error-budget-policy#slå-op-i-slack-microsoft-teams-og-mattermost).
@@ -120,6 +120,14 @@ Kanaler og chats forbliver læsbare: hver begivenhed slås op én gang, og poste
 **Projektindstillinger** > **Arbejdsområde** > **Microsoft Teams** viser de kanaler, OneUptime kan se i dine teams, og de chats, den er føjet til, med **Send test** ved siden af hver. En chat vises, så snart OneUptime-appen er føjet til den i Microsoft Teams; **Refresh Chats** henter nye chats og deres nuværende navne.
 
 En notifikationsregel kan tilhøre teams. **Ansvarlige teams** under **Flere felter** forbeholder den de teams, du vælger: kun deres medlemmer og projektadministratorer kan redigere eller slette den, og alle andre, der kan se reglerne, ser den skrivebeskyttet. Se [Regler, der tilhører teams](/docs/permissions/index#regler-der-tilhører-teams).
+
+### Vagtbeskeder
+
+Ved hvert vagtskifte hører en vagtpolitiks kanaler og chats i én linje, hvem der har vagt:
+
+> 📞 @Ana Lee is now on call for Payments until Fri, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
+
+Payments linker til politikken i OneUptime. En person nævnes ved sit Microsoft Teams-navn, når vedkommende har forbundet sin Microsoft Teams-konto med OneUptime, og ved sit navn i OneUptime indtil da. Tidspunkter vises i hver læsers egen tidszone. En regels trin **Opdateringer** vælger, hvilke vagtbeskeder den slår op, som i Slack, og en ny regel starter med, hvem der har vagt nu, og hvornår ingen har: se [Vagtbeskeder](/docs/workspace-connections/slack#vagtbeskeder).
 
 ## Test en regel
 

@@ -51896,5 +51896,18 @@
   "State changes, notes and everything else.": "تغييرات الحالة، والملاحظات، وكل ما عدا ذلك.",
   "State changes, notes, owners, paging, alerts added or removed, and everything else.": "تغييرات الحالة، والملاحظات، والمالكون، والاستدعاء، والتنبيهات المضافة أو المزالة، وكل ما عدا ذلك.",
   "State changes, notes, owners, paging, edits and everything else.": "تغييرات الحالة، والملاحظات، والمالكون، والاستدعاء، والتعديلات، وكل ما عدا ذلك.",
-  "State changes, notes, owners, paging, incidents added or removed, and everything else.": "تغييرات الحالة، والملاحظات، والمالكون، والاستدعاء، والحوادث المضافة أو المزالة، وكل ما عدا ذلك."
+  "State changes, notes, owners, paging, incidents added or removed, and everything else.": "تغييرات الحالة، والملاحظات، والمالكون، والاستدعاء، والحوادث المضافة أو المزالة، وكل ما عدا ذلك.",
+  "Changes to the policy": "تغييرات السياسة",
+  "One line at each hand-off: who is on call, and until when.": "سطر واحد عند كل تسليم مناوبة: من المناوب، وحتى متى.",
+  "User overrides": "تجاوزات المستخدمين",
+  "Overrides added and taken back: who is away, and who covers.": "التجاوزات المضافة والمسحوبة: من الغائب، ومن ينوب.",
+  "Schedules, people and teams added to its escalation rules or taken out.": "الجداول والأشخاص والفرق المضافة إلى قواعد التصعيد الخاصة بها أو المزالة منها.",
+  "The rule always posts when an on-call policy is created. Pick the updates it posts after that.": "تنشر القاعدة دائمًا عند إنشاء سياسة مناوبة. اختر التحديثات التي تنشرها بعد ذلك.",
+  "When a schedule is left with nobody on call, so alerts that reach it page no one.": "عندما يبقى جدول بلا مناوب، فلا تستدعي التنبيهات التي تصل إليه أحدًا.",
+  "Who is on call next": "من المناوب التالي",
+  "Who is on call now": "من المناوب الآن",
+  "Who is on call now and next, nobody on call, overrides, and changes to the policy and its owners.": "من المناوب الآن والتالي، ولا أحد مناوب، والتجاوزات، وتغييرات السياسة ومالكيها.",
+  "Who is on call now, and when nobody is.": "من المناوب الآن، ومتى لا يكون أحد مناوبًا.",
+  "Who takes over at the next hand-off, and when.": "من يتسلّم عند تسليم المناوبة التالي، ومتى.",
+  "With none ticked, the rule posts only that the on-call policy was created.": "إن لم يُحدَّد أي منها، تنشر القاعدة فقط أن سياسة المناوبة أُنشئت."
 }

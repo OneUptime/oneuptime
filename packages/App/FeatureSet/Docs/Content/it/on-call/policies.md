@@ -51,7 +51,7 @@ Aprite una policy dall'elenco. Il suo menu laterale contiene tutto ciò che la r
 
 **Base** è aperta; le altre sezioni partono chiuse finché non ci fate clic.
 
-- **Panoramica** mostra i **Dettagli del criterio di reperibilità**, poi **La policy in breve**: quanti livelli e destinatari ha la policy, quanto manca al suo ultimo livello e quante volte si ripete. **Prontezza dei destinatari** dice se ogni persona che può avvisare è raggiungibile adesso, e **Feed della policy di reperibilità** elenca che cosa è cambiato: persone, team e pianificazioni aggiunti o rimossi, sostituzioni e passaggi di consegne.
+- **Panoramica** mostra i **Dettagli del criterio di reperibilità**, poi **La policy in breve**: quanti livelli e destinatari ha la policy, quanto manca al suo ultimo livello e quante volte si ripete. **Prontezza dei destinatari** dice se ogni persona che può avvisare è raggiungibile adesso, e **Feed della policy di reperibilità** elenca che cosa è cambiato: persone, team e pianificazioni aggiunti o rimossi, sostituzioni e passaggi di consegne. Le sue regole per Slack, Microsoft Teams e Mattermost li pubblicano nei tuoi canali, un cambio turno in una riga: vedi [Messaggi di reperibilità](/docs/workspace-connections/slack#messaggi-di-reperibilità).
 - I **Proprietari** sono le persone e i team responsabili della policy. Quando un avviso che invia non trova una regola per qualcuno, o non può essere consegnato, ricevono un'e-mail; una policy senza proprietari scrive invece ai proprietari del progetto.
 - **Registri di notifica** elenca ogni messaggio che la policy ha inviato, con una scheda per canale.
 - **Sostituzioni utente** sostituisce persone solo in questa policy. Vedi [Sostituzioni utente](/docs/on-call/user-overrides).

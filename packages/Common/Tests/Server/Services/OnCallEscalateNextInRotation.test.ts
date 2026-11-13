@@ -1441,11 +1441,14 @@ describe("adding and removing a next-in-rotation schedule on a rule", () => {
   };
 
   let feed: Array<string>;
+  // The short line the policy's channels hear instead (issue #7549).
+  let chat: Array<string | undefined>;
   let told: Array<string>;
   let timeLogsStarted: number;
 
   beforeEach(() => {
     feed = [];
+    chat = [];
     told = [];
     timeLogsStarted = 0;
 
@@ -1464,8 +1467,12 @@ describe("adding and removing a next-in-rotation schedule on a rule", () => {
       .mockResolvedValue(URL.fromString("https://oneuptime.example/policy"));
     jest
       .spyOn(OnCallDutyPolicyFeedService, "createOnCallDutyPolicyFeedItem")
-      .mockImplementation((async (data: { feedInfoInMarkdown: string }) => {
+      .mockImplementation((async (data: {
+        feedInfoInMarkdown: string;
+        chatInfoInMarkdown?: string | undefined;
+      }) => {
         feed.push(data.feedInfoInMarkdown);
+        chat.push(data.chatInfoInMarkdown);
       }) as never);
     jest
       .spyOn(UserNotificationSettingService, "sendUserNotification")
@@ -1525,6 +1532,14 @@ describe("adding and removing a next-in-rotation schedule on a rule", () => {
     );
     expect(told).toEqual([]);
     expect(timeLogsStarted).toBe(0);
+  });
+
+  test("its channels hear one line: the schedule and the policy, not the escalation rule and its order", async () => {
+    await added(true);
+
+    expect(chat).toEqual([
+      "📅 Added schedule **Payments primary** (next in rotation) to on-call policy [Payments](https://oneuptime.example/policy).",
+    ]);
   });
 
   test("added as on call, as before: Alex is told and her on-call time starts", async () => {

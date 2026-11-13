@@ -51896,5 +51896,18 @@
   "State changes, notes and everything else.": "Tillståndsändringar, anteckningar och allt annat.",
   "State changes, notes, owners, paging, alerts added or removed, and everything else.": "Tillståndsändringar, anteckningar, ägare, jourlarm, larm som lagts till eller tagits bort och allt annat.",
   "State changes, notes, owners, paging, edits and everything else.": "Tillståndsändringar, anteckningar, ägare, jourlarm, redigeringar och allt annat.",
-  "State changes, notes, owners, paging, incidents added or removed, and everything else.": "Tillståndsändringar, anteckningar, ägare, jourlarm, incidenter som lagts till eller tagits bort och allt annat."
+  "State changes, notes, owners, paging, incidents added or removed, and everything else.": "Tillståndsändringar, anteckningar, ägare, jourlarm, incidenter som lagts till eller tagits bort och allt annat.",
+  "Changes to the policy": "Ändringar i policyn",
+  "One line at each hand-off: who is on call, and until when.": "En rad vid varje överlämning: vem som har jour, och till när.",
+  "User overrides": "Användaråsidosättningar",
+  "Overrides added and taken back: who is away, and who covers.": "Åsidosättningar som lagts till och dragits tillbaka: vem som är borta, och vem som täcker upp.",
+  "Schedules, people and teams added to its escalation rules or taken out.": "Scheman, personer och team som lagts till i dess eskaleringsregler eller tagits bort.",
+  "The rule always posts when an on-call policy is created. Pick the updates it posts after that.": "Regeln postar alltid när en jourpolicy skapas. Välj de uppdateringar den postar efter det.",
+  "When a schedule is left with nobody on call, so alerts that reach it page no one.": "När ett schema står utan någon som har jour, så att larm som når det inte larmar någon.",
+  "Who is on call next": "Vem som har jour härnäst",
+  "Who is on call now": "Vem som har jour nu",
+  "Who is on call now and next, nobody on call, overrides, and changes to the policy and its owners.": "Vem som har jour nu och härnäst, ingen har jour, åsidosättningar, och ändringar i policyn och dess ägare.",
+  "Who is on call now, and when nobody is.": "Vem som har jour nu, och när ingen har det.",
+  "Who takes over at the next hand-off, and when.": "Vem som tar över vid nästa överlämning, och när.",
+  "With none ticked, the rule posts only that the on-call policy was created.": "Är inget markerat postar regeln bara att jourpolicyn skapades."
 }

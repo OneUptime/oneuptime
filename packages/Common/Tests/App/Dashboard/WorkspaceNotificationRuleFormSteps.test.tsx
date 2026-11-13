@@ -1417,9 +1417,10 @@ describe("Choose which updates a rule posts (#7581)", () => {
       ["Basic", "Conditions", "Destination", "Updates"],
     ],
     [NotificationRuleEventType.Monitor, ["Basic", "Conditions", "Destination"]],
+    // An on-call policy rule chooses its updates too (#7549).
     [
       NotificationRuleEventType.OnCallDutyPolicy,
-      ["Basic", "Conditions", "Destination"],
+      ["Basic", "Conditions", "Destination", "Updates"],
     ],
   ])(
     "a %s rule walks %j",
@@ -1479,6 +1480,107 @@ describe("Choose which updates a rule posts (#7581)", () => {
       expect((await createdRule())["updatesToPost"]).toEqual(keyUpdates);
     },
   );
+
+  /*
+   * An on-call policy rule's updates are who is on call (#7549). A new one
+   * starts on its key updates - who is on call now, and when nobody is -
+   * where every other new rule starts on every update: the customer's
+   * channel heard every handoff, override and change to the policy.
+   */
+  test("REGRESSION: a new on-call policy rule opens on Key updates only, and is saved with who is on call now and nobody on call", async () => {
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.OnCallDutyPolicy,
+    );
+
+    await toUpdatesPostingTo(user);
+
+    expect(
+      within(dialog()).getByText(
+        "The rule always posts when an on-call policy is created. Pick the updates it posts after that.",
+      ),
+    ).toBeVisible();
+    expect(answer("Key updates only")).toBeChecked();
+    expect(answer("Every update")).not.toBeChecked();
+    expect(answer("Key updates only")).toHaveAccessibleDescription(
+      "Who is on call now, and when nobody is.",
+    );
+    expect(answer("Every update")).toHaveAccessibleDescription(
+      "Who is on call now and next, nobody on call, overrides, and changes to the policy and its owners.",
+    );
+
+    // The last step: an on-call policy rule starts no video call.
+    await submit(user);
+
+    const rule: JSONObject = await createdRule();
+
+    expect(rule["updatesToPost"]).toEqual(["OnCallNow", "NobodyOnCall"]);
+    expect(rule["existingChannelNames"]).toBe("#leadership");
+  });
+
+  test("an on-call policy rule's boxes are who is on call now and next, nobody on call, user overrides, changes to the policy and owners", async () => {
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.OnCallDutyPolicy,
+    );
+
+    await toUpdatesPostingTo(user);
+    await user.click(answer("Choose updates"));
+    await settle();
+
+    expect(boxNames()).toEqual([
+      "Who is on call now",
+      "Who is on call next",
+      "Nobody on call",
+      "User overrides",
+      "Changes to the policy",
+      "Owners",
+    ]);
+    // Ticked as the new rule posts: its key updates.
+    expect(
+      updateBoxes().map((box: HTMLElement): boolean => {
+        return (box as HTMLInputElement).checked;
+      }),
+    ).toEqual([true, false, true, false, false, false]);
+
+    await user.click(
+      within(dialog()).getByRole("checkbox", { name: "Who is on call next" }),
+    );
+    await settle();
+    await submit(user);
+
+    expect((await createdRule())["updatesToPost"]).toEqual([
+      "OnCallNow",
+      "OnCallNext",
+      "NobodyOnCall",
+    ]);
+  });
+
+  test("an on-call policy rule put on Every update is saved without a list, as rules saved before it", async () => {
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.OnCallDutyPolicy,
+    );
+
+    await toUpdatesPostingTo(user);
+    await user.click(answer("Every update"));
+    await settle();
+    await submit(user);
+
+    expect(Object.keys(await createdRule())).not.toContain("updatesToPost");
+  });
+
+  test("every other new rule still opens on Every update", async () => {
+    for (const eventType of [
+      NotificationRuleEventType.Alert,
+      NotificationRuleEventType.ScheduledMaintenance,
+    ]) {
+      const user: UserEvent = await renderForm(eventType);
+
+      await toUpdatesPostingTo(user);
+
+      expect(answer("Every update")).toBeChecked();
+
+      cleanup();
+    }
+  });
 });
 
 describe("the rules list", () => {

@@ -98,7 +98,7 @@ Att skapa en regel går igenom upp till fem steg:
 | **Grundläggande** | **Regelnamn** och **Regelbeskrivning**. |
 | **Villkor** | Vilka händelser regeln gäller, till exempel efter allvarlighetsgrad, tillstånd, etikett, monitor eller ord i titeln. De kontrolleras när en händelse skapas och igen vid varje uppdatering som OneUptime publicerar om den, så en regel för bekräftade incidenter verkar när en incident bekräftas. En ny regel gäller varje händelse, till exempel **Alla incidenter**. För att snäva in den väljer du **Endast incidenter som uppfyller villkoren** och lägger till villkoren. Med två eller fler anger **Matchningsvillkor** om alla måste matcha, eller om det räcker med ett. |
 | **Mål** | Var den publicerar: en befintlig kanal i ett team som du väljer, de chattar som du väljer, en kanal för varje incident (eller larm, episod, händelse, monitor eller jourpolicy) som skapas i ett team som du väljer, eller flera av dessa tillsammans. Under steget säger **Vad regeln gör** det i meningar, som regelns kort. |
-| **Uppdateringar** | Endast incidenter, larm, episoder och schemalagt underhåll: vilka uppdateringar regeln publicerar efter postens första meddelande. **Alla uppdateringar**, som en ny regel börjar med, publicerar alla. **Bara viktiga uppdateringar** publicerar dem som betyder mest, som steget listar för varje slags post: för en incident att den löses eller öppnas igen, ändringar av allvarlighetsgrad, offentliga anteckningar och efteranalysen. Med **Välj uppdateringar** bockar du för dem en i taget. Vad du än väljer publicerar regeln postens första meddelande, och ett videosamtal när ett startar. |
+| **Uppdateringar** | Endast incidenter, larm, episoder, schemalagt underhåll och jourpolicyer: vilka uppdateringar regeln publicerar efter postens första meddelande. **Alla uppdateringar** publicerar alla, och en ny regel börjar med det, utom en jourpolicys. **Bara viktiga uppdateringar** publicerar dem som betyder mest, som steget listar för varje slags post: för en incident att den löses eller öppnas igen, ändringar av allvarlighetsgrad, offentliga anteckningar och efteranalysen; för en jourpolicy vem som har jour nu och när ingen har det, som en ny regel för en jourpolicy börjar med. Med **Välj uppdateringar** bockar du för dem en i taget. Vad du än väljer publicerar regeln postens första meddelande, och ett videosamtal när ett startar. Se [Jourmeddelanden](#jourmeddelanden). |
 | **Video Call** | Endast incidenter och larm: starta ett samtal för var och en. Se [Videosamtal](/docs/workspace-connections/video-calls). |
 
 Ett SLO:s regel publicerar ändringarna i dess felbudgetpolicy: när SLO:et går in i en nivå, återhämtar sig till en mindre allvarlig nivå eller lämnar alla nivåer, och när dess distributioner fryses eller tillåts igen. Den publicerar bara i befintliga kanaler och chattar, eftersom ett SLO inte får någon egen kanal. Se [Publicera i Slack, Microsoft Teams och Mattermost](/docs/slo/error-budget-policy#publicera-i-slack-microsoft-teams-och-mattermost).
@@ -120,6 +120,14 @@ Kanaler och chattar förblir läsbara: varje händelse publiceras en gång, och 
 **Projektinställningar** > **Arbetsyta** > **Microsoft Teams** visar de kanaler som OneUptime ser i dina team, och de chattar som den har lagts till i, med **Skicka test** bredvid var och en. En chatt visas så snart OneUptime-appen har lagts till i den i Microsoft Teams; **Refresh Chats** hämtar nya chattar och deras aktuella namn.
 
 En aviseringsregel kan tillhöra team. **Ansvariga team** under **Fler fält** förbehåller den de team du väljer: bara deras medlemmar och projektadministratörer kan redigera eller ta bort den, och alla andra som ser reglerna ser den skrivskyddad. Se [Regler som tillhör team](/docs/permissions/index#regler-som-tillhör-team).
+
+### Jourmeddelanden
+
+Vid varje överlämning får en jourpolicys kanaler och chattar veta vem som har jour, på en rad:
+
+> 📞 @Ana Lee is now on call for Payments until Fri, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
+
+Payments länkar till policyn i OneUptime. En person nämns med sitt Microsoft Teams-namn när hen har kopplat sitt Microsoft Teams-konto till OneUptime, och med sitt namn i OneUptime fram till dess. Tider visas i varje läsares egen tidszon. Steget **Uppdateringar** i en regel väljer vilka jourmeddelanden den publicerar, som i Slack, och en ny regel börjar med vem som har jour nu och när ingen har det: se [Jourmeddelanden](/docs/workspace-connections/slack#jourmeddelanden).
 
 ## Testa en regel
 

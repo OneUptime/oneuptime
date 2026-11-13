@@ -26,6 +26,7 @@ import Team from "../../Models/DatabaseModels/Team";
 import OnCallDutyPolicyTimeLogService from "./OnCallDutyPolicyTimeLogService";
 import OneUptimeDate from "../../Types/Date";
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import OnCallChatText from "../Utils/OnCall/OnCallChatText";
 
 export class Service extends OnCallDutyPolicyChildService<Model> {
   public constructor() {
@@ -191,13 +192,30 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       createdModel.onCallDutyPolicy?.name || "";
 
     if (onCallDutyPolicyId) {
+      const policyLink: string = (
+        await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
+          projectId!,
+          onCallDutyPolicyId!,
+        )
+      ).toString();
+
       await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
         onCallDutyPolicyId: onCallDutyPolicyId,
         projectId: projectId!,
         onCallDutyPolicyFeedEventType: OnCallDutyPolicyFeedEventType.TeamAdded,
         displayColor: Gray500,
         feedInfoInMarkdown:
-          mdText`👨🏻‍👩🏻‍👦🏻 Added team **${team?.name || ""}** from the [On-Call Policy ${onCallDutyPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule **${createdModel.onCallDutyPolicyEscalationRule?.name}** with order **${createdModel.onCallDutyPolicyEscalationRule?.order}**.`.toString(),
+          mdText`👨🏻‍👩🏻‍👦🏻 Added team **${team?.name || ""}** from the [On-Call Policy ${onCallDutyPolicyName}](${policyLink}) escalation rule **${createdModel.onCallDutyPolicyEscalationRule?.name}** with order **${createdModel.onCallDutyPolicyEscalationRule?.order}**.`.toString(),
+        // The channels hear which team and the policy (issue #7549).
+        chatInfoInMarkdown: OnCallChatText.policyChange({
+          emoji: "👨🏻‍👩🏻‍👦🏻",
+          isAdded: true,
+          what: mdText`team **${team?.name || ""}**`,
+          policy: OnCallChatText.policy({
+            name: onCallDutyPolicyName || "",
+            link: policyLink,
+          }),
+        }).toString(),
         userId: createdByUserId || undefined,
         workspaceNotification: {
           sendWorkspaceNotification: true,
@@ -250,14 +268,34 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
           continue;
         }
 
+        const policyLink: string = (
+          await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
+            projectId!,
+            onCallDutyPolicyId!,
+          )
+        ).toString();
+
         await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
           onCallDutyPolicyId: onCallDutyPolicyId,
           projectId: projectId,
+          /*
+           * A team taken out of an escalation rule, which it was filed as
+           * an owner team removed: a change to the policy (issue #7549).
+           */
           onCallDutyPolicyFeedEventType:
-            OnCallDutyPolicyFeedEventType.OwnerTeamRemoved,
+            OnCallDutyPolicyFeedEventType.TeamRemoved,
           displayColor: Red500,
           feedInfoInMarkdown:
-            mdText`👨🏻‍👩🏻‍👦🏻 Removed team **${team.name}** from the [On-Call Policy ${onCallDutyPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) and escalation rule ${item.onCallDutyPolicyEscalationRule?.name} with order ${item.onCallDutyPolicyEscalationRule?.order}.`.toString(),
+            mdText`👨🏻‍👩🏻‍👦🏻 Removed team **${team.name}** from the [On-Call Policy ${onCallDutyPolicyName}](${policyLink}) and escalation rule ${item.onCallDutyPolicyEscalationRule?.name} with order ${item.onCallDutyPolicyEscalationRule?.order}.`.toString(),
+          chatInfoInMarkdown: OnCallChatText.policyChange({
+            emoji: "👨🏻‍👩🏻‍👦🏻",
+            isAdded: false,
+            what: mdText`team **${team.name || ""}**`,
+            policy: OnCallChatText.policy({
+              name: onCallDutyPolicyName || "",
+              link: policyLink,
+            }),
+          }).toString(),
           userId: deleteByUserId || undefined,
           workspaceNotification: {
             sendWorkspaceNotification: true,
