@@ -386,6 +386,31 @@ as `fa.json` draws it.
 - **Cooldown**, a wait before something may run again, is `وقفه`:
   `وقفه پیش از بررسی دوباره (دقیقه)` for Re-investigation Cooldown
   (Minutes). It is the only `وقفه` in `fa.json`.
+- **Zone**, a DNS zone or a cloud's, is `زُن`: `زُن DNS` for DNS zone,
+  `زُن دسترس‌پذیری` for Availability zone. Never `ناحیه`, an area of a
+  page, or `منطقه`, a region: a time zone is `منطقه زمانی`, and a settings
+  page's Danger Zone `منطقه خطر`. The Persian docs write it `زُن` too,
+  outside code.
+- **Recordset** is `مجموعه‌رکورد`: `مجموعه‌رکورد DNS` for DNS recordset,
+  in the docs too.
+- **Load balancer** is `متعادل‌کننده بار`, with no `ٔ`, and load balancers
+  `متعادل‌کننده‌های بار`.
+- **Floating IP** is `IP شناور`, and floating IPs `IPهای شناور`.
+- **Pool**, whatever it pools, is `استخر`: a Ceph or an Octavia pool,
+  `استخر ذخیره‌سازی` for a storage pool, `استخر ساب‌نت` for a subnet
+  pool, `استخر منابع` for a vSphere resource pool, `استخر نخ` for a
+  thread pool, `استخر بافر` for InnoDB's buffer pool. Never `مخزن`, which
+  is a repository, or `پول`, which is money.
+- **Share**, a file share such as Manila's, is `اشتراک فایل`, and shares
+  `اشتراک‌های فایل`. `اشتراک` alone is a subscription, and the Share
+  button is `اشتراک‌گذاری`.
+- **Amphora** stays in Latin letters: it is the name Octavia gives the
+  virtual machine a load balancer runs in, as Arabic and most languages
+  keep it. It is on `i18n/Progress/fa.json`'s same-as-English list for
+  that reason, and so is `amphora`.
+- A name the page draws in English stays as written: an alert template's
+  (**Pool Near Full**), a console's menu item (**Share snapshot** in the
+  RDS console), a CLI command (`openstack share message list`).
 
 ## What "untranslated" means
 

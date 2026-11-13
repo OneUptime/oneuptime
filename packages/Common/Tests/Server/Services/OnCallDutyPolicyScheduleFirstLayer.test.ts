@@ -344,9 +344,13 @@ describe("a schedule with people to take turns", () => {
     expect(layer.order).toBeUndefined();
     expect(layer.description).toBeUndefined();
 
-    // On call from now.
-    expect(layer.startsAt!.getTime()).toBeGreaterThanOrEqual(before);
+    /*
+     * On call from now: the minute the schedule was created in, already
+     * begun, with no seconds for Rotation starts at to show (#7593).
+     */
+    expect(layer.startsAt!.getTime()).toBeGreaterThan(before - 60 * 1000);
     expect(layer.startsAt!.getTime()).toBeLessThanOrEqual(after);
+    expect(layer.startsAt!.getTime() % (60 * 1000)).toBe(0);
 
     // Each person for a week, handing off a week after the start.
     expect(layer.rotation?.intervalType).toBe(EventInterval.Week);

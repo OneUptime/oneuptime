@@ -61,7 +61,7 @@ Waarden die onder **Standaardwaarden voor aangepaste velden** zijn ingesteld, wo
 
 ## Wijzigingen synchroniseren naar gekoppelde monitoren
 
-Een sjabloon bewerken wijzigt alleen het sjabloon. Om een wijziging naar de gekoppelde monitoren te kopiëren, gebruikt u de synchronisatieknop op de kaart die u hebt gewijzigd. Elke knop noemt hoeveel monitoren hij bereikt, zoals **Sync Criteria to 3 Linked Monitors**, en is grijs zolang er niets is gekoppeld. Een synchronisatie kan niet ongedaan worden gemaakt.
+Een sjabloon bewerken wijzigt alleen het sjabloon. Om een wijziging naar de gekoppelde monitoren te kopiëren, gebruikt u de synchronisatieknop op de kaart die u hebt gewijzigd. Elke knop noemt hoeveel monitoren hij bereikt, zoals **Criteria synchroniseren naar 3 gekoppelde monitoren**, en is grijs zolang er niets is gekoppeld. Een synchronisatie kan niet ongedaan worden gemaakt.
 
 | Knop | Kopieert naar elke gekoppelde monitor | Laat ongemoeid |
 | --- | --- | --- |

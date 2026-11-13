@@ -61,7 +61,7 @@ Werte, die unter **Standardwerte für benutzerdefinierte Felder** gesetzt sind, 
 
 ## Änderungen auf verknüpfte Monitore synchronisieren
 
-Eine Vorlage zu bearbeiten ändert nur die Vorlage. Um eine Änderung auf die verknüpften Monitore zu kopieren, verwenden Sie die Synchronisierungsschaltfläche auf der Karte, die Sie geändert haben. Jede Schaltfläche nennt, wie viele Monitore sie erreicht, etwa **Sync Criteria to 3 Linked Monitors**, und ist ausgegraut, solange nichts verknüpft ist. Eine Synchronisierung lässt sich nicht rückgängig machen.
+Eine Vorlage zu bearbeiten ändert nur die Vorlage. Um eine Änderung auf die verknüpften Monitore zu kopieren, verwenden Sie die Synchronisierungsschaltfläche auf der Karte, die Sie geändert haben. Jede Schaltfläche nennt, wie viele Monitore sie erreicht, etwa **Kriterien mit 3 verknüpften Monitoren synchronisieren**, und ist ausgegraut, solange nichts verknüpft ist. Eine Synchronisierung lässt sich nicht rückgängig machen.
 
 | Schaltfläche | Kopiert auf jeden verknüpften Monitor | Lässt unverändert |
 | --- | --- | --- |
