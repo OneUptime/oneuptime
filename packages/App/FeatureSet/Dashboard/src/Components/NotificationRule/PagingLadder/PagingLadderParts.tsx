@@ -14,7 +14,10 @@ import {
 } from "Common/Types/NotificationRule/PagingLadder";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import PhoneNumberText from "Common/UI/Components/PhoneNumber/PhoneNumberText";
-import NotificationMethodUtil from "Common/UI/Utils/NotificationMethodUtil";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import NotificationMethodUtil, {
+  NOTIFICATION_METHOD_LINE,
+} from "Common/UI/Utils/NotificationMethodUtil";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -30,7 +33,13 @@ export const UNKNOWN_METHOD_LABEL: string = translationKey(
   "A notification method this page cannot name",
 );
 
-// "SMS: +15550100", the number kept in its own direction on a page read right to left.
+/*
+ * "SMS: +15550100" as the cards below name it (#7178): one sentence of the
+ * reader's language (NOTIFICATION_METHOD_LINE) - the method's name is
+ * theirs, "Phone call" and never the shared "Call", and so is the colon -
+ * with the number kept in its own direction on a page read right to left
+ * and an unnamed device in the reader's words.
+ */
 export const MethodLabel: FunctionComponent<{
   choice: PagingMethodChoice | undefined;
 }> = (props: { choice: PagingMethodChoice | undefined }): ReactElement => {
@@ -44,22 +53,38 @@ export const MethodLabel: FunctionComponent<{
     );
   }
 
-  const { title, identifier } = props.choice;
+  const { channel } = props.choice;
+  const name: ReactElement = (
+    <span className="font-medium text-gray-900">
+      {NotificationMethodUtil.getMethodName(translator, channel)}
+    </span>
+  );
+  const identifier: string = NotificationMethodUtil.getIdentifierText(
+    translator,
+    channel,
+    props.choice.identifier,
+  );
 
   return (
     <span className="min-w-0 break-words" data-testid="paging-ladder-method">
-      <span className="font-medium text-gray-900">{title}</span>
       {identifier ? (
-        <>
-          <span className="text-gray-400">: </span>
-          {NotificationMethodUtil.isPhoneNumberMethod(title) ? (
-            <PhoneNumberText phoneNumber={identifier} />
-          ) : (
-            <IsolatedText text={identifier} />
-          )}
-        </>
+        <TranslatedSentence
+          template={NOTIFICATION_METHOD_LINE}
+          slots={{
+            label: name,
+            identifier: NotificationMethodUtil.isPhoneNumberChannel(channel) ? (
+              <PhoneNumberText phoneNumber={identifier} />
+            ) : (
+              <IsolatedText text={identifier} />
+            ),
+          }}
+          renderText={(text: string): ReactElement => {
+            // The colon, quieter than the name and the identifier.
+            return <span className="text-gray-400">{text}</span>;
+          }}
+        />
       ) : (
-        <></>
+        name
       )}
     </span>
   );
