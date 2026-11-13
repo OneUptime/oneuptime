@@ -829,6 +829,102 @@ describe("a timeout is مهلت, never وقفه", () => {
   );
 });
 
+/*
+ * A CLOUD'S ZONES AND RECORDSETS, IN PERSIAN WORDS (#7629).
+ *
+ * Persian kept OpenStack's zones and recordsets in Latin letters - "DNS
+ * zone", "DNS recordset", "Availability Zone", "این Zone" - in 69 texts,
+ * though it says a DNS zone زُن on the DNS monitor ("Zone" -> "زُن") and
+ * Arabic and the other languages word them. A zone is زُن now, a DNS zone
+ * زُن DNS, an availability zone زُن دسترس‌پذیری and a recordset
+ * مجموعه‌رکورد, in every text at once, so no page names one thing two ways.
+ * Time zones are not these: a time zone is منطقه زمانی.
+ */
+describe("a cloud's zones and recordsets, in Persian words", () => {
+  const ZONE: string = "زُن";
+  const RECORDSET: string = `مجموعه${ZERO_WIDTH_NON_JOINER}رکورد`;
+  // A zone or a recordset left in Latin letters, outside a placeholder or code.
+  const LATIN_ZONE_OR_RECORDSET: RegExp = /zone|recordset/i;
+  // English about a time zone: its zone is another word.
+  const SAYS_TIME_ZONE: RegExp = /time ?zone|\{\{\s*\w*zone\s*\}\}/i;
+
+  // The texts among `rows` that keep a zone or a recordset in Latin letters.
+  const keptInLatin: (
+    rows: Array<[string, string, string]>,
+  ) => Array<string> = (
+    rows: Array<[string, string, string]>,
+  ): Array<string> => {
+    return rows
+      .filter(([, english, persian]: [string, string, string]): boolean => {
+        return (
+          !SAYS_TIME_ZONE.test(english) &&
+          LATIN_ZONE_OR_RECORDSET.test(
+            persian.replace(PLACEHOLDER, " ").replace(CODE_SPAN, " "),
+          )
+        );
+      })
+      .map(([key, , persian]: [string, string, string]): string => {
+        return `${key} => ${persian}`;
+      });
+  };
+
+  test.each([
+    ["DNS zone", `${ZONE} DNS`],
+    ["DNS recordset", `${RECORDSET} DNS`],
+    ["Availability zone", `${ZONE} دسترس${ZERO_WIDTH_NON_JOINER}پذیری`],
+  ])("%s reads %s", (english: string, persian: string) => {
+    expect(PERSIAN.get(english)).toBe(persian);
+    expect(PERSIAN_KEPT).not.toContain(english);
+  });
+
+  test("no text Persian words keeps a zone or a recordset in Latin letters", () => {
+    const zones: Array<[string, string, string]> = WORDED.filter(
+      ([, english]: [string, string, string]): boolean => {
+        return (
+          LATIN_ZONE_OR_RECORDSET.test(english.replace(PLACEHOLDER, " ")) &&
+          !SAYS_TIME_ZONE.test(english)
+        );
+      },
+    );
+
+    // Many: a scan that finds none would pass.
+    expect(zones.length).toBeGreaterThan(60);
+    expect(keptInLatin(zones)).toEqual([]);
+  });
+
+  test("the page titles say what their rows say", () => {
+    expect(PERSIAN.get("DNS Zones")).toBe(
+      `${ZONE}${ZERO_WIDTH_NON_JOINER}های DNS`,
+    );
+    expect(PERSIAN.get("DNS zones")).toBe(PERSIAN.get("DNS Zones"));
+    expect(PERSIAN.get("Availability Zone")).toBe(
+      PERSIAN.get("Availability zone"),
+    );
+    expect(PERSIAN.get("DNS Recordset")).toBe(PERSIAN.get("DNS recordset"));
+    expect(PERSIAN.get("{{count}} DNS zones")).toBe(`{{count}} ${ZONE} DNS`);
+  });
+
+  test("the check finds a zone or a recordset kept in Latin letters, and leaves a time zone and a placeholder alone (control)", () => {
+    expect(
+      keptInLatin([
+        ["DNS Zones", "DNS Zones", "DNS Zoneها"],
+        ["recordsets", "recordsets", "recordsetها"],
+        ["Zone ID", "Zone ID", `شناسه ${ZONE}`],
+        [
+          "Times are in {{zone}}.",
+          "Times are in {{zone}}.",
+          "زمان به وقت {{zone}} است.",
+        ],
+        [
+          "Times in {{timezone}}.",
+          "Times in {{timezone}}.",
+          "زمان به وقت {{timezone}}.",
+        ],
+      ]),
+    ).toEqual(["DNS Zones => DNS Zoneها", "recordsets => recordsetها"]);
+  });
+});
+
 describe("pages #7089 met in English, in Persian", () => {
   const PAGES: ReadonlyArray<[string, string]> = [
     ["Team Audit Logs", "گزارش‌های ممیزی تیم"],
