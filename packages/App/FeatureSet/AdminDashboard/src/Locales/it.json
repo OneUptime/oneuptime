@@ -541,7 +541,12 @@
         "cardTitle": "Configurazione Twilio",
         "cardDescription": "L'account Twilio con cui OneUptime invia SMS ed effettua chiamate, a meno che un progetto non usi una propria configurazione Twilio.",
         "editButton": "Modifica config Twilio",
-        "smsSameAsCalls": "Gli stessi numeri delle chiamate"
+        "smsSameAsCalls": "Gli stessi numeri delle chiamate",
+        "environmentCardDescription": "Impostato tramite variabili d'ambiente: twilio nei valori del chart Helm, oppure le impostazioni GLOBAL_TWILIO_ in config.env. Per modificare questo account, modificale lì e riavvia OneUptime.",
+        "environmentProblemsTitle": "Questo account non invia SMS e non effettua chiamate finché queste variabili d'ambiente non vengono corrette:",
+        "environmentUnusedTitle": "Alcune variabili d'ambiente di Twilio non vengono utilizzate:",
+        "authTokenSet": "Impostato",
+        "authTokenNotSet": "Non impostato"
       },
       "whatsapp": {
         "metaCardTitle": "Impostazioni Meta WhatsApp",
