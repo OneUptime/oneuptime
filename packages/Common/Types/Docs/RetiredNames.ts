@@ -134,6 +134,42 @@ export const RETIRED_NAMES: ReadonlyArray<RetiredName> = [
     pattern: /\bTelemetry Ingestion Keys?\b/,
     retiredIn: "#6817 part 2",
   },
+  {
+    name: "Service Catalog",
+    nowCalled: "Services",
+    glossaryTerm: GlossaryTerm.Service,
+    pattern: /\bService Catalog\b/,
+    retiredIn: "#6817 part 3",
+  },
+  {
+    name: "Telemetry Service",
+    nowCalled: "Service",
+    glossaryTerm: GlossaryTerm.Service,
+    pattern: /\bTelemetry Services?\b/,
+    retiredIn: "#6817 part 3",
+  },
+  {
+    name: "Scheduled Maintenance Event",
+    nowCalled: "Maintenance Event",
+    glossaryTerm: GlossaryTerm.ScheduledMaintenance,
+    // One record: the product keeps its name, Scheduled Maintenance.
+    pattern: /\bScheduled Maintenance Events?\b/,
+    retiredIn: "#6817 part 3",
+  },
+  {
+    name: "Scheduled Event",
+    nowCalled: "Maintenance Event",
+    glossaryTerm: GlossaryTerm.ScheduledMaintenance,
+    pattern: /\bScheduled Events?\b/,
+    retiredIn: "#6817 part 3",
+  },
+  {
+    name: "Event State",
+    nowCalled: "Maintenance State",
+    glossaryTerm: GlossaryTerm.ScheduledMaintenance,
+    pattern: /\bEvent States?\b/,
+    retiredIn: "#6817 part 3",
+  },
 ];
 
 // The retired names a text uses, by name.

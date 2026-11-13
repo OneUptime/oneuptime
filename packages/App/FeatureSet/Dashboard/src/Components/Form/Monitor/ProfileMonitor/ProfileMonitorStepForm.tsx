@@ -437,7 +437,7 @@ const ProfileMonitorStepForm: FunctionComponent<ComponentProps> = (
                 };
               },
             ),
-            title: "Filter by Telemetry Service",
+            title: "Filter by Service",
             description: "Select telemetry services to scope this monitor.",
             hideOptionalLabel: true,
             collapsibleSection: MORE_PROFILE_FILTERS,

@@ -85,10 +85,13 @@ import {
 })
 @TableMetadata({
   tableName: "ScheduledMaintenancePublicNote",
-  singularName: "Scheduled Event Public Note",
-  pluralName: "Scheduled Event Public Notes",
+  singularName: "Maintenance Event Public Note",
+  pluralName: "Maintenance Event Public Notes",
+  // Was "Scheduled Event Public Note" (#6817): oneuptime_scheduled_event_public_note stays.
+  apiSingularName: "Scheduled Event Public Note",
+  apiPluralName: "Scheduled Event Public Notes",
   icon: IconProp.Public,
-  tableDescription: "Manage public notes for your scheduled event",
+  tableDescription: "Manage public notes for your maintenance event",
 })
 export default class ScheduledMaintenancePublicNote extends BaseModel {
   @ColumnAccessControl({
@@ -197,7 +200,7 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
     modelType: ScheduledMaintenance,
     title: "Scheduled Maintenance",
     description:
-      "Relation to Scheduled Maintenance Event this resource belongs to",
+      "Relation to Maintenance Event this resource belongs to",
   })
   @ManyToOne(
     () => {

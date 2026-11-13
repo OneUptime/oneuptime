@@ -402,7 +402,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
       ),
       PermissionGate.gateCardButton(
         {
-          title: "Create Scheduled Maintenance Event",
+          title: "Create Maintenance Event",
           phoneTitle: "Create",
           onClick: () => {
             Navigation.navigate(
@@ -530,7 +530,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
         ]
       : [];
 
-  const cardTitle: string = props.title || "Scheduled Maintenance Events";
+  const cardTitle: string = props.title || "Maintenance Events";
   const cardDescription: string =
     props.description ||
     "Announce planned work ahead of time, so your customers and status page subscribers are not caught by surprise.";

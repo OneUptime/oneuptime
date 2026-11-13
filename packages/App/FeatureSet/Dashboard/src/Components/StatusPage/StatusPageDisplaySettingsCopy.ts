@@ -325,12 +325,12 @@ export const DISPLAY_SECTIONS: ReadonlyArray<DisplaySectionDefinition> = [
     id: "scheduled-maintenance",
     show: {
       column: "showScheduledMaintenanceEventsOnStatusPage",
-      title: translationKey("Show Scheduled Maintenance Events"),
+      title: translationKey("Show Maintenance Events"),
       offDescription: StatusPageDisplaySettingsCopy.hiddenListDescription,
     },
     days: {
       column: "showScheduledEventHistoryInDays",
-      label: translationKey("Show Scheduled Event History (in days)"),
+      label: translationKey("Show Maintenance Event History (in days)"),
     },
     options: [
       {

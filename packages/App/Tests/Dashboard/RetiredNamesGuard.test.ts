@@ -194,6 +194,8 @@ const STORED_VALUES: Record<string, string> = {
     "a condition a rule checks, shown by CHECK_ON_LABELS",
   "Common/Types/Workspace/NotificationRules/EventType.ts":
     "the event a rule is for, shown by NotificationRuleCopy",
+  "Common/Types/StatusPage/StatusPageEventType.ts":
+    "the event types a subscriber picks, kept on StatusPageSubscriber, shown by StatusPageUtil's labels",
 };
 
 function sourceLinesOf(file: string): Array<string> {
@@ -484,6 +486,17 @@ describe("what the server sends never uses a retired name", () => {
           '"On Call Duty Policy Name"',
         ),
         text: "On Call Duty Policy Name",
+      }),
+    ).toBe(true);
+    // A subscriber's stored event type, which the pages label Maintenance Event.
+    expect(
+      isStoredValue({
+        file: "Common/Types/StatusPage/StatusPageEventType.ts",
+        line: sourceLineOf(
+          "Common/Types/StatusPage/StatusPageEventType.ts",
+          '"Scheduled Event"',
+        ),
+        text: "Scheduled Event",
       }),
     ).toBe(true);
     expect(

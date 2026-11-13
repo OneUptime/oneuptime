@@ -699,7 +699,7 @@ const DocsNav: NavGroup[] = [
        * explorers share.
        */
       {
-        title: "Service Catalog",
+        title: "Services",
         url: "/docs/telemetry/services",
       },
       {

@@ -50,7 +50,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       items: [
         {
           link: {
-            title: "All Events",
+            title: "All Maintenance Events",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route,
             ),
@@ -59,7 +59,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         },
         {
           link: {
-            title: "Ongoing Events",
+            title: "Ongoing Maintenance Events",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS] as Route,
             ),
@@ -163,7 +163,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       items: [
         {
           link: {
-            title: "Event State",
+            title: "Maintenance State",
             to: RouteUtil.populateRouteParams(
               RouteMap[
                 PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_STATE
@@ -174,7 +174,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         },
         {
           link: {
-            title: "Event Templates",
+            title: "Maintenance Templates",
             to: RouteUtil.populateRouteParams(
               RouteMap[
                 PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_TEMPLATES

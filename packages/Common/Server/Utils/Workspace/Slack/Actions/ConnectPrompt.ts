@@ -335,7 +335,7 @@ const CREATE_INCIDENT: CommandPress = {
 const CREATE_SCHEDULED_MAINTENANCE: CommandPress = {
   purpose: "create a scheduled maintenance event",
   command: WorkspaceCommandName.Maintenance,
-  shortcut: "Create Scheduled Event",
+  shortcut: "Create Maintenance Event",
 };
 
 const PAGE_SOMEONE: CommandPress = {

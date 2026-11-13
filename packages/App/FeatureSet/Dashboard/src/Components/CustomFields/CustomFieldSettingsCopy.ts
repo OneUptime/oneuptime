@@ -189,8 +189,8 @@ export const CUSTOM_FIELD_RECORD_NAMES: Record<string, CustomFieldRecordName> =
     AlertCustomField: { singular: "Alert", plural: "Alerts" },
     MonitorCustomField: { singular: "Monitor", plural: "Monitors" },
     ScheduledMaintenanceCustomField: {
-      singular: "Scheduled Maintenance Event",
-      plural: "Scheduled Maintenance Events",
+      singular: "Maintenance Event",
+      plural: "Maintenance Events",
     },
     StatusPageCustomField: { singular: "Status Page", plural: "Status Pages" },
     OnCallDutyPolicyCustomField: {

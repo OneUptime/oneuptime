@@ -964,7 +964,7 @@ ${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, un
       );
 
       if (!scheduledMaintenance) {
-        throw new BadDataException("Scheduled Maintenance Event not found");
+        throw new BadDataException("Maintenance event not found");
       }
 
       const startsAt: Date =

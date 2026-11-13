@@ -33,7 +33,7 @@ const ScheduledMaintenancesPage: FunctionComponent<
     useCreatePageFirstRun<ScheduledMaintenance>({
       modelType: ScheduledMaintenance,
       product: ProductKey.ScheduledMaintenance,
-      startTitle: "Create Scheduled Maintenance Event",
+      startTitle: "Create Maintenance Event",
       createPage: PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE,
     });
   const { projectId } = useParams();

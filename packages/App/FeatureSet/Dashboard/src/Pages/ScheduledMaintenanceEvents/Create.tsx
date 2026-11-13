@@ -1243,7 +1243,7 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   ),
                 );
               }}
-              submitButtonText={"Create Scheduled Maintenance Event"}
+              submitButtonText={"Create Maintenance Event"}
               formType={FormType.Create}
               summary={{
                 enabled: true,
