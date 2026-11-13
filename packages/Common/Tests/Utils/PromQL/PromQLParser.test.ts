@@ -273,10 +273,12 @@ describe("PromQL regular expressions", () => {
     expect(compilePromQLRegex("a|b").regex.test("b")).toBe(true);
   });
 
-  test("read RE2's (?i) flag group", () => {
+  test("read RE2's (?i) flag group inside the anchors, as Prometheus compiles ^(?s:(?i)error)$", () => {
     const regex: LinearRegExp = compilePromQLRegex("(?i)error").regex;
 
-    expect(regex.flags).toBe("i");
+    // The flag applies inside the group, not to the whole pattern.
+    expect(regex.flags).toBe("");
+    expect(regex.source).toBe("^(?s:(?i:error))$");
     expect(regex.test("ERROR")).toBe(true);
     expect(regex.test("errors")).toBe(false);
   });
@@ -296,6 +298,16 @@ describe("PromQL regular expressions", () => {
     expect(compilePromQLRegex("[[:digit:]]+").regex.test("12a")).toBe(false);
   });
 
+  /*
+   * Each answer is Prometheus': a label matcher is compiled by
+   * NewFastRegexMatcher (model/labels/regexp.go), which reads the pattern
+   * with RE2's Perl flags and DotNL (syntax.Parse(v, syntax.Perl |
+   * syntax.DotNL)) and runs "^(?s:" + the pattern + ")$". The functions
+   * named below are those of regexp/syntax, Go's, which Prometheus' regexp
+   * (github.com/grafana/regexp) copies. Each row was also asked of
+   * Prometheus' own matcher, which answered the same. JavaScript's RegExp
+   * answers the same for the pattern compiled here.
+   */
   test.each([
     // [pattern, value, whether it matches]
     ["(?i)error", "Error", true],
@@ -314,20 +326,130 @@ describe("PromQL regular expressions", () => {
     ["/api/v[0-9]+/.*", "/api/v2/users", true],
     ["\\d+\\.\\d+", "1.5", true],
     ["café|naïve", "naïve", true],
+    // DotNL: "." matches "\n" too, with no flag written.
+    ["a.b", "a\nb", true],
+    ["(?i)A.B", "a\nb", true],
+    /*
+     * (?m) applies inside the group the pattern is compiled in, so the ^
+     * and $ around it still mean the whole value.
+     */
+    ["(?m)api", "x\napi", false],
+    ["(?m)api", "api", true],
+    /*
+     * (?-s): "." is OpAnyCharNotNL (parse, parse.go), anything but "\n" -
+     * "\r" included.
+     */
+    ["(?-s)a.b", "a\nb", false],
+    ["(?-s)a.b", "a\rb", true],
+    /*
+     * (?m): ^ and $ are OpBeginLine and OpEndLine, which match next to a
+     * "\n" only (EmptyOpContext, prog.go), not next to a "\r".
+     */
+    ["(?m)a$.*", "a\nb", true],
+    ["(?m)a$.*", "a\rb", false],
+    ["(?m).*^b", "a\rb", false],
+    /*
+     * A flag group in the middle sets its flags from where it stands to the
+     * end of the group that holds it (parsePerlFlags, parse.go), later
+     * alternatives included - "|" leaves them as they are - and that
+     * group's ")" puts back the flags it opened with (parseRightParen).
+     */
+    ["api(?i)SERVER", "apiServer", true],
+    ["api(?i)SERVER", "APIserver", false],
+    ["a(?i)b|c", "C", true],
+    ["a(?i)b|c", "AB", false],
+    ["(a(?i)b)c", "aBc", true],
+    ["(a(?i)b)c", "aBC", false],
+    ["(?i)a(?-i)b", "Ab", true],
+    ["(?i)a(?-i)b", "AB", false],
+    // Set then cleared: cleared (parsePerlFlags).
+    ["(?i-i)a", "A", false],
+    // No flags at all: nothing changes (parsePerlFlags).
+    ["a(?)b", "ab", true],
+    // A "]" first in a bracket is a character (parseClass, parse.go).
+    ["[]a]+", "]a", true],
+    ["[^]a]", "]", false],
+    ["[^]a]", "b", true],
+    // A POSIX class is one inside a bracket only: this is the bracket ":digt".
+    ["[:digit:]+", "dig", true],
+    ["[:digit:]+", "0-9", false],
+    // Inside a bracket, "(?P<" is four characters.
+    ["[(?P<]+", "P", true],
   ])(
-    "%s matching %j is %s, as JavaScript's RegExp answered for it",
+    "%s matching %j is %s, as in Prometheus",
     (pattern: string, value: string, matches: boolean) => {
       const regex: LinearRegExp = compilePromQLRegex(pattern).regex;
 
       expect(regex.test(value)).toBe(matches);
+      // JavaScript's own engine reads the compiled pattern the same way.
       expect(new RegExp(regex.source, regex.flags).test(value)).toBe(matches);
     },
   );
+
+  /*
+   * What label_replace() reads in each group: Prometheus' evalLabelReplace
+   * (promql/functions.go) compiles "^(?s:" + the pattern + ")$", and (?U)
+   * makes x* lazy and x*? greedy from where it stands to the end of its
+   * group (repeat, parse.go). Prometheus' regexp answered the same for each.
+   */
+  test.each([
+    // [pattern, value, what the groups capture]
+    ["(?U)(a+)(a*)", "aaa", ["a", "aa"]],
+    ["(?U)(a+?)(a*)", "aaa", ["aaa", ""]],
+    ["((?U)a+)(a*)(a*)", "aaaa", ["a", "aaa", ""]],
+    ["(?U:a+)(a*)(a*)", "aaaa", ["aaa", ""]],
+    ["(a+)(?U)(a*)(a*)", "aaaa", ["aaaa", "", ""]],
+    ["(?U)(a{1,3})(a*)", "aaaa", ["a", "aaa"]],
+    ["(?U)(a{1,3}?)(a*)", "aaaa", ["aaa", "a"]],
+    ["(?U)(a??)(a*)", "aa", ["a", "a"]],
+    ["(.*)", "a\nb", ["a\nb"]],
+  ])(
+    "%s on %j captures %j, as in Prometheus",
+    (pattern: string, value: string, captures: Array<string>) => {
+      const regex: LinearRegExp = compilePromQLRegex(pattern, {
+        captures: true,
+      }).regex;
+
+      expect(regex.exec(value)?.captures).toEqual(captures);
+      expect(
+        new RegExp(regex.source, regex.flags).exec(value)?.slice(1),
+      ).toEqual(captures);
+    },
+  );
+
+  test("a flag group at an alternative's start covers the alternatives after it once, not once each", () => {
+    const hosts: Array<string> = [];
+
+    for (let index: number = 0; index < 200; index++) {
+      hosts.push(`host-${index}`);
+    }
+
+    const pattern: string = `(?i)${hosts.join("|")}`;
+    const regex: LinearRegExp = compilePromQLRegex(pattern).regex;
+
+    expect(regex.source).toBe(`^(?s:(?i:${hosts.join("|")}))$`);
+    expect(regex.test("HOST-199")).toBe(true);
+    expect(regex.test("host-200")).toBe(false);
+  });
+
+  test("a bracket's class names one of RE2's POSIX classes, never what every object inherits", () => {
+    // Not a POSIX class: read as the characters it is written with.
+    expect(compilePromQLRegex("[[:constructor:]]").regex.source).toBe(
+      "^(?s:[[:constructor:]])$",
+    );
+  });
 
   test("a pattern that is not a regular expression throws a SyntaxError", () => {
     expect(refusalOf("(")).toBeInstanceOf(SyntaxError);
     expect(refusalOf("[[:digit:]")).toBeInstanceOf(SyntaxError);
     expect(refusalOf("a{2,1}")).toBeInstanceOf(SyntaxError);
+    // Prometheus refuses these too: "unexpected )", and a "-" with no flag.
+    expect(refusalOf("a)|(b")).toBeInstanceOf(SyntaxError);
+    // The refusal names the ")" that closes nothing, not the "(" after it.
+    expect((refusalOf("a)|(b") as SyntaxError).message).toContain(
+      "Unmatched ')'",
+    );
+    expect(refusalOf("(?i-)a")).toBeInstanceOf(SyntaxError);
   });
 
   test.each([
@@ -358,8 +480,11 @@ describe("PromQL regular expressions", () => {
     expect(getCachedPatternCount()).toBe(2);
   });
 
-  test("keep the pattern for engines that speak RE2", () => {
-    expect(compilePromQLRegex("a|b").anchoredPattern).toBe("^(?:a|b)$");
+  test("keep the pattern for engines that speak RE2, anchored as Prometheus anchors it", () => {
+    expect(compilePromQLRegex("a|b").anchoredPattern).toBe("^(?s:a|b)$");
+    expect(compilePromQLRegex("(?m)api").anchoredPattern).toBe(
+      "^(?s:(?m)api)$",
+    );
   });
 });
 
