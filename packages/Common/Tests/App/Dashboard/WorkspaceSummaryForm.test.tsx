@@ -644,7 +644,7 @@ describe("creating a workspace summary: the filters", () => {
     expect(within(dialog()).queryByText("Filter Conditions")).toBeNull();
     expect(
       within(dialog()).queryByText(
-        "Conditions on which items the summary includes. An owner condition, such as Incident Owner, names people and teams by ID, and the IDs must be of this project.",
+        "Which items the summary includes. An owner condition, such as Incident Owner, names people and teams of this project by ID.",
       ),
     ).toBeNull();
 

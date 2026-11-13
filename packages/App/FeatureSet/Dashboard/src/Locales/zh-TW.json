@@ -51858,6 +51858,6 @@
   "has all of": "包含以下全部",
   "has any of": "包含以下任一項",
   "has none of": "不包含以下任何一項",
-  "Conditions on which items the summary includes. An owner condition, such as Incident Owner, names people and teams by ID, and the IDs must be of this project.": "決定摘要包含哪些項目的條件。擁有者條件（例如「事件擁有者」）依 ID 指定人員和團隊，這些 ID 必須屬於此專案。",
-  "Which events the rule is for and where it posts. A condition can name owners by the IDs of people and teams, as Incident Owner does, and an on-call rule can name on-call policies by ID, as On-Call Policy does. The IDs must be of this project.": "規則適用於哪些事件以及發布到哪裡。條件可以像「事件擁有者」那樣，依人員和團隊的 ID 指定擁有者；待命策略的規則可以像「待命策略」那樣，依 ID 指定待命策略。這些 ID 必須屬於此專案。"
+  "Which items the summary includes. An owner condition, such as Incident Owner, names people and teams of this project by ID.": "摘要包含哪些項目。擁有者條件（例如「事件擁有者」）依 ID 指定此專案的人員和團隊。",
+  "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "規則適用於哪些事件以及發布到哪裡。擁有者條件和「待命策略」依 ID 指定此專案的人員、團隊和策略。"
 }

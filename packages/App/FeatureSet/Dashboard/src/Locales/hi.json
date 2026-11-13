@@ -51858,6 +51858,6 @@
   "has all of": "ये सभी शामिल हैं",
   "has any of": "इनमें से कोई शामिल है",
   "has none of": "इनमें से कोई शामिल नहीं है",
-  "Conditions on which items the summary includes. An owner condition, such as Incident Owner, names people and teams by ID, and the IDs must be of this project.": "सारांश में कौन-से आइटम शामिल हों, इसकी शर्तें। स्वामी वाली शर्त, जैसे “घटना का स्वामी”, लोगों और टीमों को ID से बताती है, और ये ID इसी प्रोजेक्ट की होनी चाहिए।",
-  "Which events the rule is for and where it posts. A condition can name owners by the IDs of people and teams, as Incident Owner does, and an on-call rule can name on-call policies by ID, as On-Call Policy does. The IDs must be of this project.": "नियम किन इवेंट के लिए है और कहां पोस्ट करता है। कोई शर्त लोगों और टीमों की ID से स्वामी बता सकती है, जैसे “घटना का स्वामी”, और ऑन-कॉल नीतियों का नियम ऑन-कॉल नीतियों को ID से बता सकता है, जैसे “ऑन-कॉल नीति”। ये ID इसी प्रोजेक्ट की होनी चाहिए।"
+  "Which items the summary includes. An owner condition, such as Incident Owner, names people and teams of this project by ID.": "सारांश में कौन-से आइटम शामिल हैं। स्वामी वाली शर्त, जैसे “घटना का स्वामी”, इसी प्रोजेक्ट के लोगों और टीमों को ID से बताती है।",
+  "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "नियम किन इवेंट के लिए है और कहां पोस्ट करता है। स्वामी वाली शर्तें और “ऑन-कॉल नीति” इसी प्रोजेक्ट के लोगों, टीमों और नीतियों को ID से बताती हैं।"
 }

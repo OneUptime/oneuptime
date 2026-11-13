@@ -51858,6 +51858,6 @@
   "has all of": "enthält jedes von",
   "has any of": "enthält eines von",
   "has none of": "enthält keines von",
-  "Conditions on which items the summary includes. An owner condition, such as Incident Owner, names people and teams by ID, and the IDs must be of this project.": "Bedingungen dafür, welche Einträge die Zusammenfassung enthält. Eine Eigentümer-Bedingung wie „Eigentümer des Vorfalls“ nennt Personen und Teams über ihre ID, und die IDs müssen zu diesem Projekt gehören.",
-  "Which events the rule is for and where it posts. A condition can name owners by the IDs of people and teams, as Incident Owner does, and an on-call rule can name on-call policies by ID, as On-Call Policy does. The IDs must be of this project.": "Für welche Ereignisse die Regel gilt und wohin sie postet. Eine Bedingung kann Eigentümer über die IDs von Personen und Teams nennen, wie „Eigentümer des Vorfalls“, und eine Regel für Bereitschaftsrichtlinien kann Bereitschaftsrichtlinien über ihre ID nennen, wie „Bereitschaftsrichtlinie“. Die IDs müssen zu diesem Projekt gehören."
+  "Which items the summary includes. An owner condition, such as Incident Owner, names people and teams of this project by ID.": "Welche Einträge die Zusammenfassung enthält. Eine Eigentümer-Bedingung wie „Eigentümer des Vorfalls“ nennt Personen und Teams dieses Projekts über ihre ID.",
+  "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "Für welche Ereignisse die Regel gilt und wohin sie postet. Eigentümer-Bedingungen und „Bereitschaftsrichtlinie“ nennen Personen, Teams und Richtlinien dieses Projekts über ihre ID."
 }

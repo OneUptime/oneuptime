@@ -51858,6 +51858,6 @@
   "has all of": "heeft elk van",
   "has any of": "heeft een van",
   "has none of": "heeft geen van",
-  "Conditions on which items the summary includes. An owner condition, such as Incident Owner, names people and teams by ID, and the IDs must be of this project.": "Voorwaarden voor welke items de samenvatting bevat. Een eigenaarvoorwaarde, zoals “Eigenaar van incident”, noemt mensen en teams met hun ID, en de ID's moeten van dit project zijn.",
-  "Which events the rule is for and where it posts. A condition can name owners by the IDs of people and teams, as Incident Owner does, and an on-call rule can name on-call policies by ID, as On-Call Policy does. The IDs must be of this project.": "Voor welke gebeurtenissen de regel geldt en waar hij plaatst. Een voorwaarde kan eigenaren noemen met de ID's van mensen en teams, zoals “Eigenaar van incident”, en een regel voor bereikbaarheidsbeleid kan beleid noemen met de ID, zoals “Bereikbaarheidsbeleid”. De ID's moeten van dit project zijn."
+  "Which items the summary includes. An owner condition, such as Incident Owner, names people and teams of this project by ID.": "Welke items de samenvatting bevat. Een eigenaarvoorwaarde, zoals “Eigenaar van incident”, noemt mensen en teams van dit project met hun ID.",
+  "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "Voor welke gebeurtenissen de regel geldt en waar hij plaatst. Eigenaarvoorwaarden en “Bereikbaarheidsbeleid” noemen mensen, teams en beleid van dit project met hun ID."
 }

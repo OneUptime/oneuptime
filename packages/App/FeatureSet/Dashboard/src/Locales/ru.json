@@ -51858,6 +51858,6 @@
   "has all of": "содержит каждое из",
   "has any of": "содержит любое из",
   "has none of": "не содержит ни одного из",
-  "Conditions on which items the summary includes. An owner condition, such as Incident Owner, names people and teams by ID, and the IDs must be of this project.": "Условия, определяющие, какие элементы входят в сводку. Условие по владельцу, например «Владелец инцидента», указывает людей и команды по идентификатору, и идентификаторы должны принадлежать этому проекту.",
-  "Which events the rule is for and where it posts. A condition can name owners by the IDs of people and teams, as Incident Owner does, and an on-call rule can name on-call policies by ID, as On-Call Policy does. The IDs must be of this project.": "К каким событиям относится правило и куда оно публикует. Условие может указывать владельцев по идентификаторам людей и команд, как «Владелец инцидента», а правило для политик дежурства — политики дежурства по идентификатору, как «Политика дежурства». Идентификаторы должны принадлежать этому проекту."
+  "Which items the summary includes. An owner condition, such as Incident Owner, names people and teams of this project by ID.": "Какие элементы входят в сводку. Условие по владельцу, например «Владелец инцидента», указывает людей и команды этого проекта по идентификатору.",
+  "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "К каким событиям относится правило и куда оно публикует. Условия по владельцу и «Политика дежурства» указывают людей, команды и политики этого проекта по идентификатору."
 }

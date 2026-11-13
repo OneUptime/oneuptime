@@ -51858,6 +51858,6 @@
   "has all of": "has all of",
   "has any of": "has any of",
   "has none of": "has none of",
-  "Conditions on which items the summary includes. An owner condition, such as Incident Owner, names people and teams by ID, and the IDs must be of this project.": "Conditions on which items the summary includes. An owner condition, such as Incident Owner, names people and teams by ID, and the IDs must be of this project.",
-  "Which events the rule is for and where it posts. A condition can name owners by the IDs of people and teams, as Incident Owner does, and an on-call rule can name on-call policies by ID, as On-Call Policy does. The IDs must be of this project.": "Which events the rule is for and where it posts. A condition can name owners by the IDs of people and teams, as Incident Owner does, and an on-call rule can name on-call policies by ID, as On-Call Policy does. The IDs must be of this project."
+  "Which items the summary includes. An owner condition, such as Incident Owner, names people and teams of this project by ID.": "Which items the summary includes. An owner condition, such as Incident Owner, names people and teams of this project by ID.",
+  "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID."
 }

@@ -51858,6 +51858,6 @@
   "has all of": "次のすべてを含む",
   "has any of": "次のいずれかを含む",
   "has none of": "次のいずれも含まない",
-  "Conditions on which items the summary includes. An owner condition, such as Incident Owner, names people and teams by ID, and the IDs must be of this project.": "概要に含める項目を決める条件です。「インシデントの所有者」のような所有者の条件は、人とチームを ID で指定します。ID はこのプロジェクトのものである必要があります。",
-  "Which events the rule is for and where it posts. A condition can name owners by the IDs of people and teams, as Incident Owner does, and an on-call rule can name on-call policies by ID, as On-Call Policy does. The IDs must be of this project.": "ルールの対象となるイベントと投稿先です。条件では、「インシデントの所有者」のように人とチームの ID で所有者を指定できます。オンコールポリシーのルールでは、「オンコールポリシー」のようにオンコールポリシーを ID で指定できます。ID はこのプロジェクトのものである必要があります。"
+  "Which items the summary includes. An owner condition, such as Incident Owner, names people and teams of this project by ID.": "概要に含める項目です。「インシデントの所有者」のような所有者の条件は、このプロジェクトの人とチームを ID で指定します。",
+  "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "ルールの対象となるイベントと投稿先です。所有者の条件と「オンコールポリシー」は、このプロジェクトの人、チーム、ポリシーを ID で指定します。"
 }

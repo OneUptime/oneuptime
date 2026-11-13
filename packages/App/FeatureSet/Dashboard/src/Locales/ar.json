@@ -51858,6 +51858,6 @@
   "has all of": "تتضمن كلًا من",
   "has any of": "تتضمن أيًا من",
   "has none of": "لا تتضمن أيًا من",
-  "Conditions on which items the summary includes. An owner condition, such as Incident Owner, names people and teams by ID, and the IDs must be of this project.": "شروط تحدد العناصر التي يتضمنها الملخص. يحدد شرط المالك، مثل «مالك الحادثة»، الأشخاص والفرق بمعرّفاتهم، ويجب أن تكون المعرّفات من هذا المشروع.",
-  "Which events the rule is for and where it posts. A condition can name owners by the IDs of people and teams, as Incident Owner does, and an on-call rule can name on-call policies by ID, as On-Call Policy does. The IDs must be of this project.": "الأحداث التي تنطبق عليها القاعدة والمكان الذي تنشر فيه. يمكن أن يحدد الشرط المالكين بمعرّفات الأشخاص والفرق، كما يفعل «مالك الحادثة»، ويمكن لقاعدة المناوبة أن تحدد سياسات المناوبة بمعرّفاتها، كما يفعل «سياسة المناوبة». يجب أن تكون المعرّفات من هذا المشروع."
+  "Which items the summary includes. An owner condition, such as Incident Owner, names people and teams of this project by ID.": "العناصر التي يتضمنها الملخص. يحدد شرط المالك، مثل «مالك الحادثة»، أشخاصًا وفرقًا من هذا المشروع بمعرّفاتهم.",
+  "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "الأحداث التي تنطبق عليها القاعدة والمكان الذي تنشر فيه. تحدد شروط المالك و«سياسة المناوبة» أشخاصًا وفرقًا وسياسات من هذا المشروع بمعرّفاتها."
 }

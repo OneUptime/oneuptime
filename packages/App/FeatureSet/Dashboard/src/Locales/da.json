@@ -51858,6 +51858,6 @@
   "has all of": "har hver af",
   "has any of": "har en af",
   "has none of": "har ingen af",
-  "Conditions on which items the summary includes. An owner condition, such as Incident Owner, names people and teams by ID, and the IDs must be of this project.": "Betingelser for, hvilke elementer oversigten medtager. En ejerbetingelse, som »Ejer af hændelse«, angiver personer og teams med deres id, og id'erne skal høre til dette projekt.",
-  "Which events the rule is for and where it posts. A condition can name owners by the IDs of people and teams, as Incident Owner does, and an on-call rule can name on-call policies by ID, as On-Call Policy does. The IDs must be of this project.": "Hvilke begivenheder reglen gælder for, og hvor den slår op. En betingelse kan angive ejere med id'er for personer og teams, som »Ejer af hændelse«, og en regel for vagtpolitikker kan angive vagtpolitikker med deres id, som »Vagtpolitik«. Id'erne skal høre til dette projekt."
+  "Which items the summary includes. An owner condition, such as Incident Owner, names people and teams of this project by ID.": "Hvilke elementer oversigten medtager. En ejerbetingelse, som »Ejer af hændelse«, angiver personer og teams i dette projekt med deres id.",
+  "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "Hvilke begivenheder reglen gælder for, og hvor den slår op. Ejerbetingelser og »Vagtpolitik« angiver personer, teams og politikker i dette projekt med deres id."
 }
