@@ -1083,14 +1083,29 @@ describe("the first-week check-in on Home", () => {
       return kept;
     };
 
-    // Not yet, with Setup health's finding: both kinds of link are drawn.
+    /*
+     * Not yet, with Setup health's finding: both kinds of link are drawn.
+     * It waits until the answer is kept, so the card is at rest (nothing
+     * updates it outside act) when a test reads its links.
+     */
     const openNotYet: () => Promise<void> = async (): Promise<void> => {
+      const answersKept: number = postsTo(PRODUCT_FEEDBACK_ROUTE).length;
+
       projectMadeDaysAgo(8);
       drawCheckIn(false, 3);
 
-      fireEvent.click(
-        await screen.findByTestId(SETUP_CHECK_IN_NOT_YET_TEST_ID),
+      const notYet: HTMLElement = await screen.findByTestId(
+        SETUP_CHECK_IN_NOT_YET_TEST_ID,
       );
+
+      await act(async () => {
+        fireEvent.click(notYet);
+        await new Promise<void>((resolve: () => void) => {
+          setTimeout(resolve, 0);
+        });
+      });
+
+      expect(postsTo(PRODUCT_FEEDBACK_ROUTE)).toHaveLength(answersKept + 1);
     };
 
     const setupHealthLink: () => HTMLAnchorElement = (): HTMLAnchorElement => {
