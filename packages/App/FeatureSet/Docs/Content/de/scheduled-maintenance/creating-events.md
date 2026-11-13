@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Das Formular öffnen
 
-Gehen Sie zu **Geplante Wartung → Alle Wartungsereignisse** und klicken Sie auf **Wartungsereignis erstellen**. Das Formular öffnet sich mit seinem ersten Schritt, **Ereignis**.
+Gehen Sie zu **Geplante Wartung → Alle Wartungsereignisse** und klicken Sie auf **Wartungsereignis erstellen**. Das Formular öffnet sich mit seinem ersten Schritt, **Wartungsdetails**.
 
 ### Sagen, was passiert und wann
 
@@ -56,12 +56,12 @@ Nichts wird gesendet, bis Sie eine Statusseite wählen: Ein Ereignis, das auf ke
 
 | Feld                                 | Schritt            | Beginnt als                     | Was es tut                                                                       |
 | ------------------------------------ | ------------------ | ------------------------------- | -------------------------------------------------------------------------------- |
-| **Titel**                            | **Ereignis**       | Leer und erforderlich           | Benennt das Ereignis überall, auch auf Ihren Statusseiten.                       |
-| **Beschreibung**                     | **Ereignis**       | Leer                            | Erklärt Ihren Kunden die Arbeit, in Markdown.                                    |
-| **Beginnt am**                       | **Ereignis**       | Die nächste volle Stunde        | Wann das Ereignis von selbst beginnt.                                            |
-| **Endet am**                         | **Ereignis**       | Eine Stunde nach **Beginnt am** | Wann das Ereignis von selbst endet. Es muss nach **Beginnt am** liegen.          |
-| **Eigentümer**                       | **Ereignis**       | Niemand                         | Personen und Teams, denen das Ereignis gehört und die darüber informiert werden. |
-| **Beschriftungen**                   | **Ereignis**       | Keine                           | Beschriftungen, nach denen Regeln und Filter suchen können.                      |
+| **Titel**                            | **Wartungsdetails**       | Leer und erforderlich           | Benennt das Ereignis überall, auch auf Ihren Statusseiten.                       |
+| **Beschreibung**                     | **Wartungsdetails**       | Leer                            | Erklärt Ihren Kunden die Arbeit, in Markdown.                                    |
+| **Beginnt am**                       | **Wartungsdetails**       | Die nächste volle Stunde        | Wann das Ereignis von selbst beginnt.                                            |
+| **Endet am**                         | **Wartungsdetails**       | Eine Stunde nach **Beginnt am** | Wann das Ereignis von selbst endet. Es muss nach **Beginnt am** liegen.          |
+| **Eigentümer**                       | **Wartungsdetails**       | Niemand                         | Personen und Teams, denen das Ereignis gehört und die darüber informiert werden. |
+| **Beschriftungen**                   | **Wartungsdetails**       | Keine                           | Beschriftungen, nach denen Regeln und Filter suchen können.                      |
 | **Monitore**                         | **Betroffene Ressourcen** | Keine                    | Die Monitore, die nicht geprüft werden, solange das Ereignis läuft.              |
 | **Monitor-Status ändern in**         | **Betroffene Ressourcen** | Keine Änderung           | Der Status, den diese Monitore während des Ereignisses zeigen. Wird abgefragt, sobald ein Monitor gewählt ist. |
 | **Andere betroffene Ressourcen**     | **Betroffene Ressourcen** | Keine                    | Hosts, Cluster, Datenbanken, Netzwerkstandorte, Dienste und mehr.                |
@@ -113,7 +113,7 @@ Alles aus dem Formular lässt sich auf den Seiten des Ereignisses ändern, auße
 
 | Zu ändern                                   | Wohin                                                                          |
 | ------------------------------------------- | ------------------------------------------------------------------------------ |
-| Titel, Zeitfenster oder Beschriftungen      | **Bearbeiten** auf der Karte **Wartungsdetails** seiner **Übersicht**, Schritt **Ereignis** |
+| Titel, Zeitfenster oder Beschriftungen      | **Bearbeiten** auf der Karte **Wartungsdetails** seiner **Übersicht**, Schritt **Wartungsdetails** |
 | Die Statusseiten, wann es veröffentlicht wird, oder die Erinnerungen | Dasselbe **Bearbeiten**, Schritt **Statusseiten**              |
 | Die Monitore, ihr Status oder andere Ressourcen | **Bearbeiten** auf der Karte **Betroffene Ressourcen**                      |
 | Die Beschreibung                            | **Beschreibung** in seinem Seitenmenü                                          |

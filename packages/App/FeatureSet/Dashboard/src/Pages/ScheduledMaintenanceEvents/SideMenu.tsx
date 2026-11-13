@@ -83,8 +83,8 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
     /*
      * The calendar, a page of its own: every event by month, week or day,
      * with the calendars from outside the project beside them. It used to
-     * be a List | Calendar switch on All Events. Open, like Overview: people
-     * plan maintenance on it.
+     * be a List | Calendar switch on All Maintenance Events. Open, like
+     * Overview: people plan maintenance on it.
      */
     {
       title: "Calendar",

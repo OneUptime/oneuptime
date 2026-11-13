@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Öppna formuläret
 
-Gå till **Schemalagt underhåll → Alla underhållshändelser** och klicka på **Skapa underhållshändelse**. Formuläret öppnas på sitt första steg, **Händelse**.
+Gå till **Schemalagt underhåll → Alla underhållshändelser** och klicka på **Skapa underhållshändelse**. Formuläret öppnas på sitt första steg, **Underhållsdetaljer**.
 
 ### Säg vad som händer och när
 
@@ -56,12 +56,12 @@ Ingenting skickas förrän du väljer en statussida: en händelse som inte visas
 
 | Fält                                 | Steg               | Börjar som                      | Vad det gör                                                                      |
 | ------------------------------------ | ------------------ | ------------------------------- | -------------------------------------------------------------------------------- |
-| **Titel**                            | **Händelse**       | Tom, och obligatorisk           | Namnger händelsen överallt, även på dina statussidor.                            |
-| **Beskrivning**                      | **Händelse**       | Tom                             | Förklarar arbetet för dina kunder, i Markdown.                                   |
-| **Börjar den**                       | **Händelse**       | Nästa hela timme                | När händelsen börjar av sig själv.                                               |
-| **Slutar den**                       | **Händelse**       | En timme efter **Börjar den**   | När händelsen slutar av sig själv. Den måste komma efter **Börjar den**.         |
-| **Ägare**                            | **Händelse**       | Ingen                           | Personer och team som äger händelsen och får veta om den.                        |
-| **Etiketter**                        | **Händelse**       | Inga                            | Etiketter som regler och filter kan matcha på.                                   |
+| **Titel**                            | **Underhållsdetaljer**       | Tom, och obligatorisk           | Namnger händelsen överallt, även på dina statussidor.                            |
+| **Beskrivning**                      | **Underhållsdetaljer**       | Tom                             | Förklarar arbetet för dina kunder, i Markdown.                                   |
+| **Börjar den**                       | **Underhållsdetaljer**       | Nästa hela timme                | När händelsen börjar av sig själv.                                               |
+| **Slutar den**                       | **Underhållsdetaljer**       | En timme efter **Börjar den**   | När händelsen slutar av sig själv. Den måste komma efter **Börjar den**.         |
+| **Ägare**                            | **Underhållsdetaljer**       | Ingen                           | Personer och team som äger händelsen och får veta om den.                        |
+| **Etiketter**                        | **Underhållsdetaljer**       | Inga                            | Etiketter som regler och filter kan matcha på.                                   |
 | **Monitorer**                        | **Berörda resurser** | Inga                          | De monitorer som inte kontrolleras medan händelsen pågår.                        |
 | **Ändra övervakningsstatus till**    | **Berörda resurser** | Ingen ändring                 | Den status monitorerna visar under händelsen. Efterfrågas så snart en monitor är vald. |
 | **Andra påverkade resurser**         | **Berörda resurser** | Inga                          | Värdar, kluster, databaser, nätverksplatser, tjänster och mer.                   |
@@ -113,7 +113,7 @@ Allt i formuläret kan ändras på händelsens egna sidor, utom de tre prenumera
 
 | För att ändra                               | Gå till                                                                        |
 | ------------------------------------------- | ------------------------------------------------------------------------------ |
-| Titeln, fönstret eller etiketterna          | **Redigera** på kortet **Underhållsdetaljer** i dess **Översikt**, steget **Händelse** |
+| Titeln, fönstret eller etiketterna          | **Redigera** på kortet **Underhållsdetaljer** i dess **Översikt**, steget **Underhållsdetaljer** |
 | Statussidorna, när den publiceras, eller påminnelserna | Samma **Redigera**, steget **Statussidor**                           |
 | Monitorerna, deras status eller andra resurser | **Redigera** på kortet **Berörda resurser**                                 |
 | Beskrivningen                               | **Beskrivning** i dess sidomeny                                                |

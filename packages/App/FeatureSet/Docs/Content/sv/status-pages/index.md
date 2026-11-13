@@ -125,7 +125,7 @@ Den offentliga sidan är en egen applikation, med en liten uppsättning rutter:
 - `/rss`: flödet.
 - `/login`, `/sso`, `/magic-link`, `/magic-link-login/:token` och `/master-password`: bara relevanta på en privat sida.
 
-Navigeringsfältet högst upp visar alltid **Översikt**; resten visas bara när det är påslaget. **Incidenter**, **Meddelanden** och **Planerat underhåll** behöver var sitt reglage; **Prenumerera** behöver både **Visa prenumerantsida** och minst en påslagen prenumerationskanal. En privat sida har också ett objekt **Logga ut**.
+Navigeringsfältet högst upp visar alltid **Översikt**; resten visas bara när det är påslaget. **Incidenter**, **Meddelanden** och **Schemalagt underhåll** behöver var sitt reglage; **Prenumerera** behöver både **Visa prenumerantsida** och minst en påslagen prenumerationskanal. En privat sida har också ett objekt **Logga ut**.
 
 En enskild incident, episod, ett enskilt meddelande eller en enskild schemalagd händelse öppnas bara om sidan skulle lista den, oavsett historikfönster: en privat incident eller episod, en som är dold på statussidor, en schemalagd händelse som är dold på statussidor eller ett meddelande som är schemalagt till senare hittas inte heller via sin länk.
 
@@ -138,7 +138,7 @@ En enskild incident, episod, ett enskilt meddelande eller en enskild schemalagd 
 3. **En total upptidsprocent**, om du har slagit på den: i slutet av bannern med övergripande status, så länge alla resurser är i drift. Av som standard.
 4. **Resursgrupperna**, var och en med sina resurser, deras aktuella status och deras staplar med upptidshistorik.
 5. **Aktiva incidenter**, med aktiva episoder.
-6. **Planerat underhåll**.
+6. **Schemalagt underhåll**.
 
 En nyskapad sida utan innehåll visar ett tomt läge som ber dig lägga till resurser från instrumentpanelen — signalen att gå till skärmen **Resurser**.
 
@@ -154,7 +154,7 @@ Vad besökarna ser anges på ett enda kort: **Vad din statussida visar**, under 
 - **Visa bara incidenter som är begränsade till den här sidan** (`onlyShowScopedIncidents`): också på incidentraden, av som standard. Slå på den så visar sidan, och aviserar sina prenumeranter om, bara de incidenter som är begränsade till den med **Begränsa till dessa statussidor**. Incidenter som inte är begränsade till någon sida, även de som en monitor, Slack, Microsoft Teams, API:et eller AI öppnar av sig själv, når aldrig sidan förrän någon lägger till sidan i dem. Den avgör också vilka incidenter som tar med sina episoder till sidan, och därför finns den kvar när **Visa incidenter** är av. För sidor som delar monitorer men betjänar olika målgrupper, se [En statussida per målgrupp](/docs/status-pages/one-status-page-per-audience).
 - **Visa episoder** (`showEpisodesOnStatusPage`): på som standard, med **Visa de senaste … dagarna** (`showEpisodeHistoryInDays`, standard 14) och **Visa episodetiketter** (`showEpisodeLabelsOnStatusPage`, av som standard). Episoder är en egen modell med egna slutpunkter, inte en vy av incidenter.
 - **Visa meddelanden** (`showAnnouncementsOnStatusPage`): på som standard, med **Visa de senaste … dagarna** (`showAnnouncementHistoryInDays`, standard 14).
-- **Visa underhållshändelser** (`showScheduledMaintenanceEventsOnStatusPage`): på som standard, med **Visa de senaste … dagarna** (`showScheduledEventHistoryInDays`, standard 14) och **Visa händelseetiketter** (`showScheduledEventLabelsOnStatusPage`, av som standard).
+- **Visa underhållshändelser** (`showScheduledMaintenanceEventsOnStatusPage`): på som standard, med **Visa de senaste … dagarna** (`showScheduledEventHistoryInDays`, standard 14) och **Visa etiketter för underhållshändelser** (`showScheduledEventLabelsOnStatusPage`, av som standard).
 - **Upptidshistorik**: allt om sidans upptid, på en rad:
   - **Visa de senaste … dagarna** (`showUptimeHistoryInDays`) är längden på upptidsstapeln bredvid varje resurs. Den är 90 som standard och måste vara mellan 1 och 90. Alla val för **Visa upptid %** och **Visa statushistorikdiagram** för en resurs eller grupp läser det här talet, och det gör även den totala upptidsprocenten.
   - **Visa total upptidsprocent** (`showOverallUptimePercentOnStatusPage`): av som standard. Slå på den så avslutas bannern med övergripande status med en upptidsprocent för hela sidan, medelvärdet av dess resurser och grupper, så länge allt är i drift. Medan den är på väljer **Precision** (`overallUptimePercentPrecision`) hur många decimaler den visar: `99%`, `99.9%`, `99.99%` (standard) eller `99.999%`. Varje resurs och varje grupp har sin egen precision.
@@ -228,7 +228,7 @@ Tre sätt att visa status någon annanstans än på själva sidan.
 
 **RSS-flöde.** Varje statussida levererar `/rss`: ett flöde med titeln "{sidtitel} Updates", med den **Sidtitel** som anges under **Varumärke**, eller sidans namn om den inte har någon, och vars poster börjar med `Incident: `, `Announcement: ` och `Scheduled Maintenance: `. Varje post är daterad som sidan daterar den: en incident efter när den deklarerades, ett meddelande efter när det publicerades och en planerad underhållshändelse efter när den börjar, med beskrivningen inledd av dess tidsfönster. Användbart för den som hellre hämtar dina uppdateringar till en flödesläsare eller en chattbot än prenumererar via e-post.
 
-**Underhållskalender.** Varje statussida levererar också `/maintenance.ics`: det schemalagda underhåll den visar, som en kalender som Google Kalender, Apple Kalender eller Outlook kan prenumerera på. Besökare lägger till den med **Prenumerera på kalender** på sidans sida **Planerat underhåll**, och en enskild händelse med **Lägg till i kalender** på händelsens egen sida. En privat sidas kalender är tom, eftersom en kalenderapp inte kan logga in. Se [Underhållskalender](/docs/scheduled-maintenance/calendar#en-statussidas-kalender).
+**Underhållskalender.** Varje statussida levererar också `/maintenance.ics`: det schemalagda underhåll den visar, som en kalender som Google Kalender, Apple Kalender eller Outlook kan prenumerera på. Besökare lägger till den med **Prenumerera på kalender** på sidans sida **Schemalagt underhåll**, och en enskild händelse med **Lägg till i kalender** på händelsens egen sida. En privat sidas kalender är tom, eftersom en kalenderapp inte kan logga in. Se [Underhållskalender](/docs/scheduled-maintenance/calendar#en-statussidas-kalender).
 
 Om du hellre hämtar data själv bygger statussidan på offentliga lässlutpunkter för översikten, incidenterna, de schemalagda underhållshändelserna, meddelandena och episoderna: se [Offentligt API](/docs/status-pages/public-api).
 

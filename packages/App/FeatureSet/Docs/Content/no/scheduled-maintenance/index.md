@@ -88,7 +88,7 @@ Mens en hendelse pågår, behandler OneUptime avbruddet den planlegger, som forv
 | **Varsler**        | **Varsellogger** og **AI-logger**: hver melding som er sendt om hendelsen, og hva AI har gjort for den |
 | **Notater**       | **Private notater** og **Offentlige notater**                                                  |
 | **Utvikler**      | **Terraform**, **API**, **CLI** og **AI-assistenter**: hendelsen styrt fra kode                |
-| **Avansert**      | **Egendefinerte felt**, **Innstillinger**, **Revisjonslogger**, **Slett hendelse**             |
+| **Avansert**      | **Egendefinerte felt**, **Innstillinger**, **Revisjonslogger**, **Slett vedlikeholdshendelse**             |
 
 **Oversikt**, **Team** og **Notater** er åpne; de andre seksjonene forblir sammenslått til du klikker på dem.
 

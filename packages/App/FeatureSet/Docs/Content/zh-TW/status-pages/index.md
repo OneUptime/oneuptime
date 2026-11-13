@@ -138,7 +138,7 @@ OneUptime 各處使用的詞彙都收錄在 [詞彙表](/docs/introduction/gloss
 3. **整體正常運作時間百分比**（如果你開啟了它）：在所有資源都正常運作時，顯示在整體狀態橫幅的末尾。預設為關閉。
 4. **資源群組**：每個群組及其資源、它們目前的狀態和正常運作時間歷史長條。
 5. **進行中事件**（包括進行中的片段）。
-6. **維護事件**。
+6. **排定維護**。
 
 一個什麼都沒有的新頁面會顯示空白狀態，提示你從儀表板新增資源，這就是你該前往 **資源** 畫面的訊號。
 
@@ -154,7 +154,7 @@ OneUptime 各處使用的詞彙都收錄在 [詞彙表](/docs/introduction/gloss
 - **僅顯示限定到此頁面的事件**（`onlyShowScopedIncidents`）：同樣位於事件這一列，預設關閉。開啟後，頁面只會顯示透過 **僅限這些狀態頁面** 限定到它的事件，也只會就這些事件通知訂閱者。沒有限定到任何頁面的事件，包括監測器、Slack、Microsoft Teams、API 或 AI 自行建立的事件，在有人把此頁面加給它們之前，永遠不會到達此頁面。它也決定哪些事件會把它們的片段帶到頁面上，所以即使 **顯示事件** 關閉，它也會保留。對於共用監測器但面向不同受眾的頁面，請參閱 [每個受眾一個狀態頁](/docs/status-pages/one-status-page-per-audience)。
 - **顯示片段**（`showEpisodesOnStatusPage`）：預設開啟，帶有 **顯示最近 … 天**（`showEpisodeHistoryInDays`，預設 14）和 **顯示片段標籤**（`showEpisodeLabelsOnStatusPage`，預設關閉）。片段是擁有自己端點的獨立模型，而不是事件的一種檢視。
 - **顯示公告**（`showAnnouncementsOnStatusPage`）：預設開啟，帶有 **顯示最近 … 天**（`showAnnouncementHistoryInDays`，預設 14）。
-- **顯示維護事件**（`showScheduledMaintenanceEventsOnStatusPage`）：預設開啟，帶有 **顯示最近 … 天**（`showScheduledEventHistoryInDays`，預設 14）和 **顯示事件標籤**（`showScheduledEventLabelsOnStatusPage`，預設關閉）。
+- **顯示維護事件**（`showScheduledMaintenanceEventsOnStatusPage`）：預設開啟，帶有 **顯示最近 … 天**（`showScheduledEventHistoryInDays`，預設 14）和 **顯示維護事件標籤**（`showScheduledEventLabelsOnStatusPage`，預設關閉）。
 - **正常運作時間歷史記錄**：與頁面正常運作時間有關的一切，都在一列裡：
   - **顯示最近 … 天**（`showUptimeHistoryInDays`）是每個資源旁正常運作時間長條的長度。預設 90，必須介於 1 到 90 之間。資源或群組上的每個 **顯示正常運作時間 %** 和 **顯示狀態歷史記錄圖表** 選項都會讀取這個數字，整體正常運作時間百分比也是如此。
   - **顯示整體正常運作時間百分比**（`showOverallUptimePercentOnStatusPage`）：預設關閉。開啟後，在一切正常運作時，整體狀態橫幅的末尾會顯示整個頁面的一個正常運作時間百分比，也就是其資源和群組的平均值。開啟期間，**精確度**（`overallUptimePercentPrecision`）決定顯示幾位小數：`99%`、`99.9%`、`99.99%`（預設）或 `99.999%`。每個資源和群組都有自己的精確度。

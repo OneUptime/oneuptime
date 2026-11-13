@@ -39,7 +39,7 @@ Geben Sie ihr unter **Vorlageninformationen** einen **Vorlagenname** und eine **
 
 ### Das Ereignis beschreiben
 
-Füllen Sie unter **Ereignis** den **Titel** und die **Beschreibung** aus, mit denen jedes Ereignis daraus beginnt. **Eigentümer** und **Beschriftungen** liegen unter **Weitere Felder**.
+Füllen Sie unter **Wartungsdetails** den **Titel** und die **Beschreibung** aus, mit denen jedes Ereignis daraus beginnt. **Eigentümer** und **Beschriftungen** liegen unter **Weitere Felder**.
 
 ### Auswählen, was sie betrifft
 
@@ -108,7 +108,7 @@ Ein Job prüft die wiederkehrenden Vorlagen jede Minute. Wenn die nächste Zeit 
 
 Öffnen Sie eine Vorlage aus der Liste, um ihre Seite zu sehen:
 
-- **Vorlagendetails der geplanten Wartung** zeigt, womit neue Ereignisse beginnen. Ihr **Bearbeiten** führt durch **Vorlageninformationen**, **Ereignis**, **Statusseiten** und **Wiederkehrend**.
+- **Vorlagendetails der geplanten Wartung** zeigt, womit neue Ereignisse beginnen. Ihr **Bearbeiten** führt durch **Vorlageninformationen**, **Wartungsdetails**, **Statusseiten** und **Wiederkehrend**.
 - **Betroffene Ressourcen** enthält ihre **Monitore**, deren **Monitor-Status ändern in** und ihre **Andere betroffene Ressourcen**, mit einem eigenen **Bearbeiten**.
 - **Eigentümer** listet die Personen und Teams auf, denen jedes aus ihr geplante Ereignis gehört.
 

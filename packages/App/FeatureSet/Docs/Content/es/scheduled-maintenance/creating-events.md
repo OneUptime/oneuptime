@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Abrir el formulario
 
-Ve a **Mantenimiento programado → Todos los eventos de mantenimiento** y haz clic en **Crear evento de mantenimiento**. El formulario se abre en su primer paso, **Evento**.
+Ve a **Mantenimiento programado → Todos los eventos de mantenimiento** y haz clic en **Crear evento de mantenimiento**. El formulario se abre en su primer paso, **Detalles del mantenimiento**.
 
 ### Decir qué ocurre y cuándo
 
@@ -56,12 +56,12 @@ No se envía nada hasta que eliges una página de estado: un evento que no apare
 
 | Campo                                | Paso               | Empieza como                    | Qué hace                                                                         |
 | ------------------------------------ | ------------------ | ------------------------------- | -------------------------------------------------------------------------------- |
-| **Título**                           | **Evento**         | Vacío, y obligatorio            | Nombra el evento en todas partes, también en tus páginas de estado.              |
-| **Descripción**                      | **Evento**         | Vacía                           | Explica el trabajo a tus clientes, en Markdown.                                  |
-| **Comienza en**                      | **Evento**         | La próxima hora en punto        | Cuándo empieza el evento, por sí solo.                                           |
-| **Termina en**                       | **Evento**         | Una hora después de **Comienza en** | Cuándo termina el evento, por sí solo. Debe ser posterior a **Comienza en**. |
-| **Propietarios**                     | **Evento**         | Nadie                           | Personas y equipos a los que pertenece el evento y que reciben avisos sobre él.  |
-| **Etiquetas**                        | **Evento**         | Ninguna                         | Etiquetas que las reglas y los filtros pueden usar.                              |
+| **Título**                           | **Detalles del mantenimiento**         | Vacío, y obligatorio            | Nombra el evento en todas partes, también en tus páginas de estado.              |
+| **Descripción**                      | **Detalles del mantenimiento**         | Vacía                           | Explica el trabajo a tus clientes, en Markdown.                                  |
+| **Comienza en**                      | **Detalles del mantenimiento**         | La próxima hora en punto        | Cuándo empieza el evento, por sí solo.                                           |
+| **Termina en**                       | **Detalles del mantenimiento**         | Una hora después de **Comienza en** | Cuándo termina el evento, por sí solo. Debe ser posterior a **Comienza en**. |
+| **Propietarios**                     | **Detalles del mantenimiento**         | Nadie                           | Personas y equipos a los que pertenece el evento y que reciben avisos sobre él.  |
+| **Etiquetas**                        | **Detalles del mantenimiento**         | Ninguna                         | Etiquetas que las reglas y los filtros pueden usar.                              |
 | **Monitores**                        | **Recursos afectados** | Ninguno                     | Los monitores que no se comprueban mientras el evento está en curso.             |
 | **Cambiar el estado del monitor a**  | **Recursos afectados** | Sin cambio                  | El estado que muestran esos monitores durante el evento. Se pide en cuanto se elige un monitor. |
 | **Otros recursos afectados**         | **Recursos afectados** | Ninguno                     | Hosts, clústeres, bases de datos, sitios de red, servicios y más.                |
@@ -113,7 +113,7 @@ Todo lo del formulario se puede cambiar en las páginas del evento, excepto los 
 
 | Para cambiar                                | Ve a                                                                           |
 | ------------------------------------------- | ------------------------------------------------------------------------------ |
-| El título, la ventana o las etiquetas       | **Editar** en la tarjeta **Detalles del mantenimiento** de su **Vista general**, paso **Evento** |
+| El título, la ventana o las etiquetas       | **Editar** en la tarjeta **Detalles del mantenimiento** de su **Vista general**, paso **Detalles del mantenimiento** |
 | Las páginas de estado, cuándo se publica o los recordatorios | El mismo **Editar**, paso **Páginas de estado**                  |
 | Los monitores, su estado u otros recursos   | **Editar** en la tarjeta **Recursos afectados**                                 |
 | La descripción                              | **Descripción** en su menú lateral                                             |

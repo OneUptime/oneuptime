@@ -88,7 +88,7 @@ Abra um evento na lista para ver suas páginas. Seu menu lateral reúne:
 | **Notificações**     | **Logs de notificação** e **Registros de IA**: cada mensagem enviada sobre o evento, e o que a IA fez por ele |
 | **Notas**         | **Notas privadas** e **Notas públicas**                                                        |
 | **Desenvolvedores** | **Terraform**, **API**, **CLI** e **Assistentes de IA**: o evento gerenciado pelo código     |
-| **Avançado**      | **Campos personalizados**, **Configurações**, **Registros de auditoria**, **Excluir evento**    |
+| **Avançado**      | **Campos personalizados**, **Configurações**, **Registros de auditoria**, **Excluir evento de manutenção**    |
 
 **Visão geral**, **Equipe** e **Notas** ficam abertas; as outras seções começam recolhidas até você clicar nelas.
 

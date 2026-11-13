@@ -88,7 +88,7 @@ Open an event from the list to see its pages. Its side menu holds:
 | **Notifications**          | **Notification Logs** and **AI Logs**: every message sent about the event, and what AI did for it |
 | **Notes**         | **Private Notes** and **Public Notes**                                                         |
 | **Developer**     | **Terraform**, **API**, **CLI** and **AI Assistants**: the event managed from code            |
-| **Advanced**      | **Custom Fields**, **Settings**, **Audit Logs**, **Delete Event**                             |
+| **Advanced**      | **Custom Fields**, **Settings**, **Audit Logs**, **Delete Maintenance Event**                 |
 
 **Overview**, **Team** and **Notes** are open; the other sections start folded until you click them.
 

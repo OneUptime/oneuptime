@@ -39,7 +39,7 @@ Under **Skabeloninformation** giver du den et **Skabelonnavn** og en **Skabelonb
 
 ### Beskriv begivenheden
 
-Under **Begivenhed** udfylder du den **Titel** og den **Beskrivelse**, som hver begivenhed fra den starter med. **Ejere** og **Etiketter** venter under **Flere felter**.
+Under **Detaljer om vedligeholdelse** udfylder du den **Titel** og den **Beskrivelse**, som hver begivenhed fra den starter med. **Ejere** og **Etiketter** venter under **Flere felter**.
 
 ### Vælg, hvad den påvirker
 
@@ -108,7 +108,7 @@ Et job kontrollerer de tilbagevendende skabeloner hvert minut. Når en skabelons
 
 Åbn en skabelon fra listen for at se dens side:
 
-- **Skabelondetaljer for planlagt vedligeholdelse** viser, hvad nye begivenheder starter med. Dens **Rediger** går gennem **Skabeloninformation**, **Begivenhed**, **Statussider** og **Tilbagevendende**.
+- **Skabelondetaljer for planlagt vedligeholdelse** viser, hvad nye begivenheder starter med. Dens **Rediger** går gennem **Skabeloninformation**, **Detaljer om vedligeholdelse**, **Statussider** og **Tilbagevendende**.
 - **Berørte ressourcer** rummer dens **Monitorer**, deres **Skift overvågningsstatus til** og dens **Andre berørte ressourcer**, med sin egen **Rediger**.
 - **Ejere** viser de personer og teams, der ejer hver begivenhed, der planlægges ud fra den.
 

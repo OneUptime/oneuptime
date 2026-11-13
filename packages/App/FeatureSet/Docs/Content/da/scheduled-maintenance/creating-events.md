@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Åbn formularen
 
-Gå til **Planlagt vedligeholdelse → Alle vedligeholdelseshændelser**, og klik på **Opret vedligeholdelseshændelse**. Formularen åbner på sit første trin, **Begivenhed**.
+Gå til **Planlagt vedligeholdelse → Alle vedligeholdelseshændelser**, og klik på **Opret vedligeholdelseshændelse**. Formularen åbner på sit første trin, **Detaljer om vedligeholdelse**.
 
 ### Sig, hvad der sker og hvornår
 
@@ -56,12 +56,12 @@ Intet sendes, før du vælger en statusside: en begivenhed, der ikke vises på n
 
 | Felt                                 | Trin               | Starter som                     | Hvad det gør                                                                     |
 | ------------------------------------ | ------------------ | ------------------------------- | -------------------------------------------------------------------------------- |
-| **Titel**                            | **Begivenhed**     | Tom, og påkrævet                | Navngiver begivenheden overalt, også på dine statussider.                        |
-| **Beskrivelse**                      | **Begivenhed**     | Tom                             | Forklarer arbejdet for dine kunder, i Markdown.                                  |
-| **Begynder den**                     | **Begivenhed**     | Den næste hele time             | Hvornår begivenheden starter af sig selv.                                        |
-| **Slutter den**                      | **Begivenhed**     | En time efter **Begynder den**  | Hvornår begivenheden slutter af sig selv. Den skal ligge efter **Begynder den**. |
-| **Ejere**                            | **Begivenhed**     | Ingen                           | Personer og teams, der ejer begivenheden og får besked om den.                   |
-| **Etiketter**                        | **Begivenhed**     | Ingen                           | Etiketter, som regler og filtre kan matche på.                                   |
+| **Titel**                            | **Detaljer om vedligeholdelse**     | Tom, og påkrævet                | Navngiver begivenheden overalt, også på dine statussider.                        |
+| **Beskrivelse**                      | **Detaljer om vedligeholdelse**     | Tom                             | Forklarer arbejdet for dine kunder, i Markdown.                                  |
+| **Begynder den**                     | **Detaljer om vedligeholdelse**     | Den næste hele time             | Hvornår begivenheden starter af sig selv.                                        |
+| **Slutter den**                      | **Detaljer om vedligeholdelse**     | En time efter **Begynder den**  | Hvornår begivenheden slutter af sig selv. Den skal ligge efter **Begynder den**. |
+| **Ejere**                            | **Detaljer om vedligeholdelse**     | Ingen                           | Personer og teams, der ejer begivenheden og får besked om den.                   |
+| **Etiketter**                        | **Detaljer om vedligeholdelse**     | Ingen                           | Etiketter, som regler og filtre kan matche på.                                   |
 | **Monitorer**                        | **Berørte ressourcer** | Ingen                       | De monitorer, der ikke kontrolleres, mens begivenheden står på.                  |
 | **Skift overvågningsstatus til**     | **Berørte ressourcer** | Ingen ændring               | Den status, de monitorer viser under begivenheden. Spørges om, så snart en monitor er valgt. |
 | **Andre berørte ressourcer**         | **Berørte ressourcer** | Ingen                       | Værter, klynger, databaser, netværkslokationer, tjenester og mere.               |
@@ -113,7 +113,7 @@ Alt fra formularen kan ændres på begivenhedens egne sider, undtagen de tre abo
 
 | For at ændre                                | Gå til                                                                         |
 | ------------------------------------------- | ------------------------------------------------------------------------------ |
-| Titlen, vinduet eller etiketterne           | **Rediger** på kortet **Detaljer om vedligeholdelse** i dens **Oversigt**, trinnet **Begivenhed** |
+| Titlen, vinduet eller etiketterne           | **Rediger** på kortet **Detaljer om vedligeholdelse** i dens **Oversigt**, trinnet **Detaljer om vedligeholdelse** |
 | Statussiderne, hvornår den offentliggøres, eller påmindelserne | Samme **Rediger**, trinnet **Statussider**                   |
 | Monitorerne, deres status eller andre ressourcer | **Rediger** på kortet **Berørte ressourcer**                              |
 | Beskrivelsen                                | **Beskrivelse** i dens sidemenu                                                |

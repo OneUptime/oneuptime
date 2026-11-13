@@ -39,7 +39,7 @@ Under **Mallinformation** ger du den ett **Mallnamn** och en **Mallbeskrivning**
 
 ### Beskriv händelsen
 
-Under **Händelse** fyller du i den **Titel** och den **Beskrivning** som varje händelse från den börjar med. **Ägare** och **Etiketter** väntar under **Fler fält**.
+Under **Underhållsdetaljer** fyller du i den **Titel** och den **Beskrivning** som varje händelse från den börjar med. **Ägare** och **Etiketter** väntar under **Fler fält**.
 
 ### Välj vad den påverkar
 
@@ -108,7 +108,7 @@ Ett jobb kontrollerar de återkommande mallarna varje minut. När en malls näst
 
 Öppna en mall från listan för att se dess sida:
 
-- **Malldetaljer för schemalagt underhåll** visar vad nya händelser börjar med. Dess **Redigera** går igenom **Mallinformation**, **Händelse**, **Statussidor** och **Återkommande**.
+- **Malldetaljer för schemalagt underhåll** visar vad nya händelser börjar med. Dess **Redigera** går igenom **Mallinformation**, **Underhållsdetaljer**, **Statussidor** och **Återkommande**.
 - **Berörda resurser** rymmer dess **Monitorer**, deras **Ändra övervakningsstatus till** och dess **Andra påverkade resurser**, med en egen **Redigera**.
 - **Ägare** listar de personer och team som äger varje händelse som schemaläggs från den.
 

@@ -39,7 +39,7 @@ On **Template Info**, give it a **Template Name** and a **Template Description**
 
 ### Describe the event
 
-On **Event**, fill in the **Title** and the **Description** every event from it starts with. **Owners** and **Labels** wait under **More fields**.
+On **Maintenance Details**, fill in the **Title** and the **Description** every event from it starts with. **Owners** and **Labels** wait under **More fields**.
 
 ### Pick what it affects
 
@@ -108,7 +108,7 @@ A job checks the recurring templates every minute. When a template's next time c
 
 Open a template from the list to see its page:
 
-- **Scheduled Maintenance Template Details** shows what new events start with. Its **Edit** walks **Template Info**, **Event**, **Status Pages** and **Recurring**.
+- **Scheduled Maintenance Template Details** shows what new events start with. Its **Edit** walks **Template Info**, **Maintenance Details**, **Status Pages** and **Recurring**.
 - **Affected Resources** holds its **Monitors**, their **Change Monitor Status to** and its **Other Affected Resources**, with an **Edit** of its own.
 - **Owners** lists the people and teams who own every event scheduled from it.
 

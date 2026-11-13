@@ -39,7 +39,7 @@ In **Informazioni del modello**, dategli un **Nome del modello** e una **Descriz
 
 ### Descrivere l'evento
 
-In **Evento**, compilate il **Titolo** e la **Descrizione** con cui parte ogni evento creato da esso. **Proprietari** ed **Etichette** attendono in **Altri campi**.
+In **Dettagli della manutenzione**, compilate il **Titolo** e la **Descrizione** con cui parte ogni evento creato da esso. **Proprietari** ed **Etichette** attendono in **Altri campi**.
 
 ### Scegliere cosa interessa
 
@@ -108,7 +108,7 @@ Un processo controlla i modelli ricorrenti ogni minuto. Quando arriva la prossim
 
 Aprite un modello dall'elenco per vedere la sua pagina:
 
-- **Dettagli del modello di manutenzione programmata** mostra con cosa partono i nuovi eventi. Il suo **Modifica** percorre **Informazioni del modello**, **Evento**, **Pagine di stato** e **Ricorrente**.
+- **Dettagli del modello di manutenzione programmata** mostra con cosa partono i nuovi eventi. Il suo **Modifica** percorre **Informazioni del modello**, **Dettagli della manutenzione**, **Pagine di stato** e **Ricorrente**.
 - **Risorse interessate** contiene i suoi **Monitor**, il loro **Cambia lo stato del monitor in** e le sue **Altre risorse interessate**, con un proprio **Modifica**.
 - **Proprietari** elenca le persone e i team a cui appartiene ogni evento pianificato da esso.
 

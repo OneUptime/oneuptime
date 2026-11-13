@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Åpne skjemaet
 
-Gå til **Planlagt vedlikehold → Alle vedlikeholdshendelser** og klikk på **Opprett vedlikeholdshendelse**. Skjemaet åpnes på det første trinnet, **Hendelse**.
+Gå til **Planlagt vedlikehold → Alle vedlikeholdshendelser** og klikk på **Opprett vedlikeholdshendelse**. Skjemaet åpnes på det første trinnet, **Detaljer om vedlikehold**.
 
 ### Si hva som skjer og når
 
@@ -56,12 +56,12 @@ Ingenting sendes før du velger en statusside: en hendelse som ikke vises på no
 
 | Felt                                 | Trinn              | Starter som                     | Hva det gjør                                                                     |
 | ------------------------------------ | ------------------ | ------------------------------- | -------------------------------------------------------------------------------- |
-| **Tittel**                           | **Hendelse**       | Tom, og påkrevd                 | Navngir hendelsen overalt, også på statussidene dine.                            |
-| **Beskrivelse**                      | **Hendelse**       | Tom                             | Forklarer arbeidet for kundene dine, i Markdown.                                 |
-| **Begynner den**                     | **Hendelse**       | Neste hele time                 | Når hendelsen starter av seg selv.                                               |
-| **Slutter den**                      | **Hendelse**       | En time etter **Begynner den**  | Når hendelsen slutter av seg selv. Den må komme etter **Begynner den**.          |
-| **Eiere**                            | **Hendelse**       | Ingen                           | Personer og team som eier hendelsen og får beskjed om den.                       |
-| **Etiketter**                        | **Hendelse**       | Ingen                           | Etiketter som regler og filtre kan matche på.                                    |
+| **Tittel**                           | **Detaljer om vedlikehold**       | Tom, og påkrevd                 | Navngir hendelsen overalt, også på statussidene dine.                            |
+| **Beskrivelse**                      | **Detaljer om vedlikehold**       | Tom                             | Forklarer arbeidet for kundene dine, i Markdown.                                 |
+| **Begynner den**                     | **Detaljer om vedlikehold**       | Neste hele time                 | Når hendelsen starter av seg selv.                                               |
+| **Slutter den**                      | **Detaljer om vedlikehold**       | En time etter **Begynner den**  | Når hendelsen slutter av seg selv. Den må komme etter **Begynner den**.          |
+| **Eiere**                            | **Detaljer om vedlikehold**       | Ingen                           | Personer og team som eier hendelsen og får beskjed om den.                       |
+| **Etiketter**                        | **Detaljer om vedlikehold**       | Ingen                           | Etiketter som regler og filtre kan matche på.                                    |
 | **Monitorer**                        | **Berørte ressurser** | Ingen                        | Monitorene som ikke sjekkes mens hendelsen pågår.                                |
 | **Endre overvåkingsstatus til**      | **Berørte ressurser** | Ingen endring                | Statusen disse monitorene viser under hendelsen. Spørres om så snart en monitor er valgt. |
 | **Andre berørte ressurser**          | **Berørte ressurser** | Ingen                        | Verter, klynger, databaser, nettverkslokasjoner, tjenester og mer.               |
@@ -113,7 +113,7 @@ Alt i skjemaet kan endres på hendelsens egne sider, unntatt de tre abonnenttids
 
 | For å endre                                 | Gå til                                                                         |
 | ------------------------------------------- | ------------------------------------------------------------------------------ |
-| Tittelen, vinduet eller etikettene          | **Rediger** på kortet **Detaljer om vedlikehold** i **Oversikt**, trinnet **Hendelse** |
+| Tittelen, vinduet eller etikettene          | **Rediger** på kortet **Detaljer om vedlikehold** i **Oversikt**, trinnet **Detaljer om vedlikehold** |
 | Statussidene, når den publiseres, eller påminnelsene | Samme **Rediger**, trinnet **Statussider**                             |
 | Monitorene, statusen deres eller andre ressurser | **Rediger** på kortet **Berørte ressurser**                               |
 | Beskrivelsen                                | **Beskrivelse** i sidemenyen                                                   |

@@ -35,7 +35,7 @@
     "overview": "Overzicht",
     "incidents": "Incidenten",
     "announcements": "Aankondigingen",
-    "scheduledEvents": "Gepland onderhoud",
+    "scheduledEvents": "Geplande onderhoud",
     "subscribe": "Abonneren",
     "login": "Inloggen",
     "logout": "Uitloggen"
@@ -46,7 +46,7 @@
     "notMonitored": "Niet bewaakt",
     "noResourcesInGroup": "Geen bronnen toegevoegd aan deze groep.",
     "activeIncidents": "Actieve incidenten",
-    "scheduledMaintenanceEvents": "Gepland onderhoud",
+    "scheduledMaintenanceEvents": "Geplande onderhoud",
     "allClearTitle": "Alles ziet er goed uit",
     "allClearDescription": "Er zijn nog geen bronnen toegevoegd aan deze statuspagina. Voeg alstublieft enkele bronnen toe vanaf het dashboard.",
     "allResourcesAre": "Alle bronnen zijn {{status}}",
@@ -133,7 +133,7 @@
     "notFound": "Aankondiging niet gevonden op deze statuspagina."
   },
   "scheduledEvents": {
-    "title": "Gepland onderhoud",
+    "title": "Geplande onderhoud",
     "singular": "Onderhoudsgebeurtenis",
     "scheduledMaintenance": "Gepland onderhoud",
     "ongoing": "Lopend onderhoud",

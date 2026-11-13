@@ -88,7 +88,7 @@ Mens en begivenhed står på, behandler OneUptime det nedbrud, den planlægger, 
 | **Notifikationer**   | **Notifikationslogs** og **AI-logs**: hver besked, der er sendt om begivenheden, og hvad AI har gjort for den |
 | **Noter**         | **Private noter** og **Offentlige noter**                                                      |
 | **Udvikler**      | **Terraform**, **API**, **CLI** og **AI-assistenter**: begivenheden styret fra kode            |
-| **Avanceret**     | **Brugerdefinerede felter**, **Indstillinger**, **Auditlogs**, **Slet begivenhed**             |
+| **Avanceret**     | **Brugerdefinerede felter**, **Indstillinger**, **Auditlogs**, **Slet vedligeholdelseshændelse**             |
 
 **Oversigt**, **Team** og **Noter** er åbne; de andre sektioner forbliver foldet sammen, indtil du klikker på dem.
 

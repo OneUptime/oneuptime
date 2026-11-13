@@ -39,7 +39,7 @@ Under **Malinformasjon** gir du den et **Malnavn** og en **Malbeskrivelse**, sli
 
 ### Beskriv hendelsen
 
-Under **Hendelse** fyller du ut **Tittel** og **Beskrivelse** som hver hendelse fra den starter med. **Eiere** og **Etiketter** venter under **Flere felt**.
+Under **Detaljer om vedlikehold** fyller du ut **Tittel** og **Beskrivelse** som hver hendelse fra den starter med. **Eiere** og **Etiketter** venter under **Flere felt**.
 
 ### Velg hva den berører
 
@@ -108,7 +108,7 @@ En jobb sjekker de gjentakende malene hvert minutt. Når det neste tidspunktet t
 
 Åpne en mal fra listen for å se siden dens:
 
-- **Maldetaljer for planlagt vedlikehold** viser hva nye hendelser starter med. **Rediger** går gjennom **Malinformasjon**, **Hendelse**, **Statussider** og **Gjentakende**.
+- **Maldetaljer for planlagt vedlikehold** viser hva nye hendelser starter med. **Rediger** går gjennom **Malinformasjon**, **Detaljer om vedlikehold**, **Statussider** og **Gjentakende**.
 - **Berørte ressurser** rommer **Monitorer**, deres **Endre overvåkingsstatus til** og **Andre berørte ressurser**, med sin egen **Rediger**.
 - **Eiere** viser personene og teamene som eier hver hendelse som planlegges fra den.
 

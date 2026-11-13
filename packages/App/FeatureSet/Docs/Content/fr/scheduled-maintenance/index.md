@@ -88,7 +88,7 @@ Ouvrez un événement depuis la liste pour voir ses pages. Son menu latéral con
 | **Notifications**      | **Journaux de notification** et **Journaux IA** : chaque message envoyé au sujet de l'événement, et tout ce que l'IA a fait pour lui |
 | **Notes**         | **Notes privées** et **Notes publiques**                                                       |
 | **Développeurs**  | **Terraform**, **API**, **CLI** et **Assistants IA** : l'événement géré par le code            |
-| **Avancé**        | **Champs personnalisés**, **Paramètres**, **Journaux d'audit**, **Supprimer l'événement**      |
+| **Avancé**        | **Champs personnalisés**, **Paramètres**, **Journaux d'audit**, **Supprimer l'événement de maintenance**      |
 
 **Vue d'ensemble**, **Équipe** et **Notes** sont ouvertes ; les autres sections restent repliées jusqu'à ce que vous cliquiez dessus.
 

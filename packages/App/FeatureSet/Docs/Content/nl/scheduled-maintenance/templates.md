@@ -39,7 +39,7 @@ Geef het onder **Sjablooninformatie** een **Sjabloonnaam** en een **Sjabloonbesc
 
 ### De gebeurtenis beschrijven
 
-Vul onder **Gebeurtenis** de **Titel** en de **Beschrijving** in waarmee elke gebeurtenis ervan begint. **Eigenaren** en **Labels** wachten onder **Meer velden**.
+Vul onder **Onderhoudsgegevens** de **Titel** en de **Beschrijving** in waarmee elke gebeurtenis ervan begint. **Eigenaren** en **Labels** wachten onder **Meer velden**.
 
 ### Kiezen wat het raakt
 
@@ -108,7 +108,7 @@ Een taak controleert de terugkerende sjablonen elke minuut. Wanneer de volgende 
 
 Open een sjabloon uit de lijst om de pagina ervan te zien:
 
-- **Sjabloondetails voor geplande onderhoud** toont waarmee nieuwe gebeurtenissen beginnen. Het **Bewerken** ervan loopt door **Sjablooninformatie**, **Gebeurtenis**, **Statuspagina's** en **Terugkerend**.
+- **Sjabloondetails voor geplande onderhoud** toont waarmee nieuwe gebeurtenissen beginnen. Het **Bewerken** ervan loopt door **Sjablooninformatie**, **Onderhoudsgegevens**, **Statuspagina's** en **Terugkerend**.
 - **Getroffen resources** bevat de **Monitoren**, hun **Monitorstatus wijzigen naar** en de **Andere getroffen resources**, met een eigen **Bewerken**.
 - **Eigenaren** toont de personen en teams van wie elke gebeurtenis is die ermee wordt gepland.
 

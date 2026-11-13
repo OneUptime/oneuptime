@@ -335,7 +335,7 @@ export const DISPLAY_SECTIONS: ReadonlyArray<DisplaySectionDefinition> = [
     options: [
       {
         column: "showScheduledEventLabelsOnStatusPage",
-        title: translationKey("Show Event Labels"),
+        title: translationKey("Show Maintenance Event Labels"),
         isOnlyWhileShown: true,
       },
     ],

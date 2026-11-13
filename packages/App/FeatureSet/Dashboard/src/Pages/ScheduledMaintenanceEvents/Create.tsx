@@ -422,7 +422,7 @@ const ScheduledMaintenanceCreate: FunctionComponent<
               }}
               steps={[
                 {
-                  title: "Event",
+                  title: "Maintenance Details",
                   id: "event",
                 },
                 {

@@ -88,7 +88,7 @@ Solange ein Ereignis läuft, behandelt OneUptime den geplanten Ausfall als erwar
 | **Benachrichtigungen**    | **Benachrichtigungsprotokolle** und **KI-Protokolle**: jede Nachricht über das Ereignis und alles, was die KI dafür getan hat |
 | **Notizen**       | **Private Notizen** und **Öffentliche Notizen**                                                |
 | **Entwickler**    | **Terraform**, **API**, **CLI** und **KI-Assistenten**: das Ereignis per Code verwaltet         |
-| **Erweitert**     | **Benutzerdefinierte Felder**, **Einstellungen**, **Audit-Protokolle**, **Ereignis löschen**    |
+| **Erweitert**     | **Benutzerdefinierte Felder**, **Einstellungen**, **Audit-Protokolle**, **Wartungsereignis löschen**    |
 
 **Übersicht**, **Team** und **Notizen** sind geöffnet; die anderen Abschnitte bleiben eingeklappt, bis Sie sie anklicken.
 

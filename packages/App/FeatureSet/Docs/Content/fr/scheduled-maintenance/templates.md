@@ -39,7 +39,7 @@ Dans **Informations du modèle**, donnez-lui un **Nom du modèle** et une **Desc
 
 ### Décrire l'événement
 
-Dans **Événement**, renseignez le **Titre** et la **Description** avec lesquels démarre chaque événement issu du modèle. **Propriétaires** et **Étiquettes** attendent sous **Plus de champs**.
+Dans **Détails de la maintenance**, renseignez le **Titre** et la **Description** avec lesquels démarre chaque événement issu du modèle. **Propriétaires** et **Étiquettes** attendent sous **Plus de champs**.
 
 ### Choisir ce qu'il affecte
 
@@ -108,7 +108,7 @@ Une tâche vérifie les modèles récurrents chaque minute. Quand arrive la proc
 
 Ouvrez un modèle depuis la liste pour voir sa page :
 
-- **Détails du modèle de maintenance planifiée** montre ce avec quoi démarrent les nouveaux événements. Son **Modifier** parcourt **Informations du modèle**, **Événement**, **Pages de statut** et **Récurrent**.
+- **Détails du modèle de maintenance planifiée** montre ce avec quoi démarrent les nouveaux événements. Son **Modifier** parcourt **Informations du modèle**, **Détails de la maintenance**, **Pages de statut** et **Récurrent**.
 - **Ressources affectées** contient ses **Moniteurs**, leur **Changer le statut du moniteur en** et ses **Autres ressources affectées**, avec son propre **Modifier**.
 - **Propriétaires** liste les personnes et équipes à qui appartient chaque événement planifié à partir de lui.
 

@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Ouvrir le formulaire
 
-Allez dans **Maintenance planifiée → Tous les événements de maintenance** et cliquez sur **Créer un événement de maintenance**. Le formulaire s'ouvre sur sa première étape, **Événement**.
+Allez dans **Maintenance planifiée → Tous les événements de maintenance** et cliquez sur **Créer un événement de maintenance**. Le formulaire s'ouvre sur sa première étape, **Détails de la maintenance**.
 
 ### Dire ce qui se passe et quand
 
@@ -56,12 +56,12 @@ Rien n'est envoyé tant que vous ne choisissez pas de page de statut : un évén
 
 | Champ                                | Étape              | Valeur de départ                | Ce qu'il fait                                                                    |
 | ------------------------------------ | ------------------ | ------------------------------- | -------------------------------------------------------------------------------- |
-| **Titre**                            | **Événement**      | Vide, et obligatoire            | Nomme l'événement partout, sur vos pages de statut aussi.                        |
-| **Description**                      | **Événement**      | Vide                            | Explique les travaux à vos clients, en Markdown.                                 |
-| **Commence le**                      | **Événement**      | La prochaine heure pleine       | Quand l'événement commence, tout seul.                                           |
-| **Se termine le**                    | **Événement**      | Une heure après **Commence le** | Quand l'événement se termine, tout seul. Il doit venir après **Commence le**.    |
-| **Propriétaires**                    | **Événement**      | Personne                        | Les personnes et équipes à qui appartient l'événement et qui en sont informées. |
-| **Étiquettes**                       | **Événement**      | Aucune                          | Des étiquettes que les règles et les filtres peuvent cibler.                     |
+| **Titre**                            | **Détails de la maintenance**      | Vide, et obligatoire            | Nomme l'événement partout, sur vos pages de statut aussi.                        |
+| **Description**                      | **Détails de la maintenance**      | Vide                            | Explique les travaux à vos clients, en Markdown.                                 |
+| **Commence le**                      | **Détails de la maintenance**      | La prochaine heure pleine       | Quand l'événement commence, tout seul.                                           |
+| **Se termine le**                    | **Détails de la maintenance**      | Une heure après **Commence le** | Quand l'événement se termine, tout seul. Il doit venir après **Commence le**.    |
+| **Propriétaires**                    | **Détails de la maintenance**      | Personne                        | Les personnes et équipes à qui appartient l'événement et qui en sont informées. |
+| **Étiquettes**                       | **Détails de la maintenance**      | Aucune                          | Des étiquettes que les règles et les filtres peuvent cibler.                     |
 | **Moniteurs**                        | **Ressources affectées** | Aucun                     | Les moniteurs qui ne sont pas vérifiés pendant que l'événement est en cours.     |
 | **Changer le statut du moniteur en** | **Ressources affectées** | Aucun changement          | Le statut que ces moniteurs affichent pendant l'événement. Demandé dès qu'un moniteur est choisi. |
 | **Autres ressources affectées**      | **Ressources affectées** | Aucune                    | Hôtes, clusters, bases de données, sites réseau, services et plus.               |
@@ -113,7 +113,7 @@ Tout ce que contient le formulaire peut être modifié sur les pages de l'évén
 
 | Pour modifier                               | Allez dans                                                                     |
 | ------------------------------------------- | ------------------------------------------------------------------------------ |
-| Le titre, la fenêtre ou les étiquettes      | **Modifier** sur la carte **Détails de la maintenance** de sa **Vue d'ensemble**, étape **Événement** |
+| Le titre, la fenêtre ou les étiquettes      | **Modifier** sur la carte **Détails de la maintenance** de sa **Vue d'ensemble**, étape **Détails de la maintenance** |
 | Les pages de statut, quand il est publié, ou les rappels | Le même **Modifier**, étape **Pages de statut**                     |
 | Les moniteurs, leur statut ou les autres ressources | **Modifier** sur la carte **Ressources affectées**                       |
 | La description                              | **Description** dans son menu latéral                                          |

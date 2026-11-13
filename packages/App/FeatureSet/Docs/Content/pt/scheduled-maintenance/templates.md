@@ -39,7 +39,7 @@ Em **Informações do modelo**, dê a ele um **Nome do modelo** e uma **Descriç
 
 ### Descrever o evento
 
-Em **Evento**, preencha o **Título** e a **Descrição** com que começa cada evento criado a partir dele. **Proprietários** e **Rótulos** ficam em **Mais campos**.
+Em **Detalhes da manutenção**, preencha o **Título** e a **Descrição** com que começa cada evento criado a partir dele. **Proprietários** e **Rótulos** ficam em **Mais campos**.
 
 ### Escolher o que ele afeta
 
@@ -108,7 +108,7 @@ Uma tarefa verifica os modelos recorrentes a cada minuto. Quando chega o próxim
 
 Abra um modelo na lista para ver a página dele:
 
-- **Detalhes do modelo de manutenção programada** mostra com o que os eventos novos começam. O **Editar** dele percorre **Informações do modelo**, **Evento**, **Páginas de status** e **Recorrente**.
+- **Detalhes do modelo de manutenção programada** mostra com o que os eventos novos começam. O **Editar** dele percorre **Informações do modelo**, **Detalhes da manutenção**, **Páginas de status** e **Recorrente**.
 - **Recursos afetados** reúne os **Monitores** dele, o **Alterar status do monitor para** desses monitores e os **Outros recursos afetados**, com um **Editar** próprio.
 - **Proprietários** lista as pessoas e equipes donas de cada evento agendado a partir dele.
 

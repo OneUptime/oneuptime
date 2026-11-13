@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Aprire il modulo
 
-Andate in **Manutenzione programmata → Tutti gli eventi di manutenzione** e fate clic su **Crea evento di manutenzione**. Il modulo si apre sul suo primo passo, **Evento**.
+Andate in **Manutenzione programmata → Tutti gli eventi di manutenzione** e fate clic su **Crea evento di manutenzione**. Il modulo si apre sul suo primo passo, **Dettagli della manutenzione**.
 
 ### Dire cosa succede e quando
 
@@ -56,12 +56,12 @@ Non viene inviato nulla finché non scegliete una pagina di stato: un evento mos
 
 | Campo                                | Passo              | Parte come                      | Cosa fa                                                                          |
 | ------------------------------------ | ------------------ | ------------------------------- | -------------------------------------------------------------------------------- |
-| **Titolo**                           | **Evento**         | Vuoto, e obbligatorio           | Dà il nome all'evento ovunque, anche sulle vostre pagine di stato.               |
-| **Descrizione**                      | **Evento**         | Vuota                           | Spiega il lavoro ai vostri clienti, in Markdown.                                 |
-| **Inizia il**                        | **Evento**         | La prossima ora piena           | Quando l'evento inizia, da solo.                                                 |
-| **Termina il**                       | **Evento**         | Un'ora dopo **Inizia il**       | Quando l'evento termina, da solo. Deve venire dopo **Inizia il**.                |
-| **Proprietari**                      | **Evento**         | Nessuno                         | Persone e team a cui appartiene l'evento e che ne vengono avvisati.              |
-| **Etichette**                        | **Evento**         | Nessuna                         | Etichette su cui regole e filtri possono basarsi.                                |
+| **Titolo**                           | **Dettagli della manutenzione**         | Vuoto, e obbligatorio           | Dà il nome all'evento ovunque, anche sulle vostre pagine di stato.               |
+| **Descrizione**                      | **Dettagli della manutenzione**         | Vuota                           | Spiega il lavoro ai vostri clienti, in Markdown.                                 |
+| **Inizia il**                        | **Dettagli della manutenzione**         | La prossima ora piena           | Quando l'evento inizia, da solo.                                                 |
+| **Termina il**                       | **Dettagli della manutenzione**         | Un'ora dopo **Inizia il**       | Quando l'evento termina, da solo. Deve venire dopo **Inizia il**.                |
+| **Proprietari**                      | **Dettagli della manutenzione**         | Nessuno                         | Persone e team a cui appartiene l'evento e che ne vengono avvisati.              |
+| **Etichette**                        | **Dettagli della manutenzione**         | Nessuna                         | Etichette su cui regole e filtri possono basarsi.                                |
 | **Monitor**                          | **Risorse interessate** | Nessuno                    | I monitor che non vengono controllati mentre l'evento è in corso.                |
 | **Cambia lo stato del monitor in**   | **Risorse interessate** | Nessun cambio              | Lo stato che questi monitor mostrano durante l'evento. Viene chiesto appena si sceglie un monitor. |
 | **Altre risorse interessate**        | **Risorse interessate** | Nessuna                    | Host, cluster, database, siti di rete, servizi e altro.                          |
@@ -113,7 +113,7 @@ Tutto ciò che c'è nel modulo si può cambiare sulle pagine dell'evento, tranne
 
 | Per cambiare                                | Andate a                                                                       |
 | ------------------------------------------- | ------------------------------------------------------------------------------ |
-| Il titolo, la finestra o le etichette       | **Modifica** sulla scheda **Dettagli della manutenzione** della sua **Panoramica**, passo **Evento** |
+| Il titolo, la finestra o le etichette       | **Modifica** sulla scheda **Dettagli della manutenzione** della sua **Panoramica**, passo **Dettagli della manutenzione** |
 | Le pagine di stato, quando viene pubblicato, o i promemoria | Lo stesso **Modifica**, passo **Pagine di stato**                  |
 | I monitor, il loro stato o le altre risorse | **Modifica** sulla scheda **Risorse interessate**                               |
 | La descrizione                              | **Descrizione** nel suo menu laterale                                          |

@@ -88,7 +88,7 @@ Medan en händelse pågår behandlar OneUptime avbrottet den planerar som vänta
 | **Aviseringar**        | **Aviseringsloggar** och **AI-loggar**: varje meddelande som skickats om händelsen, och vad AI har gjort för den |
 | **Anteckningar**  | **Privata anteckningar** och **Offentliga anteckningar**                                       |
 | **Utvecklare**    | **Terraform**, **API**, **CLI** och **AI-assistenter**: händelsen styrd från kod               |
-| **Avancerad**     | **Anpassade fält**, **Inställningar**, **Granskningsloggar**, **Ta bort händelse**             |
+| **Avancerad**     | **Anpassade fält**, **Inställningar**, **Granskningsloggar**, **Ta bort underhållshändelse**             |
 
 **Översikt**, **Team** och **Anteckningar** är öppna; de andra avsnitten förblir hopfällda tills du klickar på dem.
 

@@ -88,7 +88,7 @@ Open een gebeurtenis uit de lijst om haar pagina's te zien. Haar zijmenu bevat:
 | **Meldingen**     | **Meldingslogboeken** en **AI-logboeken**: elk bericht dat over de gebeurtenis is verstuurd, en wat AI ervoor deed |
 | **Notities**      | **Privénotities** en **Openbare notities**                                                     |
 | **Ontwikkelaars** | **Terraform**, **API**, **CLI** en **AI-assistenten**: de gebeurtenis beheerd vanuit code     |
-| **Geavanceerd**   | **Aangepaste velden**, **Instellingen**, **Auditlogboeken**, **Gebeurtenis verwijderen**       |
+| **Geavanceerd**   | **Aangepaste velden**, **Instellingen**, **Auditlogboeken**, **Onderhoudsgebeurtenis verwijderen**       |
 
 **Overzicht**, **Team** en **Notities** zijn open; de andere secties blijven ingeklapt tot je erop klikt.
 

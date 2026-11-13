@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Het formulier openen
 
-Ga naar **Geplande onderhoud → Alle onderhoudsgebeurtenissen** en klik op **Onderhoudsgebeurtenis aanmaken**. Het formulier opent op de eerste stap, **Gebeurtenis**.
+Ga naar **Geplande onderhoud → Alle onderhoudsgebeurtenissen** en klik op **Onderhoudsgebeurtenis aanmaken**. Het formulier opent op de eerste stap, **Onderhoudsgegevens**.
 
 ### Zeggen wat er gebeurt en wanneer
 
@@ -56,12 +56,12 @@ Er wordt niets verstuurd tot je een statuspagina kiest: een gebeurtenis die op g
 
 | Veld                                 | Stap               | Begint als                      | Wat het doet                                                                     |
 | ------------------------------------ | ------------------ | ------------------------------- | -------------------------------------------------------------------------------- |
-| **Titel**                            | **Gebeurtenis**    | Leeg, en verplicht              | Geeft de gebeurtenis overal een naam, ook op je statuspagina's.                  |
-| **Beschrijving**                     | **Gebeurtenis**    | Leeg                            | Legt het werk uit aan je klanten, in Markdown.                                   |
-| **Begint op**                        | **Gebeurtenis**    | Het volgende hele uur           | Wanneer de gebeurtenis vanzelf begint.                                           |
-| **Eindigt op**                       | **Gebeurtenis**    | Een uur na **Begint op**        | Wanneer de gebeurtenis vanzelf eindigt. Moet na **Begint op** liggen.            |
-| **Eigenaren**                        | **Gebeurtenis**    | Niemand                         | Personen en teams van wie de gebeurtenis is en die erover bericht krijgen.       |
-| **Labels**                           | **Gebeurtenis**    | Geen                            | Labels waarop regels en filters kunnen letten.                                   |
+| **Titel**                            | **Onderhoudsgegevens**    | Leeg, en verplicht              | Geeft de gebeurtenis overal een naam, ook op je statuspagina's.                  |
+| **Beschrijving**                     | **Onderhoudsgegevens**    | Leeg                            | Legt het werk uit aan je klanten, in Markdown.                                   |
+| **Begint op**                        | **Onderhoudsgegevens**    | Het volgende hele uur           | Wanneer de gebeurtenis vanzelf begint.                                           |
+| **Eindigt op**                       | **Onderhoudsgegevens**    | Een uur na **Begint op**        | Wanneer de gebeurtenis vanzelf eindigt. Moet na **Begint op** liggen.            |
+| **Eigenaren**                        | **Onderhoudsgegevens**    | Niemand                         | Personen en teams van wie de gebeurtenis is en die erover bericht krijgen.       |
+| **Labels**                           | **Onderhoudsgegevens**    | Geen                            | Labels waarop regels en filters kunnen letten.                                   |
 | **Monitoren**                        | **Getroffen middelen** | Geen                        | De monitoren die niet worden gecontroleerd zolang de gebeurtenis loopt.          |
 | **Monitorstatus wijzigen naar**      | **Getroffen middelen** | Geen wijziging              | De status die deze monitoren tijdens de gebeurtenis tonen. Wordt gevraagd zodra er een monitor is gekozen. |
 | **Andere getroffen resources**       | **Getroffen middelen** | Geen                        | Hosts, clusters, databases, netwerklocaties, services en meer.                   |
@@ -113,7 +113,7 @@ Alles uit het formulier kun je op de pagina's van de gebeurtenis wijzigen, behal
 
 | Om te wijzigen                              | Ga naar                                                                        |
 | ------------------------------------------- | ------------------------------------------------------------------------------ |
-| De titel, het venster of de labels          | **Bewerken** op de kaart **Onderhoudsgegevens** van haar **Overzicht**, stap **Gebeurtenis** |
+| De titel, het venster of de labels          | **Bewerken** op de kaart **Onderhoudsgegevens** van haar **Overzicht**, stap **Onderhoudsgegevens** |
 | De statuspagina's, wanneer ze wordt gepubliceerd, of de herinneringen | Hetzelfde **Bewerken**, stap **Statuspagina's**             |
 | De monitoren, hun status of andere resources | **Bewerken** op de kaart **Getroffen resources**                              |
 | De beschrijving                             | **Beschrijving** in haar zijmenu                                               |

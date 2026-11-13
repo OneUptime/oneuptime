@@ -168,9 +168,17 @@ describe("docs search, on the real docs", () => {
       expect(urls(await search("en", "notifcations")).slice(0, 3)).toEqual(
         expect.arrayContaining(["/docs/en/notifications/notification-methods"]),
       );
-      expect(urls(await search("en", "service catalog")).slice(0, 2)).toEqual(
-        expect.arrayContaining(["/docs/en/telemetry/services"]),
-      );
+      /*
+       * Services' old name (#6817): the page no longer says it, so the
+       * glossary's term that lists it comes first, then the page itself.
+       */
+      expect(
+        urls(await search("en", "service catalog"))
+          .slice(0, 2)
+          .some((url: string): boolean => {
+            return url.startsWith("/docs/en/telemetry/services");
+          }),
+      ).toBe(true);
     },
     BUILD_TIMEOUT_MS,
   );

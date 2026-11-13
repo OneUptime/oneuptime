@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Open the form
 
-Go to **Scheduled Maintenance → All Maintenance Events** and click **Create Maintenance Event**. The form opens on its first step, **Event**.
+Go to **Scheduled Maintenance → All Maintenance Events** and click **Create Maintenance Event**. The form opens on its first step, **Maintenance Details**.
 
 ### Say what is happening and when
 
@@ -56,12 +56,12 @@ Nothing is sent until you pick a status page: an event shown on no status page t
 
 | Field                                | Step               | Starts as                       | What it does                                                                     |
 | ------------------------------------ | ------------------ | ------------------------------- | -------------------------------------------------------------------------------- |
-| **Title**                            | **Event**          | Empty, and required             | Names the event everywhere, on your status pages too.                            |
-| **Description**                      | **Event**          | Empty                           | Explains the work to your customers, in Markdown.                                |
-| **Starts At**                        | **Event**          | The next full hour              | When the event starts, on its own.                                               |
-| **Ends At**                          | **Event**          | An hour after **Starts At**     | When the event ends, on its own. It has to come after **Starts At**.             |
-| **Owners**                           | **Event**          | Nobody                          | People and teams who own the event and are told about it.                        |
-| **Labels**                           | **Event**          | None                            | Labels that rules and filters can match on.                                      |
+| **Title**                            | **Maintenance Details** | Empty, and required             | Names the event everywhere, on your status pages too.                            |
+| **Description**                      | **Maintenance Details** | Empty                           | Explains the work to your customers, in Markdown.                                |
+| **Starts At**                        | **Maintenance Details** | The next full hour              | When the event starts, on its own.                                               |
+| **Ends At**                          | **Maintenance Details** | An hour after **Starts At**     | When the event ends, on its own. It has to come after **Starts At**.             |
+| **Owners**                           | **Maintenance Details** | Nobody                          | People and teams who own the event and are told about it.                        |
+| **Labels**                           | **Maintenance Details** | None                            | Labels that rules and filters can match on.                                      |
 | **Monitors**                         | **Resources Affected** | None                        | The monitors that are not checked while the event is in progress.               |
 | **Change Monitor Status to**         | **Resources Affected** | No change                   | The status those monitors show during the event. Asked once a monitor is picked. |
 | **Other Affected Resources**         | **Resources Affected** | None                        | Hosts, clusters, databases, network sites, services and more.                    |
@@ -113,7 +113,7 @@ Everything on the form can be changed on the event's own pages, except the three
 
 | To change                                   | Go to                                                                          |
 | ------------------------------------------- | ------------------------------------------------------------------------------ |
-| The title, the window or the labels         | **Edit** on the **Maintenance Details** card of its **Overview**, step **Event** |
+| The title, the window or the labels         | **Edit** on the **Maintenance Details** card of its **Overview**, step **Maintenance Details** |
 | The status pages, when it is published, or the reminders | The same **Edit**, step **Status Pages**                           |
 | The monitors, their status or other resources | **Edit** on the **Affected Resources** card                                   |
 | The description                             | **Description** in its side menu                                               |
