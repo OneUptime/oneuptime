@@ -8,7 +8,10 @@ import {
   toExportChartSeries,
 } from "Common/UI/Utils/AIChatExport/ChatWidgetData";
 import PdfDocument, { PDF_COLORS } from "./PdfDocument";
-import { getReaderDateLocale } from "Common/Types/DateLanguage";
+import {
+  getLocaleClockHourOption,
+  getReaderDateLocale,
+} from "Common/Types/DateLanguage";
 
 /*
  * Draws a chart widget as real vector graphics.
@@ -94,14 +97,22 @@ function niceTicks(min: number, max: number, count: number): Array<number> {
   return ticks.length > 0 ? ticks : [min, max];
 }
 
-function formatTimeLabel(date: Date, spanMs: number): string {
+export function formatTimeLabel(date: Date, spanMs: number): string {
   const TWO_HOURS: number = 2 * 60 * 60 * 1000;
   const TWO_DAYS: number = 2 * 24 * 60 * 60 * 1000;
   const TWO_YEARS: number = 2 * 365 * 24 * 60 * 60 * 1000;
 
+  /*
+   * On the language's own clock: "05:14" in German, "5:14 AM" and "오전
+   * 5:14" on a 12-hour one, never "오전 05:14" (issue #7279).
+   */
+  const hour: "numeric" | "2-digit" = getLocaleClockHourOption(
+    getReaderDateLocale(),
+  );
+
   if (spanMs <= TWO_HOURS) {
     return date.toLocaleTimeString(getReaderDateLocale(), {
-      hour: "2-digit",
+      hour,
       minute: "2-digit",
     });
   }
@@ -109,7 +120,7 @@ function formatTimeLabel(date: Date, spanMs: number): string {
     return date.toLocaleString(getReaderDateLocale(), {
       month: "short",
       day: "numeric",
-      hour: "2-digit",
+      hour,
       minute: "2-digit",
     });
   }

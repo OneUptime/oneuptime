@@ -5,6 +5,9 @@ import React, {
   ReactNode,
 } from "react";
 import {
+  createTranslator,
+  SentenceOptions,
+  TemplateValues,
   translatableTerm,
   translationKey,
   Translator,
@@ -61,7 +64,7 @@ export interface LogsTableProps {
    */
   resourceEntityMaps?: LogsResourceEntityMaps | undefined;
   isLoading: boolean;
-  emptyMessage?: string | undefined;
+  emptyMessage?: LogsEmptyMessage | undefined;
   /*
    * Drawn in place of the empty list's message when set - the Logs page's
    * first steps (LogsViewer's emptyContentWhenUnfiltered).
@@ -179,6 +182,51 @@ export const LOGS_TABLE_EMPTY_HINT: string = translationKey(
   "Adjust filters or check again later.",
 );
 
+/*
+ * A line under "No logs found" with values in it - the window a search
+ * covered: the English sentence (the translation key) and its values,
+ * written in the reader's language where the list is drawn
+ * (writeLogsEmptyMessage). Handed over as one English string with the
+ * dates already in it, it had no wording in any language, and read English
+ * on every page (issue #7280).
+ */
+export interface LogsEmptySentence {
+  template: string;
+  values: TemplateValues;
+}
+
+/*
+ * What a host hands over for the line under "No logs found": an English
+ * sentence of its own, looked up as it is, or a sentence with values.
+ */
+export type LogsEmptyMessage = string | LogsEmptySentence;
+
+// Without a reader's translator, the English, exactly.
+const ENGLISH_WORDS: Translator = createTranslator(undefined);
+
+/*
+ * A line under "No logs found" in `translator`'s language - English when
+ * none is given. A sentence with values is translated whole, and its values
+ * are written in the language it came out in: a German sentence holds a
+ * German date, an English one (a language with no wording of it yet) an
+ * English date.
+ */
+export function writeLogsEmptyMessage(
+  message: LogsEmptyMessage,
+  translator: Translator = ENGLISH_WORDS,
+  options?: SentenceOptions | undefined,
+): string {
+  if (typeof message === "string") {
+    return translator.translateText(message) || message;
+  }
+
+  return translator.translateTemplate(
+    message.template,
+    message.values,
+    options,
+  );
+}
+
 // "No logs found." and "no logs found" read as the same sentence.
 const asSentenceKey: (text: string) => string = (text: string): string => {
   let value: string = text.trim().toLowerCase();
@@ -197,8 +245,13 @@ const asSentenceKey: (text: string) => string = (text: string): string => {
  * in a row, so it gives way to the list's own hint, as an unset one does.
  */
 export function getLogsTableEmptyHint(
-  emptyMessage: string | undefined,
-): string {
+  emptyMessage: LogsEmptyMessage | undefined,
+): LogsEmptyMessage {
+  // A sentence with values in it says more than the title, always.
+  if (typeof emptyMessage === "object") {
+    return emptyMessage;
+  }
+
   if (
     !emptyMessage ||
     asSentenceKey(emptyMessage).length === 0 ||
@@ -862,8 +915,15 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
             {translator.translateText(LOGS_TABLE_EMPTY_TITLE)}
           </p>
           <p className={LOGS_TABLE_EMPTY_HINT_CLASS_NAME}>
-            {translator.translateText(
+            {/*
+             * A value is set apart where it could move the words around
+             * it: the window's dates in a Persian or Arabic sentence read
+             * as one piece, start then end, where the sentence puts them.
+             */}
+            {writeLogsEmptyMessage(
               getLogsTableEmptyHint(props.emptyMessage),
+              translator,
+              { setsValuesApart: true },
             )}
           </p>
         </div>

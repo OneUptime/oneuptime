@@ -236,6 +236,10 @@ Värden finns kvar i OneUptime med sin historik: Arkivera eller ta bort den i li
 HTTP `401`: Nyckeln är fel, har gått ut eller har tagits bort. HTTP `422`: Den är inaktiverad, är en webbläsarnyckel eller är låst till en tjänst. Välj en aktiverad servernyckel i **Lägg till värd** och kör kommandot igen: Det ersätter nyckeln på värden.
 :::
 
+:::details Kommandot säger att OneUptime inte hittades
+HTTP `404`: Adressen där insamlaren ber om sin konfiguration, din OneUptime-URL följd av `/telemetry/opamp/v1`, når inte OneUptime. Kontrollera att `--url` (`-Url` i Windows) är adressen du öppnar OneUptime på, utan något efter. Om en egen proxy eller lastbalanserare står framför OneUptime, låt den skicka `/telemetry/opamp/v1` till OneUptime, precis som den skickar `/otlp`. Insamlaren fortsätter att fråga var 30:e sekund, så värden ansluter så snart adressen fungerar.
+:::
+
 :::details Värden visas inte
 Kontrollera att värden når din OneUptime-URL över HTTPS och läs sedan insamlarens logg med kommandot för dess system under [Kontrollera en värds insamlare](#kontrollera-en-värds-insamlare).
 :::

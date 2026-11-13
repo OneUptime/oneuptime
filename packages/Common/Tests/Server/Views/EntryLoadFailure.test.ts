@@ -1204,6 +1204,54 @@ describe("EntryLoadFailure: its stylesheet", () => {
       ]);
     }
   });
+
+  /*
+   * The card is drawn where the page's Tailwind may not have arrived - the
+   * connection dropped as the page loaded - so no preflight makes its boxes
+   * border-box: its own rules do, the screen's box included, or the
+   * screen's full width plus its padding runs past the window (48px at a
+   * laptop's width, 14.0.109's release gate).
+   */
+  test("keeps every box it draws border-box by its own rules, the screen's included", async () => {
+    const borderBox: Array<string> = declarationsOf(partialCss())
+      .filter((declaration: Declaration): boolean => {
+        return (
+          declaration.key.startsWith("|") &&
+          declaration.key.endsWith("|box-sizing") &&
+          declaration.value === "border-box"
+        );
+      })
+      .map((declaration: Declaration): string => {
+        return declaration.key.split("|")[1] as string;
+      })
+      .filter((selector: string): boolean => {
+        return !selector.includes("::");
+      });
+
+    const page: OpenedPage = open({ isOnline: false });
+
+    page.failEntry();
+    await page.settle();
+
+    const screen: HTMLElement = card(page)!;
+    const boxes: Array<Element> = [
+      screen,
+      ...Array.from(screen.querySelectorAll("*")),
+    ];
+
+    expect(boxes.length).toBeGreaterThan(8);
+    expect(
+      boxes
+        .filter((box: Element): boolean => {
+          return !borderBox.some((selector: string): boolean => {
+            return box.matches(selector);
+          });
+        })
+        .map((box: Element): string => {
+          return box.getAttribute("class") || box.tagName;
+        }),
+    ).toEqual([]);
+  });
 });
 
 describe("EntryLoadFailure: what the page carries", () => {
@@ -1262,4 +1310,133 @@ describe("EntryLoadFailure: what the page carries", () => {
       `var TAB_MEMORY_PREFIX = "${WINDOW_NAME_PREFIX}";`,
     );
   });
+});
+
+/*
+ * Every frontend's page that carries the card, rendered as its server
+ * renders it, when the connection drops as it loads: none of the scripts it
+ * asks for arrives - Tailwind's runtime, the reading-direction config, the
+ * entry. Its own inline scripts still run without an uncaught error, and
+ * the card says the reader is offline. The Tailwind config each page sets
+ * after its entry threw "tailwind is not defined" there (14.0.109's release
+ * gate); with the runtime on the page, the config is still the runtime's.
+ */
+describe("EntryLoadFailure: every frontend's page, its scripts cut off", () => {
+  const CARD_SELECTOR: string = "[data-testid='entry-load-failure']";
+
+  const PAGES_WITH_THE_CARD: Array<string> = fs
+    .readdirSync(FEATURE_SETS)
+    .filter((frontend: string): boolean => {
+      const view: string = path.join(
+        FEATURE_SETS,
+        frontend,
+        "views",
+        "index.ejs",
+      );
+
+      return (
+        fs.existsSync(view) &&
+        fs
+          .readFileSync(view, "utf8")
+          .includes("Common/Server/Views/Partials/EntryLoadFailure")
+      );
+    });
+
+  interface LoadedPage {
+    window: any;
+    // Every uncaught error its scripts threw.
+    errors: Array<string>;
+  }
+
+  // Tailwind's runtime arrived (a stand-in for it), or nothing did.
+  const load: (frontend: string, hasTailwind: boolean) => LoadedPage = (
+    frontend: string,
+    hasTailwind: boolean,
+  ): LoadedPage => {
+    const view: string = path.join(
+      FEATURE_SETS,
+      frontend,
+      "views",
+      "index.ejs",
+    );
+    const errors: Array<string> = [];
+    const virtualConsole: VirtualConsole = new VirtualConsole();
+
+    virtualConsole.on("jsdomError", (error: Error) => {
+      errors.push(error.message);
+    });
+
+    // jsdom loads no script of the page's own address: none of them arrives.
+    const dom: JSDOM = new JSDOM(
+      ejs.render(fs.readFileSync(view, "utf8"), {}, { filename: view }),
+      {
+        url: "https://oneuptime.example/",
+        runScripts: "dangerously",
+        virtualConsole: virtualConsole,
+        beforeParse: (pageWindow: any): void => {
+          Object.defineProperty(pageWindow.navigator, "onLine", {
+            configurable: true,
+            get: (): boolean => {
+              return false;
+            },
+          });
+
+          if (hasTailwind) {
+            pageWindow.tailwind = {};
+          }
+        },
+      },
+    );
+
+    return { window: dom.window, errors: errors };
+  };
+
+  test("are the frontends whose words the card speaks", () => {
+    expect([...PAGES_WITH_THE_CARD].sort()).toEqual(
+      [...FRONTENDS_WITH_OWN_WORDS].sort(),
+    );
+  });
+
+  test.each(PAGES_WITH_THE_CARD)(
+    "%s: no uncaught error, and the card says the reader is offline",
+    async (frontend: string) => {
+      const page: LoadedPage = load(frontend, false);
+      const document: Document = page.window.document;
+
+      document
+        .querySelector('script[type="module"]')!
+        .dispatchEvent(new page.window.Event("error"));
+
+      // The card is drawn on the page's next timer; a loaded machine is slow.
+      for (
+        let attempt: number = 0;
+        attempt < 500 && !document.querySelector(CARD_SELECTOR);
+        attempt++
+      ) {
+        await new Promise<void>((resolve: () => void) => {
+          setTimeout(resolve, 10);
+        });
+      }
+
+      expect(page.errors).toEqual([]);
+      expect(page.window.tailwind).toBeUndefined();
+      expect(
+        document.querySelector(CARD_SELECTOR)!.getAttribute("data-step"),
+      ).toBe("offline");
+
+      page.window.close();
+    },
+  );
+
+  test.each(PAGES_WITH_THE_CARD)(
+    "%s: with Tailwind's runtime there, the page's config is the runtime's",
+    (frontend: string) => {
+      const page: LoadedPage = load(frontend, true);
+
+      expect(page.errors).toEqual([]);
+      expect(Object.keys(page.window.tailwind.config || {})).toContain("theme");
+
+      page.window.close();
+    },
+  );
 });

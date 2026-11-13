@@ -333,15 +333,20 @@ const ServerProductsSettings: FunctionComponent = (): ReactElement => {
         <Alert
           type={AlertType.INFO}
           dataTestId={SERVER_PRODUCTS_INGESTION_STOPPED_TEST_ID}
-          title={translator.translateText(ServerProductsCopy.ingestionStopped)}
+          title={
+            translator.translateText(ServerProductsCopy.ingestionStopped) ||
+            ServerProductsCopy.ingestionStopped
+          }
         />
       ) : answer.shouldSuggestStoppingIngestion ? (
         <Alert
           type={AlertType.INFO}
           dataTestId={SERVER_PRODUCTS_SUGGEST_STOPPING_TEST_ID}
-          title={translator.translateText(
-            ServerProductsCopy.suggestStoppingIngestion,
-          )}
+          title={
+            translator.translateText(
+              ServerProductsCopy.suggestStoppingIngestion,
+            ) || ServerProductsCopy.suggestStoppingIngestion
+          }
         />
       ) : (
         <></>
