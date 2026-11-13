@@ -854,9 +854,12 @@ async function rowsThroughAProjection(
       format: "JSON",
       clickhouse_settings: { force_optimize_projection: 1 },
     });
-  const json: { data: Array<JSONObject> } = await result.json<JSONObject>();
+  // The JSON format's body: its rows under data.
+  const json: { data?: Array<JSONObject> } = (await result.json()) as {
+    data?: Array<JSONObject>;
+  };
 
-  return json.data
+  return (json.data || [])
     .map((row: JSONObject): Row => {
       return {
         time: instantOf(row["startTime"]),
