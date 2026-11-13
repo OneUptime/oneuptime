@@ -15,7 +15,8 @@ import path from "path";
  * The zone the builder is given is the request's only while both read it for
  * the same window: the page passes getReaderTimezone the chart's own window,
  * and names no zone and pins no interval on its requests, which would change
- * what the request carries.
+ * what the request carries. A page that comes to need either on some other
+ * request should narrow the last check to its heartbeat request, not drop it.
  */
 
 const DASHBOARD_SRC: string = path.resolve(
