@@ -51831,5 +51831,7 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Intervalo de tiempo: {{range}}. Prueba a ajustar los filtros o a ampliar el intervalo de tiempo.",
   "On-Call Policy Created": "Política de guardia creada",
   "On-Call Schedule Added": "Programación de guardia añadida",
-  "On-Call Schedule Removed": "Programación de guardia quitada"
+  "On-Call Schedule Removed": "Programación de guardia quitada",
+  "You have unsaved changes to this form's questions. If you leave now, they will be lost.": "Tienes cambios sin guardar en las preguntas de este formulario. Si sales ahora, se perderán.",
+  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "Tienes cambios sin guardar en los pasos de este runbook. Si sales ahora, se perderán."
 }

@@ -51831,5 +51831,7 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "النطاق الزمني: {{range}}. جرّب تعديل عوامل التصفية أو توسيع النطاق الزمني.",
   "On-Call Policy Created": "أُنشئت سياسة مناوبة",
   "On-Call Schedule Added": "أُضيف جدول مناوبة",
-  "On-Call Schedule Removed": "أُزيل جدول مناوبة"
+  "On-Call Schedule Removed": "أُزيل جدول مناوبة",
+  "You have unsaved changes to this form's questions. If you leave now, they will be lost.": "لديك تغييرات غير محفوظة في أسئلة هذا النموذج. إذا غادرت الآن، فستُفقد.",
+  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "لديك تغييرات غير محفوظة في خطوات دليل التشغيل هذا. إذا غادرت الآن، فستُفقد."
 }

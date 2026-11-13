@@ -51831,5 +51831,7 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Tidsintervall: {{range}}. Försök att justera filtren eller utöka tidsintervallet.",
   "On-Call Policy Created": "Jourpolicy skapad",
   "On-Call Schedule Added": "Jourschema tillagt",
-  "On-Call Schedule Removed": "Jourschema borttaget"
+  "On-Call Schedule Removed": "Jourschema borttaget",
+  "You have unsaved changes to this form's questions. If you leave now, they will be lost.": "Du har osparade ändringar i frågorna i detta formulär. Om du lämnar sidan nu går de förlorade.",
+  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "Du har osparade ändringar i stegen i denna runbook. Om du lämnar sidan nu går de förlorade."
 }

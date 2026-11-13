@@ -51831,5 +51831,7 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "بازهٔ زمانی: {{range}}. فیلترها را تغییر دهید یا بازهٔ زمانی را بزرگ‌تر کنید.",
   "On-Call Policy Created": "سیاست آنکال ساخته شد",
   "On-Call Schedule Added": "زمان‌بندی آنکال افزوده شد",
-  "On-Call Schedule Removed": "زمان‌بندی آنکال حذف شد"
+  "On-Call Schedule Removed": "زمان‌بندی آنکال حذف شد",
+  "You have unsaved changes to this form's questions. If you leave now, they will be lost.": "تغییرهای ذخیره‌نشده‌ای در پرسش‌های این فرم دارید. اگر اکنون خارج شوید، از بین می‌روند.",
+  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "تغییرهای ذخیره‌نشده‌ای در گام‌های این رانبوک دارید. اگر اکنون خارج شوید، از بین می‌روند."
 }

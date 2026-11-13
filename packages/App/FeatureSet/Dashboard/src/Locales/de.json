@@ -51831,5 +51831,7 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Zeitraum: {{range}}. Passen Sie die Filter an oder erweitern Sie den Zeitraum.",
   "On-Call Policy Created": "Bereitschaftsrichtlinie erstellt",
   "On-Call Schedule Added": "Bereitschaftsplan hinzugefügt",
-  "On-Call Schedule Removed": "Bereitschaftsplan entfernt"
+  "On-Call Schedule Removed": "Bereitschaftsplan entfernt",
+  "You have unsaved changes to this form's questions. If you leave now, they will be lost.": "Sie haben nicht gespeicherte Änderungen an den Fragen dieses Formulars. Wenn Sie die Seite jetzt verlassen, gehen sie verloren.",
+  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "Sie haben nicht gespeicherte Änderungen an den Schritten dieses Runbooks. Wenn Sie die Seite jetzt verlassen, gehen sie verloren."
 }

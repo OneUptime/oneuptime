@@ -51831,5 +51831,7 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Período: {{range}}. Tente ajustar os filtros ou ampliar o período.",
   "On-Call Policy Created": "Política de plantão criada",
   "On-Call Schedule Added": "Agendamento de plantão adicionado",
-  "On-Call Schedule Removed": "Agendamento de plantão removido"
+  "On-Call Schedule Removed": "Agendamento de plantão removido",
+  "You have unsaved changes to this form's questions. If you leave now, they will be lost.": "Você tem alterações não salvas nas perguntas deste formulário. Se sair agora, elas serão perdidas.",
+  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "Você tem alterações não salvas nas etapas deste Runbook. Se sair agora, elas serão perdidas."
 }

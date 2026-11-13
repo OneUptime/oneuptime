@@ -51831,5 +51831,7 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Intervallo di tempo: {{range}}. Prova a modificare i filtri o ad ampliare l'intervallo di tempo.",
   "On-Call Policy Created": "Policy di reperibilità creata",
   "On-Call Schedule Added": "Pianificazione di reperibilità aggiunta",
-  "On-Call Schedule Removed": "Pianificazione di reperibilità rimossa"
+  "On-Call Schedule Removed": "Pianificazione di reperibilità rimossa",
+  "You have unsaved changes to this form's questions. If you leave now, they will be lost.": "Hai modifiche non salvate alle domande di questo modulo. Se esci ora, andranno perse.",
+  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "Hai modifiche non salvate ai passaggi di questo Runbook. Se esci ora, andranno perse."
 }

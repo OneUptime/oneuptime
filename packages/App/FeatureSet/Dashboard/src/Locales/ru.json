@@ -51831,5 +51831,7 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Период: {{range}}. Попробуйте изменить фильтры или расширить период.",
   "On-Call Policy Created": "Политика дежурства создана",
   "On-Call Schedule Added": "Расписание дежурства добавлено",
-  "On-Call Schedule Removed": "Расписание дежурства удалено"
+  "On-Call Schedule Removed": "Расписание дежурства удалено",
+  "You have unsaved changes to this form's questions. If you leave now, they will be lost.": "У вас есть несохранённые изменения в вопросах этой формы. Если вы уйдёте сейчас, они будут потеряны.",
+  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "У вас есть несохранённые изменения в шагах этого сценария. Если вы уйдёте сейчас, они будут потеряны."
 }

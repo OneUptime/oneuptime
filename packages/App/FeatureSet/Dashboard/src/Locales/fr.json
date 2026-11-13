@@ -51831,5 +51831,7 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Période : {{range}}. Essayez d'ajuster les filtres ou d'élargir la période.",
   "On-Call Policy Created": "Politique d'astreinte créée",
   "On-Call Schedule Added": "Planning d'astreinte ajouté",
-  "On-Call Schedule Removed": "Planning d'astreinte retiré"
+  "On-Call Schedule Removed": "Planning d'astreinte retiré",
+  "You have unsaved changes to this form's questions. If you leave now, they will be lost.": "Vous avez des modifications non enregistrées sur les questions de ce formulaire. Si vous quittez la page maintenant, elles seront perdues.",
+  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "Vous avez des modifications non enregistrées sur les étapes de ce Runbook. Si vous quittez la page maintenant, elles seront perdues."
 }

@@ -51831,5 +51831,7 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "समय सीमा: {{range}}। फ़िल्टर बदलकर या समय सीमा बढ़ाकर देखें।",
   "On-Call Policy Created": "ऑन-कॉल नीति बनाई गई",
   "On-Call Schedule Added": "ऑन-कॉल अनुसूची जोड़ी गई",
-  "On-Call Schedule Removed": "ऑन-कॉल अनुसूची हटाई गई"
+  "On-Call Schedule Removed": "ऑन-कॉल अनुसूची हटाई गई",
+  "You have unsaved changes to this form's questions. If you leave now, they will be lost.": "इस फ़ॉर्म के प्रश्नों में आपके कुछ बदलाव सहेजे नहीं गए हैं। अगर आप अभी पेज छोड़ते हैं, तो वे खो जाएँगे।",
+  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "इस Runbook के चरणों में आपके कुछ बदलाव सहेजे नहीं गए हैं। अगर आप अभी पेज छोड़ते हैं, तो वे खो जाएँगे।"
 }

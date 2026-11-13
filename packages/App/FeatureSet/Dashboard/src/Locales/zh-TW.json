@@ -51831,5 +51831,7 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "時間範圍：{{range}}。請嘗試調整篩選條件或擴大時間範圍。",
   "On-Call Policy Created": "待命策略已建立",
   "On-Call Schedule Added": "待命排程已新增",
-  "On-Call Schedule Removed": "待命排程已移除"
+  "On-Call Schedule Removed": "待命排程已移除",
+  "You have unsaved changes to this form's questions. If you leave now, they will be lost.": "您對此表單的問題有未儲存的變更。如果現在離開，這些變更將會遺失。",
+  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "您對此操作手冊的步驟有未儲存的變更。如果現在離開，這些變更將會遺失。"
 }

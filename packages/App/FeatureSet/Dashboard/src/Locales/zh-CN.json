@@ -51831,5 +51831,7 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "时间范围：{{range}}。请尝试调整筛选条件或扩大时间范围。",
   "On-Call Policy Created": "值班策略已创建",
   "On-Call Schedule Added": "值班排班已添加",
-  "On-Call Schedule Removed": "值班排班已移除"
+  "On-Call Schedule Removed": "值班排班已移除",
+  "You have unsaved changes to this form's questions. If you leave now, they will be lost.": "您对此表单的问题有未保存的更改。如果现在离开，这些更改将会丢失。",
+  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "您对此 Runbook 的步骤有未保存的更改。如果现在离开，这些更改将会丢失。"
 }

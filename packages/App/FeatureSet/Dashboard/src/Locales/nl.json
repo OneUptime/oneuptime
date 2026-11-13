@@ -51831,5 +51831,7 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Periode: {{range}}. Pas de filters aan of kies een ruimere periode.",
   "On-Call Policy Created": "Bereikbaarheidsbeleid aangemaakt",
   "On-Call Schedule Added": "Bereikbaarheidsschema toegevoegd",
-  "On-Call Schedule Removed": "Bereikbaarheidsschema verwijderd"
+  "On-Call Schedule Removed": "Bereikbaarheidsschema verwijderd",
+  "You have unsaved changes to this form's questions. If you leave now, they will be lost.": "U hebt niet-opgeslagen wijzigingen in de vragen van dit formulier. Als u nu weggaat, gaan ze verloren.",
+  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "U hebt niet-opgeslagen wijzigingen in de stappen van dit runbook. Als u nu weggaat, gaan ze verloren."
 }

@@ -51831,5 +51831,7 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Tidsrum: {{range}}. Prøv at justere filtrene eller udvide tidsrummet.",
   "On-Call Policy Created": "Vagtpolitik oprettet",
   "On-Call Schedule Added": "Vagtplan tilføjet",
-  "On-Call Schedule Removed": "Vagtplan fjernet"
+  "On-Call Schedule Removed": "Vagtplan fjernet",
+  "You have unsaved changes to this form's questions. If you leave now, they will be lost.": "Du har ikke-gemte ændringer i spørgsmålene i denne formular. Hvis du forlader siden nu, går de tabt.",
+  "You have unsaved changes to this runbook's steps. If you leave now, they will be lost.": "Du har ikke-gemte ændringer i trinnene i denne runbook. Hvis du forlader siden nu, går de tabt."
 }
