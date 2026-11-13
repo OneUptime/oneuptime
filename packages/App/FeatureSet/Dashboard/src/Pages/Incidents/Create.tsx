@@ -11,6 +11,7 @@ import React, {
   FunctionComponent,
   MutableRefObject,
   ReactElement,
+  RefObject,
   useEffect,
   useMemo,
   useRef,
@@ -20,6 +21,10 @@ import ModelForm, {
   FormType,
   ModelField,
 } from "Common/UI/Components/Forms/ModelForm";
+import {
+  BasicFormHandle,
+  FormProps,
+} from "Common/UI/Components/Forms/BasicForm";
 import Navigation from "Common/UI/Utils/Navigation";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Card from "Common/UI/Components/Card/Card";
@@ -118,6 +123,7 @@ import useNewIncidentNotifyDefault, {
   NewIncidentNotifyDefault,
 } from "../../Components/Incident/useNewIncidentNotifyDefault";
 import { getNotifyBoxDescription } from "../../Components/Incident/NewIncidentNotifyDefaultCopy";
+import NotifySubscribersChangeToYes from "../../Components/Incident/NotifySubscribersChangeToYes";
 import IncidentStatusPageScopeCopy from "../../Components/Incident/IncidentStatusPageScopeCopy";
 import {
   StatusPagesNotListingMonitorsWarning,
@@ -599,6 +605,45 @@ const IncidentCreate: FunctionComponent<
    */
   const newIncidentNotifyDefault: NewIncidentNotifyDefault =
     useNewIncidentNotifyDefault();
+
+  /*
+   * The form, for "Change to Yes" on its summary step to tick the notify
+   * box, and that line of the summary, which takes the focus once the link
+   * pressed is gone.
+   */
+  const formRef: MutableRefObject<FormProps<FormValues<Incident>>> = useRef<
+    FormProps<FormValues<Incident>>
+  >(null) as MutableRefObject<FormProps<FormValues<Incident>>>;
+  const notifyReviewLineRef: RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
+
+  /*
+   * Whether the summary offers "Change to Yes" beside the notify box's
+   * "No": only where the project starts the box unticked (where it starts
+   * ticked, whoever unticked it saw it), and not for a private incident,
+   * which no status page shows.
+   */
+  const canTickNotifyOnReview: IncidentFormPredicate = (
+    values: FormValues<Incident>,
+  ): boolean => {
+    return (
+      !newIncidentNotifyDefault.isTickedByDefault &&
+      !isNotifyTicked(values) &&
+      (values as Record<string, unknown>)["isPrivate"] !== true
+    );
+  };
+
+  const tickNotifyOnReview: () => void = (): void => {
+    (formRef.current as unknown as BasicFormHandle | null)?.setFieldValue(
+      "shouldStatusPageSubscribersBeNotifiedOnIncidentCreated",
+      true,
+    );
+
+    // The link pressed is gone: the line it was on keeps the focus.
+    window.setTimeout(() => {
+      notifyReviewLineRef.current?.focus();
+    }, 0);
+  };
 
   useEffect(() => {
     loadCustomFieldDefinitions();
@@ -1449,6 +1494,7 @@ const IncidentCreate: FunctionComponent<
               initialValues={formInitialValues}
               name="Create New Incident"
               id="create-incident-form"
+              formRef={formRef}
               onBeforeCreate={async (
                 item: Incident,
                 miscDataProps: JSONObject,
@@ -2182,6 +2228,8 @@ const IncidentCreate: FunctionComponent<
                         <div
                           className="flex flex-wrap items-center gap-x-3 gap-y-1"
                           data-testid="incident-create-notify-subscribers-line"
+                          ref={notifyReviewLineRef}
+                          tabIndex={-1}
                         >
                           <BooleanValue
                             value={isNotifyTicked(item)}
@@ -2201,6 +2249,19 @@ const IncidentCreate: FunctionComponent<
                                   }),
                                 });
                               }}
+                            />
+                          ) : (
+                            <></>
+                          )}
+                          {/*
+                           * "No · Change to Yes", where the project starts
+                           * the box unticked: telling subscribers is one
+                           * click on the last step, not three back on
+                           * Resources Affected.
+                           */}
+                          {canTickNotifyOnReview(item) ? (
+                            <NotifySubscribersChangeToYes
+                              onClick={tickNotifyOnReview}
                             />
                           ) : (
                             <></>

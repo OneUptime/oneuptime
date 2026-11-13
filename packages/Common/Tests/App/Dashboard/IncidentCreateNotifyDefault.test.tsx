@@ -37,7 +37,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *   - a project that turned it off starts the box unticked, says so under
  *     it and on the review, and declares a quiet incident - unless the
  *     person declaring ticks it, which the folded More fields header then
- *     shows as set;
+ *     shows as set, or presses "Change to Yes" beside the review's "No";
+ *   - "Change to Yes" is offered only there: not where the project starts
+ *     the box ticked (whoever unticked it saw it), not once it is ticked,
+ *     and not for a private incident, which no status page shows;
  *   - unticking it in a project that kept it on still declares a quiet
  *     incident, and declaring from a template follows the project too;
  *   - the form waits for the project before it draws, since it latches
@@ -281,7 +284,11 @@ async function pickOption(
   await user.click(options[options.length - 1]!);
 }
 
-// Fills in what the first step cannot be left without.
+/*
+ * Fills in what the first step cannot be left without - what a template
+ * did not fill in already (its severity is then picked, and drawn as the
+ * pick rather than as a search box).
+ */
 async function fillDetails(user: UserEvent): Promise<void> {
   const title: HTMLElement = await screen.findByRole("textbox", {
     name: /^Title/,
@@ -291,11 +298,13 @@ async function fillDetails(user: UserEvent): Promise<void> {
     await user.type(title, "Checkout is down");
   }
 
-  await pickOption(
-    user,
-    screen.getByRole("combobox", { name: /^Incident Severity/ }),
-    "Critical Incident",
-  );
+  const severityPicker: HTMLElement | null = screen.queryByRole("combobox", {
+    name: /^Incident Severity/,
+  });
+
+  if (severityPicker) {
+    await pickOption(user, severityPicker, "Critical Incident");
+  }
 }
 
 async function next(user: UserEvent): Promise<void> {
@@ -335,6 +344,18 @@ async function toReview(user: UserEvent): Promise<void> {
   }
 
   await screen.findByRole("button", { name: "Declare Incident" });
+}
+
+function changeToYes(): HTMLElement | null {
+  return screen.queryByRole("button", { name: "Change to Yes" });
+}
+
+// Ticks Private Incident, under the first step's More fields.
+async function makePrivate(user: UserEvent): Promise<void> {
+  await user.click(screen.getByRole("button", { name: "More fields" }));
+  await user.click(
+    await screen.findByRole("checkbox", { name: /^Private Incident/ }),
+  );
 }
 
 // The review's Notify Status Page Subscribers row.
@@ -577,6 +598,180 @@ describe("a project that turned Notify status page subscribers by default off", 
     expect((incident as unknown as Record<string, unknown>)[NOTIFY]).toBe(
       false,
     );
+  });
+});
+
+describe("the review's Change to Yes", () => {
+  test("where the project starts the box unticked, the review's No has Change to Yes beside it", async () => {
+    startingWith(false);
+
+    const user: UserEvent = await renderPage("/dashboard/incidents/create");
+
+    await toReview(user);
+
+    const line: HTMLElement = screen.getByTestId(
+      "incident-create-notify-subscribers-line",
+    );
+
+    expect(
+      within(line).getByTestId("incident-create-notify-subscribers-value"),
+    ).toHaveAttribute("data-boolean-value", "no");
+    expect(within(line).getByRole("button", { name: "Change to Yes" })).toBe(
+      changeToYes(),
+    );
+    expect(changeToYes()).toHaveAttribute("type", "button");
+    expect(changeToYes()).toHaveAttribute(
+      "data-testid",
+      "incident-create-notify-subscribers-change-to-yes",
+    );
+    // A link the size of the text, drawn as the Preview link on its line is.
+    expect(changeToYes()).toHaveClass("text-indigo-600", "text-sm");
+    // One per review: there is one box.
+    expect(
+      screen.getAllByRole("button", { name: "Change to Yes" }),
+    ).toHaveLength(1);
+  });
+
+  test("pressing it ticks the box: the review says Yes, the link is gone, its line keeps the focus, and nothing is sent yet", async () => {
+    startingWith(false);
+
+    const user: UserEvent = await renderPage("/dashboard/incidents/create");
+
+    await toReview(user);
+    await user.click(changeToYes()!);
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("incident-create-notify-subscribers-value"),
+      ).toHaveAttribute("data-boolean-value", "yes");
+    });
+    expect(changeToYes()).toBeNull();
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("incident-create-notify-subscribers-line"),
+      ).toHaveFocus();
+    });
+    // Still on the review: only Declare Incident declares.
+    expect(createOrUpdateMock).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("button", { name: "Declare Incident" }),
+    ).toBeInTheDocument();
+  });
+
+  test("declared after Change to Yes, the incident notifies its subscribers", async () => {
+    startingWith(false);
+
+    const user: UserEvent = await renderPage("/dashboard/incidents/create");
+
+    await toReview(user);
+    await user.click(changeToYes()!);
+
+    const incident: Incident = await declare(user);
+
+    expect((incident as unknown as Record<string, unknown>)[NOTIFY]).toBe(
+      true,
+    );
+  });
+
+  test("Change to Yes is the box: going back to Resources Affected shows it ticked", async () => {
+    startingWith(false);
+
+    const user: UserEvent = await renderPage("/dashboard/incidents/create");
+
+    await toReview(user);
+    await user.click(changeToYes()!);
+
+    // Back through the form's step list.
+    await user.click(
+      within(screen.getByRole("navigation", { name: "Progress" })).getByText(
+        "Resources Affected",
+      ),
+    );
+    await screen.findByRole("combobox", { name: /^Monitors/ });
+
+    expect(await openNotifyBox(user)).toBeChecked();
+  });
+
+  test("not for a private incident, which no status page shows", async () => {
+    startingWith(false);
+
+    const user: UserEvent = await renderPage("/dashboard/incidents/create");
+
+    await fillDetails(user);
+    await makePrivate(user);
+
+    for (let step: number = 0; step < 3; step++) {
+      await next(user);
+    }
+
+    await screen.findByRole("button", { name: "Declare Incident" });
+
+    expect(
+      screen.getByTestId("incident-create-notify-subscribers-value"),
+    ).toHaveAttribute("data-boolean-value", "no");
+    expect(changeToYes()).toBeNull();
+  });
+
+  test("not once whoever declares ticked the box on Resources Affected", async () => {
+    startingWith(false);
+
+    const user: UserEvent = await renderPage("/dashboard/incidents/create");
+
+    await toResourcesAffected(user);
+    await user.click(await openNotifyBox(user));
+    await toReviewFromResources(user);
+
+    expect(
+      screen.getByTestId("incident-create-notify-subscribers-value"),
+    ).toHaveAttribute("data-boolean-value", "yes");
+    expect(changeToYes()).toBeNull();
+  });
+
+  test("where the project starts the box ticked, the review looks as it always did: Yes, and no link", async () => {
+    startingWith(true);
+
+    const user: UserEvent = await renderPage("/dashboard/incidents/create");
+
+    await toReview(user);
+
+    expect(
+      screen.getByTestId("incident-create-notify-subscribers-value"),
+    ).toHaveAttribute("data-boolean-value", "yes");
+    expect(changeToYes()).toBeNull();
+    expect(reviewRow()).toHaveTextContent(QUESTION);
+    expect(reviewRow()).not.toHaveTextContent(UNTICKED_BY_DEFAULT);
+  });
+
+  test("and whoever unticks it there gets No, with no link: they saw the box", async () => {
+    startingWith(true);
+
+    const user: UserEvent = await renderPage("/dashboard/incidents/create");
+
+    await toResourcesAffected(user);
+    await user.click(await openNotifyBox(user));
+    await toReviewFromResources(user);
+
+    expect(
+      screen.getByTestId("incident-create-notify-subscribers-value"),
+    ).toHaveAttribute("data-boolean-value", "no");
+    expect(changeToYes()).toBeNull();
+  });
+
+  test("where the project cannot be read, the box starts ticked and the review offers no link", async () => {
+    projectAnswer = async (): Promise<Project | null> => {
+      throw new Error("Network error");
+    };
+
+    const user: UserEvent = await renderPage("/dashboard/incidents/create");
+
+    await toResourcesAffected(user);
+    await user.click(await openNotifyBox(user));
+    await toReviewFromResources(user);
+
+    expect(
+      screen.getByTestId("incident-create-notify-subscribers-value"),
+    ).toHaveAttribute("data-boolean-value", "no");
+    expect(changeToYes()).toBeNull();
   });
 });
 

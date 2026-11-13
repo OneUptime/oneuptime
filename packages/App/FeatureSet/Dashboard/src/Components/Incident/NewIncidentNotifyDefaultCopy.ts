@@ -19,7 +19,12 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  *
  * Declare New Incident's box keeps its question. In a project that starts it
  * unticked, the question says so too, under the box and again on the
- * summary, so someone used to a ticked box sees why it is not.
+ * summary, so someone used to a ticked box sees why it is not. There the
+ * summary's "No" also has "Change to Yes" beside it: the box sits folded
+ * under More fields two steps back, so the review - the last thing read
+ * before declaring - is where telling subscribers is one click. It is not
+ * offered for a private incident, which no status page shows, nor in a
+ * project that starts the box ticked: whoever unticked it there saw it.
  *
  * Kept free of React so the page, the form and App/Tests read these exact
  * strings. Every sentence is wrapped in translationKey() so npm run
@@ -77,3 +82,15 @@ export const getNotifyBoxDescription: (isTickedByDefault: boolean) => string = (
     ? NOTIFY_BOX_DESCRIPTION
     : NOTIFY_BOX_DESCRIPTION_UNTICKED_BY_DEFAULT;
 };
+
+/*
+ * On the summary, beside "No" in a project that starts the box unticked:
+ * ticks it, so the incident is declared notifying. It names the answer it
+ * gives - the summary's own "Yes" - rather than an action such as "Notify
+ * subscribers", which could read as sending something now.
+ */
+export const NOTIFY_REVIEW_CHANGE_TO_YES: string =
+  translationKey("Change to Yes");
+
+export const NOTIFY_REVIEW_CHANGE_TO_YES_TEST_ID: string =
+  "incident-create-notify-subscribers-change-to-yes";

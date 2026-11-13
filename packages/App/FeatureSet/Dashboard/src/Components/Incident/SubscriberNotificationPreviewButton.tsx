@@ -54,8 +54,12 @@ export interface ComponentProps {
   dataTestId?: string | undefined;
 }
 
-// The link colour, underlined on hover.
-const ENABLED_CLASS_NAME: string =
+/*
+ * The link colour, underlined on hover. Exported for the other link drawn
+ * on the same line: "Change to Yes" beside the summary's "No"
+ * (NotifySubscribersChangeToYes).
+ */
+export const ENABLED_CLASS_NAME: string =
   "cursor-pointer text-indigo-600 hover:text-indigo-700 hover:underline";
 
 /*
@@ -64,7 +68,7 @@ const ENABLED_CLASS_NAME: string =
  * that padding back out of the layout, so the line keeps the height and the
  * spacing it had without the link.
  */
-const LINK_CLASS_NAME: string =
+export const LINK_CLASS_NAME: string =
   "-mx-1 -my-0.5 inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded px-1 py-0.5 text-sm font-medium underline-offset-2 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
 
 const SubscriberNotificationPreviewButton: FunctionComponent<ComponentProps> = (
