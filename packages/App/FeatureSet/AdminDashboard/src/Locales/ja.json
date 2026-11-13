@@ -2989,5 +2989,9 @@
   "You need one of these permissions: {{permissions}}.": "次のいずれかの権限が必要です: {{permissions}}。",
   "You need this role: {{role}}.": "次のロールが必要です: {{role}}。",
   "You need one of these roles: {{roles}}.": "次のいずれかのロールが必要です: {{roles}}。",
-  "You do not have permission to {{action}} this {{itemName}}.": "この{{itemName}}に対して「{{action}}」を実行する権限がありません。"
+  "You do not have permission to {{action}} this {{itemName}}.": "この{{itemName}}に対して「{{action}}」を実行する権限がありません。",
+  "This monitor does not exist in this project, or you do not have access to it.": "このモニターはこのプロジェクトに存在しないか、アクセス権がありません。",
+  "This monitor and this template are in different projects.": "このモニターとこのテンプレートは別々のプロジェクトにあります。",
+  "This monitor is not linked to this template.": "このモニターはこのテンプレートにリンクされていません。",
+  "This monitor's type is {{monitorType}}, and this template's type is {{templateType}}. Only monitors of the template's type can be linked to it.": "このモニターの種類は {{monitorType}}、このテンプレートの種類は {{templateType}} です。このテンプレートにリンクできるのは、同じ種類のモニターだけです。"
 }

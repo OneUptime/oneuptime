@@ -2989,5 +2989,9 @@
   "You need one of these permissions: {{permissions}}.": "다음 권한 중 하나가 필요합니다: {{permissions}}.",
   "You need this role: {{role}}.": "다음 역할이 필요합니다: {{role}}.",
   "You need one of these roles: {{roles}}.": "다음 역할 중 하나가 필요합니다: {{roles}}.",
-  "You do not have permission to {{action}} this {{itemName}}.": "이 {{itemName}}에 대해 '{{action}}'을(를) 실행할 권한이 없습니다."
+  "You do not have permission to {{action}} this {{itemName}}.": "이 {{itemName}}에 대해 '{{action}}'을(를) 실행할 권한이 없습니다.",
+  "This monitor does not exist in this project, or you do not have access to it.": "이 모니터는 이 프로젝트에 없거나 액세스 권한이 없습니다.",
+  "This monitor and this template are in different projects.": "이 모니터와 이 템플릿은 서로 다른 프로젝트에 있습니다.",
+  "This monitor is not linked to this template.": "이 모니터는 이 템플릿에 연결되어 있지 않습니다.",
+  "This monitor's type is {{monitorType}}, and this template's type is {{templateType}}. Only monitors of the template's type can be linked to it.": "이 모니터는 {{monitorType}} 유형이고 이 템플릿은 {{templateType}} 유형입니다. 템플릿과 같은 유형의 모니터만 이 템플릿에 연결할 수 있습니다."
 }

@@ -2989,5 +2989,9 @@
   "You need one of these permissions: {{permissions}}.": "Du skal have en af disse tilladelser: {{permissions}}.",
   "You need this role: {{role}}.": "Du skal have denne rolle: {{role}}.",
   "You need one of these roles: {{roles}}.": "Du skal have en af disse roller: {{roles}}.",
-  "You do not have permission to {{action}} this {{itemName}}.": "Du har ikke tilladelse til at udføre \"{{action}}\" for dette element ({{itemName}})."
+  "You do not have permission to {{action}} this {{itemName}}.": "Du har ikke tilladelse til at udføre \"{{action}}\" for dette element ({{itemName}}).",
+  "This monitor does not exist in this project, or you do not have access to it.": "Denne overvågning findes ikke i dette projekt, eller du har ikke adgang til den.",
+  "This monitor and this template are in different projects.": "Denne overvågning og denne skabelon er i forskellige projekter.",
+  "This monitor is not linked to this template.": "Denne overvågning er ikke tilknyttet denne skabelon.",
+  "This monitor's type is {{monitorType}}, and this template's type is {{templateType}}. Only monitors of the template's type can be linked to it.": "Denne overvågning er af typen {{monitorType}}, og denne skabelon er af typen {{templateType}}. Kun overvågninger af skabelonens type kan tilknyttes den."
 }

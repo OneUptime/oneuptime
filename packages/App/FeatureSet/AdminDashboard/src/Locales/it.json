@@ -2989,5 +2989,9 @@
   "You need one of these permissions: {{permissions}}.": "Ti serve una di queste autorizzazioni: {{permissions}}.",
   "You need this role: {{role}}.": "Ti serve questo ruolo: {{role}}.",
   "You need one of these roles: {{roles}}.": "Ti serve uno di questi ruoli: {{roles}}.",
-  "You do not have permission to {{action}} this {{itemName}}.": "Non hai l'autorizzazione per eseguire «{{action}}» su questo elemento ({{itemName}})."
+  "You do not have permission to {{action}} this {{itemName}}.": "Non hai l'autorizzazione per eseguire «{{action}}» su questo elemento ({{itemName}}).",
+  "This monitor does not exist in this project, or you do not have access to it.": "Questo monitor non esiste in questo progetto o non hai accesso.",
+  "This monitor and this template are in different projects.": "Questo monitor e questo modello sono in progetti diversi.",
+  "This monitor is not linked to this template.": "Questo monitor non è collegato a questo modello.",
+  "This monitor's type is {{monitorType}}, and this template's type is {{templateType}}. Only monitors of the template's type can be linked to it.": "Questo monitor è di tipo {{monitorType}} e questo modello è di tipo {{templateType}}. Solo i monitor del tipo del modello possono esservi collegati."
 }

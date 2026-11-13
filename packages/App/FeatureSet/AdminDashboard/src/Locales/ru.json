@@ -2989,5 +2989,9 @@
   "You need one of these permissions: {{permissions}}.": "Требуется одно из этих прав: {{permissions}}.",
   "You need this role: {{role}}.": "Требуется эта роль: {{role}}.",
   "You need one of these roles: {{roles}}.": "Требуется одна из этих ролей: {{roles}}.",
-  "You do not have permission to {{action}} this {{itemName}}.": "У вас нет прав на действие «{{action}}» для этого элемента ({{itemName}})."
+  "You do not have permission to {{action}} this {{itemName}}.": "У вас нет прав на действие «{{action}}» для этого элемента ({{itemName}}).",
+  "This monitor does not exist in this project, or you do not have access to it.": "Этого монитора нет в этом проекте, или у вас нет к нему доступа.",
+  "This monitor and this template are in different projects.": "Этот монитор и этот шаблон находятся в разных проектах.",
+  "This monitor is not linked to this template.": "Этот монитор не связан с этим шаблоном.",
+  "This monitor's type is {{monitorType}}, and this template's type is {{templateType}}. Only monitors of the template's type can be linked to it.": "Тип этого монитора — {{monitorType}}, а тип этого шаблона — {{templateType}}. С шаблоном можно связать только мониторы его типа."
 }

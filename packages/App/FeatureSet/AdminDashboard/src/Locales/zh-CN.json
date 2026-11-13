@@ -2989,5 +2989,9 @@
   "You need one of these permissions: {{permissions}}.": "您需要以下权限之一：{{permissions}}。",
   "You need this role: {{role}}.": "您需要以下角色：{{role}}。",
   "You need one of these roles: {{roles}}.": "您需要以下角色之一：{{roles}}。",
-  "You do not have permission to {{action}} this {{itemName}}.": "您没有对此{{itemName}}执行“{{action}}”的权限。"
+  "You do not have permission to {{action}} this {{itemName}}.": "您没有对此{{itemName}}执行“{{action}}”的权限。",
+  "This monitor does not exist in this project, or you do not have access to it.": "此监视器在此项目中不存在，或者您无权访问。",
+  "This monitor and this template are in different projects.": "此监视器和此模板属于不同的项目。",
+  "This monitor is not linked to this template.": "此监视器未关联到此模板。",
+  "This monitor's type is {{monitorType}}, and this template's type is {{templateType}}. Only monitors of the template's type can be linked to it.": "此监视器的类型为 {{monitorType}}，此模板的类型为 {{templateType}}。只有与模板类型相同的监视器才能关联到此模板。"
 }
