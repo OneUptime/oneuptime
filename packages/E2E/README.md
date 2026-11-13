@@ -693,5 +693,6 @@ default suite and the enterprise suites use them:
 `DocsScreens/` is not a test suite: `npm run docs-screens` draws the docs'
 screenshots from the offline fixtures, in every docs language, and
 `npm run docs-screens:check` (the Docs Screenshots workflow on main) says
-which no longer show their page. [DocsScreens/README.md](DocsScreens/README.md)
-has the rest (#6823).
+which no longer show their page. It runs from a checkout only: the root
+`.dockerignore` keeps it out of the e2e image, which has no App to compile it
+against. [DocsScreens/README.md](DocsScreens/README.md) has the rest (#6823).

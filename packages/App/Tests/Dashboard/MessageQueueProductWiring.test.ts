@@ -1,6 +1,12 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import {
+  RouteAttributes,
+  pageRoutesIn,
+  routeMapPath,
+  routesAt,
+} from "../Helpers/PageRoutes";
 import RULE_CRITERIA_FIELDS_BY_MODEL from "Common/Types/Rules/RuleCriteriaFieldRegistry";
 
 /*
@@ -384,22 +390,39 @@ describe("every route is actually mounted", () => {
 
   test("App.tsx lazy-loads the product router and mounts it at the product root, beside Databases", () => {
     const appRaw: string = readSource("App.tsx");
-    const app: string = squash(appRaw);
+    const routes: Array<RouteAttributes> = pageRoutesIn(
+      path.join(DASHBOARD_SRC, "App.tsx"),
+    );
+    const queuesPath: string = routeMapPath("MESSAGE_QUEUE_ROOT");
+    const databasesPath: string = routeMapPath("DATABASE_ROOT");
 
-    expect(app).toContain("RouteMap[PageMap.MESSAGE_QUEUE_ROOT]");
-    expect(app).toContain("<MessageQueueRoutes {...commonPageProps} />");
+    expect(routesAt(routes, queuesPath)).toEqual([
+      {
+        path: queuesPath,
+        element: "<MessageQueueRoutes {...commonPageProps} />",
+      },
+    ]);
     expect(dense(appRaw)).toContain(
       'lazy(()=>{returnimport("./Routes/MessageQueueRoutes");})',
     );
 
-    const databases: number = app.indexOf(
-      "<DatabaseRoutes {...commonPageProps} />",
+    // Each the only route at its path, so where it sits is where it mounts.
+    expect(routesAt(routes, databasesPath)).toEqual([
+      {
+        path: databasesPath,
+        element: "<DatabaseRoutes {...commonPageProps} />",
+      },
+    ]);
+
+    const paths: Array<string | undefined> = routes.map(
+      (route: RouteAttributes): string | undefined => {
+        return route["path"];
+      },
     );
-    const queues: number = app.indexOf(
-      "<MessageQueueRoutes {...commonPageProps} />",
+
+    expect(paths.indexOf(queuesPath)).toBeGreaterThan(
+      paths.indexOf(databasesPath),
     );
-    expect(databases).toBeGreaterThan(-1);
-    expect(queues).toBeGreaterThan(databases);
   });
 });
 

@@ -83,6 +83,8 @@ export interface ComponentProps {
   onClick?: undefined | (() => void);
   /** Shown dimmed in the empty editor. Never becomes document text. */
   placeholder?: undefined | string;
+  // In the reader's words already: drawn as given (Field's, #7682).
+  isPlaceholderTranslated?: boolean | undefined;
   /**
    * Sample code for an empty editor: shown dimmed and highlighted in place of
    * the document, and offered by an "Insert example" button.
@@ -90,6 +92,8 @@ export interface ComponentProps {
   example?: string | undefined;
   /** One short line of guidance in the toolbar. */
   hint?: string | undefined;
+  // The hint is in the reader's words already: a YAML field's placeholder.
+  isHintTranslated?: boolean | undefined;
   error?: string | undefined;
   readOnly?: boolean | undefined;
   className?: undefined | string;
@@ -379,9 +383,9 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const language: CodeLanguage = getCodeLanguage(props.type);
   const readOnly: boolean = Boolean(props.readOnly);
-  const placeholder: string | undefined = translator.translateText(
-    props.placeholder,
-  );
+  const placeholder: string | undefined = props.isPlaceholderTranslated
+    ? props.placeholder
+    : translator.translateText(props.placeholder);
 
   const [text, setText] = useState<string>(() => {
     return toEditorText(props.value ?? props.initialValue);
@@ -1107,7 +1111,9 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
               data-testid="code-editor-hint"
               className="truncate text-xs text-gray-500"
             >
-              {translator.translateText(props.hint)}
+              {props.isHintTranslated
+                ? props.hint
+                : translator.translateText(props.hint)}
             </span>
           )}
         </div>

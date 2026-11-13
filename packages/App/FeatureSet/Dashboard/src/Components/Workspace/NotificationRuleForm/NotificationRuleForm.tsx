@@ -5,6 +5,7 @@ import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
@@ -176,6 +177,8 @@ export interface ComponentProps {
   securityCaseStatuses?: Array<SecurityCaseStatus> | undefined;
   // An SLO rule's: the project's SLOs, to pick the ones it is for.
   serviceLevelObjectives?: Array<ServiceLevelObjective> | undefined;
+  // An on-call rule's: the project's policies, to pick the ones it is for.
+  onCallDutyPolicies?: Array<OnCallDutyPolicy> | undefined;
   monitorStatus: Array<MonitorStatus>;
   workspaceType: WorkspaceType;
   teams: Array<Team>;
@@ -335,7 +338,12 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
             securityCasePriorities={props.securityCasePriorities}
             securityCaseStatuses={props.securityCaseStatuses}
             serviceLevelObjectives={props.serviceLevelObjectives}
+            onCallDutyPolicies={props.onCallDutyPolicies}
+            // Which of an owners condition's picks are teams.
+            teams={props.teams}
             monitorStatus={props.monitorStatus}
+            // "And" or "Or" between the conditions, as Match Condition says.
+            filterCondition={props.value?.filterCondition}
             // When they are checked, over the conditions once there are some.
             conditionsDescription={
               NOTIFICATION_RULE_CONDITIONS_DESCRIPTIONS[props.eventType]

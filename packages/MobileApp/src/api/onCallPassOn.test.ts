@@ -265,6 +265,43 @@ describe("reading the answers", () => {
     expect(pages[1]).not.toHaveProperty("isObserverPage");
   });
 
+  test("pages: a page somebody asked for is marked as one, and only by a true isAskedFor - a page again says nothing", () => {
+    const pages: ReturnType<typeof toOnCallPassOnPages> = toOnCallPassOnPages({
+      pages: [
+        {
+          executionLogId: "asked",
+          preview: PREVIEW,
+          isPageAgain: true,
+          isAskedFor: true,
+        },
+        { executionLogId: "again", preview: PREVIEW, isPageAgain: true },
+        {
+          executionLogId: "text",
+          preview: PREVIEW,
+          isPageAgain: true,
+          isAskedFor: "true",
+        },
+      ],
+    });
+
+    expect(
+      pages.map(
+        (page: {
+          executionLogId: string;
+          isPageAgain?: boolean;
+          isAskedFor?: boolean;
+        }) => {
+          return [page.executionLogId, page.isPageAgain, page.isAskedFor];
+        },
+      ),
+    ).toEqual([
+      ["asked", true, true],
+      ["again", true, undefined],
+      ["text", true, undefined],
+    ]);
+    expect(pages[1]).not.toHaveProperty("isAskedFor");
+  });
+
   test("acknowledged: a count of pages again, and anything else is none", () => {
     expect(toAcknowledgedCount({ acknowledged: 2 })).toBe(2);
     expect(toAcknowledgedCount({ acknowledged: 1.7 })).toBe(1);

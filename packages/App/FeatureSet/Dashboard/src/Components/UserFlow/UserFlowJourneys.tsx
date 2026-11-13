@@ -10,6 +10,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import {
   buildUserFlowJourneySteps,
+  getUserFlowPageText,
   UserFlowJourney,
   UserFlowJourneySteps,
   UserFlowJourneyStep,
@@ -18,11 +19,14 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { formatInline, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { getLineDirection } from "Common/UI/Utils/LineDirection";
 import AppLink from "../AppLink/AppLink";
 import { RUM_USER_FLOW_METRIC_DESCRIPTIONS } from "../MetricDescriptions/RumMetricDescriptions";
 import { buildReplayLinkRoute } from "../SessionReplay/ReplayLinkRoute";
-import { formatUserFlowCount, formatUserFlowDuration } from "./UserFlowFormat";
+import {
+  formatUserFlowCount,
+  formatUserFlowDuration,
+  getUserFlowPathLineDirection,
+} from "./UserFlowFormat";
 
 /*
  * What the map cannot show about one person: each of their sessions on a line
@@ -63,7 +67,7 @@ function stepTitle(step: UserFlowJourneyStep, translator: Translator): string {
   ];
 
   return [
-    step.page,
+    getUserFlowPageText(step.page),
     ...notes.filter((note: string | undefined): note is string => {
       return Boolean(note);
     }),
@@ -118,12 +122,15 @@ function Step(props: {
         ) : (
           <></>
         )}
-        {/* A path reads from the left on any page: "/home", not "home/". */}
+        {/*
+         * A path reads from the left on any page: "/home", not "home/", and
+         * "/الرئيسية", not "الرئيسية/".
+         */}
         <span
           className="truncate"
-          dir={getLineDirection(step.page, translator.language)}
+          dir={getUserFlowPathLineDirection(step.page, translator.language)}
         >
-          {step.page}
+          {getUserFlowPageText(step.page)}
         </span>
         {step.hadError ? (
           <span

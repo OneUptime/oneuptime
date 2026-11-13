@@ -236,8 +236,13 @@ describe("Add Layer on a schedule with no layers", () => {
 
     const after: number = Date.now();
 
-    expect(layer.startsAt!.getTime()).toBeGreaterThanOrEqual(before);
+    /*
+     * From the minute it was added in, already begun, with no seconds for
+     * Rotation starts at to show (#7593).
+     */
+    expect(layer.startsAt!.getTime()).toBeGreaterThan(before - 60 * 1000);
     expect(layer.startsAt!.getTime()).toBeLessThanOrEqual(after);
+    expect(layer.startsAt!.getTime() % (60 * 1000)).toBe(0);
 
     expect(layer.rotation?.intervalType).toBe(EventInterval.Week);
     expect(layer.rotation?.intervalCount.toNumber()).toBe(1);

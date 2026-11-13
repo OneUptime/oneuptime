@@ -170,7 +170,7 @@ Alt i snippet'et sendes til dine besøgende, så alle kan kopiere tokenet fra di
 | **Udløber den** | Efter denne dato accepteres nøglen ikke længere. |
 | **Aktiveret** | Slå den fra for straks at stoppe en lækket nøgle. |
 
-En Browser-nøgle skriver OTLP-spor, -logs og -metrikker samt sessionsafspilninger; alle andre indtagelsesveje afviser den. Du ændrer disse indstillinger på nøglens egen side. Nøgletypen kan ikke ændres, efter at nøglen er oprettet.
+En Browser-nøgle skriver OTLP-spor, -logs og -metrikker, sessionsafspilninger og hændelser fra et [Sentry-SDK i browseren](/docs/telemetry/compatible-endpoints#sentry-sdker); alle andre indtagelsesveje afviser den. Du ændrer disse indstillinger på nøglens egen side. Nøgletypen kan ikke ændres, efter at nøglen er oprettet.
 
 > [!WARNING]
 > Læg aldrig en **Server**-nøgle i en side. En Server-nøgle skriver enhver slags telemetri fra hvor som helst uden oprindelsestjek, så alle, der læser din side, kan skrive ind i dit projekt.

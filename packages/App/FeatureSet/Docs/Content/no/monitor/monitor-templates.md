@@ -61,12 +61,12 @@ Verdier som er satt under **Standardverdier for egendefinerte felt**, skrives ti
 
 ## Synkroniser endringer til tilkoblede monitorer
 
-Å redigere en mal endrer bare malen. For å kopiere en endring til de tilkoblede monitorene bruker du synkroniseringsknappen på kortet du endret. Hver knapp sier hvor mange monitorer den når, som **Sync Criteria to 3 Linked Monitors**, og er nedtonet så lenge ingenting er koblet til. En synkronisering kan ikke angres.
+Å redigere en mal endrer bare malen. For å kopiere en endring til de tilkoblede monitorene bruker du synkroniseringsknappen på kortet du endret. Hver knapp sier hvor mange monitorer den når, som **Synkroniser kriterier til 3 koblede overvåkere**, og er nedtonet så lenge ingenting er koblet til. En synkronisering kan ikke angres.
 
 | Knapp | Kopierer til hver tilkoblede monitor | Lar være |
 | --- | --- | --- |
 | **Synkroniser kriterier til koblede overvåkere** | Kriteriene og trinninnstillingene, som mål og forespørselsalternativer, unntatt beskyttede felt | Overvåkingsintervallet, minimum sondeenighet, navnet, beskrivelsen, etikettene og verdiene i egendefinerte felt |
-| **Synkroniseringsintervall til koblede overvåkere** | Overvåkingsintervallet og minimum sondeenighet | Kriteriene, navnet, beskrivelsen, etikettene og verdiene i egendefinerte felt |
+| **Synkroniser intervall til koblede overvåkere** | Overvåkingsintervallet og minimum sondeenighet | Kriteriene, navnet, beskrivelsen, etikettene og verdiene i egendefinerte felt |
 | **Synkroniser etiketter til koblede overvåkere** | Etikettene, og ingenting annet | Alt annet |
 | **Synkroniser egendefinerte felt til tilknyttede monitorer** | De egendefinerte feltene malen har en standardverdi for, i stedet for det hver monitor hadde | Egendefinerte felt som malen lar stå tomme, og alt annet |
 

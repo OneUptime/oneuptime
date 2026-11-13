@@ -170,7 +170,7 @@ Alles in het snippet gaat naar je bezoekers, dus iedereen kan het token van je p
 | **Verloopt om** | Na deze datum wordt de sleutel niet meer geaccepteerd. |
 | **Ingeschakeld** | Zet dit uit om een uitgelekte sleutel meteen te stoppen. |
 
-Een Browser-sleutel schrijft OTLP-traces, -logs en -metrieken, plus sessieherhalingen; elke andere inname-route weigert hem. Deze instellingen wijzig je op de eigen pagina van de sleutel. Het sleuteltype kan na het aanmaken van de sleutel niet meer worden gewijzigd.
+Een Browser-sleutel schrijft OTLP-traces, -logs en -metrieken, sessieherhalingen en gebeurtenissen van een [Sentry-SDK in de browser](/docs/telemetry/compatible-endpoints#sentry-sdks); elke andere inname-route weigert hem. Deze instellingen wijzig je op de eigen pagina van de sleutel. Het sleuteltype kan na het aanmaken van de sleutel niet meer worden gewijzigd.
 
 > [!WARNING]
 > Zet nooit een **Server**-sleutel in een pagina. Een Server-sleutel schrijft elk soort telemetrie vanaf overal, zonder origin-controle, dus iedereen die je pagina leest, kan in je project schrijven.

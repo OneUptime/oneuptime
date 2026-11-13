@@ -94,7 +94,7 @@ Mens en begivenhed står på, behandler OneUptime det nedbrud, den planlægger, 
 
 - **Oversigt** — headeren viser begivenhedens nummer, titel og tilstand, hvor lang tid der er til start, eller hvor længe den har stået på, hvem der ejer den, hvilke statussider den vises på, og hvem der oprettede den, og knapperne, der flytter den videre. Under den viser **Starter**, **Slutter** og **Varighed** det planlagte vindue i din tidszone. **Feed for planlagt vedligeholdelse** registrerer alt, hvad der er sket med begivenheden, ved siden af kortene **Detaljer om vedligeholdelse** og **Berørte ressourcer** og kortene **Målinger** og **Brugerdefinerede felter**, når dit projekt har nogen.
 - **Tilstandstidslinje** — hver tilstand, begivenheden har været i, hvornår og hvor længe. Se [Vedligeholdelsestilstande](/docs/scheduled-maintenance/states#tilstandstidslinjen).
-- **Offentlige noter** — opdateringer til dine statussider og deres abonnenter. **Private noter** er kun for dit team.
+- **Offentlige noter** — opdateringer til dine statussider og deres abonnenter. **Private noter** kan kun læses af dem, der kan se begivenheden.
 - **Indstillinger** — **Synlig på statussiden**, som viser eller skjuler begivenheden på dens statussider, og **Send påmindelser**, som minder dens ejere om den, indtil den er fuldført. Hver kontakt gemmer, så snart du slår den om.
 
 ## Fejlfinding

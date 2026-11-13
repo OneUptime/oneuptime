@@ -61,12 +61,12 @@ Waarden die onder **Standaardwaarden voor aangepaste velden** zijn ingesteld, wo
 
 ## Wijzigingen synchroniseren naar gekoppelde monitoren
 
-Een sjabloon bewerken wijzigt alleen het sjabloon. Om een wijziging naar de gekoppelde monitoren te kopiëren, gebruikt u de synchronisatieknop op de kaart die u hebt gewijzigd. Elke knop noemt hoeveel monitoren hij bereikt, zoals **Sync Criteria to 3 Linked Monitors**, en is grijs zolang er niets is gekoppeld. Een synchronisatie kan niet ongedaan worden gemaakt.
+Een sjabloon bewerken wijzigt alleen het sjabloon. Om een wijziging naar de gekoppelde monitoren te kopiëren, gebruikt u de synchronisatieknop op de kaart die u hebt gewijzigd. Elke knop noemt hoeveel monitoren hij bereikt, zoals **Criteria synchroniseren naar 3 gekoppelde monitoren**, en is grijs zolang er niets is gekoppeld. Een synchronisatie kan niet ongedaan worden gemaakt.
 
 | Knop | Kopieert naar elke gekoppelde monitor | Laat ongemoeid |
 | --- | --- | --- |
 | **Criteria synchroniseren naar gekoppelde monitoren** | De criteria en de stapinstellingen, zoals bestemmingen en aanvraagopties, behalve beschermde velden | Het bewakingsinterval, de minimale sonde-overeenstemming, de naam, de beschrijving, de labels en de waarden van aangepaste velden |
-| **Synchronisatie-interval naar gekoppelde monitoren** | Het bewakingsinterval en de minimale sonde-overeenstemming | De criteria, de naam, de beschrijving, de labels en de waarden van aangepaste velden |
+| **Interval synchroniseren naar gekoppelde monitoren** | Het bewakingsinterval en de minimale sonde-overeenstemming | De criteria, de naam, de beschrijving, de labels en de waarden van aangepaste velden |
 | **Labels synchroniseren naar gekoppelde monitoren** | De labels, en verder niets | Al het andere |
 | **Aangepaste velden synchroniseren naar gekoppelde monitors** | De aangepaste velden waarvoor het sjabloon een standaardwaarde heeft, in plaats van wat elke monitor had | Aangepaste velden die het sjabloon leeg laat, en al het andere |
 

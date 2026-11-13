@@ -85,9 +85,10 @@ export const TRAFFIC_ADDRESS_SOURCE_LABELS: Record<
 /*
  * Where an address's name comes from, as the address card says it: a
  * label, so it starts with a capital wherever the language writes one.
- * "Cloud resource" is a noun of the AI activity's sentences too, and four
- * languages word it for the middle of one ("recurso en la nube"); here it
- * reads "Recurso en la nube", as "Host" and "DNS name" beside it do.
+ * "Cloud resource" is a noun of the AI activity's sentences too, and every
+ * language that writes such a noun lower-case words it for the middle of
+ * one ("recurso en la nube", "облачный ресурс"); here it reads "Recurso en
+ * la nube", as "Host" and "DNS name" beside it do.
  */
 export function getTrafficAddressSourceText(
   source: NetworkAddressNameSource,

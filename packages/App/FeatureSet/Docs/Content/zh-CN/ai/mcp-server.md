@@ -330,7 +330,7 @@ curl https://oneuptime.com/mcp/tools
 
 - **`acknowledge_incident`** / **`resolve_incident`**：把事件移到项目的 Acknowledged 或 Resolved 状态，与仪表板的按钮作用相同
 - **`acknowledge_alert`** / **`resolve_alert`**：对警报执行同样的操作
-- **`add_incident_note`**：使用 `visibility: "internal"`（仅团队可见，默认）或 `visibility: "public"`（发布到状态页）为事件添加备注。支持 Markdown
+- **`add_incident_note`**：使用 `visibility: "internal"`（仅能查看该事件的人可见，默认）或 `visibility: "public"`（发布到状态页）为事件添加备注。支持 Markdown
 - **`add_alert_note`**：为警报添加内部备注
 
 典型的流程：`list_incidents` → `acknowledge_incident` → 用 `list_logs` 调查 → `add_incident_note`（公开） → `resolve_incident`。
