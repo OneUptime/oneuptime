@@ -114,6 +114,54 @@ const AWAY_LABELS: Array<string> = [
   "User Overrides",
 ];
 
+/*
+ * "Layers": changes to who takes turns wait on the page until Save changes
+ * (issue #7575) - each label with the file that draws it, so a renamed
+ * button fails here rather than leaving the docs naming one nobody sees.
+ */
+const SAVE_BAR_FILE: string =
+  "App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/LayersSaveBar.tsx";
+const LAYER_CONFIG_FORM_FILE: string =
+  "App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/LayerConfigForm.tsx";
+
+const HELD_CHANGES_LABELS: Array<{ label: string; drawnBy: Array<string> }> = [
+  {
+    label: "Move layer up (higher priority)",
+    drawnBy: [LAYER_CARD_FILE, 'label: "Move layer up (higher priority)"'],
+  },
+  {
+    label: "Move layer down (lower priority)",
+    drawnBy: [LAYER_CARD_FILE, 'label: "Move layer down (lower priority)"'],
+  },
+  { label: "New", drawnBy: [LAYER_USER_FILE, 'translateText("New")'] },
+  { label: "Moved", drawnBy: [LAYER_USER_FILE, 'translateText("Moved")'] },
+  {
+    label: "Removed when you save",
+    drawnBy: [LAYER_USER_FILE, 'translateText("Removed when you save")'],
+  },
+  { label: "Undo", drawnBy: [LAYER_USER_FILE, 'translateText("Undo")'] },
+  {
+    label: "Includes unsaved changes",
+    drawnBy: [LAYERS_FILE, 'translateText("Includes unsaved changes")'],
+  },
+  { label: "Save changes", drawnBy: [SAVE_BAR_FILE, '"Save changes"'] },
+  { label: "Discard", drawnBy: [SAVE_BAR_FILE, 'title="Discard"'] },
+  {
+    label: "Keep Editing",
+    drawnBy: [LAYERS_FILE, 'closeButtonText={"Keep Editing"}'],
+  },
+  {
+    label: "Discard Changes",
+    drawnBy: [LAYERS_FILE, 'submitButtonText={"Discard Changes"}'],
+  },
+  { label: "Reload layers", drawnBy: [SAVE_BAR_FILE, 'title="Reload layers"'] },
+  { label: "Add Layer", drawnBy: [LAYERS_FILE, 'title="Add Layer"'] },
+  {
+    label: "Save Layer",
+    drawnBy: [LAYER_CONFIG_FORM_FILE, 'submitButtonText={"Save Layer"}'],
+  },
+];
+
 const QUESTION: string = "Who takes turns?";
 const TURN_LENGTH: string = "Each turn lasts";
 const TURN_LENGTHS: Array<string> = ["1 day", "1 week", "2 weeks", "1 month"];
@@ -367,6 +415,34 @@ describe("the On-Call Schedules docs page", () => {
       );
     });
 
+    it("says changes to who takes turns wait for Save changes, with the controls the page draws", () => {
+      const layers: string = pageSections[1]!.body;
+
+      for (const entry of HELD_CHANGES_LABELS) {
+        expect({
+          label: entry.label,
+          named: layers.includes(`**${entry.label}**`),
+          drawn: readRepoFile(entry.drawnBy[0]!).includes(entry.drawnBy[1]!),
+        }).toEqual({ label: entry.label, named: true, drawn: true });
+      }
+
+      // The arrows are on the layer's card, not in a menu.
+      expect(layers).toContain("use the arrows on a layer's card");
+      expect(layers).not.toContain("in a layer's menu");
+
+      for (const sentence of [
+        "Changes to who takes turns wait until you save them",
+        "**Save changes** saves every change at once.",
+        "Who is on call is then worked out once, for the layers as saved",
+        "**Discard** puts the layers back as they were last saved.",
+        "Leaving the page before you save asks first",
+        "If someone else changed the layers after you opened the page, your changes are not saved over theirs.",
+        "**Add Layer** adds its layer at once",
+      ]) {
+        expect(layers).toContain(sentence);
+      }
+    });
+
     it("says each person keeps one colour, as the layer cards and the timeline both draw it", () => {
       const layers: string = pageSections[1]!.body;
 
@@ -555,6 +631,15 @@ describe("the On-Call Schedules docs page", () => {
           lang,
           found: layers.includes(`**${dashboard["Add Layer"]}**`),
         }).toEqual({ lang, found: true });
+
+        // Changes held until Save changes, named as the dashboard draws them.
+        for (const entry of HELD_CHANGES_LABELS) {
+          expect({
+            lang,
+            label: entry.label,
+            found: layers.includes(`**${dashboard[entry.label]}**`),
+          }).toEqual({ lang, label: entry.label, found: true });
+        }
 
         /*
          * Each person's one colour, on the timeline: named as the
