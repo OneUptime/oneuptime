@@ -410,6 +410,10 @@ bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-p
 API 權杖錯誤或缺少權限。請檢查權杖 ID 的格式（`user@realm!tokenname`）、密鑰，以及權杖及其使用者在路徑 `/` 上是否都具有 **PVEAuditor** 角色。匯出器自己的日誌會顯示 API 的回應：`docker logs oneuptime-pve-exporter`。
 :::
 
+:::details 叢集顯示「無法讀取 API」
+代理程式正在執行，但已有 15 分鐘以上未從 Proxmox VE API 讀取叢集，因此叢集顯示 **無法讀取 API** 而非 **已連線**：它讀取的節點已當機且 `PVE_NODES` 中沒有其他節點回應、API 權杖已被撤銷或失去 **PVEAuditor** 角色，或代理程式所在的機器無法連到任何節點的連接埠 `8006`。它的頁面會保留最後一次讀取的內容。上方的診斷指令碼會逐一檢查這些原因，`docker logs oneuptime-pve-api-failover` 則會說明代理程式從哪個節點讀取，以及為什麼略過其他節點。
+:::
+
 :::details 只有節點指標，沒有客體指標
 客體序列（`qemu/*` 和 `lxc/*` ID）來自匯出器的叢集收集器，隨附的設定會透過抓取參數 `cluster=1` 開啟它。如果你自訂了 `otel-collector-config.yaml`，請將 `cluster: ["1"]` 參數加回去。
 :::
