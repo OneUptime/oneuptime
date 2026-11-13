@@ -1161,6 +1161,154 @@ describe("Save changes", () => {
   });
 });
 
+/*
+ * Add Layer still adds the layer at once, changes held or not: a layer with
+ * nobody in it changes nothing for anyone on call, and its settings form
+ * needs a saved layer to save to.
+ */
+describe("Add Layer while changes are held", () => {
+  const NEW_LAYER: string = "0d750000-0000-4000-8000-000000000005";
+
+  // The server takes the new layer; any other row write is still refused.
+  function letLayersBeAdded(): void {
+    rowWriteMock.mockImplementation(
+      async (kind: unknown, params: any): Promise<unknown> => {
+        if (
+          kind !== "create" ||
+          params.modelType !== OnCallDutyPolicyScheduleLayer
+        ) {
+          throw new Error("The page wrote a row on its own");
+        }
+
+        const added: StoredLayer = {
+          id: NEW_LAYER,
+          name: params.model.name.toString(),
+          order: params.model.order,
+        };
+        stored.layers.push(added);
+        return { data: layerModel(added) };
+      },
+    );
+  }
+
+  async function clickAddLayer(): Promise<void> {
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Add Layer" }));
+    });
+  }
+
+  async function waitForLayers(count: number): Promise<void> {
+    await waitFor(() => {
+      expect(
+        screen.getAllByRole("button", { name: "Delete layer" }).length,
+      ).toBe(count);
+    });
+  }
+
+  test("keeps the changes; Save then sends them with the new layer, in one request, with no conflict", async () => {
+    await renderLayers();
+    await drag(CAROL, -2);
+    letLayersBeAdded();
+
+    await clickAddLayer();
+    await waitForLayers(3);
+
+    // The new layer was added - and only it.
+    expect(
+      rowWriteMock.mock.calls.map((call: Array<unknown>) => {
+        return call[0];
+      }),
+    ).toEqual(["create"]);
+    expect(saveCalls).toEqual([]);
+
+    // The drag is still held, and still says so.
+    expect(shownPeople()).toEqual([
+      "Carol Chen",
+      "Alice Andersson",
+      "Bob Berg",
+    ]);
+    expect(barLines()).toEqual(["New turn order in Primary"]);
+    expect(screen.queryByTestId("layers-save-bar-conflict")).toBeNull();
+    expect(LeaveGuard.isHeld()).toBe(true);
+
+    await clickSave();
+    await screen.findByTestId("layers-save-bar-saved", undefined, {
+      timeout: 5000,
+    });
+
+    expect(saveCalls.length).toBe(1);
+    expect(saveCalls[0]!.data["layers"]).toEqual([
+      {
+        layerId: PRIMARY,
+        users: [
+          { layerUserId: ROW[CAROL], userId: CAROL },
+          { layerUserId: ROW[ALICE], userId: ALICE },
+          { layerUserId: ROW[BOB], userId: BOB },
+        ],
+      },
+      {
+        layerId: BACKUP,
+        users: [{ layerUserId: ROW[DANA], userId: DANA }],
+      },
+      { layerId: NEW_LAYER, users: [] },
+    ]);
+    expect(
+      stored.layers.map((layer: StoredLayer) => {
+        return `${layer.name}:${layer.order}`;
+      }),
+    ).toEqual(["Primary:1", "Backup:2", "Layer 3:3"]);
+    expect(
+      stored.rows
+        .filter((row: StoredRow) => {
+          return row.layerId === PRIMARY;
+        })
+        .sort((a: StoredRow, b: StoredRow) => {
+          return a.order - b.order;
+        })
+        .map((row: StoredRow) => {
+          return row.userId;
+        }),
+    ).toEqual([CAROL, ALICE, BOB]);
+  });
+
+  test("after someone else changed the layers, asks for a reload rather than save over their change", async () => {
+    await renderLayers();
+    await drag(CAROL, -2);
+    letLayersBeAdded();
+
+    // Someone else adds Erin to Backup meanwhile.
+    stored.rows.push({
+      id: "0d750000-0000-4000-8000-000000000301",
+      layerId: BACKUP,
+      userId: ERIN,
+      order: 2,
+    });
+
+    await clickAddLayer();
+
+    expect(
+      await screen.findByTestId("layers-save-bar-conflict"),
+    ).toHaveTextContent("Someone else changed these layers");
+    expect(saveCalls).toEqual([]);
+    // The drag is still on the page, unsaved, until the reload.
+    expect(shownPeople()[0]).toBe("Carol Chen");
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("layers-save-bar-reload"));
+    });
+
+    // As saved now: the new layer, Erin in Backup, and no drag.
+    await waitForLayers(3);
+    await waitFor(() => {
+      expect(screen.queryByTestId("layers-save-bar-conflict")).toBeNull();
+    });
+    expect(shownPeople()[0]).toBe("Alice Andersson");
+    expect(screen.queryByTestId("layers-save-bar")).toBeNull();
+    expect(LeaveGuard.isHeld()).toBe(false);
+    expect(saveCalls).toEqual([]);
+  });
+});
+
 describe("Discard", () => {
   test("asks first; Keep Editing keeps the changes, Discard Changes puts the layers back as saved", async () => {
     await renderLayers();
