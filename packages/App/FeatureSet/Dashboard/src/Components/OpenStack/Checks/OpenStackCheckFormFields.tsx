@@ -278,6 +278,10 @@ function getCredentialFields(data: {
       autoComplete: "new-password",
       collapsibleSection: data.section,
     },
+    /*
+     * Both start as the domain called Default. Their placeholder is that domain's name in
+     * Keystone, in every language (isPlaceholderIdentifier), as on Connect Cloud (#7663).
+     */
     {
       field: { userDomainName: true },
       title: "User Domain",
@@ -285,6 +289,7 @@ function getCredentialFields(data: {
       required: false,
       showIf: isPasswordKind,
       placeholder: "Default",
+      isPlaceholderIdentifier: true,
       autoComplete: "off",
       collapsibleSection: data.moreSection,
     },
@@ -295,6 +300,7 @@ function getCredentialFields(data: {
       required: false,
       showIf: isPasswordKind,
       placeholder: "Default",
+      isPlaceholderIdentifier: true,
       autoComplete: "off",
       collapsibleSection: data.moreSection,
     },
