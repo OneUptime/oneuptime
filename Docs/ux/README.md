@@ -556,6 +556,16 @@ then `npm run i18n:validate` from the root.
   themselves. A link that leads on ends with "←" there ("All metrics →" is `همهٔ متریک‌ها ←`), and
   one that leads back starts with "→" ("← Back" is `→ بازگشت`). Enforced by
   [PathArrowsInRightToLeftSentences](../../packages/Common/Tests/App/PathArrowsInRightToLeftSentences.test.ts).
+- **An arrow a component draws points the way its line is read.** Between two values ("Declared →
+  Acknowledged", "12.5% → 15.0%") or after a link's words, never write "→" into a component: draw
+  `DirectionArrow`, or take `getArrowOn` or `joinWithArrowsOn` from `Common/Types/DirectionArrow`.
+  On a page read from the right the arrow is "←", the first value is drawn at the right, and each
+  value is set apart so the arrow stays the line's. A line that reads one way on every page, like
+  the names of the user flow map's bands (drawn from the left everywhere), takes
+  `joinWithArrowsInDirection`. Enforced by
+  [ComponentArrowsInRightToLeftPages](../../packages/Common/Tests/App/ComponentArrowsInRightToLeftPages.test.ts)
+  and
+  [DirectionArrowsInReadersLanguage](../../packages/Common/Tests/App/Dashboard/DirectionArrowsInReadersLanguage.test.tsx).
 - **A bare word has one meaning everywhere,** because a label is translated by its English text.
   "Any" is the Match Condition's word. Enforced by
   [MatchConditionAnyWordGuard](../../packages/Common/Tests/UI/Components/Forms/MatchConditionAnyWordGuard.test.ts).
