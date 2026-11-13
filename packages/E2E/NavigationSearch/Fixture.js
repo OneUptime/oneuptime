@@ -11,6 +11,7 @@ import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import NavBarMenuModal from "Common/UI/Components/Navbar/NavBarMenuModal";
 import Navigation from "Common/UI/Utils/Navigation";
+import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import { followLanguageForPage } from "Common/UI/Utils/PageLanguage";
 import DashboardCommandPalette from "../../App/FeatureSet/Dashboard/src/Components/CommandPalette/DashboardCommandPalette";
 import DashboardNavbar from "../../App/FeatureSet/Dashboard/src/Components/NavBar/NavBar";
@@ -52,6 +53,9 @@ await i18n.use(initReactI18next).init({
   },
   interpolation: { escapeValue: false },
 });
+
+// Dates in the reader's language ("vor 2 Stunden"), as Utils/i18n.ts sets them.
+followLanguageForDates(i18n);
 
 // <html lang dir> follow the reader's language: Arabic reads right to left.
 followLanguageForPage(i18n);
