@@ -60,7 +60,7 @@ Klicka på **Testa monitor**, välj en sond under **Välj sond** och klicka på 
 
 ### Gå igenom kriterierna
 
-**Monitorkriterier** börjar med [standardkriterierna](#standardkriterier): offline när webbplatsen inte svarar eller svarar med ett fel, online vid varje status `2xx` eller `3xx`. Ändra dem vid behov och klicka sedan på **Nästa**.
+**Kriterier** börjar med [standardkriterierna](#standardkriterier): offline när webbplatsen inte svarar eller svarar med ett fel, online vid varje status `2xx` eller `3xx`. Ändra dem vid behov och klicka sedan på **Nästa**.
 
 ### Välj sonder och skapa
 

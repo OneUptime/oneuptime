@@ -155,7 +155,7 @@ flowchart TB
 ## 後續步驟
 
 :::cards
-- [監測器條件與狀態](/docs/monitor/criteria-and-statuses): 是什麼設定了每個監測器的狀態。
+- [條件與狀態](/docs/monitor/criteria-and-statuses): 是什麼設定了每個監測器的狀態。
 - [狀態頁資源與群組](/docs/status-pages/resources-and-groups): 安排狀態頁面上的列。
 - [訂閱者與公告](/docs/status-pages/subscribers): 把群組的事件告訴客戶。
 :::

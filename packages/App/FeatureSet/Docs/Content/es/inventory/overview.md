@@ -65,7 +65,7 @@ Abre **Productos → Recursos → Inventario**. Su menú lateral tiene estas pá
 | **Ayuda → Documentación** | Una guía breve del inventario, con los tipos de elemento que reconoce. |
 | **Avanzado → Archivado** | Los elementos que archivaste. Desarchívalos desde aquí. |
 
-Abre un elemento y su propio menú lateral tiene su **Vista general** (su tipo, origen y estado, y cada atributo observado en él), sus **Conexiones** y sus **Campos personalizados**; sus **Registros**, **Trazas**, **Métricas**, **Perfiles de rendimiento** y **Excepciones**; y sus **Incidentes**, **Alertas** y **Mantenimiento programado**. En **Avanzado** están sus **Ajustes**, sus **Registros de auditoría** y **Eliminar elemento**. Las páginas de telemetría muestran lo que envió el propio elemento. Los incidentes, alertas y eventos de mantenimiento son los del servicio, host o clúster de Kubernetes que representa el elemento; en cualquier otro elemento, esas páginas indican qué recurso consultar en su lugar.
+Abre un elemento y su propio menú lateral tiene su **Vista general** (su tipo, origen y estado, y cada atributo observado en él), sus **Conexiones** y sus **Campos personalizados**; sus **Registros**, **Trazas**, **Métricas**, **Perfiles** y **Excepciones**; y sus **Incidentes**, **Alertas** y **Mantenimiento programado**. En **Avanzado** están sus **Ajustes**, sus **Registros de auditoría** y **Eliminar elemento**. Las páginas de telemetría muestran lo que envió el propio elemento. Los incidentes, alertas y eventos de mantenimiento son los del servicio, host o clúster de Kubernetes que representa el elemento; en cualquier otro elemento, esas páginas indican qué recurso consultar en su lugar.
 
 ### Detalles del activo
 

@@ -193,7 +193,7 @@ Die **Anzahl der Ausnahmen** ist 3, also passt **Mehr als** `0`: Der Monitor geh
 ## Fehlerbehebung
 
 :::details Ausnahmen erscheinen im Explorer, aber der Monitor zählt 0
-Vergleichen Sie den Wert von **Umgebungen** mit dem Filter `env:` des Explorers: Der Abgleich ist exakt und unterscheidet Groß-/Kleinschreibung, und Ausnahmen ohne Umgebung werden ausgelassen, wenn der Filter gesetzt ist. Prüfen Sie dann, ob diese Ausnahmen behoben oder archiviert sind. Öffnen Sie die Seite **Kriterien** des Monitors (unter **Konfiguration**) und klicken Sie auf **Überwachungskriterien bearbeiten**: **Passende Ausnahmen** zeigt, worauf die Filter passen.
+Vergleichen Sie den Wert von **Umgebungen** mit dem Filter `env:` des Explorers: Der Abgleich ist exakt und unterscheidet Groß-/Kleinschreibung, und Ausnahmen ohne Umgebung werden ausgelassen, wenn der Filter gesetzt ist. Prüfen Sie dann, ob diese Ausnahmen behoben oder archiviert sind. Öffnen Sie die Seite **Kriterien** des Monitors (unter **Konfiguration**) und klicken Sie auf **Kriterien bearbeiten**: **Passende Ausnahmen** zeigt, worauf die Filter passen.
 :::
 
 :::details Der Vorfall wurde behoben, als ich die Ausnahme behoben habe

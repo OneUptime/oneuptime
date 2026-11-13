@@ -60,7 +60,7 @@ Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **K
 
 ### Gå gjennom kriteriene
 
-**Monitorkriterier** starter med [standardkriteriene](#standardkriterier): frakoblet når nettstedet ikke svarer eller svarer med en feil, tilkoblet ved enhver status `2xx` eller `3xx`. Endre dem ved behov, og klikk så på **Neste**.
+**Kriterier** starter med [standardkriteriene](#standardkriterier): frakoblet når nettstedet ikke svarer eller svarer med en feil, tilkoblet ved enhver status `2xx` eller `3xx`. Endre dem ved behov, og klikk så på **Neste**.
 
 ### Velg sonder og opprett
 

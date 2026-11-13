@@ -260,7 +260,10 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       expressApp.use("/api/admin/health", enterpriseAdminHealthRouter);
     }
 
-    // Admin OneUptime Health overview (master-admin only).
+    /*
+     * Admin OneUptime Health overview: master-admin routes, and the doctor's
+     * POST, which takes the cluster key (App/API/AdminHealth.ts).
+     */
     expressApp.use("/api/admin/health", AdminHealthAPI);
 
     // Initialize feature sets

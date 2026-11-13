@@ -36,7 +36,7 @@ flowchart TB
 
 ## 始める前に
 
-- 取り込みキーを作成できる OneUptime プロジェクト。プロジェクトのオーナーと管理者、および **Create Telemetry Ingestion Key** 権限を持つユーザーが作成できます。
+- 取り込みキーを作成できる OneUptime プロジェクト。プロジェクトのオーナーと管理者、および Create Ingestion Key 権限を持つユーザーが作成できます。
 - OpenTelemetry SDK を追加できるアプリケーション、または OpenTelemetry Collector。
 - アプリケーションまたは Collector から `oneuptime.com` (またはセルフホストの OneUptime ホスト) への送信方向の HTTPS (ポート 443)。
 
@@ -365,7 +365,7 @@ HTTP では、シグナルごとにエンドポイントの下に専用のパス
 | ログ | `https://oneuptime.com/otlp/v1/logs` |
 | プロファイル | `https://oneuptime.com/otlp/v1/profiles` |
 
-継続的プロファイリングでは、ほとんどのプロファイラーが代わりに Pyroscope 互換のエンドポイントに送ります。[継続的プロファイリング](/docs/telemetry/profiles)を参照してください。OTLP のプロファイルをエクスポートする Collector は、エクスポーターの `profiles_endpoint` を `https://oneuptime.com/otlp/v1/profiles` に設定する必要があります。既定では、OneUptime が提供していない開発用のパスにプロファイルを送るためです。
+継続的プロファイリングでは、ほとんどのプロファイラーが代わりに Pyroscope 互換のエンドポイントに送ります。[プロファイル](/docs/telemetry/profiles)を参照してください。OTLP のプロファイルをエクスポートする Collector は、エクスポーターの `profiles_endpoint` を `https://oneuptime.com/otlp/v1/profiles` に設定する必要があります。既定では、OneUptime が提供していない開発用のパスにプロファイルを送るためです。
 
 ### gRPC 上の OTLP
 

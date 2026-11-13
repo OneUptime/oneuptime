@@ -154,7 +154,7 @@ Met 30 mislukte verzoeken komt de regel overeen en wordt het incident gemeld. Zo
 ## Problemen oplossen
 
 :::details De monitor telt geen spans voor mijn endpoint
-**Spannaam bevat** wordt vergeleken met de naam van de span, en instrumentatie noemt server-spans vaak naar de route (`POST /api/checkout`) of alleen naar de methode (`GET`). Zoek de exacte naam op in de traceverkenner. Open daarna de pagina **Criteria** van de monitor (onder **Configuratie**) en klik op **Bewakingscriteria bewerken**: **Overeenkomende spans** toont waarmee de filters nu overeenkomen.
+**Spannaam bevat** wordt vergeleken met de naam van de span, en instrumentatie noemt server-spans vaak naar de route (`POST /api/checkout`) of alleen naar de methode (`GET`). Zoek de exacte naam op in de traceverkenner. Open daarna de pagina **Criteria** van de monitor (onder **Configuratie**) en klik op **Criteria bewerken**: **Overeenkomende spans** toont waarmee de filters nu overeenkomen.
 :::
 
 :::details Geslaagde verzoeken worden niet geteld wanneer ik op Ok filter

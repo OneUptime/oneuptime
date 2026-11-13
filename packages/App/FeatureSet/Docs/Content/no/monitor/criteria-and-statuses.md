@@ -1,4 +1,4 @@
-# Monitorkriterier og statuser
+# Kriterier og statuser
 
 En monitors kriterier avgjør hva hver kontroll betyr: om monitoren er oppe eller nede, og om OneUptime erklærer en hendelse eller oppretter et varsel. Statuser er prosjektets liste over hva en monitor kan være, fra **I drift** til **Frakoblet**. Denne siden forklarer begge deler for alle monitortyper; hver types egen side viser filtrene den tilbyr.
 
@@ -111,7 +111,7 @@ Hemmeligheter og personopplysninger maskeres før noe tas vare på: headere som 
 :::steps
 ### Åpne kriteriesiden
 
-Gå til **Monitorer** og åpne monitoren. Utvid **Konfigurasjon** i sidemenyen og klikk på **Kriterier**. Kortet **Overvåkingskriterier** viser hvert kriterium, hva det kontrollerer og hva det gjør.
+Gå til **Monitorer** og åpne monitoren. Utvid **Konfigurasjon** i sidemenyen og klikk på **Kriterier**. Kortet **Kriterier** viser hvert kriterium, hva det kontrollerer og hva det gjør.
 
 ### Klikk på Rediger overvåkingskriterier
 

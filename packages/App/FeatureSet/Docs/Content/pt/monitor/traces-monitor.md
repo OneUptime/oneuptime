@@ -154,7 +154,7 @@ Com 30 requisições com falha, a regra corresponde e o incidente é declarado. 
 ## Solução de problemas
 
 :::details O monitor não conta nenhum span para o meu endpoint
-**O nome do span contém** é comparado com o nome do span, e a instrumentação costuma nomear os spans de servidor pela rota (`POST /api/checkout`) ou só pelo método (`GET`). Encontre o nome exato no explorador de traces. Depois abra a página **Critérios** do monitor (em **Configuração**) e clique em **Editar critérios de monitoramento**: **Spans correspondentes** mostra a que os filtros correspondem agora.
+**O nome do span contém** é comparado com o nome do span, e a instrumentação costuma nomear os spans de servidor pela rota (`POST /api/checkout`) ou só pelo método (`GET`). Encontre o nome exato no explorador de traces. Depois abra a página **Critérios** do monitor (em **Configuração**) e clique em **Editar critérios**: **Spans correspondentes** mostra a que os filtros correspondem agora.
 :::
 
 :::details As requisições bem-sucedidas não são contadas quando filtro por Ok

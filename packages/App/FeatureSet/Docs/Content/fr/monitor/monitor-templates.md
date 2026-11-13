@@ -50,7 +50,7 @@ Dans **Valeurs par défaut du moniteur**, choisissez le **Type de moniteur**, av
 Dans **Critères**, renseignez ce qu'il faut vérifier et les critères, comme dans [Créer un moniteur](/docs/monitor/create-monitor#critères). La carte **Template sync settings** en haut vous permet de protéger des champs des synchronisations (voir [Garder des valeurs propres à chaque moniteur](#garder-des-valeurs-propres-à-chaque-moniteur)). Pour un type de moniteur que des sondes vérifient, la dernière étape, **Intervalle**, demande l'**Intervalle de surveillance**. Cliquez sur **Créer : Modèle de moniteur** à la dernière étape.
 :::
 
-Le modèle est ajouté à la liste. Ouvrez-le pour voir sa page, avec une carte pour chaque partie : **Informations du modèle**, **Valeurs par défaut du moniteur**, **Critères de surveillance**, **Intervalle de surveillance** (avec **Accord minimum des sondes**), **Étiquettes**, **Valeurs par défaut des champs personnalisés** (quand le projet a des champs personnalisés de moniteur) et **Moniteurs liés**. Vous modifiez chaque partie sur sa propre carte, par exemple avec **Modifier les critères** ou **Modifier l'intervalle**.
+Le modèle est ajouté à la liste. Ouvrez-le pour voir sa page, avec une carte pour chaque partie : **Informations du modèle**, **Valeurs par défaut du moniteur**, **Critères**, **Intervalle de surveillance** (avec **Accord minimum des sondes**), **Étiquettes**, **Valeurs par défaut des champs personnalisés** (quand le projet a des champs personnalisés de moniteur) et **Moniteurs liés**. Vous modifiez chaque partie sur sa propre carte, par exemple avec **Modifier les critères** ou **Modifier l'intervalle**.
 
 ## Créer des moniteurs à partir d'un modèle
 
@@ -85,7 +85,7 @@ Allez dans **Moniteurs → Paramètres → Modèles** et ouvrez le modèle.
 
 ### Modifier ses critères
 
-Sur la carte **Critères de surveillance**, cliquez sur **Modifier les critères**.
+Sur la carte **Critères**, cliquez sur **Modifier les critères**.
 
 ### Protéger les champs
 
@@ -93,7 +93,7 @@ Dans **Template sync settings**, cochez **Ne pas synchroniser ce champ** à côt
 
 ### Enregistrer
 
-Enregistrez vos modifications. La carte **Critères de surveillance**, et la confirmation des deux synchronisations ci-dessous, listent les champs protégés.
+Enregistrez vos modifications. La carte **Critères**, et la confirmation des deux synchronisations ci-dessous, listent les champs protégés.
 
 ### Synchroniser
 

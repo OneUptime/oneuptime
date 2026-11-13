@@ -74,7 +74,7 @@ const UI_LABELS: Array<string> = [
   "Select Probe",
   "Run Test",
   "Monitor Test Result",
-  "Monitor Criteria",
+  "Criteria",
   "Probes",
   "Monitoring Interval",
   "Every 5 Minutes",
@@ -268,9 +268,9 @@ describe("the page quotes the product's defaults", () => {
     );
   });
 
-  test("the Monitoring Criteria table lists exactly the checks the form offers, in its order", () => {
+  test("the Criteria table lists exactly the checks the form offers, in its order", () => {
     const rows: Array<Array<string>> = tableRows(
-      section(page, "## Monitoring Criteria"),
+      section(page, "## Criteria"),
     ).slice(0, NTP_CHECK_ONS.length);
 
     expect(
@@ -290,7 +290,7 @@ describe("the page quotes the product's defaults", () => {
     "the conditions listed for %s are the ones the form offers",
     (checkOn: CheckOn) => {
       const row: Array<string> | undefined = tableRows(
-        section(page, "## Monitoring Criteria"),
+        section(page, "## Criteria"),
       ).find((candidate: Array<string>) => {
         return candidate[0] === `**${checkOn}**`;
       });

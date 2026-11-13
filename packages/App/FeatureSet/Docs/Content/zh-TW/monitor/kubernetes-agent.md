@@ -334,7 +334,7 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 
 ## 持續 CPU 剖析
 
-[OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) 也可以在每個節點上執行，使用 `otel/opentelemetry-collector-ebpf-profiler` 映像檔。它以每秒 19 次的頻率對每個處理程序正在執行的內容取樣，支援 Go、Java、.NET、Python、Ruby、Node.js、PHP、Perl、C、C++ 和 Rust，並把剖析資料傳送到 OneUptime。這些資料會顯示在 **產品 → 效能設定檔** 下，也會作為火焰圖顯示在每個追蹤 Span 上。
+[OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) 也可以在每個節點上執行，使用 `otel/opentelemetry-collector-ebpf-profiler` 映像檔。它以每秒 19 次的頻率對每個處理程序正在執行的內容取樣，支援 Go、Java、.NET、Python、Ruby、Node.js、PHP、Perl、C、C++ 和 Rust，並把剖析資料傳送到 OneUptime。這些資料會顯示在 **產品 → 效能剖析** 下，也會作為火焰圖顯示在每個追蹤 Span 上。
 
 **剖析預設關閉：** 它每個節點耗用的 CPU 和記憶體比 eBPF 檢測更多。用 `--set profiling.enabled=true` 開啟它。
 

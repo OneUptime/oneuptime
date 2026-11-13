@@ -60,7 +60,7 @@ Klik op **Monitor testen**, kies een sonde onder **Selecteer sonde** en klik op 
 
 ### De criteria nakijken
 
-**Monitorcriteria** begint met de [standaardcriteria](#standaardcriteria): offline wanneer de site niet of met een fout antwoordt, online bij elke status `2xx` of `3xx`. Wijzig ze indien nodig en klik dan op **Volgende**.
+**Criteria** begint met de [standaardcriteria](#standaardcriteria): offline wanneer de site niet of met een fout antwoordt, online bij elke status `2xx` of `3xx`. Wijzig ze indien nodig en klik dan op **Volgende**.
 
 ### Sondes kiezen en maken
 

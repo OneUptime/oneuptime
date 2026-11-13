@@ -86,5 +86,5 @@ flowchart TB
 :::cards
 - [透過電話、簡訊或推播接收呼叫](/docs/guides/paging): 在手機上接收呼叫，並在無人回應時呼叫下一個人。
 - [發布狀態頁面](/docs/guides/status-page): 在你自己的網域上向客戶展示這個監測器。
-- [監測器條件與狀態](/docs/monitor/criteria-and-statuses): 精確決定監測器何時算是停擺。
+- [條件與狀態](/docs/monitor/criteria-and-statuses): 精確決定監測器何時算是停擺。
 :::

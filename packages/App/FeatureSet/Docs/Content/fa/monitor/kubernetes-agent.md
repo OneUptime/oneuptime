@@ -334,7 +334,7 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 
 ## پروفایل‌گیری پیوسته CPU
 
-[OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) هم می‌تواند روی هر گره اجرا شود، به‌صورت ایمیج `otel/opentelemetry-collector-ebpf-profiler`. این پروفایلر ۱۹ بار در ثانیه از آنچه هر فرایند اجرا می‌کند نمونه می‌گیرد، در Go، Java، .NET، Python، Ruby، Node.js، PHP، Perl، C، C++ و Rust، و پروفایل‌ها را به OneUptime می‌فرستد. آن‌ها زیر **محصولات → پروفایل‌های کارایی**، و به‌صورت نمودار شعله‌ای روی هر اسپن ترِیس، پدیدار می‌شوند.
+[OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) هم می‌تواند روی هر گره اجرا شود، به‌صورت ایمیج `otel/opentelemetry-collector-ebpf-profiler`. این پروفایلر ۱۹ بار در ثانیه از آنچه هر فرایند اجرا می‌کند نمونه می‌گیرد، در Go، Java، .NET، Python، Ruby، Node.js، PHP، Perl، C، C++ و Rust، و پروفایل‌ها را به OneUptime می‌فرستد. آن‌ها زیر **محصولات → پروفایل‌ها**، و به‌صورت نمودار شعله‌ای روی هر اسپن ترِیس، پدیدار می‌شوند.
 
 **پروفایل‌گیری به‌طور پیش‌فرض خاموش است:** به ازای هر گره CPU و حافظه بیشتری از ابزارگذاری eBPF مصرف می‌کند. آن را با `--set profiling.enabled=true` روشن کنید.
 

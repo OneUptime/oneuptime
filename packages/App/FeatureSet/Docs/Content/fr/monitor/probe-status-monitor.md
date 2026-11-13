@@ -100,6 +100,6 @@ Une sonde est déconnectée après trois minutes sans heartbeat, et plus tard en
 
 :::cards
 - [Sondes personnalisées](/docs/probe/custom-probe): Exécuter une sonde dans votre propre réseau.
-- [Critères et statuts des moniteurs](/docs/monitor/criteria-and-statuses): Comment les critères décident du statut d'un moniteur.
+- [Critères et statuts](/docs/monitor/criteria-and-statuses): Comment les critères décident du statut d'un moniteur.
 - [Modèles d'incident et d'alerte](/docs/monitor/incident-alert-templating): Rédiger l'incident qu'un moniteur déclare.
 :::

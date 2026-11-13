@@ -1,4 +1,4 @@
-# Critérios e status de monitores
+# Critérios e status
 
 Os critérios de um monitor decidem o que cada verificação significa: se o monitor está no ar ou fora do ar, e se o OneUptime declara um incidente ou cria um alerta. Os status são a lista do seu projeto com o que um monitor pode ser, de **Operacional** a **Offline**. Esta página explica os dois para todo tipo de monitor; a página de cada tipo lista os filtros que ele oferece.
 
@@ -111,7 +111,7 @@ Segredos e dados pessoais são mascarados antes de qualquer coisa ser guardada: 
 :::steps
 ### Abrir a página de critérios
 
-Vá para **Monitores** e abra o monitor. Expanda **Configuração** no menu lateral dele e clique em **Critérios**. O cartão **Critérios de Monitoramento** mostra cada critério, o que ele verifica e o que faz.
+Vá para **Monitores** e abra o monitor. Expanda **Configuração** no menu lateral dele e clique em **Critérios**. O cartão **Critérios** mostra cada critério, o que ele verifica e o que faz.
 
 ### Clicar em Editar critérios de monitoramento
 

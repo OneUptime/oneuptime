@@ -183,6 +183,6 @@ Cada fila es un span, no una solicitud: con **Entry spans**, el valor predetermi
 :::cards
 - [Sintaxis de búsqueda](/docs/telemetry/search-syntax): Todos los filtros que entiende el cuadro de búsqueda.
 - [Monitor de trazas](/docs/monitor/traces-monitor): Recibir alertas de solicitudes fallidas o lentas.
-- [Seguimiento de excepciones](/docs/telemetry/exceptions): Revisar los errores que registran sus spans.
+- [Excepciones](/docs/telemetry/exceptions): Revisar los errores que registran sus spans.
 - [Explorador de registros](/docs/telemetry/logs-explorer): Leer las líneas de registro que escribió una solicitud.
 :::

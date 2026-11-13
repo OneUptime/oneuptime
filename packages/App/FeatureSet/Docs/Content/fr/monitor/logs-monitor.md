@@ -240,7 +240,7 @@ La valeur de chaque attribut de Group By est une [variable de modèle](/docs/mon
 ## Dépannage
 
 :::details Le moniteur est hors ligne, mais mon service écrit des journaux
-Le décompte valait 0 : les filtres ne correspondent donc à aucun des journaux que le service envoie. Ouvrez la page **Critères** du moniteur (sous **Configuration**) et cliquez sur **Modifier les critères de surveillance** : **Journaux correspondants** montre ce que les filtres sélectionnent en ce moment, et le graphique de **Quand alerter** les compte dans chaque fenêtre. Les causes habituelles sont une gravité choisie d'après le texte affiché par le logger plutôt que d'après son numéro de gravité (voir [Gravité des journaux](#gravité-des-journaux)), un filtre de service ou d'attribut qui ne correspond pas, et une fenêtre de temps plus courte que l'intervalle entre les journaux du service.
+Le décompte valait 0 : les filtres ne correspondent donc à aucun des journaux que le service envoie. Ouvrez la page **Critères** du moniteur (sous **Configuration**) et cliquez sur **Modifier les critères** : **Journaux correspondants** montre ce que les filtres sélectionnent en ce moment, et le graphique de **Quand alerter** les compte dans chaque fenêtre. Les causes habituelles sont une gravité choisie d'après le texte affiché par le logger plutôt que d'après son numéro de gravité (voir [Gravité des journaux](#gravité-des-journaux)), un filtre de service ou d'attribut qui ne correspond pas, et une fenêtre de temps plus courte que l'intervalle entre les journaux du service.
 :::
 
 :::details Un pic s'est produit, mais rien n'a alerté

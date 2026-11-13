@@ -57,7 +57,7 @@ Um novo monitor começa em **Cloud Stopped Reporting**, em **Sobre o que alertar
 
 ### Verifique os critérios
 
-Abra cada critério em **Critérios do monitor** e confira **Métrica**, **Agregação**, **Condição** e **Limite**. Um template preenche esses campos. Com **Custom Metric** ou **Avançado**, o monitor começa com os critérios padrão, que só percebem a métrica deixar de enviar dados, então defina o seu próprio limite.
+Abra cada critério em **Critérios** e confira **Métrica**, **Agregação**, **Condição** e **Limite**. Um template preenche esses campos. Com **Custom Metric** ou **Avançado**, o monitor começa com os critérios padrão, que só percebem a métrica deixar de enviar dados, então defina o seu próprio limite.
 
 ### Crie o monitor
 

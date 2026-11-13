@@ -65,7 +65,7 @@ Ouvrez **Produits → Ressources → Inventaire**. Son menu latéral contient ce
 | **Aide → Documentation** | Un court guide de l'inventaire, avec les types d'éléments qu'il reconnaît. |
 | **Avancé → Archivé** | Les éléments que vous avez archivés. Désarchivez-les d'ici. |
 
-Ouvrez un élément : son propre menu latéral contient sa **Vue d'ensemble** (son type, sa source et son statut, et chaque attribut observé sur lui), ses **Connexions** et ses **Champs personnalisés** ; ses **Journaux**, **Traces**, **Métriques**, **Profils de performance** et **Exceptions** ; et ses **Incidents**, **Alertes** et **Maintenance planifiée**. Sous **Avancé** se trouvent ses **Paramètres**, ses **Journaux d'audit** et **Supprimer l'élément**. Les pages de télémétrie montrent ce que l'élément lui-même a envoyé. Les incidents, alertes et événements de maintenance sont ceux du service, de l'hôte ou du cluster Kubernetes que l'élément représente ; sur tout autre élément, ces pages indiquent quelle ressource consulter à la place.
+Ouvrez un élément : son propre menu latéral contient sa **Vue d'ensemble** (son type, sa source et son statut, et chaque attribut observé sur lui), ses **Connexions** et ses **Champs personnalisés** ; ses **Journaux**, **Traces**, **Métriques**, **Profils** et **Exceptions** ; et ses **Incidents**, **Alertes** et **Maintenance planifiée**. Sous **Avancé** se trouvent ses **Paramètres**, ses **Journaux d'audit** et **Supprimer l'élément**. Les pages de télémétrie montrent ce que l'élément lui-même a envoyé. Les incidents, alertes et événements de maintenance sont ceux du service, de l'hôte ou du cluster Kubernetes que l'élément représente ; sur tout autre élément, ces pages indiquent quelle ressource consulter à la place.
 
 ### Détails de l'actif
 

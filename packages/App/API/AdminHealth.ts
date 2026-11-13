@@ -935,46 +935,25 @@ router.get(
  * ---------------------------------------------------------------------------
  * What is wrong with this installation (#6826)
  *
- * GET /api/admin/health/doctor answers the findings of
+ * /api/admin/health/doctor answers the findings of
  * Common/Types/InstallationHealth: the datastores, the migrations,
  * ClickHouse's disks, the queues, the version and the server setup
  * checklist, worst first, each with its fix. Every edition: a self-hoster
  * who cannot tell why their server is broken needs the answer, not an
  * upsell.
  *
- * Read by the Admin Dashboard's OneUptime Health overview (a master
- * admin's session), by `npm run doctor` on a Docker Compose host and by
- * HelmChart/Public/diagnose.sh inside the app pod. Those two present the
- * cluster key (ONEUPTIME_SECRET), which the host's config.env and the pod
- * already hold, so neither needs an API key set up first. The answer is
- * read-only and carries yes/no answers and fixes, never a setting's value.
+ * GET is read by the Admin Dashboard's OneUptime Health overview, with a
+ * master admin's session or the master API key. POST is read by
+ * `npm run doctor` on a Docker Compose host and by
+ * HelmChart/Public/diagnose.sh inside the app pod, with the cluster key
+ * (ONEUPTIME_SECRET) that the host's config.env and the pod already hold, so
+ * neither needs an API key set up first. Like every route that takes the
+ * cluster key, the POST is handed ClusterKeyAuthorization's check by the
+ * router, and the key is never read here (Common's ClusterKeyGuard). The
+ * answer is read-only and carries yes/no answers and fixes, never a
+ * setting's value.
  * ---------------------------------------------------------------------------
  */
-
-// Whoever asks presents the cluster key, or is a master admin (or the master API key).
-export const installationHealthMiddleware: (
-  req: ExpressRequest,
-  res: ExpressResponse,
-  next: NextFunction,
-) => Promise<void> = async (
-  req: ExpressRequest,
-  res: ExpressResponse,
-  next: NextFunction,
-): Promise<void> => {
-  if (ClusterKeyAuthorization.getPresentedClusterKey(req) !== undefined) {
-    return ClusterKeyAuthorization.isAuthorizedServiceMiddleware(
-      req,
-      res,
-      next,
-    );
-  }
-
-  return MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddleware(
-    req,
-    res,
-    next,
-  );
-};
 
 // Each fact's reader, so the tests can answer them without a datastore.
 export interface InstallationHealthReaders {
@@ -1201,10 +1180,23 @@ export async function getInstallationHealthFacts(
   };
 }
 
-router.get(
-  "/doctor",
-  installationHealthMiddleware,
-  async (
+type InstallationHealthHandler = (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+) => Promise<void>;
+
+/*
+ * Both routes answer the same findings. Only the doctor's answer carries the
+ * address proof: the doctor asks HOST for it from outside the containers, to
+ * tell this OneUptime from another server at that address.
+ */
+const answerInstallationHealth: (options: {
+  withAddressProof: boolean;
+}) => InstallationHealthHandler = (options: {
+  withAddressProof: boolean;
+}): InstallationHealthHandler => {
+  return async (
     req: ExpressRequest,
     res: ExpressResponse,
     next: NextFunction,
@@ -1213,14 +1205,9 @@ router.get(
       const answer: InstallationHealthAnswer = InstallationHealthUtil.getAnswer(
         {
           facts: await getInstallationHealthFacts(),
-          /*
-           * The doctor asks HOST for this proof from outside the containers,
-           * to tell this OneUptime from another server at that address.
-           */
-          addressProof:
-            ClusterKeyAuthorization.getPresentedClusterKey(req) !== undefined
-              ? CustomDomainServerReadiness.createProof()
-              : null,
+          addressProof: options.withAddressProof
+            ? CustomDomainServerReadiness.createProof()
+            : null,
           checkedAt: OneUptimeDate.getCurrentDate().toISOString(),
         },
       );
@@ -1233,7 +1220,21 @@ router.get(
     } catch (err) {
       return next(err);
     }
-  },
+  };
+};
+
+// The Admin Dashboard's "What needs attention" card.
+router.get(
+  "/doctor",
+  MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddleware,
+  answerInstallationHealth({ withAddressProof: false }),
+);
+
+// `npm run doctor` and HelmChart/Public/diagnose.sh, with the cluster key.
+router.post(
+  "/doctor",
+  ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
+  answerInstallationHealth({ withAddressProof: true }),
 );
 
 /*

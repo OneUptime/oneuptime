@@ -193,7 +193,7 @@ Du vill ha en incident varje gång API:et kastar ett undantag i produktion, och 
 ## Felsökning
 
 :::details Undantag visas i utforskaren, men monitorn räknar 0
-Jämför värdet i **Miljöer** med utforskarens filter `env:`: jämförelsen är exakt och skiljer på versaler och gemener, och undantag utan miljö utelämnas när filtret är angivet. Kontrollera sedan om de undantagen är lösta eller arkiverade. Öppna monitorns sida **Kriterier** (under **Konfiguration**) och klicka på **Redigera övervakningskriterier**: **Matchande undantag** visar vad filtren matchar.
+Jämför värdet i **Miljöer** med utforskarens filter `env:`: jämförelsen är exakt och skiljer på versaler och gemener, och undantag utan miljö utelämnas när filtret är angivet. Kontrollera sedan om de undantagen är lösta eller arkiverade. Öppna monitorns sida **Kriterier** (under **Konfiguration**) och klicka på **Redigera kriterier**: **Matchande undantag** visar vad filtren matchar.
 :::
 
 :::details Incidenten löstes när jag löste undantaget

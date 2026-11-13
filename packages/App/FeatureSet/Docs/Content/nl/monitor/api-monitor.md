@@ -59,7 +59,7 @@ Klik op **Monitor testen**, kies een sonde onder **Selecteer sonde** en klik op 
 
 ### De criteria nakijken
 
-**Monitorcriteria** begint met de [standaardcriteria](#standaardcriteria): offline wanneer de API niet of met een fout antwoordt, online bij elke status `2xx` of `3xx`. Om ook te controleren wat de API teruggeeft, voegt u een filter toe en klikt u dan op **Volgende**.
+**Criteria** begint met de [standaardcriteria](#standaardcriteria): offline wanneer de API niet of met een fout antwoordt, online bij elke status `2xx` of `3xx`. Om ook te controleren wat de API teruggeeft, voegt u een filter toe en klikt u dan op **Volgende**.
 
 ### Sondes kiezen en maken
 

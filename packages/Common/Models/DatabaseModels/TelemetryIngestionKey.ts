@@ -72,10 +72,13 @@ const INGESTION_BUDGET_COLUMN_ACCESS: BaseColumnAccessControl = {
 })
 @TableMetadata({
   tableName: "TelemetryIngestionKey",
-  singularName: "Telemetry Ingestion Key",
-  pluralName: "Telemetry Ingestion Keys",
+  singularName: "Ingestion Key",
+  pluralName: "Ingestion Keys",
+  // Was "Telemetry Ingestion Key" (#6817): oneuptime_telemetry_ingestion_key stays.
+  apiSingularName: "Telemetry Ingestion Key",
+  apiPluralName: "Telemetry Ingestion Keys",
   icon: IconProp.Code,
-  tableDescription: "Manage Telemetry Ingestion Keys for your project",
+  tableDescription: "Manage ingestion keys for your project",
 })
 export default class TelemetryIngestionKey extends BaseModel {
   @ColumnAccessControl({
@@ -337,8 +340,8 @@ export default class TelemetryIngestionKey extends BaseModel {
     type: TableColumnType.ObjectID,
     isDefaultValueColumn: false,
     computed: true,
-    title: "Telemetry Ingestion Key",
-    description: "Secret Telemetry Ingestion Key",
+    title: "Ingestion Key",
+    description: "Secret ingestion key",
     example: "c3d4e5f6-a7b8-9012-cdef-123456789012",
   })
   @Column({

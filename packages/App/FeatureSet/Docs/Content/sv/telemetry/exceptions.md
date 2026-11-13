@@ -1,4 +1,4 @@
-# Undantagsspårning
+# Undantag
 
 Undantagsspårning samlar in felen som din kod kastar och grupperar varje förekomst av samma fel i ett undantag, med dess stack trace, dess utveckling och de förfrågningar där det inträffade. Gå igenom dem som en att göra-lista: rätta, lös eller arkivera bruset, och låt AI öppna en pull request för dem som den kan rätta.
 

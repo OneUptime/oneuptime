@@ -52,7 +52,7 @@ Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **K
 
 ### Gå gjennom kriteriene
 
-**Monitorkriterier** starter med [standardkriteriene](#standardkriterier): frakoblet når navnet ikke kan slås opp, tilkoblet når det kan. For å sjekke hva postene sier, legger du til et filter **Verdi for DNS-post**, og klikker så på **Neste**.
+**Kriterier** starter med [standardkriteriene](#standardkriterier): frakoblet når navnet ikke kan slås opp, tilkoblet når det kan. For å sjekke hva postene sier, legger du til et filter **Verdi for DNS-post**, og klikker så på **Neste**.
 
 ### Velg sonder og opprett
 

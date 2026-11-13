@@ -45,7 +45,7 @@ Alle andre steder avviser OneUptime en nettlesernøkkel, for eksempel over gRPC 
 
 ## Før du begynner
 
-- **En rolle som administrerer inntaksnøkler.** Project Owner eller Project Admin, eller en egendefinert rolle med tillatelsen Create Telemetry Ingestion Key. Telemetry-rollene omfatter ikke inntaksnøkler.
+- **En rolle som administrerer inntaksnøkler.** Project Owner eller Project Admin, eller en egendefinert rolle med tillatelsen Create Ingestion Key. Telemetry-rollene omfatter ikke inntaksnøkler.
 - **På OneUptime Cloud, en betalingsmåte.** Telemetri faktureres etter bruk, så et prosjekt på Free-abonnementet trenger en betalingsmåte før det kan opprette en nøkkel. Opprettelsesdialogen ender da med et trinn **Fakturering** som viser prisene.
 
 ## Opprett en inntaksnøkkel
@@ -85,7 +85,7 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 
 ## Lås ned en nettlesernøkkel
 
-En nettlesernøkkel ligger i siden din, der alle kan kopiere den. Disse innstillingene begrenser hva en kopi kan gjøre. Endre dem på nøkkelens side med **Rediger Telemetri Inntak Key**.
+En nettlesernøkkel ligger i siden din, der alle kan kopiere den. Disse innstillingene begrenser hva en kopi kan gjøre. Endre dem på nøkkelens side med **Rediger Inntaksnøkkel**.
 
 | Innstilling | Hva den gjør |
 | --- | --- |
@@ -112,9 +112,9 @@ En nøkkels side viser **Status**, **Hemmelig nøkkel** bak **Click to reveal**,
 
 | For å | Gjør dette | Hva avsendere ser |
 | --- | --- | --- |
-| Stoppe en nøkkel med en gang, og kunne angre senere | Klikk på **Rediger Telemetri Inntak Key**, åpne **Tilgang og grenser**, og slå av **Aktivert**. Statusen viser **Disabled — telemetry refused**. | `422` til du slår den på igjen |
+| Stoppe en nøkkel med en gang, og kunne angre senere | Klikk på **Rediger Inntaksnøkkel**, åpne **Tilgang og grenser**, og slå av **Aktivert**. Statusen viser **Disabled — telemetry refused**. | `422` til du slår den på igjen |
 | Erstatte en lekket hemmelighet | Klikk på **Tilbakestill hemmelig nøkkel**, og bekreft. Nøkkelen beholder innstillingene sine og får en ny hemmelighet. | `401` til de sender den nye hemmeligheten |
-| Stoppe en nøkkel for godt | Klikk på **Slett Telemetri Inntak Key** nederst på siden dens. | `401` |
+| Stoppe en nøkkel for godt | Klikk på **Slett Inntaksnøkkel** nederst på siden dens. | `401` |
 
 For å bytte en hemmelighet uten å miste data oppretter du en ny nøkkel, flytter avsenderne dine over til den og sletter den gamle nøkkelen når **Last Used At** for den slutter å endre seg. **Last Used At** oppdateres hvert par minutter, ikke ved hver forespørsel.
 

@@ -60,7 +60,7 @@ Klik på **Test monitor**, vælg en sonde under **Vælg sonde**, og klik på **K
 
 ### Gennemgå kriterierne
 
-**Monitorkriterier** starter med [standardkriterierne](#standardkriterier): offline, når webstedet ikke svarer eller svarer med en fejl, online ved enhver status `2xx` eller `3xx`. Ret dem efter behov, og klik så på **Næste**.
+**Kriterier** starter med [standardkriterierne](#standardkriterier): offline, når webstedet ikke svarer eller svarer med en fejl, online ved enhver status `2xx` eller `3xx`. Ret dem efter behov, og klik så på **Næste**.
 
 ### Vælg sonder, og opret
 

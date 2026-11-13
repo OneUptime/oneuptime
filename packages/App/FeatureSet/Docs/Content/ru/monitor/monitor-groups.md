@@ -155,7 +155,7 @@ flowchart TB
 ## Дальнейшие шаги
 
 :::cards
-- [Критерии и статусы мониторов](/docs/monitor/criteria-and-statuses): Что задаёт статус каждого монитора.
+- [Критерии и статусы](/docs/monitor/criteria-and-statuses): Что задаёт статус каждого монитора.
 - [Ресурсы и группы страницы статуса](/docs/status-pages/resources-and-groups): Расположите строки на странице статуса.
 - [Подписчики и объявления](/docs/status-pages/subscribers): Сообщайте клиентам об инцидентах группы.
 :::

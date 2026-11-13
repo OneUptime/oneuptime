@@ -42,13 +42,13 @@ Veja [Criar um monitor](/docs/monitor/create-monitor).
 
 As regras de um monitor: o que cada resultado de verificação significa. Elas são avaliadas em ordem, e a primeira que corresponde pode mudar o status do monitor, declarar um incidente, criar um alerta ou as três coisas.
 
-Também chamado: **Critérios de Monitoramento**, **Critérios do monitor**, **Monitor Steps**. Veja [Critérios e status de monitores](/docs/monitor/criteria-and-statuses).
+Também chamado: **Critérios de Monitoramento**, **Critérios do monitor**, **Monitor Steps**. Veja [Critérios e status](/docs/monitor/criteria-and-statuses).
 
 ### Status do monitor
 
 O que um monitor está neste momento. Todo projeto novo tem três status de monitor, **Operacional**, **Degradado** e **Offline**, e você pode adicionar os seus.
 
-Veja [Critérios e status de monitores](/docs/monitor/criteria-and-statuses).
+Veja [Critérios e status](/docs/monitor/criteria-and-statuses).
 
 ### Sonda
 
@@ -262,7 +262,7 @@ Veja [Regras de rótulos e proprietários](/docs/configuration/label-and-owner-r
 
 Um erro que o seu código lança. O OneUptime agrupa todas as ocorrências do mesmo erro em uma única exceção, com o stack trace, a tendência e as requisições em que ela aconteceu.
 
-Também chamado: **Rastreamento de exceções**, `/telemetry-exception`. Veja [Rastreamento de exceções](/docs/telemetry/exceptions).
+Também chamado: **Rastreamento de exceções**, `/telemetry-exception`. Veja [Exceções](/docs/telemetry/exceptions).
 
 ### Insights de IA
 
@@ -306,7 +306,7 @@ Veja [Explorador de traços](/docs/telemetry/traces-explorer).
 
 Como o seu aplicativo gasta tempo de CPU e memória, função por função, enviados por um profiler que envia dados para a API compatível com Pyroscope do OneUptime.
 
-Também chamado: **Perfis de desempenho**, **Profiling contínuo**. Veja [Profiling contínuo](/docs/telemetry/profiles).
+Também chamado: **Perfis de desempenho**, **Profiling contínuo**. Veja [Perfis](/docs/telemetry/profiles).
 
 ### IA / LLM
 

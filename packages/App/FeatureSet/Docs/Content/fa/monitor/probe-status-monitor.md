@@ -100,6 +100,6 @@ flowchart TB
 
 :::cards
 - [پراب‌های سفارشی](/docs/probe/custom-probe): یک پراب را در شبکهٔ خودتان اجرا کنید.
-- [معیارها و وضعیت‌های مانیتور](/docs/monitor/criteria-and-statuses): معیارها چگونه وضعیت یک مانیتور را تعیین می‌کنند.
+- [معیارها و وضعیت‌ها](/docs/monitor/criteria-and-statuses): معیارها چگونه وضعیت یک مانیتور را تعیین می‌کنند.
 - [قالب‌های حادثه و هشدار](/docs/monitor/incident-alert-templating): متن حادثه‌ای را که مانیتور اعلام می‌کند بنویسید.
 :::

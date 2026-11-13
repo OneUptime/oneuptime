@@ -232,7 +232,7 @@ describe("the menu the paths are held to, read from its source", () => {
 
   test("a page's breadcrumb title is known too, so a path that names a page by it is caught", () => {
     expect(MENUS.projectSettingsBreadcrumbs).toEqual(
-      expect.arrayContaining(["Telemetry Ingestion Keys", "Domains", "SCIM"]),
+      expect.arrayContaining(["Telemetry Settings", "Domains", "SCIM"]),
     );
     // Not an entry of the menu: a path must not stop at it.
     expect(
@@ -241,7 +241,7 @@ describe("the menu the paths are held to, read from its source", () => {
           return menuSection.items;
         },
       ),
-    ).not.toContain("Telemetry Ingestion Keys");
+    ).not.toContain("Telemetry Settings");
   });
 });
 
@@ -380,10 +380,8 @@ describe("a written Project Settings path, as a reader follows it", () => {
     ],
     [
       "a page by its breadcrumb, not its menu entry",
-      "Two allowlists compose (Project Settings > Telemetry Ingestion Keys).",
-      [
-        'names no section or page of Project Settings: "Telemetry Ingestion Keys',
-      ],
+      "Two allowlists compose (Project Settings > Telemetry Settings).",
+      ['names no section or page of Project Settings: "Telemetry Settings'],
     ],
     [
       "the AI agent email's old pointer, at a retired page",
@@ -432,10 +430,10 @@ describe("a written Project Settings path, as a reader follows it", () => {
     ],
     [
       "Project Settings called Settings, before a breadcrumb title",
-      "Add your web origins in Settings &gt; Telemetry Ingestion Keys before using this snippet.",
+      "Add your web origins in Settings &gt; Telemetry Settings before using this snippet.",
       [
         'calls Project Settings "Settings"',
-        'names no section or page of Project Settings: "Telemetry Ingestion Keys',
+        'names no section or page of Project Settings: "Telemetry Settings',
       ],
     ],
     [

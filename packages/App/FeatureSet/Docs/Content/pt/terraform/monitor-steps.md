@@ -1,6 +1,6 @@
 # Etapas do monitor
 
-`monitor_steps` é o atributo de `oneuptime_monitor` que diz o que um monitor verifica e como cada resultado é julgado: o endereço a verificar, a requisição a enviar e os critérios que transformam um resultado em um status do monitor, um incidente ou um alerta. Esta página explica cada parte dele.
+`monitor_steps` é o atributo de `oneuptime_monitor` que diz o que um monitor verifica e como cada resultado é julgado: o endereço a verificar, a requisição a enviar e os critérios que transformam um resultado em um status do monitor, um incidente ou um alerta. Esta página explica cada parte dele. O painel mostra os critérios de uma etapa na página **Critérios** do monitor, como descreve [Critérios e status](/docs/monitor/criteria-and-statuses).
 
 :::cards
 - [Como uma verificação é julgada](#como-uma-verificação-é-julgada): Os critérios em ordem, e o primeiro que corresponde.

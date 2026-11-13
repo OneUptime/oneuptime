@@ -122,7 +122,7 @@ const MODEL_NAMES_FRENCH: Array<[string, string]> = [
     "Couleur des barres du graphique d'historique de la page de statut",
   ],
   ["Log Drop Filter", "Filtre de suppression de journaux"],
-  ["Telemetry Ingestion Key", "Clé d'ingestion de télémétrie"],
+  ["Ingestion Key", "Clé d'ingestion"],
   [
     "Workspace User Auth Token",
     "Jeton d'authentification utilisateur de l'espace de travail",

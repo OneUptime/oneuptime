@@ -155,7 +155,7 @@ import path from "path";
  * Docs overhaul task 36 added three pages the docs never had, and each one
  * names a great deal of the product:
  *
- *   - Monitor Criteria & Statuses: how criteria judge a check (top to
+ *   - Criteria & Statuses: how criteria judge a check (top to
  *     bottom, the first match decides, the default status when none does),
  *     what a criteria holds, when its incidents and alerts open and close,
  *     the criteria editor, and the project's monitor statuses - seeded,
@@ -768,7 +768,7 @@ const STATUS_CHANGE_NOTIFICATION_JOB: string = readWorkerSource(
   "MonitorOwners/SendStatusChangeNotification.ts",
 );
 
-// ---- Monitor Criteria & Statuses: how criteria decide --------------------------------
+// ---- Criteria & Statuses: how criteria decide --------------------------------
 
 describe("how criteria decide", () => {
   const criteriaPage: string = english(CRITERIA_AND_STATUSES);
@@ -1895,15 +1895,13 @@ describe("changing a monitor's criteria", () => {
     expect(startsCollapsed(MONITOR_MENU, "Configuration")).toBe(true);
     expect(startsCollapsed(MONITOR_MENU, "Overview")).toBe(false);
     expect(steps).toContain(
-      "Go to **Monitors** and open the monitor. Expand **Configuration** in its side menu and click **Criteria**. The **Monitoring Criteria** card shows each criteria, what it checks and what it does.",
+      "Go to **Monitors** and open the monitor. Expand **Configuration** in its side menu and click **Criteria**. The **Criteria** card shows each criteria, what it checks and what it does.",
     );
   });
 
-  it("edits on the Monitoring Criteria card, every criteria open", () => {
-    expect(CRITERIA_PAGE).toContain('title: "Monitoring Criteria",');
-    expect(CRITERIA_PAGE).toContain(
-      'editButtonText="Edit Monitoring Criteria"',
-    );
+  it("edits on the Criteria card, every criteria open", () => {
+    expect(CRITERIA_PAGE).toContain('title: "Criteria",');
+    expect(CRITERIA_PAGE).toContain('editButtonText="Edit Criteria"');
     // Only Create Monitor folds a new monitor's criteria to their headers.
     expect(CRITERIA_PAGE).not.toContain("foldDefaultCriteria");
     expect(readDashboardSource("Pages/Monitor/Create.tsx")).toContain(
@@ -1912,7 +1910,7 @@ describe("changing a monitor's criteria", () => {
     expect(CRITERIA_LIST_FORM).toContain(
       "if (!props.foldDefaultCriteria) {\n      return false;\n    }",
     );
-    expect(steps).toContain("### Click Edit Monitoring Criteria");
+    expect(steps).toContain("### Click Edit Criteria");
     expect(steps).toContain("The editor shows every criteria open.");
   });
 

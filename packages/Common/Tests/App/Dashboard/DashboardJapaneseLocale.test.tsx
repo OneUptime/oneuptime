@@ -139,7 +139,7 @@ const MODEL_NAMES_JAPANESE: Array<[string, string]> = [
     "ステータスページの履歴チャートのバーの色",
   ],
   ["Log Drop Filter", "ログ破棄フィルター"],
-  ["Telemetry Ingestion Key", "テレメトリ取り込みキー"],
+  ["Ingestion Key", "取り込みキー"],
   ["Workspace User Auth Token", "ワークスペースのユーザー認証トークン"],
 ];
 

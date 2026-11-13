@@ -1,4 +1,4 @@
-# Unntakssporing
+# Unntak
 
 Unntakssporing samler feilene koden din kaster, og grupperer hver forekomst av den samme feilen i ett unntak, med stack trace, utvikling og forespørslene det skjedde i. Gå gjennom dem som en oppgaveliste: rett, løs eller arkiver støyen, og la AI åpne en pull request for dem den kan rette.
 

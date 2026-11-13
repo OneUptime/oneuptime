@@ -86,5 +86,5 @@ Não chegou nenhuma mensagem pela qual confirmá-lo, o que num servidor auto-hos
 :::cards
 - [Ser acionado por telefone, SMS ou push](/docs/guides/paging): Seja acionado no celular, e acione a próxima pessoa se ninguém responder.
 - [Publicar uma página de status](/docs/guides/status-page): Mostre o monitor aos seus clientes, no seu próprio domínio.
-- [Critérios e status de monitores](/docs/monitor/criteria-and-statuses): Decida exatamente quando um monitor conta como fora do ar.
+- [Critérios e status](/docs/monitor/criteria-and-statuses): Decida exatamente quando um monitor conta como fora do ar.
 :::
