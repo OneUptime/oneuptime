@@ -17,6 +17,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { createInstance, i18n } from "i18next";
 import React, { ReactElement } from "react";
 import { I18nextProvider } from "react-i18next";
@@ -1831,4 +1832,277 @@ describe("the count by the notes feed's heading", () => {
       expect(screen.getByTestId("notes-summary")).toHaveTextContent(two);
     },
   );
+});
+
+/*
+ * THE FEED'S FOCUS AROUND LOAD MORE, AND CLICKS ON ITS NOTES (#7706).
+ *
+ * Load more is disabled while it reads, and a focus on it fell to the page:
+ * in Firefox as soon as it was disabled, and in every browser once the last
+ * page took Load more away - the next Tab started over at the top of the
+ * page. The feed's body holds the focus while the next page is read, and
+ * hands it back to Load more when more notes are left, to the banner when
+ * the read fails, and keeps it, just before the notes, after the last page.
+ *
+ * The feed's body was focusable for good, so it took every click on a
+ * note's words, and in Chromium the next Tab started over at its top rather
+ * than after what was clicked. It is focusable only while it holds the
+ * focus now, and so is the banner.
+ */
+
+/*
+ * The page with its notes on screen and Load more under them, focused and
+ * pressed from the keyboard: its read waits in `pending`. While it reads,
+ * the focus is on the feed's body - not on the disabled Load more, nor on
+ * the page.
+ */
+const pressLoadMore: () => Promise<{
+  feed: HTMLElement;
+  loadMore: HTMLElement;
+  pending: Array<PendingRead>;
+}> = async (): Promise<{
+  feed: HTMLElement;
+  loadMore: HTMLElement;
+  pending: Array<PendingRead>;
+}> => {
+  const pending: Array<PendingRead> = [];
+  notesReads.push(answeredRead(notesWithMoreAnswer()), pendingRead(pending));
+
+  renderNotesPage("en");
+  await waitFor(() => {
+    expect(noteCards()).toHaveLength(NOTES.length);
+  });
+
+  const feed: HTMLElement = screen.getByTestId("notes-feed-body");
+  const loadMore: HTMLElement = screen.getByTestId("notes-load-more");
+
+  // Nothing has given the feed's body the focus: it does not take it.
+  expect(feed).not.toHaveAttribute("tabindex");
+
+  loadMore.focus();
+  expect(document.activeElement).toBe(loadMore);
+
+  /*
+   * Enter or Space on a focused button is a click on it, with the focus
+   * where it is.
+   */
+  fireEvent.click(loadMore);
+
+  await waitFor(() => {
+    expect(loadMore).toBeDisabled();
+  });
+  expect(pending).toHaveLength(1);
+  expect(document.activeElement).toBe(feed);
+  expect(feed).toHaveAttribute("tabindex", "-1");
+
+  return { feed, loadMore, pending };
+};
+
+describe("the notes feed's Load more, pressed from the keyboard", () => {
+  test("while the next page is read, the focus waits on the feed's body; with more notes left, it goes back to Load more", async () => {
+    const { feed, loadMore, pending } = await pressLoadMore();
+
+    // One older note comes; two are left to load.
+    await act(async () => {
+      pending[0]!.resolve(answerOf(OLDER_NOTES.slice(0, 1), ALL_NOTES_COUNT));
+    });
+
+    expect(noteCards()).toHaveLength(NOTES.length + 1);
+    expect(loadMore).not.toBeDisabled();
+    expect(document.activeElement).toBe(loadMore);
+    // The focus has moved on: the feed's body does not take it again.
+    expect(feed).not.toHaveAttribute("tabindex");
+  });
+
+  test("after the last page, with Load more gone, the focus stays in the feed, just before the notes - never on the page", async () => {
+    const { feed, pending } = await pressLoadMore();
+
+    await act(async () => {
+      pending[0]!.resolve(answerOf(OLDER_NOTES, ALL_NOTES_COUNT));
+    });
+
+    expect(noteCards()).toHaveLength(ALL_NOTES_COUNT);
+    expect(screen.queryByTestId("notes-load-more")).toBeNull();
+    expect(document.activeElement).not.toBe(document.body);
+    expect(document.activeElement).toBe(feed);
+  });
+
+  test("a read that fails gives the focus to the banner, which says what failed; its Dismiss puts it back on Load more", async () => {
+    const { feed, loadMore, pending } = await pressLoadMore();
+
+    await act(async () => {
+      pending[0]!.reject(SERVER_FAILURE);
+    });
+
+    const banner: HTMLElement = screen.getByTestId("notes-action-error");
+
+    expect(whatFailed()).toBe(ACTION_FAILED.more);
+    expect(document.activeElement).toBe(banner);
+    expect(banner).toHaveAttribute("tabindex", "-1");
+    // A box the focus waits in, not a control: no ring, as the feed's body.
+    expect(banner).toHaveClass("focus:outline-none");
+    expect(feed).not.toHaveAttribute("tabindex");
+
+    // On from the banner to its Dismiss: the banner does not take it again.
+    const dismiss: HTMLElement = dismissIn("en", banner);
+
+    act(() => {
+      dismiss.focus();
+    });
+    expect(banner).not.toHaveAttribute("tabindex");
+
+    fireEvent.click(dismiss);
+
+    expect(screen.queryByTestId("notes-action-error")).toBeNull();
+    expect(document.activeElement).toBe(loadMore);
+  });
+
+  test("dismissed while Load more reads once more, the banner leaves the focus on the feed's body until the read is over, then on Load more", async () => {
+    const pending: Array<PendingRead> = [];
+
+    await renderLoadedFeed("en", SERVER_FAILURE);
+    notesReads.push(pendingRead(pending));
+
+    const banner: HTMLElement = await failAction("more");
+    const loadMore: HTMLElement = screen.getByTestId("notes-load-more");
+
+    fireEvent.click(loadMore);
+    await waitFor(() => {
+      expect(loadMore).toBeDisabled();
+    });
+
+    const dismiss: HTMLElement = dismissIn("en", banner);
+
+    dismiss.focus();
+    fireEvent.click(dismiss);
+
+    const feed: HTMLElement = screen.getByTestId("notes-feed-body");
+
+    expect(document.activeElement).toBe(feed);
+
+    // One older note comes; two are left to load.
+    await act(async () => {
+      pending[0]!.resolve(answerOf(OLDER_NOTES.slice(0, 1), ALL_NOTES_COUNT));
+    });
+
+    expect(noteCards()).toHaveLength(NOTES.length + 1);
+    expect(document.activeElement).toBe(loadMore);
+    expect(feed).not.toHaveAttribute("tabindex");
+  });
+
+  test("a focus that was elsewhere on the page is left where it is, and the banner does not take it", async () => {
+    const pending: Array<PendingRead> = [];
+
+    notesReads.push(
+      answeredRead(notesWithMoreAnswer()),
+      pendingRead(pending),
+      pendingRead(pending),
+    );
+
+    renderNotesPage("en");
+    await waitFor(() => {
+      expect(noteCards()).toHaveLength(NOTES.length);
+    });
+
+    const elsewhere: HTMLElement = screen.getByTestId("elsewhere");
+    const loadMore: HTMLElement = screen.getByTestId("notes-load-more");
+
+    elsewhere.focus();
+    // A click that left the focus where it was, as a click does in Safari.
+    fireEvent.click(loadMore);
+    expect(document.activeElement).toBe(elsewhere);
+
+    await act(async () => {
+      pending[0]!.reject(SERVER_FAILURE);
+    });
+
+    expect(document.activeElement).toBe(elsewhere);
+    expect(screen.getByTestId("notes-action-error")).not.toHaveAttribute(
+      "tabindex",
+    );
+
+    fireEvent.click(loadMore);
+
+    await act(async () => {
+      pending[1]!.resolve(answerOf(OLDER_NOTES, ALL_NOTES_COUNT));
+    });
+
+    expect(noteCards()).toHaveLength(ALL_NOTES_COUNT);
+    expect(document.activeElement).toBe(elsewhere);
+    expect(screen.getByTestId("notes-feed-body")).not.toHaveAttribute(
+      "tabindex",
+    );
+  });
+});
+
+/*
+ * A click gives the focus to what it lands in, if that takes the focus: the
+ * feed's body took every click on a note's words, and in Chromium the next
+ * Tab started over at its top rather than after what was clicked.
+ */
+describe("the notes feed's body, focusable only while it holds the focus", () => {
+  test("a click on a note's words leaves the focus with the page, not on the feed's body", async () => {
+    const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+
+    renderNotesPage("en");
+    await waitFor(() => {
+      expect(noteCards()).toHaveLength(NOTES.length);
+    });
+
+    const feed: HTMLElement = screen.getByTestId("notes-feed-body");
+
+    await user.click(within(noteCards()[1]!).getByTestId("markdown"));
+
+    expect(document.activeElement).not.toBe(feed);
+    expect(document.activeElement).toBe(document.body);
+    expect(feed).not.toHaveAttribute("tabindex");
+  });
+
+  test("once the focus moves on from it, it is not focusable again, and a click on a note's words does not give it the focus", async () => {
+    const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+
+    await renderLoadedFeed("en", SERVER_FAILURE);
+
+    const banner: HTMLElement = await failAction("refresh");
+    const dismiss: HTMLElement = dismissIn("en", banner);
+
+    dismiss.focus();
+    fireEvent.click(dismiss);
+
+    const feed: HTMLElement = screen.getByTestId("notes-feed-body");
+
+    expect(document.activeElement).toBe(feed);
+    expect(feed).toHaveAttribute("tabindex", "-1");
+
+    act(() => {
+      screen.getByTestId("elsewhere").focus();
+    });
+    expect(feed).not.toHaveAttribute("tabindex");
+
+    await user.click(within(noteCards()[1]!).getByTestId("markdown"));
+
+    expect(document.activeElement).not.toBe(feed);
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  /*
+   * A window sent to the back fires blur at the focused element and keeps
+   * it as the document's focused element, to give the focus back to when it
+   * is in front again: the feed's body stays focusable for that.
+   */
+  test("a window sent to the back leaves it focusable, to take the focus back", async () => {
+    const { feed, pending } = await pressLoadMore();
+
+    fireEvent.blur(feed);
+    fireEvent.focusOut(feed);
+
+    expect(document.activeElement).toBe(feed);
+    expect(feed).toHaveAttribute("tabindex", "-1");
+
+    await act(async () => {
+      pending[0]!.resolve(answerOf(OLDER_NOTES, ALL_NOTES_COUNT));
+    });
+
+    expect(document.activeElement).toBe(feed);
+  });
 });
