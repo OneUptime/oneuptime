@@ -42,13 +42,13 @@ Se [Skapa en monitor](/docs/monitor/create-monitor).
 
 En monitors regler: vad varje kontrollresultat betyder. De kontrolleras i ordning, och det första som matchar kan ändra monitorns status, deklarera en incident, skapa ett larm eller alla tre.
 
-Kallas även: **Övervakningskriterier**, **Monitorkriterier**, **Monitor Steps**. Se [Monitorkriterier och statusar](/docs/monitor/criteria-and-statuses).
+Kallas även: **Övervakningskriterier**, **Monitorkriterier**, **Monitor Steps**. Se [Kriterier och statusar](/docs/monitor/criteria-and-statuses).
 
 ### Monitorstatus
 
 Vad en monitor är just nu. Varje nytt projekt har tre monitorstatusar, **Fungerar**, **Försämrad** och **Offline**, och du kan lägga till egna.
 
-Se [Monitorkriterier och statusar](/docs/monitor/criteria-and-statuses).
+Se [Kriterier och statusar](/docs/monitor/criteria-and-statuses).
 
 ### Sond
 
@@ -262,7 +262,7 @@ Se [Etikett- och ägarregler](/docs/configuration/label-and-owner-rules).
 
 Ett fel som din kod kastar. OneUptime grupperar varje förekomst av samma fel i ett undantag, med dess stackspårning, dess trend och förfrågningarna som det inträffade i.
 
-Kallas även: **Undantagsspårning**, `/telemetry-exception`. Se [Undantagsspårning](/docs/telemetry/exceptions).
+Kallas även: **Undantagsspårning**, `/telemetry-exception`. Se [Undantag](/docs/telemetry/exceptions).
 
 ### AI-insikter
 
@@ -306,7 +306,7 @@ Se [Spårutforskare](/docs/telemetry/traces-explorer).
 
 Hur din applikation använder CPU-tid och minne, funktion för funktion, skickat av en profilerare som skickar till OneUptimes Pyroscope-kompatibla API.
 
-Kallas även: **Prestandaprofiler**, **Kontinuerlig profilering**. Se [Kontinuerlig profilering](/docs/telemetry/profiles).
+Kallas även: **Prestandaprofiler**, **Kontinuerlig profilering**. Se [Profiler](/docs/telemetry/profiles).
 
 ### AI / LLM
 

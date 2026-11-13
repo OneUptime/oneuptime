@@ -45,7 +45,7 @@ Em qualquer outro lugar, o OneUptime recusa uma chave de navegador, como por gRP
 
 ## Antes de começar
 
-- **Uma função que gerencie chaves de ingestão.** Project Owner ou Project Admin, ou uma função personalizada com a permissão Create Telemetry Ingestion Key. As funções de Telemetry não incluem as chaves de ingestão.
+- **Uma função que gerencie chaves de ingestão.** Project Owner ou Project Admin, ou uma função personalizada com a permissão Create Ingestion Key. As funções de Telemetry não incluem as chaves de ingestão.
 - **No OneUptime Cloud, um método de pagamento.** A telemetria é cobrada conforme o uso, então um projeto no plano Free precisa de um método de pagamento antes de poder criar uma chave. A caixa de criação termina então com uma etapa **Cobrança** que mostra os preços.
 
 ## Criar uma chave de ingestão

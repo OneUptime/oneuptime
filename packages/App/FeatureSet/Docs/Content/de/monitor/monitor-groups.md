@@ -155,7 +155,7 @@ Das ist die Regel: Die Gruppe zeigt ihren schlimmsten Monitor. Öffnen Sie **Mon
 ## Nächste Schritte
 
 :::cards
-- [Monitorkriterien & Status](/docs/monitor/criteria-and-statuses): Was den Status jedes Monitors setzt.
+- [Kriterien & Status](/docs/monitor/criteria-and-statuses): Was den Status jedes Monitors setzt.
 - [Statusseiten – Ressourcen & Gruppen](/docs/status-pages/resources-and-groups): Die Zeilen einer Statusseite anordnen.
 - [Abonnenten & Ankündigungen](/docs/status-pages/subscribers): Kunden über die Vorfälle einer Gruppe informieren.
 :::

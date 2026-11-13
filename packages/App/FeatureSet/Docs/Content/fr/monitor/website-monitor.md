@@ -60,7 +60,7 @@ Cliquez sur **Tester le moniteur**, choisissez une sonde sous **Sélectionner la
 
 ### Passer en revue les critères
 
-**Critères du moniteur** commence avec les [critères par défaut](#critères-par-défaut) : hors ligne quand le site ne répond pas ou répond avec une erreur, en ligne pour tout statut `2xx` ou `3xx`. Modifiez-les si besoin, puis cliquez sur **Suivant**.
+**Critères** commence avec les [critères par défaut](#critères-par-défaut) : hors ligne quand le site ne répond pas ou répond avec une erreur, en ligne pour tout statut `2xx` ou `3xx`. Modifiez-les si besoin, puis cliquez sur **Suivant**.
 
 ### Choisir les sondes et créer
 

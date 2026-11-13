@@ -57,7 +57,7 @@ Un nuovo monitor parte da **Cloud Stopped Reporting**, sotto **Su cosa avvisare*
 
 ### Controlla i criteri
 
-Apri ogni criterio sotto **Criteri del monitor** e controlla **Metrica**, **Aggregazione**, **Condizione** e **Soglia**. Un template li compila. Con **Custom Metric** o **Avanzato**, il monitor parte con i criteri predefiniti, che si accorgono solo dell'assenza di dati dalla metrica, quindi imposta una soglia tua.
+Apri ogni criterio sotto **Criteri** e controlla **Metrica**, **Aggregazione**, **Condizione** e **Soglia**. Un template li compila. Con **Custom Metric** o **Avanzato**, il monitor parte con i criteri predefiniti, che si accorgono solo dell'assenza di dati dalla metrica, quindi imposta una soglia tua.
 
 ### Crea il monitor
 

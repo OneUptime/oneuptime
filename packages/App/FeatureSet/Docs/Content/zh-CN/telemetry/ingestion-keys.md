@@ -45,7 +45,7 @@ flowchart TB
 
 ## 开始之前
 
-- **能够管理摄取密钥的角色。** Project Owner 或 Project Admin，或者拥有 Create Telemetry Ingestion Key 权限的自定义角色。Telemetry 角色不包括摄取密钥。
+- **能够管理摄取密钥的角色。** Project Owner 或 Project Admin，或者拥有 Create Ingestion Key 权限的自定义角色。Telemetry 角色不包括摄取密钥。
 - **在 OneUptime Cloud 上，需要付款方式。** 遥测按用量计费，因此 Free 套餐的项目需要先添加付款方式才能创建密钥。此时创建对话框最后会有一个显示价格的 **账单** 步骤。
 
 ## 创建摄取密钥

@@ -45,7 +45,7 @@ Wählen Sie den Typ danach, wo der Schlüssel liegen wird. Der Typ lässt sich n
 
 ## Bevor Sie beginnen
 
-- **Eine Rolle, die Ingestion-Schlüssel verwalten darf.** Project Owner oder Project Admin, oder eine eigene Rolle mit der Berechtigung Create Telemetry Ingestion Key. Die Telemetrie-Rollen umfassen keine Ingestion-Schlüssel.
+- **Eine Rolle, die Ingestion-Schlüssel verwalten darf.** Project Owner oder Project Admin, oder eine eigene Rolle mit der Berechtigung Create Ingestion Key. Die Telemetrie-Rollen umfassen keine Ingestion-Schlüssel.
 - **In OneUptime Cloud eine Zahlungsmethode.** Telemetrie wird nach Nutzung abgerechnet, daher braucht ein Projekt im Free-Plan eine Zahlungsmethode, bevor es einen Schlüssel anlegen kann. Der Dialog zum Anlegen endet dann mit einem Schritt **Abrechnung**, der die Preise zeigt.
 
 ## Einen Ingestion-Schlüssel anlegen

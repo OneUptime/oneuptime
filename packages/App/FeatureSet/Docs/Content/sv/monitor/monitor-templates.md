@@ -50,7 +50,7 @@ Under **Standardvärden för övervakning** väljer du **Monitortyp** med samma 
 Under **Kriterier** fyller du i vad som ska kontrolleras och kriterierna, som i [Skapa monitor](/docs/monitor/create-monitor#kriterier). Med kortet **Template sync settings** överst skyddar du fält mot synkroniseringar (se [Behåll värden för varje monitor](#behåll-värden-för-varje-monitor)). För en monitortyp som sonder kontrollerar frågar det sista steget, **Intervall**, efter **Övervakningsintervall**. Klicka på **Skapa Monitormall** på det sista steget.
 :::
 
-Mallen läggs till i listan. Öppna den för att se dess sida, med ett kort för varje del: **Mallinformation**, **Standardvärden för övervakning**, **Övervakningskriterier**, **Övervakningsintervall** (med **Minsta sondöverensstämmelse**), **Etiketter**, **Standardvärden för anpassade fält** (när projektet har anpassade monitorfält) och **Länkade övervakare**. Du ändrar varje del på sitt eget kort, till exempel med **Redigera kriterier** eller **Redigera intervall**.
+Mallen läggs till i listan. Öppna den för att se dess sida, med ett kort för varje del: **Mallinformation**, **Standardvärden för övervakning**, **Kriterier**, **Övervakningsintervall** (med **Minsta sondöverensstämmelse**), **Etiketter**, **Standardvärden för anpassade fält** (när projektet har anpassade monitorfält) och **Länkade övervakare**. Du ändrar varje del på sitt eget kort, till exempel med **Redigera kriterier** eller **Redigera intervall**.
 
 ## Skapa monitorer från en mall
 
@@ -85,7 +85,7 @@ Gå till **Monitorer → Inställningar → Mallar** och öppna mallen.
 
 ### Redigera dess kriterier
 
-Klicka på **Redigera kriterier** på kortet **Övervakningskriterier**.
+Klicka på **Redigera kriterier** på kortet **Kriterier**.
 
 ### Skydda fälten
 
@@ -93,7 +93,7 @@ Under **Template sync settings** markerar du **Do not sync this field** bredvid 
 
 ### Spara
 
-Spara dina ändringar. Kortet **Övervakningskriterier** och bekräftelsen av båda synkroniseringarna nedan listar de skyddade fälten.
+Spara dina ändringar. Kortet **Kriterier** och bekräftelsen av båda synkroniseringarna nedan listar de skyddade fälten.
 
 ### Synkronisera
 

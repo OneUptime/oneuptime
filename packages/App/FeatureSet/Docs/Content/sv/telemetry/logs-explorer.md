@@ -141,7 +141,7 @@ OneUptime registrerar tre sorters fynd:
 
 | Fynd | När OneUptime registrerar det | Pull requesten |
 | --- | --- | --- |
-| **Fellogg** | En tjänst loggade samma meddelande med Error eller Fatal 20 gånger eller fler under timmen, ett meddelande med egna ord och utan undantag. Ett meddelande som loggas med ett undantag, eller med en stackspårning i sig, följs i stället i [Undantagsspårning](/docs/telemetry/exceptions). | Åtgärdar orsaken till att felet loggas, eller loggar det på den nivå det förtjänar. |
+| **Fellogg** | En tjänst loggade samma meddelande med Error eller Fatal 20 gånger eller fler under timmen, ett meddelande med egna ord och utan undantag. Ett meddelande som loggas med ett undantag, eller med en stackspårning i sig, följs i stället i [Undantag](/docs/telemetry/exceptions). | Åtgärdar orsaken till att felet loggas, eller loggar det på den nivå det förtjänar. |
 | **Saknad loggning** | Minst 20 av en operations spans misslyckades under timmen, 5 % eller fler av dem, medan minst 100 av tjänstens loggar bär ett spår-id, och ingen av operationens 20 senaste misslyckade förfrågningar skrev en loggrad. Eller en tjänst skickade 500 loggar eller fler och 100 spans eller fler under timmen, och färre än 1 % av dess loggar bär ett spår-id. | Loggar misslyckandet där det sker, eller får tjänstens loggar att bära spår-id:t. |
 | **Brusig logg** | Ett meddelande som loggas under Error utgör 25 % eller mer av en tjänsts rader under timmen, omkring 10 000 rader eller fler. | Loggar raden mindre: med Debug, en gång per omgång eller inte alls. |
 

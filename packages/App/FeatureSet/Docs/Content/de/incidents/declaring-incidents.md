@@ -178,7 +178,7 @@ Ein paar schnelle Regeln:
 Die meisten Vorfälle sollten keinen Menschen brauchen, der sie eintippt. Die Kriterien eines Monitors können einen melden, sobald ein Filter zutrifft:
 
 :::steps
-1. Öffnen Sie den Monitor, wählen Sie **Kriterien** in seinem Seitenmenü und klicken Sie auf **Überwachungskriterien bearbeiten**. (Ein neuer Monitor fragt dieselben Kriterien beim Anlegen ab.)
+1. Öffnen Sie den Monitor, wählen Sie **Kriterien** in seinem Seitenmenü und klicken Sie auf **Kriterien bearbeiten**. (Ein neuer Monitor fragt dieselben Kriterien beim Anlegen ab.)
 2. Schalten Sie im Kriterienfilter, der melden soll, **Wenn Filter übereinstimmen, einen Vorfall deklarieren.** ein. Ein Abschnitt **Vorfall erstellen** mit der Schaltfläche **Vorfall hinzufügen** erscheint – ein Kriterienfilter kann mehr als einen Vorfall melden.
 3. Füllen Sie die Felder des Vorfalls aus (siehe unten) und speichern Sie. Trifft der Filter das nächste Mal zu, wird der Vorfall gemeldet und alarmiert seine Bereitschaftsrichtlinien.
 :::

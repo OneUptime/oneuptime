@@ -183,7 +183,7 @@ describe("a manual monitor's Criteria address", () => {
     await renderPage();
 
     expect(screen.getByTestId("criteria-card")).toHaveTextContent(
-      "Monitoring Criteria",
+      "Criteria",
     );
     expect(screen.queryByRole("button", { name: "Go to Overview" })).toBeNull();
   });

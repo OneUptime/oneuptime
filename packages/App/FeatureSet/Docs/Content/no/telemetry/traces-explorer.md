@@ -183,6 +183,6 @@ Hver rad er et span, ikke en forespørsel: med **Entry spans**, som er standard,
 :::cards
 - [Søkesyntaks](/docs/telemetry/search-syntax): Hvert filter søkefeltet forstår.
 - [Trase-overvåking](/docs/monitor/traces-monitor): Få varsel om mislykkede eller trege forespørsler.
-- [Unntakssporing](/docs/telemetry/exceptions): Gå gjennom feilene spannene dine registrerer.
+- [Unntak](/docs/telemetry/exceptions): Gå gjennom feilene spannene dine registrerer.
 - [Loggutforsker](/docs/telemetry/logs-explorer): Les logglinjene en forespørsel skrev.
 :::

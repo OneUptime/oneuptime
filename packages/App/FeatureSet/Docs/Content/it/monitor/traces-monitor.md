@@ -154,7 +154,7 @@ Con 30 richieste non riuscite, la regola corrisponde e viene dichiarato l'incide
 ## Risoluzione dei problemi
 
 :::details Il monitor non conta alcuno span per il mio endpoint
-**Il nome dello span contiene** viene confrontato con il nome dello span, e la strumentazione spesso nomina gli span del server in base alla rotta (`POST /api/checkout`) o solo al metodo (`GET`). Cercate il nome esatto nell'esploratore delle tracce. Poi aprite la pagina **Criteri** del monitor (sotto **Configurazione**) e fate clic su **Modifica criteri di monitoraggio**: **Span corrispondenti** mostra a cosa corrispondono i filtri in questo momento.
+**Il nome dello span contiene** viene confrontato con il nome dello span, e la strumentazione spesso nomina gli span del server in base alla rotta (`POST /api/checkout`) o solo al metodo (`GET`). Cercate il nome esatto nell'esploratore delle tracce. Poi aprite la pagina **Criteri** del monitor (sotto **Configurazione**) e fate clic su **Modifica criteri**: **Span corrispondenti** mostra a cosa corrispondono i filtri in questo momento.
 :::
 
 :::details Le richieste riuscite non vengono contate quando filtro su Ok

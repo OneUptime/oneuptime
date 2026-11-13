@@ -66,7 +66,7 @@ Klicken Sie auf **Monitor testen**, wählen Sie unter **Sonde auswählen** eine 
 
 ### Die Kriterien prüfen
 
-**Monitor-Kriterien** beginnt mit den [Standardkriterien](#standardkriterien): offline, wenn die Kette unterbrochen ist, online, wenn sie gültig ist. Um vor dem Ablauf von Signaturen gewarnt zu werden, fügen Sie ein Kriterium hinzu (siehe [Bewährte Vorgehensweisen](#bewährte-vorgehensweisen)) und klicken Sie dann auf **Weiter**.
+**Kriterien** beginnt mit den [Standardkriterien](#standardkriterien): offline, wenn die Kette unterbrochen ist, online, wenn sie gültig ist. Um vor dem Ablauf von Signaturen gewarnt zu werden, fügen Sie ein Kriterium hinzu (siehe [Bewährte Vorgehensweisen](#bewährte-vorgehensweisen)) und klicken Sie dann auf **Weiter**.
 
 ### Sonden wählen und erstellen
 

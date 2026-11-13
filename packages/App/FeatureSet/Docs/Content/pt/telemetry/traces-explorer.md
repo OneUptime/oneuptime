@@ -183,6 +183,6 @@ Cada linha é um span, não uma requisição: com **Entry spans**, o padrão, um
 :::cards
 - [Sintaxe de pesquisa](/docs/telemetry/search-syntax): Todos os filtros que a caixa de pesquisa entende.
 - [Monitor de traces](/docs/monitor/traces-monitor): Receber alertas de requisições com falha ou lentas.
-- [Rastreamento de exceções](/docs/telemetry/exceptions): Fazer a triagem dos erros que seus spans gravam.
+- [Exceções](/docs/telemetry/exceptions): Fazer a triagem dos erros que seus spans gravam.
 - [Explorador de registros](/docs/telemetry/logs-explorer): Ler as linhas de registro que uma requisição escreveu.
 :::

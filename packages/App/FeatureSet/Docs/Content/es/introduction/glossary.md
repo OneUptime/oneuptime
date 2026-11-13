@@ -42,13 +42,13 @@ Consulta [Crear un monitor](/docs/monitor/create-monitor).
 
 Las reglas de un monitor: qué significa cada resultado de una comprobación. Se evalúan en orden, y el primero que coincide puede cambiar el estado del monitor, declarar un incidente, crear una alerta o las tres cosas.
 
-Otros nombres: **Criterios de monitoreo**, **Criterios del monitor**, **Pasos del monitor**. Consulta [Criterios y estados de monitores](/docs/monitor/criteria-and-statuses).
+Otros nombres: **Criterios de monitoreo**, **Criterios del monitor**, **Pasos del monitor**. Consulta [Criterios y estados](/docs/monitor/criteria-and-statuses).
 
 ### Estado del monitor
 
 Cómo está un monitor en este momento. Cada proyecto nuevo tiene tres estados de monitor, **Operativo**, **Degradado** y **Sin conexión**, y puedes añadir los tuyos.
 
-Consulta [Criterios y estados de monitores](/docs/monitor/criteria-and-statuses).
+Consulta [Criterios y estados](/docs/monitor/criteria-and-statuses).
 
 ### Sonda
 
@@ -262,7 +262,7 @@ Consulta [Reglas de etiquetas y propietarios](/docs/configuration/label-and-owne
 
 Un error que lanza tu código. OneUptime agrupa cada aparición del mismo error en una sola excepción, con su traza de pila, su tendencia y las solicitudes en las que ocurrió.
 
-Otros nombres: **Seguimiento de excepciones**, `/telemetry-exception`. Consulta [Seguimiento de excepciones](/docs/telemetry/exceptions).
+Otros nombres: **Seguimiento de excepciones**, `/telemetry-exception`. Consulta [Excepciones](/docs/telemetry/exceptions).
 
 ### Hallazgos de IA
 
@@ -306,7 +306,7 @@ Consulta [Explorador de trazas](/docs/telemetry/traces-explorer).
 
 Cómo gasta tu aplicación el tiempo de CPU y la memoria, función por función, enviado por un perfilador que envía los datos a la API compatible con Pyroscope de OneUptime.
 
-Otros nombres: **Perfiles de rendimiento**, **Perfilado continuo**. Consulta [Perfilado continuo](/docs/telemetry/profiles).
+Otros nombres: **Perfiles de rendimiento**, **Perfilado continuo**. Consulta [Perfiles](/docs/telemetry/profiles).
 
 ### IA / LLM
 

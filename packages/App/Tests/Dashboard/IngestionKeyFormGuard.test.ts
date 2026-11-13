@@ -6,7 +6,7 @@ import path from "path";
 /*
  * ONE CREATE FORM FOR A TELEMETRY INGESTION KEY, BEHIND EVERY DOOR.
  *
- * A key is created from Settings > Telemetry Ingestion Keys and from the
+ * A key is created from Settings > Ingestion Keys and from the
  * "Choose an ingestion key" step of every setup guide. The two used to be
  * hand-copied forms that drifted apart: the guide's Key Type was a dropdown
  * with other help, its Allowed Origins skipped the origin checks the

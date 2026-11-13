@@ -56,7 +56,7 @@ Clique em **Testar monitor**, escolha uma sonda em **Selecionar Sonda** e clique
 
 ### Revisar os critérios
 
-**Critérios do monitor** começa com os [critérios padrão](#critérios-padrão): offline quando o host não responde, online quando responde. Altere-os se precisar e clique em **Próximo**.
+**Critérios** começa com os [critérios padrão](#critérios-padrão): offline quando o host não responde, online quando responde. Altere-os se precisar e clique em **Próximo**.
 
 ### Escolher as sondas e criar
 

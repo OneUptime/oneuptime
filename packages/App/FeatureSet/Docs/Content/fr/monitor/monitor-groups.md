@@ -155,7 +155,7 @@ C'est la règle : le groupe affiche son pire moniteur. Ouvrez **Moniteurs** dans
 ## Étapes suivantes
 
 :::cards
-- [Critères et statuts des moniteurs](/docs/monitor/criteria-and-statuses): Ce qui définit le statut de chaque moniteur.
+- [Critères et statuts](/docs/monitor/criteria-and-statuses): Ce qui définit le statut de chaque moniteur.
 - [Ressources et groupes de la page de statut](/docs/status-pages/resources-and-groups): Organiser les lignes d'une page de statut.
 - [Abonnés et annonces](/docs/status-pages/subscribers): Informer les clients des incidents d'un groupe.
 :::

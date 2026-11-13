@@ -36,7 +36,7 @@ flowchart TB
 
 ## پیش از شروع
 
-- یک پروژهٔ OneUptime که در آن بتوانید کلید دریافت داده بسازید: مالکان و مدیران پروژه می‌توانند، و هر کسی که مجوز **Create Telemetry Ingestion Key** را دارد نیز می‌تواند.
+- یک پروژهٔ OneUptime که در آن بتوانید کلید دریافت داده بسازید: مالکان و مدیران پروژه می‌توانند، و هر کسی که مجوز **Create Ingestion Key** را دارد نیز می‌تواند.
 - برنامه‌ای که بتوانید SDK اپن‌تلمتری را به آن اضافه کنید، یا یک OpenTelemetry Collector.
 - دسترسی HTTPS خروجی (پورت ۴۴۳) از برنامه یا Collector به `oneuptime.com`، یا به میزبان OneUptime خودتان.
 
@@ -365,7 +365,7 @@ Collector روی پورت `4317` (gRPC) و `4318` (HTTP) به OTLP گوش می�
 | لاگ‌ها | `https://oneuptime.com/otlp/v1/logs` |
 | پروفایل‌ها | `https://oneuptime.com/otlp/v1/profiles` |
 
-برای پروفایل‌گیری پیوسته، بیشتر پروفایل‌گیرها به جای این، به نقطهٔ پایانی سازگار با Pyroscope می‌فرستند — [پروفایل‌گیری پیوسته](/docs/telemetry/profiles) را ببینید. Collectorی که پروفایل‌های OTLP صادر می‌کند باید `profiles_endpoint` صادرکننده را روی `https://oneuptime.com/otlp/v1/profiles` بگذارد، چون به‌طور پیش‌فرض پروفایل‌ها را به یک مسیر توسعه می‌فرستد که OneUptime ارائه نمی‌کند.
+برای پروفایل‌گیری پیوسته، بیشتر پروفایل‌گیرها به جای این، به نقطهٔ پایانی سازگار با Pyroscope می‌فرستند — [پروفایل‌ها](/docs/telemetry/profiles) را ببینید. Collectorی که پروفایل‌های OTLP صادر می‌کند باید `profiles_endpoint` صادرکننده را روی `https://oneuptime.com/otlp/v1/profiles` بگذارد، چون به‌طور پیش‌فرض پروفایل‌ها را به یک مسیر توسعه می‌فرستد که OneUptime ارائه نمی‌کند.
 
 ### OTLP روی gRPC
 

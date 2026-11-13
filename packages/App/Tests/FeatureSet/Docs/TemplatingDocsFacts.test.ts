@@ -1230,7 +1230,7 @@ describe("Incident & Alert Templating, against the code that fills in templates"
         'title: "Criteria",',
       );
       expect(source(`${dashboard}/Pages/Monitor/View/Criteria.tsx`)).toContain(
-        'editButtonText="Edit Monitoring Criteria"',
+        'editButtonText="Edit Criteria"',
       );
       expect(
         source("packages/Common/UI/Components/ModelDetail/CardModelDetail.tsx"),
@@ -1239,7 +1239,7 @@ describe("Incident & Alert Templating, against the code that fills in templates"
       const steps: string = sectionOf("## Where you write a template");
 
       expect(steps).toContain(
-        "Go to **Monitors**, open the monitor, and click **Criteria** in its side menu. Click **Edit Monitoring Criteria**.",
+        "Go to **Monitors**, open the monitor, and click **Criteria** in its side menu. Click **Edit Criteria**.",
       );
       expect(steps).toContain("Click **Save Changes**.");
     });

@@ -86,5 +86,5 @@ Der er ikke kommet nogen besked, du kan kvittere fra, hvilket på en selvhostet 
 :::cards
 - [Bliv tilkaldt via opkald, SMS eller push](/docs/guides/paging): Bliv tilkaldt på din telefon, og tilkald den næste person, hvis ingen svarer.
 - [Udgiv en statusside](/docs/guides/status-page): Vis monitoren for dine kunder, på dit eget domæne.
-- [Monitorkriterier og statusser](/docs/monitor/criteria-and-statuses): Bestem præcis, hvornår en monitor tæller som nede.
+- [Kriterier og statusser](/docs/monitor/criteria-and-statuses): Bestem præcis, hvornår en monitor tæller som nede.
 :::

@@ -42,13 +42,13 @@ Voir [Créer un moniteur](/docs/monitor/create-monitor).
 
 Les règles d'un moniteur : ce que signifie chaque résultat de vérification. Ils sont examinés dans l'ordre, et le premier qui correspond peut changer le statut du moniteur, déclarer un incident, créer une alerte, ou les trois.
 
-Autres noms : **Critères de surveillance**, **Critères du moniteur**, **Étapes du moniteur**. Voir [Critères et statuts des moniteurs](/docs/monitor/criteria-and-statuses).
+Autres noms : **Critères de surveillance**, **Critères du moniteur**, **Étapes du moniteur**. Voir [Critères et statuts](/docs/monitor/criteria-and-statuses).
 
 ### Statut du moniteur
 
 Où en est un moniteur en ce moment. Chaque nouveau projet a trois statuts de moniteur, **Opérationnel**, **Dégradé** et **Hors ligne**, et vous pouvez ajouter les vôtres.
 
-Voir [Critères et statuts des moniteurs](/docs/monitor/criteria-and-statuses).
+Voir [Critères et statuts](/docs/monitor/criteria-and-statuses).
 
 ### Sonde
 
@@ -262,7 +262,7 @@ Voir [Règles d'étiquettes et de propriétaires](/docs/configuration/label-and-
 
 Une erreur que lève votre code. OneUptime regroupe chaque occurrence d'une même erreur en une seule exception, avec sa trace de pile, son évolution et les requêtes dans lesquelles elle s'est produite.
 
-Autres noms : **Suivi des exceptions**, `/telemetry-exception`. Voir [Suivi des exceptions](/docs/telemetry/exceptions).
+Autres noms : **Suivi des exceptions**, `/telemetry-exception`. Voir [Exceptions](/docs/telemetry/exceptions).
 
 ### Analyses IA
 
@@ -306,7 +306,7 @@ Voir [Explorateur de traces](/docs/telemetry/traces-explorer).
 
 La façon dont votre application dépense son temps CPU et sa mémoire, fonction par fonction, envoyée par un profileur qui pousse ses données vers l'API compatible Pyroscope de OneUptime.
 
-Autres noms : **Profils de performance**, **Profilage continu**. Voir [Profilage continu](/docs/telemetry/profiles).
+Autres noms : **Profils de performance**, **Profilage continu**. Voir [Profils](/docs/telemetry/profiles).
 
 ### IA / LLM
 

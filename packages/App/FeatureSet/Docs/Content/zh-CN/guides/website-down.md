@@ -86,5 +86,5 @@ flowchart TB
 :::cards
 - [通过电话、短信或推送接收呼叫](/docs/guides/paging): 在手机上接收呼叫，并在无人响应时呼叫下一个人。
 - [发布状态页面](/docs/guides/status-page): 在你自己的域名上向客户展示这个监视器。
-- [监视器条件与状态](/docs/monitor/criteria-and-statuses): 精确决定监视器何时算作宕机。
+- [条件与状态](/docs/monitor/criteria-and-statuses): 精确决定监视器何时算作宕机。
 :::

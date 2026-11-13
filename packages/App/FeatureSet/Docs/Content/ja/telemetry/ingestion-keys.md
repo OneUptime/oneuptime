@@ -45,7 +45,7 @@ flowchart TB
 
 ## 始める前に
 
-- **取り込みキーを管理するロール。** Project Owner または Project Admin、あるいは Create Telemetry Ingestion Key 権限を持つカスタムロールです。Telemetry ロールには取り込みキーは含まれません。
+- **取り込みキーを管理するロール。** Project Owner または Project Admin、あるいは Create Ingestion Key 権限を持つカスタムロールです。Telemetry ロールには取り込みキーは含まれません。
 - **OneUptime Cloud では、支払い方法。** テレメトリは使用量に応じて課金されるため、Free プランのプロジェクトはキーを作成する前に支払い方法が必要です。その場合、作成ダイアログは料金を示す **請求** ステップで終わります。
 
 ## 取り込みキーを作成する

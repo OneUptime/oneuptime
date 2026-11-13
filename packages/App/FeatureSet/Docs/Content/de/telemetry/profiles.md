@@ -1,4 +1,4 @@
-# Kontinuierliches Profiling
+# Profile
 
 Kontinuierliches Profiling zeigt, wofür Ihre Anwendung CPU-Zeit und Arbeitsspeicher verwendet, Funktion für Funktion. OneUptime bietet eine **Pyroscope-kompatible Ingest-API**: Alles, was an einen Pyroscope-Server senden kann – der eBPF-Profiler von Grafana Alloy oder ein Pyroscope-SDK für Ihre Sprache –, kann auch an OneUptime senden, und Sie lesen das Ergebnis als Flame-Graphs neben Ihren Protokollen, Metriken und Traces.
 
@@ -11,7 +11,7 @@ Kontinuierliches Profiling zeigt, wofür Ihre Anwendung CPU-Zeit und Arbeitsspei
 
 ## So funktioniert es
 
-Ein Profiler tastet Ihre Prozesse ab und lädt alle paar Sekunden ein Profil mit Ihrem Ingestion-Schlüssel an den Endpunkt `/pyroscope` von OneUptime hoch. OneUptime speichert jedes Profil unter dem Dienst, den es nennt, und zeichnet es unter **Leistungsprofile** als Flame-Graph.
+Ein Profiler tastet Ihre Prozesse ab und lädt alle paar Sekunden ein Profil mit Ihrem Ingestion-Schlüssel an den Endpunkt `/pyroscope` von OneUptime hoch. OneUptime speichert jedes Profil unter dem Dienst, den es nennt, und zeichnet es unter **Profile** als Flame-Graph.
 
 ```mermaid title="Wie Profile zu OneUptime gelangen"
 flowchart TB
@@ -270,7 +270,7 @@ Ein gültiges Token liefert `200` mit `{"valid": true, ...}`, und sein `keyType`
 
 ### Die Profilseite öffnen
 
-Gehen Sie im OneUptime-Dashboard zu **Produkte → Performance-Profile**. Mit dem Erfassungsintervall von Alloy von 15 Sekunden (oder dem Upload-Intervall der SDKs von 10 bis 15 Sekunden) erscheinen die ersten Profile und ihre Flame-Graphs innerhalb von ein, zwei Minuten nach dem Start des Agents.
+Gehen Sie im OneUptime-Dashboard zu **Produkte → Profile**. Mit dem Erfassungsintervall von Alloy von 15 Sekunden (oder dem Upload-Intervall der SDKs von 10 bis 15 Sekunden) erscheinen die ersten Profile und ihre Flame-Graphs innerhalb von ein, zwei Minuten nach dem Start des Agents.
 
 ### Den Dienst prüfen
 
@@ -283,7 +283,7 @@ Setzen Sie beim .NET-Profiler für eine Minute `DD_TRACE_DEBUG=1` in der Anwendu
 
 ## Profile in OneUptime erkunden
 
-**Produkte → Performance-Profile** öffnet den Profiler auf seiner **Übersicht**. Er antwortet in Worten, bevor ein Diagramm kommt: wohin die Zeit geht („Bei checkout entfielen 42% der CPU-Zeit auf JSON.parse.“) und, wenn die meistbeschäftigte Funktion zu einer Bibliothek oder zur Laufzeit gehört, welche Funktion Ihres eigenen Codes am meisten beansprucht, mit dem Bibliotheks- und Laufzeitcode, den sie aufruft. Wählen Sie oben einen Dienst, eine Profilart, für die er Daten hat (**CPU-Zeit**, **Echtzeit**, **Arbeitsspeicher**, **Allokationen**, **Sperren** oder **Goroutines**, oder einen Typ unter **Weitere Profiltypen**), und ein Zeitfenster.
+**Produkte → Profile** öffnet den Profiler auf seiner **Übersicht**. Er antwortet in Worten, bevor ein Diagramm kommt: wohin die Zeit geht („Bei checkout entfielen 42% der CPU-Zeit auf JSON.parse.“) und, wenn die meistbeschäftigte Funktion zu einer Bibliothek oder zur Laufzeit gehört, welche Funktion Ihres eigenen Codes am meisten beansprucht, mit dem Bibliotheks- und Laufzeitcode, den sie aufruft. Wählen Sie oben einen Dienst, eine Profilart, für die er Daten hat (**CPU-Zeit**, **Echtzeit**, **Arbeitsspeicher**, **Allokationen**, **Sperren** oder **Goroutines**, oder einen Typ unter **Weitere Profiltypen**), und ein Zeitfenster.
 
 | Karte | Was sie zeigt |
 | --- | --- |
@@ -319,7 +319,7 @@ Wenn ein Profil Trace- und Span-IDs trägt (zum Beispiel als Sample-Labels `trac
 
 Der Tab **Profil-Samples** eines Spans enthält auch die Samples der darunter verschachtelten Spans, weil Profiler die CPU-Zeit einer Anfrage oft einem Kind-Span statt dem Anfrage-Span selbst zuordnen.
 
-Die Seite eines Traces verlinkt außerdem auf den Profiler für den Dienst des Traces, für die 15 Minuten davor und danach, wenn dieser Dienst in der Zeit profiliert wurde, und die Seite **Leistungsprofile** eines Dienstes oder Hosts öffnet den Profiler für diesen Dienst oder Host.
+Die Seite eines Traces verlinkt außerdem auf den Profiler für den Dienst des Traces, für die 15 Minuten davor und danach, wenn dieser Dienst in der Zeit profiliert wurde, und die Seite **Profile** eines Dienstes oder Hosts öffnet den Profiler für diesen Dienst oder Host.
 
 ## Langsamen Code mit KI finden und beheben
 
@@ -332,7 +332,7 @@ Eine Funktion Ihres eigenen Codes wird angelegt, wenn ihr Dienst in der letzten 
 
 ### Einschalten
 
-**Produkte → Performance-Profile → KI → Einstellungen** enthält den Schalter **Langsamen Code finden und beheben**, der für neue Projekte eingeschaltet ist. Ist **KI aktivieren** aus, wird langsamer Code weiterhin gefunden, aber OneUptime AI tut nichts damit. Um Pull Requests zu öffnen, braucht OneUptime AI ein in [Code](/docs/ai/ai-agent) verbundenes Repository: Die Seite sagt, was zuerst fehlt. Der Code eines Repositorys wird auf dem Runner geändert, den das Repository in Code auswählt.
+**Produkte → Profile → KI → Einstellungen** enthält den Schalter **Langsamen Code finden und beheben**, der für neue Projekte eingeschaltet ist. Ist **KI aktivieren** aus, wird langsamer Code weiterhin gefunden, aber OneUptime AI tut nichts damit. Um Pull Requests zu öffnen, braucht OneUptime AI ein in [Code](/docs/ai/ai-agent) verbundenes Repository: Die Seite sagt, was zuerst fehlt. Der Code eines Repositorys wird auf dem Runner geändert, den das Repository in Code auswählt.
 
 OneUptime AI öffnet von sich aus höchstens 5 Pull Requests pro Tag (UTC), einen pro Befund, und nie mehr, als ein Repository an offenen KI-Pull-Requests zulässt.
 
@@ -350,8 +350,8 @@ Unter **Weitere Felder** wählt eine Regel die Code-Repositories, die MCP-Server
 
 ### Sehen, was es getan hat
 
-- **Produkte → Performance-Profile → KI → Einblicke** listet den gefundenen langsamen Code, jeden Befund mit seinen Belegen und **Im Profiler öffnen**.
-- **Produkte → Performance-Profile → KI → Protokolle** listet jede Untersuchung und jeden Pull Request, das Neueste zuerst, jeweils mit ihrem Stand und dem, was jede Untersuchung gefunden hat.
+- **Produkte → Profile → KI → Einblicke** listet den gefundenen langsamen Code, jeden Befund mit seinen Belegen und **Unter Profile öffnen**.
+- **Produkte → Profile → KI → Protokolle** listet jede Untersuchung und jeden Pull Request, das Neueste zuerst, jeweils mit ihrem Stand und dem, was jede Untersuchung gefunden hat.
 - In Code sagt die Aufgabe, dass OneUptime sie gestartet hat, mit einem Link zu ihrem Befund, und der Pull Request sagt, warum er geöffnet wurde.
 
 ## Datenaufbewahrung

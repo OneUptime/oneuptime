@@ -232,7 +232,7 @@ describe("restored breadcrumb hierarchy", () => {
     [
       PageMap.SETTINGS_TELEMETRY_INGESTION_KEY_VIEW,
       getSettingsBreadcrumbs,
-      ["Project", "Settings", "Telemetry Ingestion Keys", "View Key"],
+      ["Project", "Settings", "Ingestion Keys", "View Key"],
       PageMap.SETTINGS_TELEMETRY_INGESTION_KEYS,
     ],
     [

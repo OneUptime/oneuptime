@@ -193,7 +193,7 @@ A **Quantidade de exceções** é 3, então **Mais de** `0` corresponde: o monit
 ## Solução de problemas
 
 :::details As exceções aparecem no explorador, mas o monitor conta 0
-Compare o valor de **Ambientes** com o filtro `env:` do explorador: a correspondência é exata e diferencia maiúsculas de minúsculas, e as exceções sem ambiente ficam de fora quando o filtro está definido. Depois verifique se essas exceções estão resolvidas ou arquivadas. Abra a página **Critérios** do monitor (em **Configuração**) e clique em **Editar critérios de monitoramento**: **Exceções correspondentes** mostra o que os filtros selecionam.
+Compare o valor de **Ambientes** com o filtro `env:` do explorador: a correspondência é exata e diferencia maiúsculas de minúsculas, e as exceções sem ambiente ficam de fora quando o filtro está definido. Depois verifique se essas exceções estão resolvidas ou arquivadas. Abra a página **Critérios** do monitor (em **Configuração**) e clique em **Editar critérios**: **Exceções correspondentes** mostra o que os filtros selecionam.
 :::
 
 :::details O incidente se resolveu quando resolvi a exceção

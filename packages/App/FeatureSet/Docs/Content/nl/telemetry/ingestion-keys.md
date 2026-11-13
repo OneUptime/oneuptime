@@ -45,7 +45,7 @@ Overal elders weigert OneUptime een browsersleutel, zoals via gRPC en MQTT, voor
 
 ## Voordat u begint
 
-- **Een rol die ingestiesleutels beheert.** Project Owner of Project Admin, of een aangepaste rol met de machtiging Create Telemetry Ingestion Key. De Telemetry-rollen omvatten geen ingestiesleutels.
+- **Een rol die ingestiesleutels beheert.** Project Owner of Project Admin, of een aangepaste rol met de machtiging Create Ingestion Key. De Telemetry-rollen omvatten geen ingestiesleutels.
 - **Op OneUptime Cloud, een betaalmethode.** Telemetrie wordt gefactureerd naar gebruik, dus een project op het Free-abonnement heeft een betaalmethode nodig voordat het een sleutel kan aanmaken. Het dialoogvenster eindigt dan met een stap **Facturering** die de prijzen toont.
 
 ## Een ingestiesleutel aanmaken

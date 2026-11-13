@@ -45,7 +45,7 @@ Partout ailleurs, OneUptime refuse une clé de navigateur, par exemple sur gRPC 
 
 ## Avant de commencer
 
-- **Un rôle qui gère les clés d'ingestion.** Project Owner ou Project Admin, ou un rôle personnalisé avec la permission Create Telemetry Ingestion Key. Les rôles Telemetry n'incluent pas les clés d'ingestion.
+- **Un rôle qui gère les clés d'ingestion.** Project Owner ou Project Admin, ou un rôle personnalisé avec la permission Create Ingestion Key. Les rôles Telemetry n'incluent pas les clés d'ingestion.
 - **Sur OneUptime Cloud, un moyen de paiement.** La télémétrie est facturée à l'usage, donc un projet sur le plan Free a besoin d'un moyen de paiement avant de pouvoir créer une clé. La boîte de dialogue de création se termine alors par une étape **Facturation** qui affiche les tarifs.
 
 ## Créer une clé d'ingestion

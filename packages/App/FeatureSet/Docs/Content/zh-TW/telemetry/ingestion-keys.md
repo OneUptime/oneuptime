@@ -45,7 +45,7 @@ flowchart TB
 
 ## 開始之前
 
-- **能夠管理擷取金鑰的角色。** Project Owner 或 Project Admin，或者擁有 Create Telemetry Ingestion Key 權限的自訂角色。Telemetry 角色不包含擷取金鑰。
+- **能夠管理擷取金鑰的角色。** Project Owner 或 Project Admin，或者擁有 Create Ingestion Key 權限的自訂角色。Telemetry 角色不包含擷取金鑰。
 - **在 OneUptime Cloud 上，需要付款方式。** 遙測依用量計費，因此 Free 方案的專案需要先新增付款方式才能建立金鑰。此時建立對話方塊最後會有一個顯示價格的 **帳單** 步驟。
 
 ## 建立擷取金鑰

@@ -1,4 +1,4 @@
-# Profilazione continua
+# Profili
 
 La profilazione continua mostra come la vostra applicazione spende tempo CPU e memoria, funzione per funzione. OneUptime espone un'**API di acquisizione compatibile con Pyroscope**, quindi tutto ciò che può inviare dati a un server Pyroscope (il profiler eBPF di Grafana Alloy o un SDK Pyroscope per il vostro linguaggio) può inviarli a OneUptime, e leggete il risultato come flame graph accanto a log, metriche e tracce.
 
@@ -11,7 +11,7 @@ La profilazione continua mostra come la vostra applicazione spende tempo CPU e m
 
 ## Come funziona
 
-Un profiler campiona i vostri processi e carica un profilo ogni pochi secondi sull'endpoint `/pyroscope` di OneUptime, con la vostra chiave di acquisizione. OneUptime memorizza ogni profilo sotto il servizio che indica e lo disegna come flame graph in **Profili di prestazioni**.
+Un profiler campiona i vostri processi e carica un profilo ogni pochi secondi sull'endpoint `/pyroscope` di OneUptime, con la vostra chiave di acquisizione. OneUptime memorizza ogni profilo sotto il servizio che indica e lo disegna come flame graph in **Profili**.
 
 ```mermaid title="Come i profili arrivano a OneUptime"
 flowchart TB
@@ -270,7 +270,7 @@ Un token valido restituisce `200` con `{"valid": true, ...}`, e il suo `keyType`
 
 ### Aprire la pagina dei profili
 
-Nella dashboard di OneUptime andate in **Prodotti → Profili di performance**. Con l'intervallo di raccolta di 15 secondi di Alloy (o l'intervallo di caricamento degli SDK, da 10 a 15 secondi), i primi profili e i loro flame graph compaiono entro un paio di minuti dall'avvio dell'agente.
+Nella dashboard di OneUptime andate in **Prodotti → Profili**. Con l'intervallo di raccolta di 15 secondi di Alloy (o l'intervallo di caricamento degli SDK, da 10 a 15 secondi), i primi profili e i loro flame graph compaiono entro un paio di minuti dall'avvio dell'agente.
 
 ### Controllare il servizio
 
@@ -283,7 +283,7 @@ Per il profiler .NET, impostate `DD_TRACE_DEBUG=1` sull'applicazione per un minu
 
 ## Esplorare i profili in OneUptime
 
-**Prodotti → Profili di performance** apre il Profiler sulla sua **Panoramica**. Risponde a parole prima di qualsiasi grafico: dove va il tempo («JSON.parse occupa 42% del totale di tempo CPU in checkout.») e, quando la funzione più impegnata è di una libreria o del runtime, la funzione del vostro codice che occupa di più, con il codice di librerie e runtime che chiama. In alto, scegliete un servizio, un tipo di profilo per cui ha dati (**Tempo CPU**, **Tempo reale**, **Memoria**, **Allocazioni**, **Lock** o **Goroutines**, oppure un tipo in **Altri tipi di profilo**) e un intervallo.
+**Prodotti → Profili** apre il Profiler sulla sua **Panoramica**. Risponde a parole prima di qualsiasi grafico: dove va il tempo («JSON.parse occupa 42% del totale di tempo CPU in checkout.») e, quando la funzione più impegnata è di una libreria o del runtime, la funzione del vostro codice che occupa di più, con il codice di librerie e runtime che chiama. In alto, scegliete un servizio, un tipo di profilo per cui ha dati (**Tempo CPU**, **Tempo reale**, **Memoria**, **Allocazioni**, **Lock** o **Goroutines**, oppure un tipo in **Altri tipi di profilo**) e un intervallo.
 
 | Scheda | Cosa mostra |
 | --- | --- |
@@ -319,7 +319,7 @@ Quando un profilo contiene ID di traccia e di span (per esempio come etichette d
 
 La scheda **Campioni di profilo** di uno span include anche i campioni collegati agli span annidati sotto di esso, perché i profiler spesso attribuiscono il tempo CPU di una richiesta a uno span figlio anziché allo span della richiesta stessa.
 
-La pagina di una traccia rimanda anche al Profiler sul servizio della traccia, per i 15 minuti prima e dopo, quando quel servizio era profilato in quel momento, e la pagina **Profili di prestazioni** di un servizio o di un host apre il Profiler su quel servizio o host.
+La pagina di una traccia rimanda anche al Profiler sul servizio della traccia, per i 15 minuti prima e dopo, quando quel servizio era profilato in quel momento, e la pagina **Profili** di un servizio o di un host apre il Profiler su quel servizio o host.
 
 ## Trovare e correggere il codice lento con l'IA
 
@@ -332,7 +332,7 @@ Una funzione del tuo codice viene registrata quando il suo servizio ha inviato a
 
 ### Attivarlo
 
-**Prodotti → Profili di performance → IA → Impostazioni** contiene l'interruttore **Trova e correggi il codice lento**, attivo per i nuovi progetti. Con **Abilita IA** disattivato, il codice lento viene ancora trovato, ma OneUptime AI non ne fa nulla. Per aprire pull request, OneUptime AI ha bisogno di un repository collegato in [Codice](/docs/ai/ai-agent): la pagina dice prima cosa manca. Il codice di ogni repository viene modificato sul Runner che il repository sceglie in Codice.
+**Prodotti → Profili → IA → Impostazioni** contiene l'interruttore **Trova e correggi il codice lento**, attivo per i nuovi progetti. Con **Abilita IA** disattivato, il codice lento viene ancora trovato, ma OneUptime AI non ne fa nulla. Per aprire pull request, OneUptime AI ha bisogno di un repository collegato in [Codice](/docs/ai/ai-agent): la pagina dice prima cosa manca. Il codice di ogni repository viene modificato sul Runner che il repository sceglie in Codice.
 
 OneUptime AI apre da solo al massimo 5 pull request al giorno (UTC), una per rilevamento, e mai più del limite di pull request IA aperte di un repository.
 
@@ -350,8 +350,8 @@ In **Altri campi** una regola sceglie i repository di codice, i server MCP e il 
 
 ### Vedere cosa ha fatto
 
-- **Prodotti → Profili di performance → IA → Informazioni** elenca il codice lento trovato, ogni rilevamento con le sue prove e **Apri nel Profiler**.
-- **Prodotti → Profili di performance → IA → Registri** elenca ogni indagine e ogni pull request, dalla più recente, con lo stato di ciascuna e ciò che ogni indagine ha trovato.
+- **Prodotti → Profili → IA → Informazioni** elenca il codice lento trovato, ogni rilevamento con le sue prove e **Apri in Profili**.
+- **Prodotti → Profili → IA → Registri** elenca ogni indagine e ogni pull request, dalla più recente, con lo stato di ciascuna e ciò che ogni indagine ha trovato.
 - In Codice, l'attività indica che l'ha avviata OneUptime, con un link al suo rilevamento, e la pull request spiega perché è stata aperta.
 
 ## Conservazione dei dati

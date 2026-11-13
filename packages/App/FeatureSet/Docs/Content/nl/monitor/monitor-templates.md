@@ -50,7 +50,7 @@ Kies onder **Standaardinstellingen voor monitor** het **Monitortype**, met dezel
 Vul onder **Criteria** in wat er gecontroleerd wordt en de criteria, zoals bij [Monitor maken](/docs/monitor/create-monitor#criteria). Met de kaart **Template sync settings** bovenaan beschermt u velden tegen synchronisaties (zie [Waarden per monitor behouden](#waarden-per-monitor-behouden)). Voor een monitortype dat sondes controleren, vraagt de laatste stap, **Interval**, om het **Bewakingsinterval**. Klik op de laatste stap op **Monitorsjabloon aanmaken**.
 :::
 
-Het sjabloon wordt aan de lijst toegevoegd. Open het om de pagina te zien, met een kaart voor elk deel: **Sjablooninformatie**, **Standaardinstellingen voor monitor**, **Bewakingscriteria**, **Bewakingsinterval** (met **Minimale sonde-overeenstemming**), **Labels**, **Standaardwaarden voor aangepaste velden** (wanneer het project aangepaste monitorvelden heeft) en **Gekoppelde monitoren**. U wijzigt elk deel op zijn eigen kaart, bijvoorbeeld met **Criteria bewerken** of **Interval bewerken**.
+Het sjabloon wordt aan de lijst toegevoegd. Open het om de pagina te zien, met een kaart voor elk deel: **Sjablooninformatie**, **Standaardinstellingen voor monitor**, **Criteria**, **Bewakingsinterval** (met **Minimale sonde-overeenstemming**), **Labels**, **Standaardwaarden voor aangepaste velden** (wanneer het project aangepaste monitorvelden heeft) en **Gekoppelde monitoren**. U wijzigt elk deel op zijn eigen kaart, bijvoorbeeld met **Criteria bewerken** of **Interval bewerken**.
 
 ## Monitoren maken vanuit een sjabloon
 
@@ -85,7 +85,7 @@ Ga naar **Monitoren → Instellingen → Sjablonen** en open het sjabloon.
 
 ### De criteria bewerken
 
-Klik op de kaart **Bewakingscriteria** op **Criteria bewerken**.
+Klik op de kaart **Criteria** op **Criteria bewerken**.
 
 ### De velden beschermen
 
@@ -93,7 +93,7 @@ Vink onder **Template sync settings** **Do not sync this field** aan naast elk v
 
 ### Opslaan
 
-Sla uw wijzigingen op. De kaart **Bewakingscriteria**, en de bevestiging van beide synchronisaties hieronder, tonen de beschermde velden.
+Sla uw wijzigingen op. De kaart **Criteria**, en de bevestiging van beide synchronisaties hieronder, tonen de beschermde velden.
 
 ### Synchroniseren
 

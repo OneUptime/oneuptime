@@ -45,7 +45,7 @@ Alle andre steder afviser OneUptime en browsernøgle, for eksempel over gRPC og 
 
 ## Før du begynder
 
-- **En rolle, der administrerer indtagelsesnøgler.** Project Owner eller Project Admin, eller en brugerdefineret rolle med tilladelsen Create Telemetry Ingestion Key. Telemetry-rollerne omfatter ikke indtagelsesnøgler.
+- **En rolle, der administrerer indtagelsesnøgler.** Project Owner eller Project Admin, eller en brugerdefineret rolle med tilladelsen Create Ingestion Key. Telemetry-rollerne omfatter ikke indtagelsesnøgler.
 - **På OneUptime Cloud, en betalingsmetode.** Telemetri faktureres efter forbrug, så et projekt på Free-abonnementet skal have en betalingsmetode, før det kan oprette en nøgle. Oprettelsesdialogen slutter så med et trin **Fakturering**, der viser priserne.
 
 ## Opret en indtagelsesnøgle

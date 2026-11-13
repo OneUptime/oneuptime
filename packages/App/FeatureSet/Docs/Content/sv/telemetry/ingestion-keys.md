@@ -45,7 +45,7 @@ Välj typ efter var nyckeln ska finnas. Typen kan inte ändras efter att nyckeln
 
 ## Innan du börjar
 
-- **En roll som hanterar intagningsnycklar.** Project Owner eller Project Admin, eller en anpassad roll med behörigheten Create Telemetry Ingestion Key. Telemetry-rollerna omfattar inte intagningsnycklar.
+- **En roll som hanterar intagningsnycklar.** Project Owner eller Project Admin, eller en anpassad roll med behörigheten Create Ingestion Key. Telemetry-rollerna omfattar inte intagningsnycklar.
 - **På OneUptime Cloud, en betalningsmetod.** Telemetri faktureras efter användning, så ett projekt på Free-planen behöver en betalningsmetod innan det kan skapa en nyckel. Dialogrutan för att skapa slutar då med ett steg **Fakturering** som visar priserna.
 
 ## Skapa en intagningsnyckel

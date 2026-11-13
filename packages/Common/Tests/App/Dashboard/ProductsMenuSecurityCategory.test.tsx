@@ -398,7 +398,7 @@ describe("the Security category, in the catalog", () => {
       "Logs",
       "Metrics",
       "Traces",
-      "Performance Profiles",
+      "Profiles",
       "Exceptions",
       "AI / LLM",
       "Data Observability",
@@ -496,7 +496,7 @@ describe("the Security category, in the products menu", () => {
       "2 products Security Events, Data Security",
     );
     expect(categoryRow("Observability")).toHaveAccessibleDescription(
-      "8 products Logs, Metrics, Traces, Performance Profiles, Exceptions, AI / LLM, Data Observability, Topology",
+      "8 products Logs, Metrics, Traces, Profiles, Exceptions, AI / LLM, Data Observability, Topology",
     );
   });
 
@@ -562,7 +562,7 @@ describe("the Security category, in the products menu", () => {
       "Logs",
       "Metrics",
       "Traces",
-      "Performance Profiles",
+      "Profiles",
       "Exceptions",
       "AI / LLM",
       "Data Observability",

@@ -45,7 +45,7 @@ flowchart TB
 
 ## 시작하기 전에
 
-- **수집 키를 관리하는 역할.** Project Owner 또는 Project Admin, 아니면 Create Telemetry Ingestion Key 권한이 있는 사용자 지정 역할입니다. Telemetry 역할에는 수집 키가 포함되지 않습니다.
+- **수집 키를 관리하는 역할.** Project Owner 또는 Project Admin, 아니면 Create Ingestion Key 권한이 있는 사용자 지정 역할입니다. Telemetry 역할에는 수집 키가 포함되지 않습니다.
 - **OneUptime Cloud에서는 결제 수단.** 텔레메트리는 사용한 만큼 청구되므로, Free 플랜의 프로젝트는 키를 만들기 전에 결제 수단이 필요합니다. 이 경우 생성 대화 상자는 가격을 보여 주는 **결제** 단계로 끝납니다.
 
 ## 수집 키 만들기

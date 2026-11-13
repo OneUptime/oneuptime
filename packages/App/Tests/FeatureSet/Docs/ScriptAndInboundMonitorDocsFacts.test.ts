@@ -2719,7 +2719,7 @@ describe("External Status Page Monitor", () => {
 
   it("lists the criteria filters and conditions the form offers", () => {
     const rows: Array<Array<string>> = tableRows(
-      section(page, "## Monitoring Criteria"),
+      section(page, "## Criteria"),
     );
 
     expect(sorted(firstCells(rows))).toEqual(

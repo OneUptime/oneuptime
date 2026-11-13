@@ -45,7 +45,7 @@ En cualquier otro lugar, OneUptime rechaza una clave de navegador, por ejemplo p
 
 ## Antes de empezar
 
-- **Un rol que gestione claves de ingesta.** Project Owner o Project Admin, o un rol personalizado con el permiso Create Telemetry Ingestion Key. Los roles de Telemetry no incluyen las claves de ingesta.
+- **Un rol que gestione claves de ingesta.** Project Owner o Project Admin, o un rol personalizado con el permiso Create Ingestion Key. Los roles de Telemetry no incluyen las claves de ingesta.
 - **En OneUptime Cloud, un método de pago.** La telemetría se factura según el uso, así que un proyecto en el plan Free necesita un método de pago antes de poder crear una clave. El cuadro de creación termina entonces con un paso **Facturación** que muestra los precios.
 
 ## Crear una clave de ingesta

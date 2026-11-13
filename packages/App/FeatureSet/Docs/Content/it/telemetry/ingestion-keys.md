@@ -45,7 +45,7 @@ Ovunque altrove OneUptime rifiuta una chiave Browser, ad esempio su gRPC e MQTT,
 
 ## Prima di iniziare
 
-- **Un ruolo che gestisce le chiavi di acquisizione.** Project Owner o Project Admin, oppure un ruolo personalizzato con il permesso Create Telemetry Ingestion Key. I ruoli Telemetry non includono le chiavi di acquisizione.
+- **Un ruolo che gestisce le chiavi di acquisizione.** Project Owner o Project Admin, oppure un ruolo personalizzato con il permesso Create Ingestion Key. I ruoli Telemetry non includono le chiavi di acquisizione.
 - **Su OneUptime Cloud, un metodo di pagamento.** La telemetria si paga in base all'uso, quindi un progetto sul piano Free ha bisogno di un metodo di pagamento prima di poter creare una chiave. La finestra di creazione termina allora con un passaggio **Fatturazione** che mostra i prezzi.
 
 ## Creare una chiave di acquisizione
