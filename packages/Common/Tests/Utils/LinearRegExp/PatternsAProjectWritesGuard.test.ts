@@ -200,6 +200,12 @@ const LISTED: ReadonlyArray<ListedFile> = [
  */
 const LISTED_PATTERN_ARGUMENTS: ReadonlyArray<ListedFile> = [
   {
+    file: "packages/Common/Server/Utils/AI/Eval/Benchmark/BenchmarkScorer.ts",
+    count: 1,
+    builtFrom:
+      "the citation marker pattern InvestigationReport writes (getCitationMarkerRegex), a pattern literal",
+  },
+  {
     file: "packages/Common/Server/Utils/CodeRepository/ProductionReview/ProductionReviewDataImpact.ts",
     count: 1,
     builtFrom:

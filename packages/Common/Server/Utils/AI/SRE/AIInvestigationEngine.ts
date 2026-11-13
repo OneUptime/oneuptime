@@ -108,9 +108,11 @@ import { getReportLanguageInstructions } from "./InvestigationReportLanguageProm
  */
 /*
  * Room for a full report. An answer that still reaches the limit is
- * finished with continuation calls, never published half-written.
+ * finished with continuation calls, never published half-written. The
+ * benchmark (Eval/Benchmark) gives the model under test the same room, and
+ * a recording keeps the value a run had, so a replay does too.
  */
-const MAX_OUTPUT_TOKENS: number = 4096;
+export const INVESTIGATION_MAX_OUTPUT_TOKENS: number = 4096;
 
 /*
  * Conditional recommendation persistence is idempotent, so transient
@@ -960,7 +962,7 @@ export default class AIInvestigationEngine {
       const runLimits: AIAgentRunLimits =
         request.runLimits ?? (await AIRunLimitsReader.read({ projectId }));
       const maxOutputTokens: number =
-        request.maxOutputTokens ?? MAX_OUTPUT_TOKENS;
+        request.maxOutputTokens ?? INVESTIGATION_MAX_OUTPUT_TOKENS;
       /*
        * The chat-facing AI-meta tools are hidden from the investigator:
        * "the latest investigation" for this subject IS this in-flight
