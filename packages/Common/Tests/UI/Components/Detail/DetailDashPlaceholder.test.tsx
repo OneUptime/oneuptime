@@ -289,7 +289,7 @@ describe("a detail field whose own element is a bare dash", () => {
               key: "value",
               title: "Invited By",
               fieldType: FieldType.Element,
-              placeholder: data.placeholder,
+              ...(data.placeholder ? { placeholder: data.placeholder } : {}),
               getElement: (): React.ReactElement => {
                 return data.element as React.ReactElement;
               },
