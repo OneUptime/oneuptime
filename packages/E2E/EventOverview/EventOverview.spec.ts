@@ -5487,6 +5487,8 @@ test.describe("one AI card: the investigation and the conversation", () => {
         content:
           "What is the most likely root cause of this incident? Investigate it and cite the evidence.",
         permissionMode: "AutoRun",
+        // The language the Dashboard is read in (#7247).
+        language: "en",
       });
 
       // While it is written: a status line, Stop instead of Send.

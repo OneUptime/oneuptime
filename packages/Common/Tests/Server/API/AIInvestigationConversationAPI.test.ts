@@ -315,6 +315,8 @@ describe.each(["incident", "alert"] as const)(
       expect(args["permissionMode"]).toBe("AskForApproval");
       expect(args["subject"]).toEqual({ type: subjectType, id: SUBJECT_ID });
       expect((args["props"] as JSONObject)["isMultiTenantRequest"]).toBe(false);
+      // No language sent: the asker's saved language decides (#7247).
+      expect(args["language"]).toBeUndefined();
       expect(payload()["assistantMessageId"]).toBe(MESSAGE_ID.toString());
       expect(payload()["aiRunId"]).toBe(RUN_ID.toString());
     });
@@ -354,7 +356,75 @@ describe.each(["incident", "alert"] as const)(
         { toolCallId: "call-1", approved: true },
       ]);
       expect(args["approved"]).toBeUndefined();
+      // No language sent: the decider's saved language decides (#7247).
+      expect(args["language"]).toBeUndefined();
     });
+
+    /*
+     * The language the person reads the Dashboard in reaches the turn, so a
+     * monitor the thread sets up names its criteria in it (#7247) - with
+     * the question and again with the approval, the turn that makes it.
+     * Only a Dashboard locale code goes through.
+     */
+    test.each([
+      { sent: "de", reaches: "de" },
+      { sent: "ar", reaches: "ar" },
+      { sent: "zh-TW", reaches: "zh-TW" },
+      { sent: "de-AT", reaches: undefined },
+      { sent: "xx", reaches: undefined },
+      { sent: "<script>", reaches: undefined },
+      { sent: 42, reaches: undefined },
+      { sent: undefined, reaches: undefined },
+    ])(
+      "the question carries the language $sent as $reaches",
+      async ({ sent, reaches }: { sent: unknown; reaches: unknown }) => {
+        const body: JSONObject = bodyFor(
+          "/ai-investigation/conversation/send-message",
+          subjectType,
+        );
+        if (sent !== undefined) {
+          body["language"] = sent as JSONObject;
+        }
+
+        const next: jest.Mock = await call(
+          "/ai-investigation/conversation/send-message",
+          body,
+        );
+
+        expect(next).not.toHaveBeenCalled();
+        const args: JSONObject = (
+          InvestigationThreadService.sendMessage as unknown as jest.SpyInstance
+        ).mock.calls[0]![0] as JSONObject;
+        expect(args["language"]).toBe(reaches);
+      },
+    );
+
+    test.each([
+      { sent: "fa", reaches: "fa" },
+      { sent: "ja", reaches: "ja" },
+      { sent: "Answer in pirate", reaches: undefined },
+      { sent: null, reaches: undefined },
+    ])(
+      "the approval carries the language $sent as $reaches",
+      async ({ sent, reaches }: { sent: unknown; reaches: unknown }) => {
+        const next: jest.Mock = await call(
+          "/ai-investigation/conversation/respond-to-approval",
+          {
+            subjectType,
+            subjectId: SUBJECT_ID.toString(),
+            assistantMessageId: MESSAGE_ID.toString(),
+            decisions: [{ toolCallId: "call-1", approved: true }],
+            language: sent as JSONObject,
+          },
+        );
+
+        expect(next).not.toHaveBeenCalled();
+        const args: JSONObject = (
+          InvestigationThreadService.respondToApproval as unknown as jest.SpyInstance
+        ).mock.calls[0]![0] as JSONObject;
+        expect(args["language"]).toBe(reaches);
+      },
+    );
 
     test("refuses an approval without a valid message id", async () => {
       const next: jest.Mock = await call(
