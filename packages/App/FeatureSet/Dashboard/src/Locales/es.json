@@ -3869,7 +3869,6 @@
   "Okta OIDC": "Okta OIDC",
   "Okta SCIM": "Okta SCIM",
   "Okta SCIM for Status Page": "Okta SCIM para la página de estado",
-  "On Call": "Guardia",
   "On call schedules which will be executed when incident is triggered.": "Programaciones de guardia que se ejecutarán cuando se active un incidente.",
   "On the Overview page, select which Twilio configuration to use for this incoming call policy.": "En la página de vista general, selecciona qué configuración de Twilio usar para esta política de llamadas entrantes.",
   "On-Call & Ownership": "Guardia y propiedad",

@@ -3869,7 +3869,6 @@
   "Okta OIDC": "Okta OIDC",
   "Okta SCIM": "Okta SCIM",
   "Okta SCIM for Status Page": "Okta SCIM para Página de status",
-  "On Call": "Plantão",
   "On call schedules which will be executed when incident is triggered.": "Agendamentos de Plantão que serão executados quando um incidente for acionado.",
   "On the Overview page, select which Twilio configuration to use for this incoming call policy.": "Na página de Visão geral, selecione qual configuração do Twilio usar para esta política de chamadas recebidas.",
   "On-Call & Ownership": "Plantão e propriedade",

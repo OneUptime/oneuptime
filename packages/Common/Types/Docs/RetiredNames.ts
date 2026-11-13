@@ -58,8 +58,8 @@ export const RETIRED_NAMES: ReadonlyArray<RetiredName> = [
     name: "On Call",
     nowCalled: "On-Call",
     glossaryTerm: GlossaryTerm.OnCallPolicy,
-    // "On Call Policy", "User On Call Time"; never "whoever is on call".
-    pattern: /\bOn Call (?!Duty\b)(?=[A-Z])/,
+    // "On Call Policy", "User On Call Time", a heading of its own; never "whoever is on call".
+    pattern: /\bOn Call (?!Duty\b)(?=[A-Z])|^On Call$/,
     example: "User On Call Time",
     retiredIn: "#6817 part 1",
   },

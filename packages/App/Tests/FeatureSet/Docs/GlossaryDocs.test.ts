@@ -48,6 +48,11 @@ import GlossaryTerm, {
   ALL_GLOSSARY_TERMS,
 } from "Common/Types/Docs/GlossaryTerm";
 import Project from "Common/Models/DatabaseModels/Project";
+import {
+  findRetiredNames,
+  RETIRED_NAMES,
+  RetiredName,
+} from "Common/Types/Docs/RetiredNames";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -216,6 +221,15 @@ const MENU_PRODUCTS: Record<string, GlossaryTerm> = {
   teamsTitle: GlossaryTerm.Team,
   projectSettingsTitle: GlossaryTerm.Settings,
 };
+
+// A name #6817 retired: one of RetiredNames' names, or a name its patterns find.
+function isRetiredName(name: string): boolean {
+  return (
+    RETIRED_NAMES.some((retired: RetiredName): boolean => {
+      return retired.name === name;
+    }) || findRetiredNames(name).length > 0
+  );
+}
 
 /*
  * The overview pages that keep a list of their own words (#6818 keeps
@@ -491,10 +505,15 @@ describe("the Glossary, in English", () => {
 
     for (const block of TERMS) {
       for (const name of boldNamesOf(block.names)) {
+        /*
+         * A name #6817 retired (RetiredNames) was the product's own, and is
+         * kept here so people who learned it find the term, though the
+         * product no longer draws it.
+         */
         expect({
           term: block.term,
           name: name,
-          used: productNames.has(name),
+          used: productNames.has(name) || isRetiredName(name),
         }).toEqual({ term: block.term, name: name, used: true });
       }
 
@@ -846,6 +865,12 @@ describe.each(LANGUAGES)("the Glossary in %s", (language: string) => {
        * is the term itself in this language is no other name.
        */
       const expected: Array<string | null> = [];
+      /*
+       * A name #6817 retired has no Dashboard word any more, so its
+       * translation is the translator's own, and it may be said as another
+       * name here: retired names may add up to fewer names, or to none.
+       */
+      let foldable: number = 0;
 
       for (const name of boldNamesOf(english.names)) {
         const docsTitle: string | null = (DocsNav as Array<NavGroup>)
@@ -860,6 +885,11 @@ describe.each(LANGUAGES)("the Glossary in %s", (language: string) => {
         const drawn: string | null = isActionLabel(name)
           ? drawnActionLabel(language, name)
           : docsTitle;
+
+        if (drawn === null && isRetiredName(name)) {
+          foldable++;
+          continue;
+        }
 
         if (
           drawn !== null &&
@@ -876,9 +906,14 @@ describe.each(LANGUAGES)("the Glossary in %s", (language: string) => {
         }
       }
 
-      if (bold.length !== expected.length) {
+      if (
+        bold.length < expected.length ||
+        bold.length > expected.length + foldable
+      ) {
         problems.push(
-          `${english.term}: ${bold.length} names, ${expected.length} expected`,
+          `${english.term}: ${bold.length} names, ${expected.length} expected${
+            foldable ? ` and up to ${foldable} retired` : ""
+          }`,
         );
       }
 

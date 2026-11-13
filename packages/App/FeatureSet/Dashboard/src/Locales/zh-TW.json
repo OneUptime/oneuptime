@@ -3869,7 +3869,6 @@
   "Okta OIDC": "Okta OIDC",
   "Okta SCIM": "Okta SCIM",
   "Okta SCIM for Status Page": "狀態頁面的 Okta SCIM",
-  "On Call": "待命",
   "On call schedules which will be executed when incident is triggered.": "事件觸發時將執行的待命排程。",
   "On the Overview page, select which Twilio configuration to use for this incoming call policy.": "在概覽頁面上，選取此來電策略要使用的 Twilio 設定。",
   "On-Call & Ownership": "待命與擁有權",

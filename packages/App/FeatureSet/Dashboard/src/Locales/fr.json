@@ -3869,7 +3869,6 @@
   "Okta OIDC": "Okta OIDC",
   "Okta SCIM": "Okta SCIM",
   "Okta SCIM for Status Page": "Okta SCIM pour la page de statut",
-  "On Call": "Astreinte",
   "On call schedules which will be executed when incident is triggered.": "Plannings d'astreinte qui seront exécutés lorsqu'un incident est déclenché.",
   "On the Overview page, select which Twilio configuration to use for this incoming call policy.": "Sur la page Vue d'ensemble, sélectionnez la configuration Twilio à utiliser pour cette politique d'appel entrant.",
   "On-Call & Ownership": "Astreinte et propriété",

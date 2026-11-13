@@ -3869,7 +3869,6 @@
   "Okta OIDC": "Okta OIDC",
   "Okta SCIM": "Okta SCIM",
   "Okta SCIM for Status Page": "Okta SCIM لصفحة الحالة",
-  "On Call": "المناوبة",
   "On call schedules which will be executed when incident is triggered.": "جداول المناوبة التي ستُنفَّذ عند إطلاق حادثة.",
   "On the Overview page, select which Twilio configuration to use for this incoming call policy.": "في صفحة «نظرة عامة»، اختر تهيئة Twilio المراد استخدامها لسياسة المكالمات الواردة هذه.",
   "On-Call & Ownership": "المناوبة والملكية",

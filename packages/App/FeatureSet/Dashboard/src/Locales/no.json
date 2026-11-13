@@ -3869,7 +3869,6 @@
   "Okta OIDC": "Okta OIDC",
   "Okta SCIM": "Okta SCIM",
   "Okta SCIM for Status Page": "Okta SCIM for statusside",
-  "On Call": "Vakt",
   "On call schedules which will be executed when incident is triggered.": "Vakttidsplaner som vil bli utført når en hendelse utløses.",
   "On the Overview page, select which Twilio configuration to use for this incoming call policy.": "På oversiktssiden velger du hvilken Twilio-konfigurasjon som skal brukes for denne retningslinjen for innkommende anrop.",
   "On-Call & Ownership": "Vakt og eierskap",

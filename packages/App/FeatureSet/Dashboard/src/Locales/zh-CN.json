@@ -3869,7 +3869,6 @@
   "Okta OIDC": "Okta OIDC",
   "Okta SCIM": "Okta SCIM",
   "Okta SCIM for Status Page": "用于状态页的 Okta SCIM",
-  "On Call": "值班",
   "On call schedules which will be executed when incident is triggered.": "在触发事件时执行的值班排班。",
   "On the Overview page, select which Twilio configuration to use for this incoming call policy.": "在概览页面上，选择此来电策略要使用的 Twilio 配置。",
   "On-Call & Ownership": "值班与归属",

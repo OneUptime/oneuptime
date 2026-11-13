@@ -3869,7 +3869,6 @@
   "Okta OIDC": "Okta OIDC",
   "Okta SCIM": "Okta SCIM",
   "Okta SCIM for Status Page": "Okta SCIM برای صفحه وضعیت",
-  "On Call": "آنکال",
   "On call schedules which will be executed when incident is triggered.": "زمان‌بندی‌های آنکالی که هنگام ایجاد یک حادثه اجرا می‌شوند.",
   "On the Overview page, select which Twilio configuration to use for this incoming call policy.": "در صفحه نمای کلی انتخاب کنید برای این سیاست تماس ورودی از کدام پیکربندی Twilio استفاده شود.",
   "On-Call & Ownership": "آنکال و مالکیت",

@@ -3869,7 +3869,6 @@
   "Okta OIDC": "Okta OIDC",
   "Okta SCIM": "Okta SCIM",
   "Okta SCIM for Status Page": "Okta SCIM для страницы статуса",
-  "On Call": "Дежурство",
   "On call schedules which will be executed when incident is triggered.": "Расписания дежурств, которые будут выполнены при возникновении инцидента.",
   "On the Overview page, select which Twilio configuration to use for this incoming call policy.": "На странице обзора выберите, какую конфигурацию Twilio использовать для этой политики входящих вызовов.",
   "On-Call & Ownership": "Дежурство и владение",

@@ -3869,7 +3869,6 @@
   "Okta OIDC": "Okta OIDC",
   "Okta SCIM": "Okta SCIM",
   "Okta SCIM for Status Page": "स्थिति पृष्ठ के लिए Okta SCIM",
-  "On Call": "ऑन-कॉल",
   "On call schedules which will be executed when incident is triggered.": "ऑन-कॉल अनुसूचियां जो घटना ट्रिगर होने पर निष्पादित की जाएंगी।",
   "On the Overview page, select which Twilio configuration to use for this incoming call policy.": "अवलोकन पृष्ठ पर, इस इनकमिंग कॉल नीति के लिए कौन-सा Twilio कॉन्फ़िगरेशन उपयोग करना है, चुनें।",
   "On-Call & Ownership": "ऑन-कॉल और स्वामित्व",

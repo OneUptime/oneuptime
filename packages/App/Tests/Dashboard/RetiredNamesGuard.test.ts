@@ -266,6 +266,8 @@ describe("the retired names are told apart from the ordinary words they look lik
     ["On Call Duty Policy Name", "On-Call Duty"],
     ["User On Call Time", "On Call"],
     ["On Call Executions", "On Call"],
+    // A heading of its own, as an email rollup's category was.
+    ["On Call", "On Call"],
     ["Edit On-Call Policy Schedule", "On-Call Policy Schedule"],
     [
       "See [Personal On-Call Rules](/docs/notifications/on-call-rules)",

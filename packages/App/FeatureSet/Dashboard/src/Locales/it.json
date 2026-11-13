@@ -3869,7 +3869,6 @@
   "Okta OIDC": "Okta OIDC",
   "Okta SCIM": "Okta SCIM",
   "Okta SCIM for Status Page": "Okta SCIM per la pagina di stato",
-  "On Call": "Reperibilità",
   "On call schedules which will be executed when incident is triggered.": "Pianificazioni di reperibilità che verranno eseguite quando viene attivato un incidente.",
   "On the Overview page, select which Twilio configuration to use for this incoming call policy.": "Nella pagina Panoramica, seleziona quale configurazione Twilio utilizzare per questo criterio di chiamata in entrata.",
   "On-Call & Ownership": "Reperibilità e proprietà",

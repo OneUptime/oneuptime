@@ -3869,7 +3869,6 @@
   "Okta OIDC": "Okta OIDC",
   "Okta SCIM": "Okta SCIM",
   "Okta SCIM for Status Page": "Okta SCIM voor Statuspagina",
-  "On Call": "Piket",
   "On call schedules which will be executed when incident is triggered.": "Bereikbaarheidsschema's die worden uitgevoerd wanneer een incident wordt geactiveerd.",
   "On the Overview page, select which Twilio configuration to use for this incoming call policy.": "Selecteer op de Overzichtspagina welke Twilio-configuratie u wilt gebruiken voor dit beleid voor inkomende oproepen.",
   "On-Call & Ownership": "Bereikbaarheid en eigenaarschap",
