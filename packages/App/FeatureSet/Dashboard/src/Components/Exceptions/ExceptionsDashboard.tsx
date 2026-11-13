@@ -17,6 +17,7 @@ import { APP_API_URL } from "Common/UI/Config";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import DirectionArrow from "Common/UI/Components/DirectionArrow/DirectionArrow";
 import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import OneUptimeDate from "Common/Types/Date";
@@ -856,9 +857,8 @@ const SectionHeader: FunctionComponent<SectionHeaderProps> = (
           to={props.actionTo}
         >
           <span>
-            {translator.translateTemplate("{{action}} →", {
-              action: translator.translateText(props.actionLabel) as string,
-            })}
+            {translator.translateText(props.actionLabel)}{" "}
+            <DirectionArrow isDecorative={true} />
           </span>
         </AppLink>
       )}

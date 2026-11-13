@@ -1,5 +1,6 @@
 import { ReplayTimelineEventKind } from "../ReplayTimelineTypes";
 import { PluralTemplate, Translator } from "Common/Types/Translator";
+import { getArrowOn } from "Common/Types/DirectionArrow";
 import {
   ReplayBackendSignalKind,
   ReplayBackendSignalsSlot,
@@ -76,18 +77,29 @@ export interface ReplayRailGlyph {
 }
 
 /*
+ * A kind's glyph and the noun a screen reader says for it. A null label is
+ * the arrow that points on, the way the line reads (getArrowOn): a request
+ * goes out, and on a page read from the right it points left, as an icon
+ * that points along the line turns round there.
+ */
+interface ReplayKindGlyph {
+  label: string | null;
+  noun: string;
+}
+
+/*
  * The one marker with a glyph of its own: a recording pause is where the
  * footage stops and starts again, which a viewer scanning the merged
  * stream should not have to read every title to find.
  */
-const IDLE_PAUSE_GLYPH: { label: string; noun: string } = {
+const IDLE_PAUSE_GLYPH: ReplayKindGlyph = {
   label: "‖",
   noun: "recording pause",
 };
 
-const KIND_GLYPHS: Record<ReplaySignalKind, { label: string; noun: string }> = {
+const KIND_GLYPHS: Record<ReplaySignalKind, ReplayKindGlyph> = {
   console: { label: "·", noun: "console" },
-  network: { label: "→", noun: "request" },
+  network: { label: null, noun: "request" },
   navigation: { label: "↗", noun: "navigation" },
   interaction: { label: "○", noun: "click" },
   frustration: { label: "z", noun: "frustration" },
@@ -139,8 +151,12 @@ export function getRailStatusWords(signal: ReplaySignal): string | null {
   return signal.severity === "error" ? "error" : "warning";
 }
 
-export function glyphForSignal(signal: ReplaySignal): ReplayRailGlyph {
-  const glyph: { label: string; noun: string } =
+// A signal's glyph, for a rail read in `language`.
+export function glyphForSignal(
+  signal: ReplaySignal,
+  language?: string | undefined,
+): ReplayRailGlyph {
+  const glyph: ReplayKindGlyph =
     signal.kind === "marker" && signal.detail["markerKind"] === "idle-pause"
       ? IDLE_PAUSE_GLYPH
       : KIND_GLYPHS[signal.kind] || KIND_GLYPHS.marker;
@@ -162,7 +178,7 @@ export function glyphForSignal(signal: ReplaySignal): ReplayRailGlyph {
   const statusWords: string | null = getRailStatusWords(signal);
 
   return {
-    label: glyph.label,
+    label: glyph.label ?? getArrowOn(language),
     className: className,
     description: statusWords ? `${glyph.noun} ${statusWords}` : glyph.noun,
   };
