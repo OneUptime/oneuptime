@@ -998,6 +998,9 @@ interface ShownImage {
 
 const IMAGE_TAG: RegExp = /<img\b([^>]*)>/g;
 
+// A link's opening tag: never past the next "<", so it reads in linear time.
+const LINK_TAG: RegExp = /<a\b([^<>]*)>/g;
+
 function attributeOf(tag: string, name: string): string | null {
   const match: RegExpMatchArray | null = tag.match(
     new RegExp(`\\s${name}="([^"]*)"`),
@@ -1500,5 +1503,139 @@ describe("the real MarkdownViewer shows a synthetic monitor's screenshot, in a p
     expect(textOf("the issue's description in safe mode")).toBe(
       "Monitor is down - Timeout 30000ms exceeded",
     );
+  });
+});
+
+/*
+ * ISSUE #7229 IN THE DASHBOARD: A LINK ACROSS THE START OF AN OVER-LONG
+ * LINE'S MIDDLE.
+ *
+ * The viewer holds back the middle of an over-long line as the emails do
+ * (Utils/Markdown/OverLongText). A link, an image or a link reference
+ * definition whose address is longer than the line's kept start, with a
+ * title that takes the line over 64 KB, was held back in one piece from
+ * the address to the title, and remark read no link. Now the rest of the
+ * address and of the title are held back apart, and the viewer shows the
+ * link with its address and its title - in a process that compiles regular
+ * expressions unoptimized, as a browser tab that has run a while does. The
+ * same at the middle's other end: a link whose address runs into the
+ * line's kept end keeps its "[Run](" in view.
+ */
+describe("the real MarkdownViewer shows a link across either end of an over-long line's middle (#7229)", () => {
+  // The issue's title: 68 KB, so each row is a line of about 70 KB.
+  const TITLE: string = "Checkout failed. ".repeat(4000);
+  // No run of base64 in it: it comes back as it is, not compacted.
+  const ADDRESS: string = `https://example.com/${"a-".repeat(1000)}run`;
+
+  const cases: Array<RenderCase> = [
+    { name: "a link", text: `[Run](${ADDRESS} "${TITLE}")` },
+    { name: "an image", text: `![Shot](${ADDRESS}.png "${TITLE}")` },
+    {
+      name: "a reference",
+      text: `[Run][s] and [again][s]\n\n[s]: ${ADDRESS} "${TITLE}"`,
+    },
+    {
+      name: "the 500-character row",
+      text: `[Run](https://example.com/${"a-".repeat(250)} "${TITLE}")`,
+    },
+    {
+      name: "a bare address",
+      text: `See ${ADDRESS}. Then ${"lorem ipsum ".repeat(6000)}`,
+    },
+    // The other end of the middle: a long address at the end of a long line.
+    {
+      name: "a link at the end",
+      text: `${"lorem ipsum ".repeat(6000)}see [Run](${ADDRESS}) now`,
+    },
+    {
+      name: "an image at the end",
+      text: `${"lorem ipsum ".repeat(6000)}![Shot](${ADDRESS}.png "Home page")`,
+    },
+  ];
+
+  let report: RenderReport;
+
+  beforeAll(() => {
+    report = renderWithRealViewer(cases);
+  }, 600000);
+
+  const htmlOf: (name: string) => string = (name: string): string => {
+    expect({ name: name, ok: report.rendered[name]!.ok }).toEqual({
+      name: name,
+      ok: true,
+    });
+
+    return report.rendered[name]!.html!;
+  };
+
+  const titlesIn: (html: string) => Array<string | null> = (
+    html: string,
+  ): Array<string | null> => {
+    return Array.from(html.matchAll(LINK_TAG)).map(
+      (link: RegExpMatchArray): string | null => {
+        return attributeOf(link[1]!, "title");
+      },
+    );
+  };
+
+  test("the cases are lines over 64 KB", () => {
+    for (const item of cases) {
+      expect(item.text.length).toBeGreaterThan(OVER_LONG_LINE_LENGTH);
+    }
+  });
+
+  test("a link is shown with its address and its title", () => {
+    const html: string = htmlOf("a link");
+
+    expect(hrefsIn(html)).toEqual([ADDRESS]);
+    expect(titlesIn(html)).toEqual([TITLE]);
+    expect(html).not.toContain("[Run](");
+    expect(readAsMarkdown(html)).toBe(true);
+  });
+
+  test("an image is shown with its address and its title", () => {
+    const html: string = htmlOf("an image");
+
+    expect(imagesIn(html)).toEqual([
+      { src: `${ADDRESS}.png`, alt: "Shot", title: TITLE },
+    ]);
+    expect(html).not.toContain("![Shot](");
+  });
+
+  test("a reference links to its definition's address, with the title", () => {
+    const html: string = htmlOf("a reference");
+
+    expect(hrefsIn(html)).toEqual([ADDRESS, ADDRESS]);
+    expect(titlesIn(html)).toEqual([TITLE, TITLE]);
+    expect(html).not.toContain("[s]:");
+  });
+
+  test("the 500-character row is shown as it always was", () => {
+    const html: string = htmlOf("the 500-character row");
+
+    expect(hrefsIn(html)).toEqual([`https://example.com/${"a-".repeat(250)}`]);
+    expect(titlesIn(html)).toEqual([TITLE]);
+  });
+
+  test("a bare address links to itself alone, not to the text after it", () => {
+    const html: string = htmlOf("a bare address");
+
+    expect(hrefsIn(html)).toEqual([ADDRESS]);
+  });
+
+  test("a link whose address runs into the line's kept end is shown with its whole address", () => {
+    const html: string = htmlOf("a link at the end");
+
+    expect(hrefsIn(html)).toEqual([ADDRESS]);
+    expect(html).not.toContain("[Run](");
+  });
+
+  test("an image whose address runs into the line's kept end is shown, with its title", () => {
+    const html: string = htmlOf("an image at the end");
+
+    expect(imagesIn(html)).toEqual([
+      { src: `${ADDRESS}.png`, alt: "Shot", title: "Home page" },
+    ]);
+    expect(html).not.toContain("![Shot](");
   });
 });

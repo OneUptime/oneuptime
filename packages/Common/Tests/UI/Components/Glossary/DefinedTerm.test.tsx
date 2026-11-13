@@ -35,6 +35,10 @@ import DefinedTerm, {
   DEFINED_TERM_UNAVAILABLE_TEXT,
 } from "../../../../UI/Components/Glossary/DefinedTerm";
 import { clearGlossaryReads } from "../../../../UI/Utils/Glossary";
+import {
+  PRODUCT_TEXT_CLASS_NAME,
+  withProductText,
+} from "../../../../UI/Utils/ProductText";
 
 /*
  * A word with its definition (#6819): the word is a button with a dotted
@@ -665,13 +669,48 @@ describe("what the popover says", () => {
     const box: HTMLElement = popover() as HTMLElement;
 
     expect(box.closest(".uppercase")).not.toBeNull();
-    expect(box.className).toBe(DEFINED_TERM_POPOVER_CLASS_NAME);
+    // Its own type, and the mark of the product's words, which draws nothing.
+    expect(box.className).toBe(
+      withProductText(DEFINED_TERM_POPOVER_CLASS_NAME),
+    );
     expect(box).toHaveClass(
       "text-sm",
       "font-normal",
       "normal-case",
       "tracking-normal",
     );
+  });
+});
+
+/*
+ * A recording of the first-run pages masks every word on the page but the
+ * product's own (Utils/ProductText). A definition is the product's own
+ * words wherever it is drawn - beside its word, after a field's title
+ * (DefinedTermInFieldLabel.test.tsx) or after a heading
+ * (DefinedTermInCardTitle.test.tsx) - so its popover carries the mark
+ * itself. The words around it, its word among them, are the page's to mark.
+ */
+describe("in a recording of the page", () => {
+  test("the definition is recorded as written, and the line around it is left to the page", async () => {
+    render(
+      <p data-testid="line">
+        Each check is held to its{" "}
+        <DefinedTerm term={GlossaryTerm.Criteria}>criteria</DefinedTerm>.
+      </p>,
+    );
+
+    fireEvent.mouseEnter(word());
+
+    const definition: HTMLElement = await definitionShown();
+    const box: HTMLElement = popover() as HTMLElement;
+    const marked: string = `.${PRODUCT_TEXT_CLASS_NAME}`;
+
+    expect(definition.closest(marked)).toBe(box);
+    expect(
+      screen.getByTestId(DEFINED_TERM_READ_MORE_TEST_ID).closest(marked),
+    ).toBe(box);
+    expect(screen.getByTestId("line").closest(marked)).toBeNull();
+    expect(word().closest(marked)).toBeNull();
   });
 });
 

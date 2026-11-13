@@ -29,8 +29,8 @@ import {
  *     out on each side.
  *
  * Nothing here runs a regular expression over a value: values can be
- * megabytes long (AGENTS.md, "Megabyte-long values"). Pure: no DOM, no
- * server.
+ * megabytes long (Docs/notifications/README.md, "Megabyte-long values"). Pure:
+ * no DOM, no server.
  */
 
 // Characters of text an entry keeps of a value.

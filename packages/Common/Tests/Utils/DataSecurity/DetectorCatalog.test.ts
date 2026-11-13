@@ -35,10 +35,10 @@ import { SyntaxNode } from "../../../Utils/LinearRegExp/Syntax";
  * gets these rules checked without writing a line: every type found by
  * value has a detector and every detector a type; every pattern is global,
  * bounded (no +, * or {n,}, so V8's backtracking stays shallow on
- * megabyte-long values, AGENTS.md "Megabyte-long values"), refers back to
- * no group but where it is allowed here, stands apart from longer tokens,
- * and says how sure it is; and every catalog entry is described, valid and
- * findable by the names it hints at.
+ * megabyte-long values: Docs/notifications/README.md, "Megabyte-long values"),
+ * refers back to no group but where it is allowed here, stands apart from
+ * longer tokens, and says how sure it is; and every catalog entry is described,
+ * valid and findable by the names it hints at.
  */
 
 const BRACE_QUANTIFIER: RegExp = /^\{([0-9]+)(,([0-9]*))?\}/;

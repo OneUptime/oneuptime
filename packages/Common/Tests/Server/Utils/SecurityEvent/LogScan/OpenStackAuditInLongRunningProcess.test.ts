@@ -7,11 +7,12 @@ import path from "path";
  *
  * An API call's path, a security group's fields and an image's name are text anyone able to reach
  * an API can write, and the log scan reads them for every project. V8 compiles regular expressions
- * unoptimized once a process has been up a while, and they can then run out of stack (AGENTS.md),
- * so this runs in a node process started with --no-regexp-optimization, as
- * OpenStackLogsInLongRunningProcess.test.ts does for the rest of what reads a cloud's lines. That
- * one holds the parser to lines far over the longest it reads. This holds it to lines just under:
- * MAX_JSON_LINE_LENGTH is where the parser stops reading, so that is where its work is greatest.
+ * unoptimized once a process has been up a while, and they can then run out of stack
+ * (Docs/notifications/README.md, "Megabyte-long values"), so this runs in a node process started
+ * with --no-regexp-optimization, as OpenStackLogsInLongRunningProcess.test.ts does for the rest of
+ * what reads a cloud's lines. That one holds the parser to lines far over the longest it reads.
+ * This holds it to lines just under: MAX_JSON_LINE_LENGTH is where the parser stops reading, so
+ * that is where its work is greatest.
  *
  * Only booleans and times come back, so a failure never prints what it read.
  */
