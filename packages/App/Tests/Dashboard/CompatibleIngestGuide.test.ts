@@ -13,6 +13,7 @@ import {
   getCompatibleIngestGuide,
   getCompatibleIngestGuides,
   getCompatibleIngestSnippets,
+  getFluentBitHost,
   getHostAndPort,
   getSentryDsn,
   getUndashedKey,
@@ -273,6 +274,25 @@ describe("each tool's own configuration", () => {
     expect(local).toMatch(/Host\s+localhost\n/);
     expect(local).toMatch(/Port\s+3000/);
     expect(local).toMatch(/Tls\s+Off/);
+  });
+
+  test("an IPv6 host: Fluent Bit gets the bare address, which it can resolve, and Datadog keeps the brackets host:port needs", () => {
+    const ipv6: CompatibleIngestEndpoint = {
+      protocol: "https",
+      host: "[::1]:8443",
+      key: KEY,
+    };
+
+    // Fluent Bit 3.2.10 on "[::1]": "Misformatted domain name", nothing sent.
+    expect(codeOf(CompatibleIngestMethod.Loki, ipv6)).toMatch(
+      /Host\s+::1\n\s+Port\s+8443\n/,
+    );
+    expect(getFluentBitHost(ipv6)).toBe("::1");
+    expect(getFluentBitHost(CLOUD)).toBe("oneuptime.com");
+    expect(getFluentBitHost(LOCAL)).toBe("localhost");
+    expect(codeOf(CompatibleIngestMethod.Datadog, ipv6)).toContain(
+      "logs_dd_url: [::1]:8443",
+    );
   });
 
   test("Splunk HEC: the Docker driver gets the bare origin, as it adds the path itself", () => {
