@@ -1593,7 +1593,19 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
                         }
                       }}
                     >
-                      <title>{nodeView.tooltip}</title>
+                      {/*
+                       * A device whose bound monitor nothing checks says
+                       * why on a line of its own, in the reader's language
+                       * (issue #7346), without opening the drawer.
+                       */}
+                      <title>
+                        {nodeView.statusNote
+                          ? [
+                              nodeView.tooltip,
+                              translator.translateText(nodeView.statusNote),
+                            ].join("\n")
+                          : nodeView.tooltip}
+                      </title>
 
                       {/*
                        * The attention halo. Only ever drawn while a health

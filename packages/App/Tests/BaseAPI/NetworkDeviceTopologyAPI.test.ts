@@ -1997,3 +1997,230 @@ describe("POST /network-device/topology - a hand-drawn link takes its monitor's 
     expect(edgeByName("Uplink")["monitorState"]).toBeUndefined();
   });
 });
+
+/*
+ * Issue #7346: a monitor-backed device takes its status from its bound
+ * monitor, and only while that monitor is checked - turned off or archived,
+ * the server leaves the device's stamp empty, so the map draws it "unknown".
+ * The device pages say why ("Monitoring off", "Monitor archived") and open
+ * the monitor; the map's drawer said "Unknown" and nothing else. So each
+ * device node carries why nothing checks its bound monitor, and which
+ * monitor that is - and a node whose monitor is checked carries nothing.
+ */
+describe("POST /network-device/topology - a device node says why nothing checks its bound monitor", () => {
+  beforeEach(() => {
+    resetTopologyMocks();
+    deviceRoleService.findBy.mockResolvedValue([] as never);
+  });
+
+  function makeBoundDevice(data: {
+    name: string;
+    monitoringMethod?: NetworkDeviceMonitoringMethod | undefined;
+    monitorId?: ObjectID | undefined;
+    disableActiveMonitoring?: boolean | undefined;
+    isArchived?: boolean | undefined;
+    // Read without the monitor at all - an older reader.
+    withoutMonitor?: boolean | undefined;
+  }): NetworkDevice {
+    const device: NetworkDevice = makeDevice(data.name);
+    device.monitoringMethod =
+      data.monitoringMethod || NetworkDeviceMonitoringMethod.Monitor;
+
+    if (data.monitorId) {
+      device.monitorId = data.monitorId;
+    }
+
+    if (!data.withoutMonitor) {
+      const monitor: Monitor = new Monitor(data.monitorId);
+
+      if (typeof data.disableActiveMonitoring === "boolean") {
+        monitor.disableActiveMonitoring = data.disableActiveMonitoring;
+      }
+
+      if (typeof data.isArchived === "boolean") {
+        monitor.isArchived = data.isArchived;
+      }
+
+      device.monitor = monitor;
+    }
+
+    return device;
+  }
+
+  function nodeByName(name: string): JSONObject {
+    const node: JSONObject | undefined = (
+      lastResponseBody()["nodes"] as Array<JSONObject>
+    ).find((candidate: JSONObject): boolean => {
+      return candidate["name"] === name;
+    });
+    expect(node).toBeDefined();
+    return node!;
+  }
+
+  test("the device query reads the bound monitor's id and its two switches", async () => {
+    await callTopology({});
+
+    const select: JSONObject = (
+      deviceService.findBy.mock.calls[0]![0] as JSONObject
+    )["select"] as JSONObject;
+    expect(select["monitorId"]).toBe(true);
+    expect(select["monitor"]).toEqual({
+      isArchived: true,
+      disableActiveMonitoring: true,
+    });
+    // Still the columns the device's own status is drawn from.
+    expect(select["monitoringMethod"]).toBe(true);
+    expect(select["currentMonitorStatusId"]).toBe(true);
+  });
+
+  test.each([
+    {
+      label: "has its monitoring turned off",
+      flags: { disableActiveMonitoring: true, isArchived: false },
+      reason: "monitoringOff",
+    },
+    {
+      label: "is archived",
+      flags: { disableActiveMonitoring: false, isArchived: true },
+      reason: "monitorArchived",
+    },
+    {
+      label: "is archived with its monitoring turned off too",
+      flags: { disableActiveMonitoring: true, isArchived: true },
+      reason: "monitorArchived",
+    },
+  ])(
+    "a monitor-backed device whose monitor $label is unknown, and its node names the reason and the monitor",
+    async ({
+      flags,
+      reason,
+    }: {
+      flags: { disableActiveMonitoring: boolean; isArchived: boolean };
+      reason: string;
+    }) => {
+      const monitorId: ObjectID = ObjectID.generate();
+      deviceService.findBy.mockResolvedValue([
+        makeBoundDevice({ name: "branch-ap", monitorId, ...flags }),
+      ] as never);
+
+      await callTopology({});
+
+      const node: JSONObject = nodeByName("branch-ap");
+      expect(node["status"]).toBe("unknown");
+      expect(node["isManaged"]).toBe(true);
+      expect(node["monitorNotChecked"]).toEqual({
+        monitorId: monitorId.toString(),
+        reason,
+      });
+      // A JSON payload: the id is a string, not an ObjectID.
+      expect(
+        typeof (node["monitorNotChecked"] as JSONObject)["monitorId"],
+      ).toBe("string");
+    },
+  );
+
+  test("a monitor-backed device whose monitor is checked carries no reason at all", async () => {
+    deviceService.findBy.mockResolvedValue([
+      makeBoundDevice({
+        name: "branch-ap",
+        monitorId: ObjectID.generate(),
+        disableActiveMonitoring: false,
+        isArchived: false,
+      }),
+    ] as never);
+
+    await callTopology({});
+
+    expect(Object.keys(nodeByName("branch-ap"))).not.toContain(
+      "monitorNotChecked",
+    );
+  });
+
+  test("a monitor read without its switches counts as checked", async () => {
+    deviceService.findBy.mockResolvedValue([
+      makeBoundDevice({ name: "branch-ap", monitorId: ObjectID.generate() }),
+      makeBoundDevice({
+        name: "branch-ap-2",
+        monitorId: ObjectID.generate(),
+        withoutMonitor: true,
+      }),
+    ] as never);
+
+    await callTopology({});
+
+    expect(nodeByName("branch-ap")["monitorNotChecked"]).toBeUndefined();
+    expect(nodeByName("branch-ap-2")["monitorNotChecked"]).toBeUndefined();
+  });
+
+  /*
+   * A probe-polled device judges itself by its own poll: a monitor watching
+   * it, turned off or not, is not why it reads what it reads.
+   */
+  test("a probe-polled device with a turned-off monitor beside it carries no reason", async () => {
+    deviceService.findBy.mockResolvedValue([
+      makeBoundDevice({
+        name: "core-sw1",
+        monitoringMethod: NetworkDeviceMonitoringMethod.Probe,
+        monitorId: ObjectID.generate(),
+        disableActiveMonitoring: true,
+        isArchived: true,
+      }),
+    ] as never);
+
+    await callTopology({});
+
+    expect(nodeByName("core-sw1")["monitorNotChecked"]).toBeUndefined();
+  });
+
+  // Nothing bound: the device pages' "No monitor", not this.
+  test("a monitor-backed device with no monitor bound carries no reason", async () => {
+    deviceService.findBy.mockResolvedValue([
+      makeBoundDevice({
+        name: "branch-ap",
+        disableActiveMonitoring: true,
+        isArchived: true,
+      }),
+    ] as never);
+
+    await callTopology({});
+
+    expect(nodeByName("branch-ap")["monitorNotChecked"]).toBeUndefined();
+  });
+
+  test("each device's node names its own monitor: one turned off, one archived, one checked", async () => {
+    const offId: ObjectID = ObjectID.generate();
+    const archivedId: ObjectID = ObjectID.generate();
+    deviceService.findBy.mockResolvedValue([
+      makeBoundDevice({
+        name: "ap-off",
+        monitorId: offId,
+        disableActiveMonitoring: true,
+        isArchived: false,
+      }),
+      makeBoundDevice({
+        name: "ap-archived",
+        monitorId: archivedId,
+        disableActiveMonitoring: false,
+        isArchived: true,
+      }),
+      makeBoundDevice({
+        name: "ap-checked",
+        monitorId: ObjectID.generate(),
+        disableActiveMonitoring: false,
+        isArchived: false,
+      }),
+    ] as never);
+
+    await callTopology({});
+
+    expect(nodeByName("ap-off")["monitorNotChecked"]).toEqual({
+      monitorId: offId.toString(),
+      reason: "monitoringOff",
+    });
+    expect(nodeByName("ap-archived")["monitorNotChecked"]).toEqual({
+      monitorId: archivedId.toString(),
+      reason: "monitorArchived",
+    });
+    expect(nodeByName("ap-checked")["monitorNotChecked"]).toBeUndefined();
+  });
+});

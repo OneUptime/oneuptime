@@ -1,3 +1,5 @@
+import MonitorNotCheckedReason from "../MonitorNotCheckedReason";
+
 /*
  * A derived view of the network topology for one project, built server-side
  * from the LLDP and CDP neighbor data each device reports (and, when
@@ -125,12 +127,32 @@ export interface NetworkTopologyNodePlacementDiagnostics {
   siteControllerDeviceCount: number;
 }
 
+/*
+ * The monitor bound to a monitor-backed device, when nothing checks it: its
+ * monitoring is turned off, or it is archived (issue #7346). Such a device
+ * takes no status from its monitor, so it is drawn "unknown"; this says why,
+ * and which monitor to open to put it right. Decided on the server by
+ * Utils/NetworkDevice/BoundMonitorNotChecked, the rule the device pages'
+ * "Monitoring off" and "Monitor archived" qualifiers read.
+ */
+export interface NetworkTopologyMonitorNotChecked {
+  // The bound monitor's id.
+  monitorId: string;
+  // Archived wins over turned off (MonitoringOff.getNotCheckedReason).
+  reason: MonitorNotCheckedReason;
+}
+
 export interface NetworkTopologyNode {
   // Device id for managed nodes; a synthetic "unmanaged:<key>" id otherwise.
   id: string;
   name: string;
   isManaged: boolean;
   status: NetworkTopologyNodeStatus;
+  /*
+   * Managed, monitor-backed device nodes only, and only while their bound
+   * monitor is not checked - absent otherwise, and on older payloads.
+   */
+  monitorNotChecked?: NetworkTopologyMonitorNotChecked | undefined;
   // Missing on older payloads — derive from isManaged.
   kind?: NetworkTopologyNodeKind | undefined;
   /*

@@ -3,6 +3,7 @@ import NetworkTopology, {
   NetworkTopologyEdge,
   NetworkTopologyEdgeEndpoint,
   NetworkTopologyLinkProtocol,
+  NetworkTopologyMonitorNotChecked,
   NetworkTopologyNode,
   NetworkTopologyNodeStatus,
 } from "../../Types/Monitor/SnmpMonitor/NetworkTopology";
@@ -160,6 +161,16 @@ export interface TopologyDeviceInput {
    */
   isEndpointCollectionEnabled?: boolean | undefined;
   isDescribedByController?: boolean | undefined;
+  /*
+   * The bound monitor of a monitor-backed device, when nothing checks it
+   * (issue #7346), decided by the caller from the monitor's own columns
+   * (Utils/NetworkDevice/BoundMonitorNotChecked). Copied onto the node as it
+   * is, so the map's drawer and the node's tooltip can say why the device
+   * reads "unknown" and open that monitor. It decides nothing here: the
+   * status is the stamp's, and the server leaves the stamp empty for a
+   * monitor nothing checks.
+   */
+  monitorNotChecked?: NetworkTopologyMonitorNotChecked | undefined;
 }
 
 /*
@@ -642,6 +653,17 @@ export default class NetworkTopologyUtil {
          */
         macAddress: normalizeMac(device.macAddress),
       };
+
+      /*
+       * Only when there is one, so a node whose monitor is checked - and
+       * every node of an older caller - carries no such field at all.
+       */
+      if (device.monitorNotChecked) {
+        deviceNode.monitorNotChecked = {
+          monitorId: device.monitorNotChecked.monitorId,
+          reason: device.monitorNotChecked.reason,
+        };
+      }
 
       /*
        * The address it is polled at, when that is an IP: drawn under its

@@ -358,6 +358,46 @@ describe("every device-status surface selects the whole rule", () => {
   );
 
   /*
+   * The Network Map (issue #7346) draws the same qualifiers for a device
+   * node drawn "unknown" because nothing checks its bound monitor. It has no
+   * device row to decide them from: the topology API decides them with
+   * Common's getBoundMonitorNotCheckedReason - the rule
+   * getBoundMonitorNotCheckedQualifier is built on - and puts the reason on
+   * the node, and the drawer and the graph's tooltip map it to the shared
+   * qualifier. Neither types the words in place.
+   */
+  test("the Network Map decides the qualifier with the shared rule, and draws its words from the shared qualifiers", () => {
+    const api: string = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        "../../FeatureSet/BaseAPI/API/NetworkDeviceTopology.ts",
+      ),
+      "utf8",
+    );
+    expect(api).toContain("getBoundMonitorNotCheckedReason(device)");
+    expect(api).toMatch(/monitor: \{\s*\.\.\.MONITORED_SELECT,?\s*\}/);
+
+    expect(
+      readSource("Components", "NetworkDevice", "DeviceStatusUtil.ts"),
+    ).toContain(
+      "return getMonitorNotCheckedQualifier(getBoundMonitorNotCheckedReason(device));",
+    );
+
+    for (const parts of [
+      ["Components", "Topology", "NetworkDeviceDetailPanel.tsx"],
+      ["Components", "Topology", "NetworkTopologyViewModel.ts"],
+    ]) {
+      expect(readSource(...parts)).toContain("getMonitorNotCheckedQualifier(");
+
+      const code: string = readRawSource(...parts)
+        .replace(/\/\*[\s\S]*?\*\//g, "")
+        .replace(/^\s*\/\/.*$/gm, "");
+      expect(code).not.toContain("Monitoring off");
+      expect(code).not.toContain("Monitor archived");
+    }
+  });
+
+  /*
    * The regression in one assertion: the select the surfaces share has to
    * carry the monitor columns, not just the poll ones. Without these two a
    * correctly bound ping-only device reads "Pending" on every screen above.

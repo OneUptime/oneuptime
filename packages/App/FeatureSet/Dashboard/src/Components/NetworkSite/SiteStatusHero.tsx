@@ -21,7 +21,7 @@ import NetworkEndpoint from "Common/Models/DatabaseModels/NetworkEndpoint";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import NetworkSiteStatusTimeline from "Common/Models/DatabaseModels/NetworkSiteStatusTimeline";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
-import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -52,6 +52,9 @@ export interface SiteHeroTileTitleProps {
  * everything beneath it. Site Type only names something, so it passes no
  * description and gets no (i). The loading skeleton draws no titles, so this
  * is the only branch that needs one.
+ *
+ * The (i) follows the title's last word on whichever line it ends
+ * (WordsWithInfoTooltip, issue #7348), as on a device's hero.
  */
 export const SiteHeroTileTitle: FunctionComponent<SiteHeroTileTitleProps> = (
   props: SiteHeroTileTitleProps,
@@ -59,9 +62,15 @@ export const SiteHeroTileTitle: FunctionComponent<SiteHeroTileTitleProps> = (
   const translator: Translator = useTranslator();
 
   return (
-    <div className="flex items-center gap-1 text-sm font-medium text-gray-500">
-      <span>{translator.translateText(props.title)}</span>
-      <InfoTooltip label={props.title} text={props.description} />
+    <div
+      className="text-sm font-medium text-gray-500"
+      data-testid="site-hero-tile-title"
+    >
+      <WordsWithInfoTooltip
+        text={translator.translateText(props.title) || props.title}
+        label={props.title}
+        description={props.description}
+      />
     </div>
   );
 };

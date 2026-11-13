@@ -466,11 +466,18 @@ describe("cluster overview: hero, cards and tables", () => {
     ]);
   });
 
-  test("the Backups card draws each stat's (i) beside its label", () => {
-    expect(BACKUPS_CARD).toContain(TOOLTIP_IMPORT);
+  /*
+   * After the label's last word, inside the label's own line of text (issue
+   * #7348): a label that wraps keeps its (i) after the word it ends on.
+   */
+  test("the Backups card draws each stat's (i) after its label's last word", () => {
     expect(BACKUPS_CARD).toContain(
-      "<span>{tx(stat.label)}</span> <InfoTooltip label={stat.label} text={stat.description} />",
+      'import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";',
     );
+    expect(BACKUPS_CARD).toContain(
+      '<dt className="text-xs font-medium text-gray-500"> <WordsWithInfoTooltip text={tx(stat.label)} label={stat.label} description={stat.description} /> </dt>',
+    );
+    expect(BACKUPS_CARD).not.toContain("<InfoTooltip");
   });
 
   test.each([

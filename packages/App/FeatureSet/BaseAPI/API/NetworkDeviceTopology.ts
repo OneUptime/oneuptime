@@ -21,6 +21,8 @@ import { normalizeMac } from "Common/Utils/Monitor/EndpointAttachmentUtil";
 import MonitoringOff, {
   MONITORED_SELECT,
 } from "Common/Utils/Monitor/MonitoringOff";
+import MonitorNotCheckedReason from "Common/Types/Monitor/MonitorNotCheckedReason";
+import { getBoundMonitorNotCheckedReason } from "Common/Utils/NetworkDevice/BoundMonitorNotChecked";
 import {
   NetworkDeviceControllerLink,
   NetworkDeviceDiscoveredDetails,
@@ -328,6 +330,19 @@ export default class NetworkDeviceTopologyAPI {
                  * from Probe those hold the last thing the probe found.
                  */
                 monitoringMethod: true,
+                /*
+                 * The bound monitor, and whether anything checks it. A
+                 * monitor-backed device whose monitor is turned off or
+                 * archived takes no status from it - the server leaves its
+                 * stamp empty, so it is drawn "unknown" - and the map's
+                 * drawer and the node's tooltip say why and open that
+                 * monitor (issue #7346), as the device pages do. The same
+                 * two switches the link rows below read.
+                 */
+                monitorId: true,
+                monitor: {
+                  ...MONITORED_SELECT,
+                },
                 interfacesUp: true,
                 interfacesDown: true,
                 vendor: true,
@@ -803,6 +818,14 @@ export default class NetworkDeviceTopologyAPI {
               const controllerLinks: Array<NetworkDeviceControllerLink> =
                 getCurrentControllerLinks(details.controllerLinks, requestedAt);
 
+              /*
+               * Why nothing checks the bound monitor of a monitor-backed
+               * device, when nothing does - the rule the device pages'
+               * "Monitoring off" and "Monitor archived" read.
+               */
+              const notCheckedReason: MonitorNotCheckedReason | null =
+                getBoundMonitorNotCheckedReason(device);
+
               return {
                 id: device.id!.toString(),
                 name: device.name || device.hostname || "Unnamed device",
@@ -859,6 +882,13 @@ export default class NetworkDeviceTopologyAPI {
                 controllerProvider: details.controllerLinks?.provider,
                 isEndpointCollectionEnabled: device.collectEndpoints,
                 isDescribedByController: Boolean(details.controller),
+                monitorNotChecked:
+                  notCheckedReason && device.monitorId
+                    ? {
+                        monitorId: device.monitorId.toString(),
+                        reason: notCheckedReason,
+                      }
+                    : undefined,
               };
             },
           );
