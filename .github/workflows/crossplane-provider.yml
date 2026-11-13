@@ -63,6 +63,10 @@ jobs:
     env:
       CI_PIPELINE_ID: ${{ github.run_number }}
       APP_TAG: latest
+      # Go's soft memory limit: both generations, the test and the build
+      # compile the Terraform provider, and without it one compile alone took
+      # ~15 GB of the runner's 16 (Scripts/TerraformProvider/Core/GoCommand.ts).
+      GOMEMLIMIT: 10GiB
 
     steps:
       - name: Checkout code

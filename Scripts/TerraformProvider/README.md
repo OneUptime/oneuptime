@@ -69,6 +69,12 @@ Terraform/terraform-provider-oneuptime/
 npm run generate-terraform-provider
 ```
 
+Generation compiles the provider twice: `go build`, then the test binary
+the docs step runs. Go runs both with a soft memory limit, `GOMEMLIMIT`, set
+in `Core/GoCommand.ts`, unless you set your own (`GOMEMLIMIT=off` turns it
+off): the provider's `internal/provider` is one Go package of ~985 files, and
+without the limit the compiler alone takes ~15 GB.
+
 ### Build and Install Locally
 
 ```bash
