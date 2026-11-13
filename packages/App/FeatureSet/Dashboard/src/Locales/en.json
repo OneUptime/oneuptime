@@ -51807,5 +51807,18 @@
   "Show Maintenance Events": "Show Maintenance Events",
   "Show Maintenance Events on Status Page": "Show Maintenance Events on Status Page",
   "View Maintenance Event": "View Maintenance Event",
-  "Delete Maintenance Event": "Delete Maintenance Event"
+  "Delete Maintenance Event": "Delete Maintenance Event",
+  "Alerts on services that call each other on the Service Map go into the same episode.": "Alerts on services that call each other on the Service Map go into the same episode.",
+  "Connected Services": "Connected Services",
+  "Group By Connected Services": "Group By Connected Services",
+  "Incidents on services that call each other on the Service Map go into the same episode.": "Incidents on services that call each other on the Service Map go into the same episode.",
+  "One episode for incidents on services that call each other on the Service Map. Catches one failure spreading to its callers.": "One episode for incidents on services that call each other on the Service Map. Catches one failure spreading to its callers.",
+  "One episode for alerts on services that call each other on the Service Map. Catches one failure spreading to its callers.": "One episode for alerts on services that call each other on the Service Map. Catches one failure spreading to its callers.",
+  "Combine monitor, severity, title, labels and connected services yourself on the next step.": "Combine monitor, severity, title, labels and connected services yourself on the next step.",
+  "Group incidents on connected services": "Group incidents on connected services",
+  "Group alerts on connected services": "Group alerts on connected services",
+  "One episode for incidents on services that call each other on the Service Map, while they arrive within 30 minutes of each other. Incidents on no service are grouped by monitor.": "One episode for incidents on services that call each other on the Service Map, while they arrive within 30 minutes of each other. Incidents on no service are grouped by monitor.",
+  "One episode for alerts on services that call each other on the Service Map, while they arrive within 30 minutes of each other. Alerts on no service are grouped by monitor.": "One episode for alerts on services that call each other on the Service Map, while they arrive within 30 minutes of each other. Alerts on no service are grouped by monitor.",
+  "Incidents on connected services share one episode": "Incidents on connected services share one episode",
+  "Alerts on connected services share one episode": "Alerts on connected services share one episode"
 }

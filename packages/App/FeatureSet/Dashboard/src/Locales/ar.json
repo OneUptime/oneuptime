@@ -51807,5 +51807,18 @@
   "Show Maintenance Events": "إظهار أحداث الصيانة",
   "Show Maintenance Events on Status Page": "إظهار أحداث الصيانة في صفحة الحالة",
   "View Maintenance Event": "عرض حدث الصيانة",
-  "Delete Maintenance Event": "حذف حدث الصيانة"
+  "Delete Maintenance Event": "حذف حدث الصيانة",
+  "Alerts on services that call each other on the Service Map go into the same episode.": "تذهب التنبيهات في الخدمات التي يستدعي بعضها بعضًا على خريطة الخدمات إلى الحلقة نفسها.",
+  "Connected Services": "الخدمات المتصلة",
+  "Group By Connected Services": "التجميع حسب الخدمات المتصلة",
+  "Incidents on services that call each other on the Service Map go into the same episode.": "تذهب الحوادث في الخدمات التي يستدعي بعضها بعضًا على خريطة الخدمات إلى الحلقة نفسها.",
+  "One episode for incidents on services that call each other on the Service Map. Catches one failure spreading to its callers.": "حلقة واحدة للحوادث في الخدمات التي يستدعي بعضها بعضًا على خريطة الخدمات. تلتقط عطلًا ينتشر إلى الخدمات التي تستدعيه.",
+  "One episode for alerts on services that call each other on the Service Map. Catches one failure spreading to its callers.": "حلقة واحدة للتنبيهات في الخدمات التي يستدعي بعضها بعضًا على خريطة الخدمات. تلتقط عطلًا ينتشر إلى الخدمات التي تستدعيه.",
+  "Combine monitor, severity, title, labels and connected services yourself on the next step.": "اجمع بين المراقبة والخطورة والعنوان والتسميات والخدمات المتصلة بنفسك في الخطوة التالية.",
+  "Group incidents on connected services": "تجميع الحوادث في الخدمات المتصلة",
+  "Group alerts on connected services": "تجميع التنبيهات في الخدمات المتصلة",
+  "One episode for incidents on services that call each other on the Service Map, while they arrive within 30 minutes of each other. Incidents on no service are grouped by monitor.": "حلقة واحدة للحوادث في الخدمات التي يستدعي بعضها بعضًا على خريطة الخدمات، ما دامت تصل خلال 30 دقيقة من بعضها. تُجمَّع الحوادث التي لا تخص أي خدمة حسب المراقبة.",
+  "One episode for alerts on services that call each other on the Service Map, while they arrive within 30 minutes of each other. Alerts on no service are grouped by monitor.": "حلقة واحدة للتنبيهات في الخدمات التي يستدعي بعضها بعضًا على خريطة الخدمات، ما دامت تصل خلال 30 دقيقة من بعضها. تُجمَّع التنبيهات التي لا تخص أي خدمة حسب المراقبة.",
+  "Incidents on connected services share one episode": "تشترك حوادث الخدمات المتصلة في حلقة واحدة",
+  "Alerts on connected services share one episode": "تشترك تنبيهات الخدمات المتصلة في حلقة واحدة"
 }

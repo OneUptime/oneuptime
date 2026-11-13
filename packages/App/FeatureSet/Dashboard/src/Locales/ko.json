@@ -51807,5 +51807,18 @@
   "Show Maintenance Events": "유지 관리 이벤트 표시",
   "Show Maintenance Events on Status Page": "상태 페이지에 유지 관리 이벤트 표시",
   "View Maintenance Event": "유지 관리 이벤트 보기",
-  "Delete Maintenance Event": "유지 관리 이벤트 삭제"
+  "Delete Maintenance Event": "유지 관리 이벤트 삭제",
+  "Alerts on services that call each other on the Service Map go into the same episode.": "서비스 맵에서 서로 호출하는 서비스의 경고는 같은 에피소드로 묶입니다.",
+  "Connected Services": "연결된 서비스",
+  "Group By Connected Services": "연결된 서비스별 그룹화",
+  "Incidents on services that call each other on the Service Map go into the same episode.": "서비스 맵에서 서로 호출하는 서비스의 인시던트는 같은 에피소드로 묶입니다.",
+  "One episode for incidents on services that call each other on the Service Map. Catches one failure spreading to its callers.": "서비스 맵에서 서로 호출하는 서비스의 인시던트를 하나의 에피소드로 묶습니다. 호출하는 쪽으로 번지는 장애를 잡아냅니다.",
+  "One episode for alerts on services that call each other on the Service Map. Catches one failure spreading to its callers.": "서비스 맵에서 서로 호출하는 서비스의 경고를 하나의 에피소드로 묶습니다. 호출하는 쪽으로 번지는 장애를 잡아냅니다.",
+  "Combine monitor, severity, title, labels and connected services yourself on the next step.": "다음 단계에서 모니터, 심각도, 제목, 레이블, 연결된 서비스를 직접 조합하세요.",
+  "Group incidents on connected services": "연결된 서비스의 인시던트 그룹화",
+  "Group alerts on connected services": "연결된 서비스의 경고 그룹화",
+  "One episode for incidents on services that call each other on the Service Map, while they arrive within 30 minutes of each other. Incidents on no service are grouped by monitor.": "서비스 맵에서 서로 호출하는 서비스의 인시던트가 서로 30분 이내에 들어오는 동안 하나의 에피소드로 묶습니다. 서비스가 없는 인시던트는 모니터별로 그룹화됩니다.",
+  "One episode for alerts on services that call each other on the Service Map, while they arrive within 30 minutes of each other. Alerts on no service are grouped by monitor.": "서비스 맵에서 서로 호출하는 서비스의 경고가 서로 30분 이내에 들어오는 동안 하나의 에피소드로 묶습니다. 서비스가 없는 경고는 모니터별로 그룹화됩니다.",
+  "Incidents on connected services share one episode": "연결된 서비스의 인시던트가 에피소드 하나를 공유",
+  "Alerts on connected services share one episode": "연결된 서비스의 경고가 에피소드 하나를 공유"
 }
