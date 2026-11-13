@@ -10,12 +10,12 @@ import React, {
 import {
   AutoRefreshInterval,
   getAutoRefreshIntervalInMs,
-  getAutoRefreshIntervalLabel,
 } from "Common/Types/Dashboard/DashboardViewConfig";
+import { formatAutoRefreshInterval } from "Common/Types/Dashboard/DashboardAutoRefresh";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, composedValue } from "Common/UI/Utils/TranslateTemplate";
 
 interface CountdownCircleProps {
   // Length of one auto-refresh cycle.
@@ -220,12 +220,26 @@ const AutoRefreshControl: FunctionComponent<AutoRefreshControlProps> = (
           className="h-8 rounded-md border border-gray-200 bg-white px-2 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
         >
           {intervals.map((interval: AutoRefreshInterval): ReactElement => {
+            /*
+             * The interval in the sentence's language: "Every 30s", "Alle
+             * 30 Sek.", "هر ۳۰ ثانیه" - never English's "30s" in a Persian
+             * sentence.
+             */
             return (
               <option key={interval} value={interval}>
                 {interval === AutoRefreshInterval.OFF
                   ? translator.translateText("Off")
                   : translator.translateTemplate("Every {{interval}}", {
-                      interval: getAutoRefreshIntervalLabel(interval),
+                      interval: composedValue(
+                        (sentence: Translator): string => {
+                          return (
+                            formatAutoRefreshInterval(
+                              interval,
+                              sentence.language,
+                            ) || ""
+                          );
+                        },
+                      ),
                     })}
               </option>
             );

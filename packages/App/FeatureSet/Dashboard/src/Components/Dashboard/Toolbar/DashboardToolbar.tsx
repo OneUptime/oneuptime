@@ -18,7 +18,6 @@ import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEnd
 import DashboardViewConfig, {
   AutoRefreshInterval,
   getAutoRefreshIntervalInMs,
-  getAutoRefreshIntervalLabel,
 } from "Common/Types/Dashboard/DashboardViewConfig";
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -32,14 +31,17 @@ import DashboardDefaultsBar from "./DashboardDefaultsBar";
 import useToolbarChoiceMenuKeys from "./UseToolbarChoiceMenuKeys";
 import {
   AUTO_REFRESH_DEFAULT_CHOICE_TEST_ID,
-  getAutoRefreshChoiceLabel,
+  getAutoRefreshDefaultChoiceValue,
 } from "./DashboardDefaultsCopy";
 import DashboardStackingLayers from "Common/UI/Utils/DashboardStackingLayers";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, composedValue } from "Common/UI/Utils/TranslateTemplate";
 import TimeRange from "Common/Types/Time/TimeRange";
 import { DASHBOARD_TIME_RANGE_FALLBACK } from "Common/Types/Dashboard/DashboardTimeRange";
-import { DASHBOARD_AUTO_REFRESH_FALLBACK } from "Common/Types/Dashboard/DashboardAutoRefresh";
+import {
+  DASHBOARD_AUTO_REFRESH_FALLBACK,
+  formatAutoRefreshInterval,
+} from "Common/Types/Dashboard/DashboardAutoRefresh";
 import { getDefaultChoiceLabel } from "Common/UI/Utils/DefaultChoiceLabel";
 
 /*
@@ -351,7 +353,12 @@ const AutoRefreshDropdown: FunctionComponent<AutoRefreshDropdownProps> = (
             durationMs={props.autoRefreshMs}
             size={20}
             strokeWidth={2}
-            label={getAutoRefreshIntervalLabel(props.autoRefreshInterval)}
+            label={
+              formatAutoRefreshInterval(
+                props.autoRefreshInterval,
+                translator.language,
+              ) || ""
+            }
             isRefreshing={props.isRefreshing}
           />
         ) : (
@@ -412,7 +419,9 @@ const AutoRefreshDropdown: FunctionComponent<AutoRefreshDropdownProps> = (
                 </span>
                 {getDefaultChoiceLabel({
                   translator,
-                  value: getAutoRefreshChoiceLabel(props.defaultInterval),
+                  value: getAutoRefreshDefaultChoiceValue(
+                    props.defaultInterval,
+                  ),
                 })}
               </button>
             </div>
@@ -452,7 +461,16 @@ const AutoRefreshDropdown: FunctionComponent<AutoRefreshDropdownProps> = (
                     : translator.translateTemplate(
                         "Refresh every {{interval}}",
                         {
-                          interval: getAutoRefreshIntervalLabel(interval),
+                          interval: composedValue(
+                            (sentence: Translator): string => {
+                              return (
+                                formatAutoRefreshInterval(
+                                  interval,
+                                  sentence.language,
+                                ) || ""
+                              );
+                            },
+                          ),
                         },
                       )}
                 </button>

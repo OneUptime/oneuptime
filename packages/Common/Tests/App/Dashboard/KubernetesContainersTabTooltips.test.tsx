@@ -165,8 +165,16 @@ describe("KubernetesContainersTab: every number on a container card is explained
     expect(screen.getByText("7")).toBeInTheDocument();
     expect(screen.getByText("running")).toBeInTheDocument();
     expect(screen.getByText("Yes")).toBeInTheDocument();
-    expect(screen.getByText("250m (0.25 CPU cores)")).toBeInTheDocument();
-    expect(screen.getByText("512Mi (512 MB)")).toBeInTheDocument();
+
+    // Kubernetes' value and what it means, each set apart (issue #7304).
+    const values: Array<string> = screen
+      .getAllByTestId("kubernetes-resource-value")
+      .map((value: HTMLElement): string => {
+        return value.textContent || "";
+      });
+
+    expect(values).toContain("250m (0.25 CPU cores)");
+    expect(values).toContain("512Mi (512 MB)");
   });
 
   test("a container with no status yet shows no State / Ready / Restarts (i)", () => {

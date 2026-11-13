@@ -1424,6 +1424,41 @@ test.describe("a monitor's Status Timeline in German", () => {
 });
 
 /*
+ * "Japanese keeps its last unit" (issue #7300): the legend's time of each
+ * status was cut to its first four words, and Japanese writes a duration
+ * with fewer spaces than English ("29 日23 時間"), so a cut made by words
+ * kept one unit and part of the next, or ran on past two. It is cut by its
+ * units now: the two largest, in Japanese.
+ */
+test.describe("a monitor's Status Timeline in Japanese", () => {
+  test("the legend's time of each status is its two largest units, as Japanese writes them", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openMonitor(page, "?lang=ja");
+
+    const items: Array<string> = await legendItems(page).allTextContents();
+
+    /*
+     * Each time ends where its second unit does: a cut by words kept
+     * "29 日23 時間10 分", one unit and part of the next past the two.
+     */
+    expect(items).toHaveLength(3);
+    expect(items[0]).toMatch(/ · 29 日23 時間$/);
+    expect(items[1]).toMatch(/ · 1 分47 秒$/);
+    expect(items[2]).toMatch(/ · 15 分32 秒 · 5 回$/);
+
+    for (const item of items) {
+      // Japanese units, never an English one left over.
+      expect(item).not.toMatch(/\b(days?|hours?|mins?|secs?)\b/);
+    }
+
+    await screenshot(page, "monitor-japanese-legend", false);
+  });
+});
+
+/*
  * "Timeline icon should be better and more relevant" (the maintainer): the
  * switch drew a bar chart for Timeline. Each view now shows a picture of
  * itself - the timeline its stretches of time stepping along

@@ -122,6 +122,11 @@ function isolated(value: string): string {
 // A Latin digit, which a Persian count should not mix with its own.
 const LATIN_DIGIT: RegExp = /[0-9]/;
 
+// Text as read, without the marks that set its values apart (FSI ... PDI).
+function withoutIsolateMarks(text: string): string {
+  return text.replace(/[\u2066-\u2069]/g, "");
+}
+
 interface Recorded {
   apiRequests: Array<{ method: string; url: string }>;
   unhandled: Array<Record<string, unknown>>;
@@ -1155,6 +1160,34 @@ test.describe("a host's Overview", () => {
         .getByTestId("golden-metric-tile-value")
         .locator("bdi"),
     ).toHaveText(/^[۰-۹٫]+٪$/);
+    /*
+     * How long it has been up, in Persian: its largest unit alone, "۴۱
+     * روز", never days with seconds whatever the second it was drawn in
+     * (#7306). And its auto-refresh interval as Persian writes a duration,
+     * "هر ۳۰ ثانیه", never English's "30s" (#7303).
+     */
+    const upSince: string = (PERSIAN["Up {{duration}}"] as string).split(
+      "{{duration}}",
+    )[0] as string;
+    expect(upSince.trim()).not.toBe("");
+    const uptime: string = withoutIsolateMarks(
+      (await page.getByText(upSince.trim()).first().textContent()) || "",
+    );
+    expect(uptime).toBe(
+      fill(PERSIAN, "Up {{duration}}", { duration: "۴۱ روز" }),
+    );
+    expect(uptime).not.toMatch(LATIN_DIGIT);
+    const interval: Locator = page.getByRole("combobox", {
+      name: PERSIAN["Auto-refresh"] as string,
+    });
+    expect(
+      withoutIsolateMarks(
+        (await interval.locator("option:checked").textContent()) || "",
+      ),
+    ).toBe(fill(PERSIAN, "Every {{interval}}", { interval: "۳۰ ثانیه" }));
+    for (const option of await interval.locator("option").allTextContents()) {
+      expect(option).not.toMatch(LATIN_DIGIT);
+    }
     await expectNoSidewaysScroll(page);
     await screenshot(page, "host-overview-persian");
 

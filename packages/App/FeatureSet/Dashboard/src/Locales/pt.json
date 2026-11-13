@@ -51831,5 +51831,7 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Período: {{range}}. Tente ajustar os filtros ou ampliar o período.",
   "On-Call Policy Created": "Política de plantão criada",
   "On-Call Schedule Added": "Agendamento de plantão adicionado",
-  "On-Call Schedule Removed": "Agendamento de plantão removido"
+  "On-Call Schedule Removed": "Agendamento de plantão removido",
+  "{{count}} CPU cores": "{{count}} núcleos de CPU",
+  "{{count}} CPU cores_one": "{{count}} núcleo de CPU"
 }

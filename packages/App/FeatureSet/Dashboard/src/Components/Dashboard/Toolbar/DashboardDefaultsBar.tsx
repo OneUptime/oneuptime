@@ -1,16 +1,16 @@
 import IconProp from "Common/Types/Icon/IconProp";
 import TimeRange from "Common/Types/Time/TimeRange";
-import {
-  AutoRefreshInterval,
-  getAutoRefreshIntervalLabel,
-} from "Common/Types/Dashboard/DashboardViewConfig";
+import { AutoRefreshInterval } from "Common/Types/Dashboard/DashboardViewConfig";
 import { DASHBOARD_TIME_RANGES } from "Common/Types/Dashboard/DashboardTimeRange";
-import { DASHBOARD_AUTO_REFRESH_INTERVALS } from "Common/Types/Dashboard/DashboardAutoRefresh";
+import {
+  DASHBOARD_AUTO_REFRESH_INTERVALS,
+  formatAutoRefreshInterval,
+} from "Common/Types/Dashboard/DashboardAutoRefresh";
 import Icon from "Common/UI/Components/Icon/Icon";
 import { getTimeRangeLabel } from "Common/UI/Components/Date/TimeRangePickerDropdown";
 import DashboardStackingLayers from "Common/UI/Utils/DashboardStackingLayers";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, composedValue } from "Common/UI/Utils/TranslateTemplate";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -270,10 +270,25 @@ const DashboardDefaultsBar: FunctionComponent<ComponentProps> = (
                       : translator.translateTemplate(
                           "Refresh every {{interval}}",
                           {
-                            interval: getAutoRefreshIntervalLabel(interval),
+                            interval: composedValue(
+                              (sentence: Translator): string => {
+                                return (
+                                  formatAutoRefreshInterval(
+                                    interval,
+                                    sentence.language,
+                                  ) || ""
+                                );
+                              },
+                            ),
                           },
                         ),
-                  buttonLabel: text(getAutoRefreshChoiceLabel(interval)),
+                  buttonLabel:
+                    interval === AutoRefreshInterval.OFF
+                      ? text(getAutoRefreshChoiceLabel(interval))
+                      : getAutoRefreshChoiceLabel(
+                          interval,
+                          translator.language,
+                        ),
                 };
               },
             )}

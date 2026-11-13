@@ -51831,5 +51831,7 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Tidsintervall: {{range}}. Försök att justera filtren eller utöka tidsintervallet.",
   "On-Call Policy Created": "Jourpolicy skapad",
   "On-Call Schedule Added": "Jourschema tillagt",
-  "On-Call Schedule Removed": "Jourschema borttaget"
+  "On-Call Schedule Removed": "Jourschema borttaget",
+  "{{count}} CPU cores": "{{count}} CPU-kärnor",
+  "{{count}} CPU cores_one": "{{count}} CPU-kärna"
 }

@@ -51831,5 +51831,7 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Период: {{range}}. Попробуйте изменить фильтры или расширить период.",
   "On-Call Policy Created": "Политика дежурства создана",
   "On-Call Schedule Added": "Расписание дежурства добавлено",
-  "On-Call Schedule Removed": "Расписание дежурства удалено"
+  "On-Call Schedule Removed": "Расписание дежурства удалено",
+  "{{count}} CPU cores": "Ядер CPU: {{count}}",
+  "{{count}} CPU cores_one": "{{count}} ядро CPU"
 }

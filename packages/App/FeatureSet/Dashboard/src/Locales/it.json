@@ -51831,5 +51831,7 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Intervallo di tempo: {{range}}. Prova a modificare i filtri o ad ampliare l'intervallo di tempo.",
   "On-Call Policy Created": "Policy di reperibilità creata",
   "On-Call Schedule Added": "Pianificazione di reperibilità aggiunta",
-  "On-Call Schedule Removed": "Pianificazione di reperibilità rimossa"
+  "On-Call Schedule Removed": "Pianificazione di reperibilità rimossa",
+  "{{count}} CPU cores": "{{count}} core CPU",
+  "{{count}} CPU cores_one": "{{count}} core CPU"
 }

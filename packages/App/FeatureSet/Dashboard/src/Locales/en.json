@@ -51831,5 +51831,7 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Time range: {{range}}. Try adjusting filters or expanding the time range.",
   "On-Call Policy Created": "On-Call Policy Created",
   "On-Call Schedule Added": "On-Call Schedule Added",
-  "On-Call Schedule Removed": "On-Call Schedule Removed"
+  "On-Call Schedule Removed": "On-Call Schedule Removed",
+  "{{count}} CPU cores": "{{count}} CPU cores",
+  "{{count}} CPU cores_one": "{{count}} CPU core"
 }

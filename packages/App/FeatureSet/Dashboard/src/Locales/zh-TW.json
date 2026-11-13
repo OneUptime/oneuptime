@@ -51831,5 +51831,7 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "時間範圍：{{range}}。請嘗試調整篩選條件或擴大時間範圍。",
   "On-Call Policy Created": "待命策略已建立",
   "On-Call Schedule Added": "待命排程已新增",
-  "On-Call Schedule Removed": "待命排程已移除"
+  "On-Call Schedule Removed": "待命排程已移除",
+  "{{count}} CPU cores": "{{count}} 個 CPU 核心",
+  "{{count}} CPU cores_one": "{{count}} 個 CPU 核心"
 }

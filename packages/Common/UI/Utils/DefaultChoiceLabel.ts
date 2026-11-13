@@ -1,5 +1,7 @@
 import {
+  ComposedValue,
   Translator,
+  isComposedValue,
   translatableTerm,
   translationKey,
 } from "./TranslateTemplate";
@@ -12,7 +14,9 @@ import {
  * pick (Types/Dashboard/DashboardViewerChoice.ts).
  *
  * React-free, so App's tests read the exact template; the value is a term,
- * looked up in the reader's language with the sentence.
+ * looked up in the reader's language with the sentence - or a value written
+ * for the sentence's language (composedValue), as an auto-refresh interval
+ * is ("Default (1m)", "پیش‌فرض (۱ دقیقه)").
  */
 export const DEFAULT_CHOICE_TEMPLATE: string = translationKey(
   "Default ({{value}})",
@@ -20,9 +24,14 @@ export const DEFAULT_CHOICE_TEMPLATE: string = translationKey(
 
 export const getDefaultChoiceLabel: (data: {
   translator: Translator;
-  value: string;
-}) => string = (data: { translator: Translator; value: string }): string => {
+  value: string | ComposedValue;
+}) => string = (data: {
+  translator: Translator;
+  value: string | ComposedValue;
+}): string => {
   return data.translator.translateTemplate(DEFAULT_CHOICE_TEMPLATE, {
-    value: translatableTerm(data.value),
+    value: isComposedValue(data.value)
+      ? data.value
+      : translatableTerm(data.value),
   });
 };

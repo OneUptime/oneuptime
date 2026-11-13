@@ -51831,5 +51831,7 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "النطاق الزمني: {{range}}. جرّب تعديل عوامل التصفية أو توسيع النطاق الزمني.",
   "On-Call Policy Created": "أُنشئت سياسة مناوبة",
   "On-Call Schedule Added": "أُضيف جدول مناوبة",
-  "On-Call Schedule Removed": "أُزيل جدول مناوبة"
+  "On-Call Schedule Removed": "أُزيل جدول مناوبة",
+  "{{count}} CPU cores": "أنوية CPU: {{count}}",
+  "{{count}} CPU cores_one": "{{count}} نواة CPU"
 }

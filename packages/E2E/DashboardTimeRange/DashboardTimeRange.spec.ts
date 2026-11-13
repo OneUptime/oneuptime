@@ -890,7 +890,9 @@ test.describe("the dashboard inside OneUptime", () => {
       if (picker === DEFAULT_AUTO_REFRESH_PICKER) {
         // German throughout: no English "Refresh every" left among them.
         await expect(menu).not.toContainText("Refresh every");
-        await expect(menu).toContainText("Alle 5s aktualisieren");
+        // Its interval in German too: "5 Sek.", not "5s" (#7303).
+        await expect(menu).toContainText("Alle 5 Sek. aktualisieren");
+        await expect(menu).not.toContainText("5s");
         await shoot(page, testInfo, "app-editing-row-menu-de");
       }
 

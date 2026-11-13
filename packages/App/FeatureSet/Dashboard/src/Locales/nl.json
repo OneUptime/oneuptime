@@ -51831,5 +51831,7 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Periode: {{range}}. Pas de filters aan of kies een ruimere periode.",
   "On-Call Policy Created": "Bereikbaarheidsbeleid aangemaakt",
   "On-Call Schedule Added": "Bereikbaarheidsschema toegevoegd",
-  "On-Call Schedule Removed": "Bereikbaarheidsschema verwijderd"
+  "On-Call Schedule Removed": "Bereikbaarheidsschema verwijderd",
+  "{{count}} CPU cores": "{{count}} CPU-kernen",
+  "{{count}} CPU cores_one": "{{count}} CPU-kern"
 }

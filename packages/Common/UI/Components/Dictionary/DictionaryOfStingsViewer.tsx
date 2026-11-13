@@ -14,6 +14,12 @@ import React, {
 
 export interface ComponentProps {
   value?: Dictionary<string>;
+  /*
+   * A value drawn by its holder, in place of the value as written: a
+   * Kubernetes request's "250m" beside what it means (KubernetesContainersTab).
+   * Asked only for a value that is not empty.
+   */
+  renderValue?: ((key: string, value: string) => ReactElement) | undefined;
 }
 
 interface Item {
@@ -92,6 +98,10 @@ const DictionaryOfStringsViewer: FunctionComponent<ComponentProps> = (
           key: "value",
           disableSort: true,
           getElement: (item: Item): ReactElement => {
+            if (item.value && props.renderValue) {
+              return props.renderValue(item.key, item.value);
+            }
+
             return (
               /*
                * A key and its value as they were written: "region" and

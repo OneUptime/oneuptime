@@ -51831,5 +51831,7 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "時間範囲: {{range}}。フィルターを調整するか、時間範囲を広げてみてください。",
   "On-Call Policy Created": "オンコールポリシー作成済み",
   "On-Call Schedule Added": "オンコールスケジュール追加済み",
-  "On-Call Schedule Removed": "オンコールスケジュール削除済み"
+  "On-Call Schedule Removed": "オンコールスケジュール削除済み",
+  "{{count}} CPU cores": "{{count}} CPU コア",
+  "{{count}} CPU cores_one": "{{count}} CPU コア"
 }

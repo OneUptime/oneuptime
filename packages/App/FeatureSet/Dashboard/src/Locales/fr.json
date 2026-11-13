@@ -51831,5 +51831,7 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Période : {{range}}. Essayez d'ajuster les filtres ou d'élargir la période.",
   "On-Call Policy Created": "Politique d'astreinte créée",
   "On-Call Schedule Added": "Planning d'astreinte ajouté",
-  "On-Call Schedule Removed": "Planning d'astreinte retiré"
+  "On-Call Schedule Removed": "Planning d'astreinte retiré",
+  "{{count}} CPU cores": "{{count}} cœurs CPU",
+  "{{count}} CPU cores_one": "{{count}} cœur CPU"
 }

@@ -51831,5 +51831,7 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "时间范围：{{range}}。请尝试调整筛选条件或扩大时间范围。",
   "On-Call Policy Created": "值班策略已创建",
   "On-Call Schedule Added": "值班排班已添加",
-  "On-Call Schedule Removed": "值班排班已移除"
+  "On-Call Schedule Removed": "值班排班已移除",
+  "{{count}} CPU cores": "{{count}} 个 CPU 核心",
+  "{{count}} CPU cores_one": "{{count}} 个 CPU 核心"
 }

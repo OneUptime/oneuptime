@@ -51831,5 +51831,7 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Tidsrum: {{range}}. Prøv at justere filtrene eller udvide tidsrummet.",
   "On-Call Policy Created": "Vagtpolitik oprettet",
   "On-Call Schedule Added": "Vagtplan tilføjet",
-  "On-Call Schedule Removed": "Vagtplan fjernet"
+  "On-Call Schedule Removed": "Vagtplan fjernet",
+  "{{count}} CPU cores": "{{count}} CPU-kerner",
+  "{{count}} CPU cores_one": "{{count}} CPU-kerne"
 }

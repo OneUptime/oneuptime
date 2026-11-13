@@ -51831,5 +51831,7 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "기간: {{range}}. 필터를 조정하거나 기간을 넓혀 보세요.",
   "On-Call Policy Created": "온콜 정책 생성됨",
   "On-Call Schedule Added": "온콜 일정 추가됨",
-  "On-Call Schedule Removed": "온콜 일정 제거됨"
+  "On-Call Schedule Removed": "온콜 일정 제거됨",
+  "{{count}} CPU cores": "CPU 코어 {{count}}개",
+  "{{count}} CPU cores_one": "CPU 코어 {{count}}개"
 }
