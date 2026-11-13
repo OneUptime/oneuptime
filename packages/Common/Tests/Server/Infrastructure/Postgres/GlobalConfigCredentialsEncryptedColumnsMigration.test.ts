@@ -37,6 +37,7 @@ const MIGRATION_DIRECTORY: string = path.join(
 );
 
 const CLASS_TIMESTAMP: RegExp = /(\d{13})$/;
+const MIGRATION_SOURCE_FILE: RegExp = /^\d{13}-.*\.ts$/;
 
 // The columns that were a varchar: 100 characters, or no length (SendGrid's).
 const WIDENED: Readonly<Record<string, string>> = {
@@ -107,7 +108,7 @@ function earlierMigrationSources(): Array<{ file: string; source: string }> {
     .readdirSync(MIGRATION_DIRECTORY)
     .filter((file: string): boolean => {
       return (
-        /^\d{13}-.*\.ts$/.test(file) &&
+        MIGRATION_SOURCE_FILE.test(file) &&
         Number(file.slice(0, 13)) < Number(MIGRATION_TIMESTAMP)
       );
     })
