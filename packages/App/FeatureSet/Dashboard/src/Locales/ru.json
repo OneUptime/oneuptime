@@ -52119,5 +52119,6 @@
   "Which items the summary includes. An owner condition, such as Incident Owner, names people and teams of this project by ID.": "Какие элементы входят в сводку. Условие по владельцу, например «Владелец инцидента», указывает людей и команды этого проекта по идентификатору.",
   "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "К каким событиям относится правило и куда оно публикует. Условия по владельцу и «Политика дежурства» указывают людей, команды и политики этого проекта по идентификатору.",
   "Matches the people and teams added as owners. Team membership does not count.": "Совпадает с людьми и командами, добавленными в качестве владельцев. Членство в команде не учитывается.",
-  "To keep matching a policy after it is renamed, use On-Call Policy.": "Чтобы условие продолжало находить политику после её переименования, используйте «Политика дежурства»."
+  "To keep matching a policy after it is renamed, use On-Call Policy.": "Чтобы условие продолжало находить политику после её переименования, используйте «Политика дежурства».",
+  "The first data arrived with the key {{name}}. It shows up within a minute or two.": "Первые данные поступили с ключом {{name}}. Они появятся в течение минуты-двух."
 }

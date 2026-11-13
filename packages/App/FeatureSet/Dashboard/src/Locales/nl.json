@@ -52119,5 +52119,6 @@
   "Which items the summary includes. An owner condition, such as Incident Owner, names people and teams of this project by ID.": "Welke items de samenvatting bevat. Een eigenaarvoorwaarde, zoals “Eigenaar van incident”, noemt mensen en teams van dit project met hun ID.",
   "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "Voor welke gebeurtenissen de regel geldt en waar hij plaatst. Eigenaarvoorwaarden en “Bereikbaarheidsbeleid” noemen mensen, teams en beleid van dit project met hun ID.",
   "Matches the people and teams added as owners. Team membership does not count.": "Komt overeen met de personen en teams die als eigenaar zijn toegevoegd. Lid zijn van een team telt niet.",
-  "To keep matching a policy after it is renamed, use On-Call Policy.": "Gebruik “Bereikbaarheidsbeleid” om een beleid ook na het hernoemen te blijven vinden."
+  "To keep matching a policy after it is renamed, use On-Call Policy.": "Gebruik “Bereikbaarheidsbeleid” om een beleid ook na het hernoemen te blijven vinden.",
+  "The first data arrived with the key {{name}}. It shows up within a minute or two.": "De eerste gegevens zijn binnengekomen met de sleutel {{name}}. Ze verschijnen binnen een à twee minuten."
 }

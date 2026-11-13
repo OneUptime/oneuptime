@@ -52119,5 +52119,6 @@
   "Which items the summary includes. An owner condition, such as Incident Owner, names people and teams of this project by ID.": "摘要包含哪些项目。所有者条件（例如“事件所有者”）按 ID 指定此项目的人员和团队。",
   "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "规则适用于哪些事件以及发布到哪里。所有者条件和“值班策略”按 ID 指定此项目的人员、团队和策略。",
   "Matches the people and teams added as owners. Team membership does not count.": "匹配被添加为所有者的人员和团队。仅是团队成员不算。",
-  "To keep matching a policy after it is renamed, use On-Call Policy.": "若要在策略重命名后仍能匹配，请使用“值班策略”。"
+  "To keep matching a policy after it is renamed, use On-Call Policy.": "若要在策略重命名后仍能匹配，请使用“值班策略”。",
+  "The first data arrived with the key {{name}}. It shows up within a minute or two.": "第一批数据已通过密钥 {{name}} 送达。它会在一两分钟内显示。"
 }

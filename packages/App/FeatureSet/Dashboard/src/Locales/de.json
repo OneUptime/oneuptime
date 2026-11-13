@@ -52119,5 +52119,6 @@
   "Which items the summary includes. An owner condition, such as Incident Owner, names people and teams of this project by ID.": "Welche Einträge die Zusammenfassung enthält. Eine Eigentümer-Bedingung wie „Eigentümer des Vorfalls“ nennt Personen und Teams dieses Projekts über ihre ID.",
   "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "Für welche Ereignisse die Regel gilt und wohin sie postet. Eigentümer-Bedingungen und „Bereitschaftsrichtlinie“ nennen Personen, Teams und Richtlinien dieses Projekts über ihre ID.",
   "Matches the people and teams added as owners. Team membership does not count.": "Erfasst die als Eigentümer hinzugefügten Personen und Teams. Die Mitgliedschaft in einem Team zählt nicht.",
-  "To keep matching a policy after it is renamed, use On-Call Policy.": "Damit eine Richtlinie auch nach einer Umbenennung erfasst wird, verwenden Sie „Bereitschaftsrichtlinie“."
+  "To keep matching a policy after it is renamed, use On-Call Policy.": "Damit eine Richtlinie auch nach einer Umbenennung erfasst wird, verwenden Sie „Bereitschaftsrichtlinie“.",
+  "The first data arrived with the key {{name}}. It shows up within a minute or two.": "Die ersten Daten sind mit dem Schlüssel {{name}} eingetroffen. Sie erscheinen innerhalb von ein bis zwei Minuten."
 }

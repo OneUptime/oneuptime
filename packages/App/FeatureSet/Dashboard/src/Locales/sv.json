@@ -52119,5 +52119,6 @@
   "Which items the summary includes. An owner condition, such as Incident Owner, names people and teams of this project by ID.": "Vilka objekt sammanfattningen tar med. Ett ägarvillkor, som ”Ägare av incident”, anger personer och team i det här projektet med id.",
   "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "Vilka händelser regeln gäller och var den publicerar. Ägarvillkor och ”Jourpolicy” anger personer, team och policyer i det här projektet med id.",
   "Matches the people and teams added as owners. Team membership does not count.": "Matchar de personer och team som har lagts till som ägare. Medlemskap i ett team räknas inte.",
-  "To keep matching a policy after it is renamed, use On-Call Policy.": "Använd ”Jourpolicy” för att fortsätta matcha en policy efter att den har bytt namn."
+  "To keep matching a policy after it is renamed, use On-Call Policy.": "Använd ”Jourpolicy” för att fortsätta matcha en policy efter att den har bytt namn.",
+  "The first data arrived with the key {{name}}. It shows up within a minute or two.": "De första data har kommit in med nyckeln {{name}}. De visas inom en minut eller två."
 }

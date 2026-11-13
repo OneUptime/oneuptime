@@ -52119,5 +52119,6 @@
   "Which items the summary includes. An owner condition, such as Incident Owner, names people and teams of this project by ID.": "요약에 포함할 항목입니다. “인시던트 소유자” 같은 소유자 조건은 이 프로젝트의 사람과 팀을 ID로 지정합니다.",
   "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "규칙의 대상이 되는 이벤트와 게시할 곳입니다. 소유자 조건과 “온콜 정책”은 이 프로젝트의 사람, 팀, 정책을 ID로 지정합니다.",
   "Matches the people and teams added as owners. Team membership does not count.": "소유자로 추가된 사람 및 팀과 일치합니다. 팀의 구성원인 것은 포함되지 않습니다.",
-  "To keep matching a policy after it is renamed, use On-Call Policy.": "이름이 바뀐 후에도 정책과 계속 일치하게 하려면 “온콜 정책”을 사용하세요."
+  "To keep matching a policy after it is renamed, use On-Call Policy.": "이름이 바뀐 후에도 정책과 계속 일치하게 하려면 “온콜 정책”을 사용하세요.",
+  "The first data arrived with the key {{name}}. It shows up within a minute or two.": "첫 데이터가 키 {{name}}(으)로 도착했습니다. 1~2분 안에 표시됩니다."
 }

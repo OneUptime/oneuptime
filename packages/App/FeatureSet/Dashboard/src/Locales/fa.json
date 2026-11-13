@@ -52119,5 +52119,6 @@
   "Which items the summary includes. An owner condition, such as Incident Owner, names people and teams of this project by ID.": "خلاصه کدام موارد را شامل می‌شود. شرط مالک، مانند «مالک حادثه»، افراد و تیم‌های همین پروژه را با شناسه مشخص می‌کند.",
   "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "قاعده برای کدام رویدادهاست و کجا منتشر می‌کند. شرط‌های مالک و «سیاست آنکال» افراد، تیم‌ها و سیاست‌های همین پروژه را با شناسه‌شان مشخص می‌کنند.",
   "Matches the people and teams added as owners. Team membership does not count.": "با افراد و تیم‌هایی که به‌عنوان مالک افزوده شده‌اند مطابقت دارد. عضویت در تیم حساب نمی‌شود.",
-  "To keep matching a policy after it is renamed, use On-Call Policy.": "برای اینکه پس از تغییر نام سیاست هم با آن مطابقت داشته باشد، از «سیاست آنکال» استفاده کنید."
+  "To keep matching a policy after it is renamed, use On-Call Policy.": "برای اینکه پس از تغییر نام سیاست هم با آن مطابقت داشته باشد، از «سیاست آنکال» استفاده کنید.",
+  "The first data arrived with the key {{name}}. It shows up within a minute or two.": "نخستین داده‌ها با کلید {{name}} رسیدند. ظرف یکی دو دقیقه نمایش داده می‌شوند."
 }

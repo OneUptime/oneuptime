@@ -52119,5 +52119,6 @@
   "Which items the summary includes. An owner condition, such as Incident Owner, names people and teams of this project by ID.": "العناصر التي يتضمنها الملخص. يحدد شرط المالك، مثل «مالك الحادثة»، أشخاصًا وفرقًا من هذا المشروع بمعرّفاتهم.",
   "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "الأحداث التي تنطبق عليها القاعدة والمكان الذي تنشر فيه. تحدد شروط المالك و«سياسة المناوبة» أشخاصًا وفرقًا وسياسات من هذا المشروع بمعرّفاتها.",
   "Matches the people and teams added as owners. Team membership does not count.": "يطابق الأشخاص والفرق المضافين كمالكين. لا تُحتسب العضوية في فريق.",
-  "To keep matching a policy after it is renamed, use On-Call Policy.": "لمواصلة مطابقة سياسة بعد إعادة تسميتها، استخدم «سياسة المناوبة»."
+  "To keep matching a policy after it is renamed, use On-Call Policy.": "لمواصلة مطابقة سياسة بعد إعادة تسميتها، استخدم «سياسة المناوبة».",
+  "The first data arrived with the key {{name}}. It shows up within a minute or two.": "وصلت البيانات الأولى بالمفتاح {{name}}. تظهر خلال دقيقة أو دقيقتين."
 }

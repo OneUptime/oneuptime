@@ -52119,5 +52119,6 @@
   "Which items the summary includes. An owner condition, such as Incident Owner, names people and teams of this project by ID.": "सारांश में कौन-से आइटम शामिल हैं। स्वामी वाली शर्त, जैसे “घटना का स्वामी”, इसी प्रोजेक्ट के लोगों और टीमों को ID से बताती है।",
   "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "नियम किन इवेंट के लिए है और कहां पोस्ट करता है। स्वामी वाली शर्तें और “ऑन-कॉल नीति” इसी प्रोजेक्ट के लोगों, टीमों और नीतियों को ID से बताती हैं।",
   "Matches the people and teams added as owners. Team membership does not count.": "स्वामी के रूप में जोड़े गए लोगों और टीमों से मेल खाता है। टीम का सदस्य होना नहीं गिना जाता।",
-  "To keep matching a policy after it is renamed, use On-Call Policy.": "नाम बदलने के बाद भी किसी नीति से मेल खाते रहने के लिए “ऑन-कॉल नीति” का उपयोग करें।"
+  "To keep matching a policy after it is renamed, use On-Call Policy.": "नाम बदलने के बाद भी किसी नीति से मेल खाते रहने के लिए “ऑन-कॉल नीति” का उपयोग करें।",
+  "The first data arrived with the key {{name}}. It shows up within a minute or two.": "पहला डेटा कुंजी {{name}} के साथ पहुँच गया है। यह एक-दो मिनट में दिखने लगता है।"
 }

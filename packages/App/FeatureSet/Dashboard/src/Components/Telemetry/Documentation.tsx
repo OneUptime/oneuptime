@@ -84,8 +84,10 @@ export type TelemetryType =
 /*
  * THE SETUP GUIDE TAB'S LAST STEP (issue #6806): the wait the first-run
  * dialog has (TelemetryFirstRunShowcase), so a Setup Guide tab notices the
- * first data too, and links to it on the service that sent it. Profiles
- * listen for their first profile in the guide itself, so they have none.
+ * first data too, and links to it on the service that sent it - or, for
+ * data that names no service (FluentBit's logs), the picked key's first
+ * data and the product's explorer (#7754). Profiles listen for their first
+ * profile in the guide itself, so they have none.
  */
 export const SETUP_GUIDE_FIRST_DATA_TITLE: string = translationKey(
   "Wait for the first data",
@@ -93,20 +95,27 @@ export const SETUP_GUIDE_FIRST_DATA_TITLE: string = translationKey(
 
 export const SETUP_GUIDE_FIRST_DATA_VIEWS: Record<
   Exclude<TelemetryType, "profiles">,
-  { page: PageMap; text: string }
+  { page: PageMap; text: string; dataPage: PageMap }
 > = {
-  logs: { page: PageMap.SERVICE_VIEW_LOGS, text: translationKey("View logs") },
+  logs: {
+    page: PageMap.SERVICE_VIEW_LOGS,
+    text: translationKey("View logs"),
+    dataPage: PageMap.LOGS,
+  },
   metrics: {
     page: PageMap.SERVICE_VIEW_METRICS,
     text: translationKey("View metrics"),
+    dataPage: PageMap.METRICS,
   },
   traces: {
     page: PageMap.SERVICE_VIEW_TRACES,
     text: translationKey("View traces"),
+    dataPage: PageMap.TRACES,
   },
   exceptions: {
     page: PageMap.SERVICE_VIEW_EXCEPTIONS,
     text: translationKey("View exceptions"),
+    dataPage: PageMap.EXCEPTIONS,
   },
 };
 
@@ -120,6 +129,13 @@ export interface ComponentProps {
   serviceName?: string | undefined;
   // Only the guide, in a dialog that has its own title.
   isBare?: boolean | undefined;
+  /*
+   * The key the snippets carry, as it is picked: a dialog that draws its
+   * own last step (TelemetrySetupModal) watches it for the first data.
+   */
+  onSelectedKeyChange?:
+    | ((key: TelemetryIngestionKey | null) => void)
+    | undefined;
 }
 
 /*
@@ -1614,7 +1630,10 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
             : TelemetryIngestionKeyType.Server
         }
         newKeyName={NEW_KEY_NAME_FOR_TYPE[telemetryType]}
-        onSelectedKeyChange={setSelectedKey}
+        onSelectedKeyChange={(key: TelemetryIngestionKey | null): void => {
+          setSelectedKey(key);
+          props.onSelectedKeyChange?.(key);
+        }}
       />
     );
   };
@@ -2621,6 +2640,8 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                 modelType={Service}
                 viewPage={SETUP_GUIDE_FIRST_DATA_VIEWS[telemetryType].page}
                 viewText={SETUP_GUIDE_FIRST_DATA_VIEWS[telemetryType].text}
+                ingestionKey={selectedKey}
+                dataPage={SETUP_GUIDE_FIRST_DATA_VIEWS[telemetryType].dataPage}
               />
             </div>
           )}

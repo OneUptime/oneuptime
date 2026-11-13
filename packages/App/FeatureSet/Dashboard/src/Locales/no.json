@@ -52119,5 +52119,6 @@
   "Which items the summary includes. An owner condition, such as Incident Owner, names people and teams of this project by ID.": "Hvilke elementer sammendraget tar med. En eierbetingelse, som «Eier av hendelse», angir personer og team i dette prosjektet med ID.",
   "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "Hvilke hendelser regelen gjelder for, og hvor den publiserer. Eierbetingelser og «Vaktpolicy» angir personer, team og policyer i dette prosjektet med ID.",
   "Matches the people and teams added as owners. Team membership does not count.": "Samsvarer med personene og teamene som er lagt til som eiere. Teammedlemskap teller ikke.",
-  "To keep matching a policy after it is renamed, use On-Call Policy.": "Bruk «Vaktpolicy» for å fortsette å samsvare med en retningslinje etter at den har fått nytt navn."
+  "To keep matching a policy after it is renamed, use On-Call Policy.": "Bruk «Vaktpolicy» for å fortsette å samsvare med en retningslinje etter at den har fått nytt navn.",
+  "The first data arrived with the key {{name}}. It shows up within a minute or two.": "De første dataene har kommet inn med nøkkelen {{name}}. De vises innen et minutt eller to."
 }

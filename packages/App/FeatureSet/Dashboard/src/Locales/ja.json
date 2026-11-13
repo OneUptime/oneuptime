@@ -52119,5 +52119,6 @@
   "Which items the summary includes. An owner condition, such as Incident Owner, names people and teams of this project by ID.": "概要に含める項目です。「インシデントの所有者」のような所有者の条件は、このプロジェクトの人とチームを ID で指定します。",
   "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.": "ルールの対象となるイベントと投稿先です。所有者の条件と「オンコールポリシー」は、このプロジェクトの人、チーム、ポリシーを ID で指定します。",
   "Matches the people and teams added as owners. Team membership does not count.": "所有者として追加されたユーザーとチームに一致します。チームのメンバーであることは含まれません。",
-  "To keep matching a policy after it is renamed, use On-Call Policy.": "名前が変更された後もポリシーに一致させるには、「オンコールポリシー」を使用してください。"
+  "To keep matching a policy after it is renamed, use On-Call Policy.": "名前が変更された後もポリシーに一致させるには、「オンコールポリシー」を使用してください。",
+  "The first data arrived with the key {{name}}. It shows up within a minute or two.": "最初のデータがキー {{name}} で届きました。1〜2 分以内に表示されます。"
 }
