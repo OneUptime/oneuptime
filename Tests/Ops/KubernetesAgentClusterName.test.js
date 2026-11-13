@@ -352,7 +352,9 @@ function expected(places, name) {
   return Object.fromEntries(
     places
       .filter((place) => {
-        return !(place.endsWith(" OTEL_RESOURCE_ATTRIBUTES") && trimmed.includes(","));
+        return !(
+          place.endsWith(" OTEL_RESOURCE_ATTRIBUTES") && trimmed.includes(",")
+        );
       })
       .map((place) => {
         if (place.endsWith(" service.name")) {
@@ -391,23 +393,24 @@ const NAMES = [
 ];
 
 describe("the kubernetes-agent chart hands its cluster name to every component whole", () => {
-  testWithHelm.each(NAMES.map((name) => {
-    return [JSON.stringify(name), name];
-  }))("with every component on, the name %s", (_label, name) => {
+  testWithHelm.each(
+    NAMES.map((name) => {
+      return [JSON.stringify(name), name];
+    }),
+  )("with every component on, the name %s", (_label, name) => {
     const found = clusterNames(render({ ...EVERYTHING, clusterName: name }));
 
     expect(found).toEqual(expected(PLACES.everything, name));
   });
 
-  testWithHelm.each([
-    ['prod "eu"'],
-    ["  prod,eu\n"],
-    ["prod\\eu: x #y"],
-  ])("with the log tailer reading pod logs, the name %j", (name) => {
-    const found = clusterNames(render({ ...LOG_TAILER, clusterName: name }));
+  testWithHelm.each([['prod "eu"'], ["  prod,eu\n"], ["prod\\eu: x #y"]])(
+    "with the log tailer reading pod logs, the name %j",
+    (name) => {
+      const found = clusterNames(render({ ...LOG_TAILER, clusterName: name }));
 
-    expect(found).toEqual(expected(PLACES.logTailer, name));
-  });
+      expect(found).toEqual(expected(PLACES.logTailer, name));
+    },
+  );
 
   testWithHelm(
     "OBI reads the trimmed name back from OTEL_RESOURCE_ATTRIBUTES, and nothing else",
@@ -415,9 +418,7 @@ describe("the kubernetes-agent chart hands its cluster name to every component w
       for (const name of NAMES.filter((each) => {
         return !each.includes(",");
       })) {
-        const found = clusterNames(
-          render({ ...BASE, clusterName: name }),
-        );
+        const found = clusterNames(render({ ...BASE, clusterName: name }));
 
         expect({
           name,

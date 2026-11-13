@@ -239,7 +239,7 @@ describe("the scan of values built from several pieces finds a setting spliced i
     "  - name: K",
     '    value: "app.kubernetes.io/instance={{ .Release.Name }}"',
     "  - name: L",
-    '    value: {{ if $.Values.a }}{{ $.Values.a | quote }}{{ else }}{{ $.Values.b | quote }}{{ end }}',
+    "    value: {{ if $.Values.a }}{{ $.Values.a | quote }}{{ else }}{{ $.Values.b | quote }}{{ end }}",
     "  - name: M",
     '    value: {{ if kindIs "bool" ($.Values.c).d }}{{ ternary "true" "false" ($.Values.c).d | quote }}{{ else }}""{{ end }}',
     "  - name: N",
@@ -274,9 +274,12 @@ describe("the scan of values built from several pieces finds a setting spliced i
     for (const name of ["H", "I", "J", "K", "L", "M", "N", "O"]) {
       const line = sample.split("\n").indexOf(`  - name: ${name}`) + 2;
 
-      expect({ name, refused: kept.some((entry) => {
-        return entry.startsWith(`${line}: `);
-      }) }).toEqual({ name, refused: false });
+      expect({
+        name,
+        refused: kept.some((entry) => {
+          return entry.startsWith(`${line}: `);
+        }),
+      }).toEqual({ name, refused: false });
     }
   });
 
@@ -1081,7 +1084,10 @@ describe("every copy of a setting the chart keeps beside the pods' env holds wha
    * for the app, and so for KEDA.
    */
   for (const [layout, values] of [
-    ["an inline key read from a file", { oneuptimeSecret: fromAFile("k: v #1") }],
+    [
+      "an inline key read from a file",
+      { oneuptimeSecret: fromAFile("k: v #1") },
+    ],
     [
       "an inline key beside a Secret of the user's",
       {
@@ -1211,26 +1217,23 @@ describe("every copy of a setting the chart keeps beside the pods' env holds wha
     },
   );
 
-  testWithHelm(
-    "CloudNativePG creates the database the app connects to",
-    () => {
-      const documents = render(
-        deepMerge(ALL_ON, {
-          postgresOperator: {
-            cnpg: { enabled: true, database: fromAFile("oneuptime-db") },
-          },
-        }),
-      );
+  testWithHelm("CloudNativePG creates the database the app connects to", () => {
+    const documents = render(
+      deepMerge(ALL_ON, {
+        postgresOperator: {
+          cnpg: { enabled: true, database: fromAFile("oneuptime-db") },
+        },
+      }),
+    );
 
-      expect(
-        documentOf(documents, "Cluster", "oneuptime-postgresql-cnpg").spec
-          .bootstrap.initdb.database,
-      ).toBe("oneuptime-db");
-      expect(podsMisread(documents, { DATABASE_NAME: "oneuptime-db" })).toEqual(
-        [],
-      );
-    },
-  );
+    expect(
+      documentOf(documents, "Cluster", "oneuptime-postgresql-cnpg").spec
+        .bootstrap.initdb.database,
+    ).toBe("oneuptime-db");
+    expect(podsMisread(documents, { DATABASE_NAME: "oneuptime-db" })).toEqual(
+      [],
+    );
+  });
 
   testWithHelm(
     "the Altinity installation creates the user the app connects as",
