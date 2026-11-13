@@ -2187,13 +2187,14 @@ const IncidentCreate: FunctionComponent<
                       true,
                   },
 
-                  title: "Notify Status Page Subscribers",
-                  stepId: "resources-affected",
                   /*
                    * Starts as the project says (Incidents > Settings >
-                   * Subscriber Notifications). Where that is unticked, the
+                   * Subscriber Notifications, #7606): ticked unless the
+                   * project turned that off. Where it starts unticked, its
                    * question says so, here and on the summary.
                    */
+                  title: "Notify Status Page Subscribers",
+                  stepId: "resources-affected",
                   description: getNotifyBoxDescription(
                     newIncidentNotifyDefault.isTickedByDefault,
                   ),
@@ -2221,6 +2222,11 @@ const IncidentCreate: FunctionComponent<
                    * reaches under them. There is nothing to preview when
                    * nothing will be sent: notifying is off, the incident
                    * will be private, or it is on no monitor.
+                   *
+                   * Where the project starts the box unticked, its "No" has
+                   * "Change to Yes" beside it ("No · Change to Yes"):
+                   * telling subscribers is one click on the last step, not
+                   * three back on Resources Affected (canTickNotifyOnReview).
                    */
                   getSummaryElement: (item: FormValues<Incident>) => {
                     return (
@@ -2253,12 +2259,6 @@ const IncidentCreate: FunctionComponent<
                           ) : (
                             <></>
                           )}
-                          {/*
-                           * "No · Change to Yes", where the project starts
-                           * the box unticked: telling subscribers is one
-                           * click on the last step, not three back on
-                           * Resources Affected.
-                           */}
                           {canTickNotifyOnReview(item) ? (
                             <NotifySubscribersChangeToYes
                               onClick={tickNotifyOnReview}
