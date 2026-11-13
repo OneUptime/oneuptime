@@ -73,9 +73,9 @@ describe("NewIncidentSubscriberNotificationDefault.isTickedByDefault", () => {
     const on: Project = new Project();
     on.notifyStatusPageSubscribersOfNewIncidentsByDefault = true;
 
-    expect(NewIncidentSubscriberNotificationDefault.isTickedByDefault(off)).toBe(
-      false,
-    );
+    expect(
+      NewIncidentSubscriberNotificationDefault.isTickedByDefault(off),
+    ).toBe(false);
     expect(NewIncidentSubscriberNotificationDefault.isTickedByDefault(on)).toBe(
       true,
     );

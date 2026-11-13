@@ -152,7 +152,9 @@ async function theSwitch(): Promise<HTMLElement> {
 }
 
 function theRow(): HTMLElement {
-  return screen.getByTestId(`${NEW_INCIDENT_NOTIFY_DEFAULT_SWITCH_TEST_ID}-row`);
+  return screen.getByTestId(
+    `${NEW_INCIDENT_NOTIFY_DEFAULT_SWITCH_TEST_ID}-row`,
+  );
 }
 
 async function press(control: HTMLElement): Promise<void> {
@@ -321,7 +323,9 @@ describe("Incidents → Settings → Subscriber Notifications", () => {
     ).toBe(Project);
     expect(control).toHaveAttribute("aria-checked", "false");
     expect(
-      screen.getByTestId(`${NEW_INCIDENT_NOTIFY_DEFAULT_SWITCH_TEST_ID}-status`),
+      screen.getByTestId(
+        `${NEW_INCIDENT_NOTIFY_DEFAULT_SWITCH_TEST_ID}-status`,
+      ),
     ).toHaveTextContent("Saved");
     expect(theRow()).toHaveTextContent(OFF_DESCRIPTION);
   });
@@ -417,9 +421,7 @@ describe("Incidents → Settings → Subscriber Notifications", () => {
       "notifyStatusPageSubscribersOfNewIncidentsByDefault",
     );
     expect(
-      getProjectColumnsUpdatePermissions([
-        COLUMN as keyof Project & string,
-      ]),
+      getProjectColumnsUpdatePermissions([COLUMN as keyof Project & string]),
     ).toEqual([Permission.ProjectOwner, Permission.ProjectAdmin]);
     expect(
       getProjectColumnsPermissionMessage([COLUMN as keyof Project & string]),
@@ -448,7 +450,9 @@ describe("Incidents → Settings → Subscriber Notifications", () => {
       NEW_INCIDENT_NOTIFY_DEFAULT_SWITCH_TEST_ID,
     );
     // No third line under the switch, whichever way it is set.
-    expect(Object.keys(NEW_INCIDENT_NOTIFY_DEFAULT_SETTING_COPY).sort()).toEqual(
+    expect(
+      Object.keys(NEW_INCIDENT_NOTIFY_DEFAULT_SETTING_COPY).sort(),
+    ).toEqual(
       [
         "cardDescription",
         "cardTitle",

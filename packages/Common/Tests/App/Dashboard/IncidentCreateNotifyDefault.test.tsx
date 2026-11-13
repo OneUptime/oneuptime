@@ -420,7 +420,9 @@ describe("a project that kept Notify status page subscribers by default on", () 
 
     expect(box).toBeChecked();
     expect(screen.getByText(QUESTION, { exact: false })).toBeInTheDocument();
-    expect(screen.queryByText(UNTICKED_BY_DEFAULT, { exact: false })).toBeNull();
+    expect(
+      screen.queryByText(UNTICKED_BY_DEFAULT, { exact: false }),
+    ).toBeNull();
 
     await toReviewFromResources(user);
 
@@ -431,9 +433,7 @@ describe("a project that kept Notify status page subscribers by default on", () 
 
     const incident: Incident = await declare(user);
 
-    expect((incident as unknown as Record<string, unknown>)[NOTIFY]).toBe(
-      true,
-    );
+    expect((incident as unknown as Record<string, unknown>)[NOTIFY]).toBe(true);
   });
 
   test("whoever declares can still untick it: the incident is declared quiet", async () => {
@@ -568,9 +568,7 @@ describe("a project that turned Notify status page subscribers by default off", 
 
     const incident: Incident = await declare(user);
 
-    expect((incident as unknown as Record<string, unknown>)[NOTIFY]).toBe(
-      true,
-    );
+    expect((incident as unknown as Record<string, unknown>)[NOTIFY]).toBe(true);
   });
 
   test("declaring from a template: the box still starts as the project says", async () => {
@@ -668,9 +666,7 @@ describe("the review's Change to Yes", () => {
 
     const incident: Incident = await declare(user);
 
-    expect((incident as unknown as Record<string, unknown>)[NOTIFY]).toBe(
-      true,
-    );
+    expect((incident as unknown as Record<string, unknown>)[NOTIFY]).toBe(true);
   });
 
   test("Change to Yes is the box: going back to Resources Affected shows it ticked", async () => {
@@ -784,7 +780,9 @@ describe("when the project's choice is not known", () => {
     await toResourcesAffected(user);
 
     expect(await openNotifyBox(user)).toBeChecked();
-    expect(screen.queryByText(UNTICKED_BY_DEFAULT, { exact: false })).toBeNull();
+    expect(
+      screen.queryByText(UNTICKED_BY_DEFAULT, { exact: false }),
+    ).toBeNull();
   });
 
   test("a project that cannot be read starts it ticked, and the form still opens", async () => {
@@ -805,9 +803,7 @@ describe("when the project's choice is not known", () => {
 
     const incident: Incident = await declare(user);
 
-    expect((incident as unknown as Record<string, unknown>)[NOTIFY]).toBe(
-      true,
-    );
+    expect((incident as unknown as Record<string, unknown>)[NOTIFY]).toBe(true);
   });
 
   test("a read that finds no project starts it ticked", async () => {

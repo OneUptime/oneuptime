@@ -30,7 +30,8 @@ import { AddNotifySubscribersOfNewIncidentsByDefault1809150300000 } from "../../
  */
 
 const MIGRATION_TIMESTAMP: string = "1809150300000";
-const MIGRATION_BASE_NAME: string = "AddNotifySubscribersOfNewIncidentsByDefault";
+const MIGRATION_BASE_NAME: string =
+  "AddNotifySubscribersOfNewIncidentsByDefault";
 const MIGRATION_FILE_NAME: string = `${MIGRATION_TIMESTAMP}-${MIGRATION_BASE_NAME}.ts`;
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_BASE_NAME}${MIGRATION_TIMESTAMP}`;
 const COLUMN: string = "notifyStatusPageSubscribersOfNewIncidentsByDefault";
@@ -146,9 +147,11 @@ describe("the column it makes", () => {
     for (const neighbour of NEIGHBOURING_INCIDENT_SWITCHES) {
       const column: ColumnMetadataArgs | undefined = columnOf(neighbour);
 
-      expect([neighbour, column?.options.type, column?.options.nullable]).toEqual(
-        [neighbour, "boolean", false],
-      );
+      expect([
+        neighbour,
+        column?.options.type,
+        column?.options.nullable,
+      ]).toEqual([neighbour, "boolean", false]);
     }
   });
 });
@@ -196,9 +199,10 @@ describe("who reads and changes it", () => {
       Permission.EditProject,
       Permission.ProjectUser,
     ]) {
-      expect([permission, accessOf(COLUMN).update.includes(permission)]).toEqual(
-        [permission, false],
-      );
+      expect([
+        permission,
+        accessOf(COLUMN).update.includes(permission),
+      ]).toEqual([permission, false]);
     }
   });
 });

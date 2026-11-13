@@ -451,18 +451,27 @@ describe.each(["de", "ar"])("drawn in %s", (language: string) => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        word(language, NEW_INCIDENT_NOTIFY_DEFAULT_SETTING_COPY.cardDescription),
+        word(
+          language,
+          NEW_INCIDENT_NOTIFY_DEFAULT_SETTING_COPY.cardDescription,
+        ),
       ),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("switch", {
-        name: word(language, NEW_INCIDENT_NOTIFY_DEFAULT_SETTING_COPY.switchTitle),
+        name: word(
+          language,
+          NEW_INCIDENT_NOTIFY_DEFAULT_SETTING_COPY.switchTitle,
+        ),
       }),
     ).toBe(control);
     expect(
       screen.getByTestId(`${NEW_INCIDENT_NOTIFY_DEFAULT_SWITCH_TEST_ID}-row`),
     ).toHaveTextContent(
-      word(language, NEW_INCIDENT_NOTIFY_DEFAULT_SETTING_COPY.switchOnDescription),
+      word(
+        language,
+        NEW_INCIDENT_NOTIFY_DEFAULT_SETTING_COPY.switchOnDescription,
+      ),
     );
     expect(englishLeft()).toEqual([]);
   });
@@ -486,7 +495,10 @@ describe.each(["de", "ar"])("drawn in %s", (language: string) => {
     const user: UserEvent = userEvent.setup({ delay: null });
     const next: () => Promise<void> = async (): Promise<void> => {
       await user.click(
-        screen.getByRole("button", { name: word(language, "Next"), exact: true }),
+        screen.getByRole("button", {
+          name: word(language, "Next"),
+          exact: true,
+        }),
       );
     };
 
@@ -511,7 +523,9 @@ describe.each(["de", "ar"])("drawn in %s", (language: string) => {
 
     // Resources Affected: the box, folded, unticked, its question saying so.
     await user.click(
-      await screen.findByRole("button", { name: word(language, "More fields") }),
+      await screen.findByRole("button", {
+        name: word(language, "More fields"),
+      }),
     );
     const box: HTMLElement = await screen.findByRole("checkbox", {
       name: new RegExp(escapeForPattern(word(language, BOX))),
@@ -579,9 +593,8 @@ describe.each(["de", "ar"])("drawn in %s", (language: string) => {
       expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
     });
     expect(
-      (
-        createOrUpdateMock.mock.calls[0]?.[0] as { model: Incident }
-      ).model.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+      (createOrUpdateMock.mock.calls[0]?.[0] as { model: Incident }).model
+        .shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
     ).toBe(true);
   });
 });

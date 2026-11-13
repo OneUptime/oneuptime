@@ -28,7 +28,10 @@
  */
 
 // The Project column that says how the box starts.
-export const NEW_INCIDENT_NOTIFY_DEFAULT_COLUMN: "notifyStatusPageSubscribersOfNewIncidentsByDefault" =
+export type NewIncidentNotifyDefaultColumn =
+  "notifyStatusPageSubscribersOfNewIncidentsByDefault";
+
+export const NEW_INCIDENT_NOTIFY_DEFAULT_COLUMN: NewIncidentNotifyDefaultColumn =
   "notifyStatusPageSubscribersOfNewIncidentsByDefault";
 
 export interface NewIncidentNotifyDefaultSetting {

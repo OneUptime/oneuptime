@@ -486,7 +486,9 @@ describe("Declare Incident", () => {
     expect(source).toContain(
       'return ( !newIncidentNotifyDefault.isTickedByDefault && !isNotifyTicked(values) && (values as Record<string, unknown>)["isPrivate"] !== true );',
     );
-    expect(source).not.toContain("Status page subscribers will not be notified");
+    expect(source).not.toContain(
+      "Status page subscribers will not be notified",
+    );
   });
 });
 

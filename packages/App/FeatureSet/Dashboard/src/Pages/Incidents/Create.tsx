@@ -2225,8 +2225,9 @@ const IncidentCreate: FunctionComponent<
                    *
                    * Where the project starts the box unticked, its "No" has
                    * "Change to Yes" beside it ("No · Change to Yes"):
-                   * telling subscribers is one click on the last step, not
-                   * three back on Resources Affected (canTickNotifyOnReview).
+                   * telling subscribers is one click on the last step,
+                   * rather than going back two steps and opening More fields
+                   * on Resources Affected (canTickNotifyOnReview).
                    */
                   getSummaryElement: (item: FormValues<Incident>) => {
                     return (

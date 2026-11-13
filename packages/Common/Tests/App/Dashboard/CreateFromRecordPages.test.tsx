@@ -576,9 +576,9 @@ describe("Declare Incident, from a monitor's Incidents tab", () => {
     const incident: Incident = sentModel<Incident>();
 
     expect(idsOf(incident.monitors)).toEqual([MONITOR_ID]);
-    expect(incident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated).toBe(
-      false,
-    );
+    expect(
+      incident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+    ).toBe(false);
   });
 
   test("in a project that keeps it ticked, the incident declared on the monitor tells them, as always", async () => {
@@ -590,7 +590,8 @@ describe("Declare Incident, from a monitor's Incidents tab", () => {
     await submit("Declare Incident");
 
     expect(
-      sentModel<Incident>().shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+      sentModel<Incident>()
+        .shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
     ).toBe(true);
   });
 

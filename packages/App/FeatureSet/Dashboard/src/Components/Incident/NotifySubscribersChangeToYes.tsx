@@ -14,8 +14,9 @@ import {
  * Subscribers on the last step of Declare New Incident, in a project that
  * starts the box unticked (#7606, NewIncidentNotifyDefaultCopy). Pressing
  * it ticks the box - the incident will then be declared notifying, and the
- * line reads "Yes · Preview" with who that reaches under it. Nothing is
- * sent until the incident is declared.
+ * line reads "Yes", with "Preview" beside it and who that reaches under it
+ * when the incident is on a monitor. Nothing is sent until the incident is
+ * declared.
  *
  * It is drawn as the Preview link on the same line is (its classes, so the
  * two cannot drift apart and the dark theme covers both), as one word or
