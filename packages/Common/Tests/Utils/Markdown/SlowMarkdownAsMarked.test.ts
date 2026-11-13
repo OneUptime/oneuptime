@@ -68,11 +68,11 @@ function heldBack(text: string, limits: SlowMarkdownLimits): Array<string> {
   const holder: SlowMarkdownHolder = {
     holdLines: (lines: string): string => {
       held.push(lines);
-      return `${held.length - 1}`;
+      return `\uE005${held.length - 1}\uE006`;
     },
     holdCode: (code: string): string => {
       held.push(code);
-      return `${held.length - 1}`;
+      return `\uE005${held.length - 1}\uE006`;
     },
   };
 

@@ -735,7 +735,7 @@ describe("OverLongText - a link across the start of a line's middle (#7229)", ()
 describe("OverLongText - a link across the end of a line's middle (#7229)", () => {
   const ADDRESS: string = `https://example.com/${"a".repeat(2000)}`;
   const WORDS: string = repeatTo("lorem ipsum ", 70000).trim();
-  const TOKEN: RegExp = /\d+/;
+  const TOKEN: RegExp = /\uE005\d+\uE006/;
 
   interface HeldLine {
     // What the parser reads of the line, between the tokens.
@@ -865,6 +865,18 @@ describe("OverLongText - a link across the end of a line's middle (#7229)", () =
     expect(heldLine.inView[1]).toBe(" ".repeat(64));
     expect(heldLine.held).toHaveLength(2);
     expect(heldLine.held[1]!.startsWith(`"${WORDS.slice(0, 20)}`)).toBe(true);
+  });
+
+  test("after white space too long to keep before a link's ')', a link across the end still keeps its opening in view", () => {
+    // 64 spaces and the ")": one character more than is kept.
+    const line: string = `[Run](${ADDRESS}${" ".repeat(64)}) ${WORDS} see [Again](${ADDRESS}) now`;
+
+    const heldLine: HeldLine = holdBackLine(line);
+
+    expect(heldLine.inView.slice(1, 3)).toEqual([" ".repeat(64), "[Again]("]);
+    expect(heldLine.held).toHaveLength(3);
+    expect(heldLine.held[1]!.startsWith(`) ${WORDS.slice(0, 20)}`)).toBe(true);
+    expect(heldLine.held[1]!.endsWith(" see ")).toBe(true);
   });
 
   test("an escaped '!' before the '[' opens a link, not an image: the '!' stays in the middle's piece", () => {

@@ -465,6 +465,17 @@ describe("Markdown email renderer - a link across the end of an over-long line's
       expect(html).not.toContain("[the dashboard](");
     }
   });
+
+  test("a link at a long line's end is a link even after white space too long to keep before an earlier link's ')'", async () => {
+    const html: string = await render(
+      `[Run](${ADDRESS}${" ".repeat(64)}) ${WORDS} see [Again](${ADDRESS}) now`,
+    );
+
+    expect(html.endsWith(` see <a href="${ADDRESS}">Again</a> now</p>\n`)).toBe(
+      true,
+    );
+    expect(html).not.toContain("[Again](");
+  });
 });
 
 describe("Markdown email renderer - the last resort", () => {

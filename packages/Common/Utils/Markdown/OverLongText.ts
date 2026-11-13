@@ -700,14 +700,12 @@ const holdBackMiddle: (data: {
     }
   };
 
-  // Whether white space too long to keep ended holdBackLinkParts.
-  let isSeparatorTooLong: boolean = false;
-
   /*
    * While `linkReading` is in a link, from `from` on: holds back an
    * address's and a title's own characters, and keeps what parts them in
-   * view. Returns where it stopped - where the link ended, at the middle's
-   * end, or at white space too long to keep (isSeparatorTooLong).
+   * view. Returns where it stopped: where the link ended, the middle's
+   * end, or where the white space - or the ")" after it - that made what
+   * is kept too long starts. The reading has read that part already.
    */
   const holdBackLinkParts: (
     linkReading: LinkReading,
@@ -738,7 +736,6 @@ const holdBackMiddle: (data: {
         separatorLength += next - at;
 
         if (separatorLength > MAX_KEPT_SEPARATOR_LENGTH) {
-          isSeparatorTooLong = true;
           break;
         }
 
@@ -975,11 +972,12 @@ const holdBackMiddle: (data: {
   }
 
   /*
-   * Read on for a link across the middle's end - unless white space too
-   * long to keep left the reading where it does not know the line's parts
-   * (or the link across the start runs on to the end).
+   * Read on for a link across the middle's end - unless the reading is
+   * still in the link across its start: it runs on to the end, or white
+   * space too long to keep parts it. A ")" after white space too long
+   * to keep ended the link: it is held back, and read again as text.
    */
-  if (isSeparatorTooLong || isInLink(reading)) {
+  if (isInLink(reading)) {
     holdTo(middleEnd);
   } else {
     holdBackToEnd(index);
