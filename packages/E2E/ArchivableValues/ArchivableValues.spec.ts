@@ -744,6 +744,11 @@ test.describe("what really uses a severity", () => {
     ]);
   });
 
+  /*
+   * Only each person's rules for the severity go, never their whole How to
+   * Reach Me: the line names the rules, then the page they are kept on
+   * (#7816).
+   */
   test("Delete of a severity only people's rules use says whose rules go with it", async ({
     page,
   }: {
@@ -757,7 +762,7 @@ test.describe("what really uses a severity", () => {
     await expect(dialog(page)).toContainText("Deleting it also changes these:");
     await expect(
       dialog(page).getByTestId("archivable-value-delete-group-Deleted"),
-    ).toHaveText("•Deleted with it: 2 people's How to Reach Me");
+    ).toHaveText("•Deleted with it: 2 people's rules in How to Reach Me");
 
     await dialogScreenshot(page, "delete-dialog-people-1280-light");
   });
@@ -867,7 +872,7 @@ test.describe("Bulk Actions > Delete of severities", () => {
     // Two values go: what goes is deleted with them.
     await expect(
       changes.getByTestId("archivable-value-delete-group-Deleted"),
-    ).toHaveText("•Deleted with them: 2 people's How to Reach Me");
+    ).toHaveText("•Deleted with them: 2 people's rules in How to Reach Me");
     await expect(
       changes.getByTestId("archivable-value-delete-group-RemovedFromList"),
     ).toHaveText("•Removed from: Incident Label Rules (1)");
@@ -1029,6 +1034,11 @@ interface LanguageCase {
   link: string;
   // The bulk Delete's line about the refused one.
   refused: string;
+  /*
+   * And its line about what goes with Minor, the one it deletes: the rules
+   * of the 2 people who have rules for it, in their How to Reach Me.
+   */
+  deleted: string;
   // The archived severity's card on the How to Reach Me page.
   archivedTag: string;
   archivedCard: string;
@@ -1045,6 +1055,8 @@ const LANGUAGES: Array<LanguageCase> = [
     link: "Wie ich erreichbar bin öffnen",
     refused:
       "Critical kann nicht gelöscht werden, solange Folgendes darauf verweist:",
+    deleted:
+      "Werden mitgelöscht: Regeln von 2 Personen in „Wie ich erreichbar bin“",
     archivedTag: "Archiviert",
     archivedCard:
       "Wie Sie bei Vorfällen benachrichtigt werden, die diesen Schweregrad noch haben.",
@@ -1059,6 +1071,8 @@ const LANGUAGES: Array<LanguageCase> = [
       "نفر در «راه‌های تماس با من» برای این شدت قاعده دارند. این قواعد همان‌طور که هستند می‌مانند، پس حادثه‌هایی با این شدت همچنان آن‌ها را فرا می‌خوانند.",
     link: "باز کردن راه‌های تماس با من",
     refused: "نمی‌توان آن را حذف کرد",
+    // Its count in Persian digits.
+    deleted: "همراه آن حذف می‌شوند: قواعد ۲ نفر در «راه‌های تماس با من»",
     archivedTag: "بایگانی‌شده",
     archivedCard: "که هنوز این شدت را دارند",
   },
@@ -1141,6 +1155,11 @@ for (const language of LANGUAGES) {
           await expect(
             dialog(page).getByTestId("archivable-values-bulk-delete-changes"),
           ).toBeVisible();
+          await expect(
+            dialog(page)
+              .getByTestId("archivable-values-bulk-delete-changes")
+              .getByTestId("archivable-value-delete-group-Deleted"),
+          ).toHaveText(`•${language.deleted}`);
 
           const bulkBox: { x: number; width: number } =
             await restingDialogBox(page);

@@ -15,8 +15,10 @@ import {
   getOnCallAcknowledgePageMoment,
   getOnCallAcknowledgePagePersonName,
   isOnCallAcknowledgePageOpen,
+  isOnCallPageAnsweredAsAPage,
   isOnCallPageEndedOnlyByAnAnswer,
 } from "../../../Types/OnCallDutyPolicy/OnCallAcknowledgePage";
+import UserNotificationEventType from "../../../Types/UserNotification/UserNotificationEventType";
 import { ON_CALL_PASS_ON_NO_BREAK_SPACE } from "../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 import Timezone from "../../../Types/Timezone";
 
@@ -65,6 +67,16 @@ const PERSON_PAGE_RUN: OnCallAcknowledgePageRun = {
 const OBSERVER_RUN: OnCallAcknowledgePageRun = {
   ...POLICY_RUN,
   isObserverPage: true,
+};
+
+/*
+ * An on-call policy a person started by hand - Execute On-Call Policy
+ * (OnCallPolicyStartedByHand).
+ */
+const HAND_STARTED_RUN: OnCallAcknowledgePageRun = {
+  ...POLICY_RUN,
+  triggeredByUserId: ANA,
+  userNotificationEventType: UserNotificationEventType.IncidentCreated,
 };
 
 const OPEN_RECORD: OnCallAcknowledgePageRecord = {
@@ -118,6 +130,20 @@ describe("isOnCallPageEndedOnlyByAnAnswer: the pages the record being acknowledg
     ["a page again", PAGE_AGAIN_RUN, true],
     ["a page a person asked for", PERSON_PAGE_RUN, true],
     ["an observer's page", OBSERVER_RUN, true],
+    ["a policy a person started by hand", HAND_STARTED_RUN, true],
+    [
+      "a policy a workflow started as a person",
+      { ...HAND_STARTED_RUN, triggeredByWorkflowId: WORKFLOW },
+      false,
+    ],
+    [
+      "a test of a policy a person sent (OnCallTestPage)",
+      {
+        ...HAND_STARTED_RUN,
+        userNotificationEventType: UserNotificationEventType.TestPage,
+      },
+      false,
+    ],
     [
       "a direct page a workflow started (no person asked for it)",
       {
@@ -293,10 +319,37 @@ describe("a resolved record ends every page of it", () => {
   });
 });
 
-describe("a page again, a person's page and an observer's page go on until one of their people answers", () => {
+describe("isOnCallPageAnsweredAsAPage: the pages answered with Acknowledge again once their record is acknowledged", () => {
+  test.each([
+    ["a page again", PAGE_AGAIN_RUN, true],
+    ["a page a person asked for", PERSON_PAGE_RUN, true],
+    ["a policy a person started by hand", HAND_STARTED_RUN, true],
+    // An observer says they have seen it instead.
+    ["an observer's page", OBSERVER_RUN, false],
+    [
+      "an observer's page a person started by hand",
+      { ...HAND_STARTED_RUN, isObserverPage: true },
+      false,
+    ],
+    ["a policy's run OneUptime started", POLICY_RUN, false],
+    ["no run", null, false],
+  ])(
+    "%s: %p",
+    (
+      _name: string,
+      run: OnCallAcknowledgePageRun | null,
+      expected: boolean,
+    ) => {
+      expect(isOnCallPageAnsweredAsAPage(run)).toBe(expected);
+    },
+  );
+});
+
+describe("a page again, a person's page, a policy started by hand and an observer's page go on until one of their people answers", () => {
   const RUNS: Array<[string, OnCallAcknowledgePageRun]> = [
     ["a page again", PAGE_AGAIN_RUN],
     ["a page a person asked for", PERSON_PAGE_RUN],
+    ["a policy a person started by hand", HAND_STARTED_RUN],
     ["an observer's page", OBSERVER_RUN],
   ];
 

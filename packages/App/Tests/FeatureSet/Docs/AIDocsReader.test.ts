@@ -1,10 +1,12 @@
 import DocsAIReader, {
+  AIDocsLanguageIndex,
   normalizeDocsPage,
   splitDocsSections,
   stemDocsWord,
   tokenizeForDocs,
   tokenizeQueryForDocs,
 } from "../../../FeatureSet/Docs/Utils/AIDocsReader";
+import { makeDocsIndex } from "./DocsSearchHelpers";
 import {
   AIDocsPage,
   AIDocsSearchHit,
@@ -37,7 +39,17 @@ const CONTENT: string = path.resolve(
   "../../../FeatureSet/Docs/Content",
 );
 
+const BUILD_TIMEOUT_MS: number = 600000;
+
 const reader: DocsAIReader = new DocsAIReader();
+
+// German "how do I" questions, each with the page named for what it asks about.
+const NAMED_FOR_THE_QUESTION: Array<[string, string]> = [
+  // Website-Überwachung, not "Wie ich erreichbar bin" (How to Reach Me).
+  ["Wie überwache ich meine Website?", "monitor/website-monitor"],
+  ["Wie erstelle ich eine Bereitschaftsrichtlinie?", "on-call/policies"],
+  ["Wie erstelle ich einen Monitor?", "monitor/create-monitor"],
+];
 
 describe("normalizeDocsPage", () => {
   test("reads a page however the model passes it", () => {
@@ -90,6 +102,36 @@ describe("the words a question and a page are compared by", () => {
       expect.arrayContaining(["text", "sms"]),
     );
     expect(tokenizeForDocs("get a text")).not.toContain("sms");
+  });
+
+  test("leaves a German question's own words out of it, not out of a page (#7799)", () => {
+    // The German docs say "Sie" and "Ihre": a question's "ich" and "meine" are on few pages.
+    expect(
+      tokenizeQueryForDocs("Wie überwache ich meine Website?", "de"),
+    ).toEqual(["uberwach", "websit"]);
+    expect(
+      tokenizeQueryForDocs(
+        "Wie kann man einen Bereitschaftsplan für unser Team einrichten?",
+        "de",
+      ),
+    ).toEqual(["bereitschaftsplan", "team", "einricht"]);
+    // A page keeps them: "Wie ich erreichbar bin" is a page's name.
+    expect(tokenizeForDocs("Wie ich erreichbar bin")).toEqual([
+      "wie",
+      "ich",
+      "erreichbar",
+      "bin",
+    ]);
+    // An English question reads as it did: "ist" is German's, IST a time zone.
+    expect(tokenizeQueryForDocs("How do I monitor my website?")).toEqual([
+      "monitor",
+      "websit",
+    ]);
+    expect(tokenizeQueryForDocs("How do I show times in IST?", "en")).toEqual([
+      "show",
+      "tim",
+      "ist",
+    ]);
   });
 });
 
@@ -177,6 +219,85 @@ describe("DocsAIReader.search", () => {
       limit: 2,
     });
     expect(hits[0]?.language).toBe("en");
+  });
+
+  test.each(NAMED_FOR_THE_QUESTION)(
+    'in German, "%s" finds the page named for what it asks about first (#7799)',
+    async (question: string, page: string) => {
+      const hits: Array<AIDocsSearchHit> = await reader.search({
+        query: question,
+        language: "de",
+        limit: 6,
+      });
+
+      expect(hits[0]?.page).toBe(page);
+    },
+    BUILD_TIMEOUT_MS,
+  );
+});
+
+describe("DocsAIReader.rank", () => {
+  test("does not cut a page's name for the words of the question it does not say (#7799)", () => {
+    /*
+     * "Wie richte ich einen Bereitschaftsplan ein?" in small: the page
+     * named for schedules never says "set up", and a migration page says
+     * every word of the question in passing.
+     */
+    const index: AIDocsLanguageIndex = makeDocsIndex([
+      {
+        page: "on-call/schedules",
+        title: "Schedules",
+        summary: "A schedule says who is on call, and when.",
+        sections: [
+          { title: "Layers", text: "Each layer of a schedule takes turns." },
+        ],
+      },
+      {
+        page: "moving-to-oneuptime/pagerduty",
+        title: "Moving from PagerDuty",
+        summary: "Bring your PagerDuty account over.",
+        sections: [
+          {
+            title: "Import your account",
+            text: "Set up the import, and your schedules come over too.",
+          },
+        ],
+      },
+      {
+        page: "status-pages/index",
+        title: "Status Pages",
+        summary: "Tell customers what is happening.",
+        sections: [{ title: "Branding", text: "Add your logo and colors." }],
+      },
+      {
+        page: "incidents/index",
+        title: "Incidents",
+        summary: "Declare and resolve incidents.",
+        sections: [
+          { title: "Severity", text: "Each incident has a severity." },
+        ],
+      },
+      {
+        page: "monitor/index",
+        title: "Monitors",
+        summary: "Check that things work.",
+        sections: [{ title: "Probes", text: "Probes run the checks." }],
+      },
+      {
+        page: "workflows/index",
+        title: "Workflows",
+        summary: "Automate what happens next.",
+        sections: [{ title: "Triggers", text: "A trigger starts a workflow." }],
+      },
+    ]);
+
+    expect(
+      DocsAIReader.rank(index, "How do I set up a schedule?", 2).map(
+        (hit: AIDocsSearchHit): string => {
+          return hit.page;
+        },
+      ),
+    ).toEqual(["on-call/schedules", "moving-to-oneuptime/pagerduty"]);
   });
 });
 
