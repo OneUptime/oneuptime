@@ -106,6 +106,16 @@ export interface PluralTemplate {
 }
 
 /*
+ * A plural form a locale holds, with the plural category of the key it is
+ * held under: "one" for the key plus "_one", "few" for "_few", and "other"
+ * for the key itself - the language's general form.
+ */
+interface StoredPluralForm {
+  text: string;
+  category: string;
+}
+
+/*
  * Looks a fixed string up by its English text and answers with the reader's
  * wording, or with the text itself when there is none - useTranslateValue()'s
  * translateString, or i18next's t() with keySeparator and nsSeparator off.
@@ -915,7 +925,8 @@ export const createTranslator: (
   /*
    * The form for `count` the way i18next resolves it: the language's own
    * category ("few" for 3 in Russian) under the key plus "_few", else the key
-   * itself, which holds the language's general (other) form.
+   * itself, which holds the language's general (other) form - with the
+   * category of the key it came from ("other" for the key itself).
    *
    * A language's "one" form is said for every count its language calls one
    * - 21 and 31 in Russian, 0 in French. A one form that says exactly one
@@ -928,11 +939,11 @@ export const createTranslator: (
     key: string,
     count: number,
     oneFormSaysOnlyOne?: boolean,
-  ) => string | undefined = (
+  ) => StoredPluralForm | undefined = (
     key: string,
     count: number,
     oneFormSaysOnlyOne: boolean = false,
-  ): string | undefined => {
+  ): StoredPluralForm | undefined => {
     const category: string = getPluralCategory(activeLanguage, count);
     const saysOnlyOne: boolean =
       category === "one" && oneFormSaysOnlyOne && count !== 1;
@@ -941,11 +952,50 @@ export const createTranslator: (
       const form: string | undefined = find(`${key}_${category}`);
 
       if (form !== undefined) {
-        return form;
+        return { text: form, category };
       }
     }
 
-    return find(key);
+    const general: string | undefined = find(key);
+
+    return general === undefined
+      ? undefined
+      : { text: general, category: "other" };
+  };
+
+  /*
+   * Whether a plural form a locale holds is English left in it - a
+   * placeholder, not a translation. A form is read against the English text
+   * of its own key, never the other form's: a language's plural can read
+   * like English's singular - Italian's "{{count}} host" for 3 hosts, the
+   * "{{count}} VM" of French, Spanish, Hindi and Persian for 3 VMs.
+   *
+   * - A "_one" form is English left in the locale when it reads as
+   *   English's one form, en.json's text for that key: Russian puts 21 in
+   *   its "one" form, French puts 0 there, and neither may borrow the
+   *   English "1 row" for it. Unless the language's general form reads the
+   *   same: the language then words the sentence alike for every count, and
+   *   the form is its own - French's "0 VM". A general form left English is
+   *   never that witness: the lookup gives nothing for a key that maps to
+   *   itself.
+   * - Every other form - the general one, and a "_few", "_many", "_two" or
+   *   "_zero" one, which en.json has none of - is English left in the
+   *   locale when it reads as English's other form, what English writes for
+   *   every count but one. English's one form there is the language's own,
+   *   as in its general form.
+   */
+  const isEnglishPlaceholder: (
+    form: StoredPluralForm,
+    template: PluralTemplate,
+  ) => boolean = (
+    form: StoredPluralForm,
+    template: PluralTemplate,
+  ): boolean => {
+    if (form.category !== "one") {
+      return form.text === template.other;
+    }
+
+    return form.text === template.one && find(template.other) !== form.text;
   };
 
   const translatePlural: (
@@ -961,20 +1011,21 @@ export const createTranslator: (
   ): string => {
     // English has two forms: exactly one, and everything else.
     const english: string = count === 1 ? template.one : template.other;
-    const stored: string | undefined = findPlural(
+    const stored: StoredPluralForm | undefined = findPlural(
       template.other,
       count,
       isOneFormOnlyForOne(template),
     );
 
     /*
-     * An English form left in a locale is a placeholder, not a translation:
-     * the sentence is English, in English's form for the count. Russian puts
-     * 21 in its "one" form, French puts 0 there - neither may borrow the
-     * English "1 row" for it.
+     * An English form left in a locale is a placeholder, not a translation
+     * (isEnglishPlaceholder): the sentence is English, in English's form for
+     * the count.
      */
     const translated: string | undefined =
-      stored === template.one || stored === template.other ? undefined : stored;
+      stored === undefined || isEnglishPlaceholder(stored, template)
+        ? undefined
+        : stored.text;
 
     // {{count}} is written the reader's way unless the caller passes its own.
     return fill(

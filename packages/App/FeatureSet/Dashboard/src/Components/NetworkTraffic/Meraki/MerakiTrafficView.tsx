@@ -106,6 +106,8 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { joinWithArrowsOn } from "Common/Types/DirectionArrow";
+import DirectionArrow from "Common/UI/Components/DirectionArrow/DirectionArrow";
+import { getLineDirection } from "Common/UI/Utils/LineDirection";
 import React, {
   Fragment,
   FunctionComponent,
@@ -506,22 +508,33 @@ const MerakiTrafficView: FunctionComponent<ComponentProps> = (
 
       return {
         key: `${row.controllerNetworkId}/${row.destination}/${row.application}/${row.protocol}/${row.port}`,
+        /*
+         * From the network to what it reached, read the way the page reads,
+         * as the row's title under the pointer is (joinWithArrowsOn): on an
+         * Arabic or Persian page the network is at the right and the arrow
+         * points left, to its target. Kept left to right with an arrow icon,
+         * the label pointed right while its title pointed left. Each name
+         * reads its own way, cut short at its own end.
+         */
         label: conversationsWithNetwork ? (
-          <span
-            dir="ltr"
-            className="inline-flex max-w-full items-center gap-1.5"
-          >
-            <span className="truncate" data-testid="meraki-conversation-from">
+          <span className="inline-flex max-w-full items-center gap-1.5">
+            <span
+              className="truncate"
+              dir={getLineDirection(network, translator.language)}
+              data-testid="meraki-conversation-from"
+            >
               {network}
             </span>
-            <Icon
-              icon={IconProp.ArrowRight}
-              className="h-3.5 w-3.5 flex-shrink-0 text-gray-400"
+            <DirectionArrow
+              className="flex-shrink-0 text-gray-400"
+              isDecorative={true}
+              dataTestId="meraki-conversation-arrow"
             />
             <span
               className={`truncate ${
                 isNetworkAddressText(target) ? "font-mono" : ""
               }`}
+              dir={getLineDirection(target, translator.language)}
               data-testid="meraki-conversation-to"
             >
               {target}

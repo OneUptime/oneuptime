@@ -40,6 +40,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { joinWithArrowsInDirection } from "Common/Types/DirectionArrow";
 import {
   getLineDirection,
+  getOneWayLineDirection,
   LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
 } from "Common/UI/Utils/LineDirection";
 import { LEFT_TO_RIGHT, ReadingDirection } from "Common/Types/ReadingDirection";
@@ -195,7 +196,11 @@ function NeighbourList(props: {
                     style={{ width: `${Math.min(100, share * 100)}%` }}
                     aria-hidden="true"
                   />
-                  {/* A path reads from the left on any page: "/home". */}
+                  {/*
+                   * One page's path, with no arrow to point back: it reads
+                   * the way its letters do, "/home" from the left on any
+                   * page, as it does set apart in a transition's line.
+                   */}
                   <span
                     className="relative truncate font-mono text-xs text-gray-800 group-hover:text-indigo-700"
                     dir={getLineDirection(item.page, translator.language)}
@@ -246,19 +251,30 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
     return search ? new Route(`${sessionListRoute.toString()}${search}`) : null;
   };
 
-  const header: (title: string, subtitle: string) => ReactElement = (
+  const header: (
     title: string,
     subtitle: string,
+    // The way a line read one way on every page reads; none for one value.
+    lineDirection?: ReadingDirection | undefined,
+  ) => ReactElement = (
+    title: string,
+    subtitle: string,
+    lineDirection?: ReadingDirection | undefined,
   ): ReactElement => {
     /*
-     * A page's path, or two joined by an arrow: read from the left on a
-     * page read from the right too ("/cart → /home", not "home → /cart/"),
-     * and still starting where the page's lines do.
+     * One value - a page's path, the fold's name - has no arrow to point
+     * back, so it reads the way its letters do (getLineDirection): "/cart"
+     * from the left on a page read from the right too, not "cart/", as
+     * each page in a transition's line reads, set apart there. A
+     * transition's line, its two pages and the arrow between them, reads
+     * the map's way on every page (getOneWayLineDirection): by its letters,
+     * one between two folds named in Arabic or Persian, or into "/", was
+     * laid out from the right, its arrow pointing back. Either still
+     * starts where the page's lines do.
      */
-    const titleDirection: ReadingDirection | undefined = getLineDirection(
-      title,
-      translator.language,
-    );
+    const titleDirection: ReadingDirection | undefined = lineDirection
+      ? getOneWayLineDirection(lineDirection, translator.language)
+      : getLineDirection(title, translator.language);
 
     return (
       <div className="mb-4 flex items-start justify-between gap-4">
@@ -319,11 +335,13 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
         {/*
          * The map is drawn from the left on every page, so a transition is
          * named the map's way, its arrow pointing right: "/home → /cart" on
-         * an Arabic page too (joinWithArrowsInDirection).
+         * an Arabic page too (joinWithArrowsInDirection), whatever letters
+         * its pages are named in.
          */}
         {header(
           joinWithArrowsInDirection([sourceLabel, targetLabel], LEFT_TO_RIGHT),
           translator.translateText("Transition") || "Transition",
+          LEFT_TO_RIGHT,
         )}
         <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
           <Stat
