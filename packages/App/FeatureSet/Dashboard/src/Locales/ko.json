@@ -51828,5 +51828,8 @@
   "Couldn't search the notes.": "노트를 검색하지 못했습니다.",
   "Couldn't sort the notes.": "노트를 정렬하지 못했습니다.",
   "Couldn't load more notes.": "노트를 더 불러오지 못했습니다.",
-  "Time range: {{range}}. Try adjusting filters or expanding the time range.": "기간: {{range}}. 필터를 조정하거나 기간을 넓혀 보세요."
+  "Time range: {{range}}. Try adjusting filters or expanding the time range.": "기간: {{range}}. 필터를 조정하거나 기간을 넓혀 보세요.",
+  "On-Call Policy Created": "온콜 정책 생성됨",
+  "On-Call Schedule Added": "온콜 일정 추가됨",
+  "On-Call Schedule Removed": "온콜 일정 제거됨"
 }

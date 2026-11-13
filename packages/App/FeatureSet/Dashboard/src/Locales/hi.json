@@ -51828,5 +51828,8 @@
   "Couldn't search the notes.": "नोट में खोज नहीं हो सकी।",
   "Couldn't sort the notes.": "नोट क्रमबद्ध नहीं हो सके।",
   "Couldn't load more notes.": "और नोट लोड नहीं हो सके।",
-  "Time range: {{range}}. Try adjusting filters or expanding the time range.": "समय सीमा: {{range}}। फ़िल्टर बदलकर या समय सीमा बढ़ाकर देखें।"
+  "Time range: {{range}}. Try adjusting filters or expanding the time range.": "समय सीमा: {{range}}। फ़िल्टर बदलकर या समय सीमा बढ़ाकर देखें।",
+  "On-Call Policy Created": "ऑन-कॉल नीति बनाई गई",
+  "On-Call Schedule Added": "ऑन-कॉल अनुसूची जोड़ी गई",
+  "On-Call Schedule Removed": "ऑन-कॉल अनुसूची हटाई गई"
 }

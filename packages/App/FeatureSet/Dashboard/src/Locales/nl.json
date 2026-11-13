@@ -51828,5 +51828,8 @@
   "Couldn't search the notes.": "Kan de notities niet doorzoeken.",
   "Couldn't sort the notes.": "Kan de notities niet sorteren.",
   "Couldn't load more notes.": "Kan geen extra notities laden.",
-  "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Periode: {{range}}. Pas de filters aan of kies een ruimere periode."
+  "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Periode: {{range}}. Pas de filters aan of kies een ruimere periode.",
+  "On-Call Policy Created": "Bereikbaarheidsbeleid aangemaakt",
+  "On-Call Schedule Added": "Bereikbaarheidsschema toegevoegd",
+  "On-Call Schedule Removed": "Bereikbaarheidsschema verwijderd"
 }

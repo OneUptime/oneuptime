@@ -51828,5 +51828,8 @@
   "Couldn't search the notes.": "Não foi possível buscar nas notas.",
   "Couldn't sort the notes.": "Não foi possível ordenar as notas.",
   "Couldn't load more notes.": "Não foi possível carregar mais notas.",
-  "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Período: {{range}}. Tente ajustar os filtros ou ampliar o período."
+  "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Período: {{range}}. Tente ajustar os filtros ou ampliar o período.",
+  "On-Call Policy Created": "Política de plantão criada",
+  "On-Call Schedule Added": "Agendamento de plantão adicionado",
+  "On-Call Schedule Removed": "Agendamento de plantão removido"
 }

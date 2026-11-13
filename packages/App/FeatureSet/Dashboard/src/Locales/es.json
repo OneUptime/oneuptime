@@ -51828,5 +51828,8 @@
   "Couldn't search the notes.": "No se pudo buscar en las notas.",
   "Couldn't sort the notes.": "No se pudieron ordenar las notas.",
   "Couldn't load more notes.": "No se pudieron cargar más notas.",
-  "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Intervalo de tiempo: {{range}}. Prueba a ajustar los filtros o a ampliar el intervalo de tiempo."
+  "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Intervalo de tiempo: {{range}}. Prueba a ajustar los filtros o a ampliar el intervalo de tiempo.",
+  "On-Call Policy Created": "Política de guardia creada",
+  "On-Call Schedule Added": "Programación de guardia añadida",
+  "On-Call Schedule Removed": "Programación de guardia quitada"
 }
