@@ -10,7 +10,7 @@ import {
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
-import { joinList } from "Common/UI/Utils/ListSeparator";
+import { joinClauses, joinList } from "Common/UI/Utils/ListSeparator";
 
 /*
  * The words and looks "What AI may do" shares between a Kubernetes
@@ -350,12 +350,15 @@ export function joinAiAccessProtections(
     return clauses.join("");
   }
 
-  // Never more than four today; any more are said together as the first.
+  /*
+   * Never more than four today; any more are said together as the first,
+   * set off with the semicolon of their script (joinClauses).
+   */
   if (clauses.length > 4) {
     const together: number = clauses.length - 3;
 
     return joinAiAccessProtections(
-      [clauses.slice(0, together).join("; "), ...clauses.slice(together)],
+      [joinClauses(clauses.slice(0, together)), ...clauses.slice(together)],
       translator,
     );
   }
