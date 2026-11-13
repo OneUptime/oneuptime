@@ -514,6 +514,184 @@ describe("translatePlural", () => {
   });
 
   /*
+   * #7728: a language's plural can read like English's singular - Italian
+   * says "3 host", French, Spanish, Hindi and Persian "3 VM". A form a
+   * locale holds is read against the English text of its own key only:
+   * read against English's one form too, such a plural was taken for an
+   * English placeholder, and the count read "3 hosts", "3 VMs".
+   */
+  describe("a plural that reads like English's singular", () => {
+    const HOSTS: PluralTemplate = {
+      one: "{{count}} host",
+      other: "{{count}} hosts",
+    };
+    const VMS: PluralTemplate = { one: "{{count}} VM", other: "{{count}} VMs" };
+
+    // A language that words both forms alike, as these locales do.
+    const wordedAlike: (
+      template: PluralTemplate,
+      wording: string,
+      language: string,
+    ) => Translator = (
+      template: PluralTemplate,
+      wording: string,
+      language: string,
+    ): Translator => {
+      return createTranslator(
+        lookupFrom(
+          {
+            [template.other]: wording,
+            [`${template.other}_one`]: wording,
+          },
+          ENGLISH,
+        ),
+        language,
+      );
+    };
+
+    test("Italian says 3 host", () => {
+      const italian: Translator = wordedAlike(HOSTS, "{{count}} host", "it");
+
+      expect(italian.translatePlural(HOSTS, 3)).toBe("3 host");
+      expect(italian.translatePlural(HOSTS, 12345)).toBe("12.345 host");
+      expect(italian.translatePlural(HOSTS, 1)).toBe("1 host");
+    });
+
+    test.each([
+      ["fr", "3 VM"],
+      ["es", "3 VM"],
+      ["hi", "3 VM"],
+      ["fa", "۳ VM"],
+    ])("%s says %s", (language: string, expected: string) => {
+      expect(
+        wordedAlike(VMS, "{{count}} VM", language).translatePlural(VMS, 3),
+      ).toBe(expected);
+    });
+
+    /*
+     * French, Hindi and Persian count 0 as one, and their one form reads
+     * like English's one form too. Their general form reads the same - the
+     * language words the sentence alike for every count - so that one form
+     * is theirs, not an English one left in the locale: "0 VM".
+     */
+    test.each([
+      ["fr", "0 VM"],
+      ["hi", "0 VM"],
+      ["fa", "۰ VM"],
+    ])(
+      "%s says %s for zero, which it counts as one",
+      (language: string, expected: string) => {
+        expect(getPluralCategory(language, 0)).toBe("one");
+        expect(
+          wordedAlike(VMS, "{{count}} VM", language).translatePlural(VMS, 0),
+        ).toBe(expected);
+      },
+    );
+
+    test("the sentence is the reader's, its values with it", () => {
+      const FILTERS: PluralTemplate = {
+        one: "{{count}} filter ({{condition}})",
+        other: "{{count}} filters ({{condition}})",
+      };
+      const swedish: Translator = createTranslator(
+        lookupFrom(
+          {
+            [FILTERS.other]: "{{count}} filter ({{condition}})",
+            [`${FILTERS.other}_one`]: "{{count}} filter ({{condition}})",
+            ANY: "VALFRI",
+          },
+          ENGLISH,
+        ),
+        "sv",
+      );
+
+      // Never an English sentence around the Swedish word: "3 filters (ANY)".
+      expect(
+        swedish.translatePlural(FILTERS, 3, {
+          condition: translatableTerm("ANY"),
+        }),
+      ).toBe("3 filter (VALFRI)");
+    });
+
+    /*
+     * A one form left as English's is still English where the language's
+     * general form reads otherwise: Russian puts 21 in its "one" form,
+     * French puts 0 there, and neither may borrow English's "1 row" - the
+     * sentence is English, in English's form for the count.
+     */
+    test("a one form left as English still reads English's form for 21 in Russian and 0 in French", () => {
+      const russianOneLeft: Translator = createTranslator(
+        lookupFrom(
+          { [ROWS.other]: "{{count}} строк", [`${ROWS.other}_one`]: ROWS.one },
+          ENGLISH,
+        ),
+        "ru",
+      );
+      const frenchOneLeft: Translator = createTranslator(
+        lookupFrom(
+          { [ROWS.other]: "{{count}} lignes", [`${ROWS.other}_one`]: ROWS.one },
+          ENGLISH,
+        ),
+        "fr",
+      );
+
+      expect(russianOneLeft.translatePlural(ROWS, 21)).toBe("21 rows");
+      expect(russianOneLeft.translatePlural(ROWS, 1)).toBe("1 row");
+      expect(russianOneLeft.translatePlural(ROWS, 5)).toBe("5 строк");
+      expect(frenchOneLeft.translatePlural(ROWS, 0)).toBe("0 rows");
+      expect(frenchOneLeft.translatePlural(ROWS, 3)).toBe("3 lignes");
+    });
+
+    test("a general form left as English's plural still reads English", () => {
+      const italianLeft: Translator = createTranslator(
+        lookupFrom(
+          { [HOSTS.other]: HOSTS.other, [`${HOSTS.other}_one`]: HOSTS.one },
+          ENGLISH,
+        ),
+        "it",
+      );
+      const frenchLeft: Translator = createTranslator(
+        lookupFrom(
+          { [VMS.other]: VMS.other, [`${VMS.other}_one`]: VMS.one },
+          ENGLISH,
+        ),
+        "fr",
+      );
+
+      expect(italianLeft.translatePlural(HOSTS, 3)).toBe("3 hosts");
+      expect(italianLeft.translatePlural(HOSTS, 1)).toBe("1 host");
+      // Nothing worded, so zero - one in French - reads English's form.
+      expect(frenchLeft.translatePlural(VMS, 0)).toBe("0 VMs");
+      expect(frenchLeft.translatePlural(VMS, 3)).toBe("3 VMs");
+    });
+
+    /*
+     * A "_few" or "_many" form, read when a dictionary has one, is English
+     * left in the locale only as English's other form - what English says
+     * for every count it holds. English's one form there is the language's
+     * own, as in its general form: Italian counts a million as "many".
+     */
+    test("a many form that reads like English's one form is the language's own", () => {
+      const italianWithMany: Translator = createTranslator(
+        lookupFrom(
+          {
+            [HOSTS.other]: "{{count}} host",
+            [`${HOSTS.other}_one`]: "{{count}} host",
+            [`${HOSTS.other}_many`]: "{{count}} host",
+          },
+          ENGLISH,
+        ),
+        "it",
+      );
+
+      expect(getPluralCategory("it", 1000000)).toBe("many");
+      expect(italianWithMany.translatePlural(HOSTS, 1000000)).toBe(
+        "1.000.000 host",
+      );
+    });
+  });
+
+  /*
    * A one form written for an English one that names no count ("Fired
    * once") can only say one. Russian puts 21, 31 and 101 in its "one"
    * form, French puts 0 and 1.5 there: such a count reads the language's
