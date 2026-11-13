@@ -113,8 +113,10 @@ const TelemetryFeatureSet: FeatureSet = {
       app.use(TELEMETRY_PREFIXES, SourceMapIngestAPI);
       /*
        * The supervisor on every host OneUptime manages polls here for the
-       * config the host runs: /opamp/v1, and /telemetry/opamp/v1 behind an
-       * ingress that routes only /telemetry to the App.
+       * config the host runs: at /telemetry/opamp/v1, where the installers
+       * point it (every OneUptime ingress sends /telemetry to the App), and
+       * at /opamp/v1 from the hosts installed before they did, which the
+       * ingress has a location of its own for (Nginx/default.conf.template).
        */
       app.use(TELEMETRY_PREFIXES, HostCollectorOpAmpAPI);
       /*
