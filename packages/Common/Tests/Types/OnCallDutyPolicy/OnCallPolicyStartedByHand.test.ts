@@ -81,7 +81,13 @@ describe("isOnCallPolicyStartedByHand: which runs are a policy a person started 
     ],
     [
       "read without the event type: no test page either",
-      { ...STARTED_BY_HAND, userNotificationEventType: undefined },
+      {
+        onCallDutyPolicyId: POLICY,
+        triggeredByUserId: USER,
+        triggeredByWorkflowId: null,
+        pageAgainNumber: null,
+        isObserverPage: false,
+      },
       true,
     ],
     [

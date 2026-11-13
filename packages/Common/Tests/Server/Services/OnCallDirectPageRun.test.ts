@@ -706,9 +706,11 @@ describe("a direct page's run", () => {
     });
 
     function alertPolicyRun(): OnCallDutyPolicyExecutionLog {
-      const run: OnCallDutyPolicyExecutionLog = policyRun();
+      const run: OnCallDutyPolicyExecutionLog =
+        new OnCallDutyPolicyExecutionLog();
 
-      run.triggeredByIncidentId = undefined;
+      run.projectId = PROJECT_ID;
+      run.onCallDutyPolicyId = POLICY_ID;
       run.triggeredByAlertId = ALERT_ID;
       run.userNotificationEventType = UserNotificationEventType.AlertCreated;
 

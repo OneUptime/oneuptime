@@ -434,7 +434,7 @@ describe("every other policy's run ends once anybody acknowledges its record, as
       about: "incident",
       startedBy: "OneUptime, for a new record",
     });
-    second.triggeredByIncidentId = first.triggeredByIncidentId;
+    second.triggeredByIncidentId = first.triggeredByIncidentId!;
     second.onCallDutyPolicyId = ObjectID.generate();
     executionLogService.findAllBy.mockResolvedValue([first, second]);
 
@@ -459,7 +459,7 @@ describe("every other policy's run ends once anybody acknowledges its record, as
       about: "incident",
       startedBy: "a person, by hand",
     });
-    byHand.triggeredByIncidentId = automatic.triggeredByIncidentId;
+    byHand.triggeredByIncidentId = automatic.triggeredByIncidentId!;
     executionLogService.findAllBy.mockResolvedValue([automatic, byHand]);
 
     await tick();
