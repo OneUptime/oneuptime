@@ -22,16 +22,17 @@ import { describe, expect, test } from "@jest/globals";
  *      `.description`, `.rootCause`, `.note`, `.notes`, `.remediationNotes`,
  *      `.postmortemNote` - is never placed into a template literal or joined
  *      with "+" as it is: it goes in through a PromptText call. A log line,
- *      an error, and feed Markdown written with mdText are not prompts. A
- *      field that is OneUptime's own words goes in ALLOWED with its reason;
- *      the list only shrinks.
+ *      an error, feed Markdown written with mdText, and a text AI memory
+ *      compares by meaning (MeaningMatch) are not prompts. A field that is
+ *      OneUptime's own words goes in ALLOWED with its reason; the list only
+ *      shrinks.
  *   B. Every file that calls AIService.executeWithLogging is listed below
  *      with the record text it sends and how that text is held. A new
  *      prompt builder fails here until it is read and listed.
  *   C. Only the coding agent's completion keeps embedded data
  *      (keepEmbeddedData): its messages are source files.
  *   D. Negative controls: the scan finds a raw field in a snippet, and lets
- *      a PromptText call, a log line and mdText through.
+ *      a PromptText call, a log line, mdText and a meaning match through.
  *
  * ee/ is scanned when it is there (Common Test runs without it).
  */
@@ -76,9 +77,17 @@ const FREE_TEXT_FIELDS: ReadonlySet<string> = new Set<string>([
   "postmortemNote",
 ]);
 
-// Calls whose template literals are a log line or an error, not a prompt.
+/*
+ * Calls whose template literals are a log line or an error, not a prompt,
+ * or a text AI memory compares by meaning: MeaningMatch.read and compare,
+ * and AIMemory.rankByMeaning, which hands each of its texts to
+ * MeaningMatch.read. MeaningMatch holds what it reads through
+ * PromptText.field itself (MeaningMatch.test.ts: "an embedded screenshot is
+ * left out, and a long text is read only so far") and sends nothing to a
+ * model.
+ */
 const NOT_A_PROMPT_CALLEE: RegExp =
-  /^(?:logger|console)\.\w+$|(?:Error|Exception)$/;
+  /^(?:logger|console)\.\w+$|(?:Error|Exception)$|^(?:MeaningMatch\.(?:read|compare)|AIMemory\.rankByMeaning)$/;
 
 /*
  * Free-text fields placed as they are on purpose: by file, the expression
@@ -481,7 +490,7 @@ describe("the scan itself (negative controls)", () => {
     ]);
   });
 
-  test("lets a PromptText call, a log line, an error and feed Markdown through", () => {
+  test("lets a PromptText call, a log line, an error, feed Markdown and a meaning match through", () => {
     expect(
       findRawFields(
         "snippet.ts",
@@ -492,6 +501,9 @@ describe("the scan itself (negative controls)", () => {
           "throw new BadDataException(`bad ${runbook.description}`);",
           "const c = mdText`**${incident.description}**`;",
           "const d = `${incident.title} ${monitor.name}`;",
+          "const e = MeaningMatch.read(`${alert.title} ${alert.description}`);",
+          "const f = MeaningMatch.compare(`${incident.description}`, cause);",
+          "const g = AIMemory.rankByMeaning(`${data.title} ${data.description}`, causes);",
         ].join("\n"),
       ),
     ).toEqual([]);

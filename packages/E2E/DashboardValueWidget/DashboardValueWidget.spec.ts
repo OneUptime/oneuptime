@@ -310,6 +310,31 @@ const localizedDate: (
 };
 
 /*
+ * A trend's percentage, a tenth at most, as the page's Intl writes it in
+ * `language`: the chip says it the reader's way (0b7aae50db5, #7094), so in
+ * German with a decimal comma and a space before the sign ("71,5 %").
+ */
+const localizedPercent: (
+  page: Page,
+  percent: number,
+  language: string,
+) => Promise<string> = async (
+  page: Page,
+  percent: number,
+  language: string,
+): Promise<string> => {
+  return await page.evaluate(
+    (data: { percent: number; language: string }): string => {
+      return new Intl.NumberFormat(data.language, {
+        style: "percent",
+        maximumFractionDigits: 1,
+      }).format(data.percent / 100);
+    },
+    { percent: Math.abs(percent), language },
+  );
+};
+
+/*
  * A day of a week's range, as a chart axis labels it: "15 Oct". The month
  * is named the way the page's browser names it (its Intl, as
  * OneUptimeDate's short month names are), so the check holds in a month a
@@ -1332,9 +1357,10 @@ test.describe("the Value widgets on the dashboard inside OneUptime", () => {
     )!;
     const chip: Locator = trendChipOf(widgetTitled(page, "Log errors"));
 
+    // Its figure is German too (0b7aae50db5): "71,5 %", not "71.5%".
     await expect(chip).toHaveAttribute(
       "aria-label",
-      `${trend.percent}% mehr als in der ersten Hälfte des Zeitraums`,
+      `${await localizedPercent(page, trend.percent!, "de")} mehr als in der ersten Hälfte des Zeitraums`,
     );
 
     await chip.hover();
