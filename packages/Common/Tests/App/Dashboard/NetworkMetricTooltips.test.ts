@@ -570,8 +570,12 @@ describe("latency and ping texts match what is fetched", () => {
     expect(viewModel).toContain(
       '"{{percent}} ({{received}}/{{sent}} received)"',
     );
+    // Each count in the sentence's own digits (issue #7107).
     expect(viewModel).toContain(
-      "received: result.pingResponse.packetsReceived, sent: result.pingResponse.packetsSent,",
+      "const packetsReceived: number = result.pingResponse.packetsReceived; const packetsSent: number = result.pingResponse.packetsSent;",
+    );
+    expect(viewModel).toContain(
+      "received: composedValue((sentence: Translator): string => { return sentence.formatNumber(packetsReceived); }), sent: composedValue((sentence: Translator): string => { return sentence.formatNumber(packetsSent); }),",
     );
     expect(DEVICE.pingPacketLoss).toContain(
       "how many replies came back out of the pings sent",
