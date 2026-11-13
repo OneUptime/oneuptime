@@ -74,6 +74,8 @@ flowchart TB
 
 **Microsoft Graph.** 在專案的表單中，選擇 `Microsoft Graph` 作為 **提供者**；在執行個體的表單中，開啟 **更多欄位**，並將 **傳輸** 設為 `Microsoft Graph`。然後填入具有 **Mail.Send** 應用程式權限的 Azure 應用程式資訊：其用戶端 ID 和用戶端密碼、權杖 URL `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` 以及範圍 `https://graph.microsoft.com/.default`。郵件會從 **寄件者電子郵件** 的信箱寄出，該信箱必須是您租用戶中已取得授權的信箱。
 
+**Terraform.** 專案的 SMTP 設定也是 [Terraform 提供者](/docs/terraform/index) 的 `oneuptime_smtp_config` 資源。密碼、OAuth 用戶端密碼和電子郵件提供者的金鑰都是敏感值，因此計畫、記錄和輸出中從不顯示它們。Terraform 使用的 API 金鑰必須能讀取它們：**專案擁有者**、**專案管理員**，或自訂角色中的 **Read SMTP Config**。狀態頁面的 `smtp_config_id` 取設定的 `id`。
+
 > [!NOTE]
 > 在 OneUptime Cloud 上，專案的郵件伺服器必須能透過網際網路連線：解析為私人位址或內部位址的主機會被拒絕。在自行託管的安裝中，除非 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` 為 `true`，否則允許私人位址，但迴路位址和鏈路本機位址一律會被拒絕。執行個體自己的郵件伺服器不會經過這種檢查。
 

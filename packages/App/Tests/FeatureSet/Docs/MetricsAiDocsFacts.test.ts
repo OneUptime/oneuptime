@@ -1,5 +1,9 @@
 import { readPage } from "./DocsContentSupport";
 import { METRICS_EXPLORER } from "./TelemetryExplorersDocsPages";
+import {
+  drawnExplorerTabs,
+  writtenExplorerTabs,
+} from "./TelemetryExplorersDocsTabs";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -57,10 +61,12 @@ import { CardSelectOption } from "Common/UI/Components/CardSelect/CardSelect";
  * switch and where it is, the rules' answers, the ways back into the
  * explorers, how many pull requests OneUptime AI opens on its own, and the
  * way past a missing metric that changes no code - the collector's span
- * metrics step (Common/Utils/Metrics/SpanMetricsCollectorStep).
+ * metrics step (Common/Utils/Metrics/SpanMetricsCollectorStep). The page's
+ * count of the explorer's tabs, the AI tab among them, is held to the tabs
+ * the Dashboard draws (TelemetryExplorersDocsTabs);
  * TelemetryExplorersDocsFacts holds the page's tab table (the AI tab
- * included); TelemetryExplorersDocsTranslations carries every line into the
- * other sixteen languages.
+ * included), and TelemetryExplorersDocsTranslations carries every line into
+ * the other sixteen languages.
  */
 
 const SECTION_HEADING: string =
@@ -132,7 +138,16 @@ describe("the Metrics Explorer page's section on improving metrics and adding mi
       `- [Improve metrics and add missing ones with AI]${ANCHOR}: `,
     );
     expect(tabRow).toContain(ANCHOR);
-    expect(page).toContain("The explorer has five tabs:");
+  });
+
+  it("says how many tabs the explorer has, and names them in the order the Dashboard draws them", () => {
+    expect(writtenExplorerTabs(page)).toEqual(
+      drawnExplorerTabs(
+        readSource(
+          "App/FeatureSet/Dashboard/src/Components/Metrics/MetricsNavTabs.tsx",
+        ),
+      ),
+    );
   });
 
   it("is named for the switch it is about", () => {

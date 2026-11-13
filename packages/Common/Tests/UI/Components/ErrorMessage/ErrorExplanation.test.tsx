@@ -4,10 +4,13 @@ import ErrorExplanation, {
 } from "../../../../UI/Components/ErrorMessage/ErrorExplanation";
 import ErrorMessage from "../../../../UI/Components/ErrorMessage/ErrorMessage";
 import PageError from "../../../../UI/Components/Error/PageError";
+import BasicFormModal from "../../../../UI/Components/FormModal/BasicFormModal";
 import BasicForm from "../../../../UI/Components/Forms/BasicForm";
 import FormFieldSchemaType from "../../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import ConfirmModal from "../../../../UI/Components/Modal/ConfirmModal";
+import Modal from "../../../../UI/Components/Modal/Modal";
 import ModalBody from "../../../../UI/Components/Modal/ModalBody";
+import { JSONObject } from "../../../../Types/JSON";
 import TableEmptyState, {
   TableEmptyStateKind,
 } from "../../../../UI/Components/Table/TableEmptyState";
@@ -476,6 +479,106 @@ describe("the shared places an error is drawn", () => {
         "error-why-and-next",
       ),
     ).toHaveTextContent(UnexplainedErrorWords.pageNext);
+  });
+
+  /*
+   * A dialog's alert has no heading of its own to say what failed: the
+   * dialog says it first, when it says what it was doing (#7647) - deleting
+   * a note, approving it - and "This did not finish." when it does not.
+   */
+  describe("a dialog's error alert says what the dialog was doing first", () => {
+    const whatFailedLine: () => HTMLElement = (): HTMLElement => {
+      return within(screen.getByTestId("modal-error")).getByTestId(
+        "error-what-failed",
+      );
+    };
+
+    test("a dialog", () => {
+      render(
+        <Modal
+          title="Delete note"
+          submitButtonText="Delete note"
+          onClose={getJestMockFunction()}
+          onSubmit={getJestMockFunction()}
+          error={WITH_REFERENCE}
+          errorWhatFailed="Couldn't delete the note."
+        >
+          <p>Body</p>
+        </Modal>,
+      );
+
+      expect(whatFailedLine()).toHaveTextContent(
+        /^Couldn't delete the note\.$/,
+      );
+      expect(
+        within(screen.getByTestId("modal-error")).getByText(REFERENCE),
+      ).toBeInTheDocument();
+    });
+
+    test("a confirmation", () => {
+      render(
+        <ConfirmModal
+          title="Approve note"
+          description="Approve this note?"
+          submitButtonText="Approve"
+          onSubmit={getJestMockFunction()}
+          error={WITH_REFERENCE}
+          errorWhatFailed="Couldn't approve the note."
+        />,
+      );
+
+      expect(whatFailedLine()).toHaveTextContent(
+        /^Couldn't approve the note\.$/,
+      );
+    });
+
+    test("a dialog's form", async () => {
+      render(
+        <BasicFormModal<JSONObject>
+          title="Reject note"
+          submitButtonText="Reject"
+          onClose={getJestMockFunction()}
+          onSubmit={getJestMockFunction()}
+          error={WITH_REFERENCE}
+          errorWhatFailed="Couldn't reject the note."
+          formProps={{
+            disableAutofocus: true,
+            fields: [
+              {
+                field: { reason: true },
+                title: "Reason",
+                fieldType: FormFieldSchemaType.LongText,
+                required: true,
+              },
+            ],
+          }}
+        />,
+      );
+
+      await screen.findByRole("textbox", { name: "Reason" });
+
+      expect(whatFailedLine()).toHaveTextContent(
+        /^Couldn't reject the note\.$/,
+      );
+      // Said once: the form under the alert does not say it again.
+      expect(screen.getAllByTestId("error-explanation")).toHaveLength(1);
+    });
+
+    test("a dialog that does not say it says 'This did not finish.'", () => {
+      render(
+        <ConfirmModal
+          title="Approve note"
+          description="Approve this note?"
+          submitButtonText="Approve"
+          onSubmit={getJestMockFunction()}
+          error={WITH_REFERENCE}
+        />,
+      );
+
+      expect(whatFailedLine()).toHaveTextContent(
+        UnexplainedErrorWords.didNotFinish,
+      );
+    });
   });
 });
 

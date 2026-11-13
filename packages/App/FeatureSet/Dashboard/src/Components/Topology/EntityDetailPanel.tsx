@@ -1,6 +1,7 @@
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import DirectionArrow from "Common/UI/Components/DirectionArrow/DirectionArrow";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -949,15 +950,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
             )}
             onClick={open}
           >
-            {sentence}{" "}
-            {/*
-             * Opens the other end: the arrow points on, the way the line
-             * reads. A browser draws "→" as written in a line read right to
-             * left, where it pointed back at the start.
-             */}
-            <span aria-hidden={true} className="inline-block rtl:-scale-x-100">
-              →
-            </span>
+            {sentence} <DirectionArrow isDecorative={true} />
           </button>
         ) : (
           <p className="text-sm text-gray-900">{sentence}</p>

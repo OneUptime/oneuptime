@@ -197,7 +197,7 @@ export const LinkExporterModal: FunctionComponent<{
       <div data-testid="traffic-link-exporter">
         <Dropdown
           options={options}
-          placeholder={translator.translateText("Pick a device")}
+          placeholder="Pick a device"
           ariaLabel={translator.translateText("Device")}
           onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
             setSelected(value ? String(value) : null);

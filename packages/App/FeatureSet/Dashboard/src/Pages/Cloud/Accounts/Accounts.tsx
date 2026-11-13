@@ -3,6 +3,7 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
 import AppLink from "../../../Components/AppLink/AppLink";
 import CloudConnectCallout from "../../../Components/Cloud/Connect/CloudConnectCallout";
+import { getCloudProviderOptions } from "../../../Components/Cloud/CloudProviderOptions";
 import {
   CLOUD_ACCOUNT_STATUS_COLORS,
   CloudAccountStatus,
@@ -17,11 +18,7 @@ import useFirstRecordWatch, {
 } from "../../../Components/Infrastructure/UseFirstRecordWatch";
 import CloudAccount from "Common/Models/DatabaseModels/CloudAccount";
 import Route from "Common/Types/API/Route";
-import {
-  CLOUD_PROVIDER_LABELS,
-  CloudProvider,
-  getCloudProviderLabel,
-} from "Common/Types/Cloud/CloudPlatform";
+import { getCloudProviderLabel } from "Common/Types/Cloud/CloudPlatform";
 import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
@@ -46,11 +43,8 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
  * empty) is how one gets here. People label and describe them.
  */
 
-const PROVIDER_DROPDOWN_OPTIONS: Array<DropdownOption> = Object.values(
-  CloudProvider,
-).map((provider: CloudProvider): DropdownOption => {
-  return { label: CLOUD_PROVIDER_LABELS[provider], value: provider };
-});
+const PROVIDER_DROPDOWN_OPTIONS: Array<DropdownOption> =
+  getCloudProviderOptions();
 
 const CloudAccounts: FunctionComponent<
   PageComponentProps

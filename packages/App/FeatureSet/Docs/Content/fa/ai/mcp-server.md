@@ -330,7 +330,7 @@ curl https://oneuptime.com/mcp/tools
 
 - **`acknowledge_incident`** / **`resolve_incident`**: یک حادثه را به وضعیت Acknowledged یا Resolved پروژه می‌برد، همان‌طور که دکمهٔ داشبورد این کار را می‌کند
 - **`acknowledge_alert`** / **`resolve_alert`**: همین کار برای هشدارها
-- **`add_incident_note`**: یادداشتی را با `visibility: "internal"` (فقط تیم، پیش‌فرض) یا `visibility: "public"` (منتشرشده در صفحهٔ وضعیت) به یک حادثه می‌افزاید. از Markdown پشتیبانی می‌کند
+- **`add_incident_note`**: یادداشتی را با `visibility: "internal"` (فقط کسانی که حادثه را می‌بینند، پیش‌فرض) یا `visibility: "public"` (منتشرشده در صفحهٔ وضعیت) به یک حادثه می‌افزاید. از Markdown پشتیبانی می‌کند
 - **`add_alert_note`**: یک یادداشت داخلی به یک هشدار می‌افزاید
 
 یک چرخهٔ معمول: `list_incidents`، سپس `acknowledge_incident`، سپس بررسی با `list_logs`، سپس `add_incident_note` (عمومی) و در پایان `resolve_incident`.

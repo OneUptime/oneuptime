@@ -100,6 +100,8 @@ Criar uma regra passa por quatro etapas:
 | **Destino** | Onde ela publica: um canal existente de uma equipe que você escolher, os chats que você escolher, um canal para cada incidente (ou alerta, episódio, evento, monitor ou política de plantão) criado em uma equipe que você escolher, ou vários deles juntos. Abaixo da etapa, **O que esta regra faz** diz isso em frases, como o cartão da regra. |
 | **Video Call** | Somente incidentes e alertas: inicia uma chamada para cada um. Consulte [Videochamadas](/docs/workspace-connections/video-calls). |
 
+Cada condição se lê como uma frase: o campo, como ele é comparado e o valor. Os valores para escolher vêm das listas do próprio projeto, como seus estados, gravidades, rótulos e monitores. Uma regra de plantão escolhe suas políticas em **Política de plantão**, que continua correspondendo a uma política depois que ela é renomeada, enquanto **Nome da política de Plantão** procura palavras no nome de uma política. Cada tipo de evento que tem proprietários tem uma condição de proprietário, como **Proprietário do incidente**: escolha pessoas e equipes, e ela corresponde às pessoas e equipes registradas como proprietárias do evento. Fazer parte de uma equipe proprietária do evento não conta. Um proprietário adicionado depois faz a regra corresponder a partir dessa atualização, e uma regra que cria canais cria o canal nesse momento. Um valor arquivado, como uma gravidade ou uma política de plantão, não é oferecido para uma condição nova. Uma regra que já tem um o mantém, marcado como **Arquivado**, e continua correspondendo aos eventos que o têm. Uma pessoa, equipe ou política que o projeto não tem mais continua na condição, e o cartão da regra avisa isso.
+
 Uma regra de SLOs publica as mudanças na política de orçamento de erros de um SLO: quando ele entra em um nível, volta para um menos grave ou sai de todos os níveis, e quando as implantações dele são congeladas ou voltam a ser permitidas. Ela só publica em canais e chats existentes, já que um SLO não recebe um canal próprio. Consulte [Publique no Slack, no Microsoft Teams e no Mattermost](/docs/slo/error-budget-policy#publique-no-slack-no-microsoft-teams-e-no-mattermost).
 
 Um canal que a regra cria recebe o nome do seu registro: o incidente INC-42 recebe `inc-42`, o alerta ALT-7 recebe `alt-7` e, em um projeto sem prefixos de número, o incidente 42 recebe `incident-42`. O texto em **Prefixo do nome do canal** vai na frente, então `prod-` vira `prod-inc-42`, e o formulário mostra o nome enquanto você digita. Em um evento de manutenção agendada, o prefixo substitui o prefixo de número: SM-5 recebe `sm-5`, e `maint-` vira `maint-5`. O OneUptime mantém letras, números, espaços, `-` e `_`, até os 50 caracteres que o Microsoft Teams aceita. Se a equipe já tiver um canal com esse nome, como o de outro projeto ou um excluído nos últimos 30 dias, o OneUptime adiciona `-2`, `-3` e assim por diante.
@@ -158,7 +160,7 @@ Reaja a uma mensagem, ou a uma resposta, no canal que o OneUptime criou para um 
 
 | Reação | Salva como |
 | --- | --- |
-| 📌 ou 📍 | Uma nota privada, vista só pela sua equipe |
+| 📌 ou 📍 | Uma nota privada, que só quem pode ver o registro pode ler |
 | 📣 ou 📢 | Uma nota pública, mostrada na página de status. Somente incidentes e eventos de manutenção programada. Num incidente privado, uma nota privada, e a confirmação diz por quê. Quando as notas públicas do projeto precisam de aprovação, ela só é mostrada depois de aprovada, e a confirmação diz quem ela aguarda: veja [Aprovação de notas públicas](/docs/incidents/notes-owners-and-feed#aprovação-de-notas-públicas). |
 
 A nota mantém a mensagem como o Microsoft Teams a mostrava: a formatação, os links e o código, as pessoas que ela menciona pelo nome, e os arquivos e as imagens como links para eles. Uma nota pública deixa os arquivos e as imagens de fora, já que eles só abrem para a sua equipe.
@@ -253,7 +255,7 @@ O cartão de um incidente tem quatro botões, **Acknowledge Incident**, **Resolv
 | **Change Severity** | Define a severidade do incidente. |
 | **Change Incident State** | Leva o incidente a um estado posterior. |
 | **Assign Role** | Dá a alguém uma função no incidente, como **Incident Commander**. Uma função de uma só pessoa passa para ela. |
-| **Page Someone** | Aciona pessoas, uma equipe, quem estiver de plantão em um agendamento, ou uma política de plantão sobre o incidente, com uma mensagem opcional. As pessoas são acionadas até que uma delas responda; uma política aciona até que alguém confirme o incidente. |
+| **Page Someone** | Aciona pessoas, uma equipe, quem estiver de plantão em um agendamento, ou uma política de plantão sobre o incidente, com uma mensagem opcional. Todas as pessoas que ele aciona, inclusive as de uma política, são acionadas até que uma delas responda ou o incidente seja resolvido. |
 | **Edit Custom Fields** | Define os campos personalizados do incidente, cada um preenchido com o que o incidente tem. Um campo deixado vazio é limpo. |
 
 `incident 42`, digitado para o bot, responde com o incidente 42, esses botões e o menu dele. Digite o número como o OneUptime o mostra: `42`, `#42` ou `INC-42`. No canal próprio de um incidente, `incident` sozinho mostra esse incidente.

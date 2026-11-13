@@ -183,10 +183,9 @@ describe("the drawer draws the sentence whole", () => {
     );
   });
 
-  test("the arrow that opens the other end points on in a line read right to left", () => {
-    expect(PANEL).toContain(
-      '<span aria-hidden={true} className="inline-block rtl:-scale-x-100"> → </span>',
-    );
+  test("the arrow that opens the other end is the shared one, pointing on in a line read right to left", () => {
+    expect(PANEL).toContain("{sentence} <DirectionArrow isDecorative={true} />");
+    expect(PANEL).not.toContain("rtl:-scale-x-100");
   });
 
   test("never glues a verb between two names", () => {

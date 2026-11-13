@@ -2,6 +2,7 @@ import {
   storedInstantToWallClockInput,
   wallClockInputToStoredInstant,
 } from "../../FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/LayerDateTimeAnchorUtil";
+import { Moment } from "Common/Types/Date";
 
 /*
  * Guards the fix for the rotation-start / hand-off timezone asymmetry: what the
@@ -111,4 +112,63 @@ describe("LayerDateTimeAnchorUtil", () => {
       expect(storedInstantToWallClockInput("", NEW_YORK)).toBeUndefined();
     });
   });
+});
+
+/*
+ * Issue #7593: Rotation starts at and First hand-off time are picked to the
+ * minute. The anchoring between the person's zone and the schedule's moves
+ * whole wall clocks, seconds included: a time saved with seconds keeps them
+ * on its way to the field (the field shows the minute, and hands nothing
+ * back unless the person picks another), and a minute picked is stored as
+ * that minute in the schedule's zone, with no seconds.
+ */
+describe("LayerDateTimeAnchorUtil, with and without seconds", () => {
+  const NEW_YORK: string = "America/New_York";
+  const KATHMANDU: string = "Asia/Kathmandu";
+
+  function inZone(date: Date, timezone: string): string {
+    return Moment.tz(date, timezone).format("YYYY-MM-DD HH:mm:ss");
+  }
+
+  test.each([NEW_YORK, KATHMANDU])(
+    "a time saved with seconds in %s reaches the field with them",
+    (timezone: string) => {
+      const saved: Date = Moment.tz(
+        "2026-11-11 08:00:17",
+        "YYYY-MM-DD HH:mm:ss",
+        timezone,
+      ).toDate();
+
+      const forTheField: Date = storedInstantToWallClockInput(saved, timezone)!;
+
+      expect([
+        forTheField.getHours(),
+        forTheField.getMinutes(),
+        forTheField.getSeconds(),
+      ]).toEqual([8, 0, 17]);
+
+      // And back, unchanged: a field left alone moves nothing.
+      expect(
+        wallClockInputToStoredInstant(forTheField, timezone).toISOString(),
+      ).toBe(saved.toISOString());
+    },
+  );
+
+  test.each([NEW_YORK, KATHMANDU])(
+    "a minute picked is stored as that minute in %s",
+    (timezone: string) => {
+      // What the field hands back for 09:30 picked: the minute, as an instant.
+      const picked: Date = new Date(2026, 10, 11, 9, 30, 0);
+
+      expect(
+        inZone(wallClockInputToStoredInstant(picked, timezone), timezone),
+      ).toBe("2026-11-11 09:30:00");
+      expect(
+        inZone(
+          wallClockInputToStoredInstant(picked.toISOString(), timezone),
+          timezone,
+        ),
+      ).toBe("2026-11-11 09:30:00");
+    },
+  );
 });

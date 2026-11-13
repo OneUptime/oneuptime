@@ -8,6 +8,7 @@
 - [Mailgun](#mailgun): یک کلید API، دامنهٔ ارسال و منطقهٔ آن.
 - [Postmark](#postmark): توکن API سرور.
 - [Resend](#resend): یک کلید API با دسترسی فرستادن.
+- [متغیرهای محیطی](#تعیین-ایمیل-سرور-با-متغیرهای-محیطی): ایمیل یک سرور خودمیزبان را از values در Helm یا `config.env` تعیین کنید.
 - [عیب‌یابی](#عیبیابی): رد شدن از سوی هر ارائه‌دهنده چه معنایی دارد.
 :::
 
@@ -17,7 +18,7 @@
 @tab پروژه
 در **تنظیمات پروژه** > **اعلان‌ها** > **کانال‌های اعلان**، **تنظیمات بیشتر** را باز کنید و در کارت **پیکربندی‌های SMTP سفارشی** روی **ساخت پیکربندی SMTP** کلیک کنید. در گام **ارائه‌دهنده**، یک **نام** وارد کنید و ارائه‌دهنده را برگزینید. گام بعدی تنظیمات همان ارائه‌دهنده را می‌پرسد، و گام **فرستنده** نیز **ایمیل فرستنده** و **نام فرستنده** را. پس از ذخیره، با **ارسال ایمیل آزمایشی** در ردیف پیکربندی بررسی کنید که کار می‌کند.
 @tab نمونهٔ خودمیزبان
-در Admin Dashboard، **تنظیمات** را باز کنید، سپس **اعلان‌ها** > **ایمیل‌ها** را. در کارت **تنظیمات سرور ایمیل**، روی **ویرایش سرور** کلیک کنید و ارائه‌دهنده را به‌عنوان **نوع سرور ایمیل** برگزینید. کارت ارائه‌دهنده زیر آن پدیدار می‌شود، مانند **تنظیمات Amazon SES**: روی دکمهٔ ویرایش آن، مانند **ویرایش Amazon SES**، کلیک کنید و تنظیمات ارائه‌دهنده و گام **فرستنده** را پر کنید. تا وقتی همهٔ آنچه لازم است پر نشده، کارت می‌گوید چه چیزی کم است، و هر ایمیل با نام تنظیمی که باید پر شود رد می‌شود.
+در Admin Dashboard، **تنظیمات** را باز کنید، سپس **اعلان‌ها** > **ایمیل‌ها** را. در کارت **تنظیمات سرور ایمیل**، روی **ویرایش سرور** کلیک کنید و ارائه‌دهنده را به‌عنوان **نوع سرور ایمیل** برگزینید. کارت ارائه‌دهنده زیر آن پدیدار می‌شود، مانند **تنظیمات Amazon SES**: روی دکمهٔ ویرایش آن، مانند **ویرایش Amazon SES**، کلیک کنید و تنظیمات ارائه‌دهنده و گام **فرستنده** را پر کنید. تا وقتی همهٔ آنچه لازم است پر نشده، کارت می‌گوید چه چیزی کم است، و هر ایمیل با نام تنظیمی که باید پر شود رد می‌شود. سروری که از روی کد مستقر می‌شود می‌تواند آن‌ها را به‌جای آن با متغیرهای محیطی تعیین کند: [تعیین ایمیل سرور با متغیرهای محیطی](#تعیین-ایمیل-سرور-با-متغیرهای-محیطی) را ببینید.
 :::
 
 | ارائه‌دهنده | چه چیزی می‌خواهد | OneUptime به کجا می‌فرستد |
@@ -108,6 +109,67 @@ OneUptime اعتبارنامه‌های سرور را همان‌جایی می�
 ## Resend
 
 در Resend، دامنهٔ خود را زیر **Domains** بیفزایید و تأیید کنید، سپس زیر **API Keys** یک کلید API با دسترسی فرستادن بسازید. آن را به‌عنوان **کلید API** در گام **Resend** وارد کنید، و **ایمیل فرستنده** را نشانی‌ای در دامنهٔ تأییدشدهٔ خود بگذارید. دامنهٔ آزمایشی خود Resend فقط به نشانی خود شما می‌فرستد.
+
+## تعیین ایمیل سرور با متغیرهای محیطی
+
+یک سرور خودمیزبان که از روی کد مستقر می‌شود می‌تواند از همان ابتدا ایمیل بفرستد، بی‌آنکه چیزی دستی تنظیم شود: تنظیمات ایمیل آن را با متغیرهای محیطی تعیین کنید، از Terraform یا هر چیزی که OneUptime را مستقر می‌کند. وقتی `GLOBAL_EMAIL_SERVER_TYPE` تعیین شده باشد، سرور ایمیل‌های خودش را همان‌طور که متغیرها توصیف می‌کنند می‌فرستد. تنظیماتی که در Admin Dashboard زیر **تنظیمات** و سپس **اعلان‌ها** > **ایمیل‌ها** ذخیره شده‌اند استفاده نمی‌شوند، و آن صفحه این تنظیمات را فقط‌خواندنی نشان می‌دهد، هر فیلد همراه با متغیری که آن را تعیین می‌کند. برای آنکه ایمیل را به‌جای آن در Admin Dashboard تنظیم کنید، `GLOBAL_EMAIL_SERVER_TYPE` را خالی بگذارید. پیکربندی‌های SMTP پروژه‌ها تغییری نمی‌کنند.
+
+| متغیر | مقدار Helm | چه چیزی در آن است |
+| --- | --- | --- |
+| `GLOBAL_EMAIL_SERVER_TYPE` | `email.serverType` | `custom-smtp`، `sendgrid`، `amazon-ses`، `mailgun`، `postmark` یا `resend`. تنها وقتی تعیین شده باشد، OneUptime متغیرهای دیگر را می‌خواند |
+| `GLOBAL_EMAIL_FROM_EMAIL` | `email.fromEmail` | نشانی‌ای که هر ایمیل از آن فرستاده می‌شود |
+| `GLOBAL_EMAIL_FROM_NAME` | `email.fromName` | نامی که هر ایمیل با آن فرستاده می‌شود. برای `custom-smtp` و `sendgrid` لازم است |
+| `GLOBAL_EMAIL_SMTP_TRANSPORT` | `email.smtp.transport` | `smtp` (وقتی خالی است هم همین)، یا `microsoft-graph` برای فرستادن از راه Microsoft Graph با برنامهٔ OAuth |
+| `GLOBAL_EMAIL_SMTP_HOST` | `email.smtp.host` | سرور ایمیل، مانند `smtp.example.com` |
+| `GLOBAL_EMAIL_SMTP_PORT` | `email.smtp.port` | درگاه آن، مانند `587` |
+| `GLOBAL_EMAIL_SMTP_REQUIRE_TLS` | `email.smtp.requireTls` | `true` برای فرستادن فقط از راه اتصال رمزگذاری‌شده با گواهی معتبر، یا `false` (وقتی خالی است هم همین) |
+| `GLOBAL_EMAIL_SMTP_AUTH_TYPE` | `email.smtp.authType` | `username-and-password` (وقتی خالی است هم همین)، `oauth` یا `none` |
+| `GLOBAL_EMAIL_SMTP_USERNAME` | `email.smtp.username` | صندوق پستی‌ای که با آن وارد می‌شود، برای `oauth` هم. آن را همراه با گذرواژه خالی بگذارید تا بدون ورود فرستاده شود |
+| `GLOBAL_EMAIL_SMTP_PASSWORD` | `email.smtp.password`، یا یک Secret که در `email.existingSecret.name` نام برده شده | گذرواژهٔ آن |
+| `GLOBAL_EMAIL_SMTP_OAUTH_PROVIDER_TYPE` | `email.smtp.oauth.providerType` | `client-credentials` (وقتی خالی است هم همین) یا `jwt-bearer` |
+| `GLOBAL_EMAIL_SMTP_OAUTH_CLIENT_ID` | `email.smtp.oauth.clientId` | شناسهٔ کلاینت برنامهٔ OAuth |
+| `GLOBAL_EMAIL_SMTP_OAUTH_CLIENT_SECRET` | `email.smtp.oauth.clientSecret`، یا یک Secret که در `email.existingSecret.name` نام برده شده | رمز کلاینت آن؛ برای `jwt-bearer`، کلید خصوصی آن در قالب PEM |
+| `GLOBAL_EMAIL_SMTP_OAUTH_TOKEN_URL` | `email.smtp.oauth.tokenUrl` | نشانی توکن آن |
+| `GLOBAL_EMAIL_SMTP_OAUTH_SCOPE` | `email.smtp.oauth.scope` | scope آن |
+| `GLOBAL_EMAIL_SENDGRID_API_KEY` | `email.sendgrid.apiKey`، یا یک Secret که در `email.existingSecret.name` نام برده شده | کلید API سرویس SendGrid |
+| `GLOBAL_EMAIL_AMAZON_SES_AUTHENTICATION_TYPE` | `email.amazonSes.authenticationType` | `access-key` (وقتی خالی است هم همین)، یا `server-iam-role` برای ورود با نقش IAM سرور |
+| `GLOBAL_EMAIL_AMAZON_SES_ACCESS_KEY_ID` | `email.amazonSes.accessKeyId` | شناسهٔ کلید دسترسی |
+| `GLOBAL_EMAIL_AMAZON_SES_SECRET_ACCESS_KEY` | `email.amazonSes.secretAccessKey`، یا یک Secret که در `email.existingSecret.name` نام برده شده | کلید دسترسی مخفی آن |
+| `GLOBAL_EMAIL_AMAZON_SES_REGION` | `email.amazonSes.region` | منطقه‌ای که فرستندهٔ شما در آن تأیید شده، مانند `us-east-1` |
+| `GLOBAL_EMAIL_MAILGUN_API_KEY` | `email.mailgun.apiKey`، یا یک Secret که در `email.existingSecret.name` نام برده شده | کلید API سرویس Mailgun |
+| `GLOBAL_EMAIL_MAILGUN_DOMAIN` | `email.mailgun.domain` | دامنهٔ ارسال، مانند `mg.example.com` |
+| `GLOBAL_EMAIL_MAILGUN_REGION` | `email.mailgun.region` | `us` (وقتی خالی است هم همین) یا `eu` |
+| `GLOBAL_EMAIL_POSTMARK_SERVER_TOKEN` | `email.postmark.serverToken`، یا یک Secret که در `email.existingSecret.name` نام برده شده | توکن API سرور در Postmark |
+| `GLOBAL_EMAIL_RESEND_API_KEY` | `email.resend.apiKey`، یا یک Secret که در `email.existingSecret.name` نام برده شده | کلید API سرویس Resend |
+
+تنها متغیرهایی به کار می‌روند که نوع سرور می‌خواند: متغیرهای `GLOBAL_EMAIL_SMTP_` برای `custom-smtp`، و متغیرهای خود هر ارائه‌دهنده برای همان ارائه‌دهنده. لاگ سرور و Admin Dashboard هر متغیر دیگری را که تعیین شده، به‌عنوان استفاده‌نشده نام می‌برند.
+
+با Helm آن‌ها را زیر `email` در values خود تعیین کنید. برای آنکه گذرواژه یا کلید در valuesی که Helm با هر release ذخیره می‌کند نماند، آن را در یک Secret از آنِ خودتان بگذارید و همان Secret را در `email.existingSecret.name` نام ببرید. چارت آن را از کلیدی می‌خواند که در `email.existingSecret.key` نام برده شده، وگرنه از کلیدی که به نام آن است: `smtpPassword`، `smtpOAuthClientSecret`، `sendgridApiKey`، `amazonSesSecretAccessKey`، `mailgunApiKey`، `postmarkServerToken` یا `resendApiKey`.
+
+```bash
+kubectl create secret generic oneuptime-email --namespace oneuptime \
+  --from-literal=smtpPassword=YOUR_SMTP_PASSWORD
+```
+
+```yaml
+email:
+  serverType: custom-smtp
+  fromEmail: alerts@example.com
+  fromName: OneUptime
+  smtp:
+    host: smtp.example.com
+    port: 587
+    requireTls: true
+    username: alerts@example.com
+  existingSecret:
+    name: oneuptime-email
+```
+
+چارت مقدارهای دیگر `email` را بدون `email.serverType`، تنظیماتی را بدون گذرواژه یا کلیدی که می‌خوانند، گذرواژه یا کلیدی را که هم در values و هم در یک Secret داده شده، و Secretی را که تنظیمات چیزی از آن نمی‌خوانند، نمی‌پذیرد. با Terraform همین مقدارها را روی یک `helm_release` تعیین کنید و گذرواژه یا کلید را به‌عنوان مقداری حساس بدهید.
+
+با Docker Compose، تنظیمات `GLOBAL_EMAIL_` را در `config.env` تعیین کنید و سپس `npm run start` را اجرا کنید تا کانتینرها دوباره ساخته شوند.
+
+OneUptime متغیرها را هنگام شروع می‌خواند. اگر یکی از آن‌ها نادرست باشد، مثلاً درگاهی که عدد نیست یا گذرواژه‌ای که داده نشده، سرور تا وقتی درست نشده هیچ ایمیلی نمی‌فرستد؛ لاگ سرور، تنظیمات ایمیل در Admin Dashboard و چک‌لیست `/admin/setup` نام متغیر را می‌گویند. گذرواژه‌ها و کلیدها هرگز نشان داده نمی‌شوند. برای تغییر تنظیمات، متغیرها را تغییر دهید و OneUptime را دوباره راه‌اندازی کنید: Admin Dashboard آن‌ها را تغییر نمی‌دهد.
 
 ## عیب‌یابی
 

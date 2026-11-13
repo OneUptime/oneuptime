@@ -361,9 +361,11 @@ export default class AIAlertInvestigationRunner {
 
       /*
        * Recurrence memory, as an incident's investigation has it: the
-       * project's resolved alerts of the same monitor (its series first) or
-       * labels, with what caused them and the fix OneUptime AI made when it
-       * was verified, so a recurrence names the fix that worked last time.
+       * project's resolved alerts of the same monitor (its series first),
+       * labels or services, or whose words say the same thing happened, with
+       * what caused them and the fix OneUptime AI made when it was verified,
+       * so a recurrence names the fix that worked last time - and what it has
+       * learned about the alert's services (AIMemory, ServiceKnowledge).
        * Never a private alert. Enrichment only: it answers "" on any error.
        */
       const priorCasesContext: string =
@@ -758,6 +760,8 @@ export default class AIAlertInvestigationRunner {
         persistAnalysisTldr: true,
         // Who and what it hurts, in numbers, for the folded step.
         recordImpactNumbers: true,
+        // What it saw, kept for a replay after a prompt or model change.
+        recordForReplay: true,
         // Says when the logs stood in the way, with a way forward.
         logStallSubject: {
           subjectType: "alert",

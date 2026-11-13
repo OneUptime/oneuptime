@@ -23,6 +23,7 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallRule/WorkingHoursText";
 import englishLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import germanLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/de.json";
+import frenchLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/fr.json";
 import japaneseLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/ja.json";
 import persianLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
 import moment from "moment-timezone";
@@ -54,6 +55,10 @@ const english: Translator = createTranslator(
 const german: Translator = createTranslator(
   lookupIn(germanLocale as Locale),
   "de",
+);
+const french: Translator = createTranslator(
+  lookupIn(frenchLocale as Locale),
+  "fr",
 );
 const japanese: Translator = createTranslator(
   lookupIn(japaneseLocale as Locale),
@@ -221,9 +226,10 @@ describe("the hours and their zone", () => {
   /*
    * Each day's hours are a clause, set off with the semicolon of the script
    * the day names are written in (#7607): the Latin "; " stood between
-   * Japanese and Persian days.
+   * Japanese and Persian days. French sets its semicolon apart with a space
+   * (#7629); German keeps English's.
    */
-  test("different hours on some days, in Japanese and Persian, take that script's semicolon", () => {
+  test("different hours on some days, in Japanese, Persian and French, take that language's semicolon", () => {
     const hours: RestrictionTimes = WorkingHours.fromSimpleHours({
       days: [0, 1, 2, 3],
       from: "08:30",
@@ -263,6 +269,11 @@ describe("the hours and their zone", () => {
 
     expect(inPersian).toContain("08:30–18:00؛ ");
     expect(inPersian).not.toContain(";");
+
+    expect(inLanguage(french)).toBe(
+      "lun.–jeu. 08:30–18:00 ; ven. 08:30–15:00 (Europe/London)",
+    );
+    expect(inLanguage(german)).toContain("08:30–18:00; ");
   });
 
   test("hours over a weekend say where they begin and end", () => {

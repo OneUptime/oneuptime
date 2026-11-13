@@ -720,6 +720,31 @@ describe("creating a project's mail server", () => {
     }
   });
 
+  /*
+   * The config is refused without the mailbox when it is sent with
+   * (ProjectSmtpConfigService.toEmailServer), and the mail service could
+   * not sign in without it: the form says so on Server (#7833).
+   */
+  test("SMTP with OAuth asks the mailbox before walking on: a blank Username says it is required", async () => {
+    await renderPage();
+
+    await type("name", "Microsoft 365 SMTP");
+    await clickWayOn();
+    await openAdvanced();
+    await pick("OAuth");
+    await type("hostname", "smtp.office365.com");
+    await clickWayOn();
+
+    expect(activeStep()).toContain("Server");
+    expect(within(dialog()).getByText("Username is required.")).toBeVisible();
+    expect(capturedModels).toEqual([]);
+
+    await type("username", "alerts@example.com");
+    await clickWayOn();
+
+    expect(activeStep()).toContain("OAuth");
+  });
+
   test("Microsoft Graph: its OAuth app in the Server's place, and none of a server saved", async () => {
     await renderPage();
 

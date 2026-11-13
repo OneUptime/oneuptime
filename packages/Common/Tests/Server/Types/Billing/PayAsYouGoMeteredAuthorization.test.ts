@@ -46,7 +46,11 @@ jest.mock("../../../../Server/Services/BillingService", () => {
 jest.mock("../../../../Server/Services/ProjectService", () => {
   return {
     __esModule: true,
-    default: { findOneById: jest.fn(), updateOneById: jest.fn() },
+    default: {
+      findOneById: jest.fn(),
+      updateOneById: jest.fn(),
+      isSampleProject: jest.fn(),
+    },
   };
 });
 jest.mock("../../../../Server/Services/LogService", () => {
@@ -141,6 +145,12 @@ describe("metered billing payment protection", () => {
         paymentProviderPlanId: "free",
       }),
     );
+    /*
+     * Every plan first asks whether the project is the sample project, which
+     * is never metered (#6808; pinned in SampleProjectReaders). These
+     * projects are real ones.
+     */
+    getJestSpyOn(ProjectService, "isSampleProject").mockResolvedValue(false);
   });
 
   afterEach(() => {

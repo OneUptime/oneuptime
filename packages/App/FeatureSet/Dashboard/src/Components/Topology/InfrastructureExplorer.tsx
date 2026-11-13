@@ -1216,8 +1216,8 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
         >
           {container
             ? node.kind === "group" || node.kind === "collection"
-              ? describeInfrastructureNode(node)
-              : summarizeCounts(node.countsByType) || "—"
+              ? describeInfrastructureNode(node, translator)
+              : summarizeCounts(node.countsByType, undefined, translator) || "—"
             : "—"}
         </td>
         <td className={`${INFRASTRUCTURE_TABLE_CELL_PADDING_CLASS_NAME} py-3`}>
@@ -1814,7 +1814,11 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                   {t(category.name)}
                 </h3>
                 <span className="text-xs text-gray-400">
-                  {summarizeCounts(category.countsByType)}
+                  {summarizeCounts(
+                    category.countsByType,
+                    undefined,
+                    translator,
+                  )}
                 </span>
               </div>
               {renderTable(rootId, category.childIds)}
@@ -2102,8 +2106,11 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                                       ),
                                     ]
                                   : []),
-                                summarizeCounts(scope.countsByType, 4) ||
-                                  t("Empty"),
+                                summarizeCounts(
+                                  scope.countsByType,
+                                  4,
+                                  translator,
+                                ) || t("Empty"),
                               ],
                               translator,
                             )

@@ -387,7 +387,7 @@ describe("how a row's sentence is drawn", () => {
   );
 
   test.each(["fa", "ar"])(
-    "in %s, the arrow that opens the other end is mirrored to point on",
+    "in %s, the arrow that opens the other end points on, the way the line reads",
     async (language: string) => {
       const selectEntity: MockFunction = getJestMockFunction();
 
@@ -400,10 +400,13 @@ describe("how a row's sentence is drawn", () => {
 
       expect(buttons.length).toBe(RELATED_EDGES.length);
       for (const button of buttons) {
-        const arrow: HTMLElement = within(button).getByText("→");
+        // The shared DirectionArrow writes "←" in a line read from the right.
+        const arrow: HTMLElement = within(button).getByText("←");
 
         expect(arrow).toHaveAttribute("aria-hidden", "true");
-        expect(arrow).toHaveClass("inline-block", "rtl:-scale-x-100");
+        expect(within(button).queryByText("→")).toBeNull();
+        // Mirrored as well, "←" would point back again.
+        expect(arrow).not.toHaveClass("rtl:-scale-x-100");
         expect(
           within(button).getByTestId("entity-connection-sentence"),
         ).toHaveAttribute("dir", "auto");

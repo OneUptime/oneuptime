@@ -69,7 +69,7 @@ En regel matcher bare når hver betingelse du fyller ut, holder; en betingelse s
 :::steps
 ### Velg hvilke hendelser det skal påminnes om
 
-Klikk på **Opprett Scheduled Maintenance Reminder Rule**. Under **Treff** lar du **Alle planlagte vedlikeholdshendelser** være valgt for å påminne om hver hendelse, eller du velger **Bare planlagte vedlikeholdshendelser som oppfyller betingelsene** og deretter **Etiketter** den gjelder for.
+Klikk på **Opprett Scheduled Maintenance Reminder Rule**. Under **Treff** lar du **Alle vedlikeholdshendelser** være valgt for å påminne om hver hendelse, eller du velger **Bare vedlikeholdshendelser som oppfyller betingelsene** og deretter **Etiketter** den gjelder for.
 
 ### Still inn intervallet
 

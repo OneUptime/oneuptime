@@ -160,8 +160,12 @@ export const ONEUPTIME_OTHER_AGENT_CONTAINER_NAMES: ReadonlyArray<string> = [
   // agents/CephAgent
   "oneuptime-ceph-agent",
   "oneuptime-ceph-ai-agent",
-  // agents/ProxmoxAgent: the collector, its exporter, the AI agent
+  /*
+   * agents/ProxmoxAgent: the collector, the sidecar that moves it to the
+   * next node's API when PVE_HOST's goes down, its exporter, the AI agent
+   */
   "oneuptime-proxmox-agent",
+  "oneuptime-pve-api-failover",
   "oneuptime-pve-exporter",
   "oneuptime-proxmox-ai-agent",
   // agents/VMwareAgent

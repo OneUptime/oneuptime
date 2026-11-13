@@ -29,6 +29,11 @@ import EntityRelationshipType from "../../../Types/Telemetry/EntityRelationshipT
 import ObjectID from "../../../Types/ObjectID";
 import { setDateDisplayLanguage } from "../../../Types/DateLanguage";
 import {
+  ReadingDirection,
+  getReadingDirection,
+  setApartInSentence,
+} from "../../../Types/ReadingDirection";
+import {
   PluralTemplate,
   Translator,
   formatInline,
@@ -192,6 +197,17 @@ const SILENT: PluralTemplate = {
   one: "{{count}} resource is known but has been silent. Pick a longer time range or show inactive resources.",
   other:
     "{{count}} resources are known but have been silent. Pick a longer time range or show inactive resources.",
+};
+
+// How many hosts, and IoT devices, a group, a category or a scope holds (#7658).
+const HOSTS: PluralTemplate = {
+  one: "{{count}} host",
+  other: "{{count}} hosts",
+};
+
+const IOT_DEVICES: PluralTemplate = {
+  one: "{{count}} IoT device",
+  other: "{{count}} IoT devices",
 };
 
 // What the old sentence was made of: a count, then the rest in one fragment.
@@ -611,6 +627,68 @@ describe.each(LANGUAGES)("the explorer in %s", (language: string) => {
     if (language === "en") {
       expect(countLine().textContent).toBe("1 match");
     }
+  });
+
+  /*
+   * #7658: what a category, a group of replicas and a collection hold, and
+   * the scope a reader opens, counted in the language's words, plural and
+   * digits; read from the right, a line's counts are each set apart.
+   */
+  test("a category's, a group's, a collection's and a scope's counts are the language's", () => {
+    const direction: ReadingDirection = getReadingDirection(language);
+
+    // Every host reported; 4,200 of the 5,000 IoT devices did.
+    renderIn(language, withIoTCollection());
+
+    // The category's line beside its title: its five hosts.
+    const category: HTMLElement = screen.getByRole("region", {
+      name: word(language, "Hosts & containers"),
+    });
+
+    expect(
+      within(category).getByRole("heading", { level: 3 }).nextElementSibling
+        ?.textContent,
+    ).toBe(setApartInSentence(translator.translatePlural(HOSTS, 5), direction));
+
+    // A row's count: the group of two replicas, and the 4,200 IoT devices.
+    const countOfRow: (name: string) => string = (name: string): string => {
+      const row: HTMLElement | undefined = screen
+        .getAllByTestId("infrastructure-row")
+        .find((candidate: HTMLElement): boolean => {
+          return (
+            within(candidate).queryByLabelText(
+              translator.translateTemplate("Open {{name}}", { name }),
+            ) !== null
+          );
+        });
+
+      expect({ name, found: row !== undefined }).toEqual({
+        name,
+        found: true,
+      });
+
+      return row!.querySelectorAll("td")[1]?.textContent || "";
+    };
+
+    expect(countOfRow("oneuptime-app")).toBe(
+      translator.translatePlural(HOSTS, 2),
+    );
+    expect(countOfRow("IoT Devices")).toBe(
+      translator.translatePlural(IOT_DEVICES, 4200),
+    );
+
+    // The group opened: the line under its title counts what it holds.
+    fireEvent.click(
+      screen.getByLabelText(
+        translator.translateTemplate("Open {{name}}", {
+          name: "oneuptime-app",
+        }),
+      ),
+    );
+
+    expect(countLine().textContent).toBe(
+      setApartInSentence(translator.translatePlural(HOSTS, 2), direction),
+    );
   });
 
   test("a level with more than a hundred lists the first and offers the rest by count and name", () => {

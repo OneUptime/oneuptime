@@ -1,8 +1,15 @@
 import {
   getLineDirection,
+  getOneWayLineDirection,
   getTranslatedLineDirection,
   LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
 } from "../../../UI/Utils/LineDirection";
+import {
+  FIRST_STRONG_ISOLATE,
+  LEFT_TO_RIGHT,
+  POP_DIRECTIONAL_ISOLATE,
+  RIGHT_TO_LEFT,
+} from "../../../Types/ReadingDirection";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -160,6 +167,38 @@ describe("getTranslatedLineDirection", () => {
     expect(getTranslatedLineDirection("", "ar")).toBeUndefined();
     expect(getTranslatedLineDirection(undefined, "fa")).toBeUndefined();
     expect(getTranslatedLineDirection(null, "en")).toBeUndefined();
+  });
+});
+
+/*
+ * A line read one way on every page - the user flow map's two pages and
+ * the arrow between them, drawn from the left in every language - is read
+ * that way whatever its letters. Each page is set apart in it, so by the
+ * letters in its isolates a transition between two folds named in Arabic
+ * read from the right on an Arabic page, its arrow pointing back.
+ */
+describe("getOneWayLineDirection", () => {
+  const FOLD: string = `${FIRST_STRONG_ISOLATE}صفحات أخرى${POP_DIRECTIONAL_ISOLATE}`;
+  const BETWEEN_TWO_FOLDS: string = `${FOLD} → ${FOLD}`;
+
+  test("a line read from the left reads so on a page read from the right, whatever its letters", () => {
+    expect(getLineDirection(BETWEEN_TWO_FOLDS, "ar")).toBeUndefined();
+    expect(getOneWayLineDirection(LEFT_TO_RIGHT, "ar")).toBe("ltr");
+    expect(getOneWayLineDirection(LEFT_TO_RIGHT, "fa")).toBe("ltr");
+    expect(getOneWayLineDirection(LEFT_TO_RIGHT, "fa-IR")).toBe("ltr");
+  });
+
+  test("on a page that reads the same way it needs nothing of its own, as getLineDirection gives", () => {
+    expect(getLineDirection(BETWEEN_TWO_FOLDS, "en")).toBe("rtl");
+    expect(getOneWayLineDirection(LEFT_TO_RIGHT, "en")).toBeUndefined();
+    expect(getOneWayLineDirection(LEFT_TO_RIGHT, "de")).toBeUndefined();
+    expect(getOneWayLineDirection(LEFT_TO_RIGHT, undefined)).toBeUndefined();
+    expect(getOneWayLineDirection(RIGHT_TO_LEFT, "ar")).toBeUndefined();
+  });
+
+  test("a line read from the right reads so on a page read from the left", () => {
+    expect(getOneWayLineDirection(RIGHT_TO_LEFT, "en")).toBe("rtl");
+    expect(getOneWayLineDirection(RIGHT_TO_LEFT, null)).toBe("rtl");
   });
 });
 

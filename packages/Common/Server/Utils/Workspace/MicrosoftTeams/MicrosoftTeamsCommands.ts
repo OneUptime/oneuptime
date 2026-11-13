@@ -92,7 +92,7 @@ const LIST_COMMAND_SPELLINGS: ReadonlyArray<{
   {
     command: MicrosoftTeamsListCommand.ScheduledMaintenance,
     spellings: ["show scheduled maintenance", "scheduled maintenance"],
-    summary: "list the scheduled maintenance events still to come",
+    summary: "list the maintenance events still to come",
     kind: WorkspaceOpenRecordKind.UpcomingMaintenance,
     purpose: "see the scheduled maintenance coming up",
     reads: "read the scheduled maintenance coming up",

@@ -71,7 +71,9 @@ export const SubscriberRestrictionsCopy: {
   privateUsersOnlyOffDescription: string;
   /*
    * Beside the switch on a page no reader signs in to: one open to anyone,
-   * or to anyone with the password.
+   * or to anyone with the password. Nobody can subscribe from the page
+   * then, so only the people in the project add subscribers - it used to
+   * say "only your team", which read as one of OneUptime's Teams (#7595).
    */
   privateUsersOnlyNoSignInNote: string;
   allowedDomainsLabel: string;
@@ -93,7 +95,7 @@ export const SubscriberRestrictionsCopy: {
     "Off: anyone who can see this status page can subscribe.",
   ),
   privateUsersOnlyNoSignInNote: translationKey(
-    "This page has no sign-in, so while this is on, only your team can add subscribers.",
+    "This page has no sign-in, so while this is on, only people in your project can add subscribers.",
   ),
   allowedDomainsLabel: translationKey("Allowed Email Domains"),
   allowedDomainsDescription: translationKey(
