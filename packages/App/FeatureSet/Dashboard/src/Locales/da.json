@@ -6760,7 +6760,7 @@
   "Edit Settings": "Rediger indstillinger",
   "Field": "Felt",
   "Comes From": "Kommer fra",
-  "Answer to the question:": "Svar på spørgsmålet:",
+  "Answer to the question: “{{question}}”": "Svar på spørgsmålet: »{{question}}«",
   "If it is left empty:": "Hvis det står tomt:",
   "Always added:": "Tilføjes altid:",
   "Not asked": "Spørges ikke",
@@ -52090,5 +52090,16 @@
   "All judged investigations": "Alle vurderede undersøgelser",
   "Fixes that worked": "Rettelser, der virkede",
   "{{count}} fixes could not be checked: there was nothing to check them against.": "{{count}} rettelser kunne ikke tjekkes: der var intet at sammenligne dem med.",
-  "{{count}} fixes could not be checked: there was nothing to check them against._one": "{{count}} rettelse kunne ikke tjekkes: der var intet at sammenligne den med."
+  "{{count}} fixes could not be checked: there was nothing to check them against._one": "{{count}} rettelse kunne ikke tjekkes: der var intet at sammenligne den med.",
+  "at exception": "ved undtagelsen",
+  "{{minutes}} m": "{{minutes}} min.",
+  "{{minutes}} m {{seconds}} s": "{{minutes}} min. {{seconds}} s",
+  "{{count}} events in the {{span}} before the exception": "{{count}} hændelser i de {{span}} før undtagelsen",
+  "{{count}} events in the {{span}} before the exception_one": "{{count}} hændelse i de {{span}} før undtagelsen",
+  "{{count}} events around the exception": "{{count}} hændelser omkring undtagelsen",
+  "{{count}} events around the exception_one": "{{count}} hændelse omkring undtagelsen",
+  "{{filtered}} of {{count}} events match the filters": "{{filtered}} af {{count}} hændelser matcher filtrene",
+  "{{filtered}} of {{count}} events match the filters_one": "{{filtered}} af {{count}} hændelse matcher filtrene",
+  "{{description}} (latest {{shown}} of {{total}})": "{{description}} (de seneste {{shown}} af {{total}})",
+  "A project's own Twilio account. The project's default accounts send the SMS and make the calls to its team members instead of OneUptime's own. A status page can name one for the SMS to its subscribers, and an incoming call policy one for its calls.": "Et projekts egen Twilio-konto. Sms'er og opkald til dets teammedlemmer går gennem projektets standardkonti i stedet for gennem OneUptimes egen Twilio-konto. En statusside kan angive én til sms'erne til sine abonnenter, og en indgående opkaldspolitik én til sine opkald."
 }

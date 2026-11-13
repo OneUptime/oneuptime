@@ -562,7 +562,8 @@ then `npm run i18n:validate` from the root.
   On a page read from the right the arrow is "←", the first value is drawn at the right, and each
   value is set apart so the arrow stays the line's. A line that reads one way on every page, like
   the names of the user flow map's bands (drawn from the left everywhere), takes
-  `joinWithArrowsInDirection`. Enforced by
+  `joinWithArrowsInDirection`, and its box takes that way too (`getOneWayLineDirection`), whatever
+  letters its values are in. Enforced by
   [ComponentArrowsInRightToLeftPages](../../packages/Common/Tests/App/ComponentArrowsInRightToLeftPages.test.ts)
   and
   [DirectionArrowsInReadersLanguage](../../packages/Common/Tests/App/Dashboard/DirectionArrowsInReadersLanguage.test.tsx).

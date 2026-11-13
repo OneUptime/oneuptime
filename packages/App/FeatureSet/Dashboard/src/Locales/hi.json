@@ -6760,7 +6760,7 @@
   "Edit Settings": "सेटिंग्स संपादित करें",
   "Field": "फ़ील्ड",
   "Comes From": "कहाँ से आता है",
-  "Answer to the question:": "इस प्रश्न का उत्तर:",
+  "Answer to the question: “{{question}}”": "इस प्रश्न का उत्तर: “{{question}}”",
   "If it is left empty:": "यदि इसे खाली छोड़ा जाए:",
   "Always added:": "हमेशा जोड़ा जाता है:",
   "Not asked": "नहीं पूछा जाता",
@@ -52090,5 +52090,16 @@
   "All judged investigations": "सभी आंकी गई जांचें",
   "Fixes that worked": "काम करने वाले सुधार",
   "{{count}} fixes could not be checked: there was nothing to check them against.": "{{count}} सुधारों की जांच नहीं हो सकी: उनकी तुलना के लिए कुछ नहीं था।",
-  "{{count}} fixes could not be checked: there was nothing to check them against._one": "{{count}} सुधार की जांच नहीं हो सकी: उसकी तुलना के लिए कुछ नहीं था।"
+  "{{count}} fixes could not be checked: there was nothing to check them against._one": "{{count}} सुधार की जांच नहीं हो सकी: उसकी तुलना के लिए कुछ नहीं था।",
+  "at exception": "अपवाद के समय",
+  "{{minutes}} m": "{{minutes}} मिनट",
+  "{{minutes}} m {{seconds}} s": "{{minutes}} मिनट {{seconds}} सेकंड",
+  "{{count}} events in the {{span}} before the exception": "अपवाद से पहले के {{span}} में {{count}} इवेंट",
+  "{{count}} events in the {{span}} before the exception_one": "अपवाद से पहले के {{span}} में {{count}} इवेंट",
+  "{{count}} events around the exception": "अपवाद के आसपास {{count}} इवेंट",
+  "{{count}} events around the exception_one": "अपवाद के आसपास {{count}} इवेंट",
+  "{{filtered}} of {{count}} events match the filters": "{{count}} में से {{filtered}} इवेंट फ़िल्टर से मेल खाते हैं",
+  "{{filtered}} of {{count}} events match the filters_one": "{{count}} में से {{filtered}} इवेंट फ़िल्टर से मेल खाते हैं",
+  "{{description}} (latest {{shown}} of {{total}})": "{{description}} ({{total}} में से नवीनतम {{shown}})",
+  "A project's own Twilio account. The project's default accounts send the SMS and make the calls to its team members instead of OneUptime's own. A status page can name one for the SMS to its subscribers, and an incoming call policy one for its calls.": "किसी प्रोजेक्ट का अपना Twilio खाता। उसके टीम सदस्यों को SMS और कॉल OneUptime के अपने Twilio खाते के बजाय प्रोजेक्ट के डिफ़ॉल्ट खातों से जाते हैं। स्थिति पृष्ठ अपने सब्सक्राइबरों को भेजे जाने वाले SMS के लिए एक खाता चुन सकता है, और इनकमिंग कॉल नीति अपनी कॉल के लिए एक।"
 }

@@ -6760,7 +6760,7 @@
   "Edit Settings": "تعديل الإعدادات",
   "Field": "حقل",
   "Comes From": "تأتي من",
-  "Answer to the question:": "إجابة السؤال:",
+  "Answer to the question: “{{question}}”": "إجابة السؤال: «{{question}}»",
   "If it is left empty:": "إذا تُرك فارغًا:",
   "Always added:": "يُضاف دائمًا:",
   "Not asked": "غير مطروح",
@@ -52090,5 +52090,16 @@
   "All judged investigations": "كل التحقيقات المُقيَّمة",
   "Fixes that worked": "الإصلاحات التي نجحت",
   "{{count}} fixes could not be checked: there was nothing to check them against.": "تعذّر التحقق من {{count}} من الإصلاحات: لم يكن هناك ما تُقارن به.",
-  "{{count}} fixes could not be checked: there was nothing to check them against._one": "تعذّر التحقق من {{count}} إصلاح: لم يكن هناك ما يُقارن به."
+  "{{count}} fixes could not be checked: there was nothing to check them against._one": "تعذّر التحقق من {{count}} إصلاح: لم يكن هناك ما يُقارن به.",
+  "at exception": "عند الاستثناء",
+  "{{minutes}} m": "{{minutes}} د",
+  "{{minutes}} m {{seconds}} s": "{{minutes}} د {{seconds}} ث",
+  "{{count}} events in the {{span}} before the exception": "{{count}} من الأحداث خلال {{span}} قبل الاستثناء",
+  "{{count}} events in the {{span}} before the exception_one": "{{count}} حدث خلال {{span}} قبل الاستثناء",
+  "{{count}} events around the exception": "{{count}} من الأحداث قرب وقت الاستثناء",
+  "{{count}} events around the exception_one": "{{count}} حدث قرب وقت الاستثناء",
+  "{{filtered}} of {{count}} events match the filters": "الأحداث المطابقة لعوامل التصفية: {{filtered}} من {{count}}",
+  "{{filtered}} of {{count}} events match the filters_one": "الأحداث المطابقة لعوامل التصفية: {{filtered}} من {{count}}",
+  "{{description}} (latest {{shown}} of {{total}})": "{{description}} (أحدث {{shown}} من {{total}})",
+  "A project's own Twilio account. The project's default accounts send the SMS and make the calls to its team members instead of OneUptime's own. A status page can name one for the SMS to its subscribers, and an incoming call policy one for its calls.": "حساب Twilio الخاص بمشروع. تمر رسائل SMS والمكالمات إلى أعضاء فريقه عبر الحسابات الافتراضية للمشروع بدلًا من حساب Twilio الخاص بـ OneUptime. ويمكن لصفحة الحالة أن تحدد حسابًا لرسائل SMS إلى مشتركيها، ولسياسة المكالمات الواردة أن تحدد حسابًا لمكالماتها."
 }

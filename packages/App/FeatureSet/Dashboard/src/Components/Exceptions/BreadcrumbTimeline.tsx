@@ -276,7 +276,7 @@ const TimelineRow: FunctionComponent<TimelineRowProps> = (
   const formatTime: (time: Date) => string = (time: Date): string => {
     if (props.timeFormat === "relative") {
       return (
-        formatBreadcrumbOffset(time, props.exceptionTime) ||
+        formatBreadcrumbOffset(time, props.exceptionTime, translator) ||
         formatBreadcrumbClockTime(time)
       );
     }
@@ -568,6 +568,7 @@ const BreadcrumbTimeline: FunctionComponent<ComponentProps> = (
     ...(activeFilters.size > 0 ? { filteredCount: filteredEvents.length } : {}),
     firstTime: sortedEvents[0]?.time,
     exceptionTime: props.exceptionTime,
+    translator: translator,
   });
 
   return (

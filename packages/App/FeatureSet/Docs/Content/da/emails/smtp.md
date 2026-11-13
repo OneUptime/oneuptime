@@ -74,6 +74,8 @@ Det er indstillingerne under **Flere felter**:
 
 **Microsoft Graph.** I et projekts formular vælger du `Microsoft Graph` som **Udbyder**; i instansens formular åbner du **Flere felter** og sætter **Transport** til `Microsoft Graph`. Udfyld derefter en Azure-app, der har programtilladelsen **Mail.Send**: dens klient-id og klienthemmelighed, token-URL'en `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` og omfanget `https://graph.microsoft.com/.default`. Mail sendes fra postkassen for **E-mail fra**, som skal være en licenseret postkasse i din lejer.
 
+**Terraform.** Et projekts SMTP-konfigurationer er også ressourcen `oneuptime_smtp_config` i [Terraform-provideren](/docs/terraform/index). Adgangskoden, OAuth-klienthemmeligheden og e-mailudbydernes nøgler er følsomme, så planer, logs og output viser dem aldrig. Den API-nøgle, Terraform bruger, skal kunne læse dem: **Projektejer**, **Projektadministrator** eller **Read SMTP Config** i en brugerdefineret rolle. `smtp_config_id` på en statusside tager en konfigurations `id`.
+
 > [!NOTE]
 > På OneUptime Cloud skal et projekts mailserver kunne nås via internettet: en vært, der slås op til en privat eller intern adresse, afvises. I en selvhostet installation er private adresser tilladt, medmindre `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` er `true`; loopback- og link-local-adresser afvises altid. Instansens egen mailserver kontrolleres ikke på denne måde.
 
