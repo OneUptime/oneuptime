@@ -593,8 +593,8 @@ describe("connection sections", () => {
     const items: Array<HTMLElement> = within(
       screen.getByTestId("entity-detail-related"),
     ).getAllByRole("listitem");
-    expect(items[0]).toHaveTextContent("Checkout API member of Zulu");
-    expect(items[1]).toHaveTextContent("Checkout API member of Alpha");
+    expect(items[0]).toHaveTextContent("Checkout API is a member of Zulu");
+    expect(items[1]).toHaveTextContent("Checkout API is a member of Alpha");
   });
 
   test("outbound rows read from the entity, inbound rows towards it, with call metrics", async () => {
@@ -705,7 +705,7 @@ describe("connection sections", () => {
 
     expect(
       screen.getByRole("button", { name: "View details for Unnamed resource" }),
-    ).toHaveTextContent("Checkout API member of Unnamed resource");
+    ).toHaveTextContent("Checkout API is a member of Unnamed resource");
   });
 
   test("a self-loop appears once, as an outbound row", async () => {

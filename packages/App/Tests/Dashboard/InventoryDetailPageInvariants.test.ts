@@ -213,8 +213,25 @@ describe("the relationships view", () => {
   });
 
   test("phrases each edge from this item's end", () => {
+    expect(relationships).toMatch(
+      /getRelationshipPhrase\( ?row\.relationshipType, directionOf\(row\),? ?\)/,
+    );
+  });
+
+  test("draws each edge as one sentence with the other item in it (#7326)", () => {
+    /*
+     * The phrase is a template with the other item as {{item}}, so the
+     * item goes where the reader's language puts it, never after a
+     * phrase read on its own.
+     */
+    expect(relationships).toMatch(
+      /<TranslatedSentence template=\{getRelationshipPhrase\(/,
+    );
     expect(relationships).toContain(
-      "getRelationshipPhrase(row.relationshipType, directionOf(row))",
+      "slots={{ [RELATIONSHIP_ITEM_SLOT]: otherItem }}",
+    );
+    expect(relationships).not.toMatch(
+      /translateText\( ?getRelationshipPhrase\(/,
     );
   });
 

@@ -33,8 +33,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *
  *   - one all-time request per item: the key and type, never a range;
  *   - exact totals per section ("N+" when the server stopped counting);
- *   - rows phrased from this item's end, linking to the other item, and
- *     ends no longer in inventory shown by key, unlinked;
+ *   - rows phrased from this item's end as one sentence with the other
+ *     item's link in it, and ends no longer in inventory shown by key,
+ *     unlinked (the sentences in other languages:
+ *     InventoryRelationshipsInLocale.test.tsx);
  *   - "Show more" appending the next page and moving focus to it, a list
  *     that changed underneath offering a reload, per-section failures;
  *   - a failed load that can be retried, or reloaded when outdated;
@@ -363,6 +365,11 @@ async function waitForConnections(): Promise<void> {
   });
 }
 
+// The sentence a row says about this item, with the other item in it.
+function sentenceOf(row: HTMLElement): HTMLElement {
+  return within(row).getByTestId("inventory-connection-sentence");
+}
+
 function relatedRows(): Array<HTMLElement> {
   return within(
     screen.getByTestId("inventory-connections-related"),
@@ -496,13 +503,17 @@ describe("each row", () => {
     await waitForConnections();
 
     const [cluster, firstPod] = relatedRows();
-    // The stored edge is ns → cluster (part-of) and pod → ns (part-of).
-    expect(cluster).toHaveTextContent("is part of");
-    expect(firstPod).toHaveTextContent("contains");
+    /*
+     * The stored edge is ns → cluster (part-of) and pod → ns (part-of):
+     * one sentence about this item, with the other item's link in it.
+     */
+    expect(sentenceOf(cluster!)).toHaveTextContent(/^is part of prod$/);
+    expect(sentenceOf(firstPod!)).toHaveTextContent(/^contains api-pod-1$/);
 
-    const clusterLink: HTMLElement = within(cluster!).getByRole("link", {
-      name: "prod",
-    });
+    const clusterLink: HTMLElement = within(sentenceOf(cluster!)).getByRole(
+      "link",
+      { name: "prod" },
+    );
     expect(clusterLink.getAttribute("href")).toBe(
       `/dashboard/${PROJECT_ID.toString()}/inventory/item/4d4d0000-0000-4000-8000-000000000001`,
     );
@@ -513,9 +524,9 @@ describe("each row", () => {
     const caller: HTMLElement = within(
       screen.getByTestId("inventory-connections-calledBy"),
     ).getByRole("listitem");
-    expect(caller).toHaveTextContent("is depended on by");
+    expect(sentenceOf(caller)).toHaveTextContent(/^is depended on by billing$/);
     expect(
-      within(caller).getByRole("link", { name: "billing" }),
+      within(sentenceOf(caller)).getByRole("link", { name: "billing" }),
     ).toBeInTheDocument();
   });
 
@@ -528,6 +539,7 @@ describe("each row", () => {
     expect(within(gone).queryByRole("link")).not.toBeInTheDocument();
     // The first 16 characters of the key: the connection is still real.
     expect(within(gone).getByText("0123456789abcdef")).toBeInTheDocument();
+    expect(sentenceOf(gone)).toHaveTextContent(/^contains 0123456789abcdef$/);
     expect(
       within(screen.getByTestId("inventory-connections-related")).getByText(
         "4 no longer in inventory",
