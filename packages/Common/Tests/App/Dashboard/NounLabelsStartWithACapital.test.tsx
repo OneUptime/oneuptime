@@ -1,3 +1,4 @@
+// UX rule: Docs/ux/README.md#in-every-language
 import { afterEach, beforeAll, describe, expect, test } from "@jest/globals";
 import "@testing-library/jest-dom";
 import { cleanup, render, screen, within } from "@testing-library/react";
@@ -6,10 +7,15 @@ import * as React from "react";
 import { I18nextProvider } from "react-i18next";
 import { MemoryRouter } from "react-router-dom";
 import IconProp from "../../../Types/Icon/IconProp";
+import { NetworkAddressNameSource } from "../../../Types/NetFlow/NetworkAddressName";
 import {
   OpenStackPlacement,
   OpenStackReachAcrossProducts,
 } from "../../../Types/OpenStack/OpenStackLinks";
+import AiResourceType from "../../../Types/ResourceAiAgent/AiResourceType";
+import { describeCloudChange } from "../../../Utils/AiRemediation/CloudChangeWords";
+import { describeLinkedInfrastructure } from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/ChatActivityFeed";
+import TrafficAddressCard from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkTraffic/TrafficAddressCard";
 import { OpenStackReachList } from "../../../../App/FeatureSet/Dashboard/src/Components/OpenStack/Part/OpenStackInstanceLinksCard";
 import { OpenStackPlacementLines } from "../../../../App/FeatureSet/Dashboard/src/Components/OpenStack/Part/OpenStackPlacementCard";
 import NeedsAttentionCard from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/NeedsAttentionCard";
@@ -17,18 +23,24 @@ import {
   ResourceAttentionItem,
   ResourceAttentionSeverity,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourceAttention";
-import { readDashboardLocale } from "../../Helpers/DashboardLocales";
+import {
+  dashboardTranslator,
+  readDashboardLocale,
+} from "../../Helpers/DashboardLocales";
 
 /*
- * A NAME THE SENTENCES SHARE, DRAWN AS A LABEL (#7607).
+ * A NAME THE SENTENCES SHARE, DRAWN AS A LABEL (#7607, #7628).
  *
- * "Kubernetes cluster", "OpenStack cloud" and "DNS zone" are nouns of the
- * Dashboard's sentences too ("No open or recent alerts on {{resources}}"),
- * and es, fr, it, pt and ru word them for the middle of one: "clúster de
- * Kubernetes", "nube OpenStack", "zone DNS". Where the same key starts a
- * label - what an OpenStack instance also is, the line naming its cloud, a
- * chip saying what needs attention - it now starts with a capital, as the
+ * "Kubernetes cluster", "OpenStack cloud", "DNS zone" and "Cloud resource"
+ * are nouns of the Dashboard's sentences too ("No open or recent alerts on
+ * {{resources}}"), and es, fr, it, pt and ru word them for the middle of
+ * one: "clúster de Kubernetes", "nube OpenStack", "zone DNS", "recurso en la
+ * nube". Where the same key starts a label - what an OpenStack instance
+ * also is, the line naming its cloud, a chip saying what needs attention,
+ * where an address's name comes from - it now starts with a capital, as the
  * labels around it do; the sentences keep the word lower-case.
+ * NounKeysDrawnAsLabelsGuard keeps every other place that names one of
+ * these keys to the same rule.
  */
 
 const LANGUAGES: ReadonlyArray<string> = ["es", "fr", "it", "pt", "ru"];
@@ -237,5 +249,88 @@ describe("the chip that says what kind of part needs attention", () => {
     );
 
     expect(screen.getByTestId("attention-kind")).toHaveTextContent(/^pod$/);
+  });
+});
+
+describe("where an address's name comes from, on the address card", () => {
+  const CLOUD_RESOURCE_ADDRESS: React.ComponentProps<
+    typeof TrafficAddressCard
+  >["label"] = {
+    address: "10.0.0.5",
+    name: "web-alb",
+    source: NetworkAddressNameSource.CloudResource,
+    resourceId: "10000000-0000-4000-8000-000000000005",
+    subnetName: null,
+    subnet: null,
+  };
+
+  test.each(["es", "fr", "it", "pt"])(
+    "%s starts Cloud resource with a capital, as Host and DNS name are",
+    (language: string) => {
+      drawIn(
+        language,
+        <TrafficAddressCard
+          label={CLOUD_RESOURCE_ADDRESS}
+          canName={false}
+          canEditNames={false}
+          onNamed={() => {}}
+        />,
+      );
+
+      expect(wordIn(language, "Cloud resource")).toMatch(LOWER_CASE_START);
+      expect(
+        screen.getByTestId("traffic-address-card-source").textContent,
+      ).toBe(capitalized(wordIn(language, "Cloud resource"), language));
+    },
+  );
+});
+
+describe("a kind only ever drawn first, worded with a capital", () => {
+  /*
+   * Every language that words the sentences of a cloud change starts them
+   * with the kind ("{{kind}} {{name}}: reiniciar"), and a connected
+   * resource's kind and the Type filter's options are labels, so "Container
+   * App" is worded with a capital in every language
+   * (NounKeysDrawnAsLabelsGuard's LABEL_ONLY_KEYS).
+   */
+  test("es says what a cloud change does to a Container App starting with a capital", () => {
+    expect(
+      describeCloudChange({
+        resourceType: AiResourceType.AzureSubscription,
+        command:
+          "cloud restart-service /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/prod/providers/Microsoft.App/containerApps/api",
+        translator: dashboardTranslator("es"),
+      })?.sentence,
+    ).toBe("Aplicación de contenedor api: reiniciar");
+  });
+});
+
+describe("the sentences keep the nouns lower-case", () => {
+  /*
+   * The keys drawn as labels above are worded for the middle of a sentence,
+   * and stay so: a linked cloud resource and a Ceph cluster, named in the
+   * line an investigation writes about the alerts on them.
+   */
+  test.each([
+    ["es", "en recurso en la nube web-alb y clúster de Ceph ceph-prod"],
+    ["fr", "sur ressource cloud web-alb et cluster Ceph ceph-prod"],
+    ["it", "su risorsa cloud web-alb e cluster Ceph ceph-prod"],
+    ["pt", "em recurso de nuvem web-alb e cluster Ceph ceph-prod"],
+  ])("%s: %s", (language: string, named: string) => {
+    expect(
+      describeLinkedInfrastructure(
+        {
+          resources: [
+            { kind: "CloudResource", name: "web-alb" },
+            { kind: "CephCluster", name: "ceph-prod" },
+          ],
+          alertCount: 0,
+          openAlertCount: 0,
+          hasMoreAlerts: false,
+          lookbackMinutes: 30,
+        },
+        dashboardTranslator(language),
+      ),
+    ).toContain(named);
   });
 });

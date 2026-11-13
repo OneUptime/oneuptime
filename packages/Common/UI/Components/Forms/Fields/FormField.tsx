@@ -1441,7 +1441,16 @@ const FormField: <T extends GenericObject>(
                     ? inputInitialValue
                     : String(inputInitialValue ?? "")
                 }
-                placeholder={translatedPlaceholder || ""}
+                /*
+                 * An identifier (a claim's name) reads as written in every
+                 * language: looked up neither here nor in Input.
+                 */
+                placeholder={
+                  props.field.isPlaceholderIdentifier
+                    ? props.field.placeholder || ""
+                    : translatedPlaceholder || ""
+                }
+                isPlaceholderIdentifier={props.field.isPlaceholderIdentifier}
               />,
             )}
         </div>

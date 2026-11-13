@@ -218,12 +218,9 @@ describe("isSampleProject", () => {
 
 describe("getCurrentPlan of a sample project", () => {
   test("is the top plan and never unpaid, with no plan id", async () => {
-    jest.spyOn(ProjectService, "findOneById").mockResolvedValue(
-      projectRow({
-        isSampleProject: true,
-        paymentProviderPlanId: undefined,
-      }) as never,
-    );
+    jest
+      .spyOn(ProjectService, "findOneById")
+      .mockResolvedValue(projectRow({ isSampleProject: true }) as never);
 
     await expect(ProjectService.getCurrentPlan(SAMPLE_ID)).resolves.toEqual({
       plan: SAMPLE_PROJECT_PLAN,
@@ -233,12 +230,9 @@ describe("getCurrentPlan of a sample project", () => {
   });
 
   test("a real project with no plan is still refused", async () => {
-    jest.spyOn(ProjectService, "findOneById").mockResolvedValue(
-      projectRow({
-        isSampleProject: false,
-        paymentProviderPlanId: undefined,
-      }) as never,
-    );
+    jest
+      .spyOn(ProjectService, "findOneById")
+      .mockResolvedValue(projectRow({ isSampleProject: false }) as never);
 
     await expect(ProjectService.getCurrentPlan(REAL_ID)).rejects.toThrow(
       "Project does not have any plans",
@@ -319,7 +313,6 @@ describe("making a sample project", () => {
       _id: SAMPLE_ID.toString(),
       name: "Sample: Acme Shop",
       isSampleProject: true,
-      createdOwnerEmail: undefined,
     });
 
     await internals().onCreateSuccess(

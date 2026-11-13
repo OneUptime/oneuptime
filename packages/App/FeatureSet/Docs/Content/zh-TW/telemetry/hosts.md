@@ -236,6 +236,10 @@ curl -fsSL https://oneuptime.com/docs/static/scripts/host-collector/install.sh |
 HTTP `401`：金鑰錯誤、已過期或已被刪除。HTTP `422`：金鑰已停用、是瀏覽器金鑰，或已綁定到單一服務。在 **新增主機** 中選擇一個已啟用的伺服器金鑰，然後再次執行命令：它會取代主機上的金鑰。
 :::
 
+:::details 命令顯示找不到 OneUptime
+HTTP `404`：收集器要求設定的位址（你的 OneUptime URL 加上 `/telemetry/opamp/v1`）沒有連到 OneUptime。請檢查 `--url`（在 Windows 上為 `-Url`）是否就是你開啟 OneUptime 時使用的位址，而且後面沒有附加任何內容。如果 OneUptime 前面有你自己的代理伺服器或負載平衡器，請讓它像轉送 `/otlp` 一樣把 `/telemetry/opamp/v1` 也轉送給 OneUptime。收集器每 30 秒會再要求一次，因此位址一旦可用，主機就會連上。
+:::
+
 :::details 主機沒有出現
 檢查主機能否透過 HTTPS 連到你的 OneUptime URL，然後用 [檢查主機的收集器](#檢查主機的收集器) 中對應系統的命令查看收集器的記錄。
 :::

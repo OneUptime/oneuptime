@@ -9,6 +9,7 @@ import {
   dashboardTranslator,
   drawnDashboardLabel,
 } from "./DocsDashboardLabels";
+import { pathWithArrows } from "./DocsPageShape";
 
 /*
  * "Someone who sets up 'Time to mitigate' opens an incident and finds it
@@ -120,8 +121,15 @@ describe.each(["en", "fa"])("the %s measurements docs", (language: string) => {
 
     expect(subsection).toContain(bold(language, "Measurements"));
     expect(subsection).toContain(bold(language, "Incident Details"));
+    // From one moment to the other: "←" between two Persian ones (#7611).
     expect(subsection).toContain(
-      `**${drawnDashboardLabel(language, "Declared")} → ${drawnDashboardLabel(language, "Acknowledged")}**`,
+      `**${pathWithArrows(
+        [
+          drawnDashboardLabel(language, "Declared"),
+          drawnDashboardLabel(language, "Acknowledged"),
+        ],
+        language,
+      )}**`,
     );
 
     for (const state of states(language)) {

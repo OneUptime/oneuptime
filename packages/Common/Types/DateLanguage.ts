@@ -563,6 +563,65 @@ export interface DateTextShape {
   twoDigitDay?: boolean | undefined;
 }
 
+/*
+ * How Intl writes the hour of a time of day on the reader's clock.
+ *
+ * A 12-hour time's hour has no leading zero in any language: "5:14 AM",
+ * "오전 5:14", "上午5:14", "5:14 am", "5:14 ص", "۵:۱۴ ق.ظ.". Asked for two
+ * digits there, Intl wrote "오전 05:14" and "05:14 ص" in every language but
+ * English, which moment writes "5:14 AM" (issue #7279). A 24-hour time keeps
+ * its zero: "05:14" - "numeric" would drop it in German, French, Japanese
+ * and most others ("5:14") while Korean, Hindi and Arabic keep it.
+ */
+export const getHourOption: (
+  use12HourFormat: boolean | undefined,
+) => "numeric" | "2-digit" = (
+  use12HourFormat: boolean | undefined,
+): "numeric" | "2-digit" => {
+  return use12HourFormat ? "numeric" : "2-digit";
+};
+
+const LOCALE_CLOCK_HOUR_OPTIONS: Map<string, "numeric" | "2-digit"> = new Map<
+  string,
+  "numeric" | "2-digit"
+>();
+
+/*
+ * The hour of a time that follows its language's own clock, not the
+ * reader's 12- or 24-hour setting: a calendar's grid, a chart's axis, a
+ * diagnostics line. Korean, Traditional Chinese, Hindi, Arabic and US
+ * English read a 12-hour clock ("오전 5:14", "5:14 ص", "5:14 AM"), the
+ * others a 24-hour one ("05:14"). A two-digit hour asked of the language's own clock
+ * wrote "오전 05:14" (issue #7279). `pinnedLocale` is a locale already made
+ * for the language (getNumberLocale, getDateLocale, getReaderDateLocale).
+ */
+export const getLocaleClockHourOption: (
+  pinnedLocale: string,
+) => "numeric" | "2-digit" = (pinnedLocale: string): "numeric" | "2-digit" => {
+  const remembered: "numeric" | "2-digit" | undefined =
+    LOCALE_CLOCK_HOUR_OPTIONS.get(pinnedLocale);
+
+  if (remembered) {
+    return remembered;
+  }
+
+  let hour: "numeric" | "2-digit" = "2-digit";
+
+  try {
+    hour = getHourOption(
+      new Intl.DateTimeFormat(pinnedLocale, {
+        hour: "numeric",
+      }).resolvedOptions().hour12,
+    );
+  } catch {
+    // A locale Intl refuses: the 24-hour hour, as before.
+  }
+
+  LOCALE_CLOCK_HOUR_OPTIONS.set(pinnedLocale, hour);
+
+  return hour;
+};
+
 // The Intl options a shape of OneUptimeDate's dates asks for.
 export const getDateTimeOptions: (
   shape: DateTextShape,
@@ -583,7 +642,7 @@ export const getDateTimeOptions: (
   }
 
   if (!shape.onlyShowDate) {
-    options.hour = "2-digit";
+    options.hour = getHourOption(shape.use12HourFormat);
     options.minute = "2-digit";
     options.hour12 = Boolean(shape.use12HourFormat);
 

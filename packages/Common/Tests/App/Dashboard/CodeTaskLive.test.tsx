@@ -1380,6 +1380,94 @@ describe("useFollowLatest: the newest step stays in view for a reader at the end
     expect(scroller.scrollTop).toBe(40);
   });
 
+  /*
+   * The browser sends a scroll's event with the next frame, and a step can
+   * be drawn before it comes. The reader's place is read from the page, not
+   * from the last event: a reader who had just come to the end was left
+   * short of the newest step (Code.spec.ts, on a busy runner).
+   */
+  test("a reader who has just come to the end is followed, before the browser has said they scrolled", () => {
+    const { rerender } = follow({ growthKey: "1:a:Working:2", isLive: true });
+
+    // From the top to the end; its scroll event is not sent yet.
+    scroller.scrollTop = 200;
+    scroller.scrollHeight = 1240;
+    rerender({ growthKey: "1:a:Working:3", isLive: true });
+
+    expect(scroller.scrollTop).toBe(1240 - 800);
+  });
+
+  test("a reader who has just scrolled up is left there, before the browser has said they scrolled", () => {
+    const { rerender } = follow({ growthKey: "1:a:Working:2", isLive: true });
+
+    // At the end, then up to read; that scroll's event is not sent yet.
+    scrollTo(200);
+    scroller.scrollTop = 40;
+    scroller.scrollHeight = 1240;
+    rerender({ growthKey: "1:a:Working:3", isLive: true });
+
+    expect(scroller.scrollTop).toBe(40);
+  });
+
+  describe("the second look, on the next frame", () => {
+    let frames: Array<FrameRequestCallback> = [];
+
+    beforeEach(() => {
+      frames = [];
+      jest.spyOn(window, "requestAnimationFrame").mockImplementation(((
+        callback: FrameRequestCallback,
+      ): number => {
+        frames.push(callback);
+        return frames.length;
+      }) as never);
+    });
+
+    function nextFrame(): void {
+      act(() => {
+        for (const frame of frames.splice(0)) {
+          frame(0);
+        }
+      });
+    }
+
+    test("what laid out after the step was drawn still ends in view", () => {
+      const { rerender } = follow({
+        growthKey: "1:a:Working:2",
+        isLive: true,
+      });
+
+      scrollTo(200);
+      scroller.scrollHeight = 1240;
+      rerender({ growthKey: "1:a:Working:3", isLive: true });
+      expect(scroller.scrollTop).toBe(1240 - 800);
+
+      // Laid out after the step was drawn: the end moves 300 pixels down.
+      scroller.scrollHeight = 1540;
+      nextFrame();
+
+      expect(scroller.scrollTop).toBe(1540 - 800);
+    });
+
+    test("negative control: a reader who scrolled up before it is left there, before the browser has said they scrolled", () => {
+      const { rerender } = follow({
+        growthKey: "1:a:Working:2",
+        isLive: true,
+      });
+
+      scrollTo(200);
+      scroller.scrollHeight = 1240;
+      rerender({ growthKey: "1:a:Working:3", isLive: true });
+      expect(scroller.scrollTop).toBe(1240 - 800);
+
+      // Up to read, its scroll event not sent yet; more lays out below.
+      scroller.scrollTop = 100;
+      scroller.scrollHeight = 1540;
+      nextFrame();
+
+      expect(scroller.scrollTop).toBe(100);
+    });
+  });
+
   test("the reply that ends the turn still comes into view; a page nobody works on never moves", () => {
     const { rerender } = follow({ growthKey: "1:a:Working:2", isLive: true });
 
@@ -1528,6 +1616,32 @@ describe("useFollowLatest: the newest step stays in view for a reader at the end
 
       expect(scroller.scrollTop).toBe(2400 - 800);
     });
+
+    /*
+     * A page that gets shorter (a turn's steps fold as it ends) brings its
+     * end up to a reader there: the browser keeps them at its new end,
+     * further from the end they saw than the slack, and still at the end.
+     */
+    test("a turn that ends shorter than it worked still takes a reader at the end to the reply's first line", () => {
+      const { rerender } = followReply({
+        growthKey: "1:a:Working:5",
+        isLive: true,
+      });
+
+      // Watching at the end of a page 2,000 pixels tall.
+      scroller.scrollHeight = 2000;
+      scrollTo(1200);
+
+      // It ends 200 pixels shorter, the reply's first line above the window.
+      scroller.scrollHeight = 1800;
+      scroller.scrollTop = 1000;
+      replyTop = -300;
+      rerender({ growthKey: "1:a:Done:0:1", isLive: false });
+
+      expect(scroller.scrollTop).toBe(
+        1000 - 300 - 64 - FOLLOW_LATEST_START_GAP_PX,
+      );
+    });
   });
 
   test("a page that grew while the reader was not following is no longer at its end for the next step", () => {
@@ -1543,5 +1657,20 @@ describe("useFollowLatest: the newest step stays in view for a reader at the end
     scroller.scrollHeight = 2200;
     rerender({ growthKey: "k2", isLive: true });
     expect(scroller.scrollTop).toBe(200);
+  });
+
+  test("a reader who scrolls on a page that grew since it was drawn is judged on the page as they scroll it", () => {
+    const { rerender } = follow({ growthKey: "1:a:Working:2", isLive: true });
+
+    scrollTo(200);
+    // Earlier steps shown: the page grows with nothing new from AI.
+    scroller.scrollHeight = 2000;
+    // A little further down, still 900 pixels from its end.
+    scrollTo(300);
+
+    scroller.scrollHeight = 2024;
+    rerender({ growthKey: "1:a:Working:3", isLive: true });
+
+    expect(scroller.scrollTop).toBe(300);
   });
 });
