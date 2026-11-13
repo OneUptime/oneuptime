@@ -186,47 +186,75 @@ const named: (
   );
 };
 
+// The flags that say whether a record's owners and subscribers were told.
+const OWNER_NOTIFIED_KEY: RegExp = /^isOwnerNotified/;
+const SUBSCRIBERS_TOLD_KEY: RegExp =
+  /^shouldStatusPageSubscribersBeNotified|^notifySubscribers/;
+const SUBSCRIBER_STATUS_KEY: RegExp =
+  /^subscriberNotificationStatus(On[A-Za-z]+)?$/;
+
+type CreateBy = {
+  data: Record<string, unknown>;
+  props: Record<string, unknown>;
+};
+
+type BackdateInput = {
+  id: ObjectID;
+  data: { createdAt?: Date };
+};
+
 beforeEach(async () => {
   creates = [];
   backdates = [];
   let counter: number = 0;
 
+  /*
+   * Each service's create, recorded under its name and answered with an id
+   * of its own, and the write that back-dates a row: made here, outside the
+   * loop over the services that installs them.
+   */
+  const createAs: (
+    name: string,
+  ) => (createBy: CreateBy) => Promise<{ id: ObjectID }> = (
+    name: string,
+  ): ((createBy: CreateBy) => Promise<{ id: ObjectID }>) => {
+    return async (createBy: CreateBy): Promise<{ id: ObjectID }> => {
+      creates.push({
+        service: name,
+        data: createBy.data,
+        props: createBy.props,
+      });
+      counter++;
+      return {
+        id: new ObjectID(
+          `5a3c0000-0000-4000-9000-${String(counter).padStart(12, "0")}`,
+        ),
+      };
+    };
+  };
+
+  const backdate: (input: BackdateInput) => Promise<void> = async (
+    input: BackdateInput,
+  ): Promise<void> => {
+    if (input.data.createdAt) {
+      backdates.push({
+        id: input.id.toString(),
+        createdAt: input.data.createdAt,
+      });
+    }
+  };
+
   for (const [name, service] of Object.entries(SERVICES)) {
     jest
       .spyOn(service as { create: () => Promise<unknown> }, "create")
-      .mockImplementation((async (createBy: {
-        data: Record<string, unknown>;
-        props: Record<string, unknown>;
-      }) => {
-        creates.push({
-          service: name,
-          data: createBy.data,
-          props: createBy.props,
-        });
-        counter++;
-        return {
-          id: new ObjectID(
-            `5a3c0000-0000-4000-9000-${String(counter).padStart(12, "0")}`,
-          ),
-        };
-      }) as never);
+      .mockImplementation(createAs(name) as never);
 
     jest
       .spyOn(
         service as { updateColumnsByIdWithoutHooks: () => Promise<void> },
         "updateColumnsByIdWithoutHooks",
       )
-      .mockImplementation((async (input: {
-        id: ObjectID;
-        data: { createdAt?: Date };
-      }) => {
-        if (input.data.createdAt) {
-          backdates.push({
-            id: input.id.toString(),
-            createdAt: input.data.createdAt,
-          });
-        }
-      }) as never);
+      .mockImplementation(backdate as never);
   }
 
   jest
@@ -352,7 +380,7 @@ describe("it never does what a real record does", () => {
   test("every 'notified' flag says done, and no subscriber is ever told", () => {
     for (const call of creates) {
       for (const [key, value] of Object.entries(call.data)) {
-        if (/^isOwnerNotified/.test(key)) {
+        if (OWNER_NOTIFIED_KEY.test(key)) {
           expect({ service: call.service, key, value }).toEqual({
             service: call.service,
             key,
@@ -360,9 +388,7 @@ describe("it never does what a real record does", () => {
           });
         }
 
-        if (
-          /^shouldStatusPageSubscribersBeNotified|^notifySubscribers/.test(key)
-        ) {
+        if (SUBSCRIBERS_TOLD_KEY.test(key)) {
           expect({ service: call.service, key, value }).toEqual({
             service: call.service,
             key,
@@ -370,10 +396,7 @@ describe("it never does what a real record does", () => {
           });
         }
 
-        if (
-          /^subscriberNotificationStatus(On[A-Za-z]+)?$/.test(key) &&
-          value !== undefined
-        ) {
+        if (SUBSCRIBER_STATUS_KEY.test(key) && value !== undefined) {
           expect({ service: call.service, key, value }).toEqual({
             service: call.service,
             key,
@@ -411,7 +434,7 @@ describe("it never does what a real record does", () => {
       for (const row of rowsOf(service)) {
         expect(
           Object.keys(row).some((key: string) => {
-            return /^isOwnerNotified/.test(key);
+            return OWNER_NOTIFIED_KEY.test(key);
           }),
         ).toBe(true);
       }
