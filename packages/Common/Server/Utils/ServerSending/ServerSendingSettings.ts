@@ -341,8 +341,8 @@ export default class ServerSendingSettings {
   }
 
   // A keyed hash of settings: each part length-prefixed, so no two settings read alike.
-  public static fingerprint(route: Array<string>): string {
-    const message: string = [FINGERPRINT_SCHEME, ...route]
+  public static fingerprint(settings: Array<string>): string {
+    const message: string = [FINGERPRINT_SCHEME, ...settings]
       .map((part: string) => {
         return `${part.length}:${part}`;
       })
