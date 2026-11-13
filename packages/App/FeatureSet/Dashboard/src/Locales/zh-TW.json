@@ -52063,6 +52063,7 @@
   "Fixes that worked": "有效的修正",
   "{{count}} fixes could not be checked: there was nothing to check them against.": "有 {{count}} 個修正無法檢查：沒有可供比對的依據。",
   "{{count}} fixes could not be checked: there was nothing to check them against._one": "有 {{count}} 個修正無法檢查：沒有可供比對的依據。",
+  "A project's own Twilio account. The project's default accounts send the SMS and make the calls to its team members instead of OneUptime's own. A status page can name one for the SMS to its subscribers, and an incoming call policy one for its calls.": "專案自己的 Twilio 帳戶。傳給專案團隊成員的簡訊和電話透過專案的預設帳戶發出，而不是透過 OneUptime 自己的 Twilio 帳戶。狀態頁面可以指定一個帳戶用於傳給其訂閱者的簡訊，來電策略可以指定一個帳戶用於其通話。",
   "A global user override applies to every on-call policy in the project, and your permission to edit user overrides covers only some of them. Someone whose permission covers every policy can edit it.": "全域使用者覆寫適用於專案中的所有待命策略，而你編輯使用者覆寫的權限只涵蓋其中一部分。權限涵蓋所有策略的人可以編輯它。",
   "An override can't be moved to end in the past. To end it now, pick the current time.": "覆寫的結束時間不能移到過去。若要立即結束，請選擇目前時間。",
   "An override can't be moved to start in the past. Pick a start from now on.": "覆寫的開始時間不能移到過去。請選擇從現在起的開始時間。",
