@@ -1694,11 +1694,11 @@ describe("Microsoft Teams scheduled maintenance card actions", (): void => {
   test.each([
     {
       actionType: MicrosoftTeamsScheduledMaintenanceActionType.MarkAsOngoing,
-      refusal: "mark this scheduled maintenance event as ongoing",
+      refusal: "mark this maintenance event as ongoing",
     },
     {
       actionType: MicrosoftTeamsScheduledMaintenanceActionType.MarkAsComplete,
-      refusal: "mark this scheduled maintenance event as complete",
+      refusal: "mark this maintenance event as complete",
     },
   ])(
     "a member who may only read cannot $refusal, is told why, and nothing is written",
@@ -1740,8 +1740,9 @@ describe("Microsoft Teams scheduled maintenance card actions", (): void => {
     });
 
     expect(createSpy).not.toHaveBeenCalled();
+    // The action and the record in the same words: a maintenance event (#6817).
     expect(repliesText(turn)).toEqual([
-      "You do not have permission to mark this scheduled maintenance event as complete: your access in this project does not include this scheduled maintenance event. Ask a project admin for access to it.",
+      "You do not have permission to mark this maintenance event as complete: your access in this project does not include this maintenance event. Ask a project admin for access to it.",
     ]);
   });
 
@@ -1759,22 +1760,22 @@ describe("Microsoft Teams scheduled maintenance card actions", (): void => {
 
     expect(createSpy).not.toHaveBeenCalled();
     expect(repliesText(turn)).toEqual([
-      "Could not mark this scheduled maintenance event as ongoing: the scheduled maintenance event was not found. It may have been deleted.",
+      "Could not mark this maintenance event as ongoing: the maintenance event was not found. It may have been deleted.",
     ]);
   });
 
   test.each([
     [
       MicrosoftTeamsScheduledMaintenanceActionType.ViewScheduledMaintenance,
-      "see this scheduled maintenance event",
+      "see this maintenance event",
     ],
     [
       MicrosoftTeamsScheduledMaintenanceActionType.ViewAddScheduledMaintenanceNote,
-      "add a note to this scheduled maintenance event",
+      "add a note to this maintenance event",
     ],
     [
       MicrosoftTeamsScheduledMaintenanceActionType.ViewChangeScheduledMaintenanceState,
-      "change the state of this scheduled maintenance event",
+      "change the state of this maintenance event",
     ],
   ])(
     "%s on an event outside the member's read is refused as what it does: %s",
@@ -1791,7 +1792,7 @@ describe("Microsoft Teams scheduled maintenance card actions", (): void => {
       });
 
       expect(repliesText(turn)).toEqual([
-        `You do not have permission to ${does}: your access in this project does not include this scheduled maintenance event. Ask a project admin for access to it.`,
+        `You do not have permission to ${does}: your access in this project does not include this maintenance event. Ask a project admin for access to it.`,
       ]);
     },
   );
@@ -2012,9 +2013,7 @@ describe("Microsoft Teams scheduled maintenance card actions", (): void => {
 
     expect(createSpy).not.toHaveBeenCalled();
     expect(repliesText(turn)).toEqual([
-      expect.stringContaining(
-        "add a public note to this scheduled maintenance event",
-      ),
+      expect.stringContaining("add a public note to this maintenance event"),
     ]);
   });
 
@@ -2115,7 +2114,7 @@ describe("Microsoft Teams scheduled maintenance card actions", (): void => {
     });
 
     expect(turn.replies).toEqual([
-      "There is no later state to move this scheduled maintenance event to.",
+      "There is no later state to move this maintenance event to.",
     ]);
   });
 

@@ -1710,7 +1710,7 @@ describe("where a member fixes themselves", () => {
 
 describe("rule warnings", () => {
   const CALL_WARNING: string =
-    "Call notifications are switched off for this project, so members will not be notified by Call even when they meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Settings.";
+    "Call notifications are switched off for this project, so members will not be notified by Call even when they meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.";
 
   test("only enabled rules with warnings interrupt the page", () => {
     const groups: Array<RuleWarningGroup> = getRuleWarningGroups([
@@ -1860,7 +1860,7 @@ describe("rule warnings", () => {
   /*
    * Call, SMS and Telegram: switched off, nobody is notified that way.
    * WhatsApp: switched off, nobody can add a WhatsApp number, the only way to
-   * meet a WhatsApp rule. All four are fixed in Notification Settings.
+   * meet a WhatsApp rule. All four are fixed in Notification Channels.
    */
   test("the switchable channels are exactly Call, SMS, WhatsApp and Telegram", () => {
     expect([...PROJECT_SWITCHED_CHANNELS]).toEqual([

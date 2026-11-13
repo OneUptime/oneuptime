@@ -74,6 +74,8 @@ Admin Dashboard에서 **설정** 을 열고 사이드 메뉴의 **알림 > 이�
 
 **Microsoft Graph.** 프로젝트의 양식에서는 **공급자** 로 `Microsoft Graph` 를 고르고, 인스턴스의 양식에서는 **추가 필드** 를 열어 **전송** 을 `Microsoft Graph` 로 설정합니다. 그런 다음 **Mail.Send** 애플리케이션 권한이 있는 Azure 앱의 정보를 입력합니다: 클라이언트 ID와 클라이언트 시크릿, 토큰 URL `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token`, 범위 `https://graph.microsoft.com/.default` 입니다. 메일은 **보낸 사람 이메일** 사서함에서 전송되며, 이 사서함은 테넌트에서 라이선스가 있는 사서함이어야 합니다.
 
+**Terraform.** 프로젝트의 SMTP 구성은 [Terraform 프로바이더](/docs/terraform/index)의 `oneuptime_smtp_config` 리소스이기도 합니다. 비밀번호, OAuth 클라이언트 시크릿, 이메일 공급자의 키는 민감한 값이므로 플랜, 로그, 출력에 표시되지 않습니다. Terraform이 사용하는 API 키는 이 값들을 읽을 수 있어야 합니다: **프로젝트 소유자**, **프로젝트 관리자**, 또는 사용자 지정 역할의 **Read SMTP Config**. 상태 페이지의 `smtp_config_id`에는 구성의 `id`를 지정합니다.
+
 > [!NOTE]
 > OneUptime Cloud에서는 프로젝트의 메일 서버에 인터넷으로 연결할 수 있어야 합니다. 사설 주소나 내부 주소로 확인되는 호스트는 거부됩니다. 자체 호스팅 설치에서는 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` 가 `true` 가 아니면 사설 주소가 허용되지만, 루프백과 링크 로컬 주소는 항상 거부됩니다. 인스턴스 자체의 메일 서버는 이런 방식으로 확인하지 않습니다.
 

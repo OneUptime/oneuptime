@@ -411,6 +411,8 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Grant the least privilege.",
     "Monitor usage.",
     "Store secrets securely.",
+    // The paragraph on managing SMTP configs with Terraform (#7737).
+    "Terraform.",
   ],
   [FORMS]: [
     "A product of its own",
@@ -431,11 +433,15 @@ const PROSE_LEADS: Record<string, Array<string>> = {
 };
 
 /*
- * Bold leads that read the same in every language: a symbol, and a
- * protocol's name. Every other lead and prose word is the page's own
+ * Bold leads that read the same in every language: a symbol, a protocol's
+ * name and a tool's. Every other lead and prose word is the page's own
  * English, which a translation translates.
  */
-const LEADS_THE_SAME_IN_EVERY_LANGUAGE: Array<string> = ["⋯", "OAuth 2.0"];
+const LEADS_THE_SAME_IN_EVERY_LANGUAGE: Array<string> = [
+  "⋯",
+  "OAuth 2.0",
+  "Terraform.",
+];
 
 /*
  * What the server answers in English, whatever the reader's language, which

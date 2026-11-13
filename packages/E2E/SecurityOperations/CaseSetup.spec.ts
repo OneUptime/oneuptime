@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
@@ -900,16 +901,15 @@ async function openTemplateMenuMidWindow(
   return page.getByTestId("note-template-menu");
 }
 
-// Whether the whole of `control` is inside the menu's box.
+/*
+ * Whether the whole of `control` is inside the menu's box. Both boxes are
+ * read in one frame: the menu scrolls while the wheel test polls this.
+ */
 async function isInsideMenu(menu: Locator, control: Locator): Promise<boolean> {
-  const own: Box | null = await menu.boundingBox();
-  const box: Box | null = await control.boundingBox();
+  const [own, box] = await boxesInOneFrame([menu, control]);
 
-  return Boolean(
-    own &&
-      box &&
-      box.y >= own.y - 0.5 &&
-      box.y + box.height <= own.y + own.height + 0.5,
+  return (
+    box!.y >= own!.y - 0.5 && box!.y + box!.height <= own!.y + own!.height + 0.5
   );
 }
 
