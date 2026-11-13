@@ -51283,7 +51283,7 @@
   "Nothing checks this device — the monitor bound to it is archived.": "이 디바이스를 확인하는 것이 없습니다 — 연결된 모니터가 보관되었습니다.",
   "OneUptime could not be reached, so this did not finish. Check your internet connection, then try again.": "OneUptime에 연결할 수 없어 작업을 마치지 못했습니다. 인터넷 연결을 확인한 다음 다시 시도하세요.",
   "OneUptime could not be reached.": "OneUptime에 연결할 수 없습니다.",
-  "Open OneUptime Health": "OneUptime Health 열기",
+  "Open OneUptime Health": "OneUptime 상태 열기",
   "Page Did Not Load": "페이지를 불러오지 못했습니다",
   "Reload the page, then try again.": "페이지를 새로 고친 다음 다시 시도하세요.",
   "The OneUptime server did not answer.": "OneUptime 서버가 응답하지 않았습니다.",

@@ -535,7 +535,7 @@
   "It may be starting or restarting. Try again in a few minutes.": "起動中か再起動中の可能性があります。数分後にもう一度お試しください。",
   "OneUptime could not be reached, so this did not finish. Check your internet connection, then try again.": "OneUptime に接続できなかったため、処理は完了しませんでした。インターネット接続を確認してから、もう一度お試しください。",
   "OneUptime could not be reached.": "OneUptime に接続できませんでした。",
-  "Open OneUptime Health": "OneUptime Health を開く",
+  "Open OneUptime Health": "OneUptime のヘルスを開く",
   "Page Did Not Load": "ページを読み込めませんでした",
   "Reload the page, then try again.": "ページを再読み込みしてから、もう一度お試しください。",
   "The OneUptime server did not answer.": "OneUptime サーバーが応答しませんでした。",
