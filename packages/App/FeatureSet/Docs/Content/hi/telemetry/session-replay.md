@@ -167,7 +167,7 @@ export default function App() {
 
 ### React Native API
 
-`OneUptimeReplay` को सीधे इम्पोर्ट करें, या प्रोवाइडर के नीचे `useOneUptimeReplay()` कॉल करें। सिंगलटन ये देता है:
+`OneUptimeReplay` को सीधे आयात करें, या प्रोवाइडर के नीचे `useOneUptimeReplay()` कॉल करें। सिंगलटन ये देता है:
 
 | मेथड | यह क्या करता है |
 | --- | --- |

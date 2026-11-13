@@ -303,7 +303,7 @@ OneUptime रिसोर्स में उसकी किसी एक API �
 
 अगर आपका संगठन AI रिसोर्स के लिए कुंजी पहुँच बंद कर देता है (`disableLocalAuth`), तो अनुरोध `AuthenticationTypeDisabled` के साथ विफल होते हैं। या तो उस रिसोर्स पर कुंजी पहुँच की अनुमति दें जिसका OneUptime उपयोग करता है, या उसके आगे Azure API Management लगाएँ:
 
-1. रिसोर्स के डिप्लॉयमेंट को Azure OpenAI API के रूप में API Management में इंपोर्ट करें। तब API Management अपनी मैनेज्ड आइडेंटिटी से रिसोर्स में साइन इन करता है।
+1. रिसोर्स के डिप्लॉयमेंट को Azure OpenAI API के रूप में API Management में आयात करें। तब API Management अपनी मैनेज्ड आइडेंटिटी से रिसोर्स में साइन इन करता है।
 2. API की सदस्यता कुंजी के हेडर का नाम `api-key` सेट करें।
 3. OneUptime में **बेस URL** को डिप्लॉयमेंट के लिए API Management में API के पते पर सेट करें, जैसे `https://contoso-apim.azure-api.net/aoai/openai/deployments/gpt-5.1`, उस `api-version` के साथ जिसकी डिप्लॉयमेंट को ज़रूरत है, जैसा किसी भी डिप्लॉयमेंट URL के साथ होता है। **API कुंजी** को API Management की सदस्यता कुंजी पर सेट करें।
 

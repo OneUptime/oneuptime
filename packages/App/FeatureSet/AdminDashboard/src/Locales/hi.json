@@ -2757,7 +2757,7 @@
   "{{count}} {{itemsName}} could not be imported.": "{{count}} {{itemsName}} could not be imported.",
   "{{count}} {{itemsName}} could not be imported._one": "{{count}} {{itemName}} could not be imported.",
   "Import {{itemsName}}": "{{itemsName}} आयात करें",
-  "Upload a {{itemName}} JSON export, or paste it below, to create new {{itemsName}} here. Owners, labels and linked resources are not included.": "यहाँ नए {{itemsName}} बनाने के लिए {{itemName}} JSON एक्सपोर्ट अपलोड करें या नीचे पेस्ट करें। मालिक, लेबल और जुड़े संसाधन शामिल नहीं होते।",
+  "Upload a {{itemName}} JSON export, or paste it below, to create new {{itemsName}} here. Owners, labels and linked resources are not included.": "यहाँ नए {{itemsName}} बनाने के लिए {{itemName}} की निर्यात की गई JSON फ़ाइल अपलोड करें या नीचे पेस्ट करें। मालिक, लेबल और जुड़े संसाधन शामिल नहीं होते।",
   "Import": "आयात करें",
   "Select export file": "निर्यात फ़ाइल चुनें",
   "Or paste the export JSON": "या निर्यात JSON चिपकाएँ",

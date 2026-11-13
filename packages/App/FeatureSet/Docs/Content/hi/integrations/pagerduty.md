@@ -10,7 +10,7 @@ OneUptime घटनाएं [PagerDuty](https://www.pagerduty.com) को भ�
 :::
 
 > [!TIP]
-> OneUptime भी ऑन-कॉल नीतियों, शेड्यूल और एस्केलेशन नियमों से लोगों को पेज करता है। अपनी टीम को PagerDuty से हटाने के लिए [PagerDuty से आना](/docs/moving-to-oneuptime/pagerduty) देखें: इंपोर्ट आपके यूज़र, शेड्यूल और एस्केलेशन नीतियां ले आता है।
+> OneUptime भी ऑन-कॉल नीतियों, शेड्यूल और एस्केलेशन नियमों से लोगों को पेज करता है। अपनी टीम को PagerDuty से हटाने के लिए [PagerDuty से आना](/docs/moving-to-oneuptime/pagerduty) देखें: आयात आपके यूज़र, शेड्यूल और एस्केलेशन नीतियां ले आता है।
 
 ## यह कैसे काम करता है
 
