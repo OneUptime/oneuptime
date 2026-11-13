@@ -96,7 +96,7 @@ const UI_WORDS: Array<string> = [
   "Labels",
   MORE_FIELDS_SECTION_TITLE,
   "Test Monitor",
-  "Monitor Criteria",
+  "Criteria",
   "Add Criteria",
   "Next",
   "Probes",
@@ -362,7 +362,7 @@ describe("the Creating a Monitor docs page", () => {
       const criteria: string = pageSections[1]!.body;
 
       expect(criteria).toContain("**Test Monitor**");
-      expect(criteria).toContain("**Monitor Criteria**");
+      expect(criteria).toContain("**Criteria**");
       expect(criteria).toContain("each folded to one line");
       expect(criteria).toContain("**Add Criteria**");
       expect(criteria).toContain(

@@ -50,7 +50,7 @@ Em **Padrões do Monitor**, escolha o **Tipo de monitor**, com o mesmo seletor d
 Em **Critérios**, preencha o que verificar e os critérios, como em [Criar monitor](/docs/monitor/create-monitor#critérios). O cartão **Template sync settings** no topo permite proteger campos das sincronizações (veja [Manter valores próprios de cada monitor](#manter-valores-próprios-de-cada-monitor)). Para um tipo de monitor que as sondas verificam, a última etapa, **Intervalo**, pede o **Intervalo de monitoramento**. Clique em **Criar: Modelo de monitor** na última etapa.
 :::
 
-O modelo é adicionado à lista. Abra-o para ver a página dele, com um cartão para cada parte: **Informações do modelo**, **Padrões do Monitor**, **Critérios de Monitoramento**, **Intervalo de monitoramento** (com **Concordância Mínima de Sondas**), **Rótulos**, **Valores padrão de campos personalizados** (quando o projeto tem campos personalizados de monitor) e **Monitores Vinculados**. Você altera cada parte no próprio cartão, por exemplo com **Editar critérios** ou **Editar intervalo**.
+O modelo é adicionado à lista. Abra-o para ver a página dele, com um cartão para cada parte: **Informações do modelo**, **Padrões do Monitor**, **Critérios**, **Intervalo de monitoramento** (com **Concordância Mínima de Sondas**), **Rótulos**, **Valores padrão de campos personalizados** (quando o projeto tem campos personalizados de monitor) e **Monitores Vinculados**. Você altera cada parte no próprio cartão, por exemplo com **Editar critérios** ou **Editar intervalo**.
 
 ## Criar monitores a partir de um modelo
 
@@ -85,7 +85,7 @@ Acesse **Monitores → Configurações → Modelos** e abra o modelo.
 
 ### Editar os critérios dele
 
-No cartão **Critérios de Monitoramento**, clique em **Editar critérios**.
+No cartão **Critérios**, clique em **Editar critérios**.
 
 ### Proteger os campos
 
@@ -93,7 +93,7 @@ Em **Template sync settings**, marque **Do not sync this field** ao lado de cada
 
 ### Salvar
 
-Salve as alterações. O cartão **Critérios de Monitoramento**, e a confirmação das duas sincronizações abaixo, listam os campos protegidos.
+Salve as alterações. O cartão **Critérios**, e a confirmação das duas sincronizações abaixo, listam os campos protegidos.
 
 ### Sincronizar
 

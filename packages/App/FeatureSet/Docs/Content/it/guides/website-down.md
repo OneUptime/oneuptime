@@ -86,5 +86,5 @@ Non è arrivato nulla da cui riconoscerla, il che su un server self-hosted di so
 :::cards
 - [Essere avvisati per chiamata, SMS o push](/docs/guides/paging): Essere avvisato sul telefono, e avvisare la persona successiva se nessuno risponde.
 - [Pubblicare una pagina di stato](/docs/guides/status-page): Mostrare il monitor ai tuoi clienti, sul tuo dominio.
-- [Criteri e stati dei monitor](/docs/monitor/criteria-and-statuses): Decidere esattamente quando un monitor conta come non disponibile.
+- [Criteri e stati](/docs/monitor/criteria-and-statuses): Decidere esattamente quando un monitor conta come non disponibile.
 :::

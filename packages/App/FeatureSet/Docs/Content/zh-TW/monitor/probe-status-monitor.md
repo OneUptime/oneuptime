@@ -100,6 +100,6 @@ flowchart TB
 
 :::cards
 - [自訂探針](/docs/probe/custom-probe): 在您自己的網路中執行探針。
-- [監測器條件與狀態](/docs/monitor/criteria-and-statuses): 條件如何決定監測器的狀態。
+- [條件與狀態](/docs/monitor/criteria-and-statuses): 條件如何決定監測器的狀態。
 - [事件與警示範本](/docs/monitor/incident-alert-templating): 撰寫監測器所宣告事件的措辭。
 :::

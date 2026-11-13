@@ -66,7 +66,7 @@ Klik på **Test monitor**, vælg en sonde under **Vælg sonde**, og klik på **K
 
 ### Gennemgå kriterierne
 
-**Monitorkriterier** starter med [standardkriterierne](#standardkriterier): offline, når kæden er brudt, online, når den er gyldig. For at blive advaret, før signaturer udløber, skal du tilføje et kriterium (se [Bedste praksis](#bedste-praksis)) og derefter klikke på **Næste**.
+**Kriterier** starter med [standardkriterierne](#standardkriterier): offline, når kæden er brudt, online, når den er gyldig. For at blive advaret, før signaturer udløber, skal du tilføje et kriterium (se [Bedste praksis](#bedste-praksis)) og derefter klikke på **Næste**.
 
 ### Vælg sonder, og opret
 

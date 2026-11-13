@@ -36,7 +36,7 @@ flowchart TB
 
 ## 开始之前
 
-- 一个你可以在其中创建摄取密钥的 OneUptime 项目：项目所有者和管理员可以创建，拥有 **Create Telemetry Ingestion Key** 权限的任何人也可以。
+- 一个你可以在其中创建摄取密钥的 OneUptime 项目：项目所有者和管理员可以创建，拥有 Create Ingestion Key 权限的任何人也可以。
 - 一个可以添加 OpenTelemetry SDK 的应用，或者一个 OpenTelemetry Collector。
 - 从应用或 Collector 到 `oneuptime.com`（或你自己的 OneUptime 主机）的出站 HTTPS（端口 443）。
 

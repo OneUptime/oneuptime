@@ -183,6 +183,6 @@ OneUptime AI는 하루(UTC)에 스스로 최대 5개의 풀 리퀘스트를 발�
 :::cards
 - [검색 구문](/docs/telemetry/search-syntax): 검색 상자가 이해하는 모든 필터.
 - [트레이스 모니터](/docs/monitor/traces-monitor): 실패하거나 느린 요청에 대한 알림을 받습니다.
-- [예외 추적](/docs/telemetry/exceptions): 스팬이 기록한 오류를 분류합니다.
+- [예외](/docs/telemetry/exceptions): 스팬이 기록한 오류를 분류합니다.
 - [로그 탐색기](/docs/telemetry/logs-explorer): 요청이 남긴 로그 줄을 읽습니다.
 :::

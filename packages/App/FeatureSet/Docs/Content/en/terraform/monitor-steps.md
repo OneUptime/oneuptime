@@ -1,6 +1,6 @@
 # Monitor Steps
 
-`monitor_steps` is the attribute of `oneuptime_monitor` that says what a monitor checks and how each result is judged: the address to check, the request to send, and the criteria that turn a result into a monitor status, an incident or an alert. This page explains every part of it.
+`monitor_steps` is the attribute of `oneuptime_monitor` that says what a monitor checks and how each result is judged: the address to check, the request to send, and the criteria that turn a result into a monitor status, an incident or an alert. This page explains every part of it. The Dashboard shows a step's criteria on the monitor's **Criteria** page, as [Criteria & Statuses](/docs/monitor/criteria-and-statuses) describes.
 
 :::cards
 - [How a check is judged](#how-a-check-is-judged): Criteria in order, and the first one that matches.

@@ -62,7 +62,7 @@ Un monitor nuevo empieza con **Device Offline**, en **Sobre qué alertar**. Para
 
 ### Revisar los criterios
 
-Abra cada criterio en **Criterios del monitor** y revise su **Seleccionar variable de métrica**, **Agregación**, **Condición** y **Umbral**. Una plantilla los rellena. Con **Custom Metric** o **Avanzado**, el monitor empieza con los [criterios predeterminados](#criterios-predeterminados), que solo detectan una métrica que no envía datos, así que establezca su propio umbral.
+Abra cada criterio en **Criterios** y revise su **Seleccionar variable de métrica**, **Agregación**, **Condición** y **Umbral**. Una plantilla los rellena. Con **Custom Metric** o **Avanzado**, el monitor empieza con los [criterios predeterminados](#criterios-predeterminados), que solo detectan una métrica que no envía datos, así que establezca su propio umbral.
 
 ### Crear el monitor
 

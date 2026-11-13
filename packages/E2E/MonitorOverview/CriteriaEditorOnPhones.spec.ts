@@ -19,7 +19,7 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
  * frame with its padding - and the alert's description editor was 166px
  * wide inside its fold.
  *
- * The step's cards (Monitor Target, Test Monitor, Monitor Criteria) are
+ * The step's cards (Monitor Target, Test Monitor, Criteria) are
  * sections of the page's card - a rule above each, no frame - at every
  * width: below sm since #5482, and from sm up too, where they were cards
  * inside the page's card. Below sm the criteria's box is the one frame
@@ -51,7 +51,7 @@ const PHONE: { width: number; height: number } = { width: 390, height: 844 };
 const STEP_CARDS: Array<string> = [
   "Monitor Target",
   "Test Monitor",
-  "Monitor Criteria",
+  "Criteria",
 ];
 
 const WHITE_RGB: string = "rgb(255, 255, 255)";
@@ -329,7 +329,7 @@ test.describe("The criteria editor on a phone", () => {
     // A section's title, a step below the page's: 16px, on a 24px line.
     const titleFont: { size: string; line: string } = await cardHeading(
       page,
-      "Monitor Criteria",
+      "Criteria",
     ).evaluate((element: Element): { size: string; line: string } => {
       const style: CSSStyleDeclaration = getComputedStyle(element);
       return { size: style.fontSize, line: style.lineHeight };
@@ -637,7 +637,7 @@ test.describe("The criteria editor from sm up", () => {
       // A section's title, a step below the page card's: 16px, on a 24px line.
       const titleFont: { size: string; line: string } = await cardHeading(
         page,
-        "Monitor Criteria",
+        "Criteria",
       ).evaluate((element: Element): { size: string; line: string } => {
         const style: CSSStyleDeclaration = getComputedStyle(element);
         return { size: style.fontSize, line: style.lineHeight };

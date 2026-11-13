@@ -154,7 +154,7 @@ describe("the refusal words", () => {
       "Other endpoints",
       "{{name}} (expired)",
       "{{name}} (turned off)",
-      "Telemetry Ingestion Key Refusal",
+      "Ingestion Key Refusal",
       "Last Refused At",
     ]) {
       expect({ sentence, found: keys.includes(sentence) }).toEqual({

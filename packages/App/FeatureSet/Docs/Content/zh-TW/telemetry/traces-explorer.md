@@ -183,6 +183,6 @@ span 通常在請求結束後一分鐘內到達。點選追蹤頁面上的 **重
 :::cards
 - [搜尋語法](/docs/telemetry/search-syntax): 搜尋框能理解的所有篩選條件。
 - [追蹤監控](/docs/monitor/traces-monitor): 在請求失敗或變慢時收到警示。
-- [例外狀況追蹤](/docs/telemetry/exceptions): 分流你的 span 記錄的錯誤。
+- [例外](/docs/telemetry/exceptions): 分流你的 span 記錄的錯誤。
 - [日誌瀏覽器](/docs/telemetry/logs-explorer): 閱讀一個請求寫下的日誌行。
 :::

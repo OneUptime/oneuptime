@@ -62,7 +62,7 @@ Un nuovo monitor parte da **Device Offline**, in **Su cosa avvisare**. Per contr
 
 ### Controllare i criteri
 
-Apri ogni criterio in **Criteri del monitor** e controlla **Select Metric Variable**, **Aggregazione**, **Condizione** e **Soglia**. Un modello li compila. Con **Custom Metric** o **Avanzato**, il monitor parte con i [criteri predefiniti](#criteri-predefiniti), che notano solo una metrica che non invia dati, quindi imposta la tua soglia.
+Apri ogni criterio in **Criteri** e controlla **Select Metric Variable**, **Aggregazione**, **Condizione** e **Soglia**. Un modello li compila. Con **Custom Metric** o **Avanzato**, il monitor parte con i [criteri predefiniti](#criteri-predefiniti), che notano solo una metrica che non invia dati, quindi imposta la tua soglia.
 
 ### Creare il monitor
 

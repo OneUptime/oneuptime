@@ -100,6 +100,6 @@ En prob är frånkopplad efter tre minuter utan heartbeat, och ännu senare efte
 
 :::cards
 - [Anpassade prober](/docs/probe/custom-probe): Kör en prob i ditt eget nätverk.
-- [Monitorkriterier och statusar](/docs/monitor/criteria-and-statuses): Hur kriterier avgör en monitors status.
+- [Kriterier och statusar](/docs/monitor/criteria-and-statuses): Hur kriterier avgör en monitors status.
 - [Mallar för incidenter och larm](/docs/monitor/incident-alert-templating): Formulera incidenten som en monitor deklarerar.
 :::

@@ -193,7 +193,7 @@ El **Número de excepciones** es 3, así que **Más de** `0` coincide: el monito
 ## Solución de problemas
 
 :::details Las excepciones aparecen en el explorador, pero el monitor cuenta 0
-Compara el valor de **Entornos** con el filtro `env:` del explorador: la coincidencia es exacta y distingue mayúsculas y minúsculas, y las excepciones sin entorno quedan fuera cuando el filtro está definido. Después comprueba si esas excepciones están resueltas o archivadas. Abre la página **Criterios** del monitor (en **Configuración**) y haz clic en **Editar criterios de monitoreo**: **Excepciones coincidentes** muestra con qué coinciden los filtros.
+Compara el valor de **Entornos** con el filtro `env:` del explorador: la coincidencia es exacta y distingue mayúsculas y minúsculas, y las excepciones sin entorno quedan fuera cuando el filtro está definido. Después comprueba si esas excepciones están resueltas o archivadas. Abre la página **Criterios** del monitor (en **Configuración**) y haz clic en **Editar criterios**: **Excepciones coincidentes** muestra con qué coinciden los filtros.
 :::
 
 :::details El incidente se resolvió cuando resolví la excepción

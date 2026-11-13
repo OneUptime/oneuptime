@@ -1040,9 +1040,7 @@ describe("the helpers, on these pages' shapes", () => {
       "Create Log Drop Filter",
     );
     // A card's edit button is drawn from "Edit {{itemName}}".
-    expect(dashboardLabels(INGESTION_KEYS)).toContain(
-      "Edit Telemetry Ingestion Key",
-    );
+    expect(dashboardLabels(INGESTION_KEYS)).toContain("Edit Ingestion Key");
     // An Admin Dashboard label is read from the Admin Dashboard's locale.
     expect(dashboardLabels(DATA_RETENTION)).not.toContain(
       "Monitor Log Retention (Days)",

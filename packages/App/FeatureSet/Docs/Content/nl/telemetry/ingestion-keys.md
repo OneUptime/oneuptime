@@ -45,7 +45,7 @@ Overal elders weigert OneUptime een browsersleutel, zoals via gRPC en MQTT, voor
 
 ## Voordat u begint
 
-- **Een rol die ingestiesleutels beheert.** Project Owner of Project Admin, of een aangepaste rol met de machtiging Create Telemetry Ingestion Key. De Telemetry-rollen omvatten geen ingestiesleutels.
+- **Een rol die ingestiesleutels beheert.** Project Owner of Project Admin, of een aangepaste rol met de machtiging Create Ingestion Key. De Telemetry-rollen omvatten geen ingestiesleutels.
 - **Op OneUptime Cloud, een betaalmethode.** Telemetrie wordt gefactureerd naar gebruik, dus een project op het Free-abonnement heeft een betaalmethode nodig voordat het een sleutel kan aanmaken. Het dialoogvenster eindigt dan met een stap **Facturering** die de prijzen toont.
 
 ## Een ingestiesleutel aanmaken
@@ -85,7 +85,7 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 
 ## Een browsersleutel afschermen
 
-Een browsersleutel staat in uw pagina, waar iedereen hem kan kopiëren. Deze instellingen beperken wat een kopie kan doen. Wijzig ze op de pagina van de sleutel met **Telemetrie Inname Key bewerken**.
+Een browsersleutel staat in uw pagina, waar iedereen hem kan kopiëren. Deze instellingen beperken wat een kopie kan doen. Wijzig ze op de pagina van de sleutel met **Ingestiesleutel bewerken**.
 
 | Instelling | Wat ze doet |
 | --- | --- |
@@ -112,9 +112,9 @@ De pagina van een sleutel toont zijn **Status**, zijn **Geheime sleutel** achter
 
 | Om | Doe dit | Wat afzenders zien |
 | --- | --- | --- |
-| Een sleutel direct te stoppen, en dat later terug te draaien | Klik op **Telemetrie Inname Key bewerken**, open **Toegang en limieten** en zet **Ingeschakeld** uit. De status toont **Disabled — telemetry refused**. | `422` totdat u hem weer aanzet |
+| Een sleutel direct te stoppen, en dat later terug te draaien | Klik op **Ingestiesleutel bewerken**, open **Toegang en limieten** en zet **Ingeschakeld** uit. De status toont **Disabled — telemetry refused**. | `422` totdat u hem weer aanzet |
 | Een uitgelekt geheim te vervangen | Klik op **Geheime sleutel opnieuw instellen** en bevestig. De sleutel houdt zijn instellingen en krijgt een nieuw geheim. | `401` totdat ze het nieuwe geheim sturen |
-| Een sleutel voorgoed te stoppen | Klik op **Telemetrie Inname Key verwijderen** onderaan zijn pagina. | `401` |
+| Een sleutel voorgoed te stoppen | Klik op **Ingestiesleutel verwijderen** onderaan zijn pagina. | `401` |
 
 Om een geheim te wisselen zonder gegevens te verliezen, maakt u een tweede sleutel aan, zet u uw afzenders daarop over en verwijdert u de oude sleutel zodra zijn **Last Used At** niet meer verandert. **Last Used At** wordt om de paar minuten bijgewerkt, niet bij elk verzoek.
 

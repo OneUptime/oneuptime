@@ -86,5 +86,5 @@ Aucun message permettant de le prendre en compte n'est arrivé, ce qui, sur un s
 :::cards
 - [Être alerté par appel, SMS ou push](/docs/guides/paging): Être alerté sur votre téléphone, et alerter la personne suivante si personne ne répond.
 - [Publier une page de statut](/docs/guides/status-page): Montrer le moniteur à vos clients, sur votre propre domaine.
-- [Critères et statuts des moniteurs](/docs/monitor/criteria-and-statuses): Décider précisément quand un moniteur compte comme en panne.
+- [Critères et statuts](/docs/monitor/criteria-and-statuses): Décider précisément quand un moniteur compte comme en panne.
 :::

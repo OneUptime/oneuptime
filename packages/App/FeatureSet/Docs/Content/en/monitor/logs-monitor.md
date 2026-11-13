@@ -240,7 +240,7 @@ Every group-by attribute's value is a [template variable](/docs/monitor/incident
 ## Troubleshooting
 
 :::details The monitor is offline, but my service is logging
-The count was 0, so the filters match none of the logs the service sends. Open the monitor's **Criteria** page (under **Configuration**) and click **Edit Monitoring Criteria**: **Matching logs** shows what the filters match right now, and the chart in **When to alert** counts them in each window. The usual causes are a severity picked by the text the logger prints instead of its severity number (see [Log severity](#log-severity)), a service or attribute filter that does not match, and a time window shorter than the gap between the service's logs.
+The count was 0, so the filters match none of the logs the service sends. Open the monitor's **Criteria** page (under **Configuration**) and click **Edit Criteria**: **Matching logs** shows what the filters match right now, and the chart in **When to alert** counts them in each window. The usual causes are a severity picked by the text the logger prints instead of its severity number (see [Log severity](#log-severity)), a service or attribute filter that does not match, and a time window shorter than the gap between the service's logs.
 :::
 
 :::details A spike happened, but nothing alerted

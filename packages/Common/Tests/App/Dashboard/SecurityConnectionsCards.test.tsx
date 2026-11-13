@@ -131,6 +131,11 @@ import {
   CONNECTED_SIGNALS_EVENT_DESCRIPTION,
   SECURITY_CONNECTIONS_TEST_IDS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityConnections/SecurityConnectionsCopy";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import {
+  getUnexplainedServerErrorMessage,
+  UnexplainedErrorWords,
+} from "../../../Types/Exception/UnexplainedError";
 import ObjectID from "../../../Types/ObjectID";
 import {
   IncidentSecurityJson,
@@ -1726,6 +1731,84 @@ describe("In your logs and traces, under Connected Signals", () => {
 
     expect(await screen.findByTestId(IDS.telemetryValue)).toBeInTheDocument();
     expect(screen.queryByTestId(IDS.telemetryError)).toBeNull();
+  });
+
+  test("a search the server could not explain says why once, on its one line - and a reference to give is said whole", async () => {
+    getConnectionsMock.mockResolvedValue(answer() as never);
+    // An answer that says nothing, as an older server or a proxy's (#6836).
+    getTelemetryMentionsMock.mockRejectedValue(
+      new HTTPErrorResponse(500, { message: "Server Error" }, {}) as never,
+    );
+
+    await drawConnectedSignals();
+
+    const error: HTMLElement = await screen.findByTestId(IDS.telemetryError);
+
+    /*
+     * Why is that the server could not explain it - and only that: the line
+     * already says the search did not finish, and Try again is its button.
+     */
+    expect(error).toHaveTextContent(
+      "Logs and Traces could not be searched just now. The server ran into a problem it could not explain. Try again",
+    );
+    expect(error.querySelector("bdi")).toHaveTextContent(
+      UnexplainedErrorWords.serverWhy,
+    );
+    expect(error).not.toHaveTextContent("Server Error");
+    expect(error).not.toHaveTextContent("did not finish");
+    expect(within(error).getAllByText(/try again/i)).toHaveLength(1);
+
+    // A reference is something to give, so that sentence is said whole.
+    getTelemetryMentionsMock.mockRejectedValue(
+      new HTTPErrorResponse(
+        500,
+        {
+          message: getUnexplainedServerErrorMessage("abcd1234"),
+          reference: "abcd1234",
+        },
+        {},
+      ) as never,
+    );
+
+    await act(async () => {
+      fireEvent.click(within(error).getByRole("button", { name: "Try again" }));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId(IDS.telemetryError)).toHaveTextContent(
+        "abcd1234",
+      );
+    });
+    expect(screen.getByTestId(IDS.telemetryError)).toHaveTextContent(
+      `Logs and Traces could not be searched just now. ${getUnexplainedServerErrorMessage("abcd1234")} Try again`,
+    );
+  });
+
+  test("a search the server could not explain says why in the reader's language", async () => {
+    mockReader.language = "fa";
+    mockReader.words = JSON.parse(
+      fs.readFileSync(
+        path.join(
+          __dirname,
+          "../../../../App/FeatureSet/Dashboard/src/Locales/fa.json",
+        ),
+        "utf-8",
+      ),
+    ) as Record<string, string>;
+    getConnectionsMock.mockResolvedValue(answer() as never);
+    getTelemetryMentionsMock.mockRejectedValue(
+      new HTTPErrorResponse(500, { message: "Server Error" }, {}) as never,
+    );
+
+    await drawConnectedSignals();
+
+    const error: HTMLElement = await screen.findByTestId(IDS.telemetryError);
+    const why: string | undefined =
+      mockReader.words[UnexplainedErrorWords.serverWhy];
+
+    expect(why).toBeTruthy();
+    expect(why).not.toBe(UnexplainedErrorWords.serverWhy);
+    expect(error.querySelector("bdi")).toHaveTextContent(why as string);
   });
 
   test("while the search runs, one quiet line under the records says so - no heading yet - and its answer takes the line's place", async () => {

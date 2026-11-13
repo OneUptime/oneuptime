@@ -107,7 +107,7 @@ One or two sentences: what it is and what it is for.
 
 :::cards
 - [Create the monitor](#create-a-website-monitor): Five steps in the dashboard.
-- [Criteria](#monitoring-criteria): Decide when the site counts as down.
+- [Criteria](#criteria): Decide when the site counts as down.
 :::
 
 ## How it works

@@ -44,7 +44,7 @@ För en monitor som sonder kontrollerar kör **Testa monitor** kontrollen en gå
 
 ### Gå igenom kriterierna
 
-Nedanför avgör **Monitorkriterier** när monitorn byter status, deklarerar en incident eller skapar ett larm. En ny monitor börjar med kriterier som passar de flesta monitorer, vart och ett hopfällt till en rad som säger vad det kontrollerar och vad det gör. En ny webbplatsmonitor markeras till exempel som offline och deklarerar en incident när webbplatsen inte svarar eller svarar med en felstatuskod.
+Nedanför avgör **Kriterier** när monitorn byter status, deklarerar en incident eller skapar ett larm. En ny monitor börjar med kriterier som passar de flesta monitorer, vart och ett hopfällt till en rad som säger vad det kontrollerar och vad det gör. En ny webbplatsmonitor markeras till exempel som offline och deklarerar en incident när webbplatsen inte svarar eller svarar med en felstatuskod.
 
 Klicka på ett kriterium för att öppna och ändra det. **Lägg till kriterier** lägger till ett, öppet och redo att fyllas i. För att ändra ordningen drar du ett kriterium i handtaget till vänster om det.
 
@@ -72,7 +72,7 @@ flowchart TB
     end
 ```
 
-Incidenter och larm som är inställda på att lösas automatiskt, som standardkriteriernas, löser sig själva så snart deras kriterium slutar matcha. En monitor som kontrolleras av mer än en sond ändras bara när sonderna är överens: som standard måste varje sond som är påslagen och ansluten komma fram till samma resultat. För att kräva färre ställer du in **Sondöverensstämmelse** på monitorns sida **Konfiguration → Sonder och intervall**. Allt ett kriterium kan innehålla, och de statusar en monitor kan visa, finns i [Monitorkriterier och statusar](/docs/monitor/criteria-and-statuses).
+Incidenter och larm som är inställda på att lösas automatiskt, som standardkriteriernas, löser sig själva så snart deras kriterium slutar matcha. En monitor som kontrolleras av mer än en sond ändras bara när sonderna är överens: som standard måste varje sond som är påslagen och ansluten komma fram till samma resultat. För att kräva färre ställer du in **Sondöverensstämmelse** på monitorns sida **Konfiguration → Sonder och intervall**. Allt ett kriterium kan innehålla, och de statusar en monitor kan visa, finns i [Kriterier och statusar](/docs/monitor/criteria-and-statuses).
 
 ## Sonder och intervall
 
@@ -103,7 +103,7 @@ Varje monitortyp har en egen sida med sina inställningar, sina standardkriterie
 :::cards
 - [Webbplatsövervakning](/docs/monitor/website-monitor): Kontrollera att en sida laddas och vad den svarar.
 - [API-övervakning](/docs/monitor/api-monitor): Anropa en slutpunkt med en metod, huvuden och en kropp.
-- [Monitorkriterier och statusar](/docs/monitor/criteria-and-statuses): Vad som sätter varje monitors status.
+- [Kriterier och statusar](/docs/monitor/criteria-and-statuses): Vad som sätter varje monitors status.
 - [Monitormallar](/docs/monitor/monitor-templates): Skapa många monitorer från en konfiguration och håll dem lika.
 - [Monitorgrupper](/docs/monitor/monitor-groups): Samla flera monitorer i en status.
 - [Incidenter](/docs/incidents/index): Vad som händer efter att en monitor har deklarerat en incident.

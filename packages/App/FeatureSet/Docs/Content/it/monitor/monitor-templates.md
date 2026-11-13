@@ -50,7 +50,7 @@ In **Impostazioni predefinite del monitor**, scegliete il **Tipo di monitor**, c
 In **Criteri**, compilate cosa controllare e i criteri, come in [Crea monitor](/docs/monitor/create-monitor#criteri). La scheda **Template sync settings** in alto vi permette di proteggere i campi dalle sincronizzazioni (vedete [Mantenere valori propri di ogni monitor](#mantenere-valori-propri-di-ogni-monitor)). Per un tipo di monitor controllato dalle sonde, l'ultimo passaggio, **Intervallo**, chiede l'**Intervallo di monitoraggio**. Fate clic su **Crea: Modello di monitor** all'ultimo passaggio.
 :::
 
-Il modello viene aggiunto all'elenco. Apritelo per vedere la sua pagina, con una scheda per ogni parte: **Informazioni del modello**, **Impostazioni predefinite del monitor**, **Criteri di monitoraggio**, **Intervallo di monitoraggio** (con **Accordo minimo tra sonde**), **Etichette**, **Valori predefiniti dei campi personalizzati** (quando il progetto ha campi personalizzati per i monitor) e **Monitor collegati**. Ogni parte si modifica nella propria scheda, per esempio con **Modifica criteri** o **Modifica intervallo**.
+Il modello viene aggiunto all'elenco. Apritelo per vedere la sua pagina, con una scheda per ogni parte: **Informazioni del modello**, **Impostazioni predefinite del monitor**, **Criteri**, **Intervallo di monitoraggio** (con **Accordo minimo tra sonde**), **Etichette**, **Valori predefiniti dei campi personalizzati** (quando il progetto ha campi personalizzati per i monitor) e **Monitor collegati**. Ogni parte si modifica nella propria scheda, per esempio con **Modifica criteri** o **Modifica intervallo**.
 
 ## Creare monitor da un modello
 
@@ -85,7 +85,7 @@ Andate in **Monitor → Impostazioni → Modelli** e aprite il modello.
 
 ### Modificarne i criteri
 
-Nella scheda **Criteri di monitoraggio**, fate clic su **Modifica criteri**.
+Nella scheda **Criteri**, fate clic su **Modifica criteri**.
 
 ### Proteggere i campi
 
@@ -93,7 +93,7 @@ In **Template sync settings**, spuntate **Do not sync this field** accanto a ogn
 
 ### Salvare
 
-Salvate le modifiche. La scheda **Criteri di monitoraggio**, e la conferma di entrambe le sincronizzazioni qui sotto, elencano i campi protetti.
+Salvate le modifiche. La scheda **Criteri**, e la conferma di entrambe le sincronizzazioni qui sotto, elencano i campi protetti.
 
 ### Sincronizzare
 

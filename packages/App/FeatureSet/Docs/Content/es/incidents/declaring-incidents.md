@@ -178,7 +178,7 @@ Algunas reglas rápidas:
 La mayoría de los incidentes no deberían necesitar que una persona los escriba. Los criterios de un monitor pueden declarar uno en cuanto coincide un filtro:
 
 :::steps
-1. Abre el monitor, elige **Criterios** en su menú lateral y haz clic en **Editar criterios de monitoreo**. (Un monitor nuevo pide los mismos criterios mientras lo creas).
+1. Abre el monitor, elige **Criterios** en su menú lateral y haz clic en **Editar criterios**. (Un monitor nuevo pide los mismos criterios mientras lo creas).
 2. En el filtro de criterios que debe declarar, activa **Cuando los filtros coinciden, declarar un incidente.** Aparece una sección **Crear incidente** con un botón **Añadir incidente**: un filtro de criterios puede declarar más de un incidente.
 3. Rellena los campos del incidente (abajo) y guarda. La próxima vez que coincida el filtro, se declara el incidente y avisa a sus políticas de guardia.
 :::

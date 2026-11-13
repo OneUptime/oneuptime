@@ -154,7 +154,7 @@ Med 30 mislykkede forespørsler samsvarer regelen, og hendelsen erklæres. Når 
 ## Feilsøking
 
 :::details Monitoren teller ingen spans for endepunktet mitt
-**Span-navnet inneholder** sammenlignes med spannets navn, og instrumentering navngir ofte server-spans etter ruten (`POST /api/checkout`) eller bare etter metoden (`GET`). Finn det nøyaktige navnet i trase-utforskeren. Åpne deretter monitorens side **Kriterier** (under **Konfigurasjon**), og klikk på **Rediger overvåkingskriterier**: **Samsvarende spans** viser hva filtrene samsvarer med akkurat nå.
+**Span-navnet inneholder** sammenlignes med spannets navn, og instrumentering navngir ofte server-spans etter ruten (`POST /api/checkout`) eller bare etter metoden (`GET`). Finn det nøyaktige navnet i trase-utforskeren. Åpne deretter monitorens side **Kriterier** (under **Konfigurasjon**), og klikk på **Rediger kriterier**: **Samsvarende spans** viser hva filtrene samsvarer med akkurat nå.
 :::
 
 :::details Vellykkede forespørsler telles ikke når jeg filtrerer på OK

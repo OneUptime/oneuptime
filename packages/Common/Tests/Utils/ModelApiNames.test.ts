@@ -15,7 +15,14 @@ import OnCallDutyPolicyOwnerUser from "../../Models/DatabaseModels/OnCallDutyPol
 import OnCallDutyPolicySchedule from "../../Models/DatabaseModels/OnCallDutyPolicySchedule";
 import OnCallDutyPolicyTimeLog from "../../Models/DatabaseModels/OnCallDutyPolicyTimeLog";
 import Monitor from "../../Models/DatabaseModels/Monitor";
-import { getApiPluralName, getApiSingularName } from "../../Utils/ModelApiName";
+import TelemetryIngestionKey from "../../Models/DatabaseModels/TelemetryIngestionKey";
+import TelemetryIngestionKeyRefusal from "../../Models/DatabaseModels/TelemetryIngestionKeyRefusal";
+import {
+  getApiPluralName,
+  getApiSingularName,
+  getScreenSingularName,
+  KEPT_SINGULAR_NAMES,
+} from "../../Utils/ModelApiName";
 import { getCliResourceName } from "../../Utils/DeveloperDocs/CliCommands";
 import { getMcpToolNames } from "../../Utils/DeveloperDocs/AiAssistantExamples";
 import { getTerraformTypeName } from "../../Utils/DeveloperDocs/TerraformSchema";
@@ -30,7 +37,8 @@ import {
  * A MODEL RENAMED ON SCREEN KEEPS ITS NAMES OUTSIDE (#6817).
  *
  * #6817 gave one thing one name: On-Call Duty Policies are On-Call
- * Policies, an On-Call Policy Schedule is an On-Call Schedule. Terraform,
+ * Policies, an On-Call Policy Schedule is an On-Call Schedule, a Telemetry
+ * Ingestion Key is an Ingestion Key. Terraform,
  * the CLI, the MCP server and the audit log name a model after its
  * singular and plural names, so each renamed model says what it was called
  * in apiSingularName and apiPluralName (Common/Utils/ModelApiName), and
@@ -151,6 +159,25 @@ const RENAMED: Array<KeptNames> = [
     mcpList: null,
     mcpGet: null,
   },
+  // Part 2: a Telemetry Ingestion Key is an Ingestion Key.
+  {
+    model: TelemetryIngestionKey,
+    singularName: "Ingestion Key",
+    pluralName: "Ingestion Keys",
+    terraform: "oneuptime_telemetry_ingestion_key",
+    cli: "telemetry-ingestion-key",
+    mcpList: null,
+    mcpGet: null,
+  },
+  {
+    model: TelemetryIngestionKeyRefusal,
+    singularName: "Ingestion Key Refusal",
+    pluralName: "Ingestion Key Refusals",
+    terraform: null,
+    cli: "telemetry-ingestion-key-refusal",
+    mcpList: null,
+    mcpGet: null,
+  },
 ];
 
 describe("the names a model keeps outside its screens", () => {
@@ -221,7 +248,7 @@ describe("the names a model keeps outside its screens", () => {
   });
 });
 
-describe("the on-call models #6817 renamed", () => {
+describe("the models #6817 renamed", () => {
   test.each(RENAMED)(
     "$singularName is read on screen, and keeps its Terraform, CLI and MCP names",
     (kept: KeptNames) => {
@@ -246,25 +273,41 @@ describe("the on-call models #6817 renamed", () => {
    * year's entries and today's are one type; the audit page shows the type
    * by the name on screen.
    */
-  test("the audit log shows a kept type by the name on screen", () => {
+  test("the audit log shows every kept type by the name on screen", () => {
+    const kept: Array<string> = [];
+
     for (const modelType of DatabaseModels) {
       const model: DatabaseBaseModel = new modelType();
 
-      if (!model.apiSingularName || !RESOURCE_META[model.apiSingularName]) {
+      if (!model.apiSingularName) {
         continue;
       }
 
+      kept.push(model.apiSingularName);
       expect({
         table: model.tableName,
         shown: getResourceTypeLabel(model.apiSingularName),
-      }).toEqual({ table: model.tableName, shown: model.singularName });
+        screen: getScreenSingularName(model.apiSingularName),
+      }).toEqual({
+        table: model.tableName,
+        shown: model.singularName,
+        screen: model.singularName,
+      });
     }
+
+    // Its table knows no kept name a model does not keep.
+    expect([...KEPT_SINGULAR_NAMES].sort()).toEqual(kept.sort());
 
     expect(getResourceTypeLabel("On-Call Policy Schedule")).toBe(
       "On-Call Schedule",
     );
+    expect(getResourceTypeLabel("Telemetry Ingestion Key")).toBe(
+      "Ingestion Key",
+    );
     expect(getResourceTypeLabel("Monitor")).toBe("Monitor");
+    expect(getScreenSingularName("Monitor")).toBe("Monitor");
     expect(getResourceTypeLabel(undefined)).toBe("Resource");
+    expect(RESOURCE_META["Telemetry Ingestion Key"]).toBeUndefined();
   });
 
   test("an entry rolls up to its root by the root's kept name too", () => {

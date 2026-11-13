@@ -178,7 +178,7 @@ Een paar korte regels:
 De meeste incidenten zouden niet door een mens ingetypt moeten hoeven worden. De criteria van een monitor kunnen er een melden op het moment dat een filter overeenkomt:
 
 :::steps
-1. Open de monitor, kies **Criteria** in zijn zijmenu en klik op **Bewakingscriteria bewerken**. (Een nieuwe monitor vraagt tijdens het aanmaken om dezelfde criteria.)
+1. Open de monitor, kies **Criteria** in zijn zijmenu en klik op **Criteria bewerken**. (Een nieuwe monitor vraagt tijdens het aanmaken om dezelfde criteria.)
 2. Zet in het criteriafilter dat moet melden **Wanneer filters overeenkomen, verklaar een incident.** aan. Er verschijnt een sectie **Incident maken** met een knop **Incident toevoegen** — één criteriafilter kan meer dan één incident melden.
 3. Vul de velden van het incident in (zie hieronder) en sla op. De volgende keer dat het filter overeenkomt, wordt het incident gemeld en roept het zijn bereikbaarheidsbeleid op.
 :::

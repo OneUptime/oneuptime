@@ -455,7 +455,7 @@ describe("the Dashboard's most-used words, in Arabic", () => {
       Incidents: "الحوادث",
       Alerts: "التنبيهات",
       "Status Pages": "صفحات الحالة",
-      "On-Call Duty": "المناوبة",
+      "On-Call": "المناوبة",
       "Scheduled Maintenance": "الصيانة المجدولة",
       Settings: "الإعدادات",
       "Project Settings": "إعدادات المشروع",

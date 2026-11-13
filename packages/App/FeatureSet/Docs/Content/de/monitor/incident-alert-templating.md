@@ -32,7 +32,7 @@ flowchart TB
 :::steps
 ### Die Kriterien des Monitors öffnen
 
-Gehen Sie zu **Monitore**, öffnen Sie den Monitor und klicken Sie in seinem Seitenmenü auf **Kriterien**. Klicken Sie auf **Überwachungskriterien bearbeiten**.
+Gehen Sie zu **Monitore**, öffnen Sie den Monitor und klicken Sie in seinem Seitenmenü auf **Kriterien**. Klicken Sie auf **Kriterien bearbeiten**.
 
 ### Den Vorfall oder die Warnung einschalten
 

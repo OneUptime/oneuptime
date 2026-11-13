@@ -136,7 +136,7 @@ function noProfilesResult(data: {
   return {
     dataForLlm: `No profiles were received ${
       data.serviceId ? "for this service " : ""
-    }between ${windowText(data.window)}. The service may not be profiled (see the Profiler's setup guide), or this window may be before profiling started or past the data retention.`,
+    }between ${windowText(data.window)}. The service may not be profiled (see the setup guide in Profiles), or this window may be before profiling started or past the data retention.`,
     rowCount: 0,
     citationLabel: data.label,
     citationTarget: profilesTarget({

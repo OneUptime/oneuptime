@@ -1,4 +1,4 @@
-# Kontinuerlig profilering
+# Profiler
 
 Kontinuerlig profilering visar vad din applikation lägger CPU-tid och minne på, funktion för funktion. OneUptime erbjuder ett **Pyroscope-kompatibelt intags-API**, så allt som kan skicka till en Pyroscope-server (eBPF-profileraren i Grafana Alloy eller ett Pyroscope-SDK för ditt språk) kan skicka till OneUptime, och du läser resultatet som flamdiagram bredvid dina loggar, mätvärden och spår.
 
@@ -11,7 +11,7 @@ Kontinuerlig profilering visar vad din applikation lägger CPU-tid och minne på
 
 ## Så fungerar det
 
-En profilerare tar stickprov på dina processer och laddar upp en profil med några sekunders mellanrum till OneUptimes slutpunkt `/pyroscope`, med din intagningsnyckel. OneUptime lagrar varje profil under tjänsten den nämner och ritar den som ett flamdiagram under **Prestandaprofiler**.
+En profilerare tar stickprov på dina processer och laddar upp en profil med några sekunders mellanrum till OneUptimes slutpunkt `/pyroscope`, med din intagningsnyckel. OneUptime lagrar varje profil under tjänsten den nämner och ritar den som ett flamdiagram under **Profiler**.
 
 ```mermaid title="Så når profiler OneUptime"
 flowchart TB
@@ -270,7 +270,7 @@ En giltig token ger `200` med `{"valid": true, ...}`, och dess `keyType` måste 
 
 ### Öppna profilsidan
 
-Gå till **Produkter → Prestandaprofiler** i OneUptimes instrumentpanel. Med Alloys insamlingsintervall på 15 sekunder (eller SDK:ernas uppladdningsintervall på 10 till 15 sekunder) visas de första profilerna och deras flamdiagram inom en eller två minuter efter att agenten har startat.
+Gå till **Produkter → Profiler** i OneUptimes instrumentpanel. Med Alloys insamlingsintervall på 15 sekunder (eller SDK:ernas uppladdningsintervall på 10 till 15 sekunder) visas de första profilerna och deras flamdiagram inom en eller två minuter efter att agenten har startat.
 
 ### Kontrollera tjänsten
 
@@ -283,7 +283,7 @@ För .NET-profileraren sätter du `DD_TRACE_DEBUG=1` på applikationen i en minu
 
 ## Utforska profiler i OneUptime
 
-**Produkter → Prestandaprofiler** öppnar profileraren på dess **Översikt**. Den svarar i ord före något diagram: vart tiden går ("I checkout gick 42% av CPU-tid till JSON.parse.") och, när den mest belastade funktionen hör till ett bibliotek eller körtiden, den funktion i din egen kod som tar mest, med biblioteks- och körtidskoden den anropar. Högst upp väljer du en tjänst, en profiltyp som den har data för (**CPU-tid**, **Faktisk tid**, **Minne**, **Allokeringar**, **Lås** eller **Goroutines**, eller en typ under **Fler profiltyper**), och ett tidsfönster.
+**Produkter → Profiler** öppnar profileraren på dess **Översikt**. Den svarar i ord före något diagram: vart tiden går ("I checkout gick 42% av CPU-tid till JSON.parse.") och, när den mest belastade funktionen hör till ett bibliotek eller körtiden, den funktion i din egen kod som tar mest, med biblioteks- och körtidskoden den anropar. Högst upp väljer du en tjänst, en profiltyp som den har data för (**CPU-tid**, **Faktisk tid**, **Minne**, **Allokeringar**, **Lås** eller **Goroutines**, eller en typ under **Fler profiltyper**), och ett tidsfönster.
 
 | Kort | Vad det visar |
 | --- | --- |
@@ -319,7 +319,7 @@ När en profil bär trace- och span-ID:n (till exempel som sampeletiketter `trac
 
 Ett spans flik **Profilprov** innehåller även de sampel som är kopplade till spans som ligger under det, eftersom profilerare ofta tillskriver en begärans CPU-tid ett underordnat span i stället för själva begärans span.
 
-Ett spårs sida länkar också till profileraren för spårets tjänst under de 15 minuterna före och efter, när tjänsten profilerades då, och sidan **Prestandaprofiler** för en tjänst eller en värd öppnar profileraren för den tjänsten eller värden.
+Ett spårs sida länkar också till profileraren för spårets tjänst under de 15 minuterna före och efter, när tjänsten profilerades då, och sidan **Profiler** för en tjänst eller en värd öppnar profileraren för den tjänsten eller värden.
 
 ## Hitta och åtgärda långsam kod med AI
 
@@ -332,7 +332,7 @@ En funktion i din egen kod registreras när dess tjänst har skickat minst 500 s
 
 ### Slå på det
 
-**Produkter → Prestandaprofiler → AI → Inställningar** har reglaget **Hitta och åtgärda långsam kod**, som är på för nya projekt. När **Aktivera AI** är av hittas långsam kod fortfarande, men OneUptime AI gör ingenting med den. För att öppna pull requests behöver OneUptime AI ett repository anslutet i [Kod](/docs/ai/ai-agent): sidan säger först vad som saknas. Koden i varje repository ändras på den Runner som repositoryt väljer i Kod.
+**Produkter → Profiler → AI → Inställningar** har reglaget **Hitta och åtgärda långsam kod**, som är på för nya projekt. När **Aktivera AI** är av hittas långsam kod fortfarande, men OneUptime AI gör ingenting med den. För att öppna pull requests behöver OneUptime AI ett repository anslutet i [Kod](/docs/ai/ai-agent): sidan säger först vad som saknas. Koden i varje repository ändras på den Runner som repositoryt väljer i Kod.
 
 OneUptime AI öppnar själv högst 5 pull requests per dag (UTC), en för varje fynd, och aldrig fler än ett repositorys gräns för öppna AI-pull requests.
 
@@ -350,8 +350,8 @@ Under **Fler fält** väljer en regel de kodrepositorier, MCP-servrar och den LL
 
 ### Se vad den gjorde
 
-- **Produkter → Prestandaprofiler → AI → Insikter** visar den långsamma kod som hittats, varje fynd med sina bevis och **Öppna i Profilerare**.
-- **Produkter → Prestandaprofiler → AI → Loggar** visar varje utredning och varje pull request, nyast först, med hur var och en står och vad varje utredning hittade.
+- **Produkter → Profiler → AI → Insikter** visar den långsamma kod som hittats, varje fynd med sina bevis och **Öppna i Profiler**.
+- **Produkter → Profiler → AI → Loggar** visar varje utredning och varje pull request, nyast först, med hur var och en står och vad varje utredning hittade.
 - I Kod säger uppgiften att OneUptime startade den, med en länk till dess fynd, och pull requesten säger varför den öppnades.
 
 ## Datalagring

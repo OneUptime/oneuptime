@@ -14,32 +14,33 @@ import ProductAboutButton from "../../Components/ProductOnboarding/ProductAboutB
 import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
 /*
- * One product, one name. Every page under the Profiler carries a
- * "Profiler — <section>" title that matches its side-menu entry, so
+ * One product, one name (#6817: no longer "the Profiler" or "Performance
+ * Profiles"). Every page under Profiles carries a
+ * "Profiles — <section>" title that matches its side-menu entry, so
  * the user never has to guess whether "insights", "raw profiles" and
  * "find what's slow" are the same thing. Each title is one key, so the
  * Page draws it in the reader's language like the breadcrumbs beside it.
  */
 function getPageTitle(path: string): string {
   if (path === RouteUtil.getRouteString(PageMap.PROFILES_INSIGHTS)) {
-    return translationKey("Profiler — All profiles");
+    return translationKey("Profiles — All profiles");
   }
   if (path === RouteUtil.getRouteString(PageMap.PROFILES_DOCUMENTATION)) {
-    return translationKey("Profiler — Setup guide");
+    return translationKey("Profiles — Setup guide");
   }
   if (path === RouteUtil.getRouteString(PageMap.PROFILES_AI_INSIGHTS)) {
-    return translationKey("Profiler — AI insights");
+    return translationKey("Profiles — AI insights");
   }
   if (path === RouteUtil.getRouteString(PageMap.PROFILES_AI_INSIGHT_VIEW)) {
-    return translationKey("Profiler — AI insight");
+    return translationKey("Profiles — AI insight");
   }
   if (path === RouteUtil.getRouteString(PageMap.PROFILES_AI_LOGS)) {
-    return translationKey("Profiler — AI logs");
+    return translationKey("Profiles — AI logs");
   }
   if (path === RouteUtil.getRouteString(PageMap.PROFILES_AI_SETTINGS)) {
-    return translationKey("Profiler — AI settings");
+    return translationKey("Profiles — AI settings");
   }
-  return translationKey("Profiler — Overview");
+  return translationKey("Profiles — Overview");
 }
 
 const ProfilesLayout: FunctionComponent<

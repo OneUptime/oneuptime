@@ -26,7 +26,7 @@ flowchart TB
 
 - Una aplicación web cuyo código puedas cambiar y volver a desplegar, con sus dependencias instaladas mediante npm.
 - Los orígenes desde los que se sirven tus páginas, por ejemplo `https://app.example.com`. Una clave de Navegador solo acepta solicitudes de los orígenes que indiques en ella.
-- Un rol que pueda crear claves de ingesta: pueden hacerlo los propietarios y administradores del proyecto, y también cualquiera con el permiso **Create Telemetry Ingestion Key**.
+- Un rol que pueda crear claves de ingesta: pueden hacerlo los propietarios y administradores del proyecto, y también cualquiera con el permiso Create Ingestion Key.
 
 ## Configurarlo
 

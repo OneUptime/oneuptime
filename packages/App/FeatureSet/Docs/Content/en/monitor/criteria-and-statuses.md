@@ -1,4 +1,4 @@
-# Monitor Criteria & Statuses
+# Criteria & Statuses
 
 A monitor's criteria decide what each check means: whether the monitor is up or down, and whether OneUptime declares an incident or creates an alert. Statuses are your project's list of what a monitor can be, from **Operational** to **Offline**. This page explains both for every monitor type; each type's own page lists the filters it offers.
 
@@ -45,7 +45,7 @@ Open a criteria and it has a name and three sections, each of which folds to a o
 
 ### Filters
 
-A filter reads one thing from the check and compares it: a **Filter Type** (what to read, such as **Response Status Code**), a **Filter Condition** (how to compare, such as **Greater Than**) and a **Value**. Monitors that compare metrics, such as Kubernetes and Metrics monitors, ask for a **Condition** and a **Threshold** instead. Each monitor type offers its own filter types, listed on its page, such as [Website Monitor](/docs/monitor/website-monitor#monitoring-criteria).
+A filter reads one thing from the check and compares it: a **Filter Type** (what to read, such as **Response Status Code**), a **Filter Condition** (how to compare, such as **Greater Than**) and a **Value**. Monitors that compare metrics, such as Kubernetes and Metrics monitors, ask for a **Condition** and a **Threshold** instead. Each monitor type offers its own filter types, listed on its page, such as [Website Monitor](/docs/monitor/website-monitor#criteria).
 
 With two filters or more, **Match Condition** appears below them: **All** means every filter must match, **Any** means one is enough. A new criteria starts on **All**.
 
@@ -111,9 +111,9 @@ Secrets and personal data are masked before anything is kept: headers such as `A
 :::steps
 ### Open the criteria page
 
-Go to **Monitors** and open the monitor. Expand **Configuration** in its side menu and click **Criteria**. The **Monitoring Criteria** card shows each criteria, what it checks and what it does.
+Go to **Monitors** and open the monitor. Expand **Configuration** in its side menu and click **Criteria**. The **Criteria** card shows each criteria, what it checks and what it does.
 
-### Click Edit Monitoring Criteria
+### Click Edit Criteria
 
 The editor shows every criteria open. Click a criteria's header to fold it to one line: its name, how many filters it has and what it does.
 

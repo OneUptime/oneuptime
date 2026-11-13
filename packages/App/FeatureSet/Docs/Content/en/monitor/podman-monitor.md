@@ -60,7 +60,7 @@ A new monitor starts on **Host Stopped Reporting**, under **What to alert on**. 
 
 ### Check the criteria
 
-Open each criteria under **Monitor Criteria** and check its **Metric**, **Aggregation**, **Condition** and **Threshold**. A template fills these in. With **Custom Metric** or **Advanced**, the monitor starts with the [default criteria](#default-criteria), which only notice the metric sending no data, so set your own threshold.
+Open each criteria under **Criteria** and check its **Metric**, **Aggregation**, **Condition** and **Threshold**. A template fills these in. With **Custom Metric** or **Advanced**, the monitor starts with the [default criteria](#default-criteria), which only notice the metric sending no data, so set your own threshold.
 
 ### Create the monitor
 
@@ -159,7 +159,7 @@ The agent uses the OpenTelemetry `docker_stats` receiver pointed at Podman's Doc
 
 `container.cpu.throttling_data.throttled_periods` is not in the **Podman Metric** list; query it from **Advanced**.
 
-## Monitoring criteria
+## Criteria
 
 A criteria compares one of the monitor's queries or formulas with a threshold. A Podman monitor's criteria have no **Filter Type**: every rule checks the metric value, with these fields.
 

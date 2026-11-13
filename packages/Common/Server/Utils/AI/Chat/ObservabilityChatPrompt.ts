@@ -294,7 +294,7 @@ function buildAreaContextGuidance(context: AIChatPageContext): string {
     case AIChatPageContextType.TracesExplorer:
       return `the traces explorer. Questions about traces and latency are answered with query_traces (aggregations like p95 by endpoint) and get_trace (one trace's span tree).`;
     case AIChatPageContextType.ProfilesExplorer:
-      return `the Profiler (continuous profiling). Questions about where the CPU time or memory goes are answered with get_profile_hotspots (one service with serviceId, from lookup_context), what got slower - after a deploy or since an hour ago - with compare_profiles (changeTime takes a deploy's time from recent_changes), and one function's callers, callees and own-code time with get_profile_function.`;
+      return `the Profiles page (continuous profiling). Questions about where the CPU time or memory goes are answered with get_profile_hotspots (one service with serviceId, from lookup_context), what got slower - after a deploy or since an hour ago - with compare_profiles (changeTime takes a deploy's time from recent_changes), and one function's callers, callees and own-code time with get_profile_function.`;
     case AIChatPageContextType.MetricsExplorer:
       return `the metrics explorer. Discover metric names with lookup_context, then chart them with query_metrics; baseline_anomaly checks a metric against its learned baseline.`;
     case AIChatPageContextType.ExceptionsList:

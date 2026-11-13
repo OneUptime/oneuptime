@@ -36,7 +36,7 @@ flowchart TB
 
 ## 시작하기 전에
 
-- 수집 키를 만들 수 있는 OneUptime 프로젝트. 프로젝트 소유자와 관리자, 그리고 **Create Telemetry Ingestion Key** 권한이 있는 사람은 누구나 만들 수 있습니다.
+- 수집 키를 만들 수 있는 OneUptime 프로젝트. 프로젝트 소유자와 관리자, 그리고 Create Ingestion Key 권한이 있는 사람은 누구나 만들 수 있습니다.
 - OpenTelemetry SDK를 추가할 수 있는 애플리케이션 또는 OpenTelemetry Collector.
 - 애플리케이션이나 Collector에서 `oneuptime.com` 또는 자체 OneUptime 호스트로 나가는 HTTPS(포트 443).
 

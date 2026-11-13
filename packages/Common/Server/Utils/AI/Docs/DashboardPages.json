@@ -220,16 +220,6 @@
     "kind": "page"
   },
   {
-    "title": "Telemetry Ingestion Keys",
-    "where": [
-      "Project Settings",
-      "Telemetry & APM",
-      "Ingestion Keys"
-    ],
-    "path": "/dashboard/:projectId/settings/telemetry-ingestion-keys",
-    "kind": "setting"
-  },
-  {
     "title": "Data Retention",
     "where": [
       "Project Settings",
@@ -1231,6 +1221,10 @@
     "title": "All Monitors",
     "where": [
       "Monitors"
+    ],
+    "keywords": [
+      "monitor criteria",
+      "monitoring criteria"
     ],
     "path": "/dashboard/:projectId/monitors",
     "kind": "page"
@@ -3660,12 +3654,14 @@
   {
     "title": "Overview",
     "where": [
-      "Performance Profiles",
-      "Profiler"
+      "Profiles"
     ],
     "keywords": [
       "flame graph",
-      "cpu profiling"
+      "cpu profiling",
+      "performance profiles",
+      "profiler",
+      "continuous profiling"
     ],
     "path": "/dashboard/:projectId/profiles",
     "kind": "page"
@@ -3673,8 +3669,7 @@
   {
     "title": "All profiles",
     "where": [
-      "Performance Profiles",
-      "Profiler"
+      "Profiles"
     ],
     "path": "/dashboard/:projectId/profiles/insights",
     "kind": "page"
@@ -3682,7 +3677,7 @@
   {
     "title": "Insights",
     "where": [
-      "Performance Profiles",
+      "Profiles",
       "AI"
     ],
     "keywords": [
@@ -3699,7 +3694,7 @@
   {
     "title": "Logs",
     "where": [
-      "Performance Profiles",
+      "Profiles",
       "AI"
     ],
     "keywords": [
@@ -3713,7 +3708,7 @@
   {
     "title": "Settings",
     "where": [
-      "Performance Profiles",
+      "Profiles",
       "AI"
     ],
     "keywords": [
@@ -3729,7 +3724,7 @@
   {
     "title": "Setup guide",
     "where": [
-      "Performance Profiles",
+      "Profiles",
       "Help"
     ],
     "keywords": [
@@ -3743,6 +3738,9 @@
     "title": "Exceptions",
     "where": [
       "Exceptions"
+    ],
+    "keywords": [
+      "exception tracking"
     ],
     "path": "/dashboard/:projectId/exceptions/unresolved",
     "kind": "page"

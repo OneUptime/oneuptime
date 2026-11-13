@@ -154,7 +154,7 @@ Med 30 mislykkede anmodninger matcher reglen, og hændelsen erklæres. Når der 
 ## Fejlfinding
 
 :::details Monitoren tæller ingen spans for mit endpoint
-**Span-navnet indeholder** sammenlignes med spannets navn, og instrumentering navngiver ofte server-spans efter ruten (`POST /api/checkout`) eller kun efter metoden (`GET`). Find det præcise navn i trace-explorer. Åbn derefter monitorens side **Kriterier** (under **Konfiguration**), og klik på **Rediger overvågningskriterier**: **Matchende spans** viser, hvad filtrene matcher lige nu.
+**Span-navnet indeholder** sammenlignes med spannets navn, og instrumentering navngiver ofte server-spans efter ruten (`POST /api/checkout`) eller kun efter metoden (`GET`). Find det præcise navn i trace-explorer. Åbn derefter monitorens side **Kriterier** (under **Konfiguration**), og klik på **Rediger kriterier**: **Matchende spans** viser, hvad filtrene matcher lige nu.
 :::
 
 :::details Vellykkede anmodninger tælles ikke, når jeg filtrerer på Ok

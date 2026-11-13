@@ -52,7 +52,7 @@ Haga clic en **Probar monitor**, elija una sonda en **Seleccionar sonda** y haga
 
 ### Revisar los criterios
 
-**Criterios del monitor** empieza con los [criterios predeterminados](#criterios-predeterminados): sin conexión cuando el nombre no se resuelve, en línea cuando se resuelve. Para comprobar qué dicen los registros, añada un filtro **Valor del registro DNS** y haga clic en **Siguiente**.
+**Criterios** empieza con los [criterios predeterminados](#criterios-predeterminados): sin conexión cuando el nombre no se resuelve, en línea cuando se resuelve. Para comprobar qué dicen los registros, añada un filtro **Valor del registro DNS** y haga clic en **Siguiente**.
 
 ### Elegir sondas y crear
 

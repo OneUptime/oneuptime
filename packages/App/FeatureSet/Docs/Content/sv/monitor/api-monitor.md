@@ -59,7 +59,7 @@ Klicka på **Testa monitor**, välj en sond under **Välj sond** och klicka på 
 
 ### Gå igenom kriterierna
 
-**Monitorkriterier** börjar med [standardkriterierna](#standardkriterier): offline när API:et inte svarar eller svarar med ett fel, online vid varje status `2xx` eller `3xx`. För att även kontrollera vad API:et returnerar lägger du till ett filter och klickar sedan på **Nästa**.
+**Kriterier** börjar med [standardkriterierna](#standardkriterier): offline när API:et inte svarar eller svarar med ett fel, online vid varje status `2xx` eller `3xx`. För att även kontrollera vad API:et returnerar lägger du till ett filter och klickar sedan på **Nästa**.
 
 ### Välj sonder och skapa
 

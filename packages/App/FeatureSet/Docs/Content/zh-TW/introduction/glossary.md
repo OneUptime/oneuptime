@@ -42,13 +42,13 @@ OneUptime 使用的每個詞彙，都用一兩句話說明，並附上它的其�
 
 監測器的規則：每個檢查結果代表什麼。條件會依序檢查，第一個相符的條件可以變更監測器的狀態、宣告事件、建立警示，或三者都做。
 
-又稱：**監測條件**、**監測器條件**、**Monitor Steps**。參閱 [監測器條件與狀態](/docs/monitor/criteria-and-statuses)。
+又稱：**監測條件**、**監測器條件**、**Monitor Steps**。參閱 [條件與狀態](/docs/monitor/criteria-and-statuses)。
 
 ### 監測器狀態
 
 監測器此刻的狀況。每個新專案都有三種監測器狀態：**運作中**、**效能下降** 和 **離線**，你也可以新增自己的狀態。
 
-參閱 [監測器條件與狀態](/docs/monitor/criteria-and-statuses)。
+參閱 [條件與狀態](/docs/monitor/criteria-and-statuses)。
 
 ### 探測器
 
@@ -262,7 +262,7 @@ SLO 的目標所允許的停機時間：目標為 30 天內 99.9% 時，就是 4
 
 你的程式碼擲回的錯誤。OneUptime 把同一個錯誤的每次發生歸為一個例外，並附上它的堆疊追蹤、趨勢以及發生它的請求。
 
-又稱：**例外狀況追蹤**、`/telemetry-exception`。參閱 [例外狀況追蹤](/docs/telemetry/exceptions)。
+又稱：**例外狀況追蹤**、`/telemetry-exception`。參閱 [例外](/docs/telemetry/exceptions)。
 
 ### AI 洞察
 
@@ -302,11 +302,11 @@ OneUptime 的 SIEM：來自你的日誌、安全工具以及你傳送的其他�
 
 參閱 [追蹤瀏覽器](/docs/telemetry/traces-explorer)。
 
-### 設定檔
+### 效能剖析
 
 你的應用程式如何逐一函式地使用 CPU 時間和記憶體，由推送到 OneUptime 的 Pyroscope 相容 API 的效能剖析器傳送。
 
-又稱：**效能設定檔**、**持續效能剖析**。參閱 [持續效能剖析](/docs/telemetry/profiles)。
+又稱：**效能設定檔**、**持續效能剖析**。參閱 [效能剖析](/docs/telemetry/profiles)。
 
 ### AI / LLM
 

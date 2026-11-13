@@ -1,4 +1,4 @@
-# Uitzonderingen volgen
+# Uitzonderingen
 
 Uitzonderingen volgen verzamelt de fouten die uw code gooit en groepeert elk voorval van dezelfde fout tot één uitzondering, met de stacktrace, het verloop en de verzoeken waarin ze optrad. Werk ze af als een takenlijst: verhelpen, oplossen of de ruis archiveren, en laat AI een pull request openen voor de uitzonderingen die het kan verhelpen.
 

@@ -86,5 +86,5 @@ flowchart TB
 :::cards
 - [전화, SMS, 푸시로 호출 받기](/docs/guides/paging): 휴대폰으로 호출을 받고, 아무도 응답하지 않으면 다음 사람을 호출합니다.
 - [상태 페이지 게시하기](/docs/guides/status-page): 여러분의 도메인에서 고객에게 모니터를 보여 줍니다.
-- [모니터 기준 및 상태](/docs/monitor/criteria-and-statuses): 모니터가 언제 다운으로 간주될지 정확히 정합니다.
+- [기준 및 상태](/docs/monitor/criteria-and-statuses): 모니터가 언제 다운으로 간주될지 정확히 정합니다.
 :::

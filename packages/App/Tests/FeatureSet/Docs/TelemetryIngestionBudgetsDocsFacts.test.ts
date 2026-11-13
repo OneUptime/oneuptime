@@ -424,9 +424,9 @@ describe("where budgets are set", () => {
     ]);
     expect(
       PermissionHelper.getTitle(Permission.EditTelemetryIngestionKey),
-    ).toBe("Edit Telemetry Ingestion Key");
+    ).toBe("Edit Ingestion Key");
     expect(ENGLISH).toContain(
-      "Project Owner or Project Admin, or a custom role with the Edit Telemetry Ingestion Key permission.",
+      "Project Owner or Project Admin, or a custom role with the Edit Ingestion Key permission.",
     );
   });
 });

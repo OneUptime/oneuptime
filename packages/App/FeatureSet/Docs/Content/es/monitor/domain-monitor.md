@@ -64,7 +64,7 @@ Haga clic en **Probar monitor**, elija una sonda en **Seleccionar sonda** y haga
 
 ### Revisar los criterios
 
-**Criterios del monitor** empieza con los [criterios predeterminados](#criterios-predeterminados): sin conexión cuando el registro ha caducado o no se puede leer, una alerta cuando caduca en 30 días o menos. Cámbielos si lo necesita y haga clic en **Siguiente**.
+**Criterios** empieza con los [criterios predeterminados](#criterios-predeterminados): sin conexión cuando el registro ha caducado o no se puede leer, una alerta cuando caduca en 30 días o menos. Cámbielos si lo necesita y haga clic en **Siguiente**.
 
 ### Elegir sondas y crear
 
@@ -135,7 +135,7 @@ Para recibir el aviso antes, cambie el valor del filtro **Días hasta la caducid
 :::details Añadir el aviso a un monitor creado antes de que existiera
 Los monitores creados antes de que OneUptime añadiera este aviso no tienen un criterio de «caduca pronto». Para añadirlo:
 
-1. En el monitor, abra **Configuración → Criterios** y haga clic en **Editar criterios de monitoreo**.
+1. En el monitor, abra **Configuración → Criterios** y haga clic en **Editar criterios**.
 2. Haga clic en **Añadir criterios**. Ponga su filtro en **Dominio caducado** / **Falso**, haga clic en **Añadir filtro** y ponga el segundo en **Días hasta la caducidad del dominio** / **Menor o igual que** / `30`. Deje **Condición de coincidencia** en **Todos** (aparece bajo los filtros en cuanto hay dos).
 3. En **Acciones**, active **Cuando los filtros coinciden, crear una alerta.** y deje desactivado **Cuando los filtros coinciden, cambiar el estado del monitor.**, para que cree una alerta y no cambie el estado del monitor.
 4. Arrastre el nuevo criterio por encima del criterio que marca el monitor como en línea, y guarde.

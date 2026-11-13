@@ -186,7 +186,7 @@ const PROJECT_SETTINGS_BREADCRUMB: RegExp =
 
 /*
  * The titles Project Settings' pages go by in their breadcrumbs, some of
- * them not the menu's ("Telemetry Ingestion Keys" for the Ingestion Keys
+ * them not the menu's ("Telemetry Settings" for the Data Retention
  * entry): a text that names a page by one, after "Settings", still means
  * Project Settings.
  */

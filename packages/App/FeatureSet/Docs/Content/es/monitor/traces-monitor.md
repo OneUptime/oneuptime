@@ -154,7 +154,7 @@ Con 30 solicitudes fallidas, la regla coincide y se declara el incidente. Cuando
 ## Solución de problemas
 
 :::details El monitor no cuenta ningún span para mi endpoint
-**El nombre del span contiene** se compara con el nombre del span, y la instrumentación suele nombrar los spans de servidor por la ruta (`POST /api/checkout`) o solo por el método (`GET`). Busca el nombre exacto en el explorador de trazas. Después abre la página **Criterios** del monitor (en **Configuración**) y haz clic en **Editar criterios de monitoreo**: **Spans coincidentes** muestra con qué coinciden los filtros ahora mismo.
+**El nombre del span contiene** se compara con el nombre del span, y la instrumentación suele nombrar los spans de servidor por la ruta (`POST /api/checkout`) o solo por el método (`GET`). Busca el nombre exacto en el explorador de trazas. Después abre la página **Criterios** del monitor (en **Configuración**) y haz clic en **Editar criterios**: **Spans coincidentes** muestra con qué coinciden los filtros ahora mismo.
 :::
 
 :::details Las solicitudes exitosas no se cuentan cuando filtro por Correcto

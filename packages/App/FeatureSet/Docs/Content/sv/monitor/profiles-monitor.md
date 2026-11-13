@@ -26,7 +26,7 @@ Varje minut läser OneUptime de profiler som matchar monitorns filter och starta
 
 ## Innan du börjar
 
-- Dina tjänster skickar kontinuerliga profileringsdata till OneUptime via Grafana Alloy (eBPF), ett Pyroscope-SDK eller OneUptimes Kubernetes-agent. Se [Kontinuerlig profilering](/docs/telemetry/profiles).
+- Dina tjänster skickar kontinuerliga profileringsdata till OneUptime via Grafana Alloy (eBPF), ett Pyroscope-SDK eller OneUptimes Kubernetes-agent. Se [Profiler](/docs/telemetry/profiles).
 - För att bevaka en funktion känner du till dess namn, eller en del av dess fil- eller paketsökväg, så som profileraren visar den.
 
 ## Skapa en profilmonitor
@@ -34,7 +34,7 @@ Varje minut läser OneUptime de profiler som matchar monitorns filter och starta
 :::steps
 ### Börja från profileraren eller från Skapa monitor
 
-Snabbast är att utgå från själva funktionen: öppna funktionen i **Prestandaprofiler** och klicka på länken som erbjuder ett larm för dess andel. **Skapa monitor** öppnas med monitorn ifylld för funktionen och dess tjänst, med ett tröskelvärde över det den tar i dag, som beskrivs i [Genomgånget exempel: en funktion blir tyngre](#genomgånget-exempel-en-funktion-blir-tyngre). Annars går du till **Monitorer** och klickar på **Skapa monitor**.
+Snabbast är att utgå från själva funktionen: öppna funktionen i **Profiler** och klicka på länken som erbjuder ett larm för dess andel. **Skapa monitor** öppnas med monitorn ifylld för funktionen och dess tjänst, med ett tröskelvärde över det den tar i dag, som beskrivs i [Genomgånget exempel: en funktion blir tyngre](#genomgånget-exempel-en-funktion-blir-tyngre). Annars går du till **Monitorer** och klickar på **Skapa monitor**.
 
 ### Välj Profiles
 
@@ -127,7 +127,7 @@ Antal profiler har inga avvikelsevillkor: det finns ingen baslinje att jämföra
 
 I checkout-tjänsten tar `parseOrder` 18 % av dess CPU-tid. En driftsättning som parsar en större nyttolast ska inte passera obemärkt:
 
-1. Välj checkout-tjänsten i **Prestandaprofiler** och öppna `parseOrder`.
+1. Välj checkout-tjänsten i **Profiler** och öppna `parseOrder`.
 2. Klicka på länken som erbjuder ett larm för dess andel. Profileraren föreslår 30 %: hälften över dagens andel, minst 10 enheter mer, avrundat uppåt till en multipel av 5.
 3. **Skapa monitor** öppnas med en profilmonitor för checkout-tjänsten som läser **CPU-tid** under de **Senaste 5 minuterna**, med två kriterier: **Funktionsandel (i %)** **Större än** `30` utlöser ett larm, som löser sig själv, och markerar monitorn som försämrad; **Mindre än eller lika med** `30` markerar den som i drift. Incidenten är ifylld men avstängd: slå på den för att larma någon.
 4. Klicka på **Skapa monitor**.
@@ -157,7 +157,7 @@ Ingen ram i fönstret innehåller funktionstexten. Öppna funktionen i profilera
 ## Nästa steg
 
 :::cards
-- [Kontinuerlig profilering](/docs/telemetry/profiles): Skicka profiler och läs dem i profileraren.
+- [Profiler](/docs/telemetry/profiles): Skicka profiler och läs dem i profileraren.
 - [Monitorsteg](/docs/terraform/monitor-steps): Skicka stegets konfiguration från Terraform.
 - [Spårningsövervakning](/docs/monitor/traces-monitor): Varnas om misslyckade spans.
 - [Metrikövervakning](/docs/monitor/metrics-monitor): Varnas om CPU, minne och andra mätvärden.
