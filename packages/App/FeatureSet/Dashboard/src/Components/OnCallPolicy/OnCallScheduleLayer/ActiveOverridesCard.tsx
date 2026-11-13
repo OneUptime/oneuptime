@@ -1,6 +1,6 @@
 import HandOffTimes from "./HandOffTimes";
 import { SECTION_LABEL_CLASS_NAME } from "./FinalScheduleSummary";
-import { formatShiftInstant } from "./LayerSummary";
+import { formatHandOffInstant } from "./LayerSummary";
 import { getUserAvatarStyle, getUserInitials } from "./LayerUserColors";
 import {
   OverrideScopeKind,
@@ -17,6 +17,7 @@ import UserOverrideOverlapsMark, {
   getUserOverrideOverlapsText,
 } from "../UserOverrides/UserOverrideOverlapsMark";
 import OnCallDutyPolicyUserOverride from "Common/Models/DatabaseModels/OnCallDutyPolicyUserOverride";
+import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
 import Button, {
@@ -175,13 +176,16 @@ const ActiveOverridesCard: FunctionComponent<ComponentProps> = (
           otherCoverName: otherCoverId
             ? getUserDisplayName(props.userById[otherCoverId])
             : "",
-          from: formatShiftInstant(
+          // As each row writes its own times (HandOffTimes).
+          from: formatHandOffInstant(
             new Date(row.overlapNote.other.startsAt),
             props.timezone,
+            OneUptimeDate.getCurrentDate(),
           ),
-          until: formatShiftInstant(
+          until: formatHandOffInstant(
             new Date(row.overlapNote.other.endsAt),
             props.timezone,
+            OneUptimeDate.getCurrentDate(),
           ),
         })}
       />

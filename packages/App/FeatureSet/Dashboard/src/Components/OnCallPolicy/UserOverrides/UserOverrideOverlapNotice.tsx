@@ -4,6 +4,7 @@ import {
   getUserOverrideOverlapKey,
 } from "./UserOverrideOverlapCheck";
 import { isUserOverrideOverlapRefusal } from "./UserOverrideForm";
+import { formatHandOffInstant } from "../OnCallScheduleLayer/LayerSummary";
 import OnCallDutyPolicyUserOverride from "Common/Models/DatabaseModels/OnCallDutyPolicyUserOverride";
 import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
 import LessThan from "Common/Types/BaseDatabase/LessThan";
@@ -221,8 +222,16 @@ const UserOverrideOverlapNotice: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * "Sat, Nov 14, 1:10 AM": in the reader's zone, which Starts and Ends say
+   * just above, so without it - and without the year while it is this year.
+   */
   const timeOf: (date: Date) => string = (date: Date): string => {
-    return OneUptimeDate.getDateAsFormattedStringInTimezone({ date: date });
+    return formatHandOffInstant(
+      date,
+      undefined,
+      OneUptimeDate.getCurrentDate(),
+    );
   };
 
   const say: (sentence: UserOverrideSentence) => string = (

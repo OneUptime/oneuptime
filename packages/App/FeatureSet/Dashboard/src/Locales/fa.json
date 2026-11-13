@@ -52147,5 +52147,7 @@
   "{{away}} is already away on every policy from {{from}} to {{until}}, with the next person in the rotation covering.": "برای {{away}} از قبل غیبتی از {{from}} تا {{until}} روی همه سیاست‌ها ثبت شده است و نفر بعدی در چرخش جایگزین اوست.",
   "{{away}} is already away on this policy from {{from}} to {{until}}, with the next person in the rotation covering.": "برای {{away}} از قبل غیبتی از {{from}} تا {{until}} روی این سیاست ثبت شده است و نفر بعدی در چرخش جایگزین اوست.",
   "{{away}} is already covered by {{cover}} on every policy from {{from}} to {{until}}.": "برای {{away}} از قبل جایگزینی از {{from}} تا {{until}} روی همه سیاست‌ها ثبت شده است که در آن {{cover}} جایگزین اوست.",
-  "{{away}} is already covered by {{cover}} on this policy from {{from}} to {{until}}.": "برای {{away}} از قبل جایگزینی از {{from}} تا {{until}} روی این سیاست ثبت شده است که در آن {{cover}} جایگزین اوست."
+  "{{away}} is already covered by {{cover}} on this policy from {{from}} to {{until}}.": "برای {{away}} از قبل جایگزینی از {{from}} تا {{until}} روی این سیاست ثبت شده است که در آن {{cover}} جایگزین اوست.",
+  "User Override Changed": "جایگزینی کاربر تغییر کرد",
+  "Pick any time from now on. Once the override starts, its start can't be changed.": "هر زمانی از همین حالا به بعد را انتخاب کنید. پس از شروع جایگزینی، زمان شروع آن دیگر قابل تغییر نیست."
 }

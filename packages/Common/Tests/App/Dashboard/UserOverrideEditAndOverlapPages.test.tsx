@@ -171,7 +171,7 @@ import GlobalUserOverridesPage from "../../../../App/FeatureSet/Dashboard/src/Pa
 import PolicyUserOverridesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/OnCallDuty/OnCallDutyPolicy/UserOverrides";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import ActiveOverridesCard from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/ActiveOverridesCard";
-import { formatShiftInstant } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/LayerSummary";
+import { formatHandOffInstant } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/LayerSummary";
 import {
   OverrideSummaryRow,
   OverrideUserDisplayInfo,
@@ -183,6 +183,7 @@ import {
   USER_OVERRIDE_END_NOW_TEXT,
   USER_OVERRIDE_ROTATION_COVERS_TEXT,
   USER_OVERRIDE_START_LOCKED_TEXT,
+  USER_OVERRIDE_START_MOVABLE_TEXT,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/UserOverrides/UserOverrideForm";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyUserOverride from "../../../Models/DatabaseModels/OnCallDutyPolicyUserOverride";
@@ -674,8 +675,13 @@ function idOf(value: unknown): string | null {
   return value === undefined || value === null ? null : String(value);
 }
 
+/*
+ * A time as the overlap check and the marks write it: in the reader's zone,
+ * which Starts and Ends say, so without it - and without the year while it
+ * is this year.
+ */
 function shown(date: Date): string {
-  return OneUptimeDate.getDateAsFormattedStringInTimezone({ date: date });
+  return formatHandOffInstant(date, undefined, NOW);
 }
 
 // Alex, covered by Sam on the policy, a week from now.
@@ -709,7 +715,7 @@ const ENDED: SavedOverride = {
 };
 
 describe("Edit on a policy's User Overrides page", () => {
-  test("an upcoming override opens on its four rows as saved: who is away shown and locked, the times free", async () => {
+  test("an upcoming override opens on its four rows as saved: who is away shown alone, the times free", async () => {
     saved = [UPCOMING];
 
     await renderPage("policy");
@@ -721,13 +727,18 @@ describe("Edit on a policy's User Overrides page", () => {
       expect(chipIds(picker(modal, "Who covers?"))).toEqual([SAM]);
     });
 
-    // Who is away: shown, never changed.
+    /*
+     * Who is away: shown, never changed - the person alone, with no Change
+     * button: a locked one offered what the description says is not made
+     * here.
+     */
     expectDescribed(modal, USER_OVERRIDE_AWAY_LOCKED_TEXT);
+    expect(chipIds(picker(modal, "Who is away?"))).toEqual([ALEX]);
     expect(
-      within(picker(modal, "Who is away?")).getByTestId(
+      within(picker(modal, "Who is away?")).queryByTestId(
         "people-picker-add-button",
       ),
-    ).toBeDisabled();
+    ).toBeNull();
     expect(
       within(picker(modal, "Who is away?")).queryByRole("button", {
         name: "Remove Alex Chen",
@@ -737,6 +748,14 @@ describe("Edit on a policy's User Overrides page", () => {
     // It has not started: both times may change.
     expect(timeInput(modal, "Starts")).not.toHaveAttribute("readonly");
     expect(timeInput(modal, "Ends")).not.toHaveAttribute("readonly");
+    /*
+     * Starts says what it may be moved to. It said nothing of its own, so
+     * its column's description stood in: "When the override starts sending
+     * the Override User's alerts to the Route Alerts To User", in English
+     * in every language.
+     */
+    expectDescribed(modal, USER_OVERRIDE_START_MOVABLE_TEXT);
+    expect(modal.textContent).not.toMatch(/Override User|Route Alerts To User/);
     expect(timeInput(modal, "Starts").value).toBe(
       localMinute(UPCOMING.startsAt),
     );
@@ -1379,8 +1398,8 @@ describe("a schedule's active overrides card", () => {
       "aria-label",
       `${fillTemplate(USER_OVERRIDE_OVERLAPS_SKIPPED, {
         away: "Alex Chen",
-        from: formatShiftInstant(skip.startsAt, "UTC"),
-        until: formatShiftInstant(skip.endsAt, "UTC"),
+        from: formatHandOffInstant(skip.startsAt, "UTC", NOW),
+        until: formatHandOffInstant(skip.endsAt, "UTC", NOW),
       })} Where they overlap, this one is used, as it names who covers.`,
     );
     expect(marks[1]).toHaveAttribute(
@@ -1388,8 +1407,8 @@ describe("a schedule's active overrides card", () => {
       `${fillTemplate(USER_OVERRIDE_OVERLAPS_COVERED, {
         away: "Alex Chen",
         cover: "Sam Rivera",
-        from: formatShiftInstant(UPCOMING.startsAt, "UTC"),
-        until: formatShiftInstant(UPCOMING.endsAt, "UTC"),
+        from: formatHandOffInstant(UPCOMING.startsAt, "UTC", NOW),
+        until: formatHandOffInstant(UPCOMING.endsAt, "UTC", NOW),
       })} Where they overlap, that one is used, as it names who covers.`,
     );
   });

@@ -52147,5 +52147,7 @@
   "{{away}} is already away on every policy from {{from}} to {{until}}, with the next person in the rotation covering.": "{{away}} är redan borta på alla policyer från {{from}} till {{until}}, och nästa person i rotationen täcker upp.",
   "{{away}} is already away on this policy from {{from}} to {{until}}, with the next person in the rotation covering.": "{{away}} är redan borta på den här policyn från {{from}} till {{until}}, och nästa person i rotationen täcker upp.",
   "{{away}} is already covered by {{cover}} on every policy from {{from}} to {{until}}.": "{{cover}} täcker redan upp för {{away}} på alla policyer från {{from}} till {{until}}.",
-  "{{away}} is already covered by {{cover}} on this policy from {{from}} to {{until}}.": "{{cover}} täcker redan upp för {{away}} på den här policyn från {{from}} till {{until}}."
+  "{{away}} is already covered by {{cover}} on this policy from {{from}} to {{until}}.": "{{cover}} täcker redan upp för {{away}} på den här policyn från {{from}} till {{until}}.",
+  "User Override Changed": "Användaråsidosättning ändrad",
+  "Pick any time from now on. Once the override starts, its start can't be changed.": "Välj valfri tid från och med nu. När åsidosättningen har börjat kan starten inte ändras."
 }

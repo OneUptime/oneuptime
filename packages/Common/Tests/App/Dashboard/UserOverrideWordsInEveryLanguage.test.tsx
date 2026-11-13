@@ -63,7 +63,9 @@ import {
   USER_OVERRIDE_AWAY_LOCKED_TEXT,
   USER_OVERRIDE_END_NOW_TEXT,
   USER_OVERRIDE_START_LOCKED_TEXT,
+  USER_OVERRIDE_START_MOVABLE_TEXT,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/UserOverrides/UserOverrideForm";
+import { formatHandOffInstant } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/LayerSummary";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyUserOverride from "../../../Models/DatabaseModels/OnCallDutyPolicyUserOverride";
 import User from "../../../Models/DatabaseModels/User";
@@ -229,6 +231,7 @@ const NEW_WORDS: ReadonlyArray<string> = Array.from(
     USER_OVERRIDE_END_IN_PAST_REFUSAL,
     USER_OVERRIDE_AWAY_LOCKED_TEXT,
     USER_OVERRIDE_START_LOCKED_TEXT,
+    USER_OVERRIDE_START_MOVABLE_TEXT,
     USER_OVERRIDE_END_NOW_TEXT,
     USER_OVERRIDE_EDIT_THAT_OVERRIDE,
     "Edit the override for {{name}}",
@@ -251,6 +254,8 @@ const NEW_WORDS: ReadonlyArray<string> = Array.from(
       },
     ),
     new OnCallDutyPolicyUserOverride().tableDescription!,
+    // The policy feed's filter: an override's times, or who covers, changed.
+    "User Override Changed",
   ]),
 );
 
@@ -272,8 +277,8 @@ const fill: (
 };
 
 describe("the words of editing an override and of its overlaps", () => {
-  test("are the twenty-eight keys this change adds, each a key of the Dashboard's English", () => {
-    expect(NEW_WORDS).toHaveLength(28);
+  test("are the thirty keys this change adds, each a key of the Dashboard's English", () => {
+    expect(NEW_WORDS).toHaveLength(30);
 
     for (const key of NEW_WORDS) {
       expect({ key: key, english: EN[key] }).toEqual({
@@ -460,9 +465,16 @@ describe("on the dialog and the lists, in German, Arabic and Japanese", () => {
     });
   }
 
-  // A time as the dialog writes it, in the reader's language.
+  /*
+   * A time as the dialog writes it, in the reader's language: no zone - Starts
+   * and Ends say it - and no year while it is this year.
+   */
   function shown(date: Date): string {
-    return OneUptimeDate.getDateAsFormattedStringInTimezone({ date: date });
+    return formatHandOffInstant(
+      date,
+      undefined,
+      OneUptimeDate.getCurrentDate(),
+    );
   }
 
   // Being added: Alex away on the policy, 13:00 to 17:00, Sam covering.

@@ -13,6 +13,7 @@ import UserOverrideOverlapsMark, {
   getUserOverrideOverlapsText,
 } from "./UserOverrideOverlapsMark";
 import { getGlobalUserOverrideLock } from "./GlobalUserOverrideLock";
+import { formatHandOffInstant } from "../OnCallScheduleLayer/LayerSummary";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
@@ -242,12 +243,17 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
                 note: note,
                 awayName: nameOf(item.overrideUser),
                 otherCoverName: nameOf(note.other.override.routeAlertsToUser),
-                from: OneUptimeDate.getDateAsFormattedStringInTimezone({
-                  date: note.other.startsAt,
-                }),
-                until: OneUptimeDate.getDateAsFormattedStringInTimezone({
-                  date: note.other.endsAt,
-                }),
+                // In the reader's zone, as the Starts and Ends columns.
+                from: formatHandOffInstant(
+                  note.other.startsAt,
+                  undefined,
+                  OneUptimeDate.getCurrentDate(),
+                ),
+                until: formatHandOffInstant(
+                  note.other.endsAt,
+                  undefined,
+                  OneUptimeDate.getCurrentDate(),
+                ),
               })}
             />
           </div>

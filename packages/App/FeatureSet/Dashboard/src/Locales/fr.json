@@ -52147,5 +52147,7 @@
   "{{away}} is already away on every policy from {{from}} to {{until}}, with the next person in the rotation covering.": "{{away}} est déjà absent sur toutes les politiques du {{from}} au {{until}}, et c'est la personne suivante de la rotation qui remplace.",
   "{{away}} is already away on this policy from {{from}} to {{until}}, with the next person in the rotation covering.": "{{away}} est déjà absent sur cette politique du {{from}} au {{until}}, et c'est la personne suivante de la rotation qui remplace.",
   "{{away}} is already covered by {{cover}} on every policy from {{from}} to {{until}}.": "{{away}} est déjà remplacé par {{cover}} sur toutes les politiques du {{from}} au {{until}}.",
-  "{{away}} is already covered by {{cover}} on this policy from {{from}} to {{until}}.": "{{away}} est déjà remplacé par {{cover}} sur cette politique du {{from}} au {{until}}."
+  "{{away}} is already covered by {{cover}} on this policy from {{from}} to {{until}}.": "{{away}} est déjà remplacé par {{cover}} sur cette politique du {{from}} au {{until}}.",
+  "User Override Changed": "Remplacement d'utilisateur modifié",
+  "Pick any time from now on. Once the override starts, its start can't be changed.": "Choisissez n'importe quelle heure à partir de maintenant. Une fois le remplacement commencé, son début ne peut plus être modifié."
 }

@@ -119,6 +119,15 @@ export const USER_OVERRIDE_END_NOW_TEXT: string = translationKey(
 );
 
 /*
+ * Edited before it starts: what Starts may be moved to, and that it stays
+ * put once the override starts. Without words of its own the field said
+ * its column's description, which names the columns, in English.
+ */
+export const USER_OVERRIDE_START_MOVABLE_TEXT: string = translationKey(
+  "Pick any time from now on. Once the override starts, its start can't be changed.",
+);
+
+/*
  * The person who is away: one project member, written to the override's
  * overrideUserId column.
  */
@@ -442,7 +451,14 @@ export const getUserOverrideFormFields: <TEntity>(
         ? USER_OVERRIDE_AWAY_LOCKED_TEXT
         : "They are not paged while they are away.",
       fieldType: FormFieldSchemaType.PeoplePicker,
-      peoplePicker: getUserOverrideAwayPickerConfig(),
+      /*
+       * Edited, the person alone, with no Change button: a locked one
+       * offered a change the description says is not made here.
+       */
+      peoplePicker: {
+        ...getUserOverrideAwayPickerConfig(),
+        isReadOnly: Boolean(editing),
+      },
       required: true,
       defaultValue: awayUserId || undefined,
       /*
@@ -476,11 +492,14 @@ export const getUserOverrideFormFields: <TEntity>(
     {
       field: { startsAt: true } as SelectFormFields<TEntity>,
       title: "Starts",
-      // Edited before it starts: nothing to say but the time zone.
+      /*
+       * Never empty: a field with no description of its own says its
+       * column's (BasicModelForm), which names the columns, in English.
+       */
       description: isStartLocked
         ? USER_OVERRIDE_START_LOCKED_TEXT
         : editing
-          ? ""
+          ? USER_OVERRIDE_START_MOVABLE_TEXT
           : "It starts now unless you pick another time.",
       fieldType: FormFieldSchemaType.DateTime,
       required: true,

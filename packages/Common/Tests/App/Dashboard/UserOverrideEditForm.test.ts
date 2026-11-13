@@ -3,6 +3,7 @@ import {
   USER_OVERRIDE_END_NOW_TEXT,
   USER_OVERRIDE_SAME_PERSON_MESSAGE,
   USER_OVERRIDE_START_LOCKED_TEXT,
+  USER_OVERRIDE_START_MOVABLE_TEXT,
   getUserOverrideEditTimeError,
   getUserOverrideFormFields,
   isUserOverrideOverlapRefusal,
@@ -127,6 +128,14 @@ describe("the Edit form's rows", () => {
     expect(away.disabled).toBe(true);
     expect(away.showEvenIfPermissionDoesNotExist).toBe(true);
     expect(away.description).toBe(USER_OVERRIDE_AWAY_LOCKED_TEXT);
+    // The person alone: no Change button, locked or not.
+    expect(away.peoplePicker?.isReadOnly).toBe(true);
+    expect(
+      byTitle(
+        getUserOverrideFormFields<OnCallDutyPolicyUserOverride>({}),
+        "Who is away?",
+      ).peoplePicker?.isReadOnly,
+    ).toBe(false);
   });
 
   test("who covers is asked as it is when adding", () => {
@@ -140,14 +149,39 @@ describe("the Edit form's rows", () => {
     expect(cover.description).toBe(added.description);
   });
 
-  test("an override that has not started: its start can be moved, and nothing says it starts now", () => {
+  test("an override that has not started: its start can be moved, and Starts says to when - not that it starts now", () => {
     const starts: OverrideField = byTitle(editFields(UPCOMING), "Starts");
 
     expect(Boolean(starts.disabled)).toBe(false);
-    expect(starts.description).toBe("");
+    expect(starts.description).toBe(USER_OVERRIDE_START_MOVABLE_TEXT);
     expect(byTitle(editFields(UPCOMING), "Ends").description).toBe(
       "From then on, alerts page the person who is away again.",
     );
+  });
+
+  /*
+   * A row with no description of its own says its column's (BasicModelForm):
+   * Starts of an override not started yet said "When the override starts
+   * sending the Override User's alerts to the Route Alerts To User", in
+   * English in every language.
+   */
+  test("every row of the Add form and of both Edit forms says something of its own", () => {
+    const forms: Array<Array<OverrideField>> = [
+      getUserOverrideFormFields<OnCallDutyPolicyUserOverride>({
+        currentUserId: BOB,
+      }),
+      editFields(UPCOMING),
+      editFields(RUNNING),
+    ];
+
+    for (const fields of forms) {
+      for (const field of fields) {
+        expect({
+          title: field.title,
+          description: (field.description || "").toString().trim().length > 0,
+        }).toEqual({ title: field.title, description: true });
+      }
+    }
   });
 
   test("an override under way: its start is shown, not changed, and Ends says how to end it now", () => {

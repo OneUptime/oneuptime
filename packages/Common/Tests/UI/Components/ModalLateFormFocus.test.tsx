@@ -236,6 +236,40 @@ describe("a form that draws after its dialog opened", () => {
       screen.getByLabelText("Type the project's name to delete it"),
     ).toHaveFocus();
   });
+
+  /*
+   * An Edit User Override dialog reads its override first, and once the
+   * override has started its Starts is shown read-only: the focus went
+   * there, a caret in a field that takes nothing. It goes to the first
+   * field that can be changed - Ends - and Tab still reaches Starts.
+   */
+  test("a read-only field the form draws is passed over for the first one that can be changed", async () => {
+    renderDialog(
+      <LateForm>
+        <input aria-label="Starts" readOnly defaultValue="2026-11-13T08:00" />
+        <input aria-label="Ends" defaultValue="2026-11-14T08:00" />
+      </LateForm>,
+      { title: "Edit User Override", submitButtonText: "Save Changes" },
+    );
+
+    await drawTheForm();
+
+    expect(screen.getByLabelText("Ends")).toHaveFocus();
+    expect(screen.getByLabelText("Starts")).not.toHaveFocus();
+  });
+
+  test("a form with nothing but read-only fields still starts on its first one", async () => {
+    renderDialog(
+      <LateForm>
+        <input aria-label="API key" readOnly defaultValue="abc123" />
+      </LateForm>,
+      { title: "Your API key", submitButtonText: "Done" },
+    );
+
+    await drawTheForm();
+
+    expect(screen.getByLabelText("API key")).toHaveFocus();
+  });
 });
 
 describe("what never takes the focus late", () => {

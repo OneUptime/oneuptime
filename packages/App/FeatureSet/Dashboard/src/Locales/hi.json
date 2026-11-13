@@ -52147,5 +52147,7 @@
   "{{away}} is already away on every policy from {{from}} to {{until}}, with the next person in the rotation covering.": "{{away}} पहले से ही {{from}} से {{until}} तक हर नीति पर अनुपस्थित हैं, और रोटेशन में अगला व्यक्ति कवर कर रहा है।",
   "{{away}} is already away on this policy from {{from}} to {{until}}, with the next person in the rotation covering.": "{{away}} पहले से ही {{from}} से {{until}} तक इस नीति पर अनुपस्थित हैं, और रोटेशन में अगला व्यक्ति कवर कर रहा है।",
   "{{away}} is already covered by {{cover}} on every policy from {{from}} to {{until}}.": "{{away}} को पहले से ही {{from}} से {{until}} तक हर नीति पर {{cover}} कवर कर रहे हैं।",
-  "{{away}} is already covered by {{cover}} on this policy from {{from}} to {{until}}.": "{{away}} को पहले से ही {{from}} से {{until}} तक इस नीति पर {{cover}} कवर कर रहे हैं।"
+  "{{away}} is already covered by {{cover}} on this policy from {{from}} to {{until}}.": "{{away}} को पहले से ही {{from}} से {{until}} तक इस नीति पर {{cover}} कवर कर रहे हैं।",
+  "User Override Changed": "उपयोगकर्ता ओवरराइड बदला गया",
+  "Pick any time from now on. Once the override starts, its start can't be changed.": "अभी या उसके बाद का कोई भी समय चुनें। ओवरराइड शुरू होने के बाद इसकी शुरुआत का समय बदला नहीं जा सकता।"
 }

@@ -52147,5 +52147,7 @@
   "{{away}} is already away on every policy from {{from}} to {{until}}, with the next person in the rotation covering.": "{{away}} 님은 이미 {{from}}부터 {{until}}까지 모든 정책에서 부재 중이며, 로테이션의 다음 사람이 대신합니다.",
   "{{away}} is already away on this policy from {{from}} to {{until}}, with the next person in the rotation covering.": "{{away}} 님은 이미 {{from}}부터 {{until}}까지 이 정책에서 부재 중이며, 로테이션의 다음 사람이 대신합니다.",
   "{{away}} is already covered by {{cover}} on every policy from {{from}} to {{until}}.": "{{cover}} 님이 이미 {{from}}부터 {{until}}까지 모든 정책에서 {{away}} 님을 대신하고 있습니다.",
-  "{{away}} is already covered by {{cover}} on this policy from {{from}} to {{until}}.": "{{cover}} 님이 이미 {{from}}부터 {{until}}까지 이 정책에서 {{away}} 님을 대신하고 있습니다."
+  "{{away}} is already covered by {{cover}} on this policy from {{from}} to {{until}}.": "{{cover}} 님이 이미 {{from}}부터 {{until}}까지 이 정책에서 {{away}} 님을 대신하고 있습니다.",
+  "User Override Changed": "사용자 재정의 변경됨",
+  "Pick any time from now on. Once the override starts, its start can't be changed.": "지금 이후의 원하는 시간을 선택하세요. 재정의가 시작되면 시작 시간은 변경할 수 없습니다."
 }

@@ -360,9 +360,11 @@ describe("the two people pickers", () => {
   test("the fields use these pickers", () => {
     const list: Array<OverrideField> = fields(ALEX);
 
-    expect(byTitle(list, "Who is away?").peoplePicker).toEqual(
-      getUserOverrideAwayPickerConfig(),
-    );
+    // Adding, who is away is picked: shown alone only when an override is edited.
+    expect(byTitle(list, "Who is away?").peoplePicker).toEqual({
+      ...getUserOverrideAwayPickerConfig(),
+      isReadOnly: false,
+    });
     expect(byTitle(list, "Who covers?").peoplePicker).toEqual(
       getUserOverrideCoverPickerConfig(),
     );
