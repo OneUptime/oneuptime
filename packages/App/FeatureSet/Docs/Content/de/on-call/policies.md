@@ -176,7 +176,7 @@ Die Richtlinie ist archiviert: Eine archivierte Richtlinie bleibt an den Vorfäl
 :::
 
 :::details Jemand wurde zu einem Vorfall zweimal alarmiert
-Die Person hat in zwei der Richtlinien Bereitschaft, die der Vorfall ausführt, und jede Richtlinie alarmiert ihre eigenen Personen. Eine Bestätigung des Vorfalls aus einer der beiden Alarmierungen beendet beide.
+Die Person hat in zwei der Richtlinien Bereitschaft, die der Vorfall ausführt, und jede Richtlinie alarmiert ihre eigenen Personen. Eine Bestätigung des Vorfalls aus einer der beiden Alarmierungen beendet beide. Damit die Person nur einmal alarmiert wird, nehmen Sie beide Teams oder Pläne in eine Stufe einer Richtlinie auf.
 :::
 
 :::details Eine Richtlinie alarmierte weiter, nachdem der Vorfall bestätigt wurde

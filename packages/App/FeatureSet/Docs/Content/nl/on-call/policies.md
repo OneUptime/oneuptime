@@ -176,7 +176,7 @@ Het beleid is gearchiveerd: een gearchiveerd beleid blijft staan bij de incident
 :::
 
 :::details Iemand werd voor één incident twee keer opgeroepen
-Diegene heeft dienst in twee van de beleidsregels die het incident uitvoert, en elk beleid roept zijn eigen mensen op. Het incident bevestigen vanuit een van beide oproepen stopt ze allebei.
+Diegene heeft dienst in twee van de beleidsregels die het incident uitvoert, en elk beleid roept zijn eigen mensen op. Het incident bevestigen vanuit een van beide oproepen stopt ze allebei. Zet beide teams of schema's in hetzelfde niveau van één beleid, dan wordt diegene maar één keer opgeroepen.
 :::
 
 :::details Een beleid bleef oproepen nadat het incident was bevestigd

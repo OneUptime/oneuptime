@@ -176,7 +176,7 @@ The policy is archived: an archived policy stays on the incidents and alerts tha
 :::
 
 :::details Someone was paged twice about one incident
-They are on call in two of the policies the incident runs, and each policy pages its own people. Acknowledging the incident from either page stops both.
+They are on call in two of the policies the incident runs, and each policy pages its own people. Acknowledging the incident from either page stops both. To have them paged once, put both teams or schedules in one level of one policy.
 :::
 
 :::details A policy kept paging after the incident was acknowledged

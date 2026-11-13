@@ -176,7 +176,7 @@ Policyn är arkiverad: en arkiverad policy finns kvar på incidenterna och larme
 :::
 
 :::details Någon larmades två gånger om en incident
-Personen har jour i två av de policyer som incidenten kör, och varje policy larmar sina egna personer. En bekräftelse av incidenten från något av de två larmen stoppar båda.
+Personen har jour i två av de policyer som incidenten kör, och varje policy larmar sina egna personer. En bekräftelse av incidenten från något av de två larmen stoppar båda. Lägg båda teamen eller schemana i samma nivå i en policy, så larmas personen bara en gång.
 :::
 
 :::details En policy fortsatte att larma efter att incidenten bekräftats

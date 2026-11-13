@@ -176,7 +176,7 @@ La política está archivada: una política archivada sigue en los incidentes y 
 :::
 
 :::details Alguien recibió dos avisos por un mismo incidente
-Está de guardia en dos de las políticas que ejecuta el incidente, y cada política avisa a su propia gente. Reconocer el incidente desde cualquiera de los dos avisos detiene ambas.
+Está de guardia en dos de las políticas que ejecuta el incidente, y cada política avisa a su propia gente. Reconocer el incidente desde cualquiera de los dos avisos detiene ambas. Para que reciba un solo aviso, pon los dos equipos o programaciones en un mismo nivel de una política.
 :::
 
 :::details Una política siguió avisando después de que se reconociera el incidente

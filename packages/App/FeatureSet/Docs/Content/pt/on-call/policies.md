@@ -176,7 +176,7 @@ A política está arquivada: uma política arquivada continua nos incidentes e a
 :::
 
 :::details Alguém foi acionado duas vezes pelo mesmo incidente
-A pessoa está de plantão em duas das políticas que o incidente executa, e cada política aciona as suas próprias pessoas. Confirmar o incidente por qualquer um dos dois acionamentos encerra os dois.
+A pessoa está de plantão em duas das políticas que o incidente executa, e cada política aciona as suas próprias pessoas. Confirmar o incidente por qualquer um dos dois acionamentos encerra os dois. Para que a pessoa seja acionada uma só vez, coloque as duas equipes ou agendamentos no mesmo nível de uma política.
 :::
 
 :::details Uma política continuou acionando depois que o incidente foi confirmado

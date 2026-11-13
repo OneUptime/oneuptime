@@ -176,7 +176,7 @@ La policy è archiviata: una policy archiviata resta sugli incidenti e sugli avv
 :::
 
 :::details Qualcuno è stato avvisato due volte per lo stesso incidente
-È reperibile in due delle policy che l'incidente esegue, e ogni policy avvisa le proprie persone. Riconoscere l'incidente da uno dei due avvisi le ferma entrambe.
+È reperibile in due delle policy che l'incidente esegue, e ogni policy avvisa le proprie persone. Riconoscere l'incidente da uno dei due avvisi le ferma entrambe. Perché venga avvisato una volta sola, metti entrambi i team o le pianificazioni nello stesso livello di una policy.
 :::
 
 :::details Una policy ha continuato ad avvisare dopo il riconoscimento dell'incidente

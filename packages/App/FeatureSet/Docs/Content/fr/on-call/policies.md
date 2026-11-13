@@ -176,7 +176,7 @@ La politique est archivée : une politique archivée reste sur les incidents et 
 :::
 
 :::details Quelqu'un a été alerté deux fois pour un même incident
-Cette personne est d'astreinte dans deux des politiques que l'incident exécute, et chaque politique alerte ses propres personnes. Prendre l'incident en compte depuis l'une ou l'autre alerte arrête les deux.
+Cette personne est d'astreinte dans deux des politiques que l'incident exécute, et chaque politique alerte ses propres personnes. Prendre l'incident en compte depuis l'une ou l'autre alerte arrête les deux. Pour qu'elle ne soit alertée qu'une fois, placez les deux équipes ou plannings dans un même niveau d'une politique.
 :::
 
 :::details Une politique a continué d'alerter après la prise en compte de l'incident

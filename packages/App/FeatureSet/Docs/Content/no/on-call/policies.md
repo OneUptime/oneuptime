@@ -176,7 +176,7 @@ Retningslinjen er arkivert: en arkivert retningslinje blir stående på hendelse
 :::
 
 :::details Noen ble tilkalt to ganger om én hendelse
-Vedkommende har vakt i to av retningslinjene hendelsen kjører, og hver retningslinje tilkaller sine egne personer. En bekreftelse av hendelsen fra en av de to tilkallingene stopper begge.
+Vedkommende har vakt i to av retningslinjene hendelsen kjører, og hver retningslinje tilkaller sine egne personer. En bekreftelse av hendelsen fra en av de to tilkallingene stopper begge. Legg begge teamene eller vaktplanene i samme nivå i én retningslinje, så tilkalles vedkommende bare én gang.
 :::
 
 :::details En retningslinje fortsatte å tilkalle etter at hendelsen var bekreftet

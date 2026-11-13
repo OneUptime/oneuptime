@@ -176,7 +176,7 @@ Politikken er arkiveret: en arkiveret politik bliver stående på de hændelser 
 :::
 
 :::details Nogen blev tilkaldt to gange om én hændelse
-Vedkommende har vagt i to af de politikker, hændelsen kører, og hver politik tilkalder sine egne personer. En bekræftelse af hændelsen fra et af de to tilkald stopper begge.
+Vedkommende har vagt i to af de politikker, hændelsen kører, og hver politik tilkalder sine egne personer. En bekræftelse af hændelsen fra et af de to tilkald stopper begge. Læg begge teams eller vagtplaner i samme niveau i én politik, så tilkaldes vedkommende kun én gang.
 :::
 
 :::details En politik blev ved med at tilkalde, efter hændelsen var bekræftet
