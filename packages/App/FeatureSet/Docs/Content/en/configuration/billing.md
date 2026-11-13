@@ -125,7 +125,7 @@ SMS, phone calls, WhatsApp and Telegram messages are paid from the project's bal
 
 | Balance | Where |
 | --- | --- |
-| SMS, calls, WhatsApp and Telegram | **Project Settings → Notifications → Notification Settings** |
+| SMS, calls, WhatsApp and Telegram | **Project Settings → Notifications → Notification Channels** |
 | OneUptime AI | **Project Settings → AI → AI Credits** |
 
 :::steps

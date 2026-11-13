@@ -2668,20 +2668,20 @@ describe("the workspace pages and their connect links", () => {
     }
   });
 
-  it("the Notifications section holds the settings and logs the Teams and Twilio pages open", () => {
+  it("the Notifications section holds the channels and logs the Teams and Twilio pages open", () => {
     const notifications: MenuSection = menuSection(
       objectMenuSections(readSource("settingsSideMenu")),
       "Notifications",
     );
 
     expect(notifications.items).toEqual(
-      expect.arrayContaining(["Notification Settings", "Notification Logs"]),
+      expect.arrayContaining(["Notification Channels", "Notification Logs"]),
     );
     expect(english(TEAMS)).toContain(
       "**Project Settings > Notifications > Notification Logs**",
     );
     expect(english(TWILIO)).toContain(
-      "**Project Settings > Notifications > Notification Settings**",
+      "**Project Settings > Notifications > Notification Channels**",
     );
   });
 

@@ -89,7 +89,7 @@ const DASHBOARD_GO_TO_SHORTCUTS: Array<DashboardGoToShortcut> = [
     pageMap: PageMap.ON_CALL_DUTY,
     product: ProductKey.OnCall,
     titleKey: "navbar.items.onCallDutyTitle",
-    defaultTitle: "On-Call Duty",
+    defaultTitle: "On-Call",
   },
   {
     key: "s",

@@ -38,7 +38,7 @@ flowchart TB
 :::steps
 ### Voeg uw Twilio-account toe
 
-Ga naar **Projectinstellingen** > **Meldingen** > **Meldingsinstellingen** en open **Meer instellingen**. Klik in de kaart **Twilio-configuratie** op **Twilio-configuratie maken** en vul het formulier in:
+Ga naar **Projectinstellingen** > **Meldingen** > **Meldingskanalen** en open **Meer instellingen**. Klik in de kaart **Twilio-configuratie** op **Twilio-configuratie maken** en vul het formulier in:
 
 - **Naam** en **Beschrijving**: waar het account voor is, zoals "Supportlijn".
 - **Twilio-account-SID**: uit de Twilio Console. Hij begint met `AC`.
@@ -48,7 +48,7 @@ Ga naar **Projectinstellingen** > **Meldingen** > **Meldingsinstellingen** en op
 
 ### Maak het beleid aan
 
-Ga naar **Bereikbaarheidsdienst** > **Beleid inkomende gesprekken** en klik op **Beleid inkomend gesprek aanmaken**. Geef het een **Naam**, zoals "Supportlijn"; een **Beschrijving** en **Labels** zijn optioneel, onder **Meer velden**. Het nieuwe beleid opent op zijn **Overzicht**.
+Ga naar **Bereikbaarheid** > **Beleid inkomende gesprekken** en klik op **Beleid inkomend gesprek aanmaken**. Geef het een **Naam**, zoals "Supportlijn"; een **Beschrijving** en **Labels** zijn optioneel, onder **Meer velden**. Het nieuwe beleid opent op zijn **Overzicht**.
 
 ### Kies het Twilio-account
 
@@ -160,7 +160,7 @@ Een regel laat een persoon overgaan op het nummer dat die persoon in dit project
 
 Iedereen kan één geverifieerd nummer per project hebben. Om het te wijzigen, verwijdert u eerst het oude nummer. Deze nummers staan los van de telefoonnummers onder **Meldingsmethoden**, die oproepen voor bereikbaarheidsdiensten gebruiken. Zie [Meldingsmethoden](/docs/notifications/notification-methods).
 
-Nummers voor inkomende oproepen worden per sms geverifieerd, dus **SMS** moet eerst aan staan voor het project. Een projecteigenaar, een **Factureringsbeheerder** of iemand met **Manage Billing** zet het aan in de kaart **Meldingskanalen** op **Projectinstellingen > Meldingen > Meldingsinstellingen**.
+Nummers voor inkomende oproepen worden per sms geverifieerd, dus **SMS** moet eerst aan staan voor het project. Een projecteigenaar, een **Factureringsbeheerder** of iemand met **Manage Billing** zet het aan in de kaart **Meldingskanalen** op **Projectinstellingen > Meldingen > Meldingskanalen**.
 
 ## Spraakberichten en beleidsinstellingen
 

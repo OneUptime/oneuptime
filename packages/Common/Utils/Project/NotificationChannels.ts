@@ -64,7 +64,7 @@ export const PROJECT_NOTIFICATION_CHANNEL_UPDATE_PERMISSIONS: ReadonlyArray<Perm
 
 // The page that holds the switches (its Notification Channels card).
 export const PROJECT_NOTIFICATION_CHANNEL_SETTINGS_PAGE: string =
-  "Project Settings > Notifications > Notification Settings";
+  "Project Settings > Notifications > Notification Channels";
 
 // Where that page is in the dashboard, under a project's own route.
 export const PROJECT_NOTIFICATION_CHANNEL_SETTINGS_PATH: string =
@@ -105,7 +105,7 @@ export type ChannelPronoun = "it" | "them";
  * Who can turn it on, and where, as the end of a sentence about a channel
  * that is off ("it") or several ("them"): "a project owner, a Billing Admin
  * or someone with Manage Billing can turn it on in Project Settings >
- * Notifications > Notification Settings".
+ * Notifications > Notification Channels".
  */
 export const getWhoCanTurnOnClause: (pronoun: ChannelPronoun) => string = (
   pronoun: ChannelPronoun,
@@ -116,7 +116,7 @@ export const getWhoCanTurnOnClause: (pronoun: ChannelPronoun) => string = (
 /*
  * The same, as the sentence after one that says a channel is off: "A
  * project owner, a Billing Admin or someone with Manage Billing can turn it
- * on in Project Settings > Notifications > Notification Settings."
+ * on in Project Settings > Notifications > Notification Channels."
  */
 export const getWhoCanTurnOnSentence: (pronoun: ChannelPronoun) => string = (
   pronoun: ChannelPronoun,
@@ -136,7 +136,7 @@ const getPronoun: (channel: ProjectNotificationChannel) => ChannelPronoun = (
  * What the server says when something needs a channel the project has off:
  * "SMS is off in this project. A project owner, a Billing Admin or someone
  * with Manage Billing can turn it on in Project Settings > Notifications >
- * Notification Settings." Said to whoever asked - someone who may turn it on, or not -
+ * Notification Channels." Said to whoever asked - someone who may turn it on, or not -
  * so it names who can rather than telling the reader to.
  */
 export const getProjectNotificationChannelOffMessage: (
@@ -164,7 +164,7 @@ export const STATUS_PAGE_SMS_SUBSCRIPTIONS_SMS_OFF_MESSAGE: string = `Visitors c
  * channel is off. They may turn it on, so it tells them to, and where (the
  * email adds the link to that page): "SMS is off in this project. If it
  * should be on, turn it on in Project Settings > Notifications > Notification
- * Settings."
+ * Channels."
  */
 export const getProjectNotificationChannelOffOwnerSentence: (
   channel: ProjectNotificationChannel,

@@ -3,7 +3,7 @@ import { expect, Locator, Page, test } from "@playwright/test";
 const projectPath: string = "/dashboard/00000000-0000-4000-8000-000000000001";
 const modelId: string = "00000000-0000-4000-8000-000000000002";
 const onCallPath: string = `${projectPath}/on-call-duty`;
-const onCallTitle: string = "On-Call Duty";
+const onCallTitle: string = "On-Call";
 
 const expectActiveProduct: (
   page: Page,
@@ -49,7 +49,7 @@ const selectProduct: (
     .click();
 };
 
-test("selecting On-Call Duty keeps its policies landing page and shows its name in the navbar", async ({
+test("selecting On-Call keeps its policies landing page and shows its name in the navbar", async ({
   page,
   isMobile,
 }: {
@@ -80,7 +80,7 @@ for (const example of [
   { name: "calendar feeds", path: "calendar-feeds" },
   { name: "product settings", path: "settings/label-rules" },
 ]) {
-  test(`shows On-Call Duty when opening and reloading ${example.name}`, async ({
+  test(`shows On-Call when opening and reloading ${example.name}`, async ({
     page,
   }: {
     page: Page;
@@ -125,7 +125,7 @@ test("a product reached by its address is in the Recently visited row on the nex
     .getByRole("group", { name: "Recently visited", exact: true })
     .getByRole("option");
 
-  // On-Call Duty only: Monitors is the page the menu is opened on.
+  // On-Call only: Monitors is the page the menu is opened on.
   await expect(recent).toHaveCount(1);
   await expect(recent).toContainText(onCallTitle);
 

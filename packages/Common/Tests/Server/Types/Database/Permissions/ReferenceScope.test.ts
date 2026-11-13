@@ -621,7 +621,7 @@ describe("a create that names a record in a field of its own", () => {
     );
 
     expect((refusal as Error).message).toBe(
-      `This alert references records that are not in this project: On-Call Duty Policies "${POLICY_A}", Monitor "${MONITOR_B}". Please pick values from this project and try again.`,
+      `This alert references records that are not in this project: On-Call Policies "${POLICY_A}", Monitor "${MONITOR_B}". Please pick values from this project and try again.`,
     );
   });
 

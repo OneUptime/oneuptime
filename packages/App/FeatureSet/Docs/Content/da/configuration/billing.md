@@ -125,7 +125,7 @@ SMS, opkald, WhatsApp- og Telegram-beskeder betales fra projektets saldo, og One
 
 | Saldo | Hvor |
 | --- | --- |
-| SMS, opkald, WhatsApp og Telegram | **Projektindstillinger → Notifikationer → Notifikationsindstillinger** |
+| SMS, opkald, WhatsApp og Telegram | **Projektindstillinger → Notifikationer → Notifikationskanaler** |
 | OneUptime AI | **Projektindstillinger → AI → AI-kreditter** |
 
 :::steps

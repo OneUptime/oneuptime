@@ -280,9 +280,7 @@ describe("the searches from the report, on the real catalog", () => {
       "on-call policies",
     ).results;
 
-    expect(policies[0]!.component.title).toBe(
-      "Create Many On-Call Duty Policies",
-    );
+    expect(policies[0]!.component.title).toBe("Create Many On-Call Policies");
     /*
      * And Page an On-Call Policy among them, the one step outside the
      * resource that is about a policy.

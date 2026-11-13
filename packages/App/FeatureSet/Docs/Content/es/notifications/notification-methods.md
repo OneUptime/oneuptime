@@ -173,7 +173,7 @@ Un webhook no necesita verificación, así que añadirlo añade sus reglas al in
 
 **SMS**, **Llamadas telefónicas**, **WhatsApp** y **Telegram** empiezan desactivados en cada proyecto nuevo, porque cada mensaje cuesta dinero: en OneUptime Cloud se paga con el saldo del proyecto, y los SMS y las llamadas pasan en cambio por la cuenta de Twilio propia del proyecto cuando su cuenta predeterminada los envía. El correo, el push, Slack, Microsoft Teams, Mattermost y los webhooks siempre están activados.
 
-Mientras un canal está desactivado, nadie en el proyecto puede añadir un método en él: su tarjeta no tiene botón para añadir, y dice quién puede activarlo. Lo activa un propietario del proyecto, un **Administrador de facturación** o alguien con **Manage Billing**, en la tarjeta **Canales de notificación** de **Ajustes del proyecto → Notificaciones → Ajustes de notificaciones**. Un administrador del proyecto no puede. En un OneUptime autoalojado, los SMS y las llamadas necesitan además una cuenta de Twilio o una pasarela que gestiones tú, y Telegram un bot que conecta el administrador del servidor; consulta [Integración de Twilio](/docs/self-hosted/twilio-integration) y [Pasarela de SMS y llamadas](/docs/self-hosted/sms-and-call-gateway).
+Mientras un canal está desactivado, nadie en el proyecto puede añadir un método en él: su tarjeta no tiene botón para añadir, y dice quién puede activarlo. Lo activa un propietario del proyecto, un **Administrador de facturación** o alguien con **Manage Billing**, en la tarjeta **Canales de notificación** de **Ajustes del proyecto → Notificaciones → Canales de notificación**. Un administrador del proyecto no puede. En un OneUptime autoalojado, los SMS y las llamadas necesitan además una cuenta de Twilio o una pasarela que gestiones tú, y Telegram un bot que conecta el administrador del servidor; consulta [Integración de Twilio](/docs/self-hosted/twilio-integration) y [Pasarela de SMS y llamadas](/docs/self-hosted/sms-and-call-gateway).
 
 ## Elimina un método
 
@@ -200,7 +200,7 @@ Comprueba que el teléfono aparece en **Dispositivos de notificaciones push**, y
 ## Próximos pasos
 
 :::cards
-- [Reglas de guardia personales](/docs/notifications/on-call-rules): Decide qué método prueba cada aviso, y cuándo.
+- [Cómo contactarme](/docs/notifications/on-call-rules): Decide qué método prueba cada aviso, y cuándo.
 - [Ajustes de notificaciones](/docs/notifications/notification-settings): Elige las novedades de las que te enteras, y por qué canales.
 - [Visión general de las aplicaciones](/docs/mobile-desktop-apps/index): Recibe los avisos en tu teléfono o tu ordenador.
 - [Cómo te contacta OneUptime](/docs/notifications/index): Cómo encajan los métodos, las reglas y los ajustes.

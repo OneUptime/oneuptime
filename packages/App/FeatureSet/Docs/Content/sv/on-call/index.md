@@ -9,7 +9,7 @@ Jour är hur OneUptime får en person att ta tag i ett problem, när som helst p
 - [Så når en utlarmning någon](#så-når-en-utlarmning-någon): Från en ny incident till personen som svarar.
 - [Byggstenarna](#byggstenarna): Policyer, eskaleringsregler, scheman, åsidosättningar och personliga regler.
 - [Konfigurera jour](#konfigurera-jour): Från ingenting till ett team som larmas, i fem steg.
-- [Var jouren finns](#var-jouren-finns): Menyn Jourtjänst, avsnitt för avsnitt.
+- [Var jouren finns](#var-jouren-finns): Menyn Jour, avsnitt för avsnitt.
 :::
 
 ## Så når en utlarmning någon
@@ -48,17 +48,17 @@ Orden som används i hela OneUptime finns samlade på sidan [Ordlista](/docs/int
 | Eskaleringsregel | En nivå i en policy: vem den larmar, och hur länge den väntar på en bekräftelse | [Eskaleringsregler](/docs/on-call/escalation-rules) |
 | Jourschema | Vem som har jour vid varje tidpunkt, när personer turas om | [Jourscheman](/docs/on-call/schedules) |
 | Användaråsidosättning | Vem som täcker upp för någon medan hen är borta | [Användaråsidosättningar](/docs/on-call/user-overrides) |
-| Personliga jourregler | Hur en person nås: vilken metod, och efter hur lång tid | [Personliga jourregler](/docs/notifications/on-call-rules) |
+| Så når man mig | Hur en person nås: vilken metod, och efter hur lång tid | [Så når man mig](/docs/notifications/on-call-rules) |
 | Policy för inkommande samtal | Ett telefonnummer som ringer till den som har jour | [Policy för inkommande samtal](/docs/on-call/incoming-call-policy) |
 
-Policyer, eskaleringsregler, scheman och åsidosättningar hör till projektet, under **Jourtjänst**. Aviseringsmetoder och personliga jourregler hör till varje person, under **Användarinställningar**: en administratör kan titta på någons inställningar, men bara personen själv kan verifiera sin telefon eller e-post. Se [Så når OneUptime dig](/docs/notifications/index).
+Policyer, eskaleringsregler, scheman och åsidosättningar hör till projektet, under **Jour**. Aviseringsmetoder och personliga jourregler hör till varje person, under **Användarinställningar**: en administratör kan titta på någons inställningar, men bara personen själv kan verifiera sin telefon eller e-post. Se [Så når OneUptime dig](/docs/notifications/index).
 
 ## Konfigurera jour
 
 :::steps
 ### Bygg ett schema
 
-Öppna **Jourtjänst** från menyn **Produkter** och gå till **Jourscheman**. Klicka på **Skapa jourschema**, ge det ett namn och välj personerna under **Vilka turas om?** i den ordning de turas om. Se [Jourscheman](/docs/on-call/schedules).
+Öppna **Jour** från menyn **Produkter** och gå till **Jourscheman**. Klicka på **Skapa jourschema**, ge det ett namn och välj personerna under **Vilka turas om?** i den ordning de turas om. Se [Jourscheman](/docs/on-call/schedules).
 
 ### Skapa en policy
 
@@ -74,7 +74,7 @@ Ett projekts första policy kan göra det redan när den skapas: låt **Utlös d
 
 ### Kontrollera att alla kan nås
 
-Öppna **Jourtjänst → Beredskap**. Alla som dina policyer kan larma listas som **Klar**, **Behöver konfigureras** eller **Onåbar**, med det som saknas. Se [Beredskap och rapporter](/docs/on-call/readiness).
+Öppna **Jour → Beredskap**. Alla som dina policyer kan larma listas som **Klar**, **Behöver konfigureras** eller **Onåbar**, med det som saknas. Se [Beredskap och rapporter](/docs/on-call/readiness).
 :::
 
 > [!NOTE]
@@ -82,7 +82,7 @@ Ett projekts första policy kan göra det redan när den skapas: låt **Utlös d
 
 ## Var jouren finns
 
-Öppna **Jourtjänst** från menyn **Produkter** i det övre fältet. Den öppnas på **Jourpolicyer**, på `/dashboard/{projectId}/on-call-duty/policies`, och dess sidomeny innehåller resten:
+Öppna **Jour** från menyn **Produkter** i det övre fältet. Den öppnas på **Jourpolicyer**, på `/dashboard/{projectId}/on-call-duty/policies`, och dess sidomeny innehåller resten:
 
 | Avsnitt | Sidor |
 | --- | --- |
@@ -106,11 +106,11 @@ När du har jour för en policy visar klockan uppe till höger det. Klicka på d
 :::
 
 :::details Någon larmades på fel kanal, eller inte alls
-Öppna **Jourtjänst → Beredskap** och klicka på **Täckning** på personens rad. Den visar metoderna personen har verifierat och varje allvarlighetsgrad som hen saknar regel för. Bara personen själv kan åtgärda det, under **Användarinställningar**: skicka en påminnelse om inställningarna från samma sida. Se [Beredskap och rapporter](/docs/on-call/readiness). På OneUptime Cloud kan en telefon som blockerar okända uppringare tysta ett larm: lägg till [OneUptimes nummer](/docs/on-call/phone-number-whitelist) i dess lista över tillåtna.
+Öppna **Jour → Beredskap** och klicka på **Täckning** på personens rad. Den visar metoderna personen har verifierat och varje allvarlighetsgrad som hen saknar regel för. Bara personen själv kan åtgärda det, under **Användarinställningar**: skicka en påminnelse om inställningarna från samma sida. Se [Beredskap och rapporter](/docs/on-call/readiness). På OneUptime Cloud kan en telefon som blockerar okända uppringare tysta ett larm: lägg till [OneUptimes nummer](/docs/on-call/phone-number-whitelist) i dess lista över tillåtna.
 :::
 
 :::details En person på semester larmas fortfarande
-Lägg till en användaråsidosättning med personen under **Vem är borta?**. En under **Jourtjänst → Avancerad → Användaråsidosättningar** gäller för varje policy; en på en policys egen sida **Användaråsidosättningar** gäller bara för den policyn. Se [Användaråsidosättningar](/docs/on-call/user-overrides).
+Lägg till en användaråsidosättning med personen under **Vem är borta?**. En under **Jour → Avancerad → Användaråsidosättningar** gäller för varje policy; en på en policys egen sida **Användaråsidosättningar** gäller bara för den policyn. Se [Användaråsidosättningar](/docs/on-call/user-overrides).
 :::
 
 ## Nästa steg

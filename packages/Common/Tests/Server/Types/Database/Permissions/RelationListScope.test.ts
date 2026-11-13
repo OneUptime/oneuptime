@@ -625,7 +625,7 @@ describe("a create that lists records", () => {
     );
 
     expect((refusal as Error).message).toContain(
-      `On-Call Duty Policies "${POLICY_A}"`,
+      `On-Call Policies "${POLICY_A}"`,
     );
     expect(lookups.readCalls[0]?.modelType).toBe(OnCallDutyPolicy);
   });

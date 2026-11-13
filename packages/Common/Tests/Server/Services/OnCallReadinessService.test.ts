@@ -2154,7 +2154,7 @@ describe("status", () => {
 
       expect(readiness.status).toBe(ReadinessStatus.NotReachable);
       expect(readiness.reasons[1]).toBe(
-        "Every method they have verified is on SMS, Call, and this project has those channels switched off - a project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Settings",
+        "Every method they have verified is on SMS, Call, and this project has those channels switched off - a project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels",
       );
     });
 
@@ -2181,7 +2181,7 @@ describe("status", () => {
        */
       expect(readiness.reasons[1]).toContain("WhatsApp");
       expect(readiness.reasons[1]).toContain(
-        "a project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Settings",
+        "a project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Channels",
       );
       expect((readiness.reasons[1] || "").toLowerCase()).not.toContain(
         "project admin",
@@ -3196,7 +3196,7 @@ describe("notification channels", () => {
         "No usable notification method - cannot be paged",
       );
       expect(readiness.reasons[1]).toBe(
-        "Every method they have verified is on Telegram, and this project has that channel switched off - a project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Settings",
+        "Every method they have verified is on Telegram, and this project has that channel switched off - a project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Channels",
       );
     });
 
@@ -4798,9 +4798,7 @@ describe("getReadinessForPolicy guards", () => {
   test("an unknown policy is an error, not an empty and reassuring summary", async () => {
     policyFindOneById.mockResolvedValue(null as never);
 
-    await expect(policySummary()).rejects.toThrow(
-      "On-call duty policy not found",
-    );
+    await expect(policySummary()).rejects.toThrow("On-call policy not found");
     expect(escalationUserFindBy).not.toHaveBeenCalled();
   });
 
@@ -4811,9 +4809,7 @@ describe("getReadinessForPolicy guards", () => {
      * "0 responders, nothing wrong" is the most dangerous possible answer to
      * "is this policy safe to rely on?".
      */
-    await expect(policySummary()).rejects.toThrow(
-      "On-call duty policy not found",
-    );
+    await expect(policySummary()).rejects.toThrow("On-call policy not found");
     expect(escalationUserFindBy).not.toHaveBeenCalled();
   });
 
@@ -4822,9 +4818,7 @@ describe("getReadinessForPolicy guards", () => {
     orphan.id = POLICY_ID;
     policyFindOneById.mockResolvedValue(orphan as never);
 
-    await expect(policySummary()).rejects.toThrow(
-      "On-call duty policy not found",
-    );
+    await expect(policySummary()).rejects.toThrow("On-call policy not found");
   });
 });
 

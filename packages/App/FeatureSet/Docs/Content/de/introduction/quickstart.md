@@ -70,7 +70,7 @@ So wie es ist, wird ein Vorfall ohne Eigentümer per E-Mail an die Eigentümer d
 :::steps
 ### Eine Bereitschaftsrichtlinie anlegen
 
-Klicken Sie in der Checkliste auf **Bereitschaftsrichtlinie einrichten**, oder öffnen Sie **Bereitschaftsdienst** im Menü **Produkte**. Klicken Sie auf **Bereitschaftsrichtlinie erstellen** und geben Sie einen **Name** ein. Klicken Sie unter **Wer wird zuerst alarmiert?** auf **Empfänger hinzufügen** und wählen Sie sich selbst. Lassen Sie **Bei jedem neuen Vorfall und jeder neuen Warnung auslösen** eingeschaltet, und klicken Sie auf **Bereitschaftsrichtlinie erstellen**.
+Klicken Sie in der Checkliste auf **Bereitschaftsrichtlinie einrichten**, oder öffnen Sie **Bereitschaft** im Menü **Produkte**. Klicken Sie auf **Bereitschaftsrichtlinie erstellen** und geben Sie einen **Name** ein. Klicken Sie unter **Wer wird zuerst alarmiert?** auf **Empfänger hinzufügen** und wählen Sie sich selbst. Lassen Sie **Bei jedem neuen Vorfall und jeder neuen Warnung auslösen** eingeschaltet, und klicken Sie auf **Bereitschaftsrichtlinie erstellen**.
 
 ### Die Regel ansehen, die sie auslöst
 
@@ -82,7 +82,7 @@ Ihre Anmelde-E-Mail ist bereits ein Weg, Sie zu erreichen. Damit Sie auch per SM
 :::
 
 > [!NOTE]
-> SMS und Telefonanrufe sind in einem neuen Projekt ausgeschaltet. Ein Projekteigentümer, ein Billing Admin oder jemand mit Manage Billing schaltet sie in der Karte **Benachrichtigungskanäle** unter **Projekteinstellungen → Benachrichtigungen → Benachrichtigungseinstellungen** ein.
+> SMS und Telefonanrufe sind in einem neuen Projekt ausgeschaltet. Ein Projekteigentümer, ein Billing Admin oder jemand mit Manage Billing schaltet sie in der Karte **Benachrichtigungskanäle** unter **Projekteinstellungen → Benachrichtigungen → Benachrichtigungskanäle** ein.
 
 Für weitere Stufen, Rotationen und wie lange jede Stufe wartet, siehe [Eskalationsregeln](/docs/on-call/escalation-rules) und [Bereitschaftspläne](/docs/on-call/schedules).
 

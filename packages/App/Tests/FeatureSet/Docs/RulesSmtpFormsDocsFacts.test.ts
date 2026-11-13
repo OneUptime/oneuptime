@@ -941,7 +941,7 @@ describe("SMTP, against the settings, the Admin Dashboard and the mail service",
     );
 
     expect(notifications.items).toEqual(
-      expect.arrayContaining(["Notification Settings", "Notification Logs"]),
+      expect.arrayContaining(["Notification Channels", "Notification Logs"]),
     );
     /*
      * Folded under the page's More settings: most projects never add a mail
@@ -958,10 +958,10 @@ describe("SMTP, against the settings, the Admin Dashboard and the mail service",
     expect(button).toBe("Create SMTP Config");
 
     expect(page).toContain(
-      `Add a project's mail server on **Project Settings > Notifications > Notification Settings**, in the **${card}** card under **${MORE_SETTINGS_SECTION_TITLE}**.`,
+      `Add a project's mail server on **Project Settings > Notifications > Notification Channels**, in the **${card}** card under **${MORE_SETTINGS_SECTION_TITLE}**.`,
     );
     expect(page).toContain(
-      `On **Project Settings > Notifications > Notification Settings**, open **${MORE_SETTINGS_SECTION_TITLE}** and click **${button}** in the **${card}** card.`,
+      `On **Project Settings > Notifications > Notification Channels**, open **${MORE_SETTINGS_SECTION_TITLE}** and click **${button}** in the **${card}** card.`,
     );
   });
 

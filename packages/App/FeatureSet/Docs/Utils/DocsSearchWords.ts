@@ -56,6 +56,11 @@ const ENGLISH: DocsSearchSynonyms = {
   vm: ["server"],
   apm: ["traces"],
   sso: ["saml", "single sign-on"],
+  /*
+   * On-Call Duty is On-Call now (#6817): the docs no longer say "duty", so
+   * "on-call duty" would find only the glossary's list of old names.
+   */
+  duty: ["on-call"],
 };
 
 // By docs language code (SUPPORTED_DOCS_LANGUAGE_CODES): every language has a list.

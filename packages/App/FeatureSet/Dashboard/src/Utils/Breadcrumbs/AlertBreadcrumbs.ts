@@ -48,7 +48,7 @@ export function getAlertsBreadcrumbs(path: string): Array<Link> | undefined {
     ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.ALERT_VIEW_ON_CALL_POLICY_EXECUTION_LOGS,
-      ["Project", "Alerts", "View Alert", "On Call Executions"],
+      ["Project", "Alerts", "View Alert", "On-Call Executions"],
     ),
     ...BuildBreadcrumbLinksByTitles(PageMap.ALERT_VIEW_INTERNAL_NOTE, [
       "Project",

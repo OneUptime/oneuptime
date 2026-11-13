@@ -92,7 +92,7 @@ function readDashboardLocale(lang: string): Record<string, string> {
 
 const CARD: string = `**${ProjectNotificationChannelsCopy.cardTitle}**`;
 const PAGE: string =
-  "**Project Settings > Notifications > Notification Settings**";
+  "**Project Settings > Notifications > Notification Channels**";
 
 /*
  * How each language names a project owner, the first of the people who may
@@ -247,7 +247,7 @@ describe("Users, Teams & Permissions", () => {
       "Turning SMS, phone calls, WhatsApp or Telegram on or off for the project counts as billing, because every message costs money.",
     );
     expect(page).toContain(
-      "Only `ProjectOwner`, the `BillingAdmin` role (**Billing Admin**) and the `ManageProjectBilling` permission (**Manage Billing**) can change those switches, on **Project Settings > Notifications > Notification Settings** — not `ProjectAdmin`.",
+      "Only `ProjectOwner`, the `BillingAdmin` role (**Billing Admin**) and the `ManageProjectBilling` permission (**Manage Billing**) can change those switches, on **Project Settings > Notifications > Notification Channels** — not `ProjectAdmin`.",
     );
   });
 });

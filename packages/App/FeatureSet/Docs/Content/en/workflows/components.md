@@ -208,7 +208,7 @@ Connections to loopback (`localhost`, `127.0.0.1`), link-local and cloud metadat
 
 ## Paging
 
-Page people from a workflow: each person gets a phone call, an SMS, a push notification or an email, as their own on-call rules say, until somebody acknowledges. There is a block for each way of saying who to page. In the **Add Component** panel, search for `page`.
+Page people from a workflow: each person gets a phone call, an SMS, a push notification or an email, as their How to Reach Me says, until somebody acknowledges. There is a block for each way of saying who to page. In the **Add Component** panel, search for `page`.
 
 | Block                       | Who it pages                                                                              |
 | --------------------------- | ----------------------------------------------------------------------------------------- |
@@ -236,7 +236,7 @@ When you create a workflow, the templates under **On-Call** have this one ready,
 | **Title** and **Message**                                           | For a new alert. OneUptime creates an alert from them, and it stays in your alerts like any other.                                                                   |
 | **Incident ID** or **Alert ID**                                     | For an incident or an alert that is already there, usually the one the workflow started on: `{{local.components.incident-on-create-1.returnValues.model._id}}`.       |
 | **Page As**                                                         | For an incident or an alert that is already there, under **More fields**. **Responders** take it on. **Observers** are kept informed while somebody else responds: acknowledging their page only says they have seen it, and the incident or alert is not acknowledged. |
-| **Severity**                                                        | For a new alert, under **More fields**. It decides which of each person's on-call rules page them. Left empty, it is the project's most severe.                      |
+| **Severity**                                                        | For a new alert, under **More fields**. It decides which steps of each person's How to Reach Me page them. Left empty, it is the project's most severe.                      |
 
 A block added to a workflow that starts on an incident or an alert is already set to page about that record, so all it still asks is who to page.
 

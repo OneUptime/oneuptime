@@ -38,7 +38,7 @@ flowchart TB
 :::steps
 ### Legg til Twilio-kontoen din
 
-Gå til **Prosjektinnstillinger** > **Varsler** > **Varselinnstillinger**, og åpne **Flere innstillinger**. Klikk på **Opprett Twilio-konfigurasjon** i kortet **Twilio-konfigurasjon**, og fyll ut skjemaet:
+Gå til **Prosjektinnstillinger** > **Varsler** > **Varslingskanaler**, og åpne **Flere innstillinger**. Klikk på **Opprett Twilio-konfigurasjon** i kortet **Twilio-konfigurasjon**, og fyll ut skjemaet:
 
 - **Navn** og **Beskrivelse**: hva kontoen brukes til, for eksempel "Supportlinje".
 - **Twilio-konto-SID**: fra Twilio Console. Den starter med `AC`.
@@ -48,7 +48,7 @@ Gå til **Prosjektinnstillinger** > **Varsler** > **Varselinnstillinger**, og å
 
 ### Opprett policyen
 
-Gå til **Vakttjeneste** > **Retningslinjer for innkommende anrop**, og klikk på **Opprett Retningslinjer for innkommende anrop**. Gi den et **Navn**, for eksempel "Supportlinje"; **Beskrivelse** og **Etiketter** er valgfrie, under **Flere felt**. Den nye policyen åpnes på sin **Oversikt**.
+Gå til **Vakt** > **Retningslinjer for innkommende anrop**, og klikk på **Opprett Retningslinjer for innkommende anrop**. Gi den et **Navn**, for eksempel "Supportlinje"; **Beskrivelse** og **Etiketter** er valgfrie, under **Flere felt**. Den nye policyen åpnes på sin **Oversikt**.
 
 ### Velg Twilio-kontoen
 
@@ -160,7 +160,7 @@ En regel ringer en person på nummeret personen har verifisert for innkommende a
 
 Hver person kan ha ett verifisert nummer per prosjekt. For å endre det sletter du først det gamle nummeret. Disse numrene er atskilt fra telefonnumrene under **Varselmetoder**, som vaktvarsler bruker. Se [Varselmetoder](/docs/notifications/notification-methods).
 
-Numre for innkommende anrop verifiseres på SMS, så **SMS** må først være slått på for prosjektet. En prosjekteier, en **Faktureringsadministrator** eller noen med **Manage Billing** slår det på i kortet **Varslingskanaler** på **Prosjektinnstillinger > Varsler > Varselinnstillinger**.
+Numre for innkommende anrop verifiseres på SMS, så **SMS** må først være slått på for prosjektet. En prosjekteier, en **Faktureringsadministrator** eller noen med **Manage Billing** slår det på i kortet **Varslingskanaler** på **Prosjektinnstillinger > Varsler > Varslingskanaler**.
 
 ## Talemeldinger og innstillinger for policyen
 

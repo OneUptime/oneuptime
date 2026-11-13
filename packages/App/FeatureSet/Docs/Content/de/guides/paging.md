@@ -103,6 +103,6 @@ Prüfen Sie zuerst die Ländervorwahl der Nummer. Schließen Sie nach einer Test
 :::cards
 - [Bereitschaftspläne](/docs/on-call/schedules): Sich abwechseln, damit jede Alarmierung an die Person geht, die gerade Bereitschaft hat. Bei OneUptime Cloud ab dem Growth-Tarif.
 - [Eskalationsregeln](/docs/on-call/escalation-rules): Der Richtlinie Stufen, Teams und Pläne hinzufügen.
-- [Persönliche Bereitschaftsregeln](/docs/notifications/on-call-rules): Wählen, welche Methode Sie zuerst erreicht, und wann.
+- [Wie ich erreichbar bin](/docs/notifications/on-call-rules): Wählen, welche Methode Sie zuerst erreicht, und wann.
 - [Eine Statusseite veröffentlichen](/docs/guides/status-page): Ihren Kunden auf Ihrer eigenen Domain zeigen, was gerade passiert.
 :::

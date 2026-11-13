@@ -2188,7 +2188,7 @@ describe("alert episodes and grouping rules", () => {
     }
 
     expect(boldNames(table[0]?.[1] || "")).toEqual([
-      "On-Call Duty Policies",
+      "On-Call Policies",
       GROUPING_RULE_COPY.episodeOwnersTitle,
     ]);
     expect(boldNames(table[1]?.[1] || "")).toEqual([
@@ -2475,7 +2475,7 @@ describe("alert episodes and grouping rules", () => {
       ),
     ).toBe(true);
     expect(page).toContain(
-      "**A new episode** runs the rule's **On-Call Duty Policies**, plus those of any matching rule on the **Episode Rules** tab of **Alerts → Rules → On-Call Rules**.",
+      "**A new episode** runs the rule's **On-Call Policies**, plus those of any matching rule on the **Episode Rules** tab of **Alerts → Rules → On-Call Rules**.",
     );
   });
 
@@ -2763,7 +2763,7 @@ describe("alert rules and settings", () => {
     );
     expect(form).toContain('{ title: "Match", id: "match-criteria" },');
     expect(form).toContain('{ title: "On-Call Policies", id: "on-call" },');
-    expect(form).toContain('title: "On-Call Duty Policies",');
+    expect(form).toContain('title: "On-Call Policies",');
     expect(form).toContain('allPicks: translationKey("Page {{policies}}"),');
     expect(form).toContain("doNotShowWhenCreating: true,");
     expect(
@@ -2774,7 +2774,7 @@ describe("alert rules and settings", () => {
       "Create Alert On-Call Rule",
       "Match",
       "On-Call Policies",
-      "On-Call Duty Policies",
+      "On-Call Policies",
       "Name",
       "Description",
       "More fields",

@@ -90,7 +90,7 @@ Veja [Regras de escalonamento](/docs/on-call/escalation-rules).
 
 Quem está de plantão a cada momento: as pessoas se revezam, e cada uma passa o turno para a seguinte. Uma regra de escalonamento que aciona um agendamento aciona quem está de plantão nele.
 
-Também chamado: **Rotation**. Veja [Agendamentos de plantão](/docs/on-call/schedules).
+Também chamado: **Rotation**, **Agendamento da política de plantão**. Veja [Agendamentos de plantão](/docs/on-call/schedules).
 
 ### Camada
 
@@ -103,6 +103,12 @@ Veja [Agendamentos de plantão](/docs/on-call/schedules#camadas).
 Um endereço pelo qual o OneUptime pode contatar você em um projeto: um endereço de e-mail, um número de telefone para SMS ou chamadas, sua conta do Slack ou do Microsoft Teams, ou o aplicativo do OneUptime no seu celular. Cada pessoa adiciona os seus em **Configurações do usuário**.
 
 Veja [Métodos de notificação](/docs/notifications/notification-methods).
+
+### Como me contatar
+
+As suas próprias regras para ser acionado: quais dos seus métodos de notificação um acionamento tenta, e depois de quanto tempo. Uma escada cobre todo incidente, alerta e episódio, e uma gravidade pode ter regras próprias. Cada pessoa define as suas em **Configurações do usuário**.
+
+Também chamado: **Regras de Plantão pessoais**. Veja [Como me contatar](/docs/notifications/on-call-rules).
 
 ### Página de status
 
@@ -472,13 +478,13 @@ Veja [Qual devo usar?](/docs/introduction/which-one#sonda-agente-coletor-ou-runn
 
 ### Regras de Plantão
 
-Duas coisas diferentes. Em **Incidentes** e **Alertas**, as regras de plantão escolhem as políticas de plantão que um novo incidente ou alerta executa. Em **Configurações do usuário**, as suas próprias regras de plantão decidem quais dos seus métodos de notificação um acionamento tenta, e depois de quanto tempo.
+Em **Incidentes** e **Alertas**, as regras de plantão escolhem as políticas de plantão que um novo incidente ou alerta executa. As regras próprias de cada pessoa sobre como um acionamento chega até ela também se chamavam regras de plantão: agora são **Como me contatar**, em **Configurações do usuário**.
 
-Veja [Configurações e automação de incidentes](/docs/incidents/settings#regras-de-plantão-de-incidente) e [Regras de Plantão pessoais](/docs/notifications/on-call-rules).
+Veja [Configurações e automação de incidentes](/docs/incidents/settings#regras-de-plantão-de-incidente) e [Como me contatar](/docs/notifications/on-call-rules).
 
 ### Configurações de notificação
 
-Duas páginas diferentes. Em **Configurações do usuário**, quais atualizações sobre o que é seu chegam até você, e por quais canais. Em **Configurações do projeto**, os interruptores do projeto para SMS e chamadas, o saldo de mensagens dele e o próprio SMTP e Twilio dele.
+Em **Configurações do usuário**, quais atualizações sobre o que é seu chegam até você, e por quais canais. Os interruptores do projeto para SMS e chamadas, o saldo de mensagens dele e o próprio SMTP e Twilio dele também se chamavam configurações de notificação: agora são **Canais de notificação**, em **Configurações do projeto**.
 
 Veja [Configurações de notificação](/docs/notifications/notification-settings).
 

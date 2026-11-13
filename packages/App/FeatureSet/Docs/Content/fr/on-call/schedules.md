@@ -121,5 +121,5 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
 - [Règles d'escalade](/docs/on-call/escalation-rules): Faire alerter ce planning par un niveau d'une politique d'astreinte.
 - [Chronologie des astreintes](/docs/on-call/schedule-timeline): Voir tous les plannings côte à côte, avec les trous de couverture.
 - [Flux de calendrier](/docs/on-call/calendar-feeds): Mettre les permanences dans Google Agenda, Outlook ou Apple Calendrier.
-- [Règles d'astreinte personnelles](/docs/notifications/on-call-rules): Choisissez comment une alerte vous parvient pendant votre astreinte.
+- [Comment me joindre](/docs/notifications/on-call-rules): Choisissez comment une alerte vous parvient pendant votre astreinte.
 :::

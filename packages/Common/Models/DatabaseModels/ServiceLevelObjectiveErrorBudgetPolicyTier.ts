@@ -658,9 +658,9 @@ export default class ServiceLevelObjectiveErrorBudgetPolicyTier extends BaseMode
     required: false,
     type: TableColumnType.EntityArray,
     modelType: OnCallDutyPolicy,
-    title: "Alert On-Call Duty Policies",
+    title: "Alert On-Call Policies",
     description:
-      "On-call duty policies attached to alerts raised by this tier. Incidents have their own list.",
+      "On-call policies attached to alerts raised by this tier. Incidents have their own list.",
   })
   @ManyToMany(
     () => {
@@ -1083,9 +1083,9 @@ export default class ServiceLevelObjectiveErrorBudgetPolicyTier extends BaseMode
     required: false,
     type: TableColumnType.EntityArray,
     modelType: OnCallDutyPolicy,
-    title: "Incident On-Call Duty Policies",
+    title: "Incident On-Call Policies",
     description:
-      "On-call duty policies attached to incidents declared by this tier.",
+      "On-call policies attached to incidents declared by this tier.",
   })
   @ManyToMany(
     () => {

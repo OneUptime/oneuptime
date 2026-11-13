@@ -198,7 +198,7 @@ OneUptime では、多くのものがルールと呼ばれます。どれも、�
 
 :::cards
 - [インシデントの設定と自動化](/docs/incidents/settings#インシデントの作成時に実行されるルール): インシデントの作成時に実行されるルールを、順番に。
-- [個人のオンコールルール](/docs/notifications/on-call-rules): 呼び出しがあなたにどう届くか。
+- [私への連絡方法](/docs/notifications/on-call-rules): 呼び出しがあなたにどう届くか。
 :::
 
 ## 次のステップ

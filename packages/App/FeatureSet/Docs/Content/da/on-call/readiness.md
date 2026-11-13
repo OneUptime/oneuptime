@@ -34,7 +34,7 @@ Et hul er en alvorlighed uden regel, på fanen for hændelser, hændelsesepisode
 
 ## Siden Parathed
 
-Åbn **Vagtordning → Parathed**. Kortet **Vagtparathed** viser alle, som en vagtpolitik i projektet kan nå, med dem, der har brug for noget, først. Alle i projektet kan åbne det.
+Åbn **Vagt → Parathed**. Kortet **Vagtparathed** viser alle, som en vagtpolitik i projektet kan nå, med dem, der har brug for noget, først. Alle i projektet kan åbne det.
 
 Over listen tæller felterne **Modtagere**, **Klar**, **Kræver opsætning** og **Utilgængelig**. Klik på **Klar**, **Kræver opsætning** eller **Utilgængelig** for kun at vise de modtagere, og klik igen for at vise alle.
 
@@ -58,7 +58,7 @@ Kun personen selv kan tilføje og bekræfte sine notifikationsmetoder og regler,
 3. Bekræft. Hver person får én e-mail, der nævner, hvad der mangler i deres egen opsætning, med et link til den side, hvor de retter det.
 :::
 
-Et banner viser derefter, hvor mange påmindelser der blev sendt, sprunget over eller mislykkedes, og hvorfor for hver, der ikke blev sendt. Ingen mindes mere end én gang på 24 timer, og én omgang minder højst 250 personer. At sende påmindelser kræver **Projektejer**, **Projektadministrator** eller **Vagtadministrator**, eller **Edit On-Call Duty Policy** i en brugerdefineret rolle.
+Et banner viser derefter, hvor mange påmindelser der blev sendt, sprunget over eller mislykkedes, og hvorfor for hver, der ikke blev sendt. Ingen mindes mere end én gang på 24 timer, og én omgang minder højst 250 personer. At sende påmindelser kræver **Projektejer**, **Projektadministrator** eller **Vagtadministrator**, eller **Edit On-Call Policy** i en brugerdefineret rolle.
 
 ## Parathed på andre sider
 
@@ -75,7 +75,7 @@ En uge, hvor alle er klar, sender intet, så e-mailen betyder altid, at noget sk
 
 ## Brugerens vagttid
 
-**Vagtordning → Rapporter → Brugerens vagttid** viser, hvor længe hver person havde vagt, over et tidsrum, du vælger: **Seneste måned** til at starte med.
+**Vagt → Rapporter → Brugerens vagttid** viser, hvor længe hver person havde vagt, over et tidsrum, du vælger: **Seneste måned** til at starte med.
 
 | Kolonne | Hvad den viser |
 | --- | --- |
@@ -108,5 +108,5 @@ Den sendes kun i en uge, hvor nogen er **Utilgængelig** eller **Kræver opsætn
 :::cards
 - [Sådan når OneUptime dig](/docs/notifications/index): Metoderne, reglerne og reserveløsningen bag hver status.
 - [Notifikationsmetoder](/docs/notifications/notification-methods): Tilføj og bekræft de måder, OneUptime når nogen på.
-- [Personlige vagtregler](/docs/notifications/on-call-rules): Luk hullerne, alvorlighed for alvorlighed.
+- [Sådan når man mig](/docs/notifications/on-call-rules): Luk hullerne, alvorlighed for alvorlighed.
 :::

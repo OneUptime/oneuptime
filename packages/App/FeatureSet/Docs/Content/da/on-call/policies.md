@@ -12,7 +12,7 @@ En vagtpolitik afgør, hvem der tilkaldes om en hændelse eller advarsel, og hve
 ## Opret en politik
 
 :::steps
-1. Gå til **Vagtordning → Vagtpolitikker**, og klik på **Opret Vagtpolitik**.
+1. Gå til **Vagt → Vagtpolitikker**, og klik på **Opret Vagtpolitik**.
 2. Angiv et **Navn**, fx "Betalinger primær".
 3. Klik under **Hvem tilkaldes først?** på **Tilføj modtager**, og vælg de vagtplaner, teams og personer, der skal tilkaldes først.
 4. Klik på **Opret Vagtpolitik**. Politikken åbner på sin side **Eskaleringsregler**, med **Level 1** på plads.
@@ -109,7 +109,7 @@ flowchart TB
 Du finder udførelseslogs tre steder:
 
 - i politikkens egne **Udførelseslogs**, under **Protokoller**;
-- under **Vagtordning → Avanceret → Udførelseslogs**, for alle politikker, hvor direkte tilkald fra workflows og chat står som **Direkte tilkald**;
+- under **Vagt → Avanceret → Udførelseslogs**, for alle politikker, hvor direkte tilkald fra workflows og chat står som **Direkte tilkald**;
 - på en hændelses eller en advarsels side **Vagtudførelser**.
 
 Hver række viser, hvad der startede kørslen, hvornår, dens **Status** og hvem der kvitterede. **Vis tidslinje** åbner dens **Tidslinje for udførelsen**: hver eskaleringsregel, hvem den tilkaldte, via hvilken vagtplan, og hvordan hvert tilkald endte. **Notificeret via** viser, hvordan hvert tilkald nåede frem til personen: telefonopkald, SMS, e-mail, push-notifikation og så videre. En vagtplan, hvor ingen har vagt, viser **Ingen havde vagt** i stedet for en person. Et niveau, der ikke tilkaldte nogen, siger hvorfor, med **Gik videre med det samme** nedenunder: politikken ventede ikke på det. I OneUptime Cloud kræver udførelseslogs abonnementet **Growth**.
@@ -119,13 +119,13 @@ Hver række viser, hvad der startede kørslen, hvornår, dens **Status** og hvem
 Arkivering tager en politik ud af drift og beholder alt: åbn politikkens **Indstillinger**, og klik på **Arkiver** på dens arkiveringskort, eller vælg politikker i listen, og vælg **Arkiver**.
 
 - En arkiveret politik tilkalder ingen. Hændelser og advarsler, der bruger den, springer den over, og en kørsel, der stadig eskalerer, stopper ved sit næste skridt.
-- Den forlader listen **Vagtpolitikker** og flytter til **Vagtordning → Avanceret → Arkiverede politikker**, hvor **Fjern fra arkiv** sætter den i drift igen.
+- Den forlader listen **Vagtpolitikker** og flytter til **Vagt → Avanceret → Arkiverede politikker**, hvor **Fjern fra arkiv** sætter den i drift igen.
 
 **Slet politik**, under **Avanceret**, sletter politikken med dens eskaleringsregler og brugertilsidesættelser. Sletning fra listen spørger først og foreslår at arkivere i stedet.
 
 ## Hvem der må ændre en politik
 
-**Projektejer**, **Projektadministrator**, **Projektmedlem**, **Vagtadministrator** og **Vagtmedlem** må oprette, ændre og slette politikker; **Seer** og **Vagtseer** må læse dem. I en brugerdefineret rolle hedder tilladelserne **Create On-Call Duty Policy**, **Edit On-Call Duty Policy**, **Delete On-Call Duty Policy** og **Read On-Call Duty Policy**, og en rolle, der er begrænset til bestemte etiketter, når kun de politikker, der har dem. At tilføje ejere og brugerdefinerede felter kræver abonnementet **Growth** i OneUptime Cloud.
+**Projektejer**, **Projektadministrator**, **Projektmedlem**, **Vagtadministrator** og **Vagtmedlem** må oprette, ændre og slette politikker; **Seer** og **Vagtseer** må læse dem. I en brugerdefineret rolle hedder tilladelserne **Create On-Call Policy**, **Edit On-Call Policy**, **Delete On-Call Policy** og **Read On-Call Policy**, og en rolle, der er begrænset til bestemte etiketter, når kun de politikker, der har dem. At tilføje ejere og brugerdefinerede felter kræver abonnementet **Growth** i OneUptime Cloud.
 
 ## API og Terraform
 
@@ -149,7 +149,7 @@ Se [Opret regler med API'et eller Terraform](/docs/on-call/escalation-rules#opre
 ## Fejlfinding
 
 :::details En politik kørte, men ingen blev tilkaldt
-Dens kørsel viser **Execution Completed - No One Notified**. Åbn **Vis tidslinje**: en række med **Ingen havde vagt** peger på en vagtplan med et hul, og statusbeskeden i en række med **Sprunget over** siger hvorfor, fx nogen, der var fraværende uden nogen til at dække. **Vagtordning → Parathed** viser, hvem der ikke kunne nås.
+Dens kørsel viser **Execution Completed - No One Notified**. Åbn **Vis tidslinje**: en række med **Ingen havde vagt** peger på en vagtplan med et hul, og statusbeskeden i en række med **Sprunget over** siger hvorfor, fx nogen, der var fraværende uden nogen til at dække. **Vagt → Parathed** viser, hvem der ikke kunne nås.
 :::
 
 :::details Det næste niveau blev tilkaldt et minut efter sin ventetid
@@ -161,7 +161,7 @@ Niveauet før havde ingen at tilkalde: ingen modtagere, ingen med vagt i dets va
 :::
 
 :::details En hændelse viser en politik, der ikke tilkaldte nogen
-Politikken er arkiveret: en arkiveret politik bliver stående på de hændelser og advarsler, der bruger den, tilkalder ingen, og dens udførelseslog siger, at den ikke blev udført. Fjern den fra arkivet under **Vagtordning → Avanceret → Arkiverede politikker**.
+Politikken er arkiveret: en arkiveret politik bliver stående på de hændelser og advarsler, der bruger den, tilkalder ingen, og dens udførelseslog siger, at den ikke blev udført. Fjern den fra arkivet under **Vagt → Avanceret → Arkiverede politikker**.
 :::
 
 ## Næste trin

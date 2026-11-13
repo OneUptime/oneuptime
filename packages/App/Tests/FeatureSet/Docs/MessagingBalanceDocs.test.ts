@@ -11,7 +11,7 @@ import path from "path";
  * - every message pays its exact cost, however many go out at once;
  * - messages that find the balance low together charge the card once;
  * - a failed charge is tried again an hour later, and the page that holds
- *   the balance says so at the top until then - Notification Settings for
+ *   the balance says so at the top until then - Notification Channels for
  *   messages, AI Credits for AI - with what to do, or who can;
  * - pages keep going out on what is left while Auto Recharge cannot charge
  *   the card.
@@ -38,7 +38,7 @@ describe("Escalation rules: the balance pages are paid from", () => {
 
   test("names the page that holds the balance and Auto Recharge", () => {
     expect(page).toContain(
-      "each SMS, call, WhatsApp and Telegram message is paid from the project's balance on **Project Settings > Notifications > Notification Settings**",
+      "each SMS, call, WhatsApp and Telegram message is paid from the project's balance on **Project Settings > Notifications > Notification Channels**",
     );
   });
 
@@ -54,10 +54,10 @@ describe("Escalation rules: the balance pages are paid from", () => {
     );
   });
 
-  test("a failed charge is tried again an hour later, and Notification Settings says so at the top", () => {
+  test("a failed charge is tried again an hour later, and Notification Channels says so at the top", () => {
     expect(SMS_OR_CALL_AUTO_RECHARGE_RETRY_AFTER_IN_SECONDS).toBe(60 * 60);
     expect(page).toContain(
-      "Auto Recharge tries the card again an hour later, and **Notification Settings** says so at the top until then.",
+      "Auto Recharge tries the card again an hour later, and **Notification Channels** says so at the top until then.",
     );
     expect(page).toContain(
       "Adding balance by hand, or saving Auto Recharge again, tries at once.",

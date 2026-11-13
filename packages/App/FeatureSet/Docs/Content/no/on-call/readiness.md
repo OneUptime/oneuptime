@@ -34,7 +34,7 @@ Et hull er en alvorlighetsgrad uten regel, på fanen for hendelser, hendelsesepi
 
 ## Siden Beredskap
 
-Åpne **Vakttjeneste → Beredskap**. Kortet **Vaktberedskap** viser alle som en vaktretningslinje i prosjektet kan nå, med dem som trenger noe først. Alle i prosjektet kan åpne den.
+Åpne **Vakt → Beredskap**. Kortet **Vaktberedskap** viser alle som en vaktretningslinje i prosjektet kan nå, med dem som trenger noe først. Alle i prosjektet kan åpne den.
 
 Over listen teller flisene **Mottakere**, **Klar**, **Må settes opp** og **Utilgjengelig**. Klikk på **Klar**, **Må settes opp** eller **Utilgjengelig** for å vise bare de mottakerne, og klikk igjen for å vise alle.
 
@@ -58,7 +58,7 @@ Bare personen selv kan legge til og verifisere sine egne varselmetoder og regler
 3. Bekreft. Hver person får én e-post som sier hva som mangler i deres eget oppsett, med en lenke til siden som retter det.
 :::
 
-Et banner sier deretter hvor mange påminnelser som ble sendt, hoppet over eller mislyktes, og hvorfor for hver som ikke ble sendt. Ingen blir minnet på mer enn én gang i løpet av 24 timer, og én runde minner høyst 250 personer. Å sende påminnelser krever **Prosjekteier**, **Prosjektadministrator** eller **Vaktadministrator**, eller **Edit On-Call Duty Policy** i en egendefinert rolle.
+Et banner sier deretter hvor mange påminnelser som ble sendt, hoppet over eller mislyktes, og hvorfor for hver som ikke ble sendt. Ingen blir minnet på mer enn én gang i løpet av 24 timer, og én runde minner høyst 250 personer. Å sende påminnelser krever **Prosjekteier**, **Prosjektadministrator** eller **Vaktadministrator**, eller **Edit On-Call Policy** i en egendefinert rolle.
 
 ## Beredskap på andre sider
 
@@ -75,7 +75,7 @@ En uke der alle er klare, sender ingenting, så e-posten betyr alltid at noe må
 
 ## Brukerens vakttid
 
-**Vakttjeneste → Rapporter → Brukerens vakttid** viser hvor lenge hver person hadde vakt, over et tidsrom du velger: **Siste måned** til å begynne med.
+**Vakt → Rapporter → Brukerens vakttid** viser hvor lenge hver person hadde vakt, over et tidsrom du velger: **Siste måned** til å begynne med.
 
 | Kolonne | Hva den viser |
 | --- | --- |
@@ -108,5 +108,5 @@ Den sendes bare i en uke der noen er **Utilgjengelig** eller **Må settes opp**,
 :::cards
 - [Slik når OneUptime deg](/docs/notifications/index): Metodene, reglene og reserveløsningen bak hver status.
 - [Varselmetoder](/docs/notifications/notification-methods): Legg til og verifiser måtene OneUptime når noen på.
-- [Personlige vaktregler](/docs/notifications/on-call-rules): Tett hullene, alvorlighetsgrad for alvorlighetsgrad.
+- [Slik når man meg](/docs/notifications/on-call-rules): Tett hullene, alvorlighetsgrad for alvorlighetsgrad.
 :::

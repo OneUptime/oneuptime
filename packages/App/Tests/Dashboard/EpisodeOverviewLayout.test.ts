@@ -425,7 +425,7 @@ describe("episode overview layout", () => {
         "Episode Severity",
         page.countLabel === "Incidents" ? "Incident Count" : "Alert Count",
         "Grouping Rule",
-        "On-Call Duty Policies",
+        "On-Call Policies",
         "Created At",
         "Labels",
         "Episode ID",

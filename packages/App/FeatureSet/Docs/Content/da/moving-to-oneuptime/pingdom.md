@@ -87,7 +87,7 @@ En forhåndsvisning gemmes i en dag. Kun den person, der læste kontoen, kan mar
 Åbn hver enkelt under **Monitorer**, og tjek de første resultater. En heartbeat-monitor har en ny adresse: Peg det job, der kalder den, derhen.
 
 ### Vælg, hvem der får besked
-Tilføj ejere til dine monitorer eller en vagtpolitik under **Vagtordning** > **Vagtpolitikker** til de hændelser, de åbner, så de rigtige personer får besked, når noget går ned.
+Tilføj ejere til dine monitorer eller en vagtpolitik under **Vagt** > **Vagtpolitikker** til de hændelser, de åbner, så de rigtige personer får besked, når noget går ned.
 
 ### Slå kontrollerne fra i Pingdom
 Når OneUptime kontrollerer de samme ting, så sæt dem på pause i Pingdom, så ingen får besked to gange.

@@ -1482,10 +1482,10 @@ describe("notification methods", () => {
       expect(
         sectionByTitle(projectSettingsMenu(), "Notifications").items,
       ).toEqual(
-        expect.arrayContaining(["Notification Settings", "Notification Logs"]),
+        expect.arrayContaining(["Notification Channels", "Notification Logs"]),
       );
       expect(methods).toContain(
-        "A project owner, a **Billing Admin** or someone with **Manage Billing** turns it on, in the **Notification Channels** card on **Project Settings → Notifications → Notification Settings**. A project admin cannot.",
+        "A project owner, a **Billing Admin** or someone with **Manage Billing** turns it on, in the **Notification Channels** card on **Project Settings → Notifications → Notification Channels**. A project admin cannot.",
       );
     });
   });

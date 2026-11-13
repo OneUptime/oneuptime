@@ -252,7 +252,7 @@ const OnCallPolicyLogTable: FunctionComponent<ComponentProps> = (
   return (
     <div>
       <Card
-        title={"On Call Time Log for Users"}
+        title={"On-Call Time Log for Users"}
         description={"This table shows the time logs for users on call duty."}
         rightElement={
           <RangeStartAndEndDateView
@@ -264,8 +264,8 @@ const OnCallPolicyLogTable: FunctionComponent<ComponentProps> = (
         }
       >
         <LocalTable
-          singularLabel="On Call Policy Time Log"
-          pluralLabel="On Call Policy Time Logs"
+          singularLabel="On-Call Policy Time Log"
+          pluralLabel="On-Call Policy Time Logs"
           data={tableDataItems}
           id="on-call-policy-log-table"
           columns={[

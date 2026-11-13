@@ -34,7 +34,7 @@ flowchart TB
 
 - **顯示訂閱者頁面**（`showSubscriberPageOnStatusPage`）：預設開啟。在狀態頁面的導覽列中放置 **訂閱** 項目，訪客在那裡透過下面的管道註冊。
 - **電子郵件**（`enableEmailSubscribers`）：預設開啟。其他管道在你開啟之前都是關閉的。
-- **SMS**（`enableSmsSubscribers`）：預設關閉。在 OneUptime Cloud 上，每則簡訊都從專案的簡訊和通話餘額中支付，除非頁面有自己的 **Twilio 設定**（請參閱[下文](#電子郵件頁尾自訂-smtp-與-twilio)）。要開啟它，還需要在 **專案設定 > 通知 > 通知設定** 的 **通知管道** 卡片中為專案開啟 **SMS**，專案擁有者、**帳單管理員** 或擁有 **Manage Billing** 的人可以這麼做。
+- **SMS**（`enableSmsSubscribers`）：預設關閉。在 OneUptime Cloud 上，每則簡訊都從專案的簡訊和通話餘額中支付，除非頁面有自己的 **Twilio 設定**（請參閱[下文](#電子郵件頁尾自訂-smtp-與-twilio)）。要開啟它，還需要在 **專案設定 > 通知 > 通知管道** 的 **通知管道** 卡片中為專案開啟 **SMS**，專案擁有者、**帳單管理員** 或擁有 **Manage Billing** 的人可以這麼做。
 - **Slack**（`enableSlackSubscribers`）：預設關閉。
 - **Microsoft Teams**（`enableMicrosoftTeamsSubscribers`）：預設關閉。
 - **Webhook**（`enableWebhookSubscribers`）：預設關閉。

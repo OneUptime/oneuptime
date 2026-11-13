@@ -48,17 +48,17 @@ Die Wörter, die in ganz OneUptime verwendet werden, stehen im [Glossar](/docs/i
 | Eskalationsregel | Eine Stufe einer Richtlinie: wen sie alarmiert und wie lange sie auf eine Bestätigung wartet | [Eskalationsregeln](/docs/on-call/escalation-rules) |
 | Bereitschaftsplan | Wer in jedem Moment Bereitschaft hat, wenn sich Personen abwechseln | [Bereitschaftspläne](/docs/on-call/schedules) |
 | Benutzerüberschreibung | Wer jemanden vertritt, solange er abwesend ist | [Benutzerüberschreibungen](/docs/on-call/user-overrides) |
-| Persönliche Bereitschaftsregeln | Wie eine Person erreicht wird: über welche Methode und nach welcher Zeit | [Persönliche Bereitschaftsregeln](/docs/notifications/on-call-rules) |
+| Wie ich erreichbar bin | Wie eine Person erreicht wird: über welche Methode und nach welcher Zeit | [Wie ich erreichbar bin](/docs/notifications/on-call-rules) |
 | Richtlinie für eingehende Anrufe | Eine Telefonnummer, unter der klingelt, wer Bereitschaft hat | [Richtlinie für eingehende Anrufe](/docs/on-call/incoming-call-policy) |
 
-Richtlinien, Eskalationsregeln, Pläne und Überschreibungen gehören zum Projekt, unter **Bereitschaftsdienst**. Benachrichtigungsmethoden und persönliche Bereitschaftsregeln gehören jeder Person selbst, unter **Benutzereinstellungen**: Ein Admin kann sich die Einrichtung einer Person ansehen, aber nur sie selbst kann ihr Telefon oder ihre E-Mail verifizieren. Siehe [Wie OneUptime Sie erreicht](/docs/notifications/index).
+Richtlinien, Eskalationsregeln, Pläne und Überschreibungen gehören zum Projekt, unter **Bereitschaft**. Benachrichtigungsmethoden und persönliche Bereitschaftsregeln gehören jeder Person selbst, unter **Benutzereinstellungen**: Ein Admin kann sich die Einrichtung einer Person ansehen, aber nur sie selbst kann ihr Telefon oder ihre E-Mail verifizieren. Siehe [Wie OneUptime Sie erreicht](/docs/notifications/index).
 
 ## Bereitschaft einrichten
 
 :::steps
 ### Einen Plan anlegen
 
-Öffnen Sie **Bereitschaftsdienst** über das Menü **Produkte** und gehen Sie zu **Bereitschaftspläne**. Klicken Sie auf **Bereitschaftsplan erstellen**, geben Sie ihm einen Namen und wählen Sie unter **Wer wechselt sich ab?** die Personen in der Reihenfolge, in der sie sich abwechseln. Siehe [Bereitschaftspläne](/docs/on-call/schedules).
+Öffnen Sie **Bereitschaft** über das Menü **Produkte** und gehen Sie zu **Bereitschaftspläne**. Klicken Sie auf **Bereitschaftsplan erstellen**, geben Sie ihm einen Namen und wählen Sie unter **Wer wechselt sich ab?** die Personen in der Reihenfolge, in der sie sich abwechseln. Siehe [Bereitschaftspläne](/docs/on-call/schedules).
 
 ### Eine Richtlinie anlegen
 
@@ -74,7 +74,7 @@ Die erste Richtlinie eines Projekts kann das schon beim Anlegen: Lassen Sie **Be
 
 ### Prüfen, ob alle erreichbar sind
 
-Öffnen Sie **Bereitschaftsdienst → Einsatzbereitschaft**. Jede Person, die Ihre Richtlinien alarmieren können, steht dort als **Bereit**, **Einrichtung erforderlich** oder **Nicht erreichbar**, mit dem, was fehlt. Siehe [Einsatzbereitschaft & Berichte](/docs/on-call/readiness).
+Öffnen Sie **Bereitschaft → Einsatzbereitschaft**. Jede Person, die Ihre Richtlinien alarmieren können, steht dort als **Bereit**, **Einrichtung erforderlich** oder **Nicht erreichbar**, mit dem, was fehlt. Siehe [Einsatzbereitschaft & Berichte](/docs/on-call/readiness).
 :::
 
 > [!NOTE]
@@ -82,7 +82,7 @@ Die erste Richtlinie eines Projekts kann das schon beim Anlegen: Lassen Sie **Be
 
 ## Wo die Bereitschaft zu finden ist
 
-Öffnen Sie **Bereitschaftsdienst** über das Menü **Produkte** in der oberen Leiste. Er öffnet sich auf **Bereitschaftsrichtlinien**, unter `/dashboard/{projectId}/on-call-duty/policies`, und sein Seitenmenü enthält den Rest:
+Öffnen Sie **Bereitschaft** über das Menü **Produkte** in der oberen Leiste. Er öffnet sich auf **Bereitschaftsrichtlinien**, unter `/dashboard/{projectId}/on-call-duty/policies`, und sein Seitenmenü enthält den Rest:
 
 | Abschnitt | Seiten |
 | --- | --- |
@@ -106,11 +106,11 @@ Haben Sie Bereitschaft für eine Richtlinie, zeigt die Glocke oben rechts das an
 :::
 
 :::details Jemand wurde auf dem falschen Kanal alarmiert, oder gar nicht
-Öffnen Sie **Bereitschaftsdienst → Einsatzbereitschaft** und klicken Sie in seiner Zeile auf **Abdeckung**. Dort stehen die Methoden, die die Person verifiziert hat, und jeder Schweregrad, für den sie keine Regel hat. Beheben kann das nur sie selbst, unter **Benutzereinstellungen**: Schicken Sie ihr von derselben Seite eine Einrichtungserinnerung. Siehe [Einsatzbereitschaft & Berichte](/docs/on-call/readiness). In OneUptime Cloud kann ein Telefon, das unbekannte Anrufer blockiert, eine Alarmierung stummschalten: Nehmen Sie [die Nummern von OneUptime](/docs/on-call/phone-number-whitelist) in seine Zulassungsliste auf.
+Öffnen Sie **Bereitschaft → Einsatzbereitschaft** und klicken Sie in seiner Zeile auf **Abdeckung**. Dort stehen die Methoden, die die Person verifiziert hat, und jeder Schweregrad, für den sie keine Regel hat. Beheben kann das nur sie selbst, unter **Benutzereinstellungen**: Schicken Sie ihr von derselben Seite eine Einrichtungserinnerung. Siehe [Einsatzbereitschaft & Berichte](/docs/on-call/readiness). In OneUptime Cloud kann ein Telefon, das unbekannte Anrufer blockiert, eine Alarmierung stummschalten: Nehmen Sie [die Nummern von OneUptime](/docs/on-call/phone-number-whitelist) in seine Zulassungsliste auf.
 :::
 
 :::details Eine Person im Urlaub wird weiter alarmiert
-Fügen Sie eine Benutzerüberschreibung mit ihr unter **Wer ist abwesend?** hinzu. Eine unter **Bereitschaftsdienst → Erweitert → Benutzerüberschreibungen** gilt für jede Richtlinie, eine auf der Seite **Benutzerüberschreibungen** einer Richtlinie nur für diese Richtlinie. Siehe [Benutzerüberschreibungen](/docs/on-call/user-overrides).
+Fügen Sie eine Benutzerüberschreibung mit ihr unter **Wer ist abwesend?** hinzu. Eine unter **Bereitschaft → Erweitert → Benutzerüberschreibungen** gilt für jede Richtlinie, eine auf der Seite **Benutzerüberschreibungen** einer Richtlinie nur für diese Richtlinie. Siehe [Benutzerüberschreibungen](/docs/on-call/user-overrides).
 :::
 
 ## Nächste Schritte

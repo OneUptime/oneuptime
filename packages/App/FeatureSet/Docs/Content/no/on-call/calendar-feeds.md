@@ -34,7 +34,7 @@ Faste tildelinger — en bruker eller et team som er nevnt direkte i en regel i 
 | --- | --- | --- | --- |
 | **Personlig feed** | Hver bruker, én per prosjekt | Vaktene dine i alle vaktplaner i det prosjektet, pluss vaktene der du dekker for noen (valgfritt) | **Brukerinnstillinger** > **Kalender** > **Kalenderfeed** |
 | **Vaktplanfeed** | Alle som kan redigere vaktplanen; alle som kan lese den, kan kopiere lenken | Alles vakter i én vaktplan, med valgfrie hendelser for hull i dekningen | Vaktplanens side, kortet **Abonner på denne vaktplanen** |
-| **Prosjektfeed** | Alle som kan redigere vaktplaner; alle som kan lese dem, kan kopiere lenken | Alles vakter i alle vaktplaner i prosjektet, med valgfrie hendelser for hull i dekningen | **Vakttjeneste** > **Kalenderfeeder** |
+| **Prosjektfeed** | Alle som kan redigere vaktplaner; alle som kan lese dem, kan kopiere lenken | Alles vakter i alle vaktplaner i prosjektet, med valgfrie hendelser for hull i dekningen | **Vakt** > **Kalenderfeeder** |
 
 Lenkene ser slik ut:
 
@@ -206,7 +206,7 @@ På siden til en vaktplan har kortet **Abonner på denne vaktplanen** to halvdel
 
 ### Prosjektfeed
 
-**Vakttjeneste** > **Kalenderfeeder** har kortet **Alles vakter i dette prosjektet (delt lenke)** — én delt lenke som dekker alle vaktplanene i prosjektet — med de samme handlingene for å publisere, generere på nytt og deaktivere, og en lenke til siden for den personlige feeden din.
+**Vakt** > **Kalenderfeeder** har kortet **Alles vakter i dette prosjektet (delt lenke)** — én delt lenke som dekker alle vaktplanene i prosjektet — med de samme handlingene for å publisere, generere på nytt og deaktivere, og en lenke til siden for den personlige feeden din.
 
 ### Innstillinger for delte lenker
 
@@ -233,7 +233,7 @@ Når en person forlater sitt siste team i et prosjekt, fjerner OneUptime også p
 
 ## Planlegging, ikke revisjon
 
-Feeden viser rotasjonen **slik den er satt opp nå**, også for tidligere dager: en overstyring som legges inn i etterkant, skriver om historikken i kalenderen. For timer som faktisk er brukt på vakt, vurderinger av rettferdig fordeling og kompensasjon bruker du **Vakttjeneste** > **Rapporter** > **Brukerens vakttid**, som bygger på hva personsøkeren faktisk gjorde. Se [Brukerens vakttid](/docs/on-call/readiness#brukerens-vakttid).
+Feeden viser rotasjonen **slik den er satt opp nå**, også for tidligere dager: en overstyring som legges inn i etterkant, skriver om historikken i kalenderen. For timer som faktisk er brukt på vakt, vurderinger av rettferdig fordeling og kompensasjon bruker du **Vakt** > **Rapporter** > **Brukerens vakttid**, som bygger på hva personsøkeren faktisk gjorde. Se [Brukerens vakttid](/docs/on-call/readiness#brukerens-vakttid).
 
 ## Sikkerhet
 

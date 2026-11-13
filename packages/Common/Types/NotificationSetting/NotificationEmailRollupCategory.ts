@@ -60,7 +60,7 @@ export const ROLLUP_CATEGORY_LABEL: Record<RollupCategory, string> = {
   [RollupCategory.IncomingCalls]: "Incoming Calls",
   [RollupCategory.SecurityCases]: "Security Cases",
   [RollupCategory.SecurityHunts]: "Security Hunts",
-  [RollupCategory.OnCall]: "On Call",
+  [RollupCategory.OnCall]: "On-Call",
   [RollupCategory.Other]: "Other",
 };
 

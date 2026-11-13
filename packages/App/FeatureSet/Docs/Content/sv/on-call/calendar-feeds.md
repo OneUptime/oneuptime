@@ -34,7 +34,7 @@ Fasta tilldelningar — en användare eller ett team som nämns direkt i en rege
 | --- | --- | --- | --- |
 | **Personligt flöde** | Varje användare, en per projekt | Dina pass i alla scheman i det projektet, plus de pass där du täcker upp för någon (valfritt) | **Användarinställningar** > **Kalender** > **Kalenderflöde** |
 | **Schemaflöde** | Alla som kan redigera schemat; alla som kan läsa det kan kopiera länken | Allas pass i ett schema, med valfria händelser för täckningsluckor | Schemats sida, kortet **Prenumerera på det här schemat** |
-| **Projektflöde** | Alla som kan redigera jourscheman; alla som kan läsa dem kan kopiera länken | Allas pass i alla scheman i projektet, med valfria händelser för täckningsluckor | **Jourtjänst** > **Kalenderflöden** |
+| **Projektflöde** | Alla som kan redigera jourscheman; alla som kan läsa dem kan kopiera länken | Allas pass i alla scheman i projektet, med valfria händelser för täckningsluckor | **Jour** > **Kalenderflöden** |
 
 Länkarna ser ut så här:
 
@@ -206,7 +206,7 @@ På ett schemas sida har kortet **Prenumerera på det här schemat** två halvor
 
 ### Projektflöde
 
-**Jourtjänst** > **Kalenderflöden** har kortet **Allas pass i det här projektet (delad länk)** — en delad länk som täcker alla scheman i projektet — med samma åtgärder för att publicera, skapa på nytt och inaktivera, och en länk till sidan för ditt personliga flöde.
+**Jour** > **Kalenderflöden** har kortet **Allas pass i det här projektet (delad länk)** — en delad länk som täcker alla scheman i projektet — med samma åtgärder för att publicera, skapa på nytt och inaktivera, och en länk till sidan för ditt personliga flöde.
 
 ### Inställningar för delade länkar
 
@@ -233,7 +233,7 @@ När en person lämnar sitt sista team i ett projekt tar OneUptime också bort p
 
 ## Planering, inte revision
 
-Flödet visar rotationen **som den är inställd nu**, även för tidigare dagar: en åsidosättning som läggs in i efterhand skriver om historiken i kalendern. För timmar som faktiskt har tillbringats med jour, rättvisegranskningar och ersättning använder du **Jourtjänst** > **Rapporter** > **Användarens jourtid**, som bygger på vad personsökaren faktiskt gjorde. Se [Användarens jourtid](/docs/on-call/readiness#användarens-jourtid).
+Flödet visar rotationen **som den är inställd nu**, även för tidigare dagar: en åsidosättning som läggs in i efterhand skriver om historiken i kalendern. För timmar som faktiskt har tillbringats med jour, rättvisegranskningar och ersättning använder du **Jour** > **Rapporter** > **Användarens jourtid**, som bygger på vad personsökaren faktiskt gjorde. Se [Användarens jourtid](/docs/on-call/readiness#användarens-jourtid).
 
 ## Säkerhet
 

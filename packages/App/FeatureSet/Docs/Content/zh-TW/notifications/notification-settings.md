@@ -106,14 +106,14 @@ flowchart TB
 :::
 
 :::details 關閉所有開關後我仍然收到郵件
-呼叫遵循你的待命規則，而不是這些開關；登入、安全和帳單郵件也不屬於關於記錄的更新。每個專案都有自己的設定，因此請檢查寄出該郵件的專案。請參閱 [個人待命規則](/docs/notifications/on-call-rules)。
+呼叫遵循你的待命規則，而不是這些開關；登入、安全和帳單郵件也不屬於關於記錄的更新。每個專案都有自己的設定，因此請檢查寄出該郵件的專案。請參閱 [如何聯絡我](/docs/notifications/on-call-rules)。
 :::
 
 ## 後續步驟
 
 :::cards
 - [通知方式](/docs/notifications/notification-methods): 新增你的設定要傳送到的方式。
-- [個人待命規則](/docs/notifications/on-call-rules): 決定呼叫如何送達你。
+- [如何聯絡我](/docs/notifications/on-call-rules): 決定呼叫如何送達你。
 - [通知彙總](/docs/emails/notification-rollup): 在突發期間，郵件更少、內容更完整。
 - [OneUptime 如何聯絡你](/docs/notifications/index): 通知方式、規則和設定如何搭配。
 :::

@@ -127,7 +127,7 @@ If nothing may leave your network through Expo, the push relay or a browser's pu
 While push is off:
 
 - Nothing is pushed to phones or browsers, in any project.
-- No device can be registered. Each person's **Push Notifications** tab under **User Settings > Notification Methods** says that push is off, and on-call rules offer no push devices.
+- No device can be registered. Each person's **Push Notifications** tab under **User Settings > Notification Methods** says that push is off, and How to Reach Me offers no push devices.
 - A page through a push rule is not sent. The person's on-call log says `Push notification not sent: Push notifications are turned off on this server.`
 - On-call readiness counts push devices as unusable, and the fallback skips them. Someone whose only verified method is a push device shows as not reachable.
 

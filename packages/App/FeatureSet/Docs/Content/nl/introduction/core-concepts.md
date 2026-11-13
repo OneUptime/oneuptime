@@ -198,7 +198,7 @@ De eigen regels van een monitor zijn zijn criteria. De bereikbaarheidsregels ond
 
 :::cards
 - [Incidentinstellingen en automatisering](/docs/incidents/settings#regels-die-draaien-als-een-incident-wordt-aangemaakt): De regels die worden uitgevoerd wanneer een incident wordt aangemaakt, op volgorde.
-- [Persoonlijke bereikbaarheidsregels](/docs/notifications/on-call-rules): Hoe een oproep u bereikt.
+- [Hoe ik bereikbaar ben](/docs/notifications/on-call-rules): Hoe een oproep u bereikt.
 :::
 
 ## Volgende stappen

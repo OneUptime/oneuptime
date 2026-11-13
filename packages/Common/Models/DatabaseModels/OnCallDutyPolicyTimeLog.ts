@@ -75,11 +75,14 @@ import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 })
 @TableMetadata({
   tableName: "OnCallDutyPolicyTimeLog",
-  singularName: "On Call Time Log",
-  pluralName: "On Call Time Logs",
+  singularName: "On-Call Time Log",
+  pluralName: "On-Call Time Logs",
+  // Its names before #6817, which the API, the CLI and MCP keep.
+  apiSingularName: "On Call Time Log",
+  apiPluralName: "On Call Time Logs",
   icon: IconProp.Call,
   tableDescription:
-    "Manage on-call duty user overrides, for example if the user is on leave you can override the on-call duty policy for that user so all the alerts will be routed to the other user.",
+    "When each person was on call for an on-call policy, from when their shift started to when it ended: what the User On-Call Time report adds up.",
 })
 export default class OnCallDutyPolicyTimeLog extends BaseModel {
   @ColumnAccessControl({
@@ -222,9 +225,9 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
     type: TableColumnType.ObjectID,
     required: false,
     canReadOnRelationQuery: true,
-    title: "On-Call Policy Schedule ID",
+    title: "On-Call Schedule ID",
     description:
-      "ID of your On-Call Policy Schedule where this escalation rule belongs.",
+      "ID of your On-Call Schedule where this escalation rule belongs.",
     example: "f6a7b8c9-d0e1-2345-f012-456789012345",
   })
   @Column({
@@ -297,8 +300,7 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
     required: false,
     canReadOnRelationQuery: true,
     title: "Team ID",
-    description:
-      "ID of your On-Call Policy Team ID where this escalation rule belongs.",
+    description: "ID of the team this log belongs to.",
     example: "d4e5f6a7-b8c9-0123-def0-234567890123",
   })
   @Column({

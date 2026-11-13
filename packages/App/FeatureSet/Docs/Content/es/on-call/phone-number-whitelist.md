@@ -24,7 +24,7 @@ En OneUptime Cloud, los SMS y las llamadas de guardia llegan desde los números 
 
 Tus avisos llegan desde números distintos de los de arriba cuando:
 
-- **Tu proyecto usa su propia cuenta de Twilio.** Cuando un proyecto tiene una configuración de Twilio definida como predeterminada del proyecto (**Ajustes del proyecto** > **Notificaciones** > **Ajustes de notificaciones** > **Más ajustes** > **Configuración de Twilio**), los SMS y las llamadas a los miembros del proyecto pasan por esa cuenta, desde sus números de teléfono. Añade esos números a la lista blanca en su lugar.
+- **Tu proyecto usa su propia cuenta de Twilio.** Cuando un proyecto tiene una configuración de Twilio definida como predeterminada del proyecto (**Ajustes del proyecto** > **Notificaciones** > **Canales de notificación** > **Más ajustes** > **Configuración de Twilio**), los SMS y las llamadas a los miembros del proyecto pasan por esa cuenta, desde sus números de teléfono. Añade esos números a la lista blanca en su lugar.
 - **Usas una instalación autoalojada.** Los SMS y las llamadas llegan desde los números que configuró tu administrador: la configuración de Twilio predeterminada del proyecto, la de toda la instalación en **Admin Dashboard** > **Ajustes** > **Llamadas y SMS**, o tu propio proveedor de SMS y voz, cuando la instalación envía a través de su propia pasarela. Pregunta a tu administrador qué números añadir a la lista blanca.
 
 ## Próximos pasos

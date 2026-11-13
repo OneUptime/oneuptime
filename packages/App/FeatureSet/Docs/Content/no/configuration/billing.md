@@ -125,7 +125,7 @@ SMS, anrop, WhatsApp- og Telegram-meldinger betales fra prosjektets saldo, og On
 
 | Saldo | Hvor |
 | --- | --- |
-| SMS, anrop, WhatsApp og Telegram | **Prosjektinnstillinger → Varsler → Varselinnstillinger** |
+| SMS, anrop, WhatsApp og Telegram | **Prosjektinnstillinger → Varsler → Varslingskanaler** |
 | OneUptime AI | **Prosjektinnstillinger → KI → AI-kreditter** |
 
 :::steps

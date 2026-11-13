@@ -14,7 +14,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   );
 
   if (!onCallDutyPolicyIdString) {
-    throw new Error("No on call duty policy id found");
+    throw new Error("No on-call policy id found");
   }
 
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();

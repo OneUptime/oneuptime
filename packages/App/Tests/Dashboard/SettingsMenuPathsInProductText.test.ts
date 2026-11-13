@@ -326,13 +326,13 @@ describe("a written path, as a reader follows it", () => {
     );
     expect(
       writtenPaths(
-        "Your User Settings are per project. Set SMTP in Project Settings > Notifications > Notification Settings.",
+        "Your User Settings are per project. Set SMTP in Project Settings > Notifications > Notification Channels.",
         MENUS,
       ),
     ).toEqual([
       expect.objectContaining({
         menu: PROJECT_SETTINGS,
-        steps: ["Notifications", "Notification Settings"],
+        steps: ["Notifications", "Notification Channels"],
         problems: [],
       }),
     ]);

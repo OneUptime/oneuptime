@@ -15,7 +15,7 @@ Send e-posten fra OneUptime gjennom HTTPS-API-et til en e-postleverandør i sted
 
 :::tabs
 @tab Prosjekt
-Åpne **Flere innstillinger** under **Prosjektinnstillinger > Varsler > Varselinnstillinger**, og klikk på **Opprett SMTP-konfigurasjon** i kortet **Egendefinerte SMTP-konfigurasjoner**. I trinnet **Leverandør** fyller du inn et **Navn** og velger leverandøren. Neste trinn ber om innstillingene for den leverandøren, og trinnet **Avsender** om **E-post fra** og **Fra-navn**. Når konfigurasjonen er lagret, sjekker **Send test-e-post** i raden at den virker.
+Åpne **Flere innstillinger** under **Prosjektinnstillinger > Varsler > Varslingskanaler**, og klikk på **Opprett SMTP-konfigurasjon** i kortet **Egendefinerte SMTP-konfigurasjoner**. I trinnet **Leverandør** fyller du inn et **Navn** og velger leverandøren. Neste trinn ber om innstillingene for den leverandøren, og trinnet **Avsender** om **E-post fra** og **Fra-navn**. Når konfigurasjonen er lagret, sjekker **Send test-e-post** i raden at den virker.
 @tab Selvdriftet instans
 Åpne **Innstillinger** i Admin Dashboard, og deretter **Varsler > E-poster**. Klikk i kortet **E-post-serverinnstillinger** på **Rediger server**, og velg leverandøren som **E-posttjenertype**. Leverandørens kort vises under, for eksempel **Amazon SES-innstillinger**: klikk på redigeringsknappen, for eksempel **Rediger Amazon SES**, og fyll ut leverandørens innstillinger og trinnet **Avsender**. Inntil kortet har alt det trenger, sier det hva som mangler, og hver e-post avvises med innstillingen som må fylles ut.
 :::
