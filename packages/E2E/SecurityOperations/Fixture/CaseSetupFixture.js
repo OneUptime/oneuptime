@@ -41,6 +41,11 @@
  *         answers. The case fields and templates are read as ever.
  *   notes-fail-twice
  *         the same, but the first two reads of the notes fail.
+ *   notes-more-fail
+ *         CASE-142 has more notes than a page of its feed holds (26 older
+ *         ones besides its two), so the feed offers Load more; Load more's
+ *         first read - of a later page - fails as notes-fail-with-reference's
+ *         does, with its reference, and the next answers.
  */
 import Project from "Common/Models/DatabaseModels/Project";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
@@ -77,12 +82,13 @@ export const CASE_SETUP_SCENARIOS = [
   "fail-twice",
   "notes-fail-with-reference",
   "notes-fail-twice",
+  "notes-more-fail",
 ];
 
 /*
  * How many of each table's first reads fail, by ?casesetup= scenario: the
- * case setup's tables (the case fields and the note templates), or a
- * case's notes.
+ * case setup's tables (the case fields and the note templates), a case's
+ * notes, or the reads of a later page of them (Load more's).
  */
 const FAILING_READS = {
   fail: { caseSetup: 1 },
@@ -90,6 +96,7 @@ const FAILING_READS = {
   "fail-twice": { caseSetup: 2 },
   "notes-fail-with-reference": { notes: 1 },
   "notes-fail-twice": { notes: 2 },
+  "notes-more-fail": { notesMore: 1 },
 };
 
 // The scenarios whose failed reads answer with a reference.
@@ -97,7 +104,11 @@ const FAILS_WITH_REFERENCE = [
   "fail-with-reference",
   "notes-fail-with-reference",
   "notes-fail-twice",
+  "notes-more-fail",
 ];
+
+// The older notes ?casesetup=notes-more-fail gives CASE-142.
+const OLDER_SPRAY_NOTES = 26;
 
 // The reference a ?casesetup=fail-with-reference failure names.
 export const FAILED_READ_REFERENCE = "3f9a2c1b";
@@ -157,6 +168,34 @@ export function createCaseSetupFixture(options) {
         [EXTERNAL_TICKET_FIELD]: "INC-48213",
       };
     }
+
+    if (scenario === "notes-more-fail") {
+      seedOlderSprayNotes();
+    }
+  }
+
+  /*
+   * notes-more-fail: shift-log notes older than CASE-142's two, 10 minutes
+   * apart - more than a page of its feed holds (NOTES_PAGE_SIZE, 25).
+   */
+  function seedOlderSprayNotes() {
+    const sprayNotes = table(SecurityCaseNote).filter((row) => {
+      return String(row.securityCaseId) === ID.case(142);
+    });
+    const oldest = Math.min(
+      ...sprayNotes.map((row) => {
+        return new Date(row.createdAt).getTime();
+      }),
+    );
+
+    for (let n = 1; n <= OLDER_SPRAY_NOTES; n++) {
+      insert(SecurityCaseNote, {
+        ...sprayNotes[0],
+        _id: ID.note(100 + n),
+        note: `Shift log ${n}: checked the Okta sign-in report again; nothing new from the Tor exit.`,
+        createdAt: new Date(oldest - n * 10 * 60 * 1000),
+      });
+    }
   }
 
   // GET /project/:id/numbering: where the project's case numbers stand.
@@ -194,18 +233,34 @@ export function createCaseSetupFixture(options) {
     );
   }
 
+  // How many of the reads of `modelName` that count fail, from the first.
+  function failingReadsOf(modelName, skip) {
+    const failing = FAILING_READS[scenario] || {};
+
+    if (isCaseSetupTable(modelName)) {
+      return failing.caseSetup || 0;
+    }
+
+    if (modelName !== tableName(SecurityCaseNote)) {
+      return 0;
+    }
+
+    // notes-more-fail: Load more's reads alone count - a later page's.
+    if (failing.notesMore) {
+      return skip > 0 ? failing.notesMore : 0;
+    }
+
+    return failing.notes || 0;
+  }
+
   /*
    * ?casesetup=fail (or fail-with-reference): each table's first read fails,
    * the next answers; fail-twice: its first two. notes-fail-with-reference
-   * and notes-fail-twice: the same of a case's notes.
+   * and notes-fail-twice: the same of a case's notes; notes-more-fail: of
+   * the reads of a later page of them, from `skip` on.
    */
-  function failsRead(modelName) {
-    const failing = FAILING_READS[scenario] || {};
-    const failingReads = isCaseSetupTable(modelName)
-      ? failing.caseSetup || 0
-      : modelName === tableName(SecurityCaseNote)
-        ? failing.notes || 0
-        : 0;
+  function failsRead(modelName, skip = 0) {
+    const failingReads = failingReadsOf(modelName, skip);
 
     if (!failingReads) {
       return false;

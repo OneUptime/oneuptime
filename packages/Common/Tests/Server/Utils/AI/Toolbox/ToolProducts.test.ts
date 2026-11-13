@@ -31,6 +31,7 @@ import {
 } from "../../../../../Types/Product/ServerProducts";
 import { customDomainCaller } from "../../../API/CustomDomainCallers";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * ASK AI LEAVES A PRODUCT THAT IS OFF ALONE (#6815).
@@ -47,7 +48,8 @@ const PROJECT_ID: ObjectID = new ObjectID(
   "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
 );
 
-type Spy = jest.SpyInstance;
+type GetOffSpy = SpyInstance<typeof ServerProducts.getOff>;
+type ExecuteSpy = SpyInstance<ObservabilityTool["execute"]>;
 
 afterEach(() => {
   jest.restoreAllMocks();
@@ -60,9 +62,9 @@ function asMember(permissions: Array<Permission>): ToolContext {
   };
 }
 
-const switchOff: (off: ServerProductsOff) => Spy = (
+const switchOff: (off: ServerProductsOff) => GetOffSpy = (
   off: ServerProductsOff,
-): Spy => {
+): GetOffSpy => {
   return jest.spyOn(ServerProducts, "getOff").mockResolvedValue(off);
 };
 
@@ -151,7 +153,7 @@ describe("every tool belongs to its products, or to none", () => {
 describe("a setup action for a product that is off is never proposed", () => {
   test("it is refused before its card, saying who can switch it on, and nothing runs", async () => {
     switchOff({ [ProductKey.Monitors]: ServerProductOffReason.SwitchedOff });
-    const execute: Spy = jest.spyOn(SETUP_TOOL, "execute");
+    const execute: ExecuteSpy = jest.spyOn(SETUP_TOOL, "execute");
 
     const refused: ToolCallOutcome | null = await AIToolbox.checkBeforeApproval(
       {
@@ -213,7 +215,7 @@ describe("a setup action for a product that is off is never proposed", () => {
   });
 
   test("a product that is on is not refused for it", async () => {
-    const getOff: Spy = switchOff({
+    const getOff: GetOffSpy = switchOff({
       [ProductKey.StatusPages]: ServerProductOffReason.SwitchedOff,
     });
 
@@ -232,7 +234,7 @@ describe("a tool of a product that is off does not run", () => {
     const tool: ObservabilityTool = AIToolbox.getToolByName(
       WHO_IS_TOLD_TOOL_NAME,
     )!;
-    const execute: Spy = jest.spyOn(
+    const execute: ExecuteSpy = jest.spyOn(
       tool as unknown as { execute: ObservabilityTool["execute"] },
       "execute",
     );

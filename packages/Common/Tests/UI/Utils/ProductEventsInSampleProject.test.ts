@@ -13,6 +13,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * A SAMPLE PROJECT IS NO ACTIVATION (issue #6808): nothing done inside one
@@ -30,7 +31,7 @@ const project: (isSampleProject: boolean) => Project = (
   return row;
 };
 
-let capture: jest.SpiedFunction<typeof UiAnalytics.capture>;
+let capture: SpyInstance<typeof UiAnalytics.capture>;
 
 beforeEach(() => {
   capture = jest.spyOn(UiAnalytics, "capture").mockImplementation(() => {});

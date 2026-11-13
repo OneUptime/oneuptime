@@ -1,3 +1,4 @@
+// UX rule: Docs/ux/README.md#dialogs-and-confirmations
 import "@testing-library/jest-dom";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";

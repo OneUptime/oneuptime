@@ -45,7 +45,7 @@ export const ServerProductOffCopy: {
   askAdminForIngestion: translationKey(
     "A server admin can start it again: set DISABLE_TELEMETRY_INGESTION to false and restart OneUptime.",
   ),
-  openSettings: translationKey("Open Settings > Products"),
+  openSettings: translationKey("Open Admin Dashboard > Settings > Products"),
   goHome: translationKey("Go to Home"),
   rowSwitchedOff: translationKey("Switched off on this server"),
   rowIngestionStopped: translationKey("Off: telemetry ingestion is stopped"),

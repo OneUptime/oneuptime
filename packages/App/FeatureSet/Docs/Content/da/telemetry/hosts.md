@@ -236,6 +236,10 @@ Værten bliver i OneUptime med sin historik: Arkivér eller slet den på listen 
 HTTP `401`: Nøglen er forkert, er udløbet eller blev slettet. HTTP `422`: Den er deaktiveret, er en browsernøgle eller er låst til én tjeneste. Vælg en aktiveret servernøgle i **Tilføj vært**, og kør kommandoen igen: Den erstatter nøglen på værten.
 :::
 
+:::details Kommandoen siger, at OneUptime ikke blev fundet
+HTTP `404`: Adressen, hvor collectoren beder om sin konfiguration, din OneUptime-URL efterfulgt af `/telemetry/opamp/v1`, når ikke frem til OneUptime. Tjek, at `--url` (`-Url` på Windows) er den adresse, du åbner OneUptime på, uden noget efter den. Hvis jeres egen proxy eller load balancer står foran OneUptime, så lad den sende `/telemetry/opamp/v1` til OneUptime, ligesom den sender `/otlp`. Collectoren bliver ved med at spørge hvert 30. sekund, så værten forbinder, så snart adressen virker.
+:::
+
 :::details Værten dukker ikke op
 Tjek, at værten kan nå din OneUptime-URL over HTTPS, og læs derefter collectorens log med kommandoen til dens system under [Tjek en værts collector](#tjek-en-værts-collector).
 :::

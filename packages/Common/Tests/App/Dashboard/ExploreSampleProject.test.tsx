@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import "@testing-library/jest-dom";
 import {
   act,
@@ -173,7 +174,7 @@ describe("the button", () => {
   });
 
   test("one click makes the sample, says where it was started from, and opens its Home", async () => {
-    const setLastAccessed: jest.SpiedFunction<
+    const setLastAccessed: SpyInstance<
       typeof ProjectUtil.setLastAccessedProjectId
     > = jest
       .spyOn(ProjectUtil, "setLastAccessedProjectId")

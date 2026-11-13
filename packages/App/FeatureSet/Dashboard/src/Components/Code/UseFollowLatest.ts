@@ -163,6 +163,33 @@ const getHeaderHeight: () => number = (): number => {
   return Number.isFinite(height) && height > 0 ? height : 0;
 };
 
+/*
+ * Whether the reader is at the end of the page as they last saw it: where
+ * they are now, against how tall the page was when they were last seen,
+ * before what grew since. Where they are is read from the page, not taken
+ * from its scroll events: the browser sends a scroll's event with the next
+ * frame, and a step drawn before that was judged by where the reader had
+ * been - one who had just come to the end was left short of the newest
+ * step, and one who had just scrolled up would have been pulled back down.
+ */
+const isAtEndAsLastSeen: (
+  scroller: Element,
+  seenHeight: number | null,
+) => boolean = (scroller: Element, seenHeight: number | null): boolean => {
+  return (
+    isScrolledToEnd({
+      scrollTop: scroller.scrollTop,
+      scrollHeight: seenHeight ?? scroller.scrollHeight,
+      clientHeight: scroller.clientHeight,
+    }) ||
+    /*
+     * A page that got shorter brings its end up to the reader: the browser
+     * keeps them within it, at its very end.
+     */
+    isScrolledToEnd(scroller, 1)
+  );
+};
+
 export interface UseFollowLatestOptions {
   // Changes whenever the conversation grows (getConversationGrowthKey).
   growthKey: string;
@@ -179,8 +206,13 @@ export interface UseFollowLatestOptions {
 const useFollowLatest: (data: UseFollowLatestOptions) => void = (
   data: UseFollowLatestOptions,
 ): void => {
-  // The reader is at the end of the page, as they last left it.
-  const isAtEndRef: MutableRefObject<boolean> = useRef<boolean>(false);
+  /*
+   * How tall the page was when the reader was last seen: at each scroll and
+   * resize the browser sends, and after each growth.
+   */
+  const seenHeightRef: MutableRefObject<number | null> = useRef<number | null>(
+    null,
+  );
   // The conversation as last drawn: its first drawing moves nothing.
   const drawnKeyRef: MutableRefObject<string> = useRef<string>("");
   // AI was working when the conversation was last drawn.
@@ -199,7 +231,7 @@ const useFollowLatest: (data: UseFollowLatestOptions) => void = (
     const onScroll: () => void = (): void => {
       const scroller: Element | null = getScroller();
 
-      isAtEndRef.current = scroller ? isScrolledToEnd(scroller) : false;
+      seenHeightRef.current = scroller ? scroller.scrollHeight : null;
     };
 
     onScroll();
@@ -217,8 +249,6 @@ const useFollowLatest: (data: UseFollowLatestOptions) => void = (
     const scroller: Element | null = getScroller();
     const previousKey: string = drawnKeyRef.current;
     const wasLive: boolean = wasLiveRef.current;
-    // Where the reader was before this growth: at the end, or not.
-    const wasAtEnd: boolean = isAtEndRef.current;
 
     drawnKeyRef.current = data.growthKey;
     wasLiveRef.current = data.isLive;
@@ -226,6 +256,12 @@ const useFollowLatest: (data: UseFollowLatestOptions) => void = (
     if (!scroller) {
       return undefined;
     }
+
+    // Where the reader was before this growth: at the end, or not.
+    const wasAtEnd: boolean = isAtEndAsLastSeen(
+      scroller,
+      seenHeightRef.current,
+    );
 
     const isFollowing: boolean =
       Boolean(previousKey) &&
@@ -257,8 +293,8 @@ const useFollowLatest: (data: UseFollowLatestOptions) => void = (
       scrollToTarget();
     }
 
-    // Where the reader is now, for the next growth.
-    isAtEndRef.current = isScrolledToEnd(scroller);
+    // The page as the reader sees it now, for the next growth.
+    seenHeightRef.current = scroller.scrollHeight;
 
     if (!isFollowing || typeof window === "undefined") {
       return undefined;
@@ -269,9 +305,9 @@ const useFollowLatest: (data: UseFollowLatestOptions) => void = (
      * unless the reader scrolled away meanwhile.
      */
     const frame: number = window.requestAnimationFrame((): void => {
-      if (isAtEndRef.current) {
+      if (isAtEndAsLastSeen(scroller, seenHeightRef.current)) {
         scrollToTarget();
-        isAtEndRef.current = isScrolledToEnd(scroller);
+        seenHeightRef.current = scroller.scrollHeight;
       }
     });
 
