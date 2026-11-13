@@ -43,7 +43,7 @@ flowchart TB
     SignIn["You sign in: password,<br/>passkey or SSO"]
     Allow["You allow notifications"]
     Register["The app registers<br/>the phone in each<br/>of your projects"]
-    Rules["Each project lists<br/>the phone, with<br/>default on-call rules"]
+    Rules["Each project adds<br/>the phone to your<br/>How to Reach Me"]
     Address --> Check --> SignIn --> Allow --> Register --> Rules
 ```
 
@@ -63,7 +63,7 @@ With two-factor authentication on, enter the six-digit code from your authentica
 ### Allow notifications
 When Android asks whether OneUptime On-Call may send notifications, tap **Allow**. Android 13 and later ask; earlier versions allow them unless you turn them off.
 
-The app then registers the phone in each of your projects. Every project lists it among your push devices with the default on-call rules, so your pages reach it from now on.
+The app then registers the phone in each of your projects. Every project lists it among your push devices and adds it to your How to Reach Me, so your pages reach it from now on.
 :::
 
 The app shows one project at a time: tap the project's name at the top of a screen to switch. A project that requires single sign-on says **SSO Required** under **Settings → Manage Projects** until you tap **Authenticate with SSO** there.
@@ -109,7 +109,7 @@ Android opens its **Do Not Disturb access** list. Turn the access on for OneUpti
 Tap **Alarm sound** under the switch. Besides the phone's own sound, it offers Klaxon, Siren, Digital alarm, Smoke alarm and Rising alarm, which starts soft and gets louder. Press play beside a sound to hear it. A critical page plays at the phone's alarm volume, so keep that turned up.
 :::
 
-Only on-call pages ring through, and only from on-call rules set to **Critical alert**, the default. A rule set to **Standard** follows the phone's settings whatever the switch says, so you can be woken for a critical incident and paged quietly for a minor one. Send a **Test Notification** with the phone muted to hear what a page will do.
+Only on-call pages ring through, and only from steps of How to Reach Me set to **Critical alert**, the default. A step set to **Standard** follows the phone's settings whatever the switch says, so you can be woken for a critical incident and paged quietly for a minor one. Send a **Test Notification** with the phone muted to hear what a page will do.
 
 ## Keep pages from arriving late
 
@@ -126,8 +126,8 @@ Turn on **Biometrics Login** under **Settings** in the app, and the app asks for
 ## Update, sign out or uninstall
 
 - **Update.** Google Play updates the app. For the APK, install the newest one over it. The app's version is at the bottom of its **Settings** screen.
-- **Sign out.** **Settings → Log Out** signs you out and removes the phone from your push devices in every project, together with its on-call rules. Signing in again adds it back with the default rules.
-- **Uninstall.** Remove the app as you remove any other. If you were still signed in, the phone stays on your list until a push to it fails: OneUptime then marks it **Not receiving notifications**. Delete that entry with **Delete**: installing the app again and signing in adds the phone as a new entry, with the default rules.
+- **Sign out.** **Settings → Log Out** signs you out and removes the phone from your push devices in every project, together with its steps in How to Reach Me. Signing in again adds it back with the default steps.
+- **Uninstall.** Remove the app as you remove any other. If you were still signed in, the phone stays on your list until a push to it fails: OneUptime then marks it **Not receiving notifications**. Delete that entry with **Delete**: installing the app again and signing in adds the phone as a new entry, with the default steps.
 
 ## Troubleshooting
 

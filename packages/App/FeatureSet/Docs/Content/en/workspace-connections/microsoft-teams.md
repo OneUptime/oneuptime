@@ -289,7 +289,7 @@ When your project's public notes need approval and you turn on Microsoft Teams f
 - **Uninstall OneUptime from Microsoft Teams**, on **Project Settings** > **Workspace** > **Microsoft Teams**, disconnects the project. OneUptime stops posting to Microsoft Teams, and the **Workspace** menus stop listing it. The notification rules and summaries are kept for when you connect again.
 
 > [!WARNING]
-> Uninstalling also unlinks every member's own Microsoft Teams account in the project, and removes the Microsoft Teams notification methods and the on-call rules that used them. A project is connected to one Microsoft 365 organization: to move it to another, uninstall first.
+> Uninstalling also unlinks every member's own Microsoft Teams account in the project, and removes the Microsoft Teams notification methods and the steps of How to Reach Me that used them. A project is connected to one Microsoft 365 organization: to move it to another, uninstall first.
 
 ## Troubleshooting
 

@@ -850,8 +850,7 @@ export default class CallLog extends BaseModel {
     type: TableColumnType.Entity,
     modelType: OnCallDutyPolicySchedule,
     title: "On-Call Schedule",
-    description:
-      "On-Call Schedule associated with this Call (if any)",
+    description: "On-Call Schedule associated with this Call (if any)",
     example: "d0e1f2a3-ef01-89f3-abcd-abcdef012345",
   })
   @ManyToOne(
@@ -885,8 +884,7 @@ export default class CallLog extends BaseModel {
     required: false,
     canReadOnRelationQuery: true,
     title: "On-Call Schedule ID",
-    description:
-      "ID of On-Call Schedule associated with this Call (if any)",
+    description: "ID of On-Call Schedule associated with this Call (if any)",
     example: "d0e1f2a3-ef01-89f3-abcd-abcdef012345",
   })
   @Column({

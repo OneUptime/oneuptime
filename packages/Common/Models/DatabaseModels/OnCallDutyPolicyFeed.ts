@@ -245,8 +245,7 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
     type: TableColumnType.ObjectID,
     required: true,
     title: "On-Call Policy ID",
-    description:
-      "ID of the on-call policy this resource belongs to",
+    description: "ID of the on-call policy this resource belongs to",
     example: "8b9c0d1e-2f3a-4b5c-6d7e-8f9a0b1c2d3e",
   })
   @Column({

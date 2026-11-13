@@ -5532,10 +5532,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         });
 
       if (!onCallDutyPolicy) {
-        logger.debug(
-          "On-call policy not found for ID:",
-          {} as LogAttributes,
-        );
+        logger.debug("On-call policy not found for ID:", {} as LogAttributes);
         logger.debug(
           data.notificationFor.onCallDutyPolicyId,
           {} as LogAttributes,

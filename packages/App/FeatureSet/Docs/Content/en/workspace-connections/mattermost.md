@@ -60,7 +60,7 @@ Go to **Incidents** > **Workspace** > **Mattermost**, and create a rule. For exa
 
 The bot's access token is kept on the OneUptime server only, encrypted with the project's other secrets, and is never shown again. The server address, the teams and the bot's username are shown to everyone in the project, on the Mattermost settings page.
 
-A project is connected to one Mattermost server. To move it to another server, disconnect it first: **Project Settings** > **Workspace** > **Mattermost**, then **⋯** > **Disconnect Mattermost**. Disconnecting disconnects every member's own Mattermost account too, and removes their Mattermost notification methods and the on-call rules that use them. Your notification rules and summaries are kept for when you connect again.
+A project is connected to one Mattermost server. To move it to another server, disconnect it first: **Project Settings** > **Workspace** > **Mattermost**, then **⋯** > **Disconnect Mattermost**. Disconnecting disconnects every member's own Mattermost account too, and removes their Mattermost notification methods and the steps of How to Reach Me that use them. Your notification rules and summaries are kept for when you connect again.
 
 ## More than one team
 

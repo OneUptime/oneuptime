@@ -31,8 +31,9 @@ import React, { FunctionComponent, ReactElement } from "react";
 export const ON_CALL_RULES_INTRO: string = translationKey(
   "These rules decide which {{notificationMethod}} a page tries, and after how long, for each severity.",
 );
-export const ON_CALL_RULES_INTRO_TERM: string =
-  translationKey("notification method");
+export const ON_CALL_RULES_INTRO_TERM: string = translationKey(
+  "notification method",
+);
 export const ON_CALL_RULES_INTRO_TEST_ID: string = "on-call-rules-intro";
 
 /*

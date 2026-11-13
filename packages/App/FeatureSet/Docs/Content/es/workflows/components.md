@@ -227,7 +227,7 @@ flowchart TB
     check -->|"Yes"| page["Page Whoever Is On Call"]
 ```
 
-Al crear un flujo de trabajo, las plantillas de **De guardia** tienen este ya preparado, y otro que avisa según la gravedad con **Switch / Case**. El diálogo **Crear un flujo de trabajo** pregunta a quién avisa cada bloque de aviso de una plantilla, así que el flujo de trabajo se abre con eso ya elegido. Un bloque de aviso que añades en el Constructor dice **Haz clic para configurar** hasta que eliges a quién avisa.
+Al crear un flujo de trabajo, las plantillas de **Guardia** tienen este ya preparado, y otro que avisa según la gravedad con **Switch / Case**. El diálogo **Crear un flujo de trabajo** pregunta a quién avisa cada bloque de aviso de una plantilla, así que el flujo de trabajo se abre con eso ya elegido. Un bloque de aviso que añades en el Constructor dice **Haz clic para configurar** hasta que eliges a quién avisa.
 
 | Ajuste | Qué hace |
 | ------ | -------- |

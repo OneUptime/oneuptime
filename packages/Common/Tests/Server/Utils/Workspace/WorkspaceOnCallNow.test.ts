@@ -360,7 +360,7 @@ describe("WorkspaceOnCallNow: who is on call, schedule by schedule", () => {
     expect(lines[1]).toBe("- S1: nobody right now.");
     expect(lines[21]).toBe("");
     expect(lines[22]).toBe(
-      "These are the first 20 schedules. See them all in OneUptime, under On-Call Duty → Schedules.",
+      "These are the first 20 schedules. See them all in OneUptime, under On-Call → On-Call Schedules.",
     );
 
     returnSchedules([schedule({ name: "Primary" })]);
@@ -372,7 +372,7 @@ describe("WorkspaceOnCallNow: who is on call, schedule by schedule", () => {
 
   test("no schedule the asker may read: said so once, as the schedules list in OneUptime says it, with where to add one", async () => {
     expect(await answer()).toEqual({
-      markdown: `👥 **No on-call schedules yet.** [Add one in OneUptime](${SCHEDULES_LINK}) under On-Call Duty → Schedules.`,
+      markdown: `👥 **No on-call schedules yet.** [Add one in OneUptime](${SCHEDULES_LINK}) under On-Call → On-Call Schedules.`,
       text: "No on-call schedules yet",
     });
 
@@ -381,7 +381,7 @@ describe("WorkspaceOnCallNow: who is on call, schedule by schedule", () => {
       .mockRejectedValue(new Error("No host is configured."));
 
     expect((await answer()).markdown).toBe(
-      "👥 **No on-call schedules yet.** Add one in OneUptime under On-Call Duty → Schedules.",
+      "👥 **No on-call schedules yet.** Add one in OneUptime under On-Call → On-Call Schedules.",
     );
   });
 

@@ -194,7 +194,7 @@ Many things in OneUptime are called a rule. Each makes one decision for you when
 | What runs on it | **Runbook Rules** start runbooks, and **AI Rules** decide what OneUptime AI investigates and fixes |
 | When to follow up | **SLA Rules** track response and resolution times, and **Reminder Rules** remind owners while it is open |
 
-A monitor's own rules are its criteria. The on-call rules under **User Settings** are something else again: each person's own, they decide how a page reaches that person.
+A monitor's own rules are its criteria. How to Reach Me, under **User Settings**, is something else again: each person's own steps, which decide how a page reaches them.
 
 :::cards
 - [Incident Settings & Automation](/docs/incidents/settings#rules-that-run-when-an-incident-is-created): The rules that run when an incident is created, in order.

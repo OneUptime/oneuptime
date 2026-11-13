@@ -202,7 +202,7 @@ Cuando se pierde una llamada, OneUptime avisa a los propietarios de la política
 
 El aviso dice quién llamó, qué número marcó, por qué nadie contestó, y a quién sonó y cómo terminó cada intento. Enlaza la llamada en el registro de llamadas.
 
-Los propietarios reciben un correo por defecto. Cada persona puede elegir otros canales (SMS, llamada, push y más) o desactivarlo en **Ajustes de usuario** > **Ajustes de notificaciones**, en **De guardia** > **Políticas de llamadas entrantes** > **Llamada perdida**. Consulta [Ajustes de notificaciones](/docs/notifications/notification-settings).
+Los propietarios reciben un correo por defecto. Cada persona puede elegir otros canales (SMS, llamada, push y más) o desactivarlo en **Ajustes de usuario** > **Ajustes de notificaciones**, en **Guardia** > **Políticas de llamadas entrantes** > **Llamada perdida**. Consulta [Ajustes de notificaciones](/docs/notifications/notification-settings).
 
 ### Reacciona a las llamadas perdidas en un flujo de trabajo
 

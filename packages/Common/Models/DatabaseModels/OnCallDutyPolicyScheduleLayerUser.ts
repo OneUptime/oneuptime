@@ -265,8 +265,7 @@ export default class OnCallDutyPolicyScheduleLayerUser extends BaseModel {
     type: TableColumnType.Entity,
     modelType: OnCallDutyPolicyScheduleLayer,
     title: "On-Call Schedule Layer",
-    description:
-      "Relation to On-Call Schedule Layer where this belongs.",
+    description: "Relation to On-Call Schedule Layer where this belongs.",
   })
   @ManyToOne(
     () => {

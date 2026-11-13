@@ -5,8 +5,9 @@ import GlossaryTerm from "./GlossaryTerm";
  *
  * Where one thing had two or three names, one was kept and the others
  * retired. A retired name may not come back in what people read - the
- * Dashboard's words, permission names, emails, the English docs, the
- * website - and App/Tests/Dashboard/RetiredNamesGuard holds them to that.
+ * Dashboard's words, permission names, emails, every string the server and
+ * the front ends write, the English docs, the website - and
+ * App/Tests/Dashboard/RetiredNamesGuard holds them to that.
  *
  * It stays where people who learned it look for it, and nowhere else:
  *
@@ -48,7 +49,9 @@ export const RETIRED_NAMES: ReadonlyArray<RetiredName> = [
     name: "On-Call Duty",
     nowCalled: "On-Call",
     glossaryTerm: GlossaryTerm.OnCallPolicy,
-    pattern: /\bOn[- ]Call Duty\b|\b[Oo]n[- ]call duty polic(?:y|ies)\b/,
+    // Also the policies and schedules it named, written in lower case.
+    pattern:
+      /\bOn[- ]Call Duty\b|\b[Oo]n[- ]call[- ]duty (?:polic(?:y|ies)|schedules?)\b/,
     retiredIn: "#6817 part 1",
   },
   {

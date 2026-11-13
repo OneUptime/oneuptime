@@ -304,8 +304,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     type: TableColumnType.Entity,
     modelType: Incident,
     title: "Triggered By Incident",
-    description:
-      "Relation to Incident which triggered this on-call policy.",
+    description: "Relation to Incident which triggered this on-call policy.",
     example: "f6a7b8c9-d0e1-2345-f012-456789012345",
   })
   @ManyToOne(

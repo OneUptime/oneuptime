@@ -87,13 +87,10 @@ class OnCallDutyPolicyScheduleOwnerRuleEngineServiceClass
         allowOwnerNotification: true,
       });
     } catch (error) {
-      logger.error(
-        `Error applying on-call schedule owner rules: ${error}`,
-        {
-          projectId: schedule.projectId?.toString(),
-          onCallDutyPolicyScheduleId: schedule.id?.toString(),
-        } as LogAttributes,
-      );
+      logger.error(`Error applying on-call schedule owner rules: ${error}`, {
+        projectId: schedule.projectId?.toString(),
+        onCallDutyPolicyScheduleId: schedule.id?.toString(),
+      } as LogAttributes);
     }
   }
 
@@ -116,13 +113,10 @@ class OnCallDutyPolicyScheduleOwnerRuleEngineServiceClass
         props: data.props,
       });
     } catch (error) {
-      logger.error(
-        `Error running on-call schedule owner rules: ${error}`,
-        {
-          projectId: data.resource.projectId?.toString(),
-          onCallDutyPolicyScheduleId: data.resource.id?.toString(),
-        } as LogAttributes,
-      );
+      logger.error(`Error running on-call schedule owner rules: ${error}`, {
+        projectId: data.resource.projectId?.toString(),
+        onCallDutyPolicyScheduleId: data.resource.id?.toString(),
+      } as LogAttributes);
 
       return RuleApplicationResultUtil.failed();
     }

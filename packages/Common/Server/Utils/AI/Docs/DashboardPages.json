@@ -290,7 +290,7 @@
     "kind": "setting"
   },
   {
-    "title": "Notification Settings",
+    "title": "Notification Channels",
     "where": [
       "Project Settings",
       "Notifications"
@@ -304,7 +304,8 @@
       "email server",
       "twilio",
       "balance",
-      "auto recharge"
+      "auto recharge",
+      "notification settings"
     ],
     "path": "/dashboard/:projectId/settings/notification-settings",
     "kind": "page"
@@ -314,7 +315,7 @@
     "where": [
       "Project Settings",
       "Notifications",
-      "Notification Settings"
+      "Notification Channels"
     ],
     "keywords": [
       "smtp",
@@ -332,7 +333,7 @@
     "where": [
       "Project Settings",
       "Notifications",
-      "Notification Settings"
+      "Notification Channels"
     ],
     "keywords": [
       "twilio",
@@ -344,21 +345,11 @@
     "kind": "action"
   },
   {
-    "title": "Notification Channels",
-    "where": [
-      "Project Settings",
-      "Notifications",
-      "Notification Settings"
-    ],
-    "path": "/dashboard/:projectId/settings/notification-settings",
-    "kind": "setting"
-  },
-  {
     "title": "Current Balance",
     "where": [
       "Project Settings",
       "Notifications",
-      "Notification Settings"
+      "Notification Channels"
     ],
     "path": "/dashboard/:projectId/settings/notification-settings",
     "kind": "setting",
@@ -369,7 +360,7 @@
     "where": [
       "Project Settings",
       "Notifications",
-      "Notification Settings"
+      "Notification Channels"
     ],
     "path": "/dashboard/:projectId/settings/notification-settings",
     "kind": "setting",
@@ -2410,7 +2401,7 @@
   {
     "title": "On-Call Policies",
     "where": [
-      "On-Call Duty",
+      "On-Call",
       "Policies"
     ],
     "keywords": [
@@ -2419,7 +2410,9 @@
       "escalation rules",
       "paging policy",
       "pager",
-      "create on-call policy"
+      "on-call policy",
+      "create on-call policy",
+      "on-call duty policies"
     ],
     "path": "/dashboard/:projectId/on-call-duty/policies",
     "kind": "page"
@@ -2427,7 +2420,7 @@
   {
     "title": "Page the right person when something breaks",
     "where": [
-      "On-Call Duty",
+      "On-Call",
       "Policies"
     ],
     "keywords": [
@@ -2445,7 +2438,7 @@
   {
     "title": "Readiness",
     "where": [
-      "On-Call Duty",
+      "On-Call",
       "Policies"
     ],
     "keywords": [
@@ -2459,7 +2452,7 @@
   {
     "title": "On-Call Schedules",
     "where": [
-      "On-Call Duty",
+      "On-Call",
       "Schedules"
     ],
     "keywords": [
@@ -2468,7 +2461,9 @@
       "roster",
       "shifts",
       "who is on call",
-      "create on-call schedule"
+      "create on-call schedule",
+      "on-call duty schedules",
+      "on-call policy schedules"
     ],
     "path": "/dashboard/:projectId/on-call-duty/schedules",
     "kind": "page"
@@ -2476,7 +2471,7 @@
   {
     "title": "Schedule Timeline",
     "where": [
-      "On-Call Duty",
+      "On-Call",
       "Schedules"
     ],
     "keywords": [
@@ -2490,7 +2485,7 @@
   {
     "title": "Calendar Feeds",
     "where": [
-      "On-Call Duty",
+      "On-Call",
       "Schedules"
     ],
     "keywords": [
@@ -2505,7 +2500,7 @@
   {
     "title": "Incoming Call Policies",
     "where": [
-      "On-Call Duty",
+      "On-Call",
       "Incoming Calls"
     ],
     "keywords": [
@@ -2519,7 +2514,7 @@
   {
     "title": "User Overrides",
     "where": [
-      "On-Call Duty",
+      "On-Call",
       "Advanced"
     ],
     "keywords": [
@@ -2534,7 +2529,7 @@
   {
     "title": "Execution Logs",
     "where": [
-      "On-Call Duty",
+      "On-Call",
       "Advanced"
     ],
     "keywords": [
@@ -2548,16 +2543,16 @@
   {
     "title": "Archived Policies",
     "where": [
-      "On-Call Duty",
+      "On-Call",
       "Advanced"
     ],
     "path": "/dashboard/:projectId/on-call-duty/policies/archived",
     "kind": "page"
   },
   {
-    "title": "User On Call Time",
+    "title": "User On-Call Time",
     "where": [
-      "On-Call Duty",
+      "On-Call",
       "Reports"
     ],
     "keywords": [
@@ -2570,7 +2565,7 @@
   {
     "title": "Slack",
     "where": [
-      "On-Call Duty",
+      "On-Call",
       "Workspace"
     ],
     "keywords": [
@@ -2583,7 +2578,7 @@
   {
     "title": "Microsoft Teams",
     "where": [
-      "On-Call Duty",
+      "On-Call",
       "Workspace"
     ],
     "keywords": [
@@ -2597,7 +2592,7 @@
   {
     "title": "Mattermost",
     "where": [
-      "On-Call Duty",
+      "On-Call",
       "Workspace"
     ],
     "keywords": [
@@ -2610,7 +2605,7 @@
   {
     "title": "Custom Fields",
     "where": [
-      "On-Call Duty",
+      "On-Call",
       "Settings"
     ],
     "path": "/dashboard/:projectId/on-call-duty/settings/custom-fields",
@@ -2619,7 +2614,7 @@
   {
     "title": "Label Rules",
     "where": [
-      "On-Call Duty",
+      "On-Call",
       "Settings"
     ],
     "keywords": [
@@ -2632,7 +2627,7 @@
   {
     "title": "Owner Rules",
     "where": [
-      "On-Call Duty",
+      "On-Call",
       "Settings"
     ],
     "keywords": [
@@ -2645,7 +2640,7 @@
   {
     "title": "Terraform",
     "where": [
-      "On-Call Duty",
+      "On-Call",
       "Developer"
     ],
     "keywords": [
@@ -2659,7 +2654,7 @@
   {
     "title": "API",
     "where": [
-      "On-Call Duty",
+      "On-Call",
       "Developer"
     ],
     "keywords": [
@@ -2673,7 +2668,7 @@
   {
     "title": "CLI",
     "where": [
-      "On-Call Duty",
+      "On-Call",
       "Developer"
     ],
     "keywords": [
@@ -2688,7 +2683,7 @@
   {
     "title": "AI Assistants",
     "where": [
-      "On-Call Duty",
+      "On-Call",
       "Developer"
     ],
     "keywords": [
@@ -8557,6 +8552,7 @@
     ],
     "keywords": [
       "on-call rules",
+      "personal on-call rules",
       "how i get paged",
       "my notification rules",
       "paging ladder",

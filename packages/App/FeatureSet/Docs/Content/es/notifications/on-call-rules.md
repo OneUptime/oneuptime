@@ -135,7 +135,7 @@ Un propietario del proyecto, o alguien con **Manage Billing**, puede establecer 
 
 ## Las reglas de un compañero
 
-Los propietarios y administradores del proyecto pueden ver y cambiar la misma página para cualquier persona del proyecto: en **Usuarios**, abren a la persona y luego **Cómo contactarme** en la sección **De guardia**. **Preparación**, al lado, muestra si cada gravedad le llega. Cuando otra persona añade, cambia o elimina tus reglas, recibes un correo al respecto, y cada cambio queda en el registro de auditoría del proyecto.
+Los propietarios y administradores del proyecto pueden ver y cambiar la misma página para cualquier persona del proyecto: en **Usuarios**, abren a la persona y luego **Cómo contactarme** en la sección **Guardia**. **Preparación**, al lado, muestra si cada gravedad le llega. Cuando otra persona añade, cambia o elimina tus reglas, recibes un correo al respecto, y cada cambio queda en el registro de auditoría del proyecto.
 
 ## Solución de problemas
 

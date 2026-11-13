@@ -53,7 +53,7 @@ Abre **Ajustes de usuario**, a la derecha de la barra que está debajo de la bar
 
 **Primeros pasos** y **Alertas y notificaciones** están abiertas; las demás secciones empiezan plegadas, y una sección se abre sola cuando estás en una de sus páginas. **Espacio de trabajo** solo aparece si el proyecto ha conectado Slack, Microsoft Teams o Mattermost.
 
-Los propietarios y administradores del proyecto también pueden ver tu configuración: en **Usuarios**, abren tu fila y su sección **De guardia**, con **Preparación**, **Métodos de notificación** y **Cómo contactarme**. Pueden añadir un método por ti allí, pero el código va al propio método, así que solo tú puedes verificarlo.
+Los propietarios y administradores del proyecto también pueden ver tu configuración: en **Usuarios**, abren tu fila y su sección **Guardia**, con **Preparación**, **Métodos de notificación** y **Cómo contactarme**. Pueden añadir un método por ti allí, pero el código va al propio método, así que solo tú puedes verificarlo.
 
 ## Con qué empiezas
 

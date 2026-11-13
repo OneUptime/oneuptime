@@ -349,7 +349,7 @@ function ids(value: unknown): Array<string> {
 
 async function pickPolicy(user: UserEvent, name: string): Promise<void> {
   await user.click(
-    within(dialog()).getByRole("combobox", { name: /On-Call Duty Policies/ }),
+    within(dialog()).getByRole("combobox", { name: /On-Call Policies/ }),
   );
   await user.click(await screen.findByRole("option", { name: name }));
 }
@@ -459,7 +459,7 @@ describe.each(ON_CALL_CASES)("$name", (page: OnCallCase) => {
     await next();
 
     expect(
-      within(dialog()).getByRole("combobox", { name: /On-Call Duty Policies/ }),
+      within(dialog()).getByRole("combobox", { name: /On-Call Policies/ }),
     ).toBeVisible();
     expect(nameBox()).toBeVisible();
     expect(nameBox()).toHaveValue("");
@@ -533,7 +533,7 @@ describe.each(ON_CALL_CASES)("$name", (page: OnCallCase) => {
     await submit();
 
     expect(
-      await within(dialog()).findByText("On-Call Duty Policies is required."),
+      await within(dialog()).findByText("On-Call Policies is required."),
     ).toBeInTheDocument();
     expect(createOrUpdateMock).not.toHaveBeenCalled();
   });

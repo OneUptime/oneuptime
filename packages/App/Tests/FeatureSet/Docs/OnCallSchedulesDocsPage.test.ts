@@ -59,7 +59,7 @@ const DASHBOARD_LOCALES_DIR: string = path.resolve(
   "../../../FeatureSet/Dashboard/src/Locales",
 );
 
-const NAV_GROUP_TITLE: string = "On Call";
+const NAV_GROUP_TITLE: string = "On-Call";
 const PAGE_TITLE: string = "On-Call Schedules";
 const PAGE_RELATIVE_PATH: string = "on-call/schedules";
 const PAGE_URL: string = `/docs/${PAGE_RELATIVE_PATH}`;
@@ -109,7 +109,7 @@ const AWAY_LABELS: Array<string> = [
   "Ends",
   EVERYONE_AWAY,
   "Schedule Timeline",
-  "On-Call Duty",
+  "On-Call",
   "Advanced",
   "User Overrides",
 ];
@@ -416,7 +416,7 @@ describe("the On-Call Schedules docs page", () => {
       expect(away).toContain("the layers below it take over");
 
       /*
-       * Where it is listed - in On-Call Duty's Advanced section, which starts
+       * Where it is listed - in On-Call's Advanced section, which starts
        * folded, so the path names it - and that it reaches every policy.
        */
       const sideMenu: string = readRepoFile(ON_CALL_SIDE_MENU_FILE);
@@ -424,9 +424,7 @@ describe("the On-Call Schedules docs page", () => {
         sectionByTitle(menuSections(sideMenu), "Advanced").items,
       ).toContain("User Overrides");
       expect(startsCollapsed(sideMenu, "Advanced")).toBe(true);
-      expect(away).toContain(
-        "**On-Call Duty** > **Advanced** > **User Overrides**",
-      );
+      expect(away).toContain("**On-Call** > **Advanced** > **User Overrides**");
       expect(away).toContain("applies to every on-call policy");
     });
 

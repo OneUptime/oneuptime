@@ -30,7 +30,7 @@ Una política no avisa a nadie hasta que algo la ejecuta. Cada incidente, alerta
 
 | Qué | Cómo añade la política | Más información |
 | --- | --- | --- |
-| El propio registro | El campo **Política de guardia** al crear un incidente o una alerta, una plantilla de incidente, o la sección plegada **De guardia** de los criterios de un monitor | [Declarar un incidente](/docs/incidents/declaring-incidents) |
+| El propio registro | El campo **Política de guardia** al crear un incidente o una alerta, una plantilla de incidente, o la sección plegada **Guardia** de los criterios de un monitor | [Declarar un incidente](/docs/incidents/declaring-incidents) |
 | Reglas de guardia | **Incidentes → Reglas → Reglas de guardia** y **Alertas → Reglas → Reglas de guardia** añaden las políticas de cada regla que coincide | [Reglas de guardia de incidentes](/docs/incidents/settings#reglas-de-guardia-de-incidentes) |
 | Reglas de agrupación | Una regla de agrupación ejecuta sus políticas cuando abre un episodio | [Episodios de alertas y reglas de agrupación](/docs/alerts/episodes) |
 | A mano | **Ejecutar política de guardia**, en el menú **Acciones** de un feed, o en un mensaje de Slack o Microsoft Teams | [El feed del incidente](/docs/incidents/notes-owners-and-feed#el-feed-del-incidente) |

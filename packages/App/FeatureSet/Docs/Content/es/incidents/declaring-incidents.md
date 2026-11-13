@@ -144,7 +144,7 @@ Si declaras una y otra vez el mismo tipo de incidente —el mismo patrón de tí
 
 Si tu proyecto aún no tiene plantillas, obtienes en su lugar un diálogo **No hay plantillas de incidente**, con un botón **Crear plantilla** que te lleva a **Incidentes → Ajustes → Plantillas de incidente**.
 
-Las plantillas se crean con su propio asistente de cuatro pasos —**Información de la plantilla**, **Detalles del incidente**, **Recursos afectados**, **De guardia**—, más los pasos **Campos personalizados** y **Campos personalizados al crear** después de **Recursos afectados** cuando tu proyecto tiene campos personalizados de incidente. El **Estado inicial del incidente**, los **Propietarios** y las **Etiquetas** de la plantilla están en **Más campos** al final de **Detalles del incidente**. **Recursos afectados** pregunta como el formulario de declaración —**Monitores**, luego **Cambiar el estado del monitor a**, luego **Otros recursos afectados**, con **Limitar a estas páginas de estado** en **Más campos**—, salvo que una plantilla siempre pregunta por el estado del monitor: también se aplica a los monitores elegidos cuando se declara un incidente desde la plantilla. Estos son los campos:
+Las plantillas se crean con su propio asistente de cuatro pasos —**Información de la plantilla**, **Detalles del incidente**, **Recursos afectados**, **Guardia**—, más los pasos **Campos personalizados** y **Campos personalizados al crear** después de **Recursos afectados** cuando tu proyecto tiene campos personalizados de incidente. El **Estado inicial del incidente**, los **Propietarios** y las **Etiquetas** de la plantilla están en **Más campos** al final de **Detalles del incidente**. **Recursos afectados** pregunta como el formulario de declaración —**Monitores**, luego **Cambiar el estado del monitor a**, luego **Otros recursos afectados**, con **Limitar a estas páginas de estado** en **Más campos**—, salvo que una plantilla siempre pregunta por el estado del monitor: también se aplica a los monitores elegidos cuando se declara un incidente desde la plantilla. Estos son los campos:
 
 | Campo                                  | Propósito                                              |
 | -------------------------------------- | ------------------------------------------------------ |
@@ -188,7 +188,7 @@ Cada entrada de incidente tiene:
 - **Título del incidente** — admite plantillas; el texto de ejemplo sugiere algo como `{{monitorName}} is down`.
 - **Gravedad** — obligatoria.
 - **Descripción del incidente** — también admite plantillas.
-- **De guardia → Políticas de guardia** — las políticas que se ejecutan cuando se crea este incidente.
+- **Guardia → Políticas de guardia** — las políticas que se ejecutan cuando se crea este incidente.
 - **Roles de incidente** — quién asume cada rol en el incidente, elegido en las mismas tarjetas que **Asignar roles del incidente** del formulario de declaración, una por rol. Se muestra cuando tu proyecto tiene roles de incidente.
 - **Propiedad y etiquetas → Propietarios** (personas y equipos, elegidos de una sola lista), **Etiquetas**.
 - **Más campos → Resolver incidente automáticamente** (resuelve el incidente automáticamente cuando los criterios dejan de coincidir), **Mostrar incidente en la página de estado**, **Incidente privado** y **Notas de remediación**.

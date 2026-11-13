@@ -123,7 +123,7 @@ describe("the docs on the grouping rule form", () => {
       ).toEqual(groups);
 
       // The settings that are set, as the folded line writes them.
-      expect(settings).toContain("On-Call Duty Policies: 2");
+      expect(settings).toContain("On-Call Policies: 2");
       expect(settings).toContain(
         "Reopen recently resolved episodes: 30 minutes",
       );

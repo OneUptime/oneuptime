@@ -30,7 +30,7 @@ import path from "path";
  * "**Project Settings → AI Features**", "**Project Settings** > **Billing**"
  * and "**Project Settings → Domains**" in every language. Markdown is not
  * compiled, so these hold every page, in every language, to the menu as it
- * is drawn, as OnCallDutyMenuPathsDocs does for On-Call Duty:
+ * is drawn, as OnCallDutyMenuPathsDocs does for On-Call:
  *
  *   - every path written with the English names ("Project Settings → AI →
  *     AI Features", "**Project Settings** > **Advanced** > **API Keys**")
@@ -195,7 +195,7 @@ describe("the checks themselves", () => {
         { section: "Advanced", page: "Domains" },
         { section: "Advanced", page: "API Keys" },
         { section: "Advanced", page: IMPORT_PAGE },
-        { section: "Notifications", page: "Notification Settings" },
+        { section: "Notifications", page: "Notification Channels" },
         { section: "Workspace", page: "Video Calls" },
       ]),
     );

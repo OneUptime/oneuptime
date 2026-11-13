@@ -30,7 +30,7 @@ flowchart TB
 :::steps
 ### Abre tus ajustes
 
-Ve a **Ajustes de usuario → Ajustes de notificaciones**. Las pestañas son **Incidentes**, **Alertas**, **Monitoreo**, **Páginas de estado**, **Mantenimiento programado**, **De guardia** y **Seguridad**.
+Ve a **Ajustes de usuario → Ajustes de notificaciones**. Las pestañas son **Incidentes**, **Alertas**, **Monitoreo**, **Páginas de estado**, **Mantenimiento programado**, **Guardia** y **Seguridad**.
 
 ### Busca el evento
 
@@ -52,7 +52,7 @@ Cuando te unes a un proyecto, estos eventos empiezan activados, por correo. Todo
 | **Monitoreo** | **El estado de la sonda cambió para tu monitor**, **El monitor no tiene sondas activas**, **El estado del SLO cambió**, **Añadido como propietario del SLO**, **Excepción asignada a mí**, **Estado de la sonda cambiado**, **Añadido como propietario de la sonda** | **Monitor creado**, **Estado del monitor cambiado**, **Añadido como propietario del monitor**, **El estado del agente de IA ha cambiado**, **Añadido como propietario del agente de IA** |
 | **Páginas de estado** | **Mi nota pública aprobada o rechazada**, y también por push: **Nota pública pendiente de mi aprobación** | **Página de estado creada**, **Anuncio de página de estado publicado**, **Añadido como propietario de la página de estado** |
 | **Mantenimiento programado** | **Recordatorio de mantenimiento** | **Evento de mantenimiento creado**, **Estado de mantenimiento cambiado**, **Nota de mantenimiento publicada**, **Añadido como propietario del mantenimiento** |
-| **De guardia** | **Entras en la guardia**, **Eres el siguiente en la guardia**, **Sales de la guardia**, **Añadido a la política de guardia**, **Eliminado de la política de guardia**, **Llamada perdida**, y también por push: **Antes de que empiece mi turno de guardia**, **Mi próximo turno de guardia se reasigna** | Ninguno |
+| **Guardia** | **Entras en la guardia**, **Eres el siguiente en la guardia**, **Sales de la guardia**, **Añadido a la política de guardia**, **Eliminado de la política de guardia**, **Llamada perdida**, y también por push: **Antes de que empiece mi turno de guardia**, **Mi próximo turno de guardia se reasigna** | Ninguno |
 | **Seguridad** | También por push: **Nuevo caso de seguridad** (casos de prioridad Alta y Crítica), **Caso de seguridad asignado a mí**, **Paso de playbook esperando mi aprobación**, **Objetivo de respuesta de un caso de seguridad**, **Tarea de un caso de seguridad asignada a mí**, **Una cacería encontró eventos de seguridad** | Ninguno |
 
 > [!IMPORTANT]
@@ -60,7 +60,7 @@ Cuando te unes a un proyecto, estos eventos empiezan activados, por correo. Todo
 
 ## Tus turnos
 
-La pestaña **De guardia** trata de ti, no de los registros que son tuyos:
+La pestaña **Guardia** trata de ti, no de los registros que son tuyos:
 
 - **Entras en la guardia**, **Eres el siguiente en la guardia** y **Sales de la guardia** siguen tus turnos en los calendarios de guardia en los que estás.
 - **Añadido a la política de guardia** y **Eliminado de la política de guardia** te dicen cuándo una política de guardia empieza o deja de nombrarte.

@@ -2251,7 +2251,8 @@ describe("methods are a page of their own now, not a card on this one", () => {
      * that can change the answer it just gave.
      */
     expect(container.textContent).toContain("Notification methods");
-    expect(container.textContent).toContain("On-call rules");
+    // The person's own rules, by their page's name (#6817).
+    expect(container.textContent).toContain("How to Reach Me");
 
     /*
      * One entry for the rules, not one per kind: they are one page with a tab
@@ -2272,7 +2273,7 @@ describe("methods are a page of their own now, not a card on this one", () => {
      */
     const rulesLink: HTMLElement | null =
       screen
-        .getAllByText("On-call rules")
+        .getAllByText("How to Reach Me")
         .map((element: HTMLElement): HTMLElement | null => {
           return element.closest("a");
         })

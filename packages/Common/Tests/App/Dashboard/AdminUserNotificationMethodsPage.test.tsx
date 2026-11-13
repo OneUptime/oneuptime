@@ -2576,11 +2576,11 @@ describe("a project with channels switched off", () => {
    * a channel on.
    */
   const WHY_MISSING: string =
-    "Channels that are off in this project are not offered. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings → Notifications → Notification Settings.";
+    "Channels that are off in this project are not offered. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings → Notifications → Notification Channels.";
 
   // Said to someone who may turn them on, with the page as a link.
   const WHY_MISSING_WITH_LINK: string =
-    "Channels that are off in this project are not offered. Turn them on in Project Settings → Notifications → Notification Settings.";
+    "Channels that are off in this project are not offered. Turn them on in Project Settings → Notifications → Notification Channels.";
 
   type ChannelsOffNoteFunction = () => HTMLElement;
 
@@ -2684,7 +2684,7 @@ describe("a project with channels switched off", () => {
       expect(note.textContent).toBe(WHY_MISSING_WITH_LINK);
 
       const link: HTMLElement = within(note).getByRole("link", {
-        name: "Project Settings → Notifications → Notification Settings",
+        name: "Project Settings → Notifications → Notification Channels",
       });
 
       expect(link.getAttribute("href")).toBe(

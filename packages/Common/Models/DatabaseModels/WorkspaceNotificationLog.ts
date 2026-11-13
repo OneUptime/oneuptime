@@ -905,8 +905,7 @@ export default class WorkspaceNotificationLog extends BaseModel {
     required: false,
     canReadOnRelationQuery: true,
     title: "On-Call Policy ID",
-    description:
-      "ID of On-Call Policy associated with this message (if any)",
+    description: "ID of On-Call Policy associated with this message (if any)",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -992,8 +991,7 @@ export default class WorkspaceNotificationLog extends BaseModel {
     type: TableColumnType.Entity,
     modelType: OnCallDutyPolicySchedule,
     title: "On-Call Schedule",
-    description:
-      "On-Call Schedule associated with this message (if any)",
+    description: "On-Call Schedule associated with this message (if any)",
   })
   @ManyToOne(
     () => {
@@ -1026,8 +1024,7 @@ export default class WorkspaceNotificationLog extends BaseModel {
     required: false,
     canReadOnRelationQuery: true,
     title: "On-Call Schedule ID",
-    description:
-      "ID of On-Call Schedule associated with this message (if any)",
+    description: "ID of On-Call Schedule associated with this message (if any)",
   })
   @Column({
     type: ColumnType.ObjectID,

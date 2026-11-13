@@ -33,11 +33,11 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * dialogs and the bulk Delete's details are real:
  *
  *   - the Archive dialog lists the project's settings that keep using the
- *     value, and says apart how many people have their own on-call rules
- *     (or notification settings) for it, that those stay and still page,
+ *     value, and says apart how many people have rules for it in How to
+ *     Reach Me (or notification settings), that those stay and still page,
  *     with a link to the reader's own;
- *   - the Delete dialog names them as whose they are: "On-call rules of 2
- *     people";
+ *   - the Delete dialog names them as whose they are: "2 people's How to
+ *     Reach Me";
  *   - Bulk Actions > Delete reads what the selected values have, once for
  *     the selection: which of them records still have - left out of the
  *     run, with why - and what deleting the rest changes, its Delete held
@@ -307,7 +307,7 @@ const dialogText: () => string = (): string => {
 };
 
 describe("the Archive dialog says people's own settings apart", () => {
-  test("an incident severity: the project's settings that keep using it, then how many people have on-call rules for it, which stay", async () => {
+  test("an incident severity: the project's settings that keep using it, then how many people have rules for it in How to Reach Me, which stay", async () => {
     usageMock.mockImplementation(async (): Promise<Array<unknown>> => {
       return [usageItem({}), onCallRuleSettings, onCallRulesOf(2)];
     });
@@ -337,7 +337,7 @@ describe("the Archive dialog says people's own settings apart", () => {
     expect(
       screen.getByTestId("archivable-value-people-UserNotificationRule"),
     ).toHaveTextContent(
-      "2 people have their own on-call rules for this severity. Those rules stay as they are, so incidents with it still page them. See your on-call rules",
+      "2 people have rules for this severity in How to Reach Me. Those rules stay as they are, so incidents with it still page them. Open How to Reach Me",
     );
     // In the dialog's own prose colour, as the sentence above it.
     expect(
@@ -373,7 +373,7 @@ describe("the Archive dialog says people's own settings apart", () => {
     ).toBeNull();
     expect(screen.queryByTestId("archivable-value-still-used-by")).toBeNull();
     expect(dialogText()).toContain(
-      "2 people have their own on-call rules for this severity.",
+      "2 people have rules for this severity in How to Reach Me.",
     );
   });
 
@@ -390,7 +390,7 @@ describe("the Archive dialog says people's own settings apart", () => {
 
     await waitFor(() => {
       expect(dialogText()).toContain(
-        "1 person has their own on-call rules for this severity. Those rules stay as they are, so incidents with it still page them.",
+        "1 person has rules for this severity in How to Reach Me. Those rules stay as they are, so incidents with it still page them.",
       );
     });
   });
@@ -408,12 +408,12 @@ describe("the Archive dialog says people's own settings apart", () => {
 
     await waitFor(() => {
       expect(dialogText()).toContain(
-        "10,000+ people have their own on-call rules for this severity.",
+        "10,000+ people have rules for this severity in How to Reach Me.",
       );
     });
   });
 
-  test("its link opens the reader's own on-call rules, on the tab of the kind of record", async () => {
+  test("its link opens the reader's own How to Reach Me, on the tab of the kind of record", async () => {
     usageMock.mockImplementation(async (): Promise<Array<unknown>> => {
       return [onCallRulesOf(2)];
     });
@@ -428,7 +428,7 @@ describe("the Archive dialog says people's own settings apart", () => {
       "archivable-value-people-link-UserNotificationRule",
     );
 
-    expect(link).toHaveTextContent("See your on-call rules");
+    expect(link).toHaveTextContent("Open How to Reach Me");
     /*
      * In a new tab: the Archive dialog is a question still open, and the
      * link followed in place would close it unanswered.
@@ -474,7 +474,7 @@ describe("the Archive dialog says people's own settings apart", () => {
 
     await waitFor(() => {
       expect(dialogText()).toContain(
-        "3 people have their own on-call rules for this severity. Those rules stay as they are, so alerts with it still page them.",
+        "3 people have rules for this severity in How to Reach Me. Those rules stay as they are, so alerts with it still page them.",
       );
     });
   });
@@ -584,7 +584,7 @@ describe("the Archive dialog says people's own settings apart", () => {
 });
 
 describe("the Delete dialog names whose rules go with it", () => {
-  test("deleting a severity takes people's own on-call rules for it: said as theirs, by person", async () => {
+  test("deleting a severity takes people's own rules for it in How to Reach Me: said as theirs, by person", async () => {
     usageMock.mockImplementation(async (): Promise<Array<unknown>> => {
       return [onCallRulesOf(2), onCallRuleSettings];
     });
@@ -605,7 +605,7 @@ describe("the Delete dialog names whose rules go with it", () => {
       " ",
     );
 
-    expect(text).toContain("Deleted with it: On-call rules of 2 people");
+    expect(text).toContain("Deleted with it: 2 people's How to Reach Me");
     expect(text).toContain("Removed from: Incident On-Call Rules (3)");
     expect(text).not.toContain("Notification Rules");
   });
@@ -770,7 +770,7 @@ describe("Bulk Actions > Delete of values says what it would do first", () => {
     expect(bulkText()).toContain("Deleting the others also changes these:");
     // Two values go: what goes is deleted with them.
     expect(bulkText()).toContain(
-      "Deleted with them: On-call rules of 11 people",
+      "Deleted with them: 11 people's How to Reach Me",
     );
     expect(bulkText()).not.toContain("Deleted with it");
     expect(bulkText()).toContain("Removed from: Incident On-Call Rules (3)");
@@ -963,7 +963,7 @@ describe("Bulk Actions > Delete of values says what it would do first", () => {
     });
 
     expect(bulkText()).toContain(
-      "Deleted with them: On-call rules of 2 people",
+      "Deleted with them: 2 people's How to Reach Me",
     );
     expect(
       screen.queryByTestId("archivable-values-bulk-delete-refused"),
@@ -993,7 +993,7 @@ describe("Bulk Actions > Delete of values says what it would do first", () => {
       );
     });
 
-    expect(bulkText()).toContain("Deleted with it: On-call rules of 2 people");
+    expect(bulkText()).toContain("Deleted with it: 2 people's How to Reach Me");
     expect(bulkText()).not.toContain("Deleted with them");
   });
 

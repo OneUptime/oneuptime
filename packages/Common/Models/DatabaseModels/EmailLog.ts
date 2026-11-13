@@ -795,8 +795,7 @@ export default class EmailLog extends BaseModel {
     required: false,
     canReadOnRelationQuery: true,
     title: "On-Call Policy ID",
-    description:
-      "ID of On-Call Policy associated with this email (if any)",
+    description: "ID of On-Call Policy associated with this email (if any)",
     example: "b8c9d0e1-cdef-67f1-89ab-89abcdef0123",
   })
   @Column({
@@ -885,8 +884,7 @@ export default class EmailLog extends BaseModel {
     type: TableColumnType.Entity,
     modelType: OnCallDutyPolicySchedule,
     title: "On-Call Schedule",
-    description:
-      "On-Call Schedule associated with this email (if any)",
+    description: "On-Call Schedule associated with this email (if any)",
     example: "d0e1f2a3-ef01-89f3-abcd-abcdef012345",
   })
   @ManyToOne(
@@ -920,8 +918,7 @@ export default class EmailLog extends BaseModel {
     required: false,
     canReadOnRelationQuery: true,
     title: "On-Call Schedule ID",
-    description:
-      "ID of On-Call Schedule associated with this email (if any)",
+    description: "ID of On-Call Schedule associated with this email (if any)",
     example: "d0e1f2a3-ef01-89f3-abcd-abcdef012345",
   })
   @Column({

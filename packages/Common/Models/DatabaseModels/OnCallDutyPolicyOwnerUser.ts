@@ -276,8 +276,7 @@ export default class OnCallDutyPolicyOwnerUser extends BaseModel {
     type: TableColumnType.Entity,
     modelType: OnCallDutyPolicy,
     title: "OnCallDutyPolicy",
-    description:
-      "Relation to the on-call policy this object belongs to",
+    description: "Relation to the on-call policy this object belongs to",
   })
   @ManyToOne(
     () => {

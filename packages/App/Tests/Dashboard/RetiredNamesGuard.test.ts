@@ -11,6 +11,7 @@ import {
   RetiredName,
 } from "Common/Types/Docs/RetiredNames";
 import { PermissionHelper, PermissionProps } from "Common/Types/Permission";
+import { FoundText, PACKAGES_ROOT, productTexts } from "./ProductTextScan";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -29,7 +30,10 @@ import path from "path";
  *     names, and the nested menu words of en.json;
  *   - the permission picker's titles and descriptions;
  *   - the emails' templates, and what the server says in English;
- *   - the English docs, their nav titles, and the website.
+ *   - every string the server, the emails and each front end write
+ *     (ProductTextScan), where the extractor does not look: chat messages,
+ *     workflow templates, error messages, props drawn as words;
+ *   - the English docs, their diagrams, their nav titles, and the website.
  *
  * A retired name stays only where people who learned it look for it: a
  * Search keyword (not drawn, so not read here), an "Also called" name in
@@ -54,9 +58,15 @@ const EMAIL_TEMPLATES: string = path.join(
   PACKAGES,
   "App/FeatureSet/Notification/Templates",
 );
-const SERVER_ENGLISH: string = path.join(PACKAGES, "Common/Server/Locales/en.json");
+const SERVER_ENGLISH: string = path.join(
+  PACKAGES,
+  "Common/Server/Locales/en.json",
+);
 const WEBSITE_VIEWS: string = path.join(PACKAGES, "Home/Views");
-const SAMPLE_PROJECT: string = path.join(PACKAGES, "Common/Types/SampleProject");
+const SAMPLE_PROJECT: string = path.join(
+  PACKAGES,
+  "Common/Types/SampleProject",
+);
 
 interface Sighting {
   where: string;
@@ -117,24 +127,36 @@ function nestedValues(
 }
 
 /*
- * The prose of a Markdown page, line by line: no fenced block, no `code`,
- * and no glossary "Also called" line, where a term's old names belong.
+ * The prose of a Markdown page, line by line: no fenced code block, no
+ * `code`, and no glossary "Also called" line, where a term's old names
+ * belong. A diagram (a mermaid block) is read: the page draws its labels,
+ * a line break in one read as a space.
  */
+const FENCE: RegExp = /^\s*```/;
+const DIAGRAM_FENCE: RegExp = /^\s*```mermaid\b/;
+
 export function proseLinesOf(markdown: string): Array<[number, string]> {
   const lines: Array<[number, string]> = [];
-  let isInFence: boolean = false;
+  let fence: "code" | "diagram" | null = null;
 
   markdown.split("\n").forEach((line: string, index: number): void => {
-    if (/^\s*```/.test(line)) {
-      isInFence = !isInFence;
+    if (FENCE.test(line)) {
+      if (fence) {
+        fence = null;
+      } else {
+        fence = DIAGRAM_FENCE.test(line) ? "diagram" : "code";
+      }
       return;
     }
 
-    if (isInFence || line.startsWith("Also called:")) {
+    if (fence === "code" || line.startsWith("Also called:")) {
       return;
     }
 
-    lines.push([index + 1, line.replace(/`[^`]*`/g, "")]);
+    const read: string =
+      fence === "diagram" ? line.replace(/<br\s*\/?>/g, " ") : line;
+
+    lines.push([index + 1, read.replace(/`[^`]*`/g, "")]);
   });
 
   return lines;
@@ -142,14 +164,112 @@ export function proseLinesOf(markdown: string): Array<[number, string]> {
 
 const SCAN: SourceScanResult = scanSourceRoots(SOURCE_ROOTS);
 
+const MODELS: string = path.join(PACKAGES, "Common/Models/DatabaseModels");
+
+// The names renamed models keep for the API, Terraform, the CLI and MCP.
+function keptApiNamesOfModels(): Set<string> {
+  const names: Set<string> = new Set<string>();
+
+  for (const file of filesUnder(MODELS, ".ts")) {
+    const source: string = fs.readFileSync(file, "utf8");
+
+    for (const match of source.matchAll(
+      /\bapi(?:Singular|Plural)Name:\s*"([^"]+)"/g,
+    )) {
+      names.add(match[1] as string);
+    }
+  }
+
+  return names;
+}
+
+/*
+ * The files whose enums are values a workspace notification rule stores and
+ * matches on: renaming one would stop saved rules from matching, so each is
+ * shown through a label of its own instead.
+ */
+const STORED_VALUES: Record<string, string> = {
+  "Common/Types/Workspace/NotificationRules/NotificationRuleCondition.ts":
+    "a condition a rule checks, shown by CHECK_ON_LABELS",
+  "Common/Types/Workspace/NotificationRules/EventType.ts":
+    "the event a rule is for, shown by NotificationRuleCopy",
+};
+
+function sourceLinesOf(file: string): Array<string> {
+  return fs.readFileSync(path.join(PACKAGES_ROOT, file), "utf8").split("\n");
+}
+
+// The line of a file (from packages/) that holds a piece of text.
+function sourceLineOf(file: string, piece: string): number {
+  return (
+    sourceLinesOf(file).findIndex((line: string): boolean => {
+      return line.includes(piece);
+    }) + 1
+  );
+}
+
+// An enum member: `Name = "value",`.
+const ENUM_MEMBER: RegExp = /^\s*\w+\s*=\s*"[^"]*",?\s*$/;
+
+function isStoredValue(text: FoundText): boolean {
+  if (!STORED_VALUES[text.file]) {
+    return false;
+  }
+
+  const line: string = sourceLinesOf(text.file)[text.line - 1] || "";
+
+  return ENUM_MEMBER.test(line);
+}
+
+const SEARCH_KEYWORD_FILES: ReadonlyArray<string> = [
+  "App/FeatureSet/Dashboard/src/Components/CommandPalette/PageSearchIndex.ts",
+  "App/FeatureSet/Dashboard/src/Utils/NavigationItems.tsx",
+];
+
+// A line holding only a string, a comment's line, and a keywords list's start.
+const STRING_LINE: RegExp = /^\s*"[^"]*",?\s*$/;
+const COMMENT_LINE: RegExp = /^\s*(\/\/|\/?\*)/;
+const KEYWORDS_START: RegExp = /\bkeywords:\s*\[\s*$/;
+
+// A string in a `keywords: [...]` list of the Search index or the menu.
+function isSearchKeyword(text: FoundText): boolean {
+  if (!SEARCH_KEYWORD_FILES.includes(text.file)) {
+    return false;
+  }
+
+  const lines: Array<string> = sourceLinesOf(text.file);
+
+  if (!STRING_LINE.test(lines[text.line - 1] || "")) {
+    return false;
+  }
+
+  for (let index: number = text.line - 2; index >= 0; index--) {
+    const line: string = lines[index] as string;
+
+    // Another keyword, or a comment between them.
+    if (STRING_LINE.test(line) || COMMENT_LINE.test(line)) {
+      continue;
+    }
+
+    return KEYWORDS_START.test(line);
+  }
+
+  return false;
+}
+
 describe("the retired names are told apart from the ordinary words they look like", () => {
   test.each([
     ["Open On-Call Duty > Readiness for the full list.", "On-Call Duty"],
+    ["Select which on-call duty schedules will be notified.", "On-Call Duty"],
+    ["Here is a list of on-call-duty policies.", "On-Call Duty"],
     ["On Call Duty Policy Name", "On-Call Duty"],
     ["User On Call Time", "On Call"],
     ["On Call Executions", "On Call"],
     ["Edit On-Call Policy Schedule", "On-Call Policy Schedule"],
-    ["See [Personal On-Call Rules](/docs/notifications/on-call-rules)", "Personal On-Call Rules"],
+    [
+      "See [Personal On-Call Rules](/docs/notifications/on-call-rules)",
+      "Personal On-Call Rules",
+    ],
     ["their personal on-call rules", "Personal On-Call Rules"],
     [
       "Turn it on in Project Settings → Notifications → Notification Settings.",
@@ -211,12 +331,24 @@ describe("the Dashboard never draws a retired name", () => {
 
   test("no word the extractor finds - menus, titles, cards, sentences, model and column names - uses one", () => {
     const found: Array<Sighting> = [
-      ...SCAN.strings.flatMap((string: { text: string; file: string; line: number }): Array<Sighting> => {
-        return sightings(`${string.file}:${string.line}`, string.text);
-      }),
-      ...SCAN.hardcoded.flatMap((string: { text: string; file: string; line: number }): Array<Sighting> => {
-        return sightings(`${string.file}:${string.line}`, string.text);
-      }),
+      ...SCAN.strings.flatMap(
+        (string: {
+          text: string;
+          file: string;
+          line: number;
+        }): Array<Sighting> => {
+          return sightings(`${string.file}:${string.line}`, string.text);
+        },
+      ),
+      ...SCAN.hardcoded.flatMap(
+        (string: {
+          text: string;
+          file: string;
+          line: number;
+        }): Array<Sighting> => {
+          return sightings(`${string.file}:${string.line}`, string.text);
+        },
+      ),
     ];
 
     expect(found).toEqual([]);
@@ -236,14 +368,15 @@ describe("the Dashboard never draws a retired name", () => {
   });
 
   test("no permission's title or description in the custom role picker uses one", () => {
-    const found: Array<Sighting> = PermissionHelper.getAllPermissionProps().flatMap(
-      (props: PermissionProps): Array<Sighting> => {
-        return [
-          ...sightings(`${props.permission} title`, props.title),
-          ...sightings(`${props.permission} description`, props.description),
-        ];
-      },
-    );
+    const found: Array<Sighting> =
+      PermissionHelper.getAllPermissionProps().flatMap(
+        (props: PermissionProps): Array<Sighting> => {
+          return [
+            ...sightings(`${props.permission} title`, props.title),
+            ...sightings(`${props.permission} description`, props.description),
+          ];
+        },
+      );
 
     expect(found).toEqual([]);
   });
@@ -279,6 +412,77 @@ describe("what the server sends never uses a retired name", () => {
 
     expect(found).toEqual([]);
   });
+
+  /*
+   * Every string literal of the server, the emails and the front ends, as
+   * the menu path guards read them. Three kinds keep an old name, each
+   * recognised from its own source rather than listed: a renamed model's
+   * kept API name (its apiSingularName or apiPluralName), a value a
+   * workspace rule stores and matches on (an enum member of a file in
+   * STORED_VALUES, shown through a label of its own), and a Search keyword
+   * (in a keywords list of the Search index or the products menu).
+   */
+  test("no string the server, the emails or a front end write does, but a kept API name, a stored value or a Search keyword", () => {
+    const keptApiNames: Set<string> = keptApiNamesOfModels();
+    const found: Array<Sighting> = productTexts((source: string): boolean => {
+      return RETIRED_NAMES.some((retired: RetiredName): boolean => {
+        return retired.pattern.test(source);
+      });
+    })
+      .filter((text: FoundText): boolean => {
+        return (
+          !keptApiNames.has(text.text) &&
+          !isStoredValue(text) &&
+          !isSearchKeyword(text)
+        );
+      })
+      .flatMap((text: FoundText): Array<Sighting> => {
+        return sightings(`${text.file}:${text.line}`, text.text);
+      });
+
+    expect(found).toEqual([]);
+  });
+
+  test("the scan's exceptions are what they say", () => {
+    const keptApiNames: Set<string> = keptApiNamesOfModels();
+
+    // Kept by the models #6817 renamed, so Terraform and the CLI keep them.
+    expect(keptApiNames).toContain("On-Call Duty Policies");
+    expect(keptApiNames).toContain("On-Call Policy Schedule");
+    expect(keptApiNames).not.toContain("On-Call Policies");
+
+    expect(
+      isStoredValue({
+        file: "Common/Types/Workspace/NotificationRules/NotificationRuleCondition.ts",
+        line: sourceLineOf(
+          "Common/Types/Workspace/NotificationRules/NotificationRuleCondition.ts",
+          '"On Call Duty Policy Name"',
+        ),
+        text: "On Call Duty Policy Name",
+      }),
+    ).toBe(true);
+    expect(
+      isSearchKeyword({
+        file: "App/FeatureSet/Dashboard/src/Components/CommandPalette/PageSearchIndex.ts",
+        line: sourceLineOf(
+          "App/FeatureSet/Dashboard/src/Components/CommandPalette/PageSearchIndex.ts",
+          '"personal on-call rules"',
+        ),
+        text: "personal on-call rules",
+      }),
+    ).toBe(true);
+    // A page's title in the same file is drawn, so it is no keyword.
+    expect(
+      isSearchKeyword({
+        file: "App/FeatureSet/Dashboard/src/Components/CommandPalette/PageSearchIndex.ts",
+        line: sourceLineOf(
+          "App/FeatureSet/Dashboard/src/Components/CommandPalette/PageSearchIndex.ts",
+          'title: "How to Reach Me"',
+        ),
+        text: "How to Reach Me",
+      }),
+    ).toBe(false);
+  });
 });
 
 describe("the docs and the website never use a retired name", () => {
@@ -296,7 +500,7 @@ describe("the docs and the website never use a retired name", () => {
     expect(found).toEqual([]);
   });
 
-  test("the docs' prose reader skips only code and the glossary's other names", () => {
+  test("the docs' prose reader skips only code and the glossary's other names, and reads a diagram's labels", () => {
     expect(
       proseLinesOf(
         [
@@ -306,12 +510,22 @@ describe("the docs and the website never use a retired name", () => {
           "```",
           "Run `On-Call Duty` here.",
           "Also called: **On-Call Duty**.",
+          "```mermaid",
+          '    people --> rules["Their personal<br/>on-call rules"]',
+          "```",
         ].join("\n"),
       ),
     ).toEqual([
       [1, "Open On-Call Duty."],
       [5, "Run  here."],
+      [8, '    people --> rules["Their personal on-call rules"]'],
     ]);
+    expect(
+      sightings(
+        "diagram",
+        '    people --> rules["Their personal on-call rules"]',
+      ),
+    ).toHaveLength(1);
   });
 
   test("no docs group or page title does", () => {

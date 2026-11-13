@@ -686,7 +686,7 @@ describe("the first-met areas' model names", () => {
         "Incident Severities",
         "Status Page Announcement",
         "Monitor Group",
-        "On-Call Policy Schedule",
+        "On-Call Schedule",
       ]),
     );
   });
@@ -750,9 +750,7 @@ describe("the first-met areas' model names", () => {
     expect(valueOf("pt", "Status Page Subscribers")).toBe(
       "Assinantes da página de status",
     );
-    expect(valueOf("no", "On-Call Policy Schedule")).toBe(
-      "Vaktplan for vaktpolicy",
-    );
+    expect(valueOf("no", "On-Call Schedule")).toBe("Vakttidsplan");
   });
 
   test("a create button drawn from one reads whole: Opret Monitorgruppe", () => {

@@ -631,8 +631,7 @@ export default class AlertOnCallRule extends OnCallRuleBaseModel {
     type: TableColumnType.EntityArray,
     modelType: OnCallDutyPolicy,
     title: "On-Call Policies",
-    description:
-      "On-call policies to execute when an alert matches this rule.",
+    description: "On-call policies to execute when an alert matches this rule.",
   })
   @ManyToMany(
     () => {

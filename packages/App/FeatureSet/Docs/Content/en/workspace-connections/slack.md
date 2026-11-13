@@ -316,7 +316,7 @@ When your project's public notes need approval and you turn on Slack for **Publi
 - **Uninstall OneUptime from Slack**, on **Project Settings** > **Workspace** > **Slack**, disconnects the project. OneUptime stops posting to Slack, and the **Workspace** menus stop listing it. The notification rules and summaries are kept for when you connect again.
 
 > [!WARNING]
-> Uninstalling also unlinks every member's own Slack account in the project, and removes the Slack notification methods and the on-call rules that used them. People who were paged in Slack are paged on their other notification methods until they add Slack again.
+> Uninstalling also unlinks every member's own Slack account in the project, and removes the Slack notification methods and the steps of How to Reach Me that used them. People who were paged in Slack are paged on their other notification methods until they add Slack again.
 
 ## Your Slack data
 

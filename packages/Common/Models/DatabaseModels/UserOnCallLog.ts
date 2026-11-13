@@ -369,8 +369,7 @@ export default class UserOnCallLog extends BaseModel {
     type: TableColumnType.Entity,
     modelType: Incident,
     title: "Triggered By Incident",
-    description:
-      "Relation to Incident which triggered this on-call policy.",
+    description: "Relation to Incident which triggered this on-call policy.",
   })
   @ManyToOne(
     () => {

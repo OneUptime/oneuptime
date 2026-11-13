@@ -19,7 +19,7 @@ flowchart TB
     record["Incident, alert<br/>or episode"] --> policy["Its on-call policies"]
     policy --> level["The next<br/>escalation rule"]
     level --> people["Who is on call,<br/>teams and people"]
-    people --> rules["Their personal<br/>on-call rules"]
+    people --> rules["Their How to<br/>Reach Me"]
     rules --> ack{"Acknowledged<br/>in time?"}
     ack -->|Yes| stop["Paging stops"]
     ack -->|No| level

@@ -512,7 +512,7 @@ describe("Page now for who may not page", () => {
        * Log", as #5412's UI review found it).
        */
       expect(screen.getByRole("tooltip")).toHaveTextContent(
-        "You need this permission: Execute On-Call Duty Policy.",
+        "You need this permission: Execute On-Call Policies.",
       );
       expect(screen.getByRole("tooltip").textContent).not.toContain(
         "Execution Log",
@@ -529,7 +529,7 @@ describe("Page now for who may not page", () => {
     ["a Project Member", Permission.ProjectMember],
     ["an On-Call Member", Permission.OnCallMember],
     [
-      "someone given Execute On-Call Duty Policy",
+      "someone given Execute On-Call Policies",
       Permission.CreateProjectOnCallDutyPolicyExecutionLog,
     ],
   ] as Array<[string, Permission]>)(

@@ -92,7 +92,7 @@ The summary at the top of the **Escalation Rules** page shows the whole ladder: 
 
 ### How each person is reached
 
-Each person a level pages is reached the way their How to Reach Me says: **User Settings** > **How to Reach Me**, with a tab for incidents, incident episodes, alerts and alert episodes, and a card per severity listing which notification method is tried and after how long. A project admin can see and change a member's rules under **Users** > the member > **How to Reach Me**. See [How to Reach Me](/docs/notifications/on-call-rules).
+Each person a level pages is reached the way they set it up in How to Reach Me: **User Settings** > **How to Reach Me**, with a tab for incidents, incident episodes, alerts and alert episodes, and a card per severity listing which notification method is tried and after how long. A project admin can see and change a member's rules under **Users** > the member > **How to Reach Me**. See [How to Reach Me](/docs/notifications/on-call-rules).
 
 ```mermaid title="Who a level pages, and how each person is reached"
 flowchart TB

@@ -864,7 +864,9 @@ describe("the sentences that say what a rule does", () => {
 describe("the words of a rule's conditions", () => {
   test("every field a condition can check, and every way it compares, is listed", () => {
     expect([...Copy.CONDITION_FIELD_WORDS].sort()).toEqual(
-      Object.values(NotificationRuleConditionCheckOn).map(getCheckOnLabel).sort(),
+      Object.values(NotificationRuleConditionCheckOn)
+        .map(getCheckOnLabel)
+        .sort(),
     );
     expect([...Copy.CONDITION_OPERATOR_WORDS].sort()).toEqual(
       Object.values(ConditionType).sort(),
@@ -882,7 +884,9 @@ describe("the words of a rule's conditions", () => {
     ).toBe("Vorfallsstatus");
     expect(
       german.translateText(
-        getCheckOnLabel(NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels),
+        getCheckOnLabel(
+          NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels,
+        ),
       ),
     ).toBe("Beschriftungen der Bereitschaftsrichtlinie");
   });
@@ -907,9 +911,9 @@ describe("the words of a rule's conditions", () => {
     expect(
       getCheckOnLabel(NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels),
     ).toBe("On-Call Policy Labels");
-    expect(getCheckOnLabel(NotificationRuleConditionCheckOn.IncidentState)).toBe(
-      "Incident State",
-    );
+    expect(
+      getCheckOnLabel(NotificationRuleConditionCheckOn.IncidentState),
+    ).toBe("Incident State");
 
     for (const checkOn of Object.values(NotificationRuleConditionCheckOn)) {
       expect(getCheckOnLabel(checkOn)).not.toMatch(/On Call Duty/);

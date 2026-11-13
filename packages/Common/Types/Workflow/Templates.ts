@@ -7966,7 +7966,7 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
     icon: IconProp.Phone,
     workflowName: "Notify Slack on on-call execution status",
     workflowDescription:
-      "Posts to Slack whenever an on-call duty policy execution changes status.",
+      "Posts to Slack whenever an on-call policy execution changes status.",
     variables: [SLACK_WEBHOOK_URL],
     graph: {
       nodes: [

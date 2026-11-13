@@ -783,8 +783,7 @@ export default class WebhookLog extends BaseModel {
     required: false,
     canReadOnRelationQuery: true,
     title: "On-Call Policy ID",
-    description:
-      "ID of On-Call Policy associated with this request (if any)",
+    description: "ID of On-Call Policy associated with this request (if any)",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -870,8 +869,7 @@ export default class WebhookLog extends BaseModel {
     type: TableColumnType.Entity,
     modelType: OnCallDutyPolicySchedule,
     title: "On-Call Schedule",
-    description:
-      "On-Call Schedule associated with this request (if any)",
+    description: "On-Call Schedule associated with this request (if any)",
   })
   @ManyToOne(
     () => {
@@ -904,8 +902,7 @@ export default class WebhookLog extends BaseModel {
     required: false,
     canReadOnRelationQuery: true,
     title: "On-Call Schedule ID",
-    description:
-      "ID of On-Call Schedule associated with this request (if any)",
+    description: "ID of On-Call Schedule associated with this request (if any)",
   })
   @Column({
     type: ColumnType.ObjectID,

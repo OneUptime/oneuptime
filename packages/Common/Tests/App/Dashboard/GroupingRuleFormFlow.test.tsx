@@ -522,7 +522,7 @@ describe("creating a grouping rule", () => {
      */
     expect(moreFieldsHeader()).toHaveAttribute("aria-expanded", "false");
     expect(foldedItems()).toEqual([
-      "On-Call Duty Policies",
+      "On-Call Policies",
       "Episode Owners",
       "Episode Role Assignments",
       "Wait for more incidents",
@@ -1088,7 +1088,7 @@ describe("creating a grouping rule", () => {
     // The same fold, without status pages or episode roles.
     expect(moreFieldsHeader()).toHaveAttribute("aria-expanded", "false");
     expect(foldedItems()).toEqual([
-      "On-Call Duty Policies",
+      "On-Call Policies",
       "Episode Owners",
       "Wait for more alerts",
       "Reopen recently resolved episodes",
@@ -1284,13 +1284,13 @@ describe("editing an existing grouping rule", () => {
      */
     await waitFor(() => {
       expect(foldedChips()).toEqual([
-        "On-Call Duty Policies: 1",
+        "On-Call Policies: 1",
         "Reopen recently resolved episodes: 45 minutes",
       ]);
     });
     expect(moreFieldsHeader()).toHaveAttribute("aria-expanded", "false");
     expect(foldedItems()).toEqual([
-      "On-Call Duty Policies: 1",
+      "On-Call Policies: 1",
       "Episode Owners",
       "Episode Role Assignments",
       "Reopen recently resolved episodes: 45 minutes",
@@ -1337,7 +1337,7 @@ describe("editing an existing grouping rule", () => {
 
     await waitFor(() => {
       expect(foldedChips()).toEqual([
-        "On-Call Duty Policies: 1",
+        "On-Call Policies: 1",
         "Episode Role Assignments: 1",
         "Wait for more incidents: 5 incidents",
         "Reopen recently resolved episodes: 1 day",
@@ -1354,7 +1354,7 @@ describe("editing an existing grouping rule", () => {
      * unset, so they are counted.
      */
     expect(foldedItems()).toEqual([
-      "On-Call Duty Policies: 1",
+      "On-Call Policies: 1",
       "Episode Role Assignments: 1",
       "Wait for more incidents: 5 incidents",
       "Reopen recently resolved episodes: 1 day",

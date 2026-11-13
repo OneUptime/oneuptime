@@ -7,7 +7,7 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 /*
  * WHAT A TWILIO CONFIG IS USED FOR, AS ITS FORM ASKS IT: calls and SMS, SMS
  * only, or calls only (Common/Types/CallAndSMS/TwilioConfigUse), on Project
- * Settings > Notifications > Notification Settings > Twilio Config.
+ * Settings > Notifications > Notification Channels > Twilio Config.
  *
  * A customer whose Twilio account sent only SMS was made to type in a
  * number to make calls from, while the number their SMS went out from was

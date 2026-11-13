@@ -50,7 +50,7 @@ const DocsNavIcons: Record<string, string> = {
   SLOs: '<circle cx="12" cy="12" r="9" stroke-width="2"/><circle cx="12" cy="12" r="5" stroke-width="2"/><circle cx="12" cy="12" r="1" stroke-width="2"/>',
   Incidents:
     '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v4m0 4h.01M10.27 4a2 2 0 013.46 0l8 14A2 2 0 0120 21H4a2 2 0 01-1.73-3l8-14z"/>',
-  "On Call":
+  "On-Call":
     '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>',
   Runbooks:
     '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v16m0-16C9 3 5 3 2 4v16c3-1 7-1 10 1m0-16c3-2 7-2 10-1v16c-3-1-7-1-10 1"/>',

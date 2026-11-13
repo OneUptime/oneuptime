@@ -119,6 +119,8 @@ function wholeTerm(block: GlossaryTermBlock): string {
 const NAMES_6817: Record<string, Array<string>> = {
   [GlossaryTerm.OnCallRules]: [],
   [GlossaryTerm.NotificationSettings]: [],
+  [GlossaryTerm.HowToReachMe]: ["Personal On-Call Rules"],
+  [GlossaryTerm.OnCallSchedule]: ["Rotation", "On-Call Policy Schedule"],
   [GlossaryTerm.AIInsights]: ["Insights"],
   [GlossaryTerm.Episode]: ["Incident Episode", "Alert Episode"],
   [GlossaryTerm.OnCallPolicy]: [
@@ -242,7 +244,12 @@ const TERM_LISTS: Record<string, { heading: string; shared: Array<string> }> = {
   },
   "on-call/index": {
     heading: "## The building blocks",
-    shared: ["On-call policy", "Escalation rule", "On-call schedule"],
+    shared: [
+      "On-call policy",
+      "Escalation rule",
+      "On-call schedule",
+      "How to Reach Me",
+    ],
   },
 };
 
@@ -535,23 +542,28 @@ describe("the Glossary, in English", () => {
       });
     }
 
-    // The two "On-Call Rules" and the two "Notification Settings" say where each lives.
-    for (const id of [
-      GlossaryTerm.OnCallRules,
-      GlossaryTerm.NotificationSettings,
-    ]) {
-      const definition: string = term(id).definition.join(" ");
-
-      expect(definition).toMatch(/^Two different/);
-      expect(definition).toContain("**User Settings**");
-    }
-
-    expect(term(GlossaryTerm.OnCallRules).definition.join(" ")).toContain(
-      "Under **Incidents** and **Alerts**",
+    /*
+     * "On-Call Rules" and "Notification Settings" each named two things
+     * until #6817 kept the name for one and renamed the other: each says
+     * where it lives, and what the other is called now.
+     */
+    const onCallRules: string = term(GlossaryTerm.OnCallRules).definition.join(
+      " ",
     );
-    expect(
-      term(GlossaryTerm.NotificationSettings).definition.join(" "),
-    ).toContain("Under **Project Settings**");
+    const notificationSettings: string = term(
+      GlossaryTerm.NotificationSettings,
+    ).definition.join(" ");
+
+    expect(onCallRules).toContain("Under **Incidents** and **Alerts**");
+    expect(onCallRules).toContain("**How to Reach Me**");
+    expect(onCallRules).toContain("**User Settings**");
+    expect(notificationSettings).toContain("Under **User Settings**");
+    expect(notificationSettings).toContain("**Notification Channels**");
+    expect(notificationSettings).toContain("**Project Settings**");
+
+    for (const definition of [onCallRules, notificationSettings]) {
+      expect(definition).not.toMatch(/^Two different/);
+    }
   });
 
   it("has a term for every product in the menu, which names it", () => {

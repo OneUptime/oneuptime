@@ -300,8 +300,7 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
     required: false,
     canReadOnRelationQuery: true,
     title: "Team ID",
-    description:
-      "ID of the team this log belongs to.",
+    description: "ID of the team this log belongs to.",
     example: "d4e5f6a7-b8c9-0123-def0-234567890123",
   })
   @Column({

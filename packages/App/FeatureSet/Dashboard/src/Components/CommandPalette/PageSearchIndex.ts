@@ -1515,6 +1515,11 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "escalation rules",
               "paging policy",
               "pager",
+              /*
+               * One policy, by its name: "on-call policy" also starts the
+               * schedules' old name below, and finds the policies first.
+               */
+              "on-call policy",
               "create on-call policy",
               // Its name before On-Call Duty became On-Call (#6817).
               "on-call duty policies",
@@ -1561,8 +1566,9 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "shifts",
               "who is on call",
               "create on-call schedule",
-              // Its name before On-Call Duty became On-Call (#6817).
+              // Its names before On-Call Duty became On-Call (#6817).
               "on-call duty schedules",
+              "on-call policy schedules",
             ],
           },
           {
@@ -4217,9 +4223,10 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.USER_SETTINGS_ON_CALL_RULES,
             title: "How to Reach Me",
             icon: IconProp.BellRinging,
-            // Its old name finds it still (#6817).
+            // Its old names find it still (#6817).
             keywords: [
               "on-call rules",
+              "personal on-call rules",
               "how i get paged",
               "my notification rules",
               "paging ladder",

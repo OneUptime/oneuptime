@@ -64,7 +64,7 @@ Después, un aviso indica cuántos recordatorios se enviaron, se omitieron o fal
 
 - En la **Vista general** de una política, **Preparación de los respondedores** enumera a cada persona a la que esa política puede avisar y que necesita atención, y **Volver a comprobar** lo lee de nuevo. Tu propia fila tiene un botón a la página que lo arregla; la de otra persona abre un correo para ella en tu propio programa de correo, con la solución dentro.
 - En las **Reglas de escalado** de una política, un nivel cuyos respondedores no se pueden avisar a todos lo indica en su tarjeta. Consulta [El resumen de escalado](/docs/on-call/escalation-rules#el-resumen-de-escalado).
-- En **Usuarios**, abre un miembro y luego **Preparación** en la sección **De guardia**: su estado, sus métodos y su cuadrícula de cobertura.
+- En **Usuarios**, abre un miembro y luego **Preparación** en la sección **Guardia**: su estado, sus métodos y su cuadrícula de cobertura.
 - Para tu propia configuración, **Ajustes de usuario → Lista de configuración** te guía. Consulta [La lista de configuración](/docs/notifications/index#la-lista-de-configuración).
 
 ## El correo semanal de preparación

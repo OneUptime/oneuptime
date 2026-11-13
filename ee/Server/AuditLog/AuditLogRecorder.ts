@@ -1879,7 +1879,8 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
    * screen keeps one type across its old entries and its new ones.
    */
   private getResourceType<TModel extends BaseModel>(model: TModel): string {
-    const storedName: string | null = model.apiSingularName || model.singularName;
+    const storedName: string | null =
+      model.apiSingularName || model.singularName;
 
     if (storedName) {
       return storedName;

@@ -78,13 +78,10 @@ class OnCallDutyPolicyScheduleLabelRuleEngineServiceClass
 
       await this.applyRules({ schedule: schedule, rules: rules });
     } catch (error) {
-      logger.error(
-        `Error applying on-call schedule label rules: ${error}`,
-        {
-          projectId: schedule.projectId?.toString(),
-          onCallDutyPolicyScheduleId: schedule.id?.toString(),
-        } as LogAttributes,
-      );
+      logger.error(`Error applying on-call schedule label rules: ${error}`, {
+        projectId: schedule.projectId?.toString(),
+        onCallDutyPolicyScheduleId: schedule.id?.toString(),
+      } as LogAttributes);
     }
   }
 
@@ -106,13 +103,10 @@ class OnCallDutyPolicyScheduleLabelRuleEngineServiceClass
         props: data.props,
       });
     } catch (error) {
-      logger.error(
-        `Error running on-call schedule label rules: ${error}`,
-        {
-          projectId: data.resource.projectId?.toString(),
-          onCallDutyPolicyScheduleId: data.resource.id?.toString(),
-        } as LogAttributes,
-      );
+      logger.error(`Error running on-call schedule label rules: ${error}`, {
+        projectId: data.resource.projectId?.toString(),
+        onCallDutyPolicyScheduleId: data.resource.id?.toString(),
+      } as LogAttributes);
 
       return RuleApplicationResultUtil.failed();
     }
