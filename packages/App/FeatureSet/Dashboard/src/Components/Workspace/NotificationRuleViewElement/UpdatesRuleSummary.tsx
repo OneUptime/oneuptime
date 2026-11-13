@@ -1,10 +1,11 @@
-import IncidentNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/IncidentNotificationRule";
+import { StoredRuleUpdates } from "Common/Types/Workspace/NotificationRules/NotificationRuleUpdates";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import {
   getUpdatesSummary,
   UpdatesEventType,
+  UpdatesSummary,
 } from "../NotificationRuleForm/NotificationRuleUpdatesCopy";
 
 /*
@@ -19,7 +20,7 @@ import {
  */
 
 export interface ComponentProps {
-  rule: IncidentNotificationRule | undefined;
+  rule: StoredRuleUpdates;
   eventType: UpdatesEventType;
 }
 
@@ -28,17 +29,16 @@ const UpdatesRuleSummary: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
 
-  const summary: { title: string; detail: string | undefined } =
-    getUpdatesSummary({
-      rule: props.rule,
-      eventType: props.eventType,
-      translator: translator,
-    });
+  const summary: UpdatesSummary = getUpdatesSummary({
+    rule: props.rule,
+    eventType: props.eventType,
+    translator: translator,
+  });
 
   return (
     <div className="text-sm" data-testid="notification-rule-updates-summary">
       <p
-        className="font-medium text-gray-900"
+        className="text-gray-700"
         data-testid="notification-rule-updates-summary-title"
       >
         {summary.title}

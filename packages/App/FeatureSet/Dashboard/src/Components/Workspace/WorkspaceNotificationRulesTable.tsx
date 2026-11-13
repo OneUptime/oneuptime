@@ -85,7 +85,7 @@ import NotificationRuleVideoCallForm from "./NotificationRuleForm/NotificationRu
 import NotificationRuleUpdatesForm from "./NotificationRuleForm/NotificationRuleUpdatesForm";
 import {
   isUpdatesEventType,
-  UPDATES_SECTION_DESCRIPTIONS,
+  UPDATES_COPY,
   UPDATES_SECTION_TITLE,
 } from "./NotificationRuleForm/NotificationRuleUpdatesCopy";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
@@ -1072,6 +1072,11 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             title: NOTIFICATION_RULE_CONDITIONS_TITLES[props.eventType],
             sectionTitle: NOTIFICATION_RULE_CONDITIONS_TITLES[props.eventType],
             ...STEP_HEADING,
+            /*
+             * The step draws its own heading, and no help under it: the
+             * column's description is the API's, about the rule's JSON.
+             */
+            hideColumnDescription: true,
             fieldType: FormFieldSchemaType.CustomComponent,
             /*
              * No conditions is a rule that fires for every event, so the
@@ -1184,7 +1189,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
                   title: UPDATES_SECTION_TITLE,
                   sectionTitle: UPDATES_SECTION_TITLE,
                   sectionDescription:
-                    UPDATES_SECTION_DESCRIPTIONS[props.eventType],
+                    UPDATES_COPY[props.eventType].sectionDescription,
                   ...STEP_HEADING,
                   fieldType: FormFieldSchemaType.CustomComponent,
                   required: false,

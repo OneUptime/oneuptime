@@ -2,6 +2,7 @@ import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/
 import NotificationRuleUpdates, {
   NotificationRuleUpdateKind,
   NotificationRuleUpdatesChoice,
+  StoredRuleUpdates,
 } from "Common/Types/Workspace/NotificationRules/NotificationRuleUpdates";
 import {
   formatInline,
@@ -15,11 +16,11 @@ import {
  * The words of a rule's Updates step and of the Updates row on its card:
  *
  *   Which updates to post
- *   The message that an incident was declared, and a video call's Join
- *   button, are always posted. Pick which updates follow them.
+ *   The rule always posts when an incident is declared. Pick the updates
+ *   it posts after that.
  *
  *   (o) Every update
- *       Every state change, note, owner, page and edit.
+ *       State changes, notes, owners, paging, edits and everything else.
  *   ( ) Key updates only
  *       Resolved and reopened, severity changes, public notes and the
  *       postmortem.
@@ -29,8 +30,11 @@ import {
  *
  * Only the kinds of rule that choose their updates have them
  * (NotificationRuleUpdates.canChooseUpdates): incidents, alerts, their
- * episodes and scheduled maintenance. Every sentence is whole in the locale
- * files, one per kind of record, so it reads right in every language.
+ * episodes and scheduled maintenance. Each has all its words in one entry
+ * of UPDATES_COPY, so a kind of rule that starts choosing its updates adds
+ * one entry here and its kinds in NotificationRuleUpdates. Every sentence
+ * is whole in the locale files, one per kind of record where the record is
+ * named, so it reads right in every language.
  *
  * React-free, so App's tests can read it.
  */
@@ -42,342 +46,338 @@ export type UpdatesEventType =
   | NotificationRuleEventType.AlertEpisode
   | NotificationRuleEventType.ScheduledMaintenance;
 
-type ByUpdatesEventType = Readonly<Record<UpdatesEventType, string>>;
-
-/*
- * The rule wizard's step is "Updates" in its progress bar, as the rule's
- * card names its row (the form and the list translate their own titles).
- * The step opens with its question.
- */
-export const UPDATES_SECTION_TITLE: string = translationKey(
-  "Which updates to post",
-);
-
-// Under the question: what every rule posts, whatever it picks.
-export const UPDATES_SECTION_DESCRIPTIONS: ByUpdatesEventType = {
-  [NotificationRuleEventType.Incident]: translationKey(
-    "The message that an incident was declared, and a video call's Join button, are always posted. Pick which updates follow them.",
-  ),
-  [NotificationRuleEventType.Alert]: translationKey(
-    "The message that an alert was created, and a video call's Join button, are always posted. Pick which updates follow them.",
-  ),
-  [NotificationRuleEventType.IncidentEpisode]: translationKey(
-    "The message that an incident episode was created is always posted. Pick which updates follow it.",
-  ),
-  [NotificationRuleEventType.AlertEpisode]: translationKey(
-    "The message that an alert episode was created is always posted. Pick which updates follow it.",
-  ),
-  [NotificationRuleEventType.ScheduledMaintenance]: translationKey(
-    "The message that a scheduled maintenance event was created is always posted. Pick which updates follow it.",
-  ),
-};
-
-// The three answers.
-export const EVERY_UPDATE_TITLE: string = translationKey("Every update");
-
-export const EVERY_UPDATE_DESCRIPTIONS: ByUpdatesEventType = {
-  [NotificationRuleEventType.Incident]: translationKey(
-    "Every state change, note, owner, page and edit.",
-  ),
-  [NotificationRuleEventType.Alert]: translationKey(
-    "Every state change, note, owner, page and edit.",
-  ),
-  [NotificationRuleEventType.IncidentEpisode]: translationKey(
-    "Every state change, note, owner and page, and each incident added or removed.",
-  ),
-  [NotificationRuleEventType.AlertEpisode]: translationKey(
-    "Every state change, note, owner and page, and each alert added or removed.",
-  ),
-  [NotificationRuleEventType.ScheduledMaintenance]: translationKey(
-    "Every state change and note.",
-  ),
-};
-
-export const KEY_UPDATES_TITLE: string = translationKey("Key updates only");
-
-/*
- * What Key updates only posts, as NotificationRuleUpdates.getKeyKinds lists
- * it (NotificationRuleUpdatesCopy.test holds the two together).
- */
-export const KEY_UPDATES_DESCRIPTIONS: ByUpdatesEventType = {
-  [NotificationRuleEventType.Incident]: translationKey(
-    "Resolved and reopened, severity changes, public notes and the postmortem.",
-  ),
-  [NotificationRuleEventType.Alert]: translationKey(
-    "Resolved and reopened, and severity changes.",
-  ),
-  [NotificationRuleEventType.IncidentEpisode]: translationKey(
-    "Resolved and reopened, and public notes.",
-  ),
-  [NotificationRuleEventType.AlertEpisode]: translationKey(
-    "Resolved and reopened.",
-  ),
-  [NotificationRuleEventType.ScheduledMaintenance]: translationKey(
-    "State changes and public notes.",
-  ),
-};
-
-export const CHOOSE_UPDATES_TITLE: string = translationKey("Choose updates");
-
-export const CHOOSE_UPDATES_DESCRIPTION: string = translationKey(
-  "Pick the updates to post.",
-);
-
-// With every box cleared: what the rule still posts.
-export const NOTHING_CHOSEN_NOTES: ByUpdatesEventType = {
-  [NotificationRuleEventType.Incident]: translationKey(
-    "With none picked, the rule posts only that the incident was declared, and a video call's Join button.",
-  ),
-  [NotificationRuleEventType.Alert]: translationKey(
-    "With none picked, the rule posts only that the alert was created, and a video call's Join button.",
-  ),
-  [NotificationRuleEventType.IncidentEpisode]: translationKey(
-    "With none picked, the rule posts only that the incident episode was created.",
-  ),
-  [NotificationRuleEventType.AlertEpisode]: translationKey(
-    "With none picked, the rule posts only that the alert episode was created.",
-  ),
-  [NotificationRuleEventType.ScheduledMaintenance]: translationKey(
-    "With none picked, the rule posts only that the scheduled maintenance event was created.",
-  ),
-};
-
 // One box of Choose updates: its name, and what it covers.
 export interface UpdateKindCopy {
   title: string;
   description: string;
 }
 
-const NOTES_SHOWN_ON_STATUS_PAGES: string = translationKey(
-  "Notes shown on status pages.",
-);
-const NOTES_FOR_YOUR_TEAM: string = translationKey("Notes for your team only.");
-const PAGING_DESCRIPTION: string = translationKey(
-  "Who an on-call policy paged, and who acknowledged.",
-);
-const OWNERS_DESCRIPTION: string = translationKey("Owners added and removed.");
+// Every word of one kind of rule's Updates step, in English.
+export interface UpdatesCopy {
+  // Under the step's question: what the rule posts whatever it picks.
+  sectionDescription: string;
+  // Under Every update, and under Key updates only: what each posts.
+  everyUpdateDescription: string;
+  keyUpdatesDescription: string;
+  // Under the boxes when none is ticked: what the rule still posts.
+  nothingChosenNote: string;
+  // Each update the rule can choose, by the update it stands for.
+  kinds: Readonly<Partial<Record<NotificationRuleUpdateKind, UpdateKindCopy>>>;
+}
 
-/*
- * Each kind of rule's boxes, by the update they stand for. Every update a
- * kind of rule can choose has its words here
- * (NotificationRuleUpdatesCopy.test).
- */
-export const UPDATE_KIND_COPY: Readonly<
-  Record<
-    UpdatesEventType,
-    Readonly<Partial<Record<NotificationRuleUpdateKind, UpdateKindCopy>>>
-  >
-> = {
-  [NotificationRuleEventType.Incident]: {
-    [NotificationRuleUpdateKind.ResolvedAndReopened]: {
-      title: translationKey("Resolved and reopened"),
-      description: translationKey(
-        "When the incident is resolved, and if it is reopened.",
-      ),
-    },
-    [NotificationRuleUpdateKind.StateChanges]: {
-      title: translationKey("Other state changes"),
-      description: translationKey(
-        "Acknowledged and the incident's other states.",
-      ),
-    },
-    [NotificationRuleUpdateKind.SeverityChanges]: {
-      title: translationKey("Severity changes"),
-      description: translationKey("When the incident's severity changes."),
-    },
-    [NotificationRuleUpdateKind.PublicNotes]: {
-      title: translationKey("Public notes"),
-      description: NOTES_SHOWN_ON_STATUS_PAGES,
-    },
-    [NotificationRuleUpdateKind.PrivateNotes]: {
-      title: translationKey("Private notes"),
-      description: NOTES_FOR_YOUR_TEAM,
-    },
-    [NotificationRuleUpdateKind.Owners]: {
-      title: translationKey("Owners and roles"),
-      description: translationKey(
-        "Owners added and removed, and people given a role, such as Incident Commander.",
-      ),
-    },
-    [NotificationRuleUpdateKind.Paging]: {
-      title: translationKey("Paging"),
-      description: PAGING_DESCRIPTION,
-    },
-    [NotificationRuleUpdateKind.Postmortem]: {
-      title: translationKey("Postmortem"),
-      description: translationKey("The postmortem's note and its status."),
-    },
-    [NotificationRuleUpdateKind.AI]: {
-      title: translationKey("AI analysis and fixes"),
-      description: translationKey(
-        "Root cause analysis, call summaries and automatic fixes.",
-      ),
-    },
-    [NotificationRuleUpdateKind.Edits]: {
-      title: translationKey("Other edits"),
-      description: translationKey(
-        "Title, description, labels, monitors and other fields.",
-      ),
-    },
-    [NotificationRuleUpdateKind.Other]: {
-      title: translationKey("Everything else"),
-      description: translationKey(
-        "Linked alerts, reminders and subscribers who could not be notified.",
-      ),
-    },
-  },
-  [NotificationRuleEventType.Alert]: {
-    [NotificationRuleUpdateKind.ResolvedAndReopened]: {
-      title: translationKey("Resolved and reopened"),
-      description: translationKey(
-        "When the alert is resolved, and if it is reopened.",
-      ),
-    },
-    [NotificationRuleUpdateKind.StateChanges]: {
-      title: translationKey("Other state changes"),
-      description: translationKey("Acknowledged and the alert's other states."),
-    },
-    [NotificationRuleUpdateKind.SeverityChanges]: {
-      title: translationKey("Severity changes"),
-      description: translationKey("When the alert's severity changes."),
-    },
-    [NotificationRuleUpdateKind.PrivateNotes]: {
-      title: translationKey("Private notes"),
-      description: NOTES_FOR_YOUR_TEAM,
-    },
-    [NotificationRuleUpdateKind.Owners]: {
-      title: translationKey("Owners"),
-      description: OWNERS_DESCRIPTION,
-    },
-    [NotificationRuleUpdateKind.Paging]: {
-      title: translationKey("Paging"),
-      description: PAGING_DESCRIPTION,
-    },
-    [NotificationRuleUpdateKind.AI]: {
-      title: translationKey("AI analysis and fixes"),
-      description: translationKey("Root cause analysis and automatic fixes."),
-    },
-    [NotificationRuleUpdateKind.Edits]: {
-      title: translationKey("Other edits"),
-      description: translationKey(
-        "Title, description, labels and other fields.",
-      ),
-    },
-    [NotificationRuleUpdateKind.Other]: {
-      title: translationKey("Everything else"),
-      description: translationKey("Reminders that the alert is still open."),
-    },
-  },
-  [NotificationRuleEventType.IncidentEpisode]: {
-    [NotificationRuleUpdateKind.ResolvedAndReopened]: {
-      title: translationKey("Resolved and reopened"),
-      description: translationKey(
-        "When the episode is resolved, and if it is reopened.",
-      ),
-    },
-    [NotificationRuleUpdateKind.StateChanges]: {
-      title: translationKey("Other state changes"),
-      description: translationKey(
-        "Acknowledged and the episode's other states.",
-      ),
-    },
-    [NotificationRuleUpdateKind.EpisodeMembers]: {
-      title: translationKey("Incidents added and removed"),
-      description: translationKey(
-        "Incidents grouped into the episode, or taken out of it.",
-      ),
-    },
-    [NotificationRuleUpdateKind.PublicNotes]: {
-      title: translationKey("Public notes"),
-      description: NOTES_SHOWN_ON_STATUS_PAGES,
-    },
-    [NotificationRuleUpdateKind.PrivateNotes]: {
-      title: translationKey("Private notes"),
-      description: NOTES_FOR_YOUR_TEAM,
-    },
-    [NotificationRuleUpdateKind.Owners]: {
-      title: translationKey("Owners"),
-      description: OWNERS_DESCRIPTION,
-    },
-    [NotificationRuleUpdateKind.Paging]: {
-      title: translationKey("Paging"),
-      description: PAGING_DESCRIPTION,
-    },
-    [NotificationRuleUpdateKind.Other]: {
-      title: translationKey("Everything else"),
-      description: translationKey(
-        "Anything else posted about the episode.",
-      ),
-    },
-  },
-  [NotificationRuleEventType.AlertEpisode]: {
-    [NotificationRuleUpdateKind.ResolvedAndReopened]: {
-      title: translationKey("Resolved and reopened"),
-      description: translationKey(
-        "When the episode is resolved, and if it is reopened.",
-      ),
-    },
-    [NotificationRuleUpdateKind.StateChanges]: {
-      title: translationKey("Other state changes"),
-      description: translationKey(
-        "Acknowledged and the episode's other states.",
-      ),
-    },
-    [NotificationRuleUpdateKind.EpisodeMembers]: {
-      title: translationKey("Alerts added and removed"),
-      description: translationKey(
-        "Alerts grouped into the episode, or taken out of it.",
-      ),
-    },
-    [NotificationRuleUpdateKind.PrivateNotes]: {
-      title: translationKey("Private notes"),
-      description: NOTES_FOR_YOUR_TEAM,
-    },
-    [NotificationRuleUpdateKind.Owners]: {
-      title: translationKey("Owners"),
-      description: OWNERS_DESCRIPTION,
-    },
-    [NotificationRuleUpdateKind.Paging]: {
-      title: translationKey("Paging"),
-      description: PAGING_DESCRIPTION,
-    },
-    [NotificationRuleUpdateKind.Other]: {
-      title: translationKey("Everything else"),
-      description: translationKey(
-        "Anything else posted about the episode.",
-      ),
-    },
-  },
-  [NotificationRuleEventType.ScheduledMaintenance]: {
-    [NotificationRuleUpdateKind.StateChanges]: {
-      title: translationKey("State changes"),
-      description: translationKey(
-        "When the event starts, ends or moves to another state.",
-      ),
-    },
-    [NotificationRuleUpdateKind.PublicNotes]: {
-      title: translationKey("Public notes"),
-      description: NOTES_SHOWN_ON_STATUS_PAGES,
-    },
-    [NotificationRuleUpdateKind.PrivateNotes]: {
-      title: translationKey("Private notes"),
-      description: NOTES_FOR_YOUR_TEAM,
-    },
-    [NotificationRuleUpdateKind.Other]: {
-      title: translationKey("Everything else"),
-      description: translationKey(
-        "Reminders, and anything else posted about the event.",
-      ),
-    },
-  },
-};
+// The step's question, its field's title and its section's heading.
+export const UPDATES_SECTION_TITLE: string = translationKey(
+  "Which updates to post",
+);
 
-// The rule card's Updates row, beside the answer the rule picked.
+// The three answers.
+export const EVERY_UPDATE_TITLE: string = translationKey("Every update");
+export const KEY_UPDATES_TITLE: string = translationKey("Key updates only");
+export const CHOOSE_UPDATES_TITLE: string = translationKey("Choose updates");
+export const CHOOSE_UPDATES_DESCRIPTION: string = translationKey(
+  "Pick the updates to post.",
+);
+
+// The card's Updates row, for a rule that chose its updates.
+export const CHOSEN_UPDATES_TITLE: string = translationKey("Chosen updates");
 export const ONLY_FIRST_MESSAGE_TITLE: string = translationKey(
   "Only the first message",
 );
 
-export const CHOSEN_UPDATES_TITLE: string = translationKey("Chosen updates");
+// Words more than one kind of rule says the same way.
+const RESOLVED_AND_REOPENED: string = translationKey("Resolved and reopened");
+const OTHER_STATE_CHANGES: string = translationKey("Other state changes");
+const SEVERITY_CHANGES: string = translationKey("Severity changes");
+const PUBLIC_NOTES: string = translationKey("Public notes");
+const PRIVATE_NOTES: string = translationKey("Private notes");
+const OWNERS: string = translationKey("Owners");
+const PAGING: string = translationKey("Paging");
+const AI_ANALYSIS: string = translationKey("AI analysis and fixes");
+const OTHER_EDITS: string = translationKey("Other edits");
+const EVERYTHING_ELSE: string = translationKey("Everything else");
+
+const NOTES_ON_STATUS_PAGES: string = translationKey(
+  "Notes shown on status pages.",
+);
+const NOTES_OFF_STATUS_PAGES: string = translationKey(
+  "Notes kept off status pages.",
+);
+const OWNERS_ADDED_AND_REMOVED: string = translationKey(
+  "Owners added and removed.",
+);
+const WHO_WAS_PAGED: string = translationKey(
+  "Who an on-call policy paged, and who acknowledged.",
+);
+const EPISODE_RESOLVED: string = translationKey(
+  "When the episode is resolved, and if it is reopened.",
+);
+const EPISODE_OTHER_STATES: string = translationKey(
+  "Acknowledged, and any other state the episode moves to.",
+);
+const ANYTHING_ELSE_ABOUT_THE_EPISODE: string = translationKey(
+  "Anything else posted about the episode.",
+);
+
+export const UPDATES_COPY: Readonly<Record<UpdatesEventType, UpdatesCopy>> = {
+  [NotificationRuleEventType.Incident]: {
+    sectionDescription: translationKey(
+      "The rule always posts when an incident is declared. Pick the updates it posts after that.",
+    ),
+    everyUpdateDescription: translationKey(
+      "State changes, notes, owners, paging, edits and everything else.",
+    ),
+    keyUpdatesDescription: translationKey(
+      "Resolved and reopened, severity changes, public notes and the postmortem.",
+    ),
+    nothingChosenNote: translationKey(
+      "With none ticked, the rule posts only that the incident was declared, and a video call's Join button.",
+    ),
+    kinds: {
+      [NotificationRuleUpdateKind.ResolvedAndReopened]: {
+        title: RESOLVED_AND_REOPENED,
+        description: translationKey(
+          "When the incident is resolved, and if it is reopened.",
+        ),
+      },
+      [NotificationRuleUpdateKind.StateChanges]: {
+        title: OTHER_STATE_CHANGES,
+        description: translationKey(
+          "Acknowledged, and any other state the incident moves to.",
+        ),
+      },
+      [NotificationRuleUpdateKind.SeverityChanges]: {
+        title: SEVERITY_CHANGES,
+        description: translationKey("When the incident's severity changes."),
+      },
+      [NotificationRuleUpdateKind.PublicNotes]: {
+        title: PUBLIC_NOTES,
+        description: NOTES_ON_STATUS_PAGES,
+      },
+      [NotificationRuleUpdateKind.PrivateNotes]: {
+        title: PRIVATE_NOTES,
+        description: NOTES_OFF_STATUS_PAGES,
+      },
+      [NotificationRuleUpdateKind.Owners]: {
+        title: translationKey("Owners and roles"),
+        description: translationKey(
+          "Owners added and removed, and people given a role, such as Incident Commander.",
+        ),
+      },
+      [NotificationRuleUpdateKind.Paging]: {
+        title: PAGING,
+        description: WHO_WAS_PAGED,
+      },
+      [NotificationRuleUpdateKind.Postmortem]: {
+        title: translationKey("Postmortem"),
+        description: translationKey("The postmortem's note and its status."),
+      },
+      [NotificationRuleUpdateKind.AI]: {
+        title: AI_ANALYSIS,
+        description: translationKey(
+          "Root cause analysis, call summaries and automatic fixes.",
+        ),
+      },
+      [NotificationRuleUpdateKind.Edits]: {
+        title: OTHER_EDITS,
+        description: translationKey(
+          "Title, description, labels, custom fields and more.",
+        ),
+      },
+      [NotificationRuleUpdateKind.Other]: {
+        title: EVERYTHING_ELSE,
+        description: translationKey(
+          "Linked alerts, reminders and subscribers who could not be notified.",
+        ),
+      },
+    },
+  },
+  [NotificationRuleEventType.Alert]: {
+    sectionDescription: translationKey(
+      "The rule always posts when an alert is created. Pick the updates it posts after that.",
+    ),
+    everyUpdateDescription: translationKey(
+      "State changes, notes, owners, paging, edits and everything else.",
+    ),
+    keyUpdatesDescription: translationKey(
+      "Resolved and reopened, and severity changes.",
+    ),
+    nothingChosenNote: translationKey(
+      "With none ticked, the rule posts only that the alert was created, and a video call's Join button.",
+    ),
+    kinds: {
+      [NotificationRuleUpdateKind.ResolvedAndReopened]: {
+        title: RESOLVED_AND_REOPENED,
+        description: translationKey(
+          "When the alert is resolved, and if it is reopened.",
+        ),
+      },
+      [NotificationRuleUpdateKind.StateChanges]: {
+        title: OTHER_STATE_CHANGES,
+        description: translationKey(
+          "Acknowledged, and any other state the alert moves to.",
+        ),
+      },
+      [NotificationRuleUpdateKind.SeverityChanges]: {
+        title: SEVERITY_CHANGES,
+        description: translationKey("When the alert's severity changes."),
+      },
+      [NotificationRuleUpdateKind.PrivateNotes]: {
+        title: PRIVATE_NOTES,
+        description: translationKey("Notes added to the alert."),
+      },
+      [NotificationRuleUpdateKind.Owners]: {
+        title: OWNERS,
+        description: OWNERS_ADDED_AND_REMOVED,
+      },
+      [NotificationRuleUpdateKind.Paging]: {
+        title: PAGING,
+        description: WHO_WAS_PAGED,
+      },
+      [NotificationRuleUpdateKind.AI]: {
+        title: AI_ANALYSIS,
+        description: translationKey("Root cause analysis and automatic fixes."),
+      },
+      [NotificationRuleUpdateKind.Edits]: {
+        title: OTHER_EDITS,
+        description: translationKey("Title, description, labels and more."),
+      },
+      [NotificationRuleUpdateKind.Other]: {
+        title: EVERYTHING_ELSE,
+        description: translationKey(
+          "Reminders, and anything else posted about the alert.",
+        ),
+      },
+    },
+  },
+  [NotificationRuleEventType.IncidentEpisode]: {
+    sectionDescription: translationKey(
+      "The rule always posts when an incident episode is created. Pick the updates it posts after that.",
+    ),
+    everyUpdateDescription: translationKey(
+      "State changes, notes, owners, paging, incidents added or removed, and everything else.",
+    ),
+    keyUpdatesDescription: translationKey(
+      "Resolved and reopened, and public notes.",
+    ),
+    nothingChosenNote: translationKey(
+      "With none ticked, the rule posts only that the incident episode was created.",
+    ),
+    kinds: {
+      [NotificationRuleUpdateKind.ResolvedAndReopened]: {
+        title: RESOLVED_AND_REOPENED,
+        description: EPISODE_RESOLVED,
+      },
+      [NotificationRuleUpdateKind.StateChanges]: {
+        title: OTHER_STATE_CHANGES,
+        description: EPISODE_OTHER_STATES,
+      },
+      [NotificationRuleUpdateKind.EpisodeMembers]: {
+        title: translationKey("Incidents added and removed"),
+        description: translationKey(
+          "Incidents grouped into the episode, or taken out of it.",
+        ),
+      },
+      [NotificationRuleUpdateKind.PublicNotes]: {
+        title: PUBLIC_NOTES,
+        description: NOTES_ON_STATUS_PAGES,
+      },
+      [NotificationRuleUpdateKind.PrivateNotes]: {
+        title: PRIVATE_NOTES,
+        description: NOTES_OFF_STATUS_PAGES,
+      },
+      [NotificationRuleUpdateKind.Owners]: {
+        title: OWNERS,
+        description: OWNERS_ADDED_AND_REMOVED,
+      },
+      [NotificationRuleUpdateKind.Paging]: {
+        title: PAGING,
+        description: WHO_WAS_PAGED,
+      },
+      [NotificationRuleUpdateKind.Other]: {
+        title: EVERYTHING_ELSE,
+        description: ANYTHING_ELSE_ABOUT_THE_EPISODE,
+      },
+    },
+  },
+  [NotificationRuleEventType.AlertEpisode]: {
+    sectionDescription: translationKey(
+      "The rule always posts when an alert episode is created. Pick the updates it posts after that.",
+    ),
+    everyUpdateDescription: translationKey(
+      "State changes, notes, owners, paging, alerts added or removed, and everything else.",
+    ),
+    keyUpdatesDescription: translationKey("Resolved and reopened."),
+    nothingChosenNote: translationKey(
+      "With none ticked, the rule posts only that the alert episode was created.",
+    ),
+    kinds: {
+      [NotificationRuleUpdateKind.ResolvedAndReopened]: {
+        title: RESOLVED_AND_REOPENED,
+        description: EPISODE_RESOLVED,
+      },
+      [NotificationRuleUpdateKind.StateChanges]: {
+        title: OTHER_STATE_CHANGES,
+        description: EPISODE_OTHER_STATES,
+      },
+      [NotificationRuleUpdateKind.EpisodeMembers]: {
+        title: translationKey("Alerts added and removed"),
+        description: translationKey(
+          "Alerts grouped into the episode, or taken out of it.",
+        ),
+      },
+      [NotificationRuleUpdateKind.PrivateNotes]: {
+        title: PRIVATE_NOTES,
+        description: translationKey("Notes added to the episode."),
+      },
+      [NotificationRuleUpdateKind.Owners]: {
+        title: OWNERS,
+        description: OWNERS_ADDED_AND_REMOVED,
+      },
+      [NotificationRuleUpdateKind.Paging]: {
+        title: PAGING,
+        description: WHO_WAS_PAGED,
+      },
+      [NotificationRuleUpdateKind.Other]: {
+        title: EVERYTHING_ELSE,
+        description: ANYTHING_ELSE_ABOUT_THE_EPISODE,
+      },
+    },
+  },
+  [NotificationRuleEventType.ScheduledMaintenance]: {
+    sectionDescription: translationKey(
+      "The rule always posts when a scheduled maintenance event is created. Pick the updates it posts after that.",
+    ),
+    everyUpdateDescription: translationKey(
+      "State changes, notes and everything else.",
+    ),
+    keyUpdatesDescription: translationKey("State changes and public notes."),
+    nothingChosenNote: translationKey(
+      "With none ticked, the rule posts only that the scheduled maintenance event was created.",
+    ),
+    kinds: {
+      [NotificationRuleUpdateKind.StateChanges]: {
+        title: translationKey("State changes"),
+        description: translationKey(
+          "When the event starts, ends or moves to another state.",
+        ),
+      },
+      [NotificationRuleUpdateKind.PublicNotes]: {
+        title: PUBLIC_NOTES,
+        description: NOTES_ON_STATUS_PAGES,
+      },
+      [NotificationRuleUpdateKind.PrivateNotes]: {
+        title: PRIVATE_NOTES,
+        description: NOTES_OFF_STATUS_PAGES,
+      },
+      [NotificationRuleUpdateKind.Other]: {
+        title: EVERYTHING_ELSE,
+        description: translationKey(
+          "Reminders, and anything else posted about the event.",
+        ),
+      },
+    },
+  },
+};
 
 /*
  * The kinds of rule that choose their updates. Every other kind - monitors,
@@ -387,7 +387,10 @@ export const CHOSEN_UPDATES_TITLE: string = translationKey("Chosen updates");
 export function isUpdatesEventType(
   eventType: NotificationRuleEventType,
 ): eventType is UpdatesEventType {
-  return NotificationRuleUpdates.canChooseUpdates(eventType);
+  return (
+    NotificationRuleUpdates.canChooseUpdates(eventType) &&
+    Object.prototype.hasOwnProperty.call(UPDATES_COPY, eventType)
+  );
 }
 
 // One box's words, for a kind of rule and an update it can choose.
@@ -395,37 +398,44 @@ export function getUpdateKindCopy(
   eventType: UpdatesEventType,
   kind: NotificationRuleUpdateKind,
 ): UpdateKindCopy | undefined {
-  return UPDATE_KIND_COPY[eventType][kind];
+  return UPDATES_COPY[eventType].kinds[kind];
+}
+
+// What a rule's card says about the updates it posts.
+export interface UpdatesSummary {
+  // The answer it picked, translated: "Key updates only".
+  title: string;
+  /*
+   * The updates it posts, translated and set apart as the reader's
+   * language does ("Resolved and reopened · Public notes"); none for a rule
+   * that posts every update, or only its first message.
+   */
+  detail: string | undefined;
 }
 
 /*
  * What a rule's card says about its updates: the answer it picked and,
- * when it picked some, the updates it posts, set off from each other as
- * the reader's language does ("Resolved and reopened · Public notes ·
- * Paging"). A rule with every box cleared posts only its first message.
+ * when it picked some, the updates it posts. A rule with every box
+ * cleared posts only its first message.
  */
 export function getUpdatesSummary(data: {
-  rule: Parameters<typeof NotificationRuleUpdates.getChoice>[0]["rule"];
+  rule: StoredRuleUpdates;
   eventType: UpdatesEventType;
   translator: Translator;
-}): { title: string; detail: string | undefined } {
+}): UpdatesSummary {
   // In the reader's language, or the English when it has no words for it.
   const tx: (english: string) => string = (english: string): string => {
     return data.translator.translateText(english) || english;
   };
 
-  const choice: NotificationRuleUpdatesChoice = NotificationRuleUpdates.getChoice(
-    {
+  const choice: NotificationRuleUpdatesChoice =
+    NotificationRuleUpdates.getChoice({
       rule: data.rule,
       eventType: data.eventType,
-    },
-  );
+    });
 
   if (choice === NotificationRuleUpdatesChoice.EveryUpdate) {
-    return {
-      title: tx(EVERY_UPDATE_TITLE),
-      detail: undefined,
-    };
+    return { title: tx(EVERY_UPDATE_TITLE), detail: undefined };
   }
 
   const posted: Array<NotificationRuleUpdateKind> =
@@ -435,10 +445,7 @@ export function getUpdatesSummary(data: {
     });
 
   if (posted.length === 0) {
-    return {
-      title: tx(ONLY_FIRST_MESSAGE_TITLE),
-      detail: undefined,
-    };
+    return { title: tx(ONLY_FIRST_MESSAGE_TITLE), detail: undefined };
   }
 
   const names: Array<string> = posted.map(

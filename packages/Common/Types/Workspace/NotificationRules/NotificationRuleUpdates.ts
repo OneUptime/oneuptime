@@ -186,7 +186,7 @@ const KEY_UPDATE_KINDS: Readonly<
 };
 
 // A rule as stored: updatesToPost is JSON, so it is read with care.
-type StoredRule =
+export type StoredRuleUpdates =
   | Partial<Pick<BaseNotificationRule, "updatesToPost">>
   | null
   | undefined;
@@ -194,11 +194,13 @@ type StoredRule =
 // A rule of the project, with its id, as a record's channel names it.
 export interface RuleOfChannel {
   id: string;
-  rule: StoredRule;
+  rule: StoredRuleUpdates;
 }
 
 export default class NotificationRuleUpdates {
-  public static isUpdateKind(value: unknown): value is NotificationRuleUpdateKind {
+  public static isUpdateKind(
+    value: unknown,
+  ): value is NotificationRuleUpdateKind {
     return (
       typeof value === "string" &&
       (Object.values(NotificationRuleUpdateKind) as Array<string>).includes(
@@ -238,7 +240,7 @@ export default class NotificationRuleUpdates {
    * JSON, or a kind a later version took out - is left out.
    */
   public static getChosenKinds(
-    rule: StoredRule,
+    rule: StoredRuleUpdates,
   ): Array<NotificationRuleUpdateKind> | undefined {
     const stored: unknown = rule?.updatesToPost;
 
@@ -262,7 +264,7 @@ export default class NotificationRuleUpdates {
    * updates only reads as that choice, in whatever order it was stored.
    */
   public static getChoice(data: {
-    rule: StoredRule;
+    rule: StoredRuleUpdates;
     eventType: NotificationRuleEventType | undefined;
   }): NotificationRuleUpdatesChoice {
     const chosen: Array<NotificationRuleUpdateKind> | undefined =
@@ -284,11 +286,12 @@ export default class NotificationRuleUpdates {
    * order: every one when it chose none.
    */
   public static getPostedKinds(data: {
-    rule: StoredRule;
+    rule: StoredRuleUpdates;
     eventType: NotificationRuleEventType | undefined;
   }): Array<NotificationRuleUpdateKind> {
-    const choosable: Array<NotificationRuleUpdateKind> =
-      this.getChoosableKinds(data.eventType);
+    const choosable: Array<NotificationRuleUpdateKind> = this.getChoosableKinds(
+      data.eventType,
+    );
     const chosen: Array<NotificationRuleUpdateKind> | undefined =
       this.getChosenKinds(data.rule);
 
@@ -316,8 +319,9 @@ export default class NotificationRuleUpdates {
       ...((data.rule || {}) as T),
     };
 
-    const choosable: Array<NotificationRuleUpdateKind> =
-      this.getChoosableKinds(data.eventType);
+    const choosable: Array<NotificationRuleUpdateKind> = this.getChoosableKinds(
+      data.eventType,
+    );
 
     const kinds: Array<NotificationRuleUpdateKind> | undefined = data.kinds
       ? choosable.filter((kind: NotificationRuleUpdateKind): boolean => {
@@ -388,7 +392,7 @@ export default class NotificationRuleUpdates {
    * it chose none.
    */
   public static wantsUpdate(data: {
-    rule: StoredRule;
+    rule: StoredRuleUpdates;
     updateKinds: ReadonlyArray<NotificationRuleUpdateKind> | undefined;
   }): boolean {
     if (!data.updateKinds || this.isPostedEverywhere(data.updateKinds)) {
@@ -402,9 +406,11 @@ export default class NotificationRuleUpdates {
       return true;
     }
 
-    return data.updateKinds.some((kind: NotificationRuleUpdateKind): boolean => {
-      return chosen.includes(kind);
-    });
+    return data.updateKinds.some(
+      (kind: NotificationRuleUpdateKind): boolean => {
+        return chosen.includes(kind);
+      },
+    );
   }
 
   /*
@@ -474,8 +480,9 @@ export default class NotificationRuleUpdates {
       return null;
     }
 
-    const choosable: Array<NotificationRuleUpdateKind> =
-      this.getChoosableKinds(data.eventType);
+    const choosable: Array<NotificationRuleUpdateKind> = this.getChoosableKinds(
+      data.eventType,
+    );
 
     if (choosable.length === 0) {
       return `${data.eventType || "These"} rules post every update: leave updatesToPost out.`;
@@ -493,7 +500,7 @@ export default class NotificationRuleUpdates {
         // A value typed by hand can be anything: only its start is repeated.
         const shown: string = String(JSON.stringify(value)).substring(0, 80);
 
-        return `updatesToPost lists ${shown}, which ${data.eventType} rules do not post. They post any of: ${choosable.join(", ")}.`;
+        return `updatesToPost lists ${shown}, which ${data.eventType} rules cannot choose. They choose any of: ${choosable.join(", ")}.`;
       }
     }
 

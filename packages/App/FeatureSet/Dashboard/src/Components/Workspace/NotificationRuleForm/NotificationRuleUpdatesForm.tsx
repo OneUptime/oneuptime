@@ -12,14 +12,13 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
 import {
   CHOOSE_UPDATES_DESCRIPTION,
   CHOOSE_UPDATES_TITLE,
-  EVERY_UPDATE_DESCRIPTIONS,
   EVERY_UPDATE_TITLE,
   getUpdateKindCopy,
-  KEY_UPDATES_DESCRIPTIONS,
   KEY_UPDATES_TITLE,
-  NOTHING_CHOSEN_NOTES,
+  UPDATES_COPY,
   UPDATES_SECTION_TITLE,
   UpdateKindCopy,
+  UpdatesCopy,
   UpdatesEventType,
 } from "./NotificationRuleUpdatesCopy";
 
@@ -28,7 +27,7 @@ import {
  *
  *   ┌──────────────────────────────────────────────────────────┐
  *   │ (o) Every update                                          │
- *   │     Every state change, note, owner, page and edit.       │
+ *   │     State changes, notes, owners, paging, edits and ...   │
  *   ├──────────────────────────────────────────────────────────┤
  *   │ ( ) Key updates only                                      │
  *   │     Resolved and reopened, severity changes, public ...   │
@@ -39,10 +38,10 @@ import {
  *   │     [x] Severity changes        [x] Public notes  ...     │
  *   └──────────────────────────────────────────────────────────┘
  *
- * Its question and what every rule posts whatever it picks - the record's
- * first message, a video call's Join button - head the step (the field's
- * sectionTitle and sectionDescription). A new rule, and every rule saved
- * before there was a choice, posts every update.
+ * Its question and what the rule posts whatever it picks - the record's
+ * first message - head the step (the field's sectionTitle and
+ * sectionDescription). A new rule, and every rule saved before there was
+ * a choice, posts every update.
  *
  * What is stored is the list of updates the rule posts
  * (NotificationRuleUpdates). The list cannot tell "Choose updates" with
@@ -65,6 +64,7 @@ const NotificationRuleUpdatesForm: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const rule: IncidentNotificationRule | undefined = props.value;
+  const copy: UpdatesCopy = UPDATES_COPY[props.eventType];
 
   const storedChoice: NotificationRuleUpdatesChoice =
     NotificationRuleUpdates.getChoice({
@@ -86,18 +86,6 @@ const NotificationRuleUpdatesForm: FunctionComponent<ComponentProps> = (
       rule: rule,
       eventType: props.eventType,
     });
-
-  const save: (kinds: ReadonlyArray<NotificationRuleUpdateKind>) => void = (
-    kinds: ReadonlyArray<NotificationRuleUpdateKind>,
-  ): void => {
-    props.onChange(
-      NotificationRuleUpdates.withChosenKinds<IncidentNotificationRule>({
-        rule: rule,
-        eventType: props.eventType,
-        kinds: kinds,
-      }),
-    );
-  };
 
   const pick: (next: NotificationRuleUpdatesChoice) => void = (
     next: NotificationRuleUpdatesChoice,
@@ -122,27 +110,28 @@ const NotificationRuleUpdatesForm: FunctionComponent<ComponentProps> = (
     kind: NotificationRuleUpdateKind,
     isOn: boolean,
   ): void => {
-    save(
-      isOn
-        ? [...posted, kind]
-        : posted.filter((candidate: NotificationRuleUpdateKind): boolean => {
-            return candidate !== kind;
-          }),
+    props.onChange(
+      NotificationRuleUpdates.withChosenKinds<IncidentNotificationRule>({
+        rule: rule,
+        eventType: props.eventType,
+        kinds: isOn
+          ? [...posted, kind]
+          : posted.filter((candidate: NotificationRuleUpdateKind): boolean => {
+              return candidate !== kind;
+            }),
+      }),
     );
   };
 
-  const isChoosing: boolean =
-    choice === NotificationRuleUpdatesChoice.ChosenUpdates;
-
   const checklist: ReactElement = (
-    <div data-testid="notification-rule-updates-checklist">
+    <div className="pt-1" data-testid="notification-rule-updates-checklist">
       <div
         role="group"
         aria-label={translator.translateText(CHOOSE_UPDATES_TITLE)}
         className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2"
       >
         {choosable.map((kind: NotificationRuleUpdateKind): ReactElement => {
-          const copy: UpdateKindCopy | undefined = getUpdateKindCopy(
+          const kindCopy: UpdateKindCopy | undefined = getUpdateKindCopy(
             props.eventType,
             kind,
           );
@@ -150,8 +139,8 @@ const NotificationRuleUpdatesForm: FunctionComponent<ComponentProps> = (
           return (
             <Checkbox
               key={kind}
-              title={copy?.title || kind}
-              description={copy?.description}
+              title={kindCopy?.title || kind}
+              description={kindCopy?.description}
               value={posted.includes(kind)}
               dataTestId={`notification-rule-update-${kind}`}
               onChange={(isOn: boolean) => {
@@ -166,7 +155,7 @@ const NotificationRuleUpdatesForm: FunctionComponent<ComponentProps> = (
           className="mt-3 text-sm text-gray-500"
           data-testid="notification-rule-updates-nothing-chosen"
         >
-          {translator.translateText(NOTHING_CHOSEN_NOTES[props.eventType])}
+          {translator.translateText(copy.nothingChosenNote)}
         </p>
       ) : (
         <></>
@@ -186,20 +175,23 @@ const NotificationRuleUpdatesForm: FunctionComponent<ComponentProps> = (
             {
               value: NotificationRuleUpdatesChoice.EveryUpdate,
               title: EVERY_UPDATE_TITLE,
-              description: EVERY_UPDATE_DESCRIPTIONS[props.eventType],
+              description: copy.everyUpdateDescription,
               dataTestId: "notification-rule-updates-every",
             },
             {
               value: NotificationRuleUpdatesChoice.KeyUpdates,
               title: KEY_UPDATES_TITLE,
-              description: KEY_UPDATES_DESCRIPTIONS[props.eventType],
+              description: copy.keyUpdatesDescription,
               dataTestId: "notification-rule-updates-key",
             },
             {
               value: NotificationRuleUpdatesChoice.ChosenUpdates,
               title: CHOOSE_UPDATES_TITLE,
               description: CHOOSE_UPDATES_DESCRIPTION,
-              details: isChoosing ? checklist : undefined,
+              details:
+                choice === NotificationRuleUpdatesChoice.ChosenUpdates
+                  ? checklist
+                  : undefined,
               dataTestId: "notification-rule-updates-chosen",
             },
           ]}

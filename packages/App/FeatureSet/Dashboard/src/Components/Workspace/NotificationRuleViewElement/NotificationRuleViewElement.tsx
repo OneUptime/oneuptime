@@ -382,6 +382,7 @@ export function getNotificationRuleCardColumns(
         notificationRule: true,
       },
       id: NOTIFICATION_RULE_CARD_COLUMN_IDS.updates,
+      // The rule form's step of the same name: the card translates it.
       title: "Updates",
       type: FieldType.Element,
       disableSort: true,
