@@ -25,12 +25,14 @@ import {
 } from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
+import readAsWritten from "Common/UI/Components/IsolatedText/ReadAsWritten";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import { formatInline, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
+  ReactNode,
   useEffect,
   useRef,
   useState,
@@ -176,6 +178,29 @@ export function getResultSentence(
     getResultLineSentence(translator, result.statusMessageCode) ??
     result.statusMessage
   );
+}
+
+/*
+ * getResultSentence as a line of words draws it inline - Ask AI's test page
+ * card, after the result's headline. A line the server wrote with no code
+ * (a failed run's own error, an older server's line) is set apart on a page
+ * read the other way (#7182): its number keeps its "+" in front and its
+ * full stop at its end. Every other sentence is the reader's own words.
+ */
+export function getResultSentenceWords(
+  translator: Translator,
+  result: OnCallTestPageResult,
+): ReactNode {
+  const sentence: string = getResultSentence(translator, result);
+
+  if (
+    isRunLineShown(result) &&
+    getResultLineSentence(translator, result.statusMessageCode) === null
+  ) {
+    return readAsWritten(sentence, translator.language);
+  }
+
+  return sentence;
 }
 
 const DeliveryLine: FunctionComponent<{

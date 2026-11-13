@@ -11,7 +11,7 @@ import { act, cleanup, render, screen, within } from "@testing-library/react";
 import fs from "fs";
 import i18next from "i18next";
 import path from "path";
-import React from "react";
+import React, { ReactElement } from "react";
 import { initReactI18next } from "react-i18next";
 import { MemoryRouter } from "react-router-dom";
 
@@ -54,7 +54,12 @@ jest.mock(
   },
 );
 
-import { TestPageResultView } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallTestPage/TestPageResult";
+import {
+  TestPageResultView,
+  getResultSentenceWords,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallTestPage/TestPageResult";
+import { Translator } from "../../../UI/Utils/TranslateTemplate";
+import useTranslator from "../../../UI/Utils/UseTranslator";
 import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
 import {
   NOT_A_PROJECT_MEMBER_TIMELINE_MESSAGE,
@@ -507,6 +512,68 @@ describe.each(["ar", "fa"])(
     });
   },
 );
+
+/*
+ * Ask AI's test page card draws the run's sentence inline, after the
+ * result's headline (getResultSentenceWords). A failed run's own error -
+ * the server's words, with no code - is set apart on a page read the other
+ * way, as the result's own line is: its number keeps its "+" in front and
+ * its full stop at its end. A sentence in the reader's words is drawn as
+ * it is.
+ */
+function InlineSentence(props: { result: OnCallTestPageResult }): ReactElement {
+  const translator: Translator = useTranslator();
+
+  return (
+    <p data-testid="inline-result-sentence">
+      {getResultSentenceWords(translator, props.result)}
+    </p>
+  );
+}
+
+async function renderInline(
+  language: string,
+  result: OnCallTestPageResult,
+): Promise<HTMLElement> {
+  await renderIn(language, result);
+
+  render(<InlineSentence result={result} />);
+
+  return screen.getByTestId("inline-result-sentence");
+}
+
+describe("the run's sentence drawn inline (Ask AI's test page card)", () => {
+  test.each(["ar", "fa"])(
+    "%s: a failed run's error is one isolate that reads left to right, its words unchanged",
+    async (language: string) => {
+      const line: HTMLElement = await renderInline(language, failedResult());
+      const isolates: Array<Element> = Array.from(line.querySelectorAll("bdi"));
+
+      expect(isolates).toHaveLength(1);
+      expect(isolates[0]).toHaveAttribute("dir", "ltr");
+      expect(isolates[0]!.textContent).toBe(RUN_ERROR);
+      expect(line.textContent).toBe(RUN_ERROR);
+    },
+  );
+
+  test("en: a failed run's error as it always was, with no isolate", async () => {
+    const line: HTMLElement = await renderInline("en", failedResult());
+
+    expect(line.querySelector("bdi")).toBeNull();
+    expect(line.textContent).toBe(RUN_ERROR);
+  });
+
+  test.each(["ar", "fa", "de"])(
+    "%s: a coded line is the reader's own words, as the result's headline says them, with no isolate",
+    async (language: string) => {
+      const line: HTMLElement = await renderInline(language, endedResult(true));
+
+      expect(line.querySelector("bdi")).toBeNull();
+      expect(textOf(line)).toBe(textOf(headlineLine()));
+      expect(textOf(line)).not.toBe(ON_CALL_TEST_PAGE_ENDED_UNANSWERED_MESSAGE);
+    },
+  );
+});
 
 describe("the result keeps its parts where tests and pages find them", () => {
   test("the result, each person's step and each message keep their test ids", async () => {
