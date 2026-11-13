@@ -24,14 +24,13 @@ import {
   isOnCallTestPageResultFinal,
 } from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
 import Icon from "Common/UI/Components/Icon/Icon";
-import readAsWritten from "Common/UI/Components/IsolatedText/ReadAsWritten";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import { formatInline, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
-  ReactNode,
   useEffect,
   useRef,
   useState,
@@ -88,28 +87,41 @@ export function describeAnswerTime(
  * A line of the result as its reader reads it: in their own words, from
  * the code the server sent with it (#7260), or else as the server wrote it.
  * Words the server wrote - a line it sent no code for, a provider's own
- * error - are set apart on a page read the other way (#7182), so an
- * English line on an Arabic or Persian page keeps its phone number and its
- * full stop where they were written.
+ * error - read the way they are written on a page read the other way
+ * (#7182): an English line on an Arabic or Persian page keeps its phone
+ * number and its full stop where they were written, and, run onto more
+ * lines, each of its lines starts at its own start, at the page's side
+ * (IsolatedLine) - not ragged where an English reader starts reading.
  */
-export function getResultLineWords(
-  translator: Translator,
+interface ResultLineProps {
   line: {
     statusMessage: string;
     statusMessageCode?: OnCallTestPageLine | undefined;
-  },
-): ReactNode {
+  };
+  className: string;
+}
+
+const ResultLine: FunctionComponent<ResultLineProps> = (
+  props: ResultLineProps,
+): ReactElement => {
+  const translator: Translator = useTranslator();
   const words: string | null = getResultLineSentence(
     translator,
-    line.statusMessageCode,
+    props.line.statusMessageCode,
   );
 
   if (words !== null) {
-    return words;
+    return <p className={props.className}>{words}</p>;
   }
 
-  return readAsWritten(line.statusMessage, translator.language);
-}
+  return (
+    <IsolatedLine
+      as="p"
+      text={props.line.statusMessage}
+      className={props.className}
+    />
+  );
+};
 
 // Whether the sentence under the headline is the run's own line.
 function isRunLineShown(result: OnCallTestPageResult): boolean {
@@ -212,9 +224,10 @@ const DeliveryLine: FunctionComponent<{
         />
       </div>
       {isFailed && delivery.statusMessage ? (
-        <p className="text-sm text-gray-600 break-words">
-          {getResultLineWords(translator, delivery)}
-        </p>
+        <ResultLine
+          line={delivery}
+          className="text-sm text-gray-600 break-words"
+        />
       ) : (
         <></>
       )}
@@ -314,9 +327,10 @@ const StepBlock: FunctionComponent<{
         />
       </div>
       {step.deliveries.length === 0 && step.statusMessage ? (
-        <p className="mt-2 text-sm text-gray-600 break-words">
-          {getResultLineWords(translator, step)}
-        </p>
+        <ResultLine
+          line={step}
+          className="mt-2 text-sm text-gray-600 break-words"
+        />
       ) : (
         <></>
       )}
@@ -358,11 +372,16 @@ export const TestPageResultView: FunctionComponent<{
             isPulsing={result.status === OnCallTestPageStatus.Paging}
           />
         </div>
-        <p className="text-sm text-gray-700 break-words">
-          {isRunLineShown(result)
-            ? getResultLineWords(translator, result)
-            : getResultSentence(translator, result)}
-        </p>
+        {isRunLineShown(result) ? (
+          <ResultLine
+            line={result}
+            className="text-sm text-gray-700 break-words"
+          />
+        ) : (
+          <p className="text-sm text-gray-700 break-words">
+            {getResultSentence(translator, result)}
+          </p>
+        )}
       </div>
       {result.steps.length > 0 ? (
         <div className="flex flex-col gap-2">

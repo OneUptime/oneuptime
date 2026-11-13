@@ -221,7 +221,8 @@ const getSuppliedDropdownOptions: GetSuppliedDropdownOptions = (
      * The same `Channel: identifier` shape NotificationMethodUtil.getLabel
      * produces, so the two paths read identically - the only difference a
      * viewer can see is that this one is masked. In the reader's words:
-     * "Phone call", never the shared "Call" (#7178).
+     * "Phone call", never the shared "Call" (#7178), drawn as the other
+     * path's are (TRANSLATED_LABEL_OPTION).
      */
     options.push({
       label: NotificationMethodUtil.getMethodLabel(
@@ -230,6 +231,7 @@ const getSuppliedDropdownOptions: GetSuppliedDropdownOptions = (
         method.maskedIdentifier,
       ),
       value: method.methodId,
+      ...NotificationMethodUtil.TRANSLATED_LABEL_OPTION,
     });
   }
 

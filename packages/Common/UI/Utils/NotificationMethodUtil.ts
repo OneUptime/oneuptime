@@ -15,7 +15,14 @@ import UserWebhook from "../../Models/DatabaseModels/UserWebhook";
 import UserWhatsApp from "../../Models/DatabaseModels/UserWhatsApp";
 import ObjectID from "../../Types/ObjectID";
 import { OnCallPageChannel } from "../../Types/OnCallDutyPolicy/OnCallPageChannel";
-import { translationKey, Translator } from "./TranslateTemplate";
+import {
+  ComposedValue,
+  composedValue,
+  TemplateValue,
+  translatableTerm,
+  translationKey,
+  Translator,
+} from "./TranslateTemplate";
 
 /*
  * The four on-call rule pages (alert, incident, alert episode, incident
@@ -99,6 +106,13 @@ export const NOTIFICATION_METHOD_NAMES: Readonly<
 export const NOTIFICATION_METHOD_LINE: string = translationKey(
   "{{label}}: {{identifier}}",
 );
+
+/*
+ * A push device registered without a name: the server stores it under
+ * this placeholder (UserPushAPI), and a line words it in the reader's
+ * language (getIdentifierText).
+ */
+const UNNAMED_DEVICE: string = translationKey("Unknown Device");
 
 // The kinds of method reached at a phone number.
 const PHONE_NUMBER_METHODS: ReadonlyArray<OnCallPageChannel> = [
@@ -288,6 +302,48 @@ export default class NotificationMethodUtil {
   }
 
   /*
+   * A method's name as a value of a sentence (the Remove dialog's title,
+   * "Remove this phone call method?"): in the sentence's own language - the
+   * reader's where the sentence is translated, English where it is not
+   * yet - and cased as the middle of a sentence is: "phone call", "SMS",
+   * "WhatsApp". Named in the reader's language before the sentence was
+   * looked up, a German page read "Remove this Telefonanruf method?". A
+   * type this build does not know is named as it came.
+   */
+  public static getMethodNameInSentence(
+    methodType: OnCallPageChannel | string,
+  ): TemplateValue {
+    const method: OnCallPageChannel | null =
+      NotificationMethodUtil.getMethodOfType(methodType);
+
+    if (!method) {
+      return methodType;
+    }
+
+    return translatableTerm(NOTIFICATION_METHOD_NAMES[method], {
+      inSentence: true,
+    });
+  }
+
+  /*
+   * A method's line as a value of a sentence ("Deleting {{methodLabel}}
+   * removes 2 notification rules."): getMethodLabel's line in the
+   * sentence's own language, as getMethodNameInSentence's name is.
+   */
+  public static getMethodLabelInSentence(
+    methodType: OnCallPageChannel | string,
+    identifier: string | null | undefined,
+  ): ComposedValue {
+    return composedValue((translator: Translator): string => {
+      return NotificationMethodUtil.getMethodLabel(
+        translator,
+        methodType,
+        identifier,
+      );
+    });
+  }
+
+  /*
    * A method's line as text, "SMS: +447700900123", in the reader's
    * language: for a dropdown's option, which draws text only. The
    * identifier is set apart from the words, so a number keeps its "+" in
@@ -309,9 +365,39 @@ export default class NotificationMethodUtil {
 
     return translator.translateTemplate(
       NOTIFICATION_METHOD_LINE,
-      { label: name, identifier: identifier },
+      {
+        label: name,
+        identifier: NotificationMethodUtil.getIdentifierText(
+          translator,
+          methodType,
+          identifier,
+        ),
+      },
       { setsValuesApart: true },
     );
+  }
+
+  /*
+   * A method's identifier as a line shows it: as stored - a number, an
+   * address, a name someone gave it - except a push device registered
+   * without a name, which the server stores as "Unknown Device"
+   * (UserPushAPI): that is the product's word, in the reader's language
+   * like the rest of the line, never "اعلان پوش: Unknown Device".
+   */
+  public static getIdentifierText(
+    translator: Translator,
+    methodType: OnCallPageChannel | string,
+    identifier: string | null | undefined,
+  ): string {
+    if (
+      NotificationMethodUtil.getMethodOfType(methodType) ===
+        OnCallPageChannel.Push &&
+      (!identifier || identifier === UNNAMED_DEVICE)
+    ) {
+      return translator.translateText(UNNAMED_DEVICE) || UNNAMED_DEVICE;
+    }
+
+    return identifier || "";
   }
 
   /*
@@ -359,20 +445,42 @@ export default class NotificationMethodUtil {
     translator?: Translator | undefined,
   ): Array<DropdownOption> {
     return NotificationMethodUtil.toOrderedList(models).map(
-      (model: BaseModel) => {
+      (model: BaseModel): DropdownOption => {
+        if (!translator) {
+          return {
+            label: NotificationMethodUtil.getLabel(model),
+            value: model.id!.toString(),
+          };
+        }
+
         return {
-          label: translator
-            ? NotificationMethodUtil.getTranslatedLabel(translator, model)
-            : NotificationMethodUtil.getLabel(model),
+          label: NotificationMethodUtil.getTranslatedLabel(translator, model),
           value: model.id!.toString(),
+          ...NotificationMethodUtil.TRANSLATED_LABEL_OPTION,
         };
       },
     );
   }
 
   /*
+   * How a dropdown draws a method's translated label: as it is, never
+   * looked up again, and the page's way, as the "Notification Method"
+   * column draws the same line. Left to the label's letters, a Persian menu
+   * read "پیامک: ..." from the right and "WhatsApp: ..." under it from the
+   * left (Dropdown's isInPageDirection).
+   */
+  public static readonly TRANSLATED_LABEL_OPTION: {
+    isUserContent: true;
+    isInPageDirection: true;
+  } = {
+    isUserContent: true,
+    isInPageDirection: true,
+  };
+
+  /*
    * getLabel's line in the reader's language: the method's name is theirs,
-   * its identifier as stored (NOTIFICATION_METHOD_LINE).
+   * its identifier as stored (NOTIFICATION_METHOD_LINE) - a device with no
+   * name an unknown device in their words (getIdentifierText).
    */
   public static getTranslatedLabel(
     translator: Translator,
@@ -427,7 +535,7 @@ export default class NotificationMethodUtil {
         method: OnCallPageChannel.Push,
         identifier:
           NotificationMethodUtil.readColumn(model, "deviceName") ||
-          "Unknown Device",
+          UNNAMED_DEVICE,
       };
     }
 

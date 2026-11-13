@@ -136,6 +136,8 @@ interface MaskedIdentifierProps {
 const MaskedIdentifier: FunctionComponent<MaskedIdentifierProps> = (
   props: MaskedIdentifierProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   if (isPhoneNumberChannel(props.method.methodType)) {
     return (
       <PhoneNumberText
@@ -146,9 +148,14 @@ const MaskedIdentifier: FunctionComponent<MaskedIdentifierProps> = (
     );
   }
 
+  // A device registered without a name in the reader's words.
   return (
     <IsolatedText
-      text={props.method.maskedIdentifier}
+      text={NotificationMethodUtil.getIdentifierText(
+        translator,
+        props.method.methodType,
+        props.method.maskedIdentifier,
+      )}
       className={props.className}
       dataTestId="admin-notification-method-identifier"
     />
@@ -915,8 +922,7 @@ const UserViewNotificationMethods: FunctionComponent<
               slots={{ identifier: identifierElement }}
               values={{
                 methodType: methodToDelete
-                  ? NotificationMethodUtil.getMethodName(
-                      translator,
+                  ? NotificationMethodUtil.getMethodNameInSentence(
                       methodToDelete.methodType,
                     )
                   : "",
@@ -929,8 +935,7 @@ const UserViewNotificationMethods: FunctionComponent<
               slots={{ identifier: identifierElement }}
               values={{
                 methodType: methodToDelete
-                  ? NotificationMethodUtil.getMethodName(
-                      translator,
+                  ? NotificationMethodUtil.getMethodNameInSentence(
                       methodToDelete.methodType,
                     )
                   : "",
@@ -1186,8 +1191,11 @@ const UserViewNotificationMethods: FunctionComponent<
           title={translator.translateTemplate(
             "Remove this {{methodType}} method?",
             {
-              methodType: NotificationMethodUtil.getMethodName(
-                translator,
+              /*
+               * In the sentence's language and cased as its middle:
+               * "Remove this phone call method?" (getMethodNameInSentence).
+               */
+              methodType: NotificationMethodUtil.getMethodNameInSentence(
                 methodToDelete.methodType,
               ),
             },

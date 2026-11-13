@@ -9,6 +9,8 @@ import Button, {
 } from "Common/UI/Components/Button/Button";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import PhoneNumberText from "Common/UI/Components/PhoneNumber/PhoneNumberText";
 import { DASHBOARD_URL } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
 import NotificationMethodUtil from "Common/UI/Utils/NotificationMethodUtil";
@@ -309,9 +311,31 @@ const ResponderReadinessCard: FunctionComponent<ComponentProps> = (
                   translator,
                   method.methodType,
                 )}
-                <span className="font-normal text-gray-500">
-                  {method.maskedIdentifier}
-                </span>
+                {/*
+                 * A number reads +1 ••• ••• 4821 in every language
+                 * (PhoneNumberText), any other identifier the way it is
+                 * written (IsolatedText): printed as it came, a Persian or
+                 * Arabic chip drew a WhatsApp number "4821 ••• ••• 1+".
+                 */}
+                {NotificationMethodUtil.isPhoneNumberMethod(
+                  method.methodType,
+                ) ? (
+                  <PhoneNumberText
+                    phoneNumber={method.maskedIdentifier}
+                    className="font-normal text-gray-500"
+                    dataTestId="readiness-method-identifier"
+                  />
+                ) : (
+                  <IsolatedText
+                    text={NotificationMethodUtil.getIdentifierText(
+                      translator,
+                      method.methodType,
+                      method.maskedIdentifier,
+                    )}
+                    className="font-normal text-gray-500"
+                    dataTestId="readiness-method-identifier"
+                  />
+                )}
               </span>
             );
           },

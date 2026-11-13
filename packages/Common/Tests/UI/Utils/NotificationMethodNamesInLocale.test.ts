@@ -335,10 +335,15 @@ describe("NotificationMethodUtil.getTranslatedLabel and getDropdownOptions", () 
     expect(NotificationMethodUtil.getTranslatedLabel(german, email)).toBe(
       `${words["Email"]}: jane@example.com`,
     );
-    // A device with no name keeps the label's fallback.
+    // A device with no name is an unknown device in the reader's words too.
+    expect(words["Unknown Device"]).toBe("Unbekanntes Gerät");
     expect(NotificationMethodUtil.getTranslatedLabel(german, device)).toBe(
-      `${words["Push notification"]}: Unknown Device`,
+      `${words["Push notification"]}: ${words["Unknown Device"]}`,
     );
+    // ... and in English, as getLabel calls it.
+    expect(
+      NotificationMethodUtil.getTranslatedLabel(translatorFor("en"), device),
+    ).toBe("Push notification: Unknown Device");
     expect(NotificationMethodUtil.getTranslatedLabel(german, channel)).toBe(
       `${words["Custom channel"]}: CorpoApp`,
     );
@@ -363,16 +368,219 @@ describe("NotificationMethodUtil.getTranslatedLabel and getDropdownOptions", () 
     const plain: Array<DropdownOption> =
       NotificationMethodUtil.getDropdownOptions(models);
 
+    /*
+     * Drawn as it is, never looked up again, and the page's way, as the
+     * "Notification Method" column draws the line: left to the label's
+     * letters, a Persian menu read its "WhatsApp: ..." from the left under
+     * lines read from the right.
+     */
     expect(worded).toEqual([
       {
         label: `${readLocale("fr")["Phone call"]} : +15555550100`,
         value: ID,
+        isUserContent: true,
+        isInPageDirection: true,
       },
     ]);
     // getLabel's English, which no page reads as a sentence.
     expect(plain).toEqual([{ label: "Call: +15555550100", value: ID }]);
     expect(NotificationMethodUtil.getLabel(phoneCall())).toBe(
       "Call: +15555550100",
+    );
+  });
+});
+
+/*
+ * A push device registered without a name is stored as "Unknown Device"
+ * (UserPushAPI): the product's word, so a line words it in the reader's
+ * language like the rest of the line. A name someone gave a device, or
+ * the same words on another kind of method, stay as written.
+ */
+describe("NotificationMethodUtil.getIdentifierText", () => {
+  test("a device stored without a name is an unknown device in the reader's words", () => {
+    for (const language of ["de", "fa", "fr", "zh-CN"]) {
+      const words: Record<string, string> = readLocale(language);
+
+      expect([language, words["Unknown Device"]]).not.toEqual([
+        language,
+        "Unknown Device",
+      ]);
+      expect(
+        NotificationMethodUtil.getIdentifierText(
+          translatorFor(language),
+          OnCallPageChannel.Push,
+          "Unknown Device",
+        ),
+      ).toBe(words["Unknown Device"]);
+      expect(
+        NotificationMethodUtil.getIdentifierText(
+          translatorFor(language),
+          OnCallPageChannel.Push,
+          "",
+        ),
+      ).toBe(words["Unknown Device"]);
+    }
+
+    const persian: Translator = translatorFor("fa");
+    const words: Record<string, string> = readLocale("fa");
+
+    expect(
+      withoutIsolateMarks(
+        NotificationMethodUtil.getMethodLabel(
+          persian,
+          OnCallPageChannel.Push,
+          "Unknown Device",
+        ),
+      ),
+    ).toBe(`${words["Push notification"]}: ${words["Unknown Device"]}`);
+  });
+
+  test("a name someone gave, and any other method, as written", () => {
+    const german: Translator = translatorFor("de");
+
+    expect(
+      NotificationMethodUtil.getIdentifierText(
+        german,
+        OnCallPageChannel.Push,
+        "Pixel 8",
+      ),
+    ).toBe("Pixel 8");
+    expect(
+      NotificationMethodUtil.getIdentifierText(
+        german,
+        OnCallPageChannel.Webhook,
+        "Unknown Device",
+      ),
+    ).toBe("Unknown Device");
+    expect(
+      NotificationMethodUtil.getIdentifierText(
+        german,
+        OnCallPageChannel.SMS,
+        NUMBER,
+      ),
+    ).toBe(NUMBER);
+  });
+});
+
+/*
+ * A method named inside a sentence - "Remove this {{methodType}} method?",
+ * "Deleting {{methodLabel}} removes 2 notification rules." - is named in
+ * the sentence's own language: the reader's where the sentence is
+ * translated, English where it is not yet. Named in the reader's language
+ * before the sentence was looked up, a German page read "Remove this
+ * Telefonanruf method?". In the middle of a sentence the name is cased as
+ * the middle of a sentence is: "phone call", "SMS", "Microsoft Teams".
+ */
+describe("a method named inside a sentence takes the sentence's language", () => {
+  const REMOVE: string = "Remove this {{methodType}} method?";
+  const DELETING: string =
+    "Deleting {{methodLabel}} removes {{count}} notification rules.";
+
+  test("English: the name in the middle of the sentence, cased so", () => {
+    const english: Translator = translatorFor("en");
+
+    expect(
+      english.translateTemplate(REMOVE, {
+        methodType: NotificationMethodUtil.getMethodNameInSentence(
+          OnCallPageChannel.Call,
+        ),
+      }),
+    ).toBe("Remove this phone call method?");
+
+    for (const [channel, name] of [
+      [OnCallPageChannel.SMS, "SMS"],
+      [OnCallPageChannel.WhatsApp, "WhatsApp"],
+      [OnCallPageChannel.Push, "push notification"],
+      [OnCallPageChannel.Email, "email"],
+      [OnCallPageChannel.MicrosoftTeams, "Microsoft Teams"],
+      [OnCallPageChannel.Mattermost, "Mattermost"],
+      [OnCallPageChannel.Telegram, "Telegram"],
+      [OnCallPageChannel.CustomChannel, "custom channel"],
+    ] as Array<[OnCallPageChannel, string]>) {
+      expect(
+        english.translateTemplate(REMOVE, {
+          methodType: NotificationMethodUtil.getMethodNameInSentence(channel),
+        }),
+      ).toBe(`Remove this ${name} method?`);
+    }
+  });
+
+  test("a sentence not yet in the reader's language names the method in English", () => {
+    const german: Translator = translatorFor("de");
+
+    // The German file has the sentence in English still.
+    expect(readLocale("de")[REMOVE]).toBe(REMOVE);
+    expect(
+      german.translateTemplate(REMOVE, {
+        methodType: NotificationMethodUtil.getMethodNameInSentence(
+          OnCallPageChannel.Call,
+        ),
+      }),
+    ).toBe("Remove this phone call method?");
+    expect(
+      german.translateTemplate(DELETING, {
+        count: 2,
+        methodLabel: NotificationMethodUtil.getMethodLabelInSentence(
+          OnCallPageChannel.Call,
+          "+15555550100",
+        ),
+      }),
+    ).toBe("Deleting Phone call: +15555550100 removes 2 notification rules.");
+  });
+
+  test("a translated sentence names the method in the reader's language", () => {
+    const persian: Translator = translatorFor("fa");
+    const words: Record<string, string> = readLocale("fa");
+
+    expect(
+      withoutIsolateMarks(
+        persian.translateTemplate(REMOVE, {
+          methodType: NotificationMethodUtil.getMethodNameInSentence(
+            OnCallPageChannel.Call,
+          ),
+        }),
+      ),
+    ).toBe(words[REMOVE]!.replace("{{methodType}}", words["Phone call"]!));
+
+    const deleting: string = withoutIsolateMarks(
+      persian.translateTemplate(DELETING, {
+        count: 2,
+        methodLabel: NotificationMethodUtil.getMethodLabelInSentence(
+          OnCallPageChannel.Call,
+          "+15555550100",
+        ),
+      }),
+    );
+
+    expect(deleting).toContain(`${words["Phone call"]}: +15555550100`);
+    expect(deleting).not.toContain("Phone call");
+  });
+
+  test("German keeps a noun's capital in the middle of its sentence", () => {
+    const german: Translator = createTranslator(
+      (text: string): string | undefined => {
+        return (
+          {
+            [REMOVE]: "Methode {{methodType}} entfernen?",
+            "Phone call": "Telefonanruf",
+          } as Record<string, string>
+        )[text];
+      },
+      "de",
+    );
+
+    expect(
+      german.translateTemplate(REMOVE, {
+        methodType: NotificationMethodUtil.getMethodNameInSentence(
+          OnCallPageChannel.Call,
+        ),
+      }),
+    ).toBe("Methode Telefonanruf entfernen?");
+  });
+
+  test("a type this build does not know is named as it came", () => {
+    expect(NotificationMethodUtil.getMethodNameInSentence("Pager")).toBe(
+      "Pager",
     );
   });
 });

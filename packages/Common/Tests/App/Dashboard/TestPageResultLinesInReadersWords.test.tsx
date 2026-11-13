@@ -79,6 +79,7 @@ import {
   ProjectNotificationChannel,
 } from "../../../Utils/Project/NotificationChannels";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
+import { CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME } from "../../../UI/Utils/LineDirection";
 
 const LOCALES_DIR: string = path.resolve(
   __dirname,
@@ -398,7 +399,7 @@ describe.each(["en", "de", "fa"])(
 );
 
 describe("a result from a server that sends no codes reads as the server wrote it", () => {
-  test("in English, every line word for word, with no isolate", async () => {
+  test("in English, every line word for word, drawn as it always was", async () => {
     await renderIn("en", endedResult(false));
 
     expect(deliveryLine(0).textContent).toBe(SMS_NOT_VERIFIED_ENGLISH);
@@ -408,6 +409,19 @@ describe("a result from a server that sends no codes reads as the server wrote i
     expect(headlineLine().textContent).toBe(
       ON_CALL_TEST_PAGE_ENDED_UNANSWERED_MESSAGE,
     );
+
+    // No isolate, no direction of its own, no width of its own.
+    for (const line of [
+      deliveryLine(0),
+      deliveryLine(2),
+      stepLine(1),
+      headlineLine(),
+    ]) {
+      expect(line).not.toHaveAttribute("dir");
+      expect(line.className).not.toContain(
+        CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+      );
+    }
     expect(
       screen.getByTestId("test-page-result").querySelector("bdi"),
     ).toBeNull();
@@ -430,20 +444,37 @@ describe("a result from a server that sends no codes reads as the server wrote i
       OnCallTestPageStatus.Failed,
     );
     expect(headlineLine().textContent).toBe(RUN_ERROR);
+    expect(headlineLine()).not.toHaveAttribute("dir");
     expect(headlineLine().querySelector("bdi")).toBeNull();
   });
 });
 
 /*
  * #7182: the server's own words - a line with no code - on a page read
- * right to left are set apart in an isolate that reads left to right, its
- * words unchanged: the "+" stays before the digits and the full stop at the
- * end. On an English page they are drawn exactly as they always were.
+ * right to left are a line of their own that reads left to right, its
+ * words unchanged: the "+" stays before the digits and the full stop at
+ * the end. Run onto more lines, an English line starts each of them at its
+ * own start, as wide as its words at the page's side (IsolatedLine) -
+ * set apart inside a line of the page's instead, each of its lines was
+ * lined up by its end, ragged where an English reader starts reading. On
+ * an English page they are drawn exactly as they always were.
  */
 describe.each(["ar", "fa"])(
-  "on a %s page, the server's own words are set apart, reading left to right (#7182)",
+  "on a %s page, the server's own words are a line of their own, reading left to right (#7182)",
   (language: string) => {
-    test("each line with no code is one isolate that reads left to right, its words unchanged", async () => {
+    // The line reads left to right, from its own start, and holds the words alone.
+    function expectLineOfItsOwn(line: HTMLElement, english: string): void {
+      expect([english, line.getAttribute("dir")]).toEqual([english, "ltr"]);
+      expect(line.className).toContain(
+        CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+      );
+      // It keeps its own classes: it still wraps a word too long for it.
+      expect(line.className).toContain("break-words");
+      expect(line.querySelector("bdi")).toBeNull();
+      expect(line.textContent).toBe(english);
+    }
+
+    test("each line with no code reads left to right from its own start, its words unchanged", async () => {
       await renderIn(language, endedResult(false));
 
       for (const [line, english] of [
@@ -453,42 +484,26 @@ describe.each(["ar", "fa"])(
         [stepLine(1), NOT_A_PROJECT_MEMBER_TIMELINE_MESSAGE],
         [headlineLine(), ON_CALL_TEST_PAGE_ENDED_UNANSWERED_MESSAGE],
       ] as Array<[HTMLElement, string]>) {
-        const isolates: Array<HTMLElement> = Array.from(
-          line.querySelectorAll("bdi"),
-        );
-
-        expect([english, isolates.length]).toEqual([english, 1]);
-        expect(isolates[0]).toHaveAttribute("dir", "ltr");
-        expect(isolates[0]!.textContent).toBe(english);
-        // Nothing else on the line.
-        expect(line.textContent).toBe(english);
+        expectLineOfItsOwn(line, english);
       }
     });
 
-    test("a provider's error beside coded lines is the only one set apart", async () => {
+    test("a provider's error beside coded lines is the only line of its own", async () => {
       await renderIn(language, endedResult(true));
 
-      expect(deliveryLine(0).querySelector("bdi")).toBeNull();
-      expect(deliveryLine(1).querySelector("bdi")).toBeNull();
-      expect(deliveryLine(2).querySelector("bdi")).toHaveAttribute(
-        "dir",
-        "ltr",
-      );
-      expect(deliveryLine(2).textContent).toBe(PROVIDER_ERROR);
+      for (const line of [deliveryLine(0), deliveryLine(1), headlineLine()]) {
+        expect(line).not.toHaveAttribute("dir");
+        expect(line.className).not.toContain(
+          CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+        );
+      }
+      expectLineOfItsOwn(deliveryLine(2), PROVIDER_ERROR);
     });
 
-    test("a run that failed says why in the error's own words, set apart: its number keeps its + in front", async () => {
+    test("a run that failed says why in the error's own words, left to right: its number keeps its + in front", async () => {
       await renderIn(language, failedResult());
 
-      const line: HTMLElement = headlineLine();
-      const isolates: Array<HTMLElement> = Array.from(
-        line.querySelectorAll("bdi"),
-      );
-
-      expect(isolates).toHaveLength(1);
-      expect(isolates[0]).toHaveAttribute("dir", "ltr");
-      expect(isolates[0]!.textContent).toBe(RUN_ERROR);
-      expect(line.textContent).toBe(RUN_ERROR);
+      expectLineOfItsOwn(headlineLine(), RUN_ERROR);
     });
   },
 );

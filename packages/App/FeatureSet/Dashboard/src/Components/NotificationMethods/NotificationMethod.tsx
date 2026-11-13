@@ -28,6 +28,8 @@ import NotificationMethodUtil, {
   NotificationMethodDisplayItem,
 } from "Common/UI/Utils/NotificationMethodUtil";
 import {
+  composedValue,
+  TemplateValue,
   translatableTerm,
   translateNamedAction,
   translatePlural,
@@ -102,7 +104,13 @@ const NotificationMethodView: FunctionComponent<ComponentProps> = (
                 ) ? (
                   <PhoneNumberText phoneNumber={displayItem.value} />
                 ) : (
-                  <IsolatedText text={displayItem.value} />
+                  <IsolatedText
+                    text={NotificationMethodUtil.getIdentifierText(
+                      translator,
+                      displayItem.method,
+                      displayItem.value,
+                    )}
+                  />
                 ),
               }}
             />
@@ -670,11 +678,12 @@ const describeOrphanedCells: (impact: DeletionImpact) => string = (
  * ignored.
  */
 export const describeMethodDeletion: (params: {
-  methodLabel: string;
+  // The method as the sentence names it, in the sentence's language.
+  methodLabel: TemplateValue;
   impact: DeletionImpact;
   exposure: OnCallExposure;
 }) => string = (params: {
-  methodLabel: string;
+  methodLabel: TemplateValue;
   impact: DeletionImpact;
   exposure: OnCallExposure;
 }): string => {
@@ -975,7 +984,7 @@ export const useNotificationRuleImpactData: (params: {
  * rather than one function with a boolean.
  */
 export type DeletionTarget =
-  | { type: "method"; methodId: string; methodLabel: string }
+  | { type: "method"; methodId: string; methodLabel: TemplateValue }
   | { type: "rule"; ruleId: string };
 
 export interface DeletionImpactModalProps {
@@ -1160,15 +1169,19 @@ export const readNotificationMethodId: (item: unknown) => string = (
 export const getNotificationMethodLabel: (params: {
   relationName: string;
   item: unknown;
-  fallbackLabel: string;
-  // Names the method in the reader's language (#7178); English without one.
+  fallbackLabel: TemplateValue;
+  /*
+   * Names the method in the language of the sentence it is put in
+   * (#7178): the reader's where the sentence is translated, English where
+   * it is not yet (getMethodLabelInSentence). English without one.
+   */
   translator?: Translator | undefined;
-}) => string = (params: {
+}) => TemplateValue = (params: {
   relationName: string;
   item: unknown;
-  fallbackLabel: string;
+  fallbackLabel: TemplateValue;
   translator?: Translator | undefined;
-}): string => {
+}): TemplateValue => {
   const displayItems: Array<NotificationMethodDisplayItem> =
     NotificationMethodUtil.getDisplayItems({
       getColumnValue: (columnName: string): unknown => {
@@ -1189,8 +1202,7 @@ export const getNotificationMethodLabel: (params: {
   }
 
   if (params.translator) {
-    return NotificationMethodUtil.getMethodLabel(
-      params.translator,
+    return NotificationMethodUtil.getMethodLabelInSentence(
       displayItem.method,
       displayItem.value,
     );
@@ -1323,11 +1335,16 @@ export function useNotificationMethodDeleteGuard<TBaseModel extends BaseModel>(
           relationName: params.relationName,
           item: itemToDelete,
           translator: translator,
-          fallbackLabel: translator.translateTemplate("this {{itemName}}", {
-            itemName: translatableTerm(params.singularName, {
-              inSentence: true,
-            }),
-          }),
+          // In the sentence's language too, as the method's line is.
+          fallbackLabel: composedValue(
+            (sentenceTranslator: Translator): string => {
+              return sentenceTranslator.translateTemplate("this {{itemName}}", {
+                itemName: translatableTerm(params.singularName, {
+                  inSentence: true,
+                }),
+              });
+            },
+          ),
         }),
       }}
       userId={UserUtil.getUserId()}

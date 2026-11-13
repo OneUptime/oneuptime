@@ -405,6 +405,7 @@ import Name from "../../../Types/Name";
 import NotificationRuleType from "../../../Types/NotificationRule/NotificationRuleType";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
+import NotificationMethodUtil from "../../../UI/Utils/NotificationMethodUtil";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import ProjectUtil from "../../../UI/Utils/Project";
 import UserUtil from "../../../UI/Utils/User";
@@ -1420,8 +1421,16 @@ describe("the page is read at rest, whichever order its fetches land in", () => 
 
     capturedTables.forEach((table: CapturedTableProps) => {
       expect(methodOptionsFor(table)).toEqual([
-        { label: `Email: ${MASKED_EMAIL}`, value: EMAIL_METHOD_ID },
-        { label: `SMS: ${MASKED_PHONE}`, value: SMS_METHOD_ID },
+        {
+          label: `Email: ${MASKED_EMAIL}`,
+          value: EMAIL_METHOD_ID,
+          ...NotificationMethodUtil.TRANSLATED_LABEL_OPTION,
+        },
+        {
+          label: `SMS: ${MASKED_PHONE}`,
+          value: SMS_METHOD_ID,
+          ...NotificationMethodUtil.TRANSLATED_LABEL_OPTION,
+        },
       ]);
 
       expect(table.noItemsMessage).toContain(
@@ -1732,8 +1741,16 @@ describe("the shared rules table, as the admin page wires it", () => {
        * device whose number it was never told.
        */
       expect(methodOptionsFor(table)).toEqual([
-        { label: `Email: ${MASKED_EMAIL}`, value: EMAIL_METHOD_ID },
-        { label: `SMS: ${MASKED_PHONE}`, value: SMS_METHOD_ID },
+        {
+          label: `Email: ${MASKED_EMAIL}`,
+          value: EMAIL_METHOD_ID,
+          ...NotificationMethodUtil.TRANSLATED_LABEL_OPTION,
+        },
+        {
+          label: `SMS: ${MASKED_PHONE}`,
+          value: SMS_METHOD_ID,
+          ...NotificationMethodUtil.TRANSLATED_LABEL_OPTION,
+        },
       ]);
     });
   });

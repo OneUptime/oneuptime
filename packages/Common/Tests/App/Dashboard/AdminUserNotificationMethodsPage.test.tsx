@@ -2379,14 +2379,14 @@ describe("each row's actions: one button and a ⋯ menu", () => {
     /*
      * The confirmation is about the Call row, by channel and by mask - the
      * channel by its method's own name, "Phone call", which each language
-     * words (#7178).
+     * words (#7178), cased as the middle of a sentence is.
      */
     expect(
-      within(modal()).getByText("Remove this Phone call method?"),
+      within(modal()).getByText("Remove this phone call method?"),
     ).toBeInTheDocument();
     // The sentence under it names the method so too.
     expect((modal().textContent || "").replace(/[⁦-⁩]/g, "")).toContain(
-      "This removes the Phone call method",
+      "This removes the phone call method",
     );
     expect(modal().textContent).toContain(MASKED_CALL_PHONE);
     expect(modal().textContent).not.toContain(MASKED_PHONE);
@@ -2481,7 +2481,7 @@ describe("each row's actions: one button and a ⋯ menu", () => {
     await waitForSettled();
 
     expect(
-      within(modal()).getByText("Remove this Email method?"),
+      within(modal()).getByText("Remove this email method?"),
     ).toBeInTheDocument();
 
     const removeButton: HTMLElement = within(emailRow).getByRole("button", {
@@ -2500,7 +2500,7 @@ describe("each row's actions: one button and a ⋯ menu", () => {
     await waitForSettled();
 
     expect(
-      within(modal()).getByText("Remove this Email method?"),
+      within(modal()).getByText("Remove this email method?"),
     ).toBeInTheDocument();
     expect(apiDeleteMock).not.toHaveBeenCalled();
   });

@@ -4,10 +4,13 @@ import NotificationRuleType from "Common/Types/NotificationRule/NotificationRule
 import { getOnCallRuleKindQueryForRuleType } from "Common/Types/NotificationRule/OnCallRuleKind";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import {
-  getGlobalTranslator,
+  ComposedValue,
+  composedValue,
+  toSentenceTerm,
   translatePlural,
   translateTemplate,
   translationKey,
+  Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import NotificationMethodUtil from "Common/UI/Utils/NotificationMethodUtil";
 import type {
@@ -799,21 +802,26 @@ const canFallbackDeliver: (
   return getVerifiedMethods(user).length > 0;
 };
 
-const getMethodNames: (user: UserReadinessWire) => string = (
+/*
+ * The verified methods, named for the sentence they are put in: "can only
+ * be reached on phone call and SMS". Each is the channel's name as a
+ * notification method - "Phone call", never the shared "Call" (#7178) - in
+ * the sentence's own language (the reader's where it is translated,
+ * English where it is not yet) and cased as the middle of a sentence is.
+ */
+const getMethodNames: (user: UserReadinessWire) => ComposedValue = (
   user: UserReadinessWire,
-): string => {
-  return joinList(
-    getVerifiedMethods(user).map((method: ReadinessMethodWire): string => {
-      /*
-       * The channel's name as a notification method, in the reader's
-       * language: "Phone call", never the shared "Call" (#7178).
-       */
-      return NotificationMethodUtil.getMethodName(
-        getGlobalTranslator(),
-        method.methodType,
-      );
-    }),
-  );
+): ComposedValue => {
+  return composedValue((translator: Translator): string => {
+    return joinList(
+      getVerifiedMethods(user).map((method: ReadinessMethodWire): string => {
+        return toSentenceTerm(
+          NotificationMethodUtil.getMethodName(translator, method.methodType),
+          translator.language,
+        );
+      }),
+    );
+  });
 };
 
 /*
