@@ -51,6 +51,11 @@ section says how to title a change.
 The example is 14.0.106; use the next patch version after the latest GitHub
 release (`gh release list --limit 1`).
 
+
+### Decide on the release version
+
+If the release only has fixes, bump the patch version. If it has new features, bump the minor version. If we are releasing new products or breaking changes then bump up the major version. If you are bumping up the major version, please update the upgrading guide. 
+
 ### 1. Cut the release branch from `main`
 
 ```bash
