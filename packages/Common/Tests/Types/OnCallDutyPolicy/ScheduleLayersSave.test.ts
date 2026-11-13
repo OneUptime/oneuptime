@@ -104,9 +104,7 @@ function orderWrites(
 describe("the route", () => {
   test("is the schedule's own, under its API path", () => {
     expect(SCHEDULE_LAYERS_SAVE_ROUTE).toBe("/:id/save-layers");
-    expect(getScheduleLayersSaveRoute(LAYER_A)).toBe(
-      `/${LAYER_A}/save-layers`,
-    );
+    expect(getScheduleLayersSaveRoute(LAYER_A)).toBe(`/${LAYER_A}/save-layers`);
   });
 });
 
@@ -306,9 +304,11 @@ describe("a save, as the server reads it", () => {
     // Someone added is sent with no layerUserId at all, not a null one.
     expect(
       Object.keys(
-        ((json["layers"] as Array<JSONObject>)[1]!["users"] as Array<
-          JSONObject
-        >)[1]!,
+        (
+          (json["layers"] as Array<JSONObject>)[1]![
+            "users"
+          ] as Array<JSONObject>
+        )[1]!,
       ),
     ).toEqual(["userId"]);
 
@@ -695,7 +695,11 @@ describe("what a save writes, and what it changes", () => {
 
   test("a layer moved up: the layers renumbered in their new order, as moves", () => {
     const request: ScheduleLayersSaveRequest = unchanged();
-    request.layers = [request.layers[1]!, request.layers[0]!, request.layers[2]!];
+    request.layers = [
+      request.layers[1]!,
+      request.layers[0]!,
+      request.layers[2]!,
+    ];
 
     const saved: ScheduleLayersSavePlan = plan(request);
 
@@ -962,9 +966,7 @@ describe("what a save answers", () => {
 
     expect(
       ScheduleLayersSaveUtil.resultFromJSON(
-        JSON.parse(
-          JSON.stringify(ScheduleLayersSaveUtil.resultToJSON(result)),
-        ),
+        JSON.parse(JSON.stringify(ScheduleLayersSaveUtil.resultToJSON(result))),
       ),
     ).toEqual(result);
   });
