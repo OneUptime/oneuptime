@@ -5,8 +5,9 @@ import {
 import { PromQLSeries } from "../../../Utils/PromQL/PromQLEngineTypes";
 import {
   PromQLLabels,
+  PromQLLabelsTest,
+  compilePromQLMatchers,
   formatPromQLValue,
-  matchesPromQLMatchers,
   promQLLabelsKey,
 } from "../../../Utils/PromQL/PromQLLabels";
 import {
@@ -150,6 +151,8 @@ export const promQLSeriesFromRows: (data: {
   );
 
   const builders: Map<string, SeriesBuilder> = new Map();
+  // The matchers' patterns, compiled once for every label set below.
+  const accepts: PromQLLabelsTest = compilePromQLMatchers(data.matchers);
   // Label sets already checked against the matchers, by key.
   const accepted: Map<string, boolean> = new Map();
 
@@ -177,7 +180,7 @@ export const promQLSeriesFromRows: (data: {
     let isAccepted: boolean | undefined = accepted.get(key);
 
     if (isAccepted === undefined) {
-      isAccepted = matchesPromQLMatchers(labels, data.matchers);
+      isAccepted = accepts(labels);
       accepted.set(key, isAccepted);
     }
 
