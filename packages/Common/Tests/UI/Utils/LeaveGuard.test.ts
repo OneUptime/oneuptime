@@ -1,3 +1,4 @@
+// UX rule: Docs/ux/README.md#dialogs-and-confirmations
 import LeaveGuard, {
   AskToLeaveFunction,
   LeavePageFunction,
@@ -143,6 +144,60 @@ describe("LeaveGuard hears Back and Forward before the router", () => {
     } finally {
       addEventListener.mockRestore();
     }
+  });
+
+  test("a window it cannot listen on still lets it load, and nothing asks", () => {
+    /*
+     * Node suites stand a bare `{ location, history }` in for the window
+     * before they load what Navigation pulls in (App's SessionReplayRoutes,
+     * among dozens): there is nothing to hear Back or Forward on, and
+     * loading the guard must not throw.
+     */
+    const ownAddEventListener: PropertyDescriptor | undefined =
+      Object.getOwnPropertyDescriptor(window, "addEventListener");
+
+    Object.defineProperty(window, "addEventListener", {
+      configurable: true,
+      writable: true,
+      value: undefined,
+    });
+
+    try {
+      jest.isolateModules(() => {
+        // A fresh copy of the module, loaded the way the app loads it.
+        const loadFresh: () => typeof LeaveGuard = (): typeof LeaveGuard => {
+          return (
+            jest.requireActual("../../../UI/Utils/LeaveGuard") as {
+              default: typeof LeaveGuard;
+            }
+          ).default;
+        };
+
+        expect(loadFresh).not.toThrow();
+
+        // The copy that just loaded: the registry keeps it.
+        const FreshLeaveGuard: typeof LeaveGuard = loadFresh();
+        const taken: Array<string> = [];
+
+        expect(() => {
+          FreshLeaveGuard.listenForBackAndForward();
+        }).not.toThrow();
+        expect(FreshLeaveGuard.isHeld()).toBe(false);
+
+        FreshLeaveGuard.whenLeaving("/dashboard/p1/home", () => {
+          taken.push("/dashboard/p1/home");
+        });
+        expect(taken).toEqual(["/dashboard/p1/home"]);
+      });
+    } finally {
+      if (ownAddEventListener) {
+        Object.defineProperty(window, "addEventListener", ownAddEventListener);
+      } else {
+        Reflect.deleteProperty(window, "addEventListener");
+      }
+    }
+
+    expect(typeof window.addEventListener).toBe("function");
   });
 
   test("a hold adds no popstate listener of its own, so none can run after the router's", () => {

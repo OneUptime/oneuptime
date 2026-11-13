@@ -65,7 +65,7 @@ import EventNoteComposer from "./EventNoteComposer";
 import { EventNoteKind } from "./EventNoteKind";
 import NotesVisibilitySwitch from "./NotesVisibilitySwitch";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import { getPrivateEventPublicNotesCopy } from "./PrivateEventNotesCopy";
 import usePublicNoteApproval, {
   UsePublicNoteApprovalResult,
@@ -86,6 +86,28 @@ import {
 export interface ComponentProps<TNote extends BaseModel>
   extends EventNoteKind<TNote> {
   currentProject: Project | null;
+}
+
+/*
+ * What a reader did that read the notes again, with the notes already on
+ * screen: the refresh button (or the re-read after a write), a search, the
+ * sort order, Load more. A failure of one keeps the notes and says so in a
+ * banner over the feed.
+ */
+type NotesAction = "refresh" | "search" | "sort" | "more";
+
+// The banner's first line: what failed.
+const NOTES_ACTION_FAILED: Record<NotesAction, string> = {
+  refresh: translationKey("Couldn't refresh the notes."),
+  search: translationKey("Couldn't search the notes."),
+  sort: translationKey("Couldn't sort the notes."),
+  more: translationKey("Couldn't load more notes."),
+};
+
+interface NotesActionError {
+  action: NotesAction;
+  // API.getFriendlyMessage's answer.
+  message: string;
 }
 
 const toActionGate: (result: PermissionGateResult) => NoteActionGate = (
@@ -258,7 +280,7 @@ function EventNotes<TNote extends BaseModel>(
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
   const [loadError, setLoadError] = useState<string>("");
-  const [actionError, setActionError] = useState<string>("");
+  const [actionError, setActionError] = useState<NotesActionError | null>(null);
   const [searchInput, setSearchInput] = useState<string>("");
   const [searchText, setSearchText] = useState<string>("");
   const [sortOrder, setSortOrder] = useState<NoteSortOrder>("newest");
@@ -286,6 +308,13 @@ function EventNotes<TNote extends BaseModel>(
   const feedBodyRef: React.RefObject<HTMLDivElement> =
     useRef<HTMLDivElement>(null);
   const tryAgainButtonRef: React.RefObject<HTMLButtonElement> =
+    useRef<HTMLButtonElement>(null);
+  // The banner of a failed action, Load more, and the refresh button.
+  const actionErrorRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
+  const loadMoreButtonRef: React.RefObject<HTMLButtonElement> =
+    useRef<HTMLButtonElement>(null);
+  const refreshButtonRef: React.RefObject<HTMLButtonElement> =
     useRef<HTMLButtonElement>(null);
 
   const select: JSONObject = useMemo(() => {
@@ -348,11 +377,14 @@ function EventNotes<TNote extends BaseModel>(
   type FetchNotesFunction = (options: {
     mode: FetchMode;
     limit?: number | undefined;
+    // What a replace is for - a new search, or the other sort order.
+    replacing?: "search" | "sort" | undefined;
   }) => Promise<void>;
 
   const fetchNotes: FetchNotesFunction = async (options: {
     mode: FetchMode;
     limit?: number | undefined;
+    replacing?: "search" | "sort" | undefined;
   }): Promise<void> => {
     const generation: number = ++fetchGeneration.current;
     const skip: number = options.mode === "more" ? loadedCount.current : 0;
@@ -403,7 +435,15 @@ function EventNotes<TNote extends BaseModel>(
       if (options.mode === "initial") {
         setLoadError(API.getFriendlyMessage(err));
       } else if (options.mode !== "silent") {
-        setActionError(API.getFriendlyMessage(err));
+        setActionError({
+          action:
+            options.mode === "more"
+              ? "more"
+              : options.mode === "replace"
+                ? options.replacing || "search"
+                : "refresh",
+          message: API.getFriendlyMessage(err),
+        });
       }
     }
 
@@ -458,11 +498,48 @@ function EventNotes<TNote extends BaseModel>(
     tryAgainButtonRef.current?.focus();
   }, [isLoading, loadError]);
 
+  /*
+   * Dismiss takes the banner away, and a focus left on it fell to the page:
+   * a keyboard or screen reader user started over from its top. It goes
+   * back to where the reader was instead - to Load more after Load more
+   * failed, so trying again is one key away, and after the others to the
+   * feed's body, just before the notes (the refresh button, when no feed is
+   * drawn). A focus that was not on the banner is left where it is.
+   */
+  const dismissActionError: () => void = (): void => {
+    const banner: HTMLDivElement | null = actionErrorRef.current;
+
+    if (banner && banner.contains(document.activeElement)) {
+      const loadMore: HTMLButtonElement | null = loadMoreButtonRef.current;
+      const target: HTMLElement | null =
+        actionError?.action === "more" && loadMore && !loadMore.disabled
+          ? loadMore
+          : feedBodyRef.current || refreshButtonRef.current;
+
+      target?.focus();
+    }
+
+    setActionError(null);
+  };
+
   const hasFetchedOnce: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
+  /*
+   * The search the notes on screen were read for: a read since is for a
+   * new search, or else for the other sort order.
+   */
+  const searchReadFor: React.MutableRefObject<string> =
+    useRef<string>(searchText);
 
   useEffect(() => {
-    fetchNotes({ mode: hasFetchedOnce.current ? "replace" : "initial" });
+    const replacing: "search" | "sort" =
+      searchText !== searchReadFor.current ? "search" : "sort";
+    searchReadFor.current = searchText;
+
+    fetchNotes({
+      mode: hasFetchedOnce.current ? "replace" : "initial",
+      replacing,
+    });
     hasFetchedOnce.current = true;
   }, [searchText, sortOrder]);
 
@@ -913,6 +990,7 @@ function EventNotes<TNote extends BaseModel>(
         {hasMore && (
           <div className="flex justify-center">
             <button
+              ref={loadMoreButtonRef}
               type="button"
               data-testid="notes-load-more"
               disabled={isLoadingMore}
@@ -1012,6 +1090,7 @@ function EventNotes<TNote extends BaseModel>(
               />
             )}
             <button
+              ref={refreshButtonRef}
               type="button"
               data-testid="notes-refresh"
               title={tx("Refresh notes")}
@@ -1057,16 +1136,44 @@ function EventNotes<TNote extends BaseModel>(
 
       {actionError && (
         <div
+          ref={actionErrorRef}
           role="alert"
           className="flex items-start justify-between gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-800"
           data-testid="notes-action-error"
         >
-          <span>{actionError}</span>
+          {/*
+           * What failed, then the error's words as the load failure's read
+           * (ErrorMessageText): an error nobody explained says why and what
+           * to do next, with the reference to give when the server failed
+           * (#6836); any other is in the reader's language, read the way it
+           * is written. It was the message as API.getFriendlyMessage words
+           * it, and nothing else: English on every page, on a Persian one
+           * with its full stop at its start, and silent on which of the
+           * refresh, a search, the sort order or Load more had failed.
+           */}
+          <div className="min-w-0">
+            <p
+              className="font-medium"
+              data-testid="notes-action-error-what-failed"
+            >
+              {tx(NOTES_ACTION_FAILED[actionError.action])}
+            </p>
+            <p data-testid="notes-action-error-words">
+              <ErrorMessageText
+                message={actionError.message}
+                hideWhatFailed={true}
+              />
+            </p>
+          </div>
+          {/*
+           * On one line beside the words, however long they are: a Persian
+           * "Dismiss" is two words, which the banner's text broke apart.
+           */}
           <button
             type="button"
-            className="font-medium text-red-700 hover:text-red-900"
+            className="shrink-0 whitespace-nowrap font-medium text-red-700 hover:text-red-900"
             onClick={() => {
-              setActionError("");
+              dismissActionError();
             }}
           >
             {tx("Dismiss")}
@@ -1139,7 +1246,8 @@ function EventNotes<TNote extends BaseModel>(
           )}
           {/*
            * Focusable from script alone, without a ring: it holds the focus
-           * while Try again reads the notes again (tryAgain).
+           * while Try again reads the notes again (tryAgain), and takes it
+           * from a banner Dismiss takes away (dismissActionError).
            */}
           <div
             ref={feedBodyRef}

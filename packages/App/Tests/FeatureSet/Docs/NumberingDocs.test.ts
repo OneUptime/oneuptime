@@ -26,6 +26,7 @@ import ToolImportResourceKind from "Common/Types/ToolImport/ToolImportResourceKi
 import ToolImportSource, {
   AllToolImportSources,
 } from "Common/Types/ToolImport/ToolImportSource";
+import { isRightToLeftLanguage } from "Common/Types/ReadingDirection";
 import NextNumberUtil, {
   NUMBERED_RECORD_KINDS,
   NumberedRecordKind,
@@ -176,6 +177,27 @@ function count(text: string, part: string): number {
   return text.split(part).length - 1;
 }
 
+/*
+ * The arrow before a path's step whose step before it this suite does not
+ * know, as a page in `language` draws it: "→", or in a language read from
+ * the right either arrow, as those steps turn it (a Persian page points "←"
+ * beside a step in Persian words, #7611).
+ */
+function arrowsBeforeAStep(language: string): Array<string> {
+  return isRightToLeftLanguage(language) ? ["→", "←"] : ["→"];
+}
+
+// Whether a page in `language` has a bold menu path that ends at `step`.
+function hasPathEndingAt(
+  markdown: string,
+  step: string,
+  language: string,
+): boolean {
+  return arrowsBeforeAStep(language).some((arrow: string): boolean => {
+    return markdown.includes(`${arrow} ${step}**`);
+  });
+}
+
 // The page's level-two headings, in order.
 function sectionHeadings(markdown: string): Array<DocsHeading> {
   return scanMarkdown(markdown).headings.filter(
@@ -311,10 +333,12 @@ describe("the docs send readers to Numbering, never to More Settings or a Number
           page,
           oldAddress: markdown.includes(OLD_ADDRESS),
           oldPrefixAddress: markdown.includes(OLD_PREFIX_ADDRESS),
-          pathToMoreSettings: markdown.includes(
-            `→ ${MORE_SETTINGS[language]}**`,
+          pathToMoreSettings: hasPathEndingAt(
+            markdown,
+            MORE_SETTINGS[language] as string,
+            language,
           ),
-          pathToNumberPrefix: markdown.includes(`→ ${prefixName}**`),
+          pathToNumberPrefix: hasPathEndingAt(markdown, prefixName, language),
         }).toEqual({
           language,
           page,
@@ -397,7 +421,7 @@ describe("the docs send readers to Numbering, never to More Settings or a Number
         expect({
           language,
           page,
-          path: readPage(page, language).includes(`→ ${pageName}**`),
+          path: hasPathEndingAt(readPage(page, language), pageName, language),
         }).toEqual({ language, page, path: true });
       }
 
@@ -491,8 +515,14 @@ describe("the docs send readers to Numbering, never to More Settings or a Number
       const pageName: string = uiName(language, PAGE_NAME);
 
       // Every path that ends at a Numbering page.
+      const arrow: string = `(?:${arrowsBeforeAStep(language).join("|")})`;
       const paths: Array<string> = Array.from(
-        settings.matchAll(/\*\*([^*\n]+?) → ([^*\n]+?) → ([^*\n]+?)\*\*/g),
+        settings.matchAll(
+          new RegExp(
+            `\\*\\*([^*\\n]+?) ${arrow} ([^*\\n]+?) ${arrow} ([^*\\n]+?)\\*\\*`,
+            "g",
+          ),
+        ),
       )
         .filter((match: RegExpMatchArray): boolean => {
           return match[3] === pageName;

@@ -940,6 +940,19 @@ export class Service extends ProjectReferencesService<Model> {
     }
   }
 
+  /*
+   * The next alert number of this project, with the project's prefix for
+   * it: the one way an alert is numbered. A create takes it in
+   * onBeforeCreate; the sample project, which writes its alerts without
+   * hooks, takes it here (RecordNumbersTakenInOnePlaceGuard).
+   */
+  @CaptureSpan()
+  public async takeNextAlertNumber(
+    projectId: ObjectID,
+  ): Promise<{ counter: number; prefix: string | undefined }> {
+    return await ProjectService.incrementAndGetAlertCounter(projectId);
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
@@ -1132,7 +1145,7 @@ export class Service extends ProjectReferencesService<Model> {
     const alertCounterResult: {
       counter: number;
       prefix: string | undefined;
-    } = await ProjectService.incrementAndGetAlertCounter(projectId);
+    } = await this.takeNextAlertNumber(projectId);
 
     createBy.data.alertNumber = alertCounterResult.counter;
     createBy.data.alertNumberWithPrefix = NumberPrefixUtil.formatNumber(

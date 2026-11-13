@@ -18,6 +18,7 @@ import {
   ExpressResponse,
 } from "../../../../Server/Utils/Express";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * THE API REFUSES TO CHANGE A PRODUCT THAT IS OFF (#6815).
@@ -152,7 +153,10 @@ describe("BaseAPI", () => {
   test.each(["getList", "getItem", "count"])(
     "%s never asks: reading is not refused",
     async (method: string) => {
-      const getOff: jest.SpyInstance = jest.spyOn(ServerProducts, "getOff");
+      const getOff: SpyInstance<typeof ServerProducts.getOff> = jest.spyOn(
+        ServerProducts,
+        "getOff",
+      );
 
       const { api } = makeApi(Monitor);
 

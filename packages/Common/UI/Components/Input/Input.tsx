@@ -100,6 +100,11 @@ export interface ComponentProps {
    * already.
    */
   readsLeftToRight?: boolean | undefined;
+  /*
+   * The placeholder is an identifier (an OIDC claim's name), drawn as
+   * given and never looked up (a form Field's isPlaceholderIdentifier).
+   */
+  isPlaceholderIdentifier?: boolean | undefined;
   showSecondsForDateTime?: boolean | undefined;
   autoComplete?: string | undefined;
   // The most characters it takes, as the column it fills keeps them.
@@ -498,7 +503,11 @@ const Input: FunctionComponent<ComponentProps> = (
               ? "1"
               : undefined
           }
-          placeholder={translateString(props.placeholder)}
+          placeholder={
+            props.isPlaceholderIdentifier
+              ? props.placeholder
+              : translateString(props.placeholder)
+          }
           className={className}
           onBlur={() => {
             if (props.onBlur) {
