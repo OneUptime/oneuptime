@@ -1,6 +1,12 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import nodePath from "path";
+import {
+  RouteAttributes,
+  pageRoutesIn,
+  routeMapPath,
+  routesAt,
+} from "../Helpers/PageRoutes";
 
 /*
  * Settings > Single Sign-On (the instance-wide SAML and OIDC providers, and
@@ -285,6 +291,9 @@ describe("the Global SSO / OIDC pages and Require SSO are core pages", () => {
 
 describe("the pages are reachable, and the old list addresses forward", () => {
   const appSource: string = readAdminSource("App.tsx");
+  const appRoutes: Array<RouteAttributes> = pageRoutesIn(
+    nodePath.join(ADMIN_DASHBOARD_SRC, "App.tsx"),
+  );
   const routeMapSource: string = readAdminSource("Utils/RouteMap.ts");
   const pageMapSource: string = readAdminSource("Utils/PageMap.ts");
   const sideMenuSource: string = readAdminSource("Pages/Settings/SideMenu.tsx");
@@ -305,11 +314,9 @@ describe("the pages are reachable, and the old list addresses forward", () => {
     "App.tsx imports %s from %s and routes PageMap.%s to it",
     (component: string, modulePath: string, pageKey: string) => {
       expect(appSource).toContain(`import ${component} from "${modulePath}";`);
-      expect(appSource).toMatch(
-        new RegExp(
-          `path=\\{RouteMap\\[PageMap\\.${pageKey}\\]\\?\\.toString\\(\\) \\|\\| ""\\}\\s*element=\\{<${component} />\\}`,
-        ),
-      );
+      expect(routesAt(appRoutes, routeMapPath(pageKey))).toEqual([
+        { path: routeMapPath(pageKey), element: `<${component} />` },
+      ]);
       expect(pageMapSource).toContain(`${pageKey} = "${pageKey}",`);
     },
   );
@@ -318,11 +325,12 @@ describe("the pages are reachable, and the old list addresses forward", () => {
   test.each(["SETTINGS_GLOBAL_SSO", "SETTINGS_GLOBAL_OIDC"])(
     "App.tsx forwards PageMap.%s to Single Sign-On",
     (pageKey: string) => {
-      expect(appSource).toMatch(
-        new RegExp(
-          `path=\\{RouteMap\\[PageMap\\.${pageKey}\\]\\?\\.toString\\(\\) \\|\\| ""\\}\\s*element=\\{\\s*<Navigate\\s+replace=\\{true\\}\\s+to=\\{RouteMap\\[PageMap\\.SETTINGS_SSO\\]\\?\\.toString\\(\\) \\|\\| ""\\}`,
-        ),
-      );
+      expect(routesAt(appRoutes, routeMapPath(pageKey))).toEqual([
+        {
+          path: routeMapPath(pageKey),
+          element: `<Navigate replace={true} to={${routeMapPath("SETTINGS_SSO")}} />`,
+        },
+      ]);
       expect(appSource).not.toContain("./Pages/Settings/GlobalSSO/Index");
       expect(appSource).not.toContain("./Pages/Settings/GlobalOIDC/Index");
     },

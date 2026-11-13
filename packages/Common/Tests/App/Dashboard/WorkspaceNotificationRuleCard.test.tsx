@@ -962,7 +962,7 @@ describe("a rule's updates", () => {
       "Chosen updates",
     ],
   ])(
-    "a %s rule's card says what it picked",
+    "a %s rule's card says what it picked, %j",
     async (
       eventType: NotificationRuleEventType,
       updatesToPost: Array<string>,

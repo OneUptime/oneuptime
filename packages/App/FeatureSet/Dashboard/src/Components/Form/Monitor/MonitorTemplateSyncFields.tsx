@@ -96,7 +96,8 @@ export const getMonitorTemplateSyncFieldSummary: (
    * line never puts translated names in an English sentence. Each step's
    * names are a list, and the steps clauses of one line: both take the
    * punctuation of the script they are written in ("、" and "；" in
-   * Chinese, "، " and "؛ " in Persian).
+   * Chinese, "، " and "؛ " in Persian), and French's " ; " in a French
+   * sentence.
    */
   return translator.translateTemplate(
     "These fields keep each monitor's current values during sync: {{fields}}. All other step settings are copied from the template.",
@@ -119,6 +120,7 @@ export const getMonitorTemplateSyncFieldSummary: (
                 : names;
             },
           ),
+          sentence.language,
         );
       }),
     },
