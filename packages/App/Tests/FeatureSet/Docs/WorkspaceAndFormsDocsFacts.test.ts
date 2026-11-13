@@ -4,6 +4,16 @@ import { boldSpans, inlineCode } from "./DocsTranslationChecks";
 import FormsCopy from "../../../FeatureSet/Dashboard/src/Components/FormBuilder/FormsCopy";
 import { PublicAddressCopy } from "../../../FeatureSet/Dashboard/src/Components/CustomDomain/PublicAddressCopy";
 import { RECORD_CHANNEL_TEXT } from "../../../FeatureSet/Dashboard/src/Components/Workspace/RecordChannelMembers";
+import {
+  CHOOSE_UPDATES_TITLE,
+  EVERY_UPDATE_TITLE,
+  KEY_UPDATES_TITLE,
+  isUpdatesEventType,
+} from "../../../FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleForm/NotificationRuleUpdatesCopy";
+import NotificationRuleUpdates, {
+  ALWAYS_POSTED_UPDATE_KINDS,
+  NotificationRuleUpdateKind,
+} from "Common/Types/Workspace/NotificationRules/NotificationRuleUpdates";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import { AlertEpisodeFeedEventType } from "Common/Models/DatabaseModels/AlertEpisodeFeed";
 import { AlertFeedEventType } from "Common/Models/DatabaseModels/AlertFeed";
@@ -604,11 +614,41 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
     }
   });
 
-  it("walks a notification rule's steps as the form does, the Video Call step for incidents and alerts only", () => {
+  it("walks a notification rule's steps as the form does, the Updates step for the rules that choose their updates, the Video Call step for incidents and alerts only", () => {
     const table: string = readSource("ruleTable");
     const steps: Array<string> = formStepTitles(table);
 
-    expect(steps).toEqual(["Basic", "Conditions", "Destination", "Video Call"]);
+    expect(steps).toEqual([
+      "Basic",
+      "Conditions",
+      "Destination",
+      "Updates",
+      "Video Call",
+    ]);
+
+    /*
+     * The Updates step is offered for exactly the rules that choose their
+     * updates (#7581): incidents, alerts, both kinds of episode and
+     * scheduled maintenance, which the row names.
+     */
+    expect(table).toContain("...(isUpdatesEventType(props.eventType)");
+    expect(
+      sorted(
+        Object.values(NotificationRuleEventType).filter(
+          (eventType: NotificationRuleEventType): boolean => {
+            return isUpdatesEventType(eventType);
+          },
+        ),
+      ),
+    ).toEqual(
+      sorted([
+        NotificationRuleEventType.Incident,
+        NotificationRuleEventType.Alert,
+        NotificationRuleEventType.IncidentEpisode,
+        NotificationRuleEventType.AlertEpisode,
+        NotificationRuleEventType.ScheduledMaintenance,
+      ]),
+    );
 
     // The Video Call step is offered for exactly the incident and alert rules.
     const canStart: string = bracketed(
@@ -645,8 +685,60 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
           return `**${step}**`;
         }),
       );
-      expect(rows[3]?.[1]).toMatch(/^Incidents and alerts only: /);
+      expect(rows[4]?.[1]).toMatch(/^Incidents and alerts only: /);
       expect(rows[0]?.[1]).toBe("**Rule Name** and **Rule Description**.");
+
+      // The Updates row: who has the step, and its three choices by name.
+      const updates: string = rows[3]?.[1] || "";
+
+      expect(updates).toMatch(
+        /^Incidents, alerts, episodes and scheduled maintenance only: /,
+      );
+      expect(boldSpans(updates)).toEqual([
+        EVERY_UPDATE_TITLE,
+        KEY_UPDATES_TITLE,
+        CHOOSE_UPDATES_TITLE,
+      ]);
+
+      // An incident's key updates, as the step lists them.
+      expect(
+        NotificationRuleUpdates.getKeyKinds(NotificationRuleEventType.Incident),
+      ).toEqual([
+        NotificationRuleUpdateKind.ResolvedAndReopened,
+        NotificationRuleUpdateKind.SeverityChanges,
+        NotificationRuleUpdateKind.PublicNotes,
+        NotificationRuleUpdateKind.Postmortem,
+      ]);
+      expect(updates).toContain(
+        "for an incident, its resolution or reopening, severity changes, public notes and the postmortem.",
+      );
+
+      // What every rule posts, whatever it picks.
+      expect(ALWAYS_POSTED_UPDATE_KINDS).toEqual([
+        NotificationRuleUpdateKind.Created,
+        NotificationRuleUpdateKind.VideoCallStarted,
+      ]);
+      expect(updates).toContain(
+        "Whatever you pick, the rule posts the record's first message, and a video call when one starts.",
+      );
+
+      // A channel gets an update a rule that posts there chose.
+      expect(lineStarting(englishPage(page), "Every later update")).toContain(
+        "when a rule that posts there chooses it in its **Updates** step.",
+      );
+    }
+
+    // Mattermost's rules are Slack's, the updates they post included.
+    expect(
+      lineStarting(englishPage(MATTERMOST), "A notification rule says"),
+    ).toContain(
+      "[Notification rules](/docs/workspace-connections/slack#notification-rules) for conditions, destinations, the updates a rule posts and who joins a channel.",
+    );
+
+    for (const page of CHAT_PAGES) {
+      expect(lineStarting(englishPage(page), "Creating a rule walks")).toBe(
+        "Creating a rule walks up to five steps:",
+      );
       expect(
         sourceSays(readSource("ruleTable"), "Rule Name") &&
           sourceSays(readSource("ruleTable"), "Rule Description"),

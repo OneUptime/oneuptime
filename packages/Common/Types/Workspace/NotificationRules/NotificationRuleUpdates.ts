@@ -185,11 +185,13 @@ const KEY_UPDATE_KINDS: Readonly<
   ],
 };
 
+// A rule's JSON, as far as the updates it posts go.
+export type RuleWithUpdates = Partial<
+  Pick<BaseNotificationRule, "updatesToPost">
+>;
+
 // A rule as stored: updatesToPost is JSON, so it is read with care.
-export type StoredRuleUpdates =
-  | Partial<Pick<BaseNotificationRule, "updatesToPost">>
-  | null
-  | undefined;
+export type StoredRuleUpdates = RuleWithUpdates | null | undefined;
 
 // A rule of the project, with its id, as a record's channel names it.
 export interface RuleOfChannel {
@@ -310,14 +312,12 @@ export default class NotificationRuleUpdates {
    * Updates step lists - takes the list out, so the rule goes on posting
    * every update, the kinds a later version adds included.
    */
-  public static withChosenKinds<T extends object>(data: {
+  public static withChosenKinds<T extends RuleWithUpdates>(data: {
     rule: T | undefined;
     eventType: NotificationRuleEventType | undefined;
     kinds: ReadonlyArray<NotificationRuleUpdateKind> | undefined;
   }): T {
-    const rule: T & { updatesToPost?: unknown } = {
-      ...((data.rule || {}) as T),
-    };
+    const rule: RuleWithUpdates = { ...(data.rule || {}) };
 
     const choosable: Array<NotificationRuleUpdateKind> = this.getChoosableKinds(
       data.eventType,
@@ -331,15 +331,15 @@ export default class NotificationRuleUpdates {
 
     if (!kinds || choosable.length === 0 || kinds.length === choosable.length) {
       delete rule.updatesToPost;
-      return rule;
+      return rule as T;
     }
 
     rule.updatesToPost = kinds;
-    return rule;
+    return rule as T;
   }
 
   // The rule as a choice on its Updates step sets it.
-  public static withChoice<T extends object>(data: {
+  public static withChoice<T extends RuleWithUpdates>(data: {
     rule: T | undefined;
     eventType: NotificationRuleEventType | undefined;
     choice: NotificationRuleUpdatesChoice;

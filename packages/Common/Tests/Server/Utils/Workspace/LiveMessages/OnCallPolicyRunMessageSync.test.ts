@@ -25,6 +25,7 @@ import WorkspaceUtil from "../../../../../Server/Utils/Workspace/Workspace";
 import { WorkspaceSendMessageResponse } from "../../../../../Server/Utils/Workspace/WorkspaceBase";
 import BadRequestException from "../../../../../Types/Exception/BadRequestException";
 import ObjectID from "../../../../../Types/ObjectID";
+import { NotificationRuleUpdateKind } from "../../../../../Types/Workspace/NotificationRules/NotificationRuleUpdates";
 import WorkspaceLiveMessageKey from "../../../../../Types/Workspace/WorkspaceLiveMessageKey";
 import WorkspaceMessagePayload, {
   WorkspacePayloadMarkdown,
@@ -319,6 +320,37 @@ describe("OnCallPolicyRunMessage.syncRun", () => {
     expect(store.rows[0]!.messageData).toEqual({
       alarms: [ON_CALL_RUN_ALARM_NOBODY_PAGED_AT_A_RULE],
     });
+  });
+
+  /*
+   * #7581: a rule that chose its updates hears of a run only if it ticked
+   * Paging - the run's message and its alarms alike. A rule on Key updates
+   * only does not; a rule saved before rules chose does.
+   */
+  test("the run's message and its alarm go only where a rule posts Paging", async () => {
+    readSpy.mockResolvedValue(reading());
+    await OnCallPolicyRunMessage.syncRun(RUN_ID);
+
+    readSpy.mockResolvedValue(reading(RULE_2_REACHED_NOBODY));
+    await OnCallPolicyRunMessage.syncRun(RUN_ID);
+
+    const destinationsAsked: Array<Array<unknown>> = (
+      WorkspaceNotificationRuleService.getMessageDestinations as unknown as {
+        mock: { calls: Array<Array<unknown>> };
+      }
+    ).mock.calls;
+
+    expect(destinationsAsked.length).toBeGreaterThan(0);
+    for (const [asked] of destinationsAsked) {
+      expect((asked as { updateKinds?: unknown }).updateKinds).toEqual([
+        NotificationRuleUpdateKind.Paging,
+      ]);
+    }
+
+    expect(alarmSpy).toHaveBeenCalledTimes(1);
+    expect(
+      alarmSpy.mock.calls[0]![0].workspaceNotification.updateKinds,
+    ).toEqual([NotificationRuleUpdateKind.Paging]);
   });
 
   /*

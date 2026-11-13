@@ -104,7 +104,7 @@ At tilføje den sætter den straks ind i dine vagtregler, så tilkald når dig i
 
 ## Notifikationsregler
 
-En notifikationsregel siger, hvilke begivenheder der slås op i Mattermost, og hvor. Hvert produkt har sine egne regler, under **Arbejdsområde** > **Mattermost** i sin menu: **Hændelser** (med **Hændelsesepisoder** og en fane **Oversigt**), **Advarsler** (med **Advarselsepisoder** og **Oversigt**), **Planlagt vedligeholdelse**, **Monitorer**, **Vagt**, **Sikkerhedshændelser** og **SLOs**. De virker som Slacks: se [Notifikationsregler](/docs/workspace-connections/slack#notifikationsregler) for betingelser, destinationer og hvem der kommer med i en kanal.
+En notifikationsregel siger, hvilke begivenheder der slås op i Mattermost, og hvor. Hvert produkt har sine egne regler, under **Arbejdsområde** > **Mattermost** i sin menu: **Hændelser** (med **Hændelsesepisoder** og en fane **Oversigt**), **Advarsler** (med **Advarselsepisoder** og **Oversigt**), **Planlagt vedligeholdelse**, **Monitorer**, **Vagt**, **Sikkerhedshændelser** og **SLOs**. De virker som Slacks: se [Notifikationsregler](/docs/workspace-connections/slack#notifikationsregler) for betingelser, destinationer, de opdateringer en regel slår op, og hvem der kommer med i en kanal.
 
 En kanal, som en regel opretter, får navn efter sin post: hændelse INC-42 får `inc-42`. Mattermost tager små bogstaver, tal, `-` og `_`, op til 64 tegn, med et bogstav eller et tal først og sidst, og regelformularen viser navnet, mens du skriver. Findes der allerede en kanal med det navn, fx en arkiveret, tilføjer OneUptime `-2`, `-3` og så videre. En privat hændelse, advarsel eller episode får en privat kanal.
 

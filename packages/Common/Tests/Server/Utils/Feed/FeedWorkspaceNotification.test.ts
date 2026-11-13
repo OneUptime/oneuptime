@@ -4,6 +4,7 @@ import FeedWorkspaceNotificationUtil, {
 } from "../../../../Server/Utils/Feed/FeedWorkspaceNotification";
 import { UNNAMED_API_KEY_NAME } from "../../../../Server/Utils/Feed/FeedApiKeyActor";
 import ObjectID from "../../../../Types/ObjectID";
+import { NotificationRuleUpdateKind } from "../../../../Types/Workspace/NotificationRules/NotificationRuleUpdates";
 import SavedChatMessage from "../../../../Types/Workspace/SavedChatMessage";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import { describe, expect, test } from "@jest/globals";
@@ -169,5 +170,28 @@ describe("FeedWorkspaceNotificationUtil.toWorkspaceNotification", () => {
         author: { authorApiKeyName: "Jira Automation" },
       }).authorApiKeyName,
     ).toBe("Jira Automation");
+  });
+
+  // #7581: where a rule chose its updates, the message says which it is.
+  test("carries the updates the entry is, when it is told them", () => {
+    expect(
+      FeedWorkspaceNotificationUtil.toWorkspaceNotification({
+        workspaceNotification: LED,
+        updateKinds: [NotificationRuleUpdateKind.PrivateNotes],
+      }).updateKinds,
+    ).toEqual([NotificationRuleUpdateKind.PrivateNotes]);
+  });
+
+  test("says nothing of them otherwise: the message goes wherever it went", () => {
+    expect(
+      Object.keys(
+        FeedWorkspaceNotificationUtil.toWorkspaceNotification({
+          workspaceNotification: {
+            ...LED,
+            updateKinds: [NotificationRuleUpdateKind.PrivateNotes],
+          },
+        }),
+      ),
+    ).not.toContain("updateKinds");
   });
 });

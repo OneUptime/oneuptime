@@ -91,13 +91,14 @@ En varslingsregel sier hvilke hendelser som publiseres i Microsoft Teams, og hvo
 | **Vakt** | Én liste med regler |
 | **SLOs** | Én liste med regler |
 
-Å opprette en regel går gjennom fire trinn:
+Å opprette en regel går gjennom opptil fem trinn:
 
 | Trinn | Hva du angir |
 | --- | --- |
 | **Grunnleggende** | **Regelnavn** og **Regelbeskrivelse**. |
 | **Betingelser** | Hvilke hendelser regelen gjelder for, for eksempel etter alvorlighetsgrad, tilstand, etikett, monitor eller ord i tittelen. De kontrolleres når en hendelse opprettes, og på nytt ved hver oppdatering OneUptime publiserer om den, så en regel for bekreftede hendelser virker når en hendelse bekreftes. En ny regel gjelder for hver hendelse, for eksempel **Alle hendelser**. For å snevre den inn velger du **Bare hendelser som oppfyller betingelsene** og legger til betingelsene. Med to eller flere sier **Samsvarsbetingelse** om alle må passe, eller om én er nok. |
 | **Mål** | Hvor den publiserer: en eksisterende kanal i et team du velger, chattene du velger, en kanal for hver hendelse (eller varsel, episode, planlagt vedlikehold, monitor eller vaktretningslinje) som opprettes i et team du velger, eller flere av disse sammen. Under steget sier **Hva denne regelen gjør** det i setninger, som regelens kort. |
+| **Oppdateringer** | Bare hendelser, varsler, episoder og planlagt vedlikehold: hvilke oppdateringer regelen publiserer etter postens første melding. **Alle oppdateringer**, som en ny regel starter med, publiserer alle. **Bare viktige oppdateringer** publiserer de som betyr mest, som steget lister for hver type post: for en hendelse løsningen eller gjenåpningen av den, endringer i alvorlighetsgrad, offentlige notater og etteranalysen. Med **Velg oppdateringer** krysser du av for dem én etter én. Uansett hva du velger, publiserer regelen postens første melding, og en videosamtale når en starter. |
 | **Video Call** | Bare hendelser og varsler: start en samtale for hver. Se [Videosamtaler](/docs/workspace-connections/video-calls). |
 
 En regel for SLO-er publiserer endringene i feilbudsjettpolicyen til et SLO: når SLO-et går inn i et nivå, kommer seg til et mindre alvorlig nivå eller forlater alle nivåer, og når distribusjonene fryses eller tillates igjen. Den publiserer bare i eksisterende kanaler og chatter, siden et SLO ikke får noen egen kanal. Se [Publiser i Slack, Microsoft Teams og Mattermost](/docs/slo/error-budget-policy#publiser-i-slack-microsoft-teams-og-mattermost).
@@ -108,7 +109,7 @@ En regel oppretter kanalen sin første gang en hendelse samsvarer med den: når 
 
 For å få med dem som har vakt, velger du vaktplanene deres under **Nevn dem som har vakt**. Når kanalen opprettes, publiserer OneUptime en melding i den rett etter postens første melding. Meldingen @nevner dem som har vakt i disse vaktplanene, slik at Microsoft Teams varsler dem. Ingen tilkalles. OneUptime finner hver person i teamet ut fra Microsoft Teams-kontoen vedkommende har koblet til OneUptime, eller ellers ut fra vedkommendes e-postadresse. Den som ikke er i teamet, kan ikke åpne kanalene i det, så i stedet står vedkommendes navn i meldingen sammen med årsaken. En privat kanal kan bare åpnes av medlemmene, så legg til de vakthavende i kanalen i Microsoft Teams.
 
-Hver senere oppdatering av posten — en tilstandsendring, et notat, en ny eier — publiseres i kanalene dens, og i de eksisterende kanalene og chattene reglene dens nevner så lenge betingelsene deres stemmer. OneUptime kan ikke arkivere en Microsoft Teams-kanal, så kanalen til en regel blir værende når posten er over; arkiver eller slett den i Microsoft Teams.
+Hver senere oppdatering av posten — en tilstandsendring, et notat, en ny eier — publiseres i kanalene dens, og i de eksisterende kanalene og chattene reglene dens nevner så lenge betingelsene deres stemmer, når en regel som publiserer der, velger den i steget **Oppdateringer**. OneUptime kan ikke arkivere en Microsoft Teams-kanal, så kanalen til en regel blir værende når posten er over; arkiver eller slett den i Microsoft Teams.
 
 En hendelse, et varsel, en episode eller en planlagt vedlikeholdshendelse med sin egen kanal har **Åpne i Microsoft Teams** øverst på siden sin i OneUptime, ved siden av tilstandsknappene. Den åpner kanalen i en ny fane, i Microsoft Teams-appen eller i nettleseren. En post med to egne kanaler viser begge under knappen. En post med kanaler i både Slack og Microsoft Teams har i stedet én knapp, **Åpne kanal**, som viser alle. De eksisterende kanalene og chattene reglene dine publiserer i, tilbys ikke.
 

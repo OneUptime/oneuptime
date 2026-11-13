@@ -187,7 +187,8 @@ export class Service extends ProjectReferencesService<Model> {
             // Which updates it is: posted where a rule wants one of them.
             updateKinds: FeedUpdateKinds.resolve({
               named: data.workspaceNotification.updateKinds,
-              ofType: ALERT_EPISODE_FEED_UPDATE_KINDS[data.alertEpisodeFeedEventType],
+              ofType:
+                ALERT_EPISODE_FEED_UPDATE_KINDS[data.alertEpisodeFeedEventType],
             }),
             author: FeedWorkspaceNotificationUtil.getAuthor({
               workspaceNotification: data.workspaceNotification,

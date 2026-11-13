@@ -93,13 +93,14 @@ A notification rule says which events post to Slack, and where. Each product has
 | **On-Call** | One list of rules |
 | **SLOs** | One list of rules |
 
-Creating a rule walks four steps:
+Creating a rule walks up to five steps:
 
 | Step | What you set |
 | --- | --- |
 | **Basic** | **Rule Name** and **Rule Description**. |
 | **Conditions** | Which events the rule is for, by severity, state, label, monitor or words in the title, for example. They are checked when an event is created and again with each update OneUptime posts about it, so a rule for acknowledged incidents acts when an incident is acknowledged. A new rule is for every event, such as **All incidents**. To narrow it down, pick **Only incidents that match conditions** and add the conditions. With two or more, **Match Condition** says whether all of them must match, or any one. |
 | **Destination** | Where it posts: **Post to existing channels** with the channel names, **Create a channel for each incident** (or alert, episode, event, monitor or on-call policy) with who joins it, or both. Under the step, **What this rule does** says it in sentences, as the rule's card does. |
+| **Updates** | Incidents, alerts, episodes and scheduled maintenance only: which updates the rule posts after the record's first message. **Every update**, which a new rule starts with, posts them all. **Key updates only** posts the ones that matter most, which the step lists for each kind of record: for an incident, its resolution or reopening, severity changes, public notes and the postmortem. **Choose updates** lets you tick them one by one. Whatever you pick, the rule posts the record's first message, and a video call when one starts. |
 | **Video Call** | Incidents and alerts only: start a call for each one. See [Video Calls](/docs/workspace-connections/video-calls). |
 
 An SLO's rule posts the changes of its error budget policy: when the SLO enters a tier, recovers to a less severe one or leaves every tier, and when its deployments are frozen or allowed again. It posts only to existing channels, as an SLO gets no channel of its own. See [Post to Slack, Microsoft Teams and Mattermost](/docs/slo/error-budget-policy#post-to-slack-microsoft-teams-and-mattermost).
@@ -112,7 +113,7 @@ A rule creates its channel the first time an event matches it: when the event is
 
 For an on-call schedule in **Also invite**, whoever is on call in it when the channel is created joins, as the schedule's page shows them, and is not paged. To add people only to some incidents' channels, give a second rule those conditions and those people, with the same **Channel Name Prefix** as the first: rules that match an incident when its channel is created share that channel, and each one adds its own people.
 
-Every later update of the record — a state change, a note, a new owner — is posted to its channels, and to the existing channels its rules name while their conditions match. With **Archive the channel when the incident is resolved** on, or its twin for alerts, episodes, events, monitors and on-call policies, the rule that created a channel archives it when the record is resolved, completed or deleted, whatever its conditions say by then. An incident, alert or episode created already resolved gets no channel of its own; its created message still goes to the channels your rules name. See [Declared already acknowledged or resolved](/docs/incidents/declaring-incidents#declared-already-acknowledged-or-resolved).
+Every later update of the record — a state change, a note, a new owner — is posted to its channels, and to the existing channels its rules name while their conditions match, when a rule that posts there chooses it in its **Updates** step. With **Archive the channel when the incident is resolved** on, or its twin for alerts, episodes, events, monitors and on-call policies, the rule that created a channel archives it when the record is resolved, completed or deleted, whatever its conditions say by then. An incident, alert or episode created already resolved gets no channel of its own; its created message still goes to the channels your rules name. See [Declared already acknowledged or resolved](/docs/incidents/declaring-incidents#declared-already-acknowledged-or-resolved).
 
 An incident, alert, episode or scheduled maintenance event with a channel of its own has **Open in Slack** in the header of its page in OneUptime, beside its state buttons. It opens that channel in a new tab, in the Slack app or in the browser. A record with two channels of its own lists both under the button. A record with channels in both Slack and Microsoft Teams has one **Open channel** button instead, which lists them all. The existing channels your rules post to are not offered.
 

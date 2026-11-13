@@ -498,9 +498,9 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
       for (const eventType of eventTypes) {
         Service.assertUpdatesToPostAreValid({
-          notificationRule: (updateBy.data as unknown as Record<string, unknown>)[
-            "notificationRule"
-          ],
+          notificationRule: (
+            updateBy.data as unknown as Record<string, unknown>
+          )["notificationRule"],
           eventType: eventType,
         });
       }

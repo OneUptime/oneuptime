@@ -93,13 +93,14 @@ En aviseringsregel anger vilka händelser som publiceras i Slack, och var. Varje
 | **Jour** | En lista med regler |
 | **SLOs** | En lista med regler |
 
-Att skapa en regel går igenom fyra steg:
+Att skapa en regel går igenom upp till fem steg:
 
 | Steg | Vad du anger |
 | --- | --- |
 | **Grundläggande** | **Regelnamn** och **Regelbeskrivning**. |
 | **Villkor** | Vilka händelser regeln gäller, till exempel efter allvarlighetsgrad, tillstånd, etikett, monitor eller ord i titeln. De kontrolleras när en händelse skapas och igen vid varje uppdatering som OneUptime publicerar om den, så en regel för bekräftade incidenter verkar när en incident bekräftas. En ny regel gäller varje händelse, till exempel **Alla incidenter**. För att snäva in den väljer du **Endast incidenter som uppfyller villkoren** och lägger till villkoren. Med två eller fler anger **Matchningsvillkor** om alla måste matcha, eller om det räcker med ett. |
 | **Mål** | Var den publicerar: **Publicera i befintliga kanaler** med kanalnamnen, **Skapa en kanal för varje incident** (eller larm, episod, händelse, monitor eller jourpolicy) med vilka som går med i den, eller båda. Under steget säger **Vad regeln gör** det i meningar, som regelns kort. |
+| **Uppdateringar** | Endast incidenter, larm, episoder och schemalagt underhåll: vilka uppdateringar regeln publicerar efter postens första meddelande. **Alla uppdateringar**, som en ny regel börjar med, publicerar alla. **Bara viktiga uppdateringar** publicerar dem som betyder mest, som steget listar för varje slags post: för en incident att den löses eller öppnas igen, ändringar av allvarlighetsgrad, offentliga anteckningar och efteranalysen. Med **Välj uppdateringar** bockar du för dem en i taget. Vad du än väljer publicerar regeln postens första meddelande, och ett videosamtal när ett startar. |
 | **Video Call** | Endast incidenter och larm: starta ett samtal för var och en. Se [Videosamtal](/docs/workspace-connections/video-calls). |
 
 Ett SLO:s regel publicerar ändringarna i dess felbudgetpolicy: när SLO:et går in i en nivå, återhämtar sig till en mindre allvarlig nivå eller lämnar alla nivåer, och när dess distributioner fryses eller tillåts igen. Den publicerar bara i befintliga kanaler, eftersom ett SLO inte får någon egen kanal. Se [Publicera i Slack, Microsoft Teams och Mattermost](/docs/slo/error-budget-policy#publicera-i-slack-microsoft-teams-och-mattermost).
@@ -112,7 +113,7 @@ En regel skapar sin kanal första gången en händelse matchar den: när händel
 
 För ett jourschema i **Bjud också in** går den som har jour i schemat när kanalen skapas med i den, så som schemats sida visar, utan att larmas. För att bara lägga till personer i vissa incidenters kanaler ger du en andra regel de villkoren och de personerna, med samma **Prefix för kanalnamn** som den första: regler som matchar en incident när dess kanal skapas delar på den kanalen, och var och en lägger till sina egna personer.
 
-Varje senare uppdatering av posten — en tillståndsändring, en anteckning, en ny ägare — publiceras i dess kanaler, och i de befintliga kanaler som dess regler anger så länge deras villkor stämmer. Med **Arkivera kanalen när incidenten är löst** påslagen, eller dess motsvarighet för larm, episoder, händelser, monitorer och jourpolicyer, arkiverar regeln som skapade en kanal den när posten är löst, slutförd eller borttagen, vad dess villkor än säger då. En incident, ett larm eller en episod som skapades redan löst får ingen egen kanal; skapandemeddelandet går ändå till de kanaler som dina regler anger. Se [Deklarerad redan bekräftad eller löst](/docs/incidents/declaring-incidents#deklarerad-redan-bekräftad-eller-löst).
+Varje senare uppdatering av posten — en tillståndsändring, en anteckning, en ny ägare — publiceras i dess kanaler, och i de befintliga kanaler som dess regler anger så länge deras villkor stämmer, när en regel som publicerar där väljer den i sitt steg **Uppdateringar**. Med **Arkivera kanalen när incidenten är löst** påslagen, eller dess motsvarighet för larm, episoder, händelser, monitorer och jourpolicyer, arkiverar regeln som skapade en kanal den när posten är löst, slutförd eller borttagen, vad dess villkor än säger då. En incident, ett larm eller en episod som skapades redan löst får ingen egen kanal; skapandemeddelandet går ändå till de kanaler som dina regler anger. Se [Deklarerad redan bekräftad eller löst](/docs/incidents/declaring-incidents#deklarerad-redan-bekräftad-eller-löst).
 
 En incident, ett larm, en episod eller en schemalagd underhållshändelse med en egen kanal har **Öppna i Slack** i sidhuvudet på sin sida i OneUptime, bredvid tillståndsknapparna. Den öppnar kanalen i en ny flik, i Slack-appen eller i webbläsaren. En post med två egna kanaler listar båda under knappen. En post med kanaler i både Slack och Microsoft Teams har i stället en knapp, **Öppna kanal**, som listar alla. De befintliga kanaler som dina regler publicerar i erbjuds inte.
 

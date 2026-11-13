@@ -46,7 +46,8 @@ export const INCIDENT_FEED_UPDATE_KINDS: Readonly<
   [IncidentFeedEventType.OwnerUserRemoved]: NotificationRuleUpdateKind.Owners,
   [IncidentFeedEventType.OwnerTeamRemoved]: NotificationRuleUpdateKind.Owners,
   // The Incident Commander and the incident's other roles.
-  [IncidentFeedEventType.IncidentMemberAdded]: NotificationRuleUpdateKind.Owners,
+  [IncidentFeedEventType.IncidentMemberAdded]:
+    NotificationRuleUpdateKind.Owners,
   [IncidentFeedEventType.IncidentMemberRemoved]:
     NotificationRuleUpdateKind.Owners,
   [IncidentFeedEventType.OnCallPolicy]: NotificationRuleUpdateKind.Paging,
@@ -68,7 +69,8 @@ export const INCIDENT_FEED_UPDATE_KINDS: Readonly<
   [IncidentFeedEventType.SubscriberNotificationSent]:
     NotificationRuleUpdateKind.Other,
   // Reminders that the incident is still open.
-  [IncidentFeedEventType.OwnerNotificationSent]: NotificationRuleUpdateKind.Other,
+  [IncidentFeedEventType.OwnerNotificationSent]:
+    NotificationRuleUpdateKind.Other,
   [IncidentFeedEventType.AlertLinked]: NotificationRuleUpdateKind.Other,
   [IncidentFeedEventType.AlertUnlinked]: NotificationRuleUpdateKind.Other,
   [IncidentFeedEventType.LabelRuleExecuted]: NotificationRuleUpdateKind.Other,
@@ -82,7 +84,8 @@ export const ALERT_FEED_UPDATE_KINDS: Readonly<
 > = {
   [AlertFeedEventType.AlertCreated]: NotificationRuleUpdateKind.Created,
   // Resolved and reopened, said where it is written (getStateChangeKind).
-  [AlertFeedEventType.AlertStateChanged]: NotificationRuleUpdateKind.StateChanges,
+  [AlertFeedEventType.AlertStateChanged]:
+    NotificationRuleUpdateKind.StateChanges,
   // The severity is said where it is written.
   [AlertFeedEventType.AlertUpdated]: NotificationRuleUpdateKind.Edits,
   [AlertFeedEventType.PrivateNote]: NotificationRuleUpdateKind.PrivateNotes,
@@ -143,7 +146,8 @@ export const INCIDENT_EPISODE_FEED_UPDATE_KINDS: Readonly<
     NotificationRuleUpdateKind.Owners,
   [IncidentEpisodeFeedEventType.OwnerTeamRemoved]:
     NotificationRuleUpdateKind.Owners,
-  [IncidentEpisodeFeedEventType.OnCallPolicy]: NotificationRuleUpdateKind.Paging,
+  [IncidentEpisodeFeedEventType.OnCallPolicy]:
+    NotificationRuleUpdateKind.Paging,
   [IncidentEpisodeFeedEventType.OnCallNotification]:
     NotificationRuleUpdateKind.Paging,
   [IncidentEpisodeFeedEventType.OnCallRuleExecuted]:
@@ -152,7 +156,8 @@ export const INCIDENT_EPISODE_FEED_UPDATE_KINDS: Readonly<
    * Kept to the episode's feed today. Posted one day, each gets an update
    * of its own on the episode rules' Updates step.
    */
-  [IncidentEpisodeFeedEventType.EpisodeUpdated]: NotificationRuleUpdateKind.Other,
+  [IncidentEpisodeFeedEventType.EpisodeUpdated]:
+    NotificationRuleUpdateKind.Other,
   [IncidentEpisodeFeedEventType.SeverityChanged]:
     NotificationRuleUpdateKind.Other,
   [IncidentEpisodeFeedEventType.RootCause]: NotificationRuleUpdateKind.Other,
@@ -177,7 +182,8 @@ export const INCIDENT_EPISODE_FEED_UPDATE_KINDS: Readonly<
 export const ALERT_EPISODE_FEED_UPDATE_KINDS: Readonly<
   Record<AlertEpisodeFeedEventType, NotificationRuleUpdateKind>
 > = {
-  [AlertEpisodeFeedEventType.EpisodeCreated]: NotificationRuleUpdateKind.Created,
+  [AlertEpisodeFeedEventType.EpisodeCreated]:
+    NotificationRuleUpdateKind.Created,
   // Resolved and reopened, said where it is written (getStateChangeKind).
   [AlertEpisodeFeedEventType.EpisodeStateChanged]:
     NotificationRuleUpdateKind.StateChanges,
@@ -244,7 +250,8 @@ export const SCHEDULED_MAINTENANCE_FEED_UPDATE_KINDS: Readonly<
     NotificationRuleUpdateKind.Other,
   [ScheduledMaintenanceFeedEventType.OwnerTeamRemoved]:
     NotificationRuleUpdateKind.Other,
-  [ScheduledMaintenanceFeedEventType.RootCause]: NotificationRuleUpdateKind.Other,
+  [ScheduledMaintenanceFeedEventType.RootCause]:
+    NotificationRuleUpdateKind.Other,
   [ScheduledMaintenanceFeedEventType.RemediationNotes]:
     NotificationRuleUpdateKind.Other,
   [ScheduledMaintenanceFeedEventType.OnCallPolicy]:

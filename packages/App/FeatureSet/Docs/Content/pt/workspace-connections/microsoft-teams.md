@@ -91,13 +91,14 @@ Uma regra de notificação diz quais eventos são publicados no Microsoft Teams,
 | **Plantão** | Uma lista de regras |
 | **SLOs** | Uma lista de regras |
 
-Criar uma regra passa por quatro etapas:
+Criar uma regra passa por até cinco etapas:
 
 | Etapa | O que você define |
 | --- | --- |
 | **Básico** | **Nome da regra** e **Descrição da regra**. |
 | **Condições** | A quais eventos a regra se aplica, por exemplo por gravidade, estado, rótulo, monitor ou palavras no título. Elas são verificadas quando um evento é criado e novamente a cada atualização que o OneUptime publica sobre ele, então uma regra para incidentes confirmados age quando um incidente é confirmado. Uma regra nova vale para todo evento, por exemplo **Todos os incidentes**. Para restringi-la, escolha **Somente os incidentes que atendem às condições** e adicione as condições. Com duas ou mais, **Condição de correspondência** diz se todas precisam corresponder ou se basta uma. |
 | **Destino** | Onde ela publica: um canal existente de uma equipe que você escolher, os chats que você escolher, um canal para cada incidente (ou alerta, episódio, evento, monitor ou política de plantão) criado em uma equipe que você escolher, ou vários deles juntos. Abaixo da etapa, **O que esta regra faz** diz isso em frases, como o cartão da regra. |
+| **Atualizações** | Somente incidentes, alertas, episódios e manutenções agendadas: quais atualizações a regra publica depois da primeira mensagem do registro. **Todas as atualizações**, com que uma regra nova começa, publica todas elas. **Somente atualizações importantes** publica as que mais importam, que a etapa lista para cada tipo de registro: para um incidente, a resolução ou reabertura dele, as mudanças de gravidade, as notas públicas e o post-mortem. **Escolher atualizações** permite que você as marque uma a uma. Seja qual for a sua escolha, a regra publica a primeira mensagem do registro, e uma videochamada quando ela começa. |
 | **Video Call** | Somente incidentes e alertas: inicia uma chamada para cada um. Consulte [Videochamadas](/docs/workspace-connections/video-calls). |
 
 Uma regra de SLOs publica as mudanças na política de orçamento de erros de um SLO: quando ele entra em um nível, volta para um menos grave ou sai de todos os níveis, e quando as implantações dele são congeladas ou voltam a ser permitidas. Ela só publica em canais e chats existentes, já que um SLO não recebe um canal próprio. Consulte [Publique no Slack, no Microsoft Teams e no Mattermost](/docs/slo/error-budget-policy#publique-no-slack-no-microsoft-teams-e-no-mattermost).
@@ -108,7 +109,7 @@ Uma regra cria o seu canal na primeira vez que um evento corresponde a ela: quan
 
 Para envolver quem está de plantão, escolha os agendamentos de plantão dessas pessoas em **Mencionar quem está de plantão**. Quando o canal é criado, o OneUptime publica nele, logo depois da primeira mensagem do registro, uma mensagem que menciona com @ quem está de plantão nesses agendamentos, para que o Microsoft Teams avise essas pessoas. Ninguém é acionado. O OneUptime encontra cada pessoa na equipe pela conta do Microsoft Teams que ela conectou ao OneUptime, ou então pelo endereço de e-mail dela. Quem não está na equipe não pode abrir os canais dela, então, em vez disso, a mensagem traz o nome dessa pessoa e o motivo. Em um canal privado, só os membros dele podem abri-lo, então adicione as pessoas de plantão a ele no Microsoft Teams.
 
-Toda atualização posterior do registro — uma mudança de estado, uma nota, um novo proprietário — é publicada nos seus canais, e nos canais e chats existentes que as suas regras indicam enquanto as condições delas corresponderem. O OneUptime não consegue arquivar um canal do Microsoft Teams, então o canal de uma regra fica quando o registro dele termina; arquive-o ou exclua-o no Microsoft Teams.
+Toda atualização posterior do registro — uma mudança de estado, uma nota, um novo proprietário — é publicada nos seus canais, e nos canais e chats existentes que as suas regras indicam enquanto as condições delas corresponderem, quando uma regra que publica ali a escolhe na sua etapa **Atualizações**. O OneUptime não consegue arquivar um canal do Microsoft Teams, então o canal de uma regra fica quando o registro dele termina; arquive-o ou exclua-o no Microsoft Teams.
 
 Um incidente, alerta, episódio ou evento de manutenção agendada com um canal próprio tem **Abrir no Microsoft Teams** no cabeçalho da sua página no OneUptime, ao lado dos botões de estado. Ele abre esse canal em uma nova aba, no aplicativo do Microsoft Teams ou no navegador. Um registro com dois canais próprios lista os dois sob o botão. Um registro com canais tanto no Slack quanto no Microsoft Teams tem, em vez disso, um único botão **Abrir canal**, que lista todos eles. Os canais e chats existentes em que as suas regras publicam não são oferecidos.
 

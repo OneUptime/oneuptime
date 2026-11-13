@@ -47,9 +47,10 @@ import {
  * (NotificationRuleUpdates). The list cannot tell "Choose updates" with
  * every box ticked from "Every update", or with Key updates only's boxes
  * ticked from that answer, so the answer picked here is kept while the step
- * is open: ticking every box does not move the radio back to Every update.
- * Picking Choose updates ticks the boxes of what the rule posts so far, and
- * changes nothing until a box is changed.
+ * is open: ticking every box does not move the radio back to Every update,
+ * on a new rule or on one saved with boxes of its own. Picking Choose
+ * updates ticks the boxes of what the rule posts so far, and changes
+ * nothing until a box is changed.
  */
 
 export interface ComponentProps {
@@ -110,6 +111,13 @@ const NotificationRuleUpdatesForm: FunctionComponent<ComponentProps> = (
     kind: NotificationRuleUpdateKind,
     isOn: boolean,
   ): void => {
+    /*
+     * The boxes are the person's own choice now, whatever they add up to: a
+     * rule saved on Choose updates whose boxes come to every update, or to
+     * the key updates, keeps its boxes open under the pointer.
+     */
+    setPickedChoice(NotificationRuleUpdatesChoice.ChosenUpdates);
+
     props.onChange(
       NotificationRuleUpdates.withChosenKinds<IncidentNotificationRule>({
         rule: rule,
