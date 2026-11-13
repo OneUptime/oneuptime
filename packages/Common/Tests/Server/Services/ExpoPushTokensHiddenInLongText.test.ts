@@ -208,7 +208,8 @@ describe("in time that grows with the text, not with its square", () => {
           return {
             "2d9b7c1e-6f3a-4b8d-8e2f-0a1b2c3d4e5f": {
               status: "error",
-              message: `${attempt} ${message} ExpoPushToken[the-phone]`,
+              // The phone's token first: no closing bracket follows the run.
+              message: `ExpoPushToken[the-phone] ${attempt} ${message}`,
               details: { error: "MessageRateExceeded" },
             } as ExpoPushReceipt,
           };
@@ -229,7 +230,7 @@ describe("in time that grows with the text, not with its square", () => {
         run.result["2d9b7c1e-6f3a-4b8d-8e2f-0a1b2c3d4e5f"] as JSONObject
       )["message"] as string;
 
-      expect(answered.endsWith(` ${HIDDEN}`)).toBe(true);
+      expect(answered.startsWith(`${HIDDEN} `)).toBe(true);
       expect(answered).not.toContain("the-phone");
     },
     120 * 1000,
@@ -263,7 +264,8 @@ describe("in time that grows with the text, not with its square", () => {
             attempt++;
             ticket = {
               status: "error",
-              message: `${attempt} ${message} ExpoPushToken[the-phone]`,
+              // The phone's token first: no closing bracket follows the run.
+              message: `ExpoPushToken[the-phone] ${attempt} ${message}`,
               details: { error: "MessageRateExceeded" },
             };
 
@@ -286,7 +288,7 @@ describe("in time that grows with the text, not with its square", () => {
         const expoMessage: string = (run.result as ExpoPushRefusedError)
           .expoMessage;
 
-        expect(expoMessage.endsWith(` ${HIDDEN}`)).toBe(true);
+        expect(expoMessage.startsWith(`${HIDDEN} `)).toBe(true);
         expect(expoMessage).not.toContain("the-phone");
       },
       120 * 1000,
