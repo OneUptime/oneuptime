@@ -31,10 +31,13 @@ import Timezone from "../../../../Types/Timezone";
 /*
  * A DATE AND TIME FILTER'S CHIP READS HOURS AND MINUTES (issue #7593).
  *
- * A list filtered by a date and time - User Overrides by Starts, the
- * maintenance events by Starts At - said "Starts is after Nov 13 2026,
- * 11:15:00 AM" over the list: seconds the filter's own field neither shows
- * nor takes, always :00 for a time picked to the minute. The chip now
+ * A list filtered by a date and time - a maintenance event's state
+ * timeline by Starts At, your on-call notifications by Notification Sent
+ * At, a status page's subscribers by Subscribed At - said "Starts At is
+ * after Nov 13 2026, 11:15:00 AM" over the list: seconds the filter's own
+ * field neither shows nor takes, always :00 for a time picked to the
+ * minute. (User Overrides and the maintenance events list filter by day,
+ * and read a day, as before.) The chip now
  * reads the time as the field does, "11:15", whatever the operator, in
  * English and in the reader's language; a date filter reads its day as it
  * always did.
