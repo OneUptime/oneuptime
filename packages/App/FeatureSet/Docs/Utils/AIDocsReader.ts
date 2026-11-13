@@ -108,9 +108,8 @@ const HEADING_LINE: RegExp = /^(#{2,3})\s+(.+?)\s*#*\s*$/;
 const DOCS_PAGE: RegExp = /^[a-z0-9-]+(\/[a-z0-9-]+)*$/;
 
 /*
- * Words a question is phrased with rather than about. Only English: in
- * other languages such words are in most pages and weigh next to nothing
- * anyway.
+ * Words a question is phrased with rather than about, in English: left out
+ * of every page and every question, whatever its language.
  */
 const QUESTION_WORDS: ReadonlySet<string> = new Set<string>([
   "a",
@@ -148,6 +147,142 @@ const QUESTION_WORDS: ReadonlySet<string> = new Set<string>([
   "you",
   "your",
 ]);
+
+/*
+ * The same words in another language, left out of a question asked in it
+ * (#7799). Read as words, a German question's "ich" and "meine" counted
+ * like what it asks about: the German docs say "Sie" and "Ihre", so those
+ * are on few pages, and "Wie überwache ich meine Website?" found "Wie ich
+ * erreichbar bin" (How to Reach Me) before Website-Überwachung. Only a
+ * question leaves them out: the index, which docs search reads too, keeps
+ * them, and that page is still found by "erreichbar". Written as a reader
+ * types them; compared folded.
+ */
+const QUESTION_WORDS_BY_LANGUAGE: Readonly<
+  Record<string, ReadonlyArray<string>>
+> = {
+  de: [
+    // how, what, where, when, why, who, which
+    "wie",
+    "was",
+    "wo",
+    "wann",
+    "warum",
+    "wieso",
+    "weshalb",
+    "wer",
+    "wen",
+    "wem",
+    "welche",
+    "welcher",
+    "welches",
+    "welchen",
+    "welchem",
+    // I, me, my, we
+    "ich",
+    "mich",
+    "mir",
+    "mein",
+    "meine",
+    "meinen",
+    "meinem",
+    "meiner",
+    "meines",
+    "wir",
+    "uns",
+    "unser",
+    "unsere",
+    "unseren",
+    "unserem",
+    "unserer",
+    "unseres",
+    // you, your, one ("wie richtet man ... ein")
+    "sie",
+    "ihnen",
+    "ihr",
+    "ihre",
+    "ihren",
+    "ihrem",
+    "ihrer",
+    "ihres",
+    "du",
+    "dich",
+    "dir",
+    "dein",
+    "deine",
+    "deinen",
+    "deinem",
+    "deiner",
+    "deines",
+    "man",
+    // a, an, the
+    "der",
+    "die",
+    "das",
+    "den",
+    "dem",
+    "des",
+    "ein",
+    "eine",
+    "einen",
+    "einem",
+    "einer",
+    "eines",
+    // it, this, that, there
+    "es",
+    "dies",
+    "diese",
+    "dieser",
+    "dieses",
+    "diesen",
+    "diesem",
+    "dass",
+    "da",
+    "dort",
+    // and, or, if
+    "und",
+    "oder",
+    "wenn",
+    "ob",
+    // am, is, are, be, can, do
+    "bin",
+    "bist",
+    "ist",
+    "sind",
+    "sein",
+    "kann",
+    "kannst",
+    "können",
+    "tue",
+    "tun",
+    // for, of, on, to, with, in
+    "für",
+    "von",
+    "vom",
+    "auf",
+    "zu",
+    "zum",
+    "zur",
+    "mit",
+    "im",
+    "am",
+  ],
+};
+
+const FOLDED_QUESTION_WORDS: ReadonlyMap<string, ReadonlySet<string>> = new Map<
+  string,
+  ReadonlySet<string>
+>(
+  Object.entries(QUESTION_WORDS_BY_LANGUAGE).map(
+    ([language, words]: [string, ReadonlyArray<string>]): [
+      string,
+      ReadonlySet<string>,
+    ] => {
+      return [language, new Set<string>(words.map(foldDocsSearchWord))];
+    },
+  ),
+);
+const NO_WORDS: ReadonlySet<string> = new Set<string>();
 
 // Scripts written without spaces between words: read in pairs of characters.
 const UNSPACED_SCRIPT: RegExp =
@@ -254,11 +389,13 @@ const joinedWords: (parts: Array<string>) => Array<string> = (
 };
 
 /*
- * A newcomer's words for what the docs say otherwise, read into a question
- * only, never into a page: "a text when my site is down" is an SMS, "2fa"
- * is two-factor authentication (DOCS_SEARCH_SYNONYMS, the list docs search
- * reads too). A synonym that is a word's start ("vagt*") needs the docs'
- * words to be read, so it is left to rank.
+ * A question's words, without the ones it is phrased with in its language
+ * (QUESTION_WORDS_BY_LANGUAGE), and with a newcomer's words for what the
+ * docs say otherwise, read into a question only, never into a page: "a text
+ * when my site is down" is an SMS, "2fa" is two-factor authentication
+ * (DOCS_SEARCH_SYNONYMS, the list docs search reads too). A synonym that is
+ * a word's start ("vagt*") needs the docs' words to be read, so it is left
+ * to rank.
  */
 export const tokenizeQueryForDocs: (
   query: string,
@@ -267,10 +404,18 @@ export const tokenizeQueryForDocs: (
   query: string,
   language?: string | undefined,
 ): Array<string> => {
+  const resolved: string = language || DEFAULT_DOCS_LANGUAGE;
   const synonyms: Map<string, Array<DocsSearchSynonym>> = getDocsSearchSynonyms(
-    language || DEFAULT_DOCS_LANGUAGE,
+    resolved,
   );
-  const otherWords: Array<string> = splitDocsWords(query).flatMap(
+  const questionWords: ReadonlySet<string> =
+    FOLDED_QUESTION_WORDS.get(resolved) || NO_WORDS;
+  const words: Array<string> = splitDocsWords(query).filter(
+    (word: string): boolean => {
+      return !questionWords.has(foldDocsSearchWord(word));
+    },
+  );
+  const otherWords: Array<string> = words.flatMap(
     (word: string): Array<string> => {
       return (synonyms.get(foldDocsSearchWord(word)) || [])
         .filter((synonym: DocsSearchSynonym): boolean => {
@@ -284,7 +429,7 @@ export const tokenizeQueryForDocs: (
 
   return Array.from(
     new Set<string>([
-      ...tokenizeForDocs(query),
+      ...tokenizeForDocs(words.join(" ")),
       ...tokenizeForDocs(otherWords.join(" ")),
     ]),
   );
@@ -809,20 +954,23 @@ export default class DocsAIReader implements AIDocsReader {
     const scored: Array<{ hit: AIDocsSearchHit; score: number }> = [];
 
     for (const page of index.pages) {
+      // The question's words in the page's name (its titleTerms), and in the rest of it.
+      let nameScore: number = 0;
       let score: number = 0;
       let matched: number = 0;
 
       for (const term of queryTerms) {
         const bodyCount: number = page.bodyTerms.get(term) || 0;
+        const nameTermScore: number = page.titleTerms.has(term) ? 6 : 0;
         const termScore: number =
-          (page.titleTerms.has(term) ? 6 : 0) +
           (page.headingTerms.has(term) ? 3 : 0) +
           (page.summaryTerms.has(term) ? 2 : 0) +
           (page.groupTerms.has(term) ? 2 : 0) +
           bodyWeight(bodyCount, page.bodyLength);
 
-        if (termScore > 0) {
+        if (nameTermScore + termScore > 0) {
           matched++;
+          nameScore += weight(term) * nameTermScore;
           score += weight(term) * termScore;
         }
       }
@@ -831,8 +979,16 @@ export default class DocsAIReader implements AIDocsReader {
         continue;
       }
 
-      // A page that holds more of the question's words beats one that repeats one of them.
-      score *= 0.25 + 0.75 * (matched / queryTerms.length);
+      /*
+       * A page that holds more of the question's words beats one that
+       * repeats one of them, but its name is not cut for the words it
+       * lacks: a page named for what the question asks about
+       * ("Bereitschaftspläne" for "Wie richte ich einen Bereitschaftsplan
+       * ein?") is that thing's page, even where it never says the
+       * question's other words ("richte"), and pages that hold them all in
+       * passing do not pass it (#7799).
+       */
+      score = nameScore + score * (0.25 + 0.75 * (matched / queryTerms.length));
 
       let bestSection: AIDocsIndexedSection | undefined = undefined;
       let bestSectionScore: number = 0;

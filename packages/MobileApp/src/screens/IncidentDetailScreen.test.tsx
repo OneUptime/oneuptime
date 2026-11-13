@@ -1855,6 +1855,38 @@ describe("Paged again, and answering a page from its push", () => {
     ).toBeTruthy();
   });
 
+  /*
+   * Somebody asked for the reader by hand - a page sent from a chat, or a
+   * policy started by hand - about an incident somebody else acknowledged
+   * (#7596): the same buttons as a page again, but the reader never took
+   * it, so they are paged to help, not paged again.
+   */
+  test("paged to help with an incident somebody else acknowledged: the same buttons, and paged - not paged again", async () => {
+    mockPassOnPages.current = [{ ...PAGE_AGAIN, isAskedFor: true }];
+    mockIncidentDetail.current = queryState<IncidentItem | null>({
+      data: acknowledgedIncident(),
+    });
+
+    await renderScreen(createTestQueryClient());
+
+    await screen.findByRole("button", {
+      name: "Acknowledge this incident again",
+    });
+    expect(buttonLabels()).toEqual([
+      "Acknowledge this incident again",
+      "Resolve incident",
+      "Escalate this incident",
+    ]);
+    expect(screen.getByText("You're being paged")).toBeTruthy();
+    expect(screen.queryByText("You're being paged again")).toBeNull();
+    expect(
+      screen.getByText(
+        "A responder has acknowledged this incident, and you're being paged to help. Acknowledge again to answer your page, or escalate it.",
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByText(/still on it/)).toBeNull();
+  });
+
   test("Acknowledge again answers the page, and the screen goes back to the response in progress", async () => {
     mockPassOnPages.current = [PAGE_AGAIN];
     mockIncidentDetail.current = queryState<IncidentItem | null>({

@@ -283,7 +283,7 @@ Meldingen til en hendelse har fire knapper, **Acknowledge Incident**, **Resolve 
 | **Change Severity** | Setter alvorlighetsgraden til hendelsen. |
 | **Change Incident State** | Flytter hendelsen til en senere tilstand. |
 | **Assign Role** | Gir noen en rolle i hendelsen, som **Incident Commander**. En rolle for én person går over til vedkommende. |
-| **Page Someone** | Tilkaller personer, et team, den som har vakt i en vaktplan nå, eller en vaktpolicy om hendelsen, med en valgfri melding. Personer tilkalles til en av dem svarer; en policy tilkaller til noen bekrefter hendelsen. |
+| **Page Someone** | Tilkaller personer, et team, den som har vakt i en vaktplan nå, eller en vaktpolicy om hendelsen, med en valgfri melding. Alle den tilkaller, også personene i en policy, tilkalles til en av dem svarer eller hendelsen er løst. |
 | **Edit Custom Fields** | Setter de egendefinerte feltene til hendelsen, hvert fylt ut med det hendelsen har. Et felt som står tomt, tømmes. |
 
 `/oneuptime incident 42` viser hendelse 42, med disse knappene og menyen, i en melding bare du ser. Skriv nummeret slik OneUptime viser det: `42`, `#42` eller `INC-42`. I den egne kanalen til en hendelse viser `/oneuptime incident` alene den hendelsen.

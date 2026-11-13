@@ -255,7 +255,7 @@ La tarjeta de un incidente tiene cuatro botones, **Acknowledge Incident**, **Res
 | **Change Severity** | Establece la gravedad del incidente. |
 | **Change Incident State** | Pasa el incidente a un estado posterior. |
 | **Assign Role** | Da a alguien un rol en el incidente, como **Incident Commander**. Un rol para una sola persona pasa a esa persona. |
-| **Page Someone** | Avisa a personas, a un equipo, a quien esté de guardia en una programación o a una política de guardia sobre el incidente, con un mensaje opcional. Las personas reciben avisos hasta que una de ellas responde; una política avisa hasta que alguien reconoce el incidente. |
+| **Page Someone** | Avisa a personas, a un equipo, a quien esté de guardia en una programación o a una política de guardia sobre el incidente, con un mensaje opcional. Todas las personas a las que avisa, también las de una política, reciben avisos hasta que una de ellas responde o el incidente se resuelve. |
 | **Edit Custom Fields** | Establece los campos personalizados del incidente, cada uno rellenado con lo que tiene el incidente. Un campo que se deja vacío se borra. |
 
 `incident 42`, escrito al bot, responde con el incidente 42, estos botones y su menú. Escribe el número como lo muestra OneUptime: `42`, `#42` o `INC-42`. En el canal propio de un incidente, `incident` sin nada más muestra ese incidente.

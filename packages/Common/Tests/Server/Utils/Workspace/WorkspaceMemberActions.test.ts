@@ -1958,3 +1958,26 @@ describe("WorkspaceMemberActions.getNoun", (): void => {
     );
   });
 });
+
+/*
+ * The record a chat's Acknowledge was pressed on, as the pages about it
+ * name it (OnCallPersonPageAnswer.onAcknowledgePressed): an episode's too,
+ * since a policy a person started by hand for one goes on until somebody it
+ * paged answers it (#7596). Nobody is paged about a scheduled maintenance
+ * event.
+ */
+describe("WorkspaceMemberActions.getPageRecordKind", (): void => {
+  test("names each record a page can be about, as its pages name it, and no other", (): void => {
+    expect(
+      [
+        WorkspaceEventType.Incident,
+        WorkspaceEventType.Alert,
+        WorkspaceEventType.IncidentEpisode,
+        WorkspaceEventType.AlertEpisode,
+        WorkspaceEventType.ScheduledMaintenance,
+      ].map((type: WorkspaceEventType): string | null => {
+        return WorkspaceMemberActions.getPageRecordKind(type);
+      }),
+    ).toEqual(["incident", "alert", "incident episode", "alert episode", null]);
+  });
+});

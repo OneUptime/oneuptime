@@ -343,6 +343,27 @@ const SETTINGS = {
   "twilio.primaryPhoneNumber": "GLOBAL_TWILIO_PRIMARY_PHONE_NUMBER",
   "twilio.secondaryPhoneNumbers": "GLOBAL_TWILIO_SECONDARY_PHONE_NUMBERS",
   "twilio.smsPhoneNumbers": "GLOBAL_TWILIO_SMS_PHONE_NUMBERS",
+  // The server's email settings, rendered once email.serverType is set
+  // (#7738): EMAIL_ON sets it, since it is one of the names the app knows.
+  "email.fromEmail": "GLOBAL_EMAIL_FROM_EMAIL",
+  "email.fromName": "GLOBAL_EMAIL_FROM_NAME",
+  "email.smtp.host": "GLOBAL_EMAIL_SMTP_HOST",
+  "email.smtp.port": "GLOBAL_EMAIL_SMTP_PORT",
+  "email.smtp.username": "GLOBAL_EMAIL_SMTP_USERNAME",
+  "email.smtp.password": "GLOBAL_EMAIL_SMTP_PASSWORD",
+  "email.smtp.oauth.clientId": "GLOBAL_EMAIL_SMTP_OAUTH_CLIENT_ID",
+  "email.smtp.oauth.clientSecret": "GLOBAL_EMAIL_SMTP_OAUTH_CLIENT_SECRET",
+  "email.smtp.oauth.tokenUrl": "GLOBAL_EMAIL_SMTP_OAUTH_TOKEN_URL",
+  "email.smtp.oauth.scope": "GLOBAL_EMAIL_SMTP_OAUTH_SCOPE",
+  "email.sendgrid.apiKey": "GLOBAL_EMAIL_SENDGRID_API_KEY",
+  "email.amazonSes.accessKeyId": "GLOBAL_EMAIL_AMAZON_SES_ACCESS_KEY_ID",
+  "email.amazonSes.secretAccessKey":
+    "GLOBAL_EMAIL_AMAZON_SES_SECRET_ACCESS_KEY",
+  "email.amazonSes.region": "GLOBAL_EMAIL_AMAZON_SES_REGION",
+  "email.mailgun.apiKey": "GLOBAL_EMAIL_MAILGUN_API_KEY",
+  "email.mailgun.domain": "GLOBAL_EMAIL_MAILGUN_DOMAIN",
+  "email.postmark.serverToken": "GLOBAL_EMAIL_POSTMARK_SERVER_TOKEN",
+  "email.resend.apiKey": "GLOBAL_EMAIL_RESEND_API_KEY",
   oneuptimeSecret: "ONEUPTIME_SECRET",
   registerProbeKey: "REGISTER_PROBE_KEY",
   encryptionSecret: "ENCRYPTION_SECRET",
@@ -365,6 +386,12 @@ const SETTINGS = {
   "probes.one.description": "PROBE_DESCRIPTION",
   "probes.one.key": "PROBE_KEY",
 };
+
+// The email settings in SETTINGS are handed to the pods only with a server
+// type, which the schema takes from the names the app knows, so it is set
+// here rather than to a value full of syntax: an SMTP server, signed in to
+// with the username and password SETTINGS sets.
+const EMAIL_ON = { email: { serverType: "custom-smtp" } };
 
 // The database settings, which only one database layout reads.
 const BUILT_IN_DATABASE_SETTINGS = {
@@ -590,7 +617,7 @@ describe("the oneuptime chart hands every credential and free-text setting to it
     () => {
       const settings = { ...SETTINGS, ...BUILT_IN_DATABASE_SETTINGS };
       const values = assign(settings, syntaxValue);
-      const documents = render(deepMerge(ALL_ON, nest(values)));
+      const documents = render(deepMerge(ALL_ON, EMAIL_ON, nest(values)));
 
       expect(misread(documents, byEnvName(settings, values))).toEqual([]);
     },
@@ -609,7 +636,7 @@ describe("the oneuptime chart hands every credential and free-text setting to it
           },
           offset,
         );
-        const documents = render(deepMerge(ALL_ON, nest(values)));
+        const documents = render(deepMerge(ALL_ON, EMAIL_ON, nest(values)));
 
         expect({
           offset,
@@ -659,7 +686,7 @@ describe("the oneuptime chart hands every credential and free-text setting to it
       };
 
       for (const [settings, layout] of [
-        [{ ...SETTINGS, ...BUILT_IN_DATABASE_SETTINGS }, {}],
+        [{ ...SETTINGS, ...BUILT_IN_DATABASE_SETTINGS }, EMAIL_ON],
         [EXTERNAL_DATABASE_SETTINGS, EXTERNAL_DATABASES],
       ]) {
         const values = assign(settings, syntaxValue, 7);

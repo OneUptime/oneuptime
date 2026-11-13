@@ -8,7 +8,9 @@ import type { ResponseAction } from "../components/ResponseDetailLayout";
  *
  *   - Acknowledge again: a page again is open for the reader (the policy's
  *     acknowledgement timeout ran out with the record still acknowledged and
- *     not resolved). The record's own Acknowledge is gone, since it is
+ *     not resolved), or a page somebody asked for by hand - sent from a
+ *     chat, or a policy started by hand - about a record somebody else
+ *     acknowledged. The record's own Acknowledge is gone, since it is
  *     acknowledged, so this answers the reader's page instead. First and
  *     filled, as the record's own Acknowledge is on a record nobody took.
  *   - Acknowledge: the record is not acknowledged yet. Filled.

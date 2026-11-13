@@ -535,7 +535,13 @@
         "pillNoAccessKey": "Not Enabled. Please add the access key.",
         "pillNoRegion": "Not Enabled. Please add the Region.",
         "pillNoDomain": "Not Enabled. Please add the domain.",
-        "pillNoServerToken": "Not Enabled. Please add the server API token."
+        "pillNoServerToken": "Not Enabled. Please add the server API token.",
+        "environmentCardDescription": "Set by environment variables: email in the Helm chart's values, or the GLOBAL_EMAIL_ settings in config.env. To change these settings, change them there and restart OneUptime.",
+        "environmentProblemsTitle": "This server sends no email until these environment variables are fixed:",
+        "environmentUnusedTitle": "Some email environment variables are not used:",
+        "environmentIgnoredTitle": "These environment variables are set, but the email settings chosen do not read them, so they change nothing:",
+        "environmentValueSet": "Set",
+        "environmentValueNotSet": "Not set"
       },
       "callSms": {
         "cardTitle": "Twilio Config",

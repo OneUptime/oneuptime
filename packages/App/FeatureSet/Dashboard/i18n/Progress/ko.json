@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 51296,
-    "untranslated": 9287
+    "keys": 51818,
+    "untranslated": 9233
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -36,6 +36,7 @@
     "DES",
     "DHCP",
     "DNS:",
+    "Datadog URL",
     "Deployment",
     "DeploymentConfigs",
     "Docker Compose",
@@ -56,6 +57,7 @@
     "HAProxy",
     "HEC URL",
     "HH",
+    "HTTP Event Collector URL",
     "HTTP {{status}}",
     "Hello world",
     "INP 120 ms",

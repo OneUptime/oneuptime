@@ -21,6 +21,9 @@ import {
 } from "../../../Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
 import { OnCallPageRecordType } from "../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 import { isOnCallObserverPage } from "../../../Types/OnCallDutyPolicy/OnCallObserverPage";
+import { isOnCallPageAnsweredAsAPage } from "../../../Types/OnCallDutyPolicy/OnCallAcknowledgePage";
+import { isOnCallPolicyStartedByHand } from "../../../Types/OnCallDutyPolicy/OnCallPolicyStartedByHand";
+import OnCallDutyPolicyStatus from "../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import UserNotificationExecutionStatus from "../../../Types/UserNotification/UserNotificationExecutionStatus";
 import AcknowledgedStateUtil from "../../../Utils/AcknowledgedState";
 import ResolvedStateUtil, {
@@ -359,6 +362,13 @@ const OPEN_PAGE_STATUSES: Array<UserNotificationExecutionStatus> = [
   UserNotificationExecutionStatus.Executing,
 ];
 
+// The statuses of a run still paging its people.
+const PAGING_RUN_STATUSES: Array<OnCallDutyPolicyStatus> = [
+  OnCallDutyPolicyStatus.Scheduled,
+  OnCallDutyPolicyStatus.Started,
+  OnCallDutyPolicyStatus.Executing,
+];
+
 // Where a record stands, for the clock.
 export interface OnCallTimeoutRecordState {
   // In a state that counts as acknowledged - resolved ones included.
@@ -409,6 +419,14 @@ export enum OnCallPageAgainOutcome {
   Stopped = "Stopped",
   // Another tick stopped it first, or a new acknowledgement started it again.
   TakenElsewhere = "TakenElsewhere",
+  /*
+   * The clock ran out while a run of the policy a person started by hand
+   * (OnCallPolicyStartedByHand) is still paging about the record: its people
+   * are being paged already, until one of them answers - which starts the
+   * clock again - so the policy does not page them a second time. The clock
+   * runs on, and is asked again at the next tick.
+   */
+  StillPaging = "StillPaging",
   // The policy paged again: `pageAgainRunId` is the new run.
   PagedAgain = "PagedAgain",
 }
@@ -450,6 +468,16 @@ const PAIR_RUN_SELECT: Select<OnCallDutyPolicyExecutionLog> = {
   acknowledgementTimeoutStartedAt: true,
   // An observer's page never pages again (OnCallObserverPage).
   isObserverPage: true,
+  /*
+   * A run a person started by hand (OnCallPolicyStartedByHand) that is still
+   * paging holds the policy's page again back: all it asks.
+   */
+  onCallDutyPolicyId: true,
+  triggeredByUserId: true,
+  triggeredByWorkflowId: true,
+  userNotificationEventType: true,
+  status: true,
+  acknowledgedAt: true,
 };
 
 export default class OnCallAcknowledgementTimeout {
@@ -626,10 +654,11 @@ export default class OnCallAcknowledgementTimeout {
    *   - Anything else - moving on within the acknowledged states, say -
    *     leaves the clocks alone.
    *
-   * An incident's or an alert's change is handed on to the pages people
-   * asked for, too (OnCallPersonPageAnswer): its author, paged about it by
-   * one, answers their page by acknowledging it. Here, as the one hook every
-   * state timeline calls, with the states it reads anyway.
+   * Every change is handed on to the pages that go on until answered, too
+   * (OnCallPersonPageAnswer): its author, paged about the record by a page a
+   * person asked for or a policy a person started by hand, answers their
+   * page by acknowledging it. Here, as the one hook every state timeline
+   * calls, with the states it reads anyway.
    *
    * Never throws: a clock that could not start is logged, and the state
    * change stands.
@@ -655,20 +684,18 @@ export default class OnCallAcknowledgementTimeout {
         stateId: data.stateId,
       });
 
-      if (data.kind === "incident" || data.kind === "alert") {
-        await OnCallPersonPageAnswer.onRecordStateChanged({
-          kind: data.kind,
-          recordId: data.recordId,
-          projectId: data.projectId,
-          changedByUserId: data.changedByUserId,
-          isAcknowledged: AcknowledgedStateUtil.isAcknowledged({
-            list: access.list,
-            states: states,
-            stateId: data.stateId,
-          }),
-          isResolved: isResolved,
-        });
-      }
+      await OnCallPersonPageAnswer.onRecordStateChanged({
+        kind: data.kind,
+        recordId: data.recordId,
+        projectId: data.projectId,
+        changedByUserId: data.changedByUserId,
+        isAcknowledged: AcknowledgedStateUtil.isAcknowledged({
+          list: access.list,
+          states: states,
+          stateId: data.stateId,
+        }),
+        isResolved: isResolved,
+      });
 
       if (isResolved) {
         await this.stopEveryClockOfRecord({
@@ -917,6 +944,24 @@ export default class OnCallAcknowledgementTimeout {
       });
     }
 
+    /*
+     * A run of the policy a person started by hand is still paging about the
+     * record (OnCallPolicyStartedByHand): it goes on until one of its people
+     * answers it, whoever acknowledged the record, so its people are being
+     * paged already. Paging again on top of it would page them twice. The
+     * clock runs on: an answer starts it again (onPageAcknowledged), and a
+     * run that ends with nobody answering leaves it to page again then.
+     */
+    if (
+      await this.isPolicyStillPagingByHand({
+        access: RECORD_ACCESS[record.kind],
+        recordId: record.recordId,
+        onCallDutyPolicyId: run.onCallDutyPolicyId,
+      })
+    ) {
+      return { runId: runId, outcome: OnCallPageAgainOutcome.StillPaging };
+    }
+
     const pagesAgainSoFar: number = await this.countPagesAgain({
       access: RECORD_ACCESS[record.kind],
       recordId: record.recordId,
@@ -1033,18 +1078,24 @@ export default class OnCallAcknowledgementTimeout {
   }
 
   /*
-   * ACKNOWLEDGES A PERSON'S PAGES AGAIN ABOUT A RECORD - from the Dashboard,
-   * signed in as them (OnCallPagePassOnAPI). A page again's record was
-   * acknowledged all along, so the record's own Acknowledge is not offered;
-   * the person acknowledges their page instead, as its link, a call's 1 or
-   * a text would (UserOnCallLogTimelineService.acknowledgePage): their
-   * notifications still due stop, the page again is answered and ends, and
-   * the clock starts again.
+   * ACKNOWLEDGES A PERSON'S PAGES AGAIN ABOUT A RECORD - from the Dashboard
+   * and the app, signed in as them (OnCallPagePassOnAPI). A page again's
+   * record was acknowledged all along, so the record's own Acknowledge is
+   * not offered; the person acknowledges their page instead, as its link, a
+   * call's 1 or a text would (UserOnCallLogTimelineService.acknowledgePage):
+   * their notifications still due stop, the page again is answered and ends,
+   * and the clock starts again.
    *
-   * Only the person's own pages that a page again sent and that are still
-   * going out to them; nothing once the record is resolved (the page again
-   * is over). Returns how many it acknowledged: none is an answer too - not
-   * paged again, or answered already.
+   * So is a page a person asked for (OnCallPersonPage) or a policy a person
+   * started by hand (OnCallPolicyStartedByHand) about a record somebody
+   * acknowledged already: it goes on until one of its people answers it, and
+   * this is how they answer it there (isOnCallPageAnsweredAsAPage). Never an
+   * observer's page, which is marked seen instead.
+   *
+   * Only the person's own pages of those kinds that are still going out to
+   * them; nothing once the record is resolved (every page of it is over).
+   * Returns how many it acknowledged: none is an answer too - not paged, or
+   * answered already.
    */
   @CaptureSpan()
   public static async acknowledgePagesAgainForRecord(data: {
@@ -1072,9 +1123,15 @@ export default class OnCallAcknowledgementTimeout {
         triggeredByAlertId: true,
         triggeredByAlertEpisodeId: true,
         triggeredByIncidentEpisodeId: true,
+        // What tells the kinds answered as a page apart, and the answer.
         onCallDutyPolicyExecutionLog: {
           pageAgainNumber: true,
           acknowledgedAt: true,
+          onCallDutyPolicyId: true,
+          triggeredByUserId: true,
+          triggeredByWorkflowId: true,
+          isObserverPage: true,
+          userNotificationEventType: true,
         },
       },
       skip: 0,
@@ -1085,7 +1142,7 @@ export default class OnCallAcknowledgementTimeout {
     const pagesAgain: Array<UserOnCallLog> = logs.filter(
       (log: UserOnCallLog): boolean => {
         return (
-          isOnCallPageAgainRun(log.onCallDutyPolicyExecutionLog) &&
+          isOnCallPageAnsweredAsAPage(log.onCallDutyPolicyExecutionLog) &&
           !log.onCallDutyPolicyExecutionLog?.acknowledgedAt
         );
       },
@@ -1100,7 +1157,7 @@ export default class OnCallAcknowledgementTimeout {
       recordId: data.recordId,
     });
 
-    // Resolved, or gone: the page again is over, with nothing to answer.
+    // Resolved, or gone: every page of it is over, with nothing to answer.
     if (!state || state.isResolved) {
       return 0;
     }
@@ -1309,6 +1366,28 @@ export default class OnCallAcknowledgementTimeout {
         );
       }
     }
+  }
+
+  /*
+   * Whether a run of the policy a person started by hand
+   * (OnCallPolicyStartedByHand) is still paging about the record, nobody it
+   * paged having answered it yet.
+   */
+  private static async isPolicyStillPagingByHand(data: {
+    access: TimeoutRecordAccess;
+    recordId: ObjectID;
+    onCallDutyPolicyId: ObjectID;
+  }): Promise<boolean> {
+    const runs: Array<OnCallDutyPolicyExecutionLog> =
+      await this.readPolicyRunsForRecord(data);
+
+    return runs.some((run: OnCallDutyPolicyExecutionLog): boolean => {
+      return (
+        isOnCallPolicyStartedByHand(run) &&
+        !run.acknowledgedAt &&
+        PAGING_RUN_STATUSES.includes(run.status as OnCallDutyPolicyStatus)
+      );
+    });
   }
 
   // A policy's runs for a record, the latest first.

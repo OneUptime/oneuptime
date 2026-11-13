@@ -283,7 +283,7 @@ Het bericht van een incident heeft vier knoppen, **Acknowledge Incident**, **Res
 | **Change Severity** | Stelt de ernst van het incident in. |
 | **Change Incident State** | Zet het incident in een latere status. |
 | **Assign Role** | Geeft iemand een rol in het incident, zoals **Incident Commander**. Een rol voor één persoon gaat naar die persoon over. |
-| **Page Someone** | Roept mensen, een team, wie in een schema nu dienst heeft, of een bereikbaarheidsbeleid op over het incident, met een optioneel bericht. Mensen worden opgeroepen tot een van hen antwoordt; een beleid roept op tot iemand het incident bevestigt. |
+| **Page Someone** | Roept mensen, een team, wie in een schema nu dienst heeft, of een bereikbaarheidsbeleid op over het incident, met een optioneel bericht. Iedereen die het oproept, ook de mensen van een beleid, wordt opgeroepen tot een van hen antwoordt of het incident is opgelost. |
 | **Edit Custom Fields** | Stelt de aangepaste velden van het incident in, elk ingevuld met wat het incident bevat. Een leeg gelaten veld wordt gewist. |
 
 `/oneuptime incident 42` toont incident 42, met deze knoppen en zijn menu, in een bericht dat alleen jij ziet. Typ het nummer zoals OneUptime het toont: `42`, `#42` of `INC-42`. In het eigen kanaal van een incident toont `/oneuptime incident` zonder meer dat incident.

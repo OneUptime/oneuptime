@@ -110,7 +110,7 @@ resource "oneuptime_call_and_sms_config" "production" {
 ```
 
 - **Project default.** Terraform makes a configuration the project default only with `is_project_default = true`. When it is left out, Terraform sends `false`, so a project's first configuration does not become the default as it does in the dashboard. Set it on one configuration for each kind of message: two with the same `used_for` that both set it take the default from each other on every apply. OneUptime sets `is_project_default_for_sms` and `is_project_default_for_calls`, which Terraform only reads.
-- **Phone numbers.** Write each number as Twilio shows it: `+`, the country code and the number, with no spaces.
+- **Phone numbers.** Write each number with `+` and its country code. Spaces, dashes, dots and brackets between the digits are fine: OneUptime keeps `+1 415 555 0100` as `+14155550100`, and Terraform reads that as the number you wrote, so a plan shows no change.
 - **API key.** The key Terraform uses must be able to read the Auth Token: **Project Owner**, **Project Admin**, or **Read Call and SMS** in a custom role, besides creating and editing configurations. With a key that cannot, reading the configuration fails, and the error says who may read the token.
 - **References.** A status page's `call_sms_config_id` and an incoming call policy's `project_call_sms_config_id` take the configuration's `id`.
 
