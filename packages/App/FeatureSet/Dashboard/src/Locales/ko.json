@@ -50818,7 +50818,7 @@
   "Who should be told?": "누구에게 알릴까요?",
   "You are emailed as the monitor's owner.": "모니터 소유자로서 이메일을 받습니다.",
   "You own this monitor, but this server cannot send email yet, so nobody is emailed.": "이 모니터의 소유자이지만 이 서버는 아직 이메일을 보낼 수 없어 아무도 이메일을 받지 못합니다.",
-  "You own this monitor, so you are emailed when it goes down. Paging a team needs a project admin: ask one to set up an on-call policy.": "이 모니터의 소유자이므로 다운되면 이메일을 받습니다. 팀을 호출하려면 프로젝트 관리자가 필요합니다. 관리자에게 온콜 정책 설정을 요청하세요.",
+  "You own this monitor, so you are emailed when it goes down. Paging a team needs an on-call policy: ask a project owner or admin to set one up.": "이 모니터의 소유자이므로 다운되면 이메일을 받습니다. 팀을 호출하려면 온콜 정책이 필요합니다. 프로젝트 소유자나 관리자에게 설정을 요청하세요.",
   "You own this monitor, so you are emailed when its status changes.": "이 모니터의 소유자이므로 상태가 바뀌면 이메일을 받습니다.",
   "{{done}} of {{total}} steps done": "{{total}}단계 중 {{done}}단계 완료",
   "{{host}} answered {{code}} from {{count}} locations. That counts as down, so an incident opens.": "{{count}}개 위치에서 {{host}} 응답: {{code}}. 다운으로 간주되므로 인시던트가 열립니다.",

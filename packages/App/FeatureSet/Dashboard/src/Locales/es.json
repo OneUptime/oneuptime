@@ -50818,7 +50818,7 @@
   "Who should be told?": "¿A quién hay que avisar?",
   "You are emailed as the monitor's owner.": "Recibes un correo como propietario del monitor.",
   "You own this monitor, but this server cannot send email yet, so nobody is emailed.": "Eres propietario de este monitor, pero este servidor aún no puede enviar correos, así que nadie recibe ninguno.",
-  "You own this monitor, so you are emailed when it goes down. Paging a team needs a project admin: ask one to set up an on-call policy.": "Eres propietario de este monitor, así que recibes un correo cuando se cae. Avisar a un equipo requiere un administrador del proyecto: pide a uno que configure una política de guardia.",
+  "You own this monitor, so you are emailed when it goes down. Paging a team needs an on-call policy: ask a project owner or admin to set one up.": "Eres propietario de este monitor, así que recibes un correo cuando se cae. Avisar a un equipo requiere una política de guardia: pide a un propietario o administrador del proyecto que configure una.",
   "You own this monitor, so you are emailed when its status changes.": "Eres propietario de este monitor, así que recibes un correo cuando cambia su estado.",
   "{{done}} of {{total}} steps done": "{{done}} de {{total}} pasos completados",
   "{{host}} answered {{code}} from {{count}} locations. That counts as down, so an incident opens.": "{{host}} respondió {{code}} desde {{count}} ubicaciones. Eso cuenta como caída, así que se abre un incidente.",

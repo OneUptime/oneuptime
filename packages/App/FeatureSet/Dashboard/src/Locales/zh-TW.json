@@ -50818,7 +50818,7 @@
   "Who should be told?": "要通知誰？",
   "You are emailed as the monitor's owner.": "你會以監測器擁有者的身分收到電子郵件。",
   "You own this monitor, but this server cannot send email yet, so nobody is emailed.": "你是此監測器的擁有者，但此伺服器目前還無法傳送電子郵件，所以沒有人會收到電子郵件。",
-  "You own this monitor, so you are emailed when it goes down. Paging a team needs a project admin: ask one to set up an on-call policy.": "你是此監測器的擁有者，所以它當機時你會收到電子郵件。呼叫團隊需要專案管理員：請專案管理員設定待命策略。",
+  "You own this monitor, so you are emailed when it goes down. Paging a team needs an on-call policy: ask a project owner or admin to set one up.": "你是此監測器的擁有者，所以它當機時你會收到電子郵件。呼叫團隊需要待命策略：請讓專案擁有者或管理員來設定。",
   "You own this monitor, so you are emailed when its status changes.": "你是此監測器的擁有者，所以它狀態變化時你會收到電子郵件。",
   "{{done}} of {{total}} steps done": "{{total}} 個步驟中已完成 {{done}} 個",
   "{{host}} answered {{code}} from {{count}} locations. That counts as down, so an incident opens.": "{{host}} 從 {{count}} 個位置回傳了 {{code}}。這會被視為當機，因此會建立事件。",

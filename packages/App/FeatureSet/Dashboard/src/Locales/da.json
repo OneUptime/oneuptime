@@ -50818,7 +50818,7 @@
   "Who should be told?": "Hvem skal have besked?",
   "You are emailed as the monitor's owner.": "Du får en e-mail som overvågningens ejer.",
   "You own this monitor, but this server cannot send email yet, so nobody is emailed.": "Du ejer denne overvågning, men denne server kan endnu ikke sende e-mail, så ingen får en e-mail.",
-  "You own this monitor, so you are emailed when it goes down. Paging a team needs a project admin: ask one to set up an on-call policy.": "Du ejer denne overvågning, så du får en e-mail, når den går ned. At tilkalde et team kræver en projektadministrator: bed en om at sætte en vagtpolitik op.",
+  "You own this monitor, so you are emailed when it goes down. Paging a team needs an on-call policy: ask a project owner or admin to set one up.": "Du ejer denne overvågning, så du får en e-mail, når den går ned. At tilkalde et team kræver en vagtpolitik: bed en projektejer eller administrator om at sætte en op.",
   "You own this monitor, so you are emailed when its status changes.": "Du ejer denne overvågning, så du får en e-mail, når dens status ændres.",
   "{{done}} of {{total}} steps done": "{{done}} af {{total}} trin udført",
   "{{host}} answered {{code}} from {{count}} locations. That counts as down, so an incident opens.": "{{host}} svarede {{code}} fra {{count}} placeringer. Det tæller som nede, så der åbnes en hændelse.",

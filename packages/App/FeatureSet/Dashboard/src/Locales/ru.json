@@ -50818,7 +50818,7 @@
   "Who should be told?": "Кого нужно уведомить?",
   "You are emailed as the monitor's owner.": "Вам приходит письмо как владельцу монитора.",
   "You own this monitor, but this server cannot send email yet, so nobody is emailed.": "Вы владеете этим монитором, но этот сервер пока не может отправлять письма, поэтому письма никому не приходят.",
-  "You own this monitor, so you are emailed when it goes down. Paging a team needs a project admin: ask one to set up an on-call policy.": "Вы владеете этим монитором, поэтому вам приходит письмо, когда он падает. Чтобы вызывать команду, нужен администратор проекта: попросите кого-нибудь из администраторов настроить политику дежурства.",
+  "You own this monitor, so you are emailed when it goes down. Paging a team needs an on-call policy: ask a project owner or admin to set one up.": "Вы владеете этим монитором, поэтому вам приходит письмо, когда он падает. Чтобы вызывать команду, нужна политика дежурства: попросите владельца или администратора проекта настроить её.",
   "You own this monitor, so you are emailed when its status changes.": "Вы владеете этим монитором, поэтому вам приходит письмо при изменении его статуса.",
   "{{done}} of {{total}} steps done": "Выполнено шагов: {{done}} из {{total}}",
   "{{host}} answered {{code}} from {{count}} locations. That counts as down, so an incident opens.": "От {{host}} получен ответ {{code}} из {{count}} мест. Это считается недоступностью, поэтому открывается инцидент.",

@@ -50818,7 +50818,7 @@
   "Who should be told?": "誰に知らせますか？",
   "You are emailed as the monitor's owner.": "モニターの所有者として、あなたにメールが届きます。",
   "You own this monitor, but this server cannot send email yet, so nobody is emailed.": "あなたはこのモニターの所有者ですが、このサーバーはまだメールを送信できないため、誰にもメールは届きません。",
-  "You own this monitor, so you are emailed when it goes down. Paging a team needs a project admin: ask one to set up an on-call policy.": "あなたはこのモニターの所有者なので、ダウンしたときにメールが届きます。チームを呼び出すにはプロジェクト管理者が必要です。管理者にオンコールポリシーの設定を依頼してください。",
+  "You own this monitor, so you are emailed when it goes down. Paging a team needs an on-call policy: ask a project owner or admin to set one up.": "あなたはこのモニターの所有者なので、ダウンしたときにメールが届きます。チームを呼び出すにはオンコールポリシーが必要です。プロジェクトのオーナーか管理者に設定を依頼してください。",
   "You own this monitor, so you are emailed when its status changes.": "あなたはこのモニターの所有者なので、ステータスが変わったときにメールが届きます。",
   "{{done}} of {{total}} steps done": "{{done}} / {{total}} ステップ完了",
   "{{host}} answered {{code}} from {{count}} locations. That counts as down, so an incident opens.": "{{host}} は {{count}} 拠点から {{code}} を返しました。ダウンと見なされるため、インシデントが作成されます。",

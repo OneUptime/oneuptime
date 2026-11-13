@@ -732,7 +732,7 @@ describe("2. Who should be told?", () => {
     await toWhoIsTold();
 
     expect(screen.getByTestId("guided-setup-who-help")).toHaveTextContent(
-      "You own this monitor, so you are emailed when it goes down. Paging a team needs a project admin: ask one to set up an on-call policy.",
+      "You own this monitor, so you are emailed when it goes down. Paging a team needs an on-call policy: ask a project owner or admin to set one up.",
     );
     expect(screen.queryByTestId("guided-setup-people")).toBeNull();
 

@@ -50818,7 +50818,7 @@
   "Who should be told?": "Wie moet er op de hoogte worden gesteld?",
   "You are emailed as the monitor's owner.": "Je krijgt een e-mail als eigenaar van de monitor.",
   "You own this monitor, but this server cannot send email yet, so nobody is emailed.": "Je bent eigenaar van deze monitor, maar deze server kan nog geen e-mail verzenden, dus niemand krijgt een e-mail.",
-  "You own this monitor, so you are emailed when it goes down. Paging a team needs a project admin: ask one to set up an on-call policy.": "Je bent eigenaar van deze monitor, dus je krijgt een e-mail wanneer hij uitvalt. Voor het oproepen van een team is een projectbeheerder nodig: vraag er een om een bereikbaarheidsbeleid in te stellen.",
+  "You own this monitor, so you are emailed when it goes down. Paging a team needs an on-call policy: ask a project owner or admin to set one up.": "Je bent eigenaar van deze monitor, dus je krijgt een e-mail wanneer hij uitvalt. Voor het oproepen van een team is een bereikbaarheidsbeleid nodig: vraag een projecteigenaar of beheerder om er een in te stellen.",
   "You own this monitor, so you are emailed when its status changes.": "Je bent eigenaar van deze monitor, dus je krijgt een e-mail wanneer de status ervan verandert.",
   "{{done}} of {{total}} steps done": "{{done}} van {{total}} stappen voltooid",
   "{{host}} answered {{code}} from {{count}} locations. That counts as down, so an incident opens.": "{{host}} antwoordde {{code}} vanaf {{count}} locaties. Dat telt als storing, dus er wordt een incident geopend.",

@@ -50818,7 +50818,7 @@
   "Who should be told?": "من يجب إبلاغه؟",
   "You are emailed as the monitor's owner.": "يصلك بريد إلكتروني بصفتك مالك المراقبة.",
   "You own this monitor, but this server cannot send email yet, so nobody is emailed.": "أنت مالك هذه المراقبة، لكن هذا الخادم لا يستطيع إرسال البريد الإلكتروني بعد، لذا لا يصل بريد إلى أحد.",
-  "You own this monitor, so you are emailed when it goes down. Paging a team needs a project admin: ask one to set up an on-call policy.": "أنت مالك هذه المراقبة، لذا يصلك بريد إلكتروني عندما تتعطل. استدعاء فريق يتطلب مسؤول مشروع: اطلب من أحدهم إعداد سياسة مناوبة.",
+  "You own this monitor, so you are emailed when it goes down. Paging a team needs an on-call policy: ask a project owner or admin to set one up.": "أنت مالك هذه المراقبة، لذا يصلك بريد إلكتروني عندما تتعطل. استدعاء فريق يتطلب سياسة مناوبة: اطلب من مالك المشروع أو مسؤوله إعدادها.",
   "You own this monitor, so you are emailed when its status changes.": "أنت مالك هذه المراقبة، لذا يصلك بريد إلكتروني عندما تتغير حالتها.",
   "{{done}} of {{total}} steps done": "الخطوات المنجزة: {{done}} من {{total}}",
   "{{host}} answered {{code}} from {{count}} locations. That counts as down, so an incident opens.": "أجاب {{host}} بالرمز {{code}} من مواقع عددها {{count}}. يُعدّ هذا تعطلًا، لذا تُفتح حادثة.",

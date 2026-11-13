@@ -50818,7 +50818,7 @@
   "Who should be told?": "要通知谁？",
   "You are emailed as the monitor's owner.": "你会以监视器所有者的身份收到电子邮件。",
   "You own this monitor, but this server cannot send email yet, so nobody is emailed.": "你是此监视器的所有者，但此服务器目前还不能发送电子邮件，所以没有人会收到电子邮件。",
-  "You own this monitor, so you are emailed when it goes down. Paging a team needs a project admin: ask one to set up an on-call policy.": "你是此监视器的所有者，所以它宕机时你会收到电子邮件。呼叫团队需要项目管理员：请让管理员设置值班策略。",
+  "You own this monitor, so you are emailed when it goes down. Paging a team needs an on-call policy: ask a project owner or admin to set one up.": "你是此监视器的所有者，所以它宕机时你会收到电子邮件。呼叫团队需要值班策略：请让项目所有者或管理员来设置。",
   "You own this monitor, so you are emailed when its status changes.": "你是此监视器的所有者，所以它状态变化时你会收到电子邮件。",
   "{{done}} of {{total}} steps done": "{{total}} 个步骤中已完成 {{done}} 个",
   "{{host}} answered {{code}} from {{count}} locations. That counts as down, so an incident opens.": "{{host}} 从 {{count}} 个位置返回了 {{code}}。这会被视为宕机，因此会创建事件。",
