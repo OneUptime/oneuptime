@@ -38,7 +38,9 @@ import {
   WorkspaceLatePress,
 } from "../../WorkspaceActionAnswers";
 import WorkspaceHeldPublicNote from "../../WorkspaceHeldPublicNote";
-import WorkspaceNoteForm from "../../WorkspaceNoteForm";
+import WorkspaceNoteForm, {
+  SCHEDULED_MAINTENANCE_NOTE_NOUN,
+} from "../../WorkspaceNoteForm";
 import MicrosoftTeamsTimezone, {
   MicrosoftTeamsUserTimezone,
 } from "../MicrosoftTeamsTimezone";
@@ -712,7 +714,9 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
               value: "public",
             },
             {
-              title: "Private Note (Only visible to team members)",
+              title: WorkspaceNoteForm.getPrivateOption(
+                SCHEDULED_MAINTENANCE_NOTE_NOUN,
+              ),
               value: "private",
             },
           ],

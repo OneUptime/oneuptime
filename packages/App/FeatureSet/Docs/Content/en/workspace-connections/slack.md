@@ -174,7 +174,7 @@ React to a message in the channel of an incident, alert, episode or scheduled ma
 
 | Reaction | Saved as |
 | --- | --- |
-| 📌 A pin emoji, or Slack's own **Pin to channel** | A private note, seen only by your team |
+| 📌 A pin emoji, or Slack's own **Pin to channel** | A private note, read only by the people who can see the record |
 | 📢 A megaphone or loudspeaker emoji | A public note, shown on the status page. Incidents and scheduled maintenance events only. On a private incident, a private note, and the confirmation says why. When the project's public notes need approval, it is shown once approved, and the confirmation says who it waits for: see [Public note approval](/docs/incidents/notes-owners-and-feed#public-note-approval). |
 
 The note keeps the message as Slack showed it: its formatting, links and code, the people and channels it mentions by name, and its files and images as links to them. A public note leaves the files and images out, since they open only for your team.

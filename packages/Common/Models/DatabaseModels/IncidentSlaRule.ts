@@ -442,7 +442,7 @@ export default class IncidentSlaRule extends RuleBaseModel {
     type: TableColumnType.Number,
     title: "Internal Note Reminder Interval (Minutes)",
     description:
-      "How often (in minutes) to automatically post internal notes to unresolved incidents. Internal notes are only visible to your team. For example, set to 30 to remind your team every 30 minutes to provide an update. Leave empty to disable.",
+      "How often (in minutes) to automatically post internal notes to unresolved incidents. Only the people who can see an incident can read its internal notes. For example, set to 30 to remind your team every 30 minutes to provide an update. Leave empty to disable.",
     canReadOnRelationQuery: true,
   })
   @Column({

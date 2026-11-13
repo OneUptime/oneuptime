@@ -604,6 +604,39 @@ export const EVENT_NOTE_NOUNS: ReadonlyArray<string> = [
 ];
 
 /*
+ * WHO CAN READ A PRIVATE NOTE, beside "Private" while one is written (#7595).
+ *
+ * A private note is read through its event (@CanAccessIfCanReadOn): only the
+ * people who can see the event can read its notes - on a private incident,
+ * alert or episode, its owners and the project's owners and admins. It used
+ * to say "Only your team can see this", which read as one of OneUptime's
+ * Teams. The sentence names the event in its own word, as the chats' private
+ * note line does ("only the people who can see the incident can read it",
+ * WorkspaceNoteForm), and each event's sentence is a whole key: a language
+ * words "this incident" and "this episode" each its own way. A scheduled
+ * maintenance event is "this maintenance event", as the chats' option calls
+ * it: the sentence takes two lines on a phone, not three.
+ */
+export const PRIVATE_NOTE_AUDIENCE_HINTS: Record<string, string> = {
+  incident: translationKey(
+    "Only people who can see this incident can read this",
+  ),
+  alert: translationKey("Only people who can see this alert can read this"),
+  episode: translationKey("Only people who can see this episode can read this"),
+  "scheduled maintenance event": translationKey(
+    "Only people who can see this maintenance event can read this",
+  ),
+};
+
+// An event's sentence: an incident's for a noun not listed.
+export function getPrivateNoteAudienceHint(eventNoun: string): string {
+  return (
+    PRIVATE_NOTE_AUDIENCE_HINTS[eventNoun] ||
+    PRIVATE_NOTE_AUDIENCE_HINTS["incident"]!
+  );
+}
+
+/*
  * The words a feed uses. The two kinds of note look alike on screen, so the
  * copy carries most of the difference: who will read this, and where.
  *
@@ -664,7 +697,7 @@ export function getNotesCopy(
       { event },
     ),
     audienceLabel: translationKey("Private"),
-    audienceHint: translationKey("Only your team can see this"),
+    audienceHint: getPrivateNoteAudienceHint(eventNoun),
     submitLabel: translationKey("Add note"),
     deleteTitle: translationKey("Delete this private note?"),
     deleteDescription: translationKey(

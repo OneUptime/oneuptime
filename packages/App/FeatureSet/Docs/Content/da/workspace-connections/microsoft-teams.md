@@ -158,7 +158,7 @@ Reagér på en besked, eller et svar, i den kanal, OneUptime oprettede for en h�
 
 | Reaktion | Gemt som |
 | --- | --- |
-| 📌 eller 📍 | En privat note, som kun dit team ser |
+| 📌 eller 📍 | En privat note, som kun dem, der kan se posten, kan læse |
 | 📣 eller 📢 | En offentlig note, vist på statussiden. Kun hændelser og planlagte vedligeholdelsesbegivenheder. På en privat hændelse en privat note, og bekræftelsen siger hvorfor. Når projektets offentlige noter kræver godkendelse, vises den først, når den er godkendt, og bekræftelsen siger, hvem den venter på: se [Godkendelse af offentlige noter](/docs/incidents/notes-owners-and-feed#godkendelse-af-offentlige-noter). |
 
 Noten bevarer beskeden, som Microsoft Teams viste den: dens formatering, links og kode, de personer, den nævner, ved navn, og dens filer og billeder som links til dem. En offentlig note udelader filerne og billederne, da de kun åbner for dit team.

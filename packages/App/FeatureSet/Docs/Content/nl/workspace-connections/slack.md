@@ -174,7 +174,7 @@ Reageer op een bericht in het kanaal van een incident, waarschuwing, episode of 
 
 | Reactie | Opgeslagen als |
 | --- | --- |
-| 📌 Een punaise-emoji, of Slacks eigen **Pin to channel** | Een privénotitie, alleen zichtbaar voor je team |
+| 📌 Een punaise-emoji, of Slacks eigen **Pin to channel** | Een privénotitie, die alleen kan lezen wie het record kan zien |
 | 📢 Een megafoon- of luidspreker-emoji | Een openbare notitie, getoond op de statuspagina. Alleen incidenten en geplande onderhoudsgebeurtenissen. Bij een privé-incident een privénotitie, en de bevestiging zegt waarom. Als openbare notities in het project goedkeuring nodig hebben, wordt ze pas getoond nadat ze is goedgekeurd, en de bevestiging zegt op wie ze wacht: zie [Goedkeuring van openbare notities](/docs/incidents/notes-owners-and-feed#goedkeuring-van-openbare-notities). |
 
 De notitie houdt het bericht zoals Slack het liet zien: de opmaak, links en code, de personen en kanalen die het noemt bij naam, en de bestanden en afbeeldingen als links ernaar. Een openbare notitie laat de bestanden en afbeeldingen weg, omdat die alleen voor je team opengaan.

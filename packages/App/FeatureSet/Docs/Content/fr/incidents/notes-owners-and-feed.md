@@ -99,7 +99,7 @@ Chaque note montre qui l'a écrite, son heure de publication, le Markdown rendu 
 
 ## Publier une note privée
 
-**Notes → Notes privées** est volontairement plus sobre. C'est le même éditeur, qui indique **Private · Only your team can see this**, avec la note, **Modèles**, **Rédiger avec l'IA** et **Rattacher** pour les fichiers destinés à l'équipe d'intervention. **Ajouter une note privée** dans le menu **Actions** du fil d'activité de l'incident l'ouvre dans une boîte de dialogue. Par l'API, les notes privées sont `/api/incident-internal-note`.
+**Notes → Notes privées** est volontairement plus sobre. C'est le même éditeur, qui indique **Privé · Lisible uniquement par les personnes qui peuvent voir cet incident**, avec la note, **Modèles**, **Rédiger avec l'IA** et **Rattacher** pour les fichiers destinés à l'équipe d'intervention. **Ajouter une note privée** dans le menu **Actions** du fil d'activité de l'incident l'ouvre dans une boîte de dialogue. Par l'API, les notes privées sont `/api/incident-internal-note`.
 
 Pas d'heure de publication, pas de case pour les abonnés — la note est horodatée à sa création.
 
@@ -164,7 +164,7 @@ Vous les gérez dans **Incidents → Paramètres → Modèles de notes** — la 
 
 ## Publier des notes depuis Slack ou Microsoft Teams
 
-Si vous avez connecté un espace de travail, les intervenants n'ont jamais à quitter le canal. Slack et Microsoft Teams proposent tous deux une action d'ajout de note qui ouvre une boîte de dialogue avec une liste déroulante **Note Type** — **Public Note** (publiée sur la page de statut) ou **Private Note** (visible seulement des membres de l'équipe) — et une zone de texte **Note**, et qui écrit le résultat directement sur l'incident. Sur un incident privé, il ne demande pas de **Note Type** et ajoute une note privée : voir [Les incidents privés n'acceptent que des notes privées](#les-incidents-privés-nacceptent-que-des-notes-privées).
+Si vous avez connecté un espace de travail, les intervenants n'ont jamais à quitter le canal. Slack et Microsoft Teams proposent tous deux une action d'ajout de note qui ouvre une boîte de dialogue avec une liste déroulante **Note Type** — **Public Note** (publiée sur la page de statut) ou **Private Note** (lisible uniquement par les personnes qui peuvent voir l'incident) — et une zone de texte **Note**, et qui écrit le résultat directement sur l'incident. Sur un incident privé, il ne demande pas de **Note Type** et ajoute une note privée : voir [Les incidents privés n'acceptent que des notes privées](#les-incidents-privés-nacceptent-que-des-notes-privées).
 
 Trois détails à connaître :
 

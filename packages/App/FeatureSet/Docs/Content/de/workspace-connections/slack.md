@@ -174,7 +174,7 @@ Reagieren Sie auf eine Nachricht im Kanal eines Vorfalls, einer Warnung, einer E
 
 | Reaktion | Gespeichert als |
 | --- | --- |
-| 📌 Ein Pin-Emoji oder Slacks eigenes **Pin to channel** | Eine private Notiz, die nur Ihr Team sieht |
+| 📌 Ein Pin-Emoji oder Slacks eigenes **Pin to channel** | Eine private Notiz, die nur lesen kann, wer den Datensatz sehen kann |
 | 📢 Ein Megafon- oder Lautsprecher-Emoji | Eine öffentliche Notiz, die auf der Statusseite erscheint. Nur Vorfälle und geplante Wartungsereignisse. Bei einem privaten Vorfall eine private Notiz, und die Bestätigung sagt, warum. Wenn öffentliche Notizen im Projekt eine Genehmigung brauchen, erscheint sie erst nach der Genehmigung, und die Bestätigung sagt, auf wen sie wartet: siehe [Genehmigung öffentlicher Notizen](/docs/incidents/notes-owners-and-feed#genehmigung-öffentlicher-notizen). |
 
 Die Notiz übernimmt die Nachricht so, wie Slack sie gezeigt hat: ihre Formatierung, Links und Code, die erwähnten Personen und Kanäle mit Namen und ihre Dateien und Bilder als Links darauf. Eine öffentliche Notiz lässt die Dateien und Bilder weg, da sie sich nur für Ihr Team öffnen.

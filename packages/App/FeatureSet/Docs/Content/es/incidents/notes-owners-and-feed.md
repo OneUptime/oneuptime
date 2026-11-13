@@ -99,7 +99,7 @@ Cada nota muestra quién la escribió, su hora de publicación, el Markdown rend
 
 ## Publicar una nota privada
 
-**Notas → Notas privadas** es deliberadamente más sencilla. Es el mismo editor, que dice **Private · Only your team can see this**, con la nota, **Plantillas**, **Redactar con IA** y **Asociar** para archivos destinados al equipo de respuesta al incidente. **Añadir nota privada** en el menú **Acciones** del feed del incidente la abre en un diálogo. Por la API, las notas privadas son `/api/incident-internal-note`.
+**Notas → Notas privadas** es deliberadamente más sencilla. Es el mismo editor, que dice **Privado · Solo quien puede ver este incidente puede leer esto**, con la nota, **Plantillas**, **Redactar con IA** y **Asociar** para archivos destinados al equipo de respuesta al incidente. **Añadir nota privada** en el menú **Acciones** del feed del incidente la abre en un diálogo. Por la API, las notas privadas son `/api/incident-internal-note`.
 
 Sin hora de publicación ni casilla de suscriptores: la nota se marca con la hora en que se crea.
 
@@ -164,7 +164,7 @@ Las gestionas en **Incidentes → Ajustes → Plantillas de notas**: la tarjeta 
 
 ## Publicar notas desde Slack o Microsoft Teams
 
-Si has conectado un espacio de trabajo, los respondedores nunca tienen que salir del canal. Tanto Slack como Microsoft Teams ofrecen una acción para añadir una nota que abre un diálogo con un desplegable **Note Type** —**Public Note** (publicada en la página de estado) o **Private Note** (visible solo para los miembros del equipo)— y un cuadro de texto **Note**, y escribe el resultado directamente en el incidente. En un incidente privado no pide **Note Type** y añade una nota privada: consulta [Los incidentes privados solo admiten notas privadas](#los-incidentes-privados-solo-admiten-notas-privadas).
+Si has conectado un espacio de trabajo, los respondedores nunca tienen que salir del canal. Tanto Slack como Microsoft Teams ofrecen una acción para añadir una nota que abre un diálogo con un desplegable **Note Type** —**Public Note** (publicada en la página de estado) o **Private Note** (solo puede leerla quien puede ver el incidente)— y un cuadro de texto **Note**, y escribe el resultado directamente en el incidente. En un incidente privado no pide **Note Type** y añade una nota privada: consulta [Los incidentes privados solo admiten notas privadas](#los-incidentes-privados-solo-admiten-notas-privadas).
 
 Tres detalles que conviene conocer:
 

@@ -1724,7 +1724,7 @@ describe("event notes: the composer", () => {
     expect(screen.queryByTestId("note-notify-checkbox")).toBeNull();
     expect(screen.queryByTestId("note-posted-at-button")).toBeNull();
     expect(screen.getByTestId("note-audience")).toHaveTextContent(
-      "Private·Only your team can see this",
+      "Private·Only people who can see this incident can read this",
     );
 
     type(editor(), "Internal finding.");

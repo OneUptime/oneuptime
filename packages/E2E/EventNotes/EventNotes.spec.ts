@@ -57,6 +57,11 @@ interface NotesPage {
   name: string;
   path: string;
   visibility: "public" | "private";
+  /*
+   * Who reads a note, beside Public or Private: a private note names its
+   * event, the people who can see it (#7595).
+   */
+  audienceHint: string;
   pageTitle: string;
   firstNote: string;
   hasSwitch: boolean;
@@ -69,6 +74,7 @@ const PAGES: Array<NotesPage> = [
     name: "incident-public-notes",
     path: `${INCIDENT}/public-notes`,
     visibility: "public",
+    audienceHint: "Visible on your status page",
     pageTitle: "INC-1042 Checkout API returning 502s for EU customers",
     firstNote: "A fix has been rolled out to every EU region",
     hasSwitch: true,
@@ -79,6 +85,7 @@ const PAGES: Array<NotesPage> = [
     name: "incident-private-notes",
     path: `${INCIDENT}/internal-notes`,
     visibility: "private",
+    audienceHint: "Only people who can see this incident can read this",
     pageTitle: "INC-1042 Checkout API returning 502s for EU customers",
     firstNote: "Watching the 5xx panel before closing out.",
     hasSwitch: true,
@@ -89,6 +96,7 @@ const PAGES: Array<NotesPage> = [
     name: "alert-private-notes",
     path: `${ALERT}/internal-notes`,
     visibility: "private",
+    audienceHint: "Only people who can see this alert can read this",
     pageTitle: "ALT-311 p99 latency above 2s on payments-worker",
     firstNote: "Scaling the consumer group from 6 to 12 pods.",
     hasSwitch: false,
@@ -99,6 +107,7 @@ const PAGES: Array<NotesPage> = [
     name: "scheduled-maintenance-public-notes",
     path: `${MAINTENANCE}/public-notes`,
     visibility: "public",
+    audienceHint: "Visible on your status page",
     pageTitle: "#58 Primary database failover drill",
     firstNote: "The failover drill starts at 22:00 UTC.",
     hasSwitch: true,
@@ -109,6 +118,8 @@ const PAGES: Array<NotesPage> = [
     name: "scheduled-maintenance-private-notes",
     path: `${MAINTENANCE}/internal-notes`,
     visibility: "private",
+    audienceHint:
+      "Only people who can see this maintenance event can read this",
     pageTitle: "#58 Primary database failover drill",
     firstNote: "Runbook reviewed.",
     hasSwitch: true,
@@ -119,6 +130,7 @@ const PAGES: Array<NotesPage> = [
     name: "incident-episode-public-notes",
     path: `${INCIDENT_EPISODE}/public-notes`,
     visibility: "public",
+    audienceHint: "Visible on your status page",
     pageTitle: "#12 EU edge network degradation",
     firstNote: "Several services in Europe are degraded.",
     hasSwitch: true,
@@ -129,6 +141,7 @@ const PAGES: Array<NotesPage> = [
     name: "incident-episode-private-notes",
     path: `${INCIDENT_EPISODE}/internal-notes`,
     visibility: "private",
+    audienceHint: "Only people who can see this episode can read this",
     pageTitle: "#12 EU edge network degradation",
     firstNote: "Grouped INC-1042, INC-1043 and INC-1045",
     hasSwitch: true,
@@ -139,6 +152,7 @@ const PAGES: Array<NotesPage> = [
     name: "alert-episode-private-notes",
     path: `${ALERT_EPISODE}/internal-notes`,
     visibility: "private",
+    audienceHint: "Only people who can see this episode can read this",
     pageTitle: "#7 Payments worker saturation",
     firstNote: "All 5 alerts in this episode",
     hasSwitch: false,
@@ -409,10 +423,11 @@ test.describe("every note page", () => {
       );
 
       const composer: Locator = await openComposer(page);
-      await expect(composer.getByTestId("note-audience")).toContainText(
-        notesPageCase.visibility === "public"
-          ? "Visible on your status page"
-          : "Only your team can see this",
+      await expect(composer.getByTestId("note-audience-hint")).toHaveText(
+        notesPageCase.audienceHint,
+      );
+      await expect(composer.getByTestId("note-audience")).not.toContainText(
+        "team",
       );
       await expect(composer.getByTestId("note-notify-checkbox")).toHaveCount(
         notesPageCase.visibility === "public" ? 1 : 0,
@@ -1614,7 +1629,106 @@ test.describe("small screens", () => {
       "Run:\n```\nnpm ci\n```",
     );
   });
+
+  /*
+   * Who can read a private note, beside Private (#7595): the sentence names
+   * the event, so it is longer than "Only your team can see this" was, and
+   * longer still in German. On a phone it wraps under the lock - nothing of
+   * it cut off or past the composer - and an Arabic page draws the lock on
+   * the right, where its sentence starts.
+   */
+  for (const [language, notesPageCase] of [
+    ["en", INCIDENT_PRIVATE],
+    ["de", INCIDENT_PRIVATE],
+    ["ar", INCIDENT_PRIVATE],
+    ["de", notesPage("scheduled-maintenance-private-notes")],
+    ["ar", notesPage("scheduled-maintenance-private-notes")],
+  ] as Array<[string, NotesPage]>) {
+    test(`${language}: the private composer says in full who can read the note, on ${notesPageCase.name}`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(page, notesPageCase, `lang=${language}`);
+      const composer: Locator = await openComposer(page);
+      const badge: Locator = composer.getByTestId("note-audience");
+      const hint: Locator = composer.getByTestId("note-audience-hint");
+
+      // The sentence the language's Dashboard words it with, whole.
+      const sentence: string =
+        language === "en"
+          ? notesPageCase.audienceHint
+          : (await dashboardWords(language))[notesPageCase.audienceHint]!;
+      expect(sentence).toBeTruthy();
+      await expect(hint).toHaveText(sentence);
+      await expect(page.locator("html")).toHaveAttribute(
+        "dir",
+        language === "ar" ? "rtl" : "ltr",
+      );
+
+      // Nothing of it is cut off: no box of the badge is narrower than its words.
+      expect(
+        await badge.evaluate((element: HTMLElement): Array<string> => {
+          return [element, ...Array.from(element.querySelectorAll("span"))]
+            .filter((part: Element): boolean => {
+              return part.scrollWidth > part.clientWidth + 1;
+            })
+            .map((part: Element): string => {
+              return part.textContent || "";
+            });
+        }),
+      ).toEqual([]);
+
+      const [composerBox, badgeBox, lockBox, hintBox] = await boxesInOneFrame([
+        composer,
+        badge,
+        badge.locator("svg").first(),
+        hint,
+      ]);
+
+      // Inside the composer, and so on the phone's screen.
+      expect(badgeBox!.x).toBeGreaterThanOrEqual(composerBox!.x);
+      expect(badgeBox!.x + badgeBox!.width).toBeLessThanOrEqual(
+        composerBox!.x + composerBox!.width + 0.5,
+      );
+      expect(hintBox!.x + hintBox!.width).toBeLessThanOrEqual(
+        badgeBox!.x + badgeBox!.width + 0.5,
+      );
+      // The lock where the sentence starts: on the left, or on the right in Arabic.
+      if (language === "ar") {
+        expect(lockBox!.x).toBeGreaterThan(hintBox!.x);
+      } else {
+        expect(lockBox!.x).toBeLessThan(hintBox!.x);
+      }
+      // The lock keeps its size beside a sentence of two lines.
+      expect(Math.round(lockBox!.width)).toBe(14);
+
+      await expectNoSidewaysScroll(page);
+      await fs.mkdir(SCREENSHOTS, { recursive: true });
+      await badge.screenshot({
+        path: path.join(
+          SCREENSHOTS,
+          `${notesPageCase.name}-audience-${language}-mobile-synthetic.png`,
+        ),
+      });
+    });
+  }
 });
+
+// A Dashboard locale file, as the fixture's page reads it.
+async function dashboardWords(
+  language: string,
+): Promise<Record<string, string>> {
+  return JSON.parse(
+    await fs.readFile(
+      path.resolve(
+        __dirname,
+        `../../App/FeatureSet/Dashboard/src/Locales/${language}.json`,
+      ),
+      "utf8",
+    ),
+  ) as Record<string, string>;
+}
 
 /*
  * The rows the toolbar's buttons sit on, whether any reaches past the end of
@@ -1738,7 +1852,7 @@ test.describe("a private incident or episode", () => {
     await expect(composer).toBeVisible();
     await expect(page.getByTestId("note-composer-prompt")).toHaveCount(0);
     await expect(composer.getByTestId("note-audience")).toHaveText(
-      "Private·Only your team can see this",
+      "Private·Only people who can see this incident can read this",
     );
     await expect(composer.locator('[contenteditable="true"]')).toBeFocused();
     await expect(cards(page).first()).toContainText(INCIDENT_PRIVATE.firstNote);

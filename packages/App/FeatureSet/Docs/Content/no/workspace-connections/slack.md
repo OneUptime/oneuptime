@@ -174,7 +174,7 @@ Reager på en melding i kanalen til en hendelse, et varsel, en episode eller en 
 
 | Reaksjon | Lagret som |
 | --- | --- |
-| 📌 En tegnestift-emoji, eller Slacks egen **Pin to channel** | Et privat notat, som bare teamet ditt ser |
+| 📌 En tegnestift-emoji, eller Slacks egen **Pin to channel** | Et privat notat, som bare de som kan se posten, kan lese |
 | 📢 En megafon- eller høyttaler-emoji | Et offentlig notat, vist på statussiden. Bare hendelser og planlagte vedlikeholdsbegivenheter. På en privat hendelse et privat notat, og bekreftelsen sier hvorfor. Når prosjektets offentlige notater krever godkjenning, vises det først når det er godkjent, og bekreftelsen sier hvem det venter på: se [Godkjenning av offentlige notater](/docs/incidents/notes-owners-and-feed#godkjenning-av-offentlige-notater). |
 
 Notatet beholder meldingen slik Slack viste den: formateringen, lenkene og koden, personene og kanalene den nevner, ved navn, og filene og bildene som lenker til dem. Et offentlig notat utelater filene og bildene, siden de bare åpnes for teamet ditt.

@@ -120,6 +120,13 @@ export const AUDIENCE_STYLES: Record<
 /*
  * Who will read what is being typed, stated where it is being typed. The two
  * kinds of note used to look identical until they were saved.
+ *
+ * The sentence is never cut: who can read a note is the point of the badge,
+ * and a private note's sentence names its event ("Only people who can see
+ * this maintenance event can read this"), which a phone, or a longer
+ * language, cannot fit on one line. It wraps instead, its second line
+ * under the first word, the icon beside the first line. The corners are half
+ * a line's height, so one line is the same pill it always was.
  */
 export const AudienceBadge: FunctionComponent<{
   visibility: NoteVisibility;
@@ -132,17 +139,20 @@ export const AudienceBadge: FunctionComponent<{
   return (
     <span
       data-testid="note-audience"
-      className={`inline-flex min-w-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${style.className}`}
+      className={`inline-flex min-w-0 max-w-full items-start gap-1.5 rounded-xl px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${style.className}`}
     >
-      <Icon icon={style.icon} className="h-3.5 w-3.5 shrink-0" />
-      <span className="font-semibold">
-        {translateString(props.copy.audienceLabel) || props.copy.audienceLabel}
-      </span>
-      <span aria-hidden="true" className="opacity-50">
-        <InlineSeparator markOnly />
-      </span>
-      <span className="truncate">
-        {translateString(props.copy.audienceHint) || props.copy.audienceHint}
+      <Icon icon={style.icon} className="mt-px h-3.5 w-3.5 shrink-0" />
+      <span className="min-w-0 break-words">
+        <span className="font-semibold">
+          {translateString(props.copy.audienceLabel) ||
+            props.copy.audienceLabel}
+        </span>
+        <span aria-hidden="true" className="mx-1.5 opacity-50">
+          <InlineSeparator markOnly />
+        </span>
+        <span data-testid="note-audience-hint">
+          {translateString(props.copy.audienceHint) || props.copy.audienceHint}
+        </span>
       </span>
     </span>
   );

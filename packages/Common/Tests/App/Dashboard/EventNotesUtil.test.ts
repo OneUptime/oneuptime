@@ -30,6 +30,9 @@ import {
   isComposerOpenRequested,
   isNoteBlank,
   NOTE_COMPOSER_OPEN_QUERY_PARAM,
+  EVENT_NOTE_NOUNS,
+  PRIVATE_NOTE_AUDIENCE_HINTS,
+  getPrivateNoteAudienceHint,
   toDateTimeInputValue,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/EventNotes/EventNotesUtil";
 import Route from "../../../Types/API/Route";
@@ -715,7 +718,7 @@ describe("getNotesCopy", () => {
     expect(copy.submitLabel).toBe("Post update");
   });
 
-  test("private notes say they stay with the team", () => {
+  test("private notes say who can read them: the people who can see the event", () => {
     const copy: ReturnType<typeof getNotesCopy> = getNotesCopy(
       "private",
       "scheduled maintenance event",
@@ -723,11 +726,67 @@ describe("getNotesCopy", () => {
 
     expect(copy.title).toBe("Private notes");
     expect(copy.audienceLabel).toBe("Private");
-    expect(copy.audienceHint).toBe("Only your team can see this");
+    expect(copy.audienceHint).toBe(
+      "Only people who can see this maintenance event can read this",
+    );
     expect(copy.description).toContain("this scheduled maintenance event");
     expect(copy.description).toContain("never shown on a status page");
     expect(copy.deleteDescription).not.toContain("status page");
     expect(copy.submitLabel).toBe("Add note");
+  });
+
+  /*
+   * #7595: "Only your team can see this" read as one of OneUptime's Teams.
+   * A private note is read through its event, so the badge names the event
+   * each feed is for, and never a team.
+   */
+  test.each([
+    ["incident", "Only people who can see this incident can read this"],
+    ["alert", "Only people who can see this alert can read this"],
+    ["episode", "Only people who can see this episode can read this"],
+    [
+      "scheduled maintenance event",
+      "Only people who can see this maintenance event can read this",
+    ],
+  ])(
+    "a private %s note's badge names the event: %s",
+    (eventNoun: string, hint: string) => {
+      const copy: ReturnType<typeof getNotesCopy> = getNotesCopy(
+        "private",
+        eventNoun,
+      );
+
+      expect(copy.audienceHint).toBe(hint);
+      expect(getPrivateNoteAudienceHint(eventNoun)).toBe(hint);
+      expect(copy.audienceHint.toLowerCase()).not.toContain("team");
+    },
+  );
+
+  test("every event a notes feed is for has its own sentence, and no two say the same", () => {
+    const hints: Array<string> = EVENT_NOTE_NOUNS.map(
+      (eventNoun: string): string => {
+        return getNotesCopy("private", eventNoun).audienceHint;
+      },
+    );
+
+    expect(Object.keys(PRIVATE_NOTE_AUDIENCE_HINTS).sort()).toEqual(
+      [...EVENT_NOTE_NOUNS].sort(),
+    );
+    expect(new Set(hints).size).toBe(EVENT_NOTE_NOUNS.length);
+  });
+
+  test("an event the sentences do not list reads as an incident's, never a blank badge", () => {
+    expect(getNotesCopy("private", "postmortem").audienceHint).toBe(
+      "Only people who can see this incident can read this",
+    );
+  });
+
+  test("a public note's badge still says where it is shown", () => {
+    for (const eventNoun of EVENT_NOTE_NOUNS) {
+      expect(getNotesCopy("public", eventNoun).audienceHint).toBe(
+        "Visible on your status page",
+      );
+    }
   });
 
   test("every string is filled in for both kinds", () => {

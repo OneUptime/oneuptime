@@ -50,6 +50,7 @@ Query parameters, parsed once per page load:
 | `?private=1`  | incident #1042 and incident episode #12 are private: their public notes pages take no new public note                                |
 | `?fail=`      | comma separated: `list`, `create`, `update`, `delete`, `resend`, `templates`, `ai`                                                   |
 | `?theme=`     | `dark` adds `html.dark`                                                                                                              |
+| `?lang=`      | `en` (default), `de` or `ar`: the Dashboard's own words from its locale files; an Arabic page reads from the right (`dir="rtl"`)     |
 
 Every read and write is recorded on `window.__eventNotesFixture` (`listRequests`,
 `getItemRequests`, `apiRequests`, `creates`, `updates`, `deletes`, `unhandled`). The spec

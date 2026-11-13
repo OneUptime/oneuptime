@@ -158,7 +158,7 @@ Reaja a uma mensagem, ou a uma resposta, no canal que o OneUptime criou para um 
 
 | Reação | Salva como |
 | --- | --- |
-| 📌 ou 📍 | Uma nota privada, vista só pela sua equipe |
+| 📌 ou 📍 | Uma nota privada, que só quem pode ver o registro pode ler |
 | 📣 ou 📢 | Uma nota pública, mostrada na página de status. Somente incidentes e eventos de manutenção programada. Num incidente privado, uma nota privada, e a confirmação diz por quê. Quando as notas públicas do projeto precisam de aprovação, ela só é mostrada depois de aprovada, e a confirmação diz quem ela aguarda: veja [Aprovação de notas públicas](/docs/incidents/notes-owners-and-feed#aprovação-de-notas-públicas). |
 
 A nota mantém a mensagem como o Microsoft Teams a mostrava: a formatação, os links e o código, as pessoas que ela menciona pelo nome, e os arquivos e as imagens como links para eles. Uma nota pública deixa os arquivos e as imagens de fora, já que eles só abrem para a sua equipe.
