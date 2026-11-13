@@ -520,6 +520,11 @@ then `npm run i18n:validate` from the root.
   [DashboardListNameCellsGuard](../../packages/Common/Tests/App/Dashboard/DashboardListNameCellsGuard.test.ts)
   and
   [TranslatedSentenceInRowGuard](../../packages/Common/Tests/UI/TranslatedSentenceInRowGuard.test.ts).
+- **A path's arrows point the way it is read.** A browser never turns "→" round, so on a page read
+  from the right it points each step back at the one before: Arabic and Persian write "←" beside a
+  step in their own words (`تنظیمات پروژه ← پیشرفته`), and keep "→" between two steps left in Latin
+  letters, which are drawn from the left. ">" and "›" turn round by themselves. Enforced by
+  [PathArrowsInRightToLeftSentences](../../packages/Common/Tests/App/PathArrowsInRightToLeftSentences.test.ts).
 - **A bare word has one meaning everywhere,** because a label is translated by its English text.
   "Any" is the Match Condition's word. Enforced by
   [MatchConditionAnyWordGuard](../../packages/Common/Tests/UI/Components/Forms/MatchConditionAnyWordGuard.test.ts).

@@ -32,7 +32,8 @@
  * here.
  *
  * One pass over the text, with no regular expression: time linear in its
- * length, whatever its shape (AGENTS.md, "Megabyte-long values").
+ * length, whatever its shape (Docs/notifications/README.md, "Megabyte-long
+ * values").
  */
 
 const BACKSLASH: number = 0x5c;

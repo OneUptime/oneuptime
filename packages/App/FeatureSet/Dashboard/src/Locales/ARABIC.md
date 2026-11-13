@@ -69,7 +69,10 @@ as a dot.
 - A UI label quoted in a sentence goes in `«»`: `اختر «بث السجلات»`.
 - Search syntax keeps its ASCII quotes: `"عبارة مقتبسة"`.
 - A menu path keeps `>` (it mirrors in right-to-left text): `السحابة > ربط`.
-  An English `→` becomes `←`, as in Persian. `›` stays `›`.
+  An English `→` becomes `←`, as in Persian, beside a step written in
+  Arabic; between two steps left in Latin letters, which are drawn from the
+  left, it stays `→` (`Services ← خدمتك ← Configuration → Configure service`).
+  `›` stays `›`.
 
 ## Direction
 

@@ -6,7 +6,11 @@ import { useCardRuledListClassName } from "Common/UI/Components/Card/CardSurface
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator, composedValue } from "Common/UI/Utils/TranslateTemplate";
+import {
+  Translator,
+  composedValue,
+  toLabelTerm,
+} from "Common/UI/Utils/TranslateTemplate";
 import { formatRelativeTime } from "../Home/HomeRelativeTime";
 import {
   ResourceAttentionCounts,
@@ -262,10 +266,15 @@ const NeedsAttentionCard: FunctionComponent<ComponentProps> = (
                           data-testid={`${testId}-kind`}
                           className="inline-flex rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600"
                         >
+                          {/*
+                           * A chip is a label: a kind some languages word
+                           * for the middle of a sentence ("clúster de
+                           * Kubernetes", "zone DNS") starts with a capital.
+                           */}
                           {item.kindAsWritten ? (
                             <bdi>{item.kind}</bdi>
                           ) : (
-                            tx(item.kind)
+                            toLabelTerm(tx(item.kind), translator.language)
                           )}
                         </span>
                       )}

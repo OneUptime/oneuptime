@@ -310,7 +310,6 @@ const OnCallDutyPage: FunctionComponent<
             field: {
               description: true,
             },
-            noValueMessage: "-",
             title: "Description",
             type: FieldType.LongText,
             hideOnMobile: true,
@@ -380,7 +379,6 @@ const OnCallSchedulesLeftover: FunctionComponent = (): ReactElement => {
           field: {
             description: true,
           },
-          noValueMessage: "-",
           title: "Description",
           type: FieldType.LongText,
         },

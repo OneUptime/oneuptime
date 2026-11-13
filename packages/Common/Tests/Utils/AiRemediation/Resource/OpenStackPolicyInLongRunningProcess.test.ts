@@ -11,16 +11,17 @@ import path from "path";
  * payload is only as long as the server let it be. V8 backtracks on a stack that can
  * grow with every character a quantifier takes, and a process that has been up a while
  * compiles regular expressions unoptimized, so this runs in a node process started with
- * --no-regexp-optimization, the state such a process reaches (AGENTS.md). esbuild bundles
- * the modules there, as ScreenshotEmailInLongRunningProcess.test.ts does: it refuses to
- * load under the jsdom environment Common's jest uses. Only booleans and times come back,
- * so a failure never prints megabytes.
+ * --no-regexp-optimization, the state such a process reaches
+ * (Docs/notifications/README.md, "Megabyte-long values"). esbuild bundles the modules
+ * there, as ScreenshotEmailInLongRunningProcess.test.ts does: it refuses to load under
+ * the jsdom environment Common's jest uses. Only booleans and times come back, so a
+ * failure never prints megabytes.
  *
  * Two things are held. Nothing throws, on sixteen megabytes in each place the policy and
  * OpenStack's own redaction read, and where a change's words and what it touches are read. And the time grows with the length: each shape is read
  * at two lengths, and four times the text may cost at most ten times the time, with room
  * left for a loaded machine. The generic redactor under OpenStack's rules has its own
- * long-input tests (AGENTS.md), so it runs here only on the shapes OpenStack adds, at a
+ * long-input tests (Docs/notifications/README.md, "Megabyte-long values"), so it runs here only on the shapes OpenStack adds, at a
  * megabyte: enough to show that the two together still finish.
  */
 

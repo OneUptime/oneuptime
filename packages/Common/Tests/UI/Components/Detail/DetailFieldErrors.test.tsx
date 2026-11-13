@@ -39,6 +39,10 @@ jest.mock("../../../../UI/Utils/Logger", () => {
 });
 
 import Detail from "../../../../UI/Components/Detail/Detail";
+import {
+  EMPTY_VALUE_MARK,
+  EMPTY_VALUE_TEST_ID,
+} from "../../../../UI/Components/Detail/EmptyValue";
 import Field from "../../../../UI/Components/Detail/Field";
 import FieldType from "../../../../UI/Components/Types/FieldType";
 import IncidentSeverity from "../../../../Models/DatabaseModels/IncidentSeverity";
@@ -320,10 +324,11 @@ describe("Detail: fields that do not throw are untouched by the guard", () => {
     expect(container.querySelector(badgeSelector)).toBeNull();
   });
 
-  test("a getElement that returns a placeholder dash renders the dash", () => {
+  test("a getElement that returns a placeholder dash renders the card's dash", () => {
     /*
      * The shape both episode detail pages now use for an absent severity or
-     * state. It must survive the guard untouched and must not log.
+     * state. It must survive the guard and must not log - and it is the
+     * card's own quiet dash, as every empty field is, not a hyphen (#7264).
      */
     const container: HTMLElement = renderDetail({}, [
       {
@@ -341,7 +346,11 @@ describe("Detail: fields that do not throw are untouched by the guard", () => {
     ]);
 
     expect(container.textContent).toContain("Episode Severity");
-    expect(container.textContent).toContain("-");
+    const empty: HTMLElement | null = container.querySelector(
+      `[data-testid="${EMPTY_VALUE_TEST_ID}"]`,
+    );
+    expect(empty?.textContent).toContain(EMPTY_VALUE_MARK);
+    expect(container.textContent).not.toContain("-");
     expect(loggerErrorMock).not.toHaveBeenCalled();
   });
 });

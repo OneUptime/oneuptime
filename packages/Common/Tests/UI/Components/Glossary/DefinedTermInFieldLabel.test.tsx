@@ -6,6 +6,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import React, { ReactElement } from "react";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
@@ -20,9 +21,18 @@ jest.mock("../../../../UI/Components/Glossary/LazyDefinedTerm", () => {
 });
 
 import GlossaryTerm from "../../../../Types/Docs/GlossaryTerm";
-import FieldLabelElement from "../../../../UI/Components/Forms/Fields/FieldLabel";
-import { DEFINED_TERM_TEST_ID } from "../../../../UI/Components/Glossary/DefinedTerm";
+import BasicForm from "../../../../UI/Components/Forms/BasicForm";
+import FieldLabelElement, {
+  FIELD_LABEL_TOOLTIP_TEST_ID,
+} from "../../../../UI/Components/Forms/Fields/FieldLabel";
+import FormFieldSchemaType from "../../../../UI/Components/Forms/Types/FormFieldSchemaType";
+import {
+  DEFINED_TERM_DEFINITION_TEST_ID,
+  DEFINED_TERM_READ_MORE_TEST_ID,
+  DEFINED_TERM_TEST_ID,
+} from "../../../../UI/Components/Glossary/DefinedTerm";
 import { clearGlossaryReads } from "../../../../UI/Utils/Glossary";
+import { PRODUCT_TEXT_CLASS_NAME } from "../../../../UI/Utils/ProductText";
 
 /*
  * A FIELD'S TITLE THAT IS A DEFINED TERM KEEPS ITS NAME, AND SO DOES THE WORD.
@@ -235,5 +245,355 @@ describe("a click on a dropdown's title, off its word", () => {
 
     expect(clicks).toEqual(["input"]);
     expect(definition()).toBeNull();
+  });
+});
+
+/*
+ * WITH ITS DEFINITION OPEN, A FIELD IS STILL NAMED BY ITS TITLE ALONE (#7561).
+ *
+ * A dropdown's or a picker's title names it through the title's id
+ * (aria-labelledby), and a native input's title as its <label for>: either
+ * way the field is named by every word inside the title. The definition was
+ * drawn inside the title, beside its word, so while it showed (the word
+ * hovered, focused or pressed) the field's name took in the definition and
+ * its Read more too: "Probes Probe A machine that runs checks. Read more".
+ * It is drawn right after the title now (FieldLabel), and Tab still goes
+ * from the word to Read more before anything else. The browser holds the
+ * same (packages/E2E: CreateMonitor.spec.ts, OwnersOnCreate.spec.ts).
+ */
+
+const GLOSSARY: unknown = {
+  lang: "en",
+  entries: [
+    { id: "probe", term: "Probe", definition: "A machine that runs checks." },
+    {
+      id: "state",
+      term: "State",
+      definition: "Where an incident or an alert is in your response.",
+    },
+    {
+      id: "severity",
+      term: "Severity",
+      definition: "How serious an incident or an alert is.",
+    },
+    {
+      id: "criteria",
+      term: "Criteria",
+      definition: "A monitor's rules: what each check result means.",
+    },
+  ],
+};
+
+// The glossary's answer to a read: every word here has its definition.
+const answerGlossaryReads: () => void = (): void => {
+  (globalThis as Record<string, unknown>)["fetch"] = (): Promise<unknown> => {
+    return Promise.resolve({
+      ok: true,
+      status: 200,
+      json: (): Promise<unknown> => {
+        return Promise.resolve(GLOSSARY);
+      },
+    });
+  };
+};
+
+// Presses a title's word, and waits for its definition to show.
+const openDefinition: (word: string) => Promise<HTMLElement> = async (
+  word: string,
+): Promise<HTMLElement> => {
+  fireEvent.click(screen.getByRole("button", { name: word }));
+
+  return waitFor((): HTMLElement => {
+    const open: HTMLElement = screen.getByRole("dialog", { name: word });
+
+    expect(open).toHaveAttribute("data-state", "visible");
+    expect(
+      within(open).getByTestId(DEFINED_TERM_DEFINITION_TEST_ID),
+    ).toBeInTheDocument();
+
+    return open;
+  });
+};
+
+// A form of one field, as a form draws it (FormField).
+function renderForm(props: {
+  title: string;
+  term: GlossaryTerm;
+  fieldType: FormFieldSchemaType;
+  required: boolean;
+}): void {
+  render(
+    <BasicForm
+      id="definition-form"
+      name="Definition form"
+      initialValues={{ value: "" }}
+      fields={[
+        {
+          field: { value: true },
+          title: props.title,
+          glossaryTerm: props.term,
+          fieldType: props.fieldType,
+          dropdownOptions: [{ label: "One", value: "one" }],
+          required: props.required,
+        },
+      ]}
+      onSubmit={() => {
+        return undefined;
+      }}
+    />,
+  );
+}
+
+// What names a field: what its aria-labelledby points at, else its <label>.
+const namedBy: (field: HTMLElement) => Array<HTMLElement> = (
+  field: HTMLElement,
+): Array<HTMLElement> => {
+  const ids: Array<string> = (field.getAttribute("aria-labelledby") || "")
+    .split(" ")
+    .filter((id: string): boolean => {
+      return id !== "";
+    });
+
+  if (ids.length > 0) {
+    return ids.map((id: string): HTMLElement => {
+      return document.getElementById(id) as HTMLElement;
+    });
+  }
+
+  return Array.from((field as HTMLInputElement).labels || []);
+};
+
+/*
+ * A field's name as a browser reads it: every word inside what the field
+ * is named by (accname 1.2, steps 2B and 2F), an open definition's
+ * included. jsdom's names (dom-accessibility-api, which getByRole reads)
+ * never had the definition in them: inside the title they follow the
+ * definition's own aria-labelledby to its word, already read, and so read
+ * nothing of it.
+ */
+const nameAsRead: (field: HTMLElement) => string = (
+  field: HTMLElement,
+): string => {
+  return namedBy(field)
+    .map((element: HTMLElement): string => {
+      return element.textContent || "";
+    })
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+};
+
+describe("with its definition open, a field is still named by its title alone", () => {
+  test.each<[string, string, GlossaryTerm, boolean, string]>([
+    ["required", "Probes", GlossaryTerm.Probe, true, "Probes"],
+    [
+      "optional",
+      "Initial State",
+      GlossaryTerm.State,
+      false,
+      "Initial State (Optional)",
+    ],
+  ])(
+    "a form's dropdown (%s)",
+    async (
+      _kind: string,
+      title: string,
+      term: GlossaryTerm,
+      required: boolean,
+      name: string,
+    ) => {
+      answerGlossaryReads();
+      renderForm({
+        title: title,
+        term: term,
+        fieldType: FormFieldSchemaType.Dropdown,
+        required: required,
+      });
+
+      const dropdown: HTMLElement = screen.getByRole("combobox", {
+        name: name,
+      });
+
+      expect(nameAsRead(dropdown)).toBe(name);
+
+      await openDefinition(title);
+
+      expect(nameAsRead(dropdown)).toBe(name);
+      expect(screen.getByRole("combobox", { name: name })).toBe(dropdown);
+    },
+  );
+
+  test("a form's picker", async () => {
+    answerGlossaryReads();
+    renderForm({
+      title: "Severity",
+      term: GlossaryTerm.Severity,
+      fieldType: FormFieldSchemaType.Color,
+      required: false,
+    });
+
+    const picker: HTMLElement = screen.getByRole("radiogroup", {
+      name: "Severity (Optional)",
+    });
+
+    await openDefinition("Severity");
+
+    expect(nameAsRead(picker)).toBe("Severity (Optional)");
+    expect(
+      screen.getByRole("radiogroup", { name: "Severity (Optional)" }),
+    ).toBe(picker);
+  });
+
+  test("a form's text field, named by its <label for>, and a click on the definition is in no label", async () => {
+    answerGlossaryReads();
+    renderForm({
+      title: "Criteria",
+      term: GlossaryTerm.Criteria,
+      fieldType: FormFieldSchemaType.Text,
+      required: true,
+    });
+
+    const input: HTMLElement = screen.getByRole("textbox", {
+      name: "Criteria",
+    });
+
+    const open: HTMLElement = await openDefinition("Criteria");
+
+    expect(nameAsRead(input)).toBe("Criteria");
+    expect(screen.getByRole("textbox", { name: "Criteria" })).toBe(input);
+    expect(open.closest("label")).toBeNull();
+  });
+
+  test("the definition is drawn right after the title, outside it", async () => {
+    answerGlossaryReads();
+    renderField({
+      title: "Initial State",
+      term: GlossaryTerm.State,
+      required: false,
+    });
+
+    const open: HTMLElement = await openDefinition("Initial State");
+
+    expect(titleRow()).not.toContainElement(open);
+    expect(
+      titleRow().compareDocumentPosition(open) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      nameAsRead(
+        screen.getByRole("combobox", { name: "Initial State (Optional)" }),
+      ),
+    ).toBe("Initial State (Optional)");
+  });
+});
+
+// Every element Tab stops at, in the page's order, as far as jsdom can tell.
+const tabStops: () => Array<HTMLElement> = (): Array<HTMLElement> => {
+  return Array.from(
+    document.querySelectorAll<HTMLElement>(
+      "a[href], button, input, select, textarea, [tabindex]",
+    ),
+  ).filter((element: HTMLElement): boolean => {
+    return (
+      element.tabIndex >= 0 &&
+      !element.hasAttribute("disabled") &&
+      !(element instanceof HTMLInputElement && element.type === "hidden")
+    );
+  });
+};
+
+// Where Tab goes from the title's word: the next stops, in order.
+const stopsAfterWord: (count: number) => Array<HTMLElement | undefined> = (
+  count: number,
+): Array<HTMLElement | undefined> => {
+  const stops: Array<HTMLElement> = tabStops();
+  const at: number = stops.indexOf(screen.getByTestId(DEFINED_TERM_TEST_ID));
+
+  expect(at).toBeGreaterThanOrEqual(0);
+
+  return stops.slice(at + 1, at + 1 + count);
+};
+
+describe("with its definition open, Tab goes from the word to Read more", () => {
+  test.each<[string, FormFieldSchemaType, string]>([
+    ["a dropdown", FormFieldSchemaType.Dropdown, "combobox"],
+    ["a text field", FormFieldSchemaType.Text, "textbox"],
+  ])(
+    "then on to the field: %s",
+    async (_kind: string, fieldType: FormFieldSchemaType, role: string) => {
+      answerGlossaryReads();
+      renderForm({
+        title: "Probes",
+        term: GlossaryTerm.Probe,
+        fieldType: fieldType,
+        required: true,
+      });
+
+      const open: HTMLElement = await openDefinition("Probes");
+      const [first, second] = stopsAfterWord(2);
+
+      expect(first).toBe(
+        within(open).getByTestId(DEFINED_TERM_READ_MORE_TEST_ID),
+      );
+      // The form's one field, whatever it is named.
+      expect(second).toBe(screen.getByRole(role));
+    },
+  );
+
+  test("then on to the (i) beside the title", async () => {
+    answerGlossaryReads();
+    render(
+      <div>
+        <FieldLabelElement
+          title="Probes"
+          id={LABEL_ID}
+          glossaryTerm={GlossaryTerm.Probe}
+          tooltip="Each probe checks the monitor on its own."
+          required={true}
+        />
+        <input role="combobox" aria-labelledby={LABEL_ID} />
+      </div>,
+    );
+
+    const open: HTMLElement = await openDefinition("Probes");
+    const [first, second, third] = stopsAfterWord(3);
+
+    expect(first).toBe(
+      within(open).getByTestId(DEFINED_TERM_READ_MORE_TEST_ID),
+    );
+    expect(second).toBe(screen.getByTestId(FIELD_LABEL_TOOLTIP_TEST_ID));
+    expect(third).toBe(screen.getByRole("combobox"));
+  });
+});
+
+/*
+ * A recording of the first-run pages records the product's own words as
+ * written (Utils/ProductText), Create Monitor's among them. A field's title
+ * is marked, and its definition was recorded with it while drawn inside the
+ * title. Drawn after the title (#7561), outside its marked words, it still
+ * is: the popover carries the mark itself (DefinedTerm.test.tsx).
+ */
+describe("in a recording of the page", () => {
+  test("the definition, drawn after the title, is recorded as written, as the title is", async () => {
+    answerGlossaryReads();
+    renderForm({
+      title: "Probes",
+      term: GlossaryTerm.Probe,
+      fieldType: FormFieldSchemaType.Dropdown,
+      required: true,
+    });
+
+    const open: HTMLElement = await openDefinition("Probes");
+    const marked: string = `.${PRODUCT_TEXT_CLASS_NAME}`;
+
+    expect(
+      screen.getByRole("button", { name: "Probes" }).closest(marked),
+    ).not.toBeNull();
+    expect(
+      within(open).getByTestId(DEFINED_TERM_DEFINITION_TEST_ID).closest(marked),
+    ).not.toBeNull();
+    expect(
+      within(open).getByTestId(DEFINED_TERM_READ_MORE_TEST_ID).closest(marked),
+    ).not.toBeNull();
   });
 });

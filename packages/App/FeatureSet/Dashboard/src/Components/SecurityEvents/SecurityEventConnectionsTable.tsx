@@ -482,7 +482,6 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
             },
             title: "Interval (Minutes)",
             type: FieldType.Number,
-            noValueMessage: "-",
             isHiddenByDefault: true,
           },
           /*
