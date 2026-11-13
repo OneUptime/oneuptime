@@ -925,8 +925,13 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
                               text={value}
                               className="px-3 py-2 text-gray-700 text-xs truncate"
                             >
+                              {/*
+                               * In the gray every table draws a missing value
+                               * in (TableEmptyValue): gray-300 was 1.5:1 on
+                               * the card, too faint to read.
+                               */}
                               {value || (
-                                <span className="text-gray-300">
+                                <span className="text-gray-400">
                                   {getUnsetText(translator)}
                                 </span>
                               )}

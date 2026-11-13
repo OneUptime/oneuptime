@@ -20384,7 +20384,7 @@
   "(empty)": "(비어 있음)",
   "(not run in this test)": "(not run in this test)",
   "(not run yet)": "(not run yet)",
-  "(truncated)": "(truncated)",
+  "(truncated)": "(잘림)",
   "(unknown)": "(알 수 없음)",
   "({{count}} more to fix on the cluster's AI agent page.)": "({{count}} more to fix on the cluster's AI agent page.)",
   "({{count}} more to fix on the cluster's AI agent page.)_one": "({{count}} more to fix on the cluster's AI agent page.)",

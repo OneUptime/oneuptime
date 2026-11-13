@@ -124,6 +124,8 @@ const DASHBOARD_VIEW_CONFIG: DashboardViewConfig = {
 };
 
 const UNSET: string = "(unset)";
+const TRUNCATED: string = "(truncated)";
+const ENGLISH_TRUNCATED_WORD: RegExp = /truncated/i;
 const ENGLISH_DESCRIPTION: string =
   "Errors per service, over the dashboard's window.";
 const ARABIC_DESCRIPTION: string = "الأخطاء لكل خدمة خلال نافذة اللوحة.";
@@ -324,14 +326,16 @@ describe("a metric Table's group whose attribute holds nothing", () => {
     return cells[0]!;
   }
 
-  test("an English board says (unset), as it always did, in its faint gray", async () => {
+  test("an English board says (unset), as it always did, in the gray a table draws a missing value in", async () => {
     await renderMetricTable();
 
     const cell: HTMLElement = unsetCell(UNSET);
     const word: HTMLElement = cell.querySelector("span") as HTMLElement;
 
     expect(word).toHaveTextContent(UNSET);
-    expect(word).toHaveClass("text-gray-300");
+    // TableEmptyValue's gray: gray-300 was 1.5:1 on a light card.
+    expect(word).toHaveClass("text-gray-400");
+    expect(word).not.toHaveClass("text-gray-300");
   });
 
   test("a German board says (nicht gesetzt)", async () => {
@@ -498,3 +502,78 @@ describe.each(DESCRIBED_TABLES)(
     });
   },
 );
+
+/*
+ * A Data Source Table whose query returned more rows than it keeps says so
+ * after its count: "2 rows (truncated)". The mark was English in fourteen
+ * of the Dashboard's languages ("2 Zeilen (truncated)" on a German board).
+ */
+describe("a Data Source Table cut short", () => {
+  // The count beside the table's title, with the mark after it.
+  function countLine(): HTMLElement {
+    const line: HTMLElement | undefined = Array.from(
+      document.querySelectorAll("span"),
+    ).find((span: HTMLSpanElement): boolean => {
+      return span.classList.contains("tabular-nums");
+    });
+
+    expect(line).toBeDefined();
+
+    return line!;
+  }
+
+  beforeEach(() => {
+    fetchTableMock.mockResolvedValue({ ...TABLE_RESULT, truncated: true });
+  });
+
+  test("an English board says the rows were truncated, as it always did", async () => {
+    await renderDataSourceTable();
+
+    expect(countLine()).toHaveTextContent("2 rows (truncated)");
+  });
+
+  test("a German board says (gekürzt)", async () => {
+    await inLanguage("de");
+    await renderDataSourceTable();
+
+    expect(countLine()).toHaveTextContent("2 Zeilen (gekürzt)");
+    expect(document.body).not.toHaveTextContent(TRUNCATED);
+  });
+
+  test("a table that kept every row says nothing of it", async () => {
+    fetchTableMock.mockResolvedValue(TABLE_RESULT);
+    await inLanguage("de");
+    await renderDataSourceTable();
+
+    expect(countLine()).toHaveTextContent("2 Zeilen");
+    expect(countLine()).not.toHaveTextContent("(gekürzt)");
+  });
+
+  test("every Dashboard language says it in its own words", async () => {
+    for (const language of DASHBOARD_LANGUAGES) {
+      const word: string = readDashboardLocale(language)[TRUNCATED] || "";
+
+      expect({
+        language,
+        worded: isWordedInDashboardLocale(TRUNCATED, language),
+        english: ENGLISH_TRUNCATED_WORD.test(word),
+      }).toEqual({ language, worded: true, english: false });
+
+      await inLanguage(language);
+      await renderDataSourceTable();
+
+      expect(countLine()).toHaveTextContent(word);
+      expect(document.body).not.toHaveTextContent(ENGLISH_TRUNCATED_WORD);
+      cleanup();
+    }
+  });
+
+  test("the check finds the English word wherever it is left", () => {
+    // The negative control: the English mark, as fourteen languages held it.
+    expect(
+      ENGLISH_TRUNCATED_WORD.test(readDashboardLocale("en")[TRUNCATED]!),
+    ).toBe(true);
+    expect(ENGLISH_TRUNCATED_WORD.test("2 Zeilen (truncated)")).toBe(true);
+    expect(ENGLISH_TRUNCATED_WORD.test("2 Zeilen (gekürzt)")).toBe(false);
+  });
+});
