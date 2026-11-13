@@ -34,7 +34,8 @@ export default defineConfig({
   ],
   use: {
     actionTimeout: 15000,
-    trace: "retain-on-failure",
+    // A run draws hundreds of pages: a trace of each would be gigabytes. A shot that fails says why in its result.
+    trace: "off",
   },
   webServer: Object.values(DOCS_SCREEN_FIXTURES).map(
     (fixture: DocsScreenFixture) => {

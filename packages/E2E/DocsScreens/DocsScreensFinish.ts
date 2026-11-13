@@ -34,7 +34,7 @@ import {
  *              manifest is written from the pictures on disk;
  *   checking   what the languages found is put together as one check
  *              (check.json) and the staleness issue's text (stale-issue.md),
- *              which the job on main hands to Scripts/Docs/ReportStaleDocsScreens.ts.
+ *              which the job on main hands to ReportStale.js.
  *
  * Either way a summary is printed: what was written or found, and the
  * bytes the pictures take.
@@ -73,7 +73,10 @@ function deleteOrphans(): Array<string> {
     }
 
     for (const file of fs.readdirSync(languageFolder)) {
-      const name: string = file.replace(new RegExp(`\\.${SCREEN_EXTENSION}$`), "");
+      const name: string = file.replace(
+        new RegExp(`\\.${SCREEN_EXTENSION}$`),
+        "",
+      );
       const shot: DocsScreen | undefined = DOCS_SCREENS.find(
         (candidate: DocsScreen): boolean => {
           return candidate.name === name;
@@ -144,11 +147,11 @@ export default async function finish(): Promise<void> {
     fs.writeFileSync(MANIFEST_PATH, manifest);
     const total: { files: number; bytes: number } = totalBytes();
 
-    console.log(
-      [
+    process.stdout.write(
+      `${[
         `Docs screens: ${count("written")} written, ${count("current")} current, ${count("failed")} failed, ${deleted.length} deleted.`,
         `On disk: ${total.files} pictures, ${(total.bytes / 1024 / 1024).toFixed(2)} MB, and the manifest (${(Buffer.byteLength(manifest) / 1024).toFixed(1)} KB).`,
-      ].join("\n"),
+      ].join("\n")}\n`,
     );
     return;
   }
@@ -180,7 +183,7 @@ export default async function finish(): Promise<void> {
     path.join(OUTPUT, "stale-issue.md"),
     `${staleIssueBody(check, process.env["DOCS_SCREENS_RUN_URL"])}\n`,
   );
-  console.log(
-    `Docs screens: ${check.checked} checked, ${check.stale.length} stale, ${check.failed.length} could not be drawn.`,
+  process.stdout.write(
+    `Docs screens: ${check.checked} checked, ${check.stale.length} stale, ${check.failed.length} could not be drawn.\n`,
   );
 }

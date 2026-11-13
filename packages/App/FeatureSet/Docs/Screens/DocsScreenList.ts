@@ -57,8 +57,8 @@ export const DOCS_SCREEN_LANGUAGES: ReadonlyArray<string> = [
 export type DocsScreenAction =
   // A button or a link, by its words (`exact: false`: words it contains).
   | { press: string; exact?: boolean | undefined }
-  // A checkbox, by its words.
-  | { tick: string }
+  // A checkbox, by its words (`asWritten`: a name that is data, not translated).
+  | { tick: string; asWritten?: boolean | undefined }
   // A field, by its label (`exact: false`: words it contains).
   | { type: string; value: string; exact?: boolean | undefined }
   // An option of the list open now, by its name (data: not translated).
@@ -198,14 +198,14 @@ const WEBSITE_DOWN_DONE: ReadonlyArray<DocsScreenAction> = [
 const PAGING_PHONE: ReadonlyArray<DocsScreenAction> = [
   { press: "Turn on SMS and phone calls" },
   { press: "Add balance" },
-  { type: "Amount", value: "20", exact: false },
+  { type: "Amount (USD)", value: "20", exact: false },
   { press: "Recharge" },
 ];
 const PAGING_WHO_ELSE: ReadonlyArray<DocsScreenAction> = [
   ...PAGING_PHONE,
   { type: "Your phone number", value: "+15550100123" },
   { press: "Text me a code" },
-  { type: "code", value: VERIFICATION_CODE, exact: false },
+  { type: "Verification Code", value: VERIFICATION_CODE, exact: false },
   { press: "Verify" },
   { waitFor: "on-call-setup-reach-phone-value" },
   { press: "Continue" },
@@ -233,7 +233,7 @@ const PAGING_DONE: ReadonlyArray<DocsScreenAction> = [
 const STATUS_PAGE_PICK: ReadonlyArray<DocsScreenAction> = [
   { waitFor: "guided-setup" },
   // The seeded monitor, by its name: data, so it reads the same in every language.
-  { tick: "Acme website" },
+  { tick: "Acme website", asWritten: true },
 ];
 const STATUS_PAGE_REVIEW: ReadonlyArray<DocsScreenAction> = [
   ...STATUS_PAGE_PICK,
@@ -252,46 +252,59 @@ const step: (key: string) => string = (key: string): string => {
 export const DOCS_SCREENS: ReadonlyArray<DocsScreen> = [
   {
     name: "home-goal-website",
-    shows: "Home in a new project, asking what the person came to do, with Know when my website or API is down ticked",
+    shows:
+      "Home in a new project, asking what the person came to do, with Know when my website or API is down ticked",
     fixture: "Journeys",
     page: "HOME",
     path: "/dashboard/:projectId/home/",
     width: HOME_WIDTH,
     height: 1000,
-    state: [{ waitFor: "welcome-question" }, { tick: "Know when my website or API is down" }],
+    state: [
+      { waitFor: "welcome-question" },
+      { tick: "Know when my website or API is down" },
+    ],
     crop: '[data-testid="welcome-question"]',
     padding: 12,
     highlight: "Continue",
   },
   {
     name: "home-goal-paging",
-    shows: "Home in a new project, with Page the right person when something breaks ticked",
+    shows:
+      "Home in a new project, with Page the right person when something breaks ticked",
     fixture: "Journeys",
     page: "HOME",
     path: "/dashboard/:projectId/home/",
     width: HOME_WIDTH,
     height: 1000,
-    state: [{ waitFor: "welcome-question" }, { tick: "Page the right person when something breaks" }],
+    state: [
+      { waitFor: "welcome-question" },
+      { tick: "Page the right person when something breaks" },
+    ],
     crop: '[data-testid="welcome-question"]',
     padding: 12,
     highlight: "Continue",
   },
   {
     name: "home-goal-status-page",
-    shows: "Home in a new project, with Tell my customers with a status page ticked",
+    shows:
+      "Home in a new project, with Tell my customers with a status page ticked",
     fixture: "Journeys",
     page: "HOME",
     path: "/dashboard/:projectId/home/",
     width: HOME_WIDTH,
     height: 1000,
-    state: [{ waitFor: "welcome-question" }, { tick: "Tell my customers with a status page" }],
+    state: [
+      { waitFor: "welcome-question" },
+      { tick: "Tell my customers with a status page" },
+    ],
     crop: '[data-testid="welcome-question"]',
     padding: 12,
     highlight: "Continue",
   },
   {
     name: "home-goals-three",
-    shows: "Home in a new project, with the three goals of the Quickstart ticked",
+    shows:
+      "Home in a new project, with the three goals of the Quickstart ticked",
     fixture: "Journeys",
     page: "HOME",
     path: "/dashboard/:projectId/home/",
@@ -360,7 +373,8 @@ export const DOCS_SCREENS: ReadonlyArray<DocsScreen> = [
   },
   {
     name: "paging-reach-you",
-    shows: "The on-call guided setup on OneUptime Cloud: how should we reach you, SMS and calls still off",
+    shows:
+      "The on-call guided setup on OneUptime Cloud: how should we reach you, SMS and calls still off",
     fixture: "Journeys",
     page: "ON_CALL_DUTY_GUIDED_SETUP",
     path: "/dashboard/:projectId/on-call-duty/setup",
@@ -374,7 +388,8 @@ export const DOCS_SCREENS: ReadonlyArray<DocsScreen> = [
   },
   {
     name: "paging-phone",
-    shows: "The on-call guided setup: SMS and calls on, and the phone number field",
+    shows:
+      "The on-call guided setup: SMS and calls on, and the phone number field",
     fixture: "Journeys",
     page: "ON_CALL_DUTY_GUIDED_SETUP",
     path: "/dashboard/:projectId/on-call-duty/setup",
@@ -402,7 +417,8 @@ export const DOCS_SCREENS: ReadonlyArray<DocsScreen> = [
   },
   {
     name: "paging-no-answer",
-    shows: "The on-call guided setup: what if nobody answers, with a teammate paged next",
+    shows:
+      "The on-call guided setup: what if nobody answers, with a teammate paged next",
     fixture: "Journeys",
     page: "ON_CALL_DUTY_GUIDED_SETUP",
     path: "/dashboard/:projectId/on-call-duty/setup",
@@ -443,7 +459,8 @@ export const DOCS_SCREENS: ReadonlyArray<DocsScreen> = [
   },
   {
     name: "status-page-pick",
-    shows: "The status page guided setup: name it, and pick the monitors it shows",
+    shows:
+      "The status page guided setup: name it, and pick the monitors it shows",
     fixture: "Journeys",
     page: "STATUS_PAGES_GUIDED_SETUP",
     path: "/dashboard/:projectId/status-pages/setup",
@@ -457,7 +474,8 @@ export const DOCS_SCREENS: ReadonlyArray<DocsScreen> = [
   },
   {
     name: "status-page-review",
-    shows: "The status page guided setup: what your customers see, and the public link",
+    shows:
+      "The status page guided setup: what your customers see, and the public link",
     fixture: "Journeys",
     page: "STATUS_PAGES_GUIDED_SETUP",
     path: "/dashboard/:projectId/status-pages/setup",
@@ -485,7 +503,8 @@ export const DOCS_SCREENS: ReadonlyArray<DocsScreen> = [
   },
   {
     name: "incident-feed",
-    shows: "A resolved incident's feed: who was paged, each state change, and the notes, newest first",
+    shows:
+      "A resolved incident's feed: who was paged, each state change, and the notes, newest first",
     fixture: "EventOverview",
     page: "INCIDENT_VIEW",
     path: "/dashboard/:projectId/incidents/:id",

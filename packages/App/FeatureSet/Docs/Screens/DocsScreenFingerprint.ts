@@ -5,7 +5,8 @@
  * (packages/E2E/DocsScreens/Fingerprints/<language>.json): what the shot
  * says and how it is built, not its pixels. A job on main draws every shot
  * again and compares (compareFingerprints): a shot whose page changed is
- * stale, and one issue lists them (staleIssueBody, staleIssueAction).
+ * stale, and one issue lists them (staleIssueBody; the job keeps the issue
+ * with packages/E2E/DocsScreens/ReportStale.js).
  *
  * Why structure, not pixels: the same page draws different pixels on a Mac
  * and on a Linux runner (font rasterizing, and the fallback fonts Chinese,
@@ -191,35 +192,9 @@ export interface DocsScreensCheck {
   failed: Array<StaleScreen>;
 }
 
-export const STALE_ISSUE_TITLE: string = "Docs screenshots are out of date";
-
 // The command that draws them again, in the issue and the README.
 export const REGENERATE_COMMAND: string =
   "cd packages/E2E && npm run docs-screens";
-
-export type StaleIssueAction = "create" | "update" | "close" | "nothing";
-
-/*
- * What the job on main does with the one issue that lists stale shots:
- * open it, rewrite it, close it once every shot is current again, or leave
- * things as they are.
- */
-export const staleIssueAction: (
-  openIssue: number | null,
-  check: DocsScreensCheck,
-) => StaleIssueAction = (
-  openIssue: number | null,
-  check: DocsScreensCheck,
-): StaleIssueAction => {
-  const hasProblems: boolean =
-    check.stale.length > 0 || check.failed.length > 0;
-
-  if (hasProblems) {
-    return openIssue === null ? "create" : "update";
-  }
-
-  return openIssue === null ? "nothing" : "close";
-};
 
 /*
  * The issue's body: each stale shot once, with the languages it is stale

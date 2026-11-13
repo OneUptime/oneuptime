@@ -26,13 +26,19 @@ Het adres wordt gecontroleerd door de eigen sonde van uw server, dus het moet va
 :::steps
 ### De begeleide installatie openen
 
+![Start vraagt "Wat wil je eerst doen?", met "Weten wanneer mijn website of API plat ligt" aangevinkt](screen:home-goal-website)
+
 Bij een nieuw project stelt de pagina **Start** eerst de vraag **Wat wil je eerst doen?**: vink **Weten wanneer mijn website of API plat ligt** aan en klik op **Doorgaan**. Klik daarna in de checklist **Welkom bij OneUptime 👋** op **Maak je eerste monitor**. Toont de checklist die stap niet, druk dan op `Ctrl+K` (`Cmd+K` op een Mac), typ `website down` en kies **Weten wanneer mijn website of API plat ligt**.
 
 ### Het adres invoeren
 
+![De stap "Wat moeten we controleren?", met "Beginnen met controleren" omcirkeld](screen:website-down-address)
+
 Typ onder **Wat moeten we controleren?** het adres bij **Adres van de website of API**. Vink voor een API-endpoint **Dit is een API-endpoint** aan. Klik op **Beginnen met controleren**: de sondes controleren het adres meteen, en een zin vertelt wat ze hebben gevonden. Klik op **Doorgaan**.
 
 ### Kiezen wie er wordt ingelicht
+
+![De stap "Wie moet er op de hoogte worden gesteld?", met "Opslaan en doorgaan" omcirkeld](screen:website-down-who)
 
 Wat u onder **Wie moet er op de hoogte worden gesteld?** ziet, hangt af van het project:
 
@@ -42,6 +48,8 @@ Wat u onder **Wie moet er op de hoogte worden gesteld?** ziet, hangt af van het 
 
 ### Uzelf een test sturen
 
+![De stap "Stuur een test", met "Stuur mij een testoproep" omcirkeld](screen:website-down-test)
+
 Klik onder **Stuur een test** op **Stuur mij een testoproep**. Kies een **Ernst** en klik op **Testoproep sturen**. De test bereikt u zoals een echte oproep dat zou doen, en in elk bericht staat TEST. Er wordt geen incident aangemaakt.
 
 ### De testoproep bevestigen
@@ -50,6 +58,8 @@ Open de link in de e-mail en bevestig de oproep daar. Een geverifieerd telefoonn
 :::
 
 ## Controleren of het gelukt is
+
+![De samenvatting, gelezen uit de gegevens: "Gecontroleerd", "Bij een storing", "Wie wordt ingelicht" en "Getest"](screen:website-down-summary)
 
 - De begeleide installatie eindigt op de samenvatting, gelezen uit de opgeslagen gegevens: **Gecontroleerd**, **Bij een storing**, **Wie wordt ingelicht** en **Getest**.
 - Klik op **Monitor openen** en daarna op de kaart **Als dit uitvalt** van de monitor op **Keten tonen**: u ziet de keten van de monitor tot de mensen die hij bereikt, en als niets de keten zou tegenhouden, staat er **Niets houdt de keten tegen.**

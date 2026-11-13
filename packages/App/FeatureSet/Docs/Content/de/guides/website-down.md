@@ -26,13 +26,19 @@ Die Adresse wird von der eigenen Sonde Ihres Servers geprüft, daher muss sie vo
 :::steps
 ### Die geführte Einrichtung öffnen
 
+![Die Startseite fragt „Was möchten Sie zuerst tun?“, „Wissen, wenn meine Website oder API ausfällt“ ist angehakt](screen:home-goal-website)
+
 Die **Startseite** eines neuen Projekts fragt zunächst **Was möchten Sie zuerst tun?**: Haken Sie **Wissen, wenn meine Website oder API ausfällt** an und klicken Sie auf **Weiter**. Klicken Sie dann in der Checkliste **Willkommen bei OneUptime 👋** auf **Ersten Monitor erstellen**. Zeigt die Checkliste diesen Schritt nicht, drücken Sie `Ctrl+K` (`Cmd+K` auf einem Mac), geben Sie `website down` ein und wählen Sie **Wissen, wenn meine Website oder API ausfällt**.
 
 ### Die Adresse eingeben
 
+![Der Schritt „Was sollen wir prüfen?“, „Prüfung starten“ ist markiert](screen:website-down-address)
+
 Geben Sie unter **Was sollen wir prüfen?** die Adresse in **Adresse der Website oder API** ein. Haken Sie für einen API-Endpunkt **Dies ist ein API-Endpunkt** an. Klicken Sie auf **Prüfung starten**: Die Sonden prüfen die Adresse sofort, und ein Satz sagt, was sie gefunden haben. Klicken Sie auf **Weiter**.
 
 ### Festlegen, wer informiert wird
+
+![Der Schritt „Wer soll informiert werden?“, „Speichern und weiter“ ist markiert](screen:website-down-who)
 
 Was Sie unter **Wer soll informiert werden?** sehen, hängt vom Projekt ab:
 
@@ -42,6 +48,8 @@ Was Sie unter **Wer soll informiert werden?** sehen, hängt vom Projekt ab:
 
 ### Sich selbst einen Test senden
 
+![Der Schritt „Test senden“, „Mir eine Test-Alarmierung senden“ ist markiert](screen:website-down-test)
+
 Klicken Sie unter **Test senden** auf **Mir eine Test-Alarmierung senden**. Wählen Sie einen **Schweregrad** und klicken Sie auf **Test-Alarmierung senden**. Der Test erreicht Sie so, wie eine echte Alarmierung Sie erreichen würde, und in jeder Nachricht steht TEST. Es wird kein Vorfall erstellt.
 
 ### Die Test-Alarmierung bestätigen
@@ -50,6 +58,8 @@ Klicken Sie unter **Test senden** auf **Mir eine Test-Alarmierung senden**. Wäh
 :::
 
 ## Prüfen, ob es funktioniert hat
+
+![Die Zusammenfassung aus den Datensätzen: „Geprüft“, „Bei einem Ausfall“, „Wer informiert wird“ und „Getestet“](screen:website-down-summary)
 
 - Die Einrichtung endet mit ihrer Zusammenfassung, aus den gespeicherten Daten gelesen: **Geprüft**, **Bei einem Ausfall**, **Wer informiert wird** und **Getestet**.
 - Klicken Sie auf **Monitor öffnen** und dann auf der Karte **Wenn das ausfällt** des Monitors auf **Kette anzeigen**: Sie sehen die Kette vom Monitor bis zu den Personen, die er erreicht, und wenn nichts sie unterbrechen würde, steht dort **Nichts unterbricht die Kette.**

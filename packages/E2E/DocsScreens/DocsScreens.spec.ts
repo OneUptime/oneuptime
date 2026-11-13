@@ -11,6 +11,7 @@ import fs from "fs";
 import path from "path";
 import {
   DOCS_SCREEN_FIXTURES,
+  DOCS_SCREEN_LANGUAGES,
   DocsScreen,
   DocsScreenFixture,
 } from "../../App/FeatureSet/Docs/Screens/DocsScreenList";
@@ -39,7 +40,6 @@ import {
   ShotResult,
   writeFingerprints,
 } from "./DocsScreenRun";
-import { DOCS_SCREEN_LANGUAGES } from "../../App/FeatureSet/Docs/Screens/DocsScreenList";
 
 /*
  * THE DOCS' SCREENSHOTS (#6823), drawn from the offline fixtures: one test
@@ -64,6 +64,15 @@ interface OpenShot {
   driver: ScreenDriver;
   shot: DocsScreen;
   problems: Array<string>;
+}
+
+// Closes a shot's context; one that will not close is left to the browser.
+async function closeShot(open: OpenShot | null): Promise<void> {
+  try {
+    await open?.context.close();
+  } catch {
+    // The next shot opens a context of its own either way.
+  }
 }
 
 async function openShot(
@@ -156,7 +165,7 @@ for (const lang of LANGUAGES) {
           }
           open.shot = shot;
         } else {
-          await open?.context.close();
+          await closeShot(open);
           open = null;
           open = await openShot(browser, shot, lang);
         }
@@ -175,7 +184,10 @@ for (const lang of LANGUAGES) {
           recorded[shot.name],
           fingerprint,
         );
-        const file: string = path.join(STATIC_FOLDER, screenFile(lang, shot.name));
+        const file: string = path.join(
+          STATIC_FOLDER,
+          screenFile(lang, shot.name),
+        );
 
         if (MODE === "check") {
           results.push({
@@ -222,12 +234,12 @@ for (const lang of LANGUAGES) {
           ],
         });
         // The next shot opens its page afresh.
-        await open?.context.close();
+        await closeShot(open);
         open = null;
       }
     }
 
-    await open?.context.close();
+    await closeShot(open);
     await encoderContext.close();
 
     if (MODE === "write") {

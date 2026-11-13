@@ -122,7 +122,9 @@ function namePattern(
     })
     .join("[\\s\\u2066-\\u2069]+");
 
-  return exact ? new RegExp(`^[\\s\\u2066-\\u2069]*${body}[\\s\\u2066-\\u2069]*$`) : new RegExp(body, "i");
+  return exact
+    ? new RegExp(`^[\\s\\u2066-\\u2069]*${body}[\\s\\u2066-\\u2069]*$`)
+    : new RegExp(body, "i");
 }
 
 export default class ScreenDriver {
@@ -214,10 +216,10 @@ export default class ScreenDriver {
     if ("press" in action) {
       await this.button(area, action.press, action.exact).first().click();
     } else if ("tick" in action) {
-      await area
-        .getByRole("checkbox", { name: namePattern(this.lang, action.tick) })
-        .first()
-        .click();
+      const name: RegExp = action.asWritten
+        ? namePattern("en", action.tick)
+        : namePattern(this.lang, action.tick);
+      await area.getByRole("checkbox", { name }).first().click();
     } else if ("type" in action) {
       const field: Locator = area
         .getByLabel(namePattern(this.lang, action.type, action.exact !== false))
@@ -227,7 +229,9 @@ export default class ScreenDriver {
     } else if ("option" in action) {
       await this.page
         .getByRole("listbox")
-        .getByRole("option", { name: new RegExp(`^${escapeRegExp(action.option)}`) })
+        .getByRole("option", {
+          name: new RegExp(`^${escapeRegExp(action.option)}`),
+        })
         .first()
         .click();
     } else if ("escape" in action) {
@@ -253,10 +257,7 @@ export default class ScreenDriver {
   public async fingerprint(crop: Locator): Promise<DocsScreenFingerprint> {
     return await crop.evaluate((element: Element): DocsScreenFingerprint => {
       const clean: (text: string) => string = (text: string): string => {
-        return text
-          .replace(/[⁦-⁩]/g, "")
-          .replace(/\s+/g, " ")
-          .trim();
+        return text.replace(/[⁦-⁩]/g, "").replace(/\s+/g, " ").trim();
       };
       const visible: (node: Element) => boolean = (node: Element): boolean => {
         return (node as HTMLElement).checkVisibility
@@ -296,7 +297,7 @@ export default class ScreenDriver {
         const tag: string = node.tagName.toLowerCase();
         const kind: string = node.getAttribute("role")
           ? (node.getAttribute("role") as string)
-          : /^h[1-6]$/.test(tag)
+          : (/^h[1-6]$/).test(tag)
             ? "heading"
             : tag === "a"
               ? "link"
