@@ -13,6 +13,7 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 import MetricsPage from "../Pages/Metrics/Index";
 import MetricsListPage from "../Pages/Metrics/List";
 import MetricsDocumentationPage from "../Pages/Metrics/Documentation";
+import MetricsPromQLPage from "../Pages/Metrics/PromQL";
 import MetricsSettingsPipelineRules from "../Pages/Metrics/Settings/PipelineRules";
 import MetricsSettingsRecordingRules from "../Pages/Metrics/Settings/RecordingRules";
 
@@ -40,6 +41,15 @@ const MetricsRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={MetricsRoutePath[PageMap.METRICS_INSIGHTS] || ""}
           element={<MetricsListPage />}
+        />
+        <PageRoute
+          path={MetricsRoutePath[PageMap.METRICS_PROMQL] || ""}
+          element={
+            <MetricsPromQLPage
+              {...props}
+              pageRoute={RouteMap[PageMap.METRICS_PROMQL] as Route}
+            />
+          }
         />
         <PageRoute
           path={MetricsRoutePath[PageMap.METRICS_DOCUMENTATION] || ""}

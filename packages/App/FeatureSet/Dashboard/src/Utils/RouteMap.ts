@@ -1145,6 +1145,7 @@ export const DataObservabilityRoutePath: Dictionary<string> = {
 export const MetricsRoutePath: Dictionary<string> = {
   [PageMap.METRICS]: "",
   [PageMap.METRICS_INSIGHTS]: "insights",
+  [PageMap.METRICS_PROMQL]: "promql",
   [PageMap.METRIC_VIEW]: "view",
   [PageMap.METRICS_DOCUMENTATION]: "documentation",
   [PageMap.METRICS_SETTINGS_PIPELINE_RULES]: "settings/pipeline-rules",
@@ -9066,6 +9067,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.METRICS_DOCUMENTATION]: new Route(
     `/dashboard/${RouteParams.ProjectID}/metrics/${
       MetricsRoutePath[PageMap.METRICS_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.METRICS_PROMQL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/metrics/${
+      MetricsRoutePath[PageMap.METRICS_PROMQL]
     }`,
   ),
 
