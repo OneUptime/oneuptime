@@ -14,10 +14,11 @@ import {
 } from "./DocsDashboardLabels";
 import { STATUS_PAGE_ARCHIVE_COPY } from "../../../FeatureSet/Dashboard/src/Components/Archive/ResourceArchiveCopy";
 import {
-  PATH_SEPARATOR,
   boldLabels,
   boldPaths,
   lineShape,
+  pathArrowPattern,
+  pathWithArrows,
   stepCount,
   tabLabels,
   tables,
@@ -61,8 +62,9 @@ import path from "path";
  *   - The Dashboard. A bold label is drawnActionLabel (DocsDashboardLabels),
  *     Persian included; a table's create button is drawnCreateButton. A menu
  *     path is drawn segment by segment and stays one bold span with "→" in
- *     every language, as the other Status Pages pages write it; a segment
- *     that is not a label, such as "your page", is worded in the language.
+ *     every language, as the other Status Pages pages write it, but "←"
+ *     beside a Persian segment (#7611); a segment that is not a label, such
+ *     as "your page", is worded in the language.
  *     A few labels are drawn from a template (TEMPLATES), from one flat
  *     lookup of a key that differs from the label (FLAT_LOOKUP), or are the
  *     first sentence of a longer message (MESSAGE_LEADS); the Settings
@@ -785,29 +787,49 @@ function widestDiagramLine(language: string, page: string): number {
   );
 }
 
-// A path as this language writes it: its labels drawn, its other words free.
+/*
+ * A path as this language writes it: its labels drawn, its other words free,
+ * and the arrows the language's pages draw between its steps, "←" beside a
+ * Persian one (#7611). Beside a step in free words, in a language read from
+ * the right, either arrow: those words turn it.
+ */
 function pathPattern(language: string, segments: Array<string>): RegExp {
+  const steps: Array<string | null> = segments.map(
+    (segment: string): string | null => {
+      if (isActionLabel(segment)) {
+        return drawnActionLabel(language, segment);
+      }
+
+      const archiveCard: ArchiveCardTitle | undefined =
+        archiveCardInPath(segment);
+
+      if (archiveCard) {
+        return drawnArchiveCardTitle(language, archiveCard.singularName);
+      }
+
+      return segment === "your page" && YOUR_PAGE[language]
+        ? (YOUR_PAGE[language] as string)
+        : null;
+    },
+  );
+  const known: Array<string> = steps.filter(
+    (step: string | null): step is string => {
+      return step !== null;
+    },
+  );
+
+  if (known.length === steps.length) {
+    return new RegExp(
+      `\\*\\*${escapeRegExp(pathWithArrows(known, language))}\\*\\*`,
+    );
+  }
+
   return new RegExp(
-    `\\*\\*${segments
-      .map((segment: string): string => {
-        if (isActionLabel(segment)) {
-          return escapeRegExp(drawnActionLabel(language, segment));
-        }
-
-        const archiveCard: ArchiveCardTitle | undefined =
-          archiveCardInPath(segment);
-
-        if (archiveCard) {
-          return escapeRegExp(
-            drawnArchiveCardTitle(language, archiveCard.singularName),
-          );
-        }
-
-        return segment === "your page" && YOUR_PAGE[language]
-          ? escapeRegExp(YOUR_PAGE[language] as string)
-          : "[^*→\\n]+?";
+    `\\*\\*${steps
+      .map((step: string | null): string => {
+        return step === null ? "[^*→←\\n]+?" : escapeRegExp(step);
       })
-      .join(escapeRegExp(PATH_SEPARATOR))}\\*\\*`,
+      .join(pathArrowPattern(language))}\\*\\*`,
   );
 }
 

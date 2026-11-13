@@ -3,6 +3,8 @@ import {
   DEFAULT_DOCS_LANGUAGE,
   SUPPORTED_DOCS_LANGUAGE_CODES,
 } from "../../../FeatureSet/Docs/Utils/I18n";
+import { pathArrowPattern, pathWithArrows } from "./DocsPageShape";
+import { escapeRegExp } from "./DocsTranslationChecks";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -53,7 +55,7 @@ const PAGES_THAT_NAME_THE_RUNS: Array<string> = [
 /*
  * Only the English pages name the Dashboard's labels in English. The Persian
  * workflow pages name them as the Persian Dashboard draws them
- * (**لاگ‌ها → اجراها**), like every other language.
+ * (**لاگ‌ها ← اجراها**), like every other language.
  */
 const ENGLISH_UI_LABELS: Set<string> = new Set(["en"]);
 
@@ -232,9 +234,11 @@ const oldNameMentions: OldNameMentionsFunction = (
       .forEach((text: string, index: number) => {
         const named: boolean = OLD_NAMES[language]!.some(
           (name: string): boolean => {
+            // At a path's end, whichever way its arrow points (#7611).
             return (
               text.includes(`**${name}**`) ||
               text.includes(`→ ${name}**`) ||
+              text.includes(`← ${name}**`) ||
               text.includes(`[${name}](`) ||
               text.trim() === `# ${name}`
             );
@@ -285,7 +289,19 @@ describe("the suite reads the docs it claims to", () => {
 
 describe.each(LANGUAGES)("%s", (language: string) => {
   const words: MenuWords = menuWords(language);
-  const path_: string = `→ ${words.logs} → ${words.runs}**`;
+
+  /*
+   * Logs → Runs, with the arrows this language's pages draw between steps:
+   * "←" beside a Persian one (#7611). pathEnd is the end of a longer path,
+   * from the arrow after a menu's name, which this suite does not know: in a
+   * language read from the right, that name's words turn the arrow either
+   * way (the guard, PathArrowsInRightToLeftSentences, holds which).
+   */
+  const logsToRuns: string = pathWithArrows([words.logs, words.runs], language);
+  const pathEnd: RegExp = new RegExp(
+    `${pathArrowPattern(language)}${escapeRegExp(logsToRuns)}\\*\\*`,
+    "g",
+  );
 
   /*
    * Titled as its nav link, Workflow Runs, as every docs page is: a bare
@@ -308,13 +324,13 @@ describe.each(LANGUAGES)("%s", (language: string) => {
     const page: string = readPage(language, RUNS_PAGE);
 
     // One row for the Workflows menu, one for a workflow's own menu.
-    expect(count(page, path_)).toBe(2);
+    expect(page.match(pathEnd) || []).toHaveLength(2);
   });
 
   test("the overview lists Logs → Runs in both menus", () => {
     const page: string = readPage(language, OVERVIEW_PAGE);
 
-    expect(count(page, `**${words.logs} → ${words.runs}**`)).toBe(2);
+    expect(count(page, `**${logsToRuns}**`)).toBe(2);
   });
 
   test("no page names the old menu entry any more", () => {

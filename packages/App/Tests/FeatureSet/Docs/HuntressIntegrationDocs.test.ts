@@ -21,6 +21,7 @@ import {
   drawnDashboardLabel,
   isDashboardLabel,
 } from "./DocsDashboardLabels";
+import { pathSteps, pathWithArrows } from "./DocsPageShape";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import { WorkflowRoute } from "Common/ServiceRoute";
 import StandardWebhookSignature, {
@@ -116,7 +117,6 @@ const TRANSLATIONS: Array<string> = LANGUAGES.filter(
 );
 
 const BOLD: RegExp = /\*\*([^*\n]+?)\*\*/g;
-const MENU_PATH_SEPARATOR: string = " → ";
 const INLINE_CODE: RegExp = /`([^`\n]+)`/g;
 const DETAILS_TITLE: RegExp = /^:::details[ \t]+"([^"]+)"[ \t]*$/;
 const TABLE_ROW: RegExp = /^\|.*\|[ \t]*$/;
@@ -265,7 +265,8 @@ const matchesOf: (text: string, pattern: RegExp) => Array<string> = (
 
 /*
  * What a page names in bold. A menu path, "**Incidents → Settings →
- * Incident Severity**", names each screen on it as well.
+ * Incident Severity**", names each screen on it as well, whichever way its
+ * arrows point ("←" beside a Persian step, #7611).
  */
 const boldTermsOf: (text: string) => Set<string> = (
   text: string,
@@ -275,8 +276,8 @@ const boldTermsOf: (text: string) => Set<string> = (
   for (const term of matchesOf(text, BOLD)) {
     terms.add(term);
 
-    for (const part of term.split(MENU_PATH_SEPARATOR)) {
-      terms.add(part.trim());
+    for (const part of pathSteps(term)) {
+      terms.add(part);
     }
   }
 
@@ -1271,14 +1272,17 @@ describe("the Huntress page states what the trigger and its template do", () => 
         "Integrations",
       );
       const incidents: string = drawnDashboardLabel(language, "Incidents");
-      const oldPath: string = `${incidents}${MENU_PATH_SEPARATOR}${integrations}`;
 
       expect(sectionOf(language, "Huntress connections made before")).toContain(
-        `**${oldPath}${MENU_PATH_SEPARATOR}Huntress**`,
+        `**${pathWithArrows([incidents, integrations, "Huntress"], language)}**`,
       );
-      expect(
-        pageWithout(language, "Huntress connections made before"),
-      ).not.toContain(oldPath);
+
+      // The old path, with either arrow between its steps (#7611).
+      for (const arrow of ["→", "←"]) {
+        expect(
+          pageWithout(language, "Huntress connections made before"),
+        ).not.toContain(`${incidents} ${arrow} ${integrations}`);
+      }
     },
   );
 });

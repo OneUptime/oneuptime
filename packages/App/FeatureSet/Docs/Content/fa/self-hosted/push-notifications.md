@@ -97,10 +97,10 @@ vapid:
 
 | جهت | مقصد | پروتکل / پورت | چه وقت لازم است |
 | --- | --- | --- | --- |
-| OneUptime → رلهٔ پوش پیش‌فرض | `https://oneuptime.com/api/notification/push-relay/send`, `https://oneuptime.com/api/notification/push-relay/receipts` | HTTPS / TCP 443 | پوش موبایل وقتی `EXPO_ACCESS_TOKEN` تنظیم نشده است. |
+| OneUptime ← رلهٔ پوش پیش‌فرض | `https://oneuptime.com/api/notification/push-relay/send`, `https://oneuptime.com/api/notification/push-relay/receipts` | HTTPS / TCP 443 | پوش موبایل وقتی `EXPO_ACCESS_TOKEN` تنظیم نشده است. |
 | OneUptime → Expo | `https://exp.host/--/api/v2/push/send`, `https://exp.host/--/api/v2/push/getReceipts` | HTTPS / TCP 443 | پوش موبایل مستقیم وقتی `EXPO_ACCESS_TOKEN` تنظیم شده است. |
-| OneUptime → سرویس پوش مرورگر | نقطهٔ پایانی HTTPS ذخیره‌شده در اشتراک پوش مرورگر | HTTPS / معمولاً TCP 443 | ‏Web Push. |
-| برنامهٔ موبایل یا مرورگر → OneUptime | نام میزبان OneUptime شما | HTTPS / TCP 443 | ورود، ثبت دستگاه و باز کردن پیوندهای اعلان. |
+| OneUptime ← سرویس پوش مرورگر | نقطهٔ پایانی HTTPS ذخیره‌شده در اشتراک پوش مرورگر | HTTPS / معمولاً TCP 443 | ‏Web Push. |
+| برنامهٔ موبایل یا مرورگر ← OneUptime | نام میزبان OneUptime شما | HTTPS / TCP 443 | ورود، ثبت دستگاه و باز کردن پیوندهای اعلان. |
 
 اگر `PUSH_NOTIFICATION_RELAY_URL` را تغییر دهید، نام میزبان مقصد و پورت پیکربندی‌شدهٔ آن را مجاز کنید. یک رلهٔ سفارشی باید API رلهٔ OneUptime را پیاده‌سازی کند. این پیش‌فرض‌ها و جابه‌جایی میان رله و تحویل مستقیم در [پیکربندی OneUptime](https://github.com/OneUptime/oneuptime/blob/main/config.example.env) و [سرویس پوش](https://github.com/OneUptime/oneuptime/blob/main/packages/Common/Server/Services/PushNotificationService.ts) تعریف شده‌اند. درخواست‌های مستقیم به Expo از نقطهٔ پایانی‌ای استفاده می‌کنند که در [راهنمای ارسال Expo](https://docs.expo.dev/push-notifications/sending-notifications/) آمده است. ‏OneUptime رسیدهای تحویل را از رله در همان نشانی، با `/receipts` به‌جای `/send`، می‌خواند. رله‌ای که این مسیر را ندارد همچنان پوش‌ها را تحویل می‌دهد؛ در آن صورت دستگاهی که برنامه‌اش حذف شده، فقط وقتی شناخته می‌شود که پوش بعدی به آن رد شود.
 

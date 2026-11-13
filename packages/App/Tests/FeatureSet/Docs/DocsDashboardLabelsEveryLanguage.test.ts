@@ -13,6 +13,7 @@ import {
   drawnDashboardLabel,
   isActionLabel,
 } from "./DocsDashboardLabels";
+import { EITHER_ARROW } from "./DocsPageShape";
 import { isPermissionTitleKeptInEnglish } from "./DocsRoleNames";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
@@ -56,7 +57,6 @@ const PERSIAN_LETTER: RegExp = /[؀-ۿ]/;
 const LATIN_ONLY: RegExp = /^[ -~—…]+$/;
 
 const BOLD: RegExp = /\*\*([^*\n]+?)\*\*/g;
-const MENU_PATH_SEPARATOR: string = "→";
 
 // A headline's colon, ASCII or full-width, and the space French puts first.
 const TRAILING_COLON: RegExp = /\s*[:：]$/;
@@ -221,8 +221,9 @@ function readPersianPage(page: string): string {
 }
 
 /*
- * The bold names, and the segments of bold menu paths, a Persian page writes
- * in English although the Persian Dashboard draws them in other words: a
+ * The bold names, and the segments of bold menu paths (whichever way their
+ * arrows point, #7611), a Persian page writes in English although the
+ * Persian Dashboard draws them in other words: a
  * label, a Create or Add button, or a named action on a model ("Edit
  * Incident Template", which a page's Edit button draws from "Edit
  * {{itemName}}") or a headline the Dashboard writes with a colon, which the
@@ -232,7 +233,7 @@ function englishDashboardLabels(markdown: string): Array<string> {
   const found: Set<string> = new Set<string>();
 
   for (const match of markdown.matchAll(BOLD)) {
-    for (const segment of (match[1] as string).split(MENU_PATH_SEPARATOR)) {
+    for (const segment of (match[1] as string).split(EITHER_ARROW)) {
       const name: string = segment.trim();
 
       if (!LATIN_ONLY.test(name)) {
@@ -494,6 +495,10 @@ describe("the Persian pages the exception covered", () => {
         "**مالکان** and **Owners**, then **حوادث → Settings → قالب‌های حادثه**",
       ),
     ).toEqual(["Owners", "Settings"]);
+    // A path with "←" beside its Persian steps, as the pages write it (#7611).
+    expect(englishDashboardLabels("**حوادث ← Settings ← قواعد**")).toEqual([
+      "Settings",
+    ]);
     // A named action, which the page's button draws from its template.
     expect(englishDashboardLabels("**Edit Incident Template**")).toEqual([
       "Edit Incident Template",
