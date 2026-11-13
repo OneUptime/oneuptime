@@ -251,15 +251,14 @@ describe.each(LANGUAGES)("the %s docs", (language: string) => {
   });
 
   it("the settings page says incidents declared from Slack, Microsoft Teams or OneUptime AI follow the switch, and leaves them out of the ways that keep their own", () => {
-    const paragraph: string | undefined = linesOf(
-      language,
-      SETTINGS_PAGE,
-    ).find((line: string): boolean => {
-      return (
-        line.includes(INCIDENT_COLUMN_SPAN) &&
-        line.includes(`\`${NEW_INCIDENT_NOTIFY_DEFAULT_COLUMN}\``)
-      );
-    });
+    const paragraph: string | undefined = linesOf(language, SETTINGS_PAGE).find(
+      (line: string): boolean => {
+        return (
+          line.includes(INCIDENT_COLUMN_SPAN) &&
+          line.includes(`\`${NEW_INCIDENT_NOTIFY_DEFAULT_COLUMN}\``)
+        );
+      },
+    );
 
     expect(paragraph).toBeDefined();
 
@@ -270,9 +269,7 @@ describe.each(LANGUAGES)("the %s docs", (language: string) => {
     );
     const ends: Array<RegExpMatchArray> = [...head.matchAll(SENTENCE_END)];
     const lastEnd: RegExpMatchArray | undefined = ends[ends.length - 1];
-    const keepFrom: number = lastEnd
-      ? lastEnd.index! + lastEnd[0].length
-      : 0;
+    const keepFrom: number = lastEnd ? lastEnd.index! + lastEnd[0].length : 0;
 
     for (const name of DECLARED_WITHOUT_BOX_NAMES) {
       // Named as following the switch, before the sentence about the rest.

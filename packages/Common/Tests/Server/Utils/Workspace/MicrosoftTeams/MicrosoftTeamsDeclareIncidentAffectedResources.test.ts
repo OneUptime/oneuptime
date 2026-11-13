@@ -853,9 +853,11 @@ describe("the submit", () => {
 
     test("a project that cannot be read: declared all the same, as always", async () => {
       jest.spyOn(logger, "warn").mockImplementation((): void => {});
-      jest.spyOn(ProjectService, "findOneById").mockImplementation((async () => {
-        throw new Error("the database is not connected");
-      }) as never);
+      jest
+        .spyOn(ProjectService, "findOneById")
+        .mockImplementation((async () => {
+          throw new Error("the database is not connected");
+        }) as never);
 
       await submit({});
 

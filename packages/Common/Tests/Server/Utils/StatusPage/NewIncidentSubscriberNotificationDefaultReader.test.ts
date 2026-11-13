@@ -172,9 +172,9 @@ describe("NewIncidentSubscriberNotificationDefaultReader.applyToIncidentDeclared
   test("off: the incident is declared without notifying status page subscribers", async () => {
     const incident: Incident = await declared(projectWith(false));
 
-    expect(incident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated).toBe(
-      false,
-    );
+    expect(
+      incident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+    ).toBe(false);
   });
 
   test("on: the incident is left as it is, so it notifies them as it always did", async () => {
@@ -279,21 +279,20 @@ describe("who asks", () => {
     expect(callers).toEqual([...EXPECTED]);
   });
 
-  test.each(EXPECTED.map((file: string): [string] => {
-    return [file];
-  }))(
-    "%s asks once, before it creates the incident",
-    (file: string) => {
-      const source: string = fs.readFileSync(
-        path.join(SERVER_ROOT, file),
-        "utf8",
-      );
-      const asked: number = source.indexOf(CALL);
-      const created: number = source.indexOf("IncidentService.create(", asked);
+  test.each(
+    EXPECTED.map((file: string): [string] => {
+      return [file];
+    }),
+  )("%s asks once, before it creates the incident", (file: string) => {
+    const source: string = fs.readFileSync(
+      path.join(SERVER_ROOT, file),
+      "utf8",
+    );
+    const asked: number = source.indexOf(CALL);
+    const created: number = source.indexOf("IncidentService.create(", asked);
 
-      expect(source.split(CALL)).toHaveLength(2);
-      expect(asked).toBeGreaterThan(-1);
-      expect(created).toBeGreaterThan(asked);
-    },
-  );
+    expect(source.split(CALL)).toHaveLength(2);
+    expect(asked).toBeGreaterThan(-1);
+    expect(created).toBeGreaterThan(asked);
+  });
 });

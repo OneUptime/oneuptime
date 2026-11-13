@@ -554,17 +554,17 @@ describe("create_incident and status page subscribers, as the project starts Not
 
   function projectSays(notifiesByDefault: boolean): void {
     projectReads = [];
-    jest
-      .spyOn(ProjectService, "findOneById")
-      .mockImplementation((async (findOneById: Record<string, unknown>) => {
-        projectReads.push(findOneById);
+    jest.spyOn(ProjectService, "findOneById").mockImplementation((async (
+      findOneById: Record<string, unknown>,
+    ) => {
+      projectReads.push(findOneById);
 
-        const project: Project = new Project();
-        project.id = findOneById["id"] as ObjectID;
-        project.notifyStatusPageSubscribersOfNewIncidentsByDefault =
-          notifiesByDefault;
-        return project;
-      }) as never);
+      const project: Project = new Project();
+      project.id = findOneById["id"] as ObjectID;
+      project.notifyStatusPageSubscribersOfNewIncidentsByDefault =
+        notifiesByDefault;
+      return project;
+    }) as never);
   }
 
   async function declared(): Promise<Incident> {
