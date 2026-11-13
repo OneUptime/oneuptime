@@ -153,6 +153,111 @@ const EXPECTED_WIRING: Array<WiredIngestRoute> = [
     surfaceMember: "Loki",
   },
   {
+    file: `${TELEMETRY_API_DIRECTORY}/SplunkHec.ts`,
+    routePath: "/services/collector",
+    surfaceMember: "SplunkHec",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/SplunkHec.ts`,
+    routePath: "/services/collector/event",
+    surfaceMember: "SplunkHec",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/SplunkHec.ts`,
+    routePath: "/services/collector/event/1.0",
+    surfaceMember: "SplunkHec",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/SplunkHec.ts`,
+    routePath: "/services/collector/raw",
+    surfaceMember: "SplunkHec",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/SplunkHec.ts`,
+    routePath: "/services/collector/raw/1.0",
+    surfaceMember: "SplunkHec",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
+    routePath: "/datadog/api/v2/logs",
+    surfaceMember: "Datadog",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
+    routePath: "/datadog/api/v1/series",
+    surfaceMember: "Datadog",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
+    routePath: "/datadog/api/v2/series",
+    surfaceMember: "Datadog",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
+    routePath: "/datadog/api/beta/sketches",
+    surfaceMember: "Datadog",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
+    routePath: "/datadog/api/v1/check_run",
+    surfaceMember: "Datadog",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
+    routePath: "/datadog/api/v1/validate",
+    surfaceMember: "Datadog",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
+    routePath: "/datadog/intake",
+    surfaceMember: "Datadog",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
+    routePath: "/datadog/api/v1/metadata",
+    surfaceMember: "Datadog",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
+    routePath: "/api/v2/logs",
+    surfaceMember: "Datadog",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
+    routePath: "/api/v1/series",
+    surfaceMember: "Datadog",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
+    routePath: "/api/v2/series",
+    surfaceMember: "Datadog",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
+    routePath: "/api/beta/sketches",
+    surfaceMember: "Datadog",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
+    routePath: "/api/v1/check_run",
+    surfaceMember: "Datadog",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
+    routePath: "/api/v1/validate",
+    surfaceMember: "Datadog",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
+    routePath: "/intake",
+    surfaceMember: "Datadog",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
+    routePath: "/api/v1/metadata",
+    surfaceMember: "Datadog",
+  },
+  {
     file: `${TELEMETRY_API_DIRECTORY}/SessionReplayIngest.ts`,
     routePath: "/session-replay/v1/chunk",
     surfaceMember: "SessionReplay",
