@@ -9,6 +9,12 @@ import {
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import {
+  RouteAttributes,
+  pageRoutesIn,
+  routeMapPath,
+  routesAt,
+} from "../Helpers/PageRoutes";
 
 /*
  * THE INSTANCE ADMIN'S VIEW OF TELEMETRY USAGE (issue #5916), with billing
@@ -56,12 +62,23 @@ describe("the Admin Dashboard's usage pages", () => {
     expect(app).toContain(
       'import ProjectTelemetryUsage from "./Pages/Projects/View/TelemetryUsage";',
     );
-    expect(app).toContain(
-      'path={RouteMap[PageMap.TELEMETRY_USAGE]?.toString() || ""} element={<TelemetryUsage />}',
+
+    const routes: Array<RouteAttributes> = pageRoutesIn(
+      path.join(ADMIN_SRC, "App.tsx"),
     );
-    expect(app).toContain(
-      'path={RouteMap[PageMap.PROJECT_TELEMETRY_USAGE]?.toString() || ""} element={<ProjectTelemetryUsage />}',
-    );
+
+    expect(routesAt(routes, routeMapPath("TELEMETRY_USAGE"))).toEqual([
+      {
+        path: routeMapPath("TELEMETRY_USAGE"),
+        element: "<TelemetryUsage />",
+      },
+    ]);
+    expect(routesAt(routes, routeMapPath("PROJECT_TELEMETRY_USAGE"))).toEqual([
+      {
+        path: routeMapPath("PROJECT_TELEMETRY_USAGE"),
+        element: "<ProjectTelemetryUsage />",
+      },
+    ]);
   });
 
   test("Telemetry Usage is in the menu with the instance's health, on every install", () => {

@@ -128,6 +128,7 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
       fieldType: FormFieldSchemaType.Text,
       required: true,
       placeholder: t("subscribe.slack.workspaceNamePlaceholder"),
+      isPlaceholderTranslated: true,
     },
     {
       field: {
@@ -138,6 +139,7 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
       fieldType: FormFieldSchemaType.URL,
       required: true,
       placeholder: t("subscribe.slack.webhookUrlPlaceholder"),
+      isPlaceholderTranslated: true,
     },
     // On a page that lets subscribers choose: Preferences, folded.
     ...getSubscribePreferenceFields({
@@ -201,6 +203,7 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
               fieldType: FormFieldSchemaType.Text,
               required: true,
               placeholder: t("subscribe.slack.workspaceNamePlaceholder"),
+              isPlaceholderTranslated: true,
             },
           ]}
           createOrUpdateApiUrl={URL.fromString(

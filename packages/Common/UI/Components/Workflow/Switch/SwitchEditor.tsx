@@ -703,6 +703,8 @@ const SwitchEditor: FunctionComponent<SwitchEditorProps> = (
                     conditionState.compareAs.type || ConditionValueType.Text,
                     state.valueToCheck,
                   )}
+                  // A sentence around an example, in the reader's words here.
+                  isPlaceholderTranslated={true}
                   ariaLabel={translator.translateTemplate(
                     "Value for case {{number}}",
                     { number: number },

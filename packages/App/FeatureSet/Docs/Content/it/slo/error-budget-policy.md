@@ -158,6 +158,7 @@ Il messaggio descrive la modifica con le parole del **Feed** dello SLO: il livel
 | **Etichette dello SLO** | Le etichette dello SLO: una qualsiasi di quelle che scegli, tutte o nessuna. |
 | **Nome dello SLO** | Il nome dello SLO: uguale al tuo testo o no, che lo contiene o no, che inizia o finisce con esso. |
 | **Modifica della policy del budget di errore** | Cosa è cambiato: **Entrato in un livello più grave**, **Tornato a un livello meno grave**, **Uscito da tutti i livelli**, **Distribuzioni congelate** o **Distribuzioni di nuovo consentite**. |
+| **Proprietario dello SLO** | Le persone e i team registrati come proprietari dello SLO: uno qualsiasi di quelli che scegli, o nessuno. Far parte di un team proprietario dello SLO non conta. |
 
 Un cambio di livello che ha congelato le distribuzioni, o le ha di nuovo consentite, è un solo messaggio che contiene entrambe le modifiche. Quindi una regola per **Distribuzioni congelate** pubblica anche il cambio con cui lo SLO entra in un livello che le congela: un canale dei rilasci viene a sapere di ogni congelamento.
 

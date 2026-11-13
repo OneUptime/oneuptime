@@ -1,6 +1,12 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import {
+  RouteAttributes,
+  pageRoutesIn,
+  routeMapPath,
+  routesAt,
+} from "../Helpers/PageRoutes";
 import StorageSystem from "Common/Types/StorageArray/StorageSystem";
 import StorageArrayResourceKind, {
   StorageArrayResourceKindUtil,
@@ -366,27 +372,52 @@ describe("every route is actually mounted", () => {
   });
 
   test("App.tsx mounts the product router at the product root", () => {
-    const app: string = squash(readSource("App.tsx"));
-
-    expect(app).toContain("RouteMap[PageMap.STORAGE_ARRAYS_ROOT]");
-    expect(app).toContain("<StorageArrayRoutes {...commonPageProps} />");
+    expect(
+      routesAt(
+        pageRoutesIn(path.join(DASHBOARD_SRC, "App.tsx")),
+        routeMapPath("STORAGE_ARRAYS_ROOT"),
+      ),
+    ).toEqual([
+      {
+        path: routeMapPath("STORAGE_ARRAYS_ROOT"),
+        element: "<StorageArrayRoutes {...commonPageProps} />",
+      },
+    ]);
     expect(dense(readSource("App.tsx"))).toContain(
       'lazy(()=>{returnimport("./Routes/StorageArrayRoutes");})',
     );
   });
 
   test("App.tsx mounts the product right after Ceph", () => {
-    const app: string = readSource("App.tsx");
-    const ceph: number = app.indexOf("<CephRoutes {...commonPageProps} />");
-    const storage: number = app.indexOf(
-      "<StorageArrayRoutes {...commonPageProps} />",
+    const routes: Array<RouteAttributes> = pageRoutesIn(
+      path.join(DASHBOARD_SRC, "App.tsx"),
     );
-    expect(ceph).toBeGreaterThan(-1);
+    const cephPath: string = routeMapPath("CEPH_ROOT");
+
+    expect(routesAt(routes, cephPath)).toEqual([
+      { path: cephPath, element: "<CephRoutes {...commonPageProps} />" },
+    ]);
+
+    // Each the only route at its path, so where it sits is where it mounts.
+    const paths: Array<string | undefined> = routes.map(
+      (route: RouteAttributes): string | undefined => {
+        return route["path"];
+      },
+    );
+    const ceph: number = paths.indexOf(cephPath);
+    const storage: number = paths.indexOf(routeMapPath("STORAGE_ARRAYS_ROOT"));
+
     expect(storage).toBeGreaterThan(ceph);
     // No other product's router sits between the two.
     expect(
-      app.slice(ceph + "<CephRoutes {...commonPageProps} />".length, storage),
-    ).not.toContain("Routes {...commonPageProps}");
+      routes
+        .slice(ceph + 1, storage)
+        .filter((route: RouteAttributes): boolean => {
+          return (route["element"] || "").includes(
+            "Routes {...commonPageProps}",
+          );
+        }),
+    ).toEqual([]);
   });
 });
 

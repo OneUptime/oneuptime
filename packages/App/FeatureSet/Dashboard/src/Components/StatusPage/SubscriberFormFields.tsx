@@ -186,6 +186,10 @@ export const getSubscriberWelcomeField: (
  * which `placeholder` names ("Page default (Deutsch)"); the server stores
  * nothing for it (StatusPageSubscriberService). A webhook's payload is
  * data, so the Webhook Subscribers list asks none.
+ *
+ * `placeholder` is in the reader's words already - a sentence around the
+ * language's own name (getSubscriberPageDefaultLanguageText) - so the
+ * dropdown draws it as given rather than look it up again (#7682).
  */
 export const getSubscriberLanguageField: (data: {
   moreFields: FormFieldCollapsibleSection<StatusPageSubscriber>;
@@ -205,6 +209,7 @@ export const getSubscriberLanguageField: (data: {
     dropdownOptions: STATUS_PAGE_LANGUAGE_OPTIONS,
     required: false,
     placeholder: data.placeholder,
+    isPlaceholderTranslated: true,
     dataTestId: "subscriber-language",
     collapsibleSection: data.moreFields,
   };

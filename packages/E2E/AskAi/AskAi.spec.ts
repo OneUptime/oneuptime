@@ -3402,7 +3402,9 @@ test.describe("an action's arguments and the cards it leaves", () => {
     ).toHaveText("Status update posted, subscribers notified");
     await expect(
       cards.nth(1).getByTestId("ai-chat-resource-card-line"),
-    ).toHaveText("Private note added, for your team only");
+    ).toHaveText(
+      "Private note added, only for people who can see the incident",
+    );
     // Each action is its card: no Executed row under them.
     await expect(page.getByTestId("tool-approval-history")).toHaveCount(0);
     await settle(page);

@@ -102,6 +102,8 @@ Att skapa en regel går igenom fyra steg:
 | **Mål** | Var den publicerar: **Publicera i befintliga kanaler** med kanalnamnen, **Skapa en kanal för varje incident** (eller larm, episod, händelse, monitor eller jourpolicy) med vilka som går med i den, eller båda. Under steget säger **Vad regeln gör** det i meningar, som regelns kort. |
 | **Video Call** | Endast incidenter och larm: starta ett samtal för var och en. Se [Videosamtal](/docs/workspace-connections/video-calls). |
 
+Varje villkor läses som en mening: fältet, hur det jämförs och värdet. Värden att välja kommer från projektets egna listor, som dess tillstånd, allvarlighetsgrader, etiketter och monitorer. En regel för jourpolicyer väljer sina policyer under **Jourpolicy**, som fortsätter att matcha en policy efter att den har bytt namn, medan **Namn på jourpolicy** matchar ord i en policys namn. Varje sorts händelse som har ägare har ett ägarvillkor, som **Ägare av incident**: välj personer och team, så matchar det de personer och team som är registrerade som händelsens ägare. Att vara med i ett team som äger händelsen räknas inte. En ägare som läggs till senare får regeln att matcha från den uppdateringen, och en regel som skapar kanaler skapar kanalen då. Ett arkiverat värde, som en allvarlighetsgrad eller en jourpolicy, erbjuds inte för ett nytt villkor. En regel som redan har ett behåller det, märkt **Arkiverad**, och matchar fortfarande de händelser som har det. En person, ett team eller en policy som projektet inte längre har stannar kvar i villkoret, och regelns kort säger det.
+
 Ett SLO:s regel publicerar ändringarna i dess felbudgetpolicy: när SLO:et går in i en nivå, återhämtar sig till en mindre allvarlig nivå eller lämnar alla nivåer, och när dess distributioner fryses eller tillåts igen. Den publicerar bara i befintliga kanaler, eftersom ett SLO inte får någon egen kanal. Se [Publicera i Slack, Microsoft Teams och Mattermost](/docs/slo/error-budget-policy#publicera-i-slack-microsoft-teams-och-mattermost).
 
 En kanal som regeln skapar får namn efter sin post: incident INC-42 får `inc-42`, larm ALT-7 får `alt-7`, och i ett projekt utan nummerprefix får incident 42 `incident-42`. Text i **Prefix för kanalnamn** hamnar framför, så `prod-` ger `prod-inc-42`, och formuläret visar namnet medan du skriver. För en schemalagd underhållshändelse ersätter prefixet dess nummerprefix: SM-5 får `sm-5`, och `maint-` ger `maint-5`. Slack tar små bokstäver, siffror, `-` och `_`, upp till 80 tecken. Finns det redan en kanal med det namnet, till exempel ett annat projekts eller en arkiverad kanal, lägger OneUptime till `-2`, `-3` och så vidare.
@@ -174,7 +176,7 @@ Reagera på ett meddelande i kanalen för en incident, ett larm, en episod eller
 
 | Reaktion | Sparas som |
 | --- | --- |
-| 📌 En häftstift-emoji, eller Slacks egen **Pin to channel** | En privat anteckning, som bara ditt team ser |
+| 📌 En häftstift-emoji, eller Slacks egen **Pin to channel** | En privat anteckning, som bara de som kan se posten kan läsa |
 | 📢 En megafon- eller högtalar-emoji | En offentlig anteckning, som visas på statussidan. Endast incidenter och schemalagda underhållshändelser. På en privat incident en privat anteckning, och bekräftelsen säger varför. När projektets offentliga anteckningar kräver godkännande visas den först när den har godkänts, och bekräftelsen säger vem den väntar på: se [Godkännande av offentliga anteckningar](/docs/incidents/notes-owners-and-feed#godkännande-av-offentliga-anteckningar). |
 
 Anteckningen behåller meddelandet så som Slack visade det: formateringen, länkarna och koden, personerna och kanalerna det nämner, med namn, och filerna och bilderna som länkar till dem. En offentlig anteckning utelämnar filerna och bilderna, eftersom de bara öppnas för ditt team.
@@ -281,7 +283,7 @@ En incidents meddelande har fyra knappar, **Acknowledge Incident**, **Resolve In
 | **Change Severity** | Anger incidentens allvarlighetsgrad. |
 | **Change Incident State** | Flyttar incidenten till ett senare tillstånd. |
 | **Assign Role** | Ger någon en roll i incidenten, som **Incident Commander**. En roll för en person går över till den personen. |
-| **Page Someone** | Larmar personer, ett team, den som har jour i ett schema just nu, eller en jourpolicy om incidenten, med ett valfritt meddelande. Personer larmas tills någon av dem svarar; en policy larmar tills någon bekräftar incidenten. |
+| **Page Someone** | Larmar personer, ett team, den som har jour i ett schema just nu, eller en jourpolicy om incidenten, med ett valfritt meddelande. Alla som den larmar, även personerna i en policy, larmas tills någon av dem svarar eller incidenten är löst. |
 | **Edit Custom Fields** | Anger incidentens anpassade fält, vart och ett ifyllt med det incidenten har. Ett fält som lämnas tomt rensas. |
 
 `/oneuptime incident 42` visar incident 42, med de här knapparna och dess meny, i ett meddelande som bara du ser. Skriv numret som OneUptime visar det: `42`, `#42` eller `INC-42`. I en incidents egen kanal visar `/oneuptime incident` ensamt den incidenten.

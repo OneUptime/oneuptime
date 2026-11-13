@@ -33,7 +33,7 @@ Les deux enregistrent un problème, et les deux peuvent alerter la personne d'as
 | ---------------------------------- | ------------------------------------------------------ | ------------------------------------------------- |
 | **Ce que c'est**                   | Un problème que votre équipe doit examiner avant que les utilisateurs ne soient touchés | Un problème qui touche vos utilisateurs, comme une panne |
 | **Sur les pages de statut**        | Jamais                                                 | Peut s'afficher, et prévient les abonnés          |
-| **Notes**                          | Notes privées, pour votre équipe uniquement            | Notes publiques pour les clients, et notes privées |
+| **Notes**                          | Notes privées, réservées aux personnes qui peuvent voir l'alerte            | Notes publiques pour les clients, et notes privées |
 | **États de départ**                | **Identifié**, **Pris en compte**, **Résolu**          | **Identifié**, **Pris en compte**, **Résolu**     |
 | **Gravités de départ**             | **Élevé**, **Faible**                                     | Critical Incident, Major Incident, Minor Incident |
 | **Numéros dans un nouveau projet** | `ALT-42`, et `AE-42` pour les épisodes                 | `INC-42`, et `IE-42` pour les épisodes            |

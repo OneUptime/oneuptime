@@ -51,6 +51,8 @@ const INGEST_LOCATIONS = [
   "/session-replay",
   "/pyroscope",
   "/source-maps",
+  // Splunk HEC's root paths (the compatible ingest endpoints, #6797).
+  "/services/collector",
 ];
 
 const IMMUTABLE_CACHE_CONTROL = "public, max-age=31536000, immutable";

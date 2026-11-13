@@ -69,7 +69,18 @@ flowchart TB
 | **Tidspunkt for første overdragelse** | Den første overdragelse til den næste person, ved eller efter starten. Senere overdragelser følger hvert rotationsinterval. |
 | **Begrænsninger** | De timer, laget har vagt: **Ingen begrænsninger**, **Bestemte tidspunkter på dagen** eller **Bestemte tidspunkter i ugen**, i vagtplanens tidszone. Uden for dem tager lavere lag over. |
 
-For at ændre, hvilket lag der kommer først, skal du bruge **Flyt lag op (højere prioritet)** eller **Flyt lag ned (lavere prioritet)** i et lags menu.
+For at ændre, hvilket lag der kommer først, skal du bruge pilene på et lags kort: **Flyt lag op (højere prioritet)** eller **Flyt lag ned (lavere prioritet)**.
+
+Ændringer i, hvem der skiftes, venter, til du gemmer dem, så du kan lave flere og tjekke dem, før nogens vagt flytter sig. Træk personer i en ny rækkefølge, tilføj eller fjern personer, flyt et lag op eller ned eller slet et, og siden viser hver ændring, før den er gemt:
+
+- Den, du tilføjede, er markeret **Ny**, og den, du trak til en ny plads, **Flyttet**. De personer, du fjernede, står under **Fjernes, når du gemmer**, hver med **Fortryd**.
+- Et lag, du sletter, viser, at det slettes, når du gemmer, med **Fortryd**.
+- Hvert lag og den endelige vagtplan viser rotationen, som den bliver. Den endelige vagtplan er markeret **Indeholder ikke-gemte ændringer**.
+- En bjælke nederst på siden nævner ændringerne, med **Gem ændringer** og **Kasser**.
+
+**Gem ændringer** gemmer alle ændringerne på én gang. Hvem der har vagt, beregnes derefter én gang, for lagene som gemt: Den, der går på eller af vagt eller er den næste, får besked én gang, ikke én gang for hver ændring. **Kasser** sætter lagene tilbage til, som de sidst blev gemt. Hvis du forlader siden, før du gemmer, bliver du spurgt først: **Fortsæt med at redigere** bliver på siden, **Kassér ændringer** forlader den uden at gemme.
+
+Hvis en anden har ændret lagene, efter du åbnede siden, gemmes dine ændringer ikke oven i deres. Bjælken siger det, og **Genindlæs lag** viser lagene, som de er nu, så du kan foretage dine ændringer igen. **Tilføj lag** tilføjer laget med det samme, og et lags indstillinger gemmes med lagets egen knap **Gem lag**.
 
 Hver person beholder én farve overalt, så du kan følge personen med et blik: i hvert lag, i den endelige vagtplan og dens overrides og på **Tidslinje for vagtplaner**.
 

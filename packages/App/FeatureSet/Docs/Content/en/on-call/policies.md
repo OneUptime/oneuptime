@@ -81,6 +81,17 @@ The minutes are counted from each acknowledgement, and a policy pages again at m
 
 Whoever is paged again acknowledges it from its message, or with **Acknowledge again** on the incident's or alert's page, and the minutes start again; **Escalate** passes it to the next level. Resolving or deleting the incident or alert, archiving or deleting the policy, or choosing **Don't page again** stops it. The card's **After an acknowledgement** row says what the policy does, and **More settings** shows the minutes while it is folded. **Policy at a glance** on the **Overview** and the **Escalation summary** say the same in words.
 
+## When several policies page
+
+An incident, alert or episode runs each of its policies on its own, at the same time.
+
+- Someone on call in two of them is paged by both, once by each: OneUptime does not merge the pages of different policies. Within one policy, someone a level names twice, in person and through a team or a schedule, is paged once.
+- Acknowledging the incident or alert stops every policy running for it within a minute, wherever it is acknowledged: from any page about it, on its own page, in the mobile app, or in Slack or Microsoft Teams. No next level is paged, and no call or text still waiting to go out is sent. Notifications already sent stay sent.
+
+Some pages go on after it is acknowledged, until somebody they paged answers or it is resolved: a page again, a page to observers, a page someone sent to people from Slack or Microsoft Teams, and a policy started by hand.
+
+A policy started by hand is one started with **Execute On-Call Policy**, or by a page from Slack or Microsoft Teams that names it. It pages level by level as any run does, calls and repeated pushes included, and somebody else acknowledging the incident does not stop it: that is how you page another team into an incident somebody is already on. Whoever it paged answers from their page's message, a call or a text, or by acknowledging the incident themselves; once the incident is acknowledged, its page offers them **Acknowledge again**. **Escalate** passes it to the next level. On an incident, alert or episode that is resolved, nothing is started, and you are told why.
+
 ## Execution logs
 
 Every time a policy runs, it writes an execution log, and the log moves through its statuses as the run goes on:
@@ -162,6 +173,14 @@ The level before it had nobody to page: no responders, nobody on call in its sch
 
 :::details An incident lists a policy that paged nobody
 The policy is archived: an archived policy stays on the incidents and alerts that use it, and pages nobody, and its execution log says it was not executed. Unarchive it under **On-Call → Advanced → Archived Policies**.
+:::
+
+:::details Someone was paged twice about one incident
+They are on call in two of the policies the incident runs, and each policy pages its own people. Acknowledging the incident from either page stops both. To have them paged once, put both teams or schedules in one level of one policy.
+:::
+
+:::details A policy kept paging after the incident was acknowledged
+It was started by hand, or it is a page again: it goes on until somebody it paged answers, or the incident is resolved. See [When several policies page](#when-several-policies-page).
 :::
 
 ## Next steps

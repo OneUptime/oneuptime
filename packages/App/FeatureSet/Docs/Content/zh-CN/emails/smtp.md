@@ -74,6 +74,8 @@ flowchart TB
 
 **Microsoft Graph.** 在项目的表单中，选择 `Microsoft Graph` 作为 **提供商**；在实例的表单中，打开 **更多字段**，将 **传输** 设置为 `Microsoft Graph`。然后填写具有 **Mail.Send** 应用程序权限的 Azure 应用的信息：其客户端 ID 和客户端密钥、令牌 URL `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` 以及范围 `https://graph.microsoft.com/.default`。邮件从 **发件人邮箱** 对应的邮箱发送，该邮箱必须是您租户中已获得许可的邮箱。
 
+**Terraform.** 项目的 SMTP 配置也是 [Terraform 提供程序](/docs/terraform/index) 的 `oneuptime_smtp_config` 资源。密码、OAuth 客户端密钥和电子邮件提供商的密钥都是敏感值，因此计划、日志和输出中从不显示它们。Terraform 使用的 API 密钥必须能读取它们：**项目所有者**、**项目管理员**，或自定义角色中的 **Read SMTP Config**。状态页的 `smtp_config_id` 取配置的 `id`。
+
 > [!NOTE]
 > 在 OneUptime Cloud 上，项目的邮件服务器必须能够通过互联网访问：解析为私有地址或内部地址的主机会被拒绝。在自托管安装中，除非 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` 为 `true`，否则允许私有地址，但环回地址和链路本地地址始终会被拒绝。实例自己的邮件服务器不会经过这种检查。
 

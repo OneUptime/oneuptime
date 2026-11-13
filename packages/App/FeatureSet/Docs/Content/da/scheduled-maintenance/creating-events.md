@@ -124,7 +124,7 @@ Alt fra formularen kan ændres på begivenhedens egne sider, undtagen de tre abo
 ## Post noter, mens arbejdet skrider frem
 
 - **Offentlige noter** er opdateringer til dine kunder: de vises på begivenhedens statussider, og hver af dem kan give deres abonnenter besked med **Giv abonnenter på statussiden besked**.
-- **Private noter** er kun for dit team.
+- **Private noter** kan kun læses af dem, der kan se begivenheden.
 
 Skriv en på begivenhedens side **Offentlige noter** eller **Private noter**, eller fra menuen **Handlinger** i **Feed for planlagt vedligeholdelse** med **Tilføj offentlig note** eller **Tilføj privat note**. Den samme menu kører en runbook med **Kør runbook**. En noteskabelon udfylder tekst, dit team ofte skriver: se [Vedligeholdelsesregler og indstillinger](/docs/scheduled-maintenance/settings#noteskabeloner).
 

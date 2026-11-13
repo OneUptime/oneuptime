@@ -276,7 +276,8 @@ class WorkspaceNotificationRule extends BaseModel {
   })
   @TableColumn({
     title: "Workspace Notification Rules",
-    description: "Notification Rules for the Workspace",
+    description:
+      "Which events the rule is for and where it posts. Owner and On-Call Policy conditions name people, teams and policies of this project by ID.",
     required: true,
     unique: false,
     type: TableColumnType.JSON,

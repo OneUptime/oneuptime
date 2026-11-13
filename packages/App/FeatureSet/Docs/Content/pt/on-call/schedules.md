@@ -69,7 +69,18 @@ flowchart TB
 | **Horário da primeira passagem** | A primeira passagem para a próxima pessoa, no início ou depois. As passagens seguintes acompanham cada intervalo de rotação. |
 | **Restrições** | Os horários em que a camada fica de plantão: **Sem Restrições**, **Horários específicos do dia** ou **Horários específicos da semana**, no fuso horário do agendamento. Fora deles, as camadas inferiores assumem. |
 
-Para mudar qual camada vem primeiro, use **Mover camada para cima (maior prioridade)** ou **Mover camada para baixo (menor prioridade)** no menu de uma camada.
+Para mudar qual camada vem primeiro, use as setas no cartão de uma camada: **Mover camada para cima (maior prioridade)** ou **Mover camada para baixo (menor prioridade)**.
+
+As mudanças em quem se reveza esperam até você salvá-las, para você poder fazer várias e conferi-las antes que o turno de alguém mude. Arraste pessoas para uma nova ordem, adicione ou remova pessoas, suba ou desça uma camada ou exclua uma, e a página mostra cada mudança antes de ela ser salva:
+
+- Quem você adicionou fica marcado como **Novo**, e quem você arrastou para outro lugar, como **Movido**. As pessoas que você removeu aparecem em **Removidos ao salvar**, cada uma com **Desfazer**.
+- Uma camada que você exclui avisa que será excluída quando você salvar, com **Desfazer**.
+- Cada camada e o agendamento final mostram a rotação como ela vai ficar. O agendamento final fica marcado com **Inclui alterações não salvas**.
+- Uma barra no rodapé da página lista as mudanças, com **Salvar alterações** e **Descartar**.
+
+**Salvar alterações** salva todas as mudanças de uma vez. Quem está de plantão é então calculado uma única vez, para as camadas como foram salvas: quem entra ou sai do plantão, ou é o próximo, é avisado uma vez, e não uma vez por mudança. **Descartar** devolve as camadas ao estado em que foram salvas pela última vez. Sair da página antes de salvar pergunta primeiro: **Continuar Editando** fica na página, **Descartar alterações** sai sem salvar.
+
+Se outra pessoa alterou as camadas depois que você abriu a página, suas mudanças não são salvas por cima das dela. A barra avisa, e **Recarregar camadas** mostra as camadas como estão agora, para você refazer suas mudanças. **Adicionar camada** adiciona a camada na hora, e as configurações de uma camada são salvas com o próprio botão **Salvar camada**.
 
 Cada pessoa mantém uma única cor em todo lugar, para você acompanhá-la num relance: em cada camada, no agendamento final e nas substituições dele, e na **Linha do tempo de plantões**.
 

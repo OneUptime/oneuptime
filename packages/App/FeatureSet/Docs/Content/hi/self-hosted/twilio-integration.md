@@ -1,9 +1,9 @@
 # Twilio इंटीग्रेशन
 
-स्व-होस्टेड OneUptime आपके अपने Twilio खाते से SMS और वॉइस अलर्ट भेजता है, और आप सीधे Twilio को भुगतान करते हैं। Twilio क्रेडेंशियल आप OneUptime के डैशबोर्ड में सहेजते हैं, एनवायरनमेंट वेरिएबल में नहीं: सूचना भेजने की प्रक्रिया सहेजा गया कॉन्फ़िगरेशन पढ़ती है, और Helm चार्ट में Twilio क्रेडेंशियल के कोई मान नहीं हैं।
+स्व-होस्टेड OneUptime आपके अपने Twilio खाते से SMS और वॉइस अलर्ट भेजता है, और आप सीधे Twilio को भुगतान करते हैं। Twilio क्रेडेंशियल आप OneUptime के डैशबोर्ड में सहेजते हैं, किसी एक प्रोजेक्ट के लिए या पूरे इंस्टॉलेशन के लिए। कोड से डिप्लॉय किया गया इंस्टॉलेशन इसके बजाय पूरे इंस्टॉलेशन का खाता एनवायरनमेंट वेरिएबल से सेट कर सकता है, जिन्हें Helm चार्ट और Docker Compose आगे पहुँचाते हैं: देखें [पूरे इंस्टॉलेशन का खाता एनवायरनमेंट वेरिएबल से सेट करें](#पूरे-इंस्टॉलेशन-का-खाता-एनवायरनमेंट-वेरिएबल-से-सेट-करें)।
 
 > [!NOTE]
-> एक पुराने माइग्रेशन ने `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` और `TWILIO_PHONE_NUMBER` इंपोर्ट किए थे; इन वेरिएबल को बदलना किसी मौजूदा इंस्टॉलेशन के क्रेडेंशियल अपडेट करने का तरीका नहीं है।
+> एक पुराने माइग्रेशन ने `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` और `TWILIO_PHONE_NUMBER` एक बार इंपोर्ट किए थे; इन वेरिएबल को बदलने से किसी मौजूदा इंस्टॉलेशन के क्रेडेंशियल अपडेट नहीं होते। नीचे दिए गए `GLOBAL_TWILIO_` वेरिएबल से होते हैं।
 
 :::cards
 - [अपना Twilio खाता तैयार करें](#1-अपना-twilio-खाता-तैयार-करें): क्रेडेंशियल, एक फ़ोन नंबर और खाते की सीमाएँ।
@@ -53,6 +53,66 @@
 :::
 
 पूरे इंस्टॉलेशन के डिफ़ॉल्ट के लिए, कोई एडमिन इसके बजाय **Admin Dashboard > सेटिंग्स > कॉल और एसएमएस** खोलकर, यह चुनकर कि खाता क्या भेजता है, Twilio क्रेडेंशियल और फ़ोन नंबर संपादित करके सहेज सकता है। जब सदस्यों के प्रोजेक्ट का कोई डिफ़ॉल्ट नहीं होता, तो उनकी सूचनाएँ इसी ग्लोबल कॉन्फ़िगरेशन का इस्तेमाल करती हैं। Auth Token को गोपनीय रखें।
+
+### पूरे इंस्टॉलेशन का खाता एनवायरनमेंट वेरिएबल से सेट करें
+
+एक नया इंस्टॉलेशन शुरू होते ही SMS भेज सकता है और कॉल कर सकता है, बिना कुछ हाथ से सेट किए: पूरे इंस्टॉलेशन का खाता एनवायरनमेंट वेरिएबल से सेट करें, Terraform से या जो भी OneUptime को डिप्लॉय करता है उससे। जैसे ही `GLOBAL_TWILIO_ACCOUNT_SID` सेट होता है, खाता वही होता है जिसका वर्णन ये वेरिएबल करते हैं। **Admin Dashboard > सेटिंग्स > कॉल और एसएमएस** में सहेजा गया खाता इस्तेमाल नहीं होता, और वह पेज इस खाते को केवल पढ़ने के लिए दिखाता है, हर फ़ील्ड के साथ वह वेरिएबल जो उसे सेट करता है। इसके बजाय Admin Dashboard में खाता सेट करने के लिए `GLOBAL_TWILIO_ACCOUNT_SID` खाली छोड़ें। प्रोजेक्ट कॉन्फ़िगरेशन पर इसका कोई असर नहीं पड़ता।
+
+| वेरिएबल | Helm मान | इसमें क्या होता है |
+| --- | --- | --- |
+| `GLOBAL_TWILIO_ACCOUNT_SID` | `twilio.accountSid` | Account SID। इसे सेट करने पर ही OneUptime बाकी वेरिएबल पढ़ता है |
+| `GLOBAL_TWILIO_AUTH_TOKEN` | `twilio.authToken`, या `twilio.existingSecret.name` में नामित Secret | Auth Token |
+| `GLOBAL_TWILIO_USED_FOR` | `twilio.usedFor` | `calls-and-sms` (खाली होने पर भी), `sms-only` या `calls-only` |
+| `GLOBAL_TWILIO_PRIMARY_PHONE_NUMBER` | `twilio.primaryPhoneNumber` | वह नंबर जिससे कॉल जाते हैं, देश कोड के साथ। `sms-only` के लिए ज़रूरी नहीं |
+| `GLOBAL_TWILIO_SECONDARY_PHONE_NUMBERS` | `twilio.secondaryPhoneNumbers` | वैकल्पिक, कॉमा से अलग: वे नंबर जो अपने देश के प्राप्तकर्ताओं के लिए प्राथमिक नंबर के बजाय इस्तेमाल होते हैं |
+| `GLOBAL_TWILIO_SMS_PHONE_NUMBERS` | `twilio.smsPhoneNumbers` | कॉमा से अलग नंबर, जिनसे हर SMS जाता है। `sms-only` के लिए ज़रूरी |
+
+Helm के साथ, इन्हें अपनी values में `twilio` के नीचे सेट करें। auth token को उन values से बाहर रखने के लिए जिन्हें Helm हर release के साथ सहेजता है, उसे अपने खुद के Secret में रखें और उस Secret का नाम `twilio.existingSecret.name` में दें:
+
+```bash
+kubectl create secret generic oneuptime-twilio --namespace oneuptime \
+  --from-literal=authToken=YOUR_TWILIO_AUTH_TOKEN
+```
+
+```yaml
+twilio:
+  accountSid: ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+  usedFor: calls-and-sms
+  primaryPhoneNumber: "+14155550100"
+  existingSecret:
+    name: oneuptime-twilio
+```
+
+values फ़ाइल में फ़ोन नंबर उद्धरण चिह्नों में लिखें, और उन्हें `--set` के बजाय `--set-string` से दें: उद्धरण चिह्नों के बिना `+14155550100` एक संख्या है, जिसे चार्ट अस्वीकार करता है। चार्ट `twilio.accountSid` के बिना दूसरे `twilio` मान, auth token के बिना Account SID, और `twilio.authToken` और Secret दोनों में दिया गया auth token भी अस्वीकार करता है। Terraform के साथ, यही मान किसी `helm_release` पर सेट करें, auth token को संवेदनशील मान के रूप में।
+
+Docker Compose के साथ, `config.env` में `GLOBAL_TWILIO_` सेटिंग्स सेट करें, फिर कंटेनर दोबारा बनाने के लिए `npm run start` चलाएँ।
+
+OneUptime शुरू होते समय वेरिएबल पढ़ता है। अगर कोई गलत है, जैसे ऐसा फ़ोन नंबर जिसे OneUptime पढ़ नहीं सकता या auth token का न होना, तो उसे ठीक किए जाने तक खाता न कोई SMS भेजता है और न कोई कॉल करता है; सर्वर का लॉग, **Admin Dashboard > सेटिंग्स > कॉल और एसएमएस** और `/admin/setup` पर चेकलिस्ट उस वेरिएबल का नाम बताते हैं। auth token कभी नहीं दिखाया जाता। खाता बदलने के लिए, वेरिएबल बदलें और OneUptime को रीस्टार्ट करें: Admin Dashboard इसे नहीं बदलता।
+
+### Terraform से प्रोजेक्ट कॉन्फ़िगरेशन प्रबंधित करें
+
+प्रोजेक्ट कॉन्फ़िगरेशन [Terraform प्रदाता](/docs/terraform/index) का `oneuptime_call_and_sms_config` रिसोर्स भी है, और इसी नाम का डेटा सोर्स कॉन्फ़िगरेशन पढ़ता है। Auth Token संवेदनशील है, इसलिए प्लान, लॉग और आउटपुट उसे कभी नहीं दिखाते। उसे किसी संवेदनशील वेरिएबल में पास करें:
+
+```hcl
+variable "twilio_auth_token" {
+  type      = string
+  sensitive = true
+}
+
+resource "oneuptime_call_and_sms_config" "production" {
+  name                        = "Production Twilio"
+  used_for                    = "Calls and SMS"
+  twilio_account_sid          = "ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+  twilio_auth_token           = var.twilio_auth_token
+  twilio_primary_phone_number = "+14155550100"
+  is_project_default          = true
+}
+```
+
+- **प्रोजेक्ट डिफ़ॉल्ट।** Terraform किसी कॉन्फ़िगरेशन को प्रोजेक्ट डिफ़ॉल्ट केवल `is_project_default = true` होने पर बनाता है। इसे छोड़ देने पर Terraform `false` भेजता है, इसलिए डैशबोर्ड की तरह प्रोजेक्ट का पहला कॉन्फ़िगरेशन डिफ़ॉल्ट नहीं बनता। हर तरह के संदेश के लिए इसे केवल एक कॉन्फ़िगरेशन पर सेट करें: एक ही `used_for` वाले दो कॉन्फ़िगरेशन पर इसे सेट करने से वे हर apply पर एक-दूसरे से डिफ़ॉल्ट ले लेते हैं। `is_project_default_for_sms` और `is_project_default_for_calls` को OneUptime सेट करता है, और Terraform उन्हें केवल पढ़ता है।
+- **फ़ोन नंबर।** हर नंबर `+` और देश कोड के साथ लिखें। अंकों के बीच स्पेस, डैश, बिंदु और कोष्ठक चल जाते हैं: OneUptime `+1 415 555 0100` को `+14155550100` के रूप में सहेजता है, और Terraform इसे वही नंबर मानता है जो आपने लिखा था, इसलिए plan में कोई बदलाव नहीं दिखता।
+- **API कुंजी।** Terraform जिस कुंजी का उपयोग करता है, उसे कॉन्फ़िगरेशन बनाने और संपादित करने के अलावा Auth Token भी पढ़ पाना चाहिए: **प्रोजेक्ट स्वामी**, **प्रोजेक्ट एडमिन**, या कस्टम भूमिका में **Read Call and SMS**। जो कुंजी ऐसा नहीं कर सकती, उससे कॉन्फ़िगरेशन पढ़ना विफल होता है, और त्रुटि बताती है कि टोकन कौन पढ़ सकता है।
+- **संदर्भ।** स्थिति पृष्ठ का `call_sms_config_id` और इनकमिंग कॉल नीति का `project_call_sms_config_id` कॉन्फ़िगरेशन का `id` लेते हैं।
 
 ### कॉल और SMS के लिए अलग नंबर
 

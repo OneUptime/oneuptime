@@ -39,7 +39,9 @@ import WorkspaceReactionNote, {
   WorkspaceNoteResource,
 } from "./WorkspaceReactionNote";
 import SlackReactionNoteActions from "./Slack/Actions/ReactionNote";
-import OnCallPersonPageAnswer from "../OnCall/OnCallPersonPageAnswer";
+import OnCallPersonPageAnswer, {
+  OnCallPersonPageRecordKind,
+} from "../OnCall/OnCallPersonPageAnswer";
 import MicrosoftTeamsReactionNoteSync from "./MicrosoftTeams/ReactionNoteSync";
 import WorkspaceMemberActions, {
   WorkspaceEventRecord,
@@ -244,26 +246,25 @@ export default class WorkspaceConnectCompletion {
       if (
         WorkspaceConnectCompletion.isDoneAlready(pendingAction.kind, standing)
       ) {
+        /*
+         * Acknowledge on an incident, an alert or an episode somebody else
+         * is on answers the presser's own pages about it, as the button
+         * does once they are connected (OnCallPersonPageAnswer).
+         */
+        const pageRecordKind: OnCallPersonPageRecordKind | null =
+          WorkspaceMemberActions.getPageRecordKind(event.type);
+
         return {
           answer: await WorkspaceActionAnswers.getAlreadyAnswer({
             event: event,
             press:
               LATE_PRESSES[pendingAction.kind] ||
               WorkspaceLatePress.Acknowledge,
-            /*
-             * Acknowledge on an incident or an alert somebody else is on
-             * answers the presser's own person's pages about it, as the
-             * button does once they are connected (OnCallPersonPageAnswer).
-             */
             answeredPageCount:
               pendingAction.kind === WorkspacePendingActionKind.Acknowledge &&
-              (event.type === WorkspaceEventType.Incident ||
-                event.type === WorkspaceEventType.Alert)
+              pageRecordKind
                 ? await OnCallPersonPageAnswer.onAcknowledgePressed({
-                    kind:
-                      event.type === WorkspaceEventType.Incident
-                        ? "incident"
-                        : "alert",
+                    kind: pageRecordKind,
                     recordId: event.id,
                     projectId: event.projectId,
                     pressedByUserId: data.userId,

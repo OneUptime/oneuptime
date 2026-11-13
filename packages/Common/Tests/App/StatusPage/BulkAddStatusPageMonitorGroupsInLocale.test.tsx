@@ -32,7 +32,11 @@ import React from "react";
 const PAYMENTS_ID: string = "0198c8ec-2a1d-7f0c-9e75-384194169020";
 const SEARCH_ID: string = "0198c8ec-2a1d-7f0c-9e75-384194169021";
 
-// The picker, reduced to one button that picks both monitor groups.
+/*
+ * The picker, reduced to one button that picks both monitor groups. It draws
+ * its placeholder as the picker does: the form hands it over as written, in
+ * English, and the picker looks it up in the reader's language, once (#7663).
+ */
 jest.mock("Common/UI/Components/EntityDropdown/EntityDropdown", () => {
   return {
     __esModule: true,
@@ -40,9 +44,13 @@ jest.mock("Common/UI/Components/EntityDropdown/EntityDropdown", () => {
       placeholder?: string;
       onChange?: (value: Array<string>) => void;
     }) => {
+      const translator: Translator = useTranslator();
+
       return (
         <div>
-          <span data-testid="picker-placeholder">{props.placeholder}</span>
+          <span data-testid="picker-placeholder">
+            {translator.translateText(props.placeholder || "Select...")}
+          </span>
           <button
             type="button"
             onClick={() => {
@@ -86,6 +94,8 @@ import MonitorGroup from "../../../Models/DatabaseModels/MonitorGroup";
 import StatusPageResource from "../../../Models/DatabaseModels/StatusPageResource";
 import ObjectID from "../../../Types/ObjectID";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import { Translator } from "../../../UI/Utils/TranslateTemplate";
+import useTranslator from "../../../UI/Utils/UseTranslator";
 import {
   DASHBOARD_LANGUAGES,
   isWordedInDashboardLocale,

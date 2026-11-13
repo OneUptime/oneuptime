@@ -74,16 +74,17 @@ function permissionsListed(source: string, constant: string): Array<string> {
 }
 
 describe("where a test page is offered", () => {
-  test.each([
-    ["Pages/UserSettings/NotificationMethods.tsx"],
-  ])("%s offers the person a test page of their own", (file: string) => {
-    const source: string = read(...file.split("/"));
+  test.each([["Pages/UserSettings/NotificationMethods.tsx"]])(
+    "%s offers the person a test page of their own",
+    (file: string) => {
+      const source: string = read(...file.split("/"));
 
-    expect(source).toContain(
-      'import TestPageCard from "../../Components/OnCallTestPage/TestPageCard";',
-    );
-    expect(source).toMatch(/<TestPageCard\b/);
-  });
+      expect(source).toContain(
+        'import TestPageCard from "../../Components/OnCallTestPage/TestPageCard";',
+      );
+      expect(source).toMatch(/<TestPageCard\b/);
+    },
+  );
 
   /*
    * How to Reach Me (#6820) offers it at the foot of the ladder and of the
