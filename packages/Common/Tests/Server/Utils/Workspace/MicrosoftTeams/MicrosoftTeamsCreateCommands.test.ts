@@ -251,7 +251,8 @@ const MAINTENANCE: CommandProfile = {
   kind: "maintenance",
   command: "create maintenance",
   form: {
-    what: "a scheduled maintenance event",
+    // A maintenance event, as the model has named it since #6817.
+    what: "a maintenance event",
     dashboardRoute: "/scheduled-maintenance-events/create",
     // Typed again as the word Slack's /oneuptime takes too.
     command: WorkspaceCommandName.Maintenance,
@@ -267,20 +268,20 @@ const MAINTENANCE: CommandProfile = {
   typedTitle: "Postgres 16 upgrade",
   replies: {
     senderUnknown:
-      "Sorry, I couldn't tell who sent this message, so I can't open the form to create a scheduled maintenance event. Please try again.",
+      "Sorry, I couldn't tell who sent this message, so I can't open the form to create a maintenance event. Please try again.",
     connectPrompt:
-      "🔗 **Connect your Microsoft Teams account to create a scheduled maintenance event.** It takes one click. Then type **maintenance** again.",
+      "🔗 **Connect your Microsoft Teams account to create a maintenance event.** It takes one click. Then type **maintenance** again.",
     connectPromptWithoutLink:
-      "🔗 **Connect your Microsoft Teams account to create a scheduled maintenance event.** In OneUptime, go to **User Settings → Workspace → Microsoft Teams** and press **Connect my account with Microsoft Teams**. Once you're connected, type **maintenance** again.",
+      "🔗 **Connect your Microsoft Teams account to create a maintenance event.** In OneUptime, go to **User Settings → Workspace → Microsoft Teams** and press **Connect my account with Microsoft Teams**. Once you're connected, type **maintenance** again.",
     senderCheckFailed:
-      "Sorry, I couldn't open the form to create a scheduled maintenance event because OneUptime could not check your account just now. Please try again in a minute.",
-    listsUnreadable: `Sorry, I couldn't open the form to create a scheduled maintenance event because OneUptime could not load the lists it needs just now. Please try again in a minute, or create it in OneUptime instead: ${CREATE_MAINTENANCE_LINK}`,
+      "Sorry, I couldn't open the form to create a maintenance event because OneUptime could not check your account just now. Please try again in a minute.",
+    listsUnreadable: `Sorry, I couldn't open the form to create a maintenance event because OneUptime could not load the lists it needs just now. Please try again in a minute, or create it in OneUptime instead: ${CREATE_MAINTENANCE_LINK}`,
     listsUnreadableWithoutLink:
-      "Sorry, I couldn't open the form to create a scheduled maintenance event because OneUptime could not load the lists it needs just now. Please try again in a minute, or create it in OneUptime instead.",
-    tooLarge: `Sorry, I couldn't open the form to create a scheduled maintenance event: Microsoft Teams refused it as too large, even without the lists of monitors and labels. You can create it in OneUptime instead: ${CREATE_MAINTENANCE_LINK}`,
+      "Sorry, I couldn't open the form to create a maintenance event because OneUptime could not load the lists it needs just now. Please try again in a minute, or create it in OneUptime instead.",
+    tooLarge: `Sorry, I couldn't open the form to create a maintenance event: Microsoft Teams refused it as too large, even without the lists of monitors and labels. You can create it in OneUptime instead: ${CREATE_MAINTENANCE_LINK}`,
     tooLargeWithoutLink:
-      "Sorry, I couldn't open the form to create a scheduled maintenance event: Microsoft Teams refused it as too large, even without the lists of monitors and labels. You can create it in OneUptime instead.",
-    notInRoster: `Sorry, I couldn't open the form to create a scheduled maintenance event: Microsoft Teams did not accept it (403 BotNotInConversationRoster). You can create it in OneUptime instead: ${CREATE_MAINTENANCE_LINK}`,
+      "Sorry, I couldn't open the form to create a maintenance event: Microsoft Teams refused it as too large, even without the lists of monitors and labels. You can create it in OneUptime instead.",
+    notInRoster: `Sorry, I couldn't open the form to create a maintenance event: Microsoft Teams did not accept it (403 BotNotInConversationRoster). You can create it in OneUptime instead: ${CREATE_MAINTENANCE_LINK}`,
   },
 };
 
@@ -1503,7 +1504,7 @@ describe.each(COMMANDS)("$command", (profile: CommandProfile): void => {
     test.each(SHARED_CONVERSATIONS)(
       "in a $name, a sender who may not create it is told so, and no form is posted",
       async (conversation: SharedConversation): Promise<void> => {
-        const refusal: string = `You do not have permission to ${profile.kind === "incident" ? "declare an incident" : "create a scheduled maintenance event"}.`;
+        const refusal: string = `You do not have permission to ${profile.kind === "incident" ? "declare an incident" : "create a maintenance event"}.`;
         assertCanCreateSpy.mockRejectedValue(
           new NotAuthorizedException(refusal),
         );
@@ -2199,7 +2200,7 @@ describe("create maintenance", (): void => {
       >[0] = assertCanCreateSpy.mock.calls[0]![0];
       expect(check.props).toBe(MEMBER_PROPS);
       expect(check.modelType).toBe(ScheduledMaintenance);
-      expect(check.action).toBe("create a scheduled maintenance event");
+      expect(check.action).toBe("create a maintenance event");
       expect(memberPropsSpy.mock.invocationCallOrder[0]!).toBeLessThan(
         assertCanCreateSpy.mock.invocationCallOrder[0]!,
       );
@@ -2210,7 +2211,7 @@ describe("create maintenance", (): void => {
 
     test("a member without permission to create the event: one reply with that message, verbatim, and no form", async (): Promise<void> => {
       const refusal: string =
-        "You do not have permission to create a scheduled maintenance event. You need one of these permissions: Project Owner, Project Admin, Create Scheduled Maintenance.";
+        "You do not have permission to create a maintenance event. You need one of these permissions: Project Owner, Project Admin, Create Scheduled Maintenance.";
       assertCanCreateSpy.mockRejectedValue(new NotAuthorizedException(refusal));
 
       const teams: FakeTeams = await runCommand({ profile: MAINTENANCE });
@@ -2257,7 +2258,7 @@ describe("create maintenance", (): void => {
         const refusal: unknown = await realAssertCanCreate({
           props: viewer,
           modelType: ScheduledMaintenance,
-          action: "create a scheduled maintenance event",
+          action: "create a maintenance event",
         }).then(
           (): null => {
             return null;
@@ -2275,7 +2276,7 @@ describe("create maintenance", (): void => {
         expect(reply).toBe((refusal as NotAuthorizedException).message);
         expect(
           reply.startsWith(
-            "You do not have permission to create a scheduled maintenance event.",
+            "You do not have permission to create a maintenance event.",
           ),
         ).toBe(true);
         expect(maintenanceChoicesSpy).not.toHaveBeenCalled();
@@ -2662,7 +2663,7 @@ describe("getFormNotAcceptedMessage", (): void => {
         createInOneUptimeUrl: null,
       }),
     ).toBe(
-      "Sorry, I couldn't open the form to create a scheduled maintenance event: Microsoft Teams did not accept it (403 BotNotInConversationRoster). You can create it in OneUptime instead.",
+      "Sorry, I couldn't open the form to create a maintenance event: Microsoft Teams did not accept it (403 BotNotInConversationRoster). You can create it in OneUptime instead.",
     );
   });
 });

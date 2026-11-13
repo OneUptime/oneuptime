@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { pageRoutesIn, routeMapPath, routesAt } from "../Helpers/PageRoutes";
 
 /*
  * The VMware product is a lazy-loaded route group mirroring the Proxmox
@@ -308,10 +309,17 @@ describe("every route is actually mounted", () => {
   });
 
   test("App.tsx mounts the product router at the product root", () => {
-    const app: string = squash(readSource("App.tsx"));
-
-    expect(app).toContain("RouteMap[PageMap.VMWARE_ROOT]");
-    expect(app).toContain("<VMwareRoutes {...commonPageProps} />");
+    expect(
+      routesAt(
+        pageRoutesIn(path.join(DASHBOARD_SRC, "App.tsx")),
+        routeMapPath("VMWARE_ROOT"),
+      ),
+    ).toEqual([
+      {
+        path: routeMapPath("VMWARE_ROOT"),
+        element: "<VMwareRoutes {...commonPageProps} />",
+      },
+    ]);
     expect(dense(readSource("App.tsx"))).toContain(
       'lazy(()=>{returnimport("./Routes/VMwareRoutes");})',
     );

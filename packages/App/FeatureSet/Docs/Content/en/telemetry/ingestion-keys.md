@@ -36,7 +36,7 @@ Pick the type by where the key will live. The type cannot be changed after the k
 | | **Server** | **Browser** |
 | --- | --- | --- |
 | For | Applications, collectors and agents on machines you run | Web pages, and React Native session replay |
-| Sends | Every kind of telemetry, to every endpoint | Traces, logs, metrics and session replays |
+| Sends | Every kind of telemetry, to every endpoint | Traces, logs, metrics, session replays and [Sentry events](/docs/telemetry/compatible-endpoints#sentry-sdks) |
 | A secret | Yes: keep it on your servers | No: anyone who views the page can read it |
 | Origins | Not checked | Only the listed origins are accepted |
 | Requests per minute | No limit, unless you set one | 6,000, unless you set another limit |

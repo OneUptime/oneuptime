@@ -33,7 +33,7 @@ Both record a problem, and both can page whoever is on call. What differs is who
 | ---------------------------- | ------------------------------------------------------ | ------------------------------------------------- |
 | **What it is**               | A problem for your team to look into before users are affected | A problem that affects your users, such as an outage |
 | **On status pages**          | Never                                                  | Can show, and tells subscribers                   |
-| **Notes**                    | Private notes, for your team only                     | Public notes for customers, and private notes     |
+| **Notes**                    | Private notes, only for people who can see the alert                     | Public notes for customers, and private notes     |
 | **Starting states**          | **Identified**, **Acknowledged**, **Resolved**         | **Identified**, **Acknowledged**, **Resolved**    |
 | **Starting severities**      | **High**, **Low**                                      | Critical Incident, Major Incident, Minor Incident |
 | **Numbers in a new project** | `ALT-42`, and `AE-42` for episodes                     | `INC-42`, and `IE-42` for episodes                |

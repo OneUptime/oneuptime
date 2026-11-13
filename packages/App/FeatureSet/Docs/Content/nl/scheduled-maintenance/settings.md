@@ -69,7 +69,7 @@ Een regel past alleen als elke voorwaarde die je invult klopt; een lege voorwaar
 :::steps
 ### Kiezen voor welke gebeurtenissen
 
-Klik op **Scheduled Maintenance Reminder Rule aanmaken**. Laat onder **Overeenkomst** de keuze **Alle geplande onderhoudsevenementen** staan om aan elke gebeurtenis te herinneren, of kies **Alleen geplande onderhoudsevenementen die aan de voorwaarden voldoen** en dan de **Labels** waarvoor ze geldt.
+Klik op **Scheduled Maintenance Reminder Rule aanmaken**. Laat onder **Overeenkomst** de keuze **Alle onderhoudsgebeurtenissen** staan om aan elke gebeurtenis te herinneren, of kies **Alleen onderhoudsgebeurtenissen die aan de voorwaarden voldoen** en dan de **Labels** waarvoor ze geldt.
 
 ### Het interval instellen
 

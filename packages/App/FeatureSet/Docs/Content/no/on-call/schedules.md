@@ -69,7 +69,18 @@ flowchart TB
 | **Tidspunkt for første overlevering** | Den første overleveringen til neste person, ved eller etter starten. Senere overleveringer følger hvert rotasjonsintervall. |
 | **Begrensninger** | Timene laget har vakt: **Ingen begrensninger**, **Bestemte tidspunkter på dagen** eller **Bestemte tidspunkter i uken**, i vaktplanens tidssone. Utenfor dem tar lavere lag over. |
 
-For å endre hvilket lag som kommer først, bruker du **Flytt lag opp (høyere prioritet)** eller **Flytt lag ned (lavere prioritet)** i menyen til et lag.
+For å endre hvilket lag som kommer først, bruker du pilene på kortet til et lag: **Flytt lag opp (høyere prioritet)** eller **Flytt lag ned (lavere prioritet)**.
+
+Endringer i hvem som bytter på, venter til du lagrer dem, så du kan gjøre flere og sjekke dem før noens vakt flyttes. Dra personer i en ny rekkefølge, legg til eller fjern personer, flytt et lag opp eller ned eller slett et, og siden viser hver endring før den er lagret:
+
+- Den du la til, er merket **Ny**, og den du dro til en ny plass, **Flyttet**. Personene du fjernet, står under **Fjernes når du lagrer**, hver med **Angre**.
+- Et lag du sletter, viser at det slettes når du lagrer, med **Angre**.
+- Hvert lag og den endelige vaktplanen viser rotasjonen slik den blir. Den endelige vaktplanen er merket **Inneholder ulagrede endringer**.
+- En linje nederst på siden nevner endringene, med **Lagre endringer** og **Forkast**.
+
+**Lagre endringer** lagrer alle endringene på én gang. Hvem som har vakt, regnes så ut én gang, for lagene slik de er lagret: Den som går på eller av vakt, eller er neste, får beskjed én gang, ikke én gang per endring. **Forkast** setter lagene tilbake slik de sist ble lagret. Hvis du forlater siden før du lagrer, blir du spurt først: **Fortsett å redigere** blir på siden, **Forkast endringer** forlater den uten å lagre.
+
+Hvis noen andre endret lagene etter at du åpnet siden, lagres ikke endringene dine over deres. Linjen sier fra, og **Last inn lag på nytt** viser lagene slik de er nå, så du kan gjøre endringene dine på nytt. **Legg til lag** legger til laget med en gang, og innstillingene for et lag lagres med lagets egen knapp **Lagre lag**.
 
 Hver person beholder én farge overalt, så du kan følge personen med et blikk: i hvert lag, i den endelige vaktplanen og overstyringene i den, og på **Tidslinje for vaktplaner**.
 

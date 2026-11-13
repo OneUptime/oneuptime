@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import nodePath from "path";
 import { KNOWN_DISPLAY_ERROR_CODES } from "../../FeatureSet/Accounts/src/Utils/McpAuthorize";
+import { RouteAttributes, pageRoutesIn, routesAt } from "../Helpers/PageRoutes";
 import { AccountsRoute, DashboardRoute } from "Common/ServiceRoute";
 import McpOAuthPendingAuthorization, {
   MCP_AUTHORIZE_ROUTE,
@@ -191,18 +192,35 @@ const COOKIE_NAME_DECLARATION: RegExp =
 const OTHER_API_REQUEST: RegExp = /\bAPI\.(get|put|delete|patch|fetch)[<(]/;
 
 describe("the consent screen's route", () => {
-  test("is registered in the Accounts router", () => {
-    expect(appSource).toMatch(
-      /<Route path="\/accounts\/mcp-authorize" element=\{<McpAuthorizePage \/>\} \/>/,
-    );
+  // The Accounts app mounts react-router's <Route> by its own name.
+  const routes: Array<RouteAttributes> = pageRoutesIn(
+    nodePath.join(
+      REPO_PACKAGES,
+      "App",
+      "FeatureSet",
+      "Accounts",
+      "src",
+      "App.tsx",
+    ),
+    "Route",
+  );
+  const routePath: string = `"${CONSENT_PAGE_PATH}"`;
 
+  test("is registered in the Accounts router", () => {
     // One registration; a second with another element would shadow it.
-    expect(countOccurrences(appSource, `path="${CONSENT_PAGE_PATH}"`)).toBe(1);
+    expect(routesAt(routes, routePath)).toEqual([
+      { path: routePath, element: "<McpAuthorizePage />" },
+    ]);
   });
 
   test("is matched before the not-found catch-all", () => {
-    const routeIndex: number = appSource.indexOf(`path="${CONSENT_PAGE_PATH}"`);
-    const catchAllIndex: number = appSource.indexOf('<Route path="*"');
+    const paths: Array<string | undefined> = routes.map(
+      (route: RouteAttributes): string | undefined => {
+        return route["path"];
+      },
+    );
+    const routeIndex: number = paths.indexOf(routePath);
+    const catchAllIndex: number = paths.indexOf('"*"');
 
     expect(routeIndex).toBeGreaterThan(-1);
     expect(catchAllIndex).toBeGreaterThan(-1);

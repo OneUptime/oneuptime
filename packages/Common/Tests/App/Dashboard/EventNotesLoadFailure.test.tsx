@@ -17,6 +17,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { createInstance, i18n } from "i18next";
 import React, { ReactElement } from "react";
 import { I18nextProvider } from "react-i18next";
@@ -28,6 +29,9 @@ import IncidentInternalNote from "../../../Models/DatabaseModels/IncidentInterna
 import IncidentPublicNote from "../../../Models/DatabaseModels/IncidentPublicNote";
 import Project from "../../../Models/DatabaseModels/Project";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import Search from "../../../Types/BaseDatabase/Search";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import StatusPageSubscriberNotificationStatus from "../../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import {
   getUnexplainedServerErrorMessage,
   UNEXPLAINED_ERROR_MESSAGES,
@@ -56,6 +60,22 @@ import { joinSentences } from "../../../UI/Components/DeleteConfirmation/DeleteC
  * by a self-hosted server's member: the reference goes to whoever runs the
  * server, and nothing is said about its logs.
  */
+
+/*
+ * The background re-read while a public note's notification is on its way,
+ * every 80 ms rather than every 10 seconds; no other test here has a
+ * notification on its way.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/EventNotes/EventNotesUtil",
+  () => {
+    const actual: Record<string, unknown> = jest.requireActual(
+      "../../../../App/FeatureSet/Dashboard/src/Components/EventNotes/EventNotesUtil",
+    ) as Record<string, unknown>;
+
+    return { ...actual, NOTIFICATION_POLL_INTERVAL_MS: 80 };
+  },
+);
 
 jest.mock("../../../UI/Config", () => {
   const actualConfig: Record<string, unknown> = jest.requireActual(
@@ -1271,5 +1291,818 @@ describe("the notes feed's banner, dismissed from the keyboard", () => {
 
     expect(screen.queryByTestId("notes-action-error")).toBeNull();
     expect(document.activeElement).toBe(screen.getByTestId("notes-refresh"));
+  });
+});
+
+/*
+ * THE FEED ONCE A LATER READ ANSWERS, AND ITS TOOLBAR AFTER A FAILED SORT OR
+ * SEARCH (#7646).
+ *
+ * The banner of a failed read stayed up until it was dismissed: Load more
+ * pressed again brought the notes under "Couldn't load more notes.", and a
+ * refresh that answered left "Couldn't refresh the notes." over them. A
+ * read the reader starts that answers takes it away now - Load more a Load
+ * more's alone - and a focus on it goes where Dismiss puts it.
+ *
+ * A sort or a search set what the toolbar draws before its read, so a read
+ * that failed left the toolbar describing notes that were not on screen:
+ * the sort button named the order it had failed to read in, and pressing it
+ * again read the order on screen instead of trying again; a search that
+ * never ran counted its matches. The toolbar describes the notes on screen
+ * now, and takes a sort or a search up when its notes arrive.
+ *
+ * And the count by the feed's heading is in the reader's digits.
+ */
+
+// Three notes older than the incident's two: the page after them.
+const OLDER_NOTES: Array<Record<string, unknown>> = [
+  {
+    _id: "70000000-0000-4000-8000-000000000013",
+    incidentId: INCIDENT_ID,
+    note: "Opened a ticket with the certificate authority.",
+    createdAt: new Date("2026-09-10T09:00:00.000Z"),
+    postedAt: new Date("2026-09-10T09:00:00.000Z"),
+  },
+  {
+    _id: "70000000-0000-4000-8000-000000000014",
+    incidentId: INCIDENT_ID,
+    note: "Saw the first handshake failures.",
+    createdAt: new Date("2026-09-09T09:00:00.000Z"),
+    postedAt: new Date("2026-09-09T09:00:00.000Z"),
+  },
+  {
+    _id: "70000000-0000-4000-8000-000000000015",
+    incidentId: INCIDENT_ID,
+    note: "The alert fired on lb-eu-west-1b.",
+    createdAt: new Date("2026-09-08T09:00:00.000Z"),
+    postedAt: new Date("2026-09-08T09:00:00.000Z"),
+  },
+];
+
+// Every note, the incident's two and the three before them.
+const ALL_NOTES_COUNT: number = NOTES.length + OLDER_NOTES.length;
+
+// An answer of `rows`, of `count` notes in all.
+const answerOf: (
+  rows: Array<Record<string, unknown>>,
+  count: number,
+) => NotesAnswer = (
+  rows: Array<Record<string, unknown>>,
+  count: number,
+): NotesAnswer => {
+  return {
+    data: rows.map((row: Record<string, unknown>) => {
+      return Object.assign(new IncidentInternalNote(), row);
+    }),
+    count,
+    skip: 0,
+    limit: 25,
+  };
+};
+
+// A read that answers with `answer`.
+const answeredRead: (answer: NotesAnswer) => NotesRead = (
+  answer: NotesAnswer,
+): NotesRead => {
+  return (): Promise<NotesAnswer> => {
+    return Promise.resolve(answer);
+  };
+};
+
+// What the feed asked for in a read of the notes.
+interface NotesRequest {
+  modelType: unknown;
+  query: Record<string, unknown>;
+  sort: Record<string, SortOrder>;
+  skip: number;
+  limit: number;
+}
+
+// The reads of `modelType`'s notes, in the order the feed made them.
+const notesRequests: (modelType?: unknown) => Array<NotesRequest> = (
+  modelType: unknown = IncidentInternalNote,
+): Array<NotesRequest> => {
+  return getListMock.mock.calls
+    .map((call: Array<unknown>) => {
+      return call[0] as NotesRequest;
+    })
+    .filter((request: NotesRequest) => {
+      return request.modelType === modelType;
+    });
+};
+
+// The words a read searched the notes for, or null when it read every note.
+const searchOf: (request: NotesRequest) => string | null = (
+  request: NotesRequest,
+): string | null => {
+  const condition: unknown = request.query["note"];
+
+  return condition instanceof Search ? String(condition.value) : null;
+};
+
+const NEWEST_FIRST: Record<string, SortOrder> = {
+  postedAt: SortOrder.Descending,
+};
+const OLDEST_FIRST: Record<string, SortOrder> = {
+  postedAt: SortOrder.Ascending,
+};
+
+const noteCards: () => Array<HTMLElement> = (): Array<HTMLElement> => {
+  return screen.queryAllByTestId("note-card");
+};
+
+const whatFailed: () => string = (): string => {
+  return (
+    within(screen.getByTestId("notes-action-error")).getByTestId(
+      "notes-action-error-what-failed",
+    ).textContent || ""
+  );
+};
+
+describe("the notes feed's banner, once a later read answers", () => {
+  test("after a failed Load more, Load more pressed again brings the notes, and the banner goes", async () => {
+    await renderLoadedFeed("en", SERVER_FAILURE);
+    notesReads.push(answeredRead(answerOf(OLDER_NOTES, ALL_NOTES_COUNT)));
+
+    await failAction("more");
+    fireEvent.click(screen.getByTestId("notes-load-more"));
+
+    await waitFor(() => {
+      expect(noteCards()).toHaveLength(ALL_NOTES_COUNT);
+    });
+    expect(screen.queryByTestId("notes-action-error")).toBeNull();
+    // Every note is on screen: nothing more to load.
+    expect(screen.queryByTestId("notes-load-more")).toBeNull();
+  });
+
+  test("after a failed refresh, the refresh pressed again reads the notes, and the banner goes", async () => {
+    await renderLoadedFeed("en", SERVER_FAILURE);
+    notesReads.push(answeredRead(notesWithMoreAnswer()));
+
+    await failAction("refresh");
+    const refresh: HTMLElement = screen.getByTestId("notes-refresh");
+
+    fireEvent.click(refresh);
+    expect(refresh).toBeDisabled();
+
+    await waitFor(() => {
+      expect(notesReadCount()).toBe(3);
+      expect(refresh).not.toBeDisabled();
+    });
+    expect(screen.queryByTestId("notes-action-error")).toBeNull();
+    expect(noteCards()).toHaveLength(NOTES.length);
+  });
+
+  /*
+   * Load more reads the next page of the notes on screen, for their own
+   * search: the one that failed has still not run after it.
+   */
+  test("after a failed search, Load more brings the next page of the notes on screen - not of the search that failed - and the search's banner stays", async () => {
+    await renderLoadedFeed("en", SERVER_FAILURE);
+    notesReads.push(answeredRead(answerOf(OLDER_NOTES, ALL_NOTES_COUNT)));
+
+    await failAction("search");
+    fireEvent.click(screen.getByTestId("notes-load-more"));
+
+    await waitFor(() => {
+      expect(noteCards()).toHaveLength(ALL_NOTES_COUNT);
+    });
+
+    const loadMore: NotesRequest = notesRequests()[2]!;
+    expect(loadMore.skip).toBe(NOTES.length);
+    expect(searchOf(loadMore)).toBeNull();
+    expect(loadMore.sort).toEqual(NEWEST_FIRST);
+
+    expect(whatFailed()).toBe(ACTION_FAILED.search);
+    expect(screen.getByTestId("notes-summary")).toHaveTextContent(
+      `${ALL_NOTES_COUNT} notes`,
+    );
+  });
+
+  /*
+   * A public note whose notification is on its way: the feed reads its
+   * notes again in the background every so often, for the notes on screen,
+   * and none of those reads is the reader's.
+   */
+  test("a background re-read goes on with the notes on screen, and leaves the banner up", async () => {
+    let publicNoteReads: number = 0;
+
+    getListMock.mockImplementation(async (...args: Array<unknown>) => {
+      const request: NotesRequest = args[0] as NotesRequest;
+
+      if (request.modelType !== IncidentPublicNote) {
+        return { data: [], count: 0, skip: 0, limit: 10 };
+      }
+
+      publicNoteReads++;
+
+      // The search fails; every other read answers.
+      if (searchOf(request) !== null) {
+        throw SERVER_FAILURE;
+      }
+
+      return {
+        data: NOTES.map((row: Record<string, unknown>) => {
+          return Object.assign(new IncidentPublicNote(), row, {
+            subscriberNotificationStatusOnNoteCreated:
+              StatusPageSubscriberNotificationStatus.Pending,
+          });
+        }),
+        count: NOTES.length,
+        skip: 0,
+        limit: 25,
+      };
+    });
+
+    const project: Project = new Project();
+    project._id = "10000000-0000-4000-8000-000000000001";
+
+    render(
+      <I18nextProvider i18n={instances["en"]!}>
+        <EventNotes<IncidentPublicNote>
+          modelType={IncidentPublicNote}
+          visibility="public"
+          eventNoun="incident"
+          parentIdField="incidentId"
+          parentId={INCIDENT_ID}
+          currentProject={project}
+        />
+      </I18nextProvider>,
+    );
+
+    await waitFor(() => {
+      expect(noteCards()).toHaveLength(NOTES.length);
+    });
+
+    await failAction("search");
+    const readsByTheBanner: number = publicNoteReads;
+
+    // Two reads in the background since: the first has answered.
+    await waitFor(
+      () => {
+        expect(publicNoteReads).toBeGreaterThanOrEqual(readsByTheBanner + 2);
+      },
+      { timeout: 3000 },
+    );
+
+    const since: Array<NotesRequest> =
+      notesRequests(IncidentPublicNote).slice(readsByTheBanner);
+    expect(
+      since.map((request: NotesRequest) => {
+        return searchOf(request);
+      }),
+    ).toEqual(
+      since.map(() => {
+        return null;
+      }),
+    );
+    expect(whatFailed()).toBe(ACTION_FAILED.search);
+    expect(screen.getByTestId("notes-summary")).toHaveTextContent(
+      `${NOTES.length} notes`,
+    );
+  });
+});
+
+/*
+ * The banner goes away as Dismiss takes it away: a focus left on it fell to
+ * the page, and goes where Dismiss puts it instead.
+ */
+describe("the notes feed's banner, taken away by a read while the focus is on it", () => {
+  test("Load more's notes arrive: the focus goes to the feed's body, where Dismiss puts it while Load more reads - never to the page", async () => {
+    const pending: Array<PendingRead> = [];
+
+    await renderLoadedFeed("en", SERVER_FAILURE);
+    notesReads.push(pendingRead(pending));
+
+    const banner: HTMLElement = await failAction("more");
+    const dismiss: HTMLElement = dismissIn("en", banner);
+
+    dismiss.focus();
+    // A click that leaves the focus where it was, as a click does in Safari.
+    fireEvent.click(screen.getByTestId("notes-load-more"));
+    expect(pending).toHaveLength(1);
+    expect(document.activeElement).toBe(dismiss);
+
+    await act(async () => {
+      pending[0]!.resolve(answerOf(OLDER_NOTES, ALL_NOTES_COUNT));
+    });
+
+    expect(noteCards()).toHaveLength(ALL_NOTES_COUNT);
+    expect(screen.queryByTestId("notes-action-error")).toBeNull();
+    expect(document.activeElement).not.toBe(document.body);
+    expect(document.activeElement).toBe(screen.getByTestId("notes-feed-body"));
+  });
+
+  test("a refresh answers with the focus on a Load more's banner: it goes to Load more, one key from trying again", async () => {
+    await renderLoadedFeed("en", SERVER_FAILURE);
+    notesReads.push(answeredRead(notesWithMoreAnswer()));
+
+    const banner: HTMLElement = await failAction("more");
+    const copy: HTMLElement = within(
+      within(banner).getByTestId("error-reference"),
+    ).getByRole("button");
+
+    copy.focus();
+    fireEvent.click(screen.getByTestId("notes-refresh"));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("notes-action-error")).toBeNull();
+    });
+    expect(document.activeElement).toBe(screen.getByTestId("notes-load-more"));
+  });
+});
+
+describe("the notes feed's toolbar, after a failed sort or search", () => {
+  test("after a failed sort, the sort button names the order of the notes on screen, and pressing it again tries the order asked for once more", async () => {
+    await renderLoadedFeed("en", SERVER_FAILURE);
+    const oldestFirst: NotesAnswer = notesWithMoreAnswer();
+    oldestFirst.data.reverse();
+    notesReads.push(answeredRead(oldestFirst));
+
+    await failAction("sort");
+    expect(notesRequests()[1]!.sort).toEqual(OLDEST_FIRST);
+
+    // Newest first, as the notes on screen are, and as Load more goes on.
+    const sort: HTMLElement = screen.getByTestId("notes-sort");
+    expect(sort).toHaveTextContent("Newest first");
+    expect(noteCards()[0]).toHaveTextContent(NOTES[0]!["note"] as string);
+    expect(screen.getByTestId("notes-load-more")).toHaveTextContent(
+      "Show older notes",
+    );
+
+    fireEvent.click(sort);
+
+    await waitFor(() => {
+      expect(sort).toHaveTextContent("Oldest first");
+    });
+    expect(notesRequests()[2]!.sort).toEqual(OLDEST_FIRST);
+    expect(noteCards()[0]).toHaveTextContent(NOTES[1]!["note"] as string);
+    expect(screen.getByTestId("notes-load-more")).toHaveTextContent(
+      "Show newer notes",
+    );
+    expect(screen.queryByTestId("notes-action-error")).toBeNull();
+  });
+
+  // The button names the order of the notes on screen: nothing else is taken up.
+  test("after a failed sort, the refresh reads the order on screen", async () => {
+    await renderLoadedFeed("en", SERVER_FAILURE);
+    notesReads.push(answeredRead(notesWithMoreAnswer()));
+
+    await failAction("sort");
+    fireEvent.click(screen.getByTestId("notes-refresh"));
+
+    await waitFor(() => {
+      expect(notesReadCount()).toBe(3);
+      expect(screen.getByTestId("notes-refresh")).not.toBeDisabled();
+    });
+    expect(notesRequests()[2]!.sort).toEqual(NEWEST_FIRST);
+    expect(screen.getByTestId("notes-sort")).toHaveTextContent("Newest first");
+    expect(screen.queryByTestId("notes-action-error")).toBeNull();
+  });
+
+  /*
+   * A read from the top started before a sort's notes arrive - a search
+   * here - reads in the order asked for, so the sort is not lost to it.
+   */
+  test("a search typed while a sort's notes are on their way is read in the order asked for", async () => {
+    const pending: Array<PendingRead> = [];
+    notesReads.push(answeredRead(notesWithMoreAnswer()), pendingRead(pending));
+
+    renderNotesPage("en");
+    await waitFor(() => {
+      expect(noteCards()).toHaveLength(NOTES.length);
+    });
+
+    const sort: HTMLElement = screen.getByTestId("notes-sort");
+    fireEvent.click(sort);
+    expect(pending).toHaveLength(1);
+    // On their way: the button names the order on screen still.
+    expect(sort).toHaveTextContent("Newest first");
+
+    fireEvent.change(screen.getByTestId("notes-search"), {
+      target: { value: "cert" },
+    });
+    await waitFor(
+      () => {
+        expect(notesReadCount()).toBe(3);
+      },
+      { timeout: 3000 },
+    );
+
+    const search: NotesRequest = notesRequests()[2]!;
+    expect(searchOf(search)).toBe("cert");
+    expect(search.sort).toEqual(OLDEST_FIRST);
+
+    await waitFor(() => {
+      expect(sort).toHaveTextContent("Oldest first");
+    });
+
+    // The sort's own answer, come late, is dropped.
+    await act(async () => {
+      pending[0]!.resolve(notesWithMoreAnswer());
+    });
+    expect(sort).toHaveTextContent("Oldest first");
+    expect(screen.getByTestId("notes-summary")).toHaveTextContent(
+      `${NOTES.length} matches`,
+    );
+  });
+
+  // Load more goes on with the notes on screen, in their order.
+  test("Load more pressed while a sort's notes are on their way reads on in the order on screen", async () => {
+    const pending: Array<PendingRead> = [];
+    notesReads.push(
+      answeredRead(notesWithMoreAnswer()),
+      pendingRead(pending),
+      answeredRead(answerOf(OLDER_NOTES, ALL_NOTES_COUNT)),
+    );
+
+    renderNotesPage("en");
+    await waitFor(() => {
+      expect(noteCards()).toHaveLength(NOTES.length);
+    });
+
+    fireEvent.click(screen.getByTestId("notes-sort"));
+    expect(pending).toHaveLength(1);
+    fireEvent.click(screen.getByTestId("notes-load-more"));
+
+    await waitFor(() => {
+      expect(noteCards()).toHaveLength(ALL_NOTES_COUNT);
+    });
+
+    const loadMore: NotesRequest = notesRequests()[2]!;
+    expect(loadMore.skip).toBe(NOTES.length);
+    expect(loadMore.sort).toEqual(NEWEST_FIRST);
+    expect(screen.getByTestId("notes-sort")).toHaveTextContent("Newest first");
+  });
+
+  test("after a failed search, the toolbar counts the notes on screen - never matches of a search that did not run - and the refresh tries the search again", async () => {
+    await renderLoadedFeed("en", SERVER_FAILURE);
+    const total: number = notesWithMoreAnswer().count;
+
+    await failAction("search");
+
+    const summary: HTMLElement = screen.getByTestId("notes-summary");
+    expect(summary).toHaveTextContent(`${total} notes`);
+    expect(summary).not.toHaveTextContent("match");
+    // Counted by the heading too, as every note is.
+    expect(screen.getByTestId("notes-count")).toHaveTextContent(String(total));
+    // The box keeps the reader's words.
+    expect(screen.getByTestId("notes-search")).toHaveValue("cert");
+
+    notesReads.push(answeredRead(answerOf([NOTES[0]!], 1)));
+    fireEvent.click(screen.getByTestId("notes-refresh"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("notes-summary")).toHaveTextContent("1 match");
+    });
+    expect(searchOf(notesRequests()[2]!)).toBe("cert");
+    expect(noteCards()).toHaveLength(1);
+    expect(screen.queryByTestId("notes-count")).toBeNull();
+    expect(screen.queryByTestId("notes-action-error")).toBeNull();
+  });
+
+  /*
+   * A search with no matches, cleared, and the read of every note fails:
+   * the feed still shows the search's (no) matches, and its Clear search
+   * has nothing left in the box to change.
+   */
+  test("Clear search, once clearing the search failed, reads every note again", async () => {
+    notesReads.push(
+      answeredRead(notesAnswer()),
+      answeredRead(answerOf([], 0)),
+      failingRead(SERVER_FAILURE),
+    );
+
+    renderNotesPage("en");
+    await waitFor(() => {
+      expect(noteCards()).toHaveLength(NOTES.length);
+    });
+
+    fireEvent.change(screen.getByTestId("notes-search"), {
+      target: { value: "nothing like this" },
+    });
+    const empty: HTMLElement = await screen.findByTestId(
+      "notes-search-empty",
+      {},
+      { timeout: 3000 },
+    );
+
+    fireEvent.click(
+      within(empty).getByRole("button", { name: "Clear search" }),
+    );
+    await screen.findByTestId("notes-action-error");
+    expect(whatFailed()).toBe(ACTION_FAILED.search);
+    expect(screen.getByTestId("notes-summary")).toHaveTextContent("0 matches");
+    expect(screen.getByTestId("notes-search")).toHaveValue("");
+
+    fireEvent.click(
+      within(screen.getByTestId("notes-search-empty")).getByRole("button", {
+        name: "Clear search",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(noteCards()).toHaveLength(NOTES.length);
+    });
+    expect(notesReadCount()).toBe(4);
+    expect(searchOf(notesRequests()[3]!)).toBeNull();
+    expect(screen.queryByTestId("notes-action-error")).toBeNull();
+  });
+});
+
+/*
+ * The count by the feed's heading was drawn as it came: a Latin "2" on a
+ * Persian page, whose count over the notes read "۲ یادداشت".
+ */
+describe("the count by the notes feed's heading", () => {
+  test.each([
+    ["en", "2"],
+    ["de", "2"],
+    ["fa", "۲"],
+  ])(
+    "in %s, it is written in the reader's digits: %s",
+    async (language: string, two: string) => {
+      renderNotesPage(language);
+      await waitFor(() => {
+        expect(noteCards()).toHaveLength(NOTES.length);
+      });
+
+      expect(screen.getByTestId("notes-count").textContent).toBe(two);
+      // As the count over the notes writes it.
+      expect(screen.getByTestId("notes-summary")).toHaveTextContent(two);
+    },
+  );
+});
+
+/*
+ * THE FEED'S FOCUS AROUND LOAD MORE, AND CLICKS ON ITS NOTES (#7706).
+ *
+ * Load more is disabled while it reads, and a focus on it fell to the page:
+ * in Firefox as soon as it was disabled, and in every browser once the last
+ * page took Load more away - the next Tab started over at the top of the
+ * page. The feed's body holds the focus while the next page is read, and
+ * hands it back to Load more when more notes are left, to the banner when
+ * the read fails, and keeps it, just before the notes, after the last page.
+ *
+ * The feed's body was focusable for good, so it took every click on a
+ * note's words, and in Chromium the next Tab started over at its top rather
+ * than after what was clicked. It is focusable only while it holds the
+ * focus now, and so is the banner.
+ */
+
+/*
+ * The page with its notes on screen and Load more under them, focused and
+ * pressed from the keyboard: its read waits in `pending`. While it reads,
+ * the focus is on the feed's body - not on the disabled Load more, nor on
+ * the page.
+ */
+const pressLoadMore: () => Promise<{
+  feed: HTMLElement;
+  loadMore: HTMLElement;
+  pending: Array<PendingRead>;
+}> = async (): Promise<{
+  feed: HTMLElement;
+  loadMore: HTMLElement;
+  pending: Array<PendingRead>;
+}> => {
+  const pending: Array<PendingRead> = [];
+  notesReads.push(answeredRead(notesWithMoreAnswer()), pendingRead(pending));
+
+  renderNotesPage("en");
+  await waitFor(() => {
+    expect(noteCards()).toHaveLength(NOTES.length);
+  });
+
+  const feed: HTMLElement = screen.getByTestId("notes-feed-body");
+  const loadMore: HTMLElement = screen.getByTestId("notes-load-more");
+
+  // Nothing has given the feed's body the focus: it does not take it.
+  expect(feed).not.toHaveAttribute("tabindex");
+
+  loadMore.focus();
+  expect(document.activeElement).toBe(loadMore);
+
+  /*
+   * Enter or Space on a focused button is a click on it, with the focus
+   * where it is.
+   */
+  fireEvent.click(loadMore);
+
+  await waitFor(() => {
+    expect(loadMore).toBeDisabled();
+  });
+  expect(pending).toHaveLength(1);
+  expect(document.activeElement).toBe(feed);
+  expect(feed).toHaveAttribute("tabindex", "-1");
+
+  return { feed, loadMore, pending };
+};
+
+describe("the notes feed's Load more, pressed from the keyboard", () => {
+  test("while the next page is read, the focus waits on the feed's body; with more notes left, it goes back to Load more", async () => {
+    const { feed, loadMore, pending } = await pressLoadMore();
+
+    // One older note comes; two are left to load.
+    await act(async () => {
+      pending[0]!.resolve(answerOf(OLDER_NOTES.slice(0, 1), ALL_NOTES_COUNT));
+    });
+
+    expect(noteCards()).toHaveLength(NOTES.length + 1);
+    expect(loadMore).not.toBeDisabled();
+    expect(document.activeElement).toBe(loadMore);
+    // The focus has moved on: the feed's body does not take it again.
+    expect(feed).not.toHaveAttribute("tabindex");
+  });
+
+  test("after the last page, with Load more gone, the focus stays in the feed, just before the notes - never on the page", async () => {
+    const { feed, pending } = await pressLoadMore();
+
+    await act(async () => {
+      pending[0]!.resolve(answerOf(OLDER_NOTES, ALL_NOTES_COUNT));
+    });
+
+    expect(noteCards()).toHaveLength(ALL_NOTES_COUNT);
+    expect(screen.queryByTestId("notes-load-more")).toBeNull();
+    expect(document.activeElement).not.toBe(document.body);
+    expect(document.activeElement).toBe(feed);
+  });
+
+  test("a read that fails gives the focus to the banner, which says what failed; its Dismiss puts it back on Load more", async () => {
+    const { feed, loadMore, pending } = await pressLoadMore();
+
+    await act(async () => {
+      pending[0]!.reject(SERVER_FAILURE);
+    });
+
+    const banner: HTMLElement = screen.getByTestId("notes-action-error");
+
+    expect(whatFailed()).toBe(ACTION_FAILED.more);
+    expect(document.activeElement).toBe(banner);
+    expect(banner).toHaveAttribute("tabindex", "-1");
+    // A box the focus waits in, not a control: no ring, as the feed's body.
+    expect(banner).toHaveClass("focus:outline-none");
+    expect(feed).not.toHaveAttribute("tabindex");
+
+    // On from the banner to its Dismiss: the banner does not take it again.
+    const dismiss: HTMLElement = dismissIn("en", banner);
+
+    act(() => {
+      dismiss.focus();
+    });
+    expect(banner).not.toHaveAttribute("tabindex");
+
+    fireEvent.click(dismiss);
+
+    expect(screen.queryByTestId("notes-action-error")).toBeNull();
+    expect(document.activeElement).toBe(loadMore);
+  });
+
+  test("dismissed while Load more reads once more, the banner leaves the focus on the feed's body until the read is over, then on Load more", async () => {
+    const pending: Array<PendingRead> = [];
+
+    await renderLoadedFeed("en", SERVER_FAILURE);
+    notesReads.push(pendingRead(pending));
+
+    const banner: HTMLElement = await failAction("more");
+    const loadMore: HTMLElement = screen.getByTestId("notes-load-more");
+
+    fireEvent.click(loadMore);
+    await waitFor(() => {
+      expect(loadMore).toBeDisabled();
+    });
+
+    const dismiss: HTMLElement = dismissIn("en", banner);
+
+    dismiss.focus();
+    fireEvent.click(dismiss);
+
+    const feed: HTMLElement = screen.getByTestId("notes-feed-body");
+
+    expect(document.activeElement).toBe(feed);
+
+    // One older note comes; two are left to load.
+    await act(async () => {
+      pending[0]!.resolve(answerOf(OLDER_NOTES.slice(0, 1), ALL_NOTES_COUNT));
+    });
+
+    expect(noteCards()).toHaveLength(NOTES.length + 1);
+    expect(document.activeElement).toBe(loadMore);
+    expect(feed).not.toHaveAttribute("tabindex");
+  });
+
+  test("a focus that was elsewhere on the page is left where it is, and the banner does not take it", async () => {
+    const pending: Array<PendingRead> = [];
+
+    notesReads.push(
+      answeredRead(notesWithMoreAnswer()),
+      pendingRead(pending),
+      pendingRead(pending),
+    );
+
+    renderNotesPage("en");
+    await waitFor(() => {
+      expect(noteCards()).toHaveLength(NOTES.length);
+    });
+
+    const elsewhere: HTMLElement = screen.getByTestId("elsewhere");
+    const loadMore: HTMLElement = screen.getByTestId("notes-load-more");
+
+    elsewhere.focus();
+    // A click that left the focus where it was, as a click does in Safari.
+    fireEvent.click(loadMore);
+    expect(document.activeElement).toBe(elsewhere);
+
+    await act(async () => {
+      pending[0]!.reject(SERVER_FAILURE);
+    });
+
+    expect(document.activeElement).toBe(elsewhere);
+    expect(screen.getByTestId("notes-action-error")).not.toHaveAttribute(
+      "tabindex",
+    );
+
+    fireEvent.click(loadMore);
+
+    await act(async () => {
+      pending[1]!.resolve(answerOf(OLDER_NOTES, ALL_NOTES_COUNT));
+    });
+
+    expect(noteCards()).toHaveLength(ALL_NOTES_COUNT);
+    expect(document.activeElement).toBe(elsewhere);
+    expect(screen.getByTestId("notes-feed-body")).not.toHaveAttribute(
+      "tabindex",
+    );
+  });
+});
+
+/*
+ * A click gives the focus to what it lands in, if that takes the focus: the
+ * feed's body took every click on a note's words, and in Chromium the next
+ * Tab started over at its top rather than after what was clicked.
+ */
+describe("the notes feed's body, focusable only while it holds the focus", () => {
+  test("a click on a note's words leaves the focus with the page, not on the feed's body", async () => {
+    const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+
+    renderNotesPage("en");
+    await waitFor(() => {
+      expect(noteCards()).toHaveLength(NOTES.length);
+    });
+
+    const feed: HTMLElement = screen.getByTestId("notes-feed-body");
+
+    await user.click(within(noteCards()[1]!).getByTestId("markdown"));
+
+    expect(document.activeElement).not.toBe(feed);
+    expect(document.activeElement).toBe(document.body);
+    expect(feed).not.toHaveAttribute("tabindex");
+  });
+
+  test("once the focus moves on from it, it is not focusable again, and a click on a note's words does not give it the focus", async () => {
+    const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+
+    await renderLoadedFeed("en", SERVER_FAILURE);
+
+    const banner: HTMLElement = await failAction("refresh");
+    const dismiss: HTMLElement = dismissIn("en", banner);
+
+    dismiss.focus();
+    fireEvent.click(dismiss);
+
+    const feed: HTMLElement = screen.getByTestId("notes-feed-body");
+
+    expect(document.activeElement).toBe(feed);
+    expect(feed).toHaveAttribute("tabindex", "-1");
+
+    act(() => {
+      screen.getByTestId("elsewhere").focus();
+    });
+    expect(feed).not.toHaveAttribute("tabindex");
+
+    await user.click(within(noteCards()[1]!).getByTestId("markdown"));
+
+    expect(document.activeElement).not.toBe(feed);
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  /*
+   * A window sent to the back fires blur at the focused element and keeps
+   * it as the document's focused element, to give the focus back to when it
+   * is in front again: the feed's body stays focusable for that.
+   */
+  test("a window sent to the back leaves it focusable, to take the focus back", async () => {
+    const { feed, pending } = await pressLoadMore();
+
+    fireEvent.blur(feed);
+    fireEvent.focusOut(feed);
+
+    expect(document.activeElement).toBe(feed);
+    expect(feed).toHaveAttribute("tabindex", "-1");
+
+    await act(async () => {
+      pending[0]!.resolve(answerOf(OLDER_NOTES, ALL_NOTES_COUNT));
+    });
+
+    expect(document.activeElement).toBe(feed);
   });
 });

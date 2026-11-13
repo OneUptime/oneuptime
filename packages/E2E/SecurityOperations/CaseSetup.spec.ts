@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
@@ -86,6 +87,8 @@ interface OpenOptions {
     | "notes-fail-with-reference"
     | "notes-fail-twice"
     | "notes-more-fail"
+    | "notes-more-pages"
+    | "note-post-fail"
     | undefined;
 }
 
@@ -94,6 +97,13 @@ interface Box {
   y: number;
   width: number;
   height: number;
+}
+
+// A piece of a line of text, and where the browser drew it.
+interface DrawnPiece {
+  text: string;
+  left: number;
+  right: number;
 }
 
 test.use({ deviceScaleFactor: 2, actionTimeout: 15000 });
@@ -891,16 +901,15 @@ async function openTemplateMenuMidWindow(
   return page.getByTestId("note-template-menu");
 }
 
-// Whether the whole of `control` is inside the menu's box.
+/*
+ * Whether the whole of `control` is inside the menu's box. Both boxes are
+ * read in one frame: the menu scrolls while the wheel test polls this.
+ */
 async function isInsideMenu(menu: Locator, control: Locator): Promise<boolean> {
-  const own: Box | null = await menu.boundingBox();
-  const box: Box | null = await control.boundingBox();
+  const [own, box] = await boxesInOneFrame([menu, control]);
 
-  return Boolean(
-    own &&
-      box &&
-      box.y >= own.y - 0.5 &&
-      box.y + box.height <= own.y + own.height + 0.5,
+  return (
+    box!.y >= own!.y - 0.5 && box!.y + box!.height <= own!.y + own!.height + 0.5
   );
 }
 
@@ -1108,6 +1117,86 @@ test.describe("reads that fail", () => {
       menu.getByRole("button", { name: /^Containment checklist/ }),
     ).toBeVisible();
     await expect(menu.getByTestId("error-explanation")).toHaveCount(0);
+  });
+
+  /*
+   * A list's Try again gives way to the loading rows, which hold nothing to
+   * focus (#7621): pressed from the keyboard, the focus fell to the page,
+   * and the next Tab started over at its top. The table holds the focus
+   * now while the rows load again - with no ring around it - and gives it
+   * back to Try again if they fail once more; when they arrive it keeps it,
+   * just before them. Once the focus moves on, the table is not focusable,
+   * so a click on its words leaves the focus with the page, as before.
+   */
+  test("pressed from the keyboard, a list's Try again keeps the focus: on Try again after another failure, then just before the rows", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CUSTOM_FIELDS_PATH, { caseSetup: "fail-twice" });
+    const tryAgain: Locator = page.getByRole("button", { name: "Try again" });
+    // The table as a whole: what holds its rows and its footer.
+    const table: Locator = page.getByTestId("table-scroll").locator("..");
+    await tryAgain.focus({ timeout: 30000 });
+
+    // Counts each change to the page that left the focus on the page itself.
+    await page.evaluate((): void => {
+      const tracked: Window & { focusFellToPage?: number } = window;
+      tracked.focusFellToPage = 0;
+      new MutationObserver((): void => {
+        if (document.activeElement === document.body) {
+          tracked.focusFellToPage = (tracked.focusFellToPage || 0) + 1;
+        }
+      }).observe(document.body, { childList: true, subtree: true });
+    });
+
+    // The second read fails too.
+    await page.keyboard.press("Enter");
+    await expect(tryAgain).toBeFocused();
+
+    // The third answers.
+    await page.keyboard.press("Enter");
+    await expect(
+      page.locator("tbody tr").filter({ hasText: "Business Unit" }),
+    ).toHaveCount(1);
+    await expect(table).toBeFocused();
+    expect(
+      await table.evaluate((element: Element): string => {
+        const style: CSSStyleDeclaration = getComputedStyle(element);
+        return style.outlineStyle === "none" ||
+          style.outlineColor === "rgba(0, 0, 0, 0)"
+          ? "no ring"
+          : `${style.outlineStyle} ${style.outlineColor}`;
+      }),
+    ).toBe("no ring");
+    expect(
+      await page.evaluate((): number => {
+        return (window as Window & { focusFellToPage?: number })
+          .focusFellToPage as number;
+      }),
+      "changes to the page that left the focus on the page itself",
+    ).toBe(0);
+
+    // The next Tab reaches the first of what the table holds.
+    await page.keyboard.press("Tab");
+    expect(
+      await table.evaluate((element: Element): boolean => {
+        return (
+          document.activeElement !== element &&
+          element.contains(document.activeElement)
+        );
+      }),
+      "the focus is on a control in the table",
+    ).toBe(true);
+
+    // Focusable no more: a click on its words leaves the focus with the page.
+    await page.getByText("Showing 1-2 of 2 case custom fields").click();
+    expect(
+      await page.evaluate((): boolean => {
+        return document.activeElement === document.body;
+      }),
+      "the focus is on the page itself",
+    ).toBe(true);
   });
 });
 
@@ -1638,6 +1727,483 @@ test.describe("a case's notes feed, when Load more fails", () => {
     await page.keyboard.press("Enter");
     await expect(page.getByTestId("note-card")).toHaveCount(ALL_NOTES);
     await expect(page.getByTestId("notes-action-error")).toHaveCount(0);
+  });
+
+  /*
+   * The banner stayed up until it was dismissed: Load more pressed again
+   * brought the notes under "Couldn't load more notes." (#7646). Its notes
+   * take the banner away now, and a focus on the banner goes where Dismiss
+   * puts it while Load more reads - the feed, just before the notes - not
+   * to the page.
+   */
+  test("Load more pressed again brings the notes and takes the banner away, and a focus on the banner stays in the feed", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CASE_NOTES_PATH, { caseSetup: "notes-more-fail" });
+    await expect(page.getByTestId("note-card")).toHaveCount(FIRST_PAGE, {
+      timeout: 30000,
+    });
+    const loadMore: Locator = page.getByTestId("notes-load-more");
+    await loadMore.click();
+
+    const banner: Locator = page.getByTestId("notes-action-error");
+    await expect(banner).toBeVisible();
+
+    // A keyboard user on the banner, at its reference's copy button.
+    await banner.getByTestId("error-reference").getByRole("button").focus();
+
+    // Counts each change to the page that left the focus on the page itself.
+    await page.evaluate((): void => {
+      const tracked: Window & { focusFellToPage?: number } = window;
+      tracked.focusFellToPage = 0;
+      new MutationObserver((): void => {
+        if (document.activeElement === document.body) {
+          tracked.focusFellToPage = (tracked.focusFellToPage || 0) + 1;
+        }
+      }).observe(document.body, { childList: true, subtree: true });
+    });
+
+    // Load more, by a click that leaves the focus where it was, as Safari's does.
+    await loadMore.dispatchEvent("click");
+
+    await expect(page.getByTestId("note-card")).toHaveCount(ALL_NOTES);
+    await expect(banner).toHaveCount(0);
+    await expect(page.getByTestId("notes-feed-body")).toBeFocused();
+    expect(
+      await page.evaluate((): number => {
+        return (window as Window & { focusFellToPage?: number })
+          .focusFellToPage as number;
+      }),
+      "changes to the page that left the focus on the page itself",
+    ).toBe(0);
+  });
+
+  /*
+   * Load more is disabled while it reads, and a focus on it fell to the
+   * page (#7706): in Firefox as soon as it was disabled, and in every
+   * browser once the last page took Load more away - the next Tab started
+   * over at the top of the page. The feed holds the focus while Load more
+   * reads, with the page left where it is; a failure gives it to the
+   * banner, which comes into view; its Dismiss gives it back to Load more;
+   * and after the last page the feed keeps it, just before the notes.
+   */
+  test("pressed from the keyboard, Load more keeps the focus in the feed while it reads, gives it to the banner when it fails, and keeps it in the feed after the last page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CASE_NOTES_PATH, { caseSetup: "notes-more-fail" });
+    await expect(page.getByTestId("note-card")).toHaveCount(FIRST_PAGE, {
+      timeout: 30000,
+    });
+    const feed: Locator = page.getByTestId("notes-feed-body");
+    const loadMore: Locator = page.getByTestId("notes-load-more");
+    // Nothing has given the feed the focus: it does not take it.
+    await expect(feed).not.toHaveAttribute("tabindex");
+    await loadMore.focus();
+
+    /*
+     * At each change to the page: where the focus is, whether Load more is
+     * reading - disabled - and how far down the page is, for the press
+     * (`press`) the test is on.
+     */
+    interface FocusRecord {
+      press: number;
+      focus: string;
+      isReading: boolean;
+      scrollY: number;
+    }
+    type TrackedWindow = Window & {
+      press?: number;
+      focusRecords?: Array<FocusRecord>;
+    };
+    await page.evaluate((): void => {
+      const tracked: TrackedWindow = window;
+      tracked.press = 0;
+      tracked.focusRecords = [];
+      new MutationObserver((): void => {
+        const focused: Element | null = document.activeElement;
+        const button: HTMLButtonElement | null = document.querySelector(
+          "[data-testid='notes-load-more']",
+        );
+        tracked.focusRecords!.push({
+          press: tracked.press || 0,
+          focus:
+            !focused || focused === document.body
+              ? "the page"
+              : focused.getAttribute("data-testid") ||
+                focused.tagName.toLowerCase(),
+          isReading: Boolean(button?.disabled),
+          scrollY: Math.round(window.scrollY),
+        });
+      }).observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ["disabled"],
+      });
+    });
+    const pressEnter: (press: number) => Promise<number> = async (
+      press: number,
+    ): Promise<number> => {
+      const scrollY: number = await page.evaluate((count: number): number => {
+        (window as TrackedWindow).press = count;
+        return Math.round(window.scrollY);
+      }, press);
+      await page.keyboard.press("Enter");
+      return scrollY;
+    };
+
+    // Enter: the read fails.
+    const firstScrollY: number = await pressEnter(1);
+    const banner: Locator = page.getByTestId("notes-action-error");
+    await expect(banner).toBeFocused();
+    await expect(banner).toBeInViewport();
+    await expect(
+      banner.getByTestId("notes-action-error-what-failed"),
+    ).toHaveText("Couldn't load more notes.");
+    // A box the focus waits in, not a control: no ring, as the feed has none.
+    expect(
+      await banner.evaluate((element: Element): string => {
+        const style: CSSStyleDeclaration = getComputedStyle(element);
+        return style.outlineStyle === "none" ||
+          style.outlineColor === "rgba(0, 0, 0, 0)"
+          ? "no ring"
+          : `${style.outlineStyle} ${style.outlineColor}`;
+      }),
+    ).toBe("no ring");
+    await expect(feed).not.toHaveAttribute("tabindex");
+
+    // Tab, Tab: the reference's copy button, then Dismiss.
+    await page.keyboard.press("Tab");
+    await expect(
+      banner.getByTestId("error-reference").getByRole("button"),
+    ).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(banner.getByRole("button", { name: "Dismiss" })).toBeFocused();
+    // The focus has moved on: the banner does not take it again.
+    await expect(banner).not.toHaveAttribute("tabindex");
+
+    await page.keyboard.press("Enter");
+    await expect(banner).toHaveCount(0);
+    await expect(loadMore).toBeFocused();
+
+    // Enter: the last page comes, Load more goes, and the feed keeps the focus.
+    const secondScrollY: number = await pressEnter(2);
+    await expect(page.getByTestId("note-card")).toHaveCount(ALL_NOTES);
+    await expect(loadMore).toHaveCount(0);
+    await expect(feed).toBeFocused();
+
+    const records: Array<FocusRecord> = await page.evaluate(
+      (): Array<FocusRecord> => {
+        return (window as TrackedWindow).focusRecords || [];
+      },
+    );
+    expect(
+      records.filter((record: FocusRecord) => {
+        return record.focus === "the page";
+      }),
+      "changes to the page that left the focus on the page itself",
+    ).toEqual([]);
+    // While each read was on its way: on the feed, the page where it was.
+    const reads: Array<{ press: number; scrollY: number }> = [
+      { press: 1, scrollY: firstScrollY },
+      { press: 2, scrollY: secondScrollY },
+    ];
+    for (const read of reads) {
+      const reading: Array<FocusRecord> = records.filter(
+        (record: FocusRecord) => {
+          return record.press === read.press && record.isReading;
+        },
+      );
+      expect(
+        reading.length,
+        `changes while read ${read.press} was on its way`,
+      ).toBeGreaterThan(0);
+      expect(
+        reading.map((record: FocusRecord) => {
+          return `${record.focus} at ${record.scrollY}`;
+        }),
+        `the focus, and how far down the page was, while read ${read.press} was on its way`,
+      ).toEqual(
+        reading.map(() => {
+          return `notes-feed-body at ${read.scrollY}`;
+        }),
+      );
+    }
+
+    // The next Tab reaches the first control in the feed, and the feed lets go.
+    await page.keyboard.press("Tab");
+    expect(
+      await feed.evaluate((element: Element): boolean => {
+        return (
+          document.activeElement !== element &&
+          element.contains(document.activeElement)
+        );
+      }),
+      "the focus is on a control in the feed",
+    ).toBe(true);
+    await expect(feed).not.toHaveAttribute("tabindex");
+  });
+
+  /*
+   * The feed's body was focusable for good, for the moments it holds the
+   * focus (#7706): it took every click on a note's words, and the next Tab
+   * started over at its top, at the first note, rather than after what was
+   * clicked. It is focusable only while it holds the focus now.
+   */
+  test("a click on a note's words leaves the focus with the page, and the next Tab goes on from that note", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CASE_NOTES_PATH, { caseSetup: "notes-more-fail" });
+    const cards: Locator = page.getByTestId("note-card");
+    await expect(cards).toHaveCount(FIRST_PAGE, { timeout: 30000 });
+    const feed: Locator = page.getByTestId("notes-feed-body");
+
+    // The fifth note's words.
+    await cards
+      .nth(4)
+      .getByText(/^Shift log \d+:/)
+      .click();
+    await expect(feed).not.toBeFocused();
+    await expect(feed).not.toHaveAttribute("tabindex");
+    expect(
+      await page.evaluate((): boolean => {
+        return document.activeElement === document.body;
+      }),
+      "the focus is on the page itself",
+    ).toBe(true);
+
+    // On from the fifth note, not from the first.
+    await page.keyboard.press("Tab");
+    expect(
+      await cards.evaluateAll((elements: Array<Element>): number => {
+        return elements.findIndex((element: Element) => {
+          return element.contains(document.activeElement);
+        });
+      }),
+      "the note the focus is in, counted from 0",
+    ).toBeGreaterThanOrEqual(4);
+  });
+});
+
+/*
+ * Load more pressed from the keyboard with more pages left (#7706): the
+ * focus waits on the feed while it reads - in Firefox it fell to the page
+ * as Load more was disabled - and goes back to Load more once the notes
+ * are drawn, so the next page is one key away, with the page left on the
+ * notes that came; after the last page the feed keeps it.
+ */
+test.describe("a case's notes feed, paged with Load more", () => {
+  test("pressed from the keyboard, Load more has the focus back once the next page is drawn, with the page left on the notes that came", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // CASE-142's 60 notes under ?casesetup=notes-more-pages: three pages.
+    await open(page, CASE_NOTES_PATH, { caseSetup: "notes-more-pages" });
+    const cards: Locator = page.getByTestId("note-card");
+    await expect(cards).toHaveCount(25, { timeout: 30000 });
+    const feed: Locator = page.getByTestId("notes-feed-body");
+    const loadMore: Locator = page.getByTestId("notes-load-more");
+    await loadMore.focus();
+
+    // Counts each change to the page that left the focus on the page itself.
+    await page.evaluate((): void => {
+      const tracked: Window & { focusFellToPage?: number } = window;
+      tracked.focusFellToPage = 0;
+      new MutationObserver((): void => {
+        if (document.activeElement === document.body) {
+          tracked.focusFellToPage = (tracked.focusFellToPage || 0) + 1;
+        }
+      }).observe(document.body, { childList: true, subtree: true });
+    });
+    const scrollY: () => Promise<number> = (): Promise<number> => {
+      return page.evaluate((): number => {
+        return Math.round(window.scrollY);
+      });
+    };
+    const scrollYBefore: number = await scrollY();
+
+    await page.keyboard.press("Enter");
+    await expect(cards).toHaveCount(50);
+    await expect(loadMore).toBeEnabled();
+    await expect(loadMore).toBeFocused();
+    // The page where it was, on the first of the notes that came.
+    expect(await scrollY(), "how far down the page is").toBe(scrollYBefore);
+    await expect(cards.nth(25)).toBeInViewport();
+    await expect(feed).not.toHaveAttribute("tabindex");
+
+    // The last page: Load more goes, and the feed keeps the focus.
+    await page.keyboard.press("Enter");
+    await expect(cards).toHaveCount(60);
+    await expect(loadMore).toHaveCount(0);
+    await expect(feed).toBeFocused();
+    expect(
+      await page.evaluate((): number => {
+        return (window as Window & { focusFellToPage?: number })
+          .focusFellToPage as number;
+      }),
+      "changes to the page that left the focus on the page itself",
+    ).toBe(0);
+  });
+});
+
+/*
+ * The count by a case's notes heading was drawn as it came, in Latin
+ * digits, on a Persian page whose count over the notes was in its own
+ * (#7646).
+ */
+test.describe("a case's notes count on a Persian page", () => {
+  test("the count by the heading is in Persian digits, as the count over the notes is", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // CASE-142's 28 notes under ?casesetup=notes-more-fail.
+    await open(page, CASE_NOTES_PATH, {
+      caseSetup: "notes-more-fail",
+      lang: "fa",
+    });
+    await expect(page.getByTestId("note-card")).toHaveCount(25, {
+      timeout: 30000,
+    });
+
+    await expect(page.getByTestId("notes-count")).toHaveText("۲۸");
+    await expect(page.getByTestId("notes-summary")).toContainText("۲۸");
+  });
+});
+
+/*
+ * A note whose post fails (#7647). The composer's error line drew what
+ * API.getFriendlyMessage said: English on every page - on a Persian one
+ * with its full stop at its start - and, for a failure the server could not
+ * explain, nothing of why, what to do next or the reference to give. It
+ * says what failed now, then why and what to do next with the reference
+ * and its copy button, in the reader's language, read from the right; the
+ * draft is kept, and the next post saves it.
+ */
+test.describe("a case's note composer, when a post fails", () => {
+  test("says in Persian that the note was not posted, why, what to do and its reference, read from the right; posted again, the draft is saved", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // The Dashboard's Persian words, as the fixture draws them with ?lang=fa.
+    const persian: Record<string, string> = JSON.parse(
+      await fs.readFile(
+        path.resolve(
+          __dirname,
+          "../../App/FeatureSet/Dashboard/src/Locales/fa.json",
+        ),
+        "utf8",
+      ),
+    ) as Record<string, string>;
+    const NOTE: string = "Paged the identity on-call.";
+
+    await open(page, CASE_NOTES_PATH, {
+      caseSetup: "note-post-fail",
+      lang: "fa",
+    });
+    await page
+      .getByTestId("note-composer-prompt")
+      .getByRole("button")
+      .first()
+      .click({ timeout: 30000 });
+    const composer: Locator = page.getByTestId("note-composer");
+    await expect(composer).toBeVisible();
+    await page.keyboard.type(NOTE);
+    await composer.getByTestId("note-submit").click();
+
+    const line: Locator = composer.getByTestId("note-composer-error");
+    await expect(line).toBeVisible();
+    await expect(line).toHaveAttribute("role", "alert");
+
+    // What failed, then why and what to do next.
+    const whatFailed: Locator = line.getByTestId("error-what-failed");
+    await expect(whatFailed).toHaveText(persian["Couldn't post the note."]!);
+    const whyAndNext: Locator = line.getByTestId("error-why-and-next");
+    await expect(whyAndNext).toContainText(
+      persian["The server ran into a problem it could not explain."]!,
+    );
+    await expect(whyAndNext).toContainText(
+      persian[
+        "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:"
+      ]!,
+    );
+    // The reference as written, left to right, with its copy button.
+    const reference: Locator = line.getByTestId("error-reference");
+    await expect(reference.locator("code")).toHaveText(FAILED_READ_REFERENCE);
+    await expect(reference.locator("code")).toHaveAttribute("dir", "ltr");
+    await expect(reference.getByRole("button")).toBeVisible();
+    // Never the sentence as API.getFriendlyMessage wrote it, nor English.
+    for (const english of [
+      "Couldn't post the note.",
+      "The server ran into a problem",
+      "so this did not finish",
+      "This did not finish.",
+    ]) {
+      await expect(line).not.toContainText(english);
+    }
+
+    /*
+     * Read from the right: "یادداشت افزوده نشد." ends with its full stop,
+     * drawn to the left of its last word - not at the line's start.
+     */
+    const drawn: { stop: DrawnPiece; lastWord: DrawnPiece } =
+      await whatFailed.evaluate(
+        (element: Element): { stop: DrawnPiece; lastWord: DrawnPiece } => {
+          const text: Node = element.firstChild!;
+          const content: string = text.textContent || "";
+          const boxOf: (from: number, to: number) => DrawnPiece = (
+            from: number,
+            to: number,
+          ): DrawnPiece => {
+            const range: Range = document.createRange();
+            range.setStart(text, from);
+            range.setEnd(text, to);
+            const box: DOMRect = range.getBoundingClientRect();
+            return {
+              text: content.slice(from, to),
+              left: box.left,
+              right: box.right,
+            };
+          };
+          const stopAt: number = content.length - 1;
+          const lastWordAt: number = content.lastIndexOf(" ") + 1;
+          return {
+            stop: boxOf(stopAt, stopAt + 1),
+            lastWord: boxOf(lastWordAt, stopAt),
+          };
+        },
+      );
+    expect(drawn.stop.text, "the sentence's last character").toBe(".");
+    expect(drawn.lastWord.text).toBe("نشد");
+    expect(drawn.stop.right).toBeLessThanOrEqual(drawn.lastWord.left + 0.5);
+
+    // The draft is kept.
+    await expect(composer.locator('[contenteditable="true"]')).toHaveText(NOTE);
+
+    await expectNoSidewaysScroll(page, {
+      message: "the composer's error line",
+    });
+    await line.scrollIntoViewIfNeeded();
+    await screenshot(page, "case-note-post-fail-fa-1280", { fullPage: false });
+
+    // Posted again, the note is saved, and the line goes.
+    await composer.getByTestId("note-submit").click();
+    await expect(page.getByTestId("note-composer-error")).toHaveCount(0);
+    const posted: FixtureState["creates"] = (
+      await fixture(page)
+    ).creates.filter((entry: FixtureState["creates"][number]): boolean => {
+      return entry.modelName === "SecurityCaseNote";
+    });
+    expect(posted).toHaveLength(1);
+    expect(posted[0]?.data["note"]).toBe(NOTE);
   });
 });
 

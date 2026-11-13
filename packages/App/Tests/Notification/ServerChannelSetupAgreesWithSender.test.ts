@@ -1,4 +1,4 @@
-import { describe, expect, jest, test } from "@jest/globals";
+import { afterAll, describe, expect, jest, test } from "@jest/globals";
 
 /*
  * "SET UP" MEANS WHAT THE SENDER MEANS (#6825).
@@ -13,6 +13,11 @@ import { describe, expect, jest, test } from "@jest/globals";
  * the same GlobalConfig row: every provider, every field left blank or
  * filled, valid or not - generated from a fixed seed - and the rows a
  * person meets most, by name.
+ *
+ * A Custom SMTP row is followed one step further, to the SMTP transport
+ * MailService makes for it (TransporterPool.getTransporter), which refuses
+ * a sign-in it cannot make: settings handed on and then refused there read
+ * as set up while every email failed (#7833, OAuth with no username).
  */
 
 let storedRow: Record<string, unknown> | null = null;
@@ -32,23 +37,57 @@ jest.mock("Common/Server/Utils/CallAndSmsGatewayConfig", () => {
   return { __esModule: true, default: { getGateway: jest.fn() } };
 });
 
+// The transport is made, never connected; OAuth's token is not fetched.
+jest.mock("nodemailer", () => {
+  return {
+    __esModule: true,
+    default: {
+      createTransport: jest.fn(() => {
+        return { sendMail: jest.fn(), close: jest.fn() };
+      }),
+    },
+  };
+});
+
+jest.mock("../../FeatureSet/Notification/Services/SMTPOAuthService", () => {
+  return {
+    __esModule: true,
+    default: {
+      getAccessToken: jest.fn(async (): Promise<string> => {
+        return "access-token";
+      }),
+    },
+  };
+});
+
 import {
   getEmailServerType,
   getGlobalEmailProviderServer,
   getGlobalSMTPConfig,
   getSendgridConfig,
 } from "../../FeatureSet/Notification/Config";
+import { TransporterPool } from "../../FeatureSet/Notification/Services/MailService";
 import ServerChannelSetup from "Common/Server/Utils/ServerSending/ServerChannelSetup";
 import { EmailServerType } from "Common/Models/DatabaseModels/GlobalConfig";
 import Email from "Common/Types/Email";
 import AmazonSesAuthenticationType from "Common/Types/Email/AmazonSesAuthenticationType";
+import EmailServer from "Common/Types/Email/EmailServer";
 import Hostname from "Common/Types/API/Hostname";
 import MailTransportType from "Common/Types/Email/MailTransportType";
+import OAuthProviderType from "Common/Types/Email/OAuthProviderType";
 import SMTPAuthenticationType from "Common/Types/Email/SMTPAuthenticationType";
 import Port from "Common/Types/Port";
 import { seededRandom, SeededRandom } from "Common/Tests/Helpers/SeededRandom";
 
-// Whether the sender would hand an email to a mail server for this row.
+afterAll(async () => {
+  await TransporterPool.cleanup();
+});
+
+/*
+ * Whether the sender would hand an email to a mail server for this row:
+ * the settings it reads, and - over SMTP - the transport it signs in with.
+ * Microsoft Graph sends with the settings themselves.
+ */
 async function senderWouldSend(row: Record<string, unknown>): Promise<boolean> {
   storedRow = row;
 
@@ -70,8 +109,19 @@ async function senderWouldSend(row: Record<string, unknown>): Promise<boolean> {
       case EmailServerType.Resend:
         await getGlobalEmailProviderServer(MailTransportType.Resend);
         return true;
-      default:
-        return (await getGlobalSMTPConfig()) !== null;
+      default: {
+        const emailServer: EmailServer | null = await getGlobalSMTPConfig();
+
+        if (!emailServer) {
+          return false;
+        }
+
+        if (emailServer.transportType !== MailTransportType.MicrosoftGraph) {
+          await TransporterPool.getTransporter(emailServer, {});
+        }
+
+        return true;
+      }
     }
   } catch {
     // A setting left blank: refused.
@@ -82,6 +132,23 @@ async function senderWouldSend(row: Record<string, unknown>): Promise<boolean> {
 function pagesSaySetUp(row: Record<string, unknown>): boolean {
   return ServerChannelSetup.getEmailSetUpProblem(row) === null;
 }
+
+// Custom SMTP through Microsoft 365, signing in with OAuth as the mailbox.
+const SMTP_OAUTH_ROW: Record<string, unknown> = {
+  emailServerType: EmailServerType.CustomSMTP,
+  smtpTransportType: MailTransportType.SMTP,
+  smtpHost: new Hostname("smtp.office365.com"),
+  smtpPort: new Port(587),
+  smtpAuthType: SMTPAuthenticationType.OAuth,
+  smtpOAuthProviderType: OAuthProviderType.ClientCredentials,
+  smtpUsername: "alerts@example.com",
+  smtpClientId: "client",
+  smtpClientSecret: "secret",
+  smtpTokenUrl: "https://login.microsoftonline.com/t/oauth2/v2.0/token",
+  smtpScope: "https://outlook.office365.com/.default",
+  smtpFromEmail: new Email("alerts@example.com"),
+  smtpFromName: "OneUptime",
+};
 
 const NAMED_ROWS: Array<[string, Record<string, unknown>]> = [
   ["a fresh server", {}],
@@ -108,6 +175,19 @@ const NAMED_ROWS: Array<[string, Record<string, unknown>]> = [
     },
   ],
   ["only a username typed", { smtpUsername: "mailer" }],
+  ["a mail server signing in with OAuth as its mailbox", SMTP_OAUTH_ROW],
+  [
+    "a mail server signing in with OAuth, no mailbox named",
+    { ...SMTP_OAUTH_ROW, smtpUsername: "" },
+  ],
+  [
+    "a mail server signing in with OAuth's JWT Bearer, no mailbox named",
+    {
+      ...SMTP_OAUTH_ROW,
+      smtpOAuthProviderType: OAuthProviderType.JWTBearer,
+      smtpUsername: null,
+    },
+  ],
   [
     "Microsoft Graph, complete",
     {
@@ -198,6 +278,52 @@ describe("the rows a person meets most", () => {
     expect(pagesSaySetUp(withKey)).toBe(false);
     expect(await senderWouldSend(withKey)).toBe(false);
   });
+
+  /*
+   * Over SMTP, OAuth signs in as a mailbox, with either grant: without one,
+   * neither the pages nor the sender call email set up - not "set up" on
+   * the pages and then refused at the transport (#7833). Microsoft Graph
+   * sends as the From Email.
+   */
+  test("a mail server signing in with OAuth needs the mailbox it signs in as, and both say so; Microsoft Graph does not (#7833)", async () => {
+    expect(pagesSaySetUp(SMTP_OAUTH_ROW)).toBe(true);
+    expect(await senderWouldSend(SMTP_OAUTH_ROW)).toBe(true);
+
+    for (const grant of [
+      OAuthProviderType.ClientCredentials,
+      OAuthProviderType.JWTBearer,
+    ]) {
+      for (const username of [undefined, null, ""]) {
+        const row: Record<string, unknown> = {
+          ...SMTP_OAUTH_ROW,
+          smtpOAuthProviderType: grant,
+          smtpUsername: username,
+        };
+
+        expect({ grant, username, pages: pagesSaySetUp(row) }).toEqual({
+          grant,
+          username,
+          pages: false,
+        });
+        expect({
+          grant,
+          username,
+          sender: await senderWouldSend(row),
+        }).toEqual({ grant, username, sender: false });
+      }
+    }
+
+    const graph: Record<string, unknown> = {
+      ...SMTP_OAUTH_ROW,
+      smtpTransportType: MailTransportType.MicrosoftGraph,
+      smtpUsername: undefined,
+      smtpHost: undefined,
+      smtpPort: undefined,
+    };
+
+    expect(pagesSaySetUp(graph)).toBe(true);
+    expect(await senderWouldSend(graph)).toBe(true);
+  });
 });
 
 // One field: left out, blank, whitespace, a valid value, or (for some) an invalid one.
@@ -271,6 +397,12 @@ function generatedRow(random: SeededRandom): Record<string, unknown> {
       AmazonSesAuthenticationType.AccessKey,
       AmazonSesAuthenticationType.ServerIamRole,
       "Instance Profile",
+    ]),
+    // After it, for the same reason (#7833).
+    smtpOAuthProviderType: pick(random, [
+      undefined,
+      OAuthProviderType.ClientCredentials,
+      OAuthProviderType.JWTBearer,
     ]),
   };
 }

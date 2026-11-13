@@ -996,68 +996,68 @@ describe.each(TEAMS_KINDS)(
      * The press a person's page makes natural (UI review of block 31):
      * paged into a record Simon acknowledged, the member presses its
      * Acknowledge. That answers their page - it would page them again
-     * otherwise - and the answer says so first. Episodes have no person's
-     * pages.
+     * otherwise - and the answer says so first. An episode's too: a policy
+     * a person started by hand for one goes on until somebody it paged
+     * answers it (OnCallPolicyStartedByHand, #7596), and the answer names
+     * the episode.
      */
-    if (kind.name === "incident" || kind.name === "alert") {
-      test(`an ${kind.noun} acknowledged already, pressed by somebody a person's page paged into it: their page is answered, and said first`, async (): Promise<void> => {
-        const props: DatabaseCommonInteractionProps = memberProps([kind.role]);
-        const states: ProjectStates = kind.stubStates();
-        const recordId: ObjectID = ObjectID.generate();
-        stubRecord({
-          service: kind.recordService,
-          makeRecord: kind.makeRecord,
-          stateColumn: kind.recordStateColumn,
-          currentStateId: states.acknowledged,
-        });
-        const createSpy: AnySpy = stubCreate(kind.timelineService);
-        stubLateAnswerReads({
-          timelineService: kind.timelineService,
-          rows: [
-            {
-              [kind.timelineStateColumn]: states.acknowledged,
-              startsAt: new Date(ACKNOWLEDGED_AT),
-              createdByUserId: SIMON,
-            },
-          ],
-        });
-        const answerSpy: AnySpy = jest
-          .spyOn(OnCallPersonPageAnswer, "onAcknowledgePressed")
-          .mockResolvedValue(1) as AnySpy;
-        const turn: FakeTurn = createTurn();
-
-        await kind.handle({
-          actionType: kind.ack.actionType,
-          actionValue: recordId.toString(),
-          value: {},
-          props: props,
-          turnContext: turn.turnContext,
-        });
-
-        expect(createSpy).not.toHaveBeenCalled();
-        expect(answerSpy.mock.calls[0]![0]).toEqual({
-          kind: kind.name,
-          recordId: recordId,
-          projectId: projectId,
-          pressedByUserId: userId,
-          isResolved: false,
-        });
-
-        const answers: Array<string> = answerTexts(turn);
-
-        expect(answers).toHaveLength(1);
-        expect(
-          answers[0]!.startsWith(
-            `✅ You acknowledged the page for **[${titleOf(kind.noun)}](${DASHBOARD_URL}/${projectId.toString()}/`,
-          ),
-        ).toBe(true);
-        expect(
-          answers[0]!.endsWith(
-            `)**, so paging stopped. **Simon Lee** acknowledged the ${kind.noun} at {{TIME(${ACKNOWLEDGED_AT})}}.`,
-          ),
-        ).toBe(true);
+    test(`an ${kind.noun} acknowledged already, pressed by somebody a person's page paged into it: their page is answered, and said first`, async (): Promise<void> => {
+      const props: DatabaseCommonInteractionProps = memberProps([kind.role]);
+      const states: ProjectStates = kind.stubStates();
+      const recordId: ObjectID = ObjectID.generate();
+      stubRecord({
+        service: kind.recordService,
+        makeRecord: kind.makeRecord,
+        stateColumn: kind.recordStateColumn,
+        currentStateId: states.acknowledged,
       });
-    }
+      const createSpy: AnySpy = stubCreate(kind.timelineService);
+      stubLateAnswerReads({
+        timelineService: kind.timelineService,
+        rows: [
+          {
+            [kind.timelineStateColumn]: states.acknowledged,
+            startsAt: new Date(ACKNOWLEDGED_AT),
+            createdByUserId: SIMON,
+          },
+        ],
+      });
+      const answerSpy: AnySpy = jest
+        .spyOn(OnCallPersonPageAnswer, "onAcknowledgePressed")
+        .mockResolvedValue(1) as AnySpy;
+      const turn: FakeTurn = createTurn();
+
+      await kind.handle({
+        actionType: kind.ack.actionType,
+        actionValue: recordId.toString(),
+        value: {},
+        props: props,
+        turnContext: turn.turnContext,
+      });
+
+      expect(createSpy).not.toHaveBeenCalled();
+      expect(answerSpy.mock.calls[0]![0]).toEqual({
+        kind: kind.name,
+        recordId: recordId,
+        projectId: projectId,
+        pressedByUserId: userId,
+        isResolved: false,
+      });
+
+      const answers: Array<string> = answerTexts(turn);
+
+      expect(answers).toHaveLength(1);
+      expect(
+        answers[0]!.startsWith(
+          `✅ You acknowledged the page for **[${titleOf(kind.noun)}](${DASHBOARD_URL}/${projectId.toString()}/`,
+        ),
+      ).toBe(true);
+      expect(
+        answers[0]!.endsWith(
+          `)**, so paging stopped. **Simon Lee** acknowledged the ${kind.noun} at {{TIME(${ACKNOWLEDGED_AT})}}.`,
+        ),
+      ).toBe(true);
+    });
 
     describe("Change State", (): void => {
       test("a member who holds the permission moves it into the state they picked, as themselves", async (): Promise<void> => {
@@ -1694,11 +1694,11 @@ describe("Microsoft Teams scheduled maintenance card actions", (): void => {
   test.each([
     {
       actionType: MicrosoftTeamsScheduledMaintenanceActionType.MarkAsOngoing,
-      refusal: "mark this scheduled maintenance event as ongoing",
+      refusal: "mark this maintenance event as ongoing",
     },
     {
       actionType: MicrosoftTeamsScheduledMaintenanceActionType.MarkAsComplete,
-      refusal: "mark this scheduled maintenance event as complete",
+      refusal: "mark this maintenance event as complete",
     },
   ])(
     "a member who may only read cannot $refusal, is told why, and nothing is written",
@@ -1740,8 +1740,9 @@ describe("Microsoft Teams scheduled maintenance card actions", (): void => {
     });
 
     expect(createSpy).not.toHaveBeenCalled();
+    // The action and the record in the same words: a maintenance event (#6817).
     expect(repliesText(turn)).toEqual([
-      "You do not have permission to mark this scheduled maintenance event as complete: your access in this project does not include this scheduled maintenance event. Ask a project admin for access to it.",
+      "You do not have permission to mark this maintenance event as complete: your access in this project does not include this maintenance event. Ask a project admin for access to it.",
     ]);
   });
 
@@ -1759,22 +1760,22 @@ describe("Microsoft Teams scheduled maintenance card actions", (): void => {
 
     expect(createSpy).not.toHaveBeenCalled();
     expect(repliesText(turn)).toEqual([
-      "Could not mark this scheduled maintenance event as ongoing: the scheduled maintenance event was not found. It may have been deleted.",
+      "Could not mark this maintenance event as ongoing: the maintenance event was not found. It may have been deleted.",
     ]);
   });
 
   test.each([
     [
       MicrosoftTeamsScheduledMaintenanceActionType.ViewScheduledMaintenance,
-      "see this scheduled maintenance event",
+      "see this maintenance event",
     ],
     [
       MicrosoftTeamsScheduledMaintenanceActionType.ViewAddScheduledMaintenanceNote,
-      "add a note to this scheduled maintenance event",
+      "add a note to this maintenance event",
     ],
     [
       MicrosoftTeamsScheduledMaintenanceActionType.ViewChangeScheduledMaintenanceState,
-      "change the state of this scheduled maintenance event",
+      "change the state of this maintenance event",
     ],
   ])(
     "%s on an event outside the member's read is refused as what it does: %s",
@@ -1791,7 +1792,7 @@ describe("Microsoft Teams scheduled maintenance card actions", (): void => {
       });
 
       expect(repliesText(turn)).toEqual([
-        `You do not have permission to ${does}: your access in this project does not include this scheduled maintenance event. Ask a project admin for access to it.`,
+        `You do not have permission to ${does}: your access in this project does not include this maintenance event. Ask a project admin for access to it.`,
       ]);
     },
   );
@@ -2012,9 +2013,7 @@ describe("Microsoft Teams scheduled maintenance card actions", (): void => {
 
     expect(createSpy).not.toHaveBeenCalled();
     expect(repliesText(turn)).toEqual([
-      expect.stringContaining(
-        "add a public note to this scheduled maintenance event",
-      ),
+      expect.stringContaining("add a public note to this maintenance event"),
     ]);
   });
 
@@ -2115,7 +2114,7 @@ describe("Microsoft Teams scheduled maintenance card actions", (): void => {
     });
 
     expect(turn.replies).toEqual([
-      "There is no later state to move this scheduled maintenance event to.",
+      "There is no later state to move this maintenance event to.",
     ]);
   });
 

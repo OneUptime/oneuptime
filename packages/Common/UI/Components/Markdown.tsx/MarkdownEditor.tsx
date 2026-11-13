@@ -86,7 +86,10 @@ import React, {
 
 export interface ComponentProps {
   initialValue?: undefined | string;
+  // In English: the editor looks it up in the reader's language.
   placeholder?: undefined | string;
+  // In the reader's words already: drawn as given (Field's, #7682).
+  isPlaceholderTranslated?: boolean | undefined;
   className?: undefined | string;
   onChange?: undefined | ((value: string) => void);
   onFocus?: (() => void) | undefined;
@@ -480,14 +483,22 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
    * incident form, translated all round, they were the only English left.
    * The English text is the key, and an app whose locale has no entry for
    * it shows the English.
+   *
+   * A placeholder it is given is English too, and looked up here, once, as
+   * Input and TextArea look theirs up: a form hands its field's placeholder
+   * over as written (#7663), and a monitor's "Describe the incident..."
+   * stayed English on every page.
    */
   const { translateString } = useTranslateValue();
+  const givenPlaceholder: string | undefined = props.isPlaceholderTranslated
+    ? props.placeholder
+    : translateString(props.placeholder);
   const visualPlaceholder: string =
-    props.placeholder ||
+    givenPlaceholder ||
     (translateString("Type your content here...") ??
       "Type your content here...");
   const sourcePlaceholder: string =
-    props.placeholder ||
+    givenPlaceholder ||
     (translateString("Type your markdown here...") ??
       "Type your markdown here...");
   const helpTitle: string =

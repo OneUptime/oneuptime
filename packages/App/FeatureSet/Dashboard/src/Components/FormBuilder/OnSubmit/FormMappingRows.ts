@@ -29,7 +29,7 @@ import FormTargetType from "Common/Types/Form/FormTargetType";
  */
 
 export enum FormMappingLineKind {
-  // The answer to a question, named in quotes after "Answer to the question:".
+  // The answer to a question: "Answer to the question: “Title”".
   Answer = "Answer",
   // "If it is left empty:" what applies then.
   Fallback = "Fallback",
@@ -47,9 +47,14 @@ export interface FormMappingLine {
   kind: FormMappingLineKind;
   /*
    * The question's label (Answer, CustomField), the value (Value, Fallback,
-   * Warning) or names (Always, joined by the page).
+   * Warning) or, for a line of records, their names joined with ", ".
    */
   text: string;
+  /*
+   * The records a line names (Always, and a Value of on-call policies or
+   * owners), one by one: the page draws each set apart and separates them
+   * the reader's way (IsolatedTextList), never the joined text.
+   */
   names?: Array<string> | undefined;
   // For CustomField: the custom field's name.
   customFieldName?: string | undefined;
@@ -240,7 +245,13 @@ const settingRow: SettingRowFunction = (data: {
     title: data.title,
     lines:
       names.length > 0
-        ? [{ kind: FormMappingLineKind.Value, text: names.join(", ") }]
+        ? [
+            {
+              kind: FormMappingLineKind.Value,
+              text: names.join(", "),
+              names: names,
+            },
+          ]
         : [data.empty || notSet],
   };
 };
@@ -280,7 +291,13 @@ const ownersRow: OwnersRowFunction = (data: {
     title: FormsCopy.owners,
     lines:
       names.length > 0
-        ? [{ kind: FormMappingLineKind.Value, text: names.join(", ") }]
+        ? [
+            {
+              kind: FormMappingLineKind.Value,
+              text: names.join(", "),
+              names: names,
+            },
+          ]
         : [notSet],
   };
 };

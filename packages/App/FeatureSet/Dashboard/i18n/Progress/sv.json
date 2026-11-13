@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 51296,
-    "untranslated": 9518
+    "keys": 51818,
+    "untranslated": 9463
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -214,6 +214,7 @@
     "Presentation",
     "Problem",
     "Process",
+    "PromQL",
     "Prompt",
     "Pull request",
     "Pull requests",
@@ -395,6 +396,7 @@
     "status",
     "storage-01 · RegionOne",
     "storefront-web",
+    "sum by (job) (rate(http_requests_total[5m]))",
     "svc-backup",
     "syslog",
     "team",

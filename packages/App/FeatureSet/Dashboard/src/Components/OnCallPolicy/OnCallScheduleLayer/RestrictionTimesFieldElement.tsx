@@ -1,3 +1,4 @@
+import { TIME_ZONE_NOTE_CLASS_NAME } from "./LayerDateTimeFieldElement";
 import FieldError from "Common/UI/Components/Forms/Fields/FieldError";
 import OneUptimeDate from "Common/Types/Date";
 import DayOfWeek from "Common/Types/Day/DayOfWeek";
@@ -6,6 +7,7 @@ import RestrictionTimes, {
   RestrictionType,
   WeeklyResctriction,
 } from "Common/Types/OnCallDutyPolicy/RestrictionTimes";
+import TimezoneAlias from "Common/Types/TimezoneAlias";
 import Typeof from "Common/Types/Typeof";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Dropdown from "Common/UI/Components/Dropdown/Dropdown";
@@ -614,12 +616,21 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
 
       {restrictionTimes &&
         restrictionTimes.restictionType !== RestrictionType.None && (
-          <p className="mt-2 text-xs text-gray-400">
+          /*
+           * The zone by its current name, as the rotation start and hand-off
+           * over it name it ("US/Pacific" reads America/Los_Angeles), so the
+           * form names one zone one way.
+           */
+          <p className={TIME_ZONE_NOTE_CLASS_NAME}>
             {props.timezone
               ? translator.translateTemplate(
                   props.timezoneNoteTemplate ||
                     "These times are in the schedule's timezone: {{timezone}}.",
-                  { timezone: props.timezone },
+                  {
+                    timezone: TimezoneAlias.getCanonicalTimezone(
+                      props.timezone,
+                    ),
+                  },
                 )
               : translator.translateTemplate(
                   "These times are in your local timezone: {{timezone}}.",

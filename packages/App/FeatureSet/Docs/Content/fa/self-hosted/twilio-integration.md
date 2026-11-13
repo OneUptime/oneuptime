@@ -1,9 +1,9 @@
 # یکپارچه‌سازی Twilio
 
-OneUptime خودمیزبان هشدارهای پیامکی و صوتی را از راه حساب Twilio خود شما می‌فرستد، و هزینه را مستقیم به Twilio می‌پردازید. اعتبارنامه‌های Twilio را در داشبورد OneUptime ذخیره می‌کنید، نه در متغیرهای محیطی: ارسال اعلان‌ها پیکربندی ذخیره‌شده را می‌خواند، و چارت Helm هیچ مقداری برای اعتبارنامه‌های Twilio ندارد.
+OneUptime خودمیزبان هشدارهای پیامکی و صوتی را از راه حساب Twilio خود شما می‌فرستد، و هزینه را مستقیم به Twilio می‌پردازید. اعتبارنامه‌های Twilio را در داشبورد OneUptime ذخیره می‌کنید، برای یک پروژه یا برای کل نصب. نصبی که از روی کد مستقر می‌شود می‌تواند به‌جای آن حساب سراسری نصب را با متغیرهای محیطی تعیین کند، که چارت Helm و Docker Compose آن‌ها را منتقل می‌کنند: [تعیین حساب سراسری نصب با متغیرهای محیطی](#تعیین-حساب-سراسری-نصب-با-متغیرهای-محیطی) را ببینید.
 
 > [!NOTE]
-> یک مهاجرت قدیمی `TWILIO_ACCOUNT_SID`، `TWILIO_AUTH_TOKEN` و `TWILIO_PHONE_NUMBER` را وارد کرد؛ تغییر این متغیرها راه به‌روزرسانی اعتبارنامه‌های یک نصب موجود نیست.
+> یک مهاجرت قدیمی یک بار `TWILIO_ACCOUNT_SID`، `TWILIO_AUTH_TOKEN` و `TWILIO_PHONE_NUMBER` را وارد کرد؛ تغییر این متغیرها اعتبارنامه‌های یک نصب موجود را به‌روز نمی‌کند. متغیرهای `GLOBAL_TWILIO_` در ادامه این کار را می‌کنند.
 
 :::cards
 - [حساب Twilio خود را آماده کنید](#۱-حساب-twilio-خود-را-آماده-کنید): اعتبارنامه‌ها، یک شماره تلفن و محدودیت‌های حساب.
@@ -53,6 +53,66 @@ OneUptime خودمیزبان هشدارهای پیامکی و صوتی را از
 :::
 
 برای یک پیش‌فرض سراسری نصب، یک مدیر می‌تواند به‌جای آن **Admin Dashboard** > **تنظیمات** > **تماس و پیامک** را باز کند، انتخاب کند که حساب چه چیزی می‌فرستد، اعتبارنامه‌ها و شماره تلفن‌های Twilio را ویرایش کند و ذخیره کند. اعلان‌های اعضا وقتی پروژه‌شان پیش‌فرضی ندارد از همین پیکربندی سراسری استفاده می‌کنند. Auth Token را محرمانه نگه دارید.
+
+### تعیین حساب سراسری نصب با متغیرهای محیطی
+
+یک نصب تازه می‌تواند از همان ابتدا پیامک بفرستد و تماس بگیرد، بی‌آنکه چیزی دستی تنظیم شود: حساب سراسری نصب را با متغیرهای محیطی تعیین کنید، از Terraform یا هر چیزی که OneUptime را مستقر می‌کند. وقتی `GLOBAL_TWILIO_ACCOUNT_SID` تعیین شده باشد، حساب همانی است که متغیرها توصیف می‌کنند. حسابی که در **Admin Dashboard** > **تنظیمات** > **تماس و پیامک** ذخیره شده استفاده نمی‌شود، و آن صفحه این حساب را فقط‌خواندنی نشان می‌دهد، هر فیلد همراه با متغیری که آن را تعیین می‌کند. برای آنکه حساب را به‌جای آن در Admin Dashboard تنظیم کنید، `GLOBAL_TWILIO_ACCOUNT_SID` را خالی بگذارید. پیکربندی‌های پروژه‌ها تغییری نمی‌کنند.
+
+| متغیر | مقدار Helm | چه چیزی در آن است |
+| --- | --- | --- |
+| `GLOBAL_TWILIO_ACCOUNT_SID` | `twilio.accountSid` | Account SID. تعیین آن است که باعث می‌شود OneUptime متغیرهای دیگر را بخواند |
+| `GLOBAL_TWILIO_AUTH_TOKEN` | `twilio.authToken`، یا یک Secret که در `twilio.existingSecret.name` نام برده شده | Auth Token |
+| `GLOBAL_TWILIO_USED_FOR` | `twilio.usedFor` | `calls-and-sms` (وقتی خالی است هم همین)، `sms-only` یا `calls-only` |
+| `GLOBAL_TWILIO_PRIMARY_PHONE_NUMBER` | `twilio.primaryPhoneNumber` | شماره‌ای که تماس‌ها از آن گرفته می‌شوند، همراه کد کشور. برای `sms-only` لازم نیست |
+| `GLOBAL_TWILIO_SECONDARY_PHONE_NUMBERS` | `twilio.secondaryPhoneNumbers` | اختیاری، جداشده با ویرگول: شماره‌هایی که برای گیرندگان کشور خودشان به‌جای شماره اصلی به کار می‌روند |
+| `GLOBAL_TWILIO_SMS_PHONE_NUMBERS` | `twilio.smsPhoneNumbers` | شماره‌های جداشده با ویرگول که هر پیامک از آن‌ها فرستاده می‌شود. برای `sms-only` الزامی است |
+
+با Helm آن‌ها را زیر `twilio` در values خود تعیین کنید. برای آنکه auth token در valuesی که Helm با هر release ذخیره می‌کند نماند، آن را در یک Secret از آنِ خودتان بگذارید و همان Secret را در `twilio.existingSecret.name` نام ببرید:
+
+```bash
+kubectl create secret generic oneuptime-twilio --namespace oneuptime \
+  --from-literal=authToken=YOUR_TWILIO_AUTH_TOKEN
+```
+
+```yaml
+twilio:
+  accountSid: ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+  usedFor: calls-and-sms
+  primaryPhoneNumber: "+14155550100"
+  existingSecret:
+    name: oneuptime-twilio
+```
+
+شماره تلفن‌ها را در فایل values داخل گیومه بنویسید و آن‌ها را با `--set-string` به‌جای `--set` بدهید: بدون گیومه، `+14155550100` یک عدد است و چارت آن را نمی‌پذیرد. چارت همچنین مقدارهای دیگر `twilio` را بدون `twilio.accountSid`، یک Account SID را بدون auth token، و auth tokenی را که هم در `twilio.authToken` و هم در یک Secret داده شده، نمی‌پذیرد. با Terraform همین مقدارها را روی یک `helm_release` تعیین کنید و auth token را به‌عنوان مقداری حساس بدهید.
+
+با Docker Compose، تنظیمات `GLOBAL_TWILIO_` را در `config.env` تعیین کنید و سپس `npm run start` را اجرا کنید تا کانتینرها دوباره ساخته شوند.
+
+OneUptime متغیرها را هنگام شروع می‌خواند. اگر یکی از آن‌ها نادرست باشد، مثلاً شماره تلفنی که OneUptime نمی‌تواند بخواند یا auth tokenی که داده نشده، حساب تا وقتی درست نشده هیچ پیامکی نمی‌فرستد و هیچ تماسی نمی‌گیرد؛ لاگ سرور، **Admin Dashboard** > **تنظیمات** > **تماس و پیامک** و چک‌لیست `/admin/setup` نام متغیر را می‌گویند. auth token هرگز نشان داده نمی‌شود. برای تغییر حساب، متغیرها را تغییر دهید و OneUptime را دوباره راه‌اندازی کنید: Admin Dashboard آن را تغییر نمی‌دهد.
+
+### مدیریت پیکربندی‌های پروژه با Terraform
+
+پیکربندی پروژه همچنین منبع `oneuptime_call_and_sms_config` در [ارائه‌دهندهٔ Terraform](/docs/terraform/index) است، و منبع داده‌ای با همین نام آن را می‌خواند. Auth Token حساس است، بنابراین طرح‌ها، لاگ‌ها و خروجی‌ها هرگز آن را نشان نمی‌دهند. آن را در یک متغیر حساس بدهید:
+
+```hcl
+variable "twilio_auth_token" {
+  type      = string
+  sensitive = true
+}
+
+resource "oneuptime_call_and_sms_config" "production" {
+  name                        = "Production Twilio"
+  used_for                    = "Calls and SMS"
+  twilio_account_sid          = "ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+  twilio_auth_token           = var.twilio_auth_token
+  twilio_primary_phone_number = "+14155550100"
+  is_project_default          = true
+}
+```
+
+- **پیش‌فرض پروژه.** Terraform فقط با `is_project_default = true` یک پیکربندی را پیش‌فرض پروژه می‌کند. اگر آن را ننویسید، Terraform مقدار `false` را می‌فرستد، پس برخلاف داشبورد، نخستین پیکربندی پروژه پیش‌فرض نمی‌شود. آن را برای هر نوع پیام فقط روی یک پیکربندی بگذارید: اگر آن را روی دو پیکربندی با `used_for` یکسان بگذارید، در هر apply پیش‌فرض را از یکدیگر می‌گیرند. `is_project_default_for_sms` و `is_project_default_for_calls` را OneUptime تعیین می‌کند و Terraform فقط آن‌ها را می‌خواند.
+- **شماره‌های تلفن.** هر شماره را با `+` و کد کشور بنویسید. فاصله، خط تیره، نقطه و پرانتز میان رقم‌ها اشکالی ندارد: OneUptime `+1 415 555 0100` را به شکل `+14155550100` نگه می‌دارد و Terraform آن را همان شماره‌ای می‌داند که نوشته‌اید، پس plan هیچ تغییری نشان نمی‌دهد.
+- **کلید API.** کلیدی که Terraform به کار می‌برد، افزون بر ساختن و ویرایش پیکربندی‌ها، باید بتواند Auth Token را بخواند: **مالک پروژه**، **مدیر پروژه**، یا **Read Call and SMS** در یک نقش سفارشی. با کلیدی که نمی‌تواند، خواندن پیکربندی شکست می‌خورد و خطا می‌گوید چه کسی می‌تواند توکن را بخواند.
+- **ارجاع‌ها.** `call_sms_config_id` یک صفحه وضعیت و `project_call_sms_config_id` یک سیاست تماس ورودی، `id` پیکربندی را می‌گیرند.
 
 ### شماره‌های جدا برای تماس و پیامک
 

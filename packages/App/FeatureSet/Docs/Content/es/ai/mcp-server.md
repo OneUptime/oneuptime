@@ -330,7 +330,7 @@ Además de las herramientas para cada tipo de registro, el servidor tiene herram
 
 - **`acknowledge_incident`** / **`resolve_incident`**: llevar un incidente al estado Acknowledged o Resolved del proyecto, como hace el botón del panel
 - **`acknowledge_alert`** / **`resolve_alert`**: lo mismo para las alertas
-- **`add_incident_note`**: añadir una nota a un incidente con `visibility: "internal"` (solo el equipo, por defecto) o `visibility: "public"` (publicada en la página de estado). Admite Markdown
+- **`add_incident_note`**: añadir una nota a un incidente con `visibility: "internal"` (solo quien puede ver el incidente, por defecto) o `visibility: "public"` (publicada en la página de estado). Admite Markdown
 - **`add_alert_note`**: añadir una nota interna a una alerta
 
 Un ciclo típico: `list_incidents` → `acknowledge_incident` → investigar con `list_logs` → `add_incident_note` (pública) → `resolve_incident`.

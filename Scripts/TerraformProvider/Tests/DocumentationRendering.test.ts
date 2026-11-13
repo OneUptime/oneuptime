@@ -258,6 +258,47 @@ describe("examples", () => {
     expect(fleetDoc).not.toContain("123e4567-e89b-12d3-a456-426614174000");
   });
 
+  /*
+   * The ids of records the provider has no resource or data source for are
+   * still a list of ids, as the attribute takes them - not the spec's own
+   * example, the API's list of objects, which Terraform refuses ("element
+   * 0: string required").
+   */
+  test("write ids of records the provider has nothing for as a list of ids", async () => {
+    // A deep copy: the fixture's schemas are shared module-level objects.
+    const spec: any = JSON.parse(JSON.stringify(buildFixtureSpec()));
+    spec.components.schemas.IoTFleet.properties.gateways = {
+      type: "array",
+      items: { type: "object", properties: { id: { type: "string" } } },
+      example: [{ id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" }],
+      description: "The gateways the fleet reports through.",
+      "x-oneuptime-relation": { tag: "Gateway", tableName: "Gateway" },
+    };
+    spec.components.schemas.IoTFleet.required.push("gateways");
+
+    const dir: string = fs.mkdtempSync(
+      path.join(os.tmpdir(), "tfgen-docs-ids-"),
+    );
+
+    try {
+      await new DocumentationGenerator(
+        {
+          outputDir: dir,
+          providerName: "oneuptime",
+          providerVersion: "11.2.0",
+          goModuleName: "github.com/oneuptime/terraform-provider-oneuptime",
+        },
+        spec,
+      ).generateDocumentation();
+
+      const fleetDoc: string = read(dir, "docs/resources/iot_fleet.md");
+      expect(fleetDoc).toMatch(/\n {2}gateways\s+= \["<id>"\]\n/);
+      expect(fleetDoc).not.toContain("xxxxxxxx");
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   test("give names a readable value", () => {
     const fleetDoc: string = read(outputDir, "docs/resources/iot_fleet.md");
     expect(fleetDoc).toMatch(/name\s+= "Example iot fleet"/);

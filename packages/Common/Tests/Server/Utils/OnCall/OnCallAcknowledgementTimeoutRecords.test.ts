@@ -664,16 +664,15 @@ describe.each(KINDS)(
 );
 
 /*
- * An incident's or an alert's state change is handed on to the pages people
- * asked for (OnCallPersonPageAnswer), with who changed it and where the
- * record stands in its new state, read with the states the clock reads.
+ * Every record's state change is handed on to the pages people asked for
+ * (OnCallPersonPageAnswer), with who changed it and where the record stands
+ * in its new state, read with the states the clock reads: an incident's and
+ * an alert's, and - now that a policy a person started by hand on one is
+ * such a page (OnCallPolicyStartedByHand, issue #7596) - an episode's too.
  */
 describe.each(KINDS)(
   "a $kind's state change, handed on to the person's pages",
   (kindCase: KindCase) => {
-    const isHandedOn: boolean =
-      kindCase.kind === "incident" || kindCase.kind === "alert";
-
     test.each([
       [
         "acknowledged",
@@ -712,12 +711,6 @@ describe.each(KINDS)(
           previousStateId: new ObjectID(ACKNOWLEDGED),
           changedByUserId: ANA,
         });
-
-        if (!isHandedOn) {
-          // An episode has no pages a person asked for.
-          expect(answered).not.toHaveBeenCalled();
-          return;
-        }
 
         expect(answered).toHaveBeenCalledTimes(1);
         expect(answered.mock.calls[0]![0]).toEqual({

@@ -1,5 +1,5 @@
 import { CloudProvider } from "./CloudPlatform";
-import { translationKey } from "../Translator";
+import { Translator, translationKey } from "../Translator";
 
 /*
  * The IaaS and PaaS resource types OneUptime recognises in the metrics a
@@ -1966,7 +1966,7 @@ export function getCloudResourceTypeLabel(
  * naming: no list, filter, topology or rule counts them. Each label is a
  * common noun, so it is a key of the Dashboard's locale files and reads in
  * the reader's language; the catalog's own labels above are the clouds'
- * product names, drawn as written.
+ * product names, drawn as written (getCloudResourceTypeText).
  */
 export interface CloudNamedOnlyResourceType {
   provider: CloudProvider;
@@ -2355,9 +2355,11 @@ export function getReadableCloudResourceType(
 }
 
 /*
- * What a page calls a resource of this type: the catalog's label, a named
- * only type's (Subnet, Security Group), else the type in words
- * (getReadableCloudResourceType). For a page only: what is stored - a
+ * What a page calls a resource of this type, in English: the catalog's
+ * label, a named only type's (Subnet, Security Group), else the type in
+ * words (getReadableCloudResourceType). A list of resources, which never
+ * holds a named only type, draws it as it comes; where one can be named, a
+ * page draws getCloudResourceTypeText. For a page only: what is stored - a
  * resource's name, a rule, the AI's facts - keeps getCloudResourceTypeLabel,
  * whose fallback is the type as the cloud spells it.
  */
@@ -2383,6 +2385,47 @@ export function getCloudResourceTypeDisplayName(
   }
 
   return getReadableCloudResourceType(type);
+}
+
+// The words the catalog lists its types under: the clouds' product names.
+const LISTED_TYPE_LABELS: ReadonlySet<string> = new Set(
+  CLOUD_RESOURCE_TYPES.map(
+    (descriptor: CloudResourceTypeDescriptor): string => {
+      return descriptor.label;
+    },
+  ),
+);
+
+/*
+ * A resource type's name as a page draws it, by one rule on every page
+ * (#7659). The catalog's labels are the clouds' product names - "Virtual
+ * Machine", "EC2 Instance", "Cloud Run Service" - drawn as written in every
+ * language: as the docs' tables list them, as a resource's name carries
+ * them ("web-01 (Virtual Machine)"), and as the lists, the Type filters and
+ * their chips, the topology and a resource's own page draw them. So is a
+ * type in words ("Transit Gateway (EC2)"). Only a named only type's label
+ * is a common noun, drawn in the reader's language ("Subred") - unless a
+ * listed type is called the same ("Instance Group", "Network Interface",
+ * "KMS Key"): those words are a product's name, and one resource reads the
+ * same whether OneUptime holds it or only a link to it.
+ */
+export function getCloudResourceTypeText(
+  provider: string | null | undefined,
+  type: string | null | undefined,
+  translator: Pick<Translator, "translateText">,
+): string {
+  const name: string = getCloudResourceTypeDisplayName(provider, type);
+
+  if (
+    !provider ||
+    !type ||
+    LISTED_TYPE_LABELS.has(name) ||
+    !NAMED_ONLY_LABELS.has(typeLookupKey(provider, type))
+  ) {
+    return name;
+  }
+
+  return translator.translateText(name) || name;
 }
 
 /*

@@ -34,6 +34,11 @@ import {
   getHostCollectorConfigHash,
   hostCollectorConfigHashToBytes,
 } from "../../../../Server/Utils/HostCollector/HostCollectorConfigHash";
+import {
+  HOST_COLLECTOR_OPAMP_SETTINGS_FILE,
+  getHostCollectorSentConfigHash,
+} from "../../../../Server/Utils/HostCollector/OpAmp/OpAmpExchange";
+import logger from "../../../../Server/Utils/Logger";
 import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
 import HostService from "../../../../Server/Services/HostService";
 import HostCollectorConfigService from "../../../../Server/Services/HostCollectorConfigService";
@@ -337,27 +342,26 @@ function installFakes(): void {
     });
 
   jest
-    .spyOn(HostCollectorConfigVersionService, "findOneBy")
+    .spyOn(HostCollectorConfigVersionService, "findBy")
     .mockImplementation(async (data: { query: Record<string, unknown> }) => {
       versionQueries.push({ ...data.query });
-      const match: Array<FakeVersion> = versions
+      return versions
         .filter((version: FakeVersion): boolean => {
           return (
             version.projectId === String(data.query["projectId"]) &&
-            version.configId === String(data.query["hostCollectorConfigId"]) &&
-            version.configHash === data.query["configHash"]
+            version.configId === String(data.query["hostCollectorConfigId"])
           );
         })
         .sort((a: FakeVersion, b: FakeVersion): number => {
           return b.versionNumber - a.versionNumber;
+        })
+        .map((version: FakeVersion): HostCollectorConfigVersion => {
+          const model: HostCollectorConfigVersion =
+            new HostCollectorConfigVersion();
+          model._id = version.id;
+          model.configHash = version.configHash;
+          return model;
         });
-      if (!match[0]) {
-        return null;
-      }
-      const model: HostCollectorConfigVersion =
-        new HostCollectorConfigVersion();
-      model._id = match[0].id;
-      return model;
     });
 
   jest
@@ -663,13 +667,17 @@ describe("the config a host runs", () => {
     expect(hosts[0]!.columns["collectorConfigId"]).toEqual(
       new ObjectID(config.id),
     );
+    // Sent with a hash of the version's own and OneUptime's settings file.
+    expect(sentHash(response)).toBe(
+      getHostCollectorSentConfigHash(version.configHash),
+    );
 
     await post({
       status: OpAmpRemoteConfigStatus.Applied,
-      hash: version.configHash,
+      hash: sentHash(response)!,
     });
 
-    expect(hosts[0]!.columns["collectorConfigHash"]).toBe(version.configHash);
+    expect(hosts[0]!.columns["collectorConfigHash"]).toBe(sentHash(response));
     expect(hosts[0]!.columns["collectorConfigVersionId"]).toEqual(
       new ObjectID(version.id),
     );
@@ -695,7 +703,7 @@ describe("the config a host runs", () => {
     await post({ status: OpAmpRemoteConfigStatus.Applied, hash: hostsHash() });
     await post({
       status: OpAmpRemoteConfigStatus.Applied,
-      hash: own.configHash,
+      hash: getHostCollectorSentConfigHash(own.configHash),
     });
 
     expect(hosts[0]!.columns["collectorConfigVersionId"]).toEqual(
@@ -716,7 +724,7 @@ describe("the config a host runs", () => {
     await post({ sequenceNum: 0, description: DESCRIPTION });
     await post({
       status: OpAmpRemoteConfigStatus.Applied,
-      hash: oldVersion.configHash,
+      hash: getHostCollectorSentConfigHash(oldVersion.configHash),
     });
     expect(hosts[0]!.columns["collectorConfigVersionId"]).toEqual(
       new ObjectID(oldVersion.id),
@@ -731,7 +739,7 @@ describe("the config a host runs", () => {
 
     const response: OpAmpServerToAgent = await post({
       status: OpAmpRemoteConfigStatus.Applied,
-      hash: oldVersion.configHash,
+      hash: getHostCollectorSentConfigHash(oldVersion.configHash),
     });
 
     expect(sentYaml(response)).toBe(newer.configYaml);
@@ -746,6 +754,92 @@ describe("the config a host runs", () => {
 
     expect(hosts[0]!.columns["collectorConfigVersionId"]).toBeUndefined();
     expect(versionQueries).toEqual([]);
+  });
+
+  test("a host that runs a version as it was sent before the settings file shows that version, and is sent it once more", async () => {
+    const config: FakeConfig = addConfig({
+      configYaml: `${getHostCollectorDefaultConfig(HostCollectorOsType.Linux)}# before\n`,
+    });
+    const version: FakeVersion = addVersion(config, 3);
+
+    // Installed before: it reports the version's own hash, sent with it then.
+    const resent: OpAmpServerToAgent = await post({
+      sequenceNum: 5,
+      description: DESCRIPTION,
+      status: OpAmpRemoteConfigStatus.Applied,
+      hash: version.configHash,
+    });
+
+    expect(hosts[0]!.columns["collectorConfigVersionId"]).toEqual(
+      new ObjectID(version.id),
+    );
+    expect(sentYaml(resent)).toBe(config.configYaml);
+    expect(
+      resent.remoteConfig!.config.configMap[HOST_COLLECTOR_OPAMP_SETTINGS_FILE],
+    ).toBeDefined();
+    expect(sentHash(resent)).toBe(
+      getHostCollectorSentConfigHash(version.configHash),
+    );
+
+    // Once it runs the config as sent now, it is left alone.
+    for (let poll: number = 0; poll < 3; poll++) {
+      const settled: OpAmpServerToAgent = await post({
+        sequenceNum: 6 + poll,
+        status: OpAmpRemoteConfigStatus.Applied,
+        hash: sentHash(resent)!,
+      });
+
+      expect(settled.remoteConfig).toBeUndefined();
+    }
+    expect(hosts[0]!.columns["collectorConfigHash"]).toBe(sentHash(resent));
+    expect(hosts[0]!.columns["collectorConfigVersionId"]).toEqual(
+      new ObjectID(version.id),
+    );
+  });
+
+  test("the config a host's collector reports it runs reaches no write, no cache and no log", async () => {
+    const logged: Array<unknown> = [];
+    for (const level of ["debug", "info", "warn", "error"] as const) {
+      jest
+        .spyOn(logger, level)
+        .mockImplementation((...args: Array<unknown>): void => {
+          logged.push(args);
+        });
+    }
+
+    const result: HostCollectorMessageResult =
+      await HostCollectorAgent.handleMessage({
+        projectId: PROJECT,
+        body: OpAmpCodec.encodeAgentToServer({
+          instanceUid: INSTANCE_ONE,
+          sequenceNum: 0,
+          agentDescription: DESCRIPTION,
+          effectiveConfig: {
+            configMap: {
+              configMap: {
+                "": {
+                  body: new Uint8Array(
+                    Buffer.from(
+                      "processors:\n  resource:\n    attributes:\n      - key: db.dsn\n        value: postgres://app:SECRET-PASSWORD-456@db/app\n",
+                      "utf8",
+                    ),
+                  ),
+                  contentType: "text/yaml",
+                },
+              },
+            },
+          },
+        }),
+      });
+
+    expect(result.isBadRequest).toBe(false);
+    expect(hosts.length).toBe(1);
+    expect(writes.length).toBeGreaterThan(0);
+    expect(JSON.stringify(writes)).not.toContain("SECRET-PASSWORD-456");
+    expect(JSON.stringify([...cache.entries()])).not.toContain(
+      "SECRET-PASSWORD-456",
+    );
+    expect(JSON.stringify(logged)).not.toContain("SECRET-PASSWORD-456");
   });
 
   test("a config picked for the host wins over the list", async () => {
@@ -965,11 +1059,13 @@ describe("a host deleted while its collector runs", () => {
       sequenceNum: 7,
       description: DESCRIPTION,
       status: OpAmpRemoteConfigStatus.Applied,
-      hash: getHostCollectorConfigHash(
-        getHostCollectorDefaultConfig(HostCollectorOsType.Linux, {
-          journald: true,
-          systemd: false,
-        }),
+      hash: getHostCollectorSentConfigHash(
+        getHostCollectorConfigHash(
+          getHostCollectorDefaultConfig(HostCollectorOsType.Linux, {
+            journald: true,
+            systemd: false,
+          }),
+        ),
       ),
     });
 
