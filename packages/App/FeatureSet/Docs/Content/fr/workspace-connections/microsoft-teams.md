@@ -125,7 +125,7 @@ Une règle de notification peut appartenir à des équipes. **Équipes responsab
 
 À chaque relève, les canaux et les conversations d'une politique d'astreinte apprennent qui est d'astreinte, en une ligne :
 
-> 📞 @Ana Lee is now on call for Payments until Fri, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
+> 📞 @Ana Lee is now on call for Payments until Sat, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
 
 Payments renvoie à la politique dans OneUptime. Une personne est nommée par son nom Microsoft Teams une fois qu'elle a connecté son compte Microsoft Teams à OneUptime, et par son nom OneUptime jusque-là. Les heures s'affichent dans le fuseau horaire de chaque lecteur. L'étape **Mises à jour** d'une règle choisit les messages d'astreinte qu'elle publie, comme dans Slack, et une nouvelle règle commence par qui est d'astreinte maintenant et quand personne ne l'est : voir [Messages d'astreinte](/docs/workspace-connections/slack#messages-dastreinte).
 

@@ -125,7 +125,7 @@ SLO のルールは、エラーバジェットポリシーの変化を投稿し�
 
 引き継ぎのたびに、オンコールポリシーのチャネルとチャットには誰がオンコールかが 1 行で投稿されます。
 
-> 📞 @Ana Lee is now on call for Payments until Fri, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
+> 📞 @Ana Lee is now on call for Payments until Sat, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
 
 Payments は OneUptime のポリシーへのリンクです。Microsoft Teams アカウントを OneUptime に接続したユーザーは Microsoft Teams の名前で、それまでは OneUptime の名前で示されます。時刻は読む人それぞれのタイムゾーンで表示されます。ルールの **更新** ステップでは Slack と同じく投稿するオンコールのメッセージを選び、新しいルールは現在のオンコール担当者と担当者がいないときから始まります。 [オンコールのメッセージ](/docs/workspace-connections/slack#オンコールのメッセージ) を参照してください。
 

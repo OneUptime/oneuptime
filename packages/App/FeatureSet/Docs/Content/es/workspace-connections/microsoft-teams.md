@@ -125,7 +125,7 @@ Una regla de notificación puede pertenecer a equipos. **Equipos responsables**,
 
 En cada relevo, los canales y chats de una política de guardia se enteran de quién está de guardia, en una línea:
 
-> 📞 @Ana Lee is now on call for Payments until Fri, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
+> 📞 @Ana Lee is now on call for Payments until Sat, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
 
 Payments enlaza a la política en OneUptime. A una persona se la nombra por su nombre de Microsoft Teams cuando ha conectado su cuenta de Microsoft Teams a OneUptime, y por su nombre en OneUptime hasta entonces. Las horas se muestran en la zona horaria de cada lector. El paso **Actualizaciones** de una regla elige qué mensajes de guardia publica, como en Slack, y una regla nueva empieza con quién está de guardia ahora y cuándo no hay nadie: consulta [Mensajes de guardia](/docs/workspace-connections/slack#mensajes-de-guardia).
 

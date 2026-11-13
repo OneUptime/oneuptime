@@ -125,7 +125,7 @@ A notification rule can belong to teams. **Owning Teams**, under **More fields**
 
 At each hand-off, an on-call policy's channels and chats hear who is on call, in one line:
 
-> 📞 @Ana Lee is now on call for Payments until Fri, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
+> 📞 @Ana Lee is now on call for Payments until Sat, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
 
 Payments links to the policy in OneUptime. A person is named by their Microsoft Teams name once they have connected their Microsoft Teams account to OneUptime, and by their OneUptime name until then. Times show in each reader's own time zone. A rule's **Updates** step chooses which on-call messages it posts, as in Slack, and a new rule starts on who is on call now and when nobody is: see [On-call messages](/docs/workspace-connections/slack#on-call-messages).
 

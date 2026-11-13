@@ -125,7 +125,7 @@ SLO 的规则会发布其错误预算策略的变化：在 SLO 进入某个级�
 
 每次交接时，值班策略的频道和聊天会收到一行消息，说明谁在值班：
 
-> 📞 @Ana Lee is now on call for Payments until Fri, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
+> 📞 @Ana Lee is now on call for Payments until Sat, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
 
 Payments 链接到 OneUptime 中的策略。将 Microsoft Teams 账户连接到 OneUptime 的人以其 Microsoft Teams 名称显示，在此之前以其 OneUptime 名称显示。时间按每位读者自己的时区显示。规则的 **更新** 步骤与 Slack 一样选择要发布哪些值班消息，新规则默认使用当前值班人员以及何时无人值班：请参阅 [值班消息](/docs/workspace-connections/slack#值班消息)。
 

@@ -125,7 +125,7 @@ En varslingsregel kan tilhøre team. **Ansvarlige team** under **Flere felt** fo
 
 Ved hvert vaktskifte får kanalene og chattene til en vaktpolicy vite hvem som har vakt, i én linje:
 
-> 📞 @Ana Lee is now on call for Payments until Fri, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
+> 📞 @Ana Lee is now on call for Payments until Sat, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
 
 Payments lenker til policyen i OneUptime. En person nevnes med Microsoft Teams-navnet sitt når vedkommende har koblet Microsoft Teams-kontoen sin til OneUptime, og med navnet sitt i OneUptime frem til da. Tidspunkter vises i hver lesers egen tidssone. Steget **Oppdateringer** i en regel velger hvilke vaktmeldinger den publiserer, som i Slack, og en ny regel starter med hvem som har vakt nå og når ingen har det: se [Vaktmeldinger](/docs/workspace-connections/slack#vaktmeldinger).
 

@@ -125,7 +125,7 @@ Een meldingsregel kan bij teams horen. **Verantwoordelijke teams**, onder **Meer
 
 Bij elke overdracht horen de kanalen en chats van een bereikbaarheidsbeleid in één regel wie dienst heeft:
 
-> 📞 @Ana Lee is now on call for Payments until Fri, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
+> 📞 @Ana Lee is now on call for Payments until Sat, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
 
 Payments linkt naar het beleid in OneUptime. Iemand wordt bij zijn Microsoft Teams-naam genoemd zodra hij zijn Microsoft Teams-account met OneUptime heeft verbonden, en tot dan bij zijn naam in OneUptime. Tijden verschijnen in de tijdzone van elke lezer. De stap **Updates** van een regel kiest welke dienstberichten hij plaatst, zoals in Slack, en een nieuwe regel begint met wie nu dienst heeft en wanneer niemand dienst heeft: zie [Dienstberichten](/docs/workspace-connections/slack#dienstberichten).
 

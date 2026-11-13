@@ -125,7 +125,7 @@ flowchart TB
 
 در هر تحویل شیفت، کانال‌ها و گفتگوهای یک سیاست آنکال در یک خط می‌شنوند که چه کسی آنکال است:
 
-> 📞 @Ana Lee is now on call for Payments until Fri, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
+> 📞 @Ana Lee is now on call for Payments until Sat, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
 
 Payments به سیاست در OneUptime پیوند دارد. هر فرد با نام Microsoft Teams خود نامیده می‌شود وقتی حساب Microsoft Teams خود را به OneUptime وصل کرده باشد، و تا آن زمان با نام خود در OneUptime. زمان‌ها در منطقه زمانی خود هر خواننده نشان داده می‌شوند. گام **به‌روزرسانی‌ها** در یک قاعده، مانند Slack، انتخاب می‌کند کدام پیام‌های آنکال را منتشر کند، و قاعده تازه با اینکه اکنون چه کسی آنکال است و چه زمانی کسی نیست آغاز می‌شود: نگاه کنید به [پیام‌های آنکال](/docs/workspace-connections/slack#پیامهای-آنکال).
 

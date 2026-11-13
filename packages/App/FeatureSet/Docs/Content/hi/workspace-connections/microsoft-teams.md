@@ -125,7 +125,7 @@ OneUptime Cloud पर, **Teams Store खोलें** Microsoft Teams स्�
 
 हर हैंडऑफ़ पर, ऑन-कॉल नीति के चैनलों और चैट को एक पंक्ति में बताया जाता है कि कौन ऑन-कॉल है:
 
-> 📞 @Ana Lee is now on call for Payments until Fri, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
+> 📞 @Ana Lee is now on call for Payments until Sat, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
 
 Payments OneUptime में नीति से लिंक होता है। किसी व्यक्ति को उसके Microsoft Teams नाम से बताया जाता है जब उसने अपना Microsoft Teams खाता OneUptime से जोड़ लिया हो, और तब तक उसके OneUptime नाम से। समय हर पाठक के अपने समय क्षेत्र में दिखता है। नियम का **अपडेट** चरण Slack की तरह चुनता है कि वह कौन-से ऑन-कॉल संदेश पोस्ट करे, और नया नियम इससे शुरू होता है कि अभी ऑन-कॉल कौन है और कब कोई नहीं है: देखें [ऑन-कॉल संदेश](/docs/workspace-connections/slack#ऑन-कॉल-संदेश)।
 

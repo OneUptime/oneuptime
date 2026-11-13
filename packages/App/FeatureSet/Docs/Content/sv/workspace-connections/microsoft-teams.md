@@ -125,7 +125,7 @@ En aviseringsregel kan tillhöra team. **Ansvariga team** under **Fler fält** f
 
 Vid varje överlämning får en jourpolicys kanaler och chattar veta vem som har jour, på en rad:
 
-> 📞 @Ana Lee is now on call for Payments until Fri, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
+> 📞 @Ana Lee is now on call for Payments until Sat, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
 
 Payments länkar till policyn i OneUptime. En person nämns med sitt Microsoft Teams-namn när hen har kopplat sitt Microsoft Teams-konto till OneUptime, och med sitt namn i OneUptime fram till dess. Tider visas i varje läsares egen tidszon. Steget **Uppdateringar** i en regel väljer vilka jourmeddelanden den publicerar, som i Slack, och en ny regel börjar med vem som har jour nu och när ingen har det: se [Jourmeddelanden](/docs/workspace-connections/slack#jourmeddelanden).
 

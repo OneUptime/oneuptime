@@ -125,7 +125,7 @@ Eine Benachrichtigungsregel kann Teams gehören. **Zuständige Teams** unter **W
 
 Bei jeder Übergabe erfahren die Kanäle und Chats einer Bereitschaftsrichtlinie in einer Zeile, wer Bereitschaft hat:
 
-> 📞 @Ana Lee is now on call for Payments until Fri, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
+> 📞 @Ana Lee is now on call for Payments until Sat, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
 
 Payments verlinkt die Richtlinie in OneUptime. Eine Person wird mit ihrem Microsoft-Teams-Namen genannt, sobald sie ihr Microsoft-Teams-Konto mit OneUptime verbunden hat, und bis dahin mit ihrem Namen in OneUptime. Zeiten erscheinen in der Zeitzone jedes Lesers. Der Schritt **Aktualisierungen** einer Regel wählt, welche Bereitschaftsnachrichten sie postet, wie in Slack, und eine neue Regel beginnt damit, wer jetzt Bereitschaft hat und wann niemand sie hat: siehe [Bereitschaftsnachrichten](/docs/workspace-connections/slack#bereitschaftsnachrichten).
 

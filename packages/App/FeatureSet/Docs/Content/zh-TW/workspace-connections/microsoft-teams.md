@@ -125,7 +125,7 @@ SLO 的規則會發布其錯誤預算策略的變化：在 SLO 進入某個級�
 
 每次交接時，待命策略的頻道和聊天會收到一行訊息，說明誰在待命：
 
-> 📞 @Ana Lee is now on call for Payments until Fri, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
+> 📞 @Ana Lee is now on call for Payments until Sat, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
 
 Payments 連結到 OneUptime 中的策略。將 Microsoft Teams 帳戶連結到 OneUptime 的人以其 Microsoft Teams 名稱顯示，在此之前以其 OneUptime 名稱顯示。時間依每位讀者自己的時區顯示。規則的 **更新** 步驟與 Slack 一樣選擇要發布哪些待命訊息，新規則預設使用目前待命人員以及何時無人待命：請參閱 [待命訊息](/docs/workspace-connections/slack#待命訊息)。
 

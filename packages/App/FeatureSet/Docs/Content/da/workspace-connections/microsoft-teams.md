@@ -125,7 +125,7 @@ En notifikationsregel kan tilhøre teams. **Ansvarlige teams** under **Flere fel
 
 Ved hvert vagtskifte hører en vagtpolitiks kanaler og chats i én linje, hvem der har vagt:
 
-> 📞 @Ana Lee is now on call for Payments until Fri, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
+> 📞 @Ana Lee is now on call for Payments until Sat, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
 
 Payments linker til politikken i OneUptime. En person nævnes ved sit Microsoft Teams-navn, når vedkommende har forbundet sin Microsoft Teams-konto med OneUptime, og ved sit navn i OneUptime indtil da. Tidspunkter vises i hver læsers egen tidszone. En regels trin **Opdateringer** vælger, hvilke vagtbeskeder den slår op, som i Slack, og en ny regel starter med, hvem der har vagt nu, og hvornår ingen har: se [Vagtbeskeder](/docs/workspace-connections/slack#vagtbeskeder).
 

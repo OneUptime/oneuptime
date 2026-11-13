@@ -125,7 +125,7 @@ flowchart TB
 
 При каждой передаче смены каналы и чаты политики дежурства узнают одной строкой, кто дежурит:
 
-> 📞 @Ana Lee is now on call for Payments until Fri, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
+> 📞 @Ana Lee is now on call for Payments until Sat, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
 
 Payments ведёт на политику в OneUptime. Человек назван своим именем в Microsoft Teams, когда он подключил свою учётную запись Microsoft Teams к OneUptime, а до тех пор — своим именем в OneUptime. Время показано в часовом поясе каждого читателя. Шаг **Обновления** правила выбирает, какие сообщения о дежурстве оно публикует, как в Slack, а новое правило начинается с того, кто дежурит сейчас и когда никто не дежурит: см. [Сообщения о дежурстве](/docs/workspace-connections/slack#сообщения-о-дежурстве).
 

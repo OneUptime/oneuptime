@@ -125,7 +125,7 @@ Uma regra de notificação pode pertencer a equipes. **Equipes responsáveis**, 
 
 A cada passagem de turno, os canais e chats de uma política de plantão ficam sabendo quem está de plantão, em uma linha:
 
-> 📞 @Ana Lee is now on call for Payments until Fri, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
+> 📞 @Ana Lee is now on call for Payments until Sat, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
 
 Payments leva à política no OneUptime. Uma pessoa é nomeada pelo nome no Microsoft Teams depois de conectar a conta do Microsoft Teams ao OneUptime, e pelo nome no OneUptime até lá. Os horários aparecem no fuso horário de cada leitor. A etapa **Atualizações** de uma regra escolhe quais mensagens de plantão ela publica, como no Slack, e uma regra nova começa com quem está de plantão agora e quando não há ninguém: veja [Mensagens de plantão](/docs/workspace-connections/slack#mensagens-de-plantão).
 

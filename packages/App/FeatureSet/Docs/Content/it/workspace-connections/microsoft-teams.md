@@ -125,7 +125,7 @@ Una regola di notifica può appartenere a dei team. **Team responsabili**, sotto
 
 A ogni cambio turno, i canali e le chat di una policy di reperibilità vengono a sapere chi è reperibile, in una riga:
 
-> 📞 @Ana Lee is now on call for Payments until Fri, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
+> 📞 @Ana Lee is now on call for Payments until Sat, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
 
 Payments rimanda alla policy in OneUptime. Una persona viene nominata con il suo nome Microsoft Teams una volta che ha collegato il proprio account Microsoft Teams a OneUptime, e con il suo nome in OneUptime fino ad allora. Gli orari sono mostrati nel fuso orario di ciascun lettore. Il passaggio **Aggiornamenti** di una regola sceglie quali messaggi di reperibilità pubblica, come in Slack, e una nuova regola parte da chi è reperibile ora e quando non lo è nessuno: vedi [Messaggi di reperibilità](/docs/workspace-connections/slack#messaggi-di-reperibilità).
 

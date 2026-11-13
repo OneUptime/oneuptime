@@ -1072,13 +1072,29 @@ describe("a rule's updates", () => {
     });
   });
 
-  test("an on-call policy rule saved before on-call rules chose has no Updates row: it posts every update", async () => {
+  /*
+   * A new on-call policy rule starts on Key updates only, so its card says
+   * so - and a rule saved before on-call rules chose, which still posts
+   * every update, says that beside it: the channel the customer found too
+   * noisy is the one with that rule, and its card is where they look.
+   */
+  test("every on-call policy rule's card says which updates it posts: one saved before on-call rules chose says Every update (#7549)", async () => {
     const cards: Array<HTMLElement> = await renderCards(
       [
         {
           id: KEY_ONLY,
           name: "Saved before on-call rules chose",
           rule: ruleJson({}),
+        },
+        {
+          id: "7a8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
+          name: "Saved with no list",
+          rule: ruleJson({ updatesToPost: null }),
+        },
+        {
+          id: "8a8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
+          name: "Created with the Updates step",
+          rule: ruleJson({ updatesToPost: ["OnCallNow", "NobodyOnCall"] }),
         },
       ],
       {
@@ -1087,9 +1103,24 @@ describe("a rule's updates", () => {
       },
     );
 
-    expect(
-      within(cards[0]!).queryByTestId("notification-rule-updates-summary"),
-    ).not.toBeInTheDocument();
+    for (const card of cards) {
+      const names: Array<string> = rowNames(card);
+
+      expect(names[names.length - 1]).toBe("Updates");
+    }
+
+    expect(updatesRow(cards[0]!)).toEqual({
+      title: "Every update",
+      updates: null,
+    });
+    expect(updatesRow(cards[1]!)).toEqual({
+      title: "Every update",
+      updates: null,
+    });
+    expect(updatesRow(cards[2]!)).toEqual({
+      title: "Key updates only",
+      updates: "Who is on call now · Nobody on call",
+    });
   });
 
   test.each([
