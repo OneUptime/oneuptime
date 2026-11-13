@@ -51487,7 +51487,7 @@
   "Ask a server admin to switch it on in Admin Dashboard > Settings > Products.": "「管理ダッシュボード > 設定 > 製品」でオンにするよう、サーバー管理者に依頼してください。",
   "Go to Home": "ホームへ移動",
   "Off: telemetry ingestion is stopped": "オフ: テレメトリの取り込みが停止しています",
-  "Open Settings > Products": "「設定 > 製品」を開く",
+  "Open Admin Dashboard > Settings > Products": "「管理ダッシュボード > 設定 > 製品」を開く",
   "Server Products": "サーバーの製品",
   "Switched off on this server": "このサーバーでオフになっています",
   "Telemetry ingestion is stopped on this server (DISABLE_TELEMETRY_INGESTION), so nothing new reaches it.": "このサーバーではテレメトリの取り込みが停止している (DISABLE_TELEMETRY_INGESTION) ため、新しいデータは届きません。",

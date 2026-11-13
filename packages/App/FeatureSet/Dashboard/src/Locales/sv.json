@@ -51487,7 +51487,7 @@
   "Ask a server admin to switch it on in Admin Dashboard > Settings > Products.": "Be en serveradministratör att slå på den under Admin-instrumentpanel > Inställningar > Produkter.",
   "Go to Home": "Gå till Hem",
   "Off: telemetry ingestion is stopped": "Av: telemetriinmatningen är stoppad",
-  "Open Settings > Products": "Öppna Inställningar > Produkter",
+  "Open Admin Dashboard > Settings > Products": "Öppna Admin-instrumentpanel > Inställningar > Produkter",
   "Server Products": "Serverprodukter",
   "Switched off on this server": "Avstängd på den här servern",
   "Telemetry ingestion is stopped on this server (DISABLE_TELEMETRY_INGESTION), so nothing new reaches it.": "Telemetriinmatningen är stoppad på den här servern (DISABLE_TELEMETRY_INGESTION), så inget nytt kommer in.",

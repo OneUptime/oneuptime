@@ -51487,7 +51487,7 @@
   "Ask a server admin to switch it on in Admin Dashboard > Settings > Products.": "Ask a server admin to switch it on in Admin Dashboard > Settings > Products.",
   "Go to Home": "Go to Home",
   "Off: telemetry ingestion is stopped": "Off: telemetry ingestion is stopped",
-  "Open Settings > Products": "Open Settings > Products",
+  "Open Admin Dashboard > Settings > Products": "Open Admin Dashboard > Settings > Products",
   "Server Products": "Server Products",
   "Switched off on this server": "Switched off on this server",
   "Telemetry ingestion is stopped on this server (DISABLE_TELEMETRY_INGESTION), so nothing new reaches it.": "Telemetry ingestion is stopped on this server (DISABLE_TELEMETRY_INGESTION), so nothing new reaches it.",

@@ -51487,7 +51487,7 @@
   "Ask a server admin to switch it on in Admin Dashboard > Settings > Products.": "از یک مدیر سرور بخواهید آن را در داشبورد مدیریت > تنظیمات > محصولات روشن کند.",
   "Go to Home": "رفتن به خانه",
   "Off: telemetry ingestion is stopped": "خاموش: دریافت تله‌متری متوقف شده است",
-  "Open Settings > Products": "باز کردن تنظیمات > محصولات",
+  "Open Admin Dashboard > Settings > Products": "باز کردن داشبورد مدیریت > تنظیمات > محصولات",
   "Server Products": "محصولات سرور",
   "Switched off on this server": "در این سرور خاموش است",
   "Telemetry ingestion is stopped on this server (DISABLE_TELEMETRY_INGESTION), so nothing new reaches it.": "دریافت تله‌متری در این سرور متوقف شده است (DISABLE_TELEMETRY_INGESTION)، پس چیز تازه‌ای به آن نمی‌رسد.",

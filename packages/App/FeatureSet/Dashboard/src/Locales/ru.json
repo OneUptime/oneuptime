@@ -51487,7 +51487,7 @@
   "Ask a server admin to switch it on in Admin Dashboard > Settings > Products.": "Попросите администратора сервера включить его в разделе «Панель администратора > Настройки > Продукты».",
   "Go to Home": "На главную",
   "Off: telemetry ingestion is stopped": "Выключено: приём телеметрии остановлен",
-  "Open Settings > Products": "Открыть «Настройки > Продукты»",
+  "Open Admin Dashboard > Settings > Products": "Открыть «Панель администратора > Настройки > Продукты»",
   "Server Products": "Продукты сервера",
   "Switched off on this server": "Отключено на этом сервере",
   "Telemetry ingestion is stopped on this server (DISABLE_TELEMETRY_INGESTION), so nothing new reaches it.": "Приём телеметрии на этом сервере остановлен (DISABLE_TELEMETRY_INGESTION), поэтому ничего нового не поступает.",

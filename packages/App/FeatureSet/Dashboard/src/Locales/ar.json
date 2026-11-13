@@ -51487,7 +51487,7 @@
   "Ask a server admin to switch it on in Admin Dashboard > Settings > Products.": "اطلب من أحد مسؤولي الخادم تشغيله من لوحة معلومات المسؤول > الإعدادات > المنتجات.",
   "Go to Home": "الانتقال إلى الرئيسية",
   "Off: telemetry ingestion is stopped": "متوقف: تم إيقاف استيعاب بيانات القياس عن بُعد",
-  "Open Settings > Products": "فتح الإعدادات > المنتجات",
+  "Open Admin Dashboard > Settings > Products": "فتح لوحة معلومات المسؤول > الإعدادات > المنتجات",
   "Server Products": "منتجات الخادم",
   "Switched off on this server": "متوقف على هذا الخادم",
   "Telemetry ingestion is stopped on this server (DISABLE_TELEMETRY_INGESTION), so nothing new reaches it.": "تم إيقاف استيعاب بيانات القياس عن بُعد على هذا الخادم (DISABLE_TELEMETRY_INGESTION)، لذا لا يصل إليه شيء جديد.",

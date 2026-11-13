@@ -51487,7 +51487,7 @@
   "Ask a server admin to switch it on in Admin Dashboard > Settings > Products.": "請伺服器管理員在「管理員儀表板 > 設定 > 產品」中將其開啟。",
   "Go to Home": "前往首頁",
   "Off: telemetry ingestion is stopped": "已關閉：遙測擷取已停止",
-  "Open Settings > Products": "開啟「設定 > 產品」",
+  "Open Admin Dashboard > Settings > Products": "開啟「管理員儀表板 > 設定 > 產品」",
   "Server Products": "伺服器產品",
   "Switched off on this server": "已在此伺服器上關閉",
   "Telemetry ingestion is stopped on this server (DISABLE_TELEMETRY_INGESTION), so nothing new reaches it.": "此伺服器上的遙測擷取已停止（DISABLE_TELEMETRY_INGESTION），因此不會收到任何新資料。",

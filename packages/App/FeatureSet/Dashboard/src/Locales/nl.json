@@ -51487,7 +51487,7 @@
   "Ask a server admin to switch it on in Admin Dashboard > Settings > Products.": "Vraag een serverbeheerder om het in te schakelen via Beheerdashboard > Instellingen > Producten.",
   "Go to Home": "Naar Start",
   "Off: telemetry ingestion is stopped": "Uit: telemetrie-ingestie is gestopt",
-  "Open Settings > Products": "Instellingen > Producten openen",
+  "Open Admin Dashboard > Settings > Products": "Beheerdashboard > Instellingen > Producten openen",
   "Server Products": "Serverproducten",
   "Switched off on this server": "Uitgeschakeld op deze server",
   "Telemetry ingestion is stopped on this server (DISABLE_TELEMETRY_INGESTION), so nothing new reaches it.": "Telemetrie-ingestie is gestopt op deze server (DISABLE_TELEMETRY_INGESTION), dus er komt niets nieuws meer binnen.",

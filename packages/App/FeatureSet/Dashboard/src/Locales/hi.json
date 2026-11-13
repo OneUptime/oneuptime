@@ -51487,7 +51487,7 @@
   "Ask a server admin to switch it on in Admin Dashboard > Settings > Products.": "किसी सर्वर एडमिन से इसे व्यवस्थापक डैशबोर्ड > सेटिंग्स > उत्पाद में चालू करने को कहें।",
   "Go to Home": "मुख्य पृष्ठ पर जाएँ",
   "Off: telemetry ingestion is stopped": "बंद: टेलीमेट्री इंजेशन रुका हुआ है",
-  "Open Settings > Products": "सेटिंग्स > उत्पाद खोलें",
+  "Open Admin Dashboard > Settings > Products": "व्यवस्थापक डैशबोर्ड > सेटिंग्स > उत्पाद खोलें",
   "Server Products": "सर्वर उत्पाद",
   "Switched off on this server": "इस सर्वर पर बंद है",
   "Telemetry ingestion is stopped on this server (DISABLE_TELEMETRY_INGESTION), so nothing new reaches it.": "इस सर्वर पर टेलीमेट्री इंजेशन रुका हुआ है (DISABLE_TELEMETRY_INGESTION), इसलिए इसमें कुछ भी नया नहीं आता।",

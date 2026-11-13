@@ -51487,7 +51487,7 @@
   "Ask a server admin to switch it on in Admin Dashboard > Settings > Products.": "서버 관리자에게 관리자 대시보드 > 설정 > 제품에서 켜 달라고 요청하세요.",
   "Go to Home": "홈으로 이동",
   "Off: telemetry ingestion is stopped": "꺼짐: 텔레메트리 수집이 중지됨",
-  "Open Settings > Products": "설정 > 제품 열기",
+  "Open Admin Dashboard > Settings > Products": "관리자 대시보드 > 설정 > 제품 열기",
   "Server Products": "서버 제품",
   "Switched off on this server": "이 서버에서 꺼짐",
   "Telemetry ingestion is stopped on this server (DISABLE_TELEMETRY_INGESTION), so nothing new reaches it.": "이 서버에서 텔레메트리 수집이 중지되어(DISABLE_TELEMETRY_INGESTION) 새 데이터가 들어오지 않습니다.",
