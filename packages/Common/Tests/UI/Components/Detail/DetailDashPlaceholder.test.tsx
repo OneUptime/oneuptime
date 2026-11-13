@@ -267,6 +267,125 @@ describe("EmptyValue", () => {
 });
 
 /*
+ * A detail field that draws its own element for "nothing here" as a bare
+ * dash - `<p>-</p>`, as the Admin Dashboard's Invited By did - drew a
+ * hyphen as dark as a value beside the card's quiet dash. A table's cell
+ * already read such an element as empty (isDashPlaceholder); a detail
+ * card now does too: the card's own dash, or the field's words for that.
+ */
+describe("a detail field whose own element is a bare dash", () => {
+  function drawElementField(data: {
+    element: React.ReactElement | string;
+    placeholder?: string | undefined;
+  }): HTMLElement {
+    return render(
+      <div data-testid="detail">
+        <Detail<Item>
+          id="detail-dash-element"
+          item={{ name: "Production", value: "set" }}
+          fields={[
+            { key: "name", title: "Name", fieldType: FieldType.Text },
+            {
+              key: "value",
+              title: "Invited By",
+              fieldType: FieldType.Element,
+              placeholder: data.placeholder,
+              getElement: (): React.ReactElement => {
+                return data.element as React.ReactElement;
+              },
+            },
+          ]}
+          showRecordLine={false}
+        />
+      </div>,
+    ).getByTestId("detail");
+  }
+
+  const BARE_DASHES: Array<[string, React.ReactElement | string]> = [
+    ["<p>-</p>", <p key="p">-</p>],
+    ["<span>-</span>", <span key="span">-</span>],
+    ["<>-</>", <React.Fragment key="fragment">-</React.Fragment>],
+    ["<p>\u2014</p>", <p key="em">{"\u2014"}</p>],
+    ["<p>\u2013</p>", <p key="en">{"\u2013"}</p>],
+    ["<p> - </p>", <p key="spaced">{" - "}</p>],
+    ["a bare '-'", "-"],
+  ];
+
+  test.each(BARE_DASHES)(
+    "%s is the card's quiet dash, read out as 'Not set'",
+    (_label: string, element: React.ReactElement | string) => {
+      const detail: HTMLElement = drawElementField({ element });
+      const empty: HTMLElement =
+        within(detail).getByTestId(EMPTY_VALUE_TEST_ID);
+
+      expect(empty).toBeVisible();
+      expect(within(empty).getByText(EMPTY_VALUE_MARK)).toHaveAttribute(
+        "aria-hidden",
+        "true",
+      );
+      expect(within(empty).getByText("Not set")).toHaveClass("sr-only");
+      // No hyphen of its own anywhere on the card.
+      expect(detail.textContent).not.toContain("-");
+    },
+  );
+
+  test("draws exactly what an empty field draws", () => {
+    const fromElement: string = within(
+      drawElementField({ element: <p>-</p> }),
+    ).getByTestId(EMPTY_VALUE_TEST_ID).outerHTML;
+    cleanup();
+
+    render(<EmptyValue />);
+
+    expect(fromElement).toBe(screen.getByTestId(EMPTY_VALUE_TEST_ID).outerHTML);
+  });
+
+  test("the field's own words stand in for it, as for any empty field", () => {
+    const detail: HTMLElement = drawElementField({
+      element: <p>-</p>,
+      placeholder: "Signed up on their own.",
+    });
+
+    expect(within(detail).getByTestId("placeholder-text")).toHaveTextContent(
+      "Signed up on their own.",
+    );
+    expect(within(detail).queryByTestId(EMPTY_VALUE_TEST_ID)).toBeNull();
+  });
+
+  test.each([
+    [
+      "a dash with classes of its own",
+      <p key="c" className="font-mono">
+        -
+      </p>,
+      "-",
+    ],
+    ["a value", <p key="v">Jane Cooper</p>, "Jane Cooper"],
+    ["a negative number", <p key="n">-1</p>, "-1"],
+    ["two hyphens", <p key="h">--</p>, "--"],
+  ])(
+    "%s is drawn as the page drew it",
+    (_label: string, element: React.ReactElement, text: string) => {
+      const detail: HTMLElement = drawElementField({ element });
+
+      expect(within(detail).getByText(text)).toBeVisible();
+      expect(within(detail).queryByTestId(EMPTY_VALUE_TEST_ID)).toBeNull();
+    },
+  );
+
+  test("a Text field whose stored value is '-' is that value, not empty", () => {
+    const detail: HTMLElement = drawDetail({
+      fieldType: FieldType.Text,
+      placeholder: "No description provided.",
+      item: { name: "Production", value: "-" },
+    });
+
+    expect(within(detail).queryByTestId(EMPTY_VALUE_TEST_ID)).toBeNull();
+    expect(within(detail).queryByTestId("placeholder-text")).toBeNull();
+  });
+});
+
+/*
  * A record's list on a detail card (TableColumnListComponent: labels,
  * monitors, owners) with nothing in it shows its noItemsMessage as the
  * card's quiet placeholder words. Words that are only a dash are the card's

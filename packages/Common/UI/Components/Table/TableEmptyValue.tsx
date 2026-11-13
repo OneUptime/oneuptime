@@ -1,6 +1,7 @@
 import {
   DASH_PLACEHOLDERS,
   EMPTY_VALUE_MARK,
+  isDashPlaceholder,
   isDashText,
 } from "../Detail/EmptyValue";
 import useTranslateValue from "../../Utils/Translation";
@@ -24,47 +25,12 @@ export const TABLE_EMPTY_VALUE_CLASS_NAME: string =
 
 export const TABLE_EMPTY_VALUE_TEST_ID: string = "table-empty-value";
 
-// The marks pages draw for "nothing here" in a cell of their own.
-export { DASH_PLACEHOLDERS };
-
 /*
- * Whether a column's own element is a bare dash - `<>-</>`, `<p>-</p>`,
- * `<span>-</span>` with no classes of its own - the mark some fifty columns
- * draw for a value that is not there. In a table it becomes the quiet dash
- * every other empty cell is (TableRow), rather than a hyphen as dark as a
- * value; an element with classes of its own is kept as the page drew it.
+ * The marks pages draw for "nothing here" in a cell of their own, and
+ * whether a column's own element is only one (a bare `<p>-</p>`): one rule
+ * for a table's cell and a detail card's field (Detail/EmptyValue).
  */
-export const isDashPlaceholder: (node: React.ReactNode) => boolean = (
-  node: React.ReactNode,
-): boolean => {
-  if (typeof node === "string") {
-    return isDashText(node);
-  }
-
-  if (!React.isValidElement(node)) {
-    return false;
-  }
-
-  const elementProps: { children?: React.ReactNode; className?: string } =
-    node.props as { children?: React.ReactNode; className?: string };
-
-  if (
-    node.type !== React.Fragment &&
-    node.type !== "span" &&
-    node.type !== "p"
-  ) {
-    return false;
-  }
-
-  if (elementProps.className) {
-    return false;
-  }
-
-  return (
-    typeof elementProps.children === "string" &&
-    isDashText(elementProps.children)
-  );
-};
+export { DASH_PLACEHOLDERS, isDashPlaceholder };
 
 export interface ComponentProps {
   /*

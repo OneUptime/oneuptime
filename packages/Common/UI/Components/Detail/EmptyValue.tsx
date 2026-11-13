@@ -39,6 +39,47 @@ export const isDashText: (text: string | undefined) => boolean = (
 };
 
 /*
+ * Whether a field's or a column's own element is a bare dash - `<>-</>`,
+ * `<p>-</p>`, `<span>-</span>` with no classes of its own - the mark some
+ * fifty columns draw for a value that is not there. In a table it becomes
+ * the quiet dash every other empty cell is (TableRow), and on a detail card
+ * the dash every other empty field is (Detail), rather than a hyphen as
+ * dark as a value; an element with classes of its own is kept as the page
+ * drew it.
+ */
+export const isDashPlaceholder: (node: React.ReactNode) => boolean = (
+  node: React.ReactNode,
+): boolean => {
+  if (typeof node === "string") {
+    return isDashText(node);
+  }
+
+  if (!React.isValidElement(node)) {
+    return false;
+  }
+
+  const elementProps: { children?: React.ReactNode; className?: string } =
+    node.props as { children?: React.ReactNode; className?: string };
+
+  if (
+    node.type !== React.Fragment &&
+    node.type !== "span" &&
+    node.type !== "p"
+  ) {
+    return false;
+  }
+
+  if (elementProps.className) {
+    return false;
+  }
+
+  return (
+    typeof elementProps.children === "string" &&
+    isDashText(elementProps.children)
+  );
+};
+
+/*
  * On the value's own 24px line (leading-6): text-sm alone sets a 20px one,
  * which put the dash 2px above the values beside it in its row, and made a
  * row of empty fields 4px shorter than a row of set ones.
