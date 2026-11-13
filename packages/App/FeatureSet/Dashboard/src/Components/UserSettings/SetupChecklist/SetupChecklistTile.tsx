@@ -6,6 +6,7 @@ import {
 import { RouteUtil } from "../../../Utils/RouteMap";
 import IconProp from "Common/Types/Icon/IconProp";
 import ProviderLogo from "Common/Types/ProviderLogo/ProviderLogo";
+import DirectionArrow from "Common/UI/Components/DirectionArrow/DirectionArrow";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ProviderLogoImage from "Common/UI/Components/ProviderLogo/ProviderLogoImage";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -225,7 +226,8 @@ const SetupChecklistTile: FunctionComponent<ComponentProps> = (
         )}
         {isActionable ? (
           <div className="mt-2 text-sm font-medium text-indigo-600 transition group-hover:text-indigo-700">
-            {translator.translateText(step.actionTitle)} →
+            {translator.translateText(step.actionTitle)}{" "}
+            <DirectionArrow isDecorative={true} />
           </div>
         ) : (
           <></>

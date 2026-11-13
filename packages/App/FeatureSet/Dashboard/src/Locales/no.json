@@ -51940,5 +51940,18 @@
   "{{count}} telemetry SDKs_one": "{{count}} telemetri-SDK",
   "{{name}} will be deleted": "{{name}} slettes",
   "{{name}} will be deleted when you save.": "{{name}} slettes når du lagrer.",
-  "{{start}} → {{end}}": "{{start}} → {{end}}"
+  "{{start}} → {{end}}": "{{start}} → {{end}}",
+  "Connected Services": "Tilkoblede tjenester",
+  "One episode for incidents on services that call each other on the Service Map. Catches one failure spreading to its callers.": "Én episode for hendelser på tjenester som kaller hverandre på tjenestekartet. Fanger opp en feil som sprer seg til de som kaller den.",
+  "One episode for alerts on services that call each other on the Service Map. Catches one failure spreading to its callers.": "Én episode for varsler på tjenester som kaller hverandre på tjenestekartet. Fanger opp en feil som sprer seg til de som kaller den.",
+  "Combine monitor, severity, title, labels and connected services yourself on the next step.": "Kombiner selv overvåking, alvorlighetsgrad, tittel, etiketter og tilkoblede tjenester i neste trinn.",
+  "Group incidents on connected services": "Grupper hendelser på tilkoblede tjenester",
+  "Group alerts on connected services": "Grupper varsler på tilkoblede tjenester",
+  "One episode for incidents on services that call each other on the Service Map, while they arrive within 30 minutes of each other. Incidents on no service are grouped by monitor.": "Én episode for hendelser på tjenester som kaller hverandre på tjenestekartet, så lenge de kommer innen 30 minutter etter hverandre. Hendelser uten tjeneste grupperes etter overvåking.",
+  "One episode for alerts on services that call each other on the Service Map, while they arrive within 30 minutes of each other. Alerts on no service are grouped by monitor.": "Én episode for varsler på tjenester som kaller hverandre på tjenestekartet, så lenge de kommer innen 30 minutter etter hverandre. Varsler uten tjeneste grupperes etter overvåking.",
+  "Incidents on connected services share one episode": "Hendelser på tilkoblede tjenester deler én episode",
+  "Alerts on connected services share one episode": "Varsler på tilkoblede tjenester deler én episode",
+  "Group By Connected Services": "Grupper etter tilkoblede tjenester",
+  "Alerts on services that call each other on the Service Map go into the same episode.": "Varsler på tjenester som kaller hverandre på tjenestekartet, havner i samme episode.",
+  "Incidents on services that call each other on the Service Map go into the same episode.": "Hendelser på tjenester som kaller hverandre på tjenestekartet, havner i samme episode."
 }

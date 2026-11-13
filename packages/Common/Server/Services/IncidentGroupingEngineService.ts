@@ -56,6 +56,10 @@ import {
   getGroupingWaitKey,
   getRecordsArrivedTogether,
 } from "../Utils/Rules/GroupingRuleEpisodeWait";
+import ConnectedServices, {
+  MAX_EPISODES_COMPARED,
+  RecordServices,
+} from "../Utils/Topology/ConnectedServices";
 
 export interface GroupingResult {
   grouped: boolean;
@@ -162,6 +166,7 @@ class IncidentGroupingEngineServiceClass {
             groupByIncidentTitle: true,
             groupByIncidentLabels: true,
             groupByMonitorLabels: true,
+            groupByConnectedServices: true,
             // Time settings
             enableTimeWindow: true,
             timeWindowMinutes: true,
@@ -561,8 +566,32 @@ class IncidentGroupingEngineServiceClass {
     rule: IncidentGroupingRule,
     options: GroupingOptions = {},
   ): Promise<GroupingResult> {
+    /*
+     * A rule that groups by connected services: the services the incident
+     * is on and those connected to them on the Service Map, read before the
+     * lock is taken. Null for any other rule.
+     */
+    const services: RecordServices | null = await this.readConnectedServices(
+      incident,
+      rule,
+    );
+
+    /*
+     * The incident is on a service: which of the rule's open episodes it
+     * joins is decided by the services of the incidents in them
+     * (ConnectedServices).
+     */
+    const connectedServiceIds: Set<string> | undefined =
+      services && services.serviceIds.size > 0
+        ? services.connectedServiceIds
+        : undefined;
+
     // Build the grouping key based on groupBy fields
-    const groupingKey: string = await this.buildGroupingKey(incident, rule);
+    const groupingKey: string = await this.buildGroupingKey(
+      incident,
+      rule,
+      services,
+    );
 
     /*
      * The keys an episode of the incident's group can be stored with: as
@@ -646,6 +675,7 @@ class IncidentGroupingEngineServiceClass {
           rule.id!,
           groupingKeysToMatch,
           timeWindowCutoff,
+          connectedServiceIds,
         );
 
       if (existingEpisode && existingEpisode.id) {
@@ -717,6 +747,7 @@ class IncidentGroupingEngineServiceClass {
               rule.id!,
               groupingKeysToMatch,
               reopenCutoff,
+              connectedServiceIds,
             );
 
           if (recentlyResolvedEpisode && recentlyResolvedEpisode.id) {
@@ -765,6 +796,7 @@ class IncidentGroupingEngineServiceClass {
           incident: incident,
           groupingWaitKey: groupingWaitKey,
           timeWindowMinutes: timeWindowMinutes,
+          connectedServiceIds: connectedServiceIds,
         });
 
         if (incidentsWaiting.length + 1 < incidentsToOpenEpisode) {
@@ -848,6 +880,7 @@ class IncidentGroupingEngineServiceClass {
   private async buildGroupingKey(
     incident: Incident,
     rule: IncidentGroupingRule,
+    services: RecordServices | null = null,
   ): Promise<string> {
     const parts: Array<string> = [];
 
@@ -918,8 +951,101 @@ class IncidentGroupingEngineServiceClass {
       parts.push(`monitorLabels:${sortedLabelIds.join(",")}`);
     }
 
+    /*
+     * Group by connected services - only if explicitly enabled. An incident
+     * on a service shares its part with every other; one on no service is
+     * grouped by its first monitor (ConnectedServices.getGroupingKeyPart).
+     */
+    if (rule.groupByConnectedServices) {
+      parts.push(
+        ConnectedServices.getGroupingKeyPart({
+          services: services,
+          monitorId: incident.monitors?.[0]?.id,
+          groupsByMonitor: Boolean(rule.groupByMonitor),
+        }),
+      );
+    }
+
     // If no group by options are enabled, all matching incidents go into a single episode
     return parts.join("|") || "default";
+  }
+
+  /*
+   * The services the incident is on and those connected to them on the
+   * Service Map, for a rule that groups by connected services; null for any
+   * other rule. A read that fails is logged and leaves the incident on no
+   * service: it is grouped by its monitor rather than not at all.
+   */
+  @CaptureSpan()
+  private async readConnectedServices(
+    incident: Incident,
+    rule: IncidentGroupingRule,
+  ): Promise<RecordServices | null> {
+    if (!rule.groupByConnectedServices || !incident.id || !incident.projectId) {
+      return null;
+    }
+
+    try {
+      return await ConnectedServices.readForIncident({
+        projectId: incident.projectId,
+        incidentId: incident.id,
+      });
+    } catch (error) {
+      logger.error(
+        `Error reading the connected services of incident ${incident.id.toString()}; grouping it by its monitor: ${error}`,
+        { projectId: incident.projectId.toString() } as LogAttributes,
+      );
+
+      return {
+        serviceIds: new Set<string>(),
+        connectedServiceIds: new Set<string>(),
+      };
+    }
+  }
+
+  /*
+   * Of the rule's episodes found for the incident's group, the most
+   * recently active first, the first that holds an incident on a service
+   * connected to the incident's (ConnectedServices). Null when none does.
+   */
+  @CaptureSpan()
+  private async findConnectedEpisode(
+    projectId: ObjectID,
+    episodes: Array<IncidentEpisode>,
+    connectedServiceIds: Set<string>,
+  ): Promise<IncidentEpisode | null> {
+    const episodeIds: Array<ObjectID> = episodes
+      .map((episode: IncidentEpisode): ObjectID | undefined => {
+        return episode.id || undefined;
+      })
+      .filter((id: ObjectID | undefined): id is ObjectID => {
+        return Boolean(id);
+      });
+
+    if (episodeIds.length === 0) {
+      return null;
+    }
+
+    const connectedEpisodeId: ObjectID | null =
+      ConnectedServices.pickConnectedEpisodeId({
+        episodeIds: episodeIds,
+        servicesByEpisode:
+          await ConnectedServices.readServicesOfIncidentEpisodes({
+            projectId: projectId,
+            episodeIds: episodeIds,
+          }),
+        connectedServiceIds: connectedServiceIds,
+      });
+
+    if (!connectedEpisodeId) {
+      return null;
+    }
+
+    return (
+      episodes.find((episode: IncidentEpisode): boolean => {
+        return episode.id?.toString() === connectedEpisodeId.toString();
+      }) || null
+    );
   }
 
   @CaptureSpan()
@@ -974,6 +1100,7 @@ class IncidentGroupingEngineServiceClass {
     ruleId: ObjectID,
     groupingKeys: Array<string>,
     timeWindowCutoff: Date | null,
+    connectedServiceIds?: Set<string> | undefined,
   ): Promise<IncidentEpisode | null> {
     /*
      * Find active episode with matching rule and any of the grouping keys
@@ -1003,6 +1130,36 @@ class IncidentGroupingEngineServiceClass {
         QueryHelper.greaterThanEqualTo(timeWindowCutoff);
     }
 
+    /*
+     * Grouping by connected services: every incident of the rule on a
+     * service shares the key, so the open episodes found are compared by the
+     * services of their incidents.
+     */
+    if (connectedServiceIds) {
+      const episodes: Array<IncidentEpisode> =
+        await IncidentEpisodeService.findBy({
+          query: query as any,
+          sort: {
+            lastIncidentAddedAt: SortOrder.Descending,
+          },
+          select: {
+            _id: true,
+            lastIncidentAddedAt: true,
+          },
+          limit: MAX_EPISODES_COMPARED,
+          skip: 0,
+          props: {
+            isRoot: true,
+          },
+        });
+
+      return await this.findConnectedEpisode(
+        projectId,
+        episodes,
+        connectedServiceIds,
+      );
+    }
+
     const episode: IncidentEpisode | null =
       await IncidentEpisodeService.findOneBy({
         query: query as any,
@@ -1027,7 +1184,43 @@ class IncidentGroupingEngineServiceClass {
     ruleId: ObjectID,
     groupingKeys: Array<string>,
     reopenCutoff: Date,
+    connectedServiceIds?: Set<string> | undefined,
   ): Promise<IncidentEpisode | null> {
+    /*
+     * Grouping by connected services: the recently resolved episodes found
+     * are compared by the services of their incidents, the most recently
+     * resolved first.
+     */
+    if (connectedServiceIds) {
+      const episodes: Array<IncidentEpisode> =
+        await IncidentEpisodeService.findBy({
+          query: {
+            projectId: projectId,
+            incidentGroupingRuleId: ruleId,
+            groupingKey: QueryHelper.any(groupingKeys),
+            resolvedAt: QueryHelper.greaterThanEqualTo(reopenCutoff),
+          },
+          sort: {
+            resolvedAt: SortOrder.Descending,
+          },
+          select: {
+            _id: true,
+            resolvedAt: true,
+          },
+          limit: MAX_EPISODES_COMPARED,
+          skip: 0,
+          props: {
+            isRoot: true,
+          },
+        });
+
+      return await this.findConnectedEpisode(
+        projectId,
+        episodes,
+        connectedServiceIds,
+      );
+    }
+
     /*
      * Find recently resolved episode with matching rule and any of the
      * grouping keys the group's episodes are stored with
@@ -1070,6 +1263,11 @@ class IncidentGroupingEngineServiceClass {
     incident: Incident;
     groupingWaitKey: string;
     timeWindowMinutes: number | null;
+    /*
+     * Grouping by connected services: only the incidents waiting on a
+     * service connected to the incident's wait with it.
+     */
+    connectedServiceIds?: Set<string> | undefined;
   }): Promise<Array<Incident>> {
     const projectId: ObjectID = data.incident.projectId!;
 
@@ -1114,8 +1312,35 @@ class IncidentGroupingEngineServiceClass {
       },
     });
 
+    let connectedIncidentsWaiting: Array<Incident> = incidentsWaiting;
+
+    if (data.connectedServiceIds && incidentsWaiting.length > 0) {
+      const servicesByIncident: Map<
+        string,
+        Set<string>
+      > = await ConnectedServices.readServicesOfIncidents({
+        projectId: projectId,
+        incidentIds: incidentsWaiting
+          .map((waiting: Incident): ObjectID | undefined => {
+            return waiting.id || undefined;
+          })
+          .filter((id: ObjectID | undefined): id is ObjectID => {
+            return Boolean(id);
+          }),
+      });
+
+      connectedIncidentsWaiting = incidentsWaiting.filter(
+        (waiting: Incident): boolean => {
+          return ConnectedServices.intersects(
+            servicesByIncident.get(ConnectedServices.key(waiting.id)),
+            data.connectedServiceIds,
+          );
+        },
+      );
+    }
+
     return getRecordsArrivedTogether({
-      waiting: incidentsWaiting,
+      waiting: connectedIncidentsWaiting,
       timeWindowMinutes: data.timeWindowMinutes,
       now: OneUptimeDate.getCurrentDate(),
     });
@@ -1409,6 +1634,9 @@ class IncidentGroupingEngineServiceClass {
         }
         if (rule.groupByMonitorLabels) {
           groupByParts.push("Monitor Labels");
+        }
+        if (rule.groupByConnectedServices) {
+          groupByParts.push("Connected Services");
         }
 
         const groupByDescription: string =

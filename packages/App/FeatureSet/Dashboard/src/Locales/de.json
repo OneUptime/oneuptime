@@ -51940,5 +51940,18 @@
   "{{count}} telemetry SDKs_one": "{{count}} Telemetrie-SDK",
   "{{name}} will be deleted": "{{name}} wird gelöscht",
   "{{name}} will be deleted when you save.": "{{name}} wird beim Speichern gelöscht.",
-  "{{start}} → {{end}}": "{{start}} → {{end}}"
+  "{{start}} → {{end}}": "{{start}} → {{end}}",
+  "Connected Services": "Verbundene Dienste",
+  "One episode for incidents on services that call each other on the Service Map. Catches one failure spreading to its callers.": "Eine Episode für Vorfälle bei Diensten, die sich auf der Dienstkarte gegenseitig aufrufen. Erfasst einen Fehler, der sich auf seine Aufrufer ausbreitet.",
+  "One episode for alerts on services that call each other on the Service Map. Catches one failure spreading to its callers.": "Eine Episode für Warnungen bei Diensten, die sich auf der Dienstkarte gegenseitig aufrufen. Erfasst einen Fehler, der sich auf seine Aufrufer ausbreitet.",
+  "Combine monitor, severity, title, labels and connected services yourself on the next step.": "Kombinieren Sie im nächsten Schritt selbst Monitor, Schweregrad, Titel, Labels und verbundene Dienste.",
+  "Group incidents on connected services": "Vorfälle verbundener Dienste gruppieren",
+  "Group alerts on connected services": "Warnungen verbundener Dienste gruppieren",
+  "One episode for incidents on services that call each other on the Service Map, while they arrive within 30 minutes of each other. Incidents on no service are grouped by monitor.": "Eine Episode für Vorfälle bei Diensten, die sich auf der Dienstkarte gegenseitig aufrufen, solange sie innerhalb von 30 Minuten nacheinander eintreffen. Vorfälle ohne Dienst werden nach Monitor gruppiert.",
+  "One episode for alerts on services that call each other on the Service Map, while they arrive within 30 minutes of each other. Alerts on no service are grouped by monitor.": "Eine Episode für Warnungen bei Diensten, die sich auf der Dienstkarte gegenseitig aufrufen, solange sie innerhalb von 30 Minuten nacheinander eintreffen. Warnungen ohne Dienst werden nach Monitor gruppiert.",
+  "Incidents on connected services share one episode": "Vorfälle verbundener Dienste teilen sich eine Episode",
+  "Alerts on connected services share one episode": "Warnungen verbundener Dienste teilen sich eine Episode",
+  "Group By Connected Services": "Gruppieren nach verbundenen Diensten",
+  "Alerts on services that call each other on the Service Map go into the same episode.": "Warnungen bei Diensten, die sich auf der Dienstkarte gegenseitig aufrufen, kommen in dieselbe Episode.",
+  "Incidents on services that call each other on the Service Map go into the same episode.": "Vorfälle bei Diensten, die sich auf der Dienstkarte gegenseitig aufrufen, kommen in dieselbe Episode."
 }

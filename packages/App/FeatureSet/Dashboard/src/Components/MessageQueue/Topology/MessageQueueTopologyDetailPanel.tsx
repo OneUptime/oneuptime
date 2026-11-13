@@ -3,6 +3,7 @@ import ObjectID from "Common/Types/ObjectID";
 import SideOver, { SideOverSize } from "Common/UI/Components/SideOver/SideOver";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { joinWithArrowsOn } from "Common/Types/DirectionArrow";
 import React, { FunctionComponent, ReactElement } from "react";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -632,12 +633,13 @@ const MessageQueueTopologyDetailPanel: FunctionComponent<ComponentProps> = (
     const to: MessageQueueTopologyNode | undefined = props.model.nodeByKey.get(
       edge.to,
     );
-    title = translator.translateTemplate("{{from}} → {{to}}", {
-      from: from
-        ? getMessageQueueTopologyNodeLabel(from, translator)
-        : edge.from,
-      to: to ? getMessageQueueTopologyNodeLabel(to, translator) : edge.to,
-    });
+    title = joinWithArrowsOn(
+      [
+        from ? getMessageQueueTopologyNodeLabel(from, translator) : edge.from,
+        to ? getMessageQueueTopologyNodeLabel(to, translator) : edge.to,
+      ],
+      translator.language,
+    );
     description =
       (edge.direction === "publish"
         ? translator.translateText(

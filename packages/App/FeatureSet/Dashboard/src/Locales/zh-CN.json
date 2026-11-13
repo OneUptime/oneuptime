@@ -51940,5 +51940,18 @@
   "{{count}} telemetry SDKs_one": "{{count}} 个遥测 SDK",
   "{{name}} will be deleted": "{{name}} 将被删除",
   "{{name}} will be deleted when you save.": "保存后将删除 {{name}}。",
-  "{{start}} → {{end}}": "{{start}} → {{end}}"
+  "{{start}} → {{end}}": "{{start}} → {{end}}",
+  "Connected Services": "相连的服务",
+  "One episode for incidents on services that call each other on the Service Map. Catches one failure spreading to its callers.": "服务地图上相互调用的服务的事件共用一个片段。可捕获蔓延到其调用方的故障。",
+  "One episode for alerts on services that call each other on the Service Map. Catches one failure spreading to its callers.": "服务地图上相互调用的服务的警报共用一个片段。可捕获蔓延到其调用方的故障。",
+  "Combine monitor, severity, title, labels and connected services yourself on the next step.": "在下一步中自行组合监视器、严重程度、标题、标签和相连的服务。",
+  "Group incidents on connected services": "将相连服务的事件分组",
+  "Group alerts on connected services": "将相连服务的警报分组",
+  "One episode for incidents on services that call each other on the Service Map, while they arrive within 30 minutes of each other. Incidents on no service are grouped by monitor.": "只要服务地图上相互调用的服务的事件彼此间隔不超过 30 分钟，就会归入同一个片段。没有服务的事件按监视器分组。",
+  "One episode for alerts on services that call each other on the Service Map, while they arrive within 30 minutes of each other. Alerts on no service are grouped by monitor.": "只要服务地图上相互调用的服务的警报彼此间隔不超过 30 分钟，就会归入同一个片段。没有服务的警报按监视器分组。",
+  "Incidents on connected services share one episode": "相连服务的事件共用一个片段",
+  "Alerts on connected services share one episode": "相连服务的警报共用一个片段",
+  "Group By Connected Services": "按相连的服务分组",
+  "Alerts on services that call each other on the Service Map go into the same episode.": "服务地图上相互调用的服务的警报会归入同一个片段。",
+  "Incidents on services that call each other on the Service Map go into the same episode.": "服务地图上相互调用的服务的事件会归入同一个片段。"
 }

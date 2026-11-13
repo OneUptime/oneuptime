@@ -51940,5 +51940,18 @@
   "{{count}} telemetry SDKs_one": "{{count}} telemetri-SDK",
   "{{name}} will be deleted": "{{name}} raderas",
   "{{name}} will be deleted when you save.": "{{name}} raderas när du sparar.",
-  "{{start}} → {{end}}": "{{start}} → {{end}}"
+  "{{start}} → {{end}}": "{{start}} → {{end}}",
+  "Connected Services": "Anslutna tjänster",
+  "One episode for incidents on services that call each other on the Service Map. Catches one failure spreading to its callers.": "En episod för incidenter i tjänster som anropar varandra på tjänstekartan. Fångar ett fel som sprider sig till dem som anropar den.",
+  "One episode for alerts on services that call each other on the Service Map. Catches one failure spreading to its callers.": "En episod för larm i tjänster som anropar varandra på tjänstekartan. Fångar ett fel som sprider sig till dem som anropar den.",
+  "Combine monitor, severity, title, labels and connected services yourself on the next step.": "Kombinera själv övervakare, allvarlighetsgrad, titel, etiketter och anslutna tjänster i nästa steg.",
+  "Group incidents on connected services": "Gruppera incidenter i anslutna tjänster",
+  "Group alerts on connected services": "Gruppera larm i anslutna tjänster",
+  "One episode for incidents on services that call each other on the Service Map, while they arrive within 30 minutes of each other. Incidents on no service are grouped by monitor.": "En episod för incidenter i tjänster som anropar varandra på tjänstekartan, så länge de kommer inom 30 minuter efter varandra. Incidenter utan tjänst grupperas efter övervakare.",
+  "One episode for alerts on services that call each other on the Service Map, while they arrive within 30 minutes of each other. Alerts on no service are grouped by monitor.": "En episod för larm i tjänster som anropar varandra på tjänstekartan, så länge de kommer inom 30 minuter efter varandra. Larm utan tjänst grupperas efter övervakare.",
+  "Incidents on connected services share one episode": "Incidenter i anslutna tjänster delar en episod",
+  "Alerts on connected services share one episode": "Larm i anslutna tjänster delar en episod",
+  "Group By Connected Services": "Gruppera efter anslutna tjänster",
+  "Alerts on services that call each other on the Service Map go into the same episode.": "Larm i tjänster som anropar varandra på tjänstekartan hamnar i samma episod.",
+  "Incidents on services that call each other on the Service Map go into the same episode.": "Incidenter i tjänster som anropar varandra på tjänstekartan hamnar i samma episod."
 }

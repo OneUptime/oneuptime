@@ -1,5 +1,9 @@
 import Select from "../../Types/Database/Select";
-import { toServerTwilioConfig } from "../ServerTwilioConfig";
+import {
+  getServerTwilioEnvironment,
+  toServerTwilioConfig,
+} from "../ServerTwilioConfig";
+import { ServerTwilioEnvironmentReading } from "../../../Types/CallAndSMS/ServerTwilioEnvironment";
 import {
   GLOBAL_CALL_AND_SMS_GATEWAY_SELECT,
   GLOBAL_TWILIO_CONFIG_SELECT,
@@ -150,6 +154,10 @@ export const SMS_NOT_SET_UP_PROBLEM: string =
 
 export const CALL_NOT_SET_UP_PROBLEM: string =
   "No Twilio account or call gateway is set up under Settings > Call and SMS.";
+
+// Before what is wrong with the GLOBAL_TWILIO_ environment variables.
+export const SERVER_TWILIO_ENVIRONMENT_PROBLEM: string =
+  "The Twilio account set by environment variables cannot send:";
 
 export const PUSH_TURNED_OFF_PROBLEM: string =
   "Push notifications are turned off under Settings > Push Notifications.";
@@ -452,6 +460,18 @@ export default class ServerChannelSetup {
 
     if (CallAndSmsProviders.getGateway(config)) {
       return null;
+    }
+
+    /*
+     * An account the GLOBAL_TWILIO_ environment variables set (#7515) is
+     * fixed where they are set, not under Settings > Call and SMS: say what
+     * is wrong with them, by the variable's name.
+     */
+    const environment: ServerTwilioEnvironmentReading =
+      getServerTwilioEnvironment();
+
+    if (environment.isSet && environment.problems.length > 0) {
+      return `${SERVER_TWILIO_ENVIRONMENT_PROBLEM} ${environment.problems.join(" ")}`;
     }
 
     let twilioConfig: TwilioConfig | null = null;

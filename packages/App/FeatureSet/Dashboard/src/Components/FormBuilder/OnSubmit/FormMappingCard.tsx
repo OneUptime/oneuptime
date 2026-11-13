@@ -30,6 +30,7 @@ import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
+import DirectionArrow from "Common/UI/Components/DirectionArrow/DirectionArrow";
 import Icon from "Common/UI/Components/Icon/Icon";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import API from "Common/UI/Utils/API/API";
@@ -241,10 +242,16 @@ const FormMappingCard: FunctionComponent<ComponentProps> = (
       case FormMappingLineKind.CustomField:
         return (
           <p key={index} className="text-sm text-gray-900">
-            <span className="font-medium">{line.customFieldName}</span>{" "}
-            <span className="text-gray-400" aria-hidden="true">
-              &larr;
-            </span>{" "}
+            {/*
+             * The field, then where its value comes from: the arrow points
+             * back at the field, the way the page reads.
+             */}
+            <bdi className="font-medium">{line.customFieldName}</bdi>{" "}
+            <DirectionArrow
+              pointsBack={true}
+              isDecorative={true}
+              className="text-gray-400"
+            />{" "}
             {tx(FormsCopy.fromAnswer)}{" "}
             <span className="font-medium">&ldquo;{text}&rdquo;</span>
           </p>
