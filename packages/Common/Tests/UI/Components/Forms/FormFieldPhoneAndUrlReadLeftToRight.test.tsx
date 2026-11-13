@@ -7,6 +7,7 @@ import Field from "../../../../UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "../../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "../../../../UI/Components/Forms/Types/FormValues";
 import Input, { InputType } from "../../../../UI/Components/Input/Input";
+import TextArea from "../../../../UI/Components/TextArea/TextArea";
 import { TYPED_TEXT_READS_ITS_OWN_WAY_CLASS_NAME } from "../../../../UI/Utils/TypedTextDirection";
 import { JSONObject } from "../../../../Types/JSON";
 
@@ -69,6 +70,16 @@ const inputOf: (result: RenderResult) => HTMLInputElement = (
 ): HTMLInputElement => {
   return result.container.querySelector("input") as HTMLInputElement;
 };
+
+const textAreaOf: (result: RenderResult) => HTMLTextAreaElement = (
+  result: RenderResult,
+): HTMLTextAreaElement => {
+  return result.container.querySelector("textarea") as HTMLTextAreaElement;
+};
+
+// What the Twilio settings show in an empty list of numbers (#7180).
+const LIST_EXAMPLE: string = "+14155550123, +447700900123";
+const LINES_EXAMPLE: string = "+11234567890\n+11234567891\n+11234567892";
 
 afterEach(() => {
   cleanup();
@@ -214,7 +225,148 @@ describe("every other text field keeps the page's direction", () => {
   );
 });
 
+/*
+ * ISSUE #7180: A TEXT FIELD THAT HOLDS PHONE NUMBERS SAYS SO.
+ *
+ * A list of phone numbers is a Text field - typed with commas, which a dial
+ * pad has none of - or, one a line, a LongText one, so it took the page's
+ * direction: on a Persian or Arabic page its example
+ * "+14155550123, +447700900123" drew each "+" after its digits. Such a field
+ * says it reads left to right now (readsLeftToRight), and reads so on every
+ * page, as a Phone field does: the field and the box around it, and so its
+ * example. It keeps its keyboard - no dial pad for a list - and the message
+ * under it is still a sentence of the page.
+ */
+describe("a Text or LongText field that says it reads left to right (#7180)", () => {
+  test("a Text field: it and its box read left to right, its example as given, with no dial pad", () => {
+    const input: HTMLInputElement = inputOf(
+      renderField({
+        title: "Twilio SMS Phone Numbers",
+        fieldType: FormFieldSchemaType.Text,
+        placeholder: LIST_EXAMPLE,
+        readsLeftToRight: true,
+      }),
+    );
+
+    expect(input).toHaveAttribute("dir", "ltr");
+    expect(input.parentElement).toHaveAttribute("dir", "ltr");
+    expect(input).toHaveAttribute("placeholder", LIST_EXAMPLE);
+    expect(input).toHaveAttribute("type", "text");
+    expect(input).not.toHaveAttribute("inputmode");
+    // What is typed is still laid out by its own letters.
+    for (const className of TYPED_TEXT_READS_ITS_OWN_WAY_CLASS_NAME.split(
+      " ",
+    )) {
+      expect(input).toHaveClass(className);
+    }
+  });
+
+  test("a LongText field: the text area and its box read left to right, its example as given", () => {
+    const textArea: HTMLTextAreaElement = textAreaOf(
+      renderField({
+        title: "Phone Numbers",
+        fieldType: FormFieldSchemaType.LongText,
+        placeholder: LINES_EXAMPLE,
+        readsLeftToRight: true,
+      }),
+    );
+
+    expect(textArea).toHaveAttribute("dir", "ltr");
+    expect(textArea.parentElement).toHaveAttribute("dir", "ltr");
+    expect(textArea).toHaveAttribute("placeholder", LINES_EXAMPLE);
+  });
+
+  test("in error, its message under it keeps the page's direction", () => {
+    const result: RenderResult = renderField(
+      {
+        title: "Twilio SMS Phone Numbers",
+        fieldType: FormFieldSchemaType.Text,
+        placeholder: LIST_EXAMPLE,
+        readsLeftToRight: true,
+      },
+      "mobile is not a phone number.",
+    );
+    const box: HTMLElement = inputOf(result).parentElement as HTMLElement;
+    const message: HTMLElement = result.getByText(
+      "mobile is not a phone number.",
+    );
+
+    expect(box).toHaveAttribute("dir", "ltr");
+    expect(box).not.toContainElement(message);
+    expect(message.closest("[dir]")).toBeNull();
+  });
+
+  test("a Text or LongText field that does not say so keeps the page's direction", () => {
+    const input: HTMLInputElement = inputOf(
+      renderField({
+        fieldType: FormFieldSchemaType.Text,
+        placeholder: LIST_EXAMPLE,
+      }),
+    );
+
+    expect(input).not.toHaveAttribute("dir");
+    expect(input.parentElement).not.toHaveAttribute("dir");
+    cleanup();
+
+    const textArea: HTMLTextAreaElement = textAreaOf(
+      renderField({
+        fieldType: FormFieldSchemaType.LongText,
+        placeholder: LINES_EXAMPLE,
+        readsLeftToRight: false,
+      }),
+    );
+
+    expect(textArea).not.toHaveAttribute("dir");
+    expect(textArea.parentElement).not.toHaveAttribute("dir");
+  });
+});
+
+describe("the TextArea itself", () => {
+  test("reads left to right when told to, the box around it too", () => {
+    const textArea: HTMLTextAreaElement = textAreaOf(
+      render(<TextArea readsLeftToRight={true} placeholder={LINES_EXAMPLE} />),
+    );
+
+    expect(textArea).toHaveAttribute("dir", "ltr");
+    expect(textArea.parentElement).toHaveAttribute("dir", "ltr");
+  });
+
+  test("keeps the page's direction otherwise", () => {
+    const textArea: HTMLTextAreaElement = textAreaOf(
+      render(<TextArea placeholder="What happened?" />),
+    );
+
+    expect(textArea).not.toHaveAttribute("dir");
+    expect(textArea.parentElement).not.toHaveAttribute("dir");
+  });
+});
+
 describe("the Input itself", () => {
+  test("reads left to right when told to, with the keyboard it asks for (#7180)", () => {
+    const input: HTMLInputElement = inputOf(
+      render(
+        <Input
+          type={InputType.TEXT}
+          readsLeftToRight={true}
+          placeholder={LIST_EXAMPLE}
+        />,
+      ),
+    );
+
+    expect(input).toHaveAttribute("dir", "ltr");
+    expect(input.parentElement).toHaveAttribute("dir", "ltr");
+    expect(input).not.toHaveAttribute("inputmode");
+  });
+
+  test("told it does not, it keeps the page's direction", () => {
+    const input: HTMLInputElement = inputOf(
+      render(<Input type={InputType.TEXT} readsLeftToRight={false} />),
+    );
+
+    expect(input).not.toHaveAttribute("dir");
+    expect(input.parentElement).not.toHaveAttribute("dir");
+  });
+
   test("reads left to right for a phone number (inputMode tel)", () => {
     const result: RenderResult = render(
       <Input inputMode="tel" placeholder="+966 50 123 4567" />,

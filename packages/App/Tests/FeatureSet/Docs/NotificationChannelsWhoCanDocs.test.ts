@@ -330,6 +330,8 @@ describe.each(LANGUAGES)("the %s docs", (lang: string) => {
   const locale: Record<string, string> = readDashboardLocale(lang);
   const settingsPath: string = readSettingsPath(lang);
   const card: string = `**${locale[ProjectNotificationChannelsCopy.cardTitle]}**`;
+  // The SMS switch, as this language's Dashboard draws it (Persian: پیامک).
+  const smsSwitch: string = `**${locale[getProjectNotificationChannel(ProjectNotificationChannel.SMS).title]}**`;
 
   test("Users, Teams & Permissions: changing the switches is billing - ProjectOwner, BillingAdmin and ManageProjectBilling, not ProjectAdmin", () => {
     const paragraphs: Array<string> = readParagraphs(
@@ -412,7 +414,7 @@ describe.each(LANGUAGES)("the %s docs", (lang: string) => {
 
     const sentence: string = lines[0]!;
 
-    expect(sentence).toContain("**SMS**");
+    expect(sentence).toContain(smsSwitch);
     expectNamesWhoMay(lang, sentence);
     expect(sentence).toContain(card);
     expect(sentence).toContain(settingsPath);
@@ -444,7 +446,7 @@ describe.each(LANGUAGES)("the %s docs", (lang: string) => {
       MANAGE_BILLING,
     );
 
-    expect(found.paragraph).toContain("**SMS**");
+    expect(found.paragraph).toContain(smsSwitch);
     expect(found.paragraph).toContain(
       `**${locale[getProjectNotificationChannel(ProjectNotificationChannel.Call).title]}**`,
     );

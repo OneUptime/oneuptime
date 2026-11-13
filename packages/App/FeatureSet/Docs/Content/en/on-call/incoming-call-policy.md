@@ -143,7 +143,7 @@ A number that already sends its calls somewhere says "Currently has a webhook co
 
 OneUptime sets the number's voice webhook to `https://<your host>/notification/incoming-call/voice`, built from `HOST` and `HTTP_PROTOCOL` on a self-hosted install. To move a policy to another Twilio account, release its numbers first: the account can change only while the policy has none.
 
-To release a number, click **Release** next to it and confirm with **Release Number**.
+To release a number, click **Release Number** next to it and confirm with **Release Number**.
 
 > [!CAUTION]
 > Releasing a number gives it back to Twilio, even a number you brought with **Use Existing Phone Number**, and you may not get it again. Deleting a policy, or the Twilio configuration it uses, releases its numbers too.
@@ -228,7 +228,7 @@ A policy's phone numbers follow the same roles as the policy itself:
 - **Looking numbers up** - searching Twilio for a number to reserve, or listing the numbers your Twilio account already has - needs permission to read incoming call policies and to read call and SMS configs, because it reads your Twilio account through one. **Project Owner**, **Project Admin**, **Project Member**, **Viewer**, **Settings Admin**, **Settings Member** and **Settings Viewer** have both. In a custom role, that is **Read Incoming Call Policy** and **Read Call and SMS**.
 - **Reserving a number, using an existing one, and releasing one** need permission to edit incoming call policies: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin** and **Settings Member**, or **Edit Incoming Call Policy** in a custom role. They change the numbers of a policy you may edit: with a role limited to some labels, the policies carrying those labels.
 
-A team's block with no labels on one of these permissions takes it away. For anyone else, **Add Phone Number** and **Release** stay on the page, locked, and their tooltip says what they take. The API refuses their request with a sentence saying what it takes: "Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." or "Adding or releasing a phone number needs permission to edit incoming call policies." Reserving a number charges your own Twilio account, not your OneUptime balance, so it needs no billing permission.
+A team's block with no labels on one of these permissions takes it away. For anyone else, **Add Phone Number** and **Release Number** stay on the page, locked, and their tooltip says what they take. The API refuses their request with a sentence saying what it takes: "Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." or "Adding or releasing a phone number needs permission to edit incoming call policies." Reserving a number charges your own Twilio account, not your OneUptime balance, so it needs no billing permission.
 
 ## Creating policies with the API or Terraform
 

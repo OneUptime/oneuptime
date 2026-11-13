@@ -66,6 +66,7 @@ import {
   ON_CALL_PAGE_CALL_PASS_ON_DIGIT,
   getOnCallPageCallPassOnPrompt,
 } from "Common/Types/OnCallDutyPolicy/OnCallPagePassOn";
+import { NO_NOTIFICATION_RULES_STATUS_MESSAGE } from "Common/Types/OnCallDutyPolicy/OnCallPageLine";
 import {
   PROJECT_NOTIFICATION_CHANNEL_UPDATE_PERMISSIONS,
   WHO_MAY_TURN_THEM_ON,
@@ -937,12 +938,20 @@ describe("when a page finds no rule", () => {
       )?.update,
     ).toEqual([Permission.ProjectOwner, Permission.ManageProjectBilling]);
 
+    /*
+     * The line a page with no rule writes is one of the page lines the
+     * server and the Dashboard share (OnCallPageLine, #7260), and the
+     * service writes it.
+     */
     const logService: string = readCommonSource(
       "Server/Services/UserOnCallLogService.ts",
     );
 
-    expect(logService).toContain(
+    expect(NO_NOTIFICATION_RULES_STATUS_MESSAGE).toContain(
       "User should add the rules in User Settings > How to Reach Me.",
+    );
+    expect(logService).toContain(
+      "statusMessage: NO_NOTIFICATION_RULES_STATUS_MESSAGE,",
     );
     expect(english(PERSONAL_ON_CALL_RULES)).toContain(
       "A project owner, or someone with **Manage Billing**, can set the project's `disableOnCallNotificationFallback` through the API.",

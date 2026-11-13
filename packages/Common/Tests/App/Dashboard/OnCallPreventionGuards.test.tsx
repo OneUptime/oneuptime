@@ -1647,7 +1647,8 @@ const METHOD_SURFACES: Array<MethodSurface> = [
       });
     },
     modalTitle: "Delete Phone Number",
-    methodLabel: "Call: +15551230199",
+    // A call method by its own name (#7178): "Phone call", not "Call".
+    methodLabel: "Phone call: +15551230199",
     rowButtons: ["Delete"],
     menuItems: [],
   },
@@ -1663,7 +1664,7 @@ const METHOD_SURFACES: Array<MethodSurface> = [
       });
     },
     modalTitle: "Delete Device",
-    methodLabel: "Push: Chrome on macOS",
+    methodLabel: "Push notification: Chrome on macOS",
     rowButtons: ["Test Notification", "More actions"],
     menuItems: ["Delete"],
   },

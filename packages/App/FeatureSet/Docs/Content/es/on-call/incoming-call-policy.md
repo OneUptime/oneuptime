@@ -143,7 +143,7 @@ Un número cuyas llamadas ya van a otro sitio lo indica con «Currently has a we
 
 OneUptime configura el webhook de voz del número en `https://<your host>/notification/incoming-call/voice`, construido a partir de `HOST` y `HTTP_PROTOCOL` en una instalación autoalojada. Para pasar una política a otra cuenta de Twilio, libera primero sus números: la cuenta solo puede cambiar mientras la política no tiene ninguno.
 
-Para liberar un número, haz clic en **Liberar** junto a él y confirma con **Liberar número**.
+Para liberar un número, haz clic en **Liberar número** junto a él y confirma con **Liberar número**.
 
 > [!CAUTION]
 > Liberar un número lo devuelve a Twilio, aunque lo hayas traído con **Usar un número de teléfono existente**, y puede que no lo recuperes. Eliminar una política, o la configuración de Twilio que usa, también libera sus números.
@@ -228,7 +228,7 @@ Los números de teléfono de una política siguen los mismos roles que la propia
 - **Buscar números** - buscar en Twilio un número que reservar, o listar los números que ya tiene tu cuenta de Twilio - necesita permiso para leer las políticas de llamadas entrantes y para leer las configuraciones de llamadas y SMS, porque lee tu cuenta de Twilio a través de una de ellas. **Propietario del proyecto**, **Administrador del proyecto**, **Miembro del proyecto**, **Visor**, **Administrador de ajustes**, **Miembro de ajustes** y **Visor de ajustes** tienen ambos. En un rol personalizado, son **Read Incoming Call Policy** y **Read Call and SMS**.
 - **Reservar un número, usar uno existente y liberar uno** necesitan permiso para editar las políticas de llamadas entrantes: **Propietario del proyecto**, **Administrador del proyecto**, **Miembro del proyecto**, **Administrador de ajustes** y **Miembro de ajustes**, o **Edit Incoming Call Policy** en un rol personalizado. Cambian los números de una política que puedes editar: con un rol limitado a ciertas etiquetas, las políticas que llevan esas etiquetas.
 
-Un bloqueo de equipo sin etiquetas sobre uno de estos permisos lo retira. Para cualquier otra persona, **Añadir número de teléfono** y **Liberar** siguen en la página, bloqueados, y su descripción emergente dice qué necesitan. La API rechaza su petición con una frase que dice qué necesita: "Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." o "Adding or releasing a phone number needs permission to edit incoming call policies." Reservar un número se cobra a tu propia cuenta de Twilio, no a tu saldo de OneUptime, así que no necesita permiso de facturación.
+Un bloqueo de equipo sin etiquetas sobre uno de estos permisos lo retira. Para cualquier otra persona, **Añadir número de teléfono** y **Liberar número** siguen en la página, bloqueados, y su descripción emergente dice qué necesitan. La API rechaza su petición con una frase que dice qué necesita: "Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." o "Adding or releasing a phone number needs permission to edit incoming call policies." Reservar un número se cobra a tu propia cuenta de Twilio, no a tu saldo de OneUptime, así que no necesita permiso de facturación.
 
 ## Crear políticas con la API o Terraform
 

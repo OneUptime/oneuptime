@@ -143,7 +143,7 @@ Een nummer dat zijn gesprekken al ergens anders heen stuurt, meldt "Currently ha
 
 OneUptime stelt de voice-webhook van het nummer in op `https://<your host>/notification/incoming-call/voice`, opgebouwd uit `HOST` en `HTTP_PROTOCOL` op een zelfgehoste installatie. Om een beleid naar een ander Twilio-account te verhuizen, geeft u eerst de nummers ervan vrij: het account kan alleen wijzigen zolang het beleid er geen heeft.
 
-Om een nummer vrij te geven, klikt u op **Vrijgeven** ernaast en bevestigt u met **Nummer vrijgeven**.
+Om een nummer vrij te geven, klikt u op **Nummer vrijgeven** ernaast en bevestigt u met **Nummer vrijgeven**.
 
 > [!CAUTION]
 > Een nummer vrijgeven geeft het terug aan Twilio, ook een nummer dat u met **Bestaand telefoonnummer gebruiken** hebt meegenomen, en u krijgt het misschien niet terug. Een beleid verwijderen, of de Twilio-configuratie die het gebruikt, geeft de nummers ervan ook vrij.
@@ -228,7 +228,7 @@ De telefoonnummers van een beleid volgen dezelfde rollen als het beleid zelf:
 - **Nummers opzoeken** - in Twilio zoeken naar een nummer om te reserveren, of de nummers tonen die uw Twilio-account al heeft - vereist de machtiging om beleid voor inkomende oproepen te lezen en om configuraties voor gesprekken en sms te lezen, omdat het uw Twilio-account via zo'n configuratie leest. **Projecteigenaar**, **Projectbeheerder**, **Projectlid**, **Kijker**, **Instellingenbeheerder**, **Instellingenlid** en **Instellingenkijker** hebben beide. In een aangepaste rol zijn dat **Read Incoming Call Policy** en **Read Call and SMS**.
 - **Een nummer reserveren, een bestaand nummer gebruiken en een nummer vrijgeven** vereisen de machtiging om beleid voor inkomende oproepen te bewerken: **Projecteigenaar**, **Projectbeheerder**, **Projectlid**, **Instellingenbeheerder** en **Instellingenlid**, of **Edit Incoming Call Policy** in een aangepaste rol. Ze wijzigen de nummers van een beleid dat u mag bewerken: met een rol die tot bepaalde labels is beperkt, het beleid met die labels.
 
-Een blokkade van een team zonder labels op een van deze machtigingen neemt die weg. Voor alle anderen blijven **Telefoonnummer toevoegen** en **Vrijgeven** op de pagina staan, vergrendeld, en hun tooltip zegt wat ervoor nodig is. De API weigert hun verzoek met een zin die zegt wat ervoor nodig is: "Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." of "Adding or releasing a phone number needs permission to edit incoming call policies." Een nummer reserveren wordt in rekening gebracht op uw eigen Twilio-account, niet op uw OneUptime-saldo, dus daar is geen factureringsmachtiging voor nodig.
+Een blokkade van een team zonder labels op een van deze machtigingen neemt die weg. Voor alle anderen blijven **Telefoonnummer toevoegen** en **Nummer vrijgeven** op de pagina staan, vergrendeld, en hun tooltip zegt wat ervoor nodig is. De API weigert hun verzoek met een zin die zegt wat ervoor nodig is: "Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." of "Adding or releasing a phone number needs permission to edit incoming call policies." Een nummer reserveren wordt in rekening gebracht op uw eigen Twilio-account, niet op uw OneUptime-saldo, dus daar is geen factureringsmachtiging voor nodig.
 
 ## Beleid maken met de API of Terraform
 

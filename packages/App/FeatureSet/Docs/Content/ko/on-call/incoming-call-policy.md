@@ -143,7 +143,7 @@ OneUptime은 모든 요청에서 Twilio 구성의 Auth Token으로 Twilio의 서
 
 OneUptime은 번호의 음성 webhook을 `https://<your host>/notification/incoming-call/voice` 로 설정하며, 자체 호스팅 설치에서는 `HOST` 와 `HTTP_PROTOCOL` 로 만듭니다. 정책을 다른 Twilio 계정으로 옮기려면 먼저 번호를 해제하세요. 계정은 정책에 번호가 없을 때만 바꿀 수 있습니다.
 
-번호를 해제하려면 번호 옆의 **해제** 를 클릭하고 **번호 해제** 로 확인합니다.
+번호를 해제하려면 번호 옆의 **번호 해제** 를 클릭하고 **번호 해제** 로 확인합니다.
 
 > [!CAUTION]
 > 번호를 해제하면 **기존 전화번호 사용** 으로 가져온 번호라도 Twilio에 반환되며, 다시 얻지 못할 수 있습니다. 정책이나 정책이 사용하는 Twilio 구성을 삭제해도 그 번호가 해제됩니다.
@@ -228,7 +228,7 @@ Twilio는 음성 합성으로 메시지를 읽어 주므로, 들리길 원하는
 - **번호 조회** - 예약할 번호를 Twilio에서 찾거나 Twilio 계정에 이미 있는 번호를 나열하는 것 - 에는 수신 통화 정책을 읽는 권한과 통화 및 SMS 구성을 읽는 권한이 필요합니다. 그중 하나를 통해 Twilio 계정을 읽기 때문입니다. **프로젝트 소유자**, **프로젝트 관리자**, **프로젝트 구성원**, **뷰어**, **설정 관리자**, **설정 구성원**, **설정 뷰어** 는 둘 다 가지고 있습니다. 사용자 지정 역할에서는 **Read Incoming Call Policy** 와 **Read Call and SMS** 입니다.
 - **번호 예약, 기존 번호 사용, 번호 해제** 에는 수신 통화 정책을 편집하는 권한이 필요합니다. **프로젝트 소유자**, **프로젝트 관리자**, **프로젝트 구성원**, **설정 관리자**, **설정 구성원**, 또는 사용자 지정 역할의 **Edit Incoming Call Policy** 입니다. 이 작업은 편집할 수 있는 정책의 번호를 바꿉니다. 일부 레이블로 제한된 역할이라면 그 레이블이 붙은 정책입니다.
 
-이 권한 중 하나에 대한 레이블 없는 팀 차단은 그 권한을 없앱니다. 그 밖의 사람에게는 **전화번호 추가** 와 **해제** 가 잠긴 상태로 페이지에 남고, 도구 설명에 필요한 권한이 표시됩니다. API는 필요한 권한을 알려 주는 문장으로 요청을 거부합니다: "Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." 또는 "Adding or releasing a phone number needs permission to edit incoming call policies." 번호 예약 요금은 OneUptime 잔액이 아니라 내 Twilio 계정에 청구되므로 결제 권한은 필요하지 않습니다.
+이 권한 중 하나에 대한 레이블 없는 팀 차단은 그 권한을 없앱니다. 그 밖의 사람에게는 **전화번호 추가** 와 **번호 해제** 가 잠긴 상태로 페이지에 남고, 도구 설명에 필요한 권한이 표시됩니다. API는 필요한 권한을 알려 주는 문장으로 요청을 거부합니다: "Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." 또는 "Adding or releasing a phone number needs permission to edit incoming call policies." 번호 예약 요금은 OneUptime 잔액이 아니라 내 Twilio 계정에 청구되므로 결제 권한은 필요하지 않습니다.
 
 ## API 또는 Terraform으로 정책 만들기
 
