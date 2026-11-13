@@ -15,6 +15,7 @@ import {
   isHostCollectorLabelValue,
 } from "Common/Utils/HostCollector/HostCollectorInstallCommand";
 import {
+  HOST_COLLECTOR_OPAMP_SETTINGS_FILE,
   HOST_FEATURE_JOURNALD_ATTRIBUTE,
   HOST_FEATURE_SYSTEMD_ATTRIBUTE,
 } from "Common/Server/Utils/HostCollector/OpAmp/OpAmpExchange";
@@ -246,6 +247,20 @@ describe("what they set up", () => {
     expect(SH).toContain(
       `${HOST_FEATURE_SYSTEMD_ATTRIBUTE}: "$HAS_SYSTEMD_BUS"`,
     );
+  });
+
+  test("the supervisor reports only its own merge of the config, never the collector's with its values filled in", () => {
+    /*
+     * The collector's report of the config it runs fills in every
+     * ${env:...}: the file OneUptime sends with each config turns it off
+     * (OpAmpExchange). The supervisor's own report stays on - with it off,
+     * the supervisor logs an error for each report the collector makes.
+     */
+    for (const script of [SH, PS1]) {
+      expect(script).toContain("reports_effective_config: true");
+      expect(script).toContain(`(${HOST_COLLECTOR_OPAMP_SETTINGS_FILE})`);
+      expect(script).not.toContain("so it holds no key");
+    }
   });
 
   test("a config is checked before the collector switches to it, and one that does not start is rolled back", () => {

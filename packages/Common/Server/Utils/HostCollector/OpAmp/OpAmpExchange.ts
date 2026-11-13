@@ -12,6 +12,7 @@ import {
   readHostCollectorHostFeatures,
 } from "../../../../Utils/HostCollector/HostCollectorDefaultConfig";
 import {
+  getHostCollectorConfigHash,
   hostCollectorConfigHashFromBytes,
   hostCollectorConfigHashToBytes,
 } from "../HostCollectorConfigHash";
@@ -284,15 +285,73 @@ export function applyHostCollectorReport(data: {
 }
 
 /*
+ * What OneUptime adds to every config it sends a host: a file of its own
+ * beside the host's config. The supervisor merges each file of a remote
+ * config in name order, the host's config - the file with no name - last,
+ * onto the opamp extension it adds to the collector.
+ *
+ * It turns off the collector's report of the config it runs. The opamp
+ * extension reports that config to the supervisor, which forwards it to
+ * OneUptime with every ${env:...} filled in: a value given with --env is
+ * sent in plain text wherever a config puts it outside a field the
+ * collector knows to be secret (a password in a URL, say; a header such as
+ * the ingestion key's reads "[REDACTED]"). OneUptime has no use for it - the
+ * hash a host reports says which config it runs - so the collector is told
+ * not to send it, and all a supervisor has to report is its own merge of
+ * the config files, with ${env:...} unread. A Collector Config cannot undo
+ * this: the opamp extension is not one it may name
+ * (HostCollectorComponentCatalog).
+ *
+ * Any change to this text, comments included, changes the hash every config
+ * is sent with (getHostCollectorSentConfigHash), so every host is sent its
+ * config again on its next poll.
+ */
+export const HOST_COLLECTOR_OPAMP_SETTINGS_FILE: string =
+  "oneuptime-opamp.yaml";
+
+export const HOST_COLLECTOR_OPAMP_SETTINGS_YAML: string = [
+  "# Added by OneUptime to every config it sends: the collector does not",
+  "# report the config it runs back to OneUptime, with its values filled in.",
+  "extensions:",
+  "  opamp:",
+  "    capabilities:",
+  "      reports_effective_config: false",
+  "",
+].join("\n");
+
+/*
+ * The hash OneUptime sends a config with, which the host reports back once
+ * it runs it: of the config's own hash (getHostCollectorConfigHash of its
+ * YAML, which its versions keep) and the settings file sent beside it. A
+ * host that reports the config's own hash was sent it before OneUptime
+ * added the settings file, and is sent it again.
+ */
+export function getHostCollectorSentConfigHash(configHash: string): string {
+  return getHostCollectorConfigHash(
+    `${HOST_COLLECTOR_OPAMP_SETTINGS_YAML}\n${configHash}`,
+  );
+}
+
+/*
  * Whether this answer sends the desired config: the host neither runs nor
- * is applying it, and it is not a config that failed on this host.
+ * is applying it as OneUptime sends it now, and it is not a config that
+ * failed on this host.
  */
 export function shouldSendHostCollectorConfig(data: {
   state: HostCollectorAgentState;
   desired: DesiredHostCollectorConfig;
 }): boolean {
+  const sentHash: string = getHostCollectorSentConfigHash(
+    data.desired.configHash,
+  );
+
   return (
-    data.desired.configHash !== data.state.configHash &&
+    sentHash !== data.state.configHash &&
+    sentHash !== data.state.failedConfigHash &&
+    /*
+     * A config that failed on the host before the settings file came with
+     * it failed by itself: it is not sent again either.
+     */
     data.desired.configHash !== data.state.failedConfigHash
   );
 }
@@ -303,6 +362,12 @@ export function getOpAmpRemoteConfig(
   return {
     config: {
       configMap: {
+        [HOST_COLLECTOR_OPAMP_SETTINGS_FILE]: {
+          body: new Uint8Array(
+            Buffer.from(HOST_COLLECTOR_OPAMP_SETTINGS_YAML, "utf8"),
+          ),
+          contentType: "text/yaml",
+        },
         "": {
           body: new Uint8Array(Buffer.from(desired.configYaml, "utf8")),
           contentType: "text/yaml",
@@ -310,7 +375,9 @@ export function getOpAmpRemoteConfig(
       },
     },
     configHash: new Uint8Array(
-      hostCollectorConfigHashToBytes(desired.configHash),
+      hostCollectorConfigHashToBytes(
+        getHostCollectorSentConfigHash(desired.configHash),
+      ),
     ),
   };
 }
@@ -324,10 +391,15 @@ export function exchangeWithHostCollector(data: {
   message: OpAmpAgentToServer;
   desired: DesiredHostCollectorConfig;
 }): OpAmpExchangeResult {
+  // The hash the host reports once it runs the desired config.
+  const sentHash: string = getHostCollectorSentConfigHash(
+    data.desired.configHash,
+  );
+
   const state: HostCollectorAgentState = applyHostCollectorReport({
     state: data.state,
     message: data.message,
-    desiredConfigHash: data.desired.configHash,
+    desiredConfigHash: sentHash,
   });
 
   const response: OpAmpServerToAgent = {
@@ -342,7 +414,7 @@ export function exchangeWithHostCollector(data: {
 
   if (shouldSendHostCollectorConfig({ state, desired: data.desired })) {
     response.remoteConfig = getOpAmpRemoteConfig(data.desired);
-    return { state, response, sentConfigHash: data.desired.configHash };
+    return { state, response, sentConfigHash: sentHash };
   }
 
   return { state, response, sentConfigHash: null };
