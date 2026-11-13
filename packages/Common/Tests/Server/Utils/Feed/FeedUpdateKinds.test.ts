@@ -524,6 +524,10 @@ describe("the writers hand the kinds to the message they post", () => {
   });
 
   test("a person, team or schedule taken out of an escalation rule is a change to the policy, not an owner removed", () => {
+    // How a writer filed a removal as an owner's (before issue #7549).
+    const OWNER_REMOVED: RegExp =
+      /OnCallDutyPolicyFeedEventType\.Owner(User|Team)Removed/;
+
     for (const [writer, entry] of [
       [
         "Server/Services/OnCallDutyPolicyEscalationRuleUserService.ts",
@@ -545,9 +549,7 @@ describe("the writers hand the kinds to the message they post", () => {
         files: code.includes(
           `onCallDutyPolicyFeedEventType:OnCallDutyPolicyFeedEventType.${entry},`,
         ),
-        asOwner: /OnCallDutyPolicyFeedEventType\.Owner(User|Team)Removed/.test(
-          code,
-        ),
+        asOwner: OWNER_REMOVED.test(code),
       });
       expect(
         ON_CALL_DUTY_POLICY_FEED_UPDATE_KINDS[
