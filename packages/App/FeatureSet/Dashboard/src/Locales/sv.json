@@ -51989,5 +51989,6 @@
   "Who is on call now and next, nobody on call, overrides, and changes to the policy and its owners.": "Vem som har jour nu och härnäst, ingen har jour, åsidosättningar, och ändringar i policyn och dess ägare.",
   "Who is on call now, and when nobody is.": "Vem som har jour nu, och när ingen har det.",
   "Who takes over at the next hand-off, and when.": "Vem som tar över vid nästa överlämning, och när.",
-  "With none ticked, the rule posts only that the on-call policy was created.": "Är inget markerat postar regeln bara att jourpolicyn skapades."
+  "With none ticked, the rule posts only that the on-call policy was created.": "Är inget markerat postar regeln bara att jourpolicyn skapades.",
+  "{{start}} → {{end}}": "{{start}} → {{end}}"
 }

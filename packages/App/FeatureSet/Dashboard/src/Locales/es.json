@@ -51989,5 +51989,6 @@
   "Who is on call now and next, nobody on call, overrides, and changes to the policy and its owners.": "Quién está de guardia ahora y después, nadie de guardia, sustituciones, y cambios en la política y sus propietarios.",
   "Who is on call now, and when nobody is.": "Quién está de guardia ahora, y cuándo no hay nadie.",
   "Who takes over at the next hand-off, and when.": "Quién toma el relevo en el próximo cambio de turno, y cuándo.",
-  "With none ticked, the rule posts only that the on-call policy was created.": "Sin ninguna marcada, la regla solo publica que se creó la política de guardia."
+  "With none ticked, the rule posts only that the on-call policy was created.": "Sin ninguna marcada, la regla solo publica que se creó la política de guardia.",
+  "{{start}} → {{end}}": "{{start}} → {{end}}"
 }

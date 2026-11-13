@@ -51989,5 +51989,6 @@
   "Who is on call now and next, nobody on call, overrides, and changes to the policy and its owners.": "현재와 다음 온콜 담당자, 온콜 담당자 없음, 재정의, 정책과 소유자의 변경.",
   "Who is on call now, and when nobody is.": "현재 온콜 담당자와 담당자가 없는 때.",
   "Who takes over at the next hand-off, and when.": "다음 인계 때 누가 이어받는지와 언제인지.",
-  "With none ticked, the rule posts only that the on-call policy was created.": "아무것도 선택하지 않으면 규칙은 온콜 정책이 생성되었다는 것만 게시합니다."
+  "With none ticked, the rule posts only that the on-call policy was created.": "아무것도 선택하지 않으면 규칙은 온콜 정책이 생성되었다는 것만 게시합니다.",
+  "{{start}} → {{end}}": "{{start}} → {{end}}"
 }

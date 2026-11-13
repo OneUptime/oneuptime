@@ -51989,5 +51989,6 @@
   "Who is on call now and next, nobody on call, overrides, and changes to the policy and its owners.": "Qui est d'astreinte maintenant et ensuite, personne d'astreinte, les remplacements, et les modifications de la politique et de ses propriétaires.",
   "Who is on call now, and when nobody is.": "Qui est d'astreinte maintenant, et quand personne ne l'est.",
   "Who takes over at the next hand-off, and when.": "Qui prend le relais à la prochaine relève, et quand.",
-  "With none ticked, the rule posts only that the on-call policy was created.": "Si rien n'est coché, la règle publie seulement que la politique d'astreinte a été créée."
+  "With none ticked, the rule posts only that the on-call policy was created.": "Si rien n'est coché, la règle publie seulement que la politique d'astreinte a été créée.",
+  "{{start}} → {{end}}": "{{start}} → {{end}}"
 }

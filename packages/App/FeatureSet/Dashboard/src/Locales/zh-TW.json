@@ -51989,5 +51989,6 @@
   "Who is on call now and next, nobody on call, overrides, and changes to the policy and its owners.": "目前和下一位待命人員、無人待命、覆寫，以及策略及其擁有者的變更。",
   "Who is on call now, and when nobody is.": "目前待命人員，以及何時無人待命。",
   "Who takes over at the next hand-off, and when.": "下次交接時由誰接手，以及何時接手。",
-  "With none ticked, the rule posts only that the on-call policy was created.": "如果未勾選任何項目，規則只會張貼待命策略已建立。"
+  "With none ticked, the rule posts only that the on-call policy was created.": "如果未勾選任何項目，規則只會張貼待命策略已建立。",
+  "{{start}} → {{end}}": "{{start}} → {{end}}"
 }

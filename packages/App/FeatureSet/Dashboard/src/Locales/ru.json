@@ -51989,5 +51989,6 @@
   "Who is on call now and next, nobody on call, overrides, and changes to the policy and its owners.": "Кто дежурит сейчас и следующим, никто не дежурит, переопределения, а также изменения политики и её владельцев.",
   "Who is on call now, and when nobody is.": "Кто дежурит сейчас и когда никто не дежурит.",
   "Who takes over at the next hand-off, and when.": "Кто заступает при следующей передаче смены и когда.",
-  "With none ticked, the rule posts only that the on-call policy was created.": "Если ничего не отмечено, правило публикует только то, что политика дежурства создана."
+  "With none ticked, the rule posts only that the on-call policy was created.": "Если ничего не отмечено, правило публикует только то, что политика дежурства создана.",
+  "{{start}} → {{end}}": "{{start}} → {{end}}"
 }

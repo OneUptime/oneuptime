@@ -5,6 +5,7 @@ import React, {
   useState,
 } from "react";
 import Card from "Common/UI/Components/Card/Card";
+import DirectionArrow from "Common/UI/Components/DirectionArrow/DirectionArrow";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
@@ -369,12 +370,16 @@ const TimelineRow: FunctionComponent<TimelineRowProps> = (
                 )}
                 data-testid="breadcrumb-time"
               >
-                {formatTime(group.firstTime)}
+                {/*
+                 * The first time, then the last, each set apart so the
+                 * arrow between them points the way the page reads.
+                 */}
+                <bdi>{formatTime(group.firstTime)}</bdi>
                 {group.count > 1 &&
                   group.firstTime.getTime() !== group.lastTime.getTime() && (
                     <span className="text-gray-400">
-                      {" → "}
-                      {formatTime(group.lastTime)}
+                      {" "}
+                      <DirectionArrow /> <bdi>{formatTime(group.lastTime)}</bdi>
                     </span>
                   )}
               </span>
@@ -506,8 +511,8 @@ const BreadcrumbTimeline: FunctionComponent<ComponentProps> = (
   }, [sortedEvents, activeFilters]);
 
   const groups: Array<BreadcrumbGroup<BreadcrumbEvent>> = useMemo(() => {
-    return groupBreadcrumbEvents(filteredEvents);
-  }, [filteredEvents]);
+    return groupBreadcrumbEvents(filteredEvents, translator.language);
+  }, [filteredEvents, translator.language]);
 
   const toggleFilter: (category: BreadcrumbCategory) => void = (
     category: BreadcrumbCategory,

@@ -6,6 +6,7 @@ import {
   UserOverrideRecord,
 } from "Common/Types/OnCallDutyPolicy/UserOverrideUtil";
 import {
+  SentenceOptions,
   translatePlural,
   translateTemplate,
   translationKey,
@@ -166,6 +167,19 @@ export function formatOverrideEventTitle(data: {
 }
 
 /*
+ * A hover text's line with an arrow from one value to the next: "Override:
+ * {{original}} → {{substitute}}", "{{start}} → {{end}}". Each value is set
+ * apart from the sentence (SentenceOptions' setsValuesApart), so the arrow
+ * is the sentence's own and points the way its language reads: "←" in
+ * Arabic and Persian. Filled in as they were, the values carried the arrow
+ * with them - drawn from the left between two Latin names or two English
+ * dates, from the right between two Persian names - and whichever way a
+ * translation wrote it, it pointed back for some readers (#7610). A hover
+ * text is only drawn, so the isolates' marks reach no record.
+ */
+const ARROW_BETWEEN_VALUES: SentenceOptions = { setsValuesApart: true };
+
+/*
  * The hover text for an overridden block. Multi-line on purpose: this is where
  * a reader goes when the block itself is too narrow to have told them anything,
  * so it repeats the whole substitution rather than assuming the label was read.
@@ -191,27 +205,39 @@ export function buildOverrideEventTooltip(data: {
         "{{substitute}} is next in the rotation, so this turn is theirs.",
         { substitute: data.substituteName },
       ),
-      translateTemplate("Away: {{start}} → {{end}}", {
-        start: formatShiftInstant(data.overrideStartsAt, data.timezone),
-        end: formatShiftInstant(data.overrideEndsAt, data.timezone),
-      }),
+      translateTemplate(
+        "Away: {{start}} → {{end}}",
+        {
+          start: formatShiftInstant(data.overrideStartsAt, data.timezone),
+          end: formatShiftInstant(data.overrideEndsAt, data.timezone),
+        },
+        ARROW_BETWEEN_VALUES,
+      ),
       data.scope.detail,
     ].join("\n");
   }
 
   return [
-    translateTemplate("Override: {{original}} → {{substitute}}", {
-      original: data.originalName,
-      substitute: data.substituteName,
-    }),
+    translateTemplate(
+      "Override: {{original}} → {{substitute}}",
+      {
+        original: data.originalName,
+        substitute: data.substituteName,
+      },
+      ARROW_BETWEEN_VALUES,
+    ),
     translateTemplate(
       "Alerts that would page {{original}} go to {{substitute}}.",
       { original: data.originalName, substitute: data.substituteName },
     ),
-    translateTemplate("Override window: {{start}} → {{end}}", {
-      start: formatShiftInstant(data.overrideStartsAt, data.timezone),
-      end: formatShiftInstant(data.overrideEndsAt, data.timezone),
-    }),
+    translateTemplate(
+      "Override window: {{start}} → {{end}}",
+      {
+        start: formatShiftInstant(data.overrideStartsAt, data.timezone),
+        end: formatShiftInstant(data.overrideEndsAt, data.timezone),
+      },
+      ARROW_BETWEEN_VALUES,
+    ),
     data.scope.detail,
   ].join("\n");
 }
@@ -225,10 +251,14 @@ export function buildPlainEventTooltip(data: {
 }): string {
   return [
     translateTemplate("On call: {{user}}", { user: data.userLabel }),
-    `${formatShiftInstant(data.start, data.timezone)} → ${formatShiftInstant(
-      data.end,
-      data.timezone,
-    )}`,
+    translateTemplate(
+      "{{start}} → {{end}}",
+      {
+        start: formatShiftInstant(data.start, data.timezone),
+        end: formatShiftInstant(data.end, data.timezone),
+      },
+      ARROW_BETWEEN_VALUES,
+    ),
   ].join("\n");
 }
 

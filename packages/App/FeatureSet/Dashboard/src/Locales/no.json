@@ -51989,5 +51989,6 @@
   "Who is on call now and next, nobody on call, overrides, and changes to the policy and its owners.": "Hvem som har vakt nå og neste gang, ingen har vakt, overstyringer, og endringer i policyen og eierne.",
   "Who is on call now, and when nobody is.": "Hvem som har vakt nå, og når ingen har det.",
   "Who takes over at the next hand-off, and when.": "Hvem som tar over ved neste vaktskifte, og når.",
-  "With none ticked, the rule posts only that the on-call policy was created.": "Er ingen krysset av, poster regelen bare at vaktpolicyen ble opprettet."
+  "With none ticked, the rule posts only that the on-call policy was created.": "Er ingen krysset av, poster regelen bare at vaktpolicyen ble opprettet.",
+  "{{start}} → {{end}}": "{{start}} → {{end}}"
 }

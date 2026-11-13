@@ -51989,5 +51989,6 @@
   "Who is on call now and next, nobody on call, overrides, and changes to the policy and its owners.": "現在と次のオンコール担当者、オンコール担当者なし、オーバーライド、ポリシーとその所有者の変更。",
   "Who is on call now, and when nobody is.": "現在のオンコール担当者と、担当者がいないとき。",
   "Who takes over at the next hand-off, and when.": "次の引き継ぎで誰が引き継ぐか、いつか。",
-  "With none ticked, the rule posts only that the on-call policy was created.": "何もチェックしない場合、ルールはオンコールポリシーが作成されたことだけを投稿します。"
+  "With none ticked, the rule posts only that the on-call policy was created.": "何もチェックしない場合、ルールはオンコールポリシーが作成されたことだけを投稿します。",
+  "{{start}} → {{end}}": "{{start}} → {{end}}"
 }
