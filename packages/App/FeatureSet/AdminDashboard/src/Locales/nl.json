@@ -541,7 +541,12 @@
         "cardTitle": "Twilio-configuratie",
         "cardDescription": "Het Twilio-account waarmee OneUptime sms-berichten verstuurt en belt, tenzij een project een eigen Twilio-configuratie gebruikt.",
         "editButton": "Twilio-config bewerken",
-        "smsSameAsCalls": "Dezelfde nummers als voor oproepen"
+        "smsSameAsCalls": "Dezelfde nummers als voor oproepen",
+        "environmentCardDescription": "Ingesteld met omgevingsvariabelen: twilio in de waarden van de Helm-chart, of de GLOBAL_TWILIO_-instellingen in config.env. Wijzig ze daar en herstart OneUptime om dit account te wijzigen.",
+        "environmentProblemsTitle": "Dit account verstuurt geen sms'jes en belt niet totdat deze omgevingsvariabelen zijn gecorrigeerd:",
+        "environmentUnusedTitle": "Sommige Twilio-omgevingsvariabelen worden niet gebruikt:",
+        "authTokenSet": "Ingesteld",
+        "authTokenNotSet": "Niet ingesteld"
       },
       "whatsapp": {
         "metaCardTitle": "Meta WhatsApp-instellingen",

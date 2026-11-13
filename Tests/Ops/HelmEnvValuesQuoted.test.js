@@ -337,6 +337,12 @@ const SETTINGS = {
   "vapid.publicKey": "VAPID_PUBLIC_KEY",
   "vapid.subject": "VAPID_SUBJECT",
   "vapid.privateKey": "VAPID_PRIVATE_KEY",
+  // The server's Twilio account, rendered once accountSid is set (#7515).
+  "twilio.accountSid": "GLOBAL_TWILIO_ACCOUNT_SID",
+  "twilio.authToken": "GLOBAL_TWILIO_AUTH_TOKEN",
+  "twilio.primaryPhoneNumber": "GLOBAL_TWILIO_PRIMARY_PHONE_NUMBER",
+  "twilio.secondaryPhoneNumbers": "GLOBAL_TWILIO_SECONDARY_PHONE_NUMBERS",
+  "twilio.smsPhoneNumbers": "GLOBAL_TWILIO_SMS_PHONE_NUMBERS",
   oneuptimeSecret: "ONEUPTIME_SECRET",
   registerProbeKey: "REGISTER_PROBE_KEY",
   encryptionSecret: "ENCRYPTION_SECRET",

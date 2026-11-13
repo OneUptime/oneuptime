@@ -137,6 +137,7 @@ flowchart LR
 | **Group By Incident Title** | Incidents with different titles → separate episodes | Incidents with any title can be grouped together |
 | **Group By Incident Labels** | Incidents with different sets of labels → separate episodes (exact set match) | Incident labels are ignored for grouping |
 | **Group By Monitor Labels** | Incidents whose monitors have different sets of labels → separate episodes (exact set match) | Monitor labels are ignored for grouping |
+| **Group By Connected Services** | Incidents on services that call each other on the Service Map → the same episode; on unconnected services → separate episodes. Incidents on no service are grouped by monitor | The Service Map is ignored for grouping |
 
 #### Default Behavior
 
@@ -189,6 +190,14 @@ flowchart TD
 - More fields: **Wait for more incidents**, 3
 
 **Result:** A lone incident stays on its own. Once 3 matching incidents are ongoing - arriving within the time window of each other while it is on - one episode opens with all 3, and the incidents after them join it.
+
+#### Example 5: One episode for a failure that spreads
+
+**Configuration:**
+- Match Criteria: (none - matches all incidents)
+- Group By: **Connected Services**
+
+**Result:** The orders service slows down and raises an incident. Checkout and payments, which call orders on the Service Map, start failing too and raise one each. All three share one episode instead of paging three times. Incidents on a service that calls nothing and is called by nothing on the map get an episode of their own. An incident joins an episode when one of its services - its own, or its monitor's - is, calls or is called by a service already in it.
 `;
 
 const KIND: GroupingRuleKind = GroupingRuleKind.Incident;
@@ -659,6 +668,17 @@ const IncidentGroupingRulesPage: FunctionComponent<
             required: false,
             description:
               "Incidents whose monitors have different sets of labels go into separate episodes.",
+          },
+          {
+            field: {
+              groupByConnectedServices: true,
+            },
+            title: "Group By Connected Services",
+            stepId: "group-by",
+            fieldType: FormFieldSchemaType.Checkbox,
+            required: false,
+            description:
+              "Incidents on services that call each other on the Service Map go into the same episode.",
           },
           // Which incidents - drawn as one conditions builder
           {

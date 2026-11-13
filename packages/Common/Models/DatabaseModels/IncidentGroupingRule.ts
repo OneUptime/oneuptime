@@ -892,6 +892,51 @@ export default class IncidentGroupingRule extends RuleBaseModel {
   })
   public groupByMonitorLabels?: boolean = undefined;
 
+  /*
+   * Topology-aware grouping (issue #6798): an incident joins an open episode
+   * of the rule when one of its services - its own or its monitors' - is,
+   * calls or is called by a service of an incident already in it, on the
+   * Service Map (Common/Server/Utils/Topology/ConnectedServices). An
+   * incident on no service is grouped by its first monitor instead.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateIncidentGroupingRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadIncidentGroupingRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditIncidentGroupingRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Boolean,
+    title: "Group By Connected Services",
+    description:
+      "When enabled, incidents on services that call each other on the Service Map are grouped into the same episode, and incidents on unconnected services into separate ones. Incidents on no service are grouped by monitor.",
+    defaultValue: false,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public groupByConnectedServices?: boolean = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

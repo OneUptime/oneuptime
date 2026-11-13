@@ -541,7 +541,12 @@
         "cardTitle": "Twilio कॉन्फ़िगरेशन",
         "cardDescription": "वह Twilio खाता जिससे OneUptime SMS भेजता है और कॉल करता है, जब तक कोई प्रोजेक्ट अपना Twilio कॉन्फ़िगरेशन इस्तेमाल न करे।",
         "editButton": "Twilio कॉन्फ़िगरेशन संपादित करें",
-        "smsSameAsCalls": "कॉल वाले ही नंबर"
+        "smsSameAsCalls": "कॉल वाले ही नंबर",
+        "environmentCardDescription": "एनवायरनमेंट वेरिएबल्स से सेट: Helm चार्ट की values में twilio, या config.env में GLOBAL_TWILIO_ सेटिंग्स। इस खाते को बदलने के लिए उन्हें वहीं बदलें और OneUptime को रीस्टार्ट करें।",
+        "environmentProblemsTitle": "जब तक ये एनवायरनमेंट वेरिएबल्स ठीक नहीं किए जाते, यह खाता न SMS भेजता है और न कॉल करता है:",
+        "environmentUnusedTitle": "कुछ Twilio एनवायरनमेंट वेरिएबल्स का उपयोग नहीं होता:",
+        "authTokenSet": "सेट है",
+        "authTokenNotSet": "सेट नहीं है"
       },
       "whatsapp": {
         "metaCardTitle": "Meta WhatsApp सेटिंग्स",
