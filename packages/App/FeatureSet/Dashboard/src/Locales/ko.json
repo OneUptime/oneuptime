@@ -52062,5 +52062,6 @@
   "All judged investigations": "모든 판정된 조사",
   "Fixes that worked": "효과가 있었던 수정",
   "{{count}} fixes could not be checked: there was nothing to check them against.": "수정 {{count}}건은 확인할 수 없었습니다. 비교할 대상이 없었습니다.",
-  "{{count}} fixes could not be checked: there was nothing to check them against._one": "수정 {{count}}건은 확인할 수 없었습니다. 비교할 대상이 없었습니다."
+  "{{count}} fixes could not be checked: there was nothing to check them against._one": "수정 {{count}}건은 확인할 수 없었습니다. 비교할 대상이 없었습니다.",
+  "A project's own Twilio account. The project's default accounts send the SMS and make the calls to its team members instead of OneUptime's own. A status page can name one for the SMS to its subscribers, and an incoming call policy one for its calls.": "프로젝트 자체 Twilio 계정입니다. 팀 멤버에게 보내는 SMS와 통화는 OneUptime 자체 Twilio 계정 대신 프로젝트의 기본 계정을 거칩니다. 상태 페이지는 구독자에게 보내는 SMS용으로, 수신 통화 정책은 해당 통화용으로 계정을 하나 지정할 수 있습니다."
 }

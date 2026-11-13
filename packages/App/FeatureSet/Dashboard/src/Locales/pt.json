@@ -52062,5 +52062,6 @@
   "All judged investigations": "Todas as investigações avaliadas",
   "Fixes that worked": "Correções que funcionaram",
   "{{count}} fixes could not be checked: there was nothing to check them against.": "Não foi possível verificar {{count}} correções: não havia nada com que compará-las.",
-  "{{count}} fixes could not be checked: there was nothing to check them against._one": "Não foi possível verificar {{count}} correção: não havia nada com que compará-la."
+  "{{count}} fixes could not be checked: there was nothing to check them against._one": "Não foi possível verificar {{count}} correção: não havia nada com que compará-la.",
+  "A project's own Twilio account. The project's default accounts send the SMS and make the calls to its team members instead of OneUptime's own. A status page can name one for the SMS to its subscribers, and an incoming call policy one for its calls.": "A conta Twilio própria de um projeto. Os SMS e as chamadas para os membros da sua equipe passam pelas contas padrão do projeto em vez da conta Twilio da própria OneUptime. Uma página de status pode indicar uma para os SMS aos seus assinantes, e uma política de chamadas recebidas, uma para as suas chamadas."
 }

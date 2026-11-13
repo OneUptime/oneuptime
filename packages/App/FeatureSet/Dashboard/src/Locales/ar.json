@@ -52062,5 +52062,6 @@
   "All judged investigations": "كل التحقيقات المُقيَّمة",
   "Fixes that worked": "الإصلاحات التي نجحت",
   "{{count}} fixes could not be checked: there was nothing to check them against.": "تعذّر التحقق من {{count}} من الإصلاحات: لم يكن هناك ما تُقارن به.",
-  "{{count}} fixes could not be checked: there was nothing to check them against._one": "تعذّر التحقق من {{count}} إصلاح: لم يكن هناك ما يُقارن به."
+  "{{count}} fixes could not be checked: there was nothing to check them against._one": "تعذّر التحقق من {{count}} إصلاح: لم يكن هناك ما يُقارن به.",
+  "A project's own Twilio account. The project's default accounts send the SMS and make the calls to its team members instead of OneUptime's own. A status page can name one for the SMS to its subscribers, and an incoming call policy one for its calls.": "حساب Twilio الخاص بمشروع. تمر رسائل SMS والمكالمات إلى أعضاء فريقه عبر الحسابات الافتراضية للمشروع بدلًا من حساب Twilio الخاص بـ OneUptime. ويمكن لصفحة الحالة أن تحدد حسابًا لرسائل SMS إلى مشتركيها، ولسياسة المكالمات الواردة أن تحدد حسابًا لمكالماتها."
 }

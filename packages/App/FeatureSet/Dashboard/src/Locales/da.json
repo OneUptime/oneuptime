@@ -52062,5 +52062,6 @@
   "All judged investigations": "Alle vurderede undersøgelser",
   "Fixes that worked": "Rettelser, der virkede",
   "{{count}} fixes could not be checked: there was nothing to check them against.": "{{count}} rettelser kunne ikke tjekkes: der var intet at sammenligne dem med.",
-  "{{count}} fixes could not be checked: there was nothing to check them against._one": "{{count}} rettelse kunne ikke tjekkes: der var intet at sammenligne den med."
+  "{{count}} fixes could not be checked: there was nothing to check them against._one": "{{count}} rettelse kunne ikke tjekkes: der var intet at sammenligne den med.",
+  "A project's own Twilio account. The project's default accounts send the SMS and make the calls to its team members instead of OneUptime's own. A status page can name one for the SMS to its subscribers, and an incoming call policy one for its calls.": "Et projekts egen Twilio-konto. Sms'er og opkald til dets teammedlemmer går gennem projektets standardkonti i stedet for gennem OneUptimes egen Twilio-konto. En statusside kan angive én til sms'erne til sine abonnenter, og en indgående opkaldspolitik én til sine opkald."
 }

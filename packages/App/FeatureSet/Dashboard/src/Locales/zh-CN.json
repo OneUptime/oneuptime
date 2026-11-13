@@ -52062,5 +52062,6 @@
   "All judged investigations": "所有已判定的调查",
   "Fixes that worked": "有效的修复",
   "{{count}} fixes could not be checked: there was nothing to check them against.": "有 {{count}} 个修复无法检查：没有可供比对的依据。",
-  "{{count}} fixes could not be checked: there was nothing to check them against._one": "有 {{count}} 个修复无法检查：没有可供比对的依据。"
+  "{{count}} fixes could not be checked: there was nothing to check them against._one": "有 {{count}} 个修复无法检查：没有可供比对的依据。",
+  "A project's own Twilio account. The project's default accounts send the SMS and make the calls to its team members instead of OneUptime's own. A status page can name one for the SMS to its subscribers, and an incoming call policy one for its calls.": "项目自己的 Twilio 账户。发给项目团队成员的短信和电话通过项目的默认账户发出，而不是通过 OneUptime 自己的 Twilio 账户。状态页可以指定一个账户用于发给其订阅者的短信，来电策略可以指定一个账户用于其通话。"
 }
