@@ -130,10 +130,11 @@ function linesWhere(
 /*
  * The Slack and Microsoft Teams form's Private Note option, as a page
  * quotes it: the label as the form says it, in English, and why in the
- * page's language, in its parentheses.
+ * page's language, in its parentheses. The words between them hold no
+ * parenthesis of either kind, so each quote is read once: linear.
  */
 const PRIVATE_OPTION_QUOTE: RegExp =
-  /\*\*Private Note\*\*\s*[(（]([^)）]*)[)）]/;
+  /\*\*Private Note\*\*\s*[(（]([^()（）]*)[)）]/;
 
 describe("the Private Notes page quotes the composer's badge as each language draws it", () => {
   test("the badge's words are the Dashboard's", () => {
