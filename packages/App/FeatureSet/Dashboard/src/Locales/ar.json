@@ -51765,5 +51765,6 @@
   "Profiles — All profiles": "ملفات التعريف — كل ملفات التعريف",
   "Profiles — Overview": "ملفات التعريف — نظرة عامة",
   "Profiles — Setup guide": "ملفات التعريف — دليل الإعداد",
-  "Turn On Profiling in the Agent": "تفعيل تحليل الأداء في الوكيل"
+  "Turn On Profiling in the Agent": "تفعيل تحليل الأداء في الوكيل",
+  "Couldn't load note templates.": "تعذّر تحميل قوالب الملاحظات."
 }

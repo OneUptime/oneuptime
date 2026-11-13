@@ -51765,5 +51765,6 @@
   "Profiles — All profiles": "性能剖析 — 所有配置文件",
   "Profiles — Overview": "性能剖析 — 概览",
   "Profiles — Setup guide": "性能剖析 — 设置指南",
-  "Turn On Profiling in the Agent": "在代理中开启性能剖析"
+  "Turn On Profiling in the Agent": "在代理中开启性能剖析",
+  "Couldn't load note templates.": "无法加载备注模板。"
 }

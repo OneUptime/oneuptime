@@ -51765,5 +51765,6 @@
   "Profiles — All profiles": "프로파일 — 모든 프로필",
   "Profiles — Overview": "프로파일 — 개요",
   "Profiles — Setup guide": "프로파일 — 설정 가이드",
-  "Turn On Profiling in the Agent": "에이전트에서 프로파일링 켜기"
+  "Turn On Profiling in the Agent": "에이전트에서 프로파일링 켜기",
+  "Couldn't load note templates.": "메모 템플릿을 불러올 수 없습니다."
 }

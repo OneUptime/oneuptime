@@ -51765,5 +51765,6 @@
   "Profiles — All profiles": "Profielen — Alle profielen",
   "Profiles — Overview": "Profielen — Overzicht",
   "Profiles — Setup guide": "Profielen — Installatiegids",
-  "Turn On Profiling in the Agent": "Profilering in de agent inschakelen"
+  "Turn On Profiling in the Agent": "Profilering in de agent inschakelen",
+  "Couldn't load note templates.": "Kan de notitiesjablonen niet laden."
 }

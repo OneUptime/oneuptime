@@ -51765,5 +51765,6 @@
   "Profiles — All profiles": "Профили — Все профили",
   "Profiles — Overview": "Профили — Обзор",
   "Profiles — Setup guide": "Профили — Руководство по настройке",
-  "Turn On Profiling in the Agent": "Включить профилирование в агенте"
+  "Turn On Profiling in the Agent": "Включить профилирование в агенте",
+  "Couldn't load note templates.": "Не удалось загрузить шаблоны заметок."
 }

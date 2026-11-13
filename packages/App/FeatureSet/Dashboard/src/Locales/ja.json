@@ -51765,5 +51765,6 @@
   "Profiles — All profiles": "プロファイル — すべてのプロファイル",
   "Profiles — Overview": "プロファイル — 概要",
   "Profiles — Setup guide": "プロファイル — セットアップガイド",
-  "Turn On Profiling in the Agent": "エージェントでプロファイリングを有効にする"
+  "Turn On Profiling in the Agent": "エージェントでプロファイリングを有効にする",
+  "Couldn't load note templates.": "メモテンプレートを読み込めませんでした。"
 }

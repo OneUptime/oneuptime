@@ -51765,5 +51765,6 @@
   "Profiles — All profiles": "Profiler — Alle profiler",
   "Profiles — Overview": "Profiler — Oversigt",
   "Profiles — Setup guide": "Profiler — Opsætningsvejledning",
-  "Turn On Profiling in the Agent": "Slå profilering til i agenten"
+  "Turn On Profiling in the Agent": "Slå profilering til i agenten",
+  "Couldn't load note templates.": "Noteskabelonerne kunne ikke indlæses."
 }

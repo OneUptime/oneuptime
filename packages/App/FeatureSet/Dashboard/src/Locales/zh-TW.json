@@ -51765,5 +51765,6 @@
   "Profiles — All profiles": "效能剖析 — 所有設定檔",
   "Profiles — Overview": "效能剖析 — 概覽",
   "Profiles — Setup guide": "效能剖析 — 設定指南",
-  "Turn On Profiling in the Agent": "在代理程式中開啟效能剖析"
+  "Turn On Profiling in the Agent": "在代理程式中開啟效能剖析",
+  "Couldn't load note templates.": "無法載入備註範本。"
 }

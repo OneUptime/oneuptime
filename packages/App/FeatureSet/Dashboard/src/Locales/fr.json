@@ -51765,5 +51765,6 @@
   "Profiles — All profiles": "Profils — Tous les profils",
   "Profiles — Overview": "Profils — Vue d'ensemble",
   "Profiles — Setup guide": "Profils — Guide de configuration",
-  "Turn On Profiling in the Agent": "Activer le profilage dans l'agent"
+  "Turn On Profiling in the Agent": "Activer le profilage dans l'agent",
+  "Couldn't load note templates.": "Impossible de charger les modèles de notes."
 }
