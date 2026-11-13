@@ -388,7 +388,7 @@ describe("the probe's timeout sentence", () => {
         'import { writeProbeTimeoutFailureCause } from "Common/Utils/Monitor/ProbeFailureReading";',
       );
       expect(source).toMatch(
-        /writeProbeTimeoutFailureCause\(\s*\w+\.currentRetryCount\s*\)/,
+        /writeProbeTimeoutFailureCause\(\s*\w+\.currentRetryCount,?\s*\)/,
       );
     },
   );
