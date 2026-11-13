@@ -1115,12 +1115,14 @@ describe("what the save is refused, before anything is written", () => {
     expect(transactions).toBe(0);
   });
 
-  const deniedChecks: Array<{
+  type DeniedCheck = {
     name: string;
     change: (request: ScheduleLayersSaveRequest) => void;
     deny: () => void;
     says: string;
-  }> = [
+  };
+
+  const deniedChecks: Array<DeniedCheck> = [
     {
       name: "a layer deleted, by someone who may not delete layers",
       change: (request: ScheduleLayersSaveRequest): void => {
@@ -1217,8 +1219,9 @@ describe("what the save is refused, before anything is written", () => {
     },
   ];
 
-  for (const denied of deniedChecks) {
-    test(`${denied.name}: refused, and nothing else saved with it`, async () => {
+  test.each(deniedChecks)(
+    "$name: refused, and nothing else saved with it",
+    async (denied: DeniedCheck) => {
       denied.deny();
 
       // Along with it, a change the caller may make.
@@ -1236,8 +1239,8 @@ describe("what the save is refused, before anything is written", () => {
       expect(refreshes).toBe(0);
       expect(propagated).toEqual([]);
       expect(audit).toEqual([]);
-    });
-  }
+    },
+  );
 
   test("someone who is not a member of the project is not added", async () => {
     stubProjectDirectory({
@@ -1411,8 +1414,8 @@ describe("after the save", () => {
         },
       ].sort(
         (
-          a: { itemId: string; kind: string },
-          b: { itemId: string; kind: string },
+          a: { itemId: string | undefined; kind: string },
+          b: { itemId: string | undefined; kind: string },
         ) => {
           return `${a.kind}${a.itemId}`.localeCompare(`${b.kind}${b.itemId}`);
         },
