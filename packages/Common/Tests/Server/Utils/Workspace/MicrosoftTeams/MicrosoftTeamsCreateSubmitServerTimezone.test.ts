@@ -281,7 +281,7 @@ describe("Microsoft Teams: a maintenance form submitted to a server in Los Angel
         ? `\n\nMicrosoft Teams did not say which time zone you are in, so these times were read at your current offset, ${zoneCase.label}. If daylight saving time changes before then, check them in OneUptime.`
         : "";
       expect(turn.replies).toEqual([
-        `✅ Scheduled maintenance created successfully.\n\n**Starts:** Oct 1, 2030, 14:00 (${zoneCase.label})\n\n**Ends:** Oct 1, 2030, 15:00 (${zoneCase.label})${offsetNote}\n\n[View scheduled maintenance](${MAINTENANCE_LINK.toString()})`,
+        `✅ Maintenance event created successfully.\n\n**Starts:** Oct 1, 2030, 14:00 (${zoneCase.label})\n\n**Ends:** Oct 1, 2030, 15:00 (${zoneCase.label})${offsetNote}\n\n[View maintenance event](${MAINTENANCE_LINK.toString()})`,
       ]);
     },
   );
@@ -373,7 +373,7 @@ describe("Microsoft Teams: a maintenance form submitted to a server in Los Angel
       "2026-09-29T13:00:00.000Z",
     );
     expect(turn.replies).toEqual([
-      `✅ Scheduled maintenance created successfully.\n\n**Starts:** Sep 29, 2026, 12:03 (UTC)\n\n**Ends:** Sep 29, 2026, 13:00 (UTC)\n\n[View scheduled maintenance](${MAINTENANCE_LINK.toString()})`,
+      `✅ Maintenance event created successfully.\n\n**Starts:** Sep 29, 2026, 12:03 (UTC)\n\n**Ends:** Sep 29, 2026, 13:00 (UTC)\n\n[View maintenance event](${MAINTENANCE_LINK.toString()})`,
     ]);
   });
 });

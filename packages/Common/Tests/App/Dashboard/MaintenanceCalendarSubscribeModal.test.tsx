@@ -142,7 +142,7 @@ const WEBCAL_URL: string = HTTPS_URL.replace("https:", "webcal:");
 const NOW: Date = new Date("2026-10-15T10:20:00.000Z");
 
 const REFUSED_REASON: string =
-  "You can see only some of this project's scheduled maintenance events, so its calendar link, which shows every event, is not yours to use. Ask a project admin for access to every event.";
+  "You can see only some of this project's maintenance events, so its calendar link, which shows every event, is not yours to use. Ask a project admin for access to every event.";
 
 const EDITOR: Array<Permission> = [Permission.ScheduledMaintenanceAdmin];
 const READER: Array<Permission> = [Permission.ScheduledMaintenanceViewer];

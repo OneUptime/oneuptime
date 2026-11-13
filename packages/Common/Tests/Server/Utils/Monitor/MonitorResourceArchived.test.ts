@@ -135,6 +135,26 @@ describe("a result for an archived monitor", () => {
     ).rejects.toThrow(ExceptionMessages.MonitorDisabled);
   });
 
+  // A record of Scheduled Maintenance is a maintenance event (#6817).
+  test("a monitor a maintenance event paused is told which, in a sentence", async () => {
+    findOneById.mockResolvedValue(
+      monitor({
+        isArchived: false,
+        disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
+      }) as never,
+    );
+
+    await expect(
+      MonitorResourceUtil.monitorResource(probeResult()),
+    ).rejects.toThrow(
+      new BadDataException(
+        "Monitor is disabled because one of the maintenance events this monitor is attached to has not ended. Please end that maintenance event to start monitoring again.",
+      ),
+    );
+    expect(lock).not.toHaveBeenCalled();
+    expect(processMonitorStep).not.toHaveBeenCalled();
+  });
+
   test("the monitor is read with all four pause flags", async () => {
     findOneById.mockResolvedValue(monitor({ isArchived: true }) as never);
 
