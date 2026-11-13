@@ -99,7 +99,7 @@ Elke notitie toont wie haar schreef, haar plaatsingstijd, de weergegeven Markdow
 
 ## Een privénotitie plaatsen
 
-**Notities → Privénotities** is bewust eenvoudiger. Het is dezelfde editor, met **Privé · Alleen wie dit incident kan zien, kan dit lezen**, met de notitie, **Sjablonen**, **Concept met AI** en **Bijvoegen** voor bestanden die bedoeld zijn voor het team dat op het incident reageert. **Privénotitie toevoegen** in het menu **Acties** van de incidentfeed opent hem in een dialoogvenster. Via de API zijn privénotities `/api/incident-internal-note`.
+**Notities → Privénotities** is bewust eenvoudiger. Het is dezelfde editor, met **Privé · Alleen wie dit incident kan zien, kan dit lezen**, met de notitie, **Sjablonen**, **Concept met AI** en **Bijvoegen** voor bestanden, die alleen kunnen worden geopend door wie de notitie kan lezen. **Privénotitie toevoegen** in het menu **Acties** van de incidentfeed opent hem in een dialoogvenster. Via de API zijn privénotities `/api/incident-internal-note`.
 
 Geen plaatsingstijd, geen selectievakje voor abonnees — de notitie wordt gestempeld wanneer ze wordt aangemaakt.
 

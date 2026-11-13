@@ -99,7 +99,7 @@ Hver note viser, hvem der skrev den, tidspunktet for opslaget, den viste Markdow
 
 ## Slå en privat note op
 
-**Noter → Private noter** er bevidst enklere. Det er den samme editor, der siger **Privat · Kun dem, der kan se denne hændelse, kan læse dette**, med noten, **Skabeloner**, **Udkast med AI** og **Vedhæft** til filer, der er beregnet til det team, der reagerer på hændelsen. **Tilføj privat note** i menuen **Handlinger** i hændelsens feed åbner den i en dialog. Via API'et er private noter `/api/incident-internal-note`.
+**Noter → Private noter** er bevidst enklere. Det er den samme editor, der siger **Privat · Kun dem, der kan se denne hændelse, kan læse dette**, med noten, **Skabeloner**, **Udkast med AI** og **Vedhæft** til filer, som kun dem, der kan læse noten, kan åbne. **Tilføj privat note** i menuen **Handlinger** i hændelsens feed åbner den i en dialog. Via API'et er private noter `/api/incident-internal-note`.
 
 Intet tidspunkt for opslag, intet afkrydsningsfelt for abonnenter — noten stemples, når den oprettes.
 

@@ -64,7 +64,7 @@ Ouvrez l'incident et choisissez **Notes → Notes publiques** dans son menu lat�
 
 ### Rédiger la mise à jour
 
-Rédigez la note en Markdown, ou partez de l'un de vos **Modèles** ou de **Rédiger avec l'IA**. Ajoutez des fichiers avec **Rattacher** si les abonnés doivent les voir.
+Rédigez la note en Markdown, ou partez de l'un de vos **Modèles** ou de **Rédiger avec l'IA**. Ajoutez des fichiers avec **Joindre** si les abonnés doivent les voir.
 
 ### Décider qui est prévenu
 
@@ -82,7 +82,7 @@ Le même éditeur s'ouvre dans une boîte de dialogue depuis **Ajouter une note 
 | La note                                     | Le corps, en Markdown. Obligatoire.                                                                                                           |
 | **Modèles**                                 | Insère l'un de vos modèles de notes dans la note, après ce que vous avez déjà tapé. Voir [Modèles de notes](#modèles-de-notes).                 |
 | **Rédiger avec l'IA**                       | Rédige la note à partir de l'incident, pour que vous la modifiiez. Voir [Générer une note avec l'IA](#générer-une-note-avec-lia).            |
-| **Rattacher**                               | Des fichiers partagés avec les abonnés sur la page de statut. Facultatif.                                                                     |
+| **Joindre**                                 | Des fichiers partagés avec les abonnés sur la page de statut. Facultatif.                                                                     |
 | **Publiée maintenant**                              | L'heure de publication qu'indique la note : le moment où vous la publiez, sauf si vous choisissez ici une heure antérieure, dans votre fuseau horaire actuel. |
 | **Notifier les abonnés à la page de statut** | Case à cocher. Cochée par défaut, sauf si l'incident a été déclaré sans notifier les abonnés — elle démarre alors décochée. Décochez-la pour publier discrètement. |
 
@@ -99,7 +99,7 @@ Chaque note montre qui l'a écrite, son heure de publication, le Markdown rendu 
 
 ## Publier une note privée
 
-**Notes → Notes privées** est volontairement plus sobre. C'est le même éditeur, qui indique **Privé · Lisible uniquement par les personnes qui peuvent voir cet incident**, avec la note, **Modèles**, **Rédiger avec l'IA** et **Rattacher** pour les fichiers destinés à l'équipe d'intervention. **Ajouter une note privée** dans le menu **Actions** du fil d'activité de l'incident l'ouvre dans une boîte de dialogue. Par l'API, les notes privées sont `/api/incident-internal-note`.
+**Notes → Notes privées** est volontairement plus sobre. C'est le même éditeur, qui indique **Privé · Lisible uniquement par les personnes qui peuvent voir cet incident**, avec la note, **Modèles**, **Rédiger avec l'IA** et **Joindre** pour des fichiers, que seules les personnes qui peuvent lire la note peuvent ouvrir. **Ajouter une note privée** dans le menu **Actions** du fil d'activité de l'incident l'ouvre dans une boîte de dialogue. Par l'API, les notes privées sont `/api/incident-internal-note`.
 
 Pas d'heure de publication, pas de case pour les abonnés — la note est horodatée à sa création.
 
@@ -118,7 +118,7 @@ Les notes publiques publiées avant que l'incident devienne privé restent. Vous
 
 ## Pièces jointes des notes
 
-Les deux types de notes acceptent des pièces jointes via le bouton **Rattacher** de l'éditeur, et les deux affichent sous le corps de la note une liste des pièces jointes avec un lien **Download attachment** par fichier.
+Les deux types de notes acceptent des pièces jointes via le bouton **Joindre** de l'éditeur, et les deux affichent sous le corps de la note une liste des pièces jointes avec un lien **Download attachment** par fichier.
 
 Là où ils divergent, c'est sur qui peut récupérer le fichier :
 

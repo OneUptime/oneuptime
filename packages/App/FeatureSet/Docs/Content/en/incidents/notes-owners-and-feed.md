@@ -99,7 +99,7 @@ Each note shows who wrote it, its posting time, the rendered Markdown with its a
 
 ## Posting a private note
 
-**Notes → Private Notes** is deliberately plainer. It is the same composer, saying **Private · Only people who can see this incident can read this**, with the note, **Templates**, **Draft with AI** and **Attach** for files meant for the incident response team. **Add Private Note** in the incident feed's **Actions** menu opens it in a dialog. Through the API, private notes are `/api/incident-internal-note`.
+**Notes → Private Notes** is deliberately plainer. It is the same composer, saying **Private · Only people who can see this incident can read this**, with the note, **Templates**, **Draft with AI** and **Attach** for files, which only the people who can read the note can open. **Add Private Note** in the incident feed's **Actions** menu opens it in a dialog. Through the API, private notes are `/api/incident-internal-note`.
 
 No posting time, no subscriber checkbox — the note is stamped when it is created.
 

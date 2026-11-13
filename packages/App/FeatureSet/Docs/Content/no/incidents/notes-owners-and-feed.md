@@ -99,7 +99,7 @@ Hvert notat viser hvem som skrev det, publiseringstidspunktet, den gjengitte Mar
 
 ## Publiser et privat notat
 
-**Notater → Private notater** er bevisst enklere. Det er det samme redigeringsverktøyet, som sier **Privat · Bare de som kan se denne hendelsen, kan lese det**, med notatet, **Maler**, **Utkast med KI** og **Legg ved** for filer som er ment for teamet som responderer på hendelsen. **Legg til privat notat** i menyen **Handlinger** i hendelsens feed åpner det i en dialog. Via API-et er private notater `/api/incident-internal-note`.
+**Notater → Private notater** er bevisst enklere. Det er det samme redigeringsverktøyet, som sier **Privat · Bare de som kan se denne hendelsen, kan lese det**, med notatet, **Maler**, **Utkast med KI** og **Legg ved** for filer, som bare de som kan lese notatet, kan åpne. **Legg til privat notat** i menyen **Handlinger** i hendelsens feed åpner det i en dialog. Via API-et er private notater `/api/incident-internal-note`.
 
 Ikke noe publiseringstidspunkt, ingen avkrysningsboks for abonnenter — notatet stemples når det opprettes.
 

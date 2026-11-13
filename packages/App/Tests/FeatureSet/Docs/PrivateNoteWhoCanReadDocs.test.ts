@@ -20,7 +20,9 @@ import { drawnDashboardLabel, isDashboardLabel } from "./DocsDashboardLabels";
  *   - the Private Notes page quotes the composer's badge as each
  *     language's Dashboard draws it (it quoted the English badge in every
  *     language, as no check read a quote that is two labels);
- *   - the lines that said "your team" name no team, in any language;
+ *   - the lines that said "your team" name no team, in any language, nor
+ *     does the Private Notes paragraph, which said Attach is for "the
+ *     incident response team" right after the badge;
  *   - the old badge, and the English the pages said, are on no page.
  */
 
@@ -97,6 +99,7 @@ const OLD_ENGLISH: ReadonlyArray<string> = [
   "only your team can add subscribers",
   "which only your team sees",
   "Adds a note your team sees",
+  "for files meant for the incident response team",
 ];
 
 // The badge, as `language`'s Dashboard draws it, in bold.
@@ -181,6 +184,10 @@ describe("the English pages say who can read it, as the product does", () => {
 
   test.each([
     [NOTES_PAGE, "Only people who can see this incident can read this"],
+    [
+      NOTES_PAGE,
+      "and **Attach** for files, which only the people who can read the note can open.",
+    ],
     ["alerts/index", "Private notes, only for people who can see the alert"],
     [
       "scheduled-maintenance/index",
@@ -236,6 +243,15 @@ describe("in every docs language, the lines that said a team name none", () => {
     const privateNotes: string = `**${drawnDashboardLabel(language, "Private Notes")}**`;
 
     const lines: Array<string> = [
+      // The Private Notes paragraph: the badge, then what Attach is for.
+      ...linesWhere(
+        language,
+        NOTES_PAGE,
+        "the paragraph that quotes the badge",
+        (line: string): boolean => {
+          return line.includes(drawnBadge(language));
+        },
+      ),
       // Why, in the Private Note option of the Slack and Microsoft Teams forms.
       ...linesWhere(
         language,

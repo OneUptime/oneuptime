@@ -99,7 +99,7 @@ Jede Notiz zeigt, wer sie geschrieben hat, ihren Zeitpunkt, das gerenderte Markd
 
 ## Eine private Notiz posten
 
-**Notizen → Private Notizen** ist bewusst schlichter. Es ist dasselbe Eingabefeld mit dem Hinweis **Privat · Nur wer diesen Vorfall sehen kann, kann das lesen**, mit der Notiz, **Vorlagen**, **Mit KI entwerfen** und **Anhängen** für Dateien, die für das Reaktionsteam bestimmt sind. **Private Notiz hinzufügen** im Menü **Aktionen** des Vorfall-Feeds öffnet es in einem Dialog. Über die API sind private Notizen `/api/incident-internal-note`.
+**Notizen → Private Notizen** ist bewusst schlichter. Es ist dasselbe Eingabefeld mit dem Hinweis **Privat · Nur wer diesen Vorfall sehen kann, kann das lesen**, mit der Notiz, **Vorlagen**, **Mit KI entwerfen** und **Anhängen** für Dateien, die nur öffnen kann, wer die Notiz lesen kann. **Private Notiz hinzufügen** im Menü **Aktionen** des Vorfall-Feeds öffnet es in einem Dialog. Über die API sind private Notizen `/api/incident-internal-note`.
 
 Kein Zeitpunkt des Postens, kein Abonnenten-Kontrollkästchen – die Notiz wird beim Anlegen gestempelt.
 

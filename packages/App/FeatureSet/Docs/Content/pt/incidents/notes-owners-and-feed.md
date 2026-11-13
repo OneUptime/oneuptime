@@ -99,7 +99,7 @@ Cada nota mostra quem a escreveu, seu horário de publicação, o Markdown rende
 
 ## Publicar uma nota privada
 
-**Notas → Notas privadas** é deliberadamente mais simples. É o mesmo editor, dizendo **Privado · Só quem pode ver este incidente pode ler isto**, com a nota, **Modelos**, **Rascunho com IA** e **Anexar** para arquivos destinados à equipe de resposta ao incidente. **Adicionar nota privada** no menu **Ações** do feed do incidente o abre em uma caixa de diálogo. Pela API, as notas privadas são `/api/incident-internal-note`.
+**Notas → Notas privadas** é deliberadamente mais simples. É o mesmo editor, dizendo **Privado · Só quem pode ver este incidente pode ler isto**, com a nota, **Modelos**, **Rascunho com IA** e **Anexar** para arquivos, que só quem pode ler a nota consegue abrir. **Adicionar nota privada** no menu **Ações** do feed do incidente o abre em uma caixa de diálogo. Pela API, as notas privadas são `/api/incident-internal-note`.
 
 Sem horário de publicação, sem caixa de assinantes — a nota é carimbada quando é criada.
 
