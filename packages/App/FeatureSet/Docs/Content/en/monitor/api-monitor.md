@@ -2,6 +2,9 @@
 
 An API monitor calls an HTTP endpoint on a schedule, with the method, headers and body you choose, and checks what comes back: the status code, the response time, the headers and the body. Use it for REST, JSON and GraphQL endpoints, health checks, and any call your users depend on.
 
+> [!TIP]
+> New here? Follow the guide first: [Know When Your Website or API Is Down](/docs/guides/website-down).
+
 :::cards
 - [Create the monitor](#create-an-api-monitor): Six steps in the dashboard.
 - [Configuration options](#configuration-options): Method, headers, body, redirects, certificates, timeouts and retries.

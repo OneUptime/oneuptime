@@ -34,6 +34,8 @@ Skriv inn et **Prosjektnavn**, for eksempel navnet på bedriften din. På OneUpt
 
 ### Opprett det
 
+![Hjem spør «Hva vil du gjøre først?», med de tre målene i denne veiledningen avkrysset](screen:home-goals-three)
+
 Klikk på **Opprett prosjekt**. Prosjektets startside åpnes, med sjekklisten **Velkommen til OneUptime 👋** øverst. Først spør den **Hva vil du gjøre først?**: kryss av for **Vite når nettstedet eller API-et mitt er nede**, **Varsle rett person når noe går ned** og **Fortelle kundene mine det med en statusside**, og klikk på **Fortsett**.
 :::
 
@@ -58,6 +60,8 @@ Behold de valgte **Sonder** og **Overvåkingsintervall** **Hvert 5. minutt**, og
 :::
 
 For å prøve sjekken før du lagrer, klikker du på **Test monitor** i det andre steget. Alle andre monitortyper er beskrevet i [Opprett en monitor](/docs/monitor/create-monitor).
+
+For også å sjekke et API, velge hvem som får beskjed, og sende et testoppkall som beviser at meldingen når frem til deg, følger du [Få beskjed når nettstedet eller API-et ditt går ned](/docs/guides/website-down).
 
 ## Bli varslet når det går ned
 
@@ -119,9 +123,13 @@ Erklær en testhendelse for å se hele kjeden virke.
 
 ### Se hva som skjer
 
+![«Hendelsesfeed» for en løst hendelse: hvem som ble varslet, og hver statusendring, nyeste først](screen:incident-feed)
+
 I løpet av et minutt eller to varsler vaktpolicyen deg, og hendelsen vises på statussiden din.
 
 ### Løs den
+
+![En hendelse i «Bekreftet», med «Løs» uthevet](screen:incident-resolve)
 
 Klikk på **Løs** på hendelsens side. Varslingen stopper, og hendelsen forsvinner fra statussiden din.
 :::

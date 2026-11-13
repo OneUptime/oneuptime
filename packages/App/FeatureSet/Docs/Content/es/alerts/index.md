@@ -158,7 +158,7 @@ Un episodio que abre una alerta privada no es privado, así que nunca muestra el
 
 ## Quién se entera de una alerta
 
-- **La guardia.** Las políticas de guardia de la alerta avisan a sus personas, cada una como lo haya configurado en **Ajustes de usuario → Reglas de guardia**, en la pestaña **Alertas**. Responder al aviso reconoce la alerta y los avisos se detienen.
+- **La guardia.** Las políticas de guardia de la alerta avisan a sus personas, cada una como lo haya configurado en **Ajustes de usuario → Cómo contactarme**, en la pestaña **Alertas**. Responder al aviso reconoce la alerta y los avisos se detienen.
 - **Sus propietarios.** Por correo electrónico, salvo que hayan elegido otros canales en **Ajustes de usuario → Ajustes de notificaciones**, en la pestaña **Alertas**: **Alerta creada**, **El estado de la alerta ha cambiado** y **Recordatorio de alerta** están activados por defecto, y **Nota de alerta publicada** y **Añadido como propietario de la alerta** están desactivados hasta que alguien los active. Una alerta sin propietarios notifica en su lugar a los propietarios del proyecto.
 - **Tus herramientas de chat.** **Alertas → Espacio de trabajo** contiene las reglas de Slack y Microsoft Teams que publican alertas y episodios en canales. Consulta [Slack](/docs/workspace-connections/slack) y [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
 

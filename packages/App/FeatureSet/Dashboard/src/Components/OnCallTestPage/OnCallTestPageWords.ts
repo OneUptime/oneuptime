@@ -184,7 +184,7 @@ export const FIX_LINKS: Readonly<
   },
   [OnCallTestPageFix.OnCallRules]: {
     pageMap: PageMap.USER_SETTINGS_ON_CALL_RULES,
-    text: translationKey("Open On-Call Rules"),
+    text: translationKey("Open How to Reach Me"),
   },
   [OnCallTestPageFix.ProjectNotificationSettings]: {
     pageMap: PageMap.SETTINGS_NOTIFICATION_SETTINGS,

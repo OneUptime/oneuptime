@@ -373,8 +373,13 @@ describe("where a message that did not go out is fixed", () => {
       "Notification not sent because the SMS notification method on this rule belongs to a different user. Please review this notification rule.",
       OnCallTestPageFix.OnCallRules,
     ],
+    // As a log written before the page was called How to Reach Me says it (#6820).
     [
       "No notification rules found for this user. User should add the rules in User Settings > On-Call Rules.",
+      OnCallTestPageFix.OnCallRules,
+    ],
+    [
+      "No notification rules found for this user. User should add the rules in User Settings > How to Reach Me.",
       OnCallTestPageFix.OnCallRules,
     ],
   ])("%s", (reason: string, fix: OnCallTestPageFix) => {

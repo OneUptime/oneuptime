@@ -209,6 +209,8 @@ jest.mock("../../../UI/Utils/User", () => {
 });
 
 import DashboardHeader from "../../../../App/FeatureSet/Dashboard/src/Components/Header/Header";
+// After the mocks above: it reads the wordmark's import as it loads.
+import { SMALL_SCREEN_MEDIA_QUERY } from "../../../UI/Components/ProductLogo/ProductLogo";
 
 const INCIDENT_COUNT: number = 2;
 const ALERT_COUNT: number = 3;
@@ -427,7 +429,7 @@ describe("dashboard header on small screens", () => {
     );
   });
 
-  test("nothing in the header overflows a phone: the wordmark shrinks instead", async () => {
+  test("nothing in the header overflows a phone: below sm the logo is the product's mark, 24px tall", async () => {
     await renderHeader();
 
     const logo: HTMLElement = screen.getByAltText("OneUptime");
@@ -435,6 +437,16 @@ describe("dashboard header on small screens", () => {
     // 5:1 wordmark: h-8 is 160px, nearly half the width of a phone header.
     expect(logo.className).toContain("h-6");
     expect(logo.className).toContain("sm:h-8");
+
+    /*
+     * And even at h-6 it is 120px, which left the project picker one letter
+     * of the project's name (#7236): below sm the browser draws the mark.
+     */
+    expect(logo.parentElement!.tagName).toBe("PICTURE");
+    expect(logo.parentElement!.querySelector("source")).toHaveAttribute(
+      "media",
+      SMALL_SCREEN_MEDIA_QUERY,
+    );
   });
 });
 

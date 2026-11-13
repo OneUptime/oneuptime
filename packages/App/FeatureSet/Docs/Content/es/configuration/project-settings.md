@@ -62,6 +62,8 @@ flowchart LR
 
 Un producto oculto no está desactivado. Pasa a **Más productos**, la última fila del menú **Productos**: la búsqueda lo sigue encontrando, sus páginas y su API siguen funcionando, y sus datos siguen llegando. Quien lo fijó conserva su fijación.
 
+En un servidor autoalojado, un administrador maestro también puede desactivar un producto para todos los proyectos, en **Ajustes → Productos** del Admin Dashboard (consulta [Ejecuta solo lo que necesitas](/docs/installation/docker-compose#ejecuta-solo-lo-que-necesitas)). Un producto así no tiene interruptor aquí: dice **Desactivado en este servidor**, junto con quién puede activarlo.
+
 Un proyecto nuevo empieza con lo que su propietario dijo en Inicio que venía a hacer: se muestran los esenciales, Ajustes y lo que esos objetivos necesitan, y el resto se oculta. Un proyecto que se saltó la pregunta, o que se creó antes de ella, muestra todos los productos. En cuanto alguien cambia la lista aquí, los objetivos ya no la cambian.
 
 Cada producto dice lo que es para este proyecto: **En uso**, **Sin configurar** o, en OneUptime Cloud, el plan que necesita. Cuando un producto oculto empieza a recibir datos, Inicio se lo dice a los propietarios y administradores del proyecto y ofrece **Mostrarlo** o **Mantener oculto**.

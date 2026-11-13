@@ -72,6 +72,8 @@ const RETRY_WAIT_SECONDS = 10;
  * real Chromium (BrowserRecorder's vitals, the Probe's synthetic monitors).
  */
 const BROWSER_JOBS = [
+  // The docs' screenshots drawn again on main (#6823).
+  "docs-screens.yml check",
   "lighthouse-production.yml scan",
   "test.app.yaml dashboard-offline-ui",
   "test.app.yaml session-replay-ui",

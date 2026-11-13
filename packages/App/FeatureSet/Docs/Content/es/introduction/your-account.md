@@ -138,7 +138,7 @@ Los **Ajustes de usuario**, a la derecha de la barra bajo la barra superior, son
 | --- | --- | --- |
 | **Lista de configuración** | Te guía por todo lo que sigue y muestra lo que queda por hacer. | |
 | **Métodos de notificación** | Los correos, números de teléfono, aplicaciones y webhooks por los que OneUptime puede localizarte. Tu correo de inicio de sesión se añade por ti. | |
-| **Reglas de guardia** | Qué método usar, y al cabo de cuánto tiempo, cuando una política de guardia te avisa. | [Reglas de escalado](/docs/on-call/escalation-rules) |
+| **Cómo contactarme** | Qué método usar, y al cabo de cuánto tiempo, cuando una política de guardia te avisa. | [Reglas de escalado](/docs/on-call/escalation-rules) |
 | **Ajustes de notificaciones** | Qué novedades recibes sobre incidentes, alertas, monitores y más, y por qué canal. | |
 | **Preferencias de correo** | Cuántos correos recibes: uno a uno, o agrupados. | [Resumen de notificaciones](/docs/emails/notification-rollup) |
 | **Registros de guardia** | Cada aviso que se te envió, y qué pasó con él. | |

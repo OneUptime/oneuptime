@@ -2,6 +2,9 @@
 
 En webstedsmonitor tjekker, at en webside svarer. Ved hvert tjek anmoder en sonde om sidens URL, og monitoren går offline og erklærer en hændelse, når siden ikke svarer eller svarer med en fejl. For at kalde et endpoint med en metode, headere eller en brødtekst bruger du i stedet en [API-monitor](/docs/monitor/api-monitor).
 
+> [!TIP]
+> Ny her? Følg guiden først: [Få besked, når dit websted eller API går ned](/docs/guides/website-down).
+
 :::cards
 - [Opret monitoren](#opret-en-webstedsmonitor): Seks trin i dashboardet.
 - [Konfigurationsmuligheder](#konfigurationsmuligheder): URL-pladsholdere, omdirigeringer, certifikater, timeouts og genforsøg.

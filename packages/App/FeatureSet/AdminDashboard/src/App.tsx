@@ -19,6 +19,7 @@ import Projects from "./Pages/Projects/Index";
 import SettingsAPIKey from "./Pages/Settings/APIKey/Index";
 import SettingsAuthentication from "./Pages/Settings/Authentication/Index";
 import SettingsSso from "./Pages/Settings/SSO/Index";
+import SettingsProducts from "./Pages/Settings/Products/Index";
 import SettingsGlobalSSOView from "./Pages/Settings/GlobalSSO/View";
 import SettingsGlobalOIDCView from "./Pages/Settings/GlobalOIDC/View";
 import SettingsDataRetention from "./Pages/Settings/DataRetention/Index";
@@ -319,6 +320,11 @@ const App: () => JSX.Element = () => {
         <PageRoute
           path={RouteMap[PageMap.SETTINGS_PUSH_NOTIFICATIONS]?.toString() || ""}
           element={<SettingsPushNotifications />}
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.SETTINGS_PRODUCTS]?.toString() || ""}
+          element={<SettingsProducts />}
         />
 
         <PageRoute

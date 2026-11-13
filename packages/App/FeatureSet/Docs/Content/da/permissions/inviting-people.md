@@ -86,7 +86,7 @@ Filtrér listen efter **Bruger**, **Status** eller **Team**. Klik på en række 
 | --- | --- |
 | **Profil** | Navn, e-mailadresse, billede og bruger-ID. |
 | **Teams** | De teams, personen er med i. Tilføj eller fjern et team her. |
-| **Parathed**, **Notifikationsmetoder**, **Vagtregler** | Om personen kan blive tilkaldt, og hvordan. Vises for Project Owners, Project Admins, personen selv og alle, der må læse andres notifikationsregler. Se [Parathed og rapporter](/docs/on-call/readiness). |
+| **Parathed**, **Notifikationsmetoder**, **Sådan når man mig** | Om personen kan blive tilkaldt, og hvordan. Vises for Project Owners, Project Admins, personen selv og alle, der må læse andres notifikationsregler. Se [Parathed og rapporter](/docs/on-call/readiness). |
 | **Brugerdefinerede felter** | Projektets brugerdefinerede felter for personer, hvis det har nogen. |
 | **Fjern fra projekt** | Tag personen ud af projektet. |
 

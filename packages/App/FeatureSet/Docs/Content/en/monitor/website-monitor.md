@@ -2,6 +2,9 @@
 
 A Website monitor checks that a web page answers. On every check a probe requests the page's URL, and the monitor goes offline and declares an incident when the page does not answer or answers with an error. To call an endpoint with a method, headers or a body, use an [API monitor](/docs/monitor/api-monitor) instead.
 
+> [!TIP]
+> New here? Follow the guide first: [Know When Your Website or API Is Down](/docs/guides/website-down).
+
 :::cards
 - [Create the monitor](#create-a-website-monitor): Six steps in the dashboard.
 - [Configuration options](#configuration-options): URL placeholders, redirects, certificates, timeouts and retries.

@@ -4,6 +4,7 @@ import ShortcutKey from "../ShortcutKey/ShortcutKey";
 import ButtonType from "./ButtonTypes";
 import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue from "../../Utils/Translation";
+import { withProductText } from "../../Utils/ProductText";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -527,7 +528,11 @@ const Button: FunctionComponent<ComponentProps> = ({
         data-testid={dataTestId}
         type={type}
         disabled={isInert}
-        className={buttonStyleCssClass}
+        /*
+         * A button's label is the product's own words, readable in a
+         * recording of the Dashboard's setup pages (Utils/ProductText).
+         */
+        className={withProductText(buttonStyleCssClass)}
         aria-label={computedAriaLabel}
         aria-disabled={isInert}
         aria-expanded={ariaExpanded}

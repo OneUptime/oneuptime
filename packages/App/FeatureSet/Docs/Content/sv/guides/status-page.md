@@ -28,17 +28,25 @@ Din server behöver ett eget värdnamn med en A-post som pekar på den, till exe
 :::steps
 ### Öppna den guidade konfigurationen
 
+![Hem frågar ”Vad vill du göra först?”, med ”Berätta för mina kunder med en statussida” ikryssat](screen:home-goal-status-page)
+
 På projektets sida **Hem** klickar du på **Publicera en statussida** i checklistan **Välkommen till OneUptime 👋**. I ett nytt projekt börjar startsidan med frågan **Vad vill du göra först?**: kryssa i **Berätta för mina kunder med en statussida** och klicka på **Fortsätt**. Om steget saknas eller redan är klart trycker du på `Ctrl+K` (`Cmd+K` på en Mac), skriver `status page` och väljer **Publicera en statussida**.
 
 ### Ge den ett namn och välj vad den visar
+
+![Steget ”Ge den ett namn och välj vad den visar”, med ”Skapa statussidan” markerad](screen:status-page-pick)
 
 Under **Ge den ett namn och välj vad den visar** behåller du det föreslagna namnet i **Statussidans namn** eller skriver ett eget. Under **Vad den visar** kryssar du i de monitorer som dina kunder ska se, eller klickar på **Markera alla**. Klicka på **Skapa statussidan**. Från och med nu är sidan offentlig på sin länk och visar bara de monitorer som du kryssade i.
 
 ### Se vad dina kunder ser
 
+![Steget ”Det här ser dina kunder”, med ”Ser bra ut” markerad](screen:status-page-review)
+
 Under **Det här ser dina kunder** öppnar du adressen under **Offentlig länk**: dina monitorer listas med sin status. Tillbaka i konfigurationen klickar du på **Ser bra ut**.
 
 ### Öppna Anpassade domäner
+
+![Sammanfattningen, med ”Din egen domän” markerad under ”Gör den till din egen (valfritt)”](screen:status-page-summary)
 
 Konfigurationen avslutas med en sammanfattning. Under **Gör den till din egen (valfritt)** klickar du på **Din egen domän**. Statussidans **Anpassade domäner** öppnas.
 

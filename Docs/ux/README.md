@@ -88,7 +88,8 @@ and phone summary: change the suite in the same pull request as the menu.
   `useWorkspaceSideMenuSection`, which lists only the workspaces the project has connected. Enforced by
   [WorkspaceConnectionsGuards](../../packages/Common/Tests/App/Dashboard/WorkspaceConnectionsGuards.test.ts).
 - **One kind of record is one page.** Kinds of the same thing are tabs on that page, not a page each:
-  your on-call rules are one page with a tab per kind, not four pages in two menu sections. Enforced by
+  How to Reach Me is one page, a ladder with a tab per kind behind it, not four pages in two menu
+  sections. Enforced by
   [OnCallRulesOnePageGuard](../../packages/App/Tests/Dashboard/OnCallRulesOnePageGuard.test.ts).
 - **Every entry in the More menu has an icon.** Enforced by
   [MoreMenuItemIconsGuard](../../packages/App/Tests/MoreMenuItemIconsGuard.test.ts).
@@ -390,6 +391,13 @@ work out, starts from a default for everything else, and folds what most people 
   and
   [MonitorSummaryViewsLayoutGuard](../../packages/App/Tests/Dashboard/MonitorSummaryViewsLayoutGuard.test.ts).
 - **Banners are for exceptions the person must act on,** never for the default state. Enforced by
+  [NoAlwaysOnInfoBannersGuard](../../packages/App/Tests/Dashboard/NoAlwaysOnInfoBannersGuard.test.ts).
+- **A sample project says what it is on every page.** It is the one bar a project shows on every
+  page, because there the project itself is the exception: nobody may take its made-up incidents
+  for their own (#6808). One dark bar at the top says "This is a sample project. Nothing here is
+  real, and nobody is notified.", with the ways out (back to their own project, Delete Sample
+  Project) and How OneUptime works, and it is drawn for a sample alone. Enforced by
+  [SampleProjectBar](../../packages/Common/Tests/App/Dashboard/SampleProjectBar.test.tsx) and
   [NoAlwaysOnInfoBannersGuard](../../packages/App/Tests/Dashboard/NoAlwaysOnInfoBannersGuard.test.ts).
 - **A button that cannot be pressed looks it,** the same way everywhere: faded, with the not-allowed
   cursor. Enforced by

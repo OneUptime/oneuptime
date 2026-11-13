@@ -6,6 +6,7 @@ import ProjectUserPreferenceService from "./ProjectUserPreferenceService";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import logger from "../Utils/Logger";
 import CallerPermission from "../Utils/Permission/CallerPermission";
+import ServerProducts from "../Utils/ServerProducts/ServerProducts";
 import AIInsight from "../../Models/DatabaseModels/AIInsight";
 import Alert from "../../Models/DatabaseModels/Alert";
 import CephCluster from "../../Models/DatabaseModels/CephCluster";
@@ -80,6 +81,11 @@ import {
   withProductShown,
 } from "../../Types/Product/ProjectProducts";
 import { ProjectProductsAnswer } from "../../Types/Product/ProjectProductsAnswer";
+import {
+  ServerProductOffReason,
+  ServerProductsOff,
+  getProductOffMessage,
+} from "../../Types/Product/ServerProducts";
 import ProjectGoal from "../../Types/WelcomeChecklist/ProjectGoal";
 import OldestKeyMap from "../../Utils/OldestKeyMap";
 
@@ -108,6 +114,13 @@ import OldestKeyMap from "../../Utils/OldestKeyMap";
  * A member sees what is in use only for the products whose records they may
  * read (readableUsage): membership is not read authorisation. The telemetry
  * products are read from the milestones, which every member may read.
+ *
+ * The products switched off on the whole server (#6815, Utils/
+ * ServerProducts) ride along in every answer (offOnServer). Off is stronger
+ * than the project's choice: showing such a product, or pinning one, is
+ * refused with what happened and who can switch it on. Hiding one, and
+ * unpinning one, are not: they change nothing anybody sees now, and leave
+ * the project's choice ready for when the server switches it on again.
  */
 
 // Who may show and hide the project's products: who may edit the project.
@@ -230,10 +243,11 @@ export class ProjectProductsServiceClass {
   public async getAnswer(
     caller: ProjectProductsCaller,
   ): Promise<ProjectProductsAnswer> {
-    const [row, pinned, usage]: [
+    const [row, pinned, usage, offOnServer]: [
       ProjectProductsRow,
       Array<ProductKey>,
       ProjectUsage,
+      ServerProductsOff,
     ] = await Promise.all([
       this.readProject(caller.projectId),
       ProjectUserPreferenceService.getPinnedProducts({
@@ -241,6 +255,7 @@ export class ProjectProductsServiceClass {
         userId: caller.userId,
       }),
       this.getProjectUsageSafely(caller.projectId),
+      ServerProducts.getOff(),
     ]);
 
     const readable: Partial<Record<ProductKey, ProductUsage>> =
@@ -258,8 +273,12 @@ export class ProjectProductsServiceClass {
         ? getHiddenProductsWithData({
             settings: row.settings,
             inUse: getProductsInUse(readable),
+          }).filter((product: ProductKey): boolean => {
+            // An off product is not the project's to show: Home does not ask.
+            return !offOnServer[product];
           })
         : [],
+      offOnServer: offOnServer,
     };
   }
 
@@ -276,11 +295,15 @@ export class ProjectProductsServiceClass {
     this.assertCanChoose(caller.props);
 
     if (!isProductKey(data.product)) {
-      throw new BadDataException("product must be one of the products.");
+      throw new BadDataException(
+        "Choose one of the products, by its key, such as logs or status-pages.",
+      );
     }
 
     if (typeof data.isShown !== "boolean") {
-      throw new BadDataException("isShown must be true or false.");
+      throw new BadDataException(
+        "Say whether to show the product: isShown must be true or false.",
+      );
     }
 
     if (!isHideableProduct(data.product)) {
@@ -291,6 +314,10 @@ export class ProjectProductsServiceClass {
 
     const product: ProductKey = data.product;
     const isShown: boolean = data.isShown;
+
+    if (isShown) {
+      await this.assertNotOffOnServer(product);
+    }
 
     const [row, usage]: [ProjectProductsRow, ProjectUsage] = await Promise.all([
       this.readProject(caller.projectId),
@@ -335,14 +362,16 @@ export class ProjectProductsServiceClass {
     pinned: unknown,
   ): Promise<Array<ProductKey>> {
     if (!Array.isArray(pinned)) {
-      throw new BadDataException("pinned must be a list of products.");
+      throw new BadDataException(
+        "Send the pins as a list of products, by their keys.",
+      );
     }
 
     const known: Array<ProductKey> = parseProductKeys(pinned);
 
     if (known.length !== pinned.length) {
       throw new BadDataException(
-        "pinned may only name each product once, by its key.",
+        "Name each pinned product once, by its key, such as logs or status-pages.",
       );
     }
 
@@ -353,6 +382,23 @@ export class ProjectProductsServiceClass {
     }
 
     const pins: Array<ProductKey> = parsePinnedProducts(known);
+
+    /*
+     * A product switched off on the server is not pinned anew. One pinned
+     * before it was switched off stays in the list, undrawn, so it is back
+     * when the server switches it on again (ProductPins).
+     */
+    const before: Array<ProductKey> =
+      await ProjectUserPreferenceService.getPinnedProducts({
+        projectId: caller.projectId,
+        userId: caller.userId,
+      });
+
+    for (const product of pins) {
+      if (!before.includes(product)) {
+        await this.assertNotOffOnServer(product);
+      }
+    }
 
     await ProjectUserPreferenceService.setPinnedProducts({
       projectId: caller.projectId,
@@ -521,6 +567,18 @@ export class ProjectProductsServiceClass {
     }
 
     return needed;
+  }
+
+  // Refuses a product switched off on the whole server, saying who can switch it on.
+  private async assertNotOffOnServer(product: ProductKey): Promise<void> {
+    const reason: ServerProductOffReason | null =
+      await ServerProducts.getOffReason(product);
+
+    if (reason) {
+      throw new BadDataException(
+        getProductOffMessage({ product: product, reason: reason }),
+      );
+    }
   }
 
   private assertCanChoose(props: DatabaseCommonInteractionProps): void {

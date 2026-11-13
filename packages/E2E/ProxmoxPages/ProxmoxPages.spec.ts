@@ -568,7 +568,7 @@ test.describe("the cluster's Details card says what the hero does not", () => {
       cells.map((cell: DetailCell): string => {
         return `${cell.label}: ${cell.value}`;
       }),
-    ).toEqual(["PVE Version: 9.0.10", "Agent Version: 0.161.1"]);
+    ).toEqual(["PVE Version: 9.0.10", "Agent Version: 0.161.2"]);
     // Side by side: one row, two columns.
     expect(cells[0]!.y).toBe(cells[1]!.y);
     expect(cells[1]!.x).toBeGreaterThan(cells[0]!.x);

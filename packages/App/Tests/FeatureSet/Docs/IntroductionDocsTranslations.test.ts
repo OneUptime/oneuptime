@@ -924,6 +924,54 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       );
     });
 
+    /*
+     * Help's row and the dialog it opens are titled keyboardShortcuts.title.
+     * Until #7235, eleven languages drew it in English and their pages
+     * quoted the English; a page that quotes it once in its own words and
+     * once in English would still pass the check of every label above.
+     */
+    it("quotes Help's Keyboard shortcuts row wherever the English page does, as this language's Help and dialog title it", () => {
+      const quoted: number =
+        englishPage(HOME).split("**Keyboard shortcuts**").length - 1;
+      const title: string = drawnNavbarText(
+        language,
+        ["keyboardShortcuts", "title"],
+        "Keyboard shortcuts",
+      );
+
+      // The Help paragraph, and the shortcuts section's own line.
+      expect(quoted).toBe(2);
+      expect({
+        language: language,
+        quoted: translated.split(`**${title}**`).length - 1,
+      }).toEqual({ language: language, quoted: quoted });
+    });
+
+    /*
+     * The section that row leads to is named as the row and the dialog are:
+     * a reader who chose "鍵盤快速鍵" in Help finds a section of that name, not
+     * "鍵盤快捷鍵" (Traditional Chinese, until the UI review of #7235).
+     */
+    it("names its Keyboard shortcuts section as this language's dialog is titled", () => {
+      const headingLine: string = sectionAt(
+        translated,
+        englishSectionIndex(HOME, "Keyboard shortcuts"),
+      ).split("\n")[0] as string;
+
+      expect(headingLine.startsWith("## ")).toBe(true);
+
+      const heading: string = headingLine.slice("## ".length).trim();
+
+      expect({ language: language, heading: heading }).toEqual({
+        language: language,
+        heading: drawnNavbarText(
+          language,
+          ["keyboardShortcuts", "title"],
+          "Keyboard shortcuts",
+        ),
+      });
+    });
+
     it("names the page each welcome checklist step opens, in the English order, as this language's Dashboard draws it", () => {
       const englishRows: Array<string> = welcomeChecklistRows(
         englishPage(HOME),

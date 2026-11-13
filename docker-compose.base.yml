@@ -193,6 +193,10 @@ x-common-runtime-variables: &common-runtime-variables
 
   DISABLE_TELEMETRY_INGESTION: ${DISABLE_TELEMETRY_INGESTION}
 
+  # The products every project offers as the server starts (#6815). Unset in
+  # a config.env from before it, every product is on.
+  SERVER_PRODUCTS: ${SERVER_PRODUCTS:-everything}
+
   # Defaulted, unlike its siblings: this one gates outbound traffic, and an
   # existing config.env upgraded in place will not have the key.
   DISABLE_UPDATE_CHECK: ${DISABLE_UPDATE_CHECK:-false}

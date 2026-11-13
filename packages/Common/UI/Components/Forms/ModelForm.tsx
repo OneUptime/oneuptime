@@ -1,5 +1,6 @@
 import SelectFormFields from "../../Types/SelectEntityField";
 import API from "../../Utils/API/API";
+import FormRefusals, { FormRefusalKind } from "../../Utils/FormRefusals";
 import ModelAPI, {
   ListResult,
   ModelAPIHttpResponse,
@@ -1634,6 +1635,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
       const message: string = API.getFriendlyMessage(err);
       setError(message);
       props.onSubmitError?.(message);
+      FormRefusals.report(FormRefusalKind.Refused);
     }
 
     setLoading(false);

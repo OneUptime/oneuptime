@@ -7,6 +7,7 @@ import URL from "../../../Types/API/URL";
 import IconProp from "../../../Types/Icon/IconProp";
 import Link from "../../../Types/Link";
 import useTranslateValue from "../../Utils/Translation";
+import { withProductText } from "../../Utils/ProductText";
 import React, { FunctionComponent, ReactElement } from "react";
 
 interface ComponentProps {
@@ -128,7 +129,18 @@ const Breadcrumbs: FunctionComponent<ComponentProps> = ({
               );
             }
             return (
-              <li className={BREADCRUMB_ITEM_CLASS_NAME} key={i}>
+              <li
+                /*
+                 * A crumb in the product's words reads in a recording of the
+                 * setup pages (Utils/ProductText); a record's name never does.
+                 */
+                className={
+                  link.recordName || link.recordNumber
+                    ? BREADCRUMB_ITEM_CLASS_NAME
+                    : withProductText(BREADCRUMB_ITEM_CLASS_NAME)
+                }
+                key={i}
+              >
                 {i === 0 && (
                   <div className="-mt-1">
                     <UILink
