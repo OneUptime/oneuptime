@@ -872,7 +872,7 @@ describe("loading", () => {
       const scanner: { getTelemetrySource: typeof getTelemetrySource } =
         jest.requireActual(
           "../../../../../Server/Utils/DataSecurity/Telemetry/TelemetryDataScanner",
-        );
+        ) as { getTelemetrySource: typeof getTelemetrySource };
 
       expect(spans).toBeDefined();
 
