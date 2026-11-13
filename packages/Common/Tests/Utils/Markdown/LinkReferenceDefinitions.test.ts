@@ -112,6 +112,9 @@ const asMarkedReadsIt: (
   };
 };
 
+// What may come before a definition's "[" on its line, as marked reads it.
+const UP_TO_THREE_SPACES: RegExp = /^ {0,3}$/;
+
 /*
  * What is wrong with the definitions found in `text`, held to marked's
  * reading; null when nothing is. Each is where it says, in the text and as
@@ -144,7 +147,7 @@ const differenceFromMarked: (text: string) => string | null = (
       text.charAt(definition.labelStart - 1) !== "[" ||
       text.slice(definition.labelEnd, definition.labelEnd + 2) !== "]:" ||
       read.text.charAt(read.labelStart - 1) !== "[" ||
-      !/^ {0,3}$/.test(read.text.slice(0, read.labelStart - 1)) ||
+      !UP_TO_THREE_SPACES.test(read.text.slice(0, read.labelStart - 1)) ||
       read.text.slice(read.labelEnd, read.labelEnd + 2) !== "]:" ||
       definition.label !==
         normalizeLinkLabel(read.text.slice(read.labelStart, read.labelEnd)) ||

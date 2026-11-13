@@ -998,7 +998,8 @@ interface ShownImage {
 
 const IMAGE_TAG: RegExp = /<img\b([^>]*)>/g;
 
-const LINK_TAG: RegExp = /<a\b([^>]*)>/g;
+// A link's opening tag: never past the next "<", so it reads in linear time.
+const LINK_TAG: RegExp = /<a\b([^<>]*)>/g;
 
 function attributeOf(tag: string, name: string): string | null {
   const match: RegExpMatchArray | null = tag.match(
