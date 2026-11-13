@@ -95,7 +95,7 @@ describe("counting a placeholder", () => {
     expect(timed.inMs).toBeLessThan(5000);
   });
 
-  test("the module runs no regular expression over a text (AGENTS.md: megabyte-long values)", () => {
+  test("the module runs no regular expression over a text (Docs/notifications/README.md: megabyte-long values)", () => {
     const file: string = path.join(
       __dirname,
       "../../../Types/CodeRepository/CodeFileValuesHidden.ts",

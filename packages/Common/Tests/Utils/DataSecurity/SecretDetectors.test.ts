@@ -1310,8 +1310,9 @@ describe("SECRET_DETECTORS", () => {
 
   /*
    * Every quantifier bounded and none inside another's group: what keeps
-   * V8's backtracking shallow on megabyte-long values (AGENTS.md). Read
-   * with the parser LinearRegExp compiles patterns with.
+   * V8's backtracking shallow on megabyte-long values
+   * (Docs/notifications/README.md, "Megabyte-long values"). Read with the
+   * parser LinearRegExp compiles patterns with.
    */
   function quantifierProblems(
     node: SyntaxNode,
