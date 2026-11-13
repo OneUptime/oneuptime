@@ -34,7 +34,7 @@ Een gat is een ernst zonder regel, op het tabblad voor incidenten, incidentepiso
 
 ## De pagina Gereedheid
 
-Open **Bereikbaarheidsdienst → Gereedheid**. De kaart **Paraatheid van diensten** toont iedereen die een bereikbaarheidsbeleid in het project kan bereiken, met de mensen die eerst iets nodig hebben bovenaan. Iedereen in het project kan de pagina openen.
+Open **Bereikbaarheid → Gereedheid**. De kaart **Paraatheid van diensten** toont iedereen die een bereikbaarheidsbeleid in het project kan bereiken, met de mensen die eerst iets nodig hebben bovenaan. Iedereen in het project kan de pagina openen.
 
 Boven de lijst tellen de tegels **Ontvangers**, **Gereed**, **Moet worden ingesteld** en **Onbereikbaar**. Klik op **Gereed**, **Moet worden ingesteld** of **Onbereikbaar** om alleen die responders te tonen, en klik er nog eens op om iedereen te tonen.
 
@@ -58,7 +58,7 @@ Alleen de persoon zelf kan de eigen meldingsmethoden en regels toevoegen en veri
 3. Bevestig. Elke persoon krijgt één e-mail die zegt wat er in de eigen instellingen ontbreekt, met een link naar de pagina die het oplost.
 :::
 
-Een banner zegt daarna hoeveel herinneringen zijn verstuurd, overgeslagen of mislukt, en waarom, voor elke herinnering die niet is verstuurd. Niemand wordt vaker dan één keer per 24 uur herinnerd, en één ronde herinnert hoogstens 250 mensen. Herinneringen versturen vraagt **Projecteigenaar**, **Projectbeheerder** of **Bereikbaarheidsbeheerder**, of **Edit On-Call Duty Policy** in een aangepaste rol.
+Een banner zegt daarna hoeveel herinneringen zijn verstuurd, overgeslagen of mislukt, en waarom, voor elke herinnering die niet is verstuurd. Niemand wordt vaker dan één keer per 24 uur herinnerd, en één ronde herinnert hoogstens 250 mensen. Herinneringen versturen vraagt **Projecteigenaar**, **Projectbeheerder** of **Bereikbaarheidsbeheerder**, of **Edit On-Call Policy** in een aangepaste rol.
 
 ## Gereedheid op andere pagina's
 
@@ -75,7 +75,7 @@ Een week waarin iedereen gereed is, verstuurt niets, dus de e-mail betekent alti
 
 ## Bereikbaarheidstijd gebruiker
 
-**Bereikbaarheidsdienst → Rapporten → Bereikbaarheidstijd gebruiker** toont hoe lang elke persoon dienst had, over een periode die je kiest: om te beginnen **Afgelopen maand**.
+**Bereikbaarheid → Rapporten → Bereikbaarheidstijd gebruiker** toont hoe lang elke persoon dienst had, over een periode die je kiest: om te beginnen **Afgelopen maand**.
 
 | Kolom | Wat die toont |
 | --- | --- |
@@ -108,5 +108,5 @@ Die wordt alleen verstuurd in een week waarin iemand **Onbereikbaar** of **Moet 
 :::cards
 - [Hoe OneUptime je bereikt](/docs/notifications/index): De methoden, regels en terugval achter elke status.
 - [Meldingsmethoden](/docs/notifications/notification-methods): De manieren toevoegen en verifiëren waarop OneUptime iemand bereikt.
-- [Persoonlijke bereikbaarheidsregels](/docs/notifications/on-call-rules): De gaten dichten, ernst voor ernst.
+- [Hoe ik bereikbaar ben](/docs/notifications/on-call-rules): De gaten dichten, ernst voor ernst.
 :::

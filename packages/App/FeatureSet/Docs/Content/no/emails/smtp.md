@@ -27,14 +27,14 @@ I en selvdriftet installasjon er OneUptimes egen e-postserver den som er angitt 
 
 ## Legg til en SMTP-server
 
-Legg til et prosjekts e-postserver under **Prosjektinnstillinger > Varsler > Varselinnstillinger**, i kortet **Egendefinerte SMTP-konfigurasjoner** under **Flere innstillinger**. I en selvdriftet installasjon angis serveren som OneUptime selv sender fra, under **Admin Dashboard > Innstillinger > Varsler > E-poster**, i kortet **Egendefinerte e-post- og SMTP-innstillinger**. Begge skjemaene spør om serveren og avsenderen; et prosjekts skjema spør først om en **Leverandør**.
+Legg til et prosjekts e-postserver under **Prosjektinnstillinger > Varsler > Varslingskanaler**, i kortet **Egendefinerte SMTP-konfigurasjoner** under **Flere innstillinger**. I en selvdriftet installasjon angis serveren som OneUptime selv sender fra, under **Admin Dashboard > Innstillinger > Varsler > E-poster**, i kortet **Egendefinerte e-post- og SMTP-innstillinger**. Begge skjemaene spør om serveren og avsenderen; et prosjekts skjema spør først om en **Leverandør**.
 
 :::steps
 ### Åpne skjemaet
 
 :::tabs
 @tab Prosjekt
-Åpne **Flere innstillinger** under **Prosjektinnstillinger > Varsler > Varselinnstillinger**, og klikk på **Opprett SMTP-konfigurasjon** i kortet **Egendefinerte SMTP-konfigurasjoner**.
+Åpne **Flere innstillinger** under **Prosjektinnstillinger > Varsler > Varslingskanaler**, og klikk på **Opprett SMTP-konfigurasjon** i kortet **Egendefinerte SMTP-konfigurasjoner**.
 @tab Selvdriftet instans
 Åpne **Innstillinger** i Admin Dashboard, og deretter **Varsler > E-poster** i sidemenyen (**Varsler** er slått sammen fra start). Klikk i kortet **E-post-serverinnstillinger** på **Rediger server**, og sett **E-posttjenertype** til `Custom SMTP`. Klikk deretter på **Rediger SMTP-konfig** i kortet **Egendefinerte e-post- og SMTP-innstillinger**, som vises under.
 :::

@@ -63,7 +63,7 @@ Cuando te unes a un proyecto con un correo de inicio de sesión verificado, OneU
 2. Para cada gravedad, en cada una de las cuatro pestañas de **Cómo contactarme**, una regla te envía un correo en cuanto te avisan.
 3. Un conjunto de novedades sobre lo que es tuyo, y sobre tus turnos, se activa por correo. Consulta [Ajustes de notificaciones](/docs/notifications/notification-settings#qué-está-activado-para-un-miembro-nuevo).
 
-Cada método que verifiques después recibe las mismas reglas: una regla para cada gravedad, enviada en cuanto te avisan. Así que verificar un número de teléfono para SMS significa que cada aviso también te envía un SMS. Para dejar los SMS solo para los avisos críticos, elimina las reglas de SMS de las demás gravedades. Consulta [Reglas de guardia personales](/docs/notifications/on-call-rules#las-reglas-con-las-que-empiezas).
+Cada método que verifiques después recibe las mismas reglas: una regla para cada gravedad, enviada en cuanto te avisan. Así que verificar un número de teléfono para SMS significa que cada aviso también te envía un SMS. Para dejar los SMS solo para los avisos críticos, elimina las reglas de SMS de las demás gravedades. Consulta [Cómo contactarme](/docs/notifications/on-call-rules#las-reglas-con-las-que-empiezas).
 
 ## La lista de configuración
 
@@ -95,7 +95,7 @@ Un aviso puede llegarte para un tipo y una gravedad para los que no tienes regla
 2. Si no tienes ninguno, un método de pago, en este orden: SMS, una llamada, WhatsApp, Telegram. Es el primero que tengas verificado, en un canal que el proyecto ha activado.
 3. Si tampoco tienes ninguno de esos, un webhook.
 
-Recibes un correo avisándote, y también los propietarios de la política de guardia, o los del proyecto si la política no tiene. Si no hay nada verificado, el aviso no se puede entregar, y el correo dice eso. Estos correos se retienen mientras siguen llegando avisos, para que una tormenta de avisos no sea una tormenta de correos. Para añadir la regla que falta, consulta [Reglas de guardia personales](/docs/notifications/on-call-rules#cuando-una-gravedad-no-tiene-regla).
+Recibes un correo avisándote, y también los propietarios de la política de guardia, o los del proyecto si la política no tiene. Si no hay nada verificado, el aviso no se puede entregar, y el correo dice eso. Estos correos se retienen mientras siguen llegando avisos, para que una tormenta de avisos no sea una tormenta de correos. Para añadir la regla que falta, consulta [Cómo contactarme](/docs/notifications/on-call-rules#cuando-una-gravedad-no-tiene-regla).
 
 ## El idioma de tus avisos
 
@@ -131,7 +131,7 @@ Un número entra en tus reglas cuando se verifica. Haz clic en **Verificar** en 
 
 :::cards
 - [Métodos de notificación](/docs/notifications/notification-methods): Añade y verifica las direcciones en las que OneUptime puede contactarte.
-- [Reglas de guardia personales](/docs/notifications/on-call-rules): Decide qué método prueba cada aviso, y cuándo.
+- [Cómo contactarme](/docs/notifications/on-call-rules): Decide qué método prueba cada aviso, y cuándo.
 - [Ajustes de notificaciones](/docs/notifications/notification-settings): Elige las novedades de las que te enteras, y por qué canales.
 - [Reglas de escalado](/docs/on-call/escalation-rules): Cómo una política de guardia decide a quién avisar, nivel por nivel.
 :::

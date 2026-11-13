@@ -38,7 +38,7 @@ flowchart TB
 :::steps
 ### Tilføj din Twilio-konto
 
-Gå til **Projektindstillinger** > **Notifikationer** > **Notifikationsindstillinger**, og åbn **Yderligere indstillinger**. Klik i kortet **Twilio-konfiguration** på **Opret Twilio-konfiguration**, og udfyld formularen:
+Gå til **Projektindstillinger** > **Notifikationer** > **Notifikationskanaler**, og åbn **Yderligere indstillinger**. Klik i kortet **Twilio-konfiguration** på **Opret Twilio-konfiguration**, og udfyld formularen:
 
 - **Navn** og **Beskrivelse**: hvad kontoen bruges til, fx "Supportlinje".
 - **Twilio-konto-SID**: fra Twilio Console. Den starter med `AC`.
@@ -48,7 +48,7 @@ Gå til **Projektindstillinger** > **Notifikationer** > **Notifikationsindstilli
 
 ### Opret politikken
 
-Gå til **Vagtordning** > **Indgående opkaldspolitikker**, og klik på **Opret Indgående opkaldspolitik**. Giv den et **Navn**, fx "Supportlinje"; **Beskrivelse** og **Etiketter** er valgfri, under **Flere felter**. Den nye politik åbner på sin **Oversigt**.
+Gå til **Vagt** > **Indgående opkaldspolitikker**, og klik på **Opret Indgående opkaldspolitik**. Giv den et **Navn**, fx "Supportlinje"; **Beskrivelse** og **Etiketter** er valgfri, under **Flere felter**. Den nye politik åbner på sin **Oversigt**.
 
 ### Vælg Twilio-kontoen
 
@@ -160,7 +160,7 @@ En regel ringer til en person på det nummer, personen har bekræftet til indgå
 
 Hver person kan have ét bekræftet nummer pr. projekt. For at skifte det skal du først slette det gamle nummer. Disse numre er adskilt fra telefonnumrene under **Notifikationsmetoder**, som vagttilkald bruger. Se [Notifikationsmetoder](/docs/notifications/notification-methods).
 
-Numre til indgående opkald bekræftes via SMS, så **SMS** skal først være slået til for projektet. En projektejer, en **Faktureringsadministrator** eller en person med **Manage Billing** slår det til i kortet **Notifikationskanaler** på **Projektindstillinger > Notifikationer > Notifikationsindstillinger**.
+Numre til indgående opkald bekræftes via SMS, så **SMS** skal først være slået til for projektet. En projektejer, en **Faktureringsadministrator** eller en person med **Manage Billing** slår det til i kortet **Notifikationskanaler** på **Projektindstillinger > Notifikationer > Notifikationskanaler**.
 
 ## Talebeskeder og politikindstillinger
 

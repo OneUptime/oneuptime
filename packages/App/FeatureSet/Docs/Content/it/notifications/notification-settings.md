@@ -106,14 +106,14 @@ Controllate di avere un metodo verificato su quel canale in **Impostazioni utent
 :::
 
 :::details Ricevo ancora e-mail dopo aver disattivato tutto
-Le chiamate seguono le vostre regole di reperibilità, non questi interruttori, e le e-mail di accesso, sicurezza e fatturazione non sono aggiornamenti su elementi. Ogni progetto ha le sue impostazioni, quindi controllate il progetto da cui è arrivata l'e-mail. Vedete [Regole di reperibilità personali](/docs/notifications/on-call-rules).
+Le chiamate seguono le vostre regole di reperibilità, non questi interruttori, e le e-mail di accesso, sicurezza e fatturazione non sono aggiornamenti su elementi. Ogni progetto ha le sue impostazioni, quindi controllate il progetto da cui è arrivata l'e-mail. Vedete [Come contattarmi](/docs/notifications/on-call-rules).
 :::
 
 ## Passi successivi
 
 :::cards
 - [Metodi di notifica](/docs/notifications/notification-methods): Aggiungete i metodi a cui inviano le vostre impostazioni.
-- [Regole di reperibilità personali](/docs/notifications/on-call-rules): Decidete come una chiamata vi raggiunge.
+- [Come contattarmi](/docs/notifications/on-call-rules): Decidete come una chiamata vi raggiunge.
 - [Riepilogo delle notifiche](/docs/emails/notification-rollup): Meno e-mail, più complete, durante una raffica.
 - [Come OneUptime vi raggiunge](/docs/notifications/index): Come si combinano metodi, regole e impostazioni.
 :::

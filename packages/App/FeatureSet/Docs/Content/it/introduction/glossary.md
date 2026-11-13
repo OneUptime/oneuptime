@@ -90,7 +90,7 @@ Vedi [Regole di escalation](/docs/on-call/escalation-rules).
 
 Chi è reperibile in ogni momento: le persone si danno il turno, e ciascuna passa le consegne alla successiva. Una regola di escalation che avvisa una pianificazione avvisa chi vi risulta reperibile in quel momento.
 
-Altri nomi: **Rotation**. Vedi [Pianificazioni di reperibilità](/docs/on-call/schedules).
+Altri nomi: **Rotation**, **Pianificazione della policy di reperibilità**. Vedi [Pianificazioni di reperibilità](/docs/on-call/schedules).
 
 ### Livello
 
@@ -103,6 +103,12 @@ Vedi [Pianificazioni di reperibilità](/docs/on-call/schedules#livelli).
 Un recapito a cui OneUptime può raggiungerti in un progetto: un indirizzo e-mail, un numero di telefono per SMS o chiamate, il tuo account Slack o Microsoft Teams, o l'app OneUptime sul tuo telefono. Ognuno aggiunge i propri in **Impostazioni utente**.
 
 Vedi [Metodi di notifica](/docs/notifications/notification-methods).
+
+### Come contattarmi
+
+Le tue regole per essere chiamato: quali dei tuoi metodi di notifica prova una chiamata, e dopo quanto tempo. Una scala copre ogni incidente, avviso ed episodio, e una gravità può avere regole proprie. Ogni persona imposta le proprie in **Impostazioni utente**.
+
+Altri nomi: **Regole di reperibilità personali**. Vedi [Come contattarmi](/docs/notifications/on-call-rules).
 
 ### Pagina di stato
 
@@ -472,13 +478,13 @@ Vedi [Quale usare?](/docs/introduction/which-one#sonda-agente-collector-o-runner
 
 ### Regole di reperibilità
 
-Due cose diverse. In **Incidenti** e **Avvisi**, le regole di reperibilità scelgono le policy di reperibilità che un nuovo incidente o avviso esegue. In **Impostazioni utente**, le tue regole di reperibilità decidono quali dei tuoi metodi di notifica prova una chiamata, e dopo quanto tempo.
+In **Incidenti** e **Avvisi**, le regole di reperibilità scelgono le policy di reperibilità che un nuovo incidente o avviso esegue. Anche le regole personali su come una chiamata raggiunge qualcuno si chiamavano regole di reperibilità: ora sono **Come contattarmi**, in **Impostazioni utente**.
 
-Vedi [Impostazioni e automazione degli incidenti](/docs/incidents/settings#regole-di-reperibilità-degli-incidenti) e [Regole di reperibilità personali](/docs/notifications/on-call-rules).
+Vedi [Impostazioni e automazione degli incidenti](/docs/incidents/settings#regole-di-reperibilità-degli-incidenti) e [Come contattarmi](/docs/notifications/on-call-rules).
 
 ### Impostazioni notifiche
 
-Due pagine diverse. In **Impostazioni utente**, quali aggiornamenti ti arrivano su ciò che possiedi, e su quali canali. In **Impostazioni del progetto**, gli interruttori del progetto per SMS e chiamate, il suo credito per i messaggi, e il suo SMTP e Twilio.
+In **Impostazioni utente**, quali aggiornamenti ti arrivano su ciò che possiedi, e su quali canali. Anche gli interruttori del progetto per SMS e chiamate, il suo credito per i messaggi e il suo SMTP e Twilio si chiamavano impostazioni delle notifiche: ora sono **Canali di notifica**, in **Impostazioni del progetto**.
 
 Vedi [Impostazioni notifiche](/docs/notifications/notification-settings).
 

@@ -91,7 +91,7 @@ En forhåndsvisning lagres i én dag. Bare personen som leste kontoen, kan kryss
 Åpne hver av dem under **Monitorer** og sjekk de første resultatene. En heartbeat-monitor har en ny adresse: Pek jobben som kaller den, dit.
 
 ### Velg hvem som får beskjed
-Legg til eiere på monitorene dine, eller en vaktretningslinje under **Vakttjeneste** > **Vaktretningslinjer** på hendelsene de åpner, slik at de riktige personene får vite det når noe går ned.
+Legg til eiere på monitorene dine, eller en vaktretningslinje under **Vakt** > **Vaktretningslinjer** på hendelsene de åpner, slik at de riktige personene får vite det når noe går ned.
 
 ### Pek adressen til statussiden din mot OneUptime
 Åpne siden under **Statussider**, legg til domenet ditt under **Egendefinerte domener**, og endre deretter DNS-oppføringen. Da kommer besøkende og abonnenter til den nye siden.

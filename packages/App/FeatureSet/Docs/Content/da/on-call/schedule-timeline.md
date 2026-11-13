@@ -20,7 +20,7 @@ flowchart TB
 
 ## Åbn tidslinjen
 
-- **Vagtordning** > **Tidslinje for vagtplaner** viser alle de vagtplaner, du kan se, grupperet efter det team, der ejer dem. På **Vagtplaner** åbner **Tidslinje for vagtplaner** i menuen **⋯** samme side.
+- **Vagt** > **Tidslinje for vagtplaner** viser alle de vagtplaner, du kan se, grupperet efter det team, der ejer dem. På **Vagtplaner** åbner **Tidslinje for vagtplaner** i menuen **⋯** samme side.
 - **Teams** > et team > **Vagtplaner** viser kun de vagtplaner, teamet ejer.
 
 Et team ejer en vagtplan, når det står på vagtplanens side **Ejere**. Vagtplaner uden et ejerteam grupperes under **Intet ejerteam**. Slå **Gruppér efter team** fra for at se alle vagtplaner i én liste, sorteret efter navn.
@@ -47,7 +47,7 @@ Under gitteret viser **På vagt denne uge** (**På vagt denne måned** i måneds
 - Tidslinjen dækker 180 dage tilbage og 365 dage frem.
 
 > [!NOTE]
-> Tidligere vagter beregnes igen ud fra hver vagtplans nuværende opsætning, så de viser rotationen, som den er sat op nu, hvilket kan afvige fra, hvem der faktisk blev tilkaldt dengang. Til de timer, folk faktisk havde vagt, skal du bruge **Vagtordning** > **Rapporter** > **Brugerens vagttid**. Se [Brugerens vagttid](/docs/on-call/readiness#brugerens-vagttid).
+> Tidligere vagter beregnes igen ud fra hver vagtplans nuværende opsætning, så de viser rotationen, som den er sat op nu, hvilket kan afvige fra, hvem der faktisk blev tilkaldt dengang. Til de timer, folk faktisk havde vagt, skal du bruge **Vagt** > **Rapporter** > **Brugerens vagttid**. Se [Brugerens vagttid](/docs/on-call/readiness#brugerens-vagttid).
 
 ## Find en vagtplan eller en person
 

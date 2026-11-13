@@ -90,7 +90,7 @@ Consulta [Reglas de escalado](/docs/on-call/escalation-rules).
 
 Quién está de guardia en cada momento: las personas se turnan, y cada una pasa el relevo a la siguiente. Una regla de escalado que avisa a una programación avisa a quien esté de guardia en ella.
 
-Otros nombres: **Rotación**. Consulta [Programaciones de guardia](/docs/on-call/schedules).
+Otros nombres: **Rotación**, **Programación de la política de guardia**. Consulta [Programaciones de guardia](/docs/on-call/schedules).
 
 ### Capa
 
@@ -103,6 +103,12 @@ Consulta [Programaciones de guardia](/docs/on-call/schedules#capas).
 Una dirección en la que OneUptime puede localizarte dentro de un proyecto: una dirección de correo, un número de teléfono para SMS o llamadas, tu cuenta de Slack o de Microsoft Teams, o la aplicación de OneUptime en tu teléfono. Cada persona añade los suyos en **Ajustes de usuario**.
 
 Consulta [Métodos de notificación](/docs/notifications/notification-methods).
+
+### Cómo contactarme
+
+Tus propias reglas para que te avisen: cuáles de tus métodos de notificación prueba un aviso, y al cabo de cuánto tiempo. Una escalera cubre cada incidente, alerta y episodio, y una gravedad puede tener sus propias reglas. Cada persona define las suyas en **Ajustes de usuario**.
+
+Otros nombres: **Reglas de guardia personales**. Consulta [Cómo contactarme](/docs/notifications/on-call-rules).
 
 ### Página de estado
 
@@ -472,13 +478,13 @@ Consulta [¿Cuál uso?](/docs/introduction/which-one#sonda-agente-colector-o-run
 
 ### Reglas de guardia
 
-Dos cosas distintas. En **Incidentes** y **Alertas**, las reglas de guardia eligen las políticas de guardia que ejecuta un incidente o una alerta nuevos. En **Ajustes de usuario**, tus propias reglas de guardia deciden cuáles de tus métodos de notificación prueba un aviso, y al cabo de cuánto tiempo.
+En **Incidentes** y **Alertas**, las reglas de guardia eligen las políticas de guardia que ejecuta un incidente o una alerta nuevos. Las reglas propias de cada persona sobre cómo le llega un aviso también se llamaban reglas de guardia: ahora son **Cómo contactarme**, en **Ajustes de usuario**.
 
-Consulta [Configuración y automatización de incidentes](/docs/incidents/settings#reglas-de-guardia-de-incidentes) y [Reglas de guardia personales](/docs/notifications/on-call-rules).
+Consulta [Configuración y automatización de incidentes](/docs/incidents/settings#reglas-de-guardia-de-incidentes) y [Cómo contactarme](/docs/notifications/on-call-rules).
 
 ### Ajustes de notificaciones
 
-Dos páginas distintas. En **Ajustes de usuario**, qué actualizaciones te llegan sobre lo que es tuyo, y por qué canales. En **Ajustes del proyecto**, los interruptores del proyecto para SMS y llamadas, su saldo de mensajería, y su propio SMTP y Twilio.
+En **Ajustes de usuario**, qué actualizaciones te llegan sobre lo que es tuyo, y por qué canales. Los interruptores del proyecto para SMS y llamadas, su saldo de mensajería y su propio SMTP y Twilio también se llamaban ajustes de notificaciones: ahora son **Canales de notificación**, en **Ajustes del proyecto**.
 
 Consulta [Ajustes de notificaciones](/docs/notifications/notification-settings).
 

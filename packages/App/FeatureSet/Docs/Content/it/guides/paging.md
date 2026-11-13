@@ -89,6 +89,6 @@ Controlla prima il prefisso internazionale del numero. Dopo una chiamata di test
 :::cards
 - [Pianificazioni di reperibilità](/docs/on-call/schedules): Fare i turni, così ogni chiamata va a chi è reperibile. Su Cloud, dal piano Growth.
 - [Regole di escalation](/docs/on-call/escalation-rules): Aggiungere livelli, team e pianificazioni alla policy.
-- [Regole di reperibilità personali](/docs/notifications/on-call-rules): Scegliere quale metodo ti raggiunge per primo, e quando.
+- [Come contattarmi](/docs/notifications/on-call-rules): Scegliere quale metodo ti raggiunge per primo, e quando.
 - [Pubblicare una pagina di stato](/docs/guides/status-page): Dire ai tuoi clienti cosa succede, sul tuo dominio.
 :::

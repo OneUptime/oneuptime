@@ -38,7 +38,7 @@ flowchart TB
 :::steps
 ### Aggiungi il tuo account Twilio
 
-Vai in **Impostazioni del progetto** > **Notifiche** > **Impostazioni notifiche** e apri **Altre impostazioni**. Nella scheda **Configurazione Twilio**, fai clic su **Crea configurazione Twilio** e compila il modulo:
+Vai in **Impostazioni del progetto** > **Notifiche** > **Canali di notifica** e apri **Altre impostazioni**. Nella scheda **Configurazione Twilio**, fai clic su **Crea configurazione Twilio** e compila il modulo:
 
 - **Nome** e **Descrizione**: a che cosa serve l'account, ad esempio «Linea di supporto».
 - **SID dell'account Twilio**: dalla console di Twilio. Inizia con `AC`.
@@ -160,7 +160,7 @@ Una regola fa squillare una persona sul numero che ha verificato per le chiamate
 
 Ogni persona può avere un numero verificato per progetto. Per cambiarlo, elimina prima il vecchio numero. Questi numeri sono separati dai numeri di telefono in **Metodi di notifica**, usati dagli avvisi di reperibilità. Vedi [Metodi di notifica](/docs/notifications/notification-methods).
 
-I numeri per le chiamate in entrata vengono verificati via SMS, quindi gli **SMS** devono prima essere attivi per il progetto. Un proprietario del progetto o qualcuno con il ruolo **Amministratore della fatturazione** o il permesso **Manage Billing** li attiva nella scheda **Canali di notifica** di **Impostazioni del progetto > Notifiche > Impostazioni notifiche**.
+I numeri per le chiamate in entrata vengono verificati via SMS, quindi gli **SMS** devono prima essere attivi per il progetto. Un proprietario del progetto o qualcuno con il ruolo **Amministratore della fatturazione** o il permesso **Manage Billing** li attiva nella scheda **Canali di notifica** di **Impostazioni del progetto > Notifiche > Canali di notifica**.
 
 ## Messaggi vocali e impostazioni della policy
 

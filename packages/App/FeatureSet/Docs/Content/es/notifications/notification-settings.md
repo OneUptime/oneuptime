@@ -106,14 +106,14 @@ Comprueba que tienes un método verificado en ese canal en **Ajustes de usuario 
 :::
 
 :::details Sigo recibiendo correos después de desactivarlo todo
-Los avisos siguen tus reglas de guardia, no estos interruptores, y los correos de inicio de sesión, seguridad y facturación no son novedades sobre registros. Cada proyecto tiene sus propios ajustes, así que revisa el proyecto del que vino el correo. Consulta [Reglas de guardia personales](/docs/notifications/on-call-rules).
+Los avisos siguen tus reglas de guardia, no estos interruptores, y los correos de inicio de sesión, seguridad y facturación no son novedades sobre registros. Cada proyecto tiene sus propios ajustes, así que revisa el proyecto del que vino el correo. Consulta [Cómo contactarme](/docs/notifications/on-call-rules).
 :::
 
 ## Próximos pasos
 
 :::cards
 - [Métodos de notificación](/docs/notifications/notification-methods): Añade los métodos a los que envían tus ajustes.
-- [Reglas de guardia personales](/docs/notifications/on-call-rules): Decide cómo te llega un aviso.
+- [Cómo contactarme](/docs/notifications/on-call-rules): Decide cómo te llega un aviso.
 - [Resumen de notificaciones](/docs/emails/notification-rollup): Menos correos, más completos, durante una ráfaga.
 - [Cómo te contacta OneUptime](/docs/notifications/index): Cómo encajan los métodos, las reglas y los ajustes.
 :::

@@ -89,6 +89,6 @@ Comprueba primero el prefijo de país del número. Tras un aviso de prueba, cier
 :::cards
 - [Programaciones de guardia](/docs/on-call/schedules): Organiza turnos, para que cada aviso llegue a quien esté de guardia. En Cloud, desde el plan Growth.
 - [Reglas de escalado](/docs/on-call/escalation-rules): Añade niveles, equipos y programaciones a la política.
-- [Reglas de guardia personales](/docs/notifications/on-call-rules): Elige qué método te avisa primero, y cuándo.
+- [Cómo contactarme](/docs/notifications/on-call-rules): Elige qué método te avisa primero, y cuándo.
 - [Publicar una página de estado](/docs/guides/status-page): Cuenta a tus clientes lo que pasa, en tu propio dominio.
 :::

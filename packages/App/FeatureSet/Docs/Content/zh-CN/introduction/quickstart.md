@@ -80,7 +80,7 @@ OneUptime 中的一切都位于项目中：你的监视器、事件、值班策�
 :::
 
 > [!NOTE]
-> 新项目中的短信和电话呼叫默认关闭。项目所有者、Billing Admin 或拥有 Manage Billing 权限的人，可以在 **项目设置 → 通知 → 通知设置** 下的 **通知渠道** 卡片中打开它们。
+> 新项目中的短信和电话呼叫默认关闭。项目所有者、Billing Admin 或拥有 Manage Billing 权限的人，可以在 **项目设置 → 通知 → 通知渠道** 下的 **通知渠道** 卡片中打开它们。
 
 关于更多级别、轮换以及每个级别等待多久，请参阅 [升级规则](/docs/on-call/escalation-rules) 和 [值班计划](/docs/on-call/schedules)。
 

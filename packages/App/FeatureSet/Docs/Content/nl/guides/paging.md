@@ -89,6 +89,6 @@ Controleer eerst de landcode van het nummer. Sluit na een testoproep het dialoog
 :::cards
 - [Bereikbaarheidsschema's](/docs/on-call/schedules): Om beurten dienst hebben, zodat elke oproep naar degene gaat die dienst heeft. Bij OneUptime Cloud vanaf het Growth-abonnement.
 - [Escalatieregels](/docs/on-call/escalation-rules): Niveaus, teams en schema's aan het beleid toevoegen.
-- [Persoonlijke bereikbaarheidsregels](/docs/notifications/on-call-rules): Kiezen welke methode u als eerste bereikt, en wanneer.
+- [Hoe ik bereikbaar ben](/docs/notifications/on-call-rules): Kiezen welke methode u als eerste bereikt, en wanneer.
 - [Een statuspagina publiceren](/docs/guides/status-page): Uw klanten op uw eigen domein laten zien wat er gebeurt.
 :::

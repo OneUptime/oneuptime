@@ -34,7 +34,7 @@ flowchart TB
 
 - **显示订阅者页面**（`showSubscriberPageOnStatusPage`）：默认打开。在状态页的导航栏中放置 **订阅** 项，访客在那里通过下面的渠道注册。
 - **电子邮件**（`enableEmailSubscribers`）：默认打开。其他渠道在你打开之前都是关闭的。
-- **SMS**（`enableSmsSubscribers`）：默认关闭。在 OneUptime Cloud 上，每条短信都从项目的短信和通话余额中支付，除非页面有自己的 **Twilio 配置**（参见[下文](#邮件页脚自定义-smtp-和-twilio)）。要打开它，还需要在 **项目设置 > 通知 > 通知设置** 的 **通知渠道** 卡片中为项目打开 **SMS**，项目所有者、**账单管理员** 或拥有 **Manage Billing** 的人可以这样做。
+- **SMS**（`enableSmsSubscribers`）：默认关闭。在 OneUptime Cloud 上，每条短信都从项目的短信和通话余额中支付，除非页面有自己的 **Twilio 配置**（参见[下文](#邮件页脚自定义-smtp-和-twilio)）。要打开它，还需要在 **项目设置 > 通知 > 通知渠道** 的 **通知渠道** 卡片中为项目打开 **SMS**，项目所有者、**账单管理员** 或拥有 **Manage Billing** 的人可以这样做。
 - **Slack**（`enableSlackSubscribers`）：默认关闭。
 - **Microsoft Teams**（`enableMicrosoftTeamsSubscribers`）：默认关闭。
 - **Webhook**（`enableWebhookSubscribers`）：默认关闭。

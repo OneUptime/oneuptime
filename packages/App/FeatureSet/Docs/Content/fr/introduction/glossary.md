@@ -90,7 +90,7 @@ Voir [Règles d'escalade](/docs/on-call/escalation-rules).
 
 Qui est d'astreinte à chaque instant : les personnes se relaient, et chacune passe le relais à la suivante. Une règle d'escalade qui alerte un planning alerte la personne qui y est d'astreinte.
 
-Autres noms : **Rotation**. Voir [Plannings d'astreinte](/docs/on-call/schedules).
+Autres noms : **Rotation**, **Planning de la politique d'astreinte**. Voir [Plannings d'astreinte](/docs/on-call/schedules).
 
 ### Couche
 
@@ -103,6 +103,12 @@ Voir [Plannings d'astreinte](/docs/on-call/schedules#couches).
 Une adresse à laquelle OneUptime peut vous joindre dans un projet : une adresse e-mail, un numéro de téléphone pour les SMS ou les appels, votre compte Slack ou Microsoft Teams, ou l'application OneUptime sur votre téléphone. Chaque personne ajoute les siennes sous **Paramètres utilisateur**.
 
 Voir [Méthodes de notification](/docs/notifications/notification-methods).
+
+### Comment me joindre
+
+Vos propres règles pour être appelé : quelles méthodes de notification une alerte essaie, et au bout de combien de temps. Une seule échelle couvre chaque incident, alerte et épisode, et une gravité peut avoir ses propres règles. Chaque personne règle les siennes sous **Paramètres utilisateur**.
+
+Autres noms : **Règles d'astreinte personnelles**. Voir [Comment me joindre](/docs/notifications/on-call-rules).
 
 ### Page de statut
 
@@ -472,13 +478,13 @@ Voir [Lequel choisir ?](/docs/introduction/which-one#sonde-agent-collecteur-ou-a
 
 ### Règles d'astreinte
 
-Deux choses différentes. Sous **Incidents** et **Alertes**, les règles d'astreinte choisissent les politiques d'astreinte qu'exécute un nouvel incident ou une nouvelle alerte. Sous **Paramètres utilisateur**, vos propres règles d'astreinte décident quelles méthodes de notification une alerte essaie, et au bout de combien de temps.
+Sous **Incidents** et **Alertes**, les règles d'astreinte choisissent les politiques d'astreinte qu'exécute un nouvel incident ou une nouvelle alerte. Les propres règles d'une personne, qui décident comment une alerte lui parvient, s'appelaient aussi règles d'astreinte : elles s'appellent désormais **Comment me joindre**, sous **Paramètres utilisateur**.
 
-Voir [Paramètres et automatisation des incidents](/docs/incidents/settings#règles-dastreinte-des-incidents) et [Règles d'astreinte personnelles](/docs/notifications/on-call-rules).
+Voir [Paramètres et automatisation des incidents](/docs/incidents/settings#règles-dastreinte-des-incidents) et [Comment me joindre](/docs/notifications/on-call-rules).
 
 ### Paramètres de notification
 
-Deux pages différentes. Sous **Paramètres utilisateur**, les mises à jour qui vous parviennent sur ce qui vous appartient, et par quels canaux. Sous **Paramètres du projet**, les interrupteurs du projet pour les SMS et les appels, son solde de messagerie, et son propre SMTP et Twilio.
+Sous **Paramètres utilisateur**, les mises à jour qui vous parviennent sur ce qui vous appartient, et par quels canaux. Les interrupteurs du projet pour les SMS et les appels, son solde de messagerie et son propre SMTP et Twilio s'appelaient aussi paramètres de notification : ils s'appellent désormais **Canaux de notification**, sous **Paramètres du projet**.
 
 Voir [Paramètres de notification](/docs/notifications/notification-settings).
 

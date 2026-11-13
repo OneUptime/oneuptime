@@ -448,7 +448,7 @@ Um PostgreSQL wiederherzustellen, setzen Sie die Werte `DATABASE_RESTORE_*` in `
 
 Viele Server betreiben OneUptime für eine einzige Aufgabe, etwa um Websites zu überwachen und eine Statusseite zu veröffentlichen. Ein Master-Administrator kann die Produkte, die niemand nutzt, für alle Projekte des Servers auf einmal ausschalten, im Admin Dashboard unter **Einstellungen > Produkte**.
 
-- **Voreinstellungen** setzen alle Schalter mit einem Klick: **Monitoring und Status-Seiten** behält Monitore, Vorfälle, Bereitschaftsdienst, Statusseiten und Geplante Wartung; **Reaktion auf Vorfälle** fügt Warnungen, SLOs, Arbeitsabläufe und Runbooks hinzu; **Alles** behält alle Produkte. **Produkte einzeln auswählen** schaltet ein einzelnes Produkt um. Benutzer, Teams und Projekteinstellungen sind immer eingeschaltet.
+- **Voreinstellungen** setzen alle Schalter mit einem Klick: **Monitoring und Status-Seiten** behält Monitore, Vorfälle, Bereitschaft, Statusseiten und Geplante Wartung; **Reaktion auf Vorfälle** fügt Warnungen, SLOs, Arbeitsabläufe und Runbooks hinzu; **Alles** behält alle Produkte. **Produkte einzeln auswählen** schaltet ein einzelnes Produkt um. Benutzer, Teams und Projekteinstellungen sind immer eingeschaltet.
 - Ein ausgeschaltetes Produkt verschwindet aus dem Menü **Produkte** jedes Projekts, von der Startseite und aus der Suche, und **Projekteinstellungen > Produkte** zeigt es als ausgeschaltet an. Ein Link auf eine seiner Seiten sagt, dass das Produkt auf diesem Server ausgeschaltet ist und wer es einschalten kann.
 - Die API lehnt es ab, Datensätze des Produkts anzulegen, zu ändern oder zu löschen, und KI fragen lässt es aus. Lesen funktioniert weiterhin, weil Produkte, die eingeschaltet bleiben, Datensätze anderer zeigen: Ein Vorfall nennt seine Monitore.
 - Nichts wird gelöscht, und was bereits läuft, läuft weiter: Monitore prüfen weiter, veröffentlichte Statusseiten bleiben erreichbar, und Telemetrie kommt weiter an, es sei denn, Sie stoppen auch die Telemetrieaufnahme. Ein wieder eingeschaltetes Produkt kommt so zurück, wie es war.
@@ -468,7 +468,7 @@ MQTT_INGEST_ENABLED=false
 
 | Einstellung | Was sie tut |
 | --- | --- |
-| `SERVER_PRODUCTS=monitoring-and-status-pages` | Jedes Projekt bietet Monitore, Vorfälle, Bereitschaftsdienst, Statusseiten und Geplante Wartung an. |
+| `SERVER_PRODUCTS=monitoring-and-status-pages` | Jedes Projekt bietet Monitore, Vorfälle, Bereitschaft, Statusseiten und Geplante Wartung an. |
 | `DISABLE_TELEMETRY_INGESTION=true` | OneUptime behält keine der Logs, Metriken, Traces oder Profile, die ihm gesendet werden. Protokolle, Metriken, Traces, Leistungsprofile und Ausnahmen werden als ausgeschaltet angezeigt. |
 | `GLOBAL_RUNNER_REPLICAS=0` | Der Dienst `global-runner` startet nicht. Nur Runbooks und die Codekorrekturen von OneUptime AI nutzen ihn. |
 | `MQTT_INGEST_ENABLED=false` | Die MQTT-Listener, an die IoT-Geräte senden, sind ausgeschaltet. |

@@ -38,7 +38,7 @@ flowchart TB
 :::steps
 ### Ajouter votre compte Twilio
 
-Allez dans **Paramètres du projet** > **Notifications** > **Paramètres de notification**, puis ouvrez **Plus de paramètres**. Dans la carte **Configuration Twilio**, cliquez sur **Créer une configuration Twilio** et remplissez le formulaire :
+Allez dans **Paramètres du projet** > **Notifications** > **Canaux de notification**, puis ouvrez **Plus de paramètres**. Dans la carte **Configuration Twilio**, cliquez sur **Créer une configuration Twilio** et remplissez le formulaire :
 
 - **Nom** et **Description** : à quoi sert le compte, par exemple « Ligne d'assistance ».
 - **SID de compte Twilio** : dans la console Twilio. Il commence par `AC`.
@@ -160,7 +160,7 @@ Une règle fait sonner une personne sur le numéro qu'elle a vérifié pour les 
 
 Chaque personne peut avoir un numéro vérifié par projet. Pour le changer, supprimez d'abord l'ancien numéro. Ces numéros sont distincts des numéros de téléphone sous **Méthodes de notification**, qu'utilisent les alertes d'astreinte. Voir [Méthodes de notification](/docs/notifications/notification-methods).
 
-Les numéros pour les appels entrants sont vérifiés par SMS ; les **SMS** doivent donc d'abord être activés pour le projet. Un propriétaire du projet ou une personne disposant du rôle **Administrateur de la facturation** ou de l'autorisation **Manage Billing** les active dans la carte **Canaux de notification** de **Paramètres du projet > Notifications > Paramètres de notification**.
+Les numéros pour les appels entrants sont vérifiés par SMS ; les **SMS** doivent donc d'abord être activés pour le projet. Un propriétaire du projet ou une personne disposant du rôle **Administrateur de la facturation** ou de l'autorisation **Manage Billing** les active dans la carte **Canaux de notification** de **Paramètres du projet > Notifications > Canaux de notification**.
 
 ## Messages vocaux et paramètres de la politique
 

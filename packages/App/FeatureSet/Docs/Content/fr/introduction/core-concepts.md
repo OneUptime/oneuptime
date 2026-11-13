@@ -198,7 +198,7 @@ Les règles propres à un moniteur sont ses critères. Les règles d'astreinte s
 
 :::cards
 - [Paramètres et automatisation des incidents](/docs/incidents/settings#les-règles-qui-sexécutent-à-la-création-dun-incident): Les règles qui s'exécutent quand un incident est créé, dans l'ordre.
-- [Règles d'astreinte personnelles](/docs/notifications/on-call-rules): Comment une alerte vous parvient.
+- [Comment me joindre](/docs/notifications/on-call-rules): Comment une alerte vous parvient.
 :::
 
 ## Étapes suivantes

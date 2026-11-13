@@ -89,6 +89,6 @@ Verifique primeiro o código do país do número. Depois de um acionamento de te
 :::cards
 - [Agendamentos de plantão](/docs/on-call/schedules): Monte rodízios, para que cada acionamento chegue a quem está de plantão. No Cloud, a partir do plano Growth.
 - [Regras de escalonamento](/docs/on-call/escalation-rules): Adicione níveis, equipes e agendamentos à política.
-- [Regras de Plantão pessoais](/docs/notifications/on-call-rules): Escolha qual método chega a você primeiro, e quando.
+- [Como me contatar](/docs/notifications/on-call-rules): Escolha qual método chega a você primeiro, e quando.
 - [Publicar uma página de status](/docs/guides/status-page): Conte aos seus clientes o que está acontecendo, no seu próprio domínio.
 :::

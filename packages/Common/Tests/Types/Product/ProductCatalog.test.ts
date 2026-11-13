@@ -82,13 +82,13 @@ const categoryTitle: (variable: string) => string = (
 };
 
 /*
- * The products the catalog already names as #6817 decided (On-Call, not
- * On-Call Duty), with the retired name the Dashboard's menu still says
- * until #6817 renames it there. Once the menu says the new name, the test
+ * The products the catalog already names as #6817 decided (Profiles, not
+ * Performance Profiles), with the retired name the Dashboard's menu still
+ * says until #6817 renames it there. On-Call came off when the menu became
+ * On-Call (#6817 part 1). Once the menu says the new name, the test
  * "a product named ahead of the menu..." asks for it to come off this list.
  */
 const NAMED_AHEAD_OF_THE_MENU: Partial<Record<ProductKey, string>> = {
-  [ProductKey.OnCall]: "On-Call Duty",
   [ProductKey.Profiles]: "Performance Profiles",
   [ProductKey.AIInsights]: "Insights",
   [ProductKey.AIChat]: "Chat",

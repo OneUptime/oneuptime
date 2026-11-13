@@ -198,7 +198,7 @@ Le regole proprie di un monitor sono i suoi criteri. Le regole di reperibilità 
 
 :::cards
 - [Impostazioni e automazione degli incidenti](/docs/incidents/settings#regole-che-vengono-eseguite-alla-creazione-di-un-incidente): Le regole eseguite quando viene creato un incidente, in ordine.
-- [Regole di reperibilità personali](/docs/notifications/on-call-rules): Come una chiamata ti raggiunge.
+- [Come contattarmi](/docs/notifications/on-call-rules): Come una chiamata ti raggiunge.
 :::
 
 ## Passaggi successivi

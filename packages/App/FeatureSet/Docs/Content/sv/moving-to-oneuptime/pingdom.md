@@ -87,7 +87,7 @@ En förhandsgranskning sparas i en dag. Bara den som läste kontot kan markera o
 Öppna var och en under **Monitorer** och kontrollera de första resultaten. En heartbeat-monitor har en ny adress: peka jobbet som anropar den dit.
 
 ### Välj vem som får besked
-Lägg till ägare på dina monitorer, eller en jourpolicy under **Jourtjänst** > **Jourpolicyer** på incidenterna de öppnar, så att rätt personer får veta när något går ner.
+Lägg till ägare på dina monitorer, eller en jourpolicy under **Jour** > **Jourpolicyer** på incidenterna de öppnar, så att rätt personer får veta när något går ner.
 
 ### Stäng av kontrollerna i Pingdom
 När OneUptime kontrollerar samma saker pausar du dem i Pingdom, så att ingen får besked två gånger.

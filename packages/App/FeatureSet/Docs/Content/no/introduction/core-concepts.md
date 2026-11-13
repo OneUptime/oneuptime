@@ -198,7 +198,7 @@ En monitors egne regler er kriteriene dens. Vaktreglene under **Brukerinnstillin
 
 :::cards
 - [Hendelsesinnstillinger og automatisering](/docs/incidents/settings#regler-som-kjører-når-en-hendelse-opprettes): Reglene som kjører når en hendelse opprettes, i rekkefølge.
-- [Personlige vaktregler](/docs/notifications/on-call-rules): Hvordan en tilkalling når frem til deg.
+- [Slik når man meg](/docs/notifications/on-call-rules): Hvordan en tilkalling når frem til deg.
 :::
 
 ## Neste steg

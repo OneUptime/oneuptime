@@ -173,7 +173,7 @@ Un webhook n'a pas besoin de vérification, donc l'ajouter ajoute aussitôt ses 
 
 **SMS**, **Appels téléphoniques**, **WhatsApp** et **Telegram** sont désactivés dans chaque nouveau projet, car chaque message coûte de l'argent : sur OneUptime Cloud, il est payé sur le solde du projet, et les SMS et les appels passent plutôt par le compte Twilio du projet quand son compte par défaut les envoie. L'e-mail, le push, Slack, Microsoft Teams, Mattermost et les webhooks sont toujours activés.
 
-Tant qu'un canal est désactivé, personne dans le projet ne peut y ajouter de méthode : sa carte n'a pas de bouton d'ajout et indique qui peut l'activer. Un propriétaire du projet, un **Administrateur de la facturation** ou une personne disposant de **Manage Billing** l'active, dans la carte **Canaux de notification** de **Paramètres du projet → Notifications → Paramètres de notification**. Un admin du projet ne le peut pas. Sur un OneUptime auto-hébergé, les SMS et les appels nécessitent aussi un compte Twilio ou une passerelle que vous exploitez, et Telegram un bot que l'admin du serveur connecte ; voir [Intégration Twilio](/docs/self-hosted/twilio-integration) et [Passerelle SMS et appels](/docs/self-hosted/sms-and-call-gateway).
+Tant qu'un canal est désactivé, personne dans le projet ne peut y ajouter de méthode : sa carte n'a pas de bouton d'ajout et indique qui peut l'activer. Un propriétaire du projet, un **Administrateur de la facturation** ou une personne disposant de **Manage Billing** l'active, dans la carte **Canaux de notification** de **Paramètres du projet → Notifications → Canaux de notification**. Un admin du projet ne le peut pas. Sur un OneUptime auto-hébergé, les SMS et les appels nécessitent aussi un compte Twilio ou une passerelle que vous exploitez, et Telegram un bot que l'admin du serveur connecte ; voir [Intégration Twilio](/docs/self-hosted/twilio-integration) et [Passerelle SMS et appels](/docs/self-hosted/sms-and-call-gateway).
 
 ## Supprimer une méthode
 
@@ -200,7 +200,7 @@ Vérifiez que le téléphone figure sous **Appareils de notification push**, et 
 ## Étapes suivantes
 
 :::cards
-- [Règles d'astreinte personnelles](/docs/notifications/on-call-rules): Décidez quelle méthode chaque alerte essaie, et quand.
+- [Comment me joindre](/docs/notifications/on-call-rules): Décidez quelle méthode chaque alerte essaie, et quand.
 - [Paramètres de notification](/docs/notifications/notification-settings): Choisissez les nouvelles dont vous êtes informé, et par quels canaux.
 - [Vue d'ensemble des applications](/docs/mobile-desktop-apps/index): Recevez les alertes sur votre téléphone ou votre ordinateur.
 - [Comment OneUptime vous joint](/docs/notifications/index): Comment les méthodes, les règles et les paramètres s'articulent.

@@ -68,7 +68,7 @@ Som det är nu skickas en incident utan ägare med e-post till projektets ägare
 :::steps
 ### Skapa en jourpolicy
 
-Klicka på **Konfigurera en jourpolicy** i checklistan, eller öppna **Jourtjänst** från menyn **Produkter**. Klicka på **Skapa Jourpolicy** och ange ett **Namn**. Under **Vem larmas först?** klickar du på **Lägg till mottagare** och väljer dig själv. Låt **Utlös den vid varje ny incident och varje nytt larm** vara påslaget och klicka på **Skapa Jourpolicy**.
+Klicka på **Konfigurera en jourpolicy** i checklistan, eller öppna **Jour** från menyn **Produkter**. Klicka på **Skapa Jourpolicy** och ange ett **Namn**. Under **Vem larmas först?** klickar du på **Lägg till mottagare** och väljer dig själv. Låt **Utlös den vid varje ny incident och varje nytt larm** vara påslaget och klicka på **Skapa Jourpolicy**.
 
 ### Se regeln som utlöser den
 
@@ -80,7 +80,7 @@ E-postadressen du loggar in med är redan ett sätt att nå dig. För att också
 :::
 
 > [!NOTE]
-> SMS och telefonsamtal är avstängda i ett nytt projekt. En projektägare, en Billing Admin eller någon med Manage Billing slår på dem i kortet **Aviseringskanaler** under **Projektinställningar → Aviseringar → Aviseringsinställningar**.
+> SMS och telefonsamtal är avstängda i ett nytt projekt. En projektägare, en Billing Admin eller någon med Manage Billing slår på dem i kortet **Aviseringskanaler** under **Projektinställningar → Aviseringar → Aviseringskanaler**.
 
 Se [Eskaleringsregler](/docs/on-call/escalation-rules) och [Jourscheman](/docs/on-call/schedules) för fler nivåer, rotationer och hur länge varje nivå väntar.
 

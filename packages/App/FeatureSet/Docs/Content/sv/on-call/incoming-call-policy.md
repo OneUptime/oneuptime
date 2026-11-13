@@ -38,7 +38,7 @@ flowchart TB
 :::steps
 ### Lägg till ditt Twilio-konto
 
-Gå till **Projektinställningar** > **Aviseringar** > **Aviseringsinställningar** och öppna **Fler inställningar**. Klicka på **Skapa Twilio-konfiguration** i kortet **Twilio-konfiguration** och fyll i formuläret:
+Gå till **Projektinställningar** > **Aviseringar** > **Aviseringskanaler** och öppna **Fler inställningar**. Klicka på **Skapa Twilio-konfiguration** i kortet **Twilio-konfiguration** och fyll i formuläret:
 
 - **Namn** och **Beskrivning**: vad kontot används till, till exempel "Supportlinje".
 - **Twilio-konto-SID**: från Twilio Console. Det börjar med `AC`.
@@ -48,7 +48,7 @@ Gå till **Projektinställningar** > **Aviseringar** > **Aviseringsinställninga
 
 ### Skapa policyn
 
-Gå till **Jourtjänst** > **Inkommande samtalspolicyer** och klicka på **Skapa Inkommande samtalspolicy**. Ge den ett **Namn**, till exempel "Supportlinje"; **Beskrivning** och **Etiketter** är valfria, under **Fler fält**. Den nya policyn öppnas på sin **Översikt**.
+Gå till **Jour** > **Inkommande samtalspolicyer** och klicka på **Skapa Inkommande samtalspolicy**. Ge den ett **Namn**, till exempel "Supportlinje"; **Beskrivning** och **Etiketter** är valfria, under **Fler fält**. Den nya policyn öppnas på sin **Översikt**.
 
 ### Välj Twilio-kontot
 
@@ -160,7 +160,7 @@ En regel ringer en person på det nummer som personen har verifierat för inkomm
 
 Varje person kan ha ett verifierat nummer per projekt. För att byta det tar du först bort det gamla numret. De här numren är skilda från telefonnumren under **Aviseringsmetoder**, som jourlarm använder. Se [Aviseringsmetoder](/docs/notifications/notification-methods).
 
-Nummer för inkommande samtal verifieras via SMS, så **SMS** måste först vara påslaget för projektet. En projektägare, en **Faktureringsadministratör** eller någon med **Manage Billing** slår på det i kortet **Aviseringskanaler** på **Projektinställningar > Aviseringar > Aviseringsinställningar**.
+Nummer för inkommande samtal verifieras via SMS, så **SMS** måste först vara påslaget för projektet. En projektägare, en **Faktureringsadministratör** eller någon med **Manage Billing** slår på det i kortet **Aviseringskanaler** på **Projektinställningar > Aviseringar > Aviseringskanaler**.
 
 ## Röstmeddelanden och policyinställningar
 

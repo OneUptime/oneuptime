@@ -89,6 +89,6 @@ SMS가 꺼져 있거나 보낼 수 없는 상태이며, 단계에 그 이유가 
 :::cards
 - [온콜 스케줄](/docs/on-call/schedules): 돌아가며 맡아서, 각 호출이 그때 온콜인 사람에게 가도록 합니다. Cloud에서는 Growth 요금제부터.
 - [에스컬레이션 규칙](/docs/on-call/escalation-rules): 정책에 단계, 팀, 스케줄을 추가합니다.
-- [개인 온콜 규칙](/docs/notifications/on-call-rules): 어떤 방법으로 먼저, 언제 연락받을지 고릅니다.
+- [나에게 연락하는 방법](/docs/notifications/on-call-rules): 어떤 방법으로 먼저, 언제 연락받을지 고릅니다.
 - [상태 페이지 게시하기](/docs/guides/status-page): 무슨 일이 일어나고 있는지 여러분의 도메인에서 고객에게 알립니다.
 :::

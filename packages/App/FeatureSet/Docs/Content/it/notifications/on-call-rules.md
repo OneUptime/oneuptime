@@ -1,4 +1,4 @@
-# Regole di reperibilità personali
+# Come contattarmi
 
 Le vostre regole di reperibilità decidono come una chiamata vi raggiunge: quali dei vostri metodi di notifica OneUptime prova, e quanto tempo dopo l'inizio della chiamata. Ogni tipo di chiamata ha le sue regole, un insieme per gravità, così un incidente critico può telefonarvi subito mentre un avviso di bassa gravità aspetta un'e-mail. Le impostate in **Impostazioni utente → Come contattarmi**.
 

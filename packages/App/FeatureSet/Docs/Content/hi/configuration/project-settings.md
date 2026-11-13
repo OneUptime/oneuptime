@@ -34,7 +34,7 @@ flowchart LR
 | **बेसिक** | **प्रोजेक्ट**, **उत्पाद**, **लेबल** | [प्रोजेक्ट का विवरण](#प्रोजेक्ट-का-विवरण), [उत्पाद](#उत्पाद), [लेबल](#लेबल) |
 | **वर्कस्पेस** | **Slack**, **Microsoft Teams**, **Mattermost**, **वीडियो कॉल** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [वीडियो कॉल](/docs/workspace-connections/video-calls) |
 | **टेलीमेट्री और APM** | **इंजेशन कुंजियाँ**, **डेटा प्रतिधारण**, **उपयोग** | [इंजेशन कुंजियाँ](/docs/telemetry/ingestion-keys), [डेटा प्रतिधारण](/docs/telemetry/data-retention), [टेलीमेट्री उपयोग](/docs/telemetry/usage) |
-| **सूचनाएं** | **सूचना सेटिंग्स**, **सूचना लॉग**, **मोबाइल ऐप्स** | [सूचनाएं](#सूचनाएं) |
+| **सूचनाएं** | **सूचना चैनल**, **सूचना लॉग**, **मोबाइल ऐप्स** | [सूचनाएं](#सूचनाएं) |
 | **एआई** | **AI सुविधाएं**, **LLM प्रदाता**, **बाहरी MCP सर्वर**, **AI क्रेडिट**, **AI लॉग**, **MCP सर्वर** | [LLM प्रदाता](/docs/ai/llm-provider), [बाहरी MCP सर्वर](/docs/ai/external-mcp-servers), [MCP सर्वर](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#लागत-नियंत्रण) |
 | **उन्नत** | **डोमेन**, **API कुंजियाँ**, **फ़ीचर फ़्लैग**, **किसी दूसरे टूल से इंपोर्ट करें** | [कस्टम डोमेन](/docs/status-pages/branding-and-domains#कस्टम-डोमेन), [API कुंजियाँ](/docs/permissions/index#api-कुंजियाँ), [फ़ीचर फ़्लैग](#फ़ीचर-फ़्लैग), [Opsgenie से आना](/docs/moving-to-oneuptime/opsgenie) और बाकी माइग्रेशन गाइड |
 | **सुरक्षा** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
@@ -96,7 +96,7 @@ OneUptime Cloud पर, लेबल बनाने और बदलने क�
 
 **प्रोजेक्ट सेटिंग्स → सूचनाएं** में यह होता है कि प्रोजेक्ट सूचनाएं कैसे भेजता है:
 
-- **सूचना सेटिंग्स**: **सूचना चैनल** कार्ड प्रोजेक्ट के लिए SMS, फ़ोन कॉल, WhatsApp और Telegram चालू या बंद करता है। शुरुआत में चारों बंद रहते हैं। Project Owner, **बिलिंग एडमिन**, या **Manage Billing** वाला कोई व्यक्ति इन्हें चालू करता है। इस पेज पर **और सेटिंग्स** में, **कस्टम SMTP कॉन्फ़िग्स** के अंदर प्रोजेक्ट के अपने मेल सर्वर (देखें [SMTP](/docs/emails/smtp)) और उसका अपना Twilio खाता (देखें [Twilio इंटीग्रेशन](/docs/self-hosted/twilio-integration)) भी होते हैं। OneUptime Cloud पर, इसमें वह शेष राशि भी होती है जिससे इन संदेशों का भुगतान होता है: देखें [प्रीपेड शेष](/docs/configuration/billing#प्रीपेड-शेष)।
+- **सूचना चैनल**: **सूचना चैनल** कार्ड प्रोजेक्ट के लिए SMS, फ़ोन कॉल, WhatsApp और Telegram चालू या बंद करता है। शुरुआत में चारों बंद रहते हैं। Project Owner, **बिलिंग एडमिन**, या **Manage Billing** वाला कोई व्यक्ति इन्हें चालू करता है। इस पेज पर **और सेटिंग्स** में, **कस्टम SMTP कॉन्फ़िग्स** के अंदर प्रोजेक्ट के अपने मेल सर्वर (देखें [SMTP](/docs/emails/smtp)) और उसका अपना Twilio खाता (देखें [Twilio इंटीग्रेशन](/docs/self-hosted/twilio-integration)) भी होते हैं। OneUptime Cloud पर, इसमें वह शेष राशि भी होती है जिससे इन संदेशों का भुगतान होता है: देखें [प्रीपेड शेष](/docs/configuration/billing#प्रीपेड-शेष)।
 - **सूचना लॉग**: प्रोजेक्ट द्वारा भेजी गई हर सूचना, हर चैनल के लिए एक टैब के साथ: **ईमेल**, **SMS**, **WhatsApp**, **Telegram**, **वेबहुक**, **कॉल**, **पुश** और **वर्कस्पेस**।
 - **मोबाइल ऐप्स**: iOS और Android के ऐप्स कहाँ से लें। देखें [ऐप्स का अवलोकन](/docs/mobile-desktop-apps/index)।
 

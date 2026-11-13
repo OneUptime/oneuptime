@@ -89,6 +89,6 @@ Kontrollera först numrets landsnummer. Efter ett testlarm stänger du dialogrut
 :::cards
 - [Jourscheman](/docs/on-call/schedules): Turas om, så att varje larm går till den som har jour. På Cloud från Growth-planen.
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Lägg till nivåer, team och scheman i policyn.
-- [Personliga jourregler](/docs/notifications/on-call-rules): Välj vilken metod som når dig först, och när.
+- [Så når man mig](/docs/notifications/on-call-rules): Välj vilken metod som når dig först, och när.
 - [Publicera en statussida](/docs/guides/status-page): Berätta för dina kunder vad som händer, på din egen domän.
 :::

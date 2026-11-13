@@ -34,7 +34,7 @@ flowchart LR
 | **基本** | **プロジェクト**、**製品**、**ラベル** | [プロジェクトの詳細](#プロジェクトの詳細)、[製品](#製品)、[ラベル](#ラベル) |
 | **ワークスペース** | **Slack**、**Microsoft Teams**、**Mattermost**、**ビデオ通話** | [Slack](/docs/workspace-connections/slack)、[Microsoft Teams](/docs/workspace-connections/microsoft-teams)、[Mattermost](/docs/workspace-connections/mattermost)、[ビデオ通話](/docs/workspace-connections/video-calls) |
 | **テレメトリと APM** | **取り込みキー**、**データ保持**、**使用量** | [取り込みキー](/docs/telemetry/ingestion-keys)、[データ保持](/docs/telemetry/data-retention)、[テレメトリ使用量](/docs/telemetry/usage) |
-| **通知** | **通知設定**、**通知ログ**、**モバイルアプリ** | [通知](#通知) |
+| **通知** | **通知チャネル**、**通知ログ**、**モバイルアプリ** | [通知](#通知) |
 | **AI** | **AI 機能**、**LLM プロバイダー**、**外部 MCP サーバー**、**AI クレジット**、**AI ログ**、**MCP サーバー** | [LLM プロバイダー](/docs/ai/llm-provider)、[外部 MCP サーバー](/docs/ai/external-mcp-servers)、[MCP サーバー](/docs/ai/mcp-server)、[AI SRE](/docs/ai/ai-sre#コスト管理) |
 | **詳細** | **ドメイン**、**API キー**、**機能フラグ**、**別のツールからインポート** | [カスタムドメイン](/docs/status-pages/branding-and-domains#カスタムドメイン)、[API キー](/docs/permissions/index#api-キー)、[機能フラグ](#機能フラグ)、[Opsgenie からの移行](/docs/moving-to-oneuptime/opsgenie) とその他の移行ガイド |
 | **セキュリティ** | **SSO**、**SCIM** | [SSO](/docs/identity/sso)、[SCIM](/docs/identity/scim) |
@@ -96,7 +96,7 @@ OneUptime Cloud でラベルを作成・変更するには Growth プランが�
 
 **プロジェクト設定 → 通知** では、プロジェクトの通知の送り方を設定します。
 
-- **通知設定**: **通知チャネル** カードで、プロジェクトの SMS、電話、WhatsApp、Telegram をオンまたはオフにします。最初はすべてオフです。オンにするのは Project Owner、**請求管理者**、または **Manage Billing** を持つ人です。このページの **その他の設定** には、プロジェクト独自のメールサーバー (**カスタム SMTP 設定**、[SMTP](/docs/emails/smtp) を参照) と独自の Twilio アカウント ([Twilio 統合](/docs/self-hosted/twilio-integration) を参照) もあります。OneUptime Cloud では、これらのメッセージの支払いに使う残高もここにあります。[前払い残高](/docs/configuration/billing#前払い残高) を参照してください。
+- **通知チャネル**: **通知チャネル** カードで、プロジェクトの SMS、電話、WhatsApp、Telegram をオンまたはオフにします。最初はすべてオフです。オンにするのは Project Owner、**請求管理者**、または **Manage Billing** を持つ人です。このページの **その他の設定** には、プロジェクト独自のメールサーバー (**カスタム SMTP 設定**、[SMTP](/docs/emails/smtp) を参照) と独自の Twilio アカウント ([Twilio 統合](/docs/self-hosted/twilio-integration) を参照) もあります。OneUptime Cloud では、これらのメッセージの支払いに使う残高もここにあります。[前払い残高](/docs/configuration/billing#前払い残高) を参照してください。
 - **通知ログ**: プロジェクトが送信したすべての通知。チャネルごとにタブがあります: **メール**、**SMS**、**WhatsApp**、**Telegram**、**Webhook**、**電話**、**プッシュ**、**ワークスペース**。
 - **モバイルアプリ**: iOS 版と Android 版のアプリの入手先。[アプリの概要](/docs/mobile-desktop-apps/index) を参照してください。
 

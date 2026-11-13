@@ -106,14 +106,14 @@ flowchart TB
 :::
 
 :::details 关闭了所有开关后我仍然收到邮件
-呼叫遵循你的值班规则，而不是这些开关；登录、安全和账单邮件也不属于关于记录的更新。每个项目都有自己的设置，因此请检查发出该邮件的项目。参见 [个人值班规则](/docs/notifications/on-call-rules)。
+呼叫遵循你的值班规则，而不是这些开关；登录、安全和账单邮件也不属于关于记录的更新。每个项目都有自己的设置，因此请检查发出该邮件的项目。参见 [如何联系我](/docs/notifications/on-call-rules)。
 :::
 
 ## 后续步骤
 
 :::cards
 - [通知方式](/docs/notifications/notification-methods): 添加你的设置要发送到的方式。
-- [个人值班规则](/docs/notifications/on-call-rules): 决定呼叫如何送达你。
+- [如何联系我](/docs/notifications/on-call-rules): 决定呼叫如何送达你。
 - [通知汇总](/docs/emails/notification-rollup): 在突发期间，邮件更少、内容更完整。
 - [OneUptime 如何联系你](/docs/notifications/index): 通知方式、规则和设置如何配合。
 :::

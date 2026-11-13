@@ -48,7 +48,7 @@ Le parole usate in tutto OneUptime sono nel [Glossario](/docs/introduction/gloss
 | Regola di escalation | Un livello di una policy: chi avvisa e quanto attende un riconoscimento | [Regole di escalation](/docs/on-call/escalation-rules) |
 | Pianificazione di reperibilità | Chi è reperibile in ogni momento, a turno | [Pianificazioni di reperibilità](/docs/on-call/schedules) |
 | Sostituzione utente | Chi sostituisce qualcuno mentre è assente | [Sostituzioni utente](/docs/on-call/user-overrides) |
-| Regole di reperibilità personali | Come viene raggiunta una persona: con quale metodo e dopo quanto tempo | [Regole di reperibilità personali](/docs/notifications/on-call-rules) |
+| Come contattarmi | Come viene raggiunta una persona: con quale metodo e dopo quanto tempo | [Come contattarmi](/docs/notifications/on-call-rules) |
 | Politica chiamate in arrivo | Un numero di telefono che fa squillare chi è reperibile | [Politica chiamate in arrivo](/docs/on-call/incoming-call-policy) |
 
 Le policy, le regole di escalation, le pianificazioni e le sostituzioni appartengono al progetto, in **Reperibilità**. I metodi di notifica e le regole di reperibilità personali appartengono a ciascuna persona, in **Impostazioni utente**: un amministratore può vedere la configurazione di qualcuno, ma solo quella persona può verificare il proprio telefono o la propria e-mail. Vedi [Come OneUptime vi raggiunge](/docs/notifications/index).
