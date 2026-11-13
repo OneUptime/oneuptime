@@ -1,6 +1,8 @@
 import AggregatedModel from "../../Types/BaseDatabase/AggregatedModel";
 import AggregationInterval from "../../Types/BaseDatabase/AggregationInterval";
 import AggregationIntervalUtil from "../../Types/BaseDatabase/AggregationIntervalUtil";
+import OneUptimeDate, { CalendarUnit } from "../../Types/Date";
+import Timezone from "../../Types/Timezone";
 import ReceivingGapsUtil, { ReceivingGap } from "./ReceivingGaps";
 
 /*
@@ -21,7 +23,10 @@ import ReceivingGapsUtil, { ReceivingGap } from "./ReceivingGaps";
  *    thresholds the server's statement generator uses
  *    (AggregationIntervalUtil), never inferred from gaps in the data
  *    — inferring from gaps let a missing bucket double the inferred
- *    width and knock real rows off the reconstructed grid.
+ *    width and knock real rows off the reconstructed grid. Day, week,
+ *    month and year buckets are walked on the calendar of the zone the
+ *    request named, as the server cut them: a day there is 23 or 25
+ *    hours long when the clocks change, and a month 28 to 31 days.
  *
  * 2. A bucket that cannot be fully evaluated yet — the in-progress
  *    bucket at the window's trailing edge, plus an ingest-lag buffer
@@ -101,6 +106,27 @@ export const HEARTBEAT_MAX_BACKDATE_MS: number = 2 * 60_000;
  */
 export const MIN_SILENCE_EVIDENCE_MS: number = 2 * 60_000;
 
+/*
+ * The calendar unit of each bucket that is one. The server starts a day,
+ * week, month or year bucket at a midnight, a Monday, a 1st or a 1 January
+ * in the zone the request named (AggregateBy.timezone), or in UTC when it
+ * named none (issue #7277).
+ */
+const CALENDAR_UNIT_OF_INTERVAL: Partial<
+  Record<AggregationInterval, CalendarUnit>
+> = {
+  [AggregationInterval.Day]: "day",
+  [AggregationInterval.Week]: "week",
+  [AggregationInterval.Month]: "month",
+  [AggregationInterval.Year]: "year",
+};
+
+// One bucket of the grid: the instant it starts, and the one the next does.
+interface HeartbeatSlot {
+  startMs: number;
+  endMs: number;
+}
+
 export class HeartbeatAvailabilityUtil {
   public static buildAvailabilitySeries(data: {
     heartbeatData: Array<AggregatedModel>;
@@ -112,6 +138,14 @@ export class HeartbeatAvailabilityUtil {
      * Omitted or empty, every silent bucket is judged as before.
      */
     receivingGaps?: Array<ReceivingGap> | undefined;
+    /*
+     * The zone the heartbeat request's day, week, month and year buckets
+     * followed: its AggregateBy.timezone, which AnalyticsModelAPI.aggregate
+     * sets to AggregationIntervalUtil.getReaderTimezone of the window.
+     * Omitted, those buckets are UTC's, as the server cuts them for a
+     * request that names no zone. Finer buckets ignore it.
+     */
+    timezone?: Timezone | undefined;
   }): HeartbeatAvailabilityResult {
     const windowStartMs: number = data.windowStart.getTime();
     const windowEndMs: number = data.windowEnd.getTime();
@@ -145,35 +179,31 @@ export class HeartbeatAvailabilityUtil {
       return a - b;
     });
 
-    /*
-     * Anchor the grid to the first returned row rather than to the
-     * window start: server buckets are `toStartOfInterval`-aligned and
-     * the window start generally isn't, and anchoring to real data
-     * also absorbs any constant offset introduced by timestamp
-     * serialization. With no rows at all, anchor to the window start —
-     * everything is down regardless of alignment.
-     */
-    const anchorMs: number =
-      rowTimestamps.length > 0 ? rowTimestamps[0]! : windowStartMs;
-    const stepsBack: number = Math.ceil((anchorMs - windowStartMs) / bucketMs);
-    const gridStartMs: number = anchorMs - stepsBack * bucketMs;
-    const lastIndex: number = Math.floor(
-      (windowEndMs - gridStartMs) / bucketMs,
-    );
+    const slots: Array<HeartbeatSlot> = this.getSlots({
+      interval,
+      bucketMs,
+      rowTimestamps,
+      windowStartMs,
+      windowEndMs,
+      timezone: data.timezone,
+    });
+    const lastIndex: number = slots.length - 1;
+
+    if (lastIndex < 0) {
+      return { points: [], uptimePercent: null };
+    }
 
     /*
-     * Snap each row to its nearest grid slot instead of requiring
-     * exact equality. Minute/hour buckets land exactly; day buckets
-     * can drift by an hour against a fixed 24h step when timestamps
-     * cross a DST boundary in the rendering timezone, and Month/Year
-     * widths are calendar-approximate — nearest-slot matching with a
-     * half-bucket tolerance absorbs all of those without ever mapping
-     * one row to two slots.
+     * Snap each row to the slot whose start is nearest it instead of
+     * requiring exact equality: a row a few seconds or an hour off its
+     * slot - a serialization offset, or day buckets the server cut in
+     * another zone than the one this was given - still lands on a slot
+     * of its own, and no row is ever mapped to two slots.
      */
     const presentSlots: Set<number> = new Set<number>();
     for (const t of rowTimestamps) {
-      const index: number = Math.round((t - gridStartMs) / bucketMs);
-      if (index >= 0 && index <= lastIndex) {
+      const index: number = this.getNearestSlotIndex(slots, t);
+      if (index >= 0) {
         presentSlots.add(index);
       }
     }
@@ -197,15 +227,15 @@ export class HeartbeatAvailabilityUtil {
     type SlotState = "up" | "down" | "excluded";
     const receivingGaps: Array<ReceivingGap> = ReceivingGapsUtil.clip(
       data.receivingGaps || [],
-      new Date(gridStartMs),
-      new Date(gridStartMs + (lastIndex + 1) * bucketMs),
+      new Date(slots[0]!.startMs),
+      new Date(slots[lastIndex]!.endMs),
     );
     const states: Array<SlotState> = [];
     for (let index: number = 0; index <= lastIndex; index++) {
-      const startMs: number = gridStartMs + index * bucketMs;
+      const { startMs, endMs }: HeartbeatSlot = slots[index]!;
       const up: boolean = presentSlots.has(index);
       const isPartial: boolean =
-        startMs < windowStartMs || startMs + bucketMs > evaluableEndMs;
+        startMs < windowStartMs || endMs > evaluableEndMs;
       if (up) {
         states.push("up");
       } else if (isPartial) {
@@ -214,7 +244,7 @@ export class HeartbeatAvailabilityUtil {
         this.isNotMonitored({
           receivingGaps,
           startMs,
-          endMs: startMs + bucketMs,
+          endMs,
         })
       ) {
         states.push("excluded");
@@ -264,7 +294,7 @@ export class HeartbeatAvailabilityUtil {
       }
       const up: boolean = state === "up" || isBridged(index);
       points.push({
-        x: new Date(gridStartMs + index * bucketMs),
+        x: new Date(slots[index]!.startMs),
         y: up ? 100 : 0,
       });
       evaluatedCount++;
@@ -278,6 +308,123 @@ export class HeartbeatAvailabilityUtil {
       uptimePercent:
         evaluatedCount > 0 ? (upCount / evaluatedCount) * 100 : null,
     };
+  }
+
+  /*
+   * The server's buckets from the one holding the window's start to the one
+   * holding its end, in order.
+   */
+  private static getSlots(data: {
+    interval: AggregationInterval;
+    bucketMs: number;
+    rowTimestamps: Array<number>;
+    windowStartMs: number;
+    windowEndMs: number;
+    timezone: Timezone | undefined;
+  }): Array<HeartbeatSlot> {
+    const slots: Array<HeartbeatSlot> = [];
+    const unit: CalendarUnit | undefined =
+      CALENDAR_UNIT_OF_INTERVAL[data.interval];
+
+    if (unit) {
+      /*
+       * Days, weeks, months and years are walked on the calendar of the
+       * zone the request named, as the server cut them: each slot runs from
+       * one midnight (Monday, 1st, 1 January) to the next, however long
+       * that was. A fixed step drifts off them - an hour a clock change for
+       * days, which put two slots on one day and the rest a day early, and
+       * days a month for months.
+       */
+      const timezone: Timezone = data.timezone || Timezone.UTC;
+      let startMs: number = OneUptimeDate.getStartOfCalendarUnit(
+        new Date(data.windowStartMs),
+        unit,
+        timezone,
+      ).getTime();
+
+      while (startMs <= data.windowEndMs) {
+        /*
+         * The next unit is the one holding the instant a unit and a half
+         * on: no real unit is half a nominal one shorter or longer than it
+         * (a day is 23 to 25 hours, a month 28 to 31 days).
+         */
+        const endMs: number = OneUptimeDate.getStartOfCalendarUnit(
+          new Date(startMs + data.bucketMs * 1.5),
+          unit,
+          timezone,
+        ).getTime();
+
+        if (!(endMs > startMs)) {
+          break;
+        }
+
+        slots.push({ startMs, endMs });
+        startMs = endMs;
+      }
+
+      return slots;
+    }
+
+    /*
+     * Finer buckets are the same width in every zone. Anchor their grid to
+     * the first returned row rather than to the window start: server
+     * buckets are `toStartOfInterval`-aligned and the window start
+     * generally isn't, and anchoring to real data also absorbs any
+     * constant offset introduced by timestamp serialization. With no rows
+     * at all, anchor to the window start — everything is down regardless
+     * of alignment.
+     */
+    const anchorMs: number =
+      data.rowTimestamps.length > 0
+        ? data.rowTimestamps[0]!
+        : data.windowStartMs;
+    const stepsBack: number = Math.ceil(
+      (anchorMs - data.windowStartMs) / data.bucketMs,
+    );
+    const gridStartMs: number = anchorMs - stepsBack * data.bucketMs;
+    const lastIndex: number = Math.floor(
+      (data.windowEndMs - gridStartMs) / data.bucketMs,
+    );
+
+    for (let index: number = 0; index <= lastIndex; index++) {
+      const startMs: number = gridStartMs + index * data.bucketMs;
+      slots.push({ startMs, endMs: startMs + data.bucketMs });
+    }
+
+    return slots;
+  }
+
+  /*
+   * The slot whose start is nearest `t`: `t` is past the middle of the slot
+   * before it, and short of its own middle. Up to half a slot before the
+   * first slot still counts, as does anything short of the middle of the
+   * last one; further out is no slot (-1).
+   */
+  private static getNearestSlotIndex(
+    slots: Array<HeartbeatSlot>,
+    t: number,
+  ): number {
+    const first: HeartbeatSlot = slots[0]!;
+
+    if (t < first.startMs - (first.endMs - first.startMs) / 2) {
+      return -1;
+    }
+
+    let low: number = 0;
+    let high: number = slots.length;
+
+    while (low < high) {
+      const middle: number = Math.floor((low + high) / 2);
+      const slot: HeartbeatSlot = slots[middle]!;
+
+      if (t < (slot.startMs + slot.endMs) / 2) {
+        high = middle;
+      } else {
+        low = middle + 1;
+      }
+    }
+
+    return low < slots.length ? low : -1;
   }
 
   /*

@@ -72,6 +72,7 @@ import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import AggregateBy from "Common/Types/BaseDatabase/AggregateBy";
+import AggregationIntervalUtil from "Common/Types/BaseDatabase/AggregationIntervalUtil";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import LineChartElement from "Common/UI/Components/Charts/Line/LineChart";
@@ -1152,6 +1153,15 @@ const KubernetesClusterOverview: FunctionComponent<
           windowEnd: endDate,
           now: OneUptimeDate.getCurrentDate(),
           receivingGaps: receivingGapsInWindow,
+          /*
+           * The zone AnalyticsModelAPI.aggregate put on the heartbeat
+           * request - the reader's, for day buckets and longer - so its
+           * days are walked on the calendar the server cut them on.
+           */
+          timezone: AggregationIntervalUtil.getReaderTimezone({
+            startDate: startDate,
+            endDate: endDate,
+          }),
         });
       setReceivingGaps(receivingGapsInWindow);
       setAvailabilitySeries(
