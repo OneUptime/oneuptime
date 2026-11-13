@@ -471,6 +471,44 @@ describe("Markdown email renderer - the last resort", () => {
     expect(attached.html.includes(notAnImage)).toBe(false);
   });
 
+  test("if marked still runs out of stack, a screenshot defined in a block quote or a list item is an image where its definition was, its label as marked reads it there for alt text (#7230)", async () => {
+    mockMarkedState.failWith = new RangeError(
+      "Maximum call stack size exceeded",
+    );
+    jest.spyOn(logger, "error").mockImplementation((): void => {});
+
+    // A real 1x1 PNG, as the probe reports a screenshot.
+    const png: string =
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+
+    const html: string = await render(
+      [
+        "**Down**: ![Home][home page] ![Login][login]",
+        "",
+        "> [Home",
+        `> Page]: data:image/png;base64,${png}`,
+        "",
+        "- Screenshot",
+        "",
+        `    [login]: data:image/png;base64,${png}`,
+      ].join("\n"),
+    );
+
+    /*
+     * Each definition is its image, from its line's start - the quote's
+     * markers and the item's indentation too - and its label without the
+     * quote's marker on the line it runs over.
+     */
+    expect(html).toBe(
+      `<p>**Down**: ![Home][home page] ![Login][login]<br>\n<br>\n<img src="data:image/png;base64,${png}" alt="Home\nPage" style="${EMAIL_IMAGE_STYLE}"><br>\n<br>\n- Screenshot<br>\n<br>\n<img src="data:image/png;base64,${png}" alt="login" style="${EMAIL_IMAGE_STYLE}"></p>\n`,
+    );
+
+    const attached: EmailHtmlWithInlineImages = EmailInlineImages.attach(html);
+
+    expect(attached.inlineImages).toHaveLength(1);
+    expect(attached.html.includes(png)).toBe(false);
+  });
+
   test("Markdown with more than a megabyte left once over-long text is held back is sent as text, and marked never reads it", async () => {
     const logged: SpyInstance<typeof logger.warn> = jest
       .spyOn(logger, "warn")
