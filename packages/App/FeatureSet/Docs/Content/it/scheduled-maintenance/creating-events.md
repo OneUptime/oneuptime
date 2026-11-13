@@ -124,7 +124,7 @@ Tutto ciò che c'è nel modulo si può cambiare sulle pagine dell'evento, tranne
 ## Pubblicare note mentre il lavoro procede
 
 - Le **Note pubbliche** sono aggiornamenti per i vostri clienti: vengono mostrate sulle pagine di stato dell'evento, e ognuna può avvisare i loro iscritti con **Avvisa gli iscritti della pagina di stato**.
-- Le **Note private** sono solo per il vostro team.
+- Le **Note private** può leggerle solo chi può vedere l'evento.
 
 Scrivetene una sulla pagina **Note pubbliche** o **Note private** dell'evento, oppure dal menu **Azioni** del **Feed della manutenzione programmata** con **Aggiungi nota pubblica** o **Aggiungi nota privata**. Lo stesso menu esegue un runbook con **Esegui runbook**. Un modello di nota compila un testo che il vostro team scrive spesso: vedere [Regole e impostazioni della manutenzione](/docs/scheduled-maintenance/settings#modelli-di-note).
 

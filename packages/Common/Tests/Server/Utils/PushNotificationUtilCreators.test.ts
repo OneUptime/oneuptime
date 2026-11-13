@@ -174,9 +174,7 @@ describe("PushNotificationUtil untested creators", () => {
         });
 
       expect(message.title).toBe("Added to On-Call Policy");
-      expect(message.body).toContain(
-        "added to the on-call duty policy Primary",
-      );
+      expect(message.body).toContain("added to the on-call policy Primary");
       expect(message.tag).toBe("on-call-policy-added");
       expect(message.requireInteraction).toBe(false);
     });
@@ -188,9 +186,7 @@ describe("PushNotificationUtil untested creators", () => {
         });
 
       expect(message.title).toBe("Removed from On-Call Policy");
-      expect(message.body).toContain(
-        "removed from the on-call duty policy Primary",
-      );
+      expect(message.body).toContain("removed from the on-call policy Primary");
       expect(message.tag).toBe("on-call-policy-removed");
     });
 

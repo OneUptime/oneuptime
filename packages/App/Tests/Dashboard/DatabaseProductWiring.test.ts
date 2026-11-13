@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { pageRoutesIn, routeMapPath, routesAt } from "../Helpers/PageRoutes";
 
 /*
  * The Databases product is a lazy-loaded route group like Cloud / Podman: a
@@ -313,10 +314,17 @@ describe("every route is actually mounted", () => {
   });
 
   test("App.tsx lazy-loads the product router and mounts it at the product root", () => {
-    const app: string = squash(readSource("App.tsx"));
-
-    expect(app).toContain("RouteMap[PageMap.DATABASE_ROOT]");
-    expect(app).toContain("<DatabaseRoutes {...commonPageProps} />");
+    expect(
+      routesAt(
+        pageRoutesIn(path.join(DASHBOARD_SRC, "App.tsx")),
+        routeMapPath("DATABASE_ROOT"),
+      ),
+    ).toEqual([
+      {
+        path: routeMapPath("DATABASE_ROOT"),
+        element: "<DatabaseRoutes {...commonPageProps} />",
+      },
+    ]);
     expect(dense(readSource("App.tsx"))).toContain(
       'lazy(()=>{returnimport("./Routes/DatabaseRoutes");})',
     );

@@ -5,6 +5,7 @@ import React, {
   useState,
 } from "react";
 import CloudAppRevision from "Common/Models/DatabaseModels/CloudAppRevision";
+import DirectionArrow from "Common/UI/Components/DirectionArrow/DirectionArrow";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import Route from "Common/Types/API/Route";
 import Includes from "Common/Types/BaseDatabase/Includes";
@@ -226,13 +227,19 @@ const RecentDeploysCard: FunctionComponent<ComponentProps> = (
                   >
                     <bdi>{appName || "—"}</bdi>
                   </AppLink>
+                  {/*
+                   * The revision before, then this one, each set apart so
+                   * the arrow points the way the page reads.
+                   */}
                   <span className="font-mono text-sm text-gray-600">
                     <bdi>
                       {getShortRevision({
                         revision: deploy.previousRevision,
                         appName,
                       })}
-                      {" → "}
+                    </bdi>{" "}
+                    <DirectionArrow />{" "}
+                    <bdi>
                       {getShortRevision({ revision: deploy.revision, appName })}
                     </bdi>
                   </span>

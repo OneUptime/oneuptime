@@ -35,7 +35,7 @@ flowchart LR
 | **वर्कस्पेस** | **Slack**, **Microsoft Teams**, **Mattermost**, **वीडियो कॉल** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [वीडियो कॉल](/docs/workspace-connections/video-calls) |
 | **टेलीमेट्री और APM** | **इंजेशन कुंजियाँ**, **डेटा प्रतिधारण**, **उपयोग** | [इंजेशन कुंजियाँ](/docs/telemetry/ingestion-keys), [डेटा प्रतिधारण](/docs/telemetry/data-retention), [टेलीमेट्री उपयोग](/docs/telemetry/usage) |
 | **सूचनाएं** | **सूचना चैनल**, **सूचना लॉग**, **मोबाइल ऐप्स** | [सूचनाएं](#सूचनाएं) |
-| **एआई** | **AI सुविधाएं**, **LLM प्रदाता**, **बाहरी MCP सर्वर**, **AI क्रेडिट**, **AI लॉग**, **MCP सर्वर** | [LLM प्रदाता](/docs/ai/llm-provider), [बाहरी MCP सर्वर](/docs/ai/external-mcp-servers), [MCP सर्वर](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#लागत-नियंत्रण) |
+| **एआई** | **AI सुविधाएं**, **LLM प्रदाता**, **बाहरी MCP सर्वर**, **AI क्रेडिट**, **AI परिणाम**, **AI लॉग**, **MCP सर्वर** | [LLM प्रदाता](/docs/ai/llm-provider), [बाहरी MCP सर्वर](/docs/ai/external-mcp-servers), [MCP सर्वर](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#लागत-नियंत्रण) |
 | **उन्नत** | **डोमेन**, **API कुंजियाँ**, **फ़ीचर फ़्लैग**, **किसी दूसरे टूल से इंपोर्ट करें** | [कस्टम डोमेन](/docs/status-pages/branding-and-domains#कस्टम-डोमेन), [API कुंजियाँ](/docs/permissions/index#api-कुंजियाँ), [फ़ीचर फ़्लैग](#फ़ीचर-फ़्लैग), [Opsgenie से आना](/docs/moving-to-oneuptime/opsgenie) और बाकी माइग्रेशन गाइड |
 | **सुरक्षा** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **बिलिंग और चालान** | **बिलिंग**, **चालान** | [बिलिंग और उपयोग](/docs/configuration/billing) |

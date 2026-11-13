@@ -330,7 +330,7 @@ Utöver verktygen för varje sorts post har servern verktyg gjorda för att hant
 
 - **`acknowledge_incident`** / **`resolve_incident`**: flytta en incident till projektets tillstånd Acknowledged eller Resolved, som instrumentpanelens knapp gör
 - **`acknowledge_alert`** / **`resolve_alert`**: samma sak för larm
-- **`add_incident_note`**: lägg till en anteckning på en incident med `visibility: "internal"` (bara teamet, standard) eller `visibility: "public"` (publicerad på statussidan). Markdown stöds
+- **`add_incident_note`**: lägg till en anteckning på en incident med `visibility: "internal"` (bara de som kan se incidenten, standard) eller `visibility: "public"` (publicerad på statussidan). Markdown stöds
 - **`add_alert_note`**: lägg till en intern anteckning på ett larm
 
 En typisk slinga: `list_incidents` → `acknowledge_incident` → undersök med `list_logs` → `add_incident_note` (publik) → `resolve_incident`.

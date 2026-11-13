@@ -12,6 +12,10 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import AuditLog from "../../../Models/AnalyticsModels/AuditLog";
 import InventoryItem from "../../../Models/DatabaseModels/InventoryItem";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
+import OnCallDutyPolicySchedule from "../../../Models/DatabaseModels/OnCallDutyPolicySchedule";
+import OnCallDutyPolicyScheduleLayer from "../../../Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
+import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
+import ScheduledMaintenanceStateTimeline from "../../../Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelObjective";
 import ServiceLevelObjectiveBurnRateRule from "../../../Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
 import ServiceLevelObjectiveErrorBudgetPolicyTier from "../../../Models/DatabaseModels/ServiceLevelObjectiveErrorBudgetPolicyTier";
@@ -30,9 +34,10 @@ import User from "../../../Models/DatabaseModels/User";
  * just empty":
  *   - @EnableAuditLog copies only the keys it knows, so an option that is not
  *     copied never reaches the service;
- *   - rootResource.resourceType is a literal that has to equal the root
- *     model's singularName, or a child's entries roll up to a page that never
- *     asks for them;
+ *   - rootResource.resourceType has to equal the type the root model's own
+ *     entries are stored under - its API name (apiSingularName), else its
+ *     singularName, as AuditLogRecorder.getResourceType stores them - or a
+ *     child's entries roll up to a page that never asks for them;
  *   - an ignored or root column that is not a real column (a rename) quietly
  *     turns the feature off.
  */
@@ -383,10 +388,40 @@ describe("every audited model's configuration is consistent", () => {
     return Boolean(model.enableAuditLogOn);
   });
 
+  // The types the audited models' own entries are stored under.
   const auditedResourceTypes: Set<string> = new Set<string>(
     audited.map((model: BaseModel) => {
-      return model.singularName!;
+      return (model.apiSingularName || model.singularName)!;
     }),
+  );
+
+  /*
+   * A root renamed on screen keeps the type its entries were stored under,
+   * its API name (#6817: Maintenance Event and On-Call Schedule), so its
+   * rows roll up to it under that type, the same across old entries and new.
+   */
+  test.each([
+    [
+      "ScheduledMaintenanceStateTimeline",
+      new ScheduledMaintenanceStateTimeline(),
+      new ScheduledMaintenance(),
+    ],
+    [
+      "OnCallDutyPolicyScheduleLayer",
+      new OnCallDutyPolicyScheduleLayer(),
+      new OnCallDutyPolicySchedule(),
+    ],
+  ])(
+    "%s: a root renamed on screen is named by its API name",
+    (_name: unknown, row: unknown, root: unknown) => {
+      const rootModel: BaseModel = root as BaseModel;
+
+      expect(rootModel.apiSingularName).toBeTruthy();
+      expect(rootModel.apiSingularName).not.toBe(rootModel.singularName);
+      expect(
+        (row as BaseModel).enableAuditLogOn?.rootResource?.resourceType,
+      ).toBe(rootModel.apiSingularName);
+    },
   );
 
   test("the sweep sees the models this change audits", () => {

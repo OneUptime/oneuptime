@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 51223,
-    "untranslated": 1275
+    "keys": 51818,
+    "untranslated": 1271
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -188,6 +188,7 @@
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "PostgreSQL db.prod.internal:5432",
     "Powered by OneUptime",
+    "PromQL",
     "Proxmox ID",
     "RTT",
     "RX",
@@ -332,6 +333,7 @@
     "storage-01 · RegionOne",
     "storefront-web",
     "subscriber@company.com",
+    "sum by (job) (rate(http_requests_total[5m]))",
     "support-.*",
     "svc-backup",
     "swarm-production",

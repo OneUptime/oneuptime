@@ -21,7 +21,10 @@
  * from its settings - the same rules the Notification service sends by - and
  * from what the server remembers of its own last sends (GlobalConfig.
  * serverSendingHealth, written by the senders). Saving a channel's settings
- * starts it again at untested.
+ * starts it again at untested, and so do the settings of SMS, calls or
+ * email changing without a save, when the GLOBAL_TWILIO_ or GLOBAL_EMAIL_
+ * environment variables set them: what was learned with the settings
+ * before is not read as these ones' (settingsFingerprint).
  *
  * Who reads what:
  *
@@ -71,11 +74,32 @@ export interface ServerSendingHealthEntry {
   lastFailedAt: string | null;
   failingSince: string | null;
   lastFailure: string | null;
+  /*
+   * Which settings the entry was learned with, for a channel whose settings
+   * can change without anyone saving them: SMS and calls, whose Twilio
+   * account the GLOBAL_TWILIO_ environment variables can set (#7515, #7736),
+   * and email, whose settings the GLOBAL_EMAIL_ ones can (#7738, #7803). A
+   * keyed hash the server makes (Server/Utils/ServerSending/
+   * ServerSendingSettings), never a setting itself. Left out by entries
+   * written before there was one, and by push.
+   */
+  settingsFingerprint?: string | undefined;
 }
 
 export type ServerSendingHealth = Partial<
   Record<ServerSendingChannel, ServerSendingHealthEntry>
 >;
+
+/*
+ * The settings a channel sends with now, as fingerprints: `current` for the
+ * ones it sends with, and `unmarked` for the ones an entry without a
+ * fingerprint was learned with - the settings saved in the Admin Dashboard,
+ * the only ones there were before entries carried one.
+ */
+export interface ServerSendingSettingsFingerprints {
+  current: string;
+  unmarked: string;
+}
 
 // Where one channel stands, as a master admin reads it.
 export interface ServerChannelStatus {
@@ -156,6 +180,25 @@ const readText: ReadTextFunction = (value: unknown): string | null => {
   return text ? text.slice(0, MAX_SERVER_SENDING_FAILURE_LENGTH) : null;
 };
 
+// The longest fingerprint kept: the server writes 64 hex characters.
+const MAX_SETTINGS_FINGERPRINT_LENGTH: number = 128;
+
+type ReadFingerprintFunction = (value: unknown) => string | undefined;
+
+const readFingerprint: ReadFingerprintFunction = (
+  value: unknown,
+): string | undefined => {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const fingerprint: string = value.trim();
+
+  return fingerprint && fingerprint.length <= MAX_SETTINGS_FINGERPRINT_LENGTH
+    ? fingerprint
+    : undefined;
+};
+
 type ReadNumberFunction = (value: unknown) => number;
 
 const readCount: ReadNumberFunction = (value: unknown): number => {
@@ -177,12 +220,22 @@ export default class ServerSendingStatusUtil {
       return { ...EMPTY_ENTRY };
     }
 
-    return {
+    const entry: ServerSendingHealthEntry = {
       lastSucceededAt: readDate(value["lastSucceededAt"]),
       lastFailedAt: readDate(value["lastFailedAt"]),
       failingSince: readDate(value["failingSince"]),
       lastFailure: readText(value["lastFailure"]),
     };
+
+    const settingsFingerprint: string | undefined = readFingerprint(
+      value["settingsFingerprint"],
+    );
+
+    if (settingsFingerprint) {
+      entry.settingsFingerprint = settingsFingerprint;
+    }
+
+    return entry;
   }
 
   /*
@@ -210,6 +263,53 @@ export default class ServerSendingStatusUtil {
     channel: ServerSendingChannel,
   ): ServerSendingHealthEntry {
     return health[channel] ? { ...health[channel]! } : { ...EMPTY_ENTRY };
+  }
+
+  /*
+   * A channel's entry as it describes the settings the channel sends with
+   * now: one learned with other settings says nothing about these, and is
+   * read as nothing remembered (untested). An entry without a fingerprint
+   * counts as learned with `unmarked`. With no fingerprints - a channel
+   * whose settings change only when they are saved, which forgets the
+   * entry - every entry is current.
+   */
+  public static getCurrentEntry(
+    health: ServerSendingHealth,
+    channel: ServerSendingChannel,
+    fingerprints: ServerSendingSettingsFingerprints | null,
+  ): ServerSendingHealthEntry {
+    const entry: ServerSendingHealthEntry = ServerSendingStatusUtil.getEntry(
+      health,
+      channel,
+    );
+
+    if (!fingerprints) {
+      return entry;
+    }
+
+    const learnedWith: string =
+      entry.settingsFingerprint || fingerprints.unmarked;
+
+    return learnedWith === fingerprints.current ? entry : { ...EMPTY_ENTRY };
+  }
+
+  /*
+   * The entry, marked with the settings it is learned with now: left
+   * unmarked for a channel with no fingerprints.
+   */
+  public static withSettingsFingerprint(
+    entry: ServerSendingHealthEntry,
+    fingerprints: ServerSendingSettingsFingerprints | null,
+  ): ServerSendingHealthEntry {
+    const marked: ServerSendingHealthEntry = { ...entry };
+
+    delete marked.settingsFingerprint;
+
+    if (fingerprints) {
+      marked.settingsFingerprint = fingerprints.current;
+    }
+
+    return marked;
   }
 
   /*

@@ -270,7 +270,7 @@ const CodeContextModal: FunctionComponent<ComponentProps> = (
             modelType={picker.modelType}
             labelField={picker.labelField}
             valueField="_id"
-            placeholder={translator.translateText(picker.placeholder)}
+            placeholder={picker.placeholder}
             ariaLabel={translator.translateText(kind.label)}
             dataTestId="code-context-record"
             // What is added: Add waits for one, so none is never a choice.
@@ -436,7 +436,7 @@ const CodeContextModal: FunctionComponent<ComponentProps> = (
                   modelType={Service}
                   labelField="name"
                   valueField="_id"
-                  placeholder={translator.translateText("Any service")}
+                  placeholder="Any service"
                   ariaLabel={translator.translateText("Service")}
                   dataTestId="code-context-logs-service"
                   value={serviceId || null}
@@ -513,7 +513,7 @@ const CodeContextModal: FunctionComponent<ComponentProps> = (
                   modelType={Service}
                   labelField="name"
                   valueField="_id"
-                  placeholder={translator.translateText("Pick a service")}
+                  placeholder="Pick a service"
                   ariaLabel={translator.translateText("Service")}
                   dataTestId="code-context-profile-service"
                   // Required, unlike the logs' "Any service".

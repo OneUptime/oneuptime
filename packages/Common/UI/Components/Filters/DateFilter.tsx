@@ -228,6 +228,8 @@ const DateFilterControls: DateFilterFunction = <T extends GenericObject>(
                   ? translator.translateText("From")
                   : getFilterPlaceholder(translator, filter.title)
               }
+              // "From" or "Filter by {{field}}", in the reader's words here.
+              isPlaceholderTranslated={true}
               type={inputType}
               outerDivClassName="relative rounded-md w-full"
             />

@@ -25,7 +25,8 @@ import React, { FunctionComponent, ReactElement } from "react";
  * The kinds of records that use a value and how many of each - "Incidents
  * (12)", "Monitors (3)" - as the Archive and Delete dialogs list them: one
  * line of their own after a sentence that says what the list is. People's
- * own settings are said as whose they are: "On-call rules of 11 people".
+ * own settings are said as what they are and whose: "11 people's rules in
+ * How to Reach Me".
  */
 
 // "12", or the count the server stopped at, "10,000+", in the reader's digits.
@@ -43,7 +44,10 @@ const getCountText: (
     : translator.formatNumber(item.count);
 };
 
-// "Incidents (12)", "On-call rules of 11 people": the kind in the reader's language.
+/*
+ * "Incidents (12)", "11 people's rules in How to Reach Me": the kind in the
+ * reader's language.
+ */
 export const getUsageItemText: (
   item: ArchivableValueUsageItem,
   translator: Translator,
@@ -191,17 +195,17 @@ export interface PersonalUsageNotesProps {
   people: Array<ArchivableValueUsageItem>;
   /*
    * Where the reader sees their own settings of a table, when the product
-   * has a page for them ("See your on-call rules").
+   * has a page for them ("Open How to Reach Me").
    */
   getOwnSettingsRoute?: ((tableName: string) => Route | null) | undefined;
 }
 
 /*
  * The Archive dialog's paragraph about people's own settings that name the
- * value - "11 people have their own on-call rules for this severity. Those
- * rules stay as they are, so incidents with it still page them. See your
- * on-call rules" - one per table, after the settings that keep using it, in
- * the dialog's own prose colour. Nothing for none.
+ * value - "11 people have rules for this severity in How to Reach Me. Those
+ * rules stay as they are, so incidents with it still page them. Open How to
+ * Reach Me" - one per table, after the settings that keep using it, in the
+ * dialog's own prose colour. Nothing for none.
  *
  * The link opens in a new tab: the Archive dialog is a question still being
  * answered, and following the link in place would close it unanswered.
