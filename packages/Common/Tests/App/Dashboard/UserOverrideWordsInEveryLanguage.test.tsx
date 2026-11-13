@@ -379,6 +379,8 @@ describe("on the dialog and the lists, in German, Arabic and Japanese", () => {
     jest
       .spyOn(OneUptimeDate, "getCurrentDate")
       .mockReturnValue(OneUptimeDate.fromString("2026-11-13T12:00:00.000Z"));
+    // Every other complaint still reaches the test's output.
+    // eslint-disable-next-line no-console
     const consoleError: typeof console.error = console.error;
     jest
       .spyOn(console, "error")
