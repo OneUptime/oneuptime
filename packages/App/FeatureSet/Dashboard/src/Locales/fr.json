@@ -33615,7 +33615,7 @@
   "OneUptime AI looks into the slow code and writes what it found on the finding. It opens no pull request.": "OneUptime AI examine le code lent et écrit ce qu'il a trouvé sur le constat. Il n'ouvre aucune pull request.",
   "OneUptime AI opens the pull request on its own. Nothing is ever merged: your team reviews it.": "OneUptime AI ouvre la pull request de lui-même. Rien n'est jamais fusionné : votre équipe la relit.",
   "OneUptime AI starts as soon as the slow code is found.": "OneUptime AI commence dès que le code lent est trouvé.",
-  "OneUptime started this task from an AI insight: {{label}}": "OneUptime a lancé cette tâche depuis une analyse IA: {{label}}",
+  "OneUptime started this task from an AI insight: {{label}}": "OneUptime a lancé cette tâche depuis une analyse IA : {{label}}",
   "Only if still found after a wait": "Seulement s'il est encore trouvé après une attente",
   "Open task": "Ouvrir la tâche",
   "Pull request": "Pull request",
