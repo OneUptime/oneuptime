@@ -663,7 +663,7 @@ describe("PromQL aggregations", () => {
     ["topk(x)", "topk(...) takes 2 arguments, but the query gives it 1"],
     [
       "sum(x[5m])",
-      "Sum(...) must be a instant vector, but it is a range vector",
+      "The expression in sum(...) must be an instant vector, but it is a range vector",
     ],
     ['topk("5", x)', "must be a scalar, but it is a string"],
     ["count_values(5, x)", "must be a string, but it is a scalar"],
@@ -709,9 +709,9 @@ describe("PromQL function calls", () => {
   test.each([
     [
       "rate(x)",
-      "Argument 1 of rate() must be a range vector, but it is a instant vector. Add a range, such as [5m], after the selector.",
+      "Argument 1 of rate() must be a range vector, but it is an instant vector. Add a range, such as [5m], after the selector.",
     ],
-    ["abs(x[5m])", "must be a instant vector, but it is a range vector"],
+    ["abs(x[5m])", "must be an instant vector, but it is a range vector"],
     [
       "round(x, 1, 2)",
       "round() takes at most 2 arguments, but the query gives it 3",

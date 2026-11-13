@@ -1,6 +1,6 @@
 import {
   PROMQL_METRIC_NAME_LABEL,
-  PROMQL_VALUE_TYPE_NAMES,
+  PROMQL_VALUE_TYPE_WITH_ARTICLE,
   PromQLAggregate,
   PromQLAggregateOperator,
   PromQLAtModifier,
@@ -401,7 +401,7 @@ class PromQLParser {
         type !== PromQLValueType.InstantVector
       ) {
         throw new PromQLError(
-          `"${operator}" works on numbers and instant vectors, not on a ${PROMQL_VALUE_TYPE_NAMES[type]}.`,
+          `"${operator}" works on numbers and instant vectors, not on ${PROMQL_VALUE_TYPE_WITH_ARTICLE[type]}.`,
           undefined,
           side.position,
         );
@@ -492,7 +492,7 @@ class PromQLParser {
         operandType !== PromQLValueType.InstantVector
       ) {
         throw new PromQLError(
-          `A unary "${token.text}" works on a number or an instant vector, not on a ${PROMQL_VALUE_TYPE_NAMES[operandType]}.`,
+          `A unary "${token.text}" works on a number or an instant vector, not on ${PROMQL_VALUE_TYPE_WITH_ARTICLE[operandType]}.`,
           undefined,
           position,
         );
@@ -836,7 +836,7 @@ class PromQLParser {
     this.expectType(
       expression,
       PromQLValueType.InstantVector,
-      `${operator}(...)`,
+      `the expression in ${operator}(...)`,
     );
 
     if (parameter) {
@@ -954,7 +954,7 @@ class PromQLParser {
     }
 
     throw new PromQLError(
-      `${capitalize(context)} must be a ${PROMQL_VALUE_TYPE_NAMES[expected]}, but it is a ${PROMQL_VALUE_TYPE_NAMES[actual]}.${hint}`,
+      `${capitalize(context)} must be ${PROMQL_VALUE_TYPE_WITH_ARTICLE[expected]}, but it is ${PROMQL_VALUE_TYPE_WITH_ARTICLE[actual]}.${hint}`,
       undefined,
       expression.position,
     );
@@ -1050,7 +1050,7 @@ class PromQLParser {
 
       if (innerType !== PromQLValueType.InstantVector) {
         throw new PromQLError(
-          `A subquery ([range:step]) needs an instant vector before it, not a ${PROMQL_VALUE_TYPE_NAMES[innerType]}.`,
+          `A subquery ([range:step]) needs an instant vector before it, not ${PROMQL_VALUE_TYPE_WITH_ARTICLE[innerType]}.`,
           undefined,
           subquery.position,
         );

@@ -31,6 +31,14 @@ export const PROMQL_VALUE_TYPE_NAMES: Record<PromQLValueType, string> = {
   [PromQLValueType.String]: "string",
 };
 
+// A value type with its article, for the middle of a sentence.
+export const PROMQL_VALUE_TYPE_WITH_ARTICLE: Record<PromQLValueType, string> = {
+  [PromQLValueType.Scalar]: "a scalar",
+  [PromQLValueType.InstantVector]: "an instant vector",
+  [PromQLValueType.RangeVector]: "a range vector",
+  [PromQLValueType.String]: "a string",
+};
+
 export enum PromQLMatchType {
   Equal = "=",
   NotEqual = "!=",
