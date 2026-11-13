@@ -37,7 +37,13 @@ import Route from "Common/Types/API/Route";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import { isTopologyInfrastructureType } from "Common/Types/Topology/TopologyTypeRules";
 import useTranslateValue from "Common/UI/Utils/Translation";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  Translator,
+  composedValue,
+  formatInline,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import Navigation from "Common/UI/Utils/Navigation";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
@@ -203,6 +209,33 @@ export function subtitleForEntry(entry: ServiceMapEntry): string {
     : entry.typeLabel;
 }
 
+/*
+ * A card's last line, in the reader's language: where a service runs
+ * ("Runs on 12 pods · 3 hosts"), or how many services call what it calls.
+ */
+export function footerForEntry(
+  entry: ServiceMapEntry,
+  translator: Translator,
+): string | undefined {
+  if (entry.kind !== "service") {
+    return translator.translatePlural(
+      {
+        one: "Called by {{count}} service",
+        other: "Called by {{count}} services",
+      },
+      entry.callers,
+    );
+  }
+  if (summarizeRunsOn(entry.runsOn) === null) {
+    return undefined;
+  }
+  return translator.translateTemplate("Runs on {{resources}}", {
+    resources: composedValue((sentence: Translator): string => {
+      return summarizeRunsOn(entry.runsOn, sentence) || "";
+    }),
+  });
+}
+
 interface ServiceNodeData {
   entry: ServiceMapEntry;
   label: string;
@@ -285,6 +318,7 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
   const t: (value: string) => string = (value: string): string => {
     return translateString(value) || value;
   };
+  const translator: Translator = useTranslator();
 
   /*
    * The services list's columns as wide as a person makes them (Common's
@@ -635,7 +669,6 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
       if (!entry) {
         continue;
       }
-      const runsOn: string | null = summarizeRunsOn(entry.runsOn);
       const size: { width: number; height: number } | undefined =
         measuredSizes.current.get(key);
       builtNodes.push({
@@ -647,12 +680,7 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
           entry,
           label: entry.label,
           stats: statsForEntry(entry, props.metricsWindowSeconds),
-          footer:
-            entry.kind === "service"
-              ? runsOn
-                ? `Runs on ${runsOn}`
-                : undefined
-              : `Called by ${entry.callers} service${entry.callers === 1 ? "" : "s"}`,
+          footer: footerForEntry(entry, translator),
           dimmed: visibility.contextKeys.has(key),
           selected: selectedKey === key,
         },
@@ -660,6 +688,7 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
     }
     return builtNodes;
   }, [
+    translator.language,
     layout,
     model,
     visibility,
@@ -998,7 +1027,10 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
         </h4>
         <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {unconnectedEntries.map((entry: ServiceMapEntry): ReactElement => {
-            const runsOn: string | null = summarizeRunsOn(entry.runsOn);
+            const runsOn: string | null = summarizeRunsOn(
+              entry.runsOn,
+              translator,
+            );
             return (
               <button
                 key={entry.key}
@@ -1024,7 +1056,10 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
                   </span>
                   <span className="block truncate text-xs text-gray-500">
                     {runsOn
-                      ? `${t(subtitleForEntry(entry))} · ${runsOn}`
+                      ? formatInline(
+                          [t(subtitleForEntry(entry)), runsOn],
+                          translator,
+                        )
                       : t(subtitleForEntry(entry))}
                   </span>
                 </span>
@@ -1133,7 +1168,10 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
             <tbody className="divide-y divide-gray-100">
               {pageEntries.map((entry: ServiceMapEntry): ReactElement => {
                 const color: string = statusColorForEntry(entry);
-                const runsOn: string | null = summarizeRunsOn(entry.runsOn);
+                const runsOn: string | null = summarizeRunsOn(
+                  entry.runsOn,
+                  translator,
+                );
                 return (
                   <tr
                     key={entry.key}
@@ -1166,9 +1204,16 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
                           >
                             {entry.label}
                           </button>
-                          <span className="mt-0.5 block text-xs text-gray-500">
-                            {t(subtitleForEntry(entry))}
-                            {runsOn ? ` · ${runsOn}` : ""}
+                          <span
+                            className="mt-0.5 block text-xs text-gray-500"
+                            data-testid="service-map-list-row-kind"
+                          >
+                            {runsOn
+                              ? formatInline(
+                                  [t(subtitleForEntry(entry)), runsOn],
+                                  translator,
+                                )
+                              : t(subtitleForEntry(entry))}
                           </span>
                         </span>
                       </div>
