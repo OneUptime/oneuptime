@@ -337,6 +337,24 @@ describe("NetworkInterfaceService.upsertWalkedInterfaces", () => {
       }
     });
 
+    /*
+     * The race branch keeps the update path's rule too (OneUptime issue
+     * #7389): a walk older than the one that last saw the row - processed
+     * after it, out of a queue backlog - leaves the row as the newer walk
+     * left it. The rule is on the conflicting row, as Postgres re-reads it.
+     */
+    test("the conflict branch writes only a row last seen before this walk", async () => {
+      await run({ walkedInterfaces: [walked()] });
+
+      const conflictBranch: string =
+        insertCalls()[0]![0].split("DO UPDATE SET")[1]!;
+      expect(conflictBranch).toMatch(
+        /WHERE "NetworkInterface"\."lastSeenAt" IS NULL\s+OR "NetworkInterface"\."lastSeenAt" < EXCLUDED\."lastSeenAt"\s*$/,
+      );
+      // EXCLUDED."lastSeenAt" is this walk's receipt time.
+      expect(insertCalls()[0]![1]).toContain(NOW);
+    });
+
     test("the insert column list omits the rate columns entirely", async () => {
       await run({ walkedInterfaces: [walked()] });
 
@@ -377,6 +395,25 @@ describe("NetworkInterfaceService.upsertWalkedInterfaces", () => {
       expect(sql).toContain('i."interfaceIndex" = v."interfaceIndex"');
       expect(sql).toContain('i."deletedAt" IS NULL');
       expect(updateCalls()[0]![1][0]).toBe(DEVICE_ID.toString());
+    });
+
+    /*
+     * OneUptime issue #7389: `now` is when OneUptime received the poll, and a
+     * walk older than the one that last saw an interface - a retried job, or
+     * one that waited longer in the queue than the walk after it - leaves
+     * that interface as the newer walk wrote it. In the statement's own
+     * WHERE, so a walk written at the same moment is judged by the row as
+     * that walk left it.
+     */
+    test("writes only interfaces last seen before this walk", async () => {
+      await run({ walkedInterfaces: [walked({ interfaceIndex: 1 })] });
+
+      const sql: string = updateCalls()[0]![0];
+      expect(sql).toContain(
+        'AND (i."lastSeenAt" IS NULL OR i."lastSeenAt" < v."lastSeenAt")',
+      );
+      // v."lastSeenAt" is the walk's receipt time, the row's last value.
+      expect(updateCalls()[0]![1][UPDATE_PARAMS_PER_ROW]).toBe(NOW);
     });
 
     /*

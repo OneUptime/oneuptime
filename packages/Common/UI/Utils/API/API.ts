@@ -38,6 +38,7 @@ import {
 } from "../../../Types/UserSession/SessionLength";
 import API, { AuthRetryContext } from "../../../Utils/API";
 import { IDENTITY_URL } from "../../Config";
+import { registerPageErrorReader } from "../ErrorReader";
 import BlockedProject from "../BlockedProject";
 
 /*
@@ -550,6 +551,14 @@ class BaseAPI extends API {
   public static getFriendlyMessage(
     err: HTTPErrorResponse | Exception | unknown,
   ): string {
+    /*
+     * The sentences of an error nobody explained are written here: a card
+     * that puts one in a sentence of its own (errorInSentence) says it to
+     * the page's reader - Cloud or not, a master admin, a visitor (#7307).
+     * Told here, as a page runs: at load, API and User import each other.
+     */
+    registerPageErrorReader();
+
     if (err instanceof HTTPErrorResponse) {
       /*
        * A gateway's own 502 / 504 is a page, not a message: the server could

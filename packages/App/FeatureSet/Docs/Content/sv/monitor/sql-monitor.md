@@ -31,7 +31,7 @@ Sonden rapporterar bara:
 
 | Värde | Vad det är |
 |---|---|
-| **Row Count** | Antalet rader som frågan returnerade (begränsat av gränsen Max Rows). |
+| **Antal rader** | Antalet rader som frågan returnerade (begränsat av gränsen Max Rows). |
 | **Skalärvärde** | Den första kolumnen i den första raden. Det är det naturliga värdet för en fråga av typen `SELECT COUNT(*)`. |
 | **First Row** | Den första raden som par av kolumn och värde, visad i kontrollens sammanfattning som sammanhang. |
 | **Execution Time** | Hur lång tid kontrollen tog, i millisekunder — anslutningen inräknad, inte bara frågan. |
@@ -204,7 +204,7 @@ WHERE status = 'CANCELLED'
 :::
 
 > [!TIP]
-> För en fråga av typen `COUNT(*)` finns antalet tillgängligt både som **Row Count** (som är `1`, eftersom en rad returneras) och som **Skalärvärde** (själva antalet, från den första kolumnen). För att larma på "hur många" jämför du med **Skalärvärde**.
+> För en fråga av typen `COUNT(*)` finns antalet tillgängligt både som **Antal rader** (som är `1`, eftersom en rad returneras) och som **Skalärvärde** (själva antalet, från den första kolumnen). För att larma på "hur många" jämför du med **Skalärvärde**.
 
 ## Använd en övervakningshemlighet för lösenordet
 

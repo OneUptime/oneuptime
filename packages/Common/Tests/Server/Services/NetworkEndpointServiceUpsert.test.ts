@@ -447,6 +447,45 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
     expect(sql).toContain('e."deletedAt" IS NULL');
   });
 
+  /*
+   * OneUptime issue #7389: a walk's sighting is timed when OneUptime received
+   * the poll. An older poll processed after a newer one still writes what it
+   * says that is new - the rules of who owns the port are not about time -
+   * but it never takes the endpoint's last sighting back to its own. On the
+   * row as Postgres reads it, so a walk written at the same moment counts.
+   */
+  it("never moves an endpoint's lastSeenAt backwards, on the row as it stands", async () => {
+    findBySpy.mockResolvedValue([
+      makeExistingRow({
+        macAddress: CISCO_MAC,
+        attachedNetworkDeviceId: SWITCH_ID,
+        attachedInterfaceIndex: 2,
+        firstSeenAt: EARLIER,
+        lastSeenAt: NOW,
+      }),
+    ]);
+
+    await NetworkEndpointService.upsertDiscoveredEndpoints({
+      projectId: PROJECT_ID,
+      deviceId: SWITCH_ID,
+      attachments: [{ macAddress: CISCO_MAC, attachedInterfaceIndex: 7 }],
+      ipBindings: [],
+      now: TEN_MINUTES_AGO,
+    });
+
+    // The port it saw is new, so it is written...
+    expect(updateCalls()).toHaveLength(1);
+    expect(updateCalls()[0]![1][4]).toBe(7);
+
+    // ...with its own sighting, which the row keeps only if it is later.
+    expect(updateCalls()[0]![1][9]).toEqual(TEN_MINUTES_AGO);
+    const sql: string = updateCalls()[0]![0];
+    expect(sql).toContain(
+      '"lastSeenAt" = GREATEST(e."lastSeenAt", v."lastSeenAt")',
+    );
+    expect(sql).not.toMatch(/"lastSeenAt" = v\."lastSeenAt"/);
+  });
+
   it("lets ARP refresh the IP but not steal an attachment owned elsewhere", async () => {
     findBySpy.mockResolvedValue([
       makeExistingRow({

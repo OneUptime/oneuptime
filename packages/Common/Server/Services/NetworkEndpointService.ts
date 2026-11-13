@@ -712,6 +712,11 @@ export class Service extends ProjectReferencesService<Model> {
    * is written as it stands, so a walk that writes to a row takes it over.
    * And a controller names a port by its label: when it moved a client, the
    * ifIndex a walk left behind is the old port's, so it has to clear.
+   *
+   * lastSeenAt never moves backwards: the row keeps the later of its own
+   * and the sighting's. A walk's sighting is timed when OneUptime received
+   * the poll (OneUptime issue #7389), and an older poll processed after a
+   * newer one would otherwise take an endpoint's last sighting back to it.
    */
   private async bulkUpdateEndpoints(data: {
     projectId: ObjectID;
@@ -784,7 +789,7 @@ export class Service extends ProjectReferencesService<Model> {
             "siteId" = CASE WHEN v."setAttachment" THEN COALESCE(v."siteId", e."siteId") ELSE e."siteId" END,
             "ipAddress" = COALESCE(v."ipAddress", e."ipAddress"),
             "firstSeenAt" = COALESCE(e."firstSeenAt", v."lastSeenAt"),
-            "lastSeenAt" = v."lastSeenAt",
+            "lastSeenAt" = GREATEST(e."lastSeenAt", v."lastSeenAt"),
             "hostname" = COALESCE(v."hostname", e."hostname"),
             "attachmentSource" = v."attachmentSource",
             "updatedAt" = now()

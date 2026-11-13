@@ -68,6 +68,10 @@ import {
   getGlobalTranslator,
   Translator,
 } from "../../../UI/Utils/TranslateTemplate";
+import {
+  getUnexplainedServerErrorMessage,
+  SERVER_DOWN_MESSAGE,
+} from "../../../Types/Exception/UnexplainedError";
 import fs from "fs";
 import path from "path";
 import { isolated } from "../../Helpers/IsolateMarks";
@@ -985,6 +989,51 @@ describe("MonitorWhoIsToldCard", () => {
     expect(await screen.findByTestId("who-is-told-error")).toHaveTextContent(
       "Couldn't work out who is told. Monitor not found.",
     );
+  });
+
+  /*
+   * #7307: the read's error is API.getFriendlyMessage's answer. A gateway's
+   * 502 or 504 is SERVER_DOWN_MESSAGE and a server failure comes with its
+   * reference: the card said them as they came, half in English in every
+   * other language, the reference with no copy button. It says why and what
+   * to do next now (ErrorSentence), the reference in code with its button.
+   */
+  test("a gateway's 502 or 504: the server did not answer, try again in a few minutes - never the English it came as", async () => {
+    getForMonitor.mockRejectedValue(new Error(SERVER_DOWN_MESSAGE));
+    renderCard();
+
+    const error: HTMLElement = await screen.findByTestId("who-is-told-error");
+
+    expect(error.textContent).toBe(
+      "Couldn't work out who is told. The OneUptime server did not answer. It may be starting or restarting. Try again in a few minutes.",
+    );
+    expect(error.textContent).not.toContain(SERVER_DOWN_MESSAGE);
+    expect(error.textContent).not.toContain("Error connecting to server");
+    expect(within(error).getByTestId("error-in-sentence")).toHaveAttribute(
+      "data-error-kind",
+      "ServerDown",
+    );
+    expect(screen.getByTestId("who-is-told-try-again")).toBeInTheDocument();
+  });
+
+  test("a server failure with its reference: why, what next, and the reference in code with a copy button", async () => {
+    getForMonitor.mockRejectedValue(
+      new Error(getUnexplainedServerErrorMessage("1f0c9a2b")),
+    );
+    renderCard();
+
+    const error: HTMLElement = await screen.findByTestId("who-is-told-error");
+
+    expect(error.textContent).toBe(
+      "Couldn't work out who is told. The server ran into a problem it could not explain. Try again. If it keeps failing, give this reference to whoever runs your OneUptime server: 1f0c9a2b.",
+    );
+
+    const reference: HTMLElement = within(error).getByTestId("error-reference");
+
+    expect(within(reference).getByText("1f0c9a2b").tagName).toBe("CODE");
+    expect(
+      within(reference).getByRole("button", { name: "Copy" }),
+    ).toBeInTheDocument();
   });
 
   test("a monitor whose criteria do nothing names that break, with Criteria to fix it", async () => {

@@ -41,6 +41,7 @@ import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 import Link from "Common/UI/Components/Link/Link";
 import { ADMIN_DASHBOARD_URL } from "Common/UI/Config";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 import {
   formatList,
   getInlineSeparator,
@@ -589,17 +590,20 @@ const MonitorWhoIsToldCard: FunctionComponent<ComponentProps> = (
       );
     }
 
-    // What failed, and the one thing to do about it here: read it again.
+    /*
+     * What failed, and the one thing to do about it here: read it again. An
+     * error nobody explained (a gateway's 502, a server failure with its
+     * reference) says why and what to do next in the reader's language, the
+     * reference with its copy button (#7307).
+     */
     if (state.status === "error") {
       return (
         <div>
           <p className="text-sm text-gray-600" data-testid="who-is-told-error">
-            {translator.translateTemplate(
-              "Couldn't work out who is told. {{error}}",
-              {
-                error: translator.translateText(state.message) || state.message,
-              },
-            )}
+            <ErrorSentence
+              template="Couldn't work out who is told. {{error}}"
+              error={state.message}
+            />
           </p>
           <button
             type="button"

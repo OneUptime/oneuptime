@@ -14,6 +14,7 @@
  */
 
 import Icon from "../../Icon/Icon";
+import ErrorSentence from "../../ErrorMessage/ErrorSentence";
 import IconProp from "../../../../Types/Icon/IconProp";
 import useClipboardCopy, {
   ClipboardCopy,
@@ -1487,10 +1488,11 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
 
           {drill && drillChildren?.status === ChildrenStatus.Failed && (
             <div className="px-3 py-2 text-xs text-amber-700">
-              {translator.translateTemplate(
-                "Couldn't load the fields of {{value}}: {{error}}",
-                { value: drill.item.label, error: drillChildren.error || "" },
-              )}
+              <ErrorSentence
+                template="Couldn't load the fields of {{value}}: {{error}}"
+                error={drillChildren.error}
+                values={{ value: drill.item.label }}
+              />
             </div>
           )}
 
@@ -1535,12 +1537,10 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
             picker.loadErrors.map((error: string) => {
               return (
                 <div key={error} className="px-3 py-2 text-xs text-amber-700">
-                  {translator.translateTemplate(
-                    "Couldn't load the variables: {{error}}",
-                    {
-                      error: error,
-                    },
-                  )}
+                  <ErrorSentence
+                    template="Couldn't load the variables: {{error}}"
+                    error={error}
+                  />
                 </div>
               );
             })}

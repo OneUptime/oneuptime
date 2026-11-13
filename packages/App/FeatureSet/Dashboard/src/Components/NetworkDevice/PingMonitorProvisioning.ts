@@ -17,6 +17,7 @@ import {
   getGlobalTranslator,
   translateTemplate,
 } from "Common/UI/Utils/TranslateTemplate";
+import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 
 /*
  * "Create a Ping monitor for this device and bind it" — the one client-side
@@ -213,7 +214,7 @@ export async function provisionPingMonitorForDevice(
     throw new BadDataException(
       translateTemplate(
         "The Ping monitor was created but could not be bound to this device, so it was removed again: {{error}}",
-        { error: API.getFriendlyMessage(err) },
+        { error: errorInSentence(API.getFriendlyMessage(err)) },
       ),
     );
   }

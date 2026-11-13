@@ -452,8 +452,12 @@ describe("interface texts match how the walk computes them", () => {
     );
 
     expect(snmp).toContain('sysUpTime: "1.3.6.1.2.1.1.3.0"');
+    /*
+     * Counted back from when OneUptime received the poll, which is when the
+     * uptime was read (issue #7389), not from when a worker processed it.
+     */
     expect(inventoryUtil).toContain(
-      "now.getTime() - systemInfo.sysUpTimeSeconds * 1000",
+      "receivedAt.getTime() - systemInfo.sysUpTimeSeconds * 1000",
     );
 
     // 2^32 hundredths of a second, in days.

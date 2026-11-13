@@ -47,6 +47,7 @@ import {
   RecorderDiagnosticsResult,
   explainRecorderDiagnostics,
 } from "./RecorderDiagnosticsExplainer";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * The shared vocabulary of every recording-health surface, and the compact
@@ -674,11 +675,11 @@ export const RecordingHealthSummaryView: FunctionComponent<
         </div>
         <div className="mt-0.5 text-sm text-gray-700">{described.detail}</div>
         <div className="mt-1 text-xs text-gray-500">
-          {translator.translateTemplate(
-            "Server said: {{message}}",
-            { message: health.error.message },
-            { setsValuesApart: true },
-          )}
+          <ErrorSentence
+            template="Server said: {{message}}"
+            error={health.error.message}
+            errorPlaceholder="message"
+          />
         </div>
       </div>
     );
