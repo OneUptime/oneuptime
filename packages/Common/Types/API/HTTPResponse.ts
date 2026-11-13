@@ -93,7 +93,8 @@ export default class HTTPResponse<
       !Array.isArray(data) &&
       Object.keys(data).includes("count") &&
       Object.keys(data).includes("skip") &&
-      Object.keys(data).includes("limit")
+      Object.keys(data).includes("limit") &&
+      Array.isArray(data["data"])
     ) {
       // likely a list returned.
       this.count = data["count"] as number;
