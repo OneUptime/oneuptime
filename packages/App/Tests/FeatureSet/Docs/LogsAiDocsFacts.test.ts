@@ -1,5 +1,9 @@
 import { readPage } from "./DocsContentSupport";
 import { LOGS_EXPLORER } from "./TelemetryExplorersDocsPages";
+import {
+  drawnExplorerTabs,
+  writtenExplorerTabs,
+} from "./TelemetryExplorersDocsTabs";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -56,8 +60,10 @@ import { CardSelectOption } from "Common/UI/Components/CardSelect/CardSelect";
  * log line reaches it, the verdict an error log's pull request waits for,
  * the switch and where it is, the rules' answers, the ways back into the
  * explorers, the monitor an error log offers, and how many pull requests
- * OneUptime AI opens on its own. TelemetryExplorersDocsFacts holds the
- * page's tab table (the AI tab included); TelemetryExplorersDocsTranslations
+ * OneUptime AI opens on its own. The page's count of the explorer's tabs,
+ * the AI tab among them, is held to the tabs the Dashboard draws
+ * (TelemetryExplorersDocsTabs); TelemetryExplorersDocsFacts holds the page's
+ * tab table (the AI tab included), and TelemetryExplorersDocsTranslations
  * carries every line into the other sixteen languages.
  */
 
@@ -165,7 +171,16 @@ describe("the Logs Explorer page's section on finding and fixing error, missing 
       `- [Find and fix error, missing and noisy logs with AI]${ANCHOR}: `,
     );
     expect(tabRow).toContain(ANCHOR);
-    expect(page).toContain("The explorer has five tabs:");
+  });
+
+  it("says how many tabs the explorer has, and names them in the order the Dashboard draws them", () => {
+    expect(writtenExplorerTabs(page)).toEqual(
+      drawnExplorerTabs(
+        readSource(
+          "App/FeatureSet/Dashboard/src/Components/Logs/LogsNavTabs.tsx",
+        ),
+      ),
+    );
   });
 
   it("says OneUptime looks every hour, at each service's last hour", () => {
