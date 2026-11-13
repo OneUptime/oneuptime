@@ -448,6 +448,10 @@
   "Loading": "جارٍ التحميل",
   "{{field}} is not valid JSON. {{parserMessage}}": "{{field}} ليس JSON صالحًا. {{parserMessage}}",
   "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} ليس YAML صالحًا. {{parserMessage}}",
+  "Breadcrumb": "مسار التنقل",
+  "Main navigation": "التنقل الرئيسي",
+  "Navigate to": "الانتقال إلى",
+  "Navigation": "التنقل",
   "markdownCallouts": {
     "caution": "تنبيه",
     "danger": "خطر",

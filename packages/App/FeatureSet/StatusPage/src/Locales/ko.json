@@ -448,6 +448,10 @@
   "Loading": "로드 중",
   "{{field}} is not valid JSON. {{parserMessage}}": "{{field}}은(는) 올바른 JSON이 아닙니다. {{parserMessage}}",
   "{{field}} is not valid YAML. {{parserMessage}}": "{{field}}은(는) 올바른 YAML이 아닙니다. {{parserMessage}}",
+  "Breadcrumb": "탐색 경로",
+  "Main navigation": "주 탐색",
+  "Navigate to": "이동",
+  "Navigation": "탐색",
   "markdownCallouts": {
     "caution": "주의",
     "danger": "위험",

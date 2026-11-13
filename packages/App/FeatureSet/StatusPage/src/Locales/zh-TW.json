@@ -448,6 +448,10 @@
   "Loading": "載入中",
   "{{field}} is not valid JSON. {{parserMessage}}": "{{field}} 不是有效的 JSON。{{parserMessage}}",
   "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} 不是有效的 YAML。{{parserMessage}}",
+  "Breadcrumb": "導覽路徑",
+  "Main navigation": "主要導覽",
+  "Navigate to": "導覽至",
+  "Navigation": "導覽",
   "markdownCallouts": {
     "caution": "小心",
     "danger": "危險",

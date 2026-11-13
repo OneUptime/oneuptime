@@ -448,6 +448,10 @@
   "Loading": "Laden",
   "{{field}} is not valid JSON. {{parserMessage}}": "{{field}} is geen geldige JSON. {{parserMessage}}",
   "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} is geen geldige YAML. {{parserMessage}}",
+  "Breadcrumb": "Kruimelpad",
+  "Main navigation": "Hoofdnavigatie",
+  "Navigate to": "Navigeer naar",
+  "Navigation": "Navigatie",
   "markdownCallouts": {
     "caution": "Let op",
     "danger": "Gevaar",

@@ -448,6 +448,10 @@
   "Loading": "लोड हो रहा है",
   "{{field}} is not valid JSON. {{parserMessage}}": "{{field}} मान्य JSON नहीं है। {{parserMessage}}",
   "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} मान्य YAML नहीं है। {{parserMessage}}",
+  "Breadcrumb": "ब्रेडक्रंब",
+  "Main navigation": "मुख्य नेविगेशन",
+  "Navigate to": "इस पर जाएं",
+  "Navigation": "नेविगेशन",
   "markdownCallouts": {
     "caution": "सावधानी",
     "danger": "खतरा",

@@ -448,6 +448,10 @@
   "Loading": "Laddar",
   "{{field}} is not valid JSON. {{parserMessage}}": "{{field}} är inte giltig JSON. {{parserMessage}}",
   "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} är inte giltig YAML. {{parserMessage}}",
+  "Breadcrumb": "Sökväg",
+  "Main navigation": "Huvudnavigering",
+  "Navigate to": "Navigera till",
+  "Navigation": "Navigering",
   "markdownCallouts": {
     "caution": "Försiktighet",
     "danger": "Fara",

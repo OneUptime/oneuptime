@@ -108,7 +108,7 @@ En origin er et skjema, en vert og en valgfri port: `https://app.example.com` de
 
 ## Bytt ut, slå av eller slett en nøkkel
 
-En nøkkels side viser **Status**, **Hemmelig nøkkel** bak **Click to reveal**, og **Last Used At**: siste gang OneUptime godtok data som ble sendt med den.
+En nøkkels side viser **Status**, **Hemmelig nøkkel** bak **Klikk for å vise**, og **Last Used At**: siste gang OneUptime godtok data som ble sendt med den.
 
 | For å | Gjør dette | Hva avsendere ser |
 | --- | --- | --- |

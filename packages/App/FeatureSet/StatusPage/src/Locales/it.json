@@ -448,6 +448,10 @@
   "Loading": "Caricamento",
   "{{field}} is not valid JSON. {{parserMessage}}": "{{field}} non è un JSON valido. {{parserMessage}}",
   "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} non è un YAML valido. {{parserMessage}}",
+  "Breadcrumb": "Percorso di navigazione",
+  "Main navigation": "Navigazione principale",
+  "Navigate to": "Vai a",
+  "Navigation": "Navigazione",
   "markdownCallouts": {
     "caution": "Attenzione",
     "danger": "Pericolo",

@@ -448,6 +448,10 @@
   "Loading": "Загрузка",
   "{{field}} is not valid JSON. {{parserMessage}}": "{{field}}: недопустимый JSON. {{parserMessage}}",
   "{{field}} is not valid YAML. {{parserMessage}}": "{{field}}: недопустимый YAML. {{parserMessage}}",
+  "Breadcrumb": "Навигационная цепочка",
+  "Main navigation": "Основная навигация",
+  "Navigate to": "Перейти к",
+  "Navigation": "Навигация",
   "markdownCallouts": {
     "caution": "Осторожно",
     "danger": "Опасно",

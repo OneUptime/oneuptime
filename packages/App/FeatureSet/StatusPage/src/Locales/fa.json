@@ -448,6 +448,10 @@
   "Loading": "در حال بارگذاری",
   "{{field}} is not valid JSON. {{parserMessage}}": "{{field}} یک JSON معتبر نیست. {{parserMessage}}",
   "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} یک YAML معتبر نیست. {{parserMessage}}",
+  "Breadcrumb": "مسیر صفحه",
+  "Main navigation": "ناوبری اصلی",
+  "Navigate to": "رفتن به",
+  "Navigation": "ناوبری",
   "markdownCallouts": {
     "caution": "احتیاط",
     "danger": "خطر",

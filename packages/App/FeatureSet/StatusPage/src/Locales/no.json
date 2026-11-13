@@ -448,6 +448,10 @@
   "Loading": "Laster",
   "{{field}} is not valid JSON. {{parserMessage}}": "{{field}} er ikke gyldig JSON. {{parserMessage}}",
   "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} er ikke gyldig YAML. {{parserMessage}}",
+  "Breadcrumb": "Brødsmulesti",
+  "Main navigation": "Hovednavigasjon",
+  "Navigate to": "Naviger til",
+  "Navigation": "Navigasjon",
   "markdownCallouts": {
     "caution": "Forsiktig",
     "danger": "Fare",

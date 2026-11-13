@@ -79,7 +79,7 @@ flowchart TB
 | رلهٔ پوش OneUptime، یا Expo | اعلان‌های پوش موبایل | [اعلان‌های پوش](/docs/self-hosted/push-notifications) |
 | Slack و Microsoft Teams | اعلان‌ها و کنش‌های فضای کاری | [یکپارچه‌سازی Slack](/docs/self-hosted/slack-integration) |
 | یک ارائه‌دهندهٔ LLM، مانند OpenAI، Anthropic، Microsoft Foundry یا مدلی که خودتان اجرا می‌کنید | OneUptime AI | [ارائه‌دهندگان LLM](/docs/ai/llm-provider) |
-| `oneuptime.com` | فعال‌سازی آنلاین مجوز Enterprise | [نسخه سازمانی](/docs/self-hosted/enterprise) |
+| `oneuptime.com` | فعال‌سازی آنلاین پروانهٔ Enterprise | [نسخه سازمانی](/docs/self-hosted/enterprise) |
 
 اتصال‌های جهت مخالف - SendGrid که ایمیل ورودی را تحویل می‌دهد، و Slack و Microsoft Teams که فراخوانی برگشتی انجام می‌دهند - نیاز دارند که ingress از اینترنت در دسترس باشد. اینکه برنامه و پراب‌ها به کدام نشانی‌های خصوصی برسند با شماست: [دسترسی به شبکه خصوصی](/docs/self-hosted/private-network-access) را ببینید.
 
