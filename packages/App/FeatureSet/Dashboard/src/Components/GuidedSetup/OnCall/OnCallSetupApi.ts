@@ -1,5 +1,6 @@
 import {
   ON_CALL_POLICY_NAME,
+  ON_CALL_SETUP_COPY,
   OnCallPolicyRecord,
   PolicyLevel,
   ReachMethod,
@@ -12,6 +13,10 @@ import {
   getProjectNotificationChannel,
   readEnabledProjectChannels,
 } from "../../NotificationMethods/ProjectNotificationChannelsCopy";
+import {
+  ProjectBalanceAccess,
+  getProjectBalanceAccess,
+} from "../../ProjectBalance/ProjectBalanceAccess";
 import { mayAddEveryNewEventRules } from "../../OnCallPolicy/UseEveryNewEventRulesOffer";
 import {
   SetupReminderStatuses,
@@ -55,6 +60,7 @@ import { DEFAULT_ESCALATE_AFTER_IN_MINUTES } from "Common/Types/OnCallDutyPolicy
 import { getOnCallPolicyRepeatsAllowed } from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyRepeat";
 import Phone from "Common/Types/Phone";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
+import { ProjectBalanceType } from "Common/Utils/Project/ProjectBalance";
 import { announceModelSwitchSaved } from "Common/UI/Components/ModelSwitch/ModelSwitchEvents";
 import { APP_API_URL, BILLING_ENABLED } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -318,6 +324,18 @@ export default class OnCallSetupApi {
    * (a project owner or Manage Billing; the server checks).
    */
   public static async rechargeBalance(amountInUSD: number): Promise<void> {
+    /*
+     * Asked first, as every recharge in the Dashboard is: the step offers
+     * Add balance only to someone the server lets add to it, and nothing is
+     * charged for anyone else, or while that is not known yet.
+     */
+    if (
+      getProjectBalanceAccess(ProjectBalanceType.SmsOrCall) !==
+      ProjectBalanceAccess.Yes
+    ) {
+      throw new Error(ON_CALL_SETUP_COPY.whoCanAddBalance);
+    }
+
     const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
       await API.post<JSONObject>({
         url: URL.fromString(APP_API_URL.toString()).addRoute(
