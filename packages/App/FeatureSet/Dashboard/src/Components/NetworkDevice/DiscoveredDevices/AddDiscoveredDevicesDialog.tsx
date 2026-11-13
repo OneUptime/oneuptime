@@ -90,6 +90,7 @@ import useNamingPreview, {
 import NamingPreviewSummary, {
   NamingPreviewList,
 } from "../Naming/NamingPreviewSummary";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * ADDING DISCOVERED DEVICES TO MONITORING (Network > Discovered Devices and
@@ -918,10 +919,12 @@ const AddDiscoveredDevicesDialog: FunctionComponent<
             {polling.error && (
               <Alert
                 type={AlertType.WARNING}
-                title={translator.translateTemplate(
-                  "Showing the last progress received. Retrying: {{error}}",
-                  { error: polling.error },
-                )}
+                title={
+                  <ErrorSentence
+                    template="Showing the last progress received. Retrying: {{error}}"
+                    error={polling.error}
+                  />
+                }
                 dataTestId="discovered-device-import-poll-error"
               />
             )}

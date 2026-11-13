@@ -50,6 +50,9 @@ import React, {
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import ErrorSentence, {
+  ErrorInSentence,
+} from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface ComponentProps {
   summary: OverviewSection<MonitorUptimeSummary>;
@@ -295,7 +298,18 @@ const MonitorUptimeHistoryCard: FunctionComponent<ComponentProps> = (
             icon={IconProp.Alert}
             tone="warning"
             title="Couldn't load uptime history"
-            description={props.summary.error}
+            description={
+              /*
+               * Why it failed and what to do next in the reader's language,
+               * as the card's refresh line says it: a gateway's 502 never
+               * reads "Error connecting to server.", and a server failure's
+               * reference has its copy button (#7307).
+               */
+              <ErrorInSentence
+                message={props.summary.error}
+                showWhereToLook={true}
+              />
+            }
             actions={
               <Button
                 title="Try again"
@@ -568,10 +582,10 @@ const MonitorUptimeHistoryCard: FunctionComponent<ComponentProps> = (
           )}
           {props.summary.refreshError ? (
             <p className="mt-1">
-              {translator.translateTemplate(
-                "Couldn't refresh the uptime history. {{error}}",
-                { error: props.summary.refreshError || "" },
-              )}
+              <ErrorSentence
+                template="Couldn't refresh the uptime history. {{error}}"
+                error={props.summary.refreshError || ""}
+              />
             </p>
           ) : (
             <></>

@@ -58,6 +58,7 @@ import { joinList } from "Common/UI/Utils/ListSeparator";
 import PhoneNumberText from "Common/UI/Components/PhoneNumber/PhoneNumberText";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 
 export interface ComponentProps {
   item: BaseModel;
@@ -1045,7 +1046,7 @@ export const DeletionImpactModal: FunctionComponent<
        */
       return translator.translateTemplate(
         "We could not check what this deletes: {{error}} Deleting a notification method also deletes every notification rule that uses it.",
-        { error: state.error },
+        { error: errorInSentence(state.error) },
       );
     }
 

@@ -11,6 +11,7 @@ import {
   getGlobalTranslator,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export type EpisodeMemberNoun = "incident" | "alert";
 
@@ -148,10 +149,11 @@ export const EpisodeHeaderRefreshError: FunctionComponent<
       </span>
       <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 pt-0.5 text-sm">
         <span className="min-w-0 break-words font-medium text-red-800">
-          {translator.translateTemplate(
-            "Couldn't refresh this episode: {{message}}",
-            { message: props.message },
-          )}
+          <ErrorSentence
+            template="Couldn't refresh this episode: {{message}}"
+            error={props.message}
+            errorPlaceholder="message"
+          />
         </span>
         <button
           type="button"

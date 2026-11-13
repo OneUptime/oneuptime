@@ -27,6 +27,11 @@ jest.mock("../../../../UI/Utils/API/API", () => {
 });
 
 import HTTPErrorResponse from "../../../../Types/API/HTTPErrorResponse";
+import {
+  getUnexplainedServerErrorMessage,
+  SERVER_DOWN_MESSAGE,
+  UnexplainedErrorWords,
+} from "../../../../Types/Exception/UnexplainedError";
 import HTTPResponse from "../../../../Types/API/HTTPResponse";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
 import { JSONObject } from "../../../../Types/JSON";
@@ -38,6 +43,7 @@ import { ModelSchemaColumn } from "../../../../UI/Components/Workflow/ModelSchem
 import API from "../../../../UI/Utils/API/API";
 import { chipsIn, keys, placeCaret } from "./ValuePicker/ValuePickerTestUtils";
 import getJestMockFunction, { MockFunction } from "../../../MockType";
+import { withoutIsolateMarks } from "../../../Helpers/IsolateMarks";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import "@testing-library/jest-dom";
 import {
@@ -45,6 +51,7 @@ import {
   fireEvent,
   render,
   waitFor,
+  within,
 } from "@testing-library/react";
 import userEvent, { UserEvent } from "@testing-library/user-event";
 
@@ -119,6 +126,10 @@ type MockApiGetFunction = () => MockFunction;
 
 const apiGet: MockApiGetFunction = (): MockFunction => {
   return API.get as unknown as MockFunction;
+};
+
+const friendlyMessage: MockApiGetFunction = (): MockFunction => {
+  return API.getFriendlyMessage as unknown as MockFunction;
 };
 
 type ResolveSchemaFunction = (columns?: Array<ModelSchemaColumn>) => void;
@@ -586,6 +597,65 @@ describe("when the schema cannot be loaded", () => {
 
     // The escape hatch is still there, which is the whole point of keeping it.
     expect(getByTestId("model-column-json-toggle")).toBeInTheDocument();
+  });
+
+  /*
+   * The error is said as sentences of its own, between the notice's two
+   * (#7307): an error nobody explained says why it failed and what to do
+   * next - with a server failure's reference and its copy button - which
+   * read as a run-on inside brackets: "columns (The OneUptime server did
+   * not answer. ... minutes.). You can still ...".
+   */
+  test("a gateway's 502 is said between the notice's sentences, never in brackets", async () => {
+    friendlyMessage().mockImplementationOnce((): string => {
+      return SERVER_DOWN_MESSAGE;
+    });
+    apiGet().mockResolvedValue(new HTTPErrorResponse(502, {}, {}));
+
+    const { findByTestId }: RenderResult = renderEditor({
+      initialValue: '{"name":"Acknowledged"}',
+      recordIntent: RecordIntent.Update,
+    });
+
+    const notice: HTMLElement = (
+      await findByTestId("error-in-sentence")
+    ).closest("p") as HTMLElement;
+
+    expect(withoutIsolateMarks(notice.textContent || "").trim()).toBe(
+      "Couldn't load this model's columns. " +
+        UnexplainedErrorWords.serverDownWhy +
+        " " +
+        UnexplainedErrorWords.serverDownNext +
+        " You can still write these fields as JSON.",
+    );
+    expect(notice.textContent).not.toContain("(");
+    expect(notice.textContent).not.toContain(SERVER_DOWN_MESSAGE);
+  });
+
+  test("a server failure's reference closes its sentence, with its copy button, before the notice goes on", async () => {
+    friendlyMessage().mockImplementationOnce((): string => {
+      return getUnexplainedServerErrorMessage("1f0c9a2b");
+    });
+    apiGet().mockResolvedValue(new HTTPErrorResponse(500, {}, {}));
+
+    const { findByTestId }: RenderResult = renderEditor({
+      mode: ModelColumnEditorMode.Query,
+    });
+
+    const reference: HTMLElement = await findByTestId("error-reference");
+    const notice: HTMLElement = reference.closest("p") as HTMLElement;
+    const text: string = withoutIsolateMarks(notice.textContent || "").trim();
+
+    expect(within(reference).getByText("1f0c9a2b").tagName).toBe("CODE");
+    expect(
+      within(reference).getByRole("button", { name: "Copy" }),
+    ).toBeInTheDocument();
+    expect(text.startsWith("Couldn't load this model's columns. ")).toBe(true);
+    expect(text).toContain(UnexplainedErrorWords.serverWhy);
+    expect(
+      text.endsWith("1f0c9a2b. You can still write the query as JSON."),
+    ).toBe(true);
+    expect(text).not.toContain("(");
   });
 
   test("a stored field still gets a row, with its key editable", async () => {

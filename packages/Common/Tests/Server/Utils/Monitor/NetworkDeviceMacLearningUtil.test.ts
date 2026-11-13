@@ -913,3 +913,135 @@ describe("NetworkDeviceMacLearningUtil.learnFromArpBindings - a device another w
     ).toEqual({ macAddress: null, deletedAt: null });
   });
 });
+
+/*
+ * OneUptime issue #7389. A walk's ARP table was read when OneUptime received
+ * the poll, which during a queue backlog can be many minutes before a worker
+ * processes it - and two polls of one router are not always processed in the
+ * order they were received. Its readings are stamped with when the table was
+ * read, and a device that holds a reading taken after it keeps it: an older
+ * table neither corrects its learned MAC back nor records its older answer.
+ */
+describe("NetworkDeviceMacLearningUtil.learnFromArpBindings - when the table was read (issue #7389)", () => {
+  const TABLE_READ_AT: Date = new Date(Date.now() - 10 * 60 * 1000);
+  const MINUTE: number = 60 * 1000;
+  const OLD_MAC: string = "de:ad:be:ef:00:01";
+
+  // A register whose learned MAC a table read at readAt gave it.
+  function registerReadAt(mac: string, readAt: Date): NetworkDevice {
+    const row: NetworkDevice = deviceRow(REGISTER_ID, REGISTER_IP, {
+      siteId: SITE_A,
+      macAddress: mac,
+      isMacAddressLearned: true,
+    });
+    row.discoveredDetails = {
+      macAddress: {
+        value: mac,
+        method: "arpTable",
+        readBy: { type: "networkDevice", id: ROUTER_ID, name: "core-rtr-01" },
+        readAt: readAt.toISOString(),
+      },
+    };
+    return row;
+  }
+
+  async function learnAt(
+    ipBindings: Array<MacLearningIpBinding>,
+    now: Date | undefined,
+  ): Promise<MacLearningResult> {
+    return NetworkDeviceMacLearningUtil.learnFromArpBindings({
+      projectId: new ObjectID(PROJECT_ID),
+      observingDeviceId: new ObjectID(ROUTER_ID),
+      observingSiteId: SITE_A,
+      ipBindings: ipBindings,
+      now: now,
+    });
+  }
+
+  function recordedReadAt(): string {
+    expect(mergeSpy).toHaveBeenCalledTimes(1);
+    const patches: Array<JSONObject> = (
+      mergeSpy.mock.calls[0]![0] as JSONObject
+    )["patches"] as Array<JSONObject>;
+    expect(patches).toHaveLength(1);
+    return ((patches[0]!["set"] as JSONObject)["macAddress"] as JSONObject)[
+      "readAt"
+    ] as string;
+  }
+
+  test("its readings are stamped with when the table was read, not when it was processed", async () => {
+    mockServices([deviceRow(REGISTER_ID, REGISTER_IP, { siteId: SITE_A })]);
+
+    await learnAt([binding(REGISTER_IP, REGISTER_MAC)], TABLE_READ_AT);
+
+    expect(hookFreeUpdateSpy).toHaveBeenCalledTimes(1);
+    expect(recordedReadAt()).toBe(TABLE_READ_AT.toISOString());
+  });
+
+  test("a MAC a newer table corrected is not corrected back by an older one, nor its reading replaced", async () => {
+    mockServices([
+      registerReadAt(
+        REGISTER_MAC,
+        new Date(TABLE_READ_AT.getTime() + 5 * MINUTE),
+      ),
+    ]);
+
+    const result: MacLearningResult = await learnAt(
+      [binding(REGISTER_IP, OLD_MAC)],
+      TABLE_READ_AT,
+    );
+
+    expect(hookFreeUpdateSpy).not.toHaveBeenCalled();
+    expect(mergeSpy).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      candidateDeviceCount: 1,
+      plannedCount: 0,
+      learnedCount: 0,
+      observationCount: 0,
+    });
+  });
+
+  test("a learned MAC whose reading is older than the table is still corrected", async () => {
+    mockServices([
+      registerReadAt(OLD_MAC, new Date(TABLE_READ_AT.getTime() - 5 * MINUTE)),
+    ]);
+
+    await learnAt([binding(REGISTER_IP, REGISTER_MAC)], TABLE_READ_AT);
+
+    expect(hookFreeUpdateSpy).toHaveBeenCalledTimes(1);
+    expect(
+      (hookFreeUpdateSpy.mock.calls[0]![0] as JSONObject)["expectedData"],
+    ).toEqual({ macAddress: OLD_MAC, deletedAt: null });
+    expect(recordedReadAt()).toBe(TABLE_READ_AT.toISOString());
+  });
+
+  // An empty column takes the first trusted answer, whenever it was read.
+  test("an older table still teaches a device that has no MAC", async () => {
+    mockServices([deviceRow(REGISTER_ID, REGISTER_IP, { siteId: SITE_A })]);
+
+    await learnAt(
+      [binding(REGISTER_IP, REGISTER_MAC)],
+      new Date(TABLE_READ_AT.getTime() - 60 * MINUTE),
+    );
+
+    expect(hookFreeUpdateSpy).toHaveBeenCalledTimes(1);
+  });
+
+  test.each([
+    ["no time", undefined],
+    ["a time that is not one", new Date("not a date")],
+  ])(
+    "a table with %s was read now",
+    async (_label: string, now: Date | undefined) => {
+      mockServices([deviceRow(REGISTER_ID, REGISTER_IP, { siteId: SITE_A })]);
+
+      const before: number = Date.now();
+      await learnAt([binding(REGISTER_IP, REGISTER_MAC)], now);
+      const after: number = Date.now();
+
+      const readAt: number = new Date(recordedReadAt()).getTime();
+      expect(readAt).toBeGreaterThanOrEqual(before);
+      expect(readAt).toBeLessThanOrEqual(after);
+    },
+  );
+});

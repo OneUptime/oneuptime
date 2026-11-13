@@ -1,10 +1,15 @@
 import AppLink from "../AppLink/AppLink";
 import DataObservabilityApi from "./DataObservabilityApi";
 import FailingRowsModal from "./FailingRowsModal";
+import DataCheckFactsLine from "./DataCheckFactsLine";
 import {
   DATA_CHECK_ALERT_CONDITION_LABELS,
   getDataCheckAlertConditionWords,
 } from "./DataCheckAlertConditionWords";
+import {
+  DATA_CHECK_TYPE_LABELS,
+  getDataCheckTypeLabel,
+} from "./DataCheckTypeWords";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import DataCheck from "Common/Models/DatabaseModels/DataCheck";
@@ -56,6 +61,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
+import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 
 export interface ComponentProps {
   // One table's checks, with its columns to choose from; or every check of the project.
@@ -67,9 +73,14 @@ export interface ComponentProps {
   dataStoreKind?: string | undefined;
 }
 
+/*
+ * The form's Check dropdown and the list's Check filter: each type by its
+ * name, which the dropdown draws in the reader's language (#7223). The
+ * value saved is the type's English value.
+ */
 const TYPE_OPTIONS: Array<DropdownOption> = DATA_CHECK_TYPES.map(
   (type: DataCheckType): DropdownOption => {
-    return { value: type, label: type };
+    return { value: type, label: DATA_CHECK_TYPE_LABELS[type] };
   },
 );
 
@@ -116,6 +127,9 @@ const ALERT_OPTIONS: Array<DropdownOption> = DATA_CHECK_ALERT_CONDITIONS.map(
     };
   },
 );
+
+// The line under a check's name: what it measures, and the rest of its facts.
+export const DATA_CHECK_FACTS_TEST_ID: string = "data-check-facts";
 
 // Accepted values are typed one per line, and kept as a list.
 function readAcceptedValues(value: unknown): Array<string> | undefined {
@@ -209,6 +223,35 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
     }
   };
 
+  /*
+   * The facts under a check's name: what it measures, in the reader's
+   * words; the column it reads; what it is counted by; and whether a
+   * checks file keeps it.
+   */
+  const getCheckFacts: (check: DataCheck) => Array<string> = (
+    check: DataCheck,
+  ): Array<string> => {
+    return [
+      getDataCheckTypeLabel({
+        translator: translator,
+        checkType: check.checkType,
+      }),
+      check.columnName || "",
+      check.segmentColumn
+        ? translator.translateTemplate(
+            "by {{column}}",
+            { column: check.segmentColumn },
+            { setsValuesApart: true },
+          )
+        : "",
+      check.isManagedByFile
+        ? translator.translateText("From a file") || "From a file"
+        : "",
+    ].filter((fact: string): boolean => {
+      return fact.length > 0;
+    });
+  };
+
   const healthOf: (check: DataCheck) => DataCheckHealthAnswer = (
     check: DataCheck,
   ): DataCheckHealthAnswer => {
@@ -232,7 +275,7 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
         setAlertError(
           translator.translateTemplate(
             "The check is saved, but its alert could not be set up: {{reason}}",
-            { reason: API.getFriendlyMessage(err) },
+            { reason: errorInSentence(API.getFriendlyMessage(err)) },
           ),
         );
       }
@@ -638,18 +681,17 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
                       </AppLink>
                     </IsolatedLine>
                   )}
-                  <span className="block truncate text-xs text-gray-500">
-                    {check.checkType}
-                    {check.columnName ? ` · ${check.columnName}` : ""}
-                    {check.segmentColumn
-                      ? ` · ${translator.translateTemplate("by {{column}}", {
-                          column: check.segmentColumn,
-                        })}`
-                      : ""}
-                    {check.isManagedByFile
-                      ? ` · ${translator.translateText("From a file")}`
-                      : ""}
-                  </span>
+                  {/*
+                   * What the check measures, in the reader's words (#7223),
+                   * then the column it reads, its segments and where it came
+                   * from: each fact in its own direction, set apart the way
+                   * the reader's language sets facts apart, the line
+                   * wrapping between two facts rather than losing the last.
+                   */}
+                  <DataCheckFactsLine
+                    facts={getCheckFacts(check)}
+                    dataTestId={DATA_CHECK_FACTS_TEST_ID}
+                  />
                 </div>
               );
             },

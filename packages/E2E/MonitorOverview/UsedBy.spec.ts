@@ -237,8 +237,15 @@ test.describe("Used by on the monitor overview", () => {
   }) => {
     const card: Locator = await open(page, { usedBy: "used", fail: "used-by" });
 
+    /*
+     * The fixture fails it as a gateway's 502: said in the reader's words,
+     * never the fixed English it came as (#7307).
+     */
     await expect(card.getByTestId("used-by-error")).toContainText(
-      "Couldn't load what uses this.",
+      "Couldn't load what uses this. The OneUptime server did not answer. It may be starting or restarting. Try again in a few minutes.",
+    );
+    await expect(card.getByTestId("used-by-error")).not.toContainText(
+      "Error connecting to server",
     );
     await card.getByTestId("used-by-try-again").click();
     await expect(card.getByTestId("used-by-group")).toHaveCount(5);

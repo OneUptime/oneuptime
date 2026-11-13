@@ -65,6 +65,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 
 // How long the search box waits for typing to stop before it reads.
 export const CODE_TASK_SEARCH_DELAY_MS: number = 300;
@@ -371,7 +372,7 @@ const CodeTaskList: FunctionComponent<ComponentProps> = (
                           "{{count}} tasks could not be tried again: {{reason}}",
                       },
                       retryResult.failedCount,
-                      { reason: retryResult.failedMessage || "" },
+                      { reason: errorInSentence(retryResult.failedMessage) },
                     )
                   : "",
               ]

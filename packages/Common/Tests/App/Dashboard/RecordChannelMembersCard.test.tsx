@@ -507,12 +507,15 @@ describe("whether there is a card at all", () => {
     );
 
     /*
-     * Not the page-wide error panel with its "Refresh?" link. A bare "Server
-     * Error" explains nothing, so since #6836 it is said as a problem the
-     * server could not explain, with what to do next.
+     * Not the page-wide error panel with its "Refresh?" link. A server
+     * failure it could not explain is said in words, not as the bare
+     * "Server Error" it came as (#7307).
      */
-    expect(within(box).getByRole("alert").textContent).toBe(
-      "Could not read who is in this channel. The server ran into a problem it could not explain, so this did not finish. Try again in a moment.",
+    expect(within(box).getByRole("alert")).toHaveTextContent(
+      "Could not read who is in this channel. The server ran into a problem it could not explain. Try again in a moment.",
+    );
+    expect(within(box).getByRole("alert")).not.toHaveTextContent(
+      "Server Error",
     );
     expect(screen.queryByText("Refresh?")).toBeNull();
 
