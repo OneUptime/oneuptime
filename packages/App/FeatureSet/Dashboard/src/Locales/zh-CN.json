@@ -51779,5 +51779,6 @@
   "{{count}} people's How to Reach Me": "{{count}} 人的“如何联系我”",
   "{{count}} people's How to Reach Me_one": "{{count}} 人的“如何联系我”",
   "No on-call policies yet.": "还没有值班策略。",
-  "Last Poll Received At": "Last Poll Received At"
+  "Last Poll Received At": "Last Poll Received At",
+  "Couldn't load note templates.": "无法加载备注模板。"
 }

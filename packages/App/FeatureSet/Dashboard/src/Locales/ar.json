@@ -51779,5 +51779,6 @@
   "{{count}} people's How to Reach Me": "«طرق التواصل معي» (الأشخاص: {{count}})",
   "{{count}} people's How to Reach Me_one": "«طرق التواصل معي» لـ {{count}} شخص",
   "No on-call policies yet.": "ليس هناك سياسات مناوبة بعد.",
-  "Last Poll Received At": "Last Poll Received At"
+  "Last Poll Received At": "Last Poll Received At",
+  "Couldn't load note templates.": "تعذّر تحميل قوالب الملاحظات."
 }

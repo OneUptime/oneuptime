@@ -51779,5 +51779,6 @@
   "{{count}} people's How to Reach Me": "{{count}} लोगों का “मुझसे कैसे संपर्क करें”",
   "{{count}} people's How to Reach Me_one": "{{count}} व्यक्ति का “मुझसे कैसे संपर्क करें”",
   "No on-call policies yet.": "अभी कोई ऑन-कॉल नीति नहीं है।",
-  "Last Poll Received At": "Last Poll Received At"
+  "Last Poll Received At": "Last Poll Received At",
+  "Couldn't load note templates.": "नोट टेम्पलेट लोड नहीं हो सके।"
 }

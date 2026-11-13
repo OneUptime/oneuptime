@@ -51779,5 +51779,6 @@
   "{{count}} people's How to Reach Me": "«Как со мной связаться» людей: {{count}}",
   "{{count}} people's How to Reach Me_one": "«Как со мной связаться» {{count}} человека",
   "No on-call policies yet.": "Политик дежурств пока нет.",
-  "Last Poll Received At": "Last Poll Received At"
+  "Last Poll Received At": "Last Poll Received At",
+  "Couldn't load note templates.": "Не удалось загрузить шаблоны заметок."
 }

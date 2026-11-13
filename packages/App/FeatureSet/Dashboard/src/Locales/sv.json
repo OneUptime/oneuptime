@@ -51779,5 +51779,6 @@
   "{{count}} people's How to Reach Me": "”Så når man mig” för {{count}} personer",
   "{{count}} people's How to Reach Me_one": "”Så når man mig” för {{count}} person",
   "No on-call policies yet.": "Inga jourpolicyer ännu.",
-  "Last Poll Received At": "Last Poll Received At"
+  "Last Poll Received At": "Last Poll Received At",
+  "Couldn't load note templates.": "Det gick inte att läsa in anteckningsmallarna."
 }

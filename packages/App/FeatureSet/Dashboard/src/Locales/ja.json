@@ -51779,5 +51779,6 @@
   "{{count}} people's How to Reach Me": "{{count}} 人の「私への連絡方法」",
   "{{count}} people's How to Reach Me_one": "{{count}} 人の「私への連絡方法」",
   "No on-call policies yet.": "オンコールポリシーはまだありません。",
-  "Last Poll Received At": "Last Poll Received At"
+  "Last Poll Received At": "Last Poll Received At",
+  "Couldn't load note templates.": "メモテンプレートを読み込めませんでした。"
 }

@@ -51779,5 +51779,6 @@
   "{{count}} people's How to Reach Me": "«راه‌های تماس با من» {{count}} نفر",
   "{{count}} people's How to Reach Me_one": "«راه‌های تماس با من» {{count}} نفر",
   "No on-call policies yet.": "هنوز سیاست آنکالی وجود ندارد.",
-  "Last Poll Received At": "Last Poll Received At"
+  "Last Poll Received At": "Last Poll Received At",
+  "Couldn't load note templates.": "قالب‌های یادداشت بارگیری نشدند."
 }

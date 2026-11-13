@@ -51779,5 +51779,6 @@
   "{{count}} people's How to Reach Me": "‘Hoe ik bereikbaar ben’ van {{count}} personen",
   "{{count}} people's How to Reach Me_one": "‘Hoe ik bereikbaar ben’ van {{count}} persoon",
   "No on-call policies yet.": "Nog geen bereikbaarheidsbeleid.",
-  "Last Poll Received At": "Last Poll Received At"
+  "Last Poll Received At": "Last Poll Received At",
+  "Couldn't load note templates.": "Kan de notitiesjablonen niet laden."
 }

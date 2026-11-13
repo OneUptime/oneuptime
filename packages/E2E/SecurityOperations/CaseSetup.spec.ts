@@ -78,7 +78,7 @@ interface OpenOptions {
   theme?: "dark" | undefined;
   lang?: "de" | "fa" | undefined;
   // CaseSetupFixture.js's ?casesetup= scenarios.
-  caseSetup?: "none" | "fail" | undefined;
+  caseSetup?: "none" | "fail" | "fail-with-reference" | undefined;
 }
 
 interface Box {
@@ -938,13 +938,242 @@ test.describe("reads that fail", () => {
       .getByTestId("note-template-menu-button")
       .click();
     const menu: Locator = page.getByTestId("note-template-menu");
-    // The menu shows the message as it is: why and what to do, in one.
-    await expect(menu).toContainText(UNEXPLAINED_MESSAGE);
+    /*
+     * The menu's failure reads as the lists' do (#7544): what failed, in
+     * the menu's words, then why and what to do next - never the message
+     * as it came, in one sentence.
+     */
+    await expect(menu.getByTestId("error-what-failed")).toHaveText(
+      "Couldn't load note templates.",
+    );
+    await expect(menu.getByTestId("error-why-and-next")).toHaveText(
+      UNEXPLAINED_WHY_AND_NEXT,
+    );
+    await expect(menu).not.toContainText(UNEXPLAINED_MESSAGE);
     await expect(menu).not.toContainText("Server Error");
     await menu.getByRole("button", { name: "Try again" }).click();
     await expect(
       menu.getByRole("button", { name: /^Containment checklist/ }),
     ).toBeVisible();
+    await expect(menu.getByTestId("error-explanation")).toHaveCount(0);
+  });
+});
+
+/*
+ * The Templates menu is fixed to the page and cuts off whatever runs past
+ * its edges, so a failure that did not fit in it would lose its end rather
+ * than scroll the page. A failure the server could not explain is the most
+ * the menu draws when its templates do not load (#7544): what failed, why
+ * and what to do next, and the reference's row with its copy button.
+ */
+
+// The reference CaseSetupFixture.js's ?casesetup=fail-with-reference names.
+const FAILED_READ_REFERENCE: string = "3f9a2c1b";
+
+// The Templates menu's box, and each box it draws that reaches past it.
+async function templateMenuFit(menu: Locator): Promise<{
+  menu: Box;
+  windowWidth: number;
+  outside: Array<string>;
+}> {
+  return menu.evaluate((element: Element) => {
+    const own: DOMRect = element.getBoundingClientRect();
+    const outside: Array<string> = [];
+
+    for (const drawn of Array.from(element.querySelectorAll("*"))) {
+      const box: DOMRect = drawn.getBoundingClientRect();
+
+      if (box.width === 0 && box.height === 0) {
+        continue;
+      }
+
+      if (
+        box.left < own.left - 0.5 ||
+        box.right > own.right + 0.5 ||
+        box.top < own.top - 0.5 ||
+        box.bottom > own.bottom + 0.5
+      ) {
+        outside.push(
+          `${drawn.tagName.toLowerCase()} "${(drawn.textContent || "").trim().slice(0, 40)}"`,
+        );
+      }
+    }
+
+    return {
+      menu: { x: own.x, y: own.y, width: own.width, height: own.height },
+      windowWidth: document.documentElement.clientWidth,
+      outside,
+    };
+  });
+}
+
+test.describe("the Templates menu's failure", () => {
+  for (const lang of ["en", "fa"] as const) {
+    test(`says what failed, why, what to do and its reference, inside the menu at 1280 and 390 (${lang === "en" ? "English" : "Persian"})`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      // The Dashboard's Persian words, as the fixture draws them with ?lang=fa.
+      const persian: Record<string, string> = JSON.parse(
+        await fs.readFile(
+          path.resolve(
+            __dirname,
+            "../../App/FeatureSet/Dashboard/src/Locales/fa.json",
+          ),
+          "utf8",
+        ),
+      ) as Record<string, string>;
+      const wordsOf: (english: string) => string = (
+        english: string,
+      ): string => {
+        return lang === "fa" ? persian[english]! : english;
+      };
+
+      for (const width of [1280, 390]) {
+        await open(page, CASE_NOTES_PATH, {
+          width,
+          caseSetup: "fail-with-reference",
+          ...(lang === "fa" ? { lang } : {}),
+        });
+        await page
+          .getByTestId("note-composer-prompt")
+          .getByRole("button")
+          .first()
+          .click({ timeout: 30000 });
+        await page
+          .getByTestId("note-composer")
+          .getByTestId("note-template-menu-button")
+          .click();
+        const menu: Locator = page.getByTestId("note-template-menu");
+        const failure: Locator = menu.getByTestId("note-templates-error");
+
+        await expect(failure.getByTestId("error-what-failed")).toHaveText(
+          wordsOf("Couldn't load note templates."),
+        );
+        await expect(failure.getByTestId("error-why-and-next")).toContainText(
+          wordsOf("The server ran into a problem it could not explain."),
+        );
+        // The reference as written, with its copy button, then Try again.
+        await expect(
+          failure.getByTestId("error-reference").locator("code"),
+        ).toHaveText(FAILED_READ_REFERENCE);
+        await expect(
+          failure.getByTestId("error-reference").getByRole("button"),
+        ).toBeVisible();
+        await expect(
+          failure.getByRole("button", { name: wordsOf("Try again") }),
+        ).toBeVisible();
+        if (lang === "fa") {
+          for (const english of [
+            "Couldn't load note templates.",
+            "The server ran into a problem",
+            "Try again",
+          ]) {
+            await expect(failure).not.toContainText(english);
+          }
+        }
+
+        const fit: Awaited<ReturnType<typeof templateMenuFit>> =
+          await templateMenuFit(menu);
+        expect(fit.outside, `what runs past the menu at ${width}`).toEqual([]);
+        expect(fit.menu.x).toBeGreaterThanOrEqual(0);
+        expect(fit.menu.x + fit.menu.width).toBeLessThanOrEqual(
+          fit.windowWidth,
+        );
+        await expectNoSidewaysScroll(page, {
+          message: `the menu's failure at ${width}`,
+        });
+        await screenshot(
+          page,
+          `case-note-templates-menu-fail-${lang}-${width}`,
+          {
+            fullPage: false,
+          },
+        );
+      }
+    });
+  }
+
+  /*
+   * The menu is only as tall as the room beside its button. On a phone held
+   * sideways, with the button in the middle of the window, that is less
+   * than the failure needs: the failure scrolls inside the menu, as the
+   * list does, and the wheel over it brings Try again into sight without
+   * moving the page under the menu.
+   */
+  test("on a short window, it scrolls inside the menu to its Try again (844 x 390)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CASE_NOTES_PATH, {
+      width: 844,
+      height: 390,
+      caseSetup: "fail-with-reference",
+    });
+    await page
+      .getByTestId("note-composer-prompt")
+      .getByRole("button")
+      .first()
+      .click({ timeout: 30000 });
+    const trigger: Locator = page
+      .getByTestId("note-composer")
+      .getByTestId("note-template-menu-button");
+    // The button in the middle of the window: the least room on either side.
+    await trigger.evaluate((element: Element) => {
+      element.scrollIntoView({ block: "center" });
+    });
+    await trigger.click();
+    const menu: Locator = page.getByTestId("note-template-menu");
+    const failure: Locator = menu.getByTestId("note-templates-error");
+    const tryAgain: Locator = failure.getByRole("button", {
+      name: "Try again",
+    });
+    await expect(failure.getByTestId("error-reference")).toBeVisible();
+
+    const tryAgainInsideMenu: () => Promise<boolean> =
+      async (): Promise<boolean> => {
+        const own: Box | null = await menu.boundingBox();
+        const button: Box | null = await tryAgain.boundingBox();
+
+        return Boolean(
+          own &&
+            button &&
+            button.y >= own.y - 0.5 &&
+            button.y + button.height <= own.y + own.height + 0.5,
+        );
+      };
+
+    expect(
+      await tryAgainInsideMenu(),
+      "the window leaves the menu less room than its failure needs",
+    ).toBe(false);
+
+    const opened: Box = (await menu.boundingBox())!;
+    expect(opened.y).toBeGreaterThanOrEqual(0);
+    expect(opened.y + opened.height).toBeLessThanOrEqual(390);
+    const pageScrolled: number = await page.evaluate((): number => {
+      return window.scrollY;
+    });
+
+    await page.mouse.move(
+      opened.x + opened.width / 2,
+      opened.y + opened.height / 2,
+    );
+    await page.mouse.wheel(0, 400);
+
+    await expect.poll(tryAgainInsideMenu).toBe(true);
+    // The failure scrolled, not the page: the menu is where it opened.
+    expect(
+      await page.evaluate((): number => {
+        return window.scrollY;
+      }),
+    ).toBe(pageScrolled);
+    expect((await menu.boundingBox())!.y).toBe(opened.y);
+    await screenshot(page, "case-note-templates-menu-fail-844x390", {
+      fullPage: false,
+    });
   });
 });
 

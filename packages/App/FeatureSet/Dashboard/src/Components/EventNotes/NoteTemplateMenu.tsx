@@ -1,6 +1,7 @@
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import DROPDOWN_MENU_Z_INDEX from "Common/UI/Components/Dropdown/DropdownMenuZIndex";
+import ErrorMessageText from "Common/UI/Components/ErrorMessage/ErrorMessageText";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
@@ -14,6 +15,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import { createPortal } from "react-dom";
@@ -99,6 +101,9 @@ const NoteTemplateMenu: FunctionComponent<ComponentProps> = (
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [filterText, setFilterText] = useState<string>("");
+  // Try again, while a failed load is drawn.
+  const retryButtonRef: React.RefObject<HTMLButtonElement> =
+    useRef<HTMLButtonElement>(null);
 
   const load: () => Promise<void> = async (): Promise<void> => {
     setIsLoading(true);
@@ -129,6 +134,8 @@ const NoteTemplateMenu: FunctionComponent<ComponentProps> = (
    * arrive the focus moves on to the first of them (or the filter box, the
    * retry, or the link to make one), so a keyboard user lands where they can
    * pick. A pointer user's focus stays on the trigger and is left alone.
+   * After a failure the retry comes first, though the explanation above it
+   * may hold a control of its own: the reference's copy button.
    */
   useEffect(() => {
     const menu: HTMLDivElement | null = popup.popupRef.current;
@@ -137,7 +144,10 @@ const NoteTemplateMenu: FunctionComponent<ComponentProps> = (
       return;
     }
 
-    menu.querySelector<HTMLElement>("input, button, [href]")?.focus();
+    (
+      retryButtonRef.current ||
+      menu.querySelector<HTMLElement>("input, button, [href]")
+    )?.focus();
   }, [popup.isPopupOpen, popup.popupPosition, templates, isLoading, error]);
 
   const visibleTemplates: Array<NoteTemplateOption> = (templates || []).filter(
@@ -176,10 +186,33 @@ const NoteTemplateMenu: FunctionComponent<ComponentProps> = (
     }
 
     if (error) {
+      /*
+       * It scrolls as the list does: the menu is only as tall as the room
+       * beside its button, and cuts off what runs past its end - on a short
+       * window, the reference and Try again.
+       */
       return (
-        <div className="px-4 py-4 text-sm">
-          <p className="text-red-700">{error}</p>
+        <div
+          className="min-h-0 overflow-y-auto px-4 py-4 text-sm"
+          data-testid="note-templates-error"
+        >
+          {/*
+           * Read as a list's failure reads (ErrorMessageText): an error
+           * nobody explained says what failed, why and what to do next,
+           * with the reference to give when the server failed (#6836);
+           * any other is in the reader's language, read the way it is
+           * written. It was the message as API.getFriendlyMessage words it:
+           * English on every page, and on a Persian one with its full stop
+           * at its start.
+           */}
+          <p className="text-red-700">
+            <ErrorMessageText
+              message={error}
+              whatFailed={tx("Couldn't load note templates.")}
+            />
+          </p>
           <button
+            ref={retryButtonRef}
             type="button"
             className="mt-2 font-medium text-indigo-600 hover:text-indigo-500"
             onClick={() => {

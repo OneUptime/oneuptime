@@ -51779,5 +51779,6 @@
   "{{count}} people's How to Reach Me": "«Slik når man meg» for {{count}} personer",
   "{{count}} people's How to Reach Me_one": "«Slik når man meg» for {{count}} person",
   "No on-call policies yet.": "Ingen vaktretningslinjer ennå.",
-  "Last Poll Received At": "Last Poll Received At"
+  "Last Poll Received At": "Last Poll Received At",
+  "Couldn't load note templates.": "Kunne ikke laste inn notatmalene."
 }

@@ -51779,5 +51779,6 @@
   "{{count}} people's How to Reach Me": "«Come contattarmi» di {{count}} persone",
   "{{count}} people's How to Reach Me_one": "«Come contattarmi» di {{count}} persona",
   "No on-call policies yet.": "Nessuna policy di reperibilità ancora.",
-  "Last Poll Received At": "Last Poll Received At"
+  "Last Poll Received At": "Last Poll Received At",
+  "Couldn't load note templates.": "Impossibile caricare i modelli di nota."
 }

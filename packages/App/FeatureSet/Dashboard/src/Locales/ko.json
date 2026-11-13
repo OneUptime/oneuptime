@@ -51779,5 +51779,6 @@
   "{{count}} people's How to Reach Me": "{{count}}명의 '나에게 연락하는 방법'",
   "{{count}} people's How to Reach Me_one": "{{count}}명의 '나에게 연락하는 방법'",
   "No on-call policies yet.": "아직 온콜 정책이 없습니다.",
-  "Last Poll Received At": "Last Poll Received At"
+  "Last Poll Received At": "Last Poll Received At",
+  "Couldn't load note templates.": "메모 템플릿을 불러올 수 없습니다."
 }
