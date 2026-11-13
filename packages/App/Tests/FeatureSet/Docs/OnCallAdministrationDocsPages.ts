@@ -109,6 +109,7 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
     ],
     [USER_OVERRIDES]: [
       "Create On-Call Policy User Override",
+      "Edit On-Call Policy User Override",
       "Delete On-Call Policy User Override",
       "Read On-Call Policy User Override",
     ],

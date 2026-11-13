@@ -5,6 +5,7 @@ Mentre qualcuno è assente, una sostituzione utente invia gli avvisi che lo ragg
 :::cards
 - [Come una sostituzione cambia un avviso](#come-una-sostituzione-cambia-un-avviso): Chi viene avvisato al suo posto, e quando.
 - [Aggiungere una sostituzione](#aggiungere-una-sostituzione): Chi è assente, chi sostituisce, da quando e fino a quando.
+- [Modificare una sostituzione](#modificare-una-sostituzione): Cambiare chi sostituisce, o quando inizia e termina.
 - [Tutte le policy, o una](#tutte-le-policy-o-una): Dove aggiungere una sostituzione, e quale prevale.
 - [Altri modi per aggiungerne una](#altri-modi-per-aggiungerne-una): Da una pianificazione, e dai vostri prossimi turni.
 :::
@@ -48,7 +49,17 @@ Lasciate **Chi sostituisce?** su **Persona successiva nella rotazione** per salt
 **Inizia** è adesso, a meno che non scegliate un altro orario. Impostate **Termina** al momento del suo rientro: deve venire dopo l'inizio. Fate clic su **Aggiungi: Sostituzione utente**.
 :::
 
-Ogni sostituzione è una riga: **Assente**, **Sostituito da**, **Inizia** e **Termina**, filtrabile per inizio e fine. **Sostituito da** mostra **Persona successiva nella rotazione** per un salto. Una sostituzione non si può modificare: eliminatela e aggiungetene una nuova, oppure eliminatela per far rientrare qualcuno prima.
+Ogni sostituzione è una riga: **Assente**, **Sostituito da**, **Inizia** e **Termina**, filtrabile per inizio e fine. **Sostituito da** mostra **Persona successiva nella rotazione** per un salto.
+
+## Modificare una sostituzione
+
+Fate clic su **Modifica** sulla riga di una sostituzione, in una delle due pagine **Sostituzioni utente** o nell'elenco delle sostituzioni utente nella pagina **Livelli** di una pianificazione. Il modulo si apre con la sostituzione così come è stata salvata: modificatela e fate clic su **Salva modifiche**.
+
+- **Chi sostituisce?** si può cambiare finché la sostituzione non termina. Riportatelo su **Persona successiva nella rotazione** per saltare invece la persona.
+- **Inizia** si può spostare finché la sostituzione non inizia, poi resta com'è. **Termina** si può spostare finché la sostituzione non termina: impostatelo su adesso per terminare prima la sostituzione. Nessuno dei due si può spostare nel passato.
+- **Chi è assente?** non si può cambiare. Per qualcun altro, aggiungete una nuova sostituzione.
+
+Una sostituzione già terminata non si può più modificare: il suo **Modifica** è bloccato e dice perché.
 
 ## Tutte le policy, o una
 
@@ -57,7 +68,11 @@ Ogni sostituzione è una riga: **Assente**, **Sostituito da**, **Inizia** e **Te
 | **Reperibilità → Avanzato → Sostituzioni utente** | **Sostituzioni utente globali** | Tutte le policy di reperibilità del progetto |
 | **Sostituzioni utente** di una policy | **Sostituzioni utente della policy di reperibilità** | Solo quella policy |
 
-Quando due sostituzioni per la stessa persona si sovrappongono, quella della policy prevale su una globale, e quella che indica un sostituto prevale su un salto. Un avviso inviato senza policy, da un workflow o dalla chat, segue solo le sostituzioni globali.
+Due sostituzioni per la stessa persona non possono sovrapporsi sulla stessa policy, né quando sono entrambe globali. Il modulo lo dice appena vengono scelti gli orari, con **Modifica quella sostituzione** per modificare invece quella. Una può terminare quando inizia la successiva.
+
+La sostituzione propria di una policy può sovrapporsi a una globale della stessa persona: su quella policy si usa la sua finché valgono entrambe, e il modulo lo dice. Un avviso inviato senza policy, da un workflow o dalla chat, segue solo le sostituzioni globali.
+
+Le sostituzioni che si sovrapponevano già prima di questa regola restano come sono. Entrambe sono segnate con **Si sovrappone**, che dice quale si usa: quella che indica un sostituto prima di un salto, poi quella che inizia prima, poi quella aggiunta per prima.
 
 ## Altri modi per aggiungerne una
 
@@ -68,9 +83,9 @@ Quando qualcuno lascia il progetto, ogni sostituzione che lo nomina e che non è
 
 ## Chi può aggiungere sostituzioni
 
-**Proprietario del progetto**, **Amministratore del progetto**, **Membro del progetto**, **Amministratore della reperibilità** e **Membro della reperibilità** possono aggiungere ed eliminare sostituzioni; **Visualizzatore** e **Visualizzatore della reperibilità** possono vederle. In un ruolo personalizzato, i permessi sono **Create On-Call Policy User Override**, **Delete On-Call Policy User Override** e **Read On-Call Policy User Override**. Nella **Cronologia delle reperibilità**, solo chi può leggere le sostituzioni vede di chi è il turno sostituito.
+**Proprietario del progetto**, **Amministratore del progetto**, **Membro del progetto**, **Amministratore della reperibilità** e **Membro della reperibilità** possono aggiungere, modificare ed eliminare sostituzioni; **Visualizzatore** e **Visualizzatore della reperibilità** possono vederle. In un ruolo personalizzato, i permessi sono **Create On-Call Policy User Override**, **Edit On-Call Policy User Override**, **Delete On-Call Policy User Override** e **Read On-Call Policy User Override**. Nella **Cronologia delle reperibilità**, solo chi può leggere le sostituzioni vede di chi è il turno sostituito.
 
-Una sostituzione su una policy segue l'ambito della policy. Date a un team **Membro della reperibilità** limitato alle policy di sua proprietà, o alla sua etichetta, e i suoi membri aggiungono ed eliminano sostituzioni solo su quelle policy. Una sostituzione globale si applica a ogni policy, comprese quelle di un altro team, quindi aggiungerla o eliminarla richiede il permesso per le sostituzioni sull'intero progetto. Con uno più ristretto, **Aggiungi: Sostituzione utente** ed **Elimina** in **Reperibilità → Avanzato → Sostituzioni utente** sono bloccati e dicono perché. **Salta fino a…** nei livelli di una pianificazione e **Trova una copertura** sui vostri prossimi turni, che aggiungono sostituzioni globali, offrono invece le policy su cui potete aggiungere sostituzioni, con una sostituzione per policy, e così fa la copertura dell'app mobile; dove non potete su nessuna, sono bloccati e dicono perché. Il team aggiunge le sue sostituzioni nella pagina **Sostituzioni utente** di ciascuna policy. Lo stesso vale per l'API: una sostituzione senza `onCallDutyPolicyId` viene rifiutata per un permesso limitato a etichette o alle policy possedute.
+Una sostituzione su una policy segue l'ambito della policy. Date a un team **Membro della reperibilità** limitato alle policy di sua proprietà, o alla sua etichetta, e i suoi membri aggiungono, modificano ed eliminano sostituzioni solo su quelle policy. Una sostituzione globale si applica a ogni policy, comprese quelle di un altro team, quindi aggiungerla, modificarla o eliminarla richiede il permesso per le sostituzioni sull'intero progetto. Con uno più ristretto, **Aggiungi: Sostituzione utente**, **Modifica** ed **Elimina** in **Reperibilità → Avanzato → Sostituzioni utente** sono bloccati e dicono perché. **Salta fino a…** nei livelli di una pianificazione e **Trova una copertura** sui vostri prossimi turni, che aggiungono sostituzioni globali, offrono invece le policy su cui potete aggiungere sostituzioni, con una sostituzione per policy, e così fa la copertura dell'app mobile; dove non potete su nessuna, sono bloccati e dicono perché. Il team aggiunge le sue sostituzioni nella pagina **Sostituzioni utente** di ciascuna policy. Lo stesso vale per l'API: una sostituzione senza `onCallDutyPolicyId` viene rifiutata per un permesso limitato a etichette o alle policy possedute.
 
 Su OneUptime Cloud, le sostituzioni utente richiedono il piano **Growth**.
 
@@ -100,7 +115,9 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-user-override \
   }'
 ```
 
-Una sostituzione in cui la persona assente e il sostituto coincidono viene rifiutata, e così una che finisce prima di iniziare.
+Una sostituzione in cui la persona assente e il sostituto coincidono viene rifiutata, e così una che finisce prima di iniziare. Lo stesso vale per una che si sovrappone a un'altra sostituzione della stessa persona sulla stessa policy, o quando sono entrambe globali: il rifiuto nomina quella a cui si sovrappone.
+
+Per modificare una sostituzione, inviate `PUT /api/on-call-duty-policy-user-override/<override-id>` con i campi da cambiare in `data`: `routeAlertsToUserId` (`null` per saltare invece la persona), `startsAt` e `endsAt`. `overrideUserId` e `onCallDutyPolicyId` non si possono cambiare. Una sostituzione già terminata non si può modificare, né l'inizio di una già iniziata, e un orario modificato non si può spostare nel passato.
 
 ## Risoluzione dei problemi
 
@@ -114,6 +131,10 @@ Viene raggiunto tramite le sue regole di reperibilità personali e i suoi metodi
 
 :::details Non riesco ad aggiungere una sostituzione
 Serve uno dei ruoli qui sopra e, su OneUptime Cloud, il piano **Growth**. Una sostituzione globale richiede il ruolo sull'intero progetto: se il ruolo del vostro team è limitato alle sue policy o ad alcune etichette, aggiungete la sostituzione nella pagina **Sostituzioni utente** della policy stessa. **Salta fino a…**, **Trova una copertura** e l'app mobile offrono allora solo le policy su cui potete aggiungere sostituzioni, e sono bloccati dove non potete su nessuna.
+:::
+
+:::details Una sostituzione non si può salvare perché si sovrappone a un'altra
+La persona ha già una sostituzione in alcuni di quegli orari: sulla stessa policy, o una globale quando anche questa è globale. Fate clic su **Modifica quella sostituzione** sotto **Termina** per modificare invece quella, o scegliete orari che non vi si sovrappongano.
 :::
 
 ## Passi successivi

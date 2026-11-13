@@ -5,6 +5,7 @@ While someone is away, a user override sends the pages that would reach them to 
 :::cards
 - [How an override changes a page](#how-an-override-changes-a-page): Who is paged instead, and when.
 - [Add an override](#add-an-override): Who is away, who covers, from when and until when.
+- [Edit an override](#edit-an-override): Change who covers, or when it starts and ends.
 - [Every policy, or one](#every-policy-or-one): Where to add an override, and which one wins.
 - [Other ways to add one](#other-ways-to-add-one): From a schedule, and from your upcoming shifts.
 :::
@@ -48,7 +49,17 @@ Leave **Who covers?** on **Next person in the rotation** to skip them, or pick t
 **Starts** is now unless you pick another time. Set **Ends** to when they are back: it has to come after the start. Click **Add User Override**.
 :::
 
-Each override is a row: **Away**, **Covered by**, **Starts** and **Ends**, filtered by its start and end. **Covered by** reads **Next person in the rotation** for a skip. An override cannot be edited: delete it and add a new one, or delete it to bring someone back early.
+Each override is a row: **Away**, **Covered by**, **Starts** and **Ends**, filtered by its start and end. **Covered by** reads **Next person in the rotation** for a skip.
+
+## Edit an override
+
+Click **Edit** on an override's row, on either **User Overrides** page or in the list of user overrides on a schedule's **Layers** page. The form opens with the override as it was saved: change it, and click **Save Changes**.
+
+- **Who covers?** can change until the override ends. Set it back to **Next person in the rotation** to skip the person instead.
+- **Starts** can move until the override starts, and then stays as it is. **Ends** can move until the override ends: set it to now to end the override early. Neither can be moved into the past.
+- **Who is away?** cannot change. For somebody else, add a new override.
+
+An override that has ended cannot be changed: its **Edit** is locked and says why.
 
 ## Every policy, or one
 
@@ -57,7 +68,11 @@ Each override is a row: **Away**, **Covered by**, **Starts** and **Ends**, filte
 | **On-Call → Advanced → User Overrides** | **Global User Overrides** | Every on-call policy in the project |
 | A policy's **User Overrides** | **On-Call Policy User Overrides** | That policy only |
 
-When two overrides for the same person overlap, the policy's own one wins over a global one, and one that names who covers wins over a skip. A page sent without a policy, from a workflow or from chat, follows the global overrides only.
+Two overrides for the same person cannot overlap on the same policy, or when both are global. The form says so as soon as the times are picked, with **Edit that override** to change that one instead. One can end as the next one starts.
+
+A policy's own override may overlap a global one for the same person: on that policy, the policy's own one is used while both apply, and the form says so. A page sent without a policy, from a workflow or from chat, follows the global overrides only.
+
+Overrides that overlapped before this rule are left as they are. Both are marked **Overlaps**, which says which one is used: one that names who covers over a skip, then the one that starts first, then the one added first.
 
 ## Other ways to add one
 
@@ -68,9 +83,9 @@ When someone leaves the project, every override that names them and has not ende
 
 ## Who can add overrides
 
-**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** and **On-Call Member** can add and delete overrides; **Viewer** and **On-Call Viewer** can see them. In a custom role, the permissions are **Create On-Call Policy User Override**, **Delete On-Call Policy User Override** and **Read On-Call Policy User Override**. On the **Schedule Timeline**, only people who can read overrides see whose shift is being covered.
+**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** and **On-Call Member** can add, edit and delete overrides; **Viewer** and **On-Call Viewer** can see them. In a custom role, the permissions are **Create On-Call Policy User Override**, **Edit On-Call Policy User Override**, **Delete On-Call Policy User Override** and **Read On-Call Policy User Override**. On the **Schedule Timeline**, only people who can read overrides see whose shift is being covered.
 
-An override on a policy follows the policy's scope. Give a team **On-Call Member** limited to the policies it owns, or to its label, and its members add and delete overrides on those policies only. A global override applies to every policy, another team's included, so adding or deleting one takes the override permission over the whole project. With a narrower one, **Add User Override** and **Delete** on **On-Call → Advanced → User Overrides** are locked and say why. **Skip until…** on a schedule's layers and **Get cover** on your upcoming shifts, which add global overrides, offer instead the policies you may cover, one override on each, and so does the mobile app's cover; where you may cover none of them, they are locked and say why. The team adds its overrides on each policy's own **User Overrides** page. The same holds for the API: an override with no `onCallDutyPolicyId` is refused for a permission limited to labels or to owned policies.
+An override on a policy follows the policy's scope. Give a team **On-Call Member** limited to the policies it owns, or to its label, and its members add, edit and delete overrides on those policies only. A global override applies to every policy, another team's included, so adding, editing or deleting one takes the override permission over the whole project. With a narrower one, **Add User Override**, **Edit** and **Delete** on **On-Call → Advanced → User Overrides** are locked and say why. **Skip until…** on a schedule's layers and **Get cover** on your upcoming shifts, which add global overrides, offer instead the policies you may cover, one override on each, and so does the mobile app's cover; where you may cover none of them, they are locked and say why. The team adds its overrides on each policy's own **User Overrides** page. The same holds for the API: an override with no `onCallDutyPolicyId` is refused for a permission limited to labels or to owned policies.
 
 On OneUptime Cloud, user overrides need the **Growth** plan.
 
@@ -100,7 +115,9 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-user-override \
   }'
 ```
 
-An override whose away person and cover are the same is refused, and so is one that ends before it starts.
+An override whose away person and cover are the same is refused, and so is one that ends before it starts. So is one that overlaps another override for the same person on the same policy, or when both are global: the refusal names the one it overlaps.
+
+To change an override, send `PUT /api/on-call-duty-policy-user-override/<override-id>` with the fields to change in `data`: `routeAlertsToUserId` (`null` to skip the person instead), `startsAt` and `endsAt`. `overrideUserId` and `onCallDutyPolicyId` cannot change. An override that has ended cannot be changed, nor can the start of one that has started, and a time that is changed cannot be moved into the past.
 
 ## Troubleshooting
 
@@ -114,6 +131,10 @@ They are reached through their How to Reach Me and verified methods. Look them u
 
 :::details I cannot add an override
 Adding one takes one of the roles above, and on OneUptime Cloud the **Growth** plan. A global override takes the role over the whole project: if your team's role is limited to its own policies or to some labels, add the override on the policy's own **User Overrides** page. **Skip until…**, **Get cover** and the mobile app then offer only the policies you may cover, and are locked where you may cover none of them.
+:::
+
+:::details An override cannot be saved because it overlaps another
+The person already has an override at some of those times: on the same policy, or a global one when this one is global too. Click **Edit that override** under **Ends** to change that one instead, or pick times that do not overlap it.
 :::
 
 ## Next steps

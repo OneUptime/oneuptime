@@ -5,6 +5,7 @@ Mens nogen er fraværende, sender en brugertilsidesættelse de tilkald, der vill
 :::cards
 - [Sådan ændrer en tilsidesættelse et tilkald](#sådan-ændrer-en-tilsidesættelse-et-tilkald): Hvem der tilkaldes i stedet, og hvornår.
 - [Tilføj en tilsidesættelse](#tilføj-en-tilsidesættelse): Hvem der er fraværende, hvem der dækker, fra hvornår og til hvornår.
+- [Rediger en tilsidesættelse](#rediger-en-tilsidesættelse): Skift, hvem der dækker, eller hvornår den starter og slutter.
 - [Alle politikker eller én](#alle-politikker-eller-én): Hvor du tilføjer en tilsidesættelse, og hvilken der vinder.
 - [Andre måder at tilføje en på](#andre-måder-at-tilføje-en-på): Fra en vagtplan og fra dine kommende vagter.
 :::
@@ -48,7 +49,17 @@ Lad **Hvem dækker?** stå på **Næste person i rotationen** for at springe dem
 **Starter** er nu, medmindre du vælger et andet tidspunkt. Sæt **Slutter** til, når de er tilbage: det skal ligge efter starten. Klik på **Tilføj Brugertilsidesættelse**.
 :::
 
-Hver tilsidesættelse er en række: **Fraværende**, **Dækket af**, **Starter** og **Slutter**, filtreret efter start og slutning. **Dækket af** viser **Næste person i rotationen** ved et overspring. En tilsidesættelse kan ikke redigeres: slet den, og tilføj en ny, eller slet den for at få nogen tilbage tidligere.
+Hver tilsidesættelse er en række: **Fraværende**, **Dækket af**, **Starter** og **Slutter**, filtreret efter start og slutning. **Dækket af** viser **Næste person i rotationen** ved et overspring.
+
+## Rediger en tilsidesættelse
+
+Klik på **Rediger** i en tilsidesættelses række, på en af de to sider **Brugertilsidesættelser** eller i listen over brugertilsidesættelser på vagtplanens side **Lag**. Formularen åbner med tilsidesættelsen, som den blev gemt: ret den, og klik på **Gem ændringer**.
+
+- **Hvem dækker?** kan ændres, indtil tilsidesættelsen slutter. Sæt den tilbage til **Næste person i rotationen** for i stedet at springe personen over.
+- **Starter** kan flyttes, indtil tilsidesættelsen starter, og bliver derefter, som den er. **Slutter** kan flyttes, indtil tilsidesættelsen slutter: sæt den til nu for at afslutte tilsidesættelsen tidligere. Ingen af dem kan flyttes til fortiden.
+- **Hvem er fraværende?** kan ikke ændres. Tilføj en ny tilsidesættelse for en anden person.
+
+En tilsidesættelse, der er slut, kan ikke længere ændres: dens **Rediger** er låst og siger hvorfor.
 
 ## Alle politikker eller én
 
@@ -57,7 +68,11 @@ Hver tilsidesættelse er en række: **Fraværende**, **Dækket af**, **Starter**
 | **Vagt → Avanceret → Brugertilsidesættelser** | **Globale brugertilsidesættelser** | Alle vagtpolitikker i projektet |
 | En politiks **Brugertilsidesættelser** | **Vagtpolitikkens brugertilsidesættelser** | Kun den politik |
 
-Når to tilsidesættelser for den samme person overlapper, vinder politikkens egen over en global, og en, der nævner, hvem der dækker, vinder over et overspring. Et tilkald uden en politik, fra et workflow eller fra chat, følger kun de globale tilsidesættelser.
+To tilsidesættelser for den samme person må ikke overlappe i den samme politik, heller ikke når begge er globale. Formularen siger det, så snart tidspunkterne er valgt, med **Rediger den tilsidesættelse** for i stedet at ændre den anden. Den ene kan slutte, når den næste starter.
+
+En politiks egen tilsidesættelse må overlappe en global for den samme person: i den politik bruges dens egen, mens begge gælder, og formularen siger det. Et tilkald uden en politik, fra et workflow eller fra chat, følger kun de globale tilsidesættelser.
+
+Tilsidesættelser, der allerede overlappede før denne regel, forbliver som de er. Begge er markeret med **Overlapper**, som siger, hvilken der bruges: en, der nævner, hvem der dækker, før et overspring, derefter den, der starter først, derefter den, der blev tilføjet først.
 
 ## Andre måder at tilføje en på
 
@@ -68,9 +83,9 @@ Når nogen forlader projektet, slettes hver tilsidesættelse, der nævner dem og
 
 ## Hvem der må tilføje tilsidesættelser
 
-**Projektejer**, **Projektadministrator**, **Projektmedlem**, **Vagtadministrator** og **Vagtmedlem** må tilføje og slette tilsidesættelser; **Seer** og **Vagtseer** må se dem. I en brugerdefineret rolle hedder tilladelserne **Create On-Call Policy User Override**, **Delete On-Call Policy User Override** og **Read On-Call Policy User Override**. På **Tidslinje for vagtplaner** ser kun folk, der må læse tilsidesættelser, hvis vagt der dækkes.
+**Projektejer**, **Projektadministrator**, **Projektmedlem**, **Vagtadministrator** og **Vagtmedlem** må tilføje, redigere og slette tilsidesættelser; **Seer** og **Vagtseer** må se dem. I en brugerdefineret rolle hedder tilladelserne **Create On-Call Policy User Override**, **Edit On-Call Policy User Override**, **Delete On-Call Policy User Override** og **Read On-Call Policy User Override**. På **Tidslinje for vagtplaner** ser kun folk, der må læse tilsidesættelser, hvis vagt der dækkes.
 
-En tilsidesættelse i en politik følger politikkens omfang. Giv et team **Vagtmedlem** begrænset til de politikker, det ejer, eller til dets label, så tilføjer og sletter dets medlemmer kun tilsidesættelser i de politikker. En global tilsidesættelse gælder for alle politikker, også et andet teams, så det at tilføje eller slette en kræver tilladelsen til tilsidesættelser over hele projektet. Med en snævrere tilladelse er **Tilføj Brugertilsidesættelse** og **Slet** under **Vagt → Avanceret → Brugertilsidesættelser** låst og siger hvorfor. **Spring over indtil…** i en vagtplans lag og **Find afløser** på dine kommende vagter, som tilføjer globale tilsidesættelser, tilbyder i stedet de politikker, du må tilføje tilsidesættelser på, med én tilsidesættelse pr. politik, og det samme gør afløsningen i mobilappen; hvor du ikke må på nogen af dem, er de låst og siger hvorfor. Teamet tilføjer sine tilsidesættelser på hver politiks egen side **Brugertilsidesættelser**. Det samme gælder for API'et: en tilsidesættelse uden `onCallDutyPolicyId` afvises for en tilladelse begrænset til labels eller til ejede politikker.
+En tilsidesættelse i en politik følger politikkens omfang. Giv et team **Vagtmedlem** begrænset til de politikker, det ejer, eller til dets label, så tilføjer, redigerer og sletter dets medlemmer kun tilsidesættelser i de politikker. En global tilsidesættelse gælder for alle politikker, også et andet teams, så det at tilføje, redigere eller slette en kræver tilladelsen til tilsidesættelser over hele projektet. Med en snævrere tilladelse er **Tilføj Brugertilsidesættelse**, **Rediger** og **Slet** under **Vagt → Avanceret → Brugertilsidesættelser** låst og siger hvorfor. **Spring over indtil…** i en vagtplans lag og **Find afløser** på dine kommende vagter, som tilføjer globale tilsidesættelser, tilbyder i stedet de politikker, du må tilføje tilsidesættelser på, med én tilsidesættelse pr. politik, og det samme gør afløsningen i mobilappen; hvor du ikke må på nogen af dem, er de låst og siger hvorfor. Teamet tilføjer sine tilsidesættelser på hver politiks egen side **Brugertilsidesættelser**. Det samme gælder for API'et: en tilsidesættelse uden `onCallDutyPolicyId` afvises for en tilladelse begrænset til labels eller til ejede politikker.
 
 I OneUptime Cloud kræver brugertilsidesættelser abonnementet **Growth**.
 
@@ -100,7 +115,9 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-user-override \
   }'
 ```
 
-En tilsidesættelse, hvor den fraværende person og den, der dækker, er den samme, afvises, og det samme gør en, der slutter, før den starter.
+En tilsidesættelse, hvor den fraværende person og den, der dækker, er den samme, afvises, og det samme gør en, der slutter, før den starter. Det samme gør en, der overlapper en anden tilsidesættelse for den samme person i den samme politik, eller når begge er globale: afvisningen nævner den, den overlapper.
+
+For at ændre en tilsidesættelse skal du sende `PUT /api/on-call-duty-policy-user-override/<override-id>` med de felter, der skal ændres, i `data`: `routeAlertsToUserId` (`null` for i stedet at springe personen over), `startsAt` og `endsAt`. `overrideUserId` og `onCallDutyPolicyId` kan ikke ændres. En tilsidesættelse, der er slut, kan ikke ændres, det kan starten på en, der er startet, heller ikke, og et tidspunkt, der ændres, kan ikke flyttes til fortiden.
 
 ## Fejlfinding
 
@@ -114,6 +131,10 @@ De nås via deres egne personlige vagtregler og bekræftede metoder. Slå dem op
 
 :::details Jeg kan ikke tilføje en tilsidesættelse
 Det kræver en af rollerne ovenfor og, i OneUptime Cloud, abonnementet **Growth**. En global tilsidesættelse kræver rollen over hele projektet: er dit teams rolle begrænset til dets egne politikker eller til nogle labels, så tilføj tilsidesættelsen på politikkens egen side **Brugertilsidesættelser**. **Spring over indtil…**, **Find afløser** og mobilappen tilbyder så kun de politikker, du må tilføje tilsidesættelser på, og er låst, hvor du ikke må på nogen af dem.
+:::
+
+:::details En tilsidesættelse kan ikke gemmes, fordi den overlapper en anden
+Personen har allerede en tilsidesættelse på nogle af de tidspunkter: i den samme politik, eller en global, når denne også er global. Klik på **Rediger den tilsidesættelse** under **Slutter** for i stedet at ændre den, eller vælg tidspunkter, der ikke overlapper den.
 :::
 
 ## Næste trin
