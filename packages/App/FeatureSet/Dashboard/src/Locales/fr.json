@@ -31970,7 +31970,7 @@
   "No host runs this config yet. A host gets it once it reports and this config is the first that applies to it.": "Aucun hôte n'exécute encore cette configuration. Un hôte la reçoit dès qu'il se signale et que cette configuration est la première qui s'applique à lui.",
   "No versions yet.": "Aucune version pour l'instant.",
   "No word from this host's collector for more than 15 minutes. Check that its service runs and that the host can reach OneUptime.": "Aucune nouvelle du collecteur de cet hôte depuis plus de 15 minutes. Vérifiez que son service tourne et que l'hôte peut joindre OneUptime.",
-  "OneUptime collector": "Le collecteur OneUptime",
+  "OneUptime collector": "le collecteur OneUptime",
   "OneUptime default": "Configuration par défaut de OneUptime",
   "OneUptime default for Linux": "Configuration par défaut de OneUptime pour Linux",
   "OneUptime default for Windows": "Configuration par défaut de OneUptime pour Windows",
