@@ -1117,6 +1117,86 @@ test.describe("reads that fail", () => {
     ).toBeVisible();
     await expect(menu.getByTestId("error-explanation")).toHaveCount(0);
   });
+
+  /*
+   * A list's Try again gives way to the loading rows, which hold nothing to
+   * focus (#7621): pressed from the keyboard, the focus fell to the page,
+   * and the next Tab started over at its top. The table holds the focus
+   * now while the rows load again - with no ring around it - and gives it
+   * back to Try again if they fail once more; when they arrive it keeps it,
+   * just before them. Once the focus moves on, the table is not focusable,
+   * so a click on its words leaves the focus with the page, as before.
+   */
+  test("pressed from the keyboard, a list's Try again keeps the focus: on Try again after another failure, then just before the rows", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CUSTOM_FIELDS_PATH, { caseSetup: "fail-twice" });
+    const tryAgain: Locator = page.getByRole("button", { name: "Try again" });
+    // The table as a whole: what holds its rows and its footer.
+    const table: Locator = page.getByTestId("table-scroll").locator("..");
+    await tryAgain.focus({ timeout: 30000 });
+
+    // Counts each change to the page that left the focus on the page itself.
+    await page.evaluate((): void => {
+      const tracked: Window & { focusFellToPage?: number } = window;
+      tracked.focusFellToPage = 0;
+      new MutationObserver((): void => {
+        if (document.activeElement === document.body) {
+          tracked.focusFellToPage = (tracked.focusFellToPage || 0) + 1;
+        }
+      }).observe(document.body, { childList: true, subtree: true });
+    });
+
+    // The second read fails too.
+    await page.keyboard.press("Enter");
+    await expect(tryAgain).toBeFocused();
+
+    // The third answers.
+    await page.keyboard.press("Enter");
+    await expect(
+      page.locator("tbody tr").filter({ hasText: "Business Unit" }),
+    ).toHaveCount(1);
+    await expect(table).toBeFocused();
+    expect(
+      await table.evaluate((element: Element): string => {
+        const style: CSSStyleDeclaration = getComputedStyle(element);
+        return style.outlineStyle === "none" ||
+          style.outlineColor === "rgba(0, 0, 0, 0)"
+          ? "no ring"
+          : `${style.outlineStyle} ${style.outlineColor}`;
+      }),
+    ).toBe("no ring");
+    expect(
+      await page.evaluate((): number => {
+        return (window as Window & { focusFellToPage?: number })
+          .focusFellToPage as number;
+      }),
+      "changes to the page that left the focus on the page itself",
+    ).toBe(0);
+
+    // The next Tab reaches the first of what the table holds.
+    await page.keyboard.press("Tab");
+    expect(
+      await table.evaluate((element: Element): boolean => {
+        return (
+          document.activeElement !== element &&
+          element.contains(document.activeElement)
+        );
+      }),
+      "the focus is on a control in the table",
+    ).toBe(true);
+
+    // Focusable no more: a click on its words leaves the focus with the page.
+    await page.getByText("Showing 1-2 of 2 case custom fields").click();
+    expect(
+      await page.evaluate((): boolean => {
+        return document.activeElement === document.body;
+      }),
+      "the focus is on the page itself",
+    ).toBe(true);
+  });
 });
 
 /*
