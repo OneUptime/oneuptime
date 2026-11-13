@@ -299,7 +299,7 @@
     "Incoming Request Ingress": "傳入請求 Ingress",
     "Packet Capture": "封包擷取",
     "OpenTelemetry": "OpenTelemetry",
-    "Service Catalog": "服務目錄",
+    "Services": "服務",
     "Logs Explorer": "日誌瀏覽器",
     "Traces Explorer": "追蹤瀏覽器",
     "Metrics Explorer": "指標瀏覽器",

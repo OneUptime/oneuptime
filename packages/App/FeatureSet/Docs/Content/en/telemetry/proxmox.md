@@ -410,6 +410,10 @@ It ends with a verdict naming the most likely cause.
 The API token is wrong or lacks permissions. Check the token id's format (`user@realm!tokenname`), the secret, and that the **PVEAuditor** role is on path `/` for the token and for its user. The exporter's own logs show the API's answer: `docker logs oneuptime-pve-exporter`.
 :::
 
+:::details The cluster shows "Can't read API"
+The agent is running, but it has not read the cluster from the Proxmox VE API for 15 minutes or more, so the cluster shows **Can't read API** instead of **Connected**: the node it reads is down and no other node in `PVE_NODES` answers, the API token was revoked or lost the **PVEAuditor** role, or the agent's machine cannot reach port `8006` on any node. Its pages keep what it last read. The diagnostic script above checks each of these, and `docker logs oneuptime-pve-api-failover` says which node the agent reads and why it passed over the others.
+:::
+
 :::details Only node metrics, no guest metrics
 Guest series (`qemu/*` and `lxc/*` ids) come from the exporter's cluster collector, which the shipped config turns on with the `cluster=1` scrape parameter. If you customized `otel-collector-config.yaml`, put the `cluster: ["1"]` parameter back.
 :::

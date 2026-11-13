@@ -39,7 +39,7 @@ flowchart TB
 ## 开始之前
 
 - **正在到达的 span 或日志。** 使用 [OpenTelemetry](/docs/telemetry/open-telemetry) 为你的服务埋点。**设置指南** 标签页会显示适合你的语言的代码。
-- **可以读取遥测的角色。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member 或 Telemetry Viewer，或者拥有 Read Telemetry Service Exception 权限的自定义角色。解决和归档需要 Project Owner 或 Project Admin，或者 Edit Telemetry Service Exception 权限。
+- **可以读取遥测的角色。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member 或 Telemetry Viewer，或者拥有 Read Exceptions 权限的自定义角色。解决和归档需要 Project Owner 或 Project Admin，或者 Edit Exceptions 权限。
 
 ## 分诊列表
 

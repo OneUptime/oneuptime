@@ -37,7 +37,7 @@ De verkenner heeft vijf tabbladen:
 ## Voordat u begint
 
 - **Binnenkomende logboeken.** Stuur ze met [OpenTelemetry](/docs/telemetry/open-telemetry), [Fluent Bit](/docs/telemetry/fluentbit), [Fluentd](/docs/telemetry/fluentd) of [Syslog](/docs/telemetry/syslog). Het tabblad **Installatiegids** toont de configuratie voor uw taal of collector.
-- **Een rol die telemetrie mag lezen.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member of Telemetry Viewer, of een aangepaste rol met de machtiging Read Telemetry Service Log. Het bereik ervan bepaalt van wie u de logboeken ziet: zie [Telemetrie](/docs/permissions/index#telemetrie).
+- **Een rol die telemetrie mag lezen.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member of Telemetry Viewer, of een aangepaste rol met de machtiging Read Logs. Het bereik ervan bepaalt van wie u de logboeken ziet: zie [Telemetrie](/docs/permissions/index#telemetrie).
 
 ## Een logregel vinden
 

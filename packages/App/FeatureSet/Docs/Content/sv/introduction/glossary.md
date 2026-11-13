@@ -124,7 +124,7 @@ Se [Prenumeranter och meddelanden](/docs/status-pages/subscribers).
 
 ### Schemalagt underhåll
 
-Planerat arbete som meddelas i förväg. En händelse går igenom **Schemalagd**, **Pågående**, **Avslutad** och **Slutförd**, och statussidorna som den visas på berättar om den för besökare och prenumeranter.
+Planerat arbete som meddelas i förväg. Varje underhållshändelse går igenom underhållsstatusarna **Schemalagd**, **Pågående**, **Avslutad** och **Slutförd**, och statussidorna som den visas på berättar om den för besökare och prenumeranter.
 
 Kallas även: **Schemalagd underhållshändelse**, **Planerad händelse**, **Händelse**. Se [Schemalagt underhåll – Översikt](/docs/scheduled-maintenance/index).
 
@@ -146,7 +146,7 @@ Se [Monitorgrupper](/docs/monitor/monitor-groups).
 
 En applikation eller mikrotjänst som du kör. OneUptime lägger till den första gången dess telemetri kommer in, med namnet från dess `service.name`, och samlar dess loggar, spår, mätvärden, undantag, incidenter och ägare på en sida.
 
-Kallas även: **Tjänstekatalog**, **Telemetritjänst**. Se [Tjänstekatalog](/docs/telemetry/services).
+Kallas även: **Tjänstekatalog**, **Telemetritjänst**. Se [Tjänster](/docs/telemetry/services).
 
 ### Värd
 

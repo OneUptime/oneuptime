@@ -102,7 +102,7 @@ const NOTE: string = "We have found the cause and are rolling back.";
 const INCIDENT_NOTE_PERMISSIONS: string =
   "You do not have permissions to create Incident Public Note. You need one of these permissions: Project Owner, Project Admin, Project Member, Incident Admin, Incident Member, Create Incident Status Page Note. To change the state, leave the public note out.";
 const MAINTENANCE_NOTE_PERMISSIONS: string =
-  "You do not have permissions to create Scheduled Event Public Note. You need one of these permissions: Project Owner, Project Admin, Project Member, Scheduled Maintenance Admin, Scheduled Maintenance Member, Create Scheduled Maintenance Status Page Note. To change the state, leave the public note out.";
+  "You do not have permissions to create Maintenance Event Public Note. You need one of these permissions: Project Owner, Project Admin, Project Member, Scheduled Maintenance Admin, Scheduled Maintenance Member, Create Scheduled Maintenance Status Page Note. To change the state, leave the public note out.";
 
 interface RoleCase {
   role: string;

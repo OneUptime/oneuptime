@@ -705,6 +705,130 @@ describe("the titles every resource repeats, worded alike", () => {
   });
 });
 
+/*
+ * A TIMEOUT IS مهلت (#7607): a time limit, and the moment one runs out is
+ * پایان مهلت. Persian named the same setting two ways - Request Timeout on
+ * an HTTP monitor's form read "وقفه درخواست", the same field's row on the
+ * Template sync settings card "مهلت درخواست" - and وقفه is a pause, not a
+ * time limit. Every text whose English says timeout now says مهلت, and وقفه
+ * is left only where its English means a pause, for the reason listed.
+ */
+describe("a timeout is مهلت, never وقفه", () => {
+  const DEADLINE: string = "مهلت";
+  const PAUSE: string = "وقفه";
+  // Timeout, timeouts, time out, timed out, timing out.
+  const SAYS_TIMEOUT: RegExp = /\btim(?:e|ed|ing)[\s-]?outs?\b/i;
+  // The noun: a setting, a label, the timeouts a probe counts.
+  const SAYS_A_TIMEOUT: RegExp = /\btime-?outs?\b/i;
+
+  // Where Persian keeps وقفه, because the English means a pause.
+  const PAUSES: ReadonlyArray<{ english: RegExp; why: string }> = [
+    {
+      english: /\bcool-?down\b/i,
+      why: "the AI re-investigation cooldown is a wait before an alert or incident on the same monitor is investigated again: a pause",
+    },
+  ];
+
+  // The texts Persian words whose English, outside its placeholders, says `pattern`.
+  const saying: (pattern: RegExp) => Array<[string, string, string]> = (
+    pattern: RegExp,
+  ): Array<[string, string, string]> => {
+    return WORDED.filter(([, english]: [string, string, string]): boolean => {
+      return pattern.test(english.replace(PLACEHOLDER, " "));
+    });
+  };
+
+  const listed: (rows: Array<[string, string, string]>) => Array<string> = (
+    rows: Array<[string, string, string]>,
+  ): Array<string> => {
+    return rows.map(([, english, persian]: [string, string, string]) => {
+      return `${english} => ${persian}`;
+    });
+  };
+
+  // The timeouts among `rows` worded as a pause.
+  const wordedAsAPause: (
+    rows: Array<[string, string, string]>,
+  ) => Array<string> = (rows: Array<[string, string, string]>) => {
+    return listed(
+      rows.filter(([, , persian]: [string, string, string]): boolean => {
+        return persian.includes(PAUSE);
+      }),
+    );
+  };
+
+  test("no text whose English says timeout calls it وقفه", () => {
+    const timeouts: Array<[string, string, string]> = saying(SAYS_TIMEOUT);
+
+    // Many: a scan that finds none would pass.
+    expect(timeouts.length).toBeGreaterThan(60);
+    expect(wordedAsAPause(timeouts)).toEqual([]);
+  });
+
+  test("every timeout Persian words says مهلت", () => {
+    const timeouts: Array<[string, string, string]> = saying(SAYS_A_TIMEOUT);
+
+    expect(timeouts.length).toBeGreaterThan(60);
+    expect(
+      listed(
+        timeouts.filter(([, , persian]: [string, string, string]): boolean => {
+          return !persian.includes(DEADLINE);
+        }),
+      ),
+    ).toEqual([]);
+  });
+
+  test("وقفه is left only where the English means a pause", () => {
+    const pauses: Array<[string, string, string]> = WORDED.filter(
+      ([, , persian]: [string, string, string]): boolean => {
+        return persian.includes(PAUSE);
+      },
+    );
+    const unexplained: Array<[string, string, string]> = pauses.filter(
+      ([, english]: [string, string, string]): boolean => {
+        return !PAUSES.some((pause: { english: RegExp }): boolean => {
+          return pause.english.test(english);
+        });
+      },
+    );
+
+    expect(pauses.length).toBeGreaterThan(10);
+    expect(listed(unexplained)).toEqual([]);
+
+    // Each pause listed is still one the file says.
+    for (const pause of PAUSES) {
+      expect({
+        why: pause.why,
+        said: pauses.some(([, english]: [string, string, string]): boolean => {
+          return pause.english.test(english);
+        }),
+      }).toEqual({ why: pause.why, said: true });
+    }
+  });
+
+  test("the check finds a timeout worded as a pause (control)", () => {
+    expect(
+      wordedAsAPause([
+        ["Request Timeout", "Request Timeout", "وقفه درخواست"],
+        ["Request timeout", "Request timeout", "مهلت درخواست"],
+      ]),
+    ).toEqual(["Request Timeout => وقفه درخواست"]);
+  });
+
+  test.each([
+    ["Request Timeout", "Request timeout"],
+    ["Connection Timeout", "Connection timeout"],
+    ["Statement Timeout", "Statement timeout"],
+    ["Lookup Timeout", "Lookup timeout"],
+  ])(
+    "a monitor form's %s and the Template sync settings card's %s name one field alike",
+    (formLabel: string, syncCardLabel: string) => {
+      expect(PERSIAN.get(formLabel)).toBe(PERSIAN.get(syncCardLabel));
+      expect(PERSIAN.get(formLabel)?.startsWith(`${DEADLINE} `)).toBe(true);
+    },
+  );
+});
+
 describe("pages #7089 met in English, in Persian", () => {
   const PAGES: ReadonlyArray<[string, string]> = [
     ["Team Audit Logs", "گزارش‌های ممیزی تیم"],
@@ -715,7 +839,8 @@ describe("pages #7089 met in English, in Persian", () => {
     ["Re-sync Autopay", "همگام‌سازی دوباره پرداخت خودکار"],
     ["Data Residency", "محل نگهداری داده‌ها"],
     ["Never expires", "هرگز منقضی نمی‌شود"],
-    ["Connection Timeout", "وقفه اتصال"],
+    // A timeout is مهلت, a time limit (#7607): وقفه is a pause.
+    ["Connection Timeout", "مهلت اتصال"],
     ["Exception spike", "جهش استثنا"],
     ["Metric drift: {{metricName}}", "رانش متریک: {{metricName}}"],
     ["Investigate in Logs", "بررسی در لاگ‌ها"],

@@ -39,7 +39,7 @@ flowchart TB
 ## 開始之前
 
 - **正在到達的 span 或日誌。** 使用 [OpenTelemetry](/docs/telemetry/open-telemetry) 檢測你的服務。**設定指南** 分頁會顯示適合你的語言的程式碼。
-- **可以讀取遙測的角色。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member 或 Telemetry Viewer，或者擁有 Read Telemetry Service Exception 權限的自訂角色。解決和封存需要 Project Owner 或 Project Admin，或者 Edit Telemetry Service Exception 權限。
+- **可以讀取遙測的角色。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member 或 Telemetry Viewer，或者擁有 Read Exceptions 權限的自訂角色。解決和封存需要 Project Owner 或 Project Admin，或者 Edit Exceptions 權限。
 
 ## 分流清單
 

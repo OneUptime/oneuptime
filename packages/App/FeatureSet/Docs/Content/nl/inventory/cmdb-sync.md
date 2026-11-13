@@ -59,7 +59,7 @@ Open **Projectinstellingen → Geavanceerd → API-sleutels** en klik op **API-s
 
 ### Hem alleen geven wat hij nodig heeft
 
-Een alleen-lezen-export heeft één machtiging nodig, **Read Telemetry Service**: de inventaris deelt de telemetriemachtigingen in plaats van eigen machtigingen te hebben. Klik op de pagina van de sleutel op **Machtiging toevoegen** en kies hem. Om waarden terug te schrijven, voeg je ook **Edit Telemetry Service** toe.
+Een alleen-lezen-export heeft één machtiging nodig, **Read Inventory Item**: de inventaris deelt de telemetriemachtigingen in plaats van eigen machtigingen te hebben. Klik op de pagina van de sleutel op **Machtiging toevoegen** en kies hem. Om waarden terug te schrijven, voeg je ook **Edit Inventory Item** toe.
 
 ### De sleutel kopiëren
 
@@ -232,9 +232,9 @@ Een item dat tussen twee rondes verdwijnt, is ofwel verlopen (een ontdekt item d
 
 ## Terugschrijven
 
-Dezelfde endpoints accepteren schrijfacties, dus een synchronisatie kan waarden in `customFields` zetten: bijvoorbeeld de assettag die je CMDB al beheert, gestempeld op het bijbehorende OneUptime-item. De sleutel heeft daarvoor **Edit Telemetry Service** nodig.
+Dezelfde endpoints accepteren schrijfacties, dus een synchronisatie kan waarden in `customFields` zetten: bijvoorbeeld de assettag die je CMDB al beheert, gestempeld op het bijbehorende OneUptime-item. De sleutel heeft daarvoor **Edit Inventory Item** nodig.
 
-Je kunt ook items toevoegen voor dingen die OneUptime niet kan zien, met `POST /api/inventory-item`, een `entityType` van `external.service`, `external.database` of `appliance`, en een `displayName`. OneUptime bepaalt de identiteitssleutel voor je, en die items verlopen nooit. De sleutel heeft daarvoor **Create Telemetry Service** nodig.
+Je kunt ook items toevoegen voor dingen die OneUptime niet kan zien, met `POST /api/inventory-item`, een `entityType` van `external.service`, `external.database` of `appliance`, en een `displayName`. OneUptime bepaalt de identiteitssleutel voor je, en die items verlopen nooit. De sleutel heeft daarvoor **Create Inventory Item** nodig.
 
 ## Problemen oplossen
 
@@ -243,7 +243,7 @@ In OneUptime Cloud werken API-sleutels alleen zolang het project op het abonneme
 :::
 
 :::details Elk verzoek antwoordt 422 You do not have permissions
-De sleutel heeft geen machtiging die de inventaris leest. Een sleutel die met **Machtigingen later kiezen** is gemaakt, kan niets tot hij er een krijgt: voeg op zijn pagina **Read Telemetry Service** toe, zoals in [Voordat je begint](#voordat-je-begint).
+De sleutel heeft geen machtiging die de inventaris leest. Een sleutel die met **Machtigingen later kiezen** is gemaakt, kan niets tot hij er een krijgt: voeg op zijn pagina **Read Inventory Item** toe, zoals in [Voordat je begint](#voordat-je-begint).
 :::
 
 :::details De lijst komt terug zonder de kolommen die ik nodig heb

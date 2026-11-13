@@ -2423,16 +2423,12 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   {
     getter: "getScheduleMaintenanceBreadcrumbs",
     pagePattern: "/dashboard/:projectId/scheduled-maintenance-events",
-    titles: ["Project", "Scheduled Maintenance Events"],
+    titles: ["Project", "Scheduled Maintenance"],
   },
   {
     getter: "getScheduleMaintenanceBreadcrumbs",
     pagePattern: "/dashboard/:projectId/scheduled-maintenance-events/:id",
-    titles: [
-      "Project",
-      "Scheduled Maintenance Events",
-      "View Scheduled Maintenance Event",
-    ],
+    titles: ["Project", "Scheduled Maintenance", "View Maintenance Event"],
   },
   {
     getter: "getScheduleMaintenanceBreadcrumbs",
@@ -2440,8 +2436,8 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
       "/dashboard/:projectId/scheduled-maintenance-events/:id/custom-fields",
     titles: [
       "Project",
-      "Scheduled Maintenance Events",
-      "View Scheduled Maintenance Event",
+      "Scheduled Maintenance",
+      "View Maintenance Event",
       "Custom Fields",
     ],
   },
@@ -2451,8 +2447,8 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
       "/dashboard/:projectId/scheduled-maintenance-events/:id/delete",
     titles: [
       "Project",
-      "Scheduled Maintenance Events",
-      "View Scheduled Maintenance Event",
+      "Scheduled Maintenance",
+      "View Maintenance Event",
       "Delete",
     ],
   },
@@ -2462,8 +2458,8 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
       "/dashboard/:projectId/scheduled-maintenance-events/:id/description",
     titles: [
       "Project",
-      "Scheduled Maintenance Events",
-      "View Scheduled Maintenance Event",
+      "Scheduled Maintenance",
+      "View Maintenance Event",
       "Description",
     ],
   },
@@ -2473,8 +2469,8 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
       "/dashboard/:projectId/scheduled-maintenance-events/:id/internal-notes",
     titles: [
       "Project",
-      "Scheduled Maintenance Events",
-      "View Scheduled Maintenance Event",
+      "Scheduled Maintenance",
+      "View Maintenance Event",
       "Private Notes",
     ],
   },
@@ -2484,8 +2480,8 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
       "/dashboard/:projectId/scheduled-maintenance-events/:id/owners",
     titles: [
       "Project",
-      "Scheduled Maintenance Events",
-      "View Scheduled Maintenance Event",
+      "Scheduled Maintenance",
+      "View Maintenance Event",
       "Owners",
     ],
   },
@@ -2495,8 +2491,8 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
       "/dashboard/:projectId/scheduled-maintenance-events/:id/public-notes",
     titles: [
       "Project",
-      "Scheduled Maintenance Events",
-      "View Scheduled Maintenance Event",
+      "Scheduled Maintenance",
+      "View Maintenance Event",
       "Public Notes",
     ],
   },
@@ -2506,8 +2502,8 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
       "/dashboard/:projectId/scheduled-maintenance-events/:id/settings",
     titles: [
       "Project",
-      "Scheduled Maintenance Events",
-      "View Scheduled Maintenance Event",
+      "Scheduled Maintenance",
+      "View Maintenance Event",
       "Settings",
     ],
   },
@@ -2517,28 +2513,20 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
       "/dashboard/:projectId/scheduled-maintenance-events/:id/state-timeline",
     titles: [
       "Project",
-      "Scheduled Maintenance Events",
-      "View Scheduled Maintenance Event",
+      "Scheduled Maintenance",
+      "View Maintenance Event",
       "Status Timeline",
     ],
   },
   {
     getter: "getScheduleMaintenanceBreadcrumbs",
     pagePattern: "/dashboard/:projectId/scheduled-maintenance-events/create",
-    titles: [
-      "Project",
-      "Scheduled Maintenance Events",
-      "New Scheduled Maintenance Event",
-    ],
+    titles: ["Project", "Scheduled Maintenance", "New Maintenance Event"],
   },
   {
     getter: "getScheduleMaintenanceBreadcrumbs",
     pagePattern: "/dashboard/:projectId/scheduled-maintenance-events/ongoing",
-    titles: [
-      "Project",
-      "Scheduled Maintenance Events",
-      "Ongoing Scheduled Maintenance",
-    ],
+    titles: ["Project", "Scheduled Maintenance", "Ongoing Maintenance Events"],
   },
   {
     getter: "getScheduleMaintenanceBreadcrumbs",
@@ -2616,11 +2604,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
     getter: "getScheduleMaintenanceBreadcrumbs",
     pagePattern:
       "/dashboard/:projectId/scheduled-maintenance-events/workspace-connection-slack",
-    titles: [
-      "Project",
-      "Scheduled Maintenance Events",
-      "Slack Workspace Connection",
-    ],
+    titles: ["Project", "Scheduled Maintenance", "Slack Workspace Connection"],
   },
   {
     getter: "getServerlessBreadcrumbs",

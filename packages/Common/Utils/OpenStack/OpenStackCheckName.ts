@@ -16,7 +16,8 @@
  *   part       server, volume, sg or fip, so a volume with a server's name is not the check's
  *
  * Read with loops and fixed lengths, never a regular expression: names come from a cloud's API,
- * where anyone with a project can write one (AGENTS.md).
+ * where anyone with a project can write one (Docs/notifications/README.md, "Megabyte-long
+ * values").
  *
  * Pure, for the probe that makes and deletes them and for the guide and tests that describe them.
  */

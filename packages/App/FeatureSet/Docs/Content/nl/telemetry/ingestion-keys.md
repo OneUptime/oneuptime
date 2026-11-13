@@ -104,7 +104,7 @@ Een origin is een schema, een host en een optionele poort: `https://app.example.
 ]
 ```
 
-De [Servicecatalogus](/docs/telemetry/services#hoe-een-service-in-de-catalogus-komt) laat zien hoe een vastgelegde naam de service bepaalt. De Runner en de AI-agent van de Kubernetes-agent, en de AI-agents voor infrastructuur, registreren zich niet met een vastgelegde sleutel: geef ze een serversleutel zonder vastgelegde naam.
+[Services](/docs/telemetry/services#hoe-een-service-in-de-catalogus-komt) laat zien hoe een vastgelegde naam de service bepaalt. De Runner en de AI-agent van de Kubernetes-agent, en de AI-agents voor infrastructuur, registreren zich niet met een vastgelegde sleutel: geef ze een serversleutel zonder vastgelegde naam.
 
 ## Een sleutel vervangen, uitschakelen of verwijderen
 
@@ -155,7 +155,7 @@ Er zijn met deze sleutel geen gegevens verzonden sinds OneUptime het gebruik erv
 
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Verzend traces, metrieken en logboeken met uw sleutel.
-- [Servicecatalogus](/docs/telemetry/services): Bekijk de services waaronder uw telemetrie staat.
+- [Services](/docs/telemetry/services): Bekijk de services waaronder uw telemetrie staat.
 - [Gegevensbewaring](/docs/telemetry/data-retention): Bepaal hoe lang de gegevens worden bewaard.
 - [Drop-filters en scrub-regels](/docs/telemetry/drop-filters-and-scrub-rules): Verwijder of maskeer gegevens voordat ze worden opgeslagen.
 - [Ingestiebudgetten](/docs/telemetry/ingestion-budgets): Begrens hoeveel elke sleutel per dag mag versturen.

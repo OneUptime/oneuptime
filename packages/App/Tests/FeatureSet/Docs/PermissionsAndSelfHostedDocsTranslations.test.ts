@@ -139,9 +139,9 @@ const PERMISSIONS: Record<string, Array<string>> = {
     "All Operational Resources",
     "Watch Session Replays",
     "List Session Replays",
-    "Read Telemetry Service Log",
-    "Read Telemetry Service Traces",
-    "Read Telemetry Service Metrics",
+    "Read Logs",
+    "Read Traces",
+    "Read Metrics",
     // What Add Permission offers a scope for, and what it offers none for.
     "Create Workflow",
     "Edit Workflow",

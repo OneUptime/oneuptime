@@ -104,7 +104,7 @@ En origin er et skema, en vært og en valgfri port: `https://app.example.com` d�
 ]
 ```
 
-[Tjenestekataloget](/docs/telemetry/services#sådan-kommer-en-tjeneste-ind-i-kataloget) viser, hvordan et fastlåst navn bestemmer tjenesten. Kubernetes-agentens Runner og AI-agent og infrastrukturens AI-agenter registrerer sig ikke med en fastlåst nøgle: giv dem en servernøgle uden fastlåst navn.
+[Tjenester](/docs/telemetry/services#sådan-kommer-en-tjeneste-ind-i-kataloget) viser, hvordan et fastlåst navn bestemmer tjenesten. Kubernetes-agentens Runner og AI-agent og infrastrukturens AI-agenter registrerer sig ikke med en fastlåst nøgle: giv dem en servernøgle uden fastlåst navn.
 
 ## Udskift, slå fra eller slet en nøgle
 
@@ -155,7 +155,7 @@ Intet har sendt data med denne nøgle, siden OneUptime begyndte at registrere br
 
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Send spor, metrikker og protokoller med din nøgle.
-- [Tjenestekatalog](/docs/telemetry/services): Se de tjenester, din telemetri lægges under.
+- [Tjenester](/docs/telemetry/services): Se de tjenester, din telemetri lægges under.
 - [Dataopbevaring](/docs/telemetry/data-retention): Bestem, hvor længe dataene opbevares.
 - [Drop-filtre og scrub-regler](/docs/telemetry/drop-filters-and-scrub-rules): Kassér eller maskér data, før de gemmes.
 - [Indtagelsesbudgetter](/docs/telemetry/ingestion-budgets): Begræns, hvor meget hver nøgle må sende på en dag.

@@ -34,8 +34,8 @@ import OneUptimeDate from "Common/Types/Date";
  *
  *   An application or microservice you run. ...
  *
- *   Also called: **Service Catalog**, **Telemetry Service**. See [Service
- *   Catalog](/docs/telemetry/services).
+ *   Also called: **Service Catalog**, **Telemetry Service**. See
+ *   [Services](/docs/telemetry/services).
  *
  * A term's id is its English heading's anchor ("service", "on-call-policy"),
  * the same in every language: a translation keeps the English page's shape,

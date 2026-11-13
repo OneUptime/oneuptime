@@ -72,7 +72,7 @@ Cliquez sur **Créer un moniteur**. Le moniteur s'ouvre sur sa page **Vue d'ense
 | **Types d'exception** | Les exceptions de l'un de ces types, séparés par des virgules, comme `TypeError, NullReferenceException`. Le nom du type doit correspondre exactement. | Vide : tous les types |
 | **Environnements** | Les exceptions de l'un de ces environnements, séparés par des virgules – voir [Environnements](#environnements). | Vide : tous les environnements |
 | **Fenêtre de temps** (dans **Quand alerter**) | Les exceptions des 5 dernières secondes jusqu'aux 24 dernières heures. | **Dernières 5 minutes** |
-| **Filtrer par service de télémétrie** (sous **Plus de champs**) | Les exceptions de l'un des services choisis. | Vide : tous les services |
+| **Filtrer par service** (sous **Plus de champs**) | Les exceptions de l'un des services choisis. | Vide : tous les services |
 | **Filtrer par entité d'infrastructure** (sous **Plus de champs**) | Les exceptions de l'un des hôtes, pods, conteneurs et autres entités choisis. | Vide : toutes les entités |
 | **Inclure les exceptions résolues** (sous **Plus de champs**) | Compter aussi les exceptions marquées comme résolues. | Désactivé |
 | **Inclure les exceptions archivées** (sous **Plus de champs**) | Compter aussi les exceptions archivées. | Désactivé |

@@ -124,7 +124,7 @@ Zie [Abonnees en aankondigingen](/docs/status-pages/subscribers).
 
 ### Geplande onderhoud
 
-Gepland werk, vooraf aangekondigd. Een gebeurtenis doorloopt **Gepland**, **Lopend**, **Beëindigd** en **Voltooid**, en de statuspagina's waarop ze wordt getoond, informeren bezoekers en abonnees erover.
+Gepland werk, vooraf aangekondigd. Elke onderhoudsgebeurtenis doorloopt de onderhoudsstatussen **Gepland**, **Lopend**, **Beëindigd** en **Voltooid**, en de statuspagina's waarop ze wordt getoond, informeren bezoekers en abonnees erover.
 
 Ook wel: **Geplande onderhoudsgebeurtenis**, **Geplande gebeurtenis**, **Gebeurtenis**. Zie [Geplande onderhoud – Overzicht](/docs/scheduled-maintenance/index).
 
@@ -146,7 +146,7 @@ Zie [Monitorgroepen](/docs/monitor/monitor-groups).
 
 Een applicatie of microservice die u draait. OneUptime voegt hem toe zodra zijn eerste telemetrie binnenkomt, genoemd naar zijn `service.name`, en brengt zijn logs, traces, metrics, exceptions, incidenten en eigenaren samen op één pagina.
 
-Ook wel: **Servicecatalogus**, **Telemetrieservice**. Zie [Servicecatalogus](/docs/telemetry/services).
+Ook wel: **Servicecatalogus**, **Telemetrieservice**. Zie [Services](/docs/telemetry/services).
 
 ### Host
 

@@ -37,7 +37,7 @@ O explorador tem cinco abas:
 ## Antes de começar
 
 - **Registros chegando.** Envie-os com [OpenTelemetry](/docs/telemetry/open-telemetry), [Fluent Bit](/docs/telemetry/fluentbit), [Fluentd](/docs/telemetry/fluentd) ou [Syslog](/docs/telemetry/syslog). A aba **Guia de configuração** mostra a configuração para a sua linguagem ou o seu coletor.
-- **Uma função que possa ler telemetria.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member ou Telemetry Viewer, ou uma função personalizada com a permissão Read Telemetry Service Log. O escopo dela decide de quem são os registros que você vê: veja [Telemetria](/docs/permissions/index#telemetria).
+- **Uma função que possa ler telemetria.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member ou Telemetry Viewer, ou uma função personalizada com a permissão Read Logs. O escopo dela decide de quem são os registros que você vê: veja [Telemetria](/docs/permissions/index#telemetria).
 
 ## Encontrar uma linha de registro
 

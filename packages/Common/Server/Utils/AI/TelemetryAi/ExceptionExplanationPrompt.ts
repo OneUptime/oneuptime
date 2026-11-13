@@ -23,9 +23,9 @@ import {
  *
  * Every value is cut to a fixed length FIRST - a message, a stack trace or a
  * log body can be megabytes on one line, and the sanitizers run regular
- * expressions over what they are given (AGENTS.md, "Megabyte-long values") -
- * then IDs, emails, IPs, tokens and secrets are taken out
- * (ExceptionSanitizer). The model's answer is found with indexOf, never a
+ * expressions over what they are given (Docs/notifications/README.md,
+ * "Megabyte-long values") - then IDs, emails, IPs, tokens and secrets are taken
+ * out (ExceptionSanitizer). The model's answer is found with indexOf, never a
  * regular expression over it, and every field is checked and bounded
  * (readExceptionAIExplanation); a suspect frame is kept only when the stack
  * trace holds its file.

@@ -39,7 +39,7 @@ flowchart TB
 ## Перед началом
 
 - **Поступающие спаны или логи.** Инструментируйте свои сервисы с помощью [OpenTelemetry](/docs/telemetry/open-telemetry). Вкладка **Руководство по настройке** показывает код для вашего языка.
-- **Роль, которая читает телеметрию.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member или Telemetry Viewer либо пользовательская роль с разрешением Read Telemetry Service Exception. Чтобы устранять и архивировать, нужны Project Owner или Project Admin либо разрешение Edit Telemetry Service Exception.
+- **Роль, которая читает телеметрию.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member или Telemetry Viewer либо пользовательская роль с разрешением Read Exceptions. Чтобы устранять и архивировать, нужны Project Owner или Project Admin либо разрешение Edit Exceptions.
 
 ## Разбор списка
 

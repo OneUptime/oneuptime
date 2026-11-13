@@ -34,10 +34,10 @@ Log ind som master-admin, og åbn Admin Dashboard med **Admin-indstillinger** i 
 :::tabs
 @tab SAML
 - Klik på **Tilføj SAML-udbyder**.
-- Indtast et **Navn**, **Sign On URL** og **Issuer** fra din identitetsudbyder, og indsæt **Public Certificate**. Resten er allerede udfyldt under **Flere felter**: **Signature Method** (`RSA-SHA256`), **Digest Method** (`SHA256`) og en beskrivelse (`Sign in with` og navnet). Ændr dem kun, hvis din IdP kræver det. Når du gemmer, åbnes udbyderens side.
+- Indtast et **Navn**, **Log på-URL** og **Udsteder** fra din identitetsudbyder, og indsæt **Offentligt certifikat**. Resten er allerede udfyldt under **Flere felter**: **Signaturmetode** (`RSA-SHA256`), **Digest-metode** (`SHA256`) og en beskrivelse (`Sign in with` og navnet). Ændr dem kun, hvis din IdP kræver det. Når du gemmer, åbnes udbyderens side.
 @tab OpenID Connect
 - Klik på **Tilføj OIDC-udbyder**.
-- Indtast et **Navn**, **Issuer URL** samt **Client ID** og **Client Secret** for den app, du har registreret i din IdP. Det virker også at indsætte IdP'ens discovery-URL i **Issuer URL**. Resten er allerede udfyldt under **Flere felter**: **Discovery URL** (udstederen efterfulgt af `/.well-known/openid-configuration`), **Scopes** (`openid email profile`), claim-navnene `email` og `name` og en beskrivelse (`Sign in with` og navnet). Ændr dem kun, hvis din IdP kræver det. Når du gemmer, åbnes udbyderens side.
+- Indtast et **Navn**, **Udsteder-URL** samt **Klient-ID** og **Klienthemmelighed** for den app, du har registreret i din IdP. Det virker også at indsætte IdP'ens discovery-URL i **Udsteder-URL**. Resten er allerede udfyldt under **Flere felter**: **Discovery-URL** (udstederen efterfulgt af `/.well-known/openid-configuration`), **Omfang** (`openid email profile`), claim-navnene `email` og `name` og en beskrivelse (`Sign in with` og navnet). Ændr dem kun, hvis din IdP kræver det. Når du gemmer, åbnes udbyderens side.
 :::
 
 ### Kopiér OneUptimes URL'er til din identitetsudbyder
@@ -150,7 +150,7 @@ Personen har en konto, men hører ikke til noget projekt, og udbyderen har intet
 :::
 
 :::details "Issuer URL does not match"
-For en SAML-udbyder er issuer i din identitetsudbyders svar ikke den **Issuer**, der er gemt på udbyderen. Kopiér den igen fra din identitetsudbyder; de to skal stemme præcist overens.
+For en SAML-udbyder er udstederen i din identitetsudbyders svar ikke den **Udsteder**, der er gemt på udbyderen. Kopiér den igen fra din identitetsudbyder; de to skal stemme præcist overens.
 :::
 
 :::details "SAML Audience does not match"

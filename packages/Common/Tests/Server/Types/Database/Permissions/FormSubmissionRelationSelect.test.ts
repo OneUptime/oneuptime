@@ -16,7 +16,7 @@ import Permission from "../../../../../Types/Permission";
  * Forms > Submissions, and every form's own Submissions page, failed to load
  * for everyone with
  *
- *   Column scheduledMaintenanceNumber on Scheduled Maintenance Event does not
+ *   Column scheduledMaintenanceNumber on Maintenance Event does not
  *   support read on relation query.
  *
  * Their Created column links each submission to what it made, by number, and
@@ -182,7 +182,7 @@ describe("Form submission relation select - what still refuses", () => {
         makeProps([Permission.ProjectOwner]),
       );
     }).toThrow(
-      "Column description on Scheduled Maintenance Event does not support read on relation query.",
+      "Column description on Maintenance Event does not support read on relation query.",
     );
   });
 
