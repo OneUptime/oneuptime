@@ -85,7 +85,7 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 
 ## Einen Browser-Schlüssel absichern
 
-Ein Browser-Schlüssel steht in Ihrer Seite, wo ihn jeder kopieren kann. Diese Einstellungen begrenzen, was eine Kopie anrichten kann. Ändern Sie sie auf der Seite des Schlüssels mit **Telemetrie-Aufnahmeschlüssel bearbeiten**.
+Ein Browser-Schlüssel steht in Ihrer Seite, wo ihn jeder kopieren kann. Diese Einstellungen begrenzen, was eine Kopie anrichten kann. Ändern Sie sie auf der Seite des Schlüssels mit **Aufnahmeschlüssel bearbeiten**.
 
 | Einstellung | Was sie bewirkt |
 | --- | --- |
@@ -112,9 +112,9 @@ Die Seite eines Schlüssels zeigt **Status**, **Geheimer Schlüssel** hinter **Z
 
 | Um | Tun Sie Folgendes | Was Sender sehen |
 | --- | --- | --- |
-| Einen Schlüssel sofort stoppen und es später rückgängig machen | Klicken Sie auf **Telemetrie-Aufnahmeschlüssel bearbeiten**, öffnen Sie **Zugriff & Limits** und schalten Sie **Aktiviert** aus. Der Status lautet **Deaktiviert — Telemetrie abgelehnt**. | `422`, bis Sie ihn wieder einschalten |
+| Einen Schlüssel sofort stoppen und es später rückgängig machen | Klicken Sie auf **Aufnahmeschlüssel bearbeiten**, öffnen Sie **Zugriff & Limits** und schalten Sie **Aktiviert** aus. Der Status lautet **Deaktiviert — Telemetrie abgelehnt**. | `422`, bis Sie ihn wieder einschalten |
 | Ein nach außen gelangtes Geheimnis ersetzen | Klicken Sie auf **Geheimen Schlüssel zurücksetzen** und bestätigen Sie. Der Schlüssel behält seine Einstellungen und bekommt ein neues Geheimnis. | `401`, bis sie das neue Geheimnis senden |
-| Einen Schlüssel endgültig stoppen | Klicken Sie unten auf seiner Seite auf **Telemetrie-Aufnahmeschlüssel löschen**. | `401` |
+| Einen Schlüssel endgültig stoppen | Klicken Sie unten auf seiner Seite auf **Aufnahmeschlüssel löschen**. | `401` |
 
 Um ein Geheimnis ohne Datenverlust zu wechseln, legen Sie einen zweiten Schlüssel an, stellen Ihre Sender darauf um und löschen den alten Schlüssel, sobald sich **Zuletzt verwendet am** dort nicht mehr ändert. **Zuletzt verwendet am** wird alle paar Minuten aktualisiert, nicht bei jeder Anfrage.
 

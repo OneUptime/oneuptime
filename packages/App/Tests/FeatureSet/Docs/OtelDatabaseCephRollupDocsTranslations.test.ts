@@ -103,16 +103,11 @@ const METRIC_NAMES_THAT_ARE_LABELS: Array<string> = [
 
 /*
  * Bold Dashboard labels the translations keep in English, on purpose, by
- * page.
+ * page. A permission's name is not bold: "Create Ingestion Key" is the
+ * permission and the Ingestion Keys table's create button (#6817), and only
+ * the button is drawn in each language.
  */
 const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
-  /*
-   * A permission's name, as the team and API key permission pickers list it
-   * (Permission.ts's title, which has no locale key). The "Create
-   * {{itemName}}" template drawnDashboardLabel falls back to draws buttons,
-   * not permissions.
-   */
-  "telemetry/open-telemetry": ["Create Telemetry Ingestion Key"],
   [DATABASE_PAGE]: METRIC_NAMES_THAT_ARE_LABELS,
 };
 

@@ -36,7 +36,7 @@ flowchart TB
 
 ## Before you begin
 
-- A OneUptime project in which you can create ingestion keys: project owners and admins can, and so can anyone with the **Create Ingestion Key** permission.
+- A OneUptime project in which you can create ingestion keys: project owners and admins can, and so can anyone with the Create Ingestion Key permission.
 - An application you can add an OpenTelemetry SDK to, or an OpenTelemetry Collector.
 - Outbound HTTPS (port 443) from your application or collector to `oneuptime.com`, or to your own OneUptime host.
 

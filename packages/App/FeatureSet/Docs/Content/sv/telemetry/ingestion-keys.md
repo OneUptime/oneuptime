@@ -85,7 +85,7 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 
 ## Lås ned en webbläsarnyckel
 
-En webbläsarnyckel finns i din sida, där vem som helst kan kopiera den. De här inställningarna begränsar vad en kopia kan göra. Ändra dem på nyckelns sida med **Redigera Telemetri Ingestion Key**.
+En webbläsarnyckel finns i din sida, där vem som helst kan kopiera den. De här inställningarna begränsar vad en kopia kan göra. Ändra dem på nyckelns sida med **Redigera Intagningsnyckel**.
 
 | Inställning | Vad den gör |
 | --- | --- |
@@ -112,9 +112,9 @@ En nyckels sida visar dess **Status**, dess **Hemlig nyckel** bakom **Click to r
 
 | För att | Gör så här | Vad avsändare ser |
 | --- | --- | --- |
-| Stoppa en nyckel direkt, och kunna ångra det senare | Klicka på **Redigera Telemetri Ingestion Key**, öppna **Åtkomst och gränser** och stäng av **Aktiverad**. Statusen visar **Disabled — telemetry refused**. | `422` tills du slår på den igen |
+| Stoppa en nyckel direkt, och kunna ångra det senare | Klicka på **Redigera Intagningsnyckel**, öppna **Åtkomst och gränser** och stäng av **Aktiverad**. Statusen visar **Disabled — telemetry refused**. | `422` tills du slår på den igen |
 | Ersätta en läckt hemlighet | Klicka på **Återställ hemlig nyckel** och bekräfta. Nyckeln behåller sina inställningar och får en ny hemlighet. | `401` tills de skickar den nya hemligheten |
-| Stoppa en nyckel för gott | Klicka på **Ta bort Telemetri Ingestion Key** längst ned på dess sida. | `401` |
+| Stoppa en nyckel för gott | Klicka på **Ta bort Intagningsnyckel** längst ned på dess sida. | `401` |
 
 För att byta en hemlighet utan att förlora data skapar du en andra nyckel, flyttar dina avsändare till den och tar bort den gamla nyckeln när dess **Last Used At** slutar ändras. **Last Used At** uppdateras med några minuters mellanrum, inte vid varje begäran.
 

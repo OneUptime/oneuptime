@@ -36,7 +36,7 @@ flowchart TB
 
 ## 開始之前
 
-- 一個你可以在其中建立擷取金鑰的 OneUptime 專案：專案擁有者與管理員可以建立，擁有 **Create Ingestion Key** 權限的任何人也可以。
+- 一個你可以在其中建立擷取金鑰的 OneUptime 專案：專案擁有者與管理員可以建立，擁有 Create Ingestion Key 權限的任何人也可以。
 - 一個可以加入 OpenTelemetry SDK 的應用程式，或一個 OpenTelemetry Collector。
 - 從應用程式或 Collector 到 `oneuptime.com`（或你自己的 OneUptime 主機）的對外 HTTPS（連接埠 443）。
 

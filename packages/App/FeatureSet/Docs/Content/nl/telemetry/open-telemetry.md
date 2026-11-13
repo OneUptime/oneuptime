@@ -36,7 +36,7 @@ flowchart TB
 
 ## Voordat je begint
 
-- Een OneUptime-project waarin je ingestiesleutels mag maken: projecteigenaren en -beheerders mogen dat, en ook iedereen met de machtiging **Create Ingestion Key**.
+- Een OneUptime-project waarin je ingestiesleutels mag maken: projecteigenaren en -beheerders mogen dat, en ook iedereen met de machtiging Create Ingestion Key.
 - Een applicatie waaraan je een OpenTelemetry-SDK kunt toevoegen, of een OpenTelemetry Collector.
 - Uitgaand HTTPS (poort 443) van je applicatie of collector naar `oneuptime.com`, of naar je eigen OneUptime-host.
 

@@ -302,7 +302,7 @@ OneUptime 的 SIEM：来自你的日志、安全工具以及你发送的其他�
 
 参见 [跟踪浏览器](/docs/telemetry/traces-explorer)。
 
-### 配置文件
+### 性能剖析
 
 你的应用如何逐个函数地消耗 CPU 时间和内存，由向 OneUptime 的 Pyroscope 兼容 API 推送数据的性能分析器发送。
 

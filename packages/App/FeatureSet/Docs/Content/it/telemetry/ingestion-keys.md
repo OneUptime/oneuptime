@@ -85,7 +85,7 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 
 ## Proteggere una chiave Browser
 
-Una chiave Browser sta nella vostra pagina, dove chiunque può copiarla. Queste impostazioni limitano ciò che una copia può fare. Cambiatele nella pagina della chiave con **Modifica: Telemetria Ingestione Key**.
+Una chiave Browser sta nella vostra pagina, dove chiunque può copiarla. Queste impostazioni limitano ciò che una copia può fare. Cambiatele nella pagina della chiave con **Modifica: Chiave di acquisizione**.
 
 | Impostazione | Che cosa fa |
 | --- | --- |
@@ -112,9 +112,9 @@ La pagina di una chiave mostra il suo **Stato**, la sua **Chiave segreta** dietr
 
 | Per | Fate questo | Che cosa vedono i mittenti |
 | --- | --- | --- |
-| Fermare subito una chiave, potendo annullare in seguito | Fate clic su **Modifica: Telemetria Ingestione Key**, aprite **Accesso e limiti** e disattivate **Abilitato**. Lo stato indica **Disabled — telemetry refused**. | `422` finché non la riattivate |
+| Fermare subito una chiave, potendo annullare in seguito | Fate clic su **Modifica: Chiave di acquisizione**, aprite **Accesso e limiti** e disattivate **Abilitato**. Lo stato indica **Disabled — telemetry refused**. | `422` finché non la riattivate |
 | Sostituire un segreto trapelato | Fate clic su **Reimposta la chiave segreta** e confermate. La chiave mantiene le sue impostazioni e riceve un nuovo segreto. | `401` finché non inviano il nuovo segreto |
-| Fermare una chiave per sempre | Fate clic su **Elimina: Telemetria Ingestione Key** in fondo alla sua pagina. | `401` |
+| Fermare una chiave per sempre | Fate clic su **Elimina: Chiave di acquisizione** in fondo alla sua pagina. | `401` |
 
 Per cambiare un segreto senza perdere dati, create una seconda chiave, spostate i mittenti su di essa ed eliminate la vecchia chiave quando il suo **Last Used At** smette di muoversi. **Last Used At** si aggiorna ogni pochi minuti, non a ogni richiesta.
 

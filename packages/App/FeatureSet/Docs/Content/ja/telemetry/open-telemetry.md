@@ -36,7 +36,7 @@ flowchart TB
 
 ## 始める前に
 
-- 取り込みキーを作成できる OneUptime プロジェクト。プロジェクトのオーナーと管理者、および **Create Ingestion Key** 権限を持つユーザーが作成できます。
+- 取り込みキーを作成できる OneUptime プロジェクト。プロジェクトのオーナーと管理者、および Create Ingestion Key 権限を持つユーザーが作成できます。
 - OpenTelemetry SDK を追加できるアプリケーション、または OpenTelemetry Collector。
 - アプリケーションまたは Collector から `oneuptime.com` (またはセルフホストの OneUptime ホスト) への送信方向の HTTPS (ポート 443)。
 

@@ -36,7 +36,7 @@ flowchart TB
 
 ## Bevor Sie beginnen
 
-- Ein OneUptime-Projekt, in dem Sie Ingestion-Schlüssel erstellen dürfen: Projektbesitzer und -administratoren dürfen das, ebenso alle mit der Berechtigung **Create Ingestion Key**.
+- Ein OneUptime-Projekt, in dem Sie Ingestion-Schlüssel erstellen dürfen: Projektbesitzer und -administratoren dürfen das, ebenso alle mit der Berechtigung Create Ingestion Key.
 - Eine Anwendung, der Sie ein OpenTelemetry-SDK hinzufügen können, oder einen OpenTelemetry Collector.
 - Ausgehendes HTTPS (Port 443) von Ihrer Anwendung oder Ihrem Collector zu `oneuptime.com` oder zu Ihrem eigenen OneUptime-Host.
 

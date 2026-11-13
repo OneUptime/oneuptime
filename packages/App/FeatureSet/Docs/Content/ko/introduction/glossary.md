@@ -302,7 +302,7 @@ OneUptime의 SIEM입니다. 로그, 보안 도구, 그 밖에 여러분이 보�
 
 [트레이스 탐색기](/docs/telemetry/traces-explorer)를 참고하세요.
 
-### 프로필
+### 프로파일
 
 애플리케이션이 CPU 시간과 메모리를 함수별로 어떻게 쓰는지 보여 주며, OneUptime의 Pyroscope 호환 API로 보내는 프로파일러가 전송합니다.
 

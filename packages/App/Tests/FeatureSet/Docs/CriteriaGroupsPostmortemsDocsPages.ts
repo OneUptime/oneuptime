@@ -1,5 +1,5 @@
 /*
- * The three pages docs overhaul task 36 added - Monitor Criteria & Statuses
+ * The three pages docs overhaul task 36 added - Criteria & Statuses
  * and Monitor Groups in the Monitor group, Postmortems in the Incidents
  * group - by the paths their suites name them with, where each sits in the
  * nav, and the words a translation keeps as written or words freely.
@@ -34,7 +34,7 @@ export const CRITERIA_GROUPS_POSTMORTEMS_PAGES: ReadonlyArray<CriteriaGroupsPost
   [
     {
       page: CRITERIA_AND_STATUSES,
-      navTitle: "Monitor Criteria & Statuses",
+      navTitle: "Criteria & Statuses",
       navGroup: "Monitor",
       after: "Monitor Templates",
     },
@@ -42,7 +42,7 @@ export const CRITERIA_GROUPS_POSTMORTEMS_PAGES: ReadonlyArray<CriteriaGroupsPost
       page: MONITOR_GROUPS,
       navTitle: "Monitor Groups",
       navGroup: "Monitor",
-      after: "Monitor Criteria & Statuses",
+      after: "Criteria & Statuses",
     },
     {
       page: POSTMORTEMS,

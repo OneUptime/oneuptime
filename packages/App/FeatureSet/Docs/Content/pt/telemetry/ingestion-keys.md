@@ -85,7 +85,7 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 
 ## Proteger uma chave de navegador
 
-Uma chave de navegador fica na sua página, onde qualquer pessoa pode copiá-la. Estas configurações limitam o que uma cópia pode fazer. Mude-as na página da chave com **Editar: Telemetria Ingestão Key**.
+Uma chave de navegador fica na sua página, onde qualquer pessoa pode copiá-la. Estas configurações limitam o que uma cópia pode fazer. Mude-as na página da chave com **Editar: Chave de ingestão**.
 
 | Configuração | O que faz |
 | --- | --- |
@@ -112,9 +112,9 @@ A página de uma chave mostra o seu **Status**, a sua **Chave secreta** por trá
 
 | Para | Faça isto | O que os remetentes veem |
 | --- | --- | --- |
-| Parar uma chave na hora, podendo desfazer depois | Clique em **Editar: Telemetria Ingestão Key**, abra **Acesso e limites** e desative **Habilitado**. O status mostra **Disabled — telemetry refused**. | `422` até você reativá-la |
+| Parar uma chave na hora, podendo desfazer depois | Clique em **Editar: Chave de ingestão**, abra **Acesso e limites** e desative **Habilitado**. O status mostra **Disabled — telemetry refused**. | `422` até você reativá-la |
 | Substituir um segredo vazado | Clique em **Redefinir chave secreta** e confirme. A chave mantém as configurações e recebe um novo segredo. | `401` até eles enviarem o novo segredo |
-| Parar uma chave de vez | Clique em **Excluir: Telemetria Ingestão Key** no fim da página dela. | `401` |
+| Parar uma chave de vez | Clique em **Excluir: Chave de ingestão** no fim da página dela. | `401` |
 
 Para trocar um segredo sem perder dados, crie uma segunda chave, passe os seus remetentes para ela e exclua a chave antiga quando o **Last Used At** dela parar de mudar. **Last Used At** é atualizado a cada poucos minutos, não a cada requisição.
 

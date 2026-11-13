@@ -36,7 +36,7 @@ flowchart TB
 
 ## Innan du börjar
 
-- Ett OneUptime-projekt där du får skapa intagningsnycklar: projektägare och -administratörer får det, och det får alla med behörigheten **Create Ingestion Key**.
+- Ett OneUptime-projekt där du får skapa intagningsnycklar: projektägare och -administratörer får det, och det får alla med behörigheten Create Ingestion Key.
 - En applikation som du kan lägga till ett OpenTelemetry-SDK i, eller en OpenTelemetry Collector.
 - Utgående HTTPS (port 443) från din applikation eller collector till `oneuptime.com`, eller till din egen OneUptime-värd.
 

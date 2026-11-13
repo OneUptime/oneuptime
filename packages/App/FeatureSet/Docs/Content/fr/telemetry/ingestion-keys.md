@@ -85,7 +85,7 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 
 ## Verrouiller une clé de navigateur
 
-Une clé de navigateur se trouve dans votre page, où n'importe qui peut la copier. Ces paramètres limitent ce qu'une copie peut faire. Modifiez-les sur la page de la clé avec **Modifier : Clé d'ingestion de télémétrie**.
+Une clé de navigateur se trouve dans votre page, où n'importe qui peut la copier. Ces paramètres limitent ce qu'une copie peut faire. Modifiez-les sur la page de la clé avec **Modifier : Clé d'ingestion**.
 
 | Paramètre | Ce qu'il fait |
 | --- | --- |
@@ -112,9 +112,9 @@ La page d'une clé affiche son **Statut**, sa **Clé secrète** derrière **Cliq
 
 | Pour | Faites ceci | Ce que voient les émetteurs |
 | --- | --- | --- |
-| Arrêter une clé tout de suite, et pouvoir revenir en arrière | Cliquez sur **Modifier : Clé d'ingestion de télémétrie**, ouvrez **Accès et limites** et désactivez **Activé**. Le statut indique **Désactivé — télémétrie refusée**. | `422` jusqu'à ce que vous la réactiviez |
+| Arrêter une clé tout de suite, et pouvoir revenir en arrière | Cliquez sur **Modifier : Clé d'ingestion**, ouvrez **Accès et limites** et désactivez **Activé**. Le statut indique **Désactivé — télémétrie refusée**. | `422` jusqu'à ce que vous la réactiviez |
 | Remplacer un secret qui a fuité | Cliquez sur **Réinitialiser la clé secrète** et confirmez. La clé garde ses paramètres et reçoit un nouveau secret. | `401` jusqu'à ce qu'ils envoient le nouveau secret |
-| Arrêter une clé définitivement | Cliquez sur **Supprimer : Clé d'ingestion de télémétrie** en bas de sa page. | `401` |
+| Arrêter une clé définitivement | Cliquez sur **Supprimer : Clé d'ingestion** en bas de sa page. | `401` |
 
 Pour changer de secret sans perdre de données, créez une deuxième clé, basculez vos émetteurs dessus, et supprimez l'ancienne clé quand sa **Dernière utilisation le** ne bouge plus. **Dernière utilisation le** est mise à jour toutes les quelques minutes, pas à chaque requête.
 

@@ -74,7 +74,7 @@ const UI_LABELS: Array<string> = [
   "Select Probe",
   "Run Test",
   "Monitor Test Result",
-  "Monitor Criteria",
+  "Criteria",
   "Probes",
   "Monitoring Interval",
   "Every 5 Minutes",

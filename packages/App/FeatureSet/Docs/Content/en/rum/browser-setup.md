@@ -26,7 +26,7 @@ flowchart TB
 
 - A web app whose code you can change and redeploy, with its dependencies installed through npm.
 - The origins your pages are served from, such as `https://app.example.com`. A Browser key accepts requests only from the origins you list on it.
-- A role that can create ingestion keys: project owners and admins can, and so can anyone with the **Create Ingestion Key** permission.
+- A role that can create ingestion keys: project owners and admins can, and so can anyone with the Create Ingestion Key permission.
 
 ## Set it up
 

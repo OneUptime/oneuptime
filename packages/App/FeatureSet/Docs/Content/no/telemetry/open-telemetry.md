@@ -36,7 +36,7 @@ flowchart TB
 
 ## Før du begynner
 
-- Et OneUptime-prosjekt der du kan opprette inntaksnøkler: prosjekteiere og -administratorer kan det, og det kan alle med tillatelsen **Create Ingestion Key**.
+- Et OneUptime-prosjekt der du kan opprette inntaksnøkler: prosjekteiere og -administratorer kan det, og det kan alle med tillatelsen Create Ingestion Key.
 - En applikasjon du kan legge til et OpenTelemetry-SDK i, eller en OpenTelemetry Collector.
 - Utgående HTTPS (port 443) fra applikasjonen eller collectoren til `oneuptime.com`, eller til din egen OneUptime-vert.
 

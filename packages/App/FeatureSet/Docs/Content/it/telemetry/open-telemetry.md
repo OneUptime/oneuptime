@@ -36,7 +36,7 @@ flowchart TB
 
 ## Prima di iniziare
 
-- Un progetto OneUptime in cui puoi creare chiavi di acquisizione: possono farlo i proprietari e gli amministratori del progetto, e chiunque abbia il permesso **Create Ingestion Key**.
+- Un progetto OneUptime in cui puoi creare chiavi di acquisizione: possono farlo i proprietari e gli amministratori del progetto, e chiunque abbia il permesso Create Ingestion Key.
 - Un'applicazione a cui puoi aggiungere un SDK OpenTelemetry, oppure un OpenTelemetry Collector.
 - HTTPS in uscita (porta 443) dalla tua applicazione o dal collector verso `oneuptime.com`, o verso il tuo host OneUptime.
 
