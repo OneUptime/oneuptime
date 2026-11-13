@@ -51831,5 +51831,15 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Tidsrom: {{range}}. Prøv å justere filtrene eller utvide tidsrommet.",
   "On-Call Policy Created": "Vaktpolicy opprettet",
   "On-Call Schedule Added": "Vaktplan lagt til",
-  "On-Call Schedule Removed": "Vaktplan fjernet"
+  "On-Call Schedule Removed": "Vaktplan fjernet",
+  "Couldn't post the note.": "Kunne ikke legge til notatet.",
+  "Couldn't save your changes.": "Kunne ikke lagre endringene dine.",
+  "Couldn't delete the note.": "Kunne ikke slette notatet.",
+  "Couldn't send the note for approval.": "Kunne ikke sende notatet til godkjenning.",
+  "Couldn't send the edit for approval.": "Kunne ikke sende redigeringen til godkjenning.",
+  "Couldn't approve the note.": "Kunne ikke godkjenne notatet.",
+  "Couldn't reject the note.": "Kunne ikke avvise notatet.",
+  "Couldn't publish the note.": "Kunne ikke publisere notatet.",
+  "Couldn't withdraw the edit.": "Kunne ikke trekke tilbake redigeringen.",
+  "Couldn't load the public notes.": "Kunne ikke laste inn de offentlige notatene."
 }

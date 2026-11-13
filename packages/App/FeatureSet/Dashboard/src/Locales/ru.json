@@ -51831,5 +51831,15 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Период: {{range}}. Попробуйте изменить фильтры или расширить период.",
   "On-Call Policy Created": "Политика дежурства создана",
   "On-Call Schedule Added": "Расписание дежурства добавлено",
-  "On-Call Schedule Removed": "Расписание дежурства удалено"
+  "On-Call Schedule Removed": "Расписание дежурства удалено",
+  "Couldn't post the note.": "Не удалось добавить заметку.",
+  "Couldn't save your changes.": "Не удалось сохранить ваши изменения.",
+  "Couldn't delete the note.": "Не удалось удалить заметку.",
+  "Couldn't send the note for approval.": "Не удалось отправить заметку на одобрение.",
+  "Couldn't send the edit for approval.": "Не удалось отправить правку на одобрение.",
+  "Couldn't approve the note.": "Не удалось одобрить заметку.",
+  "Couldn't reject the note.": "Не удалось отклонить заметку.",
+  "Couldn't publish the note.": "Не удалось опубликовать заметку.",
+  "Couldn't withdraw the edit.": "Не удалось отозвать правку.",
+  "Couldn't load the public notes.": "Не удалось загрузить публичные заметки."
 }

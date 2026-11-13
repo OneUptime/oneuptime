@@ -51831,5 +51831,15 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Tidsintervall: {{range}}. Försök att justera filtren eller utöka tidsintervallet.",
   "On-Call Policy Created": "Jourpolicy skapad",
   "On-Call Schedule Added": "Jourschema tillagt",
-  "On-Call Schedule Removed": "Jourschema borttaget"
+  "On-Call Schedule Removed": "Jourschema borttaget",
+  "Couldn't post the note.": "Det gick inte att lägga till anteckningen.",
+  "Couldn't save your changes.": "Det gick inte att spara dina ändringar.",
+  "Couldn't delete the note.": "Det gick inte att ta bort anteckningen.",
+  "Couldn't send the note for approval.": "Det gick inte att skicka anteckningen för godkännande.",
+  "Couldn't send the edit for approval.": "Det gick inte att skicka redigeringen för godkännande.",
+  "Couldn't approve the note.": "Det gick inte att godkänna anteckningen.",
+  "Couldn't reject the note.": "Det gick inte att avvisa anteckningen.",
+  "Couldn't publish the note.": "Det gick inte att publicera anteckningen.",
+  "Couldn't withdraw the edit.": "Det gick inte att dra tillbaka redigeringen.",
+  "Couldn't load the public notes.": "Det gick inte att läsa in de offentliga anteckningarna."
 }

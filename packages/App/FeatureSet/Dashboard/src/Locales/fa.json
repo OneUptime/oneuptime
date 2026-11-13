@@ -51831,5 +51831,15 @@
   "Time range: {{range}}. Try adjusting filters or expanding the time range.": "بازهٔ زمانی: {{range}}. فیلترها را تغییر دهید یا بازهٔ زمانی را بزرگ‌تر کنید.",
   "On-Call Policy Created": "سیاست آنکال ساخته شد",
   "On-Call Schedule Added": "زمان‌بندی آنکال افزوده شد",
-  "On-Call Schedule Removed": "زمان‌بندی آنکال حذف شد"
+  "On-Call Schedule Removed": "زمان‌بندی آنکال حذف شد",
+  "Couldn't post the note.": "یادداشت افزوده نشد.",
+  "Couldn't save your changes.": "تغییرات شما ذخیره نشد.",
+  "Couldn't delete the note.": "یادداشت حذف نشد.",
+  "Couldn't send the note for approval.": "یادداشت برای تأیید ارسال نشد.",
+  "Couldn't send the edit for approval.": "ویرایش برای تأیید ارسال نشد.",
+  "Couldn't approve the note.": "یادداشت تأیید نشد.",
+  "Couldn't reject the note.": "یادداشت رد نشد.",
+  "Couldn't publish the note.": "یادداشت منتشر نشد.",
+  "Couldn't withdraw the edit.": "ویرایش پس گرفته نشد.",
+  "Couldn't load the public notes.": "یادداشت‌های عمومی بارگذاری نشدند."
 }
