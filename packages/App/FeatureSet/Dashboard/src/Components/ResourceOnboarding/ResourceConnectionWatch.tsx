@@ -7,6 +7,7 @@ import React, {
   useState,
 } from "react";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
 import Route from "Common/Types/API/Route";
 import GreaterThanOrEqual from "Common/Types/BaseDatabase/GreaterThanOrEqual";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
@@ -26,9 +27,11 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import {
   RESOURCE_CONNECTION_CONNECTED,
+  RESOURCE_CONNECTION_DATA_ARRIVED,
   RESOURCE_CONNECTION_POLL_INTERVAL_MS,
   RESOURCE_CONNECTION_WAITING,
   RESOURCE_CONNECTION_WAITING_FOR_NAME,
+  hasKeySentFirstData,
   hasReportedSince,
   pickConnectedRecord,
 } from "./ResourceOnboarding";
@@ -49,6 +52,13 @@ import {
  * guide's name counts once it reports again after the guide looked it up
  * (`existing`), and a record a form added a moment ago (a database, a
  * queue) once its first data is in (`recordId`).
+ *
+ * A telemetry guide watches its ingestion key too (`ingestionKey`, #7754):
+ * telemetry that names no service - FluentBit's logs as the guide
+ * configures them, OTLP without service.name - registers none, so the
+ * key's first data finishes the step instead, linking to the product's
+ * explorer (`dataPage`). A service that registers after that still takes
+ * over, with its own link.
  */
 
 export interface ExistingRecordSnapshot {
@@ -79,11 +89,30 @@ export interface ComponentProps {
   // English: "View cluster".
   viewText: string;
   onConnected?: ((record: BaseModel) => void) | undefined;
+  /*
+   * The ingestion key the guide's snippets carry: its first data finishes
+   * the step too (hasKeySentFirstData), whether or not it names a service.
+   */
+  ingestionKey?: TelemetryIngestionKey | null | undefined;
+  // Where that data shows: the product's explorer, linked as viewText.
+  dataPage?: PageMap | undefined;
+  // The key's first data arrived; a service may still connect after it.
+  onDataArrived?: (() => void) | undefined;
+  /*
+   * A link here was followed: a dialog drawn over the page it links to (the
+   * explorer the dialog was opened from) closes, as it would not by itself.
+   */
+  onView?: (() => void) | undefined;
 }
 
 interface ConnectedResource {
   id: ObjectID;
   name: string;
+}
+
+// The guide's key sent its first data.
+interface ArrivedData {
+  keyName: string;
 }
 
 // The project's newest records when the step first looked.
@@ -133,6 +162,7 @@ const ResourceConnectionWatch: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const [connected, setConnected] = useState<ConnectedResource | null>(null);
+  const [arrived, setArrived] = useState<ArrivedData | null>(null);
 
   // The latest name and callback, without restarting the watch on each key.
   const nameRef: MutableRefObject<string | undefined> = useRef<
@@ -143,12 +173,30 @@ const ResourceConnectionWatch: FunctionComponent<ComponentProps> = (
     ((record: BaseModel) => void) | undefined
   > = useRef<((record: BaseModel) => void) | undefined>(props.onConnected);
   onConnectedRef.current = props.onConnected;
+  const onDataArrivedRef: MutableRefObject<(() => void) | undefined> = useRef<
+    (() => void) | undefined
+  >(props.onDataArrived);
+  onDataArrivedRef.current = props.onDataArrived;
+  const keyNameRef: MutableRefObject<string | undefined> = useRef<
+    string | undefined
+  >(props.ingestionKey?.name);
+  keyNameRef.current = props.ingestionKey?.name;
   /*
    * Kept across the checks, and across a new name or a new existing record:
    * what the project had when the step first looked.
    */
   const knownRef: MutableRefObject<KnownRecords | null> =
     useRef<KnownRecords | null>(null);
+  /*
+   * Each key's lastUsedAt when the step first looked at it, kept across a
+   * change of key: going back to one keeps what it had sent then.
+   */
+  const keyFirstLooksRef: MutableRefObject<Map<string, Date | string | null>> =
+    useRef<Map<string, Date | string | null>>(
+      new Map<string, Date | string | null>(),
+    );
+  const ingestionKeyId: string | undefined =
+    props.ingestionKey?.id?.toString() || undefined;
 
   const existingId: string | undefined = props.existing?.id.toString();
   const existingLastSeenAt: number | undefined =
@@ -336,6 +384,138 @@ const ResourceConnectionWatch: FunctionComponent<ComponentProps> = (
     JSON.stringify(props.query || {}),
   ]);
 
+  /*
+   * The guide's key: the first look notes what it had sent, and a check
+   * after it finds its first data. Done once that arrives, or once a
+   * service connects first; the services are checked on until one does.
+   */
+  useEffect(() => {
+    if (connected || arrived || !ingestionKeyId) {
+      return;
+    }
+
+    let isMounted: boolean = true;
+    const keyId: string = ingestionKeyId;
+
+    const checkKey: () => Promise<void> = async (): Promise<void> => {
+      try {
+        const result: ListResult<TelemetryIngestionKey> =
+          await ModelAPI.getList<TelemetryIngestionKey>({
+            modelType: TelemetryIngestionKey,
+            query: { _id: new ObjectID(keyId) },
+            select: { _id: true, name: true, lastUsedAt: true },
+            sort: {},
+            limit: 1,
+            skip: 0,
+          });
+
+        const key: TelemetryIngestionKey | undefined = result.data[0];
+
+        if (!isMounted || !key) {
+          return;
+        }
+
+        const firstLooks: Map<string, Date | string | null> =
+          keyFirstLooksRef.current;
+
+        if (!firstLooks.has(keyId)) {
+          firstLooks.set(keyId, key.lastUsedAt || null);
+          return;
+        }
+
+        if (
+          hasKeySentFirstData({
+            lastUsedAtThen: firstLooks.get(keyId),
+            lastUsedAtNow: key.lastUsedAt,
+          })
+        ) {
+          setArrived({ keyName: key.name || keyNameRef.current || "" });
+          onDataArrivedRef.current?.();
+        }
+      } catch {
+        // A failed check waits for the next one; the step keeps waiting.
+      }
+    };
+
+    void checkKey();
+    const timer: ReturnType<typeof setInterval> = setInterval(() => {
+      void checkKey();
+    }, RESOURCE_CONNECTION_POLL_INTERVAL_MS);
+
+    return () => {
+      isMounted = false;
+      clearInterval(timer);
+    };
+  }, [connected, arrived, ingestionKeyId]);
+
+  // The step done: what arrived, and a link to it.
+  const renderDone: (data: {
+    sentence: ReactElement;
+    route: Route | null;
+    dataTestId: string;
+  }) => ReactElement = (data: {
+    sentence: ReactElement;
+    route: Route | null;
+    dataTestId: string;
+  }): ReactElement => {
+    return (
+      <div
+        className="flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
+        role="status"
+        aria-live="polite"
+        data-testid={data.dataTestId}
+      >
+        <Icon
+          icon={IconProp.CheckCircle}
+          className="h-5 w-5 flex-shrink-0 text-emerald-600"
+        />
+        {/*
+         * The sentence keeps at least 14rem: in a narrow box (a phone) the
+         * link goes under it, lined up with it, instead of squeezing it into a
+         * column a word wide.
+         */}
+        <div className="flex min-w-0 flex-1 flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+          <span className="min-w-0 flex-1 basis-56 break-words">
+            {data.sentence}
+          </span>
+          {data.route ? (
+            <AppLink
+              to={data.route}
+              className="font-medium text-emerald-700 underline hover:text-emerald-900"
+              onNavigateComplete={props.onView}
+            >
+              {translator.translateText(props.viewText) || props.viewText}
+            </AppLink>
+          ) : (
+            <></>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // The key's first data, and no service has connected: it names none.
+  if (!connected && arrived) {
+    return renderDone({
+      dataTestId: "resource-connection-data-arrived",
+      route: props.dataPage
+        ? RouteUtil.populateRouteParams(RouteMap[props.dataPage] as Route)
+        : null,
+      sentence: (
+        <TranslatedSentence
+          template={RESOURCE_CONNECTION_DATA_ARRIVED}
+          slots={{
+            name: (
+              <span className="font-semibold" data-testid="arrived-key-name">
+                {arrived.keyName}
+              </span>
+            ),
+          }}
+        />
+      ),
+    });
+  }
+
   if (!connected) {
     return (
       <div
@@ -372,52 +552,27 @@ const ResourceConnectionWatch: FunctionComponent<ComponentProps> = (
     );
   }
 
-  const route: Route = RouteUtil.populateRouteParams(
-    RouteMap[props.viewPage] as Route,
-    { modelId: connected.id },
-  );
-
-  return (
-    <div
-      className="flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
-      role="status"
-      aria-live="polite"
-      data-testid="resource-connection-connected"
-    >
-      <Icon
-        icon={IconProp.CheckCircle}
-        className="h-5 w-5 flex-shrink-0 text-emerald-600"
+  return renderDone({
+    dataTestId: "resource-connection-connected",
+    route: RouteUtil.populateRouteParams(RouteMap[props.viewPage] as Route, {
+      modelId: connected.id,
+    }),
+    sentence: (
+      <TranslatedSentence
+        template={RESOURCE_CONNECTION_CONNECTED}
+        slots={{
+          name: (
+            <span
+              className="font-semibold"
+              data-testid="connected-resource-name"
+            >
+              {connected.name}
+            </span>
+          ),
+        }}
       />
-      {/*
-       * The sentence keeps at least 14rem: in a narrow box (a phone) the
-       * link goes under it, lined up with it, instead of squeezing it into a
-       * column a word wide.
-       */}
-      <div className="flex min-w-0 flex-1 flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <span className="min-w-0 flex-1 basis-56 break-words">
-          <TranslatedSentence
-            template={RESOURCE_CONNECTION_CONNECTED}
-            slots={{
-              name: (
-                <span
-                  className="font-semibold"
-                  data-testid="connected-resource-name"
-                >
-                  {connected.name}
-                </span>
-              ),
-            }}
-          />
-        </span>
-        <AppLink
-          to={route}
-          className="font-medium text-emerald-700 underline hover:text-emerald-900"
-        >
-          {translator.translateText(props.viewText) || props.viewText}
-        </AppLink>
-      </div>
-    </div>
-  );
+    ),
+  });
 };
 
 export default ResourceConnectionWatch;
