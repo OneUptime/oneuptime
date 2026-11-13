@@ -40,6 +40,7 @@ import {
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import { NO_NOTIFICATION_REPEAT } from "Common/Types/NotificationRule/NotificationRepeat";
+import { getPagingLadderCellKey } from "Common/Types/NotificationRule/PagingLadder";
 import NotificationRuleType from "Common/Types/NotificationRule/NotificationRuleType";
 import PushNotificationLevel from "Common/Types/NotificationRule/PushNotificationLevel";
 import ObjectID from "Common/Types/ObjectID";
@@ -467,7 +468,25 @@ export interface ComponentProps {
   onBehalfOfName?: string | undefined;
 
   noItemsMessage?: string | undefined;
+
+  /*
+   * The cards that differ from the person's ladder (How to Reach Me), by
+   * getPagingLadderCellKey: each is marked on its title, beside its
+   * severity. Left out, no card is marked.
+   */
+  differingCellKeys?: ReadonlySet<string> | undefined;
+
+  /*
+   * Called once a rule on any card was added, changed or removed, so the
+   * ladder above the cards reads them again.
+   */
+  onRulesChanged?: (() => void) | undefined;
 }
+
+// The mark on a card that differs from the person's ladder.
+export const DIFFERS_FROM_LADDER_TAG: string = translationKey(
+  "Differs from the ladder",
+);
 
 /*
  * What a severity with no rule says on your own page: the card's title and
@@ -508,7 +527,12 @@ const OPT_OUT_LABEL: string = translationKey(
  */
 const SeverityCardTitle: FunctionComponent<{
   severity: OnCallRuleSeverity;
-}> = (props: { severity: OnCallRuleSeverity }): ReactElement => {
+  differsFromLadder?: boolean | undefined;
+}> = (props: {
+  severity: OnCallRuleSeverity;
+  differsFromLadder?: boolean | undefined;
+}): ReactElement => {
+  const translator: Translator = useTranslator();
   const color: string | undefined = props.severity.color?.toString();
 
   return (
@@ -528,6 +552,17 @@ const SeverityCardTitle: FunctionComponent<{
       <IsolatedText text={props.severity.name || ""} />
       {/* Nobody picks it again; the rules it has still notify. */}
       {isArchivedValue(props.severity) ? <ArchivedTag /> : <></>}
+      {/* How to Reach Me: this card pages otherwise than the ladder. */}
+      {props.differsFromLadder ? (
+        <span
+          className="inline-flex flex-none items-center whitespace-nowrap rounded-md bg-amber-50 px-1.5 py-0.5 text-xs font-medium leading-4 text-amber-800 ring-1 ring-inset ring-amber-200"
+          data-testid="on-call-rules-differs-tag"
+        >
+          {translator.translateText(DIFFERS_FROM_LADDER_TAG)}
+        </span>
+      ) : (
+        <></>
+      )}
     </span>
   );
 };
@@ -864,6 +899,7 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
        * row on screen.
        */
       setRefreshToggle(OneUptimeDate.getCurrentDate().toString());
+      props.onRulesChanged?.();
     } catch (err) {
       setDeleteError(API.getFriendlyMessage(err));
     }
@@ -1019,6 +1055,8 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
       id: rule.id,
       data: data,
     });
+
+    props.onRulesChanged?.();
   };
 
   /*
@@ -1274,6 +1312,16 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
 
           return Promise.resolve(model);
         }}
+        onCreateSuccess={(
+          item: UserNotificationRule,
+        ): Promise<UserNotificationRule> => {
+          // Added or edited: the ladder above reads the cards again.
+          props.onRulesChanged?.();
+          return Promise.resolve(item);
+        }}
+        onItemDeleted={() => {
+          props.onRulesChanged?.();
+        }}
         sortOrder={SortOrder.Ascending}
         sortBy="notifyAfterMinutes"
         createVerb={"Add"}
@@ -1312,7 +1360,20 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
          */
         isCreateable={isEditable && !isArchivedValue(severity)}
         cardProps={{
-          title: <SeverityCardTitle severity={severity} />,
+          title: (
+            <SeverityCardTitle
+              severity={severity}
+              differsFromLadder={Boolean(
+                severity.id &&
+                  props.differingCellKeys?.has(
+                    getPagingLadderCellKey({
+                      ruleType: props.ruleType,
+                      severityId: severity.id.toString(),
+                    }),
+                  ),
+              )}
+            />
+          ),
           /*
            * An archived one says what its rules still do, and - where they
            * can be changed - why it has no Add. A view that changes nothing

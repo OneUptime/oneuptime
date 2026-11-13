@@ -61,9 +61,15 @@ export default class TelemetryUsageMeter {
       return summary;
     }
 
-    // Oldest first, the same order every run: no project waits on its name.
+    /*
+     * Oldest first, the same order every run: no project waits on its name.
+     * Never a sample project (issue #6808): what it holds was written once
+     * when it was made, and it is in nobody's usage.
+     */
     const projects: Array<Project> = await ProjectService.findAllBy({
-      query: {},
+      query: {
+        isSampleProject: false,
+      },
       select: {
         _id: true,
       },

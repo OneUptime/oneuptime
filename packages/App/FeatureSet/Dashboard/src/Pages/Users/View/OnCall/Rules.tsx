@@ -1,4 +1,4 @@
-import OnCallRulesTabs from "../../../../Components/NotificationRule/OnCallRulesTabs";
+import HowToReachMe from "../../../../Components/NotificationRule/HowToReachMe";
 import PageComponentProps from "../../../PageComponentProps";
 import {
   ADMIN_TABLE_PREFERENCES_PREFIX,
@@ -8,7 +8,7 @@ import {
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
- * Users > (a member) > On-Call > On-Call Rules: another member's on-call
+ * Users > (a member) > On-Call > How to Reach: another member's on-call
  * notification rules, on the same one page with a tab per kind that the
  * member has under User Settings - the same component, pointed at them.
  *
@@ -71,7 +71,7 @@ const UserViewOnCallRules: FunctionComponent<
    * masked choices from the readiness payload replace both.
    */
   return (
-    <OnCallRulesTabs
+    <HowToReachMe
       userId={context.userId}
       person={isSelf ? undefined : { displayName, firstName }}
       notificationMethods={context.methodChoices}

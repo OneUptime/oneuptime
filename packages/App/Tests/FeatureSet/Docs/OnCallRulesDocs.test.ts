@@ -6,10 +6,13 @@ import path from "path";
 /*
  * Where a person sets how they are paged, in the docs.
  *
- * A person's on-call notification rules are one On-Call Rules page with a
- * tab per kind (incidents, incident episodes, alerts, alert episodes): under
- * User Settings for your own, and under Users > (a member) > On-Call for an
- * admin. They used to be four pages in two side-menu sections of their own.
+ * A person's on-call notification rules are one page, How to Reach Me
+ * (#6820): one ladder for everything, with a tab per kind (incidents,
+ * incident episodes, alerts, alert episodes) behind it - under User
+ * Settings for your own, and under Users > (a member) > On-Call for an
+ * admin. They used to be four pages in two side-menu sections of their own,
+ * and then one page called On-Call Rules, the name of the project's rules
+ * under Incidents and Alerts (#6817).
  *
  * The Escalation Rules page says who a level pages; it also says, in every
  * docs language, where each of those people sets how they are reached - with
@@ -47,6 +50,7 @@ const RETIRED_RULE_PAGE_PATHS: Array<string> = [
 interface DashboardWords {
   userSettings: string;
   users: string;
+  howToReachMe: string;
   onCallRules: string;
 }
 
@@ -63,7 +67,8 @@ function readPage(lang: string): string {
 
 /*
  * The words a language's dashboard shows for the path: the navbar's User
- * Settings item, the Users product and the On-Call Rules menu entry.
+ * Settings item, the Users product and the How to Reach Me menu entry - and
+ * On-Call Rules, which is the project's rules now.
  */
 function readDashboardWords(lang: string): DashboardWords {
   const locale: Record<string, unknown> = JSON.parse(
@@ -78,6 +83,7 @@ function readDashboardWords(lang: string): DashboardWords {
   return {
     userSettings: navbar["userSettings"] || "User Settings",
     users: (locale["Users"] as string) || "Users",
+    howToReachMe: (locale["How to Reach Me"] as string) || "How to Reach Me",
     onCallRules: (locale["On-Call Rules"] as string) || "On-Call Rules",
   };
 }
@@ -99,13 +105,13 @@ function allDocsFiles(directory: string = CONTENT_DIR): Array<string> {
   return files;
 }
 
-describe("the docs send people to the one On-Call Rules page", () => {
+describe("the docs send people to the one How to Reach Me page", () => {
   it("names the menu entries the dashboard really has", () => {
     expect(readRepoFile(USER_SETTINGS_MENU)).toContain(
-      'title: "On-Call Rules"',
+      'title: "How to Reach Me"',
     );
-    expect(readRepoFile(USER_VIEW_MENU)).toContain('title: "On-Call Rules"');
-    expect(readPage("en")).toContain("**User Settings** > **On-Call Rules**");
+    expect(readRepoFile(USER_VIEW_MENU)).toContain('title: "How to Reach Me"');
+    expect(readPage("en")).toContain("**User Settings** > **How to Reach Me**");
   });
 
   it.each(SUPPORTED_DOCS_LANGUAGE_CODES)(
@@ -117,7 +123,7 @@ describe("the docs send people to the one On-Call Rules page", () => {
       expect({
         lang,
         found: page.includes(
-          `**${words.userSettings}** > **${words.onCallRules}**`,
+          `**${words.userSettings}** > **${words.howToReachMe}**`,
         ),
       }).toEqual({ lang, found: true });
 
@@ -125,8 +131,16 @@ describe("the docs send people to the one On-Call Rules page", () => {
         lang,
         found:
           page.includes(`**${words.users}** > `) &&
-          page.split(`**${words.onCallRules}**`).length - 1 >= 2,
+          page.split(`**${words.howToReachMe}**`).length - 1 >= 2,
       }).toEqual({ lang, found: true });
+
+      // The personal page is never walked to by the project rules' name.
+      expect({
+        lang,
+        found: page.includes(
+          `**${words.userSettings}** > **${words.onCallRules}**`,
+        ),
+      }).toEqual({ lang, found: false });
     },
   );
 
@@ -160,6 +174,9 @@ describe("the docs send people to the one On-Call Rules page", () => {
         "**Alert On-Call**",
         "**User Settings** > **Incident On-Call Rules**",
         "**User Settings** > **Alert On-Call Rules**",
+        "**User Settings** > **On-Call Rules**",
+        "**User Settings → On-Call Rules**",
+        "**User Settings > On-Call Rules**",
       ]) {
         if (text.includes(oldSection)) {
           offenders.push(`${path.relative(CONTENT_DIR, file)}: ${oldSection}`);

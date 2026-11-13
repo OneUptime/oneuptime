@@ -588,7 +588,7 @@ describe("the phone in the dashboard", () => {
       'title: "Notification Methods"',
     );
     expect(dashboard("src/Pages/UserSettings/SideMenu.tsx")).toContain(
-      'title: "On-Call Rules"',
+      'title: "How to Reach Me"',
     );
     expect(push).toContain('title: "Push Notification Devices"');
     expect(push).toContain('title: "Test Notification"');

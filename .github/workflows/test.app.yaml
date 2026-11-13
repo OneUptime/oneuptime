@@ -1608,6 +1608,10 @@ jobs:
           # machine): Home Overview planned as 3.9, past the line, so Ceph
           # Pages (2.0) moved to group 16, the group with the most room but
           # 22's (kept for the journeys): this group about 20.4.
+          # Recording the setup pages (#6834: a self-hosted Home loads and sends
+          # nothing for it, and on Cloud a consenting person loads the recorder;
+          # 3 tests, about 22 seconds locally on a busy machine): Home Overview
+          # planned as 4.2, this group about 20.7.
           - group: 17
             suites: >-
               test-snmp-walk-ui

@@ -5,7 +5,7 @@ OneUptime est une plateforme d'observabilité open source. Elle vérifie que vos
 ## Que voulez-vous faire ?
 
 :::cards
-- [Savoir quand votre site web ou votre API tombe](/docs/monitor/website-monitor): Le vérifier depuis des sondes du monde entier, et recevoir un e-mail ou une alerte en cas de panne.
+- [Savoir quand votre site web ou votre API tombe](/docs/guides/website-down): Le vérifier depuis des sondes du monde entier, et recevoir un e-mail ou une alerte en cas de panne.
 - [Être alerté par appel, SMS ou push, et escalader](/docs/guides/paging): Alerter la personne d'astreinte, puis la suivante si personne ne répond.
 - [Publier une page de statut sur votre propre domaine](/docs/guides/status-page): Dire à vos clients ce qui se passe, à une adresse qui vous appartient.
 - [Envoyer des journaux, des métriques et des traces](/docs/telemetry/open-telemetry): Envoyer la télémétrie de vos applications avec OpenTelemetry, la rechercher et être alerté dessus.

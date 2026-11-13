@@ -126,7 +126,7 @@ As chaves de acesso precisam que o endereço do seu OneUptime comece com `https:
 - Verifique se o celular permite as notificações do OneUptime On-Call, e se o Não Perturbe ou um Foco não as está retendo.
 - Em **Configurações do usuário → Métodos de notificação**, aba **Notificações push**, verifique se o celular aparece na lista, e envie a ele uma **Notificação de teste**.
 - Se ele está marcado como **Não está recebendo notificações**, abra o aplicativo estando conectado: veja [Quando um celular precisa se registrar de novo](#quando-um-celular-precisa-se-registrar-de-novo).
-- Verifique as suas regras de plantão em **Configurações do usuário → Regras de Plantão**: elas decidem quais acionamentos chegam a qual método.
+- Verifique as suas regras de plantão em **Configurações do usuário → Como me contatar**: elas decidem quais acionamentos chegam a qual método.
 - Num OneUptime auto-hospedado, verifique se o servidor chega ao relay push dele: veja [Notificações push](/docs/self-hosted/push-notifications#acesso-de-rede).
 :::
 
@@ -135,7 +135,7 @@ Coloque o uso de bateria do aplicativo em **Sem restrições** nas configuraçõ
 :::
 
 :::details Os alertas críticos não tocam no modo silencioso
-Abra **Settings** no aplicativo: a linha abaixo de **Critical On-Call Alerts** diz o que falta nesse celular. Depois verifique em **Configurações do usuário → Regras de Plantão** se a regra de plantão que enviou o acionamento está em **Alerta crítico**, não em **Normal**. Cada celular tem a sua própria chave.
+Abra **Settings** no aplicativo: a linha abaixo de **Critical On-Call Alerts** diz o que falta nesse celular. Depois verifique em **Configurações do usuário → Como me contatar** se a regra de plantão que enviou o acionamento está em **Alerta crítico**, não em **Normal**. Cada celular tem a sua própria chave.
 :::
 
 ### Aplicativo de desktop

@@ -166,7 +166,7 @@ Para ser acionado por mensagem direta quando estiver de plantão, adicione o Sla
 3. Clique em **Send Test Message** na linha dele. A mensagem chega às suas mensagens diretas do Slack.
 :::
 
-Adicioná-lo o inclui imediatamente nas suas regras de plantão, então a partir daí os acionamentos chegam a você no Slack. Altere quais acionamentos ele recebe em **Configurações do usuário** > **Regras de Plantão**.
+Adicioná-lo o inclui imediatamente nas suas regras de plantão, então a partir daí os acionamentos chegam a você no Slack. Altere quais acionamentos ele recebe em **Configurações do usuário** > **Como me contatar**.
 
 ## Salvar mensagens como notas
 

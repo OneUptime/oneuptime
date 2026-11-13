@@ -160,9 +160,19 @@ const FORBIDDEN_IN_BUNDLE = [
  * Measured after: recorder.js 348775 bytes raw / 104156 gzip; before it
  * 339513 / 101329. The loader is unchanged at 13333 / 4912. Both budgets
  * follow the rule.
+ *
+ * Raised again from 342 KB to 344 KB on 2026-11-12 for a page that records
+ * only some of its parts (issue #6834, OneUptime's own Dashboard): pause()
+ * and resume() held by the page on the idle-pause machinery, the init
+ * global's maskAllText and blockSelectors (src/PageMasking.ts, which only
+ * ever add masking), and the oneuptime-unmask class that lets a page's own
+ * interface words through MaskAllText. Measured after: recorder.js 351173
+ * bytes raw / 104678 gzip; before it 348775 / 104156. The gzip budget still
+ * holds it and is unchanged. The loader does not carry any of it and is
+ * unchanged at 13333 bytes raw. Same rule.
  */
 const LOADER_MAX_BYTES = 13.5 * 1024;
-const RECORDER_MAX_BYTES = 342 * 1024;
+const RECORDER_MAX_BYTES = 344 * 1024;
 
 /*
  * Gzip budgets, which are the numbers a customer's browser actually pays.

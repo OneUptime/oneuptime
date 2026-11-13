@@ -753,13 +753,17 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/NetworkDeviceDiscoveredDetailsPostgres.test.ts --forceExit
 
-      # Clones the migrated NetworkEndpoint table into an isolated schema and
-      # runs what a network controller's client list writes to it (issue
-      # #5379): the insert and the UPDATE ... FROM (VALUES ...) a walk shares.
-      # Only a database shows that a controller's row clears the ifIndex of a
-      # port it moved a client off, that a walk then takes the row back, and
-      # that a soft-deleted endpoint is never resurrected.
-      - name: Test a network controller's clients against Postgres
+      # Clones the migrated NetworkEndpoint table into isolated schemas and
+      # runs what walks and network controllers' client lists write to it.
+      # What a controller's list writes (issue #5379): the insert and the
+      # update a walk shares. Only a database shows that a controller's row
+      # clears the ifIndex of a port it moved a client off, that a walk then
+      # takes the row back, and that a soft-deleted endpoint is never
+      # resurrected. Then the writes at once (issue #7388): a row another
+      # writer holds is skipped, not waited for; a MAC another writer made
+      # first is decided again, not overwritten; and two writers of the same
+      # endpoints in opposite orders never deadlock.
+      - name: Test the endpoint inventory's writes against Postgres
         if: matrix.shard == 1
         working-directory: packages/Common
         env:
@@ -770,6 +774,7 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/NetworkEndpointControllerClientsPostgres.test.ts
+          Tests/Server/Services/NetworkEndpointWriteLocksPostgres.test.ts
           --forceExit
 
       # Clones the migrated NetworkEndpoint, NetworkDevice,

@@ -158,7 +158,7 @@ Un épisode qu'ouvre une alerte privée n'est pas privé ; il n'affiche donc jam
 
 ## Qui est informé d'une alerte
 
-- **L'astreinte.** Les politiques d'astreinte de l'alerte alertent leurs personnes, chacune comme elle l'a configuré dans **Paramètres utilisateur → Règles d'astreinte**, dans l'onglet **Alertes**. Répondre à l'appel prend l'alerte en compte, et les appels s'arrêtent.
+- **L'astreinte.** Les politiques d'astreinte de l'alerte alertent leurs personnes, chacune comme elle l'a configuré dans **Paramètres utilisateur → Comment me joindre**, dans l'onglet **Alertes**. Répondre à l'appel prend l'alerte en compte, et les appels s'arrêtent.
 - **Ses propriétaires.** Par e-mail, sauf s'ils ont choisi d'autres canaux dans **Paramètres utilisateur → Paramètres de notification**, dans l'onglet **Alertes** : **Alerte créée**, **État de l'alerte modifié** et **Rappel d'alerte** sont activés par défaut, et **Note d'alerte publiée** et **Ajouté comme propriétaire de l'alerte** sont désactivés jusqu'à ce que quelqu'un les active. Une alerte sans propriétaire prévient à la place les propriétaires du projet.
 - **Vos outils de chat.** **Alertes → Espace de travail** contient les règles Slack et Microsoft Teams qui publient les alertes et les épisodes dans des canaux. Voir [Slack](/docs/workspace-connections/slack) et [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
 

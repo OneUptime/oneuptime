@@ -300,6 +300,11 @@ const ADMIN_KEYS: Record<string, string> = {
   Disconnected: "common.disconnected",
   // The Health page, which says when several people sign in from one address.
   "OneUptime Health": "OneUptime Health",
+  // Settings > Products: the products every project on the server offers (#6815).
+  Products: "sideMenu.settingsProducts",
+  "Monitoring and status pages": "Monitoring and status pages",
+  "Incident response": "Incident response",
+  "Choose products one by one": "Choose products one by one",
 };
 
 // The bold words of a page that name the Admin Dashboard, paths included.
@@ -311,6 +316,10 @@ const ADMIN_LABELS: Record<string, Array<string>> = {
     "Settings > Notifications > Emails",
     "Settings > Monitoring > Global Probes",
     "OneUptime Health",
+    "Settings > Products",
+    "Monitoring and status pages",
+    "Incident response",
+    "Choose products one by one",
   ],
   [TWILIO]: ["Admin Dashboard > Settings > Call and SMS"],
 };
@@ -435,6 +444,8 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Visitor addresses",
     "Updates",
     "High availability",
+    // Run only what you need (#6815): the Admin Dashboard's one-click presets.
+    "Presets",
   ],
   [SIZING]: [
     "Valkey",

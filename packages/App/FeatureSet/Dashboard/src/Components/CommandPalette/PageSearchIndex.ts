@@ -68,6 +68,11 @@ export enum PageSearchGate {
   Billing = "billing",
   // Monitor groups are behind a per-project feature flag.
   MonitorGroups = "monitor-groups",
+  /*
+   * The switches that turn off recording of the setup pages (#6834) are
+   * shown only where OneUptime Cloud records them.
+   */
+  DashboardRecording = "dashboard-recording",
 }
 
 // What someone must be allowed to do for an action to be offered.
@@ -506,6 +511,14 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               {
                 name: "Customer Support Access",
                 gate: PageSearchGate.Billing,
+              },
+              {
+                name: "Recordings of Setup Pages",
+                gate: PageSearchGate.DashboardRecording,
+              },
+              {
+                name: "Record setup pages in this project",
+                gate: PageSearchGate.DashboardRecording,
               },
             ],
           },
@@ -4205,9 +4218,17 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           },
           {
             page: PageMap.USER_SETTINGS_ON_CALL_RULES,
-            title: "On-Call Rules",
+            title: "How to Reach Me",
             icon: IconProp.BellRinging,
-            keywords: ["how i get paged", "my notification rules"],
+            // Its old name finds it still (#6817).
+            keywords: [
+              "on-call rules",
+              "how i get paged",
+              "my notification rules",
+              "paging ladder",
+              "escalation order",
+              "call after minutes",
+            ],
           },
           {
             page: PageMap.USER_SETTINGS_NOTIFICATION_SETTINGS,
@@ -4321,6 +4342,14 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "Timezone",
               "Feedback Questions",
               "Ask me how things went",
+              {
+                name: "Recordings of Setup Pages",
+                gate: PageSearchGate.DashboardRecording,
+              },
+              {
+                name: "Record how I use setup pages",
+                gate: PageSearchGate.DashboardRecording,
+              },
             ],
           },
           {

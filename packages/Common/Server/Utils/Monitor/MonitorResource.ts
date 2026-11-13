@@ -435,6 +435,20 @@ export default class MonitorResourceUtil {
     }
 
     /*
+     * Nor is a sample project's (issue #6808): its monitors show a made-up
+     * history, are handed to no probe and swept by no job, and a result
+     * that reaches one anyway - a heartbeat someone sends to its address -
+     * opens nothing and changes nothing.
+     */
+    if (await ProjectService.isSampleProject(monitor.projectId)) {
+      logger.debug(
+        `${dataToProcess.monitorId.toString()} Monitor's project is a sample project. Skipping.`,
+      );
+
+      return response;
+    }
+
+    /*
      * Acquire a per-monitor lock so concurrent results for the same monitor are
      * processed serially. This MUST come after the validation above: acquiring
      * before the not-found/disabled checks meant those throw paths held — and

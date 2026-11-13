@@ -138,7 +138,7 @@ As **Configurações do usuário**, à direita na barra abaixo da barra do topo,
 | --- | --- | --- |
 | **Lista de configuração** | Guia você por tudo o que vem a seguir, e mostra o que falta fazer. | |
 | **Métodos de notificação** | Os e-mails, números de telefone, aplicativos e webhooks pelos quais o OneUptime pode contatar você. Seu e-mail de login é adicionado para você. | |
-| **Regras de Plantão** | Qual método usar, e depois de quanto tempo, quando uma política de plantão aciona você. | [Regras de escalonamento](/docs/on-call/escalation-rules) |
+| **Como me contatar** | Qual método usar, e depois de quanto tempo, quando uma política de plantão aciona você. | [Regras de escalonamento](/docs/on-call/escalation-rules) |
 | **Configurações de notificação** | Que novidades você recebe sobre incidentes, alertas, monitores e mais, e por qual canal. | |
 | **Preferências de e-mail** | Quantos e-mails você recebe: um a um, ou agrupados. | [Resumo de notificações](/docs/emails/notification-rollup) |
 | **Registros de plantão** | Cada acionamento enviado a você, e o que aconteceu com ele. | |

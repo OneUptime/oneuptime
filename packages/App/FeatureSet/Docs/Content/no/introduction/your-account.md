@@ -138,7 +138,7 @@ Du kan høre til så mange prosjekter du vil. Prosjektvelgeren øverst til venst
 | --- | --- | --- |
 | **Oppsettsjekkliste** | Leder deg gjennom alt nedenfor, og viser hva som gjenstår. | |
 | **Varselmetoder** | E-postene, telefonnumrene, appene og webhookene OneUptime kan nå deg på. E-posten du logger inn med, legges til for deg. | |
-| **Vaktregler** | Hvilken metode som brukes, og etter hvor lang tid, når en vaktpolicy varsler deg. | [Eskaleringsregler](/docs/on-call/escalation-rules) |
+| **Slik når man meg** | Hvilken metode som brukes, og etter hvor lang tid, når en vaktpolicy varsler deg. | [Eskaleringsregler](/docs/on-call/escalation-rules) |
 | **Varselinnstillinger** | Hvilke oppdateringer om hendelser, varsler, monitorer og mer du får, og på hvilken kanal. | |
 | **E-postinnstillinger** | Hvor mange e-poster du får: én om gangen, eller samlet. | [Varseloppsummering](/docs/emails/notification-rollup) |
 | **Vaktlogger** | Hvert varsel sendt til deg, og hva som skjedde med det. | |
