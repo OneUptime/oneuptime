@@ -59,6 +59,8 @@ export interface ValueTextFieldProps {
   /** Enter starts a new line, and the box grows with what is in it. */
   multiline: boolean;
   placeholder?: string | undefined;
+  // In the reader's words already: drawn as given (Field's, #7682).
+  isPlaceholderTranslated?: boolean | undefined;
   ariaLabelledby?: string | undefined;
   ariaLabel?: string | undefined;
   error?: string | undefined;
@@ -151,7 +153,11 @@ const ValueTextField: FunctionComponent<ValueTextFieldProps> = (
           onChange={props.onChange}
           multiline={props.multiline}
           describeReference={picker.describeReference}
-          placeholder={translator.translateText(props.placeholder)}
+          placeholder={
+            props.isPlaceholderTranslated
+              ? props.placeholder
+              : translator.translateText(props.placeholder)
+          }
           ariaLabelledby={props.ariaLabelledby}
           ariaLabel={translator.translateText(props.ariaLabel)}
           ariaDescribedby={props.error ? errorId : undefined}

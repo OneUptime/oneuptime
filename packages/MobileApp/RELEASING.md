@@ -429,11 +429,15 @@ with an on-call policy:
    "You're being paged again" and offers Acknowledge again, filled across
    the card, with Resolve and Escalate under it; the action under the push
    acknowledges again.
-4. Tap Escalate: the app opens on the record and asks before passing it on.
-5. A push that is not a page (a note, a state change, a security hunt) has no
+4. Have somebody else acknowledge an incident, then start an on-call policy
+   that pages you on it by hand (Execute On-Call Policy): the screen says
+   "You're being paged" - not "again" - with the same three buttons, and
+   Acknowledge again answers your page.
+5. Tap Escalate: the app opens on the record and asks before passing it on.
+6. A push that is not a page (a note, a state change, a security hunt) has no
    actions. A security hunt's push and a scheduled maintenance event's open
    their page in the browser on the reader's OneUptime.
-6. On a self-hosted server that relays its pushes, repeat 1 and 2.
+7. On a self-hosted server that relays its pushes, repeat 1 and 2.
 
 ### On-call pages: I've seen it under an observer's push
 

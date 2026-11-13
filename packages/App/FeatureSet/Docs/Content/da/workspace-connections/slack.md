@@ -102,6 +102,8 @@ At oprette en regel går gennem fire trin:
 | **Destination** | Hvor den slår op: **Skriv i eksisterende kanaler** med kanalnavnene, **Opret en kanal for hver hændelse** (eller advarsel, episode, begivenhed, monitor eller vagtpolitik) med hvem der kommer med i den, eller begge dele. Under trinnet siger **Hvad reglen gør** det i sætninger, ligesom reglens kort. |
 | **Video Call** | Kun hændelser og advarsler: start et opkald for hver. Se [Videoopkald](/docs/workspace-connections/video-calls). |
 
+Hver betingelse læses som en sætning: feltet, hvordan det sammenlignes, og værdien. Værdier at vælge kommer fra projektets egne lister, som dets tilstande, alvorligheder, etiketter og monitorer. En regel for vagtpolitikker vælger sine politikker under **Vagtpolitik**, som bliver ved med at matche en politik, efter at den har fået nyt navn, mens **Navn på vagtpolitik** matcher ord i en politiks navn. Hver slags begivenhed, der har ejere, har en ejerbetingelse, som **Ejer af hændelse**: vælg personer og teams, og den matcher de personer og teams, der er registreret som begivenhedens ejere. At være med i et team, der ejer begivenheden, tæller ikke. En ejer, der tilføjes senere, får reglen til at matche fra den opdatering, og en regel, der opretter kanaler, opretter kanalen da. En arkiveret værdi, som en alvorlighed eller en vagtpolitik, tilbydes ikke til en ny betingelse. En regel, der allerede har en, beholder den, markeret **Arkiveret**, og matcher stadig de begivenheder, der har den. En person, et team eller en politik, som projektet ikke længere har, bliver i betingelsen, og reglens kort siger det.
+
 En regel for SLO'er slår skiftene i et SLO's fejlbudgetpolitik op: når SLO'et går ind i et niveau, kommer sig til et mindre alvorligt niveau eller forlader alle niveauer, og når dets udrulninger fryses eller tillades igen. Den slår kun op i eksisterende kanaler, da et SLO ikke får sin egen kanal. Se [Slå op i Slack, Microsoft Teams og Mattermost](/docs/slo/error-budget-policy#slå-op-i-slack-microsoft-teams-og-mattermost).
 
 En kanal, som reglen opretter, får navn efter sin post: hændelse INC-42 får `inc-42`, advarsel ALT-7 får `alt-7`, og i et projekt uden nummerpræfikser får hændelse 42 `incident-42`. Tekst i **Præfiks for kanalnavn** sættes foran, så `prod-` giver `prod-inc-42`, og formularen viser navnet, mens du skriver. For en planlagt vedligeholdelse træder præfikset i stedet for dens nummerpræfiks: SM-5 får `sm-5`, og `maint-` giver `maint-5`. Slack tager små bogstaver, tal, `-` og `_`, op til 80 tegn. Findes der allerede en kanal med det navn, fx et andet projekts eller en arkiveret kanal, tilføjer OneUptime `-2`, `-3` og så videre.
@@ -174,7 +176,7 @@ Reagér på en besked i kanalen for en hændelse, advarsel, episode eller planla
 
 | Reaktion | Gemt som |
 | --- | --- |
-| 📌 En knappenål-emoji, eller Slacks egen **Pin to channel** | En privat note, som kun dit team ser |
+| 📌 En knappenål-emoji, eller Slacks egen **Pin to channel** | En privat note, som kun dem, der kan se posten, kan læse |
 | 📢 En megafon- eller højttaler-emoji | En offentlig note, vist på statussiden. Kun hændelser og planlagte vedligeholdelsesbegivenheder. På en privat hændelse en privat note, og bekræftelsen siger hvorfor. Når projektets offentlige noter kræver godkendelse, vises den først, når den er godkendt, og bekræftelsen siger, hvem den venter på: se [Godkendelse af offentlige noter](/docs/incidents/notes-owners-and-feed#godkendelse-af-offentlige-noter). |
 
 Noten bevarer beskeden, som Slack viste den: dens formatering, links og kode, de personer og kanaler, den nævner, ved navn, og dens filer og billeder som links til dem. En offentlig note udelader filerne og billederne, da de kun åbner for dit team.
@@ -281,7 +283,7 @@ En hændelses besked har fire knapper, **Acknowledge Incident**, **Resolve Incid
 | **Change Severity** | Sætter hændelsens alvorlighed. |
 | **Change Incident State** | Flytter hændelsen til en senere tilstand. |
 | **Assign Role** | Giver nogen en rolle i hændelsen, som **Incident Commander**. En rolle til én person går over til vedkommende. |
-| **Page Someone** | Tilkalder personer, et team, den der har vagt i en vagtplan, eller en vagtpolitik om hændelsen, med en valgfri besked. Personer tilkaldes, indtil en af dem svarer; en politik tilkalder, indtil nogen kvitterer for hændelsen. |
+| **Page Someone** | Tilkalder personer, et team, den der har vagt i en vagtplan, eller en vagtpolitik om hændelsen, med en valgfri besked. Alle, den tilkalder, også en politiks personer, tilkaldes, indtil en af dem svarer, eller hændelsen er løst. |
 | **Edit Custom Fields** | Sætter hændelsens brugerdefinerede felter, hvert udfyldt med det, hændelsen har. Et felt, der efterlades tomt, ryddes. |
 
 `/oneuptime incident 42` viser hændelse 42, med disse knapper og dens menu, i en besked, som kun du kan se. Skriv nummeret, som OneUptime viser det: `42`, `#42` eller `INC-42`. I en hændelses egen kanal viser `/oneuptime incident` alene den hændelse.

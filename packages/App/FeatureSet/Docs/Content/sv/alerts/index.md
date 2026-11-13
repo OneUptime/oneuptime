@@ -33,7 +33,7 @@ Båda registrerar ett problem, och båda kan larma den som har jour. Skillnaden 
 | ---------------------------- | ------------------------------------------------------ | ------------------------------------------------- |
 | **Vad det är**               | Ett problem som ditt team bör undersöka innan användarna drabbas | Ett problem som drabbar dina användare, till exempel ett avbrott |
 | **På statussidor**           | Aldrig                                                 | Kan visas och meddelar prenumeranter              |
-| **Anteckningar**             | Privata anteckningar, bara för ditt team               | Offentliga anteckningar för kunder och privata anteckningar |
+| **Anteckningar**             | Privata anteckningar, bara för de som kan se larmet               | Offentliga anteckningar för kunder och privata anteckningar |
 | **Starttillstånd**           | **Identifierad**, **Bekräftad**, **Löst**                | **Identifierad**, **Bekräftad**, **Löst**           |
 | **Startallvarlighetsgrader** | **Hög**, **Låg**                                      | Critical Incident, Major Incident, Minor Incident |
 | **Nummer i ett nytt projekt** | `ALT-42` och `AE-42` för episoder                     | `INC-42` och `IE-42` för episoder                 |

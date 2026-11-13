@@ -12264,6 +12264,8 @@ test.describe("episode overviews", () => {
 interface FeedNoteCase {
   eventPage: EventPage;
   action: "Add Public Note" | "Add Private Note";
+  // Who reads it: a private note names its event (#7595).
+  audienceHint: string;
   modelName: string;
   parentIdField: string;
   feedModelName: string;
@@ -12274,6 +12276,7 @@ const FEED_NOTES: ReadonlyArray<FeedNoteCase> = [
   {
     eventPage: INCIDENT_PAGE,
     action: "Add Public Note",
+    audienceHint: "Visible on your status page",
     modelName: "IncidentPublicNote",
     parentIdField: "incidentId",
     feedModelName: "IncidentFeed",
@@ -12282,6 +12285,7 @@ const FEED_NOTES: ReadonlyArray<FeedNoteCase> = [
   {
     eventPage: INCIDENT_PAGE,
     action: "Add Private Note",
+    audienceHint: "Only people who can see this incident can read this",
     modelName: "IncidentInternalNote",
     parentIdField: "incidentId",
     feedModelName: "IncidentFeed",
@@ -12290,6 +12294,7 @@ const FEED_NOTES: ReadonlyArray<FeedNoteCase> = [
   {
     eventPage: ALERT_PAGE,
     action: "Add Private Note",
+    audienceHint: "Only people who can see this alert can read this",
     modelName: "AlertInternalNote",
     parentIdField: "alertId",
     feedModelName: "AlertFeed",
@@ -12298,6 +12303,7 @@ const FEED_NOTES: ReadonlyArray<FeedNoteCase> = [
   {
     eventPage: SCHEDULED_MAINTENANCE_PAGE,
     action: "Add Public Note",
+    audienceHint: "Visible on your status page",
     modelName: "ScheduledMaintenancePublicNote",
     parentIdField: "scheduledMaintenanceId",
     feedModelName: "ScheduledMaintenanceFeed",
@@ -12306,6 +12312,7 @@ const FEED_NOTES: ReadonlyArray<FeedNoteCase> = [
   {
     eventPage: INCIDENT_EPISODE_PAGE,
     action: "Add Public Note",
+    audienceHint: "Visible on your status page",
     modelName: "IncidentEpisodePublicNote",
     parentIdField: "incidentEpisodeId",
     feedModelName: "IncidentEpisodeFeed",
@@ -12314,6 +12321,7 @@ const FEED_NOTES: ReadonlyArray<FeedNoteCase> = [
   {
     eventPage: ALERT_EPISODE_PAGE,
     action: "Add Private Note",
+    audienceHint: "Only people who can see this episode can read this",
     modelName: "AlertEpisodeInternalNote",
     parentIdField: "alertEpisodeId",
     feedModelName: "AlertEpisodeFeed",
@@ -12370,10 +12378,8 @@ test.describe("notes from the feed", () => {
       const submit: Locator = dialog.getByTestId("modal-footer-submit-button");
 
       await expect(composer).toBeVisible();
-      await expect(dialog.getByTestId("note-audience")).toContainText(
-        noteCase.action === "Add Public Note"
-          ? "Visible on your status page"
-          : "Only your team can see this",
+      await expect(dialog.getByTestId("note-audience-hint")).toHaveText(
+        noteCase.audienceHint,
       );
       // No wizard, no Summary page, no Posted At up front.
       await expect(
@@ -16697,7 +16703,7 @@ test.describe("a private incident or episode (?private=1)", () => {
     });
     await expect(dialog).toBeVisible();
     await expect(dialog.getByTestId("note-audience")).toContainText(
-      "Only your team can see this",
+      "Only people who can see this incident can read this",
     );
     expect(
       (await fixture(page)).creates.filter((write: RecordedWrite): boolean => {

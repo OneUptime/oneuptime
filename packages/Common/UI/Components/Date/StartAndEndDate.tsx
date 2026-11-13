@@ -175,6 +175,12 @@ const StartAndEndDate: DateFilterFunction = (
                 value={startDateTime || ""}
                 placeholder={`Start Date`}
                 type={inputType}
+                /*
+                 * To the second, unlike a time people schedule with: this
+                 * is a telemetry time range, read against the timestamps of
+                 * logs, traces and metrics, which a narrowed range can be
+                 * seconds wide around.
+                 */
                 showSecondsForDateTime={
                   props.type === StartAndEndDateType.DateTime
                 }
@@ -214,6 +220,7 @@ const StartAndEndDate: DateFilterFunction = (
                 value={endDateTime || ""}
                 placeholder={`End Date`}
                 type={inputType}
+                // To the second, as From above.
                 showSecondsForDateTime={
                   props.type === StartAndEndDateType.DateTime
                 }

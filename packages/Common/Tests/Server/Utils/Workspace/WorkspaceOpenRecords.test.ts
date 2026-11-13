@@ -530,7 +530,8 @@ describe("what a list says", () => {
         "🛠️ **Scheduled maintenance coming up**",
         `- **[SM-3](${linkOf("scheduled-maintenance-events", upgrade)})** Database upgrade · from ${at(STARTS)} to ${at(ENDS)}`,
         "",
-        `[See every scheduled maintenance event in OneUptime](${DASHBOARD}/${PROJECT_ID.toString()}/scheduled-maintenance-events)`,
+        // A maintenance event, as the model has named it since #6817.
+        `[See every maintenance event in OneUptime](${DASHBOARD}/${PROJECT_ID.toString()}/scheduled-maintenance-events)`,
       ].join("\n"),
     );
     expect(answer.text).toBe(
@@ -648,7 +649,7 @@ describe("what a list says", () => {
     });
 
     expect(answer.markdown.split("\n").slice(-1)).toEqual([
-      "Showing the next 1. See every scheduled maintenance event in OneUptime.",
+      "Showing the next 1. See every maintenance event in OneUptime.",
     ]);
   });
 
@@ -799,7 +800,7 @@ describe("a member who may not read a kind of record is told so", () => {
     [
       WorkspaceOpenRecordKind.UpcomingMaintenance,
       new NotAuthorizedException("no read"),
-      "You do not have permission to see the scheduled maintenance events in this project. Ask a project admin for access to them.",
+      "You do not have permission to see the maintenance events in this project. Ask a project admin for access to them.",
     ],
   ])(
     "%s",

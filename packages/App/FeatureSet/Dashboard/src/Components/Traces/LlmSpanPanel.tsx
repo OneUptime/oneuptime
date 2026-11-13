@@ -12,6 +12,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import LazyMarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { joinWithArrowsOn } from "Common/Types/DirectionArrow";
 import LlmSpanDisplayUtil, {
   LlmMessage,
   LlmSpanDisplay,
@@ -249,7 +250,10 @@ const LlmSpanPanel: FunctionComponent<ComponentProps> = (
   if (display.requestModel) {
     const model: string =
       display.responseModel && display.responseModel !== display.requestModel
-        ? `${display.requestModel} → ${display.responseModel}`
+        ? joinWithArrowsOn(
+            [display.requestModel, display.responseModel],
+            translator.language,
+          )
         : display.requestModel;
     chips.push({ label: "Model", value: model });
   }

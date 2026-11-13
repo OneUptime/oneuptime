@@ -99,7 +99,7 @@ Hver note viser, hvem der skrev den, tidspunktet for opslaget, den viste Markdow
 
 ## Slå en privat note op
 
-**Noter → Private noter** er bevidst enklere. Det er den samme editor, der siger **Private · Only your team can see this**, med noten, **Skabeloner**, **Udkast med AI** og **Vedhæft** til filer, der er beregnet til det team, der reagerer på hændelsen. **Tilføj privat note** i menuen **Handlinger** i hændelsens feed åbner den i en dialog. Via API'et er private noter `/api/incident-internal-note`.
+**Noter → Private noter** er bevidst enklere. Det er den samme editor, der siger **Privat · Kun dem, der kan se denne hændelse, kan læse dette**, med noten, **Skabeloner**, **Udkast med AI** og **Vedhæft** til filer, som kun dem, der kan læse noten, kan åbne. **Tilføj privat note** i menuen **Handlinger** i hændelsens feed åbner den i en dialog. Via API'et er private noter `/api/incident-internal-note`.
 
 Intet tidspunkt for opslag, intet afkrydsningsfelt for abonnenter — noten stemples, når den oprettes.
 
@@ -164,7 +164,7 @@ Du administrerer dem under **Hændelser → Indstillinger → Noteskabeloner** �
 
 ## Slå noter op fra Slack eller Microsoft Teams
 
-Har du forbundet et arbejdsområde, behøver de, der reagerer, aldrig at forlade kanalen. Både Slack og Microsoft Teams har en handling til at tilføje en note, der åbner en dialog med en rullemenu **Note Type** — **Public Note** (slået op på statussiden) eller **Private Note** (kun synlig for teammedlemmer) — og et tekstfelt **Note**, og som skriver resultatet direkte på hændelsen. På en privat hændelse spørger den ikke om **Note Type** og tilføjer en privat note: se [Private hændelser tager kun private noter](#private-hændelser-tager-kun-private-noter).
+Har du forbundet et arbejdsområde, behøver de, der reagerer, aldrig at forlade kanalen. Både Slack og Microsoft Teams har en handling til at tilføje en note, der åbner en dialog med en rullemenu **Note Type** — **Public Note** (slået op på statussiden) eller **Private Note** (kun dem, der kan se hændelsen, kan læse den) — og et tekstfelt **Note**, og som skriver resultatet direkte på hændelsen. På en privat hændelse spørger den ikke om **Note Type** og tilføjer en privat note: se [Private hændelser tager kun private noter](#private-hændelser-tager-kun-private-noter).
 
 Tre detaljer, der er værd at kende:
 

@@ -603,7 +603,7 @@ describe("the rule summary", () => {
         item: new RunbookRule(),
         subject: RuleCriteriaSubject.ScheduledMaintenanceEvents,
       }),
-    ).toBe("All scheduled maintenance events");
+    ).toBe("All maintenance events");
     expect(
       getRuleCriteriaSummaryText({
         fields: FORM_FIELDS as never,

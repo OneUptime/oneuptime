@@ -395,13 +395,28 @@ export interface OnCallOpenPage {
   // The API's answer only: the preview as the server words it (see above).
   sentence?: string | undefined;
   /*
-   * Present (true) when the page is a page again
-   * (OnCallAcknowledgementTimeout): its record was acknowledged all along,
-   * so the record's own Acknowledge is gone, and the page is acknowledged
-   * as the page it is (ON_CALL_PAGE_AGAIN_ACKNOWLEDGE_ROUTE). Absent
-   * otherwise.
+   * Present (true) when the page is acknowledged as the page it is
+   * (ON_CALL_PAGE_AGAIN_ACKNOWLEDGE_ROUTE), since its record is acknowledged
+   * and the record's own Acknowledge is gone: a page again
+   * (OnCallAcknowledgementTimeout), whose record was acknowledged all
+   * along; and a page a person asked for (OnCallPersonPage) or a policy a
+   * person started by hand (OnCallPolicyStartedByHand) about a record
+   * somebody acknowledged already - both go on until one of their people
+   * answers them. Its name is the first kind's: the Dashboard and the app
+   * offer "Acknowledge again" for each. Absent otherwise.
    */
   isPageAgain?: true | undefined;
+  /*
+   * Present (true) beside isPageAgain when the page is not a page again but
+   * one somebody asked for by hand - a page a person sent (OnCallPersonPage)
+   * or a policy a person started (OnCallPolicyStartedByHand) - about a
+   * record somebody acknowledged already: the person is paged to help with
+   * it, not paged again about one they took, so the mobile app does not say
+   * "again" or "if you're still on it". An app that does not know it says
+   * what it says of a page again, and answers it the same way. Absent
+   * otherwise.
+   */
+  isAskedFor?: true | undefined;
   /*
    * Present (true) when the page is an observer's (OnCallObserverPage): the
    * person is kept informed while others respond, and answers it by saying

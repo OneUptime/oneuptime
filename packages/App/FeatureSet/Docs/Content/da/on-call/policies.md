@@ -81,6 +81,17 @@ Minutterne tælles fra hver bekræftelse, og en politik tilkalder højst 5 gange
 
 Den, der tilkaldes igen, bekræfter fra beskeden eller med **Bekræft igen** på hændelsens eller advarslens side, og minutterne starter forfra; **Eskalér** sender tilkaldet videre til næste niveau. Hvis hændelsen eller advarslen løses eller slettes, politikken arkiveres eller slettes, eller nogen vælger **Tilkald ikke igen**, stopper det. Kortets række **Efter en bekræftelse** siger, hvad politikken gør, og **Yderligere indstillinger** viser minutterne, mens det er foldet sammen. **Politikken i overblik** på **Oversigt** og **Oversigt over eskalering** siger det samme med ord.
 
+## Når flere politikker tilkalder
+
+En hændelse, advarsel eller episode kører hver af sine politikker for sig, på samme tid.
+
+- Den, der har vagt i to af dem, tilkaldes af begge, én gang af hver: OneUptime slår ikke tilkald fra forskellige politikker sammen. Inden for én politik tilkaldes en person, som et niveau nævner to gange, personligt og gennem et team eller en vagtplan, kun én gang.
+- En bekræftelse af hændelsen eller advarslen stopper inden for et minut alle politikker, der kører for den, uanset hvor den bekræftes: fra et hvilket som helst tilkald om den, på dens egen side, i mobilappen eller i Slack eller Microsoft Teams. Intet næste niveau tilkaldes, og intet opkald eller sms, der stadig venter, sendes. Notifikationer, der allerede er sendt, forbliver sendt.
+
+Nogle tilkald fortsætter, efter den er bekræftet, indtil nogen, de har tilkaldt, svarer, eller den er løst: et nyt tilkald, et tilkald til observatører, et tilkald, som nogen har sendt til personer fra Slack eller Microsoft Teams, og en politik, der er startet manuelt.
+
+En politik, der er startet manuelt, er en, der er startet med **Udfør vagtpolitik** eller af et tilkald fra Slack eller Microsoft Teams, der nævner den. Den tilkalder niveau for niveau som enhver kørsel, med opkald og gentagne push-notifikationer, og at en anden bekræfter hændelsen, stopper den ikke: sådan tilkalder du endnu et team til en hændelse, som nogen allerede arbejder på. Den, den har tilkaldt, svarer fra sit tilkalds besked, et opkald eller en sms, eller ved selv at bekræfte hændelsen; når hændelsen er bekræftet, tilbyder hændelsens side vedkommende **Bekræft igen**. **Eskalér** sender den videre til næste niveau. På en hændelse, advarsel eller episode, der er løst, startes intet, og du får at vide hvorfor.
+
 ## Udførelseslogs
 
 Hver gang en politik kører, skriver den en udførelseslog, og loggen går gennem sine statusser, efterhånden som kørslen skrider frem:
@@ -162,6 +173,14 @@ Niveauet før havde ingen at tilkalde: ingen modtagere, ingen med vagt i dets va
 
 :::details En hændelse viser en politik, der ikke tilkaldte nogen
 Politikken er arkiveret: en arkiveret politik bliver stående på de hændelser og advarsler, der bruger den, tilkalder ingen, og dens udførelseslog siger, at den ikke blev udført. Fjern den fra arkivet under **Vagt → Avanceret → Arkiverede politikker**.
+:::
+
+:::details Nogen blev tilkaldt to gange om én hændelse
+Vedkommende har vagt i to af de politikker, hændelsen kører, og hver politik tilkalder sine egne personer. En bekræftelse af hændelsen fra et af de to tilkald stopper begge. Læg begge teams eller vagtplaner i samme niveau i én politik, så tilkaldes vedkommende kun én gang.
+:::
+
+:::details En politik blev ved med at tilkalde, efter hændelsen var bekræftet
+Den blev startet manuelt, eller det er et nyt tilkald: den fortsætter, indtil nogen, den har tilkaldt, svarer, eller hændelsen er løst. Se [Når flere politikker tilkalder](#når-flere-politikker-tilkalder).
 :::
 
 ## Næste trin
