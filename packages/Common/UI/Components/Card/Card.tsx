@@ -1,5 +1,5 @@
 import GlossaryTerm from "../../../Types/Docs/GlossaryTerm";
-import DefinedTerm from "../Glossary/DefinedTerm";
+import DefinedTerm from "../Glossary/LazyDefinedTerm";
 import readAsWritten from "../IsolatedText/ReadAsWritten";
 import useTranslator from "../../Utils/UseTranslator";
 import { Translator } from "../../Utils/TranslateTemplate";
