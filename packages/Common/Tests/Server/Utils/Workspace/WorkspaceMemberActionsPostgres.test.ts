@@ -1675,7 +1675,8 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
           props: await memberProps(responderId),
         }),
       ).rejects.toThrow(
-        `This on-call duty execution log references records that are not in this project: On-Call Policy "${searchPolicyId.toString()}".`,
+        // The row as #6817 names it to a person; the API keeps its old name.
+        `This on-call policy execution log references records that are not in this project: On-Call Policy "${searchPolicyId.toString()}".`,
       );
 
       await nothingWritten();
@@ -1952,7 +1953,7 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
 
       expect(outcome.success).toBe(false);
       expect(outcome.textForLlm).toContain(
-        "On-call duty policy not found (or you do not have access to it).",
+        "On-call policy not found (or you do not have access to it).",
       );
       await nothingWritten();
     });

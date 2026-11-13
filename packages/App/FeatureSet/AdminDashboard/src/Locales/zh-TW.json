@@ -2853,8 +2853,8 @@
   "Only incident episodes that match conditions": "僅符合條件的事件片段",
   "All alert episodes": "所有警示片段",
   "Only alert episodes that match conditions": "僅符合條件的警示片段",
-  "All scheduled maintenance events": "所有排定維護事件",
-  "Only scheduled maintenance events that match conditions": "僅符合條件的排定維護事件",
+  "All maintenance events": "所有維護事件",
+  "Only maintenance events that match conditions": "僅符合條件的維護事件",
   "All monitors": "所有監測器",
   "Only monitors that match conditions": "僅符合條件的監測器",
   "All status pages": "所有狀態頁面",
@@ -2994,5 +2994,9 @@
   "You need one of these permissions: {{permissions}}.": "您需要下列其中一項權限：{{permissions}}。",
   "You need this role: {{role}}.": "您需要下列角色：{{role}}。",
   "You need one of these roles: {{roles}}.": "您需要下列其中一個角色：{{roles}}。",
-  "You do not have permission to {{action}} this {{itemName}}.": "您沒有對此{{itemName}}執行「{{action}}」的權限。"
+  "You do not have permission to {{action}} this {{itemName}}.": "您沒有對此{{itemName}}執行「{{action}}」的權限。",
+  "This monitor does not exist in this project, or you do not have access to it.": "此監測器在此專案中不存在，或您沒有存取權。",
+  "This monitor and this template are in different projects.": "此監測器和此範本屬於不同的專案。",
+  "This monitor is not linked to this template.": "此監測器未連結到此範本。",
+  "This monitor's type is {{monitorType}}, and this template's type is {{templateType}}. Only monitors of the template's type can be linked to it.": "此監測器的類型為 {{monitorType}}，此範本的類型為 {{templateType}}。只有與範本類型相同的監測器才能連結到此範本。"
 }

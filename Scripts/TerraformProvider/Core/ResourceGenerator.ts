@@ -339,6 +339,17 @@ func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.
       "monitorstepsvalues_roundtrip_test.go",
       "internal/provider",
     );
+    /*
+     * A project's own Twilio account and mail server (#7737), applied,
+     * refreshed, updated and imported through the real protocol server: the
+     * credentials sent and read back, is_project_default sent as false when
+     * left out, and the defaults for SMS and calls OneUptime sets. It drives
+     * Terraform with monitorstepsvalues_roundtrip_test.go's helpers.
+     */
+    await this.copyStaticFile(
+      "notificationchannels_roundtrip_test.go",
+      "internal/provider",
+    );
     await this.fileGenerator.writeFileInDir(
       "internal/provider/testdata",
       MONITOR_STEPS_VALUES_CASES_FILE,
