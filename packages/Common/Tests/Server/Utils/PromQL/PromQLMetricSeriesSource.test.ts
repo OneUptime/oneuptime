@@ -183,8 +183,10 @@ describe("the SQL a selector's read runs", () => {
       limit: 10,
     });
 
-    expect(mutable.query).toContain("argMax(value, version) AS value");
-    expect(mutable.query).toContain("WHERE isDeleted = false");
+    expect(mutable.query).toContain("argMax(value, version) AS latestValue");
+    expect(mutable.query).toContain("WHERE latestDeleted = false");
+    // An alias named like a column would shadow it in the inner WHERE.
+    expect(mutable.query).not.toMatch(/argMax\(time, version\) AS time\b/);
     expect(paramValues(mutable)).toContain("MutableMetricItem");
     expect(paramValues(mutable)).toContain(PROJECT_ID.toString());
   });

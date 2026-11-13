@@ -203,9 +203,11 @@ const pushedDownMatchers: (
 const appendAttributeMatchers: (
   statement: Statement,
   matchers: Array<PromQLLabelMatcher>,
+  column: "attributes" | "latestAttributes",
 ) => void = (
   statement: Statement,
   matchers: Array<PromQLLabelMatcher>,
+  column: "attributes" | "latestAttributes",
 ): void => {
   for (const matcher of pushedDownMatchers(matchers)) {
     statement.append(
@@ -222,8 +224,10 @@ const appendAttributeMatchers: (
       SQL`', '_') = ${{
         type: TableColumnType.Text,
         value: matcher.name,
-      }}), mapKeys(attributes), mapValues(attributes))`,
+      }}), `,
     );
+    // The column is one of the two this file names, never a caller's.
+    statement.append(`mapKeys(${column}), mapValues(${column}))`);
   }
 };
 
@@ -269,7 +273,7 @@ export const buildPromQLMetricRowsStatement: (
   // Rows past their retention stay on disk until the midnight after it.
   statement.append(" AND retentionDate >= now()");
   TelemetryReadScopeUtil.appendServiceFilter(statement, data.serviceFilter);
-  appendAttributeMatchers(statement, data.matchers);
+  appendAttributeMatchers(statement, data.matchers, "attributes");
   statement.append(
     SQL` LIMIT ${{ type: TableColumnType.Number, value: data.limit }}`,
   );
@@ -286,7 +290,13 @@ export const buildPromQLMetricRowsStatement: (
 export const buildPromQLMutableMetricRowsStatement: (
   data: PromQLMetricRowsStatementData,
 ) => Statement = (data: PromQLMetricRowsStatementData): Statement => {
-  const statement: Statement = SQL`SELECT name, metricPointType, '' AS aggregationTemporality, attributes, if(timeUnixNano > 0, toInt64(intDiv(timeUnixNano, 1000000)), toUnixTimestamp64Milli(time)) AS timestampMs, value FROM (SELECT name, primaryEntityId, metricPointId, argMax(metricPointType, version) AS metricPointType, argMax(attributes, version) AS attributes, argMax(time, version) AS time, argMax(timeUnixNano, version) AS timeUnixNano, argMax(value, version) AS value, argMax(isDeleted, version) AS isDeleted, argMax(retentionDate, version) AS retentionDate FROM ${AnalyticsTableName.MutableMetric} WHERE projectId = ${{
+  /*
+   * The inner query names each latest value apart from its column: an alias
+   * named like the column would be what the inner WHERE reads, and an
+   * aggregate cannot be filtered on there. The window is checked on the raw
+   * rows first (any version in it) and on the latest version after.
+   */
+  const statement: Statement = SQL`SELECT name, latestPointType AS metricPointType, '' AS aggregationTemporality, latestAttributes AS attributes, if(latestTimeUnixNano > 0, toInt64(intDiv(latestTimeUnixNano, 1000000)), toUnixTimestamp64Milli(latestTime)) AS timestampMs, latestValue AS value FROM (SELECT name, primaryEntityId, metricPointId, argMax(metricPointType, version) AS latestPointType, argMax(attributes, version) AS latestAttributes, argMax(time, version) AS latestTime, argMax(timeUnixNano, version) AS latestTimeUnixNano, argMax(value, version) AS latestValue, argMax(isDeleted, version) AS latestDeleted, argMax(retentionDate, version) AS latestRetentionDate FROM ${AnalyticsTableName.MutableMetric} WHERE projectId = ${{
     type: TableColumnType.ObjectID,
     value: data.projectId,
   }} AND name IN (${{
@@ -301,10 +311,16 @@ export const buildPromQLMutableMetricRowsStatement: (
   }}`;
 
   TelemetryReadScopeUtil.appendServiceFilter(statement, data.serviceFilter);
-  appendAttributeMatchers(statement, data.matchers);
   statement.append(
-    " GROUP BY name, primaryEntityId, metricPointId) WHERE isDeleted = false AND retentionDate >= now()",
+    SQL` GROUP BY name, primaryEntityId, metricPointId) WHERE latestDeleted = false AND latestRetentionDate >= now() AND latestTime >= ${{
+      type: TableColumnType.DateTime64,
+      value: toWholeSecond(data.startTimeMs),
+    }} AND latestTime <= ${{
+      type: TableColumnType.DateTime64,
+      value: toWholeSecond(data.endTimeMs),
+    }}`,
   );
+  appendAttributeMatchers(statement, data.matchers, "latestAttributes");
   statement.append(
     SQL` LIMIT ${{ type: TableColumnType.Number, value: data.limit }}`,
   );
