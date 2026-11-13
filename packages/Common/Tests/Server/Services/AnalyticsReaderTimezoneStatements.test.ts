@@ -21,6 +21,7 @@ import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import Timezone from "../../../Types/Timezone";
+import { escapeRegExp } from "../../../Utils/RegExpEscape";
 import {
   afterEach,
   beforeEach,
@@ -505,7 +506,9 @@ describe("the span projection the trace charts read", () => {
         const where: string = whereOf(compile(request).statement.query);
 
         for (const column of COLUMNS) {
-          const bare: RegExp = new RegExp(`(^|[^.\\w])${column}\\b`);
+          const bare: RegExp = new RegExp(
+            `(^|[^.\\w])${escapeRegExp(column)}\\b`,
+          );
 
           expect({ column: column, bare: bare.test(where) }).toEqual({
             column: column,
