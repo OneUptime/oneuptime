@@ -69,6 +69,9 @@ const DEVANAGARI: RegExp = /\p{Script=Devanagari}/u;
 const IMPORT_WITH_NE_BROUGHT: RegExp =
   /आयात ने [^।|]*?ला(?:या|ई|ए)(?![\p{L}\p{M}])/u;
 
+// "OneUptime remembers what each import brought, by the other tool's id."
+const EACH_IMPORT_BROUGHT: RegExp = /हर आयात .+ के अनुसार क्या लाया/u;
+
 /*
  * Import keys whose Hindi rightly says no आयात, each with its reason.
  */
@@ -478,7 +481,7 @@ describe("the grammar around आयात", () => {
       expect({
         page: path.basename(page),
         earlier: text.includes("कोई पिछला आयात उसे लाया था"),
-        remembers: /हर आयात .+ के अनुसार क्या लाया/u.test(text),
+        remembers: EACH_IMPORT_BROUGHT.test(text),
       }).toEqual({ page: path.basename(page), earlier: true, remembers: true });
     }
   });
