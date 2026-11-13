@@ -57,6 +57,29 @@ jest.mock("../../../UI/Utils/Translation", () => {
   };
 });
 
+/*
+ * Read by a self-hosted server's member, whatever the environment says: a
+ * server failure's reference goes to whoever runs the server
+ * (serverNextWithReferenceSelfHosted). CI's config.env sets
+ * BILLING_ENABLED=true, which reads as OneUptime's cloud and sends the
+ * reader to support instead.
+ */
+jest.mock("../../../UI/Config", () => {
+  const actualConfig: Record<string, unknown> = jest.requireActual(
+    "../../../UI/Config",
+  ) as Record<string, unknown>;
+
+  const mockedConfig: Record<string, unknown> = { ...actualConfig };
+
+  Object.defineProperty(mockedConfig, "BILLING_ENABLED", {
+    get: (): boolean => {
+      return false;
+    },
+  });
+
+  return mockedConfig;
+});
+
 import MonitorWhoIsToldCard from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/MonitorWhoIsToldCard";
 import WhoIsToldApi from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/WhoIsToldApi";
 import {

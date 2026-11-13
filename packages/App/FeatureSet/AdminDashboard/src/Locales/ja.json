@@ -541,7 +541,12 @@
         "cardTitle": "Twilio設定",
         "cardDescription": "OneUptime が SMS の送信と通話に使う Twilio アカウントです。プロジェクトが独自の Twilio 設定を使う場合を除きます。",
         "editButton": "Twilio設定を編集",
-        "smsSameAsCalls": "通話と同じ番号"
+        "smsSameAsCalls": "通話と同じ番号",
+        "environmentCardDescription": "環境変数で設定されています：Helm チャートの values の twilio、または config.env の GLOBAL_TWILIO_ 設定です。このアカウントを変更するには、そこで変更してから OneUptime を再起動してください。",
+        "environmentProblemsTitle": "これらの環境変数が修正されるまで、このアカウントは SMS を送信せず、電話もかけません：",
+        "environmentUnusedTitle": "使用されていない Twilio の環境変数があります：",
+        "authTokenSet": "設定済み",
+        "authTokenNotSet": "未設定"
       },
       "whatsapp": {
         "metaCardTitle": "Meta WhatsApp設定",
@@ -2588,8 +2593,8 @@
   "{{count}} events at {{time}}": "{{time}} のイベント {{count}} 件",
   "{{count}} events at {{time}}_one": "{{count}} event at {{time}}",
   "{{label}} at {{time}}": "{{time}} の {{label}}",
-  "+{{count}} more series — highest values shown": "ほか {{count}} 個の系列 — 値の大きいものを表示しています",
-  "+{{count}} more series — highest values shown_one": "ほか {{count}} 個の系列 — 値の大きいものを表示しています",
+  "+{{count}} more series — highest values shown": "+ ほか {{count}} 系列 — 値の大きいものを表示しています",
+  "+{{count}} more series — highest values shown_one": "+ ほか {{count}} 系列 — 値の大きいものを表示しています",
   "Tab inserts indentation. To move focus out of the editor, press Escape, then Tab.": "Tab でインデントを挿入します。エディターからフォーカスを移動するには、Escape を押してから Tab を押してください。",
   "Valid {{language}} · {{count}} lines": "有効な {{language}} · {{count}} 行",
   "Valid {{language}} · {{count}} lines_one": "Valid {{language}} · {{count}} line",

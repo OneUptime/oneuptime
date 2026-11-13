@@ -1,4 +1,4 @@
-import { AddAIRunRecording1809124000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809124000000-AddAIRunRecording";
+import { AddAIRunRecording1809125000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809125000000-AddAIRunRecording";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import AIRunRecording from "../../../../Models/DatabaseModels/AIRunRecording";
 import { getTableColumns } from "../../../../Types/Database/TableColumn";
@@ -22,7 +22,7 @@ import { describe, expect, test } from "@jest/globals";
  * against a fake QueryRunner.
  */
 
-const MIGRATION_NAME: string = "AddAIRunRecording1809124000000";
+const MIGRATION_NAME: string = "AddAIRunRecording1809125000000";
 const TABLE: string = "AIRunRecording";
 const TRAILING_TIMESTAMP: RegExp = /(\d{13})$/;
 // A column of a CREATE TABLE: its quoted name, then its type.
@@ -48,8 +48,8 @@ async function record(direction: "up" | "down"): Promise<Array<string>> {
       steps.push(sql);
     },
   } as unknown as QueryRunner;
-  const migration: AddAIRunRecording1809124000000 =
-    new AddAIRunRecording1809124000000();
+  const migration: AddAIRunRecording1809125000000 =
+    new AddAIRunRecording1809125000000();
 
   if (direction === "up") {
     await migration.up(runner);
@@ -87,17 +87,17 @@ function createStatement(steps: Array<string>): string {
 
 describe("the AI Run Recording migration", () => {
   test("names itself after its timestamp", () => {
-    expect(new AddAIRunRecording1809124000000().name).toBe(MIGRATION_NAME);
+    expect(new AddAIRunRecording1809125000000().name).toBe(MIGRATION_NAME);
   });
 
   test("is registered once, after every earlier migration", () => {
     const registered: Array<MigrationClass> =
       SchemaMigrations as Array<MigrationClass>;
-    const at: number = registered.indexOf(AddAIRunRecording1809124000000);
+    const at: number = registered.indexOf(AddAIRunRecording1809125000000);
 
     expect(
       registered.filter((candidate: MigrationClass): boolean => {
-        return candidate === AddAIRunRecording1809124000000;
+        return candidate === AddAIRunRecording1809125000000;
       }),
     ).toHaveLength(1);
     // Not pinned to a neighbour: a migration main adds later may land next to it.
@@ -105,7 +105,7 @@ describe("the AI Run Recording migration", () => {
 
     for (let before: number = 0; before < at; before++) {
       expect(timestampOf(registered[before]!)).toBeLessThan(
-        timestampOf(AddAIRunRecording1809124000000),
+        timestampOf(AddAIRunRecording1809125000000),
       );
     }
   });
@@ -121,10 +121,10 @@ describe("the AI Run Recording migration", () => {
     expect(
       files.filter((file: string): boolean => {
         return file.startsWith(
-          `${timestampOf(AddAIRunRecording1809124000000)}-`,
+          `${timestampOf(AddAIRunRecording1809125000000)}-`,
         );
       }),
-    ).toEqual(["1809124000000-AddAIRunRecording.ts"]);
+    ).toEqual(["1809125000000-AddAIRunRecording.ts"]);
   });
 
   test("creates the table with every column the model stores", async () => {

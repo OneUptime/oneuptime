@@ -978,7 +978,8 @@ import { AddServerProducts1809123600000 } from "./1809123600000-AddServerProduct
 import { AddDashboardRecordingSwitches1809123700000 } from "./1809123700000-AddDashboardRecordingSwitches";
 import { AddNetworkDeviceLastPollReceivedAt1809123800000 } from "./1809123800000-AddNetworkDeviceLastPollReceivedAt";
 import { AddProxmoxClusterAgentLastSeenAt1809123900000 } from "./1809123900000-AddProxmoxClusterAgentLastSeenAt";
-import { AddAIRunRecording1809124000000 } from "./1809124000000-AddAIRunRecording";
+import { AddGroupByConnectedServicesToGroupingRules1809124000000 } from "./1809124000000-AddGroupByConnectedServicesToGroupingRules";
+import { AddAIRunRecording1809125000000 } from "./1809125000000-AddAIRunRecording";
 
 export default [
   InitialMigration,
@@ -1961,5 +1962,6 @@ export default [
   AddDashboardRecordingSwitches1809123700000,
   AddNetworkDeviceLastPollReceivedAt1809123800000,
   AddProxmoxClusterAgentLastSeenAt1809123900000,
-  AddAIRunRecording1809124000000,
+  AddGroupByConnectedServicesToGroupingRules1809124000000,
+  AddAIRunRecording1809125000000,
 ];
