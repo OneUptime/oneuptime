@@ -214,7 +214,6 @@ export default class MonitorRootCauseWording {
           // What follows the label: as stored, unless this language words it.
           let rest: MarkdownText = FeedMarkdown.asMarkdown(stored);
 
-          // "**Filter Conditions Met**: <the finding, or All filters met.>"
           // "**Cause**: <the probe's timeout sentence>", worded with its count.
           if (label === CAUSE && stored.startsWith(" ")) {
             const worded: string | null =
@@ -228,6 +227,7 @@ export default class MonitorRootCauseWording {
             }
           }
 
+          // "**Filter Conditions Met**: <the finding, or All filters met.>"
           if (label === FILTER_CONDITIONS_MET && stored.startsWith(" ")) {
             const said: string = stored.slice(1);
 

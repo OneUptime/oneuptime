@@ -20,7 +20,8 @@ import { listSourceFiles, toRelativePath } from "../../ForeignHiddenRuleGuard";
  *
  *   - a monitor summary's fact (SummaryFact) whose value reads a probe's
  *     message (failureCause, errorDescription, queryError,
- *     connectionError) and draws it as text, not through ProbeMessageLine
+ *     connectionError, a certificate's validation error, a script's
+ *     error) and draws it as text, not through ProbeMessageLine
  *     (which words the timeout sentence and isolates the rest) or an
  *     IsolatedLine given text already worded;
  *   - the timeout sentence written by hand anywhere but its one template
@@ -68,7 +69,7 @@ const PROBE_TIMEOUT_WRITERS: ReadonlyArray<string> = [
 });
 
 const PROBE_MESSAGE: RegExp =
-  /\b(failureCause|errorDescription|queryError|connectionError)\b/;
+  /\b(failureCause|errorDescription|queryError|connectionError|certificateValidationError|scriptError|checkError)\b/;
 
 const TIMEOUT_SENTENCE_PART: string = "times and it timed out";
 
@@ -267,11 +268,12 @@ describe("a probe's message on a monitor's summary", () => {
 
     expect(handDrawn).toEqual([]);
     /*
-     * The Error and Error Details of a request, and the Error of a DNS,
-     * DNSSEC, domain, NTP, SNMP, SQL, database and server check: the scan
+     * The Error and Error Details of a request, the Error of a DNS,
+     * DNSSEC, domain, NTP, SNMP, SQL, database, server and custom code
+     * check, and an SSL check's Certificate Problem and Error: the scan
      * reads them all, so a summary that stops drawing one fails here.
      */
-    expect(probeMessageLines).toBeGreaterThanOrEqual(10);
+    expect(probeMessageLines).toBeGreaterThanOrEqual(13);
   });
 
   test("negative control: the facts as the summaries drew them are found", () => {
@@ -282,6 +284,8 @@ describe("a probe's message on a monitor's summary", () => {
           <SummaryFact title="Error" value={sqlResponse?.queryError || props.probeMonitorResponse.failureCause?.toString() || "-"} />
           <SummaryFact title="Error Details" value={details.errorDescription ? details.errorDescription : "-"} />
           <SummaryFact title="Error" value={<span>{dbResponse.connectionError}</span>} />
+          <SummaryFact title="Certificate Problem" value={sslResponse.certificateValidationError} />
+          <SummaryFact title="Error" value={customCodeMonitorResponse.scriptError} />
         </SummaryFacts>
       );
     `;
@@ -297,6 +301,8 @@ describe("a probe's message on a monitor's summary", () => {
       'sqlResponse?.queryError || props.probeMonitorResponse.failureCause?.toString() || "-"',
       "details.errorDescription",
       "<span>{dbResponse.connectionError}</span>",
+      "sslResponse.certificateValidationError",
+      "customCodeMonitorResponse.scriptError",
     ]);
   });
 

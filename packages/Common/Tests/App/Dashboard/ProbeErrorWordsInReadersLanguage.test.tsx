@@ -1,11 +1,17 @@
 import "@testing-library/jest-dom";
 import { afterEach, beforeAll, describe, expect, test } from "@jest/globals";
-import { cleanup, render, RenderResult } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  RenderResult,
+} from "@testing-library/react";
 import { createInstance, i18n } from "i18next";
 import * as React from "react";
 import { I18nextProvider } from "react-i18next";
 import EventEvaluationDetails from "../../../../App/FeatureSet/Dashboard/src/Components/EventView/EventEvaluationDetails";
 import { describeFirstCheck } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/WebsiteDown/WebsiteDownSetup";
+import CustomMonitorSummaryView from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/CustomMonitorSummaryView";
 import DatabaseMonitorView from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/DatabaseMonitorView";
 import DnsMonitorView from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/DnsMonitorView";
 import DnssecMonitorView from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/DnssecMonitorView";
@@ -21,6 +27,9 @@ import { PROBE_MESSAGE_LINE_TEST_ID } from "../../../../App/FeatureSet/Dashboard
 import ServerMonitorView from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/ServerMonitorView";
 import SnmpMonitorView from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/SnmpMonitorView";
 import SqlMonitorView from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/SqlMonitorView";
+import SSLCertificateMonitorView, {
+  getSslCheckError,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/SSLCertificateMonitorView";
 import {
   SUMMARY_ERROR_DETAILS_TEST_ID,
   SUMMARY_ERROR_FACTS_TEST_ID,
@@ -29,12 +38,15 @@ import {
 import { SUMMARY_FACT_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/SummaryFacts";
 import WebsiteMonitorView from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/WebsiteMonitorView";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
+import CustomCodeMonitorResponse from "../../../Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
 import ExternalStatusPageProviderType from "../../../Types/Monitor/ExternalStatusPageProviderType";
 import MonitorEvaluationDetails, {
   MonitorEvaluationDetailsVersion,
 } from "../../../Types/Monitor/MonitorEvaluationDetails";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import NtpMonitorResponse from "../../../Types/Monitor/NtpMonitor/NtpMonitorResponse";
+import CertificateRevocationStatus from "../../../Types/Monitor/SSLMonitor/CertificateRevocationStatus";
+import SslMonitorResponse from "../../../Types/Monitor/SSLMonitor/SslMonitorResponse";
 import ServerMonitorResponse from "../../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import ObjectID from "../../../Types/ObjectID";
 import ProbeAttempt from "../../../Types/Probe/ProbeAttempt";
@@ -420,6 +432,22 @@ const ERROR_VIEWS: Array<ErrorView> = [
     },
   },
   {
+    name: "an SSL certificate check that reached no certificate",
+    draw: (failureCause: string): React.ReactElement => {
+      return (
+        <SSLCertificateMonitorView
+          probeMonitorResponse={probeResponse({
+            failureCause,
+            sslResponse: {
+              isValidCertificate: false,
+              certificateValidationError: "",
+            },
+          })}
+        />
+      );
+    },
+  },
+  {
     name: "a server",
     draw: (failureCause: string): React.ReactElement => {
       return (
@@ -647,6 +675,273 @@ describe("the website-down setup's first check", () => {
 
       if (language !== "en") {
         expect(text).not.toContain("Request was tried");
+      }
+    },
+  );
+});
+
+/*
+ * An SSL check's summary drew the certificate's problem (the TLS
+ * library's English) as plain text, and never said why a check that
+ * reached no certificate failed - a refused or timed-out connection, the
+ * probe's timeout sentence - though the probe stores it.
+ */
+const sslResponse: (
+  failureCause: string,
+  certificate: Partial<SslMonitorResponse>,
+) => ProbeMonitorResponse = (
+  failureCause: string,
+  certificate: Partial<SslMonitorResponse>,
+): ProbeMonitorResponse => {
+  return probeResponse({
+    monitorDestination: "https://shop.example.com" as never,
+    failureCause: failureCause,
+    sslResponse: {
+      isValidCertificate: false,
+      isSelfSigned: false,
+      certificateValidationError: "",
+      certificateValidationErrorCode: "",
+      ...certificate,
+    } as SslMonitorResponse,
+  });
+};
+
+const CERTIFICATE_EXPIRED: string = "certificate has expired";
+
+const factTitles: (container: HTMLElement) => Array<string> = (
+  container: HTMLElement,
+): Array<string> => {
+  return Array.from(
+    container.querySelectorAll(`[data-testid="${SUMMARY_FACT_TEST_ID}"]`),
+  ).map((card: Element): string => {
+    return textOf(card.firstElementChild);
+  });
+};
+
+describe("an SSL check's Certificate Problem and Error", () => {
+  test.each(LANGUAGES)(
+    "in %s: a certificate that failed validation says so once, as written, in its own direction",
+    (language: Language) => {
+      const { container } = renderIn(
+        language,
+        <SSLCertificateMonitorView
+          probeMonitorResponse={sslResponse(CERTIFICATE_EXPIRED, {
+            certificateValidationError: CERTIFICATE_EXPIRED,
+            certificateValidationErrorCode: "CERT_HAS_EXPIRED",
+          })}
+        />,
+      );
+      const line: Element = factCard(
+        container,
+        language,
+        "Certificate Problem",
+      ).querySelector(`[data-testid="${PROBE_MESSAGE_LINE_TEST_ID}"]`)!;
+
+      expect(textOf(line)).toBe(CERTIFICATE_EXPIRED);
+      expect(line.getAttribute("dir")).toBe(expectedDirection(language));
+      // The same problem is not said again as the check's Error.
+      expect(factTitles(container)).not.toContain(wordOf(language, "Error"));
+    },
+  );
+
+  test.each(LANGUAGES)(
+    "in %s: a check that timed out says why, in the reader's language",
+    (language: Language) => {
+      const { container } = renderIn(
+        language,
+        <SSLCertificateMonitorView
+          probeMonitorResponse={sslResponse(TIMEOUT, { isTimeout: true })}
+        />,
+      );
+
+      expect(factValue(container, language, "Error")).toBe(
+        TIMEOUT_SENTENCE[language],
+      );
+      expect(factTitles(container)).not.toContain(
+        wordOf(language, "Certificate Problem"),
+      );
+    },
+  );
+
+  test("a connection that failed after the certificate did shows both, each once", () => {
+    const { container } = renderIn(
+      "de",
+      <SSLCertificateMonitorView
+        probeMonitorResponse={sslResponse(NETWORK_ERROR, {
+          certificateValidationError: CERTIFICATE_EXPIRED,
+          certificateValidationErrorCode: "CERT_HAS_EXPIRED",
+        })}
+      />,
+    );
+
+    expect(factValue(container, "de", "Certificate Problem")).toBe(
+      CERTIFICATE_EXPIRED,
+    );
+    expect(factValue(container, "de", "Error")).toBe(NETWORK_ERROR);
+  });
+
+  test("a valid certificate shows neither", () => {
+    const { container } = renderIn(
+      "en",
+      <SSLCertificateMonitorView
+        probeMonitorResponse={sslResponse("", {
+          isValidCertificate: true,
+        })}
+      />,
+    );
+
+    expect(factTitles(container)).not.toContain("Error");
+    expect(factTitles(container)).not.toContain("Certificate Problem");
+  });
+
+  test.each(LANGUAGES)(
+    "in %s: the Revocation Check Problem under Show More Details reads in its own direction",
+    (language: Language) => {
+      const problem: string =
+        "The issuer's OCSP responder did not answer (timeout).";
+      const { container, getByRole } = renderIn(
+        language,
+        <SSLCertificateMonitorView
+          probeMonitorResponse={sslResponse("", {
+            isValidCertificate: true,
+            revocationStatus: CertificateRevocationStatus.Unknown,
+            revocationCheckError: problem,
+          })}
+        />,
+      );
+
+      fireEvent.click(getByRole("button"));
+
+      const line: Element = factCard(
+        container,
+        language,
+        "Revocation Check Problem",
+      ).querySelector(`[data-testid="${PROBE_MESSAGE_LINE_TEST_ID}"]`)!;
+
+      expect(textOf(line)).toBe(problem);
+      expect(line.getAttribute("dir")).toBe(expectedDirection(language));
+    },
+  );
+});
+
+describe("getSslCheckError", () => {
+  test.each([
+    ["a timeout, no certificate problem", TIMEOUT, "", TIMEOUT],
+    [
+      "a failure cause that is the certificate problem",
+      CERTIFICATE_EXPIRED,
+      CERTIFICATE_EXPIRED,
+      "",
+    ],
+    [
+      "the same problem with space round it",
+      ` ${CERTIFICATE_EXPIRED}\n`,
+      CERTIFICATE_EXPIRED,
+      "",
+    ],
+    [
+      "a connection failure after a certificate problem",
+      NETWORK_ERROR,
+      CERTIFICATE_EXPIRED,
+      NETWORK_ERROR,
+    ],
+    ["no failure", "", "", ""],
+  ])(
+    "%s",
+    (
+      _name: string,
+      failureCause: string,
+      certificateValidationError: string,
+      expected: string,
+    ) => {
+      expect(
+        getSslCheckError({
+          failureCause: failureCause,
+          certificateValidationError: certificateValidationError,
+        }),
+      ).toBe(expected);
+    },
+  );
+
+  test("an older response with neither field shows nothing", () => {
+    expect(
+      getSslCheckError({
+        failureCause: undefined,
+        certificateValidationError: undefined,
+      }),
+    ).toBe("");
+  });
+});
+
+describe("a custom code script's error", () => {
+  const SCRIPT_ERROR: string =
+    "TypeError: Cannot read properties of undefined (reading 'status').";
+
+  const run: CustomCodeMonitorResponse = {
+    result: undefined,
+    logMessages: [],
+    capturedMetrics: [],
+    executionTimeInMS: 412,
+    scriptError: SCRIPT_ERROR,
+    totalAttempts: 2,
+    retryAttempts: [
+      { attemptNumber: 1, executionTimeInMS: 400, scriptError: SCRIPT_ERROR },
+      { attemptNumber: 2, executionTimeInMS: 412, scriptError: SCRIPT_ERROR },
+    ],
+  };
+
+  test.each(LANGUAGES)(
+    "in %s: the Error as written, in its own direction",
+    (language: Language) => {
+      const { container } = renderIn(
+        language,
+        <CustomMonitorSummaryView
+          customCodeMonitorResponse={run}
+          monitoredAt={MONITORED_AT}
+          probeName="US West"
+        />,
+      );
+      const line: Element = factCard(
+        container,
+        language,
+        "Error",
+      ).querySelector(`[data-testid="${PROBE_MESSAGE_LINE_TEST_ID}"]`)!;
+
+      expect(textOf(line)).toBe(SCRIPT_ERROR);
+      expect(line.getAttribute("dir")).toBe(expectedDirection(language));
+    },
+  );
+
+  test.each(LANGUAGES)(
+    "in %s: each attempt's error in its own direction, indented from where the page's lines start",
+    (language: Language) => {
+      const { getAllByTestId, getByRole } = renderIn(
+        language,
+        <CustomMonitorSummaryView
+          customCodeMonitorResponse={run}
+          monitoredAt={MONITORED_AT}
+          probeName="US West"
+        />,
+      );
+
+      fireEvent.click(getByRole("button"));
+
+      const failures: Array<HTMLElement> = getAllByTestId(
+        "custom-monitor-attempt-error",
+      );
+
+      expect(failures).toHaveLength(2);
+
+      for (const failure of failures) {
+        const indent: Array<string> = (
+          failure.parentElement?.className || ""
+        ).split(" ");
+
+        expect(textOf(failure)).toBe(SCRIPT_ERROR);
+        expect(failure.getAttribute("dir")).toBe(expectedDirection(language));
+        expect(indent).toContain("ms-4");
+        expect(indent).not.toContain("ml-4");
+        expect(indent).not.toContain("break-all");
       }
     },
   );

@@ -14,6 +14,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { formatMilliseconds } from "../../../Utils/Milliseconds";
 import { SummaryFact, SummaryFacts, SummaryView } from "./SummaryFacts";
 import AttemptLine from "./AttemptLine";
+import ProbeMessageLine from "./ProbeMessageLine";
 
 export interface ComponentProps {
   customCodeMonitorResponse: CustomCodeMonitorResponse;
@@ -135,7 +136,11 @@ const CustomMonitorRunSummary: FunctionComponent<ComponentProps> = (
             <SummaryFact
               isWide={true}
               title="Error"
-              value={customCodeMonitorResponse.scriptError}
+              value={
+                <ProbeMessageLine
+                  message={customCodeMonitorResponse.scriptError}
+                />
+              }
             />
           ) : (
             <SummaryFact
@@ -197,9 +202,17 @@ const CustomMonitorRunSummary: FunctionComponent<ComponentProps> = (
                             },
                           ]}
                         />
+                        {/*
+                         * The script's own error, in a line of its own
+                         * direction, indented from where the page's lines
+                         * start (as a probe's attempt is).
+                         */}
                         {failed && attempt.scriptError && (
-                          <div className="ml-4 mt-1 text-xs text-gray-500 break-all">
-                            {attempt.scriptError}
+                          <div className="ms-4 mt-1 text-xs text-gray-500">
+                            <ProbeMessageLine
+                              message={attempt.scriptError}
+                              dataTestId="custom-monitor-attempt-error"
+                            />
                           </div>
                         )}
                       </li>

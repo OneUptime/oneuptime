@@ -293,3 +293,36 @@ test("a valid certificate succeeds without spending the retry budget", async () 
   expect(response?.totalAttempts).toBe(1);
   expect(sleepSpy).not.toHaveBeenCalled();
 });
+
+describe("SSLMonitor.ping when every attempt timed out", () => {
+  beforeEach(() => {
+    checkSpy.mockRejectedValue(
+      Object.assign(new Error("connect ETIMEDOUT 192.0.2.90:8443"), {
+        code: "ETIMEDOUT",
+      }),
+    );
+  });
+
+  test.each([
+    [0, "Request was tried 1 times and it timed out."],
+    [2, "Request was tried 3 times and it timed out."],
+  ])(
+    "retry %i stores the probe's timeout sentence, byte for byte the English it always wrote",
+    async (retry: number, sentence: string) => {
+      const response: SslResponse | null = await SSLMonitor.ping(target, {
+        retry: retry,
+        timeout: new PositiveNumber(1000),
+        isOnlineCheckRequest: true,
+      });
+
+      expect(response?.isOnline).toBe(false);
+      expect(response?.isTimeout).toBe(true);
+      /*
+       * Monitor criteria, root causes and logs compare this English; the
+       * summaries read it back (ProbeFailureReading) to word it.
+       */
+      expect(response?.failureCause).toBe(sentence);
+      expect(response?.totalAttempts).toBe(retry + 1);
+    },
+  );
+});

@@ -11,6 +11,7 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
 import ProbeAttemptsView from "./ProbeAttemptsView";
+import ProbeMessageLine from "./ProbeMessageLine";
 import { SummaryFact, SummaryFacts, SummaryView } from "./SummaryFacts";
 
 export interface ComponentProps {
@@ -85,7 +86,33 @@ interface CertificateDetail {
   title: string;
   value: string;
   isWide: boolean;
+  /*
+   * The probe's own message (the TLS library's, an issuer's server's), in
+   * English: drawn in a line of its own direction (ProbeMessageLine).
+   */
+  isProbeMessage: boolean;
 }
+
+/*
+ * Why the check failed, when that is not the certificate's problem shown
+ * above it: the connection was refused or timed out (the probe's timeout
+ * sentence, read in the reader's language), or no certificate came back.
+ * A certificate that failed validation stores its problem as the failure
+ * cause too, and that is said once, as the Certificate Problem.
+ */
+export const getSslCheckError: (data: {
+  failureCause: string | undefined;
+  certificateValidationError: string | undefined;
+}) => string = (data: {
+  failureCause: string | undefined;
+  certificateValidationError: string | undefined;
+}): string => {
+  const failureCause: string = textOf(data.failureCause);
+
+  return failureCause === textOf(data.certificateValidationError)
+    ? ""
+    : failureCause;
+};
 
 // Drawn by SSLCertificateMonitorView once there is a certificate to show.
 const CertificateSummary: FunctionComponent<CertificateSummaryProps> = (
@@ -151,6 +178,7 @@ const CertificateSummary: FunctionComponent<CertificateSummaryProps> = (
           ? sslResponse.revocationCheckError
           : undefined,
       isWide: true,
+      isProbeMessage: true,
     },
   ]
     .filter(
@@ -158,6 +186,7 @@ const CertificateSummary: FunctionComponent<CertificateSummaryProps> = (
         title: string;
         value: string | undefined;
         isWide?: boolean;
+        isProbeMessage?: boolean;
       }): boolean => {
         return textOf(detail.value) !== "";
       },
@@ -167,14 +196,21 @@ const CertificateSummary: FunctionComponent<CertificateSummaryProps> = (
         title: string;
         value: string | undefined;
         isWide?: boolean;
+        isProbeMessage?: boolean;
       }): CertificateDetail => {
         return {
           title: detail.title,
           value: textOf(detail.value),
           isWide: Boolean(detail.isWide),
+          isProbeMessage: Boolean(detail.isProbeMessage),
         };
       },
     );
+
+  const checkError: string = getSslCheckError({
+    failureCause: props.probeMonitorResponse.failureCause?.toString(),
+    certificateValidationError: sslResponse.certificateValidationError,
+  });
 
   return (
     <SummaryView dataTestId="ssl-certificate-monitor-summary">
@@ -233,7 +269,24 @@ const CertificateSummary: FunctionComponent<CertificateSummaryProps> = (
           <SummaryFact
             isWide={true}
             title="Certificate Problem"
-            value={sslResponse.certificateValidationError}
+            value={
+              <ProbeMessageLine
+                message={sslResponse.certificateValidationError}
+              />
+            }
+          />
+        ) : (
+          <></>
+        )}
+        {/*
+         * A check that never reached a certificate - refused, timed out -
+         * says why, as every other check's summary does.
+         */}
+        {checkError ? (
+          <SummaryFact
+            isWide={true}
+            title="Error"
+            value={<ProbeMessageLine message={checkError} />}
           />
         ) : (
           <></>
@@ -262,7 +315,13 @@ const CertificateSummary: FunctionComponent<CertificateSummaryProps> = (
                 key={detail.title}
                 isWide={detail.isWide}
                 title={detail.title}
-                value={detail.value}
+                value={
+                  detail.isProbeMessage ? (
+                    <ProbeMessageLine message={detail.value} />
+                  ) : (
+                    detail.value
+                  )
+                }
               />
             );
           })}
