@@ -1,7 +1,10 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
-import { listScanRoots, listSourceFiles } from "../../../ForeignHiddenRuleGuard";
+import {
+  listScanRoots,
+  listSourceFiles,
+} from "../../../ForeignHiddenRuleGuard";
 
 /*
  * NO PAGE WRITES A DASH AS ITS WORDS FOR AN EMPTY VALUE (#7264).
@@ -33,7 +36,12 @@ const REPOSITORY_ROOT: string = path.resolve(
   "..",
 );
 
-const COMMON_UI: string = path.join(REPOSITORY_ROOT, "packages", "Common", "UI");
+const COMMON_UI: string = path.join(
+  REPOSITORY_ROOT,
+  "packages",
+  "Common",
+  "UI",
+);
 
 /*
  * An object property that is only a dash: `noValueMessage: "-",` or
@@ -119,7 +127,7 @@ describe("a dash written as a page's words for an empty value", () => {
       '      noValueMessage: "-1",',
       '      noValueMessage: "--",',
       '      placeholder: "No description provided.",',
-      "       * Deliberately NOT `noValueMessage: \"-\"`. A dash is exactly",
+      '       * Deliberately NOT `noValueMessage: "-"`. A dash is exactly',
       '      // noValueMessage: "-",',
       '      <Input placeholder="-" />',
       '      title: "-",',
@@ -129,9 +137,7 @@ describe("a dash written as a page's words for an empty value", () => {
   });
 
   test("the scan reads the front ends, Common's UI among them", () => {
-    const roots: Array<string> = listScanRoots(REPOSITORY_ROOT).map(
-      relative,
-    );
+    const roots: Array<string> = listScanRoots(REPOSITORY_ROOT).map(relative);
 
     expect(roots).toContain("packages/App/FeatureSet/Dashboard/src");
     expect(roots).toContain("packages/App/FeatureSet/AdminDashboard/src");
@@ -152,9 +158,13 @@ describe("a dash written as a page's words for an empty value", () => {
 describe("the components draw a dash written as words as the quiet dash", () => {
   test("a table's empty cell goes through getTableNoValue, which knows a dash", () => {
     const tableRow: string = readCommon("Components/Table/TableRow.tsx");
-    const emptyValue: string = readCommon("Components/Table/TableEmptyValue.tsx");
+    const emptyValue: string = readCommon(
+      "Components/Table/TableEmptyValue.tsx",
+    );
 
-    expect(tableRow).toContain("return getTableNoValue(column.noValueMessage);");
+    expect(tableRow).toContain(
+      "return getTableNoValue(column.noValueMessage);",
+    );
     // The words are drawn in one place, not again in the row.
     expect(tableRow).not.toContain('<span className="text-gray-500">');
     expect(emptyValue).toContain(
@@ -175,9 +185,10 @@ describe("the components draw a dash written as words as the quiet dash", () => 
     ]) {
       const source: string = readCommon(file);
 
-      expect([file, source.includes("getTableNoValue(data.noValueMessage)")]).toEqual(
-        [file, true],
-      );
+      expect([
+        file,
+        source.includes("getTableNoValue(data.noValueMessage)"),
+      ]).toEqual([file, true]);
       expect([file, source.includes('?? "-"')]).toEqual([file, false]);
     }
   });

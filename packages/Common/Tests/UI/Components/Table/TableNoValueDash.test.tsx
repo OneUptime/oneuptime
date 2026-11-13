@@ -319,35 +319,41 @@ describe("a column whose words for an empty value are a dash", () => {
 describe("a column with words of its own for an empty value", () => {
   const WORDS: Array<string> = ["Never", "No labels attached.", "-1", "--"];
 
-  test.each(WORDS)("draws '%s' as written, in the grey of a missing value, on a laptop", (words: string) => {
-    const rows: HTMLElement = draw({
-      columns: [
-        NAME_COLUMN,
-        valueColumn({ type: FieldType.Text, noValueMessage: words }),
-      ],
-    });
-    const cell: HTMLElement = valueCellOf(rows);
-    const drawn: HTMLElement = within(cell).getByText(words);
+  test.each(WORDS)(
+    "draws '%s' as written, in the grey of a missing value, on a laptop",
+    (words: string) => {
+      const rows: HTMLElement = draw({
+        columns: [
+          NAME_COLUMN,
+          valueColumn({ type: FieldType.Text, noValueMessage: words }),
+        ],
+      });
+      const cell: HTMLElement = valueCellOf(rows);
+      const drawn: HTMLElement = within(cell).getByText(words);
 
-    expect(drawn).toBeVisible();
-    expect(drawn).toHaveClass(TABLE_NO_VALUE_MESSAGE_CLASS_NAME);
-    expect(within(cell).queryByTestId(TABLE_EMPTY_VALUE_TEST_ID)).toBeNull();
-  });
+      expect(drawn).toBeVisible();
+      expect(drawn).toHaveClass(TABLE_NO_VALUE_MESSAGE_CLASS_NAME);
+      expect(within(cell).queryByTestId(TABLE_EMPTY_VALUE_TEST_ID)).toBeNull();
+    },
+  );
 
-  test.each(WORDS)("keeps '%s' on a phone's card, under the column's name", (words: string) => {
-    const cards: HTMLElement = draw({
-      columns: [
-        NAME_COLUMN,
-        valueColumn({ type: FieldType.DateTime, noValueMessage: words }),
-      ],
-      isMobile: true,
-    });
+  test.each(WORDS)(
+    "keeps '%s' on a phone's card, under the column's name",
+    (words: string) => {
+      const cards: HTMLElement = draw({
+        columns: [
+          NAME_COLUMN,
+          valueColumn({ type: FieldType.DateTime, noValueMessage: words }),
+        ],
+        isMobile: true,
+      });
 
-    expect(within(cards).getByText(VALUE_TITLE)).toBeVisible();
-    expect(within(cards).getByText(words)).toHaveClass(
-      TABLE_NO_VALUE_MESSAGE_CLASS_NAME,
-    );
-  });
+      expect(within(cards).getByText(VALUE_TITLE)).toBeVisible();
+      expect(within(cards).getByText(words)).toHaveClass(
+        TABLE_NO_VALUE_MESSAGE_CLASS_NAME,
+      );
+    },
+  );
 
   test("in the reader's language", () => {
     const never: string = GERMAN_FILE["Never"] as string;
@@ -405,13 +411,16 @@ describe("an amount or a share with no value", () => {
   test.each([
     [FieldType.USDCents, "0 USD"],
     [FieldType.Percent, "0%"],
-  ])("with no words is %s's zero, as it always was", (type: FieldType, zero: string) => {
-    const rows: HTMLElement = draw({
-      columns: [NAME_COLUMN, valueColumn({ type })],
-    });
+  ])(
+    "with no words is %s's zero, as it always was",
+    (type: FieldType, zero: string) => {
+      const rows: HTMLElement = draw({
+        columns: [NAME_COLUMN, valueColumn({ type })],
+      });
 
-    expect(seenTextOf(valueCellOf(rows))).toBe(zero);
-  });
+      expect(seenTextOf(valueCellOf(rows))).toBe(zero);
+    },
+  );
 
   test.each([FieldType.USDCents, FieldType.Percent])(
     "with words of its own draws them as every column does (%s)",
@@ -428,11 +437,16 @@ describe("an amount or a share with no value", () => {
 });
 
 describe("getTableNoValue", () => {
-  test.each(DASH_PLACEHOLDERS.map((dash: string): [string] => {
-    return [dash];
-  }))("is the quiet dash itself for '%s', so a phone's card knows to leave it out", (dash: string) => {
-    expect(getTableNoValue(dash).type).toBe(TableEmptyValue);
-  });
+  test.each(
+    DASH_PLACEHOLDERS.map((dash: string): [string] => {
+      return [dash];
+    }),
+  )(
+    "is the quiet dash itself for '%s', so a phone's card knows to leave it out",
+    (dash: string) => {
+      expect(getTableNoValue(dash).type).toBe(TableEmptyValue);
+    },
+  );
 
   test.each([[undefined], [""], ["  "]])(
     "is the quiet dash for no words (%p)",
@@ -496,40 +510,49 @@ describe("a table's attribute and custom field columns", () => {
   test.each([
     ["an attribute the row does not carry", attributeColumn],
     ["a custom field nobody filled in", customFieldColumn],
-  ])("%s is the quiet dash on a laptop, not a '-' of its own", (_label: string, column: Column<Row>) => {
-    const cell: HTMLElement = valueCellOf(
-      draw({ columns: [NAME_COLUMN, column] }),
-    );
+  ])(
+    "%s is the quiet dash on a laptop, not a '-' of its own",
+    (_label: string, column: Column<Row>) => {
+      const cell: HTMLElement = valueCellOf(
+        draw({ columns: [NAME_COLUMN, column] }),
+      );
 
-    expect(within(cell).getByTestId(TABLE_EMPTY_VALUE_TEST_ID)).toBeVisible();
-    expect(seenTextOf(cell)).toBe(EMPTY_VALUE_MARK);
-    expect(ownDashesOf(cell)).toEqual([]);
-  });
+      expect(within(cell).getByTestId(TABLE_EMPTY_VALUE_TEST_ID)).toBeVisible();
+      expect(seenTextOf(cell)).toBe(EMPTY_VALUE_MARK);
+      expect(ownDashesOf(cell)).toEqual([]);
+    },
+  );
 
   test.each([
     ["an attribute the row does not carry", attributeColumn],
     ["a custom field nobody filled in", customFieldColumn],
-  ])("%s is left out of a phone's card", (_label: string, column: Column<Row>) => {
-    const cards: HTMLElement = draw({
-      columns: [NAME_COLUMN, column],
-      isMobile: true,
-    });
+  ])(
+    "%s is left out of a phone's card",
+    (_label: string, column: Column<Row>) => {
+      const cards: HTMLElement = draw({
+        columns: [NAME_COLUMN, column],
+        isMobile: true,
+      });
 
-    expect(within(cards).queryByText(VALUE_TITLE)).toBeNull();
-    expect(seenTextOf(cards)).toBe(ROW_NAME);
-  });
+      expect(within(cards).queryByText(VALUE_TITLE)).toBeNull();
+      expect(seenTextOf(cards)).toBe(ROW_NAME);
+    },
+  );
 
   test.each([
     ["an attribute", attributeColumn],
     ["a custom field", customFieldColumn],
-  ])("%s with a value shows it, on a phone's card too", (_label: string, column: Column<Row>) => {
-    const cards: HTMLElement = draw({
-      columns: [NAME_COLUMN, column],
-      row: { value: "web-1" },
-      isMobile: true,
-    });
+  ])(
+    "%s with a value shows it, on a phone's card too",
+    (_label: string, column: Column<Row>) => {
+      const cards: HTMLElement = draw({
+        columns: [NAME_COLUMN, column],
+        row: { value: "web-1" },
+        isMobile: true,
+      });
 
-    expect(within(cards).getByText(VALUE_TITLE)).toBeInTheDocument();
-    expect(within(cards).getByText("web-1")).toBeVisible();
-  });
+      expect(within(cards).getByText(VALUE_TITLE)).toBeInTheDocument();
+      expect(within(cards).getByText("web-1")).toBeVisible();
+    },
+  );
 });

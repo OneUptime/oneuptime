@@ -220,9 +220,7 @@ describe("a detail field whose placeholder is a dash", () => {
     });
 
     expect(
-      within(within(detail).getByTestId(EMPTY_VALUE_TEST_ID)).getByText(
-        notSet,
-      ),
+      within(within(detail).getByTestId(EMPTY_VALUE_TEST_ID)).getByText(notSet),
     ).toHaveClass("sr-only");
   });
 });
@@ -235,9 +233,8 @@ describe("a detail field whose placeholder is words", () => {
         fieldType: FieldType.Text,
         placeholder: words,
       });
-      const placeholder: HTMLElement = within(detail).getByTestId(
-        "placeholder-text",
-      );
+      const placeholder: HTMLElement =
+        within(detail).getByTestId("placeholder-text");
 
       expect(placeholder).toHaveTextContent(words);
       expect(placeholder.className).toBe(PLACEHOLDER_TEXT_CLASS_NAME);

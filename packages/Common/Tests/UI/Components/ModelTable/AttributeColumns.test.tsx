@@ -286,9 +286,7 @@ describe("AttributeColumns - rendering", () => {
       );
 
       expect(
-        container.querySelector(
-          `[data-testid="${TABLE_EMPTY_VALUE_TEST_ID}"]`,
-        ),
+        container.querySelector(`[data-testid="${TABLE_EMPTY_VALUE_TEST_ID}"]`),
       ).not.toBeNull();
       cleanup();
     }

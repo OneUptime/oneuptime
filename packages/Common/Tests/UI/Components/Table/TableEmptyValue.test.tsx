@@ -70,7 +70,11 @@ describe("the dash", () => {
     ).toHaveTextContent("No labels attached.");
   });
 
-  test.each(DASH_PLACEHOLDERS.map((dash: string): [string] => [dash]))(
+  test.each(
+    DASH_PLACEHOLDERS.map((dash: string): [string] => {
+      return [dash];
+    }),
+  )(
     "a dash for words ('%s') says 'Not set', not the dash, to a screen reader (#7264)",
     (dash: string) => {
       render(<TableEmptyValue screenReaderText={` ${dash} `} />);

@@ -540,9 +540,7 @@ describe("a file field in a table", () => {
 
       // The quiet dash every empty cell is, for a '-' too (#7264).
       expect(
-        container.querySelector(
-          `[data-testid="${TABLE_EMPTY_VALUE_TEST_ID}"]`,
-        ),
+        container.querySelector(`[data-testid="${TABLE_EMPTY_VALUE_TEST_ID}"]`),
       ).not.toBeNull();
       cleanup();
     }
