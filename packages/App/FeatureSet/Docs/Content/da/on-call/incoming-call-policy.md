@@ -143,7 +143,7 @@ Et nummer, der allerede sender sine opkald et andet sted hen, siger "Currently h
 
 OneUptime sætter nummerets voice-webhook til `https://<your host>/notification/incoming-call/voice`, bygget ud fra `HOST` og `HTTP_PROTOCOL` på en selvhostet installation. For at flytte en politik til en anden Twilio-konto skal du først frigive dens numre: kontoen kan kun ændres, mens politikken ikke har nogen.
 
-For at frigive et nummer skal du klikke på **Frigiv** ud for det og bekræfte med **Frigiv nummer**.
+For at frigive et nummer skal du klikke på **Frigiv nummer** ud for det og bekræfte med **Frigiv nummer**.
 
 > [!CAUTION]
 > At frigive et nummer giver det tilbage til Twilio, også et nummer, du tog med via **Brug eksisterende telefonnummer**, og du får det måske ikke igen. At slette en politik, eller den Twilio-konfiguration, den bruger, frigiver også dens numre.
@@ -228,7 +228,7 @@ En politiks telefonnumre følger de samme roller som selve politikken:
 - **Slå numre op** - søge i Twilio efter et nummer at reservere eller vise de numre, din Twilio-konto allerede har - kræver tilladelse til at læse politikker for indgående opkald og til at læse konfigurationer for opkald og SMS, fordi det læser din Twilio-konto via en af dem. **Projektejer**, **Projektadministrator**, **Projektmedlem**, **Seer**, **Indstillingsadministrator**, **Indstillingsmedlem** og **Indstillingsseer** har begge. I en brugerdefineret rolle er det **Read Incoming Call Policy** og **Read Call and SMS**.
 - **At reservere et nummer, bruge et eksisterende og frigive et** kræver tilladelse til at redigere politikker for indgående opkald: **Projektejer**, **Projektadministrator**, **Projektmedlem**, **Indstillingsadministrator** og **Indstillingsmedlem** eller **Edit Incoming Call Policy** i en brugerdefineret rolle. De ændrer numrene på en politik, du må redigere: med en rolle, der er begrænset til bestemte etiketter, de politikker, der har de etiketter.
 
-Et teams blokering uden etiketter på en af disse tilladelser fjerner den. For alle andre bliver **Tilføj telefonnummer** og **Frigiv** på siden, låst, og deres tooltip siger, hvad der kræves. API'et afviser deres forespørgsel med en sætning, der siger, hvad der kræves: "Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." eller "Adding or releasing a phone number needs permission to edit incoming call policies." At reservere et nummer opkræves på din egen Twilio-konto, ikke på din OneUptime-saldo, så det kræver ingen faktureringstilladelse.
+Et teams blokering uden etiketter på en af disse tilladelser fjerner den. For alle andre bliver **Tilføj telefonnummer** og **Frigiv nummer** på siden, låst, og deres tooltip siger, hvad der kræves. API'et afviser deres forespørgsel med en sætning, der siger, hvad der kræves: "Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." eller "Adding or releasing a phone number needs permission to edit incoming call policies." At reservere et nummer opkræves på din egen Twilio-konto, ikke på din OneUptime-saldo, så det kræver ingen faktureringstilladelse.
 
 ## Opret politikker med API'et eller Terraform
 

@@ -17815,7 +17815,7 @@
   "United States Minor Outlying Islands": "United States Minor Outlying Islands",
   "Units": "Enheder",
   "Unknown Action": "Unknown Action",
-  "Unknown Device": "Unknown Device",
+  "Unknown Device": "Ukendt enhed",
   "Unknown Policy": "Unknown Policy",
   "Unknown Role": "Ukendt rolle",
   "Unknown Service": "Ukendt tjeneste",
@@ -51779,5 +51779,16 @@
   "{{column}} is unique": "{{column}} er unik",
   "{{column}} looks like an email address": "{{column}} ligner en e-mailadresse",
   "{{column}} looks like {{dataType}}": "{{column}} har formatet {{dataType}}",
-  "{{column}} takes its usual values": "{{column}} har sine sædvanlige værdier"
+  "{{column}} takes its usual values": "{{column}} har sine sædvanlige værdier",
+  "Already paged by this test, so not paged again.": "Allerede kaldt af denne test, så ikke kaldt igen.",
+  "Every on-call rule for this severity ran at once.": "Alle vagtregler for denne alvorlighed kørte med det samme.",
+  "No on-call rule covers this severity, and paging the verified methods instead failed.": "Ingen vagtregel dækker denne alvorlighed, og kald af de bekræftede metoder i stedet mislykkedes.",
+  "Nobody at this level could be paged, so the policy moved on at once.": "Ingen på dette niveau kunne kaldes, så politikken gik straks videre.",
+  "Test ended: it went through every escalation level and nobody acknowledged it.": "Testen sluttede: den gik gennem alle eskaleringsniveauer, og ingen bekræftede den.",
+  "Test ended: nobody acknowledged it within {{count}} minutes.": "Testen sluttede: ingen bekræftede den inden for {{count}} minutter.",
+  "Test ended: nobody acknowledged it within {{count}} minutes._one": "Testen sluttede: ingen bekræftede den inden for {{count}} minut.",
+  "Test ended: the first escalation level reached nobody. Each person's line says why.": "Testen sluttede: det første eskaleringsniveau nåede ingen. Hver persons linje siger hvorfor.",
+  "The test page reached nobody. Each person's line says why.": "Testkaldet nåede ingen. Hver persons linje siger hvorfor.",
+  "This level has no responders, so the policy moved on at once.": "Dette niveau har ingen modtagere, så politikken gik straks videre.",
+  "This test page does not say which kind of page and severity it tests, so nothing was sent.": "Dette testkald angiver ikke, hvilken slags kald og alvorlighed det tester, så intet blev sendt."
 }

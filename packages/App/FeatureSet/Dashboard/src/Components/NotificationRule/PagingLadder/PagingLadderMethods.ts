@@ -12,8 +12,8 @@ import { OnCallPageChannel } from "Common/Types/OnCallDutyPolicy/OnCallPageChann
  * THE METHODS A LADDER CAN NAME (#6820), one shape for both places the
  * ladder is drawn:
  *
- *   - your own page reads your methods, and names them as the grid does
- *     ("SMS: +15550100", NotificationMethodUtil.getLabel);
+ *   - your own page reads your methods (NotificationMethodUtil.getLabel's
+ *     "SMS: +15550100", split into its channel and its identifier);
  *   - an admin's view of a member is handed the member's methods masked by
  *     On-Call Readiness ("SMS: +1 ••• ••• 4821"), and never reads the rows
  *     (OnCallRulesTable says why).
@@ -25,7 +25,11 @@ export interface PagingMethodChoice {
   methodColumn: PagingMethodColumn;
   methodId: string;
   channel: OnCallPageChannel;
-  // The channel as the grid names it: "SMS", "Call", "Push".
+  /*
+   * The channel's English name, as NotificationMethodUtil.getLabel and the
+   * readiness payload write it: "SMS", "Call", "Push". The page names a
+   * method from its channel, in the reader's words (MethodLabel).
+   */
   title: string;
   // The number, the address or the device; masked for a member. "" when unknown.
   identifier: string;
