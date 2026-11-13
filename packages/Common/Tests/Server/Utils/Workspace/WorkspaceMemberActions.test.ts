@@ -348,10 +348,11 @@ const RECORD_KINDS: Array<RecordKind> = [
     userNotificationEventType: UserNotificationEventType.AlertEpisodeCreated,
   },
   {
-    name: "a scheduled maintenance event",
+    // A maintenance event, as the model has named it since #6817.
+    name: "a maintenance event",
     type: WorkspaceEventType.ScheduledMaintenance,
-    noun: "scheduled maintenance event",
-    subject: "Scheduled maintenance event",
+    noun: "maintenance event",
+    subject: "Maintenance event",
     stubRead: readOf({
       service: ScheduledMaintenanceService,
       makeRecord: (): ScheduledMaintenance & Record<string, unknown> => {
@@ -748,9 +749,7 @@ describe("WorkspaceMemberActions.acknowledge", (): void => {
         props: memberProps,
       }),
     ).rejects.toThrow(
-      new BadDataException(
-        "A scheduled maintenance event cannot be acknowledged.",
-      ),
+      new BadDataException("A maintenance event cannot be acknowledged."),
     );
 
     expect(readSpy).not.toHaveBeenCalled();
@@ -856,7 +855,7 @@ describe("WorkspaceMemberActions.resolve", (): void => {
         props: memberProps,
       }),
     ).rejects.toThrow(
-      new BadDataException("Scheduled maintenance event is already complete."),
+      new BadDataException("Maintenance event is already complete."),
     );
 
     expect(createSpy).not.toHaveBeenCalled();
@@ -876,7 +875,7 @@ describe("WorkspaceMemberActions.resolve", (): void => {
         props: memberProps,
       }),
     ).rejects.toThrow(
-      "Could not change this scheduled maintenance event: the scheduled maintenance event was not found. It may have been deleted.",
+      "Could not change this maintenance event: the maintenance event was not found. It may have been deleted.",
     );
 
     expect(completedSpy).not.toHaveBeenCalled();
@@ -919,17 +918,17 @@ describe("WorkspaceMemberActions.markScheduledMaintenanceAsOngoing", (): void =>
     {
       label: "ongoing",
       state: "ongoing" as const,
-      refusal: "Scheduled maintenance event is already ongoing.",
+      refusal: "Maintenance event is already ongoing.",
     },
     {
       label: "ended",
       state: "ended" as const,
-      refusal: "Scheduled maintenance event is already ongoing.",
+      refusal: "Maintenance event is already ongoing.",
     },
     {
       label: "complete",
       state: "completed" as const,
-      refusal: "Scheduled maintenance event is already complete.",
+      refusal: "Maintenance event is already complete.",
     },
   ])(
     "an event that is $label is refused with what it is, and nothing is written",

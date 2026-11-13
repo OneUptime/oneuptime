@@ -555,9 +555,16 @@ describe("getErrorReader: the page's reader", () => {
         "../../Types/Exception/UnexplainedError",
         "../../Types/Translator",
         "../../Utils/Monitor/MonitorTemplateLinkRefusal",
-        "../Components/DeleteConfirmation/DeleteConsequences",
+        "./SentenceSeparator",
       ].sort(),
     );
+
+    /*
+     * Sentences are joined with a module that imports nothing, rather than
+     * through DeleteConsequences, whose table of sentences would come along
+     * into every page's first load (first-load-budgets.js).
+     */
+    expect(importsOf("UI/Utils/SentenceSeparator.ts")).toEqual([]);
 
     // The refusals it reads back (#7678) bring nothing of the page's either.
     expect(importsOf("Types/Exception/RefusalWithValues.ts")).toEqual([

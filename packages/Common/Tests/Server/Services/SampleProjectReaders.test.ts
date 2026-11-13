@@ -1,3 +1,28 @@
+/*
+ * Billing as this server has it - CI's config.env turns it on - unless a
+ * test says otherwise: the usage meter runs only where billing is off.
+ */
+let mockIsBillingEnabled: boolean | undefined = undefined;
+
+jest.mock("../../../Server/EnvironmentConfig", () => {
+  const actual: Record<string, unknown> = jest.requireActual(
+    "../../../Server/EnvironmentConfig",
+  ) as Record<string, unknown>;
+
+  const mocked: Record<string, unknown> = {
+    ...actual,
+    __esModule: true,
+  };
+
+  Object.defineProperty(mocked, "IsBillingEnabled", {
+    get: (): boolean => {
+      return mockIsBillingEnabled ?? (actual["IsBillingEnabled"] as boolean);
+    },
+  });
+
+  return mocked;
+});
+
 jest.mock("../../../Server/Utils/Logger", () => {
   return {
     __esModule: true,
@@ -103,6 +128,7 @@ beforeEach(() => {
 
 afterEach(() => {
   jest.restoreAllMocks();
+  mockIsBillingEnabled = undefined;
 });
 
 describe("billing meters never count a sample", () => {
@@ -150,6 +176,8 @@ describe("billing meters never count a sample", () => {
   });
 
   test("the usage meter of a server with billing off reads no sample", async () => {
+    mockIsBillingEnabled = false;
+
     const findAllBy: jest.SpyInstance = jest
       .spyOn(ProjectService, "findAllBy")
       .mockResolvedValue([] as never);
