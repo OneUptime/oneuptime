@@ -400,7 +400,6 @@
     "{{count}} B",
     "{{count}} KB",
     "{{count}} MB",
-    "{{count}} ms",
     "{{count}} pod",
     "{{gigabytes}} GB",
     "{{inRate}} / {{outRate}} Mbps",

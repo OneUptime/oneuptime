@@ -975,6 +975,7 @@
   "Test passed": "परीक्षण सफल",
   "Test passed, with a warning": "परीक्षण सफल, एक चेतावनी के साथ",
   "Test failed": "परीक्षण विफल",
+  "Connection successful. The LLM provider responded to a test prompt.": "कनेक्शन सफल रहा। LLM प्रदाता ने परीक्षण प्रॉम्प्ट का जवाब दिया।",
   "Show request and response": "अनुरोध और प्रतिक्रिया दिखाएँ",
   "Hide request and response": "अनुरोध और प्रतिक्रिया छिपाएँ",
   "Copy all": "सब कॉपी करें",

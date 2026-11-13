@@ -975,6 +975,7 @@
   "Test passed": "Test bestået",
   "Test passed, with a warning": "Test bestået med en advarsel",
   "Test failed": "Testen mislykkedes",
+  "Connection successful. The LLM provider responded to a test prompt.": "Forbindelsen lykkedes. LLM-udbyderen svarede på en testprompt.",
   "Show request and response": "Vis anmodning og svar",
   "Hide request and response": "Skjul anmodning og svar",
   "Copy all": "Kopiér alt",

@@ -975,6 +975,7 @@
   "Test passed": "آزمایش موفق بود",
   "Test passed, with a warning": "آزمایش موفق بود، با یک هشدار",
   "Test failed": "آزمایش ناموفق بود",
+  "Connection successful. The LLM provider responded to a test prompt.": "اتصال موفق بود. ارائه‌دهنده LLM به یک پرامپت آزمایشی پاسخ داد.",
   "Show request and response": "نمایش درخواست و پاسخ",
   "Hide request and response": "پنهان کردن درخواست و پاسخ",
   "Copy all": "کپی همه",

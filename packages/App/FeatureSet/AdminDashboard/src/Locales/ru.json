@@ -975,6 +975,7 @@
   "Test passed": "Проверка пройдена",
   "Test passed, with a warning": "Проверка пройдена, но есть предупреждение",
   "Test failed": "Проверка не пройдена",
+  "Connection successful. The LLM provider responded to a test prompt.": "Подключение установлено. Поставщик LLM ответил на тестовый запрос.",
   "Show request and response": "Показать запрос и ответ",
   "Hide request and response": "Скрыть запрос и ответ",
   "Copy all": "Скопировать всё",

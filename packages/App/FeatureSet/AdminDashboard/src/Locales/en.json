@@ -975,6 +975,7 @@
   "Test passed": "Test passed",
   "Test passed, with a warning": "Test passed, with a warning",
   "Test failed": "Test failed",
+  "Connection successful. The LLM provider responded to a test prompt.": "Connection successful. The LLM provider responded to a test prompt.",
   "Show request and response": "Show request and response",
   "Hide request and response": "Hide request and response",
   "Copy all": "Copy all",

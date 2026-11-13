@@ -975,6 +975,7 @@
   "Test passed": "Test geslaagd",
   "Test passed, with a warning": "Test geslaagd, met een waarschuwing",
   "Test failed": "Test mislukt",
+  "Connection successful. The LLM provider responded to a test prompt.": "Verbinding geslaagd. De LLM-provider heeft op een testprompt gereageerd.",
   "Show request and response": "Aanvraag en antwoord tonen",
   "Hide request and response": "Aanvraag en antwoord verbergen",
   "Copy all": "Alles kopiëren",

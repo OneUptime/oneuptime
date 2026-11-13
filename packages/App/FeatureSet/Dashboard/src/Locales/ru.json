@@ -9113,7 +9113,7 @@
   "Connection labels": "Подписи связей",
   "Connection refused or reset": "Connection refused or reset",
   "Connection successful.": "Connection successful.",
-  "Connection successful. The LLM provider responded to a test prompt.": "Connection successful. The LLM provider responded to a test prompt.",
+  "Connection successful. The LLM provider responded to a test prompt.": "Подключение установлено. Поставщик LLM ответил на тестовый запрос.",
   "Connection test report": "Отчёт о проверке подключения",
   "Connections": "Подключения",
   "Connections between these top-level sites.": "Connections between these top-level sites.",

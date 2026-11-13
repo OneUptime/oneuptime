@@ -975,6 +975,7 @@
   "Test passed": "测试通过",
   "Test passed, with a warning": "测试通过，但有警告",
   "Test failed": "测试失败",
+  "Connection successful. The LLM provider responded to a test prompt.": "连接成功。LLM 提供商已响应测试提示词。",
   "Show request and response": "显示请求和响应",
   "Hide request and response": "隐藏请求和响应",
   "Copy all": "全部复制",

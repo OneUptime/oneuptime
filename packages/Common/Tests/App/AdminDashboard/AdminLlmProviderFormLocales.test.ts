@@ -31,10 +31,11 @@ import { ADMIN_DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
  *
  * So is every string of the Test LLM Provider dialog a provider's row
  * opens - the dialog a project's providers open (TestLlmProviderModal) -
- * and of the request and response it folds under its verdict
- * (LlmProviderExchanges, #7355): that section was English in the Admin
- * Dashboard in every language (#7545). Those strings are read from the
- * dialog's files the way the Dashboard's extraction reads them, so a
+ * of the request and response it folds under its verdict
+ * (LlmProviderExchanges, #7355), which was English in the Admin Dashboard
+ * in every language (#7545), and of the verdict the dialog gives itself
+ * when the server says none (TestLLMProvider). Those strings are read from
+ * the dialog's files the way the Dashboard's extraction reads them, so a
  * string the dialog gains fails here until the Admin locales have it.
  */
 
@@ -191,13 +192,16 @@ const COMMON: string = path.join(__dirname, "..", "..", "..");
 
 /*
  * The Test LLM Provider dialog's files: the dialog, the request and
- * response under its verdict, and the words kept beside them - the running
- * test's two lines and the locked Test button's refusal.
+ * response under its verdict, the words kept beside them - the running
+ * test's two lines and the locked Test button's refusal - and the test it
+ * runs, whose verdict for a pass the server says nothing about is the
+ * dialog's own.
  */
 const TEST_DIALOG_FILES: Array<string> = [
   "UI/Components/AI/TestLlmProviderModal.tsx",
   "UI/Components/AI/LlmProviderExchanges.tsx",
   "UI/Utils/LlmProviderTestCopy.ts",
+  "UI/Utils/TestLLMProvider.ts",
 ];
 
 // The Dashboard's string extraction (npm run i18n:extract).
@@ -210,6 +214,7 @@ const EXTRACTION: string = path.join(
 );
 
 const LETTER: RegExp = /\p{L}/u;
+const LATIN_LETTER: RegExp = /[A-Za-z]/;
 const PLACEHOLDER: RegExp = /\{\{[^{}]*\}\}/g;
 
 // The dialog's words that no language leaves in English.
@@ -225,6 +230,14 @@ const TEST_DIALOG_TRANSLATED: Array<string> = [
   "Response headers",
   "Response body",
   "You do not have permission to test this LLM provider.",
+  // The verdict for a pass the server says nothing about.
+  "Connection successful. The LLM provider responded to a test prompt.",
+];
+
+// How long a request took, drawn on its own beside its status.
+const REQUEST_DURATION_KEYS: Array<string> = [
+  "{{count}} ms",
+  "{{count}} ms_one",
 ];
 
 interface CopyRules {
@@ -563,7 +576,7 @@ describe("the Test LLM Provider dialog, in the Admin Dashboard's languages", () 
     );
   });
 
-  test("draws its title and verdicts, its request and response, and the locked Test button's refusal", () => {
+  test("draws its title and verdicts, its own verdict for a pass, its request and response, and the locked Test button's refusal", () => {
     expect(texts).toEqual(
       expect.arrayContaining([
         "Test LLM Provider",
@@ -575,8 +588,7 @@ describe("the Test LLM Provider dialog, in the Admin Dashboard's languages", () 
         "Sending a test prompt to your LLM provider…",
         "HTTP {{status}}",
         // How long a request took: the one form is a key of its own.
-        "{{count}} ms",
-        "{{count}} ms_one",
+        ...REQUEST_DURATION_KEYS,
         ...TEST_DIALOG_TRANSLATED,
       ]),
     );
@@ -633,17 +645,57 @@ describe("the Test LLM Provider dialog, in the Admin Dashboard's languages", () 
   );
 
   test.each(LANGUAGES)(
-    "%s: the request and response, and the refusal, are translated, not English",
+    "%s: the request and response, the refusal and the dialog's own verdict are translated in both apps, not English",
     (code: string) => {
-      const admin: Record<string, unknown> = locale("AdminDashboard", code);
+      for (const app of ["AdminDashboard", "Dashboard"]) {
+        const words: Record<string, unknown> = locale(app, code);
 
-      for (const text of TEST_DIALOG_TRANSLATED) {
-        expect({ text, translated: admin[text] !== text }).toEqual({
-          text,
-          translated: true,
-        });
-        expect(typeof admin[text]).toBe("string");
+        for (const text of TEST_DIALOG_TRANSLATED) {
+          expect({ app, text, translated: words[text] !== text }).toEqual({
+            app,
+            text,
+            translated: true,
+          });
+          expect(typeof words[text]).toBe("string");
+        }
       }
     },
   );
+
+  /*
+   * A duration drawn on its own is written with the language's own unit
+   * where the page is read from the right, so its figure is read first and
+   * the page never reads "ms 87" (Locales/ARABIC.md).
+   */
+  test.each(["ar", "fa"])(
+    "%s: a request's duration is written with the language's own unit, after the count, in both apps",
+    (code: string) => {
+      for (const app of ["AdminDashboard", "Dashboard"]) {
+        const words: Record<string, unknown> = locale(app, code);
+
+        for (const key of REQUEST_DURATION_KEYS) {
+          const written: string = String(words[key]);
+
+          expect({
+            app,
+            key,
+            afterTheCount: written.startsWith("{{count}} "),
+            latin: LATIN_LETTER.test(written.replace("{{count}}", "")),
+          }).toEqual({ app, key, afterTheCount: true, latin: false });
+        }
+      }
+    },
+  );
+
+  test("Arabic writes it as Intl's short unit, as ARABIC.md writes a duration", () => {
+    for (const app of ["AdminDashboard", "Dashboard"]) {
+      for (const key of REQUEST_DURATION_KEYS) {
+        expect({ app, key, written: locale(app, "ar")[key] }).toEqual({
+          app,
+          key,
+          written: "{{count}} ملي ث",
+        });
+      }
+    }
+  });
 });

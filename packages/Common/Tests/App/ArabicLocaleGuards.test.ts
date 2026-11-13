@@ -40,6 +40,8 @@ const LATIN_PUNCTUATION_AFTER_ARABIC: RegExp = /[ء-ي][,;?](?=\s|$)/;
  * written with escapes so no combining mark stands alone in the class.
  */
 const WORD_AFTER_COUNT: RegExp = /\{\{count\}\}\s+([ء-ۓ]+)/g;
+// An Arabic letter first: the words before it were only part of a longer one.
+const ARABIC_LETTER_FIRST: RegExp = /^[ء-ۓ]/;
 
 const readLocale: (app: string, code: string) => LocaleTree = (
   app: string,
@@ -155,12 +157,10 @@ const NAMED_AS_CODE: Record<string, string> = {
 const FUNCTION_WITH_BRACKETS: RegExp = /[A-Za-z_][\w.]*\(\)/g;
 
 /*
- * The small apps' texts Arabic writes as English does, on purpose: product,
- * vendor and protocol names and the units ARABIC.md keeps in Latin letters,
- * example values a person types over, and templates that are only their
- * values. A text the Dashboard shares is kept as the Dashboard's Arabic keeps
- * it: the Test LLM Provider dialog's HTTP {{status}} and {{count}} ms are in
- * the Dashboard's own list (i18n/Progress/ar.json).
+ * The small apps' texts Arabic writes as English does, on purpose: product
+ * and vendor names, example values a person types over, and templates that
+ * are only their values. The Test LLM Provider dialog's HTTP {{status}} is a
+ * protocol name with a status code, kept in Latin letters as HTTPS is.
  */
 const SAME_AS_ENGLISH: Record<string, Array<string>> = {
   Accounts: ["OneUptime"],
@@ -221,7 +221,6 @@ const SAME_AS_ENGLISH: Record<string, Array<string>> = {
     "gpt-4o, claude-3-opus, llama-3.3-70b-versatile",
     "test@example.com",
     "vCenter",
-    "{{count}} ms",
     "{{size}} GB",
     "{{size}} KB",
     "{{size}} MB",
@@ -305,6 +304,8 @@ describe.each(APPS)("Arabic's %s locale", (app: string) => {
       "غيرها",
       "أخرى",
       "الماضية",
+      // Intl's short unit for a millisecond is two words, matched whole.
+      "ملي ث",
     ];
     const wrong: Array<string> = [];
 
@@ -320,7 +321,22 @@ describe.each(APPS)("Arabic's %s locale", (app: string) => {
       }
 
       for (const match of translated.matchAll(WORD_AFTER_COUNT)) {
-        if (!allowedAfterCount.includes(match[1] as string)) {
+        // What follows the count, from its first Arabic word on.
+        const after: string = translated.slice(
+          (match.index as number) +
+            match[0].length -
+            (match[1] as string).length,
+        );
+        const allowed: boolean = allowedAfterCount.some(
+          (words: string): boolean => {
+            return (
+              after.startsWith(words) &&
+              !ARABIC_LETTER_FIRST.test(after.slice(words.length))
+            );
+          },
+        );
+
+        if (!allowed) {
           wrong.push(`${key}: ${translated}`);
         }
       }

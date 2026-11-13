@@ -975,6 +975,7 @@
   "Test passed": "Teste aprovado",
   "Test passed, with a warning": "Teste aprovado, com um aviso",
   "Test failed": "Teste com falha",
+  "Connection successful. The LLM provider responded to a test prompt.": "Conexão bem-sucedida. O provedor de LLM respondeu a um prompt de teste.",
   "Show request and response": "Mostrar requisição e resposta",
   "Hide request and response": "Ocultar requisição e resposta",
   "Copy all": "Copiar tudo",

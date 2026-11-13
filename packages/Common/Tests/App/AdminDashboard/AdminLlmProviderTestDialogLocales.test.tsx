@@ -24,11 +24,14 @@ import TestLlmProviderModal, {
   LlmProviderTestOutcome,
 } from "../../../UI/Components/AI/TestLlmProviderModal";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
 import { LLMProviderExchange } from "../../../Types/LLM/LLMProviderExchange";
 import { createTranslator, Translator } from "../../../Types/Translator";
 import API from "../../../UI/Utils/API/API";
+import { drawLine, getDrawnText } from "../../Helpers/BidiLayout";
 import { dashboardTranslator } from "../../Helpers/DashboardLocales";
+import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 import { ADMIN_DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
@@ -45,7 +48,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * Dashboard's locale files, one language at a time, for a test that failed
  * after two requests - one the provider refused, one nothing answered -
  * opens the section and reads it: every word as the Dashboard words it in
- * that language, none left in English.
+ * that language, none left in English. An Arabic page draws a request's
+ * duration in Arabic, its figure read first. A test that passed, from a
+ * server that said nothing about it, reads the dialog's own verdict
+ * (TestLLMProvider) in the language too.
  *
  * The i18next instance reaches the dialog through I18nextProvider only;
  * installing it globally would leak a language into the other tests in
@@ -95,6 +101,19 @@ const DURATION: { one: string; other: string } = {
   one: "{{count}} ms",
   other: "{{count}} ms",
 };
+
+// Intl's short unit for a millisecond in Arabic, as Locales/ARABIC.md writes it.
+const ARABIC_MILLISECONDS: string = "ملي ث";
+const LATIN_LETTER: RegExp = /[A-Za-z]/;
+
+// The dialog's verdict for a pass the server says nothing about (TestLLMProvider).
+const OWN_VERDICT: string =
+  "Connection successful. The LLM provider responded to a test prompt.";
+
+// How a page read from the right draws `text`, from left to right.
+function drawnFromTheRight(text: string): string {
+  return getDrawnText(drawLine(text, "rtl"));
+}
 
 type Locale = Record<string, unknown>;
 
@@ -268,6 +287,36 @@ async function readDialogIn(code: string): Promise<{
   };
 }
 
+// A test that passed, from a server that said nothing about it.
+function passedWithNoWord(): HTTPResponse<JSONObject> {
+  return new HTTPResponse<JSONObject>(
+    200,
+    { exchanges: [], supportsToolCalling: true },
+    {},
+  );
+}
+
+// The verdict the dialog shows in a language: its headline and its words.
+async function readVerdictIn(code: string): Promise<string> {
+  const instance: i18n = await adminInstance(code);
+
+  render(
+    <I18nextProvider i18n={instance}>
+      <TestLlmProviderModal llmProviderId={PROVIDER_ID} onClose={() => {}} />
+    </I18nextProvider>,
+  );
+
+  await waitFor(() => {
+    expect(
+      screen.getByTestId("llm-provider-test").getAttribute("data-outcome"),
+    ).toBe(LlmProviderTestOutcome.Passed);
+  });
+
+  return withoutIsolateMarks(
+    screen.getByTestId("llm-provider-test-result").textContent || "",
+  );
+}
+
 describe("Settings > Global LLM Providers: the Test dialog's request and response in every language", () => {
   let fetchMock: MockFunction;
 
@@ -338,6 +387,45 @@ describe("Settings > Global LLM Providers: the Test dialog's request and respons
         });
 
       expect({ code, leftInEnglish }).toEqual({ code, leftInEnglish: [] });
+    },
+  );
+
+  /*
+   * A duration drawn on its own reads Intl's short unit in Arabic
+   * (Locales/ARABIC.md): the figure is read first, where "87 ms" was drawn
+   * "ms 87" from the right.
+   */
+  test("Arabic draws a request's duration in Arabic, its figure read first from the right", async () => {
+    const { words } = await readDialogIn("ar");
+
+    expect(words.duration).toBe(`87 ${ARABIC_MILLISECONDS}`);
+    expect(words.duration).not.toMatch(LATIN_LETTER);
+    expect(drawnFromTheRight(words.duration).endsWith("87")).toBe(true);
+    // The English it drew before, laid out from the right.
+    expect(drawnFromTheRight("87 ms")).toBe("ms 87");
+  });
+
+  test("English reads the dialog's own verdict for a pass the server says nothing about", async () => {
+    fetchMock.mockResolvedValue(passedWithNoWord() as never);
+
+    expect(await readVerdictIn("en")).toContain(OWN_VERDICT);
+  });
+
+  test.each([...ADMIN_DASHBOARD_LANGUAGES])(
+    "%s reads the dialog's own verdict for a pass the server says nothing about as the Dashboard words it",
+    async (code: string) => {
+      fetchMock.mockResolvedValue(passedWithNoWord() as never);
+
+      const shown: string = await readVerdictIn(code);
+      const worded: string =
+        dashboardTranslator(code).translateText(OWN_VERDICT) || "";
+
+      expect({
+        code,
+        worded: worded !== OWN_VERDICT,
+        shown: shown.includes(worded),
+        english: shown.includes(OWN_VERDICT),
+      }).toEqual({ code, worded: true, shown: true, english: false });
     },
   );
 });
