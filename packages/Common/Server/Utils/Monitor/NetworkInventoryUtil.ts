@@ -292,10 +292,10 @@ export default class NetworkInventoryUtil {
        * go NULL rather than staying put: a device whose credentials were
        * removed would otherwise keep showing the interface counts of its
        * last walk indefinitely, and the list would read "3 interfaces down"
-       * on a device nothing is walking any more. A failed walk in snmp mode,
-       * by contrast, leaves them alone - the last good counts are the best
-       * estimate until the next good walk, exactly as the lastWalkLog
-       * baseline is kept across failed polls.
+       * on a device nothing is walking any more.
+       * A failed walk in snmp mode, by contrast, leaves them alone - the last
+       * good counts are the best estimate until the next good walk, exactly
+       * as the lastWalkLog baseline is kept across failed polls.
        *
        * Written first, on their own, by one statement that writes them only
        * when the device holds no verdict from a poll received after this one
