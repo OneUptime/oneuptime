@@ -170,7 +170,7 @@ Everything in the snippet ships to your visitors, so anyone can copy the token f
 | **Expires At** | The key stops being accepted after this date. |
 | **Enabled** | Switch it off to stop a leaked key at once. |
 
-A Browser key writes OTLP traces, logs and metrics, and session replays; every other ingest route refuses it. You change these settings on the key's own page. The key type cannot be changed after the key is created.
+A Browser key writes OTLP traces, logs and metrics, session replays, and events from a [Sentry browser SDK](/docs/telemetry/compatible-endpoints#sentry-sdks); every other ingest route refuses it. You change these settings on the key's own page. The key type cannot be changed after the key is created.
 
 > [!WARNING]
 > Never put a **Server** key in a page. A Server key writes every kind of telemetry from anywhere, with no origin check, so anyone who reads your page could write into your project.

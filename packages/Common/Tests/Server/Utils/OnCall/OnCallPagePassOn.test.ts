@@ -1072,8 +1072,32 @@ describe("a page a person asked for, about an incident somebody is on already (#
     expect(pages[0]!.preview.outcome).toBe(
       OnCallPassOnOutcome.OthersStillPaged,
     );
-    // It is no page again: the header offers no Acknowledge for it.
+    /*
+     * The incident's own Acknowledge is gone - somebody acknowledged it -
+     * so the header offers Acknowledge again for the page, as for a page
+     * again (issue #7596) - and the app says Ana is paged, not paged
+     * again: somebody asked for her.
+     */
+    expect(pages[0]!.isPageAgain).toBe(true);
+    expect(pages[0]!.isAskedFor).toBe(true);
+  });
+
+  test("about an incident nobody acknowledged, the incident's own Acknowledge answers it: no Acknowledge again", async () => {
+    await startPersonPage([ANA, BOB]);
+    world.isRecordAcknowledged = false;
+    standing = { isAcknowledged: false, isResolved: false };
+
+    const pages: Array<OnCallOpenPage> =
+      await OnCallPagePassOn.getOpenPagesForRecord({
+        userId: ANA,
+        projectId: PROJECT_ID,
+        recordType: OnCallPageRecordType.Incident,
+        recordId: INCIDENT_ID,
+      });
+
+    expect(pages).toHaveLength(1);
     expect("isPageAgain" in pages[0]!).toBe(false);
+    expect("isAskedFor" in pages[0]!).toBe(false);
   });
 
   test("once one of its people answered it, it is taken - and says who", async () => {
@@ -1152,15 +1176,28 @@ describe("a page a person asked for, about an incident somebody is on already (#
     expect(OnCallAcknowledgementTimeout.readRecordState).not.toHaveBeenCalled();
   });
 
-  test("a policy's page still ends with its record's acknowledgement", async () => {
+  test("a page of a policy OneUptime started still ends with its record's acknowledgement", async () => {
     world.addRule({ order: 1, users: [ANA] });
     await world.startRun();
-    world.run.triggeredByUserId = DANA;
     world.isRecordAcknowledged = true;
 
     expect((await world.passOn(ANA)).refusal).toBe(
       OnCallPassOnRefusal.RecordAcknowledged,
     );
+  });
+
+  test("a page of a policy a person started by hand is escalated as their page is (OnCallPolicyStartedByHand, #7596)", async () => {
+    world.addRule({ order: 1, users: [ANA] });
+    world.addRule({ order: 2, users: [BOB] });
+    await world.startRun();
+    world.run.triggeredByUserId = DANA;
+    world.isRecordAcknowledged = true;
+
+    const answer: OnCallPassOnAnswer = await world.passOn(ANA);
+
+    expect(answer.refusal).toBeUndefined();
+    expect(passed(answer)).toBe(OnCallPassOnOutcome.NextRulePaged);
+    expect(world.logsOf(BOB)).toHaveLength(1);
   });
 
   test("an observer's page about an acknowledged record is left as it was: nothing to escalate", async () => {

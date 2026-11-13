@@ -100,6 +100,8 @@ En varslingsregel sier hvilke hendelser som publiseres i Microsoft Teams, og hvo
 | **Mål** | Hvor den publiserer: en eksisterende kanal i et team du velger, chattene du velger, en kanal for hver hendelse (eller varsel, episode, planlagt vedlikehold, monitor eller vaktretningslinje) som opprettes i et team du velger, eller flere av disse sammen. Under steget sier **Hva denne regelen gjør** det i setninger, som regelens kort. |
 | **Video Call** | Bare hendelser og varsler: start en samtale for hver. Se [Videosamtaler](/docs/workspace-connections/video-calls). |
 
+Hver betingelse leses som en setning: feltet, hvordan det sammenlignes, og verdien. Verdier å velge kommer fra prosjektets egne lister, som tilstander, alvorlighetsgrader, etiketter og monitorer. En regel for vaktpolicyer velger policyene sine under **Vaktpolicy**, som fortsetter å samsvare med en policy etter at den har fått nytt navn, mens **Navn på vaktretningslinje** ser etter ord i navnet til en policy. Hver type hendelse som har eiere, har en eierbetingelse, som **Eier av hendelse**: velg personer og team, så samsvarer den med personene og teamene som er registrert som eiere av hendelsen. Å være med i et team som eier hendelsen, teller ikke. En eier som legges til senere, får regelen til å samsvare fra den oppdateringen, og en regel som oppretter kanaler, oppretter kanalen da. En arkivert verdi, som en alvorlighetsgrad eller en vaktpolicy, tilbys ikke for en ny betingelse. En regel som allerede har en, beholder den, merket **Arkivert**, og samsvarer fortsatt med hendelsene som har den. En person, et team eller en policy som prosjektet ikke lenger har, blir stående i betingelsen, og regelens kort sier fra om det.
+
 En regel for SLO-er publiserer endringene i feilbudsjettpolicyen til et SLO: når SLO-et går inn i et nivå, kommer seg til et mindre alvorlig nivå eller forlater alle nivåer, og når distribusjonene fryses eller tillates igjen. Den publiserer bare i eksisterende kanaler og chatter, siden et SLO ikke får noen egen kanal. Se [Publiser i Slack, Microsoft Teams og Mattermost](/docs/slo/error-budget-policy#publiser-i-slack-microsoft-teams-og-mattermost).
 
 En kanal som regelen oppretter, får navn etter posten sin: hendelse INC-42 får `inc-42`, varsel ALT-7 får `alt-7`, og i et prosjekt uten nummerprefikser får hendelse 42 `incident-42`. Tekst i **Prefiks for kanalnavn** settes foran, så `prod-` gir `prod-inc-42`, og skjemaet viser navnet mens du skriver. For en planlagt vedlikeholdshendelse tar prefikset plassen til nummerprefikset: SM-5 får `sm-5`, og `maint-` gir `maint-5`. OneUptime beholder bokstaver, tall, mellomrom, `-` og `_`, opptil de 50 tegnene Microsoft Teams tar imot. Har teamet allerede en kanal med det navnet, for eksempel et annet prosjekts eller en som ble slettet de siste 30 dagene, legger OneUptime til `-2`, `-3` og så videre.
@@ -158,7 +160,7 @@ Reager på en melding, eller et svar, i kanalen OneUptime opprettet for en hende
 
 | Reaksjon | Lagret som |
 | --- | --- |
-| 📌 eller 📍 | Et privat notat, som bare teamet ditt ser |
+| 📌 eller 📍 | Et privat notat, som bare de som kan se posten, kan lese |
 | 📣 eller 📢 | Et offentlig notat, vist på statussiden. Bare hendelser og planlagte vedlikeholdsbegivenheter. På en privat hendelse et privat notat, og bekreftelsen sier hvorfor. Når prosjektets offentlige notater krever godkjenning, vises det først når det er godkjent, og bekreftelsen sier hvem det venter på: se [Godkjenning av offentlige notater](/docs/incidents/notes-owners-and-feed#godkjenning-av-offentlige-notater). |
 
 Notatet beholder meldingen slik Microsoft Teams viste den: formateringen, lenkene og koden, personene den nevner, ved navn, og filene og bildene som lenker til dem. Et offentlig notat utelater filene og bildene, siden de bare åpnes for teamet ditt.
@@ -253,7 +255,7 @@ Kortet til en hendelse har fire knapper, **Acknowledge Incident**, **Resolve Inc
 | **Change Severity** | Setter alvorlighetsgraden til hendelsen. |
 | **Change Incident State** | Flytter hendelsen til en senere tilstand. |
 | **Assign Role** | Gir noen en rolle i hendelsen, som **Incident Commander**. En rolle for én person går over til vedkommende. |
-| **Page Someone** | Tilkaller personer, et team, den som har vakt i en vaktplan nå, eller en vaktpolicy om hendelsen, med en valgfri melding. Personer tilkalles til en av dem svarer; en policy tilkaller til noen bekrefter hendelsen. |
+| **Page Someone** | Tilkaller personer, et team, den som har vakt i en vaktplan nå, eller en vaktpolicy om hendelsen, med en valgfri melding. Alle den tilkaller, også personene i en policy, tilkalles til en av dem svarer eller hendelsen er løst. |
 | **Edit Custom Fields** | Setter de egendefinerte feltene til hendelsen, hvert fylt ut med det hendelsen har. Et felt som står tomt, tømmes. |
 
 `incident 42`, skrevet til boten, svarer med hendelse 42, disse knappene og menyen. Skriv nummeret slik OneUptime viser det: `42`, `#42` eller `INC-42`. I den egne kanalen til en hendelse viser `incident` alene den hendelsen.

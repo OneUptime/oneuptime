@@ -74,6 +74,8 @@ Queste sono le impostazioni sotto **Altri campi**:
 
 **Microsoft Graph.** Nel modulo di un progetto, scegli `Microsoft Graph` come **Provider**; nel modulo dell'istanza, apri **Altri campi** e imposta **Trasporto** su `Microsoft Graph`. Poi inserisci i dati di un'app Azure che abbia l'autorizzazione dell'applicazione **Mail.Send**: il suo client ID e il suo client secret, l'URL del token `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` e lo scope `https://graph.microsoft.com/.default`. La posta parte dalla casella dell'**Email mittente**, che deve essere una casella con licenza nel tuo tenant.
 
+**Terraform.** Le configurazioni SMTP di un progetto sono anche la risorsa `oneuptime_smtp_config` del [provider Terraform](/docs/terraform/index). La password, il client secret OAuth e le chiavi dei provider email sono sensibili, quindi piani, log e output non li mostrano mai. La chiave API usata da Terraform deve poterli leggere: **Proprietario del progetto**, **Amministratore del progetto**, oppure **Read SMTP Config** in un ruolo personalizzato. Lo `smtp_config_id` di una pagina di stato prende l'`id` di una configurazione.
+
 > [!NOTE]
 > Su OneUptime Cloud, il server di posta di un progetto deve essere raggiungibile da Internet: un host che si risolve in un indirizzo privato o interno viene rifiutato. In un'installazione self-hosted, gli indirizzi privati sono consentiti a meno che `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` sia `true`; gli indirizzi di loopback e link-local vengono sempre rifiutati. Il server di posta dell'istanza non viene controllato in questo modo.
 

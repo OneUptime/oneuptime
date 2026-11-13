@@ -180,16 +180,39 @@ describe("what the server words a status page's messages with is in the npm pack
     expect(loaded.packages).not.toContain("i18next");
     expect(loaded.packages).not.toContain("react-i18next");
     /*
-     * Besides Types/, only the bounded cache every module evicts its oldest
-     * entry through (OldestKeyEvictionGuard): Types/DateLanguage keeps its
-     * English texts in one since #5586. Two classes that load nothing but each
-     * other, so anything else outside Types/ still fails here.
+     * Besides Types/, only modules that load nothing but each other:
+     * - the bounded cache every module evicts its oldest entry through
+     *   (OldestKeyEvictionGuard): Types/DateLanguage keeps its English texts
+     *   in one since #5586;
+     * - the one escape for text a pattern matches as written
+     *   (Utils/RegExpEscape): the Translator builds its pattern of the
+     *   abbreviations a language writes before a value with it since #7772.
+     * Anything else outside Types/ still fails here.
      */
+    const LEAVES: Array<string> = [
+      "Utils/OldestKeyCursor",
+      "Utils/OldestKeyMap",
+      "Utils/RegExpEscape",
+    ];
+
     expect(
       loaded.modules.filter((module: string): boolean => {
         return !module.startsWith("Types/");
       }),
-    ).toEqual(["Utils/OldestKeyCursor", "Utils/OldestKeyMap"]);
+    ).toEqual(LEAVES);
+
+    // Each of them loads nothing outside that list, and no package.
+    for (const leaf of LEAVES) {
+      const loadedByLeaf: Loaded = loadedBy(leaf);
+
+      expect({
+        leaf,
+        modules: loadedByLeaf.modules.filter((module: string): boolean => {
+          return !LEAVES.includes(module);
+        }),
+        packages: loadedByLeaf.packages,
+      }).toEqual({ leaf, modules: [], packages: [] });
+    }
   });
 });
 

@@ -118,9 +118,11 @@ export interface ComponentProps<T extends GenericObject> {
   /*
    * The item is a record (the default): its own ID, and when it was created
    * and last updated, go on the small line under the fields rather than in
-   * the grid. False for values that are not a record's own columns - a
-   * record's custom fields, which people name, and could name "createdAt" -
-   * so every field is drawn as the field it is.
+   * the grid. An item that is not a record - settings, say - needs nothing:
+   * with no ID or creation time to show, no line is drawn. False only where
+   * people name the keys - a record's custom fields, one of which could be
+   * called "createdAt" - so every field is drawn as the field it is
+   * (RecordIdLineGuard keeps it to that card).
    */
   showRecordLine?: boolean | undefined;
   /*

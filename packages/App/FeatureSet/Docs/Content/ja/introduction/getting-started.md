@@ -30,6 +30,8 @@ OneUptime はオープンソースのオブザーバビリティプラットフ�
 
 **プロジェクト設定 → 詳細 → 別のツールからインポート** は、他のツールの設定を API キーで（Uptime Kuma の場合はファイルで）読み取ります。見つかったものを表示し、チェックを入れたものを作成します。他のツール側は何も変わらず、インポートをもう一度実行しても同じものが 2 回作成されることはありません。
 
+すでに Prometheus、Loki クライアント、Splunk フォワーダー、Datadog Agent、Sentry SDK でテレメトリを送っていますか？そのまま使い続け、取り込みキーを付けて OneUptime に向けるだけです。方法は [Prometheus, Loki, Splunk, Datadog & Sentry](/docs/telemetry/compatible-endpoints) を参照してください。
+
 :::details インポートできる 11 のツール
 | 移行元 | OneUptime が読み取るもの |
 | --- | --- |

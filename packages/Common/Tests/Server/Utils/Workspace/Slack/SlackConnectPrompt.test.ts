@@ -129,13 +129,14 @@ const PENDING: Array<PendingCase> = [
   },
   {
     actionType: SlackActionType.MarkScheduledMaintenanceAsOngoing,
-    purpose: "mark this scheduled maintenance event as ongoing",
+    // A maintenance event, as the model has named it since #6817.
+    purpose: "mark this maintenance event as ongoing",
     kind: WorkspacePendingActionKind.MarkAsOngoing,
     eventType: WorkspaceEventType.ScheduledMaintenance,
   },
   {
     actionType: SlackActionType.MarkScheduledMaintenanceAsComplete,
-    purpose: "mark this scheduled maintenance event as complete",
+    purpose: "mark this maintenance event as complete",
     kind: WorkspacePendingActionKind.MarkAsComplete,
     eventType: WorkspaceEventType.ScheduledMaintenance,
   },
@@ -181,12 +182,12 @@ const FORMS: Array<[SlackActionType, string, string]> = [
   ],
   [
     SlackActionType.SubmitScheduledMaintenanceNote,
-    "add a note to this scheduled maintenance event",
+    "add a note to this maintenance event",
     "Add Note",
   ],
   [
     SlackActionType.ViewChangeScheduledMaintenanceState,
-    "change the state of this scheduled maintenance event",
+    "change the state of this maintenance event",
     "Change State",
   ],
 ];
@@ -333,12 +334,12 @@ describe("SlackConnectPrompt.describe", () => {
     ],
     [
       SlackActionType.NewScheduledMaintenance,
-      "create a scheduled maintenance event",
+      "create a maintenance event",
       "/oneuptime maintenance",
     ],
     [
       SlackActionType.SubmitNewScheduledMaintenance,
-      "create a scheduled maintenance event",
+      "create a maintenance event",
       "/oneuptime maintenance",
     ],
     [SlackActionType.ShowOnCall, "see who is on call", "/oneuptime oncall"],
@@ -421,7 +422,7 @@ describe("SlackConnectPrompt.describe", () => {
         payloadType: "shortcut",
       }),
     ).toEqual({
-      purpose: "create a scheduled maintenance event",
+      purpose: "create a maintenance event",
       again: {
         kind: WorkspaceConnectRequestAgainKind.Button,
         label: "Create Scheduled Event",

@@ -9,8 +9,7 @@ import {
   getOnCallPolicyRunRecordHandledMessage,
   getOnCallPolicyRunRecordResolvedMessage,
 } from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyRunEnding";
-import { isOnCallPageAgainRun } from "Common/Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
-import { isOnCallPersonPage } from "Common/Types/OnCallDutyPolicy/OnCallPersonPage";
+import { isOnCallPageEndedOnlyByAnAnswer } from "Common/Types/OnCallDutyPolicy/OnCallAcknowledgePage";
 import { isOnCallObserverPage } from "Common/Types/OnCallDutyPolicy/OnCallObserverPage";
 import { isOnCallTestPage } from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
 import OnCallTestPageRuns from "Common/Server/Utils/OnCall/OnCallTestPageRuns";
@@ -81,7 +80,11 @@ RunCron(
           createdAt: true,
           // A page again ends when its record is resolved, not acknowledged.
           pageAgainNumber: true,
-          // So does a page a person asked for (OnCallPersonPage).
+          /*
+           * So do a page a person asked for (OnCallPersonPage) and a policy a
+           * person started by hand (OnCallPolicyStartedByHand), told apart
+           * by who started them, with the policy and the event type above.
+           */
           triggeredByUserId: true,
           triggeredByWorkflowId: true,
           // And an observer's page (OnCallObserverPage).
@@ -120,16 +123,14 @@ RunCron(
  * Whether a run ends only when one of its people answers it or its record is
  * resolved - not when somebody else acknowledges the record: a page again
  * (OnCallAcknowledgementTimeout), a page a person asked for
- * (OnCallPersonPage) and an observer's page (OnCallObserverPage).
+ * (OnCallPersonPage), a policy a person started by hand
+ * (OnCallPolicyStartedByHand) and an observer's page (OnCallObserverPage),
+ * by the one rule (isOnCallPageEndedOnlyByAnAnswer).
  */
 const endsWhenAnsweredOrResolved: (
   executionLog: OnCallDutyPolicyExecutionLog,
 ) => boolean = (executionLog: OnCallDutyPolicyExecutionLog): boolean => {
-  return (
-    isOnCallPageAgainRun(executionLog) ||
-    isOnCallPersonPage(executionLog) ||
-    isOnCallObserverPage(executionLog)
-  );
+  return isOnCallPageEndedOnlyByAnAnswer(executionLog);
 };
 
 type ExecuteOnCallPolicyFunction = (
@@ -185,7 +186,10 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
      * A page a person asked for from Slack or Microsoft Teams
      * (OnCallPersonPage) ends the same way: they asked for these people,
      * and somebody else acknowledging the record - often before they paged
-     * at all - does not mean any of them has seen it.
+     * at all - does not mean any of them has seen it. So does a policy a
+     * person started by hand (OnCallPolicyStartedByHand): started on a
+     * record somebody had acknowledged already, it used to end here within
+     * a minute, its first level's first notifications all it ever sent.
      *
      * So does an observer's page (OnCallObserverPage): it keeps people
      * informed about a record its responders are on, so the responders

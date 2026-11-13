@@ -10,6 +10,8 @@ package provider
 //     "2030-01-01T00:00:00.000Z" for a configuration's "2030-01-01T00:00:00Z";
 //   - a number comes back as the 64-bit float OneUptime keeps it as - 99.93055555555556
 //     for a configuration's 100 * (1 - 1 / 1440);
+//   - a phone number comes back as OneUptime keeps it - "+14155550100" for a
+//     configuration's "+1 415 555 0100" (PhoneKeepSameNumber, in phone.go);
 //   - a JSON value comes back whole, with the keys OneUptime fills in itself -
 //     a schedule layer's restriction times carry "weeklyRestrictionTimes": []
 //     the configuration never wrote;
@@ -29,8 +31,8 @@ package provider
 // plan modifiers have kept everything a configuration sets: no update runs,
 // so nothing OneUptime sets changes either, and the plan says "No changes".
 //
-// Timestamps and numbers have one meaning however they are written, so they
-// are compared that way always. A JSON value - and a monitor's steps - is
+// Timestamps, numbers and phone numbers have one meaning however they are
+// written, so they are compared that way always. A JSON value - and a monitor's steps - is
 // compared as a subset only while it holds what an import read
 // (isImportedFromServer): only then can the state hold keys the
 // configuration never wrote. The import names those attributes in the

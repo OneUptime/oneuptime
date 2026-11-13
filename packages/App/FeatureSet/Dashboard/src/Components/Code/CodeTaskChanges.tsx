@@ -12,6 +12,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { joinWithArrowsOn } from "Common/Types/DirectionArrow";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 export interface ComponentProps {
@@ -159,7 +160,10 @@ const CodeTaskChangesView: FunctionComponent<ComponentProps> = (
                 </span>
                 <span className="min-w-0 flex-1 truncate font-mono text-gray-800">
                   {file.previousPath
-                    ? `${file.previousPath} → ${file.path}`
+                    ? joinWithArrowsOn(
+                        [file.previousPath, file.path],
+                        translator.language,
+                      )
                     : file.path}
                 </span>
                 <span className="flex-shrink-0 font-mono text-emerald-700">

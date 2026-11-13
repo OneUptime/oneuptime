@@ -61,7 +61,7 @@ Les valeurs définies sous **Valeurs par défaut des champs personnalisés** son
 
 ## Synchroniser les modifications vers les moniteurs liés
 
-Modifier un modèle ne change que le modèle. Pour copier une modification sur les moniteurs liés, utilisez le bouton de synchronisation de la carte que vous avez modifiée. Chaque bouton indique combien de moniteurs il atteint, comme **Sync Criteria to 3 Linked Monitors**, et il est grisé tant que rien n'est lié. Une synchronisation ne peut pas être annulée.
+Modifier un modèle ne change que le modèle. Pour copier une modification sur les moniteurs liés, utilisez le bouton de synchronisation de la carte que vous avez modifiée. Chaque bouton indique combien de moniteurs il atteint, comme **Synchroniser les critères vers 3 moniteurs liés**, et il est grisé tant que rien n'est lié. Une synchronisation ne peut pas être annulée.
 
 | Bouton | Copie sur chaque moniteur lié | Laisse intact |
 | --- | --- | --- |

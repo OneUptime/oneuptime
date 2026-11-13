@@ -14,6 +14,7 @@ import AIService, {
   AI_INVESTIGATION_GRADING_FEATURE,
 } from "../../../Services/AIService";
 import logger from "../../Logger";
+import { LLMMessage } from "../../LLM/LLMService";
 import LlmProviderChoice, { RuleLlmProviderChoice } from "../LlmProviderChoice";
 import PromptText from "../../../../Utils/AI/PromptText";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -65,7 +66,52 @@ export interface GradeGateInput {
   rootCause: string | null | undefined;
 }
 
+// The grade is one token; the call is held to a few.
+export const GRADING_MAX_TOKENS: number = 20;
+
 export default class InvestigationGrader {
+  /*
+   * What the grading call asks (pure, exported for tests): the root cause
+   * people recorded, the analysis to grade, and one token back. A replayed
+   * investigation is graded with the very same words (Eval/
+   * ReplayInvestigation), so a replay's grade means what a live one does.
+   */
+  public static getGradingMessages(data: {
+    rootCause: string;
+    analysisMarkdown: string;
+  }): Array<LLMMessage> {
+    return [
+      {
+        role: "system",
+        content: [
+          "You grade an AI incident investigation against the root cause humans recorded when they resolved the incident.",
+          "Respond with EXACTLY one token and nothing else:",
+          "MATCH — the investigation identified the same root cause.",
+          "PARTIAL — the investigation identified part of the cause, or a closely related cause.",
+          "MISMATCH — the investigation pointed somewhere else.",
+        ].join("\n"),
+      },
+      {
+        role: "user",
+        content: [
+          "Human-recorded root cause:",
+          '"""',
+          PromptText.field(data.rootCause, {
+            maxLength: MAX_ROOT_CAUSE_CHARS,
+          }),
+          '"""',
+          "",
+          "AI investigation analysis:",
+          '"""',
+          data.analysisMarkdown.substring(0, MAX_ANALYSIS_CHARS),
+          '"""',
+          "",
+          "One token only: MATCH, PARTIAL, or MISMATCH.",
+        ].join("\n"),
+      },
+    ];
+  }
+
   /*
    * Pure gating decision (exported for tests): grade only when a completed
    * investigation run exists, it has not been graded yet (dedupe), and the
@@ -249,35 +295,8 @@ export default class InvestigationGrader {
         // Grades are stored on the run; no need to persist prompt previews.
         storeContentPreviews: false,
         temperature: 0,
-        maxTokens: 20,
-        messages: [
-          {
-            role: "system",
-            content: [
-              "You grade an AI incident investigation against the root cause humans recorded when they resolved the incident.",
-              "Respond with EXACTLY one token and nothing else:",
-              "MATCH — the investigation identified the same root cause.",
-              "PARTIAL — the investigation identified part of the cause, or a closely related cause.",
-              "MISMATCH — the investigation pointed somewhere else.",
-            ].join("\n"),
-          },
-          {
-            role: "user",
-            content: [
-              "Human-recorded root cause:",
-              '"""',
-              PromptText.field(rootCause, { maxLength: MAX_ROOT_CAUSE_CHARS }),
-              '"""',
-              "",
-              "AI investigation analysis:",
-              '"""',
-              analysisMarkdown.substring(0, MAX_ANALYSIS_CHARS),
-              '"""',
-              "",
-              "One token only: MATCH, PARTIAL, or MISMATCH.",
-            ].join("\n"),
-          },
-        ],
+        maxTokens: GRADING_MAX_TOKENS,
+        messages: this.getGradingMessages({ rootCause, analysisMarkdown }),
       });
 
       const grade: AIRunAutoGrade | null = this.parseAutoGradeToken(

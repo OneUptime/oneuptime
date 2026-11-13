@@ -94,7 +94,7 @@ Mens en hendelse pågår, behandler OneUptime avbruddet den planlegger, som forv
 
 - **Oversikt** — overskriften viser hendelsens nummer, tittel og tilstand, hvor lenge det er til den starter eller hvor lenge den har pågått, hvem som eier den, hvilke statussider den vises på og hvem som opprettet den, og knappene som flytter den videre. Under den viser **Starter**, **Slutter** og **Varighet** det planlagte vinduet i tidssonen din. **Feed for planlagt vedlikehold** registrerer alt som har skjedd med hendelsen, ved siden av kortene **Detaljer om vedlikehold** og **Berørte ressurser**, og kortene **Målinger** og **Egendefinerte felt** når prosjektet ditt har noen.
 - **Tilstandstidslinje** — hver tilstand hendelsen har vært i, når og hvor lenge. Se [Vedlikeholdstilstander](/docs/scheduled-maintenance/states#tilstandstidslinjen).
-- **Offentlige notater** — oppdateringer til statussidene dine og abonnentene deres. **Private notater** er bare for teamet ditt.
+- **Offentlige notater** — oppdateringer til statussidene dine og abonnentene deres. **Private notater** kan bare leses av de som kan se hendelsen.
 - **Innstillinger** — **Synlig på statussiden**, som viser eller skjuler hendelsen på statussidene dens, og **Send påminnelser**, som minner eierne om den til den er fullført. Hver bryter lagrer i det øyeblikket du slår den om.
 
 ## Feilsøking

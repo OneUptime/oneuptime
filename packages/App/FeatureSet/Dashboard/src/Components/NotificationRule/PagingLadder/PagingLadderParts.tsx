@@ -12,6 +12,7 @@ import {
   PagingLadderStep,
   getPagingLadderStepKey,
 } from "Common/Types/NotificationRule/PagingLadder";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import PhoneNumberText from "Common/UI/Components/PhoneNumber/PhoneNumberText";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
@@ -117,13 +118,13 @@ export const StepChip: FunctionComponent<{
     >
       <MethodLabel choice={findMethodChoice(props.methods, props.step)} />
       <span className="text-gray-400" aria-hidden="true">
-        ·
+        <InlineSeparator markOnly />
       </span>
       <span>{describeWait(translator, props.step.notifyAfterMinutes)}</span>
       {pushSettings ? (
         <>
           <span className="text-gray-400" aria-hidden="true">
-            ·
+            <InlineSeparator markOnly />
           </span>
           <span className="text-gray-500">{pushSettings}</span>
         </>
@@ -151,7 +152,7 @@ export const CardName: FunctionComponent<{
     >
       <span>{describeCardKind(translator, props.cell)}</span>
       <span className="text-gray-400" aria-hidden="true">
-        ·
+        <InlineSeparator markOnly />
       </span>
       <span className="inline-flex items-center gap-1.5">
         {props.color ? (

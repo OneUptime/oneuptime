@@ -40,6 +40,31 @@ import { TelemetryGuideLanguageKey } from "Common/Types/Telemetry/OpenTelemetryG
 import { SetupGuideStepVariants } from "../SetupGuide/SetupGuideSteps";
 import SetupGuideTopics from "../SetupGuide/SetupGuideTopics";
 import { getKubernetesAgentUpgradeCommand } from "../../Pages/Kubernetes/Utils/DocumentationMarkdown";
+import {
+  COMPATIBLE_INGEST_CONFIGURE_TITLE,
+  COMPATIBLE_INGEST_DESCRIPTION,
+  COMPATIBLE_INGEST_HEADING,
+  COMPATIBLE_INGEST_NOTES_DESCRIPTION,
+  COMPATIBLE_INGEST_NOTES_TITLE,
+  CompatibleIngestEndpoint,
+  CompatibleIngestGuideCopy,
+  CompatibleIngestMethod,
+  CompatibleIngestSnippet,
+  SENTRY_RUNTIME_CAPTION,
+  SENTRY_RUNTIME_LABELS,
+  SentryRuntime,
+  getCompatibleIngestEndpointValue,
+  getCompatibleIngestGuide,
+  getCompatibleIngestGuides,
+  getCompatibleIngestSnippets,
+  isCompatibleIngestMethod,
+} from "./CompatibleIngestGuide";
+import {
+  getFluentBitConfig,
+  getFluentBitDockerCompose,
+  getFluentdConfig,
+  getFluentdDockerCompose,
+} from "./LogShipperSnippets";
 
 /*
  * The Kubernetes agent's own eBPF profiler (kubernetes-agent values
@@ -59,8 +84,10 @@ export type TelemetryType =
 /*
  * THE SETUP GUIDE TAB'S LAST STEP (issue #6806): the wait the first-run
  * dialog has (TelemetryFirstRunShowcase), so a Setup Guide tab notices the
- * first data too, and links to it on the service that sent it. Profiles
- * listen for their first profile in the guide itself, so they have none.
+ * first data too, and links to it on the service that sent it - or, for
+ * data that names no service (FluentBit's logs), the picked key's first
+ * data and the product's explorer (#7754). Profiles listen for their first
+ * profile in the guide itself, so they have none.
  */
 export const SETUP_GUIDE_FIRST_DATA_TITLE: string = translationKey(
   "Wait for the first data",
@@ -68,20 +95,27 @@ export const SETUP_GUIDE_FIRST_DATA_TITLE: string = translationKey(
 
 export const SETUP_GUIDE_FIRST_DATA_VIEWS: Record<
   Exclude<TelemetryType, "profiles">,
-  { page: PageMap; text: string }
+  { page: PageMap; text: string; dataPage: PageMap }
 > = {
-  logs: { page: PageMap.SERVICE_VIEW_LOGS, text: translationKey("View logs") },
+  logs: {
+    page: PageMap.SERVICE_VIEW_LOGS,
+    text: translationKey("View logs"),
+    dataPage: PageMap.LOGS,
+  },
   metrics: {
     page: PageMap.SERVICE_VIEW_METRICS,
     text: translationKey("View metrics"),
+    dataPage: PageMap.METRICS,
   },
   traces: {
     page: PageMap.SERVICE_VIEW_TRACES,
     text: translationKey("View traces"),
+    dataPage: PageMap.TRACES,
   },
   exceptions: {
     page: PageMap.SERVICE_VIEW_EXCEPTIONS,
     text: translationKey("View exceptions"),
+    dataPage: PageMap.EXCEPTIONS,
   },
 };
 
@@ -95,6 +129,13 @@ export interface ComponentProps {
   serviceName?: string | undefined;
   // Only the guide, in a dialog that has its own title.
   isBare?: boolean | undefined;
+  /*
+   * The key the snippets carry, as it is picked: a dialog that draws its
+   * own last step (TelemetrySetupModal) watches it for the first data.
+   */
+  onSelectedKeyChange?:
+    | ((key: TelemetryIngestionKey | null) => void)
+    | undefined;
 }
 
 /*
@@ -188,6 +229,12 @@ type IntegrationMethod =
   | "fluentd"
   | "alloy"
   | "kubernetes";
+
+/*
+ * A way the guide can show: one of its own, or the way another tool's
+ * agent or SDK sends here unchanged (CompatibleIngestGuide).
+ */
+type SetupMethod = IntegrationMethod | CompatibleIngestMethod;
 
 interface IntegrationOption {
   key: IntegrationMethod;
@@ -1187,89 +1234,6 @@ services:
       - /etc/alloy/config.alloy`;
 }
 
-// --- FluentBit snippets ---
-
-function getFluentBitSnippet(): string {
-  return `# fluent-bit.conf
-[SERVICE]
-    Flush        5
-    Log_Level    info
-    Parsers_File parsers.conf
-
-[INPUT]
-    Name         tail
-    Path         /var/log/*.log
-    Tag          app.logs
-
-[OUTPUT]
-    Name         opentelemetry
-    Match        *
-    Host         <YOUR_ONEUPTIME_OTLP_HOST>
-    Port         443
-    Tls          On
-    Header       x-oneuptime-token <YOUR_ONEUPTIME_TOKEN>
-    Logs_uri     /v1/logs`;
-}
-
-function getFluentBitDockerSnippet(): string {
-  return `# docker-compose.yml
-services:
-  fluent-bit:
-    image: fluent/fluent-bit:latest
-    volumes:
-      - ./fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf
-      - /var/log:/var/log:ro
-    environment:
-      - FLB_ES_HOST=<YOUR_ONEUPTIME_OTLP_HOST>`;
-}
-
-// --- Fluentd snippets ---
-
-function getFluentdSnippet(): string {
-  return `# fluentd.conf
-<source>
-  @type forward
-  port 24224
-  bind 0.0.0.0
-</source>
-
-<source>
-  @type tail
-  path /var/log/*.log
-  pos_file /var/log/fluentd.pos
-  tag app.logs
-  <parse>
-    @type json
-  </parse>
-</source>
-
-<match **>
-  @type http
-  endpoint https://<YOUR_ONEUPTIME_OTLP_HOST>/v1/logs
-  headers {"x-oneuptime-token":"<YOUR_ONEUPTIME_TOKEN>"}
-  json_array true
-  <format>
-    @type json
-  </format>
-  <buffer>
-    @type memory
-    flush_interval 5s
-  </buffer>
-</match>`;
-}
-
-function getFluentdDockerSnippet(): string {
-  return `# docker-compose.yml
-services:
-  fluentd:
-    image: fluent/fluentd:latest
-    volumes:
-      - ./fluentd.conf:/fluentd/etc/fluentd.conf
-      - /var/log:/var/log:ro
-    ports:
-      - "24224:24224"`;
-}
-
 // --- Main Component ---
 
 const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
@@ -1292,8 +1256,14 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
   const languagePickerCaptionId: string = useId();
   const methodPickerCaptionId: string = useId();
   const [selectedLanguage, setSelectedLanguage] = useState<Language>("node");
-  const [selectedMethod, setSelectedMethod] = useState<IntegrationMethod>(
+  const [selectedMethod, setSelectedMethod] = useState<SetupMethod>(
     props.telemetryType === "profiles" ? "alloy" : "opentelemetry",
+  );
+  const compatiblePickerCaptionId: string = useId();
+  const sentryRuntimeCaptionId: string = useId();
+  // Where the app a Sentry SDK runs in is: a browser app gets a Browser key.
+  const [sentryRuntime, setSentryRuntime] = useState<SentryRuntime>(
+    SentryRuntime.Server,
   );
 
   /*
@@ -1336,9 +1306,12 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
    * would tell someone configuring a log shipper to go and make a browser key.
    */
   const isBrowserSdkGuide: boolean =
-    selectedMethod === "opentelemetry" &&
-    !isProfiles &&
-    (selectedLanguage === "react" || selectedLanguage === "angular");
+    (selectedMethod === "opentelemetry" &&
+      !isProfiles &&
+      (selectedLanguage === "react" || selectedLanguage === "angular")) ||
+    // A Sentry DSN in a browser app ships to its users, as a snippet does.
+    (selectedMethod === CompatibleIngestMethod.Sentry &&
+      sentryRuntime === SentryRuntime.Browser);
 
   // Compute OTLP URL and host
   const httpProtocol: string =
@@ -1434,6 +1407,20 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
     selectedKey?.secretKey?.toString() || "<YOUR_ONEUPTIME_TOKEN>";
   const otlpUrlValue: string = otlpUrl;
   const otlpHostValue: string = otlpHost;
+
+  /*
+   * Where another tool's agent or SDK is pointed, with the picked key. The
+   * log shippers' files (LogShipperSnippets) are built from it too.
+   */
+  const compatibleEndpoint: CompatibleIngestEndpoint = {
+    protocol: httpProtocol,
+    host: HOST ? HOST : "<YOUR_ONEUPTIME_HOST>",
+    key: tokenValue,
+  };
+
+  const compatibleGuides: Array<CompatibleIngestGuideCopy> = useMemo(() => {
+    return isProfiles ? [] : getCompatibleIngestGuides(telemetryType);
+  }, [telemetryType, isProfiles]);
 
   const integrationMethods: Array<IntegrationOption> = useMemo(() => {
     if (isProfiles) {
@@ -1590,19 +1577,39 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
 
   // Token step content (rendered inside Step 1)
   const renderTokenStepContent: () => ReactElement = (): ReactElement => {
+    /*
+     * Another tool's agent or SDK is pointed at its own endpoint - the
+     * remote write URL, the push URL, the DSN - not at OTLP.
+     */
+    const compatibleGuide: CompatibleIngestGuideCopy | null =
+      isCompatibleIngestMethod(selectedMethod)
+        ? getCompatibleIngestGuide(selectedMethod)
+        : null;
+
     return (
       <IngestionKeySelector
         endpointLabel={
-          isProfiles
-            ? translationKey("Profiling Endpoint")
-            : translationKey("OTLP Endpoint")
+          compatibleGuide
+            ? compatibleGuide.endpointLabel
+            : isProfiles
+              ? translationKey("Profiling Endpoint")
+              : translationKey("OTLP Endpoint")
         }
         /*
          * Profiles are ingested over the Pyroscope-compatible API, not
          * OTLP — showing the OTLP URL here would point the user's
          * profiler at an endpoint it cannot push to.
          */
-        endpointValue={isProfiles ? pyroscopeUrl : otlpUrlValue}
+        endpointValue={
+          compatibleGuide
+            ? getCompatibleIngestEndpointValue(
+                compatibleGuide.method,
+                compatibleEndpoint,
+              )
+            : isProfiles
+              ? pyroscopeUrl
+              : otlpUrlValue
+        }
         endpointHint={
           isProfiles
             ? translationKey(
@@ -1623,7 +1630,10 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
             : TelemetryIngestionKeyType.Server
         }
         newKeyName={NEW_KEY_NAME_FOR_TYPE[telemetryType]}
-        onSelectedKeyChange={setSelectedKey}
+        onSelectedKeyChange={(key: TelemetryIngestionKey | null): void => {
+          setSelectedKey(key);
+          props.onSelectedKeyChange?.(key);
+        }}
       />
     );
   };
@@ -1733,7 +1743,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
 
   // Integration method selector
   const renderMethodSelector: () => ReactElement = (): ReactElement => {
-    if (integrationMethods.length <= 1) {
+    if (integrationMethods.length <= 1 && compatibleGuides.length === 0) {
       return <></>;
     }
 
@@ -1797,6 +1807,220 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
               </button>
             );
           })}
+        </div>
+        {renderCompatibleMethodPicker()}
+      </div>
+    );
+  };
+
+  /*
+   * "Already using another tool?": the agents and SDKs that send here
+   * unchanged, under a heading of their own after the guide's own ways, so
+   * someone starting fresh is not asked to choose between tools they do
+   * not run. Smaller than the ways above them, logo first.
+   */
+  const renderCompatibleMethodPicker: () => ReactElement = (): ReactElement => {
+    if (compatibleGuides.length === 0) {
+      return <></>;
+    }
+
+    return (
+      <div className="mt-5" data-testid="compatible-ingest-methods">
+        <p
+          id={compatiblePickerCaptionId}
+          className="text-sm font-medium text-gray-900"
+        >
+          {translate(COMPATIBLE_INGEST_HEADING)}
+        </p>
+        <p className="text-sm text-gray-500 mt-0.5 mb-2 leading-relaxed">
+          {translate(COMPATIBLE_INGEST_DESCRIPTION)}
+        </p>
+        <div
+          role="group"
+          aria-labelledby={compatiblePickerCaptionId}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2"
+        >
+          {compatibleGuides.map((guide: CompatibleIngestGuideCopy) => {
+            const isSelected: boolean = selectedMethod === guide.method;
+
+            return (
+              <button
+                key={guide.method}
+                type="button"
+                aria-pressed={isSelected}
+                data-testid={guide.dataTestId}
+                onClick={() => {
+                  setSelectedMethod(guide.method);
+                }}
+                className={`text-start px-3 py-2.5 rounded-lg border transition-all ${
+                  isSelected
+                    ? "border-indigo-500 bg-indigo-50 ring-1 ring-indigo-500"
+                    : "border-gray-200 bg-white hover:border-gray-300"
+                }`}
+              >
+                <div
+                  className={`flex items-center gap-2 text-sm font-semibold ${isSelected ? "text-indigo-700" : "text-gray-900"}`}
+                >
+                  <ProviderLogoOrIcon
+                    logo={guide.logo}
+                    icon={IconProp.Code}
+                    isBare={true}
+                    size={16}
+                    isDecorative={true}
+                    colorClassName={
+                      isSelected ? "text-indigo-600" : "text-gray-500"
+                    }
+                    iconClassName={`h-4 w-4 flex-shrink-0 ${isSelected ? "text-indigo-600" : "text-gray-500"}`}
+                  />
+                  {guide.label}
+                </div>
+                <div className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                  {translate(guide.description)}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  // Where a Sentry SDK runs: the browser gets a Browser key, as its DSN is public.
+  const renderSentryRuntimePicker: () => ReactElement = (): ReactElement => {
+    return (
+      <div className="mb-6" data-testid="compatible-ingest-sentry-runtime">
+        <p
+          id={sentryRuntimeCaptionId}
+          className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2"
+        >
+          {translate(SENTRY_RUNTIME_CAPTION)}
+        </p>
+        <div
+          role="group"
+          aria-labelledby={sentryRuntimeCaptionId}
+          className="flex flex-wrap gap-1.5"
+        >
+          {[SentryRuntime.Server, SentryRuntime.Browser].map(
+            (runtime: SentryRuntime) => {
+              const isSelected: boolean = sentryRuntime === runtime;
+
+              return (
+                <button
+                  key={runtime}
+                  type="button"
+                  aria-pressed={isSelected}
+                  onClick={() => {
+                    setSentryRuntime(runtime);
+                  }}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md border transition-all ${
+                    isSelected
+                      ? "bg-indigo-50 border-indigo-300 text-indigo-700"
+                      : "bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:text-gray-900"
+                  }`}
+                >
+                  <Icon
+                    icon={
+                      runtime === SentryRuntime.Browser
+                        ? IconProp.Window
+                        : IconProp.Server
+                    }
+                    className="h-4 w-4"
+                  />
+                  {translate(SENTRY_RUNTIME_LABELS[runtime])}
+                </button>
+              );
+            },
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  /*
+   * Another tool's agent or SDK, pointed here: the key and the URL, the
+   * tool's own configuration with both filled in, and what the data
+   * becomes in OneUptime.
+   */
+  const renderCompatibleContent: (
+    method: CompatibleIngestMethod,
+  ) => ReactElement = (method: CompatibleIngestMethod): ReactElement => {
+    const guide: CompatibleIngestGuideCopy = getCompatibleIngestGuide(method);
+    const snippets: Array<CompatibleIngestSnippet> =
+      getCompatibleIngestSnippets(method, compatibleEndpoint, {
+        sentryRuntime: sentryRuntime,
+      });
+
+    const renderSnippet: (snippet: CompatibleIngestSnippet) => ReactElement = (
+      snippet: CompatibleIngestSnippet,
+    ): ReactElement => {
+      return (
+        <CodeBlock
+          code={withServiceName(snippet.code, props.serviceName)}
+          language={snippet.language}
+        />
+      );
+    };
+
+    return (
+      <div data-testid={`${guide.dataTestId}-guide`}>
+        {method === CompatibleIngestMethod.Sentry ? (
+          renderSentryRuntimePicker()
+        ) : (
+          <></>
+        )}
+        <div className="mt-2">
+          {renderStep(
+            1,
+            translationKey("Get Your Ingestion Credentials"),
+            translationKey(
+              "Select an existing ingestion key or create a new one. These credentials authenticate your telemetry data.",
+            ),
+            renderTokenStepContent(),
+          )}
+
+          {renderStep(
+            2,
+            COMPATIBLE_INGEST_CONFIGURE_TITLE,
+            guide.configureDescription,
+            <div>
+              {renderBrowserKeyWarning()}
+              {snippets.length === 1 ? (
+                renderSnippet(snippets[0]!)
+              ) : (
+                <SetupGuideStepVariants
+                  variants={snippets.map((snippet: CompatibleIngestSnippet) => {
+                    return {
+                      label: translate(snippet.label),
+                      content: renderSnippet(snippet),
+                    };
+                  })}
+                />
+              )}
+            </div>,
+          )}
+
+          {renderStep(
+            3,
+            COMPATIBLE_INGEST_NOTES_TITLE,
+            COMPATIBLE_INGEST_NOTES_DESCRIPTION,
+            <ul className="space-y-2">
+              {guide.notes.map((note: string) => {
+                return (
+                  <li
+                    key={note}
+                    className="flex items-start gap-2 text-sm text-gray-600 leading-relaxed"
+                  >
+                    <Icon
+                      icon={IconProp.CheckCircle}
+                      className="h-4 w-4 text-indigo-500 flex-shrink-0 mt-0.5"
+                    />
+                    <span>{translate(note)}</span>
+                  </li>
+                );
+              })}
+            </ul>,
+            true,
+          )}
         </div>
       </div>
     );
@@ -2067,13 +2291,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
             ),
             <CodeBlock
               code={withServiceName(
-                replacePlaceholders(
-                  getFluentBitSnippet(),
-                  otlpUrlValue,
-                  otlpHostValue,
-                  tokenValue,
-                  pyroscopeUrl,
-                ),
+                getFluentBitConfig(compatibleEndpoint),
                 props.serviceName,
               )}
               language="yaml"
@@ -2102,13 +2320,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                   content: (
                     <CodeBlock
                       code={withServiceName(
-                        replacePlaceholders(
-                          getFluentBitDockerSnippet(),
-                          otlpUrlValue,
-                          otlpHostValue,
-                          tokenValue,
-                          pyroscopeUrl,
-                        ),
+                        getFluentBitDockerCompose(),
                         props.serviceName,
                       )}
                       language="yaml"
@@ -2146,13 +2358,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
             ),
             <CodeBlock
               code={withServiceName(
-                replacePlaceholders(
-                  getFluentdSnippet(),
-                  otlpUrlValue,
-                  otlpHostValue,
-                  tokenValue,
-                  pyroscopeUrl,
-                ),
+                getFluentdConfig(compatibleEndpoint),
                 props.serviceName,
               )}
               language="yaml"
@@ -2178,13 +2384,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                   content: (
                     <CodeBlock
                       code={withServiceName(
-                        replacePlaceholders(
-                          getFluentdDockerSnippet(),
-                          otlpUrlValue,
-                          otlpHostValue,
-                          tokenValue,
-                          pyroscopeUrl,
-                        ),
+                        getFluentdDockerCompose(),
                         props.serviceName,
                       )}
                       language="yaml"
@@ -2341,6 +2541,10 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
     };
 
   const renderActiveContent: () => ReactElement = (): ReactElement => {
+    if (isCompatibleIngestMethod(selectedMethod)) {
+      return renderCompatibleContent(selectedMethod);
+    }
+
     switch (selectedMethod) {
       case "fluentbit":
         return renderFluentBitContent();
@@ -2436,6 +2640,8 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                 modelType={Service}
                 viewPage={SETUP_GUIDE_FIRST_DATA_VIEWS[telemetryType].page}
                 viewText={SETUP_GUIDE_FIRST_DATA_VIEWS[telemetryType].text}
+                ingestionKey={selectedKey}
+                dataPage={SETUP_GUIDE_FIRST_DATA_VIEWS[telemetryType].dataPage}
               />
             </div>
           )}

@@ -93,6 +93,7 @@ export const FilePickerPlaceholder: FunctionComponent<
     translator,
     {
       placeholder: props.placeholder,
+      isPlaceholderTranslated: props.isPlaceholderTranslated,
       hint: props.hint,
       maxFiles: layout.maxFiles,
       mimeTypes: props.mimeTypes,
