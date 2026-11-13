@@ -95,10 +95,7 @@ import Hostname from "../../../Types/API/Hostname";
 import URL from "../../../Types/API/URL";
 import { Blue500, Gray500, Green500, Red500 } from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
-import {
-  DashboardTemplateType,
-  getTemplateConfig,
-} from "../../../Types/Dashboard/DashboardTemplates";
+import { DashboardTemplateType } from "../../../Types/Dashboard/DashboardTemplates";
 import OneUptimeDate from "../../../Types/Date";
 import Email from "../../../Types/Email";
 import EventInterval from "../../../Types/Events/EventInterval";
@@ -338,10 +335,10 @@ export default class SampleProjectSeeder {
     dashboard.projectId = projectId;
     dashboard.name = SAMPLE_DASHBOARD.name;
     dashboard.description = SAMPLE_DASHBOARD.description;
-    dashboard.dashboardViewConfig = required(
-      getTemplateConfig(DashboardTemplateType.Metrics),
+    required(
+      DashboardService.applyTemplate(dashboard, DashboardTemplateType.Metrics),
       "dashboard template",
-    ) as never;
+    );
 
     const createdDashboard: Dashboard = await DashboardService.create({
       data: dashboard,
