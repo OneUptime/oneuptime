@@ -485,6 +485,8 @@ const DropdownOptionsInput: FunctionComponent<ComponentProps> = (
                   number: index + 1,
                 })
               }
+              // Looked up here, around the option's number: drawn as given.
+              isPlaceholderTranslated={true}
               onChange={(newValue: string) => {
                 updateAt(option.id, { value: newValue });
               }}

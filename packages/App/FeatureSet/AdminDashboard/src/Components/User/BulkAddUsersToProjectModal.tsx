@@ -130,6 +130,7 @@ const BulkAddUsersToProjectModal: FunctionComponent<ComponentProps> = (
       },
       required: true,
       placeholder: t("pages.users.bulkAddToProjectFieldProjectPlaceholder"),
+      isPlaceholderTranslated: true,
     },
     {
       field: {
@@ -159,6 +160,7 @@ const BulkAddUsersToProjectModal: FunctionComponent<ComponentProps> = (
               (values as { team?: unknown }).team,
             ])}
             placeholder={t("pages.users.bulkAddToProjectFieldTeamPlaceholder")}
+            isPlaceholderTranslated={true}
             noProjectMessage={t("pages.users.bulkAddToProjectSelectProject")}
             onChange={(teamIds: Array<string>) => {
               elementProps.onChange?.(teamIds[0] || "");
