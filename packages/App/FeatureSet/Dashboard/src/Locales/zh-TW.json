@@ -51841,5 +51841,7 @@
   "Couldn't reject the note.": "無法拒絕備註。",
   "Couldn't publish the note.": "無法發布備註。",
   "Couldn't withdraw the edit.": "無法撤回編輯。",
-  "Couldn't load the public notes.": "無法載入公開備註。"
+  "Couldn't load the public notes.": "無法載入公開備註。",
+  "{{count}} of {{total}} monitors could not be linked: {{errors}}": "{{total}} 個監測器中有 {{count}} 個無法連結：{{errors}}",
+  "{{count}} of {{total}} monitors could not be linked: {{errors}}_one": "{{total}} 個監測器中有 {{count}} 個無法連結：{{errors}}"
 }

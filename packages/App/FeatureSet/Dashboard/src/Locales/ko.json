@@ -51841,5 +51841,7 @@
   "Couldn't reject the note.": "노트를 거부하지 못했습니다.",
   "Couldn't publish the note.": "노트를 게시하지 못했습니다.",
   "Couldn't withdraw the edit.": "편집을 철회하지 못했습니다.",
-  "Couldn't load the public notes.": "공개 노트를 불러오지 못했습니다."
+  "Couldn't load the public notes.": "공개 노트를 불러오지 못했습니다.",
+  "{{count}} of {{total}} monitors could not be linked: {{errors}}": "모니터 {{total}}개 중 {{count}}개를 연결하지 못했습니다: {{errors}}",
+  "{{count}} of {{total}} monitors could not be linked: {{errors}}_one": "모니터 {{total}}개 중 {{count}}개를 연결하지 못했습니다: {{errors}}"
 }
