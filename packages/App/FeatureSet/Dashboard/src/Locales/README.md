@@ -398,9 +398,10 @@ as `fa.json` draws it.
 - **Floating IP** is `IP شناور`, and floating IPs `IPهای شناور`.
 - **Pool**, whatever it pools, is `استخر`: a Ceph or an Octavia pool,
   `استخر ذخیره‌سازی` for a storage pool, `استخر ساب‌نت` for a subnet
-  pool, `استخر منابع` for a vSphere resource pool, `استخر نخ` for a
-  thread pool, `استخر بافر` for InnoDB's buffer pool. Never `مخزن`, which
-  is a repository, or `پول`, which is money.
+  pool, `استخر آدرس` for an address pool, `استخر اتصال` for a
+  connection pool, `استخر منابع` for a vSphere resource pool, `استخر نخ`
+  for a thread pool, `استخر بافر` for InnoDB's buffer pool. Never `مخزن`,
+  which is a repository, or `پول`, which is money.
 - **Share**, a file share such as Manila's, is `اشتراک فایل`, and shares
   `اشتراک‌های فایل`. `اشتراک` alone is a subscription, and the Share
   button is `اشتراک‌گذاری`.
@@ -408,9 +409,13 @@ as `fa.json` draws it.
   virtual machine a load balancer runs in, as Arabic and most languages
   keep it. It is on `i18n/Progress/fa.json`'s same-as-English list for
   that reason, and so is `amphora`.
-- A name the page draws in English stays as written: an alert template's
-  (**Pool Near Full**), a console's menu item (**Share snapshot** in the
-  RDS console), a CLI command (`openstack share message list`).
+- The Persian docs say these four the same way, outside code. A name a
+  page draws in English stays as written: an alert template's (**Pool
+  Near Full**), a cloud's product name (Application Load Balancer), a
+  console's or an app's menu item (**Share snapshot** in the RDS console,
+  **Share link** in the mobile app), a metric label's name (the pool
+  label, `label مربوط به pool`), a CLI command
+  (`openstack share message list`).
 
 ## What "untranslated" means
 
