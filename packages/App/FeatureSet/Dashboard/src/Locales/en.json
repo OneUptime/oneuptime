@@ -75,7 +75,7 @@
       "metricsDescription": "Monitor and visualize system metrics across your services.",
       "tracesTitle": "Traces",
       "tracesDescription": "Track requests across your services.",
-      "performanceProfilesTitle": "Performance Profiles",
+      "performanceProfilesTitle": "Profiles",
       "performanceProfilesDescription": "Find slow functions and memory hotspots.",
       "exceptionsTitle": "Exceptions",
       "exceptionsDescription": "Track and resolve bugs across your services.",

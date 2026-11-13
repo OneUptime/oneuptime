@@ -1048,7 +1048,14 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       {
         title: "Monitors",
         pages: [
-          allListPage(PageMap.MONITORS, "All Monitors"),
+          {
+            ...allListPage(PageMap.MONITORS, "All Monitors"),
+            /*
+             * A monitor's Criteria were its "Monitor Criteria" (#6817): a
+             * page of each monitor, one click from the list.
+             */
+            keywords: ["monitor criteria", "monitoring criteria"],
+          },
           /*
            * The guided setup (#6804): an address, who is told and a test
            * page on one page. Found by what people come to do.
