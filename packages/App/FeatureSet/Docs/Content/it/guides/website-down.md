@@ -26,13 +26,19 @@ L'indirizzo viene controllato dalla sonda del tuo server stesso, quindi deve ess
 :::steps
 ### Aprire la configurazione guidata
 
+![La pagina Home chiede «Cosa vuoi fare per prima cosa?», con «Sapere quando il mio sito web o la mia API non funziona» selezionato](screen:home-goal-website)
+
 In un nuovo progetto, la **Home** chiede prima **Cosa vuoi fare per prima cosa?**: spunta **Sapere quando il mio sito web o la mia API non funziona** e fai clic su **Continua**. Poi fai clic su **Crea il tuo primo monitor** nell'elenco **Benvenuto in OneUptime 👋**. Se l'elenco non mostra questo passaggio, premi `Ctrl+K` (`Cmd+K` su un Mac), digita `website down` e scegli **Sapere quando il mio sito web o la mia API non funziona**.
 
 ### Inserire l'indirizzo
 
+![Il passaggio «Cosa dobbiamo controllare?», con «Inizia il controllo» evidenziato](screen:website-down-address)
+
 In **Cosa dobbiamo controllare?**, digita l'indirizzo in **Indirizzo del sito web o dell'API**. Per un endpoint API, spunta **Questo è un endpoint API**. Fai clic su **Inizia il controllo**: le sonde lo controllano subito, e una frase dice cosa hanno trovato. Fai clic su **Continua**.
 
 ### Scegliere chi viene avvisato
+
+![Il passaggio «Chi deve essere avvisato?», con «Salva e continua» evidenziato](screen:website-down-who)
 
 In **Chi deve essere avvisato?**, ciò che vedi dipende dal progetto:
 
@@ -42,6 +48,8 @@ In **Chi deve essere avvisato?**, ciò che vedi dipende dal progetto:
 
 ### Inviarti un test
 
+![Il passaggio «Invia un test», con «Inviami una chiamata di test» evidenziato](screen:website-down-test)
+
 In **Invia un test**, fai clic su **Inviami una chiamata di test**. Scegli una **Gravità** e fai clic su **Invia chiamata di test**. Il test ti raggiunge come farebbe una chiamata reale, e ogni messaggio dice TEST. Non viene creato alcun incidente.
 
 ### Riconoscere la chiamata di test
@@ -50,6 +58,8 @@ Riconosci la chiamata di test dal link nell'email. Funziona anche un numero di t
 :::
 
 ## Controllare che funzioni
+
+![Il riepilogo, letto dai record: «Controllato», «In caso di interruzione», «Chi viene avvisato» e «Testato»](screen:website-down-summary)
 
 - La configurazione termina sul suo riepilogo, ricavato da ciò che è stato salvato: **Controllato**, **In caso di interruzione**, **Chi viene avvisato** e **Testato**.
 - Fai clic su **Apri il monitor**, poi su **Mostra la catena** nella sua scheda **Quando va giù**: la scheda mostra la catena che va dal monitor alle persone che raggiunge, e dice **Niente interrompe la catena.** quando niente la interromperebbe.

@@ -1,4 +1,5 @@
 import useTranslateValue from "../../Utils/Translation";
+import { PRODUCT_TEXT_CLASS_NAME } from "../../Utils/ProductText";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export enum TabType {
@@ -70,7 +71,10 @@ const TabElement: FunctionComponent<ComponentProps> = (
         aria-selected={props.isSelected}
         aria-controls={props.tabPanelId}
       >
-        <div>{translatedName}</div>
+        {/* A tab named in the product's words reads in a recording (Utils/ProductText). */}
+        <div className={props.tab.isName ? undefined : PRODUCT_TEXT_CLASS_NAME}>
+          {translatedName}
+        </div>
 
         {props.tab.countBadge && props.tab.countBadge > 0 ? (
           <span

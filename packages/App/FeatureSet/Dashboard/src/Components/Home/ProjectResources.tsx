@@ -266,7 +266,9 @@ const ProjectResources: FunctionComponent<ComponentProps> = (
       // A count that failed hides its row; a loading one keeps it.
       return (
         countOf(resource) !== undefined &&
-        !products.answer.hidden.includes(resource.product)
+        !products.answer.hidden.includes(resource.product) &&
+        // Switched off on the server (#6815): not the project's to show.
+        !(products.answer.offOnServer || {})[resource.product]
       );
     });
 

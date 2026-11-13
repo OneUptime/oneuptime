@@ -26,13 +26,19 @@ Adressen kontrolleras från din servers egen sond, så den måste gå att nå d�
 :::steps
 ### Öppna den guidade konfigurationen
 
+![Hem frågar ”Vad vill du göra först?”, med ”Veta när min webbplats eller mitt API ligger nere” ikryssat](screen:home-goal-website)
+
 I ett nytt projekt börjar sidan **Hem** med frågan **Vad vill du göra först?**: kryssa i **Veta när min webbplats eller mitt API ligger nere** och klicka på **Fortsätt**. Klicka sedan på **Skapa din första övervakare** i checklistan **Välkommen till OneUptime 👋**. Om checklistan inte visar det steget trycker du på `Ctrl+K` (`Cmd+K` på en Mac), skriver `website down` och väljer **Veta när min webbplats eller mitt API ligger nere**.
 
 ### Ange adressen
 
+![Steget ”Vad ska vi kontrollera?”, med ”Börja kontrollera” markerad](screen:website-down-address)
+
 Under **Vad ska vi kontrollera?** skriver du adressen i **Adress till webbplats eller API**. För en API-endpoint kryssar du i **Det här är en API-endpoint**. Klicka på **Börja kontrollera**: sonderna kontrollerar adressen direkt, och en mening talar om vad de hittade. Klicka på **Fortsätt**.
 
 ### Välj vem som får veta
+
+![Steget ”Vem ska få veta?”, med ”Spara och fortsätt” markerad](screen:website-down-who)
 
 Under **Vem ska få veta?** beror det du ser på projektet:
 
@@ -42,6 +48,8 @@ Under **Vem ska få veta?** beror det du ser på projektet:
 
 ### Skicka ett test till dig själv
 
+![Steget ”Skicka ett test”, med ”Skicka ett testlarm till mig” markerad](screen:website-down-test)
+
 Under **Skicka ett test** klickar du på **Skicka ett testlarm till mig**. Välj en **Allvarlighetsgrad** och klicka på **Skicka testlarm**. Testet når dig på samma sätt som ett riktigt larm skulle göra, och varje meddelande är märkt TEST. Ingen incident skapas.
 
 ### Bekräfta testlarmet
@@ -50,6 +58,8 @@ Under **Skicka ett test** klickar du på **Skicka ett testlarm till mig**. Välj
 :::
 
 ## Kontrollera att det fungerade
+
+![Sammanfattningen, läst från posterna: ”Kontrollerad”, ”När den går ner”, ”Vem som får veta” och ”Testat”](screen:website-down-summary)
 
 - Konfigurationen avslutas med sin sammanfattning, som bygger på det som faktiskt har sparats: **Kontrollerad**, **När den går ner**, **Vem som får veta** och **Testat**.
 - Klicka på **Öppna monitorn** och sedan på **Visa kedjan** på monitorns kort **När den går ner**: där visas kedjan från monitorn till de personer som den når, och när inget skulle stoppa kedjan står det **Inget stoppar kedjan.**

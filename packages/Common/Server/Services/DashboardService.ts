@@ -452,6 +452,23 @@ export class Service extends ProjectReferencesService<Model> {
       logger.error(err);
     }
 
+    /*
+     * Nor does a sample project's (issue #6808): nothing in a sample is ever
+     * public, so its dashboard's public link answers as for none, whatever
+     * a member switched on. It fails open, as above: the dashboard's own
+     * settings still decide who reads it.
+     */
+    try {
+      if (await ProjectService.isSampleProject(dashboard.projectId)) {
+        return null;
+      }
+    } catch (err) {
+      logger.error(
+        `Could not tell whether the project of dashboard ${dashboard.id?.toString()} is a sample project; its public link answers as usual.`,
+      );
+      logger.error(err);
+    }
+
     return dashboard;
   }
 

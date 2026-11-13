@@ -1,6 +1,7 @@
 import GlossaryTerm from "../../../Types/Docs/GlossaryTerm";
 import DefinedTerm from "../Glossary/DefinedTerm";
 import readAsWritten from "../IsolatedText/ReadAsWritten";
+import { withProductText } from "../../Utils/ProductText";
 import useTranslator from "../../Utils/UseTranslator";
 import { Translator } from "../../Utils/TranslateTemplate";
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
@@ -657,15 +658,24 @@ const Card: FunctionComponent<ComponentProps> = (
     );
   };
 
+  const titleClassName: string =
+    isSection || isFormSection
+      ? CARD_SECTION_TITLE_CLASS_NAME
+      : CARD_TITLE_CLASS_NAME;
+
   const titleElement: ReactElement | false | "" | undefined =
     translatedTitle && (
       <h2
         data-testid="card-details-heading"
         id="card-details-heading"
+        /*
+         * A title in words is the product's own (Utils/ProductText); one
+         * that is an element may carry a record's name, and stays masked.
+         */
         className={
-          isSection || isFormSection
-            ? CARD_SECTION_TITLE_CLASS_NAME
-            : CARD_TITLE_CLASS_NAME
+          typeof translatedTitle === "string"
+            ? withProductText(titleClassName)
+            : titleClassName
         }
       >
         {props.titleGlossaryTerm && typeof translatedTitle === "string" ? (
@@ -846,7 +856,11 @@ const Card: FunctionComponent<ComponentProps> = (
     translatedDescription && (
       <DescriptionTag
         data-testid="card-description"
-        className={descriptionClassName}
+        className={
+          typeof translatedDescription === "string"
+            ? withProductText(descriptionClassName)
+            : descriptionClassName
+        }
       >
         {readAsWritten(translatedDescription, translator.language)}
       </DescriptionTag>

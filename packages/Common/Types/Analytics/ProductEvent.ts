@@ -114,6 +114,13 @@ export enum ProductEventName {
 
   // "Used by" (#6813): the full list of what refers to a record was opened.
   UsedByListOpened = "used_by/list_opened",
+  /*
+   * A sample project (#6808): made or opened again from an entry point,
+   * and deleted from its bar. The only events a sample sends: nothing done
+   * inside one is a project getting value (ProductEvents.send).
+   */
+  SampleProjectStarted = "sample_project/started",
+  SampleProjectDeleted = "sample_project/deleted",
 }
 
 // The words of a search that found nothing, at most this long (Cloud only).
@@ -432,6 +439,18 @@ export const PRODUCT_EVENTS: ReadonlyArray<ProductEventDefinition> = [
     description:
       'The full list of what refers to a record was opened: a relation\'s "See all" on a record\'s Used by card (relation), or a label\'s Used by (relation "all").',
     properties: [token("record_kind"), token("relation")],
+  },
+  {
+    name: ProductEventName.SampleProjectStarted,
+    description:
+      "Explore Sample Project was pressed: where (from - welcome, goals, home), and whether a sample was made or the person's existing one opened (is_new).",
+    properties: [token("from"), { name: "is_new" }],
+  },
+  {
+    name: ProductEventName.SampleProjectDeleted,
+    description:
+      "A sample project was deleted from its bar, and how many days after it was made (days_kept).",
+    properties: [{ name: "days_kept" }],
   },
 ];
 

@@ -5,6 +5,11 @@ import {
   WelcomeGoalEntry,
 } from "./WelcomeChecklistCatalog";
 import ProjectGoal from "Common/Types/WelcomeChecklist/ProjectGoal";
+import { isGoalOffOnServer } from "Common/Types/WelcomeChecklist/WelcomeChecklist";
+import ProductKey from "Common/Types/Product/ProductKey";
+import { getOffProducts } from "Common/Types/Product/ServerProducts";
+import { ProjectProductsState } from "../../../Utils/ProjectProducts/ProjectProductsStore";
+import useProjectProducts from "../../../Utils/ProjectProducts/UseProjectProducts";
 import Button, {
   ButtonSize,
   ButtonStyleType,
@@ -20,7 +25,8 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
  * new project's owner, and again whenever they press Change on the
  * checklist. Several goals can be ticked; Skip gives the checklist the four
  * steps it always had. Inline in the Welcome card rather than a dialog, so
- * the rest of Home stays in reach.
+ * the rest of Home stays in reach. A goal of a product switched off on the
+ * server (#6815) is not offered.
  */
 
 export interface ComponentProps {
@@ -40,6 +46,15 @@ const GoalQuestion: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const products: ProjectProductsState = useProjectProducts();
+  const offProducts: Array<ProductKey> = getOffProducts(
+    products.answer.offOnServer || {},
+  );
+  const goals: Array<WelcomeGoalEntry> = WELCOME_GOALS.filter(
+    (entry: WelcomeGoalEntry): boolean => {
+      return !isGoalOffOnServer(entry.goal, offProducts);
+    },
+  );
   const [chosen, setChosen] = useState<Array<ProjectGoal>>([
     ...props.initialGoals,
   ]);
@@ -80,7 +95,7 @@ const GoalQuestion: FunctionComponent<ComponentProps> = (
             {translator.translateText(WELCOME_QUESTION_COPY.title)}
           </legend>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {WELCOME_GOALS.map((entry: WelcomeGoalEntry): ReactElement => {
+            {goals.map((entry: WelcomeGoalEntry): ReactElement => {
               const isChosen: boolean = chosen.includes(entry.goal);
 
               return (

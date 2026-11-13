@@ -80,12 +80,15 @@ const ENTRIES: Array<PageSearchIndexEntry> = getPageSearchIndexEntries(AREAS);
 const ALL_ON: PageSearchAvailability = {
   isBillingEnabled: true,
   isMonitorGroupsEnabled: true,
+  isDashboardRecordingOn: true,
   canDeleteProject: true,
 };
 
 const SELF_HOSTED: PageSearchAvailability = {
   ...ALL_ON,
   isBillingEnabled: false,
+  // A self-hosted server never records its Dashboard (#6834).
+  isDashboardRecordingOn: false,
 };
 
 const TEMPLATE: (key: string) => string = (key: string): string => {

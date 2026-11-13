@@ -1361,6 +1361,16 @@ alerts:
 telemetry:
   disableIngestion: false
 
+# The products every project on this server offers, as the server starts
+# (SERVER_PRODUCTS): everything, monitoring-and-status-pages,
+# incident-response, or the products to keep on by key, comma-separated
+# (monitors,incidents,on-call,status-pages). A starting value only: once an
+# admin saves Admin Dashboard > Settings > Products, what they saved applies.
+# A product that is off is hidden in every project and its API refuses
+# changes; nothing is deleted, and what already runs keeps running.
+products:
+  onThisServer: everything
+
 # Browser source maps, uploaded from CI so exception stack traces can be shown
 # with original file names and line numbers instead of minified ones.
 #
