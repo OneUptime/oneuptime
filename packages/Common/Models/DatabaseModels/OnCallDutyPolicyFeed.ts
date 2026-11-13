@@ -36,6 +36,8 @@ export enum OnCallDutyPolicyFeedEventType {
   OwnerTeamAdded = "OwnerTeamAdded",
   OwnerTeamRemoved = "OwnerTeamRemoved",
   UserOverrideAdded = "UserOverrideAdded",
+  // An override's times, or who covers, changed (issue #7631).
+  UserOverrideChanged = "UserOverrideChanged",
   UserOverrideRemoved = "UserOverrideRemoved",
   /*
    * A schedule attached to this policy stopped having anybody on call. Distinct

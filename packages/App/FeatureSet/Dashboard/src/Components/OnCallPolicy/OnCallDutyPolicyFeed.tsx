@@ -79,6 +79,11 @@ export const ON_CALL_DUTY_POLICY_FEED_KINDS: Record<
     icon: IconProp.ArrowUturnRight,
     tone: FeedTone.Warning,
   },
+  // Its times, or who covers, changed.
+  [OnCallDutyPolicyFeedEventType.UserOverrideChanged]: {
+    icon: IconProp.ArrowUturnRight,
+    tone: FeedTone.Warning,
+  },
   [OnCallDutyPolicyFeedEventType.UserOverrideRemoved]: {
     icon: IconProp.ArrowUturnLeft,
     tone: FeedTone.Neutral,

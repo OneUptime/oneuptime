@@ -22,8 +22,9 @@ import Permission from "../Permission";
  * override as easily (issue #5617). Limited to owned policies, they could do
  * neither: a record of no policy belongs to no owner.
  *
- * So adding a global override, or deleting one, takes a permission to add
- * (or to delete) user overrides that reaches the whole project
+ * So adding a global override, editing one or deleting one, takes a
+ * permission to add (to edit, to delete) user overrides that reaches the
+ * whole project
  * (HeldPermissionsUtil, projectWideOnly): not one limited to labels or to
  * owned policies, and not one a team's block with labels takes away from
  * some policies, which the override would reach as well
@@ -31,9 +32,9 @@ import Permission from "../Permission";
  * team scoped to its own policies keeps adding them there, from each
  * policy's own User Overrides page.
  *
- * The server holds every add and delete of the table to it
- * (OnCallDutyPolicyUserOverrideService), and the dashboard locks Add and
- * Delete on the Global User Overrides page by it, with these words
+ * The server holds every add, edit and delete of the table to it
+ * (OnCallDutyPolicyUserOverrideService), and the dashboard locks Add, Edit
+ * and Delete on the Global User Overrides page by it, with these words
  * (UserOverrideTable). Both read the caller's rows by the one rule
  * (HeldPermissions).
  */
@@ -67,11 +68,16 @@ export const GLOBAL_USER_OVERRIDE_DELETE_REFUSAL: string = translationKey(
   "A global user override applies to every on-call policy in the project, and your permission to delete user overrides covers only some of them. Someone whose permission covers every policy can delete it.",
 );
 
+export const GLOBAL_USER_OVERRIDE_EDIT_REFUSAL: string = translationKey(
+  "A global user override applies to every on-call policy in the project, and your permission to edit user overrides covers only some of them. Someone whose permission covers every policy can edit it.",
+);
+
 export default class GlobalUserOverrideAccess {
   /*
-   * Whether `held` adds - or, given the table's delete permissions, deletes
-   * - a global user override: one of `permissions` held over the whole
-   * project, and no block on any of them, with labels or without.
+   * Whether `held` adds - or, given the table's update or delete
+   * permissions, edits or deletes - a global user override: one of
+   * `permissions` held over the whole project, and no block on any of them,
+   * with labels or without.
    */
   public static mayChange(
     held: HeldPermissions,

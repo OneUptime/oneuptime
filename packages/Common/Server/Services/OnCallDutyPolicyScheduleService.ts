@@ -2463,8 +2463,15 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
         onCallDutyPolicyId: true,
         updatedAt: true,
       },
+      /*
+       * In the order overrides are used where they overlap - saved before
+       * overlaps were refused (issue #7630): the one that starts first,
+       * then the one added first (UserOverrideOverlap.compareUse), as
+       * paging picks.
+       */
       sort: {
         startsAt: SortOrder.Ascending,
+        createdAt: SortOrder.Ascending,
       },
       limit: LIMIT_PER_PROJECT,
       skip: 0,
@@ -3096,8 +3103,10 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
           routeAlertsToUserId: true,
           onCallDutyPolicyId: true,
         },
+        // As loadOverridesForProjects orders them.
         sort: {
           startsAt: SortOrder.Ascending,
+          createdAt: SortOrder.Ascending,
         },
         limit: LIMIT_PER_PROJECT,
         skip: 0,
