@@ -113,7 +113,7 @@ const TraceMonitorStepForm: FunctionComponent<ComponentProps> = (
                 };
               },
             ),
-            title: "Filter by Telemetry Service",
+            title: "Filter by Service",
             description:
               "Only spans from these services. Empty: every service.",
             hideOptionalLabel: true,

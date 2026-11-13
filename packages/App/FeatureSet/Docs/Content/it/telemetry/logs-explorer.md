@@ -37,7 +37,7 @@ L'esploratore ha cinque schede:
 ## Prima di iniziare
 
 - **Log in arrivo.** Inviateli con [OpenTelemetry](/docs/telemetry/open-telemetry), [Fluent Bit](/docs/telemetry/fluentbit), [Fluentd](/docs/telemetry/fluentd) o [Syslog](/docs/telemetry/syslog). La scheda **Guida alla configurazione** mostra la configurazione per il vostro linguaggio o collector.
-- **Un ruolo che può leggere la telemetria.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member o Telemetry Viewer, oppure un ruolo personalizzato con il permesso Read Telemetry Service Log. Il suo ambito decide di chi sono i log che vedete: vedere [Telemetria](/docs/permissions/index#telemetria).
+- **Un ruolo che può leggere la telemetria.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member o Telemetry Viewer, oppure un ruolo personalizzato con il permesso Read Logs. Il suo ambito decide di chi sono i log che vedete: vedere [Telemetria](/docs/permissions/index#telemetria).
 
 ## Trovare una riga di log
 

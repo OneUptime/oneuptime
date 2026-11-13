@@ -124,7 +124,7 @@ See [Subscribers & Announcements](/docs/status-pages/subscribers).
 
 ### Scheduled Maintenance
 
-Planned work, announced ahead of time. An event moves through **Scheduled**, **Ongoing**, **Ended** and **Completed**, and the status pages it is shown on tell visitors and subscribers about it.
+Planned work, announced ahead of time. Each maintenance event moves through the maintenance states **Scheduled**, **Ongoing**, **Ended** and **Completed**, and the status pages it is shown on tell visitors and subscribers about it.
 
 Also called: **Scheduled Maintenance Event**, **Scheduled Event**, **Event**. See [Scheduled Maintenance Overview](/docs/scheduled-maintenance/index).
 
@@ -146,7 +146,7 @@ See [Monitor Groups](/docs/monitor/monitor-groups).
 
 An application or microservice you run. OneUptime adds one the first time its telemetry arrives, named by its `service.name`, and brings its logs, traces, metrics, exceptions, incidents and owners together on one page.
 
-Also called: **Service Catalog**, **Telemetry Service**. See [Service Catalog](/docs/telemetry/services).
+Also called: **Service Catalog**, **Telemetry Service**. See [Services](/docs/telemetry/services).
 
 ### Host
 

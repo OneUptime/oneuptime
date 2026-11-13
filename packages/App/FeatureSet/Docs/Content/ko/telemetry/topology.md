@@ -28,7 +28,7 @@ flowchart LR
 ## 시작하기 전에
 
 - **들어오는 텔레메트리.** 서비스 맵에는 트레이스가 필요합니다. [OpenTelemetry](/docs/telemetry/open-telemetry)를 참고하세요. 인프라 보기에는 데이터를 보내는 호스트나 클러스터가 필요합니다. [Kubernetes 에이전트](/docs/telemetry/kubernetes-agent)를 참고하세요. 네트워크 보기에는 네트워크 장치가 필요합니다. [네트워크 장치 모니터](/docs/monitor/network-device-monitor)를 참고하세요.
-- **텔레메트리를 읽는 역할.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member, Telemetry Viewer, 또는 Read Telemetry Service 권한이 있는 사용자 지정 역할입니다.
+- **텔레메트리를 읽는 역할.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member, Telemetry Viewer, 또는 Read Inventory Item 권한이 있는 사용자 지정 역할입니다.
 
 ## 토폴로지 열기
 
@@ -114,7 +114,7 @@ OneUptime은 10분마다 트레이스에서 서비스 간 호출을 찾습니다
 ## 다음 단계
 
 :::cards
-- [서비스 카탈로그](/docs/telemetry/services): 서비스 하나에 관한 모든 것.
+- [서비스](/docs/telemetry/services): 서비스 하나에 관한 모든 것.
 - [트레이스 탐색기](/docs/telemetry/traces-explorer): 각 화살표 뒤에 있는 요청.
 - [인벤토리 개요](/docs/inventory/overview): 맵이 그리는 모든 리소스.
 - [네트워크 장치 모니터](/docs/monitor/network-device-monitor): 네트워크를 맵에 올립니다.

@@ -72,7 +72,7 @@ flowchart TB
 
 :::cards
 - [मॉनिटर समूह](/docs/monitor/monitor-groups): कई मॉनिटरों को एक स्थिति में समेटें।
-- [सेवा कैटलॉग](/docs/telemetry/services): आपका चलाया हर ऐप्लिकेशन, हर एक अपने पेज पर।
+- [सेवाएं](/docs/telemetry/services): आपका चलाया हर ऐप्लिकेशन, हर एक अपने पेज पर।
 - [इन्वेंटरी अवलोकन](/docs/inventory/overview): OneUptime आपके पूरे परिवेश के बारे में जो कुछ जानता है।
 :::
 

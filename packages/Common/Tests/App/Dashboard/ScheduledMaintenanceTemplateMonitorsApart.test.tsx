@@ -26,7 +26,7 @@ import { searchThroughGetList } from "./AffectedResourceSearchFake";
 
 /*
  * A scheduled maintenance template asks for its affected resources the way
- * Create Scheduled Maintenance Event does: its monitors in a picker of their
+ * Create Maintenance Event does: its monitors in a picker of their
  * own, then "Change Monitor Status to" right under them, then the other
  * resources - on its create wizard and on its Affected Resources card alike.
  *
@@ -372,7 +372,7 @@ describe("Create Scheduled Maintenance Template: Resources Affected", () => {
       target: { value: "Used for the Sunday patch window." },
     });
     await act(async () => {});
-    await goToNextStep("Event");
+    await goToNextStep("Maintenance Details");
 
     fireEvent.change(labelledControl("Title"), {
       target: { value: "Database maintenance" },

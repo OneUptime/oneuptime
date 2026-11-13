@@ -17,6 +17,9 @@ import OnCallDutyPolicyTimeLog from "../../Models/DatabaseModels/OnCallDutyPolic
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import TelemetryIngestionKey from "../../Models/DatabaseModels/TelemetryIngestionKey";
 import TelemetryIngestionKeyRefusal from "../../Models/DatabaseModels/TelemetryIngestionKeyRefusal";
+import ScheduledMaintenance from "../../Models/DatabaseModels/ScheduledMaintenance";
+import ScheduledMaintenanceInternalNote from "../../Models/DatabaseModels/ScheduledMaintenanceInternalNote";
+import ScheduledMaintenancePublicNote from "../../Models/DatabaseModels/ScheduledMaintenancePublicNote";
 import {
   getApiPluralName,
   getApiSingularName,
@@ -175,6 +178,34 @@ const RENAMED: Array<KeptNames> = [
     pluralName: "Ingestion Key Refusals",
     terraform: null,
     cli: "telemetry-ingestion-key-refusal",
+    mcpList: null,
+    mcpGet: null,
+  },
+  // Part 3: a Scheduled Maintenance Event is a Maintenance Event.
+  {
+    model: ScheduledMaintenance,
+    singularName: "Maintenance Event",
+    pluralName: "Maintenance Events",
+    terraform: "oneuptime_scheduled_maintenance_event",
+    cli: "scheduled-maintenance-event",
+    mcpList: "list_scheduled_maintenance_events",
+    mcpGet: "get_scheduled_maintenance_event",
+  },
+  {
+    model: ScheduledMaintenanceInternalNote,
+    singularName: "Maintenance Event Internal Note",
+    pluralName: "Maintenance Event Internal Notes",
+    terraform: null,
+    cli: "scheduled-event-internal-note",
+    mcpList: null,
+    mcpGet: null,
+  },
+  {
+    model: ScheduledMaintenancePublicNote,
+    singularName: "Maintenance Event Public Note",
+    pluralName: "Maintenance Event Public Notes",
+    terraform: "oneuptime_scheduled_event_public_note",
+    cli: "scheduled-event-public-note",
     mcpList: null,
     mcpGet: null,
   },

@@ -72,12 +72,12 @@ export const ROLE_NAMES: ReadonlyArray<string> = [
  * so every language writes them as the English does.
  */
 export const WORKFLOW_COMPONENTS: ReadonlyArray<string> = [
-  "On Create Scheduled Maintenance Event",
-  "On Update Scheduled Maintenance Event",
-  "On Create or Update Scheduled Maintenance Event",
-  "On Delete Scheduled Maintenance Event",
-  "Create One Scheduled Maintenance Event",
-  "Update One Scheduled Maintenance Event",
+  "On Create Maintenance Event",
+  "On Update Maintenance Event",
+  "On Create or Update Maintenance Event",
+  "On Delete Maintenance Event",
+  "Create One Maintenance Event",
+  "Update One Maintenance Event",
 ];
 
 /*
@@ -88,22 +88,22 @@ export const WORKFLOW_COMPONENTS: ReadonlyArray<string> = [
  */
 export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
   {
-    [MAINTENANCE_OVERVIEW]: ["Create One Scheduled Maintenance Event", "⋯"],
+    [MAINTENANCE_OVERVIEW]: ["Create One Maintenance Event", "⋯"],
     [CREATING_EVENTS]: [
       "Create Scheduled Maintenance",
-      "On Create Scheduled Maintenance Event",
-      "Create One Scheduled Maintenance Event",
+      "On Create Maintenance Event",
+      "Create One Maintenance Event",
     ],
     [MAINTENANCE_STATES]: ["⋯"],
     [TEMPLATES_AND_RECURRING]: [],
     [RULES_AND_SETTINGS]: [
-      "On Create Scheduled Maintenance Event",
-      "On Update Scheduled Maintenance Event",
-      "On Create or Update Scheduled Maintenance Event",
-      "On Delete Scheduled Maintenance Event",
+      "On Create Maintenance Event",
+      "On Update Maintenance Event",
+      "On Create or Update Maintenance Event",
+      "On Delete Maintenance Event",
       "Scheduled Maintenance State Timeline",
-      "Create One Scheduled Maintenance Event",
-      "Update One Scheduled Maintenance Event",
+      "Create One Maintenance Event",
+      "Update One Maintenance Event",
       "Create Scheduled Maintenance Owner Rule",
     ],
     // The + a day of the calendar shows, and the list's menu.

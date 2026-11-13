@@ -104,7 +104,7 @@ Ein Ursprung besteht aus Schema, Host und optionalem Port: `https://app.example.
 ]
 ```
 
-Der [Dienstkatalog](/docs/telemetry/services#wie-ein-dienst-in-den-katalog-kommt) zeigt, wie ein festgelegter Name den Dienst bestimmt. Runner und KI-Agent des Kubernetes-Agenten sowie die Infrastruktur-KI-Agenten registrieren sich nicht mit einem festgelegten Schlüssel: Geben Sie ihnen einen Server-Schlüssel ohne festgelegten Namen.
+Unter [Dienste](/docs/telemetry/services#wie-ein-dienst-in-den-katalog-kommt) steht, wie ein festgelegter Name den Dienst bestimmt. Runner und KI-Agent des Kubernetes-Agenten sowie die Infrastruktur-KI-Agenten registrieren sich nicht mit einem festgelegten Schlüssel: Geben Sie ihnen einen Server-Schlüssel ohne festgelegten Namen.
 
 ## Einen Schlüssel rotieren, ausschalten oder löschen
 
@@ -155,7 +155,7 @@ Seit OneUptime die Nutzung aufzeichnet, hat nichts Daten mit diesem Schlüssel g
 
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Traces, Metriken und Protokolle mit Ihrem Schlüssel senden.
-- [Dienstkatalog](/docs/telemetry/services): Die Dienste sehen, unter denen Ihre Telemetrie abgelegt wird.
+- [Dienste](/docs/telemetry/services): Die Dienste sehen, unter denen Ihre Telemetrie abgelegt wird.
 - [Datenaufbewahrung](/docs/telemetry/data-retention): Festlegen, wie lange die Daten aufbewahrt werden.
 - [Drop-Filter & Scrub-Regeln](/docs/telemetry/drop-filters-and-scrub-rules): Daten verwerfen oder maskieren, bevor sie gespeichert werden.
 - [Ingestion-Budgets](/docs/telemetry/ingestion-budgets): Begrenzen, wie viel jeder Schlüssel an einem Tag senden darf.

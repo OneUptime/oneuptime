@@ -1,6 +1,6 @@
-# Tjenestekatalog
+# Tjenester
 
-Tjenestekataloget viser de applikationer og microservices, du kører. OneUptime tilføjer en tjeneste, første gang dens telemetri ankommer, og samler derefter dens protokoller, spor, metrikker, undtagelser, hændelser og ejere på én side, så alle kan se, hvad en tjeneste gør, hvem der ejer den, og hvordan den har det. Se [Hvilken skal jeg bruge?](/docs/introduction/which-one#monitorgruppe-tjeneste-eller-etiket) for at vælge mellem en tjeneste, en monitorgruppe og en etiket.
+Tjenester viser de applikationer og microservices, du kører. OneUptime tilføjer en tjeneste, første gang dens telemetri ankommer, og samler derefter dens protokoller, spor, metrikker, undtagelser, hændelser og ejere på én side, så alle kan se, hvad en tjeneste gør, hvem der ejer den, og hvordan den har det. Se [Hvilken skal jeg bruge?](/docs/introduction/which-one#monitorgruppe-tjeneste-eller-etiket) for at vælge mellem en tjeneste, en monitorgruppe og en etiket.
 
 :::cards
 - [Sådan kommer en tjeneste ind i kataloget](#sådan-kommer-en-tjeneste-ind-i-kataloget): Dens `service.name`, ved dens første telemetri.

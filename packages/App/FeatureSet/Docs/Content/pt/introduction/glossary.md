@@ -124,7 +124,7 @@ Veja [Assinantes e comunicados](/docs/status-pages/subscribers).
 
 ### Manutenção programada
 
-Um trabalho planejado, anunciado com antecedência. Um evento passa por **Agendado**, **Em andamento**, **Encerrado** e **Concluído**, e as páginas de status em que ele aparece informam visitantes e assinantes sobre ele.
+Um trabalho planejado, anunciado com antecedência. Cada evento de manutenção passa pelos estados da manutenção **Agendado**, **Em andamento**, **Encerrado** e **Concluído**, e as páginas de status em que ele aparece informam visitantes e assinantes sobre ele.
 
 Também chamado: **Evento de manutenção programada**, **Evento agendado**, **Evento**. Veja [Visão geral da manutenção programada](/docs/scheduled-maintenance/index).
 
@@ -146,7 +146,7 @@ Veja [Grupos de monitores](/docs/monitor/monitor-groups).
 
 Um aplicativo ou microsserviço que você executa. O OneUptime o adiciona na primeira vez que a telemetria dele chega, com o nome do seu `service.name`, e reúne os logs, traces, métricas, exceções, incidentes e proprietários dele em uma única página.
 
-Também chamado: **Catálogo de serviços**, **Serviço de telemetria**. Veja [Catálogo de serviços](/docs/telemetry/services).
+Também chamado: **Catálogo de serviços**, **Serviço de telemetria**. Veja [Serviços](/docs/telemetry/services).
 
 ### Host
 

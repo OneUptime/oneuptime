@@ -429,8 +429,8 @@ describe("what each resource's records are called", () => {
       [
         ScheduledMaintenanceCustomField,
         {
-          singular: "Scheduled Maintenance Event",
-          plural: "Scheduled Maintenance Events",
+          singular: "Maintenance Event",
+          plural: "Maintenance Events",
         },
       ],
       [

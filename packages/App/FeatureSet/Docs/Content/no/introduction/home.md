@@ -49,7 +49,7 @@ Hvert tall teller noe, sier om det trenger deg, og åpner listen bak det i produ
 | **Aktive hendelser** | Hendelser som ikke er løst | **Alt er i orden** | **Hendelser → Aktive hendelser** |
 | **Aktive varsler** | Varsler som ikke er løst | **Alt er i orden** | **Varsler → Aktive varsler** |
 | **Ikke-operative monitorer** | Monitorer med en status som ikke er en driftsstatus. Arkiverte monitorer, og monitorer med overvåking slått av, telles ikke. | **Alle i drift** | **Monitorer → Ikke operativ** |
-| **Pågående vedlikehold** | Planlagte vedlikehold som pågår | **Ingen pågår** | **Planlagt vedlikehold → Pågående hendelser** |
+| **Pågående vedlikehold** | Planlagte vedlikehold som pågår | **Ingen pågår** | **Planlagt vedlikehold → Pågående vedlikeholdshendelser** |
 | **SLO-er i faresonen** | Påslåtte SLO-er som er i faresonen eller har brukt opp feilbudsjettet | **Budsjettene er sunne** | **SLOs** |
 
 Et tall over null viser **Krever oppmerksomhet**, eller **Pågår** og **Budsjettet brukes opp** for vedlikehold og SLO-er. Så lenge en SLO er i faresonen, åpner **SLO-er i faresonen** listen **SLOs** filtrert til akkurat dem. Et prosjekt uten monitorer ser **Ingen monitorer ennå**, og ett uten SLO-er ser **Ingen SLO-er ennå**: et tomt prosjekt er ikke det samme som et sunt. De to åpner da listene **Monitorer** og **SLOs**, der du oppretter en.

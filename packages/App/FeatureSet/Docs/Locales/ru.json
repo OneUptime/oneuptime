@@ -299,7 +299,7 @@
     "Incoming Request Ingress": "Ingress для входящих запросов",
     "Packet Capture": "Захват пакетов",
     "OpenTelemetry": "OpenTelemetry",
-    "Service Catalog": "Каталог служб",
+    "Services": "Сервисы",
     "Logs Explorer": "Обозреватель журналов",
     "Traces Explorer": "Обозреватель трассировок",
     "Metrics Explorer": "Обозреватель метрик",

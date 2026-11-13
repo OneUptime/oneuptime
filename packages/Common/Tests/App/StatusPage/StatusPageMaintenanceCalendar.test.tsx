@@ -144,7 +144,7 @@ function link(testId: string): HTMLAnchorElement {
   return screen.getByTestId(testId) as HTMLAnchorElement;
 }
 
-describe("Subscribe to calendar, on the Scheduled Events page", () => {
+describe("Subscribe to calendar, on the Scheduled Maintenance page", () => {
   test("is not offered on a private page, whose calendar no app could read", () => {
     setPage({ isPrivate: true });
 

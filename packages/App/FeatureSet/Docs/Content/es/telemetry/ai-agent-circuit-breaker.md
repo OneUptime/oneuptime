@@ -60,7 +60,7 @@ Un agente atascado deja un rastro que se reconoce: el mismo span de herramienta,
 
 :::steps
 1. Abre **Monitores**, haz clic en **Crear monitor** y elige **Trazas** en **Más tipos de monitor**. En **¿Sobre qué debe avisarte este monitor?**, elige **Otra cosa** y vacía **Estado del span**.
-2. En **Más campos**, pon **Filtrar por servicio de telemetría** en el servicio del agente y **Filtrar por atributos** en `gen_ai.tool.name` igual a la herramienta en la que esperas el bucle, como `search_web`. Si tu instrumentación nombra el span de cada herramienta, pon ese nombre en **El nombre del span contiene** en su lugar.
+2. En **Más campos**, pon **Filtrar por servicio** en el servicio del agente y **Filtrar por atributos** en `gen_ai.tool.name` igual a la herramienta en la que esperas el bucle, como `search_web`. Si tu instrumentación nombra el span de cada herramienta, pon ese nombre en **El nombre del span contiene** en su lugar.
 3. Pon la **Ventana de tiempo** en **Últimos 5 minutos**.
 4. En **Cuándo alertar**, pon **Más de** un número que ninguna ejecución sana alcance en cinco minutos, como `50`, y dale a la alerta un título como `Agent loop: support-bot`.
 :::

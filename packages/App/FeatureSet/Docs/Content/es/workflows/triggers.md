@@ -202,7 +202,7 @@ Para probar un disparador de evento sin esperar al evento, haz clic en **Ejecuta
 | **Incidente**                             | Reaccionar cuando se declara, se actualiza (reconocido, resuelto) o se elimina un incidente. |
 | **Alerta**                                | Los mismos tres eventos, para las alertas.                                                |
 | **Monitor**                               | Reaccionar cuando se añade, se edita o se quita un monitor.                               |
-| **Evento de mantenimiento programado**    | Anunciar una ventana de mantenimiento automáticamente cuando se programa.                 |
+| **Evento de mantenimiento**    | Anunciar una ventana de mantenimiento automáticamente cuando se programa.                 |
 | **Suscriptor de la página de estado**     | Dar la bienvenida a alguien que se suscribe a una página de estado.                       |
 | **Política de guardia**                   | Sincronizar los cambios de la política con otro sistema de turnos.                        |
 

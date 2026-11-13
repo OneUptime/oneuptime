@@ -81,7 +81,7 @@ const TEMPLATE_PAIRS: Array<TemplatePair> = [
   {
     created: EmailTemplateType.SubscriberScheduledMaintenanceEventNoteCreated,
     updated: EmailTemplateType.SubscriberScheduledMaintenanceEventNoteUpdated,
-    title: "Scheduled Maintenance Event: Database engine upgrade",
+    title: "Maintenance Event: Database engine upgrade",
     updatedIntro:
       "A note on this scheduled event has been updated. Here is the latest version:",
     createdIntro: "Here are more details for this scheduled event:",

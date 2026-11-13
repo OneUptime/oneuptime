@@ -21,7 +21,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 /*
  * ARCHIVE AND UNARCHIVE ON THE EIGHT SETTINGS PAGES OF THE VALUES RECORDS
  * PICK FROM (Common/Utils/ArchivableValues): Incident State, Incident
- * Severity, Alert State, Alert Severity, Monitor Status, Event State, Labels
+ * Severity, Alert State, Alert Severity, Monitor Status, Maintenance State, Labels
  * and Incident Roles.
  *
  * The maintainer: "Can we build functionality to archive things like
@@ -198,7 +198,7 @@ const PAGES: Array<PageCase> = [
     tableId: "monitor-status-table",
   },
   {
-    name: "Event State",
+    name: "Maintenance State",
     type: ArchivableValueType.ScheduledMaintenanceState,
     page: ScheduledMaintenanceStatesPage,
     tableId: "scheduled-maintenance-state-table",

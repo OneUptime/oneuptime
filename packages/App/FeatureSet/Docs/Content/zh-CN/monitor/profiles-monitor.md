@@ -84,7 +84,7 @@ OneUptime 每分钟读取与监视器过滤器匹配、且在其时间窗口内�
 | `attributes` | 属性具有这些值的剖析数据。 | 空：无条件 |
 | `lastXSecondsOfProfiles` | 在评估前这么多秒内开始的剖析数据。 | 无：务必设置，否则会统计所有已存储的剖析数据，计数永远不会降到 0 |
 
-剖析数据必须匹配您设置的所有过滤器才会被读取。在表单中，**函数** 设置 `functionName`，**分析内容** 设置 `profileTypes`（选 **所有类型的性能剖析** 时为空），**监控性能剖析的时长（时间）** 设置 `lastXSecondsOfProfiles`，**按遥测服务过滤** 和 **按基础设施实体过滤** 设置 `telemetryServiceIds` 和 `entityKeys`。
+剖析数据必须匹配您设置的所有过滤器才会被读取。在表单中，**函数** 设置 `functionName`，**分析内容** 设置 `profileTypes`（选 **所有类型的性能剖析** 时为空），**监控性能剖析的时长（时间）** 设置 `lastXSecondsOfProfiles`，**按服务筛选** 和 **按基础设施实体过滤** 设置 `telemetryServiceIds` 和 `entityKeys`。
 
 ## 如何评估
 

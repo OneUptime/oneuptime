@@ -1114,7 +1114,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   },
 
   "/product/services": {
-    title: "Service Catalog | Own & Monitor Every Service | OneUptime",
+    title: "Services | Own & Monitor Every Service | OneUptime",
     description:
       "A single catalog of every service you run. Assign owners, group by labels, and connect each service to its logs, traces, metrics, and incidents. Open source.",
     canonicalPath: "/product/services",
@@ -1126,7 +1126,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
       { name: "Services", url: "/product/services" },
     ],
     softwareApplication: {
-      name: "OneUptime Service Catalog",
+      name: "OneUptime Services",
       applicationCategory: "DeveloperApplication",
       operatingSystem: "Web, Cloud",
       description:

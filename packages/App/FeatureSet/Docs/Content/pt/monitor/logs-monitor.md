@@ -72,7 +72,7 @@ Clique em **Criar monitor**. O monitor abre na sua página **Visão geral**, e s
 | **Janela de tempo** (em **Quando alertar**) | Logs dos últimos 5 segundos até as últimas 24 horas. | **Últimos 5 minutos** |
 | **Agrupar por atributos** | Não é um filtro: conta separadamente cada combinação de valores desses atributos. | Vazio: uma só contagem |
 | **Resolvido por atributos** | Não é um filtro: o log que resolve um grupo. Aparece assim que **Agrupar por atributos** tem um atributo; veja [Resolvido por um log](#resolvido-por-um-log). | Vazio: um grupo se resolve quando os logs dele param |
-| **Filtrar por serviço de telemetria** (em **Mais campos**) | Logs de qualquer um dos serviços escolhidos. | Vazio: todos os serviços |
+| **Filtrar por serviço** (em **Mais campos**) | Logs de qualquer um dos serviços escolhidos. | Vazio: todos os serviços |
 | **Filtrar por entidade de infraestrutura** (em **Mais campos**) | Logs de qualquer um dos hosts, pods, contêineres e outras entidades escolhidos. | Vazio: todas as entidades |
 | **Filtrar por atributos** (em **Mais campos**) | Logs cujos atributos atendem a todas as condições. Cada condição tem seu próprio operador, como "igual a" ou "contém". | Vazio: nenhuma condição |
 
@@ -140,7 +140,7 @@ Você quer um incidente quando o serviço de checkout registra mais de 50 erros 
 
 - **Severidade do Registro**: **Erro**
 - **Janela de tempo**: **Últimos 5 minutos**
-- **Filtrar por serviço de telemetria**: `checkout`
+- **Filtrar por serviço**: `checkout`
 - **Quando alertar**: **Mais de** `50`
 - **O que acontece**: **Declarar um incidente**
 
