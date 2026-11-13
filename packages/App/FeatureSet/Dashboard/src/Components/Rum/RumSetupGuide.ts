@@ -346,7 +346,7 @@ Keep \`browser.platform\` coarse: every distinct value becomes a row on the **Cl
       markdown: `Everything in the browser snippet ships to your users. The token in it is public — anyone who views source, opens devtools or reads your bundle can copy it. That is why this guide only lists and creates **Browser** ingestion keys, each with the origins your site is served from:
 
 - it is accepted only from those origins, so a copied key does not work from anyone else's page;
-- it can only write traces, logs, metrics and session replays — not profiles, source maps, syslog, Fluent, Pyroscope or security events;
+- it can only write traces, logs, metrics, session replays and Sentry browser SDK reports — not profiles, source maps, syslog, Fluent, Pyroscope or security events;
 - it is rate limited per key, can be switched off in one edit, and can be given an expiry.
 
 An origin includes the scheme and any port, and may start with one \`*.\` host wildcard — \`https://app.example.com\`, \`https://*.example.com\`. Setting **Pinned Service Name** on the key as well forces \`service.name\` on everything it writes, so a copied key cannot pass its telemetry off as one of your backend services. Both are on the key's page in **Project Settings > Telemetry & APM > Ingestion Keys**.

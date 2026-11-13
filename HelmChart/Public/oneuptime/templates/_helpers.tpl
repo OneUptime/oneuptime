@@ -764,6 +764,87 @@ that is empty.
 {{- trim (toString (default "" ($vapid.existingSecret).privateKeyKey)) | default "privateKey" -}}
 {{- end }}
 
+{{/*
+The server's own Twilio account, set by twilio in the values (#7515): handed
+to every workload that runs the server's env helper as the GLOBAL_TWILIO_
+variables, which packages/Common/Types/CallAndSMS/ServerTwilioEnvironment.ts
+reads. Once GLOBAL_TWILIO_ACCOUNT_SID is set, the account is the one they
+describe, and the one saved in the Admin Dashboard is not used.
+
+They are rendered only when twilio.accountSid is set: an install that leaves
+the block empty renders exactly as before, and hides no GLOBAL_TWILIO_
+variable an operator sets with extraEnv. The auth token comes from
+twilio.authToken, or from the Secret twilio.existingSecret names, under
+authToken unless authTokenKey names another key.
+
+Refused rather than rendered, each saying what to change:
+  - another twilio value without accountSid, which nothing would read;
+  - accountSid with neither authToken nor existingSecret.name: Twilio refuses
+    the account without its auth token;
+  - authToken and existingSecret.name together, as vapid.privateKey and
+    vapid.existingSecret are: the Secret is there to keep the token out of
+    the values Helm stores with every revision.
+Whether the numbers are phone numbers, and are the ones what the account is
+used for needs, the app says - in its log, in Admin Dashboard > Settings >
+Call and SMS and in the server's sending status - and the account sends
+nothing until they are. Values are read through parentheses and defaults, so
+values from before twilio existed (helm upgrade --reuse-values) still render.
+*/}}
+{{- define "oneuptime.env.twilio" }}
+{{- $twilio := .Values.twilio | default dict }}
+{{- $existing := $twilio.existingSecret | default dict }}
+{{- $accountSid := trim (toString (default "" $twilio.accountSid)) }}
+{{- $authToken := trim (toString (default "" $twilio.authToken)) }}
+{{- $secretName := trim (toString (default "" $existing.name)) }}
+{{- $secretKey := trim (toString (default "" $existing.authTokenKey)) | default "authToken" }}
+{{- if not $accountSid }}
+{{- $unread := list }}
+{{- range $key := list "authToken" "usedFor" "primaryPhoneNumber" "secondaryPhoneNumbers" "smsPhoneNumbers" }}
+{{- if trim (toString (default "" (index $twilio $key))) }}
+{{- $unread = append $unread (printf "twilio.%s" $key) }}
+{{- end }}
+{{- end }}
+{{- if $secretName }}
+{{- $unread = append $unread "twilio.existingSecret.name" }}
+{{- end }}
+{{- if $unread }}
+{{- fail (printf "twilio.accountSid is empty, so OneUptime reads none of the other twilio values, and these are set: %s. Set twilio.accountSid to send through that Twilio account, or clear them to set the account up in the Admin Dashboard." (join ", " $unread)) }}
+{{- end }}
+{{- else }}
+{{- if and (not $authToken) (not $secretName) }}
+{{- fail "twilio.accountSid is set, but twilio.authToken and twilio.existingSecret.name are empty: Twilio refuses the account without its auth token. Set twilio.authToken, or name the Secret that holds it in twilio.existingSecret.name." }}
+{{- end }}
+{{- if and $authToken $secretName }}
+{{- fail (printf "twilio.authToken and twilio.existingSecret.name are both set. Set one of them: to read the Twilio auth token from the Secret %s, clear authToken (--set twilio.authToken=\"\")." $secretName) }}
+{{- end }}
+
+- name: GLOBAL_TWILIO_ACCOUNT_SID
+  value: {{ include "oneuptime.envValue" $twilio.accountSid }}
+
+- name: GLOBAL_TWILIO_AUTH_TOKEN
+  {{- if $secretName }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $secretName | quote }}
+      key: {{ $secretKey | quote }}
+  {{- else }}
+  value: {{ include "oneuptime.envValue" $twilio.authToken }}
+  {{- end }}
+
+- name: GLOBAL_TWILIO_USED_FOR
+  value: {{ include "oneuptime.envValue" $twilio.usedFor }}
+
+- name: GLOBAL_TWILIO_PRIMARY_PHONE_NUMBER
+  value: {{ include "oneuptime.envValue" $twilio.primaryPhoneNumber }}
+
+- name: GLOBAL_TWILIO_SECONDARY_PHONE_NUMBERS
+  value: {{ include "oneuptime.envValue" $twilio.secondaryPhoneNumbers }}
+
+- name: GLOBAL_TWILIO_SMS_PHONE_NUMBERS
+  value: {{ include "oneuptime.envValue" $twilio.smsPhoneNumbers }}
+{{- end }}
+{{- end }}
+
 {{- define "oneuptime.env.runtime" }}
 {{- $vapidPrivateKeySecret := include "oneuptime.vapid.existingSecretName" $ }}
 
@@ -790,6 +871,7 @@ to `default`, and would render as unset - a relay again where billing is on.
 */}}
 - name: PUSH_NOTIFICATION_RELAY_SERVER_ENABLED
   value: {{ if kindIs "bool" ($.Values.pushNotification).relayServerEnabled }}{{ ternary "true" "false" ($.Values.pushNotification).relayServerEnabled | quote }}{{ else }}""{{ end }}
+{{- include "oneuptime.env.twilio" $ }}
 
 - name: SLACK_APP_CLIENT_SECRET
   {{- if $.Values.slackApp.existingSecret }}

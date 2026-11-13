@@ -541,7 +541,12 @@
         "cardTitle": "Twilio 配置",
         "cardDescription": "OneUptime 用来发送短信和拨打电话的 Twilio 账户，除非项目使用自己的 Twilio 配置。",
         "editButton": "编辑 Twilio 配置",
-        "smsSameAsCalls": "与通话相同的号码"
+        "smsSameAsCalls": "与通话相同的号码",
+        "environmentCardDescription": "由环境变量设置：Helm chart 值中的 twilio，或 config.env 中的 GLOBAL_TWILIO_ 设置。要更改此账户，请在那里更改并重启 OneUptime。",
+        "environmentProblemsTitle": "在这些环境变量修正之前，此账户不会发送短信，也不会拨打电话：",
+        "environmentUnusedTitle": "部分 Twilio 环境变量未被使用：",
+        "authTokenSet": "已设置",
+        "authTokenNotSet": "未设置"
       },
       "whatsapp": {
         "metaCardTitle": "Meta WhatsApp 设置",
