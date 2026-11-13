@@ -26,13 +26,19 @@ Adressen tjekkes fra din servers egen sonde, så den skal kunne nås derfra. For
 :::steps
 ### Åbn den guidede opsætning
 
+![Hjem spørger »Hvad vil du gøre først?«, med »Vide, når mit website eller API er nede« markeret](screen:home-goal-website)
+
 Siden **Hjem** i et nyt projekt spørger først **Hvad vil du gøre først?**: sæt flueben ved **Vide, når mit website eller API er nede**, og klik på **Fortsæt**. Klik derefter på **Opret din første overvågning** i tjeklisten **Velkommen til OneUptime 👋**. Mangler trinnet i tjeklisten, så tryk på `Ctrl+K` (`Cmd+K` på en Mac), skriv `website down`, og vælg **Vide, når mit website eller API er nede**.
 
 ### Indtast adressen
 
+![Trinnet »Hvad skal vi tjekke?«, med »Start tjekket« fremhævet](screen:website-down-address)
+
 Under **Hvad skal vi tjekke?** skriver du adressen i **Adresse på website eller API**. Er det et API-endpoint, så sæt flueben ved **Dette er et API-endpoint**. Klik på **Start tjekket**: sonderne tjekker adressen med det samme, og en sætning fortæller, hvad de fandt. Klik på **Fortsæt**.
 
 ### Vælg, hvem der får besked
+
+![Trinnet »Hvem skal have besked?«, med »Gem og fortsæt« fremhævet](screen:website-down-who)
 
 Under **Hvem skal have besked?** afhænger det af projektet, hvad du ser:
 
@@ -42,6 +48,8 @@ Under **Hvem skal have besked?** afhænger det af projektet, hvad du ser:
 
 ### Send dig selv en test
 
+![Trinnet »Send en test«, med »Send mig et testkald« fremhævet](screen:website-down-test)
+
 Under **Send en test** klikker du på **Send mig et testkald**. Vælg en **Alvorlighed**, og klik på **Send testkald**. Testen når dig på samme måde som et rigtigt tilkald, og der står TEST i hver besked. Der oprettes ingen hændelse.
 
 ### Kvittér for testkaldet
@@ -50,6 +58,8 @@ Under **Send en test** klikker du på **Send mig et testkald**. Vælg en **Alvor
 :::
 
 ## Tjek, at det virker
+
+![Oversigten, læst fra posterne: »Tjekket«, »Når den går ned«, »Hvem der får besked« og »Testet«](screen:website-down-summary)
 
 - Opsætningen slutter med en oversigt, hentet fra det, der faktisk er gemt: **Tjekket**, **Når den går ned**, **Hvem der får besked** og **Testet**.
 - Klik på **Åbn monitoren** og derefter på **Vis kæden** på kortet **Når den går ned**: så vises kæden fra monitoren til de personer, den når, og der står **Intet stopper kæden.**, når intet ville stoppe den.

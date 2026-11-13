@@ -444,6 +444,37 @@ ClickHouse 把遙測資料保存在 Docker 磁碟區 `oneuptime_clickhouse` 中�
 > [!CAUTION]
 > `restore.sh` 會先從目標資料庫刪除備份中的每個物件，再重新建立它們。它在開始前會進行確認；請核對它顯示的資料庫名稱。
 
+## 只執行你需要的部分
+
+許多伺服器執行 OneUptime 只為了一項工作，例如監控網站並發布狀態頁面。主管理員可以在 Admin Dashboard 的 **設定 > 產品** 中，為伺服器上的所有專案一次關閉沒人使用的產品。
+
+- **預設組合** 一鍵設定所有開關：**監測與狀態頁面** 保留監測器、事件、待命、狀態頁面和排定維護；**事件應變** 再加上警示、SLOs、工作流程和運行手冊；**全部** 保留所有產品。**逐一選擇產品** 可切換單一產品。使用者、團隊和專案設定一律開啟。
+- 已關閉的產品會從每個專案的 **產品** 選單、首頁和搜尋中消失，**專案設定 > 產品** 會將其顯示為已關閉。指向其某個頁面的連結會說明該產品已在此伺服器上關閉，以及誰可以開啟它。
+- API 會拒絕建立、變更或刪除該產品的記錄，詢問 AI 也會將其排除在外。讀取仍然有效，因為保持開啟的產品會顯示其他產品的記錄：事件會列出它的監控。
+- 不會刪除任何內容，已在執行的內容會繼續執行：監控會繼續檢查，已發布的狀態頁面維持上線，遙測資料也會持續送達，除非你同時停止資料接收。重新開啟的產品會恢復原樣。
+
+若要以程式碼方式設定產品，請在 `config.env` 中把 `SERVER_PRODUCTS`（Helm：`products.onThisServer`）設為 `everything`、`monitoring-and-status-pages`、`incident-response`，或依鍵名列出要保持開啟的產品，例如 `monitors,incidents,on-call,status-pages`。這是一個初始值：一旦管理員儲存了 **設定 > 產品**，就以其儲存的內容為準。
+
+### 監測與狀態頁面設定組合
+
+對於只監控網站和 API 並發布狀態頁面的伺服器，請在 `config.env` 中設定以下值，然後執行 `npm start`：
+
+```bash
+SERVER_PRODUCTS=monitoring-and-status-pages
+DISABLE_TELEMETRY_INGESTION=true
+GLOBAL_RUNNER_REPLICAS=0
+MQTT_INGEST_ENABLED=false
+```
+
+| 設定 | 作用 |
+| --- | --- |
+| `SERVER_PRODUCTS=monitoring-and-status-pages` | 每個專案提供監測器、事件、待命、狀態頁面和排定維護。 |
+| `DISABLE_TELEMETRY_INGESTION=true` | OneUptime 不保存傳送給它的任何日誌、指標、追蹤或效能剖析資料。日誌、指標、追蹤、效能設定檔和例外顯示為已關閉。 |
+| `GLOBAL_RUNNER_REPLICAS=0` | `global-runner` 服務不會啟動。只有運行手冊和 OneUptime AI 的程式碼修正會用到它。 |
+| `MQTT_INGEST_ENABLED=false` | 關閉 IoT 裝置傳送資料所用的 MQTT 監聽器。 |
+
+仍有六個服務在執行：`ingress`、`app`、`probe-1`、`postgres`、`clickhouse` 和 `valkey`。ClickHouse 會保留，因為監控會把結果和日誌保存在其中。在 Kubernetes 上，請在 Helm values 中設定 `products.onThisServer: monitoring-and-status-pages`、`telemetry.disableIngestion: true` 和 `globalRunner.enabled: false`。請依照[需求](#需求)決定伺服器規格。
+
 ## 更新 OneUptime
 
 先備份，然後執行：

@@ -34,6 +34,8 @@ Ange ett **Projektnamn**, till exempel ditt företags namn. På OneUptime Cloud 
 
 ### Skapa det
 
+![Hem frågar ”Vad vill du göra först?”, med guidens tre mål ikryssade](screen:home-goals-three)
+
 Klicka på **Skapa projekt**. Projektets startsida öppnas, med checklistan **Välkommen till OneUptime 👋** överst. Först frågar den **Vad vill du göra först?**: kryssa i **Veta när min webbplats eller mitt API ligger nere**, **Larma rätt person när något går sönder** och **Berätta för mina kunder med en statussida**, och klicka på **Fortsätt**.
 :::
 
@@ -121,9 +123,13 @@ Deklarera en testincident för att se hela kedjan fungera.
 
 ### Se vad som händer
 
+![”Incidentflöde” för en löst incident: vem som larmades och varje statusändring, nyaste först](screen:incident-feed)
+
 Inom någon minut larmar din jourpolicy dig, och incidenten visas på din statussida.
 
 ### Lös den
+
+![En incident i ”Bekräftad”, med ”Lös” markerad](screen:incident-resolve)
 
 Klicka på **Lös** på incidentens sida. Larmen slutar, och incidenten försvinner från din statussida.
 :::

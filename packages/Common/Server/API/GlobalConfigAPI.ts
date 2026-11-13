@@ -22,6 +22,11 @@ import ServerSetupChecklistUtil, {
   ServerSetupChoiceKind,
 } from "../../Types/ServerSetup/ServerSetupChecklist";
 import BadDataException from "../../Types/Exception/BadDataException";
+import ServerProducts from "../Utils/ServerProducts/ServerProducts";
+import {
+  SERVER_PRODUCTS_ROUTE,
+  toServerProductsAnswerJSON,
+} from "../../Types/Product/ServerProductsAnswer";
 import GlobalConfig from "../../Models/DatabaseModels/GlobalConfig";
 import ObjectID from "../../Types/ObjectID";
 import { JSONObject } from "../../Types/JSON";
@@ -281,6 +286,71 @@ export default class GlobalConfigAPI extends BaseAPI<
             req,
             res,
             JSON.parse(JSON.stringify(answer)) as JSONObject,
+          );
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * GET /global-config/server-products - Admin Dashboard > Settings >
+     * Products (#6815): what is off on this server and why, the preset the
+     * switches match, and where they come from (Types/Product/
+     * ServerProductsAnswer). Master admins, or the server's master API key
+     * (read-only), as the setup checklist.
+     */
+    this.router.get(
+      SERVER_PRODUCTS_ROUTE,
+      MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            toServerProductsAnswerJSON(await ServerProducts.getAnswer()),
+          );
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * POST /global-config/server-products - a master admin applying a
+     * preset ({ preset }) or one switch ({ product, isOn }), for every
+     * project on the server. Kept with who changed it and when. Answers the
+     * page as it now stands.
+     */
+    this.router.post(
+      SERVER_PRODUCTS_ROUTE,
+      MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const body: JSONObject =
+            req.body && typeof req.body === "object" && !Array.isArray(req.body)
+              ? (req.body as JSONObject)
+              : {};
+          const userId: ObjectID | null =
+            await GlobalConfigAPI.getSessionUserId(req);
+
+          if (body["preset"] !== undefined) {
+            await ServerProducts.applyPreset({
+              preset: body["preset"],
+              byUserId: userId,
+            });
+          } else {
+            await ServerProducts.switchProduct({
+              product: body["product"],
+              isOn: body["isOn"],
+              byUserId: userId,
+            });
+          }
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            toServerProductsAnswerJSON(await ServerProducts.getAnswer()),
           );
         } catch (err) {
           return next(err);

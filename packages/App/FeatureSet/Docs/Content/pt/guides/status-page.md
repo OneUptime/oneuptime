@@ -28,17 +28,25 @@ Seu servidor precisa de um nome de host próprio, com um registro A que aponte p
 :::steps
 ### Abrir a configuração guiada
 
+![Início pergunta "O que você quer fazer primeiro?", com "Informar meus clientes com uma página de status" marcado](screen:home-goal-status-page)
+
 Na página **Início** do seu projeto, clique em **Publique uma página de status**, na lista **Boas-vindas ao OneUptime 👋**. A página inicial de um projeto novo começa perguntando **O que você quer fazer primeiro?**: marque **Informar meus clientes com uma página de status** e clique em **Continuar**. Se o passo não aparecer ou já estiver feito, pressione `Ctrl+K` (`Cmd+K` no Mac), digite `status page` e escolha **Publique uma página de status**.
 
 ### Dar um nome e escolher o que ela mostra
+
+![O passo "Dê um nome e escolha o que ela mostra", com "Criar a página de status" destacado](screen:status-page-pick)
 
 Em **Dê um nome e escolha o que ela mostra**, mantenha o **Nome da página de status** sugerido ou digite o seu. Em **O que ela mostra**, marque os monitores que seus clientes devem ver, ou clique em **Selecionar tudo**. Clique em **Criar a página de status**. A partir deste momento, a página é pública no link dela e mostra só os monitores que você marcou.
 
 ### Ver o que seus clientes veem
 
+![O passo "É isto que seus clientes veem", com "Parece bom" destacado](screen:status-page-review)
+
 Em **É isto que seus clientes veem**, abra o endereço em **Link público**: seus monitores aparecem com o status deles. De volta à configuração, clique em **Parece bom**.
 
 ### Abrir Domínios personalizados
+
+![O resumo, com "Seu próprio domínio" destacado em "Deixe com a sua cara (opcional)"](screen:status-page-summary)
 
 A configuração termina num resumo. Em **Deixe com a sua cara (opcional)**, clique em **Seu próprio domínio**. Os **Domínios personalizados** da página de status se abrem.
 

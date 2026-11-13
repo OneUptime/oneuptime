@@ -13,6 +13,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import Permission from "Common/Types/Permission";
+import ProductKey from "Common/Types/Product/ProductKey";
 import HeldPermissionsUtil, {
   HeldPermissions,
 } from "Common/Types/HeldPermissions";
@@ -814,6 +815,35 @@ export function getVisibleActionIds(
   actionIds.push("action-log-out");
 
   return actionIds;
+}
+
+/*
+ * The product each action belongs to (#6815): an action of a product
+ * switched off on the server is not offered. The rest belong to OneUptime
+ * itself.
+ */
+export const PALETTE_ACTION_PRODUCTS: Readonly<
+  Partial<Record<PaletteActionId, ProductKey>>
+> = {
+  "action-declare-incident": ProductKey.Incidents,
+  "action-create-monitor": ProductKey.Monitors,
+  "action-create-alert": ProductKey.Alerts,
+  "action-create-scheduled-maintenance": ProductKey.ScheduledMaintenance,
+  "action-create-announcement": ProductKey.StatusPages,
+  "action-ask-ai": ProductKey.AIChat,
+  "action-active-incidents": ProductKey.Incidents,
+  "action-my-on-call-policies": ProductKey.OnCall,
+};
+
+// The actions left once those of products switched off on the server go.
+export function withoutActionsOfProductsOff(
+  actionIds: ReadonlyArray<PaletteActionId>,
+  offProducts: ReadonlyArray<ProductKey>,
+): Array<PaletteActionId> {
+  return actionIds.filter((actionId: PaletteActionId): boolean => {
+    const product: ProductKey | undefined = PALETTE_ACTION_PRODUCTS[actionId];
+    return !product || !offProducts.includes(product);
+  });
 }
 
 // ---- entity search providers ------------------------------------------------

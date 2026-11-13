@@ -26,13 +26,19 @@ Adressen sjekkes fra serverens egen sonde, så den må kunne nås derfra. For at
 :::steps
 ### Åpne det guidede oppsettet
 
+![Hjem spør «Hva vil du gjøre først?», med «Vite når nettstedet eller API-et mitt er nede» avkrysset](screen:home-goal-website)
+
 Siden **Hjem** i et nytt prosjekt spør først **Hva vil du gjøre først?**: kryss av for **Vite når nettstedet eller API-et mitt er nede**, og klikk på **Fortsett**. Klikk deretter på **Opprett din første overvåker** i sjekklisten **Velkommen til OneUptime 👋**. Mangler steget i sjekklisten, trykker du `Ctrl+K` (`Cmd+K` på en Mac), skriver `website down` og velger **Vite når nettstedet eller API-et mitt er nede**.
 
 ### Skriv inn adressen
 
+![Steget «Hva skal vi sjekke?», med «Start sjekkingen» uthevet](screen:website-down-address)
+
 Under **Hva skal vi sjekke?** skriver du adressen i **Adresse til nettsted eller API**. For et API-endepunkt krysser du av for **Dette er et API-endepunkt**. Klikk på **Start sjekkingen**: sondene sjekker adressen med en gang, og en setning forteller hva de fant. Klikk på **Fortsett**.
 
 ### Velg hvem som får beskjed
+
+![Steget «Hvem skal få beskjed?», med «Lagre og fortsett» uthevet](screen:website-down-who)
 
 Under **Hvem skal få beskjed?** avhenger det av prosjektet hva du ser:
 
@@ -42,6 +48,8 @@ Under **Hvem skal få beskjed?** avhenger det av prosjektet hva du ser:
 
 ### Send deg selv en test
 
+![Steget «Send en test», med «Send meg et testoppkall» uthevet](screen:website-down-test)
+
 Under **Send en test** klikker du på **Send meg et testoppkall**. Velg en **Alvorlighetsgrad**, og klikk på **Send testoppkall**. Testen når deg på samme måte som en ekte tilkalling, og det står TEST i hver melding. Ingen hendelse opprettes.
 
 ### Bekreft testoppkallet
@@ -50,6 +58,8 @@ Under **Send en test** klikker du på **Send meg et testoppkall**. Velg en **Alv
 :::
 
 ## Sjekk at det virker
+
+![Sammendraget, lest fra postene: «Sjekket», «Når den går ned», «Hvem som får beskjed» og «Testet»](screen:website-down-summary)
 
 - Oppsettet slutter med et sammendrag, hentet fra det som faktisk er lagret: **Sjekket**, **Når den går ned**, **Hvem som får beskjed** og **Testet**.
 - Klikk på **Åpne monitoren**, og deretter på **Vis kjeden** på kortet **Når den går ned**: da vises kjeden fra monitoren til personene den når, og det står **Ingenting stopper kjeden.** når ingenting ville stoppe den.

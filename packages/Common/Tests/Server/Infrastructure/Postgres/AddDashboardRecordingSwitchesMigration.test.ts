@@ -7,7 +7,7 @@ import Project from "../../../../Models/DatabaseModels/Project";
 import User from "../../../../Models/DatabaseModels/User";
 import Permission from "../../../../Types/Permission";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddDashboardRecordingSwitches1809123600000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809123600000-AddDashboardRecordingSwitches";
+import { AddDashboardRecordingSwitches1809123700000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809123700000-AddDashboardRecordingSwitches";
 
 /*
  * THE OFF SWITCHES FOR RECORDING ONEUPTIME'S OWN DASHBOARD (#6834): the
@@ -28,7 +28,7 @@ import { AddDashboardRecordingSwitches1809123600000 } from "../../../../Server/I
  * only these two columns belong to this change.)
  */
 
-const MIGRATION_TIMESTAMP: string = "1809123600000";
+const MIGRATION_TIMESTAMP: string = "1809123700000";
 const MIGRATION_BASE_NAME: string = "AddDashboardRecordingSwitches";
 const MIGRATION_FILE_NAME: string = `${MIGRATION_TIMESTAMP}-${MIGRATION_BASE_NAME}.ts`;
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_BASE_NAME}${MIGRATION_TIMESTAMP}`;
@@ -50,7 +50,7 @@ async function statementsOf(step: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
 
-  await new AddDashboardRecordingSwitches1809123600000()[step](runner);
+  await new AddDashboardRecordingSwitches1809123700000()[step](runner);
 
   return statements;
 }
@@ -146,7 +146,7 @@ describe("registering it", () => {
     expect(
       fs.existsSync(path.join(MIGRATION_DIRECTORY, MIGRATION_FILE_NAME)),
     ).toBe(true);
-    expect(new AddDashboardRecordingSwitches1809123600000().name).toBe(
+    expect(new AddDashboardRecordingSwitches1809123700000().name).toBe(
       MIGRATION_CLASS_NAME,
     );
   });

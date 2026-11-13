@@ -4,7 +4,11 @@ import UsedByError from "./UsedByError";
 import UsedByGroups from "./UsedByRows";
 import useUsedBySummary, { UseUsedBySummaryResult } from "./useUsedBySummary";
 import { LOADING_USED_BY, USED_BY_CARD_WORDS } from "./UsedByWords";
+import { ProjectProductsState } from "../../Utils/ProjectProducts/ProjectProductsStore";
+import useProjectProducts from "../../Utils/ProjectProducts/UseProjectProducts";
 import ObjectID from "Common/Types/ObjectID";
+import { getOffProducts } from "Common/Types/Product/ServerProducts";
+import { withoutGroupsOfProductsOff } from "Common/Types/UsedBy/UsedByServerProducts";
 import {
   UsedByRecordKind,
   UsedByRelation,
@@ -24,6 +28,9 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
  * (UsedByDialog). When nothing refers to it, the card says what to do next.
  *
  * One request (UsedByApi), counts first; read again on `refreshToken`.
+ *
+ * A line of a product switched off on the server (#6815) is left out: its
+ * pages are gone. The Delete and Archive dialogs keep it (UsedByImpact).
  */
 
 export interface ComponentProps {
@@ -45,6 +52,7 @@ const UsedByCard: FunctionComponent<ComponentProps> = (
     refreshToken: props.refreshToken,
   });
   const [openRelation, setOpenRelation] = useState<UsedByRelation | null>(null);
+  const products: ProjectProductsState = useProjectProducts();
 
   const getBody: () => ReactElement = (): ReactElement => {
     if (used.state.status === "loading") {
@@ -67,13 +75,19 @@ const UsedByCard: FunctionComponent<ComponentProps> = (
       );
     }
 
-    if (isUsedByNothing(used.state.summary)) {
+    const summary: ReturnType<typeof withoutGroupsOfProductsOff> =
+      withoutGroupsOfProductsOff(
+        used.state.summary,
+        getOffProducts(products.answer.offOnServer || {}),
+      );
+
+    if (isUsedByNothing(summary)) {
       return <UsedByEmpty recordKind={props.recordKind} />;
     }
 
     return (
       <UsedByGroups
-        summary={used.state.summary}
+        summary={summary}
         onSeeAll={(relation: UsedByRelation) => {
           setOpenRelation(relation);
         }}
