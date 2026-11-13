@@ -51828,5 +51828,8 @@
   "Couldn't search the notes.": "Impossibile cercare nelle note.",
   "Couldn't sort the notes.": "Impossibile ordinare le note.",
   "Couldn't load more notes.": "Impossibile caricare altre note.",
-  "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Intervallo di tempo: {{range}}. Prova a modificare i filtri o ad ampliare l'intervallo di tempo."
+  "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Intervallo di tempo: {{range}}. Prova a modificare i filtri o ad ampliare l'intervallo di tempo.",
+  "On-Call Policy Created": "Policy di reperibilità creata",
+  "On-Call Schedule Added": "Pianificazione di reperibilità aggiunta",
+  "On-Call Schedule Removed": "Pianificazione di reperibilità rimossa"
 }

@@ -51828,5 +51828,8 @@
   "Couldn't search the notes.": "Couldn't search the notes.",
   "Couldn't sort the notes.": "Couldn't sort the notes.",
   "Couldn't load more notes.": "Couldn't load more notes.",
-  "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Time range: {{range}}. Try adjusting filters or expanding the time range."
+  "Time range: {{range}}. Try adjusting filters or expanding the time range.": "Time range: {{range}}. Try adjusting filters or expanding the time range.",
+  "On-Call Policy Created": "On-Call Policy Created",
+  "On-Call Schedule Added": "On-Call Schedule Added",
+  "On-Call Schedule Removed": "On-Call Schedule Removed"
 }
