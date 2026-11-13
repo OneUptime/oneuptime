@@ -1,4 +1,5 @@
 import ProviderLogo from "Common/Types/ProviderLogo/ProviderLogo";
+import HostAddressUtil from "Common/Utils/HostAddressUtil";
 import {
   COMPATIBLE_INGEST_URL_PREFIX,
   DATADOG_BASE_PATH,
@@ -286,6 +287,16 @@ export function getHostAndPort(endpoint: CompatibleIngestEndpoint): {
   };
 }
 
+/*
+ * The host as Fluent Bit's outputs take it, apart from the port: the
+ * address itself. Fluent Bit resolves Host as it is written, so a bracketed
+ * IPv6 host ("[::1]") fails as "Misformatted domain name" and sends
+ * nothing, where "::1" connects (#7753).
+ */
+export function getFluentBitHost(endpoint: CompatibleIngestEndpoint): string {
+  return HostAddressUtil.stripBrackets(getHostAndPort(endpoint).hostname);
+}
+
 function getOrigin(endpoint: CompatibleIngestEndpoint): string {
   return `${endpoint.protocol}://${endpoint.host}`;
 }
@@ -379,7 +390,7 @@ clients:
           code: `[OUTPUT]
     Name         loki
     Match        *
-    Host         ${hostname}
+    Host         ${getFluentBitHost(endpoint)}
     Port         ${port}
     Tls          ${isTls ? "On" : "Off"}
     Uri          ${COMPATIBLE_INGEST_URL_PREFIX}${LOKI_PUSH_PATH}

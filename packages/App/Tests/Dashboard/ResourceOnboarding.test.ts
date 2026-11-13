@@ -709,7 +709,10 @@ describe("resources added with a form", () => {
     expect(guide.split("code={replacePlaceholders(").length).toBe(1);
     expect(
       guide.split("code={withServiceName( replacePlaceholders(").length,
-    ).toBe(10);
+    ).toBe(6);
+    // The log shippers' files, built from the server's address (#7753).
+    expect(guide.split("code={getFluent").length).toBe(1);
+    expect(guide.split("code={withServiceName( getFluent").length).toBe(5);
   });
 
   test("a queue's guide opens once it is saved", () => {

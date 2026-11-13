@@ -59,6 +59,12 @@ import {
   getCompatibleIngestSnippets,
   isCompatibleIngestMethod,
 } from "./CompatibleIngestGuide";
+import {
+  getFluentBitConfig,
+  getFluentBitDockerCompose,
+  getFluentdConfig,
+  getFluentdDockerCompose,
+} from "./LogShipperSnippets";
 
 /*
  * The Kubernetes agent's own eBPF profiler (kubernetes-agent values
@@ -1212,89 +1218,6 @@ services:
       - /etc/alloy/config.alloy`;
 }
 
-// --- FluentBit snippets ---
-
-function getFluentBitSnippet(): string {
-  return `# fluent-bit.conf
-[SERVICE]
-    Flush        5
-    Log_Level    info
-    Parsers_File parsers.conf
-
-[INPUT]
-    Name         tail
-    Path         /var/log/*.log
-    Tag          app.logs
-
-[OUTPUT]
-    Name         opentelemetry
-    Match        *
-    Host         <YOUR_ONEUPTIME_OTLP_HOST>
-    Port         443
-    Tls          On
-    Header       x-oneuptime-token <YOUR_ONEUPTIME_TOKEN>
-    Logs_uri     /v1/logs`;
-}
-
-function getFluentBitDockerSnippet(): string {
-  return `# docker-compose.yml
-services:
-  fluent-bit:
-    image: fluent/fluent-bit:latest
-    volumes:
-      - ./fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf
-      - /var/log:/var/log:ro
-    environment:
-      - FLB_ES_HOST=<YOUR_ONEUPTIME_OTLP_HOST>`;
-}
-
-// --- Fluentd snippets ---
-
-function getFluentdSnippet(): string {
-  return `# fluentd.conf
-<source>
-  @type forward
-  port 24224
-  bind 0.0.0.0
-</source>
-
-<source>
-  @type tail
-  path /var/log/*.log
-  pos_file /var/log/fluentd.pos
-  tag app.logs
-  <parse>
-    @type json
-  </parse>
-</source>
-
-<match **>
-  @type http
-  endpoint https://<YOUR_ONEUPTIME_OTLP_HOST>/v1/logs
-  headers {"x-oneuptime-token":"<YOUR_ONEUPTIME_TOKEN>"}
-  json_array true
-  <format>
-    @type json
-  </format>
-  <buffer>
-    @type memory
-    flush_interval 5s
-  </buffer>
-</match>`;
-}
-
-function getFluentdDockerSnippet(): string {
-  return `# docker-compose.yml
-services:
-  fluentd:
-    image: fluent/fluentd:latest
-    volumes:
-      - ./fluentd.conf:/fluentd/etc/fluentd.conf
-      - /var/log:/var/log:ro
-    ports:
-      - "24224:24224"`;
-}
-
 // --- Main Component ---
 
 const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
@@ -1469,7 +1392,10 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
   const otlpUrlValue: string = otlpUrl;
   const otlpHostValue: string = otlpHost;
 
-  // Where another tool's agent or SDK is pointed, with the picked key.
+  /*
+   * Where another tool's agent or SDK is pointed, with the picked key. The
+   * log shippers' files (LogShipperSnippets) are built from it too.
+   */
   const compatibleEndpoint: CompatibleIngestEndpoint = {
     protocol: httpProtocol,
     host: HOST ? HOST : "<YOUR_ONEUPTIME_HOST>",
@@ -2346,13 +2272,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
             ),
             <CodeBlock
               code={withServiceName(
-                replacePlaceholders(
-                  getFluentBitSnippet(),
-                  otlpUrlValue,
-                  otlpHostValue,
-                  tokenValue,
-                  pyroscopeUrl,
-                ),
+                getFluentBitConfig(compatibleEndpoint),
                 props.serviceName,
               )}
               language="yaml"
@@ -2381,13 +2301,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                   content: (
                     <CodeBlock
                       code={withServiceName(
-                        replacePlaceholders(
-                          getFluentBitDockerSnippet(),
-                          otlpUrlValue,
-                          otlpHostValue,
-                          tokenValue,
-                          pyroscopeUrl,
-                        ),
+                        getFluentBitDockerCompose(),
                         props.serviceName,
                       )}
                       language="yaml"
@@ -2425,13 +2339,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
             ),
             <CodeBlock
               code={withServiceName(
-                replacePlaceholders(
-                  getFluentdSnippet(),
-                  otlpUrlValue,
-                  otlpHostValue,
-                  tokenValue,
-                  pyroscopeUrl,
-                ),
+                getFluentdConfig(compatibleEndpoint),
                 props.serviceName,
               )}
               language="yaml"
@@ -2457,13 +2365,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                   content: (
                     <CodeBlock
                       code={withServiceName(
-                        replacePlaceholders(
-                          getFluentdDockerSnippet(),
-                          otlpUrlValue,
-                          otlpHostValue,
-                          tokenValue,
-                          pyroscopeUrl,
-                        ),
+                        getFluentdDockerCompose(),
                         props.serviceName,
                       )}
                       language="yaml"

@@ -38,6 +38,10 @@ const TELEMETRY_INDEX = `${TELEMETRY_DIRECTORY}/Index.ts`;
 const COMPATIBLE_INGEST_DOCS =
   "packages/App/FeatureSet/Docs/Content/en/telemetry/compatible-endpoints.md";
 
+// The logs guide's Fluent Bit and Fluentd files (Send your first logs).
+const LOG_SHIPPER_SNIPPETS =
+  "packages/App/FeatureSet/Dashboard/src/Components/Telemetry/LogShipperSnippets.ts";
+
 const HOST_COLLECTOR_INSTALL_SH =
   "packages/App/FeatureSet/Docs/Static/scripts/host-collector/install.sh";
 const HOST_COLLECTOR_INSTALL_PS1 =
@@ -79,6 +83,15 @@ const TELEMETRY_INGEST_ADDRESSES = [
               contains:
                 "HOST_COLLECTOR_EXPORTER_ENDPOINT: string = `${HOST_COLLECTOR_URL_REFERENCE}/otlp`",
             },
+            // Fluent Bit's opentelemetry output, as its Logs_uri.
+            ...(signal === "logs"
+              ? [
+                  {
+                    file: LOG_SHIPPER_SNIPPETS,
+                    contains: 'FLUENT_BIT_LOGS_URI: string = "/otlp/v1/logs"',
+                  },
+                ]
+              : []),
           ],
         },
       ],
@@ -177,6 +190,10 @@ const TELEMETRY_INGEST_ADDRESSES = [
             file: "packages/App/FeatureSet/Docs/Content/en/telemetry/fluentd.md",
             contains: "endpoint https://oneuptime.com/fluentd/logs",
           },
+          {
+            file: LOG_SHIPPER_SNIPPETS,
+            contains: 'FLUENTD_LOGS_PATH: string = "/fluentd/logs"',
+          },
         ],
       },
     ],
@@ -201,7 +218,8 @@ const TELEMETRY_INGEST_ADDRESSES = [
         handedOutBy: [
           {
             file: COMPATIBLE_INGEST_DOCS,
-            contains: "url: https://oneuptime.com/telemetry/prometheus/api/v1/write",
+            contains:
+              "url: https://oneuptime.com/telemetry/prometheus/api/v1/write",
           },
         ],
       },
@@ -251,7 +269,8 @@ const TELEMETRY_INGEST_ADDRESSES = [
         handedOutBy: [
           {
             file: COMPATIBLE_INGEST_DOCS,
-            contains: "curl https://oneuptime.com/telemetry/services/collector/event",
+            contains:
+              "curl https://oneuptime.com/telemetry/services/collector/event",
           },
         ],
       },
