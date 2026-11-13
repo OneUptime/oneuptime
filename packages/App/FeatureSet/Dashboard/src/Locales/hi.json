@@ -51716,5 +51716,6 @@
   "Are you sure you want to delete {{project}}? Its made-up monitors, incidents, people and telemetry are deleted for good. You can explore a new sample at any time.": "क्या आप वाकई {{project}} हटाना चाहते हैं? इसके काल्पनिक मॉनिटर, घटनाएं, लोग और टेलीमेट्री हमेशा के लिए हटा दिए जाएंगे। आप कभी भी नया नमूना देख सकते हैं।",
   "Create Your Own Project": "अपना प्रोजेक्ट बनाएं",
   "Delete Sample Project": "नमूना प्रोजेक्ट हटाएं",
-  "Explore Sample Project": "नमूना प्रोजेक्ट देखें"
+  "Explore Sample Project": "नमूना प्रोजेक्ट देखें",
+  "You already have a status page named \"{{name}}\", so no new one was made.": "आपके पास पहले से \"{{name}}\" नाम का एक स्थिति पृष्ठ है, इसलिए कोई नया पृष्ठ नहीं बनाया गया।"
 }

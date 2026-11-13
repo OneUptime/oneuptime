@@ -51716,5 +51716,6 @@
   "Are you sure you want to delete {{project}}? Its made-up monitors, incidents, people and telemetry are deleted for good. You can explore a new sample at any time.": "確定要刪除 {{project}} 嗎？其中虛構的監測器、事件、人員和遙測將被永久刪除。您可以隨時探索新的範例。",
   "Create Your Own Project": "建立您自己的專案",
   "Delete Sample Project": "刪除範例專案",
-  "Explore Sample Project": "探索範例專案"
+  "Explore Sample Project": "探索範例專案",
+  "You already have a status page named \"{{name}}\", so no new one was made.": "你已有名為「{{name}}」的狀態頁面，因此沒有建立新的頁面。"
 }

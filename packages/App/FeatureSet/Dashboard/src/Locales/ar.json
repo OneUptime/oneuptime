@@ -51716,5 +51716,6 @@
   "Are you sure you want to delete {{project}}? Its made-up monitors, incidents, people and telemetry are deleted for good. You can explore a new sample at any time.": "هل تريد بالتأكيد حذف {{project}}؟ ستُحذف مراقباته وحوادثه وأشخاصه وقياساته عن بُعد المختلقة نهائياً. يمكنك استكشاف مشروع تجريبي جديد في أي وقت.",
   "Create Your Own Project": "أنشئ مشروعك الخاص",
   "Delete Sample Project": "حذف المشروع التجريبي",
-  "Explore Sample Project": "استكشاف المشروع التجريبي"
+  "Explore Sample Project": "استكشاف المشروع التجريبي",
+  "You already have a status page named \"{{name}}\", so no new one was made.": "لديك بالفعل صفحة حالة باسم «{{name}}»، لذا لم تُنشأ صفحة جديدة."
 }

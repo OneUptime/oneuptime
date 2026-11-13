@@ -21,7 +21,10 @@ export default defineConfig({
   testMatch: [
     "Journeys.spec.ts",
     "JourneyCounter.spec.ts",
-    // The website-down setup's run, kept and lost (#7059): not counted.
+    /*
+     * The website-down (#7059) and status page (#7252) setups' runs, kept
+     * and lost: not counted.
+     */
     "GuidedSetupRun.spec.ts",
   ],
   fullyParallel: false,

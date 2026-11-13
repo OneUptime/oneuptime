@@ -51716,5 +51716,6 @@
   "Are you sure you want to delete {{project}}? Its made-up monitors, incidents, people and telemetry are deleted for good. You can explore a new sample at any time.": "{{project}} を削除しますか？架空のモニター、インシデント、メンバー、テレメトリは完全に削除されます。新しいサンプルはいつでも試せます。",
   "Create Your Own Project": "自分のプロジェクトを作成",
   "Delete Sample Project": "サンプルプロジェクトを削除",
-  "Explore Sample Project": "サンプルプロジェクトを試す"
+  "Explore Sample Project": "サンプルプロジェクトを試す",
+  "You already have a status page named \"{{name}}\", so no new one was made.": "すでに「{{name}}」という名前のステータスページがあるため、新しいページは作成されませんでした。"
 }

@@ -51716,5 +51716,6 @@
   "Are you sure you want to delete {{project}}? Its made-up monitors, incidents, people and telemetry are deleted for good. You can explore a new sample at any time.": "Voulez-vous vraiment supprimer {{project}} ? Ses moniteurs, incidents, personnes et sa télémétrie fictifs seront définitivement supprimés. Vous pouvez explorer un nouvel exemple à tout moment.",
   "Create Your Own Project": "Créer votre propre projet",
   "Delete Sample Project": "Supprimer le projet d'exemple",
-  "Explore Sample Project": "Explorer le projet d'exemple"
+  "Explore Sample Project": "Explorer le projet d'exemple",
+  "You already have a status page named \"{{name}}\", so no new one was made.": "Vous avez déjà une page de statut nommée « {{name}} », donc aucune nouvelle page n'a été créée."
 }

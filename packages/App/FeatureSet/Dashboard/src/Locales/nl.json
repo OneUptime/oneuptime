@@ -51716,5 +51716,6 @@
   "Are you sure you want to delete {{project}}? Its made-up monitors, incidents, people and telemetry are deleted for good. You can explore a new sample at any time.": "Weet u zeker dat u {{project}} wilt verwijderen? De verzonnen monitoren, incidenten, mensen en telemetrie worden definitief verwijderd. U kunt op elk moment een nieuw voorbeeld verkennen.",
   "Create Your Own Project": "Uw eigen project maken",
   "Delete Sample Project": "Voorbeeldproject verwijderen",
-  "Explore Sample Project": "Voorbeeldproject verkennen"
+  "Explore Sample Project": "Voorbeeldproject verkennen",
+  "You already have a status page named \"{{name}}\", so no new one was made.": "Je hebt al een statuspagina met de naam \"{{name}}\", dus er is geen nieuwe aangemaakt."
 }
