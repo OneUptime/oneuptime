@@ -452,6 +452,9 @@ const NO_BREAK_SPACE: string = String.fromCharCode(0x00a0);
 const ANY_SPACE: RegExp = /\s/g;
 const LATIN_DIGIT: RegExp = /[0-9]/;
 
+// A full stop, then another: "ق.ظ.." where the window ended the sentence.
+const TWO_FULL_STOPS: RegExp = /\.\s*\./;
+
 // Today, 08:00 to 09:30 UTC (NOW is 12:00): a window written without years.
 const MORNING_WINDOW: RangeStartAndEndDateTime = {
   range: TimeRange.CUSTOM,
@@ -664,6 +667,26 @@ describe("the explorer's time range sentence, with the shipped locale files", ()
       spaced(isolated("26 أكتوبر، 8:00 ص – 26 أكتوبر، 9:30 ص")),
     );
     expect(drawn).not.toContain("08:00");
+  });
+
+  test("Persian, on a 12-hour clock: the window's ق.ظ. ends the sentence, with one full stop", async () => {
+    jest
+      .spyOn(OneUptimeDate, "getUserPrefers12HourFormat")
+      .mockReturnValue(true);
+    await readIn("fa");
+
+    const block: HTMLElement = await mountUnhinted(MORNING_WINDOW);
+    const drawn: string = drawnLinesOf(block)[1]!;
+    const read: string = readAs(drawn);
+
+    // "ق.ظ.." read as a typo: one full stop, then the next sentence.
+    expect(read).not.toMatch(TWO_FULL_STOPS);
+    expect(read).toContain("۹:۳۰ ق.ظ. فیلترها");
+    expect(read).toContain("۸:۰۰ ق.ظ. –");
+    // The window is still set apart, its own letters inside, the stop after.
+    expect(spaced(drawn)).toContain(
+      spaced(`${isolated("۲۶ اکتبر، ۸:۰۰ ق.ظ. – ۲۶ اکتبر، ۹:۳۰ ق.ظ")}.`),
+    );
   });
 
   test("the sentence is worded in every language read here, its window kept", () => {

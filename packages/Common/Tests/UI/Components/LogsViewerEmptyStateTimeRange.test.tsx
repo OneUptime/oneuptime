@@ -339,10 +339,19 @@ describe("getEmptyMessageWithTimeRange", () => {
     });
 
     test("falls back when a custom range carries no dates", () => {
-      expect(
-        english(getEmptyMessageWithTimeRange({ range: TimeRange.CUSTOM })),
-      ).toBe(
-        "Time range: custom. Try adjusting filters or expanding the time range.",
+      /*
+       * There is no window to name: "Time range: custom." said a word, not
+       * a window, and Russian's word for the picker's Custom is "other".
+       */
+      const message: LogsEmptyMessage = getEmptyMessageWithTimeRange({
+        range: TimeRange.CUSTOM,
+      });
+
+      expect(message).toBe(LOGS_TABLE_EMPTY_HINT);
+      expect(english(message)).toBe("Adjust filters or check again later.");
+      expect(readIn("ru", message)).not.toContain("другое");
+      expect(readIn("ru", message)).toBe(
+        readDashboardLocale("ru")[LOGS_TABLE_EMPTY_HINT],
       );
     });
   });
@@ -547,6 +556,101 @@ describe("the sentence in the reader's language (issue #7280)", () => {
     expect(readIn("ja", getEmptyMessageWithTimeRange(CUSTOM_AFTERNOON))).toBe(
       "時間範囲: 3月1日 14:30 – 3月1日 18:45。フィルターを調整するか、時間範囲を広げてみてください。",
     );
+  });
+
+  /*
+   * On a 12-hour clock Spanish writes a morning "a. m.", Dutch and Norwegian
+   * "a.m.", Persian "ق.ظ.": the window's last time ends in its
+   * abbreviation's full stop, and the sentence ends there with it, as a
+   * sentence ending in an abbreviation does. With the sentence's own full
+   * stop after it, the line read "9:49 a. m.. Prueba ..." and "ق.ظ..".
+   */
+  describe("a window that ends in an abbreviation's full stop", () => {
+    const MORNING: RangeStartAndEndDateTime = {
+      range: TimeRange.CUSTOM,
+      startAndEndDate: new InBetween<Date>(
+        new Date("2024-03-01T05:14:00.000Z"),
+        new Date("2024-03-01T09:49:00.000Z"),
+      ),
+    };
+
+    const DOUBLE_FULL_STOP: RegExp = /\.\s*\./;
+
+    test("Spanish, on a 12-hour clock: one full stop after a. m., then the next sentence", () => {
+      pin(true);
+
+      expect(readIn("es", getEmptyMessageWithTimeRange(MORNING))).toBe(
+        "Intervalo de tiempo: 1 mar, 5:14 a. m. – 1 mar, 9:49 a. m. Prueba a ajustar los filtros o a ampliar el intervalo de tiempo.",
+      );
+    });
+
+    test("Dutch and Norwegian, on a 12-hour clock: one full stop after a.m.", () => {
+      pin(true);
+
+      expect(readIn("nl", getEmptyMessageWithTimeRange(MORNING))).toBe(
+        "Periode: 1 mrt, 5:14 a.m. – 1 mrt, 9:49 a.m. Pas de filters aan of kies een ruimere periode.",
+      );
+      expect(readIn("no", getEmptyMessageWithTimeRange(MORNING))).toBe(
+        "Tidsrom: 1. mars, 5:14 a.m. – 1. mars, 9:49 a.m. Prøv å justere filtrene eller utvide tidsrommet.",
+      );
+    });
+
+    test("Persian, on a 12-hour clock: ق.ظ. ends the sentence once, outside the window set apart", () => {
+      pin(true);
+
+      const drawn: string = drawnIn(
+        "fa",
+        getEmptyMessageWithTimeRange(MORNING),
+      );
+      const read: string = spaced(withoutIsolateMarks(drawn));
+
+      expect(read).toBe(
+        `بازهٔ زمانی: ۱ مارس، ۵:۱۴ ق.ظ. – ۱ مارس، ۹:۴۹ ق.ظ. فیلترها را تغییر دهید یا بازهٔ زمانی را بزرگ${ZERO_WIDTH_NON_JOINER}تر کنید.`,
+      );
+      expect(read).not.toMatch(DOUBLE_FULL_STOP);
+      // The window keeps its own letters; the sentence's full stop follows it.
+      expect(withoutIsolateMarks(drawn)).toContain(
+        `۹:۴۹${NO_BREAK_SPACE}ق.ظ. فیلترها`,
+      );
+    });
+
+    test("the window keeps its full stop where the sentence puts none after it", () => {
+      pin(true);
+
+      // A sentence that goes on after the window: the window as written.
+      const goesOn: Translator = createTranslator((text: string) => {
+        return text === LOGS_TIME_RANGE_EMPTY_HINT
+          ? "Intervalo de tiempo: {{range}} (prueba a ampliarlo)"
+          : undefined;
+      }, "es");
+
+      expect(
+        spaced(
+          writeLogsEmptyMessage(getEmptyMessageWithTimeRange(MORNING), goesOn),
+        ),
+      ).toBe(
+        "Intervalo de tiempo: 1 mar, 5:14 a. m. – 1 mar, 9:49 a. m. (prueba a ampliarlo)",
+      );
+    });
+
+    test("no Dashboard language reads two full stops after the window, on either clock", () => {
+      for (const use12HourFormat of [true, false]) {
+        pin(use12HourFormat);
+
+        for (const language of DASHBOARD_LANGUAGES) {
+          const read: string = readIn(
+            language,
+            getEmptyMessageWithTimeRange(MORNING),
+          );
+
+          expect({
+            language,
+            use12HourFormat,
+            twoFullStops: DOUBLE_FULL_STOP.test(read),
+          }).toEqual({ language, use12HourFormat, twoFullStops: false });
+        }
+      }
+    });
   });
 
   test("a preset is named in the reader's language: German, Persian, Arabic", () => {

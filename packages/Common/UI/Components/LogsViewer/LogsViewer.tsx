@@ -350,6 +350,32 @@ const keepEachEndWhole: (window: string) => string = (
   return `${whole(ends[0] || "")}${NO_BREAK_SPACE}${TIME_RANGE_LABEL_SEPARATOR.trim()} ${whole(ends[1] || "")}`;
 };
 
+const FULL_STOP: string = ".";
+
+// The window, then the sentence's own full stop: "Time range: {{range}}."
+const RANGE_THEN_FULL_STOP: string = `{{range}}${FULL_STOP}`;
+
+/*
+ * A window whose last time ends in its abbreviation's full stop - "9:49
+ * a. m." in Spanish, "a.m." in Dutch and Norwegian, "ق.ظ." in Persian, on a
+ * 12-hour clock - ends the sentence with that full stop, as a sentence
+ * that ends in an abbreviation does. With the sentence's own one after it,
+ * the line read "a. m.." and "ق.ظ..". `sentence` is the language the
+ * sentence came out in; its wording says whether a full stop follows.
+ */
+const endingTheSentence: (window: string, sentence: Translator) => string = (
+  window: string,
+  sentence: Translator,
+): string => {
+  const wording: string =
+    sentence.translateText(LOGS_TIME_RANGE_EMPTY_HINT) ||
+    LOGS_TIME_RANGE_EMPTY_HINT;
+
+  return window.endsWith(FULL_STOP) && wording.includes(RANGE_THEN_FULL_STOP)
+    ? window.slice(0, -FULL_STOP.length)
+    : window;
+};
+
 /*
  * The line under "No logs found" for a list nothing narrowed, when the page
  * hands over none: the window searched and what to try - a sentence with
@@ -373,7 +399,15 @@ export function getEmptyMessageWithTimeRange(
   // The moment "this year" is read from: now, unless a caller says.
   now?: Date | undefined,
 ): LogsEmptyMessage {
-  if (!timeRange) {
+  /*
+   * No window to name: the list's own hint. A custom window with no dates
+   * read "Time range: custom." - a word, not a window - and "Период:
+   * другое." ("other") in Russian.
+   */
+  if (
+    !timeRange ||
+    (timeRange.range === TimeRange.CUSTOM && !timeRange.startAndEndDate)
+  ) {
     return LOGS_TABLE_EMPTY_HINT;
   }
 
@@ -381,7 +415,10 @@ export function getEmptyMessageWithTimeRange(
     timeRange.range === TimeRange.CUSTOM && timeRange.startAndEndDate
       ? composedValue((sentence: Translator): string => {
           return withDateDisplayLanguage(sentence.language, (): string => {
-            return keepEachEndWhole(getTimeRangeButtonLabel(timeRange, now));
+            return endingTheSentence(
+              keepEachEndWhole(getTimeRangeButtonLabel(timeRange, now)),
+              sentence,
+            );
           });
         })
       : translatableTerm(getTimeRangeLabel(timeRange.range), {
